@@ -1432,6 +1432,17 @@ PRIVATE = os.path.join(OUTSIDE, "private.txt")
 MISSING = os.path.join(OUTSIDE, "missing")
 TREE = os.path.join(OUTSIDE, "tree")
 TRUE_COMMAND = ["cmd", "/c", "exit 0"] if os.name == "nt" else ["true"]
+
+# The shells os.system may run a command in. On Windows the runtime uses COMSPEC or cmd.exe,
+# and falls back to cmd.exe when COMSPEC names a file it cannot open, so both are targets. A
+# bare cmd.exe COMSPEC is the fallback itself.
+if os.name != "nt":
+    SYSTEM_SHELLS = ["/bin/sh"]
+else:
+    COMSPEC = os.environ.get("COMSPEC") or ""
+    SYSTEM_SHELLS = (["cmd.exe"] if not COMSPEC or
+                     ("/" not in COMSPEC and "\\" not in COMSPEC and COMSPEC.lower() == "cmd.exe")
+                     else [COMSPEC, "cmd.exe"])
 for path in (APPROVED, PRIVATE):
     with open(path, "w") as f:
         f.write("x")
@@ -1523,6 +1534,23 @@ std::string describe(const std::vector<Prompt>& prompts)
         text += "\n";
     }
     return text;
+}
+
+// The line describe() prints for an os.system prompt, whose target is every possible shell.
+std::string describe_system_prompt(const std::vector<std::string>& shells)
+{
+    std::string text = "os.system:";
+    for (const std::string& shell : shells)
+        text += " " + shell;
+    return text + "\n";
+}
+
+// The process grants a successful os.system approval adds to the ones already saved.
+std::vector<std::string> with_shell_grants(std::vector<std::string> grants,
+                                           const std::vector<std::string>& shells)
+{
+    grants.insert(grants.end(), shells.begin(), shells.end());
+    return grants;
 }
 
 // The plugin system with the audit hook installed, and the permission dialog replaced by a
@@ -1863,10 +1891,11 @@ TEST_CASE("A freshly approved operation covers its nested events", "[audit][Pyth
         const char* prompts;
         const char* code;
     };
-    // Each case starts with no saved grants, so its root event is asked once. A freshly approved
-    // create or delete saves the parent folder, so the stored grants are reset between cases.
-    // Only the expected prompts are approved, so a nested event left uncovered fails the
-    // operation.
+    // Each case starts with no saved grants, so its root event is asked once; a freshly approved
+    // create or delete saves the parent folder, so the stored grants are reset between cases. A
+    // process grant names the executable, so pty.spawn's own approval covers the exec in the
+    // forked child. Only the expected prompts are approved, so a nested event left uncovered
+    // fails the operation.
     std::vector<Case> cases = {
         {"shutil.copytree", "shutil.copytree(TREE, os.path.join(OUTSIDE, 'copy'))"},
         {"shutil.copyfile", "shutil.copyfile(APPROVED, os.path.join(OUTSIDE, 'copied.txt'))"},
@@ -2027,7 +2056,7 @@ fd_outcomes = [attempt(lambda: open(READ_FD, "r", closefd=False).close()),
     CHECK(describe(harness.prompts) == "open:\nopen:\n");
     CHECK(harness.saved_permissions(PLUGIN).events == std::vector<std::string>{"FsRead:open"});
 
-    // A saved os.fork event grant is not an os.system command named "os.fork".
+    // A saved os.fork event grant is not the shell os.system runs.
     PluginPermissions permissions;
     permissions.events = {"FsRead:open", "ProcessCreate:os.fork"};
     harness.save_permissions(PLUGIN, permissions);
@@ -2044,6 +2073,377 @@ os.close(WRITE_FD)
     CHECK(harness.prompts.front().event == "os.system");
     CHECK(harness.saved_permissions(PLUGIN).process.empty());
 }
+
+TEST_CASE("A process grant names the executable, or the exact Windows command line", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+    const std::vector<std::string> shells = python.strings("SYSTEM_SHELLS");
+#ifdef _WIN32
+    // subprocess.run() joins argv into one command line before the audit event. Its executable
+    // "cmd" is unquoted and followed by arguments, so the documented grant keeps the whole exact
+    // line instead of the first token.
+    const std::string popen_target = R"(CommandLine:cmd /c "exit 0")";
+#else
+    // POSIX keeps the executable in its own argv element, so only the executable is granted.
+    const std::string popen_target = python.eval("TRUE_COMMAND[0]");
+#endif
+
+    // Refused, so nothing runs: the prompts show the target each event reports. A direct process
+    // event names the executable, except a Windows command line whose unquoted executable is
+    // followed by arguments, which is the exact command line. os.system names every shell that may
+    // parse its command string.
+    python.run_as(PLUGIN, R"PY(
+popen_outcome = attempt(lambda: subprocess.run(TRUE_COMMAND, check=True))
+system_outcome = attempt(lambda: os.system(" ".join(TRUE_COMMAND) + " ignored"))
+)PY");
+    CHECK(python.str("popen_outcome") == "denied");
+    CHECK(python.str("system_outcome") == "denied");
+    CHECK(describe(harness.prompts) ==
+          "subprocess.Popen: " + popen_target + "\n" + describe_system_prompt(shells));
+
+#ifndef _WIN32
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "spawn_outcome = attempt(lambda: spawn_checked(TRUE_COMMAND + ['spawned']))");
+    CHECK(python.str("spawn_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "pty.spawn: " + popen_target + "\n");
+#endif
+
+    // Approving the direct process event grants its target alone: on Windows the exact command
+    // line, elsewhere the executable. The approval also opens an operation frame that covers the
+    // runtime's nested CreateProcess event, so the run asks once. Neither target is a shell grant,
+    // so a later os.system is asked for on its own.
+    harness.approve = [](const Prompt&) { return true; };
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "popen_outcome = attempt(lambda: subprocess.run(TRUE_COMMAND, check=True))");
+    CHECK(python.str("popen_outcome") == "ok");
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{popen_target});
+    CHECK(harness.saved_permissions(PLUGIN).process == std::vector<std::string>{popen_target});
+
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+system_outcome = attempt(lambda: os.system(" ".join(TRUE_COMMAND) + " ignored"))
+)PY");
+    CHECK(python.str("system_outcome") == "ok");
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().targets == shells);
+    CHECK(harness.saved_permissions(PLUGIN).process ==
+          with_shell_grants({popen_target}, shells));
+
+    // The shell grant covers a different command string, arguments included.
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+repeat_outcome = attempt(lambda: os.system(" ".join(TRUE_COMMAND) + " another argument"))
+)PY");
+    CHECK(python.str("repeat_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+}
+
+TEST_CASE("A subprocess grant names the executable from a Windows command line", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // The event Windows subprocess.Popen raises: the executable is unresolved unless the caller
+    // passed one, and the arguments are a single command line. Raising it directly checks the
+    // target the hook reads without creating a process.
+    python.run_as(PLUGIN, R"PY(
+def raise_popen(executable, command_line):
+    try:
+        sys.audit("subprocess.Popen", executable, command_line, None, None)
+        return "ok"
+    except PermissionError:
+        return "denied"
+
+quoted_outcome = raise_popen(None, r'"C:\Program Files\Tool\tool.exe" --flag')
+explicit_outcome = raise_popen(r"D:\other\tool.exe", r'"C:\Program Files\Tool\tool.exe" --flag')
+unquoted_outcome = raise_popen(None, r"plain-tool.exe --flag")
+)PY");
+    CHECK(python.str("quoted_outcome") == "denied");
+    CHECK(python.str("explicit_outcome") == "denied");
+    CHECK(python.str("unquoted_outcome") == "denied");
+    CHECK(describe(harness.prompts) ==
+          "subprocess.Popen: C:\\Program Files\\Tool\\tool.exe\n"
+          "subprocess.Popen: D:\\other\\tool.exe\n"
+          "subprocess.Popen: CommandLine:plain-tool.exe --flag\n");
+}
+
+TEST_CASE("An unquoted Windows command line is granted as one exact command", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // An existing executable grant for the first token must not authorize the longer executable
+    // that CreateProcess may resolve from an unquoted command line.
+    PluginPermissions legacy;
+    legacy.process = {R"(C:\Program)"};
+    harness.save_permissions(PLUGIN, legacy);
+
+    python.run_as(PLUGIN, R"PY(
+def raise_popen(executable, command_line):
+    try:
+        sys.audit("subprocess.Popen", executable, command_line, None, None)
+        return "ok"
+    except PermissionError:
+        return "denied"
+
+tool_a_one = r"C:\Program Files\ToolA\a.exe --one"
+)PY");
+
+    // The legacy C:\Program grant is the first token of ToolA, but the command line is asked for
+    // as one exact command instead.
+    python.run_as(PLUGIN, R"PY(
+denied_outcome = raise_popen(None, tool_a_one)
+)PY");
+    CHECK(python.str("denied_outcome") == "denied");
+    CHECK(describe(harness.prompts) ==
+          "subprocess.Popen: CommandLine:C:\\Program Files\\ToolA\\a.exe --one\n");
+    CHECK(harness.saved_permissions(PLUGIN).process == std::vector<std::string>{R"(C:\Program)"});
+
+    // Approving saves that exact command line beside the unrelated legacy grant.
+    harness.approve = [](const Prompt& prompt) {
+        return prompt.targets ==
+               std::vector<std::string>{R"(CommandLine:C:\Program Files\ToolA\a.exe --one)"};
+    };
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+approved_outcome = raise_popen(None, tool_a_one)
+)PY");
+    CHECK(python.str("approved_outcome") == "ok");
+    CHECK(describe(harness.prompts) ==
+          "subprocess.Popen: CommandLine:C:\\Program Files\\ToolA\\a.exe --one\n");
+    CHECK(harness.saved_permissions(PLUGIN).process ==
+          std::vector<std::string>{R"(C:\Program)", R"(CommandLine:C:\Program Files\ToolA\a.exe --one)"});
+
+    // The same exact command line reuses the saved exact grant.
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+repeat_outcome = raise_popen(None, tool_a_one)
+)PY");
+    CHECK(python.str("repeat_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+
+    // The saved exact grant covers neither changed arguments nor the same arguments on another
+    // executable, and the legacy C:\Program grant does not cover either exact command line.
+    harness.approve = [](const Prompt&) { return false; };
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+changed_arguments_outcome = raise_popen(None, r"C:\Program Files\ToolA\a.exe --two")
+other_executable_outcome = raise_popen(None, r"C:\Program Files\ToolB\b.exe --one")
+)PY");
+    CHECK(python.str("changed_arguments_outcome") == "denied");
+    CHECK(python.str("other_executable_outcome") == "denied");
+    CHECK(describe(harness.prompts) ==
+          "subprocess.Popen: CommandLine:C:\\Program Files\\ToolA\\a.exe --two\n"
+          "subprocess.Popen: CommandLine:C:\\Program Files\\ToolB\\b.exe --one\n");
+
+    // A quoted executable and an explicit executable remain argument-insensitive grants.
+    PluginPermissions permissions;
+    permissions.process = {R"(C:\Program Files\Tool\tool.exe)", R"(D:\other\tool.exe)"};
+    harness.save_permissions(PLUGIN, permissions);
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+quoted_outcome = raise_popen(None, r'"C:\Program Files\Tool\tool.exe" --changed')
+explicit_outcome = raise_popen(r"D:\other\tool.exe", r'"C:\Program Files\Tool\tool.exe" --changed')
+)PY");
+    CHECK(python.str("quoted_outcome") == "ok");
+    CHECK(python.str("explicit_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+}
+
+TEST_CASE("A Windows command line grant names one quoted executable, not another path", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // The event _winapi.CreateProcess raises, with application_name left out as it may be, so no
+    // process is created. The quoted paths contain spaces, which a whitespace split would cut.
+    python.run_as(PLUGIN, R"PY(
+def raise_create_process(application_name, command_line):
+    try:
+        sys.audit("_winapi.CreateProcess", application_name, command_line, None)
+        return "ok"
+    except PermissionError:
+        return "denied"
+
+first_outcome = raise_create_process(None, r'"C:\Program Files\ToolA\a.exe" --one')
+other_outcome = raise_create_process(None, r'"C:\Program Files\ToolB\b.exe" --one')
+explicit_outcome = raise_create_process(r"D:\tools\other.exe", r'"C:\Program Files\ToolA\a.exe" --one')
+)PY");
+    CHECK(python.str("first_outcome") == "denied");
+    CHECK(python.str("other_outcome") == "denied");
+    CHECK(python.str("explicit_outcome") == "denied");
+    CHECK(describe(harness.prompts) ==
+          "_winapi.CreateProcess: C:\\Program Files\\ToolA\\a.exe\n"
+          "_winapi.CreateProcess: C:\\Program Files\\ToolB\\b.exe\n"
+          "_winapi.CreateProcess: D:\\tools\\other.exe\n");
+
+    // A grant for one quoted path covers that executable with other arguments, never another path.
+    harness.approve = [](const Prompt& prompt) {
+        return prompt.targets == std::vector<std::string>{R"(C:\Program Files\ToolA\a.exe)"};
+    };
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+repeat_outcome = raise_create_process(None, r'"C:\Program Files\ToolA\a.exe" --two')
+distinct_outcome = raise_create_process(None, r'"C:\Program Files\ToolB\b.exe" --one')
+)PY");
+    CHECK(python.str("repeat_outcome") == "ok");
+    CHECK(python.str("distinct_outcome") == "denied");
+    CHECK(describe(harness.prompts) ==
+          "_winapi.CreateProcess: C:\\Program Files\\ToolA\\a.exe\n"
+          "_winapi.CreateProcess: C:\\Program Files\\ToolB\\b.exe\n");
+    CHECK(harness.saved_permissions(PLUGIN).process ==
+          std::vector<std::string>{R"(C:\Program Files\ToolA\a.exe)"});
+
+    // The saved grant covers the same executable again, still without spanning to ToolB.
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+saved_outcome = raise_create_process(None, r'"C:\Program Files\ToolA\a.exe" --three')
+other_saved_outcome = raise_create_process(None, r'"C:\Program Files\ToolB\b.exe" --two')
+)PY");
+    CHECK(python.str("saved_outcome") == "ok");
+    CHECK(python.str("other_saved_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "_winapi.CreateProcess: C:\\Program Files\\ToolB\\b.exe\n");
+}
+
+TEST_CASE("An os.system grant names the shell and covers every command", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+    const std::vector<std::string> shells = python.strings("SYSTEM_SHELLS");
+
+    // Raising the event directly exercises the targets the hook reads without running the command.
+    // The grants name the shells, not the command string's first token, on every platform.
+    python.run_as(PLUGIN, R"PY(
+def raise_system(command):
+    try:
+        sys.audit("os.system", command)
+        return "ok"
+    except PermissionError:
+        return "denied"
+
+plain_outcome = raise_system("plain-tool --one")
+quoted_outcome = raise_system(r'"C:\Program Files\ToolA\a.exe" --one')
+other_outcome = raise_system("other-tool")
+)PY");
+    CHECK(python.str("plain_outcome") == "denied");
+    CHECK(python.str("quoted_outcome") == "denied");
+    CHECK(python.str("other_outcome") == "denied");
+    CHECK(describe(harness.prompts) ==
+          describe_system_prompt(shells) + describe_system_prompt(shells) + describe_system_prompt(shells));
+
+    // Approving the shells covers every command string, arguments included.
+    harness.approve = [](const Prompt&) { return true; };
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+repeat_outcome = raise_system("plain-tool --two")
+)PY");
+    CHECK(python.str("repeat_outcome") == "ok");
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().targets == shells);
+    CHECK(harness.saved_permissions(PLUGIN).process == shells);
+
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+quoted_repeat_outcome = raise_system(r'"C:\Program Files\ToolB\b.exe" --flag')
+other_repeat_outcome = raise_system("third-tool --three")
+)PY");
+    CHECK(python.str("quoted_repeat_outcome") == "ok");
+    CHECK(python.str("other_repeat_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+}
+
+#ifdef _WIN32
+TEST_CASE("An os.system grant for COMSPEC alone does not authorize the fallback shell", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // Pin the configured interpreter, so the case does not depend on the machine's COMSPEC.
+    python.run_as(PLUGIN, R"PY(
+saved_comspec = os.environ.get("COMSPEC")
+NARROW_SHELL = r"C:\narrow\narrow-shell.exe"
+os.environ["COMSPEC"] = NARROW_SHELL
+
+def raise_system(command):
+    try:
+        sys.audit("os.system", command)
+        return "ok"
+    except PermissionError:
+        return "denied"
+)PY");
+    const std::string narrow_shell = python.str("NARROW_SHELL");
+    const std::vector<std::string> both_shells{narrow_shell, "cmd.exe"};
+
+    // The runtime falls back to cmd.exe when it cannot open COMSPEC, so the configured
+    // interpreter's grant alone leaves the event unresolved by the fallback shell.
+    PluginPermissions permissions;
+    permissions.process = {narrow_shell};
+    harness.save_permissions(PLUGIN, permissions);
+    python.run_as(PLUGIN, "narrow_outcome = raise_system('anything')");
+    CHECK(python.str("narrow_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "os.system: cmd.exe\n");
+    CHECK(harness.saved_permissions(PLUGIN).process == std::vector<std::string>{narrow_shell});
+
+    // One approval saves the missing fallback interpreter, so the next run does not ask again.
+    harness.approve = [](const Prompt&) { return true; };
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "approved_outcome = raise_system('anything')");
+    CHECK(python.str("approved_outcome") == "ok");
+    CHECK(harness.prompts.size() == 1);
+    if (harness.prompts.size() == 1)
+        CHECK(harness.prompts.front().targets == std::vector<std::string>{"cmd.exe"});
+    CHECK(harness.saved_permissions(PLUGIN).process == both_shells);
+
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "repeat_outcome = raise_system('anything else')");
+    CHECK(python.str("repeat_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+
+    // A COMSPEC that is the bare fallback name names one interpreter, whatever its casing.
+    harness.save_permissions(PLUGIN, {});
+    harness.approve = [](const Prompt&) { return false; };
+    python.run_as(PLUGIN, R"PY(
+os.environ["COMSPEC"] = "CmD.eXe"
+bare_outcome = raise_system("anything")
+)PY");
+    CHECK(python.str("bare_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "os.system: cmd.exe\n");
+    CHECK(harness.saved_permissions(PLUGIN).process.empty());
+
+    python.run_as(PLUGIN, R"PY(
+if saved_comspec is None:
+    os.environ.pop("COMSPEC", None)
+else:
+    os.environ["COMSPEC"] = saved_comspec
+)PY");
+}
+#endif
 
 TEST_CASE("A finalizer run when a root frame is let go is judged as the plugin without a prompt", "[audit][Python]")
 {
@@ -4686,6 +5086,76 @@ TEST_CASE("An implicit writable root matches a target spelled with the other 8.3
         // The reverse link lives outside, so its destination being the root does not make it
         // implicit.
         CHECK_FALSE(mgr.delete_target_inside_writable_allowed_root((outside / "link_to_root").string()));
+    }
+#endif
+}
+
+TEST_CASE("An extended-length spelling names the same location as its plain form", "[audit][Regression]")
+{
+#ifndef _WIN32
+    SKIP("The extended-length path prefix exists only on Windows");
+#else
+    ScopedTemporaryDir temp{"orca-plugin-audit-extended-paths"};
+    const fs::path     root    = temp.path() / "root";
+    const fs::path     outside = temp.path() / "outside";
+    fs::create_directories(root / "sub");
+    fs::create_directories(outside);
+
+    // A plugin's __file__ is spelled the way its sys.path entry was, and a cache past MAX_PATH can
+    // only be canonicalized in the extended-length form, while allowed roots are registered plainly.
+    // The same location has to compare equal in both spellings, and the boundary has to stay put.
+    const fs::path extended_root    = extended_path(root);
+    const fs::path extended_outside = extended_path(outside);
+    REQUIRE(extended_root != root);
+    REQUIRE(extended_outside != outside);
+
+    PluginAuditManager& mgr = PluginAuditManager::instance();
+
+    SECTION("a plain root contains extended-spelled targets")
+    {
+        ScopedPluginAuditContext ctx("test_plugin", "");
+        mgr.add_scoped_allowed_root(root);
+
+        CHECK(is_inside_allowed_root(extended_path(root / "sub" / "file.txt"), root));
+        CHECK(is_inside_allowed_root(root, extended_root));
+        CHECK(mgr.delete_target_inside_writable_allowed_root(extended_path(root / "sub").string()));
+        // A target that does not exist yet is still inside: only the existing prefix is compared.
+        CHECK(mgr.delete_target_inside_writable_allowed_root(extended_path(root / "not-created-yet").string()));
+
+        // Outside stays outside in the extended spelling too, including a name that only shares the
+        // root's prefix.
+        CHECK_FALSE(is_inside_allowed_root(extended_outside / "file.txt", root));
+        CHECK_FALSE(mgr.delete_target_inside_writable_allowed_root(extended_outside.string()));
+        CHECK_FALSE(is_inside_allowed_root(extended_path(fs::path(root.string() + "_sibling") / "file.txt"), root));
+    }
+
+    SECTION("an extended-spelled root contains plain targets")
+    {
+        ScopedPluginAuditContext ctx("test_plugin", "");
+        mgr.add_scoped_allowed_root(extended_root);
+
+        CHECK(is_inside_allowed_root(root / "sub" / "file.txt", extended_root));
+        CHECK(is_inside_allowed_root(extended_root, root));
+        CHECK(mgr.delete_target_inside_writable_allowed_root((root / "sub").string()));
+
+        CHECK_FALSE(is_inside_allowed_root(outside / "file.txt", extended_root));
+        CHECK_FALSE(is_inside_allowed_root(fs::path(root.string() + "_sibling"), extended_root));
+    }
+
+    SECTION("device paths that are not drive-letter aliases stay outside")
+    {
+        ScopedPluginAuditContext ctx("test_plugin", "");
+        mgr.add_scoped_allowed_root(root);
+
+        // "\\?\C:\..." is the only device-namespace alias of a lettered path that the comparison
+        // rewrites. A volume GUID, a named pipe, the "\\.\" device namespace and the NT "\??\"
+        // prefix name other objects, so stripping the prefix would invent a path inside the root;
+        // they must stay unmatched, as must an extended UNC spelling of some other share.
+        CHECK_FALSE(is_inside_allowed_root(fs::path(L"\\\\?\\Volume{00000000-0000-0000-0000-000000000000}\\file.txt"), root));
+        CHECK_FALSE(is_inside_allowed_root(fs::path(L"\\\\?\\PIPE\\orca-audit"), root));
+        CHECK_FALSE(is_inside_allowed_root(fs::path(L"\\\\.\\pipe\\orca-audit"), root));
+        CHECK_FALSE(is_inside_allowed_root(fs::path(L"\\??\\C:\\Windows\\win.ini"), root));
+        CHECK_FALSE(is_inside_allowed_root(fs::path(L"\\\\?\\UNC\\orca-audit-host\\share\\file.txt"), root));
     }
 #endif
 }
