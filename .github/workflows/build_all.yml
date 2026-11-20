@@ -135,14 +135,14 @@ jobs:
       # build-macos-x86_64 label. Pushes build both and combine them below.
       matrix:
         arch: ${{ fromJSON(github.event_name == 'pull_request' && '["arm64"]' || '["arm64", "x86_64"]') }}
-      uses: ./.github/workflows/build_check_cache.yml
-      with:
-        os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
-        arch: ${{ matrix.arch }}
-        build-deps-only: ${{ inputs.build-deps-only || false }}
-        clean: ${{ inputs.clean-build || false }}
-        force-build: ${{ github.event_name == 'schedule' }}
-      secrets: inherit
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
+      arch: ${{ matrix.arch }}
+      build-deps-only: ${{ inputs.build-deps-only || false }}
+      clean: ${{ inputs.clean-build || false }}
+      force-build: ${{ github.event_name == 'schedule' }}
+    secrets: inherit
 
   build_macos_universal:
     name: Build macOS Universal
