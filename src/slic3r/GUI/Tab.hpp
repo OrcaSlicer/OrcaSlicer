@@ -37,6 +37,7 @@
 #include <wx/imaglist.h>
 
 #include <map>
+#include <optional>
 #include <vector>
 #include <memory>
 
@@ -301,6 +302,8 @@ protected:
 
 	DynamicPrintConfig 	m_cache_config;
     std::vector<std::string> m_cache_options;
+    // The source preset's manifest when cached bed files may come from printer asset packs.
+    std::optional<ConfigOptionStrings> m_cache_printer_plugins;
 
 
 	bool				m_page_switch_running = false;

@@ -5,8 +5,10 @@
 #include "libslic3r/Point.hpp"
 #include <string>
 #include <cassert>
+#include <cstddef>
 #include "libslic3r/Config.hpp"
 #include <utility>
+#include <wx/defs.h>
 #include <wx/string.h>
 #include "libslic3r/BuildVolume.hpp"
 #include "slic3r/GUI/Field.hpp"
@@ -38,6 +40,9 @@
 #include "libslic3r/ClipperUtils.hpp"
 
 #include "Widgets/LabeledStaticBox.hpp"
+#include "libslic3r/PrinterAssetRef.hpp"
+#include "slic3r/plugin/host/PluginPrinterAssets.hpp"
+#include <wx/menu.h>
 #include "Widgets/DialogButtons.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -342,6 +347,12 @@ wxPanel* BedShapePanel::init_texture_panel()
         wxSizer* load_sizer = new wxBoxSizer(wxHORIZONTAL);
         load_sizer->Add(load_btn, 1, wxEXPAND);
 
+        Button* pack_btn = new Button(parent, _L("From asset pack..."));
+        pack_btn->SetStyle(ButtonStyle::Regular, ButtonType::Expanded);
+
+        wxSizer* pack_sizer = new wxBoxSizer(wxHORIZONTAL);
+        pack_sizer->Add(pack_btn, 1, wxEXPAND);
+
         wxStaticText* filename_lbl = new wxStaticText(parent, wxID_ANY, _(NONE));
         wxSizer* filename_sizer = new wxBoxSizer(wxHORIZONTAL);
         filename_sizer->Add(filename_lbl, 1, wxEXPAND);
@@ -355,9 +366,11 @@ wxPanel* BedShapePanel::init_texture_panel()
         wxSizer* sizer = new wxBoxSizer(wxVERTICAL);
         sizer->Add(filename_sizer, 1, wxEXPAND);
         sizer->Add(load_sizer, 1, wxEXPAND);
+        sizer->Add(pack_sizer, 1, wxEXPAND | wxTOP, 2);
         sizer->Add(remove_sizer, 1, wxEXPAND | wxTOP, 2);
 
         load_btn->Bind(wxEVT_BUTTON, ([this](wxCommandEvent& e) { load_texture(); }));
+        pack_btn->Bind(wxEVT_BUTTON, ([this, pack_btn](wxCommandEvent& e) { pick_from_asset_pack(false, pack_btn); }));
         remove_btn->Bind(wxEVT_BUTTON, ([this](wxCommandEvent& e) {
                 m_custom_texture = NONE;
                 update_shape();
@@ -367,7 +380,9 @@ wxPanel* BedShapePanel::init_texture_panel()
                 e.SetText(_(boost::filesystem::path(m_custom_texture).filename().string()));
                 wxStaticText* lbl = dynamic_cast<wxStaticText*>(e.GetEventObject());
                 if (lbl != nullptr) {
-                    bool exists = (m_custom_texture == NONE) || boost::filesystem::exists(m_custom_texture);
+                    // A printer asset reference counts as found once its pack is installed.
+                    const std::string texture_file = resolve_printer_asset_value(m_custom_texture);
+                    bool exists = (m_custom_texture == NONE) || (!texture_file.empty() && boost::filesystem::exists(texture_file));
                     lbl->SetForegroundColour(exists ? wxGetApp().get_label_clr_default() : wxColour("#E14747")); // ORCA
 
                     wxString tooltip_text = "";
@@ -419,6 +434,12 @@ wxPanel* BedShapePanel::init_model_panel()
         wxSizer* load_sizer = new wxBoxSizer(wxHORIZONTAL);
         load_sizer->Add(load_btn, 1, wxEXPAND);
 
+        Button* pack_btn = new Button(parent, _L("From asset pack..."));
+        pack_btn->SetStyle(ButtonStyle::Regular, ButtonType::Expanded);
+
+        wxSizer* pack_sizer = new wxBoxSizer(wxHORIZONTAL);
+        pack_sizer->Add(pack_btn, 1, wxEXPAND);
+
         wxStaticText* filename_lbl = new wxStaticText(parent, wxID_ANY, _(NONE));
         wxSizer* filename_sizer = new wxBoxSizer(wxHORIZONTAL);
         filename_sizer->Add(filename_lbl, 1, wxEXPAND);
@@ -432,9 +453,11 @@ wxPanel* BedShapePanel::init_model_panel()
         wxSizer* sizer = new wxBoxSizer(wxVERTICAL);
         sizer->Add(filename_sizer, 1, wxEXPAND);
         sizer->Add(load_sizer, 1, wxEXPAND);
+        sizer->Add(pack_sizer, 1, wxEXPAND | wxTOP, 2);
         sizer->Add(remove_sizer, 1, wxEXPAND | wxTOP, 2);
 
         load_btn->Bind(wxEVT_BUTTON, ([this](wxCommandEvent& e) { load_model(); }));
+        pack_btn->Bind(wxEVT_BUTTON, ([this, pack_btn](wxCommandEvent& e) { pick_from_asset_pack(true, pack_btn); }));
 
         remove_btn->Bind(wxEVT_BUTTON, ([this](wxCommandEvent& e) {
                 m_custom_model = NONE;
@@ -445,7 +468,8 @@ wxPanel* BedShapePanel::init_model_panel()
                 e.SetText(_(boost::filesystem::path(m_custom_model).filename().string()));
                 wxStaticText* lbl = dynamic_cast<wxStaticText*>(e.GetEventObject());
                 if (lbl != nullptr) {
-                    bool exists = (m_custom_model == NONE) || boost::filesystem::exists(m_custom_model);
+                    const std::string model_file = resolve_printer_asset_value(m_custom_model);
+                    bool exists = (m_custom_model == NONE) || (!model_file.empty() && boost::filesystem::exists(model_file));
                     lbl->SetForegroundColour(exists ? wxGetApp().get_label_clr_default() : wxColour("#E14747")); // ORCA
 
                     wxString tooltip_text = "";
@@ -658,6 +682,47 @@ void BedShapePanel::load_model()
 
     m_custom_model = file_name;
     update_shape();
+}
+
+// ----------------------------------------------------------------
+// ------------ Pick a bed file from an installed printer asset pack ----------
+// ----------------------------------------------------------------
+// Lists every file of the right kind in every loaded printer asset pack ("Pack name: file"). The choice is
+// stored as "orcacloud-asset/<plugin id>/<file>", so the preset works on any machine with the pack.
+void BedShapePanel::pick_from_asset_pack(bool model, wxWindow* anchor)
+{
+    std::vector<std::string> refs;
+    wxMenu                   menu;
+    for (const PrinterAssetPackEntry& pack : PluginPrinterAssets::instance().entries()) {
+        for (const std::string& file : pack.files) {
+            const std::string name = boost::filesystem::path(file).filename().string();
+            if (model ? !is_printer_bed_model_file(name) : !is_printer_bed_texture_file(name))
+                continue;
+            const std::string ref = make_printer_asset_ref(pack.pack_id, name);
+            if (ref.empty())
+                continue;
+            menu.Append(wxID_HIGHEST + 1 + int(refs.size()), from_u8(pack.display_name + ": " + name));
+            refs.push_back(ref);
+        }
+    }
+
+    if (refs.empty()) {
+        show_info(this,
+                  model ? _L("No installed printer asset pack has a bed model (.stl). Subscribe to a Resource printer assets plugin on Orca Cloud first.") :
+                          _L("No installed printer asset pack has a bed texture (.png or .svg). Subscribe to a Resource printer assets plugin on Orca Cloud first."),
+                  _L("From asset pack"));
+        return;
+    }
+
+    menu.Bind(wxEVT_MENU, [this, model, &refs](wxCommandEvent& e) {
+        const int index = e.GetId() - wxID_HIGHEST - 1;
+        if (index < 0 || size_t(index) >= refs.size())
+            return;
+        (model ? m_custom_model : m_custom_texture) = refs[size_t(index)];
+        update_shape();
+    });
+    // PopupMenu is modal, so `refs` outlives every menu event.
+    anchor->PopupMenu(&menu, 0, anchor->GetSize().GetHeight());
 }
 
 } // GUI
