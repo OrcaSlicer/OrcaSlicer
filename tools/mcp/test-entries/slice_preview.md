@@ -34,8 +34,8 @@ and the window layout are kept in the configuration, where an earlier test may h
 rules last only as long as the app's run. Its files go into a temporary folder of its own, new each run.
 
 **Leaves:** In the app's presets, the Klipper printer with two Generic PLA slots (the layer G-codes scenario's
-`slots(2)`, the last change of the slots), slot 1 `#26A69A`, the flush multiplier 1 (the G-code file opened for viewing
-sets it, To settle), and no user preset: its edits are an object's, a range's or a plate's, kept in its projects. In the
+`slots(2)`, the last change of the slots), slot 1 `#26A69A`, the flush multiplier 0.3 that Starts from sets (the G-code
+file opened for viewing was sliced with it and keeps it), and no user preset: its edits are an object's, a range's or a plate's, kept in its projects. In the
 recent projects, `ranges.3mf`, `profile.3mf` and `codes.3mf` of its temporary folder, which is deleted at its end; the
 G-code file it opens for viewing does not join them (`Plater` adds no file it opens only for viewing). The folders the
 app remembers, `app.last_export_path` and the `recent` section's `last_opened_folder` and `settings_folder`, name that
@@ -443,10 +443,10 @@ checked not to be a person's own folder (`APPDATA` or `~` plus `OrcaSlicer`), wh
   earlier runs left them, the statistics' two-colour cubes fail "Prime tower is partially outside the printable area,
   and it cannot be printed." (measured, on folders `test_files` and this test had used): `test_files`' filament scenario
   leaves slot 1 `#FF0000`, and red to the second slot's colour is a 515 mm³ purge where `#26A69A` to `#00C1AE` is 89
-  (with slot 1 red the layer G-codes' step 14 fails too); and opening a G-code file for viewing (a plate the Preview has
-  not shown, step 7) sets `flush_multiplier` 1, though the file says 0.3, so each run leaves the next three times the
-  purge. That the open sets 1 looks like a bug in loading the viewed G-code's settings, open for the maintainer. Within
-  a run the layer G-codes scenario, after the open, slices at 1 with slot 1 `#26A69A`, which fits. A slot `filament_add`
+  (with slot 1 red the layer G-codes' step 14 fails too); and `test_filaments`' last scenario, the project's own
+  settings, leaves `flush_multiplier` 1.4, nearly five times the purge of 0.3 (read from that test, not measured here).
+  The two-colour checks ask only whether a slot purges into the tower (`tower_g` > 0, `flush_g` 0), not how much, so a
+  multiplier within the range that fits leaves them unchanged. A slot `filament_add`
   adds takes the next colour of a palette the app's run cycles through (`Plater::get_next_color_for_filament()`), so
   this test's own additions give the same colours on every run, and only slot 1's needs setting. Open for review:
   whether `start()` should set the slots' colours and the flush multiplier instead, for every test that slices two slots
