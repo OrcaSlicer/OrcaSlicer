@@ -19,8 +19,6 @@
 #include "FillPlanePath.hpp"
 #include "libslic3r/Config.hpp"
 
-//#define DEBUG_PATH
-
 namespace Slic3r {
 
 class InfillPolylineClipper : public InfillPolylineOutput {
@@ -139,8 +137,7 @@ void FillPlanePath::_fill_surface_single(
     // One may align for this->centered() to align the patterns for Archimedean Chords and Octagram Spiral patterns.
     // Orca: the old implementation became obsolete when it became possible to change the density of the top and bottom surfaces
     const bool is_internal            = (params.extrusion_role == ExtrusionRole::erInternalInfill);
-    bool is_solid                     = (params.extrusion_role == ExtrusionRole::erSolidInfill);
-    const bool is_hilbert             = (params.pattern == InfillPattern::ipHilbertCurve);
+    bool       is_solid               = (params.extrusion_role == ExtrusionRole::erSolidInfill); // actually this parameter is not transmitted and needs to be determined on site. 
 
     // For debug use the double angle = this->angle;
     double angle = direction.first;
@@ -165,8 +162,9 @@ void FillPlanePath::_fill_surface_single(
         is_solid     = true;
     }
 
+    const bool is_hilbert             = (params.pattern == InfillPattern::ipHilbertCurve);
     const bool is_classic_hilbert     = (is_hilbert && (fixed_angle || is_solid));
-    const bool is_centered            = (centered() || params.pattern_mode) || is_classic_hilbert;
+    const bool is_centered            = (centered() || params.pattern_mode) || is_classic_hilbert; // only solid and sparse infill of hilbert curve by rotation templates can be centered
 
 #ifdef DEBUG_PATH
     svg.draw(bounding_box.polygon().lines(), "orangered", w); // exactly island filling bounding
@@ -186,7 +184,7 @@ void FillPlanePath::_fill_surface_single(
     if (is_centered)
         bounding_box = get_extents(expolygon);
     else
-        bounding_box.max = get_extents(expolygon).max; // crop/extend bounding_box for minimum required space
+        bounding_box.max = get_extents(expolygon).max; // crop/extend bounding_box for minimum required space if the fill pattern has starting point outside the expolygon
 
     // Expand the bounding box to avoid artifacts at the edges
     bounding_box.offset(SCALED_EPSILON);

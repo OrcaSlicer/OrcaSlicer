@@ -164,19 +164,20 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
         double fill_z       = 0.;
         size_t fill_form    = std::string::npos;
         bool is_negative    = false;
+        
         // Vector of stop marks. "1" is the one-time running command, "2" is the dumb command
         // If the all values entire vector is unequal to 0, then stop the parsing from repeating.
         std::vector<int> stop(tk_size, 0);
 
         line_width = line_width ? line_width : object->config().line_width;
 
-        auto update_values = [&](bool is_repeats) {
+        auto update_values = [&](bool has_repeats) {
             angle_start     += angle_add;
             shift_start     += rotate_point_CW(fixed_infill_angle, shift_add) + rotate_point_CW(fixed_infill_angle + angle_start, shift_dir);
             density_start   += density_add;
             multiline_start += multiline_add;
 
-            if (!is_repeats) {
+            if (!has_repeats) {
                 angle_add     = 0.;
                 shift_add     = Vec2d(0., 0.);
                 shift_dir     = Vec2d(0., 0.);
