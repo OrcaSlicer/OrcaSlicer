@@ -69,7 +69,7 @@ The replay runs in a new project in the same instance.
 ## `test_cad_slow_build`
 `test_cad_slow_build.py` · Python, 7 checks (5 on Windows)
 
-**Tests:** That the app stays inspectable while a long Design rebuild runs off the UI thread behind the progress dialog. The rebuild is an M8 thread tapped 60 mm deep. While it runs, `app_state` and a main-window screenshot answer, the progress dialog is listed and can be captured, and another Design command is refused as busy. The thread then lands as one feature.
+**Tests:** That the app stays inspectable while a long Design rebuild runs off the UI thread behind the progress dialog. The rebuild is an M8 thread tapped 250 mm deep, 200 turns, which takes several seconds. While it runs, `app_state` and a main-window screenshot answer, the progress dialog is listed and can be captured, and another Design command is refused as busy. The thread then lands as one feature.
 
 **Starts from:** `start(client)`, then its own `project_new` and `new_design`. No check depends on the printer. "Captures it" needs the main window wider than the progress dialog, as the window the seed opens is, 1600 x 900.
 

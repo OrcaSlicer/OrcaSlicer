@@ -116,19 +116,30 @@ namespace Slic3r {
 
 // ---- helical-thread construction helpers (file-local) ----------------------
 
-// Helix spine on a cylinder (radius/pitch/height) about `axis`, as a wire.
+// Helix spine on a cylinder (radius/pitch/height) about `axis`, as a wire of edges of at most one
+// turn each, all the same length. A thread swept along it has a face per edge, and a face that
+// winds round several turns is what OCCT's face/face intersection cannot be trusted with: cutting a
+// thread swept along a single many-turn edge from a bore intermittently loses a piece of the
+// helical curve where the groove meets the wall, and the cut then reports success having removed
+// nothing. Which placements fail depends only on round-off, so a bore that threads at one spot on
+// the bed would fail a few millimetres away. Faces of under one turn intersect reliably.
 static TopoDS_Wire make_helix_wire(const gp_Ax3& axis, double radius,
                                    double pitch, double height)
 {
     Handle(Geom_CylindricalSurface) cyl = new Geom_CylindricalSurface(axis, radius);
     double turns = (pitch > 1e-6) ? (height / pitch) : 1.0;
     // In the surface (u,v) parametrization u is the angle, v the axial height.
-    gp_Pnt2d p0(0.0, 0.0);
-    gp_Pnt2d p1(2.0 * M_PI * turns, height);
-    Handle(Geom2d_TrimmedCurve) seg = GC_MakeSegment2d(p0, p1);
-    TopoDS_Edge e = BRepBuilderAPI_MakeEdge(seg, cyl).Edge();
-    BRepLib::BuildCurves3d(e);
-    return BRepBuilderAPI_MakeWire(e).Wire();
+    const int n = std::max(1, int(std::ceil(turns - 1e-9)));
+    BRepBuilderAPI_MakeWire wire;
+    for (int i = 0; i < n; ++i) {
+        const double t0 = double(i) / n, t1 = double(i + 1) / n;
+        Handle(Geom2d_TrimmedCurve) seg = GC_MakeSegment2d(gp_Pnt2d(2.0 * M_PI * turns * t0, height * t0),
+                                                           gp_Pnt2d(2.0 * M_PI * turns * t1, height * t1));
+        TopoDS_Edge e = BRepBuilderAPI_MakeEdge(seg, cyl).Edge();
+        BRepLib::BuildCurves3d(e);
+        wire.Add(e);   // joins it to the previous edge's end, the same point on the cylinder
+    }
+    return wire.Wire();
 }
 
 // Helix spine from a CadFeature's helix params. Supports cylindrical (taper==0)
