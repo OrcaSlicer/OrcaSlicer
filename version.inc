@@ -18,6 +18,7 @@ set(SLIC3R_VERSION "02.08.01.55")
 
 # RC-compatible version: comma-separated integers without leading zeros
 # (llvm-rc doesn't accept dot-separated FILEVERSION/PRODUCTVERSION)
+# Without: RC compiler rejects dotted version, build fails
 string(REGEX REPLACE "^0*([0-9]+)\\.0*([0-9]+)\\.0*([0-9]+)\\.0*([0-9]+)$" "\\1,\\2,\\3,\\4" SLIC3R_VERSION_RC "${SLIC3R_VERSION}")
 
 if (NOT DEFINED ORCA_UPDATER_SIG_KEY)
