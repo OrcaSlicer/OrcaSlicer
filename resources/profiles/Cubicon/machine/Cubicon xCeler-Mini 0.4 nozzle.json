@@ -89,20 +89,20 @@
 		"13000"
 	],
 	"machine_max_jerk_e": [
-		"20",
-		"20"
+		"2.5",
+		"2.5"
 	],
 	"machine_max_jerk_x": [
-		"20",
-		"20"
+		"5",
+		"5"
 	],
 	"machine_max_jerk_y": [
-		"20",
-		"20"
+		"5",
+		"5"
 	],
 	"machine_max_jerk_z": [
-		"20",
-		"20"
+		"2",
+		"2"
 	],
 	"machine_max_junction_deviation": [
 		"0",
@@ -129,7 +129,7 @@
 		"0"
 	],
 	"machine_pause_gcode": "PAUSE",
-	"machine_start_gcode": "START_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]",
+	"machine_start_gcode": "START_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single] REQ_X={print_bed_size[0]} REQ_Y={print_bed_size[1]} REQ_Z={printable_height}",
 	"machine_tool_change_time": "0",
 	"machine_unload_filament_time": "0",
 	"manual_filament_change": "0",

@@ -30,10 +30,10 @@
 		"0.99"
 	],
 	"filament_max_volumetric_speed": [
-		"7"
+		"6"
 	],
 	"nozzle_temperature_initial_layer": [
-		"265"
+		"260"
 	],
 	"fan_max_speed": [
 		"50"
@@ -48,7 +48,7 @@
 		"2"
 	],
 	"nozzle_temperature": [
-		"270"
+		"265"
 	],
 	"temperature_vitrification": [
 		"108"
@@ -61,5 +61,41 @@
 	],
 	"additional_cooling_fan_speed": [
 		"0"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.05"
+	],
+	"activate_air_filtration": [
+		"1"
+	],
+	"during_print_exhaust_fan_speed": [
+		"0"
+	],
+	"complete_print_exhaust_fan_speed": [
+		"100"
+	],
+	"filament_retraction_length": [
+		"4"
+	],
+	"filament_z_hop": [
+		"0.4"
+	],
+	"filament_retraction_speed": [
+		"45"
+	],
+	"filament_deretraction_speed": [
+		"25"
+	],
+	"filament_wipe": [
+		"1"
+	],
+	"filament_wipe_distance": [
+		"2"
+	],
+	"filament_retract_before_wipe": [
+		"70%"
 	]
 }
