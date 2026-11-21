@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
 
@@ -317,4 +319,134 @@ TEST_CASE("Only CF and GF change the material type", "[Snapmaker]")
     CHECK(SnapmakerPrinterAgent::combine_filament_type("PLA", "Silk") == "PLA");
     CHECK(SnapmakerPrinterAgent::combine_filament_type("PLA", "NONE") == "PLA");
     CHECK(SnapmakerPrinterAgent::combine_filament_type("", "CF") == "PLA");
+}
+
+namespace {
+
+// The `result.status` part of a U1 answer to
+// /printer/objects/query?print_task_config&filament_detect, with the fields the firmware publishes
+// (Snapmaker u1-klipper, klippy/extras/print_task_config.py). T0 holds a Snapmaker tag, T1 a
+// three-colour spool set up on the screen, T2 is empty but keeps its last record, and T3 holds a
+// spool nobody has named.
+const char *u1_status = R"({
+  "print_task_config": {
+    "filament_vendor":     ["Snapmaker", "Generic", "Snapmaker", "NONE"],
+    "filament_type":       ["PLA", "PLA", "PLA", "NONE"],
+    "filament_sub_type":   ["Matte", "Silk", "Basic", "NONE"],
+    "filament_color":      [4293959856, 4294901760, 4279246896, 4294967295],
+    "filament_color_rgba": ["F0A0B0FF", "FF0000FF", "102030FF", "FFFFFFFF"],
+    "filament_color_multi": [
+      {"nums": 1, "alpha": 255, "mode": 0, "colors": ["F0A0B0"]},
+      {"nums": 3, "alpha": 255, "mode": 0, "colors": ["FF0000", "00FF00", "0000FF"]},
+      {"nums": 1, "alpha": 255, "mode": 0, "colors": ["102030"]},
+      {"nums": 1, "alpha": 255, "mode": 0, "colors": ["FFFFFF"]}
+    ],
+    "filament_official": [true, false, false, false],
+    "filament_sku":      [900001, 0, 0, 0],
+    "filament_edit":     [false, true, true, true],
+    "filament_exist":    [true, true, false, true],
+    "filament_soft":     [false, false, false, false]
+  },
+  "filament_detect": {
+    "state": [1, 0, 0, 0],
+    "info": [
+      {"VENDOR": "Snapmaker", "MAIN_TYPE": "PLA", "SUB_TYPE": "Matte", "RGB_1": 15769776, "COLOR_NUMS": 1,
+       "HOTEND_MIN_TEMP": 190, "HOTEND_MAX_TEMP": 230, "BED_TEMP": 60, "OFFICIAL": true},
+      {}, {}, {}
+    ]
+  }
+})";
+
+const std::vector<FilamentSpec> u1_presets{
+    {"Snapmaker PLA Basic", "PLA-BASIC", "PLA", "Snapmaker", "#102030"},
+    {"Snapmaker PLA Matte", "PLA-MATTE", "PLA", "Snapmaker", "#F0A0B0"},
+    {"Generic PLA Silk",    "GFL96",     "PLA", "Generic",   "#FFFFFF"},
+};
+
+std::vector<SnapmakerPrinterAgent::AmsTrayData> parse(const std::string &status)
+{
+    FilamentTestCollection filaments;
+    populate(filaments, u1_presets);
+    std::vector<SnapmakerPrinterAgent::AmsTrayData> trays;
+    REQUIRE(SnapmakerPrinterAgent::parse_filament_status(nlohmann::json::parse(status), &filaments, trays));
+    return trays;
+}
+
+} // namespace
+
+// Orca: each toolhead becomes the tray in the same position, so T0..T3 sync to project
+// filaments 1..4, each with the preset its record names and its own colour.
+TEST_CASE("Each U1 toolhead becomes the tray in its position with its preset and colour", "[Snapmaker]")
+{
+    const auto trays = parse(u1_status);
+    REQUIRE(trays.size() == 4);
+    for (int i = 0; i < 4; ++i)
+        CHECK(trays[i].slot_index == i);
+
+    CHECK(trays[0].has_filament);
+    CHECK(trays[0].tray_type == "PLA");
+    CHECK(trays[0].tray_info_idx == "PLA-MATTE");
+    CHECK(trays[0].tray_color == "F0A0B0FF");
+    CHECK(trays[0].bed_temp == 60);
+    CHECK(trays[0].nozzle_temp == 230);
+
+    CHECK(trays[1].has_filament);
+    CHECK(trays[1].tray_info_idx == "GFL96");
+    CHECK(trays[1].tray_color == "FF0000FF");
+}
+
+// Orca: filament_color_multi holds every colour of a multi-colour spool. They reach the tray, so
+// the project filament gets all of them, not the first one only. A single-colour spool keeps
+// tray_color as its one colour.
+TEST_CASE("A multi-colour U1 spool keeps every colour", "[Snapmaker]")
+{
+    const auto trays = parse(u1_status);
+    REQUIRE(trays.size() == 4);
+    CHECK(trays[1].tray_colors == std::vector<std::string>{"FF0000", "00FF00", "0000FF"});
+    CHECK_FALSE(trays[1].colors_gradient);
+    CHECK(trays[0].tray_colors.empty());
+}
+
+// Orca: nums counts the colours, but a record may list fewer of them; only listed colours are used.
+TEST_CASE("A multi-colour count beyond the listed colours is clamped", "[Snapmaker]")
+{
+    const auto trays = parse(R"({"print_task_config": {
+        "filament_vendor": ["Generic", "Generic"], "filament_type": ["PLA", "PLA"],
+        "filament_sub_type": ["Silk", "Silk"], "filament_color_rgba": ["FF0000FF", "00FF00FF"],
+        "filament_color_multi": [{"nums": 4, "colors": ["FF0000", "00FF00"]}, {"nums": 2}],
+        "filament_exist": [true, true]}})");
+    REQUIRE(trays.size() == 2);
+    CHECK(trays[0].tray_colors == std::vector<std::string>{"FF0000", "00FF00"});
+    CHECK(trays[1].tray_colors.empty());
+}
+
+// Orca: an empty head and a loaded head that reports NONE name no preset. Both leave
+// tray_info_idx empty, which build_ams_payload turns into a placeholder, so the sync keeps the
+// project filament there instead of painting it in the firmware's default white.
+TEST_CASE("An empty or unnamed U1 toolhead names no preset", "[Snapmaker]")
+{
+    const auto trays = parse(u1_status);
+    REQUIRE(trays.size() == 4);
+
+    CHECK_FALSE(trays[2].has_filament);
+    CHECK(trays[2].tray_info_idx.empty());
+    CHECK(trays[2].tray_type.empty());
+
+    CHECK(trays[3].has_filament);
+    CHECK(trays[3].tray_info_idx.empty());
+    CHECK(trays[3].tray_type.empty());
+}
+
+// Orca: a status without print_task_config, or with a field of the wrong type, fails the sync
+// instead of throwing out of it.
+TEST_CASE("A U1 status without a usable print_task_config is rejected", "[Snapmaker]")
+{
+    const char *bad = GENERATE(R"({})", R"({"print_task_config": []})", R"({"print_task_config": {}})",
+                               R"({"print_task_config": {"filament_exist": "yes"}})",
+                               R"({"print_task_config": {"filament_exist": [true], "filament_type": [3]}})");
+    FilamentTestCollection filaments;
+    populate(filaments, u1_presets);
+    std::vector<SnapmakerPrinterAgent::AmsTrayData> trays;
+    CHECK_FALSE(SnapmakerPrinterAgent::parse_filament_status(nlohmann::json::parse(bad), &filaments, trays));
+    CHECK(trays.empty());
 }
