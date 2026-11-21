@@ -10287,13 +10287,55 @@ void DesignPanel::on_export_step()
                      wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (dlg.ShowModal() != wxID_OK)
         return;
-    sync_body_xform();   // export bodies at their displayed Move-gizmo positions
     std::string err;
-    const bool ok = m_doc.export_step(dlg.GetPath().ToUTF8().data(), m_body_xform, err);
+    const bool ok = mcp_export_step(dlg.GetPath().ToUTF8().data(), err);
     set_status(ok ? StatusKind::Ok : StatusKind::Error,
                ok ? _L("Exported STEP")
                   : wxString::Format(_L("STEP export failed: %s"), wxString::FromUTF8(err)));
     m_status->Refresh();
+}
+
+bool DesignPanel::mcp_export_step(const std::string& path, std::string& err)
+{
+    if (path.empty()) { err = "export_step needs a non-empty 'path'"; return false; }
+    sync_body_xform();   // export bodies at their displayed Move-gizmo positions
+    return m_doc.export_step(path, m_body_xform, err);
+}
+
+bool DesignPanel::mcp_export_stl(const std::string& path, bool ascii, std::string& err)
+{
+    if (path.empty()) { err = "export_stl needs a non-empty 'path'"; return false; }
+    // The same meshes Commit to Plate ships: visible bodies at their Move-gizmo positions.
+    sync_body_visible();
+    rebuild_disp_meshes();   // ship moved bodies at their Move-gizmo positions
+    TriangleMesh merged;
+    bool any = false;
+    for (size_t b = 0; b < m_disp_body_meshes.size(); ++b) {
+        if (b < m_body_visible.size() && !m_body_visible[b]) continue;   // skip hidden
+        if (m_disp_body_meshes[b].its.indices.empty()) continue;
+        if (!any) { merged = m_disp_body_meshes[b]; any = true; }
+        else merged.merge(m_disp_body_meshes[b]);
+    }
+    if (!any) { err = "nothing to export — the document has no visible bodies"; return false; }
+    const bool ok = ascii ? its_write_stl_ascii(path.c_str(), "Orca CAD", merged.its)
+                          : its_write_stl_binary(path.c_str(), "Orca CAD", merged.its);
+    if (!ok) { err = std::string("could not write STL file: ") + path; return false; }
+    return true;
+}
+
+bool DesignPanel::mcp_save_project(const std::string& path, std::string& err)
+{
+    if (path.empty()) { err = "save_project needs a non-empty 'path'"; return false; }
+    // The 3MF carries model.cad_recipe, so make it current first, as every edit does.
+    sync_recipe_to_model();
+    Plater* plater = wxGetApp().plater();
+    if (plater == nullptr) { err = "no plater to save from"; return false; }
+    // A copy: the open project's file name, dirty state and model stay as they are.
+    if (!plater->export_3mf_copy(boost::filesystem::path(path))) {
+        err = std::string("could not write 3MF file: ") + path;
+        return false;
+    }
+    return true;
 }
 
 void DesignPanel::set_commit_mode(CommitMode mode)
@@ -10318,13 +10360,30 @@ void DesignPanel::on_commit()
         confirm_tool();
     end_sketch_plane_choice();   // the bodies leave for the plate; a sketch was not started
 
-    if (m_doc.display_mesh.its.indices.empty()) {
+    int objects = 0;
+    switch (mcp_commit_to_plate(objects)) {
+    case CommitOutcome::Shipped: break;
+    case CommitOutcome::EmptyDocument:
         set_status(_L("Nothing to commit — add a feature first"));
         return;
+    case CommitOutcome::AllHidden:
+        set_status(_L("All bodies hidden — show one before committing"));
+        return;
+    case CommitOutcome::NoPlate: return;
     }
+
+    if (wxGetApp().mainframe != nullptr)
+        wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+}
+
+DesignPanel::CommitOutcome DesignPanel::mcp_commit_to_plate(int& objects)
+{
+    objects = 0;
+    if (m_doc.display_mesh.its.indices.empty())
+        return CommitOutcome::EmptyDocument;
     ObjectList* obj_list = wxGetApp().obj_list();
     if (obj_list == nullptr)
-        return;
+        return CommitOutcome::NoPlate;
 
     // Multi-body: ship the (visible) bodies as the parts of one assembly object that keeps
     // their placement (the default), or each as its own plate object so they arrive as
@@ -10339,26 +10398,26 @@ void DesignPanel::on_commit()
             if (m_disp_body_meshes[b].its.indices.empty()) continue;
             parts.emplace_back(&m_disp_body_meshes[b], wxString::Format(_L("Design Body %d"), int(b + 1)));
         }
-        if (parts.empty()) {   // every body hidden — nothing to ship
-            set_status(_L("All bodies hidden — show one before committing"));
-            return;
-        }
-        if (m_commit_mode == CommitMode::Assembly && parts.size() > 1)
+        if (parts.empty())   // every body hidden — nothing to ship
+            return CommitOutcome::AllHidden;
+        if (m_commit_mode == CommitMode::Assembly && parts.size() > 1) {
             obj_list->load_mesh_object(parts, _L("Design Assembly"));
-        else
+            objects = 1;
+        } else {
             for (const auto& [mesh, name] : parts)
                 obj_list->load_mesh_object(*mesh, name);
+            objects = int(parts.size());
+        }
     } else {
         obj_list->load_mesh_object(m_disp_pick_mesh, _L("Design Body"));
+        objects = 1;
     }
 
     // Persist the editable parametric recipe alongside the committed meshes so the
     // saved 3MF reopens with the full feature tree, not just the baked solid. An empty
     // doc clears it, keeping non-CAD projects clean.
     sync_recipe_to_model();
-
-    if (wxGetApp().mainframe != nullptr)
-        wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+    return CommitOutcome::Shipped;
 }
 
 CadFeature DesignPanel::build_candidate(Tool t) const

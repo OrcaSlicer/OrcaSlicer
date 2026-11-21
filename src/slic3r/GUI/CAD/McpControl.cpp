@@ -124,7 +124,7 @@ json describe_tools()
     return json{
         {"app", "Orca CAD"},
         {"protocol", "jsonrpc-2.0"},
-        {"slice", 5},
+        {"slice", 6},
         // Read this before using any face or edge id.
         {"id_lifetime",
          "Global face and edge ids are indices into the CURRENT topology and expire the moment "
@@ -398,6 +398,21 @@ json describe_tools()
                  {"params", json::array({
                      json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
                      json{{"name", "reference"}, {"type", "object"}},
+                 })}},
+            json{{"name", "commit_to_plate"}, {"summary", "Ship the visible bodies to the plate exactly as Commit to Plate does (Move-gizmo positions, recipe synced), without switching tabs. Refused while the Design tab is busy, and on an empty document."},
+                 {"params", json::array()}},
+            json{{"name", "export_step"}, {"summary", "Write all bodies to a STEP file as native B-rep at their displayed positions."},
+                 {"params", json::array({
+                     json{{"name", "path"}, {"type", "string"}, {"description", "destination .step/.stp file"}},
+                 })}},
+            json{{"name", "export_stl"}, {"summary", "Write the visible bodies to one STL file — the same meshes Commit to Plate ships."},
+                 {"params", json::array({
+                     json{{"name", "path"}, {"type", "string"}, {"description", "destination .stl file"}},
+                     json{{"name", "ascii"}, {"type", "boolean"}, {"default", false}},
+                 })}},
+            json{{"name", "save_project"}, {"summary", "Save a 3MF project copy to path (recipe synced first). The open project's file name, dirty state and model are untouched."},
+                 {"params", json::array({
+                     json{{"name", "path"}, {"type", "string"}, {"description", "destination .3mf file"}},
                  })}},
         })},
     };
@@ -797,6 +812,58 @@ json validate_against(DesignPanel* panel, const json& params)
         {"surface_deviation", json{{"max_mm", dev.max_mm}, {"mean_mm", dev.mean_mm},
                                    {"rms_mm", dev.rms_mm}, {"samples", dev.sample_count}}},
     };
+}
+
+// --- Commit / export / save: the plate and the filesystem, not the recipe ---
+// None of these mutates the document, so none takes an undo checkpoint (checkpoints bound
+// feature-list mutations only). They are still writes, so the dispatcher refuses them while
+// the panel is busy, like every other write. An empty document is a clear JSON-RPC error,
+// never a crash: without it a fresh tab would ship nothing and call it success.
+json commit_to_plate(DesignPanel* panel, const json& params)
+{
+    (void)params;
+    int objects = 0;
+    switch (panel->mcp_commit_to_plate(objects)) {
+    case DesignPanel::CommitOutcome::Shipped: break;
+    case DesignPanel::CommitOutcome::EmptyDocument:
+        throw std::runtime_error("nothing to commit — the document has no bodies");
+    case DesignPanel::CommitOutcome::AllHidden:
+        throw std::runtime_error("nothing to commit — every body is hidden");
+    case DesignPanel::CommitOutcome::NoPlate:
+        throw std::runtime_error("no plate to commit to");
+    }
+    return json{{"ok", true}, {"objects", objects}};
+}
+
+json export_step(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("path")) throw std::runtime_error("export_step needs 'path'");
+    const std::string path = params["path"].get<std::string>();
+    std::string err;
+    if (!panel->mcp_export_step(path, err))
+        throw std::runtime_error(err.empty() ? "STEP export failed" : err);
+    return json{{"ok", true}, {"path", path}};
+}
+
+json export_stl(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("path")) throw std::runtime_error("export_stl needs 'path'");
+    const std::string path = params["path"].get<std::string>();
+    const bool ascii       = params.value("ascii", false);
+    std::string err;
+    if (!panel->mcp_export_stl(path, ascii, err))
+        throw std::runtime_error(err.empty() ? "STL export failed" : err);
+    return json{{"ok", true}, {"path", path}, {"ascii", ascii}};
+}
+
+json save_project(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("path")) throw std::runtime_error("save_project needs 'path'");
+    const std::string path = params["path"].get<std::string>();
+    std::string err;
+    if (!panel->mcp_save_project(path, err))
+        throw std::runtime_error(err.empty() ? "project save failed" : err);
+    return json{{"ok", true}, {"path", path}};
 }
 
 json action_extrude(DesignPanel* panel, const json& params)
@@ -2130,6 +2197,10 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "surface_fill")    return rpc_result(id, action_surface_fill(panel, params));
         if (method == "mate")          return rpc_result(id, action_mate(panel, params));
         if (method == "check_interference") return rpc_result(id, action_check_interference(panel, params));
+        if (method == "commit_to_plate") return rpc_result(id, commit_to_plate(panel, params));
+        if (method == "export_step")    return rpc_result(id, export_step(panel, params));
+        if (method == "export_stl")     return rpc_result(id, export_stl(panel, params));
+        if (method == "save_project")   return rpc_result(id, save_project(panel, params));
         return rpc_error(id, -32601, "Unknown method: " + method);
     } catch (const Standard_Failure& ex) {   // derives from std::exception, so it comes first
         return rpc_error(id, -32000, std::string("OCCT: ") + (*ex.what() ? ex.what() : "failure"));
