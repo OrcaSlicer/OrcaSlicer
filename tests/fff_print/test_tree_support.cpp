@@ -41,6 +41,7 @@
 #include <iostream>
 #include <iterator>
 #include <map>
+#include <memory>
 #include <optional>
 #include "libslic3r/Thread.hpp"
 #include <set>
@@ -72,6 +73,8 @@
 #include "libslic3r/TriangleSelector.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Flow.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/Geometry.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/Semver.hpp"
 #include "libslic3r/Slicing.hpp"
@@ -4509,13 +4512,14 @@ TEST_CASE("Organic final check runs only where the nozzle assignment can change 
 {
     const std::string ratios = GENERATE("0,0", "0,1", "1,0", "1,1");
     const bool bbl = GENERATE(false, true);
-    CAPTURE(ratios, bbl);
+    const bool flush = GENERATE(false, true);
+    CAPTURE(ratios, bbl, flush);
     auto settings = multifilament_config(2, {{"nozzle_diameter", "0.2,0.2"}, {"filament_map", "1,2"},
         {"filament_map_mode", "Auto For Flush"}, {"print_extruder_id", "1,2"},
         {"print_extruder_variant", "Direct Drive Standard;Direct Drive Standard"},
         {"layer_change_gcode", "G92 E0\n"}, {"layer_height", .1}, {"initial_layer_print_height", .1},
         {"line_width", .22}, {"enable_support", 1}, {"support_type", "tree(auto)"}, {"support_style", "organic"},
-        {"support_on_build_plate_only", 0}, {"top_solid_infill_flow_ratio", ratios}});
+        {"support_on_build_plate_only", 0}, {"top_solid_infill_flow_ratio", ratios}, {"flush_into_objects", flush}});
     size_flush_to_nozzles(settings);
     Model model;
     Print print;
@@ -4525,10 +4529,12 @@ TEST_CASE("Organic final check runs only where the nozzle assignment can change 
     print.is_BBL_printer() = bbl;
     PrintObject &object = *print.get_object(0);
     object.add_support_layer(0, 0, .1, 1.2);
-    // A BBL printer assigns the filaments to its nozzles automatically only after the support is generated. The final
-    // plan can then find less footing than was possible only where some nozzle's top surface delivers nothing and
-    // another's does.
-    CHECK(organic_support_needs_final_check(object) == (bbl && (ratios == "0,1" || ratios == "1,0")));
+    // A BBL printer assigns the filaments to its nozzles automatically only after the support is generated, and the
+    // tool plan picks the filaments of an object the prime tower may flush into only then too. That final plan decides
+    // the footing only where some nozzle's top surface delivers nothing and another's does.
+    const bool nozzle_decides = ratios == "0,1" || ratios == "1,0";
+    const bool expected = (bbl || flush) && nozzle_decides;
+    CHECK(organic_support_needs_final_check(object) == expected);
 }
 
 TEST_CASE("Model role flow changes refresh only Organic support with model roots", "[TreeSupport][Organic][Regression]")
@@ -5804,8 +5810,7 @@ DynamicPrintConfig nozzle_footing_config(std::initializer_list<ConfigBase::SetDe
     return settings;
 }
 
-// With tool changes the second filament prints the top at 1 mm, in the By layer sequence only.
-void init_nozzle_footing_print(Print &print, Model &model, const DynamicPrintConfig &settings, bool tool_changes)
+TriangleMesh nozzle_footing_mesh()
 {
     TriangleMesh mesh = make_cube(22., 18., 1.);
     mesh.translate(-11.f, -9.f, 0.f);
@@ -5817,12 +5822,66 @@ void init_nozzle_footing_print(Print &print, Model &model, const DynamicPrintCon
         post.translate(x, -.5f, 0.f);
         mesh.merge(post);
     }
-    init_print(std::vector<TriangleMesh>{std::move(mesh)}, print, model, settings, nullptr, false);
+    return mesh;
+}
+
+// With tool changes the second filament prints the top at 1 mm, in the By layer sequence only.
+void init_nozzle_footing_print(Print &print, Model &model, const DynamicPrintConfig &settings, bool tool_changes)
+{
+    init_print(std::vector<TriangleMesh>{nozzle_footing_mesh()}, print, model, settings, nullptr, false);
     if (tool_changes) {
         auto &codes = model.plates_custom_gcodes[model.curr_plate_index];
         codes.mode = CustomGCode::MultiAsSingle;
         codes.gcodes = {{.99, CustomGCode::ToolChange, 2, {}, {}}, {1.01, CustomGCode::ToolChange, 1, {}, {}}};
     }
+}
+
+// Whether the Organic support of the object warns of parts printed with nothing under them.
+bool organic_warns(const PrintObject &object)
+{
+    const auto warnings = object.step_state_with_warnings(posSupportMaterial).warnings;
+    return std::any_of(warnings.begin(), warnings.end(), [](const PrintStateBase::Warning &warning) {
+        return warning.current && warning.message_id == PrintStateBase::SlicingOrganicSupportWarning;
+    });
+}
+
+// Whether the G-code of the print extrudes the top of the pedestal, at 1 mm.
+bool prints_pedestal_top(Print &print, const DynamicPrintConfig &settings)
+{
+    GCodeReader reader;
+    reader.apply_config(settings);
+    bool top = false, printed = false;
+    reader.parse_buffer(gcode(print), [&](GCodeReader &state, const GCodeReader::GCodeLine &line) {
+        if (line.comment().find("TYPE:") == 0)
+            top = line.comment().find("Top surface") != std::string_view::npos;
+        if (top && std::abs(line.new_Z(state) - 1.) < EPSILON && line.dist_XY(state) > EPSILON && line.extruding(state))
+            printed = true;
+    });
+    return printed;
+}
+
+// Whether the G-code extrudes the top of each of two copies of the pedestal set apart along Y, the lower one first.
+std::pair<bool, bool> prints_pedestal_tops(Print &print, const DynamicPrintConfig &settings)
+{
+    GCodeReader reader;
+    reader.apply_config(settings);
+    bool top = false;
+    std::vector<std::pair<double, bool>> moves;
+    reader.parse_buffer(gcode(print), [&](GCodeReader &state, const GCodeReader::GCodeLine &line) {
+        if (line.comment().find("TYPE:") == 0)
+            top = line.comment().find("Top surface") != std::string_view::npos;
+        if (top && std::abs(line.new_Z(state) - 1.) < EPSILON && line.dist_XY(state) > EPSILON)
+            moves.emplace_back(line.new_Y(state), line.extruding(state));
+    });
+    std::pair<bool, bool> printed{false, false};
+    if (moves.size() < 2)
+        return printed;
+    // The copies are alike, so the median Y of the moves lies between their tops.
+    std::sort(moves.begin(), moves.end());
+    const double middle = .5 * (moves[moves.size() / 2 - 1].first + moves[moves.size() / 2].first);
+    for (const auto &[y, extruding] : moves)
+        (y < middle ? printed.first : printed.second) |= extruding;
+    return printed;
 }
 } // namespace
 
@@ -5847,16 +5906,7 @@ TEST_CASE("Organic warnings follow the material selected by the final layer plan
         print.apply(model, settings);
         print.process();
         const bool warning = !print.get_object(0)->step_state_with_warnings(posSupportMaterial).warnings.empty();
-        const std::string text = gcode(print);
-        GCodeReader reader;
-        reader.apply_config(settings);
-        bool top = false, printed = false;
-        reader.parse_buffer(text, [&](GCodeReader &state, const GCodeReader::GCodeLine &line) {
-            if (line.comment().find("TYPE:") == 0)
-                top = line.comment().find("Top surface") != std::string_view::npos;
-            if (top && std::abs(line.new_Z(state) - 1.) < EPSILON && line.dist_XY(state) > EPSILON && line.extruding(state))
-                printed = true;
-        });
+        const bool printed = prints_pedestal_top(print, settings);
         printed_cases += printed;
         empty_cases += !printed;
         CHECK(warning == !printed);
@@ -5874,6 +5924,113 @@ TEST_CASE("Organic warnings follow the material selected by the final layer plan
             CHECK(print.get_object(0)->step_state_with_timestamp(posSupportMaterial).timestamp > timestamp);
         }
     }
+}
+
+TEST_CASE("Organic warnings follow the filament the prime tower flushes into the object", "[TreeSupport][Organic][Material][Regression]")
+{
+    // The pedestal, of the first filament, is flushed into, a cube beside it is not. The plan of a layer leaves out the
+    // filaments of an object it may flush into, so with the cube printed with the second filament alone, of the second
+    // nozzle, that filament prints the pedestal too. With the cube printed with the first filament and with the second
+    // and the third, which share the second nozzle and flush it on every layer, the filament that nozzle changes to
+    // prints the pedestal instead of its own. Its top at 1 mm prints from the second nozzle either way, and from the
+    // first, of its own filament, without flushing. Sliced again with flushing switched, the pedestal finds the warning
+    // of a fresh slice: switched off where the nozzle decides the flow of the top, flushing leaves a warning that only
+    // the support generated again finds anew, and the support is kept else.
+    const bool own_planned = GENERATE(false, true);
+    const std::string ratios = GENERATE("1,0", "0,1", "1,1");
+    const bool flush = GENERATE(false, true);
+    CAPTURE(own_planned, ratios, flush);
+    auto settings = nozzle_footing_config({{"filament_is_mixed", "0,0,0"}, {"filament_map", "1,2,2"},
+        {"top_surface_filament_id", 1}, {"top_solid_infill_flow_ratio", ratios}, {"flush_into_objects", flush},
+        {"flush_volumes_matrix", "0,60,60,60,0,60,60,60,0"}, {"enable_prime_tower", 1}, {"wipe_tower_type", "type1"},
+        {"prime_tower_width", 35}, {"wipe_tower_x", 30}, {"wipe_tower_y", 20},
+        {"printable_area", "-100x-100,100x-100,100x100,-100x100"}});
+    TriangleMesh cube = make_cube(8., 8., 4.);
+    cube.translate(-4.f, -40.f, 0.f);
+    const std::string inner = own_planned ? "3" : "2", fill = own_planned ? "1" : "2";
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{{},
+        {{"flush_into_objects", "0"}, {"enable_support", "0"}, {"sparse_infill_density", "15%"},
+         {"outer_wall_filament_id", "2"}, {"inner_wall_filament_id", inner}, {"sparse_infill_filament_id", fill},
+         {"internal_solid_filament_id", fill}, {"top_surface_filament_id", fill},
+         {"bottom_surface_filament_id", fill}}};
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{nozzle_footing_mesh(), std::move(cube)}, print, model, settings, &overrides,
+        false);
+    INFO(print.validate().string);
+    REQUIRE(print.validate().string.empty());
+    const bool regenerated = flush && ratios != "1,1";
+    for (const bool flushed : {flush, !flush}) {
+        CAPTURE(flushed);
+        settings.set_deserialize_strict({{"flush_into_objects", flushed}});
+        print.apply(model, settings);
+        if (flushed != flush)
+            CHECK(print.get_object(0)->is_step_done(posSupportMaterial) == !regenerated);
+        print.process();
+        const bool printed = prints_pedestal_top(print, settings);
+        // Only the nozzle that prints the top decides whether it delivers material.
+        CHECK(printed == (ratios[flushed ? 2 : 0] == '1'));
+        CHECK(organic_warns(*print.get_object(0)) == !printed);
+    }
+}
+
+TEST_CASE("Organic warnings follow the filament the prime tower flushes into each copy", "[TreeSupport][Organic][Material][Regression]")
+{
+    // Two copies of the pedestal are flushed into, a cube beside them is not: it prints with the first filament and
+    // with the second and the third, which share the second nozzle and flush it on every layer. Each copy is checked
+    // with the filament that prints its top, and the support the copies share warns where any of them leaves it on
+    // nothing.
+    const std::string ratios = GENERATE("1,0", "0,1");
+    CAPTURE(ratios);
+    auto settings = nozzle_footing_config({{"filament_is_mixed", "0,0,0"}, {"filament_map", "1,2,2"},
+        {"top_surface_filament_id", 1}, {"top_solid_infill_flow_ratio", ratios}, {"flush_into_objects", 1},
+        {"flush_volumes_matrix", "0,60,60,60,0,60,60,60,0"}, {"enable_prime_tower", 1}, {"wipe_tower_type", "type1"},
+        {"prime_tower_width", 35}, {"wipe_tower_x", 30}, {"wipe_tower_y", 20},
+        {"printable_area", "-100x-100,100x-100,100x100,-100x100"}});
+    TriangleMesh cube = make_cube(8., 8., 4.);
+    cube.translate(-4.f, -40.f, 0.f);
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{{},
+        {{"flush_into_objects", "0"}, {"enable_support", "0"}, {"sparse_infill_density", "15%"},
+         {"outer_wall_filament_id", "2"}, {"inner_wall_filament_id", "3"}, {"sparse_infill_filament_id", "1"},
+         {"internal_solid_filament_id", "1"}, {"top_surface_filament_id", "1"}, {"bottom_surface_filament_id", "1"}}};
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{nozzle_footing_mesh(), std::move(cube)}, print, model, settings, &overrides,
+        false);
+    ModelObject &pedestal = *model.objects.front();
+    pedestal.add_instance();
+    pedestal.instances[1]->set_offset(pedestal.instances[0]->get_offset() + Vec3d(0., 45., 0.));
+    print.apply(model, settings);
+    INFO(print.validate().string);
+    REQUIRE(print.validate().string.empty());
+    print.process();
+    REQUIRE(print.get_object(0)->instances().size() == 2);
+    const auto [first_copy, second_copy] = prints_pedestal_tops(print, settings);
+    // The second nozzle prints the tops of both copies.
+    CHECK(first_copy == (ratios == "0,1"));
+    CHECK(second_copy == (ratios == "0,1"));
+    const bool both_printed = first_copy && second_copy;
+    CHECK(organic_warns(*print.get_object(0)) == !both_printed);
+}
+
+TEST_CASE("Organic support flushed into is generated again with flushing switched off only where its warning is checked no more", "[TreeSupport][Organic][Material][Regression]")
+{
+    // A mixed filament set up, though unused, has the warning checked again once the tool plan is known whether the
+    // pedestal is flushed into or not: switching flushing off keeps the support as it was generated.
+    const bool mixed = GENERATE(false, true);
+    CAPTURE(mixed);
+    auto settings = nozzle_footing_config({{"filament_is_mixed", mixed ? "0,0,1" : "0,0,0"},
+        {"top_surface_filament_id", 1}, {"top_solid_infill_flow_ratio", "1,0"}, {"flush_into_objects", 1}});
+    Model model;
+    Print print;
+    init_nozzle_footing_print(print, model, settings, false);
+    INFO(print.validate().string);
+    REQUIRE(print.validate().string.empty());
+    print.process();
+    REQUIRE(print.get_object(0)->is_step_done(posSupportMaterial));
+    settings.set_deserialize_strict({{"flush_into_objects", 0}});
+    print.apply(model, settings);
+    CHECK(print.get_object(0)->is_step_done(posSupportMaterial) == mixed);
 }
 
 TEST_CASE("Organic support sliced again after a change of print sequence is that of a fresh slice", "[TreeSupport][Organic][Material][Regression]")
@@ -6243,45 +6400,59 @@ TEST_CASE("The gap of a hollow Organic base grows with the layer height from one
     CHECK_THAT(unscaled(organic_base_span(object)), Catch::Matchers::WithinAbs(base == "rectilinear" ? 2.5 : gap, 1e-4));
 }
 
-TEST_CASE("The gap of a hollow Organic base follows the thinnest layer of a variable layer height", "[TreeSupport][Organic]")
+TEST_CASE("The gap of a hollow Organic base follows the layers of the support under a variable layer height", "[TreeSupport][Organic]")
 {
     // A style of normal supports left with a tree support type, which the settings tab resets but a project or the command
-    // line may carry, generates Organic support too and escapes the check against a variable layer height: a stretch of
-    // layers 0.04 mm high in an object sliced at 0.2 mm under lines 0.42 mm wide bridges no more than they do, one line
-    // rather than the three of 0.2 mm layers.
+    // line may carry, generates Organic support too and escapes the check against a variable layer height. The support
+    // keeps its layers 0.2 mm high beside a stretch of the object sliced at 0.04 mm: under lines 0.42 mm wide they bridge
+    // three lines, as without the stretch.
     const char *style = GENERATE("snug", "grid");
     CAPTURE(style);
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({{"enable_support", 1}, {"support_type", "tree(auto)"}, {"support_style", style},
         {"support_base_pattern", "default"}, {"support_line_width", .42}, {"nozzle_diameter", "0.4"},
-        {"min_layer_height", "0.04"}, {"layer_height", .2}, {"initial_layer_print_height", .2}, {"layer_change_gcode", "G92 E0"}});
+        {"min_layer_height", "0.04"}, {"layer_height", .2}, {"initial_layer_print_height", .2},
+        {"layer_change_gcode", "G92 E0"}});
+    // A slab 1 mm thick over a column, overhanging it by 4 mm on every side, with the column sliced at 0.04 mm from
+    // 1 mm to 1.4 mm.
+    TriangleMesh mesh = make_cube(4., 4., 6.);
+    TriangleMesh slab = make_cube(12., 12., 1.);
+    slab.translate(-4.f, -4.f, 5.5f);
+    mesh.merge(slab);
     Model model;
     Print print;
-    init_print(std::vector<TriangleMesh>{make_cube(4., 4., 3.)}, print, model, config, nullptr, false);
+    init_print(std::vector<TriangleMesh>{std::move(mesh)}, print, model, config, nullptr, false);
     DynamicPrintConfig range;
     range.set_key_value("layer_height", new ConfigOptionFloat(.04));
     model.objects.front()->layer_config_ranges[{1., 1.4}].assign_config(std::move(range));
     print.apply(model, config);
-    PrintObject &object = *print.get_object(0);
-    object.slice();
-    double thinnest = std::numeric_limits<double>::max();
-    for (const Layer *layer : object.layers())
-        thinnest = std::min(thinnest, layer->height);
-    REQUIRE_THAT(thinnest, Catch::Matchers::WithinAbs(.04, 1e-3));
     // The style escapes the check against a variable layer height for Organic support; once Print::validate() refuses
     // it as well, this case is gone.
     const std::string error = print.validate().string;
     CAPTURE(error);
-    CHECK(error.empty());
-    CHECK_THAT(unscaled(organic_base_span(object)), Catch::Matchers::WithinAbs(.42, 1e-4));
+    REQUIRE(error.empty());
+    print.process();
+    const PrintObject &object = *print.objects().front();
+    double thinnest = std::numeric_limits<double>::max();
+    for (const Layer *layer : object.layers())
+        thinnest = std::min(thinnest, layer->height);
+    REQUIRE_THAT(thinnest, Catch::Matchers::WithinAbs(.04, 1e-3));
+    // The layers of the support above the first.
+    double support_thinnest = std::numeric_limits<double>::max();
+    for (const SupportLayer *layer : object.support_layers())
+        if (layer->print_z > .2 + EPSILON)
+            support_thinnest = std::min(support_thinnest, layer->height);
+    REQUIRE(support_thinnest < std::numeric_limits<double>::max());
+    CHECK_THAT(support_thinnest, Catch::Matchers::WithinAbs(.2, 1e-3));
+    CHECK_THAT(unscaled(organic_base_span(object)), Catch::Matchers::WithinAbs(1.26, 1e-4));
 }
 
-TEST_CASE("The gap of a hollow Organic base follows a layer height profile painted next to the first layer", "[TreeSupport][Organic]")
+TEST_CASE("The gap of a hollow Organic base keeps the layer height of the object under a profile painted next to the first layer", "[TreeSupport][Organic]")
 {
     // The layer height tool leaves a single pair for a first layer of a fixed height where it paints the layers right above
-    // it: 0.02 mm at the top of a first layer 0.1 mm high, growing to 0.2 mm at the top of an object 3 mm high. The
-    // thinnest layer above the first, about 0.02 mm, bridges least: one line of 0.42 mm, as a normal-support style left with
-    // a tree support type takes it.
+    // it: 0.02 mm at the top of a first layer 0.1 mm high, growing to 0.2 mm at the top of an object 3 mm high. The support
+    // a normal-support style left with a tree support type generates keeps its layers 0.2 mm high whatever the profile,
+    // see the test above: three lines of 0.42 mm.
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({{"enable_support", 1}, {"support_type", "tree(auto)"}, {"support_style", "grid"},
         {"support_base_pattern", "default"}, {"support_line_width", .42}, {"nozzle_diameter", "0.4"},
@@ -6297,7 +6468,7 @@ TEST_CASE("The gap of a hollow Organic base follows a layer height profile paint
     for (size_t i = 1; i < object.layers().size(); ++ i)
         thinnest = std::min(thinnest, object.layers()[i]->height);
     REQUIRE(thinnest < .03);
-    CHECK_THAT(unscaled(organic_base_span(object)), Catch::Matchers::WithinAbs(.42, 1e-4));
+    CHECK_THAT(unscaled(organic_base_span(object)), Catch::Matchers::WithinAbs(1.26, 1e-4));
 }
 
 TEST_CASE("The gap of a hollow Organic base does not follow the top layers the precise Z height adjusts", "[TreeSupport][Organic]")
@@ -6329,6 +6500,80 @@ TEST_CASE("The gap of a hollow Organic base does not follow the top layers the p
         thinnest = std::min(thinnest, object.layers()[i]->height);
     REQUIRE(thinnest < .079);
     CHECK_THAT(unscaled(organic_base_span(object)), Catch::Matchers::WithinAbs(.56, 1e-4));
+}
+
+TEST_CASE("Organic trees inside a hollow body hold an Auto roof printed in loops as a concentric one", "[TreeSupport][Organic][Interface][Regression]")
+{
+    // With no gap above it the Auto interface pattern prints a roof in loops, as Concentric does, see
+    // SupportParameters::contact_fill_pattern: the trees inside the hollow bodies under it hold every point of it, not
+    // the lines of a direction it does not print. With a gap above it Auto prints lines, held line by line, and so does
+    // a base interface under a roof whose interface is set to a filament of its own. A plate 12 mm square 2 mm above
+    // the bed on a pillar, under a roof of one layer or two.
+    const int top_layers = GENERATE(1, 2);
+    CAPTURE(top_layers);
+    struct Result
+    {
+        bool                  loops          = false;
+        bool                  base_interface = false;
+        size_t                angles         = 0;
+        double                roof   = 0.;
+        double                base   = 0.;
+        std::vector<coordf_t> floating;
+    };
+    const auto run = [top_layers](const char *pattern, const double gap, const int interface_filament = 0) {
+        TriangleMesh mesh   = make_cube(12., 12., 1.);
+        TriangleMesh pillar = make_cube(1., 1., 2.5);
+        mesh.translate(0.f, 0.f, 2.f);
+        pillar.translate(5.5f, 5.5f, 0.f);
+        mesh.merge(pillar);
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({{"enable_support", 1}, {"support_type", "tree(auto)"},
+            {"support_style", "organic"}, {"support_on_build_plate_only", 1}, {"support_base_pattern", "default"},
+            {"support_threshold_angle", 30}, {"raft_layers", 0}, {"layer_height", .2}, {"support_top_z_distance", gap},
+            {"support_interface_top_layers", top_layers}, {"support_interface_pattern", pattern},
+            {"support_interface_spacing", .2}, {"tree_support_branch_angle_organic", 40.},
+            {"support_interface_filament", interface_filament}});
+        Print print;
+        Slic3r::Test::init_and_process_print({mesh}, print, config);
+        const PrintObject      &object = *print.get_object(0);
+        const SupportParameters params{object};
+        Result                  result;
+        result.loops  = params.contact_fill_pattern == ipConcentric;
+        result.base_interface = params.num_top_base_interface_layers > 0;
+        result.angles = TreeSupport3D::organic_roof_angles(object, params).size();
+        for (const SupportLayer *layer : object.support_layers())
+            for_each_extrusion_path(layer->support_fills, [&result](const ExtrusionPath &path) {
+                if (path.role() == erSupportMaterialInterface)
+                    result.roof += path.total_volume();
+                else if (path.role() == erSupportMaterial)
+                    result.base += path.total_volume();
+            });
+        result.floating =
+            floating_support_islands(object, scaled<double>(1.) * params.support_material_flow.scaled_width());
+        return result;
+    };
+    const Result automatic  = run("auto", 0.);
+    const Result concentric = run("concentric", 0.);
+    REQUIRE(automatic.loops);
+    REQUIRE(concentric.loops);
+    REQUIRE(concentric.roof > 0.);
+    CHECK(automatic.angles == 0);
+    CHECK_THAT(automatic.roof, Catch::Matchers::WithinRel(concentric.roof, 1e-9));
+    CHECK_THAT(automatic.base, Catch::Matchers::WithinRel(concentric.base, 1e-9));
+    REQUIRE(automatic.floating.size() == concentric.floating.size());
+    for (size_t i = 0; i < automatic.floating.size(); ++ i)
+        CHECK_THAT(automatic.floating[i], Catch::Matchers::WithinAbs(concentric.floating[i], 1e-9));
+    const Result gapped = run("auto", .2);
+    REQUIRE_FALSE(gapped.loops);
+    CHECK(gapped.angles == 1);
+    // An interface set to a filament of its own, the first, while the base prints with the current one, gets a base
+    // interface under it, see SupportParameters.
+    if (top_layers > 1) {
+        const Result based = run("auto", 0., 1);
+        REQUIRE(based.loops);
+        REQUIRE(based.base_interface);
+        CHECK(based.angles == 1);
+    }
 }
 
 TEST_CASE("Organic inner trees have feet between sparse first layer lines", "[TreeSupport][Organic][Material][Regression]")
@@ -6375,6 +6620,177 @@ TEST_CASE("Organic first layers print no foot apart where their lines hold what 
         CHECK(half < sparse);
         CHECK(dense == 0);
     }
+}
+
+TEST_CASE("Organic first layers print no foot of a tree apart where their lines hold the tree", "[TreeSupport][Organic][Material][Regression]")
+{
+    // Trees come down from a roof in the middle of a body of radius 8 mm onto its first layer. A foot printed apart
+    // from the flange prints a loop round it, and the flange another round the hole it leaves. Lines 25 % dense leave
+    // gaps a bead of the tree over them misses: the feet stay. Lines 90 % dense, whether as wide as those of the base
+    // or twice as wide, leave gaps far narrower than a bead, which touches a line wherever it lies: no foot is printed
+    // apart, and the trees stand on the lines all the same, see check_inner_tree_footing().
+    const double width = GENERATE(.22, .44);
+    const int    phase = GENERATE(0, 1, 2);
+    CAPTURE(width, phase);
+    const auto loops = [&](const int density) {
+        Polylines paths;
+        organic_tdd::check_inner_tree_footing(0, width, density, Vec2d::Constant(.35 * phase), false, 12, false, 8.,
+            &paths);
+        REQUIRE_FALSE(paths.empty());
+        return std::count_if(paths.begin(), paths.end(), [](const Polyline &path) {
+            return (path.first_point() - path.last_point()).cast<double>().norm() < scale_(.1) &&
+                std::all_of(path.points.begin(), path.points.end(),
+                    [](const Point &point) { return unscaled(point).norm() < 4.; });
+        });
+    };
+    const auto sparse = loops(25), dense = loops(90);
+    CAPTURE(sparse, dense);
+    CHECK(sparse > 0);
+    CHECK(dense == 0);
+}
+
+namespace {
+
+// A square first layer of Organic support 6 mm across and 60 % dense, of lines 0.22 mm wide under a 0.2 mm nozzle,
+// moved by shift along both axes against the grid its lines fall on, filled as generate_support_toolpaths() fills it.
+// Its lines lie a little closer than a line and the bead of a tree apart: a bead over them touches one wherever it
+// lies, but where the fill leaves a wider gap, along a side the lines run parallel to, between the loop round the
+// flange and the first line, as wide as where the lines fall on their grid makes it.
+class SparseFlange
+{
+public:
+    explicit SparseFlange(const double shift) : shift(shift)
+    {
+        DynamicPrintConfig settings = DynamicPrintConfig::full_print_config();
+        settings.set_deserialize_strict({{"enable_support", 1}, {"support_type", "tree(auto)"},
+            {"support_style", "organic"}, {"support_base_pattern", "default"}, {"support_on_build_plate_only", 1},
+            {"nozzle_diameter", "0.2"}, {"min_layer_height", "0.02"}, {"initial_layer_line_width", .22},
+            {"initial_layer_print_height", .1}, {"layer_height", .1}, {"line_width", .22}, {"support_line_width", .22},
+            {"tree_support_wall_count", 1}, {"tree_support_tip_diameter", .22}, {"support_angle", 90},
+            {"raft_first_layer_density", 60}, {"raft_layers", 0}, {"layer_change_gcode", "G92 E0\n"},
+            {"printable_area", "-40x-40,40x-40,40x40,-40x40"}});
+        TriangleMesh mesh = make_cube(1., 1., 4.);
+        mesh.translate(-20.5f, -.5f, 0.f);
+        init_print(std::vector<TriangleMesh>{std::move(mesh)}, print, model, settings, nullptr, false);
+        REQUIRE(print.validate().string.empty());
+        object = print.get_object(0);
+        object->slice();
+        params.emplace(*object);
+        filler.reset(Fill::new_from_type(ipRectilinear));
+        filler->set_bounding_box(BoundingBox(Point::new_scale(-10., -10.), Point::new_scale(10., 10.)));
+        filler->angle           = float(Geometry::deg2rad(object->config().support_angle.value + 90.));
+        filler->spacing         = params->first_layer_flow.spacing();
+        filler->link_max_length = 0;
+        width                   = params->support_material_flow.width();
+        // The narrowest bead a tree prints, see organic_fill_first_layer().
+        bead   = std::min(width, .85 * .2);
+        const double low = -3. + shift, high = 3. + shift;
+        flange = {Polygon({Point::new_scale(low, low), Point::new_scale(high, low), Point::new_scale(high, high),
+            Point::new_scale(low, high)})};
+    }
+
+    // A foot 0.7 mm across centred at x, y from the middle of the flange.
+    Polygon disc(const double x, const double y) const
+    {
+        Polygon circle = make_circle_num_segments(scale_(.35), 64);
+        circle.translate(Point::new_scale(x + shift, y + shift));
+        return circle;
+    }
+
+    // Where the paths printed with the feet of trees and the lone feet given hold a bead touching them, the reach of
+    // each long enough to print, see bead_reach(). loops takes the loops printed inside the flange half a millimetre
+    // off its outline, the rings of feet printed apart.
+    Polygons fill(const Polygons &feet, const Polygons &lone_feet, Polylines *loops = nullptr) const
+    {
+        ExtrusionEntityCollection paths;
+        organic_fill_first_layer(paths.entities, flange, feet, lone_feet, filler.get(), .6f,
+            ExtrusionRole::erSupportMaterial, params->first_layer_flow, *params, *object);
+        const Polygons inside = offset(flange, - float(scale_(.5)));
+        Polygons       held;
+        for_each_extrusion_path(paths, [&](const ExtrusionPath &path) {
+            const Polyline axis = path.as_polyline();
+            if (path.length() >= .25 * scale_(std::min(double(path.width), width)))
+                append(held, offset(axis, float(scale_(.5 * (path.width + bead)) + 2 * SCALED_EPSILON), jtRound,
+                    scale_(.005), etOpenRound));
+            if (loops != nullptr && (axis.first_point() - axis.last_point()).cast<double>().norm() < scale_(.1) &&
+                diff_pl(Polylines{axis}, inside).empty())
+                loops->push_back(axis);
+        });
+        return held;
+    }
+
+    // The length of the loop a tree prints half a line inside its foot, see organic_inward_loops(), out of held.
+    double unheld(const Polygon &foot, const Polygons &held) const
+    {
+        double length = 0.;
+        for (const Polygon &loop : offset(Polygons{foot}, - float(scale_(.5 * width))))
+            for (const Polyline &piece : diff_pl(Polylines{loop.split_at_first_point()}, held))
+                length += unscaled(piece.length());
+        return length;
+    }
+
+    double      shift;
+    double      width = 0.;
+    double      bead  = 0.;
+    Polygons    flange;
+    PrintObject *object = nullptr;
+
+private:
+    Model                            model;
+    Print                            print;
+    std::optional<SupportParameters> params;
+    std::unique_ptr<Fill>            filler;
+};
+
+} // namespace
+
+TEST_CASE("Organic first layers keep the foot of a tree apart where their lines leave it over nothing", "[TreeSupport][Organic][Material][Regression]")
+{
+    // The gap of a sparse flange along a side, see SparseFlange, crosses the loop a tree prints over its foot by that
+    // side. The feet are printed apart where needed: the loop of the tree over each foot lies within reach of a bead
+    // printed.
+    const double shift = GENERATE(.08, .12, .16, .2, .24);
+    CAPTURE(shift);
+    const SparseFlange flange(shift);
+    const Polygons     feet{flange.disc(-2.6, 0.), flange.disc(2.6, 0.), flange.disc(0., -2.6), flange.disc(0., 2.6)};
+    const Polygons     alone = flange.fill(Polygons(), Polygons());
+    REQUIRE(std::any_of(feet.begin(), feet.end(),
+        [&](const Polygon &foot) { return flange.unheld(foot, alone) > .01; }));
+    const Polygons held = flange.fill(feet, Polygons());
+    for (const Polygon &foot : feet) {
+        CAPTURE(unscaled(foot.centroid()));
+        CHECK(flange.unheld(foot, held) < .005);
+    }
+}
+
+TEST_CASE("Organic first layers print no lone foot apart for a gap beside the foot of a tree", "[TreeSupport][Organic][Material][Regression]")
+{
+    // The gap of a sparse flange along a side, see SparseFlange, lies beside the feet of two trees near those sides,
+    // within the band a foot printed apart holds around it with its loop and the loop of the flange around the hole it
+    // leaves: a line and half a bead wide. The trees took their feet to hold what lies there, see
+    // organic_fill_first_layer(): the band stays held, and so does the loop of each tree. The gap is far from the lone
+    // foot in the middle, which is not printed apart.
+    const double shift = GENERATE(.08, .12, .2, .24);
+    CAPTURE(shift);
+    const SparseFlange flange(shift);
+    const Polygons     trees{flange.disc(0., -2.1), flange.disc(0., 2.1)};
+    const Polygon      lone = flange.disc(0., 0.);
+    const Polygons     band =
+        intersection(diff(offset(trees, float(scale_(.22 + .5 * flange.bead))), trees), flange.flange);
+    Polylines          none;
+    const Polygons     alone = flange.fill(Polygons(), Polygons(), &none);
+    REQUIRE(none.empty());
+    REQUIRE_FALSE(offset(diff(band, alone), - float(scale_(.005))).empty());
+    Polylines      loops;
+    const Polygons held = flange.fill(trees, Polygons{lone}, &loops);
+    CHECK(offset(diff(band, held), - float(scale_(.005))).empty());
+    for (const Polygon &tree : trees) {
+        CAPTURE(unscaled(tree.centroid()));
+        CHECK(flange.unheld(tree, held) < .005);
+    }
+    const Polygons around_lone = offset(Polygons{lone}, float(scale_(.3)));
+    CHECK(std::none_of(loops.begin(), loops.end(),
+        [&around_lone](const Polyline &loop) { return diff_pl(Polylines{loop}, around_lone).empty(); }));
 }
 
 TEST_CASE("Organic first layers keep a foot apart under a bead narrower than a line", "[TreeSupport][Organic][Material][Regression]")

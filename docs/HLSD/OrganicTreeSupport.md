@@ -343,8 +343,10 @@ in the air no longer than a line. The gap of the base is the spacing of the line
 a filled base pattern. A hollow base lays no lines, and the base pattern spacing
 sets nothing of its gap: that grows with the line, as everything of the trees
 does, and with the layer height, seven layer heights but no less than one line
-and no more than three; with a layer height profile, the thinnest layer above
-the first it asks for. A wider gap grows fewer and larger trees, a narrower one
+and no more than three. Above the first layer of the object the support prints
+its layers at the layer height of the object whatever its layer height profile,
+so the profile changes nothing of the gap. A wider gap grows fewer and larger
+trees, a narrower one
 holds a roof at more points. With layers about half a line high, a gap of three
 lines leaves the underside of a roof as clean as a gap of one, without bodies
 full of tiny trees; at fine layers a line bridges next to nothing, and one line,
@@ -359,8 +361,10 @@ positions are not known before the paths, so the lines are taken a quarter of a
 line apart, each touching what lies within half a line less half that pitch of it.
 A stretch also stops short of that span by as much on both sides, so that a point
 midway still lies within half of the gap of the base plus half a line of what
-holds it. A concentric or spiral interface prints no lines; under it every point is to
-lie within that distance instead. Where a line hangs, the top layers of the bodies
+holds it. A concentric or spiral interface prints no lines, nor does the default one
+right under the model, with no gap between them, where it prints concentric loops,
+unless the support is set to print a base interface under it, in lines; under it
+every point is to lie within that distance instead. Where a line hangs, the top layers of the bodies
 near it widen going up
 by the branch angle, by half a line a layer at most, the overhang a wall prints
 over the wall below it, over as many layers as they need, up to two and a half
@@ -510,11 +514,12 @@ it becomes a part of the body. On the first layer every tree has a foot, inside
 the body or in a hole of it, two lines of the first layer across at least:
 the first layer may print lines wider than those of the base, and with no
 expansion of it a narrower tree prints neither a loop nor a fill, which leaves
-the tree above standing on nothing. In a sparse first layer, each foot of a tree is
-printed with its own perimeter and dense interior, and its area is taken out of the
-remaining fill. At 100% density, the flange is filled as one region without
-internal foot perimeters. A sparse flange may leave a gap under a tree, so its
-outline alone does not count as material the tree can end on. The tips grown on
+the tree above standing on nothing. Where the lines of a sparse first layer could
+leave a tree standing on nothing, its foot is printed with its own perimeter and
+dense interior, and its area is taken out of the remaining fill. Elsewhere, and
+always at 100% density, the flange is filled as one region without internal foot
+perimeters. A sparse flange may leave a gap under a tree, so its outline alone
+does not count as material the tree can end on. The tips grown on
 the first layer, under what the second prints over the inside of a body, start
 no tree: such a lone foot is printed apart only where the first layer would
 leave some of that over nothing, where a bead within its cover, the farthest a
@@ -530,8 +535,15 @@ layer is filled and checked again. After a few rounds every island with a place
 still over nothing gets all its lone feet printed apart, and so does, in turn,
 every island with a lone foot not yet printed apart whole whose cover reaches
 such an island, as the trees took that foot to hold across the gap between them.
+The foot of a tree holds the tree above, which may lean or merge a little beyond
+it, and what the trees took it to hold as they take a lone foot to: what lies
+within its cover. It is printed apart whole where a place in that cover is left
+over nothing, and the lone feet are then checked again from the start beside it;
+it never makes a lone foot printed apart. An island refilled after the last
+round gets the feet of its trees printed apart as well, and after a few such
+starts every foot of a tree is.
 Lines more than a first-layer line and that bead apart leave the middle of the
-gaps between them farther than half the bead from any: there all are printed
+gaps between them farther than half the bead from any: there all feet are printed
 apart. On a belt, whose first layer is no flange on the bed, a lone foot is
 printed as the feet of the trees are.
 A tree widens by the diameter angle. It is
@@ -696,12 +708,24 @@ mixed filament similarly retains possible material from its physical components,
 whose final choice or sublayer ordering is resolved after support generation.
 Once tool ordering has selected the physical components and nozzles, the warning
 is checked again using the actual top-surface flow and sublayer heights, including
-object and volume gradients. Sequential copies are checked separately and their
-unsupported heights are combined for the object. This check also counts small
-islands retained conservatively during cleanup. It updates the object's warning
-without changing completed geometry or the tool plan; removing paths at this
-stage could change the very layer indices that selected the components. Warning
-updates preserve unrelated diagnostics and distinguish objects in the interface.
+object and volume gradients. An object the prime tower may flush into (Flush
+into this object) prints with any filament at hand: the layer plan can leave its
+filaments out, a part whose filament the layer does without prints with the last
+filament of the layer, and the tower prints the parts of a copy it claims with
+the filament it changes to, or with the first or the last filament of the layer.
+A top can so print from another nozzle than its own filament's, decided only with
+the tool plan: where the nozzle decides the top-surface flow, flushing into the
+object also calls for this check, which takes the filament each copy prints a top
+with. Where the tower flushes into the copies, each of them is checked on its own,
+and the support they share warns where it stands on nothing over any of them.
+Switching flushing off where it alone called for this check
+regenerates the support, which finds its warning anew. Sequential copies are
+checked separately and their unsupported heights are combined for the object.
+This check also counts small islands retained conservatively during cleanup. It
+updates the object's warning without changing completed geometry or the tool
+plan; removing paths at this stage could change the very layer indices that
+selected the components. Warning updates preserve unrelated diagnostics and
+distinguish objects in the interface.
 Saved warnings are restored from completed support steps when the interface clears
 its notifications, including slices reused from cache. Slice All restores the
 warnings of all valid plates; a single-plate slice restores only its own warnings.

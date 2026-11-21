@@ -449,11 +449,13 @@ void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const s
 // until they stand on it, if they reach it before the bed, and otherwise go straight down, merging by the preferred
 // angle. bodies, roofs and model hold their layers as for organic_widen_bodies_under_roofs(). The trees inside a body are
 // added to the inner trees of their layers, those that leave it below to the polygons. On the first layer inner_trees
-// holds the feet of the trees coming down onto it, printed separately from the sparse flange, and lone_feet those of the
-// tips grown on it, which start no tree, see organic_fill_first_layer(). first_layer_width is the width of the lines of
-// the first layer.
+// holds the feet of the trees coming down onto it and lone_feet those of the tips grown on it, which start no tree,
+// printed separately from a sparse flange where its lines would not hold what they hold, see
+// organic_fill_first_layer(). first_layer_width is the width of the lines of the first layer.
 // The directions of the lines of the lowest roof layers: an interlaced pattern turns them from layer to layer, and the
-// contact layer of a grid crosses them; a concentric or spiral roof prints no lines.
+// contact layer of a grid crosses them; a roof printed in loops, concentric or as a spiral, prints none, nor does one
+// of the default pattern right under the model, which prints loops there, unless the support is set to print a base
+// interface under it, in lines.
 std::vector<double> organic_roof_angles(const PrintObject &object, const SupportParameters &params);
 
 // roof_angles are the directions of the lines of the lowest roof layers, see organic_roof_angles():

@@ -4807,7 +4807,13 @@ std::vector<double> organic_roof_angles(const PrintObject &object, const Support
     case smipSpiralInset: return {};
     case smipGrid: return { params.base_angle, params.base_angle + 0.5 * M_PI };
     case smipRectilinearInterlaced: return { params.support_interface_angle(0), params.support_interface_angle(1) };
-    default: return { params.support_interface_angle(0) };
+    default:
+        // Auto prints the layers of a roof right under the model, with no gap between them, in loops, see
+        // SupportParameters::contact_fill_pattern and generate_support_toolpaths(), but for a base interface under
+        // them, which prints lines in that direction, see InterfacePlacer::is_top_base_interface().
+        if (params.contact_fill_pattern == ipConcentric && params.num_top_base_interface_layers == 0)
+            return {};
+        return { params.support_interface_angle(0) };
     }
 }
 
@@ -4988,7 +4994,7 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
         };
         const bool first = layer->bottom_z < EPSILON;
         // A sparse first layer need not have a bead under a tree. Reserve its foot even inside the body; the first
-        // layer filler prints these feet separately from the remaining flange so they cannot fall between its lines.
+        // layer filler prints these feet separately from the remaining flange where they could fall between its lines.
         const Polygons free_out = diff(Polygons{ where.polygon() }, first ? blocked : union_(to_polygons(islands), blocked));
         // Where a bead of a tree stands on the material, half on it at least.
         const Polygons stands   = offset(material, half);

@@ -93,6 +93,14 @@ public:
         return it != entity_map.end() && copy_id < it->second.size() && it->second[copy_id] != -1;
     }
 
+    // Orca: the filament a copy of the entity is printed with where mark_wiping_extrusions() or
+    // ensure_perimeters_infills_order() overrides it, else -1, also once get_extruder_overrides() has encoded the
+    // extruder of a copy printed as usual.
+    int extruder_override(const ExtrusionEntity* entity, const PrintObject *object, size_t copy_id) const {
+        auto it = entity_map.find(std::make_tuple(entity, object));
+        return it != entity_map.end() && copy_id < it->second.size() ? std::max(int(it->second[copy_id]), -1) : -1;
+    }
+
 private:
 
     int first_nonsoluble_extruder_on_layer(const PrintConfig& print_config) const;
@@ -260,6 +268,9 @@ public:
         m_wiping_extrusions.set_layer_tools_ptr(this);
         return m_wiping_extrusions;
     }
+    // Orca: to read the overrides. Unlike the accessor above, it does not point them to this layer: in a copied
+    // ordering they still refer to the layer of the original, so is_overriddable() is not to be called through it.
+    const WipingExtrusions& wiping_extrusions() const { return m_wiping_extrusions; }
 
 private:
     // This object holds list of extrusion that will be used for extruder wiping

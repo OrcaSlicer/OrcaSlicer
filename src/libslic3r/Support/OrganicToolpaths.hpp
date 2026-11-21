@@ -31,8 +31,9 @@ class PrintObject;
 class SupportLayer;
 class ToolOrdering;
 
-// Reserve dense tree feet only in a sparse first-layer flange; fill a solid flange as one region. A lone foot, which starts
-// no tree, is reserved only where what the first layer prints, island by island, would leave what it holds over nothing.
+// Reserve dense feet only in a sparse first-layer flange; fill a solid flange as one region. A foot is reserved only
+// where what the first layer prints, island by island, would leave what it holds over nothing: a lone foot, which
+// starts no tree, in part, the foot of a tree whole.
 void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygons, const Polygons &feet, const Polygons &lone_feet,
     Fill *filler, float density, ExtrusionRole role, const Flow &flow, const SupportParameters &support_params,
     const PrintObject &object);
@@ -110,8 +111,8 @@ Polygons organic_extrude_solid_islands(ExtrusionEntitiesPtr &dst, const Polygons
 bool support_role_has_no_flow(const PrintObjectConfig &config, ExtrusionRole role);
 // The gap a line of the support bridges between two lines of the base, scaled: their spacing for a filled base; for a
 // hollow one, which lays none and so takes nothing from the base pattern spacing, one to three support lines by the
-// layer height of the object, or by the thinnest layer its layer height profile makes above the first where it has one;
-// see the definition for why. Valid once the slicing parameters of the object are set.
+// layer height of the object, which the layers of the support keep above its first layer whatever its layer height
+// profile; see the definition for why.
 coord_t organic_base_span(const PrintObject &object);
 
 // The islands of the support of an object, its extrusions with their width, standing on nothing: neither on the support
@@ -125,10 +126,14 @@ std::vector<coordf_t> floating_support_islands(const PrintObject &object, double
 
 // Use the final per-layer physical assignments (including mixed sublayers) instead of possible pre-ordering material.
 // Merged layer printing supplies the config-layer IDs chosen by the exporter's first object layer at each Z;
-// sequential printing uses the object's own layer IDs.
+// sequential printing uses the object's own layer IDs. A top of an object the prime tower may flush into counts with
+// the filament that prints it, each copy the tower flushes into checked on its own.
 std::vector<coordf_t> floating_support_islands(const PrintObject &object, double min_area, const ToolOrdering &ordering,
     const std::map<const Layer*, int> &nozzle_layers = {});
 bool organic_support_needs_final_check(const PrintObject &object);
+// Whether flushing into the object alone calls for the final check of its warning: switched off, flushing leaves a
+// warning that only generating the support again finds anew.
+bool organic_support_final_check_ends_with_flushing(const PrintObject &object);
 void organic_update_support_warning(PrintObject &object, std::vector<coordf_t> heights);
 // The warning of an Organic support loaded with its object, which keeps none: what stands on nothing is found again as
 // generating the support finds it, after dropping its crumbs.

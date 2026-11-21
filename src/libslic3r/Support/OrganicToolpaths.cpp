@@ -72,12 +72,20 @@ static float bead_reach_offset(double width);
 // own island refilled in turn: a load the trees took as held by that foot across the gap between the islands is held by
 // it again, as when every lone foot was reserved. Lines more than a line and that bead apart leave the middle of the
 // gaps between them farther than half the bead from any, so all are reserved.
+// The foot of a tree holds the tree above it, which may lean or merge a little beyond it, and what the trees took it
+// to hold as they took a lone foot to, see organic_grow_trees_inside_hollow_bodies(): what lies within its cover.
+// Closer lines check that cover too: a foot of a tree with a place there over nothing is reserved whole, as among
+// lines farther apart, and the check starts again, the lone feet checked beside every foot of a tree reserved as at
+// first. The feet of the trees never reserve a lone foot. Those on an island refilled in the last round are reserved
+// too, as what the lone feet reserved there take from its flange is not checked again. After a few starts every foot
+// of a tree is reserved.
 void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygons, const Polygons &feet, const Polygons &lone_feet,
     Fill *filler, float density, ExtrusionRole role, const Flow &flow, const SupportParameters &support_params,
     const PrintObject &object)
 {
-    Polygons pads = density < 1.f ? intersection(polygons, feet) : Polygons();
-    Polygons lone = density < 1.f ? diff(intersection(polygons, lone_feet), pads) : Polygons();
+    const Polygons trees = density < 1.f ? intersection(polygons, feet) : Polygons();
+    const Polygons lone  = density < 1.f ? diff(intersection(polygons, lone_feet), trees) : Polygons();
+    Polygons       pads;
     const auto fill_flange = [&](ExtrusionEntitiesPtr &out) {
         fill_expolygons_with_sheath_generate_paths(out, pads.empty() ? polygons : diff(polygons, pads), filler, density,
             role, flow, support_params, true, true);
@@ -89,11 +97,9 @@ void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygon
     const coord_t width   = support_params.support_material_flow.scaled_width();
     const auto   &nozzles = object.print()->config().nozzle_diameter.values;
     const double  bead    = std::min(double(width), scaled<double>(0.85 * *std::min_element(nozzles.begin(), nozzles.end())));
-    if (! lone.empty() && double(flow.scaled_spacing()) / density - double(flow.scaled_width()) > bead) {
-        pads = union_(pads, lone);
-        lone.clear();
-    }
-    if (! lone.empty()) {
+    if (double(flow.scaled_spacing()) / density - double(flow.scaled_width()) > bead) {
+        pads = lone.empty() ? trees : union_(trees, lone);
+    } else if (! trees.empty() || ! lone.empty()) {
         const float  cover      = float(std::max(0.5 * double(organic_base_span(object) + width), 1.5 * double(width)));
         const float  printable  = 0.5f * float(flow.scaled_width());
         const float  reach_bead = bead_reach_offset(bead);
@@ -159,7 +165,8 @@ void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygon
             const BoundingBox box  = get_extents(zone);
             for (size_t n = 0; n < islands.size(); ++ n)
                 if (n != foot_island[k] && island_boxes[n].overlap(box) &&
-                    ! intersection(zone, ClipperUtils::clip_clipper_polygons_with_subject_bbox(to_polygons(islands[n]), box)).empty())
+                    ! intersection(zone,
+                        ClipperUtils::clip_clipper_polygons_with_subject_bbox(islands[n], box)).empty())
                     reaches[k].push_back(n);
             zones_near.append(zone);
         }
@@ -168,8 +175,42 @@ void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygon
             if (const Polygons zone = zones_near.around({ island_boxes[n] }); ! zone.empty())
                 zones[n] = intersection(ClipperUtils::clip_clipper_polygons_with_subject_bbox(zone, island_boxes[n].inflated(SCALED_EPSILON)),
                     to_polygons(islands[n]));
-        Polygons left = to_polygons(lone_all);
-        for (int round = 0; ! left.empty(); ++ round) {
+        // The feet of the trees, the cover of each on its island, and those reserved: one on no island is.
+        const ExPolygons                 tree_all = solid(union_ex(trees));
+        std::vector<size_t>              tree_island(tree_all.size());
+        std::vector<std::vector<size_t>> island_trees(islands.size());
+        std::vector<Polygons>            tree_covers(tree_all.size());
+        std::vector<bool>                tree_reserved(tree_all.size(), false);
+        for (size_t t = 0; t < tree_all.size(); ++ t) {
+            tree_island[t] = island_of_foot(tree_all[t]);
+            if (tree_island[t] < islands.size()) {
+                island_trees[tree_island[t]].push_back(t);
+                const Polygons tree_cover = offset(to_polygons(tree_all[t]), cover, jtRound, tolerance);
+                tree_covers[t] = intersection(tree_cover, ClipperUtils::clip_clipper_polygons_with_subject_bbox(
+                    islands[tree_island[t]], get_extents(tree_cover).inflated(SCALED_EPSILON)));
+            } else
+                tree_reserved[t] = true;
+        }
+        // The check starts with the feet of the trees reserved as pads and the cover of the others to check, island by
+        // island, and every lone foot left; after a few starts with every foot of a tree reserved.
+        Polygons              left;
+        std::vector<Polygons> tree_zones;
+        int                   starts = 0;
+        const auto            start  = [&]() {
+            if (++ starts > 3)
+                std::fill(tree_reserved.begin(), tree_reserved.end(), true);
+            pads.clear();
+            tree_zones.assign(islands.size(), Polygons());
+            for (size_t t = 0; t < tree_all.size(); ++ t)
+                if (tree_reserved[t])
+                    append(pads, to_polygons(tree_all[t]));
+                else
+                    append(tree_zones[tree_island[t]], tree_covers[t]);
+            pads = union_(pads);
+            left = to_polygons(lone_all);
+        };
+        start();
+        for (int round = 0;; ++ round) {
             ExtrusionEntityCollection flange, reserved;
             fill_flange(flange.entities);
             fill_pads(reserved.entities);
@@ -185,7 +226,7 @@ void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygon
                             return;
                         if (n == islands.size())
                             n = island_of(path.first_point());
-                        if (n < islands.size() && ! zones[n].empty() &&
+                        if (n < islands.size() && (! zones[n].empty() || ! tree_zones[n].empty()) &&
                             path.length() >= 0.25 * std::min(double(scale_(path.width)), double(width)))
                             axes[n][path.width].emplace_back(path.as_polyline());
                     });
@@ -208,17 +249,42 @@ void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygon
             };
             NearPolygons pads_near;
             pads_near.append(pads);
+            // The places of a zone on island n over nothing.
+            const auto bare_in = [&](const size_t n, const Polygons &zone) {
+                const BoundingBox near    = get_extents(zone).inflated(flow.scaled_width() + width);
+                Polygons          holding = reach(flange_axes[n], near);
+                append(holding, pads_holding(intersection(pads_near.around({ near }), to_polygons(islands[n]))));
+                ExPolygons bare = solid(diff_ex(zone, holding));
+                if (! bare.empty())
+                    // The paths of the pads decide where the model of them leaves places over nothing.
+                    bare = solid(diff_ex(bare,
+                        reach(pad_axes[n], get_extents(bare).inflated(flow.scaled_width() + width))));
+                return bare;
+            };
+            // A foot of a tree with a place within its cover over nothing is reserved, and the check starts again.
+            bool tree_marked = false;
+            for (size_t n = 0; n < islands.size(); ++ n)
+                if (! tree_zones[n].empty())
+                    if (const ExPolygons bare = bare_in(n, tree_zones[n]); ! bare.empty()) {
+                        NearPolygons bare_near;
+                        bare_near.append(to_polygons(bare));
+                        for (const size_t t : island_trees[n])
+                            if (! tree_reserved[t]) {
+                                const Polygons around = bare_near.around({ get_extents(tree_covers[t]) });
+                                if (! around.empty() && ! intersection(tree_covers[t], around).empty())
+                                    tree_reserved[t] = tree_marked = true;
+                            }
+                    }
+            if (tree_marked) {
+                start();
+                round = -1;
+                continue;
+            }
             std::vector<ExPolygons> bare(islands.size());
             bool                    any_bare = false;
             for (size_t n = 0; n < islands.size(); ++ n)
-                if (! zones[n].empty()) {
-                    const BoundingBox near    = get_extents(zones[n]).inflated(flow.scaled_width() + width);
-                    Polygons          holding = reach(flange_axes[n], near);
-                    append(holding, pads_holding(intersection(pads_near.around({ near }), to_polygons(islands[n]))));
-                    bare[n] = solid(diff_ex(zones[n], holding));
-                    if (! bare[n].empty())
-                        // The paths of the pads decide where the model of them leaves places over nothing.
-                        bare[n] = solid(diff_ex(bare[n], reach(pad_axes[n], get_extents(bare[n]).inflated(flow.scaled_width() + width))));
+                if (! left.empty() && ! zones[n].empty()) {
+                    bare[n]  = bare_in(n, zones[n]);
                     any_bare = any_bare || ! bare[n].empty();
                 }
             if (! any_bare) {
@@ -270,7 +336,7 @@ void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygon
                 }
             }
             // Every island with a place still over nothing is refilled, and the rest of every lone foot whose cover reaches
-            // an island refilled is reserved, its own island refilled in turn.
+            // an island refilled is reserved, its own island refilled in turn, and so is every foot of a tree on one.
             NearPolygons          left_near;
             left_near.append(left);
             std::vector<Polygons> rest(lone_all.size());
@@ -296,6 +362,9 @@ void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygon
             for (size_t k = 0; k < lone_all.size(); ++ k)
                 if (reserve[k])
                     append(pads, std::move(rest[k]));
+            for (size_t t = 0; t < tree_all.size(); ++ t)
+                if (! tree_reserved[t] && refilled[tree_island[t]])
+                    append(pads, to_polygons(tree_all[t]));
             pads = union_(pads);
             break;
         }
@@ -1097,6 +1166,13 @@ static std::vector<Polygons> support_covered(const PrintObject &object)
     return covered;
 }
 
+// Stops a pass over all the layers once the slicing is cancelled: at thin layers such a pass runs for long.
+static void throw_if_canceled(const PrintObject &object)
+{
+    if (object.print()->canceled())
+        throw CanceledException();
+}
+
 struct ModelFootprint {
     bool planar_cached = false;
     Polygons planar;
@@ -1109,6 +1185,8 @@ struct ModelFootprints {
     std::map<const Layer*, ModelFootprint> layers;
     const std::map<const Layer*, int> *nozzle_layers = nullptr;
     const std::vector<Polygons> *emitted = nullptr;
+    // The copy of the object whose tops the footprints resolved by the tool plan hold, see model_material().
+    size_t copy = 0;
 };
 
 // Nozzle variants are assigned after support generation. With an unresolved assignment, keep a top path
@@ -1220,25 +1298,25 @@ static Polygons contoured_material(const ExtrusionPath &path, const double nomin
     return material;
 }
 
+// The heights at which the top surface of a region delivers material, printed with the filament of the given slot.
 static std::vector<double> resolved_top_heights(const PrintObject &object, const Layer &layer, const PrintRegion &region,
-    const ToolOrdering &ordering, int layer_index)
+    const ToolOrdering &ordering, int layer_index, const unsigned int slot)
 {
     const Print &print = *object.print();
     const PrintConfig &printer = print.config();
     const PrintRegionConfig &config = region.config();
     const LayerTools &tools = ordering.tools_for_layer(layer.print_z);
     const auto has_flow = [&](unsigned int filament) {
-        size_t slot = print.get_extruder_id(filament);
+        size_t column = print.get_extruder_id(filament);
         if (const auto groups = print.get_layered_nozzle_group_result()) {
             const auto nozzle = groups->get_nozzle_for_filament(int(filament), layer_index);
             // Match NOZZLE_CONFIG's published grouping and its missing-entry fallback.
-            slot = nozzle ? size_t(get_config_index_base(nozzle->volume_type,
+            column = nozzle ? size_t(get_config_index_base(nozzle->volume_type,
                 ExtruderType(printer.extruder_type.get_at(nozzle->extruder_id)), nozzle->extruder_id + 1,
                 config.print_extruder_variant.values, config.print_extruder_id.values)) : 0;
         }
-        return config.top_solid_infill_flow_ratio.get_at(slot) != 0.;
+        return config.top_solid_infill_flow_ratio.get_at(column) != 0.;
     };
-    const unsigned int slot = (tools.extruder_override == 0 ? config.top_surface_filament_id.value : int(tools.extruder_override)) - 1;
     const auto *group = tools.mixed_group_by_slot(slot);
     if (group == nullptr) {
         const unsigned int filament = tools.resolve_mixed(slot);
@@ -1294,14 +1372,34 @@ static Polygons model_material(const PrintObject &object, const Layer &layer, co
     ModelFootprint &footprint = it->second;
     if (ordering != nullptr) {
         if (inserted) {
+            throw_if_canceled(object);
             footprint.min_z = footprint.max_z = layer.print_z;
+            const LayerTools &tools = ordering->tools_for_layer(layer.print_z);
+            const WipingExtrusions &wiping = tools.wiping_extrusions();
+            const bool flushed = object.config().flush_into_objects && wiping.is_anything_overridden();
             for (const LayerRegion *region : layer.regions()) {
                 int layer_index = int(layer.id());
                 if (cache.nozzle_layers != nullptr)
                     if (const auto index = cache.nozzle_layers->find(&layer); index != cache.nozzle_layers->end())
                         layer_index = index->second;
-                const auto top_heights = resolved_top_heights(object, layer, region->region(), *ordering, layer_index);
-                const auto visit = [&](const ExtrusionPath &path) {
+                std::map<unsigned int, std::vector<double>> heights_of;
+                const auto heights = [&](const unsigned int slot) -> const std::vector<double>& {
+                    auto found = heights_of.find(slot);
+                    if (found == heights_of.end())
+                        found = heights_of.emplace(slot,
+                            resolved_top_heights(object, layer, region->region(), *ordering, layer_index, slot)).first;
+                    return found->second;
+                };
+                unsigned int own = (tools.extruder_override == 0 ?
+                    region->region().config().top_surface_filament_id.value : int(tools.extruder_override)) - 1;
+                // The plan of a layer can leave out the filaments of an object the prime tower may flush into, which
+                // then prints with any filament at hand: one the layer does without prints with its last filament
+                // instead, see GCode::process_layer().
+                if (const unsigned int resolved = tools.resolve_mixed(own);
+                    !tools.extruders.empty() && !tools.has_extruder(resolved) && !tools.is_mixed_slot(resolved))
+                    own = tools.extruders.back();
+                const std::vector<double> &own_heights = heights(own);
+                const auto visit = [&](const ExtrusionPath &path, const std::vector<double> &top_heights) {
                     if (!model_path_has_flow(path, region->region().config(), object.config(),
                             layer.id() == 0 && std::abs(layer.bottom_z()) < EPSILON, true))
                         return;
@@ -1321,8 +1419,22 @@ static Polygons model_material(const PrintObject &object, const Layer &layer, co
                     } else
                         add(layer.print_z);
                 };
-                for_each_extrusion_path(region->perimeters, visit);
-                for_each_extrusion_path(region->fills, visit);
+                for_each_extrusion_path(region->perimeters,
+                    [&](const ExtrusionPath &path) { visit(path, own_heights); });
+                // The prime tower prints the parts of a copy of an object it flushes into with the filament it changes
+                // to, or with the first or the last filament of the layer, see
+                // WipingExtrusions::mark_wiping_extrusions() and ensure_perimeters_infills_order(). Only the tops
+                // of the copy the footprints hold ask for it.
+                for (const ExtrusionEntity *entity : region->fills.entities) {
+                    const std::vector<double> *top_heights = nullptr;
+                    for_each_extrusion_path(*entity, [&](const ExtrusionPath &path) {
+                        if (top_heights == nullptr && path.role() == erTopSolidInfill) {
+                            const int filament = flushed ? wiping.extruder_override(entity, &object, cache.copy) : -1;
+                            top_heights = &heights(filament < 0 ? own : unsigned(filament));
+                        }
+                        visit(path, top_heights != nullptr ? *top_heights : own_heights);
+                    });
+                }
             }
         }
         Polygons material;
@@ -1604,29 +1716,19 @@ static bool hollow_organic(const PrintObjectConfig &config)
 //   line high and finer, 0.03 mm under 0.22 mm lines. The factor is fitted to these two points, not derived: prints at
 //   the heights in between, 0.06 mm under 0.22 mm lines, are yet to calibrate it.
 //
-// The layer height of the object is taken, the gap being one for the whole object. Organic supports print the layers of
-// the object and refuse a variable layer height (see Print::validate()), but a style of normal supports left with a tree
-// support type, which SupportParameters resolves to Organic, escapes that check: then the thinnest layer above the first
-// that the layer height profile makes counts, as it bridges least. The layers the profile makes without the precise Z
-// height, not the sliced ones: that height stretches or squeezes the top layers to meet the height of the object, which is
-// to leave the gap as it is.
+// The layer height of the object is taken, the gap being one for the whole object: Organic supports print their layers
+// above the first layer of the object that high, see layer_z(). They refuse a variable layer height (see
+// Print::validate()), but a style of normal supports left with a tree support type, which SupportParameters resolves to
+// Organic, escapes that check: its support still prints layers of that height beside the thinner or thicker layers of
+// the object, and bridges as far. Nor does the precise Z height, which stretches or squeezes the top layers of the
+// object to meet its height, change the layers of the support.
 coord_t organic_base_span(const PrintObject &object)
 {
     const SupportMaterialPattern base = object.config().support_base_pattern.value;
     if (base != smpDefault && base != smpNone)
         return scaled<coord_t>(object.config().support_base_pattern_spacing.value);
-    const coord_t line   = support_material_flow(&object).scaled_width();
-    double        height = object.config().layer_height.value;
-    if (object.model_object()->has_custom_layering()) {
-        const SlicingParameters &slicing = object.slicing_parameters();
-        std::vector<coordf_t>    profile;
-        PrintObject::update_layer_height_profile(*object.model_object(), slicing, profile);
-        // The bottom and the top of each layer; a first layer of a fixed height is left out.
-        const std::vector<coordf_t> layers = generate_object_layers(slicing, profile, false);
-        for (size_t i = slicing.first_object_layer_height_fixed() ? 2 : 0; i + 1 < layers.size(); i += 2)
-            height = std::min(height, layers[i + 1] - layers[i]);
-    }
-    return std::clamp(coord_t(std::llround(scaled<double>(7. * height))), line, 3 * line);
+    const coord_t line = support_material_flow(&object).scaled_width();
+    return std::clamp(coord_t(std::llround(scaled<double>(7. * object.config().layer_height.value))), line, 3 * line);
 }
 
 // The longest bridge between two bearings the support allows: a line across the gap of the base, see organic_base_span(),
@@ -1801,13 +1903,6 @@ double organic_sliver_area(const PrintObject &object)
     return 0.5 * width * width;
 }
 
-// Stops a pass over all the layers once the slicing is cancelled: at thin layers such a pass runs for long.
-static void throw_if_canceled(const PrintObject &object)
-{
-    if (object.print()->canceled())
-        throw CanceledException();
-}
-
 std::vector<coordf_t> floating_support_islands(const PrintObject &object, const double min_area)
 {
     if (on_belt(object))
@@ -1832,14 +1927,41 @@ std::vector<coordf_t> floating_support_islands(const PrintObject &object, const 
         return {};
     const std::vector<Polygons> covered = support_covered(object);
     std::vector<coordf_t> floating;
-    ModelFootprints model;
-    model.nozzle_layers = &nozzle_layers;
     const coord_t base_span = organic_base_span(object);
-    for (size_t i = 0; i < covered.size(); ++i) {
-        throw_if_canceled(object);
-        LayerFooting footing(object, covered, i, model, &ordering);
-        append_floating_heights(floating, object, i, floating_islands(object, covered, i, model, &ordering), footing,
-            base_span, min_area);
+    // The prime tower may print the tops of the copies of an object it flushes into with other filaments than each
+    // other: the support they share stands on nothing where it does so over any of them. Copies whose tops print
+    // with the same filaments stand alike, so one of them is checked for all.
+    std::vector<std::vector<int>> top_filaments(object.instances().size());
+    if (object.config().flush_into_objects && top_filaments.size() > 1)
+        for (const Layer *layer : object.layers()) {
+            const WipingExtrusions &wiping = ordering.tools_for_layer(layer->print_z).wiping_extrusions();
+            if (wiping.is_anything_overridden())
+                for (const LayerRegion *region : layer->regions())
+                    for (const ExtrusionEntity *entity : region->fills.entities) {
+                        bool top = false;
+                        for_each_extrusion_path(*entity, [&top](const ExtrusionPath &path) {
+                            top |= path.role() == erTopSolidInfill;
+                        });
+                        if (top)
+                            for (size_t copy = 0; copy < top_filaments.size(); ++copy)
+                                top_filaments[copy].push_back(wiping.extruder_override(entity, &object, copy));
+                    }
+        }
+    std::vector<size_t> copies;
+    for (size_t copy = 0; copy < std::max<size_t>(top_filaments.size(), 1); ++copy)
+        if (std::none_of(copies.begin(), copies.end(),
+                [&top_filaments, copy](size_t checked) { return top_filaments[checked] == top_filaments[copy]; }))
+            copies.push_back(copy);
+    for (const size_t copy : copies) {
+        ModelFootprints model;
+        model.nozzle_layers = &nozzle_layers;
+        model.copy = copy;
+        for (size_t i = 0; i < covered.size(); ++i) {
+            throw_if_canceled(object);
+            LayerFooting footing(object, covered, i, model, &ordering);
+            append_floating_heights(floating, object, i, floating_islands(object, covered, i, model, &ordering),
+                footing, base_span, min_area);
+        }
     }
     return floating;
 }
@@ -1856,13 +1978,31 @@ static bool top_flow_depends_on_nozzle(const PrintObject &object)
     });
 }
 
-bool organic_support_needs_final_check(const PrintObject &object)
+// Whether the settings of the object, flushed into or not, call for checking the warning of its Organic support again
+// once the tool plan is known.
+static bool final_check_called_for(const PrintObject &object, const bool flushed)
 {
     const auto &config = object.config();
     const Print &print = *object.print();
-    return !config.support_on_build_plate_only && !object.support_layers().empty() && hollow_organic(config) && !on_belt(object) &&
+    // An automatic nozzle assignment, or the tool plan of an object the prime tower may flush into, picks the nozzle
+    // that prints a top only after the support is generated.
+    const bool nozzle_picked_late = flushed ||
+        (print.is_BBL_printer() && is_auto_filament_map_mode(print.get_filament_map_mode()));
+    return !config.support_on_build_plate_only && hollow_organic(config) && !on_belt(object) &&
         (print.has_custom_tool_overrides() || has_any_mixed_filament(print.config().filament_is_mixed.values) ||
-            (print.is_BBL_printer() && is_auto_filament_map_mode(print.get_filament_map_mode()) && top_flow_depends_on_nozzle(object)));
+            (nozzle_picked_late && top_flow_depends_on_nozzle(object)));
+}
+
+bool organic_support_needs_final_check(const PrintObject &object)
+{
+    return !object.support_layers().empty() && final_check_called_for(object, object.config().flush_into_objects);
+}
+
+bool organic_support_final_check_ends_with_flushing(const PrintObject &object)
+{
+    // Reads no support layers: a copy of an identical object takes them over after its support step is done, see
+    // PrintObject::copy_layers_from_shared_object().
+    return final_check_called_for(object, true) && !final_check_called_for(object, false);
 }
 
 void organic_update_support_warning(PrintObject &object, std::vector<coordf_t> heights)

@@ -23,6 +23,7 @@
 #include "SLA/IndexedMesh.hpp"
 #include "Support/SupportMaterial.hpp"
 #include "Support/SupportCommon.hpp"
+#include "Support/OrganicToolpaths.hpp"
 #include "Support/SupportSpotsGenerator.hpp"
 #include "Support/TreeSupport.hpp"
 #include "Surface.hpp"
@@ -1942,6 +1943,14 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "belt_purge_tower_object") {
             invalidated |= m_print->invalidate_step(psWipeTower);
             invalidated |= m_print->invalidate_step(psGCodeExport);
+            // Orca: an object the prime tower may flush into may print its tops from another nozzle, which Organic
+            // support checks once the tool plan is known. Where flushing alone calls for that check, generating the
+            // support again finds its warning anew. The object and region settings read here are still those the
+            // support was generated with, once it is.
+            if (opt_key == "flush_into_objects" && !new_config.option(opt_key)->getBool() &&
+                this->has_support_material() && this->is_step_done_unguarded(posSupportMaterial) &&
+                organic_support_final_check_ends_with_flushing(*this))
+                steps.emplace_back(posSupportMaterial);
         } else {
             // for legacy, if we can't handle this option let's invalidate all steps
             this->invalidate_all_steps();
