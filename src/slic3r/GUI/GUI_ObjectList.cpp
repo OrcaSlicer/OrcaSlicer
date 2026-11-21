@@ -3899,6 +3899,8 @@ void ObjectList::part_selection_changed()
     bool disable_ss_manipulation{false};
     bool disable_ununiform_scale{false};
 
+    const ObjectID last_painted_modifier_id = std::exchange(m_painted_modifier_id, ObjectID());
+
     const auto item = GetSelection();
     if (item && m_objects_model->GetItemType(item) == itInfo && m_objects_model->GetInfoItemType(item) == InfoItemType::CutConnectors) {
         og_name = _L("Cut Connectors information");
@@ -4039,8 +4041,12 @@ void ObjectList::part_selection_changed()
 
                     const ModelVolume *volume = (*m_objects)[obj_idx]->volumes[volume_id];
                     enable_manipulation       = !((*m_objects)[obj_idx]->is_cut() && (volume->is_cut_connector() || volume->is_model_part()));
-                    if (volume->is_painted_modifier() && GetSelectedItemsCount() == 1)
-                        open_painted_modifier_tool(*volume);
+                    if (volume->is_painted_modifier() && GetSelectedItemsCount() == 1) {
+                        m_painted_modifier_id = volume->id();
+                        // Not on a refresh of the same selection: that would close the gizmo in use.
+                        if (m_painted_modifier_id != last_painted_modifier_id)
+                            open_painted_modifier_tool(*volume);
+                    }
                 }
                 else if (type & itInstance) {
                     og_name = _L("Instance manipulation");
