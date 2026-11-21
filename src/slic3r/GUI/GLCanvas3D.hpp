@@ -457,6 +457,7 @@ class GLCanvas3D
             static const Point Invalid_2D_Point;
             static const Vec3d Invalid_3D_Point;
             static const int MoveThresholdPx;
+            static constexpr auto ClickTimeout = std::chrono::seconds(1);
 
             Point start_position_2D{ Invalid_2D_Point };
             Vec3d start_position_3D{ Invalid_3D_Point };
@@ -470,6 +471,8 @@ class GLCanvas3D
         bool dragging{ false };
         Vec2d position{ DBL_MAX, DBL_MAX };
         bool ignore_left_up{ false };
+        Point left_down_position_2D{ Drag::Invalid_2D_Point };
+        std::chrono::steady_clock::time_point left_down_time{};
         Drag drag;
         bool ignore_right_up;
         // ORCA a button was pressed on toolbar empty areas, swallow events until it is released
@@ -483,10 +486,15 @@ class GLCanvas3D
         }
         void set_start_position_3D_as_invalid() { drag.start_position_3D = Drag::Invalid_3D_Point; }
         void set_move_start_threshold_position_2D_as_invalid() { drag.move_start_threshold_position_2D = Drag::Invalid_2D_Point; }
+        void set_left_down_position_2D_as_invalid() {
+            left_down_position_2D = Drag::Invalid_2D_Point;
+            left_down_time        = {};
+        }
 
         bool is_start_position_2D_defined() const { return (drag.start_position_2D != Drag::Invalid_2D_Point); }
         bool is_start_position_3D_defined() const { return (drag.start_position_3D != Drag::Invalid_3D_Point); }
         bool is_move_start_threshold_position_2D_defined() const { return (drag.move_start_threshold_position_2D != Drag::Invalid_2D_Point); }
+        bool is_left_down_position_2D_defined() const { return (left_down_position_2D != Drag::Invalid_2D_Point); }
         bool is_move_threshold_met(const Point& mouse_pos) const {
             return (std::abs(mouse_pos(0) - drag.move_start_threshold_position_2D(0)) > Drag::MoveThresholdPx)
                 || (std::abs(mouse_pos(1) - drag.move_start_threshold_position_2D(1)) > Drag::MoveThresholdPx);

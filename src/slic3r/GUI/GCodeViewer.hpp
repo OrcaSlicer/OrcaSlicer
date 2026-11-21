@@ -15,6 +15,7 @@
 // needed for tech VGCODE_ENABLE_COG_AND_TOOL_MARKERS
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Color.hpp"
+#include "libslic3r/Line.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include <cstddef>
@@ -518,6 +519,18 @@ public:
     void enable_moves_slider(bool enable) const;
     void update_moves_slider(bool set_to_max = false);
     void update_layers_slider_mode();
+
+    struct ToolpathHit {
+        uint32_t vertex_id{ 0 };
+        uint32_t layer_id{ 0 };
+        uint32_t gcode_id{ 0 };
+    };
+    std::optional<ToolpathHit> pick_toolpath(const Linef3& ray) const;
+    bool on_mouse_click_toolpath(const Linef3& ray, bool shift_down);
+    void step_layers_slider(int delta);
+    void step_moves_slider(int delta);
+    void step_view_type(int delta);
+    bool reset_sliders();
 
     const libvgcode::Interval& get_gcode_view_full_range() const { return m_viewer.get_view_full_range(); }
     const libvgcode::Interval& get_gcode_view_enabled_range() const { return m_viewer.get_view_enabled_range(); }
