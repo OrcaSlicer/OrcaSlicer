@@ -226,8 +226,10 @@ jobs:
             $useNinja   = $depsFlags -contains "-x"
             $useMsvc    = $depsFlags -contains "--msvc"
             $useMsbuild = $depsFlags -contains "--msbuild"
-            # ccache not used for deps build
-            & "${{ github.workspace }}\build_win.ps1" -Deps -Arch ${{ inputs.arch }} -DepsDir $deps -ClangCl:$useClangCl -Ninja:$useNinja -Msvc:$useMsvc -Msbuild:$useMsbuild
+            # Deps build each dependency once; a compiler cache only adds overhead
+            # here, and Strawberry Perl ships a ccache.exe that the script's
+            # auto-detect would otherwise pick up.
+            & "${{ github.workspace }}\build_win.ps1" -Deps -Arch ${{ inputs.arch }} -DepsDir $deps -ClangCl:$useClangCl -Ninja:$useNinja -Msvc:$useMsvc -Msbuild:$useMsbuild -Cache off
         shell: powershell
 
       - name: Build on Mac ${{ inputs.arch }}
