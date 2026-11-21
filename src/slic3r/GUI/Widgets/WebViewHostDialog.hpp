@@ -38,7 +38,8 @@ public:
     bool create_webview(const std::string& resource_path,
                         const wxString& title,
                         const wxSize& dialog_size = wxSize(820, 660),
-                        const wxSize& min_size    = wxSize(640, 640));
+                        const wxSize& min_size    = wxSize(640, 640),
+                        const wxString& profile   = wxEmptyString);
 
     void load_url(const wxString& url);
     bool run_script(const wxString& script);
