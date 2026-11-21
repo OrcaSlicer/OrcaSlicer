@@ -30,6 +30,7 @@ struct FilamentSpec
     const char *vendor;
     const char *colour;        // "#RRGGBB", as a profile stores it
     const char *inherits = ""; // non-empty makes this a derived user preset
+    bool        visible  = true;
 };
 
 // Load the specs into the collection, then stamp the fields the matcher reads. Done in a second
@@ -53,7 +54,7 @@ void populate(PresetCollection &filaments, const std::vector<FilamentSpec> &spec
         it->filament_id   = spec->filament_id;
         it->is_system     = std::string(spec->inherits).empty();
         it->is_default    = false;
-        it->is_visible    = true;
+        it->is_visible    = spec->visible;
         it->is_compatible = true;
     }
 }
@@ -114,6 +115,37 @@ TEST_CASE("Vendor matching ignores case and accepts a product name in the vendor
     // With no sub type to go on, the variant named in the vendor field decides, so Basic wins
     // even when Matte is the exact colour match.
     CHECK(match(anycubic, "Anycubic PLA Basic", "PLA", "", "F0A0B0FF") == "ANY-BASIC");
+}
+
+// Orca: a product line is often filed under its parent company - Panchroma's presets have
+// filament_vendor "Polymaker" - so a tag naming the line reaches them through the preset name.
+TEST_CASE("A product line in the vendor field matches presets named after it", "[Snapmaker]")
+{
+    const std::vector<FilamentSpec> polymaker{
+        {"Panchroma PLA Matte @Snapmaker U1", "PAN-MATTE", "PLA", "Polymaker", ""},
+        {"PolyTerra PLA @Snapmaker U1",       "PT-PLA",    "PLA", "Polymaker", ""},
+        {"Generic PLA Matte",                 "GEN-MATTE", "PLA", "Generic",   ""},
+    };
+    // The line's name reaches its own preset, not the Generic matte one.
+    CHECK(match(polymaker, "Panchroma", "PLA", "Matte", "91BACCFF") == "PAN-MATTE");
+    // The parent vendor still works, with the sub type choosing the line.
+    CHECK(match(polymaker, "Polymaker", "PLA", "Matte", "91BACCFF") == "PAN-MATTE");
+    // Only a whole word counts: "Pan" is not "Panchroma", so the Generic pass takes it.
+    CHECK(match(polymaker, "Pan", "PLA", "Matte", "91BACCFF") == "GEN-MATTE");
+}
+
+// Orca: when none of a product line's presets of this type is shown, the line's parent company
+// still beats Generic. The parent is read from the line's presets, which count even when hidden.
+TEST_CASE("A product line with no shown preset falls back to its parent vendor before Generic", "[Snapmaker]")
+{
+    const std::vector<FilamentSpec> polymaker{
+        {"PolyLite PLA Pro @Snapmaker U1",  "PL-PRO",  "PLA", "Polymaker", "", "", /*visible=*/false},
+        {"Polymaker PLA Pro @Snapmaker U1", "PM-PRO",  "PLA", "Polymaker", ""},
+        {"Generic PLA @Snapmaker U1",       "GEN-PLA", "PLA", "Generic",   ""},
+    };
+    CHECK(match(polymaker, "PolyLite", "PLA", "Pro", "FFFFFFFF") == "PM-PRO");
+    // A vendor that names no preset at all still goes to Generic.
+    CHECK(match(polymaker, "Fiberlogy", "PLA", "Pro", "FFFFFFFF") == "GEN-PLA");
 }
 
 // Orca: a finish lives in the preset name - only a handful of profiles put it in filament_type,
