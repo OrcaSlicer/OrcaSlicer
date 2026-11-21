@@ -367,10 +367,14 @@ public:
     void workerThreadFunc(std::string str_ip, std::string str_access_code, std::string sn, std::string model_id, std::string name, std::string ca_file);
     bool is_bbl_agent() const;
     void init_cafile_input();
+    bool check_ca_input();
     void OnTimer(wxTimerEvent& event);
     void on_text(wxCommandEvent& evt);
     void on_dpi_changed(const wxRect& suggested_rect) override;
 };
+
+// The connect-failure hint for a printer with a CA file: why the file can't be used, or to check it is the right CA.
+wxString ca_file_failure_hint(const std::string& ca_file);
 
 class SendFailedConfirm : public DPIDialog
 {
