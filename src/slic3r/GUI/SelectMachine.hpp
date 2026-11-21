@@ -505,6 +505,7 @@ public:
     void on_ok_btn(wxCommandEvent& event);
     void Enable_Auto_Refill(bool enable);
     void on_send_print();
+    void apply_purify_air_at_print_end(MachineObject* obj_);
     void clear_ip_address_config(wxCommandEvent& e);
     void on_refresh(wxCommandEvent& event);
     void on_set_finish_mapping(wxCommandEvent& evt);
