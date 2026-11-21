@@ -193,6 +193,8 @@ public:
     float get_estimated_time() const { return m_total_time[static_cast<size_t>(m_settings.time_mode)]; }
     float get_estimated_time_at(size_t id) const;
     Color get_vertex_color(const PathVertex& vertex) const;
+    uint8_t get_vertex_alpha(const PathVertex& vertex) const;
+    LayerShading get_layer_shading() const;
     // the value the current view grades the vertex by, where it grades by one
     std::optional<float> get_vertex_value(const PathVertex& vertex) const;
     // how many layers of an interval find_extrusion_vertex() samples
@@ -690,7 +692,6 @@ private:
     void update_view_full_range();
     void update_color_ranges();
     void update_heights_widths();
-    uint8_t get_vertex_alpha(const PathVertex& v) const;
     // ORCA: translucent draws the segments whose color is translucent, otherwise the opaque ones, or all of them for the shadow casters.
     void render_segments(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& camera_position, bool translucent = false);
     void render_options(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);
