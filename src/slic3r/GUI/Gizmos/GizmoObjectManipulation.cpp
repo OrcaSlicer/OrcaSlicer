@@ -844,7 +844,7 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
 
     Selection &              selection = m_glcanvas.get_selection();
     std::vector<std::string> modes     = {_u8L("World"), _u8L("Object")};//_u8L("Part") // ORCA use shorter terms to make UI more compact
-    if (selection.is_multiple_full_object() || selection.is_wipe_tower()) {
+    if (!selection.is_from_single_instance() || selection.is_wipe_tower()) {
         modes.pop_back();
     }
     size_t selection_idx = (int) m_coordinates_type;
