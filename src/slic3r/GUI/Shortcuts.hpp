@@ -48,7 +48,7 @@ enum class Shortcut : uint8_t {
     // Display
     ShowLabels, ShowCollisionVolumes, ShowWireframe, ToggleGcodeWindow, ToggleOneLayerMode, ToggleBeltRawGcode,
     // Application
-    Preferences, Search, SwitchView, CollapseSidebar, GoToHome,
+    Preferences, Search, SwitchView, CollapseSidebar, FocusNextPane, FocusPreviousPane, GoToHome,
 #ifdef SLIC3R_CAD
     GoToDesign,
 #endif

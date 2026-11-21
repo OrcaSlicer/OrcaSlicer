@@ -55,10 +55,15 @@ wxMenuItem* append_menu_check_item(wxMenu* menu, int id, const wxString& string,
 void enable_menu_item(wxUpdateUIEvent& evt, std::function<bool()> const cb_condition, wxMenuItem* item, wxWindow* win);
 
 class wxDialog;
+namespace Slic3r { namespace GUI { struct KeyChord; } }
 
 void    edit_tooltip(wxString& tooltip);
 void    msw_buttons_rescale(wxDialog* dlg, const int em_unit, const std::vector<int>& btn_ids);
 int     em_unit(wxWindow* win);
+// ORCA: arrow-key focus step within a horizontal row of controls (tab strip, button row):
+// Left/Right move to the neighbour and wrap at the ends, Home/End jump to the first/last.
+// Returns the index to focus, or -1 when chord is not one of these bare keys or the row is empty.
+int     row_focus_target(int current, int count, const Slic3r::GUI::KeyChord& chord);
 
 wxBitmap create_menu_bitmap(const std::string& bmp_name);
 
