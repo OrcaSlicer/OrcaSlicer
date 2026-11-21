@@ -210,10 +210,7 @@ ZUserLogin::ZUserLogin(std::shared_ptr<ICloudServiceAgent> cloud_agent)
         // Set a more sensible size for web browsing
         // The preferred size can exceed the work area (e.g. 840 DIP at 150% on a 1080p screen),
         // which would push the title bar off screen, so clamp it to the display the dialog is on.
-        int display_idx = wxDisplay::GetFromWindow(GetParent());
-        if (display_idx == wxNOT_FOUND)
-            display_idx = 0;
-        const wxRect work_area = wxDisplay(static_cast<unsigned int>(display_idx)).GetClientArea();
+        const wxRect work_area = wxDisplay(GetParent()).GetClientArea();
         const int    margin    = FromDIP(20);
         const wxSize max_size(std::max(1, work_area.GetWidth() - margin), std::max(1, work_area.GetHeight() - margin));
 
