@@ -901,6 +901,9 @@ public:
     void set_online_state(bool on_off);
     bool is_online() { return m_is_online; }
     bool is_info_ready(bool check_version = true) const;
+    // A pull-mode printer agent read the filament system on demand, without a status push stream.
+    void set_filament_snapshot_ready(bool ready) { m_filament_snapshot_ready = ready; }
+    bool is_filament_info_ready() const { return m_filament_snapshot_ready || is_info_ready(); }
     bool is_security_control_ready() const;
     bool is_camera_busy_off();
 
@@ -1001,6 +1004,8 @@ private:
     /* xcam save remove print file to local*/
     bool xcam__save_remote_print_file_to_storage      = false;
     time_t xcam__save_remote_print_file_to_storage_start_time = 0;
+
+    bool m_filament_snapshot_ready = false;
 };
 
 // change the opacity
