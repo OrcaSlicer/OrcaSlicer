@@ -14736,6 +14736,15 @@ PlateBBoxData Plater::priv::generate_first_layer_bbox()
         }
     }
 
+    const auto& first_layer_hull = print->first_layer_convex_hull();
+    if (!first_layer_hull.empty()) {
+        BoundingBoxf first_layer_bbox;
+        for (const Point& point : first_layer_hull.points)
+            first_layer_bbox.merge(print->translate_to_print_space(point));
+        bboxdata.first_layer_print_min = {first_layer_bbox.min.x(), first_layer_bbox.min.y()};
+        bboxdata.first_layer_print_max = {first_layer_bbox.max.x(), first_layer_bbox.max.y()};
+    }
+
     bboxdata.bbox_all = { bbox_all.min.x(),bbox_all.min.y(),bbox_all.max.x(),bbox_all.max.y() };
     return bboxdata;
 }

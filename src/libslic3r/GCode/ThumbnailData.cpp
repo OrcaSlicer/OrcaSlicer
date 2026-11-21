@@ -28,6 +28,10 @@ void BBoxData::from_json(const nlohmann::json& j)
 void PlateBBoxData::to_json(nlohmann::json& j) const
 {
     j = nlohmann::json{ {"bbox_all",bbox_all} };
+    if (first_layer_print_min.size() == 2 && first_layer_print_max.size() == 2) {
+        j["first_layer_print_min"] = first_layer_print_min;
+        j["first_layer_print_max"] = first_layer_print_max;
+    }
     j["filament_ids"] = filament_ids;
     j["filament_colors"] = filament_colors;
     j["is_seq_print"]    = is_seq_print;
@@ -46,6 +50,10 @@ void PlateBBoxData::to_json(nlohmann::json& j) const
 void PlateBBoxData::from_json(const nlohmann::json& j)
 {
     j.at("bbox_all").get_to(bbox_all);
+    if (j.contains("first_layer_print_min") && j.contains("first_layer_print_max")) {
+        j.at("first_layer_print_min").get_to(first_layer_print_min);
+        j.at("first_layer_print_max").get_to(first_layer_print_max);
+    }
     j.at("filament_ids").get_to(filament_ids);
     j.at("filament_colors").get_to(filament_colors);
     j.at("is_seq_print").get_to(is_seq_print);

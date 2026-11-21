@@ -2900,3 +2900,37 @@ SCENARIO("a rendered no-light thumbnail does not suppress the plate thumbnail", 
         }
     }
 }
+
+TEST_CASE("Plate JSON preserves first-layer print bounds and reads older metadata", "[3mf][PlateBBox]")
+{
+    PlateBBoxData plate;
+    plate.bbox_all = {-15.0, -13.0, 15.0, -8.0};
+    plate.first_layer_print_min = {-30.0, -37.0};
+    plate.first_layer_print_max = {30.0, -4.0};
+
+    BBoxData object{};
+    object.id = 1;
+    object.bbox = plate.bbox_all;
+    object.name = "part";
+    object.area = 10.0f;
+    object.layer_height = 0.2f;
+    plate.bbox_objs.push_back(object);
+
+    nlohmann::json json;
+    plate.to_json(json);
+    REQUIRE(json.contains("first_layer_print_min"));
+    REQUIRE(json.contains("first_layer_print_max"));
+
+    PlateBBoxData restored;
+    restored.from_json(json);
+    CHECK(restored.first_layer_print_min == plate.first_layer_print_min);
+    CHECK(restored.first_layer_print_max == plate.first_layer_print_max);
+    CHECK(restored.bbox_all == plate.bbox_all);
+
+    json.erase("first_layer_print_min");
+    json.erase("first_layer_print_max");
+    PlateBBoxData legacy;
+    REQUIRE_NOTHROW(legacy.from_json(json));
+    CHECK(legacy.first_layer_print_min.empty());
+    CHECK(legacy.first_layer_print_max.empty());
+}
