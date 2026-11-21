@@ -9,6 +9,8 @@
 
 #include "BitmapCache.hpp"
 #include "GUI_App.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "MainFrame.hpp"
 
 #include "MsgDialog.hpp"
@@ -1093,7 +1095,8 @@ void PrintingTaskPanel::msw_rescale()
 
 void PrintingTaskPanel::init_bitmaps()
 {
-    m_thumbnail_placeholder     = ScalableBitmap(this, "monitor_placeholder", 120);
+    m_thumbnail_placeholder         = ScalableBitmap(this, "monitor_placeholder", 120);
+    m_thumbnail_placeholder_default = ScalableBitmap(this, "monitor_placeholder_default", 120);
     m_bitmap_use_time           = ScalableBitmap(this, "print_info_time", 16);
     m_bitmap_use_weight         = ScalableBitmap(this, "print_info_weight", 16);
 }
@@ -1123,7 +1126,9 @@ void PrintingTaskPanel::show_error_msg(wxString msg)
 
 void PrintingTaskPanel::reset_printing_value()
 {
-    this->set_thumbnail_img(m_thumbnail_placeholder.bmp(), m_thumbnail_placeholder.name());
+    const bool            bbl         = wxGetApp().preset_bundle && wxGetApp().preset_bundle->is_bbl_vendor();
+    const ScalableBitmap& placeholder = bbl ? m_thumbnail_placeholder : m_thumbnail_placeholder_default;
+    this->set_thumbnail_img(placeholder.bmp(), placeholder.name());
     this->set_plate_index(-1);
 }
 
@@ -3292,8 +3297,9 @@ void StatusPanel::update_temp_ctrl(MachineObject *obj)
         }
     }
 
-    // support current temp for chamber
-    if (obj->get_printer_series() == PrinterSeries::SERIES_X1)
+    // support current temp for chamber; a printer agent other than Bambu's reports whether it has one
+    if (obj->get_printer_series() == PrinterSeries::SERIES_X1 ||
+        (obj->printer_agent_id != BBL_PRINTER_AGENT_ID && obj->GetConfig()->ReportsChamberTempDisplay()))
     {
         m_tempCtrl_chamber->SetCurrTemp(obj->chamber_temp);
     }
