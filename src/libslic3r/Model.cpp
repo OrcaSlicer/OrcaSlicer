@@ -2165,6 +2165,30 @@ void ModelObject::scale(const Vec3d &versor)
 {
     for (ModelVolume *v : this->volumes) {
         v->scale(versor);
+        // Scale the part's position too, so the parts of a multi-part object keep their places
+        // relative to each other (as scale_mesh_after_creation() does).
+        v->set_offset(versor.cwiseProduct(v->get_offset()));
+    }
+    this->invalidate_bounding_box();
+}
+
+void ModelObject::scale_in_place(const Vec3d &versor)
+{
+    // scale() scales about the object's origin, which need not be the object's centre or bottom (parts placed by
+    // their offsets, an object dropped onto the bed). Measure each instance's bottom centre before and after, and
+    // move the instance back by the difference.
+    auto bottom_center = [](const BoundingBoxf3 &bb) { return Vec3d(bb.center().x(), bb.center().y(), bb.min.z()); };
+    std::vector<BoundingBoxf3> before;
+    before.reserve(this->instances.size());
+    for (size_t i = 0; i < this->instances.size(); ++i)
+        before.emplace_back(this->instance_bounding_box(i));
+
+    this->scale(versor);
+
+    for (size_t i = 0; i < this->instances.size(); ++i) {
+        const BoundingBoxf3 after = this->instance_bounding_box(i);
+        if (before[i].defined && after.defined)
+            this->instances[i]->set_offset(this->instances[i]->get_offset() + bottom_center(before[i]) - bottom_center(after));
     }
     this->invalidate_bounding_box();
 }

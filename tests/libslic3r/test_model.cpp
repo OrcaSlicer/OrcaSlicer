@@ -692,3 +692,106 @@ TEST_CASE("Per-feature filament assignments follow mixed slots at each model sco
     remap_model_filament_configs(model, {{3, -1}}, false);
     check_assignments(0);
 }
+
+namespace {
+
+void check_near(const Vec3d &actual, const Vec3d &expected)
+{
+    INFO("actual " << actual.transpose() << ", expected " << expected.transpose());
+    for (int i = 0; i < 3; ++i)
+        CHECK_THAT(actual[i], Catch::Matchers::WithinAbs(expected[i], 1e-6));
+}
+
+// The centre of a part's bounding box in object coordinates.
+Vec3d part_center(const ModelVolume &volume) { return volume.mesh().transformed_bounding_box(volume.get_matrix()).center(); }
+
+Vec3d bottom_center(const BoundingBoxf3 &bb) { return Vec3d(bb.center().x(), bb.center().y(), bb.min.z()); }
+
+// A cube of the given size whose minimum corner is at `min`.
+TriangleMesh cube_at(double size, const Vec3d &min)
+{
+    TriangleMesh mesh = make_cube(size, size, size);
+    mesh.translate(min.cast<float>());
+    return mesh;
+}
+
+} // namespace
+
+TEST_CASE("Scaling a multi-part object scales where its parts sit, not just their size", "[Model][Regression]")
+{
+    // A 20 mm body around the origin and a 4 mm inlay centred at (8, 6, -4), the way an imported
+    // multi-material object is laid out: each part's mesh centred on itself and placed by its own offset.
+    Model        model;
+    ModelObject *object = model.add_object();
+    object->add_volume(cube_at(20., Vec3d(-10., -10., -10.)));
+    ModelVolume *inlay = object->add_volume(cube_at(4., Vec3d(6., 4., -6.)));
+    REQUIRE_FALSE(inlay->get_offset().isZero());
+    check_near(part_center(*inlay), Vec3d(8., 6., -4.));
+
+    SECTION("uniform scale")
+    {
+        object->scale(0.5);
+        check_near(part_center(*object->volumes[0]), Vec3d::Zero());
+        check_near(part_center(*inlay), Vec3d(4., 3., -2.));
+        check_near(inlay->mesh().transformed_bounding_box(inlay->get_matrix()).size(), Vec3d(2., 2., 2.));
+    }
+    SECTION("a different scale on each axis")
+    {
+        object->scale(0.5, 1., 2.);
+        check_near(part_center(*inlay), Vec3d(4., 6., -8.));
+        check_near(inlay->mesh().transformed_bounding_box(inlay->get_matrix()).size(), Vec3d(2., 4., 8.));
+    }
+}
+
+TEST_CASE("Scaling in place keeps each instance's place on the plate and the height of its lowest point", "[Model]")
+{
+    // The command line loads a mesh in its file coordinates: the part is centred on itself and placed by its
+    // offset, so the object's origin can be far from the object, and scale() alone would move it.
+    Model        model;
+    ModelObject *object = model.add_object();
+    object->add_volume(cube_at(10., Vec3d(100., 50., 5.)));
+    object->add_instance();
+
+    SECTION("an object resting on the bed stays on it")
+    {
+        object->ensure_on_bed();
+        REQUIRE_THAT(object->instance_bounding_box(0).min.z(), Catch::Matchers::WithinAbs(0., 1e-6));
+        object->scale_in_place(0.5);
+        check_near(bottom_center(object->instance_bounding_box(0)), Vec3d(105., 55., 0.));
+        check_near(object->instance_bounding_box(0).size(), Vec3d(5., 5., 5.));
+    }
+    SECTION("an object above the bed keeps its height")
+    {
+        object->scale_in_place(2.);
+        check_near(bottom_center(object->instance_bounding_box(0)), Vec3d(105., 55., 5.));
+        check_near(object->instance_bounding_box(0).size(), Vec3d(20., 20., 20.));
+    }
+}
+
+TEST_CASE("Scaling a multi-part object in place keeps its parts together and every instance in its place", "[Model]")
+{
+    // A 20 mm body with a 4 mm inlay sunk into its top face, away from the origin, placed twice: once as is and
+    // once turned a quarter turn about Z at another spot on the plate.
+    Model        model;
+    ModelObject *object = model.add_object();
+    object->add_volume(cube_at(20., Vec3d(40., 40., 0.)));
+    ModelVolume *inlay = object->add_volume(cube_at(4., Vec3d(52., 46., 16.)));
+    object->add_instance();
+    ModelInstance *turned = object->add_instance();
+    turned->set_rotation(Vec3d(0., 0., PI / 2.));
+    turned->set_offset(Vec3d(-50., 150., 0.));
+
+    std::vector<Vec3d> places;
+    for (size_t i = 0; i < object->instances.size(); ++i)
+        places.emplace_back(bottom_center(object->instance_bounding_box(i)));
+    const Vec3d inlay_from_body = part_center(*inlay) - part_center(*object->volumes[0]);
+
+    object->scale_in_place(0.5);
+
+    for (size_t i = 0; i < object->instances.size(); ++i) {
+        INFO("instance " << i);
+        check_near(bottom_center(object->instance_bounding_box(i)), places[i]);
+        check_near(object->instance_bounding_box(i).size(), Vec3d(10., 10., 10.));
+    }
+    check_near(part_center(*inlay) - part_center(*object->volumes[0]), 0.5 * inlay_from_body);
+}
