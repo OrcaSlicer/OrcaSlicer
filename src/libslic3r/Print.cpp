@@ -2859,10 +2859,16 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 if (!validate_extrusion_width(object->config(), "support_line_width", layer_height, err_msg))
                     return {err_msg, object, "support_line_width"};
             }
-            for (const char *opt_key : { "inner_wall_line_width", "outer_wall_line_width", "sparse_infill_line_width", "internal_solid_infill_line_width", "top_surface_line_width","skin_infill_line_width" ,"skeleton_infill_line_width"})
+            for (const char *opt_key : { "inner_wall_line_width", "outer_wall_line_width", "sparse_infill_line_width", "internal_solid_infill_line_width", "top_surface_line_width"})
 				for (const PrintRegion &region : object->all_regions())
                     if (!validate_extrusion_width(region.config(), opt_key, layer_height, err_msg))
 		            	return  {err_msg, object, opt_key};
+            // Only the Locked Zag sparse infill prints skin and skeleton lines.
+            for (const PrintRegion &region : object->all_regions())
+                if (region.config().sparse_infill_pattern == ipLockedZag)
+                    for (const char *opt_key : { "skin_infill_line_width", "skeleton_infill_line_width" })
+                        if (!validate_extrusion_width(region.config(), opt_key, layer_height, err_msg))
+                            return {err_msg, object, opt_key};
 
             const bool allow_thin_bridge_width = object->config().thick_bridges && object->config().thick_internal_bridges;
             for (const PrintRegion &region : object->all_regions()) {
@@ -2876,7 +2882,8 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                         err_msg = L("Bridge line width must not exceed nozzle diameter");
                         return { err_msg, object, "bridge_line_width" };
                     }
-                    if (!allow_thin_bridge_width && bridge_width <= layer_height) {
+                    // A bridge as wide as the layer is tall is a round strand, the same as a thick bridge.
+                    if (!allow_thin_bridge_width && bridge_width < layer_height) {
                         err_msg = L("Line width too small");
                         return { err_msg, object, "bridge_line_width" };
                     }
