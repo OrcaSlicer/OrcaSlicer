@@ -219,7 +219,9 @@ public:
 
     virtual int SetSelection(size_t n) override
     {
+        m_target_page = GetPage(n);
         int ret = DoSetSelection(n, SetSelection_SendEvent);
+        m_target_page = nullptr;
         int new_sel = GetSelection();
         //check the new_sel firstly
         if (new_sel != n) {
@@ -243,7 +245,10 @@ public:
     virtual int ChangeSelection(size_t n) override
     {
         GetBtnsListCtrl()->SetSelection(n);
-        return DoSetSelection(n);
+        m_target_page = GetPage(n);
+        const int ret = DoSetSelection(n);
+        m_target_page = nullptr;
+        return ret;
     }
 
     // Labels are stored by the custom button list; wx's image-list API is unused — tab icons
@@ -494,13 +499,16 @@ protected:
     {
         if (show)
             page->ShowWithEffect(m_showEffect, m_showTimeout);
-        else
+        // Tabs may share one page window (Prepare/Preview -> m_plater). Hiding it just to re-show it
+        // unmaps and remaps its GL canvases, which triggers a mutter subsurface bug on Wayland.
+        else if (page != m_target_page)
             page->HideWithEffect(m_hideEffect, m_hideTimeout);
     }
 
 private:
     void Init();
 
+    wxWindow* m_target_page{nullptr}; // page being selected; DoShowPage must not hide it
     std::vector<wxString> m_pageNames; // index-parallel to wxBookCtrlBase::m_pages
 
     wxShowEffect m_showEffect,
