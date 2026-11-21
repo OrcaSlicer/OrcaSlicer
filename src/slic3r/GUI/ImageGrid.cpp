@@ -1,4 +1,5 @@
 #include "ImageGrid.h"
+#include "IllustratedTipPopup.hpp"
 #include "Printer/PrinterFileSystem.h"
 #include "wxExtensions.hpp"
 #include "Widgets/Label.hpp"
@@ -310,20 +311,22 @@ void ImageGrid::mouseMoved(wxMouseEvent& event)
     if (!m_hovered || m_pressed)
         return;
     auto hit = HitTest(event.GetPosition());
+    // The file's name over its card, beside the card. The grid draws the cards itself, so the card under
+    // the pointer is reported on every move.
+    if (hit.first == HIT_ITEM) {
+        auto &   file = m_file_sys->GetFile(hit.second);
+        wxString tip  = from_u8(file.name);
+        if (auto title = file.Title(); !title.empty())
+            tip = wxString::Format(_L("File: %s\nTitle: %s\n"), from_u8(file.name), from_u8(title));
+        wxPoint off;
+        size_t  rel = hit.second - firstItem(GetClientSize(), off);
+        wxRect  card(off + wxPoint(int(rel % m_col_count) * m_cell_size.x, int(rel / m_col_count) * m_cell_size.y), m_border_size);
+        hover_illustrated_tooltip(this, card, tip);
+    } else
+        hover_illustrated_tooltip(this, wxRect(), wxEmptyString);
     if (hit != std::make_pair(m_hit_type, m_hit_item)) {
         m_hit_type = hit.first;
         m_hit_item = hit.second;
-        if (hit.first == HIT_ITEM) {
-            SetToolTip({});
-            auto & file = m_file_sys->GetFile(hit.second);
-            if (auto title = file.Title(); !title.empty()) {
-                auto tip = wxString::Format(_L("File: %s\nTitle: %s\n"), from_u8(file.name), from_u8(title));
-                SetToolTip(tip);
-            } else {
-                SetToolTip(from_u8(file.name));
-            }
-        } else
-            SetToolTip({});
         Refresh();
     }
 }

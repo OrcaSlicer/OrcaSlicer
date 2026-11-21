@@ -16,6 +16,7 @@
 #include <iostream>
 #include <libslic3r/Config.hpp>
 #include "slic3r/GUI/Field.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #include "libslic3r/Preset.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/plugin/PluginDescriptor.hpp"
@@ -424,7 +425,7 @@ void OptionsGroup::activate_line(Line& line)
                 sizer->Add(label, 0, (staticbox ? 0 : wxALIGN_RIGHT | wxRIGHT) | wxALIGN_CENTER_VERTICAL, 5);
             }
             if (label != nullptr && line.label_tooltip != "")
-                label->SetToolTip(line.label_tooltip);
+                set_illustrated_tooltip(label, line.label_tooltip);
             line.label_widget = label;
         }
     }
@@ -449,6 +450,10 @@ void OptionsGroup::activate_line(Line& line)
         line.get_extra_widgets().size() == 0) {
         const auto& option = option_set.front();
         const auto& field  = build_field(option);
+
+        // The label of a single option shows the field's pictures with its own text.
+        if (!custom_ctrl && line.label_widget != nullptr && line.label_tooltip != "")
+            set_illustrated_tooltip_deferred(line.label_widget, line.label_tooltip, field->tip_media());
 
         if (!custom_ctrl) {
             int flags = option.opt.full_width ? wxEXPAND : wxALIGN_CENTER_VERTICAL;

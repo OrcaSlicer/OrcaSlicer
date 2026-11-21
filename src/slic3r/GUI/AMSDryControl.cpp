@@ -3,6 +3,7 @@
 #include "GUI_App.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "I18N.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
 
@@ -463,12 +464,16 @@ wxBoxSizer* AMSDryCtrWin::create_normal_state_panel(wxPanel* parent)
     normal_state_sizer->Add(combo_sizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
     m_trays_combo->Bind(wxEVT_COMBOBOX, &AMSDryCtrWin::OnFilamentSelectionChanged, this);
+    set_illustrated_tooltip(m_trays_combo,
+        _L("Filament to dry. Choosing one fills in its recommended drying temperature and time, lower ones while the AMS is printing."));
 
     // part 3 time and temperature
     // Temperature part
     wxBoxSizer* temp_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_temperature_input = new wxTextCtrl(parent, wxID_ANY, "", wxDefaultPosition, wxSize(FromDIP(80), -1));
     m_temperature_input->SetMaxLength(3); // Limit to 3 digits
+    set_illustrated_tooltip(m_temperature_input,
+        _L("Drying temperature inside the AMS. Too hot softens filament left in the feeder, which can block the AMS."));
 
     m_temperature_input->Bind(wxEVT_CHAR, [](wxKeyEvent& event) {
         int keycode = event.GetKeyCode();
@@ -496,6 +501,7 @@ wxBoxSizer* AMSDryCtrWin::create_normal_state_panel(wxPanel* parent)
     wxBoxSizer* time_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_time_input = new wxTextCtrl(parent, wxID_ANY, "", wxDefaultPosition, wxSize(FromDIP(100), -1));
     m_time_input->SetMaxLength(3); // Limit to 3 digits
+    set_illustrated_tooltip(m_time_input, _L("How long the AMS dries the filament, from 1 to 24 hours."));
 
     m_time_input->Bind(wxEVT_CHAR, [](wxKeyEvent& event) {
         int keycode = event.GetKeyCode();
@@ -542,6 +548,7 @@ wxBoxSizer* AMSDryCtrWin::create_normal_state_panel(wxPanel* parent)
     m_next_button->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](wxCommandEvent& event) {
         m_main_simplebook->SetSelection(1);
     });
+    set_illustrated_tooltip(m_next_button, _L("Shows which spools to take out of the feeder before drying, then starts drying from there."));
 
     normal_state_sizer->Add(m_next_button, 0, wxALL, FromDIP(5));
     m_next_button->Disable();
@@ -576,6 +583,7 @@ wxBoxSizer* AMSDryCtrWin::create_normal_state_panel(wxPanel* parent)
         }
     });
 
+    set_illustrated_tooltip(m_stop_button, _L("Stops drying before the set time is up."));
     m_stop_button->Show(false);
     normal_state_sizer->Add(m_stop_button, 0, wxALL, FromDIP(5));
 
@@ -629,6 +637,7 @@ wxBoxSizer* AMSDryCtrWin::create_cannot_dry_panel(wxPanel* parent)
         m_unload_button_restore_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
     });
 
+    set_illustrated_tooltip(m_unload_button, _L("Unloads the filament from the AMS outlet, so that drying can start."));
     m_unload_button->Show(false);
     abnormal_sizer->Add(m_unload_button, 0, wxALL, FromDIP(5));
 
@@ -730,6 +739,8 @@ wxBoxSizer* AMSDryCtrWin::create_guide_info_section(wxPanel* parent)
 
     m_rotate_spool_toggle = new wxCheckBox(parent, wxID_ANY, "");
     m_rotate_spool_toggle->SetValue(false);
+    set_illustrated_tooltip(m_rotate_spool_toggle,
+        _L("The AMS turns the spools that are stored as shown while it dries them, so they dry more evenly."));
 
     m_rotate_spool_toggle->Bind(wxEVT_CHECKBOX, [](wxCommandEvent& event) {
         bool is_checked = event.IsChecked();
@@ -789,6 +800,8 @@ wxBoxSizer* AMSDryCtrWin::create_guide_right_section(wxPanel* parent)
         wxColour("#FFFFFE")        // Text color - white
     );
 
+    set_illustrated_tooltip(m_start_button,
+        _L("Starts drying at the set temperature for the set time. The AMS heats up and keeps the temperature until the time is up."));
     m_start_button->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](wxCommandEvent& event) {
         m_main_simplebook->SetSelection(2);
         m_progress_gauge->SetValue(0);

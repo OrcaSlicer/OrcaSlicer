@@ -13,6 +13,7 @@
 #include <wx/string.h>
 
 #include "slic3r/GUI/GUI_Geometry.hpp"
+#include "slic3r/GUI/IllustratedTooltip.hpp"
 #include "GLGizmoAlignment.hpp"
 
 //#include "slic3r/GUI/GLCanvas3D.hpp"
@@ -180,7 +181,12 @@ private:
     void reset_rotation_value(bool reset_relative);
     void reset_scale_value();
 
+    // The tooltip of the control just drawn, beside the panel; call it right after the control, every frame.
+    // Pictures are named within resources/images/gizmos. See IllustratedTooltip::item_tooltip().
+    void panel_tooltip(const std::string &text, const std::vector<IllustratedTooltip::Media> &media = {});
+
     GLCanvas3D& m_glcanvas;
+    IllustratedTooltip m_tip{"gizmos"};
     unsigned int m_last_active_item { 0 };
 
     GLGizmoAlignment            m_alignment_helper;

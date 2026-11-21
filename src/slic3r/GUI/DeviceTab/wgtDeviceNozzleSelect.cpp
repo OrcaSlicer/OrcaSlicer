@@ -10,6 +10,7 @@
 
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #include "slic3r/GUI/DeviceTab/wgtMsgBox.h"
 #include "slic3r/GUI/Widgets/Label.hpp" // Orca: explicit Label include
 #include <wx/colour.h>
@@ -125,13 +126,7 @@ static void s_update_nozzle_info(wgtDeviceNozzleRackNozzleItem* item,
                                  const DevNozzle& nozzle_info)
 {
     item->UpdateInfo(rack, nozzle_info.IsOnRack());
-    if (nozzle_info.IsUnknown()) {
-        if (item->GetToolTipText() != _L("Nozzle information needs to be read")) {
-            item->SetToolTip(_L("Nozzle information needs to be read"));
-        }
-    } else {
-        item->SetToolTip(wxEmptyString);
-    }
+    set_illustrated_tooltip(item, nozzle_info.IsUnknown() ? _L("Nozzle information needs to be read") : wxString());
 }
 
 void wgtDeviceNozzleRackSelect::UpdateNozzleInfos(std::shared_ptr<DevNozzleRack> rack)

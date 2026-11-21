@@ -4,6 +4,7 @@
 #include "libslic3r/Preset.hpp"
 #include <algorithm>
 #include "I18N.hpp"
+#include "IllustratedTipPopup.hpp"
 #include <boost/log/trivial.hpp>
 #include <wx/anybutton.h>
 #include <wx/checklst.h>
@@ -96,6 +97,7 @@ void ExtrusionCalibration::create()
     m_comboBox_nozzle_dia->AppendString(wxString::Format("%1.1f", 0.4));
     m_comboBox_nozzle_dia->AppendString(wxString::Format("%1.1f", 0.6));
     m_comboBox_nozzle_dia->AppendString(wxString::Format("%1.1f", 0.8));
+    set_illustrated_tooltip(m_comboBox_nozzle_dia, _L("The diameter of the nozzle installed on the printer. Only filament presets for this printer and nozzle are listed below."));
 
     select_sizer->Add(m_comboBox_nozzle_dia, 0, wxEXPAND);
     select_sizer->Add(0, EXTRUSION_CALIBRATION_WIDGET_GAP, 0, 0);
@@ -108,6 +110,7 @@ void ExtrusionCalibration::create()
 #else
     m_comboBox_filament = new ComboBox(m_step_1_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, EXTRUSION_CALIBRATION_BED_COMBOX, 0, nullptr, wxCB_READONLY);
 #endif
+    set_illustrated_tooltip(m_comboBox_filament, _L("The filament preset that matches the filament in this slot. Its temperatures and max volumetric speed, shown below, are used for the calibration."));
     select_sizer->Add(m_comboBox_filament, 0, wxEXPAND);
     select_sizer->Add(0, EXTRUSION_CALIBRATION_WIDGET_GAP, 0, 0);
 
@@ -120,6 +123,7 @@ void ExtrusionCalibration::create()
 #else
     m_comboBox_bed_type = new ComboBox(m_step_1_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, EXTRUSION_CALIBRATION_BED_COMBOX, 0, nullptr, wxCB_READONLY);
 #endif
+    set_illustrated_tooltip(m_comboBox_bed_type, _L("The plate on the printer. It sets the bed temperature, taken from the filament preset for this plate."));
     select_sizer->Add(m_comboBox_bed_type, 0, wxEXPAND);
 
     // get bed type
@@ -153,6 +157,7 @@ void ExtrusionCalibration::create()
         wxWindow::GetTextExtent(_L("Max volumetric speed")).x),
         EXTRUSION_CALIBRATION_INPUT_SIZE.x);
     m_nozzle_temp = new TextInput(m_step_1_panel, wxEmptyString, _L("\u2103" /* °C */), "", wxDefaultPosition, { max_input_width, EXTRUSION_CALIBRATION_INPUT_SIZE.y }, wxTE_READONLY);
+    set_illustrated_tooltip(m_nozzle_temp, _L("The nozzle temperature of the selected filament preset, used for the calibration. To change it, edit the filament preset."));
     nozzle_temp_sizer->Add(nozzle_temp_text, 0, wxALIGN_LEFT);
     nozzle_temp_sizer->AddSpacer(FromDIP(4));
     nozzle_temp_sizer->Add(m_nozzle_temp, 0, wxEXPAND);
@@ -160,6 +165,7 @@ void ExtrusionCalibration::create()
     auto bed_temp_sizer = new wxBoxSizer(wxVERTICAL);
     auto bed_temp_text = new wxStaticText(m_step_1_panel, wxID_ANY, _L("Bed temperature"));
     m_bed_temp = new TextInput(m_step_1_panel, wxEmptyString, _L("\u2103" /* °C */), "", wxDefaultPosition, { max_input_width, EXTRUSION_CALIBRATION_INPUT_SIZE.y }, wxTE_READONLY);
+    set_illustrated_tooltip(m_bed_temp, _L("The bed temperature the filament preset sets for the selected plate type. 0 means the filament is not meant for this plate, and the calibration cannot start."));
     bed_temp_sizer->Add(bed_temp_text, 0, wxALIGN_LEFT);
     bed_temp_sizer->AddSpacer(FromDIP(4));
     bed_temp_sizer->Add(m_bed_temp, 0, wxEXPAND);
@@ -167,6 +173,7 @@ void ExtrusionCalibration::create()
     auto max_flow_sizer = new wxBoxSizer(wxVERTICAL);
     auto max_flow_text = new wxStaticText(m_step_1_panel, wxID_ANY, _L("Max volumetric speed"));
     m_max_flow_ratio = new TextInput(m_step_1_panel, wxEmptyString, _L("mm³"), "", wxDefaultPosition, { max_input_width, EXTRUSION_CALIBRATION_INPUT_SIZE.y }, wxTE_READONLY);
+    set_illustrated_tooltip(m_max_flow_ratio, _L("The max volumetric speed of the selected filament preset, in cubic millimeters per second. The calibration prints at flows up to this value, so it should match the one you print with."));
     max_flow_sizer->Add(max_flow_text, 0, wxALIGN_LEFT);
     max_flow_sizer->AddSpacer(FromDIP(4));
     max_flow_sizer->Add(m_max_flow_ratio, 0, wxEXPAND);
@@ -198,11 +205,13 @@ void ExtrusionCalibration::create()
     m_button_cali = new Button(m_step_1_panel, _L("Start"));
     m_button_cali->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_cali->Bind(wxEVT_BUTTON, &ExtrusionCalibration::on_click_cali, this);
+    set_illustrated_tooltip(m_button_cali, _L("The printer heats up and prints a row of test lines on the plate with the filament in this slot. Clear the plate first; it takes a few minutes and a little filament."));
 
     m_cali_cancel = new Button(m_step_1_panel, _L("Cancel"));
     m_cali_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_cali_cancel->Hide();
     m_cali_cancel->Bind(wxEVT_BUTTON, &ExtrusionCalibration::on_click_cancel, this);
+    set_illustrated_tooltip(m_cali_cancel, _L("Stops the calibration print on the printer."));
 
     m_button_next_step = new Button(m_step_1_panel, _L("Next"));
     m_button_next_step->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
@@ -249,6 +258,7 @@ void ExtrusionCalibration::create()
     m_k_val = new TextInput(m_step_2_panel, wxEmptyString, "", "", wxDefaultPosition, wxDefaultSize);
     auto n_val_text = new wxStaticText(m_step_2_panel, wxID_ANY, _L("Factor N"), wxDefaultPosition, wxDefaultSize, 0);
     m_n_val = new TextInput(m_step_2_panel, wxEmptyString, "", "", wxDefaultPosition, wxDefaultSize);
+    set_illustrated_tooltip(m_k_val, _L("The pressure advance factor printed beside the most even line of the test. A K value too low leaves corners bulging, too high leaves gaps where lines start and end."));
 
     // hide n
     n_val_text->Hide();
@@ -263,6 +273,7 @@ void ExtrusionCalibration::create()
     m_button_save_result = new Button(m_step_2_panel, _L("Save"));
     m_button_save_result->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_save_result->Bind(wxEVT_BUTTON, &ExtrusionCalibration::on_click_save, this);
+    set_illustrated_tooltip(m_button_save_result, _L("Stores the K value on the printer for the filament in this slot, so later prints with it use the value. Closes this dialog."));
 
     m_button_last_step = new Button(m_step_2_panel, _L_CONTEXT("Back", "Navigation")); // Back for english
     m_button_last_step->SetStyle(ButtonStyle::Regular, ButtonType::Choice);

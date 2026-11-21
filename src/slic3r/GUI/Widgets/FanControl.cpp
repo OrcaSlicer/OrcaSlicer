@@ -3,6 +3,7 @@
 #include "../I18N.hpp"
 #include "../GUI_App.hpp"
 #include "../MsgDialog.hpp"
+#include "../IllustratedTipPopup.hpp"
 #include <nlohmann/json.hpp>
 
 #include <wx/anybutton.h>
@@ -387,6 +388,7 @@ FanControlNew::FanControlNew(wxWindow *parent, const AirDuctData &fan_data, int 
     m_switch_button->Bind(wxEVT_ENTER_WINDOW, [this](auto& e) { SetCursor(wxCURSOR_HAND); });
     m_switch_button->Bind(wxEVT_LEAVE_WINDOW, [this](auto& e) { SetCursor(wxCURSOR_RIGHT_ARROW); });
     m_switch_button->Bind(wxEVT_LEFT_DOWN, &FanControlNew::on_swith_fan, this);
+    set_illustrated_tooltip(m_switch_button, _L("Turns this fan on at full speed, or off."));
 
 
     sizer_control_top->Add(m_static_bitmap_fan, 0, wxLEFT | wxTOP, FromDIP(8));
@@ -402,7 +404,11 @@ FanControlNew::FanControlNew(wxWindow *parent, const AirDuctData &fan_data, int 
     m_static_status_name->SetFont(Label::Head_16);
     m_static_status_name->SetMinSize(wxSize(FromDIP(100), -1));
     m_static_status_name->SetMaxSize(wxSize(FromDIP(100), -1));
+    set_illustrated_tooltip(m_static_status_name, _L("The current air duct mode controls this fan: Auto runs it as the printer needs, Off keeps it off."));
     m_fan_operate = new FanOperate(this, wxID_ANY, wxDefaultPosition, wxDefaultSize);
+    // xgettext:no-c-format, no-boost-format
+    set_illustrated_tooltip(m_fan_operate, _L("Lowers (-) or raises (+) this fan's speed in 10% steps; lowering it from 10% turns the fan off. "
+                                              "Changing it during a print can affect print quality."));
 
     m_fan_operate->Bind(EVT_FAN_SWITCH_ON, [this](const wxCommandEvent &e) {
         m_current_speed = e.GetInt();
@@ -429,6 +435,12 @@ FanControlNew::FanControlNew(wxWindow *parent, const AirDuctData &fan_data, int 
     m_sizer_control_bottom->Add(m_fan_operate, 0, wxALL, FromDIP(5));
 
     sizer_control->Add(m_sizer_control_bottom, 0, wxALL | wxEXPAND, 0);
+
+    // The tile itself says what the fan is for; its switch and speed control above have their own tooltips.
+    if (m_part_id == AIR_FUN::FAN_COOLING_0_AIRDOOR)
+        set_illustrated_tooltip(this, _L("Part cooling fan: cools the plastic right after it leaves the nozzle."));
+    else if (m_part_id == AIR_FUN::FAN_CHAMBER_0_IDX)
+        set_illustrated_tooltip(this, _L("Exhaust fan: moves air out of the chamber, which lowers the chamber temperature."));
     m_sizer_main->Add(sizer_control, 0, wxALIGN_CENTER, 0);
     update_mode();
 
@@ -717,6 +729,9 @@ void FanControlPopupNew::CreateDuct()
 
         SendModeSwitchButton *radio_btn = new SendModeSwitchButton(this, text, m_data.curren_mode == mode_id);
         radio_btn->Bind(wxEVT_LEFT_DOWN, &FanControlPopupNew::on_mode_changed, this);
+        // The description of each mode; some modes have none beyond their name.
+        if (const wxString &desc = label_text[AIR_DUCT(mode_id)]; desc != text)
+            set_illustrated_tooltip(radio_btn, desc);
         m_mode_switch_btns[mode_id] = radio_btn;
         m_radio_btn_sizer->Add(radio_btn, wxALL, FromDIP(5));
         iter++;
