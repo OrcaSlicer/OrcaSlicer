@@ -39332,6 +39332,30 @@ msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
 
+# AI Translated
+#. TRN %1% is the object name; %2% lists the heights of the first unsupported islands in millimetres.
+#, boost-format
+msgid "It seems the organic supports of object %1% have parts printed with nothing under them, starting on the layers at Z (mm): %2%. Consider a filled base pattern, such as Rectilinear, instead of a hollow one."
+msgstr "Sembla que els suports orgànics de l'objecte %1% tenen parts que s'imprimeixen sense res a sota i que comencen a les capes amb Z (mm): %2%. Considereu un patró de la base amb farciment, com ara Rectilini, en lloc d'un de buit."
+
+# AI Translated
+msgid "Initial Layer Diameter"
+msgstr "Diàmetre de la capa inicial"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Initial Layer Diameter"
+msgid "The diameter every branch of organic supports tries to reach on the build plate. Branches widen towards it near the bed, which improves bed adhesion but takes more space on the bed. A tree widens towards it only until its base is as wide as the tree is tall. A value not larger than the branch diameter turns this widening off. For small models, 2 to 3 mm is recommended."
+msgstr "El diàmetre que cada branca dels suports orgànics intenta assolir al llit. Prop del llit, les branques s'eixamplen per acostar-se a aquest diàmetre, cosa que millora l'adherència al llit però hi ocupa més espai. Un arbre només s'eixampla cap a aquest diàmetre fins que l'amplada de la base iguala l'alçada de l'arbre. Un valor que no superi el diàmetre de la branca desactiva aquest eixamplament. Per a models petits, es recomanen de 2 a 3 mm."
+
+# AI Translated
+msgid "Trunk Diameter"
+msgstr "Diàmetre del tronc"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Trunk Diameter"
+msgid "The diameter of the widest branches of organic supports, their bases on the build plate included. A thicker trunk is sturdier, a thinner trunk takes up less space on the bed. A value smaller than the branch diameter keeps every branch at the branch diameter. 0 means no limit."
+msgstr "El diàmetre de les branques més gruixudes dels suports orgànics, incloses les seves bases al llit. Un tronc més gruixut és més resistent; un de més prim ocupa menys espai al llit. Un valor inferior al diàmetre de la branca manté totes les branques amb aquest diàmetre. 0 significa sense límit."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Mostra opcions en importar fitxers STEP"
 

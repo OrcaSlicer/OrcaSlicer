@@ -2,6 +2,8 @@
 #define slic3r_SupportCommon_hpp_
 
 #include "../Polygon.hpp"
+#include "../ExPolygon.hpp"
+#include "../Polyline.hpp"
 #include "../Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
@@ -9,6 +11,7 @@
 #include "SupportParameters.hpp"
 #include "../Point.hpp"
 #include "../libslic3r.h"
+#include <cstddef>
 #include <utility>
 #include <algorithm>
 #include <vector>
@@ -35,7 +38,7 @@ std::pair<SupportGeneratorLayersPtr, SupportGeneratorLayersPtr> generate_interfa
     // Input / output, will be merged with output
     SupportGeneratorLayersPtr         &top_interface_layers,
     SupportGeneratorLayersPtr         &top_base_interface_layers,
-    // Input, will be trimmed with the newly created interface layers.
+    // Input/output: trimmed except for Organic bodies, partitioned at toolpath generation.
     SupportGeneratorLayersPtr         &intermediate_layers,
     SupportGeneratorLayerStorage      &layer_storage);
 
@@ -51,7 +54,13 @@ SupportGeneratorLayersPtr generate_raft_base(
 	const SupportGeneratorLayersPtr &base_layers,
 	SupportGeneratorLayerStorage    &layer_storage);
 
-void tree_supports_generate_paths(ExtrusionEntitiesPtr &dst, const Polygons &polygons, const Flow &flow, const SupportParameters &support_params);
+// Close the outer contour and holes counterclockwise and shorten each by clip_length for its seam.
+Polylines draw_perimeters(const ExPolygon &expoly, double clip_length);
+
+// Print the polygons as tree support walls. With double_walls, a body gets a second wall where it lies mostly in
+// double_walls instead of by its area.
+void tree_supports_generate_paths(ExtrusionEntitiesPtr &dst, const Polygons &polygons, const Flow &flow, const SupportParameters &support_params,
+    const Polygons *double_walls = nullptr);
 
 void fill_expolygons_with_sheath_generate_paths(
     ExtrusionEntitiesPtr &dst, const Polygons &polygons, Fill *filler, float density, ExtrusionRole role, const Flow &flow, const SupportParameters& support_params, bool with_sheath, bool no_sort);

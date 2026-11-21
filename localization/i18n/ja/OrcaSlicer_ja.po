@@ -40415,6 +40415,30 @@ msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
 
+# AI Translated
+#. TRN %1% is the object name; %2% lists the heights of the first unsupported islands in millimetres.
+#, boost-format
+msgid "It seems the organic supports of object %1% have parts printed with nothing under them, starting on the layers at Z (mm): %2%. Consider a filled base pattern, such as Rectilinear, instead of a hollow one."
+msgstr "オブジェクト%1%のオーガニックサポートには、Z高さ（mm）が%2%の積層を起点に、下に何もない状態で印刷される部分があるようです。内部が空洞のパターンではなく、「直線」などの内部を充填する基本パターンの使用を検討してください。"
+
+# AI Translated
+msgid "Initial Layer Diameter"
+msgstr "1層目の直径"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Initial Layer Diameter"
+msgid "The diameter every branch of organic supports tries to reach on the build plate. Branches widen towards it near the bed, which improves bed adhesion but takes more space on the bed. A tree widens towards it only until its base is as wide as the tree is tall. A value not larger than the branch diameter turns this widening off. For small models, 2 to 3 mm is recommended."
+msgstr "オーガニックサポートの各枝がベッド上で目標とする直径です。枝はベッド付近でこの直径に向かって広がり、ベッドへの密着性が向上しますが、ベッド上でより広いスペースが必要になります。ツリーは底部の幅がツリーの高さと同じになるまでしか広がりません。枝の直径以下の値にすると、この広がりが無効になります。小さいモデルには2～3 mmを推奨します。"
+
+# AI Translated
+msgid "Trunk Diameter"
+msgstr "幹の直径"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Trunk Diameter"
+msgid "The diameter of the widest branches of organic supports, their bases on the build plate included. A thicker trunk is sturdier, a thinner trunk takes up less space on the bed. A value smaller than the branch diameter keeps every branch at the branch diameter. 0 means no limit."
+msgstr "オーガニックサポートの最も太い枝の直径で、ベッド上の底部も含みます。幹が太いほど頑丈になり、細いほどベッド上で必要なスペースが少なくなります。枝の直径より小さい値にすると、すべての枝の直径が設定された枝の直径に保たれます。0は制限なしを意味します。"
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "STEPファイルインポート時にオプションを表示"
 

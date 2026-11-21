@@ -3405,6 +3405,8 @@ void TabPrint::build()
         optgroup->append_single_option_line("tree_support_branch_diameter", "support_settings_tree#branch-diameter");
         optgroup->append_single_option_line("tree_support_branch_diameter_organic", "support_settings_tree#branch-diameter");
         optgroup->append_single_option_line("tree_support_branch_diameter_angle", "support_settings_tree#branch-diameter-angle");
+        optgroup->append_single_option_line("tree_support_initial_layer_diameter", "support_settings_tree#initial-layer-diameter");
+        optgroup->append_single_option_line("tree_support_trunk_diameter", "support_settings_tree#trunk-diameter");
         optgroup->append_single_option_line("tree_support_branch_angle", "support_settings_tree#branch-angle");
         optgroup->append_single_option_line("tree_support_branch_angle_organic", "support_settings_tree#branch-angle");
         optgroup->append_single_option_line("tree_support_angle_slow", "support_settings_tree#preferred-branch-angle");
@@ -3967,6 +3969,31 @@ void TabPrintModel::update_model_config()
             }
         }
     }
+}
+
+void TabPrintModel::toggle_options()
+{
+    // The fields follow the configuration merged from the selected objects, which takes the setting of an object overriding
+    // the global one where another object inherits it: the base pattern spacing stays editable while any selected object
+    // prints lines of its base pattern.
+    bool spacing_used = false;
+    if (m_object_configs.size() > 1 && m_active_page != nullptr && has_key("support_base_pattern_spacing")) {
+        static const t_config_option_keys keys{ "enable_support", "support_type", "support_style", "support_base_pattern",
+            "raft_layers" };
+        const auto *belt = m_preset_bundle ?
+            m_preset_bundle->printers.get_edited_preset().config.option<ConfigOptionBool>("belt_printer") : nullptr;
+        for (const auto &object : m_object_configs) {
+            DynamicPrintConfig effective;
+            effective.apply_only(*m_parent_tab->m_config, keys);
+            effective.apply_only(object.second->get(), keys, true);
+            if (ConfigManipulation::base_pattern_spacing_used(effective, belt != nullptr && belt->value)) {
+                spacing_used = true;
+                break;
+            }
+        }
+    }
+    m_config_manipulation.set_base_pattern_spacing_used(spacing_used);
+    TabPrint::toggle_options();
 }
 
 void TabPrintModel::reset_model_config()

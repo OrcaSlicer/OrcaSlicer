@@ -39474,6 +39474,30 @@ msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
 
+# AI Translated
+#. TRN %1% is the object name; %2% lists the heights of the first unsupported islands in millimetres.
+#, boost-format
+msgid "It seems the organic supports of object %1% have parts printed with nothing under them, starting on the layers at Z (mm): %2%. Consider a filled base pattern, such as Rectilinear, instead of a hollow one."
+msgstr "Zdá se, že podpory typu „Organické“ objektu %1% obsahují části, které se tisknou bez opory zespodu, počínaje vrstvami ve výšce Z (mm): %2%. Zvažte základní vzor s výplní, například „Obdélníkový vzor“, místo dutého."
+
+# AI Translated
+msgid "Initial Layer Diameter"
+msgstr "Průměr první vrstvy"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Initial Layer Diameter"
+msgid "The diameter every branch of organic supports tries to reach on the build plate. Branches widen towards it near the bed, which improves bed adhesion but takes more space on the bed. A tree widens towards it only until its base is as wide as the tree is tall. A value not larger than the branch diameter turns this widening off. For small models, 2 to 3 mm is recommended."
+msgstr "Průměr, kterého se každá větev organických podpor snaží dosáhnout na podložce. U podložky se větve rozšiřují, aby se tomuto průměru přiblížily. Tím se zlepšuje přilnavost k podložce, ale podpory na ní zabírají více místa. Stromová podpěra se takto rozšiřuje jen do chvíle, kdy je její základna stejně široká, jako je podpěra vysoká. Hodnota, která není větší než průměr větve, toto rozšiřování vypíná. Pro malé modely se doporučuje průměr 2 až 3 mm."
+
+# AI Translated
+msgid "Trunk Diameter"
+msgstr "Průměr kmene"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Trunk Diameter"
+msgid "The diameter of the widest branches of organic supports, their bases on the build plate included. A thicker trunk is sturdier, a thinner trunk takes up less space on the bed. A value smaller than the branch diameter keeps every branch at the branch diameter. 0 means no limit."
+msgstr "Průměr nejširších větví organických podpor včetně jejich základen na podložce. Silnější kmen je pevnější, tenčí zabírá na podložce méně místa. Při hodnotě menší než průměr větve budou mít všechny větve tento průměr. 0 znamená bez omezení."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Zobrazit možnosti při importu souboru STEP"
 

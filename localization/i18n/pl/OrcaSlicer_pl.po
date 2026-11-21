@@ -39634,6 +39634,29 @@ msgstr ""
 "Czy wiesz, że podczas drukowania filamentami podatnymi na odkształcenia, takimi jak ABS, odpowiednie zwiększenie temperatury podgrzewanej płyty może zmniejszyć prawdopodobieństwo odkształceń?"
 
 # AI Translated
+#. TRN %1% is the object name; %2% lists the heights of the first unsupported islands in millimetres.
+#, boost-format
+msgid "It seems the organic supports of object %1% have parts printed with nothing under them, starting on the layers at Z (mm): %2%. Consider a filled base pattern, such as Rectilinear, instead of a hollow one."
+msgstr "Wydaje się, że podpory typu „Organiczne” obiektu %1% zawierają fragmenty drukowane bez podparcia od spodu, począwszy od warstw na wysokości Z (mm): %2%. Rozważ zastosowanie wzoru podstawowego z wypełnieniem, np. „Prostoliniowy”, zamiast wzoru pustego w środku."
+
+# AI Translated
+msgid "Initial Layer Diameter"
+msgstr "Średnica pierwszej warstwy"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Initial Layer Diameter"
+msgid "The diameter every branch of organic supports tries to reach on the build plate. Branches widen towards it near the bed, which improves bed adhesion but takes more space on the bed. A tree widens towards it only until its base is as wide as the tree is tall. A value not larger than the branch diameter turns this widening off. For small models, 2 to 3 mm is recommended."
+msgstr "Średnica, którą każda gałąź podpór organicznych próbuje osiągnąć na stole. W pobliżu stołu gałęzie rozszerzają się, zbliżając się do tej średnicy. Poprawia to przyczepność do stołu, ale zajmuje na nim więcej miejsca. Podpora rozszerza się w ten sposób tylko do momentu, gdy jej podstawa jest tak szeroka, jak wysoka jest podpora. Wartość nie większa niż średnica gałęzi wyłącza to rozszerzanie. Dla małych modeli zaleca się 2–3 mm."
+
+# AI Translated
+msgid "Trunk Diameter"
+msgstr "Średnica pnia"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Trunk Diameter"
+msgid "The diameter of the widest branches of organic supports, their bases on the build plate included. A thicker trunk is sturdier, a thinner trunk takes up less space on the bed. A value smaller than the branch diameter keeps every branch at the branch diameter. 0 means no limit."
+msgstr "Średnica najgrubszych gałęzi podpór organicznych, łącznie z ich podstawami na stole. Grubszy pień jest stabilniejszy, cieńszy zajmuje mniej miejsca na stole. Przy wartości mniejszej niż średnica gałęzi wszystkie gałęzie zachowują tę średnicę. 0 oznacza brak limitu."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Pokaż opcje przy importowaniu pliku STEP"
 

@@ -985,6 +985,9 @@ void PrintObject::generate_support_material(bool with_belt_brim)
 {
     if (this->set_started(posSupportMaterial)) {
         this->clear_support_layers();
+        // As after slicing: the overhang regions the nozzle lift found are not those of the support, which finds its own
+        // where it is on. The lift finds its own again after this step.
+        this->clear_overhangs_for_lift();
 
         if(!has_support() && !m_print->get_no_check_flag()) {
             // BBS: pop a warning if objects have significant amount of overhangs but support material is not enabled
@@ -1477,6 +1480,21 @@ SupportLayerPtrs::iterator PrintObject::insert_support_layer(SupportLayerPtrs::i
 
 // Called by Print::apply().
 // This method only accepts PrintObjectConfig and PrintRegionConfig option keys.
+// Whether a flow ratio reached or left zero, for any nozzle it has a value for.
+static bool flow_ratio_zero_changed(const ConfigOption *before, const ConfigOption *after)
+{
+    const auto zeros = [](const ConfigOption *option) {
+        std::vector<bool> result;
+        if (const auto *ratios = dynamic_cast<const ConfigOptionFloatsNullable *>(option))
+            for (const double ratio : ratios->values)
+                result.push_back(ratio == 0.);
+        else
+            result.push_back(option->getFloat() == 0.);
+        return result;
+    };
+    return zeros(before) != zeros(after);
+}
+
 bool PrintObject::invalidate_state_by_config_options(
     const ConfigOptionResolver &old_config, const ConfigOptionResolver &new_config, const std::vector<t_config_option_key> &opt_keys)
 {
@@ -1657,6 +1675,8 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "tree_support_tip_diameter"
             || opt_key == "tree_support_branch_diameter"
             || opt_key == "tree_support_branch_diameter_organic"
+            || opt_key == "tree_support_initial_layer_diameter"
+            || opt_key == "tree_support_trunk_diameter"
             || opt_key == "tree_support_branch_diameter_angle"
             || opt_key == "tree_support_branch_angle"
             || opt_key == "tree_support_branch_angle_organic"
@@ -1888,6 +1908,27 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "spiral_starting_flow_ratio"
             || opt_key == "spiral_finishing_flow_ratio") {
             invalidated |= m_print->invalidate_step(psGCodeExport);
+            // Organic footing excludes zero-flow model and support paths. Regenerate support as well
+            // as export, so cleanup restores/removes crumbs and refreshes warnings on a re-slice.
+            // A ratio counts only when it reaches or leaves zero, the shape of a seam slope only where the slope starts at zero.
+            const auto zero_changed = [&]() { return flow_ratio_zero_changed(old_config.option(opt_key), new_config.option(opt_key)); };
+            const auto slope_starts_at_zero = [](const ConfigOptionResolver &config) {
+                return config.option<ConfigOptionFloat>("scarf_joint_flow_ratio")->value == 0.;
+            };
+            const bool support_flow_changed = (opt_key == "support_flow_ratio" || opt_key == "support_interface_flow_ratio" ||
+                opt_key == "first_layer_flow_ratio") && zero_changed();
+            const bool model_flow_changed = !m_config.support_on_build_plate_only &&
+                (((opt_key == "top_solid_infill_flow_ratio" || opt_key == "bottom_solid_infill_flow_ratio" ||
+                   opt_key == "outer_wall_flow_ratio" || opt_key == "inner_wall_flow_ratio" || opt_key == "overhang_flow_ratio" ||
+                   opt_key == "sparse_infill_flow_ratio" || opt_key == "internal_solid_infill_flow_ratio" || opt_key == "gap_fill_flow_ratio" ||
+                   opt_key == "scarf_joint_flow_ratio") && zero_changed()) ||
+                 ((opt_key == "seam_slope_type" || opt_key == "seam_slope_conditional" ||
+                   opt_key == "scarf_angle_threshold" || opt_key == "scarf_overhang_threshold" || opt_key == "seam_slope_start_height" ||
+                   opt_key == "seam_slope_entire_loop" || opt_key == "seam_slope_min_length" || opt_key == "seam_slope_steps" ||
+                   opt_key == "seam_slope_inner_walls") && (slope_starts_at_zero(old_config) || slope_starts_at_zero(new_config))));
+            if ((support_flow_changed || model_flow_changed) && this->has_support_material() && is_tree(m_config.support_type) &&
+                m_config.support_style != smsTreeSlim && m_config.support_style != smsTreeStrong && m_config.support_style != smsTreeHybrid)
+                steps.emplace_back(posSupportMaterial);
         } else if (opt_key == "brim_filament_id") {
             // The belt brim is built with the supports and takes its line width from the brim filament's nozzle.
             if (m_print->config().belt_printer.value)
@@ -1918,6 +1959,16 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
 {
 	bool invalidated = Inherited::invalidate_step(step);
 
+    // Organic cleanup and warnings use the model's printed footing. Regenerate support when that
+    // material changes; the other tree styles do not depend on model extrusion paths.
+    if ((step == posPerimeters || step == posPrepareInfill || step == posInfill || step == posIroning || step == posContouring) &&
+        this->has_support_material() && ! m_config.support_on_build_plate_only && is_tree(m_config.support_type) &&
+        m_config.support_style != smsTreeSlim && m_config.support_style != smsTreeStrong && m_config.support_style != smsTreeHybrid) {
+        // As invalidate_step(posSupportMaterial), which would also invalidate the slicing parameters, here unchanged.
+        invalidated |= this->invalidate_steps({ posSupportMaterial, posSimplifySupportPath, posDetectOverhangsForLift });
+        invalidated |= m_print->invalidate_steps({ psSkirtBrim });
+    }
+
     // propagate to dependent steps
     if (step == posPerimeters) {
 		invalidated |= this->invalidate_steps({ posPrepareInfill, posInfill, posIroning, posContouring, posSimplifyPath, posSimplifyInfill });
@@ -1941,7 +1992,8 @@ bool PrintObject::invalidate_step(PrintObjectStep step)
         // The exact belt_floor_z_shift is recomputed when slice() runs again.
         m_belt_floor_z_shift_cache_valid = false;
     } else if (step == posSupportMaterial) {
-        invalidated |= this->invalidate_steps({ posSimplifySupportPath });
+        // The support finds its overhangs in the layers' overhang regions, which the nozzle lift fills after it.
+        invalidated |= this->invalidate_steps({ posSimplifySupportPath, posDetectOverhangsForLift });
         invalidated |= m_print->invalidate_steps({ psSkirtBrim });
         // SlicingParameters depend on support config (enable_support /
         // raft_layers / enforce_support_layers feed min/max layer height in

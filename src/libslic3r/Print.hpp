@@ -546,6 +546,17 @@ public:
     void         clear_shared_object();
     void         copy_layers_from_shared_object();
     void         copy_layers_overhang_from_shared_object();
+    // The heights the Organic support warning lists, see organic_update_support_warning(). An object sharing the layers
+    // of another takes them over on every slice, see organic_update_shared_support_warning(), with its own heights or
+    // with those of the other object.
+    struct OrganicSupportHeights {
+        std::vector<coordf_t> heights;
+        // Of an object sharing the layers of another: that object, and the timestamp of its support step when found.
+        const PrintObject *shared { nullptr };
+        size_t             shared_support_timestamp { 0 };
+    };
+    const OrganicSupportHeights& organic_support_heights() const { return m_organic_support_heights; }
+    void         set_organic_support_heights(OrganicSupportHeights heights) { m_organic_support_heights = std::move(heights); }
 
     // BBS: Boundingbox of the first layer
     BoundingBox                 firstLayerObjectBrimBoundingBox;
@@ -722,6 +733,7 @@ private:
     ExtrusionEntityCollection               m_skirt;
 
     PrintObject*                            m_shared_object{ nullptr };
+    OrganicSupportHeights                   m_organic_support_heights;
 
     // Belt printer: global Z offset applied to this object's layers for shear positioning.
     double                                  m_belt_global_z_offset { 0.0 };
@@ -1379,6 +1391,10 @@ public:
     //SoftFever
     bool &is_BBL_printer() { return m_isBBLPrinter; }
     const bool is_BBL_printer() const { return m_isBBLPrinter; }
+    // Whether the custom G-codes of the plate switch the tool by layer for objects printing with one, as apply() found
+    // them. The steps read this rather than the custom G-codes, which apply() replaces without stopping them unless the
+    // tool changes change.
+    bool has_custom_tool_overrides() const { return m_custom_tool_overrides; }
     WipeTowerType wipe_tower_type() const { return is_BBL_printer() ? WipeTowerType::Type1 : m_config.wipe_tower_type.value; }
     CalibMode& calib_mode() { return m_calib_params.mode; }
     const CalibMode calib_mode() const { return m_calib_params.mode; }
@@ -1546,6 +1562,7 @@ private:
     
     //SoftFever
     bool m_isBBLPrinter = false;
+    bool m_custom_tool_overrides = false;
 
     // Ordered collections of extrusion paths to build skirt loops and brim.
     ExtrusionEntityCollection               m_skirt;

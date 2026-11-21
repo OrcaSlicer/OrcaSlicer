@@ -220,6 +220,11 @@ struct SupportParameters {
                 support_style = smsGrid;
             }
         }
+        // A hollow Organic base lays no lines of the base pattern and does not read its spacing: its tips under an
+        // overhang no roof covers lie along lines of Support Base, or of Rectilinear with walls around the trees.
+        organic_tip_fill_pattern = support_style == smsTreeOrganic &&
+                (object_config.support_base_pattern == smpDefault || object_config.support_base_pattern == smpNone) ?
+            (with_sheath ? ipRectilinear : ipSupportBase) : base_fill_pattern;
     }
     // Zero-gap interface flags for top / bottom contact.
     bool                    zero_gap_interface_top;
@@ -284,6 +289,8 @@ struct SupportParameters {
 
     // Pattern of the sparse infill including sparse raft layers.
     InfillPattern           base_fill_pattern;
+    // Pattern of the lines a branch distance apart along which Organic tree tips lie under an overhang no roof covers.
+    InfillPattern           organic_tip_fill_pattern;
     // Pattern of the top / bottom interface and contact layers.
     InfillPattern           interface_fill_pattern;
     // Pattern of the raft interface and contact layers.

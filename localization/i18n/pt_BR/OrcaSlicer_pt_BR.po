@@ -37075,6 +37075,30 @@ msgstr ""
 "Evitar empenamento\n"
 "Você sabia que ao imprimir materiais propensos ao empenamento como ABS, aumentar adequadamente a temperatura da mesa aquecida pode reduzir a probabilidade de empenamento?"
 
+# AI Translated
+#. TRN %1% is the object name; %2% lists the heights of the first unsupported islands in millimetres.
+#, boost-format
+msgid "It seems the organic supports of object %1% have parts printed with nothing under them, starting on the layers at Z (mm): %2%. Consider a filled base pattern, such as Rectilinear, instead of a hollow one."
+msgstr "Parece que os suportes orgânicos do objeto %1% têm partes impressas sem nada por baixo, a partir das camadas nas alturas Z (mm): %2%. Considere um padrão da base com preenchimento, como Retilíneo, em vez de um padrão oco."
+
+# AI Translated
+msgid "Initial Layer Diameter"
+msgstr "Diâmetro da primeira camada"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Initial Layer Diameter"
+msgid "The diameter every branch of organic supports tries to reach on the build plate. Branches widen towards it near the bed, which improves bed adhesion but takes more space on the bed. A tree widens towards it only until its base is as wide as the tree is tall. A value not larger than the branch diameter turns this widening off. For small models, 2 to 3 mm is recommended."
+msgstr "O diâmetro que cada ramo dos suportes orgânicos tenta atingir na mesa. Perto da mesa, os ramos se alargam para se aproximar desse diâmetro, o que melhora a aderência à mesa, mas ocupa mais espaço nela. Uma árvore só se alarga em direção a esse diâmetro até que a largura da base se iguale à altura da árvore. Um valor menor ou igual ao diâmetro do ramo desativa esse alargamento. Para modelos pequenos, recomenda-se um valor de 2 a 3 mm."
+
+# AI Translated
+msgid "Trunk Diameter"
+msgstr "Diâmetro do tronco"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Trunk Diameter"
+msgid "The diameter of the widest branches of organic supports, their bases on the build plate included. A thicker trunk is sturdier, a thinner trunk takes up less space on the bed. A value smaller than the branch diameter keeps every branch at the branch diameter. 0 means no limit."
+msgstr "O diâmetro dos ramos mais grossos dos suportes orgânicos, incluindo suas bases na mesa. Um tronco mais grosso é mais resistente; um mais fino ocupa menos espaço na mesa. Um valor menor que o diâmetro do ramo mantém todos os ramos com esse diâmetro. 0 significa sem limite."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Mostrar opções ao importar arquivo STEP"
 
