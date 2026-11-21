@@ -170,6 +170,18 @@ bool decode_colored_png(IStream &in_buf, ImageColorscale &out_img)
     out_img.rows = png_get_image_height(dsc.png, dsc.info);
     size_t color_type = png_get_color_type(dsc.png, dsc.info);
     size_t bit_depth  = png_get_bit_depth(dsc.png, dsc.info);
+    const bool has_tRNS = png_get_valid(dsc.png, dsc.info, PNG_INFO_tRNS) != 0;
+    if (color_type == PNG_COLOR_TYPE_PALETTE || has_tRNS) {
+        if (color_type == PNG_COLOR_TYPE_PALETTE)
+            png_set_palette_to_rgb(dsc.png);
+        if (has_tRNS)
+            png_set_tRNS_to_alpha(dsc.png);
+        png_read_update_info(dsc.png, dsc.info);
+        out_img.cols = png_get_image_width(dsc.png, dsc.info);
+        out_img.rows = png_get_image_height(dsc.png, dsc.info);
+        color_type   = png_get_color_type(dsc.png, dsc.info);
+        bit_depth    = png_get_bit_depth(dsc.png, dsc.info);
+    }
     unsigned long rowbytes = png_get_rowbytes(dsc.png, dsc.info);
 
     switch(color_type)
@@ -235,7 +247,8 @@ bool is_decodable_8bit_png(const ReadBuf &pngbuf)
     const size_t color_type = png_get_color_type(dsc.png, dsc.info);
     const size_t bit_depth  = png_get_bit_depth(dsc.png, dsc.info);
     const bool   grey       = color_type == PNG_COLOR_TYPE_GRAY;
-    const bool   colour     = color_type == PNG_COLOR_TYPE_RGB || color_type == PNG_COLOR_TYPE_RGB_ALPHA;
+    const bool   colour     = color_type == PNG_COLOR_TYPE_RGB || color_type == PNG_COLOR_TYPE_RGB_ALPHA ||
+                              color_type == PNG_COLOR_TYPE_PALETTE;
     return png_get_image_width(dsc.png, dsc.info) > 0 && png_get_image_height(dsc.png, dsc.info) > 0 &&
            bit_depth == 8 && (grey || colour);
 }
