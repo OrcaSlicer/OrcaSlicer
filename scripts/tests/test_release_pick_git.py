@@ -27,8 +27,12 @@ class SubjectTest(unittest.TestCase):
     def test_trailing_number_is_read(self):
         self.assertEqual(pr_number_from_subject("Fix Cut gizmo right clicks (#17200)"), 17200)
 
-    def test_revert_subject_is_skipped(self):
-        self.assertIsNone(pr_number_from_subject('Revert "Fix X (#17200)" (#17300)'))
+    def test_revert_subject_gives_its_own_number(self):
+        self.assertEqual(pr_number_from_subject('Revert "Fix X (#17200)" (#17300)'), 17300)
+        self.assertIsNone(pr_number_from_subject('Revert "Fix X (#17200)"'))
+        self.assertEqual(pr_number_from_subject('Revert "Revert "Fix X (#17200)" (#17300)" (#17400)'), 17400)
+        self.assertEqual(reverted_number('Revert "Fix X (#17200)" (#17300)'), 17200)
+        self.assertEqual(reverted_number('Revert "Revert "Fix X (#17200)" (#17300)"'), 17300)
         self.assertEqual(reverted_number('Revert "Fix X (#17200)"'), 17200)
         self.assertIsNone(reverted_number("Fix X (#17200)"))
 
@@ -153,6 +157,19 @@ class ScratchRepoTest(unittest.TestCase):
         self.push_rc()
         picks, reverted = branch_picks(self.work, "v1.0.0", "rc/v1.0.1")
         self.assertEqual([p.sha for p in reverted], [fix_b_pick])
+        self.assertNotIn(6, [p.pr for p in picks])
+
+    def test_revert_pull_request_is_a_pick(self):
+        git(self.work, "checkout", "-q", "rc/v1.0.1")
+        fix_b_pick = git(self.work, "log", "--format=%H", "--grep=^Fix B", "-n1")
+        git(self.work, "revert", "--no-commit", fix_b_pick)
+        git(self.work, "commit", "-qm", 'Revert "Fix B (#6)" (#8)')
+        # A revert pull request from main whose reverted change was never picked here
+        self.commit("c.txt", "", 'Revert "Fix C (#7)" (#9)')
+        self.push_rc()
+        picks, reverted = branch_picks(self.work, "v1.0.0", "rc/v1.0.1")
+        self.assertEqual([p.sha for p in reverted], [fix_b_pick])
+        self.assertEqual([p.pr for p in picks][:2], [9, 8])
         self.assertNotIn(6, [p.pr for p in picks])
 
     def test_reverting_the_revert_restores_the_pick(self):

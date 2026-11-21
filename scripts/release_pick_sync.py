@@ -3,8 +3,8 @@
 
 Reads everything first, prints the planned changes as Markdown (also to $GITHUB_STEP_SUMMARY), and
 changes the project only with --apply. With RELEASE_STATUS_DISCORD_WEBHOOK set, an applied run also
-edits the Discord status post (RELEASE_STATUS_MESSAGE_ID), or creates it on a manual run when no id is
-set; a dry run prints a preview. A Discord failure is a warning, not a failed run. Run by .github/workflows/release_pick.yml.
+edits the Discord status post (RELEASE_STATUS_MESSAGE_ID), or creates it when no id is set and
+CREATE_DISCORD_POST is "true"; a dry run prints a preview. A Discord failure is a warning, not a failed run. Run by .github/workflows/release_pick.yml.
 
   RELEASE_PROJECT_TOKEN=... python3 scripts/release_pick_sync.py --owner OrcaSlicer --project 15 \\
       --repo OrcaSlicer/OrcaSlicer --repo-dir . [--apply]
@@ -175,8 +175,8 @@ def run(gh, repo_dir, owner, number, repo, apply, out, discord=None, post_id=Non
                     lines.append(f"Created the Discord status post. Set the repository variable "
                                  f"RELEASE_STATUS_MESSAGE_ID to {new_id} so later runs edit it.")
                 else:
-                    lines.append("::notice::No RELEASE_STATUS_MESSAGE_ID yet: run the workflow by hand once to "
-                                 "create the Discord status post.")
+                    lines.append("::notice::No RELEASE_STATUS_MESSAGE_ID yet: run the workflow by hand once with "
+                                 "\"Create the Discord status post\" ticked to create it.")
             except Exception as discord_error:  # noqa: BLE001
                 lines.append(f"::warning::Discord update failed: {discord_error}")
     else:
@@ -221,8 +221,8 @@ def main():
     code = run(GitHub(token, label=LABEL), args.repo_dir, args.owner, args.project, args.repo, args.apply, out,
                discord=Discord(webhook) if webhook else None,
                post_id=os.environ.get("RELEASE_STATUS_MESSAGE_ID") or None,
-               # Only a manual run creates the post, so scheduled and event runs cannot add one each.
-               allow_create=os.environ.get("GITHUB_EVENT_NAME", "workflow_dispatch") == "workflow_dispatch")
+               # Only a manual run that asks for it creates the post, so no other run can add another.
+               allow_create=os.environ.get("CREATE_DISCORD_POST") == "true")
     summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:
         # Workflow commands only mean something in the log; the summary page shows plain words.

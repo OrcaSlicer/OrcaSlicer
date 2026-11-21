@@ -92,21 +92,24 @@ class MainTest(unittest.TestCase):
         kwargs = run.call_args.kwargs
         self.assertIsInstance(kwargs["discord"], sync.Discord)
         self.assertEqual(kwargs["post_id"], "999")
-        self.assertTrue(kwargs["allow_create"])  # no GITHUB_EVENT_NAME: a local run
+        self.assertFalse(kwargs["allow_create"])  # a local run creates nothing unless asked
 
-    def test_only_a_manual_workflow_run_may_create_the_post(self):
-        for event, allowed in (("schedule", False), ("issues", False), ("workflow_dispatch", True)):
+    def test_only_a_run_that_asks_may_create_the_post(self):
+        # inputs.create_discord_post is empty on scheduled and event runs
+        for value, allowed in (("", False), ("false", False), ("true", True)):
             env = {"RELEASE_PROJECT_TOKEN": "t", "RELEASE_STATUS_DISCORD_WEBHOOK": "https://discord.invalid/h",
-                   "GITHUB_EVENT_NAME": event}
+                   "CREATE_DISCORD_POST": value}
             with mock.patch.dict(os.environ, env, clear=True), \
                     mock.patch.object(sync, "run", return_value=0) as run, \
                     mock.patch.object(sys, "argv", ["sync", "--owner", "o", "--project", "1", "--repo", "o/r"]):
                 sync.main()
-            self.assertEqual(run.call_args.kwargs["allow_create"], allowed, event)
+            self.assertEqual(run.call_args.kwargs["allow_create"], allowed, value)
 
     def test_summary_drops_workflow_command_prefixes(self):
         import tempfile
-        with tempfile.NamedTemporaryFile("r", suffix=".md") as summary:
+        # With delete=True, Windows will not let main() open the file a second time.
+        with tempfile.NamedTemporaryFile("r", suffix=".md", delete=False) as summary:
+            self.addCleanup(os.remove, summary.name)
             def fake_run(*args, **kwargs):
                 print("::warning::Discord update failed: HTTP 500", file=args[6])
                 return 0

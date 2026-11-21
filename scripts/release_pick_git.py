@@ -3,7 +3,8 @@
 release/vX.Y.Z), from a clone whose remote is "origin".
 
 A pick is matched by the "(#N)" at the end of its subject, which squash merges add and cherry-picks
-keep. A pick without one can be matched by its patch id against the commits on main.
+keep; for a revert, the one after the quoted subject (the revert pull request's own). A pick without
+one can be matched by its patch id against the commits on main.
 """
 
 import re
@@ -32,9 +33,8 @@ def _git(repo_dir, *args, stdin=None):
 
 
 def pr_number_from_subject(subject):
-    if _REVERT.match(subject):
-        return None
-    match = _TRAILING_NUMBER.search(subject)
+    # A revert's quoted subject carries the reverted pull request's number, not its own.
+    match = _TRAILING_NUMBER.search(_REVERT.sub("", subject))
     return int(match.group(1)) if match else None
 
 
@@ -74,7 +74,8 @@ def branch_picks(repo_dir, base, branch):
     """(picks, reverted), newest first: the commits on the branch since base, without merges and version
     bumps, and the picks a later revert on the same branch undid. A revert undoes the commit its message
     names ("This reverts commit ..."), or else the latest pick of the pull request in its subject, so a
-    pull request picked again after a revert counts as picked. Reverting that revert restores the pick."""
+    pull request picked again after a revert counts as picked. Reverting that revert restores the pick.
+    A revert with its own "(#N)" after the quoted subject is also a pick of that pull request."""
     log = _git(repo_dir, "log", "--reverse", "--no-merges", "--format=%H%x1f%s%x1f%b%x1e",
                f"{base}..origin/{branch}")
     picks, reverted = [], []
@@ -107,7 +108,8 @@ def branch_picks(repo_dir, base, branch):
                 picks.remove(undone)
                 reverted.append(undone)
                 undid[sha] = undone
-            continue
+            if pr_number_from_subject(subject) is None:
+                continue
         picks.append(Pick(sha, subject, pr_number_from_subject(subject), branch))
     return picks[::-1], reverted[::-1]
 
