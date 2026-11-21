@@ -41,6 +41,7 @@ public:
              long            style     = 0);
 
     DropDown & GetDropDown() { return drop; }
+    void EnableTypeToFilter() { drop.EnableSearch(); }
 
     // When true, item icon is shown as icon_1 (secondary), preserving drop_down arrow.
     // Note: item bitmaps are set via raw wxBitmap (not ScalableBitmap), so they won't
