@@ -3083,6 +3083,11 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
             }
             return nullptr;
         }, &keys);
+    // A project does not store a filament's compatible_printers or compatible_prints, so they are not applied over the existing preset.
+    if (m_type == Preset::TYPE_FILAMENT)
+        keys.erase(std::remove_if(keys.begin(), keys.end(),
+                                  [](const std::string &key) { return key == "compatible_printers" || key == "compatible_prints"; }),
+                   keys.end());
     std::string                 &inherits = Preset::inherits(cfg);
 
     //BBS: add config related logs

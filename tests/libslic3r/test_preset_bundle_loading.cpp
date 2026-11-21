@@ -1265,6 +1265,35 @@ TEST_CASE("A project filament storing one value for a per-variant key applies it
     check_double_vector(loaded->config.option<ConfigOptionFloats>("pressure_advance")->values, {0.016, 0.016});
 }
 
+TEST_CASE("A project's edited filament keeps the preset's compatible printers and processes", "[Preset][Bundle][Regression]")
+{
+    const bool embedded = GENERATE(false, true);
+    CAPTURE(embedded);
+    PresetCollection filaments(Preset::TYPE_FILAMENT, Preset::filament_options(),
+                               static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()));
+    Preset &user = add_inmemory_preset(filaments, "My PLA");
+    user.is_project_embedded = embedded;
+    user.config.option<ConfigOptionStrings>("compatible_printers", true)->values = {"My Printer"};
+    user.config.option<ConfigOptionStrings>("compatible_prints", true)->values   = {"My Process"};
+    user.config.option<ConfigOptionInts>("nozzle_temperature", true)->values     = {210};
+
+    DynamicPrintConfig project(user.config);
+    project.erase("compatible_printers");
+    project.erase("compatible_prints");
+    project.option<ConfigOptionInts>("nozzle_temperature")->values = {225};
+
+    const Preset *loaded = filaments.load_external_preset("test.3mf", "test.3mf", "My PLA", project, {},
+                                                          embedded ? PresetCollection::LoadAndSelect::OnlyIfModified :
+                                                                     PresetCollection::LoadAndSelect::Always).first;
+    REQUIRE(loaded != nullptr);
+
+    const Preset &result = embedded ? *loaded : filaments.get_edited_preset();
+    REQUIRE(result.name == "My PLA");
+    CHECK(result.config.option<ConfigOptionInts>("nozzle_temperature")->values == std::vector<int>{225});
+    CHECK(result.config.option<ConfigOptionStrings>("compatible_printers")->values == std::vector<std::string>{"My Printer"});
+    CHECK(result.config.option<ConfigOptionStrings>("compatible_prints")->values == std::vector<std::string>{"My Process"});
+}
+
 TEST_CASE("Repeated loads of a user preset directory produce the same presets", "[Preset][Bundle]")
 {
     ScopedTemporaryDir temp_dir;
