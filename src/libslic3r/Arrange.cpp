@@ -246,6 +246,19 @@ void update_unselected_items_inflation(ArrangePolygons& unselected, const Dynami
         : (ap.is_extrusion_cali_object ? 0 : scale_(exclusion_gap)); });
 }
 
+double compacted_tower_arrange_clearance(const ArrangePolygons& placed, const ArrangeParams& params, double toolhead_radius)
+{
+    // The head body sits above the nozzle cone, so an object that rises no higher than nozzle_height
+    // only has to clear the cone, as compacted_wipe_tower_clearance() decides. Arrange measures the
+    // height from the plate, which is never less than the rise above the tower that check measures.
+    // The tower is one polygon for every object placed, so a single taller one gives them all the
+    // toolhead radius, and so does an empty list, whose objects are unknown.
+    const bool all_short = !placed.empty() && std::all_of(placed.begin(), placed.end(), [&params](const ArrangePolygon& ap) {
+        return ap.height <= params.nozzle_height + EPSILON;
+    });
+    return all_short ? double(MAX_OUTER_NOZZLE_DIAMETER) : toolhead_radius;
+}
+
 void update_selected_items_axis_align(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params)
 {
     // now only need to consider "Align to x axis"

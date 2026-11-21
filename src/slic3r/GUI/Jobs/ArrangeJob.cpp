@@ -161,36 +161,6 @@ static WipeTower get_wipe_tower(const Plater &plater, int plate_idx)
     return WipeTower{plater.canvas3D()->get_wipe_tower_info(plate_idx)};
 }
 
-// Orca: a prime tower compacted by "No sparse layers" stays low, so the toolhead comes down beside it
-// at every tool change. Objects have to keep the toolhead radius from it, as they do from one another
-// when printing by object, so the arranger is given the tower grown by that much.
-// object_gap is the distance in mm the arranger keeps around every object anyway, which counts
-// towards that clearance. params.compacted_tower says whether the tower is compacted at all; once
-// grown, params.compacted_tower_growth holds by how much (scaled) the polygon now reaches past the
-// tower's own zone, which the arranger needs to find the tower's Y span again.
-static void grow_compacted_wipe_tower(arrangement::ArrangePolygon& ap, arrangement::ArrangeParams& params, double object_gap)
-{
-    if (!params.compacted_tower || ap.poly.contour.points.empty())
-        return;
-
-    // The config init_arrange_params() read params from.
-    const PrintConfig& config = wxGetApp().plater()->get_partplate_list().get_current_fff_print().config();
-    // The tower's polygon holds its brim already, both the one of a tower already there and the
-    // estimated one, so only the margin for the line width is left to add.
-    const Polygons footprint = offset(ap.poly.contour, float(scale_(compacted_tower_footprint_padding(config, 0.))));
-    if (footprint.empty())
-        return;
-    const CompactedTowerZone zone = compacted_wipe_tower_zone(config, footprint.front());
-    if (zone.empty())
-        return;
-    const coord_t  growth = scaled(std::max(0., zone.body_radius - object_gap));
-    const Polygons grown  = offset(zone.hull, float(growth), jtRound, scale_(0.1));
-    if (grown.empty())
-        return;
-    ap.poly.contour               = grown.front();
-    params.compacted_tower_growth = growth;
-}
-
 // Orca: the gap in mm the arranger will leave around each of the objects it is about to place, which
 // is the smallest inflation update_selected_items_inflation() gives them. It is worked out on copies,
 // since the arrange jobs only inflate the objects after the tower is in place.
@@ -205,12 +175,44 @@ static double arranged_object_gap(const arrangement::ArrangeParams& params, cons
     return unscale<double>(std::min_element(selected_copy.begin(), selected_copy.end(), by_inflation)->inflation);
 }
 
-arrangement::ArrangePolygon get_wipetower_arrange_poly(WipeTower* tower, arrangement::ArrangeParams& params, double object_gap)
+// Orca: a prime tower compacted by "No sparse layers" stays low, so the toolhead comes down beside it
+// at every tool change. The objects in placed have to keep from it the clearance
+// compacted_tower_arrange_clearance() gives, as they do from one another when printing by object, so
+// the arranger is given the tower grown by that much, less the gap it keeps around those objects
+// anyway. params.compacted_tower says whether the tower is compacted at all; once grown,
+// params.compacted_tower_growth holds by how much (scaled) the polygon now reaches past the tower's
+// own zone, which the arranger needs to find the tower's Y span again.
+static void grow_compacted_wipe_tower(arrangement::ArrangePolygon& ap, arrangement::ArrangeParams& params, const ArrangePolygons& placed)
+{
+    if (!params.compacted_tower || ap.poly.contour.points.empty())
+        return;
+
+    // The config init_arrange_params() read params from.
+    Plater*            plater = wxGetApp().plater();
+    const PrintConfig& config = plater->get_partplate_list().get_current_fff_print().config();
+    // The tower's polygon holds its brim already, both the one of a tower already there and the
+    // estimated one, so only the margin for the line width is left to add.
+    const Polygons footprint = offset(ap.poly.contour, float(scale_(compacted_tower_footprint_padding(config, 0.))));
+    if (footprint.empty())
+        return;
+    const CompactedTowerZone zone = compacted_wipe_tower_zone(config, footprint.front());
+    if (zone.empty())
+        return;
+    const double   clearance = compacted_tower_arrange_clearance(placed, params, zone.body_radius);
+    const coord_t  growth    = scaled(std::max(0., clearance - arranged_object_gap(params, placed, plater->config())));
+    const Polygons grown     = offset(zone.hull, float(growth), jtRound, scale_(0.1));
+    if (grown.empty())
+        return;
+    ap.poly.contour               = grown.front();
+    params.compacted_tower_growth = growth;
+}
+
+arrangement::ArrangePolygon get_wipetower_arrange_poly(WipeTower* tower, arrangement::ArrangeParams& params, const ArrangePolygons& placed)
 {
     ArrangePolygon ap = tower->get_arrange_polygon();
     ap.bed_idx = 0;
     ap.setter = NULL; // do not move wipe tower
-    grow_compacted_wipe_tower(ap, params, object_gap);
+    grow_compacted_wipe_tower(ap, params, placed);
     return ap;
 }
 
@@ -536,8 +538,6 @@ void ArrangeJob::prepare_wipe_tower()
     BOOST_LOG_TRIVIAL(info) << "arrange: need_wipe_tower=" << need_wipe_tower;
 
 
-    const double object_gap = arranged_object_gap(params, m_selected, m_plater->config());
-
     ArrangePolygon    wipe_tower_ap;
     wipe_tower_ap.name = "WipeTower";
     wipe_tower_ap.is_virt_object = true;
@@ -559,7 +559,7 @@ void ArrangeJob::prepare_wipe_tower()
             continue;
         if (auto wti = get_wipe_tower(*m_plater, bedid)) {
             // wipe tower is already there
-            wipe_tower_ap = get_wipetower_arrange_poly(&wti, params, object_gap);
+            wipe_tower_ap = get_wipetower_arrange_poly(&wti, params, m_selected);
             wipe_tower_ap.bed_idx = bedid_unlocked;
             m_unselected.emplace_back(wipe_tower_ap);
         }
@@ -570,7 +570,7 @@ void ArrangeJob::prepare_wipe_tower()
                 extruder_ids.insert(plate_extruders.begin(), plate_extruders.end());
             }
             wipe_tower_ap = estimate_wipe_tower_info(bedid, extruder_ids);
-            grow_compacted_wipe_tower(wipe_tower_ap, params, object_gap);
+            grow_compacted_wipe_tower(wipe_tower_ap, params, m_selected);
             wipe_tower_ap.bed_idx = bedid_unlocked;
             m_unselected.emplace_back(wipe_tower_ap);
         }
@@ -636,7 +636,7 @@ void ArrangeJob::prepare_partplate() {
 
     // BBS
     if (auto wti = get_wipe_tower(*m_plater, current_plate_index)) {
-        ArrangePolygon&& ap = get_wipetower_arrange_poly(&wti, params, arranged_object_gap(params, m_selected, m_plater->config()));
+        ArrangePolygon&& ap = get_wipetower_arrange_poly(&wti, params, m_selected);
         m_unselected.emplace_back(std::move(ap));
     }
 
@@ -1020,7 +1020,7 @@ get_wipe_tower_arrangepoly(const Plater &plater, arrangement::ArrangeParams &par
 {
     int id = plater.canvas3D()->fff_print()->get_plate_index();
     if (auto wti = get_wipe_tower(plater, id))
-        return get_wipetower_arrange_poly(&wti, params, arranged_object_gap(params, placed, plater.config()));
+        return get_wipetower_arrange_poly(&wti, params, placed);
 
     return {};
 }

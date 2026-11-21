@@ -120,8 +120,11 @@ the nozzle cone and the head body. An object away from the toolhead, which only
 the rod or the lid can reach, is left to the precise check. The ring the user
 sees touches the object's outline exactly when the pre-slice check trips.
 Arrange and Fill bed follow the rule too: they keep objects the toolhead radius
-away from the tower, and keep those taller than the rod clearance out of its Y
-span.
+away from the tower, or only the nozzle cone when none of the objects they place
+is taller than the nozzle height, and keep those taller than the rod clearance
+out of its Y span. They measure the height from the plate. For the rod that is
+stricter than the precise check, which only refuses an object that rises past
+the rod clearance above the compacted tower.
 
 ## Merging sparse layers
 
@@ -213,9 +216,10 @@ read as off rather than compacting or merging in one place and not another.
   [PartPlate.cpp](../../src/slic3r/GUI/PartPlate.cpp) draw the compacted tower's
   keep-out outlines live while the user drags.
 - [ArrangeJob.cpp](../../src/slic3r/GUI/Jobs/ArrangeJob.cpp) grows the tower's
-  arrange polygon by the toolhead radius, and
-  [Arrange.cpp](../../src/libslic3r/Arrange.cpp) keeps objects taller than the
-  rod clearance out of its Y span.
+  arrange polygon by the clearance that
+  [Arrange.cpp](../../src/libslic3r/Arrange.cpp) picks for the objects being
+  placed, and Arrange.cpp keeps objects taller than the rod clearance out of its
+  Y span.
 - [Rule tests](../../tests/libslic3r/test_wipe_tower.cpp) cover the gating of
   both settings, the per-layer predicates, the compacted z, the merge rule's run
   flushing, height conservation, the nozzle cap and the first-layer exemption,

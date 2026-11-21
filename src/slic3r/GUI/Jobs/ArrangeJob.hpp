@@ -102,8 +102,9 @@ public:
 };
 
 // The prime tower of the plate being sliced, to arrange around. A tower compacted by "No sparse
-// layers" comes grown by the toolhead clearance, which is then recorded in params; the inflation the
-// objects in placed will get counts towards it, so leave placed empty when they get none.
+// layers" comes grown by the clearance the objects in placed need from it, which is then recorded in
+// params; the inflation they will get counts towards it, so leave placed empty when they get none,
+// and the tower keeps the whole toolhead radius.
 std::optional<arrangement::ArrangePolygon> get_wipe_tower_arrangepoly(const Plater &, arrangement::ArrangeParams &params,
                                                                       const arrangement::ArrangePolygons &placed = {});
 

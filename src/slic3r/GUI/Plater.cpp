@@ -11251,7 +11251,8 @@ void Plater::find_new_position(const ModelInstancePtrs &instances)
             }
         }
 
-    // The objects placed here are not inflated, so the tower keeps the whole clearance.
+    // The objects placed here are not inflated, so none are passed and the tower keeps the whole
+    // toolhead radius.
     if (auto wt = get_wipe_tower_arrangepoly(*this, arr_params))
         fixed.emplace_back(*wt);
 

@@ -218,6 +218,11 @@ void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPri
 
 void update_unselected_items_inflation(ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
 
+// Orca: how far in mm the objects in placed have to stay from a prime tower compacted by "No sparse
+// layers": MAX_OUTER_NOZZLE_DIAMETER when none of them is taller than params.nozzle_height,
+// toolhead_radius otherwise or when placed is empty.
+double compacted_tower_arrange_clearance(const ArrangePolygons& placed, const ArrangeParams& params, double toolhead_radius);
+
 void update_selected_items_axis_align(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
 
 bool has_bed_exclusion_regions(const ArrangePolygons& polygons);

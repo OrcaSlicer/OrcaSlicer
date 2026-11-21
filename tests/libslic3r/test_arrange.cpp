@@ -753,3 +753,27 @@ TEST_CASE("Objects taller than the rod clearance stay out of the Y span of a com
         return ap.transformed_poly().contour.bounding_box().max.y() > scaled(180. - 40.);
     }));
 }
+
+TEST_CASE("Objects no taller than the nozzle height only keep the nozzle cone from a compacted prime tower", "[Arrange]")
+{
+    // A K2: toolhead radius 64 mm, nozzle height 4 mm.
+    const double  toolhead_radius = 64.;
+    ArrangeParams params;
+    params.nozzle_height = 4.f;
+
+    ArrangePolygon keychain;
+    keychain.height = 3.;
+    ArrangePolygon at_nozzle_height;
+    at_nozzle_height.height = 4.;
+    ArrangePolygon tall;
+    tall.height = 30.;
+
+    using Catch::Matchers::WithinAbs;
+    CHECK_THAT(compacted_tower_arrange_clearance({keychain, at_nozzle_height}, params, toolhead_radius), WithinAbs(MAX_OUTER_NOZZLE_DIAMETER, EPSILON));
+    // The tower is one polygon for all the objects placed, so one taller object gives every one of
+    // them the toolhead radius.
+    CHECK_THAT(compacted_tower_arrange_clearance({keychain, tall}, params, toolhead_radius), WithinAbs(toolhead_radius, EPSILON));
+    CHECK_THAT(compacted_tower_arrange_clearance({tall}, params, toolhead_radius), WithinAbs(toolhead_radius, EPSILON));
+    // find_new_position() passes no objects.
+    CHECK_THAT(compacted_tower_arrange_clearance({}, params, toolhead_radius), WithinAbs(toolhead_radius, EPSILON));
+}
