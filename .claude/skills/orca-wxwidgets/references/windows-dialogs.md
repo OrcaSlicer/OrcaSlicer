@@ -463,12 +463,13 @@ ignored (observed; recorded in `GUI_App::window_pos_restore`, not documented by 
 
 **OrcaSlicer geometry persistence.** Orca uses `AppConfig`, not `wxPersistentTLW`:
 `GUI_App::window_pos_save` / `window_pos_restore` / `window_pos_sanitize` / `window_pos_center` (key
-`window_<name>`, a `WindowMetrics` = screen rect + maximized; restore skips `SetPosition` on Wayland), and
-`on_window_geometry(tlw, callback)` (`GUI_Utils.cpp`) to run the callback when geometry is real — MSW
-immediately (no `wxEVT_SHOW` for windows created maximized), Linux on `wxEVT_SHOW` + `CallAfter`, macOS on
-`wxEVT_SHOW`. `GUI_App::persist_window_geometry(window, default_maximized)` saves on
-`wxEVT_CLOSE_WINDOW` (then `Skip()`) but always uses the key `window_mainframe`, whatever the window's
-name — for any other window call `window_pos_save/restore` with its own name.
+`window_<name>`, a `WindowMetrics` = screen rect + maximized; restore skips `SetPosition` on Wayland and
+skips `SetSize` when the saved state is maximized, and `window_pos_sanitize` returns early for a maximized
+or fullscreen window), and `on_window_geometry(tlw, callback)` (`GUI_Utils.cpp`) to run the callback when
+geometry is real — MSW immediately (no `wxEVT_SHOW` for windows created maximized), Linux on `wxEVT_SHOW` +
+`CallAfter`, macOS on `wxEVT_SHOW`. `GUI_App::persist_window_geometry(window, default_maximized)` saves on
+`wxEVT_CLOSE_WINDOW` (then `Skip()`) and restores under the window's own name, so the main frame
+(`"mainframe"`) and the non-modal settings dialog (`"settings_dialog"`) keep separate entries.
 
 **Pitfalls.**
 - **Rule:** When restoring a top-level window (the main frame after hiding a popup or overlay frame, or a
