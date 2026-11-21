@@ -319,12 +319,14 @@ TEST_CASE("an auto-answer rule presses a wx dialog's button, and answers a nativ
 
 namespace {
 
-// What ShowModal() returns for a picker a path rule can serve: OK where GetPath() then reads the path SetPath() gave
-// it (Windows, macOS), and cancel on GTK, whose GetPath() reads the GTK chooser, which has no path until it shows.
-#if defined(__WXMSW__) || defined(__WXOSX__)
-constexpr int kPathAnswer = wxID_OK;
+// What ShowModal() returns for a file picker a path rule can serve: OK where GetPath() then reads the rule's path,
+// which on GTK takes a wxWidgets that returns a hook's answer from GetPath() (wxHAS_GTK_FILEDLG_HOOK_ANSWER, Orca's),
+// and cancel on a GTK without one. The answer is read through ShowModal(), as the app's pickers are, since that is
+// where wxGTK records that a hook answered.
+#if defined(__WXGTK__) && !defined(wxHAS_GTK_FILEDLG_HOOK_ANSWER)
+constexpr int kFilePathAnswer = wxID_CANCEL;
 #else
-constexpr int kPathAnswer = wxID_CANCEL;
+constexpr int kFilePathAnswer = wxID_OK;
 #endif
 
 void write_file(const std::string& path) { boost::nowide::ofstream(path.c_str()) << "<svg/>"; }
@@ -349,8 +351,8 @@ TEST_CASE("a rule with a path answers a file picker with it, unseen", "[Mcp]")
         tracker.push_rules({make_rule("Import SVG", "ok", a_svg)});
 
         wxFileDialog dlg(nullptr, "Import SVG", "", "", "SVG files (*.svg)|*.svg", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-        CHECK(wxModalDialogHook::CallEnter(&dlg) == kPathAnswer);
-        if (kPathAnswer == wxID_OK)
+        CHECK(dlg.ShowModal() == kFilePathAnswer);
+        if (kFilePathAnswer == wxID_OK)
             CHECK(dlg.GetPath() == wxString::FromUTF8(a_svg));
         CHECK(tracker.top() == nullptr);
         CHECK(tracker.rules_json()[0]["uses"] == 1);
@@ -376,7 +378,7 @@ TEST_CASE("a save picker takes a new file, and an existing one only with overwri
         const auto save = [&](bool overwrite) {
             const int    layer = tracker.push_rules({make_rule("Save project", "ok", out, overwrite)});
             wxFileDialog dlg(nullptr, "Save project", "", "", "3MF files (*.3mf)|*.3mf", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-            const int    answer = wxModalDialogHook::CallEnter(&dlg);
+            const int    answer = dlg.ShowModal();
             const wxString path = answer == wxID_OK ? dlg.GetPath() : wxString();
             tracker.pop_rules(layer);
             return std::make_pair(answer, path);
@@ -384,16 +386,16 @@ TEST_CASE("a save picker takes a new file, and an existing one only with overwri
 
         // A file that doesn't exist yet.
         const auto fresh = save(false);
-        CHECK(fresh.first == kPathAnswer);
-        if (kPathAnswer == wxID_OK)
+        CHECK(fresh.first == kFilePathAnswer);
+        if (kFilePathAnswer == wxID_OK)
             CHECK(fresh.second == wxString::FromUTF8(out));
 
         // Once it exists, only a rule with overwrite replaces it.
         write_file(out);
         CHECK(save(false).first == wxID_CANCEL);
         const auto replaced = save(true);
-        CHECK(replaced.first == kPathAnswer);
-        if (kPathAnswer == wxID_OK)
+        CHECK(replaced.first == kFilePathAnswer);
+        if (kFilePathAnswer == wxID_OK)
             CHECK(replaced.second == wxString::FromUTF8(out));
         CHECK(tracker.top() == nullptr);
     }
@@ -416,9 +418,8 @@ TEST_CASE("a folder picker takes an existing folder", "[Mcp]")
         tracker.push_rules({make_rule("Choose a folder", "ok", folder)});
 
         wxDirDialog dlg(nullptr, "Choose a folder", "", wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
-        CHECK(wxModalDialogHook::CallEnter(&dlg) == kPathAnswer);
-        if (kPathAnswer == wxID_OK)
-            CHECK(dlg.GetPath() == wxString::FromUTF8(folder));
+        CHECK(dlg.ShowModal() == wxID_OK);
+        CHECK(dlg.GetPath() == wxString::FromUTF8(folder));
         CHECK(tracker.top() == nullptr);
         CHECK(tracker.rules_json()[0]["uses"] == 1);
     }

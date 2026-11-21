@@ -3256,13 +3256,18 @@ folder picker an existing folder; a save picker takes a path as any output does 
 and an existing file is replaced only with `overwrite: true` on the rule). A path the picker can't take
 cancels it, and the log says why, so nothing waits for a person; the rule counts as used either way. A
 multi-select picker takes no path and is cancelled, since it fills `GetPaths()` from its own list,
-never from `SetPath()`; for the same reason a single-select picker's caller that reads `GetPaths()`
-instead of `GetPath()` gets an empty list from a path answer on Windows and macOS. On GTK a path rule
-cancels every picker it matches, since a GTK picker's `GetPath()` has no path until it has shown. A path
-rule answers pickers only, as they open: never a wx dialog or message box it matches, nor a picker
-already open. `app_state.auto_answer_rules` and the tool's reply list a rule's `path` and
-`overwrite`. The replay summary (`describe_step()`) flags a step that sets a path rule outside the
-run's output folder as writing a file, since which picker the rule will answer, and whether that
+never from `SetPath()`; for the same reason a single-select picker's caller that reads `GetPaths()` instead of
+`GetPath()` gets an empty list from a path answer. wxGTK's own `SetPath()` also hands the path to the GTK
+chooser, which loads the folder later in the main loop, and its folder picker's `SetPath()` stores nothing
+else, so on GTK the path goes in through the base classes' setters (`wxDirDialogBase::SetPath()`,
+`wxFileDialogBase::SetPath()`), which store it and start no folder load that could outlive the dialog. wxGTK's
+folder picker reads its path from there. Its file picker asks the GTK chooser, which never showed and has no
+answer, so a path rule cancels a GTK file picker it matches, saying so in the log, unless the wxWidgets in use
+defines `wxHAS_GTK_FILEDLG_HOOK_ANSWER`: its `wxFileDialog` then returns what `SetPath()` stored after a
+`wxModalDialogHook` answered `ShowModal()`. A path rule answers pickers only, as they open: never a wx dialog or
+message box it matches, nor a picker already open. `app_state.auto_answer_rules` and the tool's reply list a
+rule's `path` and `overwrite`. The replay summary (`describe_step()`) flags a step that sets a path rule
+outside the run's output folder as writing a file, since which picker the rule will answer, and whether that
 picker saves, is not known until one opens.
 
 A wx dialog that matches a rule opens, and the tracker presses the button once the dialog's modal loop

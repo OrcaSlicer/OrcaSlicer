@@ -78,6 +78,11 @@ def dialog_listing(client, tab, key=None):
     return "\n".join(texts)
 
 
+def labels(listing):
+    """The first static texts of a widget_list listing, to show what a dialog's rows read when a check fails."""
+    return [line.strip() for line in listing.splitlines() if "wxStaticText" in line][:8]
+
+
 def dialog_controls(client, tab, key=None):
     """{name: (label, value, rest)} of the Preferences dialog's controls named after a key, opened on `tab`."""
     controls = {}
@@ -255,7 +260,7 @@ def scenarios(client, session):
     check("preferences_get reads the folder back", stored_path == folder, stored_path)
     listing = dialog_listing(client, "files", "download_path")
     check("the dialog opened again shows the folder in its downloads row", f'label "{folder}" (wxStaticText)' in listing,
-          [line.strip() for line in listing.splitlines() if "wxStaticText" in line][:8])
+          labels(listing))
     missing = folder + "-missing"
     text = refusal(client, "preferences_set", values={"download_path": missing})
     check("a folder that does not exist is refused, naming it", text is not None and "not_a_folder" in text and missing in text, text)
@@ -270,18 +275,32 @@ def scenarios(client, session):
     text = refusal(client, "preferences_set", values={"download_path": browsed})
     check("with the Preferences dialog open, preferences_set is refused before it writes",
           text is not None and "modal dialog is open" in text, text)
-    client.call("dialog_auto_answer", rules=[{"match": "Choose Download Directory", "button": "ok", "path": browsed}])
-    try:
+
+    def browse(path):
+        """Clicks the open dialog's Browse with a rule answering its picker with `path`; returns the dialog's listing
+        after it."""
+        client.call("dialog_auto_answer", rules=[{"match": "Choose Download Directory", "button": "ok", "path": path}])
         client.call("widget_click", target={"name": "download_path", "within": "Preferences"})
         _, texts = client.call_with_text("widget_list", target="dialog", max_nodes=2000)
-        listing = "\n".join(texts)
+        return "\n".join(texts)
+
+    try:
+        # A folder that does not exist is a path the picker can't take, so the rule cancels it.
+        missing_listing = browse(missing)
+        missing_uses = [r.get("uses") for r in client.call("app_state")["auto_answer_rules"]]
+        missing_stored = items_by_key(client, keys=["download_path"])["download_path"]["value"]
+        listing = browse(browsed)
     finally:
         client.call("dialog_auto_answer", rules=[])
         client.call("dialog_answer", dialog={"title": "Preferences"}, button="close")
         if isinstance(opened, dict) and opened.get("job"):
             shared.wait(client, "job", job=opened["job"])
+    check("a Browse rule naming a folder that does not exist answers the picker once", missing_uses == [1], missing_uses)
+    check("and the open dialog's row still shows the folder", f'label "{folder}" (wxStaticText)' in missing_listing,
+          labels(missing_listing))
+    check("and preferences_get still reads the folder", missing_stored == folder, missing_stored)
     check("the open dialog's row shows the folder its Browse button picked", f'label "{browsed}" (wxStaticText)' in listing,
-          [line.strip() for line in listing.splitlines() if "wxStaticText" in line][:8])
+          labels(listing))
     stored_path = items_by_key(client, keys=["download_path"])["download_path"]["value"]
     check("and preferences_get reads that folder", stored_path == browsed, stored_path)
 

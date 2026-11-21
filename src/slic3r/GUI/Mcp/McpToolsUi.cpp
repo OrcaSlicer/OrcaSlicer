@@ -2034,7 +2034,7 @@ void register_ui_tools(CommandCatalog& catalog)
             "ones MCP clients set before and last until the MCP server stops, and an empty list clears them. Reply: scope (run, plugin or session), rules (uses counts "
             "a rule's answers) and answered_open_dialog. A native dialog "
             "returns the rule's button at once and never shows. A file or folder picker takes button ok with an absolute path "
-            "and returns it without showing (on Linux such a rule cancels it); without a path a picker can only be cancelled, "
+            "and returns it without showing (on Linux a folder picker does, but such a rule cancels a file picker); without a path a picker can only be cancelled, "
             "and a multi-select picker takes no path. A wx dialog is answered as dialog_answer does. A matching dialog "
             "already open is answered too "
             "(answered_open_dialog), so a prompt that shows around the same time, such as the restore prompt after startup, "

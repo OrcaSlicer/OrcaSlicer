@@ -1032,20 +1032,29 @@ json undescribed(wxDialog* dialog)
 // ShowModal() returns, unseen, as if a person had chosen the path. A picker the path can't serve is cancelled
 // instead, and `why` says why.
 //
-// The picker never shows, so its caller reads the path from GetPath() right after the hook returns. In
-// wxWidgets 3.3.2 that path is the one SetPath() gave it on Windows and macOS, where GetPath() returns what
-// SetPath() stored (wxFileDialogBase, wxDirDialogBase; wxMSW's wxDirDialog::SetPath() only turns '/' into '\'
-// and drops trailing ones). On GTK it isn't: wxFileDialog::GetPath() asks the GTK chooser, which has no file
-// until its folder loads in the main loop, and wxDirDialog::SetPath() only moves the chooser's folder, leaving
-// GetPath() empty (src/gtk/filedlg.cpp, src/gtk/dirdlg.cpp). Multi-select pickers fill GetPaths() from their own
-// list on every platform, never from SetPath(), so they are cancelled; for the same reason a single-select
-// picker's caller that reads GetPaths() instead of GetPath() gets an empty list after a path answer on Windows and
-// macOS.
+// The picker never shows, so its caller reads the path from GetPath() right after the hook returns. On Windows and
+// macOS that is the path SetPath() stored (wxFileDialogBase, wxDirDialogBase; wxMSW's wxDirDialog::SetPath() only
+// turns '/' into '\' and drops trailing ones). wxGTK's own setters also hand the path to its GTK chooser, which loads
+// the folder later in the main loop, work that could outlive the dialog, and its wxDirDialog::SetPath() stores
+// nothing else (src/gtk/filedlg.cpp, src/gtk/dirdlg.cpp). So on GTK the path goes in through the base classes'
+// setters, which store it and start no folder load. wxGTK's wxDirDialog reads its path from there. Its wxFileDialog
+// asks the GTK chooser instead, which has no answer before it shows, so a file picker is cancelled, never answered
+// with a path its caller can't read, unless the wxWidgets in use announces with wxHAS_GTK_FILEDLG_HOOK_ANSWER that
+// its ShowModal() records a hook's answer and its getters then return what SetPath() stored.
+//
+// Multi-select pickers fill GetPaths() from their own list on every platform, never from SetPath(), so they are
+// cancelled; for the same reason a single-select picker's caller that reads GetPaths() instead of GetPath() gets an
+// empty list after a path answer.
 int answer_picker(wxDialog* dialog, const AutoAnswerRule& rule, std::string& why)
 {
-#if defined(__WXMSW__) || defined(__WXOSX__)
     auto* files   = dynamic_cast<wxFileDialogBase*>(dialog);
     auto* folders = dynamic_cast<wxDirDialogBase*>(dialog);
+#if defined(__WXGTK__) && !defined(wxHAS_GTK_FILEDLG_HOOK_ANSWER)
+    if (files != nullptr) {
+        why = "this build's wxWidgets can't answer a GTK file picker with a path";
+        return wxID_CANCEL;
+    }
+#endif
     if (files != nullptr ? files->HasFdFlag(wxFD_MULTIPLE) : folders->HasFlag(wxDD_MULTIPLE)) {
         why = "multi-select pickers take no path";
         return wxID_CANCEL;
@@ -1061,17 +1070,18 @@ int answer_picker(wxDialog* dialog, const AutoAnswerRule& rule, std::string& why
         return wxID_CANCEL;
     }
     const wxString chosen = wxString::FromUTF8(rule.path);
+#ifdef __WXGTK__
+    if (files != nullptr)
+        files->wxFileDialogBase::SetPath(chosen);
+    else
+        folders->wxDirDialogBase::SetPath(chosen);
+#else
     if (files != nullptr)
         files->SetPath(chosen);
     else
         folders->SetPath(chosen);
-    return wxID_OK;
-#else
-    (void) dialog;
-    (void) rule;
-    why = "this platform's picker takes no path";
-    return wxID_CANCEL;
 #endif
+    return wxID_OK;
 }
 
 } // namespace
