@@ -2523,9 +2523,12 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             auto used_filament_ids = object->object_extruders();
             // Painted all over, the object prints only its painted filaments, unless the segmented region
             // max width or interlocking depth limits the paint to a band and fills the rest with its own filament.
-            const ModelVolumePtrs &volumes = object->model_object()->volumes;
-            if (object->config().mmu_segmented_region_max_width.value == 0. &&
-                object->config().mmu_segmented_region_interlocking_depth.value == 0. &&
+            // Beam interlocking turns that band off.
+            const PrintObjectConfig &object_config = object->config();
+            const ModelVolumePtrs   &volumes       = object->model_object()->volumes;
+            if ((object_config.interlocking_beam.value ||
+                 (object_config.mmu_segmented_region_max_width.value == 0. &&
+                  object_config.mmu_segmented_region_interlocking_depth.value == 0.)) &&
                 std::all_of(volumes.begin(), volumes.end(), [](const ModelVolume *volume) {
                     return !volume->is_model_part() || volume->is_mm_painted_everywhere();
                 })) {
