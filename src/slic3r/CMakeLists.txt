@@ -770,6 +770,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/CrealityHostDiscovery.hpp
     Utils/Duet.cpp
     Utils/Duet.hpp
+    Utils/ElegooCC2PrinterAgent.cpp
+    Utils/ElegooCC2PrinterAgent.hpp
     Utils/ElegooLink.cpp
     Utils/ElegooLink.hpp
     Utils/EmbossStyleManager.cpp
