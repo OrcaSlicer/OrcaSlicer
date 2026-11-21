@@ -2115,7 +2115,11 @@ void MenuFactory::create_plate_menu()
 
     menu->AppendSeparator();
 
-    m_plate_mods_pos = menu->GetMenuItemCount(); // pos for dynamic plate items (Edit Plate Name / Lock / Delete Plate)
+    m_plate_mods_pos = menu->GetMenuItemCount();
+    menu->AppendSeparator();
+    append_menu_item(menu, wxID_ANY, _L("Reorder Plates"), "",
+        [](wxCommandEvent&) { plater()->reorder_plates(); }, "", nullptr,
+        []() { return plater()->can_reorder_plates(); }, m_parent);
 
     // add shapes
     menu->AppendSeparator();

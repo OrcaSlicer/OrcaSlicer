@@ -507,6 +507,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/ReleaseNote.hpp
     GUI/RemovableDriveManager.cpp
     GUI/RemovableDriveManager.hpp
+    GUI/ReorderPlatesDialog.cpp
+    GUI/ReorderPlatesDialog.hpp
     GUI/SavePresetDialog.cpp
     GUI/SavePresetDialog.hpp
     GUI/SceneRaycaster.cpp

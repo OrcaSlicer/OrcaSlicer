@@ -309,6 +309,7 @@
 #include <stdexcept>
 #include "FilamentMapDialog.hpp"
 #include "CloneDialog.hpp"
+#include "ReorderPlatesDialog.hpp"
 #include "PurgeModeDialog.hpp"
 
 #include "DeviceCore/DevFilaSystem.h"
@@ -15879,7 +15880,6 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
                     tower_x_opt->set_at(&tower_x_new, plate_idx, 0);
                     tower_y_opt->set_at(&tower_y_new, plate_idx, 0);
                     need_update = true;
-                    break;
                 }
             }
 
@@ -24044,12 +24044,13 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
         // move plate to the front
         take_snapshot("move plate to the front");
         ret = p->partplate_list.move_plate_to_index(plate_index,0);
+        // The already-first case still selects plate zero, as it did before.
+        if (ret != 0)
+            p->partplate_list.select_plate(0);
         p->partplate_list.update_slice_context_to_current_plate(p->background_process);
         p->preview->update_gcode_result(p->partplate_list.get_current_slice_result());
         p->sidebar->obj_list()->reload_all_plates();
-        p->partplate_list.update_plates();
         update();
-        p->partplate_list.select_plate(0);
     }
     else if (action == (int)PartPlate::PLATE_IMEX_MODE_ID)
     {
@@ -24170,6 +24171,43 @@ int Plater::delete_plate(int plate_index)
     //need to call update
     update();
     return ret;
+}
+
+bool Plater::can_reorder_plates() const
+{
+    return p->partplate_list.get_plate_count() > 1 && !m_only_gcode && !m_exported_file && !p->m_is_slicing
+        && p->m_worker.is_idle() && !p->background_process.running()
+        && !p->background_process.is_export_scheduled() && !p->background_process.is_upload_scheduled();
+}
+
+void Plater::reorder_plates()
+{
+    if (!can_reorder_plates())
+        return;
+
+    std::vector<wxString> names;
+    const auto original_plates = p->partplate_list.get_plate_list();
+    names.reserve(original_plates.size());
+    for (const PartPlate* plate : original_plates)
+        names.push_back(from_u8(plate->get_plate_name()));
+    ReorderPlatesDialog dialog(this, names);
+    SuppressBackgroundProcessingUpdate suppress;
+    if (dialog.ShowModal() != wxID_SAVE || !can_reorder_plates()
+        || original_plates != p->partplate_list.get_plate_list())
+        return;
+
+    const std::vector<int> order = dialog.get_order();
+    if (std::is_sorted(order.begin(), order.end()))
+        return;
+
+    TakeSnapshot snapshot(this, _u8L("Reorder Plates"));
+    if (!p->partplate_list.reorder_plates(order))
+        return;
+    p->partplate_list.update_slice_context_to_current_plate(p->background_process);
+    p->preview->update_gcode_result(p->partplate_list.get_current_slice_result());
+    p->sidebar->obj_list()->reload_all_plates();
+    update();
+    set_plater_dirty(true);
 }
 
 //BBS: set bed positions

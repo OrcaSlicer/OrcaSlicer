@@ -803,6 +803,7 @@ public:
     bool can_delete_plate() const;
     // Undoable rename; use for user edits instead of PartPlate::set_plate_name().
     void rename_plate(int plate_index, const std::string& name);
+    bool can_reorder_plates() const;
     bool can_increase_instances() const;
     bool can_decrease_instances() const;
     bool can_set_instance_to_object() const;
@@ -882,6 +883,7 @@ public:
     int add_plate();
     //BBS: delete the plate, index= -1 means the current plate
     int delete_plate(int plate_index = -1);
+    void reorder_plates();
     int duplicate_plate(int plate_index = -1);
     //BBS: select the sliced plate by index
     int select_sliced_plate(int plate_index, bool skip_zoom = false);
