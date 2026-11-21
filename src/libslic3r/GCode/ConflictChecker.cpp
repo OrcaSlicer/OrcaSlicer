@@ -19,9 +19,13 @@
 #include <tbb/concurrent_vector.h>
 
 #include <map>
+#include <unordered_map>
+#include <boost/container_hash/hash.hpp>
+#include <boost/functional/hash.hpp>
 #include <functional>
 #include <atomic>
 #include <utility>
+#include <iterator>
 #include <vector>
 #include "libslic3r/Model.hpp"
 
@@ -205,12 +209,22 @@ ObjectExtrusions getAllLayersExtrusionPathsFromObject(PrintObject *obj)
 {
     ObjectExtrusions oe;
 
+    size_t total_regions = 0;
+    for (const auto *layerPtr : obj->layers())
+        total_regions += layerPtr->regions().size();
+    oe.perimeters.reserve(total_regions);
+    oe.support.reserve(obj->support_layers().size());
+
     for (auto layerPtr : obj->layers()) {
         auto perimeters = getExtrusionPathsFromLayer(layerPtr->regions());
-        oe.perimeters.insert(oe.perimeters.end(), perimeters.begin(), perimeters.end());
+        oe.perimeters.insert(oe.perimeters.end(),
+                             std::make_move_iterator(perimeters.begin()),
+                             std::make_move_iterator(perimeters.end()));
     }
 
-    for (auto supportLayerPtr : obj->support_layers()) { oe.support.push_back(getExtrusionPathsFromSupportLayer(supportLayerPtr)); }
+    for (auto supportLayerPtr : obj->support_layers()) {
+        oe.support.push_back(getExtrusionPathsFromSupportLayer(supportLayerPtr));
+    }
 
     return oe;
 }
@@ -218,18 +232,23 @@ ObjectExtrusions getAllLayersExtrusionPathsFromObject(PrintObject *obj)
 ConflictComputeOpt ConflictChecker::find_inter_of_lines(const LineWithIDs &lines)
 {
     using namespace RasterizationImpl;
-    std::map<IndexPair, std::vector<int>> indexToLine;
+    std::unordered_map<IndexPair, std::vector<int>, boost::hash<IndexPair>> indexToLine;
+    indexToLine.reserve(lines.size() * 2);
 
     for (int i = 0; i < lines.size(); ++i) {
         const LineWithID &l1      = lines[i];
         auto              indexes = line_rasterization(l1._line);
         for (auto index : indexes) {
-            const auto &possibleIntersectIdxs = indexToLine[index];
-            for (auto possibleIntersectIdx : possibleIntersectIdxs) {
-                const LineWithID &l2 = lines[possibleIntersectIdx];
-                if (auto interRes = line_intersect(l1, l2); interRes.has_value()) { return interRes; }
+            auto it = indexToLine.find(index);
+            if (it != indexToLine.end()) {
+                for (auto possibleIntersectIdx : it->second) {
+                    const LineWithID &l2 = lines[possibleIntersectIdx];
+                    if (auto interRes = line_intersect(l1, l2); interRes.has_value()) { return interRes; }
+                }
+                it->second.push_back(i);
+            } else {
+                indexToLine[index].push_back(i);
             }
-            indexToLine[index].push_back(i);
         }
     }
     return {};

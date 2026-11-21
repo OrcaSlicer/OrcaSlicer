@@ -31,6 +31,7 @@
 
 #include "libslic3r.h"
 #include "Semver.hpp"
+#include "Memory.hpp"
 
 //define CLI errors
 
