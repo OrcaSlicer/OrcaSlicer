@@ -283,6 +283,8 @@ set(lisbslic3r_sources
     GCode/PchipInterpolatorHelper.hpp
     GCode/PressureEqualizer.cpp
     GCode/PressureEqualizer.hpp
+    GCode/ObjectWipeTowerPlacement.cpp
+    GCode/ObjectWipeTowerPlacement.hpp
     GCode/PrintExtents.cpp
     GCode/PrintExtents.hpp
     GCodeReader.cpp

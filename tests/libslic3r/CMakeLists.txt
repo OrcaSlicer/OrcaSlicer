@@ -26,6 +26,8 @@ add_executable(${_TEST_NAME}_tests
     # Mouse ear detection is pure contour geometry; the slicing pipeline stays in fff_print.
     test_brim.cpp
     test_buildvolume.cpp
+    # Tower placement beside sequentially printed objects is pure geometry; the Print integration is separate.
+    test_object_wipe_tower_placement.cpp
     test_calib.cpp
     test_clipper_offset.cpp
     test_clipper_utils.cpp
