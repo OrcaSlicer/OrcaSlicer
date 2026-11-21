@@ -2662,11 +2662,11 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
             preserved_state.capabilities = previous_state.capabilities;
     }
 
-    const bool installed = install_cloud_plugin_package(plugin_key, version, download.package_path, previous,
-                                                        &update_cloud_user, install_error, &failure,
-                                                        had_local_package ? &preserved_state : nullptr,
-                                                        update_package_lease);
-    if (!installed) {
+    const bool installed_ok = install_cloud_plugin_package(plugin_key, version, download.package_path, previous,
+                                                           &update_cloud_user, install_error, &failure,
+                                                           had_local_package ? &preserved_state : nullptr,
+                                                           update_package_lease);
+    if (!installed_ok) {
         // Install/revoke are done; release before restoring/reloading the old package.
         update_package_lease.reset();
         // Restoring the old state and reloading the old package is only meaningful when the

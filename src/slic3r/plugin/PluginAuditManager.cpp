@@ -3813,7 +3813,7 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     // that has not been given one yet and is seeded when the grant is saved.
     if (state_status == InstallStateReadStatus::Unreadable)
         return false;
-    if (!audit_state_belongs_to_loaded_identity(plugin_key, descriptor.plugin_root, state.installation_revision)) {
+    if (!PluginAuditDetail::audit_state_belongs_to_loaded_identity(plugin_key, descriptor.plugin_root, state.installation_revision)) {
         BOOST_LOG_TRIVIAL(warning) << "[AUDIT] Refusing to read permissions for a replaced installation: " << plugin_key;
         return false;
     }

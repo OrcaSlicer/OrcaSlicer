@@ -6,8 +6,8 @@
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
-#include "slic3r/GUI/NotificationManager.hpp"
-#include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/MsgDialog.hpp"
+#include "slic3r/GUI/PluginsDialog.hpp"
 #include "slic3r/GUI/Widgets/WebView.hpp"
 #include "slic3r/GUI/format.hpp"
 
@@ -17,6 +17,7 @@
 #include <boost/system/error_code.hpp>
 
 #include <cctype>
+#include <deque>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
@@ -40,12 +41,31 @@
 #include <wx/string.h>
 #include <wx/thread.h>
 #include <wx/timer.h>
+#include <wx/toplevel.h>
 
 namespace Slic3r {
 
 namespace {
 
 namespace fs = boost::filesystem;
+
+// boost::filesystem::exists() may surface a missing path as an error on some Windows
+// configurations. Treat only genuine file/path-not-found as absence; every other error is a
+// real failure and must still be reported.
+bool is_path_not_found(const boost::system::error_code& ec)
+{
+    if (!ec)
+        return false;
+    if (ec == boost::system::errc::no_such_file_or_directory)
+        return true;
+#ifdef _WIN32
+    if (ec.category() == boost::system::system_category()) {
+        const DWORD code = static_cast<DWORD>(ec.value());
+        return code == ERROR_FILE_NOT_FOUND || code == ERROR_PATH_NOT_FOUND;
+    }
+#endif
+    return false;
+}
 
 fs::path profiles_root()
 {
@@ -165,16 +185,44 @@ std::unordered_map<std::string, PluginBrowserProfileIdentityRef>& identities()
     return *map;
 }
 
-void push_warning_notification(const std::string& message)
+void show_profile_warning(const std::string& message)
 {
-    if (GUI::Plater* plater = GUI::wxGetApp().plater())
-        plater->get_notification_manager()->push_notification(
-            GUI::NotificationType::CustomNotification,
-            GUI::NotificationManager::NotificationLevel::WarningNotificationLevel, message);
+    // ShowModal runs a nested event loop. Queue subsequent warnings rather than stacking dialogs.
+    static std::deque<std::string> pending;
+    static bool showing = false;
+    pending.push_back(message);
+    if (showing)
+        return;
+    showing = true;
+    while (!pending.empty() && wxTheApp != nullptr && !GUI::wxGetApp().is_closing()) {
+        std::string current = std::move(pending.front());
+        pending.pop_front();
+
+        wxWindow* parent = wxGetActiveWindow();
+        if (parent == nullptr || !parent->IsShownOnScreen() || parent->IsBeingDeleted() ||
+            parent == GUI::wxGetApp().GetTopWindow()) {
+            parent = nullptr;
+            for (wxWindowList::compatibility_iterator node = wxTopLevelWindows.GetFirst(); node; node = node->GetNext()) {
+                wxWindow* window = node->GetData();
+                if (dynamic_cast<GUI::PluginsDialog*>(window) && window->IsShownOnScreen() && !window->IsBeingDeleted()) {
+                    parent = window;
+                    break;
+                }
+            }
+            if (parent == nullptr)
+                parent = GUI::wxGetApp().GetTopWindow();
+        }
+        if (parent && !parent->IsBeingDeleted()) {
+            GUI::WarningDialog dialog(parent, wxString::FromUTF8(current));
+            dialog.ShowModal();
+        }
+    }
+    pending.clear();
+    showing = false;
 }
 
 // Startup/reset warnings can be produced before the plater exists. Retry briefly instead of
-// dropping the only notification the user would see.
+// dropping the only warning the user would see.
 class WarningRetryTimer : public wxTimer
 {
 public:
@@ -185,7 +233,7 @@ public:
         if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
             return; // process is going away; leave the timer to the app teardown
         if (GUI::wxGetApp().plater() != nullptr) {
-            push_warning_notification(m_message);
+            show_profile_warning(m_message);
             GUI::wxGetApp().CallAfter([this]() { delete this; });
         } else if (--m_attempts > 0) {
             StartOnce(500);
@@ -215,7 +263,7 @@ void warn_profile(const std::string& plugin_key, const std::string& message)
         if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
             return;
         if (GUI::wxGetApp().plater() != nullptr) {
-            push_warning_notification(message);
+            show_profile_warning(message);
             return;
         }
         auto* timer = new WarningRetryTimer(message, 10);
@@ -268,7 +316,7 @@ void delete_profile_on_ui_thread(const std::string& plugin_key, const std::strin
         boost::system::error_code exists_ec;
         const fs::path           root(installation_root);
         const bool               root_exists = fs::exists(root, exists_ec);
-        if (exists_ec) {
+        if (exists_ec && !is_path_not_found(exists_ec)) {
             warn_profile(plugin_key,
                          GUI::format(_u8L("The plugin was removed, but its browser profile could not be checked: %1%"),
                                      exists_ec.message()));
@@ -329,7 +377,7 @@ void delete_profile_on_ui_thread(const std::string& plugin_key, const std::strin
 
     const fs::path live = profiles_root() / profile_id;
     const bool     live_exists = fs::exists(live, ec);
-    if (ec) {
+    if (ec && !is_path_not_found(ec)) {
         warn_profile(plugin_key,
                      GUI::format(_u8L("The plugin was removed, but its browser profile could not be checked: %1%"),
                                  ec.message()));
@@ -456,7 +504,7 @@ std::string ensure_plugin_browser_profile(const std::string& plugin_key, bool* f
         const fs::path old = profiles_root() / legacy;
         boost::system::error_code ec;
         const bool exists = fs::exists(old, ec);
-        if (ec) {
+        if (ec && !is_path_not_found(ec)) {
             warn_profile(plugin_key,
                          GUI::format(_u8L("A previous browser profile at %1% could not be checked: %2%"),
                                      old.string(), ec.message()));
@@ -639,7 +687,7 @@ void warn_legacy_plugin_browser_profile(const std::string& plugin_key, const std
     const fs::path old = profiles_root() / legacy;
     boost::system::error_code ec;
     const bool exists = fs::exists(old, ec);
-    if (ec) {
+    if (ec && !is_path_not_found(ec)) {
         warn_profile(plugin_key,
                      GUI::format(_u8L("A previous browser profile at %1% could not be checked: %2%"),
                                  old.string(), ec.message()));

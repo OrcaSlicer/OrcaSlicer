@@ -211,6 +211,8 @@ thread_local unsigned t_install_state_depth = 0;
 class PackageLeaseLock
 {
 public:
+    PackageLeaseLock() = default;
+
     bool open(const std::string& path, std::string& error)
     {
 #if defined(_WIN32)
