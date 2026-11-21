@@ -17,8 +17,6 @@
 
 namespace Slic3r {
 
-class PresetBundle;
-
 // Reserved sentinel name for the always-present, non-deletable Primary mode in
 // `imex_mode_names`. Comparison with this constant indicates "no parallel printing
 // in effect" — IMEX zone visualization, ghost rendering, secondary-tool PA / temp
@@ -162,19 +160,8 @@ std::vector<std::string> imex_plate_mode_choices(const ConfigBase& cfg);
 // route through one of the helpers below.
 // =============================================================================
 
-// physical_extruder_map has one entry per LOGICAL extruder -- the index space of
-// nozzle_diameter -- with each value a physical extruder index. It is NOT derivable from
-// printer_extruder_id, which is indexed by variant slot (one entry per extruder+variant pair):
-// an X1 Carbon has one nozzle and printer_extruder_id {1,1}, an H2D two nozzles and {1,1,2,2,2}.
-//
-// A profile has authored a map only when its length matches nozzle_count; otherwise the identity
-// is returned, which is the same default upstream applies (see Plater.cpp's extruder_map).
-ConfigOptionInts effective_physical_extruder_map(const ConfigOptionInts* explicit_pem, int nozzle_count);
-
-// GUI overload: resolves the effective pem from a live PresetBundle using the project_config
-// → printer preset fallback. Use this instead of open-coding the lookup at ghost-color,
-// tooltip, click-gate and cache-key call sites so they all agree with what the slicer sees.
-ConfigOptionInts effective_physical_extruder_map(const PresetBundle& pb);
+// effective_physical_extruder_map() lives in PrintConfig.hpp and PresetBundle.hpp: the map is a setting of
+// every multi-nozzle printer, not only IMEX ones.
 
 // Returns the physical extruder index to emit as a per-tool qualifier (PA / temperature)
 // for the given filament slot, or -1 when the current IMEX state does not warrant a
@@ -189,14 +176,15 @@ int imex_pem_tool_for(int filament_id, const std::string& parallel_mode, const C
 // so it does not depend on a parallel mode being active the way imex_pem_tool_for does.
 //
 // Gated on is_imex because physical_extruder_map carries two readings in this tree: the
-// BBL paths index it by extruder id (GCode.cpp:3295, WipeTower.cpp:1353), the IMEX paths
+// BBL paths index it by extruder id (match_physical_extruder_for_each_filament in
+// GCode::_do_export, WipeTowerWriter::format_line_M104/M109), the IMEX paths
 // by filament id. Those coincide only when the filament and nozzle counts match, so an
 // ungated mapping would impose the IMEX reading on profiles that mean the other one --
 // fdm_bbl_3dp_002_common ships a non-identity [1,0] and is spared today only because
 // single_extruder_multi_material suppresses the T qualifier entirely.
 //
 // Out-of-range ids pass through unchanged, the same rule GCodeProcessor's preheat rewrite
-// uses (GCode/GCodeProcessor.cpp:1407), so a printer whose map is the registered
+// uses (GCodeProcessor::run_post_process), so a printer whose map is the registered
 // single-entry default is unaffected.
 int imex_physical_heater_for(bool is_imex, const ConfigOptionInts& pem, int logical_id);
 
@@ -386,7 +374,7 @@ template<class T>
 T imex_cfg_enum(const ConfigBase& cfg, const std::string& key)
 {
     // Matched by type, not by the coEnum tag. Every ConfigOptionEnum<T> reports coEnum, so the
-    // type() comparison that option<TYPE>() (Config.hpp:2656) and the int/float accessors rely on
+    // type() comparison that ConfigBase::option<TYPE>() and the int/float accessors rely on
     // cannot tell one enum type from another: it would accept a ConfigOptionEnum<OtherEnum> and
     // static_cast it to this T. ConfigOptionEnum<A> and ConfigOptionEnum<B> are unrelated
     // siblings (both derive from ConfigOptionSingle<T>), so a dynamic_cast rejects the mismatch.

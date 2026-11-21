@@ -37,6 +37,7 @@ add_executable(${_TEST_NAME}_tests
     test_drc.cpp
     test_gcodereader.cpp
     test_toolordering_nozzle_group.cpp
+    test_parallel_for_first_error.cpp
     test_parallel_resolve.cpp
     test_preset_bundle_loading.cpp
     test_preset_collection.cpp
@@ -47,6 +48,7 @@ add_executable(${_TEST_NAME}_tests
     test_preset_options.cpp
     test_edge_grid.cpp
     test_elephant_foot_compensation.cpp
+    test_expolygon.cpp
     test_exclusion_volumes.cpp
     test_fill_corner_smoothing.cpp
     test_filament_mixer.cpp
