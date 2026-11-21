@@ -1,5 +1,7 @@
 #include "slic3r/GUI/CAD/DesignRowList.hpp"
 
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
+
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 
@@ -148,7 +150,7 @@ void DesignRowList::set_rows(std::vector<Row> rows)
     m_rows    = std::move(rows);
     m_hover   = Hit{};
     m_pressed = Hit{};
-    UnsetToolTip();
+    hover_illustrated_tooltip(this, wxRect(), wxString());   // the row it was for may be gone
     load_icons();
     SetItemCount(m_rows.size());
     fit_rows();
@@ -370,28 +372,36 @@ void DesignRowList::load_icons()
 
 void DesignRowList::set_hover(const Hit& h)
 {
-    if (h == m_hover)
-        return;
-    const int old = m_hover.row;
-    m_hover = h;
-    if (old != wxNOT_FOUND && old < int(GetItemCount()))
-        RefreshRow(old);
-    if (h.row != wxNOT_FOUND && h.row != old)
-        RefreshRow(h.row);
-
-    // The tip names the icon under the pointer, or the whole label where the row cuts it short.
-    wxString tip;
-    if (h.row != wxNOT_FOUND) {
-        const Row& r = m_rows[h.row];
-        if (h.cell >= 0)
-            tip = r.actions[h.cell].tip;
-        else if (GetTextExtent(r.label).x > label_rect(GetItemRect(h.row), r).width)
-            tip = r.label;
+    if (h != m_hover) {
+        const int old = m_hover.row;
+        m_hover = h;
+        if (old != wxNOT_FOUND && old < int(GetItemCount()))
+            RefreshRow(old);
+        if (h.row != wxNOT_FOUND && h.row != old)
+            RefreshRow(h.row);
     }
-    if (tip.empty())
-        UnsetToolTip();
-    else if (tip != GetToolTipText())
-        SetToolTip(tip);
+
+    // The tip names the icon under the pointer. On the rest of the row it says what the row is, led
+    // by the whole label where the row cuts it short. Asked on every move, as a window that draws its
+    // own items has to.
+    wxRect                item;
+    wxString              tip;
+    std::vector<TipMedia> media;
+    if (h.row != wxNOT_FOUND) {
+        const Row&   r    = m_rows[h.row];
+        const wxRect rect = GetItemRect(h.row);
+        if (h.cell >= 0) {
+            item = cell_rect(rect, r.actions.size(), size_t(h.cell));
+            tip  = r.actions[h.cell].tip;
+        } else {
+            item = rect;
+            tip  = r.tip;
+            if (GetTextExtent(r.label).x > label_rect(rect, r).width)
+                tip = tip.empty() ? r.label : r.label + "\n" + tip;
+            media = r.media;
+        }
+    }
+    hover_illustrated_tooltip(this, tip.empty() && media.empty() ? wxRect() : item, tip, media);
 }
 
 }} // namespace Slic3r::GUI

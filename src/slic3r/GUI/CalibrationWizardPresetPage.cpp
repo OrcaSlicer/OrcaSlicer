@@ -21,6 +21,7 @@
 #include <wx/textctrl.h>
 #include <wx/arrstr.h>
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "slic3r/GUI/Widgets/DropDown.hpp"
 #include <string>
 #include <wx/sizer.h>
 #include "slic3r/GUI/CalibrationWizardPage.hpp"
@@ -43,6 +44,9 @@
 #include "I18N.hpp"
 #include "Widgets/Label.hpp"
 #include "MsgDialog.hpp"
+#include "IllustratedTipPopup.hpp"
+#include <wx/radiobut.h>
+#include <wx/window.h>
 #include "libslic3r/Print.hpp"
 #include "PrePrintChecker.hpp"
 
@@ -122,6 +126,19 @@ void CaliPresetCaliStagePanel::create_panel(wxWindow* parent)
     m_top_sizer->Add(input_panel);
 
     m_top_sizer->AddSpacer(PRESET_GAP);
+
+    set_illustrated_tooltip(m_complete_radioBox,
+                            // xgettext:no-c-format, no-boost-format
+                            _L("Prints two tests: first blocks whose flow ratios are 5% apart, then blocks 1% apart near the best "
+                               "of the first. Start here with a new filament."),
+                            {{"flow_rate_calibration_coarse.png", {}}, {"flow_rate_calibration_fine.png", {}}});
+    set_illustrated_tooltip(m_fine_radioBox,
+                            // xgettext:no-c-format, no-boost-format
+                            _L("Prints only the second test, blocks 1% apart, based on the flow ratio entered below. For a filament "
+                               "whose flow ratio is already close."),
+                            {{"flow_rate_calibration_fine.png", {}}});
+    set_illustrated_tooltip(flow_ratio_input, _L("The flow ratio the fine test is based on, usually the one the filament preset has now. "
+                                                 "It has to be between 0 and 2."));
     // events
     m_complete_radioBox->Bind(wxEVT_RADIOBUTTON, [this](auto& e) {
         m_stage_panel_parent->get_current_object()->flow_ratio_calibration_type = COMPLETE_CALIBRATION;
@@ -611,13 +628,33 @@ int CalibrationPresetPage::get_extruder_id_by_tray_id(int tray_id)
     return 0;
 }
 
+// The nozzle diameter lists, before and after they are synchronized from the printer.
+static wxString nozzle_diameter_tip()
+{
+    return _L("The nozzle the test is sliced for. The filaments offered are the presets for this nozzle size.");
+}
+
+// The nozzle flow lists, single nozzle and left and right, which the printer fills in.
+static wxString nozzle_flow_tip()
+{
+    return _L("The nozzle's flow type, as the printer reports it. A Flow Dynamics result applies only to the flow type it was "
+              "calibrated with.");
+}
+
+// A nozzle diameter list, with or without the note that the printer reported the diameter.
+static void set_nozzle_diameter_tip(wxWindow *combo, bool synced)
+{
+    set_illustrated_tooltip(combo, synced ? nozzle_diameter_tip() + "\n\n" + _L("The nozzle diameter has been synchronized from the printer Settings") :
+                                            nozzle_diameter_tip());
+}
+
 void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
 {
     auto panel_sizer = new wxBoxSizer(wxVERTICAL);
 
     auto sync_button_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_btn_sync = new Button(parent, "", "ams_nozzle_sync");
-    m_btn_sync->SetToolTip(_L("Synchronize nozzle and AMS information"));
+    set_illustrated_tooltip(m_btn_sync, _L("Synchronize nozzle and AMS information"));
     m_btn_sync->SetCornerRadius(8);
     StateColor btn_sync_bg_col(std::pair<wxColour, int>(wxColour("#CECECE"), StateColor::Pressed),
                                std::pair<wxColour, int>(wxColour("#F8F8F8"), StateColor::Hovered),
@@ -691,6 +728,7 @@ void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
         single_nozzle_sizer->Add(nozzle_combo_text, 0, wxALL, 0);
         single_nozzle_sizer->AddSpacer(FromDIP(10));
         m_comboBox_nozzle_dia = new ComboBox(m_single_nozzle_info_panel, wxID_ANY, "", wxDefaultPosition, CALIBRATION_COMBOX_SIZE, 0, nullptr, wxCB_READONLY);
+        set_illustrated_tooltip(m_comboBox_nozzle_dia, nozzle_diameter_tip());
         single_nozzle_sizer->Add(m_comboBox_nozzle_dia, 0, wxALL, 0);
 
         m_nozzle_diameter_tips = new Label(m_single_nozzle_info_panel, "");
@@ -707,6 +745,7 @@ void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
 
         m_comboBox_nozzle_volume = new ComboBox(m_single_nozzle_info_panel, wxID_ANY, "", wxDefaultPosition, CALIBRATION_COMBOX_SIZE, 0, nullptr, wxCB_READONLY);
         m_comboBox_nozzle_volume->Disable();
+        set_illustrated_tooltip(m_comboBox_nozzle_volume, nozzle_flow_tip());
 
         single_nozzle_sizer->Add(nozzle_volume_type_text, 0, wxALL, 0);
         single_nozzle_sizer->AddSpacer(FromDIP(5));
@@ -739,6 +778,7 @@ void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
 
             m_left_comboBox_nozzle_dia = new ComboBox(m_multi_nozzle_info_panel, wxID_ANY, "", wxDefaultPosition, CALIBRATION_FILAMENT_COMBOX_SIZE, 0, nullptr, wxCB_READONLY);
             m_left_comboBox_nozzle_dia->Disable();
+            set_nozzle_diameter_tip(m_left_comboBox_nozzle_dia, false);
 
             m_left_nozzle_volume_type_sizer->AddSpacer(FromDIP(5));
             m_left_nozzle_volume_type_sizer->Add(nozzle_diameter_text, 0, wxLEFT | wxRIGHT, 10);
@@ -753,6 +793,7 @@ void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
 
             m_left_comboBox_nozzle_volume = new ComboBox(m_multi_nozzle_info_panel, wxID_ANY, "", wxDefaultPosition, CALIBRATION_FILAMENT_COMBOX_SIZE, 0, nullptr, wxCB_READONLY);
             m_left_comboBox_nozzle_volume->Disable();
+            set_illustrated_tooltip(m_left_comboBox_nozzle_volume, nozzle_flow_tip());
 
             m_left_nozzle_volume_type_sizer->Add(nozzle_volume_type_text, 0, wxLEFT | wxRIGHT, 10);
             m_left_nozzle_volume_type_sizer->AddSpacer(FromDIP(5));
@@ -773,6 +814,7 @@ void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
 
             m_right_comboBox_nozzle_dia = new ComboBox(m_multi_nozzle_info_panel, wxID_ANY, "", wxDefaultPosition, CALIBRATION_FILAMENT_COMBOX_SIZE, 0, nullptr, wxCB_READONLY);
             m_right_comboBox_nozzle_dia->Disable();
+            set_nozzle_diameter_tip(m_right_comboBox_nozzle_dia, false);
 
             m_right_nozzle_volume_type_sizer->AddSpacer(FromDIP(5));
             m_right_nozzle_volume_type_sizer->Add(nozzle_diameter_text, 0, wxLEFT | wxRIGHT, 10);
@@ -787,6 +829,7 @@ void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
 
             m_right_comboBox_nozzle_volume = new ComboBox(m_multi_nozzle_info_panel, wxID_ANY, "", wxDefaultPosition, CALIBRATION_FILAMENT_COMBOX_SIZE, 0, nullptr, wxCB_READONLY);
             m_right_comboBox_nozzle_volume->Disable();
+            set_illustrated_tooltip(m_right_comboBox_nozzle_volume, nozzle_flow_tip());
 
             m_right_nozzle_volume_type_sizer->Add(nozzle_volume_type_text, 0, wxLEFT | wxRIGHT, 10);
             m_right_nozzle_volume_type_sizer->AddSpacer(FromDIP(5));
@@ -816,6 +859,8 @@ void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
     panel_sizer->Add(plate_type_combo_text, 0, wxALL, 0);
     panel_sizer->AddSpacer(FromDIP(10));
     m_comboBox_bed_type = new ComboBox(parent, wxID_ANY, "", wxDefaultPosition, CALIBRATION_COMBOX_SIZE, 0, nullptr, wxCB_READONLY);
+    set_illustrated_tooltip(m_comboBox_bed_type, _L("The build plate on the printer. It sets the bed temperature of the test, and "
+                                                    "filaments that should not be printed on it are reported as not compatible."));
     panel_sizer->Add(m_comboBox_bed_type, 0, wxALL, 0);
 
     panel_sizer->AddSpacer(PRESET_GAP);
@@ -837,7 +882,7 @@ void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
     filament_for_title_sizer->AddSpacer(FromDIP(25));
     m_ams_sync_button = new ScalableButton(parent, wxID_ANY, "ams_fila_sync", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, false, 18);
     m_ams_sync_button->SetBackgroundColour(*wxWHITE);
-    m_ams_sync_button->SetToolTip(_L("Synchronize filament list from AMS"));
+    set_illustrated_tooltip(m_ams_sync_button, _L("Synchronize filament list from AMS"));
     filament_for_title_sizer->Add(m_ams_sync_button, 0, wxALIGN_CENTER);
     panel_sizer->Add(filament_for_title_sizer);
     panel_sizer->AddSpacer(FromDIP(6));
@@ -963,6 +1008,15 @@ void CalibrationPresetPage::init_selection_values()
     }
 }
 
+// The radio button and the check box in front of a filament slot: one of them is shown, depending on whether
+// the calibration takes one filament or several.
+static void set_filament_slot_tips(wxRadioButton* radio_btn, CheckBox* check_box)
+{
+    set_illustrated_tooltip(radio_btn, _L("Calibrates the filament in this slot."));
+    set_illustrated_tooltip(check_box, _L("Includes the filament in this slot. All the filaments ticked are calibrated in one print, "
+                                          "each with its own test."));
+}
+
 void CalibrationPresetPage::create_filament_list_panel(wxWindow* parent)
 {
     auto panel_sizer = new wxBoxSizer(wxVERTICAL);
@@ -985,6 +1039,7 @@ void CalibrationPresetPage::create_filament_list_panel(wxWindow* parent)
         CheckBox* check_box = new CheckBox(m_filament_list_panel);
         check_box->SetBackgroundColour(*wxWHITE);
         FilamentComboBox* fcb = new FilamentComboBox(m_filament_list_panel, i);
+        set_filament_slot_tips(radio_btn, check_box);
         fcb->SetRadioBox(radio_btn);
         fcb->SetCheckBox(check_box);
         fcb->set_select_mode(CalibrationFilamentMode::CALI_MODEL_SINGLE);
@@ -1128,6 +1183,7 @@ void CalibrationPresetPage::create_multi_extruder_filament_list_panel(wxWindow *
             CheckBox *     check_box               = new CheckBox(m_multi_exutrder_filament_list_panel);
             check_box->SetBackgroundColour(*wxWHITE);
             FilamentComboBox *fcb = new FilamentComboBox(m_multi_exutrder_filament_list_panel, i + 4);
+            set_filament_slot_tips(radio_btn, check_box);
             fcb->SetRadioBox(radio_btn);
             fcb->SetCheckBox(check_box);
             fcb->set_select_mode(CalibrationFilamentMode::CALI_MODEL_SINGLE);
@@ -1172,6 +1228,7 @@ void CalibrationPresetPage::create_multi_extruder_filament_list_panel(wxWindow *
             CheckBox *     check_box               = new CheckBox(m_multi_exutrder_filament_list_panel);
             check_box->SetBackgroundColour(*wxWHITE);
             FilamentComboBox *fcb = new FilamentComboBox(m_multi_exutrder_filament_list_panel, i);
+            set_filament_slot_tips(radio_btn, check_box);
             fcb->SetRadioBox(radio_btn);
             fcb->SetCheckBox(check_box);
             fcb->set_select_mode(CalibrationFilamentMode::CALI_MODEL_SINGLE);
@@ -1266,6 +1323,26 @@ void CalibrationPresetPage::create_page(wxWindow* parent)
         pa_cali_modes.push_back(_L_CONTEXT("Line", "PA calibration method"));
         pa_cali_modes.push_back(_L("Pattern"));
         m_pa_cali_method_combox = new CaliComboBox(parent, _L("Method"), pa_cali_modes);
+
+        // Each method's picture, in the order of pa_cali_modes, for the tooltip and for the open list.
+        const std::vector<TipMedia> method_media = {{"fd_calibration_manual.png", pa_cali_modes[0]},
+                                                    {"fd_pattern_manual.png", pa_cali_modes[1]}};
+        set_illustrated_tooltip(m_pa_cali_method_combox,
+                                _L("The shape of the test print. Line prints one line per factor, Pattern one set of corners per "
+                                   "factor; either way you pick the most even one."),
+                                method_media);
+        for (wxWindow* child : m_pa_cali_method_combox->GetChildren()) {
+            auto combo = dynamic_cast<ComboBox*>(child);
+            if (combo == nullptr)
+                continue;
+            DropDown& drop = combo->GetDropDown();
+            drop.SetItemHoverHandler([&drop, method_media](int item, const wxRect& row) {
+                if (item >= 0 && item < int(method_media.size()))
+                    hover_illustrated_tooltip(&drop, row, wxString(), {method_media[size_t(item)]});
+                else
+                    hover_illustrated_tooltip(&drop, wxRect(), wxString());
+            });
+        }
     }
     
     m_warning_panel = new CaliPresetWarningPanel(parent);
@@ -2164,9 +2241,9 @@ void CalibrationPresetPage::init_with_machine(MachineObject* obj)
         wxCommandEvent event(wxEVT_COMBOBOX);
         event.SetEventObject(this);
         wxPostEvent(m_comboBox_nozzle_dia, event);
-        m_comboBox_nozzle_dia->SetToolTip(_L("The nozzle diameter has been synchronized from the printer Settings"));
+        set_nozzle_diameter_tip(m_comboBox_nozzle_dia, true);
     } else {
-        m_comboBox_nozzle_dia->SetToolTip(wxEmptyString);
+        set_nozzle_diameter_tip(m_comboBox_nozzle_dia, false);
         // set default to 0.4
         if (m_comboBox_nozzle_dia->GetCount() > NOZZLE_LIST_DEFAULT)
             m_comboBox_nozzle_dia->SetSelection(NOZZLE_LIST_DEFAULT);
@@ -2181,10 +2258,10 @@ void CalibrationPresetPage::init_with_machine(MachineObject* obj)
                     wxCommandEvent event(wxEVT_COMBOBOX);
                     event.SetEventObject(this);
                     wxPostEvent(m_left_comboBox_nozzle_dia, event);
-                    m_left_comboBox_nozzle_dia->SetToolTip(_L("The nozzle diameter has been synchronized from the printer Settings"));
+                    set_nozzle_diameter_tip(m_left_comboBox_nozzle_dia, true);
                 }
                 else {
-                    m_left_comboBox_nozzle_dia->SetToolTip(wxEmptyString);
+                    set_nozzle_diameter_tip(m_left_comboBox_nozzle_dia, false);
                     if (m_left_comboBox_nozzle_dia->GetCount() > NOZZLE_LIST_DEFAULT)
                         m_left_comboBox_nozzle_dia->SetSelection(NOZZLE_LIST_DEFAULT);
                 }
@@ -2202,9 +2279,9 @@ void CalibrationPresetPage::init_with_machine(MachineObject* obj)
                     wxCommandEvent event(wxEVT_COMBOBOX);
                     event.SetEventObject(this);
                     wxPostEvent(m_right_comboBox_nozzle_dia, event);
-                    m_right_comboBox_nozzle_dia->SetToolTip(_L("The nozzle diameter has been synchronized from the printer Settings"));
+                    set_nozzle_diameter_tip(m_right_comboBox_nozzle_dia, true);
                 } else {
-                    m_right_comboBox_nozzle_dia->SetToolTip(wxEmptyString);
+                    set_nozzle_diameter_tip(m_right_comboBox_nozzle_dia, false);
                     if (m_right_comboBox_nozzle_dia->GetCount() > NOZZLE_LIST_DEFAULT)
                         m_right_comboBox_nozzle_dia->SetSelection(NOZZLE_LIST_DEFAULT);
                 }
