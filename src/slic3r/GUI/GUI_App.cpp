@@ -4511,10 +4511,19 @@ void GUI_App::select_machine(const std::string& agent_id)
         }
     }
 
-    // If machine doesn't exist, create it first. The Orca agent never connects, so an entry saved
-    // under it holds no binding; re-insert it for the active agent, whose machine list can't see
-    // it otherwise. Entries bound by any other agent stay with that agent.
-    if (!existing || (existing->printer_agent_id == ORCA_PRINTER_AGENT_ID && agent_id != ORCA_PRINTER_AGENT_ID)) {
+    // The local registry has one record per device ID. An explicit host and agent in the preset
+    // can rebind that LAN record to the selected agent. Leave Bambu and non-LAN bindings alone.
+    const bool rebind_existing = existing && existing->printer_agent_id != agent_id &&
+        (existing->printer_agent_id == ORCA_PRINTER_AGENT_ID ||
+         (host_cfg->opt_string("printer_agent") == agent_id && existing->is_lan_mode_printer() &&
+          existing->printer_agent_id != BBL_PRINTER_AGENT_ID));
+    if (existing && existing->printer_agent_id != agent_id && !rebind_existing)
+        return;
+
+    if (existing)
+        dev_id = existing->get_dev_id();
+
+    if (!existing || rebind_existing) {
         BBLocalMachine machine;
         machine.dev_id = dev_id;
         // We use dev_id as dev_ip to store the address (host:port)
