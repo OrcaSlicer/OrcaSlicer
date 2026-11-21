@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 00:49+0800\n"
+"POT-Creation-Date: 2026-11-21 12:24+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -1133,8 +1133,10 @@ msgstr "カット後"
 msgid "Cut to parts"
 msgstr "パーツに分割"
 
-msgid "Reset cutting plane and remove connectors"
-msgstr "カット面をリセットし、コネクターを削除"
+# AI Translated
+#. TRN: Part assignments are the upper/lower cut groups changed by right-clicking parts.
+msgid "Reset the cutting plane, remove connectors, and clear part assignments."
+msgstr "カット面をリセットし、コネクターを削除し、パーツの割り当てを解除。"
 
 # AI Translated
 msgid "Reset Cut"
@@ -5977,6 +5979,11 @@ msgid "Enable the prime tower and either disable purging in the prime tower or d
 msgstr "プライムタワーを有効にし、「プライムタワーでフラッシュ」とシングル押出機・マルチマテリアルモードのどちらかを無効にしてください。"
 
 # AI Translated
+# Needs human review: The glossary cell for Prime tower / Wipe tower is unsettled; this follows the catalog's existing wording.
+msgid "The Type 1 prime tower takes the prime volume from each filament, on its Multimaterial page."
+msgstr "タイプ1のプライムタワーは、各フィラメントのマルチマテリアルページにあるプライム量を使用します。"
+
+# AI Translated
 # Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "プライムタワー"; align it once the term is settled.
 msgid "Enable the prime tower to use this setting."
 msgstr "この設定を使用するには、プライムタワーを有効にしてください。"
@@ -6655,10 +6662,6 @@ msgstr "無効なパターンです。N、N#K、またはオプション#K付き
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "形式が無効です。次のベクトル形式で入力してください: \"%1%\""
-
-# AI Translated
-msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
-msgstr "除外領域が無効です。自己交差のない単純な多角形にする必要があります。"
 
 # AI Translated
 msgid "System agents"
@@ -9495,6 +9498,29 @@ msgid "Error loading shaders"
 msgstr "シェーダーの読込みにエラーが発生しました"
 
 # AI Translated
+#. TRN The OpenGL context could not be made current, so nothing can be drawn in the 3D view.
+msgid "OpenGL could not be activated for the 3D view, so it cannot be shown."
+msgstr "3DビューでOpenGLを有効にできなかったため、表示できません。"
+
+# AI Translated
+#. TRN %1% is the name of a graphics card or display adapter as Windows reports it, such as "Microsoft Basic Display Adapter".
+#, boost-format
+msgid "The window is on a display driven by \"%1%\"."
+msgstr "このウィンドウは「%1%」が制御するディスプレイ上にあります。"
+
+# AI Translated
+msgid "Make sure the display adapter driving this window's display is enabled and its driver is installed and up to date."
+msgstr "このウィンドウのディスプレイを制御しているディスプレイアダプターが有効で、そのドライバーがインストールされ最新であることを確認してください。"
+
+# AI Translated
+msgid "If the computer has more than one graphics card, connecting the monitor to another one may help."
+msgstr "コンピューターに複数のグラフィックカードがある場合は、モニターを別のカードに接続すると解決することがあります。"
+
+# AI Translated
+msgid "If the problem remains, close any overlay or screen capture software and try again."
+msgstr "問題が解決しない場合は、オーバーレイや画面キャプチャのソフトウェアをすべて閉じてから、もう一度お試しください。"
+
+# AI Translated
 # Needs human review: Rewrote a person's translation: Top shell layers named トップ (camera/alignment sense) while its pair Bottom is 底面
 msgctxt "Layers"
 msgid "Top"
@@ -10341,10 +10367,6 @@ msgstr "このプロジェクトには、デザインタブで作成されたモ
 
 msgid "The file does not contain any geometry data."
 msgstr "このファイルにはジオメトリデータが含まれていません。"
-
-# AI Translated
-msgid "The invalid area has been removed, so please define it again using a valid polygon."
-msgstr "無効な領域は削除されました。有効な多角形で改めて指定してください。"
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "オブジェクトが大きすぎのようです、ベッドに合わせてスケールしますか？"
@@ -13819,6 +13841,9 @@ msgstr "フィラメント終了G-code"
 msgid "Wipe tower parameters"
 msgstr "ワイプタワーのパラメータ"
 
+msgid "Prime volume"
+msgstr "プライム量"
+
 msgid "Multi Filament"
 msgstr "マルチフィラメント"
 
@@ -13906,6 +13931,16 @@ msgstr "選択したプリンターは庫内温度の制御に対応していま
 # AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
 msgstr "アダプティブ体積速度を有効にする前に、「最大体積速度の多項式係数」を0以外の値に設定してください。"
+
+# AI Translated
+# Needs human review: The glossary cell for Prime tower / Wipe tower is unsettled; this follows the catalog's existing wording.
+msgid "Select wipe tower Type 1 in the printer settings to use this setting."
+msgstr "この設定を使用するには、プリンター設定で「ワイプタワータイプ」を「タイプ1」にしてください。"
+
+# AI Translated
+# Needs human review: The glossary cell for Prime tower / Wipe tower is unsettled; this follows the catalog's existing wording.
+msgid "Select wipe tower Type 1 on a printer whose extruder holds more than one nozzle to use this setting."
+msgstr "この設定を使用するには、押出機に複数のノズルがあるプリンターで「ワイプタワータイプ」を「タイプ1」にしてください。"
 
 # AI Translated
 msgid "Enable multitool ramming to edit this setting."
@@ -22531,9 +22566,6 @@ msgstr "フラッシュ倍率 (高速モード)"
 # AI Translated
 msgid "The flush multiplier used in fast purge mode."
 msgstr "高速フラッシュモードで使用するフラッシュ倍率です。"
-
-msgid "Prime volume"
-msgstr "プライム量"
 
 # AI Translated
 # Needs human review: Rewrote a person's translation: described as the flush volume; the setting is the prime volume

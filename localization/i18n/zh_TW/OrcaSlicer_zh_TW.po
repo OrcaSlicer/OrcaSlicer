@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 00:49+0800\n"
+"POT-Creation-Date: 2026-11-21 12:24+0800\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -1126,8 +1126,10 @@ msgstr "切割後"
 msgid "Cut to parts"
 msgstr "切割為零件"
 
-msgid "Reset cutting plane and remove connectors"
-msgstr "重設切割面且移除連接件"
+# AI Translated
+#. TRN: Part assignments are the upper/lower cut groups changed by right-clicking parts.
+msgid "Reset the cutting plane, remove connectors, and clear part assignments."
+msgstr "重設切割面、移除連接件，並清除零件指派。"
 
 # AI Translated
 msgid "Reset Cut"
@@ -6021,6 +6023,10 @@ msgid "Enable the prime tower and either disable purging in the prime tower or d
 msgstr "啟用換料塔，並關閉「在換料塔中清理」或單擠出機多線材模式。"
 
 # AI Translated
+msgid "The Type 1 prime tower takes the prime volume from each filament, on its Multimaterial page."
+msgstr "類型 1 換料塔使用每種線材「多線材」頁面上的清理量。"
+
+# AI Translated
 msgid "Enable the prime tower to use this setting."
 msgstr "啟用換料塔後，才能使用此設定。"
 
@@ -6698,10 +6704,6 @@ msgstr "無效的格式。請使用 N、N#K 或逗號分隔的清單，每個項
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "無效格式，應該是「%1%」這種格式"
-
-# AI Translated
-msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
-msgstr "熱床淨空區域無效，必須是不自我相交的簡單多邊形。"
 
 # AI Translated
 msgid "System agents"
@@ -9597,6 +9599,29 @@ msgstr ""
 msgid "Error loading shaders"
 msgstr "載入著色器時發生錯誤"
 
+# AI Translated
+#. TRN The OpenGL context could not be made current, so nothing can be drawn in the 3D view.
+msgid "OpenGL could not be activated for the 3D view, so it cannot be shown."
+msgstr "無法為 3D 檢視啟用 OpenGL，因此無法顯示。"
+
+# AI Translated
+#. TRN %1% is the name of a graphics card or display adapter as Windows reports it, such as "Microsoft Basic Display Adapter".
+#, boost-format
+msgid "The window is on a display driven by \"%1%\"."
+msgstr "視窗位於由「%1%」驅動的顯示器上。"
+
+# AI Translated
+msgid "Make sure the display adapter driving this window's display is enabled and its driver is installed and up to date."
+msgstr "請確認驅動此視窗所在顯示器的顯示卡已啟用，且其驅動程式已安裝並為最新版本。"
+
+# AI Translated
+msgid "If the computer has more than one graphics card, connecting the monitor to another one may help."
+msgstr "如果電腦有多張顯示卡，將顯示器連接到另一張顯示卡可能會有幫助。"
+
+# AI Translated
+msgid "If the problem remains, close any overlay or screen capture software and try again."
+msgstr "如果問題持續發生，請關閉所有疊加層或螢幕錄製軟體，然後再試一次。"
+
 msgctxt "Layers"
 msgid "Top"
 msgstr "頂部"
@@ -10446,10 +10471,6 @@ msgstr "此專案包含一個在「設計」分頁中建立的模型，且沒有
 
 msgid "The file does not contain any geometry data."
 msgstr "此檔案不包含任何幾何資料。"
-
-# AI Translated
-msgid "The invalid area has been removed, so please define it again using a valid polygon."
-msgstr "無效區域已被移除，請使用有效的多邊形重新定義。"
 
 # AI Translated
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
@@ -13973,6 +13994,9 @@ msgstr "線材結束 G-code"
 msgid "Wipe tower parameters"
 msgstr "換料塔參數"
 
+msgid "Prime volume"
+msgstr "清理量"
+
 msgid "Multi Filament"
 msgstr "多線材"
 
@@ -14056,6 +14080,14 @@ msgstr "所選列印裝置不支援腔體溫度控制。"
 # AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
 msgstr "請先將「最大體積流量多項式係數」設為非零值，再啟用適應性體積流量。"
+
+# AI Translated
+msgid "Select wipe tower Type 1 in the printer settings to use this setting."
+msgstr "請在列印裝置設定中將「換料塔類型」設為「類型 1」，才能使用此設定。"
+
+# AI Translated
+msgid "Select wipe tower Type 1 on a printer whose extruder holds more than one nozzle to use this setting."
+msgstr "請在擠出機具有多個噴嘴的列印裝置上將「換料塔類型」設為「類型 1」，才能使用此設定。"
 
 # AI Translated
 msgid "Enable multitool ramming to edit this setting."
@@ -22559,9 +22591,6 @@ msgstr "清理量乘數（快速模式）"
 # AI Translated
 msgid "The flush multiplier used in fast purge mode."
 msgstr "快速清理模式所使用的清理量乘數。"
-
-msgid "Prime volume"
-msgstr "清理量"
 
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "換料塔上的清理量。"

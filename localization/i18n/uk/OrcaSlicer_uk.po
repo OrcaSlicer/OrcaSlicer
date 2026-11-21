@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 00:49+0800\n"
+"POT-Creation-Date: 2026-11-21 12:24+0800\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -1076,8 +1076,10 @@ msgstr "Після вирізування"
 msgid "Cut to parts"
 msgstr "Розрізати на частини"
 
-msgid "Reset cutting plane and remove connectors"
-msgstr "Скиньте площину різання та зніміть зʼєднання"
+# AI Translated
+#. TRN: Part assignments are the upper/lower cut groups changed by right-clicking parts.
+msgid "Reset the cutting plane, remove connectors, and clear part assignments."
+msgstr "Скиньте площину різання, зніміть зʼєднання та очистьте призначення частин."
 
 msgid "Reset Cut"
 msgstr "Скинути розрізання"
@@ -5769,6 +5771,11 @@ msgid "Enable the prime tower and either disable purging in the prime tower or d
 msgstr "Увімкніть підготовчу вежу та вимкніть очищення на підготовчій вежі або режим мультиматеріального друку з одним екструдером."
 
 # AI Translated
+# Needs human review: The glossary cell for Prime tower / Wipe tower is unsettled; this follows the catalog's existing wording.
+msgid "The Type 1 prime tower takes the prime volume from each filament, on its Multimaterial page."
+msgstr "Підготовча вежа типу 1 використовує обʼєм, заданий для кожного філаменту на його сторінці «Мультиматеріал»."
+
+# AI Translated
 # Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled; used «підготовча вежа» as the Prime tower label does.
 msgid "Enable the prime tower to use this setting."
 msgstr "Увімкніть підготовчу вежу, щоб використовувати цей параметр."
@@ -6433,10 +6440,6 @@ msgstr "Некоректний шаблон. Використовуйте N, N#K
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Невірний формат. Очікуваний векторний формат: \"%1%\""
-
-# AI Translated
-msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
-msgstr "Площа виключення столу недійсна. Це має бути простий багатокутник без самоперетинів."
 
 # AI Translated
 msgid "System agents"
@@ -9256,6 +9259,29 @@ msgstr ""
 msgid "Error loading shaders"
 msgstr "Помилка завантаження шейдерів"
 
+# AI Translated
+#. TRN The OpenGL context could not be made current, so nothing can be drawn in the 3D view.
+msgid "OpenGL could not be activated for the 3D view, so it cannot be shown."
+msgstr "Не вдалося активувати OpenGL для 3D-вигляду, тому його неможливо показати."
+
+# AI Translated
+#. TRN %1% is the name of a graphics card or display adapter as Windows reports it, such as "Microsoft Basic Display Adapter".
+#, boost-format
+msgid "The window is on a display driven by \"%1%\"."
+msgstr "Вікно розташоване на дисплеї, яким керує «%1%»."
+
+# AI Translated
+msgid "Make sure the display adapter driving this window's display is enabled and its driver is installed and up to date."
+msgstr "Переконайтеся, що відеоадаптер, який керує дисплеєм цього вікна, увімкнено, а його драйвер встановлено й оновлено."
+
+# AI Translated
+msgid "If the computer has more than one graphics card, connecting the monitor to another one may help."
+msgstr "Якщо в компʼютері кілька відеокарт, може допомогти підключення монітора до іншої."
+
+# AI Translated
+msgid "If the problem remains, close any overlay or screen capture software and try again."
+msgstr "Якщо проблема не зникає, закрийте всі програми накладання або запису екрана й повторіть спробу."
+
 msgctxt "Layers"
 msgid "Top"
 msgstr "Верх"
@@ -10114,10 +10140,6 @@ msgstr "Цей проєкт містить модель, створену на �
 
 msgid "The file does not contain any geometry data."
 msgstr "Файл не містить геометричних даних."
-
-# AI Translated
-msgid "The invalid area has been removed, so please define it again using a valid polygon."
-msgstr "Недійсну область видалено, задайте її знову за допомогою дійсного багатокутника."
 
 # AI Translated
 # Needs human review: Fixed a line break that split the question: dropped the stray 'підігрів' (heated) and moved 'автоматично' next to 'зменшити'. Check that the question reads naturally.
@@ -13568,6 +13590,9 @@ msgstr "G-code кінця філаменту"
 msgid "Wipe tower parameters"
 msgstr "Параметри вежі протирання"
 
+msgid "Prime volume"
+msgstr "Основний обʼєм"
+
 # AI Translated
 msgid "Multi Filament"
 msgstr "Кілька філаментів"
@@ -13653,6 +13678,16 @@ msgstr "Вибраний принтер не підтримує керуванн
 # AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
 msgstr "Задайте ненульові коефіцієнти обʼємної швидкості, перш ніж вмикати адаптивну обʼємну швидкість."
+
+# AI Translated
+# Needs human review: The glossary cell for Prime tower / Wipe tower is unsettled; this follows the catalog's existing wording.
+msgid "Select wipe tower Type 1 in the printer settings to use this setting."
+msgstr "Щоб використовувати цей параметр, виберіть «Тип 1» для «Тип вежі протирання» в налаштуваннях принтера."
+
+# AI Translated
+# Needs human review: The glossary cell for Prime tower / Wipe tower is unsettled; this follows the catalog's existing wording.
+msgid "Select wipe tower Type 1 on a printer whose extruder holds more than one nozzle to use this setting."
+msgstr "Щоб використовувати цей параметр, виберіть «Тип 1» для «Тип вежі протирання» на принтері, екструдер якого має більше одного сопла."
 
 # AI Translated
 msgid "Enable multitool ramming to edit this setting."
@@ -21892,9 +21927,6 @@ msgstr "Множник змиву (швидкий режим)"
 
 msgid "The flush multiplier used in fast purge mode."
 msgstr "Множник змиву використовується у режимі швидкого очищення."
-
-msgid "Prime volume"
-msgstr "Основний обʼєм"
 
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Обʼєм матеріалу для підготовки екструдера на вежі."

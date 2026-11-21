@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 00:49+0800\n"
+"POT-Creation-Date: 2026-11-21 12:24+0800\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -1143,8 +1143,10 @@ msgstr "Sau khi cắt"
 msgid "Cut to parts"
 msgstr "Cắt thành phần"
 
-msgid "Reset cutting plane and remove connectors"
-msgstr "Đặt lại mặt cắt và xóa connector"
+# AI Translated
+#. TRN: Part assignments are the upper/lower cut groups changed by right-clicking parts.
+msgid "Reset the cutting plane, remove connectors, and clear part assignments."
+msgstr "Đặt lại mặt cắt, xóa connector và bỏ gán phần."
 
 # AI Translated
 msgid "Reset Cut"
@@ -5995,6 +5997,10 @@ msgid "Enable the prime tower and either disable purging in the prime tower or d
 msgstr "Bật prime tower và tắt xả trong prime tower hoặc tắt chế độ extruder đơn đa vật liệu."
 
 # AI Translated
+msgid "The Type 1 prime tower takes the prime volume from each filament, on its Multimaterial page."
+msgstr "Prime tower loại 1 lấy khối lượng nạp từ từng filament, trên trang Đa vật liệu của filament đó."
+
+# AI Translated
 msgid "Enable the prime tower to use this setting."
 msgstr "Bật prime tower để dùng cài đặt này."
 
@@ -6707,10 +6713,6 @@ msgstr "Mẫu không hợp lệ. Dùng N, N#K, hoặc danh sách phân cách d�
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Định dạng không hợp lệ. Mong đợi định dạng vector: \"%1%\""
-
-# AI Translated
-msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
-msgstr "Vùng loại trừ bàn in không hợp lệ. Vùng này phải là đa giác đơn giản, không tự cắt nhau."
 
 # AI Translated
 msgid "System agents"
@@ -9582,6 +9584,29 @@ msgstr ""
 msgid "Error loading shaders"
 msgstr "Lỗi tải shader"
 
+# AI Translated
+#. TRN The OpenGL context could not be made current, so nothing can be drawn in the 3D view.
+msgid "OpenGL could not be activated for the 3D view, so it cannot be shown."
+msgstr "Không thể kích hoạt OpenGL cho chế độ xem 3D nên không thể hiển thị."
+
+# AI Translated
+#. TRN %1% is the name of a graphics card or display adapter as Windows reports it, such as "Microsoft Basic Display Adapter".
+#, boost-format
+msgid "The window is on a display driven by \"%1%\"."
+msgstr "Cửa sổ đang nằm trên màn hình do \"%1%\" điều khiển."
+
+# AI Translated
+msgid "Make sure the display adapter driving this window's display is enabled and its driver is installed and up to date."
+msgstr "Hãy đảm bảo bộ điều hợp hiển thị điều khiển màn hình của cửa sổ này đã được bật và trình điều khiển của nó đã được cài đặt và cập nhật."
+
+# AI Translated
+msgid "If the computer has more than one graphics card, connecting the monitor to another one may help."
+msgstr "Nếu máy tính có nhiều card đồ họa, việc cắm màn hình vào card khác có thể giúp ích."
+
+# AI Translated
+msgid "If the problem remains, close any overlay or screen capture software and try again."
+msgstr "Nếu sự cố vẫn còn, hãy đóng mọi phần mềm overlay hoặc quay màn hình rồi thử lại."
+
 msgctxt "Layers"
 msgid "Top"
 msgstr "Trên"
@@ -10449,10 +10474,6 @@ msgstr "Dự án này chứa một mô hình được tạo trong tab Thiết k�
 
 msgid "The file does not contain any geometry data."
 msgstr "File không chứa bất kỳ dữ liệu hình học nào."
-
-# AI Translated
-msgid "The invalid area has been removed, so please define it again using a valid polygon."
-msgstr "Vùng không hợp lệ đã bị xóa, vui lòng xác định lại bằng một đa giác hợp lệ."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Đối tượng của bạn có vẻ quá lớn, bạn có muốn thu nhỏ nó để vừa với bàn in tự động?"
@@ -14002,6 +14023,9 @@ msgstr "G-code kết thúc filament"
 msgid "Wipe tower parameters"
 msgstr "Tham số wipe tower"
 
+msgid "Prime volume"
+msgstr "Khối lượng nạp"
+
 # AI Translated
 msgid "Multi Filament"
 msgstr "Nhiều filament"
@@ -14083,6 +14107,16 @@ msgstr "Máy in đã chọn không hỗ trợ điều khiển nhiệt độ bu�
 # AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
 msgstr "Đặt các hệ số tốc độ thể tích khác 0 trước khi bật tốc độ thể tích thích ứng."
+
+# AI Translated
+# Needs human review: Quotes the catalog's 'Wipe tower type' label, whose word for the tower differs from the glossary's Prime tower / Wipe tower rendering.
+msgid "Select wipe tower Type 1 in the printer settings to use this setting."
+msgstr "Chọn \"Loại 1\" cho \"Loại tháp lau\" trong cài đặt máy in để dùng cài đặt này."
+
+# AI Translated
+# Needs human review: Quotes the catalog's 'Wipe tower type' label, whose word for the tower differs from the glossary's Prime tower / Wipe tower rendering.
+msgid "Select wipe tower Type 1 on a printer whose extruder holds more than one nozzle to use this setting."
+msgstr "Chọn \"Loại 1\" cho \"Loại tháp lau\" trên máy in có extruder chứa nhiều hơn một đầu phun để dùng cài đặt này."
 
 # AI Translated
 msgid "Enable multitool ramming to edit this setting."
@@ -22259,9 +22293,6 @@ msgstr "Hệ số nhân xả (Chế độ nhanh)"
 # AI Translated
 msgid "The flush multiplier used in fast purge mode."
 msgstr "Hệ số nhân xả dùng trong chế độ xả nhanh."
-
-msgid "Prime volume"
-msgstr "Khối lượng nạp"
 
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Khối lượng vật liệu để nạp extruder trên tower."

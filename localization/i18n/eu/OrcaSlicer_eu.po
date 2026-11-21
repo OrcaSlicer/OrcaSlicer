@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 00:49+0800\n"
+"POT-Creation-Date: 2026-11-21 12:24+0800\n"
 "PO-Revision-Date: 2026-10-19 18:56+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -1060,8 +1060,10 @@ msgstr "Ebaketaren ondoren"
 msgid "Cut to parts"
 msgstr "Piezetan ebaki"
 
-msgid "Reset cutting plane and remove connectors"
-msgstr "Berrezarri ebaketa-planoa eta konektoreak ezabatu"
+# AI Translated
+#. TRN: Part assignments are the upper/lower cut groups changed by right-clicking parts.
+msgid "Reset the cutting plane, remove connectors, and clear part assignments."
+msgstr "Berrezarri ebaketa-planoa, konektoreak ezabatu eta piezen esleipenak garbitu."
 
 msgid "Reset Cut"
 msgstr "Ebaketa berrezarri"
@@ -5632,6 +5634,10 @@ msgid "Enable the prime tower and either disable purging in the prime tower or d
 msgstr "Gaitu purgatze-dorrea, eta desgaitu \"Purgatu purgatze-dorrean\" edo estrusore bakarreko material anitzeko modua."
 
 # AI Translated
+msgid "The Type 1 prime tower takes the prime volume from each filament, on its Multimaterial page."
+msgstr "1. motako purgatze-dorreak filamentu bakoitzaren primatze-bolumena hartzen du, haren Material anitzekoa orrian."
+
+# AI Translated
 msgid "Enable the prime tower to use this setting."
 msgstr "Gaitu purgatze-dorrea ezarpen hau erabiltzeko."
 
@@ -6283,10 +6289,6 @@ msgstr "Patroi baliogabea. Erabili N, N#K edo komaz bereizitako zerrenda bat, sa
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Formatuak ez du balio. Espero den formatu bektoriala: \"%1%\""
-
-# AI Translated
-msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
-msgstr "Oheko baztertutako eremua baliogabea da. Poligono sinplea izan behar du, bere burua mozten ez duena."
 
 msgid "System agents"
 msgstr "Sistema-agenteak"
@@ -9033,6 +9035,30 @@ msgstr ""
 msgid "Error loading shaders"
 msgstr "Errorea itzaldurak kargatzean"
 
+# AI Translated
+#. TRN The OpenGL context could not be made current, so nothing can be drawn in the 3D view.
+msgid "OpenGL could not be activated for the 3D view, so it cannot be shown."
+msgstr "Ezin izan da OpenGL aktibatu 3D ikuspegirako, beraz, ezin da erakutsi."
+
+# AI Translated
+# Needs human review: Check the case ending on the adapter name and that the sentence reads naturally.
+#. TRN %1% is the name of a graphics card or display adapter as Windows reports it, such as "Microsoft Basic Display Adapter".
+#, boost-format
+msgid "The window is on a display driven by \"%1%\"."
+msgstr "Leihoa \"%1%\" egokigailuak kontrolatzen duen pantaila batean dago."
+
+# AI Translated
+msgid "Make sure the display adapter driving this window's display is enabled and its driver is installed and up to date."
+msgstr "Ziurtatu leiho honen pantaila kontrolatzen duen pantaila-egokigailua gaituta dagoela eta haren kontrolatzailea instalatuta eta eguneratuta dagoela."
+
+# AI Translated
+msgid "If the computer has more than one graphics card, connecting the monitor to another one may help."
+msgstr "Ordenagailuak txartel grafiko bat baino gehiago baditu, monitorea beste batera konektatzeak lagun dezake."
+
+# AI Translated
+msgid "If the problem remains, close any overlay or screen capture software and try again."
+msgstr "Arazoak jarraitzen badu, itxi gainjartze- edo pantaila-grabaketa software guztiak eta saiatu berriro."
+
 msgctxt "Layers"
 msgid "Top"
 msgstr "Goia"
@@ -9849,10 +9875,6 @@ msgstr "Proiektu honek Diseinua fitxan sortutako modelo bat dauka, eta ez du bes
 
 msgid "The file does not contain any geometry data."
 msgstr "Fitxategiak ez du geometria-daturik."
-
-# AI Translated
-msgid "The invalid area has been removed, so please define it again using a valid polygon."
-msgstr "Eremu baliogabea kendu da; mesedez, definitu berriro baliozko poligono bat erabiliz."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Zure objektua handiegia dela dirudi; automatikoki txikitu nahi duzu inprimatze-ohean kabitzeko?"
@@ -13147,6 +13169,9 @@ msgstr "Filamentuaren amaierako G-codea"
 msgid "Wipe tower parameters"
 msgstr "Purgatze-dorrearen parametroak"
 
+msgid "Prime volume"
+msgstr "Primatze-bolumena"
+
 msgid "Multi Filament"
 msgstr "Filamentu anitz"
 
@@ -13227,6 +13252,14 @@ msgstr "Hautatutako inprimagailuak ez du ganberako tenperaturaren kontrola onart
 # AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
 msgstr "Ezarri zero ez diren abiadura bolumetrikoaren koefizienteak abiadura bolumetriko egokigarria gaitu aurretik."
+
+# AI Translated
+msgid "Select wipe tower Type 1 in the printer settings to use this setting."
+msgstr "Ezarpen hau erabiltzeko, hautatu \"1. mota\" \"Purgatze-dorre mota\" aukeran inprimagailuaren ezarpenetan."
+
+# AI Translated
+msgid "Select wipe tower Type 1 on a printer whose extruder holds more than one nozzle to use this setting."
+msgstr "Ezarpen hau erabiltzeko, hautatu \"1. mota\" \"Purgatze-dorre mota\" aukeran estrusoreak pita bat baino gehiago dituen inprimagailu batean."
 
 # AI Translated
 msgid "Enable multitool ramming to edit this setting."
@@ -21096,9 +21129,6 @@ msgstr "Purgatze-biderkatzailea (modu azkarra)"
 
 msgid "The flush multiplier used in fast purge mode."
 msgstr "Purgatze azkarreko moduan erabiltzen den purgatze-biderkatzailea."
-
-msgid "Prime volume"
-msgstr "Primatze-bolumena"
 
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Dorrean estrusorea prestatzeko behar den material-bolumena."

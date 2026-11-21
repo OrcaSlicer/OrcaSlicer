@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 00:49+0800\n"
+"POT-Creation-Date: 2026-11-21 12:24+0800\n"
 "PO-Revision-Date: 2026-10-30 19:59-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
@@ -1006,8 +1006,10 @@ msgstr "Após o corte"
 msgid "Cut to parts"
 msgstr "Cortar em peças"
 
-msgid "Reset cutting plane and remove connectors"
-msgstr "Redefinir plano de corte e remover conectores"
+# AI Translated
+#. TRN: Part assignments are the upper/lower cut groups changed by right-clicking parts.
+msgid "Reset the cutting plane, remove connectors, and clear part assignments."
+msgstr "Redefinir plano de corte, remover conectores e limpar as atribuições de peças."
 
 msgid "Reset Cut"
 msgstr "Redefinir Corte"
@@ -5450,6 +5452,10 @@ msgid "Enable the prime tower and either disable purging in the prime tower or d
 msgstr "Ative a torre de purga e desative a purga na torre de purga ou o modo multimaterial com extrusora única."
 
 # AI Translated
+msgid "The Type 1 prime tower takes the prime volume from each filament, on its Multimaterial page."
+msgstr "A torre de purga do tipo 1 usa o volume de preparo de cada filamento, na página Multimaterial dele."
+
+# AI Translated
 msgid "Enable the prime tower to use this setting."
 msgstr "Ative a torre de purga para usar esta configuração."
 
@@ -6090,10 +6096,6 @@ msgstr "Padrão inválido. Use N, N#K, ou uma lista separa por vírgulas com #K 
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Formato inválido. Formato de vetor esperado: \"%1%\""
-
-# AI Translated
-msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
-msgstr "A área de exclusão da mesa é inválida. Ela deve ser um polígono simples, sem autointerseções."
 
 msgid "System agents"
 msgstr "Agentes do sistema"
@@ -8693,6 +8695,29 @@ msgstr ""
 msgid "Error loading shaders"
 msgstr "Erro ao carregar os shaders"
 
+# AI Translated
+#. TRN The OpenGL context could not be made current, so nothing can be drawn in the 3D view.
+msgid "OpenGL could not be activated for the 3D view, so it cannot be shown."
+msgstr "Não foi possível ativar o OpenGL para a visualização 3D, por isso ela não pode ser exibida."
+
+# AI Translated
+#. TRN %1% is the name of a graphics card or display adapter as Windows reports it, such as "Microsoft Basic Display Adapter".
+#, boost-format
+msgid "The window is on a display driven by \"%1%\"."
+msgstr "A janela está em uma tela controlada por \"%1%\"."
+
+# AI Translated
+msgid "Make sure the display adapter driving this window's display is enabled and its driver is installed and up to date."
+msgstr "Verifique se o adaptador de vídeo que controla a tela desta janela está ativado e se o driver dele está instalado e atualizado."
+
+# AI Translated
+msgid "If the computer has more than one graphics card, connecting the monitor to another one may help."
+msgstr "Se o computador tiver mais de uma placa de vídeo, conectar o monitor a outra pode ajudar."
+
+# AI Translated
+msgid "If the problem remains, close any overlay or screen capture software and try again."
+msgstr "Se o problema continuar, feche qualquer software de sobreposição ou de captura de tela e tente novamente."
+
 msgctxt "Layers"
 msgid "Top"
 msgstr "Superior"
@@ -9444,10 +9469,6 @@ msgstr "Este projeto contém um modelo feito na aba Design e nenhuma outra geome
 
 msgid "The file does not contain any geometry data."
 msgstr "O arquivo não contém dados de geometria."
-
-# AI Translated
-msgid "The invalid area has been removed, so please define it again using a valid polygon."
-msgstr "A área inválida foi removida; defina-a novamente usando um polígono válido."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Seu objeto parece ser muito grande. Deseja dimensioná-lo para caber na mesa de impressão automaticamente?"
@@ -12561,6 +12582,9 @@ msgstr "G-code de final do filamento"
 msgid "Wipe tower parameters"
 msgstr "Parâmetros da torre de purga"
 
+msgid "Prime volume"
+msgstr "Volume de preparo"
+
 msgid "Multi Filament"
 msgstr "Multi Filamento"
 
@@ -12626,6 +12650,14 @@ msgstr "A impressora selecionada não suporta o controle da temperatura da câma
 
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
 msgstr "Defina coeficientes de velocidade volumétrica diferentes de zero antes de ativar a velocidade volumétrica adaptativa."
+
+# AI Translated
+msgid "Select wipe tower Type 1 in the printer settings to use this setting."
+msgstr "Selecione \"Tipo 1\" em \"Tipo de torre de purga\" nas configurações da impressora para usar esta configuração."
+
+# AI Translated
+msgid "Select wipe tower Type 1 on a printer whose extruder holds more than one nozzle to use this setting."
+msgstr "Selecione \"Tipo 1\" em \"Tipo de torre de purga\" em uma impressora cuja extrusora tenha mais de um bico para usar esta configuração."
 
 # AI Translated
 msgid "Enable multitool ramming to edit this setting."
@@ -20286,9 +20318,6 @@ msgstr "Multiplicador de purga (Modo rápido)"
 
 msgid "The flush multiplier used in fast purge mode."
 msgstr "O multiplicador de purga usado no modo de purga rápida."
-
-msgid "Prime volume"
-msgstr "Volume de preparo"
 
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Este é o volume de material para preparar a extrusora na torre."

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 00:49+0800\n"
+"POT-Creation-Date: 2026-11-21 12:24+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -1089,8 +1089,10 @@ msgstr "Vágás után"
 msgid "Cut to parts"
 msgstr "Részekre darabolás"
 
-msgid "Reset cutting plane and remove connectors"
-msgstr "Vágósík visszaállítása és connectorok eltávolítása"
+# AI Translated
+#. TRN: Part assignments are the upper/lower cut groups changed by right-clicking parts.
+msgid "Reset the cutting plane, remove connectors, and clear part assignments."
+msgstr "Vágósík visszaállítása, connectorok eltávolítása és a tárgyak hozzárendelésének törlése."
 
 # AI Translated
 msgid "Reset Cut"
@@ -5780,6 +5782,10 @@ msgid "Enable the prime tower and either disable purging in the prime tower or d
 msgstr "Kapcsold be a törlőtornyot, és kapcsold ki vagy az „Öblítés a törlőtoronyban” lehetőséget, vagy az „Egyextruder Többanyag” módot."
 
 # AI Translated
+msgid "The Type 1 prime tower takes the prime volume from each filament, on its Multimaterial page."
+msgstr "Az 1. típusú törlőtorony az előkészítési mennyiséget minden filament saját Többanyagú nyomtatás oldaláról veszi."
+
+# AI Translated
 msgid "Enable the prime tower to use this setting."
 msgstr "A beállítás használatához kapcsold be a törlőtornyot."
 
@@ -6435,10 +6441,6 @@ msgstr "Érvénytelen minta. Használj N, N#K formátumot, vagy vesszővel elvá
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Érvénytelen formátum. Elvárt vektor formátum: \"%1%\""
-
-# AI Translated
-msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
-msgstr "A kizárt asztalterület érvénytelen. Egyszerű, önmagát nem metsző sokszögnek kell lennie."
 
 # AI Translated
 msgid "System agents"
@@ -9222,6 +9224,29 @@ msgstr ""
 msgid "Error loading shaders"
 msgstr "Hiba a shaderek betöltésében"
 
+# AI Translated
+#. TRN The OpenGL context could not be made current, so nothing can be drawn in the 3D view.
+msgid "OpenGL could not be activated for the 3D view, so it cannot be shown."
+msgstr "Az OpenGL nem aktiválható a 3D nézethez, ezért az nem jeleníthető meg."
+
+# AI Translated
+#. TRN %1% is the name of a graphics card or display adapter as Windows reports it, such as "Microsoft Basic Display Adapter".
+#, boost-format
+msgid "The window is on a display driven by \"%1%\"."
+msgstr "Az ablak egy olyan kijelzőn van, amelyet a(z) „%1%” vezérel."
+
+# AI Translated
+msgid "Make sure the display adapter driving this window's display is enabled and its driver is installed and up to date."
+msgstr "Győződj meg róla, hogy az ablak kijelzőjét vezérlő grafikus adapter engedélyezve van, és az illesztőprogramja telepítve van és naprakész."
+
+# AI Translated
+msgid "If the computer has more than one graphics card, connecting the monitor to another one may help."
+msgstr "Ha a számítógépben több videokártya van, segíthet, ha a monitort egy másikra csatlakoztatod."
+
+# AI Translated
+msgid "If the problem remains, close any overlay or screen capture software and try again."
+msgstr "Ha a probléma továbbra is fennáll, zárj be minden overlay- vagy képernyőrögzítő szoftvert, és próbáld újra."
+
 msgctxt "Layers"
 msgid "Top"
 msgstr "Felső"
@@ -10050,10 +10075,6 @@ msgstr "Ez a projekt a Tervezés fülön készült modellt tartalmaz, más geome
 
 msgid "The file does not contain any geometry data."
 msgstr "A fájl nem tartalmaz geometriai adatokat."
-
-# AI Translated
-msgid "The invalid area has been removed, so please define it again using a valid polygon."
-msgstr "Az érvénytelen területet eltávolítottuk, ezért add meg újra egy érvényes sokszöggel."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Úgy tűnik, hogy az objektum túl nagy. Szeretnéd átméretezni, hogy illeszkedjen a nyomtatótér méretéhez?"
@@ -13444,6 +13465,9 @@ msgstr "Filament befejező G-code"
 msgid "Wipe tower parameters"
 msgstr "Törlőtorony paraméterek"
 
+msgid "Prime volume"
+msgstr "Előkészítési mennyiség"
+
 msgid "Multi Filament"
 msgstr "Több filament"
 
@@ -13524,6 +13548,14 @@ msgstr "A kiválasztott nyomtató nem támogatja a kamrahőmérséklet-szabályo
 # AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
 msgstr "Az „Adaptív volumetrikus sebesség” bekapcsolása előtt adj meg nullától eltérő volumetrikus sebességi együtthatókat."
+
+# AI Translated
+msgid "Select wipe tower Type 1 in the printer settings to use this setting."
+msgstr "A beállítás használatához válaszd az „1. típus” értéket a „Törlőtorony típusa” beállításnál a nyomtatóbeállításokban."
+
+# AI Translated
+msgid "Select wipe tower Type 1 on a printer whose extruder holds more than one nozzle to use this setting."
+msgstr "A beállítás használatához válaszd az „1. típus” értéket a „Törlőtorony típusa” beállításnál egy olyan nyomtatón, amelynek extruderében egynél több fúvóka van."
 
 # AI Translated
 msgid "Enable multitool ramming to edit this setting."
@@ -21542,9 +21574,6 @@ msgstr "Öblítési szorzó (Gyors mód)"
 # AI Translated
 msgid "The flush multiplier used in fast purge mode."
 msgstr "A gyors öblítési módban használt öblítési szorzó."
-
-msgid "Prime volume"
-msgstr "Előkészítési mennyiség"
 
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Az extruder toronyban történő előkészítéséhez szükséges anyagmennyiség."

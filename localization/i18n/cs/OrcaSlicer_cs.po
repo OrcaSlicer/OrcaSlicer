@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 00:49+0800\n"
+"POT-Creation-Date: 2026-11-21 12:24+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -1099,8 +1099,10 @@ msgstr "Po ořezu"
 msgid "Cut to parts"
 msgstr "Rozdělit na části"
 
-msgid "Reset cutting plane and remove connectors"
-msgstr "Resetovat řezací rovinu a odstranit konektory"
+# AI Translated
+#. TRN: Part assignments are the upper/lower cut groups changed by right-clicking parts.
+msgid "Reset the cutting plane, remove connectors, and clear part assignments."
+msgstr "Resetovat řezací rovinu, odstranit konektory a zrušit přiřazení dílů."
 
 # AI Translated
 msgid "Reset Cut"
@@ -5832,6 +5834,11 @@ msgid "Enable the prime tower and either disable purging in the prime tower or d
 msgstr "Povolte základní věž a buď vypněte čištění v základní věži, nebo vypněte režim jedné trysky pro více materiálů."
 
 # AI Translated
+# Needs human review: The glossary cell for Prime tower / Wipe tower is unsettled; this follows the catalog's existing wording.
+msgid "The Type 1 prime tower takes the prime volume from each filament, on its Multimaterial page."
+msgstr "Základní věž typu 1 přebírá objem z každého filamentu, z jeho stránky Multimateriál."
+
+# AI Translated
 # Needs human review: Glossary cell for Prime tower / Wipe tower is unsettled (⚠); used 'základní věž' for the prime tower as the catalog does.
 msgid "Enable the prime tower to use this setting."
 msgstr "Pro použití tohoto nastavení povolte základní věž."
@@ -6483,10 +6490,6 @@ msgstr "Neplatný vzor. Použijte N, N#K nebo seznam oddělený čárkami s voli
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Neplatný formát. Očekávaný vektorový formát: \"%1%\""
-
-# AI Translated
-msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
-msgstr "Vynechaná oblast podložky je neplatná. Musí být jednoduchý mnohoúhelník bez vlastních průsečíků."
 
 # AI Translated
 msgid "System agents"
@@ -9301,6 +9304,29 @@ msgstr ""
 msgid "Error loading shaders"
 msgstr "Chyba při načítání shaderů"
 
+# AI Translated
+#. TRN The OpenGL context could not be made current, so nothing can be drawn in the 3D view.
+msgid "OpenGL could not be activated for the 3D view, so it cannot be shown."
+msgstr "OpenGL nelze aktivovat pro 3D zobrazení, proto jej nelze zobrazit."
+
+# AI Translated
+#. TRN %1% is the name of a graphics card or display adapter as Windows reports it, such as "Microsoft Basic Display Adapter".
+#, boost-format
+msgid "The window is on a display driven by \"%1%\"."
+msgstr "Okno je na displeji, který obsluhuje „%1%“."
+
+# AI Translated
+msgid "Make sure the display adapter driving this window's display is enabled and its driver is installed and up to date."
+msgstr "Ujistěte se, že grafický adaptér obsluhující displej tohoto okna je povolen a jeho ovladač je nainstalován a aktuální."
+
+# AI Translated
+msgid "If the computer has more than one graphics card, connecting the monitor to another one may help."
+msgstr "Pokud má počítač více grafických karet, může pomoci připojit monitor k jiné z nich."
+
+# AI Translated
+msgid "If the problem remains, close any overlay or screen capture software and try again."
+msgstr "Pokud problém přetrvává, zavřete veškerý software pro překryvy nebo záznam obrazovky a zkuste to znovu."
+
 msgctxt "Layers"
 msgid "Top"
 msgstr "Horní"
@@ -10131,10 +10157,6 @@ msgstr "Tento projekt obsahuje model vytvořený na kartě Návrh a žádnou jin
 
 msgid "The file does not contain any geometry data."
 msgstr "Soubor neobsahuje žádná geometrická data."
-
-# AI Translated
-msgid "The invalid area has been removed, so please define it again using a valid polygon."
-msgstr "Neplatná oblast byla odstraněna, definujte ji prosím znovu pomocí platného mnohoúhelníku."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Váš objekt je příliš velký. Chcete jej automaticky zmenšit, aby se vešel na tiskovou podložku?"
@@ -13537,6 +13559,9 @@ msgstr "Koncový G-code filamentu"
 msgid "Wipe tower parameters"
 msgstr "Parametry věže na očištění trysky"
 
+msgid "Prime volume"
+msgstr "Objem základní věže"
+
 # AI Translated
 msgid "Multi Filament"
 msgstr "Více filamentů"
@@ -13619,6 +13644,16 @@ msgstr "Vybraná tiskárna nepodporuje řízení teploty komory."
 # AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
 msgstr "Před povolením adaptivní objemové rychlosti nastavte nenulové koeficienty objemové rychlosti."
+
+# AI Translated
+# Needs human review: The glossary cell for Prime tower / Wipe tower is unsettled; this follows the catalog's existing wording.
+msgid "Select wipe tower Type 1 in the printer settings to use this setting."
+msgstr "Pro použití tohoto nastavení vyberte v nastavení tiskárny u „Typ čistící věže“ hodnotu „Typ 1“."
+
+# AI Translated
+# Needs human review: The glossary cell for Prime tower / Wipe tower is unsettled; this follows the catalog's existing wording.
+msgid "Select wipe tower Type 1 on a printer whose extruder holds more than one nozzle to use this setting."
+msgstr "Pro použití tohoto nastavení vyberte u „Typ čistící věže“ hodnotu „Typ 1“ na tiskárně, jejíž extruder má více než jednu trysku."
 
 # AI Translated
 msgid "Enable multitool ramming to edit this setting."
@@ -21676,9 +21711,6 @@ msgstr "Násobitel čištění (rychlý režim)"
 # AI Translated
 msgid "The flush multiplier used in fast purge mode."
 msgstr "Násobitel čištění použitý v rychlém režimu čištění."
-
-msgid "Prime volume"
-msgstr "Objem základní věže"
 
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Objem materiálu pro načerpání extruderu na základní věži."

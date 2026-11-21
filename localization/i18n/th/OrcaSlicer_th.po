@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 00:49+0800\n"
+"POT-Creation-Date: 2026-11-21 12:24+0800\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -1102,8 +1102,10 @@ msgstr "หลังจากตัดแล้ว"
 msgid "Cut to parts"
 msgstr "ตัดเป็นชิ้นส่วน"
 
-msgid "Reset cutting plane and remove connectors"
-msgstr "รีเซ็ตระนาบการตัดและถอดตัวเชื่อมต่อออก"
+# AI Translated
+#. TRN: Part assignments are the upper/lower cut groups changed by right-clicking parts.
+msgid "Reset the cutting plane, remove connectors, and clear part assignments."
+msgstr "รีเซ็ตระนาบการตัด ถอดตัวเชื่อมต่อออก และล้างการกำหนดชิ้นส่วน"
 
 # AI Translated
 msgid "Reset Cut"
@@ -5751,6 +5753,10 @@ msgid "Enable the prime tower and either disable purging in the prime tower or d
 msgstr "เปิดใช้งาน Prime Tower และปิดการไล่เส้นใน Prime Tower หรือปิดใช้งานโหมดชุดดันเส้นเดี่ยวหลายวัสดุ"
 
 # AI Translated
+msgid "The Type 1 prime tower takes the prime volume from each filament, on its Multimaterial page."
+msgstr "Prime Tower ประเภทที่ 1 จะใช้ปริมาตร Prime จากเส้นพลาสติกแต่ละเส้น ในหน้า หลากหลายวัสดุ ของเส้นพลาสติกนั้น"
+
+# AI Translated
 msgid "Enable the prime tower to use this setting."
 msgstr "เปิดใช้งาน Prime Tower เพื่อใช้การตั้งค่านี้"
 
@@ -6407,10 +6413,6 @@ msgstr "รูปแบบไม่ถูกต้อง ใช้ N, N#K หร
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "รูปแบบไม่ถูกต้อง รูปแบบเวกเตอร์ที่ต้องการ: \"%1%\""
-
-# AI Translated
-msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
-msgstr "พื้นที่ฐานพิมพ์ที่ยกเว้นไม่ถูกต้อง ต้องเป็นรูปหลายเหลี่ยมอย่างง่ายที่ไม่ตัดกันเอง"
 
 # AI Translated
 msgid "System agents"
@@ -9159,6 +9161,29 @@ msgstr ""
 msgid "Error loading shaders"
 msgstr "เกิดข้อผิดพลาดในการโหลดเชเดอร์"
 
+# AI Translated
+#. TRN The OpenGL context could not be made current, so nothing can be drawn in the 3D view.
+msgid "OpenGL could not be activated for the 3D view, so it cannot be shown."
+msgstr "ไม่สามารถเปิดใช้งาน OpenGL สำหรับมุมมอง 3D ได้ จึงไม่สามารถแสดงผลได้"
+
+# AI Translated
+#. TRN %1% is the name of a graphics card or display adapter as Windows reports it, such as "Microsoft Basic Display Adapter".
+#, boost-format
+msgid "The window is on a display driven by \"%1%\"."
+msgstr "หน้าต่างนี้อยู่บนจอแสดงผลที่ควบคุมโดย \"%1%\""
+
+# AI Translated
+msgid "Make sure the display adapter driving this window's display is enabled and its driver is installed and up to date."
+msgstr "ตรวจสอบว่าการ์ดแสดงผลที่ควบคุมจอของหน้าต่างนี้เปิดใช้งานอยู่ และติดตั้งไดรเวอร์เวอร์ชันล่าสุดแล้ว"
+
+# AI Translated
+msgid "If the computer has more than one graphics card, connecting the monitor to another one may help."
+msgstr "หากคอมพิวเตอร์มีการ์ดจอมากกว่าหนึ่งตัว การเชื่อมต่อจอภาพเข้ากับการ์ดตัวอื่นอาจช่วยได้"
+
+# AI Translated
+msgid "If the problem remains, close any overlay or screen capture software and try again."
+msgstr "หากปัญหายังคงอยู่ ให้ปิดซอฟต์แวร์โอเวอร์เลย์หรือบันทึกหน้าจอทั้งหมด แล้วลองอีกครั้ง"
+
 msgctxt "Layers"
 msgid "Top"
 msgstr "บน"
@@ -9984,10 +10009,6 @@ msgstr "โปรเจกต์นี้มีโมเดลที่สร้
 
 msgid "The file does not contain any geometry data."
 msgstr "ไฟล์นี้ไม่มีข้อมูลเรขาคณิตใดๆ"
-
-# AI Translated
-msgid "The invalid area has been removed, so please define it again using a valid polygon."
-msgstr "พื้นที่ที่ไม่ถูกต้องถูกลบแล้ว โปรดกำหนดใหม่โดยใช้รูปหลายเหลี่ยมที่ถูกต้อง"
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "วัตถุของคุณดูใหญ่เกินไป คุณต้องการย่อขนาดให้พอดีกับฐานพิมพ์โดยอัตโนมัติหรือไม่"
@@ -13356,6 +13377,9 @@ msgstr "G-code สิ้นสุดของเส้นพลาสติก"
 msgid "Wipe tower parameters"
 msgstr "พารามิเตอร์ Wipe Tower"
 
+msgid "Prime volume"
+msgstr "ปริมาตร Prime"
+
 msgid "Multi Filament"
 msgstr "เส้นพลาสติกแบบหลากหลาย"
 
@@ -13436,6 +13460,14 @@ msgstr "เครื่องพิมพ์ที่เลือกไม่ร
 # AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
 msgstr "ตั้งค่าค่าสัมประสิทธิ์ความเร็วปริมาตรที่ไม่เป็นศูนย์ก่อนเปิดใช้งานความเร็วตามปริมาตรแบบปรับได้"
+
+# AI Translated
+msgid "Select wipe tower Type 1 in the printer settings to use this setting."
+msgstr "เลือก \"ประเภทที่ 1\" ใน \"ชนิด Wipe Tower\" ในการตั้งค่าเครื่องพิมพ์เพื่อใช้การตั้งค่านี้"
+
+# AI Translated
+msgid "Select wipe tower Type 1 on a printer whose extruder holds more than one nozzle to use this setting."
+msgstr "เลือก \"ประเภทที่ 1\" ใน \"ชนิด Wipe Tower\" บนเครื่องพิมพ์ที่ชุดดันเส้นมีหัวฉีดมากกว่าหนึ่งหัวเพื่อใช้การตั้งค่านี้"
 
 # AI Translated
 # Needs human review: Ramming has no settled glossary term; this quotes the label 'เปิดใช้งานการกระแทกสำหรับการตั้งค่าหลายเครื่องมือ' (Enable ramming for multi-tool setups).
@@ -21513,9 +21545,6 @@ msgstr "ตัวคูณการไล่เส้น (โหมดเร็�
 # AI Translated
 msgid "The flush multiplier used in fast purge mode."
 msgstr "ตัวคูณการไล่เส้นที่ใช้ในโหมดไล่เส้นเร็ว"
-
-msgid "Prime volume"
-msgstr "ปริมาตร Prime"
 
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "ปริมาตรวัสดุสำหรับเตรียมหัวฉีดบน Prime Tower"

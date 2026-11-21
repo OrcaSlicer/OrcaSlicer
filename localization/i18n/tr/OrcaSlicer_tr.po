@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 00:49+0800\n"
+"POT-Creation-Date: 2026-11-21 12:24+0800\n"
 "PO-Revision-Date: 2026-08-21 23:18+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -1088,8 +1088,10 @@ msgstr "Kesildikten sonra"
 msgid "Cut to parts"
 msgstr "Parçalara ayır"
 
-msgid "Reset cutting plane and remove connectors"
-msgstr "Kesme düzlemini sıfırlayın ve bağlayıcıları çıkarın"
+# AI Translated
+#. TRN: Part assignments are the upper/lower cut groups changed by right-clicking parts.
+msgid "Reset the cutting plane, remove connectors, and clear part assignments."
+msgstr "Kesme düzlemini sıfırlayın, bağlayıcıları çıkarın ve parça atamalarını temizleyin."
 
 # AI Translated
 msgid "Reset Cut"
@@ -5702,6 +5704,11 @@ msgstr "Bu ayarı kullanmak için Döngüsel takım değişimi sıralamasını s
 msgid "Enable the prime tower and either disable purging in the prime tower or disable single extruder multimaterial mode."
 msgstr "Prime kulesini etkinleştirin ve ya prime kulesinde temizlemeyi ya da tek ekstruder çoklu malzeme modunu kapatın."
 
+# AI Translated
+# Needs human review: The glossary cell for Prime tower / Wipe tower is unsettled; this follows the catalog's existing wording.
+msgid "The Type 1 prime tower takes the prime volume from each filament, on its Multimaterial page."
+msgstr "Tip 1 prime kulesi, ana hacmi her filamentin kendi Çoklu Malzeme sayfasından alır."
+
 msgid "Enable the prime tower to use this setting."
 msgstr "Bu ayarı kullanmak için prime kulesini etkinleştirin."
 
@@ -6307,10 +6314,6 @@ msgstr "Geçersiz kalıp. N, N#K veya giriş başına isteğe bağlı #K ile vir
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Geçersiz format. Beklenen vektör formatı: \"%1%\""
-
-# AI Translated
-msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
-msgstr "Hariç tutulan tabla bölgesi geçersiz. Kendisiyle kesişmeyen basit bir çokgen olmalıdır."
 
 # AI Translated
 msgid "System agents"
@@ -9094,6 +9097,29 @@ msgstr ""
 msgid "Error loading shaders"
 msgstr "Gölgelendiriciler yüklenirken hata oluştu"
 
+# AI Translated
+#. TRN The OpenGL context could not be made current, so nothing can be drawn in the 3D view.
+msgid "OpenGL could not be activated for the 3D view, so it cannot be shown."
+msgstr "3D görünüm için OpenGL etkinleştirilemedi, bu nedenle görüntülenemiyor."
+
+# AI Translated
+#. TRN %1% is the name of a graphics card or display adapter as Windows reports it, such as "Microsoft Basic Display Adapter".
+#, boost-format
+msgid "The window is on a display driven by \"%1%\"."
+msgstr "Pencere, \"%1%\" tarafından yönetilen bir ekranda bulunuyor."
+
+# AI Translated
+msgid "Make sure the display adapter driving this window's display is enabled and its driver is installed and up to date."
+msgstr "Bu pencerenin ekranını yöneten ekran bağdaştırıcısının etkin olduğundan ve sürücüsünün yüklü ve güncel olduğundan emin olun."
+
+# AI Translated
+msgid "If the computer has more than one graphics card, connecting the monitor to another one may help."
+msgstr "Bilgisayarda birden fazla ekran kartı varsa monitörü başka birine bağlamak işe yarayabilir."
+
+# AI Translated
+msgid "If the problem remains, close any overlay or screen capture software and try again."
+msgstr "Sorun devam ederse tüm overlay veya ekran kaydı yazılımlarını kapatın ve tekrar deneyin."
+
 msgctxt "Layers"
 msgid "Top"
 msgstr "Üst"
@@ -9919,10 +9945,6 @@ msgstr "Bu proje, Tasarım sekmesinde oluşturulmuş bir model içeriyor ve baş
 
 msgid "The file does not contain any geometry data."
 msgstr "Dosya herhangi bir geometri verisi içermiyor."
-
-# AI Translated
-msgid "The invalid area has been removed, so please define it again using a valid polygon."
-msgstr "Geçersiz bölge kaldırıldı, lütfen geçerli bir çokgen kullanarak yeniden tanımlayın."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Nesneniz çok büyük görünüyor. Plakaya sığacak şekilde otomatik olarak küçültmek istiyor musunuz?"
@@ -13333,6 +13355,9 @@ msgstr "Filament Bitiş G-code"
 msgid "Wipe tower parameters"
 msgstr "Silme Kulesi Parametreleri"
 
+msgid "Prime volume"
+msgstr "Ana hacim"
+
 msgid "Multi Filament"
 msgstr "Çoklu Filament"
 
@@ -13398,6 +13423,16 @@ msgstr "Seçili yazıcı bölme sıcaklığı kontrolünü desteklemiyor."
 
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
 msgstr "Uyarlanabilir hacimsel hızı etkinleştirmeden önce sıfırdan farklı hacimsel hız katsayıları ayarlayın."
+
+# AI Translated
+# Needs human review: The glossary cell for Prime tower / Wipe tower is unsettled; this follows the catalog's existing wording.
+msgid "Select wipe tower Type 1 in the printer settings to use this setting."
+msgstr "Bu ayarı kullanmak için yazıcı ayarlarında \"Temizleme kulesi tipi\" için \"Tip 1\" seçin."
+
+# AI Translated
+# Needs human review: The glossary cell for Prime tower / Wipe tower is unsettled; this follows the catalog's existing wording.
+msgid "Select wipe tower Type 1 on a printer whose extruder holds more than one nozzle to use this setting."
+msgstr "Bu ayarı kullanmak için ekstruderinde birden fazla nozul bulunan bir yazıcıda \"Temizleme kulesi tipi\" için \"Tip 1\" seçin."
 
 msgid "Enable multitool ramming to edit this setting."
 msgstr "Bu ayarı düzenlemek için çoklu takım ramming'ini etkinleştirin."
@@ -21407,9 +21442,6 @@ msgstr "Yıkama çarpanı (Hızlı mod)"
 # AI Translated
 msgid "The flush multiplier used in fast purge mode."
 msgstr "Hızlı yıkama modunda kullanılan yıkama çarpanı."
-
-msgid "Prime volume"
-msgstr "Ana hacim"
 
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Kule üzerindeki ana ekstruder malzeme hacmi."

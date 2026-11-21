@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 00:49+0800\n"
+"POT-Creation-Date: 2026-11-21 12:24+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -1135,8 +1135,9 @@ msgid "Cut to parts"
 msgstr "In delen knippen"
 
 # AI Translated
-msgid "Reset cutting plane and remove connectors"
-msgstr "Snijvlak terugzetten en verbindingsstukken verwijderen"
+#. TRN: Part assignments are the upper/lower cut groups changed by right-clicking parts.
+msgid "Reset the cutting plane, remove connectors, and clear part assignments."
+msgstr "Snijvlak terugzetten, verbindingsstukken verwijderen en onderdeeltoewijzingen wissen."
 
 # AI Translated
 msgid "Reset Cut"
@@ -6178,6 +6179,11 @@ msgid "Enable the prime tower and either disable purging in the prime tower or d
 msgstr "Schakel de prime toren in en schakel 'Spoelen in de prime toren' of 'Multi-material met één extruder' uit."
 
 # AI Translated
+# Needs human review: The glossary cell for Prime tower / Wipe tower is unsettled; this follows the catalog's existing wording.
+msgid "The Type 1 prime tower takes the prime volume from each filament, on its Multimaterial page."
+msgstr "De prime toren van type 1 gebruikt het prime-volume van elk filament, op de pagina Multimateriaal daarvan."
+
+# AI Translated
 # Needs human review: Glossary cell for Prime tower is unsettled (Prime toren / Afveegblok); used the catalog's 'Prime toren' section label.
 msgid "Enable the prime tower to use this setting."
 msgstr "Schakel de prime toren in om deze instelling te gebruiken."
@@ -6907,10 +6913,6 @@ msgstr "Ongeldig patroon. Gebruik N, N#K of een door komma's gescheiden lijst me
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Onjuist formaat. Het Vector formaat wordt verwacht: \"%1%\""
-
-# AI Translated
-msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
-msgstr "Het uitgesloten printbedgebied is ongeldig. Het moet een eenvoudige veelhoek zijn zonder zelfdoorsnijding."
 
 # AI Translated
 msgid "System agents"
@@ -9845,6 +9847,29 @@ msgstr ""
 msgid "Error loading shaders"
 msgstr "Fout bij het laden van shaders"
 
+# AI Translated
+#. TRN The OpenGL context could not be made current, so nothing can be drawn in the 3D view.
+msgid "OpenGL could not be activated for the 3D view, so it cannot be shown."
+msgstr "OpenGL kon niet worden geactiveerd voor de 3D-weergave, dus deze kan niet worden getoond."
+
+# AI Translated
+#. TRN %1% is the name of a graphics card or display adapter as Windows reports it, such as "Microsoft Basic Display Adapter".
+#, boost-format
+msgid "The window is on a display driven by \"%1%\"."
+msgstr "Het venster staat op een beeldscherm dat wordt aangestuurd door \"%1%\"."
+
+# AI Translated
+msgid "Make sure the display adapter driving this window's display is enabled and its driver is installed and up to date."
+msgstr "Zorg ervoor dat de beeldschermadapter die het beeldscherm van dit venster aanstuurt is ingeschakeld en dat het stuurprogramma is geïnstalleerd en up-to-date is."
+
+# AI Translated
+msgid "If the computer has more than one graphics card, connecting the monitor to another one may help."
+msgstr "Als de computer meer dan één videokaart heeft, kan het helpen om de monitor op een andere aan te sluiten."
+
+# AI Translated
+msgid "If the problem remains, close any overlay or screen capture software and try again."
+msgstr "Als het probleem blijft bestaan, sluit dan alle overlay- of schermopnamesoftware en probeer het opnieuw."
+
 msgctxt "Layers"
 msgid "Top"
 msgstr "Bovenste"
@@ -10737,10 +10762,6 @@ msgstr "Dit project bevat een model dat in het tabblad Ontwerp is gemaakt en gee
 
 msgid "The file does not contain any geometry data."
 msgstr "Het bestand bevat geen geometriegegevens."
-
-# AI Translated
-msgid "The invalid area has been removed, so please define it again using a valid polygon."
-msgstr "Het ongeldige gebied is verwijderd. Definieer het opnieuw met een geldige veelhoek."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Uw object lijkt te groot. Wilt u het verkleinen zodat het automatisch op het printbed past?"
@@ -14341,6 +14362,9 @@ msgstr "Filament einde G-code"
 msgid "Wipe tower parameters"
 msgstr "Afveegblokparameters"
 
+msgid "Prime volume"
+msgstr "Prime-volume"
+
 # AI Translated
 msgid "Multi Filament"
 msgstr "Multifilament"
@@ -14424,6 +14448,16 @@ msgstr "De geselecteerde printer ondersteunt geen regeling van de kamertemperatu
 # AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
 msgstr "Stel coëfficiënten voor de volumetrische snelheid in die niet nul zijn, voordat u 'Adaptieve volumetrische snelheid' inschakelt."
+
+# AI Translated
+# Needs human review: The glossary cell for Prime tower / Wipe tower is unsettled; this follows the catalog's existing wording.
+msgid "Select wipe tower Type 1 in the printer settings to use this setting."
+msgstr "Kies \"Type 1\" bij \"Type spoeltoren\" in de printerinstellingen om deze instelling te gebruiken."
+
+# AI Translated
+# Needs human review: The glossary cell for Prime tower / Wipe tower is unsettled; this follows the catalog's existing wording.
+msgid "Select wipe tower Type 1 on a printer whose extruder holds more than one nozzle to use this setting."
+msgstr "Kies \"Type 1\" bij \"Type spoeltoren\" op een printer waarvan de extruder meer dan één mondstuk heeft om deze instelling te gebruiken."
 
 # AI Translated
 msgid "Enable multitool ramming to edit this setting."
@@ -23126,9 +23160,6 @@ msgstr "Spoelvermenigvuldiger (Snelle modus)"
 # AI Translated
 msgid "The flush multiplier used in fast purge mode."
 msgstr "De spoelvermenigvuldiger die in de snelle spoelmodus wordt gebruikt."
-
-msgid "Prime volume"
-msgstr "Prime-volume"
 
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Dit is het volume van het materiaal dat de extruder op de prime toren uitwerpt."
