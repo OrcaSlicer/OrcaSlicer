@@ -35,6 +35,7 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include "admesh/stl.h"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Format/STEP.hpp"
@@ -120,6 +121,32 @@ TEST_CASE("A cone with a slightly tilted seam imports as a closed mesh", "[Step]
     REQUIRE(model.objects.size() == 1);
     REQUIRE(model.objects.front()->volumes.size() == 1);
     CHECK(its_num_open_edges(model.objects.front()->volumes.front()->mesh().its) == 0);
+}
+
+// The fixture is one band of a tilted chimney exported from Fusion: a full turn of a cone of 313.77 mm²,
+// whose B-spline boundary pcurves end up to 3e-5 past the seam. Meshed wrongly, it becomes a flat disc of
+// about 220 mm² over its top circle.
+TEST_CASE("A cone band whose boundary ends past the seam meshes its whole surface", "[Step]")
+{
+    const std::string path = std::string(TEST_DATA_DIR) + PATH_SEPARATOR "cone_band_seam_overshoot.step";
+
+    Model model;
+    bool  cancel = false;
+    Step  step(path);
+
+    REQUIRE(step.load() == Step::Step_Status::LOAD_SUCCESS);
+    REQUIRE(step.mesh(&model, cancel, false) == Step::Step_Status::MESH_SUCCESS);
+
+    REQUIRE(model.objects.size() == 1);
+    REQUIRE(model.objects.front()->volumes.size() == 1);
+    const indexed_triangle_set &its  = model.objects.front()->volumes.front()->mesh().its;
+    double                      area = 0.;
+    for (const stl_triangle_vertex_indices &face : its.indices)
+        area += 0.5 * (its.vertices[face[1]] - its.vertices[face[0]])
+                          .cast<double>()
+                          .cross((its.vertices[face[2]] - its.vertices[face[0]]).cast<double>())
+                          .norm();
+    CHECK_THAT(area, Catch::Matchers::WithinRel(313.77, 0.01));
 }
 
 // The fixture holds two trimmed planes in a geometric set and no shells or solids, as some CAD exporters write
