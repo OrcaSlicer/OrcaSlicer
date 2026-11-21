@@ -282,8 +282,8 @@ TEST_CASE("A Span mode refuses a color routed to a tool outside the primary's ga
     // them on the other gantry. A third painted filament routed to T3 has no head of its own.
     auto pem = make_pem({0, 1, 2, 3});
     const std::string reason = imex_multicolor_block_reason("mc-copy", "0:P,1:S,2:C,3:C", 2, {0, 1, 3}, pem);
-    // The message names the color tools and where the map sends the offending filament (1-based).
-    REQUIRE_THAT(reason, Catch::Matchers::ContainsSubstring("colors are printed only by T0/T1, but filament 4 is routed to T3"));
+    // The message names the color tools and where the map sends the offending filament, all 1-based.
+    REQUIRE_THAT(reason, Catch::Matchers::ContainsSubstring("colors are printed only by T1/T2, but filament 4 is routed to T4"));
     REQUIRE_THAT(imex_multicolor_block_reason("mc-copy", "0:P,1:S,2:C,3:C", 2, {0, 4}, pem),
                  Catch::Matchers::ContainsSubstring("filament 5 isn't routed to any tool"));
     // A head the mode leaves inactive is no better, and neither is no head at all.
@@ -297,7 +297,7 @@ TEST_CASE("A Span mode refuses a color routed to a tool outside the primary's ga
     const auto afc = make_pem({0, 0, 0, 0, 1, 2, 3});
     REQUIRE(imex_multicolor_block_reason("mc-copy", "0:P,1:S,2:C,3:C", 2, {0, 4}, afc).empty());
     REQUIRE_THAT(imex_multicolor_block_reason("mc-copy", "0:P,1:S,2:C,3:C", 2, {0, 5}, afc),
-                 Catch::Matchers::ContainsSubstring("filament 6 is routed to T2"));
+                 Catch::Matchers::ContainsSubstring("filament 6 is routed to T3"));
     // The pair's own two colors stay allowed, and so does a third Span partner where the
     // gantry carries one.
     REQUIRE(imex_multicolor_block_reason("mc-copy", "0:P,1:S,2:C,3:C", 2, {0, 1}, pem).empty());
