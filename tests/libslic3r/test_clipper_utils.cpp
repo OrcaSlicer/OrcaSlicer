@@ -803,3 +803,11 @@ TEST_CASE("A clockwise sliver with nothing around it comes back as Clipper2 retu
     CHECK(std::all_of(result.begin(), result.end(), [](const ExPolygon &expoly) { return expoly.holes.empty(); }));
     CHECK_THAT(area(result), Catch::Matchers::WithinRel(area(diff(subject, clip)), 1e-9));
 }
+
+TEST_CASE("An even-odd union of a path retracing its edges covers the same area as the flat union", "[ClipperUtils]") {
+    // Building the PolyTree of this path leaves emptied output loops that point at each other, and looking for a
+    // loop's owner through them recursed until the stack overflowed.
+    const Polygons subject{ Polygon({ { 3, 0 }, { 3, 5 }, { 0, 3 }, { 5, 3 }, { 0, 5 }, { 5, 3 }, { 0, 3 },
+                                      { 0, 0 }, { 0, 3 }, { 5, 3 }, { 0, 0 }, { 3, 3 }, { 2, 3 } }) };
+    CHECK_THAT(area(union_ex(subject, pftEvenOdd)), Catch::Matchers::WithinRel(area(union_(subject, pftEvenOdd)), 1e-9));
+}
