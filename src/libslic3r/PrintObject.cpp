@@ -184,7 +184,12 @@ PrintBase::ApplyStatus PrintObject::set_instances(PrintInstances &&instances)
     	[](const PrintInstance& lhs, const PrintInstance& rhs) { return lhs.model_instance == rhs.model_instance && lhs.shift == rhs.shift; });
     if (! equal) {
         status = PrintBase::APPLY_STATUS_CHANGED;
-        if (m_print->invalidate_steps({ psSkirtBrim, psGCodeExport }) ||
+        // Tree supports stay inside the bed shape at the first instance, and all supports avoid the bed exclusion volumes at every instance.
+        const bool first_moved = instances.empty() || m_instances.empty() || instances.front().shift != m_instances.front().shift;
+        const bool support_follows_instances = this->has_support_material() &&
+            ((is_tree(m_config.support_type.value) && first_moved) || has_bed_exclude_volumes(m_print->config()));
+        if ((support_follows_instances && this->invalidate_step(posSupportMaterial)) ||
+            m_print->invalidate_steps({ psSkirtBrim, psGCodeExport }) ||
             (! equal_length && m_print->invalidate_step(psWipeTower)))
             status = PrintBase::APPLY_STATUS_INVALIDATED;
         m_instances = std::move(instances);
@@ -3876,6 +3881,15 @@ void PrintObject::bridge_over_infill()
                 total_fill_area   = closing(total_fill_area, float(SCALED_EPSILON));
                 expansion_area    = closing(expansion_area, float(SCALED_EPSILON));
                 expansion_area    = intersection(expansion_area, deep_infill_area);
+                // A bridge reaching into a region of another filament would print that region's area in its own filament.
+                std::map<unsigned int, Polygons> fill_area_by_filament;
+                for (const LayerRegion *region : layer->regions())
+                    append(fill_area_by_filament[region->region().extruder(frSolidInfill)], to_polygons(region->fill_expolygons));
+                if (fill_area_by_filament.size() > 1) {
+                    for (auto &filament_area : fill_area_by_filament)
+                        filament_area.second = closing(filament_area.second, float(SCALED_EPSILON));
+                } else
+                    fill_area_by_filament.clear();
                 // Orca: Preserve the real lower-layer anchors for every candidate in this
                 // layer. Replacing this shared set for one pattern also changes later regions,
                 // and synthetic straight lines can claim support where no infill is printed.
@@ -4051,6 +4065,10 @@ void PrintObject::bridge_over_infill()
                         const BoundingBox bridging_bbox = get_extents(bridging_area).inflated(SCALED_EPSILON);
                         bridging_area = intersection(bridging_area, ClipperUtils::clip_clipper_polygons_with_subject_bbox(limiting_area, bridging_bbox));
                         bridging_area = intersection(bridging_area, ClipperUtils::clip_clipper_polygons_with_subject_bbox(total_fill_area, bridging_bbox));
+                        if (!fill_area_by_filament.empty())
+                            bridging_area = intersection(bridging_area,
+                                                         ClipperUtils::clip_clipper_polygons_with_subject_bbox(
+                                                             fill_area_by_filament.at(candidate.region->region().extruder(frSolidInfill)), bridging_bbox));
                         bridging_area = diff(bridging_area, ClipperUtils::clip_clipper_polygons_with_subject_bbox(total_top_area, bridging_bbox));
                     }
                     if (!bridging_area.empty()) {
@@ -4480,8 +4498,9 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
         config.sparse_infill_density.value = 0;
     else
         config.sparse_infill_density.value = std::min(config.sparse_infill_density.value, 100.);
-    if (config.fuzzy_skin.value != FuzzySkinType::None && (config.fuzzy_skin_point_distance.value < 0.01 || config.fuzzy_skin_thickness.value < 0.001))
-        config.fuzzy_skin.value = FuzzySkinType::None;
+    // None still allows painting, so invalid parameters must disable fuzzy skin outright.
+    if (config.fuzzy_skin.value != FuzzySkinType::Disabled_fuzzy && (config.fuzzy_skin_point_distance.value < 0.01 || config.fuzzy_skin_thickness.value < 0.001))
+        config.fuzzy_skin.value = FuzzySkinType::Disabled_fuzzy;
     return config;
 }
 

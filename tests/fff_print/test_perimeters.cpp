@@ -20,6 +20,7 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/Config.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
@@ -130,6 +131,68 @@ double max_difference(const std::vector<double> &a, const std::vector<double> &b
 }
 
 } // namespace
+
+// Overhang walls print at the bridge and overhang speeds, so regions that differ in them can't share their walls.
+TEST_CASE("Regions with different overhang wall speeds get walls of their own", "[Perimeters]")
+{
+    const std::string option = GENERATE(as<std::string>{}, "bridge_speed", "bridge_volumetric_flow", "enable_overhang_speed",
+                                        "overhang_2_4_speed", "slowdown_for_curled_perimeters");
+    CAPTURE(option);
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model);
+    const PrintRegionConfig &config = print.objects().front()->printing_region(0).config();
+    PrintRegionConfig changed = config;
+    if (option == "bridge_speed")
+        for (double &value : changed.bridge_speed.values)
+            value += 10.;
+    else if (option == "bridge_volumetric_flow")
+        for (FloatOrPercent &value : changed.bridge_volumetric_flow.values)
+            value.value += 10.;
+    else if (option == "enable_overhang_speed")
+        for (unsigned char &value : changed.enable_overhang_speed.values)
+            value = ! value;
+    else if (option == "overhang_2_4_speed")
+        for (FloatOrPercent &value : changed.overhang_2_4_speed.values)
+            value.value += 10.;
+    else
+        for (unsigned char &value : changed.slowdown_for_curled_perimeters.values)
+            value = ! value;
+    CHECK(Layer::is_perimeter_compatible(print, PrintRegion(config), PrintRegion(config)));
+    CHECK_FALSE(Layer::is_perimeter_compatible(print, PrintRegion(config), PrintRegion(changed)));
+}
+
+// The area every layer of the object keeps clear of the walls for gap fill and concentric infill.
+static double no_overlap_fill_area(const Print &print)
+{
+    double sum = 0.;
+    for (const Layer *layer : print.objects().front()->layers())
+        for (const LayerRegion *region : layer->regions())
+            sum += area(region->fill_no_overlap_expolygons);
+    return sum;
+}
+
+TEST_CASE("Generating the walls again leaves the no-overlap fill area of a fresh slice", "[Perimeters][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({ { "wall_loops", 2 }, { "gcode_comments", 1 } });
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    print.process();
+
+    // Only the walls are generated again.
+    config.set_deserialize_strict({ { "wall_loops", 3 } });
+    print.apply(model, config);
+    print.process();
+
+    Print fresh;
+    Model fresh_model;
+    init_print({ cube(20) }, fresh, fresh_model, config);
+    fresh.process();
+    REQUIRE(no_overlap_fill_area(fresh) > 0.);
+    CHECK_THAT(no_overlap_fill_area(print), Catch::Matchers::WithinRel(no_overlap_fill_area(fresh), 1e-6));
+}
 
 // The expansion only retypes area as top solid infill, so it can do nothing where there is no top
 // fill to begin with: zero top shell layers retypes the top surfaces as internal, and a top surface

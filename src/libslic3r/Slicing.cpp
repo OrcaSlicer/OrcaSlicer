@@ -216,9 +216,11 @@ SlicingParameters SlicingParameters::create_from_config(
         // Raise first object layer Z by the thickness of the raft itself plus the extra distance required by the support material logic.
         //FIXME The last raft layer is the contact layer, which shall be printed with a bridging flow for ease of separation. Currently it is not the case.
         if (params.raft_layers() == 1) {
-            // There is only the contact layer.
-            params.contact_raft_layer_height = initial_layer_print_height;
-            params.raft_contact_top_z        = initial_layer_print_height;
+            // There is only the contact layer. Tree supports build it at the interface height.
+            params.contact_raft_layer_height   = initial_layer_print_height;
+            params.interface_raft_layer_height = initial_layer_print_height;
+            params.base_raft_layer_height      = initial_layer_print_height;
+            params.raft_contact_top_z          = initial_layer_print_height;
         } else {
             assert(params.base_raft_layers > 0);
             assert(params.interface_raft_layers > 0);
