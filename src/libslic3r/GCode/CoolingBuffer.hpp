@@ -29,15 +29,26 @@ struct PerExtruderAdjustments;
 class CoolingBuffer {
 public:
     CoolingBuffer(GCode &gcodegen);
+    ~CoolingBuffer();
     void        reset(const Vec3d &position);
     void        set_current_extruder(unsigned int extruder_id, unsigned int nozzle_id) { m_current_extruder = extruder_id; m_current_nozzle = nozzle_id; }
     std::string process_layer(std::string &&gcode, size_t layer_id, bool flush);
     // ORCA: Remembers the motion limits that G-code outside the layers sets, such as the start G-code, to time the layers.
     void        remember_motion_settings(const std::string &gcode);
 
+    // Layer time smoothing needs the layer times of the whole print, so the layers are processed in two passes:
+    // collect_layer() parses each layer and applies the minimum layer time slow down, finish_deferred() then smooths
+    // the layer times over all collected layers and writes the layers. The G-code of all collected layers is held in memory.
+    // With parse_outer_wall_chains the "; COOLING_NODE" markers of the outer walls are parsed and the outer wall speed is smoothed along Z.
+    void                     begin_deferred(bool parse_outer_wall_chains = false);
+    void                     collect_layer(std::string &&gcode, size_t layer_id, bool flush);
+    // Returns the adjusted G-code of every collected layer, in order.
+    std::vector<std::string> finish_deferred();
+
 private:
 	CoolingBuffer& operator=(const CoolingBuffer&) = delete;
-    std::vector<PerExtruderAdjustments> parse_layer_gcode(const std::string &gcode, std::vector<float> &current_pos);
+    // final_extruder, if not null, receives the extruder active at the end of the layer.
+    std::vector<PerExtruderAdjustments> parse_layer_gcode(const std::string &gcode, std::vector<float> &current_pos, unsigned int *final_extruder = nullptr);
     // The slowdown aims at time_scale times each minimum layer time, in the time at the feed rates.
     float       calculate_layer_slowdown(std::vector<PerExtruderAdjustments> &per_extruder_adjustments, float time_scale);
     // ORCA: Slows the layer down to the minimum layer time as the time estimate gives it, and returns that time.
@@ -47,12 +58,21 @@ private:
     void        remember_motion_setting(const std::string &line);
     // ORCA: The G-code that puts the layer timer in the machine state with this extruder at this position.
     std::string timer_setup(unsigned int extruder, const std::vector<float> &position) const;
+    // ORCA: Slows the layer down to its minimum layer time, keeping the outer walls out of the resonance avoidance range
+    // where that can be done. Returns the layer time, as the preview estimates it.
+    float       slow_down_layer_keeping_resonance_range(std::vector<PerExtruderAdjustments> &per_extruder_adjustments);
     // Apply slow down over G-code lines stored in per_extruder_adjustments, enable fan if needed.
     // Returns the adjusted G-code.
     std::string apply_layer_cooldown(const std::string &gcode, size_t layer_id, float layer_time, std::vector<PerExtruderAdjustments> &per_extruder_adjustments);
 
     // G-code snippet cached for the support layers preceding an object layer.
     std::string                 m_gcode;
+    // A layer collected by collect_layer(), waiting for the layer time smoothing.
+    struct DeferredLayer;
+    std::vector<DeferredLayer>  m_deferred_layers;
+    // Extruder active at the end of the last collected layer.
+    unsigned int                m_deferred_extruder { 0 };
+    bool                        m_parse_outer_wall_chains { false };
     // Internal data.
     // BBS: X,Y,Z,E,F,I,J
     std::vector<char>           m_axis;

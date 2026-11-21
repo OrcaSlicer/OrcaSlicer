@@ -55,6 +55,8 @@ add_executable(${_TEST_NAME}_tests
     test_geometry.cpp
     test_measure.cpp
     test_kdtree.cpp
+    test_layer_time_smoothing.cpp
+    test_outer_wall_speed_smoothing.cpp
     test_lightning.cpp
     test_imex_arrange.cpp
     test_imex_helpers.cpp
