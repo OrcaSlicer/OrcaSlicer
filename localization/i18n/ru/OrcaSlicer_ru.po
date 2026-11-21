@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 00:49+0800\n"
+"POT-Creation-Date: 2026-11-21 12:24+0800\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -1034,8 +1034,10 @@ msgstr "Результат"
 msgid "Cut to parts"
 msgstr "Объединить в сборку"
 
-msgid "Reset cutting plane and remove connectors"
-msgstr "Сброс позиции секущей плоскости и удаление всех соединений"
+# AI Translated
+#. TRN: Part assignments are the upper/lower cut groups changed by right-clicking parts.
+msgid "Reset the cutting plane, remove connectors, and clear part assignments."
+msgstr "Сброс позиции секущей плоскости, удаление всех соединений и отмена распределения частей."
 
 # Запись в истории действий при нажатии кнопки сброса резки (TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Reset Cut"), UndoRedo::SnapshotType::GizmoAction)
 msgid "Reset Cut"
@@ -5621,6 +5623,10 @@ msgid "Enable the prime tower and either disable purging in the prime tower or d
 msgstr "Включите черновую башню и отключите «Прочистка в черновую башню» или «Общий экструдер»."
 
 # AI Translated
+msgid "The Type 1 prime tower takes the prime volume from each filament, on its Multimaterial page."
+msgstr "Черновая башня типа 1 использует объём сброса, заданный для каждого материала на его странице «Многоцвет»."
+
+# AI Translated
 msgid "Enable the prime tower to use this setting."
 msgstr "Включите черновую башню, чтобы использовать этот параметр."
 
@@ -6277,10 +6283,6 @@ msgstr "Недопустимый шаблон. Используйте N, N#K и�
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Недопустимый формат. Ожидаемый векторный формат: \"%1%\""
-
-# AI Translated
-msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
-msgstr "Область исключения недействительна. Это должен быть простой многоугольник без самопересечений."
 
 msgid "System agents"
 msgstr "Системные агенты"
@@ -8967,6 +8969,29 @@ msgstr ""
 msgid "Error loading shaders"
 msgstr "Ошибка загрузки шейдеров"
 
+# AI Translated
+#. TRN The OpenGL context could not be made current, so nothing can be drawn in the 3D view.
+msgid "OpenGL could not be activated for the 3D view, so it cannot be shown."
+msgstr "Не удалось активировать OpenGL для 3D-вида, поэтому его невозможно отобразить."
+
+# AI Translated
+#. TRN %1% is the name of a graphics card or display adapter as Windows reports it, such as "Microsoft Basic Display Adapter".
+#, boost-format
+msgid "The window is on a display driven by \"%1%\"."
+msgstr "Окно находится на дисплее, которым управляет «%1%»."
+
+# AI Translated
+msgid "Make sure the display adapter driving this window's display is enabled and its driver is installed and up to date."
+msgstr "Убедитесь, что видеоадаптер, управляющий дисплеем этого окна, включён, а его драйвер установлен и обновлён."
+
+# AI Translated
+msgid "If the computer has more than one graphics card, connecting the monitor to another one may help."
+msgstr "Если в компьютере несколько видеокарт, может помочь подключение монитора к другой."
+
+# AI Translated
+msgid "If the problem remains, close any overlay or screen capture software and try again."
+msgstr "Если проблема сохраняется, закройте все программы оверлеев и записи экрана и повторите попытку."
+
 msgctxt "Layers"
 msgid "Top"
 msgstr "Сверху"
@@ -9734,10 +9759,6 @@ msgstr "Этот проект не содержит ничего кроме мо
 
 msgid "The file does not contain any geometry data."
 msgstr "Файл не содержит никаких геометрических данных."
-
-# AI Translated
-msgid "The invalid area has been removed, so please define it again using a valid polygon."
-msgstr "Недопустимая область удалена, задайте её заново с помощью допустимого многоугольника."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Размер модели слишком велик. Вписать её в область печати?"
@@ -13010,6 +13031,9 @@ msgstr "G-код после завершения печати материало
 msgid "Wipe tower parameters"
 msgstr "Черновая башня"
 
+msgid "Prime volume"
+msgstr "Объём сброса материала на черновой башне"
+
 msgid "Multi Filament"
 msgstr "Печать несколькими материалами"
 
@@ -13091,6 +13115,14 @@ msgstr "Выбранный принтер не поддерживает конт
 # AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
 msgstr "Задайте ненулевые «Коэффициенты расчёта максимального расхода», прежде чем включать «Адаптивный расход»."
+
+# AI Translated
+msgid "Select wipe tower Type 1 in the printer settings to use this setting."
+msgstr "Чтобы использовать этот параметр, выберите «Тип 1» для «Тип черновой башни» в настройках принтера."
+
+# AI Translated
+msgid "Select wipe tower Type 1 on a printer whose extruder holds more than one nozzle to use this setting."
+msgstr "Чтобы использовать этот параметр, выберите «Тип 1» для «Тип черновой башни» на принтере, экструдер которого имеет больше одного сопла."
 
 # AI Translated
 msgid "Enable multitool ramming to edit this setting."
@@ -21051,9 +21083,6 @@ msgstr "Множитель прочистки (быстрый режим)"
 
 msgid "The flush multiplier used in fast purge mode."
 msgstr "Множитель для режима быстрой прочистки."
-
-msgid "Prime volume"
-msgstr "Объём сброса материала на черновой башне"
 
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Объём материала, который необходимо выдавить для подготовки экструдера на черновой башне."

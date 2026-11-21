@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 00:49+0800\n"
+"POT-Creation-Date: 2026-11-21 12:24+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -1096,8 +1096,10 @@ msgstr "Po przecięciu"
 msgid "Cut to parts"
 msgstr "Podziel na części"
 
-msgid "Reset cutting plane and remove connectors"
-msgstr "Resetuj płaszczyznę przecinania i usuń łączniki"
+# AI Translated
+#. TRN: Part assignments are the upper/lower cut groups changed by right-clicking parts.
+msgid "Reset the cutting plane, remove connectors, and clear part assignments."
+msgstr "Resetuj płaszczyznę przecinania, usuń łączniki i wyczyść przypisania części."
 
 # AI Translated
 msgid "Reset Cut"
@@ -5862,6 +5864,10 @@ msgid "Enable the prime tower and either disable purging in the prime tower or d
 msgstr "Włącz wieżę czyszczącą i wyłącz albo „Oczyszczanie na wieży czyszczącej”, albo tryb pojedynczego ekstrudera wielomateriałowego."
 
 # AI Translated
+msgid "The Type 1 prime tower takes the prime volume from each filament, on its Multimaterial page."
+msgstr "Wieża czyszcząca typu 1 pobiera objętość czyszczenia z każdego filamentu, z jego strony Multimateriał."
+
+# AI Translated
 msgid "Enable the prime tower to use this setting."
 msgstr "Włącz wieżę czyszczącą, aby użyć tego ustawienia."
 
@@ -6520,10 +6526,6 @@ msgstr "Nieprawidłowy wzorzec. Użyj N, N#K lub listy rozdzielonej przecinkami 
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Nieprawidłowy format. Oczekiwano formatu wektorowego: „%1%”"
-
-# AI Translated
-msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
-msgstr "Obszar wykluczony z druku jest nieprawidłowy. Musi być prostym wielokątem bez samoprzecięć."
 
 # AI Translated
 msgid "System agents"
@@ -9364,6 +9366,29 @@ msgstr ""
 msgid "Error loading shaders"
 msgstr "Błąd podczas ładowania shaderów"
 
+# AI Translated
+#. TRN The OpenGL context could not be made current, so nothing can be drawn in the 3D view.
+msgid "OpenGL could not be activated for the 3D view, so it cannot be shown."
+msgstr "Nie udało się aktywować OpenGL dla widoku 3D, więc nie można go wyświetlić."
+
+# AI Translated
+#. TRN %1% is the name of a graphics card or display adapter as Windows reports it, such as "Microsoft Basic Display Adapter".
+#, boost-format
+msgid "The window is on a display driven by \"%1%\"."
+msgstr "Okno znajduje się na ekranie obsługiwanym przez „%1%”."
+
+# AI Translated
+msgid "Make sure the display adapter driving this window's display is enabled and its driver is installed and up to date."
+msgstr "Upewnij się, że karta graficzna obsługująca ekran tego okna jest włączona, a jej sterownik jest zainstalowany i aktualny."
+
+# AI Translated
+msgid "If the computer has more than one graphics card, connecting the monitor to another one may help."
+msgstr "Jeśli komputer ma więcej niż jedną kartę graficzną, pomóc może podłączenie monitora do innej."
+
+# AI Translated
+msgid "If the problem remains, close any overlay or screen capture software and try again."
+msgstr "Jeśli problem nadal występuje, zamknij wszelkie oprogramowanie nakładek lub przechwytywania ekranu i spróbuj ponownie."
+
 msgctxt "Layers"
 msgid "Top"
 msgstr "Góra"
@@ -10199,10 +10224,6 @@ msgstr "Ten projekt zawiera model utworzony na karcie Projektowanie i żadnej in
 
 msgid "The file does not contain any geometry data."
 msgstr "Plik nie zawiera żadnych danych geometrycznych."
-
-# AI Translated
-msgid "The invalid area has been removed, so please define it again using a valid polygon."
-msgstr "Nieprawidłowy obszar został usunięty. Zdefiniuj go ponownie, używając prawidłowego wielokąta."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Importowany model przekracza wymiary przestrzeni roboczej. Czy przeskalować go do odpowiednich rozmiarów?"
@@ -13701,6 +13722,9 @@ msgstr "Końcowy G-code filamentu"
 msgid "Wipe tower parameters"
 msgstr "Parametry wieży czyszczącej"
 
+msgid "Prime volume"
+msgstr "Objętość czyszczenia"
+
 msgid "Multi Filament"
 msgstr "Wiele filamentów"
 
@@ -13782,6 +13806,14 @@ msgstr "Wybrana drukarka nie obsługuje sterowania temperaturą komory."
 # AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
 msgstr "Ustaw niezerowe współczynniki prędkości przepływu, zanim włączysz adaptacyjną prędkość przepływu."
+
+# AI Translated
+msgid "Select wipe tower Type 1 in the printer settings to use this setting."
+msgstr "Aby użyć tego ustawienia, wybierz „Typ 1” w opcji „Typ wieży czyszczącej” w ustawieniach drukarki."
+
+# AI Translated
+msgid "Select wipe tower Type 1 on a printer whose extruder holds more than one nozzle to use this setting."
+msgstr "Aby użyć tego ustawienia, wybierz „Typ 1” w opcji „Typ wieży czyszczącej” na drukarce, której ekstruder ma więcej niż jedną dyszę."
 
 # AI Translated
 # Needs human review: Ramming has no glossary cell; used 'wyciskanie' as in the label 'Włącz wyciskanie przy multi-tool' (some tooltips keep 'ramming').
@@ -21911,9 +21943,6 @@ msgstr "Mnożnik płukania (tryb szybki)"
 # AI Translated
 msgid "The flush multiplier used in fast purge mode."
 msgstr "Mnożnik płukania używany w trybie szybkiego płukania."
-
-msgid "Prime volume"
-msgstr "Objętość czyszczenia"
 
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Objętość materiału, który ekstruder powinien upuścić na wieży czyszczącej."

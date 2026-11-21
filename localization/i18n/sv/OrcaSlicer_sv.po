@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 00:49+0800\n"
+"POT-Creation-Date: 2026-11-21 12:24+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -1152,8 +1152,9 @@ msgid "Cut to parts"
 msgstr "Beskär till delar"
 
 # AI Translated
-msgid "Reset cutting plane and remove connectors"
-msgstr "Återställ snittplanet och ta bort kopplingar"
+#. TRN: Part assignments are the upper/lower cut groups changed by right-clicking parts.
+msgid "Reset the cutting plane, remove connectors, and clear part assignments."
+msgstr "Återställ snittplanet, ta bort kopplingar och rensa deltilldelningar."
 
 # AI Translated
 msgid "Reset Cut"
@@ -6244,6 +6245,10 @@ msgid "Enable the prime tower and either disable purging in the prime tower or d
 msgstr "Aktivera prime tornet och inaktivera antingen rensning i prime tornet eller läget multimaterial med en extruder."
 
 # AI Translated
+msgid "The Type 1 prime tower takes the prime volume from each filament, on its Multimaterial page."
+msgstr "Prime tornet av typ 1 hämtar prime volymen från varje filament, på dess Multimaterial-sida."
+
+# AI Translated
 msgid "Enable the prime tower to use this setting."
 msgstr "Aktivera prime tornet för att använda den här inställningen."
 
@@ -6985,10 +6990,6 @@ msgstr "Ogiltigt mönster. Använd N, N#K eller en kommaseparerad lista med valf
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Ogiltligt format. Förväntat vector format: \"%1%\""
-
-# AI Translated
-msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
-msgstr "Utesluten yta av byggplattan är ogiltig. Den måste vara en enkel polygon utan självskärningar."
 
 # AI Translated
 msgid "System agents"
@@ -9944,6 +9945,29 @@ msgstr ""
 msgid "Error loading shaders"
 msgstr "Fel vid laddning av skuggor"
 
+# AI Translated
+#. TRN The OpenGL context could not be made current, so nothing can be drawn in the 3D view.
+msgid "OpenGL could not be activated for the 3D view, so it cannot be shown."
+msgstr "OpenGL kunde inte aktiveras för 3D-vyn, så den kan inte visas."
+
+# AI Translated
+#. TRN %1% is the name of a graphics card or display adapter as Windows reports it, such as "Microsoft Basic Display Adapter".
+#, boost-format
+msgid "The window is on a display driven by \"%1%\"."
+msgstr "Fönstret är på en skärm som drivs av \"%1%\"."
+
+# AI Translated
+msgid "Make sure the display adapter driving this window's display is enabled and its driver is installed and up to date."
+msgstr "Kontrollera att grafikkortet som driver det här fönstrets skärm är aktiverat och att dess drivrutin är installerad och uppdaterad."
+
+# AI Translated
+msgid "If the computer has more than one graphics card, connecting the monitor to another one may help."
+msgstr "Om datorn har mer än ett grafikkort kan det hjälpa att ansluta skärmen till ett annat."
+
+# AI Translated
+msgid "If the problem remains, close any overlay or screen capture software and try again."
+msgstr "Om problemet kvarstår, stäng alla överläggs- eller skärminspelningsprogram och försök igen."
+
 msgctxt "Layers"
 msgid "Top"
 msgstr "Topplager"
@@ -10836,10 +10860,6 @@ msgstr "Det här projektet innehåller en modell som skapats i fliken Design och
 
 msgid "The file does not contain any geometry data."
 msgstr "Filen innehåller ingen geometrisk data."
-
-# AI Translated
-msgid "The invalid area has been removed, so please define it again using a valid polygon."
-msgstr "Det ogiltiga området har tagits bort. Definiera det igen med en giltig polygon."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Objektet verkar vara för stort, vill du skala ner det så att det passar byggplattan automatiskt?"
@@ -14514,6 +14534,9 @@ msgstr "Filamentets slut-G-code"
 msgid "Wipe tower parameters"
 msgstr "Parametrar för prime tornet"
 
+msgid "Prime volume"
+msgstr "Prime volym (volymen av ut pressat material)"
+
 # AI Translated
 msgid "Multi Filament"
 msgstr "Flera filament"
@@ -14599,6 +14622,16 @@ msgstr "Den valda skrivaren stöder inte styrning av kammarens temperatur."
 # AI Translated
 msgid "Set nonzero volumetric speed coefficients before enabling adaptive volumetric speed."
 msgstr "Ange koefficienter för volymetrisk hastighet som inte är noll innan du aktiverar adaptiv volymetrisk hastighet."
+
+# AI Translated
+# Needs human review: Quotes the catalog's 'Wipe tower type' label, whose word for the tower differs from the glossary's Prime tower / Wipe tower rendering.
+msgid "Select wipe tower Type 1 in the printer settings to use this setting."
+msgstr "Välj \"Typ 1\" för \"Typ av rengöringstorn\" i skrivarens inställningar för att använda den här inställningen."
+
+# AI Translated
+# Needs human review: Quotes the catalog's 'Wipe tower type' label, whose word for the tower differs from the glossary's Prime tower / Wipe tower rendering.
+msgid "Select wipe tower Type 1 on a printer whose extruder holds more than one nozzle to use this setting."
+msgstr "Välj \"Typ 1\" för \"Typ av rengöringstorn\" på en skrivare vars extruder har mer än en nozzel för att använda den här inställningen."
 
 # AI Translated
 msgid "Enable multitool ramming to edit this setting."
@@ -23339,9 +23372,6 @@ msgstr "Rensningsmultiplikator (snabbt läge)"
 # AI Translated
 msgid "The flush multiplier used in fast purge mode."
 msgstr "Rensningsmultiplikatorn som används i läget för snabb rensning."
-
-msgid "Prime volume"
-msgstr "Prime volym (volymen av ut pressat material)"
 
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Material volymen att (pressa ut) genom extrudern på tornet."
