@@ -503,6 +503,10 @@ private:
 
     // Z heights of the raft layers (additional layers below the object, last raft layer aligned with the bottom of the first object layer).
     std::vector<double>         m_raft_layers;
+    // Orca: Print Z of every layer with variable layer height, empty otherwise. See TreeSupportSettings::layer_zs.
+    std::vector<double>         m_layer_zs;
+    // Nominal layer height the movement distances m_max_move and m_max_move_slow were calculated for.
+    coord_t                     m_layer_height { 0 };
 
     /*!
      * \brief Caches for the collision, avoidance and areas on the model where support can be placed safely

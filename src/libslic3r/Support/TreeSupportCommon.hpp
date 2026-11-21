@@ -275,6 +275,42 @@ struct TreeSupportMeshGroupSettings {
     //enum                           support_interface_priority { support_lines_overwrite_interface_area };
 };
 
+// Orca: Helpers for variable layer height. layer_zs holds the print Z of every support layer and is empty with constant
+// layer height, in which case the helpers are not used or return the constant layer height values.
+
+// Height of layer_idx relative to the nominal layer height, 1 with constant layer height.
+inline double layer_height_ratio(const std::vector<double> &layer_zs, coord_t nominal_layer_height, LayerIndex layer_idx)
+{
+    if (layer_zs.empty() || layer_idx <= 0 || layer_idx >= LayerIndex(layer_zs.size()) || nominal_layer_height <= 0)
+        return 1.;
+    return scaled<double>(layer_zs[layer_idx] - layer_zs[layer_idx - 1]) / double(nominal_layer_height);
+}
+
+inline coord_t scale_move_distance(coord_t move, double ratio)
+{
+    return ratio == 1. || move == std::numeric_limits<coord_t>::max() ? move : coord_t(double(move) * ratio);
+}
+
+// Number of layers above layer_idx to be left empty to keep distance between the top of layer_idx and the model above.
+// A layer is left empty if its middle is within distance, which rounds to the nearest layer like the constant layer height code.
+inline size_t z_distance_layers_above(const std::vector<double> &layer_zs, LayerIndex layer_idx, double distance)
+{
+    size_t num_layers = 0;
+    for (LayerIndex i = layer_idx + 1; i < LayerIndex(layer_zs.size()) && 0.5 * (layer_zs[i - 1] + layer_zs[i]) - layer_zs[layer_idx] <= distance + EPSILON; ++ i)
+        ++ num_layers;
+    return num_layers;
+}
+
+// Number of layers below layer_idx to be left empty to keep distance between the bottom of layer_idx and the model below.
+inline size_t z_distance_layers_below(const std::vector<double> &layer_zs, LayerIndex layer_idx, double distance)
+{
+    size_t num_layers = 0;
+    if (layer_idx > 0 && layer_idx < LayerIndex(layer_zs.size()))
+        for (LayerIndex i = layer_idx - 1; i >= 0 && layer_zs[layer_idx - 1] - 0.5 * ((i > 0 ? layer_zs[i - 1] : 0.) + layer_zs[i]) <= distance + EPSILON; -- i)
+            ++ num_layers;
+    return num_layers;
+}
+
 /*!
  * \brief This struct contains settings used in the tree support. Thanks to this most functions do not need to know of meshes etc. Also makes the code shorter.
  */
@@ -282,7 +318,9 @@ struct TreeSupportSettings
 {
 public:
     TreeSupportSettings() = default; // required for the definition of the config variable in the TreeSupportGenerator class.
-    explicit TreeSupportSettings(const TreeSupportMeshGroupSettings &mesh_group_settings, const SlicingParameters &slicing_params)
+    // print_object is only needed to pick up variable layer heights, see layer_zs.
+    explicit TreeSupportSettings(const TreeSupportMeshGroupSettings &mesh_group_settings, const SlicingParameters &slicing_params,
+                                 const PrintObject *print_object = nullptr)
         : support_line_width(mesh_group_settings.support_line_width),
           layer_height(mesh_group_settings.layer_height),
           branch_radius(mesh_group_settings.support_tree_branch_diameter / 2),
@@ -368,6 +406,24 @@ public:
                     this->raft_layers.emplace_back(z);
                 }
             }
+        }
+
+        if (print_object != nullptr && print_object->layer_count() > 0) {
+            // Orca: The object may be sliced with variable layer height. Its layers then do not sit at the regularly spaced Zs
+            // assumed by layer_z(), so record the Z of every support layer to be used instead.
+            const size_t num_raft_layers = this->raft_layers.size();
+            const double first_object_z  = slicing_params.object_print_z_min + slicing_params.first_object_layer_height;
+            std::vector<double> zs(this->raft_layers.begin(), this->raft_layers.end());
+            zs.reserve(num_raft_layers + print_object->layer_count());
+            bool variable = false;
+            for (size_t i = 0; i < print_object->layer_count(); ++ i) {
+                // The organic support works in local Z, without the global Z offset of a belt printer.
+                const double z = print_object->get_layer(i)->print_z - print_object->belt_global_z_offset();
+                variable |= std::abs(z - (first_object_z + double(i) * slicing_params.layer_height)) > EPSILON;
+                zs.emplace_back(z);
+            }
+            if (variable)
+                this->layer_zs = std::move(zs);
         }
     }
 
@@ -517,6 +573,24 @@ public:
     // Extra raft layers below the object.
     std::vector<coordf_t> raft_layers;
 
+    // Orca: Print Z of every support layer (raft layers followed by the object layers), filled in only if the object
+    // has variable layer height. Empty with constant layer height, where layer_z() calculates the Zs.
+    std::vector<double> layer_zs;
+
+    [[nodiscard]] bool has_variable_layer_height() const { return ! layer_zs.empty(); }
+
+    // How far an influence area may move between layer_idx and the layer below it. With variable layer height the
+    // movement follows the height of layer_idx so that the configured branch angles hold on every layer.
+    [[nodiscard]] coord_t max_move_at(LayerIndex layer_idx) const
+        { return scale_move_distance(maximum_move_distance, layer_height_ratio(layer_zs, layer_height, layer_idx)); }
+    [[nodiscard]] coord_t max_move_slow_at(LayerIndex layer_idx) const
+        { return scale_move_distance(maximum_move_distance_slow, layer_height_ratio(layer_zs, layer_height, layer_idx)); }
+    // Number of empty layers between support at layer_idx and the model above / below it.
+    [[nodiscard]] size_t z_distance_top_layers_at(LayerIndex layer_idx) const
+        { return layer_zs.empty() ? z_distance_top_layers : z_distance_layers_above(layer_zs, layer_idx, unscaled<double>(settings.support_top_distance)); }
+    [[nodiscard]] size_t z_distance_bottom_layers_at(LayerIndex layer_idx) const
+        { return layer_zs.empty() ? z_distance_bottom_layers : z_distance_layers_below(layer_zs, layer_idx, unscaled<double>(settings.support_bottom_distance)); }
+
 public:
     bool operator==(const TreeSupportSettings& other) const
     {
@@ -550,7 +624,7 @@ public:
                          settings.get<int>("meshfix_maximum_extrusion_area_deviation") == other.settings.get<int>("meshfix_maximum_extrusion_area_deviation"))
                     )
 #endif
-               && raft_layers == other.raft_layers
+               && raft_layers == other.raft_layers && layer_zs == other.layer_zs
             ;
     }
 
@@ -625,9 +699,23 @@ inline void tree_supports_show_error(std::string_view message, bool critical)
 
 inline double layer_z(const SlicingParameters &slicing_params, const TreeSupportSettings &config, const size_t layer_idx)
 {
+    if (config.has_variable_layer_height())
+        return config.layer_zs[std::min(layer_idx, config.layer_zs.size() - 1)];
     return layer_idx >= config.raft_layers.size() ? 
         slicing_params.object_print_z_min + slicing_params.first_object_layer_height + (layer_idx - config.raft_layers.size()) * slicing_params.layer_height :
         config.raft_layers[layer_idx];
+}
+
+// Orca: Highest support layer below overhang_layer which keeps the top Z distance to the overhang.
+// Tips supporting the overhang are placed there.
+inline LayerIndex support_tip_layer(const TreeSupportSettings &config, LayerIndex overhang_layer)
+{
+    if (! config.has_variable_layer_height())
+        return overhang_layer - LayerIndex(config.z_distance_top_layers) - 1;
+    LayerIndex layer_idx = overhang_layer - 1;
+    while (layer_idx >= 0 && layer_idx + LayerIndex(config.z_distance_top_layers_at(layer_idx)) >= overhang_layer)
+        -- layer_idx;
+    return layer_idx;
 }
 
 inline double first_object_support_layer_z(const SlicingParameters &slicing_params)
@@ -640,6 +728,8 @@ inline double first_object_support_layer_z(const SlicingParameters &slicing_para
 // Lowest collision layer
 inline LayerIndex layer_idx_ceil(const SlicingParameters &slicing_params, const TreeSupportSettings &config, const double z)
 {
+    if (config.has_variable_layer_height())
+        return LayerIndex(std::lower_bound(config.layer_zs.begin(), config.layer_zs.end(), z - EPSILON) - config.layer_zs.begin());
     const double first_object_z = first_object_support_layer_z(slicing_params);
     if (!config.raft_layers.empty() && z < first_object_z - EPSILON) {
         auto it = std::lower_bound(config.raft_layers.begin(), config.raft_layers.end(), z - EPSILON);
@@ -651,6 +741,8 @@ inline LayerIndex layer_idx_ceil(const SlicingParameters &slicing_params, const 
 // Highest collision layer
 inline LayerIndex layer_idx_floor(const SlicingParameters &slicing_params, const TreeSupportSettings &config, const double z)
 {
+    if (config.has_variable_layer_height())
+        return std::max<LayerIndex>(0, LayerIndex(std::upper_bound(config.layer_zs.begin(), config.layer_zs.end(), z + EPSILON) - config.layer_zs.begin()) - 1);
     const double first_object_z = first_object_support_layer_z(slicing_params);
     if (!config.raft_layers.empty() && z < first_object_z - EPSILON) {
         auto it = std::upper_bound(config.raft_layers.begin(), config.raft_layers.end(), z + EPSILON);
