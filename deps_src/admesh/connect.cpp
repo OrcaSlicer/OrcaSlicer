@@ -488,6 +488,12 @@ void stl_check_facets_nearby(stl_file *stl, float tolerance)
     	// No need to check any further.  All facets are connected.
     	return;
 
+  	// A mesh built in memory has no shortest edge, so the tolerance arrives as 0, and load_nearby() would divide by it.
+  	// Converting the infinities and NaNs to int is undefined: x86-64 makes them all INT_MIN, so no edge was ever
+  	// matched, while ARM64 saturates them by sign and merged unrelated edges. Keep the x86-64 result everywhere.
+  	if (!(tolerance > 0.f))
+  		return;
+
   	HashTableEdges hash_table(stl->stats.number_of_facets);
   	for (uint32_t i = 0; i < stl->stats.number_of_facets; ++ i) {
     	//FIXME is the copy necessary?
