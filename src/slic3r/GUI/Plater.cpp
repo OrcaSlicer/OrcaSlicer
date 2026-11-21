@@ -7649,7 +7649,10 @@ struct Plater::priv
     void export_gcode(fs::path output_path, bool output_path_on_removable_media, PrintHostJob upload_job);
 
     void reload_from_disk();
-    bool replace_volume_with_stl(int object_idx, int volume_idx, const fs::path& new_path, const std::string& snapshot = "");
+    // ORCA Coordinates used by the file given to "Replace 3D file".
+    enum class ReplaceCoordinates { OriginalFile, Plate, KeepPosition };
+    bool replace_volume_with_stl(int object_idx, int volume_idx, const fs::path& new_path, const std::string& snapshot = "",
+                                 ReplaceCoordinates coordinates = ReplaceCoordinates::OriginalFile);
     void replace_with_stl();
     void replace_all_with_stl();
     void reload_all_from_disk();
@@ -12107,7 +12110,8 @@ void Plater::priv::update_sla_scene()
     this->update_restart_background_process(true, true);
 }
 
-bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const fs::path& new_path, const std::string& snapshot)
+bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const fs::path& new_path, const std::string& snapshot,
+                                           ReplaceCoordinates coordinates)
 {
     const std::string path = new_path.string();
     wxBusyCursor wait;
@@ -12179,10 +12183,19 @@ bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const
     new_volume->config.apply(old_volume->config);
     new_volume->set_type(old_volume->type());
     new_volume->set_material_id(old_volume->material_id());
+    // ORCA Meshes are centered, so this alone keeps the position.
     new_volume->set_transformation(old_volume->get_transformation());
-    new_volume->translate(new_volume->get_transformation().get_matrix_no_offset() * (new_volume->source.mesh_offset - old_volume->source.mesh_offset));
+    if (coordinates == ReplaceCoordinates::OriginalFile)
+        new_volume->translate(new_volume->get_transformation().get_matrix_no_offset() * (new_volume->source.mesh_offset - old_volume->source.mesh_offset));
     assert(!old_volume->source.is_converted_from_inches || !old_volume->source.is_converted_from_meters);
-    if (old_volume->source.is_converted_from_inches)
+    if (coordinates == ReplaceCoordinates::Plate) {
+        // ORCA Inverse of export_stl(). The exported file is already in millimeters.
+        Vec3d file_offset = new_volume->source.mesh_offset;
+        if (old_model_object->instances.size() == 1)
+            file_offset += old_model_object->origin_translation;
+        new_volume->set_transformation(old_model_object->instances.front()->get_matrix().inverse() * Geometry::translation_transform(file_offset));
+    }
+    else if (old_volume->source.is_converted_from_inches)
         new_volume->convert_from_imperial_units();
     else if (old_volume->source.is_converted_from_meters)
         new_volume->convert_from_meters();
@@ -12190,7 +12203,11 @@ bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const
         // Proper paint remapping
         auto saved_painting = old_volume->save_painting();
         if (saved_painting) {
-            saved_painting->mesh.transform(Geometry::translation_transform(new_volume->mesh().get_init_shift()));
+            Transform3d to_new_mesh = Geometry::translation_transform(new_volume->mesh().get_init_shift());
+            // ORCA The exported mesh has the object transformations applied.
+            if (coordinates == ReplaceCoordinates::Plate)
+                to_new_mesh = to_new_mesh * new_volume->get_matrix().inverse() * old_volume->get_matrix();
+            saved_painting->mesh.transform(to_new_mesh);
             new_volume->restore_painting(saved_painting);
         }
     } else {
@@ -12216,6 +12233,53 @@ bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const
     sla::reproject_points_and_holes(old_model_object);
 
     return true;
+}
+
+// ORCA
+namespace {
+class ReplaceCoordinatesDialog final : public DPIDialog
+{
+public:
+    using DPIDialog::DPIDialog;
+
+protected:
+    void on_dpi_changed(const wxRect&) override {}
+};
+} // namespace
+
+// Returns the selected item, or -1 when cancelled.
+static int ask_replace_coordinates(wxWindow* parent, int selection)
+{
+    ReplaceCoordinatesDialog dialog(parent, wxID_ANY, _L("Replace 3D file"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX);
+    dialog.SetBackgroundColour(*wxWHITE); // before RadioGroup, which copies it
+    auto* sizer = new wxBoxSizer(wxVERTICAL);
+
+    auto* message = new wxStaticText(&dialog, wxID_ANY, _L("Which coordinates does the new file use?"));
+    message->SetFont(::Label::Body_14);
+    message->SetForegroundColour(wxColour("#363636"));
+    sizer->Add(message, 0, wxLEFT | wxRIGHT | wxTOP, dialog.FromDIP(20));
+
+    auto* choices = new RadioGroup(&dialog, {
+        _L("Original coordinates from the imported file"),
+        _L("Plate: file exported from this project"),
+        _L("Keep position: center on the current part")
+    }, wxVERTICAL);
+    choices->SetSelection(selection);
+    choices->SetRadioTooltip(0, _L("The new file uses the coordinates of the file this part was imported from, as a newer version of that file does."));
+    choices->SetRadioTooltip(1, _L("The new file was exported with \"Export as one STL\". The part returns to the place it was exported from."));
+    choices->SetRadioTooltip(2, _L("The coordinates of the new file are ignored and the rotation and scale of the part are applied to it."));
+    sizer->Add(choices, 0, wxLEFT | wxRIGHT | wxTOP, dialog.FromDIP(20));
+    sizer->AddSpacer(dialog.FromDIP(10));
+
+    auto* buttons = new DialogButtons(&dialog, {"OK", "Cancel"});
+    buttons->GetOK()->Bind(wxEVT_BUTTON, [&dialog](wxCommandEvent&) { dialog.EndModal(wxID_OK); });
+    buttons->GetCANCEL()->Bind(wxEVT_BUTTON, [&dialog](wxCommandEvent&) { dialog.EndModal(wxID_CANCEL); });
+    sizer->Add(buttons, 0, wxEXPAND);
+
+    dialog.SetSizerAndFit(sizer);
+    dialog.CenterOnParent(); // again, now that the size is final
+    wxGetApp().UpdateDlgDarkUI(&dialog);
+    return dialog.ShowModal() == wxID_OK ? choices->GetSelection() : -1;
 }
 
 void Plater::priv::replace_with_stl()
@@ -12254,7 +12318,13 @@ void Plater::priv::replace_with_stl()
         return;
     }
 
-    if (!replace_volume_with_stl(object_idx, volume_idx, out_path, _u8L("Replace with 3D file")))
+    AppConfig* app_config = wxGetApp().app_config;
+    const int coordinates = ask_replace_coordinates(q, atoi(app_config->get("replace_coordinates").c_str()));
+    if (coordinates < 0)
+        return;
+    app_config->set("replace_coordinates", std::to_string(coordinates));
+
+    if (!replace_volume_with_stl(object_idx, volume_idx, out_path, _u8L("Replace with 3D file"), ReplaceCoordinates(coordinates)))
         return;
 
     // update 3D scene
