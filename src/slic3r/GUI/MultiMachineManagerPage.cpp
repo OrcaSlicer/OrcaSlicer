@@ -220,9 +220,13 @@ void MultiMachineItem::doRender(wxDC& dc)
         else if (state_device > 2 && state_device < 7) {
             dc.SetFont(Label::Body_12);
             dc.SetTextForeground(wxColour(0, 150, 136));
-            if (obj_->get_curr_stage() == _L("Printing") && obj_->subtask_) {
+            // A LAN printer agent reports no stage list, only mc_percent: its progress is drawn the same way.
+            const wxString stage = obj_->get_curr_stage();
+            const bool bbl_printing = stage == _L("Printing") && obj_->subtask_;
+            if (bbl_printing || (stage.empty() && state_device == 3)) {
+                const int progress = bbl_printing ? obj_->subtask_->task_progress : std::clamp(obj_->mc_print_percent, 0, 100);
                 //wxString layer_info = wxString::Format(_L("Layer: %d/%d"), obj_->curr_layer, obj_->total_layers);
-                wxString progress_info = wxString::Format("%d", obj_->subtask_->task_progress);
+                wxString progress_info = wxString::Format("%d", progress);
                 wxString left_time = wxString::Format("%s", get_left_time(obj_->mc_left_time));
 
                 DrawTextWithEllipsis(dc, progress_info + "%  |  " + left_time, FromDIP(DEVICE_LEFT_PRO_INFO), left, FromDIP(10));
@@ -234,10 +238,10 @@ void MultiMachineItem::doRender(wxDC& dc)
 
                 dc.SetPen(wxPen(wxColour(0, 150, 136)));
                 dc.SetBrush(wxBrush(wxColour(0, 150, 136)));
-                dc.DrawRoundedRectangle(left, FromDIP(30), FromDIP(DEVICE_LEFT_PRO_INFO) * (static_cast<float>(obj_->subtask_->task_progress) / 100.0f), FromDIP(10), 2);
+                dc.DrawRoundedRectangle(left, FromDIP(30), FromDIP(DEVICE_LEFT_PRO_INFO) * (static_cast<float>(progress) / 100.0f), FromDIP(10), 2);
             }
             else {
-                DrawTextWithEllipsis(dc, obj_->get_curr_stage(), FromDIP(DEVICE_LEFT_PRO_INFO), left);
+                DrawTextWithEllipsis(dc, stage.empty() ? get_state_device() : stage, FromDIP(DEVICE_LEFT_PRO_INFO), left);
             }
 
         }
