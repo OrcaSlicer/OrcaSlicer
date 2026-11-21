@@ -2,6 +2,7 @@
 
 #include "IPrinterAgent.hpp"
 #include "MoonrakerPrinterAgent.hpp"
+#include "bambu_networking.hpp"
 
 #include <string>
 
@@ -30,6 +31,9 @@ public:
 
     // Combine filament_type + filament_sub_type into a unified type string
     static std::string combine_filament_type(const std::string& type, const std::string& sub_type);
+
+protected:
+    bool print_uploaded_file(const PrintParams& params, const std::string& filename) override;
 };
 
 } // namespace Slic3r
