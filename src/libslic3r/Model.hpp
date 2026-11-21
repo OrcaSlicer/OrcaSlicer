@@ -546,9 +546,14 @@ public:
     void translate_instance(size_t instance_idx, const Vec3d& vector);
     void translate(const Vec3d &vector) { this->translate(vector(0), vector(1), vector(2)); }
     void translate(double x, double y, double z);
+    // Scales every part about the object's origin: its size and its place in the object.
     void scale(const Vec3d &versor);
     void scale(const double s) { this->scale(Vec3d(s, s, s)); }
     void scale(double x, double y, double z) { this->scale(Vec3d(x, y, z)); }
+    // Like scale(), then moves each instance back so the bottom centre of its bounding box is where it was:
+    // the object keeps its place on the plate and the height of its lowest point, as when scaling in the GUI.
+    void scale_in_place(const Vec3d &versor);
+    void scale_in_place(const double s) { this->scale_in_place(Vec3d(s, s, s)); }
     /// Scale the current ModelObject to fit by altering the scaling factor of ModelInstances.
     /// It operates on the total size by duplicating the object according to all the instances.
     /// \param size Sizef3 the size vector
