@@ -2608,6 +2608,8 @@ TEST_CASE("Each filament's walls keep their own max volumetric speed", "[MultiFi
         { "slow_down_layers",              0 },
         { "skirt_loops",                   0 },
         { "brim_type",                     "no_brim" },
+        // custom G-code indexes the per-filament arrays by filament
+        { "machine_start_gcode",           "; filament 2 cap {filament_max_volumetric_speed[1]}" },
     });
 
     const std::string gcode = slice_with_object_overrides(
@@ -2623,4 +2625,10 @@ TEST_CASE("Each filament's walls keep their own max volumetric speed", "[MultiFi
     CHECK_THAT(peak_flow.at(1), Catch::Matchers::WithinRel(2.0, 0.01));
     // Filament 1's 20 mm3/s cap does not bind, so its walls stay near the demanded flow.
     CHECK(peak_flow.at(0) > 10.0);
+
+    // The placeholder variables resolve through the same column lookup.
+    const std::string tag = "; filament 2 cap ";
+    const size_t      at  = gcode.find(tag);
+    REQUIRE(at != std::string::npos);
+    CHECK_THAT(std::stod(gcode.substr(at + tag.size())), Catch::Matchers::WithinRel(2.0, 0.01));
 }
