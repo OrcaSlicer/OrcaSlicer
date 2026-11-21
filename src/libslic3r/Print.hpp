@@ -22,6 +22,7 @@
 #include "Slicing.hpp"
 #include "TriangleMesh.hpp"
 #include "TriangleMeshSlicer.hpp"
+#include "GCode/ObjectWipeTowerPlacement.hpp"
 #include "GCode/ToolOrdering.hpp"
 #include "GCode/WipeTower.hpp"
 #include "GCode/WipeTower2.hpp"
@@ -1215,6 +1216,11 @@ public:
     // does need the tower would then be refused after slicing.
     bool                        precise_z_height_overridden() const { return m_precise_z_height_overridden; }
     const WipeTowerData&        wipe_tower_data(size_t filaments_cnt = 0) const;
+    using ObjectWipeTowerPlacements = std::map<const PrintInstance*, ObjectWipeTowerPlacement>;
+    // "By object" print only: where each multi-filament instance's own prime tower would stand, estimated from
+    // the settings. An instance missing from the result gets no tower, either because it prints one filament or
+    // because there is no room for it, which then adds a warning.
+    ObjectWipeTowerPlacements   estimate_object_wipe_tower_placements(std::vector<StringObjectException> *warnings = nullptr) const;
     const ToolOrdering& 		tool_ordering() const { return m_tool_ordering; }
 
     void update_filament_maps_to_config(std::vector<int> f_maps, std::vector<int> f_volume_maps = std::vector<int>{}, std::vector<int> f_nozzle_maps = std::vector<int>{});

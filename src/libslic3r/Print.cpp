@@ -77,6 +77,7 @@
 #include "BeltTransform.hpp"
 #include "GCode/WipeTower.hpp"
 #include "GCode/WipeTower2.hpp"
+#include "GCode/ObjectWipeTowerPlacement.hpp"
 #include "GCode/WipeTowerEstimate.hpp"
 #include "Utils.hpp"
 #include "PrintConfig.hpp"
@@ -901,6 +902,16 @@ std::vector<size_t> Print::layers_sorted_for_object(float start, float end, std:
     return idx_of_object_sorted;
 };
 
+// Distance every instance hull is grown by when two instances are tested against each other. The
+// extruder_clearance_radius is shrunk a tiny bit so that an arrangement which satisfies it exactly
+// does not trigger a collision.
+static float sequential_clearance_object_distance(const Print &print, float object_skirt_offset)
+{
+    return print.is_all_objects_are_short() ?
+        scale_(std::max(0.5f * MAX_OUTER_NOZZLE_DIAMETER, object_skirt_offset) - 0.1) :
+        scale_(0.5 * print.config().extruder_clearance_radius.value + object_skirt_offset - 0.1);
+}
+
 StringObjectException Print::sequential_print_clearance_valid(const Print &print, Polygons *polygons, std::vector<std::pair<Polygon, float>>* height_polygons, StringObjectException *warning)
 {
     StringObjectException single_object_exception;
@@ -1005,7 +1016,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
 
         // Shrink the extruder_clearance_radius a tiny bit, so that if the object arrangement algorithm placed the objects
         // exactly by satisfying the extruder_clearance_radius, this test will not trigger collision.
-        float obj_distance = print.is_all_objects_are_short() ? scale_(std::max(0.5f * MAX_OUTER_NOZZLE_DIAMETER, object_skirt_offset) - 0.1) : scale_(0.5 * print.config().extruder_clearance_radius.value + object_skirt_offset - 0.1);
+        float obj_distance = sequential_clearance_object_distance(print, object_skirt_offset);
 
         for (const PrintObject *print_object : print.objects()) {
             assert(! print_object->model_object()->instances.empty());
@@ -1512,6 +1523,83 @@ static Polygon estimated_wipe_tower_footprint(const Print &print)
         footprint.points.emplace_back(scale_(p.x()), scale_(p.y()));
     }
     return footprint;
+}
+
+// Where the prime tower of every multi-filament object would stand beside it in a "By object" print, estimated
+// from the settings alone. Each instance gets a tower of its own, sized like the pre-slice estimate of the plate
+// tower for the filaments that object uses; a single-filament object gets none.
+Print::ObjectWipeTowerPlacements Print::estimate_object_wipe_tower_placements(std::vector<StringObjectException> *warnings) const
+{
+    ObjectWipeTowerPlacements placements;
+    if (m_config.print_sequence != PrintSequence::ByObject || this->num_object_instances() <= 1)
+        return placements;
+
+    const std::vector<const PrintInstance *> instances = sort_object_instances_by_model_order(*this);
+    const auto [object_skirt_offset, _] = this->object_skirt_offset();
+    const double rod_reach = std::max(0., m_config.extruder_clearance_dist_to_rod.value - 0.5 * m_config.extruder_clearance_radius.value);
+
+    ObjectWipeTowerPlacementParameters parameters;
+    parameters.origin = Point(scale_(m_origin.x()), scale_(m_origin.y()));
+    parameters.bed    = this->get_extruder_shared_printable_polygon();
+    for (Polygon &poly : parameters.bed)
+        poly.translate(parameters.origin);
+    parameters.excluded         = full_height_bed_exclusion_polygons(translated_bed_exclusion_volumes(*this));
+    parameters.clearance        = (this->is_all_objects_are_short() ? double(MAX_OUTER_NOZZLE_DIAMETER) : m_config.extruder_clearance_radius.value) - 0.2;
+    parameters.object_distance  = sequential_clearance_object_distance(*this, object_skirt_offset);
+    parameters.rod_adjustment   = scale_(rod_reach);
+    parameters.lid_height       = scale_(m_config.extruder_clearance_height_to_lid);
+    parameters.rod_height       = scale_(m_config.extruder_clearance_height_to_rod);
+    parameters.printable_height = scale_(m_config.printable_height);
+
+    const auto &is_mixed   = m_config.filament_is_mixed.values;
+    const auto &components = m_config.filament_mixed_components.values;
+    std::vector<ObjectWipeTowerPlacementInstance> inputs;
+    inputs.reserve(instances.size());
+    for (const PrintInstance *instance : instances) {
+        const PrintObject      &object = *instance->print_object;
+        const ModelInstance    &model_instance = *instance->model_instance;
+        ObjectWipeTowerPlacementInstance input;
+        input.model_hull = object.model_object()->convex_hull_2d(Geometry::assemble_transform(
+            { 0.0, 0.0, model_instance.get_offset().z() }, model_instance.get_rotation(), model_instance.get_scaling_factor(), model_instance.get_mirror()));
+        input.shift = instance->shift - object.center_offset();
+        input.top   = double(object.print_z_max());
+        // The footprint is the hull plus the brim and the per-object skirt that will be printed around it.
+        const double margin = (object.has_brim() ? object.config().brim_width.value + object.config().brim_object_gap.value : 0.) + object_skirt_offset;
+        Polygon hull = input.model_hull;
+        hull.translate(input.shift);
+        const Polygons grown = offset(hull, float(scale_(margin)));
+        input.footprint = grown.empty() ? hull : grown.front();
+
+        const std::vector<unsigned int> filaments = expand_mixed_filaments(object.printing_extruders(), is_mixed, components);
+        if (filaments.size() > 1) {
+            const double height = unscale_(object.size().z());
+            const WipeTowerType tower_type = this->wipe_tower_type();
+            const WipeTowerFootprint tower = estimate_wipe_tower_footprint(m_config, tower_type, filaments, std::max(0.01, object.config().layer_height.value), height);
+            if (tower.depth > EPSILON) {
+                const Polygon outline = estimate_wipe_tower_first_layer_outline(m_config, tower_type, tower.width, tower.depth, height);
+                const Polygons padded = offset(outline, float(scale_(compacted_tower_footprint_padding(m_config, tower.brim_width))));
+                if (!padded.empty()) {
+                    input.tower_hull   = padded.front();
+                    input.tower_height = height;
+                }
+            }
+        }
+        inputs.push_back(std::move(input));
+    }
+
+    const ObjectWipeTowerPlacementResult result = place_object_wipe_towers(inputs, parameters, [this]() { this->throw_if_canceled(); });
+    for (const auto &[index, placement] : result.placed)
+        placements.emplace(instances[index], placement);
+    if (warnings)
+        for (const size_t index : result.unplaced) {
+            const ModelObject *model_object = instances[index]->print_object->model_object();
+            StringObjectException warning;
+            warning.string     = (boost::format(L("There is no space for a prime tower beside object \"%1%\"; it is printed without one.")) % model_object->name).str();
+            warning.object     = model_object;
+            warning.is_warning = true;
+            warnings->push_back(std::move(warning));
+        }
+    return placements;
 }
 
 // Pre-slice counterpart of validate_compacted_wipe_tower_clearance(). It applies the same clearance
