@@ -4007,7 +4007,14 @@ it and files a call saves without a path go there, and a replay writes `result.j
 there. Without it a replay writes to a new `replay-<timestamp>` folder in the temporary folder, as
 `replay_run` does, and `output_dir()` is `<datadir>/automation/out`. Then the run closes the app without prompting and exits 0 if the replay passed
 or the script finished, 1 if a step failed or the script did not finish, and 2 if the file is invalid,
-can't be read or is neither a `.json` nor a `.py` file. A `--run` launch keeps a window of its own:
+can't be read or is neither a `.json` nor a `.py` file. A dialog still open then is ended as its Cancel or
+close box ends it, a message box by its Cancel, No or OK, and the main window closes only once no
+`ShowModal()` runs (`close_after_modals()`, which waits for the next idle event of the main loop): closed
+from inside a dialog's nested loop, the window would be destroyed with that dialog's `ShowModal()` still
+on the stack. A native file picker can't be ended, so the close waits for it. The run's session is the
+script's, not a person's (`GUI_App::launched_for_run()`): the startup question about restoring an unsaved
+project is not asked, and neither it nor the projects the run opens move `last_backup_path`, so a
+person's backup is still offered at their next launch. A `--run` launch keeps a window of its own:
 `GUI_Run()` calls `instance_check()` with `never_send`, so the launch is never handed to a running
 instance, whatever the `single_instance` preference says, and its exit code is its own. The call still
 sets the instance hash, which `post_init()` reads. Where no GUI starts, beside a slicing action or

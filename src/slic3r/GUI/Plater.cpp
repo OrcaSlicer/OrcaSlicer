@@ -8509,7 +8509,9 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         this->q->Bind(EVT_RESTORE_PROJECT, [this, last = last_backup](wxCommandEvent& e) {
             std::string last_backup = last;
             std::string originfile;
-            if (Slic3r::has_restore_data(last_backup, originfile)) {
+            // A --run launch neither asks nor discards: the backup stays for the person's next launch.
+            const bool for_run = wxGetApp().launched_for_run();
+            if (!for_run && Slic3r::has_restore_data(last_backup, originfile)) {
                 auto result = MessageDialog(this->q, _L("Previously unsaved items have been detected. Do you want to restore them\?"), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Restore"), wxYES_NO | wxYES_DEFAULT | wxCENTRE).ShowModal();
                 if (result == wxID_YES) {
                     this->q->load_project(from_path(last_backup), from_path(originfile));
@@ -8519,7 +8521,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
             }
 
             try {
-                if (originfile != "<lock>") // see bbs_3mf.cpp for lock detail
+                if (!for_run && originfile != "<lock>") // see bbs_3mf.cpp for lock detail
                     boost::filesystem::remove_all(last);
             }
 
@@ -16745,7 +16747,9 @@ int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_
     p->on_plate_selected(event);
 
     p->load_auxiliary_files();
-    wxGetApp().app_config->update_last_backup_dir(model().get_backup_path());
+    // The next launch offers to restore this backup, unless a --run launch's script made it.
+    if (!wxGetApp().launched_for_run())
+        wxGetApp().app_config->update_last_backup_dir(model().get_backup_path());
 
     // BBS set default view and zoom
     p->select_view_3D("3D");
@@ -16907,7 +16911,9 @@ void Plater::load_project(wxString const& filename2,
 
     enable_sidebar(!m_only_gcode);
 
-    wxGetApp().app_config->update_last_backup_dir(model().get_backup_path());
+    // The next launch offers to restore this backup, unless a --run launch's script made it.
+    if (!wxGetApp().launched_for_run())
+        wxGetApp().app_config->update_last_backup_dir(model().get_backup_path());
     if (load_restore && !originfile.empty()) {
         wxGetApp().app_config->update_skein_dir(into_path(originfile).parent_path().string());
         wxGetApp().app_config->update_config_dir(into_path(originfile).parent_path().string());

@@ -408,6 +408,9 @@ public:
     int             OnExit() override;
     void            CleanUp() override;
     bool            initialized() const { return m_initialized; }
+    // A --run launch, whose replay or script owns the session: the questions that are a person's, such as restoring
+    // their unsaved project, wait for their next launch.
+    bool launched_for_run() const { return this->init_params != nullptr && !this->init_params->mcp.run_file.empty(); }
     inline bool     is_enable_multi_machine() { return this->app_config&& this->app_config->get("enable_multi_machine") == "true"; }
 #ifdef SLIC3R_CAD
     // the saved preference
