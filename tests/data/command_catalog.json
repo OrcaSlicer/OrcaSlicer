@@ -4388,7 +4388,7 @@
     }
    ],
    "completion": "immediate",
-   "description": "Generate a Calibration menu test as its dialog's OK does: a new project named after the test with the test model, and the process, filament and printer presets changed as the test needs (presets_changed). The test prints with filament slot 1, so the filament tab is pointed at slot 1's preset. Omitted parameters take the dialog's defaults (pressure advance's by the printer's extruder type); temperatures are clamped to 155-500 °C and rounded down to 5 °C. Fails, changing nothing, when the project has unsaved changes (pass discard_changes) or presets do (pass preset_changes). Called with test alone it opens that test's dialog, as the Calibration menu does (blocked_by_dialog), and the dialog's OK runs the test; silent: true with test alone runs it with the dialog's defaults. Reply: test, project, params (the values used, which the journal records), objects, names, plates, presets_changed, result_keys (where the measured value belongs), warnings, adjusted (vfa), and discarded and modified as project_new. Then plate_slice and project_export. To save a measured value: project_new {discard_changes, preset_changes: \"discard\"}, settings_set the value, preset_save.",
+   "description": "Generate a Calibration menu test as its dialog's OK does: a new project named after the test with the test model, and the process, filament and printer presets changed as the test needs (presets_changed). The test prints with filament_slot, a physical filament, on the extruder the filament map gives it, as the dialog's filament list picks one, so the filament tab is pointed at that slot's preset. Omitted parameters take the dialog's defaults (pressure advance's by the printer's extruder type), except that filament_slot defaults to 1 where the dialog starts on the filament the filament tab edits; temperatures are clamped to 155-500 °C and rounded down to 5 °C. Fails, changing nothing, when the project has unsaved changes (pass discard_changes) or presets do (pass preset_changes). Called with test alone it opens that test's dialog, as the Calibration menu does (blocked_by_dialog), and the dialog's OK runs the test; silent: true with test alone runs it with the dialog's defaults. Reply: test, project, params (the values used, which the journal records), objects, names, plates, presets_changed (its filament names the filament_slot, and on a printer with several extruders the extruder, 1-based, where the filament map decides it), result_keys (where the measured value belongs), warnings, adjusted (vfa), and discarded and modified as project_new. Then plate_slice and project_export. To save a measured value: project_new {discard_changes, preset_changes: \"discard\"}, settings_set the value, preset_save.",
    "destructive": false,
    "group": "Plates",
    "guard": "mutate",
@@ -4461,6 +4461,11 @@
      "end_y": {
       "description": "input_shaping_freq: end of the Y range; default the X one.",
       "type": "number"
+     },
+     "filament_slot": {
+      "description": "The physical filament (1-based slot) the test prints with, as the dialog's filament list offers them; a mixed filament is refused. Default 1.",
+      "minimum": 1,
+      "type": "integer"
      },
      "freq_x": {
       "description": "input_shaping_damp: the X frequency, Hz.",

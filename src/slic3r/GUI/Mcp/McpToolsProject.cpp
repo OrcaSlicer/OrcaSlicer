@@ -220,7 +220,7 @@ std::string format_of(const std::string& path)
 Calib_Params calib_params_from_args(const json& args, const DynamicPrintConfig& printer, std::vector<std::string>& warnings)
 {
     const std::string test = arg_string(args, "test");
-    // The arguments each test takes, besides test, silent, discard_changes and preset_changes.
+    // The arguments each test takes, besides test, filament_slot, silent, discard_changes and preset_changes.
     std::vector<std::string> takes{"start", "end", "step"};
     CalibMode                mode = CalibMode::Calib_None;
     std::string              method;
@@ -264,8 +264,8 @@ Calib_Params calib_params_from_args(const json& args, const DynamicPrintConfig& 
         throw ToolFailure("Unknown test \"" + test + "\"");
     }
     for (auto it = args.begin(); it != args.end(); ++it)
-        if (it.key() != "test" && it.key() != "silent" && it.key() != "discard_changes" && it.key() != "preset_changes" &&
-            std::find(takes.begin(), takes.end(), it.key()) == takes.end())
+        if (it.key() != "test" && it.key() != "filament_slot" && it.key() != "silent" && it.key() != "discard_changes" &&
+            it.key() != "preset_changes" && std::find(takes.begin(), takes.end(), it.key()) == takes.end())
             throw ToolFailure(it.key() + " does not apply to " + test + (method.empty() ? "" : " with method " + method), {{"takes", takes}});
 
     // The dialog's radio picks the Bowden defaults; here the printer's extruder type does.
@@ -575,19 +575,26 @@ void register_project_tools(CommandCatalog& catalog)
         "calibration_generate_test", L("Generate a calibration test"),
         "Generate a Calibration menu test as its dialog's OK does: a new project named after the test with the test "
         "model, and the process, filament and printer presets changed as the test needs (presets_changed). The test prints "
-        "with filament slot 1, so the filament tab is pointed at slot 1's preset. Omitted parameters take the dialog's "
-        "defaults (pressure advance's by the printer's extruder type); temperatures are clamped to 155-500 °C and rounded "
+        "with filament_slot, a physical filament, on the extruder the filament map gives it, as the dialog's filament list "
+        "picks one, so the filament tab is pointed at that slot's preset. Omitted parameters take the dialog's defaults "
+        "(pressure advance's by the printer's extruder type), except that filament_slot defaults to 1 where the dialog starts "
+        "on the filament the filament tab edits; temperatures are clamped to 155-500 °C and rounded "
         "down to 5 °C. Fails, changing nothing, when the project has unsaved changes (pass discard_changes) or presets do "
         "(pass preset_changes). Called with test alone it opens that test's dialog, as the Calibration menu does "
         "(blocked_by_dialog), and the dialog's OK runs the test; silent: true with test alone runs it with the dialog's "
         "defaults. Reply: test, project, params (the values used, which the "
-        "journal records), objects, names, plates, presets_changed, result_keys (where the measured value belongs), "
+        "journal records), objects, names, plates, presets_changed (its filament names the filament_slot, and on a printer "
+        "with several extruders the extruder, 1-based, where the filament map decides it), result_keys (where the measured value belongs), "
         "warnings, adjusted (vfa), and discarded and modified as project_new. Then plate_slice and project_export. To save "
         "a measured value: project_new {discard_changes, preset_changes: \"discard\"}, settings_set the value, preset_save.",
         object_schema(
             {{"test", enum_prop({"temperature", "max_volumetric", "pressure_advance", "flow_ratio", "retraction", "vfa", "cornering",
                                  "input_shaping_freq", "input_shaping_damp"},
                                 "The test, as the Calibration menu names it.")},
+             {"filament_slot", {{"type", "integer"},
+                                {"minimum", 1},
+                                {"description", "The physical filament (1-based slot) the test prints with, as the dialog's "
+                                                "filament list offers them; a mixed filament is refused. Default 1."}}},
              {"method", enum_prop({"tower", "line", "pattern", "pass1", "pass2", "yolo", "yolo_perfectionist"},
                                   "pressure_advance: tower (default), line or pattern; flow_ratio: pass1, pass2, yolo (default) or "
                                   "yolo_perfectionist.")},
@@ -632,6 +639,17 @@ void register_project_tools(CommandCatalog& catalog)
                                                                       bundle.printers.get_edited_preset().config;
                 std::vector<std::string> warnings;
                 Calib_Params             params = calib_params_from_args(args, printer, warnings);
+                // The dialog's filament list offers the physical filaments; a mixed slot is none of them.
+                const size_t physical = std::min(bundle.num_physical_filaments(), bundle.filament_presets.size());
+                const int    slot     = arg_int(args, "filament_slot", 1);
+                if (slot < 1 || size_t(slot) > physical)
+                    throw ToolFailure(slot >= 1 && size_t(slot) <= bundle.filament_presets.size() ?
+                                          "Filament slot " + std::to_string(slot) + " is a mixed filament; a test prints with a " +
+                                              "physical one, slot 1.." + std::to_string(physical) :
+                                          "filament_slot must be 1.." + std::to_string(physical) + ", the physical filaments");
+                const int extruder = calib_filament_extruder(size_t(slot - 1));
+                params.filament_id = slot - 1;
+                params.extruder_id = std::max(extruder, 0);
                 require_project_discardable(discard);
                 // The GUI asks whether to keep or discard modified presets here; the caller answers with preset_changes.
                 const json before = unsaved_changes();
@@ -645,15 +663,15 @@ void register_project_tools(CommandCatalog& catalog)
                                       "to run the test with them",
                                       {{"modified", modified}});
                 }
-                // The test prints with slot 1; switching the filament tab to it must not ask about another preset's changes.
-                const std::string& slot1 = bundle.filament_presets.front();
-                if (!discard_presets && bundle.filaments.get_edited_preset().name != slot1 && bundle.filaments.current_is_dirty())
+                // Switching the filament tab to the test's filament must not ask about another preset's changes.
+                const std::string& slot_preset = bundle.filament_presets[size_t(slot - 1)];
+                if (!discard_presets && bundle.filaments.get_edited_preset().name != slot_preset && bundle.filaments.current_is_dirty())
                     throw ToolFailure("The filament tab edits \"" + bundle.filaments.get_edited_preset().name +
-                                      "\", which has unsaved changes, and the test prints with filament slot 1 (\"" + slot1 +
-                                      "\"); pass preset_changes: \"discard\", or save or drop those changes first");
+                                      "\", which has unsaved changes, and the test prints with filament slot " + std::to_string(slot) +
+                                      " (\"" + slot_preset + "\"); pass preset_changes: \"discard\", or save or drop those changes first");
                 if (discard_presets && wxGetApp().has_current_preset_changes())
                     wxGetApp().discard_current_preset_changes();
-                const std::string switched_from = edit_filament_slot(1);
+                const std::string switched_from = edit_filament_slot(slot);
 
                 // The journal keeps VFA's end as asked, since the fit recomputes it from the presets.
                 recorded.update(calib_params_json(args, params, printer));
@@ -674,7 +692,7 @@ void register_project_tools(CommandCatalog& catalog)
                     plater.calib_flowrate(method == "yolo" || method == "yolo_perfectionist",
                                           method == "pass2" || method == "yolo_perfectionist" ? 2 : 1,
                                           arg_string(args, "top_surface_pattern") == "monotonic" ? ipMonotonic : ipArchimedeanChords,
-                                          /*filament_id*/ 0, /*extruder_id*/ 0, true);
+                                          params.filament_id, params.extruder_id, true);
                     break;
                 }
                 case CalibMode::Calib_Retraction_tower: plater.calib_retraction(params, true); break;
@@ -693,8 +711,12 @@ void register_project_tools(CommandCatalog& catalog)
                 changed_preset("process", bundle.prints, process_before);
                 changed_preset("printer", bundle.printers, printer_before);
                 presets_changed["filament"] = {{"name", bundle.filaments.get_edited_preset().name},
-                                               {"filament_slot", 1},
+                                               {"filament_slot", slot},
                                                {"changes", changed_settings(filament_before, bundle.filaments.get_edited_preset().config)}};
+                // The extruder, as the dialog's filament list names it: only with several, once the filament map decides it.
+                if (const auto* nozzles = bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
+                    nozzles != nullptr && nozzles->size() > 1 && extruder >= 0)
+                    presets_changed["filament"]["extruder"] = extruder + 1;
                 if (!switched_from.empty())
                     presets_changed["filament"]["tab_switched_from"] = switched_from;
                 if (plater.model().objects.empty())

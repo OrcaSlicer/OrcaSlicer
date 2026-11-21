@@ -118,7 +118,8 @@ bool is_belt_printer_selected()
     return false;
 }
 
-// The rule the slicer uses to find a filament's extruder; -1 while an automatic filament map is unresolved.
+}
+
 int calib_filament_extruder(size_t filament_id)
 {
     PresetBundle&       bundle  = *wxGetApp().preset_bundle;
@@ -126,8 +127,6 @@ int calib_filament_extruder(size_t filament_id)
     const auto*         nozzles = bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
     return bed_exclusion_extruder_for_filament(filament_id, plater.get_global_filament_map(), plater.get_global_filament_map_mode(),
                                                bundle.is_bbl_vendor(), false, nozzles != nullptr ? nozzles->size() : 1);
-}
-
 }
 
 CalibFilamentSelector::CalibFilamentSelector(wxWindow* parent) : m_parent(parent)

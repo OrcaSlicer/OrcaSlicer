@@ -1451,11 +1451,21 @@ Every test starts a new project, whose prompts the tool answers itself (`skip_co
 `calibration_generate_test` refuses without `preset_changes` and lists the modified keys: a previous test's
 settings would
 otherwise spoil this one. With `"discard"` the test's rules and defaults come from the saved printer
-preset, which is what remains. The tests write their filament settings to the preset the filament tab
-edits, while the test objects print with slot 1, so the tool first points the tab at slot 1's preset
-(`edit_filament_slot()`, the switch `settings_set` uses for a slot), as a person must; the reply's
-`presets_changed.filament` says `filament_slot: 1` and `tab_switched_from` when the tab moved. A tab that
-edits another slot's modified preset is refused with `"keep"`.
+preset, which is what remains.
+
+A test prints with one filament, `filament_slot`, which the dialogs pick in their filament list
+(`CalibFilamentSelector`): a physical filament, so a mixed slot is refused, and slot 1 when the call names
+none, where a dialog starts on the filament the filament tab edits, a slot that `settings_set` moves as a
+side effect. The extruder follows from the filament map, by the slicer's rule (`calib_filament_extruder()`,
+shared with the dialogs; extruder 0 while an automatic map leaves it to slicing), and the two go to
+`Calib_Params::filament_id` and `extruder_id`, which every `Plater::calib_*` reads. The tests write their
+filament settings to the preset the filament tab edits, so the tool first points the tab at that slot's
+preset (`edit_filament_slot()`, the switch `settings_set` uses for a slot), as a person must; the reply's
+`presets_changed.filament` gives the `filament_slot`, the `extruder` (1-based) on a printer with several once
+the filament map decides it, as the dialog's list labels it, and `tab_switched_from` when the tab moved.
+Neither is in `params`, which the journal replays as arguments: the slot is an argument of its own, and
+the default slot 1 does not depend on the app's state. A tab that edits another slot's modified preset is
+refused with `"keep"`.
 
 The reply has `test`, `project`, `params` (the values used, in the tool's units: max volumetric speed in
 mm³/s, a pattern's default acceleration and speed read back from the process), `objects`, `names`,

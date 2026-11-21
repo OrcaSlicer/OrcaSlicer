@@ -12,7 +12,9 @@ diameter; a preference changed in its dialog; and that the presets selected and 
 is sliced with. After every step it reads the selection back, each preset with its unsaved edits, and compares it
 whole with the state the entry writes out. Then the Calibration menu's tests through calibration_generate_test,
 every test and method: the project each makes, the parameters it uses, the presets and objects it changes, its
-warnings and refusals, preset_changes "keep" and "discard", and, through the exported G-code, the values the
+warnings and refusals, preset_changes "keep" and "discard", a test printing with another filament (filament_slot)
+and the slots it refuses, on the ToolChanger the extruder it prints on and the settings it takes from it, and,
+through the exported G-code, the values the
 temperature, pressure advance and retraction towers step through. It runs on the default printer, the Generic
 Klipper Printer 0.4, and switches to other printers of the Custom vendor, in an app and on a data folder earlier
 tests used; it exits 0 when every check passes.
@@ -28,7 +30,7 @@ import zipfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
 from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, SLOT_COLOURS, Checks, add_slot, refusal, run,  # noqa: E402
-                    start, until, wait)
+                    slots, start, until, wait)
 
 FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "fixtures")
 
@@ -38,12 +40,15 @@ MARLIN = "MyMarlin 0.4 nozzle"
 STD = KLIPPER_STD
 OPT = "0.16mm Optimal @MyKlipper"
 PLA = GENERIC_PLA
-# A printer of the Custom vendor that PLA does not fit, and the Generic PLA of its own that takes PLA's place.
+# A printer of the Custom vendor that PLA does not fit, with five extruders, and the Generic PLA of its own that takes
+# PLA's place.
 TOOLCHANGER = "MyToolChanger 0.4 nozzle"
+TOOLCHANGER_STD = "0.20mm Standard @MyToolChanger"
 TOOLCHANGER_PLA = "Generic PLA @MyToolChanger"
 # The entry's terms for the presets it names often.
 TERMS = {"Klipper": KLIPPER, "Klipper 0.6": KLIPPER_06, "Klipper 0.8": KLIPPER_08, "Marlin": MARLIN,
-         "Std": STD, "Opt": OPT, "PLA": PLA}
+         "ToolChanger": TOOLCHANGER, "Std": STD, "Opt": OPT, "TC Std": TOOLCHANGER_STD, "PLA": PLA,
+         "TC PLA": TOOLCHANGER_PLA}
 SHORT = {name: term for term, name in TERMS.items()}
 START = {"printer": KLIPPER, "process": STD, "filaments": [PLA]}
 
@@ -1305,6 +1310,11 @@ class PresetsTest:
         listing = self.c.call("object_list", limit=500)
         return [{"name": o["name"], "height": o["bbox"]["size"][2]} for p in listing["plates"] for o in p["objects"]]
 
+    def object_filaments(self):
+        """Each object as (name, the filament it prints with) from object_list."""
+        listing = self.c.call("object_list", limit=500)
+        return [(o["name"], o.get("filament")) for p in listing["plates"] for o in p["objects"]]
+
     def own(self, obj, key):
         """The object's own value of a process key."""
         return self.c.call("settings_get", target="object", object=obj, keys=[key])["items"][0]["value"]
@@ -1707,30 +1717,110 @@ class PresetsTest:
         self.named_selection_is(f"{s} 5", named("Klipper | Std | PLA, MCP Calib PLA"))
         t.equal(f"{s} 5: slow_down_layer_time", self.value("filament", "slow_down_layer_time"), "4")
 
+        temperatures = {key: times(240, 6) for key in TEMPERATURE_KEYS}
+        reply = self.run("calibration_generate_test", test="temperature", filament_slot=2, start=240, end=220, **DISCARD)
+        t.equal(f"{s} 6: the reply's project", reply.get("project"), "Nozzle temperature test")
+        t.equal(f"{s} 6: params", reply.get("params"), {"start": 240, "end": 220, "auto_scale": True})
+        t.equal(f"{s} 6: the filament's part of presets_changed", reply.get("presets_changed", {}).get("filament"),
+                {"name": CALIB_PLA, "filament_slot": 2, "tab_switched_from": PLA, "changes": temperatures})
+        after6 = named(f"Klipper | Std | PLA, MCP Calib PLA[nozzle_temperature {times(240, 6)}, "
+                       f"nozzle_temperature_initial_layer {times(240, 6)}]")
+        self.named_selection_is(f"{s} 6", after6)
+        t.equal(f"{s} 6: the tower prints with slot 2", self.object_filaments(), [("temperature_tower.drc", 2)])
+
+        path = self.slice(f"{s} 7", "slot2_temperature.gcode")
+        temps = [float(m.group(1)) for line in gcode_layers(path) if (m := re.match(r"M104 S([0-9.]+)", line))]
+        t.equal(f"{s} 7: slot 2's temperatures, block by block", in_a_row([v for v in temps if v != 0]),
+                [240, 235, 230, 225, 220])
+
+        self.run("filament_add_mixed", components=[1, 2], ratios=[50, 50])
+        t.equal(f"{s} 8: the slots after the add", slots(self.c), "0,0,1")
+        for bad, words in ((3, "Filament slot 3 is a mixed filament"),
+                           (4, "filament_slot must be 1..2, the physical filaments")):
+            self.refused(f"{s} 8: slot {bad} refused",
+                         lambda bad=bad: self.c.call("calibration_generate_test", test="retraction", filament_slot=bad,
+                                                     **DISCARD),
+                         words=words)
+            t.equal(f"{s} 8: slot {bad} leaves the tower", self.object_filaments(), [("temperature_tower.drc", 2)])
+        self.run("filament_delete", filament_slot=3)
+        t.equal(f"{s} 8: the slots after the delete", slots(self.c), "0,0")
+        self.named_selection_is(f"{s} 8: before the discard", after6)
+        self.run("project_new", **DISCARD)
+        self.named_selection_is(f"{s} 8", named("Klipper | Std | PLA, MCP Calib PLA"))
+
         reply = self.run("filament_delete", filament_slot=2)
-        t.equal(f"{s} 6: the slot's delete", reply.get("level"), "success")
+        t.equal(f"{s} 9: the slot's delete", reply.get("level"), "success")
         reply = self.run("preset_delete", type="filament", name=CALIB_PLA)
-        t.equal(f"{s} 6: the preset's delete", reply.get("deleted"), CALIB_PLA)
-        self.named_selection_is(f"{s} 6", named("Klipper | Std | PLA"))
+        t.equal(f"{s} 9: the preset's delete", reply.get("deleted"), CALIB_PLA)
+        self.named_selection_is(f"{s} 9", named("Klipper | Std | PLA"))
         # Read by name: the filaments listed besides hold those earlier tests installed or saved.
         listed = {i["name"]: i for i in self.listed("filament")}
-        t.equal(f"{s} 6: PLA listed not modified, MCP Calib PLA not listed",
+        t.equal(f"{s} 9: PLA listed not modified, MCP Calib PLA not listed",
                 (PLA in listed, (listed.get(PLA) or {}).get("modified"), CALIB_PLA in listed), (True, None, False))
 
-    def setup(self):
-        """The state the scenarios count on beyond the baseline, which an earlier test may have left changed: the
-        hidden presets hidden, and no preset of the names this test saves."""
-        start(self.c)
-        # A printer that preset_select shows stays shown until the presets are reloaded, and uninstalling a printer
-        # that is not installed reloads nothing. Installing the printers first makes the uninstall a change, whose
-        # reload hides every printer that is neither installed nor selected, whatever showed it. The install selects
-        # a nozzle it adds, so the Klipper is selected again in between. What the two change depends on the tests
-        # before, so their replies are shown but not checked.
+    def another_extruder(self):
+        s = "another extruder"
+        t = self.t
+        t.equal(f"{s} 1: the start", start(self.c), START)
+        self.select("printer", TOOLCHANGER)
+        self.named_selection_is(f"{s} 1", named("ToolChanger | TC Std | " + ", ".join(["TC PLA"] * 5)))
+        t.equal(f"{s} 1: the nozzles", self.value("printer", "nozzle_diameter"), times(0.4, 5))
+
+        # Tool 2's nozzle differs from tool 1's, so what a test takes from its extruder tells the two apart.
+        tool2_06 = {"nozzle_diameter": "0.4,0.6,0.4,0.4,0.4"}
+        self.set("printer", values=tool2_06)
+        reply = self.run("calibration_generate_test", test="max_volumetric", filament_slot=2, discard_changes=True,
+                         preset_changes="keep")
+        t.equal(f"{s} 2: the reply's project", reply.get("project"), "Max volumetric speed test")
+        t.equal(f"{s} 2: params", reply.get("params"), {"start": 5, "end": 20, "step": 0.5})
+        t.equal(f"{s} 2: the filament's part of presets_changed", reply.get("presets_changed", {}).get("filament"),
+                {"name": TOOLCHANGER_PLA, "filament_slot": 2, "extruder": 2,
+                 "changes": {"filament_max_volumetric_speed": times(200, 3), "slow_down_layer_time": "0"}})
+        t.equal(f"{s} 2: the tower's own layer height and wall width, tool 2's 0.6 nozzle",
+                (self.own(0, "layer_height"), self.own(0, "outer_wall_line_width")), ("0.48", "1.05"))
+        t.equal(f"{s} 2: max_layer_height raised to the layer height", self.value("printer", "max_layer_height"),
+                times(0.48, 5))
+        t.equal(f"{s} 2: the tower prints with slot 2", self.object_filaments(), [("SpeedTestStructure.drc", 2)])
+
+        path = self.slice(f"{s} 3", "tool2_max_volumetric.gcode")
+        with open(path, encoding="utf-8", errors="replace") as f:
+            tools = sorted({m.group(0) for line in f if (m := re.match(r"T\d+", line))})
+        t.equal(f"{s} 3: the tools the G-code picks", tools, ["T1"])
+
+        self.run("project_new", **DISCARD)
+        self.set("printer", values=tool2_06)
+        reply = self.run("calibration_generate_test", test="max_volumetric", discard_changes=True, preset_changes="keep")
+        filament = reply.get("presets_changed", {}).get("filament", {})
+        t.equal(f"{s} 4: the slot and its extruder", {k: filament.get(k) for k in ("filament_slot", "extruder")},
+                {"filament_slot": 1, "extruder": 1})
+        t.equal(f"{s} 4: the tower's own layer height and wall width, tool 1's 0.4 nozzle",
+                (self.own(0, "layer_height"), self.own(0, "outer_wall_line_width")), ("0.32", "0.7"))
+        t.equal(f"{s} 4: the tower prints with slot 1", self.object_filaments(), [("SpeedTestStructure.drc", 1)])
+
+        t.equal(f"{s} 5: the start", start(self.c), START)
+        self.hide_printers()
+        printers = self.names("printer")
+        t.equal(f"{s} 5: the Klipper listed and the ToolChanger not", (KLIPPER in printers, TOOLCHANGER in printers),
+                (True, False))
+
+    def hide_printers(self):
+        """Hides every printer that is neither installed nor selected, the hidden printers among them, with the
+        Klipper selected. A printer that preset_select shows stays shown until the presets are reloaded, and
+        uninstalling a printer that is not installed reloads nothing. Installing the printers first makes the
+        uninstall a change, whose reload hides every printer that is neither installed nor selected, whatever showed
+        it. The install selects a nozzle it adds, so the Klipper is selected again in between. What the two change
+        depends on the tests before, so their replies are shown but not checked."""
         print("     (installed:", self.run("printer_install", models=HIDDEN_PRINTERS, preset_changes="discard"),
               ")", flush=True)
         self.select("printer", KLIPPER, preset_changes="discard")
         print("     (uninstalled:", self.run("printer_uninstall", models=HIDDEN_PRINTERS, preset_changes="discard"),
               ")", flush=True)
+
+    def setup(self):
+        """The state the scenarios count on beyond the baseline, which an earlier test may have left changed: the
+        hidden presets hidden, and no preset of the names this test saves."""
+        start(self.c)
+        self.hide_printers()
         for type, names in (("filament", OWN_FILAMENTS), ("process", OWN_PROCESSES)):
             for name in names:
                 if name in self.names(type, query=name):
@@ -1754,7 +1844,8 @@ class PresetsTest:
                                ("a nozzle diameter", self.nozzle), ("what the print is sliced with", self.print),
                                ("a preference changed in its dialog", self.preference_dialog),
                                ("the temperature tower, and what is refused", self.temperature),
-                               ("the other tests", self.other_tests), ("keep and discard", self.keep_and_discard)]:
+                               ("the other tests", self.other_tests), ("keep and discard", self.keep_and_discard),
+                               ("another extruder, on the ToolChanger", self.another_extruder)]:
             self.t.scenario(name, scenario)
         return self.t.exit_code()
 

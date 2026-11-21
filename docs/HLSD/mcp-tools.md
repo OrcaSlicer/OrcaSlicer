@@ -185,7 +185,7 @@ them and `tool_call` runs them.
 
 | Command | What it does | Variants and main arguments |
 |---|---|---|
-| `calibration_generate_test` | Generate a Calibration menu test: a new project with the test model, and the presets changed as the test needs | `test`: temperature, max_volumetric, pressure_advance, flow_ratio, retraction, vfa, cornering, input_shaping_freq, input_shaping_damp; the test's values (`start`, `end`, `step`, `method`, `test_model` and others); `discard_changes`, `preset_changes`: keep, discard |
+| `calibration_generate_test` | Generate a Calibration menu test: a new project with the test model, and the presets changed as the test needs | `test`: temperature, max_volumetric, pressure_advance, flow_ratio, retraction, vfa, cornering, input_shaping_freq, input_shaping_damp; the test's values (`start`, `end`, `step`, `method`, `test_model` and others); `filament_slot` (a physical filament, default 1); `discard_changes`, `preset_changes`: keep, discard |
 | `plate_get_settings` | A plate's own settings, as Plate Settings sets them: plate type, print sequence, spiral mode, the first layer's and the other layers' filament order, and the filament grouping | `plate`, `keys` |
 | `plate_set_settings` | Change them, as the dialog's OK does | `plate`, `values` |
 | `plate_list` | The plates, each with its name, lock, object count, settings, origin and size |  |
