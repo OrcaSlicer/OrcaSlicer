@@ -1194,6 +1194,11 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
             ret = 0;
             break;
         }
+        if (!config.has("spiral_mode_choice") && opt_key == "spiral_mode_choice") {
+            // reset to Same as Global
+            ret = 0;
+            break;
+        }
         if (!config.has("curr_bed_type") && opt_key == "curr_bed_type") {
             // reset to global value
             DynamicConfig& global_cfg = wxGetApp().preset_bundle->project_config;

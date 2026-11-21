@@ -654,11 +654,16 @@ public:
 	int show_spiral_mode_settings_dialog(bool is_object_config) { return m_config_manipulation.show_spiral_mode_settings_dialog(is_object_config); }
 	// Disables the user-defined filament print order while a mixed-color filament exists.
 	void update_mixed_filament_seq_state();
+	void update_same_as_global_fields();
 
 protected:
 	virtual void    on_value_change(const std::string& opt_key, const boost::any& value) override;
 	virtual void    notify_changed(ObjectBase* object) override;
 	virtual void	update_custom_dirty(std::vector<std::string> &dirty_options, std::vector<std::string> &nonsys_options) override;
+	virtual void	reload_config() override;
+
+private:
+	bool m_spiral_enable_deferred { false };
 };
 
 class TabPrintObject : public TabPrintModel

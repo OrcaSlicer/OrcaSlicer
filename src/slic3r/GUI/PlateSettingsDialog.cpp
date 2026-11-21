@@ -1,8 +1,11 @@
 #include "PlateSettingsDialog.hpp"
 #include "MsgDialog.hpp"
+#include "Tab.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include "Widgets/StaticLine.hpp"
 #include <climits>
 #include <wx/event.h>
+#include <functional>
 #include <wx/gdicmn.h>
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include <wx/colour.h>
@@ -19,14 +22,20 @@
 #include <vector>
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
+#include <slic3r/GUI/Plater.hpp>
 #include <wx/sizer.h>
 #include "slic3r/GUI/Widgets/TextInput.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/FilamentMixer.hpp"
+#include <slic3r/GUI/Widgets/Button.hpp>
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "libslic3r/ParameterUtils.hpp"
 #include <cstddef>
+
+#define PLATE_SETTING_INPUT_WIDTH    FromDIP(240)
+#define PLATE_SETTING_CONTENT_MARGIN FromDIP(15)
+#define PLATE_SETTING_V_SPACING      FromDIP(8)
 
 namespace Slic3r { namespace GUI {
 static constexpr int MIN_LAYER_VALUE = 2;
@@ -34,6 +43,59 @@ static constexpr int MAX_LAYER_VALUE = INT_MAX - 1;
 
 wxDEFINE_EVENT(EVT_SET_BED_TYPE_CONFIRM, wxCommandEvent);
 wxDEFINE_EVENT(EVT_NEED_RESORT_LAYERS, wxCommandEvent);
+
+// Revert icon before the control and modified label colour, like the sidebar
+static wxSizer* with_revert_icon(wxStaticText* label, wxWindow* ctrl, std::function<bool()> is_modified, std::function<void()> revert)
+{
+    wxWindow* parent = ctrl->GetParent();
+    auto icon = new ScalableButton(parent, wxID_ANY, "unlock_normal"); // blank, like the sidebar
+    icon->SetBackgroundColour(parent->GetBackgroundColour());
+    icon->Bind(wxEVT_BUTTON, [revert, is_modified](wxCommandEvent&) { if (is_modified()) revert(); });
+    label->Bind(wxEVT_UPDATE_UI, [label, icon, is_modified](wxUpdateUIEvent&) {
+        const bool modified = is_modified();
+        const wxColour clr = modified ? wxGetApp().get_label_clr_modified() : StateColor::darkModeColorFor(wxColour("#363636"));
+        if (label->GetForegroundColour() != clr) {
+            label->SetForegroundColour(clr);
+            label->Refresh();
+            icon->SetBitmap_(modified ? "lock_normal" : "unlock_normal");
+            icon->SetToolTip(modified ? _L("Click to reset current value and attach to the global value.") : wxString());
+        }
+    });
+    auto sizer = new wxBoxSizer(wxHORIZONTAL);
+    sizer->Add(icon, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, parent->FromDIP(5));
+    sizer->Add(ctrl, 0, wxALIGN_CENTER_VERTICAL);
+    return sizer;
+}
+
+static void on_locked_entry_text(wxCommandEvent& e)
+{
+    auto ctrl  = static_cast<wxTextCtrl*>(e.GetEventObject());
+    auto combo = static_cast<ComboBox*>(ctrl->GetParent());
+    if (combo->GetSelection() == 0)
+        ctrl->ChangeValue(combo->GetString(0));
+    else
+        e.Skip();
+}
+
+static void on_locked_entry_click(wxMouseEvent& e)
+{
+    auto combo = static_cast<ComboBox*>(static_cast<wxWindow*>(e.GetEventObject())->GetParent());
+    if (combo->GetSelection() != 0) // a number, edit it as usual
+        e.Skip();
+    else if (combo->GetDropDown().HasDismissLongTime()) // not when this click just closed the list
+        combo->ForceDropdownOpen();
+}
+
+void PlateSettingsDialog::lock_first_entry(ComboBox* combo)
+{
+    // Bound with the control id, so free_window() removes them when a pooled sidebar control is reused.
+    // Unbind first, safe to call again for the same control.
+    wxTextCtrl* ctrl = combo->GetTextCtrl();
+    ctrl->Unbind(wxEVT_TEXT, &on_locked_entry_text, ctrl->GetId());
+    ctrl->Unbind(wxEVT_LEFT_DOWN, &on_locked_entry_click, ctrl->GetId());
+    ctrl->Bind(wxEVT_TEXT, &on_locked_entry_text, ctrl->GetId());
+    ctrl->Bind(wxEVT_LEFT_DOWN, &on_locked_entry_click, ctrl->GetId());
+}
 
 bool LayerSeqInfo::operator<(const LayerSeqInfo& another) const
 {
@@ -209,7 +271,7 @@ OtherLayersSeqPanel::OtherLayersSeqPanel(wxWindow* parent)
     wxBoxSizer* top_sizer = new wxBoxSizer(wxVERTICAL);
 
     wxBoxSizer* title_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_other_layer_print_seq_choice = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(240), -1), 0, NULL, wxCB_READONLY);
+    m_other_layer_print_seq_choice = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(PLATE_SETTING_INPUT_WIDTH, -1), 0, NULL, wxCB_READONLY);
     m_other_layer_print_seq_choice->Append(_L("Auto"));
     m_other_layer_print_seq_choice->Append(_L("Customize"));
     m_other_layer_print_seq_choice->SetSelection(0);
@@ -217,15 +279,27 @@ OtherLayersSeqPanel::OtherLayersSeqPanel(wxWindow* parent)
     other_layer_txt->SetFont(Label::Body_14);
     title_sizer->Add(other_layer_txt, 0, wxALIGN_CENTER | wxALIGN_LEFT, 0);
     title_sizer->AddStretchSpacer();
-    title_sizer->Add(m_other_layer_print_seq_choice, 0, wxALIGN_CENTER | wxALIGN_RIGHT, 0);
+    title_sizer->Add(with_revert_icon(other_layer_txt, m_other_layer_print_seq_choice,
+                                      [this] { return m_other_layer_print_seq_choice->GetSelection() > 0; },
+                                      [this] { sync_layers_print_seq(0, {}); }),
+                     0, wxALIGN_CENTER | wxALIGN_RIGHT, 0);
+
+    // width of "to", used to align the buttons with the layer inputs
+    GetTextExtent(_L("to"), &m_to_txt_width, nullptr, nullptr, nullptr, &Label::Body_14);
+    m_to_txt_width += FromDIP(10);
 
     wxBoxSizer* buttons_sizer = new wxBoxSizer(wxHORIZONTAL);
+    buttons_sizer->SetMinSize(wxSize(2 * FromDIP(100) + m_to_txt_width, -1)); // right edge = second input
+    StaticLine* layer_txt = new StaticLine(this, false, _L("Layer"));
+    layer_txt->SetFont(Label::Body_14);
+    layer_txt->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
     ScalableButton* add_layers_btn = new ScalableButton(this, wxID_ANY, m_bmp_add);
     add_layers_btn->SetBackgroundColour(GetBackgroundColour());
     ScalableButton* delete_layers_btn = new ScalableButton(this, wxID_ANY, m_bmp_delete);
     delete_layers_btn->SetBackgroundColour(GetBackgroundColour());
-    buttons_sizer->Add(add_layers_btn, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER, FromDIP(5));
-    buttons_sizer->Add(delete_layers_btn, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER, FromDIP(5));
+    buttons_sizer->Add(layer_txt, 1, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    buttons_sizer->Add(add_layers_btn, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    buttons_sizer->Add(delete_layers_btn, 0, wxALIGN_CENTER_VERTICAL);
     buttons_sizer->Show(false);
 
     m_layer_input_panel = new wxPanel(this);
@@ -235,7 +309,7 @@ OtherLayersSeqPanel::OtherLayersSeqPanel(wxWindow* parent)
     append_layer();
 
     top_sizer->Add(title_sizer, 0, wxEXPAND, 0);
-    top_sizer->Add(buttons_sizer, 0, wxALIGN_CENTER, 0);
+    top_sizer->Add(buttons_sizer, 0);
     top_sizer->Add(m_layer_input_panel, 0, wxEXPAND, 0);
 
     SetSizer(top_sizer);
@@ -303,12 +377,9 @@ void OtherLayersSeqPanel::append_layer(const LayerSeqInfo* layer_info)
 {
     wxBoxSizer* layer_panel_sizer = static_cast<wxBoxSizer*>(m_layer_input_panel->GetSizer());
 
-    wxStaticText* choose_layer_head_txt = new wxStaticText(m_layer_input_panel, wxID_ANY, _L("Layer"));
-    choose_layer_head_txt->SetFont(Label::Body_14);
-
     LayerNumberTextInput* begin_layer_input = new LayerNumberTextInput(m_layer_input_panel, -1, wxSize(FromDIP(100), -1), LayerNumberTextInput::Type::Begin, LayerNumberTextInput::ValueType::Custom);
 
-    wxStaticText* choose_layer_to_txt = new wxStaticText(m_layer_input_panel, wxID_ANY, _L("to"));
+    wxStaticText* choose_layer_to_txt = new wxStaticText(m_layer_input_panel, wxID_ANY, _L("to"), wxDefaultPosition, wxSize(m_to_txt_width, -1), wxALIGN_CENTRE_HORIZONTAL);
     choose_layer_to_txt->SetFont(Label::Body_14);
 
     LayerNumberTextInput* end_layer_input = new LayerNumberTextInput(m_layer_input_panel, -1, wxSize(FromDIP(100), -1), LayerNumberTextInput::Type::End, LayerNumberTextInput::ValueType::End);
@@ -333,13 +404,12 @@ void OtherLayersSeqPanel::append_layer(const LayerSeqInfo* layer_info)
     }
 
     wxBoxSizer* single_layer_input_sizer = new wxBoxSizer(wxHORIZONTAL);
-    single_layer_input_sizer->Add(choose_layer_head_txt, 0, wxRIGHT | wxALIGN_CENTER, FromDIP(5));
-    single_layer_input_sizer->Add(begin_layer_input, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER, FromDIP(5));
-    single_layer_input_sizer->Add(choose_layer_to_txt, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER, 0);
-    single_layer_input_sizer->Add(end_layer_input, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER, FromDIP(5));
+    single_layer_input_sizer->Add(begin_layer_input, 0, wxALIGN_CENTER);
+    single_layer_input_sizer->Add(choose_layer_to_txt, 0, wxALIGN_CENTER);
+    single_layer_input_sizer->Add(end_layer_input, 0, wxALIGN_CENTER);
     single_layer_input_sizer->AddStretchSpacer();
     single_layer_input_sizer->Add(drag_canvas, 0, wxLEFT | wxALIGN_CENTER, FromDIP(5));
-    layer_panel_sizer->Add(single_layer_input_sizer, 0, wxEXPAND | wxBOTTOM, FromDIP(10));
+    layer_panel_sizer->Add(single_layer_input_sizer, 0, wxEXPAND | wxBOTTOM, FromDIP(5));
     m_layer_input_sizer_list.push_back(single_layer_input_sizer);
     m_begin_layer_input_list.push_back(begin_layer_input);
     m_end_layer_input_list.push_back(end_layer_input);
@@ -394,22 +464,23 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
 {
     SetBackgroundColour(*wxWHITE);
     wxBoxSizer* m_sizer_main = new wxBoxSizer(wxVERTICAL);
-    auto m_line_top = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(650), -1));
+    auto m_line_top = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(550), -1));
     m_line_top->SetBackgroundColour(wxColour(166, 169, 170));
     m_sizer_main->Add(m_line_top, 0, wxEXPAND, 0);
 
-    wxFlexGridSizer* top_sizer = new wxFlexGridSizer(0, 2, FromDIP(5), 0);
+    wxFlexGridSizer* top_sizer = new wxFlexGridSizer(0, 2, FromDIP(5), PLATE_SETTING_V_SPACING);
     top_sizer->AddGrowableCol(0,1);
     top_sizer->SetFlexibleDirection(wxBOTH);
     top_sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
     auto plate_name_txt = new wxStaticText(this, wxID_ANY, _L("Plate name"));
     plate_name_txt->SetFont(Label::Body_14);
-    m_ti_plate_name = new TextInput(this, wxString::FromDouble(0.0), "", "", wxDefaultPosition, wxSize(FromDIP(240),-1), wxTE_PROCESS_ENTER);
-    top_sizer->Add(plate_name_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxTOP | wxBOTTOM, FromDIP(5));
-    top_sizer->Add(m_ti_plate_name, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxTOP | wxBOTTOM, FromDIP(5));
+    plate_name_txt->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+    m_ti_plate_name = new TextInput(this, wxString::FromDouble(0.0), "", "", wxDefaultPosition, wxSize(PLATE_SETTING_INPUT_WIDTH,-1), wxTE_PROCESS_ENTER);
+    top_sizer->Add(plate_name_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);
+    top_sizer->Add(m_ti_plate_name, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT);
 
-    m_bed_type_choice = new ComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(240),-1), 0, NULL, wxCB_READONLY );
+    m_bed_type_choice = new ComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(PLATE_SETTING_INPUT_WIDTH,-1), 0, NULL, wxCB_READONLY );
     auto pm           = wxGetApp().plater()->get_curr_printer_model();
     if (pm) {
         m_cur_combox_bed_types.clear();
@@ -437,33 +508,84 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
 
     wxStaticText* m_bed_type_txt = new wxStaticText(this, wxID_ANY, _L("Bed type"));
     m_bed_type_txt->SetFont(Label::Body_14);
-    top_sizer->Add(m_bed_type_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxTOP | wxBOTTOM, FromDIP(5));
-    top_sizer->Add(m_bed_type_choice, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxTOP | wxBOTTOM, FromDIP(5));
+    top_sizer->Add(m_bed_type_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);
+    top_sizer->Add(with_revert_icon(m_bed_type_txt, m_bed_type_choice,
+                                    [this] { return m_bed_type_choice->GetSelection() > 0; },
+                                    [this] { sync_bed_type(btDefault); }), 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT);
+
+    // Skirt start point, "Custom" turns the box into a number input like the layer range inputs
+    m_skirt_start_angle = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(PLATE_SETTING_INPUT_WIDTH, -1), 0, NULL);
+    m_skirt_start_angle->Append(_L("Same as Global"));
+    m_skirt_start_angle->Append(_L("Custom"));
+    m_skirt_start_angle->SetTextLabel(wxString::FromUTF8(u8"°"));
+    m_skirt_start_angle->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    lock_first_entry(m_skirt_start_angle);
+    // picking an entry replaces the text, so remember the last valid angle for "Custom"
+    m_skirt_start_angle->GetTextCtrl()->Bind(wxEVT_TEXT, [this](wxCommandEvent& e) {
+        double angle;
+        if (get_skirt_start_angle(angle))
+            m_custom_skirt_start_angle = angle;
+        e.Skip();
+    });
+    m_skirt_start_angle->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
+        if (e.GetSelection() == 1)
+            m_skirt_start_angle->GetTextCtrl()->SetValue(wxString::Format("%g", m_custom_skirt_start_angle));
+    });
+    {
+        // same condition as the sidebar
+        auto* belt = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionBool>("belt_printer");
+        m_skirt_start_angle->Enable(wxGetApp().preset_bundle->prints.get_edited_preset().config.opt_int("skirt_loops") > 0 && !(belt && belt->value));
+    }
+    wxStaticText* skirt_start_angle_txt = new wxStaticText(this, wxID_ANY, _L("Skirt start point"));
+    skirt_start_angle_txt->SetFont(Label::Body_14);
+    top_sizer->Add(skirt_start_angle_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);
+    top_sizer->Add(with_revert_icon(skirt_start_angle_txt, m_skirt_start_angle,
+                                    [this] { return m_skirt_start_angle->GetSelection() != 0; },
+                                    [this] { m_skirt_start_angle->SetSelection(0); }), 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT);
 
     // Print Sequence
-    m_print_seq_choice = new ComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(240),-1), 0, NULL, wxCB_READONLY );
+    m_print_seq_choice = new ComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(PLATE_SETTING_INPUT_WIDTH,-1), 0, NULL, wxCB_READONLY );
     m_print_seq_choice->Append(_L("Same as Global Print Sequence"));
     for (auto i = PrintSequence::ByLayer; i < PrintSequence::ByDefault; i = PrintSequence(int(i) + 1)) {
         m_print_seq_choice->Append(to_print_sequence_name(i));
     }
     wxStaticText* m_print_seq_txt = new wxStaticText(this, wxID_ANY, _L("Print sequence"));
     m_print_seq_txt->SetFont(Label::Body_14);
-    top_sizer->Add(m_print_seq_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxTOP | wxBOTTOM, FromDIP(5));
-    top_sizer->Add(m_print_seq_choice, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxTOP | wxBOTTOM, FromDIP(5));
+    top_sizer->Add(m_print_seq_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);
+    top_sizer->Add(with_revert_icon(m_print_seq_txt, m_print_seq_choice,
+                                    [this] { return m_print_seq_choice->GetSelection() > 0; },
+                                    [this] { sync_print_seq(0); }), 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT);
 
     // Spiral mode
-    m_spiral_mode_choice = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(240), -1), 0, NULL, wxCB_READONLY);
+    m_spiral_mode_choice = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(PLATE_SETTING_INPUT_WIDTH, -1), 0, NULL, wxCB_READONLY);
     m_spiral_mode_choice->Append(_L("Same as Global"));
     m_spiral_mode_choice->Append(_L("Enable"));
     m_spiral_mode_choice->Append(_L("Disable"));
     m_spiral_mode_choice->SetSelection(0);
+    m_spiral_mode_choice->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
+        // changing to "Enable" asks for confirmation each time, like the sidebar
+        if (e.GetSelection() != 1 || m_spiral_mode_selection == 1) {
+            m_spiral_mode_selection = e.GetSelection();
+            return;
+        }
+        CallAfter([this] { // after the list is closed
+            if (m_spiral_mode_choice->GetSelection() != 1 || m_spiral_mode_selection == 1)
+                return;
+            if (static_cast<TabPrintPlate*>(wxGetApp().plate_tab)->show_spiral_mode_settings_dialog(false) != wxID_YES)
+                m_spiral_mode_choice->SetSelection(m_spiral_mode_selection);
+            else
+                m_spiral_mode_selection = 1;
+        });
+    });
     wxStaticText* spiral_mode_txt = new wxStaticText(this, wxID_ANY, _L("Spiral vase"));
     spiral_mode_txt->SetFont(Label::Body_14);
-    top_sizer->Add(spiral_mode_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxTOP | wxBOTTOM, FromDIP(5));
-    top_sizer->Add(m_spiral_mode_choice, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxTOP | wxBOTTOM, FromDIP(5));
+    top_sizer->Add(spiral_mode_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);
+    top_sizer->Add(with_revert_icon(spiral_mode_txt, m_spiral_mode_choice,
+                                    [this] { return m_spiral_mode_choice->GetSelection() > 0; },
+                                    [this] { sync_spiral_mode(false, true); }), 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT);
 
     // First layer filament sequence
-    m_first_layer_print_seq_choice = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(240), -1), 0, NULL, wxCB_READONLY);
+    m_first_layer_print_seq_choice = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(PLATE_SETTING_INPUT_WIDTH, -1), 0, NULL, wxCB_READONLY);
     m_first_layer_print_seq_choice->Append(_L("Auto"));
     m_first_layer_print_seq_choice->Append(_L("Customize"));
     m_first_layer_print_seq_choice->SetSelection(0);
@@ -479,8 +601,10 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
         });
     wxStaticText* first_layer_txt = new wxStaticText(this, wxID_ANY, _L("First layer filament sequence"));
     first_layer_txt->SetFont(Label::Body_14);
-    top_sizer->Add(first_layer_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxTOP | wxBOTTOM, FromDIP(5));
-    top_sizer->Add(m_first_layer_print_seq_choice, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxTOP | wxBOTTOM, FromDIP(5));
+    top_sizer->Add(first_layer_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);
+    top_sizer->Add(with_revert_icon(first_layer_txt, m_first_layer_print_seq_choice,
+                                    [this] { return m_first_layer_print_seq_choice->GetSelection() > 0; },
+                                    [this] { sync_first_layer_print_seq(0); }), 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT);
 
     const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
     std::vector<int> order(extruder_colours.size());
@@ -490,14 +614,13 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     m_drag_canvas = new DragCanvas(this, extruder_colours, order);
     m_drag_canvas->Hide();
     top_sizer->Add(0, 0, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT, 0);
-    top_sizer->Add(m_drag_canvas, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxBOTTOM, FromDIP(10));
+    top_sizer->Add(m_drag_canvas, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxBOTTOM, FromDIP(5));
 
-    m_sizer_main->Add(top_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(30));
+    m_sizer_main->Add(top_sizer, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, PLATE_SETTING_CONTENT_MARGIN);
 
     // Other layer filament sequence
     m_other_layers_seq_panel = new OtherLayersSeqPanel(this);
-    m_sizer_main->AddSpacer(FromDIP(5));
-    m_sizer_main->Add(m_other_layers_seq_panel, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(30));
+    m_sizer_main->Add(m_other_layers_seq_panel, 0, wxEXPAND | wxLEFT | wxRIGHT, PLATE_SETTING_CONTENT_MARGIN);
 
     // A mixed-color slot resolves to a different physical filament per layer, so a user-defined
     // filament order cannot be honoured; grey out the choice and explain that in the dialog.
@@ -519,19 +642,43 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
 
             warn_sizer->Add(warn_icon, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(5));
             warn_sizer->Add(warn_text, 1, wxALIGN_CENTER_VERTICAL, 0);
-            m_sizer_main->AddSpacer(FromDIP(5));
-            m_sizer_main->Add(warn_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(30));
+            m_sizer_main->AddSpacer(PLATE_SETTING_V_SPACING);
+            m_sizer_main->Add(warn_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, PLATE_SETTING_CONTENT_MARGIN);
         }
     }
 
-    auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
+    auto dlg_btns = new DialogButtons(this, {"Reset", "OK", "Cancel"}, "", 1);
+    dlg_btns->SetAlertButton("none"); // keep Reset neutral
+
+    auto reset_btn = dlg_btns->GetButtonFromID(wxID_RESET);
+    reset_btn->Show(!only_layer_seq);
+    reset_btn->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& e) {
+        e.Enable(m_bed_type_choice->GetSelection() > 0 || m_print_seq_choice->GetSelection() > 0 ||
+                 m_spiral_mode_choice->GetSelection() > 0 || m_first_layer_print_seq_choice->GetSelection() > 0 ||
+                 get_other_layers_print_seq_choice() > 0 || m_skirt_start_angle->GetSelection() != 0);
+    });
+    reset_btn->Bind(wxEVT_BUTTON, [this](auto& e) {
+        sync_bed_type(btDefault);
+        sync_print_seq(0);
+        sync_spiral_mode(false, true);
+        sync_first_layer_print_seq(0);
+        sync_other_layers_print_seq(0, {});
+        m_skirt_start_angle->SetSelection(0);
+    });
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, [this](auto& e) {
-        wxCommandEvent evt(EVT_SET_BED_TYPE_CONFIRM, GetId());
-        static_cast<wxEvtHandler*>(m_other_layers_seq_panel)->ProcessEvent(evt);
-        GetEventHandler()->ProcessEvent(evt);
-        if (evt.GetString() == "Invalid")
+        double angle;
+        if (m_skirt_start_angle->GetSelection() != 0 && !get_skirt_start_angle(angle)) {
+            MessageDialog msg_dlg(nullptr, _L("Please input a valid skirt start point."), wxEmptyString, wxICON_WARNING | wxOK);
+            msg_dlg.ShowModal();
             return;
+        }
+        wxCommandEvent evt(EVT_SET_BED_TYPE_CONFIRM, GetId());
+        if (get_other_layers_print_seq_choice() != 0)
+            static_cast<wxEvtHandler*>(m_other_layers_seq_panel)->ProcessEvent(evt);
+        if (evt.GetString() == "Invalid") // invalid layer ranges, nothing is applied
+            return;
+        GetEventHandler()->ProcessEvent(evt);
         if (this->IsModal())
             EndModal(wxID_YES);
         else
@@ -545,8 +692,8 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
             this->Close();
         });
 
-    m_sizer_main->AddSpacer(FromDIP(20));
-    m_sizer_main->Add(dlg_btns, 0, wxEXPAND);
+    m_sizer_main->AddSpacer(FromDIP(10));
+    m_sizer_main->Add(dlg_btns, 0, wxEXPAND | wxALL, FromDIP(5));
 
     SetSizer(m_sizer_main);
     Layout();
@@ -560,9 +707,11 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
         for (auto item : top_sizer->GetChildren()) {
             if (item->GetWindow())
                 item->GetWindow()->Show(false);
+            else if (item->GetSizer())
+                item->GetSizer()->ShowItems(false);
         }
         first_layer_txt->Show();
-        m_first_layer_print_seq_choice->Show();
+        m_first_layer_print_seq_choice->GetContainingSizer()->ShowItems(true);
         m_drag_canvas->Show();
         m_other_layers_seq_panel->Show();
         Layout();
@@ -638,6 +787,7 @@ void PlateSettingsDialog::sync_spiral_mode(bool spiral_mode, bool as_global)
             else
                 m_spiral_mode_choice->SetSelection(2);
         }
+        m_spiral_mode_selection = m_spiral_mode_choice->GetSelection();
     }
 }
 
@@ -691,6 +841,22 @@ std::vector<int> PlateSettingsDialog::get_first_layer_print_seq()
     return m_drag_canvas->get_shape_list_order();
 }
 
+void PlateSettingsDialog::sync_skirt_start_angle(const ConfigOptionFloat* plate_angle, double global_angle)
+{
+    m_custom_skirt_start_angle = plate_angle ? plate_angle->value : global_angle;
+    m_skirt_start_angle->SetSelection(plate_angle ? 1 : 0);
+    if (plate_angle)
+        m_skirt_start_angle->GetTextCtrl()->ChangeValue(wxString::Format("%g", plate_angle->value));
+}
+
+bool PlateSettingsDialog::get_skirt_start_angle(double& angle)
+{
+    if (m_skirt_start_angle->GetSelection() == 0) // Same as Global
+        return false;
+    wxString text = m_skirt_start_angle->GetTextCtrl()->GetValue();
+    text.Replace(",", ".");
+    return text.ToCDouble(&angle) && angle >= -180. && angle <= 180.;
+}
 
 //PlateNameEditDialog
 PlateNameEditDialog::PlateNameEditDialog(wxWindow *parent, wxWindowID id, const wxString &title, const wxPoint &pos, const wxSize &size, long style)
@@ -701,27 +867,24 @@ PlateNameEditDialog::PlateNameEditDialog(wxWindow *parent, wxWindowID id, const 
     auto        m_line_top   = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(400), -1));
     m_line_top->SetBackgroundColour(wxColour(166, 169, 170));
     m_sizer_main->Add(m_line_top, 0, wxEXPAND, 0);
-    m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(5));
 
-    wxFlexGridSizer *top_sizer = new wxFlexGridSizer(0, 2, FromDIP(5), 0);
-    top_sizer->AddGrowableCol(0, 1);
-    top_sizer->SetFlexibleDirection(wxBOTH);
-    top_sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
+    wxBoxSizer *top_sizer = new wxBoxSizer(wxVERTICAL);
 
     auto plate_name_txt = new wxStaticText(this, wxID_ANY, _L("Plate name"));
     plate_name_txt->SetFont(Label::Body_14);
-    m_ti_plate_name = new TextInput(this, wxString::FromDouble(0.0), "", "", wxDefaultPosition, wxSize(FromDIP(240), -1), wxTE_PROCESS_ENTER);
+    plate_name_txt->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+    m_ti_plate_name = new TextInput(this, wxString::FromDouble(0.0), "", "", wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
     m_ti_plate_name->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent &e) {
         if (this->IsModal())
             EndModal(wxID_YES);
         else
             this->Close();
     });
-    top_sizer->Add(plate_name_txt, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxALL, FromDIP(5));
-    top_sizer->Add(m_ti_plate_name, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxALL, FromDIP(5));
+    top_sizer->Add(plate_name_txt , 0, wxBOTTOM, PLATE_SETTING_V_SPACING);
+    top_sizer->Add(m_ti_plate_name, 0, wxEXPAND);
     m_ti_plate_name->GetTextCtrl()->SetMaxLength(250);
 
-    m_sizer_main->Add(top_sizer, 0, wxEXPAND | wxALL, FromDIP(30));
+    m_sizer_main->Add(top_sizer, 0, wxEXPAND | wxALL, PLATE_SETTING_CONTENT_MARGIN);
 
     auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
 
@@ -739,7 +902,7 @@ PlateNameEditDialog::PlateNameEditDialog(wxWindow *parent, wxWindowID id, const 
             this->Close();
     });
 
-    m_sizer_main->Add(dlg_btns, 0, wxEXPAND, FromDIP(20));
+    m_sizer_main->Add(dlg_btns, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(5));
 
     SetSizer(m_sizer_main);
     Layout();
