@@ -18,6 +18,7 @@
 #include "slic3r/plugin/PluginFsUtils.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -34,6 +35,22 @@ namespace pybind11 { class object; }
 namespace Slic3r {
 
 class OrcaCloudServiceAgent;
+
+// Explicit result of an unsubscribe-keep-local request. The conversion is committed separately
+// from the reload so a pending reload is neither success nor failure. For Pending, observe
+// local_plugin_key through is_plugin_loaded()/subscribe_on_load_callback(); a later failure is
+// also surfaced as a warning notification. Failed with local_copy_kept=true means the conversion
+// committed but the reload failed or could not start; reload distinguishes those outcomes.
+enum class PluginRemovalStatus { Failed, Pending, Succeeded };
+enum class PluginReloadStatus { NotNeeded, Running, Succeeded, Failed, Cancelled, Busy };
+struct CloudUnsubscribeResult
+{
+    PluginRemovalStatus status = PluginRemovalStatus::Failed;
+    bool                local_copy_kept = false;
+    PluginReloadStatus  reload = PluginReloadStatus::NotNeeded;
+    std::string         local_plugin_key; // set once the local conversion is committed
+    std::string         error;
+};
 
 // One discovered plugin package: one .py/.whl file -> one descriptor + one Python module +
 // N materialized capabilities.
@@ -297,7 +314,9 @@ public:
     bool update_cloud_plugin(const std::string& plugin_key, std::string& error, std::string version = "");
 
     bool delete_plugin(const std::string& plugin_key, std::string& error);
-    bool unsubscribe_cloud_plugin(const std::string& plugin_key, std::string& error);
+    // Returns the committed conversion and reload outcome separately. No current UI caller; any
+    // future caller must handle Pending and observe the eventual load result.
+    CloudUnsubscribeResult unsubscribe_cloud_plugin(const std::string& plugin_key);
     bool delete_and_unsubscribe_cloud_plugin(const std::string& plugin_key, std::string& error);
 
     ExecutionResult run_script_capability(const std::string& plugin_key, const std::string& capability_name, std::string& error);
@@ -355,6 +374,41 @@ private:
     bool cancel_plugin_load_locked(const std::string& plugin_key);
     bool is_plugin_load_cancelled_locked(const std::string& plugin_key) const;
     void notify_plugin_load_state_changed(bool changed);
+
+    // Outcome of a pending keep-local reload, captured under m_mutex so exactly one observer (the
+    // load worker, or the keep-local caller when the load already finished) reports a failure.
+    enum class PendingReloadOwner
+    {
+        Caller, // synchronous keep-local caller takes the outcome after its wait returns
+        Worker, // the load worker reports the eventual outcome
+    };
+    struct PendingReloadOutcome
+    {
+        bool        pending            = false; // the mark existed at capture time
+        bool        claimed            = false; // this caller removed the mark and owns reporting
+        bool        in_progress        = false;
+        bool        update_in_progress = false;
+        bool        loaded             = false;
+        bool        cancelled          = false;
+        std::string error;
+    };
+    // A resolved entry keeps the exact outcome captured when the load released its slot, so a
+    // later retry cannot change what the synchronous caller reports.
+    struct PendingReloadState
+    {
+        PendingReloadOwner  owner           = PendingReloadOwner::Worker;
+        bool                resolved        = false;
+        bool                update_at_start = false; // an update already owned the key when marked
+        PendingReloadOutcome outcome;
+    };
+    // Caller holds m_mutex and must not remove the mark.
+    PendingReloadOutcome capture_pending_reload_outcome_locked(const std::string& plugin_key) const;
+    // Caller must not hold m_mutex. Claims an already-finished reload; a running load is marked
+    // for worker reporting and returned as pending, so the caller never reports a running load as
+    // finished. A frozen Caller outcome is returned as-is.
+    PendingReloadOutcome take_finished_pending_reload_outcome(const std::string& plugin_key);
+    // Reports a claimed pending reload outcome outside m_mutex. No-op unless it is a real failure.
+    void report_pending_reload_outcome(const PendingReloadOutcome& outcome);
     void release_load_slot(const std::string& plugin_key);
     void cancel_and_wait_for_capabilities(
         const std::vector<std::shared_ptr<PluginCapabilityInterface>>& capabilities);
@@ -426,9 +480,12 @@ private:
                                                   bool had_previous_state,
                                                   bool was_enabled);
 
-    bool finalize_cloud_plugin_removal(const PluginDescriptor& plugin, bool keep_local, std::string& error);
+    // Conversion + reload outcome for unsubscribe-keep-local.
+    CloudUnsubscribeResult finalize_cloud_unsubscribe(const PluginDescriptor& plugin);
+    CloudUnsubscribeResult keep_installed_plugin_as_local(const PluginDescriptor& plugin_descriptor);
+    // Removal path used when the local package is deleted, not kept.
+    bool finalize_cloud_plugin_removal(const PluginDescriptor& plugin, std::string& error);
     bool delete_installed_plugin_package(const PluginDescriptor& plugin, std::string& error);
-    bool keep_installed_plugin_as_local(const PluginDescriptor& plugin_descriptor, std::string& error);
 
     bool m_initialized = false;
     CloudPluginService m_cloud_service;
@@ -457,6 +514,10 @@ private:
     // Keys whose most recent load attempt failed without being cancelled. Kept separately from
     // m_load_errors so clearing it never changes the error a load waiter reads.
     std::unordered_set<std::string> m_failed_loads;
+    // Keep-local conversions with an unresolved reload. Caller-owned entries are resolved by the
+    // load worker at release and kept for the synchronous caller; Worker-owned entries are
+    // captured and reported by the worker. Only one owner ever reports a failure.
+    std::unordered_map<std::string, PendingReloadState> m_pending_local_reloads;
     std::map<std::string, std::string> m_load_errors;
     mutable std::condition_variable m_load_cv;
 

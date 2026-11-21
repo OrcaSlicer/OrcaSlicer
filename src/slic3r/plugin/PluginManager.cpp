@@ -808,6 +808,73 @@ bool PluginManager::wait_for_all_plugin_loads(std::chrono::milliseconds timeout)
     return m_load_cv.wait_for(lock, timeout, [this]() { return m_load_in_progress.empty(); });
 }
 
+PluginManager::PendingReloadOutcome
+PluginManager::capture_pending_reload_outcome_locked(const std::string& plugin_key) const
+{
+    PendingReloadOutcome outcome;
+    outcome.pending            = m_pending_local_reloads.count(plugin_key) > 0;
+    outcome.in_progress        = m_load_in_progress.count(plugin_key) > 0;
+    outcome.update_in_progress = m_updates_in_progress.count(plugin_key) > 0;
+    const Plugin* plugin = find_plugin_locked(plugin_key);
+    outcome.loaded    = plugin != nullptr && plugin->is_loaded();
+    outcome.cancelled = m_cancelled.count(plugin_key) > 0;
+    const auto error_it = m_load_errors.find(plugin_key);
+    if (error_it != m_load_errors.end())
+        outcome.error = error_it->second;
+    return outcome;
+}
+
+PluginManager::PendingReloadOutcome PluginManager::take_finished_pending_reload_outcome(const std::string& plugin_key)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    const auto it = m_pending_local_reloads.find(plugin_key);
+    if (it == m_pending_local_reloads.end()) {
+        PendingReloadOutcome outcome = capture_pending_reload_outcome_locked(plugin_key);
+        if (outcome.in_progress) {
+            // A load still owns the key but no mark survived (e.g. a load that started before the
+            // conversion). Mark it now so release_load_slot reports its outcome instead of this
+            // caller returning a finished result while it is still running.
+            PendingReloadState state;
+            state.owner                         = PendingReloadOwner::Worker;
+            m_pending_local_reloads[plugin_key] = state;
+            outcome.pending                     = true;
+        }
+        return outcome;
+    }
+
+    if (it->second.resolved) {
+        PendingReloadOutcome outcome = it->second.outcome;
+        outcome.claimed              = true;
+        m_pending_local_reloads.erase(it);
+        return outcome;
+    }
+
+    PendingReloadOutcome outcome = capture_pending_reload_outcome_locked(plugin_key);
+    if (outcome.in_progress)
+        return outcome; // leave the mark for the load worker to resolve
+
+    // No worker started (otherwise the slot would still be held or the mark already resolved).
+    // An update that owned the key when the reload was requested explains the refusal.
+    if (it->second.update_at_start)
+        outcome.update_in_progress = true;
+    m_pending_local_reloads.erase(it);
+    outcome.claimed = true;
+    return outcome;
+}
+
+void PluginManager::report_pending_reload_outcome(const PendingReloadOutcome& outcome)
+{
+    if (m_shutting_down.load(std::memory_order_acquire))
+        return;
+    if (outcome.loaded || outcome.cancelled || outcome.error.empty())
+        return; // success, explicit cancellation, or no recorded failure
+
+    report_plugin_state_persist_failure(GUI::format(
+        _u8L("The plugin was kept as a local copy, but failed to reload: %1%. "
+             "The local copy remains; fix the plugin or remove it manually."),
+        outcome.error));
+}
+
 bool PluginManager::wait_for_plugin_load(const std::string& plugin_key, std::chrono::milliseconds timeout, std::string& error) const
 {
     std::unique_lock<std::mutex> lock(m_mutex);
@@ -892,9 +959,30 @@ void PluginManager::notify_plugin_load_state_changed(bool changed)
 void PluginManager::release_load_slot(const std::string& plugin_key)
 {
     bool changed = false;
+    bool report_pending = false;
+    PendingReloadOutcome pending_outcome;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         changed = m_load_in_progress.erase(plugin_key) > 0;
+
+        // Capture a pending keep-local reload now, atomically with clearing the slot and before
+        // m_cancelled is erased, so a later retry cannot change the outcome. A Worker-owned entry
+        // is reported here; a Caller-owned one is frozen for the synchronous caller to take.
+        const auto pending_it = m_pending_local_reloads.find(plugin_key);
+        if (pending_it != m_pending_local_reloads.end()) {
+            if (pending_it->second.owner == PendingReloadOwner::Worker) {
+                pending_outcome         = capture_pending_reload_outcome_locked(plugin_key);
+                pending_outcome.pending = true;
+                pending_outcome.claimed = true;
+                m_pending_local_reloads.erase(pending_it);
+                report_pending = true;
+            } else if (!pending_it->second.resolved) {
+                pending_it->second.resolved        = true;
+                pending_it->second.outcome         = capture_pending_reload_outcome_locked(plugin_key);
+                pending_it->second.outcome.pending = true;
+                pending_it->second.outcome.claimed = true;
+            }
+        }
 
         const bool cancelled = m_cancelled.erase(plugin_key) > 0;
         const Plugin* plugin = find_plugin_locked(plugin_key);
@@ -908,6 +996,8 @@ void PluginManager::release_load_slot(const std::string& plugin_key)
             m_failed_loads.insert(plugin_key);
     }
     notify_plugin_load_state_changed(changed);
+    if (report_pending)
+        report_pending_reload_outcome(pending_outcome);
 }
 
 void PluginManager::cancel_and_wait_for_capabilities(
@@ -1099,6 +1189,9 @@ void PluginManager::load_plugin(const std::string& plugin_key, bool skip_deps, s
         if (!m_shutting_down.load(std::memory_order_acquire))
             run_on_load_callbacks(plugin_id);
 
+        // release_load_slot resolves a pending keep-local reload for this key: the outcome is
+        // captured atomically under m_mutex (before the cancelled/error state is dropped) and
+        // reported after the lock, so a later retry cannot change what gets reported.
         // The worker owns its slot and releases it here, once it is done with Python for good —
         // including a load that was cancelled mid-flight, which is what keeps
         // wait_for_all_plugin_loads() blocking until the worker is really gone.
@@ -2841,9 +2934,22 @@ bool PluginManager::delete_installed_plugin_package(const PluginDescriptor& plug
     return true;
 }
 
-bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugin_descriptor, std::string& error)
+CloudUnsubscribeResult PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugin_descriptor)
 {
     namespace fs = boost::filesystem;
+
+    std::string error;
+    CloudUnsubscribeResult result;
+    result.status = PluginRemovalStatus::Failed;
+    result.reload = PluginReloadStatus::NotNeeded;
+
+    auto failure_result = [&]() {
+        result.local_copy_kept = false;
+        result.status          = PluginRemovalStatus::Failed;
+        result.reload          = PluginReloadStatus::NotNeeded;
+        result.error = error.empty() ? std::string(_u8L("The plugin could not be kept as a local copy.")) : error;
+        return result;
+    };
 
     boost::filesystem::path resolved_root;
 
@@ -2856,7 +2962,7 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
     }
 
     if (!resolved_allowed_plugin_root)
-        return false;
+        return failure_result();
 
     const std::string old_key = plugin_descriptor.plugin_key;
 
@@ -2879,7 +2985,7 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
         if (!lease) {
             error = GUI::format(_u8L("Cannot keep the plugin local while its package is being loaded or updated: %1%"),
                                 lease_error);
-            return false;
+            return failure_result();
         }
         package_leases.push_back(std::move(lease));
     }
@@ -2892,7 +2998,7 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
     const fs::path entry_file = fs::path(plugin_descriptor.entry_path).filename();
     if (entry_file.empty()) {
         error = _u8L("Cannot keep plugin local: the installed entry file is unknown.");
-        return false;
+        return failure_result();
     }
     const fs::path local_root  = fs::path(data_dir()) / "orca_plugins";
     const fs::path target_root = local_root / filesystem_safe_escape(entry_file.string());
@@ -2905,7 +3011,7 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
         if (!try_lock_plugin_install_state(state_lock, lock_error)) {
             error = GUI::format(_u8L("Cannot keep the plugin local because its install-state lock is unavailable: %1%"),
                                 lock_error);
-            return false;
+            return failure_result();
         }
         PluginInstallState state;
         const InstallStateReadStatus status = read_install_state_status(resolved_root, state);
@@ -2917,22 +3023,25 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
                       (status == InstallStateReadStatus::Readable && state.installation_revision.empty());
         if (!revision_matches) {
             error = _u8L("The plugin was changed by another OrcaSlicer instance. Refresh the plugin list and try again.");
-            return false;
+            return failure_result();
         }
     }
 
     bool was_loaded  = false;
     bool was_enabled = plugin_descriptor.enabled;
+    bool old_load_in_progress = false;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         if (Plugin* loaded = find_plugin_locked(old_key)) {
             was_loaded  = loaded->is_loaded();
             was_enabled = loaded->descriptor.enabled;
         }
+        // Captured before unload_plugin(old_key) cancels it; a later release may erase the marker.
+        old_load_in_progress = m_load_in_progress.count(old_key) > 0;
         if (find_plugin_locked(new_key) != nullptr && new_key != old_key) {
             error = GUI::format(_u8L("Cannot keep plugin local: local plugin key already exists: %1%"), new_key);
             BOOST_LOG_TRIVIAL(warning) << error;
-            return false;
+            return failure_result();
         }
     }
 
@@ -2968,20 +3077,20 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
         if (!try_lock_plugin_install_state(state_lock, lock_error)) {
             error = GUI::format(_u8L("Cannot keep the plugin local because its install-state lock is unavailable: %1%"),
                                 lock_error);
-            return false;
+            return failure_result();
         }
         std::lock_guard<std::mutex> lock(m_mutex);
 
         Plugin* entry = find_plugin_locked(old_key);
         if (entry == nullptr) {
             error = GUI::format(_u8L("Plugin manifest not found: %1%"), old_key);
-            return false;
+            return failure_result();
         }
 
         if (find_plugin_locked(new_key) != nullptr && new_key != old_key) {
             error = GUI::format(_u8L("Cannot keep plugin local: local plugin key already exists: %1%"), new_key);
             BOOST_LOG_TRIVIAL(warning) << error;
-            return false;
+            return failure_result();
         }
 
         // Preserve the sidecar's package and capability choices while changing only its origin.
@@ -2995,7 +3104,7 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
             error = GUI::format(_u8L("Failed to read plugin install state: %1%"),
                                 (resolved_root / INSTALL_STATE_FILE).string());
             BOOST_LOG_TRIVIAL(warning) << error;
-            return false;
+            return failure_result();
         }
         if (install_state_status == InstallStateReadStatus::Absent) {
             install_state.installed_version = !local_descriptor.installed_version.empty()
@@ -3014,7 +3123,7 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
                        install_state.installation_revision.empty());
         if (!revision_matches) {
             error = _u8L("The plugin was changed by another OrcaSlicer instance. Refresh the plugin list and try again.");
-            return false;
+            return failure_result();
         }
         old_profile_id = install_state.browser_profile_id;
         try {
@@ -3022,10 +3131,10 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
             install_state.installation_revision = make_plugin_installation_revision();
         } catch (const std::exception& ex) {
             error = GUI::format(_u8L("Cannot create a plugin installation identity: %1%"), ex.what());
-            return false;
+            return failure_result();
         } catch (...) {
             error = _u8L("Cannot create a plugin installation identity.");
-            return false;
+            return failure_result();
         }
         install_state.installed_from = "local";
         install_state.plugin_name    = local_descriptor.name;
@@ -3045,25 +3154,25 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
             if (ec) {
                 error = GUI::format(_u8L("Failed to create the local plugin directory %1%: %2%"),
                                     local_root.string(), ec.message());
-                return false;
+                return failure_result();
             }
             ec.clear();
             const bool destination_exists = fs::exists(state_root, ec);
             if (ec) {
                 error = GUI::format(_u8L("Cannot keep plugin local: failed to check destination %1%: %2%"),
                                     state_root.string(), ec.message());
-                return false;
+                return failure_result();
             }
             if (destination_exists) {
                 error = GUI::format(_u8L("Cannot keep plugin local: destination already exists: %1%"),
                                     state_root.string());
-                return false;
+                return failure_result();
             }
             fs::rename(resolved_root, state_root, ec);
             if (ec) {
                 error = GUI::format(_u8L("Failed to move plugin to the local plugin directory %1%: %2%"),
                                     state_root.string(), ec.message());
-                return false;
+                return failure_result();
             }
         }
 
@@ -3078,7 +3187,7 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
             }
             error = GUI::format(_u8L("Failed to update plugin install state: %1%"),
                                 (state_root / INSTALL_STATE_FILE).string());
-            return false;
+            return failure_result();
         }
 
         entry->descriptor.plugin_key = new_key;
@@ -3104,29 +3213,239 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
     // The old package was moved (or rekeyed in place), so no root-existence check here.
     delete_plugin_browser_profile(old_key, old_profile_id);
 
-    // Reload from the new local path so the live module, resources and capabilities all point at
-    // it. The load binds the fresh identity and fires the load callbacks.
     // The old package has been rekeyed; release the conversion leases before the new load (which
     // acquires its own, including the same-key case).
     for (auto& lease : package_leases)
         lease.reset();
-    if (was_loaded)
-        load_plugin(new_key);
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Transitioned plugin from " << old_key << " to " << new_key;
 
-    return true;
-}
+    auto succeeded = [&new_key](PluginReloadStatus reload) {
+        CloudUnsubscribeResult r;
+        r.status           = PluginRemovalStatus::Succeeded;
+        r.local_copy_kept  = true;
+        r.reload           = reload;
+        r.local_plugin_key = new_key;
+        return r;
+    };
+    auto pending = [&new_key]() {
+        CloudUnsubscribeResult r;
+        r.status           = PluginRemovalStatus::Pending;
+        r.local_copy_kept  = true;
+        r.reload           = PluginReloadStatus::Running;
+        r.local_plugin_key = new_key;
+        return r;
+    };
+    auto local_copy_failure = [&](const std::string& load_error, bool log_warning) {
+        CloudUnsubscribeResult r;
+        r.status           = PluginRemovalStatus::Failed;
+        r.local_copy_kept  = true;
+        r.reload           = PluginReloadStatus::Failed;
+        r.local_plugin_key = new_key;
+        const std::string reason = load_error.empty() ? std::string(_u8L("the reload did not complete")) : load_error;
+        r.error = GUI::format(
+            _u8L("The plugin was kept as a local copy, but reloading it failed: %1%. "
+                 "The local copy remains; fix the plugin or remove it manually."),
+            reason);
+        if (log_warning)
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << r.error;
+        return r;
+    };
+    auto local_copy_busy = [&]() {
+        CloudUnsubscribeResult r;
+        r.status           = PluginRemovalStatus::Failed;
+        r.local_copy_kept  = true;
+        r.reload           = PluginReloadStatus::Busy;
+        r.local_plugin_key = new_key;
+        // Busy is not an attempted reload failure: nothing was reloaded. Say so and ask for a retry.
+        r.error = _u8L("The plugin was kept as a local copy, but it was not reloaded because a plugin update is in "
+                       "progress. Retry after the update finishes.");
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << r.error;
+        return r;
+    };
 
-bool PluginManager::finalize_cloud_plugin_removal(const PluginDescriptor& plugin, bool keep_local, std::string& error)
-{
-    if (keep_local && plugin.has_local_package()) {
-        if (!keep_installed_plugin_as_local(plugin, error))
-            return false;
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Removed cloud tracking, kept local copy: " << plugin.plugin_key;
-        return true;
+    // A plugin that was not loaded normally stays not loaded; the conversion itself is complete.
+    // If a load for the target key was already in flight, the unload above cancelled it, so report
+    // that explicitly rather than claiming no reload was needed. A still-running uncancelled load
+    // stays pending and is resolved by its worker. When the key changed, an in-flight load of the
+    // old key was also cancelled by that unload and must not be silently ignored.
+    if (!was_loaded) {
+        bool still_loading  = false;
+        bool load_cancelled = false;
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            if (m_load_in_progress.count(new_key) > 0) {
+                if (m_cancelled.count(new_key) > 0) {
+                    load_cancelled = true;
+                } else {
+                    PendingReloadState pending_state;
+                    pending_state.owner              = PendingReloadOwner::Worker;
+                    m_pending_local_reloads[new_key] = pending_state;
+                    still_loading = true;
+                }
+            }
+            if (old_key != new_key && m_load_in_progress.count(old_key) > 0 && m_cancelled.count(old_key) > 0)
+                load_cancelled = true;
+        }
+        // An actively loading target key is Pending even if the pre-conversion old-key load was
+        // cancelled by the unload.
+        if (still_loading) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__
+                                    << ": Local conversion committed; pre-existing reload still in progress for " << new_key;
+            return pending();
+        }
+        if (old_load_in_progress)
+            load_cancelled = true;
+        if (load_cancelled)
+            return succeeded(PluginReloadStatus::Cancelled);
+        return succeeded(PluginReloadStatus::NotNeeded);
     }
 
+    // The conversion is committed. A reload failure is a partial result, but a reload that is
+    // merely still running is Pending, not failure. Waiting is safe only off the GUI thread and
+    // without the GIL: a load can show permission prompts on the GUI thread, and a GIL-holding
+    // waiter would deadlock the import.
+    const bool on_gui         = wxTheApp != nullptr && wxIsMainThread();
+    const bool caller_has_gil = Py_IsInitialized() && PyGILState_Check() == 1;
+    const bool must_report_async = wxTheApp == nullptr || on_gui || caller_has_gil;
+
+    auto remember_pending = [this, &new_key](PendingReloadOwner owner) {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        PendingReloadState pending_state;
+        pending_state.owner              = owner;
+        pending_state.update_at_start    = m_updates_in_progress.count(new_key) > 0;
+        m_pending_local_reloads[new_key] = pending_state;
+    };
+
+    if (!must_report_async) {
+        // The synchronous caller owns the mark until its wait returns. The worker freezes the
+        // exact outcome at release; if the reload is still running at the timeout the caller hands
+        // the mark to the worker, which reports a later failure.
+        remember_pending(PendingReloadOwner::Caller);
+        load_plugin(new_key);
+        std::string wait_error;
+        wait_for_plugin_load(new_key, std::chrono::minutes(5), wait_error);
+
+        PendingReloadOutcome outcome;
+        bool                handed_off = false;
+        bool                busy       = false;
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            const auto pending_it = m_pending_local_reloads.find(new_key);
+            if (pending_it == m_pending_local_reloads.end()) {
+                outcome = capture_pending_reload_outcome_locked(new_key);
+                busy    = outcome.update_in_progress || (outcome.error.empty() && !wait_error.empty());
+            } else if (pending_it->second.resolved) {
+                // The load finished; use the exact frozen outcome, unaffected by any later retry.
+                outcome = pending_it->second.outcome;
+                m_pending_local_reloads.erase(pending_it);
+            } else if (m_load_in_progress.count(new_key) > 0) {
+                if (m_cancelled.count(new_key) > 0) {
+                    // The cancellation is already known: do not wait or hand off; this is Cancelled.
+                    outcome = capture_pending_reload_outcome_locked(new_key);
+                    outcome.pending = true;
+                    outcome.claimed = true;
+                    m_pending_local_reloads.erase(pending_it);
+                } else {
+                    pending_it->second.owner = PendingReloadOwner::Worker;
+                    handed_off               = true;
+                }
+            } else {
+                // No worker will release the slot: the load was refused. If wait_error is the only
+                // reason (no load error), it is the update refusal; report Busy, never an attempted
+                // reload failure.
+                outcome = capture_pending_reload_outcome_locked(new_key);
+                busy    = outcome.update_in_progress ||
+                       (outcome.error.empty() &&
+                        (pending_it->second.update_at_start || !wait_error.empty()));
+                outcome.pending = true;
+                outcome.claimed = true;
+                m_pending_local_reloads.erase(pending_it);
+            }
+        }
+        if (handed_off) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Local conversion committed; reload still in progress for "
+                                    << new_key;
+            return pending();
+        }
+        if (busy)
+            return local_copy_busy();
+        if (outcome.loaded)
+            return succeeded(PluginReloadStatus::Succeeded);
+        if (outcome.cancelled) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Local conversion committed; reload was cancelled or superseded "
+                                       "for "
+                                    << new_key;
+            return succeeded(PluginReloadStatus::Cancelled);
+        }
+        if (!outcome.error.empty())
+            return local_copy_failure(outcome.error, /*log_warning=*/outcome.claimed);
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Local conversion committed; reload was cancelled or superseded "
+                                   "for "
+                                << new_key;
+        return succeeded(PluginReloadStatus::Cancelled);
+    }
+
+    // GUI-thread/GIL caller: never block on the load. While it runs the result is Pending and the
+    // load worker reports a real failure once. If it already finished, the worker has claimed the
+    // mark and this caller only reads the captured outcome, so the failure is not logged twice.
+    remember_pending(PendingReloadOwner::Worker);
+    load_plugin(new_key);
+    {
+        const PendingReloadOutcome outcome = take_finished_pending_reload_outcome(new_key);
+        if (outcome.loaded)
+            return succeeded(PluginReloadStatus::Succeeded);
+        if (outcome.cancelled) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Local conversion committed; reload was cancelled or superseded "
+                                       "for "
+                                    << new_key;
+            return succeeded(PluginReloadStatus::Cancelled);
+        }
+        if (outcome.pending && outcome.in_progress) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Local conversion committed; reload still in progress for "
+                                    << new_key;
+            return pending();
+        }
+        // The mark was claimed without a running load: the load was refused. An update owns the
+        // key, so say it was not reloaded rather than that an attempted reload failed.
+        if (outcome.claimed && outcome.update_in_progress)
+            return local_copy_busy();
+        if (!outcome.error.empty())
+            return local_copy_failure(outcome.error, /*log_warning=*/outcome.claimed);
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Local conversion committed; reload was cancelled or superseded "
+                                   "for "
+                                << new_key;
+        return succeeded(PluginReloadStatus::Cancelled);
+    }
+}
+
+CloudUnsubscribeResult PluginManager::finalize_cloud_unsubscribe(const PluginDescriptor& plugin)
+{
+    if (plugin.has_local_package()) {
+        CloudUnsubscribeResult result = keep_installed_plugin_as_local(plugin);
+        if (result.status == PluginRemovalStatus::Succeeded ||
+            result.status == PluginRemovalStatus::Pending) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Removed cloud tracking, kept local copy: " << plugin.plugin_key;
+        }
+        return result;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_failed_loads.erase(plugin.plugin_key);
+        m_plugins.erase(std::remove_if(m_plugins.begin(), m_plugins.end(),
+                                       [&plugin](const Plugin& entry) { return entry.descriptor.plugin_key == plugin.plugin_key; }),
+                        m_plugins.end());
+    }
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Removed cloud-only plugin: " << plugin.plugin_key;
+    CloudUnsubscribeResult result;
+    result.status          = PluginRemovalStatus::Succeeded;
+    result.reload          = PluginReloadStatus::NotNeeded;
+    return result;
+}
+
+bool PluginManager::finalize_cloud_plugin_removal(const PluginDescriptor& plugin, std::string& error)
+{
     if (plugin.has_local_package()) {
         if (!delete_installed_plugin_package(plugin, error))
             return false;
@@ -3169,29 +3488,32 @@ bool PluginManager::delete_plugin(const std::string& plugin_key, std::string& er
     return true;
 }
 
-bool PluginManager::unsubscribe_cloud_plugin(const std::string& plugin_key, std::string& error)
+CloudUnsubscribeResult PluginManager::unsubscribe_cloud_plugin(const std::string& plugin_key)
 {
-    if (!wait_for_discovery(std::chrono::milliseconds::max(), error))
-        return false;
+    CloudUnsubscribeResult result;
+    std::string             error;
 
-    error.clear();
+    if (!wait_for_discovery(std::chrono::milliseconds::max(), error)) {
+        result.error = error;
+        return result;
+    }
 
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
-        error = GUI::format(_u8L("Plugin not found: %1%"), plugin_key);
-        return false;
+        result.error = GUI::format(_u8L("Plugin not found: %1%"), plugin_key);
+        return result;
     }
 
     if (!descriptor.is_cloud_plugin()) {
-        error = _u8L("Only cloud plugins can be unsubscribed.");
-        set_plugin_error(plugin_key, error);
-        return false;
+        result.error = _u8L("Only cloud plugins can be unsubscribed.");
+        set_plugin_error(plugin_key, result.error);
+        return result;
     }
 
     if (descriptor.cloud && descriptor.cloud->is_mine) {
-        error = _u8L("Cannot unsubscribe your own plugins.");
-        set_plugin_error(plugin_key, error);
-        return false;
+        result.error = _u8L("Cannot unsubscribe your own plugins.");
+        set_plugin_error(plugin_key, result.error);
+        return result;
     }
 
     if (!m_cloud_service.request_cloud_unsubscribe(descriptor, error)) {
@@ -3199,23 +3521,38 @@ bool PluginManager::unsubscribe_cloud_plugin(const std::string& plugin_key, std:
             error = _u8L("The cloud subscription was not cancelled.");
         // A nonzero cloud result can be a timeout, so the server state is unknown.
         // TRN %1% is the cloud service error.
-        error = GUI::format(
+        result.error = GUI::format(
             _u8L("The cloud subscription status could not be confirmed; the local plugin package was not changed: %1%"),
             error);
-        set_plugin_error(plugin_key, error);
-        return false;
+        set_plugin_error(plugin_key, result.error);
+        return result;
     }
 
-    if (!finalize_cloud_plugin_removal(descriptor, true, error)) {
-        if (error.empty())
-            error = _u8L("unknown error");
-        // TRN %1% is the local conversion error.
-        error = GUI::format(
-            _u8L("The cloud unsubscribe request succeeded, but keeping the local plugin copy failed: %1%"), error);
-        set_plugin_error(plugin_key, error);
-        return false;
+    result = finalize_cloud_unsubscribe(descriptor);
+    if (result.status == PluginRemovalStatus::Failed) {
+        const std::string detail = result.error.empty() ? std::string(_u8L("unknown error")) : result.error;
+        // TRN %1% is the local conversion/reload error. No rollback is attempted.
+        result.error =
+            result.reload == PluginReloadStatus::Busy
+                ? std::string(_u8L("The cloud unsubscribe request succeeded and the local copy was kept, but the plugin was "
+                                   "not reloaded because a plugin update is in progress. Retry loading it after the update "
+                                   "finishes. No rollback was attempted."))
+                : result.local_copy_kept
+                ? GUI::format(_u8L("The cloud unsubscribe request succeeded and the local copy was kept, but reloading it "
+                                   "failed: %1%. No rollback was attempted."),
+                              detail)
+                : GUI::format(
+                      _u8L("The cloud unsubscribe request succeeded, but the plugin was not fully prepared as a local "
+                           "copy: %1%. No rollback was attempted."),
+                      detail);
+        // The registry entry was rekeyed to the local copy when the conversion committed; report on
+        // the key that still exists rather than the old cloud key that no longer does.
+        const std::string error_key = result.local_copy_kept && !result.local_plugin_key.empty()
+                                          ? result.local_plugin_key
+                                          : plugin_key;
+        set_plugin_error(error_key, result.error);
     }
-    return true;
+    return result;
 }
 
 bool PluginManager::delete_and_unsubscribe_cloud_plugin(const std::string& plugin_key, std::string& error)
@@ -3257,7 +3594,7 @@ bool PluginManager::delete_and_unsubscribe_cloud_plugin(const std::string& plugi
         return false;
     }
 
-    if (!finalize_cloud_plugin_removal(descriptor, false, error)) {
+    if (!finalize_cloud_plugin_removal(descriptor, error)) {
         if (error.empty())
             error = _u8L("unknown error");
         // TRN %1% is the local package removal error.
