@@ -38,6 +38,8 @@ namespace GUI {
 class GLCanvas3D;
 class ClippingPlane;
 struct ToolbarGroupLayout;
+struct ToolbarBarSlot;
+struct ToolbarIconGroup;
 enum class SLAGizmoEventType : unsigned char;
 class CommonGizmosDataPool;
 //BBS: GUI refactor: add object manipulation
@@ -146,11 +148,28 @@ private:
     // The user's gizmo bar order (EType indices; empty = stock) and hidden flags, from the saved toolbar layout.
     std::vector<size_t> m_bar_order;
     std::vector<bool> m_bar_hidden;
+    // The user's gizmo groups, the group whose list is open (-1 for none), and the gizmo ids opened this session,
+    // newest first.
+    std::vector<ToolbarIconGroup> m_groups;
+    int m_open_group{-1};
+    // The group whose button the tooltip names, or -1.
+    int m_tooltip_group{-1};
+    std::vector<std::string> m_recent_gizmos;
+    // Written while the list is drawn: its screen rectangle, and the member clicked in it (opened after drawing).
+    mutable Vec4f m_group_list_rect{Vec4f::Zero()};
+    mutable EType m_group_pending_open{Undefined};
 
     //BBS: GUI refactor: add object manipulation
     GizmoObjectManipulation m_object_manipulation;
 
     std::vector<size_t> get_selectable_idxs() const;
+    // The Prepare canvas's bar slots; each group with two or more icons on the bar collapses into one slot.
+    std::vector<ToolbarBarSlot> get_bar_slots() const;
+    // The group whose slot shows this gizmo, or -1 (always -1 on the Assemble canvas).
+    int group_of_slot(EType type) const;
+    // Opens a gizmo as a click on its bar icon does: Text creates a text object when none is selected.
+    void open_from_bar(EType type);
+    void render_group_list(int group, float left, float top) const;
     bool is_hidden_in_bar(size_t idx) const { return idx < m_bar_hidden.size() && m_bar_hidden[idx]; }
     EType get_gizmo_from_mouse(const Vec2d &mouse_pos) const;
 
@@ -233,13 +252,17 @@ public:
     };
 
     explicit GLGizmosManager(GLCanvas3D& parent);
+    ~GLGizmosManager();
 
     void switch_gizmos_icon_filename();
 
     bool init();
 
-    // Applies the user's gizmo bar order and hidden set; ids that name no gizmo are ignored.
-    void set_bar_layout(const ToolbarGroupLayout& layout);
+    // Applies the user's gizmo bar order, hidden set and groups; ids that name no gizmo are ignored.
+    void set_bar_layout(const ToolbarGroupLayout& layout, const std::vector<ToolbarIconGroup>& groups);
+    void close_group_list();
+    // Closes the open group list unless the mouse is on it or on its group's button.
+    void close_group_list_unless_at(const Vec2d& mouse_pos);
     // The stock rule only (not the user's choice): true when the gizmos are not created yet.
     bool is_bar_item_available(EType type) const;
     static std::string gizmo_id(EType type);
@@ -288,6 +311,8 @@ public:
     bool is_enabled() const { return m_enabled; }
     // ORCA
     bool is_mouse_over_toolbar_icon(const Vec2d& mouse_pos) const { return get_gizmo_from_mouse(mouse_pos) != Undefined; }
+    // A group's list is open; no gizmo is then, as opening either closes the other.
+    bool is_group_list_open() const { return m_open_group >= 0; }
     void set_enabled(bool enable) { m_enabled = enable; }
 
     void set_icon_dirty() { m_icons_texture_dirty = true; }

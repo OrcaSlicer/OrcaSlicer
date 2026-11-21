@@ -6,16 +6,23 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/ToolbarLayout.hpp"
 
 #include <boost/container_hash/hash.hpp>
 #include <boost/functional/hash.hpp>
 
 #include "libslic3r/Utils.hpp"
+#include <algorithm>
 #include <cassert>
+#include <cstdint>
+#include <set>
+#include <string>
 #include <cstddef>
 #include <functional>
 #include <vector>
 #include <utility>
+#include <imgui/imgui.h>
 #include <wx/event.h>
 #include <wx/bitmap.h>
 #include <wx/dcmemory.h>
@@ -457,8 +464,9 @@ bool GLToolbar::is_item_visible(const std::string& name) const
 {
     for (const GLToolbarItem* item : m_items)
     {
+        // On the toolbar, though maybe folded into its group's button.
         if (item->get_name() == name)
-            return item->is_visible();
+            return item->m_data.visible;
     }
 
     return false;
@@ -490,10 +498,14 @@ std::string GLToolbar::get_tooltip() const
 {
     std::string tooltip;
 
-    for (GLToolbarItem* item : m_items)
+    for (size_t id = 0; id < m_items.size(); ++id)
     {
+        const GLToolbarItem* item = m_items[id];
         if (item->is_hovered())
         {
+            // A group's button is named for the group, and says nothing while its list is open below it.
+            if (const int group = group_of_slot(static_cast<int>(id)); group >= 0)
+                return group == m_open_group ? std::string() : m_groups[static_cast<size_t>(group)].name;
             tooltip = item->get_tooltip();
             if (!item->is_pressed())
             {
@@ -567,7 +579,7 @@ void GLToolbar::render_item_windows(const GLCanvas3D& parent)
     switch (m_layout.type)
     {
     default:
-    case Layout::Horizontal: { render_horizontal(parent, GLToolbarItem::Action, false); break; }
+    case Layout::Horizontal: { render_horizontal(parent, GLToolbarItem::Action, false); render_group_marks(parent); break; }
     case Layout::Vertical:   { render_vertical(parent, false); break; }
     }
 }
@@ -576,6 +588,7 @@ size_t GLToolbar::get_state_hash() const
 {
     size_t hash = 0;
     boost::hash_combine(hash, m_enabled);
+    boost::hash_combine(hash, m_open_group);
     for (const GLToolbarItem* item : m_items) {
         boost::hash_combine(hash, (int)item->get_state());
         boost::hash_combine(hash, item->is_visible());
@@ -648,7 +661,17 @@ bool GLToolbar::on_mouse(wxMouseEvent& evt, GLCanvas3D& parent)
             m_mouse_capture.left = true;
             m_mouse_capture.parent = &parent;
             processed = true;
-            if (item_id != -2 && !m_items[item_id]->is_separator() && !m_items[item_id]->is_disabled() &&
+            if (const int group = group_of_slot(item_id); group >= 0) {
+                // A double click would reopen what the first click closed.
+                if (evt.LeftDown()) {
+                    if (group == m_open_group) {
+                        close_group_list();
+                        parent.set_as_dirty();
+                    } else
+                        open_group_list(group, parent);
+                }
+            }
+            else if (item_id != -2 && !m_items[item_id]->is_separator() && !m_items[item_id]->is_disabled() &&
                 (m_pressed_toggable_id == -1 || m_items[item_id]->get_last_action_type() == GLToolbarItem::Left)) {
                 // mouse is inside an icon
                 do_action(GLToolbarItem::Left, item_id, parent, true);
@@ -796,6 +819,14 @@ void GLToolbar::do_action(GLToolbarItem::EActionType type, int item_id, GLCanvas
         if (0 <= item_id && item_id < (int)m_items.size()) {
             GLToolbarItem* item = m_items[item_id];
             if (item != nullptr && !item->is_separator() && !item->is_disabled() && (!check_hover || item->is_hovered())) {
+                // A grouped item used, from its button, its group's list or a shortcut, becomes what its button shows.
+                if (std::any_of(m_groups.begin(), m_groups.end(), [item](const ToolbarIconGroup& g) {
+                        return std::find(g.members.begin(), g.members.end(), item->get_name()) != g.members.end(); })) {
+                    m_recent_items.erase(std::remove(m_recent_items.begin(), m_recent_items.end(), item->get_name()), m_recent_items.end());
+                    m_recent_items.insert(m_recent_items.begin(), item->get_name());
+                    if (fold_groups())
+                        m_layout.dirty = true;
+                }
                 if ((type == GLToolbarItem::Right && item->is_right_toggable()) ||
                     (type == GLToolbarItem::Left && item->is_left_toggable())) {
                     GLToolbarItem::EState state = item->get_state();
@@ -1609,6 +1640,7 @@ bool GLToolbar::update_items_visibility()
     for (GLToolbarItem* item : m_items) {
         ret |= item->update_visibility();
     }
+    ret |= fold_groups();
 
     if (ret)
         m_layout.dirty = true;
@@ -1711,6 +1743,196 @@ bool setup_collapse_toolbar(GLToolbar& toolbar, std::function<void()> toggle)
     item.left.action_callback = std::move(toggle);
 
     return toolbar.add_item(item);
+}
+
+void GLToolbar::set_groups(const std::vector<ToolbarIconGroup>& groups)
+{
+    close_group_list();
+    m_groups = groups;
+    if (fold_groups())
+        m_layout.dirty = true;
+}
+
+int GLToolbar::group_of_slot(int item_id) const
+{
+    if (item_id < 0 || static_cast<size_t>(item_id) >= m_items.size())
+        return -1;
+    const std::string& name = m_items[static_cast<size_t>(item_id)]->get_name();
+    for (const ToolbarBarSlot& slot : m_group_slots)
+        if (slot.shown == name)
+            return slot.group;
+    return -1;
+}
+
+bool GLToolbar::fold_groups()
+{
+    std::vector<std::string> bar_ids;
+    std::set<std::string>    cannot_open;
+    std::string              pressed;
+    for (const GLToolbarItem* item : m_items) {
+        if (item->is_separator() || !item->m_data.visible)
+            continue;
+        bar_ids.push_back(item->get_name());
+        if (item->is_disabled())
+            cannot_open.insert(item->get_name());
+        if (item->is_pressed())
+            pressed = item->get_name();
+    }
+    m_group_slots.clear();
+    std::set<std::string> folded;
+    for (ToolbarBarSlot& slot : compute_bar_slots(bar_ids, m_groups, pressed, m_recent_items, cannot_open))
+        if (slot.group >= 0) {
+            for (const std::string& member : slot.members)
+                if (member != slot.shown)
+                    folded.insert(member);
+            m_group_slots.push_back(std::move(slot));
+        }
+    // A list whose group no longer has a slot (a printer switch left it one item on the toolbar) closes.
+    if (std::none_of(m_group_slots.begin(), m_group_slots.end(), [this](const ToolbarBarSlot& slot) { return slot.group == m_open_group; }))
+        close_group_list();
+
+    bool changed = false;
+    for (GLToolbarItem* item : m_items) {
+        const bool fold = folded.count(item->get_name()) != 0;
+        changed |= item->m_folded != fold;
+        item->m_folded = fold;
+    }
+    return changed;
+}
+
+void GLToolbar::open_group_list(int group, GLCanvas3D& parent)
+{
+    close_group_list();
+    // A pressed item's window sits where the list goes, so close it first.
+    if (m_pressed_toggable_id >= 0)
+        do_action(GLToolbarItem::Left, m_pressed_toggable_id, parent, false);
+    if (m_pressed_toggable_id >= 0)
+        return;
+    m_open_group = group;
+    parent.set_as_dirty();
+    parent.request_extra_frame();
+}
+
+bool GLToolbar::close_group_list()
+{
+    m_group_picked.clear();
+    if (m_open_group < 0)
+        return false;
+    m_open_group      = -1;
+    m_group_list_rect = Vec4f::Zero();
+    return true;
+}
+
+void GLToolbar::close_group_list_unless_at(const Vec2d& mouse_pos, GLCanvas3D& parent)
+{
+    if (m_open_group < 0)
+        return;
+    const Vec4f& r       = m_group_list_rect;
+    const bool   on_list = r(0) <= mouse_pos(0) && mouse_pos(0) <= r(2) && r(1) <= mouse_pos(1) && mouse_pos(1) <= r(3);
+    // A press on its own button toggles the list in on_mouse().
+    if (!on_list && group_of_slot(contains_mouse(mouse_pos, parent)) != m_open_group) {
+        close_group_list();
+        parent.set_as_dirty();
+        parent.request_extra_frame();
+    }
+}
+
+void GLToolbar::render_group_marks(const GLCanvas3D& parent)
+{
+    if (m_group_slots.empty())
+        return;
+    const float cnv_w  = static_cast<float>(parent.get_canvas_size().get_width());
+    const float cnv_h  = static_cast<float>(parent.get_canvas_size().get_height());
+    const float icon   = m_layout.icons_size * m_layout.scale;
+    const float border = m_layout.border * m_layout.scale;
+    const float top    = 0.5f * cnv_h - m_layout.top;
+    for (const ToolbarBarSlot& slot : m_group_slots) {
+        const GLToolbarItem* item = get_item(slot.shown);
+        if (item == nullptr || !item->is_visible())
+            continue;
+        const float left = 0.5f * (1.0f + item->render_left_pos) * cnv_w;
+        // Three dots under the icon mark the button as a group, clear of the icon itself; teal while its list is open.
+        const float r      = std::max(1.5f, 0.04f * icon);
+        const float y      = top + border + icon + 0.5f * border;
+        const bool  dark   = wxGetApp().dark_mode();
+        const ImU32 colour = m_open_group == slot.group ? IM_COL32(0, 150, 136, 255) : dark ? IM_COL32(220, 220, 220, 255) : IM_COL32(80, 80, 80, 255);
+        for (int dot = -1; dot <= 1; ++dot)
+            ImGui::GetForegroundDrawList()->AddCircleFilled(ImVec2(left + 0.5f * icon + static_cast<float>(dot) * 3.0f * r, y), r, colour);
+        if (m_open_group == slot.group)
+            render_group_list(slot.group, left, top + get_height_horizontal());
+    }
+}
+
+void GLToolbar::render_group_list(int group, float left, float top)
+{
+    std::vector<const GLToolbarItem*> members;
+    for (const ToolbarBarSlot& slot : m_group_slots)
+        if (slot.group == group)
+            for (const std::string& name : slot.members)
+                if (const GLToolbarItem* item = get_item(name); item != nullptr)
+                    members.push_back(item);
+    const unsigned int tex_id     = m_icons_texture.get_id();
+    const int          tex_width  = m_icons_texture.get_width();
+    const int          tex_height = m_icons_texture.get_height();
+    if (members.empty() || tex_id == 0 || tex_width <= 1 || tex_height <= 1)
+        return;
+
+    // The sprite layout GLToolbarItem::render() reads: one row per item, one column per state, tiles 1 px apart.
+    const float icon_px  = static_cast<float>(tex_width - 1) / static_cast<float>(GLToolbarItem::Num_States + GLToolbarItem::Num_Rendered_Highlight_States);
+    const float du       = icon_px / static_cast<float>(tex_width);
+    const float dv       = icon_px / static_cast<float>(tex_height);
+    const float u_offset = 1.0f / static_cast<float>(tex_width);
+    const float v_offset = 1.0f / static_cast<float>(tex_height);
+
+    ImGuiWrapper& imgui = *wxGetApp().imgui();
+    ImGuiWrapper::push_toolbar_style(m_layout.scale);
+
+    // Toolbar-sized icons, three to a row, each named in a tooltip, as on the gizmo bar's group lists.
+    constexpr size_t columns = 3;
+    const float      icon    = m_layout.icons_size * m_layout.scale;
+
+    imgui.set_next_window_pos(left, top, ImGuiCond_Always, 0.0f, 0.0f);
+    // A fixed id: the group's name is user text and may repeat or contain "##".
+    // An accent border, as on the open group's dots.
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.0f * m_layout.scale);
+    ImGui::PushStyleColor(ImGuiCol_Border, ImGuiWrapper::COL_ORCA);
+    imgui.begin(std::string("##toolbar_group_list"), ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize |
+                                                       ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
+    ImDrawList* draw      = ImGui::GetWindowDrawList();
+    const auto tex = reinterpret_cast<ImTextureID>(static_cast<intptr_t>(tex_id));
+    ImGui::TextUnformatted(m_groups[static_cast<size_t>(group)].name.c_str());
+    for (size_t i = 0; i < members.size(); ++i) {
+        const GLToolbarItem& item    = *members[i];
+        const bool           enabled = !item.is_disabled();
+        if (i % columns != 0)
+            ImGui::SameLine();
+        ImGui::PushID(static_cast<int>(i));
+        const ImVec2 at = ImGui::GetCursorScreenPos();
+        if (ImGui::InvisibleButton("##icon", ImVec2(icon, icon)) && enabled)
+            m_group_picked = item.get_name();
+        const bool hovered = ImGui::IsItemHovered();
+        ImGui::PopID();
+
+        const int   state  = enabled ? (hovered ? GLToolbarItem::Hover : GLToolbarItem::Normal) : GLToolbarItem::Disabled;
+        const float u_left = u_offset + static_cast<float>(state) * du;
+        const float v_top  = v_offset + static_cast<float>(item.get_sprite_id()) * dv;
+        draw->AddImage(tex, at, ImVec2(at.x + icon, at.y + icon), ImVec2(u_left, v_top), ImVec2(u_left + du - u_offset, v_top + dv - v_offset));
+        if (hovered && !item.get_tooltip().empty())
+            imgui.tooltip(item.get_tooltip(), ImGui::GetFontSize() * 20.0f);
+    }
+    const ImVec2 pos = ImGui::GetWindowPos();
+    const ImVec2 sz  = ImGui::GetWindowSize();
+    m_group_list_rect = Vec4f(pos.x, pos.y, pos.x + sz.x, pos.y + sz.y);
+    imgui.end();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar(2);
+    ImGuiWrapper::pop_toolbar_style();
+    // A pick closes the list; the caller runs the item's action after the frame.
+    if (!m_group_picked.empty()) {
+        m_open_group      = -1;
+        m_group_list_rect = Vec4f::Zero();
+    }
 }
 
 } // namespace GUI

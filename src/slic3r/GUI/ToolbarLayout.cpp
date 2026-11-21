@@ -2,8 +2,11 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <functional>
 #include <iterator>
+#include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Slic3r { namespace GUI {
@@ -15,6 +18,9 @@ constexpr const char* KEY_MAIN          = "main";
 constexpr const char* KEY_MAIN_HIDDEN   = "main_hidden";
 constexpr const char* KEY_GIZMOS        = "gizmos";
 constexpr const char* KEY_GIZMOS_HIDDEN = "gizmos_hidden";
+constexpr const char* KEY_GROUPS        = "groups";
+constexpr const char* KEY_GROUP_NAME    = "name";
+constexpr const char* KEY_GROUP_MEMBERS = "members";
 
 std::vector<std::string> read_string_array(const nlohmann::json& object, const char* key)
 {
@@ -128,8 +134,22 @@ ToolbarLayout parse_toolbar_layout(const std::string& value)
     layout.main   = merge_toolbar_group(stock_main_toolbar_ids(), read_string_array(parsed, KEY_MAIN), read_string_array(parsed, KEY_MAIN_HIDDEN));
     layout.gizmos = merge_toolbar_group(stock_gizmo_bar_ids(), read_string_array(parsed, KEY_GIZMOS), read_string_array(parsed, KEY_GIZMOS_HIDDEN));
 
+    const auto groups = parsed.find(KEY_GROUPS);
+    const bool groups_known = groups != parsed.end() && groups->is_array();
+    if (groups_known)
+        for (const nlohmann::json& entry : *groups) {
+            const auto name    = entry.is_object() ? entry.find(KEY_GROUP_NAME) : entry.end();
+            const auto members = entry.is_object() ? entry.find(KEY_GROUP_MEMBERS) : entry.end();
+            if (entry.is_object() && name != entry.end() && name->is_string() && members != entry.end() && members->is_array())
+                layout.groups.push_back({name->get<std::string>(), read_string_array(entry, KEY_GROUP_MEMBERS)});
+            else
+                layout.other_groups.push_back(entry);
+        }
+    normalize_toolbar_groups(layout);
+
     for (const auto& [key, field] : parsed.items())
-        if (key != KEY_VERSION && key != KEY_MAIN && key != KEY_MAIN_HIDDEN && key != KEY_GIZMOS && key != KEY_GIZMOS_HIDDEN)
+        if (key != KEY_VERSION && key != KEY_MAIN && key != KEY_MAIN_HIDDEN && key != KEY_GIZMOS && key != KEY_GIZMOS_HIDDEN &&
+            !(key == KEY_GROUPS && groups_known))
             layout.extra[key] = field;
     return layout;
 }
@@ -139,13 +159,291 @@ std::string serialize_toolbar_layout(const ToolbarLayout& layout)
     nlohmann::json out = nlohmann::json::object();
     write_group(out, layout.main, stock_main_toolbar_ids(), KEY_MAIN, KEY_MAIN_HIDDEN);
     write_group(out, layout.gizmos, stock_gizmo_bar_ids(), KEY_GIZMOS, KEY_GIZMOS_HIDDEN);
+    if (!layout.groups.empty() || !layout.other_groups.empty()) {
+        nlohmann::json groups = nlohmann::json::array();
+        for (const ToolbarIconGroup& group : layout.groups)
+            groups.push_back({{KEY_GROUP_NAME, group.name}, {KEY_GROUP_MEMBERS, group.members}});
+        for (const nlohmann::json& entry : layout.other_groups)
+            groups.push_back(entry);
+        out[KEY_GROUPS] = std::move(groups);
+    }
     if (out.empty() && layout.extra.empty())
         return {};
 
     out[KEY_VERSION] = std::max(layout.version, 1);
     for (const auto& [key, field] : layout.extra.items())
-        out[key] = field;
+        // A "groups" value this build could not read gives way to the groups made here.
+        if (key != KEY_GROUPS || out.find(KEY_GROUPS) == out.end())
+            out[key] = field;
     return out.dump();
+}
+
+bool is_main_toolbar_id(const std::string& id) { return contains(stock_main_toolbar_ids(), id); }
+
+ToolbarGroupLayout& toolbar_list_of(ToolbarLayout& layout, const std::string& id) { return is_main_toolbar_id(id) ? layout.main : layout.gizmos; }
+const ToolbarGroupLayout& toolbar_list_of(const ToolbarLayout& layout, const std::string& id) { return is_main_toolbar_id(id) ? layout.main : layout.gizmos; }
+
+namespace {
+
+// An id that can be in a group: a main toolbar item or a gizmo bar id, never the separator.
+bool groupable(const std::string& id) { return id != TOOLBAR_SEPARATOR_ID && (is_main_toolbar_id(id) || contains(stock_gizmo_bar_ids(), id)); }
+
+} // namespace
+
+void normalize_toolbar_groups(ToolbarLayout& layout)
+{
+    std::set<std::string>         taken;
+    std::vector<ToolbarIconGroup> kept;
+    for (const ToolbarIconGroup& group : layout.groups) {
+        if (group.members.empty())
+            continue;
+        // A group belongs to its first member's list; members from the other list are dropped.
+        const std::vector<std::string>& order = toolbar_list_of(layout, group.members.front()).order;
+        ToolbarIconGroup                clean{group.name, {}};
+        for (const std::string& id : order)
+            if (contains(group.members, id) && groupable(id) && taken.count(id) == 0)
+                clean.members.push_back(id);
+        if (clean.members.size() < 2)
+            continue;
+        taken.insert(clean.members.begin(), clean.members.end());
+        kept.push_back(std::move(clean));
+    }
+
+    // Each group's members follow its first member, in their existing relative order.
+    for (const ToolbarIconGroup& group : kept) {
+        std::vector<std::string>&      order = toolbar_list_of(layout, group.members.front()).order;
+        const std::vector<std::string> rest(group.members.begin() + 1, group.members.end());
+        order.erase(std::remove_if(order.begin(), order.end(), [&rest](const std::string& id) { return contains(rest, id); }), order.end());
+        order.insert(std::next(std::find(order.begin(), order.end(), group.members.front())), rest.begin(), rest.end());
+    }
+
+    // The main toolbar's groups first, then the gizmo bar's, each in bar order.
+    const auto position = [&layout](const ToolbarIconGroup& group) {
+        const std::vector<std::string>& order = toolbar_list_of(layout, group.members.front()).order;
+        return std::make_pair(!is_main_toolbar_id(group.members.front()), std::find(order.begin(), order.end(), group.members.front()) - order.begin());
+    };
+    std::stable_sort(kept.begin(), kept.end(), [&position](const ToolbarIconGroup& a, const ToolbarIconGroup& b) { return position(a) < position(b); });
+    layout.groups = std::move(kept);
+}
+
+namespace {
+
+int group_of(const ToolbarLayout& layout, const std::string& id)
+{
+    for (size_t i = 0; i < layout.groups.size(); ++i)
+        if (contains(layout.groups[i].members, id))
+            return static_cast<int>(i);
+    return -1;
+}
+
+bool valid_group(const ToolbarLayout& layout, int group) { return group >= 0 && static_cast<size_t>(group) < layout.groups.size(); }
+
+std::string trimmed(const std::string& text)
+{
+    const auto first = text.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos)
+        return {};
+    return text.substr(first, text.find_last_not_of(" \t\r\n") - first + 1);
+}
+
+// Ids that can join a group: distinct groupable ids of one list, in its order, in no group.
+bool ungrouped_bar_ids(const ToolbarLayout& layout, const std::vector<std::string>& ids)
+{
+    for (size_t i = 0; i < ids.size(); ++i)
+        if (!groupable(ids[i]) || is_main_toolbar_id(ids[i]) != is_main_toolbar_id(ids.front()) ||
+            !contains(toolbar_list_of(layout, ids[i]).order, ids[i]) || group_of(layout, ids[i]) >= 0 ||
+            std::find(ids.begin(), ids.begin() + static_cast<std::ptrdiff_t>(i), ids[i]) != ids.begin() + static_cast<std::ptrdiff_t>(i))
+            return false;
+    return true;
+}
+
+} // namespace
+
+std::vector<ToolbarRow> toolbar_rows(const ToolbarLayout& layout, const ToolbarGroupLayout& list)
+{
+    std::vector<ToolbarRow> rows;
+    for (const std::string& id : list.order) {
+        const int group = group_of(layout, id);
+        if (group < 0) {
+            rows.push_back({ToolbarRowKind::Plain, id, -1});
+            continue;
+        }
+        if (layout.groups[static_cast<size_t>(group)].members.front() == id)
+            rows.push_back({ToolbarRowKind::Header, {}, group});
+        rows.push_back({ToolbarRowKind::Member, id, group});
+    }
+    return rows;
+}
+
+bool group_icons(ToolbarLayout& layout, const std::vector<std::string>& ids, const std::string& name)
+{
+    const std::string clean = trimmed(name);
+    if (ids.size() < 2 || clean.empty() || !ungrouped_bar_ids(layout, ids))
+        return false;
+    layout.groups.push_back({clean, ids});
+    normalize_toolbar_groups(layout);
+    return true;
+}
+
+bool add_to_group(ToolbarLayout& layout, int group, const std::vector<std::string>& ids)
+{
+    if (!valid_group(layout, group) || ids.empty() || !ungrouped_bar_ids(layout, ids) ||
+        is_main_toolbar_id(ids.front()) != is_main_toolbar_id(layout.groups[static_cast<size_t>(group)].members.front()))
+        return false;
+    std::vector<std::string>& order = toolbar_list_of(layout, ids.front()).order;
+    std::vector<std::string>  moved;
+    for (const std::string& id : order)
+        if (contains(ids, id))
+            moved.push_back(id);
+    order.erase(std::remove_if(order.begin(), order.end(), [&ids](const std::string& id) { return contains(ids, id); }), order.end());
+    ToolbarIconGroup& target = layout.groups[static_cast<size_t>(group)];
+    order.insert(std::next(std::find(order.begin(), order.end(), target.members.back())), moved.begin(), moved.end());
+    target.members.insert(target.members.end(), moved.begin(), moved.end());
+    normalize_toolbar_groups(layout);
+    return true;
+}
+
+bool ungroup_icons(ToolbarLayout& layout, int group)
+{
+    if (!valid_group(layout, group))
+        return false;
+    layout.groups.erase(layout.groups.begin() + group);
+    return true;
+}
+
+bool rename_group(ToolbarLayout& layout, int group, const std::string& name)
+{
+    const std::string clean = trimmed(name);
+    if (!valid_group(layout, group) || clean.empty())
+        return false;
+    layout.groups[static_cast<size_t>(group)].name = clean;
+    return true;
+}
+
+std::string default_group_name(const ToolbarLayout& layout, const std::function<std::string(int)>& name_for)
+{
+    for (int n = 1;; ++n) {
+        std::string name = name_for(n);
+        if (std::none_of(layout.groups.begin(), layout.groups.end(), [&name](const ToolbarIconGroup& g) { return g.name == name; }))
+            return name;
+    }
+}
+
+bool move_toolbar_row(ToolbarLayout& layout, const ToolbarRow& row, int step)
+{
+    if (step != -1 && step != 1)
+        return false;
+    // The row's list: a header's is its group's.
+    const std::string anchor = row.kind == ToolbarRowKind::Header ? (valid_group(layout, row.group) ? layout.groups[static_cast<size_t>(row.group)].members.front() : std::string()) : row.id;
+    if (anchor.empty())
+        return false;
+    std::vector<std::string>& order = toolbar_list_of(layout, anchor).order;
+
+    if (row.kind == ToolbarRowKind::Member) {
+        if (!valid_group(layout, row.group))
+            return false;
+        std::vector<std::string>& members = layout.groups[static_cast<size_t>(row.group)].members;
+        const auto at = std::find(members.begin(), members.end(), row.id);
+        if (at == members.end())
+            return false;
+        const std::ptrdiff_t to = (at - members.begin()) + step;
+        if (to < 0 || to >= static_cast<std::ptrdiff_t>(members.size())) {
+            // At the group's edge the member leaves; it already sits just outside on that side.
+            members.erase(at);
+        } else {
+            const auto a = std::find(order.begin(), order.end(), row.id);
+            const auto b = std::find(order.begin(), order.end(), members[static_cast<size_t>(to)]);
+            std::iter_swap(a, b);
+        }
+        normalize_toolbar_groups(layout);
+        return true;
+    }
+
+    // Plain rows and headers move as blocks: a group is one block, any other id is a block of one.
+    std::vector<std::vector<std::string>> blocks;
+    for (const std::string& id : order) {
+        const int group = group_of(layout, id);
+        if (group >= 0 && layout.groups[static_cast<size_t>(group)].members.front() != id)
+            continue;
+        blocks.push_back(group >= 0 ? layout.groups[static_cast<size_t>(group)].members : std::vector<std::string>{id});
+    }
+    const std::string key  = row.kind == ToolbarRowKind::Header ? (valid_group(layout, row.group) ? layout.groups[static_cast<size_t>(row.group)].members.front() : std::string()) : row.id;
+    const auto        from = std::find_if(blocks.begin(), blocks.end(), [&key](const std::vector<std::string>& block) { return !key.empty() && block.front() == key; });
+    if (from == blocks.end() || (row.kind == ToolbarRowKind::Plain && from->size() != 1))
+        return false;
+    const std::ptrdiff_t to = (from - blocks.begin()) + step;
+    if (to < 0 || to >= static_cast<std::ptrdiff_t>(blocks.size()))
+        return false;
+    std::iter_swap(from, blocks.begin() + to);
+    order.clear();
+    for (const std::vector<std::string>& block : blocks)
+        order.insert(order.end(), block.begin(), block.end());
+    normalize_toolbar_groups(layout);
+    return true;
+}
+
+std::vector<ToolbarBarSlot> compute_bar_slots(const std::vector<std::string>&       bar_ids,
+                                                    const std::vector<ToolbarIconGroup>& groups,
+                                                    const std::string&                    open_id,
+                                                    const std::vector<std::string>&       recent_ids,
+                                                    const std::set<std::string>&          cannot_open)
+{
+    // Each group's members on the bar; a group with fewer than two is no group here.
+    std::vector<std::vector<std::string>> on_bar(groups.size());
+    for (size_t g = 0; g < groups.size(); ++g) {
+        for (const std::string& id : bar_ids)
+            if (contains(groups[g].members, id))
+                on_bar[g].push_back(id);
+        if (on_bar[g].size() < 2)
+            on_bar[g].clear();
+    }
+    const auto group_on_bar = [&on_bar](const std::string& id) {
+        for (size_t g = 0; g < on_bar.size(); ++g)
+            if (contains(on_bar[g], id))
+                return static_cast<int>(g);
+        return -1;
+    };
+
+    std::vector<ToolbarBarSlot> slots;
+    for (const std::string& id : bar_ids) {
+        const int g = group_on_bar(id);
+        if (g < 0) {
+            slots.push_back({id, {}, -1});
+            continue;
+        }
+        const std::vector<std::string>& members = on_bar[static_cast<size_t>(g)];
+        if (id != members.front())
+            continue;
+        const auto openable = [&cannot_open](const std::string& m) { return cannot_open.count(m) == 0; };
+        const auto is_member = [&members](const std::string& m) { return contains(members, m); };
+        std::string shown;
+        if (is_member(open_id))
+            shown = open_id;
+        if (shown.empty())
+            for (const std::string& r : recent_ids)
+                if (is_member(r) && openable(r)) {
+                    shown = r;
+                    break;
+                }
+        if (shown.empty())
+            if (const auto it = std::find_if(members.begin(), members.end(), openable); it != members.end())
+                shown = *it;
+        if (shown.empty())
+            if (const auto it = std::find_if(recent_ids.begin(), recent_ids.end(), is_member); it != recent_ids.end())
+                shown = *it;
+        if (shown.empty())
+            shown = members.front();
+        slots.push_back({shown, members, g});
+    }
+    return slots;
+}
+
+std::string bar_slot_shown_for(const std::vector<ToolbarBarSlot>& slots, const std::string& id)
+{
+    for (const ToolbarBarSlot& slot : slots)
+        if (slot.shown == id || contains(slot.members, id))
+            return slot.shown;
+    return {};
 }
 
 }} // namespace Slic3r::GUI
