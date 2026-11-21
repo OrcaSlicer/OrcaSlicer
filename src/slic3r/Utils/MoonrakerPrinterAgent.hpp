@@ -157,6 +157,21 @@ protected:
     // Map filament type to OrcaFilamentLibrary preset ID for AMS sync compatibility
     static std::string map_filament_type_to_generic_id(const std::string& filament_type);
 
+    // Moonraker answers a script only once it has run, so a script that moves filament needs a
+    // longer `timeout_max_s` than the default, or it is reported failed while still running.
+    void send_gcode_async(const std::string& dev_id, const std::string& gcode,
+                          std::function<void(bool)> on_result = {}, long timeout_max_s = 10) const;
+
+    // Reads the filament slots again on the main thread, since matching the slots to presets
+    // reads the preset bundle. Safe to call from any thread.
+    void fetch_filament_info_on_main(const std::string& dev_id);
+
+    // The raw reply for Moonraker's `box` printer object; empty when the printer has none.
+    std::string query_box_object() const;
+
+    // Called once the connection to the printer is up.
+    virtual void on_printer_connected(const std::string& /*dev_id*/) {}
+
 private:
     int handle_request(const std::string& dev_id, const std::string& json_str);
     int send_version_info(const std::string& dev_id);
@@ -175,8 +190,6 @@ private:
                               nlohmann::json&              status,
                               std::string&                 error,
                               const std::function<bool()>& cancelled) const;
-    void send_gcode_async(const std::string& dev_id, const std::string& gcode,
-                          std::function<void(bool)> on_result = {}) const;
 
     void announce_printhost_device();
     void dispatch_local_connect(int state, const std::string& dev_id, const std::string& msg);

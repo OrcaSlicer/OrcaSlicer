@@ -209,6 +209,11 @@ class ExtderSystemParser
 public:
     static void ParseV1_0(const nlohmann::json& extruder_json, DevExtderSystem* system);
     static void ParseV2_0(const nlohmann::json& extruder_json, DevExtderSystem* system);
+
+    // For a printer that names the slot feeding its single toolhead but has no filament switch
+    // there to report hw_switch_state: `loaded_slot` is the slot index, four per unit, or -1 when
+    // nothing is loaded, and also says whether the toolhead holds filament.
+    static void ParseLoadedSlot(int loaded_slot, DevExtderSystem* system);
 };
 
 };
