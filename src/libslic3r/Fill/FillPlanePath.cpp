@@ -88,34 +88,113 @@ void FillPlanePath::_fill_surface_single(
     ExPolygon                        expolygon,
     Polylines                       &polylines_out)
 {
-    expolygon.rotate(-direction.first);
+    
+#ifdef DEBUG_PATH
+    coord_t r(std::max(bounding_box.center().norm() + bounding_box.radius(),
+                        expolygon.contour.bounding_box().center().norm() + expolygon.contour.bounding_box().radius()));
+    coord_t w(scaled(0.4));
+    BoundingBox bbox(Point(-r, -r), Point(r, r));
+    bbox.offset(scale_(1.1));
+    std::string infill_type;
+    switch (params.extrusion_role) {
+    case ExtrusionRole::erInternalInfill: infill_type = "_sparse"; break;
+    case ExtrusionRole::erSolidInfill: infill_type = "_solid"; break;
+    case ExtrusionRole::erTopSolidInfill: infill_type = "_top"; break;
+    case ExtrusionRole::erBottomSurface: infill_type = "_bottom"; break;
+    }
+    std::string filename = format("infill_path_L%d%s_", layer_id + 1, infill_type);
+    const char* nullchar = "";
+    std::string path = debug_out_path(nullchar);
+
+    static std::mutex debug_infill_path_mtx;
+    debug_infill_path_mtx.lock();
+    namespace fs = boost::filesystem;
+    int index_ = 0;
+    static time_t time_;
+    time_t now = time(NULL);
+    if (time_ + 15 < now) { // take 15 seconds pause for detect new batch
+        fs::path directory_path = path;
+
+        auto matches_template = [](const fs::path& path) {
+            return path.extension() == ".svg" && path.string().find("infill_path_") != std::string::npos;
+        };
+        for (const auto& entry : fs::directory_iterator(directory_path))
+            if (entry.is_regular_file() && matches_template(entry.path()))
+                fs::remove(entry.path());
+    }
+    time_ = now;
+    while (fs::exists(path + filename + std::to_string(index_) + ".svg")) // give last indexed file with similar name
+        index_++;
+
+    ::Slic3r::SVG svg(path + filename + std::to_string(index_) + ".svg", bbox);
+    debug_infill_path_mtx.unlock();
+    svg.draw(BoundingBox(Point(-w, -w), Point(w, w)).polygon().lines(), "black", w); // center point
+    svg.draw(expolygon, "grey", 0.5); // initial area for infill
+    svg.draw_outline(expolygon, "darkgreen", "darkgrey", w); 
+#endif
 
     //FIXME Vojtech: We are not sure whether the user expects the fill patterns on visible surfaces to be aligned across all the islands of a single layer.
     // One may align for this->centered() to align the patterns for Archimedean Chords and Octagram Spiral patterns.
     // Orca: the old implementation became obsolete when it became possible to change the density of the top and bottom surfaces
-    bool        align = params.extrusion_role == ExtrusionRole::erInternalInfill;
+    const bool is_internal            = (params.extrusion_role == ExtrusionRole::erInternalInfill);
+    bool       is_solid               = (params.extrusion_role == ExtrusionRole::erSolidInfill); // actually this parameter is not transmitted and needs to be determined on site. 
+
+    // For debug use the double angle = this->angle;
+    double angle = direction.first;
     BoundingBox bounding_box;
-    BoundingBox snug_bounding_box = get_extents(expolygon).inflated(SCALED_EPSILON);
+
+    // Sparse infill (or Internal where is_internal == true) needs to be aligned across layers. Align infill across layers using the object's bounding box.
+    // Solid infill does not need to be aligned across layers, generate the infill pattern around the clipping expolygon only.
+    Point shift      = Point(0, 0);
+    Point shift2     = this->shift;
+    if (is_internal) {
+        bounding_box = this->bounding_box;
+    } else if (params.extrusion_role == erTopSolidInfill || params.extrusion_role == erBottomSurface) {
+        if (params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model)
+            bounding_box = this->bounding_box;
+        else if (params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Surface)
+            bounding_box = get_extents(expolygon);
+        else
+            bounding_box = extended_object_bounding_box();
+    } else {
+        // determinate the solid infill
+        bounding_box = this->bounding_box;
+        is_solid     = true;
+    }
+
+    const bool is_hilbert             = (params.pattern == InfillPattern::ipHilbertCurve);
+    const bool is_classic_hilbert     = (is_hilbert && (fixed_angle || is_solid));
+    const bool is_centered            = (centered() || params.pattern_mode) || is_classic_hilbert; // only solid and sparse infill of hilbert curve by rotation templates can be centered
+
+#ifdef DEBUG_PATH
+    svg.draw(bounding_box.polygon().lines(), "orangered", w); // exactly island filling bounding
+#endif
+
+    expolygon.translate(-shift2);
+    expolygon.rotate(-angle);
+    bounding_box.rotate(-angle);
+    if (is_centered)
+        shift += bounding_box.center();
+    expolygon.translate(-shift);
+
+#ifdef DEBUG_PATH
+    svg.draw(bounding_box.polygon().lines(), "firebrick", w); // filling bounding after rotate and shift
+#endif
+    
+    if (is_centered)
+        bounding_box = get_extents(expolygon);
+    else
+        bounding_box.max = get_extents(expolygon).max; // crop/extend bounding_box for minimum required space if the fill pattern has starting point outside the expolygon
 
     // Expand the bounding box to avoid artifacts at the edges
-    snug_bounding_box.offset(scale_(this->spacing)*params.multiline);
+    bounding_box.offset(SCALED_EPSILON);
 
-    // Sparse infill (or Internal where align == true) needs to be aligned across layers. Align infill across layers using the object's bounding box.
-    // Solid infill does not need to be aligned across layers, generate the infill pattern around the clipping expolygon only.
-    if (align)
-        bounding_box = this->bounding_box.rotated(-direction.first);
-    else if (params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Surface)
-        bounding_box = snug_bounding_box;
-    else if (params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model)
-        bounding_box = this->bounding_box.rotated(-direction.first);
-    else
-        bounding_box = extended_object_bounding_box();
-
-    Point shift = this->centered() ? 
-        bounding_box.center() :
-        bounding_box.min;
-    expolygon.translate(-shift.x(), -shift.y());
-    bounding_box.translate(-shift.x(), -shift.y());
+#ifdef DEBUG_PATH
+    svg.draw(bounding_box.polygon().lines(), "darkred", w);         // finish filling bounding
+    svg.draw(Line(Point(0, 0), shift2), "green", w);                // first translate
+    svg.draw(Line(shift2, shift), "lightgreen", w);                 // second translate
+    svg.draw(Line(Point(0, 0), bounding_box.center()), "black", w); // result shift
+#endif
 
     Polyline polyline;
     {
@@ -125,18 +204,21 @@ void FillPlanePath::_fill_surface_single(
         auto max_x = coord_t(ceil(coordf_t(bounding_box.max.x()) / distance_between_lines));
         auto max_y = coord_t(ceil(coordf_t(bounding_box.max.y()) / distance_between_lines));
         auto resolution = scaled<double>(params.resolution) / distance_between_lines;
-        if (align) {
-            // Filling in a bounding box over the whole object, clip generated polyline against the snug bounding box.
-            snug_bounding_box.translate(-shift.x(), -shift.y());
-            InfillPolylineClipper output(snug_bounding_box, distance_between_lines);
-            this->generate(min_x, min_y, max_x, max_y, resolution, params, output);
-            polyline.points = std::move(output.result());
-        } else {
-            // Filling in a snug bounding box, no need to clip.
-            InfillPolylineOutput output(distance_between_lines);
-            this->generate(min_x, min_y, max_x, max_y, resolution, params, output);
-            polyline.points = std::move(output.result());
-        }
+        InfillPolylineClipper output(bounding_box, distance_between_lines);
+        this->generate(min_x, min_y, max_x, max_y, resolution, params, output);
+        polyline.points = std::move(output.result());
+
+#ifdef DEBUG_PATH
+        svg.draw(BoundingBox(Point(min_x, min_y), Point(max_x, max_y)).polygon().lines(), "fuchsia", w / 2); // calculating bounds
+        svg.draw(expolygon, "cyan", 0.5); // exactly filling polygon
+        Polyline polyline2;
+        InfillPolylineOutput output2(distance_between_lines); // slow method without clipping
+        this->generate(min_x, min_y, max_x, max_y, resolution, params, output2);
+        polyline2.points = std::move(output2.result());
+        svg.draw(polyline2, "gold", w / 2);                    // infill area not cropped
+        svg.draw(polyline, "blue", w / 2);                     // infill area
+        svg.draw(bounding_box.polygon().lines(), "orange", w); // exactly filling bounding
+#endif
     }
 
     Polylines polylines = {polyline};
@@ -198,12 +280,18 @@ void FillPlanePath::_fill_surface_single(
                 connect_infill(std::move(polylines), expolygon, chained, this->spacing, params);
             // paths must be repositioned and rotated back
             for (Polyline& pl : chained) {
-                pl.translate(shift.x(), shift.y());
-                pl.rotate(direction.first);
+                pl.translate(shift);
+                pl.rotate(angle);
+                pl.translate(shift2);
             }
             append(polylines_out, std::move(chained));
         }
     }
+#ifdef DEBUG_PATH
+    svg.draw(polylines_out, "red", w / 2); // result infill
+    svg.Close();
+#endif
+
 }
 
 // Follow an Archimedean spiral, in polar coordinates: r=a+b\theta
@@ -211,7 +299,9 @@ template<typename Output>
 static void generate_archimedean_chords(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double resolution, Output &output)
 {
     // Radius to achieve.
-    coordf_t rmax = std::sqrt(coordf_t(max_x)*coordf_t(max_x)+coordf_t(max_y)*coordf_t(max_y)) * std::sqrt(2.) + 1.5;
+    max_x         = std::max(abs(max_x), abs(min_x));
+    max_y         = std::max(abs(max_y), abs(min_y));
+    coordf_t rmax = std::sqrt(coordf_t(max_x) * coordf_t(max_x) + coordf_t(max_y) * coordf_t(max_y));
     // Now unwind the spiral.
     coordf_t a = 1.;
     coordf_t b = 1./(2.*M_PI);
@@ -287,12 +377,10 @@ static void generate_hilbert_curve(coord_t min_x, coord_t min_y, coord_t max_x, 
 {
     // Minimum power of two square to fit the domain.
     size_t sz = 2;
-    size_t pw = 1;
     {
-        size_t sz0 = std::max(max_x + 1 - min_x, max_y + 1 - min_y);
+        size_t sz0 = std::max(max_x - min_x, max_y - min_y) + 1;
         while (sz < sz0) {
             sz = sz << 1;
-            ++ pw;
         }
     }
 
@@ -301,6 +389,57 @@ static void generate_hilbert_curve(coord_t min_x, coord_t min_y, coord_t max_x, 
     for (size_t i = 0; i < sz2; ++ i) {
         Point p = hilbert_n_to_xy(i);
         output.add_point({ p.x() + min_x, p.y() + min_y });
+    }
+}
+
+template<typename Output>
+static void generate_hilbert_curve_centered(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, Output& output, int mode = 0)
+{
+    if (!mode)
+        return generate_hilbert_curve(min_x, min_y, max_x, max_y, output);
+    int &n            = mode;               // order of the Hilbert curve 1, 2, 3...
+    const int side_n  = pow(2, n);          // length of element
+    const int side_m  = side_n - 1;         // minor lenght
+    const int sq_n    = side_n * side_n;    // size of element points
+    const double disp = -0.5 + (side_n >> 1); 
+    
+    // Minimum power of two square to fit the domain.
+    const int sz0               = std::max(std::max(abs(max_x), abs(min_x)), std::max(abs(max_y), abs(min_y))) + side_m / 2;
+    const int side_order        = sz0 / side_n;
+    const int side_wide         = side_order * 2 + 1;
+    const int side_elements     = side_wide * side_wide;
+
+    output.reserve(sq_n * side_elements);
+
+    const Vec2d dir[4]{{0., side_n}, {side_n, 0.}, {0., -side_n}, {-side_n, 0.}};
+    Vec2d q(-disp, -disp); // quadrant coordinates   
+    int cnt = 0;
+    int num   = 0;
+    int po  = 0;
+
+    for (int i = 0; i < side_elements; i++) {
+        for (int j = 0; j < sq_n; ++j) {
+            Vec2d p = hilbert_n_to_xy(j).cast<double>();
+            switch (po ^ (n & 1)) {
+                case 0:
+                    output.add_point(p + q); break;
+                case 1:
+                    output.add_point({p.y() + q.x(), p.x() + q.y()}); break;
+                case 2:
+                    output.add_point({side_m - p.x() + q.x(), side_m - p.y() + q.y()}); break;
+                default:
+                    output.add_point({side_m - p.y() + q.x(), side_m - p.x() + q.y()});
+            }
+        }
+        
+        po = (po + ((cnt == 1) & (po & 1))) & 3;
+        q += dir[po];
+
+        if (--cnt < 1) {
+            num++;
+            po  = num & 3;
+            cnt = (num >> 1) + ((num & 1) << 1);
+        } 
     }
 }
 
@@ -373,15 +512,22 @@ void FillHilbertCurve::generate(coord_t min_x, coord_t min_y, coord_t max_x, coo
 void FillHilbertCurve::generate(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, const double resolution,
     const FillParams &params, InfillPolylineOutput &output)
 {
-    generate_path(output, params, resolution,
-        [min_x, min_y, max_x, max_y](auto &out) { generate_hilbert_curve(min_x, min_y, max_x, max_y, out); });
+    if (params.pattern_mode)
+        generate_path(output, params, resolution, [min_x, min_y, max_x, max_y, &params](auto& out) {
+            generate_hilbert_curve_centered(min_x, min_y, max_x, max_y, out, params.pattern_mode);
+        });
+    else
+        generate_path(output, params, resolution,
+            [min_x, min_y, max_x, max_y](auto &out) { generate_hilbert_curve(min_x, min_y, max_x, max_y, out); });
 }
 
 template<typename Output>
 static void generate_octagram_spiral(coord_t min_x, coord_t min_y, coord_t max_x, coord_t max_y, Output &output)
 {
     // Radius to achieve.
-    coordf_t rmax = std::sqrt(coordf_t(max_x)*coordf_t(max_x)+coordf_t(max_y)*coordf_t(max_y)) * std::sqrt(2.) + 1.5;
+    max_x         = std::max(abs(max_x), abs(min_x));
+    max_y         = std::max(abs(max_y), abs(min_y));
+    coordf_t rmax = std::sqrt(coordf_t(max_x) * coordf_t(max_x) + coordf_t(max_y) * coordf_t(max_y));
     // Now unwind the spiral.
     coordf_t r = 0;
     coordf_t r_inc = sqrt(2.);
