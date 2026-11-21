@@ -301,7 +301,8 @@ void SendJob::process(Ctl &ctl)
                             else if (code == BAMBU_NETWORK_ERR_PRINT_WR_FILE_NOT_EXIST || code == BAMBU_NETWORK_ERR_PRINT_SP_FILE_NOT_EXIST) {
                                 m_plater->update_print_error_info(code, desc_fail_not_exist, info);
                             }
-                            else if (code == BAMBU_NETWORK_ERR_PRINT_LP_UPLOAD_FTP_FAILED || code == BAMBU_NETWORK_ERR_PRINT_SG_UPLOAD_FTP_FAILED) {
+                            else if (code == BAMBU_NETWORK_ERR_PRINT_LP_UPLOAD_FTP_FAILED || code == BAMBU_NETWORK_ERR_PRINT_SG_UPLOAD_FTP_FAILED
+                                     || code == BAMBU_NETWORK_ERR_PRINT_WR_UPLOAD_FTP_FAILED) {
                                 m_plater->update_print_error_info(code, desc_upload_ftp_failed, info);
                             }
                             else {
