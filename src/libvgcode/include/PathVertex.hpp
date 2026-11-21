@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <algorithm>
 #include <cmath>
+#include <optional>
 
 namespace libvgcode {
 
@@ -138,6 +139,15 @@ struct PathVertex
 
         constexpr float radians_to_degrees = 57.29577951308232f;
         return std::atan(0.01f * percentage * width / z_distance) * radians_to_degrees;
+    }
+
+    // Orca: What the Overhang view grades the line by, its share in percent or its angle in degrees. A line that was
+    // not measured has none.
+    std::optional<float> overhang_view_value(bool percentage) const
+    {
+        if (!has_overhang())
+            return std::nullopt;
+        return percentage ? overhang_share() : overhang_degree();
     }
 
     //

@@ -21,6 +21,8 @@ add_executable(${_TEST_NAME}_tests
     test_filament_color_picker.cpp
     test_ams_materials_setting.cpp
     test_gcode_preview_colors.cpp
+    # The stops and colours of libvgcode's colour ranges, and the Overhang view's colours.
+    test_libvgcode_color_range.cpp
     # The reduced toolpath set's end bands, from libvgcode's layer table.
     test_libvgcode_layers.cpp
     # The vertex that stands for a role when the solid model takes the toolpaths' colours.

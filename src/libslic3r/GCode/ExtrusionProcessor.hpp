@@ -617,6 +617,59 @@ class ExtrusionQualityEstimator
         return current.empty() || (current.front().first - reach.a).squaredNorm() >= (lower.front().first - reach.a).squaredNorm();
     }
 
+    // Orca: The share of the bead's cross-section at `position` that has no material below it: of the segment one
+    // width long across `path_direction`, the part outside the lower outline. Only the outline's lines within half a
+    // width can cross the segment, and the pieces between the crossings alternate sides. A line that ends on the
+    // segment's line counts on one side of it only, as if the segment lay a hair behind along the path, so a corner the
+    // segment passes through is one crossing and a corner that only touches it two or none. One point-in-outline test
+    // tells the side of the longest piece at its middle, away from the crossings and from the ends, which often lie on
+    // the edges of a lower bead. A corner or an edge along the segment can still lie there: the point then has no side
+    // of its own and is read a hair behind as well.
+    float unsupported_cross_section_percentage(const Vec3d &position, float width, const Vec2d &path_direction)
+    {
+        const Boundaries &lower = or_empty(prev_layer_boundaries[current_object]);
+        const Vec2d across = Vec2d(-path_direction.y(), path_direction.x()).normalized();
+        const Vec2d start = position.head<2>() - across * (0.5 * width);
+        const std::vector<size_t> near_lines = lower.all_lines_in_radius(position, 0.5 * width + EPSILON);
+        // The segment's ends and the parameters of its crossings, from 0 to 1.
+        std::vector<double> cuts{0.};
+        // Only a line ending on the segment's line can put a point of the segment on the outline between crossings.
+        // The sides are distances from that line.
+        constexpr double on_outline = 1e-9;
+        bool ends_on_segment_line = false;
+        for (const size_t line_id : near_lines) {
+            const Linef3 &line = lower.get_line(line_id);
+            const double side_a = cross2(across, Vec2d(line.a.head<2>() - start));
+            const double side_b = cross2(across, Vec2d(line.b.head<2>() - start));
+            ends_on_segment_line |= std::abs(side_a) < on_outline || std::abs(side_b) < on_outline;
+            if ((side_a > 0.) == (side_b > 0.))
+                continue;
+            const Vec2d crossing = line.a.head<2>() + (line.b - line.a).head<2>() * (side_a / (side_a - side_b));
+            const double t = (crossing - start).dot(across) / width;
+            if (t > 0. && t < 1.)
+                cuts.push_back(t);
+        }
+        cuts.push_back(1.);
+        std::sort(cuts.begin(), cuts.end());
+        size_t longest = 0;
+        for (size_t i = 1; i + 1 < cuts.size(); ++i)
+            if (cuts[i + 1] - cuts[i] > cuts[longest + 1] - cuts[longest])
+                longest = i;
+        const Vec2d middle = start + across * (0.5 * (cuts[longest] + cuts[longest + 1]) * width);
+        Vec3d reference(middle.x(), middle.y(), 0.);
+        constexpr double hair = 1e-6;
+        if (ends_on_segment_line && std::any_of(near_lines.begin(), near_lines.end(), [&](size_t line_id) {
+                return line_alg::distance_to_squared(lower.get_line(line_id), reference) < on_outline * on_outline;
+            }))
+            reference.head<2>() += Vec2d(-across.y(), across.x()) * hair;
+        const bool longest_unsupported = lower.outside(reference) > 0;
+        double unsupported_share = 0.;
+        for (size_t i = 0; i + 1 < cuts.size(); ++i)
+            if (((i + longest) % 2 == 0) == longest_unsupported)
+                unsupported_share += cuts[i + 1] - cuts[i];
+        return float(100. * unsupported_share);
+    }
+
     // Orca: Measure displacement from the current contour instead of assuming every path center is
     // exactly half a width inside it. Arachne width and placement changes otherwise make identical
     // consecutive contours look unsupported; fitted arcs need the same correction for their curves.
@@ -630,13 +683,16 @@ class ExtrusionQualityEstimator
         // Slice boundaries lie in XY. Z-contoured paths carry an extrusion-height offset which
         // must not become part of the horizontal unsupported-width measurement.
         position.z() = 0.0;
+        // Orca: Bridges may run through a current-layer solid region whose outer contour says nothing
+        // about support below the bridge. They and infill read the unsupported part of their own cross-section, which
+        // the material below can leave on both sides.
+        if (!associate_current_contour && path_direction.squaredNorm() > 0.)
+            return unsupported_cross_section_percentage(position, width, path_direction);
         const auto [previous_distance, previous_line_id, previous_position] =
             or_empty(prev_layer_boundaries[current_object]).distance_from_lines_extra<true>(position);
-        const float area_percentage = float(100.0 * std::clamp((previous_distance + 0.5 * width) / width, 0.0, 1.0));
-        // Orca: Bridges may run through a current-layer solid region whose outer contour says nothing
-        // about support below the bridge. Keep their original area-based unsupported-width formula.
+        // A move with no direction has no cross-section: the nearest lower edge alone gives its unsupported part.
         if (!associate_current_contour)
-            return area_percentage;
+            return float(100.0 * std::clamp((previous_distance + 0.5 * width) / width, 0.0, 1.0));
         const BoundaryProjection current = boundary_projection_at(
             current_boundaries(), position, width, path_direction);
         constexpr size_t no_line = size_t(-1);

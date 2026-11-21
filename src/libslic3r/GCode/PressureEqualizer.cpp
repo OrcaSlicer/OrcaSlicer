@@ -44,9 +44,10 @@ static constexpr int max_look_back_limit = 128;
 // lines where some extruder pressure will remain (so we should equalize between these small travels)
 static constexpr long max_ignored_gap_between_extruding_segments = 3;
 
-PressureEqualizer::PressureEqualizer(const Slic3r::GCodeConfig &config)
+PressureEqualizer::PressureEqualizer(const Slic3r::GCodeConfig &config, bool overhang_metadata)
     : m_use_relative_e_distances(config.use_relative_e_distances.value),
-      m_high_precision(config.high_precision_gcode.value)
+      m_high_precision(config.high_precision_gcode.value),
+      m_overhang_metadata_enabled(overhang_metadata)
 {
     // Preallocate some data, so that output_buffer.data() will return an empty string.
     output_buffer.assign(32, 0);
@@ -125,7 +126,7 @@ void PressureEqualizer::process_layer(const std::string &gcode)
             // Slic3r always generates end of lines in a Unix style.
             for (; *gcode_end != 0 && *gcode_end != '\n'; ++gcode_end);
 
-            if (is_overhang_metadata(gcode_begin, gcode_end)) {
+            if (m_overhang_metadata_enabled && is_overhang_metadata(gcode_begin, gcode_end)) {
                 // Orca: Overhang metadata rides with the line after it. As lines of their own they would shift the
                 // look-back windows below, which count lines, so turning the metadata on would change the ramps.
                 m_overhang_metadata.append(gcode_begin, gcode_end).push_back('\n');
@@ -525,7 +526,8 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
     // Orca: The preview spreads a line's overhang profile over every piece the line is split into, so the
     // pieces after the first keep the profile's marker.
     std::string piece_marker;
-    if (comment != nullptr && GCodeProcessor::has_inline_tag(comment + 1, GCodeProcessor::ETags::Overhang_Line_Apply))
+    if (m_overhang_metadata_enabled && comment != nullptr &&
+        GCodeProcessor::has_inline_tag(comment + 1, GCodeProcessor::ETags::Overhang_Line_Apply))
         piece_marker = " ;" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Line_Apply);
     const char *piece_comment = piece_marker.empty() ? nullptr : piece_marker.c_str();
 

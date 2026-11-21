@@ -1,15 +1,26 @@
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libvgcode/include/GCodeInputData.hpp"
 #include "libvgcode/include/PathVertex.hpp"
 #include "libvgcode/include/Types.hpp"
+#include "libvgcode/include/Viewer.hpp"
 #include "slic3r/GUI/GCodeViewer.hpp"
+#include "slic3r/GUI/LibVGCode/LibVGCodeWrapper.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <optional>
 #include <string>
+#include <vector>
 
 TEST_CASE("Overhang preview selection round trips through saved preferences", "[GCodeViewer][Overhang][Regression]")
 {
@@ -78,4 +89,294 @@ TEST_CASE("Overhang preview tells lines without data from supported ones", "[GCo
     vertex.overhang_percentage = 0.0f;
     CHECK(vertex.has_overhang());
     CHECK_THAT(vertex.overhang_degree(), Catch::Matchers::WithinAbs(0.0, 1e-6));
+}
+
+namespace {
+
+// A vertex of G-code line `gcode_id` reading `percentage`, negative for a line without overhang data.
+libvgcode::PathVertex line_vertex(uint32_t gcode_id, float percentage)
+{
+    libvgcode::PathVertex vertex;
+    vertex.type                = libvgcode::EMoveType::Extrude;
+    vertex.role                = libvgcode::EGCodeExtrusionRole::ExternalPerimeter;
+    vertex.gcode_id            = gcode_id;
+    vertex.overhang_percentage = percentage;
+    return vertex;
+}
+
+// The vertex among `vertices` that the G-code line of vertex `id` reads its overhang from.
+size_t overhang_vertex_of(const std::vector<libvgcode::PathVertex> &vertices, size_t id)
+{
+    return Slic3r::GUI::GCodeViewer::line_overhang_vertex(id, vertices.size(),
+        [&vertices](size_t i) -> const libvgcode::PathVertex & { return vertices[i]; });
+}
+
+} // namespace
+
+// A line with a local overhang profile is drawn as several vertices of one G-code line. The marker reads the line by
+// its largest measured part, whichever of its vertices it is on, and never by the lines on either side.
+TEST_CASE("A line drawn as several vertices reads the overhang of its largest measured part",
+          "[GCodeViewer][Overhang][Regression]")
+{
+    // line 7 bridges in its middle part only; lines 6 and 8 around it read more
+    const std::vector<libvgcode::PathVertex> vertices{line_vertex(6, 100.0f), line_vertex(7, 0.0f),
+        line_vertex(7, 80.0f), line_vertex(7, 0.0f), line_vertex(8, 100.0f)};
+    for (size_t id = 1; id <= 3; ++id) {
+        INFO("vertex " << id);
+        CHECK(overhang_vertex_of(vertices, id) == 2);
+    }
+    // a line of one vertex reads that vertex
+    CHECK(overhang_vertex_of(vertices, 0) == 0);
+    CHECK(overhang_vertex_of(vertices, 4) == 4);
+}
+
+// The search for the other parts of a line stops at either end of the vertices: a line may be the first or the last
+// one drawn.
+TEST_CASE("A line at either end of the vertices reads its largest part without leaving them",
+          "[GCodeViewer][Overhang][Regression]")
+{
+    const std::vector<libvgcode::PathVertex> peak_first{line_vertex(7, 80.0f), line_vertex(7, 0.0f),
+        line_vertex(7, 0.0f)};
+    const std::vector<libvgcode::PathVertex> peak_last{line_vertex(7, 0.0f), line_vertex(7, 0.0f),
+        line_vertex(7, 80.0f)};
+    for (size_t id = 0; id < 3; ++id) {
+        INFO("vertex " << id);
+        CHECK(overhang_vertex_of(peak_first, id) == 0);
+        CHECK(overhang_vertex_of(peak_last, id) == 2);
+    }
+    const std::vector<libvgcode::PathVertex> single{line_vertex(7, 30.0f)};
+    CHECK(overhang_vertex_of(single, 0) == 0);
+}
+
+// A part without data is not a supported one: a measured part, even at 0 %, wins over it, and a line with no measured
+// part keeps the vertex asked for, which the marker then shows as N/A.
+TEST_CASE("A line reads its overhang only from its measured parts", "[GCodeViewer][Overhang][Regression]")
+{
+    const std::vector<libvgcode::PathVertex> unmeasured{line_vertex(6, 100.0f), line_vertex(7, -1.0f),
+        line_vertex(7, -1.0f), line_vertex(8, 100.0f)};
+    CHECK(overhang_vertex_of(unmeasured, 1) == 1);
+    CHECK(overhang_vertex_of(unmeasured, 2) == 2);
+    const std::vector<libvgcode::PathVertex> partly{line_vertex(7, -1.0f), line_vertex(7, 0.0f),
+        line_vertex(7, -1.0f)};
+    CHECK(overhang_vertex_of(partly, 0) == 1);
+    CHECK(overhang_vertex_of(partly, 2) == 1);
+    const std::vector<libvgcode::PathVertex> single{line_vertex(6, 100.0f), line_vertex(7, 50.0f),
+        line_vertex(8, 100.0f)};
+    CHECK(overhang_vertex_of(single, 1) == 1);
+}
+
+// A vertex of another kind that carries the same G-code line number, as a marker may, is no part of the line.
+TEST_CASE("A line reads its overhang only from vertices of its own kind", "[GCodeViewer][Overhang][Regression]")
+{
+    libvgcode::PathVertex marker = line_vertex(7, 90.0f);
+    marker.type = libvgcode::EMoveType::Seam;
+    const std::vector<libvgcode::PathVertex> vertices{marker, line_vertex(7, 30.0f), line_vertex(7, 10.0f)};
+    CHECK(overhang_vertex_of(vertices, 2) == 1);
+    CHECK(overhang_vertex_of(vertices, 0) == 0);
+}
+
+// The Overhang view grades a measured line by its unsupported share or by its angle. A line without data, such as a
+// support, has no value in either unit, so it is greyed rather than read as supported.
+TEST_CASE("The overhang view value follows the selected unit and is absent without data",
+          "[GCodeViewer][Overhang][Regression]")
+{
+    using libvgcode::EGCodeExtrusionRole;
+    struct Case {
+        const char          *name;
+        EGCodeExtrusionRole  role;
+        float                percentage;
+        std::optional<float> share;
+        std::optional<float> degree;
+    };
+    constexpr float degrees = 57.29577951308232f;
+    // Lines 0.4 mm wide over slice planes 0.2 mm apart: x % of the width is x / 50 of the spacing.
+    const std::array<Case, 4> cases{{
+        {"support without data", EGCodeExtrusionRole::SupportMaterial, -1.0f, std::nullopt, std::nullopt},
+        {"supported wall", EGCodeExtrusionRole::ExternalPerimeter, 0.0f, 0.0f, 0.0f},
+        // the share stops at a full bead, a wall's angle goes on: atan(150 / 50)
+        {"wall past a full bead", EGCodeExtrusionRole::ExternalPerimeter, 150.0f, 100.0f, std::atan(3.0f) * degrees},
+        // atan(50 / 50)
+        {"half-supported infill", EGCodeExtrusionRole::InternalInfill, 50.0f, 50.0f, 45.0f},
+    }};
+    for (const Case &test : cases) {
+        DYNAMIC_SECTION(test.name) {
+            libvgcode::PathVertex vertex;
+            vertex.type                = libvgcode::EMoveType::Extrude;
+            vertex.role                = test.role;
+            vertex.width               = 0.4f;
+            vertex.height              = 0.2f;
+            vertex.overhang_z_distance = 0.2f;
+            vertex.overhang_percentage = test.percentage;
+            const std::optional<float> share  = vertex.overhang_view_value(true);
+            const std::optional<float> degree = vertex.overhang_view_value(false);
+            REQUIRE(share.has_value() == test.share.has_value());
+            REQUIRE(degree.has_value() == test.degree.has_value());
+            if (test.share)
+                CHECK_THAT(*share, Catch::Matchers::WithinAbs(*test.share, 1e-4));
+            if (test.degree)
+                CHECK_THAT(*degree, Catch::Matchers::WithinAbs(*test.degree, 1e-4));
+        }
+    }
+}
+
+namespace {
+
+// A comment line holding `tag` in the current dialect, as GCode.cpp writes it.
+std::string tag_line(Slic3r::GCodeProcessor::ETags tag, const std::string &value)
+{
+    return ";" + Slic3r::GCodeProcessor::reserved_tag(tag) + value + "\n";
+}
+
+// The processor's result for G-code written for the default printer, timed as for an export.
+const Slic3r::GCodeProcessorResult &processed(Slic3r::GCodeProcessor &processor, const std::string &gcode)
+{
+    processor.apply_config(Slic3r::FullPrintConfig());
+    processor.initialize_result_moves();
+    processor.process_buffer(gcode);
+    processor.finalize(false);
+    return processor.get_result();
+}
+
+// The vertices the preview draws for `result`. convert() asks the viewer nothing, and a viewer is built and destroyed
+// without an OpenGL context: it reaches no OpenGL call before init().
+std::vector<libvgcode::PathVertex> preview_vertices(const Slic3r::GCodeProcessorResult &result)
+{
+    const libvgcode::Viewer viewer;
+    return libvgcode::convert(result, {"#FF0000"}, {}, viewer).vertices;
+}
+
+// The start of a perimeter 0.4 mm wide on a 0.2 mm first layer, from the origin.
+std::string perimeter_start()
+{
+    using Slic3r::GCodeProcessor;
+    return "G90\nM83\nT0\n" +
+        tag_line(GCodeProcessor::ETags::Role, Slic3r::ExtrusionEntity::role_to_string(Slic3r::erPerimeter)) +
+        tag_line(GCodeProcessor::ETags::Height, "0.2") + tag_line(GCodeProcessor::ETags::Width, "0.4") +
+        "G1 X0 Y0 Z0.2 F600\n";
+}
+
+} // namespace
+
+// libvgcode starts a path, with a phantom vertex in front of it, where a value the preview colours by changes. With
+// overhang metadata a new width, height or percentage starts one, as the angle reads them. G-code without it keeps the
+// paths it had, where a width change alone starts none.
+TEST_CASE("Preview paths split on overhang values only when the G-code has overhang metadata",
+          "[GCodeViewer][Overhang][Regression]")
+{
+    using Catch::Matchers::WithinAbs;
+    using Slic3r::GCodeProcessor;
+    // Three 10 mm lines of the same flow, the given tags in front of the first and the second. The second line runs at
+    // full speed throughout, so the processor adds no actual-speed vertex in it, which would take a width between the
+    // first line's and its own.
+    const auto vertices_of = [](const std::string &first, const std::string &second, bool metadata) {
+        GCodeProcessor processor;
+        const Slic3r::GCodeProcessorResult &result =
+            processed(processor, perimeter_start() + first + "G1 X10 E1\n" + second + "G1 X20 E1\nG1 X30 E1\n");
+        REQUIRE(result.has_overhang_metadata == metadata);
+        return preview_vertices(result);
+    };
+    const std::string wider     = tag_line(GCodeProcessor::ETags::Width, "0.5");
+    const std::string supported = tag_line(GCodeProcessor::ETags::Overhang, "0");
+    const std::string half      = tag_line(GCodeProcessor::ETags::Overhang, "50");
+
+    CHECK(vertices_of("", wider, false).size() == vertices_of("", "", false).size());
+    CHECK(vertices_of(supported, wider, true).size() == vertices_of(supported, "", true).size() + 1);
+
+    const std::vector<libvgcode::PathVertex> split = vertices_of(supported, half, true);
+    REQUIRE(split.size() == vertices_of(supported, supported, true).size() + 1);
+    // the phantom vertex sits where the first line ends, with the second line's values and no time of its own
+    const auto phantom = std::find_if(split.begin(), split.end(),
+        [](const libvgcode::PathVertex &v) { return std::abs(v.overhang_percentage - 50.0f) < 1e-3f; });
+    REQUIRE(phantom != split.end());
+    REQUIRE(phantom != split.begin());
+    const libvgcode::PathVertex &before = *(phantom - 1);
+    CHECK_THAT(before.overhang_percentage, WithinAbs(0.0, 1e-6));
+    for (size_t axis = 0; axis < phantom->position.size(); ++axis)
+        CHECK_THAT(phantom->position[axis], WithinAbs(before.position[axis], 1e-6));
+    CHECK_THAT(phantom->position[0], WithinAbs(10.0, 1e-4));
+    for (const float time : phantom->times)
+        CHECK_THAT(time, WithinAbs(0.0, 1e-9));
+}
+
+// A line with a local profile reaches the preview as one piece per run of equal cells, and the piece after a change
+// of value starts a path. The pieces share out the line's time, so the preview's total stays the processor's.
+TEST_CASE("A line overhang profile becomes one preview piece per run", "[GCodeViewer][Overhang][Regression]")
+{
+    using Catch::Matchers::WithinAbs;
+    using Catch::Matchers::WithinRel;
+    using libvgcode::EMoveType;
+    using libvgcode::PathVertex;
+    using Slic3r::GCodeProcessor;
+    const std::string start = perimeter_start() + tag_line(GCodeProcessor::ETags::Overhang, "0");
+    GCodeProcessor plain_processor;
+    const std::vector<PathVertex> plain = preview_vertices(processed(plain_processor, start + "G1 X8 E1\n"));
+    // four 2 mm cells over X0 to X8, the last one bridging
+    GCodeProcessor processor;
+    const Slic3r::GCodeProcessorResult &result = processed(processor, start +
+        tag_line(GCodeProcessor::ETags::Overhang_Line, "4,0,0*3,100") + "G1 X8 E1 ;" +
+        GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Line_Apply) + "\n");
+    REQUIRE(result.overhang_line_profiles.size() == 1);
+    const std::vector<PathVertex> vertices = preview_vertices(result);
+    // the piece over the bridging cell, and the phantom vertex in front of it
+    CHECK(vertices.size() == plain.size() + 2);
+    for (size_t i = 1; i < vertices.size(); ++i) {
+        const float from = vertices[i - 1].position[0];
+        const float to   = vertices[i].position[0];
+        // a phantom vertex has no length of its own
+        if (vertices[i].type != EMoveType::Extrude || to - from < 1e-6f)
+            continue;
+        INFO("piece from x = " << from << " to x = " << to);
+        CHECK_THAT(vertices[i].overhang_percentage, WithinAbs(0.5f * (from + to) < 6.0f ? 0.0 : 100.0, 1e-6));
+    }
+    // the supported cells end at x = 6, three quarters of the line
+    const auto cells_end = std::find_if(vertices.begin(), vertices.end(), [](const PathVertex &v) {
+        return v.type == EMoveType::Extrude && std::abs(v.position[0] - 6.0f) < 1e-4f;
+    });
+    REQUIRE(cells_end != vertices.end());
+    CHECK_THAT(cells_end->overhang_percentage, WithinAbs(0.0, 1e-6));
+    const auto line_end = std::find_if(vertices.rbegin(), vertices.rend(),
+        [](const PathVertex &v) { return v.type == EMoveType::Extrude; });
+    REQUIRE(line_end != vertices.rend());
+    CHECK_THAT(line_end->position[0], WithinAbs(8.0, 1e-4));
+    CHECK_THAT(line_end->overhang_percentage, WithinAbs(100.0, 1e-6));
+
+    double preview_time = 0.0;
+    for (const PathVertex &v : vertices)
+        preview_time += v.times[0];
+    double moves_time = 0.0;
+    for (const Slic3r::GCodeProcessorResult::MoveVertex &move : result.moves)
+        moves_time += move.time[0];
+    REQUIRE(moves_time > 0.0);
+    CHECK_THAT(preview_time, WithinRel(moves_time, 1e-5));
+}
+
+// Lines the G-code does not measure, such as supports, reach the preview without a value, which the Overhang view
+// greys, while the measured lines of the same file keep theirs.
+TEST_CASE("Preview vertices of lines without overhang data carry none", "[GCodeViewer][Overhang][Regression]")
+{
+    using libvgcode::EGCodeExtrusionRole;
+    using Slic3r::GCodeProcessor;
+    GCodeProcessor processor;
+    const Slic3r::GCodeProcessorResult &result = processed(processor, "G90\nM83\nT0\n" +
+        tag_line(GCodeProcessor::ETags::Role, Slic3r::ExtrusionEntity::role_to_string(Slic3r::erSupportMaterial)) +
+        tag_line(GCodeProcessor::ETags::Height, "0.2") + tag_line(GCodeProcessor::ETags::Width, "0.4") +
+        "G1 X0 Y0 Z0.2 F600\nG1 X10 E1\n" +
+        tag_line(GCodeProcessor::ETags::Role, Slic3r::ExtrusionEntity::role_to_string(Slic3r::erPerimeter)) +
+        tag_line(GCodeProcessor::ETags::Overhang, "30") + "G1 X20 E1\n");
+    REQUIRE(result.has_overhang_metadata);
+    size_t supports = 0;
+    size_t walls    = 0;
+    for (const libvgcode::PathVertex &v : preview_vertices(result)) {
+        if (v.type != libvgcode::EMoveType::Extrude)
+            continue;
+        if (v.role == EGCodeExtrusionRole::SupportMaterial) {
+            ++supports;
+            CHECK_FALSE(v.has_overhang());
+        } else if (v.role == EGCodeExtrusionRole::Perimeter) {
+            ++walls;
+            CHECK_THAT(v.overhang_percentage, Catch::Matchers::WithinAbs(30.0, 1e-6));
+        }
+    }
+    CHECK(supports > 0);
+    CHECK(walls > 0);
 }

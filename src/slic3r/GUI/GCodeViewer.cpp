@@ -487,6 +487,10 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             }
         }
         const bool is_extrusion = vertex.is_extrusion();
+        // Orca: A line its overhang profile splits into several vertices reads as its largest measured part.
+        const libvgcode::PathVertex& overhang_vertex = vertex_id < viewer->get_vertices_count() ?
+            viewer->get_vertex_at(line_overhang_vertex(vertex_id, viewer->get_vertices_count(),
+                [viewer](size_t i) -> const libvgcode::PathVertex& { return viewer->get_vertex_at(i); })) : vertex;
 
         const ImGuiStyle& style = ImGui::GetStyle();
 
@@ -514,11 +518,11 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                 break;
             // Orca: Match the active legend units at the sequential marker; non-extrusion moves have no overhang.
             case libvgcode::EViewType::Overhang:
-                if (is_extrusion && vertex.has_overhang()) {
+                if (is_extrusion && overhang_vertex.has_overhang()) {
                     if (viewer->is_overhang_percentage())
-                        sprintf(detail_buf, _u8L("Overhang: %.1f %%").c_str(), vertex.overhang_share());
+                        sprintf(detail_buf, _u8L("Overhang: %.1f %%").c_str(), overhang_vertex.overhang_share());
                     else
-                        sprintf(detail_buf, _u8L("Overhang: %.1f °").c_str(), vertex.overhang_degree());
+                        sprintf(detail_buf, _u8L("Overhang: %.1f °").c_str(), overhang_vertex.overhang_degree());
                 } else
                     sprintf(detail_buf, _u8L("Overhang: %s").c_str(), NA_CSTR);
                 break;
@@ -578,10 +582,16 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             // Orca: Missing metadata is not evidence of a fully supported wall. Match the selector's
             // availability rule, but retain both representations for files that actually provide them.
             if (has_overhang_metadata) {
-                const bool has_overhang = is_extrusion && vertex.has_overhang();
-                if (has_overhang) sprintf(buff, "%.1f %%", vertex.overhang_share()); else strcpy(buff, NA_CSTR);
+                const bool has_overhang = is_extrusion && overhang_vertex.has_overhang();
+                if (has_overhang)
+                    sprintf(buff, "%.1f %%", overhang_vertex.overhang_share());
+                else
+                    strcpy(buff, NA_CSTR);
                 add_row(_u8L("Overhang (%)"), buff);
-                if (has_overhang) sprintf(buff, "%.1f %s", vertex.overhang_degree(), "°"); else strcpy(buff, NA_CSTR);
+                if (has_overhang)
+                    sprintf(buff, "%.1f %s", overhang_vertex.overhang_degree(), "°");
+                else
+                    strcpy(buff, NA_CSTR);
                 add_row(_u8L("Overhang (°)"), buff);
             }
             if (is_extrusion) sprintf(buff, ("%.3f " + _u8L("mm")).c_str(), vertex.height); else strcpy(buff, NA_CSTR);

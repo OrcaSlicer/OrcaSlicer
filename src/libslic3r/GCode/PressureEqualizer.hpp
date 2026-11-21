@@ -27,7 +27,9 @@ class PressureEqualizer
 {
 public:
     PressureEqualizer() = delete;
-    explicit PressureEqualizer(const Slic3r::GCodeConfig &config);
+    // Orca: `overhang_metadata` says whether the G-code carries overhang metadata comments, which then stay out of the
+    // look-back windows. Without it, comments that look like them are ordinary lines.
+    explicit PressureEqualizer(const Slic3r::GCodeConfig &config, bool overhang_metadata);
     ~PressureEqualizer() = default;
 
     // Process a next batch of G-code lines.
@@ -185,7 +187,8 @@ private:
         std::string overhang_metadata;
     };
 
-    // Orca: Overhang metadata lines waiting for the line they precede.
+    // Orca: Whether overhang metadata comments are recognised, and those waiting for the line they precede.
+    bool        m_overhang_metadata_enabled;
     std::string m_overhang_metadata;
 
     // Output buffer will only grow. It will not be reallocated over and over.

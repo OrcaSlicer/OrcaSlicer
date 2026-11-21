@@ -736,11 +736,117 @@ TEST_CASE("Infill arc metadata samples local coverage", "[ExtrusionProcessor][Ov
         Point::new_scale(0, 10), ArcDirection::Arc_Dir_CCW);
     const auto samples = estimator.estimate_overhang_arc_percentages(arc, 0.4f, 40, false);
     REQUIRE(samples.size() == 41);
+    // The bead's cross-section runs along the radius, from 9.8 to 10.2 mm off the center; its part past x = 7 hangs.
     for (size_t i = 0; i < samples.size(); ++i) {
-        const double x = 10.0 * std::cos(i * PI / 80.0);
-        const double unsupported_width = x - 7.0 + 0.2;
-        CHECK_THAT(samples[i], Catch::Matchers::WithinAbs(100.0 * std::clamp(unsupported_width / 0.4, 0.0, 1.0), 0.1));
+        const double cosine = std::cos(i * PI / 80.0);
+        const double inner_x = 9.8 * cosine;
+        const double outer_x = 10.2 * cosine;
+        CHECK_THAT(samples[i],
+            Catch::Matchers::WithinAbs(100.0 * std::clamp((outer_x - 7.0) / (outer_x - inner_x), 0.0, 1.0), 0.1));
     }
+}
+
+// Infill reads the share of its bead's cross-section that has no material below it. The nearest edge alone tells
+// that only where the material ends on one side; between two lower beads, or over one narrower bead, the bead
+// hangs on both sides.
+TEST_CASE("Infill reads the unsupported part of its cross-section where support ends on both sides",
+          "[ExtrusionProcessor][Overhang][Regression]")
+{
+    struct Case
+    {
+        const char         *name;
+        std::vector<double> lower_y; // centers of the lower beads, 0.4 mm wide, along X
+        float               width;   // of the measured bead, along X at y = offset
+        double              offset;
+        double              expected;
+    };
+    // Over a 0.1 mm gap between two lower beads, 0.1 of the 0.4 mm bead hangs: 25 %, not the 62.5 % that the
+    // distance to the nearest edge gives. A 0.6 mm bead over one 0.4 mm bead hangs 0.1 mm on each side: 33.3 %,
+    // not 16.7 %. Along one edge both readings agree: a bead 0.1 mm past the edge of wide material hangs 75 %.
+    const Case test = GENERATE(values<Case>({
+        {"between two lower beads", {-0.25, 0.25}, 0.4f, 0.0, 25.0},
+        {"over a narrower bead", {0.0}, 0.6f, 0.0, 100.0 / 3.0},
+        {"past one edge", {-1.0, -0.6, -0.2}, 0.4f, 0.1, 75.0},
+    }));
+    CAPTURE(test.name);
+    constexpr float lower_width = 0.4f;
+    constexpr float height      = 0.2f;
+    Print print;
+    Model model;
+    init_print({make_cube(6.0, 6.0, 0.4)}, print, model, shallow_overhang_config("classic", false, true));
+    print.process();
+    PrintObject *object = print.get_object(0);
+    Layer *lower = object->get_layer(0);
+    for (LayerRegion *region : lower->regions()) {
+        region->perimeters.clear();
+        region->fills.clear();
+    }
+    for (const double y : test.lower_y) {
+        ExtrusionPath bead(erInternalInfill, lower_width * height, lower_width, height);
+        bead.polyline.points = {Point3::new_scale(-2, y, 0), Point3::new_scale(2, y, 0)};
+        lower->get_region(0)->fills.append(bead);
+    }
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    estimator.prepare_for_infill_layer(object, lower);
+    const std::vector<float> profile = line_overhang_profile(estimator, Vec3d(-1, test.offset, 0),
+        Vec3d(1, test.offset, 0), test.width, false);
+    REQUIRE_FALSE(profile.empty());
+    for (const float percentage : profile)
+        CHECK_THAT(percentage, Catch::Matchers::WithinAbs(test.expected, 0.1));
+}
+
+// A cross-section through a corner of the material below meets both lines of that corner at one point: crossing two
+// corners of a diamond 0.2 mm across, the middle 0.2 of the 0.4 mm section is supported, and touching a corner from
+// either side, anywhere along the section, supports none of it. Where an edge of the material runs along the section,
+// as where a lower line ends right under the sample, the section reads the side just behind it along the path.
+TEST_CASE("Infill cross-sections through corners and along edges of the material below",
+          "[ExtrusionProcessor][Overhang][Regression]")
+{
+    struct Case
+    {
+        const char        *name;
+        std::vector<Vec2d> outline;
+        double             expected;
+    };
+    const auto diamond = [](double x, double y) {
+        return std::vector<Vec2d>{{x, y - 0.1}, {x + 0.1, y}, {x, y + 0.1}, {x - 0.1, y}};
+    };
+    const auto rectangle = [](double y0, double y1) {
+        return std::vector<Vec2d>{{-0.1, y0}, {0.3, y0}, {0.3, y1}, {-0.1, y1}};
+    };
+    // The path runs along Y through the origin, so its cross-section runs along X from -0.2 to 0.2 and behind it
+    // lies at negative Y.
+    const Case test = GENERATE_COPY(values<Case>({
+        {"through two corners", diamond(0.0, 0.0), 50.0},
+        {"touching a corner from ahead", diamond(0.1, 0.1), 100.0},
+        {"touching a corner from behind", diamond(0.1, -0.1), 100.0},
+        {"touching a corner at the sample", diamond(0.0, 0.1), 100.0},
+        {"touching a corner at the end", diamond(0.3, 0.0), 100.0},
+        {"along the edge of material ahead", rectangle(0.0, 1.0), 100.0},
+        {"along the edge of material behind", rectangle(-1.0, 0.0), 25.0},
+    }));
+    CAPTURE(test.name);
+    std::vector<Linef3> lines;
+    for (size_t i = 0; i < test.outline.size(); ++i) {
+        const Vec2d &a = test.outline[i];
+        const Vec2d &b = test.outline[(i + 1) % test.outline.size()];
+        lines.emplace_back(Vec3d(a.x(), a.y(), 0.0), Vec3d(b.x(), b.y(), 0.0));
+    }
+    Print print;
+    Model model;
+    init_print({make_cube(6.0, 6.0, 0.4)}, print, model, shallow_overhang_config("classic", false, true));
+    print.process();
+    PrintObject *object = print.get_object(0);
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    estimator.prepare_for_infill_layer(object, object->get_layer(0),
+        std::make_shared<const AABBTreeLines::LinesDistancer<Linef3>>(std::move(lines)));
+    // One sample, at the origin.
+    const std::vector<float> profile = estimator.estimate_overhang_line_percentages(Vec3d(0, -0.05, 0),
+        Vec3d(0, 0.05, 0), 0.4f, 1, false);
+    REQUIRE(profile.size() == 1);
+    CHECK_THAT(profile.front(), Catch::Matchers::WithinAbs(test.expected, 0.1));
 }
 
 TEST_CASE("Sparse infill exports unsupported gaps inside unchanged model outlines without changing commands",
@@ -879,7 +985,9 @@ TEST_CASE("Infill overhang coloring stays local to unsupported ends and interior
                     CHECK_THAT(curr.overhang_percentage, Catch::Matchers::WithinAbs(0.0, 0.1));
                     supported = true;
                 }
-                if (interior ? std::abs(middle) < 0.3 : middle > 1.4) {
+                // The bead hangs wherever its centre is over the gap, which runs from -0.8 to 0.8. The speed
+                // processing may split the line in the gap, leaving the middles of its pieces up to 0.4 off its centre.
+                if (interior ? std::abs(middle) < 0.5 : middle > 1.4) {
                     CHECK_THAT(curr.overhang_percentage, Catch::Matchers::WithinAbs(100.0, 0.1));
                     unsupported = true;
                 }
@@ -1986,6 +2094,33 @@ TEST_CASE("Overhang preview metadata is optional and independent of overhang spe
     REQUIRE(std::any_of(percentages.begin(), percentages.end(), [](float percentage) { return std::abs(percentage - 10.f) <= 0.2f; }));
 }
 
+// A move that extrudes nothing, such as the inward move before an outer wall's seam, has no bead to measure. Adaptive
+// pressure advance tells a travel from an extrusion by the letter E anywhere on its G1 line, so an overhang marker on
+// a travel would turn it into an extrusion.
+TEST_CASE("Overhang metadata leaves moves that extrude nothing unmarked", "[ExtrusionProcessor][Overhang][Regression]")
+{
+    DynamicPrintConfig config = shallow_overhang_config("classic", false, true);
+    config.set_deserialize_strict({{"wall_loops", "2"}, {"wipe_before_external_loop", "1"}, {"gcode_comments", "1"}});
+    Print print;
+    Model model;
+    init_print({shallow_overhang_mesh()}, print, model, config, nullptr, false);
+    const std::string exported = gcode(print);
+    size_t inward_moves = 0;
+    std::vector<std::string> marked;
+    GCodeReader reader;
+    reader.parse_buffer(exported, [&](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        if (!(line.cmd_is("G1") || line.cmd_is("G2") || line.cmd_is("G3")) || line.has_e())
+            return;
+        if (line.comment().find("move inwards before retraction/seam") != std::string_view::npos)
+            ++inward_moves;
+        if (GCodeProcessor::has_inline_tag(line.comment(), GCodeProcessor::ETags::Overhang_Line_Apply) ||
+            GCodeProcessor::has_inline_tag(line.comment(), GCodeProcessor::ETags::Overhang_Arc_Apply))
+            marked.emplace_back(line.raw());
+    });
+    REQUIRE(inward_moves > 0);
+    CHECK(marked.empty());
+}
+
 // The slope's top edge falls mid layer, so the first layer above it still stands 0.179mm proud of the layer
 // below wherever that layer was still on the slope. That is a real overhang and is slowed, but it ends with the
 // slope: outside the slope's x range the box runs full height, so the same wall stands on a contour identical to
@@ -2820,4 +2955,274 @@ TEST_CASE("Perimeter overhang metadata preserves unsupported width above a nearb
     for (size_t i = 0; i + 1 < points.size(); ++i)
         CHECK_THAT(line_overhang_maximum(estimator, unscaled(points[i].p), unscaled(points[i + 1].p), width, true),
             Catch::Matchers::WithinAbs(expected_percentage, 1e-3));
+}
+
+namespace {
+
+// A setting that changes how the G-code reaches the file: a stage after the generator that moves, splits or rewrites
+// lines, or a mode that writes the moves another way.
+struct OverhangExportVariant
+{
+    const char                                      *name;
+    bool                                             bbl_printer;
+    bool                                             two_objects;
+    std::vector<std::pair<std::string, std::string>> settings;
+};
+
+// The shallow prism exported with overhang speed on, the variant's settings and overhang metadata on or off.
+std::string shallow_overhang_variant_gcode(const OverhangExportVariant &variant, bool gcode_overhangs)
+{
+    DynamicPrintConfig config = shallow_overhang_config("classic", true, gcode_overhangs);
+    // Comments stay off unless the variant turns them on. init_print turns them on, so the config is applied again.
+    config.set_deserialize_strict("gcode_comments", "0");
+    for (const auto &[key, value] : variant.settings)
+        config.set_deserialize_strict(key, value);
+    std::vector<TriangleMesh> meshes{shallow_overhang_mesh(shallow_slowed_top_offset)};
+    if (variant.two_objects) {
+        // A second prism 50 mm to the right of the first, past the 40 mm extruder clearance printing by object keeps.
+        TriangleMesh second = meshes.front();
+        second.translate(60.f, 0.f, 0.f);
+        meshes.push_back(std::move(second));
+    }
+    Print print;
+    Model model;
+    init_print(std::move(meshes), print, model, config, nullptr, false);
+    print.apply(model, config);
+    print.is_BBL_printer() = variant.bbl_printer;
+    return gcode(print);
+}
+
+// The lines of `gcode`.
+std::vector<std::string> gcode_lines(const std::string &gcode)
+{
+    std::vector<std::string> lines;
+    for (size_t begin = 0; begin < gcode.size();) {
+        const size_t end = std::min(gcode.find('\n', begin), gcode.size());
+        lines.push_back(gcode.substr(begin, end - begin));
+        if (!lines.back().empty() && lines.back().back() == '\r')
+            lines.back().pop_back();
+        begin = end + 1;
+    }
+    return lines;
+}
+
+// The lines two exports of the same print share. The generator's timestamp is left out, and so are the lines naming
+// objects by their label ids, which on a Bambu printer come from a counter every new model object advances.
+std::vector<std::string> comparable_gcode_lines(const std::string &gcode)
+{
+    std::vector<std::string> lines = gcode_lines(gcode);
+    lines.erase(std::remove_if(lines.begin(), lines.end(), [](const std::string &line) {
+        const auto starts_with = [&line](std::string_view prefix) {
+            return line.compare(0, prefix.size(), prefix) == 0;
+        };
+        return starts_with("; generated by ") || starts_with("; model label id: ") || starts_with("M624 ") ||
+            line.find("printing object, unique label id: ") != std::string::npos;
+    }), lines.end());
+    return lines;
+}
+
+// The lines without what overhang metadata adds in the active tag dialect: its comment lines, the markers binding a
+// profile to its move, and the option's own value in the config block. The pressure equalizer writes a line it
+// rewrites with no space before its comment, so a marker may also follow the last parameter directly.
+std::vector<std::string> without_overhang_metadata(const std::vector<std::string> &lines)
+{
+    using ETags = GCodeProcessor::ETags;
+    std::vector<std::string> comments;
+    for (const ETags tag : {ETags::Overhang, ETags::Overhang_Z_Distance, ETags::Overhang_Line, ETags::Overhang_Arc})
+        comments.push_back(";" + GCodeProcessor::reserved_tag(tag));
+    std::vector<std::string> markers;
+    for (const ETags tag : {ETags::Overhang_Line_Apply, ETags::Overhang_Arc_Apply}) {
+        markers.push_back(" ;" + GCodeProcessor::reserved_tag(tag));
+        markers.push_back(";" + GCodeProcessor::reserved_tag(tag));
+    }
+    std::vector<std::string> stripped;
+    for (std::string line : lines) {
+        if (std::any_of(comments.begin(), comments.end(),
+                        [&line](const std::string &comment) { return line.compare(0, comment.size(), comment) == 0; }))
+            continue;
+        for (const std::string &marker : markers)
+            for (size_t at = line.find(marker); at != std::string::npos; at = line.find(marker, at))
+                line.erase(at, marker.size());
+        if (line == "; gcode_overhangs = 1")
+            line = "; gcode_overhangs = 0";
+        stripped.push_back(std::move(line));
+    }
+    return stripped;
+}
+
+} // namespace
+
+// Overhang metadata is for the preview alone. Turned on, it adds its comment lines and the markers binding a profile
+// to its move, and nothing else changes, byte for byte. The variants pass the G-code through the stages after the
+// generator that move, split or rewrite lines (pressure equalizer, fan mover, cooling slowdown, adaptive pressure
+// advance, spiral vase) or write the moves another way (arc fitting, comments, a wipe before the outer wall, objects
+// printed one after the other). The Bambu dialect spells every tag differently.
+TEST_CASE("Overhang metadata adds only its own comment lines and markers to the G-code", "[ExtrusionProcessor][Overhang][Regression]")
+{
+    const OverhangExportVariant variant = GENERATE(values<OverhangExportVariant>({
+        {"plain", false, false, {}},
+        // The walls are straight, so the fitting keeps them lines.
+        {"arc fitting", false, false, {{"enable_arc_fitting", "1"}}},
+        {"pressure equalizer", false, false,
+            {{"max_volumetric_extrusion_rate_slope", "5"},
+             {"max_volumetric_extrusion_rate_slope_segment_length", "2"}}},
+        {"pressure equalizer", true, false,
+            {{"max_volumetric_extrusion_rate_slope", "5"},
+             {"max_volumetric_extrusion_rate_slope_segment_length", "2"}}},
+        // Every fan command moves earlier, not only the overhang fan's.
+        {"fan mover", false, false,
+            {{"fan_speedup_time", "0.5"}, {"fan_speedup_overhangs", "0"}, {"fan_kickstart", "0.2"}}},
+        // A layer of the prism is mostly one 40 mm wall, printed in well under 30 s.
+        {"cooling slowdown", false, false, {{"slow_down_for_layer_cooling", "1"}, {"slow_down_layer_time", "30"}}},
+        {"comments", false, false, {{"gcode_comments", "1"}}},
+        // The wipe needs an inner wall beside the outer one.
+        {"wipe and adaptive pressure advance", false, false,
+            {{"wall_loops", "2"}, {"wipe_before_external_loop", "1"}, {"enable_pressure_advance", "1"},
+             {"adaptive_pressure_advance", "1"}}},
+        // The prism has one wall and no sparse infill; a spiral also needs no top shell.
+        {"spiral vase", false, false, {{"spiral_mode", "1"}, {"top_shell_layers", "0"}}},
+        {"spiral vase", true, false, {{"spiral_mode", "1"}, {"top_shell_layers", "0"}}},
+        {"two objects by object", false, true, {{"print_sequence", "by object"}}},
+    }));
+    CAPTURE(variant.name, variant.bbl_printer);
+    const bool       was_bbl_printer = GCodeProcessor::s_IsBBLPrinter;
+    const ScopeGuard restore_bbl_printer([was_bbl_printer] { GCodeProcessor::s_IsBBLPrinter = was_bbl_printer; });
+    const std::string off = shallow_overhang_variant_gcode(variant, false);
+    const std::string on  = shallow_overhang_variant_gcode(variant, true);
+    // The metadata was written, and the export left the printer's tag dialect in force to strip it by.
+    REQUIRE(on != off);
+    REQUIRE(GCodeProcessor::s_IsBBLPrinter == variant.bbl_printer);
+    const std::vector<std::string> off_lines = comparable_gcode_lines(off);
+    const std::vector<std::string> on_lines  = without_overhang_metadata(comparable_gcode_lines(on));
+    const auto [on_line, off_line] =
+        std::mismatch(on_lines.begin(), on_lines.end(), off_lines.begin(), off_lines.end());
+    const auto text = [](std::vector<std::string>::const_iterator line, const std::vector<std::string> &lines) {
+        return line == lines.end() ? std::string("<end of G-code>") : *line;
+    };
+    INFO("first difference at line " << (off_line - off_lines.begin()) << " of the G-code without metadata, after \""
+         << (off_line == off_lines.begin() ? std::string() : *(off_line - 1)) << "\"");
+    CHECK(text(on_line, on_lines) == text(off_line, off_lines));
+    CHECK(on_lines.size() == off_lines.size());
+}
+
+// The estimators measure each object's walls against that object's layer below. They are told which object prints in
+// two places, one for each print sequence; missing either would measure one object against the other's outline, where
+// its walls have no support at all and read up to MAX_OVERHANG_PERCENTAGE.
+TEST_CASE("Overhang metadata measures each object against its own layers", "[ExtrusionProcessor][Overhang][Regression]")
+{
+    const char *sequence = GENERATE("by layer", "by object");
+    CAPTURE(sequence);
+    // The prism's front face leans out 1.15 mm over its 1 mm height, so each 0.02 mm layer reaches 1.15 * 0.02 =
+    // 0.023 mm past the one below: 10 % of the 0.23 mm wall.
+    const double     top_offset       = 0.1 * shallow_wall_width / shallow_layer_height;
+    constexpr double prism_percentage = 10.;
+    // A 10 x 10 x 1 mm cube, the same outline on every layer, 50 mm to the right of the prism: past the 40 mm extruder
+    // clearance printing by object keeps.
+    constexpr double cube_x    = 60.;
+    TriangleMesh     cube_mesh = make_cube(10., 10., 1.);
+    cube_mesh.translate(float(cube_x), 0.f, 0.f);
+    DynamicPrintConfig config = shallow_overhang_config("classic", false, true);
+    config.set_deserialize_strict("print_sequence", sequence);
+    // Export validates nozzle hardness, so provide the complete nullable nozzle enum.
+    config.erase("nozzle_type");
+    config.set_deserialize_strict({{"nozzle_type", "stainless_steel"}, {"nozzle_hrc", "20"}});
+    Print print;
+    Model model;
+    init_print({shallow_overhang_mesh(top_offset), cube_mesh}, print, model, config, nullptr, false);
+    GCodeProcessorResult result;
+    gcode(print, &result);
+    REQUIRE(result.has_overhang_metadata);
+
+    size_t cube_spans  = 0;
+    size_t front_spans = 0;
+    result.for_each_preview_move([&](const auto &previous, const auto &current, bool) {
+        // The first layer reads no overhang at all.
+        if (current.type != EMoveType::Extrude || !is_perimeter(current.extrusion_role) ||
+            current.position.z() <= shallow_layer_height + EPSILON)
+            return;
+        const Vec3f middle = 0.5f * (previous.position + current.position);
+        CAPTURE(middle.x(), middle.y(), current.position.z());
+        CHECK(current.overhang_percentage < GCodeProcessor::MAX_OVERHANG_PERCENTAGE);
+        if (middle.x() > 0.5 * cube_x) {
+            CHECK_THAT(current.overhang_percentage, Catch::Matchers::WithinAbs(0.0, 0.1));
+            ++cube_spans;
+        } else if (middle.y() < 1.f && middle.x() > 1.f && middle.x() < 9.f &&
+                   current.position.z() >= 3. * shallow_layer_height - EPSILON && current.position.z() <= 0.9f) {
+            // The prism's front face away from its corners, over the layers shallow_face_feed_rates() takes.
+            CHECK_THAT(current.overhang_percentage, Catch::Matchers::WithinAbs(prism_percentage, 0.2));
+            ++front_spans;
+        }
+    });
+    REQUIRE(cube_spans > 0);
+    REQUIRE(front_spans > 0);
+}
+
+// The option exists because the metadata makes files larger, so the generator writes the scalar and the slice spacing
+// only when they change. A new role writes its scalar afresh, so equal scalars may follow each other only across a role
+// tag. The first layer has no layer below and reads spacing 0; with every layer 0.02 mm high, each slice plane above
+// it lies 0.02 mm over the one below, so exactly two spacings are written.
+TEST_CASE("Overhang metadata writes a value only when it changes", "[ExtrusionProcessor][Overhang][Regression]")
+{
+    const std::string exported = shallow_overhang_gcode("classic", 0.5, false, true);
+    using ETags = GCodeProcessor::ETags;
+    const std::string role_tag       = ";" + GCodeProcessor::reserved_tag(ETags::Role);
+    const std::string scalar_tag     = ";" + GCodeProcessor::reserved_tag(ETags::Overhang);
+    const std::string z_distance_tag = ";" + GCodeProcessor::reserved_tag(ETags::Overhang_Z_Distance);
+    const auto starts_with = [](const std::string &line, const std::string &tag) {
+        return line.compare(0, tag.size(), tag) == 0;
+    };
+    // Empty after a role tag.
+    std::string              last_scalar;
+    size_t                   scalars = 0;
+    std::vector<std::string> z_distances;
+    for (const std::string &line : gcode_lines(exported)) {
+        if (starts_with(line, role_tag)) {
+            last_scalar.clear();
+        } else if (starts_with(line, scalar_tag)) {
+            const std::string scalar = line.substr(scalar_tag.size());
+            CHECK(scalar != last_scalar);
+            last_scalar = scalar;
+            ++scalars;
+        } else if (starts_with(line, z_distance_tag)) {
+            z_distances.push_back(line.substr(z_distance_tag.size()));
+        }
+    }
+    REQUIRE(scalars > 1);
+    REQUIRE(z_distances.size() == 2);
+    CHECK_THAT(std::strtod(z_distances[0].c_str(), nullptr), Catch::Matchers::WithinAbs(0.0, 1e-6));
+    CHECK_THAT(std::strtod(z_distances[1].c_str(), nullptr), Catch::Matchers::WithinAbs(shallow_layer_height, 1e-6));
+}
+
+// The first layer rests on the bed, not on a layer of the object: whatever it prints reads no overhang. Measured
+// against the missing layer below, its walls would read as unsupported.
+TEST_CASE("Extrusions on the first layer read no overhang", "[ExtrusionProcessor][Overhang][Regression]")
+{
+    DynamicPrintConfig config = shallow_overhang_config("classic", false, true);
+    // Export validates nozzle hardness, so provide the complete nullable nozzle enum.
+    config.erase("nozzle_type");
+    config.set_deserialize_strict({{"nozzle_type", "stainless_steel"}, {"nozzle_hrc", "20"}});
+    Print print;
+    Model model;
+    init_print({shallow_overhang_mesh(shallow_slowed_top_offset)}, print, model, config, nullptr, false);
+    GCodeProcessorResult result;
+    gcode(print, &result);
+    REQUIRE(result.has_overhang_metadata);
+    const Layer *first_layer = print.objects().front()->layers().front();
+    REQUIRE(first_layer->lower_layer == nullptr);
+    size_t first_layer_walls = 0;
+    bool   later_overhang    = false;
+    for (const auto &move : result.moves) {
+        if (move.type != EMoveType::Extrude || !GCodeProcessor::measures_overhang(move.extrusion_role))
+            continue;
+        if (std::abs(move.position.z() - first_layer->print_z) < 1e-4) {
+            CHECK_THAT(move.overhang_percentage, Catch::Matchers::WithinAbs(0.0, 1e-5));
+            first_layer_walls += is_perimeter(move.extrusion_role) ? 1 : 0;
+        } else if (move.overhang_percentage > 0.1f) {
+            later_overhang = true;
+        }
+    }
+    // The first layer has walls, and the layers above it do read their overhang: each reaches 0.046 mm, 20 % of the
+    // 0.23 mm wall, past the one below.
+    REQUIRE(first_layer_walls > 0);
+    REQUIRE(later_overhang);
 }

@@ -1846,6 +1846,8 @@ std::optional<float> ViewerImpl::get_vertex_value(const PathVertex& v) const
     case EViewType::PressureAdvance:          return v.pressure_advance;
     case EViewType::Acceleration:             return v.acceleration;
     case EViewType::Jerk:                     return v.jerk;
+    // Orca: A line without overhang data has no grade, as in a view that grades none: it is greyed.
+    case EViewType::Overhang:                 return v.overhang_view_value(m_settings.overhang_percentage);
     case EViewType::VolumetricFlowRate:       return v.volumetric_rate();
     case EViewType::ActualVolumetricFlowRate: return v.actual_volumetric_rate();
     case EViewType::LayerTimeLinear:
@@ -1905,10 +1907,8 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
     {
         if (v.is_travel())
             return get_option_color(move_type_to_option(v.type));
-        if (!v.has_overhang())
-            return NO_OVERHANG_COLOR;
-        return get_color_range(EViewType::Overhang).get_color_at(
-            m_settings.overhang_percentage ? v.overhang_share() : v.overhang_degree());
+        const std::optional<float> value = v.overhang_view_value(m_settings.overhang_percentage);
+        return value ? get_color_range(EViewType::Overhang).get_color_at(*value) : NO_OVERHANG_COLOR;
     }
     case EViewType::Speed:
     {

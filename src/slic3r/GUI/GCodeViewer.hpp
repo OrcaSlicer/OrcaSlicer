@@ -27,6 +27,7 @@
 #include <libvgcode/include/Types.hpp>
 
 #include <array>
+#include <cassert>
 #include <optional>
 #include <cstdint>
 #include <float.h>
@@ -567,6 +568,30 @@ public:
     static bool view_type_from_config_name(const std::string& name, libvgcode::EViewType& type);
     // ORCA: (config value, English label marked for translation) pairs for the "preview_default_view_type" preference
     static std::vector<std::pair<std::string, std::string>> default_view_type_choices();
+    // Orca: The vertex the overhang of vertex `id`'s G-code line reads from. A line with a local profile is drawn as
+    // several vertices, each with the value of its part, and reads as its largest measured one. `vertex_at(i)` gives
+    // the vertex `i` of `count`; `id` itself when no vertex of the line is measured.
+    template<typename VertexAt>
+    static size_t line_overhang_vertex(size_t id, size_t count, const VertexAt &vertex_at)
+    {
+        assert(id < count);
+        const libvgcode::PathVertex &line = vertex_at(id);
+        const auto on_line = [&line, &vertex_at](size_t i) {
+            const libvgcode::PathVertex &vertex = vertex_at(i);
+            return vertex.gcode_id == line.gcode_id && vertex.type == line.type;
+        };
+        size_t first = id;
+        while (first > 0 && on_line(first - 1))
+            --first;
+        size_t largest = id;
+        for (size_t i = first; i < count && on_line(i); ++i) {
+            const libvgcode::PathVertex &vertex = vertex_at(i);
+            if (vertex.has_overhang() && (!vertex_at(largest).has_overhang() ||
+                                          vertex.overhang_percentage > vertex_at(largest).overhang_percentage))
+                largest = i;
+        }
+        return largest;
+    }
     void reset_visible(libvgcode::EViewType type) {
         if (type == libvgcode::EViewType::FeatureType) {
             auto roles = m_viewer.get_extrusion_roles();

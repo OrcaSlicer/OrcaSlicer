@@ -3577,7 +3577,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         m_spiral_vase = make_unique<SpiralVase>(print.config());
 
     if (print.config().max_volumetric_extrusion_rate_slope.value > 0){
-    		m_pressure_equalizer = make_unique<PressureEqualizer>(print.config());
+        m_pressure_equalizer = make_unique<PressureEqualizer>(print.config(), print.config().gcode_overhangs.value);
     		m_enable_extrusion_role_markers = (bool)m_pressure_equalizer;
     } else
 	    m_enable_extrusion_role_markers = false;
