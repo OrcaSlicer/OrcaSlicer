@@ -7,6 +7,7 @@
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "nlohmann/json.hpp"
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/log/trivial.hpp>
 #include <vector>
 #include <string>
@@ -230,6 +231,52 @@ SnapmakerPrinterAgent::SnapmakerPrinterAgent(std::string log_dir) : MoonrakerPri
 AgentInfo SnapmakerPrinterAgent::get_agent_info_static()
 {
     return AgentInfo{SNAPMAKER_PRINTER_AGENT_ID, "Snapmaker", SNAPMAKER_AGENT_VERSION, "Snapmaker printer agent"};
+}
+
+MoonrakerPrinterAgent::CameraSource SnapmakerPrinterAgent::fetch_camera(const std::string&           base_url,
+                                                                        const std::string&           api_key,
+                                                                        const std::function<bool()>& cancelled) const
+{
+    // A webcam Moonraker lists (Extended firmware's USB camera) first, else the stock firmware's camera picture
+    CameraSource found = MoonrakerPrinterAgent::fetch_camera(base_url, api_key, cancelled);
+    if (found.mode == CameraStreamMode::none) {
+        found = {CameraStreamMode::http_snapshot, join_url(base_url, STOCK_CAMERA_PATH)};
+    }
+    return found;
+}
+
+std::string SnapmakerPrinterAgent::get_camera_url() const
+{
+    // The Device tab asks for the URL on every update while it shows the printer
+    m_camera_watched = std::chrono::steady_clock::now().time_since_epoch().count();
+    return MoonrakerPrinterAgent::get_camera_url();
+}
+
+bool SnapmakerPrinterAgent::camera_request_due(std::chrono::steady_clock::time_point now,
+                                               std::chrono::steady_clock::time_point last_watched,
+                                               std::chrono::steady_clock::time_point last_request)
+{
+    using namespace std::chrono_literals;
+    // The firmware stops renewing the picture about a minute after the last request
+    constexpr auto watching  = 10s;
+    constexpr auto keepalive = 50s;
+    return now - last_watched <= watching && (last_request == std::chrono::steady_clock::time_point{} || now - last_request >= keepalive);
+}
+
+std::vector<nlohmann::json> SnapmakerPrinterAgent::take_ws_requests()
+{
+    if (get_camera_stream_mode() != CameraStreamMode::http_snapshot ||
+        !boost::algorithm::ends_with(MoonrakerPrinterAgent::get_camera_url(), STOCK_CAMERA_PATH)) {
+        return {};
+    }
+    const auto now     = std::chrono::steady_clock::now();
+    const auto watched = std::chrono::steady_clock::time_point(std::chrono::steady_clock::duration(m_camera_watched.load()));
+    if (!camera_request_due(now, watched, m_camera_requested)) {
+        return {};
+    }
+    m_camera_requested = now;
+    // Registered for websocket clients only, not over HTTP
+    return {{{"method", "camera.start_monitor"}, {"params", {{"domain", "lan"}, {"interval", 0}}}}};
 }
 
 std::string SnapmakerPrinterAgent::combine_filament_type(const std::string& type, const std::string& sub_type)

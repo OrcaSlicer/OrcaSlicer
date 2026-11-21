@@ -71,6 +71,21 @@ public:
     FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
 
+    // The camera found at connection: the first enabled webcam Moonraker lists
+    CameraStreamMode get_camera_stream_mode() const override;
+    std::string      get_camera_url() const override;
+
+    struct CameraSource
+    {
+        CameraStreamMode mode = CameraStreamMode::none;
+        std::string      url;
+    };
+    // The first enabled webcam of a /server/webcams/list answer: its MJPEG or RTSP stream when the player can open it,
+    // else its snapshot. Relative URLs are resolved against the origin of base_url, as the web frontends do.
+    static CameraSource pick_webcam(const nlohmann::json& webcams, const std::string& base_url);
+    // The status report MachineObject parses, from the cached Moonraker objects
+    static nlohmann::json build_print_payload(const nlohmann::json& status, const std::set<std::string>& objects, bool has_storage);
+
     // JSON helper methods
     static std::string safe_json_string(const nlohmann::json& obj, const char* key);
     static int safe_json_int(const nlohmann::json& obj, const char* key);
@@ -131,6 +146,10 @@ protected:
                                    MoonrakerDeviceInfo&         info,
                                    std::string&                 error,
                                    const std::function<bool()>& cancelled) const;
+    // The printer's camera, read once per connection; an override must give up once `cancelled` returns true
+    virtual CameraSource fetch_camera(const std::string& base_url, const std::string& api_key, const std::function<bool()>& cancelled) const;
+    // JSON-RPC requests (method and params) to send over the status websocket now; asked after every message it reads
+    virtual std::vector<nlohmann::json> take_ws_requests() { return {}; }
     // Starts the print of a file already uploaded to the gcodes root
     virtual bool print_uploaded_file(const PrintParams& params, const std::string& filename);
     // Whether the printer prints a .gcode.3mf bundle as is (its use_3mf option)
@@ -230,6 +249,9 @@ private:
     OnMessageFn          on_local_message_fn;
     QueueOnMainFn        queue_on_main_fn;
     OnServerErrFn        on_server_err_fn;
+
+    mutable std::mutex camera_mutex;
+    CameraSource       camera;
 
     mutable std::recursive_mutex payload_mutex;
     nlohmann::json     status_cache;

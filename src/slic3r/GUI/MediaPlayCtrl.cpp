@@ -8,6 +8,7 @@
 #include "GUI_App.hpp"
 #include "GUI.hpp"
 #include "DeviceManager.hpp"
+#include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevConfigUtil.h"
 #include "libslic3r_version.h"
 #include "slic3r/Utils/NetworkAgent.hpp"
@@ -444,6 +445,13 @@ void MediaPlayCtrl::Play()
         } else if (is_snapshot) {
             m_last_state = wxMEDIASTATE_PLAYING;
             SetStatus(_L("Playing..."), false);
+        }
+
+        // Some printers serve their stream only once asked to start it; an agent without such a command refuses it
+        if (!is_webrtc) {
+            DeviceManager* dev = wxGetApp().getDeviceManager();
+            if (MachineObject* obj = dev ? dev->get_selected_machine() : nullptr; obj && obj->get_dev_id() == m_machine)
+                obj->command_start_camera();
         }
 
         m_button_play->SetIcon("media_stop");

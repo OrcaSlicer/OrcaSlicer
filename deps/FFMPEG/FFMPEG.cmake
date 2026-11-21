@@ -92,7 +92,7 @@ else ()
             --disable-decoders
             --enable-decoder=*aac*,h264*,mp3*,mjpeg,rv*
             --disable-demuxers
-            --enable-demuxer=h264,mp3,mov,mpjpeg,rtsp,sdp
+            --enable-demuxer=flv,h264,mp3,mov,mpjpeg,rtsp,sdp
             --disable-zlib
             --disable-avdevice
         BUILD_IN_SOURCE ON
