@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PLA Pearl @System",
+	"inherits": "NOVTAU PLA Pearl @base",
+	"from": "system",
+	"setting_id": "nVmw8htqMCvMJ0UR",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PLA Pearl @System"
+	],
+	"compatible_printers": []
+}

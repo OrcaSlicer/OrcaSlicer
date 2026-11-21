@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PLA Translucent @System",
+	"inherits": "NOVTAU PLA Translucent @base",
+	"from": "system",
+	"setting_id": "URBFEhg4OTcK3d0U",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PLA Translucent @System"
+	],
+	"compatible_printers": []
+}

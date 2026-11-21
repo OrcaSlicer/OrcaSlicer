@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU ASA-CF @System",
+	"inherits": "NOVTAU ASA-CF @base",
+	"from": "system",
+	"setting_id": "K2DHCJmXoLmbPehC",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU ASA-CF @System"
+	],
+	"compatible_printers": []
+}

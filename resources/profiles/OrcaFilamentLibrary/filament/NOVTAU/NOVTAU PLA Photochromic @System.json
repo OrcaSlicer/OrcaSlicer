@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PLA Photochromic @System",
+	"inherits": "NOVTAU PLA Photochromic @base",
+	"from": "system",
+	"setting_id": "wARXUCRX9UdlJ42e",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PLA Photochromic @System"
+	],
+	"compatible_printers": []
+}

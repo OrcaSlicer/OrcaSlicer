@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PLA Matte Multi-Color @System",
+	"inherits": "NOVTAU PLA Matte Multi-Color @base",
+	"from": "system",
+	"setting_id": "upGvh2nBMoKU7YkY",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PLA Matte Multi-Color @System"
+	],
+	"compatible_printers": []
+}

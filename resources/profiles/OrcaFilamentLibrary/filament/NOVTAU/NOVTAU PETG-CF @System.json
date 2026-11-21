@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PETG-CF @System",
+	"inherits": "NOVTAU PETG-CF @base",
+	"from": "system",
+	"setting_id": "a0Wd0HqW7hfp8VBt",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PETG-CF @System"
+	],
+	"compatible_printers": []
+}

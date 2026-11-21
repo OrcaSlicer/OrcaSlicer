@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PETG Multi-Color @System",
+	"inherits": "NOVTAU PETG Multi-Color @base",
+	"from": "system",
+	"setting_id": "Mgj1JfR2tXWZ9UhO",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PETG Multi-Color @System"
+	],
+	"compatible_printers": []
+}

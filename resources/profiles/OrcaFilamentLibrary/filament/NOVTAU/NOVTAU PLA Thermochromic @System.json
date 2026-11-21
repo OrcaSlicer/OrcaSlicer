@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PLA Thermochromic @System",
+	"inherits": "NOVTAU PLA Thermochromic @base",
+	"from": "system",
+	"setting_id": "Bwr1ZboY4NwBxmY7",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PLA Thermochromic @System"
+	],
+	"compatible_printers": []
+}
