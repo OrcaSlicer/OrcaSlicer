@@ -84,7 +84,14 @@ public:
     // else its snapshot. Relative URLs are resolved against the origin of base_url, as the web frontends do.
     static CameraSource pick_webcam(const nlohmann::json& webcams, const std::string& base_url);
     // The status report MachineObject parses, from the cached Moonraker objects
-    static nlohmann::json build_print_payload(const nlohmann::json& status, const std::set<std::string>& objects, bool has_storage);
+    // chamber_led: the Klipper LED shown as the chamber light, or empty for none
+    static nlohmann::json build_print_payload(const nlohmann::json&        status,
+                                              const std::set<std::string>& objects,
+                                              bool                         has_storage,
+                                              const std::string&           chamber_led = {});
+    // The speed factor (percent) M220 sets for a Device tab speed level (1 silent .. 4 ludicrous), and back
+    static int speed_percent_for_level(int level);
+    static int speed_level_for_factor(double speed_factor);
 
     // JSON helper methods
     static std::string safe_json_string(const nlohmann::json& obj, const char* key);
@@ -150,6 +157,8 @@ protected:
     virtual CameraSource fetch_camera(const std::string& base_url, const std::string& api_key, const std::function<bool()>& cancelled) const;
     // JSON-RPC requests (method and params) to send over the status websocket now; asked after every message it reads
     virtual std::vector<nlohmann::json> take_ws_requests() { return {}; }
+    // The Klipper LED (the name after "led ") the Device tab switches as the chamber light; empty for none
+    virtual std::string chamber_led() const { return {}; }
     // Starts the print of a file already uploaded to the gcodes root
     virtual bool print_uploaded_file(const PrintParams& params, const std::string& filename);
     // Whether the printer prints a .gcode.3mf bundle as is (its use_3mf option)

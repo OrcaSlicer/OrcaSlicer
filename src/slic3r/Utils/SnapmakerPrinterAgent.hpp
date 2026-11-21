@@ -46,6 +46,7 @@ public:
                                    std::chrono::steady_clock::time_point last_request);
 
 protected:
+    std::string                 chamber_led() const override { return "cavity_led"; }
     CameraSource                fetch_camera(const std::string& base_url, const std::string& api_key,
                                              const std::function<bool()>& cancelled) const override;
     std::vector<nlohmann::json> take_ws_requests() override;

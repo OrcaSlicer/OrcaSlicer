@@ -1213,3 +1213,31 @@ TEST_CASE("The Snapmaker agent keeps the stock camera picture current only while
     // Not shown for a while: let it stop
     CHECK_FALSE(SnapmakerPrinterAgent::camera_request_due(now, now - 30s, never));
 }
+
+TEST_CASE("The Device tab's speed levels map to the printer's speed factor and back", "[MoonrakerPrinterAgent][Status]")
+{
+    CHECK(MoonrakerPrinterAgent::speed_percent_for_level(1) == 50);
+    CHECK(MoonrakerPrinterAgent::speed_percent_for_level(4) == 166);
+    CHECK(MoonrakerPrinterAgent::speed_percent_for_level(7) == 0);
+    CHECK(MoonrakerPrinterAgent::speed_level_for_factor(1.0) == 2);
+    CHECK(MoonrakerPrinterAgent::speed_level_for_factor(1.3) == 3);
+    CHECK(MoonrakerPrinterAgent::speed_level_for_factor(0.4) == 1);
+
+    const nlohmann::json status = {{"gcode_move", {{"speed_factor", 1.66}}}};
+    CHECK(MoonrakerPrinterAgent::build_print_payload(status, {}, true).at("print").at("spd_lvl") == 4);
+}
+
+TEST_CASE("Status reports show the chamber LED as the chamber light", "[MoonrakerPrinterAgent][Status]")
+{
+    const auto light = [](const nlohmann::json& color_data) {
+        const nlohmann::json status = {{"led cavity_led", {{"color_data", color_data}}}};
+        return MoonrakerPrinterAgent::build_print_payload(status, {}, true, "cavity_led").at("print").at("lights_report").at(0);
+    };
+    CHECK(light({{0, 0, 0, 1}}).at("mode") == "on");
+    CHECK(light({{0, 0, 0, 0}}).at("mode") == "off");
+    CHECK(light({{0, 0, 0, 0}}).at("node") == "chamber_light");
+    // An agent without a chamber LED reports no light
+    CHECK_FALSE(MoonrakerPrinterAgent::build_print_payload({{"led cavity_led", {{"color_data", {{1, 1, 1, 1}}}}}}, {}, true)
+                    .at("print")
+                    .contains("lights_report"));
+}

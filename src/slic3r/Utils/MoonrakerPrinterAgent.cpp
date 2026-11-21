@@ -61,7 +61,9 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <cctype>
 #include <ios>
@@ -1229,9 +1231,20 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
 
     // Handle system commands
     if (json.contains("system") && json["system"].contains("command")) {
-        const auto& command = json["system"]["command"];
+        const auto& system  = json["system"];
+        const auto& command = system["command"];
         if (command.is_string() && command.get<std::string>() == "get_access_code") {
             return send_access_code(dev_id);
+        }
+        // The Device tab switches chamber_light and then chamber_light2; only the first is a chamber LED here
+        if (command.is_string() && command.get<std::string>() == "ledctrl" && system.value("led_node", "") == "chamber_light") {
+            const std::string led  = chamber_led();
+            const std::string mode = system.value("led_mode", "");
+            if (led.empty() || (mode != "on" && mode != "off")) {
+                return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+            }
+            send_gcode_async(dev_id, "SET_LED LED=" + led + " WHITE=" + (mode == "on" ? "1" : "0"));
+            return BAMBU_NETWORK_SUCCESS;
         }
     }
 
@@ -1311,6 +1324,16 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
 
         if (cmd == "home") {
             send_gcode_async(dev_id, "G28");
+            return BAMBU_NETWORK_SUCCESS;
+        }
+
+        // Speed level 1-4 as the Device tab sends it
+        if (cmd == "print_speed" && json["print"].contains("param") && json["print"]["param"].is_string()) {
+            const int percent = speed_percent_for_level(std::atoi(json["print"]["param"].get<std::string>().c_str()));
+            if (percent == 0) {
+                return BAMBU_NETWORK_ERR_INVALID_RESULT;
+            }
+            send_gcode_async(dev_id, "M220 S" + std::to_string(percent));
             return BAMBU_NETWORK_SUCCESS;
         }
     }
@@ -1883,6 +1906,14 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
                     subscribe_objects.insert("toolhead");
                 }
 
+                // Speed factor for the Device tab's speed level
+                if (this->available_objects.count("gcode_move") != 0) {
+                    subscribe_objects.insert("gcode_move");
+                }
+                if (const std::string led = chamber_led(); !led.empty() && this->available_objects.count("led " + led) != 0) {
+                    subscribe_objects.insert("led " + led);
+                }
+
                 // Add display_status for layer info (if available)
                 if (this->available_objects.count("display_status") != 0) {
                     subscribe_objects.insert("display_status");
@@ -2162,12 +2193,38 @@ void MoonrakerPrinterAgent::update_status_cache(const nlohmann::json& updates)
 
 nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
 {
-    return build_print_payload(status_cache, available_objects, has_storage.load());
+    return build_print_payload(status_cache, available_objects, has_storage.load(), chamber_led());
 }
 
-nlohmann::json MoonrakerPrinterAgent::build_print_payload(const nlohmann::json& status_cache,
+int MoonrakerPrinterAgent::speed_percent_for_level(int level)
+{
+    // As Bambu printers: silent, standard, sport, ludicrous
+    switch (level) {
+    case 1: return 50;
+    case 2: return 100;
+    case 3: return 124;
+    case 4: return 166;
+    default: return 0;
+    }
+}
+
+int MoonrakerPrinterAgent::speed_level_for_factor(double speed_factor)
+{
+    // The level whose percent is nearest the printer's factor
+    const double percent = speed_factor * 100.0;
+    int          best    = 2;
+    for (int level = 1; level <= 4; ++level) {
+        if (std::abs(percent - speed_percent_for_level(level)) < std::abs(percent - speed_percent_for_level(best))) {
+            best = level;
+        }
+    }
+    return best;
+}
+
+nlohmann::json MoonrakerPrinterAgent::build_print_payload(const nlohmann::json&        status_cache,
                                                          const std::set<std::string>& available_objects,
-                                                         bool                         storage)
+                                                         bool                         storage,
+                                                         const std::string&           chamber_led)
 {
     nlohmann::json payload;
     payload["print"]["command"]            = "push_status";
@@ -2335,6 +2392,25 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload(const nlohmann::json& 
             payload["print"]["layer_num"] = info.contains("current_layer") && info["current_layer"].is_number_integer() ?
                                                 info["current_layer"].get<int>() : 0;
         }
+    }
+
+    if (status_cache.contains("gcode_move") && status_cache["gcode_move"].contains("speed_factor") &&
+        status_cache["gcode_move"]["speed_factor"].is_number()) {
+        payload["print"]["spd_lvl"] = speed_level_for_factor(status_cache["gcode_move"]["speed_factor"].get<double>());
+    }
+
+    // Klipper reports an LED's colour per chain element as [r, g, b, w], each 0..1: on when any is lit
+    if (!chamber_led.empty() && status_cache.contains("led " + chamber_led)) {
+        const auto& led = status_cache["led " + chamber_led];
+        bool        lit = false;
+        if (led.contains("color_data") && led["color_data"].is_array()) {
+            for (const auto& element : led["color_data"]) {
+                for (const auto& channel : element.is_array() ? element : nlohmann::json::array()) {
+                    lit = lit || (channel.is_number() && channel.get<double>() > 0.0);
+                }
+            }
+        }
+        payload["print"]["lights_report"] = nlohmann::json::array({{{"node", "chamber_light"}, {"mode", lit ? "on" : "off"}}});
     }
 
     const auto now_ms = static_cast<uint64_t>(
@@ -2603,6 +2679,15 @@ void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id, 
         if (!is_stale()) {
             dispatch_local_connect(ConnectStatusOk, dev_id, "0");
             dispatch_printer_connected(dev_id);
+            // The status queried above, so the Device tab leaves "Connecting" before the stream's first report
+            bool has_status = false;
+            {
+                std::lock_guard<std::recursive_mutex> payload_lock(payload_mutex);
+                has_status = status_cache.is_object() && !status_cache.empty();
+            }
+            if (has_status) {
+                dispatch_status(dev_id);
+            }
             BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: connect_printer completed - dev_id=" << dev_id;
         }
     } else if (result != BAMBU_NETWORK_ERR_CANCELED) {
