@@ -60,6 +60,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <cerrno>
 #include <cfloat>
 #include <climits>
 #include <cmath>
@@ -163,26 +164,16 @@ namespace {
 std::optional<Vec2d> emitted_xy_after_gcode(const std::string &gcode, const Vec2d &initial_xy)
 {
     Vec2d position = initial_xy;
-    bool  absolute = true;
     bool  coordinate_frame_known = true;
 
     GCodeReader reader;
-    reader.parse_buffer(gcode, [&position, &absolute, &coordinate_frame_known](GCodeReader &, const GCodeReader::GCodeLine &line) {
-        if (line.cmd_is("G90")) {
-            absolute = true;
-            return;
-        }
-        if (line.cmd_is("G91")) {
-            absolute = false;
-            return;
-        }
-
+    reader.parse_buffer(gcode, [&position, &coordinate_frame_known](GCodeReader &self, const GCodeReader::GCodeLine &line) {
         const bool is_motion = line.cmd_is("G0") || line.cmd_is("G1") || line.cmd_is("G2") || line.cmd_is("G3");
         if (is_motion) {
             if (line.has_x())
-                position.x() = absolute ? line.x() : position.x() + line.x();
+                position.x() = self.relative_xyz() ? position.x() + line.x() : line.x();
             if (line.has_y())
-                position.y() = absolute ? line.y() : position.y() + line.y();
+                position.y() = self.relative_xyz() ? position.y() + line.y() : line.y();
             return;
         }
 
@@ -198,6 +189,12 @@ std::optional<Vec2d> emitted_xy_after_gcode(const std::string &gcode, const Vec2
     });
 
     return coordinate_frame_known ? std::optional<Vec2d>(position) : std::nullopt;
+}
+
+// The lift for a retraction with no travel after it, as before a toolchange: a slope needs a travel, so it lifts straight up.
+LiftType lift_type_in_place(ZHopType z_hop_type)
+{
+    return z_hop_type == ZHopType::zhtAuto || z_hop_type == ZHopType::zhtSpiral ? LiftType::SpiralLift : LiftType::NormalLift;
 }
 
 } // namespace
@@ -1197,10 +1194,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         std::string toolchange_gcode_str;
 
-        ZHopType z_hope_type = ZHopType(gcodegen.config().z_hop_types.get_at(gcodegen.get_filament_config_index((int)gcodegen.writer().filament()->id())));
-        LiftType auto_lift_type = LiftType::NormalLift;
-        if (z_hope_type == ZHopType::zhtAuto || z_hope_type == ZHopType::zhtSpiral || z_hope_type == ZHopType::zhtSlope)
-            auto_lift_type = LiftType::SpiralLift;
+        const LiftType auto_lift_type = lift_type_in_place(
+            ZHopType(gcodegen.config().z_hop_types.get_at(gcodegen.get_filament_config_index((int)gcodegen.writer().filament()->id()))));
 
         // BBS: should be placed before toolchange parsing
         std::string toolchange_retract_str = gcodegen.retract(tcr.is_tool_change && !is_nozzle_change, false, auto_lift_type, true);
@@ -1651,7 +1646,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             // Prepare a future wipe.
             gcodegen.m_wipe.reset_path();
             for (const Vec2f &wipe_pt : tcr.wipe_path)
-                gcodegen.m_wipe.path.points.emplace_back(wipe_tower_point_to_object_point(gcodegen, transform_wt_pt(wipe_pt)));
+                gcodegen.m_wipe.path.points.emplace_back(wipe_tower_point_to_object_point(gcodegen, transform_wt_pt(wipe_pt) + plate_origin_2d));
             gcode += gcodegen.retract(false, false, auto_lift_type, true);
         }
 
@@ -2942,10 +2937,12 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
         this->_do_export(*print, file, thumbnail_cb);
         file.flush();
         if (file.is_error()) {
+            const std::string os_error = file.last_error();
             file.close();
             boost::nowide::remove(path_tmp.c_str());
             // TRN %1% is a file path.
-            throw Slic3r::RuntimeError(Slic3r::format(_(L("G-code export to %1% failed.\nIs the disk full?")), path) + "\n");
+            throw Slic3r::RuntimeError(Slic3r::format(_(L("G-code export to %1% failed.\nIs the disk full?")), path) + "\n" +
+                                       (os_error.empty() ? std::string() : os_error + "\n"));
         }
     } catch (std::exception &ex) {
         // Rethrow on any exception. std::runtime_exception and CanceledException are expected to be thrown.
@@ -3505,11 +3502,12 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // object's empty lead-in), so they must not be counted here either or the layer
     // count in the file disagrees with its layer changes.
     const bool belt = print.config().belt_printer.value;
-    if (print.config().print_sequence == PrintSequence::ByObject) {
-        // Add each of the object's layers separately.
-        for (auto object : print.objects()) {
-            std::vector<coordf_t> zs;
-            zs.reserve(object->layers().size() + object->support_layers().size());
+    // Counts the print_z that process_layer() prints. It skips a layer whose tool ordering has no extruder, such as
+    // the tip of a cone too thin for a wall.
+    const auto count_printed_layers = [belt](const auto &objects, const ToolOrdering &tool_ordering) {
+        std::vector<coordf_t> zs;
+        for (const PrintObject *object : objects) {
+            zs.reserve(zs.size() + object->layers().size() + object->support_layers().size());
             for (auto layer : object->layers())
                 if (! belt || belt_object_layer_prints_something(*object, *layer))
                     zs.push_back(layer->print_z);
@@ -3519,45 +3517,30 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             // Belt brim apron bands each get their own change_layer() call.
             for (const BeltBrimBand &band : object->belt_brim_prologue())
                 zs.push_back(band.print_z);
-            if (zs.empty())
-                continue;
-            std::sort(zs.begin(), zs.end());
-            //BBS: merge numerically very close Z values.
-            auto end_it = std::unique(zs.begin(), zs.end());
-            unsigned int temp_layer_count = (unsigned int)(end_it - zs.begin());
-            for (auto it = zs.begin(); it != end_it - 1; it++) {
-                if (abs(*it - *(it + 1)) < EPSILON)
-                    temp_layer_count--;
-            }
-            m_layer_count += (unsigned int)(object->instances().size() * temp_layer_count);
         }
-    } else {
-        // Print all objects with the same print_z together.
-        std::vector<coordf_t> zs;
-        for (auto object : print.objects()) {
-            zs.reserve(zs.size() + object->layers().size() + object->support_layers().size());
-            for (auto layer : object->layers())
-                if (! belt || belt_object_layer_prints_something(*object, *layer))
-                    zs.push_back(layer->print_z);
-            for (auto layer : object->support_layers())
-                if (! belt || layer->has_extrusions())
-                    zs.push_back(layer->print_z);
-            // See the ByObject branch: apron bands are real printed layers.
-            for (const BeltBrimBand &band : object->belt_brim_prologue())
-                zs.push_back(band.print_z);
+        if (! belt)
+            zs.erase(std::remove_if(zs.begin(), zs.end(), [&tool_ordering](coordf_t z) {
+                         if (tool_ordering.empty())
+                             return true;
+                         // The lookup only asserts that z is in the tool ordering. A layer that is not is counted.
+                         if (z > (tool_ordering.end() - 1)->print_z + EPSILON)
+                             return false;
+                         const LayerTools &layer_tools = tool_ordering.tools_for_layer(z);
+                         return std::abs(layer_tools.print_z - z) < EPSILON && layer_tools.extruders.empty();
+                     }),
+                     zs.end());
+        if (zs.empty())
+            return 0u;
+        std::sort(zs.begin(), zs.end());
+        //BBS: merge numerically very close Z values.
+        auto end_it = std::unique(zs.begin(), zs.end());
+        unsigned int layer_count = (unsigned int)(end_it - zs.begin());
+        for (auto it = zs.begin(); it != end_it - 1; it++) {
+            if (abs(*it - *(it + 1)) < EPSILON)
+                layer_count--;
         }
-        if (!zs.empty())
-        {
-            std::sort(zs.begin(), zs.end());
-            //BBS: merge numerically very close Z values.
-            auto end_it = std::unique(zs.begin(), zs.end());
-            m_layer_count = (unsigned int)(end_it - zs.begin());
-            for (auto it = zs.begin(); it != end_it - 1; it++) {
-                if (abs(*it - *(it + 1)) < EPSILON)
-                    m_layer_count--;
-            }
-        }
-    }
+        return layer_count;
+    };
     print.throw_if_canceled();
 
     m_enable_cooling_markers = true;
@@ -3629,6 +3612,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 tool_ordering = ToolOrdering(*(*print_object_instance_sequential_active)->print_object, initial_extruder_id);
                 tool_ordering.sort_and_build_data(*(*print_object_instance_sequential_active)->print_object,initial_extruder_id);
             }
+            // Each instance prints the object's layers separately.
+            m_layer_count += count_printed_layers(std::vector<const PrintObject *>{(*print_object_instance_sequential_active)->print_object}, tool_ordering);
             float temp_max_additional_fan = tool_ordering.cal_max_additional_fan(print.config());
             if(temp_max_additional_fan > max_additional_fan )
                         max_additional_fan = temp_max_additional_fan;
@@ -3655,6 +3640,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // If the tool ordering has been pre-calculated by Print class for wipe tower already, reuse it.
         tool_ordering = print.tool_ordering();
         tool_ordering.assign_custom_gcodes(print);
+        // All objects with the same print_z print together.
+        m_layer_count = count_printed_layers(print.objects(), tool_ordering);
         float temp_max_additional_fan = tool_ordering.cal_max_additional_fan(print.config());
         if(temp_max_additional_fan > max_additional_fan )
                         max_additional_fan = temp_max_additional_fan;
@@ -6757,10 +6744,7 @@ LayerResult GCode::process_layer(
     bool has_wipe_tower             = (layer_tools.has_wipe_tower && m_wipe_tower);
 
 
-    ZHopType z_hope_type = ZHopType(FILAMENT_CONFIG(z_hop_types));
-    LiftType auto_lift_type = LiftType::NormalLift;
-    if (z_hope_type == ZHopType::zhtAuto || z_hope_type == ZHopType::zhtSpiral || z_hope_type == ZHopType::zhtSlope)
-        auto_lift_type = LiftType::SpiralLift;
+    const LiftType auto_lift_type = lift_type_in_place(ZHopType(FILAMENT_CONFIG(z_hop_types)));
 
     // BBS: don't use lazy_raise when enable spiral vase
     gcode += this->change_layer(print_z);  // this will increase m_layer_index
@@ -6778,9 +6762,6 @@ LayerResult GCode::process_layer(
 
     if (!m_config.layer_change_gcode.value.empty())
         gcode += this->process_layer_change_gcode(print, print_z, most_used_extruder, has_wipe_tower);
-
-    //BBS: set layer time fan speed after layer change gcode
-    gcode += ";_SET_FAN_SPEED_CHANGING_LAYER\n";
 
     // Belt printers: ordinary-layer apron bands (a band whose print_z coincides with an
     // object/support layer, so it takes this path rather than the brim-only branch) are
@@ -9180,9 +9161,17 @@ bool GCode::GCodeOutputStream::is_error() const
     return ::ferror(this->f);
 }
 
+std::string GCode::GCodeOutputStream::last_error() const
+{
+    return m_write_errno == 0 ? std::string() : std::string(::strerror(m_write_errno));
+}
+
 void GCode::GCodeOutputStream::flush()
 {
-    ::fflush(this->f);
+    // Cleared first, so a failure that sets no error code does not report an older one.
+    errno = 0;
+    if (::fflush(this->f) != 0 && m_write_errno == 0)
+        m_write_errno = errno;
 }
 
 void GCode::GCodeOutputStream::close()
@@ -9198,7 +9187,10 @@ void GCode::GCodeOutputStream::write(const char *what)
     if (what != nullptr) {
         const char* gcode = what;
         // writes string to file
-        fwrite(gcode, 1, ::strlen(gcode), this->f);
+        const size_t len = ::strlen(gcode);
+        errno = 0;
+        if (::fwrite(gcode, 1, len, this->f) != len && m_write_errno == 0)
+            m_write_errno = errno;
         //FIXME don't allocate a string, maybe process a batch of lines?
         m_processor.process_buffer(std::string(gcode));
     }
@@ -10968,7 +10960,8 @@ std::string GCode::retract(bool toolchange, bool is_last_retraction, LiftType li
         return gcode;
 
     // wipe (if it's enabled for this extruder and we have a stored wipe path and no-zero wipe distance)
-    if (FILAMENT_CONFIG(wipe) && m_wipe.has_path() && scale_(FILAMENT_CONFIG(wipe_distance)) > SCALED_EPSILON) {
+    const bool wiped = FILAMENT_CONFIG(wipe) && m_wipe.has_path() && scale_(FILAMENT_CONFIG(wipe_distance)) > SCALED_EPSILON;
+    if (wiped) {
         Wipe::RetractionValues wipeRetractions = m_wipe.calculateWipeRetractionLengths(*this, toolchange);
         gcode += toolchange ? m_writer.retract_for_toolchange(true, wipeRetractions.retraction_length_before_wipe) :
                               m_writer.retract(true, wipeRetractions.retraction_length_before_wipe);
@@ -10982,8 +10975,10 @@ std::string GCode::retract(bool toolchange, bool is_last_retraction, LiftType li
         (the extruder might be already retracted fully or partially). We call these
         methods even if we performed wipe, since this will ensure the entire retraction
         length is honored in case wipe path was too short.  */
-    if ((!this->on_first_layer()  || this->config().bottom_surface_pattern != InfillPattern::ipHilbertCurve) &&
-	    (role != erTopSolidInfill || this->config().top_surface_pattern    != InfillPattern::ipHilbertCurve))
+    // Hilbert curve surfaces skip the retraction of a travel, but not a toolchange's, nor the rest of one a wipe has started.
+    if (wiped || toolchange ||
+        ((!this->on_first_layer()  || this->config().bottom_surface_pattern != InfillPattern::ipHilbertCurve) &&
+	     (role != erTopSolidInfill || this->config().top_surface_pattern    != InfillPattern::ipHilbertCurve)))
         gcode += toolchange ? m_writer.retract_for_toolchange() : m_writer.retract();
 
     gcode += m_writer.reset_e();
@@ -11481,8 +11476,10 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     // Process the custom change_filament_gcode.
     std::string change_filament_gcode = m_config.change_filament_gcode.value;
 
-    // Move the lift gcode here which is in the change_filament_gcode originally
-    change_filament_gcode = this->retract(false, false, LiftType::SpiralLift, true) + change_filament_gcode;
+    // Move the lift gcode here which is in the change_filament_gcode originally. It follows the Z hop type.
+    const LiftType change_lift_type = m_writer.filament() != nullptr ? lift_type_in_place(ZHopType(FILAMENT_CONFIG(z_hop_types))) :
+                                                                       LiftType::NormalLift;
+    change_filament_gcode = this->retract(false, false, change_lift_type, true) + change_filament_gcode;
 
     std::string toolchange_gcode_parsed;
     //Orca: Ignore change_filament_gcode if is the first call for a tool change and manual_filament_change is enabled

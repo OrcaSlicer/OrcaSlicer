@@ -141,7 +141,7 @@ void FanMover::_put_in_middle_G1(std::list<BufferData>::iterator item_to_split, 
         // doesn't really need to be split, print it before
         //will also print before if line_to_split.time == 0
         m_buffer.insert(item_to_split, line_to_write);
-    } else if (item_to_split->raw.size() > 2
+    } else if (item_to_split->raw.size() > 2 && ! item_to_split->relative_xyz
         && item_to_split->raw[0] == 'G' && item_to_split->raw[1] == '1' && item_to_split->raw[2] == ' ') {
         float percent = nb_sec_since_itemtosplit_start / item_to_split->time;
         const int xyz_digits = GCodeFormatter::xyz_digits(high_precision(*item_to_split));
@@ -199,7 +199,7 @@ void FanMover::_print_in_middle_G1(BufferData& line_to_split, float nb_sec, cons
         // Doesn't need to be split: the insertion point is at the end.
         m_process_output += line_to_split.raw + "\n";
         m_process_output += line_to_write + (line_to_write.back() == '\n' ? "" : "\n");
-    }else if(line_to_split.raw.size() > 2
+    }else if(line_to_split.raw.size() > 2 && ! line_to_split.relative_xyz
         && line_to_split.raw[0] == 'G' && line_to_split.raw[1] == '1' && line_to_split.raw[2] == ' ') {
         float percent = nb_sec / line_to_split.time;
         const int xyz_digits = GCodeFormatter::xyz_digits(high_precision(line_to_split));
@@ -449,6 +449,8 @@ void FanMover::_process_gcode_line(GCodeReader& reader, const GCodeReader::GCode
                 // get the type of the next extrusions
                 std::string extrusion_string = line.raw().substr(6, line.raw().size() - 6);
                 current_role = ExtrusionEntity::string_to_role(extrusion_string);
+                // Orca's own moves follow, in absolute positioning, also where custom G-code left G91 through a macro.
+                reader.set_relative_xyz(false);
             }
             if (line.raw().rfind(";_FAN_MOVER_SKIP_", 0) == 0) {
                 // Internal markers: read here, then dropped from the output.
@@ -469,6 +471,7 @@ void FanMover::_process_gcode_line(GCodeReader& reader, const GCodeReader::GCode
     if (time >= 0) {
         BufferData& new_data = put_in_buffer(BufferData(line.raw(), time, fan_speed));
         new_data.role = current_role;
+        new_data.relative_xyz = reader.relative_xyz();
         if (line.has(Axis::X)) {
             new_data.x = reader.x();
             new_data.dx = line.dist_X(reader);

@@ -11,6 +11,7 @@
 #include <cstddef>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Model.hpp"
@@ -43,6 +44,22 @@ TEST_CASE("Cooling consumes its internal speed markers", "[Cooling]")
 {
     const std::string gcode = slice({ cube(20) }, { { "layer_height", 0.2 } });
     CHECK(gcode.find(";_EXTRUDE_SET_SPEED") == std::string::npos);
+}
+
+// A raft prints support interface while the fan is held off, which ignores the interface fan.
+TEST_CASE("Cooling consumes the support interface fan markers while the fan is held off", "[Cooling][Regression]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "layer_height",                        0.2 },
+        { "enable_support",                      true },
+        { "raft_layers",                         3 },
+        { "support_material_interface_fan_speed", 50 },
+        { "cooling",                             true },
+        { "close_fan_the_first_x_layers",        5 },
+    });
+    REQUIRE(gcode.find(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) + ExtrusionEntity::role_to_string(erSupportMaterialInterface)) !=
+            std::string::npos);
+    CHECK(gcode.find(";_SUPP_INTERFACE_FAN") == std::string::npos);
 }
 
 TEST_CASE("Arc fitting remains active with overhang fan control", "[Cooling][Regression]")

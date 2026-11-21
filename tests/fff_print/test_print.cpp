@@ -3338,6 +3338,24 @@ TEST_CASE("An object takes the layer height limits of the extruder of its own fi
     CHECK_THAT(slicing_parameters_on_filament(2).max_layer_height, Catch::Matchers::WithinAbs(0.28, EPSILON));
 }
 
+// Supports printed with the object's filament list it twice before the filaments are deduplicated.
+TEST_CASE("A plate that prints a single filament leaves out the prime tower filament", "[Print][Regression]")
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "enable_prime_tower",         true },
+        { "wipe_tower_filament",        2 },
+        { "enable_support",             true },
+        { "support_filament",           0 },
+        { "support_interface_filament", 0 },
+    });
+    Model model;
+    Print print;
+    init_print({ cube(10) }, print, model, config);
+    CHECK(print.extruders() == std::vector<unsigned int>{ 0 });
+    // A single filament needs no prime tower, which is then turned off.
+    CHECK_FALSE(print.has_wipe_tower());
+}
+
 // The limits only bound a variable layer height, so with fixed 0.2 mm layers both objects share every layer.
 TEST_CASE("Objects on extruders with different layer height limits can share a prime tower", "[Print]")
 {

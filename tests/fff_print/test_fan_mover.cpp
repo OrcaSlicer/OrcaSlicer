@@ -3,6 +3,8 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
+#include <catch2/matchers/catch_matchers_vector.hpp>
 
 #include <string>
 #include <vector>
@@ -45,4 +47,73 @@ TEST_CASE("Fan mover keeps the selected precision when it splits a move, and the
     CHECK_THAT(moves.front().precise_value(X), Catch::Matchers::WithinAbs(written_with_high_precision ? 5.1234 : 5.123, 1e-9));
     CHECK_THAT(moves.front().precise_value(E), Catch::Matchers::WithinAbs(written_with_high_precision ? 0.006248 : 0.00625, 1e-9));
     CHECK_THAT(moves.back().precise_value(E), Catch::Matchers::WithinAbs(written_with_high_precision ? 0.006098 : 0.0061, 1e-9));
+}
+
+namespace {
+
+// The heights the moves of `gcode` go to, following G90 and G91.
+std::vector<float> move_heights(const std::string &gcode)
+{
+    std::vector<float> heights;
+    float z = 0.f;
+    bool relative = false;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        if (line.cmd_is("G90") || line.cmd_is("G91"))
+            relative = line.cmd_is("G91");
+        else if (line.cmd_is("G1") && line.has_z())
+            heights.push_back(z = relative ? z + line.z() : line.z());
+    });
+    return heights;
+}
+
+} // namespace
+
+TEST_CASE("Fan mover keeps the height after custom G-code that lifts the nozzle in relative mode", "[FanMover][Regression]")
+{
+    PrintConfig config;
+    GCodeWriter writer;
+    writer.apply_print_config(config);
+    // The fan command moves 1 s back, to the middle of the 2 s move from the lifted 12 mm back down to 10 mm.
+    FanMover mover(writer, 1.f, false, true, false, 0.f);
+    const std::string gcode = mover.process_gcode(";TYPE:Outer wall\nG1 F600\nG1 Z10\n"
+                                                  ";_FAN_MOVER_SKIP_START\nG91\nG1 Z2\nG90\n;_FAN_MOVER_SKIP_END\n"
+                                                  "G1 Z10 F60\nM106 S255\n", true);
+    const std::vector<float> heights = move_heights(gcode);
+    REQUIRE(heights.size() == 4);
+    CHECK_THAT(heights[1], Catch::Matchers::WithinAbs(12., 1e-4));
+    CHECK_THAT(heights[2], Catch::Matchers::WithinAbs(11., 1e-4));
+    CHECK_THAT(heights[3], Catch::Matchers::WithinAbs(10., 1e-4));
+}
+
+TEST_CASE("Fan mover does not split a move in relative mode", "[FanMover]")
+{
+    PrintConfig config;
+    GCodeWriter writer;
+    writer.apply_print_config(config);
+    FanMover mover(writer, 0.5f, false, true, false, 0.f);
+    const std::string gcode = mover.process_gcode(";TYPE:Outer wall\nG1 F60\nG1 Z10\nG91\nG1 Z2\nM106 S255\nG90\n", true);
+    CHECK_THAT(move_heights(gcode), Catch::Matchers::Approx(std::vector<float>{ 10.f, 12.f }).margin(1e-4));
+    CHECK_THAT(gcode, Catch::Matchers::ContainsSubstring("M106 S255\nG1 Z2"));
+}
+
+TEST_CASE("Fan mover reads the moves after a role tag as absolute, also where custom G-code left G91 through a macro", "[FanMover]")
+{
+    PrintConfig config;
+    GCodeWriter writer;
+    writer.apply_print_config(config);
+    // RESTORE_GCODE_STATE ends G91 out of the reader's sight. Orca's next move follows a role tag, in absolute positioning.
+    FanMover mover(writer, 1.f, false, true, false, 0.f);
+    const std::string gcode = mover.process_gcode(";TYPE:Outer wall\nG1 F600\nG1 Z10\n"
+                                                  "SAVE_GCODE_STATE NAME=lift\nG91\nG1 Z2\nRESTORE_GCODE_STATE NAME=lift\n"
+                                                  ";TYPE:Inner wall\nG1 Z10 F60\nM106 S255\n", true);
+    // The fan command moves 1 s back, splitting the 2 s move from 12 mm down to 10 mm in the middle.
+    std::vector<float> heights;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&heights](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        if (line.cmd_is("G1") && line.has_z())
+            heights.push_back(line.z());
+    });
+    REQUIRE(heights.size() == 4);
+    CHECK_THAT(heights[2], Catch::Matchers::WithinAbs(11., 1e-4));
 }
