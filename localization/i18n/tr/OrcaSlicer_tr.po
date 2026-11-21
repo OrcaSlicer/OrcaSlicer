@@ -13171,8 +13171,11 @@ msgstr "Diğer Katmanlar"
 msgid "Overhang speed"
 msgstr "Çıkıntı Hızı"
 
-msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
-msgstr "Bu, çeşitli sarkma dereceleri için hızdır. Çıkıntı dereceleri çizgi genişliğinin yüzdesi olarak ifade edilir. 0 hız, sarkma derecesi aralığı için yavaşlamanın olmadığı anlamına gelir ve duvar hızı kullanılır"
+# AI Translated
+# Needs human review: Scarf seams rendered with the glossary's “Eğik birleşim” (eğik birleşimli dikiş), while the catalog's scarf settings still say “Atkı dikişi”; align once the glossary/catalog disagreement is settled.
+#, no-c-format, no-boost-format
+msgid "Overhang is the unsupported fraction of the wall line width. Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. Setting the first target to 0 disables interpolation below 10%. For the remaining targets, 0 uses wall speed at that point; neighboring targets can still change speed in between."
+msgstr "Çıkıntı, duvar çizgi genişliğinin desteklenmeyen kısmıdır. Hızlar %10, %25, %50, %75 ve %87'deki hedefler arasında interpole edilir. Referans hız, hacimsel hız ve eğik birleşimli dikiş sınırları uygulandıktan sonraki dış veya iç duvar hızıdır; yüzde değerleri bu referansa göredir. Bu hızın üzerindeki hedefler yalnızca “Duvar hızını aşan çıkıntı hızlarına izin ver” etkinken daha hızlı yazdırma sağlar; diğer hedeflerde mevcut yol hızı sınırları korunur. İlk hedef 0 olarak ayarlanırsa %10'un altında interpolasyon yapılmaz. Kalan hedeflerde 0 değeri o noktada duvar hızını kullanır; komşu hedefler aradaki hızı yine de değiştirebilir."
 
 msgid "Set speed for external and internal bridges"
 msgstr "Harici ve dahili köprüler için hızı ayarlayın"
@@ -16607,7 +16610,7 @@ msgid ""
 "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed."
 msgstr ""
 "Duvarların yukarı doğru kıvrılmış olabileceği bölgelerde yazdırmayı yavaşlatmak için bu seçeneği etkinleştirin.\n"
 "Örneğin, Benchy gövdesinin ön kısmı gibi keskin köşelerdeki çıkıntılar yazdırılırken ek yavaşlama uygulanır; bu da birden çok katmanda birikerek artan kıvrılmayı azaltır.\n"
@@ -16622,10 +16625,48 @@ msgstr ""
 "3. Bozulmalar hâlâ görünüyorsa, akış geçişlerini daha da yumuşatmak için Ekstrüzyon hızını yumuşatmayı (ERS) etkinleştirin.\n"
 "\n"
 "Not: Bu seçenek etkinleştirildiğinde çıkıntı duvarları çıkıntı gibi ele alınır; yani çıkıntı yapan duvar bir köprünün parçası olsa bile çıkıntı hızı uygulanır.\n"
-"Örneğin duvarlar %100 çıkıntı yapıyorsa ve altlarında onları destekleyen bir duvar yoksa %75 çıkıntı hızı uygulanır ve bu hız köprü hızıyla sınırlanır."
+"Örneğin duvarlar %100 çıkıntı yapıyorsa ve altlarında onları destekleyen bir duvar yoksa %75–100 çıkıntı hızı uygulanır ve bu hız köprü hızıyla sınırlanır."
+
+# AI Translated
+msgid "Allow overhang speeds above wall speed"
+msgstr "Duvar hızını aşan çıkıntı hızlarına izin ver"
+
+# AI Translated
+# Needs human review: Scarf seams rendered with the glossary's “Eğik birleşim” (eğik birleşimli dikiş), while the catalog's scarf settings still say “Atkı dikişi”; align once the glossary/catalog disagreement is settled.
+msgid ""
+"Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall print faster than it would without the overhang.\n"
+"Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, such as small perimeters or resonance avoidance, are never sped up."
+msgstr ""
+"Çıkıntı hızı duvar hızının üzerine ayarlanmış çıkıntılı dış ve iç duvarları, filamentin maksimum hacimsel hızına kadar daha hızlı yazdırır. Kapalıyken çıkıntı hızları bir duvarı, çıkıntı olmasaydı yazdırılacağı hızdan asla daha hızlı yazdırmaz.\n"
+"Köprüler, çıkıntı duvarları, tamamen desteksiz duvarlar, eğik birleşimli dikişler ve hızı “Küçük çevre (perimeter)” veya “Rezonans kaçınma” gibi başka ayarlarca değiştirilen duvarlar hiçbir zaman hızlandırılmaz."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, speed is linearly interpolated from the actual wall speed to this value. For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. A value of 0 disables this initial interpolation. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Duvar çizgi genişliğinin %10'u desteklenmediğinde hedef hız. %0 ile %10 arasında hız, gerçek duvar hızından bu değere doğrusal olarak interpole edilir. Örneğin 60 mm/s duvar hızı ve 30 mm/s hedefle %5 çıkıntıda hız 45 mm/s olur. 0 değeri bu başlangıç interpolasyonunu devre dışı bırakır. Yüzde değerleri referans duvar hızına göredir. Bu hızın üzerindeki hedefler yalnızca “Duvar hızını aşan çıkıntı hızlarına izin ver” etkinken daha hızlı yazdırma sağlar; bu da hacimsel akış, soğutma ve “Kıvrılmış dış duvarlarda hızı düşür” ayarıyla sınırlıdır."
 
 msgid "mm/s or %"
 msgstr "mm/s veya %"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Duvar çizgi genişliğinin %25'i desteklenmediğinde hedef hız. %10 ile %25 arasında hız, önceki kontrol noktasından bu değere doğrusal olarak interpole edilir. 0 değeri, bu kontrol noktasında mevcut hız sınırlarına tabi olarak duvar hızını kullanır. Komşu hedefler kontrol noktaları arasındaki hızı yine de değiştirebilir. Yüzde değerleri referans duvar hızına göredir. Bu hızın üzerindeki hedefler yalnızca “Duvar hızını aşan çıkıntı hızlarına izin ver” etkinken daha hızlı yazdırma sağlar; bu da hacimsel akış, soğutma ve “Kıvrılmış dış duvarlarda hızı düşür” ayarıyla sınırlıdır."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Duvar çizgi genişliğinin %50'si desteklenmediğinde hedef hız. %25 ile %50 arasında hız, önceki kontrol noktasından bu değere doğrusal olarak interpole edilir. 0 değeri, bu kontrol noktasında mevcut hız sınırlarına tabi olarak duvar hızını kullanır. Komşu hedefler kontrol noktaları arasındaki hızı yine de değiştirebilir. Yüzde değerleri referans duvar hızına göredir. Bu hızın üzerindeki hedefler yalnızca “Duvar hızını aşan çıkıntı hızlarına izin ver” etkinken daha hızlı yazdırma sağlar; bu da hacimsel akış, soğutma ve “Kıvrılmış dış duvarlarda hızı düşür” ayarıyla sınırlıdır."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Duvar çizgi genişliğinin %75'i desteklenmediğinde hedef hız. %50 ile %75 arasında hız, önceki kontrol noktasından bu değere doğrusal olarak interpole edilir. 0 değeri, bu kontrol noktasında mevcut hız sınırlarına tabi olarak duvar hızını kullanır. Komşu hedefler kontrol noktaları arasındaki hızı yine de değiştirebilir. Yüzde değerleri referans duvar hızına göredir. Bu hızın üzerindeki hedefler yalnızca “Duvar hızını aşan çıkıntı hızlarına izin ver” etkinken daha hızlı yazdırma sağlar; bu da hacimsel akış, soğutma ve “Kıvrılmış dış duvarlarda hızı düşür” ayarıyla sınırlıdır."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, speed is linearly interpolated from the preceding control point to this value. With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% to the external bridge speed at 100%; the bridge target is limited to the original path speed. With it enabled, this value is used throughout the 87% to 100% range, except that a value above the wall speed falls back to the original path speed at 100%. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Duvar çizgi genişliğinin %87'si desteklenmediğinde hedef hız. %75 ile %87 arasında hız, önceki kontrol noktasından bu değere doğrusal olarak interpole edilir. “Kıvrılmış dış duvarlarda hızı düşür” devre dışıyken hız, %87'deki bu değerden %100'deki dış köprü hızına interpole edilir; köprü hedefi orijinal yol hızıyla sınırlıdır. Etkinken bu değer %87 ile %100 arasındaki aralığın tamamında kullanılır; ancak duvar hızının üzerindeki bir değer %100'de orijinal yol hızına geri döner. 0 değeri, bu kontrol noktasında mevcut hız sınırlarına tabi olarak duvar hızını kullanır. Komşu hedefler kontrol noktaları arasındaki hızı yine de değiştirebilir. Yüzde değerleri referans duvar hızına göredir. Bu hızın üzerindeki hedefler yalnızca “Duvar hızını aşan çıkıntı hızlarına izin ver” etkinken daha hızlı yazdırma sağlar; bu da hacimsel akış, soğutma ve “Kıvrılmış dış duvarlarda hızı düşür” ayarıyla sınırlıdır."
 
 # AI Translated
 msgid ""

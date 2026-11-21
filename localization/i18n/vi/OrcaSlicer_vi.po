@@ -13840,8 +13840,10 @@ msgstr "Tốc độ lớp khác"
 msgid "Overhang speed"
 msgstr "Tốc độ phần nhô"
 
-msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
-msgstr "Đây là tốc độ cho các mức độ nhô khác nhau. Mức độ nhô được biểu thị dưới dạng phần trăm độ rộng đường. Tốc độ 0 có nghĩa là không giảm tốc độ cho phạm vi mức độ nhô và tốc độ thành được sử dụng"
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Overhang is the unsupported fraction of the wall line width. Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. Setting the first target to 0 disables interpolation below 10%. For the remaining targets, 0 uses wall speed at that point; neighboring targets can still change speed in between."
+msgstr "Phần nhô là tỷ lệ phần không được đỡ trên độ rộng đường của thành. Tốc độ được nội suy giữa các giá trị mục tiêu tại 10%, 25%, 50%, 75% và 87%. Tốc độ tham chiếu là tốc độ thành ngoài hoặc thành trong sau khi áp dụng giới hạn tốc độ thể tích và giới hạn của đường nối khớp vát; các giá trị phần trăm dựa trên tốc độ tham chiếu này. Các giá trị mục tiêu cao hơn tốc độ này chỉ làm in nhanh hơn khi bật \"Cho phép tốc độ phần nhô cao hơn tốc độ thành\"; các giá trị mục tiêu khác vẫn giữ các giới hạn tốc độ hiện có của đường công cụ. Đặt giá trị mục tiêu đầu tiên thành 0 sẽ tắt nội suy dưới 10%. Với các giá trị mục tiêu còn lại, 0 sẽ dùng tốc độ thành tại điểm đó; các giá trị mục tiêu lân cận vẫn có thể thay đổi tốc độ ở khoảng giữa."
 
 msgid "Set speed for external and internal bridges"
 msgstr "Đặt tốc độ cho cầu bên ngoài và bên trong"
@@ -17424,7 +17426,7 @@ msgid ""
 "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed."
 msgstr ""
 "Bật tùy chọn này để giảm tốc độ in ở những vùng mà chu vi có thể đã bị cong vênh lên trên.\n"
 "Ví dụ, sẽ áp dụng thêm mức giảm tốc khi in phần nhô ở các góc nhọn như mũi thân tàu Benchy, giúp giảm hiện tượng cong vênh vốn tích tụ qua nhiều lớp.\n"
@@ -17439,10 +17441,47 @@ msgstr ""
 "3. Nếu vẫn xuất hiện khuyết điểm, hãy bật Làm mịn tốc độ đùn (ERS) để làm mịn thêm các chuyển tiếp lưu lượng.\n"
 "\n"
 "Lưu ý: Khi tùy chọn này được bật, chu vi phần nhô được xử lý như phần nhô, nghĩa là tốc độ phần nhô sẽ được áp dụng ngay cả khi chu vi nhô đó là một phần của cầu.\n"
-"Ví dụ, khi các chu vi nhô 100%, không có thành nào đỡ bên dưới, tốc độ phần nhô 75% sẽ được áp dụng, bị giới hạn bởi tốc độ cầu."
+"Ví dụ, khi các chu vi nhô 100%, không có thành nào đỡ bên dưới, tốc độ phần nhô 75–100% sẽ được áp dụng, bị giới hạn bởi tốc độ cầu."
+
+# AI Translated
+msgid "Allow overhang speeds above wall speed"
+msgstr "Cho phép tốc độ phần nhô cao hơn tốc độ thành"
+
+# AI Translated
+msgid ""
+"Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall print faster than it would without the overhang.\n"
+"Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, such as small perimeters or resonance avoidance, are never sped up."
+msgstr ""
+"In các thành ngoài và thành trong có phần nhô nhanh hơn khi tốc độ phần nhô của chúng được đặt cao hơn tốc độ thành, tối đa bằng tốc độ thể tích tối đa của filament. Khi tắt, tốc độ phần nhô không bao giờ làm một thành in nhanh hơn so với khi không có phần nhô.\n"
+"Cầu, thành nhô, thành hoàn toàn không được đỡ, đường nối khớp vát và các thành có tốc độ bị cài đặt khác thay đổi, chẳng hạn \"Chu vi nhỏ\" hoặc \"Tránh cộng hưởng\", sẽ không bao giờ được tăng tốc."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, speed is linearly interpolated from the actual wall speed to this value. For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. A value of 0 disables this initial interpolation. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Tốc độ mục tiêu khi 10% độ rộng đường của thành không được đỡ. Trong khoảng 0% đến 10%, tốc độ được nội suy tuyến tính từ tốc độ thành thực tế đến giá trị này. Ví dụ: tốc độ thành 60 mm/s và giá trị mục tiêu 30 mm/s cho ra 45 mm/s ở mức nhô 5%. Giá trị 0 sẽ tắt phép nội suy ban đầu này. Giá trị phần trăm là tương đối so với tốc độ thành tham chiếu. Các giá trị mục tiêu cao hơn tốc độ này chỉ làm in nhanh hơn khi bật \"Cho phép tốc độ phần nhô cao hơn tốc độ thành\", và vẫn bị giới hạn bởi lưu lượng thể tích, làm mát và \"Giảm tốc cho chu vi cong\"."
 
 msgid "mm/s or %"
 msgstr "mm/s hoặc %"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Tốc độ mục tiêu khi 25% độ rộng đường của thành không được đỡ. Trong khoảng 10% đến 25%, tốc độ được nội suy tuyến tính từ điểm điều khiển trước đó đến giá trị này. Giá trị 0 sẽ dùng tốc độ thành tại điểm điều khiển này, tuân theo các giới hạn tốc độ hiện có. Các giá trị mục tiêu liền kề vẫn có thể thay đổi tốc độ giữa các điểm điều khiển. Giá trị phần trăm là tương đối so với tốc độ thành tham chiếu. Các giá trị mục tiêu cao hơn tốc độ này chỉ làm in nhanh hơn khi bật \"Cho phép tốc độ phần nhô cao hơn tốc độ thành\", và vẫn bị giới hạn bởi lưu lượng thể tích, làm mát và \"Giảm tốc cho chu vi cong\"."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Tốc độ mục tiêu khi 50% độ rộng đường của thành không được đỡ. Trong khoảng 25% đến 50%, tốc độ được nội suy tuyến tính từ điểm điều khiển trước đó đến giá trị này. Giá trị 0 sẽ dùng tốc độ thành tại điểm điều khiển này, tuân theo các giới hạn tốc độ hiện có. Các giá trị mục tiêu liền kề vẫn có thể thay đổi tốc độ giữa các điểm điều khiển. Giá trị phần trăm là tương đối so với tốc độ thành tham chiếu. Các giá trị mục tiêu cao hơn tốc độ này chỉ làm in nhanh hơn khi bật \"Cho phép tốc độ phần nhô cao hơn tốc độ thành\", và vẫn bị giới hạn bởi lưu lượng thể tích, làm mát và \"Giảm tốc cho chu vi cong\"."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Tốc độ mục tiêu khi 75% độ rộng đường của thành không được đỡ. Trong khoảng 50% đến 75%, tốc độ được nội suy tuyến tính từ điểm điều khiển trước đó đến giá trị này. Giá trị 0 sẽ dùng tốc độ thành tại điểm điều khiển này, tuân theo các giới hạn tốc độ hiện có. Các giá trị mục tiêu liền kề vẫn có thể thay đổi tốc độ giữa các điểm điều khiển. Giá trị phần trăm là tương đối so với tốc độ thành tham chiếu. Các giá trị mục tiêu cao hơn tốc độ này chỉ làm in nhanh hơn khi bật \"Cho phép tốc độ phần nhô cao hơn tốc độ thành\", và vẫn bị giới hạn bởi lưu lượng thể tích, làm mát và \"Giảm tốc cho chu vi cong\"."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, speed is linearly interpolated from the preceding control point to this value. With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% to the external bridge speed at 100%; the bridge target is limited to the original path speed. With it enabled, this value is used throughout the 87% to 100% range, except that a value above the wall speed falls back to the original path speed at 100%. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Tốc độ mục tiêu khi 87% độ rộng đường của thành không được đỡ. Trong khoảng 75% đến 87%, tốc độ được nội suy tuyến tính từ điểm điều khiển trước đó đến giá trị này. Khi tắt \"Giảm tốc cho chu vi cong\", tốc độ được nội suy từ giá trị này ở 87% đến tốc độ cầu bên ngoài ở 100%; giá trị mục tiêu của cầu bị giới hạn ở tốc độ gốc của đường công cụ. Khi bật, giá trị này được dùng trong toàn bộ khoảng 87% đến 100%, ngoại trừ giá trị cao hơn tốc độ thành sẽ quay về tốc độ gốc của đường công cụ ở 100%. Giá trị 0 sẽ dùng tốc độ thành tại điểm điều khiển này, tuân theo các giới hạn tốc độ hiện có. Các giá trị mục tiêu liền kề vẫn có thể thay đổi tốc độ giữa các điểm điều khiển. Giá trị phần trăm là tương đối so với tốc độ thành tham chiếu. Các giá trị mục tiêu cao hơn tốc độ này chỉ làm in nhanh hơn khi bật \"Cho phép tốc độ phần nhô cao hơn tốc độ thành\", và vẫn bị giới hạn bởi lưu lượng thể tích, làm mát và \"Giảm tốc cho chu vi cong\"."
 
 # AI Translated
 msgid ""

@@ -13529,8 +13529,10 @@ msgstr "Szybkość innych warstw"
 msgid "Overhang speed"
 msgstr "Szybkość drukowania nawisów"
 
-msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
-msgstr "To jest prędkość dla różnych stopni nawisu. Stopnie nawisu są wyrażane jako procent szerokości linii. Prędkość 0 oznacza brak spowolnienia, a używana jest prędkość ściany"
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Overhang is the unsupported fraction of the wall line width. Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. Setting the first target to 0 disables interpolation below 10%. For the remaining targets, 0 uses wall speed at that point; neighboring targets can still change speed in between."
+msgstr "Nawis to część szerokości linii ściany, która nie ma podparcia. Prędkość jest interpolowana między wartościami docelowymi dla 10%, 25%, 50%, 75% i 87%. Prędkość odniesienia to prędkość zewnętrznej lub wewnętrznej ściany po uwzględnieniu ograniczeń prędkości przepływu i szwu ukośnego; wartości procentowe są obliczane względem niej. Prędkości docelowe wyższe od prędkości odniesienia przyspieszają druk tylko przy włączonej opcji „Zezwól na prędkość nawisów wyższą niż prędkość ścian”; pozostałe prędkości docelowe zachowują dotychczasowe ograniczenia prędkości ścieżki. Ustawienie pierwszej prędkości docelowej na 0 wyłącza interpolację poniżej 10%. Dla pozostałych prędkości docelowych 0 oznacza prędkość ściany w danym punkcie; sąsiednie prędkości docelowe nadal mogą zmieniać prędkość pomiędzy punktami."
 
 msgid "Set speed for external and internal bridges"
 msgstr "Ustaw szybkość dla zewnętrznych i wewnętrznych mostów"
@@ -17076,7 +17078,7 @@ msgid ""
 "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed."
 msgstr ""
 "Włącz tę opcję, aby spowolnić druk w obszarach, w których obrysy mogły zawinąć się do góry.\n"
 "Na przykład dodatkowe spowolnienie zostanie zastosowane przy druku nawisów na ostrych narożnikach, takich jak dziób kadłuba Benchy, co ogranicza zawijanie kumulujące się przez wiele warstw.\n"
@@ -17091,10 +17093,47 @@ msgstr ""
 "3. Jeśli artefakty nadal występują, włącz „Wygładzanie przepływu ekstruzji” (ERS), aby dodatkowo wygładzić zmiany przepływu.\n"
 "\n"
 "Uwaga: gdy ta opcja jest włączona, obrysy nawisów są traktowane jak nawisy, co oznacza, że prędkość nawisu jest stosowana nawet wtedy, gdy obrys nawisu jest częścią mostu.\n"
-"Na przykład gdy obrysy są w 100% nawisem, bez podpierającej ich od spodu ściany, zostanie zastosowana prędkość nawisu 75%, ograniczona prędkością mostu."
+"Na przykład gdy obrysy są w 100% nawisem, bez podpierającej ich od spodu ściany, zostanie zastosowana prędkość nawisu 75–100%, ograniczona prędkością mostu."
+
+# AI Translated
+msgid "Allow overhang speeds above wall speed"
+msgstr "Zezwól na prędkość nawisów wyższą niż prędkość ścian"
+
+# AI Translated
+msgid ""
+"Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall print faster than it would without the overhang.\n"
+"Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, such as small perimeters or resonance avoidance, are never sped up."
+msgstr ""
+"Drukuje szybciej zewnętrzne i wewnętrzne ściany na nawisach, gdy ich prędkość nawisu jest ustawiona powyżej prędkości ściany, w granicach maksymalnej prędkości przepływu filamentu. Gdy opcja jest wyłączona, prędkości nawisów nigdy nie sprawiają, że ściana drukuje się szybciej niż bez nawisu.\n"
+"Mosty, ściany z nawisem, ściany całkowicie bez podparcia, szwy ukośne oraz ściany, których prędkość zmieniają inne ustawienia, takie jak „Małe obrysy” lub „Unikanie rezonansu”, nigdy nie są przyspieszane."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, speed is linearly interpolated from the actual wall speed to this value. For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. A value of 0 disables this initial interpolation. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Prędkość docelowa, gdy 10% szerokości linii ściany nie ma podparcia. Między 0% a 10% prędkość zmienia się liniowo od rzeczywistej prędkości ściany do tej wartości. Na przykład przy prędkości ściany 60 mm/s i prędkości docelowej 30 mm/s przy nawisie 5% uzyskuje się 45 mm/s. Wartość 0 wyłącza tę początkową interpolację. Wartości w % są obliczane względem prędkości odniesienia ściany. Prędkości docelowe wyższe od prędkości odniesienia przyspieszają druk tylko przy włączonej opcji „Zezwól na prędkość nawisów wyższą niż prędkość ścian”, z uwzględnieniem prędkości przepływu, chłodzenia i opcji „Zwalnienie na łukach”."
 
 msgid "mm/s or %"
 msgstr "mm/s lub %"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Prędkość docelowa, gdy 25% szerokości linii ściany nie ma podparcia. Między 10% a 25% prędkość zmienia się liniowo od poprzedniego punktu kontrolnego do tej wartości. Wartość 0 oznacza prędkość ściany w tym punkcie kontrolnym, z zachowaniem dotychczasowych ograniczeń prędkości. Sąsiednie prędkości docelowe nadal mogą zmieniać prędkość między punktami kontrolnymi. Wartości w % są obliczane względem prędkości odniesienia ściany. Prędkości docelowe wyższe od prędkości odniesienia przyspieszają druk tylko przy włączonej opcji „Zezwól na prędkość nawisów wyższą niż prędkość ścian”, z uwzględnieniem prędkości przepływu, chłodzenia i opcji „Zwalnienie na łukach”."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Prędkość docelowa, gdy 50% szerokości linii ściany nie ma podparcia. Między 25% a 50% prędkość zmienia się liniowo od poprzedniego punktu kontrolnego do tej wartości. Wartość 0 oznacza prędkość ściany w tym punkcie kontrolnym, z zachowaniem dotychczasowych ograniczeń prędkości. Sąsiednie prędkości docelowe nadal mogą zmieniać prędkość między punktami kontrolnymi. Wartości w % są obliczane względem prędkości odniesienia ściany. Prędkości docelowe wyższe od prędkości odniesienia przyspieszają druk tylko przy włączonej opcji „Zezwól na prędkość nawisów wyższą niż prędkość ścian”, z uwzględnieniem prędkości przepływu, chłodzenia i opcji „Zwalnienie na łukach”."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Prędkość docelowa, gdy 75% szerokości linii ściany nie ma podparcia. Między 50% a 75% prędkość zmienia się liniowo od poprzedniego punktu kontrolnego do tej wartości. Wartość 0 oznacza prędkość ściany w tym punkcie kontrolnym, z zachowaniem dotychczasowych ograniczeń prędkości. Sąsiednie prędkości docelowe nadal mogą zmieniać prędkość między punktami kontrolnymi. Wartości w % są obliczane względem prędkości odniesienia ściany. Prędkości docelowe wyższe od prędkości odniesienia przyspieszają druk tylko przy włączonej opcji „Zezwól na prędkość nawisów wyższą niż prędkość ścian”, z uwzględnieniem prędkości przepływu, chłodzenia i opcji „Zwalnienie na łukach”."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, speed is linearly interpolated from the preceding control point to this value. With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% to the external bridge speed at 100%; the bridge target is limited to the original path speed. With it enabled, this value is used throughout the 87% to 100% range, except that a value above the wall speed falls back to the original path speed at 100%. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Prędkość docelowa, gdy 87% szerokości linii ściany nie ma podparcia. Między 75% a 87% prędkość zmienia się liniowo od poprzedniego punktu kontrolnego do tej wartości. Gdy opcja „Zwalnienie na łukach” jest wyłączona, prędkość zmienia się od tej wartości przy 87% do prędkości zewnętrznych mostów przy 100%; docelowa prędkość mostu jest przy tym ograniczona do pierwotnej prędkości ścieżki. Gdy jest włączona, ta wartość obowiązuje w całym zakresie od 87% do 100%, z tym że wartość wyższa od prędkości ściany zostaje przy 100% zastąpiona pierwotną prędkością ścieżki. Wartość 0 oznacza prędkość ściany w tym punkcie kontrolnym, z zachowaniem dotychczasowych ograniczeń prędkości. Sąsiednie prędkości docelowe nadal mogą zmieniać prędkość między punktami kontrolnymi. Wartości w % są obliczane względem prędkości odniesienia ściany. Prędkości docelowe wyższe od prędkości odniesienia przyspieszają druk tylko przy włączonej opcji „Zezwól na prędkość nawisów wyższą niż prędkość ścian”, z uwzględnieniem prędkości przepływu, chłodzenia i opcji „Zwalnienie na łukach”."
 
 # AI Translated
 msgid ""

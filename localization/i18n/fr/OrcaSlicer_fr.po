@@ -13002,8 +13002,10 @@ msgstr "Autres couches"
 msgid "Overhang speed"
 msgstr "Vitesse de surplomb"
 
-msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
-msgstr "Il s'agit de la vitesse pour différents degrés de surplomb. Les degrés de surplomb sont exprimés en pourcentage de la largeur de la ligne. 0 vitesse signifie qu'il n'y a pas de ralentissement pour la plage de degrés du surplomb et que la vitesse par défaut des périmètres est utilisée"
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Overhang is the unsupported fraction of the wall line width. Speeds are interpolated between targets at 10%, 25%, 50%, 75% and 87%. The reference speed is the outer or inner wall speed after volumetric and scarf-seam limits; percentage values use this reference. Targets above it print faster only with Allow overhang speeds above wall speed enabled; other targets retain existing path-speed limits. Setting the first target to 0 disables interpolation below 10%. For the remaining targets, 0 uses wall speed at that point; neighboring targets can still change speed in between."
+msgstr "Le surplomb est la part non soutenue de la largeur de ligne de la paroi. Les vitesses sont interpolées entre les vitesses cibles définies à 10%, 25%, 50%, 75% et 87%. La vitesse de référence est la vitesse de la paroi extérieure ou intérieure après application des limites de vitesse volumétrique et de couture en biseau ; les valeurs en pourcentage sont calculées sur cette référence. Les cibles supérieures à cette référence n’accélèrent l’impression que si l’option « Autoriser des vitesses de surplomb supérieures à la vitesse de paroi » est activée ; les autres cibles restent soumises aux limites de vitesse existantes du chemin d’extrusion. Régler la première cible sur 0 désactive l’interpolation en dessous de 10%. Pour les autres cibles, 0 applique la vitesse de paroi à ce point ; les cibles voisines peuvent toutefois faire varier la vitesse entre ces points."
 
 msgid "Set speed for external and internal bridges"
 msgstr "Définir la vitesse pour les ponts externes et internes"
@@ -16419,7 +16421,7 @@ msgid ""
 "3. If artifacts still appear, enable Extrusion Rate Smoothing (ERS) to further smooth the flow transitions.\n"
 "\n"
 "Note: When this option is enabled, overhang perimeters are treated like overhangs, meaning the overhang speed is applied even if the overhanging perimeter is part of a bridge.\n"
-"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75% overhang speed will be applied, limited by the bridge speed."
+"For example, when the perimeters are 100% overhanging, with no wall supporting them from underneath, the 75–100% overhang speed will be applied, limited by the bridge speed."
 msgstr ""
 "Activez cette option pour ralentir l’impression dans les zones où les périmètres risquent de s’être recourbés vers le haut.\n"
 "Par exemple, un ralentissement supplémentaire est appliqué lors de l’impression de surplombs sur des angles vifs, comme l’avant de la coque du Benchy, réduisant le tuilage qui s’amplifie au fil des couches.\n"
@@ -16434,10 +16436,48 @@ msgstr ""
 "3. Si des artefacts persistent, activez le lissage du taux d’extrusion (ERS) pour adoucir davantage les transitions de débit.\n"
 "\n"
 "Remarque : lorsque cette option est activée, les périmètres en surplomb sont traités comme des surplombs : la vitesse de surplomb s’applique même si le périmètre en surplomb fait partie d’un pont.\n"
-"Par exemple, lorsque les périmètres sont à 100 % en surplomb, sans paroi pour les soutenir par en dessous, la vitesse de surplomb à 75 % est appliquée, limitée par la vitesse du pont."
+"Par exemple, lorsque les périmètres sont à 100 % en surplomb, sans paroi pour les soutenir par en dessous, la vitesse de surplomb à 75–100 % est appliquée, limitée par la vitesse du pont."
+
+# AI Translated
+msgid "Allow overhang speeds above wall speed"
+msgstr "Autoriser des vitesses de surplomb supérieures à la vitesse de paroi"
+
+# AI Translated
+# Needs human review: "overhang walls" is the Overhang wall feature type (walls printed as bridges), so it is quoted as « Paroi en surplomb » to keep it apart from the overhanging walls of the first sentence; check it reads right.
+msgid ""
+"Print overhanging outer and inner walls faster when their overhang speed is set above the wall speed, up to the maximum volumetric speed of the filament. When disabled, overhang speeds never make a wall print faster than it would without the overhang.\n"
+"Bridges, overhang walls, fully unsupported walls, scarf seams and walls whose speed other settings change, such as small perimeters or resonance avoidance, are never sped up."
+msgstr ""
+"Imprime plus vite les parois extérieures et intérieures en surplomb lorsque leur vitesse de surplomb est réglée au-dessus de la vitesse de paroi, dans la limite de la vitesse volumétrique maximale du filament. Si cette option est désactivée, les vitesses de surplomb ne rendent jamais l’impression d’une paroi plus rapide qu’en l’absence de surplomb.\n"
+"Les ponts, les parois de type « Paroi en surplomb », les parois entièrement non soutenues, les coutures en biseau et les parois dont la vitesse est modifiée par d’autres réglages, comme les petits périmètres ou l’évitement de résonance, ne sont jamais accélérés."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 10% of the wall line width is unsupported. Between 0% and 10%, speed is linearly interpolated from the actual wall speed to this value. For example, a wall speed of 60 mm/s and a target of 30 mm/s give 45 mm/s at 5% overhang. A value of 0 disables this initial interpolation. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Vitesse cible lorsque la paroi est non soutenue sur 10% de sa largeur de ligne. Entre 0% et 10%, la vitesse est interpolée linéairement entre la vitesse réelle de la paroi et cette valeur. Par exemple, une vitesse de paroi de 60 mm/s et une cible de 30 mm/s donnent 45 mm/s à 5% de surplomb. Une valeur de 0 désactive cette interpolation initiale. Si la valeur est exprimée en %, elle sera calculée sur la vitesse de paroi de référence. Une cible supérieure à cette référence n’accélère l’impression que si l’option « Autoriser des vitesses de surplomb supérieures à la vitesse de paroi » est activée, sous réserve des limites de débit volumétrique, du refroidissement et du ralentissement pour périmètres courbés."
 
 msgid "mm/s or %"
 msgstr "mm/s ou %"
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 25% of the wall line width is unsupported. Between 10% and 25%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Vitesse cible lorsque la paroi est non soutenue sur 25% de sa largeur de ligne. Entre 10% et 25%, la vitesse est interpolée linéairement entre la vitesse du point de contrôle précédent et cette valeur. Une valeur de 0 applique la vitesse de paroi à ce point de contrôle, dans le respect des limites de vitesse existantes. Les cibles voisines peuvent toutefois modifier la vitesse entre les points de contrôle. Si la valeur est exprimée en %, elle sera calculée sur la vitesse de paroi de référence. Une cible supérieure à cette référence n’accélère l’impression que si l’option « Autoriser des vitesses de surplomb supérieures à la vitesse de paroi » est activée, sous réserve des limites de débit volumétrique, du refroidissement et du ralentissement pour périmètres courbés."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 50% of the wall line width is unsupported. Between 25% and 50%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Vitesse cible lorsque la paroi est non soutenue sur 50% de sa largeur de ligne. Entre 25% et 50%, la vitesse est interpolée linéairement entre la vitesse du point de contrôle précédent et cette valeur. Une valeur de 0 applique la vitesse de paroi à ce point de contrôle, dans le respect des limites de vitesse existantes. Les cibles voisines peuvent toutefois modifier la vitesse entre les points de contrôle. Si la valeur est exprimée en %, elle sera calculée sur la vitesse de paroi de référence. Une cible supérieure à cette référence n’accélère l’impression que si l’option « Autoriser des vitesses de surplomb supérieures à la vitesse de paroi » est activée, sous réserve des limites de débit volumétrique, du refroidissement et du ralentissement pour périmètres courbés."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 75% of the wall line width is unsupported. Between 50% and 75%, speed is linearly interpolated from the preceding control point to this value. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Vitesse cible lorsque la paroi est non soutenue sur 75% de sa largeur de ligne. Entre 50% et 75%, la vitesse est interpolée linéairement entre la vitesse du point de contrôle précédent et cette valeur. Une valeur de 0 applique la vitesse de paroi à ce point de contrôle, dans le respect des limites de vitesse existantes. Les cibles voisines peuvent toutefois modifier la vitesse entre les points de contrôle. Si la valeur est exprimée en %, elle sera calculée sur la vitesse de paroi de référence. Une cible supérieure à cette référence n’accélère l’impression que si l’option « Autoriser des vitesses de surplomb supérieures à la vitesse de paroi » est activée, sous réserve des limites de débit volumétrique, du refroidissement et du ralentissement pour périmètres courbés."
+
+# AI Translated
+#, no-c-format, no-boost-format
+msgid "Target speed when 87% of the wall line width is unsupported. Between 75% and 87%, speed is linearly interpolated from the preceding control point to this value. With Slow down for curled perimeters disabled, speed is interpolated from this value at 87% to the external bridge speed at 100%; the bridge target is limited to the original path speed. With it enabled, this value is used throughout the 87% to 100% range, except that a value above the wall speed falls back to the original path speed at 100%. A value of 0 uses the wall speed at this control point, subject to existing speed limits. Adjacent targets can still change the speed between control points. Values in % are relative to the reference wall speed. Targets above it print faster only with Allow overhang speeds above wall speed enabled, subject to volumetric flow, cooling and curled-perimeter slowdown."
+msgstr "Vitesse cible lorsque la paroi est non soutenue sur 87% de sa largeur de ligne. Entre 75% et 87%, la vitesse est interpolée linéairement entre la vitesse du point de contrôle précédent et cette valeur. Si l’option « Ralentir lors des périmètres courbés » est désactivée, la vitesse est interpolée entre cette valeur à 87% et la vitesse des ponts externes à 100% ; cette cible de pont est limitée à la vitesse d’origine du chemin d’extrusion. Si elle est activée, cette valeur s’applique sur toute la plage de 87% à 100%, à ceci près qu’une valeur supérieure à la vitesse de paroi est ramenée à la vitesse d’origine du chemin d’extrusion à 100%. Une valeur de 0 applique la vitesse de paroi à ce point de contrôle, dans le respect des limites de vitesse existantes. Les cibles voisines peuvent toutefois modifier la vitesse entre les points de contrôle. Si la valeur est exprimée en %, elle sera calculée sur la vitesse de paroi de référence. Une cible supérieure à cette référence n’accélère l’impression que si l’option « Autoriser des vitesses de surplomb supérieures à la vitesse de paroi » est activée, sous réserve des limites de débit volumétrique, du refroidissement et du ralentissement pour périmètres courbés."
 
 # AI Translated
 msgid ""
