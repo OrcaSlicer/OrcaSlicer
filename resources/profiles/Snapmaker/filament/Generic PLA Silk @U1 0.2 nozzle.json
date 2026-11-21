@@ -16,6 +16,14 @@
 		"2",
 		"2"
 	],
+	"filament_multitool_ramming_flow": [
+		"5",
+		"5"
+	],
+	"filament_multitool_ramming_volume": [
+		"1",
+		"1"
+	],
 	"fan_min_speed": [
 		"100",
 		"100"
