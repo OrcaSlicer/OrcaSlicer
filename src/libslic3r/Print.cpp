@@ -6,6 +6,7 @@
 
 #include "PrintBase.hpp"
 #include <utility>
+#include <initializer_list>
 #include <string>
 #include <mutex>
 #include <vector>
@@ -1895,7 +1896,7 @@ FilamentCompatibilityType Print::check_multi_filaments_compatibility(
     return FilamentCompatibilityType::Compatible;
 }
 
-bool Print::is_filaments_compatible(const std::vector<int>& filament_types)
+bool Print::is_filaments_compatible(std::initializer_list<int> filament_types)
 {
     bool has_high_temperature_filament = false;
     bool has_low_temperature_filament = false;

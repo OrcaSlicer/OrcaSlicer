@@ -9,6 +9,15 @@
 #include <limits>
 #include <cstddef>
 #include <cmath>
+#include <chrono>
+#include <cstdio>
+#include <cstdlib>
+#include <fstream>
+#include <initializer_list>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+#include <utility>
 
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -20,6 +29,7 @@
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Geometry/ConvexHull.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/MultiMaterialSegmentation.hpp"
@@ -1108,4 +1118,236 @@ TEST_CASE("Arrange keeps relevant objects outside conditional exclusion obstacle
         CHECK(intersection(ExPolygons{item.transformed_poly()}, ExPolygons{excluded_shape}).empty());
     }
     require_no_overlap(items);
+}
+
+// Benchmark plates: generated shapes, arranged by their convex hull, on a 256 mm bed with
+// 2 mm spacing.
+namespace {
+
+constexpr double BED_MM     = 256.;
+constexpr double SPACING_MM = 2.;
+// Slack for the gap check: integer rounding.
+constexpr double GAP_SLACK_MM = 0.05;
+
+Polygon circle(double r_mm)
+{
+    Polygon p;
+    for (int i = 0; i < 64; ++i) {
+        const double a = 2. * PI * i / 64;
+        p.points.emplace_back(scaled(r_mm * std::cos(a)), scaled(r_mm * std::sin(a)));
+    }
+    return p;
+}
+
+Polygon polygon_mm(std::initializer_list<std::pair<double, double>> pts)
+{
+    Polygon p;
+    for (auto [x, y] : pts)
+        p.points.emplace_back(scaled(x), scaled(y));
+    return p;
+}
+
+// L bracket: two arms of length w and thickness t.
+ExPolygon shape_L(double w, double t) { return ExPolygon(polygon_mm({{0, 0}, {w, 0}, {w, t}, {t, t}, {t, w}, {0, w}})); }
+
+// C shape opening towards +X.
+ExPolygon shape_C(double w, double h, double t)
+{
+    return ExPolygon(polygon_mm({{0, 0}, {w, 0}, {w, t}, {t, t}, {t, h - t}, {w, h - t}, {w, h}, {0, h}}));
+}
+
+ExPolygon shape_disc(double r) { return ExPolygon(circle(r)); }
+
+ExPolygon shape_ring(double R, double r)
+{
+    ExPolygon ring(circle(R));
+    Polygon   hole = circle(r);
+    hole.reverse();
+    ring.holes.emplace_back(std::move(hole));
+    return ring;
+}
+
+ArrangePolygon make_item(const ExPolygon &shape)
+{
+    ArrangePolygon ap;
+    ap.poly      = ExPolygon(Geometry::convex_hull(shape.contour.points));
+    ap.inflation = scaled(SPACING_MM / 2.);
+    ap.bed_idx   = 0;
+    ap.height    = 10.;
+    return ap;
+}
+
+struct Scenario
+{
+    std::string            name;
+    std::vector<ExPolygon> shapes;
+    std::vector<int>       kinds; // per item, which add() call it came from: equal kinds are interchangeable copies
+};
+
+void add(Scenario &s, int n, const ExPolygon &shape)
+{
+    const int kind = s.kinds.empty() ? 0 : s.kinds.back() + 1;
+    s.shapes.insert(s.shapes.end(), n, shape);
+    s.kinds.insert(s.kinds.end(), n, kind);
+}
+
+Scenario scenario(const std::string &name)
+{
+    Scenario s{name, {}, {}};
+    const ExPolygon L = shape_L(60, 15), C = shape_C(50, 40, 10), cyl = shape_disc(12), disc = shape_disc(15);
+    if (name == "cyl30") add(s, 30, cyl);
+    else if (name == "cap-cyl") add(s, 110, cyl);
+    else if (name == "L16") add(s, 16, L);
+    else if (name == "cap-L") add(s, 40, L);
+    else if (name == "C20") add(s, 20, C);
+    else if (name == "mixed24") { add(s, 8, L); add(s, 8, C); add(s, 8, disc); }
+    else if (name == "cap-mixed") { add(s, 24, L); add(s, 24, C); add(s, 24, disc); }
+    else if (name == "rings") { add(s, 3, shape_ring(40, 30)); add(s, 12, shape_disc(8)); }
+    else if (name == "rings-big") { add(s, 6, shape_ring(40, 30)); add(s, 30, shape_disc(8)); }
+    else throw std::runtime_error("unknown scenario " + name);
+    return s;
+}
+
+const std::vector<std::string> ALL_SCENARIOS = {"cyl30", "cap-cyl", "L16", "cap-L", "C20", "mixed24", "cap-mixed", "rings", "rings-big"};
+
+struct Run
+{
+    ArrangePolygons  items;
+    std::vector<int> kinds; // Scenario::kinds of the items
+    double           seconds = 0.;
+};
+
+Run run_arrange(const std::string &name, bool rotations)
+{
+    Run            r;
+    const Scenario s = scenario(name);
+    for (const ExPolygon &e : s.shapes)
+        r.items.emplace_back(make_item(e));
+    r.kinds = s.kinds;
+    ArrangeParams p   = quiet_params();
+    p.allow_rotations = rotations;
+    const auto t0     = std::chrono::steady_clock::now();
+    arrange(r.items, bed(BED_MM, BED_MM), p);
+    r.seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    return r;
+}
+
+// Items on one bed stay at least spacing - slack apart, and items on bed 0 inside the bed.
+// Growing both shapes by half of that with round joins makes them touch exactly at that
+// distance; miter joins would report false violations at diagonal corners.
+void require_valid_layout(const ArrangePolygons &items)
+{
+    const ExPolygons  placed = placed_shapes(items);
+    const float       half_gap = float(scaled((SPACING_MM - GAP_SLACK_MM) / 2.));
+    const double      tiny     = scaled(0.01) * scaled(0.01);
+    const BoundingBox bed_area(Point(-scaled(0.01), -scaled(0.01)), Point(scaled(BED_MM + 0.01), scaled(BED_MM + 0.01)));
+    std::vector<ExPolygons> grown;
+    for (const ExPolygon &e : placed)
+        grown.emplace_back(offset_ex(e, half_gap, jtRound));
+    for (size_t i = 0; i < items.size(); ++i) {
+        if (items[i].bed_idx == 0)
+            CHECK(bed_area.contains(get_extents(placed[i])));
+        for (size_t j = i + 1; j < items.size(); ++j)
+            if (items[i].bed_idx == items[j].bed_idx && items[i].bed_idx >= 0) {
+                INFO("items " << i << " and " << j);
+                CHECK(area(intersection_ex(grown[i], grown[j])) <= tiny);
+            }
+    }
+}
+
+int on_bed0(const ArrangePolygons &items)
+{
+    return int(std::count_if(items.begin(), items.end(), [](const ArrangePolygon &ap) { return ap.bed_idx == 0; }));
+}
+
+std::string golden_path() { return std::string(TEST_DATA_DIR) + "/arrange_fast_golden.txt"; }
+
+// One line per item, naming its kind rather than its index, in sorted order: the nester orders
+// equal items with std::sort, so which copy of a shape takes which place differs between
+// standard libraries.
+std::string layout_dump(const std::string &name, bool rot, const Run &r)
+{
+    std::vector<std::string> lines;
+    for (size_t i = 0; i < r.items.size(); ++i) {
+        const ArrangePolygon &ap = r.items[i];
+        std::ostringstream    os;
+        os << name << ' ' << int(rot) << ' ' << r.kinds[i] << ' ' << ap.bed_idx << ' ' << ap.translation.x() << ' '
+           << ap.translation.y() << ' ' << std::llround(ap.rotation * 1e9) << '\n';
+        lines.push_back(os.str());
+    }
+    std::sort(lines.begin(), lines.end());
+    std::string out;
+    for (const std::string &l : lines) out += l;
+    return out;
+}
+
+std::vector<std::string> lines_of(const std::string &s, const std::string &prefix)
+{
+    std::vector<std::string> out;
+    std::istringstream       is(s);
+    for (std::string l; std::getline(is, l);)
+        if (l.rfind(prefix, 0) == 0) out.push_back(l);
+    return out;
+}
+
+// Runs per plate, ORCA_ARRANGE_BENCH_REPEAT (default 1); the fastest time is kept, as a
+// laptop's run-to-run noise exceeds most single optimisations.
+int bench_repeats()
+{
+    const char *n = std::getenv("ORCA_ARRANGE_BENCH_REPEAT");
+    return n ? std::max(1, std::atoi(n)) : 1;
+}
+
+} // namespace
+
+// The arrange's layouts must not change. Regenerate the file with ORCA_WRITE_ARRANGE_GOLDEN=1
+// only when that behaviour is changed on purpose.
+TEST_CASE("Arrange gives the recorded layouts", "[Arrange][Golden]")
+{
+    std::string all;
+    for (const std::string &name : ALL_SCENARIOS)
+        for (bool rot : {false, true}) {
+            const Run r = run_arrange(name, rot);
+            require_valid_layout(r.items);
+            all += layout_dump(name, rot, r);
+        }
+
+    if (std::getenv("ORCA_WRITE_ARRANGE_GOLDEN") != nullptr) {
+        std::ofstream(golden_path()) << all;
+        WARN("wrote " << golden_path());
+    }
+    std::ifstream      in(golden_path());
+    std::ostringstream golden;
+    golden << in.rdbuf();
+    REQUIRE_FALSE(golden.str().empty());
+    for (const std::string &name : ALL_SCENARIOS) {
+        INFO(name);
+        CHECK(lines_of(all, name + " ") == lines_of(golden.str(), name + " "));
+    }
+}
+
+// Benchmark, hidden from the default run. Run it with libslic3r_tests "[ArrangeBench]";
+// ORCA_ARRANGE_BENCH="rings,C20" narrows the plates, ORCA_ARRANGE_BENCH_CSV names the output.
+TEST_CASE("Arrange benchmark", "[Arrange][ArrangeBench][.]")
+{
+    std::vector<std::string> names = ALL_SCENARIOS;
+    if (const char *sel = std::getenv("ORCA_ARRANGE_BENCH")) {
+        names.clear();
+        std::istringstream is(sel);
+        for (std::string n; std::getline(is, n, ',');) names.push_back(n);
+    }
+    const char   *csv = std::getenv("ORCA_ARRANGE_BENCH_CSV");
+    std::ofstream f(csv ? csv : "arrange_bench.csv");
+    f << "scenario,rotate,items,on_bed0,seconds\n";
+    for (const std::string &name : names)
+        for (bool rot : {false, true}) {
+            Run r = run_arrange(name, rot);
+            for (int i = 1; i < bench_repeats(); ++i)
+                r.seconds = std::min(r.seconds, run_arrange(name, rot).seconds);
+            char line[160];
+            std::snprintf(line, sizeof line, "%s,%d,%zu,%d,%.3f", name.c_str(), int(rot), r.items.size(), on_bed0(r.items), r.seconds);
+            f << line << "\n";
+            std::cout << "arrange-bench " << line << std::endl;
+            require_valid_layout(r.items);
+        }
 }
