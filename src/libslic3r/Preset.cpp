@@ -1202,6 +1202,7 @@ static std::vector<std::string> s_Preset_print_options{
     "bottom_color_penetration_layers",
     "extra_perimeters_on_overhangs",
     "ensure_vertical_shell_thickness",
+    "ensure_walls_foundation",
     "reduce_crossing_wall",
     "detect_thin_wall",
     "detect_overhang_wall",
