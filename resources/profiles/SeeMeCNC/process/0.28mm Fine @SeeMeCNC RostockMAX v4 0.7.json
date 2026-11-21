@@ -1,6 +1,7 @@
 {
 	"type": "process",
 	"name": "0.28mm Fine @SeeMeCNC RostockMAX v4 0.7",
+	"renamed_from": "0.28mm Fine SeeMeCNC RostockMAX v4 0.7;0.30mm TPU Solid @SeeMeCNC RostockMAX v4 0.7;0.30mm TPU Solid SeeMeCNC RostockMAX v4 0.7",
 	"inherits": "SeeMeCNC process base 0.7mm",
 	"from": "System",
 	"setting_id": "MIu8Co2r9dteb7fv",
