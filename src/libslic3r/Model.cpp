@@ -836,6 +836,42 @@ void Model::set_assembly_pos(ModelObject *model_object, const std::vector<const 
         instance->set_assemble_offset(instance->get_assemble_offset() + shift);
 }
 
+void Model::set_assembly_pos_of_copies(ModelObject *model_object, size_t source_idx, size_t first_copy)
+{
+    ModelInstancePtrs &instances = model_object->instances;
+    if (source_idx >= first_copy || first_copy >= instances.size())
+        return;
+
+    // ORCA: A source without an assembly pose (e.g. a text object) is placed as a new object first.
+    // Its copies sit on it meanwhile, so that they do not widen its bounding box.
+    if (!instances[source_idx]->is_assemble_initialized()) {
+        for (size_t i = first_copy; i < instances.size(); ++i)
+            instances[i]->set_assemble_transformation(instances[source_idx]->get_transformation());
+        this->set_assembly_pos(model_object);
+    }
+
+    const ModelInstance     &source     = *instances[source_idx];
+    Geometry::Transformation pose       = source.get_assemble_transformation();
+    const BoundingBoxf3     &raw_box    = model_object->raw_mesh_bounding_box();
+    const BoundingBoxf3      source_box = raw_box.transformed(pose.get_matrix());
+    // ORCA: Bounding box of everything in the assembly view, except the copies.
+    BoundingBoxf3 placed;
+    for (const ModelObject *o : this->objects)
+        if (o != model_object)
+            placed.merge(o->bounding_box_in_assembly_view());
+    for (size_t i = 0; i < first_copy; ++i)
+        placed.merge(raw_box.transformed(instances[i]->get_assemble_transformation().get_matrix()));
+
+    // ORCA: Line the copies up to the right of that box, 10 mm apart.
+    Vec3d offset = pose.get_offset() + (placed.max.x() - source_box.max.x()) * Vec3d::UnitX();
+    for (size_t i = first_copy; i < instances.size(); ++i) {
+        offset.x() += source_box.size().x() + 10.;
+        pose.set_offset(offset);
+        instances[i]->set_assemble_transformation(pose);
+        instances[i]->set_offset_to_assembly(source.get_offset_to_assembly());
+    }
+}
+
 // this returns the bounding box of the *transformed* instances
 BoundingBoxf3 Model::bounding_box_approx() const
 {
@@ -1609,6 +1645,9 @@ void ModelObject::delete_volume(size_t idx)
         for (ModelInstance* inst : this->instances)
         {
             inst->set_transformation(Geometry::Transformation(inst->get_transformation().get_matrix() * v_t));
+            // ORCA: Same for the pose in the assembly view, otherwise the object turns or moves there.
+            if (inst->is_assemble_initialized())
+                inst->set_assemble_from_transform(inst->get_assemble_transformation().get_matrix() * v_t);
         }
         Geometry::Transformation t;
         v->set_transformation(t);
