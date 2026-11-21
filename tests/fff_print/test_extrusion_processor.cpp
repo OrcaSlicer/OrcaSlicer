@@ -768,9 +768,9 @@ TEST_CASE("Walls are slowed for the curled edges of the layer below them whichev
     Layer *layer = object->add_layer(2, 0.2, 0.6, 0.5);
     below->lower_layer = stale;
     layer->lower_layer = below;
-    // The 0.4mm wide wall runs 0.2mm inside the edge of the layer below, so it is fully supported, but along an edge that
-    // curled up 1mm. The stale layer ends 0.8mm short of the wall and has no curled edges: measured against it, the wall
-    // would be a full overhang.
+    // The 0.4mm wide wall runs 0.2mm inside the edge of the layer below, so it is fully supported, but along an edge
+    // that curled up 1mm. The stale layer ends 0.8mm short of the wall and has no curled edges: measured against it,
+    // the wall would be a full overhang.
     below->lslices      = {ExPolygon(Polygon{Point::new_scale(0, 0), Point::new_scale(40, 0),
                                              Point::new_scale(40, 10), Point::new_scale(0, 10)})};
     below->curled_lines = {CurledLine(Point::new_scale(1, 0.2), Point::new_scale(39, 0.2), 1.f)};
@@ -787,7 +787,8 @@ TEST_CASE("Walls are slowed for the curled edges of the layer below them whichev
         estimator.prepare_for_new_layer(object, below);
     estimator.prepare_for_new_layer(object, layer);
     // 100mm/s when fully supported, 20mm/s when a whole width out.
-    const std::vector<ProcessedPoint> points = estimator.estimate_extrusion_quality(wall, ConfigOptionPercents({100, 0}),
+    const std::vector<ProcessedPoint> points = estimator.estimate_extrusion_quality(wall,
+        ConfigOptionPercents({100, 0}),
         ConfigOptionFloatsOrPercents({FloatOrPercent{100, false}, FloatOrPercent{20, false}}), 100.f, 100.f, true);
 
     // A 1mm curl under a 0.2mm layer reads as half the width, 0.2mm, out: halfway between the two speeds.
@@ -954,7 +955,8 @@ std::string wedge_gcode(bool object_speed, bool range_speed)
     // Every layer range must carry a layer_height (see layer_height_profile_from_ranges).
     range_config.set_key_value("layer_height", new ConfigOptionFloat(caged_layer_height));
     range_config.set_deserialize_strict("enable_overhang_speed", range_speed ? "1" : "0");
-    model.objects.front()->layer_config_ranges[{wedge_range_min, wedge_range_max}].assign_config(std::move(range_config));
+    model.objects.front()->layer_config_ranges[{wedge_range_min, wedge_range_max}].assign_config(
+        std::move(range_config));
     print.apply(model, config);
     return gcode(print);
 }
@@ -965,7 +967,8 @@ std::vector<double> wedge_wall_feed_rates(const std::string &gcode, double print
 {
     return outer_wall_feed_rates(gcode, [print_z, front](const GCodeReader &self, const GCodeReader::GCodeLine &line) {
         const auto on_face = [front](double y) { return front ? y < wedge_base_front_y + 1. : y > wedge_back_y - 1.; };
-        return std::abs(line.new_Z(self) - print_z) < 0.5 * caged_layer_height && on_face(self.y()) && on_face(line.new_Y(self));
+        return std::abs(line.new_Z(self) - print_z) < 0.5 * caged_layer_height && on_face(self.y()) &&
+            on_face(line.new_Y(self));
     });
 }
 

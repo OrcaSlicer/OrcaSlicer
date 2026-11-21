@@ -5133,7 +5133,8 @@ static bool prepares_overhang_estimator(const Layer &layer, bool overhang_fan)
 {
     const LayerRegionPtrs &regions = layer.regions();
     return std::any_of(regions.begin(), regions.end(), [overhang_fan](const LayerRegion *region) {
-        return region->has_extrusions() && (overhang_fan || any_enabled(region->region().config().enable_overhang_speed));
+        return region->has_extrusions() &&
+            (overhang_fan || any_enabled(region->region().config().enable_overhang_speed));
     });
 }
 
