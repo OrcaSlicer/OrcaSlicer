@@ -6695,6 +6695,7 @@ int PartPlateList::delete_plate(int index)
 		return -1;
 	}
 	const std::string plate_name = plate->get_plate_name();
+	const std::vector<ObjectID> plate_ids_before = get_plate_ids();
 
 	if (m_plater) {
 		// In GUI mode
@@ -6715,6 +6716,8 @@ int PartPlateList::delete_plate(int index)
 	int old_cols = compute_colum_count(m_plate_list.size());
 
 	m_plate_list.erase(m_plate_list.begin() + index);
+	// Orca: custom G-codes are keyed by plate index, so re-key them for the plates after it.
+	remap_custom_gcodes(plate_ids_before);
 	update_plate_cols();
 	//update this plate
 	//move this plate's instance to the end
