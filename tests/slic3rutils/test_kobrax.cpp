@@ -285,6 +285,26 @@ TEST_CASE("The spool holder and the ACE are seven sources in two units", "[Kobra
     }
 }
 
+TEST_CASE("Chained ACE units and the spool holder: N x 4 + 3 sources", "[KobraX]")
+{
+    json report = seven_sources();
+    report["data"]["multi_color_box"].push_back(
+        {{"id", 1}, {"loaded_slot", -1}, {"slots", json::array({slot(0, {1, 2, 3}), slot(1, {4, 5, 6}), slot(2, {7, 8, 9}), slot(3, {0, 0, 0}, 0)})}});
+    KobraX::State state;
+    state.apply("multiColorBox/report", report);
+    const std::vector<KobraX::Slot> slots = state.slots();
+    REQUIRE(slots.size() == 11);
+    CHECK(slots[4].tray == 4);
+    CHECK(slots[4].ams_index == 8); // ACE 2 slot 1: 4 + 1 * 4 + 0
+    CHECK(slots[8].holder);
+    CHECK(slots[8].tray == 8);     // the holder is the unit after the last ACE
+    CHECK(slots[8].ams_index == 0);
+    const json units = state.push_status(true)["print"]["ams"]["ams"];
+    REQUIRE(units.size() == 3);
+    CHECK(units[1]["display_name"] == "ACE 2");
+    CHECK(units[2]["display_name"] == "Spool holder");
+}
+
 TEST_CASE("Holder and ACE trays map to their own print slots", "[KobraX]")
 {
     KobraX::State state;

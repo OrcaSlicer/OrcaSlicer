@@ -228,6 +228,9 @@ void KobraXPrinterAgent::run(std::shared_ptr<Connection> c)
             }
             if (state == "printing" || state == "paused")
                 session->send("print", "query");
+            // The ACE units and the spool holder on every poll, as KX-Bridge and Kobralink ask: a Kobra X on firmware
+            // 1.1.5.1 answered the first getInfo without its ACE in Kobra Control
+            session->send("multiColorBox", "getInfo");
             dispatch_status();
         }
 
