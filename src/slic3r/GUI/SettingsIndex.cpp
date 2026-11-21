@@ -75,7 +75,9 @@ void SettingsIndex::append_options(DynamicPrintConfig *config, Preset::Type type
 
         int cnt = 0;
 
-        if ((type == Preset::TYPE_SLA_MATERIAL || type == Preset::TYPE_PRINTER || type == Preset::TYPE_PRINT) && opt_key != "printable_area")
+        // A vector edited as one value is one setting, registered under its base key
+        // rather than one key per entry.
+        if ((type == Preset::TYPE_SLA_MATERIAL || type == Preset::TYPE_PRINTER || type == Preset::TYPE_PRINT) && !is_edited_as_whole_list(config->def(), opt_key))
             switch (config->option(opt_key)->type()) {
             case coInts: change_opt_key<ConfigOptionInts>(opt_key, config, cnt); break;
             case coBools: change_opt_key<ConfigOptionBools>(opt_key, config, cnt); break;

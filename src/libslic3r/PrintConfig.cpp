@@ -5561,17 +5561,19 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("small_area_infill_flow_compensation_model", coStrings);
+    def->gui_type = ConfigOptionDef::GUIType::curve;
     def->label = L("Flow Compensation Model");
     def->tooltip = L(
         "Flow Compensation Model, used to adjust the flow for small infill "
-        "areas. The model is expressed as a comma separated pair of values for "
-        "extrusion length and flow correction factor. Each pair is on a "
-        "separate line, followed by a semicolon, in the following format: \"1.234, 5.678;\"");
+        "areas. The model is a curve through points, each a pair of an "
+        "extrusion length in mm and a flow correction factor. An extrusion "
+        "gets the factor the curve gives for its length. The points are "
+        "edited on a graph or in a table in the editor that the button opens.");
     def->mode = comAdvanced;
     def->gui_flags = "serialized";
+    // Edited in a dialog, not in a text box. Still marked as multi-line text for
+    // scripts/orca_profile_tool.py, which reads this mark from this file.
     def->multiline = true;
-    def->full_width = true;
-    def->height = 15;
     def->set_default_value(new ConfigOptionStrings{"0,0", "\n0.2,0.4444", "\n0.4,0.6145", "\n0.6,0.7059", "\n0.8,0.7619", "\n1.5,0.8571", "\n2,0.8889", "\n3,0.9231", "\n5,0.9520", "\n10,1"});
 
     def = this->add("has_scarf_joint_seam", coBool);

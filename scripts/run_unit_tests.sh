@@ -68,6 +68,35 @@ fi
 # Run the whole suite, excluding tests tagged [NotWorking] and tests labelled RequiresApp,
 # which run the built orca-slicer binary that this directory does not contain.
 # --no-tests=error fails the job if the filter matches nothing (instead of passing green).
-args=(--test-dir "${TEST_DIR}" -LE "NotWorking|RequiresApp" --no-tests=error --output-junit "$(pwd)/ctest_results.xml" --output-on-failure -j)
+excluded_labels="NotWorking|RequiresApp"
+ctest_cmd=(ctest)
+skipped=""
+# GTK needs a display for the native event/capture tests (label RequiresDisplay), even when
+# its frames stay hidden. Without one, run them under Xvfb; with neither, as on a self-hosted
+# runner the workflow installs nothing on, leave them out instead of failing each of them.
+# GDK_BACKEND lists the backends GTK may use, separated by commas, where "*" stands for any of them:
+# a Wayland display is of no use to a GTK that the list keeps from Wayland.
+wayland_display="${WAYLAND_DISPLAY:-}"
+case ",${GDK_BACKEND:-*}," in
+    *,wayland,* | *,\*,*) ;;
+    *) wayland_display="" ;;
+esac
+if [ "$(uname -s)" = Linux ] && [ -z "${DISPLAY:-}" ] && [ -z "${wayland_display}" ]; then
+    if command -v xvfb-run >/dev/null 2>&1; then
+        ctest_cmd=(xvfb-run -a ctest)
+    else
+        excluded_labels+="|RequiresDisplay"
+        skipped="the tests labelled RequiresDisplay were NOT run: no DISPLAY or usable WAYLAND_DISPLAY and no xvfb-run. Install xvfb (and xauth) or provide a display to run them."
+        if [ -n "${GITHUB_ACTIONS:-}" ]; then
+            echo "::warning title=GUI tests skipped::${skipped}"
+        fi
+        echo "WARNING: ${skipped}" >&2
+    fi
+fi
+args=(--test-dir "${TEST_DIR}" -LE "${excluded_labels}" --no-tests=error --output-junit "$(pwd)/ctest_results.xml" --output-on-failure -j)
 [ -n "${BUILD_CONFIG}" ] && args+=(--build-config "${BUILD_CONFIG}")
-ctest "${args[@]}"
+"${ctest_cmd[@]}" "${args[@]}"
+status=$?
+# Repeat it after the ctest output, where a local run would otherwise scroll it away.
+[ -n "${skipped:-}" ] && echo "WARNING: ${skipped}" >&2
+exit "${status}"

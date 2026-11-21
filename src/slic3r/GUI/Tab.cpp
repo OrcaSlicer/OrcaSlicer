@@ -113,6 +113,7 @@
 #include "BedShapeDialog.hpp"
 #include "libslic3r/GCode/Thumbnails.hpp"
 #include "WipeTowerDialog.hpp"
+#include "SmallAreaInfillFlowCompensationDialog.hpp"
 
 
 #ifdef WIN32
@@ -944,16 +945,11 @@ void Tab::update_label_colours()
             else
                 color = &m_modified_label_clr;
         }
-        if (opt.first == "printable_area"            ||
-            opt.first == "compatible_prints"    || opt.first == "compatible_printers"           ) {
-            if (Line* line = get_line(opt.first))
-                line->set_label_colour(color);
-            continue;
-        }
-
-        Field* field = get_field(opt.first);
-        if (field == nullptr) continue;
-        field->set_label_colour(color);
+        if (Field* field = get_field(opt.first))
+            field->set_label_colour(color);
+        // A widget row has no Field, its Line holds the label colour.
+        else if (Line* line = get_line(opt.first); line && line->widget)
+            line->set_label_colour(color);
     }
 
     auto cur_item = m_tabctrl->GetFirstVisibleItem();
@@ -985,18 +981,11 @@ void Tab::decorate()
 {
     for (const auto& opt : m_options_list)
     {
-        Field*      field = nullptr;
-        bool        option_without_field = false;
-
-        if (opt.first == "printable_area" ||
-            opt.first == "compatible_prints" || opt.first == "compatible_printers")
-            option_without_field = true;
-
-        if (!option_without_field) {
-            field = get_field(opt.first);
-            if (!field)
-                continue;
-        }
+        Field*      field = get_field(opt.first);
+        // A widget row has no Field, its Line holds the label colour and the undo icons.
+        Line*       widget_line = field ? nullptr : get_line(opt.first);
+        if (!field && !(widget_line && widget_line->widget))
+            continue;
 
         bool is_nonsys_value = false;
         bool is_modified_value = true;
@@ -1063,14 +1052,12 @@ void Tab::decorate()
 
         }
 
-        if (option_without_field) {
-            if (Line* line = get_line(opt.first)) {
-                line->set_undo_bitmap(icon);
-                line->set_undo_to_sys_bitmap(sys_icon);
-                line->set_undo_tooltip(tt);
-                line->set_undo_to_sys_tooltip(sys_tt);
-                line->set_label_colour(color);
-            }
+        if (!field) {
+            widget_line->set_undo_bitmap(icon);
+            widget_line->set_undo_to_sys_bitmap(sys_icon);
+            widget_line->set_undo_tooltip(tt);
+            widget_line->set_undo_to_sys_tooltip(sys_tt);
+            widget_line->set_label_colour(color);
             continue;
         }
 
@@ -2760,15 +2747,32 @@ void Tab::activate_option(const std::string& opt_key, const wxString& category)
 #endif // WIN32
     };
 
+    // Focusing a window makes the page scroll to it; ask for the scroll when the focus did not get there.
+    auto scroll_to_unfocused = [this](wxWindow* win) {
+        if (!win->HasFocus()) {
+            wxScrollEvent evt(wxEVT_SCROLL_CHANGED);
+            evt.SetEventObject(win);
+            wxPostEvent(m_page_view, evt);
+        }
+    };
+
     Field* field = get_field(opt_key);
 
     // focused selected field
     if (field) {
         set_focus(field->getWindow());
-        if (!field->getWindow()->HasFocus()) {
-            wxScrollEvent evt(wxEVT_SCROLL_CHANGED);
-            evt.SetEventObject(field->getWindow());
-            wxPostEvent(m_page_view, evt);
+        scroll_to_unfocused(field->getWindow());
+    }
+    else if (Line* line = get_line(opt_key); line && line->widget_sizer) {
+        // A widget row has no Field: use its first shown control instead.
+        for (auto* child : line->widget_sizer->GetChildren()) {
+            wxWindow* win = child->IsWindow() ? child->GetWindow() : nullptr;
+            if (win == nullptr || !win->IsShown())
+                continue;
+            if (win->IsEnabled())
+                set_focus(win);
+            scroll_to_unfocused(win);
+            break;
         }
     }
     else if (category == "Single extruder MM setup") {
@@ -3147,11 +3151,23 @@ void TabPrint::build()
         optgroup->append_single_option_line("max_travel_detour_distance", "quality_settings_wall_and_surfaces#max-detour-length");
 
         optgroup->append_single_option_line("small_area_infill_flow_compensation", "quality_settings_wall_and_surfaces#small-area-flow-compensation");
-        Option option = optgroup->get_option("small_area_infill_flow_compensation_model");
-        option.opt.full_width = true;
-        option.opt.is_code = true;
-        option.opt.height = 15;
-        optgroup->append_single_option_line(option, "quality_settings_wall_and_surfaces#small-area-flow-compensation");
+        create_line_with_widget(optgroup.get(), "small_area_infill_flow_compensation_model", "quality_settings_wall_and_surfaces#small-area-flow-compensation", [this](wxWindow* parent) {
+
+            Button* btn = new Button(parent, _(L("Set")) + " " + dots);
+            btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+
+            auto sizer = new wxBoxSizer(wxHORIZONTAL);
+            sizer->Add(btn);
+
+            btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+                SmallAreaInfillFlowCompensationDialog dlg(this, m_config->option<ConfigOptionStrings>("small_area_infill_flow_compensation_model")->values);
+                if (dlg.ShowModal() == wxID_OK && dlg.is_modified()) {
+                    load_key_value("small_area_infill_flow_compensation_model", dlg.get_parameters());
+                    update_changed_ui();
+                }
+            });
+            return sizer;
+        });
 
         optgroup = page->new_optgroup(L("Bridging"), L"param_bridge");
         optgroup->append_single_option_line("bridge_flow", "quality_settings_bridging#flow-ratio");
@@ -3531,7 +3547,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("gcode_label_objects", "others_settings_g_code_output#label-objects");
         optgroup->append_single_option_line("exclude_object", "others_settings_g_code_output#exclude-objects");
         optgroup->append_single_option_line("exclude_object_tolerance", "others_settings_g_code_output#outline-tolerance");
-        option = optgroup->get_option("filename_format");
+        Option option = optgroup->get_option("filename_format");
         // option.opt.full_width = true;
         option.opt.is_code = true;
         option.opt.multiline = true;
