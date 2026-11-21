@@ -19,6 +19,7 @@
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "libslic3r_version.h"
 
+#include <algorithm>
 #include <string>
 #include <wx/panel.h>
 #include <wx/gdicmn.h>
@@ -31,6 +32,9 @@
 #include <wx/string.h>
 #include <wx/timer.h>
 #include <wx/toolbar.h>
+#include <wx/dialog.h>
+#include <wx/display.h>
+#include <wx/toplevel.h>
 #include <wx/textdlg.h>
 
 #include <wx/webview.h>
@@ -108,7 +112,8 @@ int ZUserLogin::ensure_loopback_port()
 }
 
 ZUserLogin::ZUserLogin(std::shared_ptr<ICloudServiceAgent> cloud_agent)
-    : wxDialog((wxWindow*) (wxGetApp().mainframe), wxID_ANY, "OrcaSlicer"), m_cloud_agent(cloud_agent)
+    : wxDialog((wxWindow*) (wxGetApp().mainframe), wxID_ANY, "OrcaSlicer", wxDefaultPosition, wxDefaultSize,
+               wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER), m_cloud_agent(cloud_agent)
 {
     SetBackgroundColour(*wxWHITE);
 
@@ -183,6 +188,13 @@ ZUserLogin::ZUserLogin(std::shared_ptr<ICloudServiceAgent> cloud_agent)
         m_browser->Hide();
         m_browser->SetSize(0, 0);
 
+        // The webview fills the dialog, so it follows the dialog when the user resizes it.
+        // Plain SetSizer: the webview is still hidden and 0x0 here, so fitting would collapse the dialog;
+        // the size is set explicitly below.
+        auto* browser_sizer = new wxBoxSizer(wxVERTICAL);
+        browser_sizer->Add(m_browser, 1, wxEXPAND);
+        SetSizer(browser_sizer);
+
         // Connect the webview events
         Bind(wxEVT_WEBVIEW_NAVIGATING, &ZUserLogin::OnNavigationRequest, this, m_browser->GetId());
         Bind(wxEVT_WEBVIEW_NAVIGATED, &ZUserLogin::OnNavigationComplete, this, m_browser->GetId());
@@ -196,10 +208,26 @@ ZUserLogin::ZUserLogin(std::shared_ptr<ICloudServiceAgent> cloud_agent)
         // UI
         SetTitle(_L("Login"));
         // Set a more sensible size for web browsing
-        wxSize pSize = FromDIP(wxSize(650, 840));
-        SetSize(pSize);
+        // The preferred size can exceed the work area (e.g. 840 DIP at 150% on a 1080p screen),
+        // which would push the title bar off screen, so clamp it to the display the dialog is on.
+        int display_idx = wxDisplay::GetFromWindow(GetParent());
+        if (display_idx == wxNOT_FOUND)
+            display_idx = 0;
+        const wxRect work_area = wxDisplay(static_cast<unsigned int>(display_idx)).GetClientArea();
+        const int    margin    = FromDIP(20);
+        const wxSize max_size(std::max(1, work_area.GetWidth() - margin), std::max(1, work_area.GetHeight() - margin));
+
+        const wxSize pSize = FromDIP(wxSize(650, 840));
+        SetMinSize(wxSize(std::min(FromDIP(400), max_size.GetWidth()), std::min(FromDIP(400), max_size.GetHeight())));
+        SetSize(wxSize(std::min(pSize.GetWidth(), max_size.GetWidth()), std::min(pSize.GetHeight(), max_size.GetHeight())));
 
         CentreOnParent();
+
+        // Keep the whole dialog, title bar included, inside the work area.
+        wxRect rect = GetRect();
+        rect.x = std::max(work_area.GetLeft(), std::min(rect.x, work_area.GetRight() + 1 - rect.width));
+        rect.y = std::max(work_area.GetTop(), std::min(rect.y, work_area.GetBottom() + 1 - rect.height));
+        Move(rect.GetPosition());
     }
     wxGetApp().UpdateDlgDarkUI(this);
 }
