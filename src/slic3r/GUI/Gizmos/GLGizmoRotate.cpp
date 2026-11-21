@@ -98,7 +98,10 @@ std::string GLGizmoRotate::get_tooltip() const
 
 bool GLGizmoRotate::on_mouse(const wxMouseEvent &mouse_event)
 {
-    return use_grabbers(mouse_event);
+    const bool handled = use_grabbers(mouse_event);
+    if (handled && mouse_event.LeftDown())
+        set_drag_start(m_parent.mouse_ray(Point(mouse_event.GetX(), mouse_event.GetY())));
+    return handled;
 }
 
 void GLGizmoRotate::dragging(const UpdateData &data) { on_dragging(data); }
@@ -128,37 +131,51 @@ bool GLGizmoRotate::on_init()
 void GLGizmoRotate::on_start_dragging()
 {
     init_data_from_selection(m_parent.get_selection());
+    m_starting_angle = m_angle;
 }
 
-void GLGizmoRotate::on_dragging(const UpdateData &data)
+void GLGizmoRotate::set_drag_start(const Linef3& mouse_ray)
 {
-    const Vec2d mouse_pos = to_2d(mouse_position_in_local_plane(data.mouse_ray));
-    const Vec2d orig_dir = Vec2d::UnitX();
-    const Vec2d new_dir = mouse_pos.normalized();
+    const Vec2d mouse_pos = to_2d(mouse_position_in_local_plane(mouse_ray));
+    m_starting_mouse_angle = std::atan2(mouse_pos.y(), mouse_pos.x());
+}
 
-    double theta = ::acos(std::clamp(new_dir.dot(orig_dir), -1.0, 1.0));
-    if (cross2(orig_dir, new_dir) < 0.0)
-        theta = 2.0 * (double)PI - theta;
+double GLGizmoRotate::calc_drag_angle(const Vec2d& mouse_pos, double starting_mouse_angle, double starting_angle,
+                                     double coarse_in_radius, double coarse_out_radius,
+                                     double fine_in_radius, double fine_out_radius)
+{
+    const double full_turn = 2.0 * double(PI);
+    double theta = std::atan2(mouse_pos.y(), mouse_pos.x()) - starting_mouse_angle + starting_angle;
+    theta = std::fmod(theta, full_turn);
+    if (theta < 0.0)
+        theta += full_turn;
 
     const double len = mouse_pos.norm();
 
     // snap to coarse snap region
-    if (m_snap_coarse_in_radius <= len && len <= m_snap_coarse_out_radius) {
-        const double step = 2.0 * double(PI) / double(SnapRegionsCount);
+    if (coarse_in_radius <= len && len <= coarse_out_radius) {
+        const double step = full_turn / double(SnapRegionsCount);
         theta = step * std::round(theta / step);
     }
     else {
         // snap to fine snap region (scale)
-        if (m_snap_fine_in_radius <= len && len <= m_snap_fine_out_radius) {
-            const double step = 2.0 * double(PI) / double(ScaleStepsCount);
+        if (fine_in_radius <= len && len <= fine_out_radius) {
+            const double step = full_turn / double(ScaleStepsCount);
             theta = step * std::round(theta / step);
         }
     }
 
-    if (theta == 2.0 * double(PI))
+    if (theta >= full_turn)
         theta = 0.0;
 
-    m_angle = theta;
+    return theta;
+}
+
+void GLGizmoRotate::on_dragging(const UpdateData &data)
+{
+    m_angle = calc_drag_angle(to_2d(mouse_position_in_local_plane(data.mouse_ray)), m_starting_mouse_angle, m_starting_angle,
+                              m_snap_coarse_in_radius, m_snap_coarse_out_radius,
+                              m_snap_fine_in_radius, m_snap_fine_out_radius);
 }
 
 void GLGizmoRotate::on_render()
@@ -557,6 +574,9 @@ GLGizmoRotate3D::GLGizmoRotate3D(GLCanvas3D& parent, const std::string& icon_fil
 
 bool GLGizmoRotate3D::on_mouse(const wxMouseEvent &mouse_event)
 {
+    const bool handled = use_grabbers(mouse_event);
+    if (handled && mouse_event.LeftDown())
+        m_gizmos[m_hover_id].set_drag_start(m_parent.mouse_ray(Point(mouse_event.GetX(), mouse_event.GetY())));
     if (mouse_event.Dragging() && m_dragging) {
         // Apply new temporary rotations
         TransformationType transformation_type;
@@ -575,7 +595,7 @@ bool GLGizmoRotate3D::on_mouse(const wxMouseEvent &mouse_event)
             transformation_type.set_independent();
         m_parent.get_selection().rotate(get_rotation(), transformation_type);
     }
-    return use_grabbers(mouse_event);
+    return handled;
 }
 
 bool GLGizmoRotate3D::on_init()
