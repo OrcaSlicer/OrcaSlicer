@@ -3006,12 +3006,11 @@ static int printed_filament(int filament_id, int filament_count)
     return filament_id <= filament_count ? filament_id : 1;
 }
 
-// PresetBundle::full_config() resets a print-wide feature or brim filament id past the last slot to the default.
-static int print_wide_filament(const DynamicPrintConfig& config, const char* key, int filament_count)
+static int print_wide_filament(const DynamicPrintConfig& config, const char* key, int filament_count, int past_last_slot)
 {
     const ConfigOption* opt = config.option(key);
     const int filament_id = opt != nullptr ? opt->getInt() : 0;
-    return filament_id <= filament_count ? filament_id : 0;
+    return filament_id <= filament_count ? filament_id : past_last_slot;
 }
 
 static void append_filament_setting(const ModelConfig& config, const char* key, int filament_count, std::vector<int>& filaments)
@@ -3048,13 +3047,13 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, bool expand
     if (check_objects_empty_and_gcode3mf(plate_extruders)) {
         return plate_extruders;
     }
-	return get_extruders(conside_custom_gcode, wxGetApp().preset_bundle->prints.get_edited_preset().config, wxGetApp().preset_bundle->project_config, expand_mixed_slots);
+	return get_extruders(conside_custom_gcode, wxGetApp().preset_bundle->prints.get_edited_preset().config, wxGetApp().preset_bundle->project_config, expand_mixed_slots, true);
 }
 
 // The plate's filaments, with the global keys read from the given configs rather than the
 // application's presets: the wipe tower estimate is also called under the CLI, which has no
 // application object. get_extruders(bool) passes the edited presets; a full config serves both.
-std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config, bool expand_mixed_slots) const
+std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config, bool expand_mixed_slots, bool reset_print_wide_ids) const
 {
 	std::vector<int> plate_extruders;
 	// A plate from a sliced .gcode.3mf holds no objects, so report the filaments the G-code
@@ -3066,18 +3065,22 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 		return plate_extruders;
 	}
 	const int filament_count = filament_slot_count(project_config);
-	// PresetBundle::full_config() clamps a print-wide support filament id to the last slot.
-	int glb_support_intf_extr = std::min(glb_config.opt_int("support_interface_filament"), filament_count);
-	int glb_support_extr = std::min(glb_config.opt_int("support_filament"), filament_count);
-	int glb_outer_wall_extr = print_wide_filament(glb_config, "outer_wall_filament_id", filament_count);
-	int glb_inner_wall_extr = print_wide_filament(glb_config, "inner_wall_filament_id", filament_count);
+	// PresetBundle::full_config() resets a print-wide feature id past the last slot to the default and caps a support
+	// id at the last slot, while the slicer prints either with filament 1.
+	const int stale_feature_extr = reset_print_wide_ids ? 0 : 1;
+	const int stale_support_extr = reset_print_wide_ids ? filament_count : 1;
+	int glb_support_intf_extr = print_wide_filament(glb_config, "support_interface_filament", filament_count, stale_support_extr);
+	int glb_support_extr = print_wide_filament(glb_config, "support_filament", filament_count, stale_support_extr);
+	int glb_outer_wall_extr = print_wide_filament(glb_config, "outer_wall_filament_id", filament_count, stale_feature_extr);
+	int glb_inner_wall_extr = print_wide_filament(glb_config, "inner_wall_filament_id", filament_count, stale_feature_extr);
 	if (glb_outer_wall_extr == 0) glb_outer_wall_extr = glb_inner_wall_extr;
 	if (glb_inner_wall_extr == 0) glb_inner_wall_extr = glb_outer_wall_extr;
-	int glb_sparse_infill_extr = print_wide_filament(glb_config, "sparse_infill_filament_id", filament_count);
-	int glb_internal_solid_extr = print_wide_filament(glb_config, "internal_solid_filament_id", filament_count);
-	int glb_top_surface_extr = print_wide_filament(glb_config, "top_surface_filament_id", filament_count);
-	int glb_bottom_surface_extr = print_wide_filament(glb_config, "bottom_surface_filament_id", filament_count);
-	const int glb_brim_extr = print_wide_filament(glb_config, "brim_filament_id", filament_count);
+	int glb_sparse_infill_extr = print_wide_filament(glb_config, "sparse_infill_filament_id", filament_count, stale_feature_extr);
+	int glb_internal_solid_extr = print_wide_filament(glb_config, "internal_solid_filament_id", filament_count, stale_feature_extr);
+	int glb_top_surface_extr = print_wide_filament(glb_config, "top_surface_filament_id", filament_count, stale_feature_extr);
+	int glb_bottom_surface_extr = print_wide_filament(glb_config, "bottom_surface_filament_id", filament_count, stale_feature_extr);
+	// PresetBundle::full_config() and the slicer both reset a print-wide brim filament id past the last slot to the default.
+	const int glb_brim_extr = print_wide_filament(glb_config, "brim_filament_id", filament_count, 0);
 	const bool glb_brim = glb_config.option("brim_type")->getInt() != int(BrimType::btNoBrim);
 	bool glb_support = glb_config.opt_bool("enable_support");
     glb_support |= glb_config.opt_int("raft_layers") > 0;
@@ -3231,18 +3234,19 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
     const int filament_count = filament_slot_count(full_config);
 
     // if 3mf file
-    // PresetBundle::full_config() clamps a print-wide support filament id to the last slot.
-    int glb_support_intf_extr = std::min(full_config.opt_int("support_interface_filament"), filament_count);
-    int glb_support_extr = std::min(full_config.opt_int("support_filament"), filament_count);
-	int glb_outer_wall_extr = print_wide_filament(full_config, "outer_wall_filament_id", filament_count);
-	int glb_inner_wall_extr = print_wide_filament(full_config, "inner_wall_filament_id", filament_count);
+    // The slicer prints a print-wide support or feature filament id past the last slot with filament 1.
+    int glb_support_intf_extr = print_wide_filament(full_config, "support_interface_filament", filament_count, 1);
+    int glb_support_extr = print_wide_filament(full_config, "support_filament", filament_count, 1);
+	int glb_outer_wall_extr = print_wide_filament(full_config, "outer_wall_filament_id", filament_count, 1);
+	int glb_inner_wall_extr = print_wide_filament(full_config, "inner_wall_filament_id", filament_count, 1);
 	if (glb_outer_wall_extr == 0) glb_outer_wall_extr = glb_inner_wall_extr;
 	if (glb_inner_wall_extr == 0) glb_inner_wall_extr = glb_outer_wall_extr;
-	int glb_sparse_infill_extr = print_wide_filament(full_config, "sparse_infill_filament_id", filament_count);
-	int glb_internal_solid_extr = print_wide_filament(full_config, "internal_solid_filament_id", filament_count);
-	int glb_top_surface_extr = print_wide_filament(full_config, "top_surface_filament_id", filament_count);
-	int glb_bottom_surface_extr = print_wide_filament(full_config, "bottom_surface_filament_id", filament_count);
-	const int glb_brim_extr = print_wide_filament(full_config, "brim_filament_id", filament_count);
+	int glb_sparse_infill_extr = print_wide_filament(full_config, "sparse_infill_filament_id", filament_count, 1);
+	int glb_internal_solid_extr = print_wide_filament(full_config, "internal_solid_filament_id", filament_count, 1);
+	int glb_top_surface_extr = print_wide_filament(full_config, "top_surface_filament_id", filament_count, 1);
+	int glb_bottom_surface_extr = print_wide_filament(full_config, "bottom_surface_filament_id", filament_count, 1);
+	// The slicer resets a print-wide brim filament id past the last slot to the default.
+	const int glb_brim_extr = print_wide_filament(full_config, "brim_filament_id", filament_count, 0);
 	const bool glb_brim = full_config.option("brim_type")->getInt() != int(BrimType::btNoBrim);
 
     bool glb_support = full_config.opt_bool("enable_support");

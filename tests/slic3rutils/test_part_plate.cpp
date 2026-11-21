@@ -154,16 +154,26 @@ TEST_CASE("A filament an object, part or layer range sets past the last filament
     CHECK(on_plate.plate.get_extruders_under_cli(false, config) == std::vector<int>{1, 2});
 }
 
-TEST_CASE("A print-wide feature filament past the last filament slot is left off the plate", "[PartPlate]")
+TEST_CASE("A print-wide filament past the last filament slot resolves as the app's preset reset or the slicer's clamp does", "[PartPlate]")
 {
-    ObjectOnPlate      on_plate;
+    const auto [key, reset_by_app, clamped_by_slicer] = GENERATE(table<std::string, std::vector<int>, std::vector<int>>({
+        {"outer_wall_filament_id", {2}, {1, 2}},
+        {"support_filament", {2, 3}, {1, 2}},
+        {"brim_filament_id", {2}, {2}},
+    }));
+    ObjectOnPlate on_plate;
+    on_plate.object->config.set("extruder", 2);
     DynamicPrintConfig config = config_with_object_filaments_only();
-    config.set("outer_wall_filament_id", 4);
+    config.set(key, 4);
+    config.set("enable_support", key == "support_filament");
+    if (key == "brim_filament_id")
+        config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
     DynamicPrintConfig print_config = config;
     print_config.erase("filament_colour");
 
-    CHECK(on_plate.plate.get_extruders(false, print_config, config) == std::vector<int>{1});
-    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == std::vector<int>{1});
+    CHECK(on_plate.plate.get_extruders(false, print_config, config, true, true) == reset_by_app);
+    CHECK(on_plate.plate.get_extruders(false, config, config) == clamped_by_slicer);
+    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == clamped_by_slicer);
 }
 
 TEST_CASE("A volume's feature filament is a filament the plate uses only when the volume makes print regions", "[PartPlate]")
