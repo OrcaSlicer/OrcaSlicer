@@ -505,6 +505,9 @@ public:
     // moved clear of the plate's objects where there is room, and they are told it moved.
     arrangement::ArrangePolygon estimate_wipe_tower_polygon(const DynamicPrintConfig & config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, int plate_extruder_size = 0, bool use_global_objects = false,
                                                             WipeTowerRelocation *relocation = nullptr) const;
+    // Moves the plate's prime tower where its estimate fits the plate, as estimate_wipe_tower_polygon() places
+    // it, and stores the position in `project_config`, announcing a re-placed tower. Returns whether it moved.
+    bool fit_wipe_tower_estimate(const DynamicPrintConfig &full_config, DynamicPrintConfig &project_config);
     bool check_objects_empty_and_gcode3mf(std::vector<int> &result) const;
     // get used filaments from config, 1 based idx
     // expand_mixed_slots = false keeps mixed filament slots as slots instead of their components.
