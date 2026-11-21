@@ -1754,6 +1754,24 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             gcode += gcodegen.writer().unretract();
         }
 
+        // WipeTower2 emits no acceleration, so the tower would print at whatever the travel to it or
+        // the last object extrusion left (on Klipper one ACCEL serves travel too). Use what _extrude()
+        // picks for a role without an acceleration of its own, and call this again after any later
+        // travel into the tower so the writer's last acceleration follows the G-code order.
+        auto tower_acceleration = [&gcodegen, &tcr]() -> std::string {
+            if (gcodegen.writer().filament() == nullptr)
+                return {};
+            const FullPrintConfig &config = gcodegen.config();
+            const size_t           nozzle = gcodegen.get_nozzle_config_index(gcodegen.writer().filament()->id());
+            double acceleration = config.default_acceleration.get_at(nozzle);
+            if (acceleration <= 0)
+                return {};
+            if ((tcr.priming || gcodegen.on_first_layer()) && config.initial_layer_acceleration.get_at(nozzle) > 0)
+                acceleration = config.initial_layer_acceleration.get_at(nozzle);
+            return gcodegen.writer().set_print_acceleration((unsigned int) std::floor(acceleration + 0.5));
+        };
+        gcode += tower_acceleration();
+
         std::string toolchange_gcode_str;
         std::string deretraction_str;
         std::string restore_layer_z_str;
@@ -1804,6 +1822,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                     gcodegen.m_avoid_crossing_perimeters.use_external_mp_once();
                     std::string travel = travel_to_tower_gap(gcodegen, route_start, start_wipe_pos);
                     travel += gcodegen.travel_to(start_wipe_pos, erMixed, "Travel to a Wipe Tower");
+                    travel += tower_acceleration();
                     check_add_eol(travel);
                     toolchange_gcode_str += travel;
                     gcodegen.set_last_pos(start_wipe_pos);

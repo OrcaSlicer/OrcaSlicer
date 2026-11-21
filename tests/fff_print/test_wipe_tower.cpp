@@ -3,6 +3,7 @@
 #include <catch2/catch_all.hpp>
 
 #include "libslic3r/Config.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
@@ -11,6 +12,7 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Print.hpp"
+#include <set>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -343,6 +345,70 @@ TEST_CASE("The wipe tower sets Klipper's acceleration and accel_to_decel on one 
     CHECK_THAT(tower, Catch::Matchers::ContainsSubstring(" MINIMUM_CRUISE_RATIO=0.5\n"));
     CHECK_THAT(tower, !Catch::Matchers::ContainsSubstring("SET_VELOCITY_LIMIT ACCEL_TO_DECEL") &&
                       !Catch::Matchers::ContainsSubstring("M204"));
+}
+
+TEST_CASE("A Type 2 tower extrudes at the default or first layer acceleration", "[WipeTower]")
+{
+    // Every acceleration a tower move could inherit differs from the two it should print at: the
+    // travel to the tower (one ACCEL on Klipper) and the walls printed right before the toolchange
+    // (Marlin 2 keeps the print acceleration apart from the travel one). The machine limits sit
+    // above all of them, since Klipper also caps ACCEL at the X and Y limits.
+    const std::string flavor      = GENERATE("klipper", "marlin2");
+    // A toolchanger that doesn't ram changes tools in place, then travels into the tower through
+    // the opening the skip points leave in its wall.
+    const bool        toolchanger = GENERATE(false, true);
+    DynamicPrintConfig config = wipe_tower_toolchange_config(flavor);
+    if (toolchanger) {
+        config.set_num_extruders(2);
+        config.set_deserialize_strict({
+            { "single_extruder_multi_material", false },
+            { "prime_tower_skip_points",        true },
+            { "nozzle_diameter",                "0.4,0.4" },
+            { "printer_extruder_id",            "1,2" },
+            { "printer_extruder_variant",       "Direct Drive Standard,Direct Drive Standard" },
+            { "extruder_printable_height",      "0,0" },
+            { "filament_map_mode",              "Manual" },
+            { "filament_map",                   "1,2" } });
+        size_flush_to_nozzles(config);
+    }
+    config.set_deserialize_strict({ { "wipe_tower_type", "type2" },
+                                    { "default_acceleration", "3000" }, { "initial_layer_acceleration", "500" },
+                                    { "travel_acceleration", "8000" }, { "initial_layer_travel_acceleration", "6000" },
+                                    { "outer_wall_acceleration", "2000" }, { "inner_wall_acceleration", "2000" },
+                                    { "machine_max_acceleration_extruding", "20000,20000" },
+                                    { "machine_max_acceleration_x", "20000,20000" }, { "machine_max_acceleration_y", "20000,20000" },
+                                    { "machine_max_acceleration_travel", "20000,20000" } });
+    const std::string gcode = slice_with_prime_tower(config);
+
+    const std::string &layer_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change);
+    // By role rather than the toolchange tags, so the passes that only finish a tower layer count too.
+    const std::string  role_tag  = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
+    const std::string  tower_tag = role_tag + ExtrusionEntity::role_to_string(erWipeTower);
+    std::set<unsigned int> first_layer, other_layers;
+    unsigned int acceleration = 0;
+    size_t       layers       = 0;
+    bool         in_tower     = false;
+    GCodeReader  parser;
+    parser.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string &raw = line.raw();
+        const std::string  klipper_accel = " ACCEL=";
+        const size_t       klipper_at    = raw.find(klipper_accel);
+        float value = 0.f;
+        if (raw == ";" + layer_tag)
+            ++layers;
+        else if (raw.rfind(role_tag, 0) == 0)
+            in_tower = raw == tower_tag;
+        else if (line.cmd_is("M204") && (line.has_value('P', value) || line.has_value('S', value)))
+            acceleration = (unsigned int) value;
+        else if (line.cmd_is("SET_VELOCITY_LIMIT") && klipper_at != std::string::npos)
+            acceleration = (unsigned int) std::stoul(raw.substr(klipper_at + klipper_accel.size()));
+        else if (in_tower && line.extruding(self) && line.dist_XY(self) > 0.f)
+            (layers == 1 ? first_layer : other_layers).insert(acceleration);
+    });
+
+    CAPTURE(flavor, toolchanger);
+    CHECK(first_layer == std::set<unsigned int>{ 500 });
+    CHECK(other_layers == std::set<unsigned int>{ 3000 });
 }
 
 TEST_CASE("The wipe tower's G-code moves keep a decimal point in a comma-decimal locale", "[WipeTower]")
