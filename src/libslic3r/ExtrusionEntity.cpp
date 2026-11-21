@@ -379,7 +379,7 @@ double ExtrusionLoop::min_mm3_per_mm() const
 
 // Orca: This function is used to check if the loop is smooth(continuous) or not. 
 // TODO: the main logic is largly copied from the calculate_polygon_angles_at_vertices function in SeamPlacer file. Need to refactor the code in the future.
-bool ExtrusionLoop::is_smooth(double angle_threshold, double min_arm_length) const
+bool ExtrusionLoop::is_smooth(double angle_threshold, double min_arm_length, double max_length) const
 {
     // go through all the points in the loop and check if the angle between two segments(AB and BC) is less than the threshold
     size_t idx_prev = 0;
@@ -404,7 +404,11 @@ bool ExtrusionLoop::is_smooth(double angle_threshold, double min_arm_length) con
         distance_to_prev += lengths[idx_prev];
     }
 
+    double distance_from_start = 0.;
     for (size_t _i = 0; _i < points.size(); ++_i) {
+        if (max_length >= 0. && distance_from_start > max_length)
+            break;
+
         // pull idx_prev to current as much as possible, while respecting the min_arm_length
         while (distance_to_prev - lengths[idx_prev] > min_arm_length) {
             distance_to_prev -= lengths[idx_prev];
@@ -428,6 +432,7 @@ bool ExtrusionLoop::is_smooth(double angle_threshold, double min_arm_length) con
 
         // increase idx_curr by one
         float curr_distance = lengths[idx_curr];
+        distance_from_start += curr_distance;
         idx_curr++;
         distance_to_prev += curr_distance;
         distance_to_next -= curr_distance;
