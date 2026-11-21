@@ -103,6 +103,9 @@ static const std::map<const wchar_t, std::string> font_icons = {
     {ImGui::VisibleIcon            , "im_visible"                    }, //ORCA
     {ImGui::HiddenIcon             , "im_hidden"                     }, //ORCA
     {ImGui::SphereButtonIcon       , "toolbar_modifier_sphere"       },
+    {ImGui::CutModePlaneIcon       , "cut_mode_plane"                },
+    {ImGui::CutModeDovetailIcon    , "cut_mode_dove"                 },
+    {ImGui::CutModePathIcon        , "cut_mode_path"                 },
     // dark mode icon
     {ImGui::MinimalizeDarkButton       , "notification_minimalize_dark"       },
     {ImGui::MinimalizeHoverDarkButton  , "notification_minimalize_hover_dark" },
@@ -119,6 +122,9 @@ static const std::map<const wchar_t, std::string> font_icons = {
     {ImGui::ConfirmDarkIcon            , "confirm_dark"                       },
     {ImGui::GapFillDarkIcon            , "gap_fill_dark"                      },
     {ImGui::SphereButtonDarkIcon       , "toolbar_modifier_sphere_dark"       },
+    {ImGui::CutModePlaneDarkIcon       , "cut_mode_plane_dark"                },
+    {ImGui::CutModeDovetailDarkIcon    , "cut_mode_dove_dark"                 },
+    {ImGui::CutModePathDarkIcon        , "cut_mode_path_dark"                 },
 
     {ImGui::TextSearchIcon             , "im_text_search"             },
     {ImGui::TextSearchCloseIcon        , "im_text_search_close"       },
