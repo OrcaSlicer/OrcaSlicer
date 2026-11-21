@@ -12190,8 +12190,7 @@ bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const
         new_volume->translate(new_volume->get_transformation().get_matrix_no_offset() * (new_volume->source.mesh_offset - old_volume->source.mesh_offset));
     assert(!old_volume->source.is_converted_from_inches || !old_volume->source.is_converted_from_meters);
     // ORCA Place the new part by its center on the plate. Files placed this way are in millimeters.
-    const bool place_on_plate = coordinates == ReplaceCoordinates::Plate || !apply_transformation;
-    if (place_on_plate) {
+    if (coordinates == ReplaceCoordinates::Plate || !apply_transformation) {
         const Transform3d instance_matrix = old_model_object->instances.front()->get_matrix();
         const Transform3d old_matrix      = instance_matrix * old_volume->get_matrix();
         Vec3d center;
@@ -12205,9 +12204,7 @@ bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const
             if (coordinates == ReplaceCoordinates::OriginalFile)
                 center += new_volume->source.mesh_offset - old_volume->source.mesh_offset;
         }
-        Transform3d plate_matrix = old_matrix;
-        if (!apply_transformation)
-            plate_matrix = Transform3d::Identity();
+        Transform3d plate_matrix = apply_transformation ? old_matrix : Transform3d::Identity();
         plate_matrix.translation() = center;
         new_volume->set_transformation(instance_matrix.inverse() * plate_matrix);
     }
@@ -12219,10 +12216,9 @@ bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const
         // Proper paint remapping
         auto saved_painting = old_volume->save_painting();
         if (saved_painting) {
-            Transform3d to_new_mesh = Geometry::translation_transform(new_volume->mesh().get_init_shift());
-            if (place_on_plate)
-                to_new_mesh = to_new_mesh * new_volume->get_matrix().inverse() * old_volume->get_matrix();
-            saved_painting->mesh.transform(to_new_mesh);
+            // ORCA Move the old mesh to where the new part places it, in the new file's coordinates.
+            saved_painting->mesh.transform(Geometry::translation_transform(new_volume->mesh().get_init_shift()) *
+                                           new_volume->get_matrix().inverse() * old_volume->get_matrix());
             new_volume->restore_painting(saved_painting);
         }
     } else {
