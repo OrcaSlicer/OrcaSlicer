@@ -14,11 +14,16 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+#include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
 #include "libslic3r/Config.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 
 using namespace Slic3r;
@@ -35,6 +40,36 @@ DynamicPrintConfig nozzle_config(std::vector<double> nozzle_diameters,
     config.set_key_value("physical_extruder_map", new ConfigOptionInts(std::move(physical_extruder_map)));
     return config;
 }
+
+// Print settings for three filaments with no print-wide feature filament, brim, support or raft.
+DynamicPrintConfig config_with_object_filaments_only()
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("filament_colour", new ConfigOptionStrings(3, "#FFFFFF"));
+    for (const char* key : {"outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_filament_id",
+                            "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id"})
+        config.set(key, 0);
+    config.set("enable_support", false);
+    config.set("raft_layers", 0);
+    config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btNoBrim));
+    return config;
+}
+
+struct ObjectOnPlate
+{
+    Model        model;
+    PartPlate    plate{nullptr, Vec3d::Zero(), 200, 200, 200., nullptr, &model, true, ptFFF};
+    ModelObject* object{model.add_object()};
+    ModelVolume* part{object->add_volume(make_cube(10., 10., 10.), ModelVolumeType::MODEL_PART, false)};
+
+    ObjectOnPlate()
+    {
+        object->config.set("extruder", 1);
+        object->add_instance()->set_offset(Vec3d(95., 95., 0.));
+        plate.set_shape({{0., 0.}, {200., 0.}, {200., 200.}, {0., 200.}}, {}, {}, {}, Vec2d::Zero(), 0.f, 0.f);
+        plate.add_instance(0, 0, false);
+    }
+};
 } // namespace
 
 TEST_CASE("A multi-nozzle printer without its own physical extruder map puts each filament on its own nozzle", "[PartPlate]")
@@ -66,4 +101,99 @@ TEST_CASE("A filament with no extruder to map to has no physical nozzle", "[Part
     CHECK(plate.get_physical_extruder_by_filament_id(config, 2) == -1);
     CHECK(plate.get_physical_extruder_by_filament_id(config, 0) == -1);
     CHECK(plate.get_physical_extruder_by_filament_id(config, 3) == -1);
+}
+
+TEST_CASE("A feature filament a part or layer range sets is a filament the plate uses", "[PartPlate]")
+{
+    const std::string key = GENERATE("outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_filament_id",
+                                     "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id");
+    const bool        in_layer_range = GENERATE(false, true);
+    ObjectOnPlate      on_plate;
+    if (in_layer_range)
+        on_plate.object->layer_config_ranges[{2., 5.}].set(key, 2);
+    else
+        on_plate.part->config.set(key, 2);
+    DynamicPrintConfig config = config_with_object_filaments_only();
+
+    CHECK(on_plate.plate.get_extruders(false, config, config) == std::vector<int>{1, 2});
+    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == std::vector<int>{1, 2});
+}
+
+TEST_CASE("The filament a layer range prints with is a filament the plate uses", "[PartPlate]")
+{
+    ObjectOnPlate on_plate;
+    on_plate.object->layer_config_ranges[{2., 5.}].set("extruder", 2);
+    DynamicPrintConfig config = config_with_object_filaments_only();
+
+    CHECK(on_plate.plate.get_extruders(false, config, config) == std::vector<int>{1, 2});
+    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == std::vector<int>{1, 2});
+}
+
+TEST_CASE("A filament an object, part or layer range sets past the last filament slot is filament 1 on the plate", "[PartPlate]")
+{
+    enum class Where { Object, Part, LayerRange };
+    const auto [where, key] = GENERATE(table<Where, std::string>({
+        {Where::Object, "outer_wall_filament_id"},
+        {Where::Part, "outer_wall_filament_id"},
+        {Where::LayerRange, "outer_wall_filament_id"},
+        {Where::LayerRange, "extruder"},
+    }));
+    ObjectOnPlate on_plate;
+    on_plate.object->config.set("extruder", 2);
+    if (where == Where::Object)
+        on_plate.object->config.set(key, 4);
+    else if (where == Where::Part)
+        on_plate.part->config.set(key, 4);
+    else
+        on_plate.object->layer_config_ranges[{2., 5.}].set(key, 4);
+    DynamicPrintConfig config       = config_with_object_filaments_only();
+    DynamicPrintConfig print_config = config;
+    print_config.erase("filament_colour");
+
+    CHECK(on_plate.plate.get_extruders(false, print_config, config) == std::vector<int>{1, 2});
+    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == std::vector<int>{1, 2});
+}
+
+TEST_CASE("A print-wide feature filament past the last filament slot is left off the plate", "[PartPlate]")
+{
+    ObjectOnPlate      on_plate;
+    DynamicPrintConfig config = config_with_object_filaments_only();
+    config.set("outer_wall_filament_id", 4);
+    DynamicPrintConfig print_config = config;
+    print_config.erase("filament_colour");
+
+    CHECK(on_plate.plate.get_extruders(false, print_config, config) == std::vector<int>{1});
+    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == std::vector<int>{1});
+}
+
+TEST_CASE("A volume's feature filament is a filament the plate uses only when the volume makes print regions", "[PartPlate]")
+{
+    const auto [type, expected] = GENERATE(table<ModelVolumeType, std::vector<int>>({
+        {ModelVolumeType::PARAMETER_MODIFIER, {1, 2}},
+        {ModelVolumeType::PAINTED_MODIFIER, {1, 2}},
+        {ModelVolumeType::NEGATIVE_VOLUME, {1}},
+        {ModelVolumeType::SUPPORT_BLOCKER, {1}},
+        {ModelVolumeType::SUPPORT_ENFORCER, {1}},
+        {ModelVolumeType::PRECISE_SEAM_CENTER, {1}},
+    }));
+    ObjectOnPlate on_plate;
+    on_plate.object->add_volume(make_cube(5., 5., 5.), type, false)->config.set("outer_wall_filament_id", 2);
+    DynamicPrintConfig config = config_with_object_filaments_only();
+
+    CHECK(on_plate.plate.get_extruders(false, config, config) == expected);
+    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == expected);
+}
+
+TEST_CASE("A mixed filament a part sets for its outer wall stands for its components on the plate", "[PartPlate]")
+{
+    ObjectOnPlate on_plate;
+    on_plate.part->config.set("outer_wall_filament_id", 3);
+    DynamicPrintConfig config = config_with_object_filaments_only();
+    // Filament 3 mixes filaments 1 and 2.
+    config.set_key_value("filament_is_mixed", new ConfigOptionBools({false, false, true}));
+    config.set_key_value("filament_mixed_components", new ConfigOptionStrings({"", "", "1,2"}));
+
+    CHECK(on_plate.plate.get_extruders(false, config, config) == std::vector<int>{1, 2});
+    CHECK(on_plate.plate.get_extruders(false, config, config, false) == std::vector<int>{1, 3});
+    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == std::vector<int>{1, 2});
 }
