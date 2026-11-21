@@ -3797,17 +3797,14 @@ msgstr "Duraklat"
 msgid "Template"
 msgstr "Şablon"
 
+# AI Translated
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr "%1% · %2% mm"
+
 msgid "Custom"
 msgstr "Özel"
-
-msgid "Pause:"
-msgstr "Duraklat:"
-
-msgid "Custom Template:"
-msgstr "Özel Şablon:"
-
-msgid "Custom G-code:"
-msgstr "Özel G-code:"
 
 msgid "Custom G-code"
 msgstr "Özel G-code"
@@ -6497,11 +6494,36 @@ msgstr "PA: "
 msgid "mm/s"
 msgstr "mm/s"
 
+# AI Translated
+msgctxt "Move details"
+msgid "LINE"
+msgstr "ÇİZGİ"
+
+# AI Translated
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr "G × Y"
+
+# AI Translated
+msgctxt "Move details"
+msgid "MOTION"
+msgstr "HAREKET"
+
 msgid "mm/s²"
 msgstr "mm/s²"
 
+# AI Translated
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr "EKSTRÜZYON"
+
 msgid "mm³/s"
 msgstr "mm³/s"
+
+# AI Translated
+msgctxt "Move details"
+msgid "THERMAL"
+msgstr "SICAKLIK"
 
 msgid "Flow rate"
 msgstr "Akış hızı"
@@ -6509,14 +6531,34 @@ msgstr "Akış hızı"
 msgid "Fan speed"
 msgstr "Fan hızı"
 
+# AI Translated
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr "Hareket %1% / %2%"
+
 msgid "Time"
 msgstr "Zaman"
 
-msgid "Speed: "
-msgstr "Hız: "
+# AI Translated
+msgid "Speed profile"
+msgstr "Hız profili"
 
-msgid "Actual speed profile"
-msgstr "Gerçek hız profili"
+# AI Translated
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
+msgstr "Gerçek hız profili · %1% mm · %2% s"
+
+# AI Translated
+msgid "No speed profile for this move"
+msgstr "Bu hareketin hız profili yok"
+
+# AI Translated
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] "%1% tane daha"
+msgstr[1] "%1% tane daha"
 
 # AI Translated
 msgid "Automatic"
@@ -34783,6 +34825,15 @@ msgstr "Doku kesim çizgisi yolu işaretle"
 #, boost-format
 msgid "Layer %1%"
 msgstr "Katman %1%"
+
+# AI Translated
+#, boost-format
+msgid "%1% mm"
+msgstr "%1% mm"
+
+# AI Translated
+msgid "Single layer"
+msgstr "Tek katman"
 
 # AI Translated
 msgid "Average island scale"

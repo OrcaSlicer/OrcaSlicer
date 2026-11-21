@@ -3742,17 +3742,14 @@ msgstr "Pause"
 msgid "Template"
 msgstr "Vorlage"
 
+# AI Translated
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr "%1% · %2% mm"
+
 msgid "Custom"
 msgstr "Benutzerdefiniert"
-
-msgid "Pause:"
-msgstr "Pause:"
-
-msgid "Custom Template:"
-msgstr "Benutzerdefinierte Vorlage:"
-
-msgid "Custom G-code:"
-msgstr "Benutzerdefinierter G-Code:"
 
 msgid "Custom G-code"
 msgstr "Benutzerdefinierter G-Code"
@@ -6553,11 +6550,36 @@ msgstr "PA: "
 msgid "mm/s"
 msgstr "mm/s"
 
+# AI Translated
+msgctxt "Move details"
+msgid "LINE"
+msgstr "LINIE"
+
+# AI Translated
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr "B × H"
+
+# AI Translated
+msgctxt "Move details"
+msgid "MOTION"
+msgstr "BEWEGUNG"
+
 msgid "mm/s²"
 msgstr "mm/s²"
 
+# AI Translated
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr "EXTRUSION"
+
 msgid "mm³/s"
 msgstr "mm³/s"
+
+# AI Translated
+msgctxt "Move details"
+msgid "THERMAL"
+msgstr "TEMPERATUR"
 
 msgid "Flow rate"
 msgstr "Durchflussrate"
@@ -6565,14 +6587,34 @@ msgstr "Durchflussrate"
 msgid "Fan speed"
 msgstr "Lüftergeschwindigkeit"
 
+# AI Translated
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr "Bewegung %1% von %2%"
+
 msgid "Time"
 msgstr "Zeit"
 
-msgid "Speed: "
-msgstr "Geschwindigkeit "
+# AI Translated
+msgid "Speed profile"
+msgstr "Geschwindigkeitsprofil"
 
-msgid "Actual speed profile"
-msgstr "Aktuelles Geschwindigkeitsprofil"
+# AI Translated
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
+msgstr "Tatsächliches Geschwindigkeitsprofil · %1% mm · %2% s"
+
+# AI Translated
+msgid "No speed profile for this move"
+msgstr "Für diese Bewegung gibt es kein Geschwindigkeitsprofil"
+
+# AI Translated
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] "%1% weitere"
+msgstr[1] "%1% weitere"
 
 # AI Translated
 msgid "Automatic"
@@ -34481,6 +34523,15 @@ msgstr "Pfad der Texturnaht markieren"
 #, boost-format
 msgid "Layer %1%"
 msgstr "Ebene %1%"
+
+# AI Translated
+#, boost-format
+msgid "%1% mm"
+msgstr "%1% mm"
+
+# AI Translated
+msgid "Single layer"
+msgstr "Einzelne Schicht"
 
 # AI Translated
 msgid "Average island scale"

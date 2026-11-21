@@ -3772,18 +3772,14 @@ msgstr "Pauzė"
 msgid "Template"
 msgstr "Šablonas"
 
+# AI Translated
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr "%1% · %2% mm"
+
 msgid "Custom"
 msgstr "Pasirinktinis"
-
-msgid "Pause:"
-msgstr "Pauzė:"
-
-msgid "Custom Template:"
-msgstr "Pasirinktinis šablonas:"
-
-# AI Translated
-msgid "Custom G-code:"
-msgstr "Pasirinktinis G-code:"
 
 # AI Translated
 msgid "Custom G-code"
@@ -6630,11 +6626,36 @@ msgstr "PA: "
 msgid "mm/s"
 msgstr "mm/s"
 
+# AI Translated
+msgctxt "Move details"
+msgid "LINE"
+msgstr "LINIJA"
+
+# AI Translated
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr "P × A"
+
+# AI Translated
+msgctxt "Move details"
+msgid "MOTION"
+msgstr "JUDĖJIMAS"
+
 msgid "mm/s²"
 msgstr "mm/s²"
 
+# AI Translated
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr "IŠSPAUDIMAS"
+
 msgid "mm³/s"
 msgstr "mm³/s"
+
+# AI Translated
+msgctxt "Move details"
+msgid "THERMAL"
+msgstr "TEMPERATŪRA"
 
 msgid "Flow rate"
 msgstr "Tūrinis srautas (Flow rate)"
@@ -6642,14 +6663,35 @@ msgstr "Tūrinis srautas (Flow rate)"
 msgid "Fan speed"
 msgstr "Ventiliatoriaus greitis"
 
+# AI Translated
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr "Judesys %1% iš %2%"
+
 msgid "Time"
 msgstr "Laikas"
 
-msgid "Speed: "
-msgstr "Greitis: "
+# AI Translated
+msgid "Speed profile"
+msgstr "Greičio profilis"
 
-msgid "Actual speed profile"
-msgstr "Faktinis greičio profilis"
+# AI Translated
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
+msgstr "Faktinio greičio profilis · %1% mm · %2% s"
+
+# AI Translated
+msgid "No speed profile for this move"
+msgstr "Šis judesys neturi greičio profilio"
+
+# AI Translated
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] "Dar %1% grupė"
+msgstr[1] "Dar %1% grupės"
+msgstr[2] "Dar %1% grupių"
 
 # AI Translated
 msgid "Automatic"
@@ -34680,6 +34722,15 @@ msgstr "Pažymėti tekstūros siūlės kelią"
 #, boost-format
 msgid "Layer %1%"
 msgstr "Sluoksnis %1%"
+
+# AI Translated
+#, boost-format
+msgid "%1% mm"
+msgstr "%1% mm"
+
+# AI Translated
+msgid "Single layer"
+msgstr "Vienas sluoksnis"
 
 # AI Translated
 msgid "Average island scale"

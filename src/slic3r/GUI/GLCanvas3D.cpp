@@ -29,6 +29,7 @@
 #include "slic3r/GUI/SceneRaycaster.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/GCodeViewer.hpp"
+#include "slic3r/GUI/PreviewOverlayLayout.hpp"
 #include <optional>
 #include <map>
 #include "slic3r/GUI/GUI_Geometry.hpp"
@@ -1556,11 +1557,7 @@ static constexpr std::array<double, 4> marker_radii{ 9., 7., 6., 5. };
 // As the canvas toolbar scales for the display's DPI.
 static double marker_scale(const GLCanvas3D& canvas)
 {
-    double scale = canvas.get_scale();
-#ifdef WIN32
-    scale *= double(get_dpi_for_window(wxGetApp().GetTopWindow())) / double(DPI_DEFAULT);
-#endif // WIN32
-    return scale;
+    return canvas.get_ui_scale();
 }
 
 GLCanvas3D::CenterOfMass::Markers GLCanvas3D::CenterOfMass::model_markers(const GLCanvas3D& canvas)
@@ -3056,15 +3053,24 @@ static float canvas_corner_height()
     return CANVAS_TOOLBAR_MARGIN + 2.f * CANVAS_TOOLBAR_PADDING + buttons * CANVAS_TOOLBAR_BUTTON + (buttons - 1) * CANVAS_TOOLBAR_SPACING;
 }
 
-float GLCanvas3D::get_canvas_toolbar_right() const
+float GLCanvas3D::preview_corner_offset() const
 {
-    // The toolbar scale, which on Windows follows the monitor's DPI where the ImGui style does not.
+    return m_preview_layout ? m_preview_layout->corner_offset(float(get_canvas_size().get_height())) : 0.f;
+}
+
+float GLCanvas3D::get_ui_scale() const
+{
     float sc = get_scale();
 #ifdef WIN32
     sc *= (float) get_dpi_for_window(wxGetApp().GetTopWindow()) / (float) DPI_DEFAULT;
 #endif // WIN32
+    return sc;
+}
+
+float GLCanvas3D::get_canvas_toolbar_right() const
+{
     const float left = wxGetApp().show_3d_navigator() ? NAVIGATOR_SIZE : CANVAS_TOOLBAR_MARGIN;
-    return (left + 2.f * CANVAS_TOOLBAR_PADDING + CANVAS_TOOLBAR_BUTTON) * sc;
+    return (left + 2.f * CANVAS_TOOLBAR_PADDING + CANVAS_TOOLBAR_BUTTON) * get_ui_scale();
 }
 
 GLToolbar& GLCanvas3D::collapse_toolbar() const
@@ -3190,6 +3196,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     const ImGuiID active_id = ImGui::GetActiveID();
     wxGetApp().imgui()->new_frame();
+    _update_preview_layout(cnv_size);
 
     if (_update_inactive_plates_visibility())
         scene_dirty = true;
@@ -3237,7 +3244,6 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     }
 
     if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
-        // BBS: GUI refactor: add canvas size as parameters
         _render_gcode_overlay(cnv_size.get_width(), cnv_size.get_height());
         m_frame_profiler.mark("legend");
     }
@@ -3335,14 +3341,13 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     if (m_canvas_type != ECanvasType::CanvasAssembleView) {
         float right_margin = SLIDER_DEFAULT_RIGHT_MARGIN;
         float bottom_margin = SLIDER_DEFAULT_BOTTOM_MARGIN;
-        if (m_canvas_type == ECanvasType::CanvasPreview && m_gcode_viewer.has_data()) { // ORCA only shift position of notifiations when sliders / gcode_viewer exist
-            float scale_factor = get_scale();
-#ifdef WIN32
-            int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-            scale_factor *= (float) dpi / (float) DPI_DEFAULT;
-#endif // WIN32
-            right_margin = SLIDER_RIGHT_MARGIN * scale_factor * GCODE_VIEWER_SLIDER_SCALE;
-            bottom_margin = SLIDER_BOTTOM_MARGIN * scale_factor * GCODE_VIEWER_SLIDER_SCALE;
+        if (m_preview_layout) {
+            float              bottom = m_preview_layout->overlays_bottom;
+            const PreviewRect& panel  = m_gcode_viewer.get_move_panel_rect();
+            if (panel.width() > 0.f)
+                bottom = std::min(bottom, panel.top - m_preview_layout->gap);
+            right_margin  = float(cnv_size.get_width()) - m_preview_layout->overlay_right;
+            bottom_margin = float(cnv_size.get_height()) - bottom;
         }
         wxGetApp().plater()->get_notification_manager()->render_notifications(*this, get_overlay_window_width(), bottom_margin, right_margin);
         wxGetApp().plater()->get_dailytips()->render();
@@ -5180,7 +5185,7 @@ void GLCanvas3D::on_mouse_wheel(wxMouseEvent& evt)
 
     // A marker's details move with the view, so zooming can bring them under the mouse, where the wheel keeps zooming.
     if (wxGetApp().imgui()->update_mouse_data(evt) && !m_center_of_mass.details_hovered()) {
-        if (m_canvas_type == CanvasPreview) {
+        if (m_canvas_type == CanvasPreview && m_preview_layout) {
             IMSlider* m_layers_slider = get_gcode_viewer().get_layers_slider();
             IMSlider* m_moves_slider = get_gcode_viewer().get_moves_slider();
             m_layers_slider->on_mouse_wheel(evt);
@@ -7565,14 +7570,10 @@ void GLCanvas3D::_render_3d_navigator()
     strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_LEFT], _u8L_CONTEXT("Left", "Camera View").c_str());
     strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_RIGHT], _u8L_CONTEXT("Right", "Camera View").c_str());
 
-    float sc = get_scale();
-#ifdef WIN32
-    const int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-    sc *= (float) dpi / (float) DPI_DEFAULT;
-#endif // WIN32
+    float sc = get_ui_scale();
 
     const float viewManipulateLeft = 0;
-    const float viewManipulateTop  = io.DisplaySize.y;
+    const float viewManipulateTop  = io.DisplaySize.y - preview_corner_offset();
     const float camDistance        = 8.f;
 
     Camera&     camera           = wxGetApp().plater()->get_camera();
@@ -10802,11 +10803,31 @@ bool GLCanvas3D::_bind_gcode_shadow_map(bool bind) const
     return true;
 }
 
+void GLCanvas3D::_update_preview_layout(const Size& cnv_size)
+{
+    m_preview_layout.reset();
+    if (m_canvas_type != ECanvasType::CanvasPreview || !m_render_preview || !m_gcode_viewer.has_overlay())
+        return;
+
+    const float  sc   = get_ui_scale();
+    const ImVec2 pill = m_gcode_viewer.get_layers_slider()->pill_size(sc);
+    PreviewOverlayMetrics metrics;
+    metrics.canvas_width      = float(cnv_size.get_width());
+    metrics.canvas_height     = float(cnv_size.get_height());
+    metrics.scale             = sc;
+    metrics.corner_right      = get_canvas_toolbar_right();
+    metrics.pill_height       = pill.y;
+    metrics.pill_width        = pill.x;
+    m_preview_layout          = compute_preview_overlay_layout(metrics);
+}
+
 void GLCanvas3D::_render_gcode_overlay(int canvas_width, int canvas_height)
 {
-    m_gcode_viewer.render_overlay(canvas_width, canvas_height, SLIDER_RIGHT_MARGIN * GCODE_VIEWER_SLIDER_SCALE);
     IMSlider *layers_slider = m_gcode_viewer.get_layers_slider();
     IMSlider *moves_slider  = m_gcode_viewer.get_moves_slider();
+
+    if (m_preview_layout)
+        m_gcode_viewer.render_overlay(canvas_width, canvas_height, *m_preview_layout);
 
     if (layers_slider->is_need_post_tick_event()) {
         auto evt = new wxCommandEvent(EVT_CUSTOMEVT_TICKSCHANGED, m_canvas->GetId());
@@ -10864,11 +10885,7 @@ void GLCanvas3D::_check_and_update_toolbar_icon_scale()
     if (m_canvas_type == CanvasPreview) {
         IMSlider   *m_layers_slider = get_gcode_viewer().get_layers_slider();
         IMSlider   *m_moves_slider  = get_gcode_viewer().get_moves_slider();
-        float sc              = get_scale();
-#ifdef WIN32
-        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        sc *= (float) dpi / (float) DPI_DEFAULT;
-#endif // WIN32
+        float sc              = get_ui_scale();
 
         m_layers_slider->set_scale(sc * GCODE_VIEWER_SLIDER_SCALE);
         m_moves_slider->set_scale(sc * GCODE_VIEWER_SLIDER_SCALE);
@@ -11347,11 +11364,7 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
         m_render_preview = true;
 
     // places the toolbar on the top_left corner of the 3d scene
-    float f_scale = get_scale();
-    #ifdef WIN32
-        const int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        f_scale *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
+    float f_scale = get_ui_scale();
     Size cnv_size = get_canvas_size();
     auto canvas_w = float(cnv_size.get_width());
     auto canvas_h = float(cnv_size.get_height());
@@ -11367,7 +11380,7 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
 
     const float y_offset = is_collapse_toolbar_on_left() ? (get_collapse_toolbar_height() + 5) : 0;
     // Make sure the window does not overlap the 3d navigator
-    auto window_height_max = canvas_h - y_offset;
+    auto window_height_max = canvas_h - y_offset - preview_corner_offset();
     if (wxGetApp().show_3d_navigator()) {
         window_height_max -= (128 * f_scale + 5);
     }
@@ -11701,10 +11714,7 @@ void GLCanvas3D::_render_plate_switcher()
         m_plate_switcher_version = version;
     }
 
-    float sc = get_scale();
-#ifdef WIN32
-    sc *= (float) get_dpi_for_window(wxGetApp().GetTopWindow()) / (float) DPI_DEFAULT;
-#endif // WIN32
+    float sc = get_ui_scale();
 
     ImGuiWrapper& imgui     = *wxGetApp().imgui();
     const ImVec2  btn_size  = ImVec2(72.f, 72.f) * sc;
@@ -11874,12 +11884,7 @@ void GLCanvas3D::_render_return_toolbar() const
 void GLCanvas3D::_render_canvas_toolbar() 
 {
     ImGuiWrapper &imgui    = *wxGetApp().imgui();
-    float         sc       = get_scale();
-
-    #ifdef WIN32
-        const int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        sc *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
+    float         sc       = get_ui_scale();
 
     ImVec2        btn_size = ImVec2(CANVAS_TOOLBAR_BUTTON, CANVAS_TOOLBAR_BUTTON) * sc;
     ImVec2        margin   = ImVec2(m_canvas_toolbar_pos[0] > 0 ? 0.f : (CANVAS_TOOLBAR_MARGIN * sc), CANVAS_TOOLBAR_MARGIN * sc);
@@ -11887,7 +11892,7 @@ void GLCanvas3D::_render_canvas_toolbar()
     ImVec2        padding  = ImVec2(CANVAS_TOOLBAR_PADDING, CANVAS_TOOLBAR_PADDING) * sc;
     Vec2i32       pos      = {
         m_canvas_toolbar_pos[0]        + margin.x,
-        get_canvas_size().get_height() - margin.y
+        get_canvas_size().get_height() - margin.y - preview_corner_offset()
     };
     bool          zoom_btn = wxGetApp().show_canvas_zoom_button();
 
@@ -12469,11 +12474,7 @@ float GLCanvas3D::_render_assembly_tooltip_button(ImGuiWrapper* imgui_wrapper) c
     ImGui::SameLine();
     ImGui::Dummy(ImVec2(12.f, 0.f));
 
-    float scale = get_scale();
-#ifdef WIN32
-    int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-    scale *= (float) dpi / (float) DPI_DEFAULT;
-#endif                                                   // WIN32
+    float scale = get_ui_scale();
     ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
 
     float same_line_width = button_size.x * 1.8; // with an space size

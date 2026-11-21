@@ -28,6 +28,8 @@
 #include "MsgDialog.hpp"
 #include <boost/container_hash/hash.hpp>
 #include "slic3r/GUI/MeshUtils.hpp"
+#include "slic3r/GUI/IMSlider.hpp"
+#include "slic3r/GUI/PreviewOverlayLayout.hpp"
 #include <initializer_list>
 #include <set>
 #include <string>
@@ -269,84 +271,89 @@ static std::string format_compact_weight(double value_in_grams, bool imperial_un
 }
 
 #if ENABLE_ACTUAL_SPEED_DEBUG
-int GCodeViewer::SequentialView::ActualSpeedImguiWidget::plot(const char* label, const std::array<float, 2>& frame_size)
+void GCodeViewer::SequentialView::ActualSpeedImguiWidget::plot(const ImVec2& size, float scale) const
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
-        return -1;
+        return;
 
-    const ImGuiStyle& style = ImGui::GetStyle();
-    const ImGuiIO& io = ImGui::GetIO();
-    const ImGuiID id = window->GetID(label);
+    const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + size);
+    ImGui::ItemSize(bb);
+    if (!ImGui::ItemAdd(bb, 0) || data.size() < 2 || data.back().pos <= data.front().pos)
+        return;
 
-    const ImVec2 label_size = ImGui::CalcTextSize(label, nullptr, true);
-    ImVec2 internal_frame_size(frame_size[0], frame_size[1]);
-    internal_frame_size = ImGui::CalcItemSize(internal_frame_size, ImGui::CalcItemWidth(), label_size.y + style.FramePadding.y * 2.0f);
+    ImDrawList* draw_list = window->DrawList;
+    const float text_h    = ImGui::GetTextLineHeight();
+    const float gap       = 4.f * scale;
+    const float gutter    = ImGui::CalcTextSize("999.9").x + gap;
+    const ImRect plot_bb(bb.Min + ImVec2(gutter, text_h), bb.Max - ImVec2(gutter, text_h));
+    if (plot_bb.GetHeight() <= 0.f || plot_bb.GetWidth() <= 0.f)
+        return;
 
-    const ImRect frame_bb(window->DC.CursorPos, window->DC.CursorPos + internal_frame_size);
-    const ImRect inner_bb(frame_bb.Min + style.FramePadding, frame_bb.Max - style.FramePadding);
-    const ImRect total_bb(frame_bb.Min, frame_bb.Max + ImVec2(label_size.x > 0.0f ? style.ItemInnerSpacing.x + label_size.x : 0.0f, 0));
-    ImGui::ItemSize(total_bb, style.FramePadding.y);
-    if (!ImGui::ItemAdd(total_bb, 0, &frame_bb))
-        return -1;
+    float max_speed = 0.f;
+    for (const Item& item : data)
+        max_speed = std::max(max_speed, item.speed);
+    const float inv_y = max_speed > 0.f ? 1.f / max_speed : 0.f;
+    const float x0    = data.front().pos;
+    const float inv_x = 1.f / (data.back().pos - x0);
+    auto point = [&](size_t i) {
+        return ImVec2(ImLerp(plot_bb.Min.x, plot_bb.Max.x, ImSaturate((data[i].pos - x0) * inv_x)),
+                      ImLerp(plot_bb.Max.y, plot_bb.Min.y, ImSaturate(data[i].speed * inv_y)));
+    };
 
-    const bool hovered = ImGui::ItemHoverable(frame_bb, id);
+    const ImU32 grid = ImGui::GetColorU32(ImVec4(0.5f, 0.5f, 0.5f, 0.6f));
+    draw_list->AddLine(ImVec2(plot_bb.Min.x, plot_bb.Max.y), plot_bb.Max, grid, scale);
 
-    ImGui::RenderFrame(frame_bb.Min, frame_bb.Max, ImGui::GetColorU32(ImGuiCol_FrameBg), true, style.FrameRounding);
+    const ImU32 line_color = ImGui::GetColorU32(ImGuiCol_Text);
+    for (size_t i = 0; i + 1 < data.size(); ++i)
+        draw_list->AddLine(point(i), point(i + 1), line_color, 1.5f * scale);
 
-    static const int values_count_min = 2;
-    const int values_count = static_cast<int>(data.size());
-    int idx_hovered = -1;
+    std::vector<float> speeds;
+    speeds.reserve(data.size());
+    for (const Item& item : data)
+        speeds.push_back(item.speed);
+    const SpeedKeyPoints keys = speed_profile_key_points(speeds);
 
-    const ImVec2 offset(10.0f, 0.0f);
+    const ImU32 muted = ImGui::GetColorU32(ImGuiCol_TextDisabled);
+    char        buf[32];
 
-    const float size_y = y_range.second - y_range.first;
-    const float size_x = data.back().pos - data.front().pos;
-    if (size_x > 0.0f && values_count >= values_count_min) {
-        const float inv_scale_y = (size_y == 0.0f) ? 0.0f : 1.0f / size_y;
-        const float inv_scale_x = 1.0f / size_x;
-        const float x0 = data.front().pos;
-        const float y0 = y_range.first;
-
-        const ImU32 grid_main_color = ImGui::GetColorU32(ImVec4(0.5f, 0.5f, 0.5f, 0.5f));
-        const ImU32 grid_secondary_color = ImGui::GetColorU32(ImVec4(0.0f, 150.f / 255.0f, 136.0f / 255.f, 0.5f)); // ORCA color with opacity
-
-        // horizontal levels
-        for (const auto& [level, color] : levels) {
-            const float y = 1.0f - ImSaturate((level - y_range.first) * inv_scale_y);
-            window->DrawList->AddLine(ImLerp(inner_bb.Min, ImVec2(inner_bb.Min.x + offset.x, inner_bb.Max.y), ImVec2(0.1f, y)),
-                ImLerp(inner_bb.Min, ImVec2(inner_bb.Min.x + offset.x, inner_bb.Max.y), ImVec2(0.9f, y)), ImGuiWrapper::to_ImU32(color), 3.0f);
-        }
-
-        // vertical positions
-        for (int n = 0; n < values_count - 1; ++n) {
-            const float x = ImSaturate((data[n].pos - x0) * inv_scale_x);
-            window->DrawList->AddLine(ImLerp(inner_bb.Min + offset, inner_bb.Max, ImVec2(x, 0.0f)),
-                ImLerp(inner_bb.Min + offset, inner_bb.Max, ImVec2(x, 1.0f)), data[n].internal ? grid_secondary_color : grid_main_color);
-        }
-        window->DrawList->AddLine(ImLerp(inner_bb.Min + offset, inner_bb.Max, ImVec2(1.0f, 0.0f)),
-            ImLerp(inner_bb.Min + offset, inner_bb.Max, ImVec2(1.0f, 1.0f)), grid_main_color);
-
-        // profiile
-        const ImU32 col_base = ImGui::GetColorU32(ImVec4(0.8f, 0.8f, 0.8f, 1.0f));
-        const ImU32 col_hovered = ImGui::GetColorU32(ImVec4(0.0f, 150.f / 255.0f, 136.0f / 255.f, 1.0f)); // ORCA color
-        for (int n = 0; n < values_count - 1; ++n) {
-            const ImVec2 tp1(ImSaturate((data[n].pos - x0) * inv_scale_x), 1.0f - ImSaturate((data[n].speed - y0) * inv_scale_y));
-            const ImVec2 tp2(ImSaturate((data[n + 1].pos - x0) * inv_scale_x), 1.0f - ImSaturate((data[n + 1].speed - y0) * inv_scale_y));
-            // Tooltip on hover
-            if (hovered && inner_bb.Contains(io.MousePos)) {
-                const float t = ImClamp((io.MousePos.x - inner_bb.Min.x - offset.x) / (inner_bb.Max.x - inner_bb.Min.x - offset.x), 0.0f, 0.9999f);
-                if (tp1.x < t && t < tp2.x)
-                    idx_hovered = n;
-            }
-            window->DrawList->AddLine(ImLerp(inner_bb.Min + offset, inner_bb.Max, tp1), ImLerp(inner_bb.Min + offset, inner_bb.Max, tp2),
-                idx_hovered == n ? col_hovered : col_base, 2.0f);
-        }
+    auto side_label = [&](size_t idx, bool left) {
+        sprintf(buf, "%.1f", data[idx].speed);
+        const float w = ImGui::CalcTextSize(buf).x;
+        const float y = ImClamp(point(idx).y - 0.5f * text_h, bb.Min.y, plot_bb.Max.y - 0.5f * text_h);
+        draw_list->AddText(ImVec2(left ? plot_bb.Min.x - gap - w : plot_bb.Max.x + gap, y), line_color, buf);
+    };
+    side_label(keys.first, true);
+    side_label(keys.last, false);
+    if (keys.plateau_begin != keys.first && keys.plateau_end != keys.last) {
+        sprintf(buf, "%.1f", data[keys.plateau_begin].speed);
+        const float w = ImGui::CalcTextSize(buf).x;
+        const float x = 0.5f * (point(keys.plateau_begin).x + point(keys.plateau_end).x) - 0.5f * w;
+        draw_list->AddText(ImVec2(ImClamp(x, plot_bb.Min.x, plot_bb.Max.x - w), point(keys.plateau_begin).y - text_h - scale), line_color, buf);
     }
 
-    if (label_size.x > 0.0f)
-        ImGui::RenderText(ImVec2(frame_bb.Max.x + style.ItemInnerSpacing.x, inner_bb.Min.y), label);
-    return idx_hovered;
+    auto pos_text = [&](size_t idx) { return format("%.3f", data[idx].pos - x0); };
+    const std::string length_text = pos_text(keys.last) + " " + _u8L("mm");
+    const float       length_left = plot_bb.Max.x - ImGui::CalcTextSize(length_text.c_str()).x;
+    draw_list->AddText(ImVec2(plot_bb.Min.x, plot_bb.Max.y), muted, "0");
+    draw_list->AddText(ImVec2(length_left, plot_bb.Max.y), muted, length_text.c_str());
+
+    float pos_right = plot_bb.Min.x + ImGui::CalcTextSize("0").x + gap;
+    auto  pos_label = [&](size_t idx) {
+        const std::string label = pos_text(idx);
+        const float       w     = ImGui::CalcTextSize(label.c_str()).x;
+        const float       px    = point(idx).x;
+        const float       x     = std::min(std::max(px - 0.5f * w, pos_right), length_left - gap - w);
+        if (px < x || px > x + w)
+            return;
+        draw_list->AddText(ImVec2(x, plot_bb.Max.y), muted, label.c_str());
+        draw_list->AddLine(ImVec2(px, plot_bb.Max.y), point(idx), grid, scale);
+        pos_right = x + w + gap;
+    };
+    if (keys.plateau_begin != keys.first)
+        pos_label(keys.plateau_begin);
+    if (keys.plateau_end != keys.plateau_begin && keys.plateau_end != keys.last)
+        pos_label(keys.plateau_end);
 }
 #endif // ENABLE_ACTUAL_SPEED_DEBUG
 
@@ -444,459 +451,463 @@ static std::string to_string(libvgcode::EGCodeExtrusionRole role)
     }
 }
 
-void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode::Viewer* viewer, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type)
+static std::string color_scheme_value(const libvgcode::PathVertex& vertex, libvgcode::EViewType view_type, const std::string& na)
+{
+    const bool is_extrusion = vertex.is_extrusion();
+    switch (view_type) {
+    case libvgcode::EViewType::FeatureType:
+        return is_extrusion ? to_string(vertex.role) : vertex.type != libvgcode::EMoveType::Noop ? to_string(vertex.type) : na;
+    case libvgcode::EViewType::Height: return _u8L("Height: ") + (is_extrusion ? format("%.2f", vertex.height) : na);
+    case libvgcode::EViewType::Width: return _u8L("Width: ") + (is_extrusion ? format("%.2f", vertex.width) : na);
+    case libvgcode::EViewType::VolumetricFlowRate: return _u8L("Flow: ") + (is_extrusion ? format("%.2f", vertex.volumetric_rate()) : na);
+    case libvgcode::EViewType::FanSpeed: return _u8L("Fan: ") + format("%.0f", vertex.fan_speed);
+    case libvgcode::EViewType::Temperature: return _u8L("Temperature: ") + format("%.0f", vertex.temperature);
+    case libvgcode::EViewType::LayerTimeLinear:
+    case libvgcode::EViewType::LayerTimeLogarithmic: return _u8L("Layer Time: ") + format("%.1f", vertex.layer_duration);
+    case libvgcode::EViewType::Tool: return _u8L("Tool: ") + std::to_string(vertex.extruder_id + 1);
+    case libvgcode::EViewType::ColorPrint: return _u8L("Color: ") + std::to_string(vertex.color_id + 1);
+    case libvgcode::EViewType::Acceleration: return _u8L("Acceleration: ") + format("%.0f", vertex.acceleration);
+    case libvgcode::EViewType::Jerk: return _u8L("Jerk: ") + format("%.1f", vertex.jerk);
+    case libvgcode::EViewType::PressureAdvance: return _u8L("PA: ") + format("%.4f", vertex.pressure_advance);
+    default: return {};
+    }
+}
+
+// ORCA: Length and duration of the move ending at the vertex, or a length of -1 for a move that
+// does not travel. Arc moves (G2/G3) are discretized into several vertices sharing the same gcode
+// line id, so the whole run is accumulated to report the arc instead of a single chord.
+static std::pair<float, float> move_length_and_duration(const libvgcode::Viewer& viewer, const libvgcode::PathVertex& vertex, size_t vertex_id)
+{
+    const size_t time_mode = static_cast<size_t>(viewer.get_time_mode());
+    if (vertex_id == 0 || !(vertex.is_extrusion() || vertex.is_travel() || vertex.is_wipe()))
+        return {-1.f, vertex.times[time_mode]};
+
+    const size_t vertices_count = viewer.get_vertices_count();
+    size_t       first_id       = vertex_id;
+    while (first_id > 0 && viewer.get_vertex_at(first_id - 1).gcode_id == vertex.gcode_id)
+        --first_id;
+    size_t last_id = vertex_id;
+    while (last_id + 1 < vertices_count && viewer.get_vertex_at(last_id + 1).gcode_id == vertex.gcode_id)
+        ++last_id;
+    float length   = 0.f;
+    float duration = 0.f;
+    for (size_t i = std::max<size_t>(first_id, 1); i <= last_id; ++i) {
+        const libvgcode::PathVertex& v = viewer.get_vertex_at(i);
+        length += (libvgcode::convert(v.position) - libvgcode::convert(viewer.get_vertex_at(i - 1).position)).norm();
+        duration += v.times[time_mode];
+    }
+    return {length, duration};
+}
+
+namespace {
+
+struct MoveDetailRow
+{
+    std::string label;
+    std::string value;
+    std::string widest;
+};
+
+struct MoveDetailGroup
+{
+    std::string                title;
+    std::vector<MoveDetailRow> rows;
+    float                      label_w{0.f};
+    float                      value_w{0.f};
+    float                      width{0.f};
+};
+
+} // namespace
+
+static std::vector<MoveDetailGroup> move_detail_groups(const libvgcode::PathVertex& vertex, float length, const std::string& na)
+{
+    const bool        is_extrusion = vertex.is_extrusion();
+    const std::string mm           = _u8L("mm");
+    const std::string mm_s         = _u8L("mm/s");
+    auto value_or_na = [&na](bool defined, const std::string& value) { return defined ? value : na; };
+    return {
+        {_u8L_CONTEXT("LINE", "Move details"),
+         {{_u8L("Type"), to_string(vertex.type), ""},
+          // TRN Width × height of the extrusion line.
+          {_u8L("W × H"), value_or_na(is_extrusion, format("%.3f × %.3f %s", vertex.width, vertex.height, mm)), "9.999 × 9.999 " + mm},
+          {_u8L("Length"), value_or_na(length >= 0.f, format("%.3f %s", length, mm)), "9999.999 " + mm}}},
+        {_u8L_CONTEXT("MOTION", "Move details"),
+         {{_u8L("Speed"), format("%.1f %s", vertex.feedrate, mm_s), "9999.9 " + mm_s},
+          {_u8L("Acceleration"), format("%.0f %s", vertex.acceleration, _u8L("mm/s²")), "99999 " + _u8L("mm/s²")},
+          {_u8L("Jerk"), format("%.1f %s", vertex.jerk, mm_s), "999.9 " + mm_s}}},
+        {_u8L_CONTEXT("EXTRUSION", "Move details"),
+         {{_u8L("Flow rate"), value_or_na(is_extrusion, format("%.3f %s", vertex.volumetric_rate(), _u8L("mm³/s"))), "999.999 " + _u8L("mm³/s")},
+          {_u8L("Pressure Advance"), format("%.4f", vertex.pressure_advance), "9.9999"}}},
+        {_u8L_CONTEXT("THERMAL", "Move details"),
+         {{_u8L("Temperature"), format("%.0f %s", vertex.temperature, _u8L("\u2103" /* °C */)), "999 " + _u8L("\u2103" /* °C */)},
+          {_u8L("Fan speed"), format("%.0f %%", vertex.fan_speed), "100 %"}}},
+    };
+}
+
+void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode::Viewer* viewer, const PreviewOverlayLayout& layout,
+                                                                  int move_number, int move_count, const libvgcode::EViewType& view_type)
 {
     static bool properties_shown = false;
-    
+    static bool profile_shown    = false;
+
+    m_panel_rect = PreviewRect();
+    if (viewer == nullptr)
+        return;
+
+    ImGuiWrapper&     imgui  = *wxGetApp().imgui();
+    const float       s      = layout.scale;
     const std::string NA_TXT = _u8L("N/A");
-    const char* NA_CSTR = NA_TXT.c_str();
+    const std::string mm_s   = _u8L("mm/s");
 
-    if (viewer != nullptr) {
-        ImGuiWrapper& imgui = *wxGetApp().imgui();
-        // const Size cnv_size = wxGetApp().plater()->get_current_canvas3D()->get_canvas_size();
-        imgui.set_next_window_pos(0.5f * static_cast<float>(canvas_width), static_cast<float>(canvas_height), ImGuiCond_Always, 0.5f, 1.0f);
-        ImGui::PushStyleColor(ImGuiCol_Button, ImGuiWrapper::COL_BUTTON_BACKGROUND);
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGuiWrapper::COL_BUTTON_ACTIVE);
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiWrapper::COL_BUTTON_HOVERED);
-        ImGui::PushStyleColor(ImGuiCol_Border   , ImVec4(.0f,.0f,.0f,.0f));
-        ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(1.f,1.f,1.f,.6f));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f * m_scale);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding , ImVec2(10.f, 10.f) * m_scale);
-        ImGui::SetNextWindowBgAlpha(0.8f);
-
-        libvgcode::PathVertex vertex = viewer->get_current_vertex();
-        size_t vertex_id = viewer->get_current_vertex_id();
-        // Seam moves may contain non-deterministic vertex data, so use the
-        // last visible non-seam vertex instead (except in FeatureType view)
-        if (view_type != libvgcode::EViewType::FeatureType && vertex.type == libvgcode::EMoveType::Seam) {
-            const libvgcode::Interval& visible_range = viewer->get_view_visible_range();
-            if (visible_range[1] > 0) {
-                vertex_id = static_cast<size_t>(visible_range[1]) - 1;
-                vertex = viewer->get_vertex_at(vertex_id);
-            }
+    libvgcode::PathVertex vertex    = viewer->get_current_vertex();
+    size_t                vertex_id = viewer->get_current_vertex_id();
+    // Seam moves may contain non-deterministic vertex data, so use the
+    // last visible non-seam vertex instead (except in FeatureType view)
+    if (view_type != libvgcode::EViewType::FeatureType && vertex.type == libvgcode::EMoveType::Seam) {
+        const libvgcode::Interval& visible_range = viewer->get_view_visible_range();
+        if (visible_range[1] > 0) {
+            vertex_id = static_cast<size_t>(visible_range[1]) - 1;
+            vertex    = viewer->get_vertex_at(vertex_id);
         }
-        const bool is_extrusion = vertex.is_extrusion();
+    }
+    const std::string detail      = color_scheme_value(vertex, view_type, NA_TXT);
+    const bool        show_swatch = view_type == libvgcode::EViewType::FeatureType && vertex.type != libvgcode::EMoveType::Noop;
+    const std::pair<float, float> move_extent = properties_shown ? move_length_and_duration(*viewer, vertex, vertex_id) : std::pair(-1.f, 0.f);
+    const float                   length      = move_extent.first;
+    const float                   duration    = move_extent.second;
+    std::vector<MoveDetailGroup>  groups;
+    if (properties_shown)
+        groups = move_detail_groups(vertex, length, NA_TXT);
 
-        const ImGuiStyle& style = ImGui::GetStyle();
-
-        char detail_buf[1024];
-        switch (view_type) {
-            case libvgcode::EViewType::FeatureType:
-                if (is_extrusion)
-                    strcpy(detail_buf, to_string(vertex.role).c_str());
-                else if (vertex.type != libvgcode::EMoveType::Noop)
-                    strcpy(detail_buf, to_string(vertex.type).c_str());
-                else
-                    strcpy(detail_buf, NA_CSTR); // Noop moves are not shown in the "Line type" view, so show N/A for them.
-                break;
-            case libvgcode::EViewType::Height:
-                if (is_extrusion)
-                    sprintf(detail_buf, "%s%.2f", _u8L("Height: ").c_str(), vertex.height);
-                else
-                    sprintf(detail_buf, "%s%s", _u8L("Height: ").c_str(), NA_CSTR);
-                break;
-            case libvgcode::EViewType::Width:
-                if (is_extrusion)
-                    sprintf(detail_buf, "%s%.2f", _u8L("Width: ").c_str(), vertex.width);
-                else
-                    sprintf(detail_buf, "%s%s", _u8L("Width: ").c_str(), NA_CSTR);
-                break;
-            case libvgcode::EViewType::VolumetricFlowRate:
-                if (is_extrusion)
-                    sprintf(detail_buf, "%s%.2f", _u8L("Flow: ").c_str(), vertex.volumetric_rate());
-                else
-                    sprintf(detail_buf, "%s%s", _u8L("Flow: ").c_str(), NA_CSTR);
-                break;
-            case libvgcode::EViewType::FanSpeed:
-                sprintf(detail_buf, "%s%.0f", _u8L("Fan: ").c_str(), vertex.fan_speed);
-                break;
-            case libvgcode::EViewType::Temperature:
-                sprintf(detail_buf, "%s%.0f", _u8L("Temperature: ").c_str(), vertex.temperature);
-                break;
-            case libvgcode::EViewType::LayerTimeLinear:
-            case libvgcode::EViewType::LayerTimeLogarithmic:
-                sprintf(detail_buf, "%s%.1f", _u8L("Layer Time: ").c_str(), vertex.layer_duration);
-                break;
-            case libvgcode::EViewType::Tool:
-                sprintf(detail_buf, "%s%d", _u8L("Tool: ").c_str(), vertex.extruder_id + 1);
-                break;
-            case libvgcode::EViewType::ColorPrint:
-                sprintf(detail_buf, "%s%d", _u8L("Color: ").c_str(), vertex.color_id + 1);
-                break;
-            case libvgcode::EViewType::Acceleration:
-                sprintf(detail_buf, "%s%.0f", _u8L("Acceleration: ").c_str(), vertex.acceleration);
-                break;
-            case libvgcode::EViewType::Jerk:
-                sprintf(detail_buf, "%s%.1f", _u8L("Jerk: ").c_str(), vertex.jerk);
-                break;
-            case libvgcode::EViewType::PressureAdvance:
-                sprintf(detail_buf, "%s%.4f", _u8L("PA: ").c_str(), vertex.pressure_advance);
-                break;
-            default:
-                detail_buf[0] = '\0';
-                break;
+    const float text_h      = ImGui::GetTextLineHeight();
+    const float item_gap    = 18.f * s;
+    const float label_gap   = 12.f * s;
+    const float group_gap   = 28.f * s;
+    const ImVec2 padding    = ImVec2(16.f, 4.f) * s;
+    const float top_inset   = 6.f * s;
+    const float rule_gap    = 6.f * s;
+    auto bold_width = [&imgui](const std::string& text) {
+        const bool  bold  = imgui.push_bold_font();
+        const float width = ImGui::CalcTextSize(text.c_str()).x;
+        if (bold)
+            imgui.pop_bold_font();
+        return width;
+    };
+    for (MoveDetailGroup& g : groups) {
+        for (const MoveDetailRow& r : g.rows) {
+            g.label_w = std::max(g.label_w, ImGui::CalcTextSize(r.label.c_str()).x);
+            g.value_w = std::max({g.value_w, ImGui::CalcTextSize(r.value.c_str()).x, ImGui::CalcTextSize(r.widest.c_str()).x});
         }
+        g.width = std::max(bold_width(g.title), g.label_w + label_gap + g.value_w);
+    }
 
-        std::vector<std::pair<std::string, std::string>> properties_rows;
-        float table_content_w = 0.0f;
-        if (properties_shown) {
-            float label_w = 0.0f;
-            float value_w = 0.0f;
-            properties_rows.reserve(14);
-            auto add_row = [&properties_rows, &label_w, &value_w](std::string label, std::string value) {
-                 label_w = std::max(label_w, ImGui::CalcTextSize(label.c_str()).x);
-                 value_w = std::max(value_w, ImGui::CalcTextSize(value.c_str()).x);
-                 properties_rows.emplace_back(std::move(label), std::move(value));
-            };
-            char buff[1024];
-            add_row(_u8L("Type"), _u8L(to_string(vertex.type)));
-            add_row(_u8L("Line Type"), is_extrusion ? _u8L(to_string(vertex.role)) : NA_TXT);
-            if (is_extrusion) sprintf(buff, ("%.3f " + _u8L("mm")).c_str(), vertex.width); else strcpy(buff, NA_CSTR);
-            add_row(_u8L("Width"), buff);
-            if (is_extrusion) sprintf(buff, ("%.3f " + _u8L("mm")).c_str(), vertex.height); else strcpy(buff, NA_CSTR);
-            add_row(_u8L("Height"), buff);
-            // ORCA: Length of the move ending at the current vertex. Arc moves (G2/G3) are discretized
-            // into several vertices sharing the same gcode line id, so accumulate the whole run to report
-            // the arc length instead of the length of a single chord.
-            if (vertex_id > 0 && (is_extrusion || vertex.is_travel() || vertex.is_wipe())) {
-                const size_t vertices_count = viewer->get_vertices_count();
-                size_t first_id = vertex_id;
-                while (first_id > 0 && viewer->get_vertex_at(first_id - 1).gcode_id == vertex.gcode_id)
-                    --first_id;
-                size_t last_id = vertex_id;
-                while (last_id + 1 < vertices_count && viewer->get_vertex_at(last_id + 1).gcode_id == vertex.gcode_id)
-                    ++last_id;
-                float length = 0.0f;
-                for (size_t i = std::max<size_t>(first_id, 1); i <= last_id; ++i) {
-                    length += (libvgcode::convert(viewer->get_vertex_at(i).position) -
-                               libvgcode::convert(viewer->get_vertex_at(i - 1).position)).norm();
-                }
-                sprintf(buff, ("%.3f " + _u8L("mm")).c_str(), length);
-            }
-            else
-                strcpy(buff, NA_CSTR);
-            add_row(_u8L("Length"), buff);
-            sprintf(buff, "%d", vertex.layer_id + 1);
-            add_row(_u8L("Layer"), buff);
-            sprintf(buff, ("%.1f " + _u8L("mm/s")).c_str(), vertex.feedrate);
-            add_row(_u8L("Speed"), buff);
-            sprintf(buff, ("%.0f " + _u8L("mm/s²")).c_str(), vertex.acceleration);
-            add_row(_u8L("Acceleration"), buff);
-            sprintf(buff, ("%.1f " + _u8L("mm/s")).c_str(), vertex.jerk);
-            add_row(_u8L("Jerk"), buff);
-            if (is_extrusion) sprintf(buff, ("%.3f " + _u8L("mm³/s")).c_str(), vertex.volumetric_rate()); else strcpy(buff, NA_CSTR);
-            add_row(_u8L("Flow rate"), buff);
-            sprintf(buff, "%.0f %%", vertex.fan_speed);
-            add_row(_u8L("Fan speed"), buff);
-            sprintf(buff, ("%.0f " + _u8L("\u2103" /* °C */)).c_str(), vertex.temperature);
-            add_row(_u8L("Temperature"), buff);
-            sprintf(buff, "%.4f", vertex.pressure_advance);
-            add_row(_u8L("Pressure Advance"), buff);
-            const float estimated_time = viewer->get_estimated_time_at(vertex_id);
-            sprintf(buff, "%s (%.3fs)", get_time_dhms(estimated_time).c_str(), vertex.times[static_cast<size_t>(viewer->get_time_mode())]);
-            add_row(_u8L("Time"), buff);
+    static constexpr const char* MOVE_MARK = "\x1f";
+    const std::string move_text    = format(_u8L("Move %1% of %2%"), MOVE_MARK, move_count);
+    const size_t      move_split   = move_text.find(MOVE_MARK);
+    const std::string move_prefix  = move_text.substr(0, move_split);
+    const std::string move_suffix  = move_split == std::string::npos ? "" : move_text.substr(move_split + std::strlen(MOVE_MARK));
+    const std::string time_label   = _u8L("Time");
+    const std::string time_value   = get_time_dhms(viewer->get_estimated_time_at(vertex_id));
+    const std::string speed_label  = _u8L("Speed");
+    const std::string speed_value  = format("%.0f %s", vertex.feedrate, mm_s);
+    const std::string profile_btn  = _u8L("Speed profile");
+    const bool        show_filament  = viewer->get_used_extruders_count() > 1;
+    const std::string filament_label = _u8L("Filament");
+    const std::string filament_value = std::to_string(vertex.extruder_id + 1);
 
-            table_content_w = 2 * std::max(label_w, value_w) + style.ItemInnerSpacing.x;
-        }
+    const Vec3d     plate_origin = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_origin();
+    libvgcode::AABox extent      = viewer->get_bounding_box();
+    for (libvgcode::Vec3& corner : extent) {
+        corner[0] -= static_cast<float>(plate_origin.x());
+        corner[1] -= static_cast<float>(plate_origin.y());
+    }
+    const float extent_max = std::max({std::abs(extent[0][0]), std::abs(extent[1][0]), std::abs(extent[0][1]), std::abs(extent[1][1]),
+                                       std::abs(extent[0][2]), std::abs(extent[1][2])});
+    const char* precision  = m_high_precision_gcode ? (extent_max > 9999 ? "%.2f" : extent_max > 999 ? "%.3f" : "%.4f")
+                                                    : (extent_max > 9999 ? "%.1f" : extent_max > 999 ? "%.2f" : "%.3f");
+    const float max_speed  = viewer->get_color_range(libvgcode::EViewType::Speed).get_range()[1];
 
-        // "ToolPosition" layout width calculation
-        const float axes_spacing_x = ImGui::CalcTextSize("sp").x;                                  // Spacing between axes labels
-        const char* axes_sample    = m_high_precision_gcode ? "X 999.9999" : "X 999.999";          // The longest possible axis label, see the precision of the position below
-        const float axes_width     = ImGui::CalcTextSize(axes_sample).x;                           // Width of the longest possible axis label
-        const float axes_content_w = 3.0f * axes_width + 2.0f * axes_spacing_x;                    // Three axes
-        const float speed_width    = ImGui::CalcTextSize((_u8L("Speed: ") + "9999  ").c_str()).x;  // Width of the longest possible speed label
-        const float detail_width   = ImGui::CalcTextSize(detail_buf).x;                            // Width of the detail text
-        const float info_content_w = speed_width + detail_width;                                   // Speed + detail
-        const float info_group_w   = std::max(axes_content_w, info_content_w);                     // The width of the group containing position and detail info, whichever is wider
-        const float fold_button_w  = 24.0f * m_scale;                                              // Width of the fold/unfold button
-        const float bottom_row_w   = fold_button_w + style.ItemSpacing.x + info_group_w;           // The width of the bottom row containing the fold button and the info group
-        float speed_profile_row_w  = 0.0f;
-#if ENABLE_ACTUAL_SPEED_DEBUG
-        const float table_btn_width = std::max(ImGui::CalcTextSize(_u8L("Hide").c_str()).x, ImGui::CalcTextSize(_u8L("Show").c_str()).x);
-        const float btn_padding_x = 8.0f * m_scale;
+    auto text_width = [](const std::string& text) { return ImGui::CalcTextSize(text.c_str()).x; };
 
-        if (properties_shown) {
-            // The width of the row containing the button to show/hide the actual speed profile table and its label
-            speed_profile_row_w = table_btn_width + btn_padding_x * 2.0f + style.ItemSpacing.x + ImGui::CalcTextSize(_u8L("Actual speed profile").c_str()).x;
-        }
-#endif // ENABLE_ACTUAL_SPEED_DEBUG
-        const float properties_w = std::max(table_content_w, speed_profile_row_w);      // The width of the properties section, whichever is wider between the properties table and the speed profile row
-        const float content_w    = std::max(bottom_row_w, properties_w);                // The width of the window content, whichever is wider between the bottom row and the properties table
-        const float window_w     = std::ceil(content_w + 2.0f * style.WindowPadding.x); // Final window width with padding, rounded up for better look
+    const float space         = text_width(" ");
+    const float chevron_w     = 16.f * s + 4.f * s;
+    const float swatch_w      = show_swatch ? text_h * 0.7f + space : 0.f;
+    float       detail_w      = text_width(detail);
+    if (view_type == libvgcode::EViewType::FeatureType)
+        for (size_t r = 0; r < libvgcode::GCODE_EXTRUSION_ROLES_COUNT; ++r)
+            detail_w = std::max(detail_w, text_width(to_string(libvgcode::EGCodeExtrusionRole(r))));
+    const float move_num_w    = std::max(bold_width(std::to_string(move_count)), bold_width(std::to_string(move_number)));
+    const float move_w        = text_width(move_prefix) + move_num_w + text_width(move_suffix);
+    const float time_value_w  = std::max(text_width(get_time_dhms(viewer->get_estimated_time())), text_width(time_value));
+    const float time_w        = text_width(time_label) + space + time_value_w;
+    std::array<float, 3> axis_value_w;
+    for (size_t i = 0; i < 3; ++i)
+        axis_value_w[i] = std::max(text_width(format(precision, extent[0][i])), text_width(format(precision, extent[1][i])));
+    const float axis_label_w  = text_width("X ");
+    const float position_w    = 3.f * axis_label_w + axis_value_w[0] + axis_value_w[1] + axis_value_w[2] + 4.f * space;
+    const float speed_value_w = std::max(text_width(format("%.0f %s", max_speed > 0.f && max_speed < 1e6f ? max_speed : vertex.feedrate, mm_s)), text_width(speed_value));
+    const float speed_w       = text_width(speed_label) + space + speed_value_w;
+    float       filament_num_w = 0.f;
+    for (const uint8_t id : viewer->get_used_extruders_ids())
+        filament_num_w = std::max(filament_num_w, text_width(std::to_string(id + 1)));
+    const float dot_d         = text_h * 0.7f;
+    const float filament_w    = show_filament ? text_width(filament_label) + 2.f * space + dot_d + filament_num_w : 0.f;
+    const float profile_btn_w = text_width(profile_btn) + 16.f * s;
+    // TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+    const std::string profile_title_fmt = _u8L("Actual speed profile · %1% mm · %2% s");
+    const std::string profile_title     = format(profile_title_fmt, format("%.3f", std::max(length, 0.f)), format("%.3f", duration));
+    const std::string no_profile    = _u8L("No speed profile for this move");
+    const float profile_w     = std::max({240.f * s, text_width(format(profile_title_fmt, "9999.999", "999.999")), text_width(no_profile)});
+    const float more_w        = text_width(format(_L_PLURAL("%1% more", "%1% more", 4), 4)) + 16.f * s;
 
-        // "ToolPosition" layout height calculation
-        const float text_h         = ImGui::GetTextLineHeight();
-        const float item_spacing_y = style.ItemSpacing.y;
-        const float cell_pad_y     = style.CellPadding.y;
-        const float window_pad_h   = 2.0f * style.WindowPadding.y;
-        const float show_button_h  = text_h + 2.0f * 3.0f * m_scale; // ImGuiStyleVar_FramePadding.y is set to 3.f * m_scale
-        const float main_row_h     = 2.0f * text_h + item_spacing_y; // Two lines of text (position and detail) + spacing between them
-        const float properties_h   = static_cast<float>(properties_rows.size()) * (text_h + 2.0f * cell_pad_y) +  2.0f * cell_pad_y + 1.0f + item_spacing_y // table rows
-                                    + item_spacing_y + show_button_h                    // Spacing() + Show/Hide button row
-                                    + item_spacing_y + 1.0f + style.WindowPadding.y;    // Spacing() + Separator() + Dummy()
-        const float folded_window_h   = std::ceil(window_pad_h + main_row_h);           // Height of the window when properties are hidden, with padding, rounded up for better look
-        const float unfolded_window_h = std::ceil(folded_window_h + properties_h);      // Height of the window when properties are shown, with padding, rounded up for better look
-        const float window_h = properties_shown ? unfolded_window_h : folded_window_h;  // Final window height depending on whether properties are shown or not
+    MovePanelWidths widths;
+    widths.available      = layout.panel_width(FLT_MAX) - 2.f * padding.x;
+    widths.fixed          = chevron_w + move_w + item_gap + speed_w + item_gap + swatch_w + detail_w + (show_filament ? item_gap + filament_w : 0.f);
+    widths.time           = properties_shown ? time_w : 0.f;
+    widths.position       = position_w;
+    widths.spacing        = item_gap;
+    widths.group_spacing  = group_gap;
+    widths.profile_button = properties_shown ? profile_btn_w : 0.f;
+    widths.profile_chart  = properties_shown ? profile_w : 0.f;
+    widths.more_button    = more_w;
+    if (properties_shown)
+        for (const MoveDetailGroup& g : groups)
+            widths.groups.push_back(g.width);
+    const MovePanelVisibility visible             = fit_move_panel(widths);
+    const bool                show_profile_button = properties_shown && visible.show_profile;
+    const bool                show_chart          = show_profile_button && profile_shown;
 
-        ImGui::SetNextWindowSize(ImVec2(window_w, window_h), ImGuiCond_Always);
+    const bool show_time = properties_shown && visible.show_time;
+    float row_w = widths.fixed + (show_time ? item_gap + time_w : 0.f) + (visible.show_position ? item_gap + position_w : 0.f);
+    if (show_profile_button)
+        row_w += item_gap + profile_btn_w;
+    float body_w = 0.f;
+    if (properties_shown) {
+        for (size_t i = 0; i < visible.visible_groups; ++i)
+            body_w += (i > 0 ? group_gap : 0.f) + groups[i].width;
+        if (show_chart)
+            body_w += group_gap + profile_w;
+        if (visible.visible_groups < groups.size())
+            body_w += group_gap + more_w;
+    }
+    const float panel_w = layout.panel_width(std::ceil(std::max(row_w, body_w) + 2.f * padding.x));
+    const float panel_x = layout.panel_left(panel_w);
 
-        imgui.begin(std::string("ToolPosition"), ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
-        ImGui::AlignTextToFramePadding();
+    imgui.set_next_window_pos(panel_x, layout.band_bottom, ImGuiCond_Always, 0.f, 1.f);
+    ImGui::SetNextWindowSizeConstraints(ImVec2(panel_w, 0.f), ImVec2(panel_w, FLT_MAX));
+    ImVec4 background = ImGui::GetStyleColorVec4(ImGuiCol_WindowBg);
+    background.w      = 0.8f;
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.f, 0.f, 0.f, 0.f));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.f, 0.f, 0.f, 0.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.f * s);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, padding);
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(item_gap, 4.f * s));
+    imgui.begin(std::string("ToolPosition"), ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize |
+                                                 ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing);
 
-        if (properties_shown) {
-            auto append_table_row = [](const std::string& label, const std::string& value) {
-                ImGui::TableNextRow();
-                ImGui::TableSetColumnIndex(0);
-                ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORCA, label);
-                ImGui::TableSetColumnIndex(1);
-                ImGuiWrapper::text(value);
-            };
+    const ImVec4 text_color = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+    const ImVec4 muted      = ImVec4(text_color.x, text_color.y, text_color.z, 0.6f);
+    auto slot = [&](float width, auto&& draw) {
+        const float x = ImGui::GetCursorPosX();
+        draw();
+        ImGui::SameLine(x + width + item_gap);
+    };
+    auto right_aligned = [](float slot_w, float text_w, auto&& draw) {
+        ImGui::SameLine(0.f, 0.f);
+        ImGui::Dummy(ImVec2(std::max(0.f, slot_w - text_w), 0.f));
+        ImGui::SameLine(0.f, 0.f);
+        draw();
+    };
+    const bool profile_available = vertex.is_extrusion() || vertex.is_travel() || vertex.is_wipe();
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + top_inset);
 
-            if (ImGui::BeginTable("Properties", 2)) {
-                for (const auto& row : properties_rows)
-                    append_table_row(row.first, row.second);
-
-                ImGui::EndTable();
-            }
-
-#if ENABLE_ACTUAL_SPEED_DEBUG
-            bool actual_speed_exist = vertex.is_extrusion() || vertex.is_travel() || vertex.is_wipe();
-            static float cached_table_wnd_width = 0.0f;  // ORCA: Cache the calculated window width to avoid recalculation on every frame
-            static float cached_table_wnd_scale = 0.0f;  // ORCA: Cache the calculated window scale to avoid recalculation on every frame
-            ImGui::Spacing();
-
-            static bool table_shown = false;
-            imgui.push_confirm_button_style();
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding  , 3.f * m_scale);
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding   , ImVec2(btn_padding_x, 3.f * m_scale));
-            ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(.5f, .5f));
-            if (imgui.button((table_shown ? _L("Hide") : _L("Show")).c_str(), ImVec2(table_btn_width + btn_padding_x * 2.f, 0.f), actual_speed_exist))
-                table_shown = !table_shown;
-            ImGui::PopStyleVar(3);
-            imgui.pop_confirm_button_style();
-            ImGui::SameLine();
-            ImGuiWrapper::text(_u8L("Actual speed profile").c_str()); // ORCA show label and plot on external window to make main window more compact
-
-            if (actual_speed_exist && table_shown) {
-                const float plot_height = 135.f * m_scale;  // 135 is the height of the plot without labels
-
-                if (cached_table_wnd_scale != m_scale) { // ORCA
-                    // Catch the window width to avoid recalculation on every frame,
-                    // but recalculate it when/if scale changes.
-
-                    const float cell_pad_x = 9.f * m_scale; // matches ImGuiStyleVar_CellPadding.x below
-                    const float wnd_pad_x = 2.0f * style.WindowPadding.x;
-                    const float table_border_x = 6.0f * m_scale;
-
-                    // Calculate the width needed to fully show each table column header
-                    // but not clamping to a minimum because later the window width is clamped anyway.
-                    const float col0_w = ImGui::CalcTextSize((_u8L("Position") + " (" + _u8L("mm") + ")").c_str()).x;
-                    const float col1_w = ImGui::CalcTextSize((_u8L("Speed") + " (" + _u8L("mm/s") + ")").c_str()).x;
-
-                    const float content_w = std::ceil(col0_w + col1_w + 4.0f * cell_pad_x + table_border_x + wnd_pad_x);
-                    const float aspect_w = std::ceil(plot_height * (16.0f / 9.0f)); // 16:9 ratio for better look
-                    // Try to obtain 16:9 ratio if possible, but keep enough width for content to make
-                    // window looking good on different languages, especially with long words in table header
-                    cached_table_wnd_width = std::max(content_w, aspect_w);
-                    cached_table_wnd_scale = m_scale;
-                }
-
-                // ORCA: Pre-calculate the height of the table based on number of rows
-                // and clamp the final window height to keep at least the same height as ToolPosition window.
-                const float cell_pad_y  = 1.f * m_scale; // ImGuiStyleVar_CellPadding.y below
-                const float row_height  = ImGui::GetTextLineHeight() + 2.f * cell_pad_y;
-                const float rows        = static_cast<float>(m_actual_speed_imgui_widget.data.size());
-                const float table_h     = row_height * (1.0f + rows) + 2.f * m_scale; // border allowance
-                const float target_h    = std::ceil(plot_height + table_h + 2.f * style.WindowPadding.y);
-                const float min_h       = ImGui::GetWindowHeight(); // keep at least the same height as ToolPosition window
-                const float max_h       = static_cast<float>(canvas_height) - 8.f * m_scale; // keep inside canvas with a small margin
-                const float final_h     = std::clamp(target_h, min_h, max_h);
-                const bool  needs_scroll = target_h > max_h;
-                const float table_view_h = std::max(1.0f, final_h - plot_height - 2.f * style.WindowPadding.y);
-
-                //const ImVec2 wnd_size = ImGui::GetWindowSize();
-                imgui.set_next_window_pos(ImGui::GetWindowPos().x - 5.f * m_scale /*+ wnd_size.x*/, static_cast<float>(canvas_height), ImGuiCond_Always, 1.0f, 1.0f);
-                ImGui::SetNextWindowSize(ImVec2(cached_table_wnd_width, final_h), ImGuiCond_Always);
-                //ImGui::SetNextWindowSizeConstraints({ 0.0f, 0.0f }, { -1.0f, wnd_size.y });
-                imgui.begin(std::string("ToolPositionTableWnd"), ImGuiWindowFlags_NoTitleBar |
-                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
-                    ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-                ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(9.f, 1.f) * m_scale);
-                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 0.f));
-
-                ImVec4 scroll_col    = ImVec4(0.77f, 0.77f, 0.77f, m_is_dark ? .6f : 1.0f); // same color with sliced plates toolbar scrollbar
-                ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImVec4(0.f, 0.f, 0.f, 0.f)); // ORCA using background color with opacity creates a second color. This prevents secondary color
-                ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, scroll_col);
-                ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, scroll_col);
-                ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, scroll_col);
-                ImGui::PushStyleColor(ImGuiCol_HeaderHovered , style.Colors[ImGuiCol_TableHeaderBg]);
-
-                const int hover_id = m_actual_speed_imgui_widget.plot("##ActualSpeedProfile", { -1.f, plot_height});
-                const ImGuiTableFlags table_flags = ImGuiTableFlags_Borders | (needs_scroll ? ImGuiTableFlags_ScrollY : 0);
-                if (ImGui::BeginTable("ToolPositionTable", 2, table_flags, ImVec2(0.0f, needs_scroll ? table_view_h : 0.0f))) {
-                    char buff[1024];
-                    if (needs_scroll)
-                        ImGui::TableSetupScrollFreeze(0, 1); // Make top row always visible
-                    ImGui::TableSetupColumn((_u8L("Position") + " (" + _u8L("mm")   + ")").c_str());
-                    ImGui::TableSetupColumn((_u8L("Speed")    + " (" + _u8L("mm/s") + ")").c_str());
-                    ImGui::TableHeadersRow();
-                    int counter = 0;
-                    for (const ActualSpeedImguiWidget::Item& item : m_actual_speed_imgui_widget.data) {
-                        const bool highlight = hover_id >= 0 && (counter == hover_id || counter == hover_id + 1);
-                        ImGui::TableNextRow();
-                        const ImU32 row_bg_color = ImGui::GetColorU32(item.internal ? ImVec4(0.0f, 150.f / 255.0f, 136.0f / 255.f, 0.15f) : ImVec4(0.2f, 0.2f, 0.2f, 0.25f)); // ORCA
-                        ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, row_bg_color);
-                        ImGui::TableSetColumnIndex(0);
-                        sprintf(buff, "%.3f", item.pos);
-                        imgui.text_colored(highlight ? ImGuiWrapper::COL_ORCA : ImGuiWrapper::to_ImVec4(ColorRGBA::WHITE()), buff);
-                        ImGui::TableSetColumnIndex(1);
-                        sprintf(buff, "%.1f", item.speed);
-                        imgui.text_colored(highlight ? ImGuiWrapper::COL_ORCA : ImGuiWrapper::to_ImVec4(ColorRGBA::WHITE()), buff);
-                        ++counter;
-                    }
-
-                    ImGui::EndTable();
-                }
-                ImGui::PopStyleVar(2);
-                ImGui::PopStyleColor(5);
-                imgui.end();
-            }
-
-#endif // ENABLE_ACTUAL_SPEED_DEBUG
-
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Dummy({0, style.WindowPadding.y});
-        }
-
-        float draw_area_height = ImGui::GetTextLineHeight() * 2.f + style.ItemSpacing.y;
-        ImGui::Dummy({10.f, draw_area_height}); // reserve area
-
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding  , 3.f * m_scale);
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding   , ImVec2(2.f, 2.f) * m_scale);
-        ImGui::PushStyleColor(ImGuiCol_Button            , ImVec4(0, 0, 0, 0));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered     , ImVec4(84 / 255.f, 84 / 255.f, 90 / 255.f, 1.f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive      , ImVec4(84 / 255.f, 84 / 255.f, 90 / 255.f, 1.f));
-         
-        const float main_wnd_height = ImGui::GetWindowHeight();
-        const float draw_start_y = main_wnd_height - draw_area_height - style.WindowPadding.y;
-
-        ImGui::SetCursorPos(ImVec2(style.WindowPadding.x, draw_start_y));
-
-        // ORCA use glyph based button for fixing button sizes changing depends on used font size on platform
-        const wchar_t foldIcon = properties_shown ? ImGui::UnfoldButtonIcon : ImGui::FoldButtonIcon;
-        if (imgui.glyph_button(foldIcon, ImVec2(16.f, 16.f) * m_scale)) {
-            properties_shown = !properties_shown;
-            static float main_wnd_height_temp = ImGui::GetWindowHeight();
-            static float first_click = true;
-            if (first_click || main_wnd_height_temp != main_wnd_height) {
-                main_wnd_height_temp = main_wnd_height;
-                first_click = false;
-                imgui.set_requires_extra_frame();
-            }
-        }
-        ImGui::PopStyleColor(3);
-        ImGui::PopStyleVar(2);
-
-        ImGui::SetCursorPos(ImVec2(style.WindowPadding.x + style.ItemSpacing.x + 24.f * m_scale, draw_start_y - 1.f * m_scale));
-
-        ImGui::BeginGroup(); // group contents to make information area more compact
-
-        // Preview vertices include the plate offset for rendering in scene coordinates.
-        // Show the position relative to the current plate instead.
-        auto pos = vertex.position;
-        const Vec3d plate_origin = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_origin();
-        pos[0] -= static_cast<float>(plate_origin.x());
-        pos[1] -= static_cast<float>(plate_origin.y());
-
-        // ORCA Use colorized axis labels & reduce precision on large-scale prints,
-        // show one more decimal when the G-code was exported with high precision
-        int  max_value = std::round(std::max(std::max(pos[0], pos[1]), pos[2]));
-        auto precision = m_high_precision_gcode ? (max_value > 9999 ? "%.2f" : max_value > 999 ? "%.3f" : "%.4f")
-                                                : (max_value > 9999 ? "%.1f" : max_value > 999 ? "%.2f" : "%.3f");
-
-        char xBuf[32];
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()),"X ");
-        ImGui::SameLine(0,0); // ignore item spacing
-        sprintf(xBuf, precision, pos[0]);
-        ImGui::Text("%s", xBuf);
-
-        char yBuf[32];
-        ImGui::SameLine(axes_width + axes_spacing_x);
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Y()),"Y ");
-        ImGui::SameLine(0,0); // ignore item spacing
-        sprintf(yBuf, precision, pos[1]);
-        ImGui::Text("%s", yBuf);
-
-        char zBuf[32];
-        ImGui::SameLine(2.0f * (axes_width + axes_spacing_x));
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()),"Z ");
-        ImGui::SameLine(0,0); // ignore item spacing
-        sprintf(zBuf, precision, pos[2]);
-        ImGui::Text("%s", zBuf);
-
-        ImGui::SameLine(3.0f * axes_width + 2.0f * axes_spacing_x);
-        ImGui::Dummy({0,0});
-
-        char spdBuf[128];
-        sprintf(spdBuf, "%s%.0f ", _u8L("Speed: ").c_str(), vertex.feedrate);
-        ImGuiWrapper::text(spdBuf); // render Speed as different item to keep next item in same place
-        
-        if (detail_buf[0] != '\0') { // dont render if buffer empty
-            ImGui::SameLine(speed_width);
-            ImGuiWrapper::text(detail_buf);
+    auto draw_group = [&](const MoveDetailGroup& g) {
+        ImGui::BeginGroup();
+        const bool bold = imgui.push_bold_font();
+        ImGui::TextColored(muted, "%s", g.title.c_str());
+        if (bold)
+            imgui.pop_bold_font();
+        for (const MoveDetailRow& r : g.rows) {
+            ImGui::TextColored(muted, "%s", r.label.c_str());
+            ImGui::SameLine(0.f, std::max(0.f, g.width - text_width(r.label) - text_width(r.value)));
+            ImGuiWrapper::text(r.value);
         }
         ImGui::EndGroup();
+    };
 
-        imgui.end();
-        ImGui::PopStyleColor(5);
-        ImGui::PopStyleVar(2);
+    if (properties_shown) {
+        bool first = true;
+        auto next  = [&] {
+            if (!first)
+                ImGui::SameLine(0.f, group_gap);
+            first = false;
+        };
+        for (size_t i = 0; i < visible.visible_groups; ++i) {
+            next();
+            draw_group(groups[i]);
+            if (i == 1 && show_chart) {
+                next();
+                ImGui::BeginGroup();
+                const ImVec2 chart_size(profile_w, 3.f * text_h + 2.f * 4.f * s);
+                if (profile_available) {
+                    ImGui::TextColored(muted, "%s", profile_title.c_str());
+#if ENABLE_ACTUAL_SPEED_DEBUG
+                    m_actual_speed_imgui_widget.plot(chart_size, s);
+#endif // ENABLE_ACTUAL_SPEED_DEBUG
+                } else {
+                    ImGui::TextColored(muted, "%s", profile_btn.c_str());
+                    const ImVec2 p = ImGui::GetCursorScreenPos();
+                    ImGui::Dummy(chart_size);
+                    const ImVec2 text = ImGui::CalcTextSize(no_profile.c_str());
+                    ImGui::GetWindowDrawList()->AddText(p + ImVec2(0.5f * (chart_size.x - text.x), 0.5f * (chart_size.y - text.y)),
+                                                        ImGui::GetColorU32(muted), no_profile.c_str());
+                }
+                ImGui::EndGroup();
+            }
+        }
+        const size_t hidden = groups.size() - visible.visible_groups;
+        if (hidden > 0) {
+            next();
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.f * s);
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.f);
+            ImGui::PushStyleColor(ImGuiCol_Border, muted);
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgHovered));
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + text_h);
+            if (ImGui::Button(format(_L_PLURAL("%1% more", "%1% more", hidden), hidden).c_str(), ImVec2(more_w, 0.f)))
+                ImGui::OpenPopup("##more_move_details");
+            ImGui::PopStyleColor(3);
+            ImGui::PopStyleVar(2);
+
+            ImGui::SetNextWindowPos(ImVec2(ImGui::GetItemRectMin().x, ImGui::GetWindowPos().y - layout.gap), ImGuiCond_Always, ImVec2(0.f, 1.f));
+            if (ImGui::BeginPopup("##more_move_details")) {
+                for (size_t i = visible.visible_groups; i < groups.size(); ++i) {
+                    if (i > visible.visible_groups)
+                        ImGui::SameLine(0.f, group_gap);
+                    draw_group(groups[i]);
+                }
+                ImGui::EndPopup();
+            }
+        }
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + rule_gap);
+        ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(text_color.x, text_color.y, text_color.z, 0.2f));
+        ImGui::Separator();
+        ImGui::PopStyleColor();
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + rule_gap);
     }
-    else {
-        ImGuiWrapper& imgui = *wxGetApp().imgui();
-        //const Size cnv_size = wxGetApp().plater()->get_current_canvas3D()->get_canvas_size();
-        //imgui.set_next_window_pos(0.5f * static_cast<float>(cnv_size.get_width()), static_cast<float>(cnv_size.get_height()), ImGuiCond_Always, 0.5f, 1.0f);
-        imgui.set_next_window_pos(0.5f * static_cast<float>(canvas_width), static_cast<float>(canvas_height), ImGuiCond_Always, 0.5f, 1.0f);
-        ImGui::PushStyleColor(ImGuiCol_Border   , ImVec4(.0f,.0f,.0f,.0f));
-        ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(1.f,1.f,1.f,.6f));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f * m_scale);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding , ImVec2(10.f, 10.f) * m_scale);
-        ImGui::SetNextWindowBgAlpha(0.8f);
-        imgui.begin(std::string("ToolPosition"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
 
-        const Vec3f pos = m_world_position + m_world_offset + m_z_offset * Vec3f::UnitZ();
-
-        int  max_value = std::round(std::max(std::max(pos.x(), pos.y()),pos.z()));
-        auto precision = max_value > 9999 ? "%.1f" : max_value > 999 ? "%.2f" : "%.3f";
-        const float axes_width = ImGui::CalcTextSize("X 999.999sp").x;
-
-        char xBuf[32];
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()),"X ");
-        ImGui::SameLine(0,0); // ignore item spacing
-        sprintf(xBuf, precision, pos.x());
-        ImGui::Text("%s", xBuf);
-
-        char yBuf[32]; 
-        ImGui::SameLine(axes_width);
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Y()),"Y ");
-        ImGui::SameLine(0,0); // ignore item spacing
-        sprintf(yBuf, precision, pos.y());
-        ImGui::Text("%s", yBuf);
-
-        char zBuf[32];
-        ImGui::SameLine(axes_width * 2);
-        ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()),"Z ");
-        ImGui::SameLine(0,0); // ignore item spacing
-        sprintf(zBuf, precision, pos.z());
-        ImGui::Text("%s", zBuf);
-
-        ImGui::SameLine(axes_width * 3);
-        ImGui::Dummy({0,0});
-
-        imgui.end();
-        ImGui::PopStyleColor(2);
-        ImGui::PopStyleVar(2);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.f * s);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2.f, 2.f) * s);
+    ImGui::PushStyleColor(ImGuiCol_Button, properties_shown ? ImVec4(text_color.x, text_color.y, text_color.z, 0.15f) : ImVec4(0, 0, 0, 0));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgHovered));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgActive));
+    const float row_y = ImGui::GetCursorPosY();
+    if (imgui.glyph_button(properties_shown ? ImGui::UnfoldButtonIcon : ImGui::FoldButtonIcon, ImVec2(16.f, 16.f) * s)) {
+        properties_shown = !properties_shown;
+        imgui.set_requires_extra_frame();
     }
+    ImGui::PopStyleColor(3);
+    ImGui::PopStyleVar(2);
+    ImGui::SameLine(padding.x + chevron_w + 4.f * s);
+
+    slot(move_w, [&] {
+        ImGui::TextColored(muted, "%s", move_prefix.c_str());
+        right_aligned(move_num_w, bold_width(std::to_string(move_number)), [&] {
+            const bool bold = imgui.push_bold_font();
+            ImGuiWrapper::text(std::to_string(move_number));
+            if (bold)
+                imgui.pop_bold_font();
+        });
+        ImGui::SameLine(0.f, 0.f);
+        ImGui::TextColored(muted, "%s", move_suffix.c_str());
+    });
+    if (show_time)
+        slot(time_w, [&] {
+            ImGui::TextColored(muted, "%s", time_label.c_str());
+            right_aligned(space + time_value_w, text_width(time_value), [&] { ImGuiWrapper::text(time_value); });
+        });
+    if (visible.show_position) {
+        auto pos = vertex.position;
+        pos[0] -= static_cast<float>(plate_origin.x());
+        pos[1] -= static_cast<float>(plate_origin.y());
+        slot(position_w, [&] {
+            const std::array<std::pair<const char*, ColorRGBA>, 3> axes = {{{"X ", ColorRGBA::X()}, {"Y ", ColorRGBA::Y()}, {"Z ", ColorRGBA::Z()}}};
+            for (size_t i = 0; i < 3; ++i) {
+                if (i > 0)
+                    ImGui::SameLine(0.f, 2.f * space);
+                ImGui::TextColored(ImGuiWrapper::to_ImVec4(axes[i].second), "%s", axes[i].first);
+                const std::string value = format(precision, pos[i]);
+                right_aligned(axis_value_w[i], text_width(value), [&] { ImGuiWrapper::text(value); });
+            }
+        });
+    }
+    slot(speed_w, [&] {
+        ImGui::TextColored(muted, "%s", speed_label.c_str());
+        right_aligned(space + speed_value_w, text_width(speed_value), [&] { ImGuiWrapper::text(speed_value); });
+    });
+    if (show_filament)
+        slot(filament_w, [&] {
+            ImGui::TextColored(muted, "%s", filament_label.c_str());
+            ImGui::SameLine(0.f, space);
+            const libvgcode::PaletteWithAlpha& tools = viewer->get_tool_colors();
+            ColorRGBA color = vertex.extruder_id < tools.size() ? libvgcode::convert(tools[vertex.extruder_id]) : ColorRGBA::GRAY();
+            color.a(1.f);
+            const ImVec2 p = ImGui::GetCursorScreenPos();
+            ImGui::GetWindowDrawList()->AddCircleFilled(p + ImVec2(0.5f * dot_d, 0.5f * text_h), 0.5f * dot_d, ImGuiWrapper::to_ImU32(color), 16);
+            ImGui::Dummy(ImVec2(dot_d, text_h));
+            right_aligned(space + filament_num_w, text_width(filament_value), [&] { ImGuiWrapper::text(filament_value); });
+        });
+    if (show_swatch) {
+        const ImVec2 p  = ImGui::GetCursorScreenPos();
+        const float  sw = text_h * 0.7f;
+        const ColorRGBA c = libvgcode::convert(viewer->get_vertex_color(vertex));
+        ImGui::GetWindowDrawList()->AddRectFilled(p + ImVec2(0.f, 0.5f * (text_h - sw)), p + ImVec2(sw, 0.5f * (text_h + sw)),
+                                                  ImGuiWrapper::to_ImU32(c), 2.f * s);
+        ImGui::Dummy(ImVec2(sw, text_h));
+        ImGui::SameLine(0.f, space);
+    }
+    ImGuiWrapper::text(detail);
+
+    if (show_profile_button) {
+        const float btn_x = ImGui::GetWindowContentRegionMax().x - profile_btn_w;
+        ImGui::SameLine(std::max(btn_x, ImGui::GetCursorPosX()));
+        ImGui::SetCursorPosY(row_y);
+        const bool active = profile_shown;
+        if (active)
+            imgui.push_confirm_button_style();
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.f * s);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, active ? 0.f : 1.f);
+        ImGui::PushStyleColor(ImGuiCol_Border, muted);
+        if (!active) {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgHovered));
+        }
+        if (imgui.button(from_u8(profile_btn), ImVec2(profile_btn_w, 0.f), true)) {
+            profile_shown = !profile_shown;
+            imgui.set_requires_extra_frame();
+        }
+        if (!active)
+            ImGui::PopStyleColor(2);
+        ImGui::PopStyleColor();
+        ImGui::PopStyleVar(2);
+        if (active)
+            imgui.pop_confirm_button_style();
+    }
+
+    const ImVec2 wnd_pos  = ImGui::GetWindowPos();
+    const ImVec2 wnd_size = ImGui::GetWindowSize();
+    m_panel_rect          = {wnd_pos.x, wnd_pos.y, wnd_pos.x + wnd_size.x, wnd_pos.y + wnd_size.y};
+    ImGui::GetBackgroundDrawList()->AddRectFilled(wnd_pos, ImVec2(wnd_pos.x + wnd_size.x, layout.band_bottom), ImGui::GetColorU32(background),
+                                                  10.f * s, ImDrawFlags_RoundCornersTop);
+    const float fillet = 10.f * s;
+    const float right  = wnd_pos.x + wnd_size.x;
+    if (layout.bottom_band.left < wnd_pos.x - fillet)
+        draw_concave_corner(ImGui::GetBackgroundDrawList(), ImVec2(wnd_pos.x, layout.band_bottom), -1.f, -1.f, fillet, ImGui::GetColorU32(background));
+    if (layout.bottom_band.right > right + fillet)
+        draw_concave_corner(ImGui::GetBackgroundDrawList(), ImVec2(right, layout.band_bottom), 1.f, -1.f, fillet, ImGui::GetColorU32(background));
+    imgui.end();
+    ImGui::PopStyleVar(3);
+    ImGui::PopStyleColor(2);
 }
 
 void GCodeViewer::SequentialView::GCodeWindow::load_gcode(const std::string& filename, const std::vector<size_t> &lines_ends)
@@ -993,6 +1004,7 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
     static const ImVec4 PARAMETERS_COLOR     = { 1.0f, 1.0f, 1.0f, 1.0f };
     static const ImVec4 COMMENT_COLOR        = { 0.7f, 0.7f, 0.7f, 1.0f };
 
+    m_last_rect = PreviewRect();
     if (!wxGetApp().show_gcode_window() || m_filename.empty() || m_lines_ends.empty() || curr_line_id == 0)
         return;
 
@@ -1062,7 +1074,7 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
     ImGuiWrapper& imgui = *wxGetApp().imgui();
 
     //BBS: GUI refactor: move to right
-    imgui.set_next_window_pos(right, top + 6 * m_scale, ImGuiCond_Always, 1.0f, 0.0f); // ORCA add a small gap between legend and code viewer
+    imgui.set_next_window_pos(right, top, ImGuiCond_Always, 1.0f, 0.0f);
     ImGui::SetNextWindowSize(ImVec2(required_width, wnd_height), ImGuiCond_Always);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f * m_scale); // ORCA add window rounding to modernize / match style
     ImGui::SetNextWindowBgAlpha(0.8f);
@@ -1128,6 +1140,8 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
         }
     }
 
+    m_last_rect = {ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, ImGui::GetWindowPos().x + ImGui::GetWindowSize().x,
+                   ImGui::GetWindowPos().y + ImGui::GetWindowSize().y};
     imgui.end();
     ImGui::PopStyleVar();
 }
@@ -1151,19 +1165,19 @@ void GCodeViewer::SequentialView::render_marker(const bool has_render_path, int 
     }
 }
 
-void GCodeViewer::SequentialView::render_overlay(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type)
+void GCodeViewer::SequentialView::render_overlay(const bool has_render_path, float legend_bottom, const libvgcode::Viewer* viewer, uint32_t gcode_id, const PreviewOverlayLayout& layout, int move_number, int move_count, const libvgcode::EViewType& view_type)
 {
-    if (has_render_path && m_show_marker)
-        marker.render_position_window(viewer, canvas_width, canvas_height, view_type);
+    marker.render_position_window(has_render_path ? viewer : nullptr, layout, move_number, move_count, view_type);
 
-    //float bottom = wxGetApp().plater()->get_current_canvas3D()->get_canvas_size().get_height();
-    // BBS
-#if 0
-    if (wxGetApp().is_editor())
-        bottom -= wxGetApp().plater()->get_view_toolbar().get_height();
-#endif
-    if (has_render_path)
-        gcode_window.render(legend_height + 2, std::max(10.f, (float)canvas_height - 40), (float)canvas_width - (float)right_margin, gcode_id);
+    if (has_render_path) {
+        float              bottom = layout.overlays_bottom;
+        const PreviewRect& panel  = marker.panel_rect();
+        const PreviewRect& code   = gcode_window.last_rect();
+        if (panel.width() > 0.f && code.width() > 0.f && panel.right > code.left && panel.left < code.right)
+            bottom = std::min(bottom, panel.top - layout.gap);
+        const float gap = layout.legend_top - layout.top_pill.bottom;
+        gcode_window.render(legend_bottom + gap, std::max(legend_bottom + gap + 10.f, bottom), layout.overlay_right, gcode_id);
+    }
 }
 
 GCodeViewer::GCodeViewer()
@@ -1220,8 +1234,6 @@ void GCodeViewer::init(ConfigOptionMode mode, PresetBundle* preset_bundle)
     // BBS initialzed view_type items
     m_user_mode = mode;
     update_by_mode(m_user_mode);
-
-    m_layers_slider->init_texture();
 
     m_gl_data_initialized = true;
 
@@ -2424,7 +2436,7 @@ void GCodeViewer::render_markers(int canvas_width, int canvas_height)
             m_sequential_view.marker.set_color(SequentialView::Marker::default_color());
         }
     }
-    m_sequential_view.render_marker(!m_no_render_path, canvas_width, sequential_view_height(canvas_height), m_viewer.get_view_type());
+    m_sequential_view.render_marker(!m_no_render_path, canvas_width, canvas_height, m_viewer.get_view_type());
 
     // IDEX/IQEX: render toolhead footprint boxes for each active carriage.
     // Each box is imex_nozzle_clearance_x × imex_nozzle_clearance_y, sitting above the nozzle tip.
@@ -2716,20 +2728,20 @@ void GCodeViewer::set_clipping_plane(const ClippingPlane& plane)
     m_viewer.set_clipping_plane(m_clipping_plane);
 }
 
-void GCodeViewer::render_overlay(int canvas_width, int canvas_height, int right_margin)
+void GCodeViewer::render_overlay(int canvas_width, int canvas_height, const PreviewOverlayLayout& layout)
 {
-    if (m_viewer.get_extrusion_roles().empty())
-        return;
 
     float legend_height = 0.0f;
-    render_legend(legend_height, canvas_width, canvas_height, right_margin);
+    render_legend(legend_height, canvas_width, canvas_height, layout);
 
     if (m_user_mode != wxGetApp().get_mode()) {
         update_by_mode(wxGetApp().get_mode());
         m_user_mode = wxGetApp().get_mode();
     }
 
-    m_sequential_view.render_overlay(!m_no_render_path, legend_height, &m_viewer, m_viewer.get_current_vertex().gcode_id, canvas_width, sequential_view_height(canvas_height), right_margin * m_scale, m_viewer.get_view_type());
+    const int move_number = m_moves_slider->GetHigherValue() - m_moves_slider->GetMinValue() + 1;
+    const int move_count  = m_moves_slider->GetMaxValue() - m_moves_slider->GetMinValue() + 1;
+    m_sequential_view.render_overlay(!m_no_render_path, layout.legend_top + legend_height, &m_viewer, m_viewer.get_current_vertex().gcode_id, layout, move_number, move_count, m_viewer.get_view_type());
 
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     if (is_legend_shown()) {
@@ -2766,16 +2778,7 @@ void GCodeViewer::render_overlay(int canvas_width, int canvas_height, int right_
     }
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
 
-    //BBS render slider
-    render_slider(canvas_width, canvas_height);
-}
-
-int GCodeViewer::sequential_view_height(int canvas_height) const
-{
-    //BBS fixed bottom_margin for space to render horiz slider
-    const int bottom_margin = SLIDER_BOTTOM_MARGIN * GCODE_VIEWER_SLIDER_SCALE;
-    // BBS fixed buttom margin. m_moves_slider.pos_y
-    return canvas_height - bottom_margin * m_scale;
+    render_slider(layout);
 }
 
 #define ENABLE_CALIBRATION_THUMBNAIL_OUTPUT 0
@@ -2822,8 +2825,6 @@ void GCodeViewer::update_sequential_view_current(unsigned int first, unsigned in
         const libvgcode::PathVertex& curr_vertex = m_viewer.get_current_vertex();
         if (curr_vertex.is_extrusion() || curr_vertex.is_travel() || curr_vertex.is_wipe() ||
             curr_vertex.type == libvgcode::EMoveType::Seam) {
-            const libvgcode::ColorRange& color_range = m_viewer.get_color_range(libvgcode::EViewType::ActualSpeed);
-            const std::array<float, 2>& interval = color_range.get_range();
             const size_t vertices_count = m_viewer.get_vertices_count();
             std::vector<SequentialView::ActualSpeedImguiWidget::Item> actual_speed_data;
             // collect vertices sharing the same gcode_id
@@ -2856,13 +2857,6 @@ void GCodeViewer::update_sequential_view_current(unsigned int first, unsigned in
                     actual_speed_data.push_back({ total_len, v.actual_feedrate, v.times[0] == 0.0f });
             }
 
-            std::vector<std::pair<float, ColorRGBA>> levels;
-            const std::vector<float> values = color_range.get_values();
-            for (float value : values) {
-                levels.push_back(std::make_pair(value, libvgcode::convert(color_range.get_color_at(value))));
-                levels.back().second.a(0.5f);
-            }
-
             // ORCA Compress consecutive duplicate speeds with 0.1 precision
             auto sameSpeed = [](float a, float b) {
                 return static_cast<int>(std::roundf(a * 10.0f)) == static_cast<int>(std::roundf(b * 10.0f));
@@ -2885,8 +2879,6 @@ void GCodeViewer::update_sequential_view_current(unsigned int first, unsigned in
             }
 
             m_sequential_view.marker.set_actual_speed_data(compressed);
-            m_sequential_view.marker.set_actual_speed_y_range(std::make_pair(interval[0], interval[1]));
-            m_sequential_view.marker.set_actual_speed_levels(levels);
         }
     }
 #endif // ENABLE_ACTUAL_SPEED_DEBUG
@@ -4624,7 +4616,7 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
     ImGui::PopStyleVar(1);
 }
 
-void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canvas_height, int right_margin)
+void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canvas_height, const PreviewOverlayLayout& layout)
 {
     if (!is_legend_shown())
         return;
@@ -4634,7 +4626,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     ImGuiWrapper& imgui = *wxGetApp().imgui();
 
     //BBS: GUI refactor: move to the right
-    imgui.set_next_window_pos(float(canvas_width - right_margin * m_scale), 4.0f * m_scale, ImGuiCond_Always, 1.0f, 0.0f); // ORCA add a small gap to top to create seperation with main toolbar
+    imgui.set_next_window_pos(layout.overlay_right, layout.legend_top, ImGuiCond_Always, 1.0f, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f * m_scale); // ORCA add window rounding to modernize / match style
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0,0.0));
     ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(1.0f,1.0f,1.0f,0.6f));
@@ -4646,7 +4638,12 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     //ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(1.f, 1.f, 1.f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_Border, {1, 0, 0, 0});
     ImGui::SetNextWindowBgAlpha(0.8f);
-    const float max_height = 0.75f * static_cast<float>(cnv_size.get_height());
+    float              max_height = 0.75f * static_cast<float>(cnv_size.get_height());
+    const PreviewRect& panel      = m_sequential_view.marker.panel_rect();
+    const ImGuiWindow* last       = ImGui::FindWindowByName("Legend");
+    const float        left       = layout.overlay_right - (last != nullptr ? last->Size.x : 0.f);
+    if (panel.width() > 0.f && panel.right > left && panel.left < layout.overlay_right)
+        max_height = std::max(0.f, std::min(max_height, panel.top - layout.gap - layout.legend_top));
     const float child_height = 0.3333f * max_height;
     ImGui::SetNextWindowSizeConstraints({ 0.0f, 0.0f }, { -1.0f, max_height });
     imgui.begin(std::string("Legend"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove);
@@ -6239,9 +6236,10 @@ void GCodeViewer::pop_combo_style()
     ImGui::PopStyleColor(8);
 }
 
-void GCodeViewer::render_slider(int canvas_width, int canvas_height) {
-    m_moves_slider->render(canvas_width, canvas_height);
-    m_layers_slider->render(canvas_width, canvas_height);
+void GCodeViewer::render_slider(const PreviewOverlayLayout& layout) {
+    m_moves_slider->render(layout);
+    m_moves_slider->add_wheel_area(m_sequential_view.marker.panel_rect());
+    m_layers_slider->render(layout);
 }
 
 } // namespace GUI

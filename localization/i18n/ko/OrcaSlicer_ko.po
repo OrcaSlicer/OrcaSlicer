@@ -3792,18 +3792,14 @@ msgstr "일시 정지"
 msgid "Template"
 msgstr "탬플릿"
 
+# AI Translated
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr "%1% · %2% mm"
+
 msgid "Custom"
 msgstr "사용자 정의"
-
-msgid "Pause:"
-msgstr "일시 정지:"
-
-msgid "Custom Template:"
-msgstr "사용자 정의 템플릿:"
-
-# AI Translated
-msgid "Custom G-code:"
-msgstr "사용자 정의 G-code:"
 
 # AI Translated
 msgid "Custom G-code"
@@ -6643,11 +6639,36 @@ msgstr "PA: "
 msgid "mm/s"
 msgstr "mm/s"
 
+# AI Translated
+msgctxt "Move details"
+msgid "LINE"
+msgstr "선"
+
+# AI Translated
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr "너비 × 높이"
+
+# AI Translated
+msgctxt "Move details"
+msgid "MOTION"
+msgstr "동작"
+
 msgid "mm/s²"
 msgstr "mm/s²"
 
+# AI Translated
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr "압출"
+
 msgid "mm³/s"
 msgstr "mm³/s"
+
+# AI Translated
+msgctxt "Move details"
+msgid "THERMAL"
+msgstr "온도"
 
 msgid "Flow rate"
 msgstr "압출량"
@@ -6655,14 +6676,33 @@ msgstr "압출량"
 msgid "Fan speed"
 msgstr "팬 속도"
 
+# AI Translated
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr "이동 %1% / %2%"
+
 msgid "Time"
 msgstr "시간"
 
-msgid "Speed: "
-msgstr "속도: "
+# AI Translated
+msgid "Speed profile"
+msgstr "속도 프로필"
 
-msgid "Actual speed profile"
-msgstr "실제 속도 프로파일"
+# AI Translated
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
+msgstr "실제 속도 프로필 · %1% mm · %2% s"
+
+# AI Translated
+msgid "No speed profile for this move"
+msgstr "이 이동에는 속도 프로필이 없습니다"
+
+# AI Translated
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] "%1%개 더 보기"
 
 # AI Translated
 msgid "Automatic"
@@ -35241,6 +35281,15 @@ msgstr "텍스처 심 경로 표시"
 #, boost-format
 msgid "Layer %1%"
 msgstr "레이어 %1%"
+
+# AI Translated
+#, boost-format
+msgid "%1% mm"
+msgstr "%1% mm"
+
+# AI Translated
+msgid "Single layer"
+msgstr "단일 레이어"
 
 # AI Translated
 msgid "Average island scale"

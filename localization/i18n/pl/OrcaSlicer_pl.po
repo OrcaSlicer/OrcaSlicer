@@ -3852,17 +3852,14 @@ msgstr "Pauza"
 msgid "Template"
 msgstr "Szablon"
 
+# AI Translated
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr "%1% · %2% mm"
+
 msgid "Custom"
 msgstr "Niestandardowy"
-
-msgid "Pause:"
-msgstr "Pauza:"
-
-msgid "Custom Template:"
-msgstr "Niestandardowy szablon:"
-
-msgid "Custom G-code:"
-msgstr "Niestandardowy G-code:"
 
 msgid "Custom G-code"
 msgstr "Niestandardowy G-code"
@@ -6715,11 +6712,36 @@ msgstr "PA: "
 msgid "mm/s"
 msgstr "mm/s"
 
+# AI Translated
+msgctxt "Move details"
+msgid "LINE"
+msgstr "LINIA"
+
+# AI Translated
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr "Sz × W"
+
+# AI Translated
+msgctxt "Move details"
+msgid "MOTION"
+msgstr "RUCH"
+
 msgid "mm/s²"
 msgstr "mm/s²"
 
+# AI Translated
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr "EKSTRUZJA"
+
 msgid "mm³/s"
 msgstr "mm³/s"
+
+# AI Translated
+msgctxt "Move details"
+msgid "THERMAL"
+msgstr "TEMPERATURA"
 
 msgid "Flow rate"
 msgstr "Natężenie przepływu"
@@ -6727,14 +6749,35 @@ msgstr "Natężenie przepływu"
 msgid "Fan speed"
 msgstr "Prędkość wentylatora"
 
+# AI Translated
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr "Ruch %1% z %2%"
+
 msgid "Time"
 msgstr "Czas"
 
-msgid "Speed: "
-msgstr "Prędkość: "
+# AI Translated
+msgid "Speed profile"
+msgstr "Profil prędkości"
 
-msgid "Actual speed profile"
-msgstr "Profil prędkości rzeczywistej"
+# AI Translated
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
+msgstr "Profil rzeczywistej prędkości · %1% mm · %2% s"
+
+# AI Translated
+msgid "No speed profile for this move"
+msgstr "Ten ruch nie ma profilu prędkości"
+
+# AI Translated
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] "Jeszcze %1% grupa"
+msgstr[1] "Jeszcze %1% grupy"
+msgstr[2] "Jeszcze %1% grup"
 
 # AI Translated
 msgid "Automatic"
@@ -35291,6 +35334,15 @@ msgstr "Oznacz ścieżkę szwu tekstury"
 #, boost-format
 msgid "Layer %1%"
 msgstr "Warstwa %1%"
+
+# AI Translated
+#, boost-format
+msgid "%1% mm"
+msgstr "%1% mm"
+
+# AI Translated
+msgid "Single layer"
+msgstr "Pojedyncza warstwa"
 
 # AI Translated
 msgid "Average island scale"

@@ -3630,17 +3630,14 @@ msgstr "Pausa"
 msgid "Template"
 msgstr "Plantilla"
 
+# AI Translated
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr "%1% · %2% mm"
+
 msgid "Custom"
 msgstr "Personalizado"
-
-msgid "Pause:"
-msgstr "Pausa:"
-
-msgid "Custom Template:"
-msgstr "Plantillas Personalizadas:"
-
-msgid "Custom G-code:"
-msgstr "G-Code personalizado:"
 
 msgid "Custom G-code"
 msgstr "G-Code personalizado"
@@ -6400,11 +6397,36 @@ msgstr "PA: "
 msgid "mm/s"
 msgstr "mm/s"
 
+# AI Translated
+msgctxt "Move details"
+msgid "LINE"
+msgstr "LÍNEA"
+
+# AI Translated
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr "An × Al"
+
+# AI Translated
+msgctxt "Move details"
+msgid "MOTION"
+msgstr "MOVIMIENTO"
+
 msgid "mm/s²"
 msgstr "mm/s²"
 
+# AI Translated
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr "EXTRUSIÓN"
+
 msgid "mm³/s"
 msgstr "mm³/s"
+
+# AI Translated
+msgctxt "Move details"
+msgid "THERMAL"
+msgstr "TEMPERATURA"
 
 msgid "Flow rate"
 msgstr "Test de Flujo"
@@ -6412,14 +6434,34 @@ msgstr "Test de Flujo"
 msgid "Fan speed"
 msgstr "Velocidad del ventilador"
 
+# AI Translated
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr "Movimiento %1% de %2%"
+
 msgid "Time"
 msgstr "Tiempo"
 
-msgid "Speed: "
-msgstr "Velocidad: "
+# AI Translated
+msgid "Speed profile"
+msgstr "Perfil de velocidad"
 
-msgid "Actual speed profile"
-msgstr "Perfil de velocidad real"
+# AI Translated
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
+msgstr "Perfil de velocidad real · %1% mm · %2% s"
+
+# AI Translated
+msgid "No speed profile for this move"
+msgstr "Este movimiento no tiene perfil de velocidad"
+
+# AI Translated
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] "%1% más"
+msgstr[1] "%1% más"
 
 # AI Translated
 msgid "Automatic"
@@ -33983,6 +34025,15 @@ msgstr "Marcar trayecto de costura de textura"
 #, boost-format
 msgid "Layer %1%"
 msgstr "Capa %1%"
+
+# AI Translated
+#, boost-format
+msgid "%1% mm"
+msgstr "%1% mm"
+
+# AI Translated
+msgid "Single layer"
+msgstr "Capa única"
 
 # AI Translated
 msgid "Average island scale"

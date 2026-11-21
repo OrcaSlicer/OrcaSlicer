@@ -3928,17 +3928,14 @@ msgstr "一時停止"
 msgid "Template"
 msgstr "テンプレート"
 
+# AI Translated
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr "%1% · %2% mm"
+
 msgid "Custom"
 msgstr "カスタム"
-
-msgid "Pause:"
-msgstr "一時停止:"
-
-msgid "Custom Template:"
-msgstr "カスタムテンプレート:"
-
-msgid "Custom G-code:"
-msgstr "カスタムG-code:"
 
 msgid "Custom G-code"
 msgstr "カスタム G-code"
@@ -6852,11 +6849,36 @@ msgstr "PA: "
 msgid "mm/s"
 msgstr "mm/s"
 
+# AI Translated
+msgctxt "Move details"
+msgid "LINE"
+msgstr "線"
+
+# AI Translated
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr "幅 × 高さ"
+
+# AI Translated
+msgctxt "Move details"
+msgid "MOTION"
+msgstr "動作"
+
 msgid "mm/s²"
 msgstr "mm/s²"
 
+# AI Translated
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr "押出"
+
 msgid "mm³/s"
 msgstr "mm³/s"
+
+# AI Translated
+msgctxt "Move details"
+msgid "THERMAL"
+msgstr "温度"
 
 msgid "Flow rate"
 msgstr "フロー率"
@@ -6866,14 +6888,33 @@ msgstr "フロー率"
 msgid "Fan speed"
 msgstr "ファン回転速度"
 
+# AI Translated
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr "移動 %1% / %2%"
+
 msgid "Time"
 msgstr "時間"
 
-msgid "Speed: "
-msgstr "速度: "
+# AI Translated
+msgid "Speed profile"
+msgstr "速度プロファイル"
 
-msgid "Actual speed profile"
-msgstr "実際の速度プロファイル"
+# AI Translated
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
+msgstr "実速度プロファイル · %1% mm · %2% s"
+
+# AI Translated
+msgid "No speed profile for this move"
+msgstr "この移動には速度プロファイルがありません"
+
+# AI Translated
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] "他 %1% 件"
 
 # AI Translated
 msgid "Automatic"
@@ -36115,6 +36156,16 @@ msgstr "テクスチャのシームをパスでマーク"
 #, boost-format
 msgid "Layer %1%"
 msgstr "レイヤー%1%"
+
+# AI Translated
+#, boost-format
+msgid "%1% mm"
+msgstr "%1% mm"
+
+# AI Translated
+# Needs human review: Tooltip of the single layer toggle on the layer slider; the existing hotkey hint calls the mode 1レイヤーモード while the glossary has 積層 — check which reads better here.
+msgid "Single layer"
+msgstr "単一積層"
 
 # AI Translated
 msgid "Average island scale"

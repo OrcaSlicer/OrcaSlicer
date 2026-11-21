@@ -3674,17 +3674,14 @@ msgstr "Pausa"
 msgid "Template"
 msgstr "Txantiloia"
 
+# AI Translated
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr "%1% · %2% mm"
+
 msgid "Custom"
 msgstr "Pertsonalizatua"
-
-msgid "Pause:"
-msgstr "Pausa:"
-
-msgid "Custom Template:"
-msgstr "Txantiloi pertsonalizatua:"
-
-msgid "Custom G-code:"
-msgstr "G-code pertsonalizatua:"
 
 msgid "Custom G-code"
 msgstr "G-code pertsonalizatua"
@@ -6465,11 +6462,36 @@ msgstr "PA: "
 msgid "mm/s"
 msgstr "mm/s"
 
+# AI Translated
+msgctxt "Move details"
+msgid "LINE"
+msgstr "LERROA"
+
+# AI Translated
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr "Z × G"
+
+# AI Translated
+msgctxt "Move details"
+msgid "MOTION"
+msgstr "MUGIMENDUA"
+
 msgid "mm/s²"
 msgstr "mm/s²"
 
+# AI Translated
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr "ESTRUSIOA"
+
 msgid "mm³/s"
 msgstr "mm³/s"
+
+# AI Translated
+msgctxt "Move details"
+msgid "THERMAL"
+msgstr "TENPERATURA"
 
 msgid "Flow rate"
 msgstr "Fluxu-tasa"
@@ -6477,14 +6499,35 @@ msgstr "Fluxu-tasa"
 msgid "Fan speed"
 msgstr "Haizagailuaren abiadura"
 
+# AI Translated
+# Needs human review: Header of the move panel in the G-code preview: current move number of the move count in the layer; check the wording reads naturally.
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr "%1%. mugimendua (%2% guztira)"
+
 msgid "Time"
 msgstr "Denbora"
 
-msgid "Speed: "
-msgstr "Abiadura: "
+# AI Translated
+msgid "Speed profile"
+msgstr "Abiadura-profila"
 
-msgid "Actual speed profile"
-msgstr "Benetako abiadura-profila"
+# AI Translated
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
+msgstr "Uneko abiaduraren profila · %1% mm · %2% s"
+
+# AI Translated
+msgid "No speed profile for this move"
+msgstr "Mugimendu honek ez du abiadura-profilik"
+
+# AI Translated
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] "Beste %1%"
+msgstr[1] "Beste %1%"
 
 # AI Translated
 msgid "Automatic"
@@ -34222,6 +34265,15 @@ msgstr "Markatu testuraren ebaki-lerroaren bidea"
 #, boost-format
 msgid "Layer %1%"
 msgstr "Geruza %1%"
+
+# AI Translated
+#, boost-format
+msgid "%1% mm"
+msgstr "%1% mm"
+
+# AI Translated
+msgid "Single layer"
+msgstr "Geruza bakarra"
 
 # AI Translated
 msgid "Average island scale"

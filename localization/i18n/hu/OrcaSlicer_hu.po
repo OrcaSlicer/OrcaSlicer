@@ -3775,18 +3775,14 @@ msgstr "Szünet"
 msgid "Template"
 msgstr "Sablon"
 
+# AI Translated
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr "%1% · %2% mm"
+
 msgid "Custom"
 msgstr "Egyéni"
-
-msgid "Pause:"
-msgstr "Szünet:"
-
-msgid "Custom Template:"
-msgstr "Egyéni sablon:"
-
-# AI Translated
-msgid "Custom G-code:"
-msgstr "Egyéni G-code:"
 
 # AI Translated
 msgid "Custom G-code"
@@ -6622,11 +6618,36 @@ msgstr "PA: "
 msgid "mm/s"
 msgstr "mm/s"
 
+# AI Translated
+msgctxt "Move details"
+msgid "LINE"
+msgstr "VONAL"
+
+# AI Translated
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr "Sz × M"
+
+# AI Translated
+msgctxt "Move details"
+msgid "MOTION"
+msgstr "MOZGÁS"
+
 msgid "mm/s²"
 msgstr "mm/s²"
 
+# AI Translated
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr "EXTRUDÁLÁS"
+
 msgid "mm³/s"
 msgstr "mm³/s"
+
+# AI Translated
+msgctxt "Move details"
+msgid "THERMAL"
+msgstr "HŐMÉRSÉKLET"
 
 msgid "Flow rate"
 msgstr "Anyagáramlás"
@@ -6634,14 +6655,34 @@ msgstr "Anyagáramlás"
 msgid "Fan speed"
 msgstr "Ventilátor fordulatszám"
 
+# AI Translated
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr "%1%. mozgás / %2%"
+
 msgid "Time"
 msgstr "Idő"
 
-msgid "Speed: "
-msgstr "Sebesség: "
+# AI Translated
+msgid "Speed profile"
+msgstr "Sebességprofil"
 
-msgid "Actual speed profile"
-msgstr "Tényleges sebességprofil"
+# AI Translated
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
+msgstr "Tényleges sebességprofil · %1% mm · %2% s"
+
+# AI Translated
+msgid "No speed profile for this move"
+msgstr "Ehhez a mozgáshoz nincs sebességprofil"
+
+# AI Translated
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] "Még %1%"
+msgstr[1] "Még %1%"
 
 # AI Translated
 msgid "Automatic"
@@ -34871,6 +34912,15 @@ msgstr "UV-varrat útvonalának jelölése"
 #, boost-format
 msgid "Layer %1%"
 msgstr "%1%. réteg"
+
+# AI Translated
+#, boost-format
+msgid "%1% mm"
+msgstr "%1% mm"
+
+# AI Translated
+msgid "Single layer"
+msgstr "Egyetlen réteg"
 
 # AI Translated
 msgid "Average island scale"

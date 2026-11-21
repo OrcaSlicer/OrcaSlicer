@@ -339,41 +339,6 @@ bool slider_behavior(ImGuiID id, const ImRect& region, const ImS32 v_min, const 
     return value_changed;
 }
 
-bool button_with_pos(ImTextureID user_texture_id, const ImVec2 &size, const ImVec2 &pos, const ImVec2 &uv0, const ImVec2 &uv1, int frame_padding, const ImVec4 &bg_col, const ImVec4 &tint_col, const ImVec2 &margin)
-{
-
-    ImGuiContext &g      = *GImGui;
-    ImGuiWindow * window = g.CurrentWindow;
-    if (window->SkipItems) return false;
-
-    // Default to using texture ID as ID. User can still push string/integer prefixes.
-    ImGui::PushID((void *) (intptr_t) user_texture_id);
-    const ImGuiID id = window->GetID("#image");
-    ImGui::PopID();
-
-    const ImVec2 padding = (frame_padding >= 0) ? ImVec2((float) frame_padding, (float) frame_padding) : g.Style.FramePadding;
-
-    const ImRect bb(pos, pos + size + padding * 2 + margin * 2);
-
-    bool hovered, held;
-    bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
-
-    // Render
-    const ImU32 col = ImGui::GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
-    ImGui::RenderNavHighlight(bb, id);
-
-    const float border_size = g.Style.FrameBorderSize;
-    if (border_size > 0.0f) {
-        window->DrawList->AddRect(bb.Min + ImVec2(1, 1), bb.Max + ImVec2(1, 1), col, g.Style.FrameRounding, 0, border_size);
-        window->DrawList->AddRect(bb.Min, bb.Max, col, g.Style.FrameRounding, 0, border_size);
-    }
-
-    if (bg_col.w > 0.0f) window->DrawList->AddRectFilled(bb.Min + padding, bb.Max - padding, ImGui::GetColorU32(bg_col));
-    window->DrawList->AddImage(user_texture_id, bb.Min + padding + margin, bb.Max - padding - margin, uv0, uv1, ImGui::GetColorU32(tint_col));
-
-    return pressed;
-}
-
 ImGuiWrapper::ImGuiWrapper()
 {
     ImGui::CreateContext();

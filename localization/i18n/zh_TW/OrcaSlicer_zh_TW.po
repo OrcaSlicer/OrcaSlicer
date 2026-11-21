@@ -3942,17 +3942,14 @@ msgstr "暫停"
 msgid "Template"
 msgstr "範本"
 
+# AI Translated
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr "%1% · %2% mm"
+
 msgid "Custom"
 msgstr "自訂"
-
-msgid "Pause:"
-msgstr "暫停："
-
-msgid "Custom Template:"
-msgstr "自訂範本："
-
-msgid "Custom G-code:"
-msgstr "自訂 G-code："
 
 msgid "Custom G-code"
 msgstr "自訂 G-code"
@@ -6896,11 +6893,36 @@ msgstr "PA： "
 msgid "mm/s"
 msgstr "mm/s"
 
+# AI Translated
+msgctxt "Move details"
+msgid "LINE"
+msgstr "線"
+
+# AI Translated
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr "寬 × 高"
+
+# AI Translated
+msgctxt "Move details"
+msgid "MOTION"
+msgstr "運動"
+
 msgid "mm/s²"
 msgstr "mm/s²"
 
+# AI Translated
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr "擠出"
+
 msgid "mm³/s"
 msgstr "mm³/s"
+
+# AI Translated
+msgctxt "Move details"
+msgid "THERMAL"
+msgstr "溫度"
 
 msgid "Flow rate"
 msgstr "流量"
@@ -6908,16 +6930,34 @@ msgstr "流量"
 msgid "Fan speed"
 msgstr "風扇速度"
 
+# AI Translated
+# Needs human review: Header of the move panel in the G-code preview: current move number of the move count in the layer; check the wording reads naturally.
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr "第 %1%/%2% 步移動"
+
 msgid "Time"
 msgstr "時間"
 
 # AI Translated
-msgid "Speed: "
-msgstr "速度： "
+msgid "Speed profile"
+msgstr "速度曲線"
 
 # AI Translated
-msgid "Actual speed profile"
-msgstr "實際速度曲線"
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
+msgstr "實際速度曲線 · %1% mm · %2% s"
+
+# AI Translated
+msgid "No speed profile for this move"
+msgstr "此移動沒有速度曲線"
+
+# AI Translated
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] "還有 %1% 項"
 
 # AI Translated
 msgid "Automatic"
@@ -36112,6 +36152,15 @@ msgstr "標記紋理縫合線路徑"
 #, boost-format
 msgid "Layer %1%"
 msgstr "圖層 %1%"
+
+# AI Translated
+#, boost-format
+msgid "%1% mm"
+msgstr "%1% mm"
+
+# AI Translated
+msgid "Single layer"
+msgstr "單層"
 
 # AI Translated
 msgid "Average island scale"
