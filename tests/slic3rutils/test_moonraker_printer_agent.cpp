@@ -1227,7 +1227,7 @@ TEST_CASE("The Device tab's speed levels map to the printer's speed factor and b
     CHECK(MoonrakerPrinterAgent::build_print_payload(status, {}, true).at("print").at("spd_lvl") == 4);
 }
 
-TEST_CASE("Status reports show the chamber LED as the chamber light", "[MoonrakerPrinterAgent][Status]")
+TEST_CASE("Status reports show the chamber LED as the chamber light and the chamber sensor's temperature", "[MoonrakerPrinterAgent][Status]")
 {
     const auto light = [](const nlohmann::json& color_data) {
         const nlohmann::json status = {{"led cavity_led", {{"color_data", color_data}}}};
@@ -1236,6 +1236,11 @@ TEST_CASE("Status reports show the chamber LED as the chamber light", "[Moonrake
     CHECK(light({{0, 0, 0, 1}}).at("mode") == "on");
     CHECK(light({{0, 0, 0, 0}}).at("mode") == "off");
     CHECK(light({{0, 0, 0, 0}}).at("node") == "chamber_light");
+    // The chamber sensor's temperature, shown because it is reported
+    const nlohmann::json chamber = MoonrakerPrinterAgent::build_print_payload(
+        {{"temperature_sensor cavity", {{"temperature", 31.5}}}}, {}, true, {}, "temperature_sensor cavity").at("print");
+    CHECK(chamber.at("chamber_temper") == 31.5);
+    CHECK(chamber.at("support_chamber_temp_display") == true);
     // An agent without a chamber LED reports no light
     CHECK_FALSE(MoonrakerPrinterAgent::build_print_payload({{"led cavity_led", {{"color_data", {{1, 1, 1, 1}}}}}}, {}, true)
                     .at("print")

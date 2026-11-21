@@ -1913,6 +1913,9 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
                 if (const std::string led = chamber_led(); !led.empty() && this->available_objects.count("led " + led) != 0) {
                     subscribe_objects.insert("led " + led);
                 }
+                if (const std::string sensor = chamber_sensor(); !sensor.empty() && this->available_objects.count(sensor) != 0) {
+                    subscribe_objects.insert(sensor);
+                }
 
                 // Add display_status for layer info (if available)
                 if (this->available_objects.count("display_status") != 0) {
@@ -2193,7 +2196,7 @@ void MoonrakerPrinterAgent::update_status_cache(const nlohmann::json& updates)
 
 nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
 {
-    return build_print_payload(status_cache, available_objects, has_storage.load(), chamber_led());
+    return build_print_payload(status_cache, available_objects, has_storage.load(), chamber_led(), chamber_sensor());
 }
 
 int MoonrakerPrinterAgent::speed_percent_for_level(int level)
@@ -2224,7 +2227,8 @@ int MoonrakerPrinterAgent::speed_level_for_factor(double speed_factor)
 nlohmann::json MoonrakerPrinterAgent::build_print_payload(const nlohmann::json&        status_cache,
                                                          const std::set<std::string>& available_objects,
                                                          bool                         storage,
-                                                         const std::string&           chamber_led)
+                                                         const std::string&           chamber_led,
+                                                         const std::string&           chamber_sensor)
 {
     nlohmann::json payload;
     payload["print"]["command"]            = "push_status";
@@ -2392,6 +2396,13 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload(const nlohmann::json& 
             payload["print"]["layer_num"] = info.contains("current_layer") && info["current_layer"].is_number_integer() ?
                                                 info["current_layer"].get<int>() : 0;
         }
+    }
+
+    // Shown only for a printer that reports it
+    if (!chamber_sensor.empty() && status_cache.contains(chamber_sensor) && status_cache[chamber_sensor].contains("temperature") &&
+        status_cache[chamber_sensor]["temperature"].is_number()) {
+        payload["print"]["chamber_temper"]               = status_cache[chamber_sensor]["temperature"].get<float>();
+        payload["print"]["support_chamber_temp_display"] = true;
     }
 
     if (status_cache.contains("gcode_move") && status_cache["gcode_move"].contains("speed_factor") &&

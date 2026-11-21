@@ -47,6 +47,7 @@ public:
 
 protected:
     std::string                 chamber_led() const override { return "cavity_led"; }
+    std::string                 chamber_sensor() const override { return "temperature_sensor cavity"; }
     CameraSource                fetch_camera(const std::string& base_url, const std::string& api_key,
                                              const std::function<bool()>& cancelled) const override;
     std::vector<nlohmann::json> take_ws_requests() override;
