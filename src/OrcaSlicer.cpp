@@ -5591,10 +5591,7 @@ int CLI::run(int argc, char **argv)
                     arrange_cfg.align_to_y_axis = (printer_structure_opt->value == PrinterStructure::psI3);
                 }
 
-                arrangement::update_arrange_params(arrange_cfg, &m_print_config, selected);
-                arrangement::update_selected_items_inflation(selected, &m_print_config, arrange_cfg);
-                arrangement::update_unselected_items_inflation(unselected, &m_print_config, arrange_cfg);
-                arrangement::update_selected_items_axis_align(selected, &m_print_config, arrange_cfg);
+                arrangement::update_arrange_items(selected, unselected, &m_print_config, arrange_cfg);
 
                 beds = get_shrink_bedpts(&m_print_config, arrange_cfg);
 
@@ -6066,10 +6063,7 @@ int CLI::run(int argc, char **argv)
                     arrange_cfg.align_to_y_axis = (printer_structure_opt->value == PrinterStructure::psI3);
                 }
 
-                arrangement::update_arrange_params(arrange_cfg, &m_print_config, selected);
-                arrangement::update_selected_items_inflation(selected, &m_print_config, arrange_cfg);
-                arrangement::update_unselected_items_inflation(unselected, &m_print_config, arrange_cfg);
-                arrangement::update_selected_items_axis_align(selected, &m_print_config, arrange_cfg);
+                arrangement::update_arrange_items(selected, unselected, &m_print_config, arrange_cfg);
 
                 beds=get_shrink_bedpts(&m_print_config, arrange_cfg);
 
@@ -6895,6 +6889,12 @@ int CLI::run(int argc, char **argv)
                                     }
                                     else
                                         filament_maps = part_plate->get_real_filament_maps(m_print_config);
+
+                                    // The checks below index per-nozzle tables with these values; as in Print::apply,
+                                    // a nozzle outside [1, nozzle count] means nozzle 1.
+                                    for (int &nozzle : filament_maps)
+                                        if (nozzle < 1 || nozzle > new_extruder_count)
+                                            nozzle = 1;
 
                                     // Multi-nozzle printers need the per-filament volume assignment as a grouping
                                     // input in the manual modes: synthesize it from the per-extruder flow types when

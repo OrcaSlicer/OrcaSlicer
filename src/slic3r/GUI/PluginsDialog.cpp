@@ -34,6 +34,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/system/error_code.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -64,6 +65,22 @@ const wxString kDeletePluginTitle            = _L("Delete Plugin");
 const wxString kUnsubscribeTitle             = _L("Unsubscribe");
 const wxString kOverwritePluginTitle         = _L("Overwrite Plugin");
 std::string s_selected_plugin_install_action = "explore";
+
+// The permission validator has already checked the path and its final wildcard. Compare both
+// its spelling and its resolved location, since a symlink can also point to a filesystem root.
+bool is_root_tree_permission(const std::string& permission)
+{
+    if (permission.empty() || permission.back() != '*')
+        return false;
+
+    const std::string folder = permission.substr(0, permission.size() - 1);
+    if (is_filesystem_root(boost::filesystem::path(folder)))
+        return true;
+
+    boost::system::error_code ec;
+    const boost::filesystem::path resolved = boost::filesystem::weakly_canonical(boost::filesystem::path(folder), ec);
+    return !ec && is_filesystem_root(resolved);
+}
 
 struct PluginContextAction
 {
@@ -161,6 +178,8 @@ nlohmann::json build_permissions_payload(const PluginPermissions& permissions)
     nlohmann::json payload;
     payload["fs_read"]        = permissions.fs_read;
     payload["fs_readwrite"]   = permissions.fs_readwrite;
+    payload["fs_create"]      = permissions.fs_create;
+    payload["fs_delete"]      = permissions.fs_delete;
     payload["network_http"]   = permissions.network_http;
     payload["network_socket"] = permissions.network_socket;
     payload["process"]        = permissions.process;
@@ -701,15 +720,26 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"permissions_process", _u8L_CONTEXT("Processes", "Permission category")},
         {"permissions_threading", _u8L("Threading")},
         {"permissions_events", _u8L_CONTEXT("Events", "Permission category")},
-        {"permissions_filesystem_help", _u8L("Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. A read/write grant can create files through open(), but it does not cover create or delete events such as os.mkdir and os.remove. Without Full access, each such event outside allowed folders needs its own approval, which is never saved. When a plugin runs in the background, these events are denied without asking.")},
+        {"permissions_filesystem_help", _u8L("Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. A read/write grant can create files through open(), but does not cover create or delete events such as os.mkdir and os.remove.")},
+        {"permissions_create", _u8L_CONTEXT("Create", "Permission access")},
+        {"permissions_delete", _u8L_CONTEXT("Delete", "Permission access")},
+        {"permissions_create_name", _u8L("File system: Create")},
+        {"permissions_delete_name", _u8L("File system: Delete")},
+        {"permissions_folder_modes_help", _u8L("Choose none, selected folders, or all folders. Enter an absolute folder path to allow operations directly inside it, or add /* to include all nested folders. No other wildcard is accepted. Delete access allows deleting files and folders inside the granted scope; deleting the granted folder itself requires access to its parent. Some folders are allowed automatically, while protected paths remain blocked. Other operations may require approval. A background operation needing approval is denied first; after approval, a retry may succeed.")},
+        {"permissions_mode_none", _u8L_CONTEXT("None", "Permission access")},
+        {"permissions_mode_partial", _u8L("Selected folders")},
+        {"permissions_mode_full", _u8L("All folders")},
+        {"permissions_folder_placeholder", _u8L("Absolute folder path")},
+        {"permissions_folder_empty", _u8L("Add a folder to save selected-folder access. No selected folders are saved until you add one.")},
+        {"permissions_folder_invalid_wildcard", _u8L("The wildcard is ignored when combined with folder paths. Remove it or choose all folders.")},
 #ifdef _WIN32
         {"permissions_filesystem_placeholder", _u8L("C:\\path\\to\\directory\\*")},
 #else
         {"permissions_filesystem_placeholder", _u8L("/path/to/directory/*")},
 #endif
         {"permissions_network_access_guidance", _u8L("Enter a full http:// or https:// URL; only its scheme and host are saved, so the grant covers every port, path, and query on that host. A network socket grant also accepts a bare host name or IP address, with or without a port, and covers every port on that host. Other schemes are not accepted. Grants in either list are checked for HTTP and socket access.")},
-        {"permissions_process_help", _u8L("Enter the exact value recorded by the audit. It may be a Python representation of the command.")},
-        {"permissions_process_placeholder", _u8L("Exact audited value")},
+        {"permissions_process_help", _u8L("Executable grants cover all arguments. CommandLine: entries cover only the exact command line.")},
+        {"permissions_process_placeholder", _u8L("Executable or command name")},
         {"permissions_threading_help_short", _u8L("Allow this plugin to create threads.")},
         {"permissions_events_help", _u8L("Enter a category and event separated by a colon, such as Socket:socket.__new__.")},
         {"permissions_events_placeholder", _u8L("Socket:socket.__new__")},
@@ -1026,6 +1056,10 @@ void PluginsDialog::mutate_plugin_permission(const nlohmann::json& payload)
         bucket = PluginPermissionCategory::FsRead; entries = &stored.permissions.fs_read;
     } else if (category == "fs_readwrite") {
         bucket = PluginPermissionCategory::FsReadWrite; entries = &stored.permissions.fs_readwrite;
+    } else if (category == "fs_create") {
+        bucket = PluginPermissionCategory::FsCreate; entries = &stored.permissions.fs_create;
+    } else if (category == "fs_delete") {
+        bucket = PluginPermissionCategory::FsDelete; entries = &stored.permissions.fs_delete;
     } else if (category == "network_http") {
         bucket = PluginPermissionCategory::NetworkHttp; entries = &stored.permissions.network_http;
     } else if (category == "network_socket") {
@@ -1051,6 +1085,39 @@ void PluginsDialog::mutate_plugin_permission(const nlohmann::json& payload)
         } else {
             mutation.threading = enabled;
         }
+    } else if ((category == "fs_create" || category == "fs_delete") && operation == "set_mode") {
+        const std::string mode = string_field("value");
+        if (mode != "none" && mode != "partial" && mode != "full") {
+            invalid();
+            return;
+        }
+        if (mode == "full" && !(entries->size() == 1 && entries->front() == "*")) {
+            const wxString message = category == "fs_delete" ?
+                wxString::Format(_L("Allow \"%s\" to delete entries in all folders?\n\n"
+                                    "This includes deleting existing files and folders accessible to your account. "
+                                    "Protected paths remain blocked. Only allow this for a plugin you trust."), plugin_name) :
+                wxString::Format(_L("Allow \"%s\" to create entries in all folders?\n\n"
+                                    "This includes creating files and folders accessible to your account. "
+                                    "Protected paths remain blocked. Only allow this for a plugin you trust."), plugin_name);
+            MessageDialog dialog(this, message, _L("All folders"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+            dialog.SetButtonLabel(wxID_NO, _L("No"), /*set_focus=*/true);
+            const int result = dialog.ShowModal();
+            restore_z_order();
+            if (result != wxID_YES) {
+                finish(false);
+                return;
+            }
+            // A permission prompt may have saved another grant while this dialog was open.
+            if (!PluginManager::instance().get_install_state(plugin_key, stored)) {
+                show_status(_L("Failed to save permissions."), "error");
+                finish(false);
+                return;
+            }
+        }
+        for (const std::string& entry : *entries)
+            mutation.remove.push_back({bucket, entry});
+        if (mode == "full")
+            mutation.add.push_back({bucket, "*"});
     } else {
         if (!entries || (operation != "add" && operation != "remove" && operation != "replace") ||
             (operation != "add" && (!payload.contains("old_value") || !payload.at("old_value").is_string())) ||
@@ -1065,6 +1132,12 @@ void PluginsDialog::mutate_plugin_permission(const nlohmann::json& payload)
                 return;
             }
             mutation.remove.push_back({bucket, old_value});
+            // A mixed list does not grant full access, but removing its last folder would turn
+            // the remaining wildcard into a full grant. Remove the wildcard as well.
+            if (operation == "remove" && (category == "fs_create" || category == "fs_delete") &&
+                entries->size() == 2 && old_value != "*" &&
+                std::find(entries->begin(), entries->end(), "*") != entries->end())
+                mutation.remove.push_back({bucket, "*"});
         }
         if (operation != "remove") {
             const std::string raw = string_field("value");
@@ -1074,7 +1147,11 @@ void PluginsDialog::mutate_plugin_permission(const nlohmann::json& payload)
             bool valid = !value.empty() && value.find('\0') == std::string::npos;
             if (valid && (category == "fs_read" || category == "fs_readwrite"))
                 valid = normalize_filesystem_permission(value, normalized, reason);
-            else if (valid && category == "network_http")
+            else if (valid && (category == "fs_create" || category == "fs_delete")) {
+                valid = normalize_filesystem_permission(value, normalized, reason);
+                if (entries->size() == 1 && entries->front() == "*")
+                    valid = false;
+            } else if (valid && category == "network_http")
                 valid = normalize_network_permission(value, normalized, reason);
             else if (valid && category == "network_socket")
                 valid = normalize_socket_permission(value, normalized, reason);
@@ -1085,6 +1162,26 @@ void PluginsDialog::mutate_plugin_permission(const nlohmann::json& payload)
                     show_status(_L("Invalid permission save request."), "error");
                 finish(false);
                 return;
+            }
+            if ((category == "fs_create" || category == "fs_delete") && is_root_tree_permission(normalized)) {
+                // TRN %1% is the plugin name; %2% is the folder tree path being granted.
+                const wxString message = category == "fs_delete" ?
+                    format_wxstr(_L("Allow \"%1%\" to delete entries throughout \"%2%\"?\n\n"
+                                    "This covers the entire filesystem, drive, or network share named by this path, "
+                                    "including existing files and folders in nested folders. Protected paths remain blocked. "
+                                    "Only allow this for a plugin you trust."), plugin_name, from_u8(normalized)) :
+                    format_wxstr(_L("Allow \"%1%\" to create entries throughout \"%2%\"?\n\n"
+                                    "This covers the entire filesystem, drive, or network share named by this path, "
+                                    "including nested folders. Protected paths remain blocked. "
+                                    "Only allow this for a plugin you trust."), plugin_name, from_u8(normalized));
+                MessageDialog dialog(this, message, _L("All folders"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+                dialog.SetButtonLabel(wxID_NO, _L("No"), /*set_focus=*/true);
+                const int result = dialog.ShowModal();
+                restore_z_order();
+                if (result != wxID_YES) {
+                    finish(false);
+                    return;
+                }
             }
             mutation.add.push_back({bucket, normalized});
         }
@@ -1384,8 +1481,9 @@ void PluginsDialog::update_plugin(const std::string& plugin_key)
     PluginDescriptor descriptor;
     const wxString name = get_descriptor(plugin_key, descriptor) ? from_u8(descriptor.name) : from_u8(plugin_key);
 
-    // update_cloud_plugin unloads the old plugin, deletes its local package and reinstalls the latest
-    // version; all of that is off-main-thread work, so run it on the worker behind a progress dialog.
+    // update_cloud_plugin unloads the old plugin, deletes its local package, reinstalls the latest
+    // version and reloads a package that was active; all of that is off-main-thread work, so run it
+    // on the worker behind a progress dialog.
     std::string error;
     bool updated = false;
     try {
@@ -1404,7 +1502,8 @@ void PluginsDialog::update_plugin(const std::string& plugin_key)
         return;
     }
 
-    // update_cloud_plugin already updated the in-memory descriptor, so a UI refresh is enough here.
+    // update_cloud_plugin already updated the in-memory descriptor and restored the loaded state,
+    // so a UI refresh is enough here.
     send_plugins();
     show_status(wxString::Format(_L("Updated \"%s\"."), name), "success");
 }

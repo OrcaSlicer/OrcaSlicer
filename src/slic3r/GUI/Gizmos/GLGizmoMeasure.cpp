@@ -295,7 +295,8 @@ bool GLGizmoMeasure::on_mouse(const wxMouseEvent &mouse_event)
                     case EMode::FeatureSelection: { item = { false, m_curr_feature, m_curr_feature }; break; }
                     case EMode::PointSelection:   {
                        item = { false, m_curr_feature, Measure::SurfaceFeature(*m_curr_point_on_feature_position)};
-                       auto local_pt = m_curr_feature->world_tran.inverse() * (*m_curr_point_on_feature_position);
+                       const auto &base = m_mesh_measure_transform.at(static_cast<GLVolume *>(m_curr_feature->volume));
+                       auto local_pt = base * m_curr_feature->world_tran.inverse() * (*m_curr_point_on_feature_position);
                        item.feature->origin_surface_feature = std::make_shared<Measure::SurfaceFeature>(local_pt);
                        item.feature->world_tran             = m_curr_feature->world_tran;
                        item.feature->volume                 = m_curr_feature->volume;
@@ -520,6 +521,7 @@ void GLGizmoMeasure::on_set_state()
         m_editing_distance = false;
         m_is_editing_distance_first_frame = true;
         std::map<GLVolume *, std::shared_ptr<Measure::Measuring>>().swap(m_mesh_measure_map);
+        m_mesh_measure_transform.clear();
         // The raycasters point into the scene's volumes, which a reload frees while the gizmo is
         // closed; the next open rebuilds them in data_changed(), which must not take the path kept
         // for the gizmo's own pending transform.
@@ -718,8 +720,9 @@ void GLGizmoMeasure::on_render()
             std::optional<Measure::SurfaceFeature> curr_feature = std::nullopt;
             if (m_curr_measuring) {
                 curr_feature = Slic3r::GUI::get_mouse_state().LeftIsDown() ? m_curr_feature :
-                               mouse_on_object                ? m_curr_measuring->get_feature(model_facet_idx, position_on_model,
-                                                                               m_mesh_raycaster_map[m_last_hit_volume]->get_transform(), m_only_select_plane) :
+                               mouse_on_object                ? m_curr_measuring->get_feature(model_facet_idx,
+                                                                               m_mesh_measure_transform.at(m_last_hit_volume) * position_on_model,
+                                                                               m_mesh_raycaster_map[m_last_hit_volume]->get_transform() * m_mesh_measure_transform.at(m_last_hit_volume).inverse(), m_only_select_plane) :
                                                               std::nullopt;
             }
             if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY && curr_feature.has_value()) {
@@ -2352,10 +2355,17 @@ void GLGizmoMeasure::register_single_mesh_pick()
             } else {
                 const ModelObject*   obj  = selection.get_model()->objects[v->object_idx()];
                 const ModelVolume*   vol  = obj->volumes[v->volume_idx()];
-                auto                 mesh = vol->mesh_ptr();
+                indexed_triangle_set mesh = vol->mesh_ptr()->its;
+                Transform3d base = Transform3d::Identity();
+                base.linear() = world_tran.get_matrix().linear();
+                for (Vec3f &vertex : mesh.vertices)
+                    vertex = (base * vertex.cast<double>()).cast<float>();
+                if (base.linear().determinant() < 0.0)
+                    its_flip_triangles(mesh);
+                m_mesh_measure_transform[v] = base;
                 m_mesh_raycaster_map[v] = std::make_shared<PickRaycaster>(-1, *v->mesh_raycaster, world_tran.get_matrix());
                 m_mesh_raycaster_map[v]->set_transform(world_tran.get_matrix());
-                m_mesh_measure_map[v] = std::make_shared<Measure::Measuring>(mesh->its);
+                m_mesh_measure_map[v] = std::make_shared<Measure::Measuring>(mesh);
             }
         }
     }
@@ -2485,7 +2495,7 @@ void GLGizmoMeasure::update_world_plane_features(Measure::Measuring *cur_measuri
             feautre.world_plane_features->clear(); // resize(cur_plane_features->size());
             for (size_t i = 0; i < cur_plane_features->size(); i++) {
                 Measure::SurfaceFeature temp(cur_plane_features->at(i));
-                temp.translate(feautre.world_tran);
+                temp.translate(feautre.world_tran * m_mesh_measure_transform.at(static_cast<GLVolume *>(feautre.volume)).inverse());
                 feautre.world_plane_features->push_back(std::move(temp));
             }
         }
@@ -2503,7 +2513,7 @@ void GLGizmoMeasure::update_feature_by_tran(Measure::SurfaceFeature &feature)
     case Measure::SurfaceFeatureType::Circle:
     case Measure::SurfaceFeatureType::Plane: {
         feature.clone(*feature.origin_surface_feature);
-        feature.translate(feature.world_tran);
+        feature.translate(feature.world_tran * m_mesh_measure_transform.at(volume).inverse());
         if (feature.get_type() == Measure::SurfaceFeatureType::Circle) {
             m_feature_circle_first.last_circle_feature.reset();
             m_feature_circle_first.inv_zoom             = 0;
@@ -2578,12 +2588,13 @@ void GLGizmoMeasure::set_to_parallel(bool same_model_object, bool take_shot, boo
                 v->set_instance_rotation(rotation);
                 selection->rotate(v->object_idx(), v->instance_idx(), v->get_instance_transformation().get_matrix());
             } else {
-                Geometry::Transformation world_tran(v->world_matrix());
-                auto        new_tran         = r_m * world_tran.get_rotation_matrix();
-                Transform3d volume_rotation_tran = v->get_instance_transformation().get_rotation_matrix().inverse() * new_tran;
-                Vec3d       rotation             = Geometry::extract_euler_angles(volume_rotation_tran);
-                v->set_volume_rotation(rotation);
-                selection->rotate(v->object_idx(), v->instance_idx(), v->volume_idx(), v->get_volume_transformation().get_matrix());
+                const Transform3d &instance = v->get_instance_transformation().get_matrix();
+                Transform3d rotated_world = instance * v->get_volume_transformation().get_matrix();
+                // Rotate about the part origin while retaining its position and full affine transform.
+                rotated_world.linear() = rotation_matrix * rotated_world.linear().eval();
+                const Transform3d volume_tran = instance.inverse() * rotated_world;
+                v->set_volume_transformation(volume_tran);
+                selection->rotate(v->object_idx(), v->instance_idx(), v->volume_idx(), volume_tran);
             }
             wxGetApp().plater()->canvas3D()->do_rotate("");
             register_single_mesh_pick();

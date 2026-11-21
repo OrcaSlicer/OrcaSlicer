@@ -673,7 +673,8 @@ void register_project_tools(CommandCatalog& catalog)
                     const std::string method = arg_string(args, "method", "yolo");
                     plater.calib_flowrate(method == "yolo" || method == "yolo_perfectionist",
                                           method == "pass2" || method == "yolo_perfectionist" ? 2 : 1,
-                                          arg_string(args, "top_surface_pattern") == "monotonic" ? ipMonotonic : ipArchimedeanChords, true);
+                                          arg_string(args, "top_surface_pattern") == "monotonic" ? ipMonotonic : ipArchimedeanChords,
+                                          /*filament_id*/ 0, /*extruder_id*/ 0, true);
                     break;
                 }
                 case CalibMode::Calib_Retraction_tower: plater.calib_retraction(params, true); break;

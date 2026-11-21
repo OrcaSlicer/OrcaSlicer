@@ -354,10 +354,10 @@ private:
         // the quad, cut by the other caps
         std::array<float, 2> quad_z_range{ -FLT_MAX, FLT_MAX };
         std::array<float, 4> quad_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
-        // which of the sampled cap colours it takes, none for the body's own
+        // which of the sampled cap colours it takes
         std::optional<size_t> color_index;
     };
-    // the bottom cap, then the top one, as the colours are indexed, then the section view's; a cap
+    // the bottom cap, then the top one, then the section view's, as the colours are indexed; a cap
     // the solid is not cut at is left without a quad
     void init_solid_model_caps(const std::array<float, 2>& z_range, std::array<SolidModelCap, 3>& caps) const;
     void release_caster_depth();
@@ -392,8 +392,8 @@ private:
         {
             // unset where the view colours by filament, or no vertex of the role was found there
             std::optional<ColorRGBA> body;
-            // the bottom and top caps
-            std::array<std::optional<ColorRGBA>, 2> caps;
+            // the bottom and top caps, then the section view's, sampled over every layer of the solid
+            std::array<std::optional<ColorRGBA>, 3> caps;
         };
         std::vector<Body> bodies;
     };
@@ -556,8 +556,8 @@ public:
     // The legend folded to its title row, as its fold button leaves it; picking a view type unfolds it.
     bool is_legend_folded() const { return m_fold; }
     void fold_legend(bool fold) { m_fold = fold; }
-    // ORCA: apply the "preview_default_view_type" preference, see the definition for the supported values
-    void apply_default_view_type();
+    // ORCA: apply the "preview_default_view_type" preference, or the view of the calibration being previewed
+    void apply_default_view_type(std::optional<libvgcode::EViewType> calibration_view = std::nullopt);
 
     // ORCA: stable, locale independent name of a view type, as stored in the application config
     static std::string view_type_to_config_name(libvgcode::EViewType type);

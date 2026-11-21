@@ -19,7 +19,6 @@
 #include <wx/stattext.h>
 #include <wx/string.h>
 #include <wx/textctrl.h>
-#include <wx/tglbtn.h>
 #include <wx/toplevel.h>
 #include <wx/window.h>
 
@@ -30,9 +29,9 @@
 #include "MsgDialog.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "Widgets/Button.hpp"
-#include "Widgets/CheckBox.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "Widgets/Label.hpp"
+#include "Widgets/LabeledCheckBox.hpp"
 #include "Widgets/RadioGroup.hpp"
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/StateColor.hpp"
@@ -95,7 +94,7 @@ void add_tip(DPIDialog& dialog, wxBoxSizer& sizer, const wxString& text, int wra
     sizer.Add(frame, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, dialog.FromDIP(12));
 }
 
-ImportCheckBox add_checkbox(DPIDialog& dialog, wxBoxSizer& sizer, const wxString& label, bool value)
+LabeledCheckBox* add_checkbox(DPIDialog& dialog, wxBoxSizer& sizer, const wxString& label, bool value)
 {
     return add_import_checkbox(&dialog, sizer, label, value, wxLEFT | wxRIGHT | wxTOP, dialog.FromDIP(12));
 }
@@ -221,55 +220,20 @@ GeometryImportNamePolicy geometry_import_name_policy(const AppConfig& config)
     return policy;
 }
 
-bool ImportCheckBox::GetValue() const { return box->GetValue(); }
-
-void ImportCheckBox::SetValue(bool value) const { box->SetValue(value); }
-
-void ImportCheckBox::Enable(bool enable) const
+LabeledCheckBox* add_import_checkbox(wxWindow* parent, wxSizer& sizer, const wxString& text, bool value, int flags, int border)
 {
-    box->Enable(enable);
-    label->Enable(enable);
-    // Same disabled text color as RadioGroup.
-    label->SetForegroundColour(enable ? StateColor::darkModeColorFor(wxColour("#363636")) : wxColour("#6B6A6A"));
-    label->Refresh();
-}
-
-void ImportCheckBox::SetToolTip(const wxString& tip) const
-{
-    box->SetToolTip(tip);
-    label->SetToolTip(tip);
-}
-
-ImportCheckBox add_import_checkbox(wxWindow* parent, wxSizer& sizer, const wxString& text, bool value, int flags, int border)
-{
-    ImportCheckBox checkbox{new ::CheckBox(parent), new wxStaticText(parent, wxID_ANY, text)};
-    apply_label_style(checkbox.label);
-    checkbox.box->SetValue(value);
-    ::CheckBox* box = checkbox.box;
-    auto toggle = [box]() {
-        if (!box->IsEnabled())
-            return;
-        box->SetValue(!box->GetValue());
-        wxCommandEvent event(wxEVT_TOGGLEBUTTON, box->GetId());
-        event.SetEventObject(box);
-        box->GetEventHandler()->ProcessEvent(event);
-    };
-    // A double click arrives as one down and one double-click event, so each toggles once.
-    checkbox.label->Bind(wxEVT_LEFT_DOWN, [toggle](wxMouseEvent&) { toggle(); });
-    checkbox.label->Bind(wxEVT_LEFT_DCLICK, [toggle](wxMouseEvent&) { toggle(); });
-    auto* row = new wxBoxSizer(wxHORIZONTAL);
-    row->Add(checkbox.box, 0, wxALIGN_CENTER_VERTICAL);
-    row->Add(checkbox.label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, parent->FromDIP(5));
-    sizer.Add(row, 0, flags, border);
+    auto* checkbox = new LabeledCheckBox(parent, text);
+    checkbox->SetValue(value);
+    sizer.Add(checkbox, 0, flags, border);
     return checkbox;
 }
 
 // Sorting only makes sense for original names; while Keep is off it is disabled but keeps its remembered value.
-void link_sort_to_keep(const ImportCheckBox& keep, const ImportCheckBox& sort)
+void link_sort_to_keep(LabeledCheckBox* keep, LabeledCheckBox* sort)
 {
-    sort.Enable(keep.GetValue());
-    keep.box->Bind(wxEVT_TOGGLEBUTTON, [keep, sort](wxCommandEvent& event) {
-        sort.Enable(keep.GetValue());
+    sort->Enable(keep->GetValue());
+    keep->Bind(wxEVT_CHECKBOX, [keep, sort](wxCommandEvent& event) {
+        sort->Enable(keep->GetValue());
         event.Skip();
     });
 }
@@ -300,15 +264,15 @@ bool show_geometry_import_options(wxWindow* parent, const std::string& format, G
         load_mode->SetRadioTooltip(2, _L("The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."));
         sizer->Add(load_mode, 0, wxLEFT | wxRIGHT | wxTOP, dialog.FromDIP(12));
     }
-    const auto keep = add_checkbox(dialog, *sizer, _L("Keep original names"), options.keep_names);
-    keep.SetToolTip(_L("Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."));
-    const auto sort = add_checkbox(dialog, *sizer, _L("Sort parts by name"), options.sort_names);
-    sort.SetToolTip(_L("Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."));
+    auto* keep = add_checkbox(dialog, *sizer, _L("Keep original names"), options.keep_names);
+    keep->SetToolTip(_L("Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."));
+    auto* sort = add_checkbox(dialog, *sizer, _L("Sort parts by name"), options.sort_names);
+    sort->SetToolTip(_L("Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."));
     link_sort_to_keep(keep, sort);
-    const auto remember = add_checkbox(dialog, *sizer, _L("Remember my choice"), false);
-    remember.SetToolTip(_L("Use these choices as defaults next time. The dialog still opens."));
-    const auto dont_ask = add_checkbox(dialog, *sizer, _L("Don't ask again"), false);
-    dont_ask.SetToolTip(_L("Save these choices and apply them without asking next time. You can show this dialog again in Preferences."));
+    auto* remember = add_checkbox(dialog, *sizer, _L("Remember my choice"), false);
+    remember->SetToolTip(_L("Use these choices as defaults next time. The dialog still opens."));
+    auto* dont_ask = add_checkbox(dialog, *sizer, _L("Don't ask again"), false);
+    dont_ask->SetToolTip(_L("Save these choices and apply them without asking next time. You can show this dialog again in Preferences."));
 
     auto* buttons = new DialogButtons(&dialog, {"OK", "Cancel"});
     buttons->GetOK()->Bind(wxEVT_BUTTON, [&](wxCommandEvent&) { dialog.EndModal(wxID_OK); });
@@ -321,16 +285,16 @@ bool show_geometry_import_options(wxWindow* parent, const std::string& format, G
     if (dialog.ShowModal() != wxID_OK)
         return false;
 
-    options.keep_names = keep.GetValue();
-    options.sort_names = sort.GetValue();
+    options.keep_names = keep->GetValue();
+    options.sort_names = sort->GetValue();
     if (load_mode != nullptr) {
         options.separate_objects = load_mode->GetSelection() == 0;
         // Separate objects leave the remembered assembly choice as it was.
         if (!options.separate_objects)
             options.load_as_assembly = load_mode->GetSelection() == 1;
     }
-    options.remember = remember.GetValue();
-    options.dont_ask = dont_ask.GetValue();
+    options.remember = remember->GetValue();
+    options.dont_ask = dont_ask->GetValue();
     return true;
 }
 
@@ -375,10 +339,10 @@ bool prepare_geometry_import_names(wxWindow* parent, const std::vector<Model*>& 
                                        wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
         apply_label_style(preview);
         sizer->Add(preview, 1, wxEXPAND | wxALL, dialog.FromDIP(12));
-        const auto remember = add_checkbox(dialog, *sizer, _L("Remember my choice"), false);
-        remember.SetToolTip(_L("Use this rule as the default next time. The dialog still opens."));
-        const auto dont_ask = add_checkbox(dialog, *sizer, _L("Don't ask again"), false);
-        dont_ask.SetToolTip(_L("Save this rule and apply it without asking next time. You can show this dialog again in Preferences."));
+        auto* remember = add_checkbox(dialog, *sizer, _L("Remember my choice"), false);
+        remember->SetToolTip(_L("Use this rule as the default next time. The dialog still opens."));
+        auto* dont_ask = add_checkbox(dialog, *sizer, _L("Don't ask again"), false);
+        dont_ask->SetToolTip(_L("Save this rule and apply it without asking next time. You can show this dialog again in Preferences."));
         auto* buttons = new DialogButtons(&dialog, {"OK", "Cancel"});
 
         auto update_preview = [&]() {
@@ -415,8 +379,8 @@ bool prepare_geometry_import_names(wxWindow* parent, const std::vector<Model*>& 
             return false;
         policy.remove = rule->GetSelection() == 0;
         policy.replacement = into_u8(replacement->GetTextCtrl()->GetValue());
-        policy.remember = remember.GetValue();
-        policy.dont_ask = dont_ask.GetValue();
+        policy.remember = remember->GetValue();
+        policy.dont_ask = dont_ask->GetValue();
     }
 
     const auto results = cleaned_groups(groups, policy.remove ? std::string() : policy.replacement);

@@ -15,6 +15,7 @@ add_executable(${_TEST_NAME}_tests
     test_network_discovery.cpp
     test_filament_bitmap_utils.cpp
     test_colour_picker_field.cpp
+    test_field_number_text.cpp
     test_filament_color_picker.cpp
     test_ams_materials_setting.cpp
     test_gcode_preview_colors.cpp
@@ -55,7 +56,9 @@ add_executable(${_TEST_NAME}_tests
     test_printer_agent.cpp
     test_qidi_printer_agent.cpp
     test_plugin_install.cpp
+    test_plugin_update.cpp
     test_plugin_lifecycle.cpp
+    test_plugin_wheel_install.cpp
     test_plugin_resource_texture.cpp
     test_plugin_printer_agent.cpp
     test_post_processor.cpp
@@ -105,8 +108,10 @@ orcaslicer_copy_test_dlls(${_TEST_NAME}_tests)
 
 if (WIN32)
     add_custom_command(TARGET ${_TEST_NAME}_tests POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${_TEST_NAME}_tests>/python"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_PREFIX_PATH}/libpython" "$<TARGET_FILE_DIR:${_TEST_NAME}_tests>/python"
+        COMMAND ${CMAKE_COMMAND} "-DSOURCE=${CMAKE_PREFIX_PATH}/libpython"
+            "-DDESTINATION=$<TARGET_FILE_DIR:${_TEST_NAME}_tests>/python"
+            "-DSTAMP=${CMAKE_CURRENT_BINARY_DIR}/python_runtime_$<CONFIG>.stamp"
+            -P "${CMAKE_SOURCE_DIR}/cmake/modules/StagePythonRuntime.cmake"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_PREFIX_PATH}/libpython/python${_bundled_python_abi}.dll"
             "${CMAKE_PREFIX_PATH}/libpython/vcruntime140.dll"

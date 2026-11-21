@@ -1,9 +1,12 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/nowide/convert.hpp>
+#include <boost/nowide/fstream.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <ios>
 #include <libslic3r/LifecycleEvents.hpp>
+#include <libslic3r/Utils.hpp>
 #include <memory>
 #include <slic3r/Utils/Http.hpp>
 #include <slic3r/Utils/NetworkAgentFactory.hpp>
@@ -27,6 +30,7 @@
 #include <algorithm>
 #include <chrono>
 #include <condition_variable>
+#include <cstddef>
 #include <fstream>
 #include <mutex>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
@@ -92,6 +96,26 @@ class Echo(orca.script.ScriptPluginCapabilityBase):
 class EchoPackage(orca.base):
     def register_capabilities(self):
         orca.register_capability(Echo)
+)PY";
+
+// A plugin whose registration always fails after the module imported. The failure is ordinary:
+// neither cancellation nor unload, so its queued runtime prompts stay actionable for a retry.
+const char* const BROKEN_PLUGIN_SOURCE = R"PY(# /// script
+# requires-python = ">=3.12"
+#
+# [tool.orcaslicer.plugin]
+# name = "Broken Plugin"
+# description = "Plugin whose registration always fails."
+# author = "tests"
+# version = "1.0"
+# type = "script"
+# ///
+import orca
+
+@orca.plugin
+class BrokenPackage(orca.base):
+    def register_capabilities(self):
+        raise RuntimeError("registration failed")
 )PY";
 
 // A minimal printer-agent plugin exposing exactly one PrinterConnection capability.
@@ -195,6 +219,84 @@ fs::path write_plugin(const ScopedDataDir& data_dir_guard, const std::string& st
     out.close();
 
     return plugin_dir;
+}
+
+// Path forms for a tree past the legacy Windows MAX_PATH (260): the extended-length form reaches
+// it and is the identity elsewhere, while the UTF-8 spelling is what the interpreter's filesystem
+// encoding and boost::nowide expect on Windows.
+fs::path long_path(const fs::path& path)
+{
+    return extended_path(path);
+}
+
+std::string path_utf8(const fs::path& path)
+{
+#ifdef _WIN32
+    return boost::nowide::narrow(path.wstring());
+#else
+    return path.string();
+#endif
+}
+
+// Writes <package_dir>/__init__.py, creating the tree through the extended-length form so the
+// fixture is buildable past MAX_PATH on Windows.
+void write_long_path_package(const fs::path& package_dir)
+{
+    boost::system::error_code ec;
+    fs::create_directories(long_path(package_dir), ec);
+    REQUIRE_FALSE(ec);
+
+    boost::nowide::ofstream init(path_utf8(long_path(package_dir) / "__init__.py"));
+    init << "VALUE = \"long\"\n";
+    REQUIRE(init.good());
+}
+
+// Loads the package the way the wheel loader does and checks that its body ran, that the recorded
+// sys.path entry is exactly the one on sys.path, and that unloading removes it again.
+void check_package_import(const fs::path& package_parent, const std::string& pkg_name)
+{
+    PythonInterpreter&       interpreter = PythonInterpreter::instance();
+    std::vector<std::string> paths;
+    std::vector<std::string> modules;
+    std::string              error;
+    // The plain path goes in: reaching the files is the loader's job, not the caller's.
+    PyObject* module = interpreter.load_module_from_directory(path_utf8(package_parent), pkg_name, error, &paths, &modules);
+    INFO("module load error: " << error);
+    REQUIRE(module != nullptr);
+    REQUIRE(error.empty());
+    REQUIRE(paths.size() == 1);
+
+    {
+        PythonGILState gil;
+        REQUIRE(gil);
+        PyObjectPtr value(PyObject_GetAttrString(module, "VALUE"));
+        REQUIRE(value);
+        REQUIRE(PyUnicode_Check(value.get()));
+        CHECK(std::string(PyUnicode_AsUTF8(value.get())) == "long");
+
+        PyObject* sys_path = PySys_GetObject("path");
+        REQUIRE(sys_path != nullptr);
+        PyObjectPtr entry(PyUnicode_DecodeFSDefault(paths.front().c_str()));
+        REQUIRE(entry);
+        CHECK(PySequence_Contains(sys_path, entry.get()) == 1);
+    }
+
+    Plugin loaded;
+    loaded.module           = module;
+    loaded.module_name      = pkg_name;
+    loaded.plugin_sys_paths = paths;
+    loaded.plugin_modules   = modules;
+    loaded.release_module();
+
+    {
+        PythonGILState gil;
+        REQUIRE(gil);
+        PyObject* sys_path = PySys_GetObject("path");
+        REQUIRE(sys_path != nullptr);
+        PyObjectPtr entry(PyUnicode_DecodeFSDefault(paths.front().c_str()));
+        REQUIRE(entry);
+        CHECK(PySequence_Contains(sys_path, entry.get()) == 0);
+    }
 }
 
 // Loads a plugin and blocks until the detached worker thread is done with it.
@@ -752,6 +854,184 @@ TEST_CASE("Python module release removes package submodules and owned sys.path",
     loaded.release_module();
 }
 
+TEST_CASE("A package imports from a plugin directory longer than MAX_PATH", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedTemporaryDir dir("long-path-import-dir");
+
+    // The sys.path entry itself — the wheel cache — is past the legacy Windows MAX_PATH, so it can
+    // be neither probed nor imported from through the plain spelling. Components stay short enough
+    // for NAME_MAX on every platform, so the same tree is valid off Windows.
+    fs::path package_parent = dir.path();
+    while (path_utf8(package_parent).size() < 280)
+        package_parent /= "deep_plugin_directory_component";
+    REQUIRE(path_utf8(package_parent).size() > 260);
+
+    write_long_path_package(package_parent / "long_path_package");
+    check_package_import(package_parent, "long_path_package");
+
+    // Only the extended-length form can remove the deep tree on Windows; the guard then removes
+    // the shallow remainder.
+    boost::system::error_code cleanup_ec;
+    fs::remove_all(long_path(package_parent), cleanup_ec);
+}
+
+TEST_CASE("A package imports when only its files pass MAX_PATH", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedTemporaryDir dir("long-path-import-files");
+
+    // The sys.path entry stays below the limit, so a directory probe alone would accept it, but the
+    // package file below it does not. The finder reads the unreachable __init__.py as absent and
+    // accepts the directory as a namespace package, so the loader has to check the entry file
+    // instead of the directory.
+    fs::path package_parent = dir.path();
+    const std::size_t base_len = path_utf8(package_parent).size() + 1; // the separator before padding
+    const std::size_t target_len = 250;
+    if (base_len >= target_len)
+        SKIP("Temporary directory is too long for a below-MAX_PATH parent");
+    package_parent /= std::string(target_len - base_len, 'd');
+    REQUIRE(path_utf8(package_parent).size() == target_len);
+
+    const fs::path package_dir = package_parent / "long_path_package";
+    REQUIRE(path_utf8(package_dir / "__init__.py").size() > 260);
+
+    write_long_path_package(package_dir);
+    check_package_import(package_parent, "long_path_package");
+
+    boost::system::error_code cleanup_ec;
+    fs::remove_all(long_path(package_parent), cleanup_ec);
+}
+
+TEST_CASE("A namespace package imports through its plain directory path", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedTemporaryDir dir("plain-import-namespace");
+    const fs::path      package_parent = dir.path();
+    const std::string   pkg_name       = "orca_test_namespace_package";
+    fs::create_directories(package_parent / pkg_name);
+    {
+        std::ofstream submodule((package_parent / pkg_name / "submodule.py").string(), std::ios::binary);
+        submodule << "VALUE = \"namespace\"\n";
+        REQUIRE(submodule.good());
+    }
+
+    PythonInterpreter&       interpreter = PythonInterpreter::instance();
+    std::vector<std::string> paths;
+    std::vector<std::string> modules;
+    std::string              error;
+    PyObject* module = interpreter.load_module_from_directory(path_utf8(package_parent), pkg_name, error, &paths, &modules);
+    INFO("module load error: " << error);
+    REQUIRE(module != nullptr);
+    REQUIRE(paths.size() == 1);
+
+    // The directory is short enough for the plain Win32 APIs, and a namespace package has no
+    // __init__.py to probe, so the spelling the caller passed must be the one recorded rather than
+    // an extended-length path.
+    CHECK(paths.front() == path_utf8(package_parent));
+
+    Plugin loaded;
+    loaded.module           = module;
+    loaded.module_name      = pkg_name;
+    loaded.plugin_sys_paths = paths;
+    loaded.plugin_modules   = modules;
+    loaded.release_module();
+}
+
+TEST_CASE("A compiled-only package keeps its plain directory path", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedTemporaryDir dir("plain-import-compiled");
+    const fs::path      package_parent = dir.path();
+    const std::string   pkg_name       = "orca_test_compiled_package";
+    fs::create_directories(package_parent / pkg_name);
+    // A package with no .py entry at all: only a compiled initializer the finder probes by name.
+    // The fixture is not a loadable extension module, so the import itself fails; the recorded
+    // sys.path entry is what this test protects. A short directory must not gain the extended-length
+    // prefix just because there is no .py file to probe.
+#ifdef _WIN32
+    const fs::path compiled_init = package_parent / pkg_name / "__init__.pyd";
+#else
+    const fs::path compiled_init = package_parent / pkg_name / "__init__.so";
+#endif
+    {
+        std::ofstream compiled(compiled_init.string(), std::ios::binary);
+        compiled << "not a real extension module\n";
+        REQUIRE(compiled.good());
+    }
+
+    PythonInterpreter&       interpreter = PythonInterpreter::instance();
+    std::vector<std::string> paths;
+    std::vector<std::string> modules;
+    std::string              error;
+    PyObject* module = interpreter.load_module_from_directory(path_utf8(package_parent), pkg_name, error, &paths, &modules);
+    CHECK(module == nullptr);
+    CHECK_FALSE(error.empty());
+    REQUIRE(paths.size() == 1);
+    CHECK(paths.front() == path_utf8(package_parent));
+
+    Plugin loaded;
+    loaded.module           = module;
+    loaded.module_name      = pkg_name;
+    loaded.plugin_sys_paths = paths;
+    loaded.plugin_modules   = modules;
+    loaded.release_module();
+}
+
+TEST_CASE("A compiled-only module keeps its plain directory path", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedTemporaryDir dir("plain-import-compiled-module");
+    const fs::path      module_parent = dir.path();
+    const std::string   module_name   = "orca_test_compiled_module";
+    // A top-level compiled module has no <name> directory beside it, so the probe of that path
+    // reports "not found". That must not be read as a path past MAX_PATH. As with the package
+    // fixture, the file is not a loadable extension module, so the import fails after the sys.path
+    // entry has been recorded.
+#ifdef _WIN32
+    const fs::path compiled_module = module_parent / (module_name + ".pyd");
+#else
+    const fs::path compiled_module = module_parent / (module_name + ".so");
+#endif
+    {
+        std::ofstream compiled(compiled_module.string(), std::ios::binary);
+        compiled << "not a real extension module\n";
+        REQUIRE(compiled.good());
+    }
+
+    PythonInterpreter&       interpreter = PythonInterpreter::instance();
+    std::vector<std::string> paths;
+    std::vector<std::string> modules;
+    std::string              error;
+    PyObject* module = interpreter.load_module_from_directory(path_utf8(module_parent), module_name, error, &paths, &modules);
+    CHECK(module == nullptr);
+    CHECK_FALSE(error.empty());
+    REQUIRE(paths.size() == 1);
+    CHECK(paths.front() == path_utf8(module_parent));
+
+    Plugin loaded;
+    loaded.module           = module;
+    loaded.module_name      = module_name;
+    loaded.plugin_sys_paths = paths;
+    loaded.plugin_modules   = modules;
+    loaded.release_module();
+}
+
 TEST_CASE("A capability disabled in the sidecar loads disabled", "[PluginLifecycle][Python]")
 {
     ScopedPluginManager plugin_system;
@@ -1037,6 +1317,7 @@ class SlowPackage(orca.base):
     // The key is registered before the worker is spawned, so this is not a race.
     REQUIRE(manager.is_plugin_load_in_progress("Slow_Load_Plugin"));
     REQUIRE(manager.cancel_plugin_load("Slow_Load_Plugin"));
+    CHECK(manager.is_plugin_load_cancelled("Slow_Load_Plugin"));
 
     // Cancelling must not release the worker's slot. shutdown() unloads everything and GUI_App
     // finalizes the interpreter as soon as this wait returns, so reporting "no loads in progress"
@@ -1047,7 +1328,10 @@ class SlowPackage(orca.base):
     // The worker releases the slot itself, once it has unwound.
     CHECK(manager.wait_for_all_plugin_loads(std::chrono::seconds(60)));
     CHECK_FALSE(manager.is_plugin_load_in_progress("Slow_Load_Plugin"));
+    CHECK_FALSE(manager.is_plugin_load_cancelled("Slow_Load_Plugin"));
     CHECK_FALSE(manager.is_plugin_loaded("Slow_Load_Plugin"));
+    // A cancellation is not an ordinary failure, so no prompt is kept actionable for a retry.
+    CHECK_FALSE(manager.is_plugin_load_failed("Slow_Load_Plugin"));
 }
 
 TEST_CASE("Loading an unknown plugin key records an error instead of crashing", "[PluginLifecycle][Python]")
@@ -1069,6 +1353,62 @@ TEST_CASE("Loading an unknown plugin key records an error instead of crashing", 
     CHECK_FALSE(manager.is_plugin_loaded("No_Such_Plugin"));
     CHECK(manager.get_plugin_load_error("No_Such_Plugin") == "Plugin not found: No_Such_Plugin");
     CHECK(manager.get_plugin_capabilities("No_Such_Plugin").empty());
+}
+
+TEST_CASE("An ordinary load failure stays recorded until the plugin is unloaded", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    // Registration raises after the module imported, which is an ordinary failure: the user can
+    // approve a queued runtime prompt and retry. Cancelling or unloading is different.
+    ScopedDataDir data_dir_guard("lifecycle-load-failed");
+    write_plugin(data_dir_guard, "Broken_Plugin", BROKEN_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    CHECK_FALSE(load_and_wait(manager, "Broken_Plugin", error));
+    INFO("load error: " << error);
+    CHECK_FALSE(error.empty());
+    CHECK_FALSE(manager.is_plugin_loaded("Broken_Plugin"));
+    CHECK_FALSE(manager.is_plugin_load_in_progress("Broken_Plugin"));
+    CHECK_FALSE(manager.is_plugin_load_cancelled("Broken_Plugin"));
+    CHECK(manager.is_plugin_load_failed("Broken_Plugin"));
+
+    // An explicit unload clears the state a queued prompt would otherwise rely on.
+    REQUIRE(manager.unload_plugin("Broken_Plugin"));
+    CHECK_FALSE(manager.is_plugin_load_failed("Broken_Plugin"));
+}
+
+TEST_CASE("Rediscovering a removed failed plugin does not revive its failure state", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("lifecycle-failed-removed");
+    const fs::path plugin_dir = write_plugin(data_dir_guard, "Removed_Plugin", BROKEN_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE_FALSE(load_and_wait(manager, "Removed_Plugin", error));
+    REQUIRE(manager.is_plugin_load_failed("Removed_Plugin"));
+
+    // Removing the missing package must drop the state, not leave it keyed by the old package.
+    fs::remove_all(plugin_dir);
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    manager.remove_missing_plugins({"Removed_Plugin"});
+    CHECK_FALSE(manager.is_plugin_load_failed("Removed_Plugin"));
+
+    // Rediscovery starts from a clean failure state even when the key is reused.
+    write_plugin(data_dir_guard, "Removed_Plugin", BROKEN_PLUGIN_SOURCE);
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    CHECK_FALSE(manager.is_plugin_load_failed("Removed_Plugin"));
 }
 
 TEST_CASE("The startup auto-load list only contains packages whose sidecar enables them", "[PluginLifecycle][Python]")

@@ -62,10 +62,11 @@ struct RunnerHarness
     explicit RunnerHarness(bool unrestricted = true)
     {
         PluginAuditManager::instance().set_scripts_unrestricted(unrestricted);
-        PluginAuditManager::set_permission_prompt_for_testing([this](const std::string& event, const std::vector<std::string>&) {
-            prompts.push_back(event);
-            return false;
-        });
+        PluginAuditManager::set_permission_prompt_for_testing(
+            [this](const std::string& event, const std::vector<std::string>&, const std::vector<PluginAuditManager::PermissionPromptEntry>&) {
+                prompts.push_back(event);
+                return false;
+            });
     }
     ~RunnerHarness()
     {
@@ -1283,7 +1284,8 @@ TEST_CASE("a pool's initializer in a plugin's run runs under the plugin's identi
         SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
 
     // The plugin may start its pool's thread: the test grants what it asks for.
-    PluginAuditManager::set_permission_prompt_for_testing([](const std::string&, const std::vector<std::string>&) { return true; });
+    PluginAuditManager::set_permission_prompt_for_testing(
+        [](const std::string&, const std::vector<std::string>&, const std::vector<PluginAuditManager::PermissionPromptEntry>&) { return true; });
     PythonRunRequest request;
     request.code     = "import orca\nfrom concurrent.futures import ThreadPoolExecutor\n"
                        "def init():\n    try:\n        orca.host.plugin.storage()\n    except RuntimeError as e:\n        print('storage:', e)\n"

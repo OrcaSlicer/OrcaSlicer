@@ -1,4 +1,5 @@
 #include "ObjectDataViewModel.hpp"
+#include <boost/format.hpp>
 #include "wxExtensions.hpp"
 #include "BitmapCache.hpp"
 #include "GUI_App.hpp"

@@ -235,7 +235,8 @@ public:
 
     wxColor get_color() { return m_color; }
 
-    bool switch_to_tab();
+    // Opens this slot's preset in its tab; `show_tab` false only loads it, without showing the tab.
+    bool switch_to_tab(bool show_tab = true);
     void change_extruder_color();
     void show_add_menu();
     void show_edit_menu();

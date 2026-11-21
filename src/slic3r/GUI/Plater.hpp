@@ -230,6 +230,8 @@ public:
     // mixes, which change_filament() asks about first.
     bool merge_removes_component(size_t from_id, size_t to_id) const;
     void edit_filament();
+    // Loads a filament's preset into the filament tab without showing it, so that edits go to it. 0 based.
+    bool load_filament_in_tab(size_t filament_id);
     void add_custom_filament(wxColour new_col, const std::string& preset_name = std::string(), bool skip_preset_validation = false);
     bool is_new_project_in_gcode3mf();
     // BBS
@@ -473,7 +475,10 @@ public:
     // discard modified presets), keeping the modified presets, for a caller that has decided both.
     void calib_pa(const Calib_Params& params, bool skip_confirm = false);
     //ORCA: Add pattern parameter to calib_flowrate
-    void calib_flowrate(bool is_linear, int pass, InfillPattern pattern = ipArchimedeanChords, bool skip_confirm = false);
+    void calib_flowrate(bool is_linear, int pass, InfillPattern pattern = ipArchimedeanChords, int filament_id = 0, int extruder_id = 0,
+                        bool skip_confirm = false);
+    // True from calib_flowrate() until other files are loaded, like the print's calibration mode
+    bool is_flowrate_calib() const;
     void calib_temp(const Calib_Params& params, bool skip_confirm = false);
     void calib_max_vol_speed(const Calib_Params& params, bool skip_confirm = false);
     void calib_retraction(const Calib_Params& params, bool skip_confirm = false);
@@ -1319,6 +1324,10 @@ private:
     void _calib_pa_tower(const Calib_Params& params);
     void _calib_pa_select_added_objects();
     void _calib_apply_belt_mode();
+    // Loads the filament a calibration prints with into the filament tab, so the test edits its settings.
+    bool _calib_select_filament(int filament_id);
+    // Makes every test object print with that filament.
+    void _calib_assign_filament(int filament_id);
     void _calib_temp_belt_sectioned(const Calib_Params& params, double belt_angle_rad);
 
     void cut_horizontal(size_t obj_idx, size_t instance_idx, double z, ModelObjectCutAttributes attributes);

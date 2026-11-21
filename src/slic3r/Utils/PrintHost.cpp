@@ -24,6 +24,7 @@
 #include <nlohmann/json.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/format.hpp>
 
 #include <wx/event.h>
 #include <wx/string.h>

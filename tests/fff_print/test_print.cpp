@@ -3623,3 +3623,24 @@ TEST_CASE("A changed AMS filament inventory invalidates the grouping steps", "[P
     CHECK(print.apply(model, config) != PrintBase::APPLY_STATUS_INVALIDATED);
     CHECK(print.get_extruder_filament_info().empty());
 }
+
+TEST_CASE("Print validation warns about crossing sparse infill walls of more than 3 lines", "[Print]")
+{
+    const auto [pattern, strategy, lines, warned] = GENERATE(table<std::string, std::string, int, bool>({
+        { "grid", "crossing", 4, true },
+        { "adaptivecubic", "crossing", 4, true },
+        { "grid", "crossing", 3, false },
+        { "grid", "non_crossing", 4, false },
+        { "grid", "default", 4, false },
+        { "gyroid", "crossing", 4, false } }));
+    CAPTURE(pattern, strategy, lines);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({ { "sparse_infill_pattern", pattern },
+                                    { "sparse_infill_strategy", strategy },
+                                    { "fill_multiline", lines },
+                                    { "sparse_infill_density", "20%" } });
+    std::vector<StringObjectException> warnings;
+    REQUIRE(validate_cubes(config, warnings).string.empty());
+    CHECK(count_opt_key(warnings, "sparse_infill_strategy") == (warned ? 1u : 0u));
+}

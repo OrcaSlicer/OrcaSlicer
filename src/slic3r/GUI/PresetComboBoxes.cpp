@@ -1127,7 +1127,7 @@ void PlaterPresetComboBox::set_sync_badge(bool show)
     ShowBadge(show);
 }
 
-bool PlaterPresetComboBox::switch_to_tab()
+bool PlaterPresetComboBox::switch_to_tab(bool show_tab)
 {
     Tab* tab = wxGetApp().get_tab(m_type);
     if (!tab)
@@ -1146,6 +1146,8 @@ bool PlaterPresetComboBox::switch_to_tab()
         // Bind the editor to this slot even when its preset is already open.
         wxGetApp().get_tab(m_type)->get_combo_box()->set_filament_idx(m_filament_idx);
     }
+    if (!show_tab)
+        return true;
 
     /*
     if (int page_id = wxGetApp().tab_panel()->FindPage(tab); page_id != wxNOT_FOUND)

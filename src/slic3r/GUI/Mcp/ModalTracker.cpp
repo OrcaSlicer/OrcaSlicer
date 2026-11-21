@@ -302,7 +302,7 @@ private:
             return std::nullopt;
         }
         const std::string kind     = kind_of(w);
-        const std::string disabled = enabled_in_dialog(w) ? "" : " (disabled)";
+        const std::string disabled = enabled_in_dialog(check_part(w)) ? "" : " (disabled)";
         if (kind == "canvas" || kind == "webview")
             return std::nullopt;
         if (auto* box = dynamic_cast<wxStaticBox*>(w)) {

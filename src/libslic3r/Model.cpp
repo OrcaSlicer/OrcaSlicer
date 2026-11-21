@@ -61,6 +61,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/iostream.hpp>
+#include <boost/format.hpp>
 
 #include "SVG.hpp"
 #include <Eigen/Dense>

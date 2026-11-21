@@ -42,6 +42,8 @@ enum class CalibState { Start = 0, Preset, Calibration, CoarseSave, FineCalibrat
 struct Calib_Params
 {
     Calib_Params() : mode(CalibMode::Calib_None){};
+    // 0-based filament the test prints with, and the extruder printing it.
+    int filament_id = 0;
     int extruder_id = 0;
     double    start = 0.0, end = 1.0, step = 0.1;
     bool      print_numbers = false;
@@ -257,7 +259,7 @@ struct DrawBoxOptArgs
     double height;
     double line_width;
     double speed;
-    double e_per_mm{0.}; // 0: extrude with the first filament's settings
+    double e_per_mm{0.}; // 0: extrude with the test filament's settings
 };
 class CalibPressureAdvance
 {
@@ -310,6 +312,9 @@ protected:
 
     Vec3d m_last_pos;
     DynamicPrintConfig m_config;
+    // Filament the test prints with and its extruder, 0 based.
+    int m_filament_idx{0};
+    int m_extruder_idx{0};
 
     const double m_encroachment{1. / 3.};
     DrawDigitMode                m_draw_digit_mode{DrawDigitMode::Left_To_Right};

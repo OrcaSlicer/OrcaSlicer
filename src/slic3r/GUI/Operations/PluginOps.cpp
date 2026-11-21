@@ -461,26 +461,25 @@ Outcome<Done> reload_plugin(const PluginReload& plan)
     }
 
     PluginManager&          manager = PluginManager::instance();
-    boost::filesystem::path cache_dir;
+    boost::filesystem::path plugin_root;
     if (plan.clear_cache) {
         PluginDescriptor descriptor;
         if (!manager.try_get_plugin_descriptor(key, descriptor))
             return Refusal{RefusalKind::Precondition, "no_such_plugin", L("Plugin not found.")};
-        boost::filesystem::path resolved_root;
-        std::string             resolve_error;
+        std::string resolve_error;
         if (!resolve_allowed_plugin_root(descriptor, {get_orca_plugins_dir()},
-                                         L("Refusing to clear a plugin cache outside the local plugin directory."), resolved_root,
+                                         L("Refusing to clear a plugin cache outside the local plugin directory."), plugin_root,
                                          resolve_error))
             return Refusal{RefusalKind::Precondition, "outside_plugins_folder", resolve_error};
-        cache_dir = resolved_root / "__whl_extracted__";
     }
     if (!manager.unload_plugin(key))
         return Refusal{RefusalKind::Failed, "not_unloaded", L("Failed to unload plugin.")};
     if (plan.clear_cache) {
-        boost::system::error_code ec;
-        boost::filesystem::remove_all(cache_dir, ec);
-        if (ec)
-            return Refusal{RefusalKind::Failed, "cache_not_cleared", L("Failed to clear plugin cache: %1%"), {ec.message()}};
+        // __whl_extracted__ holds both dependency extractions and the uv-installed entry wheel. The stored wheel and
+        // plugin data are left untouched.
+        std::string cache_error;
+        if (!plugin_wheel_install::delete_install_cache(plugin_root, cache_error))
+            return Refusal{RefusalKind::Failed, "cache_not_cleared", cache_error};
     }
     if (const Outcome<Done> loaded = load_plugin_and_wait(key); !loaded)
         return loaded;

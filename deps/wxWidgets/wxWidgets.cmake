@@ -45,7 +45,9 @@ orcaslicer_add_cmake_project(
     wxWidgets
     GIT_REPOSITORY "https://github.com/OrcaSlicer/Orca-deps-wxWidgets"
     GIT_TAG 89844cb1f80b17a5916d5274cd88317cac3e2a3c
-    GIT_SHALLOW ON
+    # A shallow clone fetches only the branch head, so checking out a pinned commit fails once the
+    # branch moves past it.
+    GIT_SHALLOW OFF
     GIT_SUBMODULES 3rdparty/catch 3rdparty/pcre 3rdparty/libwebp
     DEPENDS ${PNG_PKG} ${ZLIB_PKG} ${EXPAT_PKG} ${JPEG_PKG}
     CMAKE_ARGS

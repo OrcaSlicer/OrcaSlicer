@@ -2593,7 +2593,10 @@ its option key is read from the "parameter name" line of its tooltip, and its la
 option's definition. Failing that, the label to its left on the same row names it, then its
 tooltip. A control's state reads `[checked]` or `[unchecked]`, or `[mixed]` for a checkbox that shows
 neither (a three-state one undetermined, Orca's `CheckBox` half-checked for an unset nullable
-setting). An option of a selector Orca builds of buttons (`RadioGroup`, `TabCtrl`, `MultiSwitchButton`)
+setting). Orca's `LabeledCheckBox`, a panel holding a `CheckBox` and its label, is one checkbox named
+by its label, as a native one is: its parts are neither listed nor matched, and its check holds its
+state, takes its click and says whether it is disabled (`check_part()`), since the panel itself stays
+enabled. An option of a selector Orca builds of buttons (`RadioGroup`, `TabCtrl`, `MultiSwitchButton`)
 is a button that reads checked while it is the selected one (`selector_option()`), so `widget_set_value true`
 selects it, and a `SwitchButton` with a label at each end has the one it is on as its value.
 
@@ -3177,7 +3180,7 @@ matter: a field made before the label above it reads after it, and PrintHostSend
 before their labels, each meet their own label. In a row:
 
 - A toggle with no label of its own (Orca's `CheckBox` and `RadioBox`) takes the cell to its right as
-  its label: `[x] Remember my choice.`. With nothing there, it takes the topmost single-line cell to
+  its label: `[x] Run Python scripts unrestricted`. With nothing there, it takes the topmost single-line cell to
   its left, as Preferences and CloneDialog lay their switches out: `Show splash screen | [x]`. Of a
   title and its hint stacked beside a switch (RecordingDialog), that is the title.
 - Single-line cells side by side join with ` | `. A container whose children make one line counts as

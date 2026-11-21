@@ -119,8 +119,10 @@ modules:
       # submodules (PCRE2, etc.) that are not included in GitHub tarballs.
       - type: git
         url: https://github.com/OrcaSlicer/Orca-deps-wxWidgets.git
-        branch: v3.3.2
+        # flatpak-builder requires a named branch's tip to be the pinned commit, so this names no
+        # branch and clones in full, which git needs to check out a commit that is not a tip.
         commit: 89844cb1f80b17a5916d5274cd88317cac3e2a3c
+        disable-shallow-clone: true
 
   # OrcaSlicer C++ dependencies (built offline with pre-downloaded archives)
   - name: orca_deps

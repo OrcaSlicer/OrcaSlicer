@@ -322,6 +322,9 @@ std::string value_of(wxWindow* w);
 // an unset setting), -1 for a window with no check state. A selector's option button is checked
 // while it is the selected one (selector_option()).
 int checked_of(wxWindow* w);
+// The part of `w` that holds its check state, takes its click and is disabled: a LabeledCheckBox's own
+// CheckBox, since the panel around it stays enabled when it is disabled; `w` itself for any other window.
+wxWindow* check_part(wxWindow* w);
 // The name an agent knows a window by: a top-level window's title; for an input field, the setting it
 // edits or the label left of it on its row; else its own label, or an icon button's tooltip.
 std::string label_of(wxWindow* w);

@@ -2727,6 +2727,11 @@ void GLCanvas3D::toggle_model_objects_visibility(bool visible, const ModelObject
                         vol->force_neutral_color = false;
                     else if (gizmo_type == GLGizmosManager::MmSegmentation)
                         vol->is_active = false;
+                    else if (gizmo_type == GLGizmosManager::TextureDisplacement) {
+                        vol->force_native_color = true;
+                        if (vol->is_modifier) // GLVolume::is_modifier == any non-model-part volume
+                            vol->is_active = false;
+                    }
                     else
                         vol->force_native_color = true;
                 }

@@ -38,6 +38,7 @@
 #include "slic3r/GUI/Widgets/SideButton.hpp"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include "slic3r/GUI/Widgets/DropDown.hpp"
+#include "slic3r/GUI/Widgets/LabeledCheckBox.hpp"
 #include "slic3r/GUI/Widgets/RadioBox.hpp"
 #include "slic3r/GUI/Widgets/RadioGroup.hpp"
 #include "slic3r/GUI/Widgets/SpinInput.hpp"
@@ -187,7 +188,8 @@ std::string kind_of(wxWindow* w)
         return "webview";
     if (dynamic_cast<::Button*>(w) != nullptr || dynamic_cast<wxButton*>(w) != nullptr || dynamic_cast<::SideButton*>(w) != nullptr)
         return "button";
-    if (dynamic_cast<wxCheckBox*>(w) != nullptr)
+    // A LabeledCheckBox is one checkbox with its own label, not the CheckBox and the label it is made of.
+    if (dynamic_cast<wxCheckBox*>(w) != nullptr || dynamic_cast<::LabeledCheckBox*>(w) != nullptr)
         return "checkbox";
     if (dynamic_cast<wxBitmapToggleButton*>(w) != nullptr || dynamic_cast<wxToggleButton*>(w) != nullptr)
         return "toggle";
@@ -341,8 +343,19 @@ std::string value_of(wxWindow* w)
     return {};
 }
 
+wxWindow* check_part(wxWindow* w)
+{
+    if (dynamic_cast<::LabeledCheckBox*>(w) != nullptr)
+        for (wxWindow* child : w->GetChildren())
+            if (dynamic_cast<::CheckBox*>(child) != nullptr)
+                return child;
+    return w;
+}
+
 int checked_of(wxWindow* w)
 {
+    if (wxWindow* check = check_part(w); check != w)
+        return checked_of(check);
     if (const SelectorOption option = selector_option(w); option.selector != nullptr)
         return option.selected ? 1 : 0;
     if (auto* c = dynamic_cast<wxCheckBox*>(w)) {
@@ -2398,7 +2411,7 @@ void UiInspector::walk(wxWindow* w, int depth, std::vector<UiNode>& nodes, std::
         node.label   = label == node.value ? std::string() : label;
         node.name    = name;
         node.option  = option_key_of(w);
-        node.enabled = w->IsEnabled();
+        node.enabled = check_part(w)->IsEnabled();
         node.focused = wxWindow::FindFocus() == w;
         node.checked = checked_of(w);
         node.depth   = depth;
@@ -2495,9 +2508,10 @@ void UiInspector::walk(wxWindow* w, int depth, std::vector<UiNode>& nodes, std::
     if (auto* web = dynamic_cast<wxWebView*>(w); web != nullptr && interesting)
         add_page(*web, child_depth, nodes, omitted, o);
     // Web views and canvases are listed by their own means; Orca's composite inputs are one
-    // control to the agent, not their inner text field and buttons; a table's inner windows are its
-    // rows.
-    if (kind == "webview" || kind == "canvas" || kind == "text" || kind == "spin" || kind == "combo" || dynamic_cast<wxGrid*>(w) != nullptr)
+    // control to the agent, not their inner text field and buttons, nor a labelled checkbox's check
+    // and label; a table's inner windows are its rows.
+    if (kind == "webview" || kind == "canvas" || kind == "text" || kind == "spin" || kind == "combo" || kind == "checkbox" ||
+        dynamic_cast<wxGrid*>(w) != nullptr)
         return;
     // Popups are listed after the window they belong to (snapshot()).
     for (wxWindow* child : w->GetChildren())
@@ -2897,6 +2911,8 @@ std::vector<wxWindow*> UiInspector::match_windows(const json& locator)
             if (!option.empty())
                 return; // not the inner text control too
         }
+        if (check_part(w) != w)
+            return; // a labelled checkbox's check and label are parts of it, matched as it
         for (wxWindow* child : w->GetChildren())
             if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && !skipped_by_walks(child))
                 visit(child);
@@ -3249,7 +3265,7 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
     // A control's update-UI handlers set its state at idle (Compare presets' Transfer), so they run first, as the next
     // idle would: a click right after the change that enables the control finds it enabled, as a person's would.
     w->UpdateWindowUI();
-    if (!w->IsEnabled())
+    if (!check_part(w)->IsEnabled())
         throw ToolFailure("The element is disabled");
     scroll_into_view(w);
     if (t.page >= 0) {
@@ -3285,6 +3301,15 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
             c->SetValue(!c->GetValue());
             command(w, wxEVT_CHECKBOX, c->GetValue() ? 1 : 0);
             return {{"clicked", label_of(w)}, {"checked", c->GetValue()}};
+        }
+        // A labelled checkbox's check sends the panel's wxEVT_CHECKBOX once it toggles, as a click on it does. Its
+        // handler may close the dialog, so the reply is read first.
+        if (auto* check = dynamic_cast<wxBitmapToggleButton*>(check_part(w)); check != nullptr && check != w) {
+            const bool checked = !check->GetValue();
+            json       reply   = {{"clicked", label_of(w)}, {"checked", checked}};
+            check->SetValue(checked);
+            command(check, wxEVT_TOGGLEBUTTON, checked ? 1 : 0);
+            return reply;
         }
         if (auto* tb = dynamic_cast<wxBitmapToggleButton*>(w)) {
             tb->SetValue(!tb->GetValue());
@@ -3323,7 +3348,7 @@ json UiInspector::input(const UiTarget& t, const json& value, bool submit)
         throw ToolFailure("widget_set_value works on controls, list rows and ImGui fields");
     wxWindow* w = t.window.get();
     w->UpdateWindowUI(); // its state as the next idle sets it, as for a click
-    if (!w->IsEnabled())
+    if (!check_part(w)->IsEnabled())
         throw ToolFailure("The control is disabled");
     scroll_into_view(w);
     const std::string text = value.is_string() ? value.get<std::string>() : value.is_boolean() ? (value.get<bool>() ? "1" : "0") : value.dump();
