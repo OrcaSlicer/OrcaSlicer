@@ -2034,7 +2034,7 @@ void register_ui_tools(CommandCatalog& catalog)
             "ones MCP clients set before and last until the MCP server stops, and an empty list clears them. Reply: scope (run, plugin or session), rules (uses counts "
             "a rule's answers) and answered_open_dialog. A native dialog "
             "returns the rule's button at once and never shows. A file or folder picker takes button ok with an absolute path "
-            "and returns it without showing (on Linux a folder picker does, but such a rule cancels a file picker); without a path a picker can only be cancelled, "
+            "and returns it without showing; without a path a picker can only be cancelled, "
             "and a multi-select picker takes no path. A wx dialog is answered as dialog_answer does. A matching dialog "
             "already open is answered too "
             "(answered_open_dialog), so a prompt that shows around the same time, such as the restore prompt after startup, "
@@ -2044,7 +2044,7 @@ void register_ui_tools(CommandCatalog& catalog)
             object_schema({{"rules", array_prop({{"type", "object"},
                                                  {"properties", {{"match", prop("string", "Regex searched in \"title\\nmessage\", in \"title\\ntext\" (the dialog's own static text, one line each, without its controls), and in the title alone for a dialog with no text (a web dialog), so ^Title$ matches it.")},
                                                                  {"button", prop("string", "yes | no | ok | cancel | close | apply | label | id")},
-                                                                 {"path", prop("string", "Absolute path a matching file or folder picker returns, with button ok. A picker has no title until it shows, so the rule matches its prompt and must not anchor on a title with ^. The rule answers pickers only: an open picker needs an existing file, a folder picker an existing folder, and a save picker a new file. A picker the path can't serve is cancelled and the reason logged.")},
+                                                                 {"path", prop("string", "Absolute path a matching file or folder picker returns, with button ok. A picker has no title until it shows, so the rule matches its prompt and must not anchor on a title with ^. The rule answers pickers only: an open picker needs an existing file, a folder picker an existing folder, and a save picker the file's final name, new unless overwrite: overwrite is checked against this path, and the picker's caller may still add an extension. A picker the path can't serve is cancelled and the reason logged.")},
                                                                  {"overwrite", prop("boolean", "A save picker may return an existing file at path (default false).")}}},
                                                  {"required", {"match", "button"}},
                                                  {"additionalProperties", false}},

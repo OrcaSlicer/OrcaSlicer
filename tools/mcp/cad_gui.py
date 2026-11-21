@@ -301,10 +301,6 @@ class CadGui:
             self.failures += 1
         return bool(ok)
 
-    def skip(self, what, why):
-        """A check this platform can't run, said so rather than counted as a failure."""
-        print(f"skip {what}: {why}", flush=True)
-
     def run(self, rungs, names):
         """Run the rungs named (all of them when none is), in order; 1 if any check failed, else 0.
 

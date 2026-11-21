@@ -34,7 +34,7 @@ transforms moves a line 25, rotates it 30 degrees, scales it 3 times and arrays 
 four times and at 360 degrees six times, each through its gizmo's value labels. art types "LT"
 into the Text dialog twice, cancelling the first text on the Insert step, which must leave no text,
 and keeping the second, and imports a 40 x 20 SVG through its file picker, which a rule answers
-with the fixture's path (the import is skipped on Linux, where a GTK picker can't take one).
+with the fixture's path.
 coverage checks that the verbs the rungs drive from the menu are the sketch verbs the table has no
 key for.
 """
@@ -1064,10 +1064,6 @@ def rung_art():
     free = (cx, y1 - (y1 - y0) * 0.10)
     o = gui.offer(*free)
     gui.check("art: sketch_insert_svg is offered too", "sketch_insert_svg" in offered(o, gui.verbs()), f"header {o.header!r}, menu {o.items}")
-    if sys.platform.startswith("linux"):
-        gui.skip("art: SVG import", "a GTK file picker can't take a path from MCP")
-        leave()
-        return
     # The picker is matched by its prompt, unanchored: a picker answered unshown has no title.
     gui.client.call("dialog_auto_answer", rules=[{"match": "Import SVG", "button": "ok", "path": SVG}])
     try:

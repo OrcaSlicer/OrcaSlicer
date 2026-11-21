@@ -431,9 +431,7 @@ run alone, in that order (each test's docstring lists them); with none named, ev
 button held, the offer asked for and a tool armed, to show that the rungs after a failed one start
 clean. The tests find widgets, menu paths and verbs by their English names, so they need an English
 UI: on any other language, or with the Design tab off, they exit 2 before the first check and say how
-to fix it. On Linux the steps that need a file picker answered with a path, the sketching test's
-`roundtrip` and the context-menu test's SVG import, print `skip`, since a GTK picker can't take a
-path from MCP (`docs/HLSD/mcp-server.md`, "Dialogs and web views"). The app logs each picker a rule
+to fix it. The app logs each picker a rule
 answers in `<datadir>/log/debug_*.log.0`, with the reason when it cancels one a rule gave a path. MCP
 input reaches the app through wxWidgets, not the OS, so a focus problem that only a window manager
 causes is out of the tests' reach.

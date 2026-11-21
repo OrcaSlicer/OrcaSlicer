@@ -540,7 +540,7 @@ oracle is the tools' own output, the selection drawing is checked only as "diffe
 only as panel flags, and Scale artwork never scales.
 
 ## `test_cad_sketching`
-`test_cad_sketching.py` · Python, 248 checks (242 and one `skip` on Linux)
+`test_cad_sketching.py` · Python, 248 checks
 
 **Tests:** Drawing in an open sketch the way a person does, with clicks on the canvas and exact values typed into
 the canvas's value field with no click into it: each keyed tool's primitive, a profile with two voids, the edit
@@ -562,7 +562,7 @@ at `reset_view()`'s zoom a canvas of about 940 x 600 click pixels, which the can
 window holds (1142 x 742 when measured). roundtrip saves and opens `roundtrip.3mf` in a folder it makes in its own
 temporary folder, with a rule answering each file picker, so no folder the data folder remembers is used.
 
-**Leaves:** its last project unsaved; on Windows and macOS, roundtrip's `roundtrip.3mf` in the recent projects and
+**Leaves:** its last project unsaved; roundtrip's `roundtrip.3mf` in the recent projects and
 its folder as the last export folder (`last_export_path`), both pointing at a folder the rung deletes at its end. A
 rerun on the same data folder saves under a new folder and reads neither.
 
@@ -642,7 +642,6 @@ named after the rung).
   is caught only where that cell's own checks see it. The degrees of freedom are summed over the sketch, so a
   constraint lost in one cell and one too many in another cancel there; the lost one's own read-back still fails.
 - scale: the bulk add and the gesture are timed but the times are only printed; no limit is checked.
-- roundtrip prints `skip` and passes on Linux.
 - In an app that has built the Design tab before, as when the test runs after another in one app outside the sweep,
   the `start()` check compares two later showings.
 - The perpendicular after the round trip is held tighter than the solver promises; a solve that stops just inside
@@ -653,7 +652,7 @@ every relation is read back from the reopened sketch as geometry and as its stor
 loosely pinned.
 
 ## `test_cad_context_menu`
-`test_cad_context_menu.py` · Python, 131 checks (129 and one `skip` on Linux)
+`test_cad_context_menu.py` · Python, 131 checks
 
 **Tests:** The sketch's right-click offer: its header names what was clicked and it lists exactly the label paths
 the Design table gives for five selections, greying exactly the rows with nothing to offer; a right-click with a
@@ -728,7 +727,7 @@ named after the rung).
 - label: if the badge or label layout moves so that the label no longer covers a badge, the rung raises on its
   precondition, a failure of its set-up rather than of the field.
 - art: the letters' shapes are graded only as two loops of over 1 mm²; the SVG's absolute size is not checked,
-  only its proportions; the SVG import prints `skip` and passes on Linux.
+  only its proportions.
 - "no_shortcut: at least ten verbs offered on an empty sketch have no shortcut" is a floor where the table gives
   the exact number; vocabulary's exact menu comparison covers it.
 

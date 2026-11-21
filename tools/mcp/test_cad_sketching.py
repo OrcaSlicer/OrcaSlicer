@@ -25,11 +25,10 @@ produced, then commits the sketch, opens it again and reads every relation back,
 the constraint itself. badge clicks a constraint's badge, which selects it and deletes nothing, as
 does a double-click, then deletes it with Delete. undo and feature_undo undo inside a sketch and
 across its commit, from the keyboard. roundtrip saves the project and opens it again through the
-File menu, its file pickers answered by dialog_auto_answer rules with the path (skipped on Linux,
-where a GTK picker can't take one). scale draws on top of a sketch holding 1204 entities, which it
-loads with one sketch_draw command while a tool is armed; the call says why. selfcheck-recovery runs
-only when named: it raises with the mouse button held, the offer menu asked for and a tool armed, to
-show that the rungs after it start clean.
+File menu, its file pickers answered by dialog_auto_answer rules with the path. scale draws on top
+of a sketch holding 1204 entities, which it loads with one sketch_draw command while a tool is
+armed; the call says why. selfcheck-recovery runs only when named: it raises with the mouse button
+held, the offer menu asked for and a tool armed, to show that the rungs after it start clean.
 """
 
 import math
@@ -1583,10 +1582,7 @@ def rung_roundtrip():
     """Save the project and open it again: the profile comes back to the last decimal.
 
     Both go through the File menu. A rule answers each file picker with the project's path, as a
-    person would type it; a GTK picker can't take a path that way, so the rung skips on Linux."""
-    if sys.platform.startswith("linux"):
-        gui.skip("roundtrip", "a GTK file picker can't take a path from MCP")
-        return
+    person would type it."""
     gui.enter_sketch("r")
     draw_rect(120, 80, -60, -40)
     key("r")

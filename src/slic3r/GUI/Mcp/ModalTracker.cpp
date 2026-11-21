@@ -1038,9 +1038,9 @@ json undescribed(wxDialog* dialog)
 // the folder later in the main loop, work that could outlive the dialog, and its wxDirDialog::SetPath() stores
 // nothing else (src/gtk/filedlg.cpp, src/gtk/dirdlg.cpp). So on GTK the path goes in through the base classes'
 // setters, which store it and start no folder load. wxGTK's wxDirDialog reads its path from there. Its wxFileDialog
-// asks the GTK chooser instead, which has no answer before it shows, so a file picker is cancelled, never answered
-// with a path its caller can't read, unless the wxWidgets in use announces with wxHAS_GTK_FILEDLG_HOOK_ANSWER that
-// its ShowModal() records a hook's answer and its getters then return what SetPath() stored.
+// asks the GTK chooser instead, unless ShowModal() was answered by a hook, which Orca's wxWidgets records and
+// announces with wxHAS_GTK_FILEDLG_HOOK_ANSWER; without that a file picker is cancelled, never answered with a path
+// its caller can't read.
 //
 // Multi-select pickers fill GetPaths() from their own list on every platform, never from SetPath(), so they are
 // cancelled; for the same reason a single-select picker's caller that reads GetPaths() instead of GetPath() gets an

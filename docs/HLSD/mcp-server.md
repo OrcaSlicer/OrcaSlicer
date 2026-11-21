@@ -3261,10 +3261,20 @@ never from `SetPath()`; for the same reason a single-select picker's caller that
 chooser, which loads the folder later in the main loop, and its folder picker's `SetPath()` stores nothing
 else, so on GTK the path goes in through the base classes' setters (`wxDirDialogBase::SetPath()`,
 `wxFileDialogBase::SetPath()`), which store it and start no folder load that could outlive the dialog. wxGTK's
-folder picker reads its path from there. Its file picker asks the GTK chooser, which never showed and has no
-answer, so a path rule cancels a GTK file picker it matches, saying so in the log, unless the wxWidgets in use
-defines `wxHAS_GTK_FILEDLG_HOOK_ANSWER`: its `wxFileDialog` then returns what `SetPath()` stored after a
-`wxModalDialogHook` answered `ShowModal()`. A path rule answers pickers only, as they open: never a wx dialog or
+folder picker reads its path from there. Its file picker would ask the GTK chooser, which never showed and has
+no answer, but Orca's wxWidgets fork (`deps/wxWidgets/wxWidgets.cmake`) has its `wxFileDialog::ShowModal()`
+record whether a `wxModalDialogHook` answered the call, with or without a path. While one did, `GetPath()`,
+`GetFilename()` and `GetDirectory()` return what `SetPath()` stored and `GetPaths()` and `GetFilenames()` are
+empty, as on Windows and macOS; the fork's header announces it with `wxHAS_GTK_FILEDLG_HOOK_ANSWER`, and a
+build against a wxWidgets without it cancels a GTK file picker a path rule matches, saying so in the log.
+GTK's own file chooser button, a `wxFilePickerCtrl` without `wxFLP_SAVE` or `wxFLP_USE_TEXTCTRL` (the SLA
+import dialog's), opens its dialog itself, never through `ShowModal()`, so no rule answers it.
+
+A save rule's path is the file's final name. The hook bypasses the picker's overwrite prompt, and `overwrite`
+is checked against the path as given, while the picker's caller may still change what it returns: exporting a
+plate's sliced file adds `.3mf` to a name without it (`Plater::export_gcode_3mf()`). A caller that refuses the
+name and shows the picker again, as exporting G-code does for characters a FAT file system can't hold, is
+answered with the same path again. A path rule answers pickers only, as they open: never a wx dialog or
 message box it matches, nor a picker already open. `app_state.auto_answer_rules` and the tool's reply list a
 rule's `path` and `overwrite`. The replay summary (`describe_step()`) flags a step that sets a path rule
 outside the run's output folder as writing a file, since which picker the rule will answer, and whether that
