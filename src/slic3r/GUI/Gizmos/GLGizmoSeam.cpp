@@ -112,6 +112,10 @@ bool GLGizmoSeam::on_tool_shortcut(Shortcut shortcut)
 
 void GLGizmoSeam::tool_changed(wchar_t old_tool, wchar_t new_tool)
 {
+    // ORCA: a tool switch drops a LINE anchor that never got its second click.
+    if (old_tool == ImGui::LineToolIcon || new_tool == ImGui::LineToolIcon)
+        m_line_pending = false;
+
     if ((old_tool == ImGui::GapFillIcon && new_tool == ImGui::GapFillIcon) ||
         (old_tool != ImGui::GapFillIcon && new_tool != ImGui::GapFillIcon))
         return;
@@ -126,6 +130,10 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
 {
     if (! m_c->selection_info()->model_object())
         return;
+
+    // ORCA: the LINE anchor's rubber band, drawn in the ImGui pass so it survives the cursor
+    //       leaving the part.
+    render_tool_preview();
 
     float  scale       = m_parent.get_scale();
     #ifdef WIN32
@@ -173,13 +181,13 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
 
     ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc.at("tool_type"));
-    std::array<wchar_t, 2> tool_ids = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon };
-    std::array<wchar_t, 2> icons;
+    std::array<wchar_t, 3> tool_ids = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::LineToolIcon };
+    std::array<wchar_t, 3> icons;
     if (m_is_dark_mode)
-        icons = { ImGui::CircleButtonDarkIcon, ImGui::SphereButtonDarkIcon};
+        icons = { ImGui::CircleButtonDarkIcon, ImGui::SphereButtonDarkIcon, ImGui::LineToolDarkIcon };
     else
-        icons = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon };
-    std::array<wxString, 2> tool_tips = { _L("Circle"), _L("Sphere")};
+        icons = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::LineToolIcon };
+    std::array<wxString, 3> tool_tips = { _L("Circle"), _L("Sphere"), _L("Line") };
     for (int i = 0; i < tool_ids.size(); i++) {
         //std::string  str_label = std::string("##");
         //std::wstring btn_name = icons[i] + boost::nowide::widen(str_label);
@@ -224,6 +232,9 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
     } else if (m_current_tool == ImGui::SphereButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::SPHERE;
         m_tool_type = ToolType::BRUSH;
+    } else if (m_current_tool == ImGui::LineToolIcon) {
+        m_cursor_type = TriangleSelector::CursorType::CIRCLE;
+        m_tool_type = ToolType::LINE;
     }
 
     ImGui::AlignTextToFramePadding();
