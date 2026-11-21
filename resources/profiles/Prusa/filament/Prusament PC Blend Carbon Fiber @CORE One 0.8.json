@@ -8,7 +8,9 @@
 	"instantiation": "true",
 	"compatible_printers": [
 		"Prusa CORE One 0.8 nozzle",
-		"Prusa CORE One HF 0.8 nozzle"
+		"Prusa CORE One L 0.8 nozzle",
+		"Prusa CORE One HF 0.8 nozzle",
+		"Prusa CORE One L HF 0.8 nozzle"
 	],
 	"fan_cooling_layer_time": [
 		"25"
