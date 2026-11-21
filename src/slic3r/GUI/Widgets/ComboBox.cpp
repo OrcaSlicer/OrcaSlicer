@@ -352,6 +352,12 @@ void ComboBox::SetItemAlias(unsigned int n, wxString const &value)
     items[n].alias = value;
 }
 
+void ComboBox::SetItemRightText(unsigned int n, wxString const &value) {
+    if (n >= items.size()) return;
+    items[n].text_right = value;
+    drop.Invalidate();
+}
+
 wxBitmap ComboBox::GetItemBitmap(unsigned int n) { return items[n].icon; }
 
 void ComboBox::SetItemBitmap(unsigned int n, wxBitmap const &bitmap)
