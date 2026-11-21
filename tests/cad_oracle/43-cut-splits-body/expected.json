@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "two boxes 35x20x20 (x 0..35 and 45..80): V = 2abc, A = 2*2(ab+bc+ca)",
+  "body_count": 2,
+  "volume_mm3": 28000,
+  "area_mm2": 7200,
+  "center_of_mass": [
+    40.0,
+    10.0,
+    10.0
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      80.0,
+      20.0,
+      20.0
+    ]
+  },
+  "faces": 12
+}

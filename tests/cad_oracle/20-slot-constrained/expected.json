@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "obround: arc centres (0,0) and (40,0), R6, tangent horizontal lines y=+-6: A2 = 2rL + pi r^2, V = A2 h, A = 2 A2 + perimeter (2L + 2 pi r) h",
+  "body_count": 1,
+  "volume_mm3": 2965.4866776461627,
+  "area_mm2": 1774.6902302738526,
+  "center_of_mass": [
+    20.0,
+    0.0,
+    2.5
+  ],
+  "bbox": {
+    "min": [
+      -6.0,
+      -6.0,
+      0.0
+    ],
+    "max": [
+      46.0,
+      6.0,
+      5.0
+    ]
+  },
+  "faces": 6
+}

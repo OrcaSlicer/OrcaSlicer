@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "block [-20,20]x[-25,10]x[0,20] minus the 270 deg revolve (from +X towards +Y) of the 8x8 square r 4..12, z 12..20; the removed section is the annular sector minus the circular segment y > 10 (R^2 acos(d/R) - d sqrt(R^2-d^2), y-moment 2/3 (R^2-d^2)^1.5) that lies outside the block; sector moments (R^3-r^3)/3 (sin, 1-cos); A = box - top opening + floor - front-face notch 2 sqrt(44) x 8 + inner wall r th h + outer wall (th - pi + 2 asin(5/6)) R h + 2 end caps",
+  "body_count": 1,
+  "volume_mm3": 25731.30662164881,
+  "area_mm2": 6312.602171854095,
+  "center_of_mass": [
+    0.17244881492337513,
+    -8.273218841749548,
+    9.4709883773001
+  ],
+  "bbox": {
+    "min": [
+      -20.0,
+      -25.0,
+      0.0
+    ],
+    "max": [
+      20.0,
+      10.0,
+      20.0
+    ]
+  },
+  "faces": 12
+}

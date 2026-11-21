@@ -112,6 +112,8 @@ public:
     wxBoxSizer *create_item_button(wxString title, wxString title2, wxString tooltip, wxString tooltip2, std::function<void()> onclick, const wxString wiki_url = "");
     wxBoxSizer *create_item_downloads(wxString title, wxString tooltip);
     wxBoxSizer *create_item_input(wxString title, wxString title2, wxString tooltip, std::string param, std::function<void(wxString)> onchange = {}, const wxString wiki_url = "");
+    // Same as create_item_input but free text (create_item_input only accepts digits).
+    wxBoxSizer *create_item_text(wxString title, wxString tooltip, std::string param, const wxString placeholder = "");
     wxBoxSizer *create_item_spinctrl(wxString title, wxString title2, wxString side_label, wxString tooltip, std::string param, int min, int max, std::function<void(int)> onchange = nullptr, const wxString wiki_url = "");
     wxBoxSizer *create_camera_orbit_mult_input(wxString title, wxString tooltip);
     wxBoxSizer *create_item_decimal_input(wxString title, wxString title2, wxString tooltip, std::string param, double min, double max, int decimals, const wxString wiki_url = "");

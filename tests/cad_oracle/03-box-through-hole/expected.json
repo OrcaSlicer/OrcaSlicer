@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "box 60x40x20 minus centred through cylinder r=6: V = abc - pi r^2 c, A = 2(ab+bc+ca) - 2 pi r^2 + 2 pi r c; hole is centred so the centroid stays at the box centre",
+  "body_count": 1,
+  "volume_mm3": 45738.05328941535,
+  "area_mm2": 9327.787565803084,
+  "center_of_mass": [
+    30.0,
+    20.0,
+    10.0
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      60.0,
+      40.0,
+      20.0
+    ]
+  },
+  "faces": 7
+}

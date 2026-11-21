@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "plate 80x50x10 minus 6 counterbored through holes (cb d10 x 5.5, hole d5.5) at x 15/40/65, y 15/35",
+  "body_count": 1,
+  "volume_mm3": 36766.71211083357,
+  "area_mm2": 11818.152551429443,
+  "center_of_mass": [
+    39.99999999999997,
+    25.0,
+    4.889369275430759
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      80.0,
+      50.0,
+      10.0
+    ]
+  },
+  "faces": 24
+}

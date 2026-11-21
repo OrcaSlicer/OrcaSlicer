@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "solved trapezoid bottom (-30,0)-(30,0), top (-15,25)-(15,25) minus two d6 holes at (+-18, 8) (symmetric about the axis, 36 apart, 8 above l1); trapezoid centroid y = H(a+2b)/(3(a+b)); V = A2 t, A = 2 A2 + perimeter t",
+  "body_count": 1,
+  "volume_mm3": 5342.256661176918,
+  "area_mm2": 3066.94581842842,
+  "center_of_mass": [
+    0.0,
+    11.275769231975591,
+    2.5
+  ],
+  "bbox": {
+    "min": [
+      -30.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      30.0,
+      25.0,
+      5.0
+    ]
+  },
+  "faces": 8
+}

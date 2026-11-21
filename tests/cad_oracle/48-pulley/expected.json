@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "revolve of the 12-segment (r,z) polygon about Z: V = 2 pi int r dA, Mz = 2 pi int r z dA, A = 2 pi int r ds (Pappus)",
+  "body_count": 1,
+  "volume_mm3": 168510.84114835176,
+  "area_mm2": 23718.644332702832,
+  "center_of_mass": [
+    0.0,
+    0.0,
+    19.999999999999996
+  ],
+  "bbox": {
+    "min": [
+      -40.0,
+      -40.0,
+      0.0
+    ],
+    "max": [
+      40.0,
+      40.0,
+      40.0
+    ]
+  },
+  "faces": 12
+}

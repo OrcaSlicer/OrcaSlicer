@@ -1,0 +1,439 @@
+{
+ "id": "61-shaft-keyway",
+ "name": "Stepped shaft with keyway and chamfers",
+ "description": "Revolved stepped shaft (d20 x30, d25 x60, d20 x30 along Z); end edges chamfered 1; 8 mm wide R4-ended keyway 4 deep on the d25 section (z 45..75), cut from a tangent plane at x=12.5.",
+ "exercises": [
+  "revolve",
+  "chamfer",
+  "offset_plane",
+  "extrude_cut",
+  "keyway",
+  "realistic"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Profile",
+   "plane": {
+    "ref": "XZ",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     0.0,
+     -1.0
+    ],
+    "normal": [
+     0.0,
+     1.0,
+     0.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       10.0,
+       0.0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       10.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       10.0,
+       -30.0
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       10.0,
+       -30.0
+      ]
+     },
+     "end": {
+      "at": [
+       12.5,
+       -30.0
+      ]
+     },
+     "id": "l3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l3.end",
+      "at": [
+       12.5,
+       -30.0
+      ]
+     },
+     "end": {
+      "at": [
+       12.5,
+       -90.0
+      ]
+     },
+     "id": "l4"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l4.end",
+      "at": [
+       12.5,
+       -90.0
+      ]
+     },
+     "end": {
+      "at": [
+       10.0,
+       -90.0
+      ]
+     },
+     "id": "l5"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l5.end",
+      "at": [
+       10.0,
+       -90.0
+      ]
+     },
+     "end": {
+      "at": [
+       10.0,
+       -120.0
+      ]
+     },
+     "id": "l6"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l6.end",
+      "at": [
+       10.0,
+       -120.0
+      ]
+     },
+     "end": {
+      "at": [
+       0.0,
+       -120.0
+      ]
+     },
+     "id": "l7"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l7.end",
+      "at": [
+       0.0,
+       -120.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "id": "l8"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "revolve",
+   "name": "Revolve1",
+   "operation": "new",
+   "profile": {
+    "sketch": "Profile",
+    "loops": [
+     {
+      "outer": true,
+      "curves": [
+       "l1",
+       "l2",
+       "l3",
+       "l4",
+       "l5",
+       "l6",
+       "l7",
+       "l8"
+      ]
+     }
+    ]
+   },
+   "axis": {
+    "ref": "world Z axis",
+    "origin": [
+     0,
+     0,
+     0
+    ],
+    "dir": [
+     0,
+     0,
+     1
+    ]
+   },
+   "angle": 360,
+   "result_bodies": [
+    "Shaft"
+   ]
+  },
+  {
+   "op": "chamfer",
+   "name": "EndChamfers",
+   "type": "equal_distance",
+   "distance": 1,
+   "tangent_chain": false,
+   "edge_selection": "end circles r=10 at z=0 and z=120",
+   "edges": [
+    {
+     "type": "circle",
+     "start": [
+      10.0,
+      0.0,
+      0.0
+     ],
+     "end": [
+      10.0,
+      0.0,
+      0.0
+     ],
+     "center": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "axis": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "point": [
+      -10.0,
+      0.0,
+      0.0
+     ]
+    },
+    {
+     "type": "circle",
+     "start": [
+      10.0,
+      0.0,
+      120.0
+     ],
+     "end": [
+      10.0,
+      0.0,
+      120.0
+     ],
+     "center": [
+      0.0,
+      0.0,
+      120.0
+     ],
+     "axis": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "point": [
+      -10.0,
+      0.0,
+      120.0
+     ]
+    }
+   ]
+  },
+  {
+   "op": "construction_plane",
+   "name": "Tangent",
+   "method": "offset",
+   "base": "YZ",
+   "offset": 12.5
+  },
+  {
+   "op": "sketch",
+   "name": "KeywaySketch",
+   "plane": {
+    "ref": "construction plane Tangent (YZ offset 12.5)",
+    "origin": [
+     12.5,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     0.0,
+     0.0,
+     -1.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     1.0,
+     0.0,
+     0.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "arc_center_start_sweep",
+     "center": {
+      "at": [
+       -45.0,
+       0.0
+      ]
+     },
+     "start": {
+      "at": [
+       -45.0,
+       4.0
+      ]
+     },
+     "sweep_deg": 180,
+     "id": "a1"
+    },
+    {
+     "type": "arc_center_start_sweep",
+     "center": {
+      "at": [
+       -75.0,
+       0.0
+      ]
+     },
+     "start": {
+      "at": [
+       -75.0,
+       -4.0
+      ]
+     },
+     "sweep_deg": 180,
+     "id": "a2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "a1.end",
+      "at": [
+       -45.0,
+       -4.0
+      ]
+     },
+     "end": {
+      "ref": "a2.start",
+      "at": [
+       -75.0,
+       -4.0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "a2.end",
+      "at": [
+       -75.0,
+       4.0
+      ]
+     },
+     "end": {
+      "ref": "a1.start",
+      "at": [
+       -45.0,
+       4.0
+      ]
+     },
+     "id": "l2"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Keyway",
+   "operation": "cut",
+   "profiles": [
+    {
+     "sketch": "KeywaySketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "a1",
+        "a2",
+        "l1",
+        "l2"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 4,
+    "direction": "negative"
+   },
+   "result_bodies": [
+    "Shaft"
+   ]
+  }
+ ]
+}

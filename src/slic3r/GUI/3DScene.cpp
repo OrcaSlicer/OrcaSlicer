@@ -1081,7 +1081,8 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
     if (disable_cullface)
         glsafe(::glDisable(GL_CULL_FACE));
 
-    const float support_normal_z = get_selection_support_normal_z();
+    // Built from the full print config, which is expensive to merge, and every shader reads it only while the overhang view is on.
+    const float support_normal_z = m_slope.isGlobalActive ? get_selection_support_normal_z() : 0.0f;
 
     // ORCA: the object shaders that know how draw a part of a translucent filament as its print would
     // show, in premultiplied color, see translucent_filament_color() in gouraud.fs

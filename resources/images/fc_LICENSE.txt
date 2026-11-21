@@ -1,0 +1,4 @@
+fc_*.svg are icons from FreeCAD (https://github.com/FreeCAD/FreeCAD), imported unmodified by
+scripts/CAD/import_freecad_icons.py (the ribbon re-tints near-neutral strokes for the UI theme at load time).
+FreeCAD's icons are released under the GNU Lesser General Public License v2.1 (see FreeCAD's LICENSE and
+src/Gui/Icons). Copyright the FreeCAD contributors.

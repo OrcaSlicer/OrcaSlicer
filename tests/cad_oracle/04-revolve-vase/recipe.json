@@ -1,0 +1,201 @@
+{
+ "id": "04-revolve-vase",
+ "name": "Revolved vase profile",
+ "description": "Closed profile (lines + 3-point arc) on XZ revolved 360 deg about the world Z axis.",
+ "exercises": [
+  "sketch_xz",
+  "arc",
+  "revolve"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Profile",
+   "plane": {
+    "ref": "XZ",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     0.0,
+     -1.0
+    ],
+    "normal": [
+     0.0,
+     1.0,
+     0.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       20.0,
+       0.0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       20.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       25.0,
+       -30.0
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "arc_three_point",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       25.0,
+       -30.0
+      ]
+     },
+     "mid": [
+      23.0,
+      -46.0
+     ],
+     "end": {
+      "at": [
+       15.0,
+       -60.0
+      ]
+     },
+     "id": "a1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "a1.end",
+      "at": [
+       15.0,
+       -60.0
+      ]
+     },
+     "end": {
+      "at": [
+       18.0,
+       -80.0
+      ]
+     },
+     "id": "l3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l3.end",
+      "at": [
+       18.0,
+       -80.0
+      ]
+     },
+     "end": {
+      "at": [
+       0.0,
+       -80.0
+      ]
+     },
+     "id": "l4"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l4.end",
+      "at": [
+       0.0,
+       -80.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "id": "l5"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "revolve",
+   "name": "Revolve1",
+   "operation": "new",
+   "profile": {
+    "sketch": "Profile",
+    "loops": [
+     {
+      "outer": true,
+      "curves": [
+       "a1",
+       "l1",
+       "l2",
+       "l3",
+       "l4",
+       "l5"
+      ]
+     }
+    ]
+   },
+   "axis": {
+    "ref": "world Z axis",
+    "origin": [
+     0,
+     0,
+     0
+    ],
+    "dir": [
+     0,
+     0,
+     1
+    ]
+   },
+   "angle": 360,
+   "result_bodies": [
+    "Vase"
+   ]
+  }
+ ]
+}

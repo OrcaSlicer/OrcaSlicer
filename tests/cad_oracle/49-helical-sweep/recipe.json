@@ -1,0 +1,317 @@
+{
+ "id": "49-helical-sweep",
+ "name": "Helical sweep (spline helix)",
+ "description": "d4 circle swept along a 3-turn helix (R20, pitch 8) given as a fitted 3D spline through 12 points per turn; replayed as the true helix.",
+ "exercises": [
+  "sweep",
+  "spline_3d",
+  "helix"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Helix",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "fitted_spline",
+     "fit_points": [
+      [
+       20.0,
+       0.0,
+       0.0
+      ],
+      [
+       17.320508076,
+       10.0,
+       0.666666667
+      ],
+      [
+       10.0,
+       17.320508076,
+       1.333333333
+      ],
+      [
+       0.0,
+       20.0,
+       2.0
+      ],
+      [
+       -10.0,
+       17.320508076,
+       2.666666667
+      ],
+      [
+       -17.320508076,
+       10.0,
+       3.333333333
+      ],
+      [
+       -20.0,
+       0.0,
+       4.0
+      ],
+      [
+       -17.320508076,
+       -10.0,
+       4.666666667
+      ],
+      [
+       -10.0,
+       -17.320508076,
+       5.333333333
+      ],
+      [
+       -0.0,
+       -20.0,
+       6.0
+      ],
+      [
+       10.0,
+       -17.320508076,
+       6.666666667
+      ],
+      [
+       17.320508076,
+       -10.0,
+       7.333333333
+      ],
+      [
+       20.0,
+       -0.0,
+       8.0
+      ],
+      [
+       17.320508076,
+       10.0,
+       8.666666667
+      ],
+      [
+       10.0,
+       17.320508076,
+       9.333333333
+      ],
+      [
+       0.0,
+       20.0,
+       10.0
+      ],
+      [
+       -10.0,
+       17.320508076,
+       10.666666667
+      ],
+      [
+       -17.320508076,
+       10.0,
+       11.333333333
+      ],
+      [
+       -20.0,
+       0.0,
+       12.0
+      ],
+      [
+       -17.320508076,
+       -10.0,
+       12.666666667
+      ],
+      [
+       -10.0,
+       -17.320508076,
+       13.333333333
+      ],
+      [
+       -0.0,
+       -20.0,
+       14.0
+      ],
+      [
+       10.0,
+       -17.320508076,
+       14.666666667
+      ],
+      [
+       17.320508076,
+       -10.0,
+       15.333333333
+      ],
+      [
+       20.0,
+       -0.0,
+       16.0
+      ],
+      [
+       17.320508076,
+       10.0,
+       16.666666667
+      ],
+      [
+       10.0,
+       17.320508076,
+       17.333333333
+      ],
+      [
+       0.0,
+       20.0,
+       18.0
+      ],
+      [
+       -10.0,
+       17.320508076,
+       18.666666667
+      ],
+      [
+       -17.320508076,
+       10.0,
+       19.333333333
+      ],
+      [
+       -20.0,
+       0.0,
+       20.0
+      ],
+      [
+       -17.320508076,
+       -10.0,
+       20.666666667
+      ],
+      [
+       -10.0,
+       -17.320508076,
+       21.333333333
+      ],
+      [
+       -0.0,
+       -20.0,
+       22.0
+      ],
+      [
+       10.0,
+       -17.320508076,
+       22.666666667
+      ],
+      [
+       17.320508076,
+       -10.0,
+       23.333333333
+      ],
+      [
+       20.0,
+       -0.0,
+       24.0
+      ]
+     ],
+     "id": "h1"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "sketch",
+   "name": "ProfileSketch",
+   "plane": {
+    "ref": "XZ",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     0.0,
+     -1.0
+    ],
+    "normal": [
+     0.0,
+     1.0,
+     0.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       20.0,
+       0.0
+      ]
+     },
+     "radius": 2,
+     "id": "c1"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "sweep",
+   "name": "Sweep1",
+   "operation": "new",
+   "profile": {
+    "sketch": "ProfileSketch",
+    "loops": [
+     {
+      "outer": true,
+      "curves": [
+       "c1"
+      ]
+     }
+    ]
+   },
+   "path": {
+    "sketch": "Helix",
+    "curves": [
+     "h1"
+    ],
+    "chained": false
+   },
+   "orientation": "perpendicular",
+   "result_bodies": [
+    "Spring"
+   ]
+  }
+ ]
+}

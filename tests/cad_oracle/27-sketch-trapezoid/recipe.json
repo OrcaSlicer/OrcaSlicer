@@ -1,0 +1,318 @@
+{
+ "id": "27-sketch-trapezoid",
+ "name": "Sketch solver: parallel/perpendicular/midpoint/symmetry",
+ "description": "Trapezoid: bottom horizontal 60 centred on origin (midpoint), construction axis perpendicular, top parallel 30 with its midpoint on the axis end (height 25); two d6 holes symmetric about the axis.",
+ "exercises": [
+  "sketch_only",
+  "sketch_constraints",
+  "parallel",
+  "perpendicular",
+  "midpoint",
+  "symmetric",
+  "offset_dim",
+  "construction_geometry"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Trapezoid",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       -27,
+       2
+      ]
+     },
+     "end": {
+      "at": [
+       31,
+       -1
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       31.0,
+       -1.0
+      ]
+     },
+     "end": {
+      "at": [
+       18,
+       23
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       18.0,
+       23.0
+      ]
+     },
+     "end": {
+      "at": [
+       -13,
+       27
+      ]
+     },
+     "id": "l3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l3.end",
+      "at": [
+       -13.0,
+       27.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       -27.0,
+       2.0
+      ]
+     },
+     "id": "l4"
+    },
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       1,
+       1
+      ]
+     },
+     "end": {
+      "at": [
+       2,
+       22
+      ]
+     },
+     "id": "l0",
+     "construction": true
+    },
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       -14,
+       9
+      ]
+     },
+     "radius": 2.5,
+     "id": "h1"
+    },
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       16,
+       7
+      ]
+     },
+     "radius": 3.5,
+     "id": "h2"
+    }
+   ],
+   "constraints": [
+    {
+     "type": "horizontal",
+     "refs": [
+      "l1"
+     ]
+    },
+    {
+     "type": "midpoint",
+     "refs": [
+      "origin",
+      "l1"
+     ]
+    },
+    {
+     "type": "perpendicular",
+     "refs": [
+      "l0",
+      "l1"
+     ]
+    },
+    {
+     "type": "coincident",
+     "refs": [
+      "l0.start",
+      "origin"
+     ]
+    },
+    {
+     "type": "parallel",
+     "refs": [
+      "l3",
+      "l1"
+     ]
+    },
+    {
+     "type": "midpoint",
+     "refs": [
+      "l0.end",
+      "l3"
+     ]
+    },
+    {
+     "type": "symmetric",
+     "refs": [
+      "h1",
+      "h2",
+      "l0"
+     ]
+    }
+   ],
+   "dimensions": [
+    {
+     "type": "distance",
+     "refs": [
+      "l1.start",
+      "l1.end"
+     ],
+     "value": 60,
+     "unit": "mm",
+     "orientation": "aligned"
+    },
+    {
+     "type": "distance",
+     "refs": [
+      "l0.start",
+      "l0.end"
+     ],
+     "value": 25,
+     "unit": "mm",
+     "orientation": "aligned"
+    },
+    {
+     "type": "distance",
+     "refs": [
+      "l3.start",
+      "l3.end"
+     ],
+     "value": 30,
+     "unit": "mm",
+     "orientation": "aligned"
+    },
+    {
+     "type": "diameter",
+     "refs": [
+      "h1"
+     ],
+     "value": 6,
+     "unit": "mm"
+    },
+    {
+     "type": "offset",
+     "refs": [
+      "l1",
+      "h1.center"
+     ],
+     "value": 8,
+     "unit": "mm"
+    },
+    {
+     "type": "distance",
+     "refs": [
+      "h1.center",
+      "h2.center"
+     ],
+     "value": 36,
+     "unit": "mm",
+     "orientation": "horizontal"
+    }
+   ]
+  },
+  {
+   "op": "extrude",
+   "name": "Extrude1",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "Trapezoid",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "l1",
+        "l2",
+        "l3",
+        "l4"
+       ]
+      },
+      {
+       "outer": false,
+       "curves": [
+        "h1"
+       ]
+      },
+      {
+       "outer": false,
+       "curves": [
+        "h2"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 5,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Trapezoid"
+   ]
+  }
+ ]
+}

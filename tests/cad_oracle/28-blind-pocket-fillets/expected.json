@@ -1,0 +1,24 @@
+{
+  "source": "freecad 1.1.4",
+  "method": "FreeCAD (OpenCASCADE) build of recipe.json by tools/freecad-oracle/build.py: Part extrude, Part extrude cut, Part makeFillet",
+  "body_count": 1,
+  "volume_mm3": 84299.24852854047,
+  "area_mm2": 16279.571562823978,
+  "center_of_mass": [
+    39.99999999999999,
+    29.999999999999996,
+    9.161827142086619
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      80.0,
+      60.0,
+      20.0
+    ]
+  }
+}

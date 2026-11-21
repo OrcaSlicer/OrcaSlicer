@@ -23,6 +23,16 @@ The verb in the name is the role:
 | `check-sketch-engine-corpus.py` | The same ladder graded against a systematic sample of real drawings instead of shapes we chose. | Kernel + corpus |
 | `check-gui-sketching.py` | The same profiles drawn the way a person draws them — synthetic mouse gestures and typed values. | Headless GUI |
 | `check-gui-context-menu.py` | That right-click is the pivot of the design gesture, and adapts to what was clicked. | Headless GUI |
+| `oracle_runner.py` | Replays the 82 vendored SolidCraft recipes (`tests/cad_oracle/`) over MCP and compares volume, area, COM, bbox. PASS / FAIL (exit 1) / XFAIL (known OCCT or solver limit) / XPASS / BLOCKED (MCP cannot express it yet: the burn-down list). | Headless GUI + `ORCA_CAD_MCP` |
+| `check-mcp-hostile.py` | Every MCP tool fed junk, refusals name their owner, paths outside scope refused, concurrent clients, malformed and 100k-deep JSON: the app must survive. | Headless GUI + `ORCA_CAD_MCP` |
+| `check-ui-driver.py` | The `ui.*` synthetic input reaches the live widgets: click selects a face, Escape clears it, focus/ImGui state observable. | GUI with Design tab visible + `ORCA_CAD_MCP` |
+| `check-ui-sketch-on-face.py` | A sketch started in the GUI on a clicked face records that face and follows it when the base grows (ui.* clicks + the real commit path). | GUI with Design tab visible + `ORCA_CAD_MCP` |
+| `check-ui-palette.py` | Ctrl+K opens the command palette; typing reaches only the box; Up/Down clamp; Esc closes; the keyboard returns to the shortcuts (focus invariant). | GUI with Design tab visible + `ORCA_CAD_MCP` |
+| `check-ui-pick.py` | SELECT filter; Select Other candidates (nearest first, one per face); click cycling steps through them and restarts when the spot moves. | GUI with Design tab visible + `ORCA_CAD_MCP` |
+| `check-ui-sketch-draw.py` | Two-point sketch shapes draw click-click or by one press-drag-release. | GUI with Design tab visible + `ORCA_CAD_MCP` |
+| `check-ui-card.py` | A face picked before a feature card opens is its input; the check mark follows the preview (Shell, Draft). | GUI with Design tab visible + `ORCA_CAD_MCP` |
+| `check-ui-timeline.py` | Dragging a tree row onto another reorders the history; moves the dependencies forbid are refused. | GUI with Design tab visible + `ORCA_CAD_MCP` |
+| `check-ui-card-features.py` | The wx cards drive the new kernel features: fillet size laws, thin extrude, Shell with several open faces, Draft, feature pattern and mirror. | GUI with Design tab visible + `ORCA_CAD_MCP` |
 | `check-mcp-sketch.py` | The sketch layer driven over the MCP socket, asserting what decides whether a profile is buildable. | Headless GUI + `ORCA_CAD_MCP` |
 
 **`run-kernel-tests.sh` is the only one CI can run.** The rest need a live
