@@ -235,11 +235,12 @@ void SpinInput::messureSize()
     SetMinSize(size);
     // Keep the buttons inside the border and clear of the rounded corners: they paint over whatever is under them
     const int btn_x = std::max(3, int(radius));
-    wxSize btnSize = {14, (size.y - 6) / 2};
+    // Clamped, as GTK rejects the negative sizes computed before the control is laid out.
+    wxSize btnSize = {14, std::max((size.y - 6) / 2, 0)};
     btnSize.x = btnSize.x * btnSize.y / 10;
     wxClientDC dc(this);
     labelSize  = dc.GetMultiLineTextExtent(GetLabel());
-    textSize.x = size.x - labelSize.x - btnSize.x - btn_x - 13;
+    textSize.x = std::max(size.x - labelSize.x - btnSize.x - btn_x - 13, 0);
     text_ctrl->SetSize(textSize);
     text_ctrl->SetPosition({btn_x + 3 + btnSize.x, (size.y - textSize.y) / 2});
     button_inc->SetSize(btnSize);

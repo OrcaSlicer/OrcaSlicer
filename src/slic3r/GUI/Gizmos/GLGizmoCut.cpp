@@ -854,17 +854,10 @@ indexed_triangle_set GLGizmoCut3D::its_make_groove_plane()
     const float plane_half_height   = 0.5f * cut_plane_length;  // y
 
     const float slot_half_depth   = 0.5f * m_groove.depth;    // z
-    float slot_front_z          = slot_half_depth;
-    float slot_back_z           = -slot_half_depth;
 
     const float flap_taper_offset = plane_half_height * tan(m_groove.angle);
 
-    float slot_mouth_outer_x = slot_neck_half_width + flap_taper_offset; // upper_x extension
-    float slot_neck_outer_x = slot_mouth_half_width + flap_taper_offset; // lower_x extension
-    float slot_outer_x_max   = std::max(slot_neck_outer_x, slot_mouth_outer_x);  // max x extension
-
-    float slot_neck_inner_x = slot_neck_half_width - flap_taper_offset; // upper_x narrowing
-    float slot_mouth_inner_x = slot_mouth_half_width - flap_taper_offset; // lower_x narrowing
+    const float slot_outer_x_max  = std::max(slot_mouth_half_width, slot_neck_half_width) + flap_taper_offset;  // max x extension
 
     const float wall_thickness = 0.02f; // 0.02f * (float)get_grabber_mean_size(m_bounding_box);   // cut_plane_thiknes
 
@@ -880,6 +873,14 @@ indexed_triangle_set GLGizmoCut3D::its_make_groove_plane()
         bool is_first_groove = i == 0; // when a groove is not the last groove, then limit the extent of the right plane so that it doesnt overlap the next groove 
         bool is_last_groove  = i == groove_count - 1; // do the same in reverse if a groove is not the first groove
         size_t vertex_index_offset      = mesh.vertices.size();
+
+        // The back face below shifts these, so each groove starts from its own copy.
+        float slot_front_z       = slot_half_depth;
+        float slot_back_z        = -slot_half_depth;
+        float slot_mouth_outer_x = slot_neck_half_width + flap_taper_offset; // upper_x extension
+        float slot_neck_outer_x  = slot_mouth_half_width + flap_taper_offset; // lower_x extension
+        float slot_neck_inner_x  = slot_neck_half_width - flap_taper_offset; // upper_x narrowing
+        float slot_mouth_inner_x = slot_mouth_half_width - flap_taper_offset; // lower_x narrowing
 
         // Calculate the x-axis offset for this dovetail
         float groove_offset_factor_start = -.5 * ((groove_count - 1));
@@ -1424,34 +1425,44 @@ void GLGizmoCut3D::on_load(cereal::BinaryInputArchive& ar)
     float groove_angle;
     float groove_depth_tolerance;
     float groove_width_tolerance;
+    int   groove_count;
+    float groove_gap;
 
     ar( m_keep_upper, m_keep_lower, m_rotate_lower, m_rotate_upper, m_hide_cut_plane, mode, m_connectors_editing,
         m_ar_plane_center, m_rotation_m,
-        groove_depth, groove_width, groove_flaps_angle, groove_angle, groove_depth_tolerance, groove_width_tolerance);
+        groove_depth, groove_width, groove_flaps_angle, groove_angle, groove_depth_tolerance, groove_width_tolerance,
+        groove_count, groove_gap);
 
     m_start_dragging_m = m_rotation_m;
 
     m_transformed_bounding_box = transformed_bounding_box(m_ar_plane_center, m_rotation_m);
     set_center_pos(m_ar_plane_center);
 
+    // Restored in every mode, so an undo that also changes the mode brings them back too.
+    const bool groove_changed = !is_approx(m_groove.depth          , groove_depth) ||
+                                !is_approx(m_groove.width          , groove_width) ||
+                                !is_approx(m_groove.flaps_angle    , groove_flaps_angle) ||
+                                !is_approx(m_groove.angle          , groove_angle) ||
+                                !is_approx(m_groove.depth_tolerance, groove_depth_tolerance) ||
+                                !is_approx(m_groove.width_tolerance, groove_width_tolerance) ||
+                                m_groove_count != groove_count ||
+                                !is_approx(m_groove_gap, groove_gap);
+    if (groove_changed) {
+        m_groove.depth          = groove_depth;
+        m_groove.width          = groove_width;
+        m_groove.flaps_angle    = groove_flaps_angle;
+        m_groove.angle          = groove_angle;
+        m_groove.depth_tolerance= groove_depth_tolerance;
+        m_groove.width_tolerance= groove_width_tolerance;
+        m_groove_count          = groove_count;
+        m_groove_gap            = groove_gap;
+    }
+
     if (m_mode != mode)
         switch_to_mode(mode);
     else if (CutMode(m_mode) == CutMode::cutTongueAndGroove) {
-        if (!is_approx(m_groove.depth          , groove_depth) ||
-            !is_approx(m_groove.width          , groove_width) ||
-            !is_approx(m_groove.flaps_angle    , groove_flaps_angle) ||
-            !is_approx(m_groove.angle          , groove_angle) ||
-            !is_approx(m_groove.depth_tolerance, groove_depth_tolerance) ||
-            !is_approx(m_groove.width_tolerance, groove_width_tolerance) ) 
-        {
-            m_groove.depth          = groove_depth;
-            m_groove.width          = groove_width;
-            m_groove.flaps_angle    = groove_flaps_angle;
-            m_groove.angle          = groove_angle;
-            m_groove.depth_tolerance= groove_depth_tolerance;
-            m_groove.width_tolerance= groove_width_tolerance;
+        if (groove_changed)
             update_plane_model();
-        }
         reset_cut_by_contours();
     }
 
@@ -1462,7 +1473,8 @@ void GLGizmoCut3D::on_save(cereal::BinaryOutputArchive& ar) const
 { 
     ar( m_keep_upper, m_keep_lower, m_rotate_lower, m_rotate_upper, m_hide_cut_plane, m_mode, m_connectors_editing,
         m_ar_plane_center, m_start_dragging_m,
-        m_groove.depth, m_groove.width, m_groove.flaps_angle, m_groove.angle, m_groove.depth_tolerance, m_groove.width_tolerance);
+        m_groove.depth, m_groove.width, m_groove.flaps_angle, m_groove.angle, m_groove.depth_tolerance, m_groove.width_tolerance,
+        m_groove_count, m_groove_gap);
 }
 
 std::string GLGizmoCut3D::on_get_name() const
@@ -2796,10 +2808,18 @@ void GLGizmoCut3D::render_groove_int_input(const std::string& label, int& in_val
         val = std::clamp(val, min_val, max_val);
         // ORCA Holding +/- at the limit clamps back to the same value, don't rebuild for that.
         if (val != in_val) {
+            // One snapshot per edit, not per keystroke or auto-repeat step.
+            if (!m_int_input_snapshot_taken) {
+                Plater::TakeSnapshot snapshot(wxGetApp().plater(), GUI::format("%1%: %2%", _u8L("Groove change"), label),
+                                              UndoRedo::SnapshotType::GizmoAction);
+                m_int_input_snapshot_taken = true;
+            }
             in_val     = val;
             is_changed = true;
         }
     }
+    if (!ImGui::IsItemActive())
+        m_int_input_snapshot_taken = false;
     m_imgui->request_frames_while_held(); // ORCA auto-repeat of the +/- buttons
     
     ImGui::SameLine();

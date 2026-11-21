@@ -7875,9 +7875,14 @@ bool PlaterDropTarget::OnDropFiles(wxCoord x, wxCoord y, const wxArrayString &fi
 #endif // WIN32
 
     m_mainframe.Raise();
-    m_mainframe.select_tab(TAB_ID_PREPARE);
-    if (wxGetApp().is_editor())
-        m_plater.select_view_3D("3D");
+    // load_gcode() shows the preview, so a G-code dropped in G-code preview mode doesn't flash the empty Prepare page.
+    const bool gcode_on_gcode = m_plater.only_gcode_mode() &&
+        std::all_of(filenames.begin(), filenames.end(), [](const wxString &filename) { return is_gcode_file(into_u8(filename)); });
+    if (! gcode_on_gcode) {
+        m_mainframe.select_tab(TAB_ID_PREPARE);
+        if (wxGetApp().is_editor())
+            m_plater.select_view_3D("3D");
+    }
 
     // When only one .svg file is dropped on scene
     if (filenames.size() == 1) {
@@ -12247,7 +12252,8 @@ void Plater::priv::replace_with_stl()
 
     wxString title = _L("Select a new file");
     title += ":";
-    wxFileDialog dialog(q, title, "", from_u8(input_path.filename().string()), file_wildcards(FT_MODEL), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    const wxString start_dir = input_path.has_parent_path() ? from_u8(input_path.parent_path().string()) : from_u8(wxGetApp().app_config->get_last_dir());
+    wxFileDialog dialog(q, title, start_dir, from_u8(input_path.filename().string()), file_wildcards(FT_MODEL), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     if (dialog.ShowModal() != wxID_OK)
         return;
 
@@ -12539,7 +12545,8 @@ void Plater::priv::reload_from_disk()
         title += " (" + from_u8(search.filename().string()) + ")";
 #endif // __APPLE__
         title += ":";
-        wxFileDialog dialog(q, title, "", from_u8(search.filename().string()), file_wildcards(FT_MODEL), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+        const wxString start_dir = search.has_parent_path() ? from_u8(search.parent_path().string()) : from_u8(wxGetApp().app_config->get_last_dir());
+        wxFileDialog dialog(q, title, start_dir, from_u8(search.filename().string()), file_wildcards(FT_MODEL), wxFD_OPEN | wxFD_FILE_MUST_EXIST);
         if (dialog.ShowModal() != wxID_OK)
             return;
 
@@ -13850,6 +13857,7 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
     if (is_finished)
     {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":finished, reload print soon");
+        m_slice_all = false;
         m_is_slicing = false;
         this->preview->reload_print(false);
         q->mark_plate_toolbar_image_dirty();
@@ -13866,6 +13874,7 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         int ret = q->start_next_slice();
         if (ret) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":slicing all, plate %1% can not be sliced, will stop")%m_cur_slice_plate;
+            m_slice_all = false;
             m_is_slicing = false;
         }
         //not the last plate
@@ -15444,16 +15453,18 @@ bool Plater::priv::can_smooth_mesh() const
 {
     std::vector<int> obj_idxs, vol_idxs;
     sidebar->obj_list()->get_selection_indexes(obj_idxs, vol_idxs);
+    // Check the meshes that get subdivided: the parts of each object, or the selected volumes.
     if (vol_idxs.empty()) {
         for (auto obj_idx : obj_idxs)
-            if (model.objects[obj_idx]->get_object_stl_stats().open_edges > 0)
-                return false;
+            for (const ModelVolume *volume : model.objects[obj_idx]->volumes)
+                if (volume->is_model_part() && volume->mesh().stats().open_edges > 0)
+                    return false;
         return true;
     }
 
     int obj_idx = obj_idxs.front();
     for (auto vol_idx : vol_idxs)
-        if (model.objects[obj_idx]->get_object_stl_stats().open_edges > 0)
+        if (model.objects[obj_idx]->volumes[vol_idx]->mesh().stats().open_edges > 0)
             return false;
     return true;
 }
@@ -15879,7 +15890,6 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
                     tower_x_opt->set_at(&tower_x_new, plate_idx, 0);
                     tower_y_opt->set_at(&tower_y_new, plate_idx, 0);
                     need_update = true;
-                    break;
                 }
             }
 
@@ -18597,10 +18607,16 @@ void Plater::load_gcode(const wxString& filename)
 {
     BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << __LINE__ << " entry and filename: " << filename;
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__;
-    if (! is_gcode_file(into_u8(filename))
-        || (m_last_loaded_gcode == filename && m_only_gcode)
-        )
+    if (! is_gcode_file(into_u8(filename)))
         return;
+
+    if (m_last_loaded_gcode == filename && m_only_gcode) {
+        // Already loaded: show its preview, in case the caller left it.
+        wxGetApp().mainframe->select_tab(TAB_ID_PREVIEW);
+        p->set_current_panel(p->preview, true);
+        p->get_current_canvas3D()->render();
+        return;
+    }
 
     m_last_loaded_gcode = filename;
 
@@ -18726,14 +18742,22 @@ void Plater::load_gcode(const wxString& filename)
     //BBS: add cost info when drag in gcode
     auto& ps = current_result->print_statistics;
     double total_cost = 0.0;
+    double total_used_filament = 0.0;
+    double total_weight = 0.0;
     for (auto volume : ps.total_volumes_per_extruder) {
         size_t extruder_id = volume.first;
         double density = current_result->filament_densities.at(extruder_id);
         double cost = current_result->filament_costs.at(extruder_id);
+        double diameter = current_result->filament_diameters.at(extruder_id);
         double weight = volume.second * density * 0.001;
+        total_used_filament += volume.second / (PI * sqr(0.5 * diameter));
+        total_weight += weight;
         total_cost += weight * cost * 0.001;
     }
     current_print.print_statistics().total_cost = total_cost;
+    // The legend shows these too, and subtracts the support and tower filament from them.
+    current_print.print_statistics().total_used_filament = total_used_filament;
+    current_print.print_statistics().total_weight = total_weight;
 
     current_print.set_gcode_file_ready();
 
@@ -22767,7 +22791,9 @@ bool Plater::set_printer_technology(PrinterTechnology printer_technology)
     p->sidebar->get_searcher().set_printer_technology(printer_technology);
 
     p->notification_manager->set_fff(printer_technology == ptFFF);
-    p->notification_manager->set_slicing_progress_hidden();
+    // A preset reload keeps the technology, and must not hide the progress of a slice that goes on.
+    if (ret)
+        p->notification_manager->set_slicing_progress_hidden();
 
     return ret;
 }

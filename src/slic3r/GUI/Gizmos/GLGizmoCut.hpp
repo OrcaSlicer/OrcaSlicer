@@ -139,6 +139,8 @@ class GLGizmoCut3D : public GLGizmoBase
     // Multiple Dovetail cuts
     int m_groove_count_init { 1 };
     int m_groove_count { 1 };
+    // The active edit of an integer groove field already has its undo snapshot.
+    bool m_int_input_snapshot_taken { false };
     float m_groove_gap { 10.f }; // distance between multiple dovetail cuts
     float m_groove_gap_init { 10.f }; 
 

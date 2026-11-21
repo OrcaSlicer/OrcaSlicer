@@ -2647,6 +2647,14 @@ void GLCanvas3D::toggle_selected_volume_visibility(bool selected_visible)
             }
         }
     }
+
+    // A scene reloaded while the other volumes were hidden registered their raycasters as inactive.
+    if (auto *raycasters = get_raycasters_for_picking(SceneRaycaster::EType::Volume))
+        for (const std::shared_ptr<SceneRaycasterItem> &item : *raycasters) {
+            const int i = SceneRaycaster::decode_id(SceneRaycaster::EType::Volume, item->get_id());
+            if (0 <= i && i < int(m_volumes.volumes.size()))
+                item->set_active(m_volumes.volumes[i]->is_active);
+        }
 }
 
 void GLCanvas3D::toggle_sla_auxiliaries_visibility(bool visible, const ModelObject *mo, int instance_idx)
@@ -2820,6 +2828,9 @@ BoundingBoxf3 GLCanvas3D::volumes_bounding_box(bool current_plate_only) const
     for (const GLVolume *volume : m_volumes.volumes) {
         if (!m_apply_zoom_to_volumes_filter || ((volume != nullptr) && volume->zoom_to_volumes)) {
             const auto v_bb     = volume->transformed_bounding_box();
+            // A broken transformation must not blow the box up and blank the view; 1e8 mm is 100 km.
+            if (!v_bb.min.allFinite() || !v_bb.max.allFinite() || v_bb.min.cwiseAbs().maxCoeff() > 1e8 || v_bb.max.cwiseAbs().maxCoeff() > 1e8)
+                continue;
             if (is_limit && !expand_part_plate_list_box.overlap(v_bb))
                 continue;
             bb.merge(v_bb);

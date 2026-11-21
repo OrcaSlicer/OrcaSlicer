@@ -865,7 +865,7 @@ void ObjectList::update_filament_values_for_items_when_delete_filament(const siz
                         else {
                             int new_value = object->volumes[id]->config.opt_int(key) > filament_id ? object->volumes[id]->config.opt_int(key) - 1 :
                                                                                                      object->volumes[id]->config.opt_int(key);
-                            object->config.set_key_value(key, new ConfigOptionInt(new_value));
+                            object->volumes[id]->config.set_key_value(key, new ConfigOptionInt(new_value));
                         }
                     }
                 }
@@ -875,6 +875,7 @@ void ObjectList::update_filament_values_for_items_when_delete_filament(const siz
                 }
                 else if (size_t(object->volumes[id]->config.extruder()) == filament_id + 1) {
                     object->volumes[id]->config.set_key_value("extruder", new ConfigOptionInt(replace_filament_id));
+                    extruder = std::to_string(replace_filament_id);
                 } else {
                     int new_extruder = object->volumes[id]->config.extruder() > filament_id ? object->volumes[id]->config.extruder() - 1 : object->volumes[id]->config.extruder();
                     extruder = wxString::Format("%d", new_extruder);
@@ -6740,8 +6741,6 @@ void GUI::ObjectList::smooth_mesh()
     plater->take_snapshot("smooth_mesh");
     std::vector<int> obj_idxs, vol_idxs;
     get_selection_indexes(obj_idxs, vol_idxs);
-    auto object_idx = obj_idxs.front();
-    ModelObject *obj{nullptr};
     auto show_warning_dlg = [](int cur_face_count,std::string name,bool is_part) {
         int limit_face_count = 1000000;
         if (cur_face_count > limit_face_count) {
@@ -6764,42 +6763,48 @@ void GUI::ObjectList::smooth_mesh()
     const bool keep_painting = GUI::wxGetApp().app_config->get_bool("keep_painting");
     bool has_show_smooth_mesh_error_dlg = false;
     if (vol_idxs.empty()) {
-        obj        = object(object_idx);
-        auto             future_face_count = static_cast<int>(obj->facets_count()) * 4;
-        if (show_warning_dlg(future_face_count, obj->name,false)) {
-            return;
-        }
-        for (auto mv : obj->volumes) {
-            bool ok;
-            TriangleMesh unsmoothed_mesh;
-            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh(), ok, keep_painting ? &unsmoothed_mesh : nullptr);
-            if (ok) {
-                const std::optional<TriangleSelector::SavedPainting> saved_painting = keep_painting ?
-                                                                                          mv->save_painting() :
-                                                                                          std::optional<TriangleSelector::SavedPainting>{};
-                // Remap the paint onto the subdivided mesh before its vertices are smoothed. That mesh lies on the old surface,
-                // so the paint lands where it was, also on sharp edges the smoothing rounds off. The smoothed mesh has the
-                // same triangles, so the paint carries over to it as it is. Without painting to keep, restore_painting() only
-                // clears it.
-                if (keep_painting)
-                    mv->set_mesh(unsmoothed_mesh);
-                mv->restore_painting(saved_painting);
-                mv->set_mesh(result_mesh);
-                mv->calculate_convex_hull();
-                mv->invalidate_convex_hull_2d();
-                mv->set_new_unique_id();
-            } else {
-                if (!has_show_smooth_mesh_error_dlg) {
-                    show_smooth_mesh_error_dlg(mv->name);
-                    has_show_smooth_mesh_error_dlg = true;
+        for (int object_idx : obj_idxs) {
+            ModelObject *obj = object(object_idx);
+            auto             future_face_count = static_cast<int>(obj->facets_count()) * 4;
+            if (show_warning_dlg(future_face_count, obj->name,false)) {
+                return;
+            }
+            for (auto mv : obj->volumes) {
+                // Modifiers, negative parts and support blockers keep their shape.
+                if (!mv->is_model_part())
+                    continue;
+                bool ok;
+                TriangleMesh unsmoothed_mesh;
+                auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh(), ok, keep_painting ? &unsmoothed_mesh : nullptr);
+                if (ok) {
+                    const std::optional<TriangleSelector::SavedPainting> saved_painting = keep_painting ?
+                                                                                              mv->save_painting() :
+                                                                                              std::optional<TriangleSelector::SavedPainting>{};
+                    // Remap the paint onto the subdivided mesh before its vertices are smoothed. That mesh lies on the old surface,
+                    // so the paint lands where it was, also on sharp edges the smoothing rounds off. The smoothed mesh has the
+                    // same triangles, so the paint carries over to it as it is. Without painting to keep, restore_painting() only
+                    // clears it.
+                    if (keep_painting)
+                        mv->set_mesh(unsmoothed_mesh);
+                    mv->restore_painting(saved_painting);
+                    mv->set_mesh(result_mesh);
+                    mv->calculate_convex_hull();
+                    mv->invalidate_convex_hull_2d();
+                    mv->set_new_unique_id();
+                } else {
+                    if (!has_show_smooth_mesh_error_dlg) {
+                        show_smooth_mesh_error_dlg(mv->name);
+                        has_show_smooth_mesh_error_dlg = true;
+                    }
                 }
             }
+            obj->invalidate_bounding_box();
+            obj->ensure_on_bed();
+            plater->changed_mesh(object_idx);
         }
-        obj->invalidate_bounding_box();
-        obj->ensure_on_bed();
-        plater->changed_mesh(object_idx);
     } else {
-        obj = object(obj_idxs.front());
+        const int    object_idx = obj_idxs.front();
+        ModelObject *obj        = object(object_idx);
         for (int vol_idx : vol_idxs) {
             auto mv = obj->volumes[vol_idx];
             auto future_face_count = static_cast<int>(mv->mesh().facets_count()) * 4;
@@ -6828,8 +6833,6 @@ void GUI::ObjectList::smooth_mesh()
                 }
             }
         }
-    }
-    if (obj) {
         obj->invalidate_bounding_box();
         obj->ensure_on_bed();
         plater->changed_mesh(object_idx);

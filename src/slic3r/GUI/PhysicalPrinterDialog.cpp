@@ -51,6 +51,7 @@
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include "MainFrame.hpp"
 #include "Tab.hpp"
 #include "libslic3r_version.h"
@@ -410,7 +411,7 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
             auto sizer = create_sizer_with_btn(parent, &m_printhost_cafile_browse_btn, "monitor_signal_strong", _L("Browse") + " " + dots);
             m_printhost_cafile_browse_btn->Bind(wxEVT_BUTTON, [this, m_optgroup](wxCommandEvent e) {
                 static const auto filemasks = _L("Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*");
-                wxFileDialog openFileDialog(this, _L("Open CA certificate file"), "", "", filemasks, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+                wxFileDialog openFileDialog(this, _L("Open CA certificate file"), from_u8(wxGetApp().app_config->get_last_dir()), "", filemasks, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
                 if (openFileDialog.ShowModal() != wxID_CANCEL) {
                     m_optgroup->set_value("printhost_cafile", openFileDialog.GetPath(), true);
                     m_optgroup->get_field("printhost_cafile")->field_changed();

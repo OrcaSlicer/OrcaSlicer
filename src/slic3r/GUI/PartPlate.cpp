@@ -3728,8 +3728,12 @@ bool PartPlate::check_mixture_of_pla_and_petg(const DynamicPrintConfig &config)
     std::vector<int> used_filaments = get_extruders(true); // 1-based
     if (!used_filaments.empty()) {
         const auto *filament_types = config.option<ConfigOptionStrings>("filament_type");
+        const auto *is_support     = config.option<ConfigOptionBools>("filament_is_support");
         for (auto filament_idx : used_filaments) {
             int filament_id = filament_idx - 1;
+            // A support filament such as Support for PLA/PETG takes the type of its base filament
+            if (is_support && is_support->get_at(filament_id))
+                continue;
             if (filament_id < (int)filament_types->values.size()) {
                 const std::string &filament_type = filament_types->values[filament_id];
                 if (filament_type == "PLA") {

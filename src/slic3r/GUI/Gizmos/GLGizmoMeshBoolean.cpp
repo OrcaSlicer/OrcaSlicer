@@ -220,7 +220,7 @@ std::optional<TriangleSelector::SavedPainting> VolumeInfo::save_painting() const
     if (wxGetApp().app_config->get_bool("keep_painting")) {
         std::optional<TriangleSelector::SavedPainting> saved_painting = mv->save_painting();
         if (saved_painting) {
-            saved_painting->mesh.transform(trafo);
+            saved_painting->transform(trafo);
         }
         return saved_painting;
     }
@@ -381,9 +381,9 @@ void GLGizmoMeshBoolean::on_render_input_window(float x, float y, float bottom_l
     {
         if (operate_button(_L("Union") + "##btn", enable_button)) {
             TriangleMesh temp_src_mesh = m_src.mv->mesh();
-            temp_src_mesh.transform(m_src.trafo);
+            temp_src_mesh.transform(m_src.trafo, true);
             TriangleMesh temp_tool_mesh = m_tool.mv->mesh();
-            temp_tool_mesh.transform(m_tool.trafo);
+            temp_tool_mesh.transform(m_tool.trafo, true);
             std::vector<TriangleMesh> temp_mesh_resuls;
             Slic3r::MeshBoolean::mcut::make_boolean(temp_src_mesh, temp_tool_mesh, temp_mesh_resuls, "UNION");
             if (temp_mesh_resuls.size() != 0) {
@@ -401,9 +401,9 @@ void GLGizmoMeshBoolean::on_render_input_window(float x, float y, float bottom_l
         m_imgui->bbl_checkbox(_L("Delete input"), m_diff_delete_input);
         if (operate_button(_L("Difference") + "##btn", enable_button)) {
             TriangleMesh temp_src_mesh = m_src.mv->mesh();
-            temp_src_mesh.transform(m_src.trafo);
+            temp_src_mesh.transform(m_src.trafo, true);
             TriangleMesh temp_tool_mesh = m_tool.mv->mesh();
-            temp_tool_mesh.transform(m_tool.trafo);
+            temp_tool_mesh.transform(m_tool.trafo, true);
             std::vector<TriangleMesh> temp_mesh_resuls;
             Slic3r::MeshBoolean::mcut::make_boolean(temp_src_mesh, temp_tool_mesh, temp_mesh_resuls, "A_NOT_B");
             if (temp_mesh_resuls.size() != 0) {
@@ -421,9 +421,9 @@ void GLGizmoMeshBoolean::on_render_input_window(float x, float y, float bottom_l
         m_imgui->bbl_checkbox(_L("Delete input"), m_inter_delete_input);
         if (operate_button(_L("Intersection") + "##btn", enable_button)) {
             TriangleMesh temp_src_mesh = m_src.mv->mesh();
-            temp_src_mesh.transform(m_src.trafo);
+            temp_src_mesh.transform(m_src.trafo, true);
             TriangleMesh temp_tool_mesh = m_tool.mv->mesh();
-            temp_tool_mesh.transform(m_tool.trafo);
+            temp_tool_mesh.transform(m_tool.trafo, true);
             std::vector<TriangleMesh> temp_mesh_resuls;
             Slic3r::MeshBoolean::mcut::make_boolean(temp_src_mesh, temp_tool_mesh, temp_mesh_resuls, "INTERSECTION");
             if (temp_mesh_resuls.size() != 0) {
