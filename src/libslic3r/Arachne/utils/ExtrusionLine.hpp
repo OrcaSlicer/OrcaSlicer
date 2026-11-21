@@ -6,6 +6,7 @@
 #define UTILS_EXTRUSION_LINE_H
 
 #include "../../ClipperZUtils.hpp"
+#include "../../ClipperUtils.hpp"
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -292,6 +293,11 @@ using VariableWidthLines = std::vector<ExtrusionLine>; //<! The ExtrusionLines g
 } // namespace Slic3r::Arachne
 
 namespace Slic3r {
+
+// Clip open variable-width extrusion paths while recovering subject widths at
+// retained clip vertices. The closed clipping polygons carry zero metadata.
+ClipperZUtils::ZPaths clip_extrusion(const ClipperZUtils::ZPath& subject,
+                                    const ClipperZUtils::ZPaths& clip, ClipType clip_type);
 
 void extrusion_paths_append(ExtrusionPaths &dst, const ClipperZUtils::ZPaths &extrusion_paths, const ExtrusionRole role, const Flow &flow);
 void extrusion_paths_append(ExtrusionPaths &dst, const Arachne::ExtrusionLine &extrusion, const ExtrusionRole role, const Flow &flow);
