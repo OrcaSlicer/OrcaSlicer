@@ -2626,7 +2626,7 @@ TEST_CASE("Each filament's walls keep their own max volumetric speed", "[MultiFi
     // Filament 1's 20 mm3/s cap does not bind, so its walls stay near the demanded flow.
     CHECK(peak_flow.at(0) > 10.0);
 
-    // The placeholder variables resolve through the same column lookup.
+    // The placeholder parser resolves per-filament columns through the same lookup.
     const std::string tag = "; filament 2 cap ";
     const size_t      at  = gcode.find(tag);
     REQUIRE(at != std::string::npos);
