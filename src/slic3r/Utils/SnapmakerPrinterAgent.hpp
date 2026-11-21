@@ -5,6 +5,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <functional>
 #include <set>
 #include <string>
 #include <vector>

@@ -16,6 +16,8 @@
 #include <utility>
 #include <algorithm>
 #include <cctype>
+#include <chrono>
+#include <functional>
 
 namespace Slic3r {
 
