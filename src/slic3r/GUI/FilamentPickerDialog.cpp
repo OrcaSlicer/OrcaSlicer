@@ -1,4 +1,5 @@
 #include "FilamentPickerDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "ColorPickerDialog.hpp"
 #include "libslic3r/Color.hpp"
 #include <optional>
@@ -432,7 +433,7 @@ wxScrolledWindow* FilamentPickerDialog::CreateColorGrid()
 
                 // Set tooltip with filament information
                 wxString tooltip = wxString::Format("%s", color_code->GetFilaColorName());
-                btn->SetToolTip(tooltip);
+                set_illustrated_tooltip(btn, tooltip);
 
                 // Check if this color matches the current color name and set as selected
                 bool is_matching_color = (m_cur_color_name &&

@@ -1,4 +1,5 @@
 #include "PrimitiveSizeDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include "Field.hpp"
 #include "GUI_App.hpp"
@@ -102,7 +103,7 @@ bool PrimitiveSizeDialog::dont_show_again() const { return m_dont_show->GetValue
 LabeledCheckBox* PrimitiveSizeDialog::add_checkbox(wxSizer* sizer, const wxString& label, const wxString& tooltip)
 {
     auto checkbox = new LabeledCheckBox(this, label);
-    checkbox->SetToolTip(tooltip);
+    set_illustrated_tooltip(checkbox, tooltip);
     sizer->Add(checkbox, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
     return checkbox;
 }

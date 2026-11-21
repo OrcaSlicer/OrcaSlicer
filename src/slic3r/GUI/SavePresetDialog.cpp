@@ -1,4 +1,5 @@
 #include "SavePresetDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include <cassert>
 #include <boost/algorithm/string/predicate.hpp>
@@ -144,7 +145,7 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
         const bool        has_parent  = !parent_name.empty();
 
         auto detach_checkbox = new LabeledCheckBox(parent, has_parent ? _L("Detach from parent") : _L("Save without parent"));
-        detach_checkbox->SetToolTip(_L("Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."));
+        set_illustrated_tooltip(detach_checkbox, _L("Copies all inherited values from the parent into this preset and removes the parent relationship. Presets compatible only with the parent may become unsupported."));
         sizer->Add(detach_checkbox, 0, wxTOP | wxLEFT, BORDER_W);
         sizer->AddSpacer(FromDIP(5));
 
@@ -152,7 +153,7 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
         auto parent_label          = new wxStaticText(parent, wxID_ANY, parent_text);
         parent_label->SetFont(::Label::Body_12);
         parent_label->SetForegroundColour(wxColour("#6B6B6B"));
-        parent_label->SetToolTip(has_parent ? _L("Parent preset") : _L("This preset does not inherit from another preset."));
+        set_illustrated_tooltip(parent_label, has_parent ? _L("Parent preset") : _L("This preset does not inherit from another preset."));
         sizer->Add(parent_label, 0, wxEXPAND | wxLEFT, BORDER_W + FromDIP(24));
 
         sizer->AddSpacer(FromDIP(5));

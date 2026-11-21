@@ -77,6 +77,10 @@ public:
     void DisableUndoRedoItems();
     void EnableUndoRedo(bool undo, bool redo);
 
+    // The tooltips of the icon-only tools, which name their key bindings, so MainFrame calls it
+    // again when a shortcut changes.
+    void UpdateToolTips();
+
     void SaveNormalRect();
 
     void ShowCalibrationButton(bool show = true);

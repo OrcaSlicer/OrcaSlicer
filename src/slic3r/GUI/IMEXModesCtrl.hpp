@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "libslic3r/IMEXHelpers.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 
 class ScalableButton;
 
@@ -252,6 +253,8 @@ private:
     // One-line explanation per role, shown as a tooltip on that role's legend swatch and label.
     // Keeps the per-role detail out of the instruction paragraph.
     static wxString role_hint(ImexRole role);
+    // The pictures of a role whose behaviour is a placement: where Copy and Mirror print.
+    static std::vector<TipMedia> role_media(std::optional<ImexRole> role);
 
     wxBoxSizer*         m_outer;
     wxBoxSizer*         m_rows_sizer;
