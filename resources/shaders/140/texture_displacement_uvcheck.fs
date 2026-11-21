@@ -35,6 +35,7 @@ uniform bool  use_vertex_uv;
 uniform int   projection_mode;
 uniform vec3  patch_center;
 uniform vec3  patch_axis;
+uniform float cylinder_radius;
 // Height map width / height, as apply_uv_transform() applies it. Without it the checker diverged from
 // the bake for any non-square texture, in every in-shader projection.
 uniform float tex_aspect;
@@ -70,7 +71,7 @@ vec2 projection_raw(vec3 p, vec3 n)
         vec3  rel = p - patch_center;
         float x   = dot(rel, right);
         float y   = dot(rel, fwd);
-        return vec2(atan(y, x) * sqrt(x * x + y * y), -dot(rel, up));
+        return vec2(atan(y, x) * max(cylinder_radius, 1e-8), -dot(rel, up));
     }
     if (projection_mode == 2) {
         vec3  rel    = p - patch_center;

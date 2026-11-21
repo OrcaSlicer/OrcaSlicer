@@ -1405,23 +1405,41 @@ std::vector<Vec2f> GLGizmoTextureDisplacement::compute_layer_vertex_uvs(const in
 
 int GLGizmoTextureDisplacement::layer_projection_frame(const indexed_triangle_set     &local_patch,
                                                        const TextureDisplacementLayer &layer,
-                                                       Vec3f &center, Vec3f &axis) const
+                                                       Vec3f &center, Vec3f &axis, float &cylinder_radius) const
 {
-    center = Vec3f::Zero();
-    axis   = Vec3f::UnitZ();
+    center           = Vec3f::Zero();
+    axis             = Vec3f::UnitZ();
+    cylinder_radius  = 0.f;
     const ModelVolume *mv = texture_volume();
     if (mv == nullptr || (layer.projection_method != TextureProjectionMethod::Cylindrical &&
                           layer.projection_method != TextureProjectionMethod::Spherical))
         return 0;
-    // The bake averages the *whole mesh's* vertex normals over the patch's corners, so this has to as
-    // well: a patch-only average would sometimes quantize to a different world axis and wrap the
-    // texture the other way round. Both meshes go through patch_in_world() first, which is the frame
-    // the shaders' tex_pos lives in.
+    if (layer.projection_method == TextureProjectionMethod::Cylindrical) {
+        // The shader's tex_pos is this instance's bake frame (world position minus that instance's
+        // origin). instances.front() is the bake's default, and it is the wrong instance once the
+        // user is looking at a rotated copy.
+        Transform3d volume_to_world = texture_displacement_volume_to_world(*mv);
+        if (const ModelObject *object = mv->get_object()) {
+            const int idx = m_parent.get_selection().get_instance_idx();
+            if (idx >= 0 && idx < int(object->instances.size()) && object->instances[idx] != nullptr)
+                volume_to_world = object->instances[idx]->get_matrix() * mv->get_matrix();
+        }
+        const Transform3d frame = texture_displacement_bake_frame(volume_to_world);
+        const TextureDisplacementCylindricalFrame cyl =
+            texture_displacement_cylindrical_frame(mv->mesh().its, frame);
+        center          = cyl.center;
+        axis            = cyl.axis;
+        cylinder_radius = cyl.radius;
+        return 1;
+    }
+    // Spherical still wraps around the painted patch. The bake averages the whole mesh's vertex
+    // normals over the patch's corners, so this has to as well. Both meshes go through
+    // patch_in_world() first, which is the frame the shaders' tex_pos lives in.
     Vec3f average_normal;
     texture_displacement_patch_frame(patch_in_world(local_patch),
                                      texture_displacement_vertex_normals(patch_in_world(mv->mesh().its)),
                                      center, axis, average_normal);
-    return layer.projection_method == TextureProjectionMethod::Cylindrical ? 1 : 2;
+    return 2;
 }
 
 std::vector<Vec2f> GLGizmoTextureDisplacement::compute_layer_corner_uvs(const indexed_triangle_set     &local_patch,
@@ -1494,7 +1512,8 @@ void GLGizmoTextureDisplacement::rebuild_shaded_preview_mesh()
     if (!m_shaded_preview_uses_vertex_uv)
         corner_uv.clear();
     m_shaded_projection_mode = (active != nullptr && !m_shaded_preview_uses_vertex_uv) ?
-                                 layer_projection_frame(patch, *active, m_shaded_patch_center, m_shaded_patch_axis) : 0;
+                                 layer_projection_frame(patch, *active, m_shaded_patch_center, m_shaded_patch_axis,
+                                                        m_shaded_cylinder_radius) : 0;
 
     // Which triangles the in-flight UV drag moves. Computed here, against the very patch this mesh is
     // built from, so the flags can never be indexed by a different triangle count than they were sized
@@ -1734,12 +1753,13 @@ void GLGizmoTextureDisplacement::render_shaded_preview_mesh()
     // When set, the shader samples at the per-vertex uv baked into the mesh (LSCM) rather than
     // projecting; see rebuild_shaded_preview_mesh().
     shader->set_uniform("use_vertex_uv", m_shaded_preview_uses_vertex_uv);
-    // Cylindrical/Spherical wrap around the painted patch's own centre, which no fragment can derive:
-    // captured with the mesh (see rebuild_shaded_preview_mesh()) and handed over here. 0 is the planar
-    // projection every other in-shader path uses.
+    // Cylindrical wraps around the object's AABB frame; Spherical around the painted patch. Neither
+    // is a per-fragment quantity: captured with the mesh (see rebuild_shaded_preview_mesh()) and
+    // handed over here. 0 is the planar projection every other in-shader path uses.
     shader->set_uniform("projection_mode", m_shaded_projection_mode);
     shader->set_uniform("patch_center", m_shaded_patch_center);
     shader->set_uniform("patch_axis", m_shaded_patch_axis);
+    shader->set_uniform("cylinder_radius", m_shaded_cylinder_radius);
 
     // The printable palette, in RGB for display and in Lab for the match. Uploaded rather than matched
     // on the CPU because the quantization is per fragment here. Count 0 means "no layer is colouring",
@@ -2176,7 +2196,8 @@ void GLGizmoTextureDisplacement::rebuild_uvcheck_mesh()
     const bool         have_uvs = uv.size() == patch.vertices.size();
     m_uvcheck_uses_vertex_uv    = have_uvs;
     m_uvcheck_projection_mode   = have_uvs ? 0 :
-                                      layer_projection_frame(patch, *layer, m_uvcheck_patch_center, m_uvcheck_patch_axis);
+                                      layer_projection_frame(patch, *layer, m_uvcheck_patch_center, m_uvcheck_patch_axis,
+                                                             m_uvcheck_cylinder_radius);
     // Per corner as well: under LSCM a seam vertex has a
     // different uv in each island it borders, so the shared-vertex form drew one triangle per face from
     // a neighbouring island's placement. Only the *drawing* needs this; the distortion metric below is
@@ -2281,6 +2302,7 @@ void GLGizmoTextureDisplacement::render_uvcheck_mesh()
     shader->set_uniform("projection_mode", m_uvcheck_projection_mode);
     shader->set_uniform("patch_center", m_uvcheck_patch_center);
     shader->set_uniform("patch_axis", m_uvcheck_patch_axis);
+    shader->set_uniform("cylinder_radius", m_uvcheck_cylinder_radius);
     // Was never uploaded, so the checker disagreed with the bake for any non-square height map.
     shader->set_uniform("tex_aspect", layer_texture_aspect(*layer));
 
@@ -6108,6 +6130,8 @@ TextureDisplacementPrepareResult GLGizmoTextureDisplacement::prepare_mesh(
                            (frame_normal * normal.cast<double>()).normalized().cast<float>());
         };
     };
+    const TextureDisplacementCylindricalFrame cyl_frame =
+        texture_displacement_cylindrical_frame(base, texture_frame);
 
     // Stage capture for the debug view. Timed from the end of the previous stage, so the capture -
     // a copy plus an edge scan - never lands inside the measurement it reports.
@@ -6187,7 +6211,8 @@ TextureDisplacementPrepareResult GLGizmoTextureDisplacement::prepare_mesh(
             const indexed_triangle_set &sampled = mesh_to_sample(mesh.its);
             HeightFieldSampler sampler;
             if (params.subdiv_feature)
-                sampler = sample_in_frame(make_combined_displacement_sampler(sampled, layers, current, uv_ptr));
+                sampler = sample_in_frame(make_combined_displacement_sampler(sampled, layers, current, uv_ptr,
+                                                                             &cyl_frame));
             // Colour boundaries need triangles of their own - the chord test cannot see them, since
             // the height field is perfectly smooth across a change of filament.
             ColorFieldSampler color;
@@ -6197,7 +6222,7 @@ TextureDisplacementPrepareResult GLGizmoTextureDisplacement::prepare_mesh(
                 color = sample_in_frame(make_combined_color_sampler(sampled, layers, current,
                                                                     make_palette_quantizer(color_settings.palette),
                                                                     make_palette_quantizer(color_settings.palette_pure),
-                                                                    uv_ptr));
+                                                                    uv_ptr, &cyl_frame));
             // The refinement follows perceived colour: a mix is one colour here, however the slicer
             // interleaves its filaments layer by layer.
             // "Min edge" is a feature-mode control (it is the floor the curvature test refines down
@@ -6259,7 +6284,8 @@ TextureDisplacementPrepareResult GLGizmoTextureDisplacement::prepare_mesh(
                 const std::vector<Vec2f> uv_refined = uv_now();
                 const HeightFieldSampler refined_sampler =
                     sample_in_frame(make_combined_displacement_sampler(mesh_to_sample(mesh.its), layers, current,
-                                                                       uv_refined.empty() ? nullptr : &uv_refined));
+                                                                       uv_refined.empty() ? nullptr : &uv_refined,
+                                                                       &cyl_frame));
                 std::vector<int>     cut_source;
                 size_t               cuts = 0;
                 indexed_triangle_set cut = cut_mesh_at_steps(mesh.its, cut_region, refined_sampler,
@@ -7965,7 +7991,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                              "patch wrapping around a sharp edge has no seam."),
                           "map_cube.png" },
                         { "menu_obj_cylinder.svg", _L("Cylindrical"),
-                          _L("Cylindrical - wraps the texture around the painted area's own center, for round shapes."),
+                          _L("Cylindrical - wraps the texture around the object's Z axis through its center."),
                           "map_cylinder.png" },
                         { "menu_obj_sphere.svg", _L("Spherical"),
                           _L("Spherical - wraps the texture around the painted area's own center in both directions."),
