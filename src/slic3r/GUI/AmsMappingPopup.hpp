@@ -65,6 +65,7 @@ class wgtMsgPanel;
 namespace Slic3r {
 namespace GUI {
 
+wxString mapping_tray_label(const MachineObject* obj, int tray_id);
 
 #define AMS_TOTAL_COUNT 4
 
@@ -94,6 +95,7 @@ struct TrayData
 
     int             ams_id = 0;
     int             slot_id = 0;
+    wxString        label;
 };
 
 class MaterialItem: public wxPanel
@@ -235,7 +237,7 @@ private:
 class MappingContainer : public wxPanel
 {
 private:
-    int       m_slots_num = 4;/*1 or 4*/
+    int       m_slots_num = 4;
     wxString  m_ams_type;
     wxBitmap  ams_mapping_item_container;
 
@@ -364,7 +366,7 @@ public:
     // equals the update path's default (all slots shown).
     void         set_only_show_ext_spool(bool /*flag*/) {}
     // Orca: dropped by the reference but still consumed by SelectMachine.
-    std::vector<TrayData> parse_ams_mapping(const std::map<std::string, DevAms*, NumericStrCompare>& amsList);
+    std::vector<TrayData> parse_ams_mapping(MachineObject* obj);
 
 #ifdef __APPLE__
     void on_mouse_move(wxMouseEvent &evt);

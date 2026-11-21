@@ -392,6 +392,37 @@ TEST_CASE("Printer extruder count tolerates missing nozzle diameter", "[Preset][
     CHECK(bundle.get_printer_extruder_count() == 2);
 }
 
+// A filament slot is not a tool: a printer may run fewer materials than it has extruders (an
+// unused tool) or more (several materials feeding one path). Only an empty list is seeded, so a
+// saved or imported list of any positive length survives a printer change unchanged.
+TEST_CASE("Filament slots are independent of the printer's extruder count", "[Preset][Bundle]")
+{
+    PresetBundle        bundle;
+    DynamicPrintConfig &printer_config = bundle.printers.get_edited_preset().config;
+    printer_config.option<ConfigOptionFloats>("nozzle_diameter", true)->values = {0.4, 0.4, 0.4};
+    printer_config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = false;
+    add_inmemory_preset(bundle.filaments, "My PLA");
+
+    SECTION("fewer slots than extruders are kept") {
+        bundle.filament_presets.assign(2, "My PLA");
+        bundle.update_filament_count();
+        bundle.update_multi_material_filament_presets();
+        CHECK(bundle.filament_presets.size() == 2);
+    }
+    SECTION("more slots than extruders are kept") {
+        bundle.filament_presets.assign(5, "My PLA");
+        bundle.update_filament_count();
+        bundle.update_multi_material_filament_presets();
+        CHECK(bundle.filament_presets.size() == 5);
+    }
+    SECTION("an empty list is seeded with one usable slot") {
+        bundle.filament_presets.clear();
+        bundle.update_filament_count();
+        REQUIRE(bundle.filament_presets.size() == 1);
+        CHECK(bundle.filaments.find_preset(bundle.filament_presets.front(), false) != nullptr);
+    }
+}
+
 // A per-variant key that no profile in the chain sets keeps the length of the one-nozzle root. The
 // inherited printer must still have a value for every variant in its own variant list.
 TEST_CASE("An inherited printer's per-variant values cover every variant it lists", "[Preset][Bundle][Regression]")
@@ -885,7 +916,8 @@ TEST_CASE("Local reload reconciles filament slots and purge volumes while retain
 {
     LocalReloadFixture f;
     DynamicPrintConfig printer_config(f.bundle.printers.get_selected_preset().config);
-    // A tool changer, whose filament slots follow its nozzle count.
+    // A two-nozzle tool changer that carries a single material slot: the slot count is
+    // independent of the nozzle count, so reloading must not pad the list to two.
     printer_config.option<ConfigOptionFloats>("nozzle_diameter")->values = {0.4, 0.4};
     printer_config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = false;
     write_preset_with_inherits(printer_config, f.directory / PRESET_PRINTER_NAME / "Printer.json", "Printer", "");
@@ -896,11 +928,11 @@ TEST_CASE("Local reload reconciles filament slots and purge volumes while retain
     const ConfigOption* colour                                                         = f.bundle.project_config.option("filament_colour");
 
     REQUIRE(f.bundle.reload_local_bundle("", f.id, &f.error));
-    CHECK(f.bundle.filament_presets == std::vector<std::string>{f.prefix + "Filament", f.prefix + "Filament"});
+    CHECK(f.bundle.filament_presets == std::vector<std::string>{f.prefix + "Filament"});
     check_double_vector(f.bundle.project_config.option<ConfigOptionFloats>("flush_multiplier")->values, {0.75, 1.});
-    check_double_vector(f.bundle.project_config.option<ConfigOptionFloats>("flush_volumes_vector")->values, {111., 222., 111., 222.});
-    check_double_vector(f.bundle.project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values,
-                        {0., 333., 333., 0., 0., 333., 333., 0.});
+    check_double_vector(f.bundle.project_config.option<ConfigOptionFloats>("flush_volumes_vector")->values, {111., 222.});
+    // One material across two nozzles: a 1x1 purge matrix per nozzle.
+    check_double_vector(f.bundle.project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values, {0., 0.});
     CHECK(f.bundle.project_config.option("filament_colour") == colour);
     CHECK(f.bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values == std::vector<std::string>{"#123456"});
 }
@@ -2780,6 +2812,105 @@ TEST_CASE("set_num_filaments keeps mixed-color arrays in step with the filament 
     }
 }
 
+namespace {
+
+// One system "Generic PLA" the sync can resolve a reported "PLA" tray to, with a real
+// filament_id so a tray that does report one still maps through the known-id path.
+void add_generic_pla(PresetBundle &bundle)
+{
+    Preset &pla       = add_inmemory_preset(bundle.filaments, "Generic PLA");
+    pla.is_system     = true;
+    pla.is_compatible = true;
+    pla.filament_id   = "GFL99";
+}
+
+// A device tray as build_filament_ams_list builds it: a reported type, color and loaded flag,
+// an optional preset id, and the placeholder flag pull-mode agents set on empty slots.
+DynamicPrintConfig ams_tray(const std::string &filament_id, const std::string &filament_type, bool exist, bool placeholder)
+{
+    DynamicPrintConfig tray;
+    tray.set_key_value("filament_id", new ConfigOptionStrings{filament_id});
+    tray.set_key_value("filament_type", new ConfigOptionStrings{filament_type});
+    tray.set_key_value("filament_colour", new ConfigOptionStrings{"#FF0000"});
+    tray.set_key_value("filament_colour_type", new ConfigOptionStrings{"1"});
+    tray.set_key_value("filament_multi_colour", new ConfigOptionStrings{});
+    tray.set_key_value("filament_exist", new ConfigOptionBools{exist});
+    tray.set_key_value("filament_slot_placeholder", new ConfigOptionBools{placeholder});
+    tray.set_key_value("ams_id", new ConfigOptionStrings{"0"});
+    tray.set_key_value("slot_id", new ConfigOptionStrings{"0"});
+    return tray;
+}
+
+// Run the mapped sync over the bundle's single tray and return the filament count it reports,
+// which is what the sidebar uses to rebuild the Prepare filament list.
+unsigned int sync_one_tray(PresetBundle &bundle, bool enable_append)
+{
+    std::vector<std::pair<DynamicPrintConfig *, std::string>> unknowns;
+    std::map<int, AMSMapInfo>                                  maps;
+    MergeFilamentInfo                                          merge;
+    return bundle.sync_ams_list(unknowns, /*use_map=*/true, maps, enable_append, merge, /*color_only=*/false);
+}
+
+} // namespace
+
+// A generic device reports type/color/loaded for a spool but no preset id. The Device tab shows
+// that spool, so the Prepare sidebar has to count it: the sync appends the generic preset its
+// reported type resolves to. A tray that only carried topology (no type, not loaded) must not.
+TEST_CASE("A data-bearing AMS tray without a preset id appends a generic filament on sync", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    add_generic_pla(bundle);
+    bundle.set_num_filaments(1, std::string("#00FF00"));
+    bundle.filament_ams_list[0] = ams_tray(/*filament_id=*/{}, "PLA", /*exist=*/true, /*placeholder=*/false);
+
+    const size_t before = bundle.filament_presets.size();
+    const auto   count  = sync_one_tray(bundle, /*enable_append=*/true);
+
+    CHECK(count == before + 1);
+    CHECK(bundle.filament_presets.back() == "Generic PLA");
+}
+
+TEST_CASE("An empty synthetic AMS tray does not append a filament on sync", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    add_generic_pla(bundle);
+    bundle.set_num_filaments(1, std::string("#00FF00"));
+    bundle.filament_ams_list[0] = ams_tray(/*filament_id=*/{}, /*filament_type=*/{}, /*exist=*/false, /*placeholder=*/false);
+
+    const size_t before = bundle.filament_presets.size();
+    const auto   count  = sync_one_tray(bundle, /*enable_append=*/true);
+
+    CHECK(count == before);
+}
+
+TEST_CASE("An empty AMS placeholder does not append a filament on sync", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    add_generic_pla(bundle);
+    bundle.set_num_filaments(1, std::string("#00FF00"));
+    bundle.filament_ams_list[0] = ams_tray(/*filament_id=*/{}, /*filament_type=*/{}, /*exist=*/false, /*placeholder=*/true);
+
+    const size_t before = bundle.filament_presets.size();
+    const auto   count  = sync_one_tray(bundle, /*enable_append=*/true);
+
+    CHECK(count == before);
+}
+
+// The append preference still governs a data-bearing tray: with append off the sidebar count is
+// unchanged, exactly as for a mapped-but-unlisted tray.
+TEST_CASE("The append preference gates a data-bearing AMS tray without a preset id", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    add_generic_pla(bundle);
+    bundle.set_num_filaments(1, std::string("#00FF00"));
+    bundle.filament_ams_list[0] = ams_tray(/*filament_id=*/{}, "PLA", /*exist=*/true, /*placeholder=*/false);
+
+    const size_t before = bundle.filament_presets.size();
+    const auto   count  = sync_one_tray(bundle, /*enable_append=*/false);
+
+    CHECK(count == before);
+}
+
 // A mix is described by 1-based indices into the project's filament list, which Orca rebuilds
 // from the selected printer's snapshot (filament_%02u / filament_colors) at startup and on every
 // printer selection. Held anywhere but that same per-printer snapshot, the mixed arrays end up
@@ -2837,11 +2968,12 @@ TEST_CASE("A multi-point gradient curve survives the app-config snapshot", "[Pre
     CHECK(decoded == curves);
 }
 
-// A multi-tool printer sizes the filament list from its nozzle count. Mixed-color slots are extra
-// virtual filaments at the tail of that list with no nozzle of their own, so the count has to
-// allow for them: sizing to the nozzle count alone drops the project's mixes and strips every
-// painted facet above the new count.
-TEST_CASE("Sizing the filament list to a multi-tool nozzle count keeps mixed slots", "[Preset][Bundle][FilamentMixer]")
+// set_num_filaments() is a raw resize, not a floor. Mixed-color slots are virtual filaments at
+// the tail with no nozzle of their own, so a target that still covers them keeps the mixes, while
+// a target at the physical slot count truncates them (and strips every painted facet above the
+// new count). Filament slots are independent of the nozzle count, so callers must not derive that
+// target from it.
+TEST_CASE("Resizing the filament list below a mixed tail drops it", "[Preset][Bundle][FilamentMixer]")
 {
     // The 5-slot layout of a 4-tool project carrying one mix of filaments 2 and 3.
     const size_t nozzle_count = 4;
@@ -2900,9 +3032,9 @@ TEST_CASE("Deleting a filament on a shared-nozzle printer keeps it deleted", "[P
     CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 1);
 }
 
-// Each tool of a tool changer carries its own filament, so the filament list never drops below the
-// tool count.
-TEST_CASE("A tool changer keeps a filament for every tool", "[Preset][Bundle]")
+// A tool changer does not need one filament per tool: an unused tool can carry no material, so a
+// shorter list is left alone.
+TEST_CASE("A tool changer keeps a shorter filament list", "[Preset][Bundle]")
 {
     PresetBundle bundle;
     select_multi_nozzle_printer(bundle, 4, false);
@@ -2910,19 +3042,72 @@ TEST_CASE("A tool changer keeps a filament for every tool", "[Preset][Bundle]")
 
     bundle.update_multi_material_filament_presets();
 
-    CHECK(bundle.filament_presets.size() == 4);
+    CHECK(bundle.filament_presets.size() == 1);
+}
+
+// Slot count is managed independently of the tools on a non-SEMM multi-tool printer: the same
+// add/delete APIs the sidebar uses must keep every per-slot array aligned whether the list sits
+// below or above the extruder count.
+TEST_CASE("A non-SEMM multi-tool printer adds and deletes filament slots independently of its extruders",
+          "[Preset][Bundle]")
+{
+    constexpr size_t extruder_count = 4;
+    PresetBundle     bundle;
+    select_multi_nozzle_printer(bundle, extruder_count, false);
+    add_inmemory_preset(bundle.filaments, "My PLA");
+
+    auto check_slot_arrays = [&bundle](size_t slots) {
+        CAPTURE(slots);
+        REQUIRE(bundle.filament_presets.size() == slots);
+        CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == slots);
+        CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_multi_colour")->values.size() == slots);
+        CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour_type")->values.size() == slots);
+        CHECK(bundle.project_config.option<ConfigOptionInts>("filament_map")->values.size() == slots);
+        CHECK(bundle.project_config.option<ConfigOptionInts>("filament_nozzle_map")->values.size() == slots);
+        CHECK(bundle.project_config.option<ConfigOptionInts>("filament_volume_map")->values.size() == slots);
+        CHECK(bundle.project_config.option<ConfigOptionBools>("filament_is_mixed")->values.size() == slots);
+        CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components")->values.size() == slots);
+        // Purge data keeps one block per nozzle for the slots that exist.
+        CHECK(bundle.project_config.option<ConfigOptionFloats>("flush_multiplier")->values.size() == extruder_count);
+        CHECK(bundle.project_config.option<ConfigOptionFloats>("flush_volumes_vector")->values.size() == 2 * slots);
+        CHECK(bundle.project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values.size() ==
+              slots * slots * extruder_count);
+    };
+
+    // One material on a four-tool printer (below the extruder count), then a second one.
+    bundle.set_num_filaments(1, "#FF0000");
+    check_slot_arrays(1);
+    bundle.set_num_filaments(2, "#00FF00");
+    check_slot_arrays(2);
+
+    // More materials than tools.
+    bundle.set_num_filaments(extruder_count + 2, "#0000FF");
+    check_slot_arrays(extruder_count + 2);
+    // A regular update neither pads nor trims the list.
+    bundle.update_multi_material_filament_presets();
+    check_slot_arrays(extruder_count + 2);
+
+    // Deleting a middle slot removes exactly that slot from every array.
+    bundle.update_num_filaments(1);
+    check_slot_arrays(extruder_count + 1);
+    CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values[1] == "#0000FF");
+
+    // Deleting back down to and below the extruder count keeps the arrays aligned.
+    while (bundle.filament_presets.size() > 2)
+        bundle.update_num_filaments(static_cast<unsigned>(bundle.filament_presets.size() - 1));
+    check_slot_arrays(2);
+    bundle.update_num_filaments(0);
+    check_slot_arrays(1);
 }
 
 // The app config keeps each printer's filament list. The next start (load_selections) and a switch
-// back to the printer with remember_printer_config on (update_selections) restore it from there: a
-// shared-nozzle printer gets back the one filament it was left with, a tool changer still gets one
-// per tool.
-TEST_CASE("A remembered one-filament list comes back at the printer's minimum length", "[Preset][Bundle]")
+// back to the printer with remember_printer_config on (update_selections) restore it unchanged; the
+// list is not padded to the nozzle count on either printer shape.
+TEST_CASE("A remembered one-filament list comes back with one filament", "[Preset][Bundle]")
 {
     const bool   shared_nozzles = GENERATE(true, false);
     const bool   on_startup     = GENERATE(true, false);
     const size_t nozzle_count   = shared_nozzles ? 2 : 4;
-    const size_t expected       = shared_nozzles ? 1 : nozzle_count;
     CAPTURE(shared_nozzles, on_startup);
 
     AppConfig app_config;
@@ -2931,7 +3116,7 @@ TEST_CASE("A remembered one-filament list comes back at the printer's minimum le
         select_multi_nozzle_printer(bundle, nozzle_count, shared_nozzles);
         add_inmemory_preset(bundle.filaments, "Test Filament");
         bundle.filaments.select_preset_by_name("Test Filament", true);
-        // Set the one-filament list directly: set_num_filaments() runs the padding under test.
+        // Seed one slot and its colour, then snapshot them as the app does on exit.
         bundle.filament_presets = { "Test Filament" };
         bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values = { "#123456" };
         bundle.export_selections(app_config);
@@ -2945,17 +3130,19 @@ TEST_CASE("A remembered one-filament list comes back at the printer's minimum le
     else
         bundle.update_selections(app_config);
 
-    CHECK(bundle.filament_presets.size() == expected);
-    CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == expected);
+    CHECK(bundle.filament_presets.size() == 1);
+    CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 1);
 }
 
-// A one-colour print for a shared-nozzle printer, as Bambu Studio saves it for an H2D or X2D, opens
-// with that one filament rather than one per nozzle.
-TEST_CASE("A one-filament project for a shared-nozzle printer opens with one filament", "[Preset][Bundle]")
+// A one-colour project opens with that one filament rather than one per nozzle, on shared-nozzle
+// printers (as Bambu Studio saves for an H2D or X2D) and on tool changers alike.
+TEST_CASE("A one-filament project opens with one filament", "[Preset][Bundle]")
 {
+    const bool shared_nozzles = GENERATE(true, false);
+    CAPTURE(shared_nozzles);
     DynamicPrintConfig config = published_pla_file_config();
     config.opt<ConfigOptionFloats>("nozzle_diameter")->values = { 0.4, 0.4 };
-    config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = true;
+    config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = shared_nozzles;
     // The GUI normalizes the config before load; mirror that so only the production path runs.
     Preset::normalize(config);
 
@@ -5174,11 +5361,8 @@ TEST_CASE("Published 3MF relocates a mixed filament instead of overwriting a phy
 // interleaved with them (the R,M,R bug).
 TEST_CASE("Published 3MF relocates the receiver's mixed filament past the incoming physical slots", "[Preset][Bundle][Published]")
 {
-    // Build the receiver's tool-changer with three slots, the third being the receiver's own
-    // mixed filament. A SEMM (single_extruder_multi_material) receiver sizes its slot list by
-    // hand, so a lower slot count than the printer's nozzle count is preserved on load - a
-    // non-SEMM tool-changer would top the preset list up to the nozzle count and shift the
-    // expected sizes (the rebalance logic under test is the same either way).
+    // Build a receiver with three slots, the third being the receiver's own mixed filament. The
+    // slot list is independent of the nozzle count, so this layout is preserved on load.
     auto make_receiver = [](PresetBundle &bundle, const std::string &components, const std::string &ratios) {
         Preset &pla = add_inmemory_preset(bundle.filaments, "My PLA");
         pla.config.opt_string("filament_type", 0u) = "PLA";
@@ -5377,12 +5561,10 @@ TEST_CASE("Published 3MF rebalances several receiver mixed slots past the physic
     CHECK(pub.skipped_keys.empty());
 }
 
-// The receiver's printer gates how many PHYSICAL filament slots a published 3MF may add: a
-// non-SEMM tool-changer feeds filament N from nozzle N, so a published slot past the nozzle
-// count cannot become a physical filament. It becomes an empty mixed-filament placeholder
-// instead - a virtual tail slot the GUI flags (broken mix) and the user fills with components
-// from their own filaments. SEMM receivers keep the ungated behaviour.
-TEST_CASE("Published 3MF turns a surplus slot past the printer's filament capacity into an empty mixed placeholder", "[Preset][Bundle][Published]")
+// Filament slots are independent of the extruder count: a published slot past the nozzle count
+// is imported as a real physical filament, not turned into a placeholder or dropped. The only
+// limit is the global per-filament slot cap.
+TEST_CASE("Published 3MF imports a slot past the printer's extruder count as a physical filament", "[Preset][Bundle][Published]")
 {
     // An author project with <num_author_slots> physical slots, no mixed ones.
     auto make_file_config = [](size_t num_author_slots) {
@@ -5423,55 +5605,13 @@ TEST_CASE("Published 3MF turns a surplus slot past the printer's filament capaci
         return entry;
     };
 
-    // The reported case: an author publishes with a filament on slot 5; the receiver is a
-    // 4-filament tool-changer. The receiver keeps its four physical slots and the surplus
-    // material lands as an empty mixed placeholder at the tail.
+    // An author publishes with filaments on slots 5 and 6; the receiver is a 4-filament
+    // tool-changer. Both materials keep real physical slots at their authored positions.
     {
         PresetBundle bundle;
         make_receiver(bundle, 4, 4);
         const std::vector<std::string> receiver_colours =
             bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values;
-
-        PublishedConfig pub;
-        pub.published     = true;
-        pub.material_keys = { make_physical_entry(4, "#ABCDEF") };
-        DynamicPrintConfig config = make_file_config(5);
-        Preset::normalize(config);
-        bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
-
-        // The receiver grew by exactly one virtual slot, not a fifth physical one.
-        REQUIRE(bundle.filament_presets.size() == 5);
-        const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
-        REQUIRE(is_mixed.size() == 5);
-        for (size_t i = 0; i < 4; ++i)
-            CHECK_FALSE(is_mixed[i]);
-        CHECK(is_mixed[4]);
-        // The placeholder carries no definition: the GUI's integrity check flags it and
-        // blocks slicing until the user assigns components.
-        const auto &components = bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values;
-        REQUIRE(components.size() == 5);
-        CHECK(components[4].empty());
-        // The four physical slots kept their meaning and colours.
-        CHECK(std::equal(receiver_colours.begin(), receiver_colours.end(),
-                         bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values.begin()));
-        CHECK(bundle.filament_presets[0] == "My PLA");
-        CHECK(bundle.filament_presets[3] == "My PLA");
-        // The published colour seeds the placeholder's swatch.
-        CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values[4] == "#ABCDEF");
-        // The conversion is surfaced through the post-import notice.
-        bool placeholder_reported = false;
-        for (const std::string &message : pub.material_replacements)
-            if (message.find("unassigned mixed filament") != std::string::npos)
-                placeholder_reported = true;
-        CHECK(placeholder_reported);
-        CHECK(pub.skipped_keys.empty());
-        CHECK(pub.mixed_slot_relocations.empty());
-    }
-
-    // Two surplus slots (5 and 6) become two consecutive empty placeholders.
-    {
-        PresetBundle bundle;
-        make_receiver(bundle, 4, 4);
 
         PublishedConfig pub;
         pub.published     = true;
@@ -5483,25 +5623,29 @@ TEST_CASE("Published 3MF turns a surplus slot past the printer's filament capaci
         REQUIRE(bundle.filament_presets.size() == 6);
         const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
         REQUIRE(is_mixed.size() == 6);
-        for (size_t i = 0; i < 4; ++i)
+        for (size_t i = 0; i < 6; ++i)
             CHECK_FALSE(is_mixed[i]);
-        CHECK(is_mixed[4]);
-        CHECK(is_mixed[5]);
         const auto &components = bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values;
         REQUIRE(components.size() == 6);
         CHECK(components[4].empty());
         CHECK(components[5].empty());
+        // The four original slots kept their meaning and colours.
+        CHECK(std::equal(receiver_colours.begin(), receiver_colours.end(),
+                         bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values.begin()));
+        CHECK(bundle.filament_presets[0] == "My PLA");
+        CHECK(bundle.filament_presets[3] == "My PLA");
+        // The published colours reach the new physical slots.
         const auto &colour = bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values;
         REQUIRE(colour.size() == 6);
         CHECK(colour[4] == "#ABCDEF");
         CHECK(colour[5] == "#F0F0F0");
         CHECK(pub.skipped_keys.empty());
+        CHECK(pub.material_replacements.empty());
         CHECK(pub.mixed_slot_relocations.empty());
     }
 
-    // A surplus slot past both the receiver's list and the capacity packs onto the next free
-    // tail slot (never max(authored, next_free), which would grow filler physical slots past
-    // the capacity), and the relocation is recorded for the model-reference remapping.
+    // A published slot past both the receiver's list and its nozzle count grows the list to that
+    // authored position, with no relocation: physical slots are addressed positionally.
     {
         PresetBundle bundle;
         make_receiver(bundle, 2, 2);
@@ -5513,28 +5657,18 @@ TEST_CASE("Published 3MF turns a surplus slot past the printer's filament capaci
         Preset::normalize(config);
         bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
 
-        REQUIRE(bundle.filament_presets.size() == 3);
+        REQUIRE(bundle.filament_presets.size() == 4);
         const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
-        REQUIRE(is_mixed.size() == 3);
-        CHECK_FALSE(is_mixed[0]);
-        CHECK_FALSE(is_mixed[1]);
-        CHECK(is_mixed[2]);
-        const auto &components = bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values;
-        REQUIRE(components.size() == 3);
-        CHECK(components[2].empty());
-        REQUIRE(pub.mixed_slot_relocations.size() == 1);
-        CHECK(pub.mixed_slot_relocations.at(3) == 2);
-        bool relocation_reported = false;
-        for (const std::string &message : pub.material_replacements)
-            if (message.find("slot 3 -> slot 2") != std::string::npos &&
-                message.find("unassigned mixed filament") != std::string::npos)
-                relocation_reported = true;
-        CHECK(relocation_reported);
+        REQUIRE(is_mixed.size() == 4);
+        for (size_t i = 0; i < 4; ++i)
+            CHECK_FALSE(is_mixed[i]);
+        CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values[3] == "#ABCDEF");
+        CHECK(pub.mixed_slot_relocations.empty());
+        CHECK(pub.material_replacements.empty());
         CHECK(pub.skipped_keys.empty());
     }
 
-    // A Full Publish entry past the capacity becomes a placeholder too: no standalone
-    // detached copy is created for a material that got no physical slot.
+    // A Full Publish entry past the nozzle count detaches its standalone copy like any other.
     {
         PresetBundle bundle;
         make_receiver(bundle, 4, 4);
@@ -5555,15 +5689,15 @@ TEST_CASE("Published 3MF turns a surplus slot past the printer's filament capaci
         REQUIRE(bundle.filament_presets.size() == 5);
         const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
         REQUIRE(is_mixed.size() == 5);
-        CHECK(is_mixed[4]);
-        // No detached copy under the stripped name or its uniquified forms.
-        CHECK(bundle.filaments.find_preset("Generic PLA", false, true) == nullptr);
-        CHECK(bundle.filaments.find_preset("Generic PLA (Published)", false, true) == nullptr);
+        CHECK_FALSE(is_mixed[4]);
+        // The detached copy carries the stripped author name (uniquified on collision).
+        CHECK(bundle.filament_presets[4].rfind("Generic PLA", 0) == 0);
+        CHECK(bundle.filament_presets[4] != "My PLA");
         CHECK(pub.skipped_keys.empty());
     }
 
-    // A SEMM receiver (the default printer preset) sizes its slot list by hand: the published
-    // slot past the nozzle count still grows physically, as before the capacity gate.
+    // A SEMM receiver behaves the same: the published slot past the nozzle count grows
+    // physically.
     {
         PresetBundle bundle;
         Preset &pla = add_inmemory_preset(bundle.filaments, "My PLA");
@@ -5587,8 +5721,8 @@ TEST_CASE("Published 3MF turns a surplus slot past the printer's filament capaci
         CHECK(pub.skipped_keys.empty());
     }
 
-    // A pre-existing oversized slot list is never shrunk: a published entry pointing at one
-    // of its slots is applied positionally even though the list exceeds the nozzle count.
+    // A pre-existing longer slot list is never shrunk: a published entry pointing at one of its
+    // slots is applied positionally even though the list exceeds the nozzle count.
     {
         PresetBundle bundle;
         make_receiver(bundle, 4, 5);
@@ -5612,9 +5746,7 @@ TEST_CASE("Published 3MF turns a surplus slot past the printer's filament capaci
         CHECK(pub.skipped_keys.empty());
     }
 
-    // On a single-physical-slot receiver an empty mix could never be edited (the sidebar's
-    // mixed section needs two physical filaments), so the surplus entry is dropped and
-    // reported instead of becoming an unfixable placeholder.
+    // A single-nozzle receiver still imports a second material: nothing is dropped.
     {
         PresetBundle bundle;
         make_receiver(bundle, 1, 1);
@@ -5626,16 +5758,17 @@ TEST_CASE("Published 3MF turns a surplus slot past the printer's filament capaci
         Preset::normalize(config);
         bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
 
-        CHECK(bundle.filament_presets.size() == 1);
+        REQUIRE(bundle.filament_presets.size() == 2);
         const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
-        REQUIRE(is_mixed.size() == 1);
+        REQUIRE(is_mixed.size() == 2);
         CHECK_FALSE(is_mixed[0]);
-        REQUIRE(pub.skipped_keys.size() == 1);
-        CHECK(pub.skipped_keys.front().find("the printer's filament limit is 1") != std::string::npos);
+        CHECK_FALSE(is_mixed[1]);
+        CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values[1] == "#ABCDEF");
+        CHECK(pub.skipped_keys.empty());
     }
 
-    // A payload mixed definition is exempt from the capacity gate: mixes are virtual slots
-    // that consume no nozzle, so a published mix past the nozzle count still lands.
+    // A payload mixed definition past the nozzle count still lands: mixes are virtual slots
+    // that consume no nozzle.
     {
         PresetBundle bundle;
         make_receiver(bundle, 4, 4);
@@ -6044,23 +6177,18 @@ TEST_CASE("Adding a filament preserves slots with incomplete mixed metadata", "[
     }
 }
 
-// On a tool changer the nozzle-count top-up in update_multi_material_filament_presets() grows
-// filament_presets on its own, so a physical count derived from that list reports a slot no
-// per-filament array has yet. That is what made the extruder-count handler conclude there was
-// nothing to add and leave the new sidebar combo with no colour to draw.
-TEST_CASE("The physical filament count is not fooled by a lone filament_presets top-up", "[Preset][Bundle][FilamentMixer]")
+// The physical filament count follows the per-filament arrays, not filament_presets: a list that
+// is longer than the arrays must not report a slot no array has yet.
+TEST_CASE("The physical filament count follows the per-filament arrays", "[Preset][Bundle][FilamentMixer]")
 {
     PresetBundle bundle;
-    // The extruder-count handler that adds filaments runs on tool changers only.
-    bundle.printers.get_edited_preset().config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = false;
 
     SECTION("no mixed slots") {
         bundle.set_num_filaments(4u, std::string("#FF0000"));
-        bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter", true)->values =
-            { 0.4, 0.4, 0.4, 0.4, 0.4 };
-        bundle.update_multi_material_filament_presets();
+        // A preset-list top-up on its own (as an extruder-count change used to leave behind).
+        bundle.filament_presets.emplace_back(bundle.filament_presets.back());
 
-        REQUIRE(bundle.filament_presets.size() == 5);   // the top-up moved this list on its own
+        REQUIRE(bundle.filament_presets.size() == 5);
         REQUIRE(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 4);
         CHECK(bundle.num_physical_filaments() == 4);
     }
@@ -6069,9 +6197,7 @@ TEST_CASE("The physical filament count is not fooled by a lone filament_presets 
         bundle.set_num_filaments(5u, std::string("#FF0000"));
         bundle.project_config.option<ConfigOptionBools>("filament_is_mixed")->values =
             { false, false, false, false, true };
-        bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter", true)->values =
-            { 0.4, 0.4, 0.4, 0.4, 0.4, 0.4 };
-        bundle.update_multi_material_filament_presets();
+        bundle.filament_presets.emplace_back(bundle.filament_presets.back());
 
         REQUIRE(bundle.filament_presets.size() == 6);
         REQUIRE(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 5);
@@ -6090,10 +6216,11 @@ TEST_CASE("New filament colours are placed by array position", "[Preset][Bundle]
     bundle.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter", true)->values =
         { 0.4, 0.4, 0.4, 0.4, 0.4 };
     bundle.update_multi_material_filament_presets();
-    REQUIRE(bundle.filament_presets.size() == 5);
+    // The list is not padded to the nozzle count: four slots, four colours.
+    REQUIRE(bundle.filament_presets.size() == 4);
     REQUIRE(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == 4);
 
-    // The call Sidebar::add_custom_filament makes once the extruder count opens a slot.
+    // The call Sidebar::add_custom_filament makes when the user adds a slot.
     bundle.set_num_filaments(5u, std::string("#00FF00"));
 
     const auto &colours = bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values;
@@ -6176,10 +6303,10 @@ TEST_CASE("A saved mix survives a restart on a multi-tool printer", "[Preset][Bu
     CHECK(bundle.is_mixed_filament(4));
 
     SECTION("and through the GUI startup calls that follow it") {
-        // GUI_App::load_current_presets sizes the list for a non-SEMM printer, growing only.
-        const size_t target = 4u + bundle.num_mixed_filaments();
-        if (target > bundle.filament_presets.size())
-            bundle.set_num_filaments(target);
+        // GUI_App::load_current_presets only ensures a slot exists; it never resizes the list
+        // to the nozzle count.
+        bundle.update_filament_count();
+        CHECK(bundle.filament_presets.size() == 5);
         CHECK(bundle.num_mixed_filaments() == 1);
 
         // TabPrinter::extruders_count_changed.
@@ -6194,12 +6321,10 @@ TEST_CASE("A saved mix survives a restart on a multi-tool printer", "[Preset][Bu
     }
 }
 
-// The startup sizing in GUI_App::load_current_presets targets the nozzle count plus the mixes.
-// That is a floor, never a ceiling: set_num_filaments() trims at the raw tail, which is exactly
-// where the mixes live, so applying the target to a longer list deletes them. A list longer than
-// the target is reachable - raising the extruder count without saving the printer preset leaves
-// the extra physical slot behind on the next start - so the startup sizing must only ever grow.
-TEST_CASE("Sizing down to the nozzle count plus mixes is what eats the mixed tail", "[Preset][Bundle][FilamentMixer]")
+// set_num_filaments() trims at the raw tail, which is exactly where the mixes live, so applying a
+// shorter target to a longer list deletes them. A target derived from the nozzle count is
+// therefore a floor at best, never an exact size.
+TEST_CASE("Sizing down to a physical slot count is what eats the mixed tail", "[Preset][Bundle][FilamentMixer]")
 {
     // 5 physical + 1 mix, on a printer preset still reporting 4 nozzles.
     const size_t nozzle_count = 4;
@@ -6417,13 +6542,11 @@ TEST_CASE("Published 3MF rejects a mixed filament definition with impossible com
     }
 }
 
-// The reported scenario: an author publishes two mixed filaments whose components are
-// full-published physical slots; the receiver is a smaller tool-changer, so some of those
-// component slots become empty mixed placeholders. A mix whose component turned into a
-// placeholder can never be valid (mixes cannot reference mixes): it is rejected, and its
-// grown slot must be finalized as an empty mixed placeholder too - not keep the seeded
-// preset and masquerade as a real filament carrying the mix identity.
-TEST_CASE("Published 3MF finalizes a mixed filament rejected over a placeholder component as an empty placeholder", "[Preset][Bundle][Published]")
+// An author publishes two mixed filaments whose components are full-published physical slots;
+// the receiver is a smaller tool-changer. The physical slots past its nozzle count are imported
+// as real filaments, so both mixes find their components and apply.
+TEST_CASE("Published 3MF imports full-published materials past the extruder count and applies both mixes",
+          "[Preset][Bundle][Published]")
 {
     // An author project: six physical slots plus two tail mixes, the second referencing the
     // sixth physical slot (H2C-style: slot 7 = 1+2, slot 8 = 2+6).
@@ -6489,45 +6612,32 @@ TEST_CASE("Published 3MF finalizes a mixed filament rejected over a placeholder 
     Preset::normalize(config);
     bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
 
-    // The receiver grew to the author's slot count, all virtual territory at the tail.
+    // The receiver grew to the author's slot count: slots 0-5 hold the full-published
+    // materials as physical filaments, and the two tail slots hold the mixes.
     REQUIRE(bundle.filament_presets.size() == 8);
     const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
     REQUIRE(is_mixed.size() == 8);
-    // Slots 0-3 stayed physical; authored slots 5 and 6 (0-based 4 and 5) became capacity
-    // placeholders.
-    for (size_t i = 0; i < 4; ++i)
+    for (size_t i = 0; i < 6; ++i)
         CHECK_FALSE(is_mixed[i]);
-    CHECK(is_mixed[4]);
-    CHECK(is_mixed[5]);
-    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values[4].empty());
-    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values[5].empty());
-    // The first mix applied onto its uncontended tail slot.
     CHECK(is_mixed[6]);
     CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values[6] == "1,2");
-    // The second mix was rejected - its second component (authored slot 6) turned into a
-    // placeholder - and its slot was finalized as an empty mixed placeholder instead of
-    // keeping the seeded preset as a phantom real filament.
+    // The second mix references the sixth physical slot, which is now a real filament.
     CHECK(is_mixed[7]);
-    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values[7].empty());
-    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values[7].empty());
-    REQUIRE(pub.skipped_keys.size() == 1);
-    CHECK(pub.skipped_keys[0] == "material:PLA (mixed filament definition: components reference missing slots)");
-    // Two Full Publish detach lines (slots 0-1), two capacity placeholder lines (slots 4-5),
-    // and the rejected mix's finalization line (slot 7).
-    REQUIRE(pub.material_replacements.size() == 5);
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values[7] == "2,6");
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_sublayer_ratios")->values[7] == "0.5,0.5");
+    CHECK(pub.skipped_keys.empty());
+    CHECK(pub.mixed_slot_relocations.empty());
+    // Four Full Publish detach lines, one per published physical slot.
+    REQUIRE(pub.material_replacements.size() == 4);
     CHECK(std::any_of(pub.material_replacements.begin(), pub.material_replacements.end(),
-                      [](const std::string &line) {
-                          return line.find("slot 7: mixed filament definition could not be imported") != std::string::npos;
-                      }));
+                      [](const std::string &line) { return line.find("slot 4:") == 0; }));
 }
 
-// The receiver must not overflow its physical capacity when it grows slots to reach a published
-// mixed definition: an unpublished mixed slot that lands as a gap past the nozzle count becomes
-// an empty mixed placeholder, not a physical filament. An author with six physical slots (0-5)
-// and two tail mixes (slots 6 and 7) publishes only 0-5 and 7; the receiver has four nozzles.
-// Slots 4 and 5 become surplus placeholders, slot 7 keeps its authored mix position, and the
-// unpublished gap slot 6 is finalized as a virtual placeholder - never a fifth physical slot.
-TEST_CASE("Published 3MF turns an unpublished gap slot past the printer's capacity into an empty mixed placeholder", "[Preset][Bundle][Published]")
+// Growing slots to reach a published mix past the nozzle count fills the gap with ordinary
+// physical filaments, not placeholders: an author with six physical slots (0-5) and a tail mix
+// (slot 7) publishes 0-5 and 7 onto a 4-nozzle receiver, which ends up with seven physical slots
+// plus the mix at slot 7.
+TEST_CASE("Published 3MF fills a gap slot past the extruder count with a physical filament", "[Preset][Bundle][Published]")
 {
     PresetBundle bundle;
     Preset &pla = add_inmemory_preset(bundle.filaments, "My PLA");
@@ -6587,34 +6697,22 @@ TEST_CASE("Published 3MF turns an unpublished gap slot past the printer's capaci
     REQUIRE(bundle.filament_presets.size() == 8);
     const auto &is_mixed = bundle.project_config.opt<ConfigOptionBools>("filament_is_mixed")->values;
     REQUIRE(is_mixed.size() == 8);
-    // Slots 0-3 stay physical; 4 and 5 are surplus placeholders; 6 is the unpublished gap; 7 is
-    // the published mix. All four tail slots are virtual.
-    for (size_t i = 0; i < 4; ++i)
+    // Slots 0-6 hold physical filaments (the unpublished gap included); slot 7 is the mix.
+    for (size_t i = 0; i < 7; ++i)
         CHECK_FALSE(is_mixed[i]);
-    CHECK(is_mixed[4]);
-    CHECK(is_mixed[5]);
-    CHECK(is_mixed[6]);
     CHECK(is_mixed[7]);
-    // Surplus physical slots (4,5) and the unpublished gap (6) carry no definition; the
-    // published mix on slot 7 keeps its own.
     const auto &components = bundle.project_config.opt<ConfigOptionStrings>("filament_mixed_components")->values;
     REQUIRE(components.size() == 8);
-    CHECK(components[4].empty());
-    CHECK(components[5].empty());
-    CHECK(components[6].empty());
+    for (size_t i = 0; i < 7; ++i)
+        CHECK(components[i].empty());
     CHECK(components[7] == "1,2");
-    // Exactly four physical slots remain (never a fifth past the nozzle count).
     size_t physical_count = 0;
     for (bool mixed : is_mixed)
         if (!mixed)
             ++physical_count;
-    CHECK(physical_count == 4);
-    // The unpublished gap's conversion is surfaced through the post-import notice.
-    bool gap_reported = false;
-    for (const std::string &message : pub.material_replacements)
-        if (message.find("slot 6: unassigned mixed filament") != std::string::npos)
-            gap_reported = true;
-    CHECK(gap_reported);
+    CHECK(physical_count == 7);
+    // Six Full Publish detach lines; nothing was turned into a placeholder.
+    REQUIRE(pub.material_replacements.size() == 6);
     CHECK(pub.skipped_keys.empty());
 }
 
@@ -8058,9 +8156,10 @@ TEST_CASE("A multi-toolhead project saved without filament self indices loads ev
     CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values == colors);
 }
 
-TEST_CASE("A project with fewer filaments than tools fills every filament slot", "[Preset][Bundle][Regression]")
+TEST_CASE("A project with fewer filaments than tools keeps its filament slots", "[Preset][Bundle][Regression]")
 {
     const size_t tool_count = 4;
+    const size_t material_count = 2;
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000", "#00FF00" };
     config.opt<ConfigOptionFloats>("nozzle_diameter")->values = std::vector<double>(tool_count, 0.4);
@@ -8071,18 +8170,21 @@ TEST_CASE("A project with fewer filaments than tools fills every filament slot",
     bundle.load_config_model("test.3mf", std::move(config));
 
     const auto &colors = bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values;
-    REQUIRE(bundle.filament_presets.size() == tool_count);
-    REQUIRE(colors.size() == tool_count);
+    // The unused tools do not invent material slots.
+    REQUIRE(bundle.filament_presets.size() == material_count);
+    REQUIRE(colors.size() == material_count);
     CHECK(colors[0] == "#FF0000");
     CHECK(colors[1] == "#00FF00");
-    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour_type")->values.size() == tool_count);
-    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_multi_colour")->values.size() == tool_count);
-    CHECK(bundle.project_config.opt<ConfigOptionInts>("filament_map")->values.size() == tool_count);
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour_type")->values.size() == material_count);
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_multi_colour")->values.size() == material_count);
+    CHECK(bundle.project_config.opt<ConfigOptionInts>("filament_map")->values.size() == material_count);
 
+    // The purge matrix still has one block per nozzle, but only for the materials that exist.
     const size_t head_count = bundle.project_config.opt<ConfigOptionFloats>("flush_multiplier")->values.size();
+    CHECK(head_count == tool_count);
     CHECK(bundle.project_config.opt<ConfigOptionFloats>("flush_volumes_matrix")->values.size() == colors.size() * colors.size() * head_count);
 
-    SECTION("an overwriting sync with two empty tools keeps those slots") {
+    SECTION("an overwriting sync does not add slots for the extra empty tools") {
         Preset &filament = add_inmemory_preset(bundle.filaments, "Test PLA");
         filament.filament_id = "GFSL00";
         filament.config.option<ConfigOptionStrings>("filament_type", true)->values = { "PLA" };
@@ -8107,14 +8209,13 @@ TEST_CASE("A project with fewer filaments than tools fills every filament slot",
         std::vector<std::pair<DynamicPrintConfig *, std::string>> unknowns;
         std::map<int, AMSMapInfo> maps;
         MergeFilamentInfo merge_info;
-        const std::string kept_color = colors[2];
-        CHECK(bundle.sync_ams_list(unknowns, false, maps, false, merge_info) == tool_count);
+        // Overwrite-only sync: the two loaded trays land on the project's two slots, and the two
+        // empty tools add nothing.
+        CHECK(bundle.sync_ams_list(unknowns, false, maps, false, merge_info) == material_count);
 
-        REQUIRE(colors.size() == tool_count);
+        REQUIRE(colors.size() == material_count);
         CHECK(colors[0] == "#123456");
         CHECK(colors[1] == "#654321");
-        CHECK(colors[2] == kept_color);
-        CHECK(colors[3] == kept_color);
     }
 }
 
