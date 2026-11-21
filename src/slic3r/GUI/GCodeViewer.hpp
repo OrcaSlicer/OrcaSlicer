@@ -568,11 +568,11 @@ public:
     static bool view_type_from_config_name(const std::string& name, libvgcode::EViewType& type);
     // ORCA: (config value, English label marked for translation) pairs for the "preview_default_view_type" preference
     static std::vector<std::pair<std::string, std::string>> default_view_type_choices();
-    // Orca: The vertex the overhang of vertex `id`'s G-code line reads from. A line with a local profile is drawn as
-    // several vertices, each with the value of its part, and reads as its largest measured one. `vertex_at(i)` gives
-    // the vertex `i` of `count`; `id` itself when no vertex of the line is measured.
+    // Orca: The overhang of vertex `id`'s G-code line in percent or in degrees, none when no vertex of the line is
+    // measured. A line with a local profile is drawn as several vertices, each with the value and the width of its
+    // part, and reads as its largest one in that unit. `vertex_at(i)` gives the vertex `i` of `count`.
     template<typename VertexAt>
-    static size_t line_overhang_vertex(size_t id, size_t count, const VertexAt &vertex_at)
+    static std::optional<float> line_overhang_value(size_t id, size_t count, bool percentage, const VertexAt &vertex_at)
     {
         assert(id < count);
         const libvgcode::PathVertex &line = vertex_at(id);
@@ -583,12 +583,11 @@ public:
         size_t first = id;
         while (first > 0 && on_line(first - 1))
             --first;
-        size_t largest = id;
+        std::optional<float> largest;
         for (size_t i = first; i < count && on_line(i); ++i) {
-            const libvgcode::PathVertex &vertex = vertex_at(i);
-            if (vertex.has_overhang() && (!vertex_at(largest).has_overhang() ||
-                                          vertex.overhang_percentage > vertex_at(largest).overhang_percentage))
-                largest = i;
+            const std::optional<float> value = vertex_at(i).overhang_view_value(percentage);
+            if (value && (!largest || *value > *largest))
+                largest = value;
         }
         return largest;
     }

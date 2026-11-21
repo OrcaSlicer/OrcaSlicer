@@ -746,6 +746,46 @@ TEST_CASE("Infill arc metadata samples local coverage", "[ExtrusionProcessor][Ov
     }
 }
 
+// Where an infill arc's cross-section runs along an edge of the material below, it reads the side behind it along its
+// own travel, as a straight line does. A clockwise arc that comes down onto the edge from the material ends supported;
+// a counterclockwise one that leaves the edge into the material starts over air.
+TEST_CASE("Infill arcs read the side behind them along their own travel",
+          "[ExtrusionProcessor][Overhang][ArcFitting][Regression]")
+{
+    const bool clockwise = GENERATE(false, true);
+    CAPTURE(clockwise);
+    Print print;
+    Model model;
+    init_print({cube(1.0)}, print, model);
+    PrintObject *object = print.get_object(0);
+    Layer *lower = object->add_layer(0, 0.2, 0.2, 0.1);
+    // The material below covers y >= 0 all around the quarter turn between (10, 0) and (0, 10).
+    const std::vector<Vec2d> outline{{-20.0, 0.0}, {20.0, 0.0}, {20.0, 20.0}, {-20.0, 20.0}};
+    std::vector<Linef3> lines;
+    for (size_t i = 0; i < outline.size(); ++i) {
+        const Vec2d &a = outline[i];
+        const Vec2d &b = outline[(i + 1) % outline.size()];
+        lines.emplace_back(Vec3d(a.x(), a.y(), 0.0), Vec3d(b.x(), b.y(), 0.0));
+    }
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    estimator.prepare_for_infill_layer(object, lower,
+        std::make_shared<const AABBTreeLines::LinesDistancer<Linef3>>(std::move(lines)));
+    ArcSegment arc(Point::new_scale(0, 0), scale_(10.0),
+        Point::new_scale(clockwise ? 0 : 10, clockwise ? 10 : 0),
+        Point::new_scale(clockwise ? 10 : 0, clockwise ? 0 : 10),
+        clockwise ? ArcDirection::Arc_Dir_CW : ArcDirection::Arc_Dir_CCW);
+    constexpr size_t intervals = 8;
+    const auto samples = estimator.estimate_overhang_arc_percentages(arc, 0.4f, intervals, false);
+    REQUIRE(samples.size() == intervals + 1);
+    // The sample at (10, 0) is the last of the clockwise arc and the first of the counterclockwise one.
+    const size_t on_edge = clockwise ? intervals : 0;
+    for (size_t i = 0; i < samples.size(); ++i) {
+        INFO("sample " << i);
+        CHECK_THAT(samples[i], Catch::Matchers::WithinAbs(i == on_edge && !clockwise ? 100.0 : 0.0, 0.1));
+    }
+}
+
 // Infill reads the share of its bead's cross-section that has no material below it. The nearest edge alone tells
 // that only where the material ends on one side; between two lower beads, or over one narrower bead, the bead
 // hangs on both sides.
@@ -799,10 +839,12 @@ TEST_CASE("Infill reads the unsupported part of its cross-section where support 
 // A cross-section through a corner of the material below meets both lines of that corner at one point: crossing two
 // corners of a diamond 0.2 mm across, the middle 0.2 of the 0.4 mm section is supported, and touching a corner from
 // either side, anywhere along the section, supports none of it. Where an edge of the material runs along the section,
-// as where a lower line ends right under the sample, the section reads the side just behind it along the path.
+// as where a lower line ends right under the sample, the section reads the side just behind it along the path. So
+// does a section a fraction of a nanometre off that edge, as a whole: its crossings and its sides both.
 TEST_CASE("Infill cross-sections through corners and along edges of the material below",
           "[ExtrusionProcessor][Overhang][Regression]")
 {
+    constexpr double off_edge = 5e-10;
     struct Case
     {
         const char        *name;
@@ -825,6 +867,10 @@ TEST_CASE("Infill cross-sections through corners and along edges of the material
         {"touching a corner at the end", diamond(0.3, 0.0), 100.0},
         {"along the edge of material ahead", rectangle(0.0, 1.0), 100.0},
         {"along the edge of material behind", rectangle(-1.0, 0.0), 25.0},
+        {"just onto material ahead", rectangle(-off_edge, 1.0), 100.0},
+        {"just short of material ahead", rectangle(off_edge, 1.0), 100.0},
+        {"just past the end of material behind", rectangle(-1.0, -off_edge), 25.0},
+        {"just short of the end of material behind", rectangle(-1.0, off_edge), 25.0},
     }));
     CAPTURE(test.name);
     std::vector<Linef3> lines;

@@ -624,45 +624,55 @@ class ExtrusionQualityEstimator
     // segment passes through is one crossing and a corner that only touches it two or none. One point-in-outline test
     // tells the side of the longest piece at its middle, away from the crossings and from the ends, which often lie on
     // the edges of a lower bead. A corner or an edge along the segment can still lie there: the point then has no side
-    // of its own and is read a hair behind as well.
+    // of its own, and the whole segment is measured again a hair behind, its crossings and its side both.
     float unsupported_cross_section_percentage(const Vec3d &position, float width, const Vec2d &path_direction)
     {
         const Boundaries &lower = or_empty(prev_layer_boundaries[current_object]);
-        const Vec2d across = Vec2d(-path_direction.y(), path_direction.x()).normalized();
-        const Vec2d start = position.head<2>() - across * (0.5 * width);
+        const Vec2d along = path_direction.normalized();
+        const Vec2d across(-along.y(), along.x());
+        // Also holds the lines that cross the segment moved a hair behind.
         const std::vector<size_t> near_lines = lower.all_lines_in_radius(position, 0.5 * width + EPSILON);
-        // The segment's ends and the parameters of its crossings, from 0 to 1.
-        std::vector<double> cuts{0.};
         // Only a line ending on the segment's line can put a point of the segment on the outline between crossings.
         // The sides are distances from that line.
         constexpr double on_outline = 1e-9;
-        bool ends_on_segment_line = false;
-        for (const size_t line_id : near_lines) {
-            const Linef3 &line = lower.get_line(line_id);
-            const double side_a = cross2(across, Vec2d(line.a.head<2>() - start));
-            const double side_b = cross2(across, Vec2d(line.b.head<2>() - start));
-            ends_on_segment_line |= std::abs(side_a) < on_outline || std::abs(side_b) < on_outline;
-            if ((side_a > 0.) == (side_b > 0.))
-                continue;
-            const Vec2d crossing = line.a.head<2>() + (line.b - line.a).head<2>() * (side_a / (side_a - side_b));
-            const double t = (crossing - start).dot(across) / width;
-            if (t > 0. && t < 1.)
-                cuts.push_back(t);
-        }
-        cuts.push_back(1.);
-        std::sort(cuts.begin(), cuts.end());
+        // Off the outline's nanometre grid, so that the segment moved off an edge along it lands on no other.
+        constexpr double hair = 1e-7;
+        // The segment's ends and the parameters of its crossings, from 0 to 1.
+        std::vector<double> cuts;
         size_t longest = 0;
-        for (size_t i = 1; i + 1 < cuts.size(); ++i)
-            if (cuts[i + 1] - cuts[i] > cuts[longest + 1] - cuts[longest])
-                longest = i;
-        const Vec2d middle = start + across * (0.5 * (cuts[longest] + cuts[longest + 1]) * width);
-        Vec3d reference(middle.x(), middle.y(), 0.);
-        constexpr double hair = 1e-6;
-        if (ends_on_segment_line && std::any_of(near_lines.begin(), near_lines.end(), [&](size_t line_id) {
-                return line_alg::distance_to_squared(lower.get_line(line_id), reference) < on_outline * on_outline;
-            }))
-            reference.head<2>() += Vec2d(-across.y(), across.x()) * hair;
-        const bool longest_unsupported = lower.outside(reference) > 0;
+        Vec3d middle;
+        for (double behind = 0.;; behind = hair) {
+            const Vec2d start = position.head<2>() - across * (0.5 * width) - along * behind;
+            cuts.assign(1, 0.);
+            bool ends_on_segment_line = false;
+            for (const size_t line_id : near_lines) {
+                const Linef3 &line = lower.get_line(line_id);
+                const double side_a = cross2(across, Vec2d(line.a.head<2>() - start));
+                const double side_b = cross2(across, Vec2d(line.b.head<2>() - start));
+                ends_on_segment_line |= std::abs(side_a) < on_outline || std::abs(side_b) < on_outline;
+                if ((side_a > 0.) == (side_b > 0.))
+                    continue;
+                const Vec2d crossing = line.a.head<2>() + (line.b - line.a).head<2>() * (side_a / (side_a - side_b));
+                const double t = (crossing - start).dot(across) / width;
+                if (t > 0. && t < 1.)
+                    cuts.push_back(t);
+            }
+            cuts.push_back(1.);
+            std::sort(cuts.begin(), cuts.end());
+            longest = 0;
+            for (size_t i = 1; i + 1 < cuts.size(); ++i)
+                if (cuts[i + 1] - cuts[i] > cuts[longest + 1] - cuts[longest])
+                    longest = i;
+            const Vec2d point = start + across * (0.5 * (cuts[longest] + cuts[longest + 1]) * width);
+            middle = Vec3d(point.x(), point.y(), 0.);
+            if (behind > 0. || !ends_on_segment_line || std::none_of(near_lines.begin(), near_lines.end(),
+                    [&](size_t line_id) {
+                        return line_alg::distance_to_squared(lower.get_line(line_id), middle) <
+                            on_outline * on_outline;
+                    }))
+                break;
+        }
+        const bool longest_unsupported = lower.outside(middle) > 0;
         double unsupported_share = 0.;
         for (size_t i = 0; i + 1 < cuts.size(); ++i)
             if (((i + longest) % 2 == 0) == longest_unsupported)
@@ -838,12 +848,14 @@ public:
         // The salvage branch of ArcSegment::try_create_arc flips the direction and corrects the length but keeps
         // angle_radians of the rejected direction, so take the sweep of the emitted G2/G3 from those two.
         const double sweep = (arc.direction == ArcDirection::Arc_Dir_CW ? -1.0 : 1.0) * arc.length / arc.radius;
+        // The direction of travel, which an infill sample on an edge of the material below looks behind along.
+        const double turn = sweep < 0. ? -1. : 1.;
         // Orca: The shared current-contour baseline also cancels the apparent protrusion caused by
         // replacing the current layer's polygonal chords with the fitted curve.
         for (size_t i = 0; i <= intervals; ++i) {
             const double angle = arc.polar_start_theta + sweep * (double(i) / intervals);
             const Vec3d position(center.x() + radius * std::cos(angle), center.y() + radius * std::sin(angle), 0.0);
-            const Vec2d tangent(-std::sin(angle), std::cos(angle));
+            const Vec2d tangent = turn * Vec2d(-std::sin(angle), std::cos(angle));
             percentages[i] = overhang_percentage_at(position, width, tangent, associate_current_contour);
         }
         return percentages;

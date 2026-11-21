@@ -487,10 +487,16 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             }
         }
         const bool is_extrusion = vertex.is_extrusion();
-        // Orca: A line its overhang profile splits into several vertices reads as its largest measured part.
-        const libvgcode::PathVertex& overhang_vertex = vertex_id < viewer->get_vertices_count() ?
-            viewer->get_vertex_at(line_overhang_vertex(vertex_id, viewer->get_vertices_count(),
-                [viewer](size_t i) -> const libvgcode::PathVertex& { return viewer->get_vertex_at(i); })) : vertex;
+        // Orca: A line drawn as several vertices by its overhang profile reads as its largest measured part, in each
+        // unit. A move that is no extrusion has no overhang.
+        const auto line_overhang = [viewer, vertex_id, &vertex, is_extrusion](bool percentage) -> std::optional<float> {
+            if (!is_extrusion)
+                return std::nullopt;
+            if (vertex_id >= viewer->get_vertices_count())
+                return vertex.overhang_view_value(percentage);
+            return line_overhang_value(vertex_id, viewer->get_vertices_count(), percentage,
+                [viewer](size_t i) -> const libvgcode::PathVertex& { return viewer->get_vertex_at(i); });
+        };
 
         const ImGuiStyle& style = ImGui::GetStyle();
 
@@ -518,11 +524,11 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                 break;
             // Orca: Match the active legend units at the sequential marker; non-extrusion moves have no overhang.
             case libvgcode::EViewType::Overhang:
-                if (is_extrusion && overhang_vertex.has_overhang()) {
+                if (const std::optional<float> overhang = line_overhang(viewer->is_overhang_percentage())) {
                     if (viewer->is_overhang_percentage())
-                        sprintf(detail_buf, _u8L("Overhang: %.1f %%").c_str(), overhang_vertex.overhang_share());
+                        sprintf(detail_buf, _u8L("Overhang: %.1f %%").c_str(), *overhang);
                     else
-                        sprintf(detail_buf, _u8L("Overhang: %.1f °").c_str(), overhang_vertex.overhang_degree());
+                        sprintf(detail_buf, _u8L("Overhang: %.1f °").c_str(), *overhang);
                 } else
                     sprintf(detail_buf, _u8L("Overhang: %s").c_str(), NA_CSTR);
                 break;
@@ -582,14 +588,13 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             // Orca: Missing metadata is not evidence of a fully supported wall. Match the selector's
             // availability rule, but retain both representations for files that actually provide them.
             if (has_overhang_metadata) {
-                const bool has_overhang = is_extrusion && overhang_vertex.has_overhang();
-                if (has_overhang)
-                    sprintf(buff, "%.1f %%", overhang_vertex.overhang_share());
+                if (const std::optional<float> share = line_overhang(true))
+                    sprintf(buff, "%.1f %%", *share);
                 else
                     strcpy(buff, NA_CSTR);
                 add_row(_u8L("Overhang (%)"), buff);
-                if (has_overhang)
-                    sprintf(buff, "%.1f %s", overhang_vertex.overhang_degree(), "°");
+                if (const std::optional<float> angle = line_overhang(false))
+                    sprintf(buff, "%.1f %s", *angle, "°");
                 else
                     strcpy(buff, NA_CSTR);
                 add_row(_u8L("Overhang (°)"), buff);

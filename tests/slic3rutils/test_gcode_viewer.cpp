@@ -104,11 +104,17 @@ libvgcode::PathVertex line_vertex(uint32_t gcode_id, float percentage)
     return vertex;
 }
 
-// The vertex among `vertices` that the G-code line of vertex `id` reads its overhang from.
-size_t overhang_vertex_of(const std::vector<libvgcode::PathVertex> &vertices, size_t id)
+// The overhang the G-code line of vertex `id` among `vertices` reads, in percent or in degrees.
+std::optional<float> overhang_value_of(const std::vector<libvgcode::PathVertex> &vertices, size_t id, bool percentage)
 {
-    return Slic3r::GUI::GCodeViewer::line_overhang_vertex(id, vertices.size(),
+    return Slic3r::GUI::GCodeViewer::line_overhang_value(id, vertices.size(), percentage,
         [&vertices](size_t i) -> const libvgcode::PathVertex & { return vertices[i]; });
+}
+
+// The share the G-code line of vertex `id` among `vertices` reads.
+std::optional<float> overhang_share_of(const std::vector<libvgcode::PathVertex> &vertices, size_t id)
+{
+    return overhang_value_of(vertices, id, true);
 }
 
 } // namespace
@@ -123,11 +129,11 @@ TEST_CASE("A line drawn as several vertices reads the overhang of its largest me
         line_vertex(7, 80.0f), line_vertex(7, 0.0f), line_vertex(8, 100.0f)};
     for (size_t id = 1; id <= 3; ++id) {
         INFO("vertex " << id);
-        CHECK(overhang_vertex_of(vertices, id) == 2);
+        CHECK(overhang_share_of(vertices, id) == 80.0f);
     }
     // a line of one vertex reads that vertex
-    CHECK(overhang_vertex_of(vertices, 0) == 0);
-    CHECK(overhang_vertex_of(vertices, 4) == 4);
+    CHECK(overhang_share_of(vertices, 0) == 100.0f);
+    CHECK(overhang_share_of(vertices, 4) == 100.0f);
 }
 
 // The search for the other parts of a line stops at either end of the vertices: a line may be the first or the last
@@ -141,28 +147,28 @@ TEST_CASE("A line at either end of the vertices reads its largest part without l
         line_vertex(7, 80.0f)};
     for (size_t id = 0; id < 3; ++id) {
         INFO("vertex " << id);
-        CHECK(overhang_vertex_of(peak_first, id) == 0);
-        CHECK(overhang_vertex_of(peak_last, id) == 2);
+        CHECK(overhang_share_of(peak_first, id) == 80.0f);
+        CHECK(overhang_share_of(peak_last, id) == 80.0f);
     }
     const std::vector<libvgcode::PathVertex> single{line_vertex(7, 30.0f)};
-    CHECK(overhang_vertex_of(single, 0) == 0);
+    CHECK(overhang_share_of(single, 0) == 30.0f);
 }
 
 // A part without data is not a supported one: a measured part, even at 0 %, wins over it, and a line with no measured
-// part keeps the vertex asked for, which the marker then shows as N/A.
+// part has no value, which the marker shows as N/A.
 TEST_CASE("A line reads its overhang only from its measured parts", "[GCodeViewer][Overhang][Regression]")
 {
     const std::vector<libvgcode::PathVertex> unmeasured{line_vertex(6, 100.0f), line_vertex(7, -1.0f),
         line_vertex(7, -1.0f), line_vertex(8, 100.0f)};
-    CHECK(overhang_vertex_of(unmeasured, 1) == 1);
-    CHECK(overhang_vertex_of(unmeasured, 2) == 2);
+    CHECK_FALSE(overhang_share_of(unmeasured, 1).has_value());
+    CHECK_FALSE(overhang_share_of(unmeasured, 2).has_value());
     const std::vector<libvgcode::PathVertex> partly{line_vertex(7, -1.0f), line_vertex(7, 0.0f),
         line_vertex(7, -1.0f)};
-    CHECK(overhang_vertex_of(partly, 0) == 1);
-    CHECK(overhang_vertex_of(partly, 2) == 1);
+    CHECK(overhang_share_of(partly, 0) == 0.0f);
+    CHECK(overhang_share_of(partly, 2) == 0.0f);
     const std::vector<libvgcode::PathVertex> single{line_vertex(6, 100.0f), line_vertex(7, 50.0f),
         line_vertex(8, 100.0f)};
-    CHECK(overhang_vertex_of(single, 1) == 1);
+    CHECK(overhang_share_of(single, 1) == 50.0f);
 }
 
 // A vertex of another kind that carries the same G-code line number, as a marker may, is no part of the line.
@@ -171,8 +177,32 @@ TEST_CASE("A line reads its overhang only from vertices of its own kind", "[GCod
     libvgcode::PathVertex marker = line_vertex(7, 90.0f);
     marker.type = libvgcode::EMoveType::Seam;
     const std::vector<libvgcode::PathVertex> vertices{marker, line_vertex(7, 30.0f), line_vertex(7, 10.0f)};
-    CHECK(overhang_vertex_of(vertices, 2) == 1);
-    CHECK(overhang_vertex_of(vertices, 0) == 0);
+    CHECK(overhang_share_of(vertices, 2) == 30.0f);
+    CHECK(overhang_share_of(vertices, 0) == 90.0f);
+}
+
+// A line whose profile widens is drawn with widths in between, so its largest share and its largest angle can lie on
+// different parts. The marker reads each unit from the part largest in that unit.
+TEST_CASE("A line reads its largest overhang in each unit", "[GCodeViewer][Overhang][Regression]")
+{
+    // Over slice planes 0.2 mm apart, 60 % of a 0.35 mm bead hangs 0.21 mm and 50 % of a 0.6 mm bead 0.3 mm.
+    libvgcode::PathVertex narrow = line_vertex(7, 60.0f);
+    narrow.width = 0.35f;
+    narrow.overhang_z_distance = 0.2f;
+    libvgcode::PathVertex wide = line_vertex(7, 50.0f);
+    wide.width = 0.6f;
+    wide.overhang_z_distance = 0.2f;
+    const std::vector<libvgcode::PathVertex> vertices{line_vertex(6, 100.0f), narrow, wide, line_vertex(8, 100.0f)};
+    constexpr float degrees = 57.29577951308232f;
+    for (size_t id = 1; id <= 2; ++id) {
+        INFO("vertex " << id);
+        const std::optional<float> share = overhang_share_of(vertices, id);
+        REQUIRE(share.has_value());
+        CHECK_THAT(*share, Catch::Matchers::WithinAbs(60.0f, 1e-4f));
+        const std::optional<float> angle = overhang_value_of(vertices, id, false);
+        REQUIRE(angle.has_value());
+        CHECK_THAT(*angle, Catch::Matchers::WithinAbs(std::atan(1.5f) * degrees, 1e-3f));
+    }
 }
 
 // The Overhang view grades a measured line by its unsupported share or by its angle. A line without data, such as a
