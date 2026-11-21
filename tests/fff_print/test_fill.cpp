@@ -847,11 +847,12 @@ TEST_CASE("Infill rotation template range can be a height in mm, cm, m, feet, in
         {"+90/0.2cm", turn_9_per_layer},
         {"+90/0.002m", turn_9_per_layer},
         {"+90/50%", turn_9_per_layer},
-        // 0.01' is 3.048mm and 0.1" is 2.54mm, which do not end on a layer.
+        // 0.01' is 3.048mm and 0.1" is 2.54mm, which do not end on a layer. The layer that crosses the end
+        // of a range stops at 90, and the next range starts at the exact height.
         {"+90/0.01'", {5.91, 11.81, 17.72, 23.62, 29.53, 35.43, 41.34, 47.24, 53.15, 59.06,
-                       64.96, 70.87, 76.77, 82.68, 88.58, 95.91, 101.81, 107.72, 113.62, 119.53}},
+                       64.96, 70.87, 76.77, 82.68, 88.58, 90, 100.39, 106.30, 112.20, 118.11}},
         {"+90/0.1\"", {7.09, 14.17, 21.26, 28.35, 35.43, 42.52, 49.61, 56.69, 63.78, 70.87,
-                       77.95, 85.04, 92.13, 97.09, 104.17, 111.26, 118.35, 125.43, 132.52, 139.61}},
+                       77.95, 85.04, 90, 99.21, 106.30, 113.39, 120.47, 127.56, 134.65, 141.73}},
     }));
     check_rotate_template(rotate_template, expected);
 }
@@ -884,10 +885,10 @@ TEST_CASE("Infill rotation template B and T counts take the bottom and top shell
     check_rotate_template(rotate_template, expected);
 }
 
-TEST_CASE("Infill rotation template range that would end above the object is squeezed into the layers left", "[Fill][RotateTemplate]")
+TEST_CASE("Infill rotation template range that would end above the object keeps its step in the layers left", "[Fill][RotateTemplate]")
 {
-    // Turns 30 degrees over every 3 layers, and the full 30 over the 2 layers left at the top.
-    check_rotate_template("+10B", {10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 195, 210});
+    // Turns 30 degrees over every 3 layers, and 10 degrees per layer over the 2 layers left at the top.
+    check_rotate_template("+10B", {10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200});
 }
 
 TEST_CASE("Infill rotation template star count repeats an instruction", "[Fill][RotateTemplate]")
