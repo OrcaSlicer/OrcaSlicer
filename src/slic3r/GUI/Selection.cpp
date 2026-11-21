@@ -548,13 +548,27 @@ void Selection::center()
     PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_selected_plate();
 
     // calc distance
-    Vec3d src_pos = this->get_bounding_box().center();
-    Vec3d tar_pos = plate->get_center_origin();
-    Vec3d distance = Vec3d(tar_pos.x() - src_pos.x(), tar_pos.y() - src_pos.y(), 0);
+    const Vec3d src_pos = this->get_bounding_box().center();
+    const Vec3d tar_pos = plate->get_center_origin();
+    const Vec3d distance = Vec3d(tar_pos.x() - src_pos.x(), tar_pos.y() - src_pos.y(), 0);
 
     this->move_to_center(distance);
     wxGetApp().plater()->get_view3D_canvas3D()->do_move(L("Move object"));
     return;
+}
+
+bool Selection::can_center() const
+{
+    if (!m_valid || is_empty() || is_wipe_tower())
+        return false;
+
+    PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_selected_plate();
+    if (plate == nullptr)
+        return false;
+
+    // center() moves in XY only. Compare with a tolerance: the bounding box is recomputed after the move.
+    const Vec3d distance = plate->get_center_origin() - this->get_bounding_box().center();
+    return std::abs(distance.x()) > EPSILON || std::abs(distance.y()) > EPSILON;
 }
 
 double Selection::get_drop_min_z() const
@@ -1280,6 +1294,14 @@ void Selection::move_to_center(const Vec3d& displacement, bool local)
             }
         }
     }
+
+#if !DISABLE_INSTANCES_SYNCH
+    // A part is shared by every instance of its object, but only the selected copy was moved. Bring the other
+    // copies along as translate() does, otherwise do_move() writes a stale copy's old offset back to the model.
+    if (translation_type == Volume)
+        synchronize_unselected_volumes();
+#endif // !DISABLE_INSTANCES_SYNCH
+
     this->set_bounding_boxes_dirty();
 }
 
