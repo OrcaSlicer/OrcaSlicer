@@ -64,11 +64,15 @@ std::string subscribe_topic(const Credentials& creds);
 std::string report_suffix(const std::string& topic);
 nlohmann::json request(const std::string& type, const std::string& action, const nlohmann::json& data, const std::string& msgid, int64_t timestamp_ms);
 
-// One ACE or print head slot, numbered as the Device tab numbers trays (ams_id * 4 + slot).
+// One filament source, numbered as the Device tab numbers trays (ams_id * 4 + slot). The printer reports its
+// sources in multiColorBox/report: box id 0..3 are ACE units, box id -1 is the print head's own feeder, whose
+// slots are the spools on the printer's spool holder. With an ACE connected the head's fourth inlet carries the
+// ACE, so its first three slots are the holder positions: 3 + 4 sources with one ACE.
 struct Slot
 {
     int         tray      = 0;
     int         ams_index = 0; // the slot number print/start's ams_box_mapping takes
+    bool        holder    = false; // a spool-holder position (box -1), not an ACE slot
     bool        loaded    = false;
     std::string type;
     int         r = 255, g = 255, b = 255;

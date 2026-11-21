@@ -49,6 +49,27 @@ json ace_report(json slots)
                json::array({{{"auto_feed", 1}, {"humidity", 32}, {"id", 0}, {"loaded_slot", -1}, {"slots", slots}, {"status", 1}}})}}}};
 }
 
+// The print head's feeder (box -1, the spool holder) next to an ACE, the topology KX-Bridge captured on a Kobra X
+// (tests/test_ace_rfid_vendor_matching.py, head_tools_model 1). The head's fourth inlet is the ACE's.
+json hub_report(json holder, json ace)
+{
+    return {{"action", "getInfo"},
+            {"code", 200},
+            {"state", "success"},
+            {"type", "multiColorBox"},
+            {"data",
+             {{"head_tools_model", 1},
+              {"multi_color_box",
+               json::array({{{"id", -1}, {"loaded_slot", -1}, {"slots", holder}},
+                            {{"auto_feed", 1}, {"humidity", 32}, {"id", 0}, {"loaded_slot", -1}, {"slots", ace}, {"status", 1}}})}}}};
+}
+
+json seven_sources()
+{
+    return hub_report(json::array({slot(0, {255, 255, 255}), slot(1, {0, 0, 0}, 0), slot(2, {20, 40, 60}), slot(3, {0, 0, 0}, 0)}),
+                      json::array({slot(0, {225, 6, 0}), slot(1, {124, 77, 58}), slot(2, {212, 185, 150}), slot(3, {101, 137, 70})}));
+}
+
 json print_report(const std::string& action, const std::string& state, json data = json::object(), int code = 200)
 {
     return {{"action", action}, {"code", code}, {"state", state}, {"type", "print"}, {"data", data}};
@@ -204,6 +225,96 @@ TEST_CASE("ACE slots become AMS trays", "[KobraX]")
     {
         state.apply("multiColorBox/report", {{"action", "setInfo"}, {"state", "failed"}, {"data", json::array()}});
         CHECK(state.slots().size() == 4);
+    }
+}
+
+TEST_CASE("The spool holder and the ACE are seven sources in two units", "[KobraX]")
+{
+    KobraX::State state;
+    state.apply("multiColorBox/report", seven_sources());
+
+    const std::vector<KobraX::Slot> slots = state.slots();
+    REQUIRE(slots.size() == 7);
+    // ACE 1 first as unit A (trays 0..3, print slots 4..7), the holder's 3 positions after it as unit B
+    for (int i = 0; i < 4; ++i) {
+        CHECK(slots[i].tray == i);
+        CHECK(slots[i].ams_index == 4 + i);
+        CHECK_FALSE(slots[i].holder);
+    }
+    for (int i = 0; i < 3; ++i) {
+        CHECK(slots[4 + i].tray == 4 + i);
+        CHECK(slots[4 + i].ams_index == i);
+        CHECK(slots[4 + i].holder);
+    }
+    CHECK(slots[6].r == 20);
+    CHECK(slots[6].b == 60);
+
+    const json ams = state.push_status(true, [](const std::string& type) { return "GF" + type; })["print"]["ams"];
+    CHECK(ams["ams_exist_bits"] == "3");
+    CHECK(ams["tray_exist_bits"] == "5F"); // ACE 0..3, holder positions 1 and 3 (trays 4, 6)
+    REQUIRE(ams["ams"].size() == 2);
+    const json& ace = ams["ams"][0];
+    const json& holder = ams["ams"][1];
+    CHECK(ace["id"] == "0");
+    CHECK(ace["display_name"] == "ACE 1");
+    CHECK(holder["id"] == "1");
+    CHECK(holder["display_name"] == "Spool holder");
+    CHECK(holder["info"] == "0002");
+    // The Device tab draws only 4-tray units: the holder's missing fourth position is an empty placeholder
+    REQUIRE(ace["tray"].size() == 4);
+    REQUIRE(holder["tray"].size() == 4);
+    CHECK(ace["tray"][0]["tray_color"] == "E10600FF");
+    CHECK(holder["tray"][0]["tray_color"] == "FFFFFFFF");
+    CHECK(holder["tray"][0]["tray_info_idx"] == "GFPLA");
+    CHECK(holder["tray"][1]["tray_slot_placeholder"] == "1");
+    CHECK(holder["tray"][2]["tray_color"] == "14283CFF");
+    CHECK(holder["tray"][3]["id"] == "3");
+    CHECK(holder["tray"][3]["tray_slot_placeholder"] == "1");
+
+    SECTION("the holder alone, without an ACE, is one unit of its 4 slots")
+    {
+        KobraX::State head_only;
+        head_only.apply("multiColorBox/report",
+                        {{"state", "success"},
+                         {"data", {{"multi_color_box", json::array({{{"id", -1}, {"slots", json::array({slot(0, {1, 2, 3}), slot(1, {1, 2, 3}), slot(2, {1, 2, 3}), slot(3, {1, 2, 3})})}}})}}}});
+        const json units = head_only.push_status(true)["print"]["ams"]["ams"];
+        REQUIRE(units.size() == 1);
+        CHECK(units[0]["display_name"] == "Spool holder");
+        CHECK(head_only.slots()[3].ams_index == 3);
+    }
+}
+
+TEST_CASE("Holder and ACE trays map to their own print slots", "[KobraX]")
+{
+    KobraX::State state;
+    state.apply("multiColorBox/report", seven_sources());
+    json        mapping;
+    std::string error;
+
+    // Filament 1 on holder position 1 (tray 4), 2 on ACE slot 2 (tray 1), 3 on holder position 3 (tray 6)
+    REQUIRE(KobraX::box_mapping("[4, 1, 6]", state.slots(), mapping, error));
+    REQUIRE(mapping.size() == 3);
+    CHECK(mapping[0]["ams_index"] == 0);
+    CHECK(mapping[0]["ams_color"] == json::array({255, 255, 255, 255}));
+    CHECK(mapping[1]["ams_index"] == 5);
+    CHECK(mapping[2]["paint_index"] == 2);
+    CHECK(mapping[2]["ams_index"] == 2);
+
+    SECTION("an empty holder position and the placeholder are refused")
+    {
+        CHECK_FALSE(KobraX::box_mapping("[5]", state.slots(), mapping, error));
+        CHECK(error.find("slot 5 is empty") != std::string::npos);
+        error.clear();
+        CHECK_FALSE(KobraX::box_mapping("[7]", state.slots(), mapping, error));
+        CHECK(error.find("no slot 7") != std::string::npos);
+    }
+    SECTION("without a choice all seven sources are used in tray order, never an empty one")
+    {
+        REQUIRE(KobraX::box_mapping("", state.slots(), mapping, error));
+        REQUIRE(mapping.size() == 7);
+        const std::vector<int> expected = {4, 5, 6, 7, 0, 2, 2}; // holder 2 is empty: the last loaded source stands in
+        for (size_t i = 0; i < expected.size(); ++i)
+            CHECK(mapping[i]["ams_index"] == expected[i]);
     }
 }
 

@@ -1,6 +1,7 @@
 #include "KobraX.hpp"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -472,13 +473,14 @@ std::vector<Slot> State::slots() const
     const bool hub = head && !aces.empty();
 
     std::vector<Slot> out;
-    auto add = [&out](const json& box, size_t max_slots, int box_pos, int ams_base) {
+    auto add = [&out](const json& box, size_t max_slots, int box_pos, int ams_base, bool holder) {
         const json& slots = box.contains("slots") && box["slots"].is_array() ? box["slots"] : json::array();
         for (size_t i = 0; i < slots.size() && i < max_slots; ++i) {
             const json& raw = slots[i].is_object() ? slots[i] : json::object();
             Slot        slot;
             slot.tray      = box_pos * 4 + int(i);
             slot.ams_index = ams_base + int(i);
+            slot.holder    = holder;
             slot.loaded    = int(num(raw.value("status", json()))) == READY_STATUS;
             slot.type      = str(raw, "type");
             const json& c  = raw.value("color", json());
@@ -494,16 +496,18 @@ std::vector<Slot> State::slots() const
     };
     if (aces.empty()) {
         if (head)
-            add(*head, 4, 0, 0);
+            add(*head, 4, 0, 0, true);
         return out;
     }
-    if (hub)
-        add(*head, 3, 0, 0);
+    // Each ACE is the unit of its id, so its trays stay put whether or not the holder is reported. In hub mode
+    // print/start numbers the head's slots 0..2 and ACE n's 4 + n * 4 + slot (KX-Bridge bridge_ams.py
+    // _slot_to_print_ams_index, Kobralink ams.ts slotToPrintAmsIndex); the holder is the unit after the last ACE.
     for (const json* ace : aces) {
         const int id = (*ace)["id"].get<int>();
-        // In hub mode the head takes ams_id 0 and print slots 0..2, the first ACE 4..7
-        add(*ace, 4, hub ? id + 1 : id, hub ? 4 + id * 4 : id * 4);
+        add(*ace, 4, id, hub ? 4 + id * 4 : id * 4, false);
     }
+    if (hub)
+        add(*head, 3, (*aces.back())["id"].get<int>() + 1, 0, true);
     return out;
 }
 
@@ -563,39 +567,49 @@ json State::push_status(bool connected, const std::function<std::string(const st
     p["lights_report"]        = json::array({{{"node", "chamber_light"}, {"mode", light_on ? "on" : "off"}}});
     p["ipcam"]                = {{"ipcam_dev", camera_url.empty() ? "0" : "1"}};
 
-    // The ACE units as AMS Lite units (info 0002), trays numbered ams_id * 4 + slot
-    std::map<int, json> units;
-    unsigned long       ams_bits = 0, tray_bits = 0;
-    bool                remain   = false;
-    for (const Slot& slot : slots()) {
-        const int ams_id = slot.tray / 4, index = slot.tray % 4;
-        ams_bits |= 1ul << ams_id;
-        json tray = {{"id", std::to_string(index)}, {"tag_uid", "0000000000000000"}};
-        if (slot.loaded) {
-            tray_bits |= 1ul << slot.tray;
-            char color[9];
-            std::snprintf(color, sizeof(color), "%02X%02X%02XFF", slot.r, slot.g, slot.b);
-            tray["tray_type"]     = slot.type;
-            tray["tray_color"]    = color;
-            tray["cols"]          = json::array({color});
-            tray["ctype"]         = 1;
-            tray["tray_info_idx"] = filament_id && !slot.type.empty() ? filament_id(slot.type) : std::string();
-            tray["remain"]        = slot.percent;
-            remain                = remain || slot.percent >= 0;
-        } else {
-            tray["tray_info_idx"]         = "";
-            tray["tray_type"]             = "";
-            tray["tray_color"]            = "00000000";
-            tray["tray_slot_placeholder"] = "1";
-        }
-        json& unit = units[ams_id];
-        if (unit.is_null())
-            unit = {{"id", std::to_string(ams_id)}, {"info", "0002"}, {"tray", json::array()}};
-        unit["tray"].push_back(tray);
+    // Each ACE and the spool holder as an AMS Lite unit (info 0002), trays numbered ams_id * 4 + slot. The Device
+    // tab draws only units of 4 trays (AMSControl::CreateAmsSingleNozzle), so a unit with fewer slots, as the
+    // holder's 3, is filled up with empty placeholder trays.
+    const std::vector<Slot>                    sources = slots();
+    std::map<int, std::array<const Slot*, 4>> units;
+    for (const Slot& slot : sources) {
+        auto& unit = units.try_emplace(slot.tray / 4, std::array<const Slot*, 4>{}).first->second;
+        unit[slot.tray % 4] = &slot;
     }
-    json ams = json::array();
-    for (auto& [id, unit] : units)
+    unsigned long ams_bits = 0, tray_bits = 0;
+    bool          remain   = false;
+    json          ams      = json::array();
+    for (const auto& [ams_id, unit_slots] : units) {
+        ams_bits |= 1ul << ams_id;
+        const bool holder = std::any_of(unit_slots.begin(), unit_slots.end(), [](const Slot* s) { return s && s->holder; });
+        json       unit   = {{"id", std::to_string(ams_id)},
+                             {"info", "0002"},
+                             {"display_name", holder ? std::string("Spool holder") : "ACE " + std::to_string(ams_id + 1)},
+                             {"tray", json::array()}};
+        for (int index = 0; index < 4; ++index) {
+            const Slot* slot = unit_slots[index];
+            json        tray = {{"id", std::to_string(index)}, {"tag_uid", "0000000000000000"}};
+            if (slot && slot->loaded) {
+                tray_bits |= 1ul << slot->tray;
+                char color[9];
+                std::snprintf(color, sizeof(color), "%02X%02X%02XFF", slot->r, slot->g, slot->b);
+                tray["tray_type"]     = slot->type;
+                tray["tray_color"]    = color;
+                tray["cols"]          = json::array({color});
+                tray["ctype"]         = 1;
+                tray["tray_info_idx"] = filament_id && !slot->type.empty() ? filament_id(slot->type) : std::string();
+                tray["remain"]        = slot->percent;
+                remain                = remain || slot->percent >= 0;
+            } else {
+                tray["tray_info_idx"]         = "";
+                tray["tray_type"]             = "";
+                tray["tray_color"]            = "00000000";
+                tray["tray_slot_placeholder"] = "1";
+            }
+            unit["tray"].push_back(tray);
+        }
         ams.push_back(unit);
+    }
     char ams_hex[17], tray_hex[17];
     std::snprintf(ams_hex, sizeof(ams_hex), "%lX", ams_bits);
     std::snprintf(tray_hex, sizeof(tray_hex), "%lX", tray_bits);
