@@ -336,6 +336,8 @@ void DesignCanvas::swap_camera()
     Plater* plater = wxGetApp().plater();
     if (plater == nullptr) return;
     std::swap(plater->get_camera(), m_parked_camera);
+    // The parked camera may have missed a change of this preference.
+    plater->apply_camera_dolly_setting();
     m_camera_swapped = !m_camera_swapped;
 }
 
