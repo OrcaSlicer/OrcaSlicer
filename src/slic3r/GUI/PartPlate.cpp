@@ -7087,6 +7087,24 @@ int PartPlateList::move_plate_to_index(int old_index, int new_index)
 		delta = -1;
 	}
 
+	const std::vector<ObjectID> plate_ids_before = get_plate_ids();
+
+	// Orca: wipe tower positions are stored per plate index, so move them with the plate.
+	if (m_plater) {
+		DynamicConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
+		for (const char* key : { "wipe_tower_x", "wipe_tower_y" }) {
+			ConfigOptionFloats* opt = proj_cfg.opt<ConfigOptionFloats>(key);
+			if (opt->empty())
+				continue;
+			// Missing entries fall back to the first one; resize() fills them in with it.
+			if (opt->size() < m_plate_list.size())
+				opt->resize(m_plate_list.size());
+			const double moved = opt->values[old_index];
+			opt->values.erase(opt->values.begin() + old_index);
+			opt->values.insert(opt->values.begin() + new_index, moved);
+		}
+	}
+
 	PartPlate* plate = m_plate_list[old_index];
 	//update the plates between old_index and new_index
 	for (unsigned int i = (unsigned int)old_index; i != (unsigned int)new_index; i = i + delta)
@@ -7105,7 +7123,46 @@ int PartPlateList::move_plate_to_index(int old_index, int new_index)
 	//update the new plate index
 	m_current_plate = new_index;
 
+	remap_custom_gcodes(plate_ids_before);
+
 	return ret;
+}
+
+std::vector<ObjectID> PartPlateList::get_plate_ids() const
+{
+	std::vector<ObjectID> ids;
+	for (const PartPlate* plate : m_plate_list)
+		ids.push_back(plate->id());
+	return ids;
+}
+
+void PartPlateList::remap_custom_gcodes(const std::vector<ObjectID>& plate_ids_before)
+{
+	if (!m_model)
+		return;
+
+	// Move each plate's entry into the map keyed by plate ID; entries without a plate keep their index.
+	std::map<int, CustomGCode::Info> remapped;
+	for (auto& [idx, info] : m_model->plates_custom_gcodes) {
+		if (idx >= 0 && idx < (int)plate_ids_before.size())
+			m_custom_gcodes_by_plate_id[plate_ids_before[idx]] = std::move(info);
+		else
+			remapped[idx] = std::move(info);
+	}
+
+	// Put back the entries of plates that exist now.
+	for (auto it = m_custom_gcodes_by_plate_id.begin(); it != m_custom_gcodes_by_plate_id.end();) {
+		const ObjectID plate_id = it->first;
+		auto plate = std::find_if(m_plate_list.begin(), m_plate_list.end(), [plate_id](const PartPlate* p) { return p->id() == plate_id; });
+		if (plate == m_plate_list.end()) {
+			++it;
+			continue;
+		}
+		remapped[int(plate - m_plate_list.begin())] = std::move(it->second);
+		it = m_custom_gcodes_by_plate_id.erase(it);
+	}
+
+	m_model->plates_custom_gcodes = std::move(remapped);
 }
 
 //lock plate
