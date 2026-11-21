@@ -70,10 +70,12 @@ body
 	justify-content: center;
 }
 
-#Title div
+#Title h1,
+#Title button
 {
 	font-size:28px;
 	line-height: 28px;
+	font-weight: normal; /* keep an <h1> title metric-identical to the <div> ones */
 	color: #009688;
 	padding: 0px 10mm;
 }

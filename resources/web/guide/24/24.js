@@ -38,14 +38,18 @@ function ConfirmSelect()
 
 function CheckForNewPrinters()
 {
+	// ORCA aria-disabled, not disabled, keeps focus on the busy button; it blocks no clicks, so guard here
+	var button = document.getElementById("CheckNewPrintersBtn");
+	if (button && button.getAttribute("aria-disabled") === "true")
+		return;
+
 	var tSend={};
 	tSend['sequence_id']=Math.round(new Date() / 1000);
 	tSend['command']="check_for_new_printers";
 	tSend['data']={};
 
-	var button = document.getElementById("CheckNewPrintersBtn");
 	if (button) {
-		button.style.pointerEvents = "none";
+		SetAriaState(button, "aria-disabled", true);
 		button.style.opacity = "0.6";
 	}
 
