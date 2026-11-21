@@ -255,12 +255,10 @@ void describe_nested(Builder& b, const CommandCatalog& catalog, const json& args
         if (!nested)
             b.d.what = {{"kind", "files"}, {"names", {file_name(path_to_utf8(path))}}};
         ctx.replay_dir = path.parent_path();
-        if (args.contains("out_dir") && args["out_dir"].is_string())
-            ctx.out_dir = path_from_utf8(args["out_dir"].get<std::string>());
-        else {
-            ctx.out_dir = path.parent_path() / path.stem();
-            ctx.out_dir += ".out";
-        }
+        // Without out_dir the run names its folder when it starts; one named now stands for it, since what the nested
+        // steps write under ${out_dir} is the run's output whatever the folder is called.
+        ctx.out_dir = args.contains("out_dir") && args["out_dir"].is_string() ? path_from_utf8(args["out_dir"].get<std::string>()) :
+                                                                                replay_output_dir();
         if (nested && args.contains("vars") && args["vars"].is_object())
             for (const auto& [key, value] : args["vars"].items())
                 nested->vars[key] = value;

@@ -52,7 +52,6 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
-#include <ctime>
 #include <exception>
 #include <ios>
 #include <optional>
@@ -67,14 +66,6 @@ using nlohmann::json;
 namespace fs = boost::filesystem;
 
 namespace {
-
-std::string timestamp()
-{
-    const std::time_t t = std::time(nullptr);
-    char              buf[32];
-    std::strftime(buf, sizeof(buf), "%Y%m%d-%H%M%S", std::localtime(&t));
-    return buf;
-}
 
 // The file name a new replay is first offered under: the replay's name, with the characters file
 // systems refuse replaced.
@@ -474,6 +465,7 @@ void ActionReplayDialog::load_file(const fs::path& path)
     std::ostringstream text;
     text << in.rdbuf();
     m_file = path;
+    m_out_dir.clear();
     m_jobs = json::object();
     call_web_handler({{"command", "source"}, {"file_name", Mcp::path_to_utf8(path.filename())}, {"text", text.str()}});
 }
@@ -570,10 +562,12 @@ bool ActionReplayDialog::save(bool pick)
         call_web_handler({{"command", "error"}, {"message", format(_u8L("Can't save %1%."), target)}});
         return false;
     }
-    // Saved somewhere new, the replay is that file's: ${replay_dir} and the output folder follow it.
+    // Saved somewhere new, the replay is that file's: ${replay_dir} follows it, and its runs write to a folder of their own.
     const bool moved = path != m_file;
     m_file           = path;
-    m_edited         = false;
+    if (moved)
+        m_out_dir.clear();
+    m_edited = false;
     call_web_handler({{"command", "saved"}, {"file_name", Mcp::path_to_utf8(path.filename())}, {"moved", moved}, {"text", m_text}});
     return true;
 }
@@ -598,18 +592,14 @@ bool ActionReplayDialog::confirm_unsaved()
     return answer == wxID_YES ? save(false) : answer == wxID_NO;
 }
 
-// A file's runs write next to it, into <name>.out; a new replay's into one folder of the session's
-// output, named when first needed.
+// A replay's runs write into one folder while the window holds that replay (Mcp::replay_output_dir(), named when first
+// needed), so replaying it again replaces its files; opening another replay or saving this one somewhere new names
+// another.
 fs::path ActionReplayDialog::out_dir() const
 {
-    if (!m_file.empty()) {
-        fs::path dir = m_file.parent_path() / m_file.stem();
-        dir += ".out";
-        return dir;
-    }
-    if (m_draft_out_dir.empty())
-        m_draft_out_dir = Mcp::output_dir() / ("replay-" + timestamp());
-    return m_draft_out_dir;
+    if (m_out_dir.empty())
+        m_out_dir = Mcp::replay_output_dir();
+    return m_out_dir;
 }
 
 Mcp::ReplayContext ActionReplayDialog::context() const

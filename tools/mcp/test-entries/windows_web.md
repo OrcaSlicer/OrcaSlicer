@@ -13,7 +13,8 @@ Two facts about the shared app and data folder decide several entries here, both
   1600; 900; 0`. No test on a shared folder closes the main window. Neither the Plugins window nor Preferences stores
   a size or a place.
 - **A capture without `save_path` stays in the folder.** `window_screenshot` with no `save_path` saves its PNG under
-  `<datadir>/automation/out`, and a `replay_run` with no `out_dir` its `replay-<time>` folder there.
+  `<datadir>/automation/out`. A `replay_run` with no `out_dir` writes outside it, to a `replay-<time>` folder in
+  `orca_action_replay` in the temporary folder.
 
 ## `test_printers`
 `test_printers.py` · Python, 46 checks · in `sweep.json` as `{"path": "test_printers.py"}`

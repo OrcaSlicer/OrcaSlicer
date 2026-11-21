@@ -160,15 +160,25 @@ namespace {
 std::mutex g_run_output_mutex;
 fs::path   g_run_output_dir;
 
+fs::path run_output_dir()
+{
+    std::lock_guard<std::mutex> lock(g_run_output_mutex);
+    return g_run_output_dir;
+}
+
+// The local time `when` as YYYYMMDD-HHMMSS, which the names of saved files and replay folders carry so they sort by it.
+std::string time_text(std::time_t when)
+{
+    char buf[32];
+    std::strftime(buf, sizeof(buf), "%Y%m%d-%H%M%S", std::localtime(&when));
+    return buf;
+}
+
 } // namespace
 
 fs::path output_dir()
 {
-    fs::path dir;
-    {
-        std::lock_guard<std::mutex> lock(g_run_output_mutex);
-        dir = g_run_output_dir;
-    }
+    fs::path dir = run_output_dir();
     if (dir.empty())
         dir = path_from_utf8(data_dir()) / "automation" / "out";
     boost::system::error_code ec;
@@ -182,12 +192,24 @@ void set_run_output_dir(const fs::path& dir)
     g_run_output_dir = dir;
 }
 
+fs::path replay_output_dir(std::time_t when)
+{
+    fs::path base = run_output_dir();
+    if (base.empty())
+        base = path_from_utf8(temporary_dir()) / "orca_action_replay";
+    const std::string         stem = "replay-" + time_text(when);
+    boost::system::error_code ec;
+    for (int n = 1;; ++n) {
+        const fs::path dir = base / path_from_utf8(n == 1 ? stem : stem + "-" + std::to_string(n));
+        if (!fs::exists(dir, ec))
+            return dir;
+    }
+}
+
 fs::path timestamped_path(const fs::path& dir, const std::string& kind, const std::string& extension, const std::vector<std::string>& companions,
                           std::time_t when)
 {
-    char buf[32];
-    std::strftime(buf, sizeof(buf), "%Y%m%d-%H%M%S", std::localtime(&when));
-    const std::string         stem = "OrcaSlicer-" + kind + "-" + buf;
+    const std::string         stem = "OrcaSlicer-" + kind + "-" + time_text(when);
     boost::system::error_code ec;
     for (int n = 1;; ++n) {
         const std::string name  = n == 1 ? stem : stem + "-" + std::to_string(n);

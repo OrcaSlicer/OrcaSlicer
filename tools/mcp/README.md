@@ -161,8 +161,9 @@ Without the harness, `orca-slicer --datadir DIR --run tools/mcp/smoke_test.json
 example to `/etc/ssl/certs/ca-certificates.crt`) as the harness does; otherwise a prompt for the CA
 bundle blocks startup before the replay can run. The exit code is 0 when it passes, 1
 when a step fails and 2 when the replay is invalid, cannot be read or is neither a `.json` nor a `.py`
-file. The run leaves `result.json` and the screenshots in the `--outputdir` folder, or without it in
-`<replay name>.out` beside the replay. Files that a step or a script saves without a path go to the
+file. The run leaves `result.json` and the screenshots in the `--outputdir` folder, or without it in a
+new `orca_action_replay/replay-<timestamp>` folder in the temporary folder (`%TEMP%` on Windows,
+`<tmp>/orcaslicer_<uid>` elsewhere). Files that a step or a script saves without a path go to the
 `--outputdir` folder too, or without it to `<datadir>/automation/out`. A `--run` launch is never handed to a window that is already open, whatever
 the single-instance preference says, and it is refused with an action or `--downward-check`, which start
 no GUI.

@@ -36,6 +36,13 @@ boost::filesystem::path output_dir();
 // An empty path takes the run's folder back.
 void set_run_output_dir(const boost::filesystem::path& dir);
 
+// The folder for the results of a replay run that names no out_dir: "replay-YYYYMMDD-HHMMSS" for the local time
+// `when`, in the run's folder when the command line gave one (set_run_output_dir), else in
+// <temp>/orca_action_replay, so a run leaves nothing beside the replay file or in the data folder. A name a folder
+// already has, such as that of the replay running this one as a step in the same second, gets "-2", "-3"... It is
+// not created: the run creates it.
+boost::filesystem::path replay_output_dir(std::time_t when = std::time(nullptr));
+
 // A path in `dir` for a new file named "OrcaSlicer-<kind>-YYYYMMDD-HHMMSS<extension>" for the local time
 // `when`, so files of one kind sort by when they were made and say where they came from. A name taken by a
 // file, or by one with any of `companions` (the extensions of files made from it later), gets "-2", "-3"...

@@ -118,8 +118,8 @@ void register_replay_tools(CommandCatalog& catalog)
         "${vars.NAME} and ${jobs.NAME}. A step that returns a job is awaited unless await:false, which stores the job under "
         "save_as so later steps can answer the dialog it opened. expect maps a JSON pointer into the step's result to "
         "matchers (eq ne gt ge lt le contains regex exists empty); the first failed step or expectation stops the run unless "
-        "the step is optional. Writes result.json to out_dir (default: the replay file's name with .out, beside it; for an "
-        "inline replay, replay-<timestamp> in the session's output folder). Reply: passed, steps, failed_step, out_dir and "
+        "the step is optional. Writes result.json to out_dir (default: a new folder replay-<timestamp> in orca_action_replay "
+        "in the temp folder, or in the --outputdir folder of a --run launch). Reply: passed, steps, failed_step, out_dir and "
         "result_file. dialog_auto_answer rules a replay registers end with it. replay_export turns this session into one.",
         object_schema({{"path", prop("string", "Absolute path of a replay file.")},
                        {"replay", {{"type", json::array({"object", "string"})},
@@ -134,7 +134,6 @@ void register_replay_tools(CommandCatalog& catalog)
 
             std::optional<Replay> replay;
             ReplayContext         sctx;
-            fs::path              default_out;
             std::string           err;
             if (has_path) {
                 const auto path = resolve_input_path(arg_string(args, "path"), err);
@@ -148,12 +147,8 @@ void register_replay_tools(CommandCatalog& catalog)
                 }
                 replay          = parse_replay(text, err);
                 sctx.replay_dir = path->parent_path();
-                default_out     = path->parent_path() / path->stem();
-                default_out += ".out";
-            } else {
-                replay      = parse_replay(inline_replay_text(args["replay"]), err);
-                default_out = output_dir() / ("replay-" + timestamp());
-            }
+            } else
+                replay = parse_replay(inline_replay_text(args["replay"]), err);
             if (!replay)
                 return invalid(err);
             for (const ReplayStep& step : replay->steps)
@@ -163,7 +158,7 @@ void register_replay_tools(CommandCatalog& catalog)
                 for (const auto& [key, value] : args["vars"].items())
                     replay->vars[key] = value;
 
-            sctx.out_dir = args.contains("out_dir") ? path_from_utf8(arg_string(args, "out_dir")) : default_out;
+            sctx.out_dir = args.contains("out_dir") ? path_from_utf8(arg_string(args, "out_dir")) : replay_output_dir();
             if (!sctx.out_dir.is_absolute())
                 return invalid("out_dir must be an absolute path");
             if (!has_path)

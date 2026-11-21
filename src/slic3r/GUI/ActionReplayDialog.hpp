@@ -99,11 +99,11 @@ private:
 
     // The source: its text as the page last reported it, whether that differs from what was opened or
     // saved last (for a new replay, from the draft it started as), the file it was opened from or saved
-    // to (empty for a new replay), and the output folder a new replay's runs write to.
+    // to (empty for a new replay), and the output folder its runs write to (empty until one is named).
     std::string                     m_text;
     bool                            m_edited = false;
     boost::filesystem::path         m_file;
-    mutable boost::filesystem::path m_draft_out_dir;
+    mutable boost::filesystem::path m_out_dir;
     nlohmann::json                  m_jobs = nlohmann::json::object(); // jobs earlier runs saved
 
     std::shared_ptr<Mcp::PersonRun>       m_run;

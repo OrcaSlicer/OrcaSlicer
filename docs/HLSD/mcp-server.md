@@ -3983,8 +3983,11 @@ duration_ms, result | error, expect_failure, cancelled, reason}], out_dir, resul
 step's `reason` says why in parts a host can word: `cancelled`, `timeout {seconds}`, `expect {pointer,
 op, expected, actual, exists}`, `expect_invalid`, `placeholder {text}`, `missing_job {name,
 saved_by}` (the step that saves that job, when one does) or `tool` (the tool's own error). A replay
-file's `out_dir` defaults to `<replay name>.out` beside it. An inline replay's defaults to
-`replay-<timestamp>` in the output folder (`output_dir()`), which is also its `${replay_dir}`.
+that names no `out_dir` writes to a new folder, `replay-<timestamp>` (`replay_output_dir()`): in the
+`--outputdir` folder of a `--run` launch, else in `orca_action_replay` in the app's temporary folder
+(`temporary_dir()`), so a run leaves nothing beside the replay file or in the data folder. A name already
+taken, as by the replay that runs this one as a step in the same second, gets `-2`, `-3`... An inline
+replay's `${replay_dir}` is its `out_dir`.
 
 The engine (`McpReplay.cpp`, wx-free) and the job around it (`run_replay_job()` in
 `McpToolsReplay.cpp`) are shared by `replay_run`, `--run` and Action Replay. A run
@@ -4001,8 +4004,8 @@ is ready. `--run` itself asks only for the runtime: the endpoint opens with it w
 also given or the saved `mcp_enabled` preference is on. `--outputdir` names the
 session's output folder: `start_launch_run()` hands it to `set_run_output_dir()`, so `output_dir()` returns
 it and files a call saves without a path go there, and a replay writes `result.json` and its screenshots
-there. Without it a replay writes to `<replay name>.out` next to the replay, and `output_dir()` is
-`<datadir>/automation/out`. Then the run closes the app without prompting and exits 0 if the replay passed
+there. Without it a replay writes to a new `replay-<timestamp>` folder in the temporary folder, as
+`replay_run` does, and `output_dir()` is `<datadir>/automation/out`. Then the run closes the app without prompting and exits 0 if the replay passed
 or the script finished, 1 if a step failed or the script did not finish, and 2 if the file is invalid,
 can't be read or is neither a `.json` nor a `.py` file. A `--run` launch keeps a window of its own:
 `GUI_Run()` calls `instance_check()` with `never_send`, so the launch is never handed to a running
@@ -4033,8 +4036,10 @@ draft and suggests the replay's keys, tool names, a tool's arguments and their a
 which the dialog sends once the runtime is ready, so the suggestions match the build. Save writes the text
 back to the file it was opened from, or
 asks where to put a new replay file and offers the replay's name as the file name. A replay saved
-somewhere new is that file's from then on: `${replay_dir}` and its output folder follow the file, as for
-an opened one. Closing the window, or opening another replay, with unsaved edits asks first. The page
+somewhere new is that file's from then on: `${replay_dir}` follows the file, as for an opened one. The
+window's runs of a replay write into one `replay_output_dir()` folder, named when first needed, so
+replaying it again replaces its files; opening another replay or saving this one somewhere new names
+another. Closing the window, or opening another replay, with unsaved edits asks first. The page
 reports every edit to the host, which parses, runs and saves that one copy of the text, so the host can
 ask and save even when the window's close box starts the close. Opening the window starts the runtime
 without the endpoint, as `--run` does, so a person replays files with the server off.
