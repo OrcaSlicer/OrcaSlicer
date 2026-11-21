@@ -29,6 +29,7 @@ std::string PrePrintChecker::get_print_status_info(PrintDialogStatus status)
     case PrintStatusInvalidPrinter: return "PrintStatusInvalidPrinter";
     case PrintStatusConnectingServer: return "PrintStatusConnectingServer";
     case PrintStatusReadingTimeout: return "PrintStatusReadingTimeout";
+    case PrintStatusConnectFailed: return "PrintStatusConnectFailed";
     case PrintStatusReading: return "PrintStatusReading";
     case PrintStatusConnecting: return "PrintStatusConnecting";
     case PrintStatusReconnecting: return "PrintStatusReconnecting";
@@ -104,6 +105,7 @@ wxString PrePrintChecker::get_pre_state_msg(PrintDialogStatus status)
     case PrintStatusConnectingServer: return _L("Connecting to server...");
     case PrintStatusReading: return _L("Synchronizing device information...");
     case PrintStatusReadingTimeout: return _L("Synchronizing device information timed out.");
+    case PrintStatusConnectFailed: return _L("Failed to connect to the printer");
     case PrintStatusModeNotFDM: return _L("Cannot send a print job when the printer is not at FDM mode.");
     case PrintStatusInUpgrading: return _L("Cannot send a print job while the printer is updating firmware.");
     case PrintStatusInSystemPrinting: return _L("The printer is executing instructions. Please restart printing after it ends.");

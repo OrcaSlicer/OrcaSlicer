@@ -473,13 +473,23 @@ bool MonitorPanel::Show(bool show)
         if (update_flag) { update_all(); }
 
         if (dev) {
-            //set a default machine when obj is null
-            obj = dev->get_selected_machine();
-            if (obj == nullptr) {
-                dev->load_last_machine();
+            // Restore the last-selected printer, or reconnect a selected one whose link is gone.
+            MachineObject* selected = dev->get_selected_machine();
+            if (!selected) {
+                // A successful restore updates the monitor via a global selected-machine change
+                // passing a no-op callback prevents a failure to automatically reconnect from popping up
+                dev->load_last_machine([](ConnectResult, const std::string&) {});
+                selected = dev->get_selected_machine();
+            } else if (!selected->is_connected()) {
+                dev->set_selected_machine(selected->get_dev_id(), true,
+                                          [](ConnectResult, const std::string&) {});
+                selected = dev->get_selected_machine();
             } else {
-                obj->reset_update_time();
+                selected->reset_update_time();
             }
+
+            if (selected) { on_machine_selected(selected); }
+            obj = selected;
         }
     } else {
         stop_update();
