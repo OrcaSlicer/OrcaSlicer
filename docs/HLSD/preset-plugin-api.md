@@ -149,6 +149,29 @@ may remain changed even if a later commit fails, and the API does not switch bac
 reverse the user's selection or any accepted transfer/discard decision for the previous
 preset.
 
+### Filament slot colour
+
+A slot's colour is not a filament preset setting: `filament_colour` lives in the
+project config, one entry per slot, next to `filament_multi_colour` and
+`filament_colour_type`. A filament transaction still accepts it, so a plugin can set
+a slot's colour together with its preset settings:
+
+```python
+tx = orca.host.preset.filament.begin_update(2)
+tx.set("filament_colour", "#1E90FF")
+tx.commit()
+```
+
+The value must be `#RRGGBB` or `#RRGGBBAA` and is checked by `set()`, which raises
+`ValueError` otherwise; an opaque `FF` alpha is dropped, as the colour picker does.
+On commit the colour is written only after the preset settings were applied, so a
+failed batch leaves it unchanged. It goes through the sidebar colour picker's own
+path (`PlaterPresetComboBox::sync_colour_config()` and `EVT_FILAMENT_COLOR_CHANGED`):
+the slot becomes a solid colour, the swatch and 3D view update, the project is marked
+modified, and flushing volumes are recalculated when auto-calculation is on. It
+affects that slot only, even when the preset is shared. Process and printer
+transactions do not accept the key.
+
 ## Outcomes and consistency
 
 The API distinguishes target resolution failures, invalid setting/value, user

@@ -23,6 +23,8 @@
 
 #include <wx/string.h>
 
+#include <algorithm>
+#include <cctype>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -123,6 +125,11 @@ struct SelectionCancelled : std::runtime_error
 //   * A user-declined selection does not undo decisions the user already accepted in an earlier
 //     dialog. It aborts before any slot assignment or transaction is created, so no staged
 //     setting is applied.
+//   * "filament_colour" is not a filament preset setting: the slot colour lives in the project
+//     config. A filament transaction accepts it as a slot-scoped setting, validates it when it is
+//     staged, and on commit writes it through the slot combo's own sidebar colour-picker path
+//     (PlaterPresetComboBox::sync_colour_config() plus EVT_FILAMENT_COLOR_CHANGED), after the
+//     preset settings applied, so a failed preset batch leaves the colour untouched.
 // --------------------------------------------------------------------------
 
 // Outcome of one committed transaction. Identifies the target, whether selecting it switched
@@ -151,6 +158,7 @@ struct PresetTransaction
 
     std::vector<std::pair<std::string, std::string>> staged;
     std::set<std::string>                            staged_keys;
+    std::string                                      slot_colour; // normalized, filament only; empty = unchanged
     bool                                             committed = false;
 
     void               set(const std::string& key, const std::string& value);
@@ -285,11 +293,17 @@ void PresetTransaction::set(const std::string& key, const std::string& value)
         throw std::runtime_error("This preset transaction has already been committed; start a new begin_update()");
     if (key.empty())
         throw std::invalid_argument("A setting key is required");
+    // The slot colour is a project setting, not a preset one: validated now, applied by commit().
+    const bool        is_slot_colour = filament && key == "filament_colour";
+    const std::string colour         = is_slot_colour ? host_bindings::normalize_slot_colour(value) : std::string();
     // Conflicting duplicate writes to one setting are rejected rather than resolved by order.
     if (!staged_keys.insert(key).second)
         throw std::invalid_argument("Setting \"" + key + "\" is already staged in this transaction; "
                                     "conflicting duplicate writes to one setting are rejected");
-    staged.emplace_back(key, value);
+    if (is_slot_colour)
+        slot_colour = colour;
+    else
+        staged.emplace_back(key, value);
 }
 
 PresetUpdateResult PresetTransaction::commit()
@@ -323,11 +337,35 @@ PresetUpdateResult PresetTransaction::commit()
                                          + "\" as when this transaction was created; the slot mapping changed, so nothing was applied");
         }
 
+        // Resolve the slot's sidebar combo before applying anything, so a missing one fails the
+        // whole transaction rather than leaving the preset settings applied without the colour.
+        GUI::PlaterPresetComboBox* colour_combo = nullptr;
+        if (!slot_colour.empty()) {
+            const size_t slot_index = static_cast<size_t>(slot_number) - 1;
+            std::vector<GUI::PlaterPresetComboBox*>& slot_combos = app.plater()->sidebar().combos_filament();
+            if (slot_index < slot_combos.size())
+                colour_combo = slot_combos[slot_index];
+            if (colour_combo == nullptr || colour_combo->get_filament_idx() != static_cast<int>(slot_index))
+                throw std::runtime_error("Filament slot " + std::to_string(slot_number)
+                                         + " has no sidebar selector to set its colour through; nothing was applied");
+        }
+
         // Apply the whole batch through the tab's batch path: it validates every key and value before
         // touching the preset, rejects duplicate keys, runs the same per-setting commit path a hand
         // edit uses (validation, on_change, dirty state) and refreshes once for the batch. A failure
         // restores the edited preset, so no staged setting survives a failed commit.
         tab->apply_preset_config_values(staged);
+
+        if (colour_combo != nullptr) {
+            // The sidebar colour picker's path: project_config filament_colour, filament_multi_colour
+            // and filament_colour_type (solid) for this slot, project dirty, the combo swatch and the
+            // plater config change that recolours the 3D scene; then the event it queues for the
+            // flushing-volume recalc and mixed-slot swatches.
+            colour_combo->sync_colour_config({slot_colour}, false);
+            auto* evt = new wxCommandEvent(GUI::EVT_FILAMENT_COLOR_CHANGED);
+            evt->SetInt(colour_combo->get_filament_idx());
+            wxQueueEvent(app.plater(), evt);
+        }
 
         result.type                    = type;
         result.target_name             = target_name;
@@ -337,6 +375,8 @@ PresetUpdateResult PresetTransaction::commit()
         result.keys.reserve(staged.size());
         for (const auto& entry : staged)
             result.keys.push_back(entry.first);
+        if (!slot_colour.empty())
+            result.keys.push_back("filament_colour");
         result.dirty = collection.get_edited_preset().is_dirty;
 
         if (filament) {
@@ -639,6 +679,19 @@ std::vector<std::string> list_bundle_ids()
 
 } // namespace
 
+std::string host_bindings::normalize_slot_colour(const std::string& value)
+{
+    const auto is_hex = [](char c) { return std::isxdigit(static_cast<unsigned char>(c)) != 0; };
+    if ((value.size() != 7 && value.size() != 9) || value.front() != '#' || !std::all_of(value.begin() + 1, value.end(), is_hex))
+        throw std::invalid_argument("filament_colour must be \"#RRGGBB\" or \"#RRGGBBAA\" (hex digits), got \"" + value + "\"");
+    std::string colour = value;
+    std::transform(colour.begin(), colour.end(), colour.begin(), [](char c) { return static_cast<char>(std::toupper(static_cast<unsigned char>(c))); });
+    // Same spelling the colour picker stores: an opaque colour keeps the legacy RGB form.
+    if (colour.size() == 9 && colour.compare(7, 2, "FF") == 0)
+        colour.resize(7);
+    return colour;
+}
+
 void host_bindings::register_presets(py::module_& host)
 {
     auto preset  = host.def_submodule("preset", "Preset operations");
@@ -708,12 +761,17 @@ void host_bindings::register_presets(py::module_& host)
              "Stage one setting change. key must be a setting of the target preset category and value its "
              "serialized string form; staging validates neither, so commit() is where an invalid key or value "
              "fails. Staging the same key twice in one transaction raises ValueError (conflicting duplicate "
-             "writes are rejected). After commit() the transaction is closed.")
+             "writes are rejected). After commit() the transaction is closed. A filament slot transaction also "
+             "accepts \"filament_colour\", the slot's project colour rather than a preset setting: value must be "
+             "\"#RRGGBB\" or \"#RRGGBBAA\" and is checked here, raising ValueError otherwise; commit() writes it "
+             "as a solid colour for this slot only, exactly as the sidebar colour picker does.")
         .def("commit", &PresetTransaction::commit,
              "Validate and apply every staged setting through the same path as editing it in the GUI, then return "
              "a PresetUpdateResult. An invalid key or value raises ValueError; a changed target or filament slot "
              "mapping raises RuntimeError; a failure leaves none of the staged settings applied. The edited preset "
-             "becomes dirty until the user saves it.");
+             "becomes dirty until the user saves it. A staged filament_colour is applied after the preset settings "
+             "succeed, through the sidebar colour-picker path (slot swatch, 3D view colours, project marked "
+             "modified), and appears last in keys.");
 
     py::class_<PresetEditor>(preset, "PresetEditor",
                              "Handle to a category of currently edited preset. It is not a snapshot: it always "
@@ -757,7 +815,8 @@ void host_bindings::register_presets(py::module_& host)
             "unresolved slot is rejected, and a mixed-color virtual slot is rejected whether or not preset_name is "
             "given. The transaction edits the shared preset, so every slot assigned to it is affected. The call "
             "blocks the background Script worker until the selection settles, leaving the UI thread responsive; call "
-            "it from that worker, never from the UI thread.")
+            "it from that worker, never from the UI thread. Besides the preset's own settings, the transaction "
+            "accepts \"filament_colour\" to set this slot's project colour.")
         .def(
             "update",
             [](const PresetEditor& editor, const std::string& key, const std::string& value) {
@@ -789,7 +848,8 @@ void host_bindings::register_presets(py::module_& host)
             "preset editors accept only update(key, value); this form raises "
             "ValueError on them. Equivalent to begin_update(slot_number) with an omitted preset_name "
             "(the slot's current assignment is kept), then set(key, value) and commit(); like "
-            "begin_update() this call blocks the background Script worker.");
+            "begin_update() this call blocks the background Script worker. key may also be "
+            "\"filament_colour\" (\"#RRGGBB\" or \"#RRGGBBAA\"), which sets the slot's project colour.");
 
     // The three preset categories edited by the main tabs. `process` is the print/process preset,
     // `printer` the machine preset and `filament` the currently edited filament preset (its
