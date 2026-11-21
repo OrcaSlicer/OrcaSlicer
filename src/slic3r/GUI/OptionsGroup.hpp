@@ -13,6 +13,7 @@
 #include <wx/settings.h>
 
 #include <map>
+#include <optional>
 #include <functional>
 #include <wx/string.h>
 
@@ -350,6 +351,7 @@ public:
 	void		back_to_config_value(const DynamicPrintConfig& config, const std::string& opt_key);
     void		on_kill_focus(const std::string& opt_key) override;
 	void		reload_config();
+	std::optional<double> ratio_over_base(const std::string& opt_key, size_t idx) const;
     // return value shows visibility : false => all options are hidden
     void        Hide();
     void        Show(const bool show);

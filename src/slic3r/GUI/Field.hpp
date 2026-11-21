@@ -228,8 +228,12 @@ public:
 	/// Callback function to edit field value
 	t_back_to_init	m_fn_edit_value{ nullptr };
 
+	std::function<std::optional<double>(const std::string& opt_key, size_t idx)> m_ratio_over_base{ nullptr };
+
 	// This is used to avoid recursive invocation of the field change/update by wxWidgets.
     bool			m_disable_change_event {false};
+    // The user picked the unit of a "mm or %" value for the next input, so a large number in it is not asked about as a missing '%'
+    bool			m_unit_chosen {false};
     bool			m_is_modified_value {false};
 	bool			m_is_nonsys_value {true};
 
@@ -360,6 +364,14 @@ public:
     void			disable() override;
     wxWindow* 		getWindow() override { return window; }
     wxTextCtrl *    text_ctrl();
+
+private:
+    // ORCA: "mm or %" options have a unit selector in the input box, the text holds the number only
+    bool            has_unit_selector() const;
+    // Text of the control in the form the value is stored in: "0.42" or "105%"
+    wxString        text_with_unit();
+    void            move_typed_unit_to_selector();
+    void            on_unit_selected(bool percent);
 };
 
 class CheckBox : public Field {

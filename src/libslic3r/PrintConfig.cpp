@@ -8,6 +8,7 @@
 #include "Config.hpp"
 #include "Geometry.hpp"
 #include "FilamentMixer.hpp"
+#include "Flow.hpp"
 #include "MaterialType.hpp"
 #include "I18N.hpp"
 #include "LocalesUtils.hpp"
@@ -35,6 +36,7 @@
 #include <boost/preprocessor/tuple/to_seq.hpp>
 #include <cstdint>
 #include <set>
+#include <exception>
 #include <optional>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
@@ -6748,6 +6750,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("In order to reduce the visibility of the seam in a closed loop extrusion, the loop is interrupted and shortened by a specified amount.\n"
                      "This amount can be specified in millimeters or as a percentage of the nozzle diameter. The default value for this parameter is 10%.");
     def->sidetext = L("mm or %");
+    def->ratio_over = "nozzle_diameter";
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloatOrPercent(10,true));
@@ -10579,6 +10582,69 @@ double min_object_distance(const ConfigBase &cfg)
     }
 
     return ret;
+}
+
+std::optional<double> ratio_over_base(const ConfigBase &cfg, const std::string &opt_key, size_t idx)
+{
+    auto value_at = [&cfg, idx](const std::string &key) -> std::optional<FloatOrPercent> {
+        const ConfigOption *opt = cfg.option(key);
+        if (opt == nullptr)
+            return std::nullopt;
+        switch (opt->type()) {
+        case coFloat: return FloatOrPercent{opt->getFloat(), false};
+        case coFloatOrPercent: {
+            auto *o = static_cast<const ConfigOptionFloatOrPercent *>(opt);
+            return FloatOrPercent{o->value, o->percent};
+        }
+        case coFloats: {
+            auto *o = static_cast<const ConfigOptionVector<double> *>(opt);
+            if (o->values.empty())
+                return std::nullopt;
+            return FloatOrPercent{o->get_at(idx), false};
+        }
+        case coFloatsOrPercents: {
+            auto *o = static_cast<const ConfigOptionVector<FloatOrPercent> *>(opt);
+            if (o->values.empty())
+                return std::nullopt;
+            return o->get_at(idx);
+        }
+        default: return std::nullopt;
+        }
+    };
+
+    std::string key   = opt_key;
+    double      ratio = 1.;
+    for (int depth = 0; depth < 8; ++depth) {
+        const ConfigOptionDef *def = print_config_def.get(key);
+        if (def == nullptr || def->ratio_over.empty())
+            return std::nullopt;
+        key = def->ratio_over;
+        double value = 0.;
+        if (boost::ends_with(key, "line_width")) {
+            // Line widths fall back to other widths and to an automatic width, as in PlaceholderParser
+            if (cfg.option<ConfigOptionFloatOrPercent>(key) == nullptr)
+                return std::nullopt;
+            try {
+                value = Flow::extrusion_width(key, cfg, unsigned(idx));
+            } catch (const std::exception &) {
+                return std::nullopt;
+            }
+        } else {
+            const std::optional<FloatOrPercent> v = value_at(key);
+            if (!v)
+                return std::nullopt;
+            if (v->percent) {
+                ratio *= v->value / 100.;
+                continue;
+            }
+            value = v->value;
+        }
+        const double base = ratio * value;
+        if (base > 0.)
+            return base;
+        return std::nullopt;
+    }
+    return std::nullopt;
 }
 
 void DynamicPrintConfig::normalize_fdm(int used_filaments)

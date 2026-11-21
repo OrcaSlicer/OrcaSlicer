@@ -36,6 +36,7 @@
 #include "I18N.hpp"
 #include <algorithm>
 #include <locale>
+#include <optional>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/utils.h>
@@ -151,6 +152,11 @@ const t_field& OptionsGroup::build_field(const t_config_option_key& id, const Co
     if (auto plugin_config_field = dynamic_cast<PluginConfigField*>(field.get()))
         if (auto config_group = dynamic_cast<ConfigOptionsGroup*>(this))
             plugin_config_field->set_preset_type(config_group->config_type());
+
+    if (auto config_group = dynamic_cast<ConfigOptionsGroup*>(this))
+        field->m_ratio_over_base = [config_group](const std::string& opt_key, size_t idx) {
+            return config_group->ratio_over_base(opt_key, idx);
+        };
 
     // assign function objects for callbacks, etc.
     return field;
@@ -876,6 +882,15 @@ void ConfigOptionsGroup::on_kill_focus(const std::string& opt_key)
         m_fill_empty_value(opt_key);
     else
         reload_config();
+}
+
+// m_config holds only the overrides of an object or a modifier, so it goes on top of the presets
+std::optional<double> ConfigOptionsGroup::ratio_over_base(const std::string& opt_key, size_t idx) const
+{
+    DynamicPrintConfig config = wxGetApp().preset_bundle->full_config();
+    if (m_config != nullptr)
+        config.apply(*m_config);
+    return Slic3r::ratio_over_base(config, opt_key, idx);
 }
 
 void ConfigOptionsGroup::reload_config()

@@ -36,6 +36,7 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <cstddef>
 #include <cassert>
@@ -915,6 +916,10 @@ class StaticPrintConfig;
 
 // Minimum object distance for arrangement, based on printer technology.
 double min_object_distance(const ConfigBase &cfg);
+
+// Absolute value a percentage of opt_key is taken from, following ratio_over through percentages.
+// idx selects the element of vector options. Empty when the base is unknown or not positive.
+std::optional<double> ratio_over_base(const ConfigBase &cfg, const std::string &opt_key, size_t idx);
 
 // Whether any value is set, a nil value included.
 template<bool NULLABLE> bool any_enabled(const ConfigOptionBoolsTempl<NULLABLE> &option)

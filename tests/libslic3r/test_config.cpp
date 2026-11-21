@@ -7,6 +7,7 @@
 #include <catch2/generators/catch_generators.hpp>
 #include "catch2/catch_approx.hpp"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Flow.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -26,6 +27,7 @@
 #include <initializer_list>
 #include <memory>
 #include <map>
+#include <optional>
 #include <iterator>
 #include <nlohmann/json.hpp>
 
@@ -2028,4 +2030,87 @@ TEST_CASE("The print speed table keeps a bed outline when the extruders share no
     const BoundingBox outline(Model::getBedPolygon().points);
     CHECK(outline.min == Point(0, 0));
     CHECK(outline.max == Point(scaled(350.), scaled(350.)));
+}
+
+TEST_CASE("ratio_over_base reads a plain float base", "[Config][RatioOver]")
+{
+    DynamicPrintConfig config;
+    config.set_deserialize_strict({ { "layer_height", "0.2" } });
+
+    const std::optional<double> base = ratio_over_base(config, "seam_slope_start_height", 0);
+    REQUIRE(base.has_value());
+    CHECK_THAT(*base, Catch::Matchers::WithinAbs(0.2, 1e-9));
+}
+
+TEST_CASE("ratio_over_base reads a vector base at the requested index", "[Config][RatioOver]")
+{
+    DynamicPrintConfig config;
+    config.set_deserialize_strict({ { "outer_wall_speed", "200,150" } });
+
+    const std::optional<double> base = ratio_over_base(config, "small_perimeter_speed", 1);
+    REQUIRE(base.has_value());
+    CHECK_THAT(*base, Catch::Matchers::WithinAbs(150., 1e-9));
+}
+
+TEST_CASE("ratio_over_base follows a percentage base down to the nozzle diameter", "[Config][RatioOver]")
+{
+    DynamicPrintConfig config;
+    config.set_deserialize_strict({ { "outer_wall_line_width", "105%" }, { "nozzle_diameter", "0.4" } });
+
+    const std::optional<double> base = ratio_over_base(config, "wipe_inward_distance", 0);
+    REQUIRE(base.has_value());
+    CHECK_THAT(*base, Catch::Matchers::WithinAbs(0.42, 1e-6));
+}
+
+TEST_CASE("ratio_over_base uses the default line width for a zero line width base", "[Config][RatioOver]")
+{
+    DynamicPrintConfig config;
+    config.set_deserialize_strict({ { "inner_wall_line_width", "0" }, { "line_width", "110%" }, { "nozzle_diameter", "0.4" } });
+
+    const std::optional<double> base = ratio_over_base(config, "min_width_top_surface", 0);
+    REQUIRE(base.has_value());
+    CHECK_THAT(*base, Catch::Matchers::WithinAbs(0.44, 1e-6));
+}
+
+TEST_CASE("ratio_over_base is empty for an option without ratio_over", "[Config][RatioOver]")
+{
+    DynamicPrintConfig config;
+    config.set_deserialize_strict({ { "nozzle_diameter", "0.4" } });
+
+    CHECK_FALSE(ratio_over_base(config, "max_travel_detour_distance", 0).has_value());
+}
+
+TEST_CASE("ratio_over_base uses the automatic width for a zero default line width", "[Config][RatioOver]")
+{
+    DynamicPrintConfig config;
+    config.set_deserialize_strict({ { "line_width", "0" }, { "nozzle_diameter", "0.4" } });
+
+    const std::optional<double> base = ratio_over_base(config, "overhang_reverse_threshold", 0);
+    REQUIRE(base.has_value());
+    CHECK_THAT(*base, Catch::Matchers::WithinAbs(Flow::auto_extrusion_width(frPerimeter, 0.4f), 1e-6));
+}
+
+TEST_CASE("ratio_over_base is empty for a zero base", "[Config][RatioOver]")
+{
+    DynamicPrintConfig config;
+    config.set_deserialize_strict({ { "layer_height", "0" } });
+
+    CHECK_FALSE(ratio_over_base(config, "seam_slope_start_height", 0).has_value());
+}
+
+TEST_CASE("ratio_over_base is empty when the base option is not in the config", "[Config][RatioOver]")
+{
+    DynamicPrintConfig config;
+
+    CHECK_FALSE(ratio_over_base(config, "wipe_inward_distance", 0).has_value());
+}
+
+TEST_CASE("ratio_over_base takes the seam gap percentage from the nozzle diameter", "[Config][RatioOver]")
+{
+    DynamicPrintConfig config;
+    config.set_deserialize_strict({ { "nozzle_diameter", "0.6,0.4" } });
+
+    const std::optional<double> base = ratio_over_base(config, "seam_gap", 0);
+    REQUIRE(base.has_value());
+    CHECK_THAT(*base, Catch::Matchers::WithinAbs(0.6, 1e-9));
 }

@@ -97,6 +97,23 @@
 
 namespace Slic3r { namespace GUI {
 
+static const std::string or_percent = " or %";
+
+// Removes a trailing "%" or "mm" from the text and tells whether it was "%"
+static std::optional<bool> strip_unit(wxString& text)
+{
+    text.Trim();
+    if (text.EndsWith("%")) {
+        text.RemoveLast();
+        return true;
+    }
+    if (text.EndsWith("mm")) {
+        text.RemoveLast(2);
+        return false;
+    }
+    return std::nullopt;
+}
+
 wxString double_to_string(double const value, const int max_precision /*= 4*/)
 {
 // Style_NoTrailingZeroes does not work on OSX. It also does not work correctly with some locales on Windows.
@@ -599,7 +616,7 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 is_percent = false;
                 update_control = true;
             } else {
-                const bool looks_like_missing_percent = !is_percent && !has_literal_unit &&
+                const bool looks_like_missing_percent = !is_percent && !has_literal_unit && !m_unit_chosen &&
                     ((m_opt.sidetext.rfind("mm/s") != std::string::npos && val > m_opt.max) ||
                      (m_opt.sidetext.rfind("mm ") != std::string::npos && val > m_opt.max_literal));
                 // Orca: validate explicit percentages and literal values before
@@ -1018,7 +1035,14 @@ void TextCtrl::BUILD() {
     if (!m_opt.multiline)
         temp->SetLabel(_L(m_opt.sidetext));
 	auto text_ctrl = m_opt.multiline ? (wxTextCtrl *)temp : ((TextInput *) temp)->GetTextCtrl();
-    text_ctrl->SetValue(text_value);
+    wxString shown_value = text_value;
+    if (has_unit_selector()) {
+        auto       input   = static_cast<::TextInput*>(temp);
+        const bool percent = strip_unit(shown_value).value_or(false);
+        input->SetUnits({_L(m_opt.sidetext.substr(0, m_opt.sidetext.size() - or_percent.size())), "%"}, percent ? 1 : 0);
+        input->Bind(wxEVT_CHOICE, [this](wxCommandEvent& e) { on_unit_selected(e.GetInt() == 1); }, input->GetId());
+    }
+    text_ctrl->SetValue(shown_value);
     temp->SetSize(size);
     m_combine_side_text = !m_opt.multiline;
     if (parent_is_custom_ctrl && m_opt.height < 0)
@@ -1112,7 +1136,7 @@ bool TextCtrl::value_was_changed()
         return true;
 
     boost::any val = m_value;
-    wxString   ret_str = text_ctrl()->GetValue(); // BBS
+    wxString   ret_str = text_with_unit(); // BBS
     // update m_value!
     // ret_str might be changed inside get_value_by_opt_type
     get_value_by_opt_type(ret_str);
@@ -1146,6 +1170,8 @@ bool TextCtrl::value_was_changed()
 
 void TextCtrl::propagate_value()
 {
+    if (has_unit_selector())
+        move_typed_unit_to_selector();
     if (!is_defined_input_value<wxTextCtrl>(text_ctrl(), m_opt.type)) { // BBS
 		// on_kill_focus() cause a call of OptionsGroup::reload_config(),
 		// Thus, do it only when it's really needed (when undefined value was input)
@@ -1153,6 +1179,7 @@ void TextCtrl::propagate_value()
             on_kill_focus();
 	} else if (value_was_changed())
         on_change_field();
+    m_unit_chosen = false;
 }
 
 void TextCtrl::set_value(const boost::any& value, bool change_event/* = false*/) {
@@ -1164,11 +1191,17 @@ void TextCtrl::set_value(const boost::any& value, bool change_event/* = false*/)
             m_last_meaningful_value = value;
     }
 
-    text_ctrl()->SetValue(value.empty() ? wxString() : boost::any_cast<wxString>(value));
+    wxString text = value.empty() ? wxString() : boost::any_cast<wxString>(value);
+    if (has_unit_selector()) {
+        if (!change_event && text != text_with_unit())
+            m_unit_chosen = false;
+        static_cast<::TextInput*>(window)->SetUnitSelection(strip_unit(text).value_or(false) ? 1 : 0);
+    }
+    text_ctrl()->SetValue(text);
     m_disable_change_event = false;
 
     if (!change_event) {
-        wxString ret_str = text_ctrl()->GetValue();
+        wxString ret_str = text_with_unit();
         /* Update m_value to correct work of next value_was_changed().
          * But after checking of entered value, don't fix the "incorrect" value and don't show a warning message,
          * just clear m_value in this case.
@@ -1196,7 +1229,7 @@ void TextCtrl::set_na_value()
 
 boost::any& TextCtrl::get_value()
 {
-    wxString ret_str = text_ctrl()->GetValue(); // BBS
+    wxString ret_str = text_with_unit(); // BBS
 	// update m_value
 	get_value_by_opt_type(ret_str);
 
@@ -1247,6 +1280,60 @@ wxTextCtrl *TextCtrl::text_ctrl()
     if (ctrl == nullptr)
         ctrl = dynamic_cast<::TextInput *>(window)->GetTextCtrl();
     return ctrl;
+}
+
+bool TextCtrl::has_unit_selector() const
+{
+    return !m_opt.multiline && (m_opt.type == coFloatOrPercent || m_opt.type == coFloatsOrPercents) &&
+           boost::algorithm::ends_with(m_opt.sidetext, or_percent);
+}
+
+wxString TextCtrl::text_with_unit()
+{
+    wxString text = text_ctrl()->GetValue();
+    if (!has_unit_selector())
+        return text;
+
+    text.Trim();
+    const bool number_only = !text.IsEmpty() && !text.EndsWith("%") && !text.EndsWith("mm") && !(m_opt.nullable && text == m_na_value);
+    return number_only && static_cast<::TextInput*>(window)->GetUnitSelection() == 1 ? text + "%" : text;
+}
+
+void TextCtrl::move_typed_unit_to_selector()
+{
+    wxString                  text    = text_ctrl()->GetValue();
+    const std::optional<bool> percent = strip_unit(text);
+    if (!percent)
+        return;
+    text_ctrl()->ChangeValue(text);
+    static_cast<::TextInput*>(window)->SetUnitSelection(*percent ? 1 : 0);
+    m_unit_chosen = true;
+}
+
+void TextCtrl::on_unit_selected(bool percent)
+{
+    wxString text = text_ctrl()->GetValue();
+    // A typed but uncommitted unit is the unit of the number, whatever the selector showed
+    const bool from_percent = strip_unit(text).value_or(!percent);
+    text.Trim();
+    text.Replace(",", ".");
+    double                      value = 0.;
+    const std::optional<double> base  = from_percent == percent || !m_ratio_over_base ?
+                                            std::nullopt :
+                                            m_ratio_over_base(m_opt.opt_key, size_t(std::max(m_opt_idx, 0)));
+    m_unit_chosen = true;
+    if ((from_percent == percent || base) && text.ToCDouble(&value)) {
+        if (from_percent != percent)
+            value = percent ? value / *base * 100. : value * *base / 100.;
+        text_ctrl()->ChangeValue(double_to_string(value));
+        propagate_value();
+        // The converted value is not the user's input: the choice still covers the next one
+        m_unit_chosen = true;
+    } else {
+        // An empty field restores the previous value together with its unit on focus loss
+        text_ctrl()->ChangeValue("");
+        text_ctrl()->SetFocus();
+    }
 }
 
 #ifdef __WXGTK__

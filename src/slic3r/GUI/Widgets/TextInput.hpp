@@ -9,6 +9,7 @@
 #include <wx/event.h>
 #include <wx/dc.h>
 #include <wx/textctrl.h>
+#include <vector>
 #include "StaticBox.hpp"
 
 class TextInput : public wxNavigationEnabled<StaticBox>
@@ -19,11 +20,18 @@ class TextInput : public wxNavigationEnabled<StaticBox>
     ScalableBitmap icon_1;
     StateColor     label_color;
     StateColor     text_color;
+    StateColor     unit_track_color;
+    StateColor     unit_hover_color;
     wxTextCtrl * text_ctrl;
 
     wxString  static_tips;
     wxSize    static_tips_size;
     wxBitmap  static_tips_icon;
+
+    std::vector<wxString> units;
+    std::vector<wxRect>   unit_rects; // filled by render()
+    int                   unit_selection{0};
+    int                   unit_hover{-1}; // unit under the mouse that a click would select
 
     static const int TextInputWidth = 200;
     static const int TextInputHeight = 50;
@@ -52,6 +60,12 @@ public:
     int GetCornerRadius() const { return static_cast<int>(radius); }
 
     void SetLabel(const wxString& label) override;
+
+    // ORCA: alternative units drawn in place of the label as a segmented control, e.g. "mm" and "%".
+    // A click on a unit that is not selected selects it and sends wxEVT_CHOICE. SetLabel() removes the units.
+    void SetUnits(const std::vector<wxString>& units, int selection = 0);
+    void SetUnitSelection(int selection);
+    int  GetUnitSelection() const { return unit_selection; }
 
     void SetStaticTips(const wxString& tips, const wxBitmap& bitmap);
 
@@ -89,6 +103,8 @@ private:
     void render(wxDC& dc);
 
     void messureSize();
+
+    int unitAt(const wxPoint& pos) const;
 
     DECLARE_EVENT_TABLE()
 };
