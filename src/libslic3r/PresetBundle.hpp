@@ -971,6 +971,12 @@ private:
 
 ENABLE_ENUM_BITMASK_OPERATORS(PresetBundle::LoadConfigBundleAttribute)
 
+// GUI overload of effective_physical_extruder_map() (PrintConfig.hpp): resolves the effective pem
+// from a live PresetBundle using the project_config → printer preset fallback. Use this instead of
+// open-coding the lookup at ghost-color, tooltip, click-gate and cache-key call sites so they all
+// agree with what the slicer sees.
+ConfigOptionInts effective_physical_extruder_map(const PresetBundle& pb);
+
 } // namespace Slic3r
 
 #endif /* slic3r_PresetBundle_hpp_ */

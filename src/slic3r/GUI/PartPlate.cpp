@@ -3451,19 +3451,22 @@ std::vector<int> PartPlate::get_extruders_without_support(bool conside_custom_gc
 int PartPlate::get_physical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const
 {
 	const std::vector<int>& filament_map = get_real_filament_maps(g_config);
-	if (filament_map.size() < idx)
+	if (idx <= 0 || idx > static_cast<int>(filament_map.size()))
 	{
 		return -1;
 	}
 
-	const auto the_map = g_config.option<ConfigOptionInts>("physical_extruder_map");
-	if (!the_map)
+	// A multi-nozzle printer whose profile never sets physical_extruder_map carries the
+	// single-element default, so the raw option cannot be indexed by logical extruder.
+	const auto* nozzles = g_config.option<ConfigOptionFloats>("nozzle_diameter");
+	const ConfigOptionInts pem = effective_physical_extruder_map(g_config.option<ConfigOptionInts>("physical_extruder_map"),
+	                                                             nozzles ? static_cast<int>(nozzles->values.size()) : 0);
+	const int zero_base_logical_idx = filament_map[idx - 1] - 1;
+	if (zero_base_logical_idx < 0 || zero_base_logical_idx >= static_cast<int>(pem.values.size()))
 	{
 		return -1;
 	}
-
-	int zero_base_logical_idx = filament_map[idx - 1] - 1;
-	return the_map->values[zero_base_logical_idx];
+	return pem.values[zero_base_logical_idx];
 }
 
 int PartPlate::get_logical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const

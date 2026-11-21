@@ -177,7 +177,7 @@ static const std::unordered_set<std::string> operation_root_events{
 };
 
 // True for the categories whose targets are filesystem paths, as opposed to a network
-// address or a process command line -- the deny-path and allowed-root checks only make sense
+// address or a process executable -- the deny-path and allowed-root checks only make sense
 // against a path.
 static bool is_fs_category(AuditEventCategory category)
 {
@@ -641,13 +641,56 @@ bool same_path_component(const boost::filesystem::path& lhs, const boost::filesy
 #endif
 }
 
+#ifdef _WIN32
+// Windows spells some locations two ways: the plain form ("C:\dir", "\\server\share\dir") and the
+// documented extended-length form ("\\?\C:\dir", "\\?\UNC\server\share\dir"). A plugin's __file__
+// carries whichever spelling its sys.path entry used, and a path canonicalized past MAX_PATH is
+// necessarily extended, while allowed roots and grants are registered in the plain form. The
+// prefix adds a root-name component ("\\?\C:" sees "C:", "\\?\UNC" sees "\\server"), so a
+// component-wise comparison would never match. Rewrite the two documented aliases to the plain
+// spelling here; the result is only compared, never used for I/O. Every other device-namespace
+// path ("\\?\Volume{...}", "\\?\PIPE\...", "\\.\pipe\...", "\\.\PhysicalDrive0", "\??\C:\...")
+// names something this normalization cannot reinterpret, so it is left exactly as written and
+// keeps failing closed against a plain root.
+boost::filesystem::path plain_spelling(const boost::filesystem::path& path)
+{
+    const std::wstring native = path.native();
+
+    // "\\?\UNC\server\share\..." -> "\\server\share\..." (the Win32 UNC alias).
+    constexpr std::size_t unc_prefix_length = 8; // "\\?\UNC\"
+    if (native.rfind(L"\\\\?\\UNC\\", 0) == 0)
+        return boost::filesystem::path(L"\\\\" + native.substr(unc_prefix_length));
+
+    // "\\?\C:\..." -> "C:\..." for a drive-letter root only. "\\?\UNC\..." is handled above, and
+    // anything else after the prefix is a different namespace, not a longer name for a drive path.
+    constexpr std::size_t prefix_length = 4; // "\\?\"
+    if (native.rfind(L"\\\\?\\", 0) == 0 && native.size() > prefix_length + 1) {
+        const wchar_t drive  = native[prefix_length];
+        const bool    letter = (drive >= L'A' && drive <= L'Z') || (drive >= L'a' && drive <= L'z');
+        if (letter && native[prefix_length + 1] == L':')
+            return boost::filesystem::path(native.substr(prefix_length));
+    }
+
+    return path;
+}
+#else
+boost::filesystem::path plain_spelling(const boost::filesystem::path& path)
+{
+    return path;
+}
+#endif
+
 // True when two canonical paths name the same location: every component must match, using the
 // platform's case rule. Unlike suffix_inside_root() this is full equality, so a lookalike that
 // merely shares a prefix -- or a file beside the granted one -- can never match.
 bool same_canonical_path(const boost::filesystem::path& lhs, const boost::filesystem::path& rhs)
 {
-    auto lhs_it = lhs.begin(), lhs_end = lhs.end();
-    auto rhs_it = rhs.begin(), rhs_end = rhs.end();
+    // Compare in the plain spelling; see plain_spelling().
+    const boost::filesystem::path plain_lhs = plain_spelling(lhs);
+    const boost::filesystem::path plain_rhs = plain_spelling(rhs);
+
+    auto lhs_it = plain_lhs.begin(), lhs_end = plain_lhs.end();
+    auto rhs_it = plain_rhs.begin(), rhs_end = plain_rhs.end();
     for (; lhs_it != lhs_end && rhs_it != rhs_end; ++lhs_it, ++rhs_it) {
         if (!same_path_component(*lhs_it, *rhs_it))
             return false;
@@ -658,18 +701,24 @@ bool same_canonical_path(const boost::filesystem::path& lhs, const boost::filesy
 // Component-wise containment: the whole of canonical_root must be a prefix of
 // canonical_candidate, and the remaining components must not traverse upward. Both arguments are
 // expected to come from canonicalize_for_comparison()/canonical_folder(), i.e. expanded to long
-// names where the platform has 8.3 aliases. On a match, suffix receives the candidate's
-// components below the root (empty when the two paths are equal).
+// names where the platform has 8.3 aliases and possibly carrying the extended-length prefix. On a
+// match, suffix receives the candidate's components below the root (empty when the two paths are
+// equal).
 bool suffix_inside_root(const boost::filesystem::path& canonical_candidate,
                         const boost::filesystem::path& canonical_root,
                         boost::filesystem::path&       suffix)
 {
     suffix.clear();
 
-    auto cand_it  = canonical_candidate.begin();
-    auto cand_end = canonical_candidate.end();
-    auto root_it  = canonical_root.begin();
-    auto root_end = canonical_root.end();
+    // Compare in the plain spelling; see plain_spelling(). The components below the root never
+    // carry the prefix, so the suffix is unaffected.
+    const boost::filesystem::path candidate = plain_spelling(canonical_candidate);
+    const boost::filesystem::path root      = plain_spelling(canonical_root);
+
+    auto cand_it  = candidate.begin();
+    auto cand_end = candidate.end();
+    auto root_it  = root.begin();
+    auto root_end = root.end();
 
     // Consume matching components
     while (root_it != root_end && cand_it != cand_end && same_path_component(*root_it, *cand_it)) {
@@ -697,9 +746,9 @@ bool suffix_inside_root(const boost::filesystem::path& canonical_candidate,
 bool is_inside_allowed_root(const boost::filesystem::path& candidate, const boost::filesystem::path& allowed_root)
 {
     // Both sides are canonicalized identically, including the expansion of Windows 8.3 short
-    // names, so a root registered under one spelling still contains a target reported under the
-    // other. A side that cannot be normalized fails closed: comparing differently spelled paths
-    // could otherwise report containment that does not hold.
+    // names and the extended-length prefix, so a root registered under one spelling still contains
+    // a target reported under the other. A side that cannot be normalized fails closed: comparing
+    // differently spelled paths could otherwise report containment that does not hold.
     boost::filesystem::path canonical_candidate;
     if (!canonicalize_for_comparison(candidate, canonical_candidate))
         return false;
@@ -1635,31 +1684,137 @@ static std::vector<std::string> create_permission_targets(const std::string& eve
     return targets;
 }
 
-static const std::unordered_map<std::string, std::vector<Py_ssize_t>> audit_target_arg_indices{
-    {"http.client.connect", {1}},
-    {"urllib.Request", {0}},
+// Network events name their target directly: a host, an address tuple or a URL.
+static const std::unordered_map<std::string, Py_ssize_t> network_target_arg_indices{
+    {"http.client.connect", 1},
+    {"urllib.Request", 0},
 
-    {"socket.connect", {1}},
-    {"socket.bind", {1}},
-    {"socket.getaddrinfo", {0}},
-    {"socket.gethostbyname", {0}},
-    {"socket.gethostbyaddr", {0}},
-    {"socket.getnameinfo", {0}},
-    {"socket.getservbyname", {0}},
-    {"socket.getservbyport", {0}},
-    {"socket.sendto", {1}},
-    {"socket.sendmsg", {1}},
+    {"socket.connect", 1},
+    {"socket.bind", 1},
+    {"socket.getaddrinfo", 0},
+    {"socket.gethostbyname", 0},
+    {"socket.gethostbyaddr", 0},
+    {"socket.getnameinfo", 0},
+    {"socket.getservbyname", 0},
+    {"socket.getservbyport", 0},
+    {"socket.sendto", 1},
+    {"socket.sendmsg", 1},
+};
 
-    {"os.system", {0}},
-    {"subprocess.Popen", {1, 0}},
-    {"os.posix_spawn", {1, 0}},
-    {"os.spawn", {2, 1}},
-    {"os.startfile", {0}},
-    {"os.startfile/2", {0}},
-    {"pty.spawn", {0}},
-    {"_winapi.CreateProcess", {1, 0}},
-    {"_posixsubprocess.fork_exec", {0}},
-    {"os.exec", {0}},
+// Process events each expose the executable in a different argument, and some pass the whole
+// command line or argv. A grant normally names the tool only, so the arguments are dropped; the
+// exception is a Windows command line whose executable is unquoted and followed by arguments
+// (see windows_command_line_target).
+enum class ProcessTargetFormat {
+    Path,               // the argument is the executable path or name
+    FirstToken,         // a command string or argv sequence: its first token or element
+    WindowsCommandLine, // a Windows command line: its first argument, possibly a quoted path
+};
+
+struct ProcessTargetSource {
+    Py_ssize_t          index;
+    ProcessTargetFormat format;
+};
+
+// An exact-command entry shares the process list with executable entries. This reserved prefix
+// keeps the two namespaces apart: an exact command line can never be mistaken for an executable
+// name, and an existing executable grant (which does not carry the prefix) keeps its
+// argument-insensitive meaning. It is stored in the sidecar and listed by the Plugins dialog; the
+// permission prompt shows the command line without it.
+static const std::string kWindowsCommandLineGrantPrefix = "CommandLine:";
+
+static bool is_exact_command_grant(const std::string& target)
+{
+    return boost::algorithm::starts_with(target, kWindowsCommandLineGrantPrefix);
+}
+
+static std::string exact_command_grant(const std::string& command_line)
+{
+    return kWindowsCommandLineGrantPrefix + command_line;
+}
+
+// The prompt shows the command line the user is asked about, not the storage marker.
+static std::string process_target_for_display(const std::string& target)
+{
+    return is_exact_command_grant(target) ? target.substr(kWindowsCommandLineGrantPrefix.size()) : target;
+}
+
+// A process prompt can list executable grants and exact command lines together (a declaration may
+// do so; a runtime event has one target). The wording must not claim argument-insensitive scope
+// for an exact command line.
+struct ProcessPromptScope {
+    bool exact_command = false;
+    bool executable    = false;
+};
+
+static ProcessPromptScope process_prompt_scope(const std::vector<std::string>& targets)
+{
+    ProcessPromptScope scope;
+    for (const std::string& target : targets) {
+        if (is_exact_command_grant(target))
+            scope.exact_command = true;
+        else
+            scope.executable = true;
+    }
+    return scope;
+}
+
+// os.system does not run a program named by its first token: it hands the whole string to the
+// platform shell. POSIX passes it to /bin/sh. The Windows C runtime runs the command interpreter
+// named by COMSPEC, or cmd.exe when COMSPEC is unset or empty, and also falls back to cmd.exe
+// when it cannot open the configured file (ENOENT or EACCES). Either interpreter may therefore
+// run the command, so every one of them is a required target: a narrow grant for a harmless
+// COMSPEC target must not admit the fallback shell. Approving the shells covers every command
+// string the plugin passes to os.system, because a shell parses and executes all of the string,
+// arguments included.
+//
+// The runtime chooses the interpreter when it runs the command, so the audit names the possible
+// interpreters instead of checking whether the COMSPEC file exists: a file that is present while
+// the prompt is answered can be removed before the call. A COMSPEC that already is the bare name
+// cmd.exe, in any casing, names the fallback itself and is listed once.
+#ifdef _WIN32
+static std::vector<std::string> system_shell_targets()
+{
+    constexpr const char* kFallbackShell = "cmd.exe";
+
+    // _wsystem reads COMSPEC through the CRT environment, which is the copy it consults; the
+    // process environment block can differ. Read the same value and copy it at once, because a
+    // concurrent _wputenv may replace the buffer the pointer names.
+    const wchar_t* const comspec_value = ::_wgetenv(L"COMSPEC");
+    // An unset or empty COMSPEC leaves only the runtime's default interpreter.
+    if (comspec_value == nullptr || *comspec_value == L'\0')
+        return {kFallbackShell};
+
+    std::string comspec = wxString(comspec_value).utf8_string();
+    // A bare cmd.exe is the fallback interpreter itself, whatever the casing, so one target stays.
+    if (comspec.find_first_of("/\\") == std::string::npos &&
+        wxString::FromUTF8(comspec).CmpNoCase(wxString::FromUTF8(kFallbackShell)) == 0)
+        return {kFallbackShell};
+
+    return {std::move(comspec), kFallbackShell};
+}
+#else
+static std::vector<std::string> system_shell_targets()
+{
+    return {"/bin/sh"};
+}
+#endif
+
+static const std::unordered_map<std::string, std::vector<ProcessTargetSource>> process_target_sources{
+    {"os.exec",                    {{0, ProcessTargetFormat::Path}}},
+    {"os.posix_spawn",             {{0, ProcessTargetFormat::Path}}},
+    {"os.spawn",                   {{1, ProcessTargetFormat::Path}}},
+    {"os.startfile",               {{0, ProcessTargetFormat::Path}}},
+    {"os.startfile/2",             {{0, ProcessTargetFormat::Path}}},
+    // executable is unresolved when the caller did not pass one, as on Windows, where args is
+    // then a single command line; on POSIX args is an argv sequence and executable is always set.
+    {"subprocess.Popen",           {{0, ProcessTargetFormat::Path}, {1, ProcessTargetFormat::WindowsCommandLine}}},
+    // application_name wins when it is given, so its source comes first; when it is omitted
+    // command_line is a Windows command line whose first argument names the executable.
+    {"_winapi.CreateProcess",      {{0, ProcessTargetFormat::Path}, {1, ProcessTargetFormat::WindowsCommandLine}}},
+    {"pty.spawn",                  {{0, ProcessTargetFormat::FirstToken}}},
+    // The first argument is argv; its first element names the program.
+    {"_posixsubprocess.fork_exec", {{0, ProcessTargetFormat::FirstToken}}},
 };
 
 AuditEventCategory open_category(PyObject* args)
@@ -1668,6 +1823,115 @@ AuditEventCategory open_category(PyObject* args)
     if (!mode.empty() && mode.find_first_of("wax+") == std::string::npos)
         return AuditEventCategory::FsRead;
     return AuditEventCategory::FsReadWrite;
+}
+
+// The first token of a command string, or the first element of an argv sequence. A sequence
+// element is kept whole, so an executable path may contain spaces.
+std::string first_process_token(PyObject* object)
+{
+    if (!object)
+        return {};
+
+    std::string text;
+    if (python_text(object, text)) {
+        const size_t start = text.find_first_not_of(" \t\r\n");
+        if (start == std::string::npos)
+            return {};
+        const size_t end = text.find_first_of(" \t\r\n", start);
+        return text.substr(start, end == std::string::npos ? std::string::npos : end - start);
+    }
+
+    if (!PySequence_Check(object))
+        return python_path(object);
+
+    PyObject* first = PySequence_GetItem(object, 0); // new reference
+    if (!first) {
+        PyErr_Clear();
+        return {};
+    }
+    std::string value = python_path(first);
+    Py_DECREF(first);
+    return value;
+}
+
+// The grant target for a Windows command line. Windows does not split it like a POSIX shell: a
+// path that contains spaces is enclosed in double quotes, and backslashes before a quote follow
+// the CommandLineToArgvW rules (2n backslashes and a quote give n backslashes and end the
+// argument, 2n+1 give n backslashes and a literal quote).
+//
+// A quoted first argument names the executable unambiguously and is returned alone, as is a
+// command line that is only the executable: both keep the argument-insensitive executable grant.
+// An unquoted first argument followed by more text is different. CreateProcess resolves it by
+// trying successively longer prefixes of the name, so the first whitespace-delimited token need
+// not be the executable it starts (the command line "C:\Program Files\app.exe --x" can start
+// "C:\Program Files\app.exe", not "C:\Program"). Such a command line is returned as one exact
+// grant instead, because granting the first token would describe a different program and would
+// cover every later command line with that token.
+std::string windows_command_line_target(const std::string& command_line)
+{
+    size_t index = command_line.find_first_not_of(" \t");
+    if (index == std::string::npos)
+        return {};
+
+    if (command_line[index] != '"') {
+        const size_t end       = command_line.find_first_of(" \t", index);
+        const size_t token_end = end == std::string::npos ? command_line.size() : end;
+        if (command_line.find_first_not_of(" \t", token_end) != std::string::npos)
+            return exact_command_grant(command_line.substr(index));
+        return command_line.substr(index, token_end - index);
+    }
+
+    std::string token;
+    ++index; // the opening quote is not part of the argument
+    while (index < command_line.size()) {
+        if (command_line[index] == '\\') {
+            size_t backslashes = 0;
+            while (index < command_line.size() && command_line[index] == '\\') {
+                ++backslashes;
+                ++index;
+            }
+            if (index < command_line.size() && command_line[index] == '"') {
+                token.append(backslashes / 2, '\\');
+                if (backslashes % 2) {
+                    token.push_back('"');
+                    ++index;
+                } else {
+                    ++index; // the closing quote
+                    break;
+                }
+            } else {
+                token.append(backslashes, '\\');
+            }
+            continue;
+        }
+        if (command_line[index] == '"') {
+            ++index; // the closing quote
+            break;
+        }
+        token.push_back(command_line[index]);
+        ++index;
+    }
+    return token;
+}
+
+std::string process_target(const ProcessTargetSource& source, PyObject* args)
+{
+    PyObject* const item = tuple_item(args, source.index);
+    if (!item || item == Py_None)
+        return {};
+    switch (source.format) {
+    case ProcessTargetFormat::Path:
+        return python_path(item);
+    case ProcessTargetFormat::FirstToken:
+        return first_process_token(item);
+    case ProcessTargetFormat::WindowsCommandLine: {
+        std::string command_line;
+        if (python_text(item, command_line))
+            return windows_command_line_target(command_line);
+        return first_process_token(item);
+    }
+    }
+    return {};
 }
 
 std::vector<std::string> audit_targets(const std::string& event_name, AuditEventCategory category, PyObject* args)
@@ -1687,6 +1951,24 @@ std::vector<std::string> audit_targets(const std::string& event_name, AuditEvent
         }
         return targets;
     }
+    case AuditEventCategory::ProcessCreate:
+    case AuditEventCategory::ProcessReplace: {
+        // The shells a command string may run in, not the command itself. Every possible
+        // interpreter has to be granted before the event is allowed.
+        if (event_name == "os.system")
+            return system_shell_targets();
+        const auto it = process_target_sources.find(event_name);
+        if (it == process_target_sources.end())
+            return targets;
+        for (const ProcessTargetSource& source : it->second) {
+            std::string value = process_target(source, args);
+            if (!value.empty()) {
+                targets.push_back(std::move(value));
+                break;
+            }
+        }
+        return targets;
+    }
     case AuditEventCategory::Threading:
         // Thread creation exposes no user-supplied target. Use a fixed sentinel so the grant
         // persists per plugin: the permission list matches targets by exact string, and the
@@ -1697,18 +1979,14 @@ std::vector<std::string> audit_targets(const std::string& event_name, AuditEvent
         break;
     }
 
-    const auto it = audit_target_arg_indices.find(event_name);
-    if (it != audit_target_arg_indices.end()) {
-        for (const Py_ssize_t index : it->second) {
-            // None is an argument left out (sendmsg without an address), not a target named "None".
-            PyObject* const item = tuple_item(args, index);
-            if (item == Py_None)
-                continue;
+    const auto it = network_target_arg_indices.find(event_name);
+    if (it != network_target_arg_indices.end()) {
+        // None is an argument left out (sendmsg without an address), not a target named "None".
+        PyObject* const item = tuple_item(args, it->second);
+        if (item != Py_None) {
             std::string value = python_str(item);
-            if (!value.empty()) {
+            if (!value.empty())
                 targets.push_back(std::move(value));
-                break;
-            }
         }
     }
 
@@ -2369,7 +2647,8 @@ int report_denied(PluginAuditManager&            mgr,
 
 wxString audit_message(AuditEventCategory category, const wxString& plugin_name, const wxString& event_name,
                        const wxString& target_list, size_t target_count, bool full_fs_scope = false,
-                       bool tree_scope = false, bool root_tree_scope = false)
+                       bool tree_scope = false, bool root_tree_scope = false, bool exact_process_command = false,
+                       bool executable_process_target = false)
 {
     // Create and delete grants name folders, and a declaration may ask for the whole filesystem
     // with a sole "*". Describe that scope instead of printing the marker as a folder.
@@ -2509,13 +2788,43 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
                "Approval covers raw network connections to the listed hosts. It does not restrict ports."),
             plugin_name, target_list);
     case AuditEventCategory::ProcessCreate:
-        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to run the following command:\n%s",
-                                          "Plugin \"%s\" is requesting to run the following commands:\n%s", target_count),
+        // An exact command line is saved with its arguments rather than as a tool name, so the
+        // prompt must not promise that approval covers any arguments. The full line is stored,
+        // which can include credentials or tokens in its arguments.
+        if (exact_process_command && !executable_process_target)
+            return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to run the following exact command line:\n%s\n\n"
+                                              "Approval is saved for this exact command line, including its arguments, and covers "
+                                              "only it. A different command line, including different arguments, asks again. The "
+                                              "full command line is shown and saved, so it may contain sensitive values.",
+                                              "Plugin \"%s\" is requesting to run the following exact command lines:\n%s\n\n"
+                                              "Approval is saved for each exact command line, including its arguments, and covers "
+                                              "only that line. A different command line, including different arguments, asks again. "
+                                              "The full command lines are shown and saved, so they may contain sensitive values.",
+                                              target_count),
+                                    plugin_name, target_list);
+        if (exact_process_command)
+            return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to run the following commands:\n%s\n\n"
+                                              "Approval covers the listed executables with any arguments. A listed exact command "
+                                              "line is saved with its arguments and covers only that command line. Exact command "
+                                              "lines are shown and saved in full, so they may contain sensitive values. Approving a "
+                                              "shell allows it to run any command.",
+                                              "Plugin \"%s\" is requesting to run the following commands:\n%s\n\n"
+                                              "Approval covers the listed executables with any arguments. Each listed exact command "
+                                              "line is saved with its arguments and covers only that command line. Exact command "
+                                              "lines are shown and saved in full, so they may contain sensitive values. Approving a "
+                                              "shell allows it to run any command.",
+                                              target_count),
+                                    plugin_name, target_list);
+        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to run the following command:\n%s\n\n"
+                                          "Approval covers any arguments. Approving a shell allows it to run any command.",
+                                          "Plugin \"%s\" is requesting to run the following commands:\n%s\n\n"
+                                          "Approval covers any arguments. Approving a shell allows it to run any command.", target_count),
                                 plugin_name, target_list);
     case AuditEventCategory::Threading:
         return wxString::Format(_L("Plugin \"%s\" is requesting permission to create a thread."), plugin_name);
     case AuditEventCategory::ProcessReplace:
-        return wxString::Format(_L("Plugin \"%s\" is requesting to replace the running application with:\n%s"), plugin_name, target_list);
+        return wxString::Format(_L("Plugin \"%s\" is requesting to replace the running application with:\n%s\n\n"
+                                   "Approval covers any arguments. Approving a shell allows it to run any command."), plugin_name, target_list);
     default:
         return wxString::Format(_L("Plugin \"%s\" is requesting permission for the Python audit event \"%s\"."), plugin_name, event_name);
     }
@@ -2525,17 +2834,19 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
 PermissionMessage formatted_audit_message(AuditEventCategory category, const wxString& plugin_name,
                                           const wxString& event_name, const wxString& targets, size_t count,
                                           bool full_fs_scope = false, bool tree_scope = false,
-                                          bool root_tree_scope = false)
+                                          bool root_tree_scope = false, bool exact_process_command = false,
+                                          bool executable_process_target = false)
 {
     if (targets.empty())
         return {audit_message(category, plugin_name, event_name, targets, count, full_fs_scope, tree_scope,
-                              root_tree_scope), {}};
+                              root_tree_scope, exact_process_command, executable_process_target), {}};
 
     wxString marker = "__ORCA_PERMISSION_TARGETS__";
     while (plugin_name.Contains(marker) || event_name.Contains(marker) || targets.Contains(marker))
         marker += "_";
     PermissionMessage message{
-        audit_message(category, plugin_name, event_name, marker, count, full_fs_scope, tree_scope, root_tree_scope), {}};
+        audit_message(category, plugin_name, event_name, marker, count, full_fs_scope, tree_scope, root_tree_scope,
+                      exact_process_command, executable_process_target), {}};
     const size_t pos = message.text.find(marker);
     if (pos != wxString::npos) {
         message.text.replace(pos, marker.length(), targets);
@@ -2620,9 +2931,16 @@ bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_n
         return show_permission_dialog(message, _L("Plugin permission request"));
     }
 
+    const bool process_category =
+        category == AuditEventCategory::ProcessCreate || category == AuditEventCategory::ProcessReplace;
+    const ProcessPromptScope process_scope =
+        process_category ? process_prompt_scope(unresolved) : ProcessPromptScope{};
+
     wxString target_list;
-    for (const auto& target : unresolved)
-        target_list += wxString::FromUTF8(target.c_str()) + "\n";
+    for (const auto& target : unresolved) {
+        const std::string shown = process_category ? process_target_for_display(target) : target;
+        target_list += wxString::FromUTF8(shown.c_str()) + "\n";
+    }
 
     const bool tree_scope = std::any_of(unresolved.begin(), unresolved.end(), [](const std::string& target) {
         boost::filesystem::path root;
@@ -2632,7 +2950,8 @@ bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_n
     PermissionMessage message = formatted_audit_message(category, wxString::FromUTF8(plugin_name.c_str()),
                                                          wxString::FromUTF8(event_name.c_str()), target_list,
                                                          unresolved.size(), /*full_fs_scope=*/false, tree_scope,
-                                                         /*root_tree_scope=*/false);
+                                                         /*root_tree_scope=*/false, process_scope.exact_command,
+                                                         process_scope.executable);
     return show_permission_dialog(message, _L("Plugin permission request"));
 }
 
@@ -2664,16 +2983,24 @@ PermissionMessage build_permission_message(const std::string& plugin_name, const
                 return tree_grant_root(target, root) && is_filesystem_root(root);
             });
 
+        const bool process_category =
+            bucket.category == AuditEventCategory::ProcessCreate || bucket.category == AuditEventCategory::ProcessReplace;
+        const ProcessPromptScope process_scope =
+            process_category ? process_prompt_scope(bucket.targets) : ProcessPromptScope{};
+
         wxString targets;
         if (!full_fs_scope)
-            for (const std::string& target : bucket.targets)
-                targets += wxString::FromUTF8(target.c_str()) + "\n";
+            for (const std::string& target : bucket.targets) {
+                const std::string shown = process_category ? process_target_for_display(target) : target;
+                targets += wxString::FromUTF8(shown.c_str()) + "\n";
+            }
 
         if (!message.text.IsEmpty())
             message.text += "\n\n";
         PermissionMessage part = formatted_audit_message(bucket.category, wxString::FromUTF8(plugin_name.c_str()),
                                                           wxEmptyString, targets, bucket.targets.size(),
-                                                          full_fs_scope, tree_scope, root_tree_scope);
+                                                          full_fs_scope, tree_scope, root_tree_scope,
+                                                          process_scope.exact_command, process_scope.executable);
         for (const auto& range : part.targets)
             message.targets.emplace_back(message.text.length() + range.first, range.second);
         message.text += part.text;
