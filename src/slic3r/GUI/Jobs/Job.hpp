@@ -22,6 +22,7 @@ public:
     enum JobPrepareState {
         PREPARE_STATE_DEFAULT = 0,
         PREPARE_STATE_MENU = 1,
+        PREPARE_STATE_SELECTION = 2, // arrange only the selected objects of the current plate
     };
 
     // A controller interface that informs the job about cancellation and

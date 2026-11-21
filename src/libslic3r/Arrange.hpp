@@ -141,6 +141,8 @@ struct ArrangeParams {
     bool allow_rotations = false;
 
     bool do_final_align = true;
+    // Final alignment looks only at the items being arranged and ignores the fixed ones
+    bool align_movable_only = false;
 
     //BBS: add specific arrange params
     bool  allow_multi_materials_on_same_plate = true;
