@@ -34,6 +34,9 @@ struct PrinterAgentInfo
     std::string         display_name; // e.g., "Orca Native", "Bambu Lab"
     std::string         plugin_identifier;     // Empty for built-ins, otherwise <plugin_key>;<uuid>;<capability_name>
     PrinterAgentFactory factory;      // Function to create the agent
+    // Creates an agent instance of its own for one more printer (the Multi-device tab). Empty when
+    // `factory` already makes a new instance per call, as the built-in agents' factories do.
+    PrinterAgentFactory device_factory;
 
     bool is_plugin() const { return !plugin_identifier.empty(); }
     PrinterAgentInfo(const std::string& id_, const std::string& display_name_, PrinterAgentFactory factory_)
@@ -132,6 +135,12 @@ public:
      * Should be called during application shutdown before destroying the NetworkAgent.
      */
     static void clear_printer_agent_cache();
+
+    /**
+     * An agent instance of its own for one more printer, apart from the cached live agent, or
+     * nullptr. Bambu's agent and the "orca" stub get none: the Multi-device tab keeps its Bambu path.
+     */
+    static std::shared_ptr<IPrinterAgent> create_device_printer_agent(const std::string& id, const std::string& log_dir);
 
     // ========================================================================
     // Cloud Agent Factory

@@ -176,6 +176,11 @@ void TaskManager::set_agent(NetworkAgent* agent)
     m_agent = agent;
 }
 
+void TaskManager::set_device_print(DevicePrintFn fn)
+{
+    m_device_print = std::move(fn);
+}
+
 
 int TaskManager::start_print(const std::vector<PrintParams>& params, TaskSettings* settings)
 {
@@ -256,7 +261,12 @@ int TaskManager::schedule(TaskStateInfo* task)
 #if 0
                     result = start_print_test(task->get_params(), task->update_status_fn, task->cancel_fn, task->wait_fn);
 #else
-                    result = agent->start_print(task->get_params(), task->update_status_fn, task->cancel_fn, task->wait_fn);
+                    // A LAN printer's own agent, never whichever printer the live agent last connected to
+                    std::optional<int> device_result;
+                    if (m_device_print)
+                        device_result = m_device_print(task->get_params(), task->update_status_fn, task->cancel_fn);
+                    result = device_result ? *device_result :
+                                             agent->start_print(task->get_params(), task->update_status_fn, task->cancel_fn, task->wait_fn);
 #endif
                 } catch (const std::exception& ex) {
                     BOOST_LOG_TRIVIAL(error) << "task_manager: start_print threw: " << ex.what();
