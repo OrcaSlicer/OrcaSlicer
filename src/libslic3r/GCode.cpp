@@ -8410,6 +8410,7 @@ void GCode::append_full_config(const Print &print, std::string &str)
         "filament_colour_type"sv,
         "print_host"sv,
         "print_host_webui"sv,
+        "disable_device_tab"sv,
         "printhost_apikey"sv,
         "printhost_cafile"sv,
         "printhost_user"sv,

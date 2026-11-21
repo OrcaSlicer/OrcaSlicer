@@ -253,6 +253,16 @@ void PrinterWebView::load_url(wxString& url, wxString apikey)
     UpdateState();
 }
 
+void PrinterWebView::unload()
+{
+    m_url.clear();
+    m_url_deferred.clear();
+    m_apikey.clear();
+    m_apikey_sent = false;
+    m_url_loaded  = false;
+    m_browser->LoadURL("about:blank");
+}
+
 bool PrinterWebView::Show(bool show)
 {
     if (show && std::exchange(m_reset_on_show, false))

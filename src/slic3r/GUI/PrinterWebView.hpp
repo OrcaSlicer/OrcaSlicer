@@ -44,6 +44,8 @@ public:
     virtual ~PrinterWebView();
 
     void load_url(wxString& url, wxString apikey = "");
+    // Orca: drops the page, and any camera stream it opened, even while the view is hidden.
+    void unload();
     void UpdateState();
     void OnClose(wxCloseEvent& evt);
     void OnError(wxWebViewEvent& evt);

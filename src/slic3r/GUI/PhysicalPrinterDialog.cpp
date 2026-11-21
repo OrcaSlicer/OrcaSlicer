@@ -370,6 +370,8 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
     option.opt.width = Field::def_width_wider();
     m_optgroup->append_single_option_line(option);
 
+    m_optgroup->append_single_option_line("disable_device_tab");
+
     {
         // For bbl printers, we build a fake option to control whether the original device tab should be used
         ConfigOptionDef def;
