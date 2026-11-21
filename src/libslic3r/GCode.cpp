@@ -9929,9 +9929,7 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
         // TODO: with the overhang speed and flow before the role change is flagged in the path.role() function.
         if(role_change)
             evaluate_adaptive_pa = true;
-        // Orca: a gap fill line is split into one separate path per width change, so Adaptive PA changes
-        // PA on nearly every line of gcode, sometimes causing juddering (as seen in orcaslicer issue #14264)
-        // IF APA is enabled, evaluate it once per extrusion run: when the gap fill starts, and again after any travel 
+        // Orca: classic gap fill is one path per width change, so without APA within features evaluate PA only when the run starts.
         if (path.role() == erGapFill && !adaptive_pa_overhangs)
             evaluate_adaptive_pa = role_change || path_starts_after_travel;
     }
