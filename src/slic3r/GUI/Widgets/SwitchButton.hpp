@@ -15,6 +15,7 @@
 #include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include <wx/scrolwin.h>
+#include <wx/setup.h>
 #include <wx/string.h>
 #include <wx/tglbtn.h>
 #include "Button.hpp"
@@ -46,6 +47,15 @@ public:
 
 #ifdef __WXMSW__
     bool MSWCommand(WXUINT param, WXWORD id) override;
+#endif
+
+protected:
+#if wxUSE_ACCESSIBILITY
+    // ORCA: this is a 2-state switch (e.g. Global/Objects), not a plain
+    // button - its bitmap-only rendering has no accessible text of its own,
+    // so route through WidgetAccessible with a name kept in sync with the
+    // current label in update().
+    wxAccessible* CreateAccessible() override;
 #endif
 
 private:
