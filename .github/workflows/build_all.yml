@@ -131,13 +131,15 @@ jobs:
     strategy:
       fail-fast: false
       # Hosted macOS runners are scarce, so a pull request builds arm64 only and
-      # ships it as its own DMG; build_optional.yml builds x86_64 on the
-      # build-macos-x86_64 label. Pushes build both and combine them below.
+      # ships it as its own DMG. Pushes build both and combine them below.
       matrix:
         arch: ${{ fromJSON(github.event_name == 'pull_request' && '["arm64"]' || '["arm64", "x86_64"]') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
-      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
+      # macos-15 is the arm64 pool, so an x86_64 build there is a cross build and
+      # CMake forces BUILD_TESTS off, which leaves nothing for the test artifact.
+      # The Intel pool builds x86_64 natively. A self-hosted Mac covers both.
+      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || (matrix.arch == 'arm64' && 'macos-15' || 'macos-15-intel') }}
       arch: ${{ matrix.arch }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
       clean: ${{ inputs.clean-build || false }}

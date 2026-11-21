@@ -267,13 +267,15 @@ jobs:
           ./build_release_macos.sh -s -n -x ${{ !vars.SELF_HOSTED && '-j 3' || '' }} -T -a ${{ inputs.arch }} -t 10.15
 
       - name: Pack unit tests mac
-        if: runner.os == 'macOS' && !inputs.macos-combine-only && (inputs.arch == 'arm64' || inputs.arch == 'x86_64')
+        # A self-hosted Mac is arm64, so its x86_64 slice is a cross build with
+        # tests forced off.
+        if: runner.os == 'macOS' && !inputs.macos-combine-only && (inputs.arch == 'arm64' || (!vars.SELF_HOSTED && inputs.arch == 'x86_64'))
         working-directory: ${{ github.workspace }}
         run: |
             tar -cvf build_tests.tar build/${{ inputs.arch }}/tests
 
       - name: Upload Test Artifact mac
-        if: runner.os == 'macOS' && !inputs.macos-combine-only && (inputs.arch == 'arm64' || inputs.arch == 'x86_64')
+        if: runner.os == 'macOS' && !inputs.macos-combine-only && (inputs.arch == 'arm64' || (!vars.SELF_HOSTED && inputs.arch == 'x86_64'))
         uses: actions/upload-artifact@v7
         with:
           name: ${{ github.sha }}-tests-macos-${{ inputs.arch }}
