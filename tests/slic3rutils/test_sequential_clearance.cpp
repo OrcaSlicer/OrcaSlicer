@@ -69,6 +69,15 @@ TEST_CASE("Sequential clearance applies rod height only to positive Y overlap", 
     CHECK_THAT(warnings.front().second, WithinAbs(next_y < 10 ? 10. : 30., 1e-6));
 }
 
+TEST_CASE("The drag preview checks the gantry travel axis", "[SequentialClearance][GantryTravel]")
+{
+    const std::vector<SequentialClearanceInstance> parts{instance(0, 0, 50.), instance(0, 20, 50.)};
+    CHECK(sequential_clearance_height_polygons(parts, 200., 100., 10., Slic3r::Y).empty());
+    const auto warnings = sequential_clearance_height_polygons(parts, 200., 100., 10., Slic3r::X);
+    REQUIRE(warnings.size() == 1);
+    CHECK_THAT(warnings.front().second, WithinAbs(10., 1e-6));
+}
+
 TEST_CASE("Sequential clearance allows the last object up to printable height", "[SequentialClearance]")
 {
     std::vector<SequentialClearanceInstance> instances;
@@ -124,7 +133,7 @@ TEST_CASE("Sequential clearance warns the same copy as print validation", "[Sequ
     CHECK_FALSE(validation_warnings.front().first.bounding_box().contains(instances[1].bounding_box.center()));
 
     sort_sequential_clearance_instances(instances.begin(), instances.end(), print_order);
-    const auto warnings = sequential_clearance_height_polygons(instances, printable_height, lid_height, rod_height);
+    const auto warnings = sequential_clearance_height_polygons(instances, printable_height, lid_height, rod_height, gantry_travel_axis(config));
     REQUIRE(warnings.size() == 1);
     CHECK(warnings.front().first == instances[0].hull_polygon);
     CHECK_THAT(warnings.front().second, WithinAbs(rod_height, 1e-6));
