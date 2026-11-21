@@ -389,6 +389,12 @@ function run_in_docker() {
     if [[ -n "${ORCA_UPDATER_SIG_KEY}" ]] ; then
         container_env+=( -e "ORCA_UPDATER_SIG_KEY=${ORCA_UPDATER_SIG_KEY}" )
     fi
+    if [[ -n "${ORCA_BUILD_TIMESTAMP}" ]] ; then
+        container_env+=( -e "ORCA_BUILD_TIMESTAMP=${ORCA_BUILD_TIMESTAMP}" )
+    fi
+    if [[ -n "${ORCA_RELEASE_BUILD}" ]] ; then
+        container_env+=( -e "ORCA_RELEASE_BUILD=${ORCA_RELEASE_BUILD}" )
+    fi
 
     ensure_docker_runner_image "${container_cli}" "${runner_image}"
 
@@ -624,6 +630,12 @@ if [[ -n "${BUILD_ORCA}" ]] || [[ -n "${BUILD_TESTS}" ]] ; then
     fi
     if [[ -n "${ORCA_UPDATER_SIG_KEY}" ]] ; then
         BUILD_ARGS+=(-DORCA_UPDATER_SIG_KEY="${ORCA_UPDATER_SIG_KEY}")
+    fi
+    # Linux ships no updater helper, so this build needs no signature pin; it is
+    # told it is a release all the same, which is what the release workflow asks
+    # of every platform it publishes from.
+    if [[ -n "${ORCA_RELEASE_BUILD}" ]] ; then
+        BUILD_ARGS+=(-DORCA_RELEASE_BUILD=ON)
     fi
 
     print_and_run cmake -S . -B $BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" "${CMAKE_CCACHE_ARGS[@]}" -G "Ninja Multi-Config" \

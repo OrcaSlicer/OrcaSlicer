@@ -12,6 +12,7 @@
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Semver.hpp"
+#include "libslic3r/UpdateHandoff.hpp"
 #include "calib.hpp"
 
 #define ENV_DEV_HOST		"0"
@@ -378,6 +379,26 @@ public:
 
 	// Get the Orca profile update url.
 	std::string 		profile_update_url() const;
+
+	// Update channel the user picked: "stable", "prerelease" or "nightly". Empty means stable.
+	std::string 		update_channel() const { return this->get("update_channel"); }
+	void 				set_update_channel(const std::string& channel) { this->set("update_channel", channel); }
+
+	// Identity of the build that is installed: the artifact digest it came from and
+	// the channel it came from. Empty until the first in-app update.
+	std::string 		installed_artifact(const std::string& install_root) const
+							{ return this->get(install_identity_key(install_root)); }
+	// Both values are keyed by install root: two copies of the application share one
+	// config file, and one must not be read as the other. The artifact lives under
+	// install_identity_key(root), the channel under that key plus ".channel".
+	std::string 		installed_channel(const std::string& install_root) const;
+	void 				set_installed_build(const std::string& install_root, const std::string& channel, const std::string& artifact);
+	// Moves a build recorded before the identity was keyed by install root into this root's slot.
+	void 				migrate_installed_artifact(const std::string& install_root);
+
+	// Artifact digest the user asked not to be offered again (nightly channel).
+	std::string 		skip_artifact() const { return this->get("skip_artifact"); }
+	void 				set_skip_artifact(const std::string& artifact) { this->set("skip_artifact", artifact); }
 
 	// Returns the original Slic3r version found in the ini file before it was overwritten
 	// by the current version

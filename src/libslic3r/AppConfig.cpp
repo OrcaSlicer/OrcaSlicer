@@ -5,6 +5,7 @@
 #include "Semver.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/UpdateHandoff.hpp"
 #include "libslic3r/Format/DRC.hpp"
 #include "AppConfig.hpp"
 //BBS
@@ -2014,6 +2015,40 @@ bool AppConfig::exists()
 std::string AppConfig::load_if_exists()
 {
     return boost::filesystem::exists(loading_path()) ? load(/*read_only=*/true) : std::string();
+}
+
+std::string AppConfig::installed_channel(const std::string& install_root) const
+{
+    return get(install_identity_key(install_root) + ".channel");
+}
+
+void AppConfig::set_installed_build(const std::string& install_root, const std::string& channel,
+                                    const std::string& artifact)
+{
+    const std::string key = install_identity_key(install_root);
+    set(key, artifact);
+    set(key + ".channel", channel);
+}
+
+void AppConfig::migrate_installed_artifact(const std::string& install_root)
+{
+    const std::string key = install_identity_key(install_root);
+
+    const std::string legacy_artifact = get("installed_artifact");
+    if (!legacy_artifact.empty()) {
+        if (get(key).empty())
+            set(key, legacy_artifact);
+        // The keyed slot is authoritative from here on, or the unkeyed value would be claimed
+        // by whichever copy of the application starts next.
+        erase("app", "installed_artifact");
+    }
+
+    const std::string legacy_channel = get("installed_channel");
+    if (!legacy_channel.empty()) {
+        if (get(key + ".channel").empty())
+            set(key + ".channel", legacy_channel);
+        erase("app", "installed_channel");
+    }
 }
 
 }; // namespace Slic3r

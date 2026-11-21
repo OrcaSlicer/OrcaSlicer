@@ -18,8 +18,8 @@
     damaged signature, if a file named directly is not signed with the release certificate, or if
     a signature made with the release certificate has no timestamp.
 
-    build_orca.yml sets the environment. CMakeLists.txt wires the script into the NSIS installer
-    build when ORCA_SIGN_KMS_KEY is set at configure time.
+    build_orca.yml and build_win.bat pass the command to makensis as ORCA_SIGN_CMD, which
+    signs the staged payload, the uninstaller the installer writes, and the installer itself.
 
     Environment:
       ORCA_SIGN_KMS_KEY   Cloud KMS key version:
@@ -29,8 +29,8 @@
       ORCA_SIGN_TOKEN     OAuth access token allowed to sign with the key. Not needed for -Verify.
       ORCA_SIGN_REUSE     Optional record of the files signed so far, kept across runs of this script.
                           A file whose content before signing matches one already signed takes a copy
-                          of that signed file instead of being signed again; cpack installs a fresh
-                          copy of the app for the installer. Created if missing.
+                          of that signed file instead of being signed again; the installer step
+                          installs a fresh copy of the app to stage from. Created if missing.
 
     Runs under PowerShell 7 and Windows PowerShell 5.1.
 
