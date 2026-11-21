@@ -62,11 +62,17 @@ public:
     void on_plugin_register(const std::string& plugin_key);
     void on_plugin_deregister(const std::string& plugin_key);
 
-    void set_visible_page_count(int count);
-
     void relayout();
 
     void select_page(const PluginCapabilityId& id);
+
+    // How many of the tabs, in order, fit in `room`, leaving room for the overflow button when not
+    // all of them fit.
+    static int fitting_tabs(int room, const std::vector<int>& widths, int overflow_width);
+    // The plugin pages shown as tabs: the first visible_slots - 1 in `order`, then the page the user
+    // picked from the overflow menu when it is in the overflow, else the first page there.
+    static std::vector<PluginCapabilityId> plugin_tab_ids(const std::vector<PluginCapabilityId>& order, int visible_slots,
+                                                          const std::optional<PluginCapabilityId>& picked);
 
 private:
     std::shared_ptr<PagesPluginCapability> get_pages_cap(const PluginCapabilityId& id, bool is_enabled) const;
@@ -74,6 +80,8 @@ private:
     void remove_page(const PluginCapabilityId& id);
 
     void show_overflow_menu();
+    // How many plugin tabs fit in the tab bar next to the built-in tabs.
+    int fitting_page_count() const;
     static wxString page_tab_id(const PluginCapabilityId& id);
 
     struct Page
@@ -86,9 +94,9 @@ private:
     std::vector<PluginCapabilityId> m_order;
     Notebook* m_parent{nullptr};
 
-    int m_visible_page_count{0};
+    int m_visible_slots{1};
 
-    std::optional<PluginCapabilityId> m_swapped_in_id;
+    std::optional<PluginCapabilityId> m_swapped_in_id; // picked by the user, never a default; kept until another pick or its page is removed
     wxWindow* m_overflow_button{nullptr};
 };
 

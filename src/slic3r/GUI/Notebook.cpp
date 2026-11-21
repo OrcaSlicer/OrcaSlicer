@@ -11,9 +11,11 @@
 #include <wx/bookctrl.h>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <utility>
 #include <string>
 #include <algorithm>
+#include <vector>
 #include <wx/button.h>
 #include <wx/colour.h>
 #include <wx/dcclient.h>
@@ -21,8 +23,11 @@
 #include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include <wx/window.h>
+#include <wx/cursor.h>
+#include <wx/toplevel.h>
 
 wxDEFINE_EVENT(wxCUSTOMEVT_NOTEBOOK_SEL_CHANGED, wxCommandEvent);
+wxDEFINE_EVENT(wxCUSTOMEVT_NOTEBOOK_PAGES_REORDERED, wxCommandEvent);
 
 ButtonsListCtrl::ButtonsListCtrl(wxWindow *parent, wxBoxSizer* side_tools) :
     wxControl(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxTAB_TRAVERSAL)
@@ -52,6 +57,7 @@ ButtonsListCtrl::ButtonsListCtrl(wxWindow *parent, wxBoxSizer* side_tools) :
     m_buttons_sizer = new wxFlexGridSizer(1, m_btn_margin, m_btn_margin);
     m_sizer->Add(m_buttons_sizer, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxBOTTOM, m_btn_margin);
 
+    m_side_tools = side_tools;
     if (side_tools != NULL) {
         m_sizer->AddStretchSpacer(1);
         for (size_t idx = 0; idx < side_tools->GetItemCount(); idx++) {
@@ -68,6 +74,16 @@ ButtonsListCtrl::ButtonsListCtrl(wxWindow *parent, wxBoxSizer* side_tools) :
     //this->Bind(wxEVT_PAINT, &ButtonsListCtrl::OnPaint, this);
     Bind(wxEVT_SYS_COLOUR_CHANGED, [](auto& e){
     });
+
+    // ORCA: tab dragging. The mouse is captured by this control while a tab is dragged.
+    Bind(wxEVT_MOTION, &ButtonsListCtrl::OnDragMotion, this);
+    Bind(wxEVT_LEFT_UP, [this](wxMouseEvent& evt) {
+        if (m_drag_from >= 0)
+            EndDrag(true);
+        else
+            evt.Skip();
+    });
+    Bind(wxEVT_MOUSE_CAPTURE_LOST, [this](wxMouseCaptureLostEvent&) { EndDrag(false); });
 }
 
 void ButtonsListCtrl::OnPaint(wxPaintEvent&)
@@ -184,9 +200,8 @@ bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /*
         btn->SetIconSpacing(5 + space_w);
     }
 
-    int em = em_unit(this);
     //BBS set size for button
-    btn->SetMinSize({(text.empty() ? 40 : 136) * em / 10, 36 * em / 10});
+    btn->SetMinSize({GetTabWidth(text.empty()), 36 * em_unit(this) / 10});
 
     StateColor bg_color = StateColor(
         std::pair{wxColour(107, 107, 107), (int) StateColor::Hovered},
@@ -207,8 +222,13 @@ bool ButtonsListCtrl::InsertPage(size_t n, const wxString &text, bool bSelect /*
             wxPostEvent(this->GetParent(), evt);
         }
     });
+    btn->Bind(wxEVT_LEFT_DOWN, [this, btn](wxMouseEvent& evt) { OnTabLeftDown(evt, btn); });
     Slic3r::GUI::wxGetApp().UpdateDarkUI(btn);
     m_pageButtons.insert(m_pageButtons.begin() + n, btn);
+    // ORCA: keep the selection on the same button, or SetSelection() later resets the wrong one and
+    // the selected colour stays on a tab that is no longer selected.
+    if (m_selection >= static_cast<int>(n))
+        ++m_selection;
     m_pageLabels.insert(m_pageLabels.begin() + n, text); // ORCA
     m_pageIcons.insert(m_pageIcons.begin() + n, bmp_name);
     m_buttons_sizer->Insert(n, new wxSizerItem(btn));
@@ -264,9 +284,8 @@ void ButtonsListCtrl::SetPageText(size_t n, const wxString& strText)
 // ORCA
 void ButtonsListCtrl::SetCompact(size_t n, bool compact)
 {
-    int em = em_unit(this);
     Button* btn = m_pageButtons[n];
-    btn->SetMinSize({(compact ? 40 : 136) * em / 10, 36 * em / 10});
+    btn->SetMinSize({GetTabWidth(compact), 36 * em_unit(this) / 10});
     btn->SetLabel(compact ? "" : m_pageLabels[n]);
 }
 
@@ -300,7 +319,216 @@ void ButtonsListCtrl::SetOverflowButton(wxWindow* button)
     m_sizer->Layout();
 }
 
+// ORCA
+int ButtonsListCtrl::GetTabWidth(bool compact)
+{
+    return (compact ? 40 : 136) * em_unit(this) / 10;
+}
+
+// ORCA: width of the shown contents of a horizontal sizer. Measured from the widgets rather than
+// the sizer's cached minimum, which lags behind a Show()/Hide() until the next layout.
+static int shown_width(wxSizer* sizer)
+{
+    int width = 0;
+    for (wxSizerItem* item : sizer->GetChildren()) {
+        if (item->IsSizer())
+            width += shown_width(item->GetSizer());
+        else if (wxWindow* win = item->GetWindow()) {
+            if (!win->IsShown())
+                continue;
+            width += win->GetSizer() != nullptr ? shown_width(win->GetSizer()) : win->GetBestSize().GetWidth();
+        } else
+            width += item->GetSpacer().GetWidth();
+        width += item->GetBorder() * (((item->GetFlag() & wxLEFT) ? 1 : 0) + ((item->GetFlag() & wxRIGHT) ? 1 : 0));
+    }
+    return width;
+}
+
+// ORCA: the side tools (Slice/Print) only show on Prepare and Preview, and only take room there.
+// The margin is the one MainFrame::fit_tab_labels() keeps in front of them.
+int ButtonsListCtrl::GetTabsAreaWidth() const
+{
+    const int side_tools = m_side_tools != nullptr ? shown_width(m_side_tools) : 0;
+    return GetClientSize().GetWidth() - side_tools - FromDIP(15);
+}
+
+// ORCA: Button::messureSize() with the label shown: an icon-only tab's width (icon and padding)
+// plus the text and the icon gap set in InsertPage().
+int ButtonsListCtrl::GetFullTabWidth(const wxString& label)
+{
+    if (label.empty())
+        return GetTabWidth(true);
+    // In the tab buttons' font, which can differ from the bar's.
+    const wxWindow* text = m_pageButtons.empty() ? static_cast<const wxWindow*>(this) : m_pageButtons.front();
+    return std::max(GetTabWidth(false), GetTabWidth(true) + text->GetTextExtent(label).GetWidth() + 5 + text->GetTextExtent(" ").GetWidth());
+}
+
+// ORCA
+void ButtonsListCtrl::MovePage(size_t from, size_t to)
+{
+    if (from == to || from >= m_pageButtons.size() || to >= m_pageButtons.size())
+        return;
+
+    auto move = [from, to](auto& items) {
+        auto item = std::move(items[from]);
+        items.erase(items.begin() + from);
+        items.insert(items.begin() + to, std::move(item));
+    };
+    Button* btn = m_pageButtons[from];
+    move(m_pageButtons);
+    move(m_pageLabels);
+    move(m_pageIcons);
+
+    const int f = static_cast<int>(from), t = static_cast<int>(to);
+    if (m_selection == f)
+        m_selection = t;
+    else if (f < m_selection && m_selection <= t)
+        --m_selection;
+    else if (t <= m_selection && m_selection < f)
+        ++m_selection;
+
+    m_buttons_sizer->Detach(btn);
+    m_buttons_sizer->Insert(to, btn);
+    m_sizer->Layout();
+}
+
+// ORCA: Cmd (macOS) / Ctrl + press starts a drag; a plain press goes to the button as before.
+void ButtonsListCtrl::OnTabLeftDown(wxMouseEvent& evt, Button* btn)
+{
+    const auto it = std::find(m_pageButtons.begin(), m_pageButtons.end(), btn);
+    if (!m_reorder_enabled || !evt.CmdDown() || m_drag_from >= 0 || it == m_pageButtons.end()) {
+        evt.Skip();
+        return;
+    }
+
+    // Not skipped, so the button never shows as pressed and sends no click.
+    m_drag_from = m_drag_at = static_cast<int>(it - m_pageButtons.begin());
+    SetCursor(wxCursor(wxCURSOR_SIZEWE));
+    CaptureMouse();
+    wxGetTopLevelParent(this)->Bind(wxEVT_CHAR_HOOK, &ButtonsListCtrl::OnDragKey, this);
+}
+
+void ButtonsListCtrl::OnDragMotion(wxMouseEvent& evt)
+{
+    evt.Skip();
+    if (m_drag_from < 0 || m_drag_at >= static_cast<int>(m_pageButtons.size()))
+        return;
+
+    const int x     = evt.GetPosition().x;
+    const int width = m_pageButtons[m_drag_at]->GetSize().GetWidth();
+    for (size_t i = 0; i < m_pageButtons.size(); ++i) {
+        const wxRect rect = m_pageButtons[i]->GetRect();
+        if (static_cast<int>(i) == m_drag_at || x < rect.GetLeft() || x > rect.GetRight())
+            continue;
+        // Move once the pointer would be over the dragged tab after the move. Tabs differ in
+        // width (icon-only ones), and moving earlier would swap them back and forth.
+        const bool past = static_cast<int>(i) > m_drag_at ? x > rect.GetRight() - width : x < rect.GetLeft() + width;
+        if (past) {
+            static_cast<Notebook*>(GetParent())->MovePage(m_drag_at, i);
+            m_drag_at = static_cast<int>(i);
+        }
+        break;
+    }
+}
+
+void ButtonsListCtrl::OnDragKey(wxKeyEvent& evt)
+{
+    if (m_drag_from >= 0 && evt.GetKeyCode() == WXK_ESCAPE)
+        EndDrag(false);
+    else
+        evt.Skip();
+}
+
+void ButtonsListCtrl::EndDrag(bool commit)
+{
+    if (m_drag_from < 0)
+        return;
+
+    const int from = m_drag_from, at = m_drag_at;
+    m_drag_from = m_drag_at = -1;
+    if (HasCapture())
+        ReleaseMouse();
+    SetCursor(wxNullCursor);
+    wxGetTopLevelParent(this)->Unbind(wxEVT_CHAR_HOOK, &ButtonsListCtrl::OnDragKey, this);
+
+    auto* book = static_cast<Notebook*>(GetParent());
+    if (!commit) {
+        book->MovePage(at, from);
+    } else if (at == from) {
+        // Pressed with the modifier but not moved: still a click.
+        wxCommandEvent evt(wxCUSTOMEVT_NOTEBOOK_SEL_CHANGED);
+        evt.SetId(from);
+        wxPostEvent(book, evt);
+    } else {
+        book->RememberPageOrder();
+        wxPostEvent(book, wxCommandEvent(wxCUSTOMEVT_NOTEBOOK_PAGES_REORDERED));
+    }
+}
+
 //#endif // _WIN32
+
+// ORCA
+void Notebook::MovePage(size_t from, size_t to)
+{
+    const size_t count = GetPageCount();
+    if (from == to || from >= count || to >= count)
+        return;
+
+    auto move = [from, to](auto& items) {
+        auto item = items[from];
+        items.erase(items.begin() + from);
+        items.insert(items.begin() + to, item);
+    };
+    move(m_pages);
+    move(m_pageNames);
+
+    const int f = static_cast<int>(from), t = static_cast<int>(to);
+    if (m_selection == f)
+        m_selection = t;
+    else if (f < m_selection && m_selection <= t)
+        --m_selection;
+    else if (t <= m_selection && m_selection < f)
+        ++m_selection;
+
+    GetBtnsListCtrl()->MovePage(from, to);
+}
+
+// ORCA
+std::vector<wxString> Notebook::MergePageOrder(const std::vector<wxString>& old_order, const std::vector<wxString>& page_names)
+{
+    std::vector<wxString> order;
+    for (const wxString& name : page_names)
+        if (!name.empty())
+            order.push_back(name);
+
+    // Back to front, so the page that came next in the old order is already placed.
+    for (size_t k = old_order.size(); k-- > 0;)
+        if (std::find(order.begin(), order.end(), old_order[k]) == order.end())
+            order.insert(k + 1 < old_order.size() ? std::find(order.begin(), order.end(), old_order[k + 1]) : order.end(),
+                         old_order[k]);
+    return order;
+}
+
+// ORCA: pages without a place in `order` go where they were asked for.
+size_t Notebook::OrderedPosition(const std::vector<wxString>& order, const std::vector<wxString>& page_names,
+                                 const wxString& id, size_t n)
+{
+    const size_t rank = PageRank(order, id);
+    if (rank == SIZE_MAX)
+        return n;
+
+    size_t lo = 0, hi = page_names.size();
+    for (size_t i = 0; i < page_names.size(); ++i) {
+        const size_t other = PageRank(order, page_names[i]);
+        if (other == SIZE_MAX)
+            continue;
+        if (other < rank)
+            lo = i + 1;
+        else if (hi == page_names.size())
+            hi = i;
+    }
+    return std::clamp(n, lo, std::max(lo, hi));
+}
 
 void Notebook::Init()
 {

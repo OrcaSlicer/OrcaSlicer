@@ -2120,21 +2120,6 @@ void PreferencesDialog::create_items()
     auto item_shared_profiles  = create_item_checkbox(_L("Show shared profiles notification"), _L("Show a notification with a link to browse shared profiles when the selected printer is changed."), "show_shared_profiles_notification");
     g_sizer->Add(item_shared_profiles);
 
-    //// BEHAVIOUR > Plugins
-    g_sizer->Add(create_item_title(_L("Plugins")), 1, wxEXPAND);
-
-    auto item_plugin_pages_visible_count = create_item_spinctrl(
-        _L("Visible plugin pages"),
-        "",
-        _L("pages"),
-        _L("Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."),
-        SETTING_PLUGIN_PAGES_VISIBLE_COUNT,
-        PLUGIN_PAGES_VISIBLE_COUNT_MIN,
-        PLUGIN_PAGES_VISIBLE_COUNT_MAX,
-        [](int value) { wxGetApp().mainframe->plugin_pages().set_visible_page_count(value); }
-    );
-    g_sizer->Add(item_plugin_pages_visible_count);
-
     //// BEHAVIOUR > Design
 #ifdef SLIC3R_CAD
     // Design-tab only, so it stays out of the way while the CAD feature is switched off.

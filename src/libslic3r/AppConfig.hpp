@@ -52,10 +52,7 @@
 #define SETTING_OPENGL_OUTLINE_COLOR "opengl_outline_color"
 #define SETTING_OPENGL_SELECTION_OUTLINE_COLOR "opengl_selection_outline_color"
 
-#define SETTING_PLUGIN_PAGES_VISIBLE_COUNT "plugin_pages_visible_count"
-#define PLUGIN_PAGES_VISIBLE_COUNT_MIN 1
-#define PLUGIN_PAGES_VISIBLE_COUNT_DEFAULT 5
-#define PLUGIN_PAGES_VISIBLE_COUNT_MAX 10
+#define SETTING_TAB_ORDER "tab_order"
 
 #define SETTING_SPEED_DIAL_RECENT_COUNT "speed_dial_recent_count"
 #define SPEED_DIAL_RECENT_COUNT_MIN 0
@@ -425,10 +422,6 @@ public:
 
     std::string get_network_plugin_version() const;
     void set_network_plugin_version(const std::string& version);
-
-    // Number of plugin pages shown as fixed tabs before the rest are collapsed into a
-    // dropdown on the last tab.
-    int get_plugin_pages_visible_count() const;
 
     // Number of recently launched actions shown at the top of the Speed Dial; 0 hides them.
     int get_speed_dial_recent_count() const;
