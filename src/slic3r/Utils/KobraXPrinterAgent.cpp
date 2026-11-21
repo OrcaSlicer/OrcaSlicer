@@ -154,8 +154,22 @@ void KobraXPrinterAgent::run(std::shared_ptr<Connection> c)
             session = std::make_shared<KobraX::Session>(
                 options,
                 [self](const std::string& suffix, const json& payload) {
-                    if (auto agent = self.lock())
-                        agent->on_report(suffix, payload);
+                    auto agent = self.lock();
+                    if (!agent)
+                        return;
+                    agent->on_report(suffix, payload);
+                    // This runs on the session's io thread, which ~KobraXPrinterAgent ends and joins: if the last
+                    // owner let go meanwhile, the agent must not be destroyed here, so the reference ends on the main
+                    // thread (held in one place, whatever copies the queue makes of the task)
+                    QueueOnMainFn queue;
+                    {
+                        std::lock_guard<std::mutex> lock(agent->m_mutex);
+                        queue = agent->m_queue_on_main;
+                    }
+                    if (queue) {
+                        auto held = std::make_shared<std::shared_ptr<KobraXPrinterAgent>>(std::move(agent));
+                        queue([held] { held->reset(); });
+                    }
                 },
                 [weak_connection](const std::string& reason) {
                     BOOST_LOG_TRIVIAL(warning) << "KobraXPrinterAgent: connection lost: " << reason;
@@ -381,6 +395,9 @@ int KobraXPrinterAgent::handle(const std::string& dev_id, const std::string& jso
     if (system == "ledctrl") {
         const json& body = message["system"];
         const std::string node = text(body, "led_node"), mode = text(body, "led_mode");
+        // The Device tab sends chamber_light then chamber_light2; the Kobra X has one light
+        if (node == "chamber_light2")
+            return BAMBU_NETWORK_SUCCESS;
         if (node != "chamber_light" || (mode != "on" && mode != "off"))
             return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
         auto s = session();

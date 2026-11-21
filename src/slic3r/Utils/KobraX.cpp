@@ -461,6 +461,10 @@ void State::apply(const std::string& suffix, const json& payload)
     }
 }
 
+// ACE ids beyond this are ignored: the units, the holder after the last ACE included, must fit the 32 tray bits
+// push_status reports
+constexpr int MAX_ACE_ID = 6;
+
 std::vector<Slot> State::slots() const
 {
     const json* head = nullptr;
@@ -468,9 +472,10 @@ std::vector<Slot> State::slots() const
     for (const json& box : boxes) {
         if (!box.is_object() || !box.contains("id") || !box["id"].is_number_integer())
             continue;
-        if (box["id"].get<int>() == -1)
+        const int id = box["id"].get<int>();
+        if (id == -1)
             head = &box;
-        else if (box["id"].get<int>() >= 0)
+        else if (id >= 0 && id <= MAX_ACE_ID)
             aces.push_back(&box);
     }
     std::sort(aces.begin(), aces.end(), [](const json* a, const json* b) { return (*a)["id"].get<int>() < (*b)["id"].get<int>(); });

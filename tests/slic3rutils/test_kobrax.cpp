@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <ios>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -15,6 +16,7 @@
 #include "slic3r/Utils/KobraX.hpp"
 #include "slic3r/Utils/KobraXPrinterAgent.hpp"
 #include "slic3r/Utils/KobraXSession.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
 
 using namespace Slic3r;
 using json = nlohmann::json;
@@ -303,6 +305,27 @@ TEST_CASE("Chained ACE units and the spool holder: N x 4 + 3 sources", "[KobraX]
     REQUIRE(units.size() == 3);
     CHECK(units[1]["display_name"] == "ACE 2");
     CHECK(units[2]["display_name"] == "Spool holder");
+}
+
+TEST_CASE("An ACE id past the tray bits is ignored", "[KobraX]")
+{
+    json report = seven_sources();
+    report["data"]["multi_color_box"].push_back({{"id", 40}, {"loaded_slot", -1}, {"slots", json::array({slot(0, {1, 2, 3})})}});
+    KobraX::State state;
+    state.apply("multiColorBox/report", report);
+    CHECK(state.slots().size() == 7);
+    CHECK(state.push_status(true)["print"]["ams"]["ams"].size() == 2);
+}
+
+TEST_CASE("The Device tab's second chamber light is accepted without a message", "[KobraX]")
+{
+    auto agent = std::make_shared<KobraXPrinterAgent>("");
+    const auto light = [](const char* node) {
+        return json{{"system", {{"command", "ledctrl"}, {"led_node", node}, {"led_mode", "on"}}}}.dump();
+    };
+    CHECK(agent->send_message("kx", light("chamber_light2"), 0, 0) == BAMBU_NETWORK_SUCCESS);
+    // Not connected: the real light cannot be sent
+    CHECK(agent->send_message("kx", light("chamber_light"), 0, 0) == BAMBU_NETWORK_ERR_SEND_MSG_FAILED);
 }
 
 TEST_CASE("Holder and ACE trays map to their own print slots", "[KobraX]")
