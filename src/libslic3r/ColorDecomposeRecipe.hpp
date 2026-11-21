@@ -9,7 +9,8 @@ namespace Slic3r {
 enum class ColorDecomposeRecipeMode {
     MaterialList,
     CMYW,
-    RYBW
+    RYBW,
+    CMYKW  // Cyan + Magenta + Yellow + Black + White, computed analytically
 };
 
 struct ColorDecomposeRgb {
