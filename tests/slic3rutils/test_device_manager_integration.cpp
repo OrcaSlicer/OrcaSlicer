@@ -3,6 +3,8 @@
 #include <catch2/generators/catch_generators.hpp>
 
 #include <slic3r/GUI/DeviceCore/DevManager.h>
+#include <slic3r/GUI/DeviceCore/DevFirmware.h>
+#include <slic3r/GUI/DeviceCore/DevStorage.h>
 #include <slic3r/GUI/DeviceManager.hpp>
 #include <libslic3r/AppConfig.hpp>
 #include "slic3r/Utils/IPrinterAgent.hpp"
@@ -14,6 +16,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <chrono>
 #include <memory>
 #include <cstdint>
 #include <string>
@@ -99,6 +102,26 @@ std::string machine_list_response(const std::string& provider, const std::string
     response["devices"]    = json::array({machine});
     return response.dump();
 }
+
+// A LAN machine as discovery inserts it: no status push has arrived yet.
+struct LocalMachine
+{
+    ScopedAppConfig app_config;
+    std::shared_ptr<TestPrinterAgent> agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network{nullptr, agent};
+    DeviceManager manager{&network, false, &app_config.config};
+    MachineObject* object = nullptr;
+
+    LocalMachine()
+    {
+        BBLocalMachine machine;
+        machine.dev_id       = "integration-lan-device";
+        machine.dev_name     = "Integration LAN device";
+        machine.dev_ip       = "192.0.2.10";
+        machine.printer_type = "C11";
+        object               = manager.insert_local_device(machine, "lan", "free", "", "access-code");
+    }
+};
 
 } // namespace
 
@@ -381,4 +404,63 @@ TEST_CASE("AMS filament settings default a supplied single-color list to type tw
     const json& payload = agent->published_message.at("print");
     CHECK(payload.at("cols").get<std::vector<std::string>>() == colors);
     CHECK(payload.at("ctype") == 2);
+}
+
+TEST_CASE("A filament snapshot makes a pull machine ready for filament sync", "[DeviceManager][integration]")
+{
+    LocalMachine local;
+    MachineObject* obj = local.object;
+    REQUIRE(obj != nullptr);
+    CHECK_FALSE(obj->is_info_ready());
+    CHECK_FALSE(obj->is_filament_info_ready());
+
+    obj->set_filament_snapshot_ready(true);
+
+    CHECK(obj->is_filament_info_ready());
+    CHECK_FALSE(obj->is_info_ready());
+
+    obj->set_filament_snapshot_ready(false);
+
+    CHECK_FALSE(obj->is_filament_info_ready());
+}
+
+TEST_CASE("The snapshot flag does not touch the push counters", "[DeviceManager][integration]")
+{
+    LocalMachine local;
+    MachineObject* obj = local.object;
+    REQUIRE(obj != nullptr);
+
+    obj->set_filament_snapshot_ready(true);
+
+    CHECK(obj->m_push_count == 0);
+    CHECK(obj->m_full_msg_count == 0);
+    CHECK(obj->module_vers.empty());
+    CHECK(obj->GetStorage()->get_sdcard_state() == DevStorage::NO_SDCARD);
+}
+
+TEST_CASE("Resetting a machine clears its filament snapshot", "[DeviceManager][integration]")
+{
+    LocalMachine local;
+    MachineObject* obj = local.object;
+    REQUIRE(obj != nullptr);
+    obj->set_filament_snapshot_ready(true);
+    REQUIRE(obj->is_filament_info_ready());
+
+    obj->reset();
+
+    CHECK_FALSE(obj->is_filament_info_ready());
+}
+
+TEST_CASE("A machine with a full status stays filament ready without a snapshot", "[DeviceManager][integration]")
+{
+    LocalMachine local;
+    MachineObject* obj = local.object;
+    REQUIRE(obj != nullptr);
+    obj->module_vers["ota"] = DevFirmwareVersionInfo();
+    obj->m_push_count       = 1;
+    obj->m_full_msg_count   = 1;
+    obj->last_push_time     = std::chrono::system_clock::now();
+
+    CHECK(obj->is_info_ready());
+    CHECK(obj->is_filament_info_ready());
 }
