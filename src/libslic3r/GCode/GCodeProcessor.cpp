@@ -3764,6 +3764,7 @@ void GCodeProcessor::reset()
     m_travel_dist = 0.0f;
     m_fan_speed = 0.0f;
     m_z_offset = 0.0f;
+    m_pressure_advance = 0.0f;
 
     m_extrusion_role = erNone;
 
