@@ -10,6 +10,7 @@
 #include <wx/event.h>
 #include <wx/dc.h>
 #include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/LabeledCheckBox.hpp"
 #include <list>
 #include <memory>
 #include "libslic3r/Format/bbs_3mf.hpp"
@@ -32,7 +33,6 @@
 #include <wx/string.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
-#include <wx/hyperlink.h>
 #include <wx/button.h>
 #include <wx/dialog.h>
 #include <wx/popupwin.h>
@@ -70,7 +70,7 @@
 #include "Jobs/Worker.hpp"
 
 #define  PRINT_OPT_BG_GRAY       0xF8F8F8
-#define  PRINT_OPT_ITEM_BG_GRAY  0xEEEEEE
+#define  PRINT_OPT_ITEM_BG_GRAY  0xD9D9D9
 
 
 // Previous definitions
@@ -129,7 +129,7 @@ using MaterialHash = std::map<int, Material *>;
 #define SELECT_MACHINE_DIALOG_BUTTON_SIZE wxSize(FromDIP(57), FromDIP(32))
 #define SELECT_MACHINE_DIALOG_BUTTON_SIZE2 wxSize(FromDIP(80), FromDIP(32))
 #define SELECT_MACHINE_DIALOG_SIMBOOK_SIZE wxSize(FromDIP(370), FromDIP(64))
-#define SELECT_MACHINE_DIALOG_SIMBOOK_SIZE2 wxSize(FromDIP(645), FromDIP(32))
+#define SELECT_MACHINE_DIALOG_SIMBOOK_SIZE2 wxSize(FromDIP(670), FromDIP(32))
 #define LIST_REFRESH_INTERVAL 200
 static int get_brightness_value(wxImage image) {
 
@@ -168,7 +168,7 @@ struct POItem
     bool operator==(const POItem &other) const { return key == other.key && value == other.value; }
 };
 
-#define PRINT_OPT_WIDTH  FromDIP(44)
+#define PRINT_OPT_WIDTH  FromDIP(72) // ORCA wider buttons for translation support
 class PrintOptionItem : public wxPanel
 {
 public:
@@ -406,7 +406,7 @@ protected:
     wxScrolledWindow*                   m_scroll_area{nullptr};
 
     wxPanel*                            m_line_top{ nullptr };
-    Label*                              m_link_edit_nozzle{ nullptr };
+    HyperLink*                          m_link_edit_nozzle{ nullptr };
     Label*                              m_st_txt_error_code{nullptr};
     Label*                              m_st_txt_error_desc{nullptr};
     Label*                              m_st_txt_extra_info{nullptr};
@@ -420,8 +420,7 @@ protected:
     Label*                              m_saveTimeText{ nullptr }; // best-position "saves X" clickable tip
     PrinterMsgPanel *                   m_statictext_ams_msg{nullptr};
     Label*                              m_txt_change_filament_times{ nullptr };
-    CheckBox*                           m_check_ext_change_assist{ nullptr };
-    Label*                              m_label_ext_change_assist{ nullptr };
+    LabeledCheckBox*                    m_check_ext_change_assist{ nullptr };
 
     Label*                              m_txt_warn_when_drying{ nullptr };
 

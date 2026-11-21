@@ -93,14 +93,12 @@ private:
     Button*                             m_button_refresh{ nullptr };
     Button*                             m_button_ensure{ nullptr };
     wxPanel*                            m_scrollable_region;
-    wxPanel*                            m_line_schedule{ nullptr };
     wxPanel*                            m_panel_sending{ nullptr };
     wxPanel*                            m_panel_prepare{ nullptr };
     wxPanel*                            m_panel_finish{ nullptr };
     wxPanel*                            m_line_top{ nullptr };
     wxPanel*                            m_panel_image{ nullptr };
     wxPanel*                            m_rename_normal_panel{ nullptr };
-    wxPanel*                            m_line_materia{ nullptr };
     wxBoxSizer*                         m_storage_sizer{ nullptr };
     wxPanel*                            m_storage_panel{ nullptr };
     wxPanel *                           m_connecting_panel{nullptr};
@@ -108,7 +106,6 @@ private:
     wxStaticText*                       m_statictext_finish{ nullptr };
     wxStaticText*                       m_statictext_printer_msg{ nullptr };
     wxStaticText *                      m_connecting_printer_msg{nullptr};
-    wxStaticText*                       m_stext_printer_title{ nullptr };
     wxStaticText*                       m_rename_text{ nullptr };
     wxStaticText*                       m_stext_time{ nullptr };
     wxStaticText*                       m_stext_weight{ nullptr };
