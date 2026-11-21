@@ -104,12 +104,11 @@ wxString double_to_string(double const value, const int max_precision /*= 4*/)
 
 	wxString s = wxNumberFormatter::ToString(value, max_precision, wxNumberFormatter::Style_None);
 
-	// The following code comes from wxNumberFormatter::RemoveTrailingZeroes(wxString& s)
-	// with the exception that here one sets the decimal separator explicitely to dot.
+	// The following code comes from wxNumberFormatter::RemoveTrailingZeroes(wxString& s).
     // If number is in scientific format, trailing zeroes belong to the exponent and cannot be removed.
     if (s.find_first_of("eE") == wxString::npos) {
-        char dec_sep = is_decimal_separator_point() ? '.' : ',';
-        const size_t posDecSep = s.find(dec_sep);
+        // The separator ToString() wrote, from the UI locale, which can differ from the C locale's.
+        const size_t posDecSep = s.find(wxNumberFormatter::GetDecimalSeparator());
 	    // No decimal point => removing trailing zeroes irrelevant for integer number.
 	    if (posDecSep != wxString::npos) {
 		    // Find the last character to keep.
@@ -125,6 +124,14 @@ wxString double_to_string(double const value, const int max_precision /*= 4*/)
 	}
 
     return s;
+}
+
+bool string_to_double_any_separator(wxString str, double* value)
+{
+    // The text may carry the UI locale's separator or the C locale's, and the two can differ.
+    const char dec_sep = is_decimal_separator_point() ? '.' : ',';
+    str.Replace(dec_sep == '.' ? ',' : '.', dec_sep, false);
+    return str.ToDouble(value);
 }
 
 wxString get_thumbnail_string(const Vec2d& value)
@@ -2900,8 +2907,8 @@ void PointCtrl::set_value(const boost::any& value, bool change_event)
 boost::any& PointCtrl::get_value()
 {
 	double x, y;
-	if (!x_textctrl->GetValue().ToDouble(&x) ||
-		!y_textctrl->GetValue().ToDouble(&y))
+	if (!string_to_double_any_separator(x_textctrl->GetValue(), &x) ||
+		!string_to_double_any_separator(y_textctrl->GetValue(), &y))
 	{
 		set_value(m_value.empty() ? Vec2d(0.0, 0.0) : m_value, true);
         show_error(m_parent, _L("Invalid numeric."));

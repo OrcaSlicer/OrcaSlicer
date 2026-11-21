@@ -3824,6 +3824,7 @@ void GCodeViewer::init_solid_model_caps(const std::array<float, 2>& z_range, std
         init_quad(cap, on_plane, reach * u, reach * v);
         cap.count_plane = m_clipping_plane;
         cap.quad_z_range = { z_bottom, z_top };
+        cap.color_index = 2;
     }
 }
 
@@ -3968,17 +3969,18 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     }
 }
 
-// The solid stands in for the toolpaths, so it takes their colours in the view that colours them
-// by something other than the filament: each body the outer wall's, each cap the infill's of the
-// layer it is cut under, sparse if the layer has any, else solid, and the tower its own role's,
-// each from the toolpaths within the body's own footprint, so that objects printed at different
-// grades keep their own. The views that colour by filament leave every body its own colour. The
-// bodies are sampled over the layers the solid stands for and each cap in its own layer, each
-// colour that of the vertex the viewer picks to represent the role there, so a view that grades
-// the toolpaths, by speed or fan, shows the solid in the grade most of that role was printed at.
-// The bodies are sampled once, as the drag begins, and held while a slider drag moves the span:
-// sampled again at every step, the grade would flip with the layers the sample happens to fall
-// on. Each cap follows its own layer.
+// The solid stands in for the toolpaths, so it takes their colours in the view that colours them by
+// something other than the filament: each body the outer wall's, each layer cap the infill's of the
+// layer it is cut under, sparse if the layer has any, else solid, the section view's cap the
+// infill's over all the layers, and the tower its own role's, each from the toolpaths within the
+// body's own footprint, so that objects printed at different grades keep their own. The views that
+// colour by filament leave every body its own colour. The bodies and the section view's cap are
+// sampled over the layers the solid stands for and each layer cap in its own layer, each colour
+// that of the vertex the viewer picks to represent the role there, so a view that grades the
+// toolpaths, by speed or fan, shows the solid in the grade most of that role was printed at. The
+// bodies are sampled once, as the drag begins, and held while a slider drag moves the span: sampled
+// again at every step, the grade would flip with the layers the sample happens to fall on. The
+// section view's cap is held with them; each layer cap follows its own layer.
 void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_layers)
 {
     SolidModelColors& colors = m_solid_model_colors;
@@ -4019,8 +4021,13 @@ void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_lay
         const libvgcode::XYBox box{ { static_cast<float>(footprint.min.x()) - margin, static_cast<float>(footprint.min.y()) - margin },
                                     { static_cast<float>(footprint.max.x()) + margin, static_cast<float>(footprint.max.y()) + margin } };
         SolidModelColors::Body& body = colors.bodies[n];
-        if (!held)
+        if (!held) {
             body.body = sample(whole_layers, tower ? tower_role : walls, box);
+            // the section view's cut may cross any of the layers, so it is sampled over all of them, as the body is
+            body.caps[2] = tower ? std::nullopt : sample(whole_layers, infill, box);
+            if (!body.caps[2].has_value())
+                body.caps[2] = body.body;
+        }
         for (size_t k = 0; k < 2; ++k) {
             body.caps[k] = tower ? std::nullopt : sample({ whole_layers[k], whole_layers[k] }, infill, box);
             if (!body.caps[k].has_value())
