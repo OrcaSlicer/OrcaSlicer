@@ -2,6 +2,9 @@
 #include "slic3r/GUI/GLCanvas3D.hpp"
 
 #include <cmath>
+#include <limits>
+#include "admesh/stl.h"
+#include "libslic3r/Measure.hpp"
 #include <cstddef>
 #include <Standard_Real.hxx>
 #include <cereal/archives/binary.hpp>
@@ -19,6 +22,8 @@
 #include "slic3r/GUI/GLModel.hpp"
 #include "libslic3r/Point.hpp"
 #include <utility>
+#include <tuple>
+#include <initializer_list>
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/BoundingBox.hpp"
@@ -35,6 +40,7 @@
 #include "libslic3r/Line.hpp"
 #include <wx/string.h>
 #include <wx/utils.h>
+#include <wx/mousestate.h>
 #include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/GUI/MeshUtils.hpp"
 #include "libslic3r/CutUtils.hpp"
@@ -293,6 +299,9 @@ GLGizmoCut3D::GLGizmoCut3D(GLCanvas3D& parent, const std::string& icon_filename,
 
 std::string GLGizmoCut3D::get_tooltip() const
 {
+    if (m_hovered_vertex && can_hover_vertex())
+        return _u8L("Click to move the cut plane through this vertex");
+
     std::string tooltip;
     if (m_hover_id == Z || (m_dragging && m_hover_id == CutPlane)) {
         double koef = m_imperial_units ? GizmoObjectManipulation::mm_to_in : 1.0;
@@ -335,6 +344,14 @@ bool GLGizmoCut3D::on_mouse(const wxMouseEvent &mouse_event)
     Vec2i32 mouse_coord(mouse_event.GetX(), mouse_event.GetY());
     Vec2d mouse_pos = mouse_coord.cast<double>();
 
+    // Let the plane or canvas start its usual drag even if the press hits a vertex.
+    // Only a plain click may replace the plane flip on release.
+    if (mouse_event.LeftDown())
+        m_pressed_vertex = can_hover_vertex() && mouse_event.GetModifiers() == wxMOD_NONE ?
+                           pick_vertex(mouse_pos) : std::nullopt;
+    else if (mouse_event.Dragging() || mouse_event.Leaving() || mouse_event.GetModifiers() != wxMOD_NONE)
+        m_pressed_vertex.reset();
+
     if (mouse_event.ShiftDown() && mouse_event.LeftDown())
         return gizmo_event(SLAGizmoEventType::LeftDown, mouse_pos, mouse_event.ShiftDown(), mouse_event.AltDown(), mouse_event.CmdDown());
     if (mouse_event.CmdDown() && mouse_event.LeftDown())
@@ -359,7 +376,20 @@ bool GLGizmoCut3D::on_mouse(const wxMouseEvent &mouse_event)
             m_cut_plane_start_move_pos = pos_world;
     }
 
-    if (use_grabbers(mouse_event)) {
+    const auto clicked_vertex = mouse_event.LeftUp() ? std::exchange(m_pressed_vertex, std::nullopt) : std::nullopt;
+    const bool used_grabber = use_grabbers(mouse_event);
+    if (clicked_vertex && !m_parent.is_mouse_dragging()) {
+        const double delta = m_cut_normal.dot(*clicked_vertex - m_plane_center);
+        if (!is_approx(delta, 0.0)) {
+            shift_cut(delta);
+            reset_cut_by_contours();
+            check_and_update_connectors_state();
+            m_parent.request_extra_frame();
+        }
+        return true;
+    }
+
+    if (used_grabber) {
         if (m_hover_id >= m_connectors_group_id) {
             if (mouse_event.LeftDown() && !mouse_event.CmdDown() && !mouse_event.AltDown())
                 unselect_all_connectors();
@@ -486,6 +516,89 @@ bool GLGizmoCut3D::is_mouse_over_selected_object(const Vec2d& mouse_pos) const
             return true;
     }
     return false;
+}
+
+bool GLGizmoCut3D::can_hover_vertex() const
+{
+    return !m_connectors_editing && !m_dragging && !cut_line_processing() &&
+           (m_hover_id == -1 || m_hover_id == CutPlane);
+}
+
+bool GLGizmoCut3D::render_follows_cursor() const
+{
+    return can_hover_vertex() && is_mouse_over_selected_object(m_parent.get_local_mouse_position());
+}
+
+std::optional<Vec3d> GLGizmoCut3D::pick_vertex(const Vec2d& mouse_pos)
+{
+    const Selection& selection = m_parent.get_selection();
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    const GLVolume* nearest = nullptr;
+    Transform3d world;
+    size_t facet = 0;
+    Vec3d hit;
+    double min_distance = std::numeric_limits<double>::max();
+    for (unsigned int id : selection.get_volume_idxs()) {
+        const GLVolume* volume = selection.get_volume(id);
+        if (!volume || !volume->mesh_raycaster || volume->volume_idx() < 0 || volume->is_modifier)
+            continue;
+
+        const Transform3d transform = volume->world_matrix();
+        Vec3f position, normal;
+        size_t face;
+        if (!volume->mesh_raycaster->unproject_on_mesh(mouse_pos, transform, camera, position, normal, nullptr, &face))
+            continue;
+
+        const double distance = (camera.get_position() - transform * position.cast<double>()).squaredNorm();
+        if (distance < min_distance) {
+            min_distance = distance;
+            nearest = volume;
+            world = transform;
+            facet = face;
+            hit = position.cast<double>();
+        }
+    }
+    if (!nearest)
+        return std::nullopt;
+
+    // Keep Measure's feature geometry in world units and preserve the raycaster's face indices.
+    const int volume_idx = nearest->volume_idx();
+    const auto mesh = selection.get_model()->objects[nearest->object_idx()]->volumes[volume_idx]->mesh_ptr();
+    VertexFeatures& features = m_vertex_features[volume_idx];
+    if (features.mesh != mesh || features.linear_transform != world.linear()) {
+        features.mesh = mesh;
+        features.linear_transform = world.linear();
+        indexed_triangle_set transformed = mesh->its;
+        its_transform(transformed, features.linear_transform, true);
+        features.measuring = std::make_unique<Measure::Measuring>(transformed);
+    }
+    const auto plane = features.measuring->get_feature(facet, world.linear() * hit, translation_transform(world.translation()), true);
+    if (!plane)
+        return std::nullopt;
+
+    // A cursor ray hits the marker when it passes within one sphere radius of its center.
+    // Measure's boundary edges exclude internal triangle vertices and tessellated circles.
+    const Vec3d surface_hit = world * hit;
+    const Vec3d ray = camera.get_type() == Camera::EType::Perspective ?
+                      Vec3d((surface_hit - camera.get_position()).normalized()) : camera.get_dir_forward();
+    const double radius = 7.5 * camera.get_inv_zoom();
+    double closest_sq = radius * radius;
+    std::optional<Vec3d> vertex;
+    for (const auto& feature : features.measuring->get_plane_features(std::get<0>(plane->get_plane()))) {
+        if (feature.get_type() != Measure::SurfaceFeatureType::Edge)
+            continue;
+
+        const auto [start, end] = feature.get_edge();
+        for (const Vec3d& endpoint : {start, end}) {
+            const Vec3d candidate = endpoint + world.translation();
+            const double distance_sq = (candidate - surface_hit).cross(ray).squaredNorm();
+            if (distance_sq < closest_sq) {
+                closest_sq = distance_sq;
+                vertex = candidate;
+            }
+        }
+    }
+    return vertex;
 }
 
 void GLGizmoCut3D::shift_cut(double delta)
@@ -1399,6 +1512,7 @@ bool GLGizmoCut3D::on_init()
     const wxString shift = GUI::shortkey_shift_prefix();
 
     m_shortcuts_cut = {
+        {_L("Left mouse button"),           _L("Move the cut plane through a highlighted vertex")},
         {_L("Drag"),                        _L("Move cut line")},
         {shift + _L("Drag"),                _L("Draw cut line")}
     };
@@ -1499,6 +1613,9 @@ void GLGizmoCut3D::on_set_state()
             oc->set_behavior(true, true, 0.);
             oc->release();
         }
+        m_vertex_features.clear();
+        m_hovered_vertex.reset();
+        m_pressed_vertex.reset();
         m_selected.clear();
         m_parent.set_use_color_clip_plane(false);
         //m_c->selection_info()->set_use_shift(false);
@@ -2384,6 +2501,16 @@ void GLGizmoCut3D::on_render()
     if (!m_hide_cut_plane && !m_connectors_editing) {
         render_cut_plane();
         render_cut_plane_grabbers();
+    }
+
+    const wxMouseState mouse = wxGetMouseState();
+    m_hovered_vertex = can_hover_vertex() && !mouse.LeftIsDown() && !mouse.MiddleIsDown() && !mouse.RightIsDown() &&
+                       mouse.GetModifiers() == wxMOD_NONE && !m_imgui->want_mouse() ?
+                       pick_vertex(m_parent.get_local_mouse_position()) : std::nullopt;
+    if (m_hovered_vertex) {
+        const Camera& camera = wxGetApp().plater()->get_camera();
+        render_model(m_sphere.model, GRABBER_COLOR, camera.get_view_matrix() *
+                     translation_transform(*m_hovered_vertex) * scale_transform(7.5 * camera.get_inv_zoom()));
     }
 
     render_cut_line();

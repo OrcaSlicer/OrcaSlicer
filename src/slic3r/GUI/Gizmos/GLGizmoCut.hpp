@@ -12,6 +12,8 @@
 #include "libslic3r/Point.hpp"
 #include "slic3r/GUI/MeshUtils.hpp"
 #include <map>
+#include <optional>
+#include "libslic3r/Measure.hpp"
 #include <vector>
 #include <memory>
 #include "slic3r/GUI/SceneRaycaster.hpp"
@@ -108,6 +110,19 @@ class GLGizmoCut3D : public GLGizmoBase
     GLModel m_angle_arc;
 
     Vec3d   m_cut_normal;
+
+    struct VertexFeatures {
+        std::shared_ptr<const TriangleMesh> mesh;
+        Matrix3d linear_transform;
+        std::unique_ptr<Measure::Measuring> measuring;
+    };
+    std::map<int, VertexFeatures> m_vertex_features;
+    std::optional<Vec3d> m_hovered_vertex;
+    std::optional<Vec3d> m_pressed_vertex;
+
+    bool can_hover_vertex() const;
+    std::optional<Vec3d> pick_vertex(const Vec2d& mouse_pos);
+    bool render_follows_cursor() const override;
 
     struct InvalidConnectorsStatistics
     {
