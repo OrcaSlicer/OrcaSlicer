@@ -6669,13 +6669,12 @@ void GLCanvas3D::do_scale(const std::string& snapshot_type)
 
         if (selection_mode == Selection::Instance) {
             ModelInstance* instance = model_object->instances[instance_idx];
-            // ORCA: A changed scale also applies to the pose in the assembly view.
-            // Set here, after the snapshot is taken, so that undo reverts it.
-            if (!instance->get_scaling_factor().isApprox(v->get_instance_scaling_factor())) {
-                Geometry::Transformation assemble_transform = instance->get_assemble_transformation();
-                assemble_transform.set_scaling_factor(v->get_instance_scaling_factor());
-                instance->set_assemble_transformation(assemble_transform);
-            }
+            // ORCA: Apply the same change of scale to the pose in the assembly view.
+            // Done here, after the snapshot is taken, so that undo reverts it.
+            const Transform3d change = instance->get_transformation().get_matrix_no_offset().inverse() *
+                                       v->get_instance_transformation().get_matrix_no_offset();
+            if (instance->is_assemble_initialized() && !change.isApprox(Transform3d::Identity()))
+                instance->set_assemble_from_transform(instance->get_assemble_transformation().get_matrix() * change);
             instance->set_transformation(v->get_instance_transformation());
         }
         else if (selection_mode == Selection::Volume) {
