@@ -2271,12 +2271,15 @@ void MoonrakerPrinterAgent::update_job_thumbnail(const std::string& base_url, co
             filename = status_cache["print_stats"]["filename"].get<std::string>();
         }
     }
-    if (filename == job_thumbnail_file) {
+    // A failed metadata read is tried again a little later, not on every message the stream reads
+    const auto now = std::chrono::steady_clock::now();
+    if (filename == job_thumbnail_file || (filename == job_thumbnail_failed && now < job_thumbnail_retry)) {
         return;
     }
-    job_thumbnail_file = filename;
     std::string url;
-    if (!filename.empty()) {
+    if (filename.empty()) {
+        job_thumbnail_file.clear();
+    } else {
         nlohmann::json metadata;
         std::string    error;
         std::string    query;
@@ -2285,13 +2288,39 @@ void MoonrakerPrinterAgent::update_job_thumbnail(const std::string& base_url, co
                                                                                               (boost::format("%%%02X") % static_cast<int>(c)).str();
         }
         if (get_json(join_url(base_url, "/server/files/metadata?filename=" + query), api_key, [this] { return ws_stop.load(); }, metadata, error)) {
-            url = thumbnail_url(metadata, base_url, filename);
+            url                = thumbnail_url(metadata, base_url, filename);
+            job_thumbnail_file = filename;
         } else {
             BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: no metadata for " << filename << ": " << error;
+            job_thumbnail_failed = filename;
+            job_thumbnail_retry  = now + std::chrono::seconds(30);
         }
     }
     std::lock_guard<std::recursive_mutex> lock(payload_mutex);
     job_thumbnail_url = url;
+}
+
+nlohmann::json MoonrakerPrinterAgent::pick_objects(const nlohmann::json&        status,
+                                                   const std::set<std::string>& available,
+                                                   const std::set<std::string>& names)
+{
+    nlohmann::json objects = nlohmann::json::object();
+    for (const std::string& name : names) {
+        if (available.count(name) == 0) {
+            continue;
+        }
+        if (!status.is_object() || !status.contains(name)) {
+            return nullptr;
+        }
+        objects[name] = status[name];
+    }
+    return objects.empty() ? nlohmann::json() : objects;
+}
+
+nlohmann::json MoonrakerPrinterAgent::cached_objects(const std::set<std::string>& names) const
+{
+    std::lock_guard<std::recursive_mutex> lock(payload_mutex);
+    return pick_objects(status_cache, available_objects, names);
 }
 
 void MoonrakerPrinterAgent::refresh_filaments_on_main(const std::string& dev_id)
@@ -2815,9 +2844,6 @@ void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id, 
             if (has_status) {
                 dispatch_status(dev_id);
             }
-            if (!filament_objects().empty()) {
-                refresh_filaments_on_main(dev_id);
-            }
             BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: connect_printer completed - dev_id=" << dev_id;
         }
     } else if (result != BAMBU_NETWORK_ERR_CANCELED) {
@@ -2856,10 +2882,14 @@ MoonrakerPrinterAgent::CameraSource MoonrakerPrinterAgent::pick_webcam(const nlo
     if (!webcams.is_object() || !webcams.contains("webcams") || !webcams["webcams"].is_array()) {
         return {};
     }
-    // scheme://host[:port] of the base URL
+    // scheme://host[:port] of the base URL. Moonraker's own port serves no webcam: a relative URL is the web
+    // frontend's, which nginx serves on the default port
     const auto        scheme_end = base_url.find("://");
     const auto        path_start = scheme_end == std::string::npos ? std::string::npos : base_url.find('/', scheme_end + 3);
-    const std::string origin     = path_start == std::string::npos ? base_url : base_url.substr(0, path_start);
+    std::string       origin     = path_start == std::string::npos ? base_url : base_url.substr(0, path_start);
+    if (boost::algorithm::ends_with(origin, ":7125")) {
+        origin.erase(origin.size() - 5);
+    }
     const auto        absolute   = [&](std::string url) {
         boost::algorithm::trim(url);
         if (url.empty() || url.find("://") != std::string::npos) {

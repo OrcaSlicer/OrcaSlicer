@@ -96,6 +96,8 @@ public:
     // The URL of the largest thumbnail in a /server/files/metadata answer for a file in the gcodes root, or empty
     static std::string thumbnail_url(const nlohmann::json& metadata, const std::string& base_url, const std::string& filename);
     static int speed_level_for_factor(double speed_factor);
+    // Those of `names` in `available` as `status` holds them, or null when `status` lacks one of them or none is available
+    static nlohmann::json pick_objects(const nlohmann::json& status, const std::set<std::string>& available, const std::set<std::string>& names);
 
     // JSON helper methods
     static std::string safe_json_string(const nlohmann::json& obj, const char* key);
@@ -163,6 +165,8 @@ protected:
     virtual std::vector<nlohmann::json> take_ws_requests() { return {}; }
     // Klipper objects that describe the loaded filament: subscribed, and a change re-reads the filament info
     virtual std::set<std::string> filament_objects() const { return {}; }
+    // The status stream's copy of those of `names` the printer has, or null until it reported each of them
+    nlohmann::json cached_objects(const std::set<std::string>& names) const;
     // The Klipper LED (the name after "led ") the Device tab switches as the chamber light; empty for none
     virtual std::string chamber_led() const { return {}; }
     // The Klipper object (full name) that reads the chamber temperature
@@ -271,7 +275,9 @@ private:
     void refresh_filaments_on_main(const std::string& dev_id);
     // Follows the printed file's thumbnail; stream thread only
     void update_job_thumbnail(const std::string& base_url, const std::string& api_key);
-    std::string        job_thumbnail_file;
+    std::string        job_thumbnail_file;   // the file job_thumbnail_url is for
+    std::string        job_thumbnail_failed; // the file whose metadata read failed, tried again at job_thumbnail_retry
+    std::chrono::steady_clock::time_point job_thumbnail_retry;
     std::string        job_thumbnail_url; // guarded by payload_mutex
 
     mutable std::mutex camera_mutex;

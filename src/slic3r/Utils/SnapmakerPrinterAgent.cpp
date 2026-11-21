@@ -316,23 +316,30 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     if (!device_info.api_key.empty()) {
         http.header("X-Api-Key", device_info.api_key);
     }
-    http.timeout_connect(5)
-        .timeout_max(10)
-        .on_complete([&](std::string body, unsigned status) {
-            if (status == 200) {
-                response_body = body;
-                success       = true;
-            } else {
-                http_error = "HTTP error: " + std::to_string(status);
-            }
-        })
-        .on_error([&](std::string body, std::string err, unsigned status) {
-            http_error = err;
-            if (status > 0) {
-                http_error += " (HTTP " + std::to_string(status) + ")";
-            }
-        })
-        .perform_sync();
+    // The status stream holds both objects once it has reported them: the Device tab re-reads the trays on the
+    // main thread, which must not wait for a request
+    if (const nlohmann::json cached = cached_objects(filament_objects()); !cached.is_null()) {
+        response_body = nlohmann::json{{"result", {{"status", cached}}}}.dump();
+        success       = true;
+    } else {
+        http.timeout_connect(5)
+            .timeout_max(10)
+            .on_complete([&](std::string body, unsigned status) {
+                if (status == 200) {
+                    response_body = body;
+                    success       = true;
+                } else {
+                    http_error = "HTTP error: " + std::to_string(status);
+                }
+            })
+            .on_error([&](std::string body, std::string err, unsigned status) {
+                http_error = err;
+                if (status > 0) {
+                    http_error += " (HTTP " + std::to_string(status) + ")";
+                }
+            })
+            .perform_sync();
+    }
 
     if (!success) {
         BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent::fetch_filament_info: HTTP request failed: " << http_error;

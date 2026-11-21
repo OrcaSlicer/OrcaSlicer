@@ -15,6 +15,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -1132,12 +1133,18 @@ TEST_CASE("The camera is the first enabled webcam the player can open", "[Moonra
     const std::string base = "http://192.0.2.10:7125";
     const auto pick = [&](nlohmann::json webcams) { return MoonrakerPrinterAgent::pick_webcam({{"webcams", webcams}}, base); };
 
-    SECTION("An MJPEG stream plays as a stream, resolved against the printer's address")
+    SECTION("An MJPEG stream plays as a stream, resolved against the web frontend on the printer's address")
     {
         const auto camera = pick({{{"name", "cam"}, {"service", "mjpegstreamer-adaptive"}, {"stream_url", "/webcam/?action=stream"},
                                    {"snapshot_url", "/webcam/?action=snapshot"}}});
         CHECK(camera.mode == CameraStreamMode::http);
-        CHECK(camera.url == "http://192.0.2.10:7125/webcam/?action=stream");
+        CHECK(camera.url == "http://192.0.2.10/webcam/?action=stream");
+    }
+    SECTION("A frontend port other than Moonraker's is kept")
+    {
+        const auto camera = MoonrakerPrinterAgent::pick_webcam(
+            {{"webcams", {{{"service", "mjpegstreamer"}, {"stream_url", "/webcam/?action=stream"}}}}}, "http://192.0.2.10:4408");
+        CHECK(camera.url == "http://192.0.2.10:4408/webcam/?action=stream");
     }
     SECTION("An absolute RTSP stream is kept as it is")
     {
@@ -1150,7 +1157,7 @@ TEST_CASE("The camera is the first enabled webcam the player can open", "[Moonra
         const auto camera = pick({{{"service", "webrtc-camerastreamer"}, {"stream_url", "/webcam/webrtc"},
                                    {"snapshot_url", "/webcam/snapshot.jpg"}}});
         CHECK(camera.mode == CameraStreamMode::http_snapshot);
-        CHECK(camera.url == "http://192.0.2.10:7125/webcam/snapshot.jpg");
+        CHECK(camera.url == "http://192.0.2.10/webcam/snapshot.jpg");
     }
     SECTION("A disabled webcam is skipped")
     {
@@ -1164,6 +1171,18 @@ TEST_CASE("The camera is the first enabled webcam the player can open", "[Moonra
         CHECK(pick(nlohmann::json::array()).mode == CameraStreamMode::none);
         CHECK(MoonrakerPrinterAgent::pick_webcam(nlohmann::json::object(), base).mode == CameraStreamMode::none);
     }
+}
+
+TEST_CASE("The filament objects are read from the status stream once it reported them", "[MoonrakerPrinterAgent][Status]")
+{
+    const std::set<std::string> names = {"print_task_config", "filament_detect"};
+    const nlohmann::json        ptc   = {{"filament_type", {"PLA"}}};
+    // A printer without filament_detect needs only print_task_config
+    CHECK(MoonrakerPrinterAgent::pick_objects({{"print_task_config", ptc}}, {"print_task_config"}, names) ==
+          nlohmann::json{{"print_task_config", ptc}});
+    // Not reported yet: the caller asks the printer
+    CHECK(MoonrakerPrinterAgent::pick_objects({{"print_task_config", ptc}}, {"print_task_config", "filament_detect"}, names).is_null());
+    CHECK(MoonrakerPrinterAgent::pick_objects({{"print_task_config", ptc}}, {}, names).is_null());
 }
 
 TEST_CASE("Status reports carry the layers and the time left", "[MoonrakerPrinterAgent][Status]")
