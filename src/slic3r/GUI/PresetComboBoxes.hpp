@@ -159,6 +159,7 @@ protected:
     void invalidate_selection();
     void validate_selection(bool predicate = false);
     void update_selection();
+    void update_source_arrow();
 
     // BBS: ams
     int  update_ams_color();
