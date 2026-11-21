@@ -172,6 +172,19 @@ class ScratchRepoTest(unittest.TestCase):
         self.assertEqual([p.pr for p in picks][:2], [9, 8])
         self.assertNotIn(6, [p.pr for p in picks])
 
+    def test_reverting_a_revert_pull_request_reverts_it(self):
+        git(self.work, "checkout", "-q", "rc/v1.0.1")
+        fix_b_pick = git(self.work, "log", "--format=%H", "--grep=^Fix B", "-n1")
+        git(self.work, "revert", "--no-commit", fix_b_pick)
+        git(self.work, "commit", "-qm", 'Revert "Fix B (#6)" (#8)', "-m", f"This reverts commit {fix_b_pick}.")
+        revert = git(self.work, "rev-parse", "HEAD")
+        git(self.work, "revert", "--no-commit", revert)
+        git(self.work, "commit", "-qm", 'Reapply "Fix B (#6)" (#9)', "-m", f"This reverts commit {revert}.")
+        self.push_rc()
+        picks, reverted = branch_picks(self.work, "v1.0.0", "rc/v1.0.1")
+        self.assertEqual([p.pr for p in reverted], [8])
+        self.assertEqual([p.pr for p in picks][:2], [9, 6])
+
     def test_reverting_the_revert_restores_the_pick(self):
         git(self.work, "checkout", "-q", "rc/v1.0.1")
         fix_b_pick = git(self.work, "log", "--format=%H", "--grep=^Fix B", "-n1")

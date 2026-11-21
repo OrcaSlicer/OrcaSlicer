@@ -75,7 +75,8 @@ def branch_picks(repo_dir, base, branch):
     bumps, and the picks a later revert on the same branch undid. A revert undoes the commit its message
     names ("This reverts commit ..."), or else the latest pick of the pull request in its subject, so a
     pull request picked again after a revert counts as picked. Reverting that revert restores the pick.
-    A revert with its own "(#N)" after the quoted subject is also a pick of that pull request."""
+    A revert or reapply with its own "(#N)" after the quoted subject is also a pick of that pull request,
+    and undoing such a revert by its commit moves that pull request to reverted."""
     log = _git(repo_dir, "log", "--reverse", "--no-merges", "--format=%H%x1f%s%x1f%b%x1e",
                f"{base}..origin/{branch}")
     picks, reverted = [], []
@@ -88,6 +89,7 @@ def branch_picks(repo_dir, base, branch):
         if _VERSION_BUMP.match(subject):
             continue
         target = _REVERTED_SHA.search(body)
+        own = pr_number_from_subject(subject)
         # Reverting a revert ('Revert "Revert ..."', or 'Reapply "..."' since git 2.43) restores the pick.
         restored = next((s for s, p in undid.items() if target and s.startswith(target.group(1)) and p in reverted),
                         None)
@@ -96,8 +98,14 @@ def branch_picks(repo_dir, base, branch):
             reverted.remove(pick)
             picks.append(pick)
             redid[sha] = pick
-            continue
-        if _REVERT.match(subject):
+            # A revert pull request undone here is reverted too.
+            revert_pick = next((p for p in picks if p.sha == restored), None)
+            if revert_pick:
+                picks.remove(revert_pick)
+                reverted.append(revert_pick)
+            if own is None:
+                continue
+        elif _REVERT.match(subject):
             number = reverted_number(subject)
             undone = next((p for s, p in redid.items() if target and s.startswith(target.group(1)) and p in picks),
                           None)
@@ -108,9 +116,9 @@ def branch_picks(repo_dir, base, branch):
                 picks.remove(undone)
                 reverted.append(undone)
                 undid[sha] = undone
-            if pr_number_from_subject(subject) is None:
+            if own is None:
                 continue
-        picks.append(Pick(sha, subject, pr_number_from_subject(subject), branch))
+        picks.append(Pick(sha, subject, own, branch))
     return picks[::-1], reverted[::-1]
 
 

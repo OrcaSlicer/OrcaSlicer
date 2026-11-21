@@ -134,7 +134,7 @@ def _discord_payload(project, labelled, changes, reverted, unmatched, milestones
                          f"https://github.com/orgs/{owner}/projects/{number}", repo, now)
 
 
-def run(gh, repo_dir, owner, number, repo, apply, out, discord=None, post_id=None, allow_create=True, now=None):
+def run(gh, repo_dir, owner, number, repo, apply, out, discord=None, post_id=None, allow_create=False, now=None):
     try:
         project = gh.project(owner, number, repo)
         labelled = gh.labelled_items(repo, LABEL)
