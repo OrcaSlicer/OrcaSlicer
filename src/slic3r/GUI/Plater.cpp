@@ -12216,9 +12216,13 @@ bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const
         // Proper paint remapping
         auto saved_painting = old_volume->save_painting();
         if (saved_painting) {
-            // ORCA Move the old mesh to where the new part places it, in the new file's coordinates.
-            saved_painting->mesh.transform(Geometry::translation_transform(new_volume->mesh().get_init_shift()) *
-                                           new_volume->get_matrix().inverse() * old_volume->get_matrix());
+            // ORCA Match the paint with the meshes centered on each other, so it is kept when the part moves.
+            // The new file may have rotation and scale applied.
+            Transform3d to_new_mesh = new_volume->get_matrix().inverse() * old_volume->get_matrix();
+            to_new_mesh.translation().setZero();
+            to_new_mesh.translation() = new_volume->mesh().get_init_shift() + new_volume->mesh().bounding_box().center() -
+                                        saved_painting->mesh.transformed_bounding_box(to_new_mesh).center();
+            saved_painting->mesh.transform(to_new_mesh);
             new_volume->restore_painting(saved_painting);
         }
     } else {
