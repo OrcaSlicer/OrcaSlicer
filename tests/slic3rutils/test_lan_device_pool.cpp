@@ -64,3 +64,15 @@ TEST_CASE("A Multi-device print names the printer it is sent to", "[LanDevicePoo
     CHECK(sent.dev_name == "U1 right");
     CHECK(sent.filename == "/tmp/plate.gcode.3mf");
 }
+
+TEST_CASE("A renamed Multi-device printer keeps its connection, a new address or key does not", "[LanDevicePool]")
+{
+    const auto device = lan_device_from_config("U1", printer_config("u1control", "192.0.2.20", "7125", "secret"), "797581801");
+    REQUIRE(device);
+    const auto renamed = lan_device_from_config("U1 left", printer_config("u1control", "192.0.2.20", "7125", "secret"), "");
+    REQUIRE(renamed);
+    CHECK_FALSE(*renamed == *device);
+    CHECK(renamed->same_connection(*device));
+    CHECK_FALSE(lan_device_from_config("U1", printer_config("u1control", "192.0.2.20", "7125", "other"), "")->same_connection(*device));
+    CHECK_FALSE(lan_device_from_config("U1", printer_config("snapmaker", "192.0.2.20", "7125", "secret"), "")->same_connection(*device));
+}

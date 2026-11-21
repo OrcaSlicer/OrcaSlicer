@@ -3,6 +3,7 @@
 
 #include "slic3r/Utils/bambu_networking.hpp"
 
+#include <chrono>
 #include <functional>
 #include <map>
 #include <memory>
@@ -36,6 +37,8 @@ struct LanDevice
     bool        use_ssl = false;
 
     bool operator==(const LanDevice& other) const;
+    // Same agent, address and credentials: only the name or the model differ, so the connection stays
+    bool same_connection(const LanDevice& other) const;
 };
 
 // The LAN device a printer config describes, or nothing: no print host, or an agent the
@@ -67,8 +70,8 @@ public:
     std::map<std::string, MachineObject*> machines() const;
     bool owns(const std::string& dev_id) const;
 
-    // Any thread: sends a print to the device through its own agent; nothing when the device
-    // is not in the pool
+    // Any thread: sends a print to the device through its own agent; an error when the device left the pool,
+    // nothing when it never was in it
     std::optional<int> start_print(const std::string& dev_id, PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
 
 private:
@@ -79,6 +82,7 @@ private:
         std::shared_ptr<IPrinterAgent> agent;
         std::unique_ptr<NetworkAgent>  network;           // routes the MachineObject's commands to `agent`
         std::unique_ptr<MachineObject> machine;
+        std::chrono::steady_clock::time_point connected_at; // the last connect_printer()
     };
 
     std::unique_ptr<Entry> connect(const LanDevice& device);
@@ -88,6 +92,9 @@ private:
     DeviceManager*                                  m_manager;
     mutable std::mutex                              m_mutex; // guards m_entries' map, not the MachineObjects
     std::map<std::string, std::unique_ptr<Entry>>   m_entries;
+    // Dropped devices, disconnected: the pages keep raw MachineObject pointers until they refresh, so their
+    // objects live as long as the pool (as DeviceManager keeps the cloud machines it drops)
+    std::vector<std::unique_ptr<Entry>>             m_retired;
 };
 
 } // namespace Slic3r

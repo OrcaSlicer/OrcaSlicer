@@ -25,7 +25,22 @@ bool LanDevice::operator==(const LanDevice& other) const
            ca_file == other.ca_file && use_ssl == other.use_ssl;
 }
 
+bool LanDevice::same_connection(const LanDevice& other) const
+{
+    return dev_id == other.dev_id && agent_id == other.agent_id && host == other.host && port == other.port &&
+           username == other.username && password == other.password && ca_file == other.ca_file && use_ssl == other.use_ssl;
+}
+
 namespace {
+
+// An offline device is connected again this often, when a page lists the devices: an agent gives up when
+// the printer does not answer its first connection
+constexpr auto RECONNECT_EVERY = std::chrono::seconds(60);
+
+PrinterConnectionParams connection_params(const LanDevice& device)
+{
+    return {device.dev_id, device.host, device.port, device.username, device.password, device.use_ssl, device.ca_file};
+}
 
 std::string config_string(const DynamicPrintConfig& config, const char* key)
 {
@@ -175,8 +190,8 @@ std::unique_ptr<LanDevicePool::Entry> LanDevicePool::connect(const LanDevice& de
         });
     });
 
-    const PrinterConnectionParams params{device.dev_id, device.host, device.port, device.username, device.password, device.use_ssl, device.ca_file};
-    const int result = agent->connect_printer(params);
+    entry->connected_at = std::chrono::steady_clock::now();
+    const int result    = agent->connect_printer(connection_params(device));
     BOOST_LOG_TRIVIAL(info) << "LanDevicePool: connecting " << device.dev_id << " (" << device.agent_id << "): " << result;
     return entry;
 }
@@ -190,6 +205,8 @@ void LanDevicePool::disconnect(std::unique_ptr<Entry> entry)
     entry->agent->set_on_local_connect_fn(nullptr);
     entry->agent->set_on_printer_connected_fn(nullptr);
     entry->agent->disconnect_printer();
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_retired.push_back(std::move(entry));
 }
 
 void LanDevicePool::sync(const std::vector<LanDevice>& devices)
@@ -197,17 +214,30 @@ void LanDevicePool::sync(const std::vector<LanDevice>& devices)
     prune();
     std::vector<std::unique_ptr<Entry>> dropped;
     std::vector<LanDevice>              added;
+    std::vector<std::pair<std::shared_ptr<IPrinterAgent>, LanDevice>> reconnect;
+    const auto                          now = std::chrono::steady_clock::now();
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         for (auto it = m_entries.begin(); it != m_entries.end();) {
+            Entry&     entry  = *it->second;
             const auto wanted = std::find_if(devices.begin(), devices.end(), [&](const LanDevice& d) { return d.dev_id == it->first; });
             // A changed device (another agent, address or password) is connected again
-            if (wanted == devices.end() || !(*wanted == it->second->device)) {
+            if (wanted == devices.end() || !wanted->same_connection(entry.device)) {
                 dropped.push_back(std::move(it->second));
                 it = m_entries.erase(it);
-            } else {
-                ++it;
+                continue;
             }
+            // A new name or model keeps the device, its connection and the pages' pointer to it
+            if (!(*wanted == entry.device)) {
+                entry.device = *wanted;
+                entry.machine->set_dev_name(wanted->name);
+                entry.machine->printer_type = wanted->printer_type;
+            }
+            if (!entry.machine->is_online() && now - entry.connected_at >= RECONNECT_EVERY) {
+                entry.connected_at = now;
+                reconnect.emplace_back(entry.agent, entry.device);
+            }
+            ++it;
         }
         for (const LanDevice& device : devices)
             if (m_entries.count(device.dev_id) == 0)
@@ -215,6 +245,8 @@ void LanDevicePool::sync(const std::vector<LanDevice>& devices)
     }
     for (auto& entry : dropped)
         disconnect(std::move(entry));
+    for (const auto& [agent, device] : reconnect)
+        BOOST_LOG_TRIVIAL(info) << "LanDevicePool: reconnecting " << device.dev_id << ": " << agent->connect_printer(connection_params(device));
     for (const LanDevice& device : added) {
         if (auto entry = connect(device)) {
             std::lock_guard<std::mutex> lock(m_mutex);
@@ -274,8 +306,13 @@ std::optional<int> LanDevicePool::start_print(const std::string& dev_id, PrintPa
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         const auto                  it = m_entries.find(dev_id);
-        if (it == m_entries.end())
-            return std::nullopt;
+        if (it == m_entries.end()) {
+            // Removed or changed since the print was queued: the live agent would send it to another printer
+            const bool retired = std::any_of(m_retired.begin(), m_retired.end(), [&](const auto& e) { return e->device.dev_id == dev_id; });
+            if (retired)
+                BOOST_LOG_TRIVIAL(warning) << "LanDevicePool: " << dev_id << " is no longer a Multi-device printer; not printing";
+            return retired ? std::optional<int>(BAMBU_NETWORK_ERR_CONNECTION_TO_PRINTER_FAILED) : std::nullopt;
+        }
         agent  = it->second->agent;
         device = it->second->device;
     }
