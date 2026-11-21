@@ -13,7 +13,7 @@
 		"Direct Drive High Flow"
 	],
 	"filament_max_volumetric_speed": [
-		"7.5",
+		"2",
 		"2"
 	],
 	"fan_min_speed": [
