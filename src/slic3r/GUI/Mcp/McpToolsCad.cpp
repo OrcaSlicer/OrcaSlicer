@@ -4322,9 +4322,8 @@ json cad_input_schema(const json& block)
         properties[name] = std::move(property);
     }
     properties["generation"] = {{"type", "integer"}, {"minimum", 0}, {"description", kGenerationNote}};
-    json schema{{"type", "object"}, {"properties", std::move(properties)}};
+    json schema{{"type", "object"}, {"properties", std::move(properties)}, {"additionalProperties", false}};
     if (!required.empty()) schema["required"] = std::move(required);
-    if (block.value("closed", false)) schema["additionalProperties"] = false;
     return schema;
 }
 

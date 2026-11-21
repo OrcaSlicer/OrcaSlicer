@@ -1777,8 +1777,8 @@ or are `{}`, or a command has no `section` (and a folded or greyed item has one)
 An entry with a tool block has a silent form, whose function `kSilentForms` binds by the entry's id; a unit
 test fails for a block with no function and a function with no block. The block gives the silent form's
 access, a summary of one sentence (at most 120 characters), details, typed params with units, defaults and
-limits, one to three examples, whether it reports a rejected rebuild in its reply (`ok_false`) and whether its
-schema is closed (`closed`); the header carries it as JSON text (`doc`). `register_cad_commands()` makes a
+limits, one to three examples and whether it reports a rejected rebuild in its reply (`ok_false`); the header
+carries it as JSON text (`doc`). `register_cad_commands()` makes a
 command of each entry that is one (`design_command()`, through `cad_command()`), in the table's order. It is
 `read_only` and `idempotent` for a `read` block, and has the entry's icon. Its description is the summary, the
 details, with `ok_false` how a rejected rebuild shows, and, for a command whose menu items a call's arguments
@@ -1809,15 +1809,13 @@ form may run in the other mode, as `sketch_text`'s does on the model and `sketch
 A limit is the one the tool's function or the
 kernel applies to every call that passes the param, so the schema refuses no call the function would run: a
 distance that may be negative, or a depth a through hole ignores, has none. A command with a silent form also
-takes `generation`, never required, whose description says how face and edge ids expire. A `closed` block's
-schema refuses an argument it does not name (`additionalProperties: false`), so a word the command does not
-take is refused as an unknown argument rather than ignored, and the call never runs with a default its caller
-did not mean; the validator names an unknown argument before a missing
-required one. Every command with `operation` is closed, and every one with `type` but `construct_plane`,
-`construct_axis` and `construct_coordinate_system`, which keep open schemas, as do the others whose functions
-read more than they name (a param in radians also in degrees under its name with `_deg`); the normalizer
-reads `index` as `feature` and `params` or `values` as `fields` (`normalize_arguments()`), the names `feature_describe`, `feature_edit` and
-the tree edits also read.
+takes `generation`, never required, whose description says how face and edge ids expire. Every schema refuses
+an argument it does not name (`additionalProperties: false`), so a word the command does not take is refused as
+an unknown argument rather than ignored, and the call never runs with a default its caller did not mean
+(`helix {pich: 3}` is refused, not built with the default pitch); the validator names an unknown argument before
+a missing required one. A param in radians that also takes degrees names both (`angle` and `angle_deg`), and
+the normalizer reads `index` as `feature` and `params` or `values` as `fields` (`normalize_arguments()`), the
+names `feature_describe`, `feature_edit` and the tree edits also read, before the schema is checked.
 
 One rule decides what a call of a Design command does (`opened_item()`): **a call whose arguments are exactly
 those that choose one of its menu items opens that item's tool for a person, as a pick of the item does; any other

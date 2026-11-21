@@ -1036,12 +1036,10 @@ and a pattern's layout as `type` in the commands' words. A feature's type name (
 #### Refused and ignored arguments
 
 - A null argument is an argument not given, as the schemas' null defaults say.
-- 31 commands have a closed schema, so an argument they do not have is refused as an unknown argument:
-  `align`, `body_place`, `boolean`, `cancel_tool`, `chamfer`, `confirm_tool`, `extrude`,
-  `feature_suppress`, `fillet`, `hole`, `loft`, `mirror`, `pattern`, `revolve`, `select_geometry`,
-  `sketch_constrain`, `sketch_dimension`, `sketch_draw`, `sketch_extend`, `sketch_insert_svg`,
-  `sketch_pattern`, `sketch_text`, `sketch_transform`, `sketch_trim`, `sweep`, `thicken`, and the five
-  menu-item commands (`closed` in the tool block). The others have open schemas.
+- Every command has a closed schema, so an argument it does not have is refused as an unknown argument rather
+  than ignored: `helix {pich: 3}` is refused, not built with the default pitch. The names agents often use
+  instead (`index` for `feature`, `params` or `values` for `fields`) are read as the schema's before it is
+  checked.
 - **`generation`.** Every command but the menu-item ones takes `generation`, the generation
   (`describe_design`, `body_describe`) the face and edge ids it passes were read at. Ids expire when a feature
   rebuilds the model, and a stale id can still name a real face or edge, so a call whose ids were read before

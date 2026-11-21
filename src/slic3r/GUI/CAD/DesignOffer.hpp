@@ -119,8 +119,7 @@ struct DesignTool {
     CadAccess   access;       // its silent form's, None without one
     bool        ok_false;     // its silent form reports a rejected rebuild in its reply (ok false)
     // Its silent form's summary, details, params, examples and ids as JSON text, the parameter
-    // schema of record, and closed when its schema refuses an argument it does not name; nullptr for an
-    // entry whose command only does what its menu item does.
+    // schema of record; nullptr for an entry whose command only does what its menu item does.
     const char* doc;
     const char* fold_into;    // the id of the command this item is a variant of, or nullptr
     // The arguments that choose this item, as JSON text: a folded item's, or those that choose the own item of
@@ -230,7 +229,7 @@ static const DesignTool kDesignTools[] = {
      "trude\",\"args\":{\"distance\":5,\"sketch\":0}}]},{\"title\":\"A plate's top face pushed up 3 mm\",\"calls\":"
      "[{\"tool\":\"extrude\",\"args\":{\"distance\":5,\"height\":20,\"width\":20}},{\"tool\":\"body_describe\",\"args\":"
      "{\"at_extreme\":\"+z\",\"body\":0}},{\"tool\":\"extrude\",\"args\":{\"body\":0,\"distance\":3,\"face\":5,\"generati"
-     "on\":{\"from_call\":1,\"key\":\"generation\"}}}]}],\"ids\":true,\"closed\":true}", nullptr, nullptr, "Solid", false},
+     "on\":{\"from_call\":1,\"key\":\"generation\"}}}]}],\"ids\":true}", nullptr, nullptr, "Solid", false},
     {"revolve", L_CONTEXT("Revolve", "Design"), 1, "Shift+R", "key:S+R", L("Create a sketch profile to revolve first"), 0x00004000u, 0, 0, false, false, nullptr, "design_revolve", L("Revolve a profile about an axis"), false, CadAccess::Change, false,
      "{\"summary\":\"Revolve a committed sketch as the Revolve card does, or a profile drawn here, about "
      "an axis.\",\"details\":\"A sketch turns about a line of it or a plane axis; a profile drawn here is "
@@ -262,7 +261,7 @@ static const DesignTool kDesignTools[] = {
      ":[{\"tool\":\"sketch_create\",\"args\":{\"plane\":\"XZ\"}},{\"tool\":\"sketch_draw\",\"args\":{\"p0\":[10,0],\"p1\":"
      "[15,10],\"type\":\"rectangle_2_point\"}},{\"tool\":\"sketch_draw\",\"args\":{\"entities\":[{\"construction\":t"
      "rue,\"p0\":[0,0],\"p1\":[0,10],\"type\":\"line\"}]}},{\"tool\":\"sketch_finish\",\"args\":{}},{\"tool\":\"revolve"
-     "\",\"args\":{\"sketch\":0}}]}],\"ids\":true,\"closed\":true}", nullptr, nullptr, "Solid", false},
+     "\",\"args\":{\"sketch\":0}}]}],\"ids\":true}", nullptr, nullptr, "Solid", false},
     {"sweep", L_CONTEXT("Sweep", "Design"), 1, "Shift+W", "key:S+W", L("Create a profile sketch to sweep first"), 0x00004000u, 0, 2, false, false, nullptr, "design_sweep", L("Sweep a profile along a path"), false, CadAccess::Change, false,
      "{\"summary\":\"Sweep a committed sketch's closed profile along a path, a sketch or a helix, as the "
      "Sweep card does.\",\"details\":\"Draw the profile across the path's start (a helix's start and tange"
@@ -283,7 +282,7 @@ static const DesignTool kDesignTools[] = {
      "\"p1\":[0,40],\"type\":\"line\"}]}},{\"tool\":\"sketch_finish\",\"args\":{}},{\"tool\":\"sketch_create\",\"args\":"
      "{\"plane\":\"XZ\"}},{\"tool\":\"sketch_draw\",\"args\":{\"entities\":[{\"center\":[0,0],\"radius\":3,\"type\":\"cir"
      "cle_center\"}]}},{\"tool\":\"sketch_finish\",\"args\":{}},{\"tool\":\"sweep\",\"args\":{\"path\":0,\"sketch\":1}}"
-     "]}],\"ids\":false,\"closed\":true}", nullptr, nullptr, "Solid", false},
+     "]}],\"ids\":false}", nullptr, nullptr, "Solid", false},
     {"loft", L_CONTEXT("Loft", "Design"), 1, "Shift+L", "key:S+L", L("Create at least two profile sketches to loft"), 0x00004000u, 0, 2, false, false, nullptr, "design_loft", L("Loft (skin) between two or more profiles"), false, CadAccess::Change, false,
      "{\"summary\":\"Loft a solid through two or more committed sketches, in order, as the Loft card does"
      ".\",\"details\":\"Each sketch is on its own plane (sketch on datum planes). Lofts take seconds and t"
@@ -300,7 +299,7 @@ static const DesignTool kDesignTools[] = {
      "s\":{\"p0\":[-10,-10],\"p1\":[10,10],\"type\":\"rectangle_2_point\"}},{\"tool\":\"sketch_finish\",\"args\":{}},"
      "{\"tool\":\"sketch_create\",\"args\":{\"plane\":{\"datum\":0}}},{\"tool\":\"sketch_draw\",\"args\":{\"entities\":["
      "{\"center\":[0,0],\"radius\":6,\"type\":\"circle_center\"}]}},{\"tool\":\"sketch_finish\",\"args\":{}},{\"tool\""
-     ":\"loft\",\"args\":{\"profiles\":[1,2]}}]}],\"ids\":false,\"closed\":true}", nullptr, nullptr, "Solid", false},
+     ":\"loft\",\"args\":{\"profiles\":[1,2]}}]}],\"ids\":false}", nullptr, nullptr, "Solid", false},
     {"thicken", L_CONTEXT("Thicken", "Design"), 1, nullptr, "fly:material#4", L("Thicken needs a solid body — add or import one first"), 0x0000000au, 1, 0, false, false, nullptr, "design_thicken", L("Offset a solid face into a thin plate (new body)"), false, CadAccess::Change, false,
      "{\"summary\":\"Thicken a face of a body, or a whole sheet body, into a new solid body by a wall thi"
      "ckness.\",\"details\":\"type face offsets one face of a body into a thin plate. type surface thicken"
@@ -326,7 +325,7 @@ static const DesignTool kDesignTools[] = {
      "nts inward\",\"calls\":[{\"tool\":\"sketch_create\",\"args\":{\"plane\":\"XY\"}},{\"tool\":\"sketch_draw\",\"args\""
      ":{\"entities\":[{\"center\":[0,0],\"radius\":10,\"type\":\"circle_center\"}]}},{\"tool\":\"sketch_finish\",\"ar"
      "gs\":{}},{\"tool\":\"surface_extrude\",\"args\":{\"distance\":20,\"sketch\":0}},{\"tool\":\"thicken\",\"args\":{\""
-     "body\":0,\"flip\":true,\"thickness\":1.5,\"type\":\"surface\"}}]}],\"ids\":true,\"closed\":true}", nullptr, "{\"type\":\"face\"}", "Solid", false},
+     "body\":0,\"flip\":true,\"thickness\":1.5,\"type\":\"surface\"}}]}],\"ids\":true}", nullptr, "{\"type\":\"face\"}", "Solid", false},
     {"rib", L_CONTEXT("Rib", "Design"), 1, "R", "fly:material#5", L("Rib needs a solid body — add or import one first"), 0x00010000u, 1, 0, false, false, nullptr, "design_rib", L("Grow a thin wall from an open sketch line, fused to a body"), false, CadAccess::Change, true,
      "{\"summary\":\"Grow a thin rib wall (stiffener) from an open Line sketch entity, fused to a body.\","
      "\"details\":\"The wall is centred on the line in the sketch plane, thickness wide, and grows depth "
@@ -353,7 +352,7 @@ static const DesignTool kDesignTools[] = {
      "gs\":{\"operation\":\"cut\",\"target\":0,\"tool\":1}}]},{\"title\":\"Two overlapping blocks joined into one "
      "body\",\"calls\":[{\"tool\":\"extrude\",\"args\":{\"distance\":10,\"height\":20,\"width\":20}},{\"tool\":\"extrude"
      "\",\"args\":{\"distance\":10,\"operation\":\"new_body\",\"profile\":[[5,-5],[20,-5],[20,5],[5,5]]}},{\"tool\""
-     ":\"boolean\",\"args\":{\"operation\":\"join\",\"target\":0,\"tool\":1}}]}],\"ids\":false,\"closed\":true}", nullptr, "{\"operation\":\"join\"}", "Solid", false},
+     ":\"boolean\",\"args\":{\"operation\":\"join\",\"target\":0,\"tool\":1}}]}],\"ids\":false}", nullptr, "{\"operation\":\"join\"}", "Solid", false},
     {"bool_subtract", L_CONTEXT("Subtract", "Design"), 1, nullptr, "btn:bool#1", L("Boolean needs two bodies — add or import a second one"), 0x00000200u, 2, 0, false, false, nullptr, "design_boolean", L("Cut the tool body out of the target"), false, CadAccess::None, false,
      nullptr, "boolean", "{\"operation\":\"cut\"}", nullptr, false},
     {"bool_intersect", L_CONTEXT("Intersect", "Design"), 1, nullptr, "btn:bool#2", L("Boolean needs two bodies — add or import a second one"), 0x00000200u, 2, 0, false, false, nullptr, "design_boolean", L("Keep only where the two bodies overlap"), false, CadAccess::None, false,
@@ -450,7 +449,7 @@ static const DesignTool kDesignTools[] = {
      "ored clearance hole through a 10 mm block's top face\",\"calls\":[{\"tool\":\"extrude\",\"args\":{\"distan"
      "ce\":10,\"height\":30,\"width\":30}},{\"tool\":\"body_describe\",\"args\":{\"at_extreme\":\"+z\",\"body\":0}},{\"t"
      "ool\":\"hole\",\"args\":{\"designation\":\"M6\",\"generation\":{\"from_call\":1,\"key\":\"generation\"},\"plane\":{"
-     "\"body\":0,\"face\":5},\"through\":true,\"type\":\"counterbore\"}}]}],\"ids\":true,\"closed\":true}", nullptr, nullptr, "Solid", false},
+     "\"body\":0,\"face\":5},\"through\":true,\"type\":\"counterbore\"}}]}],\"ids\":true}", nullptr, nullptr, "Solid", false},
     {"thread", L_CONTEXT("Thread", "Design"), 2, "Shift+T", "key:S+T", L("Pick a cylindrical surface (bore / outer) or a circular edge for a thread"), 0x00000024u, 1, 0, false, false, nullptr, "design_thread", L("Thread a cylindrical surface (inner bore / outer) or a circular edge"), false, CadAccess::Change, false,
      "{\"summary\":\"Cut a thread as the Thread card does, along a cylindrical face or a circular edge, o"
      "r on a plane.\",\"details\":\"On a face a bore is tapped, a boss threaded; on a plane the thread goe"
@@ -541,7 +540,7 @@ static const DesignTool kDesignTools[] = {
      "e of a plate rounded to 1 mm\",\"calls\":[{\"tool\":\"extrude\",\"args\":{\"distance\":5,\"height\":20,\"width"
      "\":20}},{\"tool\":\"body_describe\",\"args\":{\"adjacency\":true,\"at_extreme\":\"+z\",\"body\":0}},{\"tool\":\"fi"
      "llet\",\"args\":{\"body\":0,\"edges\":3,\"generation\":{\"from_call\":1,\"key\":\"generation\"},\"radius\":1}}]}]"
-     ",\"ids\":true,\"closed\":true}", nullptr, nullptr, "Solid", false},
+     ",\"ids\":true}", nullptr, nullptr, "Solid", false},
     {"chamfer", L_CONTEXT("Chamfer", "Design"), 3, nullptr, "btn:dress#1", L("Pick an edge to bevel"), 0x000000b2u, 1, 0, false, false, nullptr, "design_chamfer", L("Pick an edge, then drag the distance arrow or type it"), false, CadAccess::Change, false,
      "{\"summary\":\"Chamfer measured edges of a body (edge ids from body_describe on that body).\",\"detai"
      "ls\":\"Reply: chamfer_index, body, bodies.\",\"params\":[{\"name\":\"edges\",\"type\":\"integer|array|string"
@@ -552,7 +551,7 @@ static const DesignTool kDesignTools[] = {
      "is body.\"}],\"examples\":[{\"title\":\"A plate's top edges chamfered 1 mm\",\"calls\":[{\"tool\":\"extrude\""
      ",\"args\":{\"distance\":5,\"height\":20,\"width\":20}},{\"tool\":\"body_describe\",\"args\":{\"adjacency\":true,"
      "\"at_extreme\":\"+z\",\"body\":0}},{\"tool\":\"chamfer\",\"args\":{\"body\":0,\"distance\":1,\"edges\":[3,6,9,11],"
-     "\"generation\":{\"from_call\":1,\"key\":\"generation\"}}}]}],\"ids\":true,\"closed\":true}", nullptr, nullptr, "Solid", false},
+     "\"generation\":{\"from_call\":1,\"key\":\"generation\"}}}]}],\"ids\":true}", nullptr, nullptr, "Solid", false},
     {"draft", L_CONTEXT("Draft", "Design"), 3, "Shift+D", "key:S+D", L("Pick a face to taper"), 0x0000000au, 1, 0, false, false, nullptr, "design_draft", L("Tilt a picked face by a draft angle"), false, CadAccess::Change, true,
      "{\"summary\":\"Taper a body face by an angle about its base (pull direction +Z).\",\"details\":\"\",\"par"
      "ams\":[{\"name\":\"face\",\"type\":\"integer\",\"description\":\"face id to draft (body_describe)\"},{\"name\":"
@@ -605,7 +604,7 @@ static const DesignTool kDesignTools[] = {
      "\"center\":[0,0],\"end_angle_deg\":180,\"radius\":30,\"start_angle_deg\":0,\"type\":\"arc_center\"}]}},{\"too"
      "l\":\"sketch_finish\",\"args\":{}},{\"tool\":\"extrude\",\"args\":{\"distance\":10,\"profile\":[[28,-2],[32,-2]"
      ",[32,2],[28,2]]}},{\"tool\":\"pattern\",\"args\":{\"count\":4,\"entity\":0,\"sketch\":0,\"type\":\"curve\"}}]}],"
-     "\"ids\":true,\"closed\":true}", nullptr, "{\"type\":\"linear\"}", "Solid", false},
+     "\"ids\":true}", nullptr, "{\"type\":\"linear\"}", "Solid", false},
     {"pattern_circular", L_CONTEXT("Circular pattern", "Design"), 4, nullptr, "btn:pat#1", L("Pattern needs a solid body — add or import one first"), 0x00006082u, 1, 0, false, false, nullptr, "design_polararray", L("Repeat the body around an axis — set the count and sweep"), false, CadAccess::None, false,
      nullptr, "pattern", "{\"type\":\"circular\"}", nullptr, false},
     {"mirror", L_CONTEXT("Mirror", "Design"), 4, "Shift+Z", "key:S+Z", L("Mirror needs a body — add or import one first"), 0x000004feu, 1, 0, false, false, nullptr, "design_mirror", L("Reflect a body about a plane"), false, CadAccess::Change, true,
@@ -622,8 +621,7 @@ static const DesignTool kDesignTools[] = {
      "s\":[{\"tool\":\"extrude\",\"args\":{\"distance\":5,\"profile\":[[-5,5],[5,5],[5,15],[-5,15]]}},{\"tool\":\"mi"
      "rror\",\"args\":{\"plane\":\"XZ\"}}]},{\"title\":\"A block against the XZ plane and its mirror image fused"
      " into one body\",\"calls\":[{\"tool\":\"extrude\",\"args\":{\"distance\":5,\"profile\":[[-5,0],[5,0],[5,10],["
-     "-5,10]]}},{\"tool\":\"mirror\",\"args\":{\"operation\":\"join\",\"plane\":\"XZ\"}}]}],\"ids\":true,\"closed\":true"
-     "}", nullptr, nullptr, "Solid", false},
+     "-5,10]]}},{\"tool\":\"mirror\",\"args\":{\"operation\":\"join\",\"plane\":\"XZ\"}}]}],\"ids\":true}", nullptr, nullptr, "Solid", false},
     {"pat_curve", L_CONTEXT("Pattern on Curve", "Design"), 4, nullptr, nullptr, L("Pattern on Curve needs a body and a curve"), 0x00000090u, 1, 0, false, false, nullptr, nullptr, L("Repeat the body along a picked curve"), false, CadAccess::None, false,
      nullptr, nullptr, nullptr, nullptr, false},
     {"body_transform", L_CONTEXT("Move", "Design"), 5, "Shift+Y", "key:S+Y", L("Transform needs a body — add or import one first"), 0x000021feu, 1, 0, false, false, nullptr, "design_move", L("Move and/or rotate an existing body"), false, CadAccess::Change, true,
@@ -659,8 +657,7 @@ static const DesignTool kDesignTools[] = {
      "face\":5,\"generation\":{\"from_call\":2,\"key\":\"generation\"},\"type\":\"face_and_direction\"}},{\"tool\":\"b"
      "ody_describe\",\"args\":{\"at_extreme\":\"-z\",\"body\":1}},{\"tool\":\"construct_coordinate_system\",\"args\":"
      "{\"body\":1,\"face\":4,\"generation\":{\"from_call\":4,\"key\":\"generation\"},\"type\":\"face_and_direction\"}}"
-     ",{\"tool\":\"align\",\"args\":{\"cs_a\":4,\"cs_b\":5,\"flip\":true,\"type\":\"fastened\"}}]}],\"ids\":false,\"close"
-     "d\":true}", nullptr, nullptr, "Solid", false},
+     ",{\"tool\":\"align\",\"args\":{\"cs_a\":4,\"cs_b\":5,\"flip\":true,\"type\":\"fastened\"}}]}],\"ids\":false}", nullptr, nullptr, "Solid", false},
     {"align_to", L_CONTEXT("Align to", "Design"), 5, nullptr, nullptr, L("Align needs a body — add or import one first"), 0x00000002u, 1, 0, false, false, nullptr, nullptr, L("Align the body to a picked face or plane"), false, CadAccess::None, false,
      nullptr, nullptr, nullptr, nullptr, false},
     {"construct_plane", L_CONTEXT("Plane", "Design"), 6, "Shift+P", "key:S+P", nullptr, 0x00000453u, 0, 0, false, false, nullptr, "design_plane", L("Reference plane (offset / tilt / midplane / tangent / two edges / coincident)"), false, CadAccess::Change, false,
@@ -936,7 +933,7 @@ static const DesignTool kDesignTools[] = {
      "\"Orca\"}}]},{\"title\":\"A label centred on a plate's top face\",\"calls\":[{\"tool\":\"extrude\",\"args\":{\""
      "distance\":5,\"height\":20,\"width\":20}},{\"tool\":\"body_describe\",\"args\":{\"at_extreme\":\"+z\",\"body\":0}"
      "},{\"tool\":\"sketch_text\",\"args\":{\"generation\":{\"from_call\":1,\"key\":\"generation\"},\"height\":6,\"plan"
-     "e\":{\"body\":0,\"face\":5},\"text\":\"A1\"}}]}],\"ids\":true,\"closed\":true}", nullptr, nullptr, "Sketch", false},
+     "e\":{\"body\":0,\"face\":5},\"text\":\"A1\"}}]}],\"ids\":true}", nullptr, nullptr, "Sketch", false},
     {"sketch_insert_svg", L_CONTEXT("SVG", "Design"), 0, nullptr, "btn:svg", nullptr, 0x000f8000u, 0, 0, false, true, nullptr, "design_svg", L("Import an SVG outline into this sketch as editable lines"), true, CadAccess::Sketch, false,
      "{\"summary\":\"Add an SVG file's filled outlines to the open sketch as lines, or to the model as ar"
      "t on a plane.\",\"details\":\"The outlines are centred on the plane's origin, scaled by scale and mo"
@@ -957,7 +954,7 @@ static const DesignTool kDesignTools[] = {
      "\":\"/path/to/logo.svg\",\"position\":[10,0]}}],\"needs\":\"an SVG file with a filled shape\"},{\"title\":\""
      "A logo's outlines drawn into an open sketch at half size\",\"calls\":[{\"tool\":\"sketch_create\",\"args"
      "\":{\"plane\":\"XY\"}},{\"tool\":\"sketch_insert_svg\",\"args\":{\"path\":\"/path/to/logo.svg\",\"scale\":0.5}}],"
-     "\"needs\":\"an SVG file with a filled shape\"}],\"ids\":true,\"closed\":true}", nullptr, nullptr, "Sketch", false},
+     "\"needs\":\"an SVG file with a filled shape\"}],\"ids\":true}", nullptr, nullptr, "Sketch", false},
     {"sketch_offset", L_CONTEXT("Offset", "Design"), 1, "O", "key:O", nullptr, 0x000b0000u, 0, 0, false, true, nullptr, "design_offset", L("Offset — pick an entity, drag the distance"), false, CadAccess::Sketch, false,
      "{\"summary\":\"Add an offset copy of sketch lines, arcs and circles.\",\"details\":\"The copy of one en"
      "tity alone is bound to it, Parallel for a line and Concentric for an arc or a circle, as the Off"
@@ -980,7 +977,7 @@ static const DesignTool kDesignTools[] = {
      "ault\":0.05,\"description\":\"how far from `at` the entity may be\"}],\"examples\":[{\"title\":\"A line cu"
      "t back to the line crossing it\",\"calls\":[{\"tool\":\"sketch_create\",\"args\":{\"plane\":\"XY\"}},{\"tool\":"
      "\"sketch_draw\",\"args\":{\"entities\":[{\"p0\":[-10,0],\"p1\":[10,0],\"type\":\"line\"},{\"p0\":[0,-5],\"p1\":[0,"
-     "5],\"type\":\"line\"}]}},{\"tool\":\"sketch_trim\",\"args\":{\"at\":[5,0]}}]}],\"ids\":false,\"closed\":true}", nullptr, nullptr, "Sketch", false},
+     "5],\"type\":\"line\"}]}},{\"tool\":\"sketch_trim\",\"args\":{\"at\":[5,0]}}]}],\"ids\":false}", nullptr, nullptr, "Sketch", false},
     {"sketch_fillet", L_CONTEXT("Fillet", "Design"), 3, "F", "key:F", nullptr, 0x00090000u, 0, 0, false, true, nullptr, "design_filletedge", L("Fillet — pick two lines, set the radius"), false, CadAccess::Sketch, false,
      "{\"summary\":\"Round the corner of two lines of the open sketch, as the Fillet tool does.\",\"details"
      "\":\"Both lines are cut back and joined by an arc of `radius`, bound coincident and tangent to the"
@@ -1050,7 +1047,7 @@ static const DesignTool kDesignTools[] = {
      "nce\",\"value\":25}}]},{\"title\":\"A circle's radius set to 5 mm\",\"calls\":[{\"tool\":\"sketch_create\",\"a"
      "rgs\":{\"plane\":\"XY\"}},{\"tool\":\"sketch_draw\",\"args\":{\"entities\":[{\"center\":[0,0],\"radius\":3,\"type\""
      ":\"circle_center\"}]}},{\"tool\":\"sketch_dimension\",\"args\":{\"entities\":[0],\"type\":\"radius\",\"value\":5"
-     "}}]}],\"ids\":false,\"closed\":true}", nullptr, nullptr, "Sketch", false},
+     "}}]}],\"ids\":false}", nullptr, nullptr, "Sketch", false},
     {"sketch_constrain", L_CONTEXT("Constrain", "Design"), 6, "K", "key:K", nullptr, 0x000f0000u, 0, 0, false, true, nullptr, "design_constrain", L("Constrain the selected sketch entities to each other"), false, CadAccess::Sketch, false,
      "{\"summary\":\"Add a constraint to the open sketch, as a CONSTRAIN bar button does (sketch_set_valu"
      "e is the value field, V).\",\"details\":\"With `entities`, else the selection, the button's own rule"
@@ -1076,8 +1073,7 @@ static const DesignTool kDesignTools[] = {
      "}},{\"tool\":\"sketch_constrain\",\"args\":{\"entities\":[0,1],\"type\":\"equal\"}}]},{\"title\":\"A line's sta"
      "rt held at x = 5, named by refs\",\"calls\":[{\"tool\":\"sketch_create\",\"args\":{\"plane\":\"XY\"}},{\"tool\""
      ":\"sketch_draw\",\"args\":{\"entities\":[{\"p0\":[0,0],\"p1\":[10,2],\"type\":\"line\"}]}},{\"tool\":\"sketch_con"
-     "strain\",\"args\":{\"refs\":[{\"entity\":0,\"role\":\"p0\"}],\"type\":\"lock_x\",\"value\":5}}]}],\"ids\":false,\"cl"
-     "osed\":true}", nullptr, nullptr, "Sketch", false},
+     "strain\",\"args\":{\"refs\":[{\"entity\":0,\"role\":\"p0\"}],\"type\":\"lock_x\",\"value\":5}}]}],\"ids\":false}", nullptr, nullptr, "Sketch", false},
     // Same verb, model-mode vocabulary: offered when a SKETCH is selected (bit 14, SkLoop), the
     // state a user is in right after finishing one. Without this item the only way in was the
     // toolbar icon, and constraints read as absent — see the Onshape-comparison report.
@@ -1101,8 +1097,7 @@ static const DesignTool kDesignTools[] = {
      "fault\":0.05,\"description\":\"how far from `at` the entity may be\"}],\"examples\":[{\"title\":\"A line e"
      "xtended down to the line below it\",\"calls\":[{\"tool\":\"sketch_create\",\"args\":{\"plane\":\"XY\"}},{\"too"
      "l\":\"sketch_draw\",\"args\":{\"entities\":[{\"p0\":[-10,0],\"p1\":[10,0],\"type\":\"line\"},{\"p0\":[0,3],\"p1\":["
-     "0,8],\"type\":\"line\"}]}},{\"tool\":\"sketch_extend\",\"args\":{\"at\":[0,3]}}]}],\"ids\":false,\"closed\":true"
-     "}", nullptr, nullptr, "Sketch", false},
+     "0,8],\"type\":\"line\"}]}},{\"tool\":\"sketch_extend\",\"args\":{\"at\":[0,3]}}]}],\"ids\":false}", nullptr, nullptr, "Sketch", false},
     {"sketch_delete", L_CONTEXT("Delete", "Design"), 7, "Del", "btn:sk_delete", nullptr, 0x000f0000u, 0, 0, false, true, nullptr, "design_delete", L("Delete the selected sketch entities"), false, CadAccess::Sketch, false,
      "{\"summary\":\"Delete sketch entities.\",\"details\":\"Reply: removed, entities.\",\"params\":[{\"name\":\"en"
      "tities\",\"type\":\"array\",\"default\":[],\"description\":\"entity indices; omit for the selection\"}],\"ex"
@@ -1314,7 +1309,7 @@ static const DesignTool kDesignTools[] = {
      "shown again\",\"calls\":[{\"tool\":\"extrude\",\"args\":{\"distance\":5,\"height\":20,\"width\":20}},{\"tool\":\"h"
      "ole\",\"args\":{\"diameter\":5,\"through\":true}},{\"tool\":\"feature_suppress\",\"args\":{\"feature\":2,\"suppr"
      "essed\":true}},{\"tool\":\"feature_suppress\",\"args\":{\"feature\":2,\"suppressed\":false}}]}],\"ids\":false"
-     ",\"closed\":true}", nullptr, nullptr, "History", false},
+     "}", nullptr, nullptr, "History", false},
     {"feature_rename", L_CONTEXT("Feature rename", "Design"), -1, nullptr, nullptr, nullptr, 0x00000000u, 0, 0, false, false, nullptr, nullptr, nullptr, false, CadAccess::Change, false,
      "{\"summary\":\"Rename a feature as F2 on its row does.\",\"details\":\"Its own undo step. Reply: name, "
      "changed.\",\"params\":[{\"name\":\"feature\",\"type\":\"integer\",\"description\":\"feature index (describe_de"
@@ -1487,7 +1482,7 @@ static const DesignTool kDesignTools[] = {
      "\":6,\"type\":\"polygon\"}]}}]},{\"title\":\"A quarter arc given in degrees, and a slot\",\"calls\":[{\"tool"
      "\":\"sketch_create\",\"args\":{\"plane\":\"XY\"}},{\"tool\":\"sketch_draw\",\"args\":{\"entities\":[{\"center\":[0,"
      "0],\"end_angle_deg\":90,\"radius\":20,\"start_angle_deg\":0,\"type\":\"arc_center\"},{\"c0\":[-10,-20],\"c1\":"
-     "[10,-20],\"type\":\"slot\",\"width\":6}]}}]}],\"ids\":false,\"closed\":true}", nullptr, nullptr, "Sketch", false},
+     "[10,-20],\"type\":\"slot\",\"width\":6}]}}]}],\"ids\":false}", nullptr, nullptr, "Sketch", false},
     {"sketch_select", L_CONTEXT("Sketch select", "Design"), -1, nullptr, nullptr, nullptr, 0x00000000u, 0, 0, false, false, nullptr, nullptr, nullptr, false, CadAccess::Sketch, false,
      "{\"summary\":\"Select sketch entities by index; an empty list clears the selection.\",\"details\":\"Rep"
      "ly: selected.\",\"params\":[{\"name\":\"entities\",\"type\":\"array\",\"default\":[],\"description\":\"entity in"
@@ -1535,7 +1530,7 @@ static const DesignTool kDesignTools[] = {
      "_transform\",\"args\":{\"dx\":10,\"entities\":[0],\"type\":\"move\"}}]},{\"title\":\"A line turned 30 degrees "
      "about its start\",\"calls\":[{\"tool\":\"sketch_create\",\"args\":{\"plane\":\"XY\"}},{\"tool\":\"sketch_draw\",\""
      "args\":{\"entities\":[{\"p0\":[0,0],\"p1\":[20,0],\"type\":\"line\"}]}},{\"tool\":\"sketch_transform\",\"args\":{"
-     "\"angle_deg\":30,\"entities\":[0],\"pivot\":[0,0],\"type\":\"rotate\"}}]}],\"ids\":false,\"closed\":true}", nullptr, nullptr, "Sketch", false},
+     "\"angle_deg\":30,\"entities\":[0],\"pivot\":[0,0],\"type\":\"rotate\"}}]}],\"ids\":false}", nullptr, nullptr, "Sketch", false},
     {"sketch_pattern", L_CONTEXT("Sketch pattern", "Design"), -1, nullptr, nullptr, nullptr, 0x00000000u, 0, 0, false, false, nullptr, nullptr, nullptr, false, CadAccess::Sketch, false,
      "{\"summary\":\"Repeat entities of the open sketch in a row or around a point, as the Linear and Pol"
      "ar array tools do.\",\"details\":\"linear adds copies stepped by dx, dy; circular adds copies every "
@@ -1558,7 +1553,7 @@ static const DesignTool kDesignTools[] = {
      "pe\":\"circular\"}}]},{\"title\":\"Three holes 10 mm apart along x\",\"calls\":[{\"tool\":\"sketch_create\",\""
      "args\":{\"plane\":\"XY\"}},{\"tool\":\"sketch_draw\",\"args\":{\"entities\":[{\"center\":[0,0],\"radius\":2,\"type"
      "\":\"circle_center\"}]}},{\"tool\":\"sketch_pattern\",\"args\":{\"count\":3,\"dx\":10,\"entities\":[0],\"type\":\""
-     "linear\"}}]}],\"ids\":false,\"closed\":true}", nullptr, nullptr, "Sketch", false},
+     "linear\"}}]}],\"ids\":false}", nullptr, nullptr, "Sketch", false},
     {"sketch_delete_constraint", L_CONTEXT("Sketch delete constraint", "Design"), -1, nullptr, nullptr, nullptr, 0x00000000u, 0, 0, false, false, nullptr, nullptr, nullptr, false, CadAccess::Sketch, false,
      "{\"summary\":\"Delete a constraint of the open sketch, as its row's delete button does; the constra"
      "ints after it move down one index.\",\"details\":\"Reply: removed, constraints, dof, solve_ok.\",\"par"
@@ -1621,7 +1616,7 @@ static const DesignTool kDesignTools[] = {
      "are's loop selected, which selects its Sketch's row too\",\"calls\":[{\"tool\":\"sketch_create\",\"args\""
      ":{\"plane\":\"XY\"}},{\"tool\":\"sketch_draw\",\"args\":{\"p0\":[-10,-10],\"p1\":[10,10],\"type\":\"rectangle_2_p"
      "oint\"}},{\"tool\":\"sketch_finish\",\"args\":{}},{\"tool\":\"select_geometry\",\"args\":{\"loop\":0,\"sketch\":0"
-     "}}]}],\"ids\":true,\"closed\":true}", nullptr, nullptr, "Document", false},
+     "}}]}],\"ids\":true}", nullptr, nullptr, "Document", false},
     {"confirm_tool", L_CONTEXT("Confirm tool", "Design"), -1, nullptr, nullptr, nullptr, 0x00000000u, 0, 0, false, false, nullptr, nullptr, nullptr, false, CadAccess::Ui, false,
      "{\"summary\":\"Confirm what is open in the Design tab, as its Confirm button and Enter do.\",\"detail"
      "s\":\"What is open, in the order Confirm takes it: the Text dialog (text), a value field (value), "
@@ -1640,7 +1635,7 @@ static const DesignTool kDesignTools[] = {
      "tatus line.\",\"params\":[],\"examples\":[{\"title\":\"A sketched rectangle committed, as the sketch's C"
      "onfirm commits it\",\"calls\":[{\"tool\":\"sketch_create\",\"args\":{\"plane\":\"XY\"}},{\"tool\":\"sketch_draw\""
      ",\"args\":{\"p0\":[-15,-10],\"p1\":[15,10],\"type\":\"rectangle_2_point\"}},{\"tool\":\"confirm_tool\",\"args\":"
-     "{}}]}],\"ids\":false,\"closed\":true}", nullptr, nullptr, "Document", false},
+     "{}}]}],\"ids\":false}", nullptr, nullptr, "Document", false},
     {"cancel_tool", L_CONTEXT("Cancel tool", "Design"), -1, nullptr, nullptr, nullptr, 0x00000000u, 0, 0, false, false, nullptr, nullptr, nullptr, false, CadAccess::Ui, false,
      "{\"summary\":\"Cancel what is open in the Design tab, as its Cancel button does.\",\"details\":\"What i"
      "s open, in the order Cancel takes it: the Text dialog (text), closed as its Cancel closes it, wi"
@@ -1652,7 +1647,7 @@ static const DesignTool kDesignTools[] = {
      "g is open. Reply: was, what was open, and status, the status line.\",\"params\":[],\"examples\":[{\"ti"
      "tle\":\"A sketch holding a line discarded, with no dialog\",\"calls\":[{\"tool\":\"sketch_create\",\"args\""
      ":{\"plane\":\"XY\"}},{\"tool\":\"sketch_draw\",\"args\":{\"entities\":[{\"p0\":[0,0],\"p1\":[10,0],\"type\":\"line\""
-     "}]}},{\"tool\":\"cancel_tool\",\"args\":{}}]}],\"ids\":false,\"closed\":true}", nullptr, nullptr, "Document", false},
+     "}]}},{\"tool\":\"cancel_tool\",\"args\":{}}]}],\"ids\":false}", nullptr, nullptr, "Document", false},
     {"body_place", L_CONTEXT("Place body", "Design"), -1, nullptr, nullptr, nullptr, 0x00000000u, 0, 0, false, false, nullptr, nullptr, nullptr, false, CadAccess::Change, false,
      "{\"summary\":\"Place a body where Commit to Plate and Export STEP send it: move it, turn it, lay a "
      "face on the bed, or put it back.\",\"details\":\"The Bodies row's Move and Place on Face, outside th"
@@ -1675,7 +1670,7 @@ static const DesignTool kDesignTools[] = {
      "\"angle\":90,\"axis\":\"z\"}}}]},{\"title\":\"A box laid on its side face whose normal is -y\",\"calls\":[{\""
      "tool\":\"extrude\",\"args\":{\"distance\":10,\"height\":20,\"width\":30}},{\"tool\":\"body_describe\",\"args\":{\""
      "at_extreme\":\"-y\",\"body\":0}},{\"tool\":\"body_place\",\"args\":{\"body\":0,\"face\":0,\"generation\":{\"from_c"
-     "all\":1,\"key\":\"generation\"}}}]}],\"ids\":true,\"closed\":true}", nullptr, nullptr, "Bodies", false},
+     "all\":1,\"key\":\"generation\"}}}]}],\"ids\":true}", nullptr, nullptr, "Bodies", false},
 };
 static const int kDesignToolCount = 127;
 

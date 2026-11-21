@@ -638,14 +638,11 @@ TEST_CASE("a folded item opens only in its own mode", "[Mcp][CAD]")
                ContainsSubstring("Called with no arguments, it runs only outside a sketch"));
 }
 
-TEST_CASE("a closed block refuses an argument it does not name", "[Mcp][CAD]")
+TEST_CASE("a tool block's schema refuses an argument it does not name", "[Mcp][CAD]")
 {
-    const json open{{"params", json::array({{{"name", "radius"}, {"type", "number"}, {"default", 1}}})}};
-    json       closed = open;
-    closed["closed"]  = true;
-    const json schema = GUI::Mcp::cad_input_schema(closed);
+    const json block{{"params", json::array({{{"name", "radius"}, {"type", "number"}, {"default", 1}}})}};
+    const json schema = GUI::Mcp::cad_input_schema(block);
     CHECK(schema.at("additionalProperties") == false);
-    CHECK_FALSE(GUI::Mcp::cad_input_schema(open).contains("additionalProperties"));
     CHECK_THAT(GUI::Mcp::validate_arguments(schema, {{"radius", 2}, {"edge", 3}}), ContainsSubstring("unknown argument edge"));
     // What it names, the generation among them, it takes.
     CHECK(GUI::Mcp::validate_arguments(schema, {{"radius", 2}, {"generation", 4}}).empty());
@@ -1179,12 +1176,8 @@ TEST_CASE("a CAD command's schema says what its row says", "[Mcp][CAD]")
             const bool is_required = std::find(required.begin(), required.end(), name) != required.end();
             CHECK(is_required == (name != "generation" && name != "silent" && !prop.contains("default")));
         }
-        // An argument the row does not name is refused by a command whose block is closed; any other lets it
-        // through, and its function reads the names it knows.
-        if (json::parse(design_row(c.key).doc).value("closed", false))
-            CHECK(c.input_schema.at("additionalProperties") == false);
-        else
-            CHECK_FALSE(c.input_schema.contains("additionalProperties"));
+        // An argument the row does not name is refused, so a misspelt one never leaves its param at the default.
+        CHECK(c.input_schema.at("additionalProperties") == false);
     }
     // A type of two kinds, a limit, an enum and a default carry over.
     CHECK(property_of(command_of(catalog, "sketch_create"), "plane").at("type") == json::array({"string", "object"}));
@@ -1280,6 +1273,15 @@ TEST_CASE("a CAD command takes the names its function also reads", "[Mcp][CAD]")
     json unconstrain{{"index", 4}};
     CHECK(GUI::Mcp::argument_error(command_of(catalog, "sketch_delete_constraint"), unconstrain).empty());
     CHECK(unconstrain == json{{"index", 4}});
+}
+
+TEST_CASE("a CAD command refuses a misspelt argument instead of using its default", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    json                      helix{{"radius", 10}, {"pich", 3}, {"height", 30}};
+    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "helix"), helix), ContainsSubstring("unknown argument pich"));
+    json shell{{"thicknes", 2}};
+    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "shell"), shell), ContainsSubstring("unknown argument thicknes"));
 }
 
 TEST_CASE("operation takes Fusion's four words", "[Mcp][CAD]")

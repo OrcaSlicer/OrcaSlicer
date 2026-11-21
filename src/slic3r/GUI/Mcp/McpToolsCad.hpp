@@ -99,9 +99,9 @@ std::vector<int> sketch_target_indices(const nlohmann::json& params, const std::
 // The input schema of a tool block: an object whose properties are the block's params, a type written "a|b"
 // (or "a|b|c") as the list of them, min, exclusive_min and max as minimum, exclusiveMinimum and maximum, enum
 // and default as written, and the unit joined to the description; a param with no default is required. `generation`, the
-// generation the call's face and edge ids were read at, is an optional property of every one. A block with
-// `closed` refuses an argument it does not name (additionalProperties false); another lets it through, as a
-// tool may read more, such as a param in radians also in degrees under its name with _deg.
+// generation the call's face and edge ids were read at, is an optional property of every one. Every schema
+// refuses an argument it does not name (additionalProperties false), so a misspelt argument is an error rather
+// than a default the caller did not mean; a name agents often use for a param is read by normalize_arguments().
 nlohmann::json cad_input_schema(const nlohmann::json& block);
 
 // The checks every Design command passes before its function, in this order: the main window is up (not

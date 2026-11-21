@@ -35,6 +35,17 @@ template<class T> void add_once(std::vector<T>& list, const T& item)
         list.push_back(item);
 }
 
+// The indices there are of `count` things called `noun` ("object"), as a refusal gives them, so that an agent learns
+// the range from the refusal: "objects 0..2", "object 0 only" or "no objects".
+std::string index_range(const char* noun, std::size_t count)
+{
+    if (count == 0)
+        return std::string("no ") + noun + "s";
+    if (count == 1)
+        return std::string(noun) + " 0 only";
+    return std::string(noun) + "s 0.." + std::to_string(count - 1);
+}
+
 // The checks of a target's indices against the model, with the texts object_select gives.
 struct IndexCheck
 {
@@ -43,17 +54,19 @@ struct IndexCheck
     const ModelObject& object(int index) const
     {
         if (index < 0 || std::size_t(index) >= model.objects.size())
-            throw ToolFailure("object index " + std::to_string(index) + " is out of range");
+            throw ToolFailure("object index " + std::to_string(index) + " is out of range (the project has " +
+                              index_range("object", model.objects.size()) + ")");
         return *model.objects[std::size_t(index)];
     }
 
     // An instance, or with !instance a part, of object `owner`; the object is checked first.
     void member(int owner, int index, bool instance) const
     {
-        const ModelObject& o = object(owner);
-        if (index < 0 || std::size_t(index) >= (instance ? o.instances.size() : o.volumes.size()))
+        const ModelObject& o     = object(owner);
+        const std::size_t  count = instance ? o.instances.size() : o.volumes.size();
+        if (index < 0 || std::size_t(index) >= count)
             throw ToolFailure("object " + std::to_string(owner) + " has no " + (instance ? "instance " : "part ") + std::to_string(index) +
-                              " (object_list lists them)");
+                              " (it has " + index_range(instance ? "instance" : "part", count) + ")");
     }
 
     // [object, index] of a pair argument.

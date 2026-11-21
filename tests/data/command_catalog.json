@@ -1788,7 +1788,7 @@
     }
    ],
    "completion": "immediate",
-   "description": "Add one of the test models OrcaSlicer ships to the current plate, as Add Handy models does; orca_cube and orcasliced_combo, of several files, then arrange the objects as the toolbar's Arrange does, which moves the others too.",
+   "description": "Add one of the test models OrcaSlicer ships to the current plate, as Add Handy models does; orca_cube and orcasliced_combo, of several files, then arrange the objects as the toolbar's Arrange does, which moves the others too. Reply: the objects added (objects: index, id and name).",
    "destructive": false,
    "group": "Objects",
    "guard": "mutate",
@@ -4582,7 +4582,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Read a plate's own settings, as the Plate Settings dialog sets them: curr_bed_type, print_sequence, spiral_mode, first_layer_print_sequence and other_layers_print_sequence; and as its filament grouping sets them on a printer with several extruders: filament_map_mode and filament_map (the extruder of each filament, 1-based). Each with value (the plate's own, null where it follows the global setting or Auto), effective (what the plate prints with) and meta (meta.offered lists the plate types or grouping modes this printer has). All of them, or those named in keys. Reply: plate, items; unknown_keys for the keys a plate does not have.",
+   "description": "Read a plate's own settings, as the Plate Settings dialog sets them: curr_bed_type, print_sequence, spiral_mode, first_layer_print_sequence and other_layers_print_sequence; and as its filament grouping sets them on a printer with several extruders: filament_map_mode and filament_map (the extruder of each filament, 1-based). Each with value (the plate's own, null where it follows the global setting or Auto), effective (what the plate prints with) and meta (meta.offered lists the plate types or grouping modes this printer has). All of them, or those named in keys. Reply: plate, items; unknown_keys for the keys a plate does not have, and similar the plate keys like them.",
    "destructive": false,
    "group": "Plates",
    "guard": "inspect",
@@ -4684,7 +4684,7 @@
   {
    "action_group": "Plate",
    "completion": "immediate",
-   "description": "Add a plate.",
+   "description": "Add a plate after the others and make it current, as Add Plate does. One undo step. Reply: plate (the new plate's index), plates (each plate afterwards: index, name and objects, how many stand on it) and current (the current plate).",
    "destructive": false,
    "group": "Plates",
    "guard": "mutate",
@@ -5392,7 +5392,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Read the settings named or searched for: each item has its value, as OrcaSlicer writes it, and meta: label, description (what the setting does, when to change it), where (its settings page and group), type, unit, range, allowed values and mode. Choose them by keys, or by query, a few words matched in keys, labels and descriptions, best matches first. Keys the settings lack are listed in unknown_keys, and type_of gives where each of those is a setting elsewhere (a type, or project for the project's own settings). It needs keys, query, compare or a target other than global; settings_list lists all of a type's settings.\n- No type: keys and query look through the process, filament and printer settings, and each item names its type, the one settings_set takes; otherwise the type is the process.\n- type printer, process or filament (target global): the preset being edited, or with preset a saved one; compare lists only the keys that differ from another preset (value and other). A per-variant value lists in meta its variants (what each entry is for) and active (the entry each extruder prints with).\n- target object (object), part (object and part) or height_range (object, min_z and max_z), the object or part selected in Prepare where none is named: without keys, what it overrides; keys and query read the process settings it takes (settings_list type object or region lists them) and extruder, its filament, and a key it does not take is refused with where it is set. Each has value (its own, null where it has none), effective (the value it prints with) and source, in the order the slicer applies them: height_range, part, object, global or default; an object's item lists in parts the parts and modifiers that override the key inside their own volume, and an object's or a part's item lists in height_ranges the ranges whose value applies to it between their heights. Inside a modifier, mesh or painted, that sets none of a key, the value of the part it overlaps applies, which the command does not work out: where a part (or a modifier of either kind before it) sets the key, the modifier's item has effective null, source overlapped_part, object_effective and object_source (the object's value), and in parts those that set it. These settings are process settings. The reply names the target (objects or parts, and height_range).\npreferences_get reads the app's preferences, plate_get_settings a plate's settings and project_get_settings the project's own.",
+   "description": "Read the settings named or searched for: each item has its value, as OrcaSlicer writes it, and meta: label, description (what the setting does, when to change it), where (its settings page and group), type, unit, range, allowed values and mode. Choose them by keys, or by query, a few words matched in keys, labels and descriptions, best matches first. Keys the settings lack are listed in unknown_keys, type_of gives where each of those is a setting elsewhere (a type, or project for the project's own settings), and similar the keys like each of the others. It needs keys, query, compare or a target other than global; settings_list lists all of a type's settings.\n- No type: keys and query look through the process, filament and printer settings, and each item names its type, the one settings_set takes; otherwise the type is the process.\n- type printer, process or filament (target global): the preset being edited, or with preset a saved one; compare lists only the keys that differ from another preset (value and other). A per-variant value lists in meta its variants (what each entry is for) and active (the entry each extruder prints with).\n- target object (object), part (object and part) or height_range (object, min_z and max_z), the object or part selected in Prepare where none is named: without keys, what it overrides; keys and query read the process settings it takes (settings_list type object or region lists them) and extruder, its filament, and a key it does not take is refused with where it is set. Each has value (its own, null where it has none), effective (the value it prints with) and source, in the order the slicer applies them: height_range, part, object, global or default; an object's item lists in parts the parts and modifiers that override the key inside their own volume, and an object's or a part's item lists in height_ranges the ranges whose value applies to it between their heights. Inside a modifier, mesh or painted, that sets none of a key, the value of the part it overlaps applies, which the command does not work out: where a part (or a modifier of either kind before it) sets the key, the modifier's item has effective null, source overlapped_part, object_effective and object_source (the object's value), and in parts those that set it. These settings are process settings. The reply names the target (objects or parts, and height_range).\npreferences_get reads the app's preferences, plate_get_settings a plate's settings and project_get_settings the project's own.",
    "destructive": false,
    "group": "Presets and settings",
    "guard": "inspect",
@@ -8334,6 +8334,7 @@
    "icon": "design_sketch",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "generation": {
       "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
@@ -9393,6 +9394,7 @@
    "icon": "design_rib",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "if": {
      "minProperties": 1
     },
@@ -9703,6 +9705,7 @@
    "icon": "design_extrude",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "if": {
      "minProperties": 1
     },
@@ -9836,6 +9839,7 @@
    "icon": "design_revolve",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "if": {
      "minProperties": 1
     },
@@ -9984,6 +9988,7 @@
    "icon": "design_loft",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "if": {
      "minProperties": 1
     },
@@ -10106,6 +10111,7 @@
    "icon": "design_surface",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "if": {
      "minProperties": 1
     },
@@ -10485,6 +10491,7 @@
    "icon": "design_thread",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "at": {
       "default": null,
@@ -10667,6 +10674,7 @@
    "icon": "design_shell",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "body": {
       "default": -1,
@@ -10800,6 +10808,7 @@
    "icon": "design_cut",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "body": {
       "default": -1,
@@ -11158,6 +11167,7 @@
    "icon": "design_draft",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "if": {
      "minProperties": 1
     },
@@ -11300,6 +11310,7 @@
    "icon": "design_offset",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "body": {
       "default": -1,
@@ -11749,6 +11760,7 @@
    "icon": "design_move",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "angle": {
       "default": 0,
@@ -12097,6 +12109,7 @@
    "icon": "design_plane",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "angle": {
       "default": 0,
@@ -12313,6 +12326,7 @@
    "icon": "design_line",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "body": {
       "default": -1,
@@ -12436,6 +12450,7 @@
    "icon": "design_point",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "body": {
       "default": -1,
@@ -12540,6 +12555,7 @@
    "icon": "design_thread",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "generation": {
       "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
@@ -12715,6 +12731,7 @@
    "icon": "design_sketch",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "edges": {
       "default": [],
@@ -12888,6 +12905,7 @@
    "has_own_action": false,
    "idempotent": true,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "a": {
       "description": "{\"face\": f}, {\"edge\": e} or {\"point\": [x, y, z]}, with an optional \"body\"; {\"face\": f, \"axis\": true} is a cylindrical face's axis over its length",
@@ -12952,6 +12970,7 @@
    "icon": "info",
    "idempotent": true,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "body": {
       "default": 0,
@@ -13019,6 +13038,7 @@
    "icon": "design_boolean",
    "idempotent": true,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "generation": {
       "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
@@ -13110,6 +13130,7 @@
    "icon": "design_edit",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "if": {
      "minProperties": 1
     },
@@ -13230,6 +13251,7 @@
    "icon": "design_delete",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "if": {
      "minProperties": 1
     },
@@ -13371,6 +13393,7 @@
    "icon": "design_delete",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "if": {
      "minProperties": 1
     },
@@ -13462,6 +13485,7 @@
    "icon": "design_delete",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "if": {
      "minProperties": 1
     },
@@ -13859,6 +13883,7 @@
    "icon": "design_offset",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "if": {
      "minProperties": 1
     },
@@ -14048,6 +14073,7 @@
    "icon": "design_filletedge",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "if": {
      "minProperties": 1
     },
@@ -14135,6 +14161,7 @@
    "icon": "design_chamfer",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "if": {
      "minProperties": 1
     },
@@ -14308,6 +14335,7 @@
    "icon": "design_mirror",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "axis": {
       "default": null,
@@ -14812,6 +14840,7 @@
    "icon": "design_construction",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "entities": {
       "default": [],
@@ -15027,6 +15056,7 @@
    "icon": "design_delete",
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "entities": {
       "default": [],
@@ -15092,6 +15122,7 @@
    "has_own_action": false,
    "idempotent": true,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "generation": {
       "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
@@ -15173,6 +15204,7 @@
    "has_own_action": false,
    "idempotent": true,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "feature": {
       "description": "feature index (describe_design)",
@@ -15274,6 +15306,7 @@
    "has_own_action": false,
    "idempotent": true,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "adjacency": {
       "default": false,
@@ -15465,6 +15498,7 @@
    "has_own_action": false,
    "idempotent": true,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "body": {
       "default": 0,
@@ -15565,6 +15599,7 @@
    "has_own_action": false,
    "idempotent": true,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "body": {
       "default": 0,
@@ -15681,6 +15716,7 @@
    "has_own_action": false,
    "idempotent": true,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "generation": {
       "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
@@ -15771,6 +15807,7 @@
    "has_own_action": false,
    "idempotent": true,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "generation": {
       "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
@@ -15867,6 +15904,7 @@
    "has_own_action": false,
    "idempotent": true,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "generation": {
       "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
@@ -15914,6 +15952,7 @@
    "has_own_action": false,
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "generation": {
       "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
@@ -15960,6 +15999,7 @@
    "has_own_action": false,
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "generation": {
       "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
@@ -16056,6 +16096,7 @@
    "has_own_action": false,
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "end_a": {
       "default": 1,
@@ -16168,6 +16209,7 @@
    "has_own_action": false,
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "expr": {
       "description": "e.g. \"20\" or \"width / 2 + 3\"; \"\" removes the variable",
@@ -16270,6 +16312,7 @@
    "has_own_action": false,
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "expr": {
       "description": "\"\" removes the binding",
@@ -16342,6 +16385,7 @@
    "has_own_action": false,
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "delta": {
       "description": "-1 up, 1 down",
@@ -16506,6 +16550,7 @@
    "has_own_action": false,
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "feature": {
       "description": "feature index (describe_design)",
@@ -16620,6 +16665,7 @@
    "has_own_action": false,
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "if": {
      "minProperties": 1
     },
@@ -16750,6 +16796,7 @@
    "has_own_action": false,
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "generation": {
       "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
@@ -16819,6 +16866,7 @@
    "has_own_action": false,
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "discard_changes": {
       "default": false,
@@ -16871,6 +16919,7 @@
    "has_own_action": false,
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "generation": {
       "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
@@ -16954,6 +17003,7 @@
    "has_own_action": false,
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "generation": {
       "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
@@ -17010,6 +17060,7 @@
    "has_own_action": false,
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "generation": {
       "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
@@ -17114,6 +17165,7 @@
    "has_own_action": false,
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "generation": {
       "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
@@ -17828,6 +17880,7 @@
    "has_own_action": false,
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "entities": {
       "default": [],
@@ -17917,6 +17970,7 @@
    "has_own_action": false,
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "generation": {
       "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
@@ -18055,6 +18109,7 @@
    "has_own_action": false,
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "if": {
      "minProperties": 1
     },
@@ -18490,6 +18545,7 @@
    "has_own_action": false,
    "idempotent": false,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "generation": {
       "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
@@ -18607,6 +18663,7 @@
    "has_own_action": false,
    "idempotent": true,
    "input_schema": {
+    "additionalProperties": false,
     "properties": {
      "cs_a": {
       "description": "feature index of the fixed CoordSys, align's cs_a",

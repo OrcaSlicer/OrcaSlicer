@@ -290,7 +290,6 @@
       "tool": {
         "access": "change",
         "ok_false": false,
-        "closed": true,
         "summary": "Extrude a committed sketch, one of its loops, a face or a drawn profile into a body.",
         "details": "A committed sketch, or one loop of it, extrudes as the Extrude card does; push/pull grows a planar face of a body; a profile drawn here is an explicit closed `profile` (list of [x,y]) or a centred width x height rectangle on `plane`. End conditions match Onshape. Reply: extrude_index, the index of its sketch (-1 for a face), the operation and body used, end, frame.",
         "params": [
@@ -358,7 +357,6 @@
       "tool": {
         "access": "change",
         "ok_false": false,
-        "closed": true,
         "summary": "Revolve a committed sketch as the Revolve card does, or a profile drawn here, about an axis.",
         "details": "A sketch turns about a line of it or a plane axis; a profile drawn here is an explicit `profile` offset from the axis, or a width x height rectangle with one edge on the axis, centred along it, so a full turn is a cylinder width long of radius height. Reply: revolve_index, the index of its sketch, the operation, body and axis used, frame.",
         "params": [
@@ -416,7 +414,6 @@
       "tool": {
         "access": "change",
         "ok_false": false,
-        "closed": true,
         "summary": "Sweep a committed sketch's closed profile along a path, a sketch or a helix, as the Sweep card does.",
         "details": "Draw the profile across the path's start (a helix's start and tangent are in its reply); along a helix the profile keeps its angle to the helix axis. Long sweeps take seconds and the reply may be a job. Reply: sweep_index, bodies, operation, body.",
         "params": [
@@ -473,7 +470,6 @@
       "tool": {
         "access": "change",
         "ok_false": false,
-        "closed": true,
         "summary": "Loft a solid through two or more committed sketches, in order, as the Loft card does.",
         "details": "Each sketch is on its own plane (sketch on datum planes). Lofts take seconds and the reply may be a job. Reply: loft_index, bodies, operation, body.",
         "params": [
@@ -523,7 +519,6 @@
       "tool": {
         "access": "change",
         "ok_false": false,
-        "closed": true,
         "summary": "Thicken a face of a body, or a whole sheet body, into a new solid body by a wall thickness.",
         "details": "type face offsets one face of a body into a thin plate. type surface thickens a sheet body: a sheet of several faces whose free rims close into planar loops (the walls of a box with no lids) is capped at them and grows inward, into the closed shape that makes, whatever flip says; one whose rim can't be capped is refused. A single face or a closed shell is offset face by face along each face's normal, the one body_describe gives, or against it with flip; a closed shell can fail to thicken this way. Reply: thicken_index, bodies.",
         "params": [
@@ -634,7 +629,6 @@
       "tool": {
         "access": "change",
         "ok_false": true,
-        "closed": true,
         "summary": "Combine two bodies: join them, cut the tool from the target, or keep where they intersect.",
         "details": "",
         "params": [
@@ -937,7 +931,6 @@
       "tool": {
         "access": "change",
         "ok_false": false,
-        "closed": true,
         "summary": "Drill a hole, simple, counterbored or countersunk, at (x,y) or `at` on a plane.",
         "details": "type counterbore or countersink seats a screw head: a counterbore sized by cbore_*, a countersink by csink_*, each refused with another type. designation drills a standard clearance hole (ISO 273 / ANSI) and sizes its seat to the standard, in place of diameter. Reply: hole_index, body, x and y in the frame, off_plane with at, frame.",
         "params": [
@@ -1196,7 +1189,6 @@
       "tool": {
         "access": "change",
         "ok_false": false,
-        "closed": true,
         "summary": "Round measured edges of a body (edge ids from body_describe on that body).",
         "details": "Reply: fillet_index, body, bodies.",
         "params": [
@@ -1249,7 +1241,6 @@
       "tool": {
         "access": "change",
         "ok_false": false,
-        "closed": true,
         "summary": "Chamfer measured edges of a body (edge ids from body_describe on that body).",
         "details": "Reply: chamfer_index, body, bodies.",
         "params": [
@@ -1389,7 +1380,6 @@
       "tool": {
         "access": "change",
         "ok_false": false,
-        "closed": true,
         "summary": "Replicate a body in a row, around the plane's normal, or along a sketch curve.",
         "details": "linear places count copies along a plane axis at spacing; circular spreads them over angle about the plane's normal through its origin; curve places them at equal-parameter points on a sketch entity, each translated by (P_i - P_0). An argument of one type is refused with another. Reply: pattern_index, bodies, and for linear and circular the frame.",
         "params": [
@@ -1483,7 +1473,6 @@
       "tool": {
         "access": "change",
         "ok_false": true,
-        "closed": true,
         "summary": "Mirror a body about a base plane.",
         "details": "operation new_body makes a mirrored copy; join fuses the mirror back into the source.",
         "params": [
@@ -1617,7 +1606,6 @@
       "tool": {
         "access": "change",
         "ok_false": false,
-        "closed": true,
         "summary": "Align two bodies: transform the moving body (cs_b) so its connector lands on the fixed one (cs_a).",
         "details": "An align that cannot hold with those before it is listed in describe_design's align_conflicts, with the reason. Reply: align_index, bodies.",
         "params": [
@@ -2984,7 +2972,6 @@
       "tool": {
         "access": "change",
         "ok_false": false,
-        "closed": true,
         "summary": "Add text as a Text feature on a plane or a planar face, outlined in a font, as the Text dialog adds it.",
         "details": "It runs on the model, in one undo step, with no dialog and no placement step, and is refused while a sketch is open. Refused for a font that is not installed or cannot be loaded, and for text with no outline (spaces only). The feature keeps its words, font and height, as the dialog's does. Reply: text_index, bodies, frame (the plane's).",
         "params": [
@@ -3040,7 +3027,6 @@
       "tool": {
         "access": "sketch",
         "ok_false": false,
-        "closed": true,
         "summary": "Add an SVG file's filled outlines to the open sketch as lines, or to the model as art on a plane.",
         "details": "The outlines are centred on the plane's origin, scaled by scale and moved by position, with no file dialog and no placement step. With a sketch open, a new one or one re-opened with sketch_edit, they are added to it as lines, as Insert SVG adds them there, and plane is refused; reply: scope \"sketch\", added, entities (how many the sketch has). With none open, an art feature on plane, as Insert SVG adds one on the model, in one undo step; reply: art_index, bodies, frame (the plane's). Refused when the file is not there or gives no outline (no filled shape).",
         "params": [
@@ -3140,7 +3126,6 @@
       "tool": {
         "access": "sketch",
         "ok_false": false,
-        "closed": true,
         "summary": "Trim the open sketch's entity nearest `at`, as a Trim click there does.",
         "details": "A line or an arc is cut back from its end nearer `at` to the first crossing with another entity beyond `at`; a circle loses the part between the crossings either side of `at` and becomes an arc. The entity's constraints are released. Reply: entity, geometry (its new fields), released_constraints, entities, dof.",
         "params": [
@@ -3431,7 +3416,6 @@
       "tool": {
         "access": "sketch",
         "ok_false": false,
-        "closed": true,
         "summary": "Add a dimension to the open sketch: a distance, an angle, a radius or a diameter.",
         "details": "With `entities`, else the selection, the CONSTRAIN bar's rules choose the points, and the value is `value` or the current one. With `refs` the references are taken as written, as sketch_constrain takes them, and `value` is required. distance has no button and takes refs. A dimension the sketch cannot solve with is rolled back and the call fails. Reply: added (indices), items, constraints, dof, solve_ok.",
         "params": [
@@ -3484,7 +3468,6 @@
       "tool": {
         "access": "sketch",
         "ok_false": false,
-        "closed": true,
         "summary": "Add a constraint to the open sketch, as a CONSTRAIN bar button does (sketch_set_value is the value field, V).",
         "details": "With `entities`, else the selection, the button's own rules choose the points. With `refs` the references are taken as written, in sketch_list_constraints' form: {entity, role} for a point (role p0, p1 or center; entity also \"origin\") and {entity} for a whole entity (also \"x_axis\", \"y_axis\"). lock_x, lock_y, point_on_line and point_on_object have no button and take refs. A distance, an angle, a radius or a diameter is sketch_dimension's. A constraint the sketch cannot solve with is rolled back and the call fails. Reply: added (indices), items, constraints, dof, solve_ok.",
         "params": [
@@ -3613,7 +3596,6 @@
       "tool": {
         "access": "sketch",
         "ok_false": false,
-        "closed": true,
         "summary": "Extend the open sketch's line or arc nearest `at` to the next entity, as an Extend click there does.",
         "details": "The line's or arc's end nearer `at` runs out to the first entity it meets. The entity's constraints are released. Reply: entity, geometry (its new fields), released_constraints, entities, dof.",
         "params": [
@@ -4250,7 +4232,6 @@
       "tool": {
         "access": "change",
         "ok_false": false,
-        "closed": true,
         "summary": "Suppress a feature, or bring it back, as its row's eye hides or shows it.",
         "details": "A suppressed feature is left out of the rebuild and bodies may renumber. One undo step, none when it already was. Reply: feature, suppressed, changed, bodies.",
         "params": [
@@ -4545,7 +4526,6 @@
       "tool": {
         "access": "sketch",
         "ok_false": false,
-        "closed": true,
         "summary": "Draw a shape in the open sketch from its fields beside `type`, or a list of shapes as `entities`.",
         "details": "Each type, and the fields it takes: line {p0, p1}; polyline {points: 2 or more, a loop when the last is the first}; rectangle_2_point {p0, p1: opposite corners}; rectangle_center {center, corner}; rectangle_3_point {p0, p1: one side; width: signed, to the left of p0 to p1}; rectangle_rounded {p0, p1: opposite corners; radius: of the corners}; circle_center {center, radius}; circle_2_point {p0, p1: the ends of a diameter}; circle_3_point {p0, p1, p2: on the circle}; arc_3_point {p0: start; p1: end; on_arc}; arc_center {center, radius, start_angle, end_angle}; arc_tangent {end; entity: the line or arc it leaves, the sketch's or one an item before it adds, at that one's end, along its direction there, left out the one added last}; slot {c0, c1, width}; slot_arc {center, start, end: its direction from the centre, width}; ellipse {center, radius (semi-major), rminor, rotation}; ellipse_arc {the ellipse's fields, start_angle, end_angle: parametric, counter-clockwise}; spline {ctrl: 2 or more poles}; polygon {center, sides, radius (to a vertex) or across_flats, angle (of that vertex, or of the first edge's midpoint)}; point {p}. A type refuses a field it does not take. Each is built as its drawing tool builds it: a rectangle, a slot or a polygon is one shape, which one undo of the sketch takes off whole, and a polyline is its lines, as its tool leaves them; the constraints are inferred exactly, so that none moves what is given. Each shape carries the constraints its tool gives it, at any slant; a constraint between a shape and the sketch's axes or what is already in the sketch, or between plain lines, is inferred only where it holds exactly, so a square on the axes is level only on a side lying exactly on one, with right angles holding the others. Each item of entities may carry its own construction; the top-level construction is the single-type form's, and beside entities each item's that gives none. Beside entities a shape's field, type among them, is refused: it belongs in its item. Points are [x, y] in the sketch plane (mm); angles are radians, or degrees as start_angle_deg and the like. A polygon is lines; its side count is not kept once committed. Reply: first_index, added, shapes [{first, count}] per item, entities, dof.",
         "params": [
@@ -4720,7 +4700,6 @@
       "tool": {
         "access": "sketch",
         "ok_false": false,
-        "closed": true,
         "summary": "Move, rotate or scale entities of the open sketch, as the transform tools' Confirm does.",
         "details": "move {dx, dy}, rotate {angle, pivot} and scale {scale, pivot} change the entities and release the constraints that no longer hold. pivot defaults to the entities' centroid. Angles are radians, or degrees as angle_deg. Reply: type, moved, released_constraints, pivot, entities, dof.",
         "params": [
@@ -4764,7 +4743,6 @@
       "tool": {
         "access": "sketch",
         "ok_false": false,
-        "closed": true,
         "summary": "Repeat entities of the open sketch in a row or around a point, as the Linear and Polar array tools do.",
         "details": "linear adds copies stepped by dx, dy; circular adds copies every angle/count about pivot (angle is the whole sweep, default 360 degrees). count includes the original, and each copy is bound to its source (equal length and parallel, or its radius). Angles are radians, or degrees as angle_deg. Reply: type, first_index, added, bound, pivot (circular), entities, dof.",
         "params": [
@@ -4870,7 +4848,6 @@
       "tool": {
         "access": "change",
         "ok_false": false,
-        "closed": true,
         "summary": "Select a body, a face, edges, a vertex, a reference plane, a sketch's loop or a feature by id, as a click selects it.",
         "details": "One form: body; body with face, edges (the last the current edge, as in a Shift+click set) or vertex; plane; sketch with loop; feature; or nothing, which clears the selection. A body is selected as a click on its row of the Bodies list selects it, a face, edges or a vertex as a click in the view picks them, a loop as a click on it, which also selects its Sketch's row, and a feature as a click on its row of the Feature list. A plane is picked only where a click can pick one: while the Origin row shows the planes, or while Sketch waits for its plane (sketch_create {}), where picking it opens the sketch. A loop is numbered as sketch_describe {sketch} numbers closed_loops and extrude {sketch, loop} takes it, and is selected only while the view shows it: an extrude that takes the whole sketch hides the sketch, and one that takes a loop hides that loop. Whatever was selected goes first, of every kind. The menu-item forms then act on the selection: feature_edit, rename_selected, feature_delete and sketch_constrain_selected called with no arguments act on the selected row of the Feature list while nothing is picked in the view, and zoom_to_selection acts on what is picked in the view, so a sketch is zoomed to through sketch with loop, not through feature. Refused, changing nothing, for an id the model does not have, and while a card, a sketch, Constrain mode, a body Move or the Text dialog is open, where a click means something else. Reply: selection {kind, id}, plane and feature, as describe_design reports selection, picked_plane and feature_row; for a vertex also point, as body_describe gives it, and placed_point, where the view draws it (the same unless the body was moved).",
         "params": [
@@ -4922,7 +4899,6 @@
       "tool": {
         "access": "ui",
         "ok_false": false,
-        "closed": true,
         "summary": "Confirm what is open in the Design tab, as its Confirm button and Enter do.",
         "details": "What is open, in the order Confirm takes it: the Text dialog (text), a value field (value), a body Move (move), a text or art placement (insert), a feature card (card), a sketch (sketch), Constrain mode (constrain). The Text dialog takes it as its OK does: a new text goes into the design, its placement then open (insert), and an edited one keeps its new words. A card adds or edits its feature in one undo step and closes; an add the card refuses, or whose rebuild fails, leaves no feature and no undo step and keeps the card open with the reason on the status line. A Confirm that does not take, such as that add or a value that is no number, replies ok false. It runs under what is open, which refuses the commands that change the document. Refused, changing nothing, when nothing is open, while Sketch waits for its plane (pick one with select_geometry {plane}, or call cancel_tool), while the Text dialog's OK is off, with no text to insert, with the dialog's reason, and while Confirm is off, such as for a card whose preview fails, with the status line as the reason. Reply: was, what was open; ok, whether it took the Confirm; feature, the index of the feature added or edited, or null; open, what is still open, or null; status, the status line.",
         "params": [],
@@ -4949,7 +4925,6 @@
       "tool": {
         "access": "ui",
         "ok_false": false,
-        "closed": true,
         "summary": "Cancel what is open in the Design tab, as its Cancel button does.",
         "details": "What is open, in the order Cancel takes it: the Text dialog (text), closed as its Cancel closes it, with a new text not added and an edited one as it was, a value field (value), a body Move (move), put back where it started, a text or art placement (insert), a feature card (card), with nothing added or edited, Sketch waiting for its plane (plane_pick), a sketch (sketch), discarded without the dialog a person gets, a re-opened one kept as it was, and Constrain mode (constrain). It runs under what is open, which refuses the commands that change the document. Refused when nothing is open. Reply: was, what was open, and status, the status line.",
         "params": [],
@@ -4976,7 +4951,6 @@
       "tool": {
         "access": "change",
         "ok_false": false,
-        "closed": true,
         "summary": "Place a body where Commit to Plate and Export STEP send it: move it, turn it, lay a face on the bed, or put it back.",
         "details": "The Bodies row's Move and Place on Face, outside the history: no undo step, and the project file does not keep it. One form: move and rotate, either or both, added to where the body stands as the Move / Rotate card adds them, the turn about the body's centre; face, which lays that face on the bed as Place on Face does; or reset: true, which puts the body back where the model has it. The view draws and picks the body where it stands, and its placement follows it when the bodies are renumbered. Refused, changing nothing, for a body or face the model does not have, for none or more than one of the forms, and while a card, a sketch, Constrain mode, a body Move or the Text dialog is open. Reply: ok, body, moved and placement, as describe_design reports them.",
         "params": [

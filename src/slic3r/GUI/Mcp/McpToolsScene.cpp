@@ -1604,9 +1604,19 @@ AppActionRunResult add_primitive_command(const json& args)
 
     Plater&                 plater = ui_plater();
     const Ops::Outcome<int> added  = Ops::add_primitive(op);
-    if (!added)
+    if (!added) {
+        const std::string code = added.refusal().code;
         // The size dialog cancelled told the person nothing more is to come.
-        return op.ask && std::string(added.refusal().code) == "not_added" ? quiet_refusal(added.refusal()) : menu_refused(added.refusal());
+        if (op.ask && code == "not_added")
+            return quiet_refusal(added.refusal());
+        AppActionRunResult refused = menu_refused(added.refusal());
+        // The refusal words the person's menus; an agent's call has commands for each way out.
+        if (code == "object_selected")
+            refused.reply = json{{"hint", "object_select {none: true} first; or give size or silent: true, which adds the shape whatever is "
+                                          "selected; part_add adds it to the selected object"}}
+                                .dump();
+        return refused;
+    }
     const int index = added.value();
     Targets made;
     made.objects    = {index};
@@ -1687,12 +1697,22 @@ void register_object_menu_commands(CommandCatalog& catalog)
     catalog.add(menu_command(
         "object_add_handy_model", L("Add a handy model"),
         "Add one of the test models OrcaSlicer ships to the current plate, as Add Handy models does; orca_cube and "
-        "orcasliced_combo, of several files, then arrange the objects as the toolbar's Arrange does, which moves the others too.",
+        "orcasliced_combo, of several files, then arrange the objects as the toolbar's Arrange does, which moves the others too. "
+        "Reply: the objects added (objects: index, id and name).",
         object_schema({{"model", enum_prop(models, "The model.")}}, {"model"}), std::move(handy_actions), [](const json& args) {
             const std::string                           model = arg_string(args, "model");
             const std::vector<MenuFactory::HandyModel>& all   = MenuFactory::handy_models();
             const auto it = std::find_if(all.begin(), all.end(), [&model](const MenuFactory::HandyModel& m) { return model == m.key; });
-            return MenuItems::add_handy(std::size_t(it - all.begin()));
+            const Model&       scene  = ui_plater().model();
+            const std::size_t  before = scene.objects.size();
+            AppActionRunResult added  = MenuItems::add_handy(std::size_t(it - all.begin()));
+            // The loader appends a model's objects after the others.
+            Targets made;
+            for (std::size_t i = before; i < scene.objects.size(); ++i)
+                made.objects.push_back(int(i));
+            if (!made.objects.empty())
+                added.reply = targets_reply(scene, made).dump();
+            return added;
         }));
 
     // What a text or an SVG takes beyond the action's form: the object it becomes a part of, and the part's type.

@@ -1366,12 +1366,15 @@ ToolResult NativeCommands::from_run_result(const std::string& key, const AppActi
     // A command that did nothing (no selection, no objects) fails here, though the Speed Dial shows it as
     // information.
     if (result.level == AppActionRunResult::Level::Error || result.level == AppActionRunResult::Level::Busy || !result.done) {
-        json details;
+        json details = json::object();
         if (result.refusal) {
-            details = {{"code", result.refusal->code}};
+            details["code"] = result.refusal->code;
             if (!result.refusal->names.empty())
                 details["names"] = result.refusal->names;
         }
+        if (!result.reply.empty())
+            if (json reply = json::parse(result.reply, nullptr, /*allow_exceptions=*/false); reply.is_object())
+                details.update(reply);
         return ToolResult::error(message.empty() ? "The action failed" : message, std::move(details));
     }
     json out{{"ran", key}, {"level", level_name(result.level)}};

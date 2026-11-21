@@ -268,16 +268,6 @@ class Faults(unittest.TestCase):
         A["verbs"].append({"id": "nothing", "name": "Nothing", "slot": None})
         self.assertFault(A, "nothing", "neither a menu item, a handler (action) nor a tool block")
 
-    def test_a_closed_that_is_no_boolean(self):
-        A = atlas()
-        entry(A, "paint")["tool"]["closed"] = "yes"
-        self.assertFault(A, "paint", "closed must be true or false")
-
-    def test_doc_text_has_closed_only_for_a_block_that_sets_it(self):
-        self.assertNotIn("closed", json.loads(gen.doc_text(block())))
-        self.assertIs(json.loads(gen.doc_text(block(closed=True)))["closed"], True)
-        self.assertNotIn("closed", json.loads(gen.doc_text(block(closed=False))))
-
 
 if __name__ == "__main__":
     unittest.main()

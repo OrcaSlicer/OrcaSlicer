@@ -375,9 +375,9 @@ menu item (`row` -1), such as `describe_design`, `sketch_draw` or `commit_to_pla
 (`action`, the code its menu item runs) or a `tool` block is a command of the catalog, whose key is the entry's
 id and whose title is its name, unless it is a folded item: 88 commands. An entry with a handler does what its
 menu item does when it is called with no arguments, and has an action of its own in the Speed Dial. An entry
-with a `tool` block also runs silently, with arguments: the block is that form's access, params, examples,
-whether it reports a rejected rebuild in its reply and whether its schema refuses an argument it does not name
-(`closed`), which the header carries as JSON text (`doc`) beside the entry's `access` and `ok_false`. An item
+with a `tool` block also runs silently, with arguments: the block is that form's access, params, examples and
+whether it reports a rejected rebuild in its reply, which the header carries as JSON text (`doc`) beside the
+entry's `access` and `ok_false`. An item
 whose tool is a variant of a command is folded into it (`"fold": {"into", "args"}`): it is no command, keeps its
 id, its place in the menu, its key and its Speed Dial action, and the command opens its tool when called with
 exactly the item's arguments, as Polar array is `sketch_pattern {type: "circular"}` and the Corner rectangle

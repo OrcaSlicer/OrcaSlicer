@@ -159,6 +159,55 @@ const char* type_name(ConfigOptionType type)
     }
 }
 
+// The refusal of `text`, which is no value of setting `key`: it names the value and what the setting takes, its kind
+// and its range or values, as settings_get's meta gives them, so the caller can correct the value without reading the
+// setting first ("Invalid value for wall_loops: \"three\"; it takes an integer from 0 to 1000").
+ToolFailure invalid_value(const std::string& key, const std::string& text)
+{
+    const ConfigOptionDef* def = print_config_def.get(key);
+    std::string            takes; // what the setting takes, e.g. "an integer from 0 to 1000"; empty when nothing is known
+    if (def != nullptr) {
+        // A setting of several values (one per extruder, nozzle or filament) takes a list of what one value is.
+        const bool             list = (int(def->type) & int(coVectorType)) != 0;
+        const ConfigOptionType one  = list ? ConfigOptionType(int(def->type) - int(coVectorType)) : def->type;
+        std::string            kind;
+        switch (one) {
+        case coInt: kind = list ? "integers" : "an integer"; break;
+        case coFloat: kind = list ? "numbers" : "a number"; break;
+        case coPercent: kind = list ? "percentages" : "a percentage (\"50%\")"; break;
+        case coFloatOrPercent: kind = list ? "numbers or percentages" : "a number or a percentage (\"50%\")"; break;
+        case coBool: kind = list ? "booleans" : "true or false"; break;
+        case coEnum: {
+            // The first values only where there are many: settings_get lists them all with their labels.
+            constexpr std::size_t shown = 10;
+            std::string           values;
+            for (std::size_t i = 0; i < def->enum_values.size() && i < shown; ++i)
+                values += (i > 0 ? ", " : "") + def->enum_values[i];
+            if (def->enum_values.size() > shown)
+                values += ", ... (settings_get lists all " + std::to_string(def->enum_values.size()) + ")";
+            kind = values.empty() ? std::string() : std::string(list ? "values each one of " : "one of ") + values;
+            break;
+        }
+        default: break; // text and points: their form is in the setting's description
+        }
+        const bool  low  = def->min > -FLT_MAX;
+        const bool  high = def->max < FLT_MAX;
+        std::string range;
+        if (low && high)
+            range = "from " + float_to_string_decimal_point(def->min) + " to " + float_to_string_decimal_point(def->max);
+        else if (low)
+            range = "at least " + float_to_string_decimal_point(def->min);
+        else if (high)
+            range = "at most " + float_to_string_decimal_point(def->max);
+        if (one == coEnum) // its values say it all
+            range.clear();
+        if (!kind.empty())
+            takes = list ? "a list of " + kind + (range.empty() ? "" : ", each " + range) :
+                           kind + (range.empty() ? "" : (low && high ? " " : ", ") + range);
+    }
+    return ToolFailure("Invalid value for " + key + ": \"" + text + "\"" + (takes.empty() ? std::string() : "; it takes " + takes));
+}
+
 // Option keys whose key or label contains `query`, for "did you mean".
 std::vector<std::string> search_keys(const std::string& query, const std::vector<std::string>& within, std::size_t limit)
 {
@@ -174,6 +223,13 @@ std::vector<std::string> search_keys(const std::string& query, const std::vector
             break;
     }
     return out;
+}
+
+// Up to five keys of `within` like `key`, which a read or a write of settings does not know: those holding its first
+// half, at least three letters, as a misspelt or shortened key does ("wall_loop" finds "wall_loops").
+std::vector<std::string> similar_keys(const std::string& key, const std::vector<std::string>& within)
+{
+    return search_keys(key.substr(0, std::max<std::size_t>(3, key.size() / 2)), within, 5);
 }
 
 // The "Page > Group" of each setting on the settings tab of `type`, as the tabs register their rows
@@ -286,19 +342,27 @@ std::string type_of_key(const std::string& key)
     return std::find(project.begin(), project.end(), key) != project.end() ? "project" : "";
 }
 
-// Sets unknown_keys to the keys a read named that its settings lack, and type_of to where each of those is a setting
-// elsewhere (type_of_key()), so the agent can ask there. UI thread.
-void add_unknown_keys(json& out, const json& unknown)
+// Sets unknown_keys to the keys a read named that its settings, `within`, lack; type_of to where each of those is a
+// setting elsewhere (type_of_key()), so the agent can ask there; and similar to the keys of `within` like each of the
+// others, as settings_set's refusal gives them. UI thread.
+void add_unknown_keys(json& out, const json& unknown, const std::vector<std::string>& within)
 {
     if (unknown.empty())
         return;
     out["unknown_keys"] = unknown;
     json types          = json::object();
-    for (const json& key : unknown)
-        if (std::string type = type_of_key(key.get<std::string>()); !type.empty())
-            types[key.get<std::string>()] = std::move(type);
+    json similar        = json::object();
+    for (const json& key : unknown) {
+        const std::string name = key.get<std::string>();
+        if (std::string type = type_of_key(name); !type.empty())
+            types[name] = std::move(type);
+        else if (std::vector<std::string> like = similar_keys(name, within); !like.empty())
+            similar[name] = std::move(like);
+    }
     if (!types.empty())
         out["type_of"] = std::move(types);
+    if (!similar.empty())
+        out["similar"] = std::move(similar);
 }
 
 // The refusal of a key that the settings `where` names (a type, "project" or "plate") lack: it says where the key is a
@@ -395,8 +459,8 @@ ToolResult set_project_values(const json& values_in, ToolContext& ctx, bool flus
             const std::string text = preset_setting_value(key, it.value(), before, {}, {});
             try {
                 values.set_deserialize_strict(key, text);
-            } catch (const std::exception& e) {
-                throw ToolFailure("Invalid value for " + key + ": " + e.what());
+            } catch (const std::exception&) {
+                throw invalid_value(key, text);
             }
         }
         for (const char* key : {"curr_bed_type", "prime_volume_mode"}) {
@@ -749,7 +813,7 @@ json plate_settings(const json& args)
     }
     json out     = page(items, args, 100);
     out["plate"] = index;
-    add_unknown_keys(out, unknown);
+    add_unknown_keys(out, unknown, listed_plate_keys());
     return out;
 }
 
@@ -1362,8 +1426,8 @@ NozzlePicks nozzle_picks(std::vector<std::pair<std::string, std::string>>& value
         DynamicPrintConfig scratch;
         try {
             scratch.set_deserialize_strict(v->first, v->second);
-        } catch (const std::exception& e) {
-            throw ToolFailure("Invalid value for " + v->first + ": " + e.what());
+        } catch (const std::exception&) {
+            throw invalid_value(v->first, v->second);
         }
         if (v->first == "nozzle_diameter") {
             const auto* variant = printer.option<ConfigOptionString>("printer_variant");
@@ -1679,8 +1743,12 @@ json list_presets(const json& args)
 ToolFailure preset_refused(const Ops::Refusal& refusal)
 {
     const std::string code = refusal.code;
+    // No preset has the name: often a printer or a system filament that is not installed, which no listing shows.
     if (code == "preset_not_offered")
-        return refused(refusal, "See preset_list.", "similar");
+        return refused(refusal,
+                       "See preset_list; a printer model that is not installed is installed with printer_install "
+                       "(printer_list_models lists them), a system filament with filament_install.",
+                       "similar");
     if (code == "ambiguous_hidden_preset")
         return refused(refusal, "", "presets");
     if (code == "preset_incompatible")
@@ -1965,8 +2033,8 @@ std::string preset_setting_value(const std::string& key, const json& value, cons
     const auto parse = [&key](const std::string& text, DynamicPrintConfig& scratch) {
         try {
             scratch.set_deserialize_strict(key, text);
-        } catch (const std::exception& e) {
-            throw ToolFailure("Invalid value for " + key + ": " + e.what());
+        } catch (const std::exception&) {
+            throw invalid_value(key, text);
         }
         return dynamic_cast<const ConfigOptionVectorBase*>(scratch.option(key));
     };
@@ -2582,7 +2650,7 @@ json read_settings(const json& args)
             if (const auto it = found.find(key); it != found.end())
                 items.push_back(std::move(it->second));
         json out = page(items, args, args.contains("query") ? 20 : 100);
-        add_unknown_keys(out, unknown);
+        add_unknown_keys(out, unknown, options);
         return out;
     }
     return read_target(args, resolve_target(args, false));
@@ -2711,7 +2779,7 @@ json read_target(const json& args, const ConfigTarget& t, bool listing)
     }
     if (t.object != nullptr)
         out.update(target_reply(t));
-    add_unknown_keys(out, unknown);
+    add_unknown_keys(out, unknown, t.options);
     return out;
 }
 
@@ -3097,8 +3165,9 @@ void register_config_tools(CommandCatalog& catalog)
         "Read the settings named or searched for: each item has its value, as OrcaSlicer writes it, and meta: label, "
         "description (what the setting does, when to change it), where (its settings page and group), type, unit, range, "
         "allowed values and mode. Choose them by keys, or by query, a few words matched in keys, labels and descriptions, "
-        "best matches first. Keys the settings lack are listed in unknown_keys, and type_of gives where each of those is a "
-        "setting elsewhere (a type, or project for the project's own settings). It needs keys, query, compare or a target "
+        "best matches first. Keys the settings lack are listed in unknown_keys, type_of gives where each of those is a "
+        "setting elsewhere (a type, or project for the project's own settings), and similar the keys like each of the others. "
+        "It needs keys, query, compare or a target "
         "other than global; settings_list lists all of a type's settings.\n"
         "- No type: keys and query look through the process, filament and printer settings, and each item names its "
         "type, the one settings_set takes; otherwise the type is the process.\n"
@@ -3225,7 +3294,7 @@ void register_config_tools(CommandCatalog& catalog)
                 const std::vector<std::string>& process = preset_options(Preset::TYPE_PRINT);
                 for (auto it = values_in.begin(); it != values_in.end(); ++it) {
                     if (std::find(t.options.begin(), t.options.end(), it.key()) == t.options.end()) {
-                        json similar{{"similar", search_keys(it.key().substr(0, std::max<std::size_t>(3, it.key().size() / 2)), t.options, 5)}};
+                        json similar{{"similar", similar_keys(it.key(), t.options)}};
                         // A process setting the target does not take is set where its rows offer it.
                         if (t.object != nullptr && std::find(process.begin(), process.end(), it.key()) != process.end())
                             throw ToolFailure(untaken_setting_error(it.key(), t.target, wxGetApp().filaments_cnt()), std::move(similar));
@@ -3254,8 +3323,8 @@ void register_config_tools(CommandCatalog& catalog)
                     for (const auto& [key, value] : values)
                         try {
                             scratch.set_deserialize_strict(key, value);
-                        } catch (const std::exception& e) {
-                            throw ToolFailure("Invalid value for " + key + ": " + e.what());
+                        } catch (const std::exception&) {
+                            throw invalid_value(key, value);
                         }
                     return scratch;
                 };
@@ -3353,7 +3422,7 @@ void register_config_tools(CommandCatalog& catalog)
         "with several extruders: filament_map_mode and filament_map (the extruder of each filament, 1-based). Each with "
         "value (the plate's own, null where it follows the global setting or Auto), effective (what the plate prints with) "
         "and meta (meta.offered lists the plate types or grouping modes this printer has). All of them, or those named in "
-        "keys. Reply: plate, items; unknown_keys for the keys a plate does not have.",
+        "keys. Reply: plate, items; unknown_keys for the keys a plate does not have, and similar the plate keys like them.",
         object_schema({{"plate", plate_prop},
                        {"keys", array_prop({{"type", "string"}}, "Setting keys, e.g. [\"curr_bed_type\"].")},
                        {"include_meta", prop("boolean", "Include labels, types and ranges. Default true.")}}),
@@ -3432,8 +3501,21 @@ void register_config_tools(CommandCatalog& catalog)
     };
     const std::string plates_after = "plates (each plate afterwards: index, name and objects, how many stand on it) and current "
                                      "(the current plate)";
-    catalog.add(own_action(menu_command("plate_add", L("Add Plate"), "Add a plate.", object_schema({}), json(),
-                                       [](const json&) { return MenuItems::plate_add(); }),
+    catalog.add(own_action(menu_command("plate_add", L("Add Plate"),
+                                        "Add a plate after the others and make it current, as Add Plate does. One undo step. "
+                                        "Reply: plate (the new plate's index), " +
+                                            plates_after + ".",
+                                        object_schema({}), json(),
+                                        [](const json&) {
+                                            AppActionRunResult added = MenuItems::plate_add();
+                                            // Add Plate makes the plate it adds current.
+                                            if (added.level == AppActionRunResult::Level::Succeeded) {
+                                                json reply     = plates_reply();
+                                                reply["plate"] = ui_plater().get_partplate_list().get_curr_plate_index();
+                                                added.reply    = reply.dump();
+                                            }
+                                            return added;
+                                        }),
                            L("Plate"), "toolbar_add_plate"));
     catalog.add(reaching({"delete_plate"},
                          own_action(menu_command("plate_delete", L("Delete Plate"),

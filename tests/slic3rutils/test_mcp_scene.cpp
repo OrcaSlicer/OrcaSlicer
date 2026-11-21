@@ -1282,13 +1282,17 @@ TEST_CASE("a command's targets are what its arguments name, else the selection",
     REQUIRE(part);
     CHECK(part.value().parts == std::vector<std::pair<int, int>>{{1, 1}});
 
-    // Every index and every expected id is checked before anything is returned, and a miss is named.
-    CHECK_THROWS_WITH(named_targets(model, {{"objects", json::array({0, 3})}}, Mcp::kObjects), ContainsSubstring("object index 3"));
+    // Every index and every expected id is checked before anything is returned, and a miss is named with the indices
+    // there are.
+    CHECK_THROWS_WITH(named_targets(model, {{"objects", json::array({0, 3})}}, Mcp::kObjects),
+                      ContainsSubstring("object index 3 is out of range (the project has objects 0..2)"));
     const std::size_t other = model.objects[1]->id().id;
     CHECK_THROWS_WITH(named_targets(model, {{"objects", json::array({0})}, {"object_ids", json::array({other})}}, Mcp::kObjects),
                       ContainsSubstring(std::to_string(other)));
-    CHECK_THROWS_WITH(named_targets(model, {{"parts", pairs({{1, 5}})}}, Mcp::kParts), ContainsSubstring("part 5"));
-    CHECK_THROWS_WITH(named_targets(model, {{"instances", pairs({{0, 1}})}}, Mcp::kInstances), ContainsSubstring("instance 1"));
+    CHECK_THROWS_WITH(named_targets(model, {{"parts", pairs({{1, 5}})}}, Mcp::kParts),
+                      ContainsSubstring("object 1 has no part 5 (it has parts 0..1)"));
+    CHECK_THROWS_WITH(named_targets(model, {{"instances", pairs({{0, 1}})}}, Mcp::kInstances),
+                      ContainsSubstring("object 0 has no instance 1 (it has instance 0 only)"));
     // Both forms of one target at once.
     CHECK_THROWS_AS(named_targets(model, {{"object", 1}, {"objects", json::array({0})}}, Mcp::kObjects), ToolFailure);
 

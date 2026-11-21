@@ -64,11 +64,8 @@ def tstr_design(s):
 
 
 def doc_text(block):
-    """A tool block's summary, details, params, examples and ids as compact JSON text, with closed when the
-    block closes its command's schema."""
+    """A tool block's summary, details, params, examples and ids as compact JSON text."""
     doc = {k: block[k] for k in DOC_KEYS}
-    if block.get("closed") is True:
-        doc["closed"] = True
     return json.dumps(doc, ensure_ascii=False, separators=(",", ":"))
 
 
@@ -171,8 +168,6 @@ def faults(A):
             for p in block.get("params", []):
                 if "nullable" in p and ("default" not in p or p["default"] is not None):
                     errs.append(f'{vid}: param {p.get("name")!r} has nullable but no null default')
-            if "closed" in block and not isinstance(block["closed"], bool):
-                errs.append(f'{vid}: closed must be true or false, not {block["closed"]!r}')
         if "args" in v:
             if not v.get("action") or block is None:
                 errs.append(f"{vid}: own args need a handler (action) and a tool block")
@@ -329,8 +324,7 @@ def main():
         "    CadAccess   access;       // its silent form's, None without one",
         "    bool        ok_false;     // its silent form reports a rejected rebuild in its reply (ok false)",
         "    // Its silent form's summary, details, params, examples and ids as JSON text, the parameter",
-        "    // schema of record, and closed when its schema refuses an argument it does not name; nullptr for an",
-        "    // entry whose command only does what its menu item does.",
+        "    // schema of record; nullptr for an entry whose command only does what its menu item does.",
         "    const char* doc;",
         "    const char* fold_into;    // the id of the command this item is a variant of, or nullptr",
         "    // The arguments that choose this item, as JSON text: a folded item's, or those that choose the own item of",
