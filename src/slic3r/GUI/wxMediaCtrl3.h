@@ -33,6 +33,7 @@ void wxMediaCtrl_OnSize(wxWindow * ctrl, wxSize const & videoSize, int width, in
 #include "Printer/BambuTunnel.h"
 
 class AVVideoDecoder;
+class wxDC;
 
 class wxMediaCtrl3 : public wxWindow, public Slic3r::GUI::IMediaController, BambuLib
 {
@@ -63,12 +64,19 @@ public:
 
     int GetLastError() const override;
 
+    // Unlike SDK log diagnostics, this is nonzero only after playback actually exits with an error.
+    int GetPlaybackError() const;
+
+    // Stream dimensions may be known before the first decoded picture is available.
+    bool HasVideoFrame() const;
+
     wxSize GetVideoSize() const override;
 
 protected:
     DECLARE_EVENT_TABLE()
 
     void paintEvent(wxPaintEvent &evt);
+    void draw_frame(wxDC &dc, wxSize size);
 
     wxSize DoGetBestSize() const override;
 
@@ -83,9 +91,13 @@ protected:
     void NotifyStopped();
 
 private:
+    void queue_refresh();
+
     wxString m_idle_image;
     wxMediaState m_state  = wxMEDIASTATE_STOPPED;
     int m_error  = 0;
+    int m_playback_error = 0;
+    bool m_has_video_frame = false;
     wxSize m_video_size = wxDefaultSize;
     wxSize m_frame_size = wxDefaultSize;
 #ifdef _WIN32
@@ -98,8 +110,8 @@ private:
     std::shared_ptr<wxURI> m_active_url;
     bool m_external = false;
     std::uint64_t m_last_PTS{0};
-    std::chrono::system_clock::time_point m_last_PTS_expected;
-    std::chrono::system_clock::time_point m_last_PTS_practical;
+    std::chrono::steady_clock::time_point m_last_PTS_expected;
+    std::chrono::steady_clock::time_point m_last_PTS_practical;
     mutable std::mutex m_mutex;
     std::condition_variable m_cond;
     std::thread m_thread;

@@ -109,6 +109,7 @@ public:
     MachineObject* get_my_machine(std::string dev_id);
     std::map<std::string, MachineObject*> get_my_machine_list(const std::string& agent_id = "");
     std::map<std::string, MachineObject*> get_my_cloud_machine_list(const std::string& agent_id = "");
+    std::map<std::string, MachineObject*> get_multi_machine_list();
     void modify_device_name(std::string dev_id, std::string dev_name, const std::string& provider);
 
     // id of the currently live IPrinterAgent (IPrinterAgent::get_agent_info().id), or empty if

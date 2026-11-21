@@ -23,6 +23,18 @@ endif()
 if (ORCA_TOOLS)
     set(_DEV_DEFS -DBOOST_ALL_NO_LIB -DBOOST_USE_WINAPI_VERSION=0x602 -DBOOST_SYSTEM_USE_UTF8)
 
+    if(SLIC3R_GUI)
+        add_executable(lan_camera_decode_probe EXCLUDE_FROM_ALL lan_camera_probe.cpp)
+        set_target_properties(lan_camera_decode_probe PROPERTIES MACOSX_BUNDLE FALSE WIN32_EXECUTABLE FALSE)
+        target_compile_definitions(lan_camera_decode_probe PRIVATE LAN_CAMERA_DECODE ${_DEV_DEFS})
+        target_include_directories(lan_camera_decode_probe PRIVATE
+            "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/deps_src" "${CMAKE_PREFIX_PATH}/include")
+        target_link_libraries(lan_camera_decode_probe PRIVATE libslic3r_gui libslic3r boost_headeronly ${CMAKE_DL_LIBS})
+        if(WIN32)
+            target_link_libraries(lan_camera_decode_probe PRIVATE ws2_32)
+        endif()
+    endif()
+
     # generate_system_cache: pre-generates per-vendor <vendor>.opc files under resources/profiles for CI bundling.
     add_executable(generate_system_cache generate_system_cache.cpp)
     target_link_libraries(generate_system_cache libslic3r boost_headeronly)
