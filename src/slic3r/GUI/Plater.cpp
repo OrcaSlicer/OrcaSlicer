@@ -18900,15 +18900,15 @@ static const std::string ironing_flow_object_name = "Ironing flow test";
 static const std::string ironing_flow_placeholder = "Ironing flow calibration test";
 static constexpr double  ironing_flow_layer_height = 0.12;
 
-// The plate and the marks: first layer and 1 more base layer, 2 layers of marks and text, 1 ironed top layer.
-static std::array<TriangleMesh, 2> ironing_flow_test_meshes(const Calib_Params& params, const std::string& name)
+// The strip, the base and the labels: first layer and 1 more base layer, 2 layers of marks and text, 1 ironed top layer.
+static std::array<TriangleMesh, 3> ironing_flow_test_meshes(const Calib_Params& params, const std::string& name)
 {
     const double nozzle_diameter = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter")->get_at(0);
     const double first_layer     = wxGetApp().preset_bundle->prints.get_edited_preset().config.opt_float("initial_layer_print_height");
     IroningFlowCalibMeshes meshes = ironing_flow_calib_meshes(params.start, params.end, params.step, name, nozzle_diameter,
                                                               first_layer + ironing_flow_layer_height, first_layer + 3. * ironing_flow_layer_height,
                                                               first_layer + 4. * ironing_flow_layer_height);
-    return {TriangleMesh(std::move(meshes.plate)), TriangleMesh(std::move(meshes.marks))};
+    return {TriangleMesh(std::move(meshes.strip)), TriangleMesh(std::move(meshes.base)), TriangleMesh(std::move(meshes.labels))};
 }
 
 // Names the ironing flow tests after their filaments when slicing, and shows the placeholder while they are not up to date.
@@ -18918,10 +18918,10 @@ static bool update_ironing_flow_names(Model& model, const Print* print, bool sli
         return false;
     bool changed = false;
     for (ModelObject* object : model.objects) {
-        // The plate and the marks, as Plater::calib_ironing_flow() loads them.
-        if (object->name != ironing_flow_object_name || object->volumes.size() != 2)
+        // The strip, the base and the labels, as Plater::calib_ironing_flow() loads them.
+        if (object->name != ironing_flow_object_name || object->volumes.size() != 3)
             continue;
-        std::array<TriangleMesh, 2> meshes;
+        std::array<TriangleMesh, 3> meshes;
         // Centers the meshes like ModelVolume::center_geometry_after_creation(), and tells whether the volumes have them.
         auto make_meshes = [&](const std::string& name) {
             meshes          = ironing_flow_test_meshes(print->calib_params(), name);
@@ -18937,8 +18937,9 @@ static bool update_ironing_flow_names(Model& model, const Print* print, bool sli
         if (make_meshes(ironing_flow_filament_name(size_t(std::max(object->volumes.front()->extruder_id(), 1) - 1))) ||
             (!slicing && make_meshes(ironing_flow_placeholder)))
             continue;
-        // Keep the marks in place on the plate.
-        object->volumes.back()->set_offset(object->volumes.front()->get_offset() + meshes[1].get_init_shift() - meshes[0].get_init_shift());
+        // Keep the base and the labels in place under and in front of the strip.
+        for (size_t i = 1; i < meshes.size(); ++i)
+            object->volumes[i]->set_offset(object->volumes.front()->get_offset() + meshes[i].get_init_shift() - meshes[0].get_init_shift());
         for (size_t i = 0; i < meshes.size(); ++i) {
             ModelVolume* volume = object->volumes[i];
             if (meshes[i].its.vertices == volume->mesh().its.vertices)
@@ -18964,19 +18965,14 @@ void Plater::calib_ironing_flow(const Calib_Params& params, Ops::Prompts prompts
     if (params.mode != CalibMode::Calib_Ironing_Flow)
         return;
 
-    const std::array<TriangleMesh, 2> meshes = ironing_flow_test_meshes(params, ironing_flow_placeholder);
-    // TRN: Name of the part of the ironing flow test with the flow marks, their labels and the filament name.
-    sidebar().obj_list()->load_mesh_object({{&meshes[0], from_u8(ironing_flow_object_name)}, {&meshes[1], _L("Marks")}},
+    // All the parts print in the filament of the object until changed, and the test is named after the filament of the strip.
+    const std::array<TriangleMesh, 3> meshes = ironing_flow_test_meshes(params, ironing_flow_placeholder);
+    // TRN: Names of the parts of the ironing flow test: the ironed strip, the base under it, and the flow marks, their labels and the filament name.
+    sidebar().obj_list()->load_mesh_object({{&meshes[0], _L("Strip")}, {&meshes[1], _L("Base")}, {&meshes[2], _L("Labels")}},
                                            from_u8(ironing_flow_object_name), true);
 
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto obj          = model().objects[0];
-
-    // The marks and the text in the second filament, if there is one, so that they stand out.
-    if (const size_t filaments = wxGetApp().preset_bundle->filament_presets.size(); filaments > 1) {
-        obj->volumes.back()->config.set_key_value("extruder", new ConfigOptionInt(2));
-        sidebar().obj_list()->update_filament_values_for_items(filaments);
-    }
 
     print_config->set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
     print_config->set_key_value("ironing_type", new ConfigOptionEnum<IroningType>(IroningType::TopmostOnly));

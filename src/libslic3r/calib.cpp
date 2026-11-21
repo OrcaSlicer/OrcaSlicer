@@ -1333,9 +1333,9 @@ IroningFlowCalibMeshes ironing_flow_calib_meshes(double min_flow, double max_flo
     }
 
     IroningFlowCalibMeshes meshes;
-    meshes.plate = ironing_flow_prism({rectangle(0., -front, total_length, depth)}, 0., base_z);
-    its_merge(meshes.plate, ironing_flow_prism({rectangle(0., 0., total_length, depth)}, base_z, top_z));
-    meshes.marks = ironing_flow_prism(union_ex(marks), base_z, marks_z);
+    meshes.strip  = ironing_flow_prism({rectangle(0., 0., total_length, depth)}, base_z, top_z);
+    meshes.base   = ironing_flow_prism({rectangle(0., -front, total_length, depth)}, 0., base_z);
+    meshes.labels = ironing_flow_prism(union_ex(marks), base_z, marks_z);
     return meshes;
 }
 

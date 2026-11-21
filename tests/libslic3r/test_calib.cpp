@@ -222,7 +222,7 @@ TEST_CASE("Ironing flow marks use the smallest step that keeps them 10 mm apart"
     CHECK_THAT(ironing_flow_calib_mark_step(min_flow, max_flow, length), Catch::Matchers::WithinAbs(step, 1e-9));
 }
 
-TEST_CASE("Ironing flow test meshes are a closed plate with the band and closed marks on top of it", "[Calib]")
+TEST_CASE("Ironing flow test meshes are a closed strip on a closed base, with closed labels on the base in front", "[Calib]")
 {
     // The text needs the font in resources/fonts.
     const std::string previous = resources_dir();
@@ -235,19 +235,26 @@ TEST_CASE("Ironing flow test meshes are a closed plate with the band and closed 
     const IroningFlowCalibMeshes meshes = ironing_flow_calib_meshes(10., 60., length, "Generic PLA", 0.4, base_z, marks_z, top_z);
     set_resources_dir(previous);
 
-    const BoundingBoxf3 plate = bounding_box(meshes.plate);
-    // The band plus 5 mm at each end.
-    CHECK_THAT(plate.size().x(), Catch::Matchers::WithinAbs(length + 10., 1e-3));
-    CHECK_THAT(plate.min.z(), Catch::Matchers::WithinAbs(0., 1e-6));
-    CHECK_THAT(plate.max.z(), Catch::Matchers::WithinAbs(top_z, 1e-6));
-    CHECK(its_num_open_edges(meshes.plate) == 0);
+    // The band plus 5 mm at each end, on top of the base.
+    const BoundingBoxf3 strip = bounding_box(meshes.strip);
+    CHECK_THAT(strip.size().x(), Catch::Matchers::WithinAbs(length + 10., 1e-3));
+    CHECK_THAT(strip.min.z(), Catch::Matchers::WithinAbs(base_z, 1e-6));
+    CHECK_THAT(strip.max.z(), Catch::Matchers::WithinAbs(top_z, 1e-6));
+    CHECK(its_num_open_edges(meshes.strip) == 0);
 
-    // The marks and the name lie on the plate, in front of the band.
-    const BoundingBoxf3 marks = bounding_box(meshes.marks);
-    CHECK_THAT(marks.min.z(), Catch::Matchers::WithinAbs(base_z, 1e-6));
-    CHECK_THAT(marks.max.z(), Catch::Matchers::WithinAbs(marks_z, 1e-6));
-    CHECK(marks.max.y() <= 1e-6);
-    CHECK(marks.min.y() < -10.);
-    CHECK(marks.min.y() > plate.min.y());
-    CHECK(its_num_open_edges(meshes.marks) == 0);
+    // The base lies under the strip and reaches in front of it, under the labels.
+    const BoundingBoxf3 base = bounding_box(meshes.base);
+    CHECK_THAT(base.min.z(), Catch::Matchers::WithinAbs(0., 1e-6));
+    CHECK_THAT(base.max.z(), Catch::Matchers::WithinAbs(base_z, 1e-6));
+    CHECK_THAT(base.max.y(), Catch::Matchers::WithinAbs(strip.max.y(), 1e-6));
+    CHECK(its_num_open_edges(meshes.base) == 0);
+
+    // The marks and the name lie on the base, in front of the band.
+    const BoundingBoxf3 labels = bounding_box(meshes.labels);
+    CHECK_THAT(labels.min.z(), Catch::Matchers::WithinAbs(base_z, 1e-6));
+    CHECK_THAT(labels.max.z(), Catch::Matchers::WithinAbs(marks_z, 1e-6));
+    CHECK(labels.max.y() <= 1e-6);
+    CHECK(labels.min.y() < -10.);
+    CHECK(labels.min.y() > base.min.y());
+    CHECK(its_num_open_edges(meshes.labels) == 0);
 }

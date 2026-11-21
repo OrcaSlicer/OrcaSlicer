@@ -467,12 +467,13 @@ private:
 // 10 mm apart, or 0 if none does.
 double ironing_flow_calib_mark_step(double min_flow, double max_flow, double length);
 
-// Ironing flow calibration test: a plate with the ironed band on top, and the marks with their flows in front of
-// the band and the filament name in front of the marks, separate so that they can print in another filament.
+// Ironing flow calibration test: the ironed strip, the base under it, and the labels on the base in front of the strip
+// (the marks with their flows and the filament name), separate so that each can print in a different filament.
 struct IroningFlowCalibMeshes
 {
-    indexed_triangle_set plate;
-    indexed_triangle_set marks;
+    indexed_triangle_set strip;
+    indexed_triangle_set base;
+    indexed_triangle_set labels;
 };
 IroningFlowCalibMeshes ironing_flow_calib_meshes(double min_flow, double max_flow, double length, const std::string &name,
                                                  double nozzle_diameter, double base_z, double marks_z, double top_z);
