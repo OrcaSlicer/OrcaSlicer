@@ -39,6 +39,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <functional>
 #include <iterator>
 #include <map>
 #include <optional>
@@ -157,7 +158,9 @@ public:
         btns->GetButtonFromIndex(0)->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
             m_working = stock_toolbar_layout();
             m_selection.clear();
-            show_working_layout();
+            // Reorders the existing rows: rows built after the dialog is shown measure 1px taller on GTK,
+            // so rebuilding them would push the last row out of the dialog.
+            sync_rows();
         });
         btns->GetOK()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_OK); });
         btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
@@ -242,19 +245,19 @@ private:
     void add_actions(wxBoxSizer* lists)
     {
         auto* actions = new wxBoxSizer(wxVERTICAL);
-        auto  add     = [this, actions](const wxString& text, void (ToolbarCustomizeDialog::*action)(), int gap_before) {
+        auto  add     = [this, actions](const wxString& text, std::function<void()> action, int gap_before) {
             auto* btn = new Button(this, text);
             btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
             // After the click: an action that adds or removes rows rebuilds them.
-            btn->Bind(wxEVT_BUTTON, [this, action](wxCommandEvent&) { CallAfter([this, action]() { (this->*action)(); }); });
+            btn->Bind(wxEVT_BUTTON, [this, action](wxCommandEvent&) { CallAfter(action); });
             actions->Add(btn, 0, wxEXPAND | wxTOP, gap_before);
             return btn;
         };
-        m_rename_button = add(_L("Rename"), &ToolbarCustomizeDialog::rename_selected, 0);
-        m_move_up       = add(_L_CONTEXT("Up", "Move a row"), &ToolbarCustomizeDialog::move_selected_up, FromDIP(18));
-        m_move_down     = add(_L_CONTEXT("Down", "Move a row"), &ToolbarCustomizeDialog::move_selected_down, FromDIP(6));
-        m_group_button  = add(_L_CONTEXT("Group", "Verb"), &ToolbarCustomizeDialog::group_selected, FromDIP(18));
-        m_ungroup_button = add(_L("Ungroup"), &ToolbarCustomizeDialog::ungroup_selected, FromDIP(6));
+        m_rename_button  = add(_L("Rename"), [this] { rename_selected(); }, 0);
+        m_move_up        = add(_L_CONTEXT("Up", "Move a row"), [this] { move_selected(-1); }, FromDIP(18));
+        m_move_down      = add(_L_CONTEXT("Down", "Move a row"), [this] { move_selected(1); }, FromDIP(6));
+        m_group_button   = add(_L_CONTEXT("Group", "Verb"), [this] { group_selected(); }, FromDIP(18));
+        m_ungroup_button = add(_L("Ungroup"), [this] { ungroup_selected(); }, FromDIP(6));
         // Mouse only, like the row arrows: a focused Move button that gets disabled at the end of a list would hand
         // the focus on. Alt+Up and Alt+Down move rows from the keyboard.
         m_move_up->SetCanFocus(false);
@@ -269,8 +272,6 @@ private:
         lists->Add(actions, 0, wxRIGHT, FromDIP(16));
     }
 
-    void move_selected_up() { move_selected(-1); }
-    void move_selected_down() { move_selected(1); }
 
     static KeyChord move_up_key() { return {WXK_UP, wxMOD_ALT}; }
     static KeyChord move_down_key() { return {WXK_DOWN, wxMOD_ALT}; }
@@ -448,16 +449,16 @@ private:
         row.panel->Refresh();
     }
 
+    // Asks for a group's name, starting from current or, when it is empty, the next default name.
     std::optional<std::string> ask_group_name(const std::string& current)
     {
-        GroupNameDialog dlg(this, from_u8(current));
+        // TRN Default name of a new toolbar group in the Customize Toolbar dialog. %1% is a number.
+        const std::string fallback = default_group_name(m_working, [](int n) { return into_u8(format_wxstr(_L("Group %1%"), n)); });
+        GroupNameDialog   dlg(this, from_u8(current.empty() ? fallback : current));
         if (dlg.ShowModal() != wxID_OK)
             return std::nullopt;
         const std::string name = into_u8(dlg.value());
-        if (name.find_first_not_of(" \t\r\n") != std::string::npos)
-            return name;
-        // TRN Default name of a new toolbar group in the Customize Toolbar dialog. %1% is a number.
-        return default_group_name(m_working, [](int n) { return into_u8(format_wxstr(_L("Group %1%"), n)); });
+        return name.find_first_not_of(" \t\r\n") != std::string::npos ? name : fallback;
     }
 
     void group_selected()
@@ -466,8 +467,7 @@ private:
         if (sel.separator)
             return;
         if (sel.groups.empty() && sel.plain.size() >= 2) {
-            const std::optional<std::string> name = ask_group_name(
-                default_group_name(m_working, [](int n) { return into_u8(format_wxstr(_L("Group %1%"), n)); }));
+            const std::optional<std::string> name = ask_group_name({});
             if (!name || !group_icons(m_working, sel.plain, *name))
                 return;
             m_selection = {"#group:" + sel.plain.front()};
@@ -582,13 +582,6 @@ private:
             Thaw();
         }
         return rebuilt;
-    }
-
-    // Puts the existing rows in m_working's order and state. Rows built after the dialog is shown measure
-    // 1px taller on GTK, so rebuilding them here would push the last row out of the dialog.
-    void show_working_layout()
-    {
-        sync_rows();
     }
 
     void rebuild_rows()
@@ -813,6 +806,10 @@ private:
 
 void show_toolbar_customize_dialog(wxWindow* parent)
 {
+    GLCanvas3D* canvas = wxGetApp().plater() != nullptr ? wxGetApp().plater()->get_view3D_canvas3D() : nullptr;
+    // An open group list would keep showing the old layout under the dialog.
+    if (canvas != nullptr)
+        canvas->close_toolbar_group_lists();
     ToolbarCustomizeDialog dlg(parent);
     if (dlg.ShowModal() != wxID_OK || dlg.working() == dlg.loaded())
         return;
@@ -824,8 +821,8 @@ void show_toolbar_customize_dialog(wxWindow* parent)
     else
         wxGetApp().app_config->set("toolbar", "layout", value);
 
-    if (wxGetApp().plater() != nullptr)
-        wxGetApp().plater()->get_view3D_canvas3D()->apply_toolbar_layout();
+    if (canvas != nullptr)
+        canvas->apply_toolbar_layout();
 }
 
 void show_toolbar_context_menu()

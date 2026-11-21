@@ -5739,6 +5739,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         // all buttons released, also covers a release that never reached this handler. Clears down_on_toolbar
         if (!evt.ButtonIsDown(wxMOUSE_BTN_ANY) && !evt.ButtonDown() && !evt.ButtonDClick())
             mouse_up_cleanup();
+        // A right click on an empty spot of the toolbars, such as a divider or a gap between gizmos, opens their menu.
+        if (evt.RightUp() && !evt.ButtonIsDown(wxMOUSE_BTN_ANY) && m_canvas_type == CanvasView3D && _is_mouse_over_top_toolbar(pos.cast<double>()))
+            show_toolbar_context_menu();
         if (button_event || evt.Dragging())
             return;
     }
@@ -8400,11 +8403,8 @@ bool GLCanvas3D::is_toolbar_item_available(const std::string& id) const
 {
     if (id == "layersediting")
         return current_printer_technology() == ptFFF;
-    const std::vector<std::string>& gizmo_ids = gizmo_ids_in_etype_order();
-    const auto gizmo = std::find(gizmo_ids.begin(), gizmo_ids.end(), id);
-    if (gizmo != gizmo_ids.end())
-        return m_gizmos.is_bar_item_available(static_cast<GLGizmosManager::EType>(std::distance(gizmo_ids.begin(), gizmo)));
-    return true;
+    const GLGizmosManager::EType gizmo = GLGizmosManager::gizmo_type_of(id);
+    return gizmo == GLGizmosManager::Undefined || m_gizmos.is_bar_item_available(gizmo);
 }
 
 void GLCanvas3D::apply_toolbar_layout()
@@ -8426,6 +8426,14 @@ void GLCanvas3D::apply_toolbar_layout()
     m_main_toolbar.set_icon_dirty();
     m_gizmos.set_bar_layout(layout.gizmos, layout.groups);
 
+    set_as_dirty();
+    request_extra_frame();
+}
+
+void GLCanvas3D::close_toolbar_group_lists()
+{
+    m_main_toolbar.close_group_list();
+    m_gizmos.close_group_list();
     set_as_dirty();
     request_extra_frame();
 }
@@ -8682,6 +8690,8 @@ bool GLCanvas3D::_init_assemble_view_toolbar()
     m_assemble_view_toolbar.set_gap_size(4);
 
     m_assemble_view_toolbar.del_all_item();
+    if (m_canvas_type == CanvasView3D)
+        m_assemble_view_toolbar.set_context_menu(show_toolbar_context_menu);
 
     GLToolbarItem::Data item;
     item.name = "assembly_view";

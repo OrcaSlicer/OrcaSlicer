@@ -9,6 +9,9 @@
 #include <utility>
 #include <vector>
 
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/trim.hpp>
+
 namespace Slic3r { namespace GUI {
 
 namespace {
@@ -238,14 +241,6 @@ int group_of(const ToolbarLayout& layout, const std::string& id)
 
 bool valid_group(const ToolbarLayout& layout, int group) { return group >= 0 && static_cast<size_t>(group) < layout.groups.size(); }
 
-std::string trimmed(const std::string& text)
-{
-    const auto first = text.find_first_not_of(" \t\r\n");
-    if (first == std::string::npos)
-        return {};
-    return text.substr(first, text.find_last_not_of(" \t\r\n") - first + 1);
-}
-
 // Ids that can join a group: distinct groupable ids of one list, in its order, in no group.
 bool ungrouped_bar_ids(const ToolbarLayout& layout, const std::vector<std::string>& ids)
 {
@@ -277,7 +272,7 @@ std::vector<ToolbarRow> toolbar_rows(const ToolbarLayout& layout, const ToolbarG
 
 bool group_icons(ToolbarLayout& layout, const std::vector<std::string>& ids, const std::string& name)
 {
-    const std::string clean = trimmed(name);
+    const std::string clean = boost::trim_copy_if(name, boost::is_any_of(" \t\r\n"));
     if (ids.size() < 2 || clean.empty() || !ungrouped_bar_ids(layout, ids))
         return false;
     layout.groups.push_back({clean, ids});
@@ -313,7 +308,7 @@ bool ungroup_icons(ToolbarLayout& layout, int group)
 
 bool rename_group(ToolbarLayout& layout, int group, const std::string& name)
 {
-    const std::string clean = trimmed(name);
+    const std::string clean = boost::trim_copy_if(name, boost::is_any_of(" \t\r\n"));
     if (!valid_group(layout, group) || clean.empty())
         return false;
     layout.groups[static_cast<size_t>(group)].name = clean;
@@ -367,8 +362,7 @@ bool move_toolbar_row(ToolbarLayout& layout, const ToolbarRow& row, int step)
             continue;
         blocks.push_back(group >= 0 ? layout.groups[static_cast<size_t>(group)].members : std::vector<std::string>{id});
     }
-    const std::string key  = row.kind == ToolbarRowKind::Header ? (valid_group(layout, row.group) ? layout.groups[static_cast<size_t>(row.group)].members.front() : std::string()) : row.id;
-    const auto        from = std::find_if(blocks.begin(), blocks.end(), [&key](const std::vector<std::string>& block) { return !key.empty() && block.front() == key; });
+    const auto from = std::find_if(blocks.begin(), blocks.end(), [&anchor](const std::vector<std::string>& block) { return block.front() == anchor; });
     if (from == blocks.end() || (row.kind == ToolbarRowKind::Plain && from->size() != 1))
         return false;
     const std::ptrdiff_t to = (from - blocks.begin()) + step;
@@ -416,24 +410,12 @@ std::vector<ToolbarBarSlot> compute_bar_slots(const std::vector<std::string>&   
             continue;
         const auto openable = [&cannot_open](const std::string& m) { return cannot_open.count(m) == 0; };
         const auto is_member = [&members](const std::string& m) { return contains(members, m); };
-        std::string shown;
-        if (is_member(open_id))
-            shown = open_id;
-        if (shown.empty())
-            for (const std::string& r : recent_ids)
-                if (is_member(r) && openable(r)) {
-                    shown = r;
-                    break;
-                }
-        if (shown.empty())
-            if (const auto it = std::find_if(members.begin(), members.end(), openable); it != members.end())
-                shown = *it;
-        if (shown.empty())
-            if (const auto it = std::find_if(recent_ids.begin(), recent_ids.end(), is_member); it != recent_ids.end())
-                shown = *it;
-        if (shown.empty())
-            shown = members.front();
-        slots.push_back({shown, members, g});
+        // The open member, else the first that can be opened of those used recently then the rest, else the first of them.
+        std::vector<std::string> candidates;
+        std::copy_if(recent_ids.begin(), recent_ids.end(), std::back_inserter(candidates), is_member);
+        candidates.insert(candidates.end(), members.begin(), members.end());
+        const auto it = std::find_if(candidates.begin(), candidates.end(), openable);
+        slots.push_back({is_member(open_id) ? open_id : it != candidates.end() ? *it : candidates.front(), members, g});
     }
     return slots;
 }

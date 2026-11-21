@@ -1440,6 +1440,7 @@ public:
     void update_shortcut_tooltips();
     // Rebuilds the Prepare canvas's main toolbar and gizmo bar from the saved toolbar layout.
     void apply_toolbar_layout();
+    void close_toolbar_group_lists();
     // The stock visibility rule of a toolbar item or gizmo id, ignoring the user's layout.
     bool is_toolbar_item_available(const std::string& id) const;
     void on_mouse_wheel(wxMouseEvent& evt);

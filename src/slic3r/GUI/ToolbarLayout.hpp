@@ -21,7 +21,6 @@ struct ToolbarGroupLayout
     std::set<std::string>    hidden;
 
     bool operator==(const ToolbarGroupLayout& rhs) const { return order == rhs.order && hidden == rhs.hidden; }
-    bool operator!=(const ToolbarGroupLayout& rhs) const { return !(*this == rhs); }
 };
 
 // A user-made group of icons that share one button. Its members are all main toolbar ids or all gizmo bar ids,
@@ -32,7 +31,6 @@ struct ToolbarIconGroup
     std::vector<std::string> members;
 
     bool operator==(const ToolbarIconGroup& rhs) const { return name == rhs.name && members == rhs.members; }
-    bool operator!=(const ToolbarIconGroup& rhs) const { return !(*this == rhs); }
 };
 
 struct ToolbarLayout
@@ -52,7 +50,6 @@ struct ToolbarLayout
         return version == rhs.version && main == rhs.main && gizmos == rhs.gizmos && groups == rhs.groups &&
                other_groups == rhs.other_groups && extra == rhs.extra;
     }
-    bool operator!=(const ToolbarLayout& rhs) const { return !(*this == rhs); }
 };
 
 // Main toolbar item names in stock order, with TOOLBAR_SEPARATOR_ID where the separator goes.

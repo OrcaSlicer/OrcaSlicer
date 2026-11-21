@@ -98,17 +98,6 @@ GLGizmosManager::GLGizmosManager(GLCanvas3D& parent)
     m_timer_set_color.Bind(wxEVT_TIMER, &GLGizmosManager::on_set_color_timer, this);
 }
 
-namespace {
-
-GLGizmosManager::EType gizmo_type_of(const std::string& id)
-{
-    const std::vector<std::string>& ids = gizmo_ids_in_etype_order();
-    const auto it = std::find(ids.begin(), ids.end(), id);
-    return it == ids.end() ? GLGizmosManager::Undefined : static_cast<GLGizmosManager::EType>(std::distance(ids.begin(), it));
-}
-
-} // namespace
-
 std::vector<size_t> GLGizmosManager::get_selectable_idxs() const
 {
     std::vector<size_t> out;
@@ -141,16 +130,9 @@ bool GLGizmosManager::is_on_toolbar(EType type) const
 std::vector<ToolbarBarSlot> GLGizmosManager::get_bar_slots() const
 {
     std::vector<std::string> ids;
-    auto add = [&](size_t i) {
-        if (i < m_gizmos.size() && m_gizmos[i]->is_selectable() && !is_hidden_in_bar(i))
-            ids.push_back(gizmo_id(static_cast<EType>(i)));
-    };
-    if (m_bar_order.empty())
-        for (size_t i = 0; i < m_gizmos.size(); ++i)
-            add(i);
-    else
-        for (size_t i : m_bar_order)
-            add(i);
+    for (const EType type : m_bar_types)
+        if (static_cast<size_t>(type) < m_gizmos.size() && m_gizmos[type]->is_selectable())
+            ids.push_back(gizmo_id(type));
     // A slot greys like the member it shows, so it shows one that can be opened while there is one.
     std::set<std::string> cannot_open;
     for (const ToolbarIconGroup& group : m_groups)
@@ -174,22 +156,16 @@ int GLGizmosManager::group_of_slot(EType type) const
 void GLGizmosManager::close_group_list()
 {
     m_group_pending_open = Undefined;
-    if (m_open_group < 0)
+    if (!m_group_popup.close())
         return;
-    m_open_group      = -1;
-    m_group_list_rect = Vec4f::Zero();
     m_parent.set_as_dirty();
     m_parent.request_extra_frame();
 }
 
 void GLGizmosManager::close_group_list_unless_at(const Vec2d& mouse_pos)
 {
-    if (m_open_group < 0)
-        return;
-    const Vec4f& r = m_group_list_rect;
-    const bool on_list = r(0) <= mouse_pos(0) && mouse_pos(0) <= r(2) && r(1) <= mouse_pos(1) && mouse_pos(1) <= r(3);
     // A press on another group's button closes this list; that button's own click then opens its list.
-    if (!on_list && group_of_slot(get_gizmo_from_mouse(mouse_pos)) != m_open_group)
+    if (m_group_popup.closes_at(mouse_pos, group_of_slot(get_gizmo_from_mouse(mouse_pos))))
         close_group_list();
 }
 
@@ -197,16 +173,10 @@ void GLGizmosManager::set_bar_layout(const ToolbarGroupLayout& layout, const std
 {
     m_groups = groups;
     close_group_list();
-    const std::vector<std::string>& ids = gizmo_ids_in_etype_order();
-    m_bar_order.clear();
-    m_bar_hidden.assign(ids.size(), false);
-    for (const std::string& id : layout.order) {
-        const auto it = std::find(ids.begin(), ids.end(), id);
-        if (it != ids.end())
-            m_bar_order.push_back(static_cast<size_t>(std::distance(ids.begin(), it)));
-    }
-    for (size_t i = 0; i < ids.size(); ++i)
-        m_bar_hidden[i] = layout.hidden.count(ids[i]) != 0;
+    m_bar_types.clear();
+    for (const std::string& id : layout.order)
+        if (const EType type = gizmo_type_of(id); type != Undefined && layout.hidden.count(id) == 0)
+            m_bar_types.push_back(type);
 }
 
 bool GLGizmosManager::is_bar_item_available(EType type) const
@@ -218,6 +188,13 @@ std::string GLGizmosManager::gizmo_id(EType type)
 {
     const std::vector<std::string>& ids = gizmo_ids_in_etype_order();
     return static_cast<size_t>(type) < ids.size() ? ids[type] : std::string();
+}
+
+GLGizmosManager::EType GLGizmosManager::gizmo_type_of(const std::string& id)
+{
+    const std::vector<std::string>& ids = gizmo_ids_in_etype_order();
+    const auto it = std::find(ids.begin(), ids.end(), id);
+    return it == ids.end() ? Undefined : static_cast<EType>(std::distance(ids.begin(), it));
 }
 
 //BBS: GUI refactor: GLToolbar&&Gizmo adjust
@@ -852,9 +829,9 @@ void GLGizmosManager::render_overlay_input_window()
         return;
 
     // A list whose group no longer has a slot (a printer switch left it one icon on the bar) closes.
-    if (m_open_group >= 0) {
+    if (m_group_popup.is_open()) {
         const std::vector<ToolbarBarSlot> slots = get_bar_slots();
-        if (std::none_of(slots.begin(), slots.end(), [this](const ToolbarBarSlot& slot) { return slot.group == m_open_group; }))
+        if (std::none_of(slots.begin(), slots.end(), [this](const ToolbarBarSlot& slot) { return slot.group == m_group_popup.open; }))
             close_group_list();
     }
 
@@ -876,7 +853,7 @@ size_t GLGizmosManager::get_overlay_state_hash() const
     boost::hash_combine(hash, (int)m_current);
     boost::hash_combine(hash, (int)m_highlight.first);
     boost::hash_combine(hash, m_highlight.second);
-    boost::hash_combine(hash, m_open_group);
+    boost::hash_combine(hash, m_group_popup.open);
     if (!m_recent_gizmos.empty())
         boost::hash_combine(hash, m_recent_gizmos.front());
     return hash;
@@ -885,7 +862,7 @@ size_t GLGizmosManager::get_overlay_state_hash() const
 std::string GLGizmosManager::get_tooltip() const
 {
     // The open list already shows its group's name, so its button's tooltip would only cover it.
-    if (m_tooltip_group >= 0 && m_tooltip_group == m_open_group)
+    if (m_tooltip_group >= 0 && m_tooltip_group == m_group_popup.open)
         return {};
     if (!m_tooltip.empty())
         return m_tooltip;
@@ -967,7 +944,7 @@ bool GLGizmosManager::gizmos_toolbar_on_mouse(const wxMouseEvent &mouse_event) {
                 // A double click would reopen what the first click closed.
                 if (!mouse_event.LeftDown())
                     return true;
-                if (m_open_group == group)
+                if (m_group_popup.open == group)
                     close_group_list();
                 else {
                     close_group_list();
@@ -976,7 +953,7 @@ bool GLGizmosManager::gizmos_toolbar_on_mouse(const wxMouseEvent &mouse_event) {
                     if (m_current != Undefined)
                         open_gizmo(m_current);
                     if (m_current == Undefined) {
-                        m_open_group = group;
+                        m_group_popup.open = group;
                         m_parent.set_as_dirty();
                         m_parent.request_extra_frame();
                     }
@@ -1084,7 +1061,7 @@ bool GLGizmosManager::on_char(wxKeyEvent& evt)
         // key ESC
         case WXK_ESCAPE:
         {
-            if (m_open_group >= 0) {
+            if (m_group_popup.is_open()) {
                 close_group_list();
                 processed = true;
                 break;
@@ -1457,78 +1434,29 @@ void GLGizmosManager::render_arrow(const GLCanvas3D& parent, EType highlighted_t
 // layout walk.
 void GLGizmosManager::render_group_list(int group, float left, float top) const
 {
-    std::vector<std::string> members;
+    std::vector<EType>          types;
+    std::vector<GroupPopupIcon> icons;
     for (const ToolbarBarSlot& slot : get_bar_slots())
         if (slot.group == group)
-            members = slot.members;
-    const unsigned int tex_id = m_icons_texture.get_id();
-    const int tex_width = m_icons_texture.get_width();
-    const int tex_height = m_icons_texture.get_height();
-    if (members.empty() || tex_id == 0 || tex_width <= 1 || tex_height <= 1)
-        return;
+            for (const std::string& id : slot.members)
+                if (const EType type = gizmo_type_of(id); type != Undefined) {
+                    types.push_back(type);
+                    icons.push_back({m_gizmos[type]->get_sprite_id(), m_gizmos[type]->is_activable(), m_gizmos[type]->get_name()});
+                }
 
-    // The same sprite layout as the bar: one row per gizmo, six state columns, tiles 1 px apart.
-    const float du = static_cast<float>(tex_width - 1) / (6.0f * static_cast<float>(tex_width));
-    const float dv = static_cast<float>(tex_height - 1) / static_cast<float>(m_gizmos.size() * tex_height);
-    const float u_offset = 1.0f / static_cast<float>(tex_width);
-    const float v_offset = 1.0f / static_cast<float>(tex_height);
-
-    ImGuiWrapper& imgui = *wxGetApp().imgui();
-    ImGuiWrapper::push_toolbar_style(m_parent.get_scale());
-
-    // Bar-sized icons, so they stay pixel-exact, three to a row, so a large group grows down rather than across.
-    // Each icon's name and shortcut show in a tooltip, as on the bar.
-    constexpr size_t columns = 3;
-    const float      icon    = m_layout.scaled_icons_size();
-
-    // Keep the panel on the canvas, using its width from the last frame.
-    const float canvas_width = static_cast<float>(m_parent.get_canvas_size().get_width());
-    const float last_width   = m_group_list_rect(2) - m_group_list_rect(0);
-    if (last_width > 0.0f && left + last_width > canvas_width)
-        left = std::max(0.0f, canvas_width - last_width);
-
-    imgui.set_next_window_pos(left, top, ImGuiCond_Always, 0.0f, 0.0f);
-    // A fixed id: the group's name is user text and may repeat or contain "##".
-    // An accent border, as on the open group's dots.
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.0f * m_layout.scale);
-    ImGui::PushStyleColor(ImGuiCol_Border, ImGuiWrapper::COL_ORCA);
-    imgui.begin(std::string("##gizmo_group_list"), ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize |
-                                                     ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
-    ImDrawList* draw      = ImGui::GetWindowDrawList();
-    const auto tex = reinterpret_cast<ImTextureID>(static_cast<intptr_t>(tex_id));
-    // The group's name heads the list.
-    ImGui::TextUnformatted(m_groups[static_cast<size_t>(group)].name.c_str());
-    size_t shown = 0;
-    for (const std::string& id : members) {
-        const EType type = gizmo_type_of(id);
-        if (type == Undefined)
-            continue;
-        const GLGizmoBase& gizmo   = *m_gizmos[type];
-        const bool         enabled = gizmo.is_activable();
-        if (shown++ % columns != 0)
-            ImGui::SameLine();
-        ImGui::PushID(static_cast<int>(type));
-        const ImVec2 at = ImGui::GetCursorScreenPos();
-        if (ImGui::InvisibleButton("##icon", ImVec2(icon, icon)) && enabled)
-            m_group_pending_open = type;
-        const bool hovered = ImGui::IsItemHovered();
-        ImGui::PopID();
-
-        // The bar's sprite states: normal, hovered and disabled.
-        const float u_left = u_offset + (enabled ? (hovered ? 1.0f : 0.0f) : 3.0f) * du;
-        const float v_top  = v_offset + static_cast<float>(gizmo.get_sprite_id()) * dv;
-        draw->AddImage(tex, at, ImVec2(at.x + icon, at.y + icon), ImVec2(u_left, v_top), ImVec2(u_left + du - u_offset, v_top + dv - v_offset));
-        if (hovered)
-            imgui.tooltip(gizmo.get_name(), ImGui::GetFontSize() * 20.0f);
+    // The bar's sprite sheet: one row per gizmo, six state columns (normal, hovered, disabled at 0, 1, 3), tiles 1 px apart.
+    GroupPopupSprites sprites{m_icons_texture.get_id(), m_icons_texture.get_width(), m_icons_texture.get_height()};
+    if (sprites.tex_width > 0 && sprites.tex_height > 0) {
+        sprites.du = static_cast<float>(sprites.tex_width - 1) / (6.0f * static_cast<float>(sprites.tex_width));
+        sprites.dv = static_cast<float>(sprites.tex_height - 1) / static_cast<float>(m_gizmos.size() * sprites.tex_height);
     }
-    const ImVec2 pos = ImGui::GetWindowPos();
-    const ImVec2 sz  = ImGui::GetWindowSize();
-    m_group_list_rect = Vec4f(pos.x, pos.y, pos.x + sz.x, pos.y + sz.y);
-    imgui.end();
-    ImGui::PopStyleColor();
-    ImGui::PopStyleVar(2);
-    ImGuiWrapper::pop_toolbar_style();
+    sprites.hover_column    = 1;
+    sprites.disabled_column = 3;
+    const int picked = render_group_popup("##gizmo_group_list", m_groups[static_cast<size_t>(group)].name, icons, sprites,
+                                          m_layout.scaled_icons_size(), m_parent.get_scale(), 6.0f * m_layout.scale, left, top,
+                                          static_cast<float>(m_parent.get_canvas_size().get_width()), m_group_popup);
+    if (picked >= 0)
+        m_group_pending_open = types[static_cast<size_t>(picked)];
 }
 
 void GLGizmosManager::do_render_overlay(bool draw_icons) const
@@ -1631,17 +1559,11 @@ void GLGizmosManager::do_render_overlay(bool draw_icons) const
             is_render_current = true;
         }
         if (const int group = draw_icons ? -1 : group_of_slot(static_cast<EType>(idx)); group >= 0) {
-            const float left = 0.5f * cnv_w + 0.5f * top_x * cnv_w;
-            const float size = m_layout.scaled_icons_size();
-            const float top  = m_layout.scaled_border();
-            // Three dots under the icon mark the button as a group, clear of the icon itself; teal while its list is open.
-            const float  r      = std::max(1.5f, 0.04f * size);
-            const float  y      = top + size + 0.5f * top;
-            const ImU32  colour = m_open_group == group ? IM_COL32(0, 150, 136, 255) :
-                                  m_is_dark             ? IM_COL32(220, 220, 220, 255) : IM_COL32(80, 80, 80, 255);
-            for (int dot = -1; dot <= 1; ++dot)
-                ImGui::GetForegroundDrawList()->AddCircleFilled(ImVec2(left + 0.5f * size + static_cast<float>(dot) * 3.0f * r, y), r, colour);
-            if (m_open_group == group)
+            const float left   = 0.5f * cnv_w + 0.5f * top_x * cnv_w;
+            const float size   = m_layout.scaled_icons_size();
+            const float border = m_layout.scaled_border();
+            render_group_dots(left, border + size + 0.5f * border, size, m_group_popup.open == group, m_is_dark);
+            if (m_group_popup.open == group)
                 render_group_list(group, left, get_scaled_total_height());
         }
         top_x += stride_x;
@@ -1685,25 +1607,19 @@ GLGizmoBase* GLGizmosManager::get_gizmo(GLGizmosManager::EType type) const
 
 GLGizmosManager::EType GLGizmosManager::get_gizmo_from_name(const std::string& gizmo_name) const
 {
-    if (m_parent.get_canvas_type() != GLCanvas3D::CanvasAssembleView) {
-        // A grouped gizmo is found at its group's button.
-        for (size_t idx = 0; idx < m_gizmos.size(); ++idx) {
-            std::string filename = m_gizmos[idx]->get_icon_filename();
-            filename = filename.substr(0, filename.find_first_of('.'));
-            if (filename == gizmo_name)
-                return gizmo_type_of(bar_slot_shown_for(get_bar_slots(), gizmo_id(static_cast<EType>(idx))));
+    for (size_t idx = 0; idx < m_gizmos.size(); ++idx) {
+        const std::string filename = m_gizmos[idx]->get_icon_filename();
+        if (filename.substr(0, filename.find_first_of('.')) != gizmo_name)
+            continue;
+        const EType type = static_cast<EType>(idx);
+        if (m_parent.get_canvas_type() == GLCanvas3D::CanvasAssembleView) {
+            const std::vector<size_t> selectable = get_selectable_idxs();
+            return std::find(selectable.begin(), selectable.end(), idx) != selectable.end() ? type : Undefined;
         }
-        return GLGizmosManager::EType::Undefined;
+        // A grouped gizmo is found at its group's button.
+        return gizmo_type_of(bar_slot_shown_for(get_bar_slots(), gizmo_id(type)));
     }
-    std::vector<size_t> selectable_idxs = get_selectable_idxs();
-    for (size_t idx = 0; idx < selectable_idxs.size(); ++idx)
-    {
-        std::string filename = m_gizmos[selectable_idxs[idx]]->get_icon_filename();
-        filename = filename.substr(0, filename.find_first_of('.'));
-        if (filename == gizmo_name)
-            return (GLGizmosManager::EType)selectable_idxs[idx];
-    }
-    return GLGizmosManager::EType::Undefined;
+    return Undefined;
 }
 
 bool GLGizmosManager::generate_icons_texture()

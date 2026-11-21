@@ -272,6 +272,58 @@ struct BackgroundTexture
     Metadata metadata;
 };
 
+// Which icon group's list is open on a bar, and where the list was last drawn.
+struct GroupPopupState
+{
+    int   open{-1};
+    Vec4f rect{Vec4f::Zero()};
+
+    bool is_open() const { return open >= 0; }
+    // Whether a press at pos, over the button of group_at_pos (-1 for none), closes the open list.
+    bool closes_at(const Vec2d& pos, int group_at_pos) const
+    {
+        const bool on_list = rect(0) <= pos(0) && pos(0) <= rect(2) && rect(1) <= pos(1) && pos(1) <= rect(3);
+        return is_open() && !on_list && group_at_pos != open;
+    }
+    // Returns whether a list was open.
+    bool close()
+    {
+        const bool was_open = is_open();
+        open                = -1;
+        rect                = Vec4f::Zero();
+        return was_open;
+    }
+};
+
+// A bar's icon sprite sheet: one row per icon, one column per state, as texture coordinates.
+struct GroupPopupSprites
+{
+    unsigned int tex_id{0};
+    int          tex_width{0};
+    int          tex_height{0};
+    float        du{0.0f}; // tile width
+    float        dv{0.0f}; // tile height
+    int          normal_column{0};
+    int          hover_column{0};
+    int          disabled_column{0};
+};
+
+struct GroupPopupIcon
+{
+    unsigned int sprite_row;
+    bool         enabled;
+    std::string  tooltip;
+};
+
+// Three dots under a group's button, clear of the icon itself; accent-coloured while its list is open.
+void render_group_dots(float icon_left, float y, float icon_size, bool open, bool dark);
+
+// Draws the open group's list below a bar: the group's name, then its icons three to a row, kept on the canvas
+// using its width from the last frame. Updates state.rect. Returns the index of the enabled icon clicked, or -1.
+int render_group_popup(const char* window_id, const std::string& name, const std::vector<GroupPopupIcon>& icons,
+                       const GroupPopupSprites& sprites, float icon_size, float style_scale, float rounding, float left, float top,
+                       float canvas_width, GroupPopupState& state);
+
 class GLToolbar
 {
 public:
@@ -367,13 +419,12 @@ private:
     std::function<void()> m_context_menu;
     // The user's groups of item names. A group with two or more items on the toolbar is one button, its slot,
     // which shows the pressed member, else the one used last that is enabled. The slots are from the last
-    // visibility update; the names are of grouped items used this session, newest first.
+    // visibility update; the names are of items used this session, newest first.
     std::vector<ToolbarIconGroup> m_groups;
     std::vector<ToolbarBarSlot>   m_group_slots;
     std::vector<std::string>      m_recent_items;
-    int                           m_open_group{-1};
-    // Written while the open group's list is drawn: its screen rectangle, and the item picked in it.
-    Vec4f                         m_group_list_rect{Vec4f::Zero()};
+    GroupPopupState               m_group_popup;
+    // Written while the open group's list is drawn: the item picked in it.
     std::string                   m_group_picked;
     int m_pressed_toggable_id;
 
@@ -495,7 +546,7 @@ private:
     bool fold_groups();
     void open_group_list(int group, GLCanvas3D& parent);
     void render_group_marks(const GLCanvas3D& parent);
-    void render_group_list(int group, float left, float top);
+    void render_group_list(int group, float left, float top, float canvas_width);
 
     // returns true if any item changed its state
     bool update_items_visibility();
