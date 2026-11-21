@@ -93,6 +93,8 @@ public:
                                               const std::string&           chamber_sensor = {});
     // The speed factor (percent) M220 sets for a Device tab speed level (1 silent .. 4 ludicrous), and back
     static int speed_percent_for_level(int level);
+    // The URL of the largest thumbnail in a /server/files/metadata answer for a file in the gcodes root, or empty
+    static std::string thumbnail_url(const nlohmann::json& metadata, const std::string& base_url, const std::string& filename);
     static int speed_level_for_factor(double speed_factor);
 
     // JSON helper methods
@@ -159,6 +161,8 @@ protected:
     virtual CameraSource fetch_camera(const std::string& base_url, const std::string& api_key, const std::function<bool()>& cancelled) const;
     // JSON-RPC requests (method and params) to send over the status websocket now; asked after every message it reads
     virtual std::vector<nlohmann::json> take_ws_requests() { return {}; }
+    // Klipper objects that describe the loaded filament: subscribed, and a change re-reads the filament info
+    virtual std::set<std::string> filament_objects() const { return {}; }
     // The Klipper LED (the name after "led ") the Device tab switches as the chamber light; empty for none
     virtual std::string chamber_led() const { return {}; }
     // The Klipper object (full name) that reads the chamber temperature
@@ -262,6 +266,13 @@ private:
     OnMessageFn          on_local_message_fn;
     QueueOnMainFn        queue_on_main_fn;
     OnServerErrFn        on_server_err_fn;
+
+    // The live agent re-reads its filament info on the UI thread, where the Device tab reads it
+    void refresh_filaments_on_main(const std::string& dev_id);
+    // Follows the printed file's thumbnail; stream thread only
+    void update_job_thumbnail(const std::string& base_url, const std::string& api_key);
+    std::string        job_thumbnail_file;
+    std::string        job_thumbnail_url; // guarded by payload_mutex
 
     mutable std::mutex camera_mutex;
     CameraSource       camera;

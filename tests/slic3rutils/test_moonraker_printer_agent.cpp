@@ -1246,3 +1246,16 @@ TEST_CASE("Status reports show the chamber LED as the chamber light and the cham
                     .at("print")
                     .contains("lights_report"));
 }
+
+TEST_CASE("The printed file's thumbnail is its largest one, in the file's folder", "[MoonrakerPrinterAgent][Status]")
+{
+    const nlohmann::json metadata = {{"result",
+                                      {{"filename", "Toys/dragon 4.gcode"},
+                                       {"thumbnails",
+                                        {{{"width", 32}, {"height", 32}, {"relative_path", ".thumbs/dragon 4-32x32.png"}},
+                                         {{"width", 300}, {"height", 300}, {"relative_path", ".thumbs/dragon 4-300x300.png"}}}}}}};
+    CHECK(MoonrakerPrinterAgent::thumbnail_url(metadata, "http://192.0.2.10:7125", "Toys/dragon 4.gcode") ==
+          "http://192.0.2.10:7125/server/files/gcodes/Toys/.thumbs/dragon%204-300x300.png");
+    CHECK(MoonrakerPrinterAgent::thumbnail_url({{"result", {{"thumbnails", nlohmann::json::array()}}}}, "http://h", "a.gcode").empty());
+    CHECK(MoonrakerPrinterAgent::thumbnail_url(nlohmann::json::object(), "http://h", "a.gcode").empty());
+}

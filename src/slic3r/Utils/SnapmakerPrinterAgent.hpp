@@ -5,6 +5,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -48,6 +49,7 @@ public:
 protected:
     std::string                 chamber_led() const override { return "cavity_led"; }
     std::string                 chamber_sensor() const override { return "temperature_sensor cavity"; }
+    std::set<std::string>       filament_objects() const override { return {"print_task_config", "filament_detect"}; }
     CameraSource                fetch_camera(const std::string& base_url, const std::string& api_key,
                                              const std::function<bool()>& cancelled) const override;
     std::vector<nlohmann::json> take_ws_requests() override;
