@@ -6039,21 +6039,19 @@ void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_na
         if (ams_mc.size() > total)
             std::rotate(ams_mc.begin() + insert_pos, ams_mc.begin() + total, ams_mc.end());
 
-        // Remap object/volume extruder IDs and paint data: anything >= insert_pos+1 (1-based) shifts up by 1
-        int threshold_1based = (int)(insert_pos + 1);
+        // Model configs and paint states store one-based filament slots.
+        const int threshold_1based = int(insert_pos + 1);
+        auto shift_extruder = [threshold_1based](ModelConfig &config) {
+            if (config.has("extruder") && config.extruder() >= threshold_1based)
+                config.set("extruder", config.extruder() + 1);
+        };
         auto ebt_threshold = EnforcerBlockerType(threshold_1based);
         for (auto* obj : wxGetApp().plater()->model().objects) {
-            if (obj->config.has("extruder")) {
-                int ext = obj->config.extruder();
-                if (ext >= threshold_1based)
-                    obj->config.set("extruder", ext + 1);
-            }
+            shift_extruder(obj->config);
+            for (auto &[range, config] : obj->layer_config_ranges)
+                shift_extruder(config);
             for (auto* vol : obj->volumes) {
-                if (vol->config.has("extruder")) {
-                    int ext = vol->config.extruder();
-                    if (ext >= threshold_1based)
-                        vol->config.set("extruder", ext + 1);
-                }
+                shift_extruder(vol->config);
                 vol->mmu_segmentation_facets.shift_states_above(*vol, ebt_threshold, +1);
             }
         }

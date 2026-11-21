@@ -6291,8 +6291,24 @@ TEST_CASE("remap_model_filament_slots repoints extruder configs and color painti
     // 1-based slot 4 lands on 5 and does NOT continue to 7.
     Model chained = make_model();
     chained.objects[0]->volumes.front()->config.set_key_value("extruder", new ConfigOptionInt(4));
+    auto &ranges = chained.objects[0]->layer_config_ranges;
+    auto &first_mix = ranges[{0., 2.}];
+    auto &second_mix = ranges[{2., 4.}];
+    auto &physical = ranges[{4., 6.}];
+    auto &use_default = ranges[{6., 8.}];
+    auto &height_only = ranges[{8., 10.}];
+    first_mix.set("extruder", 4);
+    second_mix.set("extruder", 5);
+    physical.set("extruder", 2);
+    use_default.set("extruder", 0);
+    height_only.set("layer_height", 0.2);
     Slic3r::remap_model_filament_slots(chained, std::map<int, int>{{3, 4}, {4, 6}});
     CHECK(chained.objects[0]->volumes.front()->config.extruder() == 5);
+    CHECK(first_mix.extruder() == 5);
+    CHECK(second_mix.extruder() == 7);
+    CHECK(physical.extruder() == 2);
+    CHECK(use_default.extruder() == 0);
+    CHECK_FALSE(height_only.has("extruder"));
     // The chained model's paint follows its own single-step mapping: painted state 5 -> 7,
     // and nothing lands back on 5.
     CHECK(TriangleSelector::has_facets(chained.objects[0]->volumes.front()->mmu_segmentation_facets.get_data(),

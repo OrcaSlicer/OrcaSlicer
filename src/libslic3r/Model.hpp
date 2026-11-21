@@ -2013,7 +2013,7 @@ bool model_has_multi_part_objects(const Model &model);
 bool model_has_advanced_features(const Model &model);
 
 // Remap the model's filament-slot references after a published-3MF import relocated
-// mixed-filament definitions onto new slot numbers: object/volume "extruder" configs and
+// mixed-filament definitions onto new slot numbers: object, volume and height-range "extruder" configs and
 // multi-material color-painting states (paint state stores the one-based slot number).
 // slot_relocations maps the author's zero-based slot number to its final zero-based slot;
 // entries are applied simultaneously (no chained lookups), untouched slots keep everything.
