@@ -3184,7 +3184,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 		const ConfigOption* brim_type_opt = mo->config.option("brim_type");
 		if (brim_type_opt != nullptr ? brim_type_opt->getInt() != int(BrimType::btNoBrim) : glb_brim) {
 			const ConfigOption* brim_opt = mo->config.option("brim_filament_id");
-			// The slicer resets a brim filament id past the last slot to the default.
+			// The slicer resets an object's brim filament id past the last slot to the default.
 			if (const int brim_extr = brim_opt != nullptr ? brim_opt->getInt() : glb_brim_extr; brim_extr != 0 && brim_extr <= filament_count)
 				plate_extruders.push_back(brim_extr);
 		}
@@ -3357,7 +3357,7 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 			const ConfigOption* brim_type_opt = object->config.option("brim_type");
 			if (brim_type_opt != nullptr ? brim_type_opt->getInt() != int(BrimType::btNoBrim) : glb_brim) {
 				const ConfigOption* brim_opt = object->config.option("brim_filament_id");
-				// The slicer resets a brim filament id past the last slot to the default.
+				// The slicer resets an object's brim filament id past the last slot to the default.
 				if (const int brim_extr = brim_opt != nullptr ? brim_opt->getInt() : glb_brim_extr; brim_extr != 0 && brim_extr <= filament_count)
 					plate_extruders.push_back(brim_extr);
 			}
