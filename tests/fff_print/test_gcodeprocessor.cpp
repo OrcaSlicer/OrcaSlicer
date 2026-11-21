@@ -828,6 +828,36 @@ TEST_CASE("Inner walls of an exported sphere are not tagged", "[GCodeProcessor][
     CHECK(layers.size() == seams.size());
 }
 
+TEST_CASE("A reset processor does not keep the previous G-code's pressure advance", "[GCodeProcessor][Regression]")
+{
+    FullPrintConfig config;
+    config.gcode_flavor.value = gcfMarlinFirmware;
+    GCodeProcessor processor;
+    // Streams G-code through the same processor, resetting it first as a reused one is.
+    const auto process = [&](const std::string &gcode) {
+        processor.reset();
+        processor.initialize("stream.gcode");
+        processor.initialize_result_moves();
+        processor.apply_config(config);
+        processor.process_buffer(gcode);
+        processor.finalize(false);
+        return processor.result().moves;
+    };
+    const auto is_extrusion = [](const GCodeProcessorResult::MoveVertex &move) { return move.type == EMoveType::Extrude; };
+    const std::string square = "M83\nG90\nG1 X10 Y10 Z0.2 F12000\nG1 X50 Y10 E2 F3000\nG1 X50 Y50 E2\nG1 X10 Y50 E2\nG1 X10 Y10 E2\n";
+
+    const std::vector<GCodeProcessorResult::MoveVertex> with_pa = process("M900 K0.05\n" + square);
+    REQUIRE(std::any_of(with_pa.begin(), with_pa.end(), is_extrusion));
+    for (const GCodeProcessorResult::MoveVertex &move : with_pa)
+        if (is_extrusion(move))
+            CHECK_THAT(move.pressure_advance, Catch::Matchers::WithinAbs(0.05, 1e-6));
+
+    const std::vector<GCodeProcessorResult::MoveVertex> without_pa = process(square);
+    REQUIRE(std::any_of(without_pa.begin(), without_pa.end(), is_extrusion));
+    for (const GCodeProcessorResult::MoveVertex &move : without_pa)
+        CHECK(move.pressure_advance == 0.0f);
+}
+
 namespace {
 
 // A printer with `nozzles` nozzles over a 200 mm square bed: nozzle `filament_1_nozzle` reaches only

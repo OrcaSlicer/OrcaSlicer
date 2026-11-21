@@ -1345,7 +1345,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         float m_fan_speed; // percentage
         float m_z_offset; // mm
 // ORCA: Add Pressure Advance visualization support
-        float m_pressure_advance = 0.0f; // each move gets whatever was in memory (194845.1250 and -139.1716) without init
+        float m_pressure_advance;
         ExtrusionRole m_extrusion_role;
         std::vector<int> m_filament_maps;
         std::vector<unsigned char> m_last_filament_id;
