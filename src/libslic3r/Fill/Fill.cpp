@@ -1731,11 +1731,13 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 static int infill_body(const Layer &layer, const SurfaceFill &fill, const ExPolygon &expoly)
 {
     const auto &params = fill.params;
-    const bool per_model = (params.extrusion_role == erTopSolidInfill || params.extrusion_role == erBottomSurface) &&
-                           params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model &&
-                           (params.pattern == ipArchimedeanChords || params.pattern == ipOctagramSpiral);
+    const bool is_top_bottom = (params.extrusion_role == erTopSolidInfill || params.extrusion_role == erBottomSurface);
+    const bool per_model     = is_top_bottom && params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model &&
+                               (params.pattern == ipArchimedeanChords || params.pattern == ipOctagramSpiral);
+    const bool per_type      = params.separated_infills || (params.pattern == ipHilbertCurve && !params.pattern_mode && (params.extrusion_role == erInternalInfill));
+
     int body = -1;
-    if (per_model || params.separated_infills || is_octree_infill_pattern(params.pattern)) {
+    if (per_model || per_type || is_octree_infill_pattern(params.pattern)) {
         const BoundingBox box          = get_extents(expoly);
         double            best_overlap = 0.;
         for (size_t i = 0; i < layer.lslices.size() && i < layer.lslices_separated_component_ids.size(); ++i) {

@@ -88,11 +88,17 @@ void FillPlanePath::_fill_surface_single(
     ExPolygon                        expolygon,
     Polylines                       &polylines_out)
 {
-    
+
+//#define DEBUG_PATH
 #ifdef DEBUG_PATH
+
+//#define DEBUG_PATH_IO
+#define DEBUG_PATH_SHIFTED
+
     coord_t r(std::max(bounding_box.center().norm() + bounding_box.radius(),
                         expolygon.contour.bounding_box().center().norm() + expolygon.contour.bounding_box().radius()));
     coord_t w(scaled(0.4));
+    coord_t w2(w / 2);
     BoundingBox bbox(Point(-r, -r), Point(r, r));
     bbox.offset(scale_(1.1));
     std::string infill_type;
@@ -129,8 +135,14 @@ void FillPlanePath::_fill_surface_single(
     ::Slic3r::SVG svg(path + filename + std::to_string(index_) + ".svg", bbox);
     debug_infill_path_mtx.unlock();
     svg.draw(BoundingBox(Point(-w, -w), Point(w, w)).polygon().lines(), "black", w); // center point
-    svg.draw(expolygon, "grey", 0.5); // initial area for infill
-    svg.draw_outline(expolygon, "darkgreen", "darkgrey", w); 
+
+#ifdef DEBUG_PATH_IO
+    svg.draw(extended_object_bounding_box().polygon().lines(), "darkgmagenta", w2); // assembly bounding
+    svg.draw(this->bounding_box.polygon().lines(), "darkcyan", w2);                 // model bounding
+    svg.draw(get_extents(expolygon).polygon().lines(), "green", w2);                // expolygon bounding
+    svg.draw(expolygon, "grey", 0.5);                                               // initial area for infill
+    svg.draw_outline(expolygon, "darkgreen", "darkgrey", w2);
+#endif
 #endif
 
     //FIXME Vojtech: We are not sure whether the user expects the fill patterns on visible surfaces to be aligned across all the islands of a single layer.
@@ -147,6 +159,10 @@ void FillPlanePath::_fill_surface_single(
     // Solid infill does not need to be aligned across layers, generate the infill pattern around the clipping expolygon only.
     Point shift      = Point(0, 0);
     Point shift2     = this->shift;
+    const bool is_hilbert          = (params.pattern == InfillPattern::ipHilbertCurve);
+    const bool is_centered_hilbert = (is_hilbert && params.pattern_mode && (fixed_angle || !is_solid));
+    const bool is_centered         = (centered() || is_centered_hilbert); // only solid and sparse infill of hilbert curve by rotation templates can be centered
+
     if (is_internal) {
         bounding_box = this->bounding_box;
     } else if (params.extrusion_role == erTopSolidInfill || params.extrusion_role == erBottomSurface) {
@@ -162,12 +178,10 @@ void FillPlanePath::_fill_surface_single(
         is_solid     = true;
     }
 
-    const bool is_hilbert             = (params.pattern == InfillPattern::ipHilbertCurve);
-    const bool is_classic_hilbert     = (is_hilbert && (fixed_angle || is_solid));
-    const bool is_centered            = (centered() || params.pattern_mode) || is_classic_hilbert; // only solid and sparse infill of hilbert curve by rotation templates can be centered
-
 #ifdef DEBUG_PATH
-    svg.draw(bounding_box.polygon().lines(), "orangered", w); // exactly island filling bounding
+#ifdef DEBUG_PATH_IO
+    svg.draw(bounding_box.polygon().lines(), "orangered", w2); // exactly island filling bounding
+#endif
 #endif
 
     expolygon.translate(-shift2);
@@ -175,10 +189,11 @@ void FillPlanePath::_fill_surface_single(
     bounding_box.rotate(-angle);
     if (is_centered)
         shift += bounding_box.center();
+
     expolygon.translate(-shift);
 
 #ifdef DEBUG_PATH
-    svg.draw(bounding_box.polygon().lines(), "firebrick", w); // filling bounding after rotate and shift
+    svg.draw(bounding_box.polygon().lines(), "firebrick", w2); // filling bounding after rotate and shift
 #endif
     
     if (is_centered)
@@ -190,9 +205,9 @@ void FillPlanePath::_fill_surface_single(
     bounding_box.offset(SCALED_EPSILON);
 
 #ifdef DEBUG_PATH
-    svg.draw(bounding_box.polygon().lines(), "darkred", w);         // finish filling bounding
-    svg.draw(Line(Point(0, 0), shift2), "green", w);                // first translate
-    svg.draw(Line(shift2, shift), "lightgreen", w);                 // second translate
+    svg.draw(bounding_box.polygon().lines(), "darkred", w2);        // finish filling bounding
+    svg.draw(Line(Point(0, 0), shift2), "lime", w);                 // first translate
+    svg.draw(Line(shift2, shift), "lawngreen", w);                  // second translate
     svg.draw(Line(Point(0, 0), bounding_box.center()), "black", w); // result shift
 #endif
 
@@ -209,14 +224,14 @@ void FillPlanePath::_fill_surface_single(
         polyline.points = std::move(output.result());
 
 #ifdef DEBUG_PATH
-        svg.draw(BoundingBox(Point(min_x, min_y), Point(max_x, max_y)).polygon().lines(), "fuchsia", w / 2); // calculating bounds
+        svg.draw(BoundingBox(Point(min_x, min_y), Point(max_x, max_y)).polygon().lines(), "fuchsia", w2); // calculating bounds
         svg.draw(expolygon, "cyan", 0.5); // exactly filling polygon
         Polyline polyline2;
-        InfillPolylineOutput output2(distance_between_lines); // slow method without clipping
+        InfillPolylineOutput output2(distance_between_lines);  // slow method without clipping
         this->generate(min_x, min_y, max_x, max_y, resolution, params, output2);
         polyline2.points = std::move(output2.result());
-        svg.draw(polyline2, "gold", w / 2);                    // infill area not cropped
-        svg.draw(polyline, "blue", w / 2);                     // infill area
+        svg.draw(polyline2, "gold", w2);                       // infill area not cropped
+        svg.draw(polyline, "blue", w2);                        // infill area
         svg.draw(bounding_box.polygon().lines(), "orange", w); // exactly filling bounding
 #endif
     }
@@ -288,10 +303,11 @@ void FillPlanePath::_fill_surface_single(
         }
     }
 #ifdef DEBUG_PATH
+#ifdef DEBUG_PATH_IO
     svg.draw(polylines_out, "red", w / 2); // result infill
+#endif
     svg.Close();
 #endif
-
 }
 
 // Follow an Archimedean spiral, in polar coordinates: r=a+b\theta
