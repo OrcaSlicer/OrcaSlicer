@@ -312,9 +312,9 @@ public:
     std::string     set_extruder(unsigned int extruder_id, double print_z, bool by_object=false, int toolchange_temp_override = -1, bool defer_temp_wait = false);
     // Sets the pressure advance of the filament's extruder variant, if enabled for it.
     // tool addresses one IMEX carriage explicitly. -1 means no carriage: it omits the tool
-    // qualifier on Klipper, Marlin and BBL, and keeps RepRapFirmware's historical `D0`, since a
-    // bare M572 there applies to whatever tool is selected and errors when none is. That is
-    // what every non-IMEX caller wants, and what imex_pem_tool_for() returns off IMEX.
+    // qualifier on Klipper, Marlin and BBL, and addresses the active extruder on RepRapFirmware,
+    // since a bare M572 there applies to whatever tool is selected and errors when none is. That
+    // is what every non-IMEX caller wants, and what imex_pem_tool_for() returns off IMEX.
     std::string     set_filament_pressure_advance(unsigned int filament_id, int tool = -1);
     bool is_BBL_Printer();
     WipeTowerType wipe_tower_type();

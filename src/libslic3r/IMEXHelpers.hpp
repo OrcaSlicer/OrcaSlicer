@@ -146,7 +146,7 @@ std::vector<std::string> imex_plate_mode_choices(const ConfigBase& cfg);
 // pressure advance and hands it another filament's transition temperature.
 //
 // -1 as a tool qualifier reaches GCodeWriter::set_pressure_advance, which omits the qualifier
-// on Klipper, Marlin and BBL but substitutes the historical `D0` on RepRapFirmware
+// on Klipper, Marlin and BBL but addresses the active extruder's drive on RepRapFirmware
 // (GCodeWriter.cpp, set_pressure_advance) -- deliberate, not a miss.
 //
 // Past bugs in this class:
