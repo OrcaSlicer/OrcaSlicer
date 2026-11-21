@@ -44,6 +44,7 @@
 #include "Widgets/DialogButtons.hpp"
 
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
 
 #define BTN_GAP  FromDIP(20)
 #define BTN_SIZE wxSize(FromDIP(58), FromDIP(24))

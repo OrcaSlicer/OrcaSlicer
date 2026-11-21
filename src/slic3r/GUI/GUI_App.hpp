@@ -1,8 +1,6 @@
 #ifndef slic3r_GUI_App_hpp_
 #define slic3r_GUI_App_hpp_
 
-#include <boost/algorithm/string/split.hpp>
-#include <boost/algorithm/string/classification.hpp>
 #include <atomic>
 #include <boost/optional/optional.hpp>
 #include <boost/thread/thread.hpp>
@@ -18,9 +16,9 @@
 #include <memory>
 #include <set>
 #include <string>
+#include "libslic3r/AppConfig.hpp"
 #include "ConfigWizardTypes.hpp"
 #include "libslic3r/Preset.hpp"
-#include "libslic3r/PresetBundle.hpp"
 #include "libslic3r_version.h"
 #include "slic3r/GUI/UserNotification.hpp"
 #include "slic3r/Utils/CloudDeleteQueue.hpp"
@@ -206,21 +204,7 @@ public:
         version_str = "";
     }
 
-    void parse_version_str(std::string str) {
-        version_str = str;
-        std::vector<std::string> items;
-        boost::split(items, str, boost::is_any_of("."));
-        if (items.size() == VERSION_LEN) {
-            try {
-                for (int i = 0; i < VERSION_LEN; i++) {
-                    ver_items[i] = stoi(items[i]);
-                }
-            }
-            catch (...) {
-                ;
-            }
-        }
-    }
+    void parse_version_str(std::string str);
     static std::string convert_full_version(std::string short_version);
     static std::string convert_short_version(std::string full_version);
     static std::string get_full_version() {
@@ -228,33 +212,7 @@ public:
     }
 
     /* return > 0, need update */
-    int compare(std::string ver_str) {
-        if (version_str.empty()) return -1;
-
-        int      ver_target[VERSION_LEN];
-        std::vector<std::string> items;
-        boost::split(items, ver_str, boost::is_any_of("."));
-        if (items.size() == VERSION_LEN) {
-            try {
-                for (int i = 0; i < VERSION_LEN; i++) {
-                    ver_target[i] = stoi(items[i]);
-                    if (ver_target[i] < ver_items[i]) {
-                        return 1;
-                    }
-                    else if (ver_target[i] == ver_items[i]) {
-                        continue;
-                    }
-                    else {
-                        return -1;
-                    }
-                }
-            }
-            catch (...) {
-                return -1;
-            }
-        }
-        return -1;
-    }
+    int compare(std::string ver_str);
 };
 
 class GUI_App : public wxApp

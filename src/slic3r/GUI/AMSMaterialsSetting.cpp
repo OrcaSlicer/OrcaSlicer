@@ -11,6 +11,7 @@
 #include "GUI.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "I18N.hpp"
 #include <algorithm>
 #include <boost/log/trivial.hpp>

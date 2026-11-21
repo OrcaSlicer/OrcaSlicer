@@ -24,6 +24,7 @@
 #include "libslic3r/Config.hpp"
 #include <cstdlib>
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include <limits>
 #include "libslic3r/enum_bitmask.hpp"
 #include <deque>

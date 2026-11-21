@@ -11,6 +11,7 @@
 #include <exception>
 #include "libslic3r/Exception.hpp"
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include <functional>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"

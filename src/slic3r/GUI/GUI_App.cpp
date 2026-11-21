@@ -419,6 +419,52 @@ std::string VersionInfo::convert_short_version(std::string full_version)
     return full_version;
 }
 
+void VersionInfo::parse_version_str(std::string str)
+{
+    version_str = str;
+    std::vector<std::string> items;
+    boost::split(items, str, boost::is_any_of("."));
+    if (items.size() == VERSION_LEN) {
+        try {
+            for (int i = 0; i < VERSION_LEN; i++) {
+                ver_items[i] = stoi(items[i]);
+            }
+        }
+        catch (...) {
+            ;
+        }
+    }
+}
+
+int VersionInfo::compare(std::string ver_str)
+{
+    if (version_str.empty()) return -1;
+
+    int      ver_target[VERSION_LEN];
+    std::vector<std::string> items;
+    boost::split(items, ver_str, boost::is_any_of("."));
+    if (items.size() == VERSION_LEN) {
+        try {
+            for (int i = 0; i < VERSION_LEN; i++) {
+                ver_target[i] = stoi(items[i]);
+                if (ver_target[i] < ver_items[i]) {
+                    return 1;
+                }
+                else if (ver_target[i] == ver_items[i]) {
+                    continue;
+                }
+                else {
+                    return -1;
+                }
+            }
+        }
+        catch (...) {
+            return -1;
+        }
+    }
+    return -1;
+}
+
 #ifdef _WIN32
 bool is_associate_files(std::wstring extend)
 {

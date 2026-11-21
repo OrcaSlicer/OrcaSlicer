@@ -191,7 +191,10 @@ endif ()
 
 if (SLIC3R_GUI)
 #    target_link_libraries(OrcaSlicer ws2_32 uxtheme setupapi libslic3r_gui ${wxWidgets_LIBRARIES})
-target_link_libraries(OrcaSlicer libslic3r_gui wxInspector::wxInspector)
+    target_link_libraries(OrcaSlicer libslic3r_gui wxInspector::wxInspector)
+    if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
+        add_precompiled_header(OrcaSlicer ${CMAKE_SOURCE_DIR}/src/slic3r/pchheader.hpp FORCEINCLUDE)
+    endif ()
     if (MSVC)
         # Generate debug symbols even in release mode.
         target_link_options(OrcaSlicer PUBLIC "$<$<CONFIG:RELEASE>:/DEBUG>")
@@ -207,6 +210,10 @@ target_link_libraries(OrcaSlicer libslic3r_gui wxInspector::wxInspector)
     #    find_library(PSAPI_LIB NAMES Psapi)
     #    target_link_libraries(OrcaSlicer ${PSAPI_LIB})
     #endif ()
+else ()
+    if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)
+        add_precompiled_header(OrcaSlicer ${CMAKE_SOURCE_DIR}/src/libslic3r/pchheader.hpp FORCEINCLUDE)
+    endif ()
 endif ()
 
 # On Windows, a shim application is required to produce a console / non console version of the Slic3r application.

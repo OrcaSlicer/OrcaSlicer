@@ -12,6 +12,7 @@
 #include <wx/string.h>
 #include <map>
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include <utility>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/libslic3r.h"

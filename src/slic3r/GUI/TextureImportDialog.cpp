@@ -8,6 +8,7 @@
 #include "I18N.hpp"
 #include "format.hpp"
 #include "GUI_App.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "MsgDialog.hpp"
 #include "ColorDecomposeDialog.hpp"
 #include "ColorPickerDialog.hpp"
