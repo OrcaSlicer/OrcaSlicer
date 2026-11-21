@@ -462,10 +462,14 @@ ModelObject *Selection::get_selected_single_object(int &out_object_idx) const
 
 const ModelInstance *Selection::get_selected_single_intance() const
 {
+    const int instance_idx = get_instance_idx();
+    if (instance_idx < 0)
+        return nullptr;
+
     int  object_idx;
     auto mo = get_selected_single_object(object_idx);
     if (mo) {
-        return mo->instances[get_instance_idx()];
+        return mo->instances[instance_idx];
     }
     return nullptr;
 }
