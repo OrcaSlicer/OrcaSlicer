@@ -1403,6 +1403,10 @@ public:
     void apply_selection_rotate(double angle_z_rad);
     void finish_selection_edit();
     void update_shortcut_tooltips();
+    // Rebuilds the Prepare canvas's main toolbar and gizmo bar from the saved toolbar layout.
+    void apply_toolbar_layout();
+    // The stock visibility rule of a toolbar item or gizmo id, ignoring the user's layout.
+    bool is_toolbar_item_available(const std::string& id) const;
     void on_mouse_wheel(wxMouseEvent& evt);
     void on_timer(wxTimerEvent& evt);
     void on_render_timer(wxTimerEvent& evt);
@@ -1512,7 +1516,7 @@ public:
     FrameProfiler& get_frame_profiler() { return m_frame_profiler; }
 
     int get_main_toolbar_item_id(const std::string& name) const { return m_main_toolbar.get_item_id(name); }
-    void force_main_toolbar_left_action(int item_id) { m_main_toolbar.force_left_action(item_id, *this); }
+    void force_main_toolbar_left_action(int item_id);
     void force_main_toolbar_right_action(int item_id) { m_main_toolbar.force_right_action(item_id, *this); }
 
     bool has_toolpaths_to_export() const { return m_gcode_viewer.can_export_toolpaths(); }

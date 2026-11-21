@@ -4,6 +4,7 @@
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
+#include "slic3r/GUI/ToolbarLayout.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
@@ -39,6 +40,11 @@
 #include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
 #include <utility>
 #include <map>
+#include <algorithm>
+#include <cassert>
+#include <iterator>
+#include <string>
+#include "libslic3r/AppConfig.hpp"
 #include <imgui.h>
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
@@ -63,6 +69,7 @@
 #include "slic3r/GUI/KeyChord.hpp"
 #include "slic3r/GUI/MeshUtils.hpp"
 #include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/ToolbarCustomizeDialog.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -101,11 +108,43 @@ std::vector<size_t> GLGizmosManager::get_selectable_idxs() const
                 out.push_back(i);
     }
     else {
-        for (size_t i = 0; i < m_gizmos.size(); ++i)
-            if (m_gizmos[i]->is_selectable())
+        auto add = [&](size_t i) {
+            if (i < m_gizmos.size() && m_gizmos[i]->is_selectable() && !is_hidden_in_bar(i))
                 out.push_back(i);
+        };
+        if (m_bar_order.empty())
+            for (size_t i = 0; i < m_gizmos.size(); ++i)
+                add(i);
+        else
+            for (size_t i : m_bar_order)
+                add(i);
     }
     return out;
+}
+
+void GLGizmosManager::set_bar_layout(const ToolbarGroupLayout& layout)
+{
+    const std::vector<std::string>& ids = gizmo_ids_in_etype_order();
+    m_bar_order.clear();
+    m_bar_hidden.assign(ids.size(), false);
+    for (const std::string& id : layout.order) {
+        const auto it = std::find(ids.begin(), ids.end(), id);
+        if (it != ids.end())
+            m_bar_order.push_back(static_cast<size_t>(std::distance(ids.begin(), it)));
+    }
+    for (size_t i = 0; i < ids.size(); ++i)
+        m_bar_hidden[i] = layout.hidden.count(ids[i]) != 0;
+}
+
+bool GLGizmosManager::is_bar_item_available(EType type) const
+{
+    return static_cast<size_t>(type) >= m_gizmos.size() || m_gizmos[type]->is_selectable();
+}
+
+std::string GLGizmosManager::gizmo_id(EType type)
+{
+    const std::vector<std::string>& ids = gizmo_ids_in_etype_order();
+    return static_cast<size_t>(type) < ids.size() ? ids[type] : std::string();
 }
 
 //BBS: GUI refactor: GLToolbar&&Gizmo adjust
@@ -280,6 +319,9 @@ bool GLGizmosManager::init()
     m_current = Undefined;
     m_hover = Undefined;
     m_highlight = std::pair<EType, bool>(Undefined, false);
+
+    assert(gizmo_ids_in_etype_order().size() == static_cast<size_t>(EType::Undefined));
+    set_bar_layout(parse_toolbar_layout(wxGetApp().app_config->get("toolbar", "layout")).gizmos);
 
     return true;
 }
@@ -840,6 +882,9 @@ bool GLGizmosManager::gizmos_toolbar_on_mouse(const wxMouseEvent &mouse_event) {
         }
         else if (mc.right && mouse_event.RightUp()) {
             mc.right = false;
+            // Only on the Prepare canvas, whose bar the dialog customizes.
+            if (selected_gizmo && m_parent.get_canvas_type() == GLCanvas3D::CanvasView3D)
+                show_toolbar_context_menu();
             return true;
         }
         else if (mc.middle && mouse_event.MiddleUp()) {
@@ -1277,8 +1322,16 @@ void GLGizmosManager::render_arrow(const GLCanvas3D& parent, EType highlighted_t
 void GLGizmosManager::do_render_overlay(bool draw_icons) const
 {
     const std::vector<size_t> selectable_idxs = get_selectable_idxs();
-    if (selectable_idxs.empty())
+    // With every gizmo hidden from the bar, a gizmo opened by its shortcut still needs its input window.
+    if (selectable_idxs.empty()) {
+        if (!draw_icons && m_current != Undefined) {
+            // Where the bar would start: right after the main toolbar and the separator.
+            const float x = static_cast<float>(m_parent.get_main_toolbar_offset() + m_parent.get_main_toolbar_width()) +
+                            0.5f * static_cast<float>(m_parent.get_separator_toolbar_width());
+            m_gizmos[m_current]->render_input_window(x, get_scaled_total_height(), static_cast<float>(m_parent.get_canvas_size().get_height()));
+        }
         return;
+    }
 
     const Size cnv_size = m_parent.get_canvas_size();
     const float cnv_w = (float)cnv_size.get_width();

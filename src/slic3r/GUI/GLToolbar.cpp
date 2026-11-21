@@ -594,9 +594,14 @@ bool GLToolbar::on_mouse(wxMouseEvent& evt, GLCanvas3D& parent)
     // mouse anywhere
     if (!evt.Dragging() && !evt.Leaving() && !evt.Entering() && m_mouse_capture.parent != nullptr) {
         if (m_mouse_capture.any() && (evt.LeftUp() || evt.MiddleUp() || evt.RightUp())) {
+            // A right click on the toolbar, where no icon has its own right action, opens the toolbar's menu.
+            const int  item_id   = evt.RightUp() && m_mouse_capture.right && m_context_menu ? contains_mouse(mouse_pos, parent) : -1;
+            const bool show_menu = item_id == -2 || (item_id >= 0 && !m_items[item_id]->is_right_toggable());
             // prevents loosing selection into the scene if mouse down was done inside the toolbar and mouse up was down outside it,
             // as when switching between views
             m_mouse_capture.reset();
+            if (show_menu)
+                m_context_menu();
             return true;
         }
         m_mouse_capture.reset();
@@ -696,10 +701,12 @@ void GLToolbar::calc_layout()
 float GLToolbar::get_width_horizontal() const
 {
     float size = 2.0f * m_layout.border;
+    int shown = 0;
     for (unsigned int i = 0; i < (unsigned int)m_items.size(); ++i)
     {
         if (!m_items[i]->is_visible())
             continue;
+        ++shown;
 
         if (m_items[i]->is_separator())
             size += m_layout.separator_size;
@@ -713,8 +720,8 @@ float GLToolbar::get_width_horizontal() const
         }
     }
 
-    if (m_items.size() > 1)
-        size += ((float)m_items.size() - 1.0f) * m_layout.gap_size;
+    if (shown > 1)
+        size += static_cast<float>(shown - 1) * m_layout.gap_size;
 
     return size * m_layout.scale;
 }
@@ -754,10 +761,12 @@ float GLToolbar::get_height_vertical() const
 float GLToolbar::get_main_size() const
 {
     float size = 2.0f * m_layout.border;
+    int shown = 0;
     for (unsigned int i = 0; i < (unsigned int)m_items.size(); ++i)
     {
         if (!m_items[i]->is_visible())
             continue;
+        ++shown;
 
         if (m_items[i]->is_separator())
             size += m_layout.separator_size;
@@ -765,8 +774,8 @@ float GLToolbar::get_main_size() const
             size += (float)m_layout.icons_size;
     }
 
-    if (m_items.size() > 1)
-        size += ((float)m_items.size() - 1.0f) * m_layout.gap_size;
+    if (shown > 1)
+        size += static_cast<float>(shown - 1) * m_layout.gap_size;
 
     return size * m_layout.scale;
 }

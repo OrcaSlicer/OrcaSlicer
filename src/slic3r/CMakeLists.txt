@@ -242,6 +242,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/GuiColor.cpp
     GUI/GuiColor.hpp
     GUI/GLToolbar.hpp
+    GUI/ToolbarCustomizeDialog.cpp
+    GUI/ToolbarCustomizeDialog.hpp
+    GUI/ToolbarLayout.cpp
+    GUI/ToolbarLayout.hpp
     GUI/ImageDPIFrame.cpp
     GUI/ImageDPIFrame.hpp
     GUI/IMediaController.hpp
