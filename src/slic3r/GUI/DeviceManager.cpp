@@ -2700,6 +2700,14 @@ static bool connects_through_moonraker_agent(const std::string& agent_id)
            agent_id == SNAPMAKER_PRINTER_AGENT_ID || agent_id == CREALITYPRINT_PRINTER_AGENT_ID;
 }
 
+bool MachineObject::uses_bambu_agent() const
+{
+    // A local machine saved before agent ids existed belongs to the agent that connects it now.
+    const std::string agent_id = !printer_agent_id.empty() ? printer_agent_id :
+                                 m_manager                 ? m_manager->get_current_printer_agent_id() : std::string();
+    return agent_id == BBL_PRINTER_AGENT_ID;
+}
+
 int MachineObject::connect()
 {
     if (m_access_revoked || get_dev_ip().empty()) return -1;
@@ -2719,10 +2727,7 @@ int MachineObject::connect()
         Http::get_host_from_url(get_dev_id(), &port);
     // A Bambu printer's CA is chosen per device in the connect dialog. Never take it from the
     // selected preset: it may belong to another printer, or come from an imported profile.
-    // A local machine saved before agent ids existed belongs to the agent that connects it now.
-    const std::string agent_id = !printer_agent_id.empty() ? printer_agent_id :
-                                 m_manager                 ? m_manager->get_current_printer_agent_id() : std::string();
-    const bool  is_bbl  = agent_id == BBL_PRINTER_AGENT_ID;
+    const bool  is_bbl  = uses_bambu_agent();
     std::string ca_file = is_bbl ? get_ca_file() : std::string();
 
     if (wxTheApp && GUI::wxGetApp().preset_bundle) {

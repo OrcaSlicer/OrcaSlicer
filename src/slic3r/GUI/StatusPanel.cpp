@@ -2479,7 +2479,8 @@ void StatusPanel::update_camera_state(MachineObject* obj)
         m_last_recording = obj->is_recording() ? 1 : 0;
     }
 
-    if (use_webview) {
+    // Recording is a Bambu camera feature; other printers' connections don't report it.
+    if (use_webview || !obj->uses_bambu_agent()) {
         if (m_bitmap_recording_img->IsShown()) {
             m_bitmap_recording_img->Hide();
             m_panel_monitoring_title->Layout();
@@ -3024,7 +3025,12 @@ void StatusPanel::update(MachineObject *obj)
 
         DevConfig* config = obj->GetConfig();
 
-        if (config->SupportFirstLayerInspect() || config->SupportAIMonitor() || obj->is_support_build_plate_marker_detect || obj->is_support_auto_recovery_step_loss) {
+        // Calibration, Print/Safety Options and Printer Parts send Bambu firmware commands that
+        // other printers' connections don't implement.
+        const bool bambu_controls = obj->uses_bambu_agent();
+        m_calibration_btn->Show(bambu_controls);
+
+        if (bambu_controls && (config->SupportFirstLayerInspect() || config->SupportAIMonitor() || obj->is_support_build_plate_marker_detect || obj->is_support_auto_recovery_step_loss)) {
             m_options_btn->Show();
             if (print_options_dlg) {
                 print_options_dlg->update_machine_obj(obj);
@@ -3035,7 +3041,7 @@ void StatusPanel::update(MachineObject *obj)
         }
 
 
-        if (obj->support_door_open_check()) {
+        if (bambu_controls && obj->support_door_open_check()) {
             if (supports_safety) {
                 m_safety_btn->Show();
                 if (safety_options_dlg) {
@@ -3049,7 +3055,7 @@ void StatusPanel::update(MachineObject *obj)
             m_safety_btn->Hide();
         }
 
-        m_parts_btn->Show();
+        m_parts_btn->Show(bambu_controls);
 
 
         if (m_panel_control_title) {
@@ -3527,7 +3533,10 @@ void StatusPanel::update_ams(MachineObject *obj)
         show_ams_group(true);
         //show_filament_load_group(true);
 
-        if (obj->GetFilaSystem()->GetAmsList().empty() || obj->ams_exist_bits == 0) {
+        // Refill (backup spools) and the AMS settings are Bambu AMS firmware features.
+        const bool bambu_ams = obj->uses_bambu_agent();
+        m_ams_control->show_ams_setting(bambu_ams);
+        if (!bambu_ams || obj->GetFilaSystem()->GetAmsList().empty() || obj->ams_exist_bits == 0) {
             m_ams_control->show_auto_refill(false);
         } else {
             m_ams_control->show_auto_refill(true);
