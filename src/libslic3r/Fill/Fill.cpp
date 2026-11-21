@@ -277,6 +277,7 @@ struct SurfaceFillParams
     float       	density = 0.f;
     // Infill line multiplier count.
     int   multiline = 1;
+    InfillStrategy infill_strategy = InfillStrategy::Default;
     // Don't adjust spacing to fill the space evenly.
 //    bool        	dont_adjust = false;
     // Length of the infill anchor along the perimeter line.
@@ -297,6 +298,8 @@ struct SurfaceFillParams
     size_t 			idx = 0;
 	// Infill speed setting for the effective extrusion role.
 	float role_speed = 0;
+	// Its volumetric alternative, used with enable_volumetric_speeds.
+	FloatOrPercent role_volumetric_flow;
 
     // Params for lattice infill angles
     float lateral_lattice_angle_1 = 0.f;
@@ -344,6 +347,7 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL(fixed_angle);
 		RETURN_COMPARE_NON_EQUAL(density);
 		RETURN_COMPARE_NON_EQUAL(multiline);
+		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, infill_strategy);
 //		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, dont_adjust);
 		RETURN_COMPARE_NON_EQUAL(anchor_length);
 		RETURN_COMPARE_NON_EQUAL(anchor_length_max);
@@ -353,6 +357,8 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, bridge);
 		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, extrusion_role);
 		RETURN_COMPARE_NON_EQUAL(role_speed);
+		RETURN_COMPARE_NON_EQUAL(role_volumetric_flow.value);
+		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, role_volumetric_flow.percent);
         RETURN_COMPARE_NON_EQUAL(lateral_lattice_angle_1);
 		RETURN_COMPARE_NON_EQUAL(lateral_lattice_angle_2);
 		RETURN_COMPARE_NON_EQUAL(symmetric_infill_y_axis);
@@ -383,12 +389,14 @@ struct SurfaceFillParams
 				this->bridge_angle            == rhs.bridge_angle            &&
 				this->density                 == rhs.density                 &&
 				this->multiline               == rhs.multiline               &&
+				this->infill_strategy         == rhs.infill_strategy         &&
 //				this->dont_adjust             == rhs.dont_adjust             &&
 				this->anchor_length           == rhs.anchor_length           &&
 				this->anchor_length_max       == rhs.anchor_length_max       &&
 				this->flow                    == rhs.flow                    &&
 				this->extrusion_role          == rhs.extrusion_role          &&
 				this->role_speed              == rhs.role_speed              &&
+				this->role_volumetric_flow    == rhs.role_volumetric_flow    &&
                 this->lateral_lattice_angle_1 == rhs.lateral_lattice_angle_1 &&
 				this->lateral_lattice_angle_2 == rhs.lateral_lattice_angle_2 &&
 				this->infill_lock_depth       == rhs.infill_lock_depth       &&
@@ -1016,6 +1024,9 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 }
                 // Orca: apply fill multiline only for sparse infill
                 params.multiline = params.extrusion_role == erInternalInfill ? int(region_config.fill_multiline) : 1;
+                // Orca: resolved, so the regions printing the same paths share a fill.
+                params.infill_strategy = params.extrusion_role != erInternalInfill || !has_infill_strategy(params.pattern) ? InfillStrategy::Default :
+                                         is_non_crossing_strategy(region_config.sparse_infill_strategy.value, params.multiline) ? InfillStrategy::NonCrossing : InfillStrategy::Crossing;
 
                 // Orca: Pass through separated_infills only where it can move the pattern.
                 params.separated_infills = region_config.separated_infills && is_separable_infill_pattern(params.pattern) &&
@@ -1041,7 +1052,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 
                     // Orca: the smoothing factor only applies to the sparse infill patterns that
                     // implement it. The fills clamp and validate the value themselves.
-                    if (is_smoothable_infill_pattern(params.pattern, params.multiline))
+                    if (is_smoothable_infill_pattern(params.pattern, params.multiline, params.infill_strategy))
                         params.smooth_factor = 0.01 * region_config.sparse_infill_smooth_factor.value;
                 } else {
                     const bool top_layer_direction_set    = surface.is_top() && region_config.top_layer_direction.value >= 0.;
@@ -1081,16 +1092,23 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                     params.flow = layerm.flow(extrusion_role, surface.thickness).with_flow_ratio(region_config.bridge_flow);
 
 				params.role_speed = 0;
-                if (params.extrusion_role == erBridgeInfill)
-                    params.role_speed = region_config.bridge_speed.get_at(layer.get_extruder_id(params.extruder));
-                else if (params.extrusion_role == erInternalBridgeInfill)
-                    params.role_speed = region_config.get_abs_value_at("internal_bridge_speed", layer.get_extruder_id(params.extruder));
-                else if (params.extrusion_role == erInternalInfill)
-                    params.role_speed = region_config.sparse_infill_speed.get_at(layer.get_extruder_id(params.extruder));
-                else if (params.extrusion_role == erTopSolidInfill)
-                    params.role_speed = region_config.top_surface_speed.get_at(layer.get_extruder_id(params.extruder));
-                else if (params.extrusion_role == erSolidInfill)
-                    params.role_speed = region_config.internal_solid_infill_speed.get_at(layer.get_extruder_id(params.extruder));
+                const size_t role_extruder_id = layer.get_extruder_id(params.extruder);
+                if (params.extrusion_role == erBridgeInfill) {
+                    params.role_speed = region_config.bridge_speed.get_at(role_extruder_id);
+                    params.role_volumetric_flow = region_config.bridge_volumetric_flow.get_at(role_extruder_id);
+                } else if (params.extrusion_role == erInternalBridgeInfill) {
+                    params.role_speed = region_config.get_abs_value_at("internal_bridge_speed", role_extruder_id);
+                    params.role_volumetric_flow = region_config.internal_bridge_volumetric_flow.get_at(role_extruder_id);
+                } else if (params.extrusion_role == erInternalInfill) {
+                    params.role_speed = region_config.sparse_infill_speed.get_at(role_extruder_id);
+                    params.role_volumetric_flow = region_config.sparse_infill_volumetric_flow.get_at(role_extruder_id);
+                } else if (params.extrusion_role == erTopSolidInfill) {
+                    params.role_speed = region_config.top_surface_speed.get_at(role_extruder_id);
+                    params.role_volumetric_flow = region_config.top_surface_volumetric_flow.get_at(role_extruder_id);
+                } else if (params.extrusion_role == erSolidInfill) {
+                    params.role_speed = region_config.internal_solid_infill_speed.get_at(role_extruder_id);
+                    params.role_volumetric_flow = region_config.internal_solid_infill_volumetric_flow.get_at(role_extruder_id);
+                }
 				// Calculate flow spacing for infill pattern generation.
 		        if (surface.is_solid() || is_bridge) {
 		            params.spacing = params.flow.spacing();
@@ -1431,6 +1449,7 @@ void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLigh
         FillParams params;
         params.density 		     = float(0.01 * surface_fill.params.density);
         params.multiline         = surface_fill.params.multiline;
+        params.infill_strategy   = surface_fill.params.infill_strategy;
 		params.dont_adjust		 = false; //  surface_fill.params.dont_adjust;
         params.anchor_length     = surface_fill.params.anchor_length;
 		params.anchor_length_max = surface_fill.params.anchor_length_max;
@@ -1664,6 +1683,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
         params.lateral_lattice_angle_2   = surface_fill.params.lateral_lattice_angle_2;
         params.infill_overhang_angle   = surface_fill.params.infill_overhang_angle;
         params.multiline         = surface_fill.params.multiline;
+        params.infill_strategy   = surface_fill.params.infill_strategy;
         params.gyroid_optimized          = surface_fill.params.gyroid_optimized;
         params.adaptive_infill_mode             = surface_fill.params.adaptive_infill_mode;
         params.adaptive_infill_interior_density     = float(0.01 * surface_fill.params.adaptive_infill_interior_density);

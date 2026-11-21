@@ -48,6 +48,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Min_sphere_of_spheres_d.h>

@@ -2978,8 +2978,14 @@ namespace Clipper2Lib {
     for (size_t idx = 0; idx < splits->size(); ++idx)
     {
       OutRec* split = (*splits)[idx]; 
-      if (!split->pts && split->splits &&
-        CheckSplitOwner(outrec, split->splits)) return true; //#942
+      if (!split->pts && split->splits)
+      {
+        if (split->recursive_split == outrec) continue;
+        split->recursive_split = outrec; // emptied OutRecs can reference each other
+
+        if (CheckSplitOwner(outrec, split->splits)) return true; //#942
+      }
+
       split = GetRealOutRec(split);
       if (!split || split == outrec || split->recursive_split == outrec) continue;
       split->recursive_split = outrec; // prevent infinite loops

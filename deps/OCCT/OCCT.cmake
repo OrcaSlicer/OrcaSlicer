@@ -48,10 +48,15 @@ endif ()
 orcaslicer_add_cmake_project(OCCT
     URL https://github.com/Open-Cascade-SAS/OCCT/archive/refs/tags/V8_0_1.zip
     URL_HASH SHA256=7c033d917ee8f040c0512d289dcc5f02c148889d5bac17c3e25639accb44f0da
-    # Makes BRepMesh triangulate cone faces whose seam pcurve is slightly tilted
-    # (Open-Cascade-SAS/OCCT#572); remove the patch once an OCCT release includes the fix.
-    PATCH_COMMAND git apply ${OCCT_DIRECTORY_FLAG} --verbose --ignore-space-change --whitespace=fix ${CMAKE_CURRENT_LIST_DIR}/0001-BRepMesh-seam-pcurve-at-edge-parameter.patch
-        ${_occt_exception_patch}
+    # 0001 makes BRepMesh pair each seam pcurve of a cone with the right side of the seam, which
+    # failed when the seam pcurve is slightly tilted (Open-Cascade-SAS/OCCT#572) or the adjacent
+    # pcurves end slightly past the seam. Either way the face meshed to a sliver or not at all.
+    # Remove the patch once an OCCT release includes the fix.
+    # 0002 compiles one file without optimization under cl for ARM64, where MSVC 14.52 crashes
+    # on it with an internal compiler error; remove it once the runner image ships a fixed MSVC.
+    PATCH_COMMAND git apply ${OCCT_DIRECTORY_FLAG} --verbose --ignore-space-change --whitespace=fix
+        ${CMAKE_CURRENT_LIST_DIR}/0001-BRepMesh-seam-pcurve-selection.patch
+        ${CMAKE_CURRENT_LIST_DIR}/0002-BRepGraph-MSVC-ARM64-ICE-workaround.patch
     #DEPENDS dep_Boost
     CMAKE_ARGS
         -DCMAKE_CXX_STANDARD=17

@@ -1,4 +1,5 @@
 #include "MainFrame.hpp"
+#include "slic3r/plugin/host/PluginPages.hpp"
 
 #include <wx/event.h>
 #include "slic3r/GUI/Event.hpp"
@@ -407,6 +408,7 @@ MainFrame::~MainFrame() = default;
 
 MainFrame::MainFrame() :
 DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_STYLE, "mainframe")
+    , m_plugin_pages(std::make_unique<PluginPages>())
     , m_printhost_queue_dlg(new PrintHostQueueDialog(this))
     // BBS
     , m_recent_projects(18)
@@ -1343,7 +1345,7 @@ void MainFrame::shutdown()
     m_idle.stop();
     if (ProjectPanel* project = ProjectPanel::if_built())
         project->shutdown();
-    m_plugin_pages.shutdown();
+    m_plugin_pages->shutdown();
     if (m_plater != nullptr)
         m_plater->remove_dock_panes();
 #ifdef SLIC3R_CAD
@@ -1645,7 +1647,7 @@ void MainFrame::init_tabpanel() {
 
     // Plugin pages are appended after the built-in tabs; their ids are namespaced
     // (plugin.<plugin_key>.<name>) so they can't collide with the built-in TAB_ID_* constants.
-    m_plugin_pages.initialize(m_tabpanel);
+    m_plugin_pages->initialize(m_tabpanel);
 
     if (m_plater) {
         // load initial config
@@ -1724,7 +1726,7 @@ void MainFrame::show_device(bool should_use_native) {
 #endif // _MSW_DARK_MODE
 
         fit_tab_labels(); // ORCA on printer change
-        m_plugin_pages.relayout(); // re-sync plugin tabs against the native tabs just mutated above
+        m_plugin_pages->relayout(); // re-sync plugin tabs against the native tabs just mutated above
         if (m_prebuild_started)
             m_idle.start();
         return;
@@ -1784,7 +1786,7 @@ void MainFrame::show_device(bool should_use_native) {
                                _L("Device"), "tab_monitor_active");
     }
     fit_tab_labels(); // ORCA on printer change
-    m_plugin_pages.relayout(); // re-sync plugin tabs against the native tabs just mutated above
+    m_plugin_pages->relayout(); // re-sync plugin tabs against the native tabs just mutated above
     if (m_prebuild_started)
         m_idle.start();
 }

@@ -2706,7 +2706,7 @@ void TreeSupport::draw_circles()
                         } else
                             expanded_base_areas.emplace_back(expoly);
                     }
-                    ts_layer->base_areas = std::move(expanded_base_areas);
+                    ts_layer->base_areas = intersection_ex(expanded_base_areas, m_machine_border);
                 }
 
                 // Orca: Final tree base polygons may be too close above model surfaces.

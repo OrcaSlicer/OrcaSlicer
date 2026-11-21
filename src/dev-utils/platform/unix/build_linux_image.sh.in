@@ -22,13 +22,17 @@ fi
 # shellcheck source=/dev/null
 source "${POLICY_FILE}"
 
-while getopts ":ihR:" opt; do
+while getopts ":ichR:" opt; do
   case ${opt} in
     i )
         export BUILD_IMAGE="1"
         ;;
-    h ) echo "Usage: ./build_linux_image.sh [-i][-R config]"
+    c )
+        SHIP_PRESET_CACHES="1"
+        ;;
+    h ) echo "Usage: ./build_linux_image.sh [-i][-c][-R config]"
         echo "   -i: Generate Appimage (optional)"
+        echo "   -c: Ship the system preset caches, deleting the preset JSONs they replace"
         echo "   -R: Specify from which config to obtain the binary: Release, RelWithDebInfo, or Debug"
         exit 1
         ;;
@@ -185,6 +189,12 @@ echo -n "[9/9] Generating Linux app..."
     fi
 
     cp -Rf ../resources "$APPDIR/resources"
+    # Before the AppImage is packed from this tree, so it ships the caches without a repack.
+    if [ -n "$SHIP_PRESET_CACHES" ]; then
+        # Caches copied in with resources may be stale; the script ships a fresh set.
+        rm -f "$APPDIR/resources/profiles"/*.opc
+        "${REPO_ROOT}/scripts/build_preset_cache.sh" -b . -c "$CONFIG" "$APPDIR/resources/profiles"
+    fi
 
     ORIGINAL_BINARY_LOCATION=""
     if [ -f "src/${CONFIG}/@SLIC3R_APP_CMD@" ]; then

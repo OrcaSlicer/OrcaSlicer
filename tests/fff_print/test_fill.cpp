@@ -33,6 +33,7 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <catch2/generators/catch_generators_adapters.hpp>
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/Fill/Fill.hpp"
@@ -1630,35 +1631,98 @@ TEST_CASE("Cross hatch infill rounds its transition layers with the smooth facto
     REQUIRE(smooth.length < sharp.length);
 }
 
-TEST_CASE("Trapezoidal infill rounds its corners only with more than one line", "[Fill]")
+TEST_CASE("Trapezoidal infill rounds its corners only with the non-crossing strategy", "[Fill]")
 {
     const std::string pattern = GENERATE("grid", "quartercubic");
-    CAPTURE(pattern);
-    auto shape_for = [&pattern](int multiline, const std::string &smooth_factor) {
+    // The default strategy is non-crossing with more than one line per infill wall and crossing with one.
+    const auto [multiline, strategy, non_crossing] = GENERATE(table<int, std::string, bool>({ { 2, "default", true },
+                                                                                              { 1, "default", false },
+                                                                                              { 1, "non_crossing", true },
+                                                                                              { 2, "crossing", false } }));
+    CAPTURE(pattern, multiline, strategy);
+    auto shape_for = [&pattern, multiline = multiline, strategy = strategy](const std::string &smooth_factor) {
         Print print;
         Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
                                             {{"sparse_infill_pattern", pattern},
                                              {"sparse_infill_density", "20%"},
                                              {"fill_multiline", multiline},
+                                             {"sparse_infill_strategy", strategy},
                                              {"sparse_infill_smooth_factor", smooth_factor},
                                              {"layer_height", 0.2}});
         return sparse_infill_shape(print);
     };
 
-    const SparseInfillShape sharp  = shape_for(2, "0%");
-    const SparseInfillShape smooth = shape_for(2, "100%");
-
+    const SparseInfillShape sharp  = shape_for("0%");
+    const SparseInfillShape smooth = shape_for("100%");
     REQUIRE(sharp.point_count > 0);
-    REQUIRE(smooth.point_count > sharp.point_count);
-    REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
-    REQUIRE(smooth.length < sharp.length);
+    if (non_crossing) {
+        CHECK(smooth.point_count > sharp.point_count);
+        CHECK(smooth.sharp_turns < sharp.sharp_turns);
+        CHECK(smooth.length < sharp.length);
+    } else {
+        // Crossing lines are straight, with no corner of their own.
+        CHECK(smooth.sequence == sharp.sequence);
+    }
+}
 
-    // A single line per infill wall is the plain crossing lines, which have no corner of their own.
-    const SparseInfillShape single_sharp  = shape_for(1, "0%");
-    const SparseInfillShape single_smooth = shape_for(1, "100%");
-    REQUIRE(single_sharp.point_count > 0);
-    REQUIRE(single_smooth.point_count == single_sharp.point_count);
-    REQUIRE(single_smooth.length == single_sharp.length);
+TEST_CASE("Sparse infill strategy makes the lines cross or turn back where they meet", "[Fill]")
+{
+    const std::string pattern   = GENERATE("grid", "triangles", "tri-hexagon", "cubic", "quartercubic", "adaptivecubic", "supportcubic");
+    const int         multiline = GENERATE(1, 2);
+    const std::string strategy  = GENERATE("default", "crossing", "non_crossing");
+    CAPTURE(pattern, multiline, strategy);
+
+    Print print;
+    Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                        {{"sparse_infill_pattern", pattern},
+                                         {"sparse_infill_density", "20%"},
+                                         {"fill_multiline", multiline},
+                                         {"sparse_infill_strategy", strategy},
+                                         // The bare pattern, without connections along the boundary.
+                                         {"infill_anchor", 0},
+                                         {"infill_anchor_max", 0},
+                                         {"layer_height", 0.3}});
+
+    size_t layers = 0, crossing_layers = 0;
+    for (const Layer *layer : print.objects().front()->layers()) {
+        Polylines printed;
+        for (const LayerRegion *region : layer->regions())
+            for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+                if (entity->role() == erInternalInfill)
+                    entity->collect_polylines(printed);
+        if (printed.empty())
+            continue;
+        ++layers;
+        if (!get_intersections(to_lines(printed)).empty())
+            ++crossing_layers;
+    }
+    REQUIRE(layers > 0);
+    if (strategy == "crossing" || (strategy == "default" && multiline == 1))
+        CHECK(crossing_layers > 0);
+    else
+        CHECK(crossing_layers == 0);
+}
+
+TEST_CASE("Sparse infill strategy leaves the patterns without one unchanged", "[Fill]")
+{
+    const std::string pattern   = GENERATE("gyroid", "honeycomb");
+    const int         multiline = GENERATE(1, 2);
+    CAPTURE(pattern, multiline);
+    auto shape_for = [&pattern, multiline](const std::string &strategy) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
+                                            {{"sparse_infill_pattern", pattern},
+                                             {"sparse_infill_density", "20%"},
+                                             {"fill_multiline", multiline},
+                                             {"sparse_infill_strategy", strategy},
+                                             {"layer_height", 0.3}});
+        return sparse_infill_shape(print);
+    };
+
+    const SparseInfillShape reference = shape_for("default");
+    REQUIRE(reference.point_count > 0);
+    CHECK(shape_for("crossing").sequence == reference.sequence);
+    CHECK(shape_for("non_crossing").sequence == reference.sequence);
 }
 
 TEST_CASE("Multiline infill of an object matches the infill of a larger object with the same center", "[Fill]")
@@ -1832,6 +1896,61 @@ TEST_CASE("Multiline infill keeps its lines parallel around a corner", "[Fill]")
     REQUIRE(nearest < scaled<double>(0.001));
     // The round ends are flattened to a fraction of the offset rather than to the integer grid.
     REQUIRE(paths.front().size() < 100);
+}
+
+TEST_CASE("Multiline lateral infill prints overlapping walls as one wall without gaps", "[Fill]")
+{
+    const InfillPattern pattern   = GENERATE(ipLateralLattice, ipLateralHoneycomb);
+    const int           multiline = GENERATE(2, 3);
+    CAPTURE(pattern, multiline);
+    const double    spacing = 0.45;
+    const ExPolygon square{ Points{ Point::new_scale(0., 0.), Point::new_scale(40., 0.), Point::new_scale(40., 40.), Point::new_scale(0., 40.) } };
+    // Away from the boundary, where the lines are connected.
+    const Polygons inner = shrink(to_polygons(square), scale_(3.));
+
+    // The walls of the two directions of both patterns slide over each other with z.
+    for (size_t layer_id = 0; layer_id < 60; ++layer_id) {
+        const double z = 0.2 * double(layer_id + 1);
+        CAPTURE(z);
+        std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
+        filler->spacing     = spacing;
+        filler->angle       = 0.f;
+        filler->fixed_angle = true;
+        filler->layer_id    = layer_id;
+        filler->z           = z;
+
+        FillParams params;
+        params.pattern                 = pattern;
+        params.density                 = 0.3f;
+        params.multiline               = multiline;
+        params.lateral_lattice_angle_1 = -45.;
+        params.lateral_lattice_angle_2 = 45.;
+        params.infill_overhang_angle   = 60.f;
+        params.dont_adjust             = true;
+        Surface surface(stInternal, square);
+        // The lines run along y.
+        std::vector<double> xs;
+        for (const Polyline &line : intersection_pl(filler->fill_surface(&surface, params), inner)) {
+            REQUIRE(std::abs(line.first_point().x() - line.last_point().x()) < scale_(0.001));
+            xs.push_back(unscale<double>(line.first_point().x() + line.last_point().x()) / 2.);
+        }
+        std::sort(xs.begin(), xs.end());
+
+        // No line is closer than spacing to the next, and the lines spacing apart make up walls.
+        std::vector<size_t> wall_lines{ 1 };
+        for (size_t i = 1; i < xs.size(); ++i) {
+            const double gap = xs[i] - xs[i - 1];
+            CHECK(gap > spacing - 0.001);
+            if (gap < spacing + 0.001)
+                ++wall_lines.back();
+            else
+                wall_lines.push_back(1);
+        }
+        // Not one is thinner than a single wall, but the ones cut by the inner square.
+        REQUIRE(wall_lines.size() > 2);
+        for (size_t i = 1; i + 1 < wall_lines.size(); ++i)
+            CHECK(wall_lines[i] >= size_t(multiline));
+    }
 }
 
 TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itself", "[Fill]")
@@ -2846,12 +2965,12 @@ TEST_CASE("Infill lines do not end where the rings of the pattern start", "[Fill
          {ipCubic, AdaptiveInfillMode::Disabled, false, 2},
          {ipCrossHatch, AdaptiveInfillMode::Disabled, false, 2},
          {ipHilbertCurve, AdaptiveInfillMode::Disabled, false, 2}}));
-    const int   multiline = GENERATE(1, 2, 3);
+    // A single line of the other patterns is not a ring, and the center line of these two may stop short of the boundary.
+    const int   lowest    = first_multiline; // C++17 lambdas can't capture a structured binding
+    const int   highest   = pattern == ipCrossHatch || pattern == ipHilbertCurve ? 2 : 3;
+    const int   multiline = GENERATE_COPY(filter([=](int m) { return m >= lowest && m <= highest; }, values({1, 2, 3})));
     const float density   = GENERATE(0.1f, 0.3f);
     const bool  with_hole = GENERATE(false, true);
-    // A single line of the other patterns is not a ring, and the center line of these two may stop short of the boundary.
-    if (multiline < first_multiline || (multiline == 3 && (pattern == ipCrossHatch || pattern == ipHilbertCurve)))
-        return;
     CAPTURE(pattern, mode, optimized, multiline, density, with_hole);
 
     // A 60 mm cube, filled with lines connected along the boundary of its 0.45 mm narrower section.

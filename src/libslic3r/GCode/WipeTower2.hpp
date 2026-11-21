@@ -140,6 +140,15 @@ public:
 		// Flow and line width follow the current nozzle (needed for mixed diameters).
 		apply_perimeter_width_for(m_current_tool);
 		m_extrusion_flow = extrusion_flow(layer_height);
+
+        // Orca: with volumetric speeds, a speed is its flow divided by this layer's line cross section.
+        const float mm3_per_mm = m_extrusion_flow * filament_area();
+        if (m_infill_volumetric_flow > 0.f)
+            m_infill_speed = m_infill_volumetric_flow / mm3_per_mm;
+        if (m_perimeter_volumetric_flow > 0.f)
+            m_perimeter_speed = m_perimeter_volumetric_flow / mm3_per_mm;
+        if (m_first_layer_volumetric_flow > 0.f)
+            m_first_layer_speed = m_first_layer_volumetric_flow / mm3_per_mm;
 	}
 
 	// Return the wipe tower position.
@@ -253,6 +262,10 @@ private:
     float  m_wipe_tower_max_purge_speed   = 90.f;
 	float  m_perimeter_speed    = 0.f;
     float  m_first_layer_speed  = 0.f;
+    // Volumetric flows (mm³/s) set_layer() derives the speeds above from, 0 without volumetric speeds.
+    float  m_infill_volumetric_flow      = 0.f;
+    float  m_perimeter_volumetric_flow   = 0.f;
+    float  m_first_layer_volumetric_flow = 0.f;
     size_t m_first_layer_idx    = size_t(-1);
     bool   m_enable_tower_interface_features = false;
     bool   m_enable_tower_interface_cooldown_during_tower = false;

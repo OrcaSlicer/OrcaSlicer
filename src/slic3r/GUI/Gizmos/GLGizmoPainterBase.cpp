@@ -10,6 +10,7 @@
 #include <cassert>
 #include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 #include <glad/gl.h>
 
 #include "slic3r/GUI/GUI_App.hpp"
