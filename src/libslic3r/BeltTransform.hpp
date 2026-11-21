@@ -3,11 +3,13 @@
 #include "libslic3r.h"
 #include "Point.hpp"
 #include "BoundingBox.hpp"
+#include "BuildVolume.hpp"
 #include "PrintConfig.hpp"
 #include "Geometry.hpp"
 #include "Config.hpp"
 
 #include <cmath>
+#include <optional>
 
 namespace Slic3r {
 
@@ -117,6 +119,14 @@ public:
     // rotation the config selects.  z_shift is left at 0.  Returns false (and
     // zero shear) when the config has no tilt.
     static bool floor_shear(const PrintConfig &config, BeltFloorParams &out);
+
+    // ---- Infinite belt axis -----------------------------------------------
+
+    // The bed edge, in the build frame, that a belt with belt_printer_infinite_y carries the part past.
+    // The belt runs across the tilt axis: a rotation about X prints toward +Y and one about Y toward -X,
+    // and a negative angle flips that; an untilted belt prints toward the axis maximum (the same rule as
+    // Arrange). None when belt printing or the infinite axis is off.
+    static std::optional<BedOpenEdge> infinite_axis_edge(const ConfigBase &config);
 
     // How far below the lowest belt-floor point under the footprint the slicing
     // frame starts, in slicing Z.  A support column meeting the belt is wider at

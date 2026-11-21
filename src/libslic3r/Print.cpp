@@ -277,7 +277,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "gcode_remap_z",
         // Machine-frame transform (derived from belt tilt; only affects G-code output).
         "belt_frame_tilt_decouple", "belt_frame_tilt_angle",
-        // Only inflates the GUI bed volume, like printable_area.
+        // Only opens an edge of the bed containment checks, which include the G-code bed check, like printable_area.
         "belt_printer_infinite_y",
         //BBS
         "additional_cooling_fan_speed",
