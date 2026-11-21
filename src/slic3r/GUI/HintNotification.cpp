@@ -850,6 +850,9 @@ void NotificationManager::HintNotification::init()
 	// Do not init closing notification
 	if (is_finished())
 		return;
+	// No font before the first ImGui frame, see PopNotification::init().
+	if (ImGui::GetFont() == nullptr)
+		return;
 
 	count_spaces();
 	count_lines();

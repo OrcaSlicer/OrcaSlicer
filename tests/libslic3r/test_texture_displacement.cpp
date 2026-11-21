@@ -2424,6 +2424,89 @@ TEST_CASE("TextureDisplacement: moving the model about the plate does not move t
     CHECK(max_diff < 1e-3f);
 }
 
+TEST_CASE("Parts anchored at one point carry one continuous texture", "[TextureDisplacement]")
+{
+    // The same surface, once as a part whose origin is the anchor and once as a part whose own origin
+    // sits `offset` away from it - the way the bodies of a multibody object are each centred on their
+    // own origin. Anchored at the same point they must bake the same relief; anchored at their own
+    // origins, the second is the tiled pattern shifted by `offset`.
+    const indexed_triangle_set cube = subdivide_mesh_uniform(its_make_cube(10.f, 10.f, 10.f), 1.f, 6);
+    // Not a multiple of the 4 mm tile, and exact in binary like the grid itself: the checkerboard's steps
+    // fall right on grid vertices, so a vertex rounded across a step would bake the other side of it.
+    const Vec3d                offset(1.25, 2.5, 0.75);
+    indexed_triangle_set       shifted = cube;
+    for (Vec3f &v : shifted.vertices)
+        v -= offset.cast<float>();
+    const Transform3d shifted_to_world = Transform3d(Eigen::Translation3d(offset));
+
+    TextureDisplacementLayer layer;
+    layer.slot         = 0;
+    layer.image_data   = make_checkerboard_png(16, 16);
+    layer.tiling_scale = 4.f;
+    layer.depth_mm     = 0.5f;
+    TextureDisplacementFacetsData facets;
+    facets[0] = paint_whole_mesh(cube);
+
+    const indexed_triangle_set reference = build_texture_displacement(cube, { layer }, facets, classic_options());
+    const Vec3d                anchor    = Vec3d::Zero();
+    const indexed_triangle_set anchored  = build_texture_displacement(shifted, { layer }, facets, classic_options(), {},
+                                                                      nullptr, shifted_to_world, nullptr, nullptr,
+                                                                      nullptr, &anchor);
+    const indexed_triangle_set own_origin = build_texture_displacement(shifted, { layer }, facets, classic_options(), {},
+                                                                       nullptr, shifted_to_world);
+    REQUIRE(anchored.vertices.size() == reference.vertices.size());
+    REQUIRE(own_origin.vertices.size() == reference.vertices.size());
+
+    float anchored_diff = 0.f, own_origin_diff = 0.f;
+    for (size_t i = 0; i < reference.vertices.size(); ++i) {
+        anchored_diff   = std::max(anchored_diff, (anchored.vertices[i] + offset.cast<float>() - reference.vertices[i]).norm());
+        own_origin_diff = std::max(own_origin_diff, (own_origin.vertices[i] + offset.cast<float>() - reference.vertices[i]).norm());
+    }
+    CHECK(anchored_diff < 1e-3f);
+    CHECK(own_origin_diff > 0.1f);
+}
+
+TEST_CASE("A part held above the plate keeps the relief on its underside", "[TextureDisplacement]")
+{
+    // A fully painted cube displaces its bottom face straight down by the full depth. On its own, that
+    // relief is clamped to the cube's bottom (see "relief is never driven below the model's resting
+    // plane"); as a part of an object resting `drop` below it, it is clamped only at the object's plane.
+    const bool                 v2   = GENERATE(false, true);
+    const indexed_triangle_set cube = subdivide_mesh_uniform(its_make_cube(10.f, 10.f, 10.f), 2.f, 6);
+
+    TextureDisplacementFacetsData facets{};
+    facets[0] = paint_whole_mesh(cube);
+    TextureDisplacementLayer layer;
+    layer.slot         = 0;
+    layer.depth_mm     = 2.0f;
+    layer.tiling_scale = 5.0f;
+    layer.image_data   = make_flat_gray_png(255); // full depth everywhere
+
+    TextureDisplacementOptions options = classic_options();
+    options.pipeline_v2                = v2;
+    options.v2_refine_mm               = 2.f;
+    options.v2_max_triangles_k         = 0;
+
+    const auto lowest_after = [&](float drop) {
+        const indexed_triangle_set out = build_texture_displacement(cube, { layer }, facets, options, {}, nullptr,
+                                                                    Transform3d::Identity(), nullptr, nullptr, nullptr,
+                                                                    nullptr, drop);
+        REQUIRE_FALSE(out.vertices.empty());
+        float lowest = std::numeric_limits<float>::max();
+        for (const Vec3f &v : out.vertices)
+            lowest = std::min(lowest, v.z());
+        return lowest;
+    };
+
+    CAPTURE(v2);
+    // The cube's bottom is z = 0. With the object resting 5 mm lower, the 2 mm relief fits above it...
+    CHECK_THAT(lowest_after(5.f), WithinAbs(-2.0f, 1e-3f));
+    // ...with the object resting 1 mm lower, it is clamped at that plane...
+    CHECK_THAT(lowest_after(1.f), WithinAbs(-1.0f, 1e-3f));
+    // ...and as the lowest part, at its own bottom.
+    CHECK_THAT(lowest_after(0.f), WithinAbs(0.0f, 1e-3f));
+}
+
 // Longest edge over the shortest altitude: 1.15 for an equilateral triangle, 2 for a right isosceles
 // one, unbounded for a needle.
 static float triangle_aspect(const Vec3f &a, const Vec3f &b, const Vec3f &c)

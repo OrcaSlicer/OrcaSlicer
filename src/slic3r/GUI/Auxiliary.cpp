@@ -67,6 +67,7 @@
 #include "slic3r/GUI/Plater.hpp"
 #include <wx/dcgraph.h>
 #include <wx/dcmemory.h>
+#include <nlohmann/json.hpp>
 
 namespace fs = boost::filesystem;
 using json = nlohmann::json;
@@ -209,7 +210,7 @@ void AuFile::enter_rename_mode()
     m_file_exit_rename->Show();
     m_text_name->Hide();
     auto name = m_file_name.SubString(0, (m_file_name.Find(".") - 1));
-    m_input_name->GetTextCtrl()->SetLabelText(name);
+    m_input_name->GetTextCtrl()->ChangeValue(name);
     Layout();
 }
 

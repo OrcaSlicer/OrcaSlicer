@@ -996,9 +996,6 @@ void AMSLib::create(wxWindow *parent, wxWindowID id, const wxPoint &pos, const w
     m_bitmap_editable_light = ScalableBitmap(this, "ams_editable_light", 14);
     m_bitmap_readonly       = ScalableBitmap(this, "ams_readonly", 14);
     m_bitmap_readonly_light = ScalableBitmap(this, "ams_readonly_light", 14);
-    m_bitmap_transparent    = ScalableBitmap(this, "transparent_ams_lib", 76);
-    m_bitmap_transparent_def    = ScalableBitmap(this, "transparent_ams_lib", 76);
-    m_bitmap_transparent_lite = ScalableBitmap(this, "transparent_ams_lib", 56);
 
     m_bitmap_extra_tray_left    = ScalableBitmap(this, "extra_ams_tray_left", 72);
     m_bitmap_extra_tray_right    = ScalableBitmap(this, "extra_ams_tray_right", 72);
@@ -1082,7 +1079,7 @@ void AMSLib::render(wxDC &dc)
 #ifdef __WXMSW__
     wxSize     size = GetSize();
     wxMemoryDC memdc;
-    wxBitmap   bmp(size.x, size.y);
+    wxBitmap   bmp(size.x, size.y, 24);
     memdc.SelectObject(bmp);
     memdc.Blit({0, 0}, size, &dc, {0, 0});
 
@@ -1393,15 +1390,9 @@ void AMSLib::render_lite_lib(wxDC& dc)
         temp_bitmap_brand = m_bitmap_readonly;
     }
 
-    if (tmp_lib_colour.Alpha() == 0) {
+    if (tmp_lib_colour.Alpha() == 0 && m_info.material_cols.size() <= 1) {
         temp_bitmap_third = m_bitmap_editable;
         temp_bitmap_brand = m_bitmap_readonly;
-
-        if (m_ams_model == AMSModel::EXT_AMS) {
-            dc.DrawBitmap(m_bitmap_transparent_lite.bmp(), FromDIP(8), (size.y - libsize.y) / 2 + FromDIP(8));
-        } else {
-            dc.DrawBitmap(m_bitmap_transparent_lite.bmp(), FromDIP(10), (size.y - libsize.y) / 2 + FromDIP(8));
-        }
     }
 
     // View-only mode forces the read-only (eye) icon even for third-party spools.
@@ -1413,7 +1404,7 @@ void AMSLib::render_lite_lib(wxDC& dc)
     if (m_info.material_cols.size() > 1) {
         wxRect color_rect(FromDIP(10), FromDIP(10), libsize.x - FromDIP(18), libsize.y - FromDIP(18));
         if (m_info.ctype == 0) {
-            fill_gradient_rect_east(dc, color_rect, m_info.material_cols.front(), m_info.material_cols.back());
+            draw_rounded_filament_swatch(dc, color_rect, m_info.material_cols, true, 0);
         }
         else {
             int cols_size = m_info.material_cols.size();
@@ -1425,6 +1416,10 @@ void AMSLib::render_lite_lib(wxDC& dc)
             }
             dc.SetBrush(wxBrush(tmp_lib_colour));
         }
+    }
+    else if (m_info.material_colour.Alpha() < 255) {
+        const wxRect color_rect(FromDIP(10), FromDIP(10), libsize.x - FromDIP(18), libsize.y - FromDIP(18));
+        draw_rounded_filament_swatch(dc, color_rect, {m_info.material_colour}, false, 0);
     }
     else  {
         dc.SetBrush(wxBrush(tmp_lib_colour));
@@ -1514,9 +1509,10 @@ void AMSLib::render_generic_lib(wxDC &dc)
 
     if (m_ams_model == EXT_AMS){
         wxRect color_rect(FromDIP(1), FromDIP(1), size.x - FromDIP(2), size.y - FromDIP(1));
-        if ((m_info.ctype == 0 || m_info.ctype == 1) && m_info.material_cols.size() > 1 && alpha != 0) {
+        const bool multi_color = (m_info.ctype == 0 || m_info.ctype == 1) && m_info.material_cols.size() > 1;
+        if (multi_color) {
             if (m_info.ctype == 0) {
-                fill_gradient_rect_east(dc, color_rect, m_info.material_cols.front(), m_info.material_cols.back());
+                draw_rounded_filament_swatch(dc, color_rect, m_info.material_cols, true, m_radius - 1);
             }
             else {
                 int cols_size = static_cast<int>(m_info.material_cols.size());
@@ -1531,17 +1527,11 @@ void AMSLib::render_generic_lib(wxDC &dc)
             dc.SetPen(wxPen(*wxTRANSPARENT_PEN));
             dc.SetBrush(wxBrush(tmp_lib_colour));
         }
+        else if (alpha < 255) {
+            draw_rounded_filament_swatch(dc, color_rect, {m_info.material_colour}, false, m_radius - 1);
+        }
         else {
             dc.DrawRoundedRectangle(color_rect.x, color_rect.y, color_rect.width, color_rect.height, m_radius - 1);
-        }
-        if (alpha == 0) {
-            dc.DrawBitmap(m_bitmap_transparent_def.bmp(), FromDIP(2), FromDIP(2));
-        }
-        else if (alpha != 255 && alpha != 254) {
-            if (transparent_changed) {
-                transparent_changed = false;
-            }
-            dc.DrawBitmap(m_bitmap_transparent.bmp(), FromDIP(2), FromDIP(2));
         }
 
         if (!m_disable_mode) {
@@ -1594,49 +1584,18 @@ void AMSLib::render_generic_lib(wxDC &dc)
 
     if (curr_height >= FromDIP(1)) {
 
-        //transparent
-        if (alpha == 0) {
-            dc.DrawBitmap(m_bitmap_transparent_def.bmp(), FromDIP(2), FromDIP(2));
-        }
-        else if (alpha != 255 && alpha != 254) {
-            if (transparent_changed) {
-                std::string rgb = (tmp_lib_colour.GetAsString(wxC2S_HTML_SYNTAX)).ToStdString();
-                if (rgb.size() == 9) {
-                    //delete alpha value
-                    rgb = rgb.substr(0, rgb.size() - 2);
-                }
-                float alpha_f = 0.7 * tmp_lib_colour.Alpha() / 255.0;
-                std::vector<std::string> replace;
-                replace.push_back(rgb);
-                std::string fill_replace = "fill-opacity=\"" + std::to_string(alpha_f);
-                replace.push_back(fill_replace);
-                m_bitmap_transparent = ScalableBitmap(this, "transparent_ams_lib", 76, false, false, true, replace);
-                transparent_changed = false;
-
-            }
-            dc.DrawBitmap(m_bitmap_transparent.bmp(), FromDIP(2), FromDIP(2));
-        }
         //gradient
         if (m_info.material_cols.size() > 1) {
-            auto left = FromDIP(2);
-            float total_width = size.x - FromDIP(4);
-            int gwidth = std::round(total_width / (m_info.material_cols.size() - 1));
             //gradient
             if (m_info.ctype == 0) {
-                for (int i = 0; i < m_info.material_cols.size() - 1; i++) {
-
-                    if ((left + gwidth) > (size.x)) {
-                        gwidth = (size.x) - left;
-                    }
-
-                    auto rect = wxRect(left, height - curr_height, gwidth, curr_height);
-                    fill_gradient_rect_east(dc, rect, m_info.material_cols[i], m_info.material_cols[i + 1]);
-                    left += gwidth;
-                }
+                // Match the single-color fill's inset and rounded outline, including at partial remaining levels.
+                const wxRect color_rect(FromDIP(2), FromDIP(1) + top, size.x - FromDIP(4), curr_height);
+                draw_rounded_filament_swatch(dc, color_rect, m_info.material_cols, true, m_radius - 1);
             }
             else {
                 //multicolour
-                gwidth = std::round(total_width / m_info.material_cols.size());
+                auto left = FromDIP(2);
+                int gwidth = std::round(float(size.x - FromDIP(4)) / m_info.material_cols.size());
                 for (int i = 0; i < m_info.material_cols.size(); i++) {
                     dc.SetPen(wxPen(*wxTRANSPARENT_PEN));
                     dc.SetBrush(wxBrush(m_info.material_cols[i]));
@@ -1670,11 +1629,12 @@ void AMSLib::render_generic_lib(wxDC &dc)
                 }
             }
         }
+        else if (alpha < 255) {
+            const wxRect color_rect(FromDIP(2), FromDIP(1) + top, size.x - FromDIP(4), curr_height);
+            draw_rounded_filament_swatch(dc, color_rect, {m_info.material_colour}, false, m_radius - 1);
+        }
         else {
-            auto brush = dc.GetBrush();
-            if (alpha != 0 && alpha != 255 && alpha != 254) dc.SetBrush(wxBrush(*wxTRANSPARENT_BRUSH));
             dc.DrawRoundedRectangle(FromDIP(2), FromDIP(1) + top, size.x - FromDIP(4), curr_height, m_radius - 1);
-            dc.SetBrush(brush);
         }
     }
 
@@ -1781,10 +1741,6 @@ void AMSLib::UpdateInfo(Caninfo info, std::string ams_idx, bool refresh)
     if (dev->get_selected_machine() && dev->get_selected_machine() != m_obj) {
         m_obj = dev->get_selected_machine();
     }
-    if (info.material_colour.Alpha() != 0 && info.material_colour.Alpha() != 255 && info.material_colour.Alpha() != 254 && m_info.material_colour != info.material_colour) {
-        transparent_changed = true;
-    }
-
     m_info = info;
     m_ams_id = ams_idx;
     m_slot_id = info.can_id;
@@ -1824,16 +1780,10 @@ bool AMSLib::Enable(bool enable) { return wxWindow::Enable(enable); }
 
 void AMSLib::msw_rescale()
 {
-    //m_bitmap_transparent.msw_rescale();
-    m_bitmap_transparent_def.msw_rescale();
-    m_bitmap_transparent_lite.msw_rescale();
-
     m_bitmap_editable = ScalableBitmap(this, "ams_editable", 14);
     m_bitmap_editable_light = ScalableBitmap(this, "ams_editable_light", 14);
     m_bitmap_readonly = ScalableBitmap(this, "ams_readonly", 14);
     m_bitmap_readonly_light = ScalableBitmap(this, "ams_readonly_light", 14);
-    m_bitmap_transparent = ScalableBitmap(this, "transparent_ams_lib", 76);
-    m_bitmap_transparent_def = ScalableBitmap(this, "transparent_ams_lib", 76);
 
     m_bitmap_extra_tray_left = ScalableBitmap(this, "extra_ams_tray_left", 72);
     m_bitmap_extra_tray_right = ScalableBitmap(this, "extra_ams_tray_right", 72);
@@ -2737,7 +2687,7 @@ void AMSPreview::render(wxDC &dc)
 #ifdef __WXMSW__
     wxSize     size = GetSize();
     wxMemoryDC memdc;
-    wxBitmap   bmp(size.x, size.y);
+    wxBitmap   bmp(size.x, size.y, 24);
     memdc.SelectObject(bmp);
     memdc.Blit({0, 0}, size, &dc, {0, 0});
 
@@ -2791,19 +2741,9 @@ void AMSPreview::doRender(wxDC &dc)
                 dc.SetBrush(AMS_CONTROL_DISABLE_COLOUR);
             }
             if (iter->material_cols.size() > 1) {
-                int fleft = left;
-
-                int gwidth = (AMS_ITEM_CUBE_SIZE.x / (iter->material_cols.size() - 1));
                 if (iter->ctype == 0) {
-                    for (int i = 0; i < iter->material_cols.size() - 1; i++) {
-                        if (fleft + gwidth > (AMS_ITEM_CUBE_SIZE.x)) {
-                            gwidth = fleft + AMS_ITEM_CUBE_SIZE.x - fleft;
-                        }
-
-                        auto rect = wxRect(fleft, (size.y - AMS_ITEM_CUBE_SIZE.y) / 2, gwidth, AMS_ITEM_CUBE_SIZE.y);
-                        fill_gradient_rect_east(dc, rect, iter->material_cols[i], iter->material_cols[i + 1]);
-                        fleft += gwidth;
-                    }
+                    const wxRect rect(left, (size.y - AMS_ITEM_CUBE_SIZE.y) / 2, AMS_ITEM_CUBE_SIZE.x, AMS_ITEM_CUBE_SIZE.y);
+                    draw_rounded_filament_swatch(dc, rect, iter->material_cols, true, 0);
                 }
                 else {
                     int cols_size = iter->material_cols.size();
@@ -2864,36 +2804,7 @@ void AMSPreview::doRender(wxDC &dc)
             const wxSize swatch_size = m_ams_item_type == AMSModel::N3S_AMS ? AMS_ITEM_CUBE_SIZE : AMS_ITEM_CUBE_SIZE2;
             const wxRect rect((size.x - swatch_size.x) / 2, (size.y - swatch_size.y) / 2, swatch_size.x, swatch_size.y);
             const int radius = m_ams_item_type == AMSModel::N3S_AMS ? 0 : FromDIP(3);
-            std::unique_ptr<wxGraphicsContext> owned_gc;
-            wxGraphicsContext* gc = dc.GetGraphicsContext();
-            if (!gc) {
-                owned_gc.reset(wxGraphicsContext::CreateFromUnknownDC(dc));
-                gc = owned_gc.get();
-            }
-            if (gc) {
-                wxGraphicsGradientStops stops(iter.material_cols.front(), iter.material_cols.back());
-                const size_t count = iter.material_cols.size();
-                if (iter.ctype == 0) {
-                    for (size_t i = 1; i + 1 < count; ++i)
-                        stops.Add(iter.material_cols[i], static_cast<float>(i) / (count - 1));
-                } else {
-                    // Two stops at each boundary keep multicolour bands distinct.
-                    for (size_t i = 1; i < count; ++i) {
-                        const float position = static_cast<float>(i) / count;
-                        stops.Add(iter.material_cols[i - 1], position);
-                        stops.Add(iter.material_cols[i], position);
-                    }
-                }
-                gc->PushState();
-                gc->SetPen(*wxTRANSPARENT_PEN);
-                gc->SetBrush(gc->CreateLinearGradientBrush(rect.x, rect.y, rect.x + rect.width, rect.y, stops));
-                gc->DrawRoundedRectangle(rect.x, rect.y, rect.width, rect.height, radius);
-                gc->PopState();
-            } else {
-                dc.SetPen(*wxTRANSPARENT_PEN);
-                dc.SetBrush(iter.material_colour);
-                dc.DrawRoundedRectangle(rect, radius);
-            }
+            draw_rounded_filament_swatch(dc, rect, iter.material_cols, iter.ctype == 0, radius);
         }
         else {
             dc.SetPen(wxPen(*wxTRANSPARENT_PEN));

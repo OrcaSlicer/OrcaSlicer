@@ -26,6 +26,7 @@
 #include <boost/log/trivial.hpp>
 #include <vector>
 #include "slic3r/GUI/FilamentBitmapUtils.hpp"
+#include "Plater.hpp"
 #include <wx/font.h>
 #include <wx/panel.h>
 #include <wx/anybutton.h>

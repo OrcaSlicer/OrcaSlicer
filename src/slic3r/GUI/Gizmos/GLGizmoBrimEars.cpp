@@ -20,6 +20,7 @@
 #include "slic3r/GUI/Event.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Point.hpp"
+#include "libslic3r/Brim.hpp"
 #include "libslic3r/BrimEarsPoint.hpp"
 #include "libslic3r/Geometry.hpp"
 #include <limits>
@@ -252,8 +253,8 @@ bool GLGizmoBrimEars::unproject_on_mesh2(const Vec2d &mouse_pos, std::pair<Vec3f
     double               clp_dist        = m_c->object_clipper()->get_position();
     const ClippingPlane *clp             = m_c->object_clipper()->get_clipping_plane();
     bool                 mouse_on_object = false;
-    Vec3f                position_on_model {};
-    Vec3f                normal_on_model {};
+    Vec3f                position_on_model { Vec3f::Zero() };
+    Vec3f                normal_on_model   { Vec3f::Zero() };
     double               closest_hit_distance = std::numeric_limits<double>::max();
 
     for (auto item : m_mesh_raycaster_map) {
@@ -958,22 +959,9 @@ void GLGizmoBrimEars::reload_cache()
     find_single();
 }
 
-Points GLGizmoBrimEars::generate_points(Polygon &obj_polygon, float ear_detection_length, float brim_ears_max_angle, bool is_outer)
+Points GLGizmoBrimEars::generate_points(const Polygon &obj_polygon, float ear_detection_length, float brim_ears_max_angle, bool is_outer)
 {
-    const coordf_t angle_threshold = (180 - brim_ears_max_angle) * PI / 180.0;
-    Points         pt_ears;
-    if (ear_detection_length > 0) {
-        double detect_length = ear_detection_length / SCALING_FACTOR;
-        Points points = obj_polygon.points;
-        points.push_back(points.front());
-        points = MultiPoint::_douglas_peucker(points, detect_length);
-        if (points.size() > 4) {
-            points.erase(points.end() - 1);
-        }
-        obj_polygon.points = points;
-    }
-    append(pt_ears, is_outer ? obj_polygon.convex_points(angle_threshold) : obj_polygon.concave_points(angle_threshold));
-    return pt_ears;
+    return make_brim_ear_points(obj_polygon, scale_(ear_detection_length), brim_ears_max_angle, is_outer);
 }
 
 void GLGizmoBrimEars::first_layer_slicer()
@@ -1053,6 +1041,7 @@ void GLGizmoBrimEars::get_detection_radius_max()
         min_points_num   = MultiPoint::_douglas_peucker(out_points, 0).size();
         int repeat       = 0;
         int loop_protect = 0;
+        // ORCA: only a feature-size estimate for the slider's upper bound; the detector no longer decimates.
         for (;;) {
             loop_protect++;
             tolerance += 10;

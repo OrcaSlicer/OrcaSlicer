@@ -41,6 +41,7 @@
 #include <chrono>
 #include <optional>
 #include <wx/timer.h>
+#include <wx/statline.h>
 #include "libslic3r/Utils.hpp"
 #include <unordered_set>
 #include <vector>

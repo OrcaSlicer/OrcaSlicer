@@ -1,5 +1,6 @@
 #include "AMSMaterialsSetting.hpp"
 #include "ColorPickerDialog.hpp"
+#include "FilamentBitmapUtils.hpp"
 #include "libslic3r/Color.hpp"
 #include <optional>
 #include <variant>
@@ -44,7 +45,11 @@
 #include <wx/dcclient.h>
 #include <wx/dc.h>
 #include <wx/colour.h>
+#include <wx/brush.h>
+#include <wx/pen.h>
+#include <wx/window.h>
 #include <wx/dcgraph.h>
+#include <wx/graphics.h>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/toplevel.h>
@@ -58,6 +63,7 @@
 #include "CalibUtils.hpp"
 #include "../Utils/ColorSpaceConvert.hpp"
 #include "EncodedFilament.hpp"
+#include "Widgets/StateHandler.hpp"
 
 
 #include "DeviceCore/DevConfig.h"
@@ -75,6 +81,38 @@ namespace Slic3r { namespace GUI {
 
 wxDEFINE_EVENT(EVT_SELECTED_COLOR, wxCommandEvent);
 
+namespace {
+
+class CustomColorSwatch final : public StaticBox
+{
+public:
+    CustomColorSwatch(wxWindow* parent, const std::vector<wxColour>& colors, const int& ctype)
+        : StaticBox(parent), m_colors(colors), m_ctype(ctype) {}
+
+private:
+    void doRender(wxDC& dc) override
+    {
+        if (m_colors.empty() || (m_colors.size() == 1 && m_colors.front().Alpha() == 255)) {
+            StaticBox::doRender(dc);
+            return;
+        }
+        // Clear the corners and previous paint before drawing colors over their transparency pattern.
+        dc.SetBackground(wxBrush(GetBackgroundColour()));
+        dc.Clear();
+        const wxRect rect = GetClientRect();
+        const double corner_radius = std::max(0.0, radius - border_width);
+        draw_rounded_filament_swatch(dc, rect, m_colors, m_ctype == 0, corner_radius);
+        dc.SetPen(wxPen(border_color.colorForStates(state_handler.states()), border_width, border_style));
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawRoundedRectangle(rect, corner_radius);
+    }
+
+    const std::vector<wxColour>& m_colors;
+    const int& m_ctype;
+};
+
+} // namespace
+
 static std::string float_to_string_with_precision(float value, int precision = 3)
 {
     if (value < 0)
@@ -90,18 +128,6 @@ static std::string colour_to_ams_string(const wxColour& color)
     char col_buf[10];
     sprintf(col_buf, "%02X%02X%02X%02X", (int)color.Red(), (int)color.Green(), (int)color.Blue(), (int)color.Alpha());
     return col_buf;
-}
-
-static wxColour mix_colour(const wxColour& left, const wxColour& right, double ratio)
-{
-    ratio = std::max(0.0, std::min(1.0, ratio));
-    auto mix_channel = [ratio](unsigned char l, unsigned char r) {
-        return static_cast<unsigned char>(std::round(l + (r - l) * ratio));
-    };
-    return wxColour(mix_channel(left.Red(), right.Red()),
-                    mix_channel(left.Green(), right.Green()),
-                    mix_channel(left.Blue(), right.Blue()),
-                    mix_channel(left.Alpha(), right.Alpha()));
 }
 
 static std::vector<ColorPickerPopup::ColorItem> collect_ams_color_items(DevFilaSystem* fila_system)
@@ -1016,6 +1042,8 @@ void AMSMaterialsSetting::set_empty_color(wxColour color)
 {
     m_clr_picker->is_empty(true);
     m_clr_picker->set_color(color);
+    m_clr_picker->set_colors({});
+    m_clr_picker->ctype = 2;
     m_clr_name->SetLabelText(wxEmptyString);
 }
 
@@ -1049,6 +1077,9 @@ void AMSMaterialsSetting::on_picker_color(wxCommandEvent& event)
         unsigned int color_num = event.GetInt();
         colors.emplace_back(color_num >> 24 & 0xFF, color_num >> 16 & 0xFF, color_num >> 8 & 0xFF, color_num & 0xFF);
     }
+    if (colors.size() > ColorPickerPopup::MAX_EDITABLE_COLORS ||
+        (colors.size() > 1 && (!obj || !obj->is_support_filament_manual_multi_color)))
+        return;
 
     set_ctype(m_color_picker_popup.get_selected_ctype());
     set_color(colors.front());
@@ -1067,6 +1098,7 @@ void AMSMaterialsSetting::on_clr_picker(wxMouseEvent &event)
         }
     }
 
+    m_color_picker_popup.set_allow_multi_color(obj->is_support_filament_manual_multi_color);
     m_color_picker_popup.set_ams_colours(collect_ams_color_items(obj->GetFilaSystem().get()));
     m_color_picker_popup.set_preset_colours(collect_preset_color_items(ams_filament_id));
     m_color_picker_popup.set_def_colour(m_clr_picker->m_colour, m_clr_picker->m_cols, m_clr_picker->ctype);
@@ -1838,7 +1870,7 @@ void ColorPicker::render(wxDC& dc)
 #ifdef __WXMSW__
     wxSize     size = GetSize();
     wxMemoryDC memdc;
-    wxBitmap   bmp(size.x, size.y);
+    wxBitmap   bmp(size.x, size.y, 24);
     memdc.SelectObject(bmp);
     memdc.Blit({ 0, 0 }, size, &dc, { 0, 0 });
 
@@ -1850,6 +1882,11 @@ void ColorPicker::render(wxDC& dc)
     memdc.SelectObject(wxNullBitmap);
     dc.DrawBitmap(bmp, 0, 0);
 #else
+    if (m_show_full && m_cols.size() > 1) {
+        wxGCDC graphics(wxGraphicsContext::CreateFromUnknownDC(dc));
+        doRender(graphics);
+        return;
+    }
     doRender(dc);
 #endif
 }
@@ -1863,27 +1900,8 @@ void ColorPicker::doRender(wxDC& dc)
 
     if (m_show_full && m_cols.size() > 1) {
         if (ctype == 0) {
-            const double center_x = size.x / 2.0;
-            const double center_y = size.y / 2.0;
-            const double draw_radius = radius;
-            dc.SetPen(*wxTRANSPARENT_PEN);
-            for (int x = 0; x < size.x; ++x) {
-                const double dx = x + 0.5 - center_x;
-                if (std::abs(dx) > draw_radius) continue;
-
-                const double half_height = std::sqrt(std::max(0.0, draw_radius * draw_radius - dx * dx));
-                const int top = std::max(0, static_cast<int>(std::ceil(center_y - half_height)));
-                const int bottom = std::min(size.y - 1, static_cast<int>(std::floor(center_y + half_height)));
-                const double pos = size.x > 1 ? static_cast<double>(x) / (size.x - 1) : 0.0;
-                const double scaled = pos * (m_cols.size() - 1);
-                const size_t idx = std::min(static_cast<size_t>(scaled), m_cols.size() - 2);
-                const double ratio = scaled - idx;
-
-                if (top <= bottom) {
-                    dc.SetBrush(wxBrush(mix_colour(m_cols[idx], m_cols[idx + 1], ratio)));
-                    dc.DrawRectangle(x, top, 1, bottom - top + 1);
-                }
-            }
+            const wxRect rect(size.x / 2 - radius, size.y / 2 - radius, 2 * radius, 2 * radius);
+            draw_rounded_filament_swatch(dc, rect, m_cols, true, radius);
         }
         else {
             float ev_angle = 360.0 / m_cols.size();
@@ -2058,7 +2076,7 @@ ColorPickerPopup::ColorPickerPopup(wxWindow* parent)
     m_sizer_custom->Add(m_title_custom, 0, wxALL, 5);
     m_sizer_custom->Add(custom_line, 1, wxALIGN_CENTER, 0);
 
-    m_custom_cp =  new StaticBox(m_def_color_box);
+    m_custom_cp = new CustomColorSwatch(m_def_color_box, m_def_cols, m_def_ctype);
     m_custom_cp->SetSize(FromDIP(60), FromDIP(25));
     m_custom_cp->SetMinSize(wxSize(FromDIP(60), FromDIP(25)));
     m_custom_cp->SetMaxSize(wxSize(FromDIP(60), FromDIP(25)));
@@ -2110,32 +2128,71 @@ ColorPickerPopup::ColorPickerPopup(wxWindow* parent)
     wxGetApp().UpdateDarkUIWin(this);
 }
 
+std::optional<ColorSelection> ColorPickerPopup::ColorItem::picker_selection(bool allow_gradient) const
+{
+    if (colors.empty())
+        return std::nullopt;
+    if (colors.size() == 1) {
+        const wxColour& color = colors.front();
+        return ColorRGBA(color.Red(), color.Green(), color.Blue(), color.Alpha());
+    }
+    if (ctype != 0 || !ColorPickerOptions{allow_gradient, true, MAX_EDITABLE_COLORS}.supports_gradient(colors.size()))
+        return std::nullopt;
+    ColorGradient gradient;
+    for (const wxColour& color : colors)
+        gradient.emplace_back(color.Red(), color.Green(), color.Blue(), color.Alpha());
+    return gradient;
+}
+
+ColorPickerPopup::ColorItem ColorPickerPopup::ColorItem::from_picker_selection(const ColorSelection& selection)
+{
+    ColorItem item;
+    auto append = [&item](const ColorRGBA& color) {
+        item.colors.emplace_back(static_cast<unsigned char>(std::lround(color.r() * 255.f)),
+                                 static_cast<unsigned char>(std::lround(color.g() * 255.f)),
+                                 static_cast<unsigned char>(std::lround(color.b() * 255.f)),
+                                 static_cast<unsigned char>(std::lround(color.a() * 255.f)));
+    };
+    if (const auto* solid = std::get_if<ColorRGBA>(&selection)) {
+        append(*solid);
+    } else {
+        for (const ColorRGBA& color : std::get<ColorGradient>(selection))
+            append(color);
+        item.ctype = 0;
+    }
+    return item;
+}
+
 void ColorPickerPopup::on_custom_clr_picker(wxMouseEvent& /*event*/)
 {
     const bool was_shown = IsShown();
-    std::optional<wxColour> picker_color;
+    bool confirmed = false;
+    std::optional<ColorItem> picker_color;
     {
-        const ColorRGBA initial(m_def_col.Red(), m_def_col.Green(), m_def_col.Blue(), static_cast<unsigned char>(255));
+        const ColorItem current{m_def_cols, m_def_ctype};
+        const auto exact = current.picker_selection(m_allow_multi_color);
+        const wxColour& first = m_def_cols.empty() ? m_def_col : m_def_cols.front();
+        const ColorSelection initial = exact ? *exact : ColorSelection{ColorRGBA(first.Red(), first.Green(), first.Blue(), first.Alpha())};
         // Snapshot the custom control's anchor before releasing the transient popup grab.
-        ColorPickerDialog dialog(GetParent(), initial, {}, false, m_custom_cp);
+        ColorPickerDialog dialog(GetParent(), initial, {m_allow_multi_color, true, MAX_EDITABLE_COLORS},
+                                 !exact && m_def_cols.size() > 1, m_custom_cp);
         Dismiss();
-        if (dialog.ShowModal() == wxID_OK && dialog.selection()) {
-            const auto& result = std::get<ColorRGBA>(*dialog.selection());
-            picker_color = wxColour(static_cast<unsigned char>(std::lround(result.r() * 255.f)),
-                                    static_cast<unsigned char>(std::lround(result.g() * 255.f)),
-                                    static_cast<unsigned char>(std::lround(result.b() * 255.f)));
-        }
+        // Unchanged fallback seeds must not replace a multi-color or oversized selection.
+        confirmed = dialog.ShowModal() == wxID_OK;
+        if (confirmed && filament_color_picker_changed(initial, dialog.selection()))
+            picker_color = ColorItem::from_picker_selection(*dialog.selection());
     } // Destroy the modal before restoring the first-level popup and its focus/grab.
     if (!picker_color) {
-        if (was_shown) Popup();
+        if (was_shown && !confirmed) Popup();
         return;
     }
 
-    set_def_colour(*picker_color);
+    const wxColour& primary = picker_color->colors.front();
+    set_def_colour(primary, picker_color->colors, picker_color->ctype);
     wxCommandEvent evt(EVT_SELECTED_COLOR);
-    const std::uint32_t packed = (std::uint32_t(picker_color->Red()) << 24) |
-                                 (std::uint32_t(picker_color->Green()) << 16) |
-                                 (std::uint32_t(picker_color->Blue()) << 8) | 255u;
+    const std::uint32_t packed = (std::uint32_t(primary.Red()) << 24) |
+                                 (std::uint32_t(primary.Green()) << 16) |
+                                 (std::uint32_t(primary.Blue()) << 8) | std::uint32_t(primary.Alpha());
     evt.SetInt(static_cast<int>(packed));
     wxPostEvent(GetParent(), evt);
 }
@@ -2161,6 +2218,7 @@ void ColorPickerPopup::set_ams_colours(const std::vector<ColorItem>& ams)
     m_ams_color_items = ams;
     for (const ColorItem& item : m_ams_color_items) {
         if (item.colors.empty()) continue;
+        if (item.colors.size() > MAX_EDITABLE_COLORS || (!m_allow_multi_color && item.colors.size() > 1)) continue;
 
         auto cp = new ColorPicker(m_def_color_box, wxID_ANY, wxDefaultPosition, wxDefaultSize);
         cp->set_color(item.colors.front());
@@ -2203,6 +2261,7 @@ void ColorPickerPopup::set_preset_colours(const std::vector<ColorItem>& preset_c
 
     for (const ColorItem& item : preset_colors) {
         if (item.colors.empty()) continue;
+        if (item.colors.size() > MAX_EDITABLE_COLORS || (!m_allow_multi_color && item.colors.size() > 1)) continue;
 
         auto cp = new ColorPicker(m_def_color_box, wxID_ANY, wxDefaultPosition, wxDefaultSize);
         cp->set_color(item.colors.front());
@@ -2263,13 +2322,15 @@ void ColorPickerPopup::set_def_colour(wxColour col, std::vector<wxColour> cols, 
         }
     }
 
-    if (m_def_col.Alpha() == 0) {
+    if (m_def_cols.size() == 1 && m_def_col.Alpha() == 0) {
         m_ts_stbitmap_custom->Show();
     }
     else {
         m_ts_stbitmap_custom->Hide();
         m_custom_cp->SetBackgroundColor(m_def_col);
     }
+    // A different stop or color type can change while the representative first color stays the same.
+    m_custom_cp->Refresh();
 
     Dismiss();
 }

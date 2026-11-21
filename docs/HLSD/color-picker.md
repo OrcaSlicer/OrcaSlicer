@@ -27,18 +27,34 @@ parent-centering constraint and reapplies its native position after showing,
 bypassing wxGTK's requested-position cache. Absolute top-level placement remains
 subject to the window manager; Wayland compositors control it. The official filament palette's
 existing placement is independent of this custom panel.
-A solid selection contains one color; a gradient contains exactly two ordered
-endpoints. The bridge represents these as `{"type":"solid|gradient",
+A solid selection contains one color; a gradient contains two through
+`COLOR_PICKER_MAX_GRADIENT_COLORS` ordered colors (currently seven). The bridge
+represents these as `{"type":"solid|gradient",
 "colors":["#RRGGBBAA", ...]}`. RGB input is also accepted and becomes opaque.
 Native validation rejects malformed hex and incorrect cardinality.
+`ColorPickerOptions::max_gradient_colors` lets each caller lower the editing limit;
+it defaults to seven and is clamped to two through seven. Native selection validation
+and the page use the same effective limit. Shared favorites retain up to seven colors
+regardless of the current caller's limit.
 
 The project filament color action and the official filament picker's More Colors
-action enable two-endpoint gradients and independent endpoint alpha. The preset
+action enable ordered gradients and independent alpha for each color. The preset
 combo box reads project colors in their stored vector order locally and applies
 changes through `sync_colour_config`,
 retaining the existing RGB/RGBA profile/project formats and dirty marking.
 Sidebar gradient and segmented multicolor swatches draw colors in the supplied
 order without sorting them.
+The filament rack, Change Filament menus, object-list icons and selectors, and
+feature-filament selectors share the numbered extruder-color icons. Nonopaque
+single colors, gradients and multicolor layouts composite over the same checkerboard
+as AMS custom colors. Two- and three-color stripes and four-color quadrants retain
+their layouts. Icon caches distinguish gradient and segmented modes and include
+every RGBA component; label contrast uses the composited color for single colors.
+All composited filament preview bitmaps use opaque RGB storage, including single,
+gradient, segmented and vertical-ramp swatches. The color's alpha affects its
+appearance over the checkerboard; the finished preview carries no alpha channel.
+On Windows this also prevents GDI label drawing from leaving alpha bytes that
+native menu conversion treats as transparent text.
 Opaque colors use `#RRGGBB`; nonopaque colors use `#RRGGBBAA`, including fully
 transparent alpha `00`. Initial selections, alpha-only edits and cancellation
 retain stored alpha. Ordered
@@ -47,7 +63,7 @@ official swatch retains its existing palette behavior.
 The Linux sidebar's Change extruder color menu uses this same custom editor and
 the filament swatch anchor, including alpha, ordered gradients and configuration syncing.
 
-Striped colors and gradients with more than two endpoints cannot be represented
+Striped colors and gradients exceeding the configured color limit cannot be represented
 by this editor. A notice explains that the current selection is retained; the
 editor starts from the first color, and unchanged confirmation is a no-op.
 Cancellation is also a no-op. If the WebView backend cannot initialize, a local
@@ -62,11 +78,29 @@ changes. Programmatic assignments remain silent, and reading a field never
 writes legacy favorites.
 
 AMS material settings retain their fixed/AMS swatches and first-level popup. Only
-its custom-color action opens the solid, opaque editor, anchored to that custom
-control. The transient popup releases its grab while the modal is open and returns
-to the same selection on cancellation. Confirmation uses the existing default-color
-and packed RGBA event path. Device permission/status checks remain at the first-level
-entry.
+its custom-color action opens the editor with alpha enabled, anchored to that custom
+control. Firmware advertising manual multi-color support (`fun2[23]`) also enables
+ordered gradients with at most four colors, matching the AMS manual-write limit.
+AMS and preset swatches exceeding four colors are unavailable for selection;
+the editor also filters oversized palette entries and favorites without deleting them.
+Other printers only offer single-color swatches and favorites.
+The transient popup releases its grab while the modal is open and returns
+to the same selection on cancellation. Unchanged confirmation is a no-op. Existing striped
+or oversized selections start from their first color with the preservation notice.
+Confirmed edits retain the complete ordered RGBA list and color type in the popup;
+the existing packed RGBA event carries the representative first color. Device
+permission/status checks remain at the first-level entry. Saving uses `RRGGBBAA`
+for `tray_color` and, on capable firmware, `cols`, with `ctype=0` for gradients and
+`ctype=2` for single colors. The edited tray updates locally while device status
+is pending. AMS custom swatches interpolate every gradient stop. Single colors,
+gradients and segmented swatches with any nonopaque component composite over a
+rounded checkerboard, including the shared AMS preview renderer. The circular
+settings and palette previews and the device panel's gradient cards also use this
+renderer, including AMS Lite, external spools, remaining-material regions and
+four-slot thumbnails. Each keeps its existing shape and material bounds.
+Opaque swatches retain their existing background.
+Rounded gradient and segmented swatches use the same graphics-context renderer.
+Alpha rendering requires a graphics-capable DC, and callers invoke this renderer directly.
 
 Texture import's color-mapping Add Material action opens a solid, opaque editor
 anchored to the mapping row. The existing filament limit is checked before opening.

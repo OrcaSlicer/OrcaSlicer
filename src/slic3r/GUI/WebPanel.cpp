@@ -14,6 +14,7 @@
 #include <wx/sizer.h>
 #include <wx/string.h>
 #include <wx/webview.h>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r { namespace GUI {
 

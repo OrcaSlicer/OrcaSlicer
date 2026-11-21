@@ -44,6 +44,10 @@ public:
 
     bool SetBackgroundColour(const wxColour& colour) override;
 
+#ifdef __WXMSW__
+    bool MSWCommand(WXUINT param, WXWORD id) override;
+#endif
+
 private:
 	void update();
 
@@ -148,6 +152,8 @@ public:
 
     int      GetSelection() const;
     void     SetSelection(int index);
+    // Clears the selection without sending the selection event.
+    void     Unselect();
     wxString GetSelectedText() const;
 
     Button*  GetButton(unsigned int index) const

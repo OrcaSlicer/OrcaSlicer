@@ -142,7 +142,19 @@
 
     <div class="dialog-actions">
       <button type="button" id="paletteToggle" class="icon-button" aria-expanded="false" aria-controls="palettePanel" title="Palettes" data-i18n-title="Palettes">
-        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="2" fill="none" stroke="currentColor"/><path d="M5.5 2.5v11" stroke="currentColor"/></svg>
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor">
+          <rect x="0.5" y="1.5" width="15" height="13" rx="2"/>
+          <line x1="4.5" y1="1.5" x2="4.5" y2="14.5"/>
+        </svg>
+      </button>
+      <!-- Shown only where the host can use color sampler -->
+      <button type="button" id="eyedropperBtn" class="icon-button hidden" aria-pressed="false" title="Pick color from screen" data-i18n-title="Pick color from screen">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="7.5" y1="2.5" x2="13.5" y2="8.5"/>
+          <line x1="3.5" y1="9.5" x2="9.5" y2="9.5"/>
+          <path d="M10.5,3.5h-1l-7,7-.72,2.86c-.13.52.34.98.85.85l2.86-.72,7-7v-1"/>
+          <path d="M10.5,3.5c0-1.1.9-2,2-2s2,.9,2,2-.9,2-2,2" stroke-width="1.1"/> <!-- Somehow 1px causes clipping on shape -->
+        </svg>
       </button>
       <div class="stretch-spacer"></div>
       <button id="confirmBtn" class="ButtonTypeChoice ButtonStyleConfirm" data-i18n="OK">OK</button>

@@ -28,6 +28,7 @@
 #include <libslic3r/PresetBundle.hpp>
 #include <wx/string.h>
 #include "MainFrame.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include <miniz.h>
 #include <OrcaCloudServiceAgent.hpp>
 #include <wx/utils.h>

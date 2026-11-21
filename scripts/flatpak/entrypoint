@@ -8,4 +8,38 @@
 # while preserving the user's language/locale for translations.
 export LC_NUMERIC=C
 
+# The runtime only has the locales of the languages Flatpak installs for it
+# (flatpak config languages / extra-languages), while the session can name
+# others, e.g. per-category regional formats. OrcaSlicer cannot start when any
+# category names a missing locale, so drop just the variables that do: a
+# category then follows LANG, and LANG falls back to C.UTF-8. An environment
+# whose locales all exist is left as it is.
+locale_missing() {
+    # glibc's locale reports each category it cannot set; LANGUAGE=C keeps the
+    # message untranslated. Without the tool nothing is reported.
+    env LANGUAGE=C "$@" locale 2>&1 >/dev/null | grep -q "Cannot set LC_"
+}
+repair_locale() {
+    # libstdc++ also accepts a composite LC_ALL ("LC_CTYPE=...;LC_NUMERIC=..."),
+    # which glibc and so the check reject; leave such a setup alone.
+    case ${LC_ALL-} in *=*) return ;; esac
+    locale_missing || return
+    languages=
+    for var in LC_ALL LANG LC_CTYPE LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES \
+               LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION; do
+        eval "value=\${$var-}"
+        [ -n "$value" ] && locale_missing LC_ALL="$value" || continue
+        unset "$var" 2>/dev/null
+        echo "OrcaSlicer: $var=$value is not available in the Flatpak runtime and is ignored." >&2
+        # The hint names the language, e.g. "de" for de_DE.UTF-8.
+        lang=${value%%[_.@]*}
+        case $lang in [a-z][a-z]|[a-z][a-z][a-z]) ;; *) continue ;; esac
+        case ";$languages;" in *";$lang;"*) ;; *) languages="${languages:+$languages;}$lang" ;; esac
+    done
+    [ -n "${LANG-}" ] || export LANG=C.UTF-8
+    [ -z "$languages" ] || echo "OrcaSlicer: to install it, add \"$languages\" to Flatpak's extra-languages" \
+        "(or to languages, if set) with 'flatpak config' (--user for a per-user install), then run 'flatpak update'." >&2
+}
+repair_locale
+
 exec /app/bin/orca-slicer "$@"

@@ -145,9 +145,10 @@ SlicingParameters SlicingParameters::create_from_config(
         params.min_layer_height = std::max(params.min_layer_height, min_layer_height_from_nozzle(print_config, 0));
         params.max_layer_height = std::min(params.max_layer_height, max_layer_height_from_nozzle(print_config, 0));
     } else {
+        // Orca: object_extruders are 0-based, the extruder the limits are read from is 1-based like support_filament.
         for (unsigned int extruder_id : object_extruders) {
-            params.min_layer_height = std::max(params.min_layer_height, min_layer_height_from_nozzle(print_config, extruder_id));
-            params.max_layer_height = std::min(params.max_layer_height, max_layer_height_from_nozzle(print_config, extruder_id));
+            params.min_layer_height = std::max(params.min_layer_height, min_layer_height_from_nozzle(print_config, extruder_id + 1));
+            params.max_layer_height = std::min(params.max_layer_height, max_layer_height_from_nozzle(print_config, extruder_id + 1));
         }
     }
 
@@ -254,7 +255,7 @@ std::vector<coordf_t> layer_height_profile_from_ranges(
     // The height ranges are sorted lexicographically by low / high layer boundaries.
     for (t_layer_config_ranges::const_iterator it_range = layer_config_ranges.begin(); it_range != layer_config_ranges.end(); ++ it_range) {
         coordf_t lo = it_range->first.first;
-        coordf_t hi = std::min(it_range->first.second, slicing_params.object_print_z_height());
+        coordf_t hi = std::min(it_range->first.second, slicing_params.object_print_z_uncompensated_height());
         coordf_t height = it_range->second.option("layer_height")->getFloat();
         if (! ranges_non_overlapping.empty())
             // Trim current low with the last high.
@@ -721,6 +722,9 @@ void adjust_layer_height_profile(
 
 bool adjust_layer_series_to_align_object_height(const SlicingParameters &slicing_params, std::vector<coordf_t>& layer_series)
 {
+    if (layer_series.empty())
+        return false;
+
     coordf_t object_height = slicing_params.object_print_z_height();
     if (is_approx(layer_series.back(), object_height))
         return true;
@@ -810,6 +814,96 @@ bool adjust_layer_series_to_align_object_height(const SlicingParameters &slicing
     }
 
     return true;
+}
+
+std::vector<coordf_t> layer_height_profile_fit_to_height(
+    const std::vector<coordf_t> &layer_height_profile,
+    coordf_t                     object_height)
+{
+    assert(layer_height_profile.size() >= 2);
+    assert(layer_height_profile.size() % 2 == 0);
+    assert(layer_height_profile[0] == 0);
+    assert(object_height > EPSILON);
+
+    std::vector<coordf_t> out;
+    out.reserve(layer_height_profile.size() + 2);
+    size_t i = 0;
+    for (; i < layer_height_profile.size() && layer_height_profile[i] < object_height - EPSILON; i += 2) {
+        out.push_back(layer_height_profile[i]);
+        out.push_back(layer_height_profile[i + 1]);
+    }
+
+    // The last entry has to sit exactly at the top of the object, see PrintObject::update_layer_height_profile().
+    coordf_t height = layer_height_profile.back();
+    if (i < layer_height_profile.size() && i >= 2) {
+        const coordf_t z1 = layer_height_profile[i - 2];
+        const coordf_t z2 = layer_height_profile[i];
+        // The next entry can lie a hair under the top, within the EPSILON the loop above allows.
+        height = lerp(layer_height_profile[i - 1], layer_height_profile[i + 1], std::clamp((object_height - z1) / (z2 - z1), 0., 1.));
+    }
+    out.push_back(object_height);
+    out.push_back(height);
+    return out;
+}
+
+std::vector<coordf_t> layer_height_profile_merge_finest(
+    const std::vector<std::vector<coordf_t>> &layer_height_profiles)
+{
+    assert(! layer_height_profiles.empty());
+    const std::vector<coordf_t> *tallest = &layer_height_profiles.front();
+    for (const std::vector<coordf_t> &profile : layer_height_profiles) {
+        assert(profile.size() >= 4);
+        assert(profile.size() % 2 == 0);
+        if (profile[profile.size() - 2] > (*tallest)[tallest->size() - 2])
+            tallest = &profile;
+    }
+    const coordf_t top = (*tallest)[tallest->size() - 2];
+
+    // Index of the entry each profile was last read at. The Zs only grow, so it never moves back.
+    std::vector<size_t> cursors(layer_height_profiles.size(), 0);
+    // The finest layer height asked for at z. Above its own top an object asks for nothing, but its
+    // last layer height is eased back up at the rate the adaptive profile allows from one layer to
+    // the next, rather than released at once: a jump there is a seam on the taller objects.
+    const auto finest_at = [&layer_height_profiles, &cursors](coordf_t z) {
+        coordf_t height = std::numeric_limits<coordf_t>::max();
+        for (size_t idx_profile = 0; idx_profile < layer_height_profiles.size(); ++idx_profile) {
+            const std::vector<coordf_t> &profile     = layer_height_profiles[idx_profile];
+            const size_t                 end         = profile.size() - 2;
+            const coordf_t               profile_top = profile[end];
+            if (z > profile_top + EPSILON) {
+                const coordf_t last = profile[end - 1];
+                height = std::min(height, std::sqrt(last * last + 2. * LAYER_HEIGHT_CHANGE_STEP * (z - profile_top)));
+                continue;
+            }
+            size_t &i = cursors[idx_profile];
+            while (i + 2 < end && profile[i + 2] <= z)
+                i += 2;
+            height = std::min(height, i + 2 < end ?
+                lerp(profile[i + 1], profile[i + 3], (z - profile[i]) / (profile[i + 2] - profile[i])) :
+                profile[i + 1]);
+        }
+        return height;
+    };
+
+    // One entry per layer, as layer_height_profile_adaptive() lays its profile out, which is the
+    // spacing smooth_height_profile() counts on. A fixed first layer keeps its own two entries.
+    std::vector<coordf_t> out{ 0., (*tallest)[1] };
+    coordf_t print_z = (*tallest)[1];
+    if (std::abs((*tallest)[2] - print_z) < EPSILON && std::abs((*tallest)[3] - print_z) < EPSILON) {
+        out.push_back(print_z);
+        out.push_back(print_z);
+    }
+    while (print_z + EPSILON < top) {
+        const coordf_t height = finest_at(print_z);
+        if (height < EPSILON)
+            break;
+        out.push_back(print_z);
+        out.push_back(height);
+        print_z += height;
+    }
+    out.push_back(top);
+    out.push_back(out[out.size() - 2]);
+    return out;
 }
 
 // Produce object layers as pairs of low / high layer boundaries, stored into a linear vector.
@@ -947,8 +1041,12 @@ int generate_layer_height_texture(
 		assert(mid <= slicing_params.object_print_z_height());
 		coordf_t h = hi - lo;
 		hi = std::min(hi, slicing_params.object_print_z_height());
+        // Orca: the last layer can end under the top of the object, by up to half a layer, and the top face is
+        // drawn with the cells there. The last layer fills them, which no layer did: they kept what the buffer
+        // held before, black or the colours of another object.
+        const bool last_layer = idx_layer + 2 >= layers.size();
         int cell_first = std::clamp(int(ceil(lo * z_to_cell)), 0, ncells-1);
-        int cell_last  = std::clamp(int(floor(hi * z_to_cell)), 0, ncells-1);
+        int cell_last  = last_layer ? ncells - 1 : std::clamp(int(floor(hi * z_to_cell)), 0, ncells-1);
         for (int cell = cell_first; cell <= cell_last; ++ cell) {
             coordf_t idxf = (0.5 * hscale + (h - slicing_params.layer_height)) * coordf_t(palette_raw.size()-1) / hscale;
             int idx1 = std::clamp(int(floor(idxf)), 0, int(palette_raw.size() - 1));
@@ -956,7 +1054,8 @@ int generate_layer_height_texture(
 			coordf_t t = idxf - coordf_t(idx1);
             const Vec3crd &color1 = palette_raw[idx1];
             const Vec3crd &color2 = palette_raw[idx2];
-            coordf_t z = cell_to_z * coordf_t(cell);
+            // Above the last layer, the shade of its top.
+            coordf_t z = std::min(cell_to_z * coordf_t(cell), hi);
             assert(lo - EPSILON <= z && z <= hi + EPSILON);
             // Intensity profile to visualize the layers.
             coordf_t intensity = cos(M_PI * 0.7 * (mid - z) / h);
@@ -984,7 +1083,7 @@ int generate_layer_height_texture(
         }
         if (level_of_detail_2nd_level) {
             cell_first = std::clamp(int(ceil(lo * z_to_cell1)), 0, ncells1-1);
-            cell_last  = std::clamp(int(floor(hi * z_to_cell1)), 0, ncells1-1);
+            cell_last  = last_layer ? ncells1 - 1 : std::clamp(int(floor(hi * z_to_cell1)), 0, ncells1-1);
             for (int cell = cell_first; cell <= cell_last; ++ cell) {
                 coordf_t idxf = (0.5 * hscale + (h - slicing_params.layer_height)) * coordf_t(palette_raw.size()-1) / hscale;
                 int idx1 = std::clamp(int(floor(idxf)), 0, int(palette_raw.size() - 1));

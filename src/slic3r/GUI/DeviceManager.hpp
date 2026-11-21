@@ -119,6 +119,7 @@ private:
     std::string dev_name;
     std::string dev_ip;
     std::string access_code;
+    std::string ca_file;
     bool m_access_revoked = false;
 
     // type, time stamp, delay
@@ -234,6 +235,9 @@ public:
     void revoke_access();
     std::string get_access_code() const;
     void set_access_code(std::string code, bool only_refresh = true);
+    // CA certificate the user chose for this LAN printer (see BBLocalMachine::ca_file).
+    std::string get_ca_file() const { return ca_file; }
+    void set_ca_file(std::string path, bool only_refresh = true);
 
     //PRINTER_TYPE printer_type = PRINTER_3DPrinter_UKNOWN;
     std::string printer_type;       /* model_id */
@@ -405,7 +409,7 @@ public:
     bool upgrade_force_upgrade { false };
     bool upgrade_new_version { false };
     bool upgrade_consistency_request { false };
-    DevFirmwareUpgradingState upgrade_display_state;
+    DevFirmwareUpgradingState upgrade_display_state { DevFirmwareUpgradingState::UpgradingUnavaliable };
     int upgrade_display_hold_count = 0;
     PrinterFirmwareType       firmware_type; // engineer|production
     PrinterFirmwareType       lifecycle { PrinterFirmwareType::FIRMWARE_TYPE_PRODUCTION };

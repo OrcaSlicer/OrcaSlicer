@@ -1674,10 +1674,25 @@ void DesignCanvas::update_constrain_entities(const std::vector<SketchEntity>& en
     request_repaint();
 }
 
-void DesignCanvas::set_constraint_highlight(std::vector<int> entities)
+int DesignCanvas::selected_sketch_constraint() const
 {
-    m_sketch_tool.set_constraint_highlight(std::move(entities));
+    return m_sketch_tool.selected_constraint();
+}
+
+void DesignCanvas::select_sketch_constraint(int con)
+{
+    m_sketch_tool.select_constraint(con);
     request_repaint();
+}
+
+void DesignCanvas::set_on_sketch_constraint_selected(std::function<void(int con)> cb)
+{
+    m_sketch_tool.on_constraint_selected = std::move(cb);
+}
+
+BoundingBoxf3 DesignCanvas::sketch_constraint_box(int con) const
+{
+    return m_sketch_tool.constraint_box(con);
 }
 
 void DesignCanvas::set_constraint_glyphs(std::vector<SketchEntityConstraintDef> cons)

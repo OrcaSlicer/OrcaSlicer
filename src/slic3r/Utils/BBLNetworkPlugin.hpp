@@ -102,6 +102,7 @@ typedef int (*func_get_camera_url)(void *agent, std::string dev_id, std::functio
 typedef int (*func_get_design_staffpick)(void *agent, int offset, int limit, std::function<void(std::string)> callback);
 typedef int (*func_start_pubilsh)(void *agent, PublishParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, std::string* out);
 typedef int (*func_get_model_publish_url)(void *agent, std::string* url);
+// BBLModelTask (libslic3r/ProjectTask.hpp) is filled in place by the plug-in and must match its layout.
 typedef int (*func_get_subtask)(void *agent, BBLModelTask* task, OnGetSubTaskFn getsub_fn);
 typedef int (*func_get_model_mall_home_url)(void *agent, std::string* url);
 typedef int (*func_get_model_mall_detail_url)(void *agent, std::string* url, std::string id);

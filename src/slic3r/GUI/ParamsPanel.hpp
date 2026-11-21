@@ -74,7 +74,6 @@ class ParamsPanel : public wxPanel
 
 	private:
         void free_sizers();
-        void delete_subwindows();
         void refresh_tabs();
 
 	protected:

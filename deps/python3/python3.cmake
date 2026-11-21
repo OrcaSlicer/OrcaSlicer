@@ -181,6 +181,16 @@ if(WIN32)
             -DPYTHON_LAYOUT_ARCH=${_python_layout_arch}
             -P ${CMAKE_CURRENT_LIST_DIR}/stage_windows.cmake
     )
+    # CPython 3.12.13 raises the _winapi.CreateProcess audit event with PySys_Audit's "u" format
+    # for command_line although it is a Python object, so audit hooks received garbage instead of
+    # the command line and the plugin audit prompt named the wrong executable. Apply upstream's
+    # "uOu" fix (python/cpython#159237) until the pinned release carries it. The step tolerates
+    # an already patched tree, which a re-run after a stamp change can meet.
+    set(_python_patch_cmd
+        ${CMAKE_COMMAND}
+            "-DGIT_EXECUTABLE=${GIT_EXECUTABLE}"
+            -P "${CMAKE_CURRENT_LIST_DIR}/patch_winapi_audit.cmake"
+    )
 elseif(APPLE)
     # macOS configuration
     if(CMAKE_OSX_ARCHITECTURES)
@@ -351,6 +361,7 @@ ExternalProject_Add(dep_python3
     URL_HASH SHA256=${_python_sha256}
     DOWNLOAD_DIR ${DEP_DOWNLOAD_DIR}/python3
     BUILD_IN_SOURCE ON
+    PATCH_COMMAND ${_python_patch_cmd}
     CONFIGURE_COMMAND ${_conf_cmd}
     BUILD_COMMAND ${_build_cmd}
     INSTALL_COMMAND ${_install_cmd}
@@ -365,10 +376,11 @@ if(TARGET dep_ZLIB)
     add_dependencies(dep_python3 dep_ZLIB)
 endif()
 
-if (NOT WIN32 AND NOT APPLE)
-    # CPython's Makefile rules for _ssl and _hashlib depend only on their own
-    # sources, not on the OpenSSL archives, so a rebuilt OpenSSL does not make
-    # them relink and they keep the previous symbols. On an incremental tree,
+if (NOT WIN32)
+    # _ssl and _hashlib embed the static OpenSSL built in deps/ (Windows uses
+    # CPython's prebuilt OpenSSL instead). Their Makefile rules depend only on
+    # their own sources, not on the OpenSSL archives, so a rebuilt OpenSSL does
+    # not make them relink and they keep the previous one. On an incremental tree,
     # drop the built modules and relink them against the current OpenSSL; a
     # fresh build is left alone (its PGO target builds them). "make" alone is a
     # no-op once PGO has run, so sharedmods is invoked explicitly.

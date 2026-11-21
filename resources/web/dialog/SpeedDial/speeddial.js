@@ -1,6 +1,7 @@
 // Speed Dial launcher page. Static-safe module: no DOM access at load time so a
 // node vm can exercise the pure helpers (searchActions / filterTabs / actionLabel / nextSel /
-// commandList / commandSections / actionCategory / groupActions / favDigitFromEvent / spacerHeight).
+// commandList / commandSections / actionCategory / groupActions / favDigitFromEvent / spacerHeight /
+// detailActionId / phaseClickIgnored).
 //
 // Cross-boundary contracts (keep in sync; the C++ side pins its half in tests):
 //   - favourite cap 10            -> ActionRegistry::kFavLimit (K_FAV_LIMIT here)
@@ -21,6 +22,21 @@ var RECENTS = [];        // [{id,title,source,group,kind,input,icon,mode}] - las
 var query = "";
 var sel = { zone: "list", i: 0 };   // zone: 'list' | 'fav'
 var matchIndex = {};
+// Action id under the pointer, or null. The footer describes it in place of the keyboard selection,
+// so a mouse user can still read a row's description/wiki now that a single click launches it.
+var hover = null;
+// A preview commits only after the pointer rests this long: reaching the footer means crossing the
+// rows below the hovered one, and the footer must stay on the row the pointer came from.
+var HOVER_SETTLE_MS = 150;
+// ...but never longer than this on one row, so a pointer that keeps drifting still previews it.
+var HOVER_MAX_WAIT_MS = 1000;
+// A move shorter than this between mousemoves is hand jitter, not a move off the row, so it must
+// not push the settle timer back (rows are 44px tall: style.css --row-h).
+var HOVER_JITTER_PX = 6;
+var hoverTimer = 0;      // pending setHover(id) commit, 0 when none
+var hoverPending = null; // the id that timer will commit
+var hoverSince = 0;      // Date.now() when the pointer landed on hoverPending's row
+var hoverX = 0, hoverY = 0; // last pointer position that counted as a move
 
 // Global tooltip expansion, seeded from C++ (persisted in the speed_dial config section). Collapsing
 // hides the footer description + wiki link for every action; the arrow remains to expand again.
@@ -88,6 +104,11 @@ var searchTokenRes = [];
 // second phase: pick a notebook tab).
 var phase = "commands";
 var tabOptions = [];       // [{id,title}] - notebook pages, fetched on entering the tab phase
+// A list click inside this window after a phase switch is the second half of a double-click on the
+// command that opened the phase (the new rows render under the cursor), so it is ignored. Covers the
+// OS double-click interval, which is up to 500 ms on Windows.
+var PHASE_CLICK_GRACE_MS = 500;
+var phaseEnteredAt = 0;    // Date.now() of the last phase switch
 
 // why: the fuzzy matcher (NormText/FuzzyRangesNorm) lives in shared
 //      ../../js/fuzzy-search.js, loaded before this script. Search is always case-insensitive.
@@ -607,6 +628,12 @@ function selectedActionId(sel, actions, favIds) {
     return a && a.id;
 }
 
+// The action id the footer describes: the pointer's action when one is hovered, else the keyboard
+// selection resolved through the active list/fav bar. Pure so the node-vm test can pin the precedence.
+function detailActionId(hoverId, sel, actions, favIds) {
+    return hoverId || selectedActionId(sel, actions, favIds);
+}
+
 function actionHasWiki(a) { return !!(a && a.wiki); }
 
 // Whether the action has anything for the footer strip to show (a description or a wiki link).
@@ -740,6 +767,13 @@ function nextSel(sel, key, listLen, favLen) {
     return { zone: zone, i: i };
 }
 
+// True for a list activation that lands right after a phase switch: that click is the tail of a
+// double-click on the command that opened the phase, not an intent to run the row now under the
+// cursor. The clock and the switch timestamp are passed in so the node-vm test can cover it.
+function phaseClickIgnored(now, enteredAt) {
+    return enteredAt > 0 && now - enteredAt < PHASE_CLICK_GRACE_MS;
+}
+
 // ---- bridge ------------------------------------------------------------------
 function SendMessage(msg) {
     if (typeof SendWXMessage !== "function")
@@ -765,6 +799,7 @@ window.HandleStudio = function (payload) {
         tabOptions = [];
         query = "";
         sel = { zone: "list", i: 0 };
+        resetHover();
         // why: builtKey caches phase|query so renderCommandsList can skip a rebuild on arrow-nav.
         // It survives a re-open (which never goes through exitPhase), so without a reset the cached
         // empty-query key would skip the rebuild and leave stale list content.
@@ -878,6 +913,10 @@ function renderFav() {
         tile.title = a.title + (tileBadge ? " (" + tileBadge + ")" : "");
         tile.setAttribute("aria-label", actionLabel(a, ACTIONS));
         tile.onclick = function () { sel = { zone: "fav", i: i }; activateEntry(a); };
+        // Resting the pointer on a tile previews it in the footer (a click launches it). Movement only:
+        // mouseenter also fires when rows/tiles move under a resting pointer (scroll, rebuild), which
+        // would move the footer while Enter still runs the highlighted row.
+        tile.addEventListener("mousemove", function (e) { setHover(id, e); });
         // Numbered quick-launch badge (Alt/Option+digit), drawn on the corner.
         var slot = favSlotForIndex(i);
         if (slot) {
@@ -889,15 +928,6 @@ function renderFav() {
             badge.title = T("sd_fav_slot", "Favorite %s (%s)", slot_num, shortcutAlt() + slot);
             tile.appendChild(badge);
         }
-        // Direct removal: a hover-revealed ✕ in the tile's corner. click() stops propagation so it
-        // unpins without activating the action.
-        var unpin = document.createElement("button");
-        unpin.className = "fav-unpin";
-        unpin.title = T("sd_remove_fav", "Remove from favorites");
-        unpin.setAttribute("aria-label", T("sd_remove_fav", "Remove from favorites"));
-        unpin.innerHTML = '<svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>';
-        unpin.onclick = function (ev) { ev.stopPropagation(); toggleFav(id); };
-        tile.appendChild(unpin);
         tile.oncontextmenu = function (ev) {
             ev.preventDefault();
             // why: selecting shows the eyebrow, which grows the launcher - resize so the popup
@@ -1025,13 +1055,15 @@ function renderActionRow(a, i) {
     var pin = document.createElement("button");
     pin.className = "pin";
     setPinState(pin, on);
+    // stopPropagation keeps the bookmark's click from launching the row.
     pin.onclick = function (ev) { ev.stopPropagation(); toggleFav(a.id); };
-    // why: two quick fav/unfav clicks must not dblclick-run the row
-    pin.ondblclick = function (ev) { ev.stopPropagation(); };
     shell.row.appendChild(pin);
 
-    shell.row.onclick = function () { sel = { zone: "list", i: i }; render({ resize: true }); };
-    shell.row.ondblclick = function () { sel = { zone: "list", i: i }; activateEntry(a); };
+    shell.row.onclick = function () { sel = { zone: "list", i: i }; activateEntry(a); };
+    // Hovering previews the row in the footer: a click launches the action right away, so resting
+    // the pointer on the row is the only way to read its description without running it. Movement
+    // only, for the same reason as the tiles: a row scrolling under a resting pointer is not a hover.
+    shell.row.addEventListener("mousemove", function (e) { setHover(a.id, e); });
     return shell.row;
 }
 
@@ -1099,6 +1131,7 @@ function rebuildCommandsList(list) {
     ensureSpacer();
     renderEnd = 0;
     sectionRendered = 0;
+    resetHover();   // the rows are fresh; a stale hover id would describe a row that is gone
     appendActionRows(list, 0, Math.min(list.length, K_ROWS));
     renderEnd = Math.min(list.length, K_ROWS);
     setBottomSpacer(list.length);
@@ -1196,8 +1229,14 @@ function renderTabRow(t, i) {
     var hint = tabAliasHint(t, query);
     if (hint)
         shell.line.appendChild(markedText("row-alias", hint.text, hint.ranges));
-    shell.row.onclick = function () { sel = { zone: "list", i: i }; render({ resize: true }); };
-    shell.row.ondblclick = function () { sel = { zone: "list", i: i }; jumpToTab(t); };
+    // A double-click on the "Go to tab..." command lands its second click on the row now under the
+    // cursor; ignore it so the tab list stays up instead of jumping to a tab.
+    shell.row.onclick = function () {
+        if (phaseClickIgnored(Date.now(), phaseEnteredAt))
+            return;
+        sel = { zone: "list", i: i };
+        jumpToTab(t);
+    };
     return shell.row;
 }
 
@@ -1206,6 +1245,7 @@ function renderTabList() {
     var list = currentList();
     listEl.innerHTML = "";
     spacerEl = null; // the tab list has no windowed spacer; rebuildCommandsList recreates it
+    resetHover();    // the rows are fresh; a stale hover id would describe a row that is gone
 
     if (!list.length) {
         renderEmpty(q ? T("sd_no_tabs_match", "No tabs match") : T("sd_no_tabs", "No tabs"));
@@ -1235,15 +1275,66 @@ function renderList() {
         renderCommandsList();
 }
 
-// The action the footer describes: the current selection resolved through the active list/fav bar.
+// The action the footer describes: the hovered action, else the keyboard selection resolved through
+// the active list/fav bar.
 function currentDetailAction() {
     if (phase !== "commands") return null;
-    var id = selectedActionId(sel, currentList(), currentVisibleFavs());
+    var id = detailActionId(hover, sel, currentList(), currentVisibleFavs());
     return id ? byId(id) : null;
 }
 
-// Footer detail strip: the selected action's description, its wiki link and the expand/collapse
-// arrow. Shown whenever the highlighted action has a description or a wiki page; expanding is a
+// Footer preview follows the pointer. Only the detail strip re-renders, so hovering never touches
+// the selection or the list; the resize keeps the popup fitted to the new description height.
+// The commit waits for the pointer to rest, so crossing the rows below a hovered row on the way to
+// the footer keeps the footer on the row the pointer came from. Every real move restarts the wait,
+// so a row crossed over is never committed; HOVER_MAX_WAIT_MS caps it so a pointer that never rests
+// still previews the row it stays on.
+function setHover(id, ev) {
+    var sameRow = hoverPending === id;
+    // Jitter on the row already waiting is not a move: keep the running timer, so an unsteady hand
+    // still previews what it rests on.
+    if (sameRow && Math.hypot(ev.clientX - hoverX, ev.clientY - hoverY) < HOVER_JITTER_PX) return;
+    cancelHover();
+    if (hover === id) return;
+    var now = Date.now();
+    if (!sameRow) hoverSince = now;
+    hoverX = ev.clientX;
+    hoverY = ev.clientY;
+    hoverPending = id;
+    hoverTimer = setTimeout(function () {
+        hoverTimer = 0;
+        hoverPending = null;
+        if (hover === id) return;
+        hover = id;
+        renderDetail();
+        requestResize();
+    }, Math.max(0, Math.min(HOVER_SETTLE_MS, hoverSince + HOVER_MAX_WAIT_MS - now)));
+}
+
+// Drop a scheduled preview without touching the committed one.
+function cancelHover() {
+    hoverPending = null;
+    if (!hoverTimer) return;
+    clearTimeout(hoverTimer);
+    hoverTimer = 0;
+}
+
+// Forget the preview entirely; the caller re-renders (the selected action's detail comes back).
+function resetHover() {
+    cancelHover();
+    hover = null;
+}
+
+function clearHover() {
+    var had = hover !== null;
+    resetHover();
+    if (!had) return;
+    renderDetail();
+    requestResize();
+}
+
+// Footer detail strip: the highlighted (or hovered) action's description, its wiki link and the
+// expand/collapse arrow. Shown whenever that action has a description or a wiki page; expanding is a
 // persisted global preference, so the arrow stays available to collapse/expand every tooltip.
 function renderDetail() {
     if (!detailEl) return;
@@ -1428,7 +1519,7 @@ function jumpToTab(t) {
 // Clear the shared query/cursor state when entering or leaving a phase. Callers set the
 // phase-specific placeholder, then render.
 function resetPhaseInput() {
-    query = ""; qEl.value = ""; sel = { zone: "list", i: 0 };
+    query = ""; qEl.value = ""; sel = { zone: "list", i: 0 }; resetHover();
     syncClearButton();
 }
 
@@ -1442,6 +1533,7 @@ function enterPercentPhase() {
 
 function enterTabsPhase() {
     phase = "tab"; tabOptions = [];
+    phaseEnteredAt = Date.now();
     resetPhaseInput();
     qEl.placeholder = T("sd_go_tab_ph", "Go to tab");
     render({ resize: true, resetScroll: true });
@@ -1450,7 +1542,7 @@ function enterTabsPhase() {
 }
 
 function exitPhase() {
-    phase = "commands"; tabOptions = [];
+    phase = "commands"; tabOptions = []; phaseEnteredAt = 0;
     resetPhaseInput();
     // why: builtKey caches phase|query so renderCommandsList can skip a rebuild on arrow-nav/click.
     // It survives a second-phase exit (which never goes through exitPhase from the commands view),
@@ -1502,9 +1594,25 @@ function OnInit() {
         revealTo(list, revealTarget(list.length, firstVisible, 2 * K_ROWS));
     });
 
-    // why: dismiss the fav context menu on any click/scroll away from it (capture scroll to catch nested scrollers).
-    document.addEventListener("click", hideFavMenu);
+    // why: dismiss the fav context menu on any click/scroll away from it (capture scroll to catch
+    // nested scrollers). The click is handled in capture phase and swallowed: a row click now runs
+    // its action, so the click that closes the menu must only close the menu.
+    document.addEventListener("click", function (ev) {
+        if (!favMenuEl || favMenuEl.hidden) return;
+        if (favMenuEl.contains(ev.target)) return;   // menu items handle their own click
+        hideFavMenu();
+        ev.preventDefault();
+        ev.stopPropagation();
+    }, true);
     document.addEventListener("scroll", hideFavMenu, true);
+    // The footer preview returns to the keyboard selection only when the pointer leaves the popup,
+    // so a hovered row's wiki link stays clickable while the pointer crosses into the footer strip.
+    var launcherEl = document.querySelector(".launcher");
+    if (launcherEl)
+        launcherEl.addEventListener("mouseleave", clearHover);
+    // Leaving the list (into the gap above the footer, or the footer itself) drops a preview still
+    // waiting on the settle timer, so the footer keeps the row the pointer rested on.
+    listEl.addEventListener("mouseleave", cancelHover);
 
     document.addEventListener("keydown", function (e) {
         if (favMenuEl && !favMenuEl.hidden && e.key === "Escape") { e.preventDefault(); hideFavMenu(); return; }
@@ -1562,6 +1670,7 @@ function OnInit() {
             if (phase === "percent") return;
             e.preventDefault();
             sel = nextSel(sel, e.key, list.length, favs.length);
+            resetHover();   // the keyboard takes the footer back from the pointer
             // why: entering/leaving the fav zone toggles the eyebrow line, changing launcher height;
             // resize so the popup grows/shrinks instead of clipping.
             render({ resize: true });

@@ -312,3 +312,34 @@ test("Native focus hook waits for initialization and preserves active partial ed
   await page.locator("#rValue").press("Escape");
   assert.equal(await count(page, "cancel"), 1);
 });
+
+test("Native screen sampling replaces RGB, keeps alpha and is cancellable", options, async t => {
+  const {page, ready, send} = await open(t);
+  assert.equal(await send({...init(ready, false, true), can_sample_screen: "yes"}), false);
+  assert.equal(await send({...init(ready, false, true), can_sample_screen: true}), true);
+  const button = page.locator("#eyedropperBtn");
+  assert.equal(await button.isVisible(), true);
+  await button.click();
+  assert.equal(await page.evaluate(() => messages.at(-1).command), "sample_screen");
+  assert.equal(await button.getAttribute("aria-pressed"), "true");
+  await button.click();
+  assert.equal(await count(page, "sample_screen"), 1, "no second request while the loupe is open");
+  assert.equal(await send({command: "sampled_color", page_id: ready.page_id, picked: true, rgb: [256, 0, 0]}), false);
+  assert.equal(await send({command: "sampled_color", page_id: "stale", picked: true, rgb: [1, 2, 3]}), false);
+  assert.equal(await send({command: "sampled_color", page_id: ready.page_id, picked: true, rgb: [0x12, 0xAB, 0xEF]}), true);
+  assert.equal(await button.getAttribute("aria-pressed"), "false");
+  assert.deepEqual(await page.evaluate(() => ColorPickerDialog.exportSelection()), {type: "solid", colors: ["#12ABEF67"]});
+  await button.click();
+  assert.equal(await send({command: "sampled_color", page_id: ready.page_id, picked: false}), true);
+  assert.equal(await button.getAttribute("aria-pressed"), "false");
+  assert.deepEqual(await page.evaluate(() => ColorPickerDialog.exportSelection()), {type: "solid", colors: ["#12ABEF67"]});
+});
+
+test("The eyedropper stays hidden without a native sampler, even where the WebView has EyeDropper", options, async t => {
+  const {page, ready, send} = await open(t);
+  await page.evaluate(() => { window.EyeDropper = class { async open() { return {sRGBHex: "#336699"}; } }; });
+  assert.equal(await send(init(ready)), true);
+  assert.equal(await page.locator("#eyedropperBtn").isVisible(), false);
+  await page.locator("#eyedropperBtn").evaluate(element => element.click());
+  assert.equal(await count(page, "sample_screen"), 0);
+});

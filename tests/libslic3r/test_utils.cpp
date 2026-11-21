@@ -10,6 +10,7 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_message.hpp>
 #include "libslic3r/Utils.hpp"
+#include "libslic3r_version.h"
 
 #include "test_utils.hpp"
 
@@ -21,13 +22,15 @@
 #include <fstream>
 #include <ios>
 #include <iterator>
+#include <optional>
 #include <string>
 #include <thread>
 #include <system_error>
 #include <utility>
 
 #ifndef _WIN32
-#include <unistd.h>     // getuid
+#include <fcntl.h>      // open
+#include <unistd.h>     // getuid, close
 #endif
 
 using namespace Slic3r;
@@ -567,3 +570,101 @@ TEST_CASE("extended_path turns a Windows path into its long-path form", "[Utils]
     }
 #endif
 }
+
+#ifndef _WIN32
+TEST_CASE("xdg_config_dir follows XDG_CONFIG_HOME and falls back to ~/.config", "[utils]") {
+    {
+        ScopedEnvVar xdg("XDG_CONFIG_HOME", "/tmp/xdg-test");
+        CHECK(Slic3r::xdg_config_dir("OrcaSlicer") == "/tmp/xdg-test/OrcaSlicer");
+    }
+    {
+        ScopedEnvVar xdg("XDG_CONFIG_HOME", "");
+        ScopedEnvVar home("HOME", "/tmp/home-test");
+        CHECK(Slic3r::xdg_config_dir("OrcaSlicer") == "/tmp/home-test/.config/OrcaSlicer");
+    }
+}
+
+TEST_CASE("is_running_in_flatpak ignores an inherited FLATPAK_ID", "[utils]") {
+    if (boost::filesystem::exists("/.flatpak-info"))
+        SKIP("running inside a Flatpak sandbox");
+    ScopedEnvVar id("FLATPAK_ID", "com.orcaslicer.OrcaSlicer");
+    CHECK_FALSE(Slic3r::is_running_in_flatpak());
+}
+
+namespace {
+// An XDG_RUNTIME_DIR holding a wayland-0 entry, with WAYLAND_SOCKET unset.
+struct WaylandRuntimeDir
+{
+    ScopedTemporaryDir dir;
+    ScopedEnvVar       runtime_dir{"XDG_RUNTIME_DIR", dir.string()};
+    ScopedEnvVar       socket_fd{"WAYLAND_SOCKET", std::nullopt};
+    WaylandRuntimeDir() { std::ofstream((dir.path() / "wayland-0").string()).close(); }
+};
+} // namespace
+
+TEST_CASE("wayland_socket_available falls back to wayland-0 when WAYLAND_DISPLAY is unset", "[utils]") {
+    WaylandRuntimeDir runtime;
+    ScopedEnvVar      display("WAYLAND_DISPLAY", std::nullopt);
+    CHECK(Slic3r::wayland_socket_available());
+}
+
+TEST_CASE("wayland_socket_available looks up WAYLAND_DISPLAY under XDG_RUNTIME_DIR", "[utils]") {
+    WaylandRuntimeDir runtime;
+    {
+        ScopedEnvVar display("WAYLAND_DISPLAY", "wayland-0");
+        CHECK(Slic3r::wayland_socket_available());
+    }
+    {
+        ScopedEnvVar display("WAYLAND_DISPLAY", "wayland-1");
+        CHECK_FALSE(Slic3r::wayland_socket_available());
+    }
+}
+
+TEST_CASE("wayland_socket_available finds no socket for an empty WAYLAND_DISPLAY", "[utils]") {
+    WaylandRuntimeDir runtime;
+    ScopedEnvVar      display("WAYLAND_DISPLAY", "");
+    CHECK_FALSE(Slic3r::wayland_socket_available());
+}
+
+TEST_CASE("wayland_socket_available takes an absolute WAYLAND_DISPLAY without XDG_RUNTIME_DIR", "[utils]") {
+    WaylandRuntimeDir runtime;
+    ScopedEnvVar      display("WAYLAND_DISPLAY", (runtime.dir.path() / "wayland-0").string());
+    ScopedEnvVar      no_runtime_dir("XDG_RUNTIME_DIR", std::nullopt);
+    CHECK(Slic3r::wayland_socket_available());
+}
+
+TEST_CASE("wayland_socket_available needs an absolute XDG_RUNTIME_DIR for a relative name", "[utils]") {
+    WaylandRuntimeDir runtime;
+    ScopedEnvVar      display("WAYLAND_DISPLAY", "wayland-0");
+    ScopedEnvVar      relative_runtime_dir("XDG_RUNTIME_DIR", "run/user");
+    CHECK_FALSE(Slic3r::wayland_socket_available());
+}
+
+TEST_CASE("wayland_socket_available uses WAYLAND_SOCKET instead of the socket file when it is set", "[utils]") {
+    WaylandRuntimeDir runtime;
+    ScopedEnvVar      display("WAYLAND_DISPLAY", "wayland-0");
+    {
+        ScopedEnvVar socket_fd("WAYLAND_SOCKET", "not-a-number");
+        CHECK_FALSE(Slic3r::wayland_socket_available());
+    }
+    const int fd = ::open((runtime.dir.path() / "wayland-0").string().c_str(), O_RDONLY);
+    REQUIRE(fd != -1);
+    {
+        ScopedEnvVar socket_fd("WAYLAND_SOCKET", std::to_string(fd));
+        CHECK(Slic3r::wayland_socket_available());
+    }
+    ::close(fd);
+    {
+        ScopedEnvVar socket_fd("WAYLAND_SOCKET", std::to_string(fd));
+        CHECK_FALSE(Slic3r::wayland_socket_available());
+    }
+}
+#endif
+
+#ifdef __linux__
+TEST_CASE("default_data_dir is the XDG config dir without a portable data_dir folder", "[utils]") {
+    ScopedEnvVar xdg("XDG_CONFIG_HOME", "/tmp/xdg-test");
+    // A data_dir folder next to the test binary would make it a portable install; none is expected.
+    CHECK(Slic3r::default_data_dir() == "/tmp/xdg-test/" SLIC3R_APP_KEY);
+}
+#endif

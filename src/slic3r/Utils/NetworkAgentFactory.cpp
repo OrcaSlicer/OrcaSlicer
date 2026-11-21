@@ -166,8 +166,12 @@ std::shared_ptr<IPrinterAgent> NetworkAgentFactory::create_printer_agent_by_id(c
 
 void NetworkAgentFactory::clear_printer_agent_cache()
 {
-    std::lock_guard<std::mutex> lock(s_registry_mutex);
-    auto& cache = get_printer_agent_cache();
+    // Disconnects and destroys the agents outside the lock, since a destructor waits for its agent's threads
+    std::map<std::string, std::shared_ptr<IPrinterAgent>> cache;
+    {
+        std::lock_guard<std::mutex> lock(s_registry_mutex);
+        cache.swap(get_printer_agent_cache());
+    }
     for (auto& pair : cache) {
         if (pair.second)
             pair.second->disconnect_printer();

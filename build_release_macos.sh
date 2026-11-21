@@ -47,25 +47,45 @@ while getopts ":dpa:snt:xbc:i:j:Tuh" opt; do
     u )
         export BUILD_TARGET="universal"
         ;;
-    h ) echo "Usage: ./build_release_macos.sh [-d]"
+    h ) echo "Usage: ./build_release_macos.sh [-d] [-- CMAKE_ARGS...]"
         echo "   -d: Build deps only"
         echo "   -a: Set ARCHITECTURE (arm64 or x86_64 or universal)"
         echo "   -s: Build slicer only"
         echo "   -u: Build universal app only (requires existing arm64 and x86_64 app bundles)"
         echo "   -n: Nightly build"
         echo "   -t: Specify minimum version of the target platform, default is 12.0"
-        echo "   -x: Use Ninja Multi-Config CMake generator, default is Xcode"
+        echo "   -x: Use Ninja Multi-Config CMake generator, default is Xcode (requires ninja; install with 'brew install ninja')"
         echo "   -b: Build without reconfiguring CMake"
         echo "   -c: Set CMake build configuration, default is Release"
         echo "   -i: Add a prefix to ignore during CMake dependency discovery (repeatable), defaults to /opt/local:/usr/local:/opt/homebrew"
         echo "   -j: Set the number of parallel build jobs (CMAKE_BUILD_PARALLEL_LEVEL)"
         echo "   -T: Build and run tests (set ORCA_TESTS_BUILD_ONLY=1 to build without running)"
+        echo "   -- CMAKE_ARGS...: pass everything after '--' to the cmake configure step of the deps (-d) and slicer (-s) builds,"
+        echo "       e.g. -DDESTDIR=<dir> for the deps, -DCMAKE_PREFIX_PATH=<dir>/usr/local -DSLIC3R_PCH=OFF for the slicer, --fresh."
+        echo "       They come last on the cmake command line. Use absolute paths: cmake runs in the build directory."
         exit 0
         ;;
+    : )
+        echo "Option -${OPTARG} requires an argument, aborting."
+        exit 1
+        ;;
     * )
+        echo "Unknown option -${OPTARG}, aborting. CMake arguments must follow '--'."
+        exit 1
         ;;
   esac
 done
+
+# getopts stops at '--'; whatever follows is handed to cmake unchanged.
+if [[ ${OPTIND} -le $# ]] ; then
+    separator_index=$((OPTIND-1))
+    if [[ "${!separator_index}" != "--" ]] ; then
+        echo "Unexpected argument '${!OPTIND}': cmake arguments must follow '--', aborting."
+        exit 1
+    fi
+fi
+shift $((OPTIND-1))
+EXTRA_CMAKE_ARGS=("$@")
 
 # Set defaults
 
@@ -100,6 +120,12 @@ fi
 
 if [ -z "$CMAKE_IGNORE_PREFIX_PATH" ]; then
   export CMAKE_IGNORE_PREFIX_PATH="/opt/local:/usr/local:/opt/homebrew"
+fi
+
+if [[ "$SLICER_CMAKE_GENERATOR" == Ninja* || "$DEPS_CMAKE_GENERATOR" == Ninja* ]] && ! command -v ninja >/dev/null 2>&1; then
+  echo "Error: Ninja is required when using the -x generator option."
+  echo "Install it with Homebrew: brew install ninja"
+  exit 1
 fi
 
 CMAKE_VERSION=$(cmake --version | head -1 | sed 's/[^0-9]*\([0-9]*\).*/\1/')
@@ -211,7 +237,8 @@ function build_deps() {
                         -DCMAKE_OSX_DEPLOYMENT_TARGET="${OSX_DEPLOYMENT_TARGET}" \
                         -DCMAKE_IGNORE_PREFIX_PATH="${CMAKE_IGNORE_PREFIX_PATH}" \
                         "${CMAKE_CCACHE_ARGS[@]}" \
-                        ${CMAKE_POLICY_COMPAT}
+                        ${CMAKE_POLICY_COMPAT} \
+                        "${EXTRA_CMAKE_ARGS[@]}"
                 fi
                 cmake --build . --config "$BUILD_CONFIG" --target deps
             )
@@ -314,7 +341,8 @@ function build_slicer() {
                     -DCMAKE_OSX_DEPLOYMENT_TARGET="${OSX_DEPLOYMENT_TARGET}" \
                     -DCMAKE_IGNORE_PREFIX_PATH="${CMAKE_IGNORE_PREFIX_PATH}" \
                     "${CMAKE_CCACHE_ARGS[@]}" \
-                    ${CMAKE_POLICY_COMPAT}
+                    ${CMAKE_POLICY_COMPAT} \
+                    "${EXTRA_CMAKE_ARGS[@]}"
             fi
             cmake --build . --config "$BUILD_CONFIG" --target "$SLICER_BUILD_TARGET"
         )

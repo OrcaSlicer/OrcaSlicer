@@ -99,6 +99,8 @@
             aria-selected="false" aria-controls="descriptionPanel" data-tab="description" data-i18n="description">Description</button>
           <button id="configTab" class="detail-tab" type="button" role="tab" tabindex="-1"
             aria-selected="false" aria-controls="configPanel" data-tab="config" data-i18n="tab_config">Config</button>
+          <button id="permissionsTab" class="detail-tab" type="button" role="tab" tabindex="-1"
+            aria-selected="false" aria-controls="permissionsPanel" data-tab="permissions" data-i18n="permissions_tab">Permissions</button>
           <button id="changelogTab" class="detail-tab" type="button" role="tab" tabindex="-1"
             aria-selected="false" aria-controls="changelogPanel" data-tab="changelog" data-i18n="tab_changelog">Changelog</button>
           <button id="diagnosticsTab" class="detail-tab" type="button" role="tab" tabindex="-1"
@@ -185,6 +187,11 @@
                 </div>
               </div>
             </div>
+          </section>
+
+          <section id="permissionsPanel" class="detail-tab-panel thin-scroll" role="tabpanel" tabindex="0"
+            aria-labelledby="permissionsTab" data-panel="permissions" hidden>
+            <div id="permissionsContent" class="permissions-content"></div>
           </section>
 
           <section id="changelogPanel" class="detail-tab-panel thin-scroll" role="tabpanel" tabindex="0"

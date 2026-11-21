@@ -11,6 +11,7 @@
 
 #include "GUI_App.hpp"
 #include "DeviceErrorDialog.hpp"
+#include "MainFrame.hpp"
 #include "Plater.hpp"
 #include "ReleaseNote.hpp"
 #include <string>
@@ -575,6 +576,15 @@ void MachineObject::set_access_code(std::string code, bool only_refresh)
                     config->erase("access_code", get_dev_id());
             }
         }
+    }
+}
+
+void MachineObject::set_ca_file(std::string path, bool only_refresh)
+{
+    ca_file = std::move(path);
+    if (only_refresh && is_lan_mode_printer() && has_access_right()) {
+        if (AppConfig* config = m_manager ? m_manager->get_app_config() : GUI::wxGetApp().app_config)
+            DeviceManager::update_local_machine(*this, config);
     }
 }
 
@@ -1199,12 +1209,14 @@ void MachineObject::parse_home_flag(int flag)
         m_fila_system->GetAmsSystemSetting().SetAutoRefillEnabled(((flag >> 10) & 0x1) != 0);
     }
 
-    is_support_flow_calibration = ((flag >> 15) & 0x1) != 0;
-    if (this->is_series_o()) { is_support_flow_calibration = false; } // todo: Temp modification due to incorrect machine push message for H2D
+    if (!((is_support_flow_calibration || is_support_pa_calibration) && this->is_series_n())) { // modification: Protect A1/A1 mini legacy firmware capability reporting. If either capability is already reported as supported, preserve it; otherwise, fall back to home_flag bits for newer firmware.
+        is_support_flow_calibration = ((flag >> 15) & 0x1) != 0;
+        if (this->is_series_o()) { is_support_flow_calibration = false; } // todo: Temp modification due to incorrect machine push message for H2D
 
-    is_support_pa_calibration = ((flag >> 16) & 0x1) != 0;
-    if (this->is_series_p()) { is_support_pa_calibration = false; } // todo: Temp modification due to incorrect machine push message for P
-
+        is_support_pa_calibration = ((flag >> 16) & 0x1) != 0;
+        if (this->is_series_p()) { is_support_pa_calibration = false; } // todo: Temp modification due to incorrect machine push message for P
+    }
+        
     if (time(nullptr) - xcam_prompt_sound_hold_start > HOLD_TIME_3SEC) {
         xcam_allow_prompt_sound = ((flag >> 17) & 0x1) != 0;
     }
@@ -2681,6 +2693,13 @@ void MachineObject::update_print_progress(const json& value)
         curr_task->task_progress = mc_print_percent;
 }
 
+// Orca: the agents that inherit MoonrakerPrinterAgent's connection and discovery.
+static bool connects_through_moonraker_agent(const std::string& agent_id)
+{
+    return agent_id == MOONRAKER_PRINTER_AGENT_ID || agent_id == QIDI_PRINTER_AGENT_ID ||
+           agent_id == SNAPMAKER_PRINTER_AGENT_ID || agent_id == CREALITYPRINT_PRINTER_AGENT_ID;
+}
+
 int MachineObject::connect()
 {
     if (m_access_revoked || get_dev_ip().empty()) return -1;
@@ -2690,23 +2709,35 @@ int MachineObject::connect()
     std::string port;
     std::string input = get_dev_ip();
 
-    const bool use_ssl = input.rfind("https", 0) == 0;
+    bool use_ssl = input.rfind("https", 0) == 0;
 
     // This strips out the http/https prefix
     std::string host = Http::get_host_from_url(input, &port);
-    std::string ca_file;
+    // Orca: a print host's dev_id is its host:port. Records saved by older builds can hold the
+    // bare IP as dev_ip, so take the port from the dev_id rather than falling back to port 80.
+    if (port.empty() && connects_through_moonraker_agent(printer_agent_id))
+        Http::get_host_from_url(get_dev_id(), &port);
+    // A Bambu printer's CA is chosen per device in the connect dialog. Never take it from the
+    // selected preset: it may belong to another printer, or come from an imported profile.
+    // A local machine saved before agent ids existed belongs to the agent that connects it now.
+    const std::string agent_id = !printer_agent_id.empty() ? printer_agent_id :
+                                 m_manager                 ? m_manager->get_current_printer_agent_id() : std::string();
+    const bool  is_bbl  = agent_id == BBL_PRINTER_AGENT_ID;
+    std::string ca_file = is_bbl ? get_ca_file() : std::string();
 
     if (wxTheApp && GUI::wxGetApp().preset_bundle) {
         const auto& config = GUI::wxGetApp().preset_bundle->printers.get_edited_preset().config;
         if (port.empty())
             port = config.opt_string("printhost_port");
-        ca_file = config.opt_string("printhost_cafile");
+        if (!is_bbl)
+            ca_file = config.opt_string("printhost_cafile");
 
         // Refresh credentials from the matching preset for connections that bypass GUI_App::select_machine().
         const std::string print_host = config.opt_string("print_host");
         if (printer_agent_id == MOONRAKER_PRINTER_AGENT_ID && config.opt_string("printer_agent") == MOONRAKER_PRINTER_AGENT_ID &&
             !print_host.empty() && dev_id_from_address(print_host, config.opt_string("printhost_port")) == get_dev_id()) {
             password = config.opt_string("printhost_apikey");
+            use_ssl  = boost::istarts_with(print_host, "https://");
             if (password != get_access_code())
                 set_access_code(password);
         }
@@ -4751,7 +4782,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 void MachineObject::set_ctt_dlg( wxString text){
     if (!m_set_ctt_dlg) {
         m_set_ctt_dlg = true;
-        auto print_error_dlg = new GUI::SecondaryCheckDialog(nullptr, wxID_ANY, _L("Warning"), GUI::SecondaryCheckDialog::VisibleButtons::ONLY_CONFIRM); // ORCA VisibleButtons instead ButtonStyle 
+        // Parented so it is destroyed with the main frame: a parentless top-level window,
+        // even hidden, keeps wx from leaving the event loop on exit.
+        auto print_error_dlg = new GUI::SecondaryCheckDialog(GUI::wxGetApp().mainframe, wxID_ANY, _L("Warning"), GUI::SecondaryCheckDialog::VisibleButtons::ONLY_CONFIRM); // ORCA VisibleButtons instead ButtonStyle
         print_error_dlg->update_text(text);
         print_error_dlg->Bind(wxEVT_SHOW, [this](auto& e) {
             if (!e.IsShown()) {
@@ -4786,7 +4819,8 @@ void MachineObject::show_unsupported_dlg(int code)
     // note: constructed directly rather than through CallAfter because every publish_json caller
     // is on the UI thread - clicks come from wx handlers, and the agent marshals its own push
     // callbacks back to main before parse_json runs. set_ctt_dlg relies on the same property.
-    auto unsupported_dlg = new GUI::SecondaryCheckDialog(nullptr, wxID_ANY, _L("Warning"),
+    // Parented for the same reason as in set_ctt_dlg.
+    auto unsupported_dlg = new GUI::SecondaryCheckDialog(GUI::wxGetApp().mainframe, wxID_ANY, _L("Warning"),
                                                          GUI::SecondaryCheckDialog::VisibleButtons::ONLY_CONFIRM);
     unsupported_dlg->update_text(text);
     unsupported_dlg->Bind(wxEVT_SHOW, [this](auto& e) {
@@ -4875,7 +4909,7 @@ void MachineObject::update_model_task()
             unsigned int http_code = 404;
             std::string  http_error;
             int          res = -1;
-            res = m_agent->get_model_mall_rating_result(curr_instance_id, rating_result, http_code, http_error);
+            res = m_agent->get_model_mall_rating_result(curr_instance_id, rating_result, http_code, http_error, Slic3r::GUI::wxGetApp().get_printer_cloud_provider());
             request_model_result++;
             BOOST_LOG_TRIVIAL(info) << "request times: " << request_model_result << " http code: " << http_code;
             auto rating_info = new DevPrintTaskRatingInfo();
@@ -5064,7 +5098,7 @@ void MachineObject::get_firmware_info()
             unsigned int http_code;
             std::string  http_body;
             if (!m_agent) return;
-            result = m_agent->get_printer_firmware(get_dev_id(), &http_code, &http_body);
+            result = m_agent->get_printer_firmware(get_dev_id(), &http_code, &http_body, Slic3r::GUI::wxGetApp().get_printer_cloud_provider());
             if (result < 0) {
                 // get upgrade list failed
                 return;

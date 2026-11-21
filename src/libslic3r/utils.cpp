@@ -6,8 +6,10 @@
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <boost/log/sinks/sync_frontend.hpp>
 #include <boost/log/keywords/severity.hpp>
+#include <boost/dll/runtime_symbol_info.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/exception.hpp>
+#include <boost/system/error_code.hpp>
 #include <cstdio>
 #include <boost/log/keywords/file_name.hpp>
 #include <boost/log/keywords/rotation_size.hpp>
@@ -15,6 +17,9 @@
 #include <boost/log/expressions/formatters/stream.hpp>
 #include <boost/log/expressions/attr.hpp>
 #include <boost/log/expressions/formatters/date_time.hpp>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/posix_time/posix_time_io.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/log/attributes/current_thread_id.hpp>
 #include <boost/log/expressions/message.hpp>
@@ -39,6 +44,12 @@
 #include <openssl/md5.h>
 #include <set>
 #include <stdio.h>
+#include <cstdlib>
+#ifndef _WIN32
+#include <fcntl.h>
+#include <pwd.h>
+#include <unistd.h>
+#endif
 #include <filesystem>
 #include <sstream>
 #include <cerrno>
@@ -50,6 +61,7 @@
 #include <system_error>
 #include <string_view>
 #include <vector>
+#include <regex>
 
 #include "Semver.hpp"
 #include "format.hpp"
@@ -365,6 +377,71 @@ const std::string& data_dir()
 {
     return g_data_dir;
 }
+
+#ifndef _WIN32
+std::string xdg_config_dir(const std::string &app_name)
+{
+    std::string base;
+    if (const char *xdg = ::getenv("XDG_CONFIG_HOME"); xdg != nullptr && *xdg != '\0') {
+        base = xdg;
+    } else {
+        // The same chain as wxGetHomeDir(): $HOME, then the passwd entry of $USER / $LOGNAME,
+        // then the one of the real uid.
+        const char *home = ::getenv("HOME");
+        if (home == nullptr) {
+            const passwd *pw = nullptr;
+            for (const char *var : {"USER", "LOGNAME"})
+                if (const char *user = ::getenv(var); user != nullptr && (pw = ::getpwnam(user)) != nullptr)
+                    break;
+            if (pw == nullptr)
+                pw = ::getpwuid(::getuid());
+            if (pw != nullptr)
+                home = pw->pw_dir;
+        }
+        base = std::string(home != nullptr ? home : "") + "/.config";
+    }
+    return base + "/" + app_name;
+}
+
+bool is_running_in_flatpak()
+{
+    // Only the sandbox has this file, while a host process started from a Flatpak can inherit FLATPAK_ID.
+    return ::access("/.flatpak-info", F_OK) == 0;
+}
+
+bool wayland_socket_available()
+{
+    if (const char *socket_fd = ::getenv("WAYLAND_SOCKET")) {
+        char *end = nullptr;
+        errno = 0;
+        const long fd = std::strtol(socket_fd, &end, 10);
+        return errno == 0 && end != socket_fd && *end == '\0' && ::fcntl(static_cast<int>(fd), F_GETFD) != -1;
+    }
+    const char *name = ::getenv("WAYLAND_DISPLAY");
+    if (name == nullptr)
+        name = "wayland-0";
+    // libwayland uses an empty WAYLAND_DISPLAY as given, and connecting to it fails.
+    if (*name == '\0')
+        return false;
+    if (name[0] == '/')
+        return ::access(name, F_OK) == 0;
+    const char *runtime_dir = ::getenv("XDG_RUNTIME_DIR");
+    return runtime_dir != nullptr && runtime_dir[0] == '/' &&
+           ::access((std::string(runtime_dir) + "/" + name).c_str(), F_OK) == 0;
+}
+#endif
+
+#ifdef __linux__
+std::string default_data_dir()
+{
+    // Runs before any error handling is in place, so a lookup that fails only means no portable dir.
+    boost::system::error_code ec;
+    const boost::filesystem::path portable = boost::dll::program_location(ec).parent_path() / "data_dir";
+    if (!ec && boost::filesystem::exists(portable, ec))
+        return portable.string();
+    return xdg_config_dir(SLIC3R_APP_KEY);
+}
+#endif
 
 std::string custom_shapes_dir()
 {
@@ -1307,6 +1384,21 @@ bool is_shapes_dir(const std::string& dir)
 
 namespace Slic3r {
 
+std::string get_bbl_monitor_end_time_dhm(float time_in_secs)
+{
+    if (time_in_secs == 0.0f)
+        return {};
+
+    std::stringstream stream;
+    boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+    auto endTime = now + boost::posix_time::seconds(static_cast<int>(time_in_secs));
+    auto facet = new boost::posix_time::time_facet("%H:%M");//%Y-%m-%d %H:%M:%S
+    stream.imbue(std::locale(std::locale::classic(), facet));
+    stream << endTime;
+
+    return stream.str();
+}
+
 size_t get_utf8_sequence_length(const std::string& text, size_t pos)
 {
 	assert(pos < text.size());
@@ -2024,7 +2116,9 @@ static Semver installable_cache_version(const boost::filesystem::path& dir, cons
     const auto cache_ver = Semver::parse(VendorCacheFile::peek_version((dir / (vendor + ".opc")).string(), vendor));
     if (! cache_ver)
         return Semver::invalid();
-    const Semver profile_ver = get_version_from_json((dir / (vendor + ".json")).string());
+    // Packaging prunes the profile of every vendor that ships a cache.
+    const boost::filesystem::path json = dir / (vendor + ".json");
+    const Semver profile_ver = boost::filesystem::exists(json) ? get_version_from_json(json.string()) : Semver();
     return cache_covers(*cache_ver, profile_ver) ? *cache_ver : Semver::invalid();
 }
 
@@ -2293,6 +2387,30 @@ boost::filesystem::path extended_path(const boost::filesystem::path& path) {
 #else
     return path;
 #endif
+}
+
+bool is_printables_link(const std::string& url)
+{
+    const std::regex url_regex("(http|https)://printables.com", std::regex_constants::icase);
+    return std::regex_match(url, url_regex);
+}
+
+bool is_makerworld_link(const std::string& url)
+{
+    const std::regex url_regex("(http|https)://makerworld.com", std::regex_constants::icase);
+    return std::regex_match(url, url_regex);
+}
+
+bool is_thingiverse_link(const std::string& url)
+{
+    const std::regex url_regex("(http|https)://www.thingiverse.com", std::regex_constants::icase);
+    return std::regex_match(url, url_regex);
+}
+
+std::string sanitize_filename(const std::string &filename)
+{
+    const std::regex special_chars("[/\\\\:*?\"<>|]");
+    return std::regex_replace(filename, special_chars, "_");
 }
 
 }; // namespace Slic3r

@@ -20,6 +20,7 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
 #include <numeric>
+#include <optional>
 #include <string>
 #include <vector>
 #include "libslic3r/clonable_ptr.hpp"
@@ -425,4 +426,108 @@ TEST_CASE("prime_tower_is_printed follows the option the user set", "[WipeTowerE
     // Below one filament normalize_fdm_2 leaves the option alone, so this does too.
     config.set_key_value("enable_prime_tower", new ConfigOptionBool(true));
     CHECK(prime_tower_is_printed(config, 0, 1, false));
+}
+
+// A size x size mm footprint anchored at its lower-left corner, on a plate whose anchors may
+// lie anywhere in [0, 90] x [0, 90].
+static Polygon square_footprint(double size) { return Polygon({ {0, 0}, {scaled(size), 0}, {scaled(size), scaled(size)}, {0, scaled(size)} }); }
+static Polygon box(double x0, double y0, double x1, double y1)
+{
+    return Polygon({ {scaled(x0), scaled(y0)}, {scaled(x1), scaled(y0)}, {scaled(x1), scaled(y1)}, {scaled(x0), scaled(y1)} });
+}
+static const BoundingBox plate_anchors(Point(0, 0), Point(scaled(90.), scaled(90.)));
+
+// The footprint placed at `anchor` overlaps no obstacle: at most it touches one.
+static bool clear_of(Polygon footprint, const Point &anchor, const Polygons &obstacles)
+{
+    footprint.translate(anchor);
+    double overlap = 0.;
+    for (const Polygon &shared : intersection(Polygons{ footprint }, obstacles))
+        overlap += std::abs(shared.area());
+    return overlap < scaled(0.01) * scaled(0.01);
+}
+
+TEST_CASE("A tower already clear of every object stays where it is", "[WipeTowerEstimate]") {
+    const Point target(scaled(10.), scaled(70.));
+    const std::optional<Point> anchor = nearest_clear_wipe_tower_anchor(plate_anchors, square_footprint(10.), { box(40., 0., 60., 100.) }, target);
+    REQUIRE(anchor.has_value());
+    CHECK(*anchor == target);
+}
+
+TEST_CASE("A tower that lands on an object moves to the nearest side of it", "[WipeTowerEstimate]") {
+    // A strip from x 40 to 60 covers the plate's full depth. Anchored at x 42 the footprint
+    // spans 42-52, so it clears the strip at x 30 (12 mm left) or x 60 (18 mm right).
+    const Polygons obstacles = { box(40., 0., 60., 100.) };
+    const std::optional<Point> anchor = nearest_clear_wipe_tower_anchor(plate_anchors, square_footprint(10.), obstacles,
+                                                                        Point(scaled(42.), scaled(50.)));
+    REQUIRE(anchor.has_value());
+    CHECK(clear_of(square_footprint(10.), *anchor, obstacles));
+    CHECK_THAT(unscaled(anchor->x()), WithinAbs(30., 1e-3));
+    CHECK_THAT(unscaled(anchor->y()), WithinAbs(50., 1e-3));
+}
+
+TEST_CASE("A tower is placed nearest its saved position even when that is off the plate", "[WipeTowerEstimate]") {
+    // Saved at y 120, past the plate. An object covers the top-left corner, so the nearest
+    // anchor on the plate is the top edge right of the object (x 30), not straight below.
+    const Polygons obstacles = { box(0., 60., 30., 100.) };
+    const std::optional<Point> anchor = nearest_clear_wipe_tower_anchor(plate_anchors, square_footprint(10.), obstacles,
+                                                                        Point(scaled(20.), scaled(120.)));
+    REQUIRE(anchor.has_value());
+    CHECK(clear_of(square_footprint(10.), *anchor, obstacles));
+    CHECK_THAT(unscaled(anchor->x()), WithinAbs(30., 1e-3));
+    CHECK_THAT(unscaled(anchor->y()), WithinAbs(90., 1e-3));
+}
+
+TEST_CASE("A rotated tower keeps its turned footprint off the objects", "[WipeTowerEstimate]") {
+    // Turned 90 degrees about its anchor, the footprint spans x - 10 to x. Saved at x 65 it
+    // would reach back to 55, so it moves right until it starts at the strip's edge.
+    Polygon footprint = square_footprint(10.);
+    footprint.rotate(PI / 2.);
+    const Polygons obstacles = { box(40., 0., 60., 100.) };
+    const std::optional<Point> anchor = nearest_clear_wipe_tower_anchor(plate_anchors, footprint, obstacles,
+                                                                        Point(scaled(65.), scaled(50.)));
+    REQUIRE(anchor.has_value());
+    CHECK(clear_of(footprint, *anchor, obstacles));
+    CHECK_THAT(unscaled(anchor->x()), WithinAbs(70., 1e-3));
+}
+
+TEST_CASE("A plate with no room for the tower reports that no anchor is clear", "[WipeTowerEstimate]") {
+    CHECK_FALSE(nearest_clear_wipe_tower_anchor(plate_anchors, square_footprint(10.), { box(-5., -5., 105., 105.) },
+                                                Point(scaled(50.), scaled(50.)))
+                    .has_value());
+}
+
+TEST_CASE("A tower pinned to one coordinate by a cramped plate can still move along the other", "[WipeTowerEstimate]") {
+    // The plate is only as wide as the tower: every anchor has x 0.
+    const BoundingBox column(Point(0, 0), Point(0, scaled(90.)));
+    const Polygons obstacles = { box(-5., 42., 15., 62.) };
+    const std::optional<Point> anchor = nearest_clear_wipe_tower_anchor(column, square_footprint(10.), obstacles,
+                                                                        Point(0, scaled(45.)));
+    // Blocked from y 32 to 62: down 13 mm beats up 17 mm.
+    REQUIRE(anchor.has_value());
+    CHECK(clear_of(square_footprint(10.), *anchor, obstacles));
+    CHECK_THAT(unscaled(anchor->x()), WithinAbs(0., 1e-3));
+    CHECK_THAT(unscaled(anchor->y()), WithinAbs(32., 1e-3));
+}
+
+TEST_CASE("A single anchor is kept when clear and refused when taken", "[WipeTowerEstimate]") {
+    // Bounds that are one point ask whether that exact spot is clear.
+    const Point     spot(scaled(10.), scaled(10.));
+    const BoundingBox only_spot(spot, spot);
+    const std::optional<Point> clear = nearest_clear_wipe_tower_anchor(only_spot, square_footprint(10.), { box(40., 0., 60., 100.) }, spot);
+    REQUIRE(clear.has_value());
+    CHECK(*clear == spot);
+    CHECK_FALSE(nearest_clear_wipe_tower_anchor(only_spot, square_footprint(10.), { box(15., 0., 60., 100.) }, spot).has_value());
+}
+
+TEST_CASE("A tower slides off a slanted side of an object", "[WipeTowerEstimate]") {
+    // The triangle's left side runs from (40, 0) to (50, 40), x = 40 + y / 4. The footprint's
+    // lower-right corner leads into it, so the clear anchors stop at x = 30 + y / 4, a line
+    // 13.75 / sqrt(1 + 1/16) mm from the saved anchor (45, 5): shorter than moving straight left.
+    const Polygons obstacles = { Polygon({ {scaled(40.), 0}, {scaled(60.), 0}, {scaled(50.), scaled(40.)} }) };
+    const Point    target(scaled(45.), scaled(5.));
+    const std::optional<Point> anchor = nearest_clear_wipe_tower_anchor(plate_anchors, square_footprint(10.), obstacles, target);
+    REQUIRE(anchor.has_value());
+    CHECK(clear_of(square_footprint(10.), *anchor, obstacles));
+    CHECK_THAT(unscaled((*anchor - target).cast<double>().norm()), WithinAbs(13.75 / std::sqrt(1. + 1. / 16.), 1e-3));
 }

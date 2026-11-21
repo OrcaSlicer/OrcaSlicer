@@ -14,6 +14,28 @@
 using namespace Slic3r;
 using namespace Slic3r::GUI;
 
+TEST_CASE("Picker callers can lower the gradient limit without changing the shared default", "[FilamentColorPicker]")
+{
+    const auto limit = GENERATE(std::size_t{2}, std::size_t{4}, COLOR_PICKER_MAX_GRADIENT_COLORS);
+    const ColorPickerOptions options{true, true, limit};
+    REQUIRE(options.gradient_color_limit() == limit);
+    REQUIRE_FALSE(options.supports_gradient(1));
+    REQUIRE(options.supports_gradient(2));
+    REQUIRE(options.supports_gradient(limit));
+    REQUIRE_FALSE(options.supports_gradient(limit + 1));
+    REQUIRE_FALSE(ColorPickerOptions{false, true, limit}.supports_gradient(2));
+    REQUIRE(ColorPickerOptions{true, true}.supports_gradient(COLOR_PICKER_MAX_GRADIENT_COLORS));
+}
+
+TEST_CASE("Picker gradient limits stay within supported storage bounds", "[FilamentColorPicker]")
+{
+    const auto requested = GENERATE(std::size_t{0}, std::size_t{1}, COLOR_PICKER_MAX_GRADIENT_COLORS + 1);
+    const ColorPickerOptions options{true, true, requested};
+    REQUIRE(options.gradient_color_limit() == (requested < 2 ? 2 : COLOR_PICKER_MAX_GRADIENT_COLORS));
+    REQUIRE(options.supports_gradient(2));
+    REQUIRE_FALSE(options.supports_gradient(COLOR_PICKER_MAX_GRADIENT_COLORS + 1));
+}
+
 // One color more than an ordered gradient may hold.
 static std::vector<std::string> too_many_gradient_colors()
 {

@@ -18,6 +18,7 @@
 #include <wx/language.h>
 #include <wx/settings.h>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 #include <wx/string.h>
 #include <wx/stattext.h>
 #ifdef __linux__
@@ -310,7 +311,7 @@ Label::Label(wxWindow *parent, wxFont const &font, wxString const &text, long st
     SetBackgroundColour(StaticBox::GetParentBackgroundColor(parent));
     SetForegroundColour("#262E30");
     if (style & LB_PROPAGATE_MOUSE_EVENT) {
-        for (auto evt : { wxEVT_LEFT_UP, wxEVT_LEFT_DOWN })
+        for (auto evt : { wxEVT_LEFT_UP, wxEVT_LEFT_DOWN, wxEVT_LEFT_DCLICK}) // ORCA also propagete LEFT_DCLICK event that used on sidebar titlebars
             Bind(evt, [this] (auto & e) { GetParent()->GetEventHandler()->ProcessEventLocally(e); });
     };
     if (style & LB_AUTO_WRAP) {

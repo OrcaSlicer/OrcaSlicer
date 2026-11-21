@@ -24,6 +24,7 @@
 		"Snapmaker A350 Dual QS+B Kit (0.4 nozzle)"
 	],
 	"bottom_shell_layers": "7",
+	"bottom_color_penetration_layers": "3",
 	"bridge_flow": "1",
 	"elefant_foot_compensation": "0.15",
 	"ironing_flow": "8%",
@@ -31,6 +32,7 @@
 	"initial_layer_print_height": "0.1",
 	"support_threshold_angle": "15",
 	"top_shell_layers": "9",
+	"top_color_penetration_layers": "5",
 	"gap_infill_speed": "85",
 	"initial_layer_infill_speed": "65",
 	"inner_wall_speed": "120",

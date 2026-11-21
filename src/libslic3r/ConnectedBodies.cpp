@@ -89,11 +89,14 @@ std::vector<std::vector<size_t>> connected_bodies(const std::vector<const ExPoly
     return out;
 }
 
-IslandLocator::IslandLocator(const ExPolygons &islands, coord_t margin) : m_islands(&islands), m_alone(islands.size(), true)
+IslandLocator::IslandLocator(const ExPolygons &islands, coord_t margin, bool tell_apart)
+    : m_islands(&islands), m_alone(islands.size(), true)
 {
     m_boxes.reserve(islands.size());
     for (const ExPolygon &island : islands)
         m_boxes.emplace_back(get_extents(island).inflated(margin));
+    if (!tell_apart)
+        return;
     // Sweep the boxes along x, so that only those reaching each other are compared.
     std::vector<size_t> order(m_boxes.size());
     for (size_t i = 0; i < order.size(); ++i)

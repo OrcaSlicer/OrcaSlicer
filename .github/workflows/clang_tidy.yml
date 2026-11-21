@@ -8,6 +8,9 @@ name: clang-tidy
 # No paths filter: the job is a required check, and a workflow skipped by a
 # paths filter leaves a required check pending forever. A PR with no C++
 # changes finishes after the first step.
+#
+# approve_pr_checks.yml approves this workflow's runs for first-time
+# contributors and finds it by its file name.
 on:
   pull_request:
     branches:
@@ -36,6 +39,10 @@ jobs:
     # that gate.
     name: clang-tidy
     runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
+    # approve_pr_checks.yml starts first-time contributors' runs without a
+    # maintainer looking at the pull request first. The deps-cache wait alone may
+    # take 100 minutes; this bounds a runaway run without cutting a real one.
+    timeout-minutes: 180
     steps:
       - name: Checkout
         uses: actions/checkout@v7
