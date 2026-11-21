@@ -9516,8 +9516,10 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
     // path is 2D. But in slope lift case, lift z is done in travel_to function.
     // Add m_need_change_layer_lift_z when change_layer in case of no lift if m_last_pos is equal to path.first_point() by chance
     Point first_point = path.first_point();
-    if (!m_last_pos_defined || m_last_pos.to_point() != first_point || m_need_change_layer_lift_z ||
-        slope_need_z_travel) {
+    // Whether the nozzle has to travel to the start of this path. Adaptive PA uses this to reduce PA changes.
+    const bool path_starts_after_travel = !m_last_pos_defined || m_last_pos.to_point() != first_point ||
+                                          m_need_change_layer_lift_z || slope_need_z_travel;
+    if (path_starts_after_travel) {
         const bool _last_pos_undefined = !m_last_pos_defined;
 
         double z = DBL_MAX;
@@ -9927,6 +9929,11 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
         // TODO: with the overhang speed and flow before the role change is flagged in the path.role() function.
         if(role_change)
             evaluate_adaptive_pa = true;
+        // Orca: a gap fill line is split into one separate path per width change, so Adaptive PA changes
+        // PA on nearly every line of gcode, sometimes causing juddering (as seen in orcaslicer issue #14264)
+        // IF APA is enabled, evaluate it once per extrusion run: when the gap fill starts, and again after any travel 
+        if (path.role() == erGapFill && !adaptive_pa_overhangs)
+            evaluate_adaptive_pa = role_change || path_starts_after_travel;
     }
     // Orca: End of dynamic PA trigger flag segment
     
