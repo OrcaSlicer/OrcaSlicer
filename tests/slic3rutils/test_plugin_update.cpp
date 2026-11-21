@@ -362,6 +362,46 @@ TEST_CASE("Updating a deactivated cloud plugin keeps it deactivated, keeps capab
     check_updated_state(plugin_dir, /*enabled=*/false);
 }
 
+TEST_CASE("Updating a cloud plugin with keep_permissions carries the previous grants over unchanged",
+          "[PluginUpdate][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string user_id = "update-user";
+    const std::string uuid    = "45454545-5555-6666-7777-888888888888";
+    const fs::path plugin_dir = write_cloud_package(user_id, uuid, "1.0", false, {{"Echo", false}}, {"/old/grant"});
+    {
+        PluginInstallState state;
+        REQUIRE(read_install_state(plugin_dir, state));
+        state.permissions.full_access = true;
+        REQUIRE(write_install_state(plugin_dir, state));
+    }
+
+    OneShotHttpServer package_server(cloud_plugin_source("2.0"), "application/octet-stream");
+    OneShotHttpServer api_server(download_response(uuid, package_server.url() + "/Cloud_Update_Plugin.py"),
+                                 "application/json");
+
+    PluginManager& manager = start_update_session(plugin_system, user_id, api_server.url());
+
+    ScopedEnvVar no_proxy{"no_proxy", "127.0.0.1"};
+
+    std::string error;
+    REQUIRE(manager.update_cloud_plugin(uuid, error, "2.0", /*keep_permissions=*/true));
+    INFO("update error: " << error);
+
+    PluginInstallState state;
+    REQUIRE(read_install_state(plugin_dir, state));
+    CHECK(state.installed_version == "2.0");
+    CHECK_FALSE(state.enabled);
+    // Exactly the old grants: nothing dropped, and nothing the user never granted was added.
+    CHECK(state.permissions.fs_read == std::vector<std::string>{"/old/grant"});
+    CHECK(state.permissions.fs_readwrite.empty());
+    CHECK(state.permissions.network_http.empty());
+    CHECK(state.permissions.full_access);
+}
+
 TEST_CASE("A failed download leaves the installed package and activation intent untouched",
           "[PluginUpdate][Python]")
 {

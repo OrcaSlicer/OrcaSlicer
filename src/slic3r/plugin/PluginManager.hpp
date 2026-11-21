@@ -282,14 +282,16 @@ public:
     bool subscribe_and_install_cloud_plugin(const std::string& plugin_key, std::string& error);
     // If the version is empty, take the latest version. The new package is downloaded before the
     // old one is replaced, so a download failure leaves the installed package and its state intact.
-    // On success the previous per-capability choices are retained while every permission is reset,
-    // and a loaded package is reloaded afterwards; a deactivated one keeps enabled=false in its
+    // On success the previous per-capability choices are retained. Every permission is reset unless
+    // keep_permissions is true, in which case the stored grants (full access included) are carried
+    // over unchanged and the new version is only prompted for what it requests beyond them. A
+    // loaded package is reloaded afterwards; a deactivated one keeps enabled=false in its
     // sidecar across the restart. A load already in progress makes the update fail instead of
     // being cancelled by the replacement. A failed install restores the previous permissions and
     // reloads the old package only when that package is still present at its recorded root; a
     // committed replacement never inherits them. The install always targets the account the update
     // started under, and a detected account change aborts before the installed package is touched.
-    bool update_cloud_plugin(const std::string& plugin_key, std::string& error, std::string version = "");
+    bool update_cloud_plugin(const std::string& plugin_key, std::string& error, std::string version = "", bool keep_permissions = false);
 
     bool delete_plugin(const std::string& plugin_key, std::string& error);
     bool unsubscribe_cloud_plugin(const std::string& plugin_key, std::string& error);

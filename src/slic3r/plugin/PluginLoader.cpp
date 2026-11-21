@@ -786,13 +786,14 @@ bool install_plugin(const boost::filesystem::path& filepath,
         std::lock_guard<std::mutex> state_lock(install_state_mutex());
 
         // Seed the metadata of the package being installed. An update supplies the previous
-        // activation and capability choices; permissions are always reset because the new
-        // executable code must request them again.
+        // activation and capability choices, and the permissions the user chose to keep (none
+        // unless the update was asked to keep them, so the new code requests them again).
         PluginInstallState state;
         seed_install_metadata(state, plugin_descriptor);
         if (preserved_state != nullptr) {
             state.enabled      = preserved_state->enabled;
             state.capabilities = preserved_state->capabilities;
+            state.permissions  = preserved_state->permissions;
         }
 
         if (!write_install_state(final_dir, state)) {

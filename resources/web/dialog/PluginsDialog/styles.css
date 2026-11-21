@@ -577,7 +577,8 @@ body.pane-resizing {
   cursor: pointer;
 }
 
-.plugin-update-btn[hidden] {
+.plugin-update-btn[hidden],
+#update_all_btn[hidden] {
   display: none !important;
 }
 

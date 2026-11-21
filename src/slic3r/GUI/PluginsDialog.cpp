@@ -492,6 +492,13 @@ void send_permissions_result(WebViewHostDialog& dialog,
     dialog.call_web_handler(payload);
 }
 
+// Preferences > Plugins: whether an update carries the grants of the previous version over.
+bool keep_permissions_on_update()
+{
+    const AppConfig* config = wxGetApp().app_config;
+    return config != nullptr && config->get_bool("plugin_update_keep_permissions");
+}
+
 } // namespace
 
 // ── Dialog-independent plugin actions (also used by the speed dial) ───────────────────────────
@@ -706,6 +713,8 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"update_available", _u8L("Update available")},
         {"update_title", _u8L("Update to the latest version")},
         {"update", _u8L("Update")},
+        {"update_all", _u8L("Update all")},
+        {"update_all_title", _u8L("Update every plugin that has a newer version")},
         {"no_description", _u8L("No description available")},
         {"config_select_plugin", _u8L("Select a plugin to configure its capabilities")},
         {"configurable_capabilities", _u8L("Configurable capabilities")},
@@ -866,6 +875,12 @@ void PluginsDialog::resolve_pending_activation()
     else if (manager.is_plugin_loaded(plugin_key))
         show_status(wxString::Format(_L("Activated \"%s\"."), plugin_display_name(plugin_key)), "success");
     // Otherwise it ended up inactive (toggled off or cancelled mid-load): stay silent.
+
+    // Loading a plugin activates the main window behind this dialog: a permission prompt is
+    // parented to the main window, and a plugin page tab re-selects (and focuses) a notebook page.
+    // Without this the dialog ends up buried under the main window and looks closed. Bring it back
+    // so the user stays in the list they activated the plugin from.
+    restore_z_order();
 }
 
 void PluginsDialog::on_script_message(const nlohmann::json& payload)
@@ -907,6 +922,8 @@ void PluginsDialog::handle_web_command(const nlohmann::json& payload)
         m_open_terminal_dlg_fn();
     } else if (command == "update_plugin") {
         update_plugin(payload.value("plugin_key", ""));
+    } else if (command == "update_all_plugins") {
+        update_all_plugins();
     } else if (command == "open_plugin_on_cloud") {
         open_plugin_on_cloud(payload.value("sharing_token", ""));
     } else if (command == "open_plugin_hub") {
@@ -1599,7 +1616,9 @@ void PluginsDialog::update_plugin(const std::string& plugin_key)
     std::string error;
     bool updated = false;
     try {
-        updated = run_with_dialog_wait([plugin_key, &error]() { return PluginManager::instance().update_cloud_plugin(plugin_key, error); },
+        updated = run_with_dialog_wait([plugin_key, &error, keep_permissions = keep_permissions_on_update()]() {
+                                           return PluginManager::instance().update_cloud_plugin(plugin_key, error, "", keep_permissions);
+                                       },
                                        _L("Updating plugin"), _L("Updating") + ": " + name);
     } catch (const std::exception& ex) {
         error = ex.what();
@@ -1618,6 +1637,94 @@ void PluginsDialog::update_plugin(const std::string& plugin_key)
     // so a UI refresh is enough here.
     send_plugins();
     show_status(wxString::Format(_L("Updated \"%s\"."), name), "success");
+}
+
+void PluginsDialog::update_all_plugins()
+{
+    std::vector<std::string> plugin_keys;
+    wxString names;
+    for (const PluginDescriptor& descriptor : PluginManager::instance().get_plugin_descriptors(/*include_invalid=*/true)) {
+        if (!descriptor.has_update_available())
+            continue;
+        plugin_keys.push_back(descriptor.plugin_key);
+        names += "\n- " + plugin_display_name(descriptor.plugin_key);
+    }
+
+    if (plugin_keys.empty()) {
+        show_status(_L("All plugins are up to date."), "info");
+        send_plugins();
+        return;
+    }
+
+    // TRN %1% is a list of plugin names, one per line.
+    RichMessageDialog confirm(this, format_wxstr(_L("Update these plugins to their latest versions?\n%1%"), names),
+                              _L("Update all plugins"), wxYES_NO | wxICON_QUESTION);
+    confirm.SetButtonLabel(wxID_YES, _L("Update all"));
+    confirm.SetButtonLabel(wxID_NO, _L("Cancel"));
+    confirm.ShowCheckBox(_L("Also activate the updated plugins"));
+    const int rc = confirm.ShowModal();
+    restore_z_order();
+    if (rc != wxID_YES)
+        return;
+    const bool activate = confirm.IsCheckBoxChecked();
+
+    BOOST_LOG_TRIVIAL(info) << "Updating " << plugin_keys.size() << " cloud plugins. activate=" << activate;
+
+    // One worker for the whole batch: each update unloads, replaces and (when it was active)
+    // reloads its plugin, so they run one after another rather than racing for the same loader.
+    using Failures = std::vector<std::pair<std::string, std::string>>;
+    const Failures failures = run_with_dialog_wait(
+        [plugin_keys, keep_permissions = keep_permissions_on_update()]() {
+            Failures failed;
+            for (const std::string& plugin_key : plugin_keys) {
+                std::string error;
+                bool updated = false;
+                try {
+                    updated = PluginManager::instance().update_cloud_plugin(plugin_key, error, "", keep_permissions);
+                } catch (const std::exception& ex) {
+                    error = ex.what();
+                } catch (...) {
+                    error = _u8L("Unknown error");
+                }
+                if (!updated)
+                    failed.emplace_back(plugin_key, std::move(error));
+            }
+            return failed;
+        },
+        _L("Updating plugins"), _L("Updating plugins..."));
+
+    const auto failed = [&failures](const std::string& plugin_key) {
+        return std::any_of(failures.begin(), failures.end(), [&plugin_key](const auto& failure) { return failure.first == plugin_key; });
+    };
+
+    const unsigned int updated_count = static_cast<unsigned int>(plugin_keys.size() - failures.size());
+    if (failures.empty())
+        show_status(format_wxstr(_L_PLURAL("Updated %1% plugin.", "Updated %1% plugins.", updated_count), updated_count), "success");
+
+    // Same path as ticking the Activate box, so every activation rule (and its status message) applies.
+    if (activate) {
+        for (const std::string& plugin_key : plugin_keys)
+            if (!failed(plugin_key) && !PluginManager::instance().is_plugin_loaded(plugin_key))
+                toggle_plugin(plugin_key, true);
+    }
+
+    send_plugins();
+
+    if (failures.empty())
+        return;
+
+    wxString failed_names;
+    for (const auto& [plugin_key, error] : failures) {
+        BOOST_LOG_TRIVIAL(error) << "Cloud plugin update failed. plugin_key=" << plugin_key << " error=" << error;
+        if (!failed_names.empty())
+            failed_names += ", ";
+        failed_names += plugin_display_name(plugin_key);
+    }
+    // TRN %1% and %2% are plugin counts, %3% is a comma-separated list of plugin names.
+    show_status(format_wxstr(_L_PLURAL("Updated %1% of %2% plugin. Failed: %3%", "Updated %1% of %2% plugins. Failed: %3%",
+                                       static_cast<unsigned int>(plugin_keys.size())),
+                             updated_count, plugin_keys.size(), failed_names),
+                "error");
 }
 
 void PluginsDialog::open_plugin_folder(const PluginDescriptor& plugin)

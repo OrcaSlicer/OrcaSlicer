@@ -1690,8 +1690,11 @@ bool PluginManager::install_plugin_impl(const boost::filesystem::path& filepath,
 
     // Every successful install may have replaced executable plugin code. Revoke any permissions
     // associated with the previous package so the newly installed version must request them again.
+    // An update passes preserved_state; the installer already wrote exactly the permissions that
+    // update decided to keep (none by default), so revoking here would drop a deliberate choice.
     if (!plugin_descriptor.plugin_key.empty()) { {
-        revoke_plugin_permissions(plugin_descriptor.plugin_key);
+        if (preserved_state == nullptr)
+            revoke_plugin_permissions(plugin_descriptor.plugin_key);
 
         // A prompt queued by the replaced code must not grant a permission the new code never
         // requested: an installed package starts its lifecycle from a clean failure state.
@@ -2152,7 +2155,7 @@ void PluginManager::restore_plugin_state_after_failed_update(const PluginDescrip
     }
 }
 
-bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::string& error, std::string version)
+bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::string& error, std::string version, bool keep_permissions)
 {
     error.clear();
 
@@ -2335,13 +2338,18 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
     CloudUpdateFailure failure = CloudUpdateFailure::PreviousPackageUsable;
 
     // The installer writes the sidecar for the new package before it removes the backup, so it
-    // needs the user's activation intent and capability choices up front. Permissions are not
-    // carried over: the replacement is new executable code and must request them again.
+    // needs the user's activation intent and capability choices up front. Permissions are carried
+    // over only when the caller asks to keep them, and then exactly as stored: the replacement can
+    // never end up with more than the user granted, and anything it declares beyond that is still
+    // prompted for when it loads.
     PluginInstallState preserved_state;
     if (had_local_package) {
         preserved_state.enabled = was_enabled;
-        if (had_previous_state)
+        if (had_previous_state) {
             preserved_state.capabilities = previous_state.capabilities;
+            if (keep_permissions)
+                preserved_state.permissions = previous_state.permissions;
+        }
     }
 
     if (!install_cloud_plugin_package(plugin_key, version, download.package_path, previous, &update_cloud_user, install_error,
@@ -2407,7 +2415,7 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
     }
 
     // The installer committed the replacement with the preserved activation and capability state
-    // and every permission cleared, so the new package is ready to load.
+    // and only the permissions this update kept, so the new package is ready to load.
     PluginDescriptor installed;
     if (!try_get_plugin_descriptor(plugin_key, installed)) {
         error = _u8L("Plugin not found.");
