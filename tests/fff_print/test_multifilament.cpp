@@ -2550,3 +2550,77 @@ TEST_CASE("A physical_extruder_map entry outside the nozzle range still exports"
         CHECK(gcode.find("; EXECUTABLE_BLOCK_END") != std::string::npos);
     }
 }
+
+// Peak volumetric flow in mm3/s of each tool's straight wall moves over 1 mm (needs gcode_comments).
+static std::map<int, double> max_wall_volumetric_flow(const std::string& gcode, const DynamicPrintConfig& config)
+{
+    const auto*           diameters = config.option<ConfigOptionFloats>("filament_diameter");
+    REQUIRE(diameters != nullptr);
+    std::map<int, double> peak_flow;
+    int                   tool = 0;
+    bool                  wall = false;
+    GCodeReader           reader;
+    reader.apply_config(config); // dist_E() needs the E mode the G-code was written in
+    reader.parse_buffer(gcode, [&](GCodeReader& self, const GCodeReader::GCodeLine& line) {
+        const std::string cmd(line.cmd());
+        if (cmd.size() >= 2 && cmd[0] == 'T' && std::isdigit((unsigned char) cmd[1])) {
+            const int selected = std::stoi(cmd.substr(1));
+            // A tool number at or above the filament count is a marker (Bambu's T255, T1000), not a tool.
+            if (selected < (int) diameters->size()) {
+                tool = selected;
+                wall = false; // the marker before a tool change belongs to the old tool
+            }
+            return;
+        }
+        const std::string_view comment = line.comment();
+        if (comment.find("LAYER_CHANGE") != std::string_view::npos || comment.find("CHANGE_LAYER") != std::string_view::npos)
+            wall = false; // the marker before a layer change belongs to the old layer
+        if (comment.find("FEATURE:") != std::string_view::npos || comment.find("TYPE:") != std::string_view::npos)
+            wall = comment.find("Outer wall") != std::string_view::npos || comment.find("Inner wall") != std::string_view::npos;
+        // dist_XY() measures the chord, so only G1 gives a true length. E is written to a few
+        // decimals, so a short segment's flow is mostly rounding error.
+        if (!wall || !line.cmd_is("G1") || line.dist_E(self) <= 0 || line.dist_XY(self) < 1.0)
+            return;
+        const double diameter      = diameters->get_at(tool);
+        const double filament_area = 0.25 * PI * diameter * diameter;
+        const double flow          = line.dist_E(self) * filament_area / line.dist_XY(self) * line.new_F(self) / 60.0;
+        peak_flow[tool]            = std::max(peak_flow[tool], flow);
+    });
+    return peak_flow;
+}
+
+TEST_CASE("Each filament's walls keep their own max volumetric speed", "[MultiFilament][Regression]")
+{
+    // 0.42 mm wide, 0.2 mm tall walls at 200 mm/s demand far more than filament 2's 2 mm3/s cap
+    // and less than filament 1's 20.
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "filament_max_volumetric_speed", "20,2" },
+        { "filament_self_index",           "1,2" },
+        { "filament_extruder_variant",     "Direct Drive Standard" }, // one column, so filament 2 has none
+        { "layer_height",                  "0.2" },
+        { "wall_loops",                    2 },
+        { "outer_wall_line_width",         "0.42" },
+        { "inner_wall_line_width",         "0.42" },
+        { "inner_wall_speed",              "200" },
+        { "outer_wall_speed",              "200" },
+        { "enable_overhang_speed",         0 },
+        { "slow_down_for_layer_cooling",   0 },
+        { "slow_down_layers",              0 },
+        { "skirt_loops",                   0 },
+        { "brim_type",                     "no_brim" },
+    });
+
+    const std::string gcode = slice_with_object_overrides(
+        { make_cube(20., 20., 4.), make_cube(20., 20., 4.) }, config,
+        { { { "extruder", 1 } }, { { "extruder", 2 } } });
+
+    const std::map<int, double> peak_flow = max_wall_volumetric_flow(gcode, config);
+    REQUIRE(peak_flow.count(0) == 1);
+    REQUIRE(peak_flow.count(1) == 1);
+    UNSCOPED_INFO("filament 1 walls peak at " << peak_flow.at(0) << " mm3/s, filament 2 at " << peak_flow.at(1) << " mm3/s");
+
+    // Filament 2's 2 mm3/s cap binds, so its walls run at it.
+    CHECK_THAT(peak_flow.at(1), Catch::Matchers::WithinRel(2.0, 0.01));
+    // Filament 1's 20 mm3/s cap does not bind, so its walls stay near the demanded flow.
+    CHECK(peak_flow.at(0) > 10.0);
+}
