@@ -9301,6 +9301,9 @@ public:
     void set_post_callback(std::function<void(int)> c) {
         boost::lock_guard lock(m_mutex);
         m_post_callback = c;
+        // Tasks queued while there was no callback were never announced.
+        if (m_post_callback && !m_ui_tasks.empty())
+            m_post_callback(0);
     }
 
     void run_ui_tasks() {
@@ -9594,14 +9597,14 @@ public:
                     continue;
             }
             m_tasks.pop_front();
-            auto callback = m_post_callback;
             lock.unlock();
             process_task(t);
             lock.lock();
             if (t.type > None) {
                 m_ui_tasks.push_back(t);
-                if (m_ui_tasks.size() == 1 && callback)
-                    callback(0);
+                // Read it again: the main window may have cleared it while process_task() ran.
+                if (m_ui_tasks.size() == 1 && m_post_callback)
+                    m_post_callback(0);
             }
         }
     }
@@ -9639,6 +9642,7 @@ private:
     size_t m_task_seq = 0;
     // param 0: should call run_ui_tasks
     // param 1: should backup current project
+    // Param 0 is called with m_mutex held, so the callback must only post to the main window, never call back in here.
     std::function<void(int)> m_post_callback;
     long m_interval = 1 * 60;
     boost::system_time m_next_backup;
