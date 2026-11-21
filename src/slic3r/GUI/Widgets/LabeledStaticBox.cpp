@@ -20,7 +20,6 @@ LabeledStaticBox::LabeledStaticBox()
 {
     m_radius       = 3;
     m_border_width = 1;
-    m_font         = Label::Head_14;
     text_color = StateColor(
         std::make_pair(0x363636, (int) StateColor::Normal),
         std::make_pair(0x6B6B6B, (int) StateColor::Disabled)
@@ -58,19 +57,13 @@ bool LabeledStaticBox::Create(
     if (style & wxBORDER_NONE)
         m_border_width = 0;
     wxStaticBox::Create(parent, wxID_ANY, label, pos, size, style);
+    wxStaticBox::SetFont(Label::Head_14);
 #ifdef __WXOSX__
     Slic3r::GUI::staticbox_remove_margin(this);
 #endif
 
     m_label = label;
-    m_scale = FromDIP(100) / 100.f;
     m_pos   = this->GetPosition();
-
-    int tW,tH,descent,externalLeading;
-    // empty label sets m_label_height as 0 that causes extra spacing at top
-    GetTextExtent(m_label.IsEmpty() ? "Orca" : m_label, &tW, &tH, &descent, &externalLeading, &m_font);
-    m_label_height = tH - externalLeading;
-    m_label_width  = tW;
 
     Bind(wxEVT_PAINT,([this](wxPaintEvent e) {
         wxPaintDC dc(this);
@@ -90,6 +83,17 @@ bool LabeledStaticBox::Create(
     return true;
 }
 
+wxFont LabeledStaticBox::scaled_font() const
+{
+    wxFont font = GetFont();
+#ifdef __WXMSW__
+    // Custom DC drawing does not receive the native control's per-monitor
+    // font scaling on Windows.
+    font = font.Scaled(GetDPIScaleFactor());
+#endif
+    return font;
+}
+
 void LabeledStaticBox::SetCornerRadius(int radius)
 {
     this->m_radius = radius;
@@ -107,20 +111,6 @@ void LabeledStaticBox::SetBorderColor(StateColor const &color)
     border_color = color;
     state_handler.update_binds();
     Refresh();
-}
-
-bool LabeledStaticBox::SetFont(const wxFont &set_font)
-{
-    m_font = set_font;
-
-    int tW,tH,descent,externalLeading;
-    // empty label sets m_label_height as 0 that causes extra spacing at top
-    GetTextExtent(m_label.IsEmpty() ? "Orca" : m_label, &tW, &tH, &descent, &externalLeading, &m_font);
-    m_label_height = tH - externalLeading;
-    m_label_width  = tW;
-
-    Refresh();
-    return true;
 }
 
 bool LabeledStaticBox::Enable(bool enable)
@@ -169,31 +159,39 @@ void LabeledStaticBox::DrawBorderAndLabel(wxDC& dc)
     dc.SetBackground(wxBrush(background_color.colorForStates(0)));
     dc.Clear();
 
-    wxSize wSz = GetSize();
+    const wxFont font = scaled_font();
+    dc.SetFont(font);
+    const wxSize label_size = dc.GetTextExtent(m_label.IsEmpty() ? "Orca" : m_label);
+    const int label_width = label_size.GetWidth();
+    const int label_height = label_size.GetHeight();
 
+    wxSize wSz = GetSize();
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
     dc.SetPen(wxPen(border_color.colorForStates(state_handler.states()), m_border_width, wxPENSTYLE_SOLID));
     dc.DrawRoundedRectangle( // Border
         std::max(0, m_pos.x),
-        std::max(0, m_pos.y) + m_label_height * .5,
+        std::max(0, m_pos.y) + label_height * .5,
         wSz.GetWidth(),
-        wSz.GetHeight() - m_label_height * .5,
-        m_radius * m_scale
+        wSz.GetHeight() - label_height * .5,
+        FromDIP(m_radius)
     );
 
     if (!m_label.IsEmpty()) {
-        dc.SetFont(m_font);
         dc.SetPen(*wxTRANSPARENT_PEN);
         dc.SetBrush(wxBrush(background_color.colorForStates(0)));
-        dc.DrawRectangle(wxRect(7 * m_scale,0 , m_label_width + 7 * m_scale, m_label_height)); // text background
+        dc.DrawRectangle(wxRect(FromDIP(7), 0, label_width + FromDIP(7), label_height)); // text background
         // NEEDFIX if text lenght > client size 
         dc.SetTextForeground(text_color.colorForStates(state_handler.states()));
-        dc.DrawText(m_label, wxPoint(10 * m_scale, 0));
+        dc.DrawText(m_label, FromDIP(wxPoint(10, 0)));
     }
 }
 
 void LabeledStaticBox::GetBordersForSizer(int* borderTop, int* borderOther) const {
     wxStaticBox::GetBordersForSizer(borderTop, borderOther);
+    int text_width, text_height, descent, external_leading;
+    const wxFont font = scaled_font();
+    GetTextExtent(m_label.IsEmpty() ? "Orca" : m_label, &text_width, &text_height, &descent, &external_leading, &font);
+    *borderTop = std::max(*borderTop, text_height - external_leading);
 #ifdef __WXOSX__
     *borderOther = 5; // Make sure macOS uses the same border padding as other platforms
 #endif
