@@ -416,6 +416,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/MsgDialog.hpp
     GUI/MultiChoiceDialog.hpp
     GUI/MultiChoiceDialog.cpp
+    GUI/LanDevicePool.cpp
+    GUI/LanDevicePool.hpp
     GUI/MultiMachine.cpp
     GUI/MultiMachine.hpp
     GUI/MultiMachineManagerPage.cpp

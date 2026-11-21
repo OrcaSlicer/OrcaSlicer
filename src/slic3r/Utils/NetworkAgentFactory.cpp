@@ -164,6 +164,23 @@ std::shared_ptr<IPrinterAgent> NetworkAgentFactory::create_printer_agent_by_id(c
     return agent;
 }
 
+std::shared_ptr<IPrinterAgent> NetworkAgentFactory::create_device_printer_agent(const std::string& id, const std::string& log_dir)
+{
+    if (id == BBL_PRINTER_AGENT_ID || id == ORCA_PRINTER_AGENT_ID)
+        return nullptr;
+    PrinterAgentFactory factory;
+    {
+        std::lock_guard<std::mutex> lock(s_registry_mutex);
+        auto&      agents = get_printer_agents();
+        const auto it     = agents.find(id);
+        if (it == agents.end())
+            return nullptr;
+        factory = it->second.device_factory ? it->second.device_factory : it->second.factory;
+    }
+    // Outside the lock: a plugin's factory runs Python
+    return factory ? factory(nullptr, log_dir) : nullptr;
+}
+
 void NetworkAgentFactory::clear_printer_agent_cache()
 {
     // Disconnects and destroys the agents outside the lock, since a destructor waits for its agent's threads
@@ -404,7 +421,13 @@ void NetworkAgentFactory::register_python_printer_agent(const std::string& plugi
         //   capability is re-registering (same plugin_full_ref). In the re-register case we WANT to
         //   overwrite so the factory closure points at the current live capability instance; emplace
         //   would silently keep the stale entry.
-        agents.insert_or_assign(info.id, PrinterAgentInfo(info.id, info.name, plugin_full_ref, std::move(factory)));
+        PrinterAgentInfo agent_info(info.id, info.name, plugin_full_ref, std::move(factory));
+        // The capability is the live agent; another printer gets a new instance of its Python class
+        agent_info.device_factory = [weak_plugin](std::shared_ptr<ICloudServiceAgent>, const std::string&) -> std::shared_ptr<IPrinterAgent> {
+            auto plugin = weak_plugin.lock();
+            return plugin ? PrinterAgentPluginCapability::new_device_instance(plugin) : nullptr;
+        };
+        agents.insert_or_assign(info.id, std::move(agent_info));
         python_agent_ids[capability_key] = info.id;
 
         auto& cache   = get_printer_agent_cache();

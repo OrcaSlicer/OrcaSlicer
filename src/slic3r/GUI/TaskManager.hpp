@@ -14,7 +14,9 @@
 #include <sstream>
 #include <iomanip>
 #include <vector>
+#include <functional>
 #include <map>
+#include <optional>
 #include <mutex>
 #include <atomic>
 #include <wx/event.h>
@@ -161,6 +163,11 @@ public:
 
     void set_agent(NetworkAgent* agent);
 
+    // Sends a task's print through the agent of the printer it names, or nothing when the
+    // printer has none of its own (a Bambu printer), which then goes through the live agent's start_print()
+    using DevicePrintFn = std::function<std::optional<int>(const PrintParams&, OnUpdateStatusFn, WasCancelledFn)>;
+    void set_device_print(DevicePrintFn fn);
+
     int start_print(const std::vector<PrintParams>& params, TaskSettings* settings = nullptr);
 
     static void set_max_send_at_same_time(int count);
@@ -189,6 +196,7 @@ private:
     bool                        m_started { false };
     // Replaced on the main thread whenever networking is re-initialised, read by the sending threads.
     std::atomic<NetworkAgent*>  m_agent { nullptr };
+    DevicePrintFn               m_device_print; // set once, before start()
 
     std::chrono::system_clock::time_point last_sent_timestamp;
 };

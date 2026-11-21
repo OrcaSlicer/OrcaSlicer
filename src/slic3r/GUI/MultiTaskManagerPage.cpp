@@ -790,7 +790,7 @@ void LocalTaskManagerPage::refresh_user_device(bool clear)
     std::vector<std::string> subscribe_list;
     std::vector<MultiTaskItem*> task_temps;
 
-    auto all_machine = dev->get_my_cloud_machine_list();
+    auto all_machine = dev->get_multi_device_machine_list();
     auto user_machine = std::map<std::string, MachineObject*>();
 
     //selected machine
@@ -1259,7 +1259,7 @@ void CloudTaskManagerPage::refresh_user_device(bool clear)
     std::vector<MultiTaskItem*> task_temps;
     std::vector<std::string> subscribe_list;
 
-    auto all_machine = dev->get_my_cloud_machine_list();
+    auto all_machine = dev->get_multi_device_machine_list();
     auto user_machine = std::map<std::string, MachineObject*>();
 
     //selected machine

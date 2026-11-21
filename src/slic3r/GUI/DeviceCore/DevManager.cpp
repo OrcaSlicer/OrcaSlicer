@@ -1,4 +1,6 @@
 #include "DevManager.h"
+#include "slic3r/GUI/LanDevicePool.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Utils.hpp"
 #include <boost/log/trivial.hpp>
 #include <mutex>
@@ -153,6 +155,7 @@ namespace Slic3r
     {
         if (m_refresher)
             delete m_refresher;
+        m_lan_devices.reset();
 
         for (auto it = localMachineList.begin(); it != localMachineList.end(); it++)
         {
@@ -224,6 +227,8 @@ namespace Slic3r
     {
         m_agent->enable_multi_machine(enable);
         m_enable_mutil_machine = enable;
+        if (enable && !m_lan_devices)
+            m_lan_devices = std::make_shared<LanDevicePool>(this);
     }
 
     void DeviceManager::start_refresher() { if (m_refresher) m_refresher->Start(); }
@@ -855,6 +860,9 @@ namespace Slic3r
         }
         for (auto& it : dev_list)
         {
+            // A LAN printer of the Multi-device tab is connected by its own agent, not subscribed through the cloud
+            if (m_lan_devices && m_lan_devices->owns(it))
+                continue;
             subscribe_list_cache.push_back(it);
             BOOST_LOG_TRIVIAL(trace) << "subscribe_device_list: sub dev id = " << it;
         }
@@ -863,6 +871,18 @@ namespace Slic3r
             m_agent->del_subscribe(unsub_list);
         if (!dev_list.empty())
             m_agent->add_subscribe(subscribe_list_cache);
+    }
+
+    std::map<std::string, MachineObject*> DeviceManager::get_multi_device_machine_list()
+    {
+        std::map<std::string, MachineObject*> result = get_my_cloud_machine_list();
+        auto* bundle = GUI::wxGetApp().preset_bundle;
+        if (!m_enable_mutil_machine || !m_lan_devices || !bundle)
+            return result;
+        m_lan_devices->sync(lan_devices_from_presets(*bundle));
+        for (const auto& [dev_id, obj] : m_lan_devices->machines())
+            result.emplace(dev_id, obj); // a cloud machine with the same id keeps its place
+        return result;
     }
 
     std::map<std::string, MachineObject*> DeviceManager::get_my_machine_list(const std::string& agent_id)
