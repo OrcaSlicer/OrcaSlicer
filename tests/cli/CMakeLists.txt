@@ -77,3 +77,11 @@ set_tests_properties(cli_nozzle_volume_type PROPERTIES
     LABELS "CLI;RequiresApp"
     SKIP_RETURN_CODE 77
     TIMEOUT 900)
+
+add_test(NAME cli_prusa_3mf_part_extruders
+    COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_cli_prusa_3mf_part_extruders.sh $<TARGET_FILE:OrcaSlicer> ${ORCA_CLI_TEST_PYTHON}
+        ${CMAKE_SOURCE_DIR}/resources/profiles/BBL)
+set_tests_properties(cli_prusa_3mf_part_extruders PROPERTIES
+    LABELS "CLI;RequiresApp"
+    SKIP_RETURN_CODE 77
+    TIMEOUT 900)

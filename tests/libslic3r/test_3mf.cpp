@@ -27,6 +27,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Geometry.hpp"
 #include <cstddef>
+#include <cstdlib>
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Utils.hpp"
 #include <miniz.h>
@@ -2899,4 +2900,259 @@ SCENARIO("a rendered no-light thumbnail does not suppress the plate thumbnail", 
             }
         }
     }
+}
+
+namespace {
+
+// What the command line passes when it loads a model without a project config.
+const LoadStrategy command_line_load_strategy = LoadStrategy::LoadModel | LoadStrategy::AddDefaultInstances;
+
+struct PrusaCube {
+    double min_x, min_y, min_z, size;
+};
+
+// Appends the 8 vertices and 12 outward-facing triangles of an axis-aligned cube to a 3MF mesh.
+void append_cube_mesh(std::string &vertices, std::string &triangles, int first_vertex, const PrusaCube &cube)
+{
+    static const int corner[8][3] = {{0,0,0},{1,0,0},{1,1,0},{0,1,0},{0,0,1},{1,0,1},{1,1,1},{0,1,1}};
+    static const int face[12][3] = {{0,2,1},{0,3,2},{4,5,6},{4,6,7},{0,1,5},{0,5,4},{1,2,6},{1,6,5},{2,3,7},{2,7,6},{3,0,4},{3,4,7}};
+    for (const auto &c : corner)
+        vertices += "<vertex x=\"" + std::to_string(cube.min_x + c[0] * cube.size) + "\" y=\"" + std::to_string(cube.min_y + c[1] * cube.size) +
+                    "\" z=\"" + std::to_string(cube.min_z + c[2] * cube.size) + "\"/>\n";
+    for (const auto &f : face)
+        triangles += "<triangle v1=\"" + std::to_string(first_vertex + f[0]) + "\" v2=\"" + std::to_string(first_vertex + f[1]) +
+                     "\" v3=\"" + std::to_string(first_vertex + f[2]) + "\"/>\n";
+}
+
+// Writes a 3MF laid out the way PrusaSlicer 2.x writes one: one object made of two cube volumes (body and inlay),
+// per-volume extruders in Metadata/Slic3r_PE_model.config, and one build item per entry of item_offsets_x.
+void write_prusa_two_part_3mf(const std::string &path, int body_extruder, int inlay_extruder,
+                              const std::vector<double> &item_offsets_x, const std::string &print_config = {},
+                              const std::string &object_metadata = {})
+{
+    std::string vertices, triangles;
+    append_cube_mesh(vertices, triangles, 0, {0, 0, 0, 10});  // body
+    append_cube_mesh(vertices, triangles, 8, {3, 3, 10, 4});  // inlay, resting on the body and offset from its corner
+    std::string model = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:slic3rpe="http://schemas.slic3r.org/3mf/2017/06">
+ <metadata name="slic3rpe:Version3mf">1</metadata>
+ <metadata name="Application">PrusaSlicer-2.6.0</metadata>
+ <resources>
+  <object id="1" type="model">
+   <mesh>
+<vertices>
+)xml" + vertices + "</vertices>\n<triangles>\n" + triangles + R"xml(</triangles>
+   </mesh>
+  </object>
+ </resources>
+ <build>
+)xml";
+    for (double x : item_offsets_x)
+        model += "  <item objectid=\"1\" transform=\"1 0 0 0 1 0 0 0 1 " + std::to_string(x) + " 50 0\" printable=\"1\"/>\n";
+    model += " </build>\n</model>\n";
+
+    const std::string model_config = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<config>
+ <object id="1" instances_count=")xml" + std::to_string(item_offsets_x.size()) + R"xml(">
+  <metadata type="object" key="name" value="Body with inlay"/>
+)xml" + object_metadata + R"xml(
+  <volume firstid="0" lastid="11">
+   <metadata type="volume" key="name" value="Body"/>
+   <metadata type="volume" key="volume_type" value="ModelPart"/>
+   <metadata type="volume" key="matrix" value="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"/>
+   <metadata type="volume" key="extruder" value=")xml" + std::to_string(body_extruder) + R"xml("/>
+   <mesh edges_fixed="0" degenerate_facets="0" facets_removed="0" facets_reversed="0" backwards_edges="0"/>
+  </volume>
+  <volume firstid="12" lastid="23">
+   <metadata type="volume" key="name" value="Inlay"/>
+   <metadata type="volume" key="volume_type" value="ModelPart"/>
+   <metadata type="volume" key="matrix" value="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"/>
+   <metadata type="volume" key="extruder" value=")xml" + std::to_string(inlay_extruder) + R"xml("/>
+   <mesh edges_fixed="0" degenerate_facets="0" facets_removed="0" facets_reversed="0" backwards_edges="0"/>
+  </volume>
+ </object>
+</config>
+)xml";
+    Zipper archive(path);
+    archive.add_entry("[Content_Types].xml");
+    archive << R"xml(<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/></Types>)xml";
+    archive.add_entry("_rels/.rels");
+    archive << R"xml(<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="/3D/3dmodel.model" Id="rel-1" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>)xml";
+    archive.add_entry("3D/3dmodel.model", model.data(), model.size());
+    archive.add_entry("Metadata/Slic3r_PE_model.config", model_config.data(), model_config.size());
+    if (!print_config.empty()) {
+        // PrusaSlicer stores its print config as G-code-comment lines; the first line is a header the reader skips.
+        const std::string text = "; generated by PrusaSlicer 2.6.0 on 2023-01-01 at 00:00:00 UTC\n" + print_config;
+        archive.add_entry("Metadata/Slic3r_PE.config", text.data(), text.size());
+    }
+    archive.finalize();
+}
+
+TriangleMesh volume_mesh_in_object_space(const ModelVolume &volume)
+{
+    TriangleMesh mesh(volume.mesh());
+    mesh.transform(volume.get_matrix());
+    return mesh;
+}
+
+struct PrusaPartExtruders {
+    size_t objects = 0;
+    size_t instances = 0;
+    std::vector<int> extruders; // per volume of every object, in order
+};
+
+PrusaPartExtruders summarize_extruders(const Model &model)
+{
+    PrusaPartExtruders summary;
+    summary.objects = model.objects.size();
+    for (const ModelObject *object : model.objects) {
+        summary.instances += object->instances.size();
+        for (const ModelVolume *volume : object->volumes)
+            summary.extruders.push_back(volume->extruder_id());
+    }
+    return summary;
+}
+
+} // namespace
+
+TEST_CASE("A PrusaSlicer 3MF read from file keeps each part's extruder", "[3mf][Model]")
+{
+    ScopedTemporaryFile file(".3mf");
+    write_prusa_two_part_3mf(file.string(), 1, 2, {60.});
+
+    DynamicPrintConfig config;
+    ConfigSubstitutionContext substitutions(ForwardCompatibilitySubstitutionRule::Enable);
+    bool is_bbl_3mf = true;
+    Model model = Model::read_from_file(file.string(), &config, &substitutions, command_line_load_strategy,
+                                        nullptr, nullptr, &is_bbl_3mf);
+
+    CHECK_FALSE(is_bbl_3mf);
+    REQUIRE(model.objects.size() == 1);
+    const ModelObject &object = *model.objects.front();
+    REQUIRE(object.volumes.size() == 2);
+    CHECK(object.instances.size() == 1);
+    CHECK(object.volumes[0]->name == "Body");
+    CHECK(object.volumes[1]->name == "Inlay");
+    CHECK(object.volumes[0]->extruder_id() == 1);
+    CHECK(object.volumes[1]->extruder_id() == 2);
+
+    // The inlay sits where the file puts it relative to the body: 3 mm in x and y from the body's corner, on its top face.
+    const BoundingBoxf3 body  = volume_mesh_in_object_space(*object.volumes[0]).bounding_box();
+    const BoundingBoxf3 inlay = volume_mesh_in_object_space(*object.volumes[1]).bounding_box();
+    CHECK_THAT(inlay.min.x() - body.min.x(), Catch::Matchers::WithinAbs(3., 1e-4));
+    CHECK_THAT(inlay.min.y() - body.min.y(), Catch::Matchers::WithinAbs(3., 1e-4));
+    CHECK_THAT(inlay.min.z() - body.max.z(), Catch::Matchers::WithinAbs(0., 1e-4));
+    CHECK_THAT(inlay.size().x(), Catch::Matchers::WithinAbs(4., 1e-4));
+    CHECK_THAT(body.size().x(), Catch::Matchers::WithinAbs(10., 1e-4));
+}
+
+TEST_CASE("A PrusaSlicer 3MF read from file matches the project loader for repeated build items", "[3mf][Model]")
+{
+    ScopedTemporaryFile file(".3mf");
+    write_prusa_two_part_3mf(file.string(), 1, 2, {40., 90.});
+
+    DynamicPrintConfig file_config;
+    ConfigSubstitutionContext file_substitutions(ForwardCompatibilitySubstitutionRule::Enable);
+    const Model from_file = Model::read_from_file(file.string(), &file_config, &file_substitutions, command_line_load_strategy);
+
+    DynamicPrintConfig archive_config;
+    ConfigSubstitutionContext archive_substitutions(ForwardCompatibilitySubstitutionRule::Enable);
+    En3mfType file_type = En3mfType::From_Other;
+    const Model from_archive = Model::read_from_archive(file.string(), &archive_config, &archive_substitutions, file_type);
+
+    CHECK(file_type == En3mfType::From_Prusa);
+    const PrusaPartExtruders file_summary    = summarize_extruders(from_file);
+    const PrusaPartExtruders archive_summary = summarize_extruders(from_archive);
+    // Both loaders turn each build item into its own object, so the two items give two two-part objects.
+    CHECK(file_summary.objects == 2);
+    CHECK(file_summary.instances == 2);
+    CHECK(file_summary.extruders == std::vector<int>{1, 2, 1, 2});
+    CHECK(file_summary.objects == archive_summary.objects);
+    CHECK(file_summary.instances == archive_summary.instances);
+    CHECK(file_summary.extruders == archive_summary.extruders);
+
+    REQUIRE(from_file.objects.size() == 2);
+    REQUIRE(from_archive.objects.size() == 2);
+    for (size_t i = 0; i < 2; ++i) {
+        REQUIRE(from_file.objects[i]->instances.size() == 1);
+        REQUIRE(from_archive.objects[i]->instances.size() == 1);
+        const Vec3d file_offset    = from_file.objects[i]->instances.front()->get_offset();
+        const Vec3d archive_offset = from_archive.objects[i]->instances.front()->get_offset();
+        CHECK_THAT((file_offset - archive_offset).norm(), Catch::Matchers::WithinAbs(0., 1e-6));
+    }
+    // The build items are 50 mm apart in x.
+    CHECK_THAT(std::abs(from_file.objects[1]->instances.front()->get_offset().x() - from_file.objects[0]->instances.front()->get_offset().x()),
+               Catch::Matchers::WithinAbs(50., 1e-6));
+}
+
+TEST_CASE("Reading a PrusaSlicer 3MF from file does not take the print settings stored in it", "[3mf][Model]")
+{
+    ScopedTemporaryFile file(".3mf");
+    write_prusa_two_part_3mf(file.string(), 1, 2, {60.}, "; layer_height = 0.3\n");
+
+    DynamicPrintConfig file_config;
+    ConfigSubstitutionContext file_substitutions(ForwardCompatibilitySubstitutionRule::Enable);
+    Model::read_from_file(file.string(), &file_config, &file_substitutions, command_line_load_strategy);
+    CHECK_FALSE(file_config.has("layer_height"));
+
+    // The project loader does not take them either: load_3mf() leaves Slic3r_PE.config unread.
+    DynamicPrintConfig archive_config;
+    ConfigSubstitutionContext archive_substitutions(ForwardCompatibilitySubstitutionRule::Enable);
+    En3mfType file_type = En3mfType::From_Other;
+    Model::read_from_archive(file.string(), &archive_config, &archive_substitutions, file_type);
+    CHECK_FALSE(archive_config.has("layer_height"));
+}
+
+TEST_CASE("Reading a PrusaSlicer 3MF from file ignores an invalid setting value in it", "[3mf][Model]")
+{
+    // load_3mf() reads neither Slic3r_PE.config nor any setting of Slic3r_PE_model.config except a fixed list of volume keys
+    // (name, volume type, matrix, source, extruder and the like), so no enum value from the file can be substituted and
+    // nothing is recorded.
+    ScopedTemporaryFile file(".3mf");
+    write_prusa_two_part_3mf(file.string(), 1, 2, {60.}, "; sparse_infill_pattern = not_a_pattern\n",
+                             "  <metadata type=\"object\" key=\"sparse_infill_pattern\" value=\"not_a_pattern\"/>");
+
+    DynamicPrintConfig config;
+    ConfigSubstitutionContext substitutions(ForwardCompatibilitySubstitutionRule::Enable);
+    Model model = Model::read_from_file(file.string(), &config, &substitutions, command_line_load_strategy);
+
+    CHECK(substitutions.substitutions.empty());
+    CHECK_FALSE(config.has("sparse_infill_pattern"));
+    REQUIRE(model.objects.size() == 1);
+    CHECK_FALSE(model.objects.front()->config.has("sparse_infill_pattern"));
+    CHECK(summarize_extruders(model).extruders == std::vector<int>{1, 2});
+}
+
+TEST_CASE("An Orca 3MF read from file still takes the Bambu project path", "[3mf][Model]")
+{
+    // The repository holds no Bambu/Orca project fixture, so write one with the project exporter.
+    Model source;
+    REQUIRE(load_stl((std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl").c_str(), &source));
+    source.add_default_instances();
+    // Both the exporter and read_from_file()'s own model stage files under the process temporary directory.
+    ScopedSlic3rTemporaryDir temporary_dir("orca_project_path");
+    DynamicPrintConfig source_config;
+    source_config.set_key_value("layer_height", new ConfigOptionFloat(0.3));
+
+    ScopedTemporaryFile file(".3mf");
+    StoreParams store_params;
+    store_params.path   = file.string().c_str();
+    store_params.model  = &source;
+    store_params.config = &source_config;
+    REQUIRE(store_bbs_3mf(store_params));
+
+    DynamicPrintConfig config;
+    ConfigSubstitutionContext substitutions(ForwardCompatibilitySubstitutionRule::Enable);
+    PlateDataPtrs plates;
+    bool is_bbl_3mf = false;
+    Model model = Model::read_from_file(file.string(), &config, &substitutions,
+                                        LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel | LoadStrategy::LoadConfig,
+                                        &plates, nullptr, &is_bbl_3mf);
+    release_PlateData_list(plates);
+
+    CHECK(is_bbl_3mf);
+    CHECK(model.objects.size() == 1);
+    // Only the Bambu loader fills `config` from the project, so this shows that path ran.
+    REQUIRE(config.has("layer_height"));
+    CHECK_THAT(config.opt_float("layer_height"), Catch::Matchers::WithinAbs(0.3, 1e-6));
 }
