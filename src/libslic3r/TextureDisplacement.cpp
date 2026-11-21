@@ -19,6 +19,9 @@
 #include <mutex>
 #include <numeric>
 #include <optional>
+#include "ChromaStack.hpp"
+#include "libslic3r.h"
+#include "Color.hpp"
 #include "nlohmann/json.hpp"
 #include <queue>
 #include <ratio>
@@ -38,7 +41,12 @@
 #include <vector>
 
 #include "AABBTreeIndirect.hpp"
+#include "BoundingBox.hpp"
+#include "ClipperUtils.hpp"
+#include "ExPolygon.hpp"
 #include "MeshBoolean.hpp"
+#include "Polygon.hpp"
+#include "Tesselate.hpp"
 #include "Model.hpp"
 #include "PNGReadWrite.hpp"
 #include "Point.hpp"
@@ -267,6 +275,62 @@ void smooth_height_pixels(std::vector<uint8_t> &pixels, int width, int height, f
         for (size_t i = 0; i < pixels.size(); ++i)
             pixels[i] = uint8_t(std::lround(float(raw[i]) + (float(pixels[i]) - float(raw[i])) * mix));
 }
+
+// True when the PNG's IHDR says its texels are palette indices (colour type 3): the image is indexed in
+// the file, not merely a picture that looks like it. Everything needed sits at a fixed offset - the
+// 8-byte signature, then the IHDR chunk's length and type, the width, the height and the bit depth - so
+// this is one byte read rather than a decode.
+//
+// libslic3r's readers take 8-bit grey, RGB and RGBA only (png::is_decodable_8bit_png()) and the importer
+// expands anything else through wxImage, keeping its colours exactly as they were, so an indexed image
+// normally reaches the decode already expanded and it is the colour count below that recognises it. The
+// rule lives here anyway, because "indexed" is a fact about the file and not something the count should
+// have to imply.
+bool png_is_indexed(const png::ReadBuf &rbuf)
+{
+    // 8 signature + 4 chunk length + 4 "IHDR" + 4 width + 4 height + 1 bit depth.
+    constexpr size_t  color_type_offset = 25;
+    constexpr uint8_t png_color_type_palette = 3;
+    if (rbuf.buf == nullptr || rbuf.sz <= color_type_offset)
+        return false;
+    return static_cast<const uint8_t *>(rbuf.buf)[color_type_offset] == png_color_type_palette;
+}
+
+// Counts an image's distinct colours, but only as far as PALETTE_EXACT_MAX_COLORS: past that the image
+// is a photograph as far as this question goes, and how many hundreds of colours it has is of no
+// interest. That bail-out is what keeps the detection off the decode's critical path - a photograph
+// spends a few hundred comparisons before giving up, not a pass over itself.
+//
+// A colour is packed into one integer (and a grey level is just its byte), so the same counter serves
+// the grayscale and the colour decode paths and neither can drift from the other's idea of "distinct".
+// The last colour seen is checked first because flat artwork is made of long runs of one fill: that
+// turns the usual texel into a single comparison, where a linear scan of the palette would otherwise
+// cost as much as the palette is long on every one of them.
+class PaletteCounter
+{
+public:
+    void add(uint32_t color)
+    {
+        if (!m_counting || (m_count > 0 && color == m_last))
+            return;
+        m_last = color;
+        for (int i = 0; i < m_count; ++i)
+            if (m_colors[size_t(i)] == color)
+                return;
+        if (m_count == PALETTE_EXACT_MAX_COLORS)
+            m_counting = false;
+        else
+            m_colors[size_t(m_count++)] = color;
+    }
+    // Still within the budget, i.e. the image is drawn from a palette small enough to be artwork.
+    bool palette_exact() const { return m_counting; }
+
+private:
+    std::array<uint32_t, PALETTE_EXACT_MAX_COLORS> m_colors{};
+    uint32_t m_last     = 0;
+    int      m_count    = 0;
+    bool     m_counting = true;
+};
 } // namespace
 
 bool height_texture_has_color(const TextureDisplacementLayer &layer)
@@ -310,12 +374,25 @@ DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer
             // code needs no dependency on wxWidgets/libjpeg to read arbitrary user images.
             return result;
 
+        // Decided alongside the decode below, from the texels it reads anyway. See
+        // DecodedHeightTexture::palette_exact.
+        const bool     indexed = png_is_indexed(rbuf);
+        PaletteCounter counter;
+
         png::ImageGreyscale img;
         if (png::decode_png(rbuf, img) && img.cols > 0 && img.rows > 0) {
             // The shipped library, and anything imported before colour was kept.
             result.width  = int(img.cols);
             result.height = int(img.rows);
             result.pixels = std::move(img.buf);
+            // The one place this costs a pass of its own: the grayscale decode hands its buffer over
+            // whole instead of walking it. One byte per texel, and it stops the moment the image has
+            // too many grey levels to be a stencil or a line drawing.
+            for (const uint8_t level : result.pixels) {
+                counter.add(level);
+                if (!counter.palette_exact())
+                    break;
+            }
         } else {
             // A colour source: keep the colour, and take the height from its luminance. The
             // coefficients are wxImage::ConvertToGreyscale()'s, which is what the importer used to
@@ -348,8 +425,12 @@ DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer
                     result.rgb[dst * 3 + 1] = g;
                     result.rgb[dst * 3 + 2] = b;
                     result.pixels[dst] = uint8_t(std::lround(0.299 * r + 0.587 * g + 0.114 * b));
+                    // Alpha is left out of a texel's identity because the decode drops it: two texels
+                    // that differ only in alpha are the same colour in everything downstream of here.
+                    counter.add((uint32_t(r) << 16) | (uint32_t(g) << 8) | uint32_t(b));
                 }
         }
+        result.palette_exact = indexed || counter.palette_exact();
 
         if (keep_decoded) {
             std::lock_guard<std::mutex> lock(g_decoded_texture_cache.mutex);
@@ -405,6 +486,11 @@ DecodedHeightTexture decode_height_texture(const TextureDisplacementLayer &layer
         }
         const float span   = 0.05f * float(std::min(result.width, result.height));
         const float radius = std::clamp(layer.smoothing, 0.f, 1.f) * std::min(span, 48.f);
+        // A blurred edge really does hold the colours between the two fills it separates, so the image
+        // stops being palette-exact here however it came in. Cleared before the blur rather than after,
+        // so the smoothed cache stores the honest answer.
+        if (radius > 0.f)
+            result.palette_exact = false;
         smooth_height_pixels(result.pixels, result.width, result.height, radius);
         // Colour gets the same blur, per channel. It is the same knob for the same reason: detail in
         // the image finer than the mesh can carry is noise either way, and low-passing it here is the
@@ -453,6 +539,137 @@ float unsharp_radius(int width, int height)
 float apply_brightness(float v, float b)
 {
     return b >= 0.f ? v + b * (1.f - v) : v * (1.f + b);
+}
+
+// The sRGB transfer function and its inverse, for the perceptual brightness path below.
+//
+// The real piecewise curve, not the gamma-2.2 approximation it is often replaced by. The two agree at
+// the ends and differ by several 8-bit levels through the middle of the range, which is precisely where
+// a brightness slider spends its time: approximating here would make the midtones of a Lab brightening
+// land somewhere other than where the Lab arithmetic says they should, and the whole point of the mode
+// is that the arithmetic is right.
+//
+// ChromaStack.cpp has this same pair, with the same white point and the same matrices, but they are
+// file-static there and nothing is declared in ChromaStack.hpp, so there is no declaration to include
+// and they are repeated rather than shared. Worth promoting to a header of their own the next time
+// something else needs them.
+float srgb_to_linear(float c) { return c <= 0.04045f ? c / 12.92f : std::pow((c + 0.055f) / 1.055f, 2.4f); }
+float linear_to_srgb(float c) { return c <= 0.0031308f ? c * 12.92f : 1.055f * std::pow(c, 1.f / 2.4f) - 0.055f; }
+
+// CIELAB under D65. L* in [0, 100], a*/b* roughly in [-128, 127].
+struct LabColor
+{
+    float l = 0.f, a = 0.f, b = 0.f;
+};
+
+// The CIELAB companding function and its inverse, on a channel already divided by its white point.
+float lab_f(float t) { return t > 0.008856f ? std::cbrt(t) : (7.787f * t + 16.f / 116.f); }
+float lab_f_inv(float t) { return t * t * t > 0.008856f ? t * t * t : (t - 16.f / 116.f) / 7.787f; }
+
+LabColor srgb_to_lab(float r, float g, float b)
+{
+    const float rl = srgb_to_linear(r), gl = srgb_to_linear(g), bl = srgb_to_linear(b);
+    const float x  = (0.4124f * rl + 0.3576f * gl + 0.1805f * bl) / 0.95047f;
+    const float y  = (0.2126f * rl + 0.7152f * gl + 0.0722f * bl);
+    const float z  = (0.0193f * rl + 0.1192f * gl + 0.9505f * bl) / 1.08883f;
+    const float fx = lab_f(x), fy = lab_f(y), fz = lab_f(z);
+    return LabColor{ 116.f * fy - 16.f, 500.f * (fx - fy), 200.f * (fy - fz) };
+}
+
+// Lab back to *linear* sRGB, unclamped. Stopping short of the transfer function is what makes the gamut
+// search below cheap: linear_to_srgb() is monotonic, so a channel is inside [0, 1] after companding
+// exactly when it was inside [0, 1] before, and the search can test a candidate without paying for
+// three pow() calls per step.
+std::array<float, 3> lab_to_linear_rgb(const LabColor &lab)
+{
+    const float fy = (lab.l + 16.f) / 116.f;
+    const float fx = fy + lab.a / 500.f;
+    const float fz = fy - lab.b / 200.f;
+    const float x = lab_f_inv(fx) * 0.95047f, y = lab_f_inv(fy), z = lab_f_inv(fz) * 1.08883f;
+    return { 3.2406f * x - 1.5372f * y - 0.4986f * z,
+            -0.9689f * x + 1.8758f * y + 0.0415f * z,
+             0.0557f * x - 0.2040f * y + 1.0570f * z };
+}
+
+// How far above 1 a linear channel may sit and still count as printable. The matrices above are the
+// rounded published ones, so a colour exactly on the gamut boundary reads as a hair outside it - sRGB
+// white most obviously, which comes back as 1.0003 - and without this slack the search would desaturate
+// colours that are perfectly representable. The final clamp deals with the overshoot itself.
+//
+// There is deliberately no matching slack below zero. The dark end is where the sRGB transfer function is
+// at its steepest (a slope of 12.92), so a thousandth of linear light is three 8-bit levels down there,
+// and allowing it would leave a visible tint on a colour taken all the way to black: at L* 0 the only
+// printable colour is black, and the search has to be allowed to say so.
+constexpr float GAMUT_SLACK_HIGH = 1e-3f;
+
+bool linear_rgb_in_gamut(const std::array<float, 3> &c)
+{
+    for (float v : c)
+        if (v < 0.f || v > 1.f + GAMUT_SLACK_HIGH)
+            return false;
+    return true;
+}
+
+// Brightness in CIE Lab: L* is moved by the same lift curve apply_brightness() uses, on L*/100, and a*
+// and b* are left exactly where they are. So the two modes agree at the ends of the slider (|b| == 1 is
+// still pure white and pure black) and differ in between, which is the only place a brightness control is
+// interesting. Keeping the curve on L*/100 rather than inventing a second shape also means the slider
+// still feels like the same slider when the mode is switched under it.
+//
+// Out of gamut is the real question here, because holding a* and b* while raising L* walks straight out of
+// what sRGB can show - there is no light salmon at L* 95 with the chroma of a mid red. Two answers were
+// available:
+//
+//   - clamp each channel into [0, 1] after converting back. Cheap, and exactly the failure the mode exists
+//     to avoid: clipping one channel and not the others *is* a hue shift, so the one thing the user asked
+//     for is the first thing that would be given away.
+//   - scale a* and b* toward the achromatic axis until the colour fits. Hue angle in Lab is atan2(b*, a*),
+//     which is invariant under scaling both by the same factor, so the hue survives exactly and the cost
+//     is paid in chroma instead.
+//
+// The second is what this does. Giving up chroma is also the honest trade for a ChromaStack picture: the
+// stack cannot print a chroma it does not have, and a saturated colour that is merely too saturated lands
+// on the right band, while one whose hue has drifted lands on the wrong one.
+//
+// The scale is found by bisection on [lo, hi] with lo known good and hi known bad. lo starts at 0, which
+// needs no test: a neutral at any L* in [0, 100] is on the sRGB grey axis by construction. Ten steps put
+// the answer within 1/1024 of the original chroma, which is far below one 8-bit level of a*/b*.
+std::array<float, 3> perceptual_brightness(float r, float g, float b, float amount)
+{
+    LabColor      lab = srgb_to_lab(r, g, b);
+    const float   ln  = std::clamp(lab.l / 100.f, 0.f, 1.f);
+    lab.l             = 100.f * std::clamp(apply_brightness(ln, amount), 0.f, 1.f);
+
+    std::array<float, 3> lin = lab_to_linear_rgb(lab);
+    if (!linear_rgb_in_gamut(lin)) {
+        const float a0 = lab.a, b0 = lab.b;
+        float       lo = 0.f, hi = 1.f;
+        for (int i = 0; i < 10; ++i) {
+            const float mid = 0.5f * (lo + hi);
+            if (linear_rgb_in_gamut(lab_to_linear_rgb(LabColor{ lab.l, a0 * mid, b0 * mid })))
+                lo = mid;
+            else
+                hi = mid;
+        }
+        lin = lab_to_linear_rgb(LabColor{ lab.l, a0 * lo, b0 * lo });
+    }
+
+    return { std::clamp(linear_to_srgb(std::clamp(lin[0], 0.f, 1.f)), 0.f, 1.f),
+             std::clamp(linear_to_srgb(std::clamp(lin[1], 0.f, 1.f)), 0.f, 1.f),
+             std::clamp(linear_to_srgb(std::clamp(lin[2], 0.f, 1.f)), 0.f, 1.f) };
+}
+
+// The same thing for a neutral value, where it collapses to a scalar curve and so can live in the tonal
+// lookup table. A grey has a* = b* = 0, nothing can leave the gamut (the grey axis is in it from end to
+// end), and X and Z follow Y, so only the Y channel has to be carried: sRGB to linear, to L*, lift, and
+// back. The rounded matrices above would put a few thousandths of chroma on a grey that has none, which
+// is why this does not simply call perceptual_brightness(v, v, v) - grey in has to be grey out.
+float perceptual_brightness_neutral(float v, float amount)
+{
+    const float y  = srgb_to_linear(std::clamp(v, 0.f, 1.f));
+    const float ln = std::clamp((116.f * lab_f(y) - 16.f) / 100.f, 0.f, 1.f);
+    const float fy = (100.f * std::clamp(apply_brightness(ln, amount), 0.f, 1.f) + 16.f) / 116.f;
+    return std::clamp(linear_to_srgb(std::clamp(lab_f_inv(fy), 0.f, 1.f)), 0.f, 1.f);
 }
 
 // Contrast about the 0.5 pivot. Gain is 1/(1-c) going up (c == 1 would be an infinite-slope threshold, so
@@ -517,9 +734,34 @@ DecodedHeightTexture downscale_height_texture(const DecodedHeightTexture &src, i
     DecodedHeightTexture out;
     out.width  = w;
     out.height = h;
+    // A subset of a palette is still that palette, so the result is palette-exact exactly when the
+    // source was - and the nearest-neighbour branch below is what keeps that true.
+    out.palette_exact = src.palette_exact;
     out.pixels.resize(size_t(w) * size_t(h));
     if (color)
         out.rgb.resize(size_t(w) * size_t(h) * 3);
+
+    if (src.palette_exact) {
+        // Nearest-neighbour: one source texel decides the destination one, for the height and the
+        // colour together, so the two cannot end up read from different places in the image. The texel
+        // picked is the one under the centre of the block this destination texel covers, which is the
+        // usual convention and keeps a one-texel line from drifting to the edge of its block.
+        tbb::parallel_for(tbb::blocked_range<int>(0, h), [&](const tbb::blocked_range<int> &r) {
+            for (int y = r.begin(); y < r.end(); ++y) {
+                const int sy = std::min(src.height - 1, int(int64_t(2 * y + 1) * src.height / (2 * h)));
+                for (int x = 0; x < w; ++x) {
+                    const int    sx = std::min(src.width - 1, int(int64_t(2 * x + 1) * src.width / (2 * w)));
+                    const size_t si = size_t(sy) * size_t(src.width) + size_t(sx);
+                    const size_t di = size_t(y) * size_t(w) + size_t(x);
+                    out.pixels[di]  = src.pixels[si];
+                    if (color)
+                        for (int c = 0; c < 3; ++c)
+                            out.rgb[di * 3 + size_t(c)] = src.rgb[si * 3 + size_t(c)];
+                }
+            }
+        });
+        return out;
+    }
 
     tbb::parallel_for(tbb::blocked_range<int>(0, h), [&](const tbb::blocked_range<int> &r) {
         for (int y = r.begin(); y < r.end(); ++y)
@@ -564,14 +806,40 @@ DecodedHeightTexture apply_texture_adjustments(const DecodedHeightTexture &src, 
     const float blur       = std::clamp(adj.blur, 0.f, 1.f);
     const float sharpness  = std::clamp(adj.sharpness, 0.f, 1.f);
 
+    // The two spatial knobs mix neighbouring texels, which is how a colour that is in neither of them
+    // appears; the tonal ones are per-texel curves, so they map each of a flat image's fills to one
+    // colour and can only leave it with fewer distinct colours than it had. Hence palette-exactness
+    // survives a brightness or hue change and not a blur. See DecodedHeightTexture::palette_exact.
+    //
+    // Lab brightness is not a per-channel curve, but it is still a function of the texel's own three
+    // channels and of nothing else, which is all the argument above actually needs: equal fills in, equal
+    // fills out, no colour invented from a neighbour. So it keeps the flag too.
+    if (blur > 0.f || sharpness > 0.f)
+        out.palette_exact = false;
+
+    // Whether brightness is handled in Lab rather than in RGB. Only when it would actually do something:
+    // at brightness 0 the two modes are the same no-op, and taking the Lab path there would cost a colour
+    // round trip per texel to reproduce the image.
+    const bool lab_brightness = adj.brightness_space == TextureBrightnessSpace::PerceptualLab &&
+                                brightness != 0.f;
+
     // The tonal pass: a 256-entry lookup table, because brightness and contrast are the same scalar
     // curve for every texel and every channel. Building it once beats evaluating two curves a few
     // million times, and it is what keeps this pass off the panel's critical path.
+    //
+    // Lab brightness on a colour image is the exception: it is a function of all three channels together,
+    // not a per-channel curve, so it cannot be folded into this table and runs as its own pass below,
+    // before the table. On a grayscale image it can be folded in after all - a grey has no a* or b* to
+    // hold, so the Lab lift reduces to one scalar curve (perceptual_brightness_neutral()) and the grey
+    // path stays a single lookup per texel.
     std::array<uint8_t, 256> tone{};
     for (int i = 0; i < 256; ++i) {
         float v = float(i) / 255.f;
-        v       = apply_brightness(v, brightness);
-        v       = apply_contrast(v, contrast);
+        if (!lab_brightness)
+            v = apply_brightness(v, brightness);
+        else if (!out.has_color())
+            v = perceptual_brightness_neutral(v, brightness);
+        v               = apply_contrast(v, contrast);
         tone[size_t(i)] = uint8_t(std::lround(std::clamp(v, 0.f, 1.f) * 255.f));
     }
 
@@ -585,6 +853,22 @@ DecodedHeightTexture apply_texture_adjustments(const DecodedHeightTexture &src, 
         return out;
     }
 
+    // Colour, in Lab brightness mode: L* first, in its own pass over the texels, so that what reaches the
+    // tonal table below is already the brightened colour and the documented order (brightness, then
+    // contrast, then hue) still holds. The round trip through 8-bit here is not a loss worth avoiding -
+    // the table that follows is a byte table, so the value would be quantised a line later anyway.
+    if (lab_brightness) {
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t> &r) {
+            for (size_t i = r.begin(); i < r.end(); ++i) {
+                const std::array<float, 3> lifted =
+                    perceptual_brightness(float(out.rgb[i * 3]) / 255.f, float(out.rgb[i * 3 + 1]) / 255.f,
+                                          float(out.rgb[i * 3 + 2]) / 255.f, brightness);
+                for (int ch = 0; ch < 3; ++ch)
+                    out.rgb[i * 3 + size_t(ch)] = uint8_t(std::lround(lifted[size_t(ch)] * 255.f));
+            }
+        });
+    }
+
     // Colour: tone each channel through the same table, then rotate the hue about the luminance axis.
     //
     // The rotation is feColorMatrix's hueRotate matrix (SVG filters), which holds Rec.709 luma fixed.
@@ -595,21 +879,42 @@ DecodedHeightTexture apply_texture_adjustments(const DecodedHeightTexture &src, 
     const float  theta = adj.hue_deg * float(M_PI) / 180.f;
     const float  c     = std::cos(theta);
     const float  s     = std::sin(theta);
-    const float  m[9]  = {
+    const float  hue[9]  = {
         0.213f + c * 0.787f - s * 0.213f, 0.715f - c * 0.715f - s * 0.715f, 0.072f - c * 0.072f + s * 0.928f,
         0.213f - c * 0.213f + s * 0.143f, 0.715f + c * 0.285f + s * 0.140f, 0.072f - c * 0.072f - s * 0.283f,
         0.213f - c * 0.213f - s * 0.787f, 0.715f - c * 0.715f + s * 0.715f, 0.072f + c * 0.928f + s * 0.072f,
     };
-    const bool turn_hue = adj.hue_deg != 0.f;
+
+    // Saturation is the same kind of thing and composes with it, so the two become one matrix rather
+    // than two passes: a lerp between the luminance of a texel, repeated into all three channels, and
+    // the texel itself. The luma coefficients are the hue matrix's own, so a turn followed by a
+    // saturation does not shift brightness in a way a turn alone would not.
+    const float sat = std::clamp(adj.saturation, -1.f, 1.f) + 1.f; // 0 grey, 1 unchanged, 2 twice
+    const float lr = 0.213f, lg = 0.715f, lb = 0.072f;
+    const float satm[9] = {
+        lr + sat * (1.f - lr), lg - sat * lg,         lb - sat * lb,
+        lr - sat * lr,         lg + sat * (1.f - lg), lb - sat * lb,
+        lr - sat * lr,         lg - sat * lg,         lb + sat * (1.f - lb),
+    };
+
+    // satm * hue, so a texel is turned first and then saturated, which is the order the two controls
+    // read in on the panel.
+    float m[9]{};
+    for (int row = 0; row < 3; ++row)
+        for (int col = 0; col < 3; ++col)
+            m[row * 3 + col] = satm[row * 3] * hue[col] + satm[row * 3 + 1] * hue[3 + col] +
+                               satm[row * 3 + 2] * hue[6 + col];
+
+    const bool use_matrix = adj.hue_deg != 0.f || adj.saturation != 0.f;
 
     tbb::parallel_for(tbb::blocked_range<size_t>(0, n), [&](const tbb::blocked_range<size_t> &r) {
         for (size_t i = r.begin(); i < r.end(); ++i) {
             const float rr = float(tone[out.rgb[i * 3]]);
             const float gg = float(tone[out.rgb[i * 3 + 1]]);
             const float bb = float(tone[out.rgb[i * 3 + 2]]);
-            const float nr = turn_hue ? m[0] * rr + m[1] * gg + m[2] * bb : rr;
-            const float ng = turn_hue ? m[3] * rr + m[4] * gg + m[5] * bb : gg;
-            const float nb = turn_hue ? m[6] * rr + m[7] * gg + m[8] * bb : bb;
+            const float nr = use_matrix ? m[0] * rr + m[1] * gg + m[2] * bb : rr;
+            const float ng = use_matrix ? m[3] * rr + m[4] * gg + m[5] * bb : gg;
+            const float nb = use_matrix ? m[6] * rr + m[7] * gg + m[8] * bb : bb;
             out.rgb[i * 3]     = uint8_t(std::lround(std::clamp(nr, 0.f, 255.f)));
             out.rgb[i * 3 + 1] = uint8_t(std::lround(std::clamp(ng, 0.f, 255.f)));
             out.rgb[i * 3 + 2] = uint8_t(std::lround(std::clamp(nb, 0.f, 255.f)));
@@ -2300,6 +2605,15 @@ float sample_layer_height(const DecodedHeightTexture &texture, const TextureDisp
     if (lscm_uv != nullptr)
         return sample_at(*lscm_uv);
 
+    // A ChromaStack picture is pinned to the build plate, whatever the surface under it is doing. Its
+    // colours are print heights, so the picture has to keep its place on the plate as the surface
+    // tilts away from level: blending in the side planes the way triplanar does would slide it along
+    // the model and put its colours at the wrong heights. On a level face this is the plane triplanar
+    // settles on anyway, so a flat picture samples exactly as it did. (The colour path below has no
+    // such branch: a ChromaStack layer displaces only - its colours come from filament swaps.)
+    if (layer.chroma_enabled)
+        return sample_at(box_plane_xy(position, 1.f));
+
     switch (layer.projection_method) {
     case TextureProjectionMethod::Cylindrical:
         return sample_at(project_cylindrical(position, patch_center, patch_axis));
@@ -2464,6 +2778,166 @@ indexed_triangle_set extract_painted_patch(const indexed_triangle_set           
     TriangleSelector    selector(selector_mesh);
     selector.deserialize(facet_data, false);
     return selector.get_facets_strict(EnforcerBlockerType::ENFORCER);
+}
+
+ChromaPatchMetrics chroma_measure_patch(const indexed_triangle_set &patch, const Transform3d &trafo,
+                                        const Transform3d &bake, double instance_bottom_z)
+{
+    ChromaPatchMetrics out;
+    if (patch.vertices.empty())
+        return out;
+
+    BoundingBoxf3 box;
+    BoundingBoxf3 planar;
+    for (const Vec3f &v : patch.vertices) {
+        const Vec3d p = v.cast<double>();
+        box.merge(trafo * p);
+        planar.merge(bake * p);
+    }
+
+    // How far from level the patch is, by area. A picture is printed in horizontal slices, so what
+    // matters is the angle between the surface and the build plate - which is a property of the
+    // facets, not of the bounding box: a saddle and a staircase can have the same Z spread.
+    const Matrix3d normal_trafo = trafo.linear().inverse().transpose();
+    std::vector<std::pair<float, double>> tilted; // cos(tilt), area
+    tilted.reserve(patch.indices.size());
+    double area_total = 0.;
+    double cos_total  = 0.;
+    for (const stl_triangle_vertex_indices &f : patch.indices) {
+        const Vec3d a = patch.vertices[size_t(f[0])].cast<double>();
+        const Vec3d cross = (patch.vertices[size_t(f[1])].cast<double>() - a)
+                                .cross(patch.vertices[size_t(f[2])].cast<double>() - a);
+        const Vec3d n = normal_trafo * cross;
+        const double len = n.norm();
+        if (len < 1e-12)
+            continue;
+        // The triangle's area in the printed frame, which is the frame the tilt is measured in.
+        const double area = 0.5 * (trafo.linear() * cross).norm();
+        const float  facing = float(std::abs(n.z()) / len);
+        tilted.emplace_back(facing, area);
+        area_total += area;
+        cos_total  += double(facing) * area;
+    }
+    const auto as_deg = [](float facing) {
+        return float(std::acos(double(std::clamp(facing, 0.f, 1.f))) * 180. / M_PI);
+    };
+    if (area_total > 0.) {
+        out.tilt_mean_deg = as_deg(float(cos_total / area_total));
+        // The steepest tenth by area, so a single facet on a rounded edge does not speak for a patch
+        // that is otherwise level - and so a patch that really is steep over a tenth of itself does.
+        std::sort(tilted.begin(), tilted.end(),
+                  [](const auto &a, const auto &b) { return a.first < b.first; });
+        double walked = 0.;
+        float  worst  = tilted.front().first;
+        for (const auto &[facing, area] : tilted) {
+            worst = facing;
+            walked += area;
+            if (walked >= 0.1 * area_total)
+                break;
+        }
+        out.tilt_deg = as_deg(worst);
+    }
+
+    out.valid      = true;
+    out.top_mm     = float(std::max(0., box.max.z() - instance_bottom_z));
+    out.spread_mm  = float(box.size().z());
+    out.planar_min = Vec2f(float(planar.min.x()), float(planar.min.y()));
+    out.planar_max = Vec2f(float(planar.max.x()), float(planar.max.y()));
+    return out;
+}
+
+void chroma_fit_layer_to_patch(TextureDisplacementLayer &layer, const ChromaPatchMetrics &patch, float aspect)
+{
+    if (!patch.valid)
+        return;
+    // Lay the one copy of the picture over the painted patch. Without this the picture would be a tile
+    // of some size starting at the volume's own origin, which for a part centred on that origin puts
+    // three quarters of the patch outside the picture and leaves it undisplaced.
+    //
+    // uv = (planar / tiling_scale) * (1, aspect) + offset, so fitting means a scale that makes the
+    // longer side of the patch one tile wide and an offset that moves the patch's own corner to uv 0
+    // and centres the shorter side. The aspect is the picture's, so a wide picture is not squeezed
+    // into a square tile.
+    const Vec2f size    = patch.planar_max - patch.planar_min;
+    const float along_u = std::max(size.x(), 1e-3f);
+    const float along_v = std::max(size.y() * aspect, 1e-3f);
+    const float scale   = std::max(along_u, along_v);
+    layer.tiling_scale  = scale;
+    layer.rotation_deg  = 0.f; // the fit is in unrotated planar coordinates
+    // The picture's first pixel row is at v = 0 and v runs down it, while the plane a ChromaStack
+    // layer is sampled from is (x, -y) - so the corner the picture starts at is the patch's largest y,
+    // not its smallest. Fitting against +y instead slid the picture across the patch by however far
+    // the patch sat off the bake frame's own origin.
+    const Vec2f origin(patch.planar_min.x(), -patch.planar_max.y());
+    layer.offset        = Vec2f(-origin.x() / scale + 0.5f * (1.f - along_u / scale),
+                                -origin.y() * aspect / scale + 0.5f * (1.f - along_v / scale));
+}
+
+ChromaSurface chroma_build_surface(const indexed_triangle_set &patch, const Transform3d &trafo,
+                                   const Transform3d &bake, const TextureDisplacementLayer &layer,
+                                   float aspect, int width, int height)
+{
+    ChromaSurface out;
+    if (patch.indices.empty() || width <= 0 || height <= 0)
+        return out;
+
+    const Matrix3d normal_trafo = trafo.linear().inverse().transpose();
+
+    // Where each vertex of the patch lands in the picture, in texels. box_plane_xy() with a +Z facing
+    // is the plane a ChromaStack layer is sampled from (see sample_layer_height()), so this is the
+    // same mapping the bake will use - the surface has to be measured where the picture actually is.
+    std::vector<Vec2f> texel(patch.vertices.size());
+    std::vector<float> z(patch.vertices.size());
+    for (size_t vi = 0; vi < patch.vertices.size(); ++vi) {
+        const Vec3d p      = patch.vertices[vi].cast<double>();
+        const Vec3d baked  = bake * p;
+        const Vec2f uv     = apply_uv_transform(Vec2f(float(baked.x()), float(-baked.y())), layer, aspect);
+        texel[vi] = Vec2f(uv.x() * float(width), uv.y() * float(height));
+        z[vi]     = float((trafo * p).z());
+    }
+
+    out.width  = width;
+    out.height = height;
+    out.facing.assign(size_t(width) * size_t(height), 0.f);
+    // What is already written at a texel, so the surface nearest the viewer wins where the patch
+    // folds back on itself: the picture is seen on the top of the part, not through it.
+    std::vector<float> depth(out.facing.size(), -std::numeric_limits<float>::max());
+
+    for (const stl_triangle_vertex_indices &f : patch.indices) {
+        const Vec2f a = texel[size_t(f[0])], b = texel[size_t(f[1])], c = texel[size_t(f[2])];
+        const float det = (b.x() - a.x()) * (c.y() - a.y()) - (c.x() - a.x()) * (b.y() - a.y());
+        if (std::abs(det) < 1e-9f)
+            continue; // edge-on in the picture: it covers no texel of it
+
+        const Vec3d v0 = patch.vertices[size_t(f[0])].cast<double>();
+        const Vec3d n  = normal_trafo * (patch.vertices[size_t(f[1])].cast<double>() - v0)
+                                            .cross(patch.vertices[size_t(f[2])].cast<double>() - v0);
+        const double len = n.norm();
+        if (len < 1e-12)
+            continue;
+        const float facing = float(std::abs(n.z()) / len);
+
+        const int x0 = std::max(0, int(std::floor(std::min({ a.x(), b.x(), c.x() }))));
+        const int x1 = std::min(width - 1, int(std::ceil(std::max({ a.x(), b.x(), c.x() }))));
+        const int y0 = std::max(0, int(std::floor(std::min({ a.y(), b.y(), c.y() }))));
+        const int y1 = std::min(height - 1, int(std::ceil(std::max({ a.y(), b.y(), c.y() }))));
+        for (int y = y0; y <= y1; ++y)
+            for (int x = x0; x <= x1; ++x) {
+                const Vec2f p(float(x) + 0.5f, float(y) + 0.5f);
+                const float w0 = ((b.x() - p.x()) * (c.y() - p.y()) - (c.x() - p.x()) * (b.y() - p.y())) / det;
+                const float w1 = ((c.x() - p.x()) * (a.y() - p.y()) - (a.x() - p.x()) * (c.y() - p.y())) / det;
+                const float w2 = 1.f - w0 - w1;
+                if (w0 < 0.f || w1 < 0.f || w2 < 0.f)
+                    continue;
+                const float here = w0 * z[size_t(f[0])] + w1 * z[size_t(f[1])] + w2 * z[size_t(f[2])];
+                const size_t i = size_t(y) * size_t(width) + size_t(x);
+                if (here > depth[i]) {
+                    depth[i]      = here;
+                    out.facing[i] = facing;
+                }
+            }
+    }
+    return out;
 }
 
 bool compute_layer_paint_anchor(const indexed_triangle_set                    &base_mesh,
@@ -2715,6 +3189,26 @@ namespace {
 
 // Wired to the same layer stack via make_combined_displacement_sampler(), so layers, blend modes and
 // projections behave identically in both paths and the comparison is between the meshing strategies.
+// Which way a layer's relief leaves the surface it is painted on.
+//
+// Outwards along the vertex normal, which is the height-map convention, and inwards when the layer is
+// inverted. A generated ChromaStack plate printed picture down turns that around once more, and it is
+// the only thing in the file that does.
+//
+// Its picture is the plate's *bottom* face (chroma_plate_mesh()), so that face's own outward normal
+// points down at the bed - but the relief it carries is not hung below the plate. A face-down column
+// is the full thickness of the slab minus the material missing from underneath it, so the plate still
+// rests on z = 0 and the picture is cut up *into* it; chroma_invert_relief() complements the height
+// map for exactly that reading. Displacing outwards here would push the whole picture under the build
+// plate, where the clamp on the resting plane flattens it into one plane and the plate previews and
+// prints as a single colour.
+float displacement_sign(const TextureDisplacementLayer &layer)
+{
+    const bool into_the_plate = layer.chroma_enabled && layer.chroma.plate.generated &&
+                                layer.chroma.plate.orientation == ChromaOrientation::FaceDown;
+    return (layer.invert != into_the_plate) ? -1.f : 1.f;
+}
+
 indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set                  &mesh,
                                                    const std::vector<TextureDisplacementLayer> &layers,
                                                    const TextureDisplacementFacetsData         &facets_data,
@@ -3337,7 +3831,7 @@ static indexed_triangle_set build_texture_displacement_in_place(
             }
         }
 
-        const float sign = layer->invert ? -1.f : 1.f;
+        const float sign = displacement_sign(*layer);
         // A vertex may be reached by several of the patch's triangles; each must fold into the
         // running total exactly once, or a Multiply/Subtract layer would apply two or three times
         // over depending on how many painted triangles happen to share the vertex. Collecting the
@@ -3544,6 +4038,354 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
     for (Vec3f &v : out.vertices)
         v = (to_local * v.cast<double>()).cast<float>();
     return out;
+}
+
+bool build_texture_displacement_flat_preview(const indexed_triangle_set                  &base_mesh,
+                                             const std::vector<TextureDisplacementLayer> &layers,
+                                             const TextureDisplacementFacetsData         &facets_data,
+                                             const Transform3d                           &volume_to_world,
+                                             const Vec3d                                 &texture_anchor,
+                                             const std::vector<Vec2f>                    *model_uv,
+                                             size_t                                       max_cells,
+                                             const DisplacementProgressFn                &progress,
+                                             indexed_triangle_set                        &out)
+{
+    out = indexed_triangle_set{};
+    const auto keep_going = [&progress](int percent) { return !progress || progress(percent); };
+
+    // The same frame build_texture_displacement() works in, so the sampler places the picture exactly
+    // where the bake will.
+    const Transform3d frame    = texture_displacement_bake_frame(volume_to_world, texture_anchor);
+    const bool        mirrored = frame.linear().determinant() < 0.0;
+    indexed_triangle_set world = base_mesh;
+    for (Vec3f &v : world.vertices)
+        v = (frame * v.cast<double>()).cast<float>();
+    if (world.indices.empty())
+        return false;
+
+    const auto tri_area = [&world](size_t t) {
+        const stl_triangle_vertex_indices &f = world.indices[t];
+        return 0.5 * double((world.vertices[size_t(f[1])] - world.vertices[size_t(f[0])])
+                                .cross(world.vertices[size_t(f[2])] - world.vertices[size_t(f[0])])
+                                .norm());
+    };
+
+    // Which source triangles are painted, by any layer. Only whole triangles: a brush stroke that
+    // splits one paints part of it, and the grid has no way to stop half way across a triangle.
+    std::vector<uint8_t> painted(world.indices.size(), 0);
+    {
+        const TriangleMesh selector_mesh(world);
+        TriangleSelector   selector(selector_mesh);
+        for (const TriangleSelector::TriangleSplittingData &data : facets_data) {
+            if (data.triangles_to_split.empty())
+                continue;
+            selector.deserialize(data);
+            std::vector<int>           piece_src;
+            const indexed_triangle_set pieces = selector.get_facets_strict(EnforcerBlockerType::ENFORCER, &piece_src);
+            std::vector<double>        covered(world.indices.size(), 0.);
+            for (size_t i = 0; i < pieces.indices.size() && i < piece_src.size(); ++i) {
+                const int src = piece_src[i];
+                if (src < 0 || size_t(src) >= world.indices.size())
+                    continue;
+                const stl_triangle_vertex_indices &f = pieces.indices[i];
+                covered[size_t(src)] += 0.5 * double((pieces.vertices[size_t(f[1])] - pieces.vertices[size_t(f[0])])
+                                                         .cross(pieces.vertices[size_t(f[2])] - pieces.vertices[size_t(f[0])])
+                                                         .norm());
+            }
+            for (size_t t = 0; t < covered.size(); ++t) {
+                if (covered[t] <= 0.)
+                    continue;
+                if (covered[t] < tri_area(t) * (1. - 1e-4))
+                    return false; // painted in part
+                painted[t] = 1;
+            }
+        }
+    }
+
+    // One plane, wound one way. The normal comes from the winding, like every normal the bake uses.
+    Vec3d  normal_sum = Vec3d::Zero();
+    size_t first      = world.indices.size();
+    for (size_t t = 0; t < world.indices.size(); ++t)
+        if (painted[t]) {
+            const stl_triangle_vertex_indices &f = world.indices[t];
+            normal_sum += (world.vertices[size_t(f[1])] - world.vertices[size_t(f[0])])
+                              .cross(world.vertices[size_t(f[2])] - world.vertices[size_t(f[0])])
+                              .cast<double>();
+            first = std::min(first, t);
+        }
+    if (first == world.indices.size() || normal_sum.norm() < 1e-12)
+        return false;
+    const Vec3d  nn     = normal_sum.normalized();
+    const Vec3d  origin = world.vertices[size_t(world.indices[first][0])].cast<double>();
+    const double min_cos = std::cos(0.5 * M_PI / 180.);
+    for (size_t t = 0; t < world.indices.size(); ++t) {
+        if (!painted[t])
+            continue;
+        const stl_triangle_vertex_indices &f = world.indices[t];
+        const Vec3d n = (world.vertices[size_t(f[1])] - world.vertices[size_t(f[0])])
+                            .cross(world.vertices[size_t(f[2])] - world.vertices[size_t(f[0])])
+                            .cast<double>();
+        if (n.norm() > 1e-12 && n.normalized().dot(nn) < min_cos)
+            return false;
+        for (int k = 0; k < 3; ++k)
+            if (std::abs((world.vertices[size_t(f[k])].cast<double>() - origin).dot(nn)) > 1e-3)
+                return false;
+    }
+    // The way the relief leaves the face. A mirroring placement turns every winding normal inwards,
+    // which the bake corrects the same way (see build_texture_displacement()).
+    const Vec3f n_out = (mirrored ? Vec3d(-nn) : nn).cast<float>();
+
+    // The plane's own 2D frame, right-handed about the winding normal, so a triangle wound
+    // counter-clockwise in 3D is counter-clockwise here too.
+    const Vec3d an   = nn.cwiseAbs();
+    const Vec3d axis = (an.x() <= an.y() && an.x() <= an.z()) ? Vec3d::UnitX() :
+                       (an.y() <= an.z())                     ? Vec3d::UnitY() : Vec3d::UnitZ();
+    const Vec3d e1   = axis.cross(nn).normalized();
+    const Vec3d e2   = nn.cross(e1);
+    const auto  to_2d = [&](const Vec3f &p) {
+        const Vec3d d = p.cast<double>() - origin;
+        return Point(scaled<coord_t>(d.dot(e1)), scaled<coord_t>(d.dot(e2)));
+    };
+    const auto to_3d = [&](double x, double y) -> Vec3f { return (origin + e1 * x + e2 * y).cast<float>(); };
+
+    // The painted region's outline: the edges only one painted triangle uses, chained into loops with
+    // the triangles' own direction, so outer loops come out counter-clockwise and holes clockwise.
+    Polygons loops;
+    {
+        std::unordered_map<uint64_t, int> edge_use;
+        for (size_t t = 0; t < world.indices.size(); ++t)
+            if (painted[t])
+                for (int k = 0; k < 3; ++k)
+                    ++edge_use[undirected_edge_key(world.indices[t][k], world.indices[t][(k + 1) % 3])];
+        std::unordered_multimap<int, int> next;
+        for (size_t t = 0; t < world.indices.size(); ++t)
+            if (painted[t])
+                for (int k = 0; k < 3; ++k) {
+                    const int a = world.indices[t][k], b = world.indices[t][(k + 1) % 3];
+                    if (edge_use[undirected_edge_key(a, b)] == 1)
+                        next.emplace(a, b);
+                }
+        while (!next.empty()) {
+            auto    it    = next.begin();
+            const int start = it->first;
+            int     at    = it->second;
+            Polygon loop;
+            loop.points.push_back(to_2d(world.vertices[size_t(start)]));
+            next.erase(it);
+            while (at != start) {
+                loop.points.push_back(to_2d(world.vertices[size_t(at)]));
+                auto step = next.find(at);
+                if (step == next.end())
+                    return false; // an outline that does not close: not a surface this can follow
+                at = step->second;
+                next.erase(step);
+            }
+            if (loop.points.size() >= 3)
+                loops.push_back(std::move(loop));
+        }
+    }
+    const ExPolygons region = union_ex(loops);
+    if (region.empty())
+        return false;
+
+    // The grid: cells no finer than the interactive solve's texels, and no more of them than asked.
+    const BoundingBox bb = get_extents(region);
+    double            area_mm2 = 0.;
+    for (const ExPolygon &ex : region)
+        area_mm2 += ex.area() * SCALING_FACTOR * SCALING_FACTOR;
+    const double extent_mm = unscale<double>(std::max(bb.max.x() - bb.min.x(), bb.max.y() - bb.min.y()));
+    const double cell_mm   = std::max({ extent_mm / 1024., std::sqrt(area_mm2 / double(std::max<size_t>(1, max_cells))), 0.01 });
+    const coord_t cell     = std::max<coord_t>(1, scaled<coord_t>(cell_mm));
+    const int     nx       = std::max(1, int((bb.max.x() - bb.min.x() + cell - 1) / cell));
+    const int     ny       = std::max(1, int((bb.max.y() - bb.min.y() + cell - 1) / cell));
+    const size_t  row      = size_t(nx) + 1;
+    const auto    gx       = [&](int i) { return bb.min.x() + coord_t(i) * cell; };
+    const auto    gy       = [&](int j) { return bb.min.y() + coord_t(j) * cell; };
+
+    // Which grid vertices lie in the region, row by row, by the winding of the outline's crossings.
+    std::vector<uint8_t> inside(row * (size_t(ny) + 1), 0);
+    tbb::parallel_for(tbb::blocked_range<int>(0, ny + 1), [&](const tbb::blocked_range<int> &range) {
+        std::vector<std::pair<double, int>> crossings;
+        for (int j = range.begin(); j < range.end(); ++j) {
+            const double y = double(gy(j));
+            crossings.clear();
+            const auto add = [&](const Polygon &poly) {
+                for (size_t k = 0; k < poly.points.size(); ++k) {
+                    const Point &p = poly.points[k], &q = poly.points[(k + 1) % poly.points.size()];
+                    const double py = double(p.y()), qy = double(q.y());
+                    if ((py <= y) == (qy <= y))
+                        continue;
+                    const double x = double(p.x()) + (y - py) * double(q.x() - p.x()) / (qy - py);
+                    crossings.emplace_back(x, qy > py ? 1 : -1);
+                }
+            };
+            for (const ExPolygon &ex : region) {
+                add(ex.contour);
+                for (const Polygon &hole : ex.holes)
+                    add(hole);
+            }
+            std::sort(crossings.begin(), crossings.end());
+            int    winding = 0;
+            size_t c       = 0;
+            for (int i = 0; i <= nx; ++i) {
+                const double x = double(gx(i));
+                while (c < crossings.size() && crossings[c].first < x)
+                    winding += crossings[c++].second;
+                // On a crossing counts as inside: such a vertex is on the outline, which is still the
+                // region, and the cells it closes are wholly inside it.
+                const bool on_crossing = c < crossings.size() && crossings[c].first == x;
+                inside[size_t(j) * row + size_t(i)] = uint8_t(winding != 0 || on_crossing);
+            }
+        }
+    });
+    if (!keep_going(30))
+        return true;
+
+    // A cell is the grid's when its four corners are in the region and the outline does not cut into
+    // it. A corner of the outline inside the cell is one way it can; the other is a slot or a notch
+    // narrower than a cell, whose two sides cross the cell with every corner of it still inside.
+    std::vector<uint8_t> blocked(size_t(nx) * size_t(ny), 0);
+    const auto block_around = [&](const Point &p) {
+        const int ci = int((p.x() - bb.min.x()) / cell), cj = int((p.y() - bb.min.y()) / cell);
+        for (int j = cj - 1; j <= cj; ++j)
+            for (int i = ci - 1; i <= ci; ++i)
+                if (i >= 0 && j >= 0 && i < nx && j < ny)
+                    blocked[size_t(j) * size_t(nx) + size_t(i)] = 1;
+    };
+    // An edge crossing a cell's inside, found by walking it in steps of a quarter cell. A point on a grid
+    // line is on the cell's boundary rather than in it, so an edge lying along a grid line, as a
+    // rectangular plate's do, blocks nothing.
+    const auto block_crossed = [&](const Polygon &poly) {
+        for (size_t k = 0; k < poly.points.size(); ++k) {
+            const Point  &a = poly.points[k], &b = poly.points[(k + 1) % poly.points.size()];
+            const double  len   = (b - a).cast<double>().norm();
+            const int     steps = std::max(1, int(std::ceil(4. * len / double(cell))));
+            for (int s = 1; s < steps; ++s) {
+                const double  t  = double(s) / double(steps);
+                const double  x  = double(a.x()) + t * double(b.x() - a.x()) - double(bb.min.x());
+                const double  y  = double(a.y()) + t * double(b.y() - a.y()) - double(bb.min.y());
+                const int     ci = int(std::floor(x / double(cell))), cj = int(std::floor(y / double(cell)));
+                const bool    on_line = x == double(ci) * double(cell) || y == double(cj) * double(cell);
+                if (!on_line && ci >= 0 && cj >= 0 && ci < nx && cj < ny)
+                    blocked[size_t(cj) * size_t(nx) + size_t(ci)] = 1;
+            }
+        }
+    };
+    for (const ExPolygon &ex : region) {
+        for (const Point &p : ex.contour.points)
+            block_around(p);
+        block_crossed(ex.contour);
+        for (const Polygon &hole : ex.holes) {
+            for (const Point &p : hole.points)
+                block_around(p);
+            block_crossed(hole);
+        }
+    }
+    std::vector<uint8_t> cell_in(size_t(nx) * size_t(ny), 0);
+    for (int j = 0; j < ny; ++j)
+        for (int i = 0; i < nx; ++i) {
+            const size_t v = size_t(j) * row + size_t(i);
+            cell_in[size_t(j) * size_t(nx) + size_t(i)] =
+                uint8_t(!blocked[size_t(j) * size_t(nx) + size_t(i)] && inside[v] && inside[v + 1] && inside[v + row] &&
+                        inside[v + row + 1]);
+        }
+    const auto cell_at = [&](int i, int j) {
+        return i >= 0 && j >= 0 && i < nx && j < ny && cell_in[size_t(j) * size_t(nx) + size_t(i)] != 0;
+    };
+
+    // The output starts as everything the paint does not cover, untouched.
+    out.vertices = world.vertices;
+    out.indices.reserve(world.indices.size() + size_t(nx) * size_t(ny) * 2);
+    for (size_t t = 0; t < world.indices.size(); ++t)
+        if (!painted[t])
+            out.indices.push_back(world.indices[t]);
+
+    // The grid's vertices: only those a grid cell uses, and pinned to the face where any cell around
+    // them is not the grid's, so the relief comes down to the outline rather than ending in a cliff.
+    std::vector<int>   grid_index(inside.size(), -1);
+    std::vector<int>   used;
+    std::vector<uint8_t> pinned;
+    for (int j = 0; j <= ny; ++j)
+        for (int i = 0; i <= nx; ++i) {
+            const bool a = cell_at(i - 1, j - 1), b = cell_at(i, j - 1), c = cell_at(i - 1, j), d = cell_at(i, j);
+            if (!(a || b || c || d))
+                continue;
+            grid_index[size_t(j) * row + size_t(i)] = int(out.vertices.size() + used.size());
+            used.push_back(j * int(row) + i);
+            pinned.push_back(uint8_t(!(a && b && c && d)));
+        }
+
+    const HeightFieldSampler sampler = make_combined_displacement_sampler(world, layers, facets_data, model_uv);
+    if (!sampler)
+        return false;
+    const size_t base_count = out.vertices.size();
+    out.vertices.resize(base_count + used.size());
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, used.size(), 4096), [&](const tbb::blocked_range<size_t> &range) {
+        for (size_t k = range.begin(); k < range.end(); ++k) {
+            const int   j = used[k] / int(row), i = used[k] % int(row);
+            const Vec3f p = to_3d(unscale<double>(gx(i)), unscale<double>(gy(j)));
+            const float h = pinned[k] ? 0.f : sampler(p, n_out);
+            out.vertices[base_count + k] = p + n_out * h;
+        }
+    });
+    if (!keep_going(70)) {
+        out = indexed_triangle_set{};
+        return true;
+    }
+
+    // Two triangles a cell, counter-clockwise in the plane like the face they replace.
+    for (int j = 0; j < ny; ++j)
+        for (int i = 0; i < nx; ++i) {
+            if (!cell_at(i, j))
+                continue;
+            const size_t v   = size_t(j) * row + size_t(i);
+            const int    v00 = grid_index[v], v10 = grid_index[v + 1], v01 = grid_index[v + row], v11 = grid_index[v + row + 1];
+            out.indices.emplace_back(v00, v10, v11);
+            out.indices.emplace_back(v00, v11, v01);
+        }
+
+    // The strip between the grid and the outline, flat in the face's plane.
+    Polygons cells;
+    for (int j = 0; j < ny; ++j)
+        for (int i = 0; i < nx;) {
+            if (!cell_at(i, j)) {
+                ++i;
+                continue;
+            }
+            int end = i;
+            while (end < nx && cell_at(end, j))
+                ++end;
+            Polygon rect;
+            rect.points = { Point(gx(i), gy(j)), Point(gx(end), gy(j)), Point(gx(end), gy(j + 1)), Point(gx(i), gy(j + 1)) };
+            cells.push_back(std::move(rect));
+            i = end;
+        }
+    const ExPolygons           strip = cells.empty() ? region : diff_ex(region, cells);
+    const std::vector<Vec2d>   flat  = triangulate_expolygons_2d(strip);
+    for (size_t k = 0; k + 2 < flat.size(); k += 3) {
+        const Vec2d &a = flat[k], &b = flat[k + 1], &c = flat[k + 2];
+        if ((b - a).x() * (c - a).y() - (b - a).y() * (c - a).x() == 0.)
+            continue;
+        const int first_v = int(out.vertices.size());
+        out.vertices.push_back(to_3d(a.x(), a.y()));
+        out.vertices.push_back(to_3d(b.x(), b.y()));
+        out.vertices.push_back(to_3d(c.x(), c.y()));
+        // Whichever way the tesselator wound it, the face's own way round.
+        const bool ccw = (b - a).x() * (c - a).y() - (b - a).y() * (c - a).x() > 0.;
+        out.indices.emplace_back(first_v, ccw ? first_v + 1 : first_v + 2, ccw ? first_v + 2 : first_v + 1);
+    }
+    if (!keep_going(90)) {
+        out = indexed_triangle_set{};
+        return true;
+    }
+
+    its_compactify_vertices(out);
+    if (!frame.matrix().isApprox(Transform3d::Identity().matrix())) {
+        const Transform3d to_local = frame.inverse();
+        for (Vec3f &v : out.vertices)
+            v = (to_local * v.cast<double>()).cast<float>();
+    }
+    return true;
 }
 
 void texture_displacement_patch_frame(const indexed_triangle_set &patch, const std::vector<Vec3f> &vertex_normals,
@@ -3893,7 +4735,7 @@ HeightFieldSampler make_combined_displacement_sampler(const indexed_triangle_set
             if (!p.lscm_uv(pos, uv, lscm_uv))
                 continue; // off this unwrap layer's patch: no uv, so no contribution
             const float h        = sample_layer_height(p.tex, p.layer, pos, normal, p.center, p.axis, lscm_uv);
-            const float sign     = p.layer.invert ? -1.f : 1.f;
+            const float sign     = displacement_sign(p.layer);
             const float signed_h = (h - p.layer.midlevel) * p.layer.depth_mm * sign;
             // The first (lowest) sampleable layer folds additively; the rest use their own blend mode -
             // same rule build_texture_displacement() applies per vertex.
@@ -5765,6 +6607,25 @@ void read_enum(const nlohmann::json &j, const char *k, int &out)
 
 } // namespace
 
+namespace {
+// A colour as three bytes, which is what it is on screen and in a filament preset: a float triple
+// would persist the hill climb's rounding and read back as a different colour than it printed.
+nlohmann::json color_to_json(const ColorRGB &c)
+{
+    return nlohmann::json::array({ int(c.r() * 255.f + 0.5f), int(c.g() * 255.f + 0.5f), int(c.b() * 255.f + 0.5f) });
+}
+ColorRGB color_from_json(const nlohmann::json &j, const ColorRGB &fallback)
+{
+    if (!j.is_array() || j.size() != 3)
+        return fallback;
+    for (const nlohmann::json &v : j)
+        if (!v.is_number())
+            return fallback;
+    return ColorRGB(uint8_t(std::clamp(int(j[0]), 0, 255)), uint8_t(std::clamp(int(j[1]), 0, 255)),
+                    uint8_t(std::clamp(int(j[2]), 0, 255)));
+}
+} // namespace
+
 std::string texture_displacement_layers_to_json(const std::vector<TextureDisplacementLayer> &layers,
                                                 const TextureDisplacementOptions            &options)
 {
@@ -5815,6 +6676,19 @@ std::string texture_displacement_layers_to_json(const std::vector<TextureDisplac
         j["projection_method"] = int(l.projection_method);
         j["blend_mode"]        = int(l.blend_mode);
         j["color_enabled"]     = l.color_enabled;
+
+        // ChromaStack. A layer whose height map was solved is not recoverable from the height map
+        // alone: without the picture and the stack it reopens as a relief layer whose texture happens
+        // to be a staircase, and every colour it was printing is gone.
+        if (l.chroma_enabled) {
+            // The stack writes itself, in ChromaStack.cpp: the bands and the keys that were written here
+            // by hand, plus the lighting, the lamp and the retouch edits. One writer beside the reader
+            // beside the model, so a field added to the stack cannot be forgotten here - which is what
+            // happened to the lighting and the edits the first time.
+            nlohmann::json &c  = j["chroma"];
+            c["source_in_3mf"] = l.chroma_source_in_3mf;
+            chroma_stack_to_json(c, l.chroma);
+        }
 
         j["lscm_seam_angle_deg"] = l.lscm_seam_angle_deg;
         j["island_padding_mm"]   = l.island_padding_mm;
@@ -5905,6 +6779,19 @@ bool texture_displacement_layers_from_json(const std::string                    
                 read(j, "name", l.name);
                 read(j, "path", l.path);
                 read(j, "path_in_3mf", l.path_in_3mf);
+
+                if (const auto c = j.find("chroma"); c != j.end() && c->is_object()) {
+                    l.chroma_enabled = true;
+                    read(*c, "source_in_3mf", l.chroma_source_in_3mf);
+                    // Every key the stack knows about, including the ones a project saved before the
+                    // lighting and the retouch existed does not have: absent reads as the default, which
+                    // is what that project printed.
+                    chroma_stack_from_json(*c, l.chroma);
+                    // A stack with no filaments in it cannot print or be edited back into shape, and
+                    // its height map is just a height map: let it be a relief layer.
+                    if (l.chroma.bands.empty())
+                        l.chroma_enabled = false;
+                }
 
                 read(j, "depth_mm", l.depth_mm);
                 read(j, "tiling_scale", l.tiling_scale);

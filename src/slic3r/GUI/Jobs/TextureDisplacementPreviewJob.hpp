@@ -2,6 +2,7 @@
 #define slic3r_TextureDisplacementPreviewJob_hpp_
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 #include <exception>
 #include <functional>
@@ -32,6 +33,9 @@ struct TextureDisplacementPreviewVolume
     // Where the part sits in its object, as TextureDisplacementBakeVolume has it.
     Vec3d                                 texture_anchor = Vec3d::Zero();
     float                                 resting_drop   = 0.f;
+    // Above 0, try build_texture_displacement_flat_preview() first, with at most this many grid
+    // cells; the pipeline still runs when the paint is not one flat face. 0 always runs the pipeline.
+    size_t                                flat_preview_cells = 0;
 };
 
 struct TextureDisplacementPreviewInput

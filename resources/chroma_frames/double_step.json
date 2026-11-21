@@ -1,0 +1,13 @@
+{
+  "chroma_frame": 1,
+  "name": "Double step",
+  "category": "plain",
+  "width_mm": 13.0,
+  "rise_mm": 4.0,
+  "outline": { "shape": "rectangle" },
+  "profile": [
+    [0.0, 0.0], [0.33, 0.0], [0.33, 0.5], [0.66, 0.5], [0.66, 1.0], [1.0, 1.0], [1.0, 0.0]
+  ],
+  "profile_scaling": "stretch",
+  "legacy_profile": "double_step"
+}
