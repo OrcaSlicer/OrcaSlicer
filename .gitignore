@@ -41,6 +41,7 @@ src/OrcaSlicer-doc/
 *.no-debug.yml
 resources/profiles/user/default
 *.code-workspace
+src/sparrow_arrange/target/
 deps_src/build/
 test.js
 /.cache/
