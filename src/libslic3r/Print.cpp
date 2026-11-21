@@ -5805,7 +5805,9 @@ void Print::_make_wipe_tower()
                 for (const auto extruder_id : layer_tools.extruders) {
                     if ((first_layer && extruder_id == m_wipe_tower_data.tool_ordering.all_extruders().back()) || extruder_id !=
                         current_extruder_id) {
-                        float volume_to_wipe = m_config.prime_volume;
+                        const bool foundation = std::find(layer_tools.foundation_tools.begin(), layer_tools.foundation_tools.end(),
+                                                          extruder_id) != layer_tools.foundation_tools.end();
+                        float volume_to_wipe = foundation ? 0.f : m_config.prime_volume.value;
                         if (m_config.purge_in_prime_tower && m_config.single_extruder_multi_material) {
                             volume_to_wipe = wipe_volumes[current_extruder_id][extruder_id]; // total volume to wipe after this toolchange
                             volume_to_wipe *= m_config.flush_multiplier.get_at(0);

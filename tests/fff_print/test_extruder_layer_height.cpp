@@ -367,6 +367,37 @@ TEST_CASE("One prime tower uses per-tool heights on a fine object grid", "[Extru
     REQUIRE(coarse_moves > 0);
 }
 
+TEST_CASE("A late tool builds its tower column as the model rises", "[ExtruderLayerHeight][WipeTower]")
+{
+    auto config = layer_config();
+    config.set_deserialize_strict({{"enable_prime_tower", "1"}, {"wipe_tower_type", "type2"},
+        {"single_extruder_multi_material", "0"}, {"wipe_tower_filament", "1"},
+        {"wipe_tower_x", "60"}, {"wipe_tower_y", "60"}});
+
+    Print print;
+    Model model;
+    init_print({make_cube(8., 8., 2.1)}, print, model, config);
+    auto *object = model.objects.front();
+    object->volumes.front()->config.set_key_value("extruder", new ConfigOptionInt(1));
+    TriangleMesh chimney = make_cube(4., 4., 1.);
+    chimney.translate(0., 0., 2.1);
+    object->add_volume(std::move(chimney))->config.set_key_value("extruder", new ConfigOptionInt(2));
+    print.apply(model, config);
+    print.set_status_silent();
+    print.process();
+
+    std::set<int> foundation_bands;
+    for (const auto &layer : print.wipe_tower_data().tool_changes)
+        for (const auto &visit : layer)
+            for (const auto &part : visit.segments)
+                if (part.new_tool == 1 && part.print_z < 2.1 - EPSILON && !part.extrusions.empty()) {
+                    CHECK(visit.print_z <= part.print_z + EPSILON);
+                    foundation_bands.insert(int(std::lround(part.print_z * 1000)));
+                }
+    for (int z = 100; z < 2100; z += 200)
+        CHECK(foundation_bands.count(z) == 1);
+}
+
 TEST_CASE("Mixed-height tower visits switch tools before returning to the model", "[ExtruderLayerHeight][WipeTower]")
 {
     const auto wall = GENERATE("rectangle", "rib", "cone");
