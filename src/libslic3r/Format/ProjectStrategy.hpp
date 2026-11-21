@@ -21,6 +21,8 @@ enum class LoadStrategy
     // Geometry-import policies are opt-in; opening existing projects retains its defaults.
     KeepOriginalNames = 128,
     AssembleParts = 256,
+    // Hand the colours stored in a STEP file to the texture-to-colour importer.
+    ImportColors = 512,
 
     Restore = 0x10000 | LoadModel | LoadConfig | LoadAuxiliary | Silence,
 };

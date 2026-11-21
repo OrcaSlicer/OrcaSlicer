@@ -7,8 +7,11 @@
 #include "libslic3r/I18N.hpp"
 
 #include "STEP.hpp"
+#include "../TexturePainting.hpp"
 
 #include <boost/filesystem/path.hpp>
+#include <boost/log/trivial.hpp>
+#include <map>
 #include <ios>
 #include <ostream>
 #include <cstddef>
@@ -49,6 +52,10 @@
 #include "Interface_Static.hxx"
 #include "XCAFDoc_DocumentTool.hxx"
 #include "XCAFDoc_ShapeTool.hxx"
+#include "XCAFDoc_ColorTool.hxx"
+#include "XCAFDoc_ColorType.hxx"
+#include "Quantity_Color.hxx"
+#include <Quantity_TypeOfColor.hxx>
 #include "XCAFApp_Application.hxx"
 #include "NCollection_Sequence.hxx"
 #include <NCollection_DataMap.hxx>
@@ -217,14 +224,87 @@ int StepPreProcessor::preNum(const unsigned char byte) {
 
 using StepBodyNames = NCollection_DataMap<TopoDS_Shape, std::string, TopTools_ShapeMapHasher>;
 
+static uint32_t pack_color(const Quantity_Color& color)
+{
+    double r, g, b;
+    color.Values(r, g, b, Quantity_TOC_sRGB);
+    const auto to_byte = [](double v) { return uint32_t(std::clamp(v, 0., 1.) * 255. + .5); };
+    return 0xFF000000u | (to_byte(r) << 16) | (to_byte(g) << 8) | to_byte(b);
+}
+
+// 0 when the document assigns no colour. STEP styles a body by surface colour or by a general colour.
+template<class ShapeOrLabel>
+static uint32_t find_color(const Handle(XCAFDoc_ColorTool)& tool, const ShapeOrLabel& item)
+{
+    Quantity_Color color;
+    for (const XCAFDoc_ColorType type : {XCAFDoc_ColorSurf, XCAFDoc_ColorGen})
+        if (tool->GetColor(item, type, color))
+            return pack_color(color);
+    return 0;
+}
+
+// What colours a leaf needs. `transform` maps the document's faces onto the copies that get meshed.
+struct ColorContext
+{
+    Handle(XCAFDoc_ColorTool)           tool;
+    uint32_t                            inherited = 0;
+    const BRepBuilderAPI_Transform*     transform = nullptr;
+};
+
+// `source` is the original topology, whose faces the document colours; the mesher walks the transformed copies.
+static void assign_colors(NamedSolid& solid, const ColorContext& colors, const TopoDS_Shape& source)
+{
+    if (colors.tool.IsNull())
+        return;
+    const uint32_t own = find_color(colors.tool, source);
+    solid.solid_color  = own != 0 ? own : colors.inherited;
+    std::vector<TopoDS_Shape> original_faces, mesh_faces;
+    for (TopExp_Explorer faces(source, TopAbs_FACE); faces.More(); faces.Next())
+        original_faces.push_back(faces.Current());
+    for (TopExp_Explorer faces(solid.solid, TopAbs_FACE); faces.More(); faces.Next())
+        mesh_faces.push_back(faces.Current());
+    // A compound meshed as one part still holds bodies with colours of their own; their faces take them.
+    NCollection_DataMap<TopoDS_Shape, uint32_t, TopTools_ShapeMapHasher> body_face_color;
+    if (source.ShapeType() == TopAbs_COMPOUND || source.ShapeType() == TopAbs_COMPSOLID) {
+        for (const TopAbs_ShapeEnum body_type : {TopAbs_SOLID, TopAbs_SHELL}) {
+            for (TopExp_Explorer bodies(source, body_type); bodies.More(); bodies.Next()) {
+                const uint32_t body_color = find_color(colors.tool, bodies.Current());
+                if (body_color == 0)
+                    continue;
+                for (TopExp_Explorer faces(bodies.Current(), TopAbs_FACE); faces.More(); faces.Next())
+                    body_face_color.Bind(faces.Current(), body_color);
+            }
+        }
+    }
+    // The copy keeps the topology's traversal order, which pairs the faces without relying on ModifiedShape().
+    const bool paired = original_faces.size() == mesh_faces.size();
+    size_t     found  = 0;
+    for (size_t i = 0; i < original_faces.size(); ++i) {
+        uint32_t face_color = find_color(colors.tool, original_faces[i]);
+        if (face_color == 0)
+            if (const uint32_t* body_color = body_face_color.Seek(original_faces[i]))
+                face_color = *body_color;
+        if (face_color == 0)
+            continue;
+        const TopoDS_Shape target = paired ? mesh_faces[i] : colors.transform->ModifiedShape(original_faces[i]);
+        if (!target.IsNull()) {
+            solid.face_colors.Bind(target, face_color);
+            ++found;
+        }
+    }
+    BOOST_LOG_TRIVIAL(info) << "STEP colors: solid " << std::hex << solid.solid_color << std::dec << ", " << found << " of "
+                            << original_faces.size() << " faces coloured" << (paired ? "" : " (unpaired)");
+}
+
 // Resolve the original topology before BRepBuilderAPI_Transform copies its TShape.
 static void add_named_solid(std::vector<NamedSolid>& namedSolids, const TopoDS_Shape& mesh_shape, const TopoDS_Shape& source,
-                            const StepBodyNames* body_names, const std::string& fallback)
+                            const StepBodyNames* body_names, const std::string& fallback, const ColorContext& colors)
 {
     if (body_names != nullptr && body_names->IsBound(source))
         namedSolids.emplace_back(mesh_shape, body_names->Find(source), true);
     else
         namedSolids.emplace_back(mesh_shape, fallback);
+    assign_colors(namedSolids.back(), colors, source);
 }
 
 // The single body of a compound, or a null shape when Split compound would produce several parts.
@@ -249,7 +329,9 @@ static void getNamedSolids(const TopLoc_Location& location,
                            const TDF_Label label,
                            std::vector<NamedSolid>& namedSolids,
                            bool isSplitCompound = false,
-                           const StepBodyNames* body_names = nullptr) {
+                           const StepBodyNames* body_names = nullptr,
+                           bool read_colors = false,
+                           uint32_t inherited_color = 0) {
     TDF_Label referredLabel{label};
     if (shapeTool->IsReference(label))
         shapeTool->GetReferredShape(label, referredLabel);
@@ -264,11 +346,23 @@ static void getNamedSolids(const TopLoc_Location& location,
         name = std::to_string(id++);
     std::string fullName{name};
 
+    // An instance's colour wins over its part's, which wins over the assembly it sits in.
+    ColorContext colors;
+    if (read_colors) {
+        colors.tool = XCAFDoc_DocumentTool::ColorTool(shapeTool->Label());
+        colors.inherited = find_color(colors.tool, label);
+        if (colors.inherited == 0)
+            colors.inherited = find_color(colors.tool, referredLabel);
+        if (colors.inherited == 0)
+            colors.inherited = inherited_color;
+    }
+
     TopLoc_Location localLocation = location * shapeTool->GetLocation(label);
     NCollection_Sequence<TDF_Label> components;
     if (shapeTool->GetComponents(referredLabel, components)) {
         for (int compIndex = 1; compIndex <= components.Length(); ++compIndex) {
-            getNamedSolids(localLocation, fullName, id, shapeTool, components.Value(compIndex), namedSolids, isSplitCompound, body_names);
+            getNamedSolids(localLocation, fullName, id, shapeTool, components.Value(compIndex), namedSolids, isSplitCompound, body_names,
+                           read_colors, colors.inherited);
         }
     } else {
         TopoDS_Shape shape;
@@ -276,6 +370,7 @@ static void getNamedSolids(const TopLoc_Location& location,
         shapeTool->GetShape(referredLabel, shape);
         TopAbs_ShapeEnum shape_type = shape.ShapeType();
         BRepBuilderAPI_Transform transform(shape, localLocation, true);
+        colors.transform = &transform;
         int                      i = 0;
         switch (shape_type) {
         case TopAbs_COMPOUND:
@@ -283,22 +378,23 @@ static void getNamedSolids(const TopLoc_Location& location,
             if (!isSplitCompound) {
                 // One body keeps its label without splitting; the mesh is the unchanged compound.
                 const TopoDS_Shape body = single_body(shape);
-                if (body.IsNull())
+                if (body.IsNull()) {
                     namedSolids.emplace_back(transform.Shape(), fullName);
-                else
-                    add_named_solid(namedSolids, transform.Shape(), body, body_names, fullName);
+                    assign_colors(namedSolids.back(), colors, shape);
+                } else
+                    add_named_solid(namedSolids, transform.Shape(), body, body_names, fullName, colors);
             } else {
                 for (explorer.Init(shape, TopAbs_SOLID); explorer.More(); explorer.Next()) {
                     i++;
                     const TopoDS_Shape& currentShape = explorer.Current();
                     add_named_solid(namedSolids, transform.ModifiedShape(currentShape), currentShape, body_names,
-                                    fullName + "-SOLID-" + std::to_string(i));
+                                    fullName + "-SOLID-" + std::to_string(i), colors);
                 }
                 // Surface models have no solids: each shell outside a solid is a part, and loose faces stay together.
                 i = 0;
                 for (explorer.Init(shape, TopAbs_SHELL, TopAbs_SOLID); explorer.More(); explorer.Next())
                     add_named_solid(namedSolids, transform.ModifiedShape(explorer.Current()), explorer.Current(), body_names,
-                                    fullName + "-SHELL-" + std::to_string(++i));
+                                    fullName + "-SHELL-" + std::to_string(++i), colors);
                 TopoDS_Compound loose_faces;
                 TopoDS_Builder  builder;
                 builder.MakeCompound(loose_faces);
@@ -307,15 +403,17 @@ static void getNamedSolids(const TopLoc_Location& location,
                     builder.Add(loose_faces, transform.ModifiedShape(explorer.Current()));
                     has_loose_faces = true;
                 }
-                if (has_loose_faces)
+                if (has_loose_faces) {
                     namedSolids.emplace_back(loose_faces, fullName);
+                    assign_colors(namedSolids.back(), colors, shape);
+                }
             }
             break;
         case TopAbs_SOLID:
-            add_named_solid(namedSolids, TopoDS::Solid(transform.Shape()), shape, body_names, fullName);
+            add_named_solid(namedSolids, TopoDS::Solid(transform.Shape()), shape, body_names, fullName, colors);
             break;
         case TopAbs_SHELL:
-            add_named_solid(namedSolids, TopoDS::Shell(transform.Shape()), shape, body_names, fullName);
+            add_named_solid(namedSolids, TopoDS::Shell(transform.Shape()), shape, body_names, fullName, colors);
             break;
         default:
             break;
@@ -634,9 +732,13 @@ Step::Step_Status Step::mesh(Model* model,
                              bool isSplitCompound,
                              double linear_deflection/*=0.003*/,
                              double angle_deflection/*= 0.5*/,
-                             bool keep_original_names/*= false*/)
+                             bool keep_original_names/*= false*/,
+                             bool import_colors/*= false*/)
 
 {
+    // One colour per triangle of each solid, as packed by pack_color(); 0 where the CAD file gives none.
+    std::vector<VolumeFaceColors> part_colors;
+
     bool task_result = false;
     bool cb_cancel = false;
     float progress = .0;
@@ -660,7 +762,7 @@ Step::Step_Status Step::mesh(Model* model,
                 return;
             }
             getNamedSolids(TopLoc_Location{}, "", id, m_shape_tool, topLevelShapes.Value(iLabel), namedSolids,
-                           isSplitCompound, keep_original_names ? &m_body_names : nullptr);
+                           isSplitCompound, keep_original_names ? &m_body_names : nullptr, import_colors);
         }
         // A single part is not listed under its object, so the object shows the body label instead.
         if (namedSolids.size() == 1 && namedSolids.front().original_name)
@@ -668,6 +770,7 @@ Step::Step_Status Step::mesh(Model* model,
 
         std::vector<stl_file> stl;
         stl.resize(namedSolids.size());
+        std::vector<std::vector<uint32_t>> triangle_colors(import_colors ? namedSolids.size() : 0);
         tbb::parallel_for(tbb::blocked_range<size_t>(0, namedSolids.size()), [&](const tbb::blocked_range<size_t>& range) {
             for (size_t i = range.begin(); i < range.end(); i++) {
                 BRepMesh_IncrementalMesh mesh(namedSolids[i].solid, linear_deflection, false, angle_deflection, true);
@@ -691,6 +794,8 @@ Step::Step_Status Step::mesh(Model* model,
                 stl[i].stats.number_of_facets = (uint32_t)aNbTriangles;
                 stl[i].stats.original_num_facets = stl[i].stats.number_of_facets;
                 stl_allocate(&stl[i]);
+                if (import_colors)
+                    triangle_colors[i].assign(aNbTriangles, namedSolids[i].solid_color);
 
                 std::vector<Vec3f> points;
                 points.reserve(aNbNodes);
@@ -737,6 +842,10 @@ Step::Step_Status Step::mesh(Model* model,
                         stl[i].facet_start[aTriangleOffet + aTriIter - 1] = facet;
                     }
 
+                    if (import_colors)
+                        if (const uint32_t* face_color = namedSolids[i].face_colors.Seek(aFace))
+                            std::fill_n(triangle_colors[i].begin() + aTriangleOffet, aTriangulation->NbTriangles(), *face_color);
+
                     aNodeOffset += aTriangulation->NbNodes();
                     aTriangleOffet += aTriangulation->NbTriangles();
                 }
@@ -759,6 +868,8 @@ Step::Step_Status Step::mesh(Model* model,
                 new_volume->source.input_file = m_path.c_str();
                 new_volume->source.object_idx = (int)model->objects.size() - 1;
                 new_volume->source.volume_idx = (int)new_object->volumes.size() - 1;
+                if (import_colors)
+                    part_colors.push_back({ new_object, (int)new_object->volumes.size() - 1, std::move(triangle_colors[i]) });
             }
         }
         task_result = true;
@@ -805,6 +916,9 @@ Step::Step_Status Step::mesh(Model* model,
         model->delete_object(new_object);
         return Step_Status::MESH_ERROR;
     }
+
+    if (import_colors)
+        model->texture_mesh = make_face_color_mesh(part_colors);
     return Step_Status::MESH_SUCCESS;
 }
 

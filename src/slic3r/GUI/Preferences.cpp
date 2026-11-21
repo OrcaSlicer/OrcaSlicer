@@ -1903,6 +1903,12 @@ void PreferencesDialog::create_items()
     auto item_gcodes_warning   = create_item_checkbox(_L("Don't warn when loading 3MF with modified G-code"), "", "no_warn_when_modified_gcodes");
     g_sizer->Add(item_gcodes_warning);
 
+    //// FILES > STL import
+    g_sizer->Add(create_item_title(_L("STL import")), 1, wxEXPAND);
+    g_sizer->Add(create_item_checkbox(_L("Import colors"),
+        _L("Read the per-facet colors stored in binary STL files (VisCAM, SolidView and Materialise Magics variants) and suggest a filament for each, which you can change before the model is added.\nDefault: disabled."),
+        "import_stl_colors"));
+
     //// FILES > STEP import
     g_sizer->Add(create_item_title(_L("STEP import")), 1, wxEXPAND);
     auto item_step_dialog = create_item_checkbox(
@@ -1922,7 +1928,11 @@ void PreferencesDialog::create_items()
   
     g_sizer->Add(create_item_checkbox(_L("Keep original names"),
         _L("Use the body names stored in the imported file when it contains them."), "import_names_step_keep"));
-  
+
+    g_sizer->Add(create_item_checkbox(_L("Import colors"),
+        _L("Read the colors stored in imported STEP files and suggest a filament for each, which you can change before the model is added.\nDefault: disabled."),
+        "import_step_colors"));
+
     //// FILES > AMF import
     g_sizer->Add(create_item_title(_L("AMF import")), 1, wxEXPAND);
     g_sizer->Add(create_item_checkbox(_L("Show options when importing"),
