@@ -1415,6 +1415,12 @@ public:
     // Unset types are just ignored.
     static int get_compatible_filament_type(const std::set<int>& types);
 
+    // Orca: The instances of a sequential print, in groups printed together layer by layer. With
+    // group_objects_by_filament, the instances of the objects printed with the same single filament form a group;
+    // any other instance is a group of its own. The groups keep the order of their first instance in `ordering`,
+    // and their instances the order they have there.
+    std::vector<std::vector<const PrintInstance*>> sequential_print_groups(const std::vector<const PrintInstance*> &ordering) const;
+
     bool is_all_objects_are_short() const {
         return std::all_of(this->objects().begin(), this->objects().end(), [&](PrintObject* obj) { return obj->print_z_max() < scale_(this->config().nozzle_height.value); });
     }

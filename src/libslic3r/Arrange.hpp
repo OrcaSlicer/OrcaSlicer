@@ -93,6 +93,10 @@ struct ArrangePolygon {
     // Zero-based nozzle owning an exclusion obstacle; -1 means shared.
     int       bed_exclusion_extruder_id{ -1 };
     double    brim_width{ 0 };     // brim width
+    // Orca: printing by object with the objects grouped by filament, the 0-based filament this object prints with
+    // alone, which puts it in one group with the other objects of that filament (see Print::sequential_print_groups());
+    // -1 when it prints alone.
+    int       print_group{ -1 };
     std::string name;
 
     // If empty, any rotation is allowed (currently unsupported)
@@ -206,8 +210,11 @@ struct ArrangeParams {
 
 void update_arrange_params(ArrangeParams& params, const DynamicPrintConfig* print_cfg, const ArrangePolygons& selected);
 
-// Runs update_arrange_params() and the item updates below in the order they depend on.
-void update_arrange_items(ArrangePolygons& selected, ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, ArrangeParams& params);
+// Runs update_arrange_params() and the item updates below in the order they depend on. With print_groups, it first
+// packs the groups of selected into it with pack_print_groups(), so the inflation keeps the extruder clearance around
+// each group; pass them to unpack_print_groups() after the arrange.
+void update_arrange_items(ArrangePolygons& selected, ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, ArrangeParams& params,
+                          std::vector<ArrangePolygons>* print_groups = nullptr);
 
 // Call after update_selected_items_axis_align(), since it measures each item as it is turned.
 void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, ArrangeParams& params);
@@ -215,6 +222,20 @@ void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPri
 void update_unselected_items_inflation(ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
 
 void update_selected_items_axis_align(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
+
+// Orca: printing by object with the objects grouped by filament, the objects of a group print together, layer by layer,
+// so they only need the room they need printing by layer, and the extruder clearance stays between groups. Packs the
+// items of each group (ArrangePolygon::print_group) on the bed as when printing by layer, and puts in their place one
+// item for each bed they fill, their convex hull, at the end of selected. Call it before update_selected_items_inflation(),
+// and unpack_print_groups() with the groups it returns after the arrange.
+std::vector<ArrangePolygons> pack_print_groups(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
+// Moves the items of each group as the arrange moved the item that stood for them, and puts them back in selected.
+void unpack_print_groups(ArrangePolygons& selected, std::vector<ArrangePolygons>& groups);
+// Orca: for Fill bed, when every item of selected is in one group, the items print with the fixed items of that group,
+// so they keep the room of a print by layer from them and from each other, and the extruder clearance from the other
+// fixed objects only. Then inflates the items as update_selected_items_inflation() and update_unselected_items_inflation()
+// do and returns true. Otherwise returns false and changes nothing.
+bool update_print_group_fill_inflation(ArrangePolygons& selected, ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, ArrangeParams& params);
 
 bool has_bed_exclusion_regions(const ArrangePolygons& polygons);
 bool bed_exclusion_applies(const ArrangePolygon& item, const ArrangePolygon& fixed_item);

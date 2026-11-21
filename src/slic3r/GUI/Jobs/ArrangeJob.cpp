@@ -29,6 +29,7 @@
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include <set>
 #include <algorithm>
+#include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include <map>
 #include <cassert>
@@ -246,6 +247,23 @@ void ArrangeJob::clear_input()
     current_plate_index = 0;
 }
 
+int print_group_of(const ModelInstance &instance, const ArrangePolygon &polygon, const DynamicPrintConfig &config)
+{
+    if (!config.opt_bool("group_objects_by_filament"))
+        return -1;
+    // The print of the plate knows every filament of an object, those of its walls and infills included.
+    const Print &print = wxGetApp().plater()->get_partplate_list().get_current_fff_print();
+    for (const PrintObject *object : print.objects())
+        for (const PrintInstance &print_instance : object->instances())
+            if (print_instance.model_instance == &instance) {
+                const std::vector<unsigned int> filaments = object->printing_extruders();
+                return filaments.size() == 1 ? int(filaments.front()) : -1;
+            }
+    // An object it does not print goes by the filaments of its parts, painting and supports.
+    const std::set<int> filaments(polygon.extrude_ids.begin(), polygon.extrude_ids.end());
+    return filaments.size() == 1 ? *filaments.begin() - 1 : -1;
+}
+
 ArrangePolygon ArrangeJob::prepare_arrange_polygon(void *model_instance, const PartPlate *mapping_plate)
 {
     ModelInstance* instance = (ModelInstance*)model_instance;
@@ -253,6 +271,8 @@ ArrangePolygon ArrangeJob::prepare_arrange_polygon(void *model_instance, const P
     ArrangePolygon polygon = get_instance_arrange_poly(instance, config);
     if (mapping_plate != nullptr)
         set_arrange_polygon_bed_exclusion_extruders(polygon, *instance->get_object(), *mapping_plate, config);
+    if (params.is_seq_print)
+        polygon.print_group = print_group_of(*instance, polygon, config);
     return polygon;
 }
 
@@ -733,7 +753,8 @@ void ArrangeJob::process(Ctl &ctl)
     if (is_bbl && params.avoid_extrusion_cali_region && global_config.opt_bool("scan_first_layer"))
         partplate_list.preprocess_nonprefered_areas(m_unselected, MAX_NUM_PLATES);
 
-    update_arrange_items(m_selected, m_unselected, m_plater->config(), params);
+    std::vector<ArrangePolygons> print_groups;
+    update_arrange_items(m_selected, m_unselected, m_plater->config(), params, &print_groups);
 
     Points      bedpts = get_shrink_bedpts(m_plater->config(),params);
 
@@ -771,6 +792,7 @@ void ArrangeJob::process(Ctl &ctl)
     arrangement::arrange(m_selected, m_unselected, bedpts, params);
     if (!ctl.was_canceled())
         imex.finish(m_selected, before, m_unselected, params);
+    arrangement::unpack_print_groups(m_selected, print_groups);
 
     // sort by item id
     std::sort(m_selected.begin(), m_selected.end(), [](auto a, auto b) {return a.itemid < b.itemid; });

@@ -2289,6 +2289,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<PrintSequence>(PrintSequence::ByLayer));
 
+    def = this->add("group_objects_by_filament", coBool);
+    def->label = L("Group objects by filament");
+    def->tooltip = L("When printing by object, the objects printed with the same single filament print together, layer by "
+                     "layer, as one group, and the groups print one after another. Objects in a group only need the normal "
+                     "spacing between them, and the extruder clearance applies between groups. An object printed with more "
+                     "than one filament, support included, is a group of its own.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("print_order", coEnum);
     def->label = L("Intra-layer order");
     def->tooltip = L("Order in which object instances are visited within a single layer, which controls how much "

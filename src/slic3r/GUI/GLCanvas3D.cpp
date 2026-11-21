@@ -7236,9 +7236,22 @@ void GLCanvas3D::update_sequential_clearance()
     std::vector<SequentialClearanceInstance> convex_and_bounding_boxes;
     convex_and_bounding_boxes.reserve(instances_count);
     std::map<ObjectID, int> print_order;
-    for (const PrintObject* print_object : fff_print()->objects())
-        for (const PrintInstance& instance : print_object->instances())
-            print_order.emplace(instance.model_instance->id(), instance.model_instance->arrange_order);
+    // Orca: the instances printed together as a group (group_objects_by_filament) share one outline.
+    std::map<ObjectID, size_t> group_of_instance;
+    std::map<size_t, Polygons> group_polygons;
+    {
+        std::vector<const PrintInstance*> print_instances;
+        for (const PrintObject* print_object : fff_print()->objects())
+            for (const PrintInstance& instance : print_object->instances()) {
+                print_order.emplace(instance.model_instance->id(), instance.model_instance->arrange_order);
+                print_instances.emplace_back(&instance);
+            }
+        const std::vector<std::vector<const PrintInstance*>> groups = fff_print()->sequential_print_groups(print_instances);
+        for (size_t group = 0; group < groups.size(); ++group)
+            if (groups[group].size() > 1)
+                for (const PrintInstance* instance : groups[group])
+                    group_of_instance.emplace(instance->model_instance->id(), group);
+    }
 
     for (size_t i = 0; i < instance_transforms.size(); ++i) {
         const size_t first_instance = convex_and_bounding_boxes.size();
@@ -7266,11 +7279,19 @@ void GLCanvas3D::update_sequential_clearance()
             //skip the object for not current plate
             if (!plate_bb.overlap(bouding_box))
                 continue;
-            convex_and_bounding_boxes.push_back({instance_height, bouding_box, convex_hull, instance_id});
-            polygons.emplace_back(std::move(convex_hull));
+            const auto group_it = group_of_instance.find(instance_id);
+            const size_t group = group_it == group_of_instance.end() ? size_t(-1) : group_it->second;
+            convex_and_bounding_boxes.push_back({instance_height, bouding_box, convex_hull, instance_id, group});
+            if (group != size_t(-1))
+                group_polygons[group].emplace_back(std::move(convex_hull));
+            else
+                polygons.emplace_back(std::move(convex_hull));
         }
         sort_sequential_clearance_instances(convex_and_bounding_boxes.begin() + first_instance, convex_and_bounding_boxes.end(), print_order);
     }
+    for (const auto& [group, group_hulls] : group_polygons)
+        append(polygons, union_(group_hulls));
+    gather_sequential_clearance_groups(convex_and_bounding_boxes);
 
     const auto& config = fff_print()->config();
     const auto height_polygons = sequential_clearance_height_polygons(convex_and_bounding_boxes, config.printable_height,

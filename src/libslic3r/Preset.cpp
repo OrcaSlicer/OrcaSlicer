@@ -1300,6 +1300,7 @@ static std::vector<std::string> s_Preset_print_options{
     "enable_extra_bridge_layer",
     "max_bridge_length",
     "print_sequence",
+    "group_objects_by_filament",
     "print_order",
     "support_remove_small_overhang",
     "filename_format",

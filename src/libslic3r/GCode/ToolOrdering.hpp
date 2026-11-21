@@ -284,6 +284,10 @@ public:
     // (print->config().print_sequence == PrintSequence::ByObject is false).
     ToolOrdering(const Print& print, unsigned int first_extruder, bool prime_multi_material = false);
 
+    // Orca: For a group of objects printed together, layer by layer, in a sequential print
+    // (group_objects_by_filament).
+    ToolOrdering(const Print& print, const std::vector<const PrintObject*> &objects, unsigned int first_extruder);
+
     void handle_dontcare_extruder(const std::vector<unsigned int>& first_layer_tool_order);
     void handle_dontcare_extruder(unsigned int first_extruder);
 

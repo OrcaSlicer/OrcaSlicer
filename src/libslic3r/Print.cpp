@@ -508,6 +508,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             osteps.emplace_back(posSupportMaterial);
         } else if (
                opt_key == "print_sequence"
+            || opt_key == "group_objects_by_filament"
             || opt_key == "filament_type"
             || opt_key == "chamber_temperature"
             || opt_key == "nozzle_temperature_initial_layer"
@@ -900,6 +901,25 @@ std::vector<size_t> Print::layers_sorted_for_object(float start, float end, std:
     return idx_of_object_sorted;
 };
 
+std::vector<std::vector<const PrintInstance*>> Print::sequential_print_groups(const std::vector<const PrintInstance*> &ordering) const
+{
+    std::vector<std::vector<const PrintInstance*>> groups;
+    std::map<unsigned int, size_t>                 group_of_filament;
+    for (const PrintInstance *instance : ordering) {
+        const std::vector<unsigned int> filaments = m_config.group_objects_by_filament ? instance->print_object->printing_extruders() :
+                                                                                         std::vector<unsigned int>();
+        if (filaments.size() != 1) {
+            groups.push_back({ instance });
+            continue;
+        }
+        const auto [it, added] = group_of_filament.try_emplace(filaments.front(), groups.size());
+        if (added)
+            groups.emplace_back();
+        groups[it->second].push_back(instance);
+    }
+    return groups;
+}
+
 StringObjectException Print::sequential_print_clearance_valid(const Print &print, Polygons *polygons, std::vector<std::pair<Polygon, float>>* height_polygons, StringObjectException *warning)
 {
     StringObjectException single_object_exception;
@@ -995,6 +1015,21 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
 
     auto [object_skirt_offset, _] = print.object_skirt_offset();
     std::vector<struct print_instance_info> print_instance_with_bounding_box;
+    // Orca: the instances of a group print together, layer by layer, so they only need clearance from the other groups.
+    std::map<const PrintInstance*, size_t> group_of_instance;
+    bool                                   has_print_groups = false;
+    {
+        std::vector<const PrintInstance*> instances;
+        for (const PrintObject *print_object : print.objects())
+            for (const PrintInstance &instance : print_object->instances())
+                instances.emplace_back(&instance);
+        const std::vector<std::vector<const PrintInstance*>> groups = print.sequential_print_groups(instances);
+        for (size_t group_idx = 0; group_idx < groups.size(); ++group_idx) {
+            has_print_groups |= groups[group_idx].size() > 1;
+            for (const PrintInstance *instance : groups[group_idx])
+                group_of_instance[instance] = group_idx;
+        }
+    }
     {
         // sequential_print_horizontal_clearance_valid
         Polygons convex_hulls_other;
@@ -1048,6 +1083,8 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
 
                 // if output needed, collect indices (inside convex_hulls_other) of intersecting hulls
                 for (size_t i = 0; i < convex_hulls_other.size(); ++i) {
+                    if (group_of_instance.at(print_instance_with_bounding_box[i].print_instance) == group_of_instance.at(&instance))
+                        continue;
                     if (! intersection(convex_hulls_other[i], convex_hull).empty()) {
                         bool has_exception = false;
                         if (single_object_exception.string.empty()) {
@@ -1126,10 +1163,34 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
             return print_instance_with_bounding_box[l].model_position < print_instance_with_bounding_box[r].model_position;
         });
 
+        if (has_print_groups) {
+            // Orca: keep the instances of a group together, where the first of them is in the list.
+            std::map<size_t, size_t> group_first;
+            for (size_t k = 0; k < n; ++k)
+                group_first.try_emplace(group_of_instance.at(print_instance_with_bounding_box[fallback_order[k]].print_instance), k);
+            std::stable_sort(fallback_order.begin(), fallback_order.end(), [&](size_t l, size_t r) {
+                return group_first.at(group_of_instance.at(print_instance_with_bounding_box[l].print_instance)) <
+                       group_first.at(group_of_instance.at(print_instance_with_bounding_box[r].print_instance));
+            });
+        }
+
         std::vector<size_t> list_position(n);
         for (size_t k = 0; k < n; ++k)
             list_position[fallback_order[k]] = k;
-        auto by_list_position = [&list_position](size_t l, size_t r) { return list_position[l] < list_position[r]; };
+
+        // Orca: the instances of a group print together, so the order is found for groups, each one a node holding its
+        // instances in list order. The nodes are in list order too. Without groups, a node holds one instance.
+        std::vector<std::vector<size_t>> nodes;
+        {
+            std::map<size_t, size_t> node_of_group;
+            for (size_t idx : fallback_order) {
+                const auto [it, added] = node_of_group.try_emplace(group_of_instance.at(print_instance_with_bounding_box[idx].print_instance), nodes.size());
+                if (added)
+                    nodes.emplace_back();
+                nodes[it->second].push_back(idx);
+            }
+        }
+        const size_t node_count = nodes.size();
 
         // Mirrors the vertical-clearance check below: the part of the potentially-too-tall instance
         // the rod can hit (see rod_min_y) is tested against the other instance's inflated footprint,
@@ -1145,27 +1206,30 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         };
 
         std::vector<size_t> must_be_last;
-        for (size_t i = 0; i < n; ++i)
-            if (print_instance_with_bounding_box[i].height > hc1)
-                must_be_last.push_back(i);
+        for (size_t node = 0; node < node_count; ++node)
+            if (std::any_of(nodes[node].begin(), nodes[node].end(), [&](size_t i) { return print_instance_with_bounding_box[i].height > hc1; }))
+                must_be_last.push_back(node);
 
         bool solved = false;
         std::vector<size_t> solved_order;
 
         if (must_be_last.size() <= 1) {
-            size_t last_idx = must_be_last.empty() ? size_t(-1) : must_be_last.front();
+            size_t last_node = must_be_last.empty() ? size_t(-1) : must_be_last.front();
 
             // Edge b -> a means "b must be scheduled before a".
-            std::vector<std::vector<size_t>> adj(n);
-            std::vector<int> indegree(n, 0);
+            std::vector<std::vector<size_t>> adj(node_count);
+            std::vector<int> indegree(node_count, 0);
             bool infeasible = false;
-            for (size_t a = 0; a < n && !infeasible; ++a) {
-                if (a == last_idx) continue;
-                if (!print_instance_with_bounding_box[a].has_above_rod) continue; // nothing reaches the rod: no constraint
-                for (size_t b = 0; b < n; ++b) {
+            for (size_t a = 0; a < node_count && !infeasible; ++a) {
+                if (a == last_node) continue;
+                for (size_t b = 0; b < node_count && !infeasible; ++b) {
                     if (b == a) continue;
-                    if (!overlaps_in_y(a, b)) continue;
-                    if (b == last_idx) {
+                    // Nothing of a reaching the rod over b: no constraint.
+                    const bool overlap = std::any_of(nodes[a].begin(), nodes[a].end(), [&](size_t ia) {
+                        return std::any_of(nodes[b].begin(), nodes[b].end(), [&](size_t ib) { return overlaps_in_y(ia, ib); });
+                    });
+                    if (!overlap) continue;
+                    if (b == last_node) {
                         // 'a' can't tolerate the last-placed instance printing after it while
                         // overlapping it, and the last instance can't be moved earlier by
                         // definition (nothing else may be scheduled after it) -> unsolvable.
@@ -1181,31 +1245,31 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                 // Kahn's algorithm; ties are broken by place in the list so the result is
                 // the minimal perturbation of the incoming order, not an arbitrary one.
                 std::vector<size_t> ready;
-                for (size_t i = 0; i < n; ++i)
-                    if (i != last_idx && indegree[i] == 0)
+                for (size_t i = 0; i < node_count; ++i)
+                    if (i != last_node && indegree[i] == 0)
                         ready.push_back(i);
-                std::sort(ready.begin(), ready.end(), by_list_position);
 
                 std::vector<size_t> order;
-                order.reserve(n);
+                order.reserve(node_count);
                 while (!ready.empty()) {
                     size_t cur = ready.front();
                     ready.erase(ready.begin());
                     order.push_back(cur);
                     for (size_t nxt : adj[cur]) {
                         if (--indegree[nxt] == 0) {
-                            auto pos = std::upper_bound(ready.begin(), ready.end(), nxt, by_list_position);
+                            auto pos = std::upper_bound(ready.begin(), ready.end(), nxt);
                             ready.insert(pos, nxt);
                         }
                     }
                 }
 
-                if (last_idx != size_t(-1))
-                    order.push_back(last_idx);
+                if (last_node != size_t(-1))
+                    order.push_back(last_node);
 
-                if (order.size() == n) {
+                if (order.size() == node_count) {
                     solved = true;
-                    solved_order = std::move(order);
+                    for (size_t node : order)
+                        solved_order.insert(solved_order.end(), nodes[node].begin(), nodes[node].end());
                 }
                 // else: a cycle among mutually Y-overlapping, over-hc2 instances -> genuinely
                 // unsolvable; fall through to the fallback order below.
@@ -1262,11 +1326,15 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
             const coord_t iy1 = info_k.rod_min_y;
             const coord_t iy2 = info_k.rod_max_y;
             (const_cast<ModelInstance*>(inst->model_instance))->arrange_order = k+1;
-            double height = (k == (print_instance_count - 1))?printable_height:hc1;
+            // Orca: the last group may reach the printable height, as the last instance does.
+            const size_t group_k = group_of_instance.at(inst);
+            double height = group_k == group_of_instance.at(print_instance_with_bounding_box.back().print_instance) ? printable_height : hc1;
 
             for (int i = k+1; i < print_instance_count; i++)
             {
                 auto& p = print_instance_with_bounding_box[i].print_instance;
+                if (group_of_instance.at(p) == group_k)
+                    continue; // printed together
                 auto bbox2 = print_instance_with_bounding_box[i].bounding_box;
                 auto py1 = bbox2.min.y();
                 auto py2 = bbox2.max.y();
@@ -4611,11 +4679,36 @@ void Print::_make_skirt()
             return brims;
         };
 
+        // Orca: with group_objects_by_filament the instances of a group print together, layer by layer, so a skirt they
+        // share is printed once, as in By layer. Only a skirt shared by instances of different groups can't be printed.
+        std::map<ObjectInstanceID, size_t> print_group_of;
+        if (m_config.print_sequence == PrintSequence::ByObject && m_config.group_objects_by_filament) {
+            std::vector<const PrintInstance*> all_instances;
+            for (const PrintObject *object : m_objects)
+                for (const PrintInstance &instance : object->instances())
+                    all_instances.push_back(&instance);
+            const std::vector<std::vector<const PrintInstance*>> print_groups = this->sequential_print_groups(all_instances);
+            for (size_t idx = 0; idx < print_groups.size(); ++idx)
+                for (const PrintInstance *instance : print_groups[idx])
+                    print_group_of[{ instance->print_object->id(), size_t(instance - instance->print_object->instances().data()) }] = idx;
+        }
+        auto spans_print_groups = [&print_group_of](const std::vector<ObjectInstanceID> &instances) {
+            if (instances.size() < 2)
+                return false;
+            if (print_group_of.empty())
+                return true;
+            const auto first = print_group_of.find(instances.front());
+            return std::any_of(instances.begin(), instances.end(), [&](const ObjectInstanceID &instance) {
+                const auto it = print_group_of.find(instance);
+                return first == print_group_of.end() || it == print_group_of.end() || it->second != first->second;
+            });
+        };
+
         auto grouped_points = build_skirt_brim_groups();
         for (auto& [_, group] : grouped_points) {
             if (!group.emits_skirt || group.points.size() < 3)
                 continue;
-            if (generate_skirt && m_config.skirt_type == stPerObject && group.instances.size() > 1)
+            if (generate_skirt && m_config.skirt_type == stPerObject && spans_print_groups(group.instances))
                 m_has_shared_per_object_skirt = true;
             // Orca: Group points already include the occupied outline, so don't
             // add skirt distance here again.

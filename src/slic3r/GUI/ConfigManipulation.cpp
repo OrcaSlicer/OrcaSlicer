@@ -1179,6 +1179,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // for (auto el : { "extruder_clearance_radius", "extruder_clearance_height_to_rod", "extruder_clearance_height_to_lid" })
     //     toggle_field(el, have_sequential_printing);
     toggle_field("print_order", !have_sequential_printing, -1, _L("Print order cannot be edited when the print sequence is By object."));
+    toggle_line("group_objects_by_filament", have_sequential_printing);
 
     toggle_field("single_extruder_multi_material", !is_BBL_Printer, -1, _L("This setting is unavailable for Bambu Lab printers."));
 

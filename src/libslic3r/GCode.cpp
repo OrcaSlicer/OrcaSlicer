@@ -2490,7 +2490,7 @@ std::vector<GCode::LayerToPrint> GCode::collect_layers_to_print(const PrintObjec
 // Prepare for non-sequential printing of multiple objects: Support resp. object layers with nearly identical print_z
 // will be printed for  all objects at once.
 // Return a list of <print_z, per object LayerToPrint> items.
-std::vector<std::pair<coordf_t, std::vector<GCode::LayerToPrint>>> GCode::collect_layers_to_print(const Print& print)
+std::vector<std::pair<coordf_t, std::vector<GCode::LayerToPrint>>> GCode::collect_layers_to_print(const Print& print, const std::vector<const PrintObject*> *objects)
 {
     struct OrderingItem {
         coordf_t    print_z;
@@ -2504,6 +2504,8 @@ std::vector<std::pair<coordf_t, std::vector<GCode::LayerToPrint>>> GCode::collec
     std::vector<Slic3r::SlicingError> errors;
 
     for (size_t i = 0; i < print.objects().size(); ++i) {
+        if (objects != nullptr && std::find(objects->begin(), objects->end(), print.objects()[i]) == objects->end())
+            continue;
         try {
             per_object[i] = collect_layers_to_print(*print.objects()[i], print.config().belt_printer.value);
         } catch (const Slic3r::SlicingError &e) {
@@ -3505,11 +3507,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // object's empty lead-in), so they must not be counted here either or the layer
     // count in the file disagrees with its layer changes.
     const bool belt = print.config().belt_printer.value;
-    if (print.config().print_sequence == PrintSequence::ByObject) {
-        // Add each of the object's layers separately.
-        for (auto object : print.objects()) {
-            std::vector<coordf_t> zs;
-            zs.reserve(object->layers().size() + object->support_layers().size());
+    // The layers that objects printed together change to: all objects with the same print_z together.
+    auto count_layers = [belt](const auto &objects) {
+        std::vector<coordf_t> zs;
+        for (const PrintObject *object : objects) {
+            zs.reserve(zs.size() + object->layers().size() + object->support_layers().size());
             for (auto layer : object->layers())
                 if (! belt || belt_object_layer_prints_something(*object, *layer))
                     zs.push_back(layer->print_z);
@@ -3519,44 +3521,32 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             // Belt brim apron bands each get their own change_layer() call.
             for (const BeltBrimBand &band : object->belt_brim_prologue())
                 zs.push_back(band.print_z);
-            if (zs.empty())
-                continue;
-            std::sort(zs.begin(), zs.end());
-            //BBS: merge numerically very close Z values.
-            auto end_it = std::unique(zs.begin(), zs.end());
-            unsigned int temp_layer_count = (unsigned int)(end_it - zs.begin());
-            for (auto it = zs.begin(); it != end_it - 1; it++) {
-                if (abs(*it - *(it + 1)) < EPSILON)
-                    temp_layer_count--;
-            }
-            m_layer_count += (unsigned int)(object->instances().size() * temp_layer_count);
         }
-    } else {
-        // Print all objects with the same print_z together.
-        std::vector<coordf_t> zs;
-        for (auto object : print.objects()) {
-            zs.reserve(zs.size() + object->layers().size() + object->support_layers().size());
-            for (auto layer : object->layers())
-                if (! belt || belt_object_layer_prints_something(*object, *layer))
-                    zs.push_back(layer->print_z);
-            for (auto layer : object->support_layers())
-                if (! belt || layer->has_extrusions())
-                    zs.push_back(layer->print_z);
-            // See the ByObject branch: apron bands are real printed layers.
-            for (const BeltBrimBand &band : object->belt_brim_prologue())
-                zs.push_back(band.print_z);
-        }
+        unsigned int layer_count = 0;
         if (!zs.empty())
         {
             std::sort(zs.begin(), zs.end());
             //BBS: merge numerically very close Z values.
             auto end_it = std::unique(zs.begin(), zs.end());
-            m_layer_count = (unsigned int)(end_it - zs.begin());
+            layer_count = (unsigned int)(end_it - zs.begin());
             for (auto it = zs.begin(); it != end_it - 1; it++) {
                 if (abs(*it - *(it + 1)) < EPSILON)
-                    m_layer_count--;
+                    layer_count--;
             }
         }
+        return layer_count;
+    };
+    if (print.config().print_sequence == PrintSequence::ByObject) {
+        // Add the layers of each instance separately, or of each group of instances that print together.
+        for (const std::vector<const PrintInstance*> &group : print.sequential_print_groups(sort_object_instances_by_model_order(print))) {
+            std::vector<const PrintObject*> objects;
+            for (const PrintInstance *instance : group)
+                if (std::find(objects.begin(), objects.end(), instance->print_object) == objects.end())
+                    objects.emplace_back(instance->print_object);
+            m_layer_count += count_layers(objects);
+        }
+    } else {
+        m_layer_count = count_layers(print.objects());
     }
     print.throw_if_canceled();
 
@@ -4666,9 +4656,38 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             size_t finished_objects = 0;
             print_object_instance_sequential_active = first_has_extrude_print_object;
             const PrintObject *prev_object = (*print_object_instance_sequential_active)->print_object;
+            // Orca: with group_objects_by_filament, the instances of a group print together, layer by layer, where
+            // the first of them comes in the print order.
+            std::map<const PrintInstance*, const std::vector<const PrintInstance*>*> group_of_instance;
+            const std::vector<std::vector<const PrintInstance*>> print_groups = print.sequential_print_groups(print_object_instances_ordering);
+            for (const std::vector<const PrintInstance*> &print_group : print_groups)
+                if (print_group.size() > 1)
+                    for (const PrintInstance *member : print_group)
+                        group_of_instance.emplace(member, &print_group);
+            std::set<const PrintInstance*> printed_in_group;
             for (; print_object_instance_sequential_active != print_object_instances_ordering.end(); ++ print_object_instance_sequential_active) {
                 const PrintObject &object = *(*print_object_instance_sequential_active)->print_object;
-                if (&object != prev_object || tool_ordering.first_extruder() != final_extruder_id) {
+                const auto group_it = group_of_instance.find(*print_object_instance_sequential_active);
+                const std::vector<const PrintInstance*> *print_group = group_it == group_of_instance.end() ? nullptr : group_it->second;
+                if (print_group != nullptr && printed_in_group.count(*print_object_instance_sequential_active) != 0)
+                    continue;
+                std::vector<const PrintObject*> group_objects;
+                if (print_group != nullptr)
+                    for (const PrintInstance *member : *print_group)
+                        if (std::find(group_objects.begin(), group_objects.end(), member->print_object) == group_objects.end())
+                            group_objects.emplace_back(member->print_object);
+                if (print_group != nullptr) {
+                    tool_ordering = ToolOrdering(print, group_objects, final_extruder_id);
+                    tool_ordering.sort_and_build_data(*group_objects.front(), final_extruder_id);
+                    unsigned int new_extruder_id = tool_ordering.first_extruder();
+                    if (new_extruder_id == (unsigned int)-1) {
+                        // Skip this group.
+                        printed_in_group.insert(print_group->begin(), print_group->end());
+                        continue;
+                    }
+                    initial_extruder_id = new_extruder_id;
+                    final_extruder_id   = tool_ordering.last_extruder();
+                } else if (&object != prev_object || tool_ordering.first_extruder() != final_extruder_id) {
                     auto cached_ordering = use_seq_dynamic_cache ? seq_dynamic_orderings.find(&object) : seq_dynamic_orderings.end();
                     if (cached_ordering != seq_dynamic_orderings.end()) {
                         // Never re-plan a selector object mid-export: the cached plan is what the
@@ -4704,7 +4723,13 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         coordf_t initial_layer_print_height = print.config().initial_layer_print_height.value;
 
                         if (m_enable_exclude_object && print.config().support_object_skip_flush.value) {
-                            m_filament_instances_code = _encode_label_ids_to_base64({(*print_object_instance_sequential_active)->model_instance->get_labeled_id()});
+                            std::vector<size_t> label_ids;
+                            if (print_group != nullptr)
+                                for (const PrintInstance *member : *print_group)
+                                    label_ids.emplace_back(member->model_instance->get_labeled_id());
+                            else
+                                label_ids.emplace_back((*print_object_instance_sequential_active)->model_instance->get_labeled_id());
+                            m_filament_instances_code = _encode_label_ids_to_base64(label_ids);
                         }
 
                         file.write(this->set_extruder(initial_extruder_id, initial_layer_print_height, true));
@@ -4737,9 +4762,15 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 // Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
                 // and export G-code into file.
                 tool_ordering.cal_most_used_extruder(print.config());
-                m_printed_objects.emplace_back(&object);
-                this->process_layers(print, tool_ordering, collect_layers_to_print(object, print.config().belt_printer.value), *print_object_instance_sequential_active - object.instances().data(), file,
-                                     prime_extruder);
+                if (print_group != nullptr) {
+                    m_printed_objects.insert(m_printed_objects.end(), group_objects.begin(), group_objects.end());
+                    this->process_layers(print, tool_ordering, *print_group, collect_layers_to_print(print, &group_objects), file, prime_extruder);
+                    printed_in_group.insert(print_group->begin(), print_group->end());
+                } else {
+                    m_printed_objects.emplace_back(&object);
+                    this->process_layers(print, tool_ordering, collect_layers_to_print(object, print.config().belt_printer.value), *print_object_instance_sequential_active - object.instances().data(), file,
+                                         prime_extruder);
+                }
                 {
                     // save the flush statitics stored in tool ordering by object
                     print.m_statistics_by_extruder_count.stats_by_single_extruder += tool_ordering.get_filament_change_stats(ToolOrdering::FilamentChangeMode::SingleExt);
@@ -4762,7 +4793,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 // Flag indicating whether the nozzle temperature changes from 1st to 2nd layer were performed.
                 // Reset it when starting another object from 1st layer.
                 m_second_layer_things_done = false;
-                prev_object = &object;
+                // Orca: after a group, the next instance builds its own tool ordering.
+                prev_object = print_group != nullptr ? nullptr : &object;
             }
         } else {
             // Sort layers by Z.
@@ -5189,7 +5221,8 @@ void GCode::process_layers(
     const ToolOrdering                                                  &tool_ordering,
     const std::vector<const PrintInstance*>                             &print_object_instances_ordering,
     const std::vector<std::pair<coordf_t, std::vector<LayerToPrint>>>   &layers_to_print,
-    GCodeOutputStream                                                   &output_stream)
+    GCodeOutputStream                                                   &output_stream,
+    const bool                                                           prime_extruder)
 {
     // The pipeline is variable: The vase mode filter is optional.
     size_t layer_to_print_idx = 0;
@@ -5197,7 +5230,7 @@ void GCode::process_layers(
         overhang_fan_enabled(print.config(), m_enable_cooling_markers),
         [&layers_to_print](size_t index) -> const std::vector<LayerToPrint> & { return layers_to_print[index].second; });
     const auto generator = tbb::make_filter<PrecomputedLayer, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
-        [this, &print, &tool_ordering, &print_object_instances_ordering, &layers_to_print](PrecomputedLayer precomputed) -> LayerResult {
+        [this, &print, &tool_ordering, &print_object_instances_ordering, &layers_to_print, prime_extruder](PrecomputedLayer precomputed) -> LayerResult {
             if (precomputed.index == size_t(-1))
                 return LayerResult::make_nop_layer_result();
             const std::pair<coordf_t, std::vector<LayerToPrint>>& layer = layers_to_print[precomputed.index];
@@ -5214,7 +5247,7 @@ void GCode::process_layers(
             check_placeholder_parser_failed();
             print.throw_if_canceled();
             m_extrusion_quality_estimator.set_precomputed_layers(std::move(precomputed.overhang_layers));
-            return this->process_layer(print, layer.second, layer_tools, &layer == &layers_to_print.back(), &print_object_instances_ordering, tool_ordering.get_most_used_extruder(), size_t(-1));
+            return this->process_layer(print, layer.second, layer_tools, &layer == &layers_to_print.back(), &print_object_instances_ordering, tool_ordering.get_most_used_extruder(), size_t(-1), prime_extruder);
         });
     if (m_spiral_vase) {
         float nozzle_diameter  = EXTRUDER_CONFIG(nozzle_diameter);
