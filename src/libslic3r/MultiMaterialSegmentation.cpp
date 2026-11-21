@@ -18,7 +18,9 @@
 #include "MutablePolygon.hpp"
 #include "Utils.hpp"
 #include "PrintConfig.hpp"
+#include "TriangleMesh.hpp"
 #include "TriangleMeshSlicer.hpp"
+#include "TriangleSelector.hpp"
 #include "Surface.hpp"
 #include "libslic3r.h"
 
@@ -36,6 +38,8 @@
 #include <array>
 #include <limits>
 #include <utility>
+#include <map>
+#include <unordered_map>
 #include <unordered_set>
 
 #include <boost/log/trivial.hpp>
@@ -1237,6 +1241,15 @@ double resolve_outer_wall_line_width(const PrintRegionConfig &region_config, con
     return width.get_abs_value(nozzle_diameter);
 }
 
+// Returns the triangles of a volume's paint in one state, from the paint's splitting data.
+static indexed_triangle_set painted_facets(const ModelVolume &mv, const TriangleSelector::TriangleSplittingData &facets_data, EnforcerBlockerType state, bool strict)
+{
+    TriangleSelector selector(mv.mesh());
+    // The constructor resets the selector, so deserialize() does not have to.
+    selector.deserialize(facets_data, false);
+    return strict ? selector.get_facets_strict(state) : selector.get_facets(state);
+}
+
 // Layers a painted top or bottom surface colors; 0 follows the shell layer count.
 static int color_penetration_layers(const ConfigOptionInt &penetration_layers, const ConfigOptionInt &shell_layers)
 {
@@ -1277,7 +1290,7 @@ static inline std::vector<std::vector<ExPolygons>> segmentation_top_and_bottom_l
             if (mv->is_model_part()) {
                 const Transform3d volume_trafo = object_trafo * mv->get_matrix();
                 for (size_t extruder_idx = 0; extruder_idx < num_facets_states; ++extruder_idx) {
-                    const indexed_triangle_set painted = extract_facets_info(*mv).facets_annotation.get_facets_strict(*mv, EnforcerBlockerType(extruder_idx));
+                    const indexed_triangle_set painted = painted_facets(*mv, extract_facets_info(*mv).facets_data, EnforcerBlockerType(extruder_idx), true);
 #ifdef MM_SEGMENTATION_DEBUG_TOP_BOTTOM
                     {
                         static int iRun = 0;
@@ -2249,7 +2262,7 @@ static std::vector<std::vector<ExPolygons>> segment_layers_by_painted_contours(c
         tbb::parallel_for(tbb::blocked_range<size_t>(1, num_facets_states), [&mv, &object_trafo, &facets_info, &layers, &edge_grids, &painted_lines, &painted_lines_mutex, &input_expolygons, &throw_on_cancel_callback](const tbb::blocked_range<size_t> &range) {
             for (size_t extruder_idx = range.begin(); extruder_idx < range.end(); ++extruder_idx) {
                 throw_on_cancel_callback();
-                const indexed_triangle_set custom_facets = facets_info.facets_annotation.get_facets(*mv, EnforcerBlockerType(extruder_idx));
+                const indexed_triangle_set custom_facets = painted_facets(*mv, facets_info.facets_data, EnforcerBlockerType(extruder_idx), false);
                 if (custom_facets.indices.empty())
                     continue;
 
@@ -2506,6 +2519,128 @@ std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject 
     return segmented_regions_merged;
 }
 
+TriangleSelector::TriangleSplittingData merge_small_painted_regions(const ModelVolume &volume, const Transform3d &trafo, double min_area)
+{
+    const indexed_triangle_set &its     = volume.mesh().its;
+    const size_t                facets  = its.indices.size();
+    const auto                  area_of = [&trafo](const Vec3f &a, const Vec3f &b, const Vec3f &c) {
+        const Vec3d pa = trafo * a.cast<double>();
+        return 0.5 * (trafo * b.cast<double>() - pa).cross(trafo * c.cast<double>() - pa).norm();
+    };
+
+    TriangleSelector selector(volume.mesh());
+    selector.deserialize(volume.mmu_segmentation_facets.get_data(), false);
+
+    // 1. Give each mesh triangle the color that covers most of it.
+    std::vector<int>                 labels(facets, int(EnforcerBlockerType::NONE));
+    std::vector<double>              label_areas(facets, 0.);
+    std::vector<double>              state_areas(facets);
+    std::vector<int>                 sources;
+    std::vector<EnforcerBlockerType> states = TriangleSelector::extract_used_facet_states(volume.mmu_segmentation_facets.get_data());
+    if (std::find(states.begin(), states.end(), EnforcerBlockerType::NONE) == states.end())
+        states.push_back(EnforcerBlockerType::NONE);
+    for (const EnforcerBlockerType state : states) {
+        const indexed_triangle_set painted = selector.get_facets_strict(state, &sources);
+        std::fill(state_areas.begin(), state_areas.end(), 0.);
+        for (size_t i = 0; i < painted.indices.size(); ++i) {
+            const stl_triangle_vertex_indices &t = painted.indices[i];
+            state_areas[sources[i]] += area_of(painted.vertices[t[0]], painted.vertices[t[1]], painted.vertices[t[2]]);
+        }
+        for (size_t facet = 0; facet < facets; ++facet)
+            if (state_areas[facet] > label_areas[facet]) {
+                label_areas[facet] = state_areas[facet];
+                labels[facet]      = int(state);
+            }
+    }
+    const std::vector<int> original_labels = labels;
+
+    // 2. A region is a set of triangles with one color, connected over shared edges. A region under min_area takes the
+    // neighboring color it shares the longest boundary with. A boundary with another small region counts 1%, so small
+    // regions join large ones rather than each other. Only the smaller of two small regions counts their shared
+    // boundary, so the pair cannot swap colors.
+    constexpr size_t   none                  = std::numeric_limits<size_t>::max();
+    constexpr double   small_neighbor_weight = 0.01;
+    constexpr int      max_passes            = 12;
+    std::vector<Vec3d> points(its.vertices.size());
+    for (size_t i = 0; i < points.size(); ++i)
+        points[i] = trafo * its.vertices[i].cast<double>();
+    std::vector<double> facet_areas(facets);
+    for (size_t facet = 0; facet < facets; ++facet) {
+        const stl_triangle_vertex_indices &t = its.indices[facet];
+        facet_areas[facet] = 0.5 * (points[t[1]] - points[t[0]]).cross(points[t[2]] - points[t[0]]).norm();
+    }
+    const std::vector<Vec3i32> neighbors = its_face_neighbors(its);
+
+    std::vector<size_t> facet_regions(facets);
+    std::vector<double> region_areas;
+    std::vector<size_t> stack;
+    for (int pass = 0; pass < max_passes; ++pass) {
+        std::fill(facet_regions.begin(), facet_regions.end(), none);
+        region_areas.clear();
+        for (size_t seed = 0; seed < facets; ++seed) {
+            if (facet_regions[seed] != none)
+                continue;
+            const size_t region = region_areas.size();
+            region_areas.push_back(0.);
+            facet_regions[seed] = region;
+            stack.assign(1, seed);
+            while (!stack.empty()) {
+                const size_t facet = stack.back();
+                stack.pop_back();
+                region_areas[region] += facet_areas[facet];
+                for (const int neighbor : neighbors[facet])
+                    if (neighbor >= 0 && facet_regions[neighbor] == none && labels[neighbor] == labels[facet]) {
+                        facet_regions[neighbor] = region;
+                        stack.push_back(size_t(neighbor));
+                    }
+            }
+        }
+
+        std::unordered_map<size_t, std::map<int, double>> boundary_lengths; // region -> color -> length
+        for (size_t facet = 0; facet < facets; ++facet)
+            for (int edge = 0; edge < 3; ++edge) {
+                const int neighbor = neighbors[facet][edge];
+                // Visit each shared edge once, from its lower-numbered triangle.
+                if (neighbor <= int(facet) || labels[neighbor] == labels[facet])
+                    continue;
+                const size_t region_1 = facet_regions[facet];
+                const size_t region_2 = facet_regions[neighbor];
+                const bool   small_1  = region_areas[region_1] < min_area;
+                const bool   small_2  = region_areas[region_2] < min_area;
+                if (!small_1 && !small_2)
+                    continue;
+                const Vec2i32 vertices = its_triangle_edge(its.indices[facet], edge);
+                const double  length   = (points[vertices[0]] - points[vertices[1]]).norm();
+                if (small_1 && small_2) {
+                    if (std::make_pair(region_areas[region_1], region_1) < std::make_pair(region_areas[region_2], region_2))
+                        boundary_lengths[region_1][labels[neighbor]] += length * small_neighbor_weight;
+                    else
+                        boundary_lengths[region_2][labels[facet]] += length * small_neighbor_weight;
+                } else if (small_1) {
+                    boundary_lengths[region_1][labels[neighbor]] += length;
+                } else {
+                    boundary_lengths[region_2][labels[facet]] += length;
+                }
+            }
+        if (boundary_lengths.empty())
+            break;
+
+        std::vector<int> region_new_labels(region_areas.size(), -1);
+        for (const auto &[region, label_lengths] : boundary_lengths)
+            region_new_labels[region] = std::max_element(label_lengths.begin(), label_lengths.end(),
+                                                         [](const auto &a, const auto &b) { return a.second < b.second; })->first;
+        for (size_t facet = 0; facet < facets; ++facet)
+            if (region_new_labels[facet_regions[facet]] >= 0)
+                labels[facet] = region_new_labels[facet_regions[facet]];
+    }
+
+    // 3. Repaint only the triangles whose color changed.
+    for (size_t facet = 0; facet < facets; ++facet)
+        if (labels[facet] != original_labels[facet])
+            selector.set_facet(int(facet), EnforcerBlockerType(labels[facet]));
+    return selector.serialize();
+}
+
 // Returns multi-material segmentation based on painting in multi-material segmentation gizmo
 std::vector<std::vector<ExPolygons>> multi_material_segmentation_by_painting(const PrintObject &print_object, const std::function<void()> &throw_on_cancel_callback) {
     // apply_mm_segmentation() reads one entry per filament_diameter, and filament_colour can be shorter.
@@ -2514,8 +2649,20 @@ std::vector<std::vector<ExPolygons>> multi_material_segmentation_by_painting(con
     const float  interlocking_depth = float(print_object.config().mmu_segmented_region_interlocking_depth.value);
     const bool   interlocking_beam  = print_object.config().interlocking_beam.value;
 
-    const auto extract_facets_info = [](const ModelVolume &mv) -> ModelVolumeFacetsInfo {
-        return {mv.mmu_segmentation_facets, mv.is_mm_painted(), false};
+    // Merge painted regions smaller than the minimum area, measured on the object as it prints. The model keeps its paint.
+    std::map<const ModelVolume *, TriangleSelector::TriangleSplittingData> merged_facets;
+    if (const double min_area = print_object.config().mmu_segmented_region_min_area.value; min_area > 0.) {
+        const Transform3d object_trafo = print_object.trafo_sliced();
+        for (const ModelVolume *mv : print_object.model_object()->volumes)
+            if (mv->is_model_part() && mv->is_mm_painted()) {
+                throw_on_cancel_callback();
+                merged_facets.emplace(mv, merge_small_painted_regions(*mv, object_trafo * mv->get_matrix(), min_area));
+            }
+    }
+
+    const auto extract_facets_info = [&merged_facets](const ModelVolume &mv) -> ModelVolumeFacetsInfo {
+        const auto merged = merged_facets.find(&mv);
+        return {merged == merged_facets.end() ? mv.mmu_segmentation_facets.get_data() : merged->second, mv.is_mm_painted(), false};
     };
 
     return segmentation_by_painting(print_object, extract_facets_info, num_facets_states, max_width, interlocking_depth, interlocking_beam, IncludeTopAndBottomLayers::Yes, throw_on_cancel_callback);
@@ -2526,7 +2673,7 @@ std::vector<std::vector<ExPolygons>> fuzzy_skin_segmentation_by_painting(const P
     const size_t num_facets_states = 2; // Unpainted facets and facets painted with fuzzy skin.
 
     const auto extract_facets_info = [](const ModelVolume &mv) -> ModelVolumeFacetsInfo {
-        return {mv.fuzzy_skin_facets, mv.is_fuzzy_skin_painted(), false};
+        return {mv.fuzzy_skin_facets.get_data(), mv.is_fuzzy_skin_painted(), false};
     };
 
     // Because we apply fuzzy skin just on external perimeters, we limit the depth of fuzzy skin
@@ -2625,7 +2772,7 @@ std::vector<ExPolygons> painted_modifier_segmentation(const PrintObject         
     }
 
     const auto extract_facets_info = [](const ModelVolume &mv) -> ModelVolumeFacetsInfo {
-        return {mv.painted_modifier_facets, true, false};
+        return {mv.painted_modifier_facets.get_data(), true, false};
     };
     std::vector<std::vector<ExPolygons>> segmented = segment_layers_by_painted_contours(print_object, input_expolygons, layer_bboxes, {&painted_modifier},
                                                                                        extract_facets_info, 2, throw_on_cancel_callback);

@@ -5315,6 +5315,18 @@ void PrintConfigDef::init_fff_params()
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.));
 
+    def           = this->add("mmu_segmented_region_min_area", coFloat);
+    def->label    = L("Minimum area of a painted region");
+    def->tooltip  = L("Painted color regions smaller than this area take the color they share the longest border with "
+                    "before slicing. The area is measured on the object as it prints, after scaling. The painting itself "
+                    "does not change. This removes stray specks and thin bands of color, such as the ones a texture or "
+                    "vertex color import can leave between two colors. Zero disables this feature.");
+    def->sidetext = L(u8"mm²");	// square millimeters, CIS languages need translation
+    def->min      = 0;
+    def->category = L("Advanced");
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
     def           = this->add("interlocking_beam", coBool);
     def->label    = L("Use beam interlocking");
     def->tooltip  = L("Generate interlocking beam structure at the locations where different filaments touch. This improves the adhesion between filaments, especially models printed in different materials.");
