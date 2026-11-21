@@ -17,6 +17,7 @@ add_executable(${_TEST_NAME}_tests
     test_colour_picker_field.cpp
     test_field_number_text.cpp
     test_filament_color_picker.cpp
+    test_filament_sync.cpp
     test_ams_materials_setting.cpp
     test_gcode_preview_colors.cpp
     # The reduced toolpath set's end bands, from libvgcode's layer table.

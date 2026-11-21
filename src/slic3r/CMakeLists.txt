@@ -856,6 +856,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/WxFontUtils.hpp
     Utils/FileTransferUtils.cpp
     Utils/FileTransferUtils.hpp
+    Utils/FilamentSync.cpp
+    Utils/FilamentSync.hpp
     Utils/wxInspectorPlugins/DPIAwarePlugin.hpp
     Utils/wxInspectorPlugins/DPIAwarePlugin.cpp
     Utils/wxInspectorPlugins/CustomWidgetsPlugin.hpp
