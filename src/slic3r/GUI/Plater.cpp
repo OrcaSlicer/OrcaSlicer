@@ -2387,13 +2387,9 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " go on sync_extruder_list";
     const Preset &cur_preset  = preset_bundle->printers.get_selected_preset();
     int extruder_nums = preset_bundle->get_printer_extruder_count();
-    std::vector<int> extruder_map(extruder_nums);
-    std::iota(extruder_map.begin(), extruder_map.end(), 0);
-    const ConfigOptionInts *physical_extruder_map = cur_preset.config.option<ConfigOptionInts>("physical_extruder_map");
-    if (physical_extruder_map != nullptr) {
-        assert(physical_extruder_map->values.size() == extruder_nums);
-        extruder_map = physical_extruder_map->values;
-    }
+    // A multi-nozzle profile that never sets physical_extruder_map carries the single-element default.
+    const std::vector<int> extruder_map =
+        effective_physical_extruder_map(cur_preset.config.option<ConfigOptionInts>("physical_extruder_map"), extruder_nums).values;
     assert(obj->GetExtderSystem()->GetTotalExtderCount() == extruder_nums);
 
     // Multi-nozzle: resolve the nozzle option (pops MultiNozzleSyncDialog when is_manual). No-op for every
