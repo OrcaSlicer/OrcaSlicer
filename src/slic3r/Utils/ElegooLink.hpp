@@ -42,7 +42,6 @@ protected:
     virtual bool upload_inner_with_host(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const override;
 
 #ifdef WIN32
-    virtual bool test_with_resolved_ip(wxString& curl_msg) const override;
     bool elegoo_test_with_resolved_ip(wxString& curl_msg) const;
 #endif
 private:

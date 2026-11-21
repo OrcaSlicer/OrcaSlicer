@@ -565,19 +565,6 @@ namespace Slic3r {
 
         return res;
     }
-    bool ElegooLink::test_with_resolved_ip(wxString& msg) const
-    {
-        switch (classify_printer_model(m_printerModel)) {
-        case ElegooPrinterType::Other:
-            return OctoPrint::test_with_resolved_ip(msg);
-        case ElegooPrinterType::CC2:
-            return elegoo_cc2_test_with_resolved_ip(msg);
-        case ElegooPrinterType::CC:
-            return elegoo_test_with_resolved_ip(msg);
-        }
-        return false;
-    }
-
     bool ElegooLink::elegoo_cc2_test_with_resolved_ip(wxString& msg) const
     {
         const char*  name        = get_name();
