@@ -49,7 +49,7 @@ msgid "Left extruder"
 msgstr "왼쪽 압출기"
 
 msgid "left extruder"
-msgstr "왼쪽 익스트루더"
+msgstr "왼쪽 압출기"
 
 msgid "Right Extruder"
 msgstr "오른쪽 압출기"
@@ -58,7 +58,7 @@ msgid "Right extruder"
 msgstr "오른쪽 압출기"
 
 msgid "right extruder"
-msgstr "오른쪽 익스트루더"
+msgstr "오른쪽 압출기"
 
 # AI Translated
 msgid "Main Nozzle"
@@ -180,7 +180,7 @@ msgid "Right"
 msgstr "오른쪽"
 
 msgid "extruder"
-msgstr "익스트루더"
+msgstr "압출기"
 
 msgid "TPU is not supported by AMS."
 msgstr "TPU는 AMS에서 지원되지 않습니다."
@@ -219,7 +219,7 @@ msgid "Damp PVA will become flexible and get stuck inside AMS, please take care 
 msgstr "습한 PVA는 유연해져서 AMS 내부에 달라붙게 됩니다. 사용하기 전에 건조시키십시오."
 
 msgid "Damp PVA is flexible and may get stuck in extruder. Dry it before use."
-msgstr "습한 PVA는 유연하여 익스트루더에 끼일 수 있습니다. 사용 전에 건조시키세요."
+msgstr "습한 PVA는 유연하여 압출기에 끼일 수 있습니다. 사용 전에 건조시키세요."
 
 msgid "The rough surface of PLA Glow can accelerate wear on the AMS system, particularly on the internal components of the AMS Lite."
 msgstr "PLA Glow의 거친 표면은 AMS 시스템, 특히 AMS Lite의 내부 부품의 마모를 가속화할 수 있습니다."
@@ -263,7 +263,7 @@ msgstr "%s은(는) Filament Track Switch로 인해 로드 또는 언로드에 �
 
 #, c-format, boost-format
 msgid "%s is not supported by %s extruder."
-msgstr "%s은(는) %s 익스트루더에서 지원되지 않습니다."
+msgstr "%s은(는) %s 압출기에서 지원되지 않습니다."
 
 # AI Translated
 #, c-format, boost-format
@@ -6209,10 +6209,10 @@ msgid "AMS temperature is too high, which may cause the filament to soften. Plea
 msgstr "AMS 온도가 너무 높아 필라멘트가 연화될 수 있습니다. AMS 온도가 %d℃ 이하로 떨어질 때까지 기다리세요."
 
 msgid "The current chamber temperature or the target chamber temperature exceeds 45℃. In order to avoid extruder clogging, low temperature filament(PLA/PETG/TPU) is not allowed to be loaded."
-msgstr "현재 챔버 온도 또는 목표 챔버 온도가 45℃를 초과합니다. 익스트루더 막힘을 방지하기 위해 저온 필라멘트(PLA/PETG/TPU) 로딩이 허용되지 않습니다."
+msgstr "현재 챔버 온도 또는 목표 챔버 온도가 45℃를 초과합니다. 압출기 막힘을 방지하기 위해 저온 필라멘트(PLA/PETG/TPU) 로딩이 허용되지 않습니다."
 
 msgid "Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In order to avoid extruder clogging, it is not allowed to set the chamber temperature."
-msgstr "저온 필라멘트(PLA/PETG/TPU)가 익스트루더에 로드되어 있습니다. 익스트루더 막힘을 방지하기 위해 챔버 온도 설정이 허용되지 않습니다."
+msgstr "저온 필라멘트(PLA/PETG/TPU)가 압출기에 로드되어 있습니다. 압출기 막힘을 방지하기 위해 챔버 온도 설정이 허용되지 않습니다."
 
 msgid "When you set the chamber temperature below 40℃, the chamber temperature control will not be activated, and the target chamber temperature will automatically be set to 0℃."
 msgstr "챔버 온도를 40℃ 이하로 설정하면 챔버 온도 제어가 활성화되지 않습니다. 그리고 목표 챔버 온도는 자동으로 0℃ 로 설정됩니다."
@@ -8466,7 +8466,7 @@ msgid "When printing is paused, filament loading and unloading are only supporte
 msgstr "인쇄가 일시 중지되면 필라멘트 로딩 및 언로딩은 외부 슬롯에서만 지원됩니다."
 
 msgid "Current extruder is busy changing filament."
-msgstr "현재 익스트루더가 필라멘트 교체 중입니다."
+msgstr "현재 압출기가 필라멘트 교체 중입니다."
 
 # AI Translated
 msgid "\"Load\" or \"Unload\" is not supported for external spool while using Filament Track Switch."
@@ -13850,7 +13850,7 @@ msgid "Single extruder multi-material setup"
 msgstr "단일 압출기 다중 재료 설정"
 
 msgid "Number of extruders of the printer."
-msgstr "프린터 익스트루더 수."
+msgstr "프린터 압출기 수."
 
 msgid ""
 "Single Extruder Multi Material is selected, and all extruders must have the same diameter.\n"
@@ -14420,7 +14420,7 @@ msgstr ""
 "수정한 사전 설정 값을 삭제하거나 수정된 ​​값을 새 프로젝트로 전송하도록 선택할 수 있습니다"
 
 msgid "Extruder count"
-msgstr "익스트루더 수"
+msgstr "압출기 수"
 
 # AI Translated
 msgid "Capabilities"

@@ -60,6 +60,7 @@ enum class Behavior {
     Silent,                // Completes the websocket upgrade, then never reads or sends
     Answers,               // Sends a heartbeat, and the CFS slots once the heartbeat is acknowledged
     ReportsNoCfs,          // Sends a status reporting no CFS connected, then never sends the CFS slots
+    ReportsNoCfsThenSlots, // Sends a status reporting no CFS connected, then the CFS slots, as a SPARKX i7 with a CFS Lite does
     ReportsCfs,            // Sends a status reporting a CFS connected, then the CFS slots
     ReportsCfsSlowly,      // Sends a status reporting a CFS connected, then the CFS slots 1.5 s later
     StreamsCfs,            // Sends a status reporting a CFS connected every 50 ms and never sends the CFS slots
@@ -175,6 +176,12 @@ private:
                 wait_for_release();
                 return;
             }
+            if (first && m_behavior == Behavior::ReportsNoCfsThenSlots) {
+                ws.write(net::buffer(std::string(R"({"cfsConnect":0,"nozzleTemp":"25.000000"})")), ec);
+                ws.write(net::buffer(std::string(R"({"connectionCount":1})")), ec);
+                ws.write(net::buffer(slots), ec);
+                continue;
+            }
             if (first && (m_behavior == Behavior::StreamsCfs || m_behavior == Behavior::StreamsCfsThenSlots)) {
                 const bool forever = m_behavior == Behavior::StreamsCfs;
                 for (int count = 0; !ec && !released() && (forever || count < 25); ++count) {
@@ -262,13 +269,14 @@ DynamicPrintConfig host_config(const std::string& url)
 
 std::unique_ptr<TestHost> make_host(const FakeCrealityPrinter& printer, std::chrono::milliseconds deadline)
 {
-    DynamicPrintConfig config     = host_config(printer.base_url());
-    auto host                     = std::make_unique<TestHost>(&config);
-    host->ws_settings.port        = printer.port();
-    host->ws_settings.connect     = deadline;
-    host->ws_settings.reply       = deadline;
-    host->ws_settings.slots_reply = deadline;
-    host->ws_settings.close       = deadline;
+    DynamicPrintConfig config      = host_config(printer.base_url());
+    auto host                      = std::make_unique<TestHost>(&config);
+    host->ws_settings.port         = printer.port();
+    host->ws_settings.connect      = deadline;
+    host->ws_settings.reply        = deadline;
+    host->ws_settings.slots_reply  = deadline;
+    host->ws_settings.no_cfs_reply = deadline;
+    host->ws_settings.close        = deadline;
     return host;
 }
 
@@ -319,6 +327,7 @@ TEST_CASE("The CFS slot query has a shorter default deadline than a command", "[
     const TestHost     host(&config);
 
     CHECK(host.ws_settings.slots_reply < host.ws_settings.reply);
+    CHECK(host.ws_settings.no_cfs_reply < host.ws_settings.slots_reply);
 }
 
 TEST_CASE("Querying the CFS slots waits on a silent printer for the slot deadline, not the command one", "[CrealityPrint]")
@@ -332,7 +341,7 @@ TEST_CASE("Querying the CFS slots waits on a silent printer for the slot deadlin
     CHECK(reply.empty());
 }
 
-TEST_CASE("Querying the CFS slots stops at a status reporting no CFS connected", "[CrealityPrint]")
+TEST_CASE("Querying the CFS slots waits only the no-CFS deadline after a status reporting no CFS connected", "[CrealityPrint]")
 {
     FakeCrealityPrinter printer(Behavior::ReportsNoCfs, "K1C");
     const auto host               = make_host(printer, 200ms);
@@ -341,6 +350,16 @@ TEST_CASE("Querying the CFS slots stops at a status reporting no CFS connected",
 
     CHECK(finishes_within(printer, 2s, [&] { reply = host->query_boxes_info(); }));
     CHECK(reply.empty());
+}
+
+TEST_CASE("Querying the CFS slots reads the slots sent after a status reporting no CFS connected", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::ReportsNoCfsThenSlots, "F022");
+    const auto host = make_host(printer, 5s);
+    bool no_cfs     = true;
+
+    CHECK(host->query_boxes_info(&no_cfs) == R"({"boxsInfo":{"materialBoxs":[]}})");
+    CHECK_FALSE(no_cfs);
 }
 
 TEST_CASE("Querying the CFS slots waits past a status reporting a CFS connected", "[CrealityPrint]")
