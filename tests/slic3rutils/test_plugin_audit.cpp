@@ -1426,6 +1426,8 @@ import http.client, http.server, os, pathlib, shutil, socket, subprocess, sys, t
 import urllib.request, zipfile
 if os.name != "nt":
     import pty
+else:
+    import _winapi
 
 APPROVED = os.path.join(OUTSIDE, "approved.txt")
 PRIVATE = os.path.join(OUTSIDE, "private.txt")
@@ -2705,6 +2707,58 @@ site_packages_outcome = attempt(lambda: open(SITE_PACKAGE_FILE).close())
     const std::string site_packages_prompt = "open: " + python.str("SITE_PACKAGE_FILE") + "\n";
     CHECK(describe(harness.prompts) == write_prompt + site_packages_prompt);
 }
+
+#ifdef _WIN32
+TEST_CASE("A real _winapi.CreateProcess audit event reports its command line as text", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // subprocess reaches this event on Windows. CPython 3.12.13 raised it with PySys_Audit's "uuu"
+    // format, reading the command-line object as a wide string, so audit hooks received garbage
+    // instead of the text subprocess passed. The deps patch raises "uOu" (as upstream does,
+    // python/cpython#159237) until the pinned release carries the fix.
+    //
+    // The event is raised before the arguments are used, so a rejected environment mapping ends
+    // the call after the hook saw the event, without reaching CreateProcessW. Run outside a
+    // plugin scope, so the hook below is reached: the plugin audit hook aborts the event when it
+    // denies, and a real prompt is asserted separately at the end.
+    python.exec(R"PY(
+WINAPI_AUDIT_CALLS = []
+
+def record_winapi_audit(event, args):
+    if event == "_winapi.CreateProcess":
+        WINAPI_AUDIT_CALLS.append(args)
+
+sys.addaudithook(record_winapi_audit)
+
+DENIED_EXECUTABLE = os.path.join(OUTSIDE, "Program Files", "audit-denied.exe")
+COMMAND_LINE = '"' + DENIED_EXECUTABLE + '" --flag'
+try:
+    _winapi.CreateProcess(None, COMMAND_LINE, None, None, False, 0, object(), None,
+                          subprocess.STARTUPINFO())
+    audit_arguments_outcome = "started"
+except TypeError:
+    audit_arguments_outcome = "stopped"
+)PY");
+    CHECK(python.str("audit_arguments_outcome") == "stopped");
+    INFO("recorded audit arguments: " << python.str("WINAPI_AUDIT_CALLS"));
+    CHECK(python.eval("WINAPI_AUDIT_CALLS == [(None, COMMAND_LINE, None)]") == "True");
+
+    // In a plugin scope the same call is prompted and denied, and the prompt names the command
+    // line exactly as the caller passed it, which an approval saves as the process grant.
+    python.run_as(PLUGIN, R"PY(
+create_process_outcome = attempt(lambda: _winapi.CreateProcess(
+    None, COMMAND_LINE, None, None, False, 0, None, None, subprocess.STARTUPINFO()))
+)PY");
+    CHECK(python.str("create_process_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "_winapi.CreateProcess: " + python.str("COMMAND_LINE") + "\n");
+}
+#endif
 
 TEST_CASE("A filesystem wildcard grant covers the folder and its descendants at any depth", "[audit][Python]")
 {
