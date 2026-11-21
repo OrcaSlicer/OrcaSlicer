@@ -4346,6 +4346,44 @@ bool GCodeProcessor::get_last_z_from_gcode(const std::string& gcode_str, double&
     return is_z_changed;
 }
 
+//BBS: custom g-code is often inert (a timelapse block compiled out by its conditionals, a marker).
+bool GCodeProcessor::gcode_moves_toolhead(const std::string& gcode_str)
+{
+    // A G0 to G3 word with an axis word moves the toolhead; an arc moves through I/J/K, G10 is not a G1.
+    auto line_moves = [](std::string_view line) {
+        size_t first = line.find_first_not_of(" \t");
+        if (first == std::string_view::npos)
+            return false;
+        line.remove_prefix(first);
+        if (size_t comment = line.find(';'); comment != std::string_view::npos)
+            line.remove_suffix(line.size() - comment);
+        if (line.size() < 4 || line[0] != 'G' || line[1] < '0' || line[1] > '3' || (line[2] != ' ' && line[2] != '\t'))
+            return false;
+        for (size_t i = 2; i + 1 < line.size(); ++i) {
+            if (line[i] != ' ' && line[i] != '\t')
+                continue;
+            switch (line[i + 1]) {
+            case 'X': case 'Y': case 'Z': case 'I': case 'J': case 'K':
+                return true;
+            default:
+                break;
+            }
+        }
+        return false;
+    };
+
+    size_t start = 0;
+    while (start <= gcode_str.size()) {
+        size_t end = gcode_str.find('\n', start);
+        if (end == std::string::npos)
+            end = gcode_str.size();
+        if (line_moves(std::string_view(gcode_str).substr(start, end - start)))
+            return true;
+        start = end + 1;
+    }
+    return false;
+}
+
 bool GCodeProcessor::get_last_position_from_gcode(const std::string &gcode_str, Vec3f &pos)
 {
     int  str_size     = gcode_str.size();
