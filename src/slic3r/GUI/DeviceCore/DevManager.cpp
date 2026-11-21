@@ -3,6 +3,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Utils.hpp"
 #include <boost/log/trivial.hpp>
+#include <memory>
 #include <mutex>
 #include <chrono>
 #include "libslic3r/LifecycleEvents.hpp"

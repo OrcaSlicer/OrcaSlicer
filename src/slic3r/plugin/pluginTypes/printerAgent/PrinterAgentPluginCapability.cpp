@@ -5,9 +5,11 @@
 #include <pybind11/cast.h>
 #include "slic3r/Utils/bambu_networking.hpp"
 
+#include <exception>
 #include <memory>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
 #include <string>

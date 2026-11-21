@@ -1,7 +1,11 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <string>
+
+#include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/LanDevicePool.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
 
 using namespace Slic3r;
 

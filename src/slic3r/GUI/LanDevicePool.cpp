@@ -8,13 +8,22 @@
 #include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/log/trivial.hpp>
 
 #include <algorithm>
+#include <chrono>
+#include <functional>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <optional>
 #include <set>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace Slic3r {
 
