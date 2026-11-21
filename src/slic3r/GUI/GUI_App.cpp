@@ -2341,12 +2341,14 @@ void GUI_App::init_networking_callbacks()
                 if (provider != this->get_printer_cloud_provider()) {
                     return;
                 }
-                m_agent->set_user_selected_machine(m_agent->get_user_selected_machine());
+                if (m_device_manager)
+                    m_device_manager->reselect_cloud_machine();
                 if (this->is_enable_multi_machine()) {
                     auto evt = new wxCommandEvent(EVT_UPDATE_MACHINE_LIST);
                     wxQueueEvent(this, evt);
                 }
-                m_agent->set_user_selected_machine(m_agent->get_user_selected_machine());
+                if (m_device_manager)
+                    m_device_manager->reselect_cloud_machine();
                 if (m_agent->is_user_login(provider)) {
 
                     /*disconnect lan*/
