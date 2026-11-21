@@ -58,7 +58,8 @@ bool split(std::string& buffer, std::vector<Packet>& packets);
 bool parse_publish(const Packet& packet, std::string& topic, std::string& payload);
 } // namespace Mqtt
 
-std::string publish_topic(const Credentials& creds, const std::string& type);
+// kind "slicer" (what Anycubic Slicer Next's slicer sends) or "web" (its Workbench page: temperatures, print/update)
+std::string publish_topic(const Credentials& creds, const std::string& type, const std::string& kind = "slicer");
 std::string subscribe_topic(const Credentials& creds);
 // "info/report" for ".../<deviceId>/info/report"
 std::string report_suffix(const std::string& topic);
@@ -119,6 +120,24 @@ private:
 // print/start data for a file already on the printer. filepath is the folder: firmware 2.0.2.8 joins it
 // with filename, and "/<name>" ends the task with code 10111.
 nlohmann::json print_start_data(const std::string& filename, uint64_t size, const nlohmann::json& box_mapping, bool auto_leveling, bool flow_calibration, bool timelapse);
+// One message to the printer: its topic kind ("slicer" or "web"), type, action and data.
+struct Message
+{
+    std::string    kind = "slicer";
+    std::string    type;
+    std::string    action;
+    nlohmann::json data;
+};
+
+enum class Control { Sent, NoOp, Unsupported, Refused };
+
+// A Device tab "print" command other than pause, resume and stop, as the messages that carry it on a Kobra X:
+// gcode_line (M104, M140, M106 P1, G28 / G28 Z, G91 + G1 X|Y|Z + G90 jogs, G90 alone), set_bed_temp,
+// set_nozzle_temp, set_fan (fan_index 1) and print_speed 1-3. `state` is State::view_state(), `task_id` the job's.
+// Refused when the state does not allow it: moves only while idle, the speed mode only during a print.
+// Ported from Kobra Control's bambu.py parse_command and service.py.
+Control device_control(const nlohmann::json& print, const std::string& state, const std::string& task_id, std::vector<Message>& out);
+
 // OrcaSlicer's ams_mapping ("[tray, ...]", -1 = unused) as print/start's ams_box_mapping. Without any
 // tray chosen, every loaded slot in order. False, with the reason, when a chosen tray cannot print.
 bool box_mapping(const std::string& ams_mapping, const std::vector<Slot>& slots, nlohmann::json& mapping, std::string& error);

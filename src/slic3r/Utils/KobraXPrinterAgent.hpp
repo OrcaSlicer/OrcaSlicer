@@ -22,7 +22,8 @@ namespace KobraX { class Session; }
 // MachineObject parses, with the ACE units shown as AMS units.
 //
 // Phase 1: connection, status, ACE slots, camera, upload and print start, pause, resume, stop and the
-// light. Commands that move, heat or feed are refused with ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED.
+// light, the Device tab's temperatures, part fan, speed mode, homing and jogs, and the camera start. Feeding
+// and AMS settings are refused with ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED.
 class KobraXPrinterAgent final : public IPrinterAgent, public std::enable_shared_from_this<KobraXPrinterAgent>
 {
 public:
@@ -63,6 +64,7 @@ public:
 
     FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::subscription; }
     CameraStreamMode get_camera_stream_mode() const override;
+    int              command_start_camera(std::string dev_id) override;
     std::string      get_camera_url() const override;
 
     // A file name the printer accepts, ending in .gcode
@@ -86,6 +88,7 @@ private:
     KobraX::State      m_state;
     std::shared_ptr<Connection> m_connection;
     std::string        m_selected;
+    std::string        m_camera_started; // the stream URL video/startCapture was last sent for
 
     OnMsgArrivedFn       m_on_ssdp;
     OnPrinterConnectedFn m_on_printer_connected;

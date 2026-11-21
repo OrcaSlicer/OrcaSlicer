@@ -532,12 +532,12 @@ bool Session::is_open() const { return p->up; }
 
 const Credentials& Session::credentials() const { return p->creds; }
 
-bool Session::send(const std::string& type, const std::string& action, const json& data)
+bool Session::send(const std::string& type, const std::string& action, const json& data, const std::string& kind)
 {
     if (!p->up)
         return false;
     const std::string msgid  = boost::uuids::to_string(boost::uuids::random_generator()());
-    std::string       packet = Mqtt::publish(publish_topic(p->creds, type), KobraX::request(type, action, data, msgid, now_ms()).dump());
+    std::string       packet = Mqtt::publish(publish_topic(p->creds, type, kind), KobraX::request(type, action, data, msgid, now_ms()).dump());
     net::post(p->io, [this, packet = std::move(packet)]() mutable {
         if (p->up)
             p->write(std::move(packet));

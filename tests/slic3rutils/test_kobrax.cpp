@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <ios>
 #include <string>
@@ -482,4 +483,101 @@ TEST_CASE("The bundled client identity is a matching CN=AnycubicSlicer pair", "[
     std::string error;
     CHECK(KobraX::find_client_identity("", bundled.string(), identity, error));
     CHECK(error.empty());
+}
+
+namespace {
+KobraX::Control control(const json& print, const std::string& state, std::vector<KobraX::Message>& out)
+{
+    out.clear();
+    return KobraX::device_control(print, state, "77", out);
+}
+json gcode(const std::string& line) { return {{"command", "gcode_line"}, {"param", line}, {"sequence_id", "5"}}; }
+} // namespace
+
+TEST_CASE("Device tab controls become Kobra X messages", "[KobraX]")
+{
+    using KobraX::Control;
+    std::vector<KobraX::Message> out;
+
+    SECTION("temperatures: tempature/set on the web topic when idle, print/update during a print")
+    {
+        REQUIRE(control(gcode("M104 S215\n"), "idle", out) == Control::Sent);
+        REQUIRE(out.size() == 1);
+        CHECK(out[0].kind == "web");
+        CHECK(out[0].type == "tempature");
+        CHECK(out[0].action == "set");
+        CHECK(out[0].data == json({{"type", 0}, {"target_nozzle_temp", 215}, {"target_hotbed_temp", 0}}));
+        REQUIRE(control(gcode("M140 S60"), "paused", out) == Control::Sent);
+        CHECK(out[0].data["type"] == 1);
+        CHECK(out[0].data["target_hotbed_temp"] == 60);
+        REQUIRE(control({{"command", "set_bed_temp"}, {"temp", 500}}, "idle", out) == Control::Sent);
+        CHECK(out[0].data["target_hotbed_temp"] == 120); // clamped
+        REQUIRE(control({{"command", "set_nozzle_temp"}, {"target_temp", 220}, {"extruder_index", 0}}, "printing", out) == Control::Sent);
+        CHECK(out[0].kind == "web");
+        CHECK(out[0].type == "print");
+        CHECK(out[0].action == "update");
+        CHECK(out[0].data == json({{"taskid", "77"}, {"settings", {{"target_nozzle_temp", 220}}}}));
+        CHECK(control({{"command", "set_nozzle_temp"}, {"target_temp", 220}, {"extruder_index", 1}}, "idle", out) == Control::Unsupported);
+        CHECK(control(gcode("M104 S215"), "busy", out) == Control::Refused);
+    }
+    SECTION("part fan: fan/setSpeed, plus print/update during a print")
+    {
+        REQUIRE(control(gcode("M106 P1 S255"), "idle", out) == Control::Sent);
+        REQUIRE(out.size() == 1);
+        CHECK(out[0].kind == "slicer");
+        CHECK(out[0].type == "fan");
+        CHECK(out[0].action == "setSpeed");
+        CHECK(out[0].data["fan_speed_pct"] == 100);
+        REQUIRE(control({{"command", "set_fan"}, {"fan_index", 1}, {"speed", 40}}, "printing", out) == Control::Sent);
+        REQUIRE(out.size() == 2);
+        CHECK(out[1].data == json({{"taskid", "77"}, {"settings", {{"fan_speed_pct", 40}}}}));
+        CHECK(control({{"command", "set_fan"}, {"fan_index", 2}, {"speed", 40}}, "idle", out) == Control::Unsupported);
+        CHECK(control(gcode("M106 P2 S255"), "idle", out) == Control::Unsupported);
+    }
+    SECTION("homing and jogs: axis/move, only while idle")
+    {
+        REQUIRE(control(gcode("G28"), "idle", out) == Control::Sent);
+        CHECK(out[0].type == "axis");
+        CHECK(out[0].data == json({{"axis", 5}, {"move_type", 2}, {"distance", 0.0}}));
+        REQUIRE(control(gcode("G28 Z"), "finished", out) == Control::Sent);
+        CHECK(out[0].data["axis"] == 3);
+        CHECK(control(gcode("G28 X"), "idle", out) == Control::Unsupported);
+        REQUIRE(control(gcode("G91 \nG1 Y-10.0 F3000\nG90 \n"), "idle", out) == Control::Sent);
+        CHECK(out[0].data == json({{"axis", 2}, {"move_type", 0}, {"distance", 10.0}}));
+        REQUIRE(control(gcode("G91\nG1 Z500\nG90"), "idle", out) == Control::Sent);
+        CHECK(out[0].data == json({{"axis", 3}, {"move_type", 1}, {"distance", 50.0}})); // one jog is at most 50 mm
+        CHECK(control(gcode("G28"), "printing", out) == Control::Refused);
+        CHECK(out.empty());
+        CHECK(control(gcode("G90"), "printing", out) == Control::NoOp);
+        CHECK(control(gcode("G1 X10"), "idle", out) == Control::Unsupported);
+    }
+    SECTION("speed: print_speed 1-3 is the Kobra's print_speed_mode, during a print only")
+    {
+        REQUIRE(control({{"command", "print_speed"}, {"param", "3"}}, "printing", out) == Control::Sent);
+        CHECK(out[0].kind == "web");
+        CHECK(out[0].data == json({{"taskid", "77"}, {"settings", {{"print_speed_mode", 3}}}}));
+        CHECK(control({{"command", "print_speed"}, {"param", "4"}}, "printing", out) == Control::Unsupported);
+        CHECK(control({{"command", "print_speed"}, {"param", "2"}}, "idle", out) == Control::Refused);
+    }
+    SECTION("anything else stays unsupported")
+    {
+        CHECK(control({{"command", "ams_change_filament"}}, "idle", out) == Control::Unsupported);
+        CHECK(control({{"command", "gcode_line"}}, "idle", out) == Control::Unsupported);
+    }
+}
+
+TEST_CASE("The Kobra X has no chamber temperature to show", "[KobraX]")
+{
+    KobraX::State state;
+    state.apply("info/report", INFO_REPORT);
+    CHECK(state.push_status(true)["print"]["support_chamber_temp_display"] == false);
+}
+
+TEST_CASE("Requests go to the slicer or the web topic", "[KobraX]")
+{
+    KobraX::Credentials creds;
+    creds.mode_id   = "20030";
+    creds.device_id = "dev";
+    CHECK(KobraX::publish_topic(creds, "fan") == "anycubic/anycubicCloud/v1/slicer/printer/20030/dev/fan");
+    CHECK(KobraX::publish_topic(creds, "tempature", "web") == "anycubic/anycubicCloud/v1/web/printer/20030/dev/tempature");
 }

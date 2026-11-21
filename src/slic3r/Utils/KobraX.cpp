@@ -1,5 +1,8 @@
 #include "KobraX.hpp"
 
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/trim.hpp>
+
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -9,7 +12,9 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <regex>
 #include <set>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -279,9 +284,9 @@ bool parse_publish(const Packet& packet, std::string& topic, std::string& payloa
 
 } // namespace Mqtt
 
-std::string publish_topic(const Credentials& creds, const std::string& type)
+std::string publish_topic(const Credentials& creds, const std::string& type, const std::string& kind)
 {
-    return "anycubic/anycubicCloud/v1/slicer/printer/" + creds.mode_id + "/" + creds.device_id + "/" + type;
+    return "anycubic/anycubicCloud/v1/" + kind + "/printer/" + creds.mode_id + "/" + creds.device_id + "/" + type;
 }
 
 std::string subscribe_topic(const Credentials& creds)
@@ -550,6 +555,8 @@ json State::push_status(bool connected, const std::function<std::string(const st
     p["support_send_to_sd"]   = true;
     p["support_timelapse"]    = feature("camera_timelapse_support") == true;
     p["support_bed_leveling"] = feature("auto_leveling_support") == false ? 0 : 1;
+    // The Kobra X reports no chamber temperature (info/report temp has the nozzle and the bed only)
+    p["support_chamber_temp_display"] = false;
     p["nozzle_temp_range"]    = json::array({0, 300});
     p["bed_temp_range"]       = json::array({0, 120});
     p["nozzle_temper"]        = nozzle_temp;
@@ -618,6 +625,141 @@ json State::push_status(bool connected, const std::function<std::string(const st
 
     const auto now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
     return {{"print", p}, {"t_utc", int64_t(now.count())}};
+}
+
+namespace {
+
+constexpr double NOZZLE_MAX = 320, BED_MAX = 120, MOVE_MAX = 50;
+
+bool idle_state(const std::string& state) { return state == "idle" || state == "finished" || state == "cancelled"; }
+
+// A JSON number, or a number in a string; NaN otherwise
+double number_of(const json& value)
+{
+    if (value.is_number() && !value.is_boolean())
+        return value.get<double>();
+    if (value.is_string()) {
+        try {
+            size_t      used = 0;
+            const auto& s    = value.get_ref<const std::string&>();
+            const double n   = std::stod(s, &used);
+            if (used == s.size())
+                return n;
+        } catch (...) {}
+    }
+    return std::nan("");
+}
+
+int rounded(double value) { return int(std::floor(value + 0.5)); } // JavaScript Math.round, as Kobralink sends
+
+// Nozzle and/or bed target. A running print takes them through print/update, otherwise tempature/set (Kobralink
+// printer-bridge.ts, KX-Bridge handle_api_temperature); both on the "web" topic.
+Control set_temps(double nozzle, double bed, const std::string& state, const std::string& task_id, std::vector<Message>& out)
+{
+    if (!(idle_state(state) || state == "printing" || state == "paused"))
+        return Control::Refused;
+    const bool has_nozzle = !std::isnan(nozzle), has_bed = !std::isnan(bed);
+    if (has_nozzle)
+        nozzle = std::clamp(nozzle, 0.0, NOZZLE_MAX);
+    if (has_bed)
+        bed = std::clamp(bed, 0.0, BED_MAX);
+    if (state == "printing") {
+        if (has_nozzle)
+            out.push_back({"web", "print", "update", {{"taskid", task_id}, {"settings", {{"target_nozzle_temp", rounded(nozzle)}}}}});
+        if (has_bed)
+            out.push_back({"web", "print", "update", {{"taskid", task_id}, {"settings", {{"target_hotbed_temp", rounded(bed)}}}}});
+    } else {
+        const int type = has_nozzle && has_bed ? 2 : has_nozzle ? 0 : 1;
+        out.push_back({"web", "tempature", "set",
+                       {{"type", type}, {"target_nozzle_temp", has_nozzle ? rounded(nozzle) : 0}, {"target_hotbed_temp", has_bed ? rounded(bed) : 0}}});
+    }
+    return Control::Sent;
+}
+
+// fan/setSpeed always; during a print also print/update, as Anycubic Slicer Next's Workbench does
+Control set_fan(double pct, const std::string& state, const std::string& task_id, std::vector<Message>& out)
+{
+    const int value = int(std::clamp(pct, 0.0, 100.0));
+    out.push_back({"slicer", "fan", "setSpeed", {{"fan_speed_pct", value}}});
+    if (state == "printing")
+        out.push_back({"web", "print", "update", {{"taskid", task_id}, {"settings", {{"fan_speed_pct", value}}}}});
+    return Control::Sent;
+}
+
+// axis/move: jog axis 1/2/3 with move_type 1 (+) or 0 (-) and a positive distance; home is move_type 2 with axis 5
+// (X, Y and Z) or 3 (Z), as KX-Bridge fixed it on a real printer
+Control axis_move(int axis, int move_type, double distance, const std::string& state, std::vector<Message>& out)
+{
+    if (!idle_state(state))
+        return Control::Refused;
+    out.push_back({"slicer", "axis", "move", {{"axis", axis}, {"move_type", move_type}, {"distance", distance}}});
+    return Control::Sent;
+}
+
+Control gcode_control(const std::string& param, const std::string& state, const std::string& task_id, std::vector<Message>& out)
+{
+    std::vector<std::string> lines;
+    std::istringstream       in(param);
+    for (std::string line; std::getline(in, line);) {
+        boost::algorithm::trim(line);
+        if (!line.empty())
+            lines.push_back(boost::algorithm::to_upper_copy(line));
+    }
+    static const std::string NUM = R"((-?\d+(?:\.\d+)?))";
+    std::smatch m;
+    if (lines.size() == 1 && lines[0] == "G90")
+        return Control::NoOp;
+    // command_axis_control: G91, one G1 on X, Y or Z, G90
+    if (lines.size() == 3 && lines[0] == "G91" && lines[2] == "G90") {
+        static const std::regex jog("G1 ([XYZ])" + NUM + R"((?: F\d+(?:\.\d+)?)?)");
+        if (!std::regex_match(lines[1], m, jog))
+            return Control::Unsupported;
+        const double distance = std::clamp(std::stod(m[2].str()), -MOVE_MAX, MOVE_MAX);
+        if (distance == 0)
+            return Control::Unsupported;
+        return axis_move(m[1].str()[0] - 'X' + 1, distance > 0 ? 1 : 0, std::abs(distance), state, out);
+    }
+    if (lines.size() != 1)
+        return Control::Unsupported;
+    const std::string& line = lines[0];
+    static const std::regex temp("(M104|M140) S" + NUM), fan("M106 P1 S" + NUM), home("G28( Z)?");
+    if (std::regex_match(line, m, temp)) {
+        const double value = std::stod(m[2].str());
+        return m[1] == "M104" ? set_temps(value, std::nan(""), state, task_id, out) : set_temps(std::nan(""), value, state, task_id, out);
+    }
+    if (std::regex_match(line, m, fan)) // P1 is the part fan, S 0-255
+        return set_fan(std::floor(std::clamp(std::stod(m[1].str()), 0.0, 255.0) * 100 / 255 + 0.5), state, task_id, out);
+    if (std::regex_match(line, m, home)) // the Kobra homes all axes or Z alone
+        return axis_move(m[1].matched ? 3 : 5, 2, 0, state, out);
+    return Control::Unsupported;
+}
+
+} // namespace
+
+Control device_control(const json& print, const std::string& state, const std::string& task_id, std::vector<Message>& out)
+{
+    const std::string command = print.is_object() && print.contains("command") && print["command"].is_string() ? print["command"].get<std::string>() : "";
+    if (command == "gcode_line")
+        return print.contains("param") && print["param"].is_string() ? gcode_control(print["param"].get<std::string>(), state, task_id, out) :
+                                                                         Control::Unsupported;
+    if (command == "set_bed_temp" && !std::isnan(number_of(print.value("temp", json()))))
+        return set_temps(std::nan(""), number_of(print["temp"]), state, task_id, out);
+    if (command == "set_nozzle_temp" && !std::isnan(number_of(print.value("target_temp", json()))) &&
+        number_of(print.value("extruder_index", json(0))) == 0)
+        return set_temps(number_of(print["target_temp"]), std::nan(""), state, task_id, out);
+    if (command == "set_fan" && number_of(print.value("fan_index", json())) == 1 && !std::isnan(number_of(print.value("speed", json()))))
+        return set_fan(number_of(print["speed"]), state, task_id, out);
+    if (command == "print_speed") {
+        // Bambu's spd_lvl 1-3 are the Kobra's print_speed_mode (quiet, standard, sport); 4 has no Kobra mode
+        const double mode = number_of(print.value("param", json()));
+        if (mode != 1 && mode != 2 && mode != 3)
+            return Control::Unsupported;
+        if (state != "printing" && state != "paused")
+            return Control::Refused;
+        out.push_back({"web", "print", "update", {{"taskid", task_id}, {"settings", {{"print_speed_mode", int(mode)}}}}});
+        return Control::Sent;
+    }
+    return Control::Unsupported;
 }
 
 json print_start_data(const std::string& filename, uint64_t size, const json& box_mapping, bool auto_leveling, bool flow_calibration, bool timelapse)

@@ -186,6 +186,11 @@ void KobraXPrinterAgent::run(std::shared_ptr<Connection> c)
             std::lock_guard<std::mutex> lock(c->mutex);
             c->session = session;
         }
+        {
+            // A new session starts the stream again when the camera is played
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_camera_started.clear();
+        }
         BOOST_LOG_TRIVIAL(info) << "KobraXPrinterAgent: connected to " << c->host;
         if (!ever_open) {
             dispatch_local_connect(ConnectStatusOk, c->dev_id, "0");
@@ -392,9 +397,38 @@ int KobraXPrinterAgent::handle(const std::string& dev_id, const std::string& jso
         return s && s->send("print", print, {{"taskid", task_id}}) ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
     }
     if (!print.empty()) {
-        // Controls that move, heat or feed come in a later phase
-        BOOST_LOG_TRIVIAL(info) << "KobraXPrinterAgent: not supported yet: " << json_str;
-        return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+        std::string state, task_id;
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            state   = m_state.view_state();
+            task_id = m_state.task_id.empty() ? "-1" : m_state.task_id;
+        }
+        std::vector<KobraX::Message> messages;
+        const KobraX::Control        control = KobraX::device_control(message["print"], state, task_id, messages);
+        if (control == KobraX::Control::Unsupported) {
+            // Feeding, AMS settings, calibrations, skipping objects: not on a Kobra X yet
+            BOOST_LOG_TRIVIAL(info) << "KobraXPrinterAgent: not supported: " << json_str;
+            return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+        }
+        bool sent = control == KobraX::Control::NoOp;
+        if (control == KobraX::Control::Sent) {
+            auto s = session();
+            sent   = s != nullptr;
+            for (const KobraX::Message& m : messages)
+                sent = sent && s->send(m.type, m.action, m.data, m.kind);
+        }
+        if (control == KobraX::Control::Refused)
+            BOOST_LOG_TRIVIAL(info) << "KobraXPrinterAgent: refused while the printer is " << state << ": " << json_str;
+        // The Device tab waits for the answer to a G-code line (MoonrakerPrinterAgent does the same)
+        if (print == "gcode_line") {
+            json reply = {{"command", "gcode_line"}, {"param", message["print"].value("param", "")}, {"result", sent ? "success" : "failed"}};
+            if (message["print"].contains("sequence_id"))
+                reply["sequence_id"] = message["print"]["sequence_id"];
+            dispatch(dev_id, {{"print", reply}});
+        }
+        if (control == KobraX::Control::Refused)
+            return BAMBU_NETWORK_ERR_INVALID_HANDLE;
+        return sent ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
     }
     // Requests the Device tab sends on its own (other info, system and pushing commands) have no Kobra X form
     BOOST_LOG_TRIVIAL(debug) << "KobraXPrinterAgent: ignored: " << json_str;
@@ -470,6 +504,27 @@ CameraStreamMode KobraXPrinterAgent::get_camera_stream_mode() const
     if (boost::istarts_with(url, "rtsp"))
         return CameraStreamMode::rtsp;
     return CameraStreamMode::none;
+}
+
+int KobraXPrinterAgent::command_start_camera(std::string dev_id)
+{
+    (void) dev_id;
+    // The printer streams once asked to; ask once per stream URL (its token changes with a new stream)
+    std::string url;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        url = m_state.camera_url;
+        if (url.empty())
+            return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
+        if (url == m_camera_started)
+            return BAMBU_NETWORK_SUCCESS;
+    }
+    auto s = session();
+    if (!s || !s->send("video", "startCapture"))
+        return BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_camera_started = url;
+    return BAMBU_NETWORK_SUCCESS;
 }
 
 std::string KobraXPrinterAgent::get_camera_url() const

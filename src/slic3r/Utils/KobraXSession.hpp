@@ -64,8 +64,8 @@ public:
     void close();
     bool is_open() const;
 
-    // Publishes a request. False when not open.
-    bool send(const std::string& type, const std::string& action, const nlohmann::json& data = nlohmann::json());
+    // Publishes a request on the "slicer" or "web" topic (publish_topic). False when not open.
+    bool send(const std::string& type, const std::string& action, const nlohmann::json& data = nlohmann::json(), const std::string& kind = "slicer");
     // Publishes a request and waits for the first report `match` accepts. False on timeout or a dropped session.
     bool request(const std::string&        type,
                  const std::string&        action,
