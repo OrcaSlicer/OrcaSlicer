@@ -632,13 +632,12 @@ namespace Slic3r {
     {
         const auto printer_type = classify_printer_model(m_printerModel);
 
-        if (printer_type == ElegooPrinterType::Other) {
-            wxString octoprint_msg = GUI::from_u8(resolved_addr.to_string());
-            if (OctoPrint::test_with_resolved_ip(octoprint_msg))
-                return OctoPrint::upload_inner_with_resolved_ip(std::move(upload_data), prorgess_fn, error_fn, info_fn, resolved_addr);
-        }
-
         info_fn(L"resolve", boost::nowide::widen(resolved_addr.to_string()));
+
+        // Other may be an SDCP printer: fall back to SDCP, but report the OctoPrint error if that fails too.
+        wxString octoprint_msg = GUI::from_u8(resolved_addr.to_string());
+        if (printer_type == ElegooPrinterType::Other && OctoPrint::test_with_resolved_ip(octoprint_msg))
+            return upload_after_test_with_resolved_ip(std::move(upload_data), prorgess_fn, error_fn, info_fn, resolved_addr);
 
         if (printer_type == ElegooPrinterType::CC2) {
             wxString cc2_msg = GUI::from_u8(resolved_addr.to_string());
@@ -654,7 +653,7 @@ namespace Slic3r {
 
         wxString legacy_msg = GUI::from_u8(resolved_addr.to_string());
         if (!elegoo_test_with_resolved_ip(legacy_msg)) {
-            error_fn(std::move(legacy_msg));
+            error_fn(std::move(printer_type == ElegooPrinterType::Other ? octoprint_msg : legacy_msg));
             return false;
         }
 
@@ -670,11 +669,10 @@ namespace Slic3r {
     {
         const auto printer_type = classify_printer_model(m_printerModel);
 
-        if (printer_type == ElegooPrinterType::Other) {
-            wxString octoprint_msg;
-            if (OctoPrint::test(octoprint_msg))
-                return OctoPrint::upload_inner_with_host(std::move(upload_data), prorgess_fn, error_fn, info_fn);
-        }
+        // Other may be an SDCP printer: fall back to SDCP, but report the OctoPrint error if that fails too.
+        wxString octoprint_msg;
+        if (printer_type == ElegooPrinterType::Other && OctoPrint::test(octoprint_msg))
+            return upload_after_test_with_host(std::move(upload_data), prorgess_fn, error_fn, info_fn, octoprint_msg);
 
         if (printer_type == ElegooPrinterType::CC2) {
             wxString cc2_msg;
@@ -703,7 +701,7 @@ namespace Slic3r {
 
         wxString legacy_msg;
         if(!elegoo_test(legacy_msg)){
-            error_fn(std::move(legacy_msg));
+            error_fn(std::move(printer_type == ElegooPrinterType::Other ? octoprint_msg : legacy_msg));
             return false;
         }
 
