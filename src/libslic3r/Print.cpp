@@ -542,6 +542,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "hot_plate_temp"
             || opt_key == "textured_plate_temp"
             || opt_key == "enable_prime_tower"
+            || opt_key == "prime_tower_per_object"
             || opt_key == "enable_belt_purge_tower"
             || opt_key == "enable_wrapping_detection"
             || opt_key == "prime_tower_enable_framework"
@@ -902,6 +903,22 @@ std::vector<size_t> Print::layers_sorted_for_object(float start, float end, std:
     return idx_of_object_sorted;
 };
 
+// The filaments an object prints with, support included, as the tower has to purge them; a mixed filament counts as its components.
+static std::vector<unsigned int> object_wipe_tower_filaments(const Print &print, const PrintObject &object)
+{
+    return expand_mixed_filaments(object.printing_extruders(), print.config().filament_is_mixed.values, print.config().filament_mixed_components.values);
+}
+
+bool Print::has_object_wipe_towers() const
+{
+    if (!m_config.prime_tower_per_object || m_config.print_sequence != PrintSequence::ByObject || this->num_object_instances() <= 1)
+        return false;
+    // The towers share one filament-to-nozzle map for the whole plate, which dynamic grouping may change between objects.
+    if (this->is_dynamic_group_reorder())
+        return false;
+    return m_objects.size() > 1 || (!m_objects.empty() && object_wipe_tower_filaments(*this, *m_objects.front()).size() > 1);
+}
+
 // Distance every instance hull is grown by when two instances are tested against each other. The
 // extruder_clearance_radius is shrunk a tiny bit so that an arrangement which satisfies it exactly
 // does not trigger a collision.
@@ -912,9 +929,16 @@ static float sequential_clearance_object_distance(const Print &print, float obje
         scale_(0.5 * print.config().extruder_clearance_radius.value + object_skirt_offset - 0.1);
 }
 
-StringObjectException Print::sequential_print_clearance_valid(const Print &print, Polygons *polygons, std::vector<std::pair<Polygon, float>>* height_polygons, StringObjectException *warning)
+StringObjectException Print::sequential_print_clearance_valid(const Print &print, Polygons *polygons, std::vector<std::pair<Polygon, float>>* height_polygons, StringObjectException *warning, const ObjectWipeTowerPlacements *towers)
 {
     StringObjectException single_object_exception;
+    // An object and its own prime tower are printed as one unit, so the toolhead has to clear the two together.
+    ObjectWipeTowerPlacements estimated_towers;
+    if (towers == nullptr) {
+        if (print.has_object_wipe_towers())
+            estimated_towers = print.estimate_object_wipe_tower_placements();
+        towers = &estimated_towers;
+    }
     const auto& print_config = print.config();
     const Vec3d print_origin = print.get_plate_origin();
     const std::vector<std::vector<BedExcludeRegion>> exclusion_volumes = translated_bed_exclusion_volumes_by_extruder(print);
@@ -1035,6 +1059,16 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                     // instance.shift is a position of a centered object, while model object may not be centered.
                     // Convert the shift from the PrintObject's coordinates into ModelObject's coordinates by removing the centering offset.
                     convex_hull.translate(instance.shift - print_object->center_offset());
+                }
+                const auto tower = towers->find(&instance);
+                if (tower != towers->end()) {
+                    Polygon unit = convex_hull0;
+                    unit.translate(instance.shift - print_object->center_offset());
+                    Points points = std::move(unit.points);
+                    append(points, tower->second.footprint.points);
+                    const auto grown = offset(Geometry::convex_hull(std::move(points)), obj_distance, jtRound, scale_(0.1));
+                    if (!grown.empty())
+                        convex_hull = grown.front();
                 }
                 const std::optional<BedExclusionCollision> exclusion_collision = colliding_bed_exclusion(
                     print, *print_object, *instance.model_instance, exclusion_volumes);
@@ -1289,7 +1323,8 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                     break;
                 }
             }
-            if (height < info_k.height)
+            const auto tower = towers->find(inst);
+            if (height < info_k.height || (tower != towers->end() && height < double(scaled(tower->second.height))))
                 too_tall_instances[inst] = std::make_pair(print_instance_with_bounding_box[k].hull_polygon, unscaled<double>(height));
         }
 
@@ -1551,8 +1586,6 @@ Print::ObjectWipeTowerPlacements Print::estimate_object_wipe_tower_placements(st
     parameters.rod_height       = scale_(m_config.extruder_clearance_height_to_rod);
     parameters.printable_height = scale_(m_config.printable_height);
 
-    const auto &is_mixed   = m_config.filament_is_mixed.values;
-    const auto &components = m_config.filament_mixed_components.values;
     std::vector<ObjectWipeTowerPlacementInstance> inputs;
     inputs.reserve(instances.size());
     for (const PrintInstance *instance : instances) {
@@ -1570,7 +1603,7 @@ Print::ObjectWipeTowerPlacements Print::estimate_object_wipe_tower_placements(st
         const Polygons grown = offset(hull, float(scale_(margin)));
         input.footprint = grown.empty() ? hull : grown.front();
 
-        const std::vector<unsigned int> filaments = expand_mixed_filaments(object.printing_extruders(), is_mixed, components);
+        const std::vector<unsigned int> filaments = object_wipe_tower_filaments(*this, object);
         if (filaments.size() > 1) {
             const double height = unscale_(object.size().z());
             const WipeTowerType tower_type = this->wipe_tower_type();
@@ -2519,7 +2552,14 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
 
         //BBS: refine seq-print validation logic
         StringObjectException order_warning;
-        auto ret = sequential_print_clearance_valid(*this, collison_polygons, height_polygons, &order_warning);
+        ObjectWipeTowerPlacements object_towers;
+        if (this->has_object_wipe_towers()) {
+            std::vector<StringObjectException> tower_warnings;
+            object_towers = this->estimate_object_wipe_tower_placements(&tower_warnings);
+            for (StringObjectException &tower_warning : tower_warnings)
+                add_warning(std::move(tower_warning));
+        }
+        auto ret = sequential_print_clearance_valid(*this, collison_polygons, height_polygons, &order_warning, &object_towers);
         if (!ret.string.empty()) {
             ret.type = STRING_EXCEPT_OBJECT_COLLISION_IN_SEQ_PRINT;
             return ret;

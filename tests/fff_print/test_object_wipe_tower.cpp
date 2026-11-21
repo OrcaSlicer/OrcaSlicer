@@ -2,6 +2,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <cstddef>
 #include <string>
 #include <utility>
@@ -113,4 +114,35 @@ TEST_CASE("An object tower that does not fit on the bed is reported instead of p
     CHECK(towers.empty());
     REQUIRE(warnings.size() == 1);
     CHECK(warnings.front().is_warning);
+}
+
+TEST_CASE("Object prime towers are off unless the setting asks for them", "[ObjectWipeTower]")
+{
+    TwoObjects plate({{"print_sequence", "by object"}});
+    CHECK_FALSE(plate.print.has_object_wipe_towers());
+}
+
+TEST_CASE("Object prime towers need the by object print sequence", "[ObjectWipeTower]")
+{
+    TwoObjects by_object({{"print_sequence", "by object"}, {"prime_tower_per_object", "1"}});
+    CHECK(by_object.print.has_object_wipe_towers());
+    TwoObjects by_layer({{"print_sequence", "by layer"}, {"prime_tower_per_object", "1"}});
+    CHECK_FALSE(by_layer.print.has_object_wipe_towers());
+}
+
+TEST_CASE("A tower beside an object that leaves no room on the bed is a warning only when object towers are on", "[ObjectWipeTower]")
+{
+    // Both objects fit on the bed, but the space between them is excluded and the rest leaves only a few
+    // millimetres around them, far less than any tower needs.
+    const auto warnings_for = [](const char *per_object) {
+        TwoObjects plate({{"print_sequence", "by object"}, {"prime_tower_per_object", per_object},
+                          {"printable_area", "35x75,145x75,145x105,35x105"}, {"bed_exclude_area", "62x70,118x70,118x110,62x110"}});
+        std::vector<StringObjectException> warnings;
+        plate.print.validate(&warnings);
+        return std::count_if(warnings.begin(), warnings.end(), [&](const StringObjectException &warning) {
+            return warning.object == plate.model.objects[0];
+        });
+    };
+    CHECK(warnings_for("0") == 0);
+    CHECK(warnings_for("1") == 1);
 }

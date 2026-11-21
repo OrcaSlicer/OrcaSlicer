@@ -1220,6 +1220,9 @@ public:
     // "By object" print only: where each multi-filament instance's own prime tower would stand, estimated from
     // the settings. An instance missing from the result gets no tower, either because it prints one filament or
     // because there is no room for it, which then adds a warning.
+    // Whether this plate gives its multi-filament objects a prime tower each: the "Prime tower per object" setting
+    // in a "By object" print of several instances, which the dynamic filament-to-nozzle grouping rules out.
+    bool                        has_object_wipe_towers() const;
     ObjectWipeTowerPlacements   estimate_object_wipe_tower_placements(std::vector<StringObjectException> *warnings = nullptr) const;
     const ToolOrdering& 		tool_ordering() const { return m_tool_ordering; }
 
@@ -1374,7 +1377,9 @@ public:
     //BBS
     // warning, if given, names the instances printed later than their place in the object list to avoid a collision.
     static StringObjectException sequential_print_clearance_valid(const Print &print, Polygons *polygons = nullptr, std::vector<std::pair<Polygon, float>>* height_polygons = nullptr,
-                                                                  StringObjectException *warning = nullptr);
+                                                                  StringObjectException *warning = nullptr,
+                                                                  // Object towers to count as part of their instance; estimated here when not given.
+                                                                  const ObjectWipeTowerPlacements *towers = nullptr);
     // Orca: pre-slice clearance check for a prime tower compacted by "No sparse layers".
     static StringObjectException compacted_wipe_tower_clearance_valid(const Print &print, Polygons *polygons = nullptr, std::vector<std::pair<Polygon, float>>* height_polygons = nullptr);
     ConflictResultOpt            get_conflict_result() const { return m_conflict_result; }

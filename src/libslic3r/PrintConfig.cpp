@@ -8493,6 +8493,13 @@ void PrintConfigDef::init_fff_params()
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("prime_tower_per_object", coBool);
+    def->label = L("Prime tower per object");
+    def->tooltip = L("Give every object printed with several filaments a prime tower of its own beside it, instead of using one shared tower. "
+                     "Only applies to the \"By object\" print sequence.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("prime_tower_enable_framework", coBool);
     def->label = L("Internal ribs");
     def->tooltip = L("Enable internal ribs to increase the stability of the prime tower.");
