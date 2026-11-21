@@ -3478,7 +3478,14 @@ Sidebar::Sidebar(Plater *parent)
         p->m_text_mixed_title = new StaticLine(p->m_panel_mixed_title, false, _L("Mixed Filament"));
         p->m_text_mixed_title->SetFont(::Label::Head_14);
         p->m_text_mixed_title->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
-        title_sizer->Add(p->m_text_mixed_title, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
+        title_sizer->Add(p->m_text_mixed_title, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::ContentMargin()));
+        title_sizer->AddSpacer(FromDIP(SidebarProps::IconSpacing()));
+
+        // ORCA use remove all button on beginning with wide spacing to prevent accidental clicks
+        p->m_btn_mixed_del_all = new ScalableButton(p->m_panel_mixed_title, wxID_ANY, "delete_all_filaments");
+        p->m_btn_mixed_del_all->SetToolTip(_L("Remove all mixed filaments"));
+        p->m_btn_mixed_del_all->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { remove_all_mixed_filaments(); });
+        title_sizer->Add(p->m_btn_mixed_del_all, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(SidebarProps::WideSpacing()));
 
         p->m_btn_mixed_del = new ScalableButton(p->m_panel_mixed_title, wxID_ANY, "delete_filament");
         p->m_btn_mixed_del->SetToolTip(_L("Remove last mixed filament"));
@@ -3489,18 +3496,12 @@ Sidebar::Sidebar(Plater *parent)
             if (!mixed_indices.empty())
                 delete_mixed_filament_at(mixed_indices.size() - 1);
         });
-        title_sizer->Add(p->m_btn_mixed_del, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
-
-        p->m_btn_mixed_del_all = new ScalableButton(p->m_panel_mixed_title, wxID_ANY, "delete_all_filaments");
-        p->m_btn_mixed_del_all->SetToolTip(_L("Remove all mixed filaments"));
-        p->m_btn_mixed_del_all->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { remove_all_mixed_filaments(); });
-        title_sizer->Add(p->m_btn_mixed_del_all, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
+        title_sizer->Add(p->m_btn_mixed_del, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(SidebarProps::IconSpacing()));
 
         p->m_btn_mixed_add = new ScalableButton(p->m_panel_mixed_title, wxID_ANY, "add_filament");
         p->m_btn_mixed_add->SetToolTip(_L("Add mixed filament"));
         p->m_btn_mixed_add->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { add_mixed_filament(); });
-        title_sizer->Add(p->m_btn_mixed_add, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
-        title_sizer->AddSpacer(FromDIP(SidebarProps::TitlebarMargin()));
+        title_sizer->Add(p->m_btn_mixed_add, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(SidebarProps::ContentMargin()));
 
         p->m_panel_mixed_title->SetSizer(title_sizer);
     }
@@ -3524,7 +3525,7 @@ Sidebar::Sidebar(Plater *parent)
         auto* sizer_mixed2 = new wxBoxSizer(wxVERTICAL);
         sizer_mixed2->Add(p->m_sizer_mixed_filaments, 0, wxEXPAND, 0);
         p->m_panel_mixed_content->SetSizer(sizer_mixed2);
-        mix_scroll_sizer->Add(p->m_panel_mixed_content, 0, wxEXPAND | wxBOTTOM, FromDIP(8));
+        mix_scroll_sizer->Add(p->m_panel_mixed_content, 0, wxEXPAND);
         p->m_mixed_scroll_area->SetSizer(mix_scroll_sizer);
     }
     p->m_mixed_scroll_area->EnableScrolling(false, true);
@@ -3550,7 +3551,7 @@ Sidebar::Sidebar(Plater *parent)
         warn_sizer->Add(p->m_text_mixed_warning, 1, wxALL, FromDIP(6));
         p->m_panel_mixed_warning->SetSizer(warn_sizer);
     }
-    wrapper_sizer->Add(p->m_panel_mixed_warning, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(8));
+    wrapper_sizer->Add(p->m_panel_mixed_warning, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(8));
 
     // Hidden until update_mixed_filament_list() decides otherwise.
     p->m_btn_add_mixed_filament->Hide();
