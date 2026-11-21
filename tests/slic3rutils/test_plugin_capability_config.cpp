@@ -212,14 +212,14 @@ TEST_CASE("Saving one capability's config does not touch another's", "[PluginCon
     CHECK(host_config().get_config(capability_id(PluginCapabilityType::Script, "cap_a", "plugin_b"))->config == json{{"value", 3}});
 
     // A shared name under one plugin must remain isolated when the capability type differs.
-    py::object importer = make_capability("IsoCapImporter", body, "plugin_a", "cap_a", PluginCapabilityType::Importer);
-    REQUIRE(py_save_config(importer, json{{"value", 4}}));
+    py::object infill = make_capability("IsoCapInfill", body, "plugin_a", "cap_a", PluginCapabilityType::Infill);
+    REQUIRE(py_save_config(infill, json{{"value", 4}}));
     CHECK(host_config().get_config(capability_id(PluginCapabilityType::Script, "cap_a", "plugin_a"))->config == json{{"value", 99}});
-    CHECK(host_config().get_config(capability_id(PluginCapabilityType::Importer, "cap_a", "plugin_a"))->config == json{{"value", 4}});
+    CHECK(host_config().get_config(capability_id(PluginCapabilityType::Infill, "cap_a", "plugin_a"))->config == json{{"value", 4}});
 
     host_config().load();
     CHECK(host_config().get_config(capability_id(PluginCapabilityType::Script, "cap_a", "plugin_a"))->config == json{{"value", 99}});
-    CHECK(host_config().get_config(capability_id(PluginCapabilityType::Importer, "cap_a", "plugin_a"))->config == json{{"value", 4}});
+    CHECK(host_config().get_config(capability_id(PluginCapabilityType::Infill, "cap_a", "plugin_a"))->config == json{{"value", 4}});
 
     CHECK(py_get_config(a_cap2).at("value") == 2);
     CHECK(py_get_config(b_cap1).at("value") == 3);

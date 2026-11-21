@@ -309,7 +309,7 @@ std::vector<double> adaptive_fill_line_spacing(const PrintObject &print_object)
     double                     default_infill_extrusion_width = Flow::auto_extrusion_width(FlowRole::frInfill, float(max_nozzle_diameter));
     for (size_t region_id = 0; region_id < line_spacing.size(); ++ region_id) {
         const PrintRegionConfig &config = print_object.printing_region(region_id).config();
-        if (config.sparse_infill_density <= 0 || ! is_octree_infill_pattern(config.sparse_infill_pattern) ||
+        if (config.sparse_infill_density <= 0 || ! is_octree_infill_pattern(infill_pattern_from_key(config.sparse_infill_pattern.value)) ||
             std::none_of(print_object.layers().begin(), print_object.layers().end(), [region_id](const Layer *layer) {
                 return region_id < layer->regions().size() && ! layer->regions()[region_id]->fill_surfaces.empty();
             }))

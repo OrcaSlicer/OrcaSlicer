@@ -58,6 +58,8 @@
 #include "IMEXHelpers.hpp"
 #include "IMEXZones.hpp"
 #include "Print.hpp"
+#include "Fill/InfillFactory.hpp"
+#include "Fill/InfillPurpose.hpp"
 #include "BoundingBox.hpp"
 #include "Brim.hpp"
 #include "ClipperUtils.hpp"
@@ -240,6 +242,9 @@ void Print::clear()
 	std::scoped_lock<std::mutex> lock(this->state_mutex());
     // The following call should stop background processing if it is running.
     this->invalidate_all_steps();
+    // A cleared print cannot have a live job; release any provider leases it still holds.
+    this->release_plugin_infills();
+    m_sliced_plugin_infill_identity.clear();
 	for (PrintObject *object : m_objects)
 		delete object;
 	m_objects.clear();
@@ -2550,7 +2555,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         for (const PrintRegion &region : object->all_regions()) {
             const PrintRegionConfig &cfg = region.config();
             if (cfg.sparse_infill_strategy.value == InfillStrategy::Crossing && cfg.fill_multiline.value > 3 &&
-                has_infill_strategy(cfg.sparse_infill_pattern.value) && cfg.sparse_infill_density.value > 0. &&
+                has_infill_strategy(infill_pattern_from_key(cfg.sparse_infill_pattern.value)) && cfg.sparse_infill_density.value > 0. &&
                 cfg.sparse_infill_density.value < 100.) {
                 // TRN %1% is the object name.
                 warn(Slic3r::format(_u8L("The sparse infill of the object %1% uses the Crossing strategy with more than 3 lines. "
@@ -3433,6 +3438,241 @@ std::map<ObjectID, unsigned int> getObjectExtruderMap(const Print& print) {
     return objectExtruderMap;
 }
 
+bool Print::PluginInfillDependency::operator==(const PluginInfillDependency &other) const
+{
+    return pattern_id == other.pattern_id && plugin_key == other.plugin_key &&
+           capability_name == other.capability_name && display_name == other.display_name &&
+           supported_surfaces == other.supported_surfaces && available == other.available;
+}
+
+std::map<std::string, std::vector<InfillSurfacePurpose>>
+Print::selected_plugin_infill_patterns(const std::vector<PrintObject *> &objects) const
+{
+    std::map<std::string, std::vector<InfillSurfacePurpose>> selected;
+    for (const PrintObject *object : objects) {
+        if (object == nullptr)
+            continue;
+        for (const PrintRegion &region : object->all_regions()) {
+            const PrintRegionConfig &config = region.config();
+            for (const InfillPatternSetting &setting : infill_pattern_settings) {
+                const std::string key = config.option<ConfigOptionString>(std::string(setting.option_key))->value;
+                if (!is_plugin_infill_pattern_key(key))
+                    continue;
+                std::vector<InfillSurfacePurpose> &purposes = selected[key];
+                if (std::find(purposes.begin(), purposes.end(), setting.purpose) == purposes.end())
+                    purposes.push_back(setting.purpose);
+            }
+        }
+    }
+    return selected;
+}
+
+std::map<std::string, Print::PluginInfillDependency> Print::current_plugin_infill_dependencies() const
+{
+    std::map<std::string, PluginInfillDependency> dependencies;
+    for (const auto &[key, purposes] : this->selected_plugin_infill_patterns(m_objects)) {
+        (void) purposes;
+        PluginInfillDependency dependency;
+        dependency.pattern_id = key;
+        if (const std::shared_ptr<const InfillInfo> info = InfillFactory::find_infill(key); info && info->is_plugin()) {
+            dependency.plugin_key         = info->plugin_key;
+            dependency.capability_name    = info->capability_name;
+            dependency.display_name       = info->display_name;
+            dependency.supported_surfaces = info->supported_surfaces;
+            dependency.available          = true;
+        }
+        dependencies.emplace(key, std::move(dependency));
+    }
+    return dependencies;
+}
+
+std::vector<Print::PluginInfillDependency> Print::plugin_infill_dependencies() const
+{
+    std::vector<PluginInfillDependency> result;
+    for (const auto &[pattern_id, dependency] : this->current_plugin_infill_dependencies()) {
+        (void) pattern_id;
+        result.push_back(dependency);
+    }
+    return result;
+}
+
+std::vector<Print::PluginInfillDependency> Print::sliced_plugin_infill_dependencies() const
+{
+    std::map<std::string, PluginInfillDependency> snapshot;
+    {
+        std::lock_guard<std::mutex> lock(this->state_mutex());
+        snapshot = m_sliced_plugin_infill_identity;
+    }
+
+    std::vector<PluginInfillDependency> result;
+    const std::map<std::string, PluginInfillDependency> current = this->current_plugin_infill_dependencies();
+    for (const auto &[pattern_id, dependency] : snapshot) {
+        // Only report patterns still selected by the print; entries left behind by a settings change
+        // are not part of the cached result any more.
+        if (current.count(pattern_id) != 0)
+            result.push_back(dependency);
+    }
+    return result;
+}
+
+bool Print::plugin_infill_identity_changed() const
+{
+    std::map<std::string, PluginInfillDependency> snapshot;
+    {
+        std::lock_guard<std::mutex> lock(this->state_mutex());
+        snapshot = m_sliced_plugin_infill_identity;
+    }
+
+    // Nothing plugin-produced has been sliced yet, so there is no cached identity to invalidate.
+    if (snapshot.empty())
+        return false;
+
+    const std::map<std::string, PluginInfillDependency> current = this->current_plugin_infill_dependencies();
+    for (const auto &[pattern_id, sliced] : snapshot) {
+        const auto it = current.find(pattern_id);
+        // The pattern is no longer selected: that is a settings change, which the normal config
+        // invalidation already covers, not a provider identity change.
+        if (it == current.end())
+            continue;
+        if (it->second != sliced)
+            return true;
+    }
+    return false;
+}
+
+bool Print::invalidate_plugin_infill()
+{
+    // The print state mutex is the one guarding step state and the object graph; the normal
+    // invalidation paths (Print::apply, Print::clear) hold it too. No job may be running here, so
+    // the cancel callback below cannot wait for a worker.
+    std::scoped_lock<std::mutex> lock(this->state_mutex());
+    bool invalidated = false;
+    for (PrintObject *object : m_objects) {
+        bool selects_plugin_pattern = false;
+        bool selects_plugin_sparse  = false;
+        for (const PrintRegion &region : object->all_regions()) {
+            const PrintRegionConfig &config = region.config();
+            for (const InfillPatternSetting &setting : infill_pattern_settings) {
+                const std::string key = config.option<ConfigOptionString>(std::string(setting.option_key))->value;
+                if (is_plugin_infill_pattern_key(key)) {
+                    selects_plugin_pattern = true;
+                    if (setting.purpose == InfillSurfacePurpose::Sparse)
+                        selects_plugin_sparse = true;
+                }
+            }
+        }
+        if (selects_plugin_sparse) {
+            // prepare_infill() runs bridge_over_infill(), which generates sparse plugin paths to
+            // anchor bridges. Invalidating posPrepareInfill takes back that bridge preparation
+            // together with its dependent steps (infill, ironing, contouring, simplify), so a
+            // provider change cannot leave bridges placed for the previous plugin's paths.
+            if (object->invalidate_step(posPrepareInfill)) {
+                invalidated = true;
+                // posInfill's dependency on the skirt/brim step (flush into infill) is not reached
+                // through posPrepareInfill's own propagation, so keep the invalidation posInfill
+                // used to perform.
+                invalidated |= this->invalidate_steps({psSkirtBrim});
+            }
+        } else if (selects_plugin_pattern) {
+            // A plugin pattern outside sparse infill does not feed bridge anchoring, so its cached
+            // preparation is still valid and only the fills it selected are regenerated.
+            invalidated |= object->invalidate_step(posInfill);
+        }
+    }
+    // The fills those identities described no longer exist, so nothing can be stale about them.
+    if (invalidated)
+        m_sliced_plugin_infill_identity.clear();
+    return invalidated;
+}
+
+std::map<std::string, Print::PluginInfillDependency>
+Print::prepare_plugin_infills(const std::vector<PrintObject *> &objects)
+{
+    // Drop recorded identities for patterns that no object selects any more: they cannot describe
+    // the fills this print will hold after this job.
+    bool have_snapshot = false;
+    {
+        std::lock_guard<std::mutex> lock(this->state_mutex());
+        have_snapshot = !m_sliced_plugin_infill_identity.empty();
+    }
+    if (have_snapshot) {
+        const std::map<std::string, std::vector<InfillSurfacePurpose>> current_all =
+            this->selected_plugin_infill_patterns(m_objects);
+        std::lock_guard<std::mutex> lock(this->state_mutex());
+        for (auto it = m_sliced_plugin_infill_identity.begin(); it != m_sliced_plugin_infill_identity.end();) {
+            if (current_all.count(it->first) == 0)
+                it = m_sliced_plugin_infill_identity.erase(it);
+            else
+                ++it;
+        }
+    }
+
+    // Every plugin pattern ID this job selects, with the union of the surface purposes that
+    // selected it. One ID may be selected by several objects or settings; it gets one pin.
+    const std::map<std::string, std::vector<InfillSurfacePurpose>> selected =
+        this->selected_plugin_infill_patterns(objects);
+
+    m_job_infill_selections.clear();
+    if (selected.empty())
+        return {}; // Built-in fills do not invalidate the recorded identity of still-selected patterns.
+
+    // Name the pattern in the user-facing error: it is the one value the user can locate in the
+    // project. The cause and provider identity stay in the log and in plugin diagnostics.
+    const auto unavailable_error = [](const std::string &key) {
+        // TRN %1% is the stable infill pattern ID stored in the project.
+        return Slic3r::format(_u8L("Plugin infill pattern '%1%' is unavailable. Check the plugin's diagnostic details."), key);
+    };
+
+    // Built locally and committed only after every pattern resolved, so a failed preflight leaves
+    // the identity of the fills that are still on the print untouched. The caller commits it once
+    // the job has actually produced fills; see Print::process().
+    std::map<std::string, PluginInfillDependency> sliced_identity;
+
+    for (const auto &[key, purposes] : selected) {
+        const std::shared_ptr<const InfillInfo> info = InfillFactory::find_infill(key);
+        if (!info || !info->is_plugin()) {
+            BOOST_LOG_TRIVIAL(error) << "Plugin infill pattern '" << key
+                                     << "' selected by the job is not provided by a loaded plugin";
+            throw SlicingError(unavailable_error(key));
+        }
+
+        // The factory is the authority for what a selected pattern ID resolves to. The project
+        // manifest supports plugin management and diagnostics but does not bind the ID to a
+        // provider: if another provider advertises the same ID, that provider is used.
+        //
+        // select_infill() re-resolves the entry under the registry lock and checks what needs the
+        // entry it is about to pin: still registered and active, plugin-provided, owned by this
+        // capability, and advertising every selected surface purpose. A project may be saved with a
+        // pattern in a setting the provider did not advertise (an older manifest, or a descriptor
+        // change); that is refused there instead of dispatching the pattern for a surface it was
+        // not written for.
+        std::string error;
+        InfillFactory::Selection selection =
+            InfillFactory::select_infill(key, info->plugin_key, info->capability_name, purposes, error);
+        if (!selection) {
+            BOOST_LOG_TRIVIAL(error) << "Plugin infill pattern '" << key << "' could not be selected: " << error;
+            throw SlicingError(unavailable_error(key));
+        }
+        m_job_infill_selections.emplace(key, std::move(selection));
+
+        PluginInfillDependency dependency;
+        dependency.pattern_id         = key;
+        dependency.plugin_key         = info->plugin_key;
+        dependency.capability_name    = info->capability_name;
+        dependency.display_name       = info->display_name;
+        dependency.supported_surfaces = info->supported_surfaces;
+        dependency.available          = true;
+        sliced_identity.emplace(key, std::move(dependency));
+    }
+
+    // Merge rather than replace: a partial job only re-fills some objects, and the other objects'
+    // cached fills still belong to the identity recorded by the job that produced them. Entries for
+    // patterns no longer selected are ignored by plugin_infill_identity_changed().
+    return sliced_identity;
+}
+
+void Print::release_plugin_infills() { m_job_infill_selections.clear(); }
+
 // Slicing process, running at a background thread.
 void Print::process(long long *time_cost_with_cache, bool use_cache)
 {
@@ -3602,6 +3842,31 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": total object counts %1% in current print, need to slice %2%")%m_objects.size()%need_slicing_objects.size();
     BOOST_LOG_TRIVIAL(info) << "Starting the slicing process." << log_memory_info();
+
+    // Pin every plugin provider this job will create Fills for, before any object is processed.
+    // A per-object pin would let an unload complete between two objects: the first object's fills
+    // are done, and the later object's provider is torn down before it can be selected. The pins
+    // are released only when process() returns (or Print::clear() once slicing has stopped), so no
+    // step invalidation, hook failure, or object boundary can drop a provider still in use.
+    ScopeGuard release_job_pins([this]() { this->release_plugin_infills(); });
+    // Identity of the providers pinned for this job. It is committed only once the job has run,
+    // see below, so a throwing hook or a cancellation cannot claim fills it never produced.
+    std::map<std::string, PluginInfillDependency> job_infill_identity;
+    {
+        std::vector<PrintObject *> fill_objects;
+        fill_objects.reserve(need_slicing_objects.size());
+        if (use_cache) {
+            fill_objects.assign(re_slicing_objects.begin(), re_slicing_objects.end());
+        } else {
+            // Only objects whose infill steps will actually run need their providers pinned. An
+            // object whose cached fills stand keeps working even if its plugin was unloaded later.
+            for (PrintObject *obj : need_slicing_objects)
+                if (!obj->is_step_done(posPrepareInfill) || !obj->is_step_done(posInfill))
+                    fill_objects.push_back(obj);
+        }
+        job_infill_identity = this->prepare_plugin_infills(fill_objects);
+    }
+
     if (!use_cache) {
         // Fire the SlicingPipeline hook for `obj` iff it just (re)computed `pstep` this pass.
         auto hook_after = [this](PrintObject* obj, bool was_done, PrintObjectStep pstep, SlicingPipelineStepPlugin sstep) {
@@ -3657,6 +3922,8 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 // consume them (unlike the Infill seam, which fires after the fills are already
                 // built). infill() re-invokes prepare_infill() as a no-op once posPrepareInfill
                 // is DONE, so this is a mechanical split mirroring the slice/perimeters loop.
+                // Plugin provider pins are job-scoped (see the guard above), so a throwing hook or
+                // a cancelled object cannot unpin a provider another object still needs.
                 const bool prepare_was_done = obj->is_step_done(posPrepareInfill);
                 obj->prepare_infill();
                 hook_after(obj, prepare_was_done, posPrepareInfill, SlicingPipelineStepPlugin::posPrepareInfill);
@@ -3770,6 +4037,15 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 obj->estimate_curled_extrusions();
             }
         }
+    }
+
+    // The fills exist now, so record which provider produced them. Nothing is recorded when the job
+    // threw or was cancelled: the fills of the previous job are still on the print, and claiming
+    // this job's identity for them would hide that they belong to a different provider.
+    if (!this->canceled() && !job_infill_identity.empty()) {
+        std::lock_guard<std::mutex> lock(this->state_mutex());
+        for (auto &[key, dependency] : job_infill_identity)
+            m_sliced_plugin_infill_identity[key] = std::move(dependency);
     }
 
     for (PrintObject *obj : m_objects)

@@ -13,7 +13,7 @@
 
 namespace Slic3r {
 
-enum class PluginCapabilityType { PrinterConnection = 0, Pages, Analysis, Importer, Exporter, Visualization, Script, SlicingPipeline, ResourceTexture, Unknown };
+enum class PluginCapabilityType { PrinterConnection = 0, Pages = 1, Infill = 3, Script = 6, SlicingPipeline = 7, ResourceTexture = 8, Unknown = 9 };
 
 struct PluginCapabilityId
 {
@@ -41,10 +41,7 @@ inline std::string plugin_capability_type_to_string(PluginCapabilityType type)
     switch (type) {
     case PluginCapabilityType::PrinterConnection: return "printer-connection";
     case PluginCapabilityType::Pages: return "pages";
-    case PluginCapabilityType::Analysis: return "analysis";
-    case PluginCapabilityType::Importer: return "importer";
-    case PluginCapabilityType::Exporter: return "exporter";
-    case PluginCapabilityType::Visualization: return "visualization";
+    case PluginCapabilityType::Infill: return "infill";
     case PluginCapabilityType::Script: return "script";
     case PluginCapabilityType::SlicingPipeline: return "slicing-pipeline";
     case PluginCapabilityType::ResourceTexture: return "resource-texture";
@@ -57,10 +54,7 @@ inline std::string plugin_capability_type_display_name(PluginCapabilityType type
     switch (type) {
     case PluginCapabilityType::PrinterConnection: return "Printer connection";
     case PluginCapabilityType::Pages: return "Pages";
-    case PluginCapabilityType::Analysis: return "Analysis";
-    case PluginCapabilityType::Importer: return "Importer";
-    case PluginCapabilityType::Exporter: return "Exporter";
-    case PluginCapabilityType::Visualization: return "Visualization";
+    case PluginCapabilityType::Infill: return "infill";
     case PluginCapabilityType::Script: return "Script";
     case PluginCapabilityType::SlicingPipeline: return "Slicing Pipeline";
     case PluginCapabilityType::ResourceTexture: return "Resource Texture";
@@ -81,14 +75,8 @@ inline PluginCapabilityType plugin_capability_type_from_string(std::string_view 
         return PluginCapabilityType::PrinterConnection;
     if (lowered == "pages")
         return PluginCapabilityType::Pages;
-    if (lowered == "analysis")
-        return PluginCapabilityType::Analysis;
-    if (lowered == "importer")
-        return PluginCapabilityType::Importer;
-    if (lowered == "exporter")
-        return PluginCapabilityType::Exporter;
-    if (lowered == "visualization")
-        return PluginCapabilityType::Visualization;
+    if (lowered == "infill")
+        return PluginCapabilityType::Infill;
     if (lowered == "script")
         return PluginCapabilityType::Script;
     if (lowered == "slicing-pipeline")

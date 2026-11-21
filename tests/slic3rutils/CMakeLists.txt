@@ -47,6 +47,9 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_install.cpp
     test_plugin_update.cpp
     test_plugin_lifecycle.cpp
+    test_plugin_infill.cpp
+    test_plugin_infill_callbacks.cpp
+    test_plugin_infill_override_prune.cpp
     test_plugin_wheel_install.cpp
     test_plugin_resource_texture.cpp
     test_plugin_printer_agent.cpp

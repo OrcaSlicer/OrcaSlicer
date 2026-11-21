@@ -1,0 +1,743 @@
+// Infill plugin registration and request contract: a capability advertises stable pattern IDs, the
+// host registers every advertised pattern in InfillFactory on load/enable together with the surface
+// purposes its descriptor declares, and removes them on disable/unload. The project manifest still
+// records the owning capability. Tests here cover the registry side of that identity, the owned
+// request snapshot handed to generate(), the Python override signatures, and the pin/unload lifetime
+// of a selected provider across a slice.
+//
+// As in test_plugin_lifecycle.cpp, each Catch2 test case runs in its own process
+// (catch_discover_tests), so the PluginManager and interpreter come up at most once per test.
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <catch2/catch_all.hpp>
+#include <catch2/catch_message.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <libslic3r/Config.hpp>
+#include <pybind11/pybind11.h>
+
+#include <atomic>
+#include <chrono>
+#include <fstream>
+#include <ios>
+#include <memory>
+#include <optional>
+#include <slic3r/plugin/PluginDescriptor.hpp>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
+
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Exception.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
+#include "libslic3r/Fill/InfillFactory.hpp"
+#include "libslic3r/Fill/InfillPurpose.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "pybind11/pytypes.h"
+#include "slic3r/plugin/PluginManager.hpp"
+#include "slic3r/plugin/PythonInterpreter.hpp"
+#include "slic3r/plugin/PythonPluginInterface.hpp"
+#include "slic3r/plugin/pluginTypes/infill/InfillPluginCapability.hpp"
+
+#include "fff_print/test_helpers.hpp"
+#include "plugin_test_utils.hpp"
+
+using namespace Slic3r;
+namespace fs = boost::filesystem;
+
+namespace {
+
+using Catch::Matchers::WithinAbs;
+
+// Minimal concrete Fill so make_infill_plugin_request() can be exercised without a slicing pipeline.
+class RequestSnapshotFill : public Fill
+{
+public:
+    Fill*    clone() const override { return nullptr; }
+    bool     is_self_crossing() override { return false; }
+};
+
+// Brings the plugin system up for one test and tears it down at the end, as in
+// test_plugin_lifecycle.cpp. The interpreter is process-wide and finalized once by
+// PythonInterpreterRunEnd in slic3rutils_tests_main.cpp. Declare this FIRST in a test so it is
+// destroyed last.
+struct ScopedPluginManager
+{
+    ScopedDataDir python_data_dir{"infill-python"};
+    bool          initialized = false;
+
+    ScopedPluginManager() { initialized = PluginManager::instance().initialize(); }
+    ~ScopedPluginManager() { PluginManager::instance().shutdown(); }
+};
+
+// A minimal infill plugin. `stem` distinguishes package, module and class names so two fixtures can
+// coexist in one discovery pass; `patterns_method` is the Python body of patterns(), or empty for a
+// plugin that relies on the host's one-sparse-pattern default. `methods` replaces the default
+// generate() block when a test needs a different override signature.
+std::string make_infill_plugin_source(const std::string& stem,
+                                      const std::string& capability_name,
+                                      const std::string& patterns_method = {},
+                                      const std::string& methods = {})
+{
+    return std::string{}
+        + "# /// script\n"
+        + "# requires-python = \">=3.12\"\n"
+        + "# dependencies = []\n"
+        + "#\n"
+        + "# [tool.orcaslicer.plugin]\n"
+        + "# name = \"" + capability_name + " Package\"\n"
+        + "# description = \"Infill dispatch test fixture.\"\n"
+        + "# author = \"tests\"\n"
+        + "# version = \"1.0.0\"\n"
+        + "# type = \"infill\"\n"
+        + "# ///\n"
+        + "import orca\n"
+        + "\n\n"
+        + "class Cap" + stem + "(orca.infill.InfillPluginCapabilityBase):\n"
+        + "    def get_name(self):\n"
+        + "        return \"" + capability_name + "\"\n"
+        + "\n"
+        + (patterns_method.empty()
+               ? std::string{}
+               : "    def patterns(self):\n" + patterns_method + "\n")
+        + (methods.empty()
+               ? std::string("    def generate(self, pattern_id, request):\n"
+                             "        return []\n")
+               : methods)
+        + "\n\n"
+        + "@orca.plugin\n"
+        + "class Plugin" + stem + "(orca.base):\n"
+        + "    def register_capabilities(self):\n"
+        + "        orca.register_capability(Cap" + stem + ")\n";
+}
+
+// Loads a plugin and blocks until the detached load worker is done with it.
+bool load_and_wait(PluginManager&     manager,
+                   const std::string& plugin_key,
+                   std::string&       error)
+{
+    manager.load_plugin(plugin_key, /*skip_deps=*/true);
+    return manager.wait_for_plugin_load(plugin_key, std::chrono::seconds(120), error);
+}
+
+void write_plugin(const ScopedDataDir& data_dir_guard,
+                  const std::string&   stem,
+                  const std::string&   capability_name,
+                  const std::string&   patterns_method = {},
+                  const std::string&   methods = {})
+{
+    const fs::path plugin_dir = data_dir_guard.plugins_dir() / stem;
+    fs::create_directories(plugin_dir);
+
+    std::ofstream out((plugin_dir / (stem + ".py")).string(), std::ios::binary);
+    out << make_infill_plugin_source(stem, capability_name, patterns_method, methods);
+    out.close();
+}
+
+// Reads a marker set by a plugin lifecycle hook. The marker lives on the host `orca` module, so it
+// is still observable after the plugin's own module is torn down.
+bool orca_module_flag(const char* name)
+{
+    PythonGILState gil;
+    if (!gil)
+        return false;
+    pybind11::module_ orca = pybind11::module_::import("orca");
+    return pybind11::hasattr(orca, name);
+}
+
+} // namespace
+
+TEST_CASE("The infill request mirrors every FillParams value as an owned snapshot", "[PluginInfill]")
+{
+    RequestSnapshotFill fill;
+    fill.layer_id = 7;
+    fill.object_id = 42;
+    fill.layer_index = 5;
+    fill.region_id = 1;
+    fill.region_ids = { 1, 3 };
+    fill.z        = 1.25;
+    fill.spacing  = 0.45;
+    fill.overlap  = 0.1;
+    fill.angle    = 0.5f;
+
+    FillParams params;
+    params.density                          = 0.2f;
+    params.multiline                        = 3;
+    params.anchor_length                    = 11.f;
+    params.anchor_length_max                = 22.f;
+    params.resolution                       = 0.05;
+    params.layer_height                     = 0.3;
+    params.flow                             = Flow(0.42f, 0.2f, 0.4f);
+    params.flow.set_spacing(0.43f);
+    params.dont_adjust                      = true;
+    params.monotonic                        = true;
+    params.complete                         = true;
+    params.use_arachne                      = false;
+    params.smooth_factor                    = 0.25;
+    params.gyroid_optimized                 = true;
+    params.adaptive_infill_mode             = AdaptiveInfillMode::NormalZ;
+    params.adaptive_infill_interior_density = 0.35f;
+    params.adaptive_infill_gradient         = AdaptiveInfillGradient::Quadratic;
+    params.lateral_lattice_angle_1          = 15.;
+    params.lateral_lattice_angle_2          = 30.;
+    params.pattern                          = ipGyroid;
+    params.infill_overhang_angle            = 55.f;
+    params.extrusion_role                   = erTopSolidInfill;
+    params.using_internal_flow              = true;
+    params.no_extrusion_overlap             = 0.15f;
+    params.dont_sort                        = true;
+    params.can_reverse                      = false;
+    params.fill_order                       = SurfaceFillOrder::Inward;
+    params.horiz_move                       = 1234.f;
+    params.symmetric_infill_y_axis          = true;
+    params.infill_complete_top              = true;
+    params.symmetric_y_axis                 = 9876;
+    params.locked_zag                       = true;
+    params.infill_lock_depth                = 4321.f;
+    params.skin_infill_depth                = 210.f;
+    params.center_of_surface_pattern        = CenterOfSurfacePattern::Each_Model;
+    params.purpose                          = InfillSurfacePurpose::TopSurface;
+
+    const std::pair<float, Point> direction{ 1.5f, Point(11, 22) };
+    const InfillPluginRequest request =
+        make_infill_plugin_request(fill, params, 3, direction, ExPolygon{});
+
+    // Per-call context from the Fill and the generation hook.
+    CHECK(request.layer_id == 7);
+    CHECK(request.object_id == 42);
+    CHECK(request.layer_index == 5);
+    CHECK(request.region_id == 1);
+    CHECK(request.region_ids == std::vector<int>{ 1, 3 });
+    CHECK(request.thickness_layers == 3);
+    CHECK_THAT(request.z, WithinAbs(1.25, 1e-12));
+    CHECK_THAT(request.spacing, WithinAbs(0.45, 1e-12));
+    CHECK_THAT(request.overlap, WithinAbs(0.1, 1e-12));
+    CHECK_THAT(request.angle, WithinAbs(0.5, 1e-6));
+    CHECK_THAT(request.direction_angle, WithinAbs(1.5, 1e-6));
+    CHECK(request.direction_origin == Point(11, 22));
+
+    // Every FillParams value except the live config pointer.
+    CHECK_THAT(request.density, WithinAbs(0.2, 1e-6));
+    CHECK(request.multiline == 3);
+    CHECK_THAT(request.anchor_length, WithinAbs(11.0, 1e-6));
+    CHECK_THAT(request.anchor_length_max, WithinAbs(22.0, 1e-6));
+    CHECK_THAT(request.resolution, WithinAbs(0.05, 1e-12));
+    CHECK_THAT(request.layer_height, WithinAbs(0.3, 1e-12));
+    CHECK_THAT(request.flow.width, WithinAbs(0.42, 1e-6));
+    CHECK_THAT(request.flow.height, WithinAbs(0.2, 1e-6));
+    CHECK_THAT(request.flow.spacing, WithinAbs(0.43, 1e-6));
+    CHECK_THAT(request.flow.nozzle_diameter, WithinAbs(0.4, 1e-6));
+    CHECK_FALSE(request.flow.bridge);
+    CHECK(request.flow.mm3_per_mm > 0.0);
+    // flow_width/flow_height are float-derived shortcuts, so allow float precision.
+    CHECK_THAT(request.flow_width, WithinAbs(0.42, 1e-6));
+    CHECK_THAT(request.flow_height, WithinAbs(0.2, 1e-6));
+    CHECK(request.dont_adjust == true);
+    CHECK(request.monotonic == true);
+    CHECK(request.complete == true);
+    CHECK(request.use_arachne == false);
+    CHECK_THAT(request.smooth_factor, WithinAbs(0.25, 1e-12));
+    CHECK(request.gyroid_optimized == true);
+    CHECK(request.adaptive_infill_mode == AdaptiveInfillMode::NormalZ);
+    CHECK_THAT(request.adaptive_infill_interior_density, WithinAbs(0.35, 1e-6));
+    CHECK(request.adaptive_infill_gradient == AdaptiveInfillGradient::Quadratic);
+    CHECK_THAT(request.lateral_lattice_angle_1, WithinAbs(15.0, 1e-12));
+    CHECK_THAT(request.lateral_lattice_angle_2, WithinAbs(30.0, 1e-12));
+    CHECK(request.pattern == ipGyroid);
+    // A built-in pattern key still decodes to its enum value after plugin patterns became
+    // optional; the request mirrors that value unchanged.
+    CHECK(infill_pattern_from_key("gyroid") == ipGyroid);
+    CHECK_THAT(request.infill_overhang_angle, WithinAbs(55.0, 1e-6));
+    CHECK(request.extrusion_role == erTopSolidInfill);
+    CHECK(request.using_internal_flow == true);
+    CHECK_THAT(request.no_extrusion_overlap, WithinAbs(0.15, 1e-6));
+    CHECK(request.dont_sort == true);
+    CHECK(request.can_reverse == false);
+    CHECK(request.fill_order == SurfaceFillOrder::Inward);
+    CHECK_THAT(request.horiz_move, WithinAbs(1234.0, 1e-6));
+    CHECK(request.symmetric_infill_y_axis == true);
+    CHECK(request.infill_complete_top == true);
+    CHECK(request.symmetric_y_axis == 9876);
+    CHECK(request.locked_zag == true);
+    CHECK_THAT(request.infill_lock_depth, WithinAbs(4321.0, 1e-6));
+    CHECK_THAT(request.skin_infill_depth, WithinAbs(210.0, 1e-6));
+    CHECK(request.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model);
+    // The setting that selected the pattern is explicit in the request, never inferred.
+    CHECK(request.purpose == InfillSurfacePurpose::TopSurface);
+}
+
+TEST_CASE("An unset flow in the infill request reports zero cross-section", "[PluginInfill]")
+{
+    RequestSnapshotFill fill;
+    const InfillPluginRequest request =
+        make_infill_plugin_request(fill, FillParams{}, 1,
+                                   std::pair<float, Point>{ 0.f, Point(0, 0) }, ExPolygon{});
+
+    // Flow::mm3_per_mm() rejects a non-positive extrusion; the snapshot must not fail a call for the
+    // host leaving the flow unset.
+    CHECK_THAT(request.flow.mm3_per_mm, WithinAbs(0.0, 0.0));
+    CHECK_THAT(request.flow.spacing, WithinAbs(0.0, 0.0));
+    CHECK_THAT(request.flow_width, WithinAbs(0.0, 0.0));
+    CHECK_THAT(request.flow_height, WithinAbs(0.0, 0.0));
+    // A Fill outside an object layer reports the identity as unavailable, never as object 0.
+    CHECK(request.object_id == -1);
+    CHECK(request.layer_index == -1);
+    CHECK(request.region_id == -1);
+    CHECK(request.region_ids.empty());
+    // A plugin dispatch carries no built-in pattern, so a plugin request must not invent one.
+    CHECK_FALSE(request.pattern.has_value());
+}
+
+TEST_CASE("An infill capability advertises multiple patterns with per-pattern surface support", "[PluginInfill][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("infill-multi");
+    write_plugin(data_dir_guard, "MultiInfill", "Multi Infill",
+                 "        return [\n"
+                 "            orca.infill.PatternDescriptor('plugin-grid', 'Plugin Grid', [orca.infill.SurfacePurpose.Sparse]),\n"
+                 "            orca.infill.PatternDescriptor('plugin-solid', 'Plugin Solid', [orca.infill.SurfacePurpose.InternalSolid]),\n"
+                 "        ]\n");
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "MultiInfill", error));
+    INFO("load error: " << error);
+
+    const auto capability = manager.get_plugin_capability("Multi Infill", PluginCapabilityType::Infill,
+                                                          /*only_enabled=*/true);
+    REQUIRE(capability != nullptr);
+    auto infill = std::dynamic_pointer_cast<InfillPluginCapability>(capability);
+    REQUIRE(infill != nullptr);
+    REQUIRE(infill->resolved_patterns().size() == 2);
+
+    // A capability name is the provider identity, not the pattern key.
+    CHECK(manager.get_plugin_capability("plugin-grid", PluginCapabilityType::Infill, true) == nullptr);
+
+    // Every advertised pattern is registered, and its descriptor's purposes become its registry
+    // metadata so the four dropdowns and the project preflight can filter it.
+    CHECK(InfillFactory::is_infill_registered("plugin-grid"));
+    CHECK(InfillFactory::is_infill_registered("plugin-solid"));
+    const std::shared_ptr<const InfillInfo> grid = InfillFactory::find_infill("plugin-grid");
+    REQUIRE(grid != nullptr);
+    CHECK(grid->plugin_key == "MultiInfill");
+    CHECK(grid->capability_name == "Multi Infill");
+    CHECK(grid->display_name == "Plugin Grid");
+    CHECK(grid->supports_surface(InfillSurfacePurpose::Sparse));
+    CHECK_FALSE(grid->supports_surface(InfillSurfacePurpose::InternalSolid));
+
+    const std::shared_ptr<const InfillInfo> solid = InfillFactory::find_infill("plugin-solid");
+    REQUIRE(solid != nullptr);
+    CHECK_FALSE(solid->supports_surface(InfillSurfacePurpose::Sparse));
+    CHECK(solid->supports_surface(InfillSurfacePurpose::InternalSolid));
+
+    manager.unload_plugin("MultiInfill");
+    CHECK_FALSE(InfillFactory::is_infill_registered("plugin-grid"));
+    CHECK_FALSE(InfillFactory::is_infill_registered("plugin-solid"));
+}
+
+TEST_CASE("Infill overrides receive the pattern ID and the request", "[PluginInfill][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("infill-pattern-id-signatures");
+    const std::string methods =
+        "    def generate(self, pattern_id, request):\n"
+        "        assert pattern_id == 'pattern-id'\n"
+        "        assert isinstance(request, orca.infill.InfillPluginRequest)\n"
+        "        assert request.object_id == -1\n"
+        "        assert request.layer_index == -1\n"
+        "        assert request.region_id == -1\n"
+        "        assert list(request.region_ids) == []\n"
+        "        assert request.pattern is None\n"
+        "        return [[orca.host.Point(0, 0), orca.host.Point(10, 0)]]\n"
+        "    def no_sort(self, pattern_id):\n"
+        "        return pattern_id == 'pattern-id'\n"
+        "    def aligned_to_origin(self, pattern_id):\n"
+        "        return pattern_id == 'pattern-id'\n";
+    write_plugin(data_dir_guard, "PatternIdInfill", "Pattern ID Infill", {}, methods);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "PatternIdInfill", error));
+    INFO("load error: " << error);
+
+    const auto capability = manager.get_plugin_capability("Pattern ID Infill", PluginCapabilityType::Infill,
+                                                          /*only_enabled=*/true);
+    REQUIRE(capability != nullptr);
+    auto infill = std::dynamic_pointer_cast<InfillPluginCapability>(capability);
+    REQUIRE(infill != nullptr);
+
+    // A plugin dispatch has no built-in pattern; build the request the way the fill adapter does
+    // and let the Python override assert that it arrives as None.
+    RequestSnapshotFill fill;
+    const InfillPluginRequest request =
+        make_infill_plugin_request(fill, FillParams{}, 1,
+                                   std::pair<float, Point>{ 0.f, Point(0, 0) }, ExPolygon{});
+    Polylines paths;
+    REQUIRE_NOTHROW(paths = infill->generate("pattern-id", request));
+    REQUIRE(paths.size() == 1);
+    CHECK(infill->no_sort("pattern-id"));
+    CHECK(infill->aligned_to_origin("pattern-id"));
+
+    manager.unload_plugin("PatternIdInfill");
+}
+
+TEST_CASE("Flexible *args infill overrides receive the pattern ID and the request", "[PluginInfill][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("infill-args-signatures");
+    const std::string methods =
+        "    def generate(self, *args):\n"
+        "        assert len(args) == 2\n"
+        "        assert isinstance(args[0], str)\n"
+        "        assert isinstance(args[1], orca.infill.InfillPluginRequest)\n"
+        "        return [[orca.host.Point(0, 0), orca.host.Point(10, 0)]]\n"
+        "    def no_sort(self, *args):\n"
+        "        return len(args) == 1\n"
+        "    def aligned_to_origin(self, *args):\n"
+        "        return len(args) == 1\n";
+    write_plugin(data_dir_guard, "ArgsSignaturesInfill", "Args Signatures Infill", {}, methods);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "ArgsSignaturesInfill", error));
+    INFO("load error: " << error);
+
+    const auto capability = manager.get_plugin_capability("Args Signatures Infill",
+                                                          PluginCapabilityType::Infill, /*only_enabled=*/true);
+    REQUIRE(capability != nullptr);
+    auto infill = std::dynamic_pointer_cast<InfillPluginCapability>(capability);
+    REQUIRE(infill != nullptr);
+
+    const InfillPluginRequest request;
+    Polylines                 paths;
+    REQUIRE_NOTHROW(paths = infill->generate("args-pattern", request));
+    REQUIRE(paths.size() == 1);
+    CHECK(infill->no_sort("args-pattern"));
+    CHECK(infill->aligned_to_origin("args-pattern"));
+
+    manager.unload_plugin("ArgsSignaturesInfill");
+}
+
+TEST_CASE("An infill capability without patterns() defaults to one sparse pattern named after itself", "[PluginInfill][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("infill-default-patterns");
+    write_plugin(data_dir_guard, "DefaultPatternsInfill", "Default Patterns Infill");
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "DefaultPatternsInfill", error));
+    INFO("load error: " << error);
+
+    const auto capability = manager.get_plugin_capability("Default Patterns Infill", PluginCapabilityType::Infill);
+    REQUIRE(capability != nullptr);
+    auto infill = std::dynamic_pointer_cast<InfillPluginCapability>(capability);
+    REQUIRE(infill != nullptr);
+    REQUIRE(infill->resolved_patterns().size() == 1);
+    CHECK(infill->resolved_patterns().front().id == "Default Patterns Infill");
+    CHECK(infill_pattern_supports_surface(infill->resolved_patterns().front(), InfillSurfacePurpose::Sparse));
+
+    CHECK(InfillFactory::is_infill_registered("Default Patterns Infill"));
+    const std::shared_ptr<const InfillInfo> info = InfillFactory::find_infill("Default Patterns Infill");
+    REQUIRE(info != nullptr);
+    CHECK(info->plugin_key == "DefaultPatternsInfill");
+    CHECK(info->capability_name == "Default Patterns Infill");
+    // The implicit pattern stays sparse-only, so a plugin that does not declare patterns() keeps
+    // exactly the one surface it used to have.
+    CHECK(info->supports_surface(InfillSurfacePurpose::Sparse));
+    CHECK_FALSE(info->supports_surface(InfillSurfacePurpose::TopSurface));
+
+    // A plugin that defines neither optional method keeps the C++ Fill defaults.
+    CHECK_FALSE(infill->no_sort("Default Patterns Infill"));
+    CHECK_FALSE(infill->aligned_to_origin("Default Patterns Infill"));
+
+    manager.unload_plugin("DefaultPatternsInfill");
+}
+
+TEST_CASE("Disabling an infill capability unregisters its patterns and re-enabling restores them", "[PluginInfill][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("infill-toggle");
+    write_plugin(data_dir_guard, "ToggleInfill", "Toggle Infill",
+                 "        return [orca.infill.PatternDescriptor('toggle-pattern', 'Toggle Pattern')]\n");
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "ToggleInfill", error));
+    INFO("load error: " << error);
+    REQUIRE(InfillFactory::is_infill_registered("toggle-pattern"));
+
+    const PluginCapabilityId id{PluginCapabilityType::Infill, "Toggle Infill", "ToggleInfill"};
+    manager.set_capability_enabled(id, false);
+    CHECK_FALSE(InfillFactory::is_infill_registered("toggle-pattern"));
+
+    manager.set_capability_enabled(id, true);
+    CHECK(InfillFactory::is_infill_registered("toggle-pattern"));
+
+    manager.unload_plugin("ToggleInfill");
+    CHECK_FALSE(InfillFactory::is_infill_registered("toggle-pattern"));
+}
+
+TEST_CASE("An infill capability must have a non-empty name", "[PluginInfill][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("infill-empty");
+    write_plugin(data_dir_guard, "EmptyInfill", "");
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    CHECK_FALSE(load_and_wait(manager, "EmptyInfill", error));
+    CHECK(error.find("empty name") != std::string::npos);
+    CHECK_FALSE(manager.is_plugin_loaded("EmptyInfill"));
+}
+
+TEST_CASE("An infill pattern ID cannot claim a built-in pattern key", "[PluginInfill][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("infill-builtin");
+    write_plugin(data_dir_guard, "BuiltinInfill", "Builtin Infill",
+                 "        return [orca.infill.PatternDescriptor('rectilinear', 'Rectilinear Clone')]\n");
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    CHECK_FALSE(load_and_wait(manager, "BuiltinInfill", error));
+    CHECK(error.find("built-in sparse infill pattern") != std::string::npos);
+    CHECK_FALSE(manager.is_plugin_loaded("BuiltinInfill"));
+}
+
+TEST_CASE("An infill capability cannot declare duplicate pattern IDs", "[PluginInfill][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("infill-duplicate");
+    write_plugin(data_dir_guard, "DuplicateInfill", "Duplicate Infill",
+                 "        return [\n"
+                 "            orca.infill.PatternDescriptor('same-pattern', 'One'),\n"
+                 "            orca.infill.PatternDescriptor('same-pattern', 'Two'),\n"
+                 "        ]\n");
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    CHECK_FALSE(load_and_wait(manager, "DuplicateInfill", error));
+    CHECK(error.find("duplicate pattern") != std::string::npos);
+    CHECK_FALSE(manager.is_plugin_loaded("DuplicateInfill"));
+}
+
+TEST_CASE("Two plugins cannot register the same infill pattern ID", "[PluginInfill][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("infill-pattern-collision");
+    write_plugin(data_dir_guard, "FirstInfill", "First Infill",
+                 "        return [orca.infill.PatternDescriptor('shared-pattern', 'Shared Pattern')]\n");
+    write_plugin(data_dir_guard, "SecondInfill", "Second Infill",
+                 "        return [orca.infill.PatternDescriptor('shared-pattern', 'Shared Pattern')]\n");
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "FirstInfill", error));
+    INFO("first load error: " << error);
+
+    CHECK_FALSE(load_and_wait(manager, "SecondInfill", error));
+    CHECK(error.find("already provided by plugin") != std::string::npos);
+    CHECK_FALSE(manager.is_plugin_loaded("SecondInfill"));
+
+    manager.unload_plugin("FirstInfill");
+    CHECK_FALSE(InfillFactory::is_infill_registered("shared-pattern"));
+}
+
+TEST_CASE("Two plugins cannot register the same infill capability name", "[PluginInfill][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("infill-collision");
+    write_plugin(data_dir_guard, "FirstCapInfill", "Shared Infill");
+    write_plugin(data_dir_guard, "SecondCapInfill", "Shared Infill");
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "FirstCapInfill", error));
+    INFO("first load error: " << error);
+
+    CHECK_FALSE(load_and_wait(manager, "SecondCapInfill", error));
+    CHECK(error.find("Capability collision for type") != std::string::npos);
+    CHECK_FALSE(manager.is_plugin_loaded("SecondCapInfill"));
+
+    // The first owner keeps the name.
+    REQUIRE(manager.get_plugin_capability("Shared Infill", PluginCapabilityType::Infill) != nullptr);
+    CHECK(manager.get_plugin_capability("Shared Infill", PluginCapabilityType::Infill)->name() == "Shared Infill");
+
+    manager.unload_plugin("FirstCapInfill");
+}
+
+// ── Provider lease lifetime ─────────────────────────────────────────────────────────────────────
+//
+// A pinned selection is the only thing that keeps an unload from tearing the provider module down
+// while a slice is still creating Fills. These two cases cover the lease from both ends: unload
+// must wait for it, and a fill failure must release it.
+
+TEST_CASE("Unloading waits for a pinned infill provider and never tears it down early", "[PluginInfill][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("infill-unload-pinned");
+    write_plugin(data_dir_guard, "LeaseInfill", "Lease Infill",
+                 "        return [orca.infill.PatternDescriptor('lease-pattern', 'Lease Pattern', "
+                 "[orca.infill.SurfacePurpose.Sparse])]\n",
+                 "    def generate(self, pattern_id, request):\n"
+                 "        return []\n"
+                 "    def on_cancelled(self):\n"
+                 "        import orca\n"
+                 "        orca._lease_cancelled_marker = True\n"
+                 "    def on_unload(self):\n"
+                 "        import orca\n"
+                 "        orca._lease_teardown_marker = True\n");
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "LeaseInfill", error));
+    INFO("load error: " << error);
+    REQUIRE(InfillFactory::is_infill_registered("lease-pattern"));
+
+    std::string             select_error;
+    InfillFactory::Selection selection = InfillFactory::select_infill(
+        "lease-pattern", "LeaseInfill", "Lease Infill", {InfillSurfacePurpose::Sparse}, select_error);
+    REQUIRE(selection);
+    REQUIRE(InfillFactory::has_pinned_infills("LeaseInfill", "Lease Infill"));
+
+    std::atomic<bool> unloaded{false};
+    std::thread       unload_thread([&]() {
+        manager.unload_plugin("LeaseInfill");
+        unloaded.store(true, std::memory_order_release);
+    });
+
+    // Retraction happens before the wait: new selections see no entry, while the pinned one keeps
+    // the retired entry and its provider alive.
+    for (int i = 0; i < 500 && InfillFactory::find_infill("lease-pattern") != nullptr; ++i)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    CHECK(InfillFactory::find_infill("lease-pattern") == nullptr);
+    CHECK(InfillFactory::is_infill_registered("lease-pattern"));
+
+    // The pinned job can still create its provider object after retraction.
+    CHECK(InfillFactory::create_infill_by_id("lease-pattern") != nullptr);
+
+    // Ordinary calls have a two-second bounded grace. A job lease is drained without a deadline:
+    // past that grace the unload must still be waiting, the module must still be live, and the
+    // provider must not have been told to cancel the job it is being allowed to finish.
+    std::this_thread::sleep_for(std::chrono::milliseconds(2300));
+    CHECK_FALSE(unloaded.load(std::memory_order_acquire));
+    CHECK(InfillFactory::has_pinned_infills("LeaseInfill", "Lease Infill"));
+    CHECK_FALSE(orca_module_flag("_lease_cancelled_marker"));
+    CHECK_FALSE(orca_module_flag("_lease_teardown_marker"));
+
+    selection.reset();
+    unload_thread.join();
+
+    CHECK(unloaded.load(std::memory_order_acquire));
+    CHECK_FALSE(InfillFactory::has_pinned_infills("LeaseInfill", "Lease Infill"));
+    CHECK_FALSE(InfillFactory::is_infill_registered("lease-pattern"));
+    // Teardown ran only after the pin was released.
+    CHECK(orca_module_flag("_lease_teardown_marker"));
+}
+
+TEST_CASE("A generate exception records a diagnostic and releases the pinned provider", "[PluginInfill][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("infill-generate-failure");
+    write_plugin(data_dir_guard, "FailingInfill", "Failing Infill",
+                 "        return [orca.infill.PatternDescriptor('failing-pattern', 'Failing Pattern', "
+                 "[orca.infill.SurfacePurpose.Sparse])]\n",
+                 "    def generate(self, pattern_id, request):\n"
+                 "        raise RuntimeError('boom from generate')\n");
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "FailingInfill", error));
+    INFO("load error: " << error);
+    REQUIRE(InfillFactory::is_infill_registered("failing-pattern"));
+
+    Print print;
+    Model model;
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("plugins", new ConfigOptionStrings({"FailingInfill;;Failing Infill"}));
+    config.set_key_value("sparse_infill_pattern", new ConfigOptionString("failing-pattern"));
+    Slic3r::Test::init_print({Slic3r::Test::cube(20)}, print, model, config);
+
+    // The plugin raise aborts the slice as a non-critical slicing error...
+    CHECK_THROWS_AS(print.process(), Slic3r::SlicingError);
+
+    // ...the worker recorded the detailed cause in the plugin's diagnostic store...
+    PluginDescriptor descriptor;
+    REQUIRE(manager.try_get_plugin_descriptor("FailingInfill", descriptor));
+    CHECK(descriptor.error.find("boom from generate") != std::string::npos);
+
+    // ...and the failed fill phase released the provider lease.
+    CHECK_FALSE(InfillFactory::has_pinned_infills("FailingInfill", "Failing Infill"));
+
+    manager.unload_plugin("FailingInfill");
+}

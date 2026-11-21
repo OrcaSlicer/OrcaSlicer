@@ -2,6 +2,7 @@
 #define slic3r_Model_hpp_
 
 #include "BoundingBox.hpp"
+#include "Config.hpp"
 #include "Polygon.hpp"
 #include "Semver.hpp"
 #include "libslic3r.h"
@@ -1922,6 +1923,16 @@ public:
     std::string   propose_export_file_name_and_path(const std::string &new_extension) const;
     //BBS: add auxiliary files temp path
     std::string   get_auxiliary_file_temp_path();
+
+    // Every object, volume and layer-range configuration: the places a plugin-backed print setting can
+    // be overridden outside the print preset. The 3MF exporter and the slicing preflight both fold
+    // their plugin references into the print-wide "plugins" manifest, so they share this traversal.
+    std::vector<const ConfigBase*> object_and_volume_configs() const;
+
+    // Configs of the materials referenced by model volumes, without duplicates. Material settings
+    // are applied to a volume's region after the object and volume configs (see
+    // region_config_from_model_volume), so a plugin-backed setting can be selected there too.
+    std::vector<const ConfigBase*> referenced_material_configs() const;
 
     // BBS: backup
     std::string   get_backup_path();

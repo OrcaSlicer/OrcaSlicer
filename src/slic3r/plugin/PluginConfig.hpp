@@ -17,6 +17,7 @@
 
 namespace Slic3r {
 
+class ConfigBase;
 class DynamicConfig;
 struct CapabilityConfigEntry
 {
@@ -38,8 +39,12 @@ public:
     bool                                 upsert(CapabilityConfigEntry entry);
     bool                                 erase(const PluginCapabilityId& id);
     // Drops every entry whose (type, name) is not in `referenced`, e.g. capabilities a preset's
-    // plugin-backed options no longer name. Returns true if anything was removed.
-    bool                                 prune_unreferenced(const std::set<std::pair<PluginCapabilityType, std::string>>& referenced);
+    // plugin-backed options no longer name. An entry whose type is in `preserved_types` is kept
+    // regardless, for callers that cannot prove it stale: an unresolved value, an incomplete
+    // pruning context, or a legacy entry without a capability type. Returns true if anything was
+    // removed.
+    bool                                 prune_unreferenced(const std::set<std::pair<PluginCapabilityType, std::string>>& referenced,
+                                                            const std::set<PluginCapabilityType>&                         preserved_types = {});
     bool                                 empty() const;
     nlohmann::json                       serialize_entries() const;
     nlohmann::json                       root_json() const;
@@ -52,12 +57,33 @@ private:
 bool parse_plugin_overrides(const std::string& raw, CapabilityConfigDocument& document, std::string& error);
 std::string serialize_plugin_overrides(const CapabilityConfigDocument& document);
 
+// Additional configs that can select plugin-backed settings outside the edited preset: model
+// object, volume and layer-range configs, and the plate config. They contribute to the references
+// pruning checks, so an override is not deleted while one of them still selects its capability.
+// Each config must expose the print config definitions (ModelConfig::get() does), so its
+// plugin-backed options can be recognized. The pointers must stay valid for the call.
+struct PluginOverridePruneContext
+{
+    std::vector<const ConfigBase*> configs;
+
+    // True only when `configs` contains every scope that can select a plugin-backed setting. Infill
+    // overrides are preserved when this is false: the edited preset alone cannot prove them stale,
+    // because a model object, volume or layer range may still select a plugin pattern. A caller that
+    // can enumerate all those scopes may set this and enable normal infill pruning.
+    bool complete = false;
+};
+
 // Drops override entries for capabilities no longer named by any plugin-backed option in `config`
-// (e.g. slicing_pipeline_plugin cleared or pointed at another capability) and writes the result back
-// to `overrides_key`. Call it wherever such an option changes, so a saved preset never carries
-// configuration for a capability it no longer references. Returns true if `config` was modified, so a
-// caller holding a GUI field over `overrides_key` knows to refresh it.
-bool prune_stale_plugin_overrides(DynamicConfig& config, const std::string& overrides_key);
+// or in `context.configs` (e.g. slicing_pipeline_plugin cleared or pointed at another capability)
+// and writes the result back to `overrides_key`. Infill pattern IDs are resolved to their owning
+// capability through InfillFactory; an unresolved ID conservatively preserves infill overrides.
+// Legacy entries without a capability type are always kept because they cannot be attributed to a
+// capability. Call it wherever such an option changes, so a saved preset never carries
+// configuration for a capability it no longer references. Returns true if `config` was modified, so
+// a caller holding a GUI field over `overrides_key` knows to refresh it.
+bool prune_stale_plugin_overrides(DynamicConfig&                     config,
+                                  const std::string&                 overrides_key,
+                                  const PluginOverridePruneContext& context = {});
 
 struct EffectiveCapabilityConfig
 {

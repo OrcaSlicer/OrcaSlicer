@@ -24,6 +24,7 @@
 #include "PyPluginPackage.hpp"
 #include "PyPluginTrampoline.hpp"
 #include "pluginTypes/printerAgent/PrinterAgentPluginCapability.hpp"
+#include "pluginTypes/infill/InfillPluginCapability.hpp"
 #include "pluginTypes/pages/PagesPluginCapability.hpp"
 #include "pluginTypes/resourceTexture/ResourceTexturePluginCapability.hpp"
 #include "pluginTypes/script/ScriptPluginCapability.hpp"
@@ -375,10 +376,7 @@ void bind_python_api(pybind11::module_& m)
     py::enum_<PluginCapabilityType>(m, "PluginType", "Available plugin capability groups")
         .value("PrinterConnection", PluginCapabilityType::PrinterConnection)
         .value("Pages", PluginCapabilityType::Pages)
-        .value("Analysis", PluginCapabilityType::Analysis)
-        .value("Importer", PluginCapabilityType::Importer)
-        .value("Exporter", PluginCapabilityType::Exporter)
-        .value("Visualization", PluginCapabilityType::Visualization)
+        .value("Infill", PluginCapabilityType::Infill)
         .value("Script", PluginCapabilityType::Script)
         .value("SlicingPipeline", PluginCapabilityType::SlicingPipeline)
         .value("ResourceTexture", PluginCapabilityType::ResourceTexture)
@@ -532,6 +530,7 @@ void bind_python_api(pybind11::module_& m)
 
     // Make sure you register your bindings here
     PrinterAgentPluginCapability::RegisterBindings(m);
+    InfillPluginCapability::RegisterBindings(m);
     PagesPluginCapability::RegisterBindings(m);
     ScriptPluginCapability::RegisterBindings(m);
     SlicingPipelinePluginCapability::RegisterBindings(m);

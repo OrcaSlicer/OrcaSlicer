@@ -28,8 +28,8 @@
 namespace Slic3r::plugin_hooks {
 namespace {
 
-// Manifest resolver: turns the bare capability name a preset stores into the full
-// "name;uuid;capability" reference the dispatchers consume (see
+// Manifest resolver: turns the bare capability name or infill pattern ID a preset stores into the
+// full "name;uuid;capability" reference the dispatchers consume (see
 // ConfigBase::collect_plugin_manifest / update_plugin_manifest).
 void install_capability_resolver()
 {

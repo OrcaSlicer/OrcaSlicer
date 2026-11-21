@@ -9,8 +9,10 @@
 #include <exception>
 #include <libslic3r/Config.hpp>
 #include "libslic3r/Preset.hpp"
+#include <libslic3r/Fill/InfillFactory.hpp>
 #include <libslic3r/PresetBundle.hpp>
 #include <libslic3r/PrintConfig.hpp>
+#include <memory>
 #include <optional>
 #include <set>
 #include <mutex>
@@ -180,11 +182,12 @@ bool CapabilityConfigDocument::erase(const PluginCapabilityId& id)
     return erased;
 }
 
-bool CapabilityConfigDocument::prune_unreferenced(const std::set<std::pair<PluginCapabilityType, std::string>>& referenced)
+bool CapabilityConfigDocument::prune_unreferenced(const std::set<std::pair<PluginCapabilityType, std::string>>& referenced,
+                                                  const std::set<PluginCapabilityType>&                         preserved_types)
 {
     bool changed = false;
     for (auto it = m_entries.begin(); it != m_entries.end();) {
-        if (referenced.count({it->first.type, it->first.name}) != 0) {
+        if (preserved_types.count(it->first.type) != 0 || referenced.count({it->first.type, it->first.name}) != 0) {
             ++it;
         } else {
             it      = m_entries.erase(it);
@@ -355,7 +358,67 @@ std::string serialize_plugin_overrides(const CapabilityConfigDocument& document)
     return document.empty() ? std::string() : document.serialize_entries().dump();
 }
 
-bool prune_stale_plugin_overrides(DynamicConfig& config, const std::string& overrides_key)
+namespace {
+
+// Record the capability names referenced by one config's plugin-backed values. Infill settings
+// store a pattern ID while overrides are keyed by the owning capability name, so resolve the ID
+// through the same registry slicing uses. A built-in pattern names no capability. When
+// `resolve_infill` is false the caller preserves every infill override anyway, so infill values are
+// skipped. A value that is neither built-in nor registered cannot be attributed to a capability:
+// report it so the caller keeps infill overrides instead of deleting configuration for a provider
+// that is merely unavailable.
+void collect_referenced_capabilities(const ConfigBase& config,
+                                     bool              resolve_infill,
+                                     std::set<std::pair<PluginCapabilityType, std::string>>& referenced,
+                                     bool&                                                    unresolved_infill)
+{
+    const ConfigDef* def = config.def();
+    if (def == nullptr)
+        return;
+
+    for (const std::string& opt_key : config.keys()) {
+        const ConfigOptionDef* opt_def = def->get(opt_key);
+        if (opt_def == nullptr || !opt_def->is_plugin_backed())
+            continue;
+
+        const ConfigOption*        opt  = config.option(opt_key);
+        const PluginCapabilityType type = plugin_capability_type_from_string(opt_def->plugin_type);
+        const auto add_value = [&](const std::string& value) {
+            if (value.empty())
+                return;
+
+            if (opt_def->plugin_type == "infill") {
+                if (!resolve_infill || opt_def->has_enum_value(value))
+                    return;
+
+                if (const std::shared_ptr<const InfillInfo> info = InfillFactory::find_infill(value)) {
+                    if (info->is_plugin())
+                        referenced.emplace(type, info->capability_name);
+                    return;
+                }
+
+                // Unknown ID, retired entry, or a provider that is not loaded.
+                unresolved_infill = true;
+                return;
+            }
+
+            referenced.emplace(type, value);
+        };
+
+        if (const auto* string_opt = dynamic_cast<const ConfigOptionString*>(opt)) {
+            add_value(string_opt->value);
+        } else if (const auto* vector_opt = dynamic_cast<const ConfigOptionVectorBase*>(opt)) {
+            for (const std::string& value : vector_opt->vserialize())
+                add_value(value);
+        }
+    }
+}
+
+} // namespace
+
+bool prune_stale_plugin_overrides(DynamicConfig&                     config,
+                                  const std::string&                 overrides_key,
+                                  const PluginOverridePruneContext& context)
 {
     const auto* overrides_opt = dynamic_cast<const ConfigOptionString*>(config.option(overrides_key));
     if (overrides_opt == nullptr || overrides_opt->value.empty())
@@ -374,25 +437,24 @@ bool prune_stale_plugin_overrides(DynamicConfig& config, const std::string& over
     // slicing_pipeline_plugin's ConfigOptionStrings entries name SlicingPipeline capabilities
     // directly, the same raw values ConfigBase::collect_plugin_manifest() resolves into the manifest.
     std::set<std::pair<PluginCapabilityType, std::string>> referenced;
-    const ConfigDef* def = config.def();
-    for (const std::string& opt_key : config.keys()) {
-        const ConfigOptionDef* opt_def = def != nullptr ? def->get(opt_key) : nullptr;
-        if (opt_def == nullptr || !opt_def->is_plugin_backed())
-            continue;
+    bool                                                   unresolved_infill = false;
+    collect_referenced_capabilities(config, context.complete, referenced, unresolved_infill);
+    for (const ConfigBase* extra : context.configs)
+        if (extra != nullptr)
+            collect_referenced_capabilities(*extra, context.complete, referenced, unresolved_infill);
 
-        const ConfigOption*        opt  = config.option(opt_key);
-        const PluginCapabilityType type = plugin_capability_type_from_string(opt_def->plugin_type);
-        if (const auto* string_opt = dynamic_cast<const ConfigOptionString*>(opt)) {
-            if (!string_opt->value.empty())
-                referenced.emplace(type, string_opt->value);
-        } else if (const auto* vector_opt = dynamic_cast<const ConfigOptionVectorBase*>(opt)) {
-            for (const std::string& value : vector_opt->vserialize())
-                if (!value.empty())
-                    referenced.emplace(type, value);
-        }
-    }
+    // The edited preset alone cannot prove an infill override stale: the same pattern settings are
+    // valid in model object, volume and layer-range overrides (Model::object_and_volume_configs(),
+    // folded into the manifest by BackgroundSlicingProcess::apply()). A caller that cannot supply
+    // every one of those scopes sets context.complete false, so infill overrides are preserved.
+    // Once the full context is available, a selected pattern that still cannot be resolved also
+    // preserves them rather than guessing an owner. Legacy entries without a capability_type are
+    // keyed Unknown and can never be attributed, so they are always kept.
+    std::set<PluginCapabilityType> preserved_types = {PluginCapabilityType::Unknown};
+    if (!context.complete || unresolved_infill)
+        preserved_types.insert(PluginCapabilityType::Infill);
 
-    if (!overrides.prune_unreferenced(referenced))
+    if (!overrides.prune_unreferenced(referenced, preserved_types))
         return false;
 
     config.set_key_value(overrides_key, new ConfigOptionString(serialize_plugin_overrides(overrides)));
@@ -524,10 +586,7 @@ std::string PluginConfig::capability_type_label(PluginCapabilityType type)
     switch (type) {
     case PluginCapabilityType::PrinterConnection: return _u8L("Printer connection");
     case PluginCapabilityType::Pages: return _u8L("Pages");
-    case PluginCapabilityType::Analysis: return _u8L("Analysis");
-    case PluginCapabilityType::Importer: return _u8L("Importer");
-    case PluginCapabilityType::Exporter: return _u8L("Exporter");
-    case PluginCapabilityType::Visualization: return _u8L("Visualization");
+    case PluginCapabilityType::Infill: return _u8L("Infill");
     case PluginCapabilityType::Script: return _u8L("Script");
     case PluginCapabilityType::SlicingPipeline: return _u8L("Slicing Pipeline");
     case PluginCapabilityType::ResourceTexture: return _u8L("Resource Texture");

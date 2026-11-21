@@ -2887,10 +2887,15 @@ public:
     void save(const std::string &file) const;
 
     //BBS: add json support
-    void save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version) const;
+    // additional_configs carry plugin-backed settings stored outside this config (model object,
+    // volume and layer-range overrides); their references are folded into the same "plugins" manifest.
+    void save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version,
+                      const std::vector<const ConfigBase*> &additional_configs = {}) const;
     // Same document, written to a stream. Invalid UTF-8 in a string value throws nlohmann's type_error unless
     // replace_invalid_utf8 is set, which writes U+FFFD instead (for callers such as stdout with no handler).
-    void save_to_json(std::ostream &os, const std::string &name, const std::string &from, const std::string &version, bool replace_invalid_utf8 = false) const;
+    void save_to_json(std::ostream &os, const std::string &name, const std::string &from, const std::string &version,
+                      bool replace_invalid_utf8 = false,
+                      const std::vector<const ConfigBase*> &additional_configs = {}) const;
 
     // Rebuild the in-memory "plugins" manifest (the "name;uuid;capability" references the plugin
     // dispatchers consume) from the plugin-backed options via the registered resolver. save_to_json()
@@ -2898,8 +2903,9 @@ public:
     // memory for the backend (PresetBundle::full_config -> Print::apply) must refresh it here or a
     // picked-but-unsaved plugin never resolves at slice/export time. A capability the resolver cannot
     // map is omitted from the derived manifest; unresolved_plugin_capabilities() reports those
-    // values. No-op without a resolver.
-    void update_plugin_manifest();
+    // values. additional_configs fold in plugin-backed settings stored in model object/volume
+    // overrides. No-op without a resolver.
+    void update_plugin_manifest(const std::vector<const ConfigBase*>& additional_configs = {});
 
     // The plugin-backed option values the registered resolver cannot map to a plugin reference --
     // exactly the values save_to_json()/update_plugin_manifest() omit from the manifest. GUI save
@@ -2916,14 +2922,22 @@ public:
 private:
     // Set a configuration value from a string.
     bool set_deserialize_raw(const t_config_option_key& opt_key_src, const std::string& value, ConfigSubstitutionContext& substitutions, bool append);
+    // Append the de-duplicated "name;uuid;capability" plugin references derived from this config's
+    // plugin-backed options to refs, preserving insertion order and dropping values that do not
+    // resolve. collect_plugin_manifest shares it, so object/volume overrides contribute to the same
+    // manifest. Requires a resolver.
+    void append_plugin_refs(std::vector<std::string>& refs) const;
     // Collect the de-duplicated "name;uuid;capability" plugin references derived from this config's
-    // plugin-backed options via the resolver. Shared by save_to_json (serializes them into the JSON
+    // plugin-backed options via the resolver, plus those of `additional_configs` (model object,
+    // volume and layer-range overrides). Shared by save_to_json (serializes them into the JSON
     // manifest) and update_plugin_manifest (writes them back into the "plugins" option). Order is
     // preserved and values that do not resolve are dropped; returns empty without a resolver
     // (CLI/headless).
-    std::vector<std::string> collect_plugin_manifest() const;
+    std::vector<std::string> collect_plugin_manifest(const std::vector<const ConfigBase*>& additional_configs = {}) const;
     // Calls fn(opt_key, plugin_type, capability_name) for every non-empty capability name held by a
-    // plugin-backed option of this config, in key order. A single walk feeds both the serializer
+    // plugin-backed option of this config, in key order. A built-in value of an "infill" option names
+    // a built-in pattern rather than a plugin capability, so it is skipped: it has no reference to
+    // derive and must not be reported as unresolved. A single walk feeds both the serializer
     // (collect_plugin_manifest) and unresolved_plugin_capabilities, so they cannot disagree on which
     // values resolve.
     void for_each_plugin_capability(const std::function<void(const std::string& opt_key, const std::string& plugin_type, const std::string& capability_name)>& fn) const;

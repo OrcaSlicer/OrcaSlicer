@@ -430,7 +430,7 @@ bool ensure_belt_purge_tower(Model &model, PartPlateList &partplate_list, Object
         cfg.set_key_value("top_shell_layers", new ConfigOptionInt(0));
         cfg.set_key_value("bottom_shell_layers", new ConfigOptionInt(0));
         cfg.set_key_value("sparse_infill_density", new ConfigOptionPercent(100));
-        cfg.set_key_value("sparse_infill_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
+        cfg.set_key_value("sparse_infill_pattern", new ConfigOptionString(ConfigOptionEnum<InfillPattern>(ipRectilinear).serialize()));
         cfg.set_key_value("enable_support", new ConfigOptionBool(false));
         cfg.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btNoBrim));
         cfg.set_key_value("seam_slope_type", new ConfigOptionEnum<SeamScarfType>(SeamScarfType::None));

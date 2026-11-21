@@ -82,6 +82,7 @@
 #include "libslic3r/libslic3r.h"
 #include "slic3r/GUI/PrinterWebView.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include <slic3r/GUI/Field.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <string>
 #include <vector>
@@ -3093,6 +3094,37 @@ void GUI_App::init_plugin_gui_wiring()
     };
 
     plugin_mgr.subscribe_on_unload_callback(PluginHostUi::close_windows_for_plugin);
+    const auto refresh_infill_choices = [](bool revalidate) {
+        auto* app = static_cast<GUI_App*>(wxTheApp);
+        if (app == nullptr || app->is_closing())
+            return;
+
+        app->CallAfter([app, revalidate]() {
+            if (wxTheApp != app || app->is_closing())
+                return;
+            Choice::refresh_plugin_infill_choices();
+            if (revalidate)
+                if (Plater* plater = app->plater())
+                    plater->revalidate_current_plate_if_plugins_missing();
+        });
+    };
+    // Package callbacks also cover loads that publish infill and unloads after their capabilities
+    // have already been detached. Refreshing choices must not cancel a pinned slicing job.
+    plugin_mgr.subscribe_on_load_callback([refresh_infill_choices](const std::string& key) {
+        const bool has_infill = !key.empty() &&
+            !PluginManager::instance().get_plugin_capabilities(key, PluginCapabilityType::Infill, true).empty();
+        refresh_infill_choices(has_infill);
+    });
+    plugin_mgr.subscribe_on_unload_callback([refresh_infill_choices](const std::string&) { refresh_infill_choices(false); });
+    plugin_mgr.subscribe_on_capability_load_callback([refresh_infill_choices](const PluginCapabilityId& capability) {
+        if (capability.type == PluginCapabilityType::Infill) refresh_infill_choices(true);
+    });
+    plugin_mgr.subscribe_on_capability_unload_callback([refresh_infill_choices](const PluginCapabilityId& capability) {
+        if (capability.type == PluginCapabilityType::Infill) refresh_infill_choices(false);
+    });
+    plugin_mgr.subscribe_on_runtime_error_callback([refresh_plugins_dialog](const std::string&) {
+        refresh_plugins_dialog();
+    });
     plugin_mgr.subscribe_on_load_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
     plugin_mgr.subscribe_on_unload_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
     plugin_mgr.subscribe_on_load_callback(NetworkAgentFactory::register_python_plugin);
@@ -3120,13 +3152,6 @@ void GUI_App::init_plugin_gui_wiring()
                 NetworkAgentFactory::register_python_printer_agent(capability.plugin_key, capability.name);
             refresh_plugins_dialog();
             refresh_printer_agent_after_load(capability.type == PluginCapabilityType::PrinterConnection);
-            // A newly loaded capability may satisfy a missing-plugin notification; re-validate the
-            // current plate (on the UI thread) so the notification clears once its plugin is available.
-            if (wxTheApp && !wxGetApp().is_closing())
-                wxGetApp().CallAfter([]() {
-                    if (Plater* plater = wxGetApp().plater())
-                        plater->revalidate_current_plate_if_plugins_missing();
-                });
             if (capability.type == PluginCapabilityType::Pages && wxTheApp && !wxGetApp().is_closing() && wxGetApp().mainframe)
                 wxGetApp().mainframe->plugin_pages().on_cap_register(capability);
         });
@@ -3141,20 +3166,22 @@ void GUI_App::init_plugin_gui_wiring()
         });
     // A plugin that finished loading, or went away, can resolve or raise a missing-plugin notice. A fresh
     // load fires no capability-load callback, and nothing above re-checks on unload or disable.
-    const auto refresh_missing_plugin_notifications = []() {
+    const auto refresh_missing_plugin_notifications = [](const std::string& plugin_key) {
         if (wxTheApp == nullptr || wxGetApp().is_closing())
             return;
-        wxGetApp().CallAfter([]() {
+        wxGetApp().CallAfter([plugin_key]() {
             if (wxGetApp().is_closing())
                 return;
             if (Plater* plater = wxGetApp().plater())
-                plater->refresh_missing_plugin_notifications();
+                plater->refresh_missing_plugin_notifications(plugin_key);
         });
     };
-    plugin_mgr.subscribe_on_load_callback([refresh_missing_plugin_notifications](const std::string&) { refresh_missing_plugin_notifications(); });
-    plugin_mgr.subscribe_on_unload_callback([refresh_missing_plugin_notifications](const std::string&) { refresh_missing_plugin_notifications(); });
+    plugin_mgr.subscribe_on_load_callback([refresh_missing_plugin_notifications](const std::string& key) { refresh_missing_plugin_notifications(key); });
+    plugin_mgr.subscribe_on_unload_callback([refresh_missing_plugin_notifications](const std::string& key) { refresh_missing_plugin_notifications(key); });
+    plugin_mgr.subscribe_on_capability_load_callback(
+        [refresh_missing_plugin_notifications](const PluginCapabilityId& capability) { refresh_missing_plugin_notifications(capability.plugin_key); });
     plugin_mgr.subscribe_on_capability_unload_callback(
-        [refresh_missing_plugin_notifications](const PluginCapabilityId&) { refresh_missing_plugin_notifications(); });
+        [refresh_missing_plugin_notifications](const PluginCapabilityId& capability) { refresh_missing_plugin_notifications(capability.plugin_key); });
     plugin_mgr.subscribe_on_load_callback([](const std::string& plugin_key) {
         if (wxTheApp == nullptr || wxGetApp().is_closing())
             return;

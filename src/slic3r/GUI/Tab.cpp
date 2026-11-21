@@ -2158,7 +2158,28 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         opt_def && opt_def->is_plugin_backed()) {
         m_config->update_plugin_manifest();
         const std::string overrides_key = Preset::plugin_overrides_key(m_type);
-        if (prune_stale_plugin_overrides(*m_config, overrides_key)) {
+        PluginOverridePruneContext prune_context;
+        // Only the process preset owns the print override document. Model and plate tabs edit
+        // derived configs, so they keep the safe default that preserves infill overrides.
+        if (m_type == Preset::TYPE_PRINT && m_preset_bundle != nullptr) {
+            // A process preset override applies to every object, volume, layer range and plate in
+            // the project. Collect all of them, plus the project config merged after the preset,
+            // so an infill pattern selected only outside the preset still keeps its capability's
+            // override. These are main-thread GUI objects and stay alive for this synchronous call.
+            Plater* plater = wxGetApp().plater();
+            if (plater != nullptr) {
+                Model& model = plater->model();
+                prune_context.configs = model.object_and_volume_configs();
+                for (const ConfigBase* material_config : model.referenced_material_configs())
+                    prune_context.configs.push_back(material_config);
+                for (PartPlate* plate : plater->get_partplate_list().get_plate_list())
+                    if (plate != nullptr)
+                        prune_context.configs.push_back(plate->config());
+                prune_context.configs.push_back(&m_preset_bundle->project_config);
+                prune_context.complete = true;
+            }
+        }
+        if (prune_stale_plugin_overrides(*m_config, overrides_key, prune_context)) {
             if (Field* overrides_field = get_field(overrides_key))
                 overrides_field->set_value(boost::any(m_config->opt_string(overrides_key)), false);
         }
@@ -2503,7 +2524,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 
     if (opt_key == "sparse_infill_rotate_template") {
         // Orca: show warning dialog if rotate template for solid infill if not support
-        const auto _sparse_infill_pattern = m_config->option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value;
+        const auto _sparse_infill_pattern = infill_pattern_from_key(m_config->opt_string("sparse_infill_pattern"));
         bool       is_safe_to_rotate      = _sparse_infill_pattern == ipRectilinear || _sparse_infill_pattern == ipLine ||
                                  _sparse_infill_pattern == ipZigZag || _sparse_infill_pattern == ipCrossZag ||
                                  _sparse_infill_pattern == ipLockedZag;

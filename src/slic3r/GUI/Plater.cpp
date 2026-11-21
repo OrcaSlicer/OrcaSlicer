@@ -5,6 +5,8 @@
 #include "CalibUtils.hpp"
 #include "Flashforge.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/Fill/InfillFactory.hpp"
+#include "libslic3r/Fill/InfillPurpose.hpp"
 #include "libslic3r_version.h"
 
 #include <boost/assert/source_location.hpp>
@@ -7292,6 +7294,9 @@ struct Plater::priv
     std::string m_cloud_missing_shown_sig;
     std::string m_inactive_shown_sig;
     std::string m_broken_shown_sig;
+    bool m_plugin_status_refresh_pending {false};
+    std::set<std::string> m_infill_provider_refresh_pending;
+    bool m_plugin_validation_after_apply {false};
     bool auto_reslice_pending {false};
     bool auto_reslice_after_cancel {false};
     int m_is_RightClickInLeftUI{-1};
@@ -9523,9 +9528,9 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         auto* rotate_template = config_loaded.option<ConfigOptionString>("sparse_infill_rotate_template");
                         if (rotate_template == nullptr || rotate_template->value.empty())
                             return;
-                        const auto* pattern_opt = config_loaded.option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern");
-                        const auto _sparse_infill_pattern =
-                            pattern_opt != nullptr ? pattern_opt->value : FullPrintConfig::defaults().sparse_infill_pattern.value;
+                        const auto* pattern_opt = config_loaded.option<ConfigOptionString>("sparse_infill_pattern");
+                        const auto _sparse_infill_pattern = infill_pattern_from_key(
+                            pattern_opt != nullptr ? pattern_opt->value : FullPrintConfig::defaults().sparse_infill_pattern.value);
                         bool is_safe_to_rotate = _sparse_infill_pattern == ipRectilinear || _sparse_infill_pattern == ipLine ||
                                                  _sparse_infill_pattern == ipZigZag || _sparse_infill_pattern == ipCrossZag ||
                                                  _sparse_infill_pattern == ipLockedZag;
@@ -11715,10 +11720,78 @@ std::string imex_placement_error(PartPlate* plate)
     return {};
 }
 
+std::string unavailable_infill_error(const Print* print)
+{
+    if (!print)
+        return {};
+    // Print's region selections include object, modifier and layer-range overrides.
+    for (const auto& dependency : print->plugin_infill_dependencies()) {
+        const auto info = InfillFactory::find_infill(dependency.pattern_id);
+        if (!info || !info->is_plugin()) {
+            // TRN %1% is the stable infill pattern ID stored in the project.
+            return Slic3r::format(_u8L("Plugin infill pattern '%1%' is unavailable. Check the plugin's diagnostic details."),
+                                  dependency.pattern_id);
+        }
+    }
+    return {};
+}
+
+// A loaded toolpath may have no Print regions or dependency snapshot. Only classify it as
+// built-in-only when the current preset and every relevant model override can establish that.
+bool plate_may_use_plugin_infill(PartPlate& plate, const Model& model, const DynamicPrintConfig& preset)
+{
+    const auto may_use_plugin = [](const DynamicPrintConfig& config, bool require_all) {
+        for (const InfillPatternSetting& setting : infill_pattern_settings) {
+            const ConfigOption* option = config.option(std::string(setting.option_key));
+            if (!option) {
+                if (require_all)
+                    return true;
+                continue;
+            }
+            const auto* pattern = dynamic_cast<const ConfigOptionString*>(option);
+            if (!pattern || !is_builtin_infill_pattern_key(pattern->value))
+                return true;
+        }
+        return false;
+    };
+
+    if (may_use_plugin(preset, true))
+        return true;
+    bool found_object = false;
+    for (size_t object_idx = 0; object_idx < model.objects.size(); ++object_idx) {
+        const ModelObject* object = model.objects[object_idx];
+        bool on_plate = false;
+        for (size_t instance_idx = 0; instance_idx < object->instances.size(); ++instance_idx)
+            if (plate.contain_instance(int(object_idx), int(instance_idx))) {
+                on_plate = true;
+                break;
+            }
+        if (!on_plate)
+            continue;
+        found_object = true;
+        if (may_use_plugin(object->config.get(), false))
+            return true;
+        for (const ModelVolume* volume : object->volumes) {
+            if (may_use_plugin(volume->config.get(), false))
+                return true;
+            if (const ModelMaterial* material = volume->material();
+                material && may_use_plugin(material->config.get(), false))
+                return true;
+        }
+        for (const auto& range : object->layer_config_ranges)
+            if (may_use_plugin(range.second.get(), false))
+                return true;
+    }
+    // With no identifiable model instance, the G-code's dependencies cannot be established.
+    return !found_object;
+}
+
 } // namespace
 
 unsigned int Plater::priv::update_background_process(bool force_validation, bool postpone_error_messages, bool switch_print)
 {
+    force_validation |= m_plugin_validation_after_apply;
+    m_plugin_validation_after_apply = false;
     // bitmap of enum UpdateBackgroundProcessReturnState
     unsigned int return_state = 0;
 
@@ -11819,6 +11892,8 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
 
         if (err.string.empty())
             err.string = imex_placement_error(partplate_list.get_curr_plate());
+        if (err.string.empty() && printer_technology == ptFFF)
+            err.string = unavailable_infill_error(background_process.fff_print());
 
         if (err.string.empty()) {
             this->partplate_list.get_curr_plate()->update_apply_result_invalid(false);
@@ -13872,6 +13947,10 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         update_fff_scene_only_shells();
         q->Thaw();
     }
+    // Plugin changes during a slice must not apply a new config to the running print. Once the
+    // whole job is done, revalidate and refresh the buttons using the current plugin state.
+    if (m_plugin_status_refresh_pending && !m_is_slicing && !background_process.running())
+        q->refresh_missing_plugin_notifications();
     if (auto_reslice_after_cancel) {
         auto_reslice_after_cancel = false;
         schedule_auto_reslice_if_needed();
@@ -17671,11 +17750,11 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
         _obj->config.set_key_value("bottom_shell_thickness", new ConfigOptionFloat(0));
         _obj->config.set_key_value("detect_thin_wall", new ConfigOptionBool(true));
         _obj->config.set_key_value("filter_out_gap_fill", new ConfigOptionFloat(0));
-        _obj->config.set_key_value("sparse_infill_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
+        _obj->config.set_key_value("sparse_infill_pattern", new ConfigOptionString(ConfigOptionEnum<InfillPattern>(ipRectilinear).serialize()));
         _obj->config.set_key_value("top_surface_line_width", new ConfigOptionFloatOrPercent(infill_line_width, false));
         _obj->config.set_key_value("internal_solid_infill_line_width", new ConfigOptionFloatOrPercent(infill_line_width, false));
         // ORCA: use the pattern parameter
-        _obj->config.set_key_value("top_surface_pattern", new ConfigOptionEnum<InfillPattern>(pattern));
+        _obj->config.set_key_value("top_surface_pattern", new ConfigOptionString(ConfigOptionEnum<InfillPattern>(pattern).serialize()));
         const auto *top_solid_flow = dynamic_cast<const ConfigOptionFloatsNullable *>(_obj->config.option("top_solid_infill_flow_ratio"));
         _obj->config.set_key_value("top_solid_infill_flow_ratio",
                                    new ConfigOptionFloatsNullable(top_solid_flow ? top_solid_flow->size() : 1, 1.0f));
@@ -18385,7 +18464,7 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
     print_config->set_key_value("detect_thin_wall", new ConfigOptionBool(false));
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
     print_config->set_key_value("spiral_mode_smooth", new ConfigOptionBool(false));
-    print_config->set_key_value("bottom_surface_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
+    print_config->set_key_value("bottom_surface_pattern", new ConfigOptionString(ConfigOptionEnum<InfillPattern>(ipRectilinear).serialize()));
     const double machine_max_speed = std::min(printer_config->option<ConfigOptionFloats>("machine_max_speed_x")->get_at(0), printer_config->option<ConfigOptionFloats>("machine_max_speed_y")->get_at(0));
     const double machine_max_acceleration = printer_config->option<ConfigOptionFloats>("machine_max_acceleration_extruding")->get_at(0);
     set_config_values<double, ConfigOptionFloatsNullable>(print_config, "outer_wall_speed", machine_max_speed);
@@ -18455,7 +18534,7 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
     print_config->set_key_value("detect_thin_wall", new ConfigOptionBool(false));
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
     print_config->set_key_value("spiral_mode_smooth", new ConfigOptionBool(false));
-    print_config->set_key_value("bottom_surface_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
+    print_config->set_key_value("bottom_surface_pattern", new ConfigOptionString(ConfigOptionEnum<InfillPattern>(ipRectilinear).serialize()));
     const double machine_max_speed = std::min(printer_config->option<ConfigOptionFloats>("machine_max_speed_x")->get_at(0), printer_config->option<ConfigOptionFloats>("machine_max_speed_y")->get_at(0));
     const double machine_max_acceleration = printer_config->option<ConfigOptionFloats>("machine_max_acceleration_extruding")->get_at(0);
     set_config_values<double, ConfigOptionFloatsNullable>(print_config, "outer_wall_speed", machine_max_speed);
@@ -18526,7 +18605,7 @@ void Plater::Calib_Cornering(const Calib_Params& params)
     print_config->set_key_value("detect_thin_wall", new ConfigOptionBool(false));
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
     print_config->set_key_value("spiral_mode_smooth", new ConfigOptionBool(false));
-    print_config->set_key_value("bottom_surface_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
+    print_config->set_key_value("bottom_surface_pattern", new ConfigOptionString(ConfigOptionEnum<InfillPattern>(ipRectilinear).serialize()));
     const double machine_max_speed = std::min(printer_config->option<ConfigOptionFloats>("machine_max_speed_x")->get_at(0), printer_config->option<ConfigOptionFloats>("machine_max_speed_y")->get_at(0));
     const double machine_max_acceleration = printer_config->option<ConfigOptionFloats>("machine_max_acceleration_extruding")->get_at(0);
     set_config_values<double, ConfigOptionFloatsNullable>(print_config, "outer_wall_speed", machine_max_speed);
@@ -21340,6 +21419,11 @@ void Plater::reslice()
     // Print::validate; all other validation keeps upstream behavior and is surfaced by
     // update_background_process() below.
     if (refresh_missing_plugin_block()) {
+        // The resolver can block before the scheduled config apply. Validate the new settings as
+        // well, so an unavailable pattern is reported even when another plugin is already missing.
+        // Never apply while a slice or export is using the current print.
+        if (!p->background_process.running() && !p->m_is_slicing)
+            p->update_background_process(true);
         p->partplate_list.get_curr_plate()->update_slice_ready_status(false);
         p->main_frame->update_slice_print_status(MainFrame::eEventPlateUpdate, false);
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": required plugins missing; slicing blocked.";
@@ -23425,6 +23509,11 @@ void Plater::validate_current_plate(bool& model_fits, bool& validate_error)
             if (!err.string.empty())
                 model_fits = false;
         }
+        if (err.string.empty()) {
+            err.string = unavailable_infill_error(p->background_process.fff_print());
+            if (!err.string.empty())
+                model_fits = false;
+        }
 
         if (err.string.empty()) {
             p->partplate_list.get_curr_plate()->update_apply_result_invalid(false);
@@ -23609,17 +23698,97 @@ void Plater::revalidate_current_plate_if_plugins_missing()
     if (p->m_local_missing_shown_sig.empty() && p->m_cloud_missing_shown_sig.empty() &&
         p->m_inactive_shown_sig.empty() && p->m_broken_shown_sig.empty())
         return;
+    if (p->background_process.running() || p->m_is_slicing) {
+        p->m_plugin_status_refresh_pending = true;
+        return;
+    }
+    if (p->background_process_timer.IsRunning()) {
+        p->m_plugin_validation_after_apply = true;
+        return;
+    }
     bool model_fits = true, validate_error = false;
     validate_current_plate(model_fits, validate_error);
 }
 
-void Plater::refresh_missing_plugin_notifications()
+void Plater::refresh_missing_plugin_notifications(const std::string& provider_key)
 {
+    if (!provider_key.empty())
+        p->m_infill_provider_refresh_pending.insert(provider_key);
     bool block_toggled = false;
-    refresh_missing_plugin_block(&block_toggled);
-    // update() re-evaluates the Slice button, which honors plugins_block_slicing().
-    if (block_toggled)
-        update();
+    const bool blocked = refresh_missing_plugin_block(&block_toggled);
+
+    if (p->background_process.running() || p->m_is_slicing) {
+        // A running slice keeps the providers it pinned; retry from on_process_completed() once it
+        // ends. Nothing below may invalidate its steps now. The retry is unconditional: a provider
+        // can change behind a still-selected pattern ID without toggling the block.
+        p->m_plugin_status_refresh_pending = true;
+        if (blocked)
+            p->partplate_list.get_curr_plate()->update_slice_ready_status(false);
+        return;
+    }
+
+    // Provider events may replace implementation without changing any descriptor metadata.
+    // Invalidate cached fills from that provider, including prints on non-current plates.
+    const bool provider_event = !p->m_infill_provider_refresh_pending.empty();
+    if (provider_event) {
+        for (int i = 0; i < p->partplate_list.get_plate_count(); ++i) {
+            PartPlate* plate = p->partplate_list.get_plate(i);
+            if (!plate)
+                continue;
+            PrintBase* base = nullptr;
+            plate->get_print(&base, nullptr, nullptr);
+            if (Print* print = dynamic_cast<Print*>(base)) {
+                auto dependencies = print->sliced_plugin_infill_dependencies();
+                // Loaded 3MF toolpaths have no in-memory sliced dependency snapshot.
+                const bool loaded_result = dependencies.empty() && plate->is_slice_result_valid();
+                if (loaded_result)
+                    dependencies = print->plugin_infill_dependencies();
+                // Current registry ownership cannot identify who produced imported toolpaths.
+                bool affected = (loaded_result && !dependencies.empty()) ||
+                    std::any_of(dependencies.begin(), dependencies.end(), [&](const auto& dependency) {
+                        return p->m_infill_provider_refresh_pending.count(dependency.plugin_key) != 0;
+                    });
+                // Without a snapshot, completed object steps do not establish who produced a
+                // loaded result. Use the current settings only to recognize built-in-only cases.
+                if (loaded_result && dependencies.empty())
+                    affected = plate_may_use_plugin_infill(
+                        *plate, p->model, wxGetApp().preset_bundle->prints.get_edited_preset().config);
+                if (affected) {
+                    print->invalidate_plugin_infill();
+                    plate->update_slice_result_valid_state(false);
+                }
+            } else if (!base && p->printer_technology == ptFFF && plate->is_slice_result_valid() &&
+                       plate_may_use_plugin_infill(
+                           *plate, p->model, wxGetApp().preset_bundle->prints.get_edited_preset().config)) {
+                plate->update_slice_result_valid_state(false);
+            }
+        }
+        p->m_infill_provider_refresh_pending.clear();
+    }
+
+    if (!block_toggled && !p->m_plugin_status_refresh_pending && !provider_event)
+        return;
+
+    if (blocked)
+        p->partplate_list.get_curr_plate()->update_slice_ready_status(false);
+
+    p->m_plugin_status_refresh_pending = false;
+    // A provider event can overtake a queued settings apply. Let the existing timer apply and
+    // validate the new settings instead of validating stale Print regions or consuming its restart.
+    if (p->background_process_timer.IsRunning()) {
+        p->m_plugin_validation_after_apply = true;
+        p->main_frame->update_slice_print_status(MainFrame::eEventObjectUpdate, false);
+        return;
+    }
+    bool model_fits = false, validate_error = false;
+    validate_current_plate(model_fits, validate_error);
+    if (blocked) {
+        model_fits = false;
+        p->partplate_list.get_curr_plate()->update_slice_ready_status(false);
+    }
+    // Re-evaluate the buttons without update(), which schedules a background config apply and
+    // could cancel a pinned slice or its export when a plugin is unloaded.
+    p->main_frame->update_slice_print_status(MainFrame::eEventObjectUpdate, model_fits);
 }
 
 void Plater::install_missing_cloud_plugins(const std::vector<std::string>& cloud_refs)

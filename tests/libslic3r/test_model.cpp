@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 #include <algorithm>
 #include <cstddef>
+#include <libslic3r/Config.hpp>
 #include <utility>
 #include <vector>
 #include "libslic3r/TriangleMesh.hpp"
@@ -202,6 +203,32 @@ TEST_CASE("Repairing a part replaces its mesh only when the repair changes it", 
     CHECK(valid->id() == valid_id);
 }
 
+TEST_CASE("The plugin config traversal covers objects, volumes, layer ranges and referenced materials", "[Model]")
+{
+    // Plugin-backed print settings can be overridden at any of these levels; a layer-range override in
+    // particular can be the only place a plugin pattern is selected.
+    Model model;
+    ModelObject *object = model.add_object();
+    object->add_volume(make_cube(10, 10, 10), ModelVolumeType::MODEL_PART, false);
+    object->layer_config_ranges.emplace(t_layer_height_range{ 0., 5. }, ModelConfig());
+
+    ModelMaterial *material = model.add_material("material");
+    object->volumes.front()->set_material_id("material");
+    // An unreferenced material cannot affect a region and must not be reported.
+    model.add_material("unused");
+
+    const std::vector<const ConfigBase*> configs = model.object_and_volume_configs();
+
+    REQUIRE(configs.size() == 3);
+    CHECK(configs[0] == &object->config.get());
+    CHECK(configs[1] == &object->volumes.front()->config.get());
+    CHECK(configs[2] == &object->layer_config_ranges.begin()->second.get());
+
+    const std::vector<const ConfigBase*> material_configs = model.referenced_material_configs();
+    REQUIRE(material_configs.size() == 1);
+    CHECK(material_configs.front() == &material->config.get());
+}
+
 // A cube whose raw mesh spans [0, size] on every axis, with one instance at plate_offset on the plate.
 static ModelObject *add_cube(Model &model, double size, const Vec3d &plate_offset)
 {
@@ -259,6 +286,7 @@ TEST_CASE("Ignored objects do not push an object aside in the assembly view", "[
     CHECK_THAT(box.center().x(), Catch::Matchers::WithinAbs(0., 1e-6));
     CHECK_THAT(box.center().y(), Catch::Matchers::WithinAbs(0., 1e-6));
 }
+
 namespace {
 
 // A box of the given size whose lowest corner is at `corner` in the file's coordinates. The mesh keeps them, unless

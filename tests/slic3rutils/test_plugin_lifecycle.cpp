@@ -34,6 +34,7 @@
 #include <fstream>
 #include <mutex>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <utility>
@@ -1599,3 +1600,182 @@ TEST_CASE("SSL_CERT_FILE still overrides the bundled Python's default CA certifi
     CHECK(default_context_ca_count() == 0);
 }
 #endif
+
+// report_plugin_diagnostic() is called from an infill generation worker while it may still hold a
+// provider lease. It must not wait for discovery (an unload that follows discovery waits for that
+// exact lease), its diagnostic must outlive a manifest rescan, and a throwing subscriber must not
+// escape into the worker and replace the SlicingError it is about to raise.
+
+TEST_CASE("A runtime diagnostic survives a plugin rescan and is cleared by a reload", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("lifecycle-runtime-diagnostic");
+    write_plugin(data_dir_guard, "Echo_Plugin", ECHO_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "Echo_Plugin", error));
+    INFO("load error: " << error);
+
+    REQUIRE(manager.report_plugin_diagnostic("Echo_Plugin", "generate exploded"));
+
+    PluginDescriptor descriptor;
+    REQUIRE(manager.try_get_plugin_descriptor("Echo_Plugin", descriptor));
+    CHECK(descriptor.error.find("generate exploded") != std::string::npos);
+
+    // A manifest-only rescan replaces the descriptor. A runtime diagnostic is not scan state and has
+    // to be carried across the merge.
+    manager.discover_plugins(/*async=*/false, /*clear=*/false);
+    REQUIRE(manager.try_get_plugin_descriptor("Echo_Plugin", descriptor));
+    CHECK(descriptor.error.find("generate exploded") != std::string::npos);
+
+    // A reload is the documented end of a diagnostic's life.
+    REQUIRE(manager.unload_plugin("Echo_Plugin"));
+    REQUIRE(load_and_wait(manager, "Echo_Plugin", error));
+    REQUIRE(manager.try_get_plugin_descriptor("Echo_Plugin", descriptor));
+    CHECK(descriptor.error.empty());
+}
+
+TEST_CASE("A throwing runtime-error subscriber does not escape report_plugin_diagnostic", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("lifecycle-runtime-diagnostic-callback");
+    write_plugin(data_dir_guard, "Echo_Plugin", ECHO_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "Echo_Plugin", error));
+    INFO("load error: " << error);
+
+    manager.subscribe_on_runtime_error_callback([](const std::string&) {
+        throw std::runtime_error("subscriber boom");
+    });
+    CHECK_NOTHROW(manager.report_plugin_diagnostic("Echo_Plugin", "recorded despite subscriber"));
+
+    PluginDescriptor descriptor;
+    REQUIRE(manager.try_get_plugin_descriptor("Echo_Plugin", descriptor));
+    CHECK(descriptor.error.find("recorded despite subscriber") != std::string::npos);
+
+    manager.unload_plugin("Echo_Plugin");
+}
+
+TEST_CASE("A runtime diagnostic is recorded without waiting for an in-progress discovery scan", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("lifecycle-diagnostic-during-discovery");
+    write_plugin(data_dir_guard, "Echo_Plugin", ECHO_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    PluginDescriptor descriptor;
+    REQUIRE(manager.try_get_plugin_descriptor("Echo_Plugin", descriptor));
+
+    // Hold the discovery worker between its package scan and the descriptor merge. At that point
+    // discovery is still in progress and the worker holds no registry lock, so the report below
+    // deterministically lands mid-discovery instead of racing a fast scan.
+    //
+    // The worker's wait is bounded: if report_plugin_diagnostic ever regresses to waiting for
+    // discovery, the gate expires so the report can return and the test fails instead of hanging.
+    struct DiscoveryGate
+    {
+        struct State
+        {
+            std::mutex mutex;
+            std::condition_variable cv;
+            bool reached   = false;
+            bool released  = false;
+            bool timed_out = false;
+        };
+
+        PluginManager& manager;
+        // Shared with the worker's callback copy so the state outlives this guard even if teardown
+        // times out while discovery still holds a reference.
+        std::shared_ptr<State> state = std::make_shared<State>();
+
+        explicit DiscoveryGate(PluginManager& manager_) : manager(manager_)
+        {
+            std::shared_ptr<State> gate_state = state;
+            manager.set_discovery_gate_for_testing([gate_state] { hold(*gate_state); });
+        }
+
+        ~DiscoveryGate()
+        {
+            release();
+            std::string wait_error;
+            manager.wait_for_discovery(std::chrono::seconds(120), wait_error);
+            manager.set_discovery_gate_for_testing({});
+        }
+
+        DiscoveryGate(const DiscoveryGate&)            = delete;
+        DiscoveryGate& operator=(const DiscoveryGate&) = delete;
+
+        static void hold(State& state)
+        {
+            std::unique_lock<std::mutex> lock(state.mutex);
+            state.reached = true;
+            state.cv.notify_all();
+            if (!state.cv.wait_for(lock, std::chrono::seconds(60), [&state] { return state.released; }))
+                state.timed_out = true;
+        }
+
+        void release()
+        {
+            std::lock_guard<std::mutex> lock(state->mutex);
+            state->released = true;
+            state->cv.notify_all();
+        }
+
+        bool wait_until_reached(std::chrono::milliseconds timeout)
+        {
+            std::unique_lock<std::mutex> lock(state->mutex);
+            return state->cv.wait_for(lock, timeout, [this] { return state->reached; });
+        }
+
+        bool timed_out()
+        {
+            std::lock_guard<std::mutex> lock(state->mutex);
+            return state->timed_out;
+        }
+    } gate(manager);
+
+    manager.discover_plugins(/*async=*/true, /*clear=*/false);
+    REQUIRE(gate.wait_until_reached(std::chrono::seconds(120)));
+
+    // A generation worker reports here while it still holds its provider lease. Recording the
+    // diagnostic takes only the registry lock, which the discovery worker does not hold at this
+    // point, so discovery must still be in progress when the call returns: waiting for it would
+    // make a concurrent unload, which waits for the lease, wait for the whole discovery.
+    REQUIRE(manager.is_discovery_in_progress());
+    REQUIRE(manager.report_plugin_diagnostic("Echo_Plugin", "boom while a scan runs"));
+
+    // A bounded gate expiry means report_plugin_diagnostic waited for discovery: the worker had to
+    // be released by the timeout before the report could return.
+    INFO("report_plugin_diagnostic must not wait for discovery to finish");
+    REQUIRE_FALSE(gate.timed_out());
+    CHECK(manager.is_discovery_in_progress());
+
+    gate.release();
+
+    std::string wait_error;
+    REQUIRE(manager.wait_for_discovery(std::chrono::seconds(120), wait_error));
+    INFO("discovery error: " << wait_error);
+    CHECK(wait_error.empty());
+
+    // The scan's descriptor merge must carry the diagnostic recorded while it was in flight.
+    REQUIRE(manager.try_get_plugin_descriptor("Echo_Plugin", descriptor));
+    CHECK(descriptor.error.find("boom while a scan runs") != std::string::npos);
+}

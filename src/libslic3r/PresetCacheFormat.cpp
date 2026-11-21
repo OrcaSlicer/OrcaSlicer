@@ -116,6 +116,9 @@ void CacheDictionary::load(cereal::BinaryInputArchive& ar)
     if (m_enum_values.empty() || ! m_enum_values.front().empty())
         throw std::runtime_error("preset cache: dictionary is missing its unnamed-enum slot");
     // Resolved once per file: every option read after this is a vector index.
+    // The definition is kept even where this build's type differs from the one
+    // written: read_config reads the value by the written type and places a
+    // retyped key from its text.
     m_defs.resize(m_keys.size());
     m_reported.assign(m_keys.size(), char(0));
     for (size_t i = 0; i < m_keys.size(); ++ i)
@@ -141,10 +144,15 @@ static void save_enum_option(cereal::BinaryOutputArchive& ar, const ConfigOption
 // `text` given, the value is also returned as the text a JSON profile would
 // carry — the names, comma-separated for a vector, with an int the writer
 // could not name as a number or "nil" — for read_config to place a key this
-// build types differently through handle_legacy.
-static void load_enum_option(cereal::BinaryInputArchive& ar, ConfigOptionType type,
+// build types differently through handle_legacy. Returns false when there is
+// no usable text to place: an ordinal the writer could not name has no
+// spelling, and a string target must not receive one, since naming it from
+// today's enum could restore a value nobody chose. The bytes are consumed
+// either way, so whatever follows the option still loads.
+static bool load_enum_option(cereal::BinaryInputArchive& ar, ConfigOptionType type,
                              const ConfigOptionDef* def, DynamicPrintConfig* config,
-                             const CacheDictionary& dict, std::string* text = nullptr)
+                             const CacheDictionary& dict, std::string* text = nullptr,
+                             bool string_target = false)
 {
     uint32_t cnt = 0;
     ar(cnt);
@@ -153,6 +161,7 @@ static void load_enum_option(cereal::BinaryInputArchive& ar, ConfigOptionType ty
     // Every element is read whatever happens, so the stream stays in sync and
     // whatever follows this option still loads.
     bool usable = def != nullptr && config != nullptr;
+    bool text_ok = true;
     std::vector<int> values;
     if (usable)
         values.reserve(cnt);
@@ -171,24 +180,36 @@ static void load_enum_option(cereal::BinaryInputArchive& ar, ConfigOptionType ty
                 values.push_back(int(raw));
                 continue;
             }
-            const auto it = def->enum_keys_map == nullptr ? def->enum_keys_map->end() : def->enum_keys_map->find(dict.enum_name_at(idx));
-            if (def->enum_keys_map != nullptr && it != def->enum_keys_map->end()) {
-                values.push_back(it->second);
-                continue;
+            if (def->enum_keys_map != nullptr) {
+                const auto it = def->enum_keys_map->find(dict.enum_name_at(idx));
+                if (it != def->enum_keys_map->end()) {
+                    values.push_back(it->second);
+                    continue;
+                }
             }
             usable = false;       // a value this build dropped: the option goes with it
         }
-        if (text != nullptr) {
+        if (text == nullptr)
+            continue;
+        if (idx == CacheDictionary::ENUM_UNNAMED) {
+            // ...except into a string, which has nothing to spell. Naming the
+            // int from today's enum could restore a different value, so the
+            // key is dropped instead.
+            if (string_target) {
+                text_ok = false;
+                continue;
+            }
             if (! text->empty())
                 *text += ',';
-            if (idx != CacheDictionary::ENUM_UNNAMED)
-                *text += dict.enum_name_at(idx);
-            else
-                *text += raw == ConfigOptionIntsNullable::nil_value() ? std::string("nil") : std::to_string(raw);
+            *text += raw == ConfigOptionIntsNullable::nil_value() ? std::string("nil") : std::to_string(raw);
+        } else {
+            if (! text->empty())
+                *text += ',';
+            *text += dict.enum_name_at(idx);
         }
     }
     if (! usable)
-        return;
+        return text_ok;
     if (type == coEnum) {
         config->set_key_value(def->opt_key, new ConfigOptionEnumGeneric(def->enum_keys_map, values.front()));
     } else {
@@ -197,6 +218,7 @@ static void load_enum_option(cereal::BinaryInputArchive& ar, ConfigOptionType ty
         opt->values = std::move(values);
         config->set_key_value(def->opt_key, opt);
     }
+    return true;
 }
 
 void save_config(cereal::BinaryOutputArchive& ar, const DynamicPrintConfig& config, const CacheDictionary& dict)
@@ -281,7 +303,12 @@ static void read_config(cereal::BinaryInputArchive& ar, DynamicPrintConfig* conf
         std::string  text;
         std::string* text_out = retyped ? &text : nullptr;
         if (type == coEnum || type == coEnums) {
-            load_enum_option(ar, type, as_written ? def : nullptr, config, dict, text_out);
+            // An enum this build holds as a string keeps the name the writer
+            // recorded; an ordinal it could not name has no such spelling and
+            // drops the key (see load_enum_option).
+            const bool string_target = retyped && (def->type == coString || def->type == coStrings);
+            if (! load_enum_option(ar, type, as_written ? def : nullptr, config, dict, text_out, string_target))
+                continue;
             if (! retyped)
                 continue;
         } else if (as_written && config != nullptr) {

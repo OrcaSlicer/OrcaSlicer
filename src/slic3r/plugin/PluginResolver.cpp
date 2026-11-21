@@ -1,6 +1,7 @@
 #include "PluginResolver.hpp"
 
 #include "PluginManager.hpp"
+#include "pluginTypes/infill/InfillPluginCapability.hpp"
 #include "../Utils/Http.hpp"
 #include "../Utils/OrcaCloudServiceAgent.hpp"
 #include "../Utils/NetworkAgent.hpp"
@@ -16,6 +17,7 @@
 #include <libslic3r/Config.hpp>
 #include "libslic3r/Preset.hpp"
 #include <libslic3r/PresetBundle.hpp>
+#include <libslic3r/Fill/InfillFactory.hpp>
 #include <memory>
 #include <string>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
@@ -55,8 +57,32 @@ std::string find_option_for_capability(Preset::Type type,
         return {};
 
     const std::string expected_type = plugin_capability_type_to_string(capability_type);
-    const auto matches_ref = [&ref](const std::string& value) {
-        return value == ref.capability_name;
+    const std::string ref_plugin_key = ref.uuid.empty() ? ref.name : ref.uuid;
+    const auto matches_value = [&ref, &ref_plugin_key](const std::string& value, const ConfigOptionDef& opt_def) {
+        if (value == ref.capability_name)
+            return true;
+        // An infill pattern setting stores a pattern ID, while the manifest stores the owning
+        // capability name. Match through the registry's exact owner rather than treating any
+        // plugin ID as belonging to any infill reference.
+        if (opt_def.plugin_type == "infill") {
+            const std::shared_ptr<const InfillInfo> info = InfillFactory::find_infill(value);
+            if (info && info->is_plugin())
+                return info->capability_name == ref.capability_name && info->plugin_key == ref_plugin_key;
+
+            // A disabled provider has no active registry entry, but it is still loaded and its
+            // cached descriptors identify the pattern ID. This keeps a disabled-but-referenced
+            // infill plugin in the "inactive" set instead of treating it as unused.
+            for (const auto& candidate : PluginManager::instance().get_plugin_capabilities(
+                     /*plugin_key=*/"", PluginCapabilityType::Infill, /*only_enabled=*/false)) {
+                const auto infill = std::dynamic_pointer_cast<InfillPluginCapability>(candidate);
+                if (!infill || infill->name() != ref.capability_name ||
+                    infill->audit_plugin_key() != ref_plugin_key)
+                    continue;
+                if (infill->find_resolved_pattern(value) != nullptr)
+                    return true;
+            }
+        }
+        return false;
     };
 
     for (const std::string& field : preset.config.keys()) {
@@ -70,14 +96,16 @@ std::string find_option_for_capability(Preset::Type type,
             continue;
 
         if (const auto* string_option = dynamic_cast<const ConfigOptionString*>(option)) {
-            if (string_option->value == ref.capability_name)
+            if (matches_value(string_option->value, *opt_def))
                 return field;
             continue;
         }
 
         if (const auto* vector_option = dynamic_cast<const ConfigOptionVectorBase*>(option)) {
             const std::vector<std::string> values = vector_option->vserialize();
-            if (std::any_of(values.begin(), values.end(), matches_ref))
+            if (std::any_of(values.begin(), values.end(), [&](const std::string& value) {
+                    return matches_value(value, *opt_def);
+                }))
                 return field;
         }
     }
