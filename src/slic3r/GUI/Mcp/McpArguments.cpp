@@ -135,6 +135,7 @@ const std::vector<std::pair<std::string, std::vector<std::string>>>& argument_al
     static const std::vector<std::pair<std::string, std::vector<std::string>>> aliases{
         {"ref", {"target"}},          {"key", {"keys"}},        {"text", {"value"}},   {"action", {"id", "button"}},
         {"object", {"objects"}},      {"plate", {"plates"}},    {"filter", {"query"}}, {"settings", {"values"}},
+        {"object_id", {"object_ids"}}, {"part_id", {"part_ids"}}, {"instance_id", {"instance_ids"}},
         // A capture's output file, where the tool has no path of its own.
         {"path", {"save_path"}},
         // The Design commands' feature index and a feature's card fields, which their functions also read
@@ -302,6 +303,14 @@ bool is_whole_number(const json& v)
         return false;
     const double d = v.get<double>();
     return std::isfinite(d) && d == std::floor(d) && d >= -9223372036854775808.0 && d < 9223372036854775808.0;
+}
+
+const char* index_argument(const std::string& id)
+{
+    for (const IdArgument& arg : kIdArguments)
+        if (id == arg.id)
+            return arg.index;
+    return nullptr;
 }
 
 bool person_form(const json& args) { return args.is_null() || (args.is_object() && args.empty()); }

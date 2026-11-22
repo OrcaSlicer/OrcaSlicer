@@ -254,6 +254,7 @@ json instance_info(const ModelObject& object, std::size_t index)
 {
     const ModelInstance& inst = *object.instances[index];
     return {{"index", index},
+            {"id", inst.id().id},
             {"offset", vec3(inst.get_offset())},
             {"rotation_deg", degrees(inst.get_rotation())},
             {"scale", vec3(inst.get_scaling_factor())},
@@ -904,18 +905,22 @@ json objects_by_plate(const Model& model, const std::vector<std::string>& plate_
     for (std::size_t n = offset; n < total && n - offset < limit; ++n) {
         const std::size_t i    = listed[n];
         json              item = detail ? object_info(*model.objects[i], i) : object_summary(*model.objects[i], i);
-        // Each instance's entry with detail, else its index.
+        // Each instance's entry with detail, else its index, with its id at the same place in instance_ids.
         const json every = detail ? std::move(item["instances"]) : json();
         // The object's row where it has an instance; one without any instance is on no plate either.
         const auto add_row = [&](int plate, json& into) {
-            json instances = json::array();
+            json instances = json::array(), ids = json::array();
             for (std::size_t j = 0; j < on[i].size(); ++j)
-                if (on[i][j] == plate)
+                if (on[i][j] == plate) {
                     instances.push_back(detail ? every[j] : json(j));
+                    ids.push_back(model.objects[i]->instances[j]->id().id);
+                }
             if (instances.empty() && (plate >= 0 || !on[i].empty()))
                 return;
             json row         = item;
             row["instances"] = std::move(instances);
+            if (!detail)
+                row["instance_ids"] = std::move(ids);
             into.push_back(std::move(row));
         };
         for (json& plate : plates)
@@ -1407,7 +1412,7 @@ json plate_objects(int sorted, bool all)
         if (all || plate == sorted)
             for (std::size_t i = 0; i < objects.size(); ++i)
                 if (plates.find_instance(int(i), 0) == plate)
-                    order.push_back({{"object", i}, {"name", objects[i]->name}, {"plate", plate}});
+                    order.push_back({{"object", i}, {"object_id", objects[i]->id().id}, {"name", objects[i]->name}, {"plate", plate}});
     return order;
 }
 
@@ -1735,7 +1740,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
     };
     const std::string text = "Add a text: a part on the selected object, or a new object when nothing is selected. It is created "
                              "in the background (`app_wait {for: \"idle\"}` waits for it), and the Text gizmo opens on it.";
-    catalog.add(with_expected_ids(menu_command(
+    catalog.add(with_target_ids(menu_command(
         "object_add_text", L("Text"),
         text + " With object, the text becomes a part of that object, which is selected first; type makes it a negative part "
                "or a modifier, as the object's Add menu does. Reply: only that it ran (`ran`, `level`), since the text is made "
@@ -1744,7 +1749,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
         json::array({action("add_primitive_text", L("Text"), L("Add Primitive"), "menu_obj_text", json::object(), text)}),
         [](const json& args) { return MenuItems::add_primitive_text(args); })));
 
-    catalog.add(with_expected_ids(menu_command(
+    catalog.add(with_target_ids(menu_command(
         "object_add_svg", L("SVG"),
         "Add an SVG as a new object, or as a part of the selected object. With a path, uses that file without a dialog; the "
         "part is created in the background (`app_wait {for: \"idle\"}` waits for it), and the SVG gizmo opens on it. With "
@@ -1779,7 +1784,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
                      action("obj_delete_all", L("Delete All Objects"), object_section, "delete", {{"all", true}}, "Delete all objects.")}),
         delete_command);
     del.input_schema = with_silent(std::move(del.input_schema), person_forms(del));
-    catalog.add(reaching({"delete_objects"}, with_expected_ids(std::move(del))));
+    catalog.add(reaching({"delete_objects"}, with_target_ids(std::move(del))));
 
     // The Rename dialog's name, which every call but the action's gives.
     NativeCommand rename = menu_command(
@@ -1792,7 +1797,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
                             "Rename the selected object or part (select one) in the Rename dialog; object_rename with a name skips it.")}),
         rename_command);
     rename.input_schema = with_silent(std::move(rename.input_schema), person_forms(rename));
-    catalog.add(reaching({"rename_object"}, with_expected_ids(std::move(rename))));
+    catalog.add(reaching({"rename_object"}, with_target_ids(std::move(rename))));
 
     // The count the dialog asks for, which every call but the actions' gives; delta is the toolbar's + and -.
     NativeCommand instances = menu_command(
@@ -1823,7 +1828,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
     instances.input_schema["properties"]["silent"]["description"] =
         "true runs the command without asking; it then needs count or delta. A call with no arguments, or with exactly an "
         "action's arguments, does what a person's pick of that action does.";
-    catalog.add(reaching({"set_instance_count"}, with_expected_ids(std::move(instances))));
+    catalog.add(reaching({"set_instance_count"}, with_target_ids(std::move(instances))));
 
     NativeCommand separate = menu_command(
         "object_separate_instances", L("Set as Individual Objects"),
@@ -1837,7 +1842,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
                             "of its instances selected, only those. New objects are added last; the reply lists the objects that "
                             "hold those instances (objects).")}),
         separate_command);
-    catalog.add(reaching({"separate_instances"}, with_expected_ids(std::move(separate))));
+    catalog.add(reaching({"separate_instances"}, with_target_ids(std::move(separate))));
 
     // The answer to Split's Auto-Drop question, which every call but the actions' gives where the split asks it.
     NativeCommand split = menu_command(
@@ -1863,11 +1868,11 @@ void register_object_menu_commands(CommandCatalog& catalog)
                             "Split the selected object into parts.")}),
         split_command);
     split.input_schema = with_silent(std::move(split.input_schema), person_forms(split));
-    catalog.add(reaching({"split_object"}, with_expected_ids(std::move(split))));
+    catalog.add(reaching({"split_object"}, with_target_ids(std::move(split))));
 
     catalog.add(reaching(
         {"assemble_objects"},
-        with_expected_ids(menu_command(
+        with_target_ids(menu_command(
             "object_assemble", L("Assemble"),
             "Assemble two or more objects into one object of parts named Assembly, as Assemble does: those named, else the "
             "object and instance rows selected in the object list, an instance becoming an object of its own first. Cut objects "
@@ -1900,7 +1905,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
                                        std::string("Order the current plate's objects by ") + item.what +
                                            ", which sets the object list and print order, as the plate menu's Order By does. "
                                            "Choosing the order they already have reverses it. Object indices change; the reply "
-                                           "lists the new order (order: [{object, name, plate}]) and descending."));
+                                           "lists the new order (order: [{object, object_id, name, plate}]) and descending."));
     NativeCommand order = reaching(
         {"order_objects", "reorder_objects"},
         menu_command("object_order", L("Order objects"),
@@ -1909,10 +1914,10 @@ void register_object_menu_commands(CommandCatalog& catalog)
                     "Order By does: ascending, or with descending true descending. Called with by alone, as its Speed Dial "
                     "actions, it shows the Prepare view and, as Order By does, reverses the order the objects already have. "
                     "With order in place of by, the plate's objects go in the order given, as dragging them in the object list "
-                    "puts them: order names each of the plate's objects once, by index, and anything else is refused; the "
+                    "puts them: order names each of the plate's objects once, by index (`order_ids` by id), and anything else is refused; the "
                     "other plates' objects keep their order. One undo step, none when the order stays as it was; object indices "
                     "change. Reply: the new order (order: "
-                    "[`{object, name, plate}`]), and descending with by.",
+                    "[`{object, object_id, name, plate}`]), and descending with by.",
                     object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Order this plate's objects. Default: the current plate."}}},
                                    {"by", enum_prop({"name", "filament", "height", "size"}, "What to order by.")},
                                    {"order", {{"type", "array"},
@@ -1920,6 +1925,10 @@ void register_object_menu_commands(CommandCatalog& catalog)
                                               {"items", {{"type", "integer"}, {"minimum", 0}}},
                                               {"description", "In place of by: the plate's objects, by index (`object_list`), each "
                                                               "once, in the order wanted."}}},
+                                   {"order_ids", {{"type", "array"},
+                                                  {"minItems", 1},
+                                                  {"items", {{"type", "integer"}, {"minimum", 0}}},
+                                                  {"description", "`order` by the objects' ids in `object_list`."}}},
                                    {"descending", prop("boolean", "With by: descending order. Default false.")},
                                    {"all", prop("boolean", "With by: order the objects of every plate. Default false: one plate's.")}}),
                     std::move(order_actions), order_command));
@@ -1928,11 +1937,11 @@ void register_object_menu_commands(CommandCatalog& catalog)
         check_order_arguments(args);
         return run(args, ctx);
     };
-    catalog.add(std::move(order));
+    catalog.add(with_target_ids(std::move(order)));
 
     catalog.add(reaching(
         {"drop_objects"},
-        with_expected_ids(menu_command(
+        with_target_ids(menu_command(
             "object_drop", L("Drop to Bed"),
             "Drop objects or parts onto the bed, as Drop does: those named, each instance and each part that does not rest on "
             "the bed dropped on its own, else what is selected in the Prepare view, dropped as one by its lowest point. What "
@@ -1945,7 +1954,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
 
     catalog.add(reaching(
         {"mirror_objects"},
-        with_expected_ids(menu_command(
+        with_target_ids(menu_command(
             "object_mirror", L("Mirror objects"),
             "Mirror objects or parts along an axis, as Mirror > Along X Axis, Y Axis and Z Axis do: those named, each instance "
             "of an object and the parts of each object in turn, else what is selected in the Prepare view, which Mirror takes "
@@ -1962,7 +1971,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
 
     catalog.add(reaching(
         {"center_objects"},
-        with_expected_ids(menu_command(
+        with_target_ids(menu_command(
             "object_center", L("Center Selected on Plate"),
             "Centre objects on their plate, as Center does: those named, each plate's as one group on the plate it stands on (an "
             "object on no plate goes with the current plate's), or all on plate; with none named, what is selected in the "
@@ -1978,7 +1987,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
 
     catalog.add(reaching(
         {"scale_to_fit"},
-        with_expected_ids(menu_command(
+        with_target_ids(menu_command(
             "object_scale_to_fit", L("Scale to Fit Print Volume"),
             "Scale objects as one to fit the current plate's print volume and move them into it, as Scale to build volume does: "
             "those named, else the objects and instances selected in the Prepare view. Cut objects and a bed of another shape "
@@ -1994,7 +2003,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
                                       "is done.";
     NativeCommand     orient        = reaching(
         {"orient_objects"},
-        with_expected_ids(mutate_tool(
+        with_target_ids(mutate_tool(
             "object_auto_orient", L("Auto-Orient"),
             "Turn objects to the orientation that prints best, as Auto-Orient does: those named and those that stand on plates, "
             "else what is selected in the Prepare view, an instance or a part standing for its object, or every object when "
@@ -2090,7 +2099,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
         type_actions.push_back(action(item.key, item.title, object_section, "", {{"type", item.type}}, item.description));
     catalog.add(reaching(
         {"change_part_type"},
-        with_expected_ids(menu_command(
+        with_target_ids(menu_command(
             "part_change_type", L("Change a part's type"),
             "Change what parts are, as Change Type does: those named, else the part rows selected in the object list. type is "
             "part, negative, modifier, `support_blocker`, `support_enforcer`, or `precise_seam`, a Center precise seam where a seam "
@@ -2145,7 +2154,7 @@ void register_object_tools(CommandCatalog& catalog)
 {
     NativeCommand printable = reaching(
         {"set_objects_printable"},
-        with_expected_ids(mutate_tool(
+        with_target_ids(mutate_tool(
             "object_set_printable", L("Set printable"),
             "Mark objects, or some of their instances, printable or not, as the object list's Printable cell does: those "
             "named (objects: every instance of each; instances: those alone), else what is selected in the Prepare view. An "
@@ -2185,7 +2194,7 @@ void register_object_tools(CommandCatalog& catalog)
 
     NativeCommand auto_drop = reaching(
         {"set_objects_auto_drop"},
-        with_expected_ids(mutate_tool(
+        with_target_ids(mutate_tool(
             "object_set_auto_drop", L("Set Auto Drop"),
             "Turn Auto Drop on or off for objects, as the 3D view's Auto Drop does: those named, else the objects of what is "
             "selected in the Prepare view, an instance or a part standing for its object. With it off an object stays where "
@@ -2227,7 +2236,7 @@ void register_object_tools(CommandCatalog& catalog)
     // changed (a part of an object repaired before the cancel keeps its new mesh).
     NativeCommand fix = reaching(
         {"fix_objects"},
-        with_expected_ids(mutate_tool(
+        with_target_ids(mutate_tool(
             "object_fix", L("Fix Model"),
             "Repair objects' meshes, as Fix Model does: those named (objects whole, or parts), the objects on a plate (plate, "
             "as Fix All on the current plate), every object (all), else what is selected in the Prepare view, an instance "
@@ -2289,7 +2298,7 @@ void register_object_tools(CommandCatalog& catalog)
     // Clone waits for the arrangement it starts, as object_arrange does.
     NativeCommand clone = reaching(
         {"clone_objects"},
-        with_expected_ids(mutate_tool(
+        with_target_ids(mutate_tool(
             "object_clone", L("Clone"),
             "Make copies of objects as new objects, as the Clone dialog does: those named, else what is selected in the "
             "Prepare view (an object whole, or some of its instances, which a copy holds as one new object). count copies of "
@@ -2359,7 +2368,7 @@ void register_object_tools(CommandCatalog& catalog)
 
     NativeCommand reload = reaching(
         {"reload_parts"},
-        with_expected_ids(mutate_tool(
+        with_target_ids(mutate_tool(
             "object_reload_from_disk", L("Reload from disk"),
             "Load parts again from the files they were loaded from, as Reload from disk does: every part of the objects "
             "named, the parts named, every object's (all, as Reload All does, cut objects left out), else what is selected in "
@@ -2422,7 +2431,7 @@ void register_object_tools(CommandCatalog& catalog)
 
     NativeCommand replace = reaching(
         {"replace_part"},
-        with_expected_ids(mutate_tool(
+        with_target_ids(mutate_tool(
             "part_replace", L("Replace 3D file"),
             "Replace a part's mesh with the mesh of a model file, as Replace 3D file does: the part named (object and part, or "
             "an object of one part), else the one selected in the Prepare view. The part keeps its settings, type, filament "
@@ -2474,13 +2483,13 @@ void register_scene_tools(CommandCatalog& catalog)
         "object_list", L("List objects"),
         "The project as the Objects panel lists it. `plates`: each `{index, name, objects}`, with the objects that have an "
         "instance on it, each time with that plate's instances; `outside`: those with an instance on no plate. An object has "
-        "`index`, `id`, `name`, `filament`, `part_count`, `size` (mm, of its bbox) and `instances`, the indices of its "
-        "instances there. With `detail` it also has `auto_drop`, `bbox` (instance 0), `brim_ears` (a count), `overrides` "
+        "`index`, `id`, `name`, `filament`, `part_count`, `size` (mm, of its bbox), `instances`, the indices of its "
+        "instances there, and `instance_ids`, their ids in the same order. With `detail` it also has `auto_drop`, `bbox` (instance 0), `brim_ears` (a count), `overrides` "
         "(the keys of the settings it overrides, which `settings_get` target object reads), `mesh_errors` as the list's "
         "warning icon reads them (`open_edges`, manifold, and the loader's or a repair's `degenerate_facets`, `edges_fixed`, "
         "`facets_removed`, `facets_reversed` and `backwards_edges`; `object_fix` repairs them), `instances` as entries "
-        "(`index`, `offset`, `rotation_deg`, `scale`, `mirrored`, `bbox`), and `parts`: parts, negative parts, modifiers, "
-        "support blockers and enforcers and precise seams, each with `type` (`subtype` for a precise seam), `filament` (a "
+        "(`index`, `id`, `offset`, `rotation_deg`, `scale`, `mirrored`, `bbox`), and `parts`: parts, negative parts, "
+        "modifiers, support blockers and enforcers and precise seams, each with `id`, `type` (`subtype` for a precise seam), `filament` (a "
         "part's own or its object's, a modifier's only when it sets one), `position`, `bbox` and `scaled_volume` (mm3) on "
         "the bed for instance 0, `rotation_deg` and `scale` in the object's frame, `mirrored`, `triangles`, `mesh_volume` "
         "(the unscaled mesh's mm3), `painted` facets (supports, seam enforcers/blockers, `fuzzy_skin`, mmu per filament, "
@@ -2488,8 +2497,9 @@ void register_scene_tools(CommandCatalog& catalog)
         "`layer_config_ranges`, its height range modifiers (`[{min_z, max_z, values}]`, for `object_set_height_ranges` and "
         "`settings_set` target `height_range`), and `layer_height_profile` (`{points, min_height, max_height}`). A bbox is "
         "`{min, max, size}` in mm of model parts only, so unlike the panel's Size it leaves out modifiers. An object's index "
-        "numbers it in the project and a part's in its object, whatever the plate; an id stays with its object or part when "
-        "a delete, split or assemble shifts the indices, for the guards (`object_id`, `part_id`, `*_ids`). `limit` and "
+        "numbers it in the project and a part's in its object, whatever the plate; an id stays with its object, part or "
+        "instance when a delete, split or assemble shifts the indices, and names it wherever an index does (`object_id`, "
+        "`part_id`, `instance_id`, `*_ids`). `limit` and "
         "`offset` page the objects and `total` counts them, each once.",
         object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "List this plate alone, without `outside`."}}},
                        {"detail", prop("boolean", "Each object whole: its instances, parts, bounding boxes, mesh errors, paint and "
@@ -2500,7 +2510,7 @@ void register_scene_tools(CommandCatalog& catalog)
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_objects(args); })); }));
 
-    NativeCommand select = with_expected_ids(mutate_tool(
+    NativeCommand select = with_target_ids(mutate_tool(
         "object_select", L("Select objects"),
         "Select objects, instances or parts in the 3D view (the assemble view while it is shown, else Prepare, switching to it), as clicking them would. Give objects, "
         "instances (`[[object, instance], ...]`) or parts (`[[object, part], ...]`); add keeps the current selection; all / "
@@ -2581,7 +2591,7 @@ void register_scene_tools(CommandCatalog& catalog)
         },
         /*person_form_behind_dialogs=*/false, std::vector<json>{json{{"none", true}}, json{{"all", true}}}));
 
-    catalog.add(with_expected_ids(mutate_tool(
+    catalog.add(with_target_ids(mutate_tool(
         "object_transform", L("Move, rotate or scale an instance or a part"),
         "Change one instance's placement, or one part's with part. translate is in mm, position where it goes (mm, as "
         "the Move panel shows it, whatever mode says), rotate in degrees about X/Y/Z, "
@@ -2643,7 +2653,7 @@ void register_scene_tools(CommandCatalog& catalog)
             return ToolResult::ok(out);
         })));
 
-    catalog.add(with_expected_ids(mutate_tool(
+    catalog.add(with_target_ids(mutate_tool(
         "part_add", L("Add a part or modifier to an object"),
         "Add a part, negative part, modifier, support blocker or enforcer, or precise seam to an object, as its context "
         "menu's Add items do: a primitive shape at a size, or a model file as Load... adds it. The part lands where the "
@@ -2687,7 +2697,7 @@ void register_scene_tools(CommandCatalog& catalog)
     NativeCommand arrange = reaching({"start_arrange"}, mutate_tool(
         "object_arrange", L("Arrange objects or fill the bed"),
         "Arrange the objects of every unlocked plate as the toolbar's Arrange does, or of one plate (plates: an index or "
-        "\"current\") as its Arrange icon does. With `fill_object`, fill that object's plate with more of it instead, as Fill "
+        "\"current\") as its Arrange icon does. With `fill_object` (or `fill_object_id`), fill that object's plate with more of it instead, as Fill "
         "bed with instances (or copies, by `fill_with`) does (reply: added, how many). spacing, rotate, `align_y` and `multi_material` are the Arrange options "
         "panel's settings: the values given stay in the panel, so later arranges use them too. Waits for the arrangement "
         "(a longer one replies with a job). Reply: the settings in force, instances left off every plate, plates the "
@@ -2700,6 +2710,7 @@ void register_scene_tools(CommandCatalog& catalog)
                        {"align_y", prop("boolean", "Align to Y axis (off while rotate is on).")},
                        {"multi_material", prop("boolean", "Allow multiple materials on same plate.")},
                        {"fill_object", {{"type", "integer"}, {"minimum", 0}, {"description", "An object index: instead of arranging, fill that object's plate with more of it."}}},
+                       {"fill_object_id", id_prop("object")},
                        {"fill_with", enum_prop({"instances", "copies"}, "Default instances.")},
                        {"timeout_s", {{"type", "integer"}, {"minimum", 10}, {"maximum", 1800}, {"description", "Cancel it after this long (default 300)."}}}}),
         [](const json& args, ToolContext& ctx) {
@@ -2742,7 +2753,7 @@ void register_scene_tools(CommandCatalog& catalog)
     // of the action's arguments is object_arrange's own function, which waits and replies. Both are Ops::start_arrange()
     // on every unlocked plate with the panel's settings.
     catalog.add(NativeCommands::with_menu_item_forms(
-        std::move(arrange), [](const json&) { return MenuItems::obj_arrange(); }, /*person_form_behind_dialogs=*/false,
+        with_target_ids(std::move(arrange)), [](const json&) { return MenuItems::obj_arrange(); }, /*person_form_behind_dialogs=*/false,
         std::vector<json>{json::object()}));
 
     NativeCommand slice = reaching({"start_slice"}, mutate_tool(

@@ -2665,6 +2665,10 @@ TEST_CASE("commit_to_plate, new_design and export_step change the design or the 
     }
     // export_step's path has no default, so it is required.
     CHECK(required_of(command_of(catalog, "export_step")) == std::vector<std::string>{"path"});
+    // commit_to_plate names the objects it replaces by index or by id; the journal records the indices.
+    const GUI::NativeCommand& commit = command_of(catalog, "commit_to_plate");
+    CHECK(commit.input_schema["properties"].contains("replace_ids"));
+    CHECK(commit.id_args == std::vector<std::string>{"replace_ids"});
 }
 
 TEST_CASE("commit_to_plate's replace takes distinct object indices that are not part of a cut", "[Mcp][CAD]")

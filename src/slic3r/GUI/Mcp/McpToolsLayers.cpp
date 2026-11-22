@@ -571,7 +571,7 @@ void register_layer_tools(CommandCatalog& catalog)
                                       {"max_z", {{"type", "number"}, {"minimum", 0}, {"description", "Top, mm above the bed."}}}},
                                      {"min_z", "max_z"});
 
-    catalog.add(with_expected_ids(mutate_tool(
+    catalog.add(with_target_ids(mutate_tool(
         "object_set_height_ranges", L("Set height range modifiers"),
         "Replace an object's height range modifiers (Height Range Modifier in the object list): Z ranges in mm, each printed "
         "with its own `layer_height`, filament and process settings, which `settings_get` and `settings_set` read and write with "
@@ -587,7 +587,7 @@ void register_layer_tools(CommandCatalog& catalog)
             return ToolResult::ok(out);
         })));
 
-    catalog.add(with_expected_ids(mutate_tool(
+    catalog.add(with_target_ids(mutate_tool(
         "object_set_variable_layer_height", L("Set a variable layer height profile"),
         "Run the Variable layer height panel's Adaptive, Smooth or Reset on an object, without opening the panel: adaptive "
         "computes layer heights from the object's shape (inside a height range, the range's `layer_height`), smooth smooths "

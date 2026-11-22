@@ -13,12 +13,14 @@
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
-// `args` of a call of `command` as the journal records them: without the command's id_args (expected object
-// and part ids), as ids are allocated per process and a replay addresses by index. So are a tool_call call's
-// arguments for its target and a replay_run's inline steps. The arguments of any other command stay as
-// written: a plugin operation's own fields, and a script_run call's code and args, since a script reads the
-// ids it uses.
-nlohmann::json without_expected_ids(const CommandCatalog& catalog, const std::string& command, nlohmann::json args);
+// `args` of a call of `command` as the journal records them: without each of the command's id_args whose index form
+// (kIdArguments) the call gives too, as ids are allocated per process and a replay addresses by index. An id the call
+// gives alone stays, so that the step still names its target, until the command records the index it named
+// (with_target_ids()); a replay that keeps one runs only in the session that made it. So are a tool_call call's
+// arguments for its target, an action_run call's for its command and a replay_run's inline steps. The arguments of
+// any other command stay as written: a plugin operation's own fields, and a script_run call's code and args, since
+// a script reads the ids it uses.
+nlohmann::json without_guard_ids(const CommandCatalog& catalog, const std::string& command, nlohmann::json args);
 
 // The session's client calls, in the order they were made, for replay_export. A call that returned
 // a job envelope is replayed with `await:false` and a name its later `app_wait` refers to, so a step
@@ -34,7 +36,7 @@ nlohmann::json without_expected_ids(const CommandCatalog& catalog, const std::st
 // its reply or before it, and the answer depends on it. Such a job replays with `await:false`, and a
 // call that answered a dialog replays after an `app_wait {for:"dialog"}`, since the dialog may open later
 // than the job's replayed reply. Thread-safe. It records the arguments it is given, which McpCore gives it
-// through without_expected_ids().
+// through without_guard_ids().
 class Journal
 {
 public:

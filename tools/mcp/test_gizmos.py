@@ -327,7 +327,7 @@ class GizmosTest:
         for key in keys:
             value = reply.get(key)
             if isinstance(value, list):
-                value = [{k: v for k, v in item.items() if k not in ("object_id", "part_id")} for item in value]
+                value = [{k: v for k, v in item.items() if k not in ("object_id", "part_id", "instance_id")} for item in value]
             out[key] = value
         return out
 

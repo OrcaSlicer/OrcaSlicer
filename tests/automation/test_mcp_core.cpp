@@ -972,7 +972,7 @@ TEST_CASE("an observer that throws fails no call", "[Mcp]")
     CHECK(acted.data["done"] == true);
 }
 
-TEST_CASE("the journal records a call without its command's id arguments", "[Mcp]")
+TEST_CASE("the journal records a call without the id arguments that stand beside their indices", "[Mcp]")
 {
     Harness       h;
     NativeCommand move = tool("move", GuardClass::Mutate, [](const json& args, ToolContext& ctx) {
@@ -990,11 +990,14 @@ TEST_CASE("the journal records a call without its command's id arguments", "[Mcp
     REQUIRE_FALSE(h.call("move", {{"object", 1}, {"object_id", 9}}).is_error);
     REQUIRE_FALSE(h.call("move", {{"rewrite", true}, {"object_id", 9}}).is_error);
     REQUIRE_FALSE(h.call("measure", {{"object_id", 4}}).is_error);
+    // An id given alone names the target until the command records its index, so it stays.
+    REQUIRE_FALSE(h.call("move", {{"object_id", 7}}).is_error);
     const json steps = h.journal.to_replay("s")["steps"];
-    REQUIRE(steps.size() == 3);
+    REQUIRE(steps.size() == 4);
     CHECK(steps[0]["args"] == json{{"object", 1}});
     CHECK(steps[1]["args"] == json{{"object", 2}});
     CHECK(steps[2]["args"] == json{{"object_id", 4}});
+    CHECK(steps[3]["args"] == json{{"object_id", 7}});
 }
 
 TEST_CASE("without a blocking slot a job call returns its envelope at once and an inline call returns pending", "[Mcp]")

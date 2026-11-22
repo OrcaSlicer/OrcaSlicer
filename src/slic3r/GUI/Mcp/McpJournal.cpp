@@ -1,4 +1,5 @@
 #include "McpJournal.hpp"
+#include "McpArguments.hpp"
 #include "McpPaths.hpp"
 #include "McpReplay.hpp"
 
@@ -46,13 +47,18 @@ std::pair<std::string, json*> called_command(const std::string& tool, json& args
 
 } // namespace
 
-json without_expected_ids(const CommandCatalog& catalog, const std::string& command, json args)
+json without_guard_ids(const CommandCatalog& catalog, const std::string& command, json args)
 {
     if (!args.is_object())
         return args;
     if (command == "tool_call") {
         if (args.contains("args") && args["args"].is_object())
-            args["args"] = without_expected_ids(catalog, args.value("tool", std::string()), std::move(args["args"]));
+            args["args"] = without_guard_ids(catalog, args.value("tool", std::string()), std::move(args["args"]));
+        return args;
+    }
+    if (command == "action_run") {
+        if (const auto [key, inner] = called_command(command, args); inner != &args)
+            *inner = without_guard_ids(catalog, key, std::move(*inner));
         return args;
     }
     if (command == "replay_run") {
@@ -66,12 +72,13 @@ json without_expected_ids(const CommandCatalog& catalog, const std::string& comm
         if (args.contains("replay") && args["replay"].is_object() && args["replay"].contains("steps") && args["replay"]["steps"].is_array())
             for (json& step : args["replay"]["steps"])
                 if (step.is_object() && step.contains("args"))
-                    step["args"] = without_expected_ids(catalog, step.value("tool", std::string()), std::move(step["args"]));
+                    step["args"] = without_guard_ids(catalog, step.value("tool", std::string()), std::move(step["args"]));
         return args;
     }
     if (const std::shared_ptr<const NativeCommand> def = catalog.lookup(command))
         for (const std::string& key : def->id_args)
-            args.erase(key);
+            if (const char* index = index_argument(key); index != nullptr && args.contains(index))
+                args.erase(key);
     return args;
 }
 

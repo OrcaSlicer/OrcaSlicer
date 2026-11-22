@@ -361,11 +361,13 @@ for every command (`Mcp::resolve_targets()`, `McpTargets.hpp`):
   object is selected.
 - **Checked first.** Every index is checked before anything changes; naming one target two ways, an instance
   or a part without its object, and an empty list are refused.
-- **Expected ids.** Beside each index a command takes the id `object_list` reports for it: `object_id` and
-  `part_id` beside one target, `object_ids`, `instance_object_ids` and `part_ids` beside lists, one per entry.
-  A call whose index names another object or part now is refused before anything changes, so a script
-  addresses what it read. Ids belong to one process, so the journal records calls without them and a replay
-  addresses by index.
+- **By index or by id.** Every index a command takes has a twin that takes the id `object_list` reports
+  for the same thing: `object_id`, `part_id` and `instance_id` beside one target, `object_ids`, `part_ids` and
+  `instance_ids` beside lists, and `fill_object_id`, `order_ids` and `replace_ids`. An id stays with its object,
+  part or instance when a delete, split or reorder moves the indices, so a call may name a target by id alone;
+  given with its index, the id is a guard, and a call whose index names another thing now is refused before
+  anything changes. Ids belong to one process, so the journal records each call with the indices its ids named
+  and a replay addresses by index.
 - **The reply names what was acted on** (`objects`, `instances`, `parts`, each with its index, id and name),
   so a caller that gave no targets learns what the selection was. A command that makes, removes or renumbers
   things replies with their indices as they are afterwards.

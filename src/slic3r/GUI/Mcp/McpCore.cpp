@@ -142,7 +142,7 @@ public:
     {
         notify(m_observer, [&](CallObserver& o) { o.call_args(m_call, args); });
         if (m_journal != nullptr && m_seq != 0)
-            m_journal->set_args(m_seq, without_expected_ids(m_core.catalog(), m_def.key, std::move(args)));
+            m_journal->set_args(m_seq, without_guard_ids(m_core.catalog(), m_def.key, std::move(args)));
     }
 
     void begin_operation() override
@@ -364,7 +364,7 @@ ToolResult McpCore::run(const NativeCommand& def, const nlohmann::json& args, co
     // Only client calls are journaled; a replay's own steps run again through the replay, and a plugin's calls
     // are not the agent's.
     const bool     journal = m_journal != nullptr && parent.empty() && plugin.empty() && def.journal;
-    const uint64_t seq     = journal ? m_journal->begin(def.key, without_expected_ids(m_catalog, def.key, args),
+    const uint64_t seq     = journal ? m_journal->begin(def.key, without_guard_ids(m_catalog, def.key, args),
                                                         def.guard == GuardClass::Recover && !m_ui.open_dialogs().empty()) :
                                        0;
     auto           finish  = [&](ToolResult r) {

@@ -1175,7 +1175,7 @@
       "type": "string"
      },
      "object_ids": {
-      "description": "Optional guard: the objects' ids in `object_list`, one each.",
+      "description": "The objects' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -1297,7 +1297,7 @@
   },
   {
    "completion": "immediate",
-   "description": "The project as the Objects panel lists it. `plates`: each `{index, name, objects}`, with the objects that have an instance on it, each time with that plate's instances; `outside`: those with an instance on no plate. An object has `index`, `id`, `name`, `filament`, `part_count`, `size` (mm, of its bbox) and `instances`, the indices of its instances there. With `detail` it also has `auto_drop`, `bbox` (instance 0), `brim_ears` (a count), `overrides` (the keys of the settings it overrides, which `settings_get` target object reads), `mesh_errors` as the list's warning icon reads them (`open_edges`, manifold, and the loader's or a repair's `degenerate_facets`, `edges_fixed`, `facets_removed`, `facets_reversed` and `backwards_edges`; `object_fix` repairs them), `instances` as entries (`index`, `offset`, `rotation_deg`, `scale`, `mirrored`, `bbox`), and `parts`: parts, negative parts, modifiers, support blockers and enforcers and precise seams, each with `type` (`subtype` for a precise seam), `filament` (a part's own or its object's, a modifier's only when it sets one), `position`, `bbox` and `scaled_volume` (mm3) on the bed for instance 0, `rotation_deg` and `scale` in the object's frame, `mirrored`, `triangles`, `mesh_volume` (the unscaled mesh's mm3), `painted` facets (supports, seam enforcers/blockers, `fuzzy_skin`, mmu per filament, texture per layer), and a text part's text and font or an SVG part's file. When it has them: `layer_config_ranges`, its height range modifiers (`[{min_z, max_z, values}]`, for `object_set_height_ranges` and `settings_set` target `height_range`), and `layer_height_profile` (`{points, min_height, max_height}`). A bbox is `{min, max, size}` in mm of model parts only, so unlike the panel's Size it leaves out modifiers. An object's index numbers it in the project and a part's in its object, whatever the plate; an id stays with its object or part when a delete, split or assemble shifts the indices, for the guards (`object_id`, `part_id`, `*_ids`). `limit` and `offset` page the objects and `total` counts them, each once.",
+   "description": "The project as the Objects panel lists it. `plates`: each `{index, name, objects}`, with the objects that have an instance on it, each time with that plate's instances; `outside`: those with an instance on no plate. An object has `index`, `id`, `name`, `filament`, `part_count`, `size` (mm, of its bbox), `instances`, the indices of its instances there, and `instance_ids`, their ids in the same order. With `detail` it also has `auto_drop`, `bbox` (instance 0), `brim_ears` (a count), `overrides` (the keys of the settings it overrides, which `settings_get` target object reads), `mesh_errors` as the list's warning icon reads them (`open_edges`, manifold, and the loader's or a repair's `degenerate_facets`, `edges_fixed`, `facets_removed`, `facets_reversed` and `backwards_edges`; `object_fix` repairs them), `instances` as entries (`index`, `id`, `offset`, `rotation_deg`, `scale`, `mirrored`, `bbox`), and `parts`: parts, negative parts, modifiers, support blockers and enforcers and precise seams, each with `id`, `type` (`subtype` for a precise seam), `filament` (a part's own or its object's, a modifier's only when it sets one), `position`, `bbox` and `scaled_volume` (mm3) on the bed for instance 0, `rotation_deg` and `scale` in the object's frame, `mirrored`, `triangles`, `mesh_volume` (the unscaled mesh's mm3), `painted` facets (supports, seam enforcers/blockers, `fuzzy_skin`, mmu per filament, texture per layer), and a text part's text and font or an SVG part's file. When it has them: `layer_config_ranges`, its height range modifiers (`[{min_z, max_z, values}]`, for `object_set_height_ranges` and `settings_set` target `height_range`), and `layer_height_profile` (`{points, min_height, max_height}`). A bbox is `{min, max, size}` in mm of model parts only, so unlike the panel's Size it leaves out modifiers. An object's index numbers it in the project and a part's in its object, whatever the plate; an id stays with its object, part or instance when a delete, split or assemble shifts the indices, and names it wherever an index does (`object_id`, `part_id`, `instance_id`, `*_ids`). `limit` and `offset` page the objects and `total` counts them, each once.",
    "destructive": false,
    "group": "Objects",
    "guard": "inspect",
@@ -1380,8 +1380,8 @@
       "description": "Select all objects.",
       "type": "boolean"
      },
-     "instance_object_ids": {
-      "description": "Optional guard: the ids in `object_list` of the instances' objects, one each.",
+     "instance_ids": {
+      "description": "The instances' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -1399,7 +1399,7 @@
       "type": "boolean"
      },
      "object_ids": {
-      "description": "Optional guard: the objects' ids in `object_list`, one each.",
+      "description": "The objects' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -1413,7 +1413,7 @@
       "type": "array"
      },
      "part_ids": {
-      "description": "Optional guard: the parts' ids in `object_list`, one each.",
+      "description": "The parts' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -1456,6 +1456,11 @@
       "minimum": 0,
       "type": "integer"
      },
+     "instance_id": {
+      "description": "The instance's id in `object_list`.",
+      "minimum": 0,
+      "type": "integer"
+     },
      "mode": {
       "description": "Default relative.",
       "enum": [
@@ -1470,7 +1475,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "Optional guard: the object's id in `object_list`.",
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -1480,7 +1485,7 @@
       "type": "integer"
      },
      "part_id": {
-      "description": "Optional guard: the part's id in `object_list`.",
+      "description": "The part's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -1863,7 +1868,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "Optional guard: the object's id in `object_list`.",
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -1913,7 +1918,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "Optional guard: the object's id in `object_list`.",
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -1975,8 +1980,8 @@
       "description": "Delete every object. Default false: the targets.",
       "type": "boolean"
      },
-     "instance_object_ids": {
-      "description": "Optional guard: the ids in `object_list` of the instances' objects, one each.",
+     "instance_ids": {
+      "description": "The instances' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -1990,7 +1995,7 @@
       "type": "array"
      },
      "object_ids": {
-      "description": "Optional guard: the objects' ids in `object_list`, one each.",
+      "description": "The objects' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -2004,7 +2009,7 @@
       "type": "array"
      },
      "part_ids": {
-      "description": "Optional guard: the parts' ids in `object_list`, one each.",
+      "description": "The parts' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -2075,7 +2080,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "Optional guard: the object's id in `object_list`.",
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -2085,7 +2090,7 @@
       "type": "integer"
      },
      "part_id": {
-      "description": "Optional guard: the part's id in `object_list`.",
+      "description": "The part's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -2173,7 +2178,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "Optional guard: the object's id in `object_list`.",
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -2217,8 +2222,8 @@
    "input_schema": {
     "additionalProperties": false,
     "properties": {
-     "instance_object_ids": {
-      "description": "Optional guard: the ids in `object_list` of the instances' objects, one each.",
+     "instance_ids": {
+      "description": "The instances' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -2237,7 +2242,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "Optional guard: the object's id in `object_list`.",
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      }
@@ -2316,7 +2321,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "Optional guard: the object's id in `object_list`.",
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -2366,7 +2371,7 @@
     "additionalProperties": false,
     "properties": {
      "object_ids": {
-      "description": "Optional guard: the objects' ids in `object_list`, one each.",
+      "description": "The objects' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -2397,7 +2402,7 @@
      "args": {
       "by": "name"
      },
-     "description": "Order the current plate's objects by name, which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, name, plate}]) and descending.",
+     "description": "Order the current plate's objects by name, which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, object_id, name, plate}]) and descending.",
      "group": "Object",
      "icon": "",
      "key": "obj_order_by_name",
@@ -2407,7 +2412,7 @@
      "args": {
       "by": "filament"
      },
-     "description": "Order the current plate's objects by filament, which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, name, plate}]) and descending.",
+     "description": "Order the current plate's objects by filament, which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, object_id, name, plate}]) and descending.",
      "group": "Object",
      "icon": "",
      "key": "obj_order_by_filament",
@@ -2417,7 +2422,7 @@
      "args": {
       "by": "height"
      },
-     "description": "Order the current plate's objects by height, which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, name, plate}]) and descending.",
+     "description": "Order the current plate's objects by height, which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, object_id, name, plate}]) and descending.",
      "group": "Object",
      "icon": "",
      "key": "obj_order_by_height",
@@ -2427,7 +2432,7 @@
      "args": {
       "by": "size"
      },
-     "description": "Order the current plate's objects by size (bounding box volume), which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, name, plate}]) and descending.",
+     "description": "Order the current plate's objects by size (bounding box volume), which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, object_id, name, plate}]) and descending.",
      "group": "Object",
      "icon": "",
      "key": "obj_order_by_size",
@@ -2435,7 +2440,7 @@
     }
    ],
    "completion": "immediate",
-   "description": "Order the objects of a plate (the current one, or plate), or with all of every plate, by name, filament, height or size (bounding box volume), which sets the object list and print order, as the plate menu's Order By does: ascending, or with descending true descending. Called with by alone, as its Speed Dial actions, it shows the Prepare view and, as Order By does, reverses the order the objects already have. With order in place of by, the plate's objects go in the order given, as dragging them in the object list puts them: order names each of the plate's objects once, by index, and anything else is refused; the other plates' objects keep their order. One undo step, none when the order stays as it was; object indices change. Reply: the new order (order: [`{object, name, plate}`]), and descending with by.",
+   "description": "Order the objects of a plate (the current one, or plate), or with all of every plate, by name, filament, height or size (bounding box volume), which sets the object list and print order, as the plate menu's Order By does: ascending, or with descending true descending. Called with by alone, as its Speed Dial actions, it shows the Prepare view and, as Order By does, reverses the order the objects already have. With order in place of by, the plate's objects go in the order given, as dragging them in the object list puts them: order names each of the plate's objects once, by index (`order_ids` by id), and anything else is refused; the other plates' objects keep their order. One undo step, none when the order stays as it was; object indices change. Reply: the new order (order: [`{object, object_id, name, plate}`]), and descending with by.",
    "destructive": false,
    "group": "Objects",
    "guard": "mutate",
@@ -2464,6 +2469,15 @@
      },
      "order": {
       "description": "In place of by: the plate's objects, by index (`object_list`), each once, in the order wanted.",
+      "items": {
+       "minimum": 0,
+       "type": "integer"
+      },
+      "minItems": 1,
+      "type": "array"
+     },
+     "order_ids": {
+      "description": "`order` by the objects' ids in `object_list`.",
       "items": {
        "minimum": 0,
        "type": "integer"
@@ -2511,7 +2525,7 @@
     "additionalProperties": false,
     "properties": {
      "object_ids": {
-      "description": "Optional guard: the objects' ids in `object_list`, one each.",
+      "description": "The objects' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -2525,7 +2539,7 @@
       "type": "array"
      },
      "part_ids": {
-      "description": "Optional guard: the parts' ids in `object_list`, one each.",
+      "description": "The parts' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -2603,7 +2617,7 @@
       "type": "string"
      },
      "object_ids": {
-      "description": "Optional guard: the objects' ids in `object_list`, one each.",
+      "description": "The objects' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -2617,7 +2631,7 @@
       "type": "array"
      },
      "part_ids": {
-      "description": "Optional guard: the parts' ids in `object_list`, one each.",
+      "description": "The parts' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -2667,7 +2681,7 @@
     "additionalProperties": false,
     "properties": {
      "object_ids": {
-      "description": "Optional guard: the objects' ids in `object_list`, one each.",
+      "description": "The objects' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -2719,7 +2733,7 @@
     "additionalProperties": false,
     "properties": {
      "object_ids": {
-      "description": "Optional guard: the objects' ids in `object_list`, one each.",
+      "description": "The objects' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -2766,7 +2780,7 @@
     "additionalProperties": false,
     "properties": {
      "object_ids": {
-      "description": "Optional guard: the objects' ids in `object_list`, one each.",
+      "description": "The objects' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -2846,8 +2860,8 @@
    "input_schema": {
     "additionalProperties": false,
     "properties": {
-     "instance_object_ids": {
-      "description": "Optional guard: the ids in `object_list` of the instances' objects, one each.",
+     "instance_ids": {
+      "description": "The instances' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -2861,7 +2875,7 @@
       "type": "array"
      },
      "object_ids": {
-      "description": "Optional guard: the objects' ids in `object_list`, one each.",
+      "description": "The objects' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -2936,7 +2950,7 @@
       "type": "boolean"
      },
      "object_ids": {
-      "description": "Optional guard: the objects' ids in `object_list`, one each.",
+      "description": "The objects' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -3010,7 +3024,7 @@
       "type": "boolean"
      },
      "object_ids": {
-      "description": "Optional guard: the objects' ids in `object_list`, one each.",
+      "description": "The objects' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -3024,7 +3038,7 @@
       "type": "array"
      },
      "part_ids": {
-      "description": "Optional guard: the parts' ids in `object_list`, one each.",
+      "description": "The parts' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -3104,7 +3118,7 @@
       "type": "integer"
      },
      "object_ids": {
-      "description": "Optional guard: the objects' ids in `object_list`, one each.",
+      "description": "The objects' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -3171,7 +3185,7 @@
       "type": "boolean"
      },
      "object_ids": {
-      "description": "Optional guard: the objects' ids in `object_list`, one each.",
+      "description": "The objects' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -3185,7 +3199,7 @@
       "type": "array"
      },
      "part_ids": {
-      "description": "Optional guard: the parts' ids in `object_list`, one each.",
+      "description": "The parts' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -3222,7 +3236,7 @@
     }
    ],
    "completion": "immediate",
-   "description": "Arrange the objects of every unlocked plate as the toolbar's Arrange does, or of one plate (plates: an index or \"current\") as its Arrange icon does. With `fill_object`, fill that object's plate with more of it instead, as Fill bed with instances (or copies, by `fill_with`) does (reply: added, how many). spacing, rotate, `align_y` and `multi_material` are the Arrange options panel's settings: the values given stay in the panel, so later arranges use them too. Waits for the arrangement (a longer one replies with a job). Reply: the settings in force, instances left off every plate, plates the all-plates arrange skipped and the job's notifications. An arrange may reorder objects, so `object_list` again. One undo step. Called with no arguments it is Auto-Arrange, the toolbar's Arrange with the panel's settings, and waits and replies as any other call.",
+   "description": "Arrange the objects of every unlocked plate as the toolbar's Arrange does, or of one plate (plates: an index or \"current\") as its Arrange icon does. With `fill_object` (or `fill_object_id`), fill that object's plate with more of it instead, as Fill bed with instances (or copies, by `fill_with`) does (reply: added, how many). spacing, rotate, `align_y` and `multi_material` are the Arrange options panel's settings: the values given stay in the panel, so later arranges use them too. Waits for the arrangement (a longer one replies with a job). Reply: the settings in force, instances left off every plate, plates the all-plates arrange skipped and the job's notifications. An arrange may reorder objects, so `object_list` again. One undo step. Called with no arguments it is Auto-Arrange, the toolbar's Arrange with the panel's settings, and waits and replies as any other call.",
    "destructive": false,
    "group": "Objects",
    "guard": "mutate",
@@ -3237,6 +3251,11 @@
      },
      "fill_object": {
       "description": "An object index: instead of arranging, fill that object's plate with more of it.",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "fill_object_id": {
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -3329,13 +3348,18 @@
       "minimum": 0,
       "type": "integer"
      },
+     "instance_id": {
+      "description": "The instance's id in `object_list`.",
+      "minimum": 0,
+      "type": "integer"
+     },
      "object": {
       "description": "Object index (`object_list`).",
       "minimum": 0,
       "type": "integer"
      },
      "object_id": {
-      "description": "Optional guard: the object's id in `object_list`.",
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -3412,7 +3436,7 @@
     "additionalProperties": false,
     "properties": {
      "object_ids": {
-      "description": "Optional guard: the objects' ids in `object_list`, one each.",
+      "description": "The objects' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -3479,7 +3503,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "Optional guard: the object's id in `object_list`.",
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -3489,7 +3513,7 @@
       "type": "integer"
      },
      "part_id": {
-      "description": "Optional guard: the part's id in `object_list`.",
+      "description": "The part's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      }
@@ -3559,6 +3583,11 @@
       "minimum": 0,
       "type": "integer"
      },
+     "instance_id": {
+      "description": "The instance's id in `object_list`.",
+      "minimum": 0,
+      "type": "integer"
+     },
      "keep": {
       "description": "The pieces kept. Default both.",
       "enum": [
@@ -3583,7 +3612,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "Optional guard: the object's id in `object_list`.",
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -3703,6 +3732,11 @@
       "minimum": 0,
       "type": "integer"
      },
+     "instance_id": {
+      "description": "The instance's id in `object_list`.",
+      "minimum": 0,
+      "type": "integer"
+     },
      "normal": {
       "description": "`[x, y, z]`: the direction the face to lay on the bed points out to; any length but zero.",
       "items": {
@@ -3716,7 +3750,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "Optional guard: the object's id in `object_list`.",
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      }
@@ -3806,13 +3840,18 @@
       "minimum": 0,
       "type": "integer"
      },
+     "instance_id": {
+      "description": "The instance's id in `object_list`.",
+      "minimum": 0,
+      "type": "integer"
+     },
      "object": {
       "description": "Object index (`object_list`).",
       "minimum": 0,
       "type": "integer"
      },
      "object_id": {
-      "description": "Optional guard: the object's id in `object_list`.",
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -3870,7 +3909,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "Optional guard: the object's id in `object_list`.",
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -3941,7 +3980,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "Optional guard: the object's id in `object_list`.",
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -3987,7 +4026,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "Optional guard: the object's id in `object_list`.",
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -4120,7 +4159,7 @@
     "additionalProperties": false,
     "properties": {
      "part_ids": {
-      "description": "Optional guard: the parts' ids in `object_list`, one each.",
+      "description": "The parts' ids in `object_list`.",
       "items": {
        "type": "integer"
       },
@@ -4216,7 +4255,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "Optional guard: the object's id in `object_list`.",
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -4226,7 +4265,7 @@
       "type": "integer"
      },
      "part_id": {
-      "description": "Optional guard: the part's id in `object_list`.",
+      "description": "The part's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -4288,7 +4327,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "Optional guard: the object's id in `object_list`.",
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      }
@@ -5487,12 +5526,22 @@
       "minimum": 0,
       "type": "integer"
      },
+     "object_id": {
+      "description": "The object's id in `object_list`.",
+      "minimum": 0,
+      "type": "integer"
+     },
      "offset": {
       "minimum": 0,
       "type": "integer"
      },
      "part": {
       "description": "Part index in the object (target part, with object); without both, the part selected in Prepare.",
+      "minimum": 0,
+      "type": "integer"
+     },
+     "part_id": {
+      "description": "The part's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -5561,7 +5610,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "Optional guard: the object's id in `object_list`.",
+      "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -5571,7 +5620,7 @@
       "type": "integer"
      },
      "part_id": {
-      "description": "Optional guard: the part's id in `object_list`.",
+      "description": "The part's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
      },
@@ -8578,7 +8627,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Commit to Plate: send the visible bodies to Prepare at their Move-gizmo positions and show Prepare. It is one Prepare undo step. A lone body is sent even when hidden. A body named in the Bodies list or with body_set names its object or part. Reply: objects (object_list index after replace, name, parts: how many), bodies_sent, bodies_hidden, replaced.",
+   "description": "Commit to Plate: send the visible bodies to Prepare at their Move-gizmo positions and show Prepare. It is one Prepare undo step. A lone body is sent even when hidden. A body named in the Bodies list or with body_set names its object or part. Reply: objects (object_list index after replace, object_id, name, parts: how many), bodies_sent, bodies_hidden, replaced.",
    "destructive": false,
    "examples": [
     {
@@ -8668,6 +8717,11 @@
      "replace": {
       "default": [],
       "description": "object_list indices to delete in the same undo step, such as an earlier commit. Their settings, modifiers and paint go with them.",
+      "type": "array"
+     },
+     "replace_ids": {
+      "default": [],
+      "description": "replace by the objects' ids in object_list.",
       "type": "array"
      }
     },

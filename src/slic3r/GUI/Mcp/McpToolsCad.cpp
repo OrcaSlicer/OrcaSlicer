@@ -2851,7 +2851,8 @@ json action_commit_to_plate(DesignPanel* panel, const json& params)
     json objects = json::array();
     for (const ModelObject* o : made) {
         const auto it = std::find(model.objects.begin(), model.objects.end(), o);
-        objects.push_back(json{{"index", int(it - model.objects.begin())}, {"name", o->name}, {"parts", o->volumes.size()}});
+        objects.push_back(json{{"index", int(it - model.objects.begin())}, {"object_id", o->id().id}, {"name", o->name},
+                               {"parts", o->volumes.size()}});
     }
     json hidden = json::array();
     for (int b = 0; b < int(doc.bodies.size()); ++b)
@@ -4214,7 +4215,8 @@ NativeCommand design_command(const DesignTool& t)
     c.idempotent  = c.read_only;
     c.description = std::move(description);
     c.examples    = doc.at("examples");
-    return c;
+    // commit_to_plate's replace_ids names Prepare's objects by id.
+    return with_target_ids(std::move(c));
 }
 
 } // namespace

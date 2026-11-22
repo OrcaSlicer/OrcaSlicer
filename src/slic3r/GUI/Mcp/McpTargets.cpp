@@ -17,7 +17,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
+#include <optional>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -28,8 +30,8 @@ using nlohmann::json;
 namespace {
 
 // Every argument that names a target, in one form or the other.
-constexpr const char* kTargetArgs[] = {"object", "objects", "object_id", "object_ids", "instance", "instances", "instance_object_ids",
-                                       "part", "parts", "part_id", "part_ids"};
+constexpr const char* kTargetArgs[] = {"object", "objects", "object_id", "object_ids", "instance", "instances", "instance_id",
+                                       "instance_ids", "part", "parts", "part_id", "part_ids"};
 
 template<class T> void add_once(std::vector<T>& list, const T& item)
 {
@@ -65,6 +67,73 @@ std::int64_t index_among(const json& v, std::size_t count)
     return d >= 0 && d < double(count) ? std::int64_t(d) : -1;
 }
 
+// The id a call gives as `v`: a whole number from 0, as the schema's integer type takes one, else nothing.
+std::optional<std::uint64_t> as_id(const json& v)
+{
+    if (v.is_number_unsigned())
+        return v.get<std::uint64_t>();
+    if (v.is_number_integer())
+        return v.get<std::int64_t>() >= 0 ? std::optional<std::uint64_t>(std::uint64_t(v.get<std::int64_t>())) : std::nullopt;
+    if (is_whole_number(v) && v.get<double>() >= 0)
+        return std::uint64_t(v.get<double>());
+    return std::nullopt;
+}
+
+// Where the object, part or instance with an id is: its object's index, and a part's or an instance's index in that
+// object (-1 for an object). Ids are unique across objects, parts and instances, so at most one finder finds an id.
+struct Place
+{
+    int object = -1;
+    int member = -1;
+};
+
+std::optional<Place> find_object(const Model& model, std::uint64_t id)
+{
+    for (std::size_t i = 0; i < model.objects.size(); ++i)
+        if (model.objects[i]->id().id == id)
+            return Place{int(i), -1};
+    return std::nullopt;
+}
+
+std::optional<Place> find_part(const Model& model, std::uint64_t id)
+{
+    for (std::size_t i = 0; i < model.objects.size(); ++i)
+        for (std::size_t j = 0; j < model.objects[i]->volumes.size(); ++j)
+            if (model.objects[i]->volumes[j]->id().id == id)
+                return Place{int(i), int(j)};
+    return std::nullopt;
+}
+
+std::optional<Place> find_instance(const Model& model, std::uint64_t id)
+{
+    for (std::size_t i = 0; i < model.objects.size(); ++i)
+        for (std::size_t j = 0; j < model.objects[i]->instances.size(); ++j)
+            if (model.objects[i]->instances[j]->id().id == id)
+                return Place{int(i), int(j)};
+    return std::nullopt;
+}
+
+// What a refusal of index `v`, out of range, adds when `v` is the id of an object, a part or an instance: the agent
+// that read `"id": 147` in object_list and passed it as an index learns what that id names, so that its next call
+// can name it by id. Empty when `v` is no id the model has.
+std::string id_hint(const Model& model, const json& v)
+{
+    const std::optional<std::uint64_t> id = as_id(v);
+    if (!id)
+        return {};
+    const std::string is = "; " + std::to_string(*id) + " is the id of ";
+    if (const std::optional<Place> at = find_object(model, *id))
+        return is + "object " + std::to_string(at->object) + " (\"" + model.objects[std::size_t(at->object)]->name +
+               "\"), which `object_id` or `object_ids` takes";
+    if (const std::optional<Place> at = find_part(model, *id))
+        return is + "part " + std::to_string(at->member) + " of object " + std::to_string(at->object) +
+               ", which `part_id` or `part_ids` takes";
+    if (const std::optional<Place> at = find_instance(model, *id))
+        return is + "instance " + std::to_string(at->member) + " of object " + std::to_string(at->object) +
+               ", which `instance_id` or `instance_ids` takes";
+    return {};
+}
+
 // The checks of a target's indices against the model, with the texts object_select gives, each naming the index as
 // the call gave it.
 struct IndexCheck
@@ -77,7 +146,7 @@ struct IndexCheck
         const std::int64_t index = index_among(v, model.objects.size());
         if (index < 0)
             throw ToolFailure("object index " + v.dump() + " is out of range (the project has " +
-                                  index_range("object", model.objects.size()) + ")",
+                                  index_range("object", model.objects.size()) + ")" + id_hint(model, v),
                               {{"code", "invalid_argument"}});
         return int(index);
     }
@@ -90,7 +159,7 @@ struct IndexCheck
         const std::int64_t index = index_among(v, count);
         if (index < 0)
             throw ToolFailure("object " + std::to_string(owner) + " has no " + (instance ? "instance " : "part ") + v.dump() +
-                                  " (it has " + index_range(instance ? "instance" : "part", count) + ")",
+                                  " (it has " + index_range(instance ? "instance" : "part", count) + ")" + id_hint(model, v),
                               {{"code", "invalid_argument"}});
         return int(index);
     }
@@ -106,8 +175,8 @@ struct IndexCheck
     }
 };
 
-// The ids `ids_key` expects for the entries of `list_key`, one each, checked against `expected` (the object or part
-// each entry names) as check_expected_ids() checks one.
+// The ids `ids_key` expects for the entries of `list_key`, one each, checked against `expected` (the object, part or
+// instance each entry names) as check_expected_ids() checks one.
 template<class Expected> void check_ids(const json& args, const char* list_key, const char* ids_key, const char* id_key, std::size_t entries,
                                         const Expected& expected)
 {
@@ -120,6 +189,7 @@ template<class Expected> void check_ids(const json& args, const char* list_key, 
         expected(k, json{{id_key, ids[k]}});
 }
 
+// The targets `args` name by index, with_indices() having read those named by id as their indices.
 Targets named_targets(const Model& model, const json& args, unsigned kinds)
 {
     using Forms = std::pair<const char*, const char*>;
@@ -133,25 +203,25 @@ Targets named_targets(const Model& model, const json& args, unsigned kinds)
     if (args.contains("object")) {
         const int          index  = check.object(args.at("object"));
         const ModelObject& object = *model.objects[std::size_t(index)];
-        check_expected_ids(object, nullptr, args);
+        check_expected_ids(object, nullptr, nullptr, args);
         if ((kinds & kParts) && args.contains("part")) {
             const int part = check.member(index, args.at("part"), false);
-            check_expected_ids(object, object.volumes[std::size_t(part)], args);
+            check_expected_ids(object, object.volumes[std::size_t(part)], nullptr, args);
             out.parts.emplace_back(index, part);
         } else if ((kinds & kInstances) && args.contains("instance")) {
             const int instance = check.member(index, args.at("instance"), true);
+            check_expected_ids(object, nullptr, object.instances[std::size_t(instance)], args);
             out.instances.emplace_back(index, instance);
         } else if (kinds & kObjects) {
-            if (args.contains("part_id"))
-                throw ToolFailure("part_id goes with part", {{"code", "invalid_argument"}});
             out.objects.push_back(index);
         } else {
             throw ToolFailure(std::string("object names the object of a ") + (kinds & kParts ? "part: give part too" : "instance: give instance too"), {{"code", "invalid_argument"}});
         }
     } else {
-        for (const char* key : {"instance", "part", "object_id", "part_id"})
+        // An id names its object too (with_indices()), so only an index can lack one.
+        for (const char* key : {"instance", "part"})
             if (args.contains(key))
-                throw ToolFailure(std::string(key) + " goes with object", {{"code", "invalid_argument"}});
+                throw ToolFailure(std::string(key) + " goes with object or object_id", {{"code", "invalid_argument"}});
     }
 
     // Several targets, each checked with its expected id before any is taken.
@@ -170,14 +240,15 @@ Targets named_targets(const Model& model, const json& args, unsigned kinds)
     for (const json& entry : parts)
         part_list.push_back(check.pair(entry, false));
     check_ids(args, "objects", "object_ids", "object_id", object_list.size(), [&](std::size_t k, const json& id) {
-        check_expected_ids(*model.objects[std::size_t(object_list[k])], nullptr, id);
+        check_expected_ids(*model.objects[std::size_t(object_list[k])], nullptr, nullptr, id);
     });
-    check_ids(args, "instances", "instance_object_ids", "object_id", instance_list.size(), [&](std::size_t k, const json& id) {
-        check_expected_ids(*model.objects[std::size_t(instance_list[k].first)], nullptr, id);
+    check_ids(args, "instances", "instance_ids", "instance_id", instance_list.size(), [&](std::size_t k, const json& id) {
+        const ModelObject& object = *model.objects[std::size_t(instance_list[k].first)];
+        check_expected_ids(object, nullptr, object.instances[std::size_t(instance_list[k].second)], id);
     });
     check_ids(args, "parts", "part_ids", "part_id", part_list.size(), [&](std::size_t k, const json& id) {
         const ModelObject& object = *model.objects[std::size_t(part_list[k].first)];
-        check_expected_ids(object, object.volumes[std::size_t(part_list[k].second)], id);
+        check_expected_ids(object, object.volumes[std::size_t(part_list[k].second)], nullptr, id);
     });
     for (int index : object_list)
         add_once(out.objects, index);
@@ -247,29 +318,125 @@ std::vector<Property> target_props(unsigned kinds, bool one)
     std::vector<Property> out;
     if (one) {
         out.emplace_back("object", json{{"type", "integer"}, {"minimum", 0}, {"description", "Object index (`object_list`)."}});
-        out.emplace_back("object_id", expected_id_prop("object"));
-        if (kinds & kInstances)
+        out.emplace_back("object_id", id_prop("object"));
+        if (kinds & kInstances) {
             out.emplace_back("instance", json{{"type", "integer"}, {"minimum", 0}, {"description", "An instance of the object (`object_list`)."}});
+            out.emplace_back("instance_id", id_prop("instance"));
+        }
         if (kinds & kParts) {
             out.emplace_back("part", json{{"type", "integer"}, {"minimum", 0}, {"description", "A part of the object (`object_list`)."}});
-            out.emplace_back("part_id", expected_id_prop("part"));
+            out.emplace_back("part_id", id_prop("part"));
         }
         return out;
     }
     if (kinds & kObjects) {
         out.emplace_back("objects", array_prop({{"type", "integer"}}, "Object indices."));
-        out.emplace_back("object_ids", array_prop({{"type", "integer"}}, "Optional guard: the objects' ids in `object_list`, one each."));
+        out.emplace_back("object_ids", array_prop({{"type", "integer"}}, "The objects' ids in `object_list`."));
     }
     if (kinds & kInstances) {
         out.emplace_back("instances", array_prop({{"type", "array"}}, "`[[object, instance], ...]`"));
-        out.emplace_back("instance_object_ids", array_prop({{"type", "integer"}}, "Optional guard: the ids in `object_list` of the "
-                                                                                  "instances' objects, one each."));
+        out.emplace_back("instance_ids", array_prop({{"type", "integer"}}, "The instances' ids in `object_list`."));
     }
     if (kinds & kParts) {
         out.emplace_back("parts", array_prop({{"type", "array"}}, "`[[object, part], ...]`"));
-        out.emplace_back("part_ids", array_prop({{"type", "integer"}}, "Optional guard: the parts' ids in `object_list`, one each."));
+        out.emplace_back("part_ids", array_prop({{"type", "integer"}}, "The parts' ids in `object_list`."));
     }
     return out;
+}
+
+json with_indices(const Model& model, json args)
+{
+    if (!args.is_object())
+        return args;
+    const auto id_in = [](const json& v, const std::string& key) {
+        if (const std::optional<std::uint64_t> id = as_id(v))
+            return *id;
+        throw ToolFailure(key + " takes the ids `object_list` gives", {{"code", "invalid_argument"}});
+    };
+    const auto object_of = [&](const json& v, const std::string& key) {
+        const std::uint64_t id = id_in(v, key);
+        if (const std::optional<Place> at = find_object(model, id))
+            return *at;
+        throw ToolFailure("No object has id " + std::to_string(id) + ": `object_list` gives the ids there are now",
+                          {{"code", "invalid_argument"}});
+    };
+    const auto part_of = [&](const json& v, const std::string& key) {
+        const std::uint64_t id = id_in(v, key);
+        if (const std::optional<Place> at = find_part(model, id))
+            return *at;
+        throw ToolFailure("No part has id " + std::to_string(id) + ": `object_list {detail: true}` gives the ids there are now",
+                          {{"code", "invalid_argument"}});
+    };
+    const auto instance_of = [&](const json& v, const std::string& key) {
+        const std::uint64_t id = id_in(v, key);
+        if (const std::optional<Place> at = find_instance(model, id))
+            return *at;
+        throw ToolFailure("No instance has id " + std::to_string(id) + ": `object_list` gives the ids there are now",
+                          {{"code", "invalid_argument"}});
+    };
+
+    // One target: its object by index or id, and a part or an instance of it by index or id. A part's or an instance's
+    // id names its object too, which must be the object the call names, if it names one.
+    if (args.contains("object_id") && !args.contains("object"))
+        args["object"] = object_of(args["object_id"], "object_id").object;
+    for (const auto& [id_key, index_key] : {std::pair<const char*, const char*>{"part_id", "part"}, {"instance_id", "instance"}}) {
+        if (!args.contains(id_key))
+            continue;
+        const Place at = std::string(id_key) == "part_id" ? part_of(args[id_key], id_key) : instance_of(args[id_key], id_key);
+        if (!args.contains("object"))
+            args["object"] = at.object;
+        else if (index_among(args["object"], model.objects.size()) != at.object)
+            throw ToolFailure(std::string(id_key) + " " + args[id_key].dump() + " is of object " + std::to_string(at.object) +
+                                  ", not of object " + args["object"].dump(),
+                              {{"code", "invalid_argument"}});
+        if (!args.contains(index_key))
+            args[index_key] = at.member;
+    }
+
+    // Several targets: a list of ids gives the list of indices it stands for, entry by entry.
+    const auto list = [&](const char* ids_key, const char* index_key, const auto& index_of) {
+        if (!args.contains(ids_key) || args.contains(index_key) || !args[ids_key].is_array())
+            return;
+        json indices = json::array();
+        for (const json& v : args[ids_key])
+            indices.push_back(index_of(v));
+        args[index_key] = std::move(indices);
+    };
+    list("object_ids", "objects", [&](const json& v) { return json(object_of(v, "object_ids").object); });
+    list("instance_ids", "instances", [&](const json& v) {
+        const Place at = instance_of(v, "instance_ids");
+        return json::array({at.object, at.member});
+    });
+    list("part_ids", "parts", [&](const json& v) {
+        const Place at = part_of(v, "part_ids");
+        return json::array({at.object, at.member});
+    });
+
+    // The arguments that name objects outside the targets: given by id, the indices; given both ways, the ids guard the
+    // indices here, as no reading of the targets checks them.
+    for (const auto& [ids_key, index_key, one] :
+         {std::tuple<const char*, const char*, bool>{"fill_object_id", "fill_object", true}, {"order_ids", "order", false},
+          {"replace_ids", "replace", false}}) {
+        if (!args.contains(ids_key))
+            continue;
+        const json ids = one ? json::array({args[ids_key]}) : args[ids_key];
+        if (!ids.is_array())
+            continue;
+        if (!args.contains(index_key)) {
+            json indices = json::array();
+            for (const json& v : ids)
+                indices.push_back(object_of(v, ids_key).object);
+            args[index_key] = one ? indices.front() : std::move(indices);
+            continue;
+        }
+        const json given = one ? json::array({args[index_key]}) : args[index_key];
+        if (!given.is_array() || given.size() != ids.size())
+            throw ToolFailure(std::string(ids_key) + " takes one id per entry of " + index_key, {{"code", "invalid_argument"}});
+        for (std::size_t k = 0; k < ids.size(); ++k)
+            if (const std::int64_t index = index_among(given[k], model.objects.size()); index >= 0)
+                check_expected_ids(*model.objects[std::size_t(index)], nullptr, nullptr, json{{"object_id", ids[k]}});
+    }
+    return args;
 }
 
 json with_targets(json schema, unsigned kinds, bool one)
@@ -295,7 +462,7 @@ Ops::Outcome<Targets> resolve_targets(const Model& model, const Selection* selec
 {
     Targets targets;
     if (names_targets(args)) {
-        targets = named_targets(model, args, kinds);
+        targets = named_targets(model, with_indices(model, args), kinds);
     } else {
         Ops::Outcome<Targets> selected = selected_targets(model, selection, kinds);
         if (!selected)
@@ -318,8 +485,13 @@ json targets_reply(const Model& model, const Targets& targets)
         if (const ModelObject* object = object_at(index))
             objects.push_back({{"index", index}, {"object_id", object->id().id}, {"name", object->name}});
     for (const auto& [index, instance] : targets.instances)
-        if (const ModelObject* object = object_at(index))
-            instances.push_back({{"object", index}, {"instance", instance}, {"object_id", object->id().id}, {"name", object->name}});
+        if (const ModelObject* object = object_at(index)) {
+            json entry{{"object", index}, {"instance", instance}, {"object_id", object->id().id}, {"name", object->name}};
+            // A deleted instance is named by the index it had, which the object may not have now.
+            if (instance >= 0 && std::size_t(instance) < object->instances.size())
+                entry["instance_id"] = object->instances[std::size_t(instance)]->id().id;
+            instances.push_back(std::move(entry));
+        }
     for (const auto& [index, part] : targets.parts)
         if (const ModelObject* object = object_at(index); object != nullptr && part >= 0 && std::size_t(part) < object->volumes.size())
             parts.push_back({{"object", index}, {"part", part}, {"part_id", object->volumes[std::size_t(part)]->id().id},

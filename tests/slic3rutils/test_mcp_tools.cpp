@@ -1670,69 +1670,86 @@ TEST_CASE("view_set takes the Design tab's camera, section view and switches", "
 TEST_CASE("a call naming an object's id is refused once its index names another object", "[Mcp]")
 {
     Slic3r::Model model;
-    Slic3r::ModelObject* first  = model.add_object();
-    Slic3r::ModelObject* second = model.add_object();
-    first->name                 = "bracket";
-    second->name                = "lid";
-    Slic3r::ModelVolume* part   = first->add_volume(Slic3r::TriangleMesh());
+    Slic3r::ModelObject*   first    = model.add_object();
+    Slic3r::ModelObject*   second   = model.add_object();
+    first->name                     = "bracket";
+    second->name                    = "lid";
+    Slic3r::ModelVolume*   part     = first->add_volume(Slic3r::TriangleMesh());
+    Slic3r::ModelInstance* instance = first->add_instance();
+    Slic3r::ModelInstance* other    = first->add_instance();
 
-    CHECK_NOTHROW(check_expected_ids(*first, nullptr, json{{"object", 0}, {"object_id", first->id().id}}));
-    CHECK_NOTHROW(check_expected_ids(*first, part, json{{"object", 0}, {"part_id", part->id().id}}));
-    // Without expected ids the index alone decides, as before.
-    CHECK_NOTHROW(check_expected_ids(*second, nullptr, json{{"object", 0}}));
+    CHECK_NOTHROW(check_expected_ids(*first, nullptr, nullptr, json{{"object", 0}, {"object_id", first->id().id}}));
+    CHECK_NOTHROW(check_expected_ids(*first, part, nullptr, json{{"object", 0}, {"part_id", part->id().id}}));
+    CHECK_NOTHROW(check_expected_ids(*first, nullptr, instance, json{{"object", 0}, {"instance_id", instance->id().id}}));
+    // Without ids the index alone decides.
+    CHECK_NOTHROW(check_expected_ids(*second, nullptr, nullptr, json{{"object", 0}}));
     try {
-        check_expected_ids(*second, nullptr, json{{"object", 0}, {"object_id", first->id().id}});
+        check_expected_ids(*second, nullptr, nullptr, json{{"object", 0}, {"object_id", first->id().id}});
         FAIL("the call was not refused");
     } catch (const ToolFailure& f) {
         CHECK(std::string(f.what()).find("lid") != std::string::npos);
         CHECK(f.details["id"] == second->id().id);
     }
-    CHECK_THROWS_AS(check_expected_ids(*first, part, json{{"part_id", part->id().id + 1000}}), ToolFailure);
+    CHECK_THROWS_AS(check_expected_ids(*first, part, nullptr, json{{"part_id", part->id().id + 1000}}), ToolFailure);
+    try {
+        check_expected_ids(*first, nullptr, other, json{{"instance_id", instance->id().id}});
+        FAIL("the call was not refused");
+    } catch (const ToolFailure& f) {
+        CHECK(f.details["id"] == other->id().id);
+    }
 }
 
-TEST_CASE("the journal records indices without expected ids, except a Python step's arguments", "[Mcp]")
+TEST_CASE("the journal records indices without the ids beside them, except a Python step's arguments", "[Mcp]")
 {
     const CommandCatalog& catalog = Slic3r::GUI::NativeCommands::instance();
-    CHECK(without_expected_ids(catalog, "settings_set", json{{"object", 0}, {"object_id", 7}, {"part_id", 8}}) == json{{"object", 0}});
-    CHECK(without_expected_ids(catalog, "object_set_height_ranges", json{{"object", 0}, {"object_id", 7}}) == json{{"object", 0}});
-    CHECK(without_expected_ids(catalog, "object_set_variable_layer_height", json{{"object", 0}, {"object_id", 7}}) == json{{"object", 0}});
+    CHECK(without_guard_ids(catalog, "settings_set", json{{"object", 0}, {"object_id", 7}, {"part", 1}, {"part_id", 8}}) ==
+          json{{"object", 0}, {"part", 1}});
+    CHECK(without_guard_ids(catalog, "object_set_height_ranges", json{{"object", 0}, {"object_id", 7}}) == json{{"object", 0}});
+    CHECK(without_guard_ids(catalog, "object_set_variable_layer_height", json{{"object", 0}, {"object_id", 7}}) == json{{"object", 0}});
     const json replay{{"replay", {{"orca_replay_version", "0.2.0"},
                                   {"steps", {{{"tool", "object_transform"}, {"args", {{"object", 1}, {"object_id", 9}}}},
                                              {{"tool", "script_run"}, {"args", {{"code", "x"}, {"args", {{"object_id", 9}}}}}}}}}}};
-    const json recorded = without_expected_ids(catalog, "replay_run", replay);
+    const json recorded = without_guard_ids(catalog, "replay_run", replay);
     CHECK(recorded["replay"]["steps"][0]["args"] == json{{"object", 1}});
     CHECK(recorded["replay"]["steps"][1]["args"]["args"]["object_id"] == 9);
-    CHECK(without_expected_ids(catalog, "script_run", json{{"code", "x"}, {"args", {{"object_id", 3}}}})["args"]["object_id"] == 3);
+    CHECK(without_guard_ids(catalog, "script_run", json{{"code", "x"}, {"args", {{"object_id", 3}}}})["args"]["object_id"] == 3);
 }
 
-TEST_CASE("the journal records an inline replay given as JSON text as its object, without expected ids", "[Mcp]")
+TEST_CASE("the journal records an inline replay given as JSON text as its object, without the ids beside indices", "[Mcp]")
 {
     const CommandCatalog& catalog = Slic3r::GUI::NativeCommands::instance();
     const json as_text{{"replay", "// moves the lid\n"
                                   R"({"orca_replay_version": "0.2.0", "steps": [{"tool": "object_transform", "args": {"object": 1, "object_id": 9}}]})"}};
-    const json recorded = without_expected_ids(catalog, "replay_run", as_text);
+    const json recorded = without_guard_ids(catalog, "replay_run", as_text);
     REQUIRE(recorded["replay"].is_object());
     CHECK(recorded["replay"]["steps"][0]["args"] == json{{"object", 1}});
     // Text that doesn't parse is the call's error; it is recorded as given.
-    CHECK(without_expected_ids(catalog, "replay_run", json{{"replay", "{\"orca_replay_version\": \"0.2.0\","}}) == json{{"replay", "{\"orca_replay_version\": \"0.2.0\","}});
+    CHECK(without_guard_ids(catalog, "replay_run", json{{"replay", "{\"orca_replay_version\": \"0.2.0\","}}) == json{{"replay", "{\"orca_replay_version\": \"0.2.0\","}});
 }
 
-TEST_CASE("the journal strips a command's id arguments", "[Mcp]")
+TEST_CASE("the journal leaves out a command's ids that stand beside their indices", "[Mcp]")
 {
     const CommandCatalog& catalog = Slic3r::GUI::NativeCommands::instance();
-    CHECK(without_expected_ids(catalog, "object_transform", json{{"object", 0}, {"object_id", 7}}) == json{{"object", 0}});
-    // Inside the tool_call and replay_run wrappers too.
-    CHECK(without_expected_ids(catalog, "tool_call", json{{"tool", "object_transform"}, {"args", {{"object", 1}, {"object_id", 9}}}}) ==
+    CHECK(without_guard_ids(catalog, "object_transform", json{{"object", 0}, {"object_id", 7}}) == json{{"object", 0}});
+    // An id given alone still names its target: the command records its index once it reads it (with_target_ids()).
+    CHECK(without_guard_ids(catalog, "object_transform", json{{"object_id", 7}}) == json{{"object_id", 7}});
+    CHECK(without_guard_ids(catalog, "object_order", json{{"order", {1, 0}}, {"order_ids", {7, 5}}}) == json{{"order", {1, 0}}});
+    CHECK(without_guard_ids(catalog, "object_arrange", json{{"fill_object", 1}, {"fill_object_id", 7}}) == json{{"fill_object", 1}});
+    // Inside the tool_call, action_run and replay_run wrappers too.
+    CHECK(without_guard_ids(catalog, "action_run", json{{"id", "object_transform"}, {"args", {{"object", 1}, {"object_id", 9}}}}) ==
+          json{{"id", "object_transform"}, {"args", {{"object", 1}}}});
+    CHECK(without_guard_ids(catalog, "tool_call", json{{"tool", "object_transform"}, {"args", {{"object", 1}, {"object_id", 9}}}}) ==
           json{{"tool", "object_transform"}, {"args", {{"object", 1}}}});
     const json replay{{"replay", {{"orca_replay_version", "0.2.0"},
                                   {"steps", {{{"tool", "tool_call"}, {"args", {{"tool", "object_transform"}, {"args", {{"object", 1}, {"object_id", 9}}}}}}}}}}};
-    CHECK(without_expected_ids(catalog, "replay_run", replay)["replay"]["steps"][0]["args"]["args"] == json{{"object", 1}});
+    CHECK(without_guard_ids(catalog, "replay_run", replay)["replay"]["steps"][0]["args"]["args"] == json{{"object", 1}});
     // A plugin operation's own fields of the same names are its arguments, recorded as given.
-    CHECK(without_expected_ids(catalog, "plugin.measure.area", json{{"object_id", 4}}) == json{{"object_id", 4}});
-    CHECK(without_expected_ids(catalog, "tool_call", json{{"tool", "plugin.measure.area"}, {"args", {{"object_id", 4}}}})["args"]["object_id"] == 4);
-    CHECK(without_expected_ids(catalog, "object_select", json{{"objects", {0, 1}}, {"object_ids", {5, 6}}}) == json{{"objects", {0, 1}}});
-    CHECK(without_expected_ids(catalog, "object_select", json{{"instances", {{0, 1}}}, {"instance_object_ids", {5}}}) ==
+    CHECK(without_guard_ids(catalog, "plugin.measure.area", json{{"object_id", 4}}) == json{{"object_id", 4}});
+    CHECK(without_guard_ids(catalog, "tool_call", json{{"tool", "plugin.measure.area"}, {"args", {{"object_id", 4}}}})["args"]["object_id"] == 4);
+    CHECK(without_guard_ids(catalog, "object_select", json{{"objects", {0, 1}}, {"object_ids", {5, 6}}}) == json{{"objects", {0, 1}}});
+    CHECK(without_guard_ids(catalog, "object_select", json{{"instances", {{0, 1}}}, {"instance_ids", {5}}}) ==
           json{{"instances", {{0, 1}}}});
+    CHECK(without_guard_ids(catalog, "object_select", json{{"parts", {{0, 1}}}, {"part_ids", {5}}}) == json{{"parts", {{0, 1}}}});
 }
 
 TEST_CASE("app_log keeps a line by the level its entry starts with, and a continuation line with its first line", "[Mcp]")

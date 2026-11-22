@@ -1665,6 +1665,172 @@ class Structure(Part):
                      objects_[1].get("layer_height_profile"))
         self.t.check(f"{s} 9: Cube has no profile", "layer_height_profile" not in objects_[0], objects_[0])
 
+    def naming_by_id(self):
+        s = "naming by id"
+        self.start(s)
+
+        def three_cubes():
+            for name, x in (("a", 40), ("b", 100), ("c", 160)):
+                self.run("object_add_primitive", name=name, position=self.at(x, 60, 0), **CUBE)
+                self.run("object_select", none=True)
+
+        def short_rows(name):
+            """The rows object_list gives the named object without detail, one per plate it has instances on."""
+            listing = self.c.call("object_list", limit=500)
+            groups = [p["objects"] for p in listing["plates"]] + [listing.get("outside", [])]
+            return [row for rows in groups for row in rows if row["name"] == name]
+
+        def ids_beside(label, obj):
+            """The short rows of `obj` give each instance's id at the place its index has in `instances`."""
+            by_index = {inst["index"]: inst["id"] for inst in obj["instances"]}
+            for row in short_rows(obj["name"]):
+                self.t.equal(f"{label}: {obj['name']}'s instance_ids beside instances {row.get('instances')}",
+                             row.get("instance_ids"), [by_index.get(i) for i in row.get("instances", [])])
+
+        def instance_offsets(obj):
+            return [inst["offset"][:2] for inst in obj["instances"]]
+
+        def picked(items, keys):
+            return [{k: item.get(k) for k in keys} for item in items or []]
+
+        three_cubes()
+        objects_ = self.objects_are(f"{s} 1", "a", "b", "c")
+        A, B, C = (o["id"] for o in objects_)
+        self.t.check(f"{s} 1: the ids differ", len({A, B, C}) == 3, (A, B, C))
+        self.t.check(f"{s} 1: no id is an index the project has", min(A, B, C) > 2, (A, B, C))
+        c_instance = objects_[2]["instances"][0]["id"]
+        for obj in objects_:
+            rows = short_rows(obj["name"])
+            self.t.equal(f"{s} 1: {obj['name']}'s short rows", [(r.get("instances"), r.get("instance_ids")) for r in rows],
+                         [([0], [obj["instances"][0]["id"]])])
+        self.run("replay_export", clear=True)
+
+        reply = self.run("object_rename", object_id=B, name="bee")
+        self.t.equal(f"{s} 2: the reply's objects", picked(reply.get("objects"), ("index", "object_id", "name")),
+                     [{"index": 1, "object_id": B, "name": "bee"}])
+        self.objects_are(f"{s} 2", "a", "bee", "c")
+
+        self.run("object_delete", object_ids=[A])
+        objects_ = self.objects_are(f"{s} 3", "bee", "c")
+        self.placed(f"{s} 3", objects_[0], 100, 60)
+        self.placed(f"{s} 3", objects_[1], 160, 60)
+        self.t.equal(f"{s} 3: the ids stay with their objects", [o["id"] for o in objects_], [B, C])
+
+        self.run("object_transform", object_id=C, translate=[0, 20, 0])
+        objects_ = self.objects_are(f"{s} 4", "bee", "c")
+        self.placed(f"{s} 4", objects_[0], 100, 60)
+        self.placed(f"{s} 4", objects_[1], 160, 80)
+
+        def places_as_after_4(label):
+            objects_ = self.objects_are(label, "bee", "c")
+            self.placed(label, objects_[0], 100, 60)
+            self.placed(label, objects_[1], 160, 80)
+
+        self.t.refused(f"{s} 5: an index and an id of different objects are refused",
+                       lambda: self.c.call("object_transform", object=1, object_id=B, translate=[0, 20, 0]),
+                       words='The object at this index is now "c"')
+        places_as_after_4(f"{s} 5")
+        self.t.refused(f"{s} 6: an id no object has is refused",
+                       lambda: self.c.call("object_transform", object_id=A, translate=[0, 20, 0]),
+                       code="invalid_argument", words=f"No object has id {A}")
+        places_as_after_4(f"{s} 6")
+        self.t.refused(f"{s} 7: an id given as an index is named for what it is",
+                       lambda: self.c.call("object_transform", object=C, translate=[0, 20, 0]),
+                       code="invalid_argument", words=f"{C} is the id of object 1")
+        places_as_after_4(f"{s} 7")
+
+        self.run("settings_set", target="object", object_id=C, values={"wall_loops": 5})
+        objects_ = self.objects_are(f"{s} 8", "bee", "c")
+        self.t.check(f"{s} 8: c overrides wall_loops", "wall_loops" in objects_[1].get("overrides", []), objects_[1])
+        self.t.check(f"{s} 8: bee does not", "wall_loops" not in objects_[0].get("overrides", []), objects_[0])
+
+        self.run("object_set_instances", object_id=C, count=3)
+        objects_ = self.objects_are(f"{s} 9", "bee", "c")
+        c = objects_[1]
+        self.t.equal(f"{s} 9: c's instances", len(c["instances"]), 3)
+        I0, I1, I2 = (inst["id"] for inst in c["instances"])
+        self.t.equal(f"{s} 9: instance 0 keeps its id", I0, c_instance)
+        self.t.check(f"{s} 9: the instances' ids differ", len({I0, I1, I2}) == 3, (I0, I1, I2))
+        ids_beside(f"{s} 9", c)
+        before = instance_offsets(c)
+
+        self.run("object_transform", instance_id=I2, translate=[0, 20, 0])
+        objects_ = self.objects_are(f"{s} 10", "bee", "c")
+        moved = instance_offsets(objects_[1])
+        self.t.near(f"{s} 10: instance 2 moved 20 mm along y", moved[2], [before[2][0], before[2][1] + 20], 0.001)
+        self.t.near(f"{s} 10: instance 0 stays", moved[0], before[0], 0.001)
+        self.t.near(f"{s} 10: instance 1 stays", moved[1], before[1], 0.001)
+
+        reply = self.run("object_set_printable", instance_ids=[I1], printable=False)
+        self.t.equal(f"{s} 11: the reply's instances", picked(reply.get("instances"), ("object", "instance", "instance_id")),
+                     [{"object": 1, "instance": 1, "instance_id": I1}])
+        objects_ = self.objects_are(f"{s} 11", "bee", "c")
+        self.t.equal(f"{s} 11: c's printable", [inst["printable"] for inst in objects_[1]["instances"]],
+                     [True, False, True])
+
+        self.run("object_delete", instance_ids=[I0])
+        objects_ = self.objects_are(f"{s} 12", "bee", "c")
+        self.t.equal(f"{s} 12: c's instances keep their ids", [inst["id"] for inst in objects_[1]["instances"]], [I1, I2])
+        self.t.equal(f"{s} 12: c's printable", [inst["printable"] for inst in objects_[1]["instances"]], [False, True])
+
+        reply = self.run("object_set_printable", instance_ids=[I1], printable=True)
+        self.t.equal(f"{s} 13: the reply's instances", picked(reply.get("instances"), ("object", "instance", "instance_id")),
+                     [{"object": 1, "instance": 0, "instance_id": I1}])
+        objects_ = self.objects_are(f"{s} 13", "bee", "c")
+        self.t.equal(f"{s} 13: c's printable", [inst["printable"] for inst in objects_[1]["instances"]], [True, True])
+        after_13 = instance_offsets(objects_[1])
+
+        self.run("part_add", object_id=B, type="modifier", shape="cube")
+        objects_ = self.objects_are(f"{s} 14", "bee: part, modifier", "c")
+        P = objects_[0]["parts"][1]["id"]
+
+        reply = self.run("part_change_type", part_ids=[P], type="negative")
+        self.t.equal(f"{s} 15: the reply's parts", picked(reply.get("parts"), ("object", "part", "part_id", "type")),
+                     [{"object": 0, "part": 1, "part_id": P, "type": "negative"}])
+        self.objects_are(f"{s} 15", "bee: part, negative", "c")
+
+        self.run("object_rename", part_id=P, name="hole")
+        objects_ = self.objects_are(f"{s} 16", "bee: part, negative", "c")
+        self.t.equal(f"{s} 16: bee's part 1 named hole", objects_[0]["parts"][1]["name"], "hole")
+
+        reply = self.run("object_order", order_ids=[C, B])
+        self.t.equal(f"{s} 17: the reply's order", picked(reply.get("order"), ("name", "object_id")),
+                     [{"name": "c", "object_id": C}, {"name": "bee", "object_id": B}])
+        self.objects_are(f"{s} 17", "c", "bee")
+
+        self.t.refused(f"{s} 18: Fill bed of an id no object has is refused",
+                       lambda: self.c.call("object_arrange", fill_object_id=A),
+                       code="invalid_argument", words=f"No object has id {A}")
+        objects_ = self.objects_are(f"{s} 18", "c", "bee")
+        self.t.near(f"{s} 18: c's instances where they were", [v for xy in instance_offsets(objects_[0]) for v in xy],
+                    [v for xy in after_13 for v in xy], 0.001)
+        self.placed(f"{s} 18", objects_[1], 100, 60)
+
+        replay = self.run("replay_export").get("replay", {})
+        targets = ("object", "objects", "instance", "instances", "part", "parts", "order")
+        steps = [step for step in replay.get("steps", []) if step.get("tool") != "app_wait"]
+        self.t.equal(f"{s} 19: the replay's steps and their targets",
+                     [(step.get("tool"), {k: v for k, v in step.get("args", {}).items() if k in targets}) for step in steps],
+                     [("object_rename", {"object": 1}), ("object_delete", {"objects": [0]}),
+                      ("object_transform", {"object": 1}), ("settings_set", {"object": 1}),
+                      ("object_set_instances", {"object": 1}), ("object_transform", {"object": 1, "instance": 2}),
+                      ("object_set_printable", {"instances": [[1, 1]]}), ("object_delete", {"instances": [[1, 0]]}),
+                      ("object_set_printable", {"instances": [[1, 0]]}), ("part_add", {"object": 0}),
+                      ("part_change_type", {"parts": [[0, 1]]}), ("object_rename", {"object": 0, "part": 1}),
+                      ("object_order", {"order": [1, 0]})])
+        with_ids = [(step.get("tool"), k) for step in steps for k in step.get("args", {}) if k.endswith(("_id", "_ids"))]
+        self.t.equal(f"{s} 19: no step names an id", with_ids, [])
+
+        self.renew(s)
+        three_cubes()
+        fresh = [o["id"] for o in self.objects_are(f"{s} 20: the cubes again", "a", "b", "c")]
+        self.t.check(f"{s} 20: the new cubes' ids are none of A, B and C", not {A, B, C} & set(fresh), fresh)
+        self.run("replay_run", replay=replay)
+        objects_ = self.objects_are(f"{s} 20", "c", "bee: part, negative")
+        self.t.check(f"{s} 20: c overrides wall_loops", "wall_loops" in objects_[0].get("overrides", []), objects_[0])
+        self.t.equal(f"{s} 20: c's printable", [inst["printable"] for inst in objects_[0]["instances"]], [True, True])
+        self.t.equal(f"{s} 20: bee's part 1 named hole", objects_[1]["parts"][1]["name"], "hole")
+
     def splitting(self):
         s = "splitting and assembling"
         self.start(s)
@@ -1854,8 +2020,12 @@ class Structure(Part):
                     self.placed(label, obj, places[obj["name"]], 60)
             return objects_
 
+        def entries(reply):
+            """The reply's order with the fields this scenario fixes: each entry's name, index and plate."""
+            return [{k: e.get(k) for k in ("name", "object", "plate")} for e in reply.get("order") or []]
+
         def order_is(label, reply, order, descending=None):
-            self.t.equal(f"{label}: the reply's order", reply.get("order"),
+            self.t.equal(f"{label}: the reply's order", entries(reply),
                          [{"name": n, "object": i, "plate": 0} for i, n in enumerate(order)])
             if descending is None:
                 self.t.check(f"{label}: the reply has no descending", "descending" not in reply, reply)
@@ -1903,7 +2073,7 @@ class Structure(Part):
         order_is(f"{s} 12", reply, given)
         state(f"{s} 12", given, first)
         reply = self.run("object_order", plate=0, order=[0, 1, 2])
-        self.t.equal(f"{s} 13: the order they have changes nothing: the reply's order", reply.get("order"),
+        self.t.equal(f"{s} 13: the order they have changes nothing: the reply's order", entries(reply),
                      [{"name": n, "object": i, "plate": 0} for i, n in enumerate(given)])
         state(f"{s} 13", given, first)
         self.undo()
@@ -2129,7 +2299,8 @@ class Structure(Part):
         self.t.equal(f"{s} 5: part 0's triangles", part["triangles"], 14)
 
     def scenarios(self):
-        return [("renaming and deleting", self.renaming), ("splitting and assembling", self.splitting),
+        return [("renaming and deleting", self.renaming), ("naming by id", self.naming_by_id),
+                ("splitting and assembling", self.splitting),
                 ("parts", self.parts), ("ordering", self.ordering), ("repairing a mesh", self.repairing),
                 ("the files a part comes from", self.files),
                 ("painting kept through a mesh change", self.painting)]

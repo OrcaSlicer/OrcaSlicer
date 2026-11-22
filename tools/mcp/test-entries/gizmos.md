@@ -391,7 +391,7 @@ start reads back, make it.
 The scenarios from here on call the commands. No step clicks the canvas, reads a panel's text or captures a
 picture, so where on an object a text or an SVG part lands, which follows the camera and the window, is not checked.
 A reply is written as the fields the row fixes; a target in a reply is written by its `index` (or `object`,
-`instance`, `part`) and `name`, and its `object_id` or `part_id` is not checked. Before each step that acts,
+`instance`, `part`) and `name`, and its `object_id`, `part_id` or `instance_id` is not checked. Before each step that acts,
 `undo_steps()` sets its mark, and the step lists the undo steps it takes; a refused step takes none.
 
 **Scenario: opening a gizmo on a target**
@@ -646,7 +646,7 @@ negative text and the SVG parts there stand for the text part, the negative text
   grabber at the bed under the object's edge, and the panel shows no state of it (`has_selected_points()` reads the
   ears, not the flag a click reads). `reload_on_next_opening()` clears it with the gizmo's own
   `select_point(NoPoints)`.
-- `object_id` and `part_id` in replies.
+- `object_id`, `part_id` and `instance_id` in replies: the objects entry's naming by id checks them.
 - What the painting, fuzzy skin, brim ears and connectors do to a slice: the test checks what the gizmos leave on the
   model and in the project file; turning it into toolpaths is the slicer's.
 - What other tests assert: Select All with Move open, and refused with Lay on face open, in

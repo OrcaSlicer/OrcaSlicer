@@ -994,18 +994,22 @@ TEST_CASE("a command the catalog leaves out is unknown with the reason", "[Comma
     CHECK(no_cad.left_out("object_arrange") == nullptr);
 }
 
-TEST_CASE("every expected-id argument of a schema is in id_args", "[CommandCatalog]")
+TEST_CASE("every id argument of a schema is in id_args", "[CommandCatalog]")
 {
     for (const NativeCommand& c : NativeCommands::instance().commands()) {
         INFO(c.key);
         std::set<std::string> in_schema;
         if (c.input_schema.is_object() && c.input_schema.contains("properties"))
-            for (const char* name : {"object_id", "part_id", "object_ids", "part_ids", "instance_object_ids"})
-                if (c.input_schema["properties"].contains(name))
-                    in_schema.insert(name);
+            for (const Mcp::IdArgument& arg : Mcp::kIdArguments) {
+                // An id names what its index does, so a schema with one has the other.
+                INFO(arg.id);
+                CHECK(c.input_schema["properties"].contains(arg.id) == c.input_schema["properties"].contains(arg.index));
+                if (c.input_schema["properties"].contains(arg.id))
+                    in_schema.insert(arg.id);
+            }
         CHECK(std::set<std::string>(c.id_args.begin(), c.id_args.end()) == in_schema);
     }
-    for (const char* key : {"object_transform", "object_select", "settings_set"}) {
+    for (const char* key : {"object_transform", "object_select", "settings_set", "object_arrange", "object_order"}) {
         INFO(key);
         const NativeCommand* takes_ids = NativeCommands::find(key);
         REQUIRE(takes_ids != nullptr);

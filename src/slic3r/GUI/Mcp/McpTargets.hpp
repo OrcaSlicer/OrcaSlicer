@@ -39,10 +39,19 @@ enum TargetKind : unsigned {
 };
 
 // The schema properties that name a command's targets of `kinds`, worded as object_select and object_transform word
-// them: objects, object_ids, instances ([[object, instance], ...]), instance_object_ids, parts ([[object, part], ...])
-// and part_ids; or with `one`, for a command of one target, object and object_id, then instance and part, each of
-// the object.
+// them: objects, object_ids, instances ([[object, instance], ...]), instance_ids, parts ([[object, part], ...]) and
+// part_ids; or with `one`, for a command of one target, object and object_id, then instance and instance_id, and part
+// and part_id, each of the object. Each target is named by index or by id, or by both, the id then a guard.
 std::vector<Property> target_props(unsigned kinds, bool one);
+
+// `args` with the index form of every object, part and instance they name by id alone (kIdArguments): object_id gives
+// object, part_id and instance_id their object and their index in it, object_ids, part_ids and instance_ids the lists
+// of indices, and fill_object_id, order_ids and replace_ids, which name objects outside the targets, fill_object,
+// order and replace. The ids stay beside the indices: a target's id is checked where the targets are read
+// (check_expected_ids()), and fill_object_id, order_ids and replace_ids given with their indices are checked here, as
+// no reading of the targets reads them. An id the model has nothing with, a part's or an instance's id of another
+// object than the call names, and an id that is no whole number are refused (ToolFailure, invalid_argument).
+nlohmann::json with_indices(const Model& model, nlohmann::json args);
 // `schema` (object_schema()) with target_props(kinds, one) among its properties.
 nlohmann::json with_targets(nlohmann::json schema, unsigned kinds, bool one);
 
@@ -52,10 +61,11 @@ bool names_targets(const nlohmann::json& args);
 // as naming nothing, where resolve_targets() refuses them.
 bool names_empty_lists(const nlohmann::json& args);
 
-// The targets of `kinds` that `args` name, each once, in the order named. Every index is checked to be in range and
-// every expected id to match (check_expected_ids()) before anything is returned, and a miss throws ToolFailure naming
-// it, as do both forms of one target at once (object and objects), an instance or a part without its object, and
-// arguments that name nothing (empty lists).
+// The targets of `kinds` that `args` name, by index or by id (with_indices()), each once, in the order named. Every
+// index is checked to be in range and every id given beside one to match (check_expected_ids()) before anything is
+// returned, and a miss throws ToolFailure naming it, as do both forms of one target at once (object and objects), an
+// instance or a part without its object, and arguments that name nothing (empty lists). An index out of range that is
+// an id the model has is refused with what that id names.
 // With none named: what `selection` holds, from_selection set. Every instance of an object selected is the object,
 // for a command that takes objects; an instance or a part selected stands for its object only with
 // kObjectOfSelection, and a part for its instance only with kInstanceOfSelectedPart. The selection is refused with
@@ -64,8 +74,9 @@ bool names_empty_lists(const nlohmann::json& args);
 Ops::Outcome<Targets> resolve_targets(const Model& model, const Selection* selection, const nlohmann::json& args, unsigned kinds, bool one);
 
 // What a reply says a command acted on: {"objects": [{index, object_id, name}], "instances": [{object, instance,
-// object_id, name}], "parts": [{object, part, part_id, name}]}, each key there when `targets` holds that kind. The
-// indices and names are as `model` has them now.
+// object_id, instance_id, name}], "parts": [{object, part, part_id, name}]}, each key there when `targets` holds that
+// kind. The indices, ids and names are as `model` has them now; an instance index the object no longer has (a deleted
+// instance's) has no instance_id.
 nlohmann::json targets_reply(const Model& model, const Targets& targets);
 
 } // namespace Mcp

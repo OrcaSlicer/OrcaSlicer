@@ -4337,10 +4337,11 @@
         "access": "change",
         "ok_false": false,
         "summary": "Commit to Plate: send the visible bodies to Prepare at their Move-gizmo positions and show Prepare.",
-        "details": "It is one Prepare undo step. A lone body is sent even when hidden. A body named in the Bodies list or with body_set names its object or part. Reply: objects (object_list index after replace, name, parts: how many), bodies_sent, bodies_hidden, replaced.",
+        "details": "It is one Prepare undo step. A lone body is sent even when hidden. A body named in the Bodies list or with body_set names its object or part. Reply: objects (object_list index after replace, object_id, name, parts: how many), bodies_sent, bodies_hidden, replaced.",
         "params": [
           {"name": "mode", "type": "string", "default": "", "enum": ["assembly", "bodies"], "description": "assembly: one object with a part per body; bodies: an object per body. Default: the Commit button's mode, which this leaves as it is."},
-          {"name": "replace", "type": "array", "default": [], "description": "object_list indices to delete in the same undo step, such as an earlier commit. Their settings, modifiers and paint go with them."}
+          {"name": "replace", "type": "array", "default": [], "description": "object_list indices to delete in the same undo step, such as an earlier commit. Their settings, modifiers and paint go with them."},
+          {"name": "replace_ids", "type": "array", "default": [], "description": "replace by the objects' ids in object_list."}
         ],
         "examples": [
           {

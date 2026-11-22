@@ -116,9 +116,9 @@ job, that a call with exactly a Speed Dial action's arguments may ask as a perso
 runs from its arguments, say how a gizmo opens and is
 driven (and that `gizmo_pick_file` only stands in for a file picker inside one, since its name draws agents to
 it for any gizmo work), that the camera turns with `view_set` rather than a drag, and which indices are 0-based.
-They say what the Speed Dial is, the app's command palette, since descriptions name it without saying, and what
-the expected ids are (`object_id`, `part_id` and the `*_ids` lists: optional guards, refusing a call whose index
-now names another object or part), once, where each of the many schemas that take one only names it. What one
+They say what the Speed Dial is, the app's command palette, since descriptions name it without saying, and that an
+object, part or instance is named by index or by the id `object_list` gives, both together a guard, once, where each
+of the many schemas that take an id only names it. What one
 command's description says, such as how `recording_start` records, stays there.
 
 ## Security, token and discovery
@@ -680,7 +680,7 @@ asks they reply `blocked_by_dialog`.
 **Targets and the selection.** A command that acts on objects, instances or parts takes them in its
 arguments, read by one resolver (`Mcp::resolve_targets()`, `McpTargets.hpp`): `objects`, `instances`
 (`[[object, instance], ...]`) and `parts` (`[[object, part], ...]`), or for a command of one target
-`object`, `instance` and `part`, each beside its expected ids (below). Every index is checked before
+`object`, `instance` and `part`, each by index or by id (below). Every index is checked before
 anything changes, and naming one target two ways, an instance or a part without its object, and empty lists
 are refused. With none of them the targets are what is selected in the Prepare view
 (`Ops::shown_prepare_canvas()` shows that view and loads its scene first): every instance of an object
@@ -732,20 +732,36 @@ plugin's grants; and through what they run `action_run`,
 `tool_call`, `replay_run` and `script_run`, which has the app's access to the computer. No client is known
 to ask on it. `idempotent`: the same call again changes nothing more.
 
-The commands that take targets take expected ids beside them (`target_props()`): `object_id` beside an
-`object`, and where they take a part index a `part_id`, as `object_transform`, `part_add`,
-`object_set_height_ranges`, `object_set_variable_layer_height` and `settings_set`'s object and part targets
-do; and beside lists `object_ids`, `instance_object_ids` and `part_ids`, one per entry of `objects`,
-`instances` and `parts`, as `object_select`, `object_delete` and the other commands of several targets do:
-the `ObjectID` values `object_list` reports as `id`, which `orca.host` shows too. `check_expected_ids()`
-refuses the call before anything changes when the index names another object
-or part now, so a replay or script addresses what it read. `object_list`' description says what the ids are for
-and names the commands that take them, so each property only points back at it. Ids are allocated per
-process, so a command that takes them names them in its `id_args`, which `with_expected_ids()` reads from
-its schema where the command is registered, and the core gives the journal its calls without them
-(`without_expected_ids()`, which looks the command up in the catalog), through `tool_call` and inline
-`replay_run` steps too, and a replay addresses by index; a `script_run` step's code and `args`, and a plugin
-operation's own arguments, are kept as written.
+Every argument that names an object, a part or an instance by index has a twin that names it by id
+(`kIdArguments`, `McpArguments.hpp`): the `ObjectID` values `object_list` reports as `id`, which `orca.host`
+shows too. Beside one target (`target_props()`) they are `object_id`, `part_id` and `instance_id`, as
+`object_transform`, `part_add`, `object_set_height_ranges`, `object_set_variable_layer_height` and
+`settings_set`'s object and part targets take them; beside lists `object_ids`, `part_ids` and `instance_ids`,
+one per entry, as `object_select`, `object_delete` and the other commands of several targets do; and outside
+the targets `object_arrange`'s `fill_object_id`, `object_order`'s `order_ids` and the Design tab's
+`commit_to_plate`'s `replace_ids`. The index is what the app itself works by, a place in its lists, and it moves
+when a delete, split, assemble or reorder moves the things before it; the id stays with its object, part or
+instance for as long as the app holds it, and is allocated anew when a project is opened. So an agent may keep
+the id it read across the calls that move indices, and a stale id is refused where a stale index would quietly
+name another object. A part's or an instance's id names its object too.
+
+A call gives a target by index, by id, or both, the id then a guard. A command that takes ids names them in its
+`id_args`, which `with_target_ids()` reads from its schema where the command is registered, and its function
+then reads a call's ids as their indices (`with_indices()`, on the UI thread, just before the command runs) and
+runs the command's own function on the indices with the ids beside them: what the command reads is the index,
+and `check_expected_ids()` refuses the call where the index names another object, part or instance than its id
+by the time it acts, before anything changes. `fill_object_id`, `order_ids` and `replace_ids` given with their
+indices are checked by `with_indices()` itself, as no reading of the targets reads them. An id the model has
+nothing with is refused with `invalid_argument`, and so is an index out of range that is an id the model has,
+with what that id names, since an agent that read `"id": 147` beside `"index": 1` may pass the one for the
+other. Ids are allocated per process, so a replay addresses by index: `with_target_ids()` gives the journal the
+call with the indices its ids named, and the core gives the journal every call without the ids that stand beside
+their indices (`without_guard_ids()`, which looks the command up in the catalog), through `tool_call`,
+`action_run` and inline `replay_run` steps too. An id with no index beside it stays, so that a step the
+journal records before its command has run, or a replay step written with ids, still names its target, and
+such a replay runs only in the session that made it; a `script_run` step's code and `args`, and a plugin
+operation's own arguments, are kept as written. `object_list`' description says what the ids are for, so each
+property only names what it is.
 
 Descriptions keep one order: what the tool does, the arguments that change it, `Reply:` with the
 fields it has, then edge cases. They mark as code the names an agent passes or reads (arguments, reply
@@ -754,7 +770,7 @@ word still parses: "unless `silent` is true"; a generated list of names marks ea
 of `settings_get` and `settings_set`, `widget_click`'s web pages). What several tools share is written once,
 since every session loads the whole tool list: the locator grammar in `widget_list`'s description,
 which hands out the refs, each `target` giving two examples and pointing there; the paging shape, that a
-ref stays good across listings and what an expected id does in the server instructions.
+ref stays good across listings and that an id names what its index does in the server instructions.
 
 An argument name means one thing across the tools, so what an agent learns from one tool holds for
 the next. `target` is the window or element a UI tool acts on (a ref, a locator, or `main`, `dialog`

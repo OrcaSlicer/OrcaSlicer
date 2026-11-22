@@ -100,7 +100,8 @@ struct NativeCommand
     bool allowed_during_operation = false, cancellable = false;
     // How long a call may run before the reply returns a job envelope and the call continues.
     int budget_ms = 45000;
-    // The arguments that carry an expected object or part id, which the session journal leaves out.
+    // The arguments that name an object, a part or an instance by id (Mcp::kIdArguments): the session journal records
+    // a call by the indices they named, and leaves out those given beside their indices (Mcp::with_target_ids()).
     std::vector<std::string> id_args;
     // The operations (GUI/Operations) the command reaches when it is given arguments, by function name. A
     // command in the Speed Dial that takes arguments names them or is on the exception list of the catalog test.

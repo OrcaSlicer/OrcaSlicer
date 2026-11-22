@@ -33,6 +33,7 @@ struct Calib_Params;
 class ConfigOptionDef;
 class DynamicPrintConfig;
 class Model;
+class ModelInstance;
 class ModelObject;
 class ModelVolume;
 enum class ModelVolumeType : int;
@@ -166,20 +167,23 @@ AppActionRunResult menu_reply(const nlohmann::json& reply);
 // a pick shows nothing more, and a call learns the refusal.
 AppActionRunResult quiet_refusal(const Ops::Refusal& refusal);
 
-// ---- expected object IDs ---------------------------------------------------------------------
+// ---- object, part and instance ids -----------------------------------------------------------
 
-// The schema of an expected ID argument: the id object_list reports for an object or part (`of`), which
-// orca.host shows too, so a script addresses what it read. Its description only names the guard: what a guard
-// does is said once, in the server instructions, rather than in each of the many schemas that have one.
-nlohmann::json expected_id_prop(const char* of);
-// `command` with its id_args: the expected-id arguments its schema has (object_id and part_id, as
-// expected_id_prop() describes them, and object_select's object_ids, part_ids and instance_object_ids). Ids are
-// allocated per process, so the session journal leaves them out (without_expected_ids()).
-NativeCommand with_expected_ids(NativeCommand command);
-// Refuses the call when `args` names an expected object_id, or part_id, that is not the id of `object`,
-// or `volume`, which its index names now: the model changed since the caller read the index. Call it
-// before the tool changes anything.
-void check_expected_ids(const ModelObject& object, const ModelVolume* volume, const nlohmann::json& args);
+// The schema of an id argument: the id object_list reports for an object, part or instance (`of`), which orca.host
+// shows too, so a script addresses what it read. Its description only names what it is: that an id names its target
+// in place of the index, or beside it as a guard, is said once, in the server instructions, rather than in each of
+// the many schemas that have one.
+nlohmann::json id_prop(const char* of);
+// `command` with its id_args, the id arguments its schema has (kIdArguments), and with a function that runs the
+// command's own on the arguments with the index form of each target the call names by id (with_indices(), read on
+// the UI thread just before), and journals the call so: ids are allocated per process, and a replay addresses by
+// index (without_guard_ids()). The ids stay beside the indices, so the command checks them where it acts.
+NativeCommand with_target_ids(NativeCommand command);
+// Refuses the call when `args` names an object_id, part_id or instance_id that is not the id of `object`, `volume`
+// or `instance`, which its index names now: the model changed since the caller read the index. Call it before the
+// tool changes anything.
+void check_expected_ids(const ModelObject& object, const ModelVolume* volume, const ModelInstance* instance,
+                        const nlohmann::json& args);
 
 // ---- handler helpers -------------------------------------------------------------------------
 
@@ -675,8 +679,8 @@ nlohmann::json volume_info(const ModelVolume& volume, std::size_t index);
 // What object_list replies with, laid out as the Objects panel is: `plates`, each {index, name, objects}
 // with the objects that have an instance on it, and `outside`, the objects with an instance on no plate.
 // An object row lists the instances of its plate only, so an object on two plates has a row under each.
-// A row is object_summary()'s with `instances` the indices of those instances, or with `detail` in `args`
-// object_info()'s with their entries.
+// A row is object_summary()'s with `instances` the indices of those instances and `instance_ids` their ids in
+// the same order, or with `detail` in `args` object_info()'s with their entries, each with its id.
 // `plate_of(object, instance)` is the plate an instance is on, or -1, and `plate_names` has a name per
 // plate. Of `args`, plate lists that plate alone, without `outside`, and limit (default 200) and offset
 // page the objects listed, in the model's order: total counts them, each once, and next_offset is there

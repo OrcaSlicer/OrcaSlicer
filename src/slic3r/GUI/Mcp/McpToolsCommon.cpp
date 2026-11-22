@@ -1,5 +1,8 @@
 #include "McpTools.hpp"
 
+#include "McpArguments.hpp"
+#include "McpTargets.hpp"
+
 #include "libslic3r/Model.hpp"
 
 #include "UiInspector.hpp"
@@ -303,23 +306,35 @@ json poll_ui(ToolContext& ctx, const std::function<json()>& poll, std::chrono::m
     throw ToolFailure("Timed out waiting for " + what + (undrawn.empty() ? "" : ": " + undrawn));
 }
 
-json expected_id_prop(const char* of)
+json id_prop(const char* of)
 {
-    return {{"type", "integer"},
-            {"minimum", 0},
-            {"description", std::string("Optional guard: the ") + of + "'s id in `object_list`."}};
+    return {{"type", "integer"}, {"minimum", 0}, {"description", std::string("The ") + of + "'s id in `object_list`."}};
 }
 
-NativeCommand with_expected_ids(NativeCommand command)
+NativeCommand with_target_ids(NativeCommand command)
 {
     const json properties = command.input_schema.value("properties", json::object());
-    for (const char* name : {"object_id", "part_id", "object_ids", "part_ids", "instance_object_ids"})
-        if (properties.contains(name))
-            command.id_args.emplace_back(name);
+    for (const IdArgument& arg : kIdArguments)
+        if (properties.contains(arg.id))
+            command.id_args.emplace_back(arg.id);
+    if (command.id_args.empty())
+        return command;
+    command.run = [run = std::move(command.run), ids = command.id_args](const json& args, ToolContext& ctx) {
+        const auto by_id = [&args](const std::string& id) { return args.contains(id); };
+        if (!args.is_object() || std::none_of(ids.begin(), ids.end(), by_id))
+            return run(args, ctx);
+        json indexed;
+        ctx.run_ui([&] {
+            indexed = with_indices(ui_plater().model(), args);
+            return json();
+        });
+        ctx.set_journal_args(indexed);
+        return run(indexed, ctx);
+    };
     return command;
 }
 
-void check_expected_ids(const ModelObject& object, const ModelVolume* volume, const json& args)
+void check_expected_ids(const ModelObject& object, const ModelVolume* volume, const ModelInstance* instance, const json& args)
 {
     if (args.contains("object_id") && args["object_id"].get<std::size_t>() != object.id().id)
         throw ToolFailure("The object at this index is now \"" + object.name + "\" (id " + std::to_string(object.id().id) +
@@ -331,6 +346,11 @@ void check_expected_ids(const ModelObject& object, const ModelVolume* volume, co
                               "), not the expected id " + std::to_string(args["part_id"].get<std::size_t>()) +
                               ": object_list again",
                           {{"id", volume->id().id}});
+    if (instance != nullptr && args.contains("instance_id") && args["instance_id"].get<std::size_t>() != instance->id().id)
+        throw ToolFailure("The instance of \"" + object.name + "\" at this index is now id " + std::to_string(instance->id().id) +
+                              ", not the expected id " + std::to_string(args["instance_id"].get<std::size_t>()) +
+                              ": object_list again",
+                          {{"id", instance->id().id}});
 }
 
 }}} // namespace Slic3r::GUI::Mcp

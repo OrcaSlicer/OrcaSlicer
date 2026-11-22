@@ -10,7 +10,7 @@ the list orders them (parts and their types, names, order, meshes and the files 
 saves and reopens one project that holds what each part keeps in the file.
 
 ## `test_objects`
-`test_objects.py` · Python, 1258 checks · in `sweep.json` as `{"path": "test_objects.py"}`
+`test_objects.py` · Python, 1354 checks · in `sweep.json` as `{"path": "test_objects.py"}`
 
 **Tests:** The plates of the Prepare view: adding, duplicating, naming, locking, selecting and deleting plates, and
 undoing that; what a lock keeps Arrange and Auto-Orient from doing; the settings a plate sets for itself; the filament
@@ -24,7 +24,8 @@ Objects and to Parts, and Assemble; adding parts of every type, changing a part'
 plate's objects by a property or in a given order, and the print order that sets; Fix Model by index and through the
 object's menu; Reload from disk and Replace 3D file; and the keep_painting preference, shown against its control. Last,
 what the project file keeps of the plates and objects. Each object command is called by index and, where its menu item
-acts on the selection, with no target on the selection. It runs on the Generic Klipper Printer 0.4 nozzle: a bed 250
+acts on the selection, with no target on the selection; a scenario of its own names objects, parts and instances by the
+ids `object_list` gives, and replays what it recorded on objects with other ids. It runs on the Generic Klipper Printer 0.4 nozzle: a bed 250
 mm square and 250 mm high with no excluded area (`bed_exclude_area`), plates laid out 300 mm apart (the bed and a fifth
 of it), two to a row, and by-object printing that lets objects lower than its rod (36 mm,
 `extruder_clearance_height_to_rod`) print in the object list's order when they stand more than its clearance radius
@@ -77,7 +78,8 @@ and reading the state back, not from the log.
   the `mixed` of each `filament_list` row, one digit per slot (`"0,0,1"`: three slots, the third a mixed filament).
 - `scene()`: each object of `object_list {detail: true}` in index order, its entry whole (`name`, `id`, `filament`, `auto_drop`,
   `bbox`, `mesh_errors`, `parts`, and `layer_config_ranges` and `layer_height_profile` when it has them), with its
-  `instances` gathered from every plate and from `outside`, each given its `plate` (−1 outside). A part is its entry
+  `instances` gathered from every plate and from `outside`, each its entry whole (its `id` among the fields) and given
+  its `plate` (−1 outside). A part is its entry
   whole: `name`, `id`, `type`, `subtype`, `filament`, `position`, `rotation_deg`, `scale`, `mirrored`, `triangles`,
   `mesh_volume`, `scaled_volume`, `bbox`, `painted`, `svg`.
 - `selection()`: `app_state`'s `selection` as `{objects, instances, parts}`, `parts` absent when whole instances are
@@ -458,6 +460,39 @@ Three 20 mm cubes are added with `object_add_primitive` at `corner(0) + (40, 60,
 | 8 | layered, a 20 mm cube at `+ (60, 160, 0)`, `object_select {objects: [1]}`, then `object_set_height_ranges {ranges: [{min_z: 0, max_z: 5}]}` | Cube · layered | the reply's `object` 1, `objects` `[{index: 1, name: "layered"}]` and `layer_config_ranges` one range, `min_z` 0 and `max_z` 5; `object_list` gives layered that range and Cube no `layer_config_ranges` |
 | 9 | `object_set_variable_layer_height {action: "adaptive"}` | Cube · layered | the reply's `object` 1 and `objects` naming layered, with a `layer_height_profile`; `object_list` gives layered a `layer_height_profile` with `points` and Cube none |
 
+**Scenario: naming by id**
+
+a, b and c are 20 mm cubes added with `object_add_primitive` at `corner(0) + (40, 60, 0)`, `+ (100, 60, 0)` and
+`+ (160, 60, 0)` with those names, `object_select {none: true}` between them. An id is the app's name for an object, a
+part or an instance, and cannot be written out before the run, so the test reads each id once and from then on checks
+what it names: A, B and C are the `id`s `scene()` gives a, b and c after step 1; I0, I1 and I2 those of c's instances
+after step 9; P that of bee's part 1 after step 14. `replay_export {clear: true}` after step 1 forgets the calls made
+before it, so that step 19 reads this scenario's calls alone. The app places the instances step 9 adds; from there
+each keeps its place until a row moves it.
+
+| # | Step | Objects after | Also checked |
+|---|---|---|---|
+| 1 | the three cubes | a · b · c | A, B and C differ, and each is more than 2, so that none is an index the project has; each object's short row (`object_list` without `detail`) gives `instances` `[0]` and `instance_ids` `[n]`, n the `id` its detail entry gives instance 0 |
+| 2 | `object_rename {object_id: B, name: "bee"}` | a · bee · c | the reply's `objects` `[{index: 1, object_id: B, name: "bee"}]` |
+| 3 | `object_delete {object_ids: [A]}` | bee · c | bee at +(100, 60) and c at +(160, 60); `scene()` gives bee `id` B and c `id` C: an id stays with its object when the indices after it move down |
+| 4 | `object_transform {object_id: C, translate: [0, 20, 0]}` | bee · c | c at +(160, 80), bee at +(100, 60): C names c at its new index, 1 |
+| 5 | `object_transform {object: 1, object_id: B, translate: [0, 20, 0]}` | bee · c | refused, saying `The object at this index is now "c"`; places as after 4: an index and an id that name different objects are refused |
+| 6 | `object_transform {object_id: A, translate: [0, 20, 0]}` | bee · c | refused, `invalid_argument`, saying `No object has id A`; places as after 4 |
+| 7 | `object_transform {object: C, translate: [0, 20, 0]}` | bee · c | refused, `invalid_argument`, saying `C is the id of object 1`; places as after 4: an id given as an index is named for what it is |
+| 8 | `settings_set {target: "object", object_id: C, values: {wall_loops: 5}}` | bee · c | `scene()` gives c `overrides` with `wall_loops`, and bee's without (each also holds `extruder`, which adding a shape sets) |
+| 9 | `object_set_instances {object_id: C, count: 3}` | bee · c×3 | I0 is the id c's instance had after step 1, and I0, I1 and I2 differ; c's short rows give each instance's id in `instance_ids` at the place its index has in `instances` |
+| 10 | `object_transform {instance_id: I2, translate: [0, 20, 0]}` | bee · c×3 | c's instance 2 20 mm further along y than step 9 left it, with the same x, and instances 0 and 1 where they were: an instance's id names its object and the instance at once |
+| 11 | `object_set_printable {instance_ids: [I1], printable: false}` | bee · c×3 | c's instances `printable` true, false, true; the reply's `instances` `[{object: 1, instance: 1, instance_id: I1}]` |
+| 12 | `object_delete {instance_ids: [I0]}` | bee · c×2 | c's instances' ids I1 and I2, `printable` false and true: an id stays with its instance when the indices after it move down |
+| 13 | `object_set_printable {instance_ids: [I1], printable: true}` | bee · c×2 | `printable` true and true; the reply's `instances` `[{object: 1, instance: 0, instance_id: I1}]` |
+| 14 | `part_add {object_id: B, type: "modifier", shape: "cube"}` | bee: part, modifier · c | |
+| 15 | `part_change_type {part_ids: [P], type: "negative"}` | bee: part, negative · c | the reply's `parts` `[{object: 0, part: 1, part_id: P, type: "negative"}]`: a part's id names its object too |
+| 16 | `object_rename {part_id: P, name: "hole"}` | bee: part, negative · c | bee's part 1 named hole, and the object still bee |
+| 17 | `object_order {order_ids: [C, B]}` | c · bee | the reply's `order` c, then bee, with `object_id` C and B |
+| 18 | `object_arrange {fill_object_id: A}` | c · bee | refused, `invalid_argument`, saying `No object has id A`; c×2 and bee, places as after 13 |
+| 19 | `replay_export {}` | c · bee | the replay's steps but `app_wait` (which a call answered with a job adds) are, in order, these tools with these targets: `object_rename` `{object: 1}`, `object_delete` `{objects: [0]}`, `object_transform` `{object: 1}`, `settings_set` `{object: 1}`, `object_set_instances` `{object: 1}`, `object_transform` `{object: 1, instance: 2}`, `object_set_printable` `{instances: [[1, 1]]}`, `object_delete` `{instances: [[1, 0]]}`, `object_set_printable` `{instances: [[1, 0]]}`, `part_add` `{object: 0}`, `part_change_type` `{parts: [[0, 1]]}`, `object_rename` `{object: 0, part: 1}` and `object_order` `{order: [1, 0]}`; no step's arguments has a key ending in `_id` or `_ids`: the journal records the index each id named, and leaves the refused calls out |
+| 20 | `project_new {discard_changes: true}`, the three cubes again, then `replay_run` of step 19's replay | c×2 · bee: part, negative | the new cubes' ids are none of A, B and C; c's `overrides` with `wall_loops` and its instances `printable` true and true; bee's part 1 named hole: the replay, recorded from calls by id, runs on objects with other ids |
+
 **Scenario: splitting and assembling**
 
 Each import is `project_import {paths: [two_hollow_squares.obj]}`, whose reply's `added` is 1; the object is named
@@ -743,10 +778,18 @@ unscaled and not mirrored, and a plate's settings as in a plate's own settings.
   across plates (splitting and assembling; ordering), Fill bed on another plate (arranging, step 17); its closing slice
   is replaced by the G-code checks of leaving instances out of the print.
 - `object_list {screen: true}`, paging with `limit` and `offset`, and the short rows `object_list` gives without
-  `detail`: no replaced replay used them, and they change how `object_list` reports the objects, not what the objects
-  are. The short rows are checked in the unit tests (`test_mcp_scene.cpp`).
-- Deleting instances, parts, a plate's objects (`plate`) and every object (`all`): no replaced replay deleted them but
-  by index and on the selection; the parts are deleted in `test_menu_items_refusals`.
+  `detail` but their `instances` and `instance_ids` (naming by id, steps 1 and 9): no replaced replay used them, and they
+  change how `object_list` reports the objects, not what the objects are. The short rows are checked in the unit tests
+  (`test_mcp_scene.cpp`).
+- Deleting parts, a plate's objects (`plate`) and every object (`all`): no replaced replay deleted them but by index
+  and on the selection; the parts are deleted in `test_menu_items_refusals`. Instances are deleted only by id (naming by
+  id, step 12).
+- Naming by id where the scenario does not: `fill_object_id` that names an object (step 18 checks only the refusal; Fill
+  bed itself is checked by index in arranging, and the id only decides which index the call takes), an index and its id
+  given together in a list (`objects` with `object_ids`, `parts` with `part_ids`), `order_ids` beside `order`, and the
+  Design tab's `replace_ids` (the Design tab's tests are not under the read-back rule). The unit tests
+  (`tests/slic3rutils/test_mcp_scene.cpp`, `test_mcp_tools.cpp`) check how each id argument is read as its index and
+  what the journal records of it.
 - The layer heights a height range or an adaptive profile gives: the layers entry checks them. Here only which object
   the selection names.
 - What `part_replace` does with keep_painting off. It then copies the painting by triangle (`replace_part_with_file()`

@@ -252,7 +252,8 @@ const std::map<std::string, ParameterClass>& classes_by_name()
         // The project.
         {"object", objects}, {"objects", objects}, {"object_id", objects}, {"object_ids", objects}, {"part", objects},
         {"parts", objects}, {"part_id", objects}, {"part_ids", objects}, {"instance", objects}, {"instances", objects},
-        {"instance_object_ids", objects}, {"fill_object", objects}, {"order", objects}, {"replace", objects},
+        {"instance_id", objects}, {"instance_ids", objects}, {"fill_object", objects}, {"fill_object_id", objects},
+        {"order", objects}, {"order_ids", objects}, {"replace", objects}, {"replace_ids", objects},
         {"plate", plates}, {"plates", plates},
         {"filament_slot", slots}, {"filament", slots}, {"components", slots}, {"merge_into", slots},
         {"prime_volume_mode", slots},

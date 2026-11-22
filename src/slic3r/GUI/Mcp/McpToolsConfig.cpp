@@ -3166,7 +3166,7 @@ void register_config_tools(CommandCatalog& catalog)
             }));
         }));
 
-    catalog.add(inspect_tool(
+    catalog.add(with_target_ids(inspect_tool(
         "settings_get", L("Read settings"),
         "Read the settings named: each item has its `value`, as OrcaSlicer writes it, and `meta`: `label`, "
         "`description` (what the setting does, when to change it), `where` (its settings page and group), `type`, `unit`, "
@@ -3194,6 +3194,8 @@ void register_config_tools(CommandCatalog& catalog)
                        {"keys", array_prop({{"type", "string"}}, "Option keys, e.g. `[\"layer_height\", \"wall_loops\"]`.")},
                        {"object", object_prop},
                        {"part", part_prop},
+                       {"object_id", id_prop("object")},
+                       {"part_id", id_prop("part")},
                        {"min_z", min_z_prop},
                        {"max_z", max_z_prop},
                        {"filament_slot", {{"type", "integer"}, {"minimum", 1},
@@ -3213,9 +3215,9 @@ void register_config_tools(CommandCatalog& catalog)
                 ui_plater(); // the presets and the settings pages exist once the main window does
                 return read_settings(args);
             }));
-        }));
+        })));
 
-    catalog.add(with_expected_ids(mutate_tool(
+    catalog.add(with_target_ids(mutate_tool(
         "settings_set", L("Change settings"),
         "Change settings as typing them into their settings tab would: a type's preset (target global, the default), or "
         "the overrides of an object, a part or a height range. Values are strings in OrcaSlicer's format (\"15%\", \"0.2\", "
@@ -3253,8 +3255,8 @@ void register_config_tools(CommandCatalog& catalog)
                        {"part", part_prop},
                        {"min_z", min_z_prop},
                        {"max_z", max_z_prop},
-                       {"object_id", expected_id_prop("object")},
-                       {"part_id", expected_id_prop("part")},
+                       {"object_id", id_prop("object")},
+                       {"part_id", id_prop("part")},
                        {"filament_slot", {{"type", "integer"}, {"minimum", 1},
                                           {"description", "Type filament: the slot whose preset is changed, 1-based (default 1). "
                                                           "The filament tab switches to it, which can ask about the unsaved "

@@ -170,19 +170,19 @@ TEST_CASE("the commands that replace a dialog take the arguments the table gives
     REQUIRE(names("object_rename") == Names{"object", "object_id", "part", "part_id", "name", "silent"});
     REQUIRE(names("object_set_instances") == Names{"object", "object_id", "count", "delta", "silent"});
     REQUIRE(names("object_delete") ==
-            Names{"objects", "object_ids", "instances", "instance_object_ids", "parts", "part_ids", "plate", "all", "silent"});
-    REQUIRE(names("object_separate_instances") == Names{"object", "object_id", "instances", "instance_object_ids"});
+            Names{"objects", "object_ids", "instances", "instance_ids", "parts", "part_ids", "plate", "all", "silent"});
+    REQUIRE(names("object_separate_instances") == Names{"object", "object_id", "instances", "instance_ids"});
     REQUIRE(names("object_split") == Names{"object", "object_id", "into", "keep_z", "silent"});
     REQUIRE(names("object_assemble") == Names{"objects", "object_ids"});
     REQUIRE(names("part_change_type") == Names{"parts", "part_ids", "type", "subtype"});
-    REQUIRE(names("object_order") == Names{"plate", "by", "order", "descending", "all"});
+    REQUIRE(names("object_order") == Names{"plate", "by", "order", "order_ids", "descending", "all"});
     REQUIRE(names("object_add_primitive") == Names{"shape", "size", "plate", "position", "name", "silent"});
     REQUIRE(names("object_mirror") == Names{"objects", "object_ids", "parts", "part_ids", "axis"});
     REQUIRE(names("object_center") == Names{"objects", "object_ids", "plate"});
     REQUIRE(names("object_scale_to_fit") == Names{"objects", "object_ids"});
     REQUIRE(names("object_drop") == Names{"objects", "object_ids", "parts", "part_ids"});
     REQUIRE(names("object_auto_orient") == Names{"objects", "object_ids", "plates"});
-    REQUIRE(names("object_set_printable") == Names{"objects", "object_ids", "instances", "instance_object_ids", "printable"});
+    REQUIRE(names("object_set_printable") == Names{"objects", "object_ids", "instances", "instance_ids", "printable"});
     REQUIRE(names("object_set_auto_drop") == Names{"objects", "object_ids", "auto_drop"});
     REQUIRE(names("object_fix") == Names{"objects", "object_ids", "parts", "part_ids", "plate", "all"});
     REQUIRE(names("object_clone") == Names{"objects", "object_ids", "count", "arrange"});
@@ -1008,17 +1008,20 @@ TEST_CASE("object_list lists each plate's objects, then those on no plate", "[Mc
         CHECK_THAT(side.get<double>(), WithinAbs(10., 1e-6));
     CHECK_FALSE(alone.contains("parts"));
     CHECK_FALSE(alone.contains("bbox"));
-    // An object keeps its index and id in the project, and lists the instances on this plate only, by index.
+    // An object keeps its index and id in the project, and lists the instances on this plate only, by index, with
+    // their ids in the same order.
     const json& twice = first["objects"][1];
     CHECK(twice["index"] == 1);
     CHECK(twice["id"] == scene.model.objects[1]->id().id);
     CHECK(twice["instances"] == json::array({0}));
+    CHECK(twice["instance_ids"] == json::array({scene.model.objects[1]->instances[0]->id().id}));
 
     const json& second = out["plates"][1];
     CHECK(second["name"] == "second");
     REQUIRE(second["objects"].size() == 1);
     CHECK(second["objects"][0]["index"] == 1);
     CHECK(second["objects"][0]["instances"] == json::array({1}));
+    CHECK(second["objects"][0]["instance_ids"] == json::array({scene.model.objects[1]->instances[1]->id().id}));
 
     // A plate with nothing on it is listed.
     CHECK(out["plates"][2]["objects"].empty());
@@ -1042,7 +1045,10 @@ TEST_CASE("object_list with detail gives each instance's and part's entry", "[Mc
     const json& twice = first["objects"][1];
     REQUIRE(twice["instances"].size() == 1);
     CHECK(twice["instances"][0]["index"] == 0);
+    CHECK(twice["instances"][0]["id"] == scene.model.objects[1]->instances[0]->id().id);
     CHECK_FALSE(twice["instances"][0].contains("plate"));
+    // The ids are in the entries, so no list of them is beside.
+    CHECK_FALSE(twice.contains("instance_ids"));
     const json& second = out["plates"][1]["objects"][0];
     REQUIRE(second["instances"].size() == 1);
     CHECK(second["instances"][0]["index"] == 1);
@@ -1378,8 +1384,9 @@ TEST_CASE("a command's targets are what its arguments name, else the selection",
         return out;
     };
     CHECK(names(Mcp::target_props(kEveryKind, false)) ==
-          std::set<std::string>{"objects", "object_ids", "instances", "instance_object_ids", "parts", "part_ids"});
-    CHECK(names(Mcp::target_props(kEveryKind, true)) == std::set<std::string>{"object", "object_id", "instance", "part", "part_id"});
+          std::set<std::string>{"objects", "object_ids", "instances", "instance_ids", "parts", "part_ids"});
+    CHECK(names(Mcp::target_props(kEveryKind, true)) ==
+          std::set<std::string>{"object", "object_id", "instance", "instance_id", "part", "part_id"});
 }
 
 TEST_CASE("a reply names what the command acted on", "[Mcp][Scene]")
@@ -1396,6 +1403,103 @@ TEST_CASE("a reply names what the command acted on", "[Mcp][Scene]")
           json{{"object", 1}, {"part", 1}, {"part_id", m.model.objects[1]->volumes[1]->id().id}, {"name", "second part 1"}});
     // Only the kinds it holds.
     CHECK_FALSE(reply.contains("instances"));
+
+    // An instance with its own id and its object's; one the object no longer has, a deleted one's index, without.
+    Ops::Targets instances;
+    instances.instances = {{1, 1}, {1, 5}};
+    const json named    = Mcp::targets_reply(m.model, instances);
+    REQUIRE(named.at("instances").size() == 2);
+    CHECK(named["instances"][0] == json{{"object", 1},
+                                        {"instance", 1},
+                                        {"object_id", m.model.objects[1]->id().id},
+                                        {"instance_id", m.model.objects[1]->instances[1]->id().id},
+                                        {"name", "second"}});
+    CHECK_FALSE(named["instances"][1].contains("instance_id"));
+}
+
+TEST_CASE("a command's targets are named by index or by the ids object_list reports", "[Mcp][Scene]")
+{
+    const TargetModel  m;
+    const Model&       model  = m.model;
+    const ModelObject& first  = *model.objects[0];
+    const ModelObject& second = *model.objects[1];
+    const ModelObject& third  = *model.objects[2];
+    const auto         refusal = [&model](const json& args, unsigned kinds, bool one = false) {
+        try {
+            named_targets(model, args, kinds, one);
+        } catch (const ToolFailure& f) {
+            return std::make_pair(std::string(f.what()), f.details.value("code", std::string()));
+        }
+        return std::make_pair(std::string("not refused"), std::string());
+    };
+
+    // An object's id names it alone, and a list of ids their objects, in the order given.
+    const auto by_id = named_targets(model, {{"object_id", second.id().id}}, kEveryKind, true);
+    REQUIRE(by_id);
+    CHECK(by_id.value().objects == std::vector<int>{1});
+    const auto listed = named_targets(model, {{"object_ids", json::array({third.id().id, first.id().id})}}, Mcp::kObjects);
+    REQUIRE(listed);
+    CHECK(listed.value().objects == std::vector<int>{2, 0});
+    // A part's or an instance's id names its object too.
+    const auto part = named_targets(model, {{"part_id", second.volumes[1]->id().id}}, kEveryKind, true);
+    REQUIRE(part);
+    CHECK(part.value().parts == std::vector<std::pair<int, int>>{{1, 1}});
+    const auto instance = named_targets(model, {{"instance_id", second.instances[1]->id().id}}, kEveryKind, true);
+    REQUIRE(instance);
+    CHECK(instance.value().instances == std::vector<std::pair<int, int>>{{1, 1}});
+    const auto parts = named_targets(model, {{"part_ids", json::array({second.volumes[0]->id().id, first.volumes[0]->id().id})}},
+                                     Mcp::kParts);
+    REQUIRE(parts);
+    CHECK(parts.value().parts == std::vector<std::pair<int, int>>{{1, 0}, {0, 0}});
+    const auto instances = named_targets(model, {{"instance_ids", json::array({second.instances[0]->id().id})}}, Mcp::kInstances);
+    REQUIRE(instances);
+    CHECK(instances.value().instances == std::vector<std::pair<int, int>>{{1, 0}});
+    // The object by id and the part by index.
+    const auto mixed = named_targets(model, {{"object_id", second.id().id}, {"part", 1}}, kEveryKind, true);
+    REQUIRE(mixed);
+    CHECK(mixed.value().parts == std::vector<std::pair<int, int>>{{1, 1}});
+
+    // Given both, the id guards the index: instance 0 of the second object is not the instance with that id.
+    CHECK_THAT(refusal({{"object", 1}, {"instance", 0}, {"instance_id", second.instances[1]->id().id}}, kEveryKind, true).first,
+               ContainsSubstring("not the expected id"));
+    CHECK_THAT(refusal({{"instances", json::array({json::array({1, 0})})}, {"instance_ids", json::array({second.instances[1]->id().id})}},
+                       Mcp::kInstances)
+                   .first,
+               ContainsSubstring("not the expected id"));
+    // A part's id of another object than the call names.
+    CHECK(refusal({{"object", 0}, {"part_id", second.volumes[1]->id().id}}, kEveryKind, true) ==
+          std::make_pair("part_id " + std::to_string(second.volumes[1]->id().id) + " is of object 1, not of object 0",
+                         std::string("invalid_argument")));
+    // An id the model has nothing with, as a project opened again gives every object a new one.
+    const std::size_t none = third.instances[0]->id().id + 100000;
+    for (const auto& [args, kinds, text] : std::vector<std::tuple<json, unsigned, std::string>>{
+             {json{{"object_id", none}}, kEveryKind, "No object has id "},
+             {json{{"part_ids", json::array({none})}}, Mcp::kParts, "No part has id "},
+             {json{{"instance_ids", json::array({none})}}, Mcp::kInstances, "No instance has id "}}) {
+        INFO(args.dump());
+        const auto [what, code] = refusal(args, kinds, args.contains("object_id"));
+        CHECK(what.rfind(text + std::to_string(none), 0) == 0);
+        CHECK(code == "invalid_argument");
+    }
+    // An id given as an index is refused with what that id names.
+    CHECK_THAT(refusal({{"object", second.id().id}}, kEveryKind, true).first,
+               ContainsSubstring(std::to_string(second.id().id) + " is the id of object 1"));
+
+    // The ids stay beside the indices they are read as, so the command still checks them where it acts.
+    CHECK(Mcp::with_indices(model, {{"object_id", third.id().id}}) == json{{"object", 2}, {"object_id", third.id().id}});
+    CHECK(Mcp::with_indices(model, {{"part_id", second.volumes[1]->id().id}}) ==
+          json{{"object", 1}, {"part", 1}, {"part_id", second.volumes[1]->id().id}});
+    // The objects outside the targets: Fill bed's, an order's and a Design commit's replaced ones.
+    CHECK(Mcp::with_indices(model, {{"fill_object_id", second.id().id}})["fill_object"] == 1);
+    CHECK(Mcp::with_indices(model, {{"order_ids", json::array({third.id().id, first.id().id, second.id().id})}})["order"] ==
+          json::array({2, 0, 1}));
+    CHECK(Mcp::with_indices(model, {{"replace_ids", json::array({first.id().id})}})["replace"] == json::array({0}));
+    // Given with their indices, those ids are checked there, as no reading of the targets reads them.
+    CHECK_NOTHROW(Mcp::with_indices(model, {{"order", json::array({1, 0})}, {"order_ids", json::array({second.id().id, first.id().id})}}));
+    CHECK_THROWS_WITH(Mcp::with_indices(model, {{"replace", json::array({1})}, {"replace_ids", json::array({first.id().id})}}),
+                      ContainsSubstring("not the expected id"));
+    CHECK_THROWS_WITH(Mcp::with_indices(model, {{"order", json::array({1, 0})}, {"order_ids", json::array({first.id().id})}}),
+                      ContainsSubstring("order_ids takes one id per entry of order"));
 }
 
 TEST_CASE("a command's target is optional, and a plate defaults to the current one", "[Mcp][Scene]")

@@ -841,7 +841,7 @@ void register_project_tools(CommandCatalog& catalog)
 
     NativeCommand export_ = reaching(
         {"start_gcode_export", "export_sliced_3mf", "export_model_3mf", "export_stl", "export_toolpaths_obj"},
-        with_expected_ids(mutate_tool(
+        with_target_ids(mutate_tool(
         "project_export", L("Export"),
         "Write the project to a file without a dialog. gcode: the plate's G-code (slice first; it is written in the "
         "background, and the call returns once it is). `sliced_3mf`: the sliced plate, or all plates, as .gcode.3mf (slice "

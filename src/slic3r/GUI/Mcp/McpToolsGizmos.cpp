@@ -254,7 +254,7 @@ json brim_ears_from_args(const json& args)
 NativeCommand gizmo_command(std::string name, std::string title, std::string description, json schema, EType type,
                             GizmoTargets reading, json examples)
 {
-    NativeCommand command = with_expected_ids(mutate_tool(std::move(name), std::move(title), description + kWorkTheGizmo,
+    NativeCommand command = with_target_ids(mutate_tool(std::move(name), std::move(title), description + kWorkTheGizmo,
                                                           std::move(schema), [type, reading](const json& args, ToolContext& ctx) {
                                                               json out = ctx.run_ui([&] { return open_on(args, type, reading); });
                                                               settle(ctx);
@@ -288,7 +288,7 @@ void register_gizmo_tools(CommandCatalog& catalog)
     std::vector<std::string> paint_types;
     for (const auto& [name, type] : kPaintTypes)
         paint_types.push_back(name);
-    NativeCommand paint = with_expected_ids(mutate_tool(
+    NativeCommand paint = with_target_ids(mutate_tool(
         "object_paint", L("Paint on an object"),
         std::string("Open a painting gizmo on an object's instance, the first unless instance is given: type supports opens "
                     "Support Painting, seam Seam Painting, color Color Painting (two filaments or more) and `fuzzy_skin` Paint-on "
@@ -348,7 +348,7 @@ void register_gizmo_tools(CommandCatalog& catalog)
     point["minItems"] = normal["minItems"] = 3;
     json plane        = object_schema({{"point", std::move(point)}, {"normal", std::move(normal)}}, {"point", "normal"});
     plane["description"] = "Cut along this plane. Not with z.";
-    NativeCommand cut    = with_expected_ids(mutate_tool(
+    NativeCommand cut    = with_target_ids(mutate_tool(
         "object_cut", L("Cut"),
         std::string(
             "Cut an object's instance, the first unless instance is given, along a plane, as the Cut gizmo's Perform cut does. "
@@ -383,7 +383,7 @@ void register_gizmo_tools(CommandCatalog& catalog)
             {"tool": "object_cut", "args": {"object": 1, "plane": {"point": [100, 100, 10], "normal": [1, 0, 1]}, "keep": "upper"}}]}])json");
     catalog.add(reaching({"open_gizmo", "cut_object"}, std::move(cut)));
 
-    NativeCommand lay = with_expected_ids(mutate_tool(
+    NativeCommand lay = with_target_ids(mutate_tool(
         "object_lay_on_face", L("Lay on face"),
         std::string(
             "Lay an object's instance, the first unless instance is given, on one of its faces, as a click on that face in "
@@ -417,7 +417,7 @@ void register_gizmo_tools(CommandCatalog& catalog)
     json ear = object_schema({{"position", array_prop({{"type", "number"}}, "`[x, y]` mm: where on the bed.")},
                               {"radius", prop("number", "mm. Default: the gizmo's, eight first-layer line widths.")}},
                              {"position"});
-    NativeCommand brim = with_expected_ids(mutate_tool(
+    NativeCommand brim = with_target_ids(mutate_tool(
         "object_set_brim_ears", L("Brim ears"),
         std::string(
             "Set an object's brim ears from positions on the bed, as the Brim Ears gizmo places them, through the instance "

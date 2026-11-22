@@ -34,6 +34,23 @@ std::string validate_arguments(const nlohmann::json& schema, const nlohmann::jso
 // undefined. The checks that read an integer argument themselves take the same numbers (target indices, generation).
 bool is_whole_number(const nlohmann::json& v);
 
+// An argument that names objects, parts or instances by the ids `object_list` gives (`object_id`), and the argument
+// that names the same things by index (`object`). A call gives either; given both, the index must still name what the
+// id does (a guard against a model that changed since the caller read it). Ids are allocated per process, so a call is
+// journaled by index (without_guard_ids()).
+struct IdArgument
+{
+    const char* id;
+    const char* index;
+};
+inline constexpr IdArgument kIdArguments[] = {
+    {"object_id", "object"},   {"part_id", "part"},   {"instance_id", "instance"},
+    {"object_ids", "objects"}, {"part_ids", "parts"}, {"instance_ids", "instances"},
+    {"fill_object_id", "fill_object"}, {"order_ids", "order"}, {"replace_ids", "replace"},
+};
+// The index form of id argument `id` (kIdArguments), or nullptr when `id` is none.
+const char* index_argument(const std::string& id);
+
 // Whether `args` is a call with no arguments: an object with no members, or null. A Design command and a menu
 // item's function do their person's form then (they ask, as a person's pick does).
 bool person_form(const nlohmann::json& args);
