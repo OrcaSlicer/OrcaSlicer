@@ -11036,6 +11036,12 @@ void GCode::update_layer_related_config(int layer_id){
     auto volume_map = group_result->get_volume_map(layer_id);
     auto nozzle_map = group_result->get_nozzle_map(layer_id);
 
+    // An empty map means "no data for this layer". Keep the last valid config instead of clearing it:
+    // downstream consumers (export_layer_filaments, G-code templates) index these without a size check.
+    if (extruder_map.empty()) extruder_map = m_config.filament_map.values;
+    if (volume_map.empty()) volume_map = m_config.filament_volume_map.values;
+    if (nozzle_map.empty()) nozzle_map = m_config.filament_nozzle_map.values;
+
     m_config.filament_map.values = extruder_map;
     m_config.filament_volume_map.values = volume_map;
     m_config.filament_nozzle_map.values = nozzle_map;
