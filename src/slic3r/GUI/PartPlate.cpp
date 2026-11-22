@@ -3027,6 +3027,8 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 	int glb_internal_solid_extr = glb_config.opt_int("internal_solid_filament_id");
 	int glb_top_surface_extr = glb_config.opt_int("top_surface_filament_id");
 	int glb_bottom_surface_extr = glb_config.opt_int("bottom_surface_filament_id");
+	const int glb_brim_extr = glb_config.opt_int("brim_filament_id");
+	const bool glb_brim = glb_config.option("brim_type")->getInt() != int(BrimType::btNoBrim);
 	bool glb_support = glb_config.opt_bool("enable_support");
     glb_support |= glb_config.opt_int("raft_layers") > 0;
 
@@ -3137,6 +3139,12 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 		else if (glb_bottom_surface_extr != 0)
 			plate_extruders.push_back(glb_bottom_surface_extr);
 
+		const ConfigOption* brim_type_opt = mo->config.option("brim_type");
+		if (brim_type_opt != nullptr ? brim_type_opt->getInt() != int(BrimType::btNoBrim) : glb_brim) {
+			const ConfigOption* brim_opt = mo->config.option("brim_filament_id");
+			if (const int brim_extr = brim_opt != nullptr ? brim_opt->getInt() : glb_brim_extr; brim_extr != 0)
+				plate_extruders.push_back(brim_extr);
+		}
 	}
 
 	if (conside_custom_gcode) {
@@ -3192,6 +3200,9 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 	int glb_internal_solid_extr = full_config.opt_int("internal_solid_filament_id");
 	int glb_top_surface_extr = full_config.opt_int("top_surface_filament_id");
 	int glb_bottom_surface_extr = full_config.opt_int("bottom_surface_filament_id");
+	const ConfigOption* glb_brim_opt = full_config.option("brim_filament_id");
+	const int glb_brim_extr = glb_brim_opt != nullptr ? glb_brim_opt->getInt() : 0;
+	const bool glb_brim = full_config.option("brim_type")->getInt() != int(BrimType::btNoBrim);
 
     bool glb_support = full_config.opt_bool("enable_support");
     glb_support |= full_config.opt_int("raft_layers") > 0;
@@ -3308,6 +3319,13 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 				plate_extruders.push_back(obj_bottom_surface_extr);
 			else if (glb_bottom_surface_extr != 0)
 				plate_extruders.push_back(glb_bottom_surface_extr);
+
+			const ConfigOption* brim_type_opt = object->config.option("brim_type");
+			if (brim_type_opt != nullptr ? brim_type_opt->getInt() != int(BrimType::btNoBrim) : glb_brim) {
+				const ConfigOption* brim_opt = object->config.option("brim_filament_id");
+				if (const int brim_extr = brim_opt != nullptr ? brim_opt->getInt() : glb_brim_extr; brim_extr != 0)
+					plate_extruders.push_back(brim_extr);
+			}
         }
     }
 
@@ -3433,19 +3451,22 @@ std::vector<int> PartPlate::get_extruders_without_support(bool conside_custom_gc
 int PartPlate::get_physical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const
 {
 	const std::vector<int>& filament_map = get_real_filament_maps(g_config);
-	if (filament_map.size() < idx)
+	if (idx <= 0 || idx > static_cast<int>(filament_map.size()))
 	{
 		return -1;
 	}
 
-	const auto the_map = g_config.option<ConfigOptionInts>("physical_extruder_map");
-	if (!the_map)
+	// A multi-nozzle printer whose profile never sets physical_extruder_map carries the
+	// single-element default, so the raw option cannot be indexed by logical extruder.
+	const auto* nozzles = g_config.option<ConfigOptionFloats>("nozzle_diameter");
+	const ConfigOptionInts pem = effective_physical_extruder_map(g_config.option<ConfigOptionInts>("physical_extruder_map"),
+	                                                             nozzles ? static_cast<int>(nozzles->values.size()) : 0);
+	const int zero_base_logical_idx = filament_map[idx - 1] - 1;
+	if (zero_base_logical_idx < 0 || zero_base_logical_idx >= static_cast<int>(pem.values.size()))
 	{
 		return -1;
 	}
-
-	int zero_base_logical_idx = filament_map[idx - 1] - 1;
-	return the_map->values[zero_base_logical_idx];
+	return pem.values[zero_base_logical_idx];
 }
 
 int PartPlate::get_logical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const
@@ -3544,6 +3565,9 @@ std::map<int, size_t> PartPlate::get_object_filament_extruders(
         if (active && !object.config.has(key) && process_config.has(key) && process_config.opt_int(key) > 0)
             filament_ids.emplace(process_config.opt_int(key));
     }
+
+    if (has_brim && effective_int("brim_filament_id") > 0)
+        filament_ids.emplace(effective_int("brim_filament_id"));
 
     const bool has_support = effective_bool("enable_support") || effective_int("raft_layers") > 0;
     if (has_support) {
