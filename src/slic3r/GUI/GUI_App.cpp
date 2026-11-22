@@ -2341,12 +2341,14 @@ void GUI_App::init_networking_callbacks()
                 if (provider != this->get_printer_cloud_provider()) {
                     return;
                 }
-                m_agent->set_user_selected_machine(m_agent->get_user_selected_machine());
+                if (m_device_manager)
+                    m_device_manager->reselect_cloud_machine();
                 if (this->is_enable_multi_machine()) {
                     auto evt = new wxCommandEvent(EVT_UPDATE_MACHINE_LIST);
                     wxQueueEvent(this, evt);
                 }
-                m_agent->set_user_selected_machine(m_agent->get_user_selected_machine());
+                if (m_device_manager)
+                    m_device_manager->reselect_cloud_machine();
                 if (m_agent->is_user_login(provider)) {
 
                     /*disconnect lan*/
@@ -4511,6 +4513,11 @@ void GUI_App::select_machine(const std::string& agent_id)
         }
     }
 
+    // Orca: the print dialog blocks a printer whose type differs from the preset's model id, so the
+    // type must be that id, not the model name. A model no vendor profile lists has no id; the
+    // dialog accepts any printer then, and the name stays.
+    const std::string model_id = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
+
     // If machine doesn't exist, create it first. The Orca agent never connects, so an entry saved
     // under it holds no binding; re-insert it for the active agent, whose machine list can't see
     // it otherwise. Entries bound by any other agent stay with that agent.
@@ -4520,7 +4527,7 @@ void GUI_App::select_machine(const std::string& agent_id)
         // We use dev_id as dev_ip to store the address (host:port)
         machine.dev_ip = dev_id;
         machine.dev_name = dev_id;
-        machine.printer_type = preset.config.opt_string("printer_model");
+        machine.printer_type = model_id.empty() ? preset.config.opt_string("printer_model") : model_id;
 
         existing = m_device_manager->insert_local_device(
             machine, "lan", "free", "", access_code);
@@ -4533,6 +4540,11 @@ void GUI_App::select_machine(const std::string& agent_id)
     } else if (agent_id == MOONRAKER_PRINTER_AGENT_ID && existing->printer_agent_id == agent_id &&
                (!existing->has_access_right() || existing->get_access_code() != access_code)) {
         existing->set_access_code(access_code);
+    }
+    // Entries saved before held the model name; this printer's preset gives the id to repair them.
+    if (!model_id.empty() && existing->printer_agent_id == agent_id && existing->printer_type != model_id) {
+        existing->printer_type = model_id;
+        DeviceManager::update_local_machine(*existing, app_config);
     }
     existing->local_use_ssl = boost::istarts_with(print_host, "https://");
     select_dev(dev_id);

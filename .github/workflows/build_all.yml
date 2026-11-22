@@ -291,7 +291,9 @@ jobs:
           path: test-results
       # Best-effort: a read-only token (e.g. fork PRs) can't write the check, so
       # don't let a publish failure fail the run. The test jobs gate correctness.
+      # Skipped when every build failed: there is nothing to publish.
       - name: Publish Test Results
+        if: ${{ hashFiles('test-results/**/*.xml') != '' }}
         continue-on-error: true
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:

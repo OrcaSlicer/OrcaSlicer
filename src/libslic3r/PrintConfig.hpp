@@ -176,10 +176,40 @@ inline bool is_octree_infill_pattern(InfillPattern pattern) { return pattern == 
 // Orca: Infill patterns graded by the "adaptive_infill_mode" option.
 inline bool is_adaptive_infill_pattern(InfillPattern pattern) { return pattern == ipGyroid || pattern == ipTpmsD || pattern == ipTpmsFK; }
 
+// Orca: whether the sparse infill lines run across each other or turn back where they cross.
+enum class InfillStrategy {
+    Default,
+    Crossing,
+    NonCrossing,
+};
+
+// Orca: Infill patterns whose lines can either cross or turn back at the crossings.
+inline bool has_infill_strategy(InfillPattern pattern)
+{
+    switch (pattern) {
+    case ipGrid:
+    case ipTriangles:
+    case ipStars:
+    case ipCubic:
+    case ipQuarterCubic:
+    case ipAdaptiveCubic:
+    case ipSupportCubic:
+        return true;
+    default:
+        return false;
+    }
+}
+
+// Orca: The default strategy crosses with a single line per infill wall and turns back with more.
+inline bool is_non_crossing_strategy(InfillStrategy strategy, int multiline)
+{
+    return strategy == InfillStrategy::Default ? multiline > 1 : strategy == InfillStrategy::NonCrossing;
+}
+
 // Orca: Infill patterns that round their corners by the "sparse_infill_smooth_factor" option.
-// Grid, Triangles and Tri-hexagon only do so in their trapezoidal form, which is generated with more
-// than one line per infill wall; a single line makes them plain crossing lines with nothing to round.
-inline bool is_smoothable_infill_pattern(InfillPattern pattern, int multiline = 1)
+// Grid, Triangles, Tri-hexagon, Cubic and Quarter Cubic only do so with the non-crossing strategy;
+// crossing makes them straight lines with nothing to round.
+inline bool is_smoothable_infill_pattern(InfillPattern pattern, int multiline = 1, InfillStrategy strategy = InfillStrategy::Default)
 {
     switch (pattern) {
     case ipHilbertCurve:
@@ -195,7 +225,7 @@ inline bool is_smoothable_infill_pattern(InfillPattern pattern, int multiline = 
     case ipStars:
     case ipCubic:
     case ipQuarterCubic:
-        return multiline > 1;
+        return is_non_crossing_strategy(strategy, multiline);
     default:
         return false;
     }
@@ -834,6 +864,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ToolChangeOrderingType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ArcFittingMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SurfaceFillOrder)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillStrategy)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AdaptiveInfillMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AdaptiveInfillGradient)
 
@@ -1285,6 +1316,7 @@ PRINT_CONFIG_CLASS_DEFINE(
 
     ((ConfigOptionFloat,               brim_object_gap))
     ((ConfigOptionFloat,               brim_flow_ratio))
+    ((ConfigOptionInt,                 brim_filament_id))
     ((ConfigOptionBool,                brim_use_efc_outline))
     ((ConfigOptionEnum<BrimType>,      brim_type))
     ((ConfigOptionFloat,               brim_width))
@@ -1335,12 +1367,14 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Spacing between interface lines (the hatching distance). Set zero to get a solid interface.
     ((ConfigOptionFloat,               support_interface_spacing))
     ((ConfigOptionFloatsNullable,      support_interface_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, support_interface_volumetric_flow))
     ((ConfigOptionEnum<SupportMaterialPattern>, support_base_pattern))
     ((ConfigOptionEnum<SupportMaterialInterfacePattern>, support_interface_pattern))
     // Spacing between support material lines (the hatching distance).
     ((ConfigOptionFloat,               support_base_pattern_spacing))
     ((ConfigOptionFloat,               support_expansion))
     ((ConfigOptionFloatsNullable,      support_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, support_volumetric_flow))
     ((ConfigOptionEnum<SupportMaterialStyle>, support_style))
 
     // Orca: a flag enabling the ability to override flow ratios
@@ -1466,6 +1500,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                internal_bridge_flow))
     ((ConfigOptionFloatsNullable,       bridge_speed))
     ((ConfigOptionFloatsOrPercentsNullable, internal_bridge_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, bridge_volumetric_flow))
+    ((ConfigOptionFloatsOrPercentsNullable, internal_bridge_volumetric_flow))
     ((ConfigOptionEnum<EnsureVerticalShellThickness>,   ensure_vertical_shell_thickness))
     ((ConfigOptionPercent,              top_surface_density))
     ((ConfigOptionPercent,               bottom_surface_density))
@@ -1476,6 +1512,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionEnum<InfillPattern>, internal_solid_infill_pattern))
     ((ConfigOptionFloatOrPercent,       outer_wall_line_width))
     ((ConfigOptionFloatsNullable,       outer_wall_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, outer_wall_volumetric_flow))
     ((ConfigOptionFloat,                infill_direction))
     ((ConfigOptionFloat,                solid_infill_direction))
     ((ConfigOptionFloat,                top_layer_direction))
@@ -1511,11 +1548,13 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionPercent,              fuzzy_skin_ripple_offset))
     ((ConfigOptionInt,                  fuzzy_skin_layers_between_ripple_offset))
     ((ConfigOptionFloatsNullable,       gap_infill_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, gap_infill_volumetric_flow))
     ((ConfigOptionInt,                  sparse_infill_filament_id))
     ((ConfigOptionFloatOrPercent,       sparse_infill_line_width))
     ((ConfigOptionPercent,              infill_wall_overlap))
     ((ConfigOptionPercent,              top_bottom_infill_wall_overlap))
     ((ConfigOptionFloatsNullable,       sparse_infill_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, sparse_infill_volumetric_flow))
     ((ConfigOptionPercent, skeleton_infill_density))
     ((ConfigOptionPercent, skin_infill_density))
     ((ConfigOptionFloat, infill_lock_depth))
@@ -1526,6 +1565,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Orca:
     ((ConfigOptionFloatOrPercent,                infill_combination_max_layer_height))
     ((ConfigOptionInt,                  fill_multiline))
+    ((ConfigOptionEnum<InfillStrategy>, sparse_infill_strategy))
     ((ConfigOptionEnum<AdaptiveInfillMode>, adaptive_infill_mode))
     ((ConfigOptionPercent,              adaptive_infill_interior_density))
     ((ConfigOptionEnum<AdaptiveInfillGradient>, adaptive_infill_gradient))
@@ -1552,6 +1592,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt, inner_wall_filament_id))
     ((ConfigOptionFloatOrPercent, inner_wall_line_width))
     ((ConfigOptionFloatsNullable, inner_wall_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, inner_wall_volumetric_flow))
     // Total number of perimeters.
     ((ConfigOptionInt, wall_loops))
     ((ConfigOptionBool, alternate_extra_wall))
@@ -1561,6 +1602,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt, bottom_surface_filament_id))
     ((ConfigOptionFloatOrPercent, internal_solid_infill_line_width))
     ((ConfigOptionFloatsNullable, internal_solid_infill_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, internal_solid_infill_volumetric_flow))
     // Detect thin walls.
     ((ConfigOptionBool, detect_thin_wall))
     ((ConfigOptionFloatOrPercent, top_surface_line_width))
@@ -1571,6 +1613,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat, top_surface_expansion_margin))
     ((ConfigOptionEnum<TopSurfaceExpansionDirection>, top_surface_expansion_direction))
     ((ConfigOptionFloatsNullable, top_surface_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, top_surface_volumetric_flow))
     //BBS
     ((ConfigOptionBoolsNullable,            enable_overhang_speed))
     ((ConfigOptionFloatsOrPercentsNullable, overhang_1_4_speed))
@@ -1757,6 +1800,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             default_filament_colour))
     ((ConfigOptionInts,                temperature_vitrification))  //BBS
     ((ConfigOptionFloats,              filament_max_volumetric_speed))
+    ((ConfigOptionFloats,              filament_max_external_volumetric_speed))
     ((ConfigOptionInts,                required_nozzle_HRC))
     ((ConfigOptionEnum<FilamentMapMode>, filament_map_mode))
     ((ConfigOptionInts,                filament_map))
@@ -2049,9 +2093,12 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionFloatOrPercent,     initial_layer_line_width))
     ((ConfigOptionFloat,              initial_layer_print_height))
     ((ConfigOptionFloatsNullable,     initial_layer_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, initial_layer_volumetric_flow))
 
     //BBS
     ((ConfigOptionFloatsNullable,     initial_layer_infill_speed))
+    ((ConfigOptionFloatsOrPercentsNullable, initial_layer_infill_volumetric_flow))
+    ((ConfigOptionBool,               enable_volumetric_speeds))
     ((ConfigOptionInts,               nozzle_temperature_initial_layer))
     ((ConfigOptionInts,               full_fan_speed_layer))
     // ORCA: explicit override for the part cooling fan speed on the first printed layer.
@@ -2581,7 +2628,8 @@ int bed_exclusion_extruder_for_filament(size_t filament_id, const std::vector<in
                                         FilamentMapMode map_mode, bool is_bambu, bool automatic_map_resolved,
                                         size_t extruder_count);
 bool is_bed_exclusion_volume_syntax(const std::string &value);
-// Bed exclusion areas must be simple polygons with non-zero area.
+// Allow legacy compound bed exclusion paths with repeated vertices and
+// retraced edges. Reject zero-area paths and proper edge crossings.
 bool is_valid_bed_exclude_area(const Pointfs &points);
 bool is_valid_bed_exclude_volumes_string(const std::string &value, double printable_height);
 // Add shared definitions without replacing existing volumes or changing the
@@ -2772,6 +2820,21 @@ static bool has_zero_flush_volume_for_used_filaments(const std::vector<T> &fv_ma
 size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id);
 
 double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, bool is_bbl_printer);
+
+// physical_extruder_map has one entry per LOGICAL extruder -- the index space of
+// nozzle_diameter -- with each value a physical extruder index. It is NOT derivable from
+// printer_extruder_id, which is indexed by variant slot (one entry per extruder+variant pair):
+// an X1 Carbon has one nozzle and printer_extruder_id {1,1}, an H2D two nozzles and {1,1,2,2,2}.
+//
+// The setting belongs to every printer, not only IMEX ones: the single-element default is what
+// any multi-nozzle profile that never sets it (a Snapmaker U1, say) carries, so reading it raw by
+// logical extruder runs past its end. GUI and device-side readers go through this helper (or its
+// PresetBundle overload in PresetBundle.hpp); the non-IMEX G-code paths read the raw value on
+// purpose (see the is_imex gate in PrintApply.cpp).
+//
+// A profile has authored a map only when its length matches nozzle_count; otherwise the identity
+// is returned, the default upstream's printer sync starts from before it applies an authored map.
+ConfigOptionInts effective_physical_extruder_map(const ConfigOptionInts* explicit_pem, int nozzle_count);
 
 } // namespace Slic3r
 
