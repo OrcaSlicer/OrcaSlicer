@@ -293,6 +293,7 @@ public:
 private:
     MachineObject*  m_obj{nullptr};
     ScalableBitmap  m_thumbnail_placeholder;
+    ScalableBitmap  m_thumbnail_placeholder_default; // for printers of other vendors than Bambu Lab
     std::string     m_thumbnail_bmp_display_name;
     wxBitmap        m_thumbnail_bmp_display;
     ScalableBitmap  m_bitmap_use_time;
@@ -354,7 +355,8 @@ public:
     void init_scaled_buttons();
     void error_info_reset();
     void show_error_msg(wxString msg);
-    void reset_printing_value();
+    // Shows the placeholder thumbnail: Bambu Lab's logo for a Bambu Lab printer or no printer, else a neutral picture
+    void reset_printing_value(const MachineObject* obj = nullptr);
     void msw_rescale();
 
 public:
