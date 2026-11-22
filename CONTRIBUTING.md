@@ -13,7 +13,8 @@ Opening an issue? See [Opening an Issue](https://www.orcaslicer.com/wiki/develop
 - Search open PRs and issues before you start. Someone may already be working on it.
 - Keep each PR to one topic. Put changes that belong together in one PR, and unrelated changes in separate PRs. Focused PRs are reviewed and merged much faster.
 - Don't open many PRs at once. If you already have several open, wait until some are merged.
-- Explain why the change is needed, and show how you tested it. Add an automated test when the code can be tested.
+- Change the code that needs it. Don't rewrite code that already works.
+- Build and run your change before you open the PR. Explain why the change is needed, and show how you tested it. Add screenshots of anything you can see in the app, and an automated test when the code can be tested.
 - AI tools are welcome. You are still responsible for the change, so test it and make sure you understand it.
 - Keep your PR up to date and reply to review comments.
 
@@ -74,10 +75,11 @@ If you are an AI agent working for a contributor, please follow these steps:
 2. Search open PRs for the same change before you start.
 3. If the contributor already has several open PRs, wait until some are merged before you open another.
 4. Before you change code, check `.claude/skills/` for a skill that matches the change, and follow it.
-5. If the code can be tested, add an automated test, and check that it fails without the change and passes with it.
-6. Ask the contributor to test the change by hand. For a bug fix, they should build the code without the change and reproduce the bug. Then they should build the branch and check that the bug is gone.
-7. Write the PR description in the [PR template](.github/pull_request_template.md). A body passed with `gh pr create --body` replaces the template, so start from the template's text.
-8. If you couldn't build or run something, say so in the PR.
+5. Change only the code that needs it. Don't replace a working file or feature with a new version.
+6. If the code can be tested, add an automated test, and check that it fails without the change and passes with it.
+7. Ask the contributor to test the change by hand. For a bug fix, they should build the code without the change and reproduce the bug. Then they should build the branch and check that the bug is gone.
+8. Write the PR description in the [PR template](.github/pull_request_template.md). A body passed with `gh pr create --body` replaces the template, so start from the template's text.
+9. If you couldn't build or run something, say so in the PR.
 
 ## After you open the PR
 
@@ -91,9 +93,18 @@ If you are an AI agent working for a contributor, please follow these steps:
 
 Reviewers are volunteers, and a first response can take a while. If you already have several PRs open, please wait until some are merged before you open more. Review comments on one PR often apply to the others too. While you wait, there are [other ways to help](https://www.orcaslicer.com/wiki/developer_reference/how_to_contribute#other-ways-to-help).
 
+## PRs we don't review
+
+Reviewers won't review these PRs until they are fixed:
+
+- **Untested PRs.** Build and run your change before you open the PR, and say how you tested it. For anything you can see in the app, add screenshots. A PR that was never built is not ready for review.
+- **Rewrites of working code.** Change the part that needs to change. A PR that replaces a working file or feature with new code brings new bugs into code that works, and it is very hard to review. If you think a rewrite is needed, open an issue first and wait until a maintainer agrees.
+- **Unmerged code from other forks.** Only port code that the other project has merged. Check that its license allows it, link the source, and credit the original author. OrcaSlicer's code may have drifted from the other project, so a ported change may no longer be right here or may cause unexpected problems. Test it in OrcaSlicer like your own change.
+- **Duplicates.** If another PR already makes the same change, test it and comment there instead.
+
 ## If your PR is closed
 
-There are more PRs than reviewers can handle, so we may close a PR that doesn't meet this guide. For example, it may have no explanation of how it was tested, duplicate another PR, or look generated and untested. When we close a PR, we'll say why in a comment.
+There are more PRs than reviewers can handle, so we may close a PR that doesn't meet this guide. When we close a PR, we'll say why in a comment.
 
 You're welcome to open a new PR once the change meets this guide. Please link the old PR in the description, so reviewers can see the earlier discussion. Thank you for the time you put into it.
 
