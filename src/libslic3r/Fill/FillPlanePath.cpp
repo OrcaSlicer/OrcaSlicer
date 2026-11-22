@@ -89,7 +89,7 @@ void FillPlanePath::_fill_surface_single(
     Polylines                       &polylines_out)
 {
 
-//#define DEBUG_PATH
+#define DEBUG_PATH
 #ifdef DEBUG_PATH
 
 //#define DEBUG_PATH_IO
@@ -162,10 +162,11 @@ void FillPlanePath::_fill_surface_single(
     const bool is_hilbert          = (params.pattern == InfillPattern::ipHilbertCurve);
     const bool is_centered_hilbert = (is_hilbert && params.pattern_mode && (fixed_angle || !is_solid));
     const bool is_centered         = (centered() || is_centered_hilbert); // only solid and sparse infill of hilbert curve by rotation templates can be centered
+    const bool is_top_or_bottom    = (params.extrusion_role == erTopSolidInfill || params.extrusion_role == erBottomSurface);
 
     if (is_internal) {
         bounding_box = this->bounding_box;
-    } else if (params.extrusion_role == erTopSolidInfill || params.extrusion_role == erBottomSurface) {
+    } else if (is_top_or_bottom) {
         if (params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model)
             bounding_box = this->bounding_box;
         else if (params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Surface)
@@ -178,7 +179,7 @@ void FillPlanePath::_fill_surface_single(
         is_solid     = true;
     }
 
-#ifdef DEBUG_PATH
+//#ifdef DEBUG_PATH
 #ifdef DEBUG_PATH_IO
     svg.draw(bounding_box.polygon().lines(), "orangered", w2); // exactly island filling bounding
 #endif
@@ -189,16 +190,16 @@ void FillPlanePath::_fill_surface_single(
     bounding_box.rotate(-angle);
     if (is_centered)
         shift += bounding_box.center();
-    else {
+    else 
         shift += bounding_box.min;
-    }
+
     expolygon.translate(-shift);
 
 #ifdef DEBUG_PATH
     svg.draw(bounding_box.polygon().lines(), "firebrick", w2); // filling bounding after rotate and shift
 #endif
     
-    if (is_centered)
+    if (is_centered || (is_hilbert && is_top_or_bottom))
         bounding_box = get_extents(expolygon);
     else { // crop/extend bounding_box for minimum required space if the fill pattern has starting point outside the expolygon
         bounding_box.translate(-shift);
