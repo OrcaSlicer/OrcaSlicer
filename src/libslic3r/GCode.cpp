@@ -2312,10 +2312,20 @@ static bool belt_object_layer_prints_something(const PrintObject &object, const 
     return false;
 }
 
-std::vector<GCode::LayerToPrint> GCode::collect_layers_to_print(const PrintObject& object, bool skip_empty_first_layer)
+std::vector<GCode::LayerToPrint> GCode::collect_layers_to_print(const PrintObject& object, bool skip_empty_first_layer,
+                                                                const std::vector<std::shared_ptr<SupportLayer>> *tower_layers)
 {
+    // The support layers of the object, with the tower-only layers merged in by z.
+    std::vector<const SupportLayer*> support_layers(object.support_layers().begin(), object.support_layers().end());
+    if (tower_layers != nullptr && ! tower_layers->empty()) {
+        for (const std::shared_ptr<SupportLayer> &layer : *tower_layers)
+            support_layers.emplace_back(layer.get());
+        std::stable_sort(support_layers.begin(), support_layers.end(),
+                         [](const SupportLayer *l, const SupportLayer *r) { return l->print_z < r->print_z; });
+    }
+
     std::vector<GCode::LayerToPrint> layers_to_print;
-    layers_to_print.reserve(object.layers().size() + object.support_layers().size());
+    layers_to_print.reserve(object.layers().size() + support_layers.size());
 
     /*
     // Calculate a minimum support layer height as a minimum over all extruders, but not smaller than 10um.
@@ -2347,7 +2357,7 @@ std::vector<GCode::LayerToPrint> GCode::collect_layers_to_print(const PrintObjec
     size_t idx_brim_band = 0;
     const auto &brim_bands = object.belt_brim_prologue();   // ordered by ascending print_z
     const LayerToPrint* last_extrusion_layer = nullptr;
-    while (idx_object_layer < object.layers().size() || idx_support_layer < object.support_layers().size()
+    while (idx_object_layer < object.layers().size() || idx_support_layer < support_layers.size()
         || idx_brim_band < brim_bands.size()) {
         LayerToPrint layer_to_print;
         double print_z_min = std::numeric_limits<double>::max();
@@ -2356,8 +2366,8 @@ std::vector<GCode::LayerToPrint> GCode::collect_layers_to_print(const PrintObjec
             print_z_min = std::min(print_z_min, layer_to_print.object_layer->print_z);
         }
 
-        if (idx_support_layer < object.support_layers().size()) {
-            layer_to_print.support_layer = object.support_layers()[idx_support_layer++];
+        if (idx_support_layer < support_layers.size()) {
+            layer_to_print.support_layer = support_layers[idx_support_layer++];
             print_z_min = std::min(print_z_min, layer_to_print.support_layer->print_z);
         }
 
@@ -4669,7 +4679,17 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             const PrintObject *prev_object = (*print_object_instance_sequential_active)->print_object;
             for (; print_object_instance_sequential_active != print_object_instances_ordering.end(); ++ print_object_instance_sequential_active) {
                 const PrintObject &object = *(*print_object_instance_sequential_active)->print_object;
-                if (&object != prev_object || tool_ordering.first_extruder() != final_extruder_id) {
+                // The prime tower of this object, and where this copy of it stands; both are absent without "Prime tower per object".
+                const WipeTowerData *object_tower = print.object_wipe_tower_data(&object);
+                const auto           tower_placement = print.object_wipe_tower_placements().find(*print_object_instance_sequential_active);
+                if (tower_placement == print.object_wipe_tower_placements().end())
+                    object_tower = nullptr;
+                if (object_tower != nullptr) {
+                    // The tower was planned against this ordering, so the object has to be printed with it.
+                    tool_ordering = object_tower->tool_ordering;
+                    initial_extruder_id = tool_ordering.first_extruder();
+                    final_extruder_id   = tool_ordering.last_extruder();
+                } else if (&object != prev_object || tool_ordering.first_extruder() != final_extruder_id) {
                     auto cached_ordering = use_seq_dynamic_cache ? seq_dynamic_orderings.find(&object) : seq_dynamic_orderings.end();
                     if (cached_ordering != seq_dynamic_orderings.end()) {
                         // Never re-plan a selector object mid-export: the cached plan is what the
@@ -4739,8 +4759,21 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 // and export G-code into file.
                 tool_ordering.cal_most_used_extruder(print.config());
                 m_printed_objects.emplace_back(&object);
-                this->process_layers(print, tool_ordering, collect_layers_to_print(object, print.config().belt_printer.value), *print_object_instance_sequential_active - object.instances().data(), file,
-                                     prime_extruder);
+                if (object_tower != nullptr) {
+                    m_wipe_tower.reset(new WipeTowerIntegration(print.config(), print.get_plate_index(), print.get_plate_origin(), *object_tower->priming.get(),
+                                                                object_tower->tool_changes, *object_tower->final_purge.get(), print.get_slice_used_filaments(false),
+                                                                &tower_placement->second.position));
+                    m_wipe_tower->set_wipe_tower_depth(object_tower->depth);
+                    m_wipe_tower->set_wipe_tower_bbx(object_tower->bbx);
+                    m_wipe_tower->set_rib_offset(object_tower->rib_offset);
+                }
+                this->process_layers(print, tool_ordering, collect_layers_to_print(object, print.config().belt_printer.value, object_tower ? &object_tower->support_layers : nullptr),
+                                     *print_object_instance_sequential_active - object.instances().data(), file, prime_extruder);
+                if (m_wipe_tower) {
+                    // Purge the extruder and pull out the filament before the next object.
+                    file.write(m_wipe_tower->finalize(*this));
+                    m_wipe_tower.reset();
+                }
                 {
                     // save the flush statitics stored in tool ordering by object
                     print.m_statistics_by_extruder_count.stats_by_single_extruder += tool_ordering.get_filament_change_stats(ToolOrdering::FilamentChangeMode::SingleExt);
@@ -5307,12 +5340,20 @@ void GCode::process_layers(
             if (precomputed.index == size_t(-1))
                 return LayerResult::make_nop_layer_result();
             LayerToPrint &layer = layers_to_print[precomputed.index];
+            const LayerTools &layer_tools = tool_ordering.tools_for_layer(layer.print_z());
+            // The prime tower of this object, when it has one, advances with its layers.
+            if (m_wipe_tower && layer_tools.has_wipe_tower) {
+                if (layer_tools.joins_wipe_tower_layer_below())
+                    m_wipe_tower->join_layer();
+                else
+                    m_wipe_tower->next_layer();
+            }
             print.set_status(80, Slic3r::format(_(L("Generating G-code: layer %1%")), std::to_string(precomputed.index + 1)));
             //BBS
             check_placeholder_parser_failed();
             print.throw_if_canceled();
             m_extrusion_quality_estimator.set_precomputed_layers(std::move(precomputed.overhang_layers));
-            return this->process_layer(print, { std::move(layer) }, tool_ordering.tools_for_layer(layer.print_z()), &layer == &layers_to_print.back(), nullptr, tool_ordering.get_most_used_extruder(), single_object_idx, prime_extruder);
+            return this->process_layer(print, { std::move(layer) }, layer_tools, &layer == &layers_to_print.back(), nullptr, tool_ordering.get_most_used_extruder(), single_object_idx, prime_extruder);
         });
     if (m_spiral_vase) {
         float nozzle_diameter  = EXTRUDER_CONFIG(nozzle_diameter);
@@ -6155,7 +6196,7 @@ std::string GCode::process_layer_change_gcode(const Print &print, coordf_t print
 
     PrintStatistics curr_print_statistics;
     for (const Extruder &extruder : m_writer.extruders()) {
-        double extruded_volume = extruder.extruded_volume() + (has_wipe_tower ? print.wipe_tower_data().used_filament[extruder.id()] * 2.4052f : 0.f); // assumes 1.75mm filament diameter
+        double extruded_volume = extruder.extruded_volume() + (has_wipe_tower && extruder.id() < print.wipe_tower_data().used_filament.size() ? print.wipe_tower_data().used_filament[extruder.id()] * 2.4052f : 0.f); // assumes 1.75mm filament diameter
         double filament_weight = extruded_volume * extruder.filament_density() * 0.001;
         if (filament_weight > 0.)
             curr_print_statistics.total_weight += filament_weight;

@@ -197,3 +197,13 @@ TEST_CASE("Generating an object tower leaves the layers of the object alone", "[
     CHECK(towered.layers().size() == plain.layers().size());
     CHECK(towered.support_layers().size() == plain.support_layers().size());
 }
+
+TEST_CASE("The G-code of a by-object print carries the object prime tower only when asked for", "[ObjectWipeTower]")
+{
+    const std::string tower_role = ";TYPE:Prime tower";
+    TwoObjects without({{"print_sequence", "by object"}, {"wipe_tower_type", "type1"}});
+    CHECK(gcode(without.print).find(tower_role) == std::string::npos);
+
+    TwoObjects with({{"print_sequence", "by object"}, {"prime_tower_per_object", "1"}, {"wipe_tower_type", "type1"}});
+    CHECK(gcode(with.print).find(tower_role) != std::string::npos);
+}
