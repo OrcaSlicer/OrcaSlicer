@@ -1631,29 +1631,7 @@ void PlaterPresetComboBox::show_default_color_picker()
 void PlaterPresetComboBox::sync_colour_config(const std::vector<std::string> &clrs, bool is_gradient)
 {
     DynamicPrintConfig *cfg = &wxGetApp().preset_bundle->project_config;
-
-    // Clone the string vector and patch the value at current extruder index.
-    auto multi_colour_opt = static_cast<ConfigOptionStrings *>(cfg->option("filament_multi_colour")->clone());
-    auto colour_type_opt = static_cast<ConfigOptionStrings *>(cfg->option("filament_colour_type")->clone());
-    auto colour_opt = static_cast<ConfigOptionStrings *>(cfg->option("filament_colour")->clone());
-
-    if (m_filament_idx >= multi_colour_opt->values.size()) multi_colour_opt->values.resize(m_filament_idx + 1);
-    if (m_filament_idx >= colour_type_opt->values.size()) colour_type_opt->values.resize(m_filament_idx + 1);
-    if (m_filament_idx >= colour_opt->values.size()) colour_opt->values.resize(m_filament_idx + 1);
-
-    std::string clr_str = "";
-    for(auto &clr : clrs) {
-        clr_str += clr + " ";
-    }
-    clr_str.pop_back();
-
-    multi_colour_opt->values[m_filament_idx] = clr_str;
-    colour_opt->values[m_filament_idx] = clrs[0];
-    colour_type_opt->values[m_filament_idx] = is_gradient ? "0" : "1";
-    DynamicPrintConfig cfg_new = *cfg;
-    cfg_new.set_key_value("filament_multi_colour", multi_colour_opt);
-    cfg_new.set_key_value("filament_colour", colour_opt);
-    cfg_new.set_key_value("filament_colour_type", colour_type_opt);
+    DynamicPrintConfig cfg_new = filament_colour_slot_config(*cfg, static_cast<std::size_t>(m_filament_idx), clrs, is_gradient);
     cfg->apply(cfg_new);
 
     wxGetApp().plater()->update_project_dirty_from_presets();

@@ -17,6 +17,8 @@
 #include "slic3r/Utils/MacDarkMode.hpp"
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 #include <atomic>
 #include <memory>
@@ -310,6 +312,27 @@ bool filament_color_picker_changed(const ColorSelection& initial, const std::opt
     // Compare encoded bytes, not ColorRGBA's tolerant floating point equality.
     // An unchanged seed also leaves unrepresentable multi-color data untouched.
     return result && color_selection_to_json(initial) != color_selection_to_json(*result);
+}
+
+DynamicPrintConfig filament_colour_slot_config(const DynamicPrintConfig& project_config, std::size_t index,
+                                               const std::vector<std::string>& colors, bool gradient)
+{
+    DynamicPrintConfig config = project_config;
+    if (colors.empty())
+        return config;
+    const auto set_slot = [&config, index](const char* key, std::string value) {
+        auto* option = config.option<ConfigOptionStrings>(key, true);
+        if (index >= option->values.size())
+            option->values.resize(index + 1);
+        option->values[index] = std::move(value);
+    };
+    std::string multi;
+    for (const std::string& color : colors)
+        multi += (multi.empty() ? "" : " ") + color;
+    set_slot("filament_multi_colour", std::move(multi));
+    set_slot("filament_colour", colors.front());
+    set_slot("filament_colour_type", gradient ? "0" : "1");
+    return config;
 }
 
 namespace {

@@ -27,6 +27,7 @@
 #include <slic3r/GUI/Widgets/WebHosting.hpp>
 
 #include <map>
+#include <stdexcept>
 #include <utility>
 
 #include <catch2/catch_test_macros.hpp>

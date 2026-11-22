@@ -164,13 +164,24 @@ tx.commit()
 
 The value must be `#RRGGBB` or `#RRGGBBAA` and is checked by `set()`, which raises
 `ValueError` otherwise; an opaque `FF` alpha is dropped, as the colour picker does.
-On commit the colour is written only after the preset settings were applied, so a
-failed batch leaves it unchanged. It goes through the sidebar colour picker's own
-path (`PlaterPresetComboBox::sync_colour_config()` and `EVT_FILAMENT_COLOR_CHANGED`):
-the slot becomes a solid colour, the swatch and 3D view update, the project is marked
-modified, and flushing volumes are recalculated when auto-calculation is on. It
-affects that slot only, even when the preset is shared. Process and printer
-transactions do not accept the key.
+Process and printer transactions reject the key with `ValueError`.
+
+On commit the colour is written last, after the preset settings were applied, so a
+failed preset batch leaves it unchanged. The colour write is not part of the preset
+batch's rollback: if it fails after the preset settings were applied, they stay
+applied and `commit()` raises `RuntimeError` saying so.
+
+The colour goes through the sidebar colour picker's own path
+(`PlaterPresetComboBox::sync_colour_config()` and `EVT_FILAMENT_COLOR_CHANGED`):
+the swatch and 3D view update, the project is marked modified, and flushing volumes
+are recalculated when auto-calculation is on. It changes that slot only, even when
+the preset is shared. The slot becomes one solid colour: a gradient, a multi-colour
+filament or an AMS multi-colour record the slot held is discarded. Like a change
+made with the colour picker, it is not added to the undo history.
+
+`PresetUpdateResult.keys` lists `filament_colour` last. For a transaction that set
+nothing but the colour, `shared_slots` holds only the target slot, and `dirty` stays
+about the preset: the colour marks the project modified, not the preset.
 
 ## Outcomes and consistency
 

@@ -17,6 +17,10 @@
 
 class wxWindow;
 
+namespace Slic3r {
+class DynamicPrintConfig;
+}
+
 namespace Slic3r::GUI {
 
 // Shared storage limit; individual picker callers may request a lower editing limit.
@@ -54,6 +58,12 @@ std::optional<ColorSelection> filament_color_picker_selection(const FilamentColo
 ColorSelection filament_color_picker_initial(const FilamentColorPickerValue& value);
 FilamentColorPickerValue filament_color_picker_result(const ColorSelection& selection);
 bool filament_color_picker_changed(const ColorSelection& initial, const std::optional<ColorSelection>& result);
+// project_config with filament slot `index` (0-based) set to `colors` the way the sidebar colour
+// picker stores them: filament_colour is the first colour, filament_multi_colour all of them and
+// filament_colour_type "0" for a gradient, "1" for a solid colour. Only that slot changes; the
+// three lists grow to hold it. An empty `colors` returns project_config unchanged.
+DynamicPrintConfig filament_colour_slot_config(const DynamicPrintConfig& project_config, std::size_t index,
+                                               const std::vector<std::string>& colors, bool gradient);
 
 class ColorPickerDialog : public WebViewHostDialog
 {
