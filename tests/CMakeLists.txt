@@ -20,7 +20,8 @@ file(TO_NATIVE_PATH "${PROFILES_DIR}" PROFILES_DIR)
 include(CTest)
 include(Catch)
 
-set(CATCH_EXTRA_ARGS "" CACHE STRING "Extra arguments for catch2 test suites.") # Unknown if this still works and/or should be replaced with something else.
+set(CATCH_EXTRA_ARGS "" CACHE STRING "Extra arguments ctest passes to every Catch2 test case, as a command line.")
+separate_arguments(CATCH_EXTRA_ARGS_LIST NATIVE_COMMAND "${CATCH_EXTRA_ARGS}")
 
 add_library(test_common INTERFACE)
 target_compile_definitions(test_common INTERFACE TEST_DATA_DIR=R"\(${TEST_DATA_DIR}\)" PROFILES_DIR=R"\(${PROFILES_DIR}\)" CATCH_CONFIG_FAST_COMPILE)
@@ -83,9 +84,10 @@ function(orcaslicer_copy_test_dlls)
     endif()
 endfunction()
 
-# Register Catch2 tags as CTest labels so `ctest -L`/`-LE` can filter by tag.
+# Register Catch2 tags as CTest labels so `ctest -L`/`-LE` can filter by tag. A case or section
+# that runs no assertion fails.
 function(orcaslicer_discover_tests TARGET)
-    catch_discover_tests(${TARGET} ADD_TAGS_AS_LABELS)
+    catch_discover_tests(${TARGET} ADD_TAGS_AS_LABELS EXTRA_ARGS --warn NoAssertions ${CATCH_EXTRA_ARGS_LIST})
 endfunction()
 
 add_subdirectory(libnest2d)

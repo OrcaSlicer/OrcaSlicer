@@ -17,6 +17,9 @@
 #include <boost/log/expressions/formatters/stream.hpp>
 #include <boost/log/expressions/attr.hpp>
 #include <boost/log/expressions/formatters/date_time.hpp>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/posix_time/posix_time_io.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/log/attributes/current_thread_id.hpp>
 #include <boost/log/expressions/message.hpp>
@@ -43,6 +46,7 @@
 #include <stdio.h>
 #include <cstdlib>
 #ifndef _WIN32
+#include <fcntl.h>
 #include <pwd.h>
 #include <unistd.h>
 #endif
@@ -397,6 +401,33 @@ std::string xdg_config_dir(const std::string &app_name)
         base = std::string(home != nullptr ? home : "") + "/.config";
     }
     return base + "/" + app_name;
+}
+
+bool is_running_in_flatpak()
+{
+    // Only the sandbox has this file, while a host process started from a Flatpak can inherit FLATPAK_ID.
+    return ::access("/.flatpak-info", F_OK) == 0;
+}
+
+bool wayland_socket_available()
+{
+    if (const char *socket_fd = ::getenv("WAYLAND_SOCKET")) {
+        char *end = nullptr;
+        errno = 0;
+        const long fd = std::strtol(socket_fd, &end, 10);
+        return errno == 0 && end != socket_fd && *end == '\0' && ::fcntl(static_cast<int>(fd), F_GETFD) != -1;
+    }
+    const char *name = ::getenv("WAYLAND_DISPLAY");
+    if (name == nullptr)
+        name = "wayland-0";
+    // libwayland uses an empty WAYLAND_DISPLAY as given, and connecting to it fails.
+    if (*name == '\0')
+        return false;
+    if (name[0] == '/')
+        return ::access(name, F_OK) == 0;
+    const char *runtime_dir = ::getenv("XDG_RUNTIME_DIR");
+    return runtime_dir != nullptr && runtime_dir[0] == '/' &&
+           ::access((std::string(runtime_dir) + "/" + name).c_str(), F_OK) == 0;
 }
 #endif
 
@@ -1352,6 +1383,21 @@ bool is_shapes_dir(const std::string& dir)
 #endif /* WIN32 */
 
 namespace Slic3r {
+
+std::string get_bbl_monitor_end_time_dhm(float time_in_secs)
+{
+    if (time_in_secs == 0.0f)
+        return {};
+
+    std::stringstream stream;
+    boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+    auto endTime = now + boost::posix_time::seconds(static_cast<int>(time_in_secs));
+    auto facet = new boost::posix_time::time_facet("%H:%M");//%Y-%m-%d %H:%M:%S
+    stream.imbue(std::locale(std::locale::classic(), facet));
+    stream << endTime;
+
+    return stream.str();
+}
 
 size_t get_utf8_sequence_length(const std::string& text, size_t pos)
 {

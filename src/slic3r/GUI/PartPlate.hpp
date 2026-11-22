@@ -613,9 +613,12 @@ public:
     const BoundingBoxf3& get_bounding_box(bool extended = false) { return extended ? m_extended_bounding_box : m_bounding_box; }
     const BoundingBox get_bounding_box_crd();
     BoundingBoxf3 get_plate_box() {return get_build_volume();}
+    // The volume to place objects in. With use_share it is bounded by the area every extruder
+    // reaches, or by the whole plate when there is none.
     BoundingBoxf3 get_build_volume(bool use_share = false);
-    // Polygon counterpart of get_build_volume(true), in scaled world coordinates. The bounding box
-    // that one returns hides the corners a non-rectangular bed does not have.
+    // The area every extruder reaches, in scaled world coordinates: unlike the bounding box of
+    // get_build_volume(true) it keeps the corners a non-rectangular bed does not have, and it is
+    // empty when the extruder areas do not overlap.
     Polygon get_shared_printable_polygon() const;
 
     const std::vector<BoundingBoxf3>& get_exclude_areas() { return m_exclude_bounding_box; }

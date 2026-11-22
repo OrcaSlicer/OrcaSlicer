@@ -8608,24 +8608,31 @@ TEST_CASE("A zero-depth extrude is an error on every path", "[CadDocument]")
                 return i;
         return -1;
     };
+    const auto check_zero_depth_error = [&doc]() {
+        REQUIRE_FALSE(doc.recompute());
+        CHECK_CONTAINS(doc.error, "zero");
+    };
 
-    SECTION("blind") { doc.add_extrude(sk, 0.0, false, BooleanMode::New, "ZeroDepth"); }
+    SECTION("blind") { doc.add_extrude(sk, 0.0, false, BooleanMode::New, "ZeroDepth"); check_zero_depth_error(); }
     SECTION("tapered")
     {
         doc.add_extrude(sk, 0.0, false, BooleanMode::New, "ZeroDepth");
         doc.features.back().taper_deg = 8.0;
+        check_zero_depth_error();
     }
-    SECTION("symmetric") { doc.add_extrude(sk, 0.0, true, BooleanMode::New, "ZeroDepth"); }
+    SECTION("symmetric") { doc.add_extrude(sk, 0.0, true, BooleanMode::New, "ZeroDepth"); check_zero_depth_error(); }
     SECTION("two-sided")
     {
         doc.add_extrude(sk, 0.0, false, BooleanMode::New, "ZeroDepth");
         doc.features.back().extrude_end = ExtrudeEnd::TwoSided;
+        check_zero_depth_error();
     }
     SECTION("up to a vertex in the sketch plane")
     {
         doc.add_extrude(sk, 10.0, false, BooleanMode::New, "ZeroDepth");
         doc.features.back().extrude_end = ExtrudeEnd::UpToVertex;
         doc.features.back().up_to_point = Vec3d(5, 5, 0);
+        check_zero_depth_error();
     }
     SECTION("up to a face in the sketch plane")
     {
@@ -8634,12 +8641,14 @@ TEST_CASE("A zero-depth extrude is an error on every path", "[CadDocument]")
         doc.add_extrude(sk, 10.0, false, BooleanMode::Add, "ZeroDepth");
         doc.features.back().extrude_end = ExtrudeEnd::UpToFace;
         doc.features.back().up_to_face  = bottom;
+        check_zero_depth_error();
     }
     SECTION("from a body face")
     {
         const int top = add_box_and_find_face(1.0);
         REQUIRE(top >= 0);
         doc.add_extrude_face(top, 0.0, false, BooleanMode::Add, "ZeroDepth");
+        check_zero_depth_error();
     }
     SECTION("imported text or SVG regions")
     {
@@ -8649,11 +8658,9 @@ TEST_CASE("A zero-depth extrude is an error on every path", "[CadDocument]")
         art.imported_regions = {{ {Vec2d(0, 0), Vec2d(10, 0), Vec2d(10, 10), Vec2d(0, 10)} }};
         doc.features.push_back(art);
         doc.add_extrude(int(doc.features.size()) - 1, 0.0, false, BooleanMode::New, "ZeroDepth");
+        check_zero_depth_error();
     }
-    SECTION("surface") { doc.add_surface_extrude(sk, 0.0, "ZeroDepth"); }
-
-    REQUIRE_FALSE(doc.recompute());
-    CHECK_CONTAINS(doc.error, "zero");
+    SECTION("surface") { doc.add_surface_extrude(sk, 0.0, "ZeroDepth"); check_zero_depth_error(); }
 }
 
 // A body is NOT the feature that created it. Reported 2026-08-23, in these words: "you have

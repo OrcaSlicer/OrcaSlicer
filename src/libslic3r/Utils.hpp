@@ -7,9 +7,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <cstdint>
 #include <cstdio>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <boost/date_time/posix_time/posix_time_duration.hpp>
-#include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <algorithm>
 #include <iomanip>
 #include <limits>
@@ -26,10 +23,8 @@
 #include <string_view>
 
 #include <boost/system/error_code.hpp>
-#include <boost/algorithm/string.hpp>
+#include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/date_time.hpp>
-#include "boost/date_time/posix_time/ptime.hpp"
 
 #include <openssl/md5.h>
 #include <vector>
@@ -209,6 +204,11 @@ const std::string& data_dir();
 // The per-user configuration directory an application gets when no --datadir is given:
 // $XDG_CONFIG_HOME/<app_name>, or ~/.config/<app_name> when XDG_CONFIG_HOME is unset or empty.
 std::string xdg_config_dir(const std::string &app_name);
+// True when this process runs inside a Flatpak sandbox.
+bool is_running_in_flatpak();
+// True when the socket wl_display_connect(NULL) would open exists, which is the connection GTK's
+// Wayland backend tries before X11.
+bool wayland_socket_available();
 #endif
 #ifdef __linux__
 // The data directory a start without --datadir uses: a data_dir folder next to the executable
@@ -736,20 +736,7 @@ inline std::string get_bbl_monitor_time_dhm(float time_in_secs)
     return buffer;
 }
 
-inline std::string get_bbl_monitor_end_time_dhm(float time_in_secs)
-{
-    if (time_in_secs == 0.0f)
-        return {};
-
-    std::stringstream stream;
-    boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
-    auto endTime = now + boost::posix_time::seconds(static_cast<int>(time_in_secs));
-    auto facet = new boost::posix_time::time_facet("%H:%M");//%Y-%m-%d %H:%M:%S
-    stream.imbue(std::locale(std::locale::classic(), facet));
-    stream << endTime;
-
-    return stream.str();
-}
+std::string get_bbl_monitor_end_time_dhm(float time_in_secs);
 
 inline std::string get_bbl_remain_time_dhms(float time_in_secs)
 {

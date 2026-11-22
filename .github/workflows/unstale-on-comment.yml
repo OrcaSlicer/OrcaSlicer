@@ -1,0 +1,36 @@
+name: Remove stale label on comment
+
+# stale.yml only removes the label when its daily run gets back to an item,
+# which can take a few days. This removes it as soon as someone comments.
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  unstale:
+    if: >-
+      github.repository == 'OrcaSlicer/OrcaSlicer' &&
+      github.event.issue.state == 'open' &&
+      github.event.comment.user.type == 'User' &&
+      contains(github.event.issue.labels.*.name, 'stale')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove the stale label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number }}
+        run: |
+          # "Close with comment" sends the event while the issue is still open.
+          state=$(gh api "repos/$GITHUB_REPOSITORY/issues/$NUMBER" --jq .state)
+          if [ "$state" != open ]; then
+            exit 0
+          fi
+          # A 404 means another comment or the stale run already removed it.
+          if ! gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$NUMBER/labels/stale" --silent 2> err.txt; then
+            cat err.txt >&2
+            grep -q "HTTP 404" err.txt
+          fi

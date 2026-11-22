@@ -13,6 +13,10 @@ std::vector<LayerPrintSequence> get_other_layers_print_sequence(int sequence_num
 void get_other_layers_print_sequence(const std::vector<LayerPrintSequence> &customize_sequences, int &sequence_nums, std::vector<int> &sequence);
 
 extern int get_index_for_extruder_parameter(const DynamicPrintConfig &config, const std::string &opt_key, int cur_extruder_id, ExtruderType extruder_type, NozzleVolumeType nozzle_volume_type);
+
+// Gives a per-tool process a column per variant for each printer tool it has none for, copied from tool 1's column of
+// that variant. Returns whether it added any. See docs/HLSD/per-nozzle-settings.md.
+bool add_process_columns_for_new_tools(DynamicPrintConfig &process_config, const DynamicPrintConfig &printer_config);
 } // namespace Slic3r
 
 #endif // slic3r_Parameter_Utils_hpp_

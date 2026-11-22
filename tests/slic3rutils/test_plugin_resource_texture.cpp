@@ -26,6 +26,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/system/error_code.hpp>
 #include <catch2/catch_all.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
@@ -305,6 +306,26 @@ bool load_project(const std::string& path, Model& model, const ScopedTemporaryDi
     return loaded;
 }
 
+// A gray texture (".png", or ".bmp" for the decode fallback) whose full path is longer than the
+// 260-character MAX_PATH the Win32 APIs enforce when LongPathsEnabled is off. A 240-character name stays
+// under the NTFS 255 limit per component. It is written through extended_path(), as plugin extraction
+// writes it.
+fs::path write_long_path_texture(const fs::path& dir, const std::string& ext = ".png")
+{
+    const fs::path file = dir / (std::string(240, 'a') + ext);
+    REQUIRE(file.string().size() > 260);
+
+    ScopedTemporaryDir staging("tex-long-src");
+    const fs::path     source = staging.path() / ("src" + ext);
+    if (ext == ".bmp")
+        write_bytes(source, make_gray_bmp(4, 4, 128));
+    else
+        write_gray_png(source, 128);
+    fs::create_directories(dir);
+    fs::copy_file(source, extended_path(file));
+    return file;
+}
+
 } // namespace
 
 // ── Validation (collect_resource_texture_files, no Python) ──────────────────────────────────────
@@ -321,6 +342,41 @@ TEST_CASE("A texture file directly inside the plugin folder is listed", "[Plugin
     CHECK(error.empty());
     REQUIRE(files.size() == 1);
     CHECK(fs::path(files.front()).filename() == "grain.png");
+}
+
+TEST_CASE("A texture whose full path is longer than MAX_PATH is listed", "[PluginResourceTexture]")
+{
+    ScopedTemporaryDir root("tex-long");
+    const fs::path     file = write_long_path_texture(root.path() / "textures");
+
+    std::string error;
+    const std::vector<std::string> files =
+        collect_resource_texture_files((root.path() / "textures").string(), root.string(), error);
+
+    CHECK(error.empty());
+    REQUIRE(files.size() == 1);
+    CHECK(fs::path(files.front()).filename() == file.filename());
+
+    // ScopedTemporaryDir's plain remove_all cannot reach past MAX_PATH on Windows.
+    fs::remove(extended_path(file));
+}
+
+TEST_CASE("A texture whose full path is longer than MAX_PATH loads", "[PluginResourceTexture]")
+{
+    ensure_wx_image_handlers();
+    const std::string ext = GENERATE(".png", ".bmp");
+    ScopedTemporaryDir root("tex-long");
+    const fs::path     file = write_long_path_texture(root.path() / "textures", ext);
+
+    std::string error;
+    const auto  bytes = GUI::load_texture_image_data(file.string(), error);
+
+    CHECK(error.empty());
+    REQUIRE(bytes != nullptr);
+    CHECK_FALSE(bytes->empty());
+
+    // ScopedTemporaryDir's plain remove_all cannot reach past MAX_PATH on Windows.
+    fs::remove(extended_path(file));
 }
 
 TEST_CASE("A directory reached with a parent-directory escape is refused", "[PluginResourceTexture]")
