@@ -144,7 +144,7 @@ std::string first_difference(const std::string& actual, const std::string& expec
 }
 
 // The design's command set outside the Design tab, heading by heading in the order tools/list gives them, Driving the
-// GUI last, after the Design tab's commands: the 131 commands of the catalog, its typed tools, the commands made from
+// GUI last, after the Design tab's commands: the 137 commands of the catalog, its typed tools, the commands made from
 // menu items, the seven Parts 4a to 4c add (Printable, Fix Model, Auto Drop, Clone, Reload from disk, Replace 3D file,
 // Add Mixed Filament), the three of Part 5a (the Printer Selection dialog's list, install and uninstall), the two of
 // Part 5b (the System Filaments dialog's install and uninstall), Part 5c's write of the Preferences dialog's preferences
@@ -182,7 +182,7 @@ const std::vector<std::pair<std::string, std::set<std::string>>> kPlaces{
     {"Plugins", {"plugin_list", "plugin_install_local", "plugin_enable", "plugin_reload", "plugin_uninstall", "plugin_refresh"}},
     {"View and windows", {"view_set", "window_list", "window_set", "window_open"}},
     {"Recordings, replays and scripts",
-     {"script_search_api", "window_screenshot", "recording_start", "recording_stop", "recording_encode", "replay_run", "replay_export",
+     {"script_list_api", "script_describe_api", "window_screenshot", "recording_start", "recording_stop", "recording_encode", "replay_run", "replay_export",
       "script_run", "window_save_screenshot", "script_toggle_panel"}},
     {"Driving the GUI",
      {"widget_list", "widget_click", "widget_set_value", "keyboard_press", "mouse_gesture", "webview_run_javascript", "dialog_answer",
@@ -456,8 +456,8 @@ TEST_CASE("outside the Design tab the catalog has its commands and 129 actions",
     // The commands outside the Design tab: the typed tools, the commands made from menu items, the seven Parts 4a to 4c
     // add, Part 5a's three, Part 5b's two, Part 5c's one, Part 5d's four, the seven gizmo commands, the six printing
     // commands, the four of the filament list (filament_list, filament_edit_mixed, filament_set_colour and
-    // filament_set_flushing) and tool_describe.
-    CHECK(commands == 136);
+    // filament_set_flushing), tool_describe and script_describe_api.
+    CHECK(commands == 137);
     // The eight commands named as their menu items keep an action of their own; the other 121 actions are items.
     CHECK(own == std::set<std::string>{"plate_add", "plate_delete", "plate_duplicate", "plate_rename", "filament_add", "filament_delete",
                                        "undo", "redo"});
@@ -484,7 +484,7 @@ TEST_CASE("the commands outside the Design tab are the design's, under its headi
         commands += keys.size();
     }
     CHECK(by_heading.size() == kPlaces.size());
-    CHECK(commands == 136);
+    CHECK(commands == 137);
 
     // tool_list's group says which there are.
     const NativeCommand* list = NativeCommands::find("tool_list");
@@ -525,8 +525,8 @@ TEST_CASE("every command that runs from arguments is in the tool list, by place"
     // The three menu items with no argument form, which tool_list lists and tool_call runs.
     CHECK(unlisted == std::set<std::string>{"window_save_screenshot", "script_toggle_panel", "settings_toggle_developer_mode"});
     // Task 3's 98, the seven Parts 4a to 4c add, Part 5a's three, Part 5b's two, Part 5c's one, Part 5d's four, the
-    // seven gizmo commands, the six printing commands, the filament list's four and tool_describe.
-    CHECK(listed.size() == 133);
+    // seven gizmo commands, the six printing commands, the filament list's four, tool_describe and script_describe_api.
+    CHECK(listed.size() == 134);
 
     // The listing of the other commands, the manual, the generic call and the app's state first; then each heading's
     // commands together, in the design's order, Driving the GUI last.
@@ -554,7 +554,7 @@ TEST_CASE("only deleting a preset, uninstalling a plugin and stopping a print ar
     const std::set<std::string> reads{"app_state",          "app_wait",       "app_log",         "tool_list",         "tool_describe",
                                       "preset_list",        "settings_list",  "settings_get",    "preferences_get",
                                       "plate_get_settings", "project_get_settings", "plate_list", "object_list",
-                                      "window_screenshot",  "plate_slice_stats",    "script_search_api", "action_list",
+                                      "window_screenshot",  "plate_slice_stats",    "script_list_api", "script_describe_api", "action_list",
                                       "window_list",        "widget_list",          "printer_list_models", "plugin_list",
                                       "printer_status",     "filament_list"};
     // The commands made from menu items whose item reaches a printer, the cloud account or the network.

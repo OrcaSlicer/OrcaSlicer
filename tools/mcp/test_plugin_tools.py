@@ -186,6 +186,10 @@ def main():
         objects = orca.call("tool_list", group="objects")
         check("a group the tool list shows whole lists nothing, in any case, and says so",
               objects.get("items") == [] and "tools/list" in objects.get("note", ""), objects)
+        mesh = [i["name"] for i in orca.call("script_list_api", within="orca.host.TriangleMesh", limit=200)["items"]]
+        check("script_list_api lists a class's members", "orca.host.TriangleMesh.face_normals" in mesh, mesh)
+        normals = orca.call("script_describe_api", name="orca.host.TriangleMesh.face_normals")
+        check("script_describe_api gives an entry's documentation", bool(normals.get("doc")), normals)
         unknown = orca.call_raw("tool_list", {"group": "commandz"})
         check("a group no command has is refused, naming the groups there are",
               unknown.get("isError") and '"code":"invalid_argument"' in unknown["content"][0]["text"] and

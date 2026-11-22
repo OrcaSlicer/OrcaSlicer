@@ -1,5 +1,5 @@
-// script_run and script_search_api: Python scripts against orca.host, the plugin API, and the orca package's
-// reference.
+// script_run, script_list_api and script_describe_api: Python scripts against orca.host, the plugin API, and the orca
+// package's reference, read one module or class at a time.
 
 #include "JobRegistry.hpp"
 #include "McpArguments.hpp"
@@ -22,6 +22,7 @@
 #include "slic3r/plugin/PythonSession.hpp"
 #include "slic3r/plugin/host/PluginHostTools.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/path.hpp>
 
 #include <pybind11/eval.h>
@@ -228,22 +229,52 @@ json python_api_reference()
     }
 }
 
-json rank_python_api(const json& reference, const std::string& query)
+json python_api_children(const json& reference, const std::string& within)
 {
-    const std::vector<std::string>              words = query_words(query);
-    std::vector<std::pair<std::pair<int, int>, std::size_t>> scored;
-    for (std::size_t i = 0; i < reference.size(); ++i) {
-        const json&               e     = reference[i];
-        const std::pair<int, int> score = match_score(words, e["name"].get<std::string>(),
-                                                      e["signature"].get<std::string>() + '\n' + e["doc"].get<std::string>());
-        if (score.first > 0)
-            scored.emplace_back(score, i);
+    const auto is_scope = [&within](const json& e) {
+        return e["name"] == within && (e["kind"] == "module" || e["kind"] == "class");
+    };
+    if (std::none_of(reference.begin(), reference.end(), is_scope)) {
+        json        modules = json::array();
+        std::string names;
+        for (const json& e : reference)
+            if (e["kind"] == "module") {
+                modules.push_back(e["name"]);
+                names += (names.empty() ? "" : ", ") + e["name"].get<std::string>();
+            }
+        throw ToolFailure(within + " is no module or class of the orca package; its modules are " + names,
+                          {{"code", "invalid_argument"}, {"modules", std::move(modules)}});
     }
-    std::stable_sort(scored.begin(), scored.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
-    json out = json::array();
-    for (const auto& [score, i] : scored)
-        out.push_back(reference[i]);
-    return out;
+    // An entry is directly inside `within` when its name is `within`, a dot and one more part.
+    const std::string prefix = within + '.';
+    json              items  = json::array();
+    for (const json& e : reference) {
+        const std::string& name = e["name"].get_ref<const std::string&>();
+        if (boost::algorithm::starts_with(name, prefix) && name.find('.', prefix.size()) == std::string::npos)
+            items.push_back({{"name", name}, {"kind", e["kind"]}, {"signature", e["signature"]},
+                             {"summary", first_sentence(e["doc"].get<std::string>())}});
+    }
+    return items;
+}
+
+json python_api_entry(const json& reference, const std::string& name)
+{
+    std::vector<std::pair<std::size_t, std::size_t>> scored; // {distance, index}, the reference's order among equals
+    for (std::size_t i = 0; i < reference.size(); ++i) {
+        const std::string& candidate = reference[i]["name"].get_ref<const std::string&>();
+        if (candidate == name)
+            return reference[i];
+        scored.emplace_back(edit_distance(name, candidate), i);
+    }
+    std::stable_sort(scored.begin(), scored.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    json        closest = json::array();
+    std::string names;
+    for (std::size_t i = 0; i < scored.size() && closest.size() < 3; ++i) {
+        closest.push_back(reference[scored[i].second]["name"]);
+        names += (names.empty() ? "" : ", ") + closest.back().get<std::string>();
+    }
+    throw ToolFailure("No entry " + name + " in the orca package; the closest are " + names,
+                      {{"code", "invalid_argument"}, {"did_you_mean", std::move(closest)}});
 }
 
 bool python_has_numpy()
@@ -341,10 +372,10 @@ void register_python_tools(CommandCatalog& catalog)
     NativeCommand run = mutate_tool(
         "script_run", L("Run a Python script"),
         "Run Python code inside OrcaSlicer as its main program (__name__ == \"__main__\") against orca.host, the whole plugin "
-        "API (script_search_api searches it): read objects, meshes and settings, compute, use orca.host.ui and the preset "
+        "API (script_list_api lists it): read objects, meshes and settings, compute, use orca.host.ui and the preset "
         "API, and call these same tools, with their guards and undo, through orca.host.tools.call(name, args). Mesh and "
         "matrix arrays need numpy, which "
-        "script_search_api says is installed or not; a file run's PEP 723 block can install it. The code runs on a worker "
+        "script_list_api says is installed or not; a file run's PEP 723 block can install it. The code runs on a worker "
         "thread, where calls documented as UI thread only raise RuntimeError. The run ends once its code and the non-daemon "
         "threads and pool tasks it started are done; its windows close with it. `args` holds the args you pass; set `result` "
         "to a JSON value to return it; print() output comes back as output. Reply: {status: finished | raised | cancelled | "
@@ -417,35 +448,45 @@ void register_python_tools(CommandCatalog& catalog)
     run.open_world = true;
     catalog.add(run);
 
+    // Both read the package as Python runs it now, holding its runtime for the read as script_run does.
+    const auto while_python_runs = [](const auto& read) {
+        if (!PythonInterpreter::instance().is_initialized())
+            throw ToolFailure("Python is not available in this OrcaSlicer");
+        PythonRuntimeLease lease = PythonInterpreter::instance().acquire_runtime_lease();
+        if (!lease)
+            throw ToolFailure("Python is shutting down");
+        return read();
+    };
     catalog.add(inspect_tool(
-        "script_search_api", L("Search the Python API"),
-        "Search orca, the Python API of script_run scripts and plugins, in the running build: orca.host (the project's "
-        "model and meshes, presets and their editors, slicing data, orca.host.ui windows and dialogs, orca.host.tools "
-        "calling these tools) and the classes, events and pages plugins build on. Each entry has its kind, signature (a "
-        "class's constructors) and documentation. A query ranks them, best match first; without one, the whole package is "
-        "listed with each entry's first sentence. Page with offset. numpy says whether numpy is installed, which mesh and "
-        "matrix arrays need.",
-        object_schema({{"query", prop("string", "A few words, such as \"mesh normals\" or \"preset value\".")},
+        "script_list_api", L("List the Python API"),
+        "List orca, the Python API of script_run scripts and plugins, in the running build, one module or class at a time: "
+        "orca.host (the project's model and meshes, presets and their editors, slicing data, orca.host.ui windows and "
+        "dialogs, orca.host.tools calling these tools) and the classes, events and pages plugins build on. It lists what is "
+        "directly inside within, a module or a class (default orca): each entry's name, kind, signature (a class's "
+        "constructors) and the first sentence of its documentation. A module or class it lists is listed with within set "
+        "to its name, and script_describe_api {name} gives an entry's whole documentation. Page with offset. numpy says "
+        "whether numpy is installed, which mesh and matrix arrays need.",
+        object_schema({{"within", {{"type", "string"}, {"default", kPythonApiRoot},
+                                   {"description", "A module's or class's dotted name, e.g. \"orca.host\" or "
+                                                   "\"orca.host.TriangleMesh\"."}}},
                        {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "At most this many (default 20)."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
-        [](const json& args, ToolContext&) {
-            if (!PythonInterpreter::instance().is_initialized())
-                throw ToolFailure("Python is not available in this OrcaSlicer");
-            PythonRuntimeLease lease = PythonInterpreter::instance().acquire_runtime_lease();
-            if (!lease)
-                throw ToolFailure("Python is shutting down");
-            const json        reference = python_api_reference();
-            const std::string query     = arg_string(args, "query");
-            json              items     = json::array();
-            if (query.empty()) {
-                for (const json& e : reference)
-                    items.push_back({{"name", e["name"]}, {"kind", e["kind"]}, {"signature", e["signature"]},
-                                     {"summary", first_sentence(e["doc"].get<std::string>())}});
-            } else
-                items = rank_python_api(reference, query);
-            json out     = page(items, args, 20);
-            out["numpy"] = python_has_numpy();
-            return ToolResult::ok(std::move(out));
+        [while_python_runs](const json& args, ToolContext&) {
+            return ToolResult::ok(while_python_runs([&args] {
+                json out     = page(python_api_children(python_api_reference(), arg_string(args, "within", kPythonApiRoot)), args, 20);
+                out["numpy"] = python_has_numpy();
+                return out;
+            }));
+        }));
+    catalog.add(inspect_tool(
+        "script_describe_api", L("Describe a Python API entry"),
+        "Read one entry of orca, the Python API of script_run scripts and plugins, by its dotted name as script_list_api "
+        "lists it (orca.host.TriangleMesh.face_normals): its kind, its signature (a class's constructors) and its whole "
+        "documentation. A name no entry has is refused with the closest names.",
+        object_schema({{"name", prop("string", "An entry's dotted name, as script_list_api lists it.")}}, {"name"}),
+        [while_python_runs](const json& args, ToolContext&) {
+            return ToolResult::ok(
+                while_python_runs([&args] { return python_api_entry(python_api_reference(), arg_string(args, "name")); }));
         }));
 
     // The Run Script panel's menu item, which has no argument form.

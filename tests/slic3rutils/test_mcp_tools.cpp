@@ -556,8 +556,10 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
     CHECK(catalog.find("tool_search") == nullptr);
     // The action search is action_list, a listing with no query, under no other name.
     CHECK(catalog.find("action_search") == nullptr);
+    // The Python API's search is script_list_api and script_describe_api, under no other name.
+    CHECK(catalog.find("script_search_api") == nullptr);
 
-    // Each of the 40 under its name, listed, the first sentence of its description pinned (the commands that sentence
+    // Each of the 39 under its name, listed, the first sentence of its description pinned (the commands that sentence
     // names under their names too).
     struct Renamed
     {
@@ -620,12 +622,8 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
          "and recording paths moved under ${out_dir}."},
         {"run_script", "script_run",
          "Run Python code inside OrcaSlicer as its main program (__name__ == \"__main__\") against orca.host, the whole plugin API "
-         "(script_search_api searches it): read objects, meshes and settings, compute, use orca.host.ui and the preset API, and call "
+         "(script_list_api lists it): read objects, meshes and settings, compute, use orca.host.ui and the preset API, and call "
          "these same tools, with their guards and undo, through orca.host.tools.call(name, args)."},
-        {"search_python_api", "script_search_api",
-         "Search orca, the Python API of script_run scripts and plugins, in the running build: orca.host (the project's model and "
-         "meshes, presets and their editors, slicing data, orca.host.ui windows and dialogs, orca.host.tools calling these tools) and "
-         "the classes, events and pages plugins build on."},
         {"answer_dialog", "dialog_answer", "Press a button of the topmost modal dialog: yes, no, ok, cancel, close, apply, a button's "
                                            "label, or a numeric id."},
         {"auto_answer_dialogs", "dialog_auto_answer", "Answer modal dialogs automatically when their title or message matches a rule's "
@@ -670,7 +668,7 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
         {"run_javascript", "webview_run_javascript", "Evaluate JavaScript in one of OrcaSlicer's web views (Home, the device page, "
                                                      "dialogs, plugin windows)."},
     };
-    REQUIRE(std::size(renamed) == 40);
+    REQUIRE(std::size(renamed) == 39);
     for (const Renamed& r : renamed) {
         INFO(r.retired << " is " << r.name);
         CHECK(std::find(kRetiredTools.begin(), kRetiredTools.end(), r.retired) != kRetiredTools.end());
@@ -680,14 +678,15 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
         CHECK(first_sentence(command->description) == r.first_sentence);
     }
 
-    // Outside the Design group 133 commands are listed: every one that runs from its arguments, all but the three menu
+    // Outside the Design group 134 commands are listed: every one that runs from its arguments, all but the three menu
     // items that take none (Task 3's 98, the seven Parts 4a to 4c add, Part 5a's three, Part 5b's two, Part 5c's one,
-    // Part 5d's four, the seven gizmo commands, the six printing commands, the filament list's four and tool_describe).
+    // Part 5d's four, the seven gizmo commands, the six printing commands, the filament list's four, tool_describe and
+    // script_describe_api).
     std::size_t listed = 0;
     for (const NativeCommand& c : catalog.commands())
         if (c.listed && c.group != Slic3r::GUI::kDesignGroup)
             ++listed;
-    CHECK(listed == 133);
+    CHECK(listed == 134);
 }
 
 TEST_CASE("opening a project and importing models are two commands", "[Mcp]")
@@ -706,7 +705,7 @@ TEST_CASE("opening a project and importing models are two commands", "[Mcp]")
     CHECK_FALSE(import_->input_schema["properties"].contains("as"));
 }
 
-TEST_CASE("script_search_api's reference covers the orca package with constructors and named instances", "[Mcp][Python]")
+TEST_CASE("the Python API reference covers the orca package with constructors and named instances", "[Mcp][Python]")
 {
     (void) import_orca_module();
     const json                  reference = python_api_reference();
@@ -754,8 +753,68 @@ TEST_CASE("script_search_api's reference covers the orca package with constructo
     REQUIRE(by_name.count("orca.register_operation") == 1);
     CHECK(by_name["orca.register_operation"]["signature"].get<std::string>().find("schema: object = None, handler: object = None") !=
           std::string::npos);
+}
 
-    CHECK(rank_python_api(reference, "mesh normals")[0]["name"] == "orca.host.TriangleMesh.face_normals");
+TEST_CASE("script_list_api lists a module or class at a time and script_describe_api gives one entry", "[Mcp][Python]")
+{
+    (void) import_orca_module();
+    const json reference = python_api_reference();
+    const auto names_in  = [&reference](const std::string& within) {
+        std::set<std::string> names;
+        for (const json& item : python_api_children(reference, within))
+            names.insert(item["name"].get<std::string>());
+        return names;
+    };
+    // The details of the refusal `call` throws, or null when it throws none.
+    const auto refusal = [](const std::function<void()>& call) -> json {
+        try {
+            call();
+        } catch (const ToolFailure& refused) {
+            return refused.details;
+        }
+        return nullptr;
+    };
+
+    // A class's methods and properties, each with its signature and the first sentence of its documentation.
+    const std::set<std::string> mesh = names_in("orca.host.TriangleMesh");
+    CHECK(mesh.count("orca.host.TriangleMesh.face_normals") == 1);
+    const json items = python_api_children(reference, "orca.host.TriangleMesh");
+    const auto normals = std::find_if(items.begin(), items.end(),
+                                      [](const json& item) { return item["name"] == "orca.host.TriangleMesh.face_normals"; });
+    REQUIRE(normals != items.end());
+    const json entry = python_api_entry(reference, "orca.host.TriangleMesh.face_normals");
+    CHECK(*normals == json{{"name", "orca.host.TriangleMesh.face_normals"}, {"kind", entry["kind"]}, {"signature", entry["signature"]},
+                           {"summary", first_sentence(entry["doc"].get<std::string>())}});
+    // Only what is directly inside: orca lists its modules and classes, not what they hold.
+    const std::set<std::string> root = names_in(kPythonApiRoot);
+    CHECK(root.count("orca.host") == 1);
+    CHECK(root.count("orca.pages") == 1);
+    CHECK(root.count("orca.host.TriangleMesh") == 0);
+    CHECK(names_in("orca.host").count("orca.host.TriangleMesh") == 1);
+    // The listing a call without within gives is orca's.
+    const NativeCommand* list = NativeCommands::find("script_list_api");
+    REQUIRE(list != nullptr);
+    CHECK(list->input_schema.at("properties").at("within").at("default") == json(kPythonApiRoot));
+
+    // A within that is no module or class, a function's name among them, is refused with the package's modules.
+    for (const std::string within : {"orca.nothing", "orca.register_operation"}) {
+        INFO(within);
+        const json refused = refusal([&] { (void) python_api_children(reference, within); });
+        REQUIRE(refused.is_object());
+        CHECK(refused.value("code", std::string()) == "invalid_argument");
+        const json& modules = refused.at("modules");
+        CHECK(std::find(modules.begin(), modules.end(), json("orca.host")) != modules.end());
+        CHECK(std::find(modules.begin(), modules.end(), json("orca.host.TriangleMesh")) == modules.end());
+    }
+
+    // script_describe_api gives the whole entry, its documentation whole, and a name no entry has its three closest.
+    CHECK(entry["doc"].get<std::string>().size() >= (*normals)["summary"].get<std::string>().size());
+    CHECK(entry.contains("doc"));
+    const json misspelt = refusal([&] { (void) python_api_entry(reference, "orca.host.TriangleMesh.face_normal"); });
+    REQUIRE(misspelt.is_object());
+    CHECK(misspelt.value("code", std::string()) == "invalid_argument");
+    REQUIRE(misspelt.at("did_you_mean").size() == 3);
+    CHECK(misspelt.at("did_you_mean").front() == "orca.host.TriangleMesh.face_normals");
 }
 
 TEST_CASE("no description starts with a bracketed tag", "[Mcp]")

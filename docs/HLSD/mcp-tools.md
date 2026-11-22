@@ -278,7 +278,8 @@ them and `tool_call` runs them.
 | `replay_run` | Run a replay, a list of calls, and report each step | `path` or `replay`; `vars`, `out_dir` |
 | `replay_export` | Turn this session's calls into a replay | `path`, `overwrite`, `name`; `clear` |
 | `script_run` | Run Python inside the app as its main program, against the orca API | `code`; `args`, `filename`, `timeout_s` |
-| `script_search_api` | Search the orca Python API of the running build | `query` |
+| `script_list_api` | List the orca Python API of the running build, one module or class at a time | `within` |
+| `script_describe_api` | Read one entry of the orca Python API whole: its kind, signature and documentation | `name` |
 | `script_toggle_panel` | Show or hide the Run Script panel; a menu item, not listed |  |
 | `recording_start` | Record a video of the main window or the 3D view | `target`: main, canvas; `captions`, `pointer`; `max_seconds`, `fps`, `max_dim`; `encode` and the encoder's options; `save_path`, `overwrite` |
 | `recording_stop` | Stop the recording; with `silent: true`, wait for its file and report it | `silent` |
@@ -653,10 +654,10 @@ Each command runs under a guard (mcp-server.md, Threading):
 Access labels, which `tools/list` sends as MCP's annotations (mcp-server.md, Tool catalog, says why each is
 set as it is):
 
-- **read_only**, 23 commands: `tool_list`, `tool_describe`, `action_list`, `app_state`, `app_wait`, `app_log`,
+- **read_only**, 24 commands: `tool_list`, `tool_describe`, `action_list`, `app_state`, `app_wait`, `app_log`,
   `preferences_get`, `project_get_settings`, `filament_list`, `object_list`, `plate_get_settings`, `plate_list`,
   `plate_slice_stats`, `preset_list`, `settings_list`, `settings_get`, `printer_list_models`, `printer_status`,
-  `plugin_list`, `window_list`, `window_screenshot`, `script_search_api` and `widget_list`. These are idempotent too, and so
+  `plugin_list`, `window_list`, `window_screenshot`, `script_list_api`, `script_describe_api` and `widget_list`. These are idempotent too, and so
   is `dialog_auto_answer`.
 - **destructive**, 3: `preset_delete` and `plugin_uninstall`, whose every call removes what a person made,
   with no undo, and `print_stop`, which ends a print with no question.

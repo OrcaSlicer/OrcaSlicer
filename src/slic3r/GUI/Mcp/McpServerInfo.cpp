@@ -23,7 +23,7 @@ const char* kInstructions =
     "- During an operation (slicing, exporting, arranging, another job) other changes are refused: app_wait or "
     "job_cancel.\n"
     "- replay_export saves this session's calls as a replay that replay_run runs.\n"
-    "- script_run runs Python against orca.host, the plugin API (script_search_api searches it), to compute over "
+    "- script_run runs Python against orca.host, the plugin API (script_list_api lists it), to compute over "
     "meshes and settings and call tools (orca.host.tools); its file, program, thread and network use is restricted "
     "unless app_state.python.scripts_unrestricted.\n"
     "- tool_list lists the commands the tool list does not show (the Design tab's, menu items with no arguments, "

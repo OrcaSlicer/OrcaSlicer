@@ -277,7 +277,7 @@ std::string to_config_string(const nlohmann::json& value, const std::string& key
 
 // ---- Python (McpToolsPython.cpp) -------------------------------------------------------------
 
-// script_search_api's reference: every public module, class, function, method, property, named instance (such
+// The Python API reference script_list_api and script_describe_api read: every public module, class, function, method, property, named instance (such
 // as orca.host.preset.process) and constant (such as orca.host.ui.PD_CAN_ABORT) of the orca package, in
 // the order the package lists them, each {name, kind, signature, doc}. signature holds the signature lines
 // pybind11 starts a docstring with (a class's are its constructors, joined with " | "), and doc the rest
@@ -287,9 +287,16 @@ std::string to_config_string(const nlohmann::json& value, const std::string& key
 // the package can't be read.
 nlohmann::json python_api_reference();
 
-// The entries of python_api_reference() that `query` describes, best first: those matching more of its
-// words (in the name, signature or doc), then those matching more of them in their name.
-nlohmann::json rank_python_api(const nlohmann::json& reference, const std::string& query);
+// The module script_list_api lists without `within`.
+inline constexpr const char* kPythonApiRoot = "orca";
+// script_list_api's items: the entries of `reference` (python_api_reference()) directly inside `within`, a module's or a
+// class's dotted name (a module's modules, classes, functions, constants and named instances; a class's methods and
+// properties), in the reference's order, each {name, kind, signature, summary}, the summary its doc's first sentence.
+// ToolFailure (invalid_argument) with the package's `modules` when `within` names no module or class. Any thread.
+nlohmann::json python_api_children(const nlohmann::json& reference, const std::string& within);
+// script_describe_api's answer: the entry of `reference` called `name`, else ToolFailure (invalid_argument) with the three
+// closest names by edit distance under `did_you_mean`. Any thread.
+nlohmann::json python_api_entry(const nlohmann::json& reference, const std::string& name);
 
 // Whether numpy is installed in OrcaSlicer's Python, which the mesh and matrix arrays of orca.host need.
 // Takes the GIL, as python_api_reference() does.

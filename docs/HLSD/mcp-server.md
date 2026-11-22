@@ -269,7 +269,7 @@ window isn't being drawn when it isn't.
 
 | Class | Tools | Runs behind a modal or inside another call |
 |---|---|---|
-| `Inspect` | app_state, app_wait, app_log, the lists (tool_list, action_list, object_list, plate_list, preset_list, settings_list, printer_list_models, plugin_list, window_list), the reads (tool_describe, settings_get, plate_get_settings, project_get_settings, preferences_get, plate_slice_stats, script_search_api), window_screenshot, widget_list, replay_export, recording_start, recording_stop, recording_encode | yes |
+| `Inspect` | app_state, app_wait, app_log, the lists (tool_list, action_list, object_list, plate_list, preset_list, settings_list, printer_list_models, plugin_list, window_list), the reads (tool_describe, settings_get, plate_get_settings, project_get_settings, preferences_get, plate_slice_stats, script_list_api, script_describe_api), window_screenshot, widget_list, replay_export, recording_start, recording_stop, recording_encode | yes |
 | `Recover` | dialog_answer, dialog_auto_answer, job_cancel, GUI input aimed at the topmost modal, window_set | yes |
 | `Mutate` | everything else | no |
 
@@ -4388,7 +4388,8 @@ agent's idle wait, and a `tools/mcp` driver run from the panel against the same 
 partway; its tool calls are not journaled. In a replay a `script_run` step's `code` is never
 substituted, and a step whose outcome is not `finished` fails.
 
-**The reference.** `script_search_api` serves the reference `python_api_reference()` builds from the running
+**The reference.** `script_list_api` and `script_describe_api` serve the reference `python_api_reference()` builds
+from the running
 build's `orca` package: `orca.host`, and the classes, events and pages plugins build on. It walks the
 modules and lists each public class, function, method, property, named instance (such as
 `orca.host.preset.process`) and constant (such as `orca.host.ui.PD_CAN_ABORT`) with its signature and
@@ -4398,9 +4399,11 @@ where a module exports them. The documentation is the bindings' own docstrings, 
 its constructors say of their arguments; a constant can't carry one, so its documentation names the entries
 whose documentation names it. The reference is only as good as the docstrings: a test requires every entry
 to have documentation, every constructor that takes arguments to say what they are, and every parameter a
-name (pybind11 names an unnamed one `arg0`). A query ranks the
-entries as the settings search does (`query_words()`, `match_score()`); without one the whole package is
-listed with each entry's first sentence. The reply says whether numpy is installed, which the mesh and
+name (pybind11 names an unnamed one `arg0`). `script_list_api {within}` lists the entries directly inside a
+module or class, `orca` without one (`python_api_children()`), each with its documentation's first sentence, so
+an agent walks the package a module at a time and picks what it reads; `script_describe_api {name}` gives one
+entry whole (`python_api_entry()`), and a name no entry has is answered with the three closest.
+`script_list_api`'s reply says whether numpy is installed, which the mesh and
 matrix arrays need and which the bundled Python lacks unless a file run's PEP 723 block installs it.
 
 ### Run Script panel

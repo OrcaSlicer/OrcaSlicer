@@ -7905,7 +7905,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Run Python code inside OrcaSlicer as its main program (__name__ == \"__main__\") against orca.host, the whole plugin API (script_search_api searches it): read objects, meshes and settings, compute, use orca.host.ui and the preset API, and call these same tools, with their guards and undo, through orca.host.tools.call(name, args). Mesh and matrix arrays need numpy, which script_search_api says is installed or not; a file run's PEP 723 block can install it. The code runs on a worker thread, where calls documented as UI thread only raise RuntimeError. The run ends once its code and the non-daemon threads and pool tasks it started are done; its windows close with it. `args` holds the args you pass; set `result` to a JSON value to return it; print() output comes back as output. Reply: {status: finished | raised | cancelled | timed_out, result, output, traceback?, message?}; a script that raised changed what it changed before. The code's own file access is held to OrcaSlicer's folders (its data folder, and read only its resources folder and, for a file run, the file's folder), and it starts no programs or threads and reaches no network: such an access raises PermissionError, unless a person has let Python scripts run unrestricted in Preferences (app_state.python.scripts_unrestricted), when the threads and pool tasks it starts call the tools too while the run lasts; the tools it calls work as they do for you. Recorded by replay_export as one step with its code, which a replay runs again against the project as it is then.",
+   "description": "Run Python code inside OrcaSlicer as its main program (__name__ == \"__main__\") against orca.host, the whole plugin API (script_list_api lists it): read objects, meshes and settings, compute, use orca.host.ui and the preset API, and call these same tools, with their guards and undo, through orca.host.tools.call(name, args). Mesh and matrix arrays need numpy, which script_list_api says is installed or not; a file run's PEP 723 block can install it. The code runs on a worker thread, where calls documented as UI thread only raise RuntimeError. The run ends once its code and the non-daemon threads and pool tasks it started are done; its windows close with it. `args` holds the args you pass; set `result` to a JSON value to return it; print() output comes back as output. Reply: {status: finished | raised | cancelled | timed_out, result, output, traceback?, message?}; a script that raised changed what it changed before. The code's own file access is held to OrcaSlicer's folders (its data folder, and read only its resources folder and, for a file run, the file's folder), and it starts no programs or threads and reaches no network: such an access raises PermissionError, unless a person has let Python scripts run unrestricted in Preferences (app_state.python.scripts_unrestricted), when the threads and pool tasks it starts call the tools too while the run lasts; the tools it calls work as they do for you. Recorded by replay_export as one step with its code, which a replay runs again against the project as it is then.",
    "destructive": false,
    "group": "Recordings, replays and scripts",
    "guard": "mutate",
@@ -7947,7 +7947,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Search orca, the Python API of script_run scripts and plugins, in the running build: orca.host (the project's model and meshes, presets and their editors, slicing data, orca.host.ui windows and dialogs, orca.host.tools calling these tools) and the classes, events and pages plugins build on. Each entry has its kind, signature (a class's constructors) and documentation. A query ranks them, best match first; without one, the whole package is listed with each entry's first sentence. Page with offset. numpy says whether numpy is installed, which mesh and matrix arrays need.",
+   "description": "List orca, the Python API of script_run scripts and plugins, in the running build, one module or class at a time: orca.host (the project's model and meshes, presets and their editors, slicing data, orca.host.ui windows and dialogs, orca.host.tools calling these tools) and the classes, events and pages plugins build on. It lists what is directly inside within, a module or a class (default orca): each entry's name, kind, signature (a class's constructors) and the first sentence of its documentation. A module or class it lists is listed with within set to its name, and script_describe_api {name} gives an entry's whole documentation. Page with offset. numpy says whether numpy is installed, which mesh and matrix arrays need.",
    "destructive": false,
    "group": "Recordings, replays and scripts",
    "guard": "inspect",
@@ -7966,19 +7966,48 @@
       "minimum": 0,
       "type": "integer"
      },
-     "query": {
-      "description": "A few words, such as \"mesh normals\" or \"preset value\".",
+     "within": {
+      "default": "orca",
+      "description": "A module's or class's dotted name, e.g. \"orca.host\" or \"orca.host.TriangleMesh\".",
       "type": "string"
      }
     },
     "type": "object"
    },
-   "key": "script_search_api",
+   "key": "script_list_api",
    "listed": true,
    "open_world": false,
    "operations": [],
    "read_only": true,
-   "title": "Search the Python API"
+   "title": "List the Python API"
+  },
+  {
+   "completion": "immediate",
+   "description": "Read one entry of orca, the Python API of script_run scripts and plugins, by its dotted name as script_list_api lists it (orca.host.TriangleMesh.face_normals): its kind, its signature (a class's constructors) and its whole documentation. A name no entry has is refused with the closest names.",
+   "destructive": false,
+   "group": "Recordings, replays and scripts",
+   "guard": "inspect",
+   "has_own_action": false,
+   "idempotent": true,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "name": {
+      "description": "An entry's dotted name, as script_list_api lists it.",
+      "type": "string"
+     }
+    },
+    "required": [
+     "name"
+    ],
+    "type": "object"
+   },
+   "key": "script_describe_api",
+   "listed": true,
+   "open_world": false,
+   "operations": [],
+   "read_only": true,
+   "title": "Describe a Python API entry"
   },
   {
    "actions": [

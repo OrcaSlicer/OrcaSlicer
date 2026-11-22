@@ -183,6 +183,8 @@ const std::map<std::string, ParameterClass>& classes_by_path()
         {"action_run.id", source({"action_list"})},
         {"action_run.args", source({"action_list"})},
         {"action_list.section", source({"action_list"})},
+        {"script_list_api.within", source({"script_list_api"})},
+        {"script_describe_api.name", source({"script_list_api"})},
         {"script_run.args", kFree},
         {"replay_run.vars", kFree},
         // Settings and preferences: the keys a tool takes are those its reader lists.
