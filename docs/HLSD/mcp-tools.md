@@ -24,7 +24,7 @@ Each place's commands are written in its family's file, `src/slic3r/GUI/Mcp/McpT
 `register_all_commands()`. A menu item's function is in namespace `MenuItems` (`NativeCommandMenuItems.hpp`),
 and what a command does that a dialog or another interface does too is an operation of
 `src/slic3r/GUI/Operations/`. What every command takes and replies is in its description and input schema,
-which `tools/list` gives a client and `tool_search {tool}` gives for any command.
+which `tools/list` gives a client and `tool_describe {tool}` gives for any command, as its manual.
 `tests/data/command_catalog.json` holds every command's schema, actions, labels and examples as an agent sees
 them, and `tests/data/speed_dial_actions.json` the actions as a person sees them.
 
@@ -88,20 +88,22 @@ project and is under Plates.
 ## The command set
 
 The commands are listed by group, each under a heading of its name, in the order `tools/list` gives them:
-`tool_search`, `tool_call` and `app_state` first, as what an agent starts with, then each group's commands. Main arguments
+`tool_list`, `tool_describe`, `tool_call` and `app_state` first, as what an agent starts with, then each group's
+commands. Main arguments
 only; every argument, its default and its range are in the command's schema. "Targets" stands for the
 targets of a command of several (`objects`, `instances`, `parts`), which default to the selection (see
 Targets and the selection).
 
 Every command is in `tools/list` but three, the menu items that take no arguments:
-`settings_toggle_developer_mode`, `window_save_screenshot` and `script_toggle_panel`. `tool_search` finds
+`settings_toggle_developer_mode`, `window_save_screenshot` and `script_toggle_panel`. `tool_list` lists
 them and `tool_call` runs them.
 
 ### Tools and actions
 
 | Command | What it does | Variants and main arguments |
 |---|---|---|
-| `tool_search` | Find the command that does something, in one search, list a group's commands with what each does, or read one command's description and schema; beside the commands, the best matches of the actions, the settings and the Python API | `query`, `group`; `tool` |
+| `tool_list` | List the commands `tools/list` does not show (the Design tab's, the menu items that take no arguments, the plugins' operations), each with what it does, all of them or one group's | `group` |
+| `tool_describe` | Read one command's manual, listed or not: every parameter with its type, whether it is required, its default, its values or range and the tools that list its values; the schema's rules in words; the menu items that run it; its examples | `tool` |
 | `tool_call` | Call any command by name, one `tools/list` shows or one it does not, as that command's own call | `tool`, `args` |
 | `action_search` | Search what the Speed Dial runs: the commands' actions, plates, recent projects, plugin scripts and pages, and settings on request | `query`, `section`, `include_settings` |
 | `action_run` | Run one of those by its id, as a person's pick does | `id`; `args`: none, or exactly the action's |
@@ -392,9 +394,11 @@ lacks is refused in the same words by every command, which give the plates there
   arguments are what is wrong, by every route (`tools/call`, `tool_call`'s target, `action_run`, a script's or
   plugin's `orca.host.tools`). That covers what the shared checks refuse: the schema (an unknown or misspelt name,
   a wrong type, a missing one), a command, action or group name given as an argument that names none
-  (`tool_call`'s and `tool_search`'s `tool`, `tool_search`'s `group`, `action_run`'s `id`, a script's call), the
+  (`tool_call`'s and `tool_describe`'s `tool`, `tool_list`'s `group`, `action_run`'s `id`, a script's call), the
   slicer commands' target indices and forms, `[x, y, z]` vectors and scale factors, a setting's value or key; and
-  what a Design command's own checks refuse. A name that is right but that this run cannot use is not
+  what a Design command's own checks refuse. A refusal of a call's arguments by its schema carries the `hint`
+  that `tool_describe {tool}` gives the command's parameters, the command being a `tool_call`'s target or an
+  action's command. A name that is right but that this run cannot use is not
   `invalid_argument`: a Design command or action left out of the run (the G-code viewer, the CAD feature off at
   startup), or a Design action while the CAD feature is off, is `design_unavailable`; a Design tab action outside
   the tab or mode that shows it is `wrong_mode`, and the `tool_call` its message names then says what keeps the
@@ -649,7 +653,7 @@ Each command runs under a guard (mcp-server.md, Threading):
 Access labels, which `tools/list` sends as MCP's annotations (mcp-server.md, Tool catalog, says why each is
 set as it is):
 
-- **read_only**, 21 commands: `tool_search`, `action_search`, `app_state`, `app_wait`, `app_log`,
+- **read_only**, 23 commands: `tool_list`, `tool_describe`, `action_search`, `app_state`, `app_wait`, `app_log`,
   `preferences_get`, `project_get_settings`, `filament_list`, `object_list`, `plate_get_settings`, `plate_list`,
   `plate_slice_stats`, `preset_list`, `settings_list`, `settings_get`, `printer_list_models`, `printer_status`,
   `plugin_list`, `window_list`, `window_screenshot`, `script_search_api` and `widget_list`. These are idempotent too, and so
@@ -749,9 +753,9 @@ feature is on. The MCP server gives a client 88 commands for it, in the command 
 client that knows a mainstream CAD program can guess the command, the argument that picks its variant and
 that argument's values, and can do from arguments what a person does with the tab's tools. The same commands
 are what a person's Speed Dial actions run while the tab is shown, what Action Replay and recordings show, and
-what the journal records and replays. `tools/list` does not show them: `tool_search`' description names each
-under its heading, `tool_search {group: "Design"}` lists them with what each does, `tool_search {tool}` gives
-one's schema, and `tool_call` runs it.
+what the journal records and replays. `tools/list` does not show them: `tool_list`'s description names each
+under its heading, `tool_list {group: "Design"}` lists them with what each does, `tool_describe {tool}` gives
+one's manual, and `tool_call` runs it.
 
 This section is their command set: how they are named and grouped, what each does and takes, how a call
 opens a tool for a person instead of running, and how the commands relate to the right-click menu's items.
@@ -762,7 +766,7 @@ How the server holds them (the catalog with the CAD feature on, the gate) is in
 One table defines them all: `scripts/CAD/tool_atlas.json`. `scripts/CAD/gen_offer_table.py` writes
 `src/slic3r/GUI/CAD/DesignOffer.hpp` from it, and the commands' code is `src/slic3r/GUI/Mcp/McpToolsCad.cpp`.
 What every command takes and replies is in its entry's tool block, which the agent reads through
-`tool_search {tool}`; `tests/data/command_catalog.json` holds every command's schema, actions and examples as
+`tool_describe {tool}`; `tests/data/command_catalog.json` holds every command's schema, actions and examples as
 an agent sees them.
 
 ### Naming
@@ -798,7 +802,7 @@ whole bodies.
 
 ### The command set
 
-The commands are listed under the headings `tool_search`' description names them under, in its order:
+The commands are listed under the headings `tool_list`'s description names them under, in its order:
 Document, Sketch, Solid, Surface, Construct, Inspect, Bodies, History and Menu items. Main arguments only;
 every argument, its default and its range are in the command's schema.
 

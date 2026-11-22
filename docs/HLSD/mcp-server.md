@@ -100,17 +100,15 @@ act, then check the result with the reading commands, keeping screenshots for wh
 The rest is in three sections, by what the commands are for: running the session, acting on project data,
 which an agent should prefer, and driving the GUI itself.
 They say to prefer the commands that act on project data over clicks and never retry a call that returned a
-job, that commands are named place first, then verb, and `tool_search {group}` lists a place's, that a call
+job, that commands are named place first, then verb, and `tools/list` gives them place by place, that a call
 with exactly a Speed Dial action's arguments may ask as a person's pick does while any other runs from its
 arguments, point to `settings_get {query}` and its meta for what a setting does, say how a gizmo opens and is
 driven (and that `gizmo_pick_file` only stands in for a file picker inside one, since its name draws agents to
 it for any gizmo work), that the camera turns with `view_set` rather than a drag, and which indices are 0-based.
-They also point to `tool_search {query}` as the one search across every catalog an agent calls into:
-the commands, among them those `tools/list` never shows (the three menu items that take no arguments, the
-Design tab's and the operations plugins offer, so nothing else tells an agent they exist), the Speed Dial's
-other actions, settings and the Python API. An agent rarely
-knows which catalog answers "how do I add a brim", and each catalog has its own search with its own
-arguments. Clients that defer tools load only their names and the
+They also say that `tool_list` lists the commands `tools/list` never shows (the three menu items that take
+no arguments, the Design tab's and the operations plugins offer, so nothing else tells an agent they exist),
+that `tool_call` runs them, and that `tool_describe {tool}` gives any command's manual. Clients that defer
+tools load only their names and the
 instructions at first, so the instructions are how an agent without a skill learns which tool to
 load.
 
@@ -271,7 +269,7 @@ window isn't being drawn when it isn't.
 
 | Class | Tools | Runs behind a modal or inside another call |
 |---|---|---|
-| `Inspect` | app_state, app_wait, app_log, the searches and lists (tool_search, action_search, object_list, plate_list, preset_list, settings_list, printer_list_models, plugin_list, window_list), the reads (settings_get, plate_get_settings, project_get_settings, preferences_get, plate_slice_stats, script_search_api), window_screenshot, widget_list, replay_export, recording_start, recording_stop, recording_encode | yes |
+| `Inspect` | app_state, app_wait, app_log, the searches and lists (tool_list, action_search, object_list, plate_list, preset_list, settings_list, printer_list_models, plugin_list, window_list), the reads (tool_describe, settings_get, plate_get_settings, project_get_settings, preferences_get, plate_slice_stats, script_search_api), window_screenshot, widget_list, replay_export, recording_start, recording_stop, recording_encode | yes |
 | `Recover` | dialog_answer, dialog_auto_answer, job_cancel, GUI input aimed at the topmost modal, window_set | yes |
 | `Mutate` | everything else | no |
 
@@ -617,15 +615,16 @@ The command set, how its commands are named and grouped, what each does and take
 which calls open a dialog or a tool, is in [mcp-tools.md](mcp-tools.md), with the Design tab's commands in a
 section of their own. A command's group is named after its place, the first word of its name, and
 `tools/list` gives the places in the order that document lists them. Every command that runs from its
-arguments is `listed`, so `tools/list` shows it. The menu items that take no arguments are not: `tool_search`
-finds them and `tool_call` runs them, as it does the Design tab's commands, which no listing shows.
+arguments is `listed`, so `tools/list` shows it. The menu items that take no arguments are not: `tool_list`
+lists them with the Design tab's commands and the operations plugins offer, and `tool_call` runs them all.
 
 The commands are the process's command catalog (`CommandCatalog`, `NativeCommands::instance()`). Startup
 builds it, with no automation runtime: `register_all_commands()` gathers each family of commands in a fixed
 order of calls (app, api, project, config, preference, install, scene, layer, view, plugin, replay, python,
 record, action, ui), each through its `register_*_tools(catalog)` in its `McpTools*.cpp`, gives each the
 group of its place (`NativeCommands::place_heading()`, which reads the name's first word; a name with no
-place throws), and sorts them stably by place: `tool_search`, `tool_call` and `app_state` first, as what an
+place throws), and sorts them stably by place: `tool_list`, `tool_describe`, `tool_call` and `app_state`
+first, as what an
 agent starts with, then the places in the order above, each place's commands in their families' order. The
 Design tab's commands come before Driving the GUI, in a CAD build with the CAD feature on
 (`register_cad_commands()`; see Design tab), and the source of the operations plugins offer is added beside
@@ -641,9 +640,9 @@ across the catalog.
 
 Every command is called by its key: `tools/call`, `tool_call`, a replay step and a script's call reach every
 command alike and journal it as its own call. `tools/list` and the editors' tool list
-(`editor_tool_catalog()`) read the listed commands, in the catalog's order. `tool_search` reads every
-command, then the plugin operations of the catalog's source (`search_commands()`; see Plugins and the tools),
-so its one inventory finds an unlisted menu item's key or a Design command's as it finds a listed one's.
+(`editor_tool_catalog()`) read the listed commands, in the catalog's order. `tool_list` reads the others,
+then the plugin operations of the catalog's source (`unlisted_commands()`), and `tool_describe` any command by
+its key, listed or not (`describe_command()`; see Plugins and the tools).
 
 A command's actions, most of them its menu items, are what a person picks in the Speed Dial to run it (see
 Speed Dial catalog). A call whose arguments are exactly those of one of its actions, a command's own action
@@ -758,17 +757,17 @@ or discards the presets'.
 An agent calls into two catalogs by name: the commands (those `tools/list` shows, the three menu items it
 does not, the Design tab's and the operations plugins offer) and the Speed Dial's actions, which
 `action_run` runs.
-`tool_search {query}` finds a name in either, and a command runs by its key through `tools/call` and
-`tool_call`, with `tool_search` giving the schema of one `tools/list` does not show. Its description
+`tools/list` and `tool_list` list the commands, and `action_search` the actions. A command runs by its key
+through `tools/call` and `tool_call`, and `tool_describe` gives its manual. `tool_list`'s description
 names the Design commands while the catalog holds them (see Design tab), so an agent knows of them before
-it searches. A name that misses
+it lists them. A name that misses
 is answered with the closest names of the catalog asked and nothing else, unless the catalog leaves that
 command out (`CommandCatalog::leave_out()`): then it says why. A catalog built with the CAD feature off
 leaves out the Design commands, and says that the feature was off when OrcaSlicer started and how a person
 turns it on. `CommandCatalog::unknown_command()` builds the error for every lookup of a command that
-misses: `tools/call`, `tool_call`, `tool_search {tool}`, a replay step and a plugin's or script's call.
-`action_run` gives the closest action ids, and says that `action_search` finds an action and
-`tool_search` a command, since the name may be a command's that has no action; an action's key runs its
+misses: `tools/call`, `tool_call`, `tool_describe {tool}`, a replay step and a plugin's or script's call.
+`action_run` gives the closest action ids, and says that `action_search` finds an action, and `tools/list`
+and `tool_list` a command, since the name may be a command's that has no action; an action's key runs its
 command. For a Design tab action that is not shown it says when the action is there instead, and that
 `tool_call` runs its command from any tab, or, when the catalog leaves its command out, why.
 
@@ -1689,17 +1688,17 @@ The Design tab's sketches, features, reads and measurements, feature and body ed
 plate are commands of the catalog (`Mcp/McpToolsCad.cpp`) in the group `Design`, not listed, so agents that
 never open the Design tab pay in `tools/list` for their names alone. The command set itself, how the commands
 are named and what each takes, is in [mcp-tools.md](mcp-tools.md), The Design tab's commands. The names end
-`tool_search`' description while the catalog holds the commands (`design_command_index()`): that they are the
-Design tab's CAD commands and what those cover, that `group` Design lists them with what each does, that one is
-looked up before it is called, that a command
+`tool_list`'s description while the catalog holds the commands (`design_command_index()`): that they are the
+Design tab's CAD commands and what those cover, that `tool_list {group: "Design"}` lists them with what each
+does and `tool_describe {tool}` gives one's manual before it is called, that a command
 whose schema has `silent` does what its menu item does when called with no arguments unless `silent` is true,
 so `interference {}` with a body selected opens the tool and `interference {silent: true}` returns the result,
 and then every key under its heading, in the table's order: Document, Sketch, Solid, Surface, Construct,
 Inspect, Bodies, History, and Menu items, the commands that take no arguments and do what their item in the
 right-click menu does. The headings are the generator's (`SECTIONS` in `gen_offer_table.py`, `kDesignSections`
-in the header), and a command's is its entry's `section`. So an agent learns without a search that the
-commands exist, that they are CAD and where each works, and reads a command's description and schema only when
-it looks it up. The description stays within 4096 characters, the most a client is known to keep of one. The
+in the header), and a command's is its entry's `section`. So an agent learns from `tools/list` alone that the
+commands exist, that they are CAD and where each works, and reads a command's manual only when it asks
+`tool_describe` for it. The description stays within 4096 characters, the most a client is known to keep of one. The
 commands that open a tool have Speed Dial actions while the Design tab is shown (see Speed Dial catalog).
 `register_all_commands()` adds them through `register_cad_commands()` only
 when the catalog is built with the CAD feature on (`CatalogOptions::cad`, which startup takes in the editor
@@ -1783,9 +1782,9 @@ carries it as JSON text (`doc`). `register_cad_commands()` makes a
 command of each entry that is one (`design_command()`, through `cad_command()`), in the table's order. It is
 `read_only` and `idempotent` for a `read` block, and has the entry's icon. Its description is the summary, the
 details, with `ok_false` how a rejected rebuild shows, and, for a command whose menu items a call's arguments
-choose, those argument sets each with its items' names (`opening_calls()`), so that a search for "polar array"
-or "rounded rectangle" finds `sketch_pattern` or `sketch_draw` (`tool_search` matches keys, titles and
-descriptions, not schemas). A menu-only command's description is its hint and what its call does: what its
+choose, those argument sets each with its items' names (`opening_calls()`), so that the name a person knows
+from the menu, such as "polar array" or "rounded rectangle", is in the description of the command that opens it
+(`sketch_pattern`, `sketch_draw`). A menu-only command's description is its hint and what its call does: what its
 right-click menu item does, which may open a tool, start a sketch tool, act at once or tell the person why it
 cannot, with the status line in the reply, and the mode it runs in, "only in an open sketch" or "only outside
 a sketch" by its menu item. Its examples are the block's, each `{title, calls: [{tool, args}], needs?}` ending
@@ -1875,10 +1874,9 @@ selection the right-click menu would be built for, by its `OfferSel` and its atl
 (`kDesignSelectionIds`), `picked_plane`, the reference plane picked in the view, and `feature_row`, the
 Feature list's selected row.
 
-An agent finds them as it finds any command: `tool_search {group: "Design"}` lists them, each with its
-heading and the first sentence of its description, a query
-finds them among the commands with their input schemas, and `tool_search {tool}` gives one's group,
-`read_only`, description, input schema and examples. `tool_call {tool, args}` runs one, its arguments
+An agent finds them as it finds any command `tools/list` does not show: `tool_list {group: "Design"}` lists
+them, each with its heading and what it does, and `tool_describe {tool}` gives one's manual: its group,
+access labels, description, parameters, menu items and examples. `tool_call {tool, args}` runs one, its arguments
 validated against its schema, and replies `{"result": ...}`, the tool's own reply; a replay step calls one
 by its name or through `tool_call`, and `orca_mcp.py`'s `call_command()` from Python. An unknown name is
 answered as any unknown command is: with the closest key (`invalid_argument`), or, for a Design command's name
@@ -2491,9 +2489,9 @@ action, its `input_schema` when it takes arguments, and `completes: "export"` fo
 in the background. Built-in ids look like `orca_command:<key>:orca`.
 
 The argument and the field are `section`, not `group`, because the Speed Dial's sections (Object, Plate,
-Slice & Export) are a list of their own, apart from the command groups `tool_search {group}` takes (Objects,
+Slice & Export) are a list of their own, apart from the command groups `tool_list {group}` takes (Objects,
 Plates). `action_search` refuses a section no action is in, with `invalid_argument` and the sections there are,
-as `tool_search` refuses a group, so that a group passed as a section is corrected rather than read as no
+as `tool_list` refuses a group, so that a group passed as a section is corrected rather than read as no
 actions. Recent Projects and Design are the exceptions: they hold actions only while there are recent projects
 and while the Design tab is shown, so either one empty lists nothing.
 
@@ -2505,11 +2503,7 @@ section, as the Speed Dial shows one by section and title: Delete Selected is th
 though its own title names no object. The actions matching more of the words come first, then those
 matching more of them in what they are called, then the shorter key, which is the plainer action:
 the action `obj_delete` before `obj_delete_all`. The key is scored without the `orca_command:`
-and `:orca` around it, which would make "orca" and "command" match every built-in. `tool_search`
-ranks its `actions` with the same function, so the query that found an action there finds it, and
-the rest, here. Its `actions` are the actions that are no command (plates, recent projects, plugin
-scripts and pages): a command's action carries its key (`describe()`'s `command`), and the command is among
-`tool_search`' commands already, so it appears there once.
+and `:orca` around it, which would make "orca" and "command" match every built-in.
 
 `action_run {id, args}` also takes the key alone (`plate_add`) when only one action has it, as agents and
 the commands' own messages write it. It resolves the id on the UI thread with `ActionRegistry::find_live()`,
@@ -2620,7 +2614,8 @@ declared in the `McpTools*.cpp` of its place beside the commands of that place:
    asks keeps its owner's asking path for that form; the call with arguments must not prompt, and refuses
    instead. An item with no argument form is a command that is not `listed`.
 
-The command then appears in `tools/list`, in `tool_search`, its actions in the Speed Dial, `action_search` and
+The command then appears in `tools/list` (in `tool_list` when it is not listed), in `tool_describe`, its
+actions in the Speed Dial, `action_search` and
 `action_run`, and its calls in replays.
 
 A new or changed command changes the command reference, `tests/data/command_catalog.json`: the
@@ -4573,7 +4568,7 @@ unloads. An operation is reached as
 `plugin.<plugin key>.<name>` through `tool_call`, `orca.host.tools.call` and replay steps, and never
 appears in `tools/list`: they are a source of the command catalog (`CommandSource`, added by
 `register_plugin_operations()`), whose `CommandCatalog::lookup()` resolves those names after the catalog's own
-commands, and whose `source_commands()` `tool_search` lists.
+commands, and whose `source_commands()` `tool_list` lists.
 It runs as a job, under the mutate guard and journaled when it changes something, under the inspect guard
 otherwise; its handler runs under the plugin's identity and grants, and each call is logged with the
 plugin and the caller. A call is refused once the plugin has unloaded, by the plugin manager's state, and
@@ -4581,35 +4576,50 @@ by `PluginOperations::invoke()` when the operation found is no longer the one of
 offered again by a new load). The call's job is the caller's, so an operation already running when its
 plugin unloads runs to its end; its own tool calls are refused from then on.
 
-**`tool_search` and `tool_call`.** `tool_search` reads one inventory (`search_commands()`): every
-command of the catalog and the operations its source holds. `{tool}` gives any command's description,
-schema, group, `read_only` and `listed`, and its examples when it has some (the Design commands, `undo` and
-`redo`, and the commands that close a gap the menu items left, such as `object_fix`, `printer_install` and
-`plugin_enable`), and a call with none of `tool`, `query` and `group` lists every name. `group` alone lists that
-group's commands (see Tool catalog), each `{name, summary, listed}` and a Design command's `heading`, its
-heading in the description's index, so that an agent picks one from the listing; the schemas stay with `{tool}`,
-as the Design group's would take some 140 KB. With a query, `group` narrows the command matches to one group;
-the other catalogs' matches beside them are not narrowed.
-Its search by words is the one search across catalogs: the best five commands that match (more with
-`limit`), each `{name, group, summary, listed}`, the summary the first sentence of its description. A
-listed command's schema is in `tools/list`; one that is not listed, a menu item with no arguments, a Design
-command or a
-plugin's operation, also carries its `input_schema`, and its description where that says more than the
-summary, which nothing else shows (an operation's first
-sentence only says a plugin offers it). A command is matched on its key, its title and its description,
-and among equal matches a listed one comes first. The reply's `use` says that `tool_call {tool, args}`
-runs a command that is not listed. Beside them come the best five of each other catalog with its total
-and how to use it: the Speed Dial's actions that are no command, the settings being edited
-(`search_settings()`, as `settings_get` searches without a type) and the Python reference. Every catalog is ranked
-the same way (`query_words()`, `match_score()`): a query word matches where a word of the name or text
-starts with it, CamelCase parts included, and entries matching more words, then more of them in the name,
-come first. Scores of different catalogs don't compare, so each keeps its own list. Actions and settings
-are read on the UI thread: when it can't run the call (a native dialog holds
-it, or it is busy) the search leaves those two out, and before the main window exists (the server starts
-ahead of it) it leaves out the settings. The commands, operations and Python reference answer whatever the
-UI thread is doing. `tool_call {tool, args}` runs any command of the catalog, listed or not, and is dispatched
-before it runs (`resolve_call()`, in the protocol, in child calls and in the plugin caller): the target's arguments
-are normalized and validated, and the call runs as the target's own, with its guard, mode, budget and
+**`tool_list`, `tool_describe` and `tool_call`.** An agent finds a command by reading lists, never by a word
+search. It is a language model, and it matches what it wants against what each command does, which no match of
+words does: "add a brim" and "round the edges" share no word with `settings_set` or `fillet`. `tools/list` gives
+the listed commands with their descriptions and schemas, and `tool_list` (`unlisted_commands()`) the rest: every
+command of the catalog that is not listed, then the operations its source holds, in the catalog's order, each
+`{name, group, heading?, does}`. `does` is the command's whole description when that is at most 300
+characters, else its first sentence; a plugin operation's is read from its own description, after the "Offered
+by a plugin." its command's starts with. `group` takes any of the catalog's groups, in any case: a group whose
+commands are all listed gives no items and a note that `tools/list` shows them, a name no command's group has
+is refused with the groups there are, and Design, in a run whose catalog leaves its commands out, is refused
+with `design_unavailable` and the reason the catalog recorded (`CommandCatalog::left_out_reason()`). The reply's
+`use` says that `tool_describe {tool}` gives a command's manual and `tool_call {tool, args}` runs it.
+
+`tool_describe {tool}` (`describe_command()`, `command_manual()`) gives the manual of any command, listed or
+not, a plugin operation's included, built from the command's own data: `{name, title, group, heading?, listed,
+call, access, description, parameters, rules, menu_items, examples, complete, input_schema?}`. `call` says how
+to call it, by its name or through `tool_call`, and `access` holds the four labels `tools/list` sends only for
+listed commands. Each parameter is `{name, type, required, default?, values?, min?, max?, exclusive_min?,
+min_items?, max_items?, min_length?, max_length?, pattern?, format?, goes_with?, values_from?, items?,
+properties?, other_keys?, schema?, description}`, the same shape at every depth. `required` is true, false, or
+the condition in words where a schema rule decides it; `default` is the schema's alone, a default a handler
+applies staying in the description's words; `goes_with` names the `type` or `target` the parameter belongs to
+where its description starts "Type X:" or "Target X:". `rules` gives the schema's conditional parts as
+sentences, from the two shapes `with_silent()` writes, and "No other arguments are accepted." for a closed top
+level. `menu_items` are the Speed Dial items that run the command, each with its arguments and the value it
+asks for first. What the builder cannot express (`anyOf`, `$ref`, a boolean subschema, as a plugin's schema may
+hold) stays raw under the parameter's `schema`, and the manual then carries `complete: false` and the whole
+`input_schema`, so that a rule spanning parts is never cut apart.
+
+`values_from` names, for a value the schema cannot list, the tools that list it: `object_list` for an object
+index, `settings_list` for a setting key, `tools/list` and `tool_list` for a command's name, `tool_describe` for
+another command's arguments. It comes from one table (`parameter_class()`) that classifies every parameter name
+the built-in commands use, at every depth, apart from enums and booleans: a source, with the tools that list its
+values; described, its description listing them; or free, the caller's own value, such as a number, a path or a
+new name. A row keyed by command and path comes before the name's row. A unit test fails for a built-in
+parameter the table does not classify, so a new command's parameters are classified when it is added; a plugin
+operation's are not, their names being the plugin's own. Every refusal of a call's arguments by the schema check
+names `tool_describe` for the command (`argument_refusal()`), by each route that checks: `tools/call`,
+`tool_call`'s target, a child call, a plugin's call and `action_run`.
+
+`tool_list` and `tool_describe` read the catalog on the request thread, so they answer whatever the UI thread is
+doing. `tool_call {tool, args}` runs any command of the catalog, listed or not, and is dispatched before it runs
+(`resolve_call()` in the protocol and in child calls, `resolve_plugin_call()` in the plugin caller): the target's
+arguments are normalized and validated, and the call runs as the target's own, with its guard, mode, budget and
 journal flag, so the journal records the target.
 
 ## stdio bridge
@@ -4790,7 +4800,8 @@ budget, non-blocking push, finish, abort and failed frames, the video transform,
 repeats, captions and what they hide, the ffmpeg command and listings, the files recordings and
 encodes reserve, and the journal's recording paths; `test_mcp_tools` setting serialization, how a query ranks
 the Speed Dial's actions, what `action_run` takes and journals for an action, a call with an action's arguments
-against one with more, `tool_search`' one inventory and its groups, the tool names of `retired_names.hpp` that are no
+against one with more, what `tool_list` lists and its groups, every command's manual and the class of every
+parameter, the tool names of `retired_names.hpp` that are no
 command, and which arguments the journal leaves out; `test_mcp_config` the keys and effective values of the
 settings commands' targets, the names and places `preset_save` accepts, enum labels and descriptions, the
 settings search, per-variant entries and their writes, preset comparison, `changed`, which unsaved changes a

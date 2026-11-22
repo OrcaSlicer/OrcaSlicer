@@ -386,7 +386,7 @@ exactly the item's arguments, as Polar array is `sketch_pattern {type: "circular
 (`args`), as Boolean's Join item is `boolean {operation: "join"}`, so that each of a command's variants opens
 the same way. Two items have neither a handler nor a block, Pattern on Curve and Align to, and are shown greyed:
 they are no command. Every command has a `section`, its heading in the names index the MCP server's
-`tool_search` gives, and `feature_row` marks the four items whose handler works on the Feature tree's selected
+`tool_list` gives, and `feature_row` marks the four items whose handler works on the Feature tree's selected
 row (Edit, Rename, Delete and Constrain sketch). `modal` marks the three entries whose handler opens a dialog
 that waits for an answer: a modal one for SVG (a file picker) and Color, which holds the call that opened it
 until it is answered, and the Design tab's own modeless dialog for Text, which does not.
@@ -398,8 +398,8 @@ for a checked-in header, not documentation.
 ## Automation surface
 
 The document is automated through the app's MCP server, on every platform, with the Design tab's commands, one
-per command entry of its table, in the command catalog's group `Design`: `tool_search {group: "Design"}`
-lists them with what each does, `tool_search {tool}` gives one's arguments, how its failure shows and runnable examples, and
+per command entry of its table, in the command catalog's group `Design`: `tool_list {group: "Design"}`
+lists them with what each does, `tool_describe {tool}` gives one's arguments, how its failure shows and runnable examples, and
 `tool_call {tool, args}` runs one. They are named in the industry's terminology, as popular CAD programs such
 as Fusion 360, Onshape and SolidWorks use it, with a prefix for where each works (`sketch_`, `surface_`,
 `construct_`, `feature_`, `body_`, and none for the model), and one argument for a variant: `type` for which
