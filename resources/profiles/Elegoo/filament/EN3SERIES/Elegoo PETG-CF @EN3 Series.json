@@ -8,9 +8,6 @@
 	"pressure_advance": [
 		"0.024"
 	],
-	"filament_density": [
-		"1.26"
-	],
 	"nozzle_temperature": [
 		"250"
 	],
