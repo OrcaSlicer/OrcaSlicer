@@ -1,5 +1,6 @@
 #include "McpTargets.hpp"
 
+#include "McpArguments.hpp"
 #include "McpTools.hpp"
 
 #include "slic3r/GUI/3DScene.hpp"
@@ -14,6 +15,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <iterator>
 #include <string>
 #include <utility>
@@ -46,38 +48,61 @@ std::string index_range(const char* noun, std::size_t count)
     return std::string(noun) + "s 0.." + std::to_string(count - 1);
 }
 
-// The checks of a target's indices against the model, with the texts object_select gives.
+// Index `v` among `count` things, or -1 where it is none of them. It is compared as the call gives it, so that neither
+// an integer wider than an int (4294967296), nor an unsigned one past int64, nor a whole float (is_whole_number(), as
+// the schema's integer type takes one) is narrowed into another index first.
+std::int64_t index_among(const json& v, std::size_t count)
+{
+    if (v.is_number_unsigned())
+        return v.get<std::uint64_t>() < count ? std::int64_t(v.get<std::uint64_t>()) : -1;
+    if (v.is_number_integer()) {
+        const std::int64_t i = v.get<std::int64_t>();
+        return i >= 0 && std::uint64_t(i) < count ? i : -1;
+    }
+    if (!is_whole_number(v))
+        return -1;
+    const double d = v.get<double>();
+    return d >= 0 && d < double(count) ? std::int64_t(d) : -1;
+}
+
+// The checks of a target's indices against the model, with the texts object_select gives, each naming the index as
+// the call gave it.
 struct IndexCheck
 {
     const Model& model;
 
-    const ModelObject& object(int index) const
+    // The index of the object `v` names.
+    int object(const json& v) const
     {
-        if (index < 0 || std::size_t(index) >= model.objects.size())
-            throw ToolFailure("object index " + std::to_string(index) + " is out of range (the project has " +
-                              index_range("object", model.objects.size()) + ")");
-        return *model.objects[std::size_t(index)];
+        const std::int64_t index = index_among(v, model.objects.size());
+        if (index < 0)
+            throw ToolFailure("object index " + v.dump() + " is out of range (the project has " +
+                                  index_range("object", model.objects.size()) + ")",
+                              {{"code", "invalid_argument"}});
+        return int(index);
     }
 
-    // An instance, or with !instance a part, of object `owner`; the object is checked first.
-    void member(int owner, int index, bool instance) const
+    // The index of the instance, or with !instance the part, of object `owner` (checked) that `v` names.
+    int member(int owner, const json& v, bool instance) const
     {
-        const ModelObject& o     = object(owner);
+        const ModelObject& o     = *model.objects[std::size_t(owner)];
         const std::size_t  count = instance ? o.instances.size() : o.volumes.size();
-        if (index < 0 || std::size_t(index) >= count)
-            throw ToolFailure("object " + std::to_string(owner) + " has no " + (instance ? "instance " : "part ") + std::to_string(index) +
-                              " (it has " + index_range(instance ? "instance" : "part", count) + ")");
+        const std::int64_t index = index_among(v, count);
+        if (index < 0)
+            throw ToolFailure("object " + std::to_string(owner) + " has no " + (instance ? "instance " : "part ") + v.dump() +
+                                  " (it has " + index_range(instance ? "instance" : "part", count) + ")",
+                              {{"code", "invalid_argument"}});
+        return int(index);
     }
 
     // [object, index] of a pair argument.
     std::pair<int, int> pair(const json& entry, bool instance) const
     {
-        if (!entry.is_array() || entry.size() != 2 || !entry[0].is_number_integer() || !entry[1].is_number_integer())
+        if (!entry.is_array() || entry.size() != 2 || !is_whole_number(entry[0]) || !is_whole_number(entry[1]))
             throw ToolFailure(std::string("an entry of ") + (instance ? "instances" : "parts") + " is [object, " +
-                              (instance ? "instance" : "part") + "]");
-        const std::pair<int, int> out{entry[0].get<int>(), entry[1].get<int>()};
-        member(out.first, out.second, instance);
-        return out;
+                              (instance ? "instance" : "part") + "]", {{"code", "invalid_argument"}});
+        const int owner = object(entry[0]);
+        return {owner, member(owner, entry[1], instance)};
     }
 };
 
@@ -90,7 +115,7 @@ template<class Expected> void check_ids(const json& args, const char* list_key, 
         return;
     const json& ids = args.at(ids_key);
     if (!ids.is_array() || ids.size() != entries)
-        throw ToolFailure(std::string(ids_key) + " takes one id per entry of " + list_key);
+        throw ToolFailure(std::string(ids_key) + " takes one id per entry of " + list_key, {{"code", "invalid_argument"}});
     for (std::size_t k = 0; k < entries; ++k)
         expected(k, json{{id_key, ids[k]}});
 }
@@ -100,35 +125,33 @@ Targets named_targets(const Model& model, const json& args, unsigned kinds)
     using Forms = std::pair<const char*, const char*>;
     for (const Forms& forms : {Forms{"object", "objects"}, Forms{"instance", "instances"}, Forms{"part", "parts"}})
         if (args.contains(forms.first) && args.contains(forms.second))
-            throw ToolFailure(std::string("Give ") + forms.first + " or " + forms.second + ", not both");
+            throw ToolFailure(std::string("Give ") + forms.first + " or " + forms.second + ", not both", {{"code", "invalid_argument"}});
     const IndexCheck check{model};
     Targets          out;
 
     // One target: the object, or an instance or a part of it.
     if (args.contains("object")) {
-        const int          index  = args.at("object").get<int>();
-        const ModelObject& object = check.object(index);
+        const int          index  = check.object(args.at("object"));
+        const ModelObject& object = *model.objects[std::size_t(index)];
         check_expected_ids(object, nullptr, args);
         if ((kinds & kParts) && args.contains("part")) {
-            const int part = args.at("part").get<int>();
-            check.member(index, part, false);
+            const int part = check.member(index, args.at("part"), false);
             check_expected_ids(object, object.volumes[std::size_t(part)], args);
             out.parts.emplace_back(index, part);
         } else if ((kinds & kInstances) && args.contains("instance")) {
-            const int instance = args.at("instance").get<int>();
-            check.member(index, instance, true);
+            const int instance = check.member(index, args.at("instance"), true);
             out.instances.emplace_back(index, instance);
         } else if (kinds & kObjects) {
             if (args.contains("part_id"))
-                throw ToolFailure("part_id goes with part");
+                throw ToolFailure("part_id goes with part", {{"code", "invalid_argument"}});
             out.objects.push_back(index);
         } else {
-            throw ToolFailure(std::string("object names the object of a ") + (kinds & kParts ? "part: give part too" : "instance: give instance too"));
+            throw ToolFailure(std::string("object names the object of a ") + (kinds & kParts ? "part: give part too" : "instance: give instance too"), {{"code", "invalid_argument"}});
         }
     } else {
         for (const char* key : {"instance", "part", "object_id", "part_id"})
             if (args.contains(key))
-                throw ToolFailure(std::string(key) + " goes with object");
+                throw ToolFailure(std::string(key) + " goes with object", {{"code", "invalid_argument"}});
     }
 
     // Several targets, each checked with its expected id before any is taken.
@@ -138,10 +161,9 @@ Targets named_targets(const Model& model, const json& args, unsigned kinds)
     std::vector<int>                 object_list;
     std::vector<std::pair<int, int>> instance_list, part_list;
     for (const json& entry : objects) {
-        if (!entry.is_number_integer())
-            throw ToolFailure("an entry of objects is an object index");
-        check.object(entry.get<int>());
-        object_list.push_back(entry.get<int>());
+        if (!is_whole_number(entry))
+            throw ToolFailure("an entry of objects is an object index", {{"code", "invalid_argument"}});
+        object_list.push_back(check.object(entry));
     }
     for (const json& entry : instances)
         instance_list.push_back(check.pair(entry, true));
@@ -164,7 +186,7 @@ Targets named_targets(const Model& model, const json& args, unsigned kinds)
     for (const auto& part : part_list)
         add_once(out.parts, part);
     if (out.objects.empty() && out.instances.empty() && out.parts.empty())
-        throw ToolFailure("The call names no target; give one, or none to act on the selection");
+        throw ToolFailure("The call names no target; give one, or none to act on the selection", {{"code", "invalid_argument"}});
     return out;
 }
 

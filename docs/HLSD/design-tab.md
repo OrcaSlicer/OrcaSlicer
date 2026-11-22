@@ -423,7 +423,7 @@ Dial action included, needs the CAD feature on (Preferences > Features, or `--ca
 holds them only when the feature is on at startup, as the main window makes the Design page only then, so
 turning it on takes a restart; with it off they are unknown commands, whose error says how a person turns it on,
 as `app_state`'s `cad_note` does. Turned off while OrcaSlicer runs, the tab stays until the restart, but the
-Speed Dial has none of its actions. A call is refused (`-32002`) while the Design tab is busy: none runs while a
+Speed Dial has none of its actions. A call is refused (`design_busy`) while the Design tab is busy: none runs while a
 rebuild owns the document, `change` and `sketch` commands do not run under an open feature card, the Text
 dialog, Constrain mode or a body Move, and a `change` one does not run under a sketch session, which `sketch`
 ones drive. `read` commands are refused only during a rebuild, and so are `confirm_tool` and `cancel_tool`,
@@ -439,7 +439,7 @@ tab's while it is shown; `history: "design"` names the Design tab's from any tab
 
 Face and edge ids name faces and edges of the current model, and a rebuild renumbers them while a
 stale id still names a real face or edge, so the replies carry the model's `generation`: a call that
-passes ids with the `generation` they were read at is refused (`-32010`) once the model has moved
+passes ids with the `generation` they were read at is refused (`stale_ids`) once the model has moved
 on, rather than acting on another face or edge.
 
 The commands add features through the kernel calls the cards use, named as the cards name them,

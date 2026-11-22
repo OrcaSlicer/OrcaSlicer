@@ -140,9 +140,14 @@ TEST_CASE("tool failures and invalid arguments are isError results", "[Mcp]")
     const std::string text = bad["content"][0]["text"];
     CHECK(text.find("unknown argument txt") != std::string::npos);
     CHECK(text.find("\"text\"") != std::string::npos);
+    // Its code says it is the call's arguments, as a command's own argument checks say.
+    CHECK(text.find(R"({"code":"invalid_argument"})") != std::string::npos);
     const json missing = body(f.post({{"jsonrpc", "2.0"}, {"id", 5}, {"method", "tools/call"}, {"params", {{"name", "echo"}, {"arguments", json::object()}}}}))["result"];
     CHECK(missing["isError"] == true);
     CHECK(missing["content"][0]["text"].get<std::string>().find("text is required") != std::string::npos);
+    CHECK(missing["content"][0]["text"].get<std::string>().find(R"({"code":"invalid_argument"})") != std::string::npos);
+    // The tool's own failure is not about the arguments.
+    CHECK(failed["content"][0]["text"].get<std::string>().find("invalid_argument") == std::string::npos);
 }
 
 TEST_CASE("an unknown tool is a JSON-RPC error with suggestions", "[Mcp]")
@@ -303,6 +308,13 @@ TEST_CASE("argument validation covers types, enums, ranges and arrays", "[Mcp]")
     CHECK(validate_arguments(schema, {{"zoom", 0}}).find("zoom must be > 0") != std::string::npos);
     CHECK(validate_arguments(schema, {{"zoom", 0.5}}).empty());
     CHECK(validate_arguments(schema, {{"n", 2.5}}).find("integer") != std::string::npos);
+    // A whole number written as a float is an integer, within the int64 range callers read it into; past it, and
+    // past what a double holds exactly, it is not one (checked without a cast, which there would be undefined).
+    CHECK(validate_arguments(schema, {{"n", 3.0}}).empty());
+    const json wide = {{"type", "object"}, {"properties", {{"i", {{"type", "integer"}}}}}};
+    CHECK(validate_arguments(wide, {{"i", 9.0e18}}).empty());
+    CHECK(validate_arguments(wide, {{"i", 9.3e18}}).find("integer") != std::string::npos);
+    CHECK(validate_arguments(wide, {{"i", 1.0e300}}).find("integer") != std::string::npos);
     CHECK(validate_arguments(schema, {{"mode", "c"}}).find("one of") != std::string::npos);
     CHECK(validate_arguments(schema, {{"paths", {1}}}).find("paths[0]") != std::string::npos);
     CHECK(validate_arguments(schema, {{"paths", json::array()}}).empty());
@@ -528,11 +540,32 @@ TEST_CASE("an unknown tool is answered with the closest names", "[Mcp]")
                         {"required", {"tool"}}};
     api.run          = [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("not dispatched"); };
     f.registry.add(api);
-    // tool_call's target names the closest command, and nothing else.
+    // tool_call's target names the closest command, and nothing else; the code says the call's `tool` is wrong.
     const json typo = body(f.post({{"jsonrpc", "2.0"}, {"id", 9}, {"method", "tools/call"},
                                    {"params", {{"name", "tool_call"}, {"arguments", {{"tool", "ech"}}}}}}))["result"];
     CHECK(typo["isError"] == true);
-    CHECK(typo["content"][0]["text"] == "Unknown tool: ech (did you mean echo?)");
+    CHECK(typo["content"][0]["text"] == "Unknown tool: ech (did you mean echo?)\n" R"({"code":"invalid_argument"})");
+    // A target the catalog leaves out is named right: its code is the one it was left out with, which says what keeps
+    // it from this run.
+    f.registry.leave_out("holes", "the feature was off", "feature_off");
+    const json left_out = body(f.post({{"jsonrpc", "2.0"}, {"id", 10}, {"method", "tools/call"},
+                                       {"params", {{"name", "tool_call"}, {"arguments", {{"tool", "holes"}}}}}}))["result"];
+    CHECK(left_out["isError"] == true);
+    CHECK(left_out["content"][0]["text"] == "Unknown tool: holes; the feature was off\n" R"({"code":"feature_off"})");
+}
+
+TEST_CASE("a tools/call whose name is not a string is a parameter error", "[Mcp]")
+{
+    Fixture f;
+    // Both dispatches read the name as a string, the modern one in its header check first.
+    const PostReply legacy = f.post({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/call"}, {"params", {{"name", 5}}}});
+    CHECK(legacy.status == 200);
+    CHECK(body(legacy)["error"]["code"] == -32602);
+    CHECK(body(legacy)["error"]["message"] == "name must be a string");
+    const PostReply modern = f.post({{"jsonrpc", "2.0"}, {"id", 2}, {"method", "tools/call"}, {"params", modern_params({{"name", 5}})}},
+                                    "2026-07-28", "tools/call", "5");
+    CHECK(modern.status == 200);
+    CHECK(body(modern)["error"]["code"] == -32602);
 }
 
 TEST_CASE("a call's arguments are normalized, then validated", "[Mcp]")
@@ -574,10 +607,13 @@ TEST_CASE("tool_call runs and is journaled as the tool it names", "[Mcp]")
     const json invalid = body(f.post({{"jsonrpc", "2.0"}, {"id", 5}, {"method", "tools/call"},
                                       {"params", {{"name", "tool_call"}, {"arguments", {{"tool", "echo"}, {"args", json::object()}}}}}}))["result"];
     CHECK(invalid["isError"] == true);
+    CHECK(invalid["content"][0]["text"].get<std::string>().find(R"({"code":"invalid_argument"})") != std::string::npos);
+    // tool_call's own argument names nothing: that is its arguments too.
     const json unknown = body(f.post({{"jsonrpc", "2.0"}, {"id", 6}, {"method", "tools/call"},
                                       {"params", {{"name", "tool_call"}, {"arguments", {{"tool", "ech"}}}}}}))["result"];
     CHECK(unknown["isError"] == true);
     CHECK(unknown["content"][0]["text"].get<std::string>().find("did you mean echo") != std::string::npos);
+    CHECK(unknown["content"][0]["text"].get<std::string>().find(R"({"code":"invalid_argument"})") != std::string::npos);
 }
 
 // Holds the one operation a plugin offers while it is loaded.

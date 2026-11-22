@@ -167,8 +167,9 @@ public:
     // added ones: lookup() finds an added command first.
     void add_source(std::unique_ptr<CommandSource> source);
     // Before seal(); after it, throws std::logic_error. Records that this catalog leaves out `key`, a command
-    // a run of the app with other options holds, and `why`, which unknown_command() gives after the key.
-    void leave_out(const std::string& key, std::string why);
+    // a run of the app with other options holds, `why`, which unknown_command() gives after the key, and `code`, the
+    // code of an error naming it (unknown_command_code()), which says what keeps it from this run.
+    void leave_out(const std::string& key, std::string why, std::string code);
     void seal();
     bool sealed() const { return m_sealed; }
 
@@ -191,11 +192,20 @@ public:
     // The error for a key lookup() does not resolve: "Unknown tool: <key>", followed by why the catalog leaves
     // it out (leave_out()), or else with `suggest` by the closest key.
     std::string unknown_command(const std::string& key, bool suggest = false) const;
+    // The code of the error for a key lookup() does not resolve, given as a call's argument (tool_call's tool,
+    // tool_search's, a script's or plugin's call): leave_out()'s code for a key the catalog leaves out, whose name is
+    // right, else invalid_argument.
+    std::string unknown_command_code(const std::string& key) const;
 
 private:
+    struct LeftOut
+    {
+        std::string why;
+        std::string code;
+    };
     std::vector<NativeCommand>                   m_commands;
     std::unordered_map<std::string, std::size_t> m_index;    // key -> position in m_commands
-    std::unordered_map<std::string, std::string> m_left_out; // key -> why the catalog leaves it out
+    std::unordered_map<std::string, LeftOut>     m_left_out; // key -> why the catalog leaves it out, and the code
     std::vector<std::unique_ptr<CommandSource>>  m_sources;
     bool                                         m_sealed = false;
 };

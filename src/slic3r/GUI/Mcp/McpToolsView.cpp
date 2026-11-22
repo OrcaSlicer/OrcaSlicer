@@ -31,6 +31,7 @@
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #ifdef SLIC3R_CAD
+#include "McpToolsCad.hpp"
 #include "slic3r/GUI/CAD/DesignCanvas.hpp"
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
 #endif
@@ -274,6 +275,8 @@ std::optional<Ops::Refusal> point_camera(Plater& plater, const std::string& cam)
 #ifdef SLIC3R_CAD
     if (DesignPanel* design = wxGetApp().mainframe->shown_design_panel()) {
         DesignCanvas* view = design->mcp_viewport();
+        if (view == nullptr)
+            throw Mcp::no_design_view();
         if (cam == "fit_bed")
             return no_bed_in_design();
         if (cam == "fit_objects")
@@ -976,34 +979,39 @@ void register_view_tools(CommandCatalog& catalog)
                 // Design view refuses (point_camera()), are refused here, before the tab or anything else
                 // changes; a rebuild refuses the options, its worker holding the document the reference planes
                 // are read from.
+                // With no Design panel to show or set, the refusal is cad_gate()'s (Mcp::no_design_tab()).
                 DesignPanel* design = nullptr;
                 if (arg_string(args, "tab") == "design" && frame->m_design_page != nullptr)
                     design = DesignPanel::ensure();
+                if (design != nullptr && design->mcp_viewport() == nullptr)
+                    throw Mcp::no_design_view();
                 if (design_args) {
                     if (design == nullptr)
-                        throw ToolFailure(frame->m_design_page == nullptr ? "The Design tab is off; enable the CAD feature in Preferences and restart"
-                                                                          : "The Design tab isn't available in this window yet; retry");
+                        throw Mcp::no_design_tab();
                     std::string why;
                     if (design->mcp_busy(true, false, why))
-                        throw ToolFailure("Design tab busy: " + why, {{"code", -32002}});
+                        throw Mcp::design_busy(why);
                     if (arg_string(args, "camera") == "sketch_normal" && !design->mcp_viewport()->is_sketching())
-                        throw ToolFailure("No sketch is open in the Design tab");
+                        throw ToolFailure("No sketch is open in the Design tab", {{"code", "precondition"}});
                 }
                 // The Design view the camera points once the tab is handled: the one asked for, or the one shown, which
                 // a call with no tab, canvas or Preview field leaves shown. Its refusals (point_camera()) come here too.
                 DesignPanel* aimed = design;
                 if (aimed == nullptr && !args.contains("tab") && !args.contains("canvas") && !preview_args)
                     aimed = frame->shown_design_panel();
+                if (aimed != nullptr && aimed->mcp_viewport() == nullptr)
+                    throw Mcp::no_design_view();
                 if (aimed != nullptr && arg_string(args, "camera") == "fit_bed")
                     throw refused(no_bed_in_design());
                 if (aimed != nullptr && arg_string(args, "camera") == "fit_selection" && !aimed->mcp_viewport()->selection_box().defined)
-                    throw ToolFailure("Nothing is selected in the Design tab");
+                    throw ToolFailure("Nothing is selected in the Design tab", {{"code", "precondition"}});
 #endif
                 if (args.contains("tab")) {
                     const std::string tab = arg_string(args, "tab");
 #ifdef SLIC3R_CAD
-                    if (tab == "design" && frame->m_design_page == nullptr)
-                        throw ToolFailure("The Design tab is off; enable the CAD feature in Preferences and restart");
+                    // A page whose panel cannot be built is refused too: showing it activates the panel.
+                    if (tab == "design" && design == nullptr)
+                        throw Mcp::no_design_tab();
 #endif
                     if (const std::optional<Ops::Refusal> refusal = show_tab(*frame, tab))
                         throw refused(*refusal);

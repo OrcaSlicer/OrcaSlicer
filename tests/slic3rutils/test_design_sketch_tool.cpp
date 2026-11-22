@@ -17,6 +17,7 @@
 #include <catch2/generators/catch_generators_range.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -390,14 +391,27 @@ TEST_CASE("A face, edges or a vertex is selected by id only where a click could 
     refused(Sel::Edge, 0, -1, {1, 1});
     refused(Sel::Edge, 0, -1, {999});
     refused(Sel::Face, 2, 0, {});
-    // A hidden body takes no click, nor does one a pick is held off (a card's focus on another body).
+    // An id the body does not have is the pick's; the body still takes picks, which select_geometry tells apart from the
+    // view's state.
+    CHECK(tool.body_takes_pick(0));
+    CHECK(tool.body_takes_pick(1));
+    // A hidden body takes no click, nor does one a pick is held off (a card's focus on another body): the view's state,
+    // whatever the ids.
     visible[1] = false;
     refused(Sel::Vertex, 1, -1, {});
+    std::string state;
+    CHECK_FALSE(tool.body_takes_pick(1, &state));
+    CHECK_THAT(state, Catch::Matchers::ContainsSubstring("takes no click"));
+    CHECK(tool.body_takes_pick(0));
     visible[1] = true;
     tool.set_pick_only_body(0);
     refused(Sel::Face, 1, 0, {});
+    CHECK_FALSE(tool.body_takes_pick(1));
     tool.set_pick_only_body(-1);
     CHECK(tool.can_select_solid(Sel::Edge, 1, -1, {0, 1}));
+    // A body the pick shapes do not have has no shape in the view.
+    CHECK_FALSE(tool.body_takes_pick(2, &state));
+    CHECK_THAT(state, Catch::Matchers::ContainsSubstring("has no shape in the view"));
 }
 
 TEST_CASE("Padding a box to frame gives every axis a small extent and leaves a long one alone", "[DesignSketchTool]")

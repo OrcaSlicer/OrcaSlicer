@@ -388,15 +388,33 @@ lacks is refused in the same words by every command, which give the plates there
 ### How a failure shows
 
 - A call that is refused, or that fails, is an `isError` result: the English message, and a stable `code`
-  (`nothing_selected`, `slicing_in_progress`) where an operation refused it, with the names that help (the
-  closest names to an unknown one) under `similar` or `presets`. An operation refuses before it changes
-  anything; a command that can fail after it acted says what it left (`plugin_enable` names how the plugin
-  is left, `object_fix` keeps what it repaired before a cancel).
+  (`nothing_selected`, `slicing_in_progress`) where an operation refused it, or `invalid_argument` where its
+  arguments are what is wrong, by every route (`tools/call`, `tool_call`'s target, `action_run`, a script's or
+  plugin's `orca.host.tools`). That covers what the shared checks refuse: the schema (an unknown or misspelt name,
+  a wrong type, a missing one), a command, action or group name given as an argument that names none
+  (`tool_call`'s and `tool_search`'s `tool`, `tool_search`'s `group`, `action_run`'s `id`, a script's call), the
+  slicer commands' target indices and forms, `[x, y, z]` vectors and scale factors, a setting's value or key; and
+  what a Design command's own checks refuse. A name that is right but that this run cannot use is not
+  `invalid_argument`: a Design command or action left out of the run (the G-code viewer, the CAD feature off at
+  startup), or a Design action while the CAD feature is off, is `design_unavailable`; a Design tab action outside
+  the tab or mode that shows it is `wrong_mode`, and the `tool_call` its message names then says what keeps the
+  command from running, a Design panel that cannot be built included (`design_unavailable`). The other checks inside a slicer command's own
+  function carry no code (`replay_run`'s "give exactly one of path and replay", `object_transform`'s "give scale or
+  size, not both", the menu commands' file paths), nor does a direct `tools/call` of an unknown tool, a JSON-RPC
+  error, or a Python `TypeError` for arguments that are not a dict. The names that help (the closest names to an
+  unknown one, or every name there is) come under `similar`, `did_you_mean`, `groups` or `presets`. A refusal whose text, which a person reads too,
+  asks for a GUI step or a selection that a call can do instead (close a toolbar menu, deselect, select a part)
+  carries a `hint` with the commands that do it (`refusal_hint()`), as a Design menu item of the other mode and a
+  busy Design tab do; one whose step only a person takes (sign in, connect a printer) has none. An operation refuses
+  before it changes anything; a command that can fail after it acted says what it left (`plugin_enable` names how
+  the plugin is left, `object_fix` keeps what it repaired before a cancel).
 - A call that opens a modal dialog replies `{status: "blocked_by_dialog", job, dialogs}`, and the caller
   answers the dialog (`dialog_answer`), after which `app_wait {for: "job"}` returns the call's result.
 - A call whose work outlasts the reply budget (45 s) replies `{status: "running", job}`, and
   `app_wait {for: "job"}` returns its result; `job_cancel {job}` stops it.
-- An unknown command is a JSON-RPC error that names the closest commands.
+- A direct `tools/call` of an unknown command is a JSON-RPC error that names the closest commands; an unknown
+  command given as an argument (`tool_call`'s `tool`, a script's call) is an `isError` result with
+  `invalid_argument`, as above.
 - `replay_export` leaves out the calls that failed, at once or later as a job.
 
 ## When a call opens a dialog or a tool
@@ -1047,8 +1065,14 @@ and a pattern's layout as `type` in the commands' words. A feature's type name (
 
 #### How a failure shows
 
-A command that fails is an error (`code` `-32000`) and leaves the design as it was, so `replay_export` leaves
-it out. That holds for argument errors and for a rebuild the engine rejects alike. Twenty-one commands
+A command that fails is an error whose `code` names the cause: `invalid_argument` (an argument is wrong, names
+nothing, or names an object whose kind or geometry the operation does not take), `precondition` (the arguments are
+right but the state is not: no body yet, a body hidden, no sketch open, a tool open), `rebuild_failed`,
+`kernel_failure`, `export_failed`, or one of the gate's (`design_unavailable`, `design_busy`, `stale_ids`) and the
+menu items' (`wrong_mode`, `wrong_selection`), and `no_silent_form` for an entry with no silent form called as one
+(only by `run_cad_tool()` called directly); the server's design (mcp-server.md) draws the line between geometry and
+state. It leaves the design as it was, so
+`replay_export` leaves it out. That holds for argument errors and for a rebuild the engine rejects alike. Twenty-one commands
 instead report a rejected rebuild in their reply, `ok` false or `error` not empty, after the same rollback,
 so such a call is journaled and replays the same rejection: `body_transform`, `boolean`, `construct_axis`,
 `construct_coordinate_system`, `delete_face`, `draft`, `feature_set_expression`, `import_mesh`,

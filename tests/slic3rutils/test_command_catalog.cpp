@@ -12,6 +12,7 @@
 #include "slic3r/GUI/Mcp/McpArguments.hpp"
 #include "slic3r/GUI/Mcp/McpPersonContext.hpp"
 #include "slic3r/GUI/Mcp/McpProtocol.hpp"
+#include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
 
@@ -932,7 +933,7 @@ TEST_CASE("a command the catalog leaves out is unknown with the reason", "[Comma
 {
     CommandCatalog catalog;
     catalog.add(command("hold"));
-    catalog.leave_out("holes", "the feature was off");
+    catalog.leave_out("holes", "the feature was off", "feature_off");
     catalog.seal();
     REQUIRE(catalog.left_out("holes") != nullptr);
     CHECK(*catalog.left_out("holes") == "the feature was off");
@@ -940,19 +941,30 @@ TEST_CASE("a command the catalog leaves out is unknown with the reason", "[Comma
     // The reason, and no close key: the key names the command the caller meant.
     CHECK(catalog.unknown_command("holes", /*suggest=*/true) == "Unknown tool: holes; the feature was off");
     CHECK(catalog.unknown_command("holx", /*suggest=*/true) == "Unknown tool: holx (did you mean hold?)");
-    CHECK_THROWS_AS(catalog.leave_out("shell", "too late"), std::logic_error);
+    // A left-out key's name is right, so its error carries what keeps it from the run; any other is the call's to correct.
+    CHECK(catalog.unknown_command_code("holes") == "feature_off");
+    CHECK(catalog.unknown_command_code("holx") == "invalid_argument");
+    CHECK_THROWS_AS(catalog.leave_out("shell", "too late", "feature_off"), std::logic_error);
 
     // A run with the CAD feature off at startup leaves out the Design commands, and says how a person turns it
-    // on; a build without CAD has no Design commands to leave out.
+    // on; the G-code viewer leaves them out whatever the preference, and says to open the editor. A build without
+    // CAD has no Design commands to leave out.
     CommandCatalog no_cad;
     NativeCommands::register_all_commands(no_cad, {false});
     no_cad.seal();
+    CommandCatalog viewer;
+    NativeCommands::register_all_commands(viewer, {false, /*editor=*/false});
+    viewer.seal();
 #ifdef SLIC3R_CAD
     for (const std::string key : {"extrude", "hole", "describe_design"}) {
         INFO(key);
         CHECK(no_cad.unknown_command(key, /*suggest=*/true) ==
               "Unknown tool: " + key + "; the CAD feature was off when OrcaSlicer started: a person turns it on in "
                                        "Preferences > Features and restarts OrcaSlicer, or starts it with --cad");
+        CHECK(no_cad.unknown_command_code(key) == "design_unavailable");
+        CHECK(viewer.unknown_command(key, /*suggest=*/true) ==
+              "Unknown tool: " + key + "; the G-code viewer has no Design tab: a person opens the project in OrcaSlicer's editor");
+        CHECK(viewer.unknown_command_code(key) == "design_unavailable");
     }
 #else
     CHECK(no_cad.left_out("extrude") == nullptr);
@@ -1250,6 +1262,51 @@ TEST_CASE("a command's result reads as action_run's did", "[CommandCatalog]")
     CHECK(failed.is_error);
     CHECK(failed.message == "There are no objects.");
     CHECK(failed.data["code"] == "no_objects");
+    CHECK_FALSE(failed.data.contains("hint"));
+
+    // A refusal worded for the GUI keeps its text, which the person reads too, and tells an agent's call what to do
+    // in the commands' terms, by either route a refusal takes to it.
+    Ops::Refusal gizmo;
+    gizmo.code  = "gizmo_open";
+    gizmo.msgid = "Error: Please close all toolbar menus first";
+    refused.refusal                 = std::make_shared<const Ops::Refusal>(gizmo);
+    const ToolResult behind_gizmo   = NativeCommands::from_run_result("k", refused);
+    CHECK(behind_gizmo.message == "Error: Please close all toolbar menus first");
+    CHECK_THAT(behind_gizmo.data.value("hint", std::string()), ContainsSubstring("object_select {none: true}"));
+    const ToolFailure operation_refused = Mcp::refused(gizmo);
+    CHECK(std::string(operation_refused.what()) == "Error: Please close all toolbar menus first");
+    CHECK(operation_refused.details.at("hint") == behind_gizmo.data.at("hint"));
+    // The two gizmo_open refusals are told apart by the call: Select All's is about the view shown, the others' about
+    // Prepare's, which the assemble view shows only after view_set.
+    CHECK_THAT(behind_gizmo.data.value("hint", std::string()), ContainsSubstring("view_set {canvas: \"3d\"}"));
+}
+
+TEST_CASE("a refusal that asks for a GUI step or a selection names the calls that do it instead", "[CommandCatalog]")
+{
+    const auto hint_of = [](const char* code) {
+        Ops::Refusal refusal;
+        refusal.code  = code;
+        refusal.msgid = "Refused.";
+        return Mcp::refusal_hint(refusal);
+    };
+    // Add Primitive's person's form refuses while an object is selected; a size or silent adds it whatever is selected.
+    const std::string primitive = hint_of("object_selected");
+    CHECK_THAT(primitive, ContainsSubstring("object_select {none: true}"));
+    // The Speed Dial's add_primitive actions take no arguments, so the hint names the command that takes them.
+    CHECK_THAT(primitive, ContainsSubstring("object_add_primitive with size or silent: true"));
+    CHECK_THAT(primitive, ContainsSubstring("size"));
+    CHECK_THAT(primitive, ContainsSubstring("silent: true"));
+    CHECK_THAT(primitive, ContainsSubstring("part_add"));
+    // The refusals that ask for a selection name the targets a call gives instead.
+    for (const char* code : {"nothing_selected", "one_object_only", "wrong_selection", "too_few_objects", "several_instances"}) {
+        INFO(code);
+        CHECK_THAT(hint_of(code), ContainsSubstring("name the targets in the call"));
+    }
+    // A step only a person takes has no command to name.
+    for (const char* code : {"not_signed_in", "no_printer", "no_printer_connected", "no_objects"}) {
+        INFO(code);
+        CHECK(hint_of(code).empty());
+    }
 }
 
 #ifdef SLIC3R_CAD

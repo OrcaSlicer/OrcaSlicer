@@ -47,6 +47,7 @@
 #include <BRepAdaptor_Surface.hxx>
 #include <BRep_Tool.hxx>
 #include <GeomAbs_SurfaceType.hxx>
+#include <Standard_Failure.hxx>
 #include <TopAbs_ShapeEnum.hxx>
 #include <TopExp.hxx>
 #include <TopTools_IndexedMapOfShape.hxx>
@@ -65,6 +66,7 @@
 #include <cmath>
 #include <cctype>
 #include <cstddef>
+#include <cstdint>
 #include <fstream>
 #include <functional>
 #include <iterator>
@@ -129,6 +131,21 @@ template<class F> std::string failure(F&& call)
         call();
     } catch (const std::runtime_error& e) {
         return e.what();
+    }
+    return {};
+}
+
+// The code the error of a Design command's call carries when `call` fails inside it (GUI::Mcp::run_guarded()), or ""
+// when it does not fail.
+template<class F> std::string failure_code(F&& call)
+{
+    try {
+        GUI::Mcp::run_guarded([&]() -> json {
+            call();
+            return json();
+        });
+    } catch (const GUI::ToolFailure& f) {
+        return f.details.value("code", std::string());
     }
     return {};
 }
@@ -751,7 +768,7 @@ TEST_CASE("a tool refused for the selection says it does not apply and what it t
     const std::optional<GUI::ToolFailure>      refused     = GUI::Mcp::open_refusal(delete_face, false, none);
     REQUIRE(refused.has_value());
     CHECK(std::string(refused->what()) == "This tool does not apply to what is selected");
-    CHECK(refused->details.at("code") == -32000);
+    CHECK(refused->details.at("code") == "wrong_selection");
     CHECK(refused->details.at("selection_kind") == 0);
     CHECK(refused->details.at("selection") == "none");
     CHECK(refused->details.at("accepts") == json::array({"face_planar", "face_cyl", "face_other"}));
@@ -846,8 +863,19 @@ TEST_CASE("a Design tool opens only in the mode its menu item belongs to", "[Mcp
             const std::optional<GUI::ToolFailure> refused = GUI::Mcp::open_refusal(t, !t.sketch_mode, kind);
             REQUIRE(refused.has_value());
             CHECK(std::string(refused->what()) == (t.sketch_mode ? in_sketch : on_model));
-            CHECK(refused->details.at("code") == -32000);
+            CHECK(refused->details.at("code") == "wrong_mode");
             CHECK(refused->details.at("mode") == (t.sketch_mode ? "sketch" : "model"));
+            // The person's message names no command; the hint names those that change the mode. A model tool's names
+            // the two that end a sketch and Constrain mode alike, where the busy gate refuses sketch_finish.
+            const std::string hint = refused->details.at("hint").get<std::string>();
+            if (t.sketch_mode) {
+                // With a plane, as sketch_create {} opens the plane picker instead of a sketch.
+                CHECK_THAT(hint, ContainsSubstring("sketch_create {plane: \"XY\"}"));
+            } else {
+                CHECK_THAT(hint, ContainsSubstring("confirm_tool"));
+                CHECK_THAT(hint, ContainsSubstring("cancel_tool"));
+                CHECK_THAT(hint, !ContainsSubstring("sketch_finish"));
+            }
         }
         ++(t.sketch_mode ? sketch_items : model_items);
     }
@@ -1273,6 +1301,74 @@ TEST_CASE("a CAD command takes the names its function also reads", "[Mcp][CAD]")
     json unconstrain{{"index", 4}};
     CHECK(GUI::Mcp::argument_error(command_of(catalog, "sketch_delete_constraint"), unconstrain).empty());
     CHECK(unconstrain == json{{"index", 4}});
+}
+
+TEST_CASE("a CAD command's failure names its cause in its code", "[Mcp][CAD]")
+{
+    const auto code_of = [](const std::function<json()>& run) {
+        try {
+            GUI::Mcp::run_guarded(run);
+        } catch (const GUI::ToolFailure& failure) {
+            return failure.details.value("code", json()).get<std::string>();
+        }
+        return std::string("no failure");
+    };
+    // A silent form checks its arguments with plain exceptions, and the design's state with CadPrecondition.
+    CHECK(code_of([]() -> json { throw std::runtime_error("diameter must be > 0"); }) == "invalid_argument");
+    CHECK(code_of([]() -> json { throw GUI::Mcp::CadPrecondition("no body to shell"); }) == "precondition");
+    // The kernel's own exceptions are told apart from both, as is what it reports it could not compute.
+    CHECK(code_of([]() -> json { throw Standard_Failure("BRep_API: command not done"); }) == "kernel_failure");
+    CHECK(code_of([]() -> json { throw GUI::Mcp::CadKernelFailure("section failed"); }) == "kernel_failure");
+    try {
+        GUI::Mcp::run_guarded([]() -> json { throw GUI::Mcp::CadKernelFailure("section failed"); });
+    } catch (const GUI::ToolFailure& failure) {
+        CHECK(std::string(failure.what()) == "OCCT: section failed");
+    }
+    // A refusal of its own keeps its code: no Design view, a busy tab with the commands that close what is open. One
+    // that names no cause reads as a plain exception does.
+    CHECK(code_of([]() -> json { throw GUI::Mcp::no_design_view(); }) == "design_unavailable");
+    CHECK(code_of([]() -> json { throw GUI::ToolFailure("no cause named"); }) == "invalid_argument");
+    CHECK(code_of([]() -> json { throw GUI::ToolFailure("no cause named", {{"keys", json::array({"a"})}}); }) == "invalid_argument");
+    const GUI::ToolFailure busy = GUI::Mcp::design_busy("a sketch is open in the Design tab");
+    CHECK(std::string(busy.what()) == "Design tab busy: a sketch is open in the Design tab");
+    CHECK(busy.details.at("code") == "design_busy");
+    CHECK_THAT(busy.details.at("hint").get<std::string>(), ContainsSubstring("confirm_tool"));
+    CHECK_THAT(busy.details.at("hint").get<std::string>(), ContainsSubstring("cancel_tool"));
+    CHECK(code_of([]() -> json { return json::object(); }) == "no failure");
+
+    // The real checks: on a design with no body, the commands that work on one refuse for the design's state.
+    CadDocument empty;
+    SketchPlane frame;
+    CHECK(failure_code([&] { GUI::Mcp::cad_face_extrude(empty, {{"face", 0}}, frame); }) == "precondition");
+    CHECK(failure_code([&] { GUI::Mcp::cad_pattern(empty, {{"type", "circular"}, {"count", 4}}); }) == "precondition");
+    CHECK(failure_code([&] { GUI::Mcp::cad_dressup(empty, {{"edges", json::array({0})}}, false); }) == "precondition");
+    CHECK(failure_code([&] { GUI::Mcp::cad_thicken(empty, {{"type", "face"}, {"face", 0}}); }) == "precondition");
+    // An argument wrong in itself is the call's, whatever the design holds.
+    CHECK(failure_code([&] { GUI::Mcp::cad_pattern(empty, {{"type", "circular"}, {"count", 0}}); }) == "invalid_argument");
+    CHECK(failure_code([&] { GUI::Mcp::cad_face_extrude(empty, {{"face", "top"}}, frame); }) == "invalid_argument");
+}
+
+TEST_CASE("a CAD call's generation is any integer of 0 or more, signed or unsigned", "[Mcp][CAD]")
+{
+    // A script's or plugin's Python integers reach the command as signed JSON integers, which must read as the same
+    // generation a reply gave.
+    CHECK_FALSE(GUI::Mcp::cad_generation(json::object()).has_value());
+    CHECK_FALSE(GUI::Mcp::cad_generation(json()).has_value());
+    CHECK(GUI::Mcp::cad_generation({{"generation", std::uint64_t(7)}}) == std::optional<std::uint64_t>(7));
+    CHECK(GUI::Mcp::cad_generation({{"generation", std::int64_t(7)}}) == std::optional<std::uint64_t>(7));
+    CHECK(GUI::Mcp::cad_generation({{"generation", std::int64_t(0)}}) == std::optional<std::uint64_t>(0));
+    // A whole number written as a float passes the schema's integer type, so it counts too.
+    CHECK(GUI::Mcp::cad_generation({{"generation", 7.0}}) == std::optional<std::uint64_t>(7));
+    // The largest unsigned integer is a generation. A float is one where the schema's integer type takes it, below 2^63
+    // (is_whole_number()), so the call and a caller that skips the schema read the same numbers.
+    CHECK(GUI::Mcp::cad_generation({{"generation", std::uint64_t(18446744073709551615ull)}}) ==
+          std::optional<std::uint64_t>(18446744073709551615ull));
+    CHECK(GUI::Mcp::cad_generation({{"generation", 9.0e18}}) == std::optional<std::uint64_t>(9000000000000000000ull));
+    for (const json& bad : {json(std::int64_t(-1)), json(-1.0), json("7"), json(7.5), json(nullptr), json(9.3e18),
+                            json(9223372036854775808.0), json(18446744073709551616.0), json(1.0e300)}) {
+        INFO(bad.dump());
+        CHECK(failure_code([&] { GUI::Mcp::cad_generation({{"generation", bad}}); }) == "invalid_argument");
+    }
 }
 
 TEST_CASE("a CAD command refuses a misspelt argument instead of using its default", "[Mcp][CAD]")
@@ -1826,7 +1922,7 @@ TEST_CASE("a CAD call is journaled without its generation and with its silent", 
     // A failure is the call's error.
     const GUI::NativeCommand refused = GUI::Mcp::cad_command("hole", "Hole", json{{"type", "object"}, {"properties", json::object()}},
                                                              [](const json&, bool) -> json {
-                                                                 throw GUI::ToolFailure("removed no material", {{"code", -32000}});
+                                                                 throw GUI::ToolFailure("removed no material", {{"code", "rebuild_failed"}});
                                                              });
     CHECK_THROWS_AS(refused.run(json::object(), agent), GUI::ToolFailure);
 }
@@ -2124,9 +2220,11 @@ TEST_CASE("plane refuses what is not a plane, naming why", "[Mcp][CAD]")
     CHECK_THAT(error_of({{"body", 4}, {"face", 0}}, doc), ContainsSubstring("out of range"));
     CHECK_THAT(error_of({{"body", 0}, {"face", 999}}, doc), ContainsSubstring("does not exist"));
 
+    CHECK(failure_code([&] { GUI::Mcp::cad_resolve_plane({{"datum", 0}}, doc, false); }) == "invalid_argument");
     doc.features[datum].enabled = false;
     REQUIRE(doc.recompute());
     CHECK_THAT(error_of({{"datum", datum}}, doc), ContainsSubstring("hidden"));
+    CHECK(failure_code([&] { GUI::Mcp::cad_resolve_plane({{"datum", datum}}, doc, false); }) == "precondition");
 
     // A cylinder's side is not a plane, for sketching or for drilling.
     CadDocument cyl;
@@ -2568,6 +2666,8 @@ TEST_CASE("commit_to_plate's replace takes distinct object indices that are not 
     CHECK_THAT(refusal({0.5}), ContainsSubstring("not 0.5"));
     CHECK_THAT(refusal({"0"}), ContainsSubstring("object indices"));
     CHECK_THAT(refusal({0, 2}), ContainsSubstring("part of a cut object"));
+    CHECK(failure_code([&] { GUI::Mcp::cad_commit_to_plate_replace({0, 2}, model); }) == "precondition");
+    CHECK(failure_code([&] { GUI::Mcp::cad_commit_to_plate_replace({3}, model); }) == "invalid_argument");
 }
 
 TEST_CASE("export_step's STEP file reads back with each body where the Move gizmo put it", "[Mcp][CAD]")
@@ -3897,8 +3997,15 @@ TEST_CASE("a hole drills a face's body at a world point or on a round reference'
                        GUI::Mcp::cad_hole_placement(doc, {{"plane", {{"body", 0}, {"face", side}}}, {"at", {{"body", 0}, {"face", bore}}}}, pl, body);
                    }),
                    ContainsSubstring("is not square to the plane"));
+        // Where the named references lie, and what they are, is the call's choice; a design with no body is the state.
+        CHECK(failure_code([&] {
+                  GUI::Mcp::cad_hole_placement(doc, {{"plane", {{"body", 0}, {"face", side}}}, {"at", {{"body", 0}, {"face", bore}}}}, pl, body);
+              }) == "invalid_argument");
+        CHECK(failure_code([&] { GUI::Mcp::cad_hole_placement(doc, {{"at", {{"body", 0}, {"face", top}}}}, pl, body); }) ==
+              "invalid_argument");
         CadDocument empty;
         CHECK_THAT(failure([&] { GUI::Mcp::cad_hole_placement(empty, json::object(), pl, body); }), ContainsSubstring("no body to drill"));
+        CHECK(failure_code([&] { GUI::Mcp::cad_hole_placement(empty, json::object(), pl, body); }) == "precondition");
     }
 }
 
@@ -4251,6 +4358,11 @@ TEST_CASE("thread refuses a target it cannot cut, before anything changes", "[Mc
     CHECK_THAT(failure([&] { GUI::Mcp::cad_thread(empty, {{"internal", true}, {"designation", "M5"}, {"length", 5}}, r); }),
                ContainsSubstring("needs a body to tap"));
     CHECK_THAT(failure([&] { GUI::Mcp::cad_thread(empty, {{"face", 0}}, r); }), ContainsSubstring("no body to thread"));
+    // No body is the design's state; a face of the wrong kind is the call's choice.
+    CHECK(failure_code([&] { GUI::Mcp::cad_thread(empty, {{"internal", true}, {"designation", "M5"}, {"length", 5}}, r); }) ==
+          "precondition");
+    CHECK(failure_code([&] { GUI::Mcp::cad_thread(empty, {{"face", 0}}, r); }) == "precondition");
+    CHECK(failure_code([&] { GUI::Mcp::cad_thread(doc, {{"face", top}}, r); }) == "invalid_argument");
 }
 
 TEST_CASE("a sweep along a helix keeps its profile at the same angle to the helix axis", "[Mcp][CAD]")
@@ -4407,6 +4519,10 @@ TEST_CASE("split cuts a body with a plane and keeps either piece", "[Mcp][CAD]")
         CHECK(doc.features.size() == n);
         CadDocument empty;
         CHECK_THAT(failure([&] { GUI::Mcp::cad_split(empty, {{"plane", "XY"}}, r); }), ContainsSubstring("no body to split"));
+        // A plane that misses the body is where the call put it; no body is the design's state.
+        CHECK(failure_code([&] { GUI::Mcp::cad_split(doc, {{"plane", "XY"}, {"offset", 20}}, r); }) == "invalid_argument");
+        CHECK(failure_code([&] { GUI::Mcp::cad_split(doc, {{"face", 99}}, r); }) == "invalid_argument");
+        CHECK(failure_code([&] { GUI::Mcp::cad_split(empty, {{"plane", "XY"}}, r); }) == "precondition");
     }
 }
 
@@ -5837,6 +5953,19 @@ TEST_CASE("sketch_project adds a body's edges to the open sketch as construction
     CHECK_THAT(failure([&] { GUI::Mcp::cad_sketch_project(CadDocument(), tool, json::object()); }),
                ContainsSubstring("no source body"));
     CHECK_THAT(failure([&] { GUI::Mcp::cad_sketch_project(doc, tool, {{"source_body", 3}}); }), ContainsSubstring("body 3"));
+    CHECK(failure_code([&] { GUI::Mcp::cad_sketch_project(CadDocument(), tool, json::object()); }) == "precondition");
+    CHECK(failure_code([&] { GUI::Mcp::cad_sketch_project(doc, tool, {{"source_body", 3}}); }) == "invalid_argument");
+    // A vertical edge projects to a point on the XY sketch: the edge the call names is the wrong one.
+    int upright = -1;
+    for (int i = 0; i < GeometryEngine::edge_count(box) && upright < 0; ++i) {
+        const std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(GeometryEngine::edge_by_index(box, i));
+        if (pts.size() >= 2 && (pts.front() - pts.back()).head<2>().norm() < 1e-9) upright = i;
+    }
+    REQUIRE(upright >= 0);
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_sketch_project(doc, tool, {{"source_body", 0}, {"edges", {upright}}}); }),
+               ContainsSubstring("project to a point"));
+    CHECK(failure_code([&] { GUI::Mcp::cad_sketch_project(doc, tool, {{"source_body", 0}, {"edges", {upright}}}); }) ==
+          "invalid_argument");
     CHECK(tool.entities().size() == 9);
 
     // Construction only: the sketch has no closed loop to build from.

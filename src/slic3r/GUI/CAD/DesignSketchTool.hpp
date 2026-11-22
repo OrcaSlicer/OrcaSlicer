@@ -261,9 +261,13 @@ public:
     // as a click's pick is (body_xform_pt()). False, the selection as it was, where can_select_solid() is.
     bool select_solid(SolidSel kind, int body, int face, const std::vector<int>& edges,
                       const Vec3d& vertex_pt);
+    // Whether body `body` takes a pick in the view now, whatever the ids: false, with the reason in `why` when given,
+    // for a body with no shape in the view, or one that takes no click (hidden, or another body is the only one
+    // picked). It is the view's state, which select_geometry refuses apart from ids that name nothing.
+    bool body_takes_pick(int body, std::string* why = nullptr) const;
     // Whether select_solid() takes the pick: false, with the reason in `why` when given, for a body that is not
-    // pickable, an id its shape does not have, no edge or an edge listed twice. A caller checks a pick with it
-    // before it changes anything, and select_solid() runs the same tests.
+    // pickable (body_takes_pick()), an id its shape does not have, no edge or an edge listed twice. A caller checks a
+    // pick with it before it changes anything, and select_solid() runs the same tests.
     bool can_select_solid(SolidSel kind, int body, int face, const std::vector<int>& edges,
                           std::string* why = nullptr) const;
     // The picked vertex's point, in the view's frame (where the moved body draws it).

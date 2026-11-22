@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <exception>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -68,22 +69,22 @@ int base64_value(char c)
 
 // ---- tool_call ----------------------------------------------------------------
 
-std::string resolve_call(const CommandCatalog& catalog, std::shared_ptr<const NativeCommand>& command, json& args)
+std::optional<ToolFailure> resolve_call(const CommandCatalog& catalog, std::shared_ptr<const NativeCommand>& command, json& args)
 {
     if (!command || command->key != "tool_call")
-        return {};
+        return std::nullopt;
     const std::string                    target = args.value("tool", std::string());
     std::shared_ptr<const NativeCommand> inner  = catalog.lookup(target);
     if (!inner)
-        return catalog.unknown_command(target, /*suggest=*/true);
+        return ToolFailure(catalog.unknown_command(target, /*suggest=*/true), {{"code", catalog.unknown_command_code(target)}});
     if (inner->key == "tool_call")
-        return "tool_call calls another tool, not itself";
+        return ToolFailure("tool_call calls another tool, not itself", {{"code", "invalid_argument"}});
     json inner_args = args.contains("args") && args["args"].is_object() ? args["args"] : json::object();
     if (std::string err = argument_error(*inner, inner_args); !err.empty())
-        return "Invalid arguments for " + target + ": " + err;
+        return ToolFailure("Invalid arguments for " + target + ": " + err, {{"code", "invalid_argument"}});
     command = std::move(inner);
     args    = std::move(inner_args);
-    return {};
+    return std::nullopt;
 }
 
 std::string decode_header_value(const std::string& value)
@@ -170,11 +171,11 @@ json McpProtocol::call_tool(const json& params, bool& unknown_tool, std::string&
     }
     json args = params.contains("arguments") && !params["arguments"].is_null() ? params["arguments"] : json::object();
     if (!args.is_object())
-        return result_to_json(ToolResult::error("arguments must be an object"));
+        return result_to_json(ToolResult::error("arguments must be an object", {{"code", "invalid_argument"}}));
     if (std::string err = argument_error(*def, args); !err.empty())
-        return result_to_json(ToolResult::error("Invalid arguments: " + err));
-    if (std::string err = resolve_call(m_catalog, def, args); !err.empty())
-        return result_to_json(ToolResult::error(err));
+        return result_to_json(ToolResult::error("Invalid arguments: " + err, {{"code", "invalid_argument"}}));
+    if (const std::optional<ToolFailure> refused = resolve_call(m_catalog, def, args))
+        return result_to_json(ToolResult::error(refused->what(), refused->details));
     try {
         return result_to_json(m_caller.call(*def, args));
     } catch (const ToolFailure& f) {
@@ -210,6 +211,11 @@ PostReply McpProtocol::handle_post(const PostRequest& request)
     if (msg.contains("params") && !msg["params"].is_object())
         return reply(200, error_body(id, kInvalidParams, "params must be an object"));
     const json params = msg.contains("params") ? msg["params"] : json::object();
+    // The member a method reads as a string (the header check and the dispatch call value() on it, which throws for
+    // any other type) is refused here as a parameter error, rather than escaping as an internal one.
+    const char* const text_key = method == "resources/read" ? "uri" : method == "tools/call" || method == "prompts/get" ? "name" : nullptr;
+    if (text_key != nullptr && params.contains(text_key) && !params[text_key].is_string())
+        return reply(200, error_body(id, kInvalidParams, std::string(text_key) + " must be a string"));
 
     try {
         if (params.contains("_meta") && params["_meta"].is_object() && params["_meta"].contains(kMetaVersion)) {

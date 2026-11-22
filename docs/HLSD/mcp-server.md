@@ -1837,11 +1837,14 @@ item's entry). It passes `cad_gate()` with `CadAccess::None`, whose only busy ru
 recipe is loaded and the call refused while the model is being rebuilt, and runs the item's handler in place
 (`DesignPanel::mcp_run_verb()`), as the menu item and the tab's keys do: an open card does not refuse it,
 since each tool decides what that means to it. Before the handler runs, `open_refusal()` refuses it in two cases
-(`-32000`). An entry runs only in the mode its menu item belongs to, where the right-click menu offers it
+(`wrong_mode`, `wrong_selection`). An entry runs only in the mode its menu item belongs to, where the right-click menu offers it
 (`offered_in_mode()`, by the menu's `sketch_map_applies()`, for which a sketch in Constrain mode is open too): a
 model tool such as Shell in an open sketch is refused with "This tool works on the model: finish or cancel the
 sketch first" (`mode: "model"`), a sketch tool outside a sketch with "This tool works in a sketch: open a
-sketch first" (`mode: "sketch"`). No entry is offered in both modes, and the only keys read in both, the
+sketch first" (`mode: "sketch"`); the person's message comes with a `hint` naming the commands that change the
+mode: `sketch_create {plane}` and `sketch_edit {sketch}` (with their arguments, as `sketch_create {}` opens the plane
+picker rather than a sketch), or `confirm_tool` and `cancel_tool`, which end a sketch or Constrain mode
+alike, where the busy gate refuses `sketch_finish` and `sketch_cancel` in Constrain mode. No entry is offered in both modes, and the only keys read in both, the
 Ctrl+Shift ones, are no entry's handler. The tab's keys take the sketch's entries only in Sketch mode, so in
 Constrain mode they reach the model's while the menu offers the sketch's: there a command does what its menu
 item does, not what its key does. And a handler that only the right-click menu reaches (`btn:`, `fly:`),
@@ -1876,18 +1879,23 @@ finds them among the commands with their input schemas, and `tool_search {tool}`
 `read_only`, description, input schema and examples. `tool_call {tool, args}` runs one, its arguments
 validated against its schema, and replies `{"result": ...}`, the tool's own reply; a replay step calls one
 by its name or through `tool_call`, and `orca_mcp.py`'s `call_command()` from Python. An unknown name is
-answered as any unknown command is: with the closest key, or, for a Design command's name in a run started
-with the CAD feature off, with how a person turns it on.
+answered as any unknown command is: with the closest key (`invalid_argument`), or, for a Design command's name
+in a run without the Design commands, why they are left out (`design_unavailable`): in the editor, the CAD feature
+was off at startup, and how a person turns it on; in the G-code viewer, which has no Design tab whatever the
+preference says, that a person opens the project in the editor (`CatalogOptions::editor`).
 
 A call runs its function on the UI thread: a person's pick in place, an automated call in one UI closure
 under the mutate guard, then `settle()`. Before the silent form, `cad_gate()` refuses a call by its cause, in
 this order. The MCP server is up before the main window, so first come `ui_plater()`'s "shutting down" and
-"still starting" refusals, as for any tool. Then the G-code viewer, which has no Design tab (`-32001`); the
-CAD feature off (Preferences > Features); and a Design panel that cannot be built (`-32001`: no page was made
+"still starting" refusals, as for any tool. Then, each `design_unavailable`, the G-code viewer, which has no
+Design tab; the CAD feature off (Preferences > Features); and a Design panel that cannot be built (no page was made
 at startup, the page is mid-build, or its build failed), whose message says to retry and then restart. The
 panel is otherwise built on the first call, since in a headless session nobody clicks the tab;
-`app_state.design_tab` says whether this session has the page. Then come a busy Design tab (`-32002`),
-and a `generation` that is not an unsigned integer (`-32602`) or not the model's (`-32010`). Before the
+`app_state.design_tab` says whether this session has the page. Then come a busy Design tab (`design_busy`, whose
+`hint` says that `confirm_tool` keeps what is open when its Confirm is on and `cancel_tool` discards it, and that a
+rebuild ends by itself), and a `generation` that is not an integer of 0 or more (`invalid_argument`;
+`cad_generation()` takes it stored signed too, as a script's Python integers arrive) or not the model's
+(`stale_ids`). Before the
 generation is read, the project's recipe is loaded into an empty document
 (`DesignPanel::hydrate_from_model()`), as showing the tab would.
 
@@ -1903,13 +1911,39 @@ session lets `sketch` commands through, since driving it is their point, and ref
 would not let the edit land there. `select_geometry` and `body_place` are `change` commands: a click in the
 view means something else under a card, a sketch, Constrain mode, a Move or the Text dialog.
 
-A Design command that fails is an error (an `isError` result with `code` `-32000`, `OCCT: …` for a kernel
-exception) and leaves the design as it was, so `replay_export` drops it and a replay never repeats a
-call that did nothing. That holds for argument errors and for a rebuild the kernel rejects alike.
+A Design command that fails is an error (an `isError` result). Its `code` is a word, as the other commands'
+refusals have, that names the cause, so that an agent knows from the error alone whether to change the call or the
+design:
+
+- `invalid_argument`: an argument is wrong in itself, names nothing, or names an object whose kind or geometry the
+  operation does not take (a face that is not planar, edges square to the sketch plane, a plane that misses the
+  body). The caller changes the arguments, or which object they name.
+- `precondition`: the arguments are right, but the state of what they name, of the design or of the session is not
+  one the operation takes: no body yet, a body hidden or without a shape, a sketch open or none, a datum hidden, the
+  feature already first, a tool open, nothing to undo. The caller changes the design or the session first.
+- `rebuild_failed`: a rebuild reported failure, with the call's change (taken back) or at the earlier state a call
+  reads (`body_describe {before}`); its message is the rebuild's reason, a kernel exception that
+  `CadDocument::recompute()` caught included.
+- `kernel_failure`: a CAD kernel error reached the command's guard, wherever it was raised; its message starts with
+  `OCCT: `.
+- `export_failed`: `export_step` could not transfer or write the STEP file.
+
+The line between the first two is between geometry and state. Geometry is what the named objects are and where
+they lie, which the call chose, even where a modeling step could make it fit; state is what the Design tab tracks
+apart from the geometry (whether an object exists, is shown or has a shape, a feature's place in the list, what is
+open or selected), which a call cannot choose. The silent forms throw `CadPrecondition` for state, `CadKernelFailure`
+where OCCT reports it could not compute, and plain exceptions for the arguments, which `run_guarded()` and
+`add_feature()` tell apart; a refusal of their own (a `ToolFailure`) keeps its code, and one that names none reads as
+a plain exception does. The `mcp_` entry points of `DesignPanel` that only these commands call (`mcp_select()`,
+`mcp_place_body()`, `mcp_place_body_on_face()`) throw `CadPrecondition` themselves for their state refusals, as
+`select_geometry` does for a body the view takes no pick on (`DesignSketchTool::body_takes_pick()`: no shape shown,
+hidden, or another body the only one picked). Whatever the cause, the design is as it was, so `replay_export` drops the call and a replay never repeats
+a call that did nothing.
 The exceptions are the silent forms whose block has `ok_false`, whose descriptions say so (`boolean`,
 `mirror`, `shell`, `draft`, `rib`, the surface tools, `delete_face`, `import_step`, `set_variable` and others):
-they report a rejected rebuild in their reply, `{ok: false, error}`, after the same rollback, so such a call
-is journaled and replays the same rejection. `extrude`, `revolve`, `sweep`, `loft`, `hole`, `thread`, `split`,
+they report a rejected rebuild in their reply, `{ok: false, error}`, with no code, after the same rollback, so such
+a call is journaled and replays the same rejection; their `ok: false` can mean more than that per command
+(`sketch_finish` of a re-opened sketch that was not replaced). `extrude`, `revolve`, `sweep`, `loft`, `hole`, `thread`, `split`,
 `fillet`, `chamfer`, `thicken`, `pattern`, `align` and `sketch_draw` fail as errors, so none of them fails two
 ways depending on its arguments. The feature tools that fail as errors add through `add_feature()`: one
 checkpoint, a rebuild, and on failure `CadDocument::rollback()`, which restores the checkpoint without leaving
@@ -2475,11 +2509,13 @@ sketch or switched the tab finds the actions of the app as it is then, and no lo
 Speed Dial's own picks run from the snapshot it was opened with. An unknown id returns up to three
 close ids, scored by edit distance against both the full id and its key, a key that contains the request
 (`delete_all` in the action id `obj_delete_all`) counting as closest, and says where to find an action or a
-command (see Tool catalog); the id or key of a Design tab action that is not live says instead that the action
-is there only while the Design tab is shown in its mode with the CAD feature on, and names the call that runs its
-command from any tab, with a folded item's arguments (`tool_call {"tool": "sketch_pattern", "args": {"type":
-"linear"}}`), or, in a run started with the feature off, that it was off then and how a person turns it on, as
-`tool_call` does (`unknown_action()`).
+command (see Tool catalog), with code `invalid_argument`; the id or key of a Design tab action that is not live
+says instead why (`unknown_action()`): that the action is there only while the Design tab is shown in its mode
+with the CAD feature on, naming the call that runs its command from any tab, with a folded item's arguments
+(`tool_call {"tool": "sketch_pattern", "args": {"type": "linear"}}`), as `wrong_mode`; with the feature turned off
+while the app runs, which drops every Design action though their commands stay in the catalog, that a person
+enables it and restarts; and in a run without the Design commands, why they are left out, as `tool_call` does.
+Those two are `design_unavailable`.
 
 A command's action takes no `args`, or exactly its own, and an action that collects a value takes that value
 alone (`action_args_error()`); a Design command's own action takes its command's arguments. To run a command

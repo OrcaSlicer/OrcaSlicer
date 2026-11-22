@@ -195,11 +195,19 @@ Plater& ui_plater();
 std::string no_such_plate(int plate, int count);
 
 // What a tool replies when an operation refuses: the refusal's English text, then `hint` when the tool
-// has something to add for an agent, with the refusal's code as `code` and the names it carries under
-// `names_key` when the tool gives one.
+// has something to add for an agent, with the refusal's code as `code`, the names it carries under
+// `names_key` when the tool gives one, and refusal_hint()'s as `hint`.
 ToolFailure refused(const Ops::Refusal& refusal, const std::string& hint = {}, const char* names_key = nullptr);
 
-// Typed argument access with defaults; schema validation has already checked the types.
+// What an agent's call does about `refusal` in the commands' terms, where the refusal's text, which a person reads too,
+// asks for a GUI step or a selection that a call can do instead (close the toolbar menus, deselect, select a part);
+// empty for the others, those whose step only a person takes (sign in, connect a printer) among them. Every route by
+// which a refusal reaches an agent adds it to the error's details as `hint`: refused() and
+// NativeCommands::from_run_result().
+std::string refusal_hint(const Ops::Refusal& refusal);
+
+// Typed argument access with defaults; schema validation has already checked the types. arg_int() refuses
+// (ToolFailure, invalid_argument) a number that no int holds, rather than narrowing it into another value.
 std::string arg_string(const nlohmann::json& args, const char* key, const std::string& fallback = {});
 int         arg_int(const nlohmann::json& args, const char* key, int fallback);
 double      arg_double(const nlohmann::json& args, const char* key, double fallback);
@@ -236,11 +244,13 @@ std::string action_args_error(const AppAction& action, const nlohmann::json& arg
 // them, which takes its command's arguments and keeps the command's rewrite of them (Mcp::ActionContext).
 nlohmann::json action_journal_args(const AppAction& action, const nlohmann::json& args);
 
-// What action_run answers for `id`, an action id or the name inside one, that no action of the app's state has:
-// for a Design tab action's, when that action is there and the tool_call that runs it from any tab (its command, with
-// the item's arguments for a folded item's action), or, when `catalog` leaves the action's command out
-// (CommandCatalog::leave_out()), why; for any other, where an action or a command is found.
-std::string unknown_action(const std::string& id, const CommandCatalog& catalog);
+// What action_run answers for `id`, an action id or the name inside one, that no action of the app's state has, with
+// a code that says why. For a Design tab action's: when `catalog` leaves the action's command out
+// (CommandCatalog::leave_out()), why, with the code it was left out with; with the CAD feature off now (`cad_on`
+// false), which drops every Design action, that a person enables it and restarts (design_unavailable); otherwise when
+// that action is there and the tool_call that runs it from any tab (its command, with the item's arguments for a
+// folded item's action), as wrong_mode. For any other, where an action or a command is found (invalid_argument).
+ToolFailure unknown_action(const std::string& id, const CommandCatalog& catalog, bool cad_on);
 
 // A setting value from JSON in the serialized form set_deserialize accepts: "3", "0.2", "1"/"0"
 // for booleans, "a,b" for arrays. A list of strings (`key` names a coStrings option, such as

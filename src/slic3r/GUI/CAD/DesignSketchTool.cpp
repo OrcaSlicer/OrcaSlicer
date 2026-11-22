@@ -3831,6 +3831,19 @@ void DesignSketchTool::select_body(int body)
     m_solid_sel = SolidSel::Whole;   // the canvas fills just this body, render_solid_highlight outlines it
 }
 
+bool DesignSketchTool::body_takes_pick(int body, std::string* why) const
+{
+    const auto refuse = [why](std::string reason) {
+        if (why != nullptr) *why = std::move(reason);
+        return false;
+    };
+    if (body_shape(body) == nullptr)
+        return refuse("body " + std::to_string(body) + " has no shape in the view to pick from");
+    if (!body_pickable(body))
+        return refuse("body " + std::to_string(body) + " takes no click in the view: it is hidden, or another body is the only one picked");
+    return true;
+}
+
 bool DesignSketchTool::can_select_solid(SolidSel kind, int body, int face, const std::vector<int>& edges,
                                         std::string* why) const
 {
@@ -3838,11 +3851,9 @@ bool DesignSketchTool::can_select_solid(SolidSel kind, int body, int face, const
         if (why != nullptr) *why = std::move(reason);
         return false;
     };
+    if (!body_takes_pick(body, why))
+        return false;
     const TopoDS_Shape* shape = body_shape(body);
-    if (shape == nullptr)
-        return refuse("body " + std::to_string(body) + " has no shape in the view to pick from");
-    if (!body_pickable(body))
-        return refuse("body " + std::to_string(body) + " takes no click in the view: it is hidden, or another body is the only one picked");
     switch (kind) {
     case SolidSel::Face: {
         const int count = GeometryEngine::face_count(*shape);

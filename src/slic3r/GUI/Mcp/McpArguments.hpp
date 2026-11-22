@@ -1,11 +1,13 @@
 #pragma once
 
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 
 #include <nlohmann/json.hpp>
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -13,9 +15,12 @@
 namespace Slic3r { namespace GUI { namespace Mcp {
 
 // For a call of tool_call ({tool, args}): replaces `command` and `args` with its target's, normalized and
-// validated, so the call runs and is journaled as the target's own. Returns an error message, or "" (also
-// for any other command, which it leaves as it is).
-std::string resolve_call(const CommandCatalog& catalog, std::shared_ptr<const NativeCommand>& command, nlohmann::json& args);
+// validated, so the call runs and is journaled as the target's own. Returns the call's error, or nothing (also
+// for any other command, which it leaves as it is): invalid_argument for a target that names no command, tool_call
+// itself, or arguments the target refuses; for a target the catalog leaves out, the code it was left out with
+// (CommandCatalog::unknown_command_code()).
+std::optional<ToolFailure> resolve_call(const CommandCatalog& catalog, std::shared_ptr<const NativeCommand>& command,
+                                        nlohmann::json& args);
 
 // ---- arguments and name matching (McpArguments.cpp) ------------------------------------------
 
@@ -23,6 +28,11 @@ std::string resolve_call(const CommandCatalog& catalog, std::shared_ptr<const Na
 // type, enum, minimum/maximum, required, additionalProperties:false, array items, and the "if" and "then"
 // of with_silent()). Returns an empty string when valid, else a message naming the offending property.
 std::string validate_arguments(const nlohmann::json& schema, const nlohmann::json& args);
+
+// Whether `v` is a whole number as the schemas' integer type takes one: a JSON integer, or a float with no fraction
+// within the int64 range the callers read it into. A float is checked without a cast, which past that range would be
+// undefined. The checks that read an integer argument themselves take the same numbers (target indices, generation).
+bool is_whole_number(const nlohmann::json& v);
 
 // Whether `args` is a call with no arguments: an object with no members, or null. A Design command and a menu
 // item's function do their person's form then (they ask, as a person's pick does).

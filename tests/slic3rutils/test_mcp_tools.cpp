@@ -42,7 +42,9 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <iterator>
+#include <limits>
 #include <map>
 #include <memory>
 #include <optional>
@@ -89,6 +91,27 @@ public:
 };
 
 } // namespace
+
+TEST_CASE("an integer argument that no int holds is refused, not narrowed into another value", "[Mcp]")
+{
+    CHECK(arg_int({{"plate", 2}}, "plate", -1) == 2);
+    CHECK(arg_int({{"plate", 2.0}}, "plate", -1) == 2);
+    CHECK(arg_int(json::object(), "plate", -1) == -1);
+    CHECK(arg_int({{"plate", "2"}}, "plate", -1) == -1);
+    CHECK(arg_int({{"plate", std::numeric_limits<int>::min()}}, "plate", 0) == std::numeric_limits<int>::min());
+    // get<int>() would make plate 0, or instance 0, of these, which the command then accepts.
+    for (const json& wide : {json(std::int64_t(4294967296)), json(std::uint64_t(18446744073709551615ull)), json(-4294967297.0),
+                             json(9.0e18), json(std::int64_t(std::numeric_limits<int>::max()) + 1)}) {
+        INFO(wide.dump());
+        try {
+            arg_int({{"instance", wide}}, "instance", 0);
+            FAIL("the argument was narrowed");
+        } catch (const ToolFailure& f) {
+            CHECK_THAT(std::string(f.what()), Catch::Matchers::ContainsSubstring("instance " + wide.dump() + " is out of range"));
+            CHECK(f.details.value("code", std::string()) == "invalid_argument");
+        }
+    }
+}
 
 TEST_CASE("setting values serialize the way their options read them back", "[Mcp]")
 {
@@ -481,24 +504,35 @@ TEST_CASE("project_export writes six formats, and project_import takes the entri
 
 TEST_CASE("action_run says where an action it cannot find is", "[Mcp][SpeedDial]")
 {
-    CHECK_THAT(unknown_action("obj_arange", NativeCommands::instance()), Catch::Matchers::ContainsSubstring("action_search"));
+    // The text and the code of action_run's refusal of `id`.
+    const auto refusal = [](const std::string& id, const CommandCatalog& catalog, bool cad_on) {
+        const ToolFailure refused = unknown_action(id, catalog, cad_on);
+        return std::make_pair(std::string(refused.what()), refused.details.value("code", std::string()));
+    };
+    // An id no action has is the call's to correct.
+    const auto [typo, typo_code] = refusal("obj_arange", NativeCommands::instance(), true);
+    CHECK_THAT(typo, Catch::Matchers::ContainsSubstring("action_search"));
+    CHECK(typo_code == "invalid_argument");
 #ifdef SLIC3R_CAD
     // A Design tab action, by its id or its key, while it is not shown: in a run with the CAD feature on at startup
-    // tool_call runs its command from any tab, and in one with it off there is no such command.
+    // tool_call runs its command from any tab (wrong_mode, the id being right), and in one with it off there is no such
+    // command (design_unavailable).
     for (const bool cad : {true, false}) {
         CommandCatalog catalog;
         NativeCommands::register_all_commands(catalog, {cad});
         catalog.seal();
         for (const std::string id : {"orca_command:shell:orca", "shell"}) {
             INFO(id << (cad ? ", the CAD feature on" : ", the CAD feature off"));
-            const std::string why = unknown_action(id, catalog);
+            const auto [why, code] = refusal(id, catalog, cad);
             if (cad) {
                 CHECK_THAT(why, Catch::Matchers::ContainsSubstring("while the Design tab is shown"));
                 CHECK_THAT(why, Catch::Matchers::ContainsSubstring("tool_call {\"tool\": \"shell\"}"));
+                CHECK(code == "wrong_mode");
             } else {
                 CHECK(why == id + " is a Design tab action, and the CAD feature was off when OrcaSlicer started: a person "
                                   "turns it on in Preferences > Features and restarts OrcaSlicer, or starts it with "
                                   "--cad");
+                CHECK(code == "design_unavailable");
             }
         }
         // A folded item's action names the call of its command that runs it; with the feature off at startup, there is
@@ -506,15 +540,23 @@ TEST_CASE("action_run says where an action it cannot find is", "[Mcp][SpeedDial]
         const std::string folded = "orca_command:sk_array:orca";
         INFO(folded << (cad ? ", the CAD feature on" : ", the CAD feature off"));
         if (cad)
-            CHECK_THAT(unknown_action(folded, catalog),
+            CHECK_THAT(refusal(folded, catalog, cad).first,
                        Catch::Matchers::ContainsSubstring("tool_call {\"tool\": \"sketch_pattern\", \"args\": {\"type\": \"linear\"}}"));
         else
-            CHECK(unknown_action(folded, catalog) == folded + " is a Design tab action, and the CAD feature was off when OrcaSlicer "
-                                                              "started: a person turns it on in Preferences > Features and restarts "
-                                                              "OrcaSlicer, or starts it with --cad");
+            CHECK(refusal(folded, catalog, cad).first == folded + " is a Design tab action, and the CAD feature was off when "
+                                                                  "OrcaSlicer started: a person turns it on in Preferences > "
+                                                                  "Features and restarts OrcaSlicer, or starts it with --cad");
         // A Design command with no Speed Dial action is refused as any unknown action is.
-        CHECK_THAT(unknown_action("orca_command:describe_design:orca", catalog), Catch::Matchers::ContainsSubstring("action_search"));
+        CHECK_THAT(refusal("orca_command:describe_design:orca", catalog, cad).first, Catch::Matchers::ContainsSubstring("action_search"));
     }
+    // The CAD feature turned off while the app runs drops every Design action, though their commands stay in the
+    // catalog: the action is right, and a person turns the feature back on.
+    CommandCatalog with_cad;
+    NativeCommands::register_all_commands(with_cad, {true});
+    with_cad.seal();
+    const auto [off_now, off_now_code] = refusal("shell", with_cad, false);
+    CHECK_THAT(off_now, Catch::Matchers::ContainsSubstring("the CAD feature is off"));
+    CHECK(off_now_code == "design_unavailable");
 #endif
 }
 
@@ -807,7 +849,13 @@ TEST_CASE("tool_search reads one inventory", "[Mcp]")
     const json described = search_commands(catalog, {{"tool", "measure_action"}});
     CHECK(described["listed"] == false);
     CHECK(described["input_schema"]["properties"].contains("a"));
-    CHECK_THROWS_AS(search_commands(catalog, {{"tool", "measure_nothing"}}), ToolFailure);
+    // A name no command has is the call's argument to correct.
+    try {
+        search_commands(catalog, {{"tool", "measure_nothing"}});
+        FAIL("an unknown tool was not refused");
+    } catch (const ToolFailure& f) {
+        CHECK(f.details.value("code", std::string()) == "invalid_argument");
+    }
 
     // group narrows the names and the matches, in any case, a source's commands included.
     CHECK(search_commands(catalog, json::object())["names"] == json::array({"measure_bed", "measure_action", "plugin.fixture.measure"}));
@@ -823,6 +871,7 @@ TEST_CASE("tool_search reads one inventory", "[Mcp]")
     } catch (const ToolFailure& f) {
         CHECK(std::string(f.what()).find("Unknown group: commands") != std::string::npos);
         CHECK(f.details["groups"] == json::array({"Plugins", "View"}));
+        CHECK(f.details.value("code", std::string()) == "invalid_argument");
     }
 }
 

@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
@@ -45,8 +46,7 @@ bool type_matches(const json& value, const json& type)
     if (t == "number")
         return value.is_number();
     if (t == "integer")
-        return value.is_number_integer() || value.is_number_unsigned() ||
-               (value.is_number_float() && value.get<double>() == double(int64_t(value.get<double>())));
+        return is_whole_number(value);
     return json_type_name(value) == t;
 }
 
@@ -337,6 +337,16 @@ void normalize_arguments(const json& schema, json& args)
 }
 
 std::string validate_arguments(const json& schema, const json& args) { return validate_value(schema, args, ""); }
+
+bool is_whole_number(const json& v)
+{
+    if (v.is_number_integer())
+        return true;
+    if (!v.is_number_float())
+        return false;
+    const double d = v.get<double>();
+    return std::isfinite(d) && d == std::floor(d) && d >= -9223372036854775808.0 && d < 9223372036854775808.0;
+}
 
 bool person_form(const json& args) { return args.is_null() || (args.is_object() && args.empty()); }
 

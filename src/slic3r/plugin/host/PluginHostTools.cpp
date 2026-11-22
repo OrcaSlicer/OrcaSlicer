@@ -204,6 +204,7 @@ void register_tools(py::module_& host)
         [tools](const std::string& name) mutable {
             json        entry;
             std::string unknown; // the error for a name the catalog does not hold
+            std::string code;
             json        close;
             {
                 py::gil_scoped_release     release;
@@ -212,11 +213,12 @@ void register_tools(py::module_& host)
                     entry = GUI::command_reference(*command);
                 } else {
                     unknown = catalog.unknown_command(name);
+                    code    = catalog.unknown_command_code(name);
                     close   = catalog.similar(name);
                 }
             }
             if (!unknown.empty())
-                raise_tool_error(tools, unknown, {{"did_you_mean", close}});
+                raise_tool_error(tools, unknown, {{"code", code}, {"did_you_mean", close}});
             return json_to_py(entry);
         },
         py::arg("name"),

@@ -482,7 +482,7 @@ named after the rung, runs `recover()` and goes on to the next rung.
   `describe_design` error added; Scale artwork and Edit: undo depth +1 on Confirm, +0 on Cancel; `nothing_open`
   (no modal or modeless dialog, no sketch).
 - Edit cards: `feature_edit refs` sets the Fillet's `refs.edges` to the id `body_describe {before}` gave, in one
-  undo step, refuses stale ids with `-32010`, and undo restores it. The repick rungs click on the canvas through
+  undo step, refuses stale ids with `stale_ids`, and undo restores it. The repick rungs click on the canvas through
   the calibrated map, an edge 1 mm in on the top face it bounds, since seen from above the edge is the block's
   outline and a click on the line, rounded to a whole pixel, can land just outside the block. They require the
   exact edge or face id (`plane_face`, `plane_face_body`), the Hole's plane normal and origin to 1e-6 and
@@ -493,8 +493,8 @@ named after the rung, runs `recover()` and goes on to the next rung.
   calls; `sketch_normal` looks along the XZ normal (cosine ≥ 0.999).
 - select, select_loops: `selection.id` for each kind (`body_solid`, `face_planar`, `edge_str`, `vertex`, `sk_loop`,
   `none`); vertex point to 1e-6; renames through the row editor show in `describe_design`; `feature_delete` and
-  its undo; `busy` texts for `feature_edit {}` and `sketch_constrain_selected`; refusals carrying `-32002` or
-  `-32010` with the selection kept; `applies` true for `fillet`, `delete_face` and `zoom_to_selection`; after
+  its undo; `busy` texts for `feature_edit {}` and `sketch_constrain_selected`; refusals carrying `design_busy` or
+  `stale_ids` with the selection kept; `applies` true for `fillet`, `delete_face` and `zoom_to_selection`; after
   `zoom_to_selection` the camera's `look_at` is loop 1's centre (1e-3); three canvas screenshots (face, edge,
   vertex selected) differ from the nothing-selected one and from each other.
 - confirm and cancel: `was` (`card`, `sketch`, `plane_pick`, `text`, `insert`), `ok`, `feature` index, `open`;

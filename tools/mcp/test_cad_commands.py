@@ -45,7 +45,7 @@ surface_revolve_flip selects a sketch's loop with select_geometry, opens the Sur
 surface_revolve {}, ticks its Flip and confirms: the feature keeps the Flip.
 The refs rungs work on a block whose top edge is filleted and which is then shelled, renumbering its edges.
 feature_edit_refs re-points the Fillet with feature_edit's refs at an edge read with body_describe {before}: the Fillet
-rounds it, in one undo step that undo takes back, and ids read at a generation the edit rebuilt are refused (-32010).
+rounds it, in one undo step that undo takes back, and ids read at a generation the edit rebuilt are refused (stale_ids).
 text_edit changes a Text feature's words and height with feature_edit: two regions, 20 mm high, one undo step.
 edit_repick opens the Fillet's card from its row, picks another top edge in the view and confirms: the Fillet names
 that edge by its id in the model before it, and edit_repick_placed does so with the block placed off where the model
@@ -1017,7 +1017,7 @@ def rung_select():
     held = gui.cad("describe_design")["selection"]
     for args in ({"body": 0, "face": top, "generation": gen}, {}):
         why = refused("select_geometry", **args)
-        gui.check(f"select: {args} is refused as busy with the card", "-32002" in why and "a feature card is open" in why,
+        gui.check(f"select: {args} is refused as busy with the card", "design_busy" in why and "a feature card is open" in why,
                   why)
     gui.check("select: the card's selection stays", gui.cad("describe_design")["selection"] == held,
               [held, gui.cad("describe_design")["selection"]])
@@ -1025,7 +1025,7 @@ def rung_select():
     gui.cad("sketch_create", plane="XY")
     for args in ({"body": 0}, {}):
         why = refused("select_geometry", **args)
-        gui.check(f"select: {args} is refused as busy with the sketch", "-32002" in why and "a sketch is open" in why, why)
+        gui.check(f"select: {args} is refused as busy with the sketch", "design_busy" in why and "a sketch is open" in why, why)
     gui.cad("sketch_cancel")
 
     # A refused call changes nothing.
@@ -1039,7 +1039,7 @@ def rung_select():
         gui.check(f"select: {what} is refused", why != "", why)
         gui.check(f"select: {what}, refused, leaves the face selected", selected()[0] == "face_planar", selected())
     why = refused("select_geometry", body=0, face=top, generation=gen + 1)
-    gui.check("select: a stale generation is refused", "-32010" in why, why)
+    gui.check("select: a stale generation is refused", "stale_ids" in why, why)
 
     # The menu items that take what is selected apply to it.
     select(body=0, edges=[edge], generation=gen)
@@ -1174,7 +1174,7 @@ def rung_feature_edit_refs():
               r.get("ok") is True and edges == [edge["id"]], [r, edges])
     gui.check("feature_edit_refs: one undo step", undo_depth() == depth + 1, f"{depth} -> {undo_depth()}")
     why = refused("feature_edit", feature=fillet, refs={"edges": [rounded]}, generation=along_x["generation"])
-    gui.check("feature_edit_refs: ids read before the edit rebuilt the model are refused as stale", "-32010" in why, why)
+    gui.check("feature_edit_refs: ids read before the edit rebuilt the model are refused as stale", "stale_ids" in why, why)
     gui.client.call_command("undo", history="design")
     edges = gui.cad("feature_describe", feature=fillet)["refs"]["edges"]
     gui.check("feature_edit_refs: one undo puts the Fillet back on its edge", edges == [rounded], edges)
@@ -1691,7 +1691,7 @@ def rung_place():
 
     gui.cad("sketch_create", plane="XY")
     why = refused("body_place", body=0, move=[1, 0, 0])
-    gui.check("place: with a sketch open it is refused as busy", "-32002" in why and "a sketch is open" in why, why)
+    gui.check("place: with a sketch open it is refused as busy", "design_busy" in why and "a sketch is open" in why, why)
     gui.cad("sketch_cancel")
 
 

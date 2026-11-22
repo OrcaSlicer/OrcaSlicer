@@ -253,7 +253,9 @@ public:
     // select_geometry: select `s` as the click that selects it does, through the handlers that click runs. The whole
     // request is checked first, every id against the model and against what a click could pick now (a body shown, a
     // loop the view shows, a plane while the Origin row's planes are up or Sketch waits for its plane); one that fails
-    // returns false with the reason in `why` and changes nothing. Otherwise whatever is selected goes first, of every
+    // changes nothing: an id that names nothing, or the wrong kind of thing, returns false with the reason in `why`,
+    // and what the view cannot take now (a suppressed sketch, a loop not on show, no plane up for a click) throws
+    // Mcp::CadPrecondition, as a view not built throws Mcp::no_design_view(). Otherwise whatever is selected goes first, of every
     // kind (the solid and loop picks, the Feature list's and Bodies list's rows, the picked reference plane), so that
     // one form never leaves another's behind, and a feature's highlight is in place when this returns. For the model
     // at rest: cad_gate() refuses the call while a card or anything else a click would feed is open.
@@ -290,10 +292,12 @@ public:
     // body_place: where body `body` stands for Commit to Plate and Export STEP, outside the history, as the Bodies row's
     // Move and Place on Face set it. Moved by `move` (world mm) and turned by `angle_deg` about world axis `axis` (0 x,
     // 1 y, 2 z; -1 for no turn) through its centre, added to where it stands, as the Move / Rotate card composes it.
-    // False, changing nothing, with the reason in `why`, for a body the model or its display does not have.
+    // False, changing nothing, with the reason in `why`, for a body the model does not have; throws
+    // Mcp::CadPrecondition, changing nothing, for one its display does not show.
     bool mcp_place_body(int body, const Vec3d& move, int axis, double angle_deg, std::string& why);
-    // Place on Face of body `body`'s face `face`; false, changing nothing, with `why` for a face the body does not have
-    // or one with no normal to lay it on the bed by.
+    // Place on Face of body `body`'s face `face`; false, changing nothing, with `why` for a body or face the model does
+    // not have; throws Mcp::CadPrecondition, changing nothing, for a body its display does not show or whose
+    // placement turns the face's normal into no direction.
     bool mcp_place_body_on_face(int body, int face, std::string& why);
     // Body `body` back where the model has it.
     void mcp_reset_body_placement(int body);

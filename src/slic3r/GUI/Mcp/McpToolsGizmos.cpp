@@ -114,8 +114,9 @@ bool acts(const json& args, const std::string& command)
 
 Vec3d to_vec3(const json& v, const char* what)
 {
-    if (!v.is_array() || v.size() != 3)
-        throw ToolFailure(std::string(what) + " must be [x, y, z]");
+    // Each element too: a schema may give the array no items, and get<double>() throws on anything but a number.
+    if (!v.is_array() || v.size() != 3 || !v[0].is_number() || !v[1].is_number() || !v[2].is_number())
+        throw ToolFailure(std::string(what) + " must be [x, y, z], three numbers", {{"code", "invalid_argument"}});
     return {v[0].get<double>(), v[1].get<double>(), v[2].get<double>()};
 }
 

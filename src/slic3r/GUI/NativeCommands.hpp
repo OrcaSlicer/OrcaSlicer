@@ -20,10 +20,13 @@ struct Refusal;
 
 namespace NativeCommands {
 // Which optional families of commands the process catalog holds. cad: the Design tab is on in this run, so the
-// catalog holds its commands (in a build with CAD; a build without it has none).
+// catalog holds its commands (in a build with CAD; a build without it has none). editor: the run is the editor, not
+// the G-code viewer, which has no Design tab whatever the preference says; it chooses why the catalog says it leaves
+// the Design commands out.
 struct CatalogOptions
 {
-    bool cad = false;
+    bool cad    = false;
+    bool editor = true;
 };
 
 // Adds the built-in commands to `catalog`, family by family (Mcp::register_app_tools() and the others): the typed

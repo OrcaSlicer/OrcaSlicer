@@ -63,6 +63,7 @@
 #include <cmath>
 #include <condition_variable>
 #include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <functional>
 #include <initializer_list>
@@ -1295,6 +1296,42 @@ TEST_CASE("a command's targets are what its arguments name, else the selection",
                       ContainsSubstring("object 0 has no instance 1 (it has instance 0 only)"));
     // Both forms of one target at once.
     CHECK_THROWS_AS(named_targets(model, {{"object", 1}, {"objects", json::array({0})}}, Mcp::kObjects), ToolFailure);
+    // An index wider than an int is out of range as given, not narrowed to another index (4294967296 to 0).
+    CHECK_THROWS_WITH(named_targets(model, {{"objects", json::array({std::int64_t(4294967296)})}}, Mcp::kObjects),
+                      ContainsSubstring("object index 4294967296 is out of range"));
+    CHECK_THROWS_WITH(named_targets(model, {{"object", 1}, {"part", std::int64_t(4294967296)}}, kEveryKind, true),
+                      ContainsSubstring("object 1 has no part 4294967296"));
+    CHECK_THROWS_WITH(named_targets(model, {{"instances", json::array({json::array({std::int64_t(4294967296), 0})})}}, Mcp::kInstances),
+                      ContainsSubstring("object index 4294967296 is out of range"));
+    // An unsigned index past int64 is named as given, not as the negative number a narrowing makes of it.
+    CHECK_THROWS_WITH(named_targets(model, {{"objects", json::array({std::uint64_t(18446744073709551615ull)})}}, Mcp::kObjects),
+                      ContainsSubstring("object index 18446744073709551615 is out of range"));
+    CHECK_THROWS_WITH(named_targets(model, {{"parts", json::array({json::array({1, std::uint64_t(18446744073709551615ull)})})}},
+                                    Mcp::kParts),
+                      ContainsSubstring("object 1 has no part 18446744073709551615"));
+    // A whole number written as a float is an index, as the schema's integer type takes it, in any form.
+    const auto as_floats = named_targets(model, {{"objects", json::array({0.0, 2.0})}}, Mcp::kObjects);
+    REQUIRE(as_floats);
+    CHECK(as_floats.value().objects == std::vector<int>{0, 2});
+    const auto float_part = named_targets(model, {{"parts", json::array({json::array({1.0, 1.0})})}}, Mcp::kParts);
+    REQUIRE(float_part);
+    CHECK(float_part.value().parts == std::vector<std::pair<int, int>>{{1, 1}});
+    const auto float_object = named_targets(model, {{"object", 1.0}, {"instance", 1.0}}, kEveryKind, true);
+    REQUIRE(float_object);
+    CHECK(float_object.value().instances == std::vector<std::pair<int, int>>{{1, 1}});
+    // A float past int64, which the schema's integer type does not take either (Mcp::is_whole_number()), is no index.
+    CHECK_THROWS_WITH(named_targets(model, {{"objects", json::array({9.3e18})}}, Mcp::kObjects),
+                      ContainsSubstring("an entry of objects is an object index"));
+    // Each is the call's to correct, by whichever route it came.
+    for (const json& wrong : {json{{"objects", json::array({0, 3})}}, json{{"object", 1}, {"objects", json::array({0})}}}) {
+        INFO(wrong.dump());
+        try {
+            named_targets(model, wrong, Mcp::kObjects);
+            FAIL("the targets were not refused");
+        } catch (const ToolFailure& f) {
+            CHECK(f.details.value("code", std::string()) == "invalid_argument");
+        }
+    }
 
     // With none named, the targets are the selection, and a null selection holds nothing.
     const auto none = named_targets(model, json::object(), kEveryKind);

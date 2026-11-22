@@ -99,8 +99,9 @@ json vec3(const Vec3d& v) { return {v.x(), v.y(), v.z()}; }
 
 Vec3d to_vec3(const json& v, const char* what)
 {
-    if (!v.is_array() || v.size() != 3)
-        throw ToolFailure(std::string(what) + " must be [x, y, z]");
+    // Each element too: a schema may give the array no items, and get<double>() throws on anything but a number.
+    if (!v.is_array() || v.size() != 3 || !v[0].is_number() || !v[1].is_number() || !v[2].is_number())
+        throw ToolFailure(std::string(what) + " must be [x, y, z], three numbers", {{"code", "invalid_argument"}});
     return {v[0].get<double>(), v[1].get<double>(), v[2].get<double>()};
 }
 
@@ -179,7 +180,7 @@ Vec3d scale_factors(const json& s)
 {
     const Vec3d f = s.is_number() ? Vec3d::Constant(s.get<double>()) : to_vec3(s, "scale");
     if (f.minCoeff() <= 0.)
-        throw ToolFailure("scale factors must be positive");
+        throw ToolFailure("scale factors must be positive", {{"code", "invalid_argument"}});
     return f;
 }
 
@@ -1604,19 +1605,9 @@ AppActionRunResult add_primitive_command(const json& args)
 
     Plater&                 plater = ui_plater();
     const Ops::Outcome<int> added  = Ops::add_primitive(op);
-    if (!added) {
-        const std::string code = added.refusal().code;
+    if (!added)
         // The size dialog cancelled told the person nothing more is to come.
-        if (op.ask && code == "not_added")
-            return quiet_refusal(added.refusal());
-        AppActionRunResult refused = menu_refused(added.refusal());
-        // The refusal words the person's menus; an agent's call has commands for each way out.
-        if (code == "object_selected")
-            refused.reply = json{{"hint", "object_select {none: true} first; or give size or silent: true, which adds the shape whatever is "
-                                          "selected; part_add adds it to the selected object"}}
-                                .dump();
-        return refused;
-    }
+        return op.ask && std::string(added.refusal().code) == "not_added" ? quiet_refusal(added.refusal()) : menu_refused(added.refusal());
     const int index = added.value();
     Targets made;
     made.objects    = {index};

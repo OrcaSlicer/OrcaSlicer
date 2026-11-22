@@ -197,10 +197,25 @@ const char* const kCadOffNote = "tool_call runs no Design command now: they need
                                 "started, in Preferences > Features or with --cad. A person turns it on there if it is "
                                 "off and restarts OrcaSlicer, or starts it with --cad.";
 
-// Why a catalog built with the CAD feature off leaves out the Design commands, after "Unknown tool: <key>; "
-// or an action's "<key> is a Design tab action, and " (unknown_action()).
+// Why a catalog built without the Design commands leaves them out, after "Unknown tool: <key>; " or an action's
+// "<key> is a Design tab action, and " (unknown_action()): in the editor the CAD feature was off at startup; the
+// G-code viewer has no Design tab whatever the preference says.
 const char* const kCadOffAtStartup = "the CAD feature was off when OrcaSlicer started: a person turns it on in "
                                      "Preferences > Features and restarts OrcaSlicer, or starts it with --cad";
+const char* const kNoDesignInViewer = "the G-code viewer has no Design tab: a person opens the project in OrcaSlicer's editor";
+// cad_gate()'s refusal while the CAD feature is off in a run that started with it on.
+const char* const kCadOffNow = "The CAD feature is off; enable it in Preferences > Features and restart OrcaSlicer";
+
+// The details of a ToolFailure a silent form passes on, with invalid_argument as their code where they name no cause,
+// as a plain exception a silent form throws reads (run_guarded(), add_feature()).
+json with_code(json details)
+{
+    if (!details.is_object())
+        details = json::object();
+    if (!details.contains("code"))
+        details["code"] = "invalid_argument";
+    return details;
+}
 
 // What describe_design and select_geometry say is selected. The selection: what the right-click menu would be built
 // for, its kind (an OfferSel) and its id in the atlas, which the entries' accepts name.
@@ -385,7 +400,9 @@ json plane_json(const SketchPlane& p, const Vec3d& modeling_origin)
 // `add` creates them and returns the index reported under `index_key`. A rebuild that fails, or an
 // `add` that throws, leaves the document as it was with nothing to redo, puts "Edit rejected" on
 // the status line as a refused GUI edit does, and fails the call with the kernel's reason, so the
-// failed call can be left out of an exported replay.
+// failed call can be left out of an exported replay. The error's code tells the causes apart, as
+// run_guarded() does: rebuild_failed for a rebuild that reports failure, kernel_failure, precondition or
+// invalid_argument, or the code of a ToolFailure `add` throws.
 // `slow` rebuilds as the cards do, off the UI thread behind the progress dialog (recompute_guarded),
 // for features whose helical pipes and skins can take seconds: the window keeps painting and
 // inspection calls keep answering meanwhile, while the rebuild refuses every Design call.
@@ -395,20 +412,32 @@ json add_feature(DesignPanel* panel, const char* index_key, const std::function<
     doc.checkpoint();
     int         idx = -1;
     std::string why;
+    json        details = {{"code", "rebuild_failed"}};
     try {
         idx = add();
         if (!(slow ? panel->recompute_guarded(_L("Rebuilding model…")) : doc.recompute()))
             why = doc.error.empty() ? "the model could not be rebuilt" : doc.error;
-    } catch (const Standard_Failure& ex) {   // derives from std::exception, so it comes first
-        why = std::string("OCCT: ") + (*ex.what() ? ex.what() : "failure");
+    } catch (const ToolFailure& ex) {   // a refusal with its own code, such as no_design_view()
+        why     = ex.what();
+        details = with_code(ex.details);
+    } catch (const Standard_Failure& ex) {   // derives from std::exception, so it comes before it
+        why     = std::string("OCCT: ") + (*ex.what() ? ex.what() : "failure");
+        details = {{"code", "kernel_failure"}};
+    } catch (const CadKernelFailure& ex) {
+        why     = std::string("OCCT: ") + ex.what();
+        details = {{"code", "kernel_failure"}};
+    } catch (const CadPrecondition& ex) {
+        why     = ex.what();
+        details = {{"code", "precondition"}};
     } catch (const std::exception& ex) {
-        why = *ex.what() ? ex.what() : "the feature could not be added";
+        why     = *ex.what() ? ex.what() : "the feature could not be added";
+        details = {{"code", "invalid_argument"}};
     }
     if (!why.empty()) {
         doc.rollback();
         doc.error = why;   // the rollback's rebuild cleared it; the status line reads it
         panel->mcp_after_change(false);
-        throw ToolFailure(why, {{"code", -32000}});
+        throw ToolFailure(why, std::move(details));
     }
     panel->mcp_after_change();
     return json{{"ok", true}, {index_key, idx}, {"bodies", int(doc.bodies.size())}};
@@ -463,7 +492,7 @@ const TopoDS_Shape& body_shape(const CadDocument& doc, const json& params)
     if (idx < 0 || idx >= int(doc.bodies.size()))
         throw std::runtime_error("body index out of range (have " + std::to_string(doc.bodies.size()) + ")");
     if (doc.bodies[idx].shape.IsNull())
-        throw std::runtime_error("body has no shape");
+        throw CadPrecondition("body has no shape");
     return doc.bodies[idx].shape;
 }
 
@@ -475,7 +504,7 @@ json body_mass_properties(DesignPanel* panel, const json& params)
 {
     const TopoDS_Shape& shape = body_shape(panel->mcp_doc(), params);
     auto mp = GeometryEngine::mass_properties(shape);
-    if (!mp.valid) throw std::runtime_error("mass properties could not be computed (null/empty shape)");
+    if (!mp.valid) throw CadKernelFailure("mass properties could not be computed");
     // A sheet body has no volume and no inertia. Report the area and say so, rather than
     // returning numbers a caller would reasonably treat as a material check.
     if (!mp.is_solid)
@@ -546,7 +575,7 @@ json body_section(DesignPanel* panel, const json& params)
     sect.ComputePCurveOn1(false);
     sect.Approximation(true);
     sect.Build();
-    if (!sect.IsDone()) throw std::runtime_error("section failed");
+    if (!sect.IsDone()) throw CadKernelFailure("section failed");
     std::vector<std::vector<Vec3d>> segs;
     for (TopExp_Explorer ex(sect.Shape(), TopAbs_EDGE); ex.More(); ex.Next()) {
         std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(TopoDS::Edge(ex.Current()));
@@ -800,7 +829,7 @@ json action_shell(DesignPanel* panel, const json& params)
     if (thickness <= 0) throw std::runtime_error("thickness must be > 0");
     const int face = params.value("face", -1);   // face id to leave open (-1 = closed hollow)
     CadDocument& doc = panel->mcp_doc();
-    if (doc.bodies.empty()) throw std::runtime_error("no body to shell");
+    if (doc.bodies.empty()) throw CadPrecondition("no body to shell");
     int bi = target_body_arg(params, doc);
     doc.checkpoint();
     int s = doc.add_shell(thickness, face, bi, panel->mcp_feature_name(_L_CONTEXT("Shell", "Design")));
@@ -815,7 +844,7 @@ json action_rib(DesignPanel* panel, const json& params)
     if (!params.contains("sketch")) throw std::runtime_error("rib needs 'sketch' (feature index)");
     if (!params.contains("entity")) throw std::runtime_error("rib needs 'entity' (entity index)");
     CadDocument& doc = panel->mcp_doc();
-    if (doc.bodies.empty()) throw std::runtime_error("no body to rib");
+    if (doc.bodies.empty()) throw CadPrecondition("no body to rib");
     int sketch    = params["sketch"].get<int>();
     int entity    = params["entity"].get<int>();
     double thickness = params.value("thickness", 2.0);
@@ -858,7 +887,7 @@ json action_surface_revolve(DesignPanel* panel, const json& params)
 json action_surface_offset(DesignPanel* panel, const json& params)
 {
     CadDocument& doc = panel->mcp_doc();
-    if (doc.bodies.empty()) throw std::runtime_error("no sheet body to offset");
+    if (doc.bodies.empty()) throw CadPrecondition("no sheet body to offset");
     int bi = target_body_arg(params, doc);
     double offset = params.value("offset", 1.0);
     doc.checkpoint();
@@ -903,7 +932,7 @@ json action_draft(DesignPanel* panel, const json& params)
     if (!params.contains("face")) throw std::runtime_error("draft needs 'face' (id from body_describe)");
     const double angle = params.value("angle", 5.0);
     CadDocument& doc = panel->mcp_doc();
-    if (doc.bodies.empty()) throw std::runtime_error("no body to draft");
+    if (doc.bodies.empty()) throw CadPrecondition("no body to draft");
     int bi = target_body_arg(params, doc);
     doc.checkpoint();
     int d = doc.add_draft(angle, params["face"].get<int>(), bi, panel->mcp_feature_name(_L("Draft")));
@@ -938,9 +967,9 @@ json action_draft(DesignPanel* panel, const json& params)
 DesignSketchTool& mcp_sketch(DesignPanel* panel)
 {
     DesignCanvas* vp = panel->mcp_viewport();
-    if (vp == nullptr) throw std::runtime_error("no viewport");
+    if (vp == nullptr) throw no_design_view();
     if (!vp->is_sketching())
-        throw std::runtime_error("no sketch is open — call sketch_create first");
+        throw CadPrecondition("no sketch is open — call sketch_create first");
     return vp->mcp_sketch_tool();
 }
 
@@ -1676,7 +1705,7 @@ json action_feature_edit(DesignPanel* panel, const json& params)
         doc.rollback();
         doc.error = why;
         panel->mcp_after_change(false);
-        throw ToolFailure(why, {{"code", -32000}});
+        throw ToolFailure(why, {{"code", "rebuild_failed"}});
     }
     panel->mcp_after_change();
     return json{{"ok", true},
@@ -1730,8 +1759,8 @@ json sketch_report(const DesignSketchTool::LoopReport& rep)
 json action_sketch_create(DesignPanel* panel, const json& params)
 {
     DesignCanvas* vp = panel->mcp_viewport();
-    if (vp == nullptr) throw std::runtime_error("no viewport");
-    if (vp->is_sketching()) throw std::runtime_error("a sketch is already open");
+    if (vp == nullptr) throw no_design_view();
+    if (vp->is_sketching()) throw CadPrecondition("a sketch is already open");
     const CadDocument& doc   = panel->mcp_doc();
     const json         pl    = params.value("plane", json("XY"));
     const SketchPlane  plane = cad_resolve_plane(pl, doc, false);
@@ -1756,12 +1785,12 @@ json action_sketch_finish(DesignPanel* panel, const json& params)
     (void)params;
     DesignSketchTool& t      = mcp_sketch(panel);
     const int         edited = panel->mcp_edited_sketch();
-    if (edited < 0 && t.entities().empty()) throw std::runtime_error("the sketch is empty; add entities or call sketch_cancel");
+    if (edited < 0 && t.entities().empty()) throw CadPrecondition("the sketch is empty; add entities or call sketch_cancel");
     const DesignPanel::SketchFinish done = panel->mcp_finish_sketch();
     if (!done.committed && edited >= 0)
         return json{{"ok", false}, {"replaced", false}, {"sketch_index", edited},
                     {"error", "the sketch was not replaced: " + done.error}};
-    if (!done.committed) throw std::runtime_error("the sketch was not committed");
+    if (!done.committed) throw CadPrecondition("the sketch was not committed");
     panel->mcp_after_change();
     // Read back from the committed feature: solving its dimensions can move geometry, and extrude
     // takes `loop` against these entities.
@@ -1777,7 +1806,8 @@ json action_sketch_cancel(DesignPanel* panel, const json& params)
 {
     (void)params;
     DesignCanvas* vp = panel->mcp_viewport();
-    if (vp == nullptr || !vp->is_sketching()) throw std::runtime_error("no sketch is open");
+    if (vp == nullptr) throw no_design_view();
+    if (!vp->is_sketching()) throw CadPrecondition("no sketch is open");
     panel->mcp_cancel_sketch();
     return json{{"ok", true}};
 }
@@ -1788,7 +1818,11 @@ json action_sketch_edit(DesignPanel* panel, const json& params)
 {
     const json v = params.is_object() ? params.value("sketch", json()) : json();
     if (!v.is_number_integer()) throw std::runtime_error("sketch must be a feature index (describe_design's features[].index)");
-    const int   si = v.get<int>();
+    const int si = v.get<int>();
+    // The panel's own refusals of the view and an open sketch are the session's state; the others are the feature's.
+    const DesignCanvas* vp = panel->mcp_viewport();
+    if (vp == nullptr) throw no_design_view();
+    if (vp->is_sketching()) throw CadPrecondition("a sketch is already open; finish or cancel it first");
     std::string why;
     if (!panel->mcp_edit_sketch(si, why)) throw std::runtime_error(why);
     const DesignSketchTool& t   = mcp_sketch(panel);
@@ -1854,7 +1888,7 @@ json action_sketch_describe(DesignPanel* panel, const json& params)
     const json sketch = params.is_object() ? params.value("sketch", json()) : json();
     if (!sketch.is_null()) {
         const DesignCanvas* vp = panel->mcp_viewport();
-        if (vp == nullptr) throw std::runtime_error("no viewport");
+        if (vp == nullptr) throw no_design_view();
         const CadDocument& doc = panel->mcp_doc();
         return cad_sketch_describe(doc, vp->mcp_sketch_tool(), sketch_arg(sketch, doc));
     }
@@ -1924,7 +1958,7 @@ json action_sketch_set_value(DesignPanel* panel, const json& params)
     const double value = params["value"].get<double>();
     const DesignSketchTool::DimType kind = t.dimension_kind();
     if (kind == DesignSketchTool::DimType::None)
-        throw std::runtime_error("the selection has no value to set — pick a line, an arc, a circle, or two entities");
+        throw CadPrecondition("the selection has no value to set — pick a line, an arc, a circle, or two entities");
 
     const char* kind_name = "none";
     switch (kind) {
@@ -1978,7 +2012,7 @@ json action_sketch_set_value(DesignPanel* panel, const json& params)
 void check_has_body(BooleanMode mode, const CadDocument& doc)
 {
     if (mode != BooleanMode::New && doc.bodies.empty())
-        throw std::runtime_error("operation " + std::string(kOperations[int(mode)]) + " needs a body; add or import one first");
+        throw CadPrecondition("operation " + std::string(kOperations[int(mode)]) + " needs a body; add or import one first");
 }
 
 double distance_arg(const json& params)
@@ -2122,7 +2156,7 @@ json action_extrude(DesignPanel* panel, const json& params)
     }
     if (!sketch.is_null()) {
         const DesignCanvas* vp = panel->mcp_viewport();
-        if (vp == nullptr) throw std::runtime_error("no viewport");
+        if (vp == nullptr) throw no_design_view();
         const auto add = cad_sketch_extrude(doc, vp->mcp_sketch_tool(), params);
         json r;
         try {
@@ -2130,8 +2164,9 @@ json action_extrude(DesignPanel* panel, const json& params)
                             [&] { return add(panel->mcp_feature_name(_L_CONTEXT("Extrude", "Design"))); });
         } catch (const ToolFailure& e) {
             // A whole sketch builds one region, with the loops inside it as holes. When the rebuild
-            // refused a sketch of several, name the way to take one.
-            if (!loop.is_null() || separate_regions(vp->mcp_sketch_tool(), doc.features[sketch.get<int>()].entities) < 2)
+            // refused a sketch of several, name the way to take one; any other failure has another cause.
+            if (!loop.is_null() || e.details.value("code", std::string()) != "rebuild_failed" ||
+                separate_regions(vp->mcp_sketch_tool(), doc.features[sketch.get<int>()].entities) < 2)
                 throw;
             throw ToolFailure(std::string(e.what()) +
                                   "; pass \"loop\" to extrude one of its regions (closed_loops of sketch_describe {sketch})",
@@ -2214,7 +2249,7 @@ json action_mirror(DesignPanel* panel, const json& params)
 {
     const BooleanMode m = *operation_arg(params, "new_body", kMirrorOperations);
     CadDocument& doc = panel->mcp_doc();
-    if (doc.bodies.empty()) throw std::runtime_error("no body to mirror");
+    if (doc.bodies.empty()) throw CadPrecondition("no body to mirror");
     int bi = target_body_arg(params, doc);
     bool keep = params.value("keep_original", true);
     const SketchPlane pl = cad_resolve_plane(params.value("plane", json("XZ")), doc, false);
@@ -2231,7 +2266,7 @@ json action_mirror(DesignPanel* panel, const json& params)
 json action_transform(DesignPanel* panel, const json& params)
 {
     CadDocument& doc = panel->mcp_doc();
-    if (doc.bodies.empty()) throw std::runtime_error("no body to transform");
+    if (doc.bodies.empty()) throw CadPrecondition("no body to transform");
     int bi = target_body_arg(params, doc);
     Vec3d translate(params.value("dx", 0.0), params.value("dy", 0.0), params.value("dz", 0.0));
     Vec3d axis(params.value("axis_x", 0.0), params.value("axis_y", 0.0), params.value("axis_z", 1.0));
@@ -2286,7 +2321,7 @@ json action_sketch_project(DesignPanel* panel, const json& params)
         return r;
     }
     CadDocument& doc = panel->mcp_doc();
-    if (doc.bodies.empty()) throw std::runtime_error("no source body to project from");
+    if (doc.bodies.empty()) throw CadPrecondition("no source body to project from");
     int source_body = params.value("source_body", -1);
     int face = params.value("face", -1);
     std::vector<int> edges;
@@ -2307,7 +2342,7 @@ json action_delete_face(DesignPanel* panel, const json& params)
 {
     if (!params.contains("faces")) throw std::runtime_error("delete_face needs 'faces' (array of face ids)");
     CadDocument& doc = panel->mcp_doc();
-    if (doc.bodies.empty()) throw std::runtime_error("no body to delete faces from");
+    if (doc.bodies.empty()) throw CadPrecondition("no body to delete faces from");
     int bi = target_body_arg(params, doc);
     std::vector<int> faces;
     if (params["faces"].is_array())
@@ -2562,8 +2597,8 @@ json undo_redo(DesignPanel* panel, bool redo)
     DesignCanvas* vp     = panel->mcp_viewport();
     const bool    sketch = vp != nullptr && vp->is_sketching();
     if (!panel->menu_can_undo_redo(redo)) {
-        if (sketch) throw std::runtime_error(redo ? "Nothing to redo in the open sketch" : "Nothing to undo in the open sketch");
-        throw std::runtime_error(redo ? "Nothing to redo in the Design history (history \"project\" redoes the project's)"
+        if (sketch) throw CadPrecondition(redo ? "Nothing to redo in the open sketch" : "Nothing to undo in the open sketch");
+        throw CadPrecondition(redo ? "Nothing to redo in the Design history (history \"project\" redoes the project's)"
                                       : "Nothing to undo in the Design history (history \"project\" undoes the project's)");
     }
     panel->menu_undo_redo(redo);
@@ -2582,7 +2617,7 @@ json undo_redo(DesignPanel* panel, bool redo)
 // kernel refuses one; the call then fails with the kernel's reason.
 [[noreturn]] void tree_edit_refused(const CadDocument& doc)
 {
-    throw ToolFailure(doc.error.empty() ? "the Design tab refused the edit" : doc.error, {{"code", -32000}});
+    throw ToolFailure(doc.error.empty() ? "the Design tab refused the edit" : doc.error, {{"code", "rebuild_failed"}});
 }
 
 json tree_edit_reply(const CadDocument& doc, json reply)
@@ -2642,7 +2677,7 @@ json action_feature_move(DesignPanel* panel, const json& params)
         throw std::runtime_error("delta must be -1 (up) or 1 (down)");
     const int to = fi + delta.get<int>();
     if (to < 0 || to >= int(doc.features.size()))
-        throw std::runtime_error("feature " + std::to_string(fi) + " is already " + (to < 0 ? "first" : "last"));
+        throw CadPrecondition("feature " + std::to_string(fi) + " is already " + (to < 0 ? "first" : "last"));
     if (!panel->move_feature(fi, delta.get<int>())) tree_edit_refused(doc);
     return tree_edit_reply(doc, {{"feature", to}, {"from", fi}});
 }
@@ -2711,7 +2746,7 @@ json action_body_delete(DesignPanel* panel, const json& params)
     const int          b   = body_arg(params, doc);
     const int          src = doc.bodies[b].source_feature;
     if (src < 0 || src >= int(doc.features.size()))
-        throw std::runtime_error("body " + std::to_string(b) + " has no feature to delete; use new_design to start over");
+        throw CadPrecondition("body " + std::to_string(b) + " has no feature to delete; use new_design to start over");
     const json   deleted{{"index", src}, {"type", feature_type_name(doc.features[src].type)}, {"name", doc.features[src].name}};
     const size_t before = doc.features.size();
     if (!panel->delete_body(b)) tree_edit_refused(doc);
@@ -2779,24 +2814,24 @@ json action_commit_to_plate(DesignPanel* panel, const json& params)
 
     Plater*     plater   = wxGetApp().plater();
     ObjectList* obj_list = wxGetApp().obj_list();
-    if (plater == nullptr || obj_list == nullptr) throw std::runtime_error("Prepare is not ready");
+    if (plater == nullptr || obj_list == nullptr) throw CadPrecondition("Prepare is not ready");
     Model& model = plater->model();
     const std::vector<int> replace = cad_commit_to_plate_replace(params.value("replace", json::array()), model);
     // The Delete key does not pull an object from under an open gizmo either.
     if (!replace.empty())
         for (GLCanvas3D* canvas : {plater->get_view3D_canvas3D(), plater->get_assmeble_canvas3D()})
             if (canvas != nullptr && canvas->get_gizmos_manager().get_current_type() != GLGizmosManager::Undefined)
-                throw std::runtime_error("close the " + Mcp::gizmo_name(canvas->get_gizmos_manager().get_current_type()) +
+                throw CadPrecondition("close the " + Mcp::gizmo_name(canvas->get_gizmos_manager().get_current_type()) +
                                          " gizmo first: replace deletes objects");
 
     // commit_to_plate()'s own refusals, checked first so a refused call leaves no undo step.
     const CadDocument& doc = panel->mcp_doc();
     if (doc.display_mesh.its.indices.empty())
-        throw std::runtime_error("Nothing to commit: the design has no body; add a feature first");
+        throw CadPrecondition("Nothing to commit: the design has no body; add a feature first");
     bool any_shown = doc.display_body_meshes.size() <= 1;   // a lone body is sent even when hidden
     for (size_t b = 0; !any_shown && b < doc.display_body_meshes.size(); ++b)
         any_shown = panel->mcp_body_shown(int(b)) && !doc.display_body_meshes[b].its.indices.empty();
-    if (!any_shown) throw std::runtime_error("Every body is hidden; show one first with body_set {body, visible: true}");
+    if (!any_shown) throw CadPrecondition("Every body is hidden; show one first with body_set {body, visible: true}");
 
     json replaced = json::array();
     for (int i : replace) replaced.push_back(json{{"index", i}, {"name", model.objects[i]->name}});
@@ -2807,7 +2842,7 @@ json action_commit_to_plate(DesignPanel* panel, const json& params)
         std::optional<Plater::TakeSnapshot> snapshot;
         if (!replace.empty()) snapshot.emplace(plater, _u8L("Commit to Plate"));
         for (size_t i : panel->commit_to_plate(mode, &sent)) made.push_back(model.objects[i]);
-        if (made.empty()) throw std::runtime_error("Commit to Plate sent nothing");
+        if (made.empty()) throw CadPrecondition("Commit to Plate sent nothing");
         std::vector<ItemForDelete> items;
         for (int i : replace) items.emplace_back(itObject, i, -1);
         obj_list->delete_from_model_and_list(items);
@@ -2846,7 +2881,7 @@ json action_new_design(DesignPanel* panel, const json& params)
 json action_export_step(DesignPanel* panel, const json& params)
 {
     const CadDocument& doc = panel->mcp_doc();
-    if (doc.bodies.empty()) throw std::runtime_error("Nothing to export: the design has no body; add a feature first");
+    if (doc.bodies.empty()) throw CadPrecondition("Nothing to export: the design has no body; add a feature first");
     const json path_arg = params.value("path", json());
     const json overwrite = params.value("overwrite", json(false));
     if (!path_arg.is_string()) throw std::runtime_error("export_step needs 'path', an absolute file path");
@@ -2855,7 +2890,7 @@ json action_export_step(DesignPanel* panel, const json& params)
     const auto path = Mcp::resolve_output_path(path_arg.get<std::string>(), overwrite.get<bool>(), err);
     if (!path) throw std::runtime_error(err);
     const std::string path_utf8 = Mcp::path_to_utf8(*path);
-    if (!panel->export_step_to(path_utf8, err)) throw std::runtime_error("STEP export failed: " + err);
+    if (!panel->export_step_to(path_utf8, err)) throw ToolFailure("STEP export failed: " + err, {{"code", "export_failed"}});
 
     boost::system::error_code ec;
     const auto bytes = boost::filesystem::file_size(*path, ec);
@@ -2911,8 +2946,8 @@ std::vector<int> entity_picks(const json& params, const DesignSketchTool& t)
 // would; the person finishes or drops those first.
 void check_sketch_idle(const DesignSketchTool& t)
 {
-    if (t.value_field_open()) throw std::runtime_error("a value field is open in the sketch; commit or cancel it (Enter or Esc) first");
-    if (t.gesture_pending()) throw std::runtime_error("the armed sketch tool has a gesture in progress; finish it or press Esc first");
+    if (t.value_field_open()) throw CadPrecondition("a value field is open in the sketch; commit or cancel it (Enter or Esc) first");
+    if (t.gesture_pending()) throw CadPrecondition("the armed sketch tool has a gesture in progress; finish it or press Esc first");
 }
 
 // How many of `cons` reference entity `e`.
@@ -3217,7 +3252,7 @@ json sketch_draw(DesignSketchTool& t, const json& params)
                     if (it.from >= int(ents.size()))
                         throw std::runtime_error("arc_tangent entity " + std::to_string(it.from) + " does not exist; the sketch has " +
                                                  std::to_string(ents.size()) + " entities with the items before it");
-                    if (ents.empty()) throw std::runtime_error("arc_tangent needs a line or an arc to leave, and the sketch has none");
+                    if (ents.empty()) throw CadPrecondition("arc_tangent needs a line or an arc to leave, and the sketch has none");
                     const int from = it.from >= 0 ? it.from : int(ents.size()) - 1;
                     if (ents[from].type != SketchEntity::Type::Line && ents[from].type != SketchEntity::Type::Arc)
                         throw std::runtime_error("arc_tangent leaves a line or an arc, and " + entity_label(ents, from) + " is neither");
@@ -3306,7 +3341,7 @@ json sketch_offset(DesignSketchTool& t, const json& params)
     const std::vector<int> sources = copy_sources(params, t, listed);
     std::vector<SketchEntity> src;
     for (int i : sources) src.push_back(t.entities()[i]);
-    if (src.empty()) throw std::runtime_error("nothing to offset");
+    if (src.empty()) throw CadPrecondition("nothing to offset");
     const auto out = SketchEngine::offset_entities(src, d);
     if (out.empty()) throw std::runtime_error("offset produced nothing (ellipses and splines are not offset)");
     const int        base = int(t.entities().size());
@@ -3332,7 +3367,7 @@ json sketch_mirror(DesignSketchTool& t, const json& params)
     if (axis_v.is_null()) {
         const Vec2d a = params.contains("axis_a") ? point_arg(params, "axis_a") : Vec2d(0, 0);
         const Vec2d b = params.contains("axis_b") ? point_arg(params, "axis_b") : Vec2d(0, 1);
-        if (targets.empty()) throw std::runtime_error("nothing to mirror");
+        if (targets.empty()) throw CadPrecondition("nothing to mirror");
         std::vector<SketchEntity> src;
         for (int i : targets) src.push_back(ents[i]);
         const auto out  = SketchEngine::mirror_entities(src, a, b);
@@ -3359,7 +3394,7 @@ json sketch_mirror(DesignSketchTool& t, const json& params)
         if (listed) throw std::runtime_error("entity " + std::to_string(axis) + " is the axis; it is not mirrored about itself");
         targets.erase(it);
     }
-    if (targets.empty()) throw std::runtime_error("nothing to mirror");
+    if (targets.empty()) throw CadPrecondition("nothing to mirror");
     check_sketch_idle(t);
     const int        base = int(ents.size());
     std::vector<int> kept;
@@ -3854,7 +3889,7 @@ json action_confirm_tool(DesignPanel* panel, const json&)
 {
     DesignPanel::ConfirmOutcome out;
     std::string                 why;
-    if (!panel->mcp_confirm_tool(out, why)) throw std::runtime_error(why);
+    if (!panel->mcp_confirm_tool(out, why)) throw CadPrecondition(why);
     return json{{"was", out.was},
                 {"ok", out.ok},
                 {"feature", out.feature >= 0 ? json(out.feature) : json()},
@@ -3866,7 +3901,7 @@ json action_confirm_tool(DesignPanel* panel, const json&)
 json action_cancel_tool(DesignPanel* panel, const json&)
 {
     std::string was, why;
-    if (!panel->mcp_cancel_tool(was, why)) throw std::runtime_error(why);
+    if (!panel->mcp_cancel_tool(was, why)) throw CadPrecondition(why);
     return json{{"was", was}, {"status", into_u8(panel->mcp_status())}};
 }
 
@@ -3963,6 +3998,65 @@ const std::pair<const char*, CadRun> kSilentForms[] = {
 };
 const std::size_t kSilentFormCount = std::size(kSilentForms);
 
+json run_guarded(const std::function<json()>& run)
+{
+    try {
+        return run();
+    } catch (const ToolFailure& ex) {
+        // Its own refusal, code included; one that names no cause is read as a plain exception is.
+        if (ex.details.is_object() && ex.details.contains("code"))
+            throw;
+        throw ToolFailure(ex.what(), with_code(ex.details));
+    } catch (const Standard_Failure& ex) {   // derives from std::exception, so it comes before it
+        throw ToolFailure(std::string("OCCT: ") + (*ex.what() ? ex.what() : "failure"), {{"code", "kernel_failure"}});
+    } catch (const CadKernelFailure& ex) {
+        throw ToolFailure(std::string("OCCT: ") + ex.what(), {{"code", "kernel_failure"}});
+    } catch (const CadPrecondition& ex) {
+        throw ToolFailure(ex.what(), {{"code", "precondition"}});
+    } catch (const std::exception& ex) {
+        throw ToolFailure(ex.what(), {{"code", "invalid_argument"}});
+    }
+}
+
+ToolFailure no_design_tab()
+{
+    if (!wxGetApp().is_editor())
+        return ToolFailure("The G-code viewer has no Design tab", {{"code", "design_unavailable"}});
+    if (!wxGetApp().is_enable_cad_feature())
+        return ToolFailure(kCadOffNow, {{"code", "design_unavailable"}});
+    return ToolFailure("The Design tab isn't available in this window yet; retry, and if it stays unavailable restart "
+                       "OrcaSlicer (turning the CAD feature on takes effect after a restart)",
+                       {{"code", "design_unavailable"}});
+}
+
+ToolFailure no_design_view()
+{
+    return ToolFailure("The Design view is not built in this window; restart OrcaSlicer if it stays so",
+                       {{"code", "design_unavailable"}});
+}
+
+ToolFailure design_busy(const std::string& why)
+{
+    return ToolFailure("Design tab busy: " + why,
+                       {{"code", "design_busy"},
+                        {"hint", "confirm_tool keeps what is open when its Confirm is on (a card, the Text dialog, a body Move, "
+                                 "a sketch, Constrain mode) and cancel_tool discards it; a rebuild ends by itself, so call "
+                                 "again after it"}});
+}
+
+std::optional<std::uint64_t> cad_generation(const json& args)
+{
+    if (!args.is_object() || !args.contains("generation"))
+        return std::nullopt;
+    // The numbers the schema's integer type takes (is_whole_number(): a whole float within int64 among them), not
+    // negative.
+    const json& g = args["generation"];
+    if (!is_whole_number(g) || (!g.is_number_unsigned() && g.get<double>() < 0))
+        throw ToolFailure("generation must be an integer of 0 or more, as describe_design or body_describe gave it",
+                          {{"code", "invalid_argument"}});
+    return g.is_number_float() ? std::uint64_t(g.get<double>()) : g.get<std::uint64_t>();
+}
+
 namespace {
 
 // The silent form of entry `id`, or nullptr.
@@ -3971,21 +4065,6 @@ CadRun find_silent_form(const std::string& id)
     for (const auto& [key, run] : kSilentForms)
         if (id == key) return run;
     return nullptr;
-}
-
-// Runs `run`, a silent form or undo and redo, with its failure as the call's error: its own refusal with its code,
-// a kernel exception as "OCCT: ...", and any other as -32000.
-json run_guarded(const std::function<json()>& run)
-{
-    try {
-        return run();
-    } catch (const ToolFailure&) {
-        throw;   // its own refusal, code included
-    } catch (const Standard_Failure& ex) {   // derives from std::exception, so it comes first
-        throw ToolFailure(std::string("OCCT: ") + (*ex.what() ? ex.what() : "failure"), {{"code", -32000}});
-    } catch (const std::exception& ex) {
-        throw ToolFailure(ex.what(), {{"code", -32000}});
-    }
 }
 
 // Why a menu-only entry (a btn: or fly: handler) is refused for a selection it does not accept.
@@ -4178,9 +4257,17 @@ std::vector<DesignAction> design_actions(const CommandCatalog& catalog, bool ske
 
 std::optional<ToolFailure> open_refusal(const DesignTool& t, bool sketching, int kind, bool row_target)
 {
+    // The message is the person's; the hint names the commands that change the mode.
     if (!offered_in_mode(t, sketching))
         return ToolFailure(t.sketch_mode ? kSketchTool : kModelTool,
-                           {{"code", -32000}, {"mode", t.sketch_mode ? "sketch" : "model"}});
+                           {{"code", "wrong_mode"},
+                            {"mode", t.sketch_mode ? "sketch" : "model"},
+                            // A model tool's: Constrain mode is a sketch to the menu, and the busy gate refuses
+                            // sketch_finish and sketch_cancel there, so the hint names the two that end either.
+                            {"hint", t.sketch_mode ? "sketch_create {plane: \"XY\"} opens a sketch on a plane, sketch_edit "
+                                                     "{sketch: i} a committed one" :
+                                                     "confirm_tool keeps the open sketch, or ends Constrain mode, and "
+                                                     "cancel_tool drops the sketch or leaves Constrain mode"}});
     // The item's handler acts on the Feature list's selected row, and says itself what it cannot do with it.
     if (row_target && t.feature_row)
         return std::nullopt;
@@ -4198,7 +4285,7 @@ std::optional<ToolFailure> open_refusal(const DesignTool& t, bool sketching, int
     for (int sel = 0; sel < int(OfferSel::Count); ++sel)
         if ((t.accepts & offer_bit(OfferSel(sel))) != 0)
             accepts.push_back(kDesignSelectionIds[sel]);
-    return ToolFailure(kDoesNotApply, {{"code", -32000},
+    return ToolFailure(kDoesNotApply, {{"code", "wrong_selection"},
                                        {"selection_kind", kind},
                                        {"selection", kDesignSelectionIds[kind]},
                                        {"accepts", std::move(accepts)}});
@@ -4208,18 +4295,14 @@ DesignPanel* cad_gate(CadAccess access, const json& args)
 {
     // The MCP server answers before the main window exists and while the app closes.
     ui_plater();
-    if (!wxGetApp().is_editor())
-        throw ToolFailure("The G-code viewer has no Design tab", {{"code", -32001}});
-    if (!wxGetApp().is_enable_cad_feature())
-        throw ToolFailure("The CAD feature is off; enable it in Preferences > Features and restart OrcaSlicer");
+    if (!wxGetApp().is_editor() || !wxGetApp().is_enable_cad_feature())
+        throw no_design_tab();
     // The panel is built on first use, and in a headless session nobody clicks the tab that would
     // build it, so it is built here rather than refused. It is null when no page was made at startup
     // (the CAD feature was turned on later), while the page is mid-build, and after its build failed.
     DesignPanel* panel = DesignPanel::ensure();
     if (panel == nullptr)
-        throw ToolFailure("The Design tab isn't available in this window yet; retry, and if it stays unavailable restart "
-                          "OrcaSlicer (turning the CAD feature on takes effect after a restart)",
-                          {{"code", -32001}});
+        throw no_design_tab();
 
     // Only Read commands, the opening of a tool and the Ui commands, which act on what is open, may run under a GUI
     // editor or a sketch session they do not own. None may run during a rebuild, not even these: the rebuild's busy
@@ -4227,7 +4310,7 @@ DesignPanel* cad_gate(CadAccess access, const json& args)
     std::string why;
     const bool  under_open = access == CadAccess::Read || access == CadAccess::None || access == CadAccess::Ui;
     if (panel->mcp_busy(under_open, access == CadAccess::Sketch, why))
-        throw ToolFailure("Design tab busy: " + why, {{"code", -32002}});
+        throw design_busy(why);
 
     // A project opened without ever showing the Design tab has its recipe only in the Model;
     // load it, as showing the tab would, before anything reads or writes the document.
@@ -4248,20 +4331,18 @@ DesignPanel* cad_gate(CadAccess access, const json& args)
     // is not checked, and supplying it is what buys the guarantee. One check here rather than one
     // per command, so a command added later cannot forget it.
     //
-    // The type is checked first, as a caller that skips the schema (run_cad_tool() called directly) may
-    // pass any: a bare get<uint64_t>() on `"generation": "x"` would surface as an internal error instead
-    // of a parameter error.
-    if (args.is_object() && args.contains("generation")) {
-        if (!args["generation"].is_number_unsigned())
-            throw ToolFailure("generation must be an unsigned integer", {{"code", -32602}});
-        const uint64_t want = args["generation"].get<uint64_t>();
+    // The type is checked first (cad_generation()), as a caller that skips the schema (run_cad_tool() called
+    // directly) may pass any: a bare get<uint64_t>() on `"generation": "x"` would surface as an internal error
+    // instead of a parameter error.
+    if (const std::optional<std::uint64_t> given = cad_generation(args)) {
+        const uint64_t want = *given;
         const uint64_t have = panel->mcp_doc().topo_generation;
         if (want != have)
             throw ToolFailure("stale face/edge ids: they were read at generation " + std::to_string(want)
                                   + " but the model is now at " + std::to_string(have)
                                   + ". Re-read body_describe and use the new ids — the old ones still name real "
                                     "edges, just not the ones you measured.",
-                              {{"code", -32010}});
+                              {{"code", "stale_ids"}});
     }
     return panel;
 }
@@ -4271,7 +4352,7 @@ json run_cad_tool(const std::string& id, const json& args)
     const DesignTool* entry = find_design_tool(id);
     const CadRun      run   = find_silent_form(id);
     if (entry == nullptr || run == nullptr)
-        throw ToolFailure("No Design command runs silently as " + id, {{"code", -32601}});
+        throw ToolFailure("No Design command runs silently as " + id, {{"code", "no_silent_form"}});
     DesignPanel* panel = cad_gate(entry->access, args);
     return run_guarded([&] { return run(panel, args); });
 }
@@ -4370,12 +4451,12 @@ void register_cad_commands(CommandCatalog& catalog)
             catalog.add(design_command(t));
 }
 
-void leave_out_cad_commands(CommandCatalog& catalog)
+void leave_out_cad_commands(CommandCatalog& catalog, bool editor)
 {
     // A folded item's id too, which is no command but names an action.
     for (const DesignTool& t : kDesignTools)
         if (t.action != nullptr || t.doc != nullptr)
-            catalog.leave_out(t.id, kCadOffAtStartup);
+            catalog.leave_out(t.id, editor ? kCadOffAtStartup : kNoDesignInViewer, "design_unavailable");
 }
 
 std::vector<int> sketch_target_indices(const json& params, const std::vector<int>& selection, int entity_count, bool all_if_empty)
@@ -4447,11 +4528,11 @@ SketchPlane cad_resolve_plane(const json& plane, const CadDocument& doc, bool dr
             throw std::runtime_error("feature " + std::to_string(fi) + " (" + feature_type_name(f.type) +
                                      ") is not a datum plane");
         if (!f.enabled)
-            throw std::runtime_error("datum plane " + std::to_string(fi) + " is hidden; show it first");
+            throw CadPrecondition("datum plane " + std::to_string(fi) + " is hidden; show it first");
         const int  ordinal = datum_ordinal(doc, fi);
         const auto datums  = doc.resolve_datum_planes();
         if (ordinal >= int(datums.size()))
-            throw std::runtime_error("datum plane " + std::to_string(fi) + " could not be resolved");
+            throw CadPrecondition("datum plane " + std::to_string(fi) + " could not be resolved");
         return datums[ordinal].second;
     }
     if (plane.is_object() && plane.size() == 2 && plane.contains("body") && plane.contains("face") &&
@@ -4616,8 +4697,9 @@ CadDocument cad_document_before(const CadDocument& doc, int feature)
     check_feature_index(feature, doc);
     CadDocument before = doc.history_before(feature);
     if (!before.recompute())
-        throw std::runtime_error("the model before feature " + std::to_string(feature) + " (" + doc.features[size_t(feature)].name +
-                                 ") does not rebuild: " + (before.error.empty() ? std::string("no reason given") : before.error));
+        throw ToolFailure("the model before feature " + std::to_string(feature) + " (" + doc.features[size_t(feature)].name +
+                              ") does not rebuild: " + (before.error.empty() ? std::string("no reason given") : before.error),
+                          {{"code", "rebuild_failed"}});
     return before;
 }
 
@@ -4731,7 +4813,7 @@ struct RefReader
     int target(int b) const
     {
         if (b >= 0) return b;
-        if (ids.bodies.empty()) throw std::runtime_error("there is no body " + where());
+        if (ids.bodies.empty()) throw CadPrecondition("there is no body " + where());
         return int(ids.bodies.size()) - 1;
     }
 
@@ -4992,7 +5074,7 @@ std::vector<int> cad_commit_to_plate_replace(const json& replace, const Model& m
             throw std::runtime_error("object " + std::to_string(i) + " is listed twice in replace");
         // Deleting one opens the "part of a cut object" warning, which the person answers.
         if (model.objects[size_t(i)]->is_cut())
-            throw std::runtime_error("object " + std::to_string(i) +
+            throw CadPrecondition("object " + std::to_string(i) +
                                      " is part of a cut object; delete it with object_select, then object_delete, which asks first");
         out.push_back(int(i));
     }
@@ -5042,7 +5124,7 @@ json cad_sketch_call(DesignSketchTool& tool, const std::string& name, const json
 json cad_sketch_project(const CadDocument& doc, DesignSketchTool& tool, const json& params)
 {
     if (!param(params, "plane").is_null()) throw std::runtime_error("plane is the open sketch's: leave it out");
-    if (doc.bodies.empty()) throw std::runtime_error("no source body to project from");
+    if (doc.bodies.empty()) throw CadPrecondition("no source body to project from");
     const json body = param(params, "source_body");
     if (!body.is_null() && !body.is_number_integer()) throw std::runtime_error("source_body must be a body index, or -1 for the last body");
     const int source = body.is_null() || body.get<int>() == -1 ? int(doc.bodies.size()) - 1 : body.get<int>();
@@ -5053,6 +5135,10 @@ json cad_sketch_project(const CadDocument& doc, DesignSketchTool& tool, const js
     }
     const json face = param(params, "face");
     if (!face.is_null() && !face.is_number_integer()) throw std::runtime_error("face must be a face id (body_describe), or -1");
+    // A body with no shape is the design's state; project_edges_on()'s other reasons are the call's edges, face and
+    // body index.
+    if (source >= 0 && source < int(doc.bodies.size()) && doc.bodies[size_t(source)].shape.IsNull())
+        throw CadPrecondition("body " + std::to_string(source) + " has no shape");
     std::string error;
     const std::vector<SketchEntity> ents = doc.project_edges_on(tool.plane(), source, edges, face.is_null() ? -1 : face.get<int>(), error);
     if (ents.empty()) throw std::runtime_error(error);
@@ -5208,7 +5294,7 @@ std::function<int(const std::string& name)> cad_face_extrude(CadDocument& doc, c
             throw std::runtime_error(std::string(k) + " cannot be given with face: the face is the profile and fixes its plane");
     const json fv = params.at("face");
     if (!fv.is_number_integer()) throw std::runtime_error("face must be a face id (body_describe)");
-    if (doc.bodies.empty()) throw std::runtime_error("a face push/pull needs a body");
+    if (doc.bodies.empty()) throw CadPrecondition("a face push/pull needs a body");
     const int asked = target_body_arg(params, doc);
     const int b     = asked >= 0 ? asked : int(doc.bodies.size()) - 1;
     const int fi    = fv.get<int>();
@@ -5521,7 +5607,7 @@ json cad_measure(const CadDocument& doc, const json& params)
     }
     Vec3d        ca, cb;
     const double d = GeometryEngine::min_distance(sa, sb, ca, cb);
-    if (d < 0) throw std::runtime_error("the minimum distance between the refs could not be computed");
+    if (d < 0) throw CadKernelFailure("the minimum distance between the refs could not be computed");
     r["min_distance"] = d;
     r["closest_a"]    = vec3(ca);
     r["closest_b"]    = vec3(cb);
@@ -5533,7 +5619,7 @@ json cad_measure(const CadDocument& doc, const json& params)
 
 json cad_hole_placement(const CadDocument& doc, const json& params, SketchPlane& plane, int& target_body)
 {
-    if (doc.bodies.empty()) throw std::runtime_error("no body to drill");
+    if (doc.bodies.empty()) throw CadPrecondition("no body to drill");
     int face_body = -1;
     plane = cad_resolve_plane(params.value("plane", json("XY")), doc, true, &face_body);
     const int body = target_body_arg(params, doc);
@@ -5715,7 +5801,7 @@ std::function<int(const std::string& name)> cad_thread(CadDocument& doc, const j
         const std::string kind = on_face ? "face" : "edge";
         for (const char* k : {"plane", "x", "y", "at"})
             if (given(k)) throw std::runtime_error(std::string(k) + " cannot be given with " + kind + ": the thread runs on its axis");
-        if (doc.bodies.empty()) throw std::runtime_error("no body to thread");
+        if (doc.bodies.empty()) throw CadPrecondition("no body to thread");
         if (!params.at(kind).is_number_integer()) throw std::runtime_error(kind + " must be an id from body_describe");
         target = target_body_arg(params, doc);
         if (target < 0) target = int(doc.bodies.size()) - 1;
@@ -5745,7 +5831,7 @@ std::function<int(const std::string& name)> cad_thread(CadDocument& doc, const j
             resolved = cad_hole_placement(doc, params, plane, target);   // placed as a hole is
         } else {
             // A rod threaded from nothing: there is no body to place against.
-            if (internal) throw std::runtime_error("an internal thread needs a body to tap; add or import one first");
+            if (internal) throw CadPrecondition("an internal thread needs a body to tap; add or import one first");
             if (given("at")) throw std::runtime_error("at places a thread against a body, and there is none; give x and y");
             plane    = cad_resolve_plane(params.value("plane", json("XY")), doc, true);
             resolved = {{"x", params.value("x", 0.0)}, {"y", params.value("y", 0.0)}};
@@ -5913,7 +5999,7 @@ std::function<int(const std::string& name)> cad_thicken(CadDocument& doc, const 
         throw std::runtime_error("type surface thickens a whole sheet body and takes no face; type face thickens a face");
     if (!surface && face.is_null()) throw std::runtime_error("type face needs face, a face id (body_describe)");
     if (!surface && !face.is_number_integer()) throw std::runtime_error("face must be a face id (body_describe)");
-    if (doc.bodies.empty()) throw std::runtime_error(surface ? "no sheet body to thicken" : "no body to thicken");
+    if (doc.bodies.empty()) throw CadPrecondition(surface ? "no sheet body to thicken" : "no body to thicken");
     const int    body      = target_body_arg(params, doc);
     const double thickness = params.value("thickness", 2.0);
     const bool   flip      = params.value("flip", false);
@@ -5951,7 +6037,7 @@ std::function<int(const std::string& name)> cad_pattern(CadDocument& doc, const 
                                                                      : ", the guide curve's entity index within that sketch"));
     const int count = params.value("count", 3);
     if (count < 1) throw std::runtime_error("count must be >= 1");
-    if (doc.bodies.empty()) throw std::runtime_error("no body to pattern");
+    if (doc.bodies.empty()) throw CadPrecondition("no body to pattern");
     const int body = target_body_arg(params, doc);
     if (curve)
         return [&doc, count, sketch = params.at("sketch").get<int>(), entity = params.at("entity").get<int>(), body](const std::string& name) {
@@ -5995,7 +6081,7 @@ std::function<int(const std::string& name)> cad_dressup(CadDocument& doc, const 
     const char*                    key   = chamfer ? "distance" : "radius";
     const double                   size  = params.value(key, 1.0);
     if (size <= 0) throw std::runtime_error(std::string(key) + " must be > 0");
-    if (doc.bodies.empty()) throw std::runtime_error(std::string("no body to ") + verb);
+    if (doc.bodies.empty()) throw CadPrecondition(std::string("no body to ") + verb);
     const int body = target_body_arg(params, doc);
     return [&doc, chamfer, group, edges, size, body](const std::string& name) {
         const int i = group ? (chamfer ? doc.add_chamfer(size, *group, name) : doc.add_fillet(size, *group, name))
@@ -6017,7 +6103,7 @@ std::function<int(const std::string& name)> cad_split(CadDocument& doc, const js
     if (by_plane && by_face) throw std::runtime_error("give plane or face, not both");
     if (!by_plane && !by_face)
         throw std::runtime_error("split needs plane (\"XY\", \"XZ\", \"YZ\", {\"datum\": i} or {\"body\": b, \"face\": f}) or face (a face id to split along)");
-    if (doc.bodies.empty()) throw std::runtime_error("no body to split");
+    if (doc.bodies.empty()) throw CadPrecondition("no body to split");
     const int  body       = target_body_arg(params, doc);
     const int  t          = body >= 0 ? body : int(doc.bodies.size()) - 1;
     const bool keep_upper = flag("keep_upper", true), keep_lower = flag("keep_lower", true);

@@ -84,7 +84,7 @@ std::vector<std::shared_ptr<const NativeCommand>> search_inventory(const Command
         std::string names;
         for (const std::string& name : groups)
             names += (names.empty() ? "" : ", ") + name;
-        throw ToolFailure("Unknown group: " + group + "; the groups are " + names, {{"groups", groups}});
+        throw ToolFailure("Unknown group: " + group + "; the groups are " + names, {{"code", "invalid_argument"}, {"groups", groups}});
     }
     return out;
 }
@@ -228,7 +228,8 @@ json search_commands(const CommandCatalog& catalog, const json& args)
         const std::string name = arg_string(args, "tool");
         if (const std::shared_ptr<const NativeCommand> def = catalog.lookup(name))
             return describe_tool(*def);
-        throw ToolFailure(catalog.unknown_command(name), {{"did_you_mean", catalog.similar(name)}});
+        throw ToolFailure(catalog.unknown_command(name),
+                          {{"code", catalog.unknown_command_code(name)}, {"did_you_mean", catalog.similar(name)}});
     }
     const std::vector<std::shared_ptr<const NativeCommand>> all   = search_inventory(catalog, arg_string(args, "group"));
     const std::string                                       query = arg_string(args, "query");

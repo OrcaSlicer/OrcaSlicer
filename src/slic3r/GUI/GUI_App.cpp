@@ -3366,7 +3366,7 @@ bool GUI_App::on_init_inner()
     // preference, or the command line's flag (--cad, --unrestricted-scripts). The CAD feature's is read here from the
     // config and the launch parameters, since is_enable_cad_feature() is in a CAD build only.
     const bool cad_in_force = app_config->get_bool("enable_cad_feature") || (init_params != nullptr && init_params->cad);
-    NativeCommands::build({is_editor() && cad_in_force});
+    NativeCommands::build({is_editor() && cad_in_force, is_editor()});
     Mcp::set_python_scripts_for_run(init_params != nullptr && init_params->unrestricted_scripts);
     Mcp::apply_python_scripts_setting(*app_config);
 

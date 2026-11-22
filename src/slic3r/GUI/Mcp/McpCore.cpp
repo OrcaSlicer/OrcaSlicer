@@ -259,12 +259,12 @@ ToolResult McpCore::call_child_named(const std::string& tool, const nlohmann::js
 {
     std::shared_ptr<const NativeCommand> def = m_catalog.lookup(tool);
     if (def == nullptr)
-        return ToolResult::error(m_catalog.unknown_command(tool));
+        return ToolResult::error(m_catalog.unknown_command(tool), {{"code", m_catalog.unknown_command_code(tool)}});
     nlohmann::json args = raw_args;
     if (std::string err = argument_error(*def, args); !err.empty())
-        return ToolResult::error("Invalid arguments: " + err);
-    if (std::string err = resolve_call(m_catalog, def, args); !err.empty())
-        return ToolResult::error(err);
+        return ToolResult::error("Invalid arguments: " + err, {{"code", "invalid_argument"}});
+    if (const std::optional<ToolFailure> refused = resolve_call(m_catalog, def, args))
+        return ToolResult::error(refused->what(), refused->details);
     return call_child(*def, args, parent_job, plugin);
 }
 

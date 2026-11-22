@@ -35,11 +35,11 @@ void CommandCatalog::add_source(std::unique_ptr<CommandSource> source)
     m_sources.push_back(std::move(source));
 }
 
-void CommandCatalog::leave_out(const std::string& key, std::string why)
+void CommandCatalog::leave_out(const std::string& key, std::string why, std::string code)
 {
     if (m_sealed)
         throw std::logic_error("The command catalog is sealed; leaving out " + key + " comes too late");
-    m_left_out[key] = std::move(why);
+    m_left_out[key] = {std::move(why), std::move(code)};
 }
 
 void CommandCatalog::seal() { m_sealed = true; }
@@ -87,7 +87,13 @@ std::vector<std::string> CommandCatalog::similar(const std::string& key, std::si
 const std::string* CommandCatalog::left_out(const std::string& key) const
 {
     const auto it = m_left_out.find(key);
-    return it == m_left_out.end() ? nullptr : &it->second;
+    return it == m_left_out.end() ? nullptr : &it->second.why;
+}
+
+std::string CommandCatalog::unknown_command_code(const std::string& key) const
+{
+    const auto it = m_left_out.find(key);
+    return it == m_left_out.end() ? "invalid_argument" : it->second.code;
 }
 
 std::string CommandCatalog::unknown_command(const std::string& key, bool suggest) const

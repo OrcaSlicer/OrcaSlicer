@@ -205,7 +205,8 @@ ToolFailure invalid_value(const std::string& key, const std::string& text)
             takes = list ? "a list of " + kind + (range.empty() ? "" : ", each " + range) :
                            kind + (range.empty() ? "" : (low && high ? " " : ", ") + range);
     }
-    return ToolFailure("Invalid value for " + key + ": \"" + text + "\"" + (takes.empty() ? std::string() : "; it takes " + takes));
+    return ToolFailure("Invalid value for " + key + ": \"" + text + "\"" + (takes.empty() ? std::string() : "; it takes " + takes),
+                       {{"code", "invalid_argument"}});
 }
 
 // Option keys whose key or label contains `query`, for "did you mean".
@@ -367,14 +368,17 @@ void add_unknown_keys(json& out, const json& unknown, const std::vector<std::str
 
 // The refusal of a key that the settings `where` names (a type, "project" or "plate") lack: it says where the key is a
 // setting when it is one elsewhere, since the usual cause is a key passed with the wrong type or to none (the
-// process). UI thread.
+// process). Its code is invalid_argument. UI thread.
 ToolFailure unknown_setting(const std::string& key, const std::string& where, json details)
 {
+    const json code = {{"code", "invalid_argument"}};
     if (const std::string hint = filament_list_hint(key); !hint.empty())
-        return ToolFailure("\"" + key + "\" belongs to the filament list: " + hint);
+        return ToolFailure("\"" + key + "\" belongs to the filament list: " + hint, code);
     if (const std::string other = type_of_key(key); !other.empty() && other != where)
         return ToolFailure(other == "project" ? "\"" + key + "\" is one of the project's own settings: project_set_settings changes it" :
-                                                "\"" + key + "\" is a " + other + " setting: settings_set takes it with type \"" + other + "\"");
+                                                "\"" + key + "\" is a " + other + " setting: settings_set takes it with type \"" + other + "\"",
+                           code);
+    details.update(code);
     return ToolFailure("Unknown setting \"" + key + "\" for the " + where + " settings", std::move(details));
 }
 

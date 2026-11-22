@@ -21,6 +21,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -121,12 +122,13 @@ void install_plugin_tool_caller()
         const CommandCatalog&                catalog = NativeCommands::instance();
         std::shared_ptr<const NativeCommand> def     = catalog.lookup(tool);
         if (def == nullptr)
-            throw ToolCallError(catalog.unknown_command(tool), {{"did_you_mean", catalog.similar(tool)}});
+            throw ToolCallError(catalog.unknown_command(tool),
+                                {{"code", catalog.unknown_command_code(tool)}, {"did_you_mean", catalog.similar(tool)}});
         json arguments = args;
         if (std::string err = argument_error(*def, arguments); !err.empty())
-            throw ToolCallError("Invalid arguments: " + err, json());
-        if (std::string err = resolve_call(catalog, def, arguments); !err.empty())
-            throw ToolCallError(err, json());
+            throw ToolCallError("Invalid arguments: " + err, json{{"code", "invalid_argument"}});
+        if (const std::optional<ToolFailure> refused = resolve_call(catalog, def, arguments))
+            throw ToolCallError(refused->what(), refused->details);
 
         const ToolResult r = runtime->core().call_plugin(*def, arguments, plugin);
         // The handlers raise no audit events, so this line is the record of what a plugin did; it is best

@@ -72,7 +72,14 @@ const AppAction& find_action(ActionRegistry& actions, std::string& id)
     json similar = json::array();
     for (std::size_t i = 0; i < scored.size() && similar.size() < 3 && scored[i].first <= id.size() / 3 + 2; ++i)
         similar.push_back(scored[i].second);
-    throw ToolFailure(unknown_action(id, NativeCommands::instance()), {{"similar", similar}});
+#ifdef SLIC3R_CAD
+    const bool cad_on = wxGetApp().is_enable_cad_feature();
+#else
+    const bool cad_on = false;
+#endif
+    ToolFailure refused = unknown_action(id, NativeCommands::instance(), cad_on);
+    refused.details["similar"] = std::move(similar);
+    throw refused;
 }
 
 } // namespace
@@ -111,14 +118,20 @@ json action_journal_args(const AppAction& action, const json& args)
     return action.input.empty() ? action.preset : args;
 }
 
-std::string unknown_action(const std::string& id, const CommandCatalog& catalog)
+ToolFailure unknown_action(const std::string& id, const CommandCatalog& catalog, bool cad_on)
 {
-    // A Design tab action is in the registry only while it is live (ActionRegistry::materialize_design_actions()); its
-    // command is in the catalog, unless the catalog was built with the CAD feature off.
+    // A Design tab action is in the registry only while it is live (ActionRegistry::materialize_design_actions()), which
+    // none is while the CAD feature is off; its command is in the catalog, unless the catalog was built without the
+    // Design commands. Its id is right then, and the code says what keeps it from running.
     const std::string action_id = id.find(':') != std::string::npos ? id : AppAction::compose_id(kCommandPrefix, id, kOrcaSourceKey);
     if (is_design_action_id(action_id)) {
-        if (const std::string* why = catalog.left_out(short_id(action_id)))
-            return id + " is a Design tab action, and " + *why;
+        const std::string key = short_id(action_id);
+        if (const std::string* why = catalog.left_out(key))
+            return ToolFailure(id + " is a Design tab action, and " + *why, {{"code", catalog.unknown_command_code(key)}});
+        if (!cad_on)
+            return ToolFailure(id + " is a Design tab action, and the CAD feature is off: a person enables it in Preferences > "
+                                    "Features and restarts OrcaSlicer",
+                               {{"code", "design_unavailable"}});
         // A folded item's action is a call of the command it is folded into with the item's arguments, written as the
         // rest of the call is, a space after each colon and comma.
         const auto [command, folded] = find_command_action(catalog, short_id(action_id));
@@ -129,11 +142,13 @@ std::string unknown_action(const std::string& id, const CommandCatalog& catalog)
                 args += (args.empty() ? "" : ", ") + json(name).dump() + ": " + value.dump();
             call += ", \"args\": {" + args + "}";
         }
-        return id + " is a Design tab action, there only while the Design tab is shown in its mode (a sketch's or the model's) "
-                    "with the CAD feature on; tool_call " + call + "} runs its command from any tab";
+        return ToolFailure(id + " is a Design tab action, there only while the Design tab is shown in its mode (a sketch's or "
+                                "the model's) with the CAD feature on; tool_call " + call + "} runs its command from any tab",
+                           {{"code", "wrong_mode"}});
     }
     // The name may be a command's that has no action, which tool_call runs.
-    return "Unknown action id " + id + "; find an action with action_search, or a command with tool_search";
+    return ToolFailure("Unknown action id " + id + "; find an action with action_search, or a command with tool_search",
+                       {{"code", "invalid_argument"}});
 }
 
 json rank_actions(const json& listed, const std::vector<std::string>& words)
@@ -250,7 +265,7 @@ void register_action_tools(CommandCatalog& catalog)
                 ActionRegistry&  actions = registry_or_fail();
                 const AppAction& action  = find_action(actions, id);
                 if (const std::string err = action_args_error(action, command_args); !err.empty())
-                    throw ToolFailure(err);
+                    throw ToolFailure(err, {{"code", "invalid_argument"}});
                 key         = action.command;
                 action_args = action_journal_args(action, command_args);
                 if (key.empty()) {
@@ -272,7 +287,7 @@ void register_action_tools(CommandCatalog& catalog)
             if (command == nullptr)
                 throw ToolFailure("Unknown command " + key);
             if (const std::string err = argument_error(*command, command_args); !err.empty())
-                throw ToolFailure("Invalid arguments for " + key + ": " + err);
+                throw ToolFailure("Invalid arguments for " + key + ": " + err, {{"code", "invalid_argument"}});
             ActionContext action_ctx(ctx, id, action_args);
             ToolResult    reply = command->run(command_args, action_ctx);
             if (!reply.is_error && reply.data.is_object())

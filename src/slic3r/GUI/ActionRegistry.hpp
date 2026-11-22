@@ -42,8 +42,7 @@ struct AppActionRunResult
     // at its level all the same, and automation reports the run as failed.
     bool done = true;
     // For automation only: a JSON object saying what the command did that its message does not
-    // (the new object order, the object an Assemble made), or for a refusal what a call does instead
-    // in the commands' terms. An automated call's reply, or its error's details, has its fields
+    // (the new object order, the object an Assemble made). An automated call's reply has its fields
     // (NativeCommands::from_run_result()); the Speed Dial never shows it.
     std::string reply;
     // The operation's refusal that `message` words in the UI's language, when the command ran an

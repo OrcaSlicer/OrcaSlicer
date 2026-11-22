@@ -4994,11 +4994,12 @@ int DesignPanel::mcp_picked_plane() const { return m_plane_picked && m_ref_plane
 bool DesignPanel::mcp_select(const DesignSelection& s, std::string& why)
 {
     using Kind = DesignSelection::Kind;
-    if (m_viewport == nullptr || m_tree == nullptr || m_parts == nullptr) { why = "the Design view is not built"; return false; }
+    if (m_viewport == nullptr || m_tree == nullptr || m_parts == nullptr) throw Mcp::no_design_view();
     const int  bodies  = int(m_doc.bodies.size());
     DesignSketchTool& tool = m_viewport->mcp_sketch_tool();
     // Everything the selecting below can refuse is tested here, by the tests it runs itself, so that a request that
-    // would fail there changes nothing.
+    // would fail there changes nothing. What the view cannot take now is the session's state, thrown as
+    // Mcp::CadPrecondition; what names nothing, or the wrong kind of thing, is the arguments', returned in `why`.
     const auto body_ok = [&] {
         if (s.body >= 0 && s.body < bodies) return true;
         why = "body " + std::to_string(s.body) + " is not a body of the model, which has " + std::to_string(bodies);
@@ -5006,8 +5007,7 @@ bool DesignPanel::mcp_select(const DesignSelection& s, std::string& why)
     };
     const auto handled = [&](bool set, const char* what) {
         if (set) return true;
-        why = std::string("the Design view takes no ") + what + " now";
-        return false;
+        throw Mcp::CadPrecondition(std::string("the Design view takes no ") + what + " now");
     };
     using SolidSel = DesignSketchTool::SolidSel;
     const SolidSel solid = s.kind == Kind::Face ? SolidSel::Face : s.kind == Kind::Edges ? SolidSel::Edge : SolidSel::Vertex;
@@ -5022,14 +5022,13 @@ bool DesignPanel::mcp_select(const DesignSelection& s, std::string& why)
     case Kind::Edges:
     case Kind::Vertex: {
         if (!body_ok()) return false;
+        // A body the view cannot take a pick on now (no shape shown, hidden, another the only one picked) is the
+        // session's state; can_select_solid() below checks the ids.
+        if (std::string state; !tool.body_takes_pick(s.body, &state))
+            throw Mcp::CadPrecondition(state);
         if (s.kind == Kind::Vertex) {
-            std::vector<Vec3d> vertices;
-            try {
-                vertices = Mcp::cad_body_vertices(m_doc, s.body);
-            } catch (const std::exception& e) {
-                why = e.what();
-                return false;
-            }
+            // Its failures keep their kind (a body with no shape, a kernel error) for the call's error.
+            const std::vector<Vec3d> vertices = Mcp::cad_body_vertices(m_doc, s.body);
             if (s.vertex < 0 || s.vertex >= int(vertices.size())) {
                 why = "vertex " + std::to_string(s.vertex) + " is not one of body " + std::to_string(s.body) + ", which has " +
                       std::to_string(vertices.size());
@@ -5044,11 +5043,10 @@ bool DesignPanel::mcp_select(const DesignSelection& s, std::string& why)
     case Kind::Plane:
         if (s.plane < 0 || s.plane > 2) { why = "plane is XY, XZ or YZ"; return false; }
         // Where update_reference_planes() puts the planes up for a click (no card is open here).
-        if (!m_show_origin && !m_choosing_sketch_plane) {
-            why = "no click can pick a plane now: one does while the Origin row shows the planes (view_set {\"tab\": "
-                  "\"design\", \"origin\": true}) or while Sketch waits for its plane (sketch_create {})";
-            return false;
-        }
+        if (!m_show_origin && !m_choosing_sketch_plane)
+            throw Mcp::CadPrecondition("no click can pick a plane now: one does while the Origin row shows the planes "
+                                       "(view_set {\"tab\": \"design\", \"origin\": true}) or while Sketch waits "
+                                       "for its plane (sketch_create {})");
         if (!handled(bool(tool.on_datum_base_picked), "pick on a plane")) return false;
         break;
     case Kind::Loop: {
@@ -5065,29 +5063,22 @@ bool DesignPanel::mcp_select(const DesignSelection& s, std::string& why)
                   (loops.size() == 1 ? " closed loop" : " closed loops");
             return false;
         }
-        if (!sketch.enabled) {
-            why = named + " is suppressed, so the view does not show it";
-            return false;
-        }
-        if (const int by = sketch_extruded_by(s.sketch); by >= 0) {
-            why = named + " is not on show: " + m_doc.features[by].name + " takes it whole, so no click picks a loop of it";
-            return false;
-        }
+        if (!sketch.enabled)
+            throw Mcp::CadPrecondition(named + " is suppressed, so the view does not show it");
+        if (const int by = sketch_extruded_by(s.sketch); by >= 0)
+            throw Mcp::CadPrecondition(named + " is not on show: " + m_doc.features[by].name +
+                                       " takes it whole, so no click picks a loop of it");
         const std::vector<int>    taken = loops_extruded_by(s.sketch);
         std::vector<SketchEntity> own;
         for (const int ei : loops[s.loop]) {
-            if (taken[ei] >= 0) {
-                why = "loop " + std::to_string(s.loop) + " of " + named + " is not on show: " + m_doc.features[taken[ei]].name +
-                      " took it, so no click picks it";
-                return false;
-            }
+            if (taken[ei] >= 0)
+                throw Mcp::CadPrecondition("loop " + std::to_string(s.loop) + " of " + named + " is not on show: " +
+                                           m_doc.features[taken[ei]].name + " took it, so no click picks it");
             own.push_back(sketch.entities[ei]);
         }
         shown_loop = tool.display_region_of(s.sketch, own);
-        if (shown_loop < 0) {
-            why = "loop " + std::to_string(s.loop) + " of " + named + " is not on show, so no click picks it";
-            return false;
-        }
+        if (shown_loop < 0)
+            throw Mcp::CadPrecondition("loop " + std::to_string(s.loop) + " of " + named + " is not on show, so no click picks it");
         if (!handled(bool(tool.on_display_sketch_selected), "pick on a sketch")) return false;
         break;
     }
@@ -5113,10 +5104,8 @@ bool DesignPanel::mcp_select(const DesignSelection& s, std::string& why)
     case Kind::Face:
     case Kind::Edges:
     case Kind::Vertex:
-        if (!m_viewport->select_solid(solid, s.body, s.face, s.edges, vertex_pt)) {
-            why = "the Design view did not take the pick";
-            return false;
-        }
+        if (!m_viewport->select_solid(solid, s.body, s.face, s.edges, vertex_pt))
+            throw Mcp::CadPrecondition("the Design view did not take the pick");
         break;
     case Kind::Plane: tool.on_datum_base_picked(s.plane); break;
     case Kind::Loop:
@@ -12802,11 +12791,12 @@ bool DesignPanel::mcp_cancel_tool(std::string& was, std::string& why)
 
 bool DesignPanel::mcp_place_body(int body, const Vec3d& move, int axis, double angle_deg, std::string& why)
 {
-    if (body < 0 || body >= int(m_doc.bodies.size()) || body >= int(m_doc.display_body_meshes.size()) ||
-        m_doc.display_body_meshes[body].empty()) {
-        why = "body " + std::to_string(body) + " has no shape shown to place";
+    if (body < 0 || body >= int(m_doc.bodies.size())) {
+        why = "body " + std::to_string(body) + " is not a body of the model, which has " + std::to_string(m_doc.bodies.size());
         return false;
     }
+    if (body >= int(m_doc.display_body_meshes.size()) || m_doc.display_body_meshes[body].empty())
+        throw Mcp::CadPrecondition("body " + std::to_string(body) + " has no shape shown to place");
     end_sketch_plane_choice();   // the body moves, as with Move; a sketch was not started
     sync_body_xform();
     m_body_xform[body] = placed_by(m_body_xform[body], m_doc.display_body_meshes[body].bounding_box().center(), move, axis,
@@ -12818,19 +12808,22 @@ bool DesignPanel::mcp_place_body(int body, const Vec3d& move, int axis, double a
 
 bool DesignPanel::mcp_place_body_on_face(int body, int face, std::string& why)
 {
-    if (body < 0 || body >= int(m_doc.bodies.size()) || body >= int(m_doc.display_body_meshes.size())) {
-        why = "body " + std::to_string(body) + " has no shape shown to place";
+    if (body < 0 || body >= int(m_doc.bodies.size())) {
+        why = "body " + std::to_string(body) + " is not a body of the model, which has " + std::to_string(m_doc.bodies.size());
         return false;
     }
+    if (body >= int(m_doc.display_body_meshes.size()) || m_doc.display_body_meshes[body].empty())
+        throw Mcp::CadPrecondition("body " + std::to_string(body) + " has no shape shown to place");
     if (GeometryEngine::face_by_index(m_doc.bodies[body].shape, face).IsNull()) {
         why = "face " + std::to_string(face) + " is not one of body " + std::to_string(body) + "'s " +
               std::to_string(GeometryEngine::face_count(m_doc.bodies[body].shape)) + " faces";
         return false;
     }
-    if (!place_on_face(body, face)) {
-        why = "face " + std::to_string(face) + " has no normal to lay it on the bed by";
-        return false;
-    }
+    // face_normal_world() gives every face a normal, so only the body's current placement can turn it into no
+    // direction to lay the face down by.
+    if (!place_on_face(body, face))
+        throw Mcp::CadPrecondition("body " + std::to_string(body) + "'s placement cannot be read; body_place {body: " +
+                                   std::to_string(body) + ", reset: true} restores it");
     return true;
 }
 

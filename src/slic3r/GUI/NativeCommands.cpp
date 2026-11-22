@@ -1140,7 +1140,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
     if (options.cad)
         Mcp::register_cad_commands(catalog);
     else
-        Mcp::leave_out_cad_commands(catalog);
+        Mcp::leave_out_cad_commands(catalog, options.editor);
 #endif
     for (auto it = gui; it != placed.end(); ++it)
         catalog.add(std::move(*it));
@@ -1366,15 +1366,15 @@ ToolResult NativeCommands::from_run_result(const std::string& key, const AppActi
     // A command that did nothing (no selection, no objects) fails here, though the Speed Dial shows it as
     // information.
     if (result.level == AppActionRunResult::Level::Error || result.level == AppActionRunResult::Level::Busy || !result.done) {
-        json details = json::object();
+        json details;
         if (result.refusal) {
-            details["code"] = result.refusal->code;
+            details = {{"code", result.refusal->code}};
             if (!result.refusal->names.empty())
                 details["names"] = result.refusal->names;
+            // The message is the person's; the hint is what an agent's call does instead.
+            if (std::string hint = Mcp::refusal_hint(*result.refusal); !hint.empty())
+                details["hint"] = std::move(hint);
         }
-        if (!result.reply.empty())
-            if (json reply = json::parse(result.reply, nullptr, /*allow_exceptions=*/false); reply.is_object())
-                details.update(reply);
         return ToolResult::error(message.empty() ? "The action failed" : message, std::move(details));
     }
     json out{{"ran", key}, {"level", level_name(result.level)}};

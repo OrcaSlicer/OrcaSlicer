@@ -21,10 +21,12 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
+#include <limits>
 #include <memory>
 #include <string>
 #include <thread>
@@ -220,13 +222,48 @@ ToolFailure refused(const Ops::Refusal& refusal, const std::string& hint, const 
     json details{{"code", refusal.code}};
     if (names_key != nullptr)
         details[names_key] = refusal.names;
+    if (std::string agent = refusal_hint(refusal); !agent.empty())
+        details["hint"] = std::move(agent);
     return ToolFailure(refusal.english() + (hint.empty() ? "" : " " + hint), std::move(details));
+}
+
+std::string refusal_hint(const Ops::Refusal& refusal)
+{
+    const std::string code = refusal.code;
+    // Two refusals share gizmo_open: Select All's, for the gizmo of the view shown (select_everything()), and the
+    // operations', for the Prepare view's (ObjectOps' gizmo_open()), so the hint tells them apart by the call.
+    if (code == "gizmo_open" || code == "gizmo_editing")
+        return "object_select {none: true} closes the open gizmo of the view shown, as Deselect All does. Select All is "
+               "refused for that view's gizmo, any other operation for the Prepare view's, so for those in the assemble view, "
+               "view_set {canvas: \"3d\"} comes first. Deselecting clears the selection: a call that acted on it names its "
+               "targets when it runs again.";
+    // Only Add Primitive's person's form ({shape} alone) asks for the selection to be clear. The Speed Dial's
+    // add_primitive actions take no arguments, so the call with a size or silent is the command's.
+    if (code == "object_selected")
+        return "object_select {none: true} first; or call object_add_primitive with size or silent: true, which adds the "
+               "shape whatever is selected; part_add adds it to the selected object";
+    // The refusals that ask for a selection, where the call can name what it acts on.
+    if (code == "nothing_selected" || code == "one_object_only" || code == "wrong_selection" || code == "too_few_objects" ||
+        code == "several_instances")
+        return "name the targets in the call (its objects, instances or parts, or object and part, as its schema takes them), "
+               "or select them with object_select";
+    return {};
 }
 
 int arg_int(const json& args, const char* key, int fallback)
 {
     auto it = args.find(key);
-    return it != args.end() && it->is_number() ? it->get<int>() : fallback;
+    if (it == args.end() || !it->is_number())
+        return fallback;
+    // Checked before it is narrowed: get<int>() would turn 4294967296 into 0, another index or count the command then
+    // accepts, and a float past int's range into undefined behavior.
+    constexpr auto lo = std::numeric_limits<int>::min(), hi = std::numeric_limits<int>::max();
+    const bool     fits = it->is_number_unsigned() ? it->get<std::uint64_t>() <= std::uint64_t(hi) :
+                          it->is_number_integer()  ? it->get<std::int64_t>() >= lo && it->get<std::int64_t>() <= hi :
+                                                     std::isfinite(it->get<double>()) && it->get<double>() >= lo && it->get<double>() <= hi;
+    if (!fits)
+        throw ToolFailure(std::string(key) + " " + it->dump() + " is out of range", {{"code", "invalid_argument"}});
+    return it->get<int>();
 }
 
 double arg_double(const json& args, const char* key, double fallback)
