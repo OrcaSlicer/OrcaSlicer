@@ -901,6 +901,8 @@ protected:
     std::map<int,int> m_imex_head_filament_map;
 
     std::unique_ptr<WipeTowerIntegration> m_wipe_tower;
+    // Filament the prime towers of the objects print, per extruder, summed over the object instances of this export.
+    std::vector<float>                    m_object_tower_used_filament;
 
     std::unique_ptr<SmallAreaInfillFlowCompensator> m_small_area_infill_flow_compensator;
     

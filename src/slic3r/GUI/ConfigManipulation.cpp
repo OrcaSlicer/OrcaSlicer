@@ -1206,6 +1206,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     for (auto el : {"prime_tower_width", "prime_tower_brim_width", "prime_tower_skip_points", "wipe_tower_wall_type", "prime_tower_infill_gap","prime_tower_enable_framework", "enable_tower_interface_features"})
         toggle_line(el, have_prime_tower && !is_belt_printer, -1, prime_tower_reason);
 
+    // Each object gets its own tower, which only the Type 1 tower generator and the "By object" sequence support.
+    toggle_line("prime_tower_per_object", have_sequential_printing && !supports_wipe_tower_2 && !is_belt_printer, -1,
+                _L("Use the \"By object\" print sequence and the Type 1 wipe tower on a non-belt printer to use this setting."));
+
     toggle_line("enable_tower_interface_cooldown_during_tower",
                 have_prime_tower && !is_belt_printer && config->opt_bool("enable_tower_interface_features"), -1, _L("Enable the prime tower and tower interface features on a non-belt printer to use this setting."));
 

@@ -3246,6 +3246,8 @@ namespace DoExport {
     static std::string update_print_stats_and_format_filament_stats(
         const bool                   has_wipe_tower,
 	    const WipeTowerData         &wipe_tower_data,
+        // Filament of the per-object prime towers, by extruder id.
+        const std::vector<float>    &object_tower_filament,
 	    const std::vector<Extruder> &extruders,
 		PrintStatistics 		    &print_statistics,
         const ToolOrdering          &tool_ordering)
@@ -3260,8 +3262,10 @@ namespace DoExport {
 	        std::pair<std::string, unsigned int> out_filament_used_g  ("; filament used [g] = ", 0);
 	        std::pair<std::string, unsigned int> out_filament_cost    ("; filament cost = ", 0);
 	        for (const Extruder &extruder : extruders) {
-	            double used_filament   = extruder.used_filament() + (has_wipe_tower ? wipe_tower_data.used_filament[extruder.id()] : 0.f);
-	            double extruded_volume = extruder.extruded_volume() + (has_wipe_tower ? wipe_tower_data.used_filament[extruder.id()] * 2.4052f : 0.f); // assumes 1.75mm filament diameter
+                const double tower_filament = (has_wipe_tower ? wipe_tower_data.used_filament[extruder.id()] : 0.f)
+                    + (extruder.id() < object_tower_filament.size() ? object_tower_filament[extruder.id()] : 0.f);
+	            double used_filament   = extruder.used_filament() + tower_filament;
+	            double extruded_volume = extruder.extruded_volume() + tower_filament * 2.4052f; // assumes 1.75mm filament diameter
 	            double filament_weight = extruded_volume * extruder.filament_density() * 0.001;
 	            double filament_cost   = filament_weight * extruder.filament_cost()    * 0.001;
                 auto append = [&extruder](std::pair<std::string, unsigned int> &dst, const char *tmpl, double value) {
@@ -3290,8 +3294,8 @@ namespace DoExport {
 	            }
 	            print_statistics.total_used_filament += used_filament;
 	            print_statistics.total_extruded_volume += extruded_volume;
-	            print_statistics.total_wipe_tower_filament += has_wipe_tower ? used_filament - extruder.used_filament() : 0.;
-	            print_statistics.total_wipe_tower_cost += has_wipe_tower ? (extruded_volume - extruder.extruded_volume())* extruder.filament_density() * 0.001 * extruder.filament_cost() * 0.001 : 0.;
+	            print_statistics.total_wipe_tower_filament += tower_filament;
+	            print_statistics.total_wipe_tower_cost += (extruded_volume - extruder.extruded_volume())* extruder.filament_density() * 0.001 * extruder.filament_cost() * 0.001;
 	        }
 	        filament_stats_string_out += out_filament_used_mm.first;
             filament_stats_string_out += "\n" + out_filament_used_cm3.first;
@@ -3609,6 +3613,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     unsigned int final_extruder_id   = (unsigned int)-1;
     bool         has_wipe_tower      = false;
     print.m_statistics_by_extruder_count.clear();
+    m_object_tower_used_filament.clear();
     std::vector<int>                                    first_filaments;
     std::vector<int>                                    first_non_support_filaments;
     std::vector<const PrintInstance*> 					print_object_instances_ordering;
@@ -4766,6 +4771,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                     m_wipe_tower->set_wipe_tower_depth(object_tower->depth);
                     m_wipe_tower->set_wipe_tower_bbx(object_tower->bbx);
                     m_wipe_tower->set_rib_offset(object_tower->rib_offset);
+                    if (m_object_tower_used_filament.size() < object_tower->used_filament.size())
+                        m_object_tower_used_filament.resize(object_tower->used_filament.size(), 0.f);
+                    for (size_t i = 0; i < object_tower->used_filament.size(); ++ i)
+                        m_object_tower_used_filament[i] += object_tower->used_filament[i];
                 }
                 this->process_layers(print, tool_ordering, collect_layers_to_print(object, print.config().belt_printer.value, object_tower ? &object_tower->support_layers : nullptr),
                                      *print_object_instance_sequential_active - object.instances().data(), file, prime_extruder);
@@ -4991,7 +5000,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // Get filament stats.
     file.write(DoExport::update_print_stats_and_format_filament_stats(
     	// Const inputs
-        has_wipe_tower, print.wipe_tower_data(),
+        has_wipe_tower, print.wipe_tower_data(), m_object_tower_used_filament,
         m_writer.extruders(),
         // Modifies
         print.m_print_statistics,

@@ -3414,6 +3414,7 @@ void TabPrint::build()
     page = add_options_page(L("Multimaterial"), "custom-gcode_multi_material"); // ORCA: icon only visible on placeholders
         optgroup = page->new_optgroup(L("Prime tower"), L"param_tower");
         optgroup->append_single_option_line("enable_prime_tower", "multimaterial_settings_prime_tower");
+        optgroup->append_single_option_line("prime_tower_per_object", "multimaterial_settings_prime_tower");
         optgroup->append_single_option_line("prime_tower_skip_points", "multimaterial_settings_prime_tower#skip-points");
         optgroup->append_single_option_line("enable_tower_interface_features", "multimaterial_settings_prime_tower#enable-tower-interface-features");
         optgroup->append_single_option_line("enable_tower_interface_cooldown_during_tower", "multimaterial_settings_prime_tower#cool-down-from-interface-boost-during-prime-tower");
