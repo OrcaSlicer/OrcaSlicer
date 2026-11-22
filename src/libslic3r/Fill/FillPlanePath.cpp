@@ -189,7 +189,9 @@ void FillPlanePath::_fill_surface_single(
     bounding_box.rotate(-angle);
     if (is_centered)
         shift += bounding_box.center();
-
+    else {
+        shift += bounding_box.min;
+    }
     expolygon.translate(-shift);
 
 #ifdef DEBUG_PATH
@@ -198,8 +200,10 @@ void FillPlanePath::_fill_surface_single(
     
     if (is_centered)
         bounding_box = get_extents(expolygon);
-    else
-        bounding_box.max = get_extents(expolygon).max; // crop/extend bounding_box for minimum required space if the fill pattern has starting point outside the expolygon
+    else { // crop/extend bounding_box for minimum required space if the fill pattern has starting point outside the expolygon
+        bounding_box.translate(-shift);
+        bounding_box.max = get_extents(expolygon).max;
+    } 
 
     // Expand the bounding box to avoid artifacts at the edges
     bounding_box.offset(SCALED_EPSILON);

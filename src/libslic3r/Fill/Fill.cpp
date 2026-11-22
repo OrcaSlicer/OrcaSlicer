@@ -1734,7 +1734,7 @@ static int infill_body(const Layer &layer, const SurfaceFill &fill, const ExPoly
     const bool is_top_bottom = (params.extrusion_role == erTopSolidInfill || params.extrusion_role == erBottomSurface);
     const bool per_model     = is_top_bottom && params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model &&
                                (params.pattern == ipArchimedeanChords || params.pattern == ipOctagramSpiral);
-    const bool per_type      = params.separated_infills || (params.pattern == ipHilbertCurve && !params.pattern_mode && (params.extrusion_role == erInternalInfill));
+    const bool per_type      = params.separated_infills || (params.pattern == ipHilbertCurve && !params.pattern_mode);
 
     int body = -1;
     if (per_model || per_type || is_octree_infill_pattern(params.pattern)) {

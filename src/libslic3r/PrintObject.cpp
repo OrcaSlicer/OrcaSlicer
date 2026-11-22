@@ -763,8 +763,11 @@ void PrintObject::prepare_infill()
     bool needs_separated_components = false;
     for (size_t i = 0; i < this->num_printing_regions(); ++ i) {
         const PrintRegionConfig &rc = this->printing_region(i).config();
-        const bool is_hilbert       = rc.sparse_infill_pattern.value == ipHilbertCurve || rc.internal_solid_infill_pattern.value == ipHilbertCurve;
-        if (is_hilbert || rc.separated_infills || rc.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model ||
+        const bool has_hilbert      = rc.sparse_infill_pattern.value == ipHilbertCurve || 
+                                      rc.internal_solid_infill_pattern.value == ipHilbertCurve ||
+                                      rc.top_surface_pattern.value == ipHilbertCurve ||
+                                      rc.bottom_surface_pattern.value == ipHilbertCurve;
+        if (has_hilbert || rc.separated_infills || rc.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model ||
             (rc.sparse_infill_density > 0 && is_octree_infill_pattern(rc.sparse_infill_pattern))) {
             needs_separated_components = true;
             break;
