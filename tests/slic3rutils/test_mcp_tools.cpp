@@ -144,23 +144,6 @@ TEST_CASE("setting values serialize the way their options read them back", "[Mcp
     CHECK_THROWS_AS(to_config_string(json::object()), ToolFailure);
 }
 
-TEST_CASE("a search matches query words at the start of a text's words, CamelCase parts included", "[Mcp]")
-{
-    // Short words drop out once the query has a longer one.
-    CHECK(query_words("Add a Brim to it") == std::vector<std::string>{"add", "brim"});
-    CHECK(query_words("z") == std::vector<std::string>{"z"});
-
-    const std::vector<std::string> words = query_words("mesh normals");
-    // "mesh" starts the second part of TriangleMesh and "normals" a word of the name: both in the name.
-    CHECK(match_score(words, "orca.host.TriangleMesh.face_normals", "Per-triangle normals.") == std::pair<int, int>{2, 2});
-    // A word only the text has counts, but not as a name match.
-    CHECK(match_score(words, "orca.host.ModelVolume.mesh", "Face normals are not cached.") == std::pair<int, int>{2, 1});
-    CHECK(match_score(words, "orca.host.Model", "The project's objects.") == std::pair<int, int>{0, 0});
-    // A word is matched at the start of a word, never inside one.
-    CHECK(match_score(query_words("range"), "arrange", "") == std::pair<int, int>{0, 0});
-    CHECK(match_score(query_words("retract"), "retraction_length", "") == std::pair<int, int>{1, 1});
-}
-
 TEST_CASE("action_run refuses arguments for an action that takes none", "[Mcp][SpeedDial]")
 {
     // A plate's, a setting's, a recent project's and a plugin's action run what they are, whatever args says.
@@ -678,15 +661,15 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
         CHECK(first_sentence(command->description) == r.first_sentence);
     }
 
-    // Outside the Design group 134 commands are listed: every one that runs from its arguments, all but the three menu
+    // Outside the Design group 135 commands are listed: every one that runs from its arguments, all but the three menu
     // items that take none (Task 3's 98, the seven Parts 4a to 4c add, Part 5a's three, Part 5b's two, Part 5c's one,
-    // Part 5d's four, the seven gizmo commands, the six printing commands, the filament list's four, tool_describe and
-    // script_describe_api).
+    // Part 5d's four, the seven gizmo commands, the six printing commands, the filament list's four, tool_describe,
+    // script_describe_api and settings_list_pages).
     std::size_t listed = 0;
     for (const NativeCommand& c : catalog.commands())
         if (c.listed && c.group != Slic3r::GUI::kDesignGroup)
             ++listed;
-    CHECK(listed == 134);
+    CHECK(listed == 135);
 }
 
 TEST_CASE("opening a project and importing models are two commands", "[Mcp]")

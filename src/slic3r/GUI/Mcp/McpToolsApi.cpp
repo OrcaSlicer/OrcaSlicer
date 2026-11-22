@@ -190,7 +190,7 @@ const std::map<std::string, ParameterClass>& classes_by_path()
         // Settings and preferences: the keys a tool takes are those its reader lists.
         {"settings_get.keys", source({"settings_list"})},
         {"settings_set.values", source({"settings_list"})},
-        {"settings_list.where", kDescribed},
+        {"settings_list.where", source({"settings_list_pages"})},
         {"settings_get.min_z", source({"object_list"})},
         {"settings_get.max_z", source({"object_list"})},
         {"settings_set.min_z", source({"object_list"})},

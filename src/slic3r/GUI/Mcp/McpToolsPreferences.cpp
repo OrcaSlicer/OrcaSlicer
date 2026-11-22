@@ -15,11 +15,9 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
-#include <cctype>
 #include <cstdint>
 #include <map>
 #include <set>
-#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -39,12 +37,6 @@ const char* kind_name(Ops::PreferenceKind kind)
     case Ops::PreferenceKind::Text: return "text";
     }
     return "text";
-}
-
-std::string lower(std::string s)
-{
-    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return char(std::tolower(c)); });
-    return s;
 }
 
 // A bound of a number's range, whole where the row takes whole numbers.
@@ -134,21 +126,14 @@ json changes_json(const Ops::PreferenceChanges& changes, const std::vector<Ops::
 json preferences_settings(const AppConfig& config, const std::vector<Ops::Preference>& shown, const json& args,
                           const std::map<std::string, std::string>& shown_texts)
 {
-    const std::string tab = arg_string(args, "tab");
-    std::vector<std::string> words;
-    std::istringstream       query(lower(arg_string(args, "query")));
-    for (std::string word; query >> word;)
-        words.push_back(word);
+    const std::string        tab = arg_string(args, "tab");
     std::vector<std::string> asked;
     if (args.contains("keys"))
         for (const json& key : args["keys"])
             asked.push_back(key.get<std::string>());
     const auto named = [&asked](const std::string& key) { return std::find(asked.begin(), asked.end(), key) != asked.end(); };
     const auto matches = [&](const Ops::Preference& p) {
-        if ((!tab.empty() && p.tab != tab) || (args.contains("keys") && !named(p.key)))
-            return false;
-        const std::string text = lower(p.key + " " + p.label + " " + p.section);
-        return std::all_of(words.begin(), words.end(), [&text](const std::string& word) { return text.find(word) != std::string::npos; });
+        return (tab.empty() || p.tab == tab) && (!args.contains("keys") || named(p.key));
     };
 
     json items = json::array(), unknown = json::array();
@@ -186,14 +171,12 @@ void register_preference_tools(CommandCatalog& catalog)
         "restart_needed: true for a preference read at the next start, which a write changes nothing before, and "
         "refused, the reason, for a preference preferences_set does not write. The MCP server's switch and port read as "
         "the dialog shows them: on while the server runs, and the port it is on, also where this session's launch "
-        "arguments set them without storing them; their stored says whether a value is stored. keys, query and tab "
-        "narrow the list together; a "
+        "arguments set them without storing them; their stored says whether a value is stored. keys and tab narrow "
+        "the list together; a "
         "named key the dialog does not show is read as the app configuration stores it ({key, value}), and one that is "
         "neither is listed under unknown_keys. The app configuration also holds account and device state, which is read "
         "only by name.",
         object_schema({{"keys", array_prop({{"type", "string"}}, "Preference keys, e.g. [\"project_load_behaviour\"].")},
-                       {"query", prop("string", "Words to find in the keys, labels and section titles, in any case, e.g. "
-                                                "\"auto slice\".")},
                        {"tab", enum_prop({"general", "files", "behaviour", "control", "graphics", "online", "developer"},
                                          "The dialog's tab, as window_open names it.")}}),
         [](const json& args, ToolContext& ctx) {
@@ -244,8 +227,8 @@ void register_preference_tools(CommandCatalog& catalog)
                 return ToolResult::ok(result);
             }));
     write.examples = json::parse(R"json([
-        {"title": "Find a preference and turn it off", "calls": [
-            {"tool": "preferences_get", "args": {"query": "arrange"}},
+        {"title": "Read the Behaviour tab's preferences and turn one off", "calls": [
+            {"tool": "preferences_get", "args": {"tab": "behaviour"}},
             {"tool": "preferences_set", "args": {"values": {"auto_arrange": false}}}]},
         {"title": "Set a choice and a number", "calls": [
             {"tool": "preferences_set", "args": {"values": {"auto_calculate_flush": "color change", "opengl_fps_cap": 60}}}]}])json");

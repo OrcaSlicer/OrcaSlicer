@@ -1942,25 +1942,22 @@ json option_meta(const ConfigOptionDef& def)
     return meta;
 }
 
-std::vector<std::string> rank_settings(const std::string& query, const std::vector<std::string>& within, std::size_t limit)
+json settings_pages(const std::map<std::string, std::string>& places, const std::vector<std::string>& keys)
 {
-    const std::vector<std::string> words = query_words(query);
-    // (query words matched, those matched in the key or label) per key.
-    std::vector<std::pair<std::pair<int, int>, std::string>> scored;
-    std::set<std::string>                                    seen; // a type's options can list a key twice
-    for (const std::string& key : within) {
-        const ConfigOptionDef* def = print_config_def.get(key);
-        if (def == nullptr || !seen.insert(key).second)
-            continue;
-        const std::pair<int, int> score = match_score(words, key + ' ' + def->label + ' ' + def->full_label, def->tooltip);
-        if (score.first > 0)
-            scored.emplace_back(score, key);
+    // page -> group -> how many of `keys` it holds; the maps keep both in alphabetical order.
+    std::map<std::string, std::map<std::string, int>> counted;
+    for (const std::string& key : keys)
+        if (const auto place = places.find(key); place != places.end())
+            if (const std::size_t sep = place->second.find(" > "); sep != std::string::npos)
+                ++counted[place->second.substr(0, sep)][place->second.substr(sep + 3)];
+    json pages = json::array();
+    for (const auto& [page, groups] : counted) {
+        json listed = json::array();
+        for (const auto& [group, settings] : groups)
+            listed.push_back({{"group", group}, {"settings", settings}});
+        pages.push_back({{"page", page}, {"groups", std::move(listed)}});
     }
-    std::stable_sort(scored.begin(), scored.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
-    std::vector<std::string> out;
-    for (std::size_t i = 0; i < scored.size() && i < limit; ++i)
-        out.push_back(scored[i].second);
-    return out;
+    return {{"pages", std::move(pages)}};
 }
 
 json variant_entries(const std::string& key, const DynamicPrintConfig& config, const std::vector<int>& extruder_types,
@@ -2611,25 +2608,20 @@ json target_reply(const ConfigTarget& t)
 // settings_get: the settings `args` asks for, read on the UI thread.
 json read_settings(const json& args)
 {
-    if (int(args.contains("keys")) + int(args.contains("query")) + int(args.contains("where")) > 1)
-        throw ToolFailure("Give one of keys, query or where");
-    // A search or named keys with no type look through kSearchTypes; each item names its type.
-    if ((args.contains("query") || args.contains("keys")) && !args.contains("type") && arg_string(args, "target", "global") == "global" &&
+    // Named keys with no type look through kSearchTypes; each item names its type.
+    if (args.contains("keys") && !args.contains("type") && arg_string(args, "target", "global") == "global" &&
         !args.contains("preset") && !args.contains("compare")) {
         std::map<std::string, std::string> type_of;
         const std::vector<std::string>     options = search_type_options(type_of);
         std::vector<std::string>           wanted;
         json                               unknown = json::array();
-        if (args.contains("query"))
-            wanted = rank_settings(arg_string(args, "query"), options, 200);
-        else
-            for (const json& k : args["keys"]) {
-                const std::string key = k.get<std::string>();
-                if (type_of.count(key) == 0)
-                    unknown.push_back(key);
-                else if (std::find(wanted.begin(), wanted.end(), key) == wanted.end())
-                    wanted.push_back(key);
-            }
+        for (const json& k : args["keys"]) {
+            const std::string key = k.get<std::string>();
+            if (type_of.count(key) == 0)
+                unknown.push_back(key);
+            else if (std::find(wanted.begin(), wanted.end(), key) == wanted.end())
+                wanted.push_back(key);
+        }
         std::map<std::string, json> found;
         for (const char* type : kSearchTypes) {
             json keys = json::array();
@@ -2639,7 +2631,6 @@ json read_settings(const json& args)
             if (keys.empty())
                 continue;
             json typed = args;
-            typed.erase("query");
             typed.erase("offset");
             typed.update({{"type", type}, {"keys", std::move(keys)}, {"limit", 500}});
             json read = read_settings(typed);
@@ -2653,22 +2644,22 @@ json read_settings(const json& args)
         for (const std::string& key : wanted)
             if (const auto it = found.find(key); it != found.end())
                 items.push_back(std::move(it->second));
-        json out = page(items, args, args.contains("query") ? 20 : 100);
+        json out = page(items, args, 100);
         add_unknown_keys(out, unknown, options);
         return out;
     }
     return read_target(args, resolve_target(args, false));
 }
 
-// The settings of `t` that `args` asks for: its keys, query or where, its whole listing without them (for a target
+// The settings of `t` that `args` asks for: its keys or where, its whole listing without them (for a target
 // other than global, what it overrides), or with compare what differs from another preset. `listing`: settings_list's,
 // paged by settings_list_page(). A key a target does not take is refused with where it is set. UI thread.
 json read_target(const json& args, const ConfigTarget& t, bool listing)
 {
     const bool compare = args.contains("compare");
     // A preset's whole listing, hundreds of keys, is for scanning values; what one key takes
-    // comes with it when it is named, searched for or listed with its group.
-    const bool whole = !args.contains("keys") && !args.contains("query") && !args.contains("where") && t.object == nullptr && !t.project;
+    // comes with it when it is named or listed with its group.
+    const bool whole = !args.contains("keys") && !args.contains("where") && t.object == nullptr && !t.project;
     const bool meta  = listing ? listed_with_meta(args) : arg_bool(args, "include_meta", !compare && !whole);
     if (t.object != nullptr && (compare || args.contains("preset")))
         throw ToolFailure("preset and compare read a type's presets, which the targets object, part and height_range are not");
@@ -2679,8 +2670,6 @@ json read_target(const json& args, const ConfigTarget& t, bool listing)
     if (args.contains("keys")) {
         for (const json& k : args["keys"])
             keys.push_back(k.get<std::string>());
-    } else if (args.contains("query")) {
-        keys = rank_settings(arg_string(args, "query"), t.options, 200);
     } else if (args.contains("where")) {
         const std::string     where = lower(arg_string(args, "where"));
         std::set<std::string> groups;
@@ -2701,7 +2690,7 @@ json read_target(const json& args, const ConfigTarget& t, bool listing)
         keys = t.options;
     }
     // A target's overrides are listed whatever they are; a key named for a target is one it takes.
-    const bool                      overrides = t.object != nullptr && !args.contains("keys") && !args.contains("query");
+    const bool                      overrides = t.object != nullptr && !args.contains("keys");
     const std::vector<std::string>& process   = preset_options(Preset::TYPE_PRINT);
     std::vector<std::string>        known;
     json                            unknown = json::array();
@@ -2764,9 +2753,7 @@ json read_target(const json& args, const ConfigTarget& t, bool listing)
                 add_meta(item, key);
             items.push_back(std::move(item));
         }
-        // A search's matches carry their descriptions, and those past the best few rarely
-        // fit what was asked.
-        out = listing ? settings_list_page(items, args) : page(items, args, args.contains("query") ? 20 : 100);
+        out = listing ? settings_list_page(items, args) : page(items, args, 100);
         std::string note;
         if (part_only)
             note = "A part's value (source \"part\", or in parts) applies only inside that part's volume.";
@@ -2787,13 +2774,15 @@ json read_target(const json& args, const ConfigTarget& t, bool listing)
     return out;
 }
 
-// settings_list: a type's settings, a preset's or those an object or a region takes, which read the process
-// preset's values. UI thread.
-json list_settings(const json& args)
+// The settings settings_list lists for `args`' type, and the arguments it reads them with: a type's preset (process,
+// printer, filament) as `args` names it, or for object and region the process preset, its options cut to those an object
+// or a region takes, whose values they print with unless they set their own. settings_list_pages groups the same
+// settings, so that a group's count is what settings_list lists there. UI thread.
+std::pair<ConfigTarget, json> listed_settings(const json& args)
 {
     const std::string type = arg_string(args, "type");
     if (type != "object" && type != "region")
-        return read_target(args, resolve_target(args, false), true);
+        return {resolve_target(args, false), args};
     json process    = args;
     process["type"] = "process";
     ConfigTarget t  = resolve_target(process, false);
@@ -2802,12 +2791,31 @@ json list_settings(const json& args)
     t.options.erase(std::remove_if(t.options.begin(), t.options.end(),
                                    [&taken](const std::string& key) { return std::find(taken.begin(), taken.end(), key) == taken.end(); }),
                     t.options.end());
-    json out = read_target(process, t, true);
-    if (type == "region")
+    return {std::move(t), std::move(process)};
+}
+
+// settings_list: a type's settings, a preset's or those an object or a region takes. UI thread.
+json list_settings(const json& args)
+{
+    const auto [t, read] = listed_settings(args);
+    json out             = read_target(read, t, true);
+    if (arg_string(args, "type") == "region")
         for (json& item : out["items"])
             if (item["key"] == "layer_height")
                 item["targets"] = json::array({"height_range"});
     return out;
+}
+
+// settings_list_pages: the pages and groups of the settings settings_list lists for `args`' type. UI thread.
+json list_setting_pages(const json& args)
+{
+    const std::pair<ConfigTarget, json> listed = listed_settings(args);
+    // The keys settings_list lists: those of the target's options that the config defines (read_target()).
+    std::vector<std::string> keys;
+    for (const std::string& key : listed.first.options)
+        if (print_config_def.get(key) != nullptr)
+            keys.push_back(key);
+    return settings_pages(setting_places(listed.first.type), keys);
 }
 
 } // namespace
@@ -2833,8 +2841,8 @@ std::string settings_request_error(const json& args, bool writes)
         if (target == "height_range" && !(args.contains("min_z") && args.contains("max_z")))
             return "target height_range needs min_z and max_z, the range's heights as object_list lists them";
     }
-    // settings_set writes values, or takes a preset back to its saved state; settings_get reads what keys, query or
-    // compare names, or a target's overrides.
+    // settings_set writes values, or takes a preset back to its saved state; settings_get reads what keys or compare
+    // names, or a target's overrides.
     if (writes) {
         if (!args.contains("values") && !args.contains("reset_all"))
             return "Nothing is named: give values to change settings, or reset_all to discard the unsaved changes of a type's "
@@ -2846,8 +2854,8 @@ std::string settings_request_error(const json& args, bool writes)
             return "extruders_count is set alone, with type printer: the extruders it adds take their settings in a following "
                    "call";
     } else if (target == "global" && !args.contains("keys") && !args.contains("query") && !args.contains("compare")) {
-        return "Nothing is named: give keys, query or compare to read settings, or a target other than global to read what "
-               "it overrides; settings_list lists a type's settings";
+        return "Nothing is named: give keys or compare to read settings, or a target other than global to read what it "
+               "overrides; settings_list lists a type's settings, and settings_list_pages their pages";
     }
     return {};
 }
@@ -3115,9 +3123,9 @@ void register_config_tools(CommandCatalog& catalog)
         "filament_slot a slot's. object: the process settings an object or an assembly takes; region: those a part, a "
         "modifier or a height range takes, whose layer_height item has targets [\"height_range\"], a height range alone "
         "taking it; in both, each with the process preset's value, which an object or a region prints with unless it "
-        "sets its own. With where, the settings of one settings page or \"Page > Group\" (an unknown one is refused with "
-        "the list of them). Items with meta, which where gives them, come 100 a page. settings_get reads the settings "
-        "named or searched for, and what an object, a part or a height range overrides.",
+        "sets its own. With where, the settings of one settings page or \"Page > Group\", as settings_list_pages lists them "
+        "(an unknown one is refused with the list of them). Items with meta, which where gives them, come 100 a page. "
+        "settings_get reads settings by key, and what an object, a part or a height range overrides.",
         object_schema({{"type", enum_prop({"process", "printer", "filament", "object", "region"},
                                           "Which settings: a preset's, or those an object or a region takes.")},
                        {"where", prop("string", "A settings page, or \"Page > Group\" as meta.where gives it, e.g. "
@@ -3140,21 +3148,38 @@ void register_config_tools(CommandCatalog& catalog)
         }));
 
     catalog.add(inspect_tool(
+        "settings_list_pages", L("List settings pages"),
+        "The pages of a type's settings tab and the groups on each, pages and groups in alphabetical order, each group with "
+        "how many of the settings settings_list lists for the same type it holds: settings_list {type, where} lists that "
+        "many there. A page and a \"Page > Group\" are each a where settings_list takes, which lists those settings with "
+        "their values and what each does. A setting with no row on a page is in no group; settings_list without where "
+        "lists it.",
+        object_schema({{"type", enum_prop({"process", "printer", "filament", "object", "region"},
+                                          "Which settings, as settings_list takes them: a preset's, or those an object or a "
+                                          "region takes.")}},
+                      {"type"}),
+        [](const json& args, ToolContext& ctx) {
+            return ToolResult::ok(ctx.run_ui([&] {
+                ui_plater(); // the presets and the settings pages exist once the main window does
+                return list_setting_pages(args);
+            }));
+        }));
+
+    catalog.add(inspect_tool(
         "settings_get", L("Read settings"),
-        "Read the settings named or searched for: each item has its value, as OrcaSlicer writes it, and meta: label, "
+        "Read the settings named: each item has its value, as OrcaSlicer writes it, and meta: label, "
         "description (what the setting does, when to change it), where (its settings page and group), type, unit, range, "
-        "allowed values and mode. Choose them by keys, or by query, a few words matched in keys, labels and descriptions, "
-        "best matches first. Keys the settings lack are listed in unknown_keys, type_of gives where each of those is a "
+        "allowed values and mode. Keys the settings lack are listed in unknown_keys, type_of gives where each of those is a "
         "setting elsewhere (a type, or project for the project's own settings), and similar the keys like each of the others. "
-        "It needs keys, query, compare or a target "
-        "other than global; settings_list lists all of a type's settings.\n"
-        "- No type: keys and query look through the process, filament and printer settings, and each item names its "
+        "It needs keys, compare or a target other than global; settings_list lists all of a type's settings, a page "
+        "at a time with where, and settings_list_pages the pages.\n"
+        "- No type: keys look through the process, filament and printer settings, and each item names its "
         "type, the one settings_set takes; otherwise the type is the process.\n"
         "- type printer, process or filament (target global): the preset being edited, or with preset a saved one; "
         "compare lists only the keys that differ from another preset (value and other). A per-variant value lists in meta "
         "its variants (what each entry is for) and active (the entry each extruder prints with).\n"
         "- target object (object), part (object and part) or height_range (object, min_z and max_z), the object or part "
-        "selected in Prepare where none is named: without keys, what it overrides; keys and query read the process "
+        "selected in Prepare where none is named: without keys, what it overrides; keys read the process "
         "settings it takes (settings_list type object or region lists them) and extruder, its filament, and a key it does "
         "not take is refused with where it is set. Each has value (its own, null where it has none), effective (the "
         "value it prints with) and source, in the order the slicer applies them: height_range, part, object, global or "
@@ -3170,8 +3195,6 @@ void register_config_tools(CommandCatalog& catalog)
         object_schema({{"type", type_prop},
                        {"target", target_prop},
                        {"keys", array_prop({{"type", "string"}}, "Option keys, e.g. [\"layer_height\", \"wall_loops\"].")},
-                       {"query", prop("string", "A few distinctive words, e.g. \"stringing\" or \"ooze travel\"; the best 20 "
-                                                "matches unless limit says otherwise.")},
                        {"object", object_prop},
                        {"part", part_prop},
                        {"min_z", min_z_prop},
@@ -3183,7 +3206,7 @@ void register_config_tools(CommandCatalog& catalog)
                        {"compare", prop("string", "Target global: a preset name, \":saved\" (the unsaved changes) or \":parent\" "
                                                   "(the preset it inherits from).")},
                        {"include_meta", prop("boolean", "Include labels, types and ranges. Default true, false with compare.")},
-                       {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}, {"description", "Default 100, or 20 with query."}}},
+                       {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}, {"description", "Default 100."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) {
             // Refused before the UI is asked for anything: what the arguments alone decide.

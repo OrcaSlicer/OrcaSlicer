@@ -120,7 +120,7 @@ them and `tool_call` runs them.
 | `app_check_for_updates` | Check for a newer OrcaSlicer |  |
 | `app_show_config_folder` | Open the configuration folder in the file manager |  |
 | `app_benchmark_3d_scene` | Time the 3D views on a test model: it asks first, then replaces the project as New Project does |  |
-| `preferences_get` | The preferences the Preferences dialog shows, as it shows them, with each one's kind, choices or range | `keys`, `query`, `tab` |
+| `preferences_get` | The preferences the Preferences dialog shows, as it shows them, with each one's kind, choices or range | `keys`, `tab` |
 | `preferences_set` | Change preferences as their controls do, all checked first and written together | `values` |
 | `job_cancel` | Stop the running slice or export, or one job an MCP call started | `job` |
 
@@ -209,8 +209,9 @@ them and `tool_call` runs them.
 | `preset_select` | Select a preset, as its selector does; a filament for a slot | `type`, `name`; `filament_slot`; `preset_changes`: transfer, discard |
 | `preset_save` | Save the preset being edited, with its unsaved changes, under a name, as the tab's Save does | `type`, `name`; `filament_slot`, `overwrite`, `inside_project`, `detach` |
 | `preset_delete` | Delete a user preset or one inside the project, its file and its cloud copy | `type`, `name`; `delete_attached` |
+| `settings_list_pages` | The pages of a type's settings tab and the groups on each, with how many settings each holds: the places `settings_list` takes as `where` | `type`: process, printer, filament, object, region |
 | `settings_list` | Every setting of a type: the edited preset's, a saved one's or a slot's; or those an object, a part or a height range takes | `type`: process, printer, filament, object, region; `preset`, `filament_slot`, `where` |
-| `settings_get` | The settings named or searched for, with what each does; or what an object, a part or a height range overrides, and where each value comes from | `keys`, `query`, `compare`; `type`; `target`: global, object, part, height_range |
+| `settings_get` | The settings named, with what each does; or what an object, a part or a height range overrides, and where each value comes from | `keys`, `compare`; `type`; `target`: global, object, part, height_range |
 | `settings_set` | Change settings as typing them into their tab does: a preset's, or the overrides an object, a part or a height range carries | `values`; `type`, `target`; `reset_all`, `reset_to`: saved, parent |
 | `preset_import` | Import presets from a preset file, an archive or a bundle, or the settings a G-code was sliced with | `path`; `on_conflict`: skip, overwrite |
 | `preset_export` | Open the Export Preset Bundle dialog, which the caller answers | `path`, the folder |
@@ -321,7 +322,7 @@ them and `tool_call` runs them.
 | `part_change_type` | `subtype` | center, left, right, enforced, blocked, neutral, beside `type` precise_seam or alone |
 | `calibration_generate_test` | `test` | temperature, max_volumetric, pressure_advance, flow_ratio, retraction, vfa, cornering, input_shaping_freq, input_shaping_damp |
 | `preset_list`, `preset_select`, `preset_save`, `preset_delete` | `type` | printer, process, filament |
-| `settings_list` | `type` | process, printer, filament, object, region |
+| `settings_list`, `settings_list_pages` | `type` | process, printer, filament, object, region |
 | `settings_get`, `settings_set` | `type`; `target` | printer, process, filament; global, object, part, height_range |
 | `settings_set_mode` | `mode` | simple, advanced, expert |
 | `filament_sync_ams` | `mode` | map, overwrite |
@@ -654,9 +655,9 @@ Each command runs under a guard (mcp-server.md, Threading):
 Access labels, which `tools/list` sends as MCP's annotations (mcp-server.md, Tool catalog, says why each is
 set as it is):
 
-- **read_only**, 24 commands: `tool_list`, `tool_describe`, `action_list`, `app_state`, `app_wait`, `app_log`,
+- **read_only**, 25 commands: `tool_list`, `tool_describe`, `action_list`, `app_state`, `app_wait`, `app_log`,
   `preferences_get`, `project_get_settings`, `filament_list`, `object_list`, `plate_get_settings`, `plate_list`,
-  `plate_slice_stats`, `preset_list`, `settings_list`, `settings_get`, `printer_list_models`, `printer_status`,
+  `plate_slice_stats`, `preset_list`, `settings_list`, `settings_list_pages`, `settings_get`, `printer_list_models`, `printer_status`,
   `plugin_list`, `window_list`, `window_screenshot`, `script_list_api`, `script_describe_api` and `widget_list`. These are idempotent too, and so
   is `dialog_auto_answer`.
 - **destructive**, 3: `preset_delete` and `plugin_uninstall`, whose every call removes what a person made,

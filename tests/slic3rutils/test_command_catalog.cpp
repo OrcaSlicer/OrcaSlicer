@@ -144,7 +144,7 @@ std::string first_difference(const std::string& actual, const std::string& expec
 }
 
 // The design's command set outside the Design tab, heading by heading in the order tools/list gives them, Driving the
-// GUI last, after the Design tab's commands: the 137 commands of the catalog, its typed tools, the commands made from
+// GUI last, after the Design tab's commands: the 138 commands of the catalog, its typed tools, the commands made from
 // menu items, the seven Parts 4a to 4c add (Printable, Fix Model, Auto Drop, Clone, Reload from disk, Replace 3D file,
 // Add Mixed Filament), the three of Part 5a (the Printer Selection dialog's list, install and uninstall), the two of
 // Part 5b (the System Filaments dialog's install and uninstall), Part 5c's write of the Preferences dialog's preferences
@@ -171,7 +171,8 @@ const std::vector<std::pair<std::string, std::set<std::string>>> kPlaces{
      {"plate_list", "plate_get_settings", "plate_set_settings", "plate_add", "plate_delete", "plate_duplicate", "plate_rename",
       "plate_lock", "plate_select", "plate_slice", "plate_slice_stats", "plate_set_custom_gcode", "calibration_generate_test"}},
     {"Presets and settings",
-     {"preset_list", "preset_select", "preset_save", "preset_delete", "settings_list", "settings_get", "settings_set", "preset_import",
+     {"preset_list", "preset_select", "preset_save", "preset_delete", "settings_list", "settings_list_pages", "settings_get",
+      "settings_set", "preset_import",
       "preset_export", "preset_sync", "settings_set_mode", "preset_migrate_filaments", "settings_toggle_developer_mode"}},
     {"Filaments",
      {"filament_list", "filament_add", "filament_delete", "filament_sync_ams", "filament_add_mixed", "filament_edit_mixed",
@@ -456,8 +457,8 @@ TEST_CASE("outside the Design tab the catalog has its commands and 129 actions",
     // The commands outside the Design tab: the typed tools, the commands made from menu items, the seven Parts 4a to 4c
     // add, Part 5a's three, Part 5b's two, Part 5c's one, Part 5d's four, the seven gizmo commands, the six printing
     // commands, the four of the filament list (filament_list, filament_edit_mixed, filament_set_colour and
-    // filament_set_flushing), tool_describe and script_describe_api.
-    CHECK(commands == 137);
+    // filament_set_flushing), tool_describe, script_describe_api and settings_list_pages.
+    CHECK(commands == 138);
     // The eight commands named as their menu items keep an action of their own; the other 121 actions are items.
     CHECK(own == std::set<std::string>{"plate_add", "plate_delete", "plate_duplicate", "plate_rename", "filament_add", "filament_delete",
                                        "undo", "redo"});
@@ -484,7 +485,7 @@ TEST_CASE("the commands outside the Design tab are the design's, under its headi
         commands += keys.size();
     }
     CHECK(by_heading.size() == kPlaces.size());
-    CHECK(commands == 137);
+    CHECK(commands == 138);
 
     // tool_list's group says which there are.
     const NativeCommand* list = NativeCommands::find("tool_list");
@@ -525,8 +526,9 @@ TEST_CASE("every command that runs from arguments is in the tool list, by place"
     // The three menu items with no argument form, which tool_list lists and tool_call runs.
     CHECK(unlisted == std::set<std::string>{"window_save_screenshot", "script_toggle_panel", "settings_toggle_developer_mode"});
     // Task 3's 98, the seven Parts 4a to 4c add, Part 5a's three, Part 5b's two, Part 5c's one, Part 5d's four, the
-    // seven gizmo commands, the six printing commands, the filament list's four, tool_describe and script_describe_api.
-    CHECK(listed.size() == 134);
+    // seven gizmo commands, the six printing commands, the filament list's four, tool_describe, script_describe_api and
+    // settings_list_pages.
+    CHECK(listed.size() == 135);
 
     // The listing of the other commands, the manual, the generic call and the app's state first; then each heading's
     // commands together, in the design's order, Driving the GUI last.
@@ -548,11 +550,31 @@ TEST_CASE("every command that runs from arguments is in the tool list, by place"
     CHECK(group_runs(with_design, std::vector<std::string>(keys.begin() + 4, keys.end())) == with_design_headings);
 }
 
+TEST_CASE("no command searches by words, and none sends an agent to a search", "[CommandCatalog]")
+{
+    // An agent reads lists and picks from them: the query a command takes is a name filter, which keeps the entries
+    // holding the text as written.
+    std::set<std::string> with_query;
+    for (const NativeCommand& c : NativeCommands::instance().commands())
+        if (c.input_schema.contains("properties") && c.input_schema["properties"].contains("query"))
+            with_query.insert(c.key);
+    CHECK(with_query == std::set<std::string>{"preset_list", "printer_list_models", "widget_list"});
+    // No description, the parameters' included, names a search that is gone.
+    for (const NativeCommand& c : NativeCommands::instance().commands()) {
+        INFO(c.key);
+        const std::string text = c.description + ' ' + c.input_schema.dump();
+        for (const char* gone : {"tool_search", "action_search", "script_search_api"})
+            CHECK(text.find(gone) == std::string::npos);
+        if (c.key == "settings_get" || c.key == "settings_list" || c.key == "preferences_get")
+            CHECK(text.find("query") == std::string::npos);
+    }
+}
+
 TEST_CASE("only deleting a preset, uninstalling a plugin and stopping a print are labelled destructive", "[CommandCatalog]")
 {
     // The reads: they change nothing in the app or the project.
     const std::set<std::string> reads{"app_state",          "app_wait",       "app_log",         "tool_list",         "tool_describe",
-                                      "preset_list",        "settings_list",  "settings_get",    "preferences_get",
+                                      "preset_list",        "settings_list",  "settings_list_pages", "settings_get",    "preferences_get",
                                       "plate_get_settings", "project_get_settings", "plate_list", "object_list",
                                       "window_screenshot",  "plate_slice_stats",    "script_list_api", "script_describe_api", "action_list",
                                       "window_list",        "widget_list",          "printer_list_models", "plugin_list",

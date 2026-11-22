@@ -4,7 +4,7 @@ The design of this area's sweep tests. The rules every entry follows, the grades
 in [TESTS.md](../TESTS.md).
 
 ## `test_presets`
-`test_presets.py` · Python, 772 checks · in `sweep.json` as `{"path": "test_presets.py", "timeout_s": 1500}`
+`test_presets.py` · Python, 805 checks · in `sweep.json` as `{"path": "test_presets.py", "timeout_s": 1500}`
 
 **Tests:** The presets of the three types, through the tools a person's preset work maps to: selecting a preset by
 the name its selector shows, hidden ones included (`preset_select`); listing presets with filters (`preset_list`);
@@ -150,8 +150,8 @@ The selection stays `Klipper | Std | PLA` throughout; each step checks it.
 | # | Step | Checked |
 |---|---|---|
 | 1 | `settings_get {type: process, keys: [seam_slope_type, no_such_key]}` | one item, `seam_slope_type`, whose `meta.description` holds "scarf joint", `meta.where` is "Quality > Seam" and `meta.labels[1]` "Contour"; `unknown_keys` is `[no_such_key]` |
-| 2 | `settings_get {type: printer, query: "ooze during long travel"}` | the first item is `retraction_length`, with `meta.where` "Extruder > Retraction" |
-| 3 | `settings_get {query: "ooze during long travel"}` | the first item is `filament_retraction_length` of type `filament`, value `nil×6`, and the second `retraction_length` of type `printer`, value `0.8×3`: the two share their label and description, and the search keeps the order of the types it looks through, the filament's before the printer's |
+| 2 | `settings_list_pages {type: printer}`, then `settings_list {type: printer, where: "Extruder > Retraction"}` | `pages` holds a page "Extruder" with a group "Retraction" whose `settings` is the number of items the listing gives, at least 1; the listing holds `retraction_length`, with `meta.where` "Extruder > Retraction" |
+| 3 | `settings_list_pages {type: process}`, then `settings_list {type: process, where: "Others > Brim"}`, then `settings_get {query: "seam"}` | `pages` holds a page "Others" with a group "Brim"; the listing holds `brim_type`; the `settings_get` is refused with code `invalid_argument`, as it takes no query |
 | 4 | `settings_get {keys: [nozzle_temperature, layer_height, nozzle_diameter, curr_bed_type, no_such_key], include_meta: false}` | items, in this order: `nozzle_temperature` type `filament` `220×6`, `layer_height` type `process` "0.2", `nozzle_diameter` type `printer` "0.4"; `unknown_keys` `[curr_bed_type, no_such_key]`; `type_of` `{curr_bed_type: project}` |
 | 5 | `settings_get {type: process, keys: [nozzle_temperature]}` | no items; `type_of` `{nozzle_temperature: filament}` |
 | 6 | `settings_set {values: {nozzle_temperature: 215}}` | refused, `"nozzle_temperature" is a filament setting: settings_set takes it with type "filament"`; `value(filament, nozzle_temperature)` is `220×6` |

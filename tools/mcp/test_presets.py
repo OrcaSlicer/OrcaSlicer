@@ -78,6 +78,16 @@ def times(value, n):
     return ",".join([str(value)] * n)
 
 
+def group_size(pages, page, group):
+    """How many settings settings_list_pages' `pages` gives `group` of `page`, None where it has no such group."""
+    for listed in pages:
+        if listed["page"] == page:
+            for g in listed["groups"]:
+                if g["group"] == group:
+                    return g["settings"]
+    return None
+
+
 def same_number(a, b):
     try:
         return float(a) == float(b)
@@ -530,18 +540,21 @@ class PresetsTest:
                      (meta.get("where"), (meta.get("labels") or [None, None])[1]), ("Quality > Seam", "Contour"))
         self.t.equal(f"{s} 1: the unknown keys", reply.get("unknown_keys"), ["no_such_key"])
         self.selection_is(f"{s} 1", "Klipper | Std | PLA")
-        items = self.c.call("settings_get", type="printer", query="ooze during long travel")["items"]
-        self.t.equal(f"{s} 2: the first match", (items[0]["key"], items[0]["meta"].get("where")) if items else None,
-                     ("retraction_length", "Extruder > Retraction"))
+        pages = self.c.call("settings_list_pages", type="printer")["pages"]
+        retraction = self.settings_pages(type="printer", where="Extruder > Retraction")
+        size = group_size(pages, "Extruder", "Retraction")
+        self.t.check(f"{s} 2: the Extruder page's Retraction group counts the settings listed there",
+                     len(retraction) >= 1 and size == len(retraction), (size, len(retraction)))
+        self.t.equal(f"{s} 2: retraction_length is listed there",
+                     {i["key"]: i.get("meta", {}).get("where") for i in retraction}.get("retraction_length"),
+                     "Extruder > Retraction")
         self.selection_is(f"{s} 2", "Klipper | Std | PLA")
-        items = self.c.call("settings_get", query="ooze during long travel")["items"]
-        self.t.equal(f"{s} 3: the first two matches, the filament's first",
-                     [(i["key"], i["type"], i["value"]) for i in items[:2]],
-                     [("filament_retraction_length", "filament", times("nil", 6)),
-                      ("retraction_length", "printer", times(0.8, 3))])
-        metas = [(i["meta"].get("label"), i["meta"].get("description")) for i in items[:2]]
-        self.t.check(f"{s} 3: the two share their label and description", len(metas) == 2 and metas[0] == metas[1],
-                     metas)
+        pages = self.c.call("settings_list_pages", type="process")["pages"]
+        self.t.check(f"{s} 3: the Others page has a Brim group", group_size(pages, "Others", "Brim") is not None, pages)
+        brim = [i["key"] for i in self.settings_pages(type="process", where="Others > Brim")]
+        self.t.check(f"{s} 3: brim_type is listed there", "brim_type" in brim, brim)
+        self.t.refused(f"{s} 3: settings_get takes no query", lambda: self.c.call("settings_get", query="seam"),
+                       code="invalid_argument")
         self.selection_is(f"{s} 3", "Klipper | Std | PLA")
         reply = self.c.call("settings_get", keys=["nozzle_temperature", "layer_height", "nozzle_diameter",
                                                   "curr_bed_type", "no_such_key"], include_meta=False)

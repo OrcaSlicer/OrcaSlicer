@@ -102,7 +102,8 @@ which an agent should prefer, and driving the GUI itself.
 They say to prefer the commands that act on project data over clicks and never retry a call that returned a
 job, that commands are named place first, then verb, and `tools/list` gives them place by place, that a call
 with exactly a Speed Dial action's arguments may ask as a person's pick does while any other runs from its
-arguments, point to `settings_get {query}` and its meta for what a setting does, say how a gizmo opens and is
+arguments, point to `settings_list_pages`, `settings_list {type, where}` and the meta of the settings they list
+for what a setting does, say how a gizmo opens and is
 driven (and that `gizmo_pick_file` only stands in for a file picker inside one, since its name draws agents to
 it for any gizmo work), that the camera turns with `view_set` rather than a drag, and which indices are 0-based.
 They also say that `tool_list` lists the commands `tools/list` never shows (the three menu items that take
@@ -1099,7 +1100,7 @@ edits in place. The other targets refuse `reset_all`; a null value removes an ov
 
 ### Reading, comparing and changing preset values
 
-`settings_get` reads the settings named (`keys`) or searched for (`query`), or with `compare` those that
+`settings_get` reads the settings named (`keys`), or with `compare` those that
 differ from another preset, or what a target other than `global` overrides; a call with none of these is
 refused, since `settings_list` lists all of a type's settings, so no call of `settings_get` is a second
 way to list them. On the target `global` it reads the preset being edited (for a filament, the slot's
@@ -1107,7 +1108,7 @@ preset, edited or not), or with `preset` any saved preset of the type, selected 
 it: the named preset
 is read as saved, without the edits the tab holds. `preset` and `filament_slot` are exclusive, and a
 name that matches no preset is refused with the closest names. `compare` lists only the keys, among
-those named or matched, that differ from another preset: a saved preset by name, `:saved` (the read
+those named, that differ from another preset: a saved preset by name, `:saved` (the read
 preset as saved, so the list is its unsaved changes, what the Unsaved Changes dialog shows) or
 `:parent` (the preset it inherits from, a system preset itself, what the tab's lock icons compare
 against). `:` cannot be part of a preset name, so the two never clash with one. The key list is
@@ -1141,23 +1142,21 @@ where agents look: in the bench, agents read settings with the settings reads th
 as they called a separate explanation tool, and with the tooltips out of the meta they set a draft
 shield without skirt loops and a support threshold measured from the wrong side, mistakes the same
 agents avoided when the tooltip came with the value. The size stays bounded by the rule above: only
-keys that are named, searched for or listed with their group carry meta.
+keys that are named or listed with their group carry meta.
 
-`settings_list`'s `where` lists one group ("Strength > Walls") or a whole page of the type with values
-and meta; a name the type has no page or group for is an error that lists them all, which is the map of
-the tabs. `settings_get`'s `query` serves an agent that knows what a setting should do but not its name
-(`rank_settings()`). A query word matches a word of a key, label or description that starts with it,
-so "retract" finds "retraction" while "to" does not match inside "toolchange"; words under three
-letters count only when the query has nothing longer, since most help texts have them. Settings
-matching more of the query's words come first, then those matching more of them in the key or label.
-With no weighting by how rare a word is, a generic word such as "reduce" counts as much as
-"stringing", so the tool asks for a few distinctive words. A search returns the best 20 unless `limit`
-asks for more.
+`settings_list_pages {type}` lists the pages and groups of the type's settings tab, both in alphabetical order
+(the settings index the places come from keeps no tab order), each group with how many settings it holds
+(`settings_pages()`), and `settings_list`'s `where` lists one group ("Strength > Walls") or a whole page of
+the type with values and meta; a name the type has no page or group for is an error that lists them all.
+Both read the same keys (`listed_settings()`), so a group's count is what `where` lists there. An agent
+that knows what a setting should do but not its name reads the pages, picks the one that would hold it and
+reads that page's settings with their descriptions. There is no search by words: a goal's words ("add a
+brim", "stop the ooze") are seldom a setting's, and the agent matches what it wants against what each
+setting does better than a match of words.
 
-Without a `type`, a search and named keys look through the process, filament and printer settings
-being edited, since a question about an effect rarely knows which tab answers it (stringing is
-retraction on the printer tab and its overrides on the filament's), and an agent naming a key seldom
-knows which tab holds it; each item names its `type`, the first of the three that has the key. Every
+Without a `type`, named keys look through the process, filament and printer settings being edited,
+since an agent naming a key seldom knows which tab holds it (retraction is on the printer tab, and its
+overrides on the filament's); each item names its `type`, the first of the three that has the key. Every
 other read without a type (`preset`, `compare`) reads the process, and `settings_set` writes it: a write
 takes one type, whose values apply together, so it never spreads over several by itself. A key the type
 lacks is listed in `unknown_keys`, and `type_of` names where it is a setting (another type, or `project`
@@ -1385,7 +1384,7 @@ once and changes nothing before then), and `refused` for a key `preferences_set`
 switch and the port of this server read as their controls show them (`Ops::shown_texts()`, which the
 dialog's rows read too): the switch is on while the server runs and the port is the one it is on, also
 where the session's `--mcp` and `--mcp-port` started it without storing either, so their `stored` says
-only whether the configuration holds a value. `keys`, `query` and `tab` narrow the list together. A named key the
+only whether the configuration holds a value. `keys` and `tab` narrow the list together. A named key the
 dialog does not show is read as the app configuration stores it, and one that is neither is listed under
 `unknown_keys`: the section also holds account and device state, which is read only by name.
 
@@ -4799,7 +4798,7 @@ against one with more, what `tool_list` lists and its groups, every command's ma
 parameter, the tool names of `retired_names.hpp` that are no
 command, and which arguments the journal leaves out; `test_mcp_config` the keys and effective values of the
 settings commands' targets, the names and places `preset_save` accepts, enum labels and descriptions, the
-settings search, per-variant entries and their writes, preset comparison, `changed`, which unsaved changes a
+settings pages' groups, per-variant entries and their writes, preset comparison, `changed`, which unsaved changes a
 call discarded, which presets `preset_delete` refuses or deletes with a custom printer, the project's slot
 colours, flushing multipliers and matrix, a plate's filament orders, layer ranges and filament map and
 `plate_list`' layer numbers and layer G-codes, `preferences_get`'s list and `preferences_set`'s checks, the

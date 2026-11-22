@@ -622,7 +622,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Read the app's preferences as the Preferences dialog shows them. With no argument, every preference it shows, tab by tab in its order, each with key (its control is named after it), tab, section and label (the row's title, in English), kind (checkbox, choice, number or text), value (what the dialog shows: true or false for a checkbox, a number for a number field), a choice's choices ({value, label}; preferences_set takes the value), a number's min and max, stored: false where nothing is stored and the value is the one the dialog shows then, restart_needed: true for a preference read at the next start, which a write changes nothing before, and refused, the reason, for a preference preferences_set does not write. The MCP server's switch and port read as the dialog shows them: on while the server runs, and the port it is on, also where this session's launch arguments set them without storing them; their stored says whether a value is stored. keys, query and tab narrow the list together; a named key the dialog does not show is read as the app configuration stores it ({key, value}), and one that is neither is listed under unknown_keys. The app configuration also holds account and device state, which is read only by name.",
+   "description": "Read the app's preferences as the Preferences dialog shows them. With no argument, every preference it shows, tab by tab in its order, each with key (its control is named after it), tab, section and label (the row's title, in English), kind (checkbox, choice, number or text), value (what the dialog shows: true or false for a checkbox, a number for a number field), a choice's choices ({value, label}; preferences_set takes the value), a number's min and max, stored: false where nothing is stored and the value is the one the dialog shows then, restart_needed: true for a preference read at the next start, which a write changes nothing before, and refused, the reason, for a preference preferences_set does not write. The MCP server's switch and port read as the dialog shows them: on while the server runs, and the port it is on, also where this session's launch arguments set them without storing them; their stored says whether a value is stored. keys and tab narrow the list together; a named key the dialog does not show is read as the app configuration stores it ({key, value}), and one that is neither is listed under unknown_keys. The app configuration also holds account and device state, which is read only by name.",
    "destructive": false,
    "group": "The app",
    "guard": "inspect",
@@ -637,10 +637,6 @@
        "type": "string"
       },
       "type": "array"
-     },
-     "query": {
-      "description": "Words to find in the keys, labels and section titles, in any case, e.g. \"auto slice\".",
-      "type": "string"
      },
      "tab": {
       "description": "The dialog's tab, as window_open names it.",
@@ -674,7 +670,7 @@
      "calls": [
       {
        "args": {
-        "query": "arrange"
+        "tab": "behaviour"
        },
        "tool": "preferences_get"
       },
@@ -687,7 +683,7 @@
        "tool": "preferences_set"
       }
      ],
-     "title": "Find a preference and turn it off"
+     "title": "Read the Behaviour tab's preferences and turn one off"
     },
     {
      "calls": [
@@ -5340,7 +5336,7 @@
   },
   {
    "completion": "immediate",
-   "description": "All the settings of a type in one reply, each item with its value as OrcaSlicer writes it, and without meta unless include_meta. process, printer and filament: the preset being edited, or with preset a saved one, or with filament_slot a slot's. object: the process settings an object or an assembly takes; region: those a part, a modifier or a height range takes, whose layer_height item has targets [\"height_range\"], a height range alone taking it; in both, each with the process preset's value, which an object or a region prints with unless it sets its own. With where, the settings of one settings page or \"Page > Group\" (an unknown one is refused with the list of them). Items with meta, which where gives them, come 100 a page. settings_get reads the settings named or searched for, and what an object, a part or a height range overrides.",
+   "description": "All the settings of a type in one reply, each item with its value as OrcaSlicer writes it, and without meta unless include_meta. process, printer and filament: the preset being edited, or with preset a saved one, or with filament_slot a slot's. object: the process settings an object or an assembly takes; region: those a part, a modifier or a height range takes, whose layer_height item has targets [\"height_range\"], a height range alone taking it; in both, each with the process preset's value, which an object or a region prints with unless it sets its own. With where, the settings of one settings page or \"Page > Group\", as settings_list_pages lists them (an unknown one is refused with the list of them). Items with meta, which where gives them, come 100 a page. settings_get reads settings by key, and what an object, a part or a height range overrides.",
    "destructive": false,
    "group": "Presets and settings",
    "guard": "inspect",
@@ -5402,7 +5398,42 @@
   },
   {
    "completion": "immediate",
-   "description": "Read the settings named or searched for: each item has its value, as OrcaSlicer writes it, and meta: label, description (what the setting does, when to change it), where (its settings page and group), type, unit, range, allowed values and mode. Choose them by keys, or by query, a few words matched in keys, labels and descriptions, best matches first. Keys the settings lack are listed in unknown_keys, type_of gives where each of those is a setting elsewhere (a type, or project for the project's own settings), and similar the keys like each of the others. It needs keys, query, compare or a target other than global; settings_list lists all of a type's settings.\n- No type: keys and query look through the process, filament and printer settings, and each item names its type, the one settings_set takes; otherwise the type is the process.\n- type printer, process or filament (target global): the preset being edited, or with preset a saved one; compare lists only the keys that differ from another preset (value and other). A per-variant value lists in meta its variants (what each entry is for) and active (the entry each extruder prints with).\n- target object (object), part (object and part) or height_range (object, min_z and max_z), the object or part selected in Prepare where none is named: without keys, what it overrides; keys and query read the process settings it takes (settings_list type object or region lists them) and extruder, its filament, and a key it does not take is refused with where it is set. Each has value (its own, null where it has none), effective (the value it prints with) and source, in the order the slicer applies them: height_range, part, object, global or default; an object's item lists in parts the parts and modifiers that override the key inside their own volume, and an object's or a part's item lists in height_ranges the ranges whose value applies to it between their heights. Inside a modifier, mesh or painted, that sets none of a key, the value of the part it overlaps applies, which the command does not work out: where a part (or a modifier of either kind before it) sets the key, the modifier's item has effective null, source overlapped_part, object_effective and object_source (the object's value), and in parts those that set it. These settings are process settings. The reply names the target (objects or parts, and height_range).\npreferences_get reads the app's preferences, plate_get_settings a plate's settings and project_get_settings the project's own.",
+   "description": "The pages of a type's settings tab and the groups on each, pages and groups in alphabetical order, each group with how many of the settings settings_list lists for the same type it holds: settings_list {type, where} lists that many there. A page and a \"Page > Group\" are each a where settings_list takes, which lists those settings with their values and what each does. A setting with no row on a page is in no group; settings_list without where lists it.",
+   "destructive": false,
+   "group": "Presets and settings",
+   "guard": "inspect",
+   "has_own_action": false,
+   "idempotent": true,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "type": {
+      "description": "Which settings, as settings_list takes them: a preset's, or those an object or a region takes.",
+      "enum": [
+       "process",
+       "printer",
+       "filament",
+       "object",
+       "region"
+      ],
+      "type": "string"
+     }
+    },
+    "required": [
+     "type"
+    ],
+    "type": "object"
+   },
+   "key": "settings_list_pages",
+   "listed": true,
+   "open_world": false,
+   "operations": [],
+   "read_only": true,
+   "title": "List settings pages"
+  },
+  {
+   "completion": "immediate",
+   "description": "Read the settings named: each item has its value, as OrcaSlicer writes it, and meta: label, description (what the setting does, when to change it), where (its settings page and group), type, unit, range, allowed values and mode. Keys the settings lack are listed in unknown_keys, type_of gives where each of those is a setting elsewhere (a type, or project for the project's own settings), and similar the keys like each of the others. It needs keys, compare or a target other than global; settings_list lists all of a type's settings, a page at a time with where, and settings_list_pages the pages.\n- No type: keys look through the process, filament and printer settings, and each item names its type, the one settings_set takes; otherwise the type is the process.\n- type printer, process or filament (target global): the preset being edited, or with preset a saved one; compare lists only the keys that differ from another preset (value and other). A per-variant value lists in meta its variants (what each entry is for) and active (the entry each extruder prints with).\n- target object (object), part (object and part) or height_range (object, min_z and max_z), the object or part selected in Prepare where none is named: without keys, what it overrides; keys read the process settings it takes (settings_list type object or region lists them) and extruder, its filament, and a key it does not take is refused with where it is set. Each has value (its own, null where it has none), effective (the value it prints with) and source, in the order the slicer applies them: height_range, part, object, global or default; an object's item lists in parts the parts and modifiers that override the key inside their own volume, and an object's or a part's item lists in height_ranges the ranges whose value applies to it between their heights. Inside a modifier, mesh or painted, that sets none of a key, the value of the part it overlaps applies, which the command does not work out: where a part (or a modifier of either kind before it) sets the key, the modifier's item has effective null, source overlapped_part, object_effective and object_source (the object's value), and in parts those that set it. These settings are process settings. The reply names the target (objects or parts, and height_range).\npreferences_get reads the app's preferences, plate_get_settings a plate's settings and project_get_settings the project's own.",
    "destructive": false,
    "group": "Presets and settings",
    "guard": "inspect",
@@ -5432,7 +5463,7 @@
       "type": "array"
      },
      "limit": {
-      "description": "Default 100, or 20 with query.",
+      "description": "Default 100.",
       "maximum": 500,
       "minimum": 1,
       "type": "integer"
@@ -5463,10 +5494,6 @@
      },
      "preset": {
       "description": "Read this saved preset of the type (a name from preset_list) instead of the one being edited.",
-      "type": "string"
-     },
-     "query": {
-      "description": "A few distinctive words, e.g. \"stringing\" or \"ooze travel\"; the best 20 matches unless limit says otherwise.",
       "type": "string"
      },
      "target": {

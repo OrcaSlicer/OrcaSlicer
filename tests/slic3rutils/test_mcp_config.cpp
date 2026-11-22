@@ -457,37 +457,25 @@ TEST_CASE("a setting's meta describes it with its whole tooltip", "[Mcp]")
     CHECK(option_meta(def)["description"] == def.tooltip);
 }
 
-TEST_CASE("a settings search finds settings by their description, those named by the query first", "[Mcp]")
+TEST_CASE("settings_list_pages groups a type's settings by page and group, in alphabetical order", "[Mcp]")
 {
-    // seam_gap and seam_slope_type have "seam" in their key, wipe_on_loops only in its description, and
-    // only retraction_length's description speaks of ooze during travel.
-    const std::vector<std::string> within{"wipe_on_loops", "retraction_length", "seam_gap", "seam_slope_type"};
-    CHECK(rank_settings("seam", within, 10) == std::vector<std::string>{"seam_gap", "seam_slope_type", "wipe_on_loops"});
-    CHECK(rank_settings("seam", within, 1) == std::vector<std::string>{"seam_gap"});
-    CHECK(rank_settings("Ooze during travel", within, 10) == std::vector<std::string>{"retraction_length"});
-    CHECK(rank_settings("bridge", within, 10).empty());
-    // A word matches from the start of a word: "lope" is inside "slope", not the start of one.
-    CHECK(rank_settings("lope", within, 10).empty());
-    // A key listed twice is one match.
-    CHECK(rank_settings("seam gap", {"seam_gap", "seam_gap"}, 10) == std::vector<std::string>{"seam_gap"});
-}
-
-TEST_CASE("a settings search ranks the setting matching more of the query's words first", "[Mcp]")
-{
-    // retraction_length's description has all four words; long_retractions_when_cut has "long" in its key
-    // and "during" in its description, two words.
-    CHECK(rank_settings("ooze during long travel", {"long_retractions_when_cut", "retraction_length"}, 10) ==
-          std::vector<std::string>{"retraction_length", "long_retractions_when_cut"});
-}
-
-TEST_CASE("a settings search counts a short query word only when the query has no longer one", "[Mcp]")
-{
-    // z_hop's key splits into "z" and "hop"; seam_gap has no word starting with "z" or "hop".
-    const std::vector<std::string> within{"seam_gap", "z_hop"};
-    CHECK(rank_settings("z", within, 10) == std::vector<std::string>{"z_hop"});
-    CHECK(rank_settings("z hop", within, 10) == std::vector<std::string>{"z_hop"});
-    // "to" would start "toolchange" and many description words; with "gap" in the query it counts for nothing.
-    CHECK(rank_settings("gap to", within, 10) == std::vector<std::string>{"seam_gap"});
+    const std::map<std::string, std::string> places{{"wall_loops", "Strength > Walls"},
+                                                    {"top_shell_layers", "Strength > Top/bottom shells"},
+                                                    {"brim_type", "Others > Brim"},
+                                                    {"brim_width", "Others > Brim"},
+                                                    {"skirt_loops", "Others > Skirt"},
+                                                    {"seam_position", "Quality > Seam"}};
+    // The keys in the order the type lists them, one with no row on a page; seam_position the type does not list.
+    const json pages = settings_pages(places, {"wall_loops", "brim_width", "brim_type", "top_shell_layers", "skirt_loops", "no_row"});
+    const json expected{{"pages", json::array({
+                             {{"page", "Others"},
+                              {"groups", json::array({{{"group", "Brim"}, {"settings", 2}}, {{"group", "Skirt"}, {"settings", 1}}})}},
+                             {{"page", "Strength"},
+                              {"groups", json::array({{{"group", "Top/bottom shells"}, {"settings", 1}},
+                                                      {{"group", "Walls"}, {"settings", 1}}})}},
+                         })}};
+    CHECK(pages == expected);
+    CHECK(settings_pages(places, {}) == json{{"pages", json::array()}});
 }
 
 TEST_CASE("a per-variant value names its entries and the one the nozzle prints with", "[Mcp]")
@@ -931,15 +919,12 @@ TEST_CASE("preferences_get lists the dialog's preferences, typed, and reads a na
     CHECK(all["items"][2]["refused"] == "opengl_fps_cap: a reason a call may not write it.");
     CHECK_FALSE(all.contains("unknown_keys"));
 
-    // tab and query narrow the list: query by a key's, a label's or a section's words, in any case.
+    // tab and keys narrow the list together.
     const json graphics = preferences_settings(config, table, json{{"tab", "graphics"}});
     REQUIRE(graphics["items"].size() == 1);
     CHECK(graphics["items"][0]["key"] == "opengl_fps_cap");
-    const json flush = preferences_settings(config, table, json{{"query", "FLUSH after"}});
-    REQUIRE(flush["items"].size() == 1);
-    CHECK(flush["items"][0]["key"] == "auto_calculate_flush");
-    CHECK(preferences_settings(config, table, json{{"query", "prepare"}})["items"].size() == 2);
-    CHECK(preferences_settings(config, table, json{{"query", "prepare"}, {"tab", "graphics"}})["items"].empty());
+    CHECK(preferences_settings(config, table, json{{"tab", "behaviour"}})["items"].size() == 2);
+    CHECK(preferences_settings(config, table, json{{"tab", "graphics"}, {"keys", {"auto_arrange"}}})["items"].empty());
 
     // Named keys: those of the table as listed, another key of the app section as stored, and the others unknown.
     const json named =
@@ -1078,7 +1063,8 @@ TEST_CASE("the settings tools take a type and a target", "[Mcp]")
     const std::string read_nothing  = settings_request_error(nothing);
     const std::string write_nothing = settings_request_error(nothing, true);
     CHECK_THAT(read_nothing, ContainsSubstring("Nothing is named"));
-    CHECK_THAT(read_nothing, ContainsSubstring("keys, query or compare"));
+    CHECK_THAT(read_nothing, ContainsSubstring("keys or compare"));
+    CHECK_THAT(read_nothing, ContainsSubstring("settings_list_pages"));
     CHECK_THAT(write_nothing, ContainsSubstring("Nothing is named"));
     CHECK_THAT(write_nothing, ContainsSubstring("values"));
     CHECK_THAT(write_nothing, !ContainsSubstring("query"));
@@ -1256,11 +1242,12 @@ TEST_CASE("the preferences, a plate's settings and the project's settings are co
     const NativeCommand* preferences = NativeCommands::find("preferences_get");
     REQUIRE(preferences != nullptr);
     CHECK(preferences->listed);
-    // It takes keys, query and tab, and needs none: with none it lists the Preferences dialog's preferences.
-    for (const char* arg : {"keys", "query", "tab"}) {
+    // It takes keys and tab, and needs none: with none it lists the Preferences dialog's preferences.
+    for (const char* arg : {"keys", "tab"}) {
         INFO(arg);
         CHECK(preferences->input_schema["properties"].contains(arg));
     }
+    CHECK_FALSE(preferences->input_schema["properties"].contains("query"));
     CHECK(preferences->input_schema.value("required", json::array()).empty());
     const NativeCommand* write = NativeCommands::find("preferences_set");
     REQUIRE(write != nullptr);

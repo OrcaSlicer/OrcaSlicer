@@ -80,17 +80,6 @@ void normalize_arguments(const nlohmann::json& schema, nlohmann::json& args);
 // each lookup with its own threshold.
 std::size_t edit_distance(const std::string& a, const std::string& b);
 
-// The words of a search query: lower case, split at anything but a letter or a digit. "to" or "of"
-// starts a word of most help texts, so words of fewer than three letters are left out when the query
-// has longer ones.
-std::vector<std::string> query_words(const std::string& query);
-
-// How well an entry matches the words of query_words(): {words found in `name` or `text`, of them those
-// found in `name`}, {0, 0} when none is. A word is found where a word of the text starts with it, so
-// "retract" finds "retraction"; the text's words are split at underscores, dots and the like and also
-// at a capital in a CamelCase name, so "mesh" finds TriangleMesh.
-std::pair<int, int> match_score(const std::vector<std::string>& words, const std::string& name, const std::string& text);
-
 // The first sentence of `text` on one line, for a listing: up to the first full stop followed by a space
 // or the end, "e.g." and "i.e." aside; the whole text when it has none.
 std::string first_sentence(const std::string& text);

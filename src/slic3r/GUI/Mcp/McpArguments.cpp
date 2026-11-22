@@ -1,7 +1,7 @@
 // Argument checking and name matching for the command catalog: the schema validator, the normalizer that
 // reads what agents send in place of a schema's form, what tells a command's person's form from its silent
-// one, the words and scores of the searches, and the edit distance every "did you mean" ranks with. It
-// includes no wx header: it is a unit of the library libslic3r_automation, which is built without wx.
+// one, and the edit distance every "did you mean" ranks with. It includes no wx header: it is a unit of the
+// library libslic3r_automation, which is built without wx.
 
 #include "McpArguments.hpp"
 
@@ -10,11 +10,9 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
-#include <cctype>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <iterator>
 #include <string>
 #include <utility>
 #include <vector>
@@ -199,49 +197,6 @@ void coerce_value(const json& schema, json& value)
     }
 }
 
-// The words of `text` in lower case, split at anything but a letter or a digit. With `camel`, a word
-// with a capital after a lower-case letter also counts as its parts: TriangleMesh as triangle and mesh.
-std::vector<std::string> text_words(const std::string& text, bool camel)
-{
-    std::vector<std::string> words;
-    std::string              word;
-    std::vector<std::size_t> parts; // where each CamelCase part after the first starts in `word`
-    const auto               flush = [&] {
-        if (word.empty())
-            return;
-        std::size_t from = 0;
-        for (const std::size_t at : parts) {
-            words.push_back(word.substr(from, at - from));
-            from = at;
-        }
-        if (!parts.empty())
-            words.push_back(word.substr(from));
-        words.push_back(std::exchange(word, {}));
-        parts.clear();
-    };
-    unsigned char previous = 0;
-    for (const char c : text) {
-        const auto u = static_cast<unsigned char>(c);
-        if (!std::isalnum(u)) {
-            flush();
-            previous = 0;
-            continue;
-        }
-        if (camel && std::isupper(u) && std::islower(previous))
-            parts.push_back(word.size());
-        word += char(std::tolower(u));
-        previous = u;
-    }
-    flush();
-    return words;
-}
-
-// Whether a word of `words` starts with `w`.
-bool has_word(const std::vector<std::string>& words, const std::string& w)
-{
-    return std::any_of(words.begin(), words.end(), [&w](const std::string& word) { return word.compare(0, w.size(), w) == 0; });
-}
-
 } // namespace
 
 std::size_t edit_distance(const std::string& a, const std::string& b)
@@ -414,28 +369,6 @@ ToolFailure argument_refusal(const std::string& name, const std::string& error)
 {
     return ToolFailure("Invalid arguments for " + name + ": " + error,
                        {{"code", "invalid_argument"}, {"hint", "tool_describe {tool: \"" + name + "\"} gives its parameters"}});
-}
-
-std::vector<std::string> query_words(const std::string& query)
-{
-    std::vector<std::string> words = text_words(query, false);
-    std::vector<std::string> longer;
-    std::copy_if(words.begin(), words.end(), std::back_inserter(longer), [](const std::string& w) { return w.size() >= 3; });
-    return longer.empty() ? words : longer;
-}
-
-std::pair<int, int> match_score(const std::vector<std::string>& words, const std::string& name, const std::string& text)
-{
-    const std::vector<std::string> in_name = text_words(name, true);
-    const std::vector<std::string> in_text = text_words(text, true);
-    std::pair<int, int>            score;
-    for (const std::string& w : words)
-        if (has_word(in_name, w)) {
-            ++score.first;
-            ++score.second;
-        } else if (has_word(in_text, w))
-            ++score.first;
-    return score;
 }
 
 std::string first_sentence(const std::string& text)
