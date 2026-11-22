@@ -836,7 +836,8 @@ TEST_CASE("Infill rotation template random joints vary the angle within their bo
     slice_for_rotate_templates(print, rotate_template_first_layer_height);
     const PrintObject &object = *print.objects().front();
     REQUIRE(object.layers().size() == turn_9_per_layer.size());
-    // Like "+90/10", both turn 90 degrees over every 10 layers, but they draw each angle from rand().
+    // Like "+90/10", both turn 90 degrees over every 10 layers, but they draw each angle at random, from a generator
+    // seeded with the layer index.
     size_t anywhere_off_the_line = 0;
     size_t near_line_off_the_line = 0;
     for (size_t i = 0; i < turn_9_per_layer.size(); ++i) {
