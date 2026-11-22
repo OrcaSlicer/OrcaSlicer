@@ -19743,7 +19743,10 @@ void Plater::increase_instances(size_t num)
     double offset = offset_base;
     for (size_t i = 0; i < num; i++, offset += offset_base) {
         Vec3d offset_vec = model_instance->get_offset() + Vec3d(offset, offset, 0.0);
-        model_object->add_instance(offset_vec, model_instance->get_scaling_factor(), model_instance->get_rotation(), model_instance->get_mirror());
+        // ORCA: Copy the whole transformation. Rebuilt from scale, rotation and mirror it loses a skew.
+        Geometry::Transformation transformation = model_instance->get_transformation();
+        transformation.set_offset(offset_vec);
+        model_object->add_instance()->set_transformation(transformation);
 //        p->print.get_object(obj_idx)->add_copy(Slic3r::to_2d(offset_vec));
     }
     // ORCA: Place the copies of the last instance in the assembly view, otherwise they overlap.
