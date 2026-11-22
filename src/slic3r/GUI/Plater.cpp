@@ -20137,16 +20137,41 @@ void Plater::increase_instances(size_t num)
 
     bool was_one_instance = model_object->instances.size()==1;
 
-    double offset_base = canvas3D()->get_size_proportional_to_max_bed_size(0.05);
-    double offset = offset_base;
-    for (size_t i = 0; i < num; i++, offset += offset_base) {
-        Vec3d offset_vec = model_instance->get_offset() + Vec3d(offset, offset, 0.0);
+    // ORCA: calculate nearest empty cell to place the new instance
+    // similar logic as Selection::paste_objects_from_clipboard
+    PartPlate *plate         = p->partplate_list.get_curr_plate();
+    const BoundingBoxf3 bbox = model_object->instance_convex_hull_bounding_box(model_instance);
+    const bool in_current    = plate && plate->intersects(bbox);
+
+    const Vec3d base_offset  = model_instance->get_offset();
+    const Vec3d point_offset = base_offset - bbox.center();
+    const Vec3d start_point  = in_current ? bbox.center() : (plate ? plate->get_build_volume().center() : bbox.center());
+    
+    const double spacing = 1.0;
+    const Vec2f step(static_cast<float>(bbox.size()(0) + spacing), static_cast<float>(bbox.size()(1) + spacing));
+
+    const double offset_base = canvas3D()->get_size_proportional_to_max_bed_size(0.05);
+    double fallback_offset   = offset_base;
+    for (size_t i = 0; i < num; i++) {
+        const std::vector<Vec2f> empty_cells = canvas3D()->get_empty_cells(
+            {static_cast<float>(start_point(0)), static_cast<float>(start_point(1))}, step);
+        Vec3d offset_vec;
+
+        if (!empty_cells.empty()) {
+            const Vec2f &empty_cell = empty_cells.front();
+            offset_vec = Vec3d(empty_cell.x() + point_offset.x(), empty_cell.y() + point_offset.y(), base_offset(2));
+        
+        } else {
+            offset_vec = base_offset + Vec3d(fallback_offset, fallback_offset, 0.0);
+            fallback_offset += offset_base;
+        }
+        
         // ORCA: Copy the whole transformation. Rebuilt from scale, rotation and mirror it loses a skew.
         Geometry::Transformation transformation = model_instance->get_transformation();
         transformation.set_offset(offset_vec);
         model_object->add_instance()->set_transformation(transformation);
-//        p->print.get_object(obj_idx)->add_copy(Slic3r::to_2d(offset_vec));
     }
+
     // ORCA: Place the copies of the last instance in the assembly view, otherwise they overlap.
     const size_t first_copy = model_object->instances.size() - num;
     p->model.set_assembly_pos_of_copies(model_object, first_copy - 1, first_copy);

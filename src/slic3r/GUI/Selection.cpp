@@ -3340,11 +3340,13 @@ void Selection::paste_objects_from_clipboard()
 
     const bool  in_current  = plate->intersects(bbox_all);
     const Vec3d start_point = in_current ? bbox_all.center() : plate->get_build_volume().center();
+
+    const double spacing = 1.0;
     const Vec2f empty_cell  = m_model->objects.empty()
         ? Vec2f(start_point(0), start_point(1))
         : wxGetApp().plater()->canvas3D()->get_nearest_empty_cell(
               {start_point(0), start_point(1)},
-              {bbox_all.size()(0) + 1, bbox_all.size()(1) + 1});
+              {bbox_all.size()(0) + spacing, bbox_all.size()(1) + spacing});
     const Vec3d delta(empty_cell.x() - bbox_all.center().x(),
                       empty_cell.y() - bbox_all.center().y(),
                       0.0);
