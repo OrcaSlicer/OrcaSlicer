@@ -1270,17 +1270,17 @@ void ObjectList::update_name_in_model(const wxDataViewItem& item) const
             // The Organic support warning of the sliced plate may name the object: apply the name, which names it anew
             // there. Not while the background process runs, slicing or exporting the G-code: it reads the name without
             // the state mutex and calls back the status the update binds anew. The name is then applied with the next
-            // change.
+            // change. Its state is atomic: asking for it takes no lock its thread may try for.
             Plater *plater = wxGetApp().plater();
             if (!plater->is_background_process_slicing() && !plater->background_process().running()) {
-                const Print &print    = wxGetApp().plater()->get_partplate_list().get_current_fff_print();
+                const Print &print    = plater->get_partplate_list().get_current_fff_print();
                 const auto   statuses = organic_support_warning_statuses(print);
                 const auto   names_it = [&print, obj](const PrintBase::SlicingStatus &status) {
                     const PrintObject *object = print.get_object(status.warning_object_id);
                     return object != nullptr && object->model_object()->id() == obj->id();
                 };
                 if (std::any_of(statuses.begin(), statuses.end(), names_it))
-                    wxGetApp().plater()->schedule_background_process();
+                    plater->schedule_background_process();
             }
         }
         return;

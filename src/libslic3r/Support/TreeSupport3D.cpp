@@ -4711,9 +4711,11 @@ Polygons organic_model_under(const PrintObject &object, const TreeModelVolumes &
 void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
     const std::vector<Polygons> &model, const std::function<Polygons(size_t, const BoundingBox &)> &model_under,
     const bool limit_growth, const coord_t line_width, const coord_t tip_radius, const coord_t move, const coord_t reach,
-    const std::vector<double> &roof_angles, const std::function<void()> &throw_on_cancel)
+    const std::vector<double> &roof_angles, const std::function<void()> &throw_on_cancel,
+    const std::vector<Polygons> &base_roofs, const std::vector<double> &base_angles)
 {
     assert(bodies.size() == roofs.size() && bodies.size() == model.size());
+    assert(base_roofs.empty() || base_roofs.size() == roofs.size());
     const float  half      = 0.5f * float(line_width);
     const float  lean      = std::min(half, float(move));
     // A body leaning no farther a layer than SCALED_EPSILON, the least widen below tells apart, never widened in steps
@@ -4745,6 +4747,10 @@ void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const s
         BoundingBox where = get_extents(roof);
         where.offset(coord_t(margin));
         const Polygons roofs_below = ClipperUtils::clip_clipper_polygons_with_subject_bbox(roofs[below], where);
+        // The part of the roof a base interface prints, in lines, and the rest of it.
+        const bool     based = ! base_angles.empty() && ! base_roofs.empty() && ! base_roofs[above].empty();
+        const Polygons lined = based ? intersection(roof, base_roofs[above]) : Polygons();
+        const Polygons other = based ? diff(roof, base_roofs[above]) : roof;
         // The loops of a roof printed in loops, and the parts of it too narrow for one, found once it hangs somewhere,
         // see organic_roof_loops().
         std::optional<Polygons> loops, narrow;
@@ -4757,19 +4763,22 @@ void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const s
             // line.
             const Polygons touched = diff(offset(held, float(touch)), diff(closing(held, float(0.5 * bridge)), held));
             std::vector<RoofStretch> found;
-            if (! roof_angles.empty())
-                found = organic_hanging_roof_stretches(roof, touched, roof_angles, pitch, bridge, end,
+            if (! lined.empty())
+                found = organic_hanging_roof_stretches(lined, touched, base_angles, pitch, bridge, end,
                     double(tip_radius));
-            else if (! diff(roof, touched).empty()) {
+            if (! roof_angles.empty())
+                append(found, organic_hanging_roof_stretches(other, touched, roof_angles, pitch, bridge, end,
+                    double(tip_radius)));
+            else if (! diff(other, touched).empty()) {
                 if (! loops) {
-                    loops = organic_roof_loops(roof, pitch);
+                    loops = organic_roof_loops(other, pitch);
                     // A part narrower than a line gets no loop, though the fill may print one there, or a dot: it is
                     // held point by point, as the lines of a roof are not known, every point of it within reach. The
                     // slivers the opening leaves along a curved outline, a few microns wide, are no such part.
-                    narrow = opening(diff(roof, opening(roof, .5f * float(line_width))), scaled<float>(.005));
+                    narrow = opening(diff(other, opening(other, .5f * float(line_width))), scaled<float>(.005));
                 }
-                found = organic_hanging_roof_loop_stretches(diff_loops_pl(*loops, touched), touched, bridge, end,
-                    double(tip_radius), double(line_width));
+                append(found, organic_hanging_roof_loop_stretches(diff_loops_pl(*loops, touched), touched, bridge,
+                    end, double(tip_radius), double(line_width)));
             }
             Polylines stretches;
             for (RoofStretch &stretch : found)
@@ -4990,28 +4999,34 @@ std::vector<double> organic_roof_angles(const PrintObject &object, const Support
 {
     switch (object.config().support_interface_pattern.value) {
     case smipConcentric:
-    case smipSpiralInset:
-        // A base interface under such a roof prints lines in its direction all the same, see the default below.
-        if (params.num_top_base_interface_layers > 0)
-            return { params.support_interface_angle(0) };
-        return {};
+    case smipSpiralInset: return {};
     case smipGrid: return { params.base_angle, params.base_angle + 0.5 * M_PI };
     case smipRectilinearInterlaced: return { params.support_interface_angle(0), params.support_interface_angle(1) };
     default:
         // Auto prints the layers of a roof right under the model, with no gap between them, in loops, see
-        // SupportParameters::contact_fill_pattern and generate_support_toolpaths(), but for a base interface under
-        // them, which prints lines in that direction, see InterfacePlacer::is_top_base_interface().
-        if (params.contact_fill_pattern == ipConcentric && params.num_top_base_interface_layers == 0)
+        // SupportParameters::contact_fill_pattern and generate_support_toolpaths().
+        if (params.contact_fill_pattern == ipConcentric)
             return {};
         return { params.support_interface_angle(0) };
     }
 }
 
+std::vector<double> organic_base_roof_angles(const PrintObject &object, const SupportParameters &params)
+{
+    // A base interface prints lines in the direction of the interface, see generate_support_toolpaths(), but a roof
+    // stack the model cuts short before it gets none.
+    if (params.num_top_base_interface_layers == 0 || ! organic_roof_angles(object, params).empty())
+        return {};
+    return { params.support_interface_angle(0) };
+}
+
 void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
     const std::vector<Polygons> &model, const TreeSupportSettings &config, const coord_t reach, const coord_t first_layer_width,
-    const std::vector<double> &roof_angles, const std::function<void()> &throw_on_cancel)
+    const std::vector<double> &roof_angles, const std::function<void()> &throw_on_cancel,
+    const std::vector<Polygons> &base_roofs, const std::vector<double> &base_angles)
 {
     assert(bodies.size() == roofs.size() && bodies.size() == model.size());
+    assert(base_roofs.empty() || base_roofs.size() == roofs.size());
     const coord_t width      = config.support_line_width;
     const float   half       = 0.5f * float(width);
     const double  move       = double(std::min(config.maximum_move_distance, width / 2));
@@ -5399,23 +5414,40 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
                 const double      bridge = 2. * (double(reach) - touch);
                 const double      end    = std::min(double(width), double(reach) - touch);
                 const BoundingBox near   = get_extents(load).inflated(coord_t(DefaultMiterLimit * touch) + SCALED_EPSILON);
-                // A roof printed in loops lays them along the outline of all of it, not of the load, see
-                // organic_roof_loops(): those that come near the load. They are clipped by what holds them, see
-                // diff_loops_pl(), before they are clipped to the load, which would part a loop where it starts.
-                Polygons loops;
-                if (roof_angles.empty())
-                    for (Polygon &loop : organic_roof_loops(roofs[l + 1], pitch))
-                        if (get_extents(loop).overlap(near))
-                            loops.push_back(std::move(loop));
+                // The part of the load a base interface prints, in lines, and the rest of it.
+                const Polygons *base  = ! base_angles.empty() && ! base_roofs.empty() && ! base_roofs[l + 1].empty() ?
+                    &base_roofs[l + 1] : nullptr;
+                const Polygons  lined = base != nullptr ? intersection(load, *base) : Polygons();
+                const Polygons  other = base != nullptr ? diff(load, *base) : load;
+                // A roof printed in loops lays them along the outline of all of it but what a base interface prints,
+                // not of the load, see organic_roof_loops(): those that come near the load, found once a round finds
+                // some of the load away from what holds it. They are clipped by what holds them, see diff_loops_pl(),
+                // before they are clipped to the load, which would part a loop where it starts.
+                std::optional<Polygons> loops;
                 for (int round = 0; round < 16; ++ round) {
                     Polygons holding = ClipperUtils::clip_clipper_polygons_with_subject_bbox(held, near);
                     append(holding, ClipperUtils::clip_clipper_polygons_with_subject_bbox(grown_in, near));
                     const Polygons           touched = offset(union_(holding), float(touch));
                     std::vector<Tree>        placed;
-                    std::vector<RoofStretch> stretches = roof_angles.empty() ?
-                        organic_hanging_roof_loop_stretches(intersection_pl(diff_loops_pl(loops, touched), load),
-                            touched, bridge, end, tip_radius, double(width)) :
-                        organic_hanging_roof_stretches(load, touched, roof_angles, pitch, bridge, end, tip_radius);
+                    std::vector<RoofStretch> stretches;
+                    if (! roof_angles.empty())
+                        stretches = organic_hanging_roof_stretches(other, touched, roof_angles, pitch, bridge, end,
+                            tip_radius);
+                    else if (! other.empty() && ! diff(other, touched).empty()) {
+                        if (! loops) {
+                            loops.emplace();
+                            for (Polygon &loop : organic_roof_loops(
+                                     base != nullptr ? diff(roofs[l + 1], *base) : roofs[l + 1], pitch))
+                                if (get_extents(loop).overlap(near))
+                                    loops->push_back(std::move(loop));
+                        }
+                        stretches = organic_hanging_roof_loop_stretches(
+                            intersection_pl(diff_loops_pl(*loops, touched), other), touched, bridge, end, tip_radius,
+                            double(width));
+                    }
+                    if (! lined.empty())
+                        append(stretches, organic_hanging_roof_stretches(lined, touched, base_angles, pitch, bridge,
+                            end, tip_radius));
                     for (const RoofStretch &stretch : stretches) {
                         const double      apart = tip_radius + touch;
                         const BoundingBox box   = get_extents(stretch.along).inflated(coord_t(apart) + 1);
@@ -5749,6 +5781,31 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
                 }
                 throw_on_cancel();
                 const std::vector<double> roof_angles = organic_roof_angles(print_object, support_params);
+                // A base interface under a roof printed in loops prints lines, where the model does not cut its stack
+                // short before it, but within a line of a contact or an interface of its layer, which it leaves out,
+                // see generate_support_toolpaths(): that part is held as the rest of the roof is.
+                const std::vector<double> base_angles = organic_base_roof_angles(print_object, support_params);
+                std::vector<Polygons>     base_roofs;
+                if (! base_angles.empty()) {
+                    base_roofs.assign(bodies.size(), Polygons());
+                    for (const SupportGeneratorLayer *roof : base_interface_layers)
+                        if (roof != nullptr)
+                            if (const size_t idx = layer_of(roof->print_z); idx < base_roofs.size())
+                                append(base_roofs[idx], roof->polygons);
+                    if (support_params.zero_gap_interface_top && ! support_params.can_merge_support_regions) {
+                        std::vector<Polygons> over(base_roofs.size());
+                        for (const SupportGeneratorLayersPtr *layers : { &top_contacts, &interface_layers })
+                            for (const SupportGeneratorLayer *roof : *layers)
+                                if (roof != nullptr)
+                                    if (const size_t idx = layer_of(roof->print_z); idx < over.size())
+                                        append(over[idx], roof->polygons);
+                        const float margin = float(std::max(support_params.support_material_flow.scaled_width(),
+                            support_params.support_material_interface_flow.scaled_width()));
+                        for (size_t idx = 0; idx < base_roofs.size(); ++ idx)
+                            if (! base_roofs[idx].empty() && ! over[idx].empty())
+                                base_roofs[idx] = diff(base_roofs[idx], offset(over[idx], margin));
+                    }
+                }
                 // The model a body stands on, see organic_model_under(). The flares ask for it near their bodies, a
                 // layer after another and a dry run after another, and what it is found from is kept, see
                 // OrganicModelUnderCache.
@@ -5762,12 +5819,13 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
                 // On a belt the bodies grow as they are, as above.
                 organic_widen_bodies_under_roofs(bodies, roofs, model_of, model_under, volumes.m_belt_floor.empty(),
                     config.support_line_width, config.min_radius, config.maximum_move_distance, reach, roof_angles,
-                    throw_on_cancel);
+                    throw_on_cancel, base_roofs, base_angles);
                 model_under_cache = OrganicModelUnderCache();
                 throw_on_cancel();
                 if (hollow) {
                     organic_grow_trees_inside_hollow_bodies(bodies, roofs, model_of, config, reach,
-                        support_params.first_layer_flow.scaled_width(), roof_angles, throw_on_cancel);
+                        support_params.first_layer_flow.scaled_width(), roof_angles, throw_on_cancel, base_roofs,
+                        base_angles);
                     // On a belt the first layer is no flange on the bed, see generate_support_toolpaths(): a lone foot is
                     // printed as the feet of the trees are.
                     if (! volumes.m_belt_floor.empty())

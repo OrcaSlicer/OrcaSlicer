@@ -435,7 +435,9 @@ Polygons organic_model_under(const PrintObject &object, const TreeModelVolumes &
 // SupportParameters::support_interface_angle(), or with none, a loop of it along its outline, runs farther from that
 // material than a line between two lines of the base, or along a gap in it narrower than that, or than a line where it
 // ends in the air or a loop bends away from the line between the ends of a stretch of it by more than a line; and a
-// part of it too narrow for a loop where a point of it lies farther than reach from that material.
+// part of it too narrow for a loop where a point of it lies farther than reach from that material. Where base_roofs
+// hold the parts of the roofs of a layer that a base interface prints, those print lines in the directions base_angles,
+// see organic_base_roof_angles(), and the loops of the rest run along its outline.
 // bodies hold a layer each, up to the layer above the top body, and may hold nullptr; roofs and model hold for each
 // layer the roofs printed on it and the model with the gaps around it. The widened tips, and the bands the wider bodies
 // widen by, are added to the solid polygons of their layers. throw_on_cancel, if set, is called at each roof, step and
@@ -443,7 +445,8 @@ Polygons organic_model_under(const PrintObject &object, const TreeModelVolumes &
 void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
     const std::vector<Polygons> &model, const std::function<Polygons(size_t, const BoundingBox &)> &model_under,
     bool limit_growth, coord_t line_width, coord_t tip_radius, coord_t move, coord_t reach,
-    const std::vector<double> &roof_angles = {}, const std::function<void()> &throw_on_cancel = {});
+    const std::vector<double> &roof_angles = {}, const std::function<void()> &throw_on_cancel = {},
+    const std::vector<Polygons> &base_roofs = {}, const std::vector<double> &base_angles = {});
 
 // Grow trees inside the hollow bodies under what the layer above prints over their inside, roofs, walls and parts
 // printed solid: tips as many as it takes to hold every line or loop of a roof, see organic_roof_angles(), and to bring
@@ -457,16 +460,21 @@ void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const s
 // of the lines of the first layer.
 // The directions of the lines of the lowest roof layers: an interlaced pattern turns them from layer to layer, and the
 // contact layer of a grid crosses them; a roof printed in loops, concentric or as a spiral, has none, nor does one of
-// the default pattern right under the model, which prints loops there, unless the support is set to print a base
-// interface under such a roof, in lines.
+// the default pattern right under the model, which prints loops there.
 std::vector<double> organic_roof_angles(const PrintObject &object, const SupportParameters &params);
+// The directions of the lines of a base interface under a roof printed in loops, where the support prints one: it
+// prints lines in the direction of the interface whatever the pattern. None where the roof prints lines, as a base
+// interface under it does too, or where the support prints no base interface.
+std::vector<double> organic_base_roof_angles(const PrintObject &object, const SupportParameters &params);
 
 // roof_angles are the directions of the lines of the lowest roof layers, see organic_roof_angles():
 // the trees hold every one of those lines; with none, every loop of a roof printed in loops along its outline. Every
-// point of a roof lies within reach of them as well.
+// point of a roof lies within reach of them as well. base_roofs and base_angles are as for
+// organic_widen_bodies_under_roofs().
 void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
     const std::vector<Polygons> &model, const TreeSupportSettings &config, coord_t reach, coord_t first_layer_width,
-    const std::vector<double> &roof_angles = {}, const std::function<void()> &throw_on_cancel = {});
+    const std::vector<double> &roof_angles = {}, const std::function<void()> &throw_on_cancel = {},
+    const std::vector<Polygons> &base_roofs = {}, const std::vector<double> &base_angles = {});
 
 // Points on each of the input lines, the tips of trees along an overhang, distance apart at most and at least that far
 // from each other, both ends of a line among them; at least min_points of them, closer if need be. A short line gets

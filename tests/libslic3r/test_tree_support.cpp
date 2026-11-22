@@ -590,6 +590,64 @@ TEST_CASE("Organic bodies widen under a part of a roof printed in loops too narr
     CHECK(diff(roofs[roof_layer], offset(storage.back().polygons, scaled<float>(reach + 0.005))).empty());
 }
 
+TEST_CASE("Organic bodies widen under a roof printed in loops but where a base interface under it prints lines", "[TreeSupport][Material][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    auto rectangle = [](double x, double y, double width, double depth) {
+        return Polygon({Point::new_scale(x, y), Point::new_scale(x + width, y), Point::new_scale(x + width, y + depth),
+                        Point::new_scale(x, y + depth)});
+    };
+    // Lines 0.22 mm wide, tips 0.8 mm across, layers 0.02 mm and a branch angle of 40 degrees. Two trunks 10 mm long,
+    // 1 mm and 2 mm wide, 0.27 mm apart under a roof over both printed in loops, a quarter of a line apart from half a
+    // line in, some of which run along the gap between them, over neither. Where a base interface prints the lowest
+    // layer of the roof, it prints lines across the gap, which bridge it, or along it, which do not; where the model
+    // cut the stack of the roof short before its base interface, the lowest layer prints loops, and the bodies widen
+    // into the gap under them, but under a part of the roof a base interface prints.
+    enum { Base, Loops, Along, Split };
+    const int mode = GENERATE(Base, Loops, Along, Split);
+    CAPTURE(mode);
+    const coord_t  line_width = scaled<coord_t>(0.22), tip_radius = scaled<coord_t>(0.4);
+    const double   move       = std::tan(40. * M_PI / 180.) * 0.02;
+    const double   reach      = 0.235;
+    const double   gap        = 0.27;
+    const Polygons trunks{ rectangle(0., 0., 10., 1.), rectangle(0., 1. + gap, 10., 2.) };
+    const size_t   num_layers = 20, roof_layer = num_layers - 1;
+    std::vector<SupportGeneratorLayer> storage(roof_layer);
+    std::vector<Polygons> roofs(num_layers), model(num_layers), base_roofs(num_layers);
+    roofs[roof_layer] = { rectangle(0., 0., 10., 3. + gap) };
+    if (mode == Base || mode == Along)
+        base_roofs[roof_layer] = roofs[roof_layer];
+    else if (mode == Split)
+        base_roofs[roof_layer] = { rectangle(0., 0., 5., 3. + gap) };
+    SupportGeneratorLayersPtr bodies(num_layers, nullptr);
+    for (size_t i = 0; i < storage.size(); ++ i) {
+        SupportGeneratorLayer &layer = storage[i];
+        layer.bottom_z = 1. + 0.02 * double(i);
+        layer.print_z  = layer.bottom_z + 0.02;
+        layer.height   = 0.02;
+        layer.polygons = trunks;
+        bodies[i]      = &layer;
+    }
+    organic_widen_bodies_under_roofs(bodies, roofs, model, {}, true, line_width, tip_radius, scaled<coord_t>(move),
+        scaled<coord_t>(reach), {}, {}, base_roofs, { mode == Along ? 0. : 0.5 * M_PI });
+    // How much of the gap the bodies widen into by bands printed solid, along its middle or that of either half of
+    // it, where loops run along it: most of the way across, as under lines along it.
+    const auto widened = [&](const double x, const double length) {
+        const Polygons gap_area{ rectangle(x, 1., length, gap) };
+        return area(intersection(gap_area, storage.back().solid_polygons)) / area(gap_area);
+    };
+    const double middle = widened(3., 4.), left = widened(1.5, 2.), right = widened(6.5, 2.);
+    CAPTURE(middle, left, right);
+    if (mode == Split) {
+        CHECK(left < 0.5);
+        CHECK(right > 0.5);
+    } else if (mode == Base)
+        CHECK(middle < 0.5);
+    else
+        CHECK(middle > 0.5);
+}
+
 TEST_CASE("Organic bodies leaning under a roof widen beyond the layer below by no more than a wall overhangs it", "[TreeSupport][Material][Regression]")
 {
     using namespace Slic3r;
@@ -1646,9 +1704,11 @@ TEST_CASE("Organic trees under a roof over a hollow body hold every line of its 
     settings.maximum_move_distance_slow       = scaled<coord_t>(std::tan(25. * M_PI / 180.) * layer_height);
     settings.branch_radius_increase_per_layer = scaled<double>(std::tan(5. * M_PI / 180.) * layer_height);
     settings.support_rests_on_model           = false;
-    // The lines of the roof run along Y, or at 45 degrees to the axes, as the support angle sets them.
+    // The lines of the roof run along Y, or at 45 degrees to the axes, as the support angle sets them: those of the
+    // roof, or of a base interface under a roof printed in loops.
     const double angle = GENERATE(0.5 * M_PI, 0.25 * M_PI);
-    CAPTURE(angle);
+    const bool   based = GENERATE(false, true);
+    CAPTURE(angle, based);
     // A trunk 10 mm across under a roof 7 mm square in its middle, 1.2 mm above the bed.
     const Polygon trunk = make_circle_num_segments(scale_(5.), 256);
     const Polygon roof({ Point::new_scale(-3.5, -3.5), Point::new_scale(3.5, -3.5), Point::new_scale(3.5, 3.5),
@@ -1666,8 +1726,12 @@ TEST_CASE("Organic trees under a roof over a hollow body hold every line of its 
         layer.polygons = { trunk };
         bodies[i]      = &layer;
     }
-    organic_grow_trees_inside_hollow_bodies(bodies, roofs, model, settings, scaled<coord_t>(reach), settings.support_line_width,
-        { angle });
+    if (based)
+        organic_grow_trees_inside_hollow_bodies(bodies, roofs, model, settings, scaled<coord_t>(reach),
+            settings.support_line_width, {}, {}, roofs, { angle });
+    else
+        organic_grow_trees_inside_hollow_bodies(bodies, roofs, model, settings, scaled<coord_t>(reach),
+            settings.support_line_width, { angle });
     // A line of the lowest roof layer, wherever it lies, touches the trees and the wall it passes over by half a line at
     // least every line between two lines of the base, and its ends rest on them: a stretch ending in the air hangs once it
     // is longer than a line.

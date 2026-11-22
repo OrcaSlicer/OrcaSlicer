@@ -5458,19 +5458,24 @@ TEST_CASE("Organic walls repaired on the build plate only go round where a join 
     // A wall leaves the support below between two arms of it and returns. Cleanup cuts the excursion off and joins the
     // ends it keeps, straight or round along the support below. Support on the build plate only prints no bottom
     // interface, so the joins bridge no farther than a line across the gap of the base, and a route round keeps off
-    // the beads the layer keeps. Where that fails, leaves the wall no shorter, takes a join from under the layer above,
-    // or runs over the wall where it keeps it and the other repair does not and holds as much of the layer above, the
-    // wall is repaired more widely, with joins as far as the warning lets a bead bridge, a line across a bottom
-    // interface 3 mm apart here, and over the beads kept.
+    // the beads the layer keeps. Where that fails, leaves the wall no shorter, leaves more of the layer above on
+    // nothing than the other repair, or as much but runs over the wall where it keeps it and the other repair does
+    // not, the wall is repaired more widely, with joins as far as the warning lets a bead bridge, a line across a
+    // bottom interface 3 mm apart here, and over the beads kept.
     // The arms are those of a U 1 mm deep, 2.4 mm apart or as far as a join straight across bridges the gap of the
     // base and half a line, or of one 6 mm deep, which a join may go round, or two lines 2 mm apart, which it may not.
     // A bead the layer keeps may run along the bottom of the U, where a route round would run, or the wall itself go on
     // there, with a bead of an interface of the layer above over the route round by an arm of the U, which only that
     // holds, with a bead kept along the bottom of the U nearer that arm, or alone; or such a bead of an interface lie
-    // over the middle of a join straight across, or reach from over the arm of the U to there, or the wall go on on the
-    // layer above.
+    // over the middle of a join straight across, or there with another by the arm of the U, which a route round holds
+    // for longer than a line, or reach from over the arm of the U to there, with another over the bottom of the U,
+    // which only a route round holds, or two short ones lie there with that one, or reach from the join to a bead kept
+    // inside the excursion, which holds it but where it stands on nothing itself, or the wall go on on the layer
+    // above. A repair leaving more whole islands of the layer above on nothing gives way to one leaving fewer, or only
+    // a run of a bead over nothing longer than the bead is wide.
     enum { WideU, NarrowU, DeepU, Lines };
-    enum { Alone, KeptBead, OwnLeg, Above, AbovePartly, AboveWall, OwnLegCarries, OwnLegKept };
+    enum { Alone, KeptBead, OwnLeg, Above, AbovePartly, AboveWall, OwnLegCarries, OwnLegKept, AboveAndBottom,
+        AboveHeldAway, AboveAndBeside, AboveTwoAndBottom, AboveHeldAdrift };
     enum { Round, Straight, Kept };
     const auto row = GENERATE(table<int, bool, double, int, int>({ { WideU, false, 0., Alone, Round },
         { WideU, false, 3., Alone, Round }, { WideU, true, 3., Alone, Straight },
@@ -5479,7 +5484,9 @@ TEST_CASE("Organic walls repaired on the build plate only go round where a join 
         { WideU, true, 0., KeptBead, Round }, { WideU, false, 3., OwnLeg, Straight },
         { WideU, false, 3., Above, Straight }, { WideU, false, 3., AbovePartly, Straight },
         { WideU, false, 3., AboveWall, Round }, { WideU, false, 3., OwnLegCarries, Round },
-        { WideU, false, 0., OwnLegKept, Round } }));
+        { WideU, false, 0., OwnLegKept, Round }, { WideU, false, 3., AboveAndBottom, Round },
+        { WideU, false, 3., AboveHeldAway, Round }, { WideU, false, 3., AboveAndBeside, Straight },
+        { WideU, false, 3., AboveTwoAndBottom, Straight }, { WideU, false, 3., AboveHeldAdrift, Straight } }));
     const int    arms = std::get<0>(row), extra = std::get<3>(row), join = std::get<4>(row);
     const bool   on_model       = std::get<1>(row);
     const double bottom_spacing = std::get<2>(row);
@@ -5526,9 +5533,16 @@ TEST_CASE("Organic walls repaired on the build plate only go round where a join 
     }
     REQUIRE((straight <= base) == (arms == NarrowU));
     REQUIRE((straight <= span) == (arms == NarrowU || bottom_spacing > 0.));
-    SupportLayer &lower = *object.add_support_layer(0, 0, .2, .2);
+    // Inside the excursion, farther from it than the reach of its bead, a bead kept on a line of the support below, or
+    // a longer one on nothing, not cut as a tongue as it carries what lies over it, which cleanup drops once the join
+    // straight across holds that.
+    const Polyline inside = extra == AboveHeldAdrift ? Polyline({point(1.7, 1.5), point(2.7, 1.5)}) :
+                                                       Polyline({point(2., 1.5), point(2.4, 1.5)});
+    SupportLayer  &lower = *object.add_support_layer(0, 0, .2, .2);
     for (const Polyline &axis : below)
         add(lower, axis);
+    if (extra == AboveHeldAway)
+        add(lower, inside);
     SupportLayer &upper = *object.add_support_layer(1, 1, .2, .4);
     // The wall goes on beyond the U, or down its arm and back along its bottom, held by it, for longer than a line
     // beside a route round, which is shorter than the excursion going round a bead kept there as well.
@@ -5546,20 +5560,36 @@ TEST_CASE("Organic walls repaired on the build plate only go round where a join 
     const bool     kept      = extra == KeptBead || extra == OwnLegKept;
     if (kept)
         add(upper, kept_bead);
+    if (extra == AboveHeldAway || extra == AboveHeldAdrift)
+        add(upper, inside);
     // Over the middle of a join straight across, which holds it, not over the excursion, or from over the arm there; or
     // the wall again, which stands on its arms where a join straight across leaves them as where a route round does; or
     // beside the left arm of the U, over a route round, nearer neither a join straight across nor the wall where it is
-    // kept than half a line but a run longer than a line.
-    const bool    held_above = extra == Above || extra == AbovePartly || extra == OwnLegCarries;
+    // kept than half a line but a run longer than a line; or over the bottom of the U, held by a route round only,
+    // with two short ones over the middle of a join straight across; or from just over a join straight across to the
+    // bead kept inside the excursion, beyond the box of the join, or to the bead on nothing there.
+    const bool    held_above = extra == Above || extra == AbovePartly || extra == OwnLegCarries ||
+                               extra == AboveAndBottom || extra == AboveHeldAway || extra == AboveAndBeside ||
+                               extra == AboveTwoAndBottom || extra == AboveHeldAdrift;
     SupportLayer *top        = nullptr;
     if (held_above || extra == AboveWall) {
         top = object.add_support_layer(2, 2, .2, .6);
         if (extra == AboveWall)
             add(*top, wall_axis);
-        else if (extra == OwnLegCarries)
+        else if (extra == OwnLegCarries || extra == AboveAndBeside)
             add(*top, Polyline({point(left + .25, -.2), point(left + .25, -.8)}), erSupportMaterialInterface);
+        else if (extra == AboveHeldAway || extra == AboveHeldAdrift)
+            add(*top, Polyline({point(2.2, .7), point(2.2, 1.5)}), erSupportMaterialInterface);
+        else if (extra == AboveTwoAndBottom) {
+            add(*top, Polyline({point(1.7, .5), point(1.95, .5)}), erSupportMaterialInterface);
+            add(*top, Polyline({point(2.45, .5), point(2.7, .5)}), erSupportMaterialInterface);
+        }
         else
             add(*top, Polyline({point(extra == Above ? 1.95 : .9, .35), point(2.45, .35)}), erSupportMaterialInterface);
+        if (extra == AboveAndBeside)
+            add(*top, Polyline({point(1.95, .35), point(2.45, .35)}), erSupportMaterialInterface);
+        if (extra == AboveAndBottom || extra == AboveTwoAndBottom)
+            add(*top, Polyline({point(1.8, -.5), point(2.6, -.5)}), erSupportMaterialInterface);
     }
     const bool trimmed = join != Kept;
     CHECK((remove_floating_support_crumbs(object, scale_(1.) * scale_(flow.width())) > 0) == trimmed);
@@ -5567,7 +5597,7 @@ TEST_CASE("Organic walls repaired on the build plate only go round where a join 
     for_each_extrusion_path(upper.support_fills, [&](const ExtrusionPath &path) {
         axes.push_back(path.as_polyline());
     });
-    REQUIRE(axes.size() == (kept ? 2 : 1));
+    REQUIRE(axes.size() == (kept || extra == AboveHeldAway ? 2 : 1));
     std::sort(axes.begin(), axes.end(), [](const Polyline &a, const Polyline &b) { return a.length() > b.length(); });
     const Polyline &wall = axes.front();
     const BoundingBox extents = get_extents(wall);
@@ -5582,7 +5612,8 @@ TEST_CASE("Organic walls repaired on the build plate only go round where a join 
             - scale_(.005)).empty());
     }
     if (held_above)
-        CHECK(top->support_fills.entities.size() == 1);
+        CHECK(top->support_fills.entities.size() ==
+            (extra == AboveTwoAndBottom ? 3 : extra == AboveAndBottom || extra == AboveAndBeside ? 2 : 1));
     if (extra == OwnLeg) {
         // A route round would run over the wall where it keeps it, so the wall is joined straight across: no point of
         // the wall below the bearings lies nearer its kept part than half a line, but on it.
@@ -5612,8 +5643,11 @@ TEST_CASE("Organic walls repaired on the build plate only go round where a join 
         const bool first = join == Round || arms == NarrowU;
         CHECK(longest <= (first ? base : span) + EPSILON);
     }
-    // The warning reports only an excursion kept whole.
-    const bool held = trimmed;
+    // The warning reports only an excursion kept whole, or the bead of the layer above that hangs from where it stands
+    // over the join straight across or over the route round the repair does not take, or from the join it stands on
+    // once the bead on nothing that held it is dropped.
+    const bool held = trimmed && extra != AboveAndBottom && extra != AboveAndBeside && extra != AboveTwoAndBottom &&
+        extra != AboveHeldAdrift;
     CHECK(floating_support_islands(object, 0.).empty() == held);
 }
 
@@ -6708,6 +6742,7 @@ TEST_CASE("Organic trees inside a hollow body hold an Auto roof printed in loops
         bool                  loops          = false;
         bool                  base_interface = false;
         size_t                angles         = 0;
+        size_t                base_angles    = 0;
         double                roof   = 0.;
         double                base   = 0.;
         std::vector<coordf_t> floating;
@@ -6736,6 +6771,7 @@ TEST_CASE("Organic trees inside a hollow body hold an Auto roof printed in loops
         result.loops  = params.contact_fill_pattern == ipConcentric;
         result.base_interface = params.num_top_base_interface_layers > 0;
         result.angles = TreeSupport3D::organic_roof_angles(object, params).size();
+        result.base_angles = TreeSupport3D::organic_base_roof_angles(object, params).size();
         for (const SupportLayer *layer : object.support_layers())
             for_each_extrusion_path(layer->support_fills, [&result](const ExtrusionPath &path) {
                 if (path.role() == erSupportMaterialInterface)
@@ -6758,12 +6794,15 @@ TEST_CASE("Organic trees inside a hollow body hold an Auto roof printed in loops
     REQUIRE(automatic.floating.size() == concentric.floating.size());
     for (size_t i = 0; i < automatic.floating.size(); ++ i)
         CHECK_THAT(automatic.floating[i], Catch::Matchers::WithinAbs(concentric.floating[i], 1e-9));
+    CHECK(automatic.base_angles == 0);
     const Result gapped = run("auto", .2);
     REQUIRE_FALSE(gapped.loops);
     CHECK(gapped.angles == 1);
+    CHECK(gapped.base_angles == 0);
     // An interface set to a filament of its own, the first, while the base prints with the current one, gets a base
     // interface under it, see SupportParameters, whatever its pattern: concentric, a spiral or Auto, which prints
-    // loops above it.
+    // loops above it. The base interface prints lines, the roof over it loops all the same, as where the model cuts
+    // its stack short before the base interface.
     if (top_layers > 1)
         for (const char *pattern : {"auto", "concentric", "spiralinset"}) {
             CAPTURE(pattern);
@@ -6771,7 +6810,8 @@ TEST_CASE("Organic trees inside a hollow body hold an Auto roof printed in loops
             if (std::string(pattern) == "auto")
                 REQUIRE(based.loops);
             REQUIRE(based.base_interface);
-            CHECK(based.angles == 1);
+            CHECK(based.angles == 0);
+            CHECK(based.base_angles == 1);
         }
 }
 

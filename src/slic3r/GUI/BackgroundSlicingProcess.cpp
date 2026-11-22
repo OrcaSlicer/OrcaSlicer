@@ -403,8 +403,8 @@ void BackgroundSlicingProcess::thread_proc()
         lck.lock();
         m_state = m_print->canceled() ? STATE_CANCELED : STATE_FINISHED;
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__
-                                 << boost::format(": process finished, state %1%, print cancel_status %2%") % m_state %
-                                        m_print->cancel_status();
+                                 << boost::format(": process finished, state %1%, print cancel_status %2%") %
+                                        m_state.load() % m_print->cancel_status();
         if (m_print->cancel_status() != Print::CANCELED_INTERNAL) {
             // Only post the canceled event, if canceled by user.
             // Don't post the canceled event, if canceled from Print::apply().

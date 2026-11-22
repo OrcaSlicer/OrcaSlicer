@@ -364,7 +364,12 @@ midway still lies within half of the gap of the base plus half a line of what
 holds it. A concentric or spiral interface prints loops along its outline instead,
 as does the default one right under the model, with no gap between them. Under any
 of them the support may be set to print a base interface, in lines in the direction
-of the interface: the roof is then held as lines in that direction. The outermost
+of the interface: where it prints the lowest layer of a roof, that part is held as
+lines in that direction, and the loops of the rest run along its outline; within a
+line of a contact or an interface of its layer the base interface prints nothing,
+and that part is held as the rest is. Where the
+model cuts the stack of a roof short before its base interface, the lowest layer
+prints loops and is held as loops. The outermost
 loop is taken half a line in from the outline, and the others a quarter of a line apart
 inside it; a part narrower than a line gets none. The fill takes its outermost loop
 in by half its spacing, a little less, so a part a little narrower than a line may
@@ -699,14 +704,18 @@ on the build plate only, which prints no bottom interface, to a line across the
 gap of the base. A route round runs along the edge of what holds it, where a bead
 the layer leaves untouched may lie, so it keeps off such beads near it; a straight
 connection only crosses them. Where no such connection exists, where it leaves the
-wall no shorter, or where it leaves on nothing material of the layer above that a
-wider connection would hold, an island or a run of a bead longer than the bead is
-wide, the wall is connected more widely: bridging as far as the warning lets a
-straight bead, and over the beads kept. It is also connected more widely where
-the connection runs over what the repair keeps of the walls it repairs for longer
-than a line, printing that twice, and the wider one does not and holds as much of
-the layer above; the wider one differs only where it may bridge farther or run
-over the beads kept. Kept whole, the wall would hang more.
+wall no shorter, or where it leaves more of the layer above on nothing than a wider
+connection would, the wall is connected more widely: bridging as far as the
+warning lets a straight bead, and over the beads kept. The whole islands of the
+layer above left on nothing, which the warning reports and cleanup may drop, are
+counted first, then the length of the runs of beads over nothing longer than the
+bead is wide, whether they hang from one end or bridge. An island stands on any
+bead of the layer, near the wall or not, that stands on what holds the layer itself
+once the excursions are cut off. Leaving
+as much, the wall is also connected more widely where the connection runs over
+what the repair keeps of the walls it repairs for longer than a line, printing
+that twice, and the wider one does not; the wider one differs only where it may
+bridge farther or run over the beads kept. Kept whole, the wall would hang more.
 A connection lying on the edge of what the material
 below holds touches it, and the warning and the search for excursions take it
 as standing there: by rounding, it would otherwise hang off that edge. The new bead stays inside the support region and away
