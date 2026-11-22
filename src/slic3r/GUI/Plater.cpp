@@ -7795,6 +7795,7 @@ struct Plater::priv
 
     void clear_warnings();
     void restore_organic_support_warnings();
+    void show_reworded_organic_support_warnings();
     void add_warning(const Slic3r::PrintStateBase::Warning &warning, size_t oid);
     // Update notification manager with the current state of warnings produced by the background process (slicing).
     void actualize_slicing_warnings(const PrintBase &print);
@@ -12040,7 +12041,8 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         actualize_object_warnings(*this->background_process.current_print());
         show_warning_dialog = false;
         process_completed_with_error = -1;
-    }
+    } else
+        show_reworded_organic_support_warnings();
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: was_running = %2%, running %3%, invalidated=%4%, return_state=%5%, internal_cancel=%6%")
         % __LINE__ % was_running % this->background_process.running() % invalidated % return_state % this->background_process.is_internal_cancelled();
@@ -13957,6 +13959,23 @@ void Plater::priv::restore_organic_support_warnings()
         SlicingStatusEvent event(EVT_SLICING_UPDATE, 0, status);
         on_slicing_update(event);
     }
+}
+
+void Plater::priv::show_reworded_organic_support_warnings()
+{
+    // Print::apply() names a renamed object anew in its Organic support warning, the print unchanged: show the
+    // warnings so reworded, and only those, so that none the user closed shows again.
+    if (printer_technology != ptFFF)
+        return;
+    for (const PrintBase::SlicingStatus &status : organic_support_warning_statuses(*background_process.fff_print()))
+        if (std::any_of(current_warnings.begin(), current_warnings.end(), [&status](const auto &warning) {
+                return warning.second == status.warning_object_id.id &&
+                    warning.first.message_id == PrintStateBase::SlicingOrganicSupportWarning &&
+                    warning.first.message != status.text;
+            })) {
+            SlicingStatusEvent event(EVT_SLICING_UPDATE, 0, status);
+            on_slicing_update(event);
+        }
 }
 
 void Plater::priv::clear_warnings()

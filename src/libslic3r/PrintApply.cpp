@@ -15,6 +15,7 @@
 #include "PrintBase.hpp"
 #include "libslic3r_version.h"
 #include "TriangleSelector.hpp"
+#include "Support/OrganicToolpaths.hpp"
 
 #include <algorithm>
 #include <array>
@@ -2013,8 +2014,22 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 			model_volume_list_copy_configs(model_object /* dst */, model_object_new /* src */, precise_seam_types);
             layer_height_ranges_copy_configs(model_object.layer_config_ranges /* dst */, model_object_new.layer_config_ranges /* src */);
             // Copy the ModelObject name, input_file and instances. The instances will be compared against PrintObject instances in the next step.
-            model_object.name       = model_object_new.name;
-            model_object.input_file = model_object_new.input_file;
+            // Orca: the name and the input file are written only where they changed, as the G-code export reads them
+            // without the state mutex, for its object labels and the input file name placeholders.
+            if (model_object.name != model_object_new.name) {
+                model_object.name = model_object_new.name;
+                // The warning about Organic support over nothing names the object: it is named anew there, with the
+                // state mutex held here, which the warning is written with. The print is unchanged, see
+                // Plater::priv::show_reworded_organic_support_warnings().
+                for (const PrintObjectStatus &print_object_status : print_object_status_db.get_range(model_object)) {
+                    PrintObject &print_object = *print_object_status.print_object;
+                    print_object.m_state.reword_step_warning_locked(posSupportMaterial,
+                        PrintStateBase::SlicingOrganicSupportWarning,
+                        [&print_object] { return organic_support_warning_message(print_object); });
+                }
+            }
+            if (model_object.input_file != model_object_new.input_file)
+                model_object.input_file = model_object_new.input_file;
             // Only refresh ModelInstances if there is any change.
             if (model_object.instances.size() != model_object_new.instances.size() ||
             	! std::equal(model_object.instances.begin(), model_object.instances.end(), model_object_new.instances.begin(), [](auto l, auto r){ return l->id() == r->id(); })) {

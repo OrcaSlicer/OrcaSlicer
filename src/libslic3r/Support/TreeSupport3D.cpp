@@ -70,6 +70,7 @@
 #include <tbb/spin_mutex.h>
 #include <vector>
 #include <utility>
+#include <unordered_map>
 #include <unordered_set>
 #include <tuple>
 #include "libslic3r/BoundingBox.hpp"
@@ -4147,12 +4148,134 @@ void organic_limit_body_shrink(SupportGeneratorLayersPtr &bodies, const std::vec
 // merge, not even where their beads squish: a hollow body merged over a gap would leave the gap hanging over its inside.
 // A tip ends in a flare printed solid, and a wider body in a band printed solid around it. The flares of tips merge with
 // each other, being solid: kept apart, tips a lattice pitch apart would leave the middle of each triangle of them hanging.
-// A stretch of a line of a roof that hangs, with the point a tip holding it stands on.
+// A stretch of a line or a loop of a roof that hangs, with the point a tip holding it stands on.
 struct RoofStretch
 {
-    Vec2d at;
-    Line  along;
+    Vec2d    at;
+    Polyline along;
 };
+
+// The point distance along a polyline from its start, or its end.
+static Vec2d point_along(const Polyline &polyline, double distance)
+{
+    for (size_t i = 0; i + 1 < polyline.size(); ++ i) {
+        const Vec2d  a      = polyline.points[i].cast<double>();
+        const Vec2d  b      = polyline.points[i + 1].cast<double>();
+        const double length = (b - a).norm();
+        if (distance <= length)
+            return length > 0. ? Vec2d(a + (b - a) * (distance / length)) : a;
+        distance -= length;
+    }
+    return polyline.last_point().cast<double>();
+}
+
+// The distance of a point from a polyline.
+static double distance_to(const Polyline &polyline, const Point &point)
+{
+    double distance = std::numeric_limits<double>::max();
+    for (size_t i = 0; i + 1 < polyline.size(); ++ i)
+        distance = std::min(distance, Line(polyline.points[i], polyline.points[i + 1]).distance_to(point));
+    return distance;
+}
+
+// Polygons that tell whether a point lies in them as contains() of all of them does, looking only at those whose boxes
+// hold it: a point lies in none of the others, nor on one of them. The boxes are kept in a grid of cells about as large
+// as a polygon on average, so that a roof split into many stretches by many tips does not test each end against all.
+class PointInPolygons
+{
+public:
+    explicit PointInPolygons(Polygons polygons) : m_polygons(std::move(polygons))
+    {
+        m_boxes.reserve(m_polygons.size());
+        for (const Polygon &polygon : m_polygons) {
+            m_boxes.emplace_back(get_extents(polygon));
+            m_box.merge(m_boxes.back());
+        }
+        if (m_polygons.empty())
+            return;
+        const Vec2d  size = m_box.size().cast<double>();
+        const double cell = std::max(std::sqrt(std::max(size.x() * size.y(), 1.) / double(m_polygons.size())), 1.);
+        m_cell    = coord_t(std::max(cell, std::max(size.x(), size.y()) / 1024.));
+        m_columns = size_t(size.x() / double(m_cell)) + 1;
+        m_rows    = size_t(size.y() / double(m_cell)) + 1;
+        m_cells.assign(m_columns * m_rows, {});
+        for (size_t i = 0; i < m_boxes.size(); ++ i)
+            for (size_t row = this->row(m_boxes[i].min.y()); row <= this->row(m_boxes[i].max.y()); ++ row)
+                for (size_t column = this->column(m_boxes[i].min.x()); column <= this->column(m_boxes[i].max.x());
+                     ++ column)
+                    m_cells[row * m_columns + column].push_back(i);
+    }
+
+    bool contains(const Point &point) const
+    {
+        if (m_polygons.empty() || ! m_box.contains(point))
+            return false;
+        bool inside = false;
+        for (const size_t i : m_cells[this->row(point.y()) * m_columns + this->column(point.x())])
+            if (m_boxes[i].contains(point)) {
+                const bool in = Slic3r::contains(m_polygons[i], point, false);
+                // On the border of one of them, which contains() takes as inside them all.
+                if (! in && Slic3r::contains(m_polygons[i], point, true))
+                    return true;
+                inside = inside != in;
+            }
+        return inside;
+    }
+
+private:
+    size_t column(const coord_t x) const { return size_t((x - m_box.min.x()) / m_cell); }
+    size_t row(const coord_t y) const { return size_t((y - m_box.min.y()) / m_cell); }
+
+    Polygons                         m_polygons;
+    std::vector<BoundingBox>         m_boxes;
+    BoundingBox                      m_box;
+    coord_t                          m_cell    = 1;
+    size_t                           m_columns = 0;
+    size_t                           m_rows    = 0;
+    std::vector<std::vector<size_t>> m_cells;
+};
+
+// What of loops lies outside clip, as diff_pl() of them, closed, gives it: a loop split where it starts joined again
+// there, and one wholly outside clip a path closed on itself. diff_pl() rejoins the pieces by comparing every two of
+// them, which on a wide roof split by many tips takes long; here the two pieces of a loop that meet where it starts are
+// found by that point and joined across it, in the place diff_pl() leaves the first of them. Such a stretch may run the
+// other way than diff_pl() leaves it, which tells the stretches apart only by their order and their ends.
+static Polylines diff_loops_pl(const Polygons &loops, const Polygons &clip)
+{
+    Polylines paths;
+    paths.reserve(loops.size());
+    std::unordered_map<Point, std::vector<size_t>, PointHash> starts;
+    for (const Polygon &loop : loops)
+        if (! loop.empty()) {
+            paths.emplace_back(loop.split_at_first_point());
+            starts.emplace(loop.points.front(), std::vector<size_t>());
+        }
+    Polylines pieces = diff_pl(paths, clip);
+    for (size_t i = 0; i < pieces.size(); ++ i)
+        for (const Point &end : { pieces[i].first_point(), pieces[i].last_point() })
+            if (auto it = starts.find(end); it != starts.end() && (it->second.empty() || it->second.back() != i))
+                it->second.push_back(i);
+    std::vector<bool> joined(pieces.size(), false);
+    for (auto &[start, ends] : starts) {
+        if (ends.size() != 2)
+            continue;
+        // The piece ending where the loop starts goes on with the one starting there, in the place of the first.
+        Polyline &ending   = pieces[ends.front()];
+        Polyline &starting = pieces[ends.back()];
+        if (ending.last_point() != start)
+            ending.reverse();
+        if (starting.first_point() != start)
+            starting.reverse();
+        ending.points.insert(ending.points.end(), starting.points.begin() + 1, starting.points.end());
+        joined[ends.back()] = true;
+    }
+    Polylines result;
+    result.reserve(pieces.size());
+    for (size_t i = 0; i < pieces.size(); ++ i)
+        if (! joined[i])
+            result.push_back(std::move(pieces[i]));
+    return result;
+}
 
 // A roof line bridges between what it passes over, not between what lies within reach of it: a line between two bodies
 // running along the gap between them passes over neither. The stretches of the lines of a roof in the directions angles,
@@ -4168,15 +4291,15 @@ static std::vector<RoofStretch> organic_hanging_roof_stretches(const Polygons &r
             polygon.rotate(- angle);
         for (Polygon &polygon : beside)
             polygon.rotate(- angle);
-        const Polygons    bearing = offset(beside, float(SCALED_EPSILON));
+        const PointInPolygons bearing(offset(beside, float(SCALED_EPSILON)));
         const BoundingBox box     = get_extents(part);
         Polylines         lines;
         for (auto k = std::ceil(double(box.min.y()) / pitch); k * pitch <= double(box.max.y()); ++ k)
             lines.emplace_back(Point(box.min.x() - 1, coord_t(k * pitch)), Point(box.max.x() + 1, coord_t(k * pitch)));
         const Eigen::Rotation2Dd back(angle);
         for (const Polyline &stretch : diff_pl(intersection_pl(lines, part), beside)) {
-            const bool   first  = contains(bearing, stretch.first_point());
-            const bool   last   = contains(bearing, stretch.last_point());
+            const bool   first  = bearing.contains(stretch.first_point());
+            const bool   last   = bearing.contains(stretch.last_point());
             const double length = stretch.length();
             if (length <= (first && last ? bridge : end))
                 continue;
@@ -4184,8 +4307,55 @@ static std::vector<RoofStretch> organic_hanging_roof_stretches(const Polygons &r
             const Vec2d  along = (b - a) / length;
             const double in    = std::min(tip_radius, 0.5 * length);
             const Vec2d  at    = first == last ? Vec2d(0.5 * (a + b)) : first ? Vec2d(b - along * in) : Vec2d(a + along * in);
-            result.push_back({ back * at, Line(Point((back * a).cast<coord_t>()), Point((back * b).cast<coord_t>())) });
+            result.push_back({ back * at,
+                Polyline(Point((back * a).cast<coord_t>()), Point((back * b).cast<coord_t>())) });
         }
+    }
+    return result;
+}
+
+// A roof printed in loops, concentric or as a spiral, lays them along its outline, the outermost about half a line in,
+// as a wall. The positions of the others are not known before the paths, as those of lines are not, so they are taken
+// a quarter of a line apart as well: the outline of the roof taken in by half a line, two pitches, and then by a pitch
+// at a time. A part of a roof narrower than a line gets no loop. The fill takes its outermost loop in by half its
+// spacing, a little less than half a line, so a part a little narrower than a line may print one. The outline of a roof
+// over tips is a union of their discs, of thousands of points: simplified to a quarter of that pitch, which the loops
+// do not tell apart.
+static Polygons organic_roof_loops(const Polygons &roof, const double pitch)
+{
+    const Polygons outline = polygons_simplify(union_(roof), 0.25 * pitch);
+    Polygons       loops;
+    for (int k = 0;; ++ k) {
+        Polygons ring = offset(outline, - float((double(k) + 2.) * pitch));
+        if (ring.empty())
+            break;
+        append(loops, std::move(ring));
+    }
+    return loops;
+}
+
+// A loop of a roof hangs as a line does, see organic_hanging_roof_stretches(), and it bends: the bend of a bead over
+// nothing hangs too, see run_hangs() in OrganicToolpaths.cpp. Of stretches, what of the loops lies outside touched,
+// see diff_loops_pl(), and then perhaps within a load, those longer than bridge between two points of touched, or than
+// end where they end in the air or bend away from the line between their ends by more than a line, with the point a
+// tip holding each stands on: its middle along it, or tip_radius in from its end in the air.
+static std::vector<RoofStretch> organic_hanging_roof_loop_stretches(Polylines stretches, const Polygons &touched,
+    const double bridge, const double end, const double tip_radius, const double line_width)
+{
+    std::vector<RoofStretch> result;
+    const PointInPolygons    bearing(offset(touched, float(SCALED_EPSILON)));
+    for (Polyline &stretch : stretches) {
+        const bool   first  = bearing.contains(stretch.first_point());
+        const bool   last   = bearing.contains(stretch.last_point());
+        const double length = stretch.length();
+        const Line   chord(stretch.first_point(), stretch.last_point());
+        const bool   bent   = std::any_of(stretch.points.begin(), stretch.points.end(),
+            [&chord, line_width](const Point &point) { return chord.distance_to(point) > line_width; });
+        if (length <= (first && last && ! bent ? bridge : end))
+            continue;
+        const double in = std::min(tip_radius, 0.5 * length);
+        const Vec2d  at = point_along(stretch, first == last ? 0.5 * length : first ? length - in : in);
+        result.push_back({ at, std::move(stretch) });
     }
     return result;
 }
@@ -4556,10 +4726,10 @@ void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const s
     const float  step      = std::max(lean, widest / 128.f);
     const size_t max_steps = size_t(std::ceil(widest / step - EPSILON));
     const float  margin    = float(reach) + widest + float(line_width);
-    // The roof lines are sampled a quarter of a line apart, so a line between two of them touches what both touch
-    // within half a line less half that pitch, and a stretch is to hang no farther than the span between two lines of
-    // the base less that much on both sides, so that a point midway still lies within reach, or than a line where it
-    // ends in the air.
+    // The roof lines, or loops, are sampled a quarter of a line apart, so a line between two of them touches what both
+    // touch within half a line less half that pitch, and a stretch is to hang no farther than the span between two
+    // lines of the base less that much on both sides, so that a point midway still lies within reach, or than a line
+    // where it ends in the air or a loop bends.
     const double pitch  = 0.25 * double(line_width);
     const double touch  = 0.5 * (double(line_width) - pitch);
     const double bridge = 2. * (double(reach) - touch);
@@ -4575,20 +4745,39 @@ void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const s
         BoundingBox where = get_extents(roof);
         where.offset(coord_t(margin));
         const Polygons roofs_below = ClipperUtils::clip_clipper_polygons_with_subject_bbox(roofs[below], where);
+        // The loops of a roof printed in loops, and the parts of it too narrow for one, found once it hangs somewhere,
+        // see organic_roof_loops().
+        std::optional<Polygons> loops, narrow;
         // What hangs of the roof over the bodies and the roofs below it, held: the stretches of its lines along them,
-        // see organic_hanging_roof_stretches(), or with no lines known, the points of it farther than reach from them.
+        // see organic_hanging_roof_stretches(), or of its loops, see organic_hanging_roof_loop_stretches(), and of
+        // the parts too narrow for a loop what lies farther than reach from what holds it.
         const auto hanging_over = [&](const Polygons &held) {
-            if (roof_angles.empty())
-                return diff(roof, offset(held, float(reach)));
             // A line running along a gap between them narrower than a bridge passes over neither, though it touches
             // them, and one across it bridges it: the gap is not touched, so that the bodies close it under such a
             // line.
             const Polygons touched = diff(offset(held, float(touch)), diff(closing(held, float(0.5 * bridge)), held));
-            Polylines      stretches;
-            for (const RoofStretch &stretch : organic_hanging_roof_stretches(roof, touched, roof_angles, pitch, bridge, end,
-                     double(tip_radius)))
-                stretches.emplace_back(stretch.along.a, stretch.along.b);
-            return offset(stretches, float(touch));
+            std::vector<RoofStretch> found;
+            if (! roof_angles.empty())
+                found = organic_hanging_roof_stretches(roof, touched, roof_angles, pitch, bridge, end,
+                    double(tip_radius));
+            else if (! diff(roof, touched).empty()) {
+                if (! loops) {
+                    loops = organic_roof_loops(roof, pitch);
+                    // A part narrower than a line gets no loop, though the fill may print one there, or a dot: it is
+                    // held point by point, as the lines of a roof are not known, every point of it within reach. The
+                    // slivers the opening leaves along a curved outline, a few microns wide, are no such part.
+                    narrow = opening(diff(roof, opening(roof, .5f * float(line_width))), scaled<float>(.005));
+                }
+                found = organic_hanging_roof_loop_stretches(diff_loops_pl(*loops, touched), touched, bridge, end,
+                    double(tip_radius), double(line_width));
+            }
+            Polylines stretches;
+            for (RoofStretch &stretch : found)
+                stretches.push_back(std::move(stretch.along));
+            Polygons hanging = offset(stretches, float(touch));
+            if (narrow && ! narrow->empty())
+                append(hanging, diff(*narrow, offset(held, float(reach))));
+            return hanging;
         };
         Polygons hanging = hanging_over(union_(ClipperUtils::clip_clipper_polygons_with_subject_bbox(layer->polygons, where), roofs_below));
         if (hanging.empty())
@@ -4644,13 +4833,11 @@ void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const s
         const auto held_by = [half](const Polygons &held) {
             return opening(held, half, jtRound, scaled<double>(0.005));
         };
-        const Polygons hanging_bare = hanging;
         while (steps.size() <= max_steps && ! hanging.empty() && widen()) {
             Polygons all;
             for (const Polygons &shape : shapes)
                 append(all, shape);
-            hanging = roof_angles.empty() ? diff(hanging, offset(held_by(all), float(reach))) :
-                hanging_over(union_(held_by(all), roofs_below));
+            hanging = hanging_over(union_(held_by(all), roofs_below));
         }
         // The layer m layers below the interface takes the bodies as many steps narrower as they lean over m layers,
         // each standing on the one below it, and no farther from the bodies of that layer than its steps, as a leaning
@@ -4736,8 +4923,7 @@ void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const s
             Polygons top = ClipperUtils::clip_clipper_polygons_with_subject_bbox(layer->polygons, where);
             append(top, adds);
             top = held_by(union_(top));
-            return roof_angles.empty() ? diff(hanging_bare, offset(top, float(reach))) :
-                hanging_over(union_(top, roofs_below));
+            return hanging_over(union_(top, roofs_below));
         };
         std::vector<Polygons> added, solid;
         dry_run(added, solid);
@@ -4804,7 +4990,11 @@ std::vector<double> organic_roof_angles(const PrintObject &object, const Support
 {
     switch (object.config().support_interface_pattern.value) {
     case smipConcentric:
-    case smipSpiralInset: return {};
+    case smipSpiralInset:
+        // A base interface under such a roof prints lines in its direction all the same, see the default below.
+        if (params.num_top_base_interface_layers > 0)
+            return { params.support_interface_angle(0) };
+        return {};
     case smipGrid: return { params.base_angle, params.base_angle + 0.5 * M_PI };
     case smipRectilinearInterlaced: return { params.support_interface_angle(0), params.support_interface_angle(1) };
     default:
@@ -5195,27 +5385,43 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
         if (! roof_load.empty() || ! wall_load.empty() || ! solid_load.empty() || ! tree_load.empty()) {
             Polygons held = material;
             append(held, grown_out);
-            // A roof line bridges between what it passes over, not between what lies within reach of it: a line between two
-            // rows of tips passes over none of them. Along lines in the directions of the lowest roof layer a quarter of a
-            // line apart, the stretches of the load farther from what holds it than half a line less half that pitch, which
-            // a bead of a line between two of them touches, get tips until none is longer than the span between two lines
-            // of the base less that much on both sides, so that a point midway still lies within reach, or than a line
-            // where it ends in the air: in their middle, or a tip radius in from the end in the air. A tip placed in a round
-            // in the way of another stretch splits it, and the next round sees what is left of it.
+            // A roof line bridges between what it passes over, not between what lies within reach of it: a line between
+            // two rows of tips passes over none of them. Along lines in the directions of the lowest roof layer a
+            // quarter of a line apart, or along its loops where it prints loops, the stretches of the load farther from
+            // what holds it than half a line less half that pitch, which a bead of a line between two of them touches,
+            // get tips until none is longer than the span between two lines of the base less that much on both sides,
+            // so that a point midway still lies within reach, or than a line where it ends in the air or a loop bends:
+            // in their middle, or a tip radius in from the end in the air. A tip placed in a round in the way of
+            // another stretch splits it, and the next round sees what is left of it.
             const auto hold_roof_lines = [&](const Polygons &load) {
                 const double      pitch  = 0.25 * double(width);
                 const double      touch  = 0.5 * (double(width) - pitch);
                 const double      bridge = 2. * (double(reach) - touch);
                 const double      end    = std::min(double(width), double(reach) - touch);
                 const BoundingBox near   = get_extents(load).inflated(coord_t(DefaultMiterLimit * touch) + SCALED_EPSILON);
+                // A roof printed in loops lays them along the outline of all of it, not of the load, see
+                // organic_roof_loops(): those that come near the load. They are clipped by what holds them, see
+                // diff_loops_pl(), before they are clipped to the load, which would part a loop where it starts.
+                Polygons loops;
+                if (roof_angles.empty())
+                    for (Polygon &loop : organic_roof_loops(roofs[l + 1], pitch))
+                        if (get_extents(loop).overlap(near))
+                            loops.push_back(std::move(loop));
                 for (int round = 0; round < 16; ++ round) {
                     Polygons holding = ClipperUtils::clip_clipper_polygons_with_subject_bbox(held, near);
                     append(holding, ClipperUtils::clip_clipper_polygons_with_subject_bbox(grown_in, near));
-                    std::vector<Tree> placed;
-                    for (const RoofStretch &stretch : organic_hanging_roof_stretches(load, offset(union_(holding), float(touch)),
-                             roof_angles, pitch, bridge, end, tip_radius)) {
-                        if (std::any_of(placed.begin(), placed.end(), [&stretch, &tip_radius, touch](const Tree &tip) {
-                                return stretch.along.distance_to(Point(tip.center.cast<coord_t>())) < tip_radius + touch; }))
+                    const Polygons           touched = offset(union_(holding), float(touch));
+                    std::vector<Tree>        placed;
+                    std::vector<RoofStretch> stretches = roof_angles.empty() ?
+                        organic_hanging_roof_loop_stretches(intersection_pl(diff_loops_pl(loops, touched), load),
+                            touched, bridge, end, tip_radius, double(width)) :
+                        organic_hanging_roof_stretches(load, touched, roof_angles, pitch, bridge, end, tip_radius);
+                    for (const RoofStretch &stretch : stretches) {
+                        const double      apart = tip_radius + touch;
+                        const BoundingBox box   = get_extents(stretch.along).inflated(coord_t(apart) + 1);
+                        if (std::any_of(placed.begin(), placed.end(), [&stretch, &box, apart](const Tree &tip) {
+                                const Point center(tip.center.cast<coord_t>());
+                                return box.contains(center) && distance_to(stretch.along, center) < apart; }))
                             continue;
                         if (Tree tip = new_tip(stretch.at); ! tip.shape.empty())
                             placed.push_back(std::move(tip));

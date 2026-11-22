@@ -550,6 +550,46 @@ TEST_CASE("Organic bodies widen under a roof that bridges the gaps between them"
     CHECK(diff(original, storage.front().polygons).empty());
 }
 
+TEST_CASE("Organic bodies widen under a part of a roof printed in loops too narrow for a loop", "[TreeSupport][Material][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    auto disc = [](double x, double radius) {
+        Polygon circle = make_circle_num_segments(scale_(radius), 64);
+        circle.translate(Point::new_scale(x, 0.));
+        return circle;
+    };
+    auto rectangle = [](double x, double y, double width, double depth) {
+        return Polygon({Point::new_scale(x, y), Point::new_scale(x + width, y), Point::new_scale(x + width, y + depth),
+                        Point::new_scale(x, y + depth)});
+    };
+    // Lines 0.42 mm wide, layers 0.12 mm and a branch angle of 40 degrees. A tip 0.8 mm across stands under a strip of
+    // roof printed in loops, 0.4 mm wide and reaching 1.1 mm beyond the tip: a little narrower than a line, the strip
+    // gets no loop, see organic_roof_loops(), though the fill, taking its outermost loop in by half its spacing, may
+    // print one there. Its end lying farther than reach from the tip, the tip widens toward it until every point of it
+    // lies within reach.
+    const coord_t line_width = scaled<coord_t>(0.42), tip_radius = scaled<coord_t>(0.4);
+    const double  move       = std::tan(40. * M_PI / 180.) * 0.12;
+    const double  reach      = 0.63;
+    const size_t  num_layers = 20, roof_layer = num_layers - 1;
+    std::vector<SupportGeneratorLayer> storage(roof_layer);
+    std::vector<Polygons> roofs(num_layers), model(num_layers);
+    roofs[roof_layer] = { rectangle(0., -0.2, 1.5, 0.4) };
+    SupportGeneratorLayersPtr bodies(num_layers, nullptr);
+    for (size_t i = 0; i < storage.size(); ++ i) {
+        SupportGeneratorLayer &layer = storage[i];
+        layer.bottom_z = 1. + 0.12 * double(i);
+        layer.print_z  = layer.bottom_z + 0.12;
+        layer.height   = 0.12;
+        layer.polygons = { disc(0., 0.4) };
+        bodies[i]      = &layer;
+    }
+    REQUIRE_FALSE(diff(roofs[roof_layer], offset(storage.back().polygons, scaled<float>(reach + 0.005))).empty());
+    organic_widen_bodies_under_roofs(bodies, roofs, model, {}, true, line_width, tip_radius, scaled<coord_t>(move),
+        scaled<coord_t>(reach));
+    CHECK(diff(roofs[roof_layer], offset(storage.back().polygons, scaled<float>(reach + 0.005))).empty());
+}
+
 TEST_CASE("Organic bodies leaning under a roof widen beyond the layer below by no more than a wall overhangs it", "[TreeSupport][Material][Regression]")
 {
     using namespace Slic3r;
@@ -591,8 +631,8 @@ TEST_CASE("Organic bodies leaning under a roof widen beyond the layer below by n
     const std::vector<double> roof_angles = lines ? std::vector<double>{ 0. } : std::vector<double>{};
     organic_widen_bodies_under_roofs(bodies, roofs, model, {}, true, scaled<coord_t>(line_width),
         scaled<coord_t>(0.75), scaled<coord_t>(move), scaled<coord_t>(reach), roof_angles);
-    // The bodies widen under the roof, with no lines known until every point of it lies within reach of them: the side
-    // they lean to gains less a layer, and they widen by a step more,
+    // The bodies widen under the roof, with no lines known until none of its loops hangs, which brings every point of
+    // it within reach of them here: the side they lean to gains less a layer, and they widen by a step more,
     CHECK_FALSE(diff(storage.back().polygons, original.back()).empty());
     if (! lines)
         CHECK(diff(roofs[roof_layer], offset(storage.back().polygons, scaled<float>(reach + 0.005))).empty());
@@ -620,15 +660,19 @@ TEST_CASE("Organic bodies leaning under a roof take no step more that leaves as 
     };
     // Lines 0.82 mm wide, layers 0.6 mm and a branch angle of 40 degrees: a move of 0.5 mm a layer, more than half a
     // line, so that a step is half a line and a wall overhangs the one below it by the move. A tip 1.5 mm across leans
-    // going up by the move a layer toward a strip of roof beyond it, which two steps would bring within reach. The side
-    // the tip leans to gains nothing a layer, and no step more holds more of the roof.
+    // going up by the move a layer toward a strip of roof beyond it, which two steps would hold. The side the tip leans
+    // to gains nothing a layer, and no step more holds more of the roof. The strip prints lines along it, sampled a
+    // quarter of a line apart, each touching what lies within half a line less half that pitch of it, and a line ending
+    // in the air hangs no farther than a line beyond that.
     const double line_width = 0.82, reach = 1.64, step = 0.41;
+    const double touch      = 0.5 * (line_width - 0.25 * line_width);
+    const double hold       = touch + std::min(line_width, reach - touch);
     const double move       = std::tan(40. * M_PI / 180.) * 0.6;
     const size_t num_layers = 8, roof_layer = num_layers - 1;
     const double top        = move * double(roof_layer - 1);
     std::vector<SupportGeneratorLayer> storage(roof_layer);
     std::vector<Polygons> roofs(num_layers), model(num_layers), original(roof_layer);
-    roofs[roof_layer] = { rectangle(top, -0.4, 0.75 + 2. * step + reach - 0.1, 0.8) };
+    roofs[roof_layer] = { rectangle(top, -0.4, 0.75 + 2. * step + hold - 0.1, 0.8) };
     SupportGeneratorLayersPtr bodies(num_layers, nullptr);
     for (size_t i = 0; i < storage.size(); ++ i) {
         SupportGeneratorLayer &layer = storage[i];
@@ -640,7 +684,7 @@ TEST_CASE("Organic bodies leaning under a roof take no step more that leaves as 
         bodies[i]      = &layer;
     }
     organic_widen_bodies_under_roofs(bodies, roofs, model, {}, true, scaled<coord_t>(line_width),
-        scaled<coord_t>(0.75), scaled<coord_t>(move), scaled<coord_t>(reach));
+        scaled<coord_t>(0.75), scaled<coord_t>(move), scaled<coord_t>(reach), { 0. });
     // The tip flares over the two layers the steps take, no lower.
     CHECK_FALSE(diff(storage[roof_layer - 1].polygons, original[roof_layer - 1]).empty());
     CHECK(diff(storage[roof_layer - 3].polygons, original[roof_layer - 3]).empty());
@@ -663,7 +707,7 @@ TEST_CASE("Organic bodies leaning under a roof go on past a step that holds no m
     // a wall overhangs the one below it by the move. A tip 1.5 mm across stands straight, then leans by the move over
     // its two top layers toward a strip of roof beyond it, which a step brings within reach. The side it leans to gains
     // nothing on those layers: a step more, down to the first of them, holds no more of the roof, and one more, down to
-    // where the tip stands straight, carries a step up.
+    // where the tip stands straight, carries a step up. The strip prints lines along it.
     const double line_width = 0.82, reach = 1.64, step = 0.41, move = 0.5034;
     const size_t num_layers = 9, roof_layer = num_layers - 1, straight = roof_layer - 3;
     std::vector<SupportGeneratorLayer> storage(roof_layer);
@@ -680,7 +724,7 @@ TEST_CASE("Organic bodies leaning under a roof go on past a step that holds no m
         bodies[i]      = &layer;
     }
     organic_widen_bodies_under_roofs(bodies, roofs, model, {}, true, scaled<coord_t>(line_width), scaled<coord_t>(0.75),
-        scaled<coord_t>(move), scaled<coord_t>(reach));
+        scaled<coord_t>(move), scaled<coord_t>(reach), { 0. });
     CHECK(diff(roofs[roof_layer], offset(storage.back().polygons, scaled<float>(reach + 0.005))).empty());
 }
 
@@ -1495,11 +1539,12 @@ TEST_CASE("Organic roofs over the inside of a hollow body stand on trees grown i
         CAPTURE(i);
         const Polygons &trees = storage[i].inner_trees;
         // Above the bed the trees fuse with the walls by a quarter of a line. On the first layer their feet replace
-        // the flange in their area, including its perimeter where necessary. Neither can enter the model.
+        // the flange in their area, including its perimeter where necessary, but for slivers the unions leave, a few
+        // microns wide at most, which the fill of the first layer clips off. Neither can enter the model.
         if (i > 0)
             CHECK(intersection(trees, offset(walls(storage[i]), - scaled<float>(0.25 * line_width + 0.005))).empty());
         else
-            CHECK(diff(trees, storage[i].polygons).empty());
+            CHECK(offset(diff(trees, storage[i].polygons), - scaled<float>(0.005)).empty());
         CHECK(offset(intersection(trees, model[i]), - scaled<float>(0.005)).empty());
         // No part of a tree hangs in the air: each stands on the trees or the walls below it.
         if (i > 0)

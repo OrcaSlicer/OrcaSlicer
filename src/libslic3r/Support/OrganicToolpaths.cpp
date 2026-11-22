@@ -39,6 +39,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <functional>
 #include <limits>
 #include <map>
 #include <memory>
@@ -51,6 +52,7 @@
 namespace Slic3r {
 
 static float bead_reach_offset(double width);
+static void  throw_if_canceled(const PrintObject &object);
 
 // Reserve dense feet in a sparse flange so trees cannot fall between its lines.
 // A solid flange already holds them; partitioning it would add internal ring perimeters.
@@ -156,6 +158,7 @@ void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygon
         std::vector<std::vector<size_t>> reaches(lone_all.size());
         NearPolygons                     zones_near;
         for (size_t k = 0; k < lone_all.size(); ++ k) {
+            throw_if_canceled(object);
             foot_island[k] = island_of_foot(lone_all[k]);
             if (foot_island[k] < islands.size()) {
                 island_feet[foot_island[k]].push_back(k);
@@ -182,6 +185,7 @@ void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygon
         std::vector<Polygons>            tree_covers(tree_all.size());
         std::vector<bool>                tree_reserved(tree_all.size(), false);
         for (size_t t = 0; t < tree_all.size(); ++ t) {
+            throw_if_canceled(object);
             tree_island[t] = island_of_foot(tree_all[t]);
             if (tree_island[t] < islands.size()) {
                 island_trees[tree_island[t]].push_back(t);
@@ -211,6 +215,7 @@ void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygon
         };
         start();
         for (int round = 0;; ++ round) {
+            throw_if_canceled(object);
             ExtrusionEntityCollection flange, reserved;
             fill_flange(flange.entities);
             fill_pads(reserved.entities);
@@ -264,7 +269,8 @@ void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygon
             // A foot of a tree with a place within its cover over nothing is reserved, and the check starts again.
             bool tree_marked = false;
             for (size_t n = 0; n < islands.size(); ++ n)
-                if (! tree_zones[n].empty())
+                if (! tree_zones[n].empty()) {
+                    throw_if_canceled(object);
                     if (const ExPolygons bare = bare_in(n, tree_zones[n]); ! bare.empty()) {
                         NearPolygons bare_near;
                         bare_near.append(to_polygons(bare));
@@ -275,6 +281,7 @@ void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygon
                                     tree_reserved[t] = tree_marked = true;
                             }
                     }
+                }
             if (tree_marked) {
                 start();
                 round = -1;
@@ -284,6 +291,7 @@ void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygon
             bool                    any_bare = false;
             for (size_t n = 0; n < islands.size(); ++ n)
                 if (! left.empty() && ! zones[n].empty()) {
+                    throw_if_canceled(object);
                     bare[n]  = bare_in(n, zones[n]);
                     any_bare = any_bare || ! bare[n].empty();
                 }
@@ -301,6 +309,7 @@ void organic_fill_first_layer(ExtrusionEntitiesPtr &dst, const Polygons &polygon
                 left_near.append(left);
                 for (size_t n = 0; n < islands.size(); ++ n)
                     if (! bare[n].empty()) {
+                        throw_if_canceled(object);
                         // The parts of the lone feet left on the island within their cover of such places, wide enough to
                         // print with the corners the opening cuts off them.
                         const Polygons island = to_polygons(islands[n]);
@@ -1166,7 +1175,8 @@ static std::vector<Polygons> support_covered(const PrintObject &object)
     return covered;
 }
 
-// Stops a pass over all the layers once the slicing is cancelled: at thin layers such a pass runs for long.
+// Stops a long pass once the slicing is cancelled: one over all the layers at thin layers, or over the lone feet and
+// islands of a first layer of thousands of separate supports.
 static void throw_if_canceled(const PrintObject &object)
 {
     if (object.print()->canceled())
@@ -2005,27 +2015,40 @@ bool organic_support_final_check_ends_with_flushing(const PrintObject &object)
     return final_check_called_for(object, true) && !final_check_called_for(object, false);
 }
 
+std::string organic_support_warning_message(const PrintObject &object)
+{
+    const std::vector<coordf_t> &heights = object.organic_support_heights().heights;
+    if (heights.empty())
+        return {};
+    constexpr size_t max_heights = 5;
+    std::string list;
+    for (size_t i = 0; i < std::min(heights.size(), max_heights); ++i)
+        list += (i == 0 ? "" : ", ") + float_to_string_decimal_point(heights[i], 2);
+    if (heights.size() > max_heights)
+        list += ", ...";
+    return Slic3r::format(
+        // TRN %1% is the object name; %2% lists the heights of the first unsupported islands in millimetres.
+        _u8L("It seems the organic supports of object %1% have parts printed with nothing under them, "
+             "starting on the layers at Z (mm): %2%. "
+             "Consider a filled base pattern, such as Rectilinear, instead of a hollow one."),
+        object.model_object()->name, list);
+}
+
 void organic_update_support_warning(PrintObject &object, std::vector<coordf_t> heights)
 {
     std::sort(heights.begin(), heights.end());
     heights.erase(std::unique(heights.begin(), heights.end(), [](double a, double b) { return std::abs(a - b) < EPSILON; }), heights.end());
-    std::string message;
-    if (!heights.empty()) {
-        constexpr size_t max_heights = 5;
-        std::string list;
-        for (size_t i = 0; i < std::min(heights.size(), max_heights); ++i)
-            list += (i == 0 ? "" : ", ") + float_to_string_decimal_point(heights[i], 2);
-        if (heights.size() > max_heights)
-            list += ", ...";
-        // TRN %1% is the object name; %2% lists the heights of the first unsupported islands in millimetres.
-        message = Slic3r::format(_u8L("It seems the organic supports of object %1% have parts printed with nothing under them, "
-            "starting on the layers at Z (mm): %2%. "
-            "Consider a filled base pattern, such as Rectilinear, instead of a hollow one."), object.model_object()->name, list);
-    }
     const PrintObject *shared = object.get_shared_object();
-    object.set_organic_support_heights({ std::move(heights), shared,
-        shared == nullptr ? 0 : shared->step_state_with_timestamp(posSupportMaterial).timestamp });
-    object.update_step_warning(posSupportMaterial, PrintStateBase::WarningLevel::NON_CRITICAL, message,
+    // Taken before the state mutex, which reading it takes too.
+    const PrintStateBase::TimeStamp shared_timestamp =
+        shared == nullptr ? 0 : shared->step_state_with_timestamp(posSupportMaterial).timestamp;
+    // With the state mutex held: Print::apply() reads the heights and writes the name to word the warning anew for an
+    // object renamed.
+    object.compose_step_warning(posSupportMaterial, PrintStateBase::WarningLevel::NON_CRITICAL,
+        [&object, &heights, shared, shared_timestamp] {
+            object.set_organic_support_heights({ std::move(heights), shared, shared_timestamp });
+            return organic_support_warning_message(object);
+        },
         PrintStateBase::SlicingOrganicSupportWarning);
 }
 
@@ -2159,9 +2182,138 @@ static bool remove_extrusions_in(ExtrusionEntityCollection &collection, const Po
         return 2. * area(intersection(material, region)) > area(material); }) > 0;
 }
 
-// Connect retained bearings without forbidden material or an excessive free span.
+// The beads near the walls a layer repairs, gathered before the repair and turned into polygons only near where a join
+// needs them: those of the layer, which hold the layer above and of which a route round keeps off those the repair
+// leaves untouched, and those of the layer above, which a join may hold. A route round no longer than the wall it
+// repairs lies within half the length of the wall of its bearings, so beads farther from the tongues than half the
+// longest wall near them play no part.
+class WallNeighbours
+{
+public:
+    struct Bead
+    {
+        Polyline    axis;
+        coord_t     width;
+        BoundingBox box;
+        // Of a wall the repair may shorten, which it keeps only outside the tongues.
+        bool        repaired;
+    };
+
+    WallNeighbours(const PrintObjectConfig &config, const ExtrusionEntityCollection &fills, const Polygons &region,
+        const ExtrusionEntityCollection *above, const Polygons *above_covered)
+        : m_region(region), m_above_covered(above_covered)
+    {
+        const BoundingBox tongues = get_extents(region);
+        BoundingBox       near    = tongues;
+        double            reach   = 0.;
+        for_each_extrusion_path(fills, [&](const ExtrusionPath &path) {
+            if (get_extents(path.as_polyline()).overlap(tongues))
+                reach = std::max(reach, .5 * path.length() + 2. * scale_(path.width));
+        });
+        near.offset(reach);
+        const auto gather = [&](const ExtrusionEntityCollection &collection, std::vector<Bead> &beads, bool layer) {
+            for_each_extrusion_path(collection, [&](const ExtrusionPath &path) {
+                if (!flat_support(config, path))
+                    return;
+                Polyline          axis = path.as_polyline();
+                const BoundingBox box  = get_extents(axis);
+                if (!box.overlap(near))
+                    return;
+                const bool repaired = layer && path.role() == erSupportMaterial && box.overlap(tongues) &&
+                    !intersection_pl(Polylines{axis}, region).empty();
+                beads.push_back({std::move(axis), coord_t(scale_(path.width)), box, repaired});
+            });
+        };
+        gather(fills, m_layer, true);
+        if (above != nullptr)
+            gather(*above, m_above, false);
+    }
+
+    // What a route round of a path width wide keeps its axis out of near box: the beads kept, grown by half that width,
+    // which its bead then does not overlap. The walls repaired are not kept off, as a route leaving one runs beside it
+    // along the edge of what holds both, see overprints().
+    Polygons avoid(const BoundingBox &box, const coord_t width) const
+    {
+        Polygons kept;
+        for (const Bead &bead : m_layer)
+            if (!bead.repaired && bead.box.overlap(box))
+                append(kept, organic_bead(bead.axis, double(bead.width)));
+        return kept.empty() ? Polygons() : offset(kept, .5 * double(width) - SCALED_EPSILON, jtRound, SCALED_EPSILON);
+    }
+
+    // The axes of the walls repaired near box, as far as the repair keeps them.
+    Polylines walls(const BoundingBox &box) const
+    {
+        Polylines walls;
+        for (const Bead &bead : m_layer)
+            if (bead.repaired && bead.box.overlap(box))
+                append(walls, diff_pl(Polylines{bead.axis}, m_region));
+        return walls;
+    }
+
+    // The beads of the layer near box: those kept and, as far as the repair keeps them, those of the walls repaired.
+    Polygons material(const BoundingBox &box) const
+    {
+        Polygons kept, walls;
+        this->beads_near(box, kept, walls);
+        return union_(kept, walls);
+    }
+
+    // The islands of the layer above whose boxes overlap box, whole.
+    std::vector<const ExPolygon*> above_islands(const BoundingBox &box) const
+    {
+        if (m_above_covered == nullptr)
+            return {};
+        if (!m_islands) {
+            m_islands.emplace(union_ex(*m_above_covered));
+            for (const ExPolygon &island : *m_islands)
+                m_island_boxes.emplace_back(get_extents(island.contour));
+        }
+        std::vector<const ExPolygon*> near;
+        for (size_t i = 0; i < m_islands->size(); ++ i)
+            if (m_island_boxes[i].overlap(box))
+                near.push_back(&(*m_islands)[i]);
+        return near;
+    }
+
+    // The beads of the layer above whose boxes overlap box.
+    std::vector<const Bead*> above_beads(const BoundingBox &box) const
+    {
+        std::vector<const Bead*> near;
+        for (const Bead &bead : m_above)
+            if (bead.box.overlap(box))
+                near.push_back(&bead);
+        return near;
+    }
+
+private:
+    void beads_near(const BoundingBox &box, Polygons &kept, Polygons &walls) const
+    {
+        for (const Bead &bead : m_layer)
+            if (bead.box.overlap(box)) {
+                if (!bead.repaired)
+                    append(kept, organic_bead(bead.axis, double(bead.width)));
+                else
+                    for (const Polyline &part : diff_pl(Polylines{bead.axis}, m_region))
+                        append(walls, organic_bead(part, double(bead.width)));
+            }
+    }
+
+    const Polygons                  &m_region;
+    const Polygons                  *m_above_covered;
+    std::vector<Bead>                m_layer;
+    std::vector<Bead>                m_above;
+    mutable std::optional<ExPolygons> m_islands;
+    mutable std::vector<BoundingBox> m_island_boxes;
+};
+
+// What a route round between two bearings keeps its axis out of, if anything, see WallNeighbours::avoid().
+using AvoidNear = std::function<Polygons(const Point &, const Point &)>;
+
+// Connect retained bearings without forbidden material or an excessive free span. A route round runs along the edge of
+// the footing and of what avoid gives it to keep off, if given. A straight join only crosses that.
 static bool connect_wall_bearings(const Point &a, const Point &b, const Polygons &footing,
-    const Polygons &legal, bool limited, double max_bridge, Polyline &connection)
+    const Polygons &legal, const AvoidNear *avoid, bool limited, double max_bridge, Polyline &connection)
 {
     const auto safe = [&](const Polyline &axis) {
         if (!contains(footing, axis.first_point()) || !contains(footing, axis.last_point()) ||
@@ -2175,8 +2327,10 @@ static bool connect_wall_bearings(const Point &a, const Point &b, const Polygons
     connection = Polyline(a, b);
     if (safe(connection))
         return true;
-    double shortest = std::numeric_limits<double>::max();
-    for (const Polygon &boundary : to_polygons(union_ex(limited ? intersection(footing, legal) : footing))) {
+    double         shortest = std::numeric_limits<double>::max();
+    const Polygons around   = limited ? intersection(footing, legal) : footing;
+    const Polygons off      = avoid != nullptr ? (*avoid)(a, b) : Polygons();
+    for (const Polygon &boundary : to_polygons(off.empty() ? union_ex(around) : diff_ex(around, off))) {
         const Polyline loop = boundary.split_at_first_point();
         Point start = a.projection_onto(loop), end = b.projection_onto(loop);
         if (start.distance_to(a) > 2. * SCALED_EPSILON || end.distance_to(b) > 2. * SCALED_EPSILON)
@@ -2205,13 +2359,15 @@ static bool connect_wall_bearings(const Point &a, const Point &b, const Polygons
 
 // Clip in source order: Clipper may otherwise reorder spliced inner loops.
 static bool shorten_wall_axis(const Polyline &axis, const Polygons &cut, const Polygons &footing,
-    const Polygons &legal, bool limited, double max_bridge, double closure_distance, Polyline &result)
+    const Polygons &legal, const AvoidNear *avoid, bool limited, double max_bridge, double closure_distance,
+    Polyline &result)
 {
     const BoundingBox bounds = get_extents(cut);
     const auto append_run = [&](const Polyline &part) {
         if (!result.empty() && result.last_point().distance_to(part.first_point()) > SCALED_EPSILON) {
             Polyline connection;
-            if (!connect_wall_bearings(result.last_point(), part.first_point(), footing, legal, limited, max_bridge, connection))
+            if (!connect_wall_bearings(result.last_point(), part.first_point(), footing, legal, avoid, limited,
+                    max_bridge, connection))
                 return false;
             result.append(connection);
         }
@@ -2241,16 +2397,24 @@ static bool shorten_wall_axis(const Polyline &axis, const Polygons &cut, const P
         (cut_seam && axis.first_point().distance_to(axis.last_point()) <= closure_distance);
     if (result.size() > 1 && closed && !result.is_closed()) {
         Polyline connection;
-        if (!connect_wall_bearings(result.last_point(), result.first_point(), footing, legal, limited, max_bridge, connection))
+        if (!connect_wall_bearings(result.last_point(), result.first_point(), footing, legal, avoid, limited,
+                max_bridge, connection))
             return false;
         result.append(connection);
     }
     return true;
 }
 
-// Shorten unsupported base axes while preserving the rooted wall and its closure, bridging no farther than free_span().
+// Shorten unsupported base axes while preserving the rooted wall and its closure, bridging no farther than
+// free_span(), or with support on the build plate only, which prints no bottom interface, than a line across the gap
+// of the base, routes round kept off the beads the repair leaves untouched near them, see WallNeighbours::avoid().
+// Where that fails, leaves a path no shorter or leaves on nothing material of the layer above that the joins of the
+// other repair hold, or runs over what it keeps of the walls it repairs where the other does not and holds as much,
+// the path is repaired more widely: bridging as far as free_span(), and over the beads of the layer. Kept whole, the
+// path would hang more.
 static size_t trim_unsupported_base(ExtrusionEntityCollection &collection, const Polygons &region,
-    const Polygons &footing, const Polygons *legal, const PrintObjectConfig &config, const coord_t base_span)
+    const Polygons &footing, const Polygons *legal, const WallNeighbours &neighbours, const PrintObjectConfig &config,
+    const coord_t base_span)
 {
     ExtrusionEntityCollection original;
     collection.entities.swap(original.entities);
@@ -2266,7 +2430,7 @@ static size_t trim_unsupported_base(ExtrusionEntityCollection &collection, const
     for (ExtrusionEntity *&entity : original.entities) {
         if (entity->is_collection()) {
             auto &nested = *static_cast<ExtrusionEntityCollection*>(entity);
-            trimmed += trim_unsupported_base(nested, region, footing, legal, config, base_span);
+            trimmed += trim_unsupported_base(nested, region, footing, legal, neighbours, config, base_span);
             if (!nested.empty())
                 result.entities.push_back(entity);
             else
@@ -2299,10 +2463,95 @@ static size_t trim_unsupported_base(ExtrusionEntityCollection &collection, const
                 parts.append(path);
                 return;
             }
-            Polyline repaired;
-            if (!shorten_wall_axis(axis, clip.cut, clip.footing, clip.legal, legal != nullptr,
-                    free_span(config, base_span, double(width)), double(width), repaired) ||
-                axis.length() - repaired.length() <= SCALED_EPSILON) {
+            // A route round no longer than the path lies within half its length of its bearings.
+            bool            avoided  = false;
+            const AvoidNear keep_off = [&](const Point &a, const Point &b) {
+                BoundingBox box;
+                box.merge(a);
+                box.merge(b);
+                box.offset(.5 * axis.length() + double(width));
+                Polygons off = neighbours.avoid(box, width);
+                avoided = avoided || !off.empty();
+                return off;
+            };
+            // Whether the joins of a repair run over what it keeps of the walls it repairs for longer than a line,
+            // their axes within half a line of the axes of those walls but where they meet them: they would print
+            // that much twice. Running beside a wall, a join overlaps its bead by half a line at most, as it does
+            // leaving it.
+            const auto overprints = [&](const Polyline &joined) {
+                const Polylines joins =
+                    diff_pl(Polylines{joined}, offset(Polylines{axis}, 2.f * float(SCALED_EPSILON)));
+                if (joins.empty())
+                    return false;
+                BoundingBox box = get_extents(joins);
+                box.offset(double(width));
+                const Polylines walls = neighbours.walls(box);
+                if (walls.empty())
+                    return false;
+                Polygons ends;
+                for (const Polyline &join : joins)
+                    for (const Point &end : {join.first_point(), join.last_point()}) {
+                        Polygon disc = make_circle(.5 * double(width) + scaled<double>(.005), SCALED_EPSILON);
+                        disc.translate(end);
+                        ends.push_back(std::move(disc));
+                    }
+                double over = 0.;
+                for (const Polyline &part :
+                     intersection_pl(joins, diff(offset(walls, .5f * float(width) - scaled<float>(.005)), ends)))
+                    over += part.length();
+                return over > double(width);
+            };
+            const auto shortened = [&](const double max_bridge, const AvoidNear *avoid, Polyline &joined) {
+                return shorten_wall_axis(axis, clip.cut, clip.footing, clip.legal, avoid, legal != nullptr, max_bridge,
+                           double(width), joined) &&
+                    axis.length() - joined.length() > SCALED_EPSILON;
+            };
+            // Whether the layer above has material the beads of one path hold that those of the other, with the rest
+            // of the layer, leave on nothing: an island touching the first but neither of the others, see
+            // floating_islands(), or a run of a bead within reach of the first but of neither of the others, see
+            // bead_reach(), longer than the bead is wide.
+            const auto carries_more = [&](const Polyline &one, const Polyline &other) {
+                const Polygons beads = organic_bead(one, double(width));
+                BoundingBox    box   = get_extents(beads);
+                box.offset(2. * double(width));
+                const std::vector<const ExPolygon*>             islands = neighbours.above_islands(box);
+                const std::vector<const WallNeighbours::Bead*> above   = neighbours.above_beads(box);
+                if (islands.empty() && above.empty())
+                    return false;
+                const Polygons rest    = union_(organic_bead(other, double(width)), neighbours.material(box));
+                const Polygons on_one  = offset(beads, footing_reach);
+                const Polygons on_rest = offset(rest, footing_reach);
+                for (const ExPolygon *island : islands) {
+                    const Polygons shape = to_polygons(*island);
+                    if (!intersection(shape, on_one).empty() && intersection(shape, on_rest).empty())
+                        return true;
+                }
+                std::map<coord_t, std::pair<Polygons, Polygons>> reach;
+                for (const WallNeighbours::Bead *bead : above) {
+                    auto [it, inserted] = reach.try_emplace(bead->width);
+                    if (inserted)
+                        it->second = { bead_reach(beads, double(bead->width)), bead_reach(rest, double(bead->width)) };
+                    for (const Polyline &run :
+                         diff_pl(intersection_pl(Polylines{bead->axis}, it->second.first), it->second.second))
+                        if (run.length() > double(bead->width))
+                            return true;
+                }
+                return false;
+            };
+            const double span  = free_span(config, base_span, double(width));
+            const double first = config.support_on_build_plate_only ? double(base_span) + double(width) : span;
+            Polyline     repaired;
+            bool         shorter = shortened(first, &keep_off, repaired);
+            // The other repair differs only where it may bridge farther or run over the beads kept. A first one that
+            // prints over the walls it keeps gives way to it only where that does not and holds as much of the layer
+            // above; else it stays, as the path kept whole would hang, and the layer above left on nothing too.
+            if (Polyline across; (span > first || avoided) && shortened(span, nullptr, across) &&
+                (!shorter || carries_more(across, repaired) ||
+                    (overprints(repaired) && !overprints(across) && !carries_more(repaired, across)))) {
+                repaired = std::move(across);
+                shorter  = true;
+            }
+            if (!shorter) {
                 parts.append(path);
                 return;
             }
@@ -2511,6 +2760,13 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
                     find_tongues();
                 }
                 if (!tongues.empty()) {
+                    const Polygons region = union_(tongues);
+                    // A route round runs along the edge of what holds it, where a bead of the layer may lie, and a
+                    // join may hold the layer above.
+                    const bool           top = i + 1 == covered.size();
+                    const WallNeighbours neighbours(config, fills, region,
+                        top ? nullptr : &object.support_layers()[i + 1]->support_fills,
+                        top ? nullptr : &covered[i + 1]);
                     Polygons legal = to_polygons(layer.support_islands);
                     Polygons interfaces;
                     if (!layer.support_islands.empty())
@@ -2520,8 +2776,8 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
                         });
                     if (!interfaces.empty())
                         legal = diff(legal, union_(interfaces));
-                    const size_t trimmed = trim_unsupported_base(fills, union_(tongues), footing.polygons(with_model),
-                        layer.support_islands.empty() ? nullptr : &legal, config, base_span);
+                    const size_t trimmed = trim_unsupported_base(fills, region, footing.polygons(with_model),
+                        layer.support_islands.empty() ? nullptr : &legal, neighbours, config, base_span);
                     removed += trimmed;
                     changed = changed || trimmed != 0;
                 }

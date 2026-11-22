@@ -313,11 +313,11 @@ public:
     }
 
     // A downstream check may refine a warning without invalidating an already completed geometry step.
-    bool update_step_warning(StepType step, PrintStateBase::WarningLevel level, const std::string &message,
-        int message_id, std::mutex &mtx)
+    // PrintBase::m_state_mutex should be locked at this point, guarding access to m_state.
+    bool update_step_warning_locked(StepType step, PrintStateBase::WarningLevel level, const std::string &message,
+        int message_id)
     {
         assert(message_id != 0);
-        std::scoped_lock<std::mutex> lock(mtx);
         StateWithWarnings &state = m_state[step];
         if (state.state == INVALID)
             return false;
@@ -329,6 +329,26 @@ public:
             return false;
         state.warnings.erase(it);
         return true;
+    }
+
+    // Rewords the current warning message_id of step with what reword() returns, as for an object renamed.
+    // PrintBase::m_state_mutex should be locked at this point, as Print::apply() holds it. Returns whether the message
+    // changed.
+    template<typename Reword> bool reword_step_warning_locked(StepType step, int message_id, Reword &&reword)
+    {
+        assert(message_id != 0);
+        StateWithWarnings &state = m_state[step];
+        if (state.state == INVALID)
+            return false;
+        for (PrintStateBase::Warning &warning : state.warnings)
+            if (warning.current && warning.message_id == message_id) {
+                std::string message = reword();
+                if (message.empty() || message == warning.message)
+                    return false;
+                warning.message = std::move(message);
+                return true;
+            }
+        return false;
     }
 
 private:
@@ -676,12 +696,26 @@ public:
     PrintStateBase::StateWithWarnings  step_state_with_warnings(PrintObjectStepEnum step) const { return m_state.state_with_warnings(step, PrintObjectBase::state_mutex(m_print)); }
 
     // Refresh one identified diagnostic after a downstream stage resolves information unavailable during slicing.
+    // compose() returns the message, an empty one to clear the diagnostic. It runs with the state mutex held, as
+    // Print::apply() holds it, so it may read what apply() writes, such as the name of the object.
+    template<typename Compose>
+    void compose_step_warning(PrintObjectStepEnum step, PrintStateBase::WarningLevel level, Compose &&compose,
+        PrintStateBase::SlicingNotificationType message_id)
+    {
+        std::string message;
+        bool        updated = false;
+        {
+            std::scoped_lock<std::mutex> lock(PrintObjectBase::state_mutex(m_print));
+            message = compose();
+            updated = m_state.update_step_warning_locked(step, level, message, int(message_id));
+        }
+        if (updated)
+            this->status_update_warnings(m_print, int(step), level, message, message_id);
+    }
     void update_step_warning(PrintObjectStepEnum step, PrintStateBase::WarningLevel level, const std::string &message,
         PrintStateBase::SlicingNotificationType message_id)
     {
-        if (m_state.update_step_warning(step, level, message, int(message_id), PrintObjectBase::state_mutex(m_print))) {
-            this->status_update_warnings(m_print, int(step), level, message, message_id);
-        }
+        this->compose_step_warning(step, level, [&message] { return message; }, message_id);
     }
 
 protected:

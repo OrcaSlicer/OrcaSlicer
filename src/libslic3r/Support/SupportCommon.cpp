@@ -979,9 +979,19 @@ void fill_expolygons_with_sheath_generate_paths(
 // Support layers, partially processed.
 struct SupportGeneratorLayerExtruded
 {
+    SupportGeneratorLayerExtruded() = default;
+    // Orca: owns the extrusions until they are handed over to the support layer, so that a cancellation thrown while
+    // the support layers are filled frees those generated for the other layers too.
+    ~SupportGeneratorLayerExtruded() {
+        for (ExtrusionEntity *entity : this->extrusions)
+            delete entity;
+    }
     SupportGeneratorLayerExtruded& operator=(SupportGeneratorLayerExtruded &&rhs) {
         this->layer = rhs.layer;
+        for (ExtrusionEntity *entity : this->extrusions)
+            delete entity;
         this->extrusions = std::move(rhs.extrusions);
+        rhs.extrusions.clear();
         m_polygons_to_extrude = std::move(rhs.m_polygons_to_extrude);
         rhs.layer = nullptr;
         return *this;
@@ -1394,12 +1404,14 @@ static void modulate_extrusion_by_overlapping_layers(
     // Collect the paths of this_layer.
     {
         Polylines &polylines = path_fragments.back().polylines;
-        for (ExtrusionEntity *ee : extrusions_in_out) {
+        for (ExtrusionEntity *&ee : extrusions_in_out) {
             ExtrusionPath *path = dynamic_cast<ExtrusionPath*>(ee);
             assert(path != nullptr);
             polylines.emplace_back(path->polyline.to_polyline());
             path_ends.emplace_back(std::pair<Point, Point>(polylines.back().points.front(), polylines.back().points.back()));
+            // Out of the vector as it goes: its owner deletes what is left there should the copies above throw.
             delete path;
+            ee = nullptr;
         }
     }
     // Destroy the original extrusion paths, their polylines were moved to path_fragments already.
@@ -2306,7 +2318,8 @@ void generate_support_toolpaths(
             for (LayerCacheItem &layer_cache_item : layer_cache.nonempty) {
                 // Trim the extrusion height from the bottom by the overlapping layers.
                 modulate_extrusion_by_overlapping_layers(layer_cache_item.layer_extruded->extrusions, *layer_cache_item.layer_extruded->layer, layer_cache_item.overlapping);
-                support_layer.support_fills.append(std::move(layer_cache_item.layer_extruded->extrusions));
+                // Handed over, taken out of the layer first, which owns them no more.
+                support_layer.support_fills.append(std::exchange(layer_cache_item.layer_extruded->extrusions, {}));
             }
             if (support_params.support_style == smsTreeOrganic)
                 organic_remove_dots(support_layer.support_fills, support_params.support_material_flow.scaled_width());

@@ -4713,6 +4713,33 @@ TEST_CASE("Organic warnings remain available across cached slices of different p
     CHECK(organic_support_warning_statuses(first).empty());
 }
 
+TEST_CASE("The Organic support warning names an object renamed after slicing", "[TreeSupport][Organic][Regression]")
+{
+    // The warning about support over nothing names the object. Renaming it changes neither the support nor what the
+    // plater shows of the print: apply() names the object anew in the warning and reports no change, which would make
+    // the plater load the shells of the plate again.
+    const auto settings = organic_tdd::config("default");
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(4., 4., .5)}, print, model, settings, nullptr, false);
+    model.objects.front()->name = "Before rename";
+    print.apply(model, settings);
+    print.process();
+    PrintObject &object = *print.get_object(0);
+    organic_update_support_warning(object, {1.04});
+    const auto message = [&print] {
+        const auto statuses = organic_support_warning_statuses(print);
+        return statuses.size() == 1 ? statuses.front().text : std::string();
+    };
+    REQUIRE(message().find("Before rename") != std::string::npos);
+    model.objects.front()->name = "After rename";
+    CHECK(print.apply(model, settings) == Print::APPLY_STATUS_UNCHANGED);
+    CHECK(object.is_step_done(posSupportMaterial));
+    CHECK(message().find("After rename") != std::string::npos);
+    CHECK(message().find("Before rename") == std::string::npos);
+    CHECK(message().find("1.04") != std::string::npos);
+}
+
 TEST_CASE("Changes to the model paths regenerate only Organic support that may stand on the model", "[TreeSupport][Organic][Regression]")
 {
     // Organic cleanup and its warning read the paths printed on the model below the support. The other styles, and
@@ -5424,6 +5451,170 @@ TEST_CASE("Organic repaired walls remain continuous around forbidden support are
     const Polygons printed = organic_bead(axes.front(), scale_(flow.width()));
     CHECK(intersection(printed, offset(forbidden, -scale_(.0005), jtRound, SCALED_EPSILON)).empty());
     CHECK(floating_support_islands(object, 0.).empty());
+}
+
+TEST_CASE("Organic walls repaired on the build plate only go round where a join across bridges farther than the base", "[TreeSupport][Organic][Material][Regression]")
+{
+    // A wall leaves the support below between two arms of it and returns. Cleanup cuts the excursion off and joins the
+    // ends it keeps, straight or round along the support below. Support on the build plate only prints no bottom
+    // interface, so the joins bridge no farther than a line across the gap of the base, and a route round keeps off
+    // the beads the layer keeps. Where that fails, leaves the wall no shorter, takes a join from under the layer above,
+    // or runs over the wall where it keeps it and the other repair does not and holds as much of the layer above, the
+    // wall is repaired more widely, with joins as far as the warning lets a bead bridge, a line across a bottom
+    // interface 3 mm apart here, and over the beads kept.
+    // The arms are those of a U 1 mm deep, 2.4 mm apart or as far as a join straight across bridges the gap of the
+    // base and half a line, or of one 6 mm deep, which a join may go round, or two lines 2 mm apart, which it may not.
+    // A bead the layer keeps may run along the bottom of the U, where a route round would run, or the wall itself go on
+    // there, with a bead of an interface of the layer above over the route round by an arm of the U, which only that
+    // holds, with a bead kept along the bottom of the U nearer that arm, or alone; or such a bead of an interface lie
+    // over the middle of a join straight across, or reach from over the arm of the U to there, or the wall go on on the
+    // layer above.
+    enum { WideU, NarrowU, DeepU, Lines };
+    enum { Alone, KeptBead, OwnLeg, Above, AbovePartly, AboveWall, OwnLegCarries, OwnLegKept };
+    enum { Round, Straight, Kept };
+    const auto row = GENERATE(table<int, bool, double, int, int>({ { WideU, false, 0., Alone, Round },
+        { WideU, false, 3., Alone, Round }, { WideU, true, 3., Alone, Straight },
+        { NarrowU, false, 3., Alone, Straight }, { DeepU, false, 3., Alone, Straight },
+        { Lines, false, 3., Alone, Straight }, { Lines, false, 0., Alone, Kept }, { WideU, false, 3., KeptBead, Round },
+        { WideU, true, 0., KeptBead, Round }, { WideU, false, 3., OwnLeg, Straight },
+        { WideU, false, 3., Above, Straight }, { WideU, false, 3., AbovePartly, Straight },
+        { WideU, false, 3., AboveWall, Round }, { WideU, false, 3., OwnLegCarries, Round },
+        { WideU, false, 0., OwnLegKept, Round } }));
+    const int    arms = std::get<0>(row), extra = std::get<3>(row), join = std::get<4>(row);
+    const bool   on_model       = std::get<1>(row);
+    const double bottom_spacing = std::get<2>(row);
+    CAPTURE(arms, on_model, bottom_spacing, extra);
+    auto settings = organic_tdd::config("default");
+    settings.set_deserialize_strict({{"layer_height", .1}, {"initial_layer_print_height", .1},
+        {"support_on_build_plate_only", on_model ? 0 : 1}, {"support_interface_bottom_layers", 2},
+        {"support_bottom_interface_spacing", bottom_spacing}});
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(.2, .2, .1)}, print, model, settings, nullptr, false);
+    print.process();
+    PrintObject &object = *print.get_object(0);
+    object.clear_support_layers();
+    const auto point = [&](double x, double y) -> Point { return Point::new_scale(x, y) - object.center_offset(); };
+    const Flow flow(.4f, .2f, .2f);
+    const auto add = [&](SupportLayer &layer, const Polyline &axis, const ExtrusionRole role = erSupportMaterial) {
+        extrusion_entities_append_paths(layer.support_fills.entities, Polylines{axis}, role, flow.mm3_per_mm(),
+            flow.width(), flow.height());
+    };
+    const double width = flow.width();
+    // How far a line across the gap of the base bridges, and how far a line across the bottom interface does.
+    const double base  = unscaled(organic_base_span(object)) + width;
+    const double span  = std::max(base, bottom_spacing + width);
+    // The axes of the arms, from x = 1, where the wall leaves them and comes back, and how far a join straight across
+    // leaves their reach, half a line beyond their beads.
+    Polylines below;
+    double    right = 0., left = 1., straight = 0.;
+    if (arms == Lines) {
+        right    = 3.;
+        straight = right - left;
+        below.emplace_back(Polyline({point(0., 0.), point(left, 0.)}));
+        below.emplace_back(Polyline({point(right, 0.), point(right + 1.4, 0.)}));
+    } else {
+        const double apart = arms == NarrowU ? base - .5 * width + width : 2.4;
+        const double depth = arms == DeepU ? 6. : 1.;
+        straight = apart - width;
+        below.emplace_back(Polyline({point(0., 0.), point(1., 0.), point(1., -depth), point(1. + apart, -depth),
+            point(1. + apart, 0.), point(2.4 + apart, 0.)}));
+        left  = 1. + .5 * width;
+        right = 1. + apart - .5 * width;
+        // Room inside the U, between the reach of its arms, to go round.
+        REQUIRE(apart > 2. * width + .1);
+    }
+    REQUIRE((straight <= base) == (arms == NarrowU));
+    REQUIRE((straight <= span) == (arms == NarrowU || bottom_spacing > 0.));
+    SupportLayer &lower = *object.add_support_layer(0, 0, .2, .2);
+    for (const Polyline &axis : below)
+        add(lower, axis);
+    SupportLayer &upper = *object.add_support_layer(1, 1, .2, .4);
+    // The wall goes on beyond the U, or down its arm and back along its bottom, held by it, for longer than a line
+    // beside a route round, which is shorter than the excursion going round a bead kept there as well.
+    const bool     own_leg   = extra == OwnLeg || extra == OwnLegCarries || extra == OwnLegKept;
+    const Polyline wall_axis = own_leg ?
+        Polyline({point(0., 0.), point(left, 0.), point(left, 2.), point(right, 2.), point(right, 0.),
+            point(right, -.65), point(extra == OwnLegKept ? 2.7 : 1.9, -.65)}) :
+        Polyline({point(0., 0.), point(left, 0.), point(left, 2.), point(right, 2.), point(right, 0.),
+            point(right + 1.2, 0.)});
+    add(upper, wall_axis);
+    // Over the bottom of the U, held by it, where a route round along the inner edge of its reach would run: away from
+    // the wall, or before it goes on there, its bead touching that of the wall.
+    const Polyline kept_bead = extra == OwnLegKept ? Polyline({point(1.8, -.65), point(2.3, -.65)}) :
+                                                     Polyline({point(1.9, -.65), point(2.5, -.65)});
+    const bool     kept      = extra == KeptBead || extra == OwnLegKept;
+    if (kept)
+        add(upper, kept_bead);
+    // Over the middle of a join straight across, which holds it, not over the excursion, or from over the arm there; or
+    // the wall again, which stands on its arms where a join straight across leaves them as where a route round does; or
+    // beside the left arm of the U, over a route round, nearer neither a join straight across nor the wall where it is
+    // kept than half a line but a run longer than a line.
+    const bool    held_above = extra == Above || extra == AbovePartly || extra == OwnLegCarries;
+    SupportLayer *top        = nullptr;
+    if (held_above || extra == AboveWall) {
+        top = object.add_support_layer(2, 2, .2, .6);
+        if (extra == AboveWall)
+            add(*top, wall_axis);
+        else if (extra == OwnLegCarries)
+            add(*top, Polyline({point(left + .25, -.2), point(left + .25, -.8)}), erSupportMaterialInterface);
+        else
+            add(*top, Polyline({point(extra == Above ? 1.95 : .9, .35), point(2.45, .35)}), erSupportMaterialInterface);
+    }
+    const bool trimmed = join != Kept;
+    CHECK((remove_floating_support_crumbs(object, scale_(1.) * scale_(flow.width())) > 0) == trimmed);
+    Polylines axes;
+    for_each_extrusion_path(upper.support_fills, [&](const ExtrusionPath &path) {
+        axes.push_back(path.as_polyline());
+    });
+    REQUIRE(axes.size() == (kept ? 2 : 1));
+    std::sort(axes.begin(), axes.end(), [](const Polyline &a, const Polyline &b) { return a.length() > b.length(); });
+    const Polyline &wall = axes.front();
+    const BoundingBox extents = get_extents(wall);
+    CHECK((extents.max.y() < point(0., 1.).y()) == trimmed);
+    // The wall going on along the bottom of the U lies there anyway.
+    if (!own_leg)
+        CHECK((extents.min.y() < point(0., -.2).y()) == (join == Round));
+    if (kept) {
+        CHECK(axes.back() == kept_bead);
+        // The route round runs beside the bead kept, its bead at most touching it: no strip of the two 0.01 mm wide.
+        CHECK(offset(intersection(organic_bead(wall, scale_(width)), organic_bead(kept_bead, scale_(width))),
+            - scale_(.005)).empty());
+    }
+    if (held_above)
+        CHECK(top->support_fills.entities.size() == 1);
+    if (extra == OwnLeg) {
+        // A route round would run over the wall where it keeps it, so the wall is joined straight across: no point of
+        // the wall below the bearings lies nearer its kept part than half a line, but on it.
+        const Polylines kept_part = diff_pl(Polylines{wall_axis},
+            Polygons{Polygon({point(-1., .3), point(5., .3), point(5., 3.), point(-1., 3.)})});
+        size_t beside = 0;
+        for (const Point &at : wall.equally_spaced_points(scale_(.01)))
+            if (at.y() < point(0., .25).y()) {
+                double nearest = std::numeric_limits<double>::max();
+                for (const Polyline &part : kept_part)
+                    for (const Line &line : part.lines())
+                        nearest = std::min(nearest, line.distance_to(at));
+                if (nearest > scale_(.005) && nearest < scale_(.5 * width - .005))
+                    ++ beside;
+            }
+        CHECK(beside == 0);
+    }
+    if (trimmed) {
+        Polygons material;
+        for (const Polyline &axis : below)
+            append(material, organic_bead(axis, scale_(width)));
+        double longest = 0.;
+        for (const Polyline &run : diff_pl(Polylines{wall}, offset(union_(material), scale_(.5 * width + .02))))
+            longest = std::max(longest, unscaled(run.length()));
+        // The joins bridge no farther than a line across the gap of the base, but where the wall is repaired as on the
+        // model.
+        const bool first = join == Round || arms == NarrowU;
+        CHECK(longest <= (first ? base : span) + EPSILON);
+    }
+    // The warning reports only an excursion kept whole.
+    const bool held = trimmed;
+    CHECK(floating_support_islands(object, 0.).empty() == held);
 }
 
 TEST_CASE("Organic Scarf footing diagnostics follow emitted material and cached setting changes", "[TreeSupport][Organic][Material][Regression]")
@@ -6505,10 +6696,11 @@ TEST_CASE("The gap of a hollow Organic base does not follow the top layers the p
 TEST_CASE("Organic trees inside a hollow body hold an Auto roof printed in loops as a concentric one", "[TreeSupport][Organic][Interface][Regression]")
 {
     // With no gap above it the Auto interface pattern prints a roof in loops, as Concentric does, see
-    // SupportParameters::contact_fill_pattern: the trees inside the hollow bodies under it hold every point of it, not
-    // the lines of a direction it does not print. With a gap above it Auto prints lines, held line by line, and so does
-    // a base interface under a roof whose interface is set to a filament of its own. A plate 12 mm square 2 mm above
-    // the bed on a pillar, under a roof of one layer or two.
+    // SupportParameters::contact_fill_pattern: the trees inside the hollow bodies under it hold its loops, not the
+    // lines of a direction it does not print. With a gap above it Auto prints lines, held line by line, and so does a
+    // base interface under a roof whose interface is set to a filament of its own. A plate 12 mm square on a pillar
+    // 2 mm above the bed, under a roof of one layer or two, placed on the bed: arranged, it would stand around a corner
+    // of the bed, which clips the support grown under it.
     const int top_layers = GENERATE(1, 2);
     CAPTURE(top_layers);
     struct Result
@@ -6526,6 +6718,7 @@ TEST_CASE("Organic trees inside a hollow body hold an Auto roof printed in loops
         mesh.translate(0.f, 0.f, 2.f);
         pillar.translate(5.5f, 5.5f, 0.f);
         mesh.merge(pillar);
+        mesh.translate(90.f, 90.f, 0.f);
         DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
         config.set_deserialize_strict({{"enable_support", 1}, {"support_type", "tree(auto)"},
             {"support_style", "organic"}, {"support_on_build_plate_only", 1}, {"support_base_pattern", "default"},
@@ -6534,7 +6727,9 @@ TEST_CASE("Organic trees inside a hollow body hold an Auto roof printed in loops
             {"support_interface_spacing", .2}, {"tree_support_branch_angle_organic", 40.},
             {"support_interface_filament", interface_filament}});
         Print print;
-        Slic3r::Test::init_and_process_print({mesh}, print, config);
+        Model model;
+        Slic3r::Test::init_print(std::vector<TriangleMesh>{mesh}, print, model, config, nullptr, false);
+        print.process();
         const PrintObject      &object = *print.get_object(0);
         const SupportParameters params{object};
         Result                  result;
@@ -6567,13 +6762,58 @@ TEST_CASE("Organic trees inside a hollow body hold an Auto roof printed in loops
     REQUIRE_FALSE(gapped.loops);
     CHECK(gapped.angles == 1);
     // An interface set to a filament of its own, the first, while the base prints with the current one, gets a base
-    // interface under it, see SupportParameters.
-    if (top_layers > 1) {
-        const Result based = run("auto", 0., 1);
-        REQUIRE(based.loops);
-        REQUIRE(based.base_interface);
-        CHECK(based.angles == 1);
-    }
+    // interface under it, see SupportParameters, whatever its pattern: concentric, a spiral or Auto, which prints
+    // loops above it.
+    if (top_layers > 1)
+        for (const char *pattern : {"auto", "concentric", "spiralinset"}) {
+            CAPTURE(pattern);
+            const Result based = run(pattern, 0., 1);
+            if (std::string(pattern) == "auto")
+                REQUIRE(based.loops);
+            REQUIRE(based.base_interface);
+            CHECK(based.angles == 1);
+        }
+}
+
+TEST_CASE("Organic trees inside a hollow body hold a roof printed in loops along the gaps between the bodies", "[TreeSupport][Organic][Interface][Regression]")
+{
+    // A loop of a roof running along a gap between two bodies under it passes over neither, as a line does, though
+    // every point of it lies within reach of them; and a loop bends, and the bend of a bead over nothing hangs. A plate
+    // 12 mm square on a pillar, its roof of one layer or two printed in loops right under it, concentric, as a spiral
+    // or by the Auto pattern: no bead of the support stands on nothing. At 2 mm the bodies under the roof stand apart
+    // along gaps the loops run along. On the bed: arranged, the plate would stand around a corner of it, which clips
+    // the support.
+    const auto [height, top_layers] = GENERATE(table<double, int>({{2., 1}, {2., 2}, {4., 1}}));
+    const char *pattern = GENERATE("concentric", "spiralinset", "auto");
+    CAPTURE(height, top_layers, pattern);
+    TriangleMesh mesh   = make_cube(12., 12., 1.);
+    TriangleMesh pillar = make_cube(1., 1., height + .5);
+    mesh.translate(0.f, 0.f, float(height));
+    pillar.translate(5.5f, 5.5f, 0.f);
+    mesh.merge(pillar);
+    mesh.translate(90.f, 90.f, 0.f);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"enable_support", 1}, {"support_type", "tree(auto)"}, {"support_style", "organic"},
+        {"support_on_build_plate_only", 1}, {"support_base_pattern", "default"}, {"support_threshold_angle", 30},
+        {"raft_layers", 0}, {"layer_height", .2}, {"support_top_z_distance", 0.},
+        {"support_interface_top_layers", top_layers}, {"support_interface_pattern", pattern},
+        {"support_interface_spacing", .2}, {"tree_support_branch_angle_organic", 40.}});
+    Print print;
+    Model model;
+    Slic3r::Test::init_print(std::vector<TriangleMesh>{mesh}, print, model, config, nullptr, false);
+    print.process();
+    const PrintObject      &object = *print.get_object(0);
+    const SupportParameters params{object};
+    REQUIRE(TreeSupport3D::organic_roof_angles(object, params).empty());
+    bool roof = false;
+    for (const SupportLayer *layer : object.support_layers())
+        for_each_extrusion_path(layer->support_fills, [&roof](const ExtrusionPath &path) {
+            roof = roof || path.role() == erSupportMaterialInterface;
+        });
+    REQUIRE(roof);
+    // Every island counted, however small.
+    const std::vector<coordf_t> floating = floating_support_islands(object, 0.);
+    CHECK(floating.empty());
 }
 
 TEST_CASE("Organic inner trees have feet between sparse first layer lines", "[TreeSupport][Organic][Material][Regression]")
@@ -6930,6 +7170,49 @@ TEST_CASE("Organic solid parts closed on themselves print as loops of paths", "[
             CHECK(loop->paths.front().first_point() == loop->paths.back().last_point());
         }
     CHECK(loops >= 1);
+}
+
+TEST_CASE("Organic first layers with lone feet stop filling when the slicing is cancelled", "[TreeSupport][Organic][Regression]")
+{
+    // A first layer 60 % dense with lone feet beside a foot printed apart, as in "Organic first layers hold a narrow
+    // bead beside a foot printed apart only by what it prints": the lone feet are checked island by island, which on a
+    // plate of thousands of separate supports runs for seconds.
+    DynamicPrintConfig settings = DynamicPrintConfig::full_print_config();
+    settings.set_deserialize_strict({{"enable_support", 1}, {"support_type", "tree(auto)"},
+        {"support_style", "organic"}, {"support_base_pattern", "default"}, {"support_on_build_plate_only", 1},
+        {"nozzle_diameter", "0.2"}, {"min_layer_height", "0.02"}, {"initial_layer_line_width", .22},
+        {"initial_layer_print_height", .1}, {"layer_height", .1}, {"line_width", .22}, {"support_line_width", .22},
+        {"tree_support_wall_count", 1}, {"tree_support_tip_diameter", .22}, {"support_angle", 90},
+        {"raft_first_layer_density", 60}, {"raft_layers", 0}});
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(1., 1., 4.)}, print, model, settings, nullptr, false);
+    PrintObject &object = *print.get_object(0);
+    object.slice();
+    const auto &sp = object.slicing_parameters();
+    const SupportParameters params(object);
+    const TreeSupport3D::TreeSupportSettings tree{TreeSupport3D::TreeSupportMeshGroupSettings{object}, sp};
+    const auto rectangle = [](double x0, double y0, double x1, double y1) {
+        return Polygons{Polygon({Point::new_scale(x0, y0), Point::new_scale(x1, y0), Point::new_scale(x1, y1),
+            Point::new_scale(x0, y1)})};
+    };
+    Polygons lone;
+    for (const double x : {-1., -.5, 0., .5, 1.}) {
+        Polygon circle = make_circle_num_segments(scale_(.45), 64);
+        circle.translate(Point::new_scale(x, 1.26));
+        lone.emplace_back(std::move(circle));
+    }
+    SupportGeneratorLayerStorage storage;
+    auto &lower = TreeSupport3D::layer_allocate(storage, SupporLayerType::Base, sp, tree, 0);
+    lower.polygons = rectangle(-3., -3., 3., 3.);
+    lower.inner_trees = rectangle(-1.5, .21, 1.5, .81);
+    lower.lone_feet = union_(lone);
+    SupportGeneratorLayersPtr layers{&lower};
+    const SupportGeneratorLayersPtr none;
+    generate_support_layers(object, none, none, none, layers, none, none);
+    print.cancel();
+    CHECK_THROWS_AS(generate_support_toolpaths(object.support_layers(), object.config(), params, sp, none, none, none,
+        layers, none, none), CanceledException);
 }
 
 TEST_CASE("Organic solid first layers fill across inner tree feet without ring boundaries", "[TreeSupport][Organic][Material][Regression]")

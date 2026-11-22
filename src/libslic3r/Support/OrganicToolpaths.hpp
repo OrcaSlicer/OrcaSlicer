@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <map>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -134,6 +135,9 @@ bool organic_support_needs_final_check(const PrintObject &object);
 // Whether flushing into the object alone calls for the final check of its warning: switched off, flushing leaves a
 // warning that only generating the support again finds anew.
 bool organic_support_final_check_ends_with_flushing(const PrintObject &object);
+// The warning that the Organic support of object stands on nothing in places, naming the object and the first heights
+// of PrintObject::organic_support_heights(), or none where it keeps none.
+std::string organic_support_warning_message(const PrintObject &object);
 void organic_update_support_warning(PrintObject &object, std::vector<coordf_t> heights);
 // The warning of an Organic support loaded with its object, which keeps none: what stands on nothing is found again as
 // generating the support finds it, after dropping its crumbs.

@@ -432,8 +432,10 @@ Polygons organic_model_under(const PrintObject &object, const TreeModelVolumes &
 // layer right below it, widens as it is. Where the flare unclipped would hold the roof but it then hangs, the bodies
 // widen by a step more, reaching as many layers lower down as the step holds moves, up to the widest, keeping the flare
 // that leaves the least of it hanging. The roof hangs where a line of it in the directions roof_angles, see
-// SupportParameters::support_interface_angle(), runs farther from that material than a line between two lines of the
-// base, or along a gap in it narrower than that, or with none, where a point of it lies farther than reach from it.
+// SupportParameters::support_interface_angle(), or with none, a loop of it along its outline, runs farther from that
+// material than a line between two lines of the base, or along a gap in it narrower than that, or than a line where it
+// ends in the air or a loop bends away from the line between the ends of a stretch of it by more than a line; and a
+// part of it too narrow for a loop where a point of it lies farther than reach from that material.
 // bodies hold a layer each, up to the layer above the top body, and may hold nullptr; roofs and model hold for each
 // layer the roofs printed on it and the model with the gaps around it. The widened tips, and the bands the wider bodies
 // widen by, are added to the solid polygons of their layers. throw_on_cancel, if set, is called at each roof, step and
@@ -443,23 +445,25 @@ void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const s
     bool limit_growth, coord_t line_width, coord_t tip_radius, coord_t move, coord_t reach,
     const std::vector<double> &roof_angles = {}, const std::function<void()> &throw_on_cancel = {});
 
-// Grow trees inside the hollow bodies under what the layer above prints over their inside, roofs, walls and parts printed
-// solid: tips as many as it takes to bring every point of a roof within reach of what holds it, of a wall within a line,
-// and of a solid part within half a line, and below them trees that lean by the branch angle toward the nearest wall
-// until they stand on it, if they reach it before the bed, and otherwise go straight down, merging by the preferred
-// angle. bodies, roofs and model hold their layers as for organic_widen_bodies_under_roofs(). The trees inside a body are
-// added to the inner trees of their layers, those that leave it below to the polygons. On the first layer inner_trees
-// holds the feet of the trees coming down onto it and lone_feet those of the tips grown on it, which start no tree,
-// printed separately from a sparse flange where its lines would not hold what they hold, see
-// organic_fill_first_layer(). first_layer_width is the width of the lines of the first layer.
+// Grow trees inside the hollow bodies under what the layer above prints over their inside, roofs, walls and parts
+// printed solid: tips as many as it takes to hold every line or loop of a roof, see organic_roof_angles(), and to bring
+// every point of a roof within reach of what holds it, of a wall within a line and of a solid part within half a line,
+// and below them trees that lean by the branch angle toward the nearest wall until they stand on it, if they reach it
+// before the bed, and otherwise go straight down, merging by the preferred angle. bodies, roofs and model hold their
+// layers as for organic_widen_bodies_under_roofs(). The trees inside a body are added to the inner trees of their
+// layers, those that leave it below to the polygons. On the first layer inner_trees holds the feet of the trees coming
+// down onto it and lone_feet those of the tips grown on it, which start no tree, printed separately from a sparse
+// flange where its lines would not hold what they hold, see organic_fill_first_layer(). first_layer_width is the width
+// of the lines of the first layer.
 // The directions of the lines of the lowest roof layers: an interlaced pattern turns them from layer to layer, and the
-// contact layer of a grid crosses them; a roof printed in loops, concentric or as a spiral, prints none, nor does one
-// of the default pattern right under the model, which prints loops there, unless the support is set to print a base
-// interface under it, in lines.
+// contact layer of a grid crosses them; a roof printed in loops, concentric or as a spiral, has none, nor does one of
+// the default pattern right under the model, which prints loops there, unless the support is set to print a base
+// interface under such a roof, in lines.
 std::vector<double> organic_roof_angles(const PrintObject &object, const SupportParameters &params);
 
 // roof_angles are the directions of the lines of the lowest roof layers, see organic_roof_angles():
-// the trees hold every one of those lines; with none, every point of a roof within reach.
+// the trees hold every one of those lines; with none, every loop of a roof printed in loops along its outline. Every
+// point of a roof lies within reach of them as well.
 void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
     const std::vector<Polygons> &model, const TreeSupportSettings &config, coord_t reach, coord_t first_layer_width,
     const std::vector<double> &roof_angles = {}, const std::function<void()> &throw_on_cancel = {});

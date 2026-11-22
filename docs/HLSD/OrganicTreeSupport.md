@@ -361,10 +361,21 @@ positions are not known before the paths, so the lines are taken a quarter of a
 line apart, each touching what lies within half a line less half that pitch of it.
 A stretch also stops short of that span by as much on both sides, so that a point
 midway still lies within half of the gap of the base plus half a line of what
-holds it. A concentric or spiral interface prints no lines, nor does the default one
-right under the model, with no gap between them, where it prints concentric loops,
-unless the support is set to print a base interface under it, in lines; under it
-every point is to lie within that distance instead. Where a line hangs, the top layers of the bodies
+holds it. A concentric or spiral interface prints loops along its outline instead,
+as does the default one right under the model, with no gap between them. Under any
+of them the support may be set to print a base interface, in lines in the direction
+of the interface: the roof is then held as lines in that direction. The outermost
+loop is taken half a line in from the outline, and the others a quarter of a line apart
+inside it; a part narrower than a line gets none. The fill takes its outermost loop
+in by half its spacing, a little less, so a part a little narrower than a line may
+print a loop all the same, and a narrower one a dot: such a part is held point by
+point, every point of it within reach, as a roof whose lines are not known. A loop
+hangs as a line does: a loop
+running along a gap between two bodies passes over neither, though every point of
+it lies within reach of them. A loop also bends, and a bend of a bead over nothing
+hangs, so a stretch of a loop that bends away from the line between its ends by
+more than a line is to be no longer than a line, as one ending in the air. Where a
+line or a loop hangs, the top layers of the bodies
 near it widen going up
 by the branch angle, by half a line a layer at most, the overhang a wall prints
 over the wall below it, over as many layers as they need, up to two and a half
@@ -460,12 +471,13 @@ that opens to the outside going down, as where two branches merge going up
 around the gap between them: a tree in it would go on in the body only, and
 leave what it printed over the hole on nothing. A tree leaning into the wall of
 such a hole ends in the wall. Under a roof a tip stands
-where a line hangs: in the middle of a stretch between two bearings, or a tip
-radius in from the end of one ending in the air, one for the lines it crosses,
+where a line or a loop hangs: in the middle of a stretch between two bearings, or a
+tip radius in from the end of one ending in the air, one for the lines it crosses,
 round by round until no line hangs. So the tips stand in rows across the lines,
 their edges the gap of the base apart, and in a row, close enough that a line between
-two of them touches one. Under the beads of a layer, and under a roof printing
-no lines, the tips stand on a hexagonal lattice fixed in the object's
+two of them touches one. Under the beads of a layer, and under what of a roof still
+lies farther from what holds it than half of the gap of the base plus half a line,
+the tips stand on a hexagonal lattice fixed in the object's
 coordinates, so close that every point between them lies within the tip radius
 and the distance a load is held from of one, with one more wherever a point of
 the part is still farther from them. A bead of a wall is held a line from what is
@@ -681,8 +693,21 @@ before a rooted join; where the support may stand on the model, the excursion mu
 hang over the model too, and carry neither support of the layer above nor model
 within the top Z distance. Its retained bearings are connected by
 a straight line, or by the shorter legal route along the footing boundary.
-Both bearings must touch printed material below; each free span is limited to
-what the warning lets a straight bead bridge, see above. A connection lying on the edge of what the material
+Both bearings must touch printed material below; each free span is limited at
+first to what the warning lets a straight bead bridge, see above, and with support
+on the build plate only, which prints no bottom interface, to a line across the
+gap of the base. A route round runs along the edge of what holds it, where a bead
+the layer leaves untouched may lie, so it keeps off such beads near it; a straight
+connection only crosses them. Where no such connection exists, where it leaves the
+wall no shorter, or where it leaves on nothing material of the layer above that a
+wider connection would hold, an island or a run of a bead longer than the bead is
+wide, the wall is connected more widely: bridging as far as the warning lets a
+straight bead, and over the beads kept. It is also connected more widely where
+the connection runs over what the repair keeps of the walls it repairs for longer
+than a line, printing that twice, and the wider one does not and holds as much of
+the layer above; the wider one differs only where it may bridge farther or run
+over the beads kept. Kept whole, the wall would hang more.
+A connection lying on the edge of what the material
 below holds touches it, and the warning and the search for excursions take it
 as standing there: by rounding, it would otherwise hang off that edge. The new bead stays inside the support region and away
 from interface beads. A closed wall stays closed, including when the cut
@@ -732,6 +757,8 @@ warnings of all valid plates; a single-plate slice restores only its own warning
 Loading an already sliced plate's preview restores its warnings without reslicing.
 Queued warnings are resolved against their source object across the plates,
 and repeated updates replace the Organic message rather than appending it.
+The warning names its object. Renaming the object words it anew from the stored heights, with the
+support kept and the print reported unchanged; the plater shows again only the warnings so reworded.
 Rebuilding a nozzle assignment refreshes this check even when the support paths
 remain cached.
 Layer tool changes in MultiAsSingle mode also defer the physical choice. Early
