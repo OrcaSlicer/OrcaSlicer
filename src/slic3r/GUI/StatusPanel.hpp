@@ -293,7 +293,6 @@ public:
 private:
     MachineObject*  m_obj{nullptr};
     ScalableBitmap  m_thumbnail_placeholder;
-    ScalableBitmap  m_thumbnail_placeholder_default; // for printers of other vendors than Bambu Lab
     std::string     m_thumbnail_bmp_display_name;
     wxBitmap        m_thumbnail_bmp_display;
     ScalableBitmap  m_bitmap_use_time;

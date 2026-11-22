@@ -3,7 +3,6 @@
 #include "CrealityCfs.hpp"
 #include "Http.hpp"
 #include "IPrinterAgent.hpp"
-#include "NetworkAgent.hpp"
 #include "NetworkAgentFactory.hpp"
 #include "bambu_networking.hpp"
 #include "libslic3r/Config.hpp"
@@ -1917,11 +1916,6 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
                 if (const std::string sensor = chamber_sensor(); !sensor.empty() && this->available_objects.count(sensor) != 0) {
                     subscribe_objects.insert(sensor);
                 }
-                for (const std::string& name : filament_objects()) {
-                    if (this->available_objects.count(name) != 0) {
-                        subscribe_objects.insert(name);
-                    }
-                }
 
                 // Add display_status for layer info (if available)
                 if (this->available_objects.count("display_status") != 0) {
@@ -1980,32 +1974,8 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
                 last_message = std::chrono::steady_clock::now();
                 // A message shows the printer is answering, so the next drop starts the backoff from reconnect_delay
                 retry_count = 0;
-                const std::string message = beast::buffers_to_string(buffer.data());
-                handle_ws_message(dev_id, message);
-                // The subscription answer and every change of the filament objects re-read the trays
-                if (const auto filaments = filament_objects(); !filaments.empty()) {
-                    const auto parsed = nlohmann::json::parse(message, nullptr, false);
-                    const nlohmann::json* status = nullptr;
-                    if (parsed.is_object() && parsed.contains("result") && parsed["result"].is_object() && parsed["result"].contains("status")) {
-                        status = &parsed["result"]["status"];
-                    } else if (parsed.is_object() && parsed.value("method", "") == "notify_status_update" && parsed.contains("params") &&
-                               parsed["params"].is_array() && !parsed["params"].empty()) {
-                        status = &parsed["params"][0];
-                    }
-                    if (status && status->is_object() &&
-                        std::any_of(filaments.begin(), filaments.end(), [&](const std::string& name) { return status->contains(name); })) {
-                        refresh_filaments_on_main(dev_id);
-                    }
-                }
+                handle_ws_message(dev_id, beast::buffers_to_string(buffer.data()));
                 update_job_thumbnail(base_url, api_key);
-                for (nlohmann::json& request : take_ws_requests()) {
-                    request["jsonrpc"]           = "2.0";
-                    request["id"]                = next_jsonrpc_id++;
-                    const std::string payload = request.dump();
-                    if (const auto write_ec = run([&](auto&& handler) { ws.async_write(net::buffer(payload), handler); })) {
-                        throw beast::system_error{write_ec};
-                    }
-                }
                 // Check if handle_ws_message triggered reconnection request
                 if (ws_reconnect_requested.exchange(false)) {
                     connection_lost = true;
@@ -2298,50 +2268,6 @@ void MoonrakerPrinterAgent::update_job_thumbnail(const std::string& base_url, co
     }
     std::lock_guard<std::recursive_mutex> lock(payload_mutex);
     job_thumbnail_url = url;
-}
-
-nlohmann::json MoonrakerPrinterAgent::pick_objects(const nlohmann::json&        status,
-                                                   const std::set<std::string>& available,
-                                                   const std::set<std::string>& names)
-{
-    nlohmann::json objects = nlohmann::json::object();
-    for (const std::string& name : names) {
-        if (available.count(name) == 0) {
-            continue;
-        }
-        if (!status.is_object() || !status.contains(name)) {
-            return nullptr;
-        }
-        objects[name] = status[name];
-    }
-    return objects.empty() ? nlohmann::json() : objects;
-}
-
-nlohmann::json MoonrakerPrinterAgent::cached_objects(const std::set<std::string>& names) const
-{
-    std::lock_guard<std::recursive_mutex> lock(payload_mutex);
-    return pick_objects(status_cache, available_objects, names);
-}
-
-void MoonrakerPrinterAgent::refresh_filaments_on_main(const std::string& dev_id)
-{
-    QueueOnMainFn queue_fn;
-    {
-        std::lock_guard<std::recursive_mutex> lock(state_mutex);
-        queue_fn = queue_on_main_fn;
-    }
-    if (!queue_fn) {
-        return;
-    }
-    // Only compared, never used: this agent may be gone when the task runs
-    const IPrinterAgent* self = this;
-    queue_fn([self, dev_id] {
-        NetworkAgent* agent   = GUI::wxGetApp().getAgent();
-        const auto    printer = agent ? agent->get_printer_agent() : nullptr;
-        if (printer && printer.get() == self) {
-            printer->fetch_filament_info(dev_id);
-        }
-    });
 }
 
 int MoonrakerPrinterAgent::speed_percent_for_level(int level)
