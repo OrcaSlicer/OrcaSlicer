@@ -10,5 +10,8 @@
 	],
 	"filament_type": [
 		"PET-CF"
+	],
+	"required_nozzle_HRC": [
+		"40"
 	]
 }

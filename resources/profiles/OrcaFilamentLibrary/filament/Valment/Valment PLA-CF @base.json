@@ -55,5 +55,8 @@
 	],
 	"additional_cooling_fan_speed": [
 		"100"
+	],
+	"required_nozzle_HRC": [
+		"40"
 	]
 }

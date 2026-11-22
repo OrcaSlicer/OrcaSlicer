@@ -310,7 +310,7 @@
 		"1"
 	],
 	"required_nozzle_HRC": [
-		"3"
+		"40"
 	],
 	"slow_down_for_layer_cooling": [
 		"1"

@@ -3,6 +3,9 @@
 	"name": "Elegoo PLA-CF @base",
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"filament_id": "OFln72PT",
-	"instantiation": "false"
+	"filament_id": "OFoXUxWn",
+	"instantiation": "false",
+	"filament_type": [
+		"PLA-CF"
+	]
 }

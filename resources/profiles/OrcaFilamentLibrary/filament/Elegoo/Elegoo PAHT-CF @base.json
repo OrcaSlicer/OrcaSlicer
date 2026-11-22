@@ -3,7 +3,7 @@
 	"name": "Elegoo PAHT-CF @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "OF20kXr5",
+	"filament_id": "OFqykxni",
 	"instantiation": "false",
 	"activate_air_filtration": [
 		"1"
@@ -88,5 +88,8 @@
 	],
 	"additional_cooling_fan_speed": [
 		"0"
+	],
+	"filament_type": [
+		"PAHT-CF"
 	]
 }

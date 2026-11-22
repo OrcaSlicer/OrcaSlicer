@@ -3,6 +3,12 @@
 	"name": "Elegoo ASA-CF @base",
 	"inherits": "Elegoo ASA @base",
 	"from": "system",
-	"filament_id": "OFryjl35",
-	"instantiation": "false"
+	"filament_id": "OFRHfz3D",
+	"instantiation": "false",
+	"filament_type": [
+		"ASA-CF"
+	],
+	"required_nozzle_HRC": [
+		"40"
+	]
 }

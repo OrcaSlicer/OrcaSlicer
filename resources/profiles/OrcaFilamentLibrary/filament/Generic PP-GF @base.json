@@ -15,5 +15,8 @@
 	],
 	"filament_type": [
 		"PP-GF"
+	],
+	"required_nozzle_HRC": [
+		"40"
 	]
 }

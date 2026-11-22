@@ -79,5 +79,8 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"110"
+	],
+	"required_nozzle_HRC": [
+		"40"
 	]
 }

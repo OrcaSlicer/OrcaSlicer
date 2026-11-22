@@ -15,5 +15,8 @@
 	],
 	"filament_type": [
 		"PETG-CF"
+	],
+	"required_nozzle_HRC": [
+		"40"
 	]
 }

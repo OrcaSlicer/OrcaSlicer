@@ -4,7 +4,7 @@
 	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "IIFtCkVvHoLtxPxj",
-	"filament_id": "OFY0F5qA",
+	"filament_id": "OF8bbcXG",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1.00"
@@ -43,5 +43,8 @@
 		"SH65 IDRE COPY MODE (0.4 nozzle)",
 		"SH65 IDRE MIRROR MODE (0.4 nozzle)",
 		"VS30SC2 Performance (0.4 nozzle)"
+	],
+	"filament_type": [
+		"PETG-CF"
 	]
 }

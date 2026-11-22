@@ -4,7 +4,7 @@
 	"inherits": "Eryone Standard PLA",
 	"from": "system",
 	"setting_id": "WnsZC7HYi5Z1MOcn",
-	"filament_id": "OFenMm2Y",
+	"filament_id": "OFFF8e43",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Thinker X400 0.4 nozzle"
@@ -31,7 +31,7 @@
 		"; filament start gcode\nSET_FAN_SPEED FAN=filter_fan SPEED=1"
 	],
 	"filament_type": [
-		"ABS"
+		"ABS-GF"
 	],
 	"hot_plate_temp": [
 		"90"

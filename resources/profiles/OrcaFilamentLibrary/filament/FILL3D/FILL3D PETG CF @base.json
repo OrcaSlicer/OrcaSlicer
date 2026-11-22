@@ -58,5 +58,8 @@
 	],
 	"slow_down_layer_time": [
 		"6"
+	],
+	"required_nozzle_HRC": [
+		"40"
 	]
 }

@@ -4,7 +4,7 @@
 	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "nOKT0adoQi3O7Tge",
-	"filament_id": "OFu08yGN",
+	"filament_id": "OF99NG75",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1.00"
@@ -39,5 +39,8 @@
 		"SH65 Stage 2 (0.4 nozzle)",
 		"VS30SC2 Stage 2 (0.4 nozzle)",
 		"VS30MK3 Stage 2 (0.4 nozzle)"
+	],
+	"filament_type": [
+		"PETG-CF"
 	]
 }
