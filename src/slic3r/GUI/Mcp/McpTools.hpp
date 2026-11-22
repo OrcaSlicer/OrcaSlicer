@@ -243,9 +243,9 @@ std::optional<ParameterClass> parameter_class(const std::string& command, const 
 // parameters, rules, menu_items, examples, complete, input_schema?}. parameters follow the schema at every depth, each
 // {name, type, required, default?, values?, min?, max?, exclusive_min?, min_items?, max_items?, min_length?,
 // max_length?, pattern?, format?, goes_with?, values_from?, items?, properties?, other_keys?, schema?, description}.
-// required and default are the schema's alone; what a handler requires or supplies is in the description. A part of the
-// schema the manual can't express is kept raw under the parameter's schema, and the manual is then not complete and
-// carries the whole input_schema. Any thread.
+// required and default are the schema's alone; what a handler requires or supplies is in the description. A part of a
+// parameter's schema the manual can't express is kept raw under that parameter's schema, a part of the top level in
+// input_schema alone; either way the manual is then not complete and carries the whole input_schema. Any thread.
 nlohmann::json command_manual(const NativeCommand& command);
 // tool_describe's answer for `name` in `catalog`: the manual of the command lookup() resolves, else ToolFailure with the
 // catalog's text and code for the name (a left-out command's reason and code) and the closest names. Any thread.

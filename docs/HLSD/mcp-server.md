@@ -4603,9 +4603,10 @@ accepted." for a closed top level, "Other arguments are accepted." for an open o
 through, unless the top level itself holds anything kept raw. `menu_items` are the Speed Dial items that run the
 command, each with its arguments and the value it asks for first. What the builder cannot express, such as
 `anyOf`, `allOf`, `$ref` and `$defs`, a boolean subschema, a required name with no property, a top-level
-description or a `properties` that is not an object, as a plugin's schema may hold, stays raw under the
-parameter's `schema`, and the manual then carries `complete: false` and the whole `input_schema`, so that a
-rule spanning parts is never cut apart.
+description or a `properties` that is not an object, as a plugin's schema may hold, stays raw: inside a
+parameter under that parameter's `schema`, at the top level in the manual's `input_schema` alone. Either way the
+manual then carries `complete: false` and the whole `input_schema`, so that a rule spanning parts is never cut
+apart.
 
 `values_from` names, for a value the schema cannot list, the tools that list it: `object_list` for an object
 index, `settings_list` for a setting key, `tools/list` and `tool_list` for a command's name, `tool_describe` for
