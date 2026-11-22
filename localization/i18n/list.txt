@@ -271,6 +271,7 @@ src/slic3r/Utils/Repetier.cpp
 src/slic3r/Utils/ESP3D.cpp
 src/slic3r/Utils/KobraX.cpp
 src/slic3r/Utils/KobraXSession.cpp
+src/slic3r/Utils/KobraXHost.cpp
 src/slic3r/GUI/SendMultiMachinePage.cpp
 src/slic3r/GUI/MultiMachinePage.cpp
 src/slic3r/GUI/MultiMachineManagerPage.cpp
@@ -371,6 +372,7 @@ src/slic3r/GUI/Widgets/AMSItem.cpp
 src/slic3r/GUI/Widgets/DialogButtons.cpp
 src/slic3r/Utils/NetworkAgentFactory.cpp
 src/slic3r/Utils/MoonrakerPrinterAgent.cpp
+src/slic3r/Utils/KobraXPrinterAgent.cpp
 src/slic3r/Utils/BBLNetworkPlugin.cpp
 src/slic3r/Utils/OrcaCloudServiceAgent.cpp
 src/slic3r/plugin/PluginAuditManager.cpp

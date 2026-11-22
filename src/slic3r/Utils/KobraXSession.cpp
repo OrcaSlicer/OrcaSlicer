@@ -206,6 +206,8 @@ bool http_json(Http http, json& answer, std::string& error)
 
 std::string identity_folder() { return (fs::path(data_dir()) / "anycubic").string(); }
 
+std::string bundled_identity_folder() { return (fs::path(resources_dir()) / "cert" / "anycubic").string(); }
+
 bool read_client_identity(const std::string& path, ClientIdentity& identity)
 {
     std::string data;
@@ -245,8 +247,7 @@ bool find_client_identity(const std::string& user_folder,
         searched += ", " + path.string();
     if (read_identity_folder(bundled_folder, identity))
         return true;
-    if (!bundled_folder.empty())
-        searched += ", " + (fs::path(bundled_folder) / CERT_FILE).string();
+    searched += ", " + (fs::path(bundled_folder) / CERT_FILE).string();
     error = _u8L("No Anycubic Slicer client certificate found. Looked in:") + " " + searched;
     return false;
 }

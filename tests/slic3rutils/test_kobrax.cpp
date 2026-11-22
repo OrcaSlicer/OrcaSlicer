@@ -26,7 +26,9 @@
 #include <nlohmann/json.hpp>
 
 #include "slic3r/Utils/KobraX.hpp"
+#include "slic3r/Utils/KobraXPrinterAgent.hpp"
 #include "slic3r/Utils/KobraXSession.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
 
 using namespace Slic3r;
 using json = nlohmann::json;
@@ -330,6 +332,17 @@ TEST_CASE("An ACE id past the tray bits is ignored", "[KobraX]")
     CHECK(state.push_status(true)["print"]["ams"]["ams"].size() == 2);
 }
 
+TEST_CASE("The Device tab's second chamber light is accepted without a message", "[KobraX]")
+{
+    auto agent = std::make_shared<KobraXPrinterAgent>("");
+    const auto light = [](const char* node) {
+        return json{{"system", {{"command", "ledctrl"}, {"led_node", node}, {"led_mode", "on"}}}}.dump();
+    };
+    CHECK(agent->send_message("kx", light("chamber_light2"), 0, 0) == BAMBU_NETWORK_SUCCESS);
+    // Not connected: the real light cannot be sent
+    CHECK(agent->send_message("kx", light("chamber_light"), 0, 0) == BAMBU_NETWORK_ERR_SEND_MSG_FAILED);
+}
+
 TEST_CASE("Holder and ACE trays map to their own print slots", "[KobraX]")
 {
     KobraX::State state;
@@ -452,6 +465,22 @@ TEST_CASE("print/start names the folder and the file separately", "[KobraX]")
     CHECK(data["task_settings"]["timelapse"]["status"] == 1);
 }
 
+TEST_CASE("Upload names are safe for the printer", "[KobraX]")
+{
+    CHECK(KobraXPrinterAgent::upload_name("Cube #1/2", "x.3mf") == "Cube _1_2.gcode");
+    CHECK(KobraXPrinterAgent::upload_name("", "/tmp/plate.gcode.3mf") == "plate.gcode");
+    CHECK(KobraXPrinterAgent::upload_name("...", "") == "print.gcode");
+}
+
+TEST_CASE("Only a later phase proves a print start", "[KobraX]")
+{
+    CHECK(KobraXPrinterAgent::start_outcome("print/report", print_report("start", "checking")) == -1);
+    CHECK(KobraXPrinterAgent::start_outcome("print/report", print_report("start", "printing")) == -1);
+    CHECK(KobraXPrinterAgent::start_outcome("print/report", print_report("start", "hotbed_heating")) == 1);
+    CHECK(KobraXPrinterAgent::start_outcome("print/report", print_report("stop", "stoped", json::object(), 10111)) == 0);
+    CHECK(KobraXPrinterAgent::start_outcome("info/report", print_report("start", "hotbed_heating")) == -1);
+}
+
 TEST_CASE("The client identity is found among other PEM blocks", "[KobraX]")
 {
     namespace fs = boost::filesystem;
@@ -475,10 +504,10 @@ TEST_CASE("The client identity is found among other PEM blocks", "[KobraX]")
     fs::remove(path);
 }
 
-TEST_CASE("A user copy of the client identity wins over any other", "[KobraX]")
+TEST_CASE("A user copy of the client identity wins over the bundled one", "[KobraX]")
 {
     namespace fs = boost::filesystem;
-    const fs::path bundled = fs::temp_directory_path() / fs::unique_path("kobrax-none-%%%%-%%%%");
+    const fs::path bundled = fs::path(PROFILES_DIR).parent_path() / "cert" / "anycubic";
     const fs::path user    = fs::temp_directory_path() / fs::unique_path("kobrax-user-%%%%-%%%%");
     fs::create_directories(user);
     {
@@ -491,6 +520,27 @@ TEST_CASE("A user copy of the client identity wins over any other", "[KobraX]")
     CHECK(identity.cert_pem == TEST_CERT);
     CHECK(identity.key_pem == TEST_KEY);
     fs::remove_all(user);
+}
+
+TEST_CASE("The bundled client identity is a matching CN=AnycubicSlicer pair", "[KobraX]")
+{
+    namespace fs = boost::filesystem;
+    const fs::path bundled = fs::path(PROFILES_DIR).parent_path() / "cert" / "anycubic";
+    const fs::path both    = fs::temp_directory_path() / fs::unique_path("kobrax-bundled-%%%%-%%%%.pem");
+    {
+        fs::ofstream out(both, std::ios::binary);
+        out << fs::ifstream(bundled / "anycubic_slicer.pem", std::ios::binary).rdbuf() << "\n"
+            << fs::ifstream(bundled / "anycubic_slicer_key.pem", std::ios::binary).rdbuf() << "\n";
+    }
+    // read_client_identity checks the CN and that the key is the certificate's
+    KobraX::ClientIdentity identity;
+    CHECK(KobraX::read_client_identity(both.string(), identity));
+    fs::remove(both);
+
+    // With no user copy the search still ends with an identity: an installed Anycubic Slicer Next's or the bundled one
+    std::string error;
+    CHECK(KobraX::find_client_identity("", bundled.string(), identity, error));
+    CHECK(error.empty());
 }
 
 namespace {
