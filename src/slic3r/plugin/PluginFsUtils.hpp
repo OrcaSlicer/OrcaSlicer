@@ -116,6 +116,11 @@ std::vector<std::string> get_plugin_directories(const std::string& cloud_user_id
 // parsed comes back with metadata_valid == false and its error set (descriptor.is_invalid_package()).
 // The package-level auto-load flag is read from each package's .install_state.json into
 // descriptor.enabled. Capabilities are NOT discovered here — a package has none until it is loaded.
+//
+// `error` is non-empty when a directory could not be scanned (for example its packages could not be
+// inspected because the install-state lock is held by another instance); scanning then stops. The
+// returned list is partial in that case and must not be merged into an existing catalog, because the
+// packages it is missing are installed and still on disk.
 std::vector<PluginDescriptor> discover_plugin_packages(const std::vector<std::string>& dirs, std::string& error);
 
 bool is_ignored_plugin_directory(const boost::filesystem::path& path);

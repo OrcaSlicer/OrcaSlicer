@@ -2855,8 +2855,12 @@ bool audit_state_belongs_to_loaded_identity(const std::string& plugin_key, const
                                             const std::string& installation_revision)
 {
     const PluginBrowserProfileIdentityRef identity = current_plugin_browser_profile_identity(plugin_key);
-    return identity && !identity->installation_revision.empty() && identity->plugin_root == plugin_root &&
-           identity->installation_revision == installation_revision;
+    if (!identity || identity->plugin_root != plugin_root)
+        return false;
+    // A sidecar with no revision is a legacy install, or one that was lost and is being seeded
+    // again; it has no installation identity to compare against. A load writes the revision before
+    // plugin code runs, so a real replacement always carries one and still mismatches here.
+    return installation_revision.empty() || identity->installation_revision == installation_revision;
 }
 
 // Records a grant in the plugin's sidecar so it is not asked again. Each persist helper re-reads
@@ -3529,6 +3533,10 @@ int audit_plugin_event(PluginAuditManager& mgr, const std::string& event_name, A
     if (!have_install_state) {
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " Refusing install state for a missing or replaced installation: "
                                    << mgr.current_plugin();
+        // Never decide with a sidecar that does not belong to this load instance: it may describe
+        // a replacement installed by another process. With no usable state no saved grant applies,
+        // so the operation is prompted for and persist_grant refuses to record it.
+        state = PluginInstallState{};
     }
 
     const std::string plugin_name = state.plugin_name.empty() ? mgr.current_plugin() : state.plugin_name;

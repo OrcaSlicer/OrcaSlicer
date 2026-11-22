@@ -592,7 +592,11 @@ void assign_discovered_plugin_key(PluginDescriptor& descriptor, const boost::fil
         descriptor.plugin_key = make_local_plugin_key(name_source.stem().string());
 }
 
-void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescriptor>& out)
+// Fills `out` with the packages found directly under `dir_path`. A directory that cannot be
+// enumerated or whose packages cannot be inspected (for example the install-state lock is held by
+// another instance) sets `error` and leaves `out` partial: the caller must not merge such a list,
+// because the packages it is missing are present but unread.
+void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescriptor>& out, std::string& error)
 {
     namespace fs = boost::filesystem;
 
@@ -663,7 +667,11 @@ void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescri
             BOOST_LOG_TRIVIAL(info) << "Discovered plugin: " << out.back().name << " (version: " << out.back().version << ")";
         }
     } catch (const std::exception& ex) {
+        error = "Error scanning directory " + dir_path + ": " + ex.what();
         BOOST_LOG_TRIVIAL(error) << "Error scanning directory " << dir_path << ": " << ex.what();
+    } catch (...) {
+        error = "Error scanning directory " + dir_path + ": unknown error";
+        BOOST_LOG_TRIVIAL(error) << "Error scanning directory " << dir_path << ": unknown error";
     }
 }
 
@@ -711,17 +719,30 @@ std::vector<PluginDescriptor> discover_plugin_packages(const std::vector<std::st
     try {
         BOOST_LOG_TRIVIAL(info) << "Scanning " << dirs.size() << " plugin directories...";
 
-        for (const std::string& dir : dirs)
-            scan_plugin_directory(dir, discovered);
+        for (const std::string& dir : dirs) {
+            scan_plugin_directory(dir, discovered, error);
+            // A directory that could not be scanned leaves `discovered` partial. Stop here so the
+            // caller gets one clear error instead of a merged list that silently drops installed
+            // plugins still present on disk.
+            if (!error.empty())
+                break;
+        }
 
         const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time);
-        BOOST_LOG_TRIVIAL(info) << "Plugin discovery completed in " << duration.count() << "ms. Found " << discovered.size()
-                                << " plugin manifests";
+        if (error.empty())
+            BOOST_LOG_TRIVIAL(info) << "Plugin discovery completed in " << duration.count() << "ms. Found " << discovered.size()
+                                    << " plugin manifests";
+        else
+            BOOST_LOG_TRIVIAL(warning) << "Plugin discovery stopped after " << duration.count() << "ms with " << discovered.size()
+                                       << " plugin manifests; the result is partial: " << error;
     } catch (const std::exception& ex) {
-        error = std::string("Plugin discovery failed: ") + ex.what();
+        // A scan error already describes the first failure; keep it.
+        if (error.empty())
+            error = std::string("Plugin discovery failed: ") + ex.what();
         BOOST_LOG_TRIVIAL(error) << error;
     } catch (...) {
-        error = "Plugin discovery failed: unknown error";
+        if (error.empty())
+            error = "Plugin discovery failed: unknown error";
         BOOST_LOG_TRIVIAL(error) << error;
     }
 
