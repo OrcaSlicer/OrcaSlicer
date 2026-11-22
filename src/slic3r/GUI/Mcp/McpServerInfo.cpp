@@ -17,7 +17,7 @@ const char* kInstructions =
     "Finding what to call:\n"
     "- Commands: tools/list by place (named place_verb: object_mirror); tool_list the rest (the Design tab's, menu "
     "items with no arguments, plugin operations as plugin.<plugin>.<name>) for tool_call. tool_describe {tool} gives "
-    "a command's manual, read before tool_call; its values_from names the tools listing a value.\n"
+    "a manual, read before tool_call; a parameter's values_from names the tools listing its values.\n"
     "- Settings: settings_list_pages {type} lists a tab's pages, settings_list {type, where} a page's settings, what "
     "each does, settings_get {keys} named ones.\n"
     "- action_list {section?} lists Speed Dial actions; script_list_api {within?} orca's API by module or class, "

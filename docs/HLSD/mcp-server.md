@@ -97,8 +97,8 @@ each was an agent's first guess, many times over, and each cost a failed call an
 
 The server `instructions` (under the 4096 characters clients keep) give the workflow: `app_state`,
 act, then check the result with the reading commands, keeping screenshots for what those do not report.
-The rest is in four sections. The first, finding what to call, gives every catalog's lists in the order an
-agent reads them: `tools/list` place by place, its commands named place first, then verb; `tool_list` for the
+The rest is in four sections. The first, finding what to call, names the tools that find a command, a setting,
+a Speed Dial action or a Python API entry, in the order an agent calls them: `tools/list` place by place, its commands named place first, then verb; `tool_list` for the
 commands `tools/list` never shows (the three menu items that take no arguments, the Design tab's and the
 operations plugins offer, so nothing else tells an agent they exist), which `tool_call` runs; `tool_describe
 {tool}` for a command's manual, to read before a `tool_call`, whose `values_from` names the tools that list a
