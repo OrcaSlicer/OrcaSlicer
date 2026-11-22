@@ -93,6 +93,34 @@
   },
   {
    "completion": "immediate",
+   "description": "One command's manual, listed or not: a tool, a Design tab command, a menu item that takes no arguments, or an operation a plugin offers (plugin.<plugin>.<name>). It gives the description; every parameter, at every depth, with its type, whether the schema requires it, its default, its allowed values or range, the type or target it goes with, and values_from, the tools that list a value the schema can't; the schema's rules as sentences; the Speed Dial items that run it, with their arguments; its examples; how to call it; and access, its read-only, destructive, idempotent and open-world labels. What a handler requires or supplies beyond the schema is in the description. A part of a schema it can't express is kept raw: complete is false and input_schema is the whole schema.",
+   "destructive": false,
+   "group": "Tools and actions",
+   "guard": "inspect",
+   "has_own_action": false,
+   "idempotent": true,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "tool": {
+      "description": "A command's name.",
+      "type": "string"
+     }
+    },
+    "required": [
+     "tool"
+    ],
+    "type": "object"
+   },
+   "key": "tool_describe",
+   "listed": true,
+   "open_world": false,
+   "operations": [],
+   "read_only": true,
+   "title": "Describe a tool"
+  },
+  {
+   "completion": "immediate",
    "description": "Search everything the Speed Dial can run: built-in commands (slice, export, views, object operations, plates, calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an id for action_run, its section (where the Speed Dial lists it), a description, the command's key for a built-in command, and, when it takes arguments, their input_schema. A query ranks them, best match first, as tool_search does; without one they are listed by section and title. section keeps them to one of the Speed Dial's sections, which are not tool_search's groups; one no action is in is refused with the sections there are, but Recent Projects and Design list nothing while there are no recent projects or the Design tab is not shown. include_settings also lists settings (each jumps to that setting in the sidebar; use settings_get / settings_set to read or change values).",
    "destructive": false,
    "group": "Tools and actions",

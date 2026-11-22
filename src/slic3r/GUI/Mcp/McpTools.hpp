@@ -226,6 +226,32 @@ bool        arg_bool(const nlohmann::json& args, const char* key, bool fallback)
 // Any thread.
 nlohmann::json search_commands(const CommandCatalog& catalog, const nlohmann::json& args);
 
+// Where tool_describe's manual sends an agent for the values a built-in command's parameter takes when its schema does
+// not list them. Source: the tools that list them, in order ("tools/list" stands for the tool list); Described: the
+// parameter's own description lists them; Free: the caller's own value (a number, text, a path, a new name, a shape to
+// draw). Only a parameter without fields of its own is classified; one with fields is read through its fields.
+struct ParameterClass
+{
+    enum Kind { Source, Described, Free };
+    Kind                     kind = Free;
+    std::vector<std::string> tools;
+};
+// The class of parameter `path` of the built-in command `command`, `path` dotted with [] for an array's items
+// ("add[].layer"): the entry for that command and path, else the class of the path's last name, else nullopt.
+std::optional<ParameterClass> parameter_class(const std::string& command, const std::string& path);
+
+// tool_describe's reply, `command`'s manual: {name, title, group, heading?, listed, call, access, description,
+// parameters, rules, menu_items, examples, complete, input_schema?}. parameters follow the schema at every depth, each
+// {name, type, required, default?, values?, min?, max?, exclusive_min?, min_items?, max_items?, min_length?,
+// max_length?, pattern?, format?, goes_with?, values_from?, items?, properties?, other_keys?, schema?, description}.
+// required and default are the schema's alone; what a handler requires or supplies is in the description. A part of the
+// schema the manual can't express is kept raw under the parameter's schema, and the manual is then not complete and
+// carries the whole input_schema. Any thread.
+nlohmann::json command_manual(const NativeCommand& command);
+// tool_describe's answer for `name` in `catalog`: the manual of the command lookup() resolves, else ToolFailure with the
+// catalog's text and code for the name (a left-out command's reason and code) and the closest names. Any thread.
+nlohmann::json describe_command(const CommandCatalog& catalog, const std::string& name);
+
 // The Speed Dial actions of `listed` (ActionRegistry::describe()'s items: id, title, group, description)
 // that `words` (of query_words()) describe, best first: those matching more of the words, then those
 // matching more of them in what the action is called (the name inside its id, its title and its group),

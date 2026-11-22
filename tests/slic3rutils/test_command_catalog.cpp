@@ -153,7 +153,7 @@ std::string first_difference(const std::string& actual, const std::string& expec
 // Print button's Print, the print host's test, and the Device tab's status, Pause, Resume and Stop).
 // A part that adds a command adds it here.
 const std::vector<std::pair<std::string, std::set<std::string>>> kPlaces{
-    {"Tools and actions", {"tool_search", "tool_call", "action_search", "action_run"}},
+    {"Tools and actions", {"tool_search", "tool_describe", "tool_call", "action_search", "action_run"}},
     {"The app",
      {"app_state", "app_log", "app_wait", "job_cancel", "undo", "redo", "app_open_web_page", "app_check_for_updates",
       "app_show_config_folder", "app_benchmark_3d_scene", "preferences_get", "preferences_set"}},
@@ -455,9 +455,9 @@ TEST_CASE("outside the Design tab the catalog has its commands and 129 actions",
     }
     // The commands outside the Design tab: the typed tools, the commands made from menu items, the seven Parts 4a to 4c
     // add, Part 5a's three, Part 5b's two, Part 5c's one, Part 5d's four, the seven gizmo commands, the six printing
-    // commands and the four of the filament list (filament_list, filament_edit_mixed, filament_set_colour and
-    // filament_set_flushing).
-    CHECK(commands == 135);
+    // commands, the four of the filament list (filament_list, filament_edit_mixed, filament_set_colour and
+    // filament_set_flushing) and tool_describe.
+    CHECK(commands == 136);
     // The eight commands named as their menu items keep an action of their own; the other 121 actions are items.
     CHECK(own == std::set<std::string>{"plate_add", "plate_delete", "plate_duplicate", "plate_rename", "filament_add", "filament_delete",
                                        "undo", "redo"});
@@ -484,7 +484,7 @@ TEST_CASE("the commands outside the Design tab are the design's, under its headi
         commands += keys.size();
     }
     CHECK(by_heading.size() == kPlaces.size());
-    CHECK(commands == 135);
+    CHECK(commands == 136);
 
     // tool_search's group says which there are.
     const NativeCommand* search = NativeCommands::find("tool_search");
@@ -525,8 +525,8 @@ TEST_CASE("every command that runs from arguments is in the tool list, by place"
     // The three menu items with no argument form, which tool_search finds and tool_call runs.
     CHECK(unlisted == std::set<std::string>{"window_save_screenshot", "script_toggle_panel", "settings_toggle_developer_mode"});
     // Task 3's 98, the seven Parts 4a to 4c add, Part 5a's three, Part 5b's two, Part 5c's one, Part 5d's four, the
-    // seven gizmo commands, the six printing commands and the filament list's four.
-    CHECK(listed.size() == 132);
+    // seven gizmo commands, the six printing commands, the filament list's four and tool_describe.
+    CHECK(listed.size() == 133);
 
     // The search, the generic call and the app's state first; then each heading's commands together, in the
     // design's order, Driving the GUI last.
@@ -551,7 +551,7 @@ TEST_CASE("every command that runs from arguments is in the tool list, by place"
 TEST_CASE("only deleting a preset, uninstalling a plugin and stopping a print are labelled destructive", "[CommandCatalog]")
 {
     // The reads: they change nothing in the app or the project.
-    const std::set<std::string> reads{"app_state",          "app_wait",       "app_log",         "tool_search",
+    const std::set<std::string> reads{"app_state",          "app_wait",       "app_log",         "tool_search",       "tool_describe",
                                       "preset_list",        "settings_list",  "settings_get",    "preferences_get",
                                       "plate_get_settings", "project_get_settings", "plate_list", "object_list",
                                       "window_screenshot",  "plate_slice_stats",    "script_search_api", "action_search",

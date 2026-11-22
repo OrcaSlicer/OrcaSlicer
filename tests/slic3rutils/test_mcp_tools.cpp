@@ -43,6 +43,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <iterator>
 #include <limits>
 #include <map>
@@ -708,14 +709,14 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
         CHECK(first_sentence(command->description) == r.first_sentence);
     }
 
-    // Outside the Design group 132 commands are listed: every one that runs from its arguments, all but the three menu
+    // Outside the Design group 133 commands are listed: every one that runs from its arguments, all but the three menu
     // items that take none (Task 3's 98, the seven Parts 4a to 4c add, Part 5a's three, Part 5b's two, Part 5c's one,
-    // Part 5d's four, the seven gizmo commands, the six printing commands and the filament list's four).
+    // Part 5d's four, the seven gizmo commands, the six printing commands, the filament list's four and tool_describe).
     std::size_t listed = 0;
     for (const NativeCommand& c : catalog.commands())
         if (c.listed && c.group != Slic3r::GUI::kDesignGroup)
             ++listed;
-    CHECK(listed == 132);
+    CHECK(listed == 133);
 }
 
 TEST_CASE("opening a project and importing models are two commands", "[Mcp]")
@@ -991,6 +992,373 @@ TEST_CASE("tool_search finds a Design command by the name of a menu item folded 
         REQUIRE_FALSE(found["items"].empty());
         CHECK(found["items"][0]["name"] == command);
     }
+}
+
+namespace {
+
+// The built-in commands with the Design tab's among them.
+CommandCatalog catalog_with_cad()
+{
+    CommandCatalog catalog;
+    NativeCommands::register_all_commands(catalog, {true});
+    catalog.seal();
+    return catalog;
+}
+
+bool lists_values(const json& schema)
+{
+    if (schema.contains("enum"))
+        return true;
+    const json type = schema.value("type", json());
+    if (type.is_string())
+        return type == "boolean";
+    return type.is_array() && !type.empty() &&
+           std::all_of(type.begin(), type.end(), [](const json& t) { return t == "boolean" || t == "null"; });
+}
+
+bool with_fields(const json& schema)
+{
+    return schema.contains("properties") || (schema.contains("items") && schema["items"].is_object() && schema["items"].contains("properties"));
+}
+
+void check_shape(const json& param, const json& schema, const std::string& where);
+
+// That `params`, a manual's, follow `props`, the schema's properties they were made from, with `required`.
+void check_parameters(const json& params, const json& props, const json& required, const std::string& where)
+{
+    REQUIRE(params.is_array());
+    std::set<std::string> named, in_schema;
+    for (const json& p : params)
+        named.insert(p.at("name").get<std::string>());
+    for (auto it = props.begin(); it != props.end(); ++it)
+        in_schema.insert(it.key());
+    CHECK(named == in_schema);
+    for (const json& p : params) {
+        const std::string name = p.at("name").get<std::string>();
+        INFO(where + name);
+        check_shape(p, props.at(name), where + name);
+        if (std::find(required.begin(), required.end(), name) != required.end())
+            CHECK(p.at("required") == true);
+    }
+}
+
+void check_shape(const json& param, const json& schema, const std::string& where)
+{
+    INFO(where);
+    CHECK_FALSE(param.contains("schema"));
+    if (schema.contains("enum"))
+        CHECK(param.at("values") == schema["enum"]);
+    else
+        CHECK_FALSE(param.contains("values"));
+    if (schema.contains("default"))
+        CHECK(param.at("default") == schema["default"]);
+    else
+        CHECK_FALSE(param.contains("default"));
+    if (schema.contains("minimum"))
+        CHECK(param.at("min") == schema["minimum"]);
+    if (schema.contains("maximum"))
+        CHECK(param.at("max") == schema["maximum"]);
+    if (schema.contains("properties"))
+        check_parameters(param.at("properties"), schema["properties"], schema.value("required", json::array()), where + ".");
+    if (schema.contains("additionalProperties")) {
+        if (schema["additionalProperties"] == false)
+            CHECK(param.at("other_keys") == false);
+        else if (schema["additionalProperties"].is_object())
+            CHECK(param.at("other_keys").is_object());
+    }
+    if (schema.contains("items"))
+        check_shape(param.at("items"), schema["items"], where + "[]");
+}
+
+// Calls `f` with the path and schema of each parameter of `props` that has no fields of its own, at every depth.
+void each_leaf(const json& props, const std::string& prefix, const std::function<void(const std::string&, const json&)>& f)
+{
+    for (auto it = props.begin(); it != props.end(); ++it) {
+        const std::string path   = prefix + it.key();
+        const json&       schema = it.value();
+        if (schema.contains("properties"))
+            each_leaf(schema["properties"], path + ".", f);
+        if (schema.contains("items") && schema["items"].is_object() && schema["items"].contains("properties"))
+            each_leaf(schema["items"]["properties"], path + "[].", f);
+        if (!with_fields(schema))
+            f(path, schema);
+    }
+}
+
+// The parameter at `path` (dotted, [] for an array's items) of `manual`, or nullptr.
+const json* manual_parameter(const json& manual, const std::string& path)
+{
+    const json* params = &manual.at("parameters");
+    std::size_t at     = 0;
+    for (;;) {
+        const std::size_t end     = path.find('.', at);
+        std::string       segment = path.substr(at, end == std::string::npos ? std::string::npos : end - at);
+        const bool        items   = segment.size() > 2 && segment.compare(segment.size() - 2, 2, "[]") == 0;
+        if (items)
+            segment.resize(segment.size() - 2);
+        const json* found = nullptr;
+        for (const json& p : *params)
+            if (p.at("name") == segment)
+                found = &p;
+        if (found == nullptr || end == std::string::npos)
+            return found;
+        const json* holder = items ? (found->contains("items") ? &found->at("items") : nullptr) : found;
+        if (holder == nullptr || !holder->contains("properties"))
+            return nullptr;
+        params = &holder->at("properties");
+        at     = end + 1;
+    }
+}
+
+json manual_of(const CommandCatalog& catalog, const char* key)
+{
+    const NativeCommand* command = catalog.find(key);
+    REQUIRE(command != nullptr);
+    return command_manual(*command);
+}
+
+} // namespace
+
+TEST_CASE("tool_describe's manual follows every built-in command's schema at every depth", "[Mcp][CAD]")
+{
+    const CommandCatalog catalog = catalog_with_cad();
+    std::size_t          ruled   = 0;
+    for (const NativeCommand& c : catalog.commands()) {
+        INFO(c.key);
+        const json manual = command_manual(c);
+        CHECK(manual.at("complete") == true);
+        CHECK_FALSE(manual.contains("input_schema"));
+        check_parameters(manual.at("parameters"), c.input_schema.value("properties", json::object()),
+                         c.input_schema.value("required", json::array()), "");
+        // One sentence per rule of with_silent()'s, and one for the arguments a closed schema refuses.
+        const json& rules = manual.at("rules");
+        if (c.input_schema.contains("if")) {
+            ++ruled;
+            CHECK(std::count_if(rules.begin(), rules.end(), [](const json& r) {
+                      const std::string text = r.get<std::string>();
+                      return text.rfind("With any argument, ", 0) == 0 || text.rfind("Unless the arguments are exactly ", 0) == 0;
+                  }) == 1);
+        }
+        if (c.input_schema.value("additionalProperties", true) == false)
+            CHECK(std::find(rules.begin(), rules.end(), "No other arguments are accepted.") != rules.end());
+        CHECK(manual.at("examples") == (c.examples.is_null() ? json::array() : c.examples));
+        CHECK(manual.at("menu_items").size() == (c.actions.is_array() ? c.actions.size() : 0) + (c.has_own_action ? 1 : 0));
+        CHECK(manual.at("access").at("read_only") == c.read_only);
+        CHECK(manual.at("listed") == c.listed);
+    }
+    CHECK(ruled == 38);
+
+    // A rule's requirement comes out in words on the parameter it makes required.
+    const json constrain = manual_of(catalog, "sketch_constrain");
+    const json* type     = manual_parameter(constrain, "type");
+    REQUIRE(type != nullptr);
+    CHECK(type->at("required") == "when any argument is given");
+    CHECK(constrain.at("rules")[0] == "With any argument, type is required.");
+    // A parameter tied to a target says so, and stays as the schema requires it: the handler asks for the rest.
+    const json  set   = manual_of(catalog, "settings_set");
+    const json* min_z = manual_parameter(set, "min_z");
+    REQUIRE(min_z != nullptr);
+    CHECK(min_z->at("goes_with") == json{{"target", "height_range"}});
+    CHECK(min_z->at("required") == false);
+    // A nested object's own required fields and closure, and other keys' values.
+    const json  cut   = manual_of(catalog, "object_cut");
+    const json* point = manual_parameter(cut, "plane.point");
+    REQUIRE(point != nullptr);
+    CHECK(point->at("required") == true);
+    const json  answer = manual_of(catalog, "dialog_auto_answer");
+    const json* match  = manual_parameter(answer, "rules[].match");
+    REQUIRE(match != nullptr);
+    CHECK(match->at("required") == true);
+    const json  view   = manual_of(catalog, "view_set");
+    const json* legend = manual_parameter(view, "legend");
+    REQUIRE(legend != nullptr);
+    CHECK(legend->at("other_keys").at("type") == "boolean");
+}
+
+TEST_CASE("tool_describe's manual names a command's menu items with their arguments", "[Mcp]")
+{
+    const CommandCatalog catalog = catalog_with_cad();
+    const json           exports = manual_of(catalog, "project_export").at("menu_items");
+    const auto gcode = std::find_if(exports.begin(), exports.end(), [](const json& i) { return i.at("title") == "Export G-code"; });
+    REQUIRE(gcode != exports.end());
+    CHECK(gcode->at("args") == json{{"format", "gcode"}});
+    CHECK(gcode->at("section") == "Slice & Export");
+    CHECK_FALSE(gcode->contains("asks_for"));
+    // An item that collects a value first says which, and the argument it goes to.
+    const json views = manual_of(catalog, "view_set").at("menu_items");
+    const auto layer = std::find_if(views.begin(), views.end(), [](const json& i) { return i.at("title") == "Go to layer (percent)"; });
+    REQUIRE(layer != views.end());
+    CHECK(layer->at("asks_for") == json{{"value", "percent"}, {"argument", "layer_percent"}});
+    const auto tab = std::find_if(views.begin(), views.end(), [](const json& i) { return i.at("title") == "Go to tab..."; });
+    REQUIRE(tab != views.end());
+    CHECK(tab->at("asks_for") == json{{"value", "tab"}, {"argument", "tab"}});
+    // How to call it: by name when the tool list shows it, through tool_call when not.
+    CHECK(manual_of(catalog, "plate_slice").at("call") == "plate_slice {args}");
+    CHECK(manual_of(catalog, "fillet").at("call") == "tool_call {tool: \"fillet\", args}");
+}
+
+TEST_CASE("every parameter of a built-in command is classified for the manual", "[Mcp][CAD]")
+{
+    const CommandCatalog catalog = catalog_with_cad();
+    for (const NativeCommand& c : catalog.commands()) {
+        const json manual = command_manual(c);
+        each_leaf(c.input_schema.value("properties", json::object()), "", [&](const std::string& path, const json& schema) {
+            if (lists_values(schema))
+                return;
+            INFO(c.key + "." + path);
+            const std::optional<ParameterClass> cls = parameter_class(c.key, path);
+            REQUIRE(cls.has_value());
+            const json* param = manual_parameter(manual, path);
+            REQUIRE(param != nullptr);
+            if (cls->kind == ParameterClass::Source)
+                CHECK(param->at("values_from") == json(cls->tools));
+            else
+                CHECK_FALSE(param->contains("values_from"));
+        });
+    }
+    // The sources of names that mean different things in different commands, and of the contested ones.
+    const std::vector<std::pair<std::string, std::vector<std::string>>> sources{
+        {"tool_call.args", {"tool_describe"}},
+        {"tool_call.tool", {"tools/list", "tool_search"}},
+        {"action_run.id", {"action_search"}},
+        {"action_run.args", {"action_search"}},
+        {"settings_set.values", {"settings_list"}},
+        {"project_set_settings.values", {"project_get_settings"}},
+        {"preferences_set.values", {"preferences_get"}},
+        {"settings_get.compare", {"preset_list"}},
+        {"preset_select.name", {"preset_list"}},
+        {"preset_list.vendor", {"preset_list"}},
+        {"printer_install.models[].vendor", {"printer_list_models"}},
+        {"job_cancel.job", {"app_state"}},
+        {"dialog_answer.button", {"app_state"}},
+        {"widget_click.popup_item", {"widget_click"}},
+        {"fillet.edges", {"body_describe"}},
+        {"sketch_constrain.entities", {"sketch_describe"}},
+        {"rib.entity", {"sketch_describe"}},
+        {"pattern.entity", {"sketch_describe"}},
+        {"loft.profiles", {"describe_design"}},
+        {"align.cs_a", {"describe_design"}},
+        {"body_compare.reference", {"describe_design"}},
+        {"view_set.layer", {"plate_slice_stats"}},
+        {"view_set.layer_z", {"plate_slice_stats"}},
+        {"plate_set_custom_gcode.add[].layer", {"plate_slice_stats"}},
+        {"window_open.key", {"preferences_get"}},
+    };
+    for (const auto& [where, tools] : sources) {
+        INFO(where);
+        const std::size_t dot     = where.find('.');
+        const std::string command = where.substr(0, dot);
+        const json        manual  = manual_of(catalog, command.c_str());
+        const json*       param   = manual_parameter(manual, where.substr(dot + 1));
+        REQUIRE(param != nullptr);
+        CHECK(param->at("values_from") == json(tools));
+    }
+    // The caller's own values name no source.
+    for (const char* where : {"script_run.args", "replay_run.vars", "keyboard_press.keys", "sketch_draw.entities", "preset_save.name"}) {
+        INFO(where);
+        const std::string w   = where;
+        const std::size_t dot = w.find('.');
+        const std::optional<ParameterClass> cls = parameter_class(w.substr(0, dot), w.substr(dot + 1));
+        REQUIRE(cls.has_value());
+        CHECK(cls->kind == ParameterClass::Free);
+    }
+    // A plugin's operation names its parameters itself: none is classified, whatever it is called.
+    NativeCommand operation;
+    operation.key          = "plugin.fixture.measure";
+    operation.input_schema = object_schema({{"object", prop("integer", "An object.")}});
+    const json  described  = command_manual(operation);
+    const json* object     = manual_parameter(described, "object");
+    REQUIRE(object != nullptr);
+    CHECK_FALSE(object->contains("values_from"));
+}
+
+TEST_CASE("tool_describe keeps raw what it can't express, and says the manual is not complete", "[Mcp]")
+{
+    const auto manual = [](json schema) {
+        NativeCommand operation;
+        operation.key          = "plugin.fixture.op";
+        operation.input_schema = std::move(schema);
+        return command_manual(operation);
+    };
+    const json root_any = json::parse(R"({"type": "object", "properties": {"a": {"type": "number"}}, "anyOf": [{"required": ["a"]}]})");
+    const json any_root = manual(root_any);
+    CHECK(any_root.at("complete") == false);
+    CHECK(any_root.at("input_schema") == root_any);
+
+    const json sub     = json::parse(R"({"anyOf": [{"type": "number"}, {"type": "string"}]})");
+    const json any_sub = manual(json{{"type", "object"}, {"properties", {{"a", sub}}}});
+    CHECK(any_sub.at("complete") == false);
+    CHECK(any_sub.at("parameters")[0].at("schema") == sub);
+    CHECK(any_sub.contains("input_schema"));
+
+    const json defs = json::parse(R"({"type": "object", "$defs": {"n": {"type": "number"}}, "properties": {"a": {"$ref": "#/$defs/n"}}})");
+    const json ref  = manual(defs);
+    CHECK(ref.at("complete") == false);
+    CHECK(ref.at("input_schema").contains("$defs"));
+
+    const json anything = manual(json::parse(R"({"type": "object", "properties": {"a": true}})"));
+    CHECK(anything.at("complete") == false);
+    CHECK(anything.at("parameters")[0].at("schema") == true);
+
+    // A draft-04 exclusiveMinimum qualifies minimum: kept raw, beside the minimum it reads.
+    const json draft4 = manual(json::parse(R"({"type": "object", "properties": {"a": {"type": "number", "minimum": 0, "exclusiveMinimum": true}}})"));
+    CHECK(draft4.at("complete") == false);
+    CHECK(draft4.at("parameters")[0].at("min") == 0);
+    CHECK(draft4.at("parameters")[0].contains("schema"));
+
+    // A rule of with_silent()'s shape reads its forms as the schema writes them, menu items or none.
+    const json forms = manual(json::parse(R"({"type": "object", "properties": {"a": {"type": "integer"}, "b": {"type": "string"}},
+                                              "if": {"not": {"enum": [{}, {"a": 1}]}}, "then": {"required": ["b"]}})"));
+    CHECK(forms.at("complete") == true);
+    CHECK(forms.at("rules") == json::array({"Unless the arguments are exactly {} or {\"a\":1}, b is required."}));
+    const json* b = manual_parameter(forms, "b");
+    REQUIRE(b != nullptr);
+    CHECK(b->at("required") == "unless the arguments are exactly one of the forms rules gives");
+}
+
+TEST_CASE("tool_describe describes any command a lookup finds, and refuses a name with its reason", "[Mcp]")
+{
+    CommandCatalog catalog;
+    NativeCommand  listed;
+    listed.key    = "measure_bed";
+    listed.listed = true;
+    catalog.add(listed);
+    NativeCommand operation;
+    operation.key         = "plugin.fixture.measure";
+    operation.group       = "Plugins";
+    operation.description = "Offered by a plugin. Doubles a.";
+    catalog.add_source(std::make_unique<OneCommandSource>(operation));
+    catalog.seal();
+    CHECK(describe_command(catalog, "measure_bed").at("call") == "measure_bed {args}");
+    const json described = describe_command(catalog, "plugin.fixture.measure");
+    CHECK(described.at("group") == "Plugins");
+    CHECK(described.at("listed") == false);
+    try {
+        describe_command(catalog, "measure_bedd");
+        FAIL("an unknown tool was not refused");
+    } catch (const ToolFailure& f) {
+        CHECK_THAT(std::string(f.what()), Catch::Matchers::StartsWith("Unknown tool: measure_bedd"));
+        CHECK(f.details.at("code") == "invalid_argument");
+        CHECK(f.details.at("did_you_mean") == json::array({"measure_bed"}));
+    }
+#ifdef SLIC3R_CAD
+    // A Design command that this run's catalog leaves out is refused with the reason a call of it gets.
+    for (const bool editor : {true, false}) {
+        INFO(editor);
+        CommandCatalog left_out;
+        NativeCommands::register_all_commands(left_out, {false, editor});
+        left_out.seal();
+        try {
+            describe_command(left_out, "fillet");
+            FAIL("a left-out Design command was described");
+        } catch (const ToolFailure& f) {
+            CHECK(std::string(f.what()) == left_out.unknown_command("fillet"));
+            CHECK(f.details.at("code") == "design_unavailable");
+            CHECK_THAT(std::string(f.what()),
+                       Catch::Matchers::ContainsSubstring(editor ? "the CAD feature was off" : "the G-code viewer has no Design tab"));
+        }
+    }
+#endif
 }
 
 TEST_CASE("window_set refuses a request the window can't take, before changing anything", "[Mcp]")
