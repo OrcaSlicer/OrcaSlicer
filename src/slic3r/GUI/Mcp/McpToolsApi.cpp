@@ -77,6 +77,8 @@ std::shared_ptr<const NativeCommand> operation_command(const PluginOperation& op
     def->read_only    = !op.changes;
     def->guard        = op.changes ? GuardClass::Mutate : GuardClass::Inspect;
     def->journal      = op.changes;
+    // Plugin code runs under its plugin's grants, which may reach files, programs and the network.
+    def->open_world   = true;
     def->run          = [op](const json& args, ToolContext& ctx) {
         // The operation runs third-party code: the log names who asked and whose code ran.
         const std::string caller = ctx.caller_plugin().empty() ? "client, replay or script" : "plugin " + ctx.caller_plugin();
@@ -207,7 +209,9 @@ const std::map<std::string, ParameterClass>& classes_by_path()
         {"preset_delete.name", source({"preset_list"})},
         {"settings_get.compare", source({"preset_list"})},
         {"printer_list_models.vendor", source({"printer_list_models"})},
+        {"printer_install.models", source({"printer_list_models"})},
         {"printer_install.models[].vendor", source({"printer_list_models"})},
+        {"printer_uninstall.models", source({"printer_list_models"})},
         {"printer_uninstall.models[].vendor", source({"printer_list_models"})},
         // Input: a chord is the caller's; the menu an input opens is listed by the same call made without popup_item.
         {"keyboard_press.keys", kFree},
@@ -218,14 +222,15 @@ const std::map<std::string, ParameterClass>& classes_by_path()
         {"window_set.target", source({"window_list"})},
         {"window_screenshot.target", source({"window_list", "widget_list"})},
         {"dialog_auto_answer.rules[].button", kDescribed},
+        {"dialog_answer.dialog", source({"app_state"})},
         // A sliced plate's layers, by height too.
         {"plate_set_custom_gcode.add[].z", source({"plate_slice_stats"})},
         {"plate_set_custom_gcode.remove[].z", source({"plate_slice_stats"})},
-        // The Design tab: the shapes a sketch draws are new; a sketch line as a mirror axis; a hole's point is the
-        // caller's, a thread's may be a face; what a feature's card picks; the bodies a boolean takes.
+        // The Design tab: the shapes a sketch draws are new; a sketch line as a mirror axis; a hole's or a thread's
+        // point may be a body's face or edge; what a feature's card picks; the bodies a boolean takes.
         {"sketch_draw.entities", kFree},
         {"sketch_mirror.axis", source({"sketch_describe"})},
-        {"hole.at", kFree},
+        {"hole.at", source({"body_describe"})},
         {"thread.at", source({"body_describe"})},
         {"feature_edit.refs", source({"feature_describe"})},
         {"boolean.target", source({"describe_design"})},
@@ -250,10 +255,13 @@ const std::map<std::string, ParameterClass>& classes_by_name()
         {"instance_object_ids", objects}, {"fill_object", objects}, {"order", objects}, {"replace", objects},
         {"plate", plates}, {"plates", plates},
         {"filament_slot", slots}, {"filament", slots}, {"components", slots}, {"merge_into", slots},
+        {"prime_volume_mode", slots},
         {"layer", layers}, {"layer_range", layers}, {"layer_z", layers},
         // Presets, printer models and plugins.
         {"preset", presets}, {"printer", presets}, {"names", presets}, {"vendor", presets}, {"filament_type", presets},
         {"model", source({"printer_list_models"})}, {"nozzles", source({"printer_list_models"})},
+        // A setting's values, which settings_get gives in its meta.
+        {"shaper_type", source({"settings_get"})},
         {"plugin", source({"plugin_list"})}, {"capability", source({"plugin_list"})},
         // The app's jobs, dialogs and widgets.
         {"job", source({"app_state"})}, {"button", source({"app_state"})}, {"title", source({"app_state"})},
@@ -272,8 +280,7 @@ const std::map<std::string, ParameterClass>& classes_by_name()
         {"field", source({"feature_describe"})}, {"fields", source({"feature_describe"})},
         // Described: the parameter's own description, or its items' values, lists what it takes.
         {"edge_kinds", kDescribed}, {"kinds", kDescribed}, {"include", kDescribed}, {"legend", kDescribed},
-        {"modifiers", kDescribed}, {"prime_volume_mode", kDescribed}, {"shaper_type", kDescribed}, {"tab", kDescribed},
-        {"group", kDescribed},
+        {"modifiers", kDescribed}, {"tab", kDescribed}, {"group", kDescribed},
         // Free: the caller's own numbers, points, text, paths, names and shapes.
         {"accelerations", kFree}, {"across_flats", kFree}, {"angle", kFree}, {"angle_deg", kFree}, {"at", kFree},
         {"axis_a", kFree}, {"axis_b", kFree}, {"axis_x", kFree}, {"axis_y", kFree}, {"axis_z", kFree}, {"c0", kFree},
@@ -331,6 +338,21 @@ bool lists_its_values(const json& schema)
     return std::all_of(type.begin(), type.end(), [](const json& t) { return t == "boolean" || t == "null"; });
 }
 
+// Whether every name `schema` requires is one of its properties, which the manual marks required; a name with no
+// property is a constraint no parameter carries.
+bool requires_only_its_fields(const json& schema)
+{
+    const auto required = schema.find("required");
+    if (required == schema.end())
+        return true;
+    const auto props = schema.find("properties");
+    if (!required->is_array())
+        return false;
+    return std::all_of(required->begin(), required->end(), [&](const json& name) {
+        return name.is_string() && props != schema.end() && props->is_object() && props->contains(name.get<std::string>());
+    });
+}
+
 // Whether `schema` has fields of its own: an object's properties, or its items'.
 bool has_fields(const json& schema)
 {
@@ -359,9 +381,15 @@ struct ManualBuilder
             if (colon == std::string::npos)
                 continue;
             const std::string value = description.substr(lead.size(), colon - lead.size());
-            const json        own   = command.input_schema.value("properties", json::object()).value(arg, json::object());
-            const json        values = own.value("enum", json::array());
-            if (std::find(values.begin(), values.end(), value) != values.end())
+            // A plugin's schema may give the property as a boolean subschema, which lists no values.
+            const auto props = command.input_schema.find("properties");
+            if (props == command.input_schema.end() || !props->is_object())
+                continue;
+            const auto own = props->find(arg);
+            if (own == props->end() || !own->is_object())
+                continue;
+            const json values = own->value("enum", json::array());
+            if (values.is_array() && std::find(values.begin(), values.end(), value) != values.end())
                 return {{arg, value}};
         }
         return nullptr;
@@ -418,6 +446,8 @@ struct ManualBuilder
             else
                 raw = true;
         }
+        if (!requires_only_its_fields(schema))
+            raw = true;
         if (const auto other = schema.find("additionalProperties"); other != schema.end()) {
             if (other->is_boolean()) {
                 if (!other->get<bool>())
@@ -427,11 +457,19 @@ struct ManualBuilder
         }
         if (const auto items = schema.find("items"); items != schema.end())
             out["items"] = shape(*items, path + "[]", nullptr, classified);
-        // A parameter without fields names where its values come from, unless it lists them itself. An array's items
-        // are read through the array, which is the parameter.
-        if (classified && required != nullptr && !has_fields(schema) && !lists_its_values(schema))
-            if (const std::optional<ParameterClass> c = parameter_class(command.key, path); c && c->kind == ParameterClass::Source)
+        // A parameter names where its values come from, unless it lists them itself. One with fields is read through
+        // them, and names a source besides only where its command's own entry gives one (printer_install's models), as
+        // a name such as plane is a reference in one command and a cut plane's fields in another. An array's items are
+        // read through the array, which is the parameter.
+        if (classified && required != nullptr && !lists_its_values(schema)) {
+            std::optional<ParameterClass> c;
+            if (!has_fields(schema))
+                c = parameter_class(command.key, path);
+            else if (const auto row = classes_by_path().find(command.key + "." + path); row != classes_by_path().end())
+                c = row->second;
+            if (c && c->kind == ParameterClass::Source)
                 out["values_from"] = c->tools;
+        }
         if (raw) {
             out["schema"] = schema;
             complete      = false;
@@ -531,10 +569,13 @@ json command_manual(const NativeCommand& command)
             } else
                 builder.complete = false;
         }
+        // A top-level description has no place in the manual, whose description is the command's.
         for (const auto& [key, value] : schema.items())
             if (key != "type" && key != "properties" && key != "required" && key != "additionalProperties" && key != "if" &&
-                key != "then" && key != "description")
+                key != "then")
                 builder.complete = false;
+        if (!requires_only_its_fields(schema))
+            builder.complete = false;
         if (const auto props = schema.find("properties"); props != schema.end() && props->is_object()) {
             params = builder.fields(*props, required, std::string(), builder.classify);
             for (json& p : params)
@@ -542,12 +583,13 @@ json command_manual(const NativeCommand& command)
                     if (const auto c = conditional.find(p["name"].get<std::string>()); c != conditional.end())
                         p["required"] = c->second;
         }
-        if (const auto other = schema.find("additionalProperties"); other != schema.end()) {
-            if (*other == false)
-                rules.push_back("No other arguments are accepted.");
-            else if (!other->is_boolean())
-                builder.complete = false;
-        }
+        // A call's other arguments are refused only when the schema closes its top level (validate_value()).
+        if (const auto other = schema.find("additionalProperties"); other == schema.end() || *other == true)
+            rules.push_back("Other arguments are accepted.");
+        else if (*other == false)
+            rules.push_back("No other arguments are accepted.");
+        else
+            builder.complete = false;
     }
     json out{{"name", command.key},
              {"title", command.title},
@@ -604,7 +646,8 @@ void register_api_tools(CommandCatalog& catalog, const std::string& design_index
                                                 "tab's, with the CAD feature on). A command outside Design is in the group of the "
                                                 "place its name starts with (object_delete in Objects), but for window_screenshot "
                                                 "and window_save_screenshot, which are in Recordings, replays and scripts. A name "
-                                                "no command's group has is refused with the groups there are.")}}),
+                                                "no command's group has is refused with the groups there are, and Design, "
+                                                "when this run leaves the Design tab's commands out, with the reason.")}}),
         [](const json& args, ToolContext&) {
             return ToolResult::ok(unlisted_commands(NativeCommands::instance(), arg_string(args, "group")));
         }));

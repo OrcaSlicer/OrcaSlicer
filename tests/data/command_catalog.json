@@ -12,7 +12,7 @@
     "additionalProperties": false,
     "properties": {
      "group": {
-      "description": "Only this group's commands, its whole name in any case: Tools and actions; The app; The project; Objects; Parts; Plates; Presets and settings; Filaments; Printers and prints; Plugins, with the operations plugins offer; View and windows; Recordings, replays and scripts; Driving the GUI; or Design (the Design tab's, with the CAD feature on). A command outside Design is in the group of the place its name starts with (object_delete in Objects), but for window_screenshot and window_save_screenshot, which are in Recordings, replays and scripts. A name no command's group has is refused with the groups there are.",
+      "description": "Only this group's commands, its whole name in any case: Tools and actions; The app; The project; Objects; Parts; Plates; Presets and settings; Filaments; Printers and prints; Plugins, with the operations plugins offer; View and windows; Recordings, replays and scripts; Driving the GUI; or Design (the Design tab's, with the CAD feature on). A command outside Design is in the group of the place its name starts with (object_delete in Objects), but for window_screenshot and window_save_screenshot, which are in Recordings, replays and scripts. A name no command's group has is refused with the groups there are, and Design, when this run leaves the Design tab's commands out, with the reason.",
       "type": "string"
      }
     },

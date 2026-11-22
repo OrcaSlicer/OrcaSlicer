@@ -155,7 +155,8 @@ def main():
         described = orca.call_raw("tool_describe", {"tool": operation_name})
         operation = {} if described.get("isError") else json.loads(described["content"][0]["text"])
         check("tool_describe describes the plugin's operation, its parameter a among it",
-              [p.get("name") for p in operation.get("parameters", [])] == ["a"] and operation.get("listed") is False, described)
+              [p.get("name") for p in operation.get("parameters", [])] == ["a"] and operation.get("listed") is False and
+              operation.get("access", {}).get("open_world") is True, described)
         check("the operation is in the Plugins group, its description saying a plugin offers it",
               operation.get("group") == "Plugins" and operation.get("description", "").startswith("Offered by a plugin."), operation)
         called = orca.call_raw("tool_call", {"tool": f"plugin.{PLUGIN}.measure", "args": {"a": 2}})

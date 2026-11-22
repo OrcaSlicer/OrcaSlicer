@@ -319,8 +319,8 @@ std::vector<unsigned char> mixed_slots()
     return mixed;
 }
 
-// The types settings_get looks through when keys or a query come without one: the process, filament and printer
-// settings being edited, since a question about an effect rarely knows which tab answers it.
+// The types settings_get looks through when keys come without one: the process, filament and printer settings being
+// edited, since a key read for what it does rarely comes with the tab that holds it.
 const char* const kSearchTypes[]{"process", "filament", "printer"};
 
 // Where `key` is a setting, for a call that named it where it isn't one: the first of kSearchTypes that has it, else
@@ -2853,7 +2853,7 @@ std::string settings_request_error(const json& args, bool writes)
             (arg_string(args, "type", "process") != "printer" || values.size() > 1 || arg_bool(args, "reset_all", false)))
             return "extruders_count is set alone, with type printer: the extruders it adds take their settings in a following "
                    "call";
-    } else if (target == "global" && !args.contains("keys") && !args.contains("query") && !args.contains("compare")) {
+    } else if (target == "global" && !args.contains("keys") && !args.contains("compare")) {
         return "Nothing is named: give keys or compare to read settings, or a target other than global to read what it "
                "overrides; settings_list lists a type's settings, and settings_list_pages their pages";
     }

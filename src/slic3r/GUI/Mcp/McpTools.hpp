@@ -227,7 +227,8 @@ nlohmann::json unlisted_commands(const CommandCatalog& catalog, const std::strin
 // Where tool_describe's manual sends an agent for the values a built-in command's parameter takes when its schema does
 // not list them. Source: the tools that list them, in order ("tools/list" stands for the tool list); Described: the
 // parameter's own description lists them; Free: the caller's own value (a number, text, a path, a new name, a shape to
-// draw). Only a parameter without fields of its own is classified; one with fields is read through its fields.
+// draw). A parameter with fields of its own is read through its fields; the manual names a source for it besides only
+// where its command's own entry gives one (printer_install's models).
 struct ParameterClass
 {
     enum Kind { Source, Described, Free };

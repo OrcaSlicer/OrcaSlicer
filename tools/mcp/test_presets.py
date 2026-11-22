@@ -555,6 +555,12 @@ class PresetsTest:
         self.t.check(f"{s} 3: brim_type is listed there", "brim_type" in brim, brim)
         self.t.refused(f"{s} 3: settings_get takes no query", lambda: self.c.call("settings_get", query="seam"),
                        code="invalid_argument")
+        counted = sum(g["settings"] for p in self.c.call("settings_list_pages", type="object")["pages"] for g in p["groups"])
+        listed = self.settings_pages(type="object", include_meta=True)
+        placed = [i["key"] for i in listed if i.get("meta", {}).get("where")]
+        whole = self.c.call("settings_list", type="process", limit=1)["total"]
+        self.t.check(f"{s} 3: an object's pages count the settings an object takes", counted == len(placed) and
+                     len(listed) < whole, (counted, len(placed), len(listed), whole))
         self.selection_is(f"{s} 3", "Klipper | Std | PLA")
         reply = self.c.call("settings_get", keys=["nozzle_temperature", "layer_height", "nozzle_diameter",
                                                   "curr_bed_type", "no_such_key"], include_meta=False)

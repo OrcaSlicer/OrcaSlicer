@@ -225,6 +225,23 @@ def main():
     listed = listed_commands(client)
     wrong = {k: (listed.get(action_id(k)), fixture.get(k)) for k in keys if listed.get(action_id(k)) != fixture.get(k)}
     t.check("every action is listed with its command", len(keys) == ACTIONS and not wrong, wrong)
+    refusal = {}
+
+    def unknown_section():
+        try:
+            return client.call("action_list", section="No such section")
+        except orca_mcp.McpError as e:
+            refusal.update(checks.refusal(e)[1])
+            raise
+
+    t.refused("an unknown section is refused", unknown_section, code="invalid_argument")
+    t.check("the refusal lists the sections there are", "Slice & Export" in refusal.get("sections", []), refusal)
+    with_settings = client.call("action_list", include_settings=True, limit=200)
+    without = client.call("action_list", limit=1)
+    settings = [a["id"] for a in with_settings.get("items", []) if a["id"].startswith("orca_setting")]
+    t.check("include_settings lists the settings too",
+            with_settings.get("total", 0) > without.get("total", 0) and settings,
+            (with_settings.get("total"), without.get("total"), settings[:3]))
     empty(client)
     t.equal("Start Recording's folder is the output folder", use_capture_folder(client, out), os.path.normcase(out))
     for r in ROWS:

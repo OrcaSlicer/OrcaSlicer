@@ -714,7 +714,8 @@ printer, the cloud account or the network: `preset_save` (user presets sync), `p
 copy), `webview_run_javascript` (the page's own reach); of the commands made from menu items `printer_send`,
 `preset_sync`, `filament_sync_ams`, `app_check_for_updates`, `app_open_web_page` and `plugin_refresh`;
 `plugin_enable` and `plugin_reload`, which run a plugin's code and download a cloud plugin, and
-`plugin_uninstall`, whose Unsubscribe reaches the account; and through what they run `action_run`,
+`plugin_uninstall`, whose Unsubscribe reaches the account; every plugin operation, whose code runs under its
+plugin's grants; and through what they run `action_run`,
 `tool_call`, `replay_run` and `script_run`, which has the app's access to the computer. No client is known
 to ask on it. `idempotent`: the same call again changes nothing more.
 
@@ -4595,18 +4596,21 @@ the condition in words where a schema rule decides it; `default` is the schema's
 applies staying in the description's words; `goes_with` names the `type` or `target` the parameter belongs to
 where its description starts "Type X:" or "Target X:". `rules` gives the schema's conditional parts as
 sentences, from the two shapes `with_silent()` writes, and "No other arguments are accepted." for a closed top
-level. `menu_items` are the Speed Dial items that run the command, each with its arguments and the value it
-asks for first. What the builder cannot express (`anyOf`, `$ref`, a boolean subschema, as a plugin's schema may
-hold) stays raw under the parameter's `schema`, and the manual then carries `complete: false` and the whole
-`input_schema`, so that a rule spanning parts is never cut apart.
+level, "Other arguments are accepted." for an open one, which the call check lets through. `menu_items` are the
+Speed Dial items that run the command, each with its arguments and the value it asks for first. What the builder
+cannot express (`anyOf`, `$ref`, a boolean subschema, a required name with no property, a top-level description,
+as a plugin's schema may hold) stays raw under the parameter's `schema`, and the manual then carries
+`complete: false` and the whole `input_schema`, so that a rule spanning parts is never cut apart.
 
 `values_from` names, for a value the schema cannot list, the tools that list it: `object_list` for an object
 index, `settings_list` for a setting key, `tools/list` and `tool_list` for a command's name, `tool_describe` for
 another command's arguments. It comes from one table (`parameter_class()`) that classifies every parameter name
 the built-in commands use, at every depth, apart from enums and booleans: a source, with the tools that list its
 values; described, its description listing them; or free, the caller's own value, such as a number, a path or a
-new name. A row keyed by command and path comes before the name's row. A unit test fails for a built-in
-parameter the table does not classify, so a new command's parameters are classified when it is added; a plugin
+new name. A row keyed by command and path comes before the name's row. A parameter with fields of its own is
+read through them, and names a source besides only where a row keyed by its command and path gives one
+(`printer_install`'s `models`, `dialog_answer`'s `dialog`), since a name such as `plane` is a reference in one
+command and a cut plane's fields in another. A unit test fails for a built-in parameter the table does not classify, so a new command's parameters are classified when it is added; a plugin
 operation's are not, their names being the plugin's own. Every refusal of a call's arguments by the schema check
 names `tool_describe` for the command (`argument_refusal()`), by each route that checks: `tools/call`,
 `tool_call`'s target, a child call, a plugin's call and `action_run`.

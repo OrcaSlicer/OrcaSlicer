@@ -900,10 +900,36 @@ void check_parameters(const json& params, const json& props, const json& require
     }
 }
 
+// A schema's type in the manual's words: "number", or "number or null" for a list.
+std::string type_words(const json& type)
+{
+    if (type.is_string())
+        return type.get<std::string>();
+    std::string out;
+    for (const json& t : type)
+        out += (out.empty() ? "" : " or ") + t.get<std::string>();
+    return out;
+}
+
 void check_shape(const json& param, const json& schema, const std::string& where)
 {
     INFO(where);
     CHECK_FALSE(param.contains("schema"));
+    if (schema.contains("type"))
+        CHECK(param.at("type") == type_words(schema["type"]));
+    else
+        CHECK_FALSE(param.contains("type"));
+    static const std::pair<const char*, const char*> kBounds[] = {
+        {"minimum", "min"},          {"maximum", "max"},          {"exclusiveMinimum", "exclusive_min"},
+        {"minItems", "min_items"},   {"maxItems", "max_items"},   {"minLength", "min_length"},
+        {"maxLength", "max_length"}, {"pattern", "pattern"},      {"format", "format"}};
+    for (const auto& [from, to] : kBounds) {
+        INFO(from);
+        if (schema.contains(from))
+            CHECK(param.at(to) == schema[from]);
+        else
+            CHECK_FALSE(param.contains(to));
+    }
     if (schema.contains("enum"))
         CHECK(param.at("values") == schema["enum"]);
     else
@@ -912,10 +938,6 @@ void check_shape(const json& param, const json& schema, const std::string& where
         CHECK(param.at("default") == schema["default"]);
     else
         CHECK_FALSE(param.contains("default"));
-    if (schema.contains("minimum"))
-        CHECK(param.at("min") == schema["minimum"]);
-    if (schema.contains("maximum"))
-        CHECK(param.at("max") == schema["maximum"]);
     if (schema.contains("properties"))
         check_parameters(param.at("properties"), schema["properties"], schema.value("required", json::array()), where + ".");
     if (schema.contains("additionalProperties")) {
@@ -928,18 +950,17 @@ void check_shape(const json& param, const json& schema, const std::string& where
         check_shape(param.at("items"), schema["items"], where + "[]");
 }
 
-// Calls `f` with the path and schema of each parameter of `props` that has no fields of its own, at every depth.
-void each_leaf(const json& props, const std::string& prefix, const std::function<void(const std::string&, const json&)>& f)
+// Calls `f` with the path and schema of each parameter of `props` at every depth, those with fields of their own too.
+void each_parameter(const json& props, const std::string& prefix, const std::function<void(const std::string&, const json&)>& f)
 {
     for (auto it = props.begin(); it != props.end(); ++it) {
         const std::string path   = prefix + it.key();
         const json&       schema = it.value();
         if (schema.contains("properties"))
-            each_leaf(schema["properties"], path + ".", f);
+            each_parameter(schema["properties"], path + ".", f);
         if (schema.contains("items") && schema["items"].is_object() && schema["items"].contains("properties"))
-            each_leaf(schema["items"]["properties"], path + "[].", f);
-        if (!with_fields(schema))
-            f(path, schema);
+            each_parameter(schema["items"]["properties"], path + "[].", f);
+        f(path, schema);
     }
 }
 
@@ -1058,12 +1079,21 @@ TEST_CASE("tool_describe's manual names a command's menu items with their argume
 TEST_CASE("every parameter of a built-in command is classified for the manual", "[Mcp][CAD]")
 {
     const CommandCatalog catalog = catalog_with_cad();
+    // The parameters with fields of their own that name a source besides their fields, and the source.
+    std::map<std::string, json> containers;
     for (const NativeCommand& c : catalog.commands()) {
         const json manual = command_manual(c);
-        each_leaf(c.input_schema.value("properties", json::object()), "", [&](const std::string& path, const json& schema) {
+        each_parameter(c.input_schema.value("properties", json::object()), "", [&](const std::string& path, const json& schema) {
             if (lists_values(schema))
                 return;
             INFO(c.key + "." + path);
+            if (with_fields(schema)) {
+                const json* param = manual_parameter(manual, path);
+                REQUIRE(param != nullptr);
+                if (param->contains("values_from"))
+                    containers[c.key + "." + path] = param->at("values_from");
+                return;
+            }
             const std::optional<ParameterClass> cls = parameter_class(c.key, path);
             REQUIRE(cls.has_value());
             const json* param = manual_parameter(manual, path);
@@ -1074,6 +1104,12 @@ TEST_CASE("every parameter of a built-in command is classified for the manual", 
                 CHECK_FALSE(param->contains("values_from"));
         });
     }
+    // Only a command's own entry gives one a source: plane, say, is a reference in one command and a cut plane in
+    // another.
+    const std::map<std::string, json> with_source{{"printer_install.models", {"printer_list_models"}},
+                                                  {"printer_uninstall.models", {"printer_list_models"}},
+                                                  {"dialog_answer.dialog", {"app_state"}}};
+    CHECK(containers == with_source);
     // The sources of names that mean different things in different commands, and of the contested ones.
     const std::vector<std::pair<std::string, std::vector<std::string>>> sources{
         {"tool_call.args", {"tool_describe"}},
@@ -1087,6 +1123,12 @@ TEST_CASE("every parameter of a built-in command is classified for the manual", 
         {"preset_select.name", {"preset_list"}},
         {"preset_list.vendor", {"preset_list"}},
         {"printer_install.models[].vendor", {"printer_list_models"}},
+        {"printer_install.models", {"printer_list_models"}},
+        {"dialog_answer.dialog", {"app_state"}},
+        {"filament_set_flushing.prime_volume_mode", {"filament_list"}},
+        {"calibration_generate_test.shaper_type", {"settings_get"}},
+        {"hole.at", {"body_describe"}},
+        {"thread.at", {"body_describe"}},
         {"job_cancel.job", {"app_state"}},
         {"dialog_answer.button", {"app_state"}},
         {"widget_click.popup_item", {"widget_click"}},
@@ -1164,11 +1206,57 @@ TEST_CASE("tool_describe keeps raw what it can't express, and says the manual is
     CHECK(draft4.at("parameters")[0].at("min") == 0);
     CHECK(draft4.at("parameters")[0].contains("schema"));
 
+    // A top-level description has no place in the manual, whose description is the command's.
+    const json described = json::parse(R"({"type": "object", "description": "A measurement.", "properties": {"a": {"type": "number"}}})");
+    const json with_text = manual(described);
+    CHECK(with_text.at("complete") == false);
+    CHECK(with_text.at("input_schema") == described);
+
+    // A required name with no property is a constraint no parameter carries, at the top and inside a parameter.
+    const json token        = json::parse(R"({"type": "object", "properties": {}, "required": ["token"]})");
+    const json needs_token  = manual(token);
+    CHECK(needs_token.at("complete") == false);
+    CHECK(needs_token.at("input_schema") == token);
+    const json inner        = json::parse(R"({"type": "object", "properties": {}, "required": ["b"]})");
+    const json inner_needs  = manual(json{{"type", "object"}, {"properties", {{"a", inner}}}});
+    CHECK(inner_needs.at("complete") == false);
+    CHECK(inner_needs.at("parameters")[0].at("schema") == inner);
+
+    // An open top level takes arguments no parameter names; a closed one says it refuses them.
+    const json open = manual(json::parse(R"({"type": "object", "additionalProperties": true})"));
+    CHECK(open.at("complete") == true);
+    CHECK(open.at("parameters") == json::array());
+    CHECK(open.at("rules") == json::array({"Other arguments are accepted."}));
+    const json closed = manual(json::parse(R"({"type": "object", "properties": {}, "additionalProperties": false})"));
+    CHECK(closed.at("rules") == json::array({"No other arguments are accepted."}));
+
+    // A type given as a boolean subschema lists no values, so another parameter's "Type x:" lead ties it to none.
+    const json loose = manual(json::parse(R"({"type": "object", "properties": {"type": true,
+                                               "b": {"type": "number", "description": "Type x: a width."}}})"));
+    CHECK(loose.at("complete") == false);
+    const json* width = manual_parameter(loose, "b");
+    REQUIRE(width != nullptr);
+    CHECK_FALSE(width->contains("goes_with"));
+
+    // The keywords no built-in command uses, as a plugin's schema may: a pattern, a format, a type that takes null.
+    const json keywords = json::parse(R"({"type": "object", "properties": {"code": {"type": "string", "pattern": "^[a-z]+$",
+                                              "format": "date", "minLength": 2, "maxLength": 8},
+                                              "w": {"type": ["number", "null"], "exclusiveMinimum": 0},
+                                              "ids": {"type": "array", "items": {"type": "integer"}, "minItems": 1, "maxItems": 3}},
+                                              "additionalProperties": false})");
+    const json words    = manual(keywords);
+    CHECK(words.at("complete") == true);
+    check_parameters(words.at("parameters"), keywords["properties"], json::array(), "");
+    const json* w = manual_parameter(words, "w");
+    REQUIRE(w != nullptr);
+    CHECK(w->at("type") == "number or null");
+
     // A rule of with_silent()'s shape reads its forms as the schema writes them, menu items or none.
     const json forms = manual(json::parse(R"({"type": "object", "properties": {"a": {"type": "integer"}, "b": {"type": "string"}},
                                               "if": {"not": {"enum": [{}, {"a": 1}]}}, "then": {"required": ["b"]}})"));
     CHECK(forms.at("complete") == true);
-    CHECK(forms.at("rules") == json::array({"Unless the arguments are exactly {} or {\"a\":1}, b is required."}));
+    CHECK(forms.at("rules") == json::array({"Unless the arguments are exactly {} or {\"a\":1}, b is required.",
+                                            "Other arguments are accepted."}));
     const json* b = manual_parameter(forms, "b");
     REQUIRE(b != nullptr);
     CHECK(b->at("required") == "unless the arguments are exactly one of the forms rules gives");
