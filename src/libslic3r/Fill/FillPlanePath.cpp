@@ -89,7 +89,7 @@ void FillPlanePath::_fill_surface_single(
     Polylines                       &polylines_out)
 {
 
-#define DEBUG_PATH
+//#define DEBUG_PATH
 #ifdef DEBUG_PATH
 
 //#define DEBUG_PATH_IO
@@ -179,7 +179,7 @@ void FillPlanePath::_fill_surface_single(
         is_solid     = true;
     }
 
-//#ifdef DEBUG_PATH
+#ifdef DEBUG_PATH
 #ifdef DEBUG_PATH_IO
     svg.draw(bounding_box.polygon().lines(), "orangered", w2); // exactly island filling bounding
 #endif
