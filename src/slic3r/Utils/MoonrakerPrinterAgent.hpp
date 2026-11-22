@@ -5,6 +5,7 @@
 #include "bambu_networking.hpp"
 
 #include <functional>
+#include <future>
 #include <chrono>
 #include <cstdint>
 #include <atomic>
@@ -81,7 +82,8 @@ public:
         std::string      url;
     };
     // The first enabled webcam of a /server/webcams/list answer: its MJPEG or RTSP stream when the player can open it,
-    // else its snapshot. Relative URLs are resolved against the origin of base_url, as the web frontends do.
+    // else its snapshot. Relative URLs are resolved against the origin of base_url, as the web frontends do. Only http,
+    // https, rtsp and rtsps URLs are taken.
     static CameraSource pick_webcam(const nlohmann::json& webcams, const std::string& base_url);
     // The status report MachineObject parses, from the cached Moonraker objects
     // chamber_led: the Klipper LED shown as the chamber light, or empty for none;
@@ -93,9 +95,9 @@ public:
                                               const std::string&           chamber_sensor = {});
     // The speed factor (percent) M220 sets for a Device tab speed level (1 silent .. 4 ludicrous), and back
     static int speed_percent_for_level(int level);
+    static int speed_level_for_factor(double speed_factor);
     // The URL of the largest thumbnail in a /server/files/metadata answer for a file in the gcodes root, or empty
     static std::string thumbnail_url(const nlohmann::json& metadata, const std::string& base_url, const std::string& filename);
-    static int speed_level_for_factor(double speed_factor);
 
     // JSON helper methods
     static std::string safe_json_string(const nlohmann::json& obj, const char* key);
@@ -263,9 +265,13 @@ private:
     QueueOnMainFn        queue_on_main_fn;
     OnServerErrFn        on_server_err_fn;
 
-    // Follows the printed file's thumbnail; stream thread only
-    void update_job_thumbnail(const std::string& base_url, const std::string& api_key);
-    std::string        job_thumbnail_file;   // the file job_thumbnail_url is for
+    // Starts reading the printed file's thumbnail on a task of its own when the file changed; stream thread only
+    void follow_job_thumbnail(const std::string& base_url, const std::string& api_key);
+    // Reads the thumbnail URL of a file in the gcodes root into job_thumbnail_url; false when its metadata could not be read
+    bool fetch_job_thumbnail(const std::string& base_url, const std::string& filename);
+    std::future<bool>  job_thumbnail_task;    // the read of job_thumbnail_pending, waited for when the stream ends
+    std::string        job_thumbnail_pending; // stream thread only, as the three below
+    std::string        job_thumbnail_file;    // the file job_thumbnail_url is for
     std::string        job_thumbnail_failed; // the file whose metadata read failed, tried again at job_thumbnail_retry
     std::chrono::steady_clock::time_point job_thumbnail_retry;
     std::string        job_thumbnail_url; // guarded by payload_mutex
