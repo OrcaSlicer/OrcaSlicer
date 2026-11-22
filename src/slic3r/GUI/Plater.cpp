@@ -15858,7 +15858,7 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
                     tower_x_opt->set_at(&tower_x_new, plate_idx, 0);
                     tower_y_opt->set_at(&tower_y_new, plate_idx, 0);
                     need_update = true;
-                    // break; // Orca: restore all plates, moving a plate changes several positions
+                    // Orca: restore every plate, moving a plate changes several positions
                 }
             }
 
