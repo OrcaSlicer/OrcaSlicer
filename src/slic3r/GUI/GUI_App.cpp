@@ -314,6 +314,10 @@ typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS2)(
 #include "LinuxDisplayBackend.hpp"
 #endif
 
+#if !defined(_WIN32) && !defined(__APPLE__)
+#include <locale.h>
+#endif
+
 // Needed for forcing menu icons back under gtk2 and gtk3
 #if defined(__WXGTK20__) || defined(__WXGTK3__)
     #include <gtk/gtk.h>
@@ -8750,7 +8754,20 @@ bool GUI_App::load_language(wxString language, bool initial)
 
 	BOOST_LOG_TRIVIAL(trace) << boost::format("Switching wxLocales to %1%") % locale_language_info->CanonicalName.ToUTF8().data();
 
+    bool use_environment_locale = false;
+#if !defined(_WIN32) && !defined(__APPLE__)
+    // Falls back to the environment's locale when no candidate locale is installed (the AppImage forces LC_ALL=C), since wxLocale::IsAvailable() can't report it.
     if (!wxLocale::IsAvailable(locale_language_info->Language)) {
+        if (locale_t environment_locale = newlocale(LC_ALL_MASK, "", locale_t(0))) {
+            freelocale(environment_locale);
+            use_environment_locale = true;
+            BOOST_LOG_TRIVIAL(info) << boost::format("No locale for %1% or its fallbacks is installed. Using the environment locale instead of %2%.")
+                                        % requested_language_code.ToUTF8().data() % locale_language_info->CanonicalName.ToUTF8().data();
+        }
+    }
+#endif
+
+    if (!use_environment_locale && !wxLocale::IsAvailable(locale_language_info->Language)) {
     	// Loading the language dictionary failed.
 	    wxString message = wxString::Format(_L("Switching Orca Slicer to language %s failed."), requested_language_code);
 #if !defined(_WIN32) && !defined(__APPLE__)
@@ -8770,10 +8787,16 @@ bool GUI_App::load_language(wxString language, bool initial)
     //FIXME wxWidgets cause havoc if the current locale is deleted. We just forget it causing memory leaks for now.
     m_wxLocale.release();
     m_wxLocale = Slic3r::make_unique<wxLocale>();
-    m_wxLocale->Init(locale_language_info->Language);
+    // Defers the wxstd catalog until after SetLanguage() below, so it matches the dictionary's language.
+    if (use_environment_locale)
+        m_wxLocale->Init(wxLANGUAGE_DEFAULT, wxLOCALE_DONT_LOAD_DEFAULT);
+    else
+        m_wxLocale->Init(locale_language_info->Language);
     // Override language at the active wxTranslations class (which is stored in the active m_wxLocale)
     // to load possibly different dictionary, for example, load Czech dictionary for Slovak language.
     wxTranslations::Get()->SetLanguage(language_dict);
+    if (use_environment_locale)
+        wxTranslations::Get()->AddStdCatalog();
     m_wxLocale->AddCatalog(SLIC3R_APP_KEY);
     m_active_language_code = requested_language_code;
     m_imgui->set_language(into_u8(requested_language_code));
