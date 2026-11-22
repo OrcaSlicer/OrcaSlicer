@@ -4593,17 +4593,19 @@ listed commands. Each parameter is `{name, type, required, default?, values?, mi
 min_items?, max_items?, min_length?, max_length?, pattern?, format?, goes_with?, values_from?, items?,
 properties?, other_keys?, schema?, description}`, the same shape at every depth. `other_keys`, on an object,
 is false when it takes nothing besides its properties, true when it takes anything, or the shape of the values
-it takes; it is left out where a keyword kept raw (`allOf`, `$ref`) may decide it. `required` is true, false, or
-the condition in words where a schema rule decides it; `default` is the schema's alone, a default a handler
-applies staying in the description's words; `goes_with` names the `type` or `target` the parameter belongs to
-where its description starts "Type X:" or "Target X:". `rules` gives the schema's conditional parts as
-sentences, from the two shapes `with_silent()` writes, and "No other arguments are accepted." for a closed top
-level, "Other arguments are accepted." for an open one, which the call check lets through, unless its top level
-holds a keyword kept raw that may close it. `menu_items` are the
-Speed Dial items that run the command, each with its arguments and the value it asks for first. What the builder
-cannot express (`anyOf`, `$ref`, a boolean subschema, a required name with no property, a top-level description,
-as a plugin's schema may hold) stays raw under the parameter's `schema`, and the manual then carries
-`complete: false` and the whole `input_schema`, so that a rule spanning parts is never cut apart.
+it takes. False and a shape stay beside a keyword kept raw; true is left out wherever that schema node is kept
+raw, since a keyword there (an `allOf`, say) may close the object, and its raw `schema` then says what it takes.
+`required` is true, false, or the condition in words where a schema rule decides it; `default` is the schema's
+alone, a default a handler applies staying in the description's words; `goes_with` names the `type` or `target`
+the parameter belongs to where its description starts "Type X:" or "Target X:". `rules` gives the schema's
+conditional parts as sentences, from the two shapes `with_silent()` writes, and "No other arguments are
+accepted." for a closed top level, "Other arguments are accepted." for an open one, which the call check lets
+through, unless the top level itself holds anything kept raw. `menu_items` are the Speed Dial items that run the
+command, each with its arguments and the value it asks for first. What the builder cannot express, such as
+`anyOf`, `allOf`, `$ref` and `$defs`, a boolean subschema, a required name with no property, a top-level
+description or a `properties` that is not an object, as a plugin's schema may hold, stays raw under the
+parameter's `schema`, and the manual then carries `complete: false` and the whole `input_schema`, so that a
+rule spanning parts is never cut apart.
 
 `values_from` names, for a value the schema cannot list, the tools that list it: `object_list` for an object
 index, `settings_list` for a setting key, `tools/list` and `tool_list` for a command's name, `tool_describe` for
