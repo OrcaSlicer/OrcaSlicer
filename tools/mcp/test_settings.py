@@ -87,7 +87,7 @@ class SettingsTest:
         return {i["key"]: i["value"] for i in reply["items"] if not (i["key"] == "extruder" and i["value"] == "0")}
 
     def cube(self):
-        return self.c.call("object_list", limit=500)["plates"][0]["objects"][0]
+        return self.c.call("object_list", limit=500, detail=True)["plates"][0]["objects"][0]
 
     def ranges(self):
         return [{"min_z": r["min_z"], "max_z": r["max_z"], "values": r["values"]}

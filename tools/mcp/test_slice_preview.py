@@ -205,7 +205,7 @@ class SlicePreviewTest:
     def objects(self):
         """(on, outside): the objects on the plates as {plate, name, filament, offset} sorted by plate and name, and
         the names of the objects outside every plate."""
-        listing = self.c.call("object_list", limit=500)
+        listing = self.c.call("object_list", limit=500, detail=True)
         on = sorted(({"plate": p["index"], "name": o["name"], "filament": o["filament"],
                       "offset": o["instances"][0]["offset"]} for p in listing["plates"] for o in p["objects"]),
                     key=lambda o: (o["plate"], o["name"]))
@@ -826,7 +826,7 @@ class SlicePreviewTest:
                      "normal")
 
     def ranges(self):
-        objects = self.c.call("object_list", limit=500)["plates"][0]["objects"]
+        objects = self.c.call("object_list", limit=500, detail=True)["plates"][0]["objects"]
         return objects[0].get("layer_config_ranges") if objects else "no object"
 
     def height_ranges(self):
@@ -940,7 +940,7 @@ class SlicePreviewTest:
         ranges_are(f"{s} 18", None)
 
     def profile(self):
-        objects = self.c.call("object_list", limit=500)["plates"][0]["objects"]
+        objects = self.c.call("object_list", limit=500, detail=True)["plates"][0]["objects"]
         return objects[0].get("layer_height_profile") if objects else "no object"
 
     def variable_height(self):
@@ -1153,7 +1153,7 @@ class SlicePreviewTest:
         start = ('"" 1', '"" 0 *', '"" 0')
         self.plates_are(f"{s}: the start", *start)
         self.snapshots()
-        listing = self.c.call("object_list", limit=500)
+        listing = self.c.call("object_list", limit=500, detail=True)
         O = listing["plates"][0]["objects"][0]["instances"][0]["offset"]
         path = self.path("stl")
 
@@ -1217,7 +1217,7 @@ class SlicePreviewTest:
         reply = self.c.call("plate_get_settings", plate=0)
         self.t.equal(f"{s} 12: the reply's plate", reply.get("plate"), 0)
         self.plates_are(f"{s} 12: reading a plate leaves the current one", *after11)
-        reply = self.c.call("object_list", plate=0)
+        reply = self.c.call("object_list", plate=0, detail=True)
         self.t.equal(f"{s} 13: plate 0 alone", ([p["index"] for p in reply.get("plates", [])],
                                                [o["name"] for p in reply.get("plates", []) for o in p["objects"]],
                                                "outside" in reply), ([0], ["Cube"], False))
@@ -1227,7 +1227,7 @@ class SlicePreviewTest:
         self.plates_are(f"{s} 14: the plate arranged is made current", '"" 1 *', '"" 0', '"" 0')
         items = self.c.call("plate_list", limit=500)["items"]
         (x0, y0), (w, d) = items[0]["origin"], items[0]["size"]
-        box = self.c.call("object_list", limit=500)["plates"][0]["objects"][0]["instances"][0]
+        box = self.c.call("object_list", limit=500, detail=True)["plates"][0]["objects"][0]["instances"][0]
         bb = box["bbox"]
         self.t.check(f"{s} 14: the cube lies inside plate 0", bb["min"][0] >= x0 and bb["min"][1] >= y0 and
                      bb["max"][0] <= x0 + w and bb["max"][1] <= y0 + d, (bb, (x0, y0, w, d)))

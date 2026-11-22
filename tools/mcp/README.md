@@ -86,7 +86,9 @@ orca.call("app_wait", **{"for": "idle"})             # "for" is a Python keyword
 info, pngs = orca.images("window_screenshot", target="canvas")
 ```
 
-`call()` returns the tool's JSON result and raises `McpError` when the tool reports an error.
+`call()` returns the tool's JSON result and raises `McpError` when the tool reports an error. The server
+rounds a reply's numbers for an agent to read (4 decimals, or 3 significant digits where that keeps more);
+`orca.exact_numbers = True` asks every later call for them whole, for a check that computes with them.
 `call_with_text()` also returns the text blocks after the JSON one, such as `widget_list`'s tree.
 `images()` also returns the PNG bytes of the image blocks. `call_raw()` returns the MCP result
 unchanged. With `ORCA_MCP_CALL_LOG` set to a file, every call appends a JSON line with its tool, its
@@ -98,7 +100,7 @@ under AI features in Preferences), attach to it through its datadir instead of a
 ```python
 orca = OrcaMcp.from_datadir()                        # the datadir the app uses without --datadir
 orca = OrcaMcp.from_datadir("/abs/datadir")          # an app started with --datadir /abs/datadir
-design = orca.call_command("describe_design")["result"]   # a Design command (the Design tab on)
+design = orca.call_command("describe_design")             # a Design command (the Design tab on)
 orca.call_command("helix", radius=10, pitch=3, height=30)
 ```
 
@@ -115,7 +117,7 @@ port it names fails (nothing listens there, or another server answers), `from_da
 `McpError` saying so, with the failure as its cause.
 
 `call_command(tool, **args)` calls `tool_call {tool, args}`, follows a running job to its end and
-returns the command's whole reply, which for a Design command is `{"result": ...}`. A call whose first
+returns the command's reply. A call whose first
 reply says a dialog blocks it fails at once, naming the dialog, rather than waiting on it. A call that
 first replied `running` and opens a dialog later is waited on up to the timeout (600 s), since `app_wait`
 reports only that its job is still running. Every `McpError` it raises starts with the command's name

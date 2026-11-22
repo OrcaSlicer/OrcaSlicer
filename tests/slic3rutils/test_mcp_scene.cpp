@@ -999,22 +999,26 @@ TEST_CASE("object_list lists each plate's objects, then those on no plate", "[Mc
     CHECK(first["index"] == 0);
     CHECK(first["name"] == "");
     REQUIRE(first["objects"].size() == 2);
-    CHECK(first["objects"][0]["name"] == "alone");
-    CHECK(first["objects"][0]["parts"].size() == 1);
-    // An object keeps its index and id in the project, and lists the instances on this plate only.
+    // Without detail an object is its names, counts and size: a 10 mm cube of one part.
+    const json& alone = first["objects"][0];
+    CHECK(alone["name"] == "alone");
+    CHECK(alone["part_count"] == 1);
+    REQUIRE(alone["size"].size() == 3);
+    for (const json& side : alone["size"])
+        CHECK_THAT(side.get<double>(), WithinAbs(10., 1e-6));
+    CHECK_FALSE(alone.contains("parts"));
+    CHECK_FALSE(alone.contains("bbox"));
+    // An object keeps its index and id in the project, and lists the instances on this plate only, by index.
     const json& twice = first["objects"][1];
     CHECK(twice["index"] == 1);
     CHECK(twice["id"] == scene.model.objects[1]->id().id);
-    REQUIRE(twice["instances"].size() == 1);
-    CHECK(twice["instances"][0]["index"] == 0);
-    CHECK_FALSE(twice["instances"][0].contains("plate"));
+    CHECK(twice["instances"] == json::array({0}));
 
     const json& second = out["plates"][1];
     CHECK(second["name"] == "second");
     REQUIRE(second["objects"].size() == 1);
     CHECK(second["objects"][0]["index"] == 1);
-    REQUIRE(second["objects"][0]["instances"].size() == 1);
-    CHECK(second["objects"][0]["instances"][0]["index"] == 1);
+    CHECK(second["objects"][0]["instances"] == json::array({1}));
 
     // A plate with nothing on it is listed.
     CHECK(out["plates"][2]["objects"].empty());
@@ -1023,6 +1027,25 @@ TEST_CASE("object_list lists each plate's objects, then those on no plate", "[Mc
     // The object on two plates is listed under both and counted once.
     CHECK(out["total"] == 3);
     CHECK_FALSE(out.contains("next_offset"));
+}
+
+TEST_CASE("object_list with detail gives each instance's and part's entry", "[Mcp][Scene]")
+{
+    const PlatedModel scene;
+    const json        out = scene.list({{"detail", true}});
+    const json&       first = out["plates"][0];
+    REQUIRE(first["objects"].size() == 2);
+    CHECK(first["objects"][0]["parts"].size() == 1);
+    CHECK(first["objects"][0].contains("bbox"));
+    CHECK(first["objects"][0].contains("mesh_errors"));
+    // The entries of the instances on this plate only, without their plate, which the listing gives.
+    const json& twice = first["objects"][1];
+    REQUIRE(twice["instances"].size() == 1);
+    CHECK(twice["instances"][0]["index"] == 0);
+    CHECK_FALSE(twice["instances"][0].contains("plate"));
+    const json& second = out["plates"][1]["objects"][0];
+    REQUIRE(second["instances"].size() == 1);
+    CHECK(second["instances"][0]["index"] == 1);
 }
 
 TEST_CASE("object_list with a plate lists that plate alone", "[Mcp][Scene]")
@@ -1071,8 +1094,7 @@ TEST_CASE("object_list with a plate pages and counts that plate's objects", "[Mc
     CHECK_FALSE(out.contains("next_offset"));
     REQUIRE(out["plates"][0]["objects"].size() == 1);
     CHECK(out["plates"][0]["objects"][0]["name"] == "twice");
-    REQUIRE(out["plates"][0]["objects"][0]["instances"].size() == 1);
-    CHECK(out["plates"][0]["objects"][0]["instances"][0]["index"] == 0);
+    CHECK(out["plates"][0]["objects"][0]["instances"] == json::array({0}));
 }
 
 TEST_CASE("part types round-trip between names and ModelVolumeType", "[Mcp][Scene]")

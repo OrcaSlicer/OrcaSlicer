@@ -106,7 +106,7 @@ class GuiToolsTest:
     def objects(self):
         """Each object as {object: "<name>: <part> <type> + ...", plate, printable}, printable being its first
         instance's, in object_list's order; an object outside the plates has plate None."""
-        listing = self.c.call("object_list", limit=500)
+        listing = self.c.call("object_list", limit=500, detail=True)
         placed = [(p["index"], o) for p in listing["plates"] for o in p["objects"]]
         placed += [(None, o) for o in listing.get("outside", [])]
         return [{"object": o["name"] + ": " + " + ".join(f"{part['name']} {part['type']}" for part in o["parts"]),
@@ -424,7 +424,7 @@ class GuiToolsTest:
         self.t.near(f"{s} 7: the zoom", camera["zoom"], 1, 1e-6)
         reply = self.run("widget_click", target={"row": "Plate 1>Cube"}, double=True)
         self.t.equal(f"{s} 8: the reply's selection", reply.get("selected"), ["Plate 1>Cube"])
-        box = self.c.call("object_list")["plates"][0]["objects"][0]["bbox"]
+        box = self.c.call("object_list", detail=True)["plates"][0]["objects"][0]["bbox"]
         centre = [(a + b) / 2 for a, b in zip(box["min"], box["max"])]
         camera = self.state()["camera"]
         self.t.near(f"{s} 8: a double click frames the object", camera["look_at"], centre, 0.01)

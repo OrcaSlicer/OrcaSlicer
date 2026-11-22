@@ -396,7 +396,7 @@ void register_app_tools(CommandCatalog& catalog, [[maybe_unused]] bool cad)
         "reply holds whole entries.",
         object_schema({{"lines", {{"type", "integer"}, {"minimum", 1}, {"maximum", 2000},
                                   {"description", "The most lines, of the newest whole entries; an entry longer than that gives its "
-                                                  "first lines. Default 200."}}},
+                                                  "first lines. Default 50."}}},
                        {"level", enum_prop({"trace", "debug", "info", "warning", "error", "fatal"}, "Minimum level.")}}),
         [](const json& args, ToolContext&) {
             const boost::filesystem::path file = get_log_file_name();
@@ -405,7 +405,7 @@ void register_app_tools(CommandCatalog& catalog, [[maybe_unused]] bool cad)
             flush_logs();
             boost::nowide::ifstream in(path_to_utf8(file).c_str());
             const std::vector<std::string> tail = log_tail(in, arg_string(args, "level", "trace"),
-                                                           std::size_t(arg_int(args, "lines", 200)));
+                                                           std::size_t(arg_int(args, "lines", 50)));
             return ToolResult::ok({{"file", path_to_utf8(file)}, {"lines", json(tail)}});
         }));
 

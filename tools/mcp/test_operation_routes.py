@@ -73,7 +73,7 @@ def main():
         return client.call("script_run", filename=FIXTURE, code=code, args=args)["result"]
 
     def offsets():
-        return [o["instances"][0]["offset"][:2] for o in client.call("object_list")["plates"][0]["objects"]]
+        return [o["instances"][0]["offset"][:2] for o in client.call("object_list", detail=True)["plates"][0]["objects"]]
 
     presets = shared.start(client)
     check("starts from the Generic Klipper Printer", presets == START, presets)

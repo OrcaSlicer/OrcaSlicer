@@ -337,7 +337,7 @@ def layer_rows(client):
 
 def layer_slots(client):
     """Each texture layer's slot, from object_list's painted.texture."""
-    return [layer["slot"] for layer in client.call("object_list")["plates"][0]["objects"][0]["parts"][0]["painted"]["texture"]]
+    return [layer["slot"] for layer in client.call("object_list", detail=True)["plates"][0]["objects"][0]["parts"][0]["painted"]["texture"]]
 
 
 def refs_after_change(client, t):

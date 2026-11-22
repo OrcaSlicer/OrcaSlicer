@@ -664,12 +664,18 @@ nlohmann::json arrange_settings_json(const GLCanvas3D::ArrangeSettings& settings
 // plate, which the GUI's plate registry knows), parts, and its height ranges and variable layer height
 // profile when it has them. Bounding boxes, on the bed and of model parts only, are {min, max, size}.
 nlohmann::json object_info(const ModelObject& object, std::size_t index);
+// An object as object_list lists it without detail: enough to name it in a call and tell it from the others. Its
+// index, id, name, filament, part count, and the size of its bounding box as object_info() gives it (null for an
+// object with no instance).
+nlohmann::json object_summary(const ModelObject& object, std::size_t index);
 // A part as object_list describes it: its type, filament, placement on the bed measured on instance 0,
 // rotation and scale in the object's frame, mesh, paint, and what a text or SVG part was made from.
 nlohmann::json volume_info(const ModelVolume& volume, std::size_t index);
 // What object_list replies with, laid out as the Objects panel is: `plates`, each {index, name, objects}
 // with the objects that have an instance on it, and `outside`, the objects with an instance on no plate.
 // An object row lists the instances of its plate only, so an object on two plates has a row under each.
+// A row is object_summary()'s with `instances` the indices of those instances, or with `detail` in `args`
+// object_info()'s with their entries.
 // `plate_of(object, instance)` is the plate an instance is on, or -1, and `plate_names` has a name per
 // plate. Of `args`, plate lists that plate alone, without `outside`, and limit (default 200) and offset
 // page the objects listed, in the model's order: total counts them, each once, and next_offset is there

@@ -19,7 +19,7 @@
     {"tool": "view_set", "args": {"tab": "design", "camera": "iso"},
      "expect": {"/tab": {"eq": "design"}, "/camera": {"eq": "iso"}}},
     {"tool": "tool_call", "args": {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 10}},
-     "expect": {"/result/ok": {"eq": true}}},
+     "expect": {"/ok": {"exists": false}}},
     // The Design view has no gizmos, and a change made only in the Design tab marks the project.
     {"tool": "app_state", "expect": {"/tab": {"eq": "design"}, "/gizmo": {"eq": null}, "/project/dirty": {"eq": true}}},
     // Refused: Prepare's fit to bed, a fit to the selection with nothing picked, the Preview's layers.
@@ -50,12 +50,12 @@
     {"tool": "keyboard_press", "args": {"keys": "Escape"}},
     {"tool": "widget_list", "args": {"query": "Extrude dist"}, "expect": {"/nodes": {"eq": 0}}},
     {"tool": "tool_call", "args": {"tool": "extrude", "args": {"width": 6, "height": 6, "distance": 20}},
-     "expect": {"/result/ok": {"eq": true}}},
+     "expect": {"/ok": {"exists": false}}},
 
     // A design-only project: saved, changed in the Design tab alone, then opened again.
     {"tool": "project_save", "args": {"path": "${out_dir}/design_only.3mf", "overwrite": true}},
     {"tool": "app_state", "expect": {"/project/dirty": {"eq": false}, "/project/name": {"eq": "design_only"}}},
-    {"tool": "tool_call", "args": {"tool": "set_variable", "args": {"name": "w", "expr": "5"}}, "expect": {"/result/ok": {"eq": true}}},
+    {"tool": "tool_call", "args": {"tool": "set_variable", "args": {"name": "w", "expr": "5"}}, "expect": {"/ok": {"exists": false}}},
     {"tool": "app_state", "expect": {"/project/dirty": {"eq": true}}},
     {"tool": "project_open", "args": {"path": "${out_dir}/design_only.3mf"}, "optional": true},
     {"tool": "project_open", "args": {"path": "${out_dir}/design_only.3mf", "discard_changes": true},
@@ -63,6 +63,6 @@
     {"tool": "app_state", "expect": {"/project/dirty": {"eq": false}, "/project/name": {"eq": "design_only"},
                                  "/project/path": {"regex": "design_only\\.3mf$"}, "/dialogs": {"empty": true}}},
     {"tool": "tool_call", "args": {"tool": "describe_design"},
-     "expect": {"/result/variables": {"empty": true}, "/result/bodies/1": {"exists": true}}}
+     "expect": {"/variables": {"empty": true}, "/bodies/1": {"exists": true}}}
   ]
 }

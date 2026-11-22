@@ -1326,7 +1326,7 @@ class PresetsTest:
 
     def objects(self):
         """Each object as {name, height}, the height being its bbox's size in z."""
-        listing = self.c.call("object_list", limit=500)
+        listing = self.c.call("object_list", limit=500, detail=True)
         return [{"name": o["name"], "height": o["bbox"]["size"][2]} for p in listing["plates"] for o in p["objects"]]
 
     def object_filaments(self):

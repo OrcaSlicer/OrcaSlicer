@@ -59,7 +59,8 @@ public:
     PostReply handle_post(const PostRequest& request);
 
     static nlohmann::json tool_to_json(const NativeCommand& command);
-    static nlohmann::json result_to_json(const ToolResult& result);
+    // The MCP result of a tool's outcome, its numbers rounded to what they say (reply_number()) unless `exact`.
+    static nlohmann::json result_to_json(const ToolResult& result, bool exact = false);
 
 private:
     PostReply handle_legacy(const nlohmann::json& id, const std::string& method, const nlohmann::json& params,

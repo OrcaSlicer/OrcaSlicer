@@ -75,7 +75,7 @@ and reading the state back, not from the log.
 - `plates()` gives each plate as `{name, current, locked, objects}` from `plate_list`. `objects()` gives each object as
   `{name, plate}` from `object_list`, and the objects outside the plates by name. `slots()` gives the filament slots as
   the `mixed` of each `filament_list` row, one digit per slot (`"0,0,1"`: three slots, the third a mixed filament).
-- `scene()`: each object of `object_list` in index order, its entry whole (`name`, `id`, `filament`, `auto_drop`,
+- `scene()`: each object of `object_list {detail: true}` in index order, its entry whole (`name`, `id`, `filament`, `auto_drop`,
   `bbox`, `mesh_errors`, `parts`, and `layer_config_ranges` and `layer_height_profile` when it has them), with its
   `instances` gathered from every plate and from `outside`, each given its `plate` (−1 outside). A part is its entry
   whole: `name`, `id`, `type`, `subtype`, `filament`, `position`, `rotation_deg`, `scale`, `mirrored`, `triangles`,
@@ -742,8 +742,9 @@ unscaled and not mirrored, and a plate's settings as in a plate's own settings.
   number of instances, step 18), one plate arranged with options (arranging, step 13), Assemble and ordering by name
   across plates (splitting and assembling; ordering), Fill bed on another plate (arranging, step 17); its closing slice
   is replaced by the G-code checks of leaving instances out of the print.
-- `object_list {screen: true}` and paging with `limit` and `offset`: no replaced replay used them, and they change how
-  `object_list` reports the objects, not what the objects are.
+- `object_list {screen: true}`, paging with `limit` and `offset`, and the short rows `object_list` gives without
+  `detail`: no replaced replay used them, and they change how `object_list` reports the objects, not what the objects
+  are. The short rows are checked in the unit tests (`test_mcp_scene.cpp`).
 - Deleting instances, parts, a plate's objects (`plate`) and every object (`all`): no replaced replay deleted them but
   by index and on the selection; the parts are deleted in `test_menu_items_refusals`.
 - The layer heights a height range or an adaptive profile gives: the layers entry checks them. Here only which object

@@ -187,7 +187,7 @@ class GizmosTest:
 
     def listed(self):
         """object_list's objects, on the plates and outside them, in index order."""
-        listing = self.c.call("object_list", limit=500)
+        listing = self.c.call("object_list", limit=500, detail=True)
         return sorted([o for p in listing["plates"] for o in p["objects"]] + listing.get("outside", []),
                       key=lambda o: o["index"])
 

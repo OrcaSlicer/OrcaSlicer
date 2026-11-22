@@ -780,7 +780,18 @@ command. For a Design tab action that is not shown it says when the action is th
 Each tool family lives in its own `McpTools*.cpp`. List tools take `limit` and `offset` and reply
 `{items, offset, total}` (`page()`; `object_list`, a tree, has `plates` and `outside` in place of
 `items`), with `next_offset` while more remain: `action_list` too. The server instructions give that
-shape once, rather than every description, and each `limit` states its default. `McpPaths.hpp` requires
+shape once, rather than every description, and each `limit` states its default. A default is what an agent
+needs most of the time, so that the bare call fits a client's reply cap (Claude Code keeps 25,000 tokens of a
+reply): `object_list` lists objects short unless `detail`, and `app_log` gives 50 lines.
+
+Numbers reach a client rounded (`reply_numbers()` in `McpProtocol.cpp`, on every result and error's details): 4
+decimals, 0.1 um in millimetres, or 3 significant digits where that keeps more, and 0 below 1e-9, since a
+double's last digits there are float32 or kernel noise (`60.001007080078125`, `4.440892098500626e-16`) that
+costs tokens and says nothing. A value of 1e11 or more is left whole. Scripts, replays and plugins read a
+reply's data unrounded, so only what a client is sent changes; settings values are strings and keep every
+digit. A client that computes with the numbers asks for them whole: a `tools/call` whose `_meta` holds
+`"orcaslicer/exact_numbers": true` gets them as the command made them. The sweep's Design checks do, through
+`orca_mcp.py`'s `exact_numbers`, since they check a sketch's corners square to 1e-9. `McpPaths.hpp` requires
 absolute paths, since a relative one would resolve against `<datadir>/log`, the GUI's working
 directory; an output's directory must exist, and an existing file is replaced only with
 `overwrite: true`. Paths arrive and leave as UTF-8 text, and so does Orca's `data_dir()`;
@@ -796,12 +807,20 @@ libslic3r only, so unit tests build them from a `Model`) and a callback that say
 instance is on. The handler's is `instance_plate()`: the plate registry's answer or, for an instance
 the registry does not hold, as Fill bed leaves its new ones, the first plate the instance stands on,
 so the copies that fill a plate are listed on it. `plate_list` counts a plate's objects the same
-way. On request the handler adds each instance's canvas rectangle.
+way. On request the handler adds each instance's canvas rectangle, to the instance's entry, so `screen` gives
+the detailed rows.
+
+A row is short by default (`object_summary()`): an object's `index`, `id`, `name`, `filament`, `part_count`
+and `size`, and in `instances` the indices of its instances on that plate, which is what naming it in a call
+and telling it from the others takes. With `detail` it is `object_info()`'s whole entry, its instances as
+entries. The whole entry repeats a one-part object's bounding box three times beside mesh-error and paint
+counts, about 300 tokens an object, so a print farm's plate of a hundred objects would pass a client's reply
+cap; the short row is an eighth of that.
 
 The reply differs from the panel in two places, both so that a row says all an agent needs to act
 on it. A plate holds instances, not objects, so an object row lists the instances of its plate only,
 and an object with instances on two plates has a row under each; the panel shows it once, under its
-first instance's plate. And an object always lists its `parts`, even a single one, which the panel
+first instance's plate. And with `detail` an object always lists its `parts`, even a single one, which the panel
 folds into the object's row: painting, a part's filament and its settings address the part. An
 object with several parts is what Assemble makes, and the reply has no other kind for it.
 
@@ -1863,8 +1882,8 @@ person's pick, made while a row of the Feature list is selected and nothing is p
 row as what four menu items act on (`feature_row` in the atlas): `feature_edit`, `rename_selected`,
 `feature_delete` and `sketch_constrain_selected` are not refused for the selection then, and their handler says
 itself what it cannot do with the row; `zoom_to_selection` acts on what is picked in the view. A person's pick
-keeps the menu's rule, which greys those items for that selection. The reply is `{"result": {"interactive": true,
-"tool", "applies", "modal", "selection_kind", "busy", "status"}}`: the command called, whether the item accepts
+keeps the menu's rule, which greys those items for that selection. The reply is `{"interactive": true,
+"tool", "applies", "modal", "selection_kind", "busy", "status"}`: the command called, whether the item accepts
 the selection, whether a dialog the handler opened held the call until it was answered (the atlas's `modal`
 entries but Text, whose dialog is modeless: `DesignPanel::mcp_text_dialog_open()` tells it), the selection's
 kind, `mcp_busy()`'s reason after the handler ran (a card, a dialog or a sketch now open) or null, and the text
@@ -1881,7 +1900,9 @@ Feature list's selected row.
 An agent finds them as it finds any command `tools/list` does not show: `tool_list {group: "Design"}` lists
 them, each with its heading and what it does, and `tool_describe {tool}` gives one's manual: its group,
 access labels, description, parameters, menu items and examples. `tool_call {tool, args}` runs one, its arguments
-validated against its schema, and replies `{"result": ...}`, the tool's own reply; a replay step calls one
+validated against its schema, and replies with the tool's own reply, less an `"ok": true` and an empty `"error"`,
+which say nothing a reply that is no error doesn't (`cad_command()`); an `ok` false and its `error`, a rejected
+rebuild's, stay. A replay step calls one
 by its name or through `tool_call`, and `orca_mcp.py`'s `call_command()` from Python. An unknown name is
 answered as any unknown command is: with the closest key (`invalid_argument`), or, for a Design command's name
 in a run without the Design commands, why they are left out (`design_unavailable`): in the editor, the CAD feature
@@ -2241,7 +2262,7 @@ included: a person's pick from the Speed Dial does what the Edit menu's item doe
 that item it does nothing and shows nothing: on the Design tab's history through `menu_undo_redo()` where
 `menu_can_undo_redo()` allows, and on the project's only where `Plater::can_undo()` (or `can_redo()`) holds,
 so not from the Preview or while a job runs, since `Plater::undo()` itself acts wherever it is called. The reply is the action's, with `history` and, for the
-Design tab's, `result`, `cad_undo_redo()`'s reply; with the CAD feature off, or in a build without CAD,
+Design tab's, `result`, `cad_undo_redo()`'s reply (its `scope` and what that scope holds); with the CAD feature off, or in a build without CAD,
 `design` fails ("The CAD feature is off"). Their examples, which call Design commands, are only in a
 catalog that holds them. The Design history is not saved with a project.
 

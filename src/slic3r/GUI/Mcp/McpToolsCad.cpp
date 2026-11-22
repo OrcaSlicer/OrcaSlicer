@@ -2602,10 +2602,9 @@ json undo_redo(DesignPanel* panel, bool redo)
                                       : "Nothing to undo in the Design history (history \"project\" undoes the project's)");
     }
     panel->menu_undo_redo(redo);
-    if (sketch) return json{{"ok", true}, {"scope", "sketch"}, {"entities", vp->mcp_sketch_tool().entities().size()}};
+    if (sketch) return json{{"scope", "sketch"}, {"entities", vp->mcp_sketch_tool().entities().size()}};
     const CadDocument& doc = panel->mcp_doc();
-    return json{{"ok", true},
-                {"scope", "design"},
+    return json{{"scope", "design"},
                 {"undo_depth", doc.undo_depth()},
                 {"redo_depth", doc.redo_depth()},
                 {"features", doc.features.size()},
@@ -4409,6 +4408,23 @@ json cad_input_schema(const json& block)
     return schema;
 }
 
+namespace {
+
+// A Design function's value as its command replies with it: without "ok": true and an empty "error", which say
+// nothing that a reply other than an error doesn't. An ok false, and an error's text beside it, stay.
+json design_reply(json value)
+{
+    if (value.is_object()) {
+        if (const auto ok = value.find("ok"); ok != value.end() && *ok == true)
+            value.erase(ok);
+        if (const auto error = value.find("error"); error != value.end() && *error == "")
+            value.erase(error);
+    }
+    return value;
+}
+
+} // namespace
+
 NativeCommand cad_command(std::string key, std::string title, json schema,
                           std::function<json(const json& args, bool person)> fn, std::function<bool(const json& args)> opens)
 {
@@ -4420,7 +4436,7 @@ NativeCommand cad_command(std::string key, std::string title, json schema,
     c.run = [fn = std::move(fn), opens = std::move(opens)](const json& args, ToolContext& ctx) {
         if (ctx.person()) {
             try {
-                return ToolResult::ok({{"result", fn(args, true)}});
+                return ToolResult::ok(design_reply(fn(args, true)));
             } catch (const ToolFailure& refused) {
                 // What the person reads, in the UI's language where the text is a msgid (an entry's refusal). Looked
                 // up in the application's catalogue only, as the right-click menu's items are (show_offer_menu()), so
@@ -4440,7 +4456,7 @@ NativeCommand cad_command(std::string key, std::string title, json schema,
         ctx.set_journal_args(std::move(recorded));
         json result = ctx.run_ui([&] { return fn(args, false); });
         settle(ctx);
-        return ToolResult::ok({{"result", std::move(result)}});
+        return ToolResult::ok(design_reply(std::move(result)));
     };
     return c;
 }

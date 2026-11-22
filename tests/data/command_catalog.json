@@ -242,7 +242,7 @@
       "type": "string"
      },
      "lines": {
-      "description": "The most lines, of the newest whole entries; an entry longer than that gives its first lines. Default 200.",
+      "description": "The most lines, of the newest whole entries; an entry longer than that gives its first lines. Default 50.",
       "maximum": 2000,
       "minimum": 1,
       "type": "integer"
@@ -1297,7 +1297,7 @@
   },
   {
    "completion": "immediate",
-   "description": "The project as the Objects panel lists it. plates: each {index, name, objects}, with the objects that have an instance on it; outside: the objects with an instance on no plate. An object with instances on two plates is listed under both, each time with that plate's instances. An object has its filament, auto_drop, bounding box (instance 0), brim ear count and overrides, the keys of the settings it overrides (settings_get target object reads them); its mesh_errors, as the list's warning icon reads them: open_edges, manifold (no open edge), and the loader's or a repair's counts degenerate_facets, edges_fixed, facets_removed, facets_reversed and backwards_edges (object_fix repairs it); its instances (offset, rotation in degrees, scale, mirrored, bbox); its parts, one or more: parts, negative parts, modifiers, support blockers and enforcers and precise seams (type, with subtype for a precise seam; filament: a part's own or its object's, a modifier's only when it sets one; position, bbox and scaled_volume in mm3 on the bed, measured on instance 0; rotation_deg and scale in the object's frame; mirrored; triangle count; mesh_volume, the unscaled mesh's mm3; painted facets: supports and seam enforcers/blockers, fuzzy_skin, mmu per filament, texture per layer; a text part's text and font, an SVG part's file); its height range modifiers when it has any (layer_config_ranges: [{min_z, max_z, values}], values being a range's settings, which settings_set changes with target height_range; object_set_height_ranges takes min_z and max_z) and its variable layer height profile when it has one (layer_height_profile: {points, min_height, max_height}). A bbox is {min, max, size} in mm of model parts only, so unlike the panel's Size it leaves out modifiers. An object's index numbers it in the project and a part's in its object, whatever the plate: they are what object_select, object_transform, mouse_gesture targets and the settings tools' object and part targets take. Each object and part also has an id, which stays with it when a delete, split or assemble shifts the indices: pass it as object_id / part_id to object_transform, part_add, settings_set, object_set_height_ranges and object_set_variable_layer_height (object_ids, part_ids and instance_object_ids to object_select), and a call whose index names another one now is refused instead of acting on it. limit and offset page the objects and total counts them, each once.",
+   "description": "The project as the Objects panel lists it. plates: each {index, name, objects}, with the objects that have an instance on it; outside: the objects with an instance on no plate. An object with instances on two plates is listed under both, each time with that plate's instances. An object has its index, id, name, filament, part_count, size (mm, of the bounding box below) and instances, the indices of its instances there. With detail, an object has its filament, auto_drop, bounding box (instance 0), brim ear count and overrides, the keys of the settings it overrides (settings_get target object reads them); its mesh_errors, as the list's warning icon reads them: open_edges, manifold (no open edge), and the loader's or a repair's counts degenerate_facets, edges_fixed, facets_removed, facets_reversed and backwards_edges (object_fix repairs it); its instances as entries (index, offset, rotation in degrees, scale, mirrored, bbox); its parts, one or more: parts, negative parts, modifiers, support blockers and enforcers and precise seams (type, with subtype for a precise seam; filament: a part's own or its object's, a modifier's only when it sets one; position, bbox and scaled_volume in mm3 on the bed, measured on instance 0; rotation_deg and scale in the object's frame; mirrored; triangle count; mesh_volume, the unscaled mesh's mm3; painted facets: supports and seam enforcers/blockers, fuzzy_skin, mmu per filament, texture per layer; a text part's text and font, an SVG part's file); its height range modifiers when it has any (layer_config_ranges: [{min_z, max_z, values}], values being a range's settings, which settings_set changes with target height_range; object_set_height_ranges takes min_z and max_z) and its variable layer height profile when it has one (layer_height_profile: {points, min_height, max_height}). A bbox is {min, max, size} in mm of model parts only, so unlike the panel's Size it leaves out modifiers. An object's index numbers it in the project and a part's in its object, whatever the plate: they are what object_select, object_transform, mouse_gesture targets and the settings tools' object and part targets take. Each object and part also has an id, which stays with it when a delete, split or assemble shifts the indices: pass it as object_id / part_id to object_transform, part_add, settings_set, object_set_height_ranges and object_set_variable_layer_height (object_ids, part_ids and instance_object_ids to object_select), and a call whose index names another one now is refused instead of acting on it. limit and offset page the objects and total counts them, each once.",
    "destructive": false,
    "group": "Objects",
    "guard": "inspect",
@@ -1306,6 +1306,10 @@
    "input_schema": {
     "additionalProperties": false,
     "properties": {
+     "detail": {
+      "description": "Each object whole: its instances, parts, bounding boxes, mesh errors, paint and overrides (default false).",
+      "type": "boolean"
+     },
      "limit": {
       "description": "Objects, default 200.",
       "maximum": 500,
@@ -1322,7 +1326,7 @@
       "type": "integer"
      },
      "screen": {
-      "description": "Add each instance's rectangle in the shown 3D view, logical pixels [x, y, w, h].",
+      "description": "Add each instance's rectangle in the shown 3D view, logical pixels [x, y, w, h], to its entry, as with detail.",
       "type": "boolean"
      }
     },

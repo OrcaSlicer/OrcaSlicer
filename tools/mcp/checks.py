@@ -421,7 +421,7 @@ def scene(client):
     """Each object of object_list in index order, its entry whole, with its instances gathered from every plate and
     from outside, in index order, each given its plate (-1 outside). object_list lists an object under each plate it
     has instances on, with that plate's instances alone."""
-    listing = client.call("object_list", limit=500)
+    listing = client.call("object_list", limit=500, detail=True)
     found = {}
     groups = [(p["index"], p["objects"]) for p in listing["plates"]] + [(-1, listing.get("outside", []))]
     for plate, entries in groups:
@@ -519,7 +519,7 @@ def meshes(client):
     """Each object of object_list, plate by plate and then those outside, as {name, offset, size, filament, parts}:
     its first instance's offset x and y, its bbox size, its filament, and each part as {id, type, triangles,
     mesh_volume}."""
-    listing = client.call("object_list", limit=500)
+    listing = client.call("object_list", limit=500, detail=True)
     entries = [o for p in listing["plates"] for o in p["objects"]] + listing.get("outside", [])
     return [{"name": o["name"], "offset": o["instances"][0]["offset"][:2], "size": o["bbox"]["size"],
              "filament": o.get("filament"),

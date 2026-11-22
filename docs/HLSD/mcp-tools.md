@@ -114,7 +114,7 @@ them and `tool_call` runs them.
 |---|---|---|
 | `app_state` | A snapshot of the app, its view, the project and the selection, and what is going on: open dialogs read as shown, notifications, uploads, the open gizmo, running jobs and a recording; the call to make first |  |
 | `app_wait` | Wait until the app is ready or idle, a dialog opens or closes, or a job ends | `for`: ready, idle, dialog, no_dialog, job; `job`, `timeout_s` (at most 50) |
-| `app_log` | The last lines of the app's log, in whole entries, from a level up | `lines`, `level` |
+| `app_log` | The last lines of the app's log (50 by default), in whole entries, from a level up | `lines`, `level` |
 | `undo`, `redo` | Take back the last change of a history, or put it back, as Edit > Undo and Redo do | `history`: project, design |
 | `app_open_web_page` | Open one of the app's web pages in the default browser | `page`: wiki, youtube, plugin_hub |
 | `app_check_for_updates` | Check for a newer OrcaSlicer |  |
@@ -140,7 +140,7 @@ them and `tool_call` runs them.
 
 | Command | What it does | Variants and main arguments |
 |---|---|---|
-| `object_list` | The project as the Objects panel lists it, plate by plate: each object's instances, parts, overrides, mesh errors, height ranges and layer height profile, with indices and ids | `plate`, `screen` |
+| `object_list` | The project as the Objects panel lists it, plate by plate: each object's index, id, name, filament, part count, size and instances; with `detail`, its instances, parts, overrides, mesh errors, height ranges and layer height profile | `plate`, `detail`, `screen` |
 | `object_select` | Select objects, instances or parts in the 3D view, as clicks do, or everything or nothing | targets, `add`; `all`, `none` |
 | `object_transform` | Move, rotate or scale one instance, or one part | `object`, `instance`, `part`; `translate`, `position`, `rotate`, `scale`, `size`, `plate`; `mode`: relative, absolute; `drop_to_bed` |
 | `object_add_primitive` | Add a primitive shape as a new object, as Add Primitive does | `shape`: cube, cylinder, sphere, cone, disc, torus; `size`, `position`, `plate`, `name` |
@@ -1109,8 +1109,8 @@ opens that item's tool for a person, as a pick of the item does; any other call 
   accepts. A call made while a row of the Feature list is selected and nothing is picked in the view takes
   that row as what four menu items act on: `feature_edit`, `rename_selected`, `feature_delete` and
   `sketch_constrain_selected`.
-- The reply is `{"result": {"interactive": true, "tool", "applies", "modal", "selection_kind", "busy",
-  "status"}}`: the command called, whether the menu item accepts the selection, whether a dialog the item's
+- The reply is `{"interactive": true, "tool", "applies", "modal", "selection_kind", "busy",
+  "status"}`: the command called, whether the menu item accepts the selection, whether a dialog the item's
   handler opened held the call until it was answered, the selection's kind, what the tab has open after the
   handler ran, and its status line. It claims nothing about what the handler did, which may be to open a
   card, arm a sketch tool, act at once, or say on the status line why it cannot.

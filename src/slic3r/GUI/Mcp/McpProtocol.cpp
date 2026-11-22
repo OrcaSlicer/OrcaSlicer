@@ -5,6 +5,7 @@
 #include "slic3r/GUI/CommandTypes.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -29,6 +30,8 @@ constexpr int kHeaderMismatch   = -32020;
 constexpr int kUnsupportedProto = -32022;
 
 constexpr const char* kMetaVersion = "io.modelcontextprotocol/protocolVersion";
+// The _meta key of a tools/call that asks for the reply's numbers whole: true.
+constexpr const char* kExactNumbers = "orcaslicer/exact_numbers";
 constexpr const char* kMetaServer  = "io.modelcontextprotocol/serverInfo";
 // How long a modern client may cache the tool list and discovery result. The catalog is fixed for
 // the life of the process, so the value only bounds how long a stale client survives a restart into
@@ -53,6 +56,35 @@ json supported_versions()
     for (const std::string& legacy : legacy_versions())
         v.push_back(legacy);
     return v;
+}
+
+// A number as a client reads it. Replies carry numbers to be read rather than recomputed, and a double's
+// last digits there are noise that costs tokens and says nothing: float32 mesh coordinates
+// (60.001007080078125), sums (134.99999999999994), a kernel's zero (4.440892098500626e-16). A number keeps
+// 4 decimals (0.1 um in mm), or 3 significant digits where that is more (a tolerance of 1.5e-05); below
+// 1e-9 it is 0, and -0 is 0. A value too large for its decimals to matter is left as it is. Scripts, replays
+// and plugins read a reply's data unrounded: only what a client is sent is rounded, and a client that computes with
+// the numbers, such as a test checking a sketch to 1e-9, asks for them whole (kExactNumbers).
+double reply_number(double v)
+{
+    const double a = std::abs(v);
+    if (!std::isfinite(v) || a >= 1e11)
+        return v;
+    if (a < 1e-9)
+        return 0.;
+    const int    decimals = a >= 0.1 ? 4 : std::max(4, 2 - int(std::floor(std::log10(a))));
+    const double scale    = std::pow(10., decimals);
+    return std::round(v * scale) / scale + 0.; // + 0. turns -0 into 0
+}
+
+json reply_numbers(json j)
+{
+    if (j.is_number_float())
+        return reply_number(j.get<double>());
+    if (j.is_structured())
+        for (json& item : j)
+            item = reply_numbers(std::move(item));
+    return j;
 }
 
 int base64_value(char c)
@@ -130,16 +162,17 @@ json McpProtocol::tool_to_json(const NativeCommand& def)
     return t;
 }
 
-json McpProtocol::result_to_json(const ToolResult& result)
+json McpProtocol::result_to_json(const ToolResult& result, bool exact)
 {
-    json content = json::array();
+    const auto text_of = [exact](const json& data) { return (exact ? data : reply_numbers(data)).dump(); };
+    json       content = json::array();
     if (result.is_error) {
         std::string text = result.message;
         if (!result.data.is_null() && !(result.data.is_object() && result.data.empty()))
-            text += "\n" + result.data.dump();
+            text += "\n" + text_of(result.data);
         content.push_back({{"type", "text"}, {"text", text}});
     } else {
-        content.push_back({{"type", "text"}, {"text", result.data.dump()}});
+        content.push_back({{"type", "text"}, {"text", text_of(result.data)}});
     }
     for (const json& block : result.content)
         content.push_back(block);
@@ -180,10 +213,13 @@ json McpProtocol::call_tool(const json& params, bool& unknown_tool, std::string&
     }
     if (const std::optional<ToolFailure> refused = resolve_call(m_catalog, def, args))
         return result_to_json(ToolResult::error(refused->what(), refused->details));
+    const auto meta  = params.find("_meta");
+    const bool exact = meta != params.end() && meta->is_object() && meta->contains(kExactNumbers) &&
+                       meta->at(kExactNumbers) == true;
     try {
-        return result_to_json(m_caller.call(*def, args));
+        return result_to_json(m_caller.call(*def, args), exact);
     } catch (const ToolFailure& f) {
-        return result_to_json(ToolResult::error(f.what(), f.details));
+        return result_to_json(ToolResult::error(f.what(), f.details), exact);
     } catch (const std::exception& e) {
         return result_to_json(ToolResult::error(std::string("Internal error: ") + e.what()));
     }

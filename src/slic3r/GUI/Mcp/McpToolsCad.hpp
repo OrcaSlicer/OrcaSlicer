@@ -123,8 +123,8 @@ extern const std::size_t                    kSilentFormCount;
 // its text is a msgid (an entry's refusal). For an automated call the journal records the arguments without
 // `generation`, which numbers ids within this session only, and with `silent` where `opens` says that what it
 // records would open a tool and the call did not, so that a replay runs the silent form too (`opens` empty:
-// nothing opens a tool); then `fn` runs in one UI closure and the call settles. The reply is
-// {"result": fn's value}; a ToolFailure is the call's error.
+// nothing opens a tool); then `fn` runs in one UI closure and the call settles. The reply is fn's value, without
+// an "ok": true or an empty "error", which say nothing; a ToolFailure is the call's error.
 NativeCommand cad_command(std::string key, std::string title, nlohmann::json schema,
                           std::function<nlohmann::json(const nlohmann::json& args, bool person)> fn,
                           std::function<bool(const nlohmann::json& args)> opens = {});
@@ -233,8 +233,8 @@ std::optional<ToolFailure> open_refusal(const DesignTool& t, bool sketching, int
 nlohmann::json run_cad_tool(const std::string& id, const nlohmann::json& args);
 
 // Edit > Undo, or Redo, in the Design tab, past cad_gate() with Sketch access: the Design history, or in a
-// sketch session the sketch's own, which takes off or puts back the last drawn shape. Returns {ok, scope}
-// with "sketch" and the sketch's entities, or "design" and the undo and redo depth, features, bodies and
+// sketch session the sketch's own, which takes off or puts back the last drawn shape. Returns its scope,
+// "sketch" with the sketch's entities, or "design" and the undo and redo depth, features, bodies and
 // generation. Fails (precondition) when there is nothing to take back or put back. UI thread only.
 nlohmann::json cad_undo_redo(bool redo);
 

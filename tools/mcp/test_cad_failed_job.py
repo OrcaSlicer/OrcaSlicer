@@ -35,7 +35,7 @@ REBUILD_S = max(orca_mcp.reply_budget_s() * 4 / 3, orca_mcp.reply_budget_s() + 4
 
 
 def cad(client, tool, **args):
-    """A Design command's reply: its {result}, or the envelope of the job it runs as."""
+    """A Design command's reply, or the envelope of the job it runs as."""
     return client.call("tool_call", _timeout=600, tool=tool, args=args)
 
 
@@ -127,8 +127,8 @@ def main():
     check("the hole then fails as an error", failure and "removed no material" in failure,
           f"{failure} after {time.time() - start:.1f} s")
     cad(client, "feature_rename", feature=2, name="Coil")
-    live_scene = cad(client, "describe_design")["result"]
-    live_mass = cad(client, "body_mass_properties", body=0)["result"]
+    live_scene = cad(client, "describe_design")
+    live_mass = cad(client, "body_mass_properties", body=0)
 
     after = client.call("replay_export", path=path, overwrite=True)
     # A Design command's call is journaled as its own.
@@ -151,8 +151,8 @@ def main():
     replay = client.await_job(client.call("replay_run", path=run_path, out_dir=out_dir), timeout=1800)
     check("the exported session replays", replay.get("passed") is True,
           json.dumps([s for s in replay.get("steps", []) if not s.get("ok")][:1]))
-    scene = cad(client, "describe_design")["result"]
-    mass = cad(client, "body_mass_properties", body=0)["result"]
+    scene = cad(client, "describe_design")
+    mass = cad(client, "body_mass_properties", body=0)
     # Feature names count on across projects; the renamed one keeps its name.
     kinds = lambda s: [f["type"] for f in s["features"]]  # noqa: E731
     check("the same features, the coil renamed", kinds(scene) == kinds(live_scene) and scene["features"][2]["name"] == "Coil",

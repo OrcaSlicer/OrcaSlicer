@@ -216,7 +216,7 @@ class Plates(Part):
 
     def listing(self):
         """Each object of object_list with the plate it is listed on, as (plate, object)."""
-        listing = self.c.call("object_list", limit=500)
+        listing = self.c.call("object_list", limit=500, detail=True)
         return [(p["index"], o) for p in listing["plates"] for o in p["objects"]]
 
     def find(self, name, plate):
@@ -855,7 +855,7 @@ class Places(Part):
         self.t.equal(f"{s} 10: the reply's plate", reply.get("plate"), 1)
         block["plate"] = 1
         self.expect(f"{s} 10", '"" 1 · "" 1 *', "block@1 · other@0")
-        listing = self.c.call("object_list", plate=1)["plates"]
+        listing = self.c.call("object_list", plate=1, detail=True)["plates"]
         self.t.equal(f"{s} 10: object_list of plate 1 lists block alone, with its instance 0",
                      [(p["index"], [(o["name"], [i["index"] for i in o["instances"]]) for o in p["objects"]])
                       for p in listing], [(1, [("block", [0])])])

@@ -236,7 +236,7 @@ def main():
           any("Select one object or part first" in text for text in notices(state)), notices(state))
     check("and opens no Rename dialog", rule_uses("Renaming") == before, f"{before} -> {rule_uses('Renaming')}")
     check("and leaves the instance selected", state.get("selection", {}).get("instances") == [[0, 1]], state.get("selection"))
-    names = [o["name"] for o in client.call("object_list")["plates"][0]["objects"]]
+    names = [o["name"] for o in client.call("object_list", detail=True)["plates"][0]["objects"]]
     check("and renames nothing", "x" not in names, names)
 
     # ---- A pick of Set as Individual Objects with a part selected separates that part's instance alone ----
@@ -244,11 +244,11 @@ def main():
     client.call("object_add_primitive", shape="cube", size=[20, 20, 20])
     client.call("part_add", object=0, type="part", shape="cube", size=[5, 5, 5])
     client.call("object_set_instances", object=0, count=3)
-    offsets = [i["offset"] for i in client.call("object_list")["plates"][0]["objects"][0]["instances"]]
+    offsets = [i["offset"] for i in client.call("object_list", detail=True)["plates"][0]["objects"][0]["instances"]]
     client.call("object_select", parts=[[0, 1]])
     shared.dial_pick(client, "Set as Individual Objects")
     settled()
-    objects = client.call("object_list")["plates"][0]["objects"]
+    objects = client.call("object_list", detail=True)["plates"][0]["objects"]
     check("a pick of Set as Individual Objects with a part selected makes one object", len(objects) == 2, len(objects))
     check("and the object keeps its other two instances", len(objects[0]["instances"]) == 2, len(objects[0]["instances"]))
     check("and the new object is the part's instance, instance 0",
@@ -269,16 +269,16 @@ def main():
     check("a pick of Delete with the last solid part selected shows the object list's message", uses == before + 1,
           f"{before} -> {uses}")
     check("and no notice of its own", not any("solid part" in text for text in notices(state)), notices(state))
-    check("and deletes nothing", len(client.call("object_list")["plates"][0]["objects"][0]["parts"]) == 2)
+    check("and deletes nothing", len(client.call("object_list", detail=True)["plates"][0]["objects"][0]["parts"]) == 2)
 
     # ---- object_delete {} on both solid parts of an object with a modifier: the object list deletes the second and
     # refuses the first, the last solid part, in its message; the reply names the part that went and the one that stayed ----
     client.call("project_new", discard_changes=True)
     client.call("object_add_primitive", shape="cube", size=[20, 20, 20])
-    x, y, _ = client.call("object_list")["plates"][0]["objects"][0]["instances"][0]["offset"]
+    x, y, _ = client.call("object_list", detail=True)["plates"][0]["objects"][0]["instances"][0]["offset"]
     client.call("part_add", object=0, type="part", shape="cube", size=[5, 5, 5], position=[x + 12, y, 2.5])
     client.call("part_add", object=0, type="modifier", shape="cube", size=[5, 5, 5])
-    parts = client.call("object_list")["plates"][0]["objects"][0]["parts"]
+    parts = client.call("object_list", detail=True)["plates"][0]["objects"][0]["parts"]
     check("an object of two solid parts and a modifier", [p["type"] for p in parts] == ["part", "part", "modifier"], parts)
     client.call("object_select", parts=[[0, 0], [0, 1]])
     client.call("dialog_auto_answer", rules=[{"match": "last solid part", "button": "ok"}])
@@ -289,7 +289,7 @@ def main():
     settled()
     uses = uses_after("last solid part", before)
     check("object_delete {} on both solid parts shows the object list's message for the first", uses == before + 1, f"{before} -> {uses}")
-    left = client.call("object_list")["plates"][0]["objects"][0]["parts"]
+    left = client.call("object_list", detail=True)["plates"][0]["objects"][0]["parts"]
     check("and deletes the second alone", [p["id"] for p in left] == [parts[0]["id"], parts[2]["id"]], left)
     check("and its reply names the part that went, as it was, and no other",
           [(p.get("part"), p.get("part_id")) for p in reply.get("parts", [])] == [(1, parts[1]["id"])], reply)
@@ -352,7 +352,7 @@ def main():
         floating."""
         client.call("project_new", discard_changes=True)
         client.call("object_add_primitive", shape="cube", size=[20, 20, 20])
-        x, y, _ = client.call("object_list")["plates"][0]["objects"][0]["instances"][0]["offset"]
+        x, y, _ = client.call("object_list", detail=True)["plates"][0]["objects"][0]["instances"][0]["offset"]
         client.call("part_add", object=0, type="part", shape="cube", size=[10, 10, 10], position=[x, y, 40])
 
     floating_pair()
@@ -361,7 +361,7 @@ def main():
     check("and splits nothing", total() == 1, total())
     reply = client.call("object_split", object=0, into="objects", keep_z=True)
     check("with keep_z true it splits into two objects", reply.get("object_count") == 2, reply)
-    lowest = sorted(o["bbox"]["min"][2] for o in client.call("object_list")["plates"][0]["objects"])
+    lowest = sorted(o["bbox"]["min"][2] for o in client.call("object_list", detail=True)["plates"][0]["objects"])
     check("and the piece above the bed keeps its height", len(lowest) == 2 and lowest[1] > 20, lowest)
 
     floating_pair()
@@ -372,7 +372,7 @@ def main():
     settled()
     uses = uses_after("Auto-Drop", before)
     check("a pick of Split to Objects asks the Auto-Drop question", uses == before + 1, f"{before} -> {uses}")
-    lowest = sorted(o["bbox"]["min"][2] for o in client.call("object_list")["plates"][0]["objects"])
+    lowest = sorted(o["bbox"]["min"][2] for o in client.call("object_list", detail=True)["plates"][0]["objects"])
     check("and, answered No, the pieces drop", len(lowest) == 2 and lowest[1] < 1, lowest)
     client.call("dialog_auto_answer", rules=[])
 
@@ -400,7 +400,7 @@ def main():
     state = settled()
     check("a pick of Mirror X with two objects selected says it takes one instance",
           any("one instance" in text for text in notices(state)), notices(state))
-    mirrored = [o["instances"][0]["mirrored"] for o in client.call("object_list")["plates"][0]["objects"]]
+    mirrored = [o["instances"][0]["mirrored"] for o in client.call("object_list", detail=True)["plates"][0]["objects"]]
     check("and mirrors nothing", mirrored == [False, False], mirrored)
     client.call("object_select", objects=[0])
     shared.dial_pick(client, "Drop to Bed")
@@ -424,7 +424,7 @@ def main():
         part of that type beside its first one, resting on the bed; returns its index."""
         index = client.call("object_add_primitive", shape="cube", size=[20, 20, 20], name=name)["object"]
         if part:
-            x, y, _ = client.call("object_list")["plates"][0]["objects"][index]["instances"][0]["offset"]
+            x, y, _ = client.call("object_list", detail=True)["plates"][0]["objects"][index]["instances"][0]["offset"]
             client.call("part_add", object=index, type=part, shape="cube", size=[5, 5, 5], position=[x + 12, y, 2.5])
         if instances > 1:
             client.call("object_set_instances", object=index, count=instances)
@@ -437,10 +437,10 @@ def main():
             client.call("widget_click", target={"row": "Plate 1>" + path}, **({"modifiers": "ctrl"} if i else {}))
 
     def objects_named():
-        return [(o["name"], len(o["parts"])) for o in client.call("object_list")["plates"][0]["objects"]]
+        return [(o["name"], len(o["parts"])) for o in client.call("object_list", detail=True)["plates"][0]["objects"]]
 
     def part_types(index):
-        return [p["type"] for p in client.call("object_list")["plates"][0]["objects"][index]["parts"]]
+        return [p["type"] for p in client.call("object_list", detail=True)["plates"][0]["objects"][index]["parts"]]
 
     client.call("project_new", discard_changes=True)
     cube("pair", instances=2)
@@ -508,18 +508,18 @@ def main():
     state = settled()
     check("a pick of Split to Parts on every part row of an object says it takes one",
           any("one object or part at a time" in text for text in notices(state)), notices(state))
-    check("and splits nothing", len(client.call("object_list")["plates"][0]["objects"][0]["parts"]) == 2)
+    check("and splits nothing", len(client.call("object_list", detail=True)["plates"][0]["objects"][0]["parts"]) == 2)
     client.call("dialog_auto_answer", rules=[])
 
     # ---- Auto-Orient of a plate with no objects, and of objects one of which is on a locked plate ----
     client.call("project_new", discard_changes=True)
     client.call("object_add_primitive", shape="cube", size=[20, 20, 10])
     client.call("object_transform", object=0, rotate=[0, 90, 0], mode="absolute")
-    turned = client.call("object_list")["plates"][0]["objects"][0]["instances"][0]["rotation_deg"]
+    turned = client.call("object_list", detail=True)["plates"][0]["objects"][0]["instances"][0]["rotation_deg"]
     client.call("plate_add")
     refused("object_auto_orient of an empty plate is refused, saying it has no objects", "object_auto_orient", {"plates": [1]},
             "no objects", "no_objects_to_orient")
-    now = client.call("object_list")["plates"][0]["objects"][0]["instances"][0]["rotation_deg"]
+    now = client.call("object_list", detail=True)["plates"][0]["objects"][0]["instances"][0]["rotation_deg"]
     check("and turns no object elsewhere", now == turned, (turned, now))
     client.call("plate_select", plate=1)
     client.call("object_add_primitive", shape="cube", size=[20, 20, 10], plate=1)
@@ -541,9 +541,9 @@ def main():
     client.call("object_transform", object=1, rotate=[45, 0, 0], mode="absolute")
 
     def edge_rotation():
-        return client.call("object_list")["plates"][0]["objects"][0]["instances"][0]["rotation_deg"]
+        return client.call("object_list", detail=True)["plates"][0]["objects"][0]["instances"][0]["rotation_deg"]
 
-    on_plate = client.call("object_list")["plates"][1]["objects"]
+    on_plate = client.call("object_list", detail=True)["plates"][1]["objects"]
     check("an Assembly of a cube that is not printable stands on plate 1, not printable",
           [(o["name"], o["instances"][0]["printable"]) for o in on_plate] == [("Assembly", False)], on_plate)
     before = edge_rotation()

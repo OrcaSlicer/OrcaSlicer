@@ -86,7 +86,7 @@ def replay_part(name):
 # ---------------------------------------------------------------- round_trip
 
 def cad(client, tool, **args):
-    return client.call("tool_call", _timeout=300, tool=tool, args=args)["result"]
+    return client.call("tool_call", _timeout=300, tool=tool, args=args)
 
 
 def refused(client, tool, **args):
@@ -124,7 +124,7 @@ def record(client):
                                           args={"body": 0, "face": bore, "generation": bores["generation"]}))
     return {"mass": cad(client, "body_mass_properties", body=0), "scene": cad(client, "describe_design"),
             "frame": frame, "empty_commit": empty_commit, "missed_hole": missed_hole, "refused_fillet": refused_fillet,
-            "rejected_shell": rejected_shell, "thread": thread.get("result", {})}
+            "rejected_shell": rejected_shell, "thread": thread}
 
 
 def same(a, b, rel=1e-6):
@@ -253,12 +253,12 @@ def part_slow_build(c, client, out):
     worker.join(600)
     seconds = time.time() - started
     result = client.await_job(box.get("result")) if "result" in box else None
-    scene = client.call("tool_call", tool="describe_design")["result"]
+    scene = client.call("tool_call", tool="describe_design")
     threads = [f for f in scene["features"] if f["type"] == "Thread"]
 
     print(f"slow_build: the build took {seconds:.1f} s")
     results = [
-        ("the thread call succeeds", result is not None and result.get("result", {}).get("ok") is True, box),
+        ("the thread call succeeds", result is not None and "thread_index" in result and "ok" not in result, box),
         ("app_state answers during the build", state_ms is not None, state_ms),
         ("a window screenshot succeeds during the build", bool(window_shot and window_shot.get("width")), window_shot),
         ("another Design command is refused during the build", bool(busy) and "Busy" in busy, busy),
@@ -313,7 +313,7 @@ def run_example(client, example):
         tool = call["tool"]
         args = resolve(call.get("args", {}), results)
         try:
-            result = client.call_command(tool, **args).get("result")
+            result = client.call_command(tool, **args)
         except McpError as e:
             raise ExampleFailed(f"call {n}: {e}") from None
         if why := failed(result):
@@ -359,6 +359,8 @@ def main():
     if unknown:
         sys.exit(f"unknown parts {' '.join(unknown)}: have {' '.join(PARTS)}")
     client, _ = orca_mcp.session_client()
+    # A replay's results are compared with the live run's to 1e-6, closer than a rounded reply keeps.
+    client.exact_numbers = True
     out = tempfile.mkdtemp(prefix="orca-mcp-cad-replays-")
     print(f"the replays' output and the screenshots are in {out}")
     c = Checks()

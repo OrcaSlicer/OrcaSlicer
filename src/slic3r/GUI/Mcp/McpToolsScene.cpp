@@ -299,9 +299,13 @@ json list_objects(const json& args)
     std::vector<std::string> names;
     for (int i = 0; i < plates.get_plate_count(); ++i)
         names.push_back(plates.get_plate(i)->get_plate_name());
+    // A rectangle belongs to an instance's entry, which the detailed listing has.
+    json listing = args;
+    if (canvas != nullptr)
+        listing["detail"] = true;
     json out = objects_by_plate(plater.model(), names,
                                 [&](std::size_t object, std::size_t instance) { return instance_plate(plates, int(object), int(instance)); },
-                                args);
+                                listing);
     if (canvas != nullptr) {
         const auto add_screen = [&](json& objects) {
             for (json& object : objects)
@@ -859,10 +863,22 @@ json volume_info(const ModelVolume& v, std::size_t index)
     return out;
 }
 
+json object_summary(const ModelObject& object, std::size_t index)
+{
+    const BoundingBoxf3 box = object.instances.empty() ? BoundingBoxf3() : object.instance_bounding_box(0);
+    return {{"index", index},
+            {"id", object.id().id},
+            {"name", object.name},
+            {"filament", object_filament(object)},
+            {"part_count", object.volumes.size()},
+            {"size", box.defined ? vec3(box.size()) : json(nullptr)}};
+}
+
 json objects_by_plate(const Model& model, const std::vector<std::string>& plate_names,
                       const std::function<int(std::size_t, std::size_t)>& plate_of, const json& args)
 {
-    const int plate_count = int(plate_names.size());
+    const bool detail      = arg_bool(args, "detail", false);
+    const int  plate_count = int(plate_names.size());
     const int only        = arg_int(args, "plate", -1);
     if (args.contains("plate") && (only < 0 || only >= plate_count))
         throw ToolFailure(no_such_plate(only, plate_count));
@@ -886,15 +902,16 @@ json objects_by_plate(const Model& model, const std::vector<std::string>& plate_
     const std::size_t offset  = std::min<std::size_t>(std::size_t(std::max(0, arg_int(args, "offset", 0))), total);
     const std::size_t limit   = std::size_t(std::max(1, arg_int(args, "limit", 200)));
     for (std::size_t n = offset; n < total && n - offset < limit; ++n) {
-        const std::size_t i     = listed[n];
-        json              item  = object_info(*model.objects[i], i);
-        const json        every = std::move(item["instances"]);
+        const std::size_t i    = listed[n];
+        json              item = detail ? object_info(*model.objects[i], i) : object_summary(*model.objects[i], i);
+        // Each instance's entry with detail, else its index.
+        const json every = detail ? std::move(item["instances"]) : json();
         // The object's row where it has an instance; one without any instance is on no plate either.
         const auto add_row = [&](int plate, json& into) {
             json instances = json::array();
             for (std::size_t j = 0; j < on[i].size(); ++j)
                 if (on[i][j] == plate)
-                    instances.push_back(every[j]);
+                    instances.push_back(detail ? every[j] : json(j));
             if (instances.empty() && (plate >= 0 || !on[i].empty()))
                 return;
             json row         = item;
@@ -2455,11 +2472,13 @@ void register_scene_tools(CommandCatalog& catalog)
         "object_list", L("List objects"),
         "The project as the Objects panel lists it. plates: each {index, name, objects}, with the objects that have an "
         "instance on it; outside: the objects with an instance on no plate. An object with instances on two plates is "
-        "listed under both, each time with that plate's instances. An object has its filament, auto_drop, bounding box "
+        "listed under both, each time with that plate's instances. An object has its index, id, name, filament, "
+        "part_count, size (mm, of the bounding box below) and instances, the indices of its instances there. With detail, "
+        "an object has its filament, auto_drop, bounding box "
         "(instance 0), brim ear count and overrides, the keys of the settings it overrides (settings_get target object "
         "reads them); its mesh_errors, as the list's warning icon reads them: open_edges, manifold (no open edge), and the "
         "loader's or a repair's counts degenerate_facets, edges_fixed, facets_removed, facets_reversed and "
-        "backwards_edges (object_fix repairs it); its instances (offset, rotation in degrees, scale, "
+        "backwards_edges (object_fix repairs it); its instances as entries (index, offset, rotation in degrees, scale, "
         "mirrored, bbox); its parts, one or more: parts, negative parts, modifiers, support blockers and enforcers and "
         "precise seams (type, with subtype for a precise seam; filament: a part's own or its object's, a modifier's only when it sets "
         "one; position, bbox and scaled_volume in mm3 on the bed, measured on instance 0; rotation_deg and scale in the "
@@ -2476,7 +2495,10 @@ void register_scene_tools(CommandCatalog& catalog)
         "(object_ids, part_ids and instance_object_ids to object_select), and a call whose index names another one now is "
         "refused instead of acting on it. limit and offset page the objects and total counts them, each once.",
         object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "List this plate alone, without outside."}}},
-                       {"screen", prop("boolean", "Add each instance's rectangle in the shown 3D view, logical pixels [x, y, w, h].")},
+                       {"detail", prop("boolean", "Each object whole: its instances, parts, bounding boxes, mesh errors, paint and "
+                                                  "overrides (default false).")},
+                       {"screen", prop("boolean", "Add each instance's rectangle in the shown 3D view, logical pixels [x, y, w, h], "
+                                                  "to its entry, as with detail.")},
                        {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}, {"description", "Objects, default 200."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_objects(args); })); }));

@@ -1,4 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "automation_test_utils.hpp"
 
@@ -23,6 +25,7 @@ using Slic3r::GUI::CommandCatalog;
 using Slic3r::GUI::CommandSource;
 using Slic3r::GUI::NativeCommand;
 using Slic3r::GUI::Mcp::Test::DirectCaller;
+using Catch::Matchers::ContainsSubstring;
 
 namespace {
 
@@ -124,6 +127,34 @@ TEST_CASE("tools/list keeps registration order and maps annotations", "[Mcp]")
     CHECK(tools[1]["annotations"]["destructiveHint"] == true);
     CHECK(tools[1]["annotations"]["openWorldHint"] == true);
     CHECK(tools[0]["inputSchema"]["required"][0] == "text");
+}
+
+TEST_CASE("a reply's numbers reach the client with the digits that say something", "[Mcp]")
+{
+    const json data{{"float32", 60.001007080078125},
+                    {"sum", 134.99999999999994},
+                    {"kernel_zero", 4.440892098500626e-16},
+                    {"negative_zero", -0.0},
+                    {"tolerance", 1.5e-05},
+                    {"count", 3},
+                    {"large", 1e12 + 0.125},
+                    {"nested", {{"at", json::array({-3.0680601260208065e-12, 158.53807454003905})}}},
+                    {"text", "0.123456789"}};
+    // Keys come out in order: count, float32, kernel_zero, large, negative_zero, nested, sum, text, tolerance.
+    const std::string sent = McpProtocol::result_to_json(ToolResult::ok(data))["content"][0]["text"];
+    CHECK_THAT(sent, ContainsSubstring("\"count\":3,"));
+    CHECK_THAT(sent, ContainsSubstring("\"float32\":60.001,"));
+    CHECK_THAT(sent, ContainsSubstring("\"kernel_zero\":0.0,"));
+    CHECK_THAT(sent, ContainsSubstring("\"large\":1000000000000.125,"));
+    CHECK_THAT(sent, ContainsSubstring("\"negative_zero\":0.0,"));
+    CHECK_THAT(sent, ContainsSubstring("\"at\":[0.0,158.5381]"));
+    CHECK_THAT(sent, ContainsSubstring("\"sum\":135.0,"));
+    // A string keeps every digit, and a small value its own three.
+    CHECK_THAT(sent, ContainsSubstring("\"text\":\"0.123456789\""));
+    CHECK_THAT(sent, ContainsSubstring("\"tolerance\":1.5e-05"));
+    // An error's details too.
+    const std::string refused = McpProtocol::result_to_json(ToolResult::error("out of range", {{"max", 2.0000000000000004}}))["content"][0]["text"];
+    CHECK(refused == "out of range\n{\"max\":2.0}");
 }
 
 TEST_CASE("tools/call returns the result as a JSON text block", "[Mcp]")

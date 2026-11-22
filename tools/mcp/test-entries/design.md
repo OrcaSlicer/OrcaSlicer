@@ -25,6 +25,13 @@ part clears with `new_design`; the view's helper planes and axes (keys P and A) 
 `reset_switches()` turns off with the switches above; and the Design camera, which `CadGui.start()` sets
 (`reset_view()`) and the replays point themselves.
 
+A Design command that succeeds replies without `ok`; only a rejected rebuild replies `ok` false, with its `error`.
+So a check that a call succeeded reads that its reply has no `ok`, and a replay step's `expect` gives
+`"/ok": {"exists": false}`. `undo` and `redo`, which are not Design commands, keep their reply's own `result`, the
+Design history's depths, which a replay step reads under `/result/`. The server rounds a reply's numbers for an agent (4 decimals), so the Python tests,
+whose checks compute with the design's numbers (corners square to 1e-9, a replay's results equal to the live
+run's to 1e-6), read them whole: `CadGui` and `test_cad_replays` set `exact_numbers` on their client.
+
 So every Python test here starts with `start(client)` on the Generic Klipper Printer, and a replay whose checks
 follow the bed selects that printer in its first steps. The only check that writes out a value the bed fixes is
 `cad_sketch_to_solid`'s 125, the Klipper bed's centre, and that replay selects the Klipper printer itself; no other
@@ -219,7 +226,7 @@ the bed, and the project it saves carries the printer it reopens with.
   window's width is > 0. `widget_list` finds one `OrcaSceneCanvas`.
 - Pick: `widget_click` reports `clicked` canvas. The right-click menu's first item matches "of Extrude".
   `fit_selection`, refused earlier with nothing picked, now succeeds.
-- Keys: `widget_list` "Extrude dist" finds 1 node after Shift+E and 0 after Escape. The next `extrude` returns `ok`.
+- Keys: `widget_list` "Extrude dist" finds 1 node after Shift+E and 0 after Escape. The next `extrude` succeeds, its reply without `ok`.
 - Project: after the save, not dirty, named `design_only`; after `set_variable`, dirty. Opening with
   `discard_changes` reports a project with 0 objects. `app_state` then shows not dirty, the name and path match, and
   no dialogs are open. The variable is gone and a second body exists.
@@ -260,7 +267,7 @@ listed and can be captured, and another Design command is refused as busy. The t
 Its start: its own `project_new` and `new_design`, and a 30 x 30 x 250 block. No check depends on the printer.
 "Captures it" needs the main window wider than the progress dialog, as the baseline's 1600 x 900 is. The part breaks
 off when an `app_state` or screenshot probe raises, or when the build is seen neither running nor ended within 300 s.
-- Result: "the thread call succeeds" (the awaited result has `ok` true) and "one thread feature and one body".
+- Result: "the thread call succeeds" (the awaited result has its `thread_index` and no `ok`) and "one thread feature and one body".
 - During the build, one probe runs. It fires once the build is seen running: when `widget_list` shows a "Design"
   dialog whose class contains "Progress", or on Windows, where no window `widget_list` lists is the dialog, when
   `describe_design` is refused as busy. A build seen ending first fires none, which fails the three checks below.
@@ -497,7 +504,8 @@ named after the rung, runs `recover()` and goes on to the next rung.
   `stale_ids` with the selection kept; `applies` true for `fillet`, `delete_face` and `zoom_to_selection`; after
   `zoom_to_selection` the camera's `look_at` is loop 1's centre (1e-3); three canvas screenshots (face, edge,
   vertex selected) differ from the nothing-selected one and from each other.
-- confirm and cancel: `was` (`card`, `sketch`, `plane_pick`, `text`, `insert`), `ok`, `feature` index, `open`;
+- confirm and cancel: `was` (`card`, `sketch`, `plane_pick`, `text`, `insert`), no `ok` where it took, `feature`
+  index, `open`;
   refusal texts; feature and body counts; undo and redo depth unchanged after a refused or failed add; the card
   still open with its pick and the status line's reason; `object_list` count and `app_state.tab` unchanged by
   Commit to Plate.

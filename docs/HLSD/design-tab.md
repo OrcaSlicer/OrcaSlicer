@@ -410,7 +410,7 @@ and the model's outside one, titled as the right-click menu names it and with it
 or once the feature is turned off, none; a pinned Design tab action stays pinned while it is not shown, and
 takes no place on the favourites bar meanwhile. A folded item's action runs its command with the item's
 arguments. A call whose arguments are exactly those that choose an item (none for an entry's own item) does what
-the menu item does, only in the mode the item belongs to, and replies `{"result": {"interactive": true, ...}}`
+the menu item does, only in the mode the item belongs to, and replies `{"interactive": true, ...}`
 with what the tab shows then (its busy reason and status line); with other arguments, or `silent: true`, the
 commands (`Mcp/McpToolsCad.*`) describe the design, read topology, measure, and run the same verbs the offer
 does — they re-implement nothing, so a scripted action and a clicked one cannot diverge. Where a GUI action is

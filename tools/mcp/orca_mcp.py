@@ -109,6 +109,9 @@ class OrcaMcp:
         self.token = token
         self.timeout = timeout
         self._id = 0
+        # True asks every tools/call for its reply's numbers whole: the server rounds them for an agent to read
+        # (4 decimals, or 3 significant digits), which a check computing with them to 1e-9 cannot use.
+        self.exact_numbers = False
 
     @classmethod
     def from_datadir(cls, datadir=None, exe=None):
@@ -172,7 +175,10 @@ class OrcaMcp:
     def call_raw(self, tool, args=None, timeout=None):
         start, result = time.monotonic(), None
         try:
-            result = self.request("tools/call", {"name": tool, "arguments": args or {}}, timeout=timeout)
+            params = {"name": tool, "arguments": args or {}}
+            if self.exact_numbers:
+                params["_meta"] = {"orcaslicer/exact_numbers": True}
+            result = self.request("tools/call", params, timeout=timeout)
             return result
         finally:
             # Read on each call, so a test can turn the log on after the module is imported.
@@ -226,7 +232,7 @@ class OrcaMcp:
 
     def call_command(self, tool, /, **args):
         """Call one command, a tool or one the tool list does not show (a Design command), through
-        tool_call and return its whole reply; a Design command's result is the reply's "result".
+        tool_call and return its reply.
 
         A running job is followed to its end. A call whose first reply is blocked_by_dialog fails at
         once, since a script that waited would wait on a dialog nobody answers. A call that first

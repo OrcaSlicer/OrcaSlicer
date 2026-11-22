@@ -604,7 +604,7 @@ def rung_project_model():
         features = gui.cad("describe_design")["features"]
         index = r.get("project_index")
         gui.check(f"project_model: sketch_project {args} adds a Project feature",
-                  r.get("ok") is True and index == len(features) - 1 and features[index]["type"] == "Project", [r, features])
+                  "ok" not in r and index == len(features) - 1 and features[index]["type"] == "Project", [r, features])
         gui.check(f"project_model: sketch_project {args} replies scope feature", r.get("scope") == "feature", r)
         gui.check(f"project_model: sketch_project {args} projects onto XY", is_xy(r.get("frame", {}), origin), r)
 
@@ -682,7 +682,7 @@ def rung_text():
     gui.check("text: one undo step", undo_depth() == before + 1, f"{before} -> {undo_depth()}")
     nothing_open("text")
     r = outcome("extrude", sketch=index, distance=2)
-    gui.check("text: the text extrudes into a body, nothing open refusing it", r.get("ok") is True and bodies() > 0, r)
+    gui.check("text: the text extrudes into a body, nothing open refusing it", "ok" not in r and bodies() > 0, r)
 
     # Refused, changing nothing: a face that is not installed, and text of spaces only. No feature, no undo step and no
     # error in describe_design.
@@ -693,7 +693,7 @@ def rung_text():
         gui.check(f"text: {what} is refused", reason in why, why)
         gui.check(f"text: {what} adds no feature", features() == count, features())
         gui.check(f"text: {what} takes no undo step", undo_depth() == depth, f"{depth} -> {undo_depth()}")
-        error = gui.cad("describe_design")["error"]
+        error = gui.cad("describe_design").get("error", "")
         gui.check(f"text: {what} leaves describe_design's error empty", error == "", error)
 
     # Not inside an open sketch, and its feature is no sketch to edit.
@@ -1171,7 +1171,7 @@ def rung_feature_edit_refs():
     r = outcome("feature_edit", feature=fillet, refs={"edges": [edge["id"]]}, generation=along_x["generation"])
     edges = gui.cad("feature_describe", feature=fillet)["refs"]["edges"]
     gui.check("feature_edit_refs: the Fillet rounds the edge named by its id before it",
-              r.get("ok") is True and edges == [edge["id"]], [r, edges])
+              "ok" not in r and edges == [edge["id"]], [r, edges])
     gui.check("feature_edit_refs: one undo step", undo_depth() == depth + 1, f"{depth} -> {undo_depth()}")
     why = refused("feature_edit", feature=fillet, refs={"edges": [rounded]}, generation=along_x["generation"])
     gui.check("feature_edit_refs: ids read before the edit rebuilt the model are refused as stale", "stale_ids" in why, why)
@@ -1189,7 +1189,7 @@ def rung_text_edit():
     r = outcome("feature_edit", feature=index, fields={"text_string": "AB", "text_height": 20})
     params = gui.cad("feature_describe", feature=index)["params"]
     gui.check("text_edit: the text reads AB, 20 mm high, in two regions",
-              r.get("ok") is True and params.get("text_string") == "AB" and near(params.get("text_height", 0), 20)
+              "ok" not in r and params.get("text_string") == "AB" and near(params.get("text_height", 0), 20)
               and params.get("regions") == 2, [r, params])
     gui.check("text_edit: one undo step", undo_depth() == depth + 1, f"{depth} -> {undo_depth()}")
 
@@ -1390,7 +1390,7 @@ def rung_confirm_card():
     count = extrude_card("confirm_card")
     r = gui.cad("confirm_tool")
     gui.check("confirm_card: confirm_tool confirms the card and gives the new feature's index",
-              r.get("was") == "card" and r.get("ok") is True and r.get("feature") == count and r.get("open") is None, r)
+              r.get("was") == "card" and "ok" not in r and r.get("feature") == count and r.get("open") is None, r)
     added = gui.cad("describe_design")["features"][count:]
     gui.check("confirm_card: the feature is the Extrude", [f["type"] for f in added] == ["Extrude"], added)
     gui.check("confirm_card: one body exists", bodies() == 1, bodies())
@@ -1457,10 +1457,10 @@ def rung_text_dialog():
     gui.fill({"label": "Text", "class": "TextInput", "within": "Text"}, "Orca", submit=False)
     r = gui.cad("confirm_tool")
     gui.check("text_dialog: confirm_tool takes the Text dialog's OK, which opens the text's placement",
-              r.get("was") == "text" and r.get("ok") is True and r.get("feature") == 0 and r.get("open") == "insert"
+              r.get("was") == "text" and "ok" not in r and r.get("feature") == 0 and r.get("open") == "insert"
               and "Text" not in gui.modeless(), r)
     r = gui.cad("confirm_tool")
-    gui.check("text_dialog: confirm_tool then keeps the text where it is placed", r.get("was") == "insert" and r.get("ok") is True, r)
+    gui.check("text_dialog: confirm_tool then keeps the text where it is placed", r.get("was") == "insert" and "ok" not in r, r)
     added = [f["name"] for f in gui.cad("describe_design")["features"]]
     gui.check("text_dialog: the design holds the text", len(added) == 1 and added[0].startswith("Text"), added)
     nothing_open("text_dialog")
@@ -1603,8 +1603,8 @@ def rung_confirm_failed_add():
     gui.check("confirm_failed_add: the card stays open, saying why", card_open() and status_says("could not be rebuilt"),
               [card_open(), [w.label for w in gui.widgets() if w.kind == "text"][:8]])
     gui.check("confirm_failed_add: the card keeps its pick, the edge", selection() == "edge_str", selection())
-    gui.check("confirm_failed_add: the design rebuilds as it was", gui.cad("describe_design")["error"] == "" and bodies() == 1,
-              gui.cad("describe_design")["error"])
+    gui.check("confirm_failed_add: the design rebuilds as it was", "error" not in gui.cad("describe_design") and bodies() == 1,
+              gui.cad("describe_design").get("error"))
     gui.show_design()
     if card_open():
         gui.cancel()
@@ -1639,7 +1639,7 @@ def plate_offset(replace):
     room, so a part's place is read against another part of the same object."""
     r = gui.cad("commit_to_plate", mode="assembly", replace=[] if replace is None else [replace])
     index = r["objects"][0]["index"]
-    listed = gui.client.call("object_list")
+    listed = gui.client.call("object_list", detail=True)
     objects = [o for p in listed.get("plates", []) for o in p["objects"]] + listed.get("outside", [])
     parts = {p["name"]: p for o in objects if o["index"] == index for p in o["parts"]}
     return parts["Design Body 1"]["bbox"]["min"][0] - parts["Design Body 2"]["bbox"]["min"][0], index
@@ -1661,7 +1661,7 @@ def rung_place():
     r = gui.cad("body_place", body=0, move=[10, 0, 0])
     t = translation(0)
     gui.check("place: move [10, 0, 0] gives a placement translated by (10, 0, 0)",
-              r.get("ok") is True and r.get("moved") is True and r.get("placement") is not None and t is not None
+              "ok" not in r and r.get("moved") is True and r.get("placement") is not None and t is not None
               and all(near(a, b) for a, b in zip(t, [10, 0, 0])), [r, t])
     gui.check("place: describe_design reads it moved", gui.cad("describe_design")["bodies"][0]["moved"] is True,
               gui.cad("describe_design")["bodies"][0])
@@ -1816,7 +1816,7 @@ def boolean_card(rung, args, operation):
               r.get("interactive") is True and r.get("tool") == "boolean", r)
     gui.check(f"{rung}: the Boolean card is open", card_open() and "a feature card is open" in (r.get("busy") or ""), r)
     done = gui.cad("confirm_tool")
-    gui.check(f"{rung}: the card's Confirm adds the Boolean", done.get("was") == "card" and done.get("ok") is True, done)
+    gui.check(f"{rung}: the card's Confirm adds the Boolean", done.get("was") == "card" and "ok" not in done, done)
     gui.check(f"{rung}: the card's Boolean is a {operation}", operation_of(done.get("feature")) == operation,
               operation_of(done.get("feature")))
     gui.check(f"{rung}: one body is left", bodies() == 1, bodies())
@@ -1831,7 +1831,7 @@ def rung_boolean_opens():
     boolean_card("boolean_opens", {"operation": "cut"}, "cut")
     two_bodies()
     r = gui.cad("boolean", operation="cut", target=0, tool=1)
-    gui.check("boolean_opens: boolean {operation: cut, target, tool} runs", r.get("ok") is True and "interactive" not in r, r)
+    gui.check("boolean_opens: boolean {operation: cut, target, tool} runs", "ok" not in r and "interactive" not in r, r)
     gui.check("boolean_opens: it cut the post from the block", near(volume(0), 20 * 20 * 10 - 6 * 6 * 10, 1e-3), volume(0))
 
 
@@ -1866,7 +1866,7 @@ def rung_action_pick_replay():
     gui.cad("sketch_select", entities=[0])
     r = gui.client.call("action_run", id="sk_array_polar")
     gui.check("action_pick_replay: action_run of the Polar array action opens its tool",
-              r.get("result", {}).get("interactive") is True, r)
+              r.get("interactive") is True, r)
     gui.check("action_pick_replay: it arms the polar array tool", gui.sketch()["tool"] == "array_polar", gui.sketch()["tool"])
     out_dir = tempfile.mkdtemp(prefix="orca-mcp-action-pick-replay-")
     path = os.path.join(out_dir, "session.json")

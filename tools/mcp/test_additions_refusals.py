@@ -194,7 +194,7 @@ def main():
     check("with the ranges it has", details.get("height_ranges") == [{"min_z": 0, "max_z": 5}, {"min_z": 5, "max_z": 10}], details)
     refused("settings_get of the filament settings with target object is refused", "settings_get",
             {"type": "filament", "target": "object", "object": 0}, "The filament settings have no target object")
-    check("and the object's ranges stay", len(client.call("object_list")["plates"][0]["objects"][0]["layer_config_ranges"]) == 2)
+    check("and the object's ranges stay", len(client.call("object_list", detail=True)["plates"][0]["objects"][0]["layer_config_ranges"]) == 2)
     client.call("project_new", discard_changes=True)
 
     # ---- The sidebar is off while a G-code file without its settings is shown ----

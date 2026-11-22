@@ -1872,13 +1872,25 @@ TEST_CASE("the tool_list description names every Design command under its headin
     CHECK_THAT(index, ContainsSubstring(". Menu items, which take no arguments"));
 }
 
+TEST_CASE("a Design reply keeps a rejected rebuild's ok false and its error", "[Mcp][CAD]")
+{
+    const json rejected{{"ok", false}, {"replaced", false}, {"error", "the sketch was not replaced: open profile"}};
+    const GUI::NativeCommand finish = GUI::Mcp::cad_command("sketch_finish", "Finish sketch",
+                                                            json{{"type", "object"}, {"properties", json::object()}},
+                                                            [&rejected](const json&, bool) { return rejected; });
+    JournalContext        agent;
+    const GUI::ToolResult reply = finish.run(json::object(), agent);
+    CHECK_FALSE(reply.is_error);
+    CHECK(reply.data == rejected);
+}
+
 TEST_CASE("a CAD call is journaled without its generation and with its silent", "[Mcp][CAD]")
 {
     json                     seen;
     const GUI::NativeCommand fillet = GUI::Mcp::cad_command("fillet", "Fillet", json{{"type", "object"}, {"properties", json::object()}},
                                                             [&seen](const json& args, bool) {
                                                                 seen = args;
-                                                                return json{{"ok", true}};
+                                                                return json{{"ok", true}, {"error", ""}, {"feature_index", 3}};
                                                             });
     CHECK(fillet.group == "Design");
     CHECK_FALSE(fillet.listed);
@@ -1886,14 +1898,15 @@ TEST_CASE("a CAD call is journaled without its generation and with its silent", 
     JournalContext             agent;
     const GUI::ToolResult      reply = fillet.run({{"generation", 4}, {"silent", true}, {"radius", 2}}, agent);
     CHECK(agent.journaled == json{{"silent", true}, {"radius", 2}});
-    // The function still checks the generation, and the reply wraps its value.
+    // The function still checks the generation, and the reply is its value without an ok true and an empty error,
+    // which say nothing.
     CHECK(seen == json{{"generation", 4}, {"silent", true}, {"radius", 2}});
     CHECK_FALSE(reply.is_error);
-    CHECK(reply.data == json{{"result", {{"ok", true}}}});
+    CHECK(reply.data == json{{"feature_index", 3}});
 
     // A person's pick runs the function in place, with the same reply, and journals nothing.
     JournalContext person(/*person=*/true);
-    CHECK(fillet.run(json::object(), person).data == json{{"result", {{"ok", true}}}});
+    CHECK(fillet.run(json::object(), person).data == json{{"feature_index", 3}});
     CHECK(person.journaled.is_null());
 
     // A call that ran and gave nothing but its generation is journaled silent when a call with no arguments

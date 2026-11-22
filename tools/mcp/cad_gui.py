@@ -285,6 +285,8 @@ class CadGui:
     """
 
     def __init__(self, client):
+        # The checks compute with the design's numbers (a sketch's corners square to 1e-9), so they read them whole.
+        client.exact_numbers = True
         self.client = client
         self.failures = 0
         self.safe = None   # (x0, x1, y0, y1) mm: the plane region the calibration probes covered
@@ -380,9 +382,9 @@ class CadGui:
     # ------------------------------------------------------------ reading
 
     def cad(self, tool, /, **args):
-        """A Design command's result. The command's name is positional-only, so an argument named tool
+        """A Design command's reply. The command's name is positional-only, so an argument named tool
         (boolean's) goes to the command."""
-        return self.client.call_command(tool, **args)["result"]
+        return self.client.call_command(tool, **args)
 
     def sketch(self):
         return self.cad("sketch_describe")
@@ -633,7 +635,7 @@ class CadGui:
             raise RuntimeError(f"New Design left {len(features)} feature(s)")
 
     def _sketch_ok(self):
-        return (self._sketch_or_none() or {}).get("ok")
+        return self._sketch_or_none() is not None
 
     def _open_sketch(self):
         """Open a sketch on the XY reference plane, by the route enter_sketch() describes. Each click's

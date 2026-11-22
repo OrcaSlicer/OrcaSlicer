@@ -56,7 +56,7 @@ class CallFormsTest:
 
     def objects(self):
         """Each object as {name, plate, offset, bbox}, offset and bbox being its first instance's."""
-        listing = self.c.call("object_list", limit=500)
+        listing = self.c.call("object_list", limit=500, detail=True)
         return [{"name": o["name"], "plate": p["index"], "offset": o["instances"][0]["offset"],
                  "bbox": o["instances"][0]["bbox"]} for p in listing["plates"] for o in p["objects"]]
 
@@ -185,7 +185,7 @@ class CallFormsTest:
         reply = self.run("project_export", path=path, overwrite=True)
         self.t.equal(f"{s} 19: the objects written", [o.get("index") for o in reply.get("objects", [])], [0, 1])
         self.t.equal(f"{s} 19: the reply's bytes are the file's", reply.get("bytes"), os.path.getsize(path))
-        triangles = sum(part["triangles"] for p in self.c.call("object_list")["plates"] for o in p["objects"]
+        triangles = sum(part["triangles"] for p in self.c.call("object_list", detail=True)["plates"] for o in p["objects"]
                         for part in o["parts"])
         count, size = stl(path)
         self.t.equal(f"{s} 19: the STL holds the objects' triangles", count, triangles)

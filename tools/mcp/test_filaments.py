@@ -196,7 +196,7 @@ class FilamentsTest:
 
     def filaments(self):
         """Each object as its filament and, with several parts, its parts' filaments: `cube 1 (1, 2) · cylinder 2`."""
-        listing = self.c.call("object_list", limit=500)
+        listing = self.c.call("object_list", limit=500, detail=True)
         objects = sorted([o for p in listing["plates"] for o in p["objects"]] + listing.get("outside", []),
                          key=lambda o: o["index"])
         return " · ".join(f"{o['name']} {o['filament']}" + (
