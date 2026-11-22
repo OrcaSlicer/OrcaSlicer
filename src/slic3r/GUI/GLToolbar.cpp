@@ -662,14 +662,12 @@ bool GLToolbar::on_mouse(wxMouseEvent& evt, GLCanvas3D& parent)
             m_mouse_capture.parent = &parent;
             processed = true;
             if (const int group = group_of_slot(item_id); group >= 0) {
-                // A double click would reopen what the first click closed.
-                if (evt.LeftDown()) {
-                    if (group == m_group_popup.open) {
-                        close_group_list();
-                        parent.set_as_dirty();
-                    } else
-                        open_group_list(group, parent);
-                }
+                // A double click toggles too: a quick reopen after closing arrives as one.
+                if (group == m_group_popup.open) {
+                    close_group_list();
+                    parent.set_as_dirty();
+                } else
+                    open_group_list(group, parent);
             }
             else if (item_id != -2 && !m_items[item_id]->is_separator() && !m_items[item_id]->is_disabled() &&
                 (m_pressed_toggable_id == -1 || m_items[item_id]->get_last_action_type() == GLToolbarItem::Left)) {

@@ -5573,7 +5573,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     Point pos(evt.GetX(), evt.GetY());
 
     // A press anywhere but the open group list or its button closes the list, whichever part of the canvas takes it.
-    if (evt.LeftDown() || evt.RightDown()) {
+    if (evt.LeftDown() || evt.LeftDClick() || evt.RightDown()) {
         m_gizmos.close_group_list_unless_at(pos.cast<double>());
         m_main_toolbar.close_group_list_unless_at(pos.cast<double>(), *this);
     }

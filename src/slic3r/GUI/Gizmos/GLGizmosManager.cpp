@@ -941,9 +941,7 @@ bool GLGizmosManager::gizmos_toolbar_on_mouse(const wxMouseEvent &mouse_event) {
         if (mouse_event.LeftDown() || mouse_event.LeftDClick()) {
             mc.left = true;
             if (const int group = group_of_slot(gizmo); group >= 0) {
-                // A double click would reopen what the first click closed.
-                if (!mouse_event.LeftDown())
-                    return true;
+                // A double click toggles too: a quick reopen after closing arrives as one.
                 if (m_group_popup.open == group)
                     close_group_list();
                 else {
