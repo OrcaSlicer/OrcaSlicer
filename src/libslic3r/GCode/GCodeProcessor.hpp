@@ -15,6 +15,7 @@
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/GCode/ExclusionVolumePathCheck.hpp"
 #include "libslic3r/GCode/MachineFrameTransform.hpp"
+#include "libslic3r/GCode/OverhangMetadata.hpp"
 
 #include <cstddef>
 #include <cassert>
@@ -762,7 +763,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         // Bound exported profiles and untrusted imported metadata independently of move length.
         static constexpr size_t MAX_OVERHANG_PROFILE_SAMPLES = 65536;
         // Walls report their contour offset past a full bead, up to ten widths, so the angle preview stays continuous.
-        static constexpr float MAX_OVERHANG_PERCENTAGE = 1000.0f;
+        static constexpr float MAX_OVERHANG_PERCENTAGE = Slic3r::MAX_OVERHANG_PERCENTAGE;
         // The percentage of a move whose role the overhang metadata does not measure; the preview shows N/A.
         static constexpr float NO_OVERHANG_PERCENTAGE = -1.0f;
         // Roles the overhang metadata measures: walls, gap fill and infill. Supports, skirt, brim, the wipe tower,

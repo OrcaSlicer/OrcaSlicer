@@ -33,6 +33,25 @@ TEST_CASE("Overhang preview selection round trips through saved preferences", "[
     CHECK(restored == libvgcode::EViewType::Overhang);
 }
 
+// The menu offers the Overhang view only for G-code with overhang metadata. Without it, the fallback the preview
+// applies to a saved or selected view turns Overhang into Line Type and keeps every other view. Applying that view to
+// the renderer needs an OpenGL context and is not tested here.
+TEST_CASE("The view menu offers the Overhang view only with overhang metadata and falls back to Line Type without it",
+          "[GCodeViewer][Overhang][Regression]")
+{
+    using Slic3r::GUI::GCodeViewer;
+    using libvgcode::EViewType;
+    for (const bool metadata : {false, true}) {
+        CAPTURE(metadata);
+        const std::vector<EViewType> menu = GCodeViewer::view_type_menu(metadata);
+        CHECK((std::find(menu.begin(), menu.end(), EViewType::Overhang) != menu.end()) == metadata);
+        REQUIRE(std::find(menu.begin(), menu.end(), EViewType::FeatureType) != menu.end());
+        for (const EViewType type : menu)
+            CHECK(GCodeViewer::available_view_type(type, metadata) == type);
+    }
+    CHECK(GCodeViewer::available_view_type(EViewType::Overhang, false) == EViewType::FeatureType);
+}
+
 // Guard values are part of the preview conversion contract. Walls convert their whole contour offset, which may pass
 // a full bead, and read horizontal only at the cap; other lines are measured up to a full bead, which is a bridge.
 TEST_CASE("Overhang angles convert walls continuously and saturate bridges", "[GCodeViewer][Overhang]")

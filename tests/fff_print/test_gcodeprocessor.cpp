@@ -1254,6 +1254,81 @@ TEST_CASE("Line overhang profiles reject incomplete data and unrelated motions",
     CHECK(processor.get_result().overhang_line_profiles.empty());
 }
 
+// A complete, marked profile is overhang metadata only once it colours an extrusion the processor keeps. Bound to a
+// travel, or to an arc that extrudes nothing, it leaves the Overhang view unavailable.
+TEST_CASE("Overhang profiles make the Overhang view available only on extrusions",
+          "[GCodeProcessor][Overhang][Regression]")
+{
+    const auto tag = [](GCodeProcessor::ETags type, const std::string &value) {
+        return ";" + GCodeProcessor::reserved_tag(type) + value + "\n";
+    };
+    const std::string line_profile = tag(GCodeProcessor::ETags::Overhang_Line, "4,0,0,100,0,0");
+    const std::string arc_profile  = tag(GCodeProcessor::ETags::Overhang_Arc, "4,0,0,100,0,0");
+    struct Case
+    {
+        const char *name;
+        std::string motion;
+        bool        metadata;
+    };
+    const Case test = GENERATE_COPY(values<Case>({
+        {"line on a travel",
+         line_profile + bind_overhang_profile("G1 X8 F600\n", GCodeProcessor::ETags::Overhang_Line_Apply), false},
+        {"arc on a travel", arc_profile + bind_overhang_profile("G3 X0 Y10 I-10 J0 F600\n"), false},
+        {"line on an extrusion",
+         line_profile + bind_overhang_profile("G1 X8 E1 F600\n", GCodeProcessor::ETags::Overhang_Line_Apply), true},
+        {"arc on an extrusion", arc_profile + bind_overhang_profile("G3 X0 Y10 I-10 J0 E1 F600\n"), true},
+    }));
+    CAPTURE(test.name);
+    GCodeProcessor processor;
+    processor.apply_config(FullPrintConfig());
+    // No scalar tag: it alone would make the view available.
+    processor.process_buffer("G90\nM83\nT0\n" + measured_role_tag() + "G1 X10 Y0 Z0.2 F600\n" + test.motion);
+    CHECK(processor.get_result().has_overhang_metadata == test.metadata);
+}
+
+// The cap of a wall's profile stands for no lower edge within reach, not for a distance. A planner chord that ends
+// between a measured sample and a capped one reads the sample nearer to its end, not a blend of the two.
+TEST_CASE("Overhang arc chords read a capped wall sample without blending it", "[GCodeProcessor][Overhang][ArcFitting][Regression]")
+{
+    const auto flavor = GENERATE(gcfMarlinFirmware, gcfKlipper);
+    CAPTURE(flavor);
+    FullPrintConfig config;
+    config.gcode_flavor.value = flavor;
+    GCodeProcessor processor;
+    processor.apply_config(config);
+    const std::string profile =
+        ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Overhang_Arc) + "2,0,200,1000\n";
+    processor.process_buffer("G90\nM83\nT0\n" + measured_role_tag() + "G1 X10 Y0 Z0.2 F600\n" + profile +
+        bind_overhang_profile("G3 X0 Y10 I-10 J0 E1 F600\n"));
+    struct Chord
+    {
+        double end; // Where the chord ends along the quarter circle around the origin, from 0 to 1.
+        float  percentage;
+    };
+    std::vector<Chord> chords;
+    for (const GCodeProcessorResult::MoveVertex &move : processor.get_result().moves)
+        if (move.type == EMoveType::Extrude && !move.internal_only)
+            chords.push_back({std::atan2(double(move.position.y()), double(move.position.x())) / (0.5 * PI),
+                              move.overhang_percentage});
+    REQUIRE(chords.size() > 4);
+    using Catch::Matchers::WithinAbs;
+    // A chord ending at the middle, up to the firmware's rounding of the arc, may read either sample. The chords are
+    // more than a hundred times as long.
+    constexpr double middle_band = 1e-4;
+    // The first chord ends before the middle of the arc, nearer the measured sample, and the last one at the cap.
+    REQUIRE(chords.front().end < 0.5 - middle_band);
+    REQUIRE(chords.back().end > 0.5 + middle_band);
+    for (const Chord &chord : chords) {
+        CAPTURE(chord.end);
+        if (chord.end < 0.5 - middle_band)
+            CHECK_THAT(chord.percentage, WithinAbs(200.0, 1e-3));
+        else if (chord.end > 0.5 + middle_band)
+            CHECK_THAT(chord.percentage, WithinAbs(1000.0, 1e-3));
+        else
+            CHECK_THAT(chord.percentage, WithinAbs(200.0, 1e-3) || WithinAbs(1000.0, 1e-3));
+    }
+}
+
 // Orca: Both firmware tessellations retain their original move count and timing inputs. A monotone
 // profile has an exact local maximum at one segment endpoint, independent of its geometric direction.
 TEST_CASE("Overhang arc profiles color local segments without changing motion", "[GCodeProcessor][Overhang][ArcFitting][Regression]")

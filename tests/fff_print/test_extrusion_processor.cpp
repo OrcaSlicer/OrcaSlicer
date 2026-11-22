@@ -23,6 +23,7 @@
 #include "test_helpers.hpp"
 #include "test_utils.hpp"
 
+#include <Eigen/Geometry>
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -893,6 +894,200 @@ TEST_CASE("Infill cross-sections through corners and along edges of the material
         Vec3d(0, 0.05, 0), 0.4f, 1, false);
     REQUIRE(profile.size() == 1);
     CHECK_THAT(profile.front(), Catch::Matchers::WithinAbs(test.expected, 0.1));
+}
+
+// An edge of the material below that runs along the cross-section, over part of it or all of it, lies on its line only
+// up to rounding once the two are turned off the axes. The section must still read it as lying a hair ahead of it, not
+// as crossed somewhere along it: a false crossing flips the side of every piece after it.
+TEST_CASE("Infill cross-sections along an edge of the material below read the same turned to any angle",
+          "[ExtrusionProcessor][Overhang][Regression]")
+{
+    struct Case
+    {
+        const char *name;
+        double      x0, x1, y0, y1;
+        double      expected;
+    };
+    // The cross-section runs along X from -0.2 to 0.2 and behind it lies at negative Y. Material from x = 0.1 to 0.3
+    // reaches under the last quarter of the section; from x = -0.3 to 0.3, its edge runs past both ends.
+    const Case test = GENERATE(values<Case>({
+        {"material behind", 0.1, 0.3, -1.0, 0.0, 75.0},
+        {"material ahead", 0.1, 0.3, 0.0, 1.0, 100.0},
+        {"material behind the whole section", -0.3, 0.3, -1.0, 0.0, 0.0},
+        {"material ahead of the whole section", -0.3, 0.3, 0.0, 1.0, 100.0},
+    }));
+    CAPTURE(test.name);
+    Print print;
+    Model model;
+    init_print({make_cube(6.0, 6.0, 0.4)}, print, model, shallow_overhang_config("classic", false, true));
+    print.process();
+    PrintObject *object = print.get_object(0);
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    const std::vector<Vec2d> outline{{test.x0, test.y0}, {test.x1, test.y0}, {test.x1, test.y1}, {test.x0, test.y1}};
+    for (int degrees = 0; degrees < 360; degrees += 3) {
+        CAPTURE(degrees);
+        const Eigen::Rotation2Dd turn(degrees * PI / 180.);
+        std::vector<Linef3> lines;
+        for (size_t i = 0; i < outline.size(); ++i) {
+            const Vec2d a = turn * outline[i];
+            const Vec2d b = turn * outline[(i + 1) % outline.size()];
+            lines.emplace_back(Vec3d(a.x(), a.y(), 0.0), Vec3d(b.x(), b.y(), 0.0));
+        }
+        estimator.prepare_for_infill_layer(object, object->get_layer(0),
+            std::make_shared<const AABBTreeLines::LinesDistancer<Linef3>>(std::move(lines)));
+        const Vec2d start = turn * Vec2d(0, -0.05);
+        const Vec2d end   = turn * Vec2d(0, 0.05);
+        const std::vector<float> profile = estimator.estimate_overhang_line_percentages(Vec3d(start.x(), start.y(), 0),
+            Vec3d(end.x(), end.y(), 0), 0.4f, 1, false);
+        REQUIRE(profile.size() == 1);
+        CHECK_THAT(profile.front(), Catch::Matchers::WithinAbs(test.expected, 0.1));
+    }
+}
+
+// An edge of the material below can lie on the cross-section's line, up to rounding, at one end and just behind it at
+// the other. The section reads its own line, which clears the edge: a crossing taken off the edge cuts the section
+// where no material ends, and the section moved a hair behind reaches into the material.
+TEST_CASE("Infill cross-sections nearly along an edge of the material below cross it only on the edge",
+          "[ExtrusionProcessor][Overhang][Regression]")
+{
+    Print print;
+    Model model;
+    init_print({make_cube(6.0, 6.0, 0.4)}, print, model, shallow_overhang_config("classic", false, true));
+    print.process();
+    PrintObject *object = print.get_object(0);
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    // The cross-section runs from x = 0.2 to -0.2 along y = -5e-9 x. The top edge of the material, at y = 0 from
+    // x = -0.3 to -0.05, lies behind its line by 0.25 picometres at x = -0.05 and by 1.5 at x = -0.3, so one end is
+    // on that line up to rounding. Under the section, from x = -0.2 to -0.05, the material falls short of it by 0.25
+    // to 1 picometre: the section clears it (100 %), where measured a hair behind it would reach into it (62.5 %).
+    const std::vector<Vec2d> outline{{-0.3, -1.0}, {-0.05, -1.0}, {-0.05, 0.0}, {-0.3, 0.0}};
+    for (int degrees = 0; degrees < 360; degrees += 15) {
+        CAPTURE(degrees);
+        const Eigen::Rotation2Dd turn(degrees * PI / 180.);
+        std::vector<Linef3> lines;
+        for (size_t i = 0; i < outline.size(); ++i) {
+            const Vec2d a = turn * outline[i];
+            const Vec2d b = turn * outline[(i + 1) % outline.size()];
+            lines.emplace_back(Vec3d(a.x(), a.y(), 0.0), Vec3d(b.x(), b.y(), 0.0));
+        }
+        estimator.prepare_for_infill_layer(object, object->get_layer(0),
+            std::make_shared<const AABBTreeLines::LinesDistancer<Linef3>>(std::move(lines)));
+        const Vec2d start = turn * Vec2d(-2.5e-10, -0.05);
+        const Vec2d end   = turn * Vec2d(2.5e-10, 0.05);
+        const std::vector<float> profile = estimator.estimate_overhang_line_percentages(Vec3d(start.x(), start.y(), 0),
+            Vec3d(end.x(), end.y(), 0), 0.4f, 1, false);
+        REQUIRE(profile.size() == 1);
+        CHECK_THAT(profile.front(), Catch::Matchers::WithinAbs(100.0, 0.1));
+    }
+}
+
+// An edge of the material below that crosses the cross-section at a grazing angle stays within picometres of it over a
+// long stretch, so a picometre moves the crossing far along the section. With no end of a line near the section's
+// line, the section reads that line, its crossings and its sides both: crossings taken a picometre off it would cut
+// the section where its own line does not, and read a mix of two lines.
+TEST_CASE("Infill cross-sections crossing an edge of the material below at a grazing angle read their own line",
+          "[ExtrusionProcessor][Overhang][Regression]")
+{
+    Print print;
+    Model model;
+    init_print({make_cube(6.0, 6.0, 0.4)}, print, model, shallow_overhang_config("classic", false, true));
+    print.process();
+    PrintObject *object = print.get_object(0);
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    // The cross-section runs from x = 0.2 to -0.2 along y = 5e-9 (0.05 - x) and crosses the top edge of the material,
+    // at y = 0 from x = -0.3 to 0.3, at x = 0.05. Its line passes 1.25 and 1.75 picometres from the edge's ends. The
+    // material lies under the section from x = 0.05 to 0.2: 62.5 % of it is unsupported.
+    const std::vector<Vec2d> outline{{-0.3, -1.0}, {0.3, -1.0}, {0.3, 0.0}, {-0.3, 0.0}};
+    for (int degrees = 0; degrees < 360; degrees += 15) {
+        CAPTURE(degrees);
+        const Eigen::Rotation2Dd turn(degrees * PI / 180.);
+        std::vector<Linef3> lines;
+        for (size_t i = 0; i < outline.size(); ++i) {
+            const Vec2d a = turn * outline[i];
+            const Vec2d b = turn * outline[(i + 1) % outline.size()];
+            lines.emplace_back(Vec3d(a.x(), a.y(), 0.0), Vec3d(b.x(), b.y(), 0.0));
+        }
+        estimator.prepare_for_infill_layer(object, object->get_layer(0),
+            std::make_shared<const AABBTreeLines::LinesDistancer<Linef3>>(std::move(lines)));
+        const Vec2d start = turn * Vec2d(-2.5e-10, 2.5e-10 - 0.05);
+        const Vec2d end   = turn * Vec2d(2.5e-10, 2.5e-10 + 0.05);
+        const std::vector<float> profile = estimator.estimate_overhang_line_percentages(Vec3d(start.x(), start.y(), 0),
+            Vec3d(end.x(), end.y(), 0), 0.4f, 1, false);
+        REQUIRE(profile.size() == 1);
+        CHECK_THAT(profile.front(), Catch::Matchers::WithinAbs(62.5, 0.1));
+    }
+}
+
+// Moved a hair behind, a cross-section can land in material that it misses by picometres, so it is moved only where
+// rounding decides its reading: where an edge of the material below runs along it, or a corner lies under the middle
+// of its longest piece. A corner past the section's ends, an edge along its line past them or reaching picometres onto
+// one, or a corner elsewhere on it, whose two lines take the same side of it, leave the reading to the section's own
+// line, at any angle.
+TEST_CASE("Infill cross-sections are measured again a hair behind only where rounding decides their reading",
+          "[ExtrusionProcessor][Overhang][Regression]")
+{
+    struct Case
+    {
+        const char                     *name;
+        Vec2d                           start, end;
+        size_t                          cells;
+        std::vector<std::vector<Vec2d>> blocks;
+    };
+    // Each first cross-section, from x = 0.2 to -0.2, misses the material below, passing picometres ahead of a block
+    // behind it. The first path runs 1 nanometre off the Y axis over 8 mm and its first section lies around y = 2.5e-8,
+    // 25 to 50 picometres ahead of the left block; the corner at x = 0.20005 lies within a picometre of its line. The
+    // others run along Y through the origin. The last block's top edge drops 1 nanometre over 4 mm from its corner on
+    // the section at x = 0.1. The float width puts the section's ends 3 picometres past x = 0.2 and -0.2, so the
+    // edges that end there reach that far onto it. Each case is turned about the origin.
+    const Case test = GENERATE(values<Case>({
+        {"a corner past the section's start", {0.0, -0.049999}, {0.000001, 7.949845}, 80,
+         {{{-0.3, -1.0}, {0.0, -1.0}, {0.0, 0.0}, {-0.3, 0.0}},
+          {{0.20005, 0.0}, {0.6, 0.0}, {0.6, 1.0}, {0.20005, 1.0}}}},
+        {"an edge along the section's line past its start", {0.0, -0.05}, {0.0, 0.05}, 1,
+         {{{-0.3, -1.0}, {0.0, -1.0}, {0.0, -2.5e-8}, {-0.3, -2.5e-8}},
+          {{0.20005, 0.0}, {0.6, 0.0}, {0.6, 1.0}, {0.20005, 1.0}}}},
+        {"an edge along the section's line past its end", {0.0, -0.05}, {0.0, 0.05}, 1,
+         {{{0.0, -1.0}, {0.3, -1.0}, {0.3, -2.5e-8}, {0.0, -2.5e-8}},
+          {{-0.6, 0.0}, {-0.20005, 0.0}, {-0.20005, 1.0}, {-0.6, 1.0}}}},
+        {"an edge along the section's line ending at its start", {0.0, -0.05}, {0.0, 0.05}, 1,
+         {{{-0.3, -1.0}, {0.0, -1.0}, {0.0, -2.5e-8}, {-0.3, -2.5e-8}},
+          {{0.2, 0.0}, {0.6, 0.0}, {0.6, 1.0}, {0.2, 1.0}}}},
+        {"an edge along the section's line ending at its end", {0.0, -0.05}, {0.0, 0.05}, 1,
+         {{{0.0, -1.0}, {0.3, -1.0}, {0.3, -2.5e-8}, {0.0, -2.5e-8}},
+          {{-0.6, 0.0}, {-0.2, 0.0}, {-0.2, 1.0}, {-0.6, 1.0}}}},
+        {"a corner on the section beside a shallow edge", {0.0, -0.05}, {0.0, 0.05}, 1,
+         {{{0.1, -1.0}, {0.1, 0.0}, {-3.9, -1e-6}, {-3.9, -1.0}}}},
+    }));
+    CAPTURE(test.name);
+    Print print;
+    Model model;
+    init_print({make_cube(6.0, 6.0, 0.4)}, print, model, shallow_overhang_config("classic", false, true));
+    print.process();
+    PrintObject *object = print.get_object(0);
+    ExtrusionQualityEstimator estimator;
+    estimator.set_current_object(object);
+    for (int degrees = 0; degrees < 360; degrees += 15) {
+        CAPTURE(degrees);
+        const Eigen::Rotation2Dd turn(degrees * PI / 180.);
+        std::vector<Linef3> lines;
+        for (const std::vector<Vec2d> &block : test.blocks)
+            for (size_t i = 0; i < block.size(); ++i) {
+                const Vec2d a = turn * block[i];
+                const Vec2d b = turn * block[(i + 1) % block.size()];
+                lines.emplace_back(Vec3d(a.x(), a.y(), 0.0), Vec3d(b.x(), b.y(), 0.0));
+            }
+        estimator.prepare_for_infill_layer(object, object->get_layer(0),
+            std::make_shared<const AABBTreeLines::LinesDistancer<Linef3>>(std::move(lines)));
+        const Vec2d start = turn * test.start;
+        const Vec2d end   = turn * test.end;
+        const std::vector<float> profile = estimator.estimate_overhang_line_percentages(Vec3d(start.x(), start.y(), 0),
+            Vec3d(end.x(), end.y(), 0), 0.4f, test.cells, false);
+        REQUIRE(profile.size() == test.cells);
+        CHECK_THAT(profile.front(), Catch::Matchers::WithinAbs(100.0, 0.1));
+    }
 }
 
 TEST_CASE("Sparse infill exports unsupported gaps inside unchanged model outlines without changing commands",

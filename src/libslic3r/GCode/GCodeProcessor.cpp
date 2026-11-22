@@ -848,11 +848,6 @@ void GCodeProcessor::TimeProcessor::reset()
 template<typename T>
 [[nodiscard]] static inline bool parse_number(const std::string_view sv, T &out)
 {
-    // Orca: The legacy floating-point converter consumes zero characters for empty fields and
-    // returns zero. Reject them before either backend so missing metadata is never a valid number.
-    if (sv.empty())
-        return false;
-
     // https://www.bfilipek.com/2019/07/detect-overload-from-chars.html#example-stdfromchars
 #if __has_include(<charconv>)
     // Visual Studio 19 supports from_chars all right.
@@ -885,6 +880,14 @@ template<typename T>
             return false;
         }
     }
+}
+
+// Orca: parse_number() for overhang metadata, which an empty field never satisfies: the legacy floating-point
+// converter reads an empty field as zero.
+template<typename T>
+[[nodiscard]] static inline bool parse_overhang_number(const std::string_view sv, T &out)
+{
+    return !sv.empty() && parse_number(sv, out);
 }
 
 namespace {
@@ -4656,7 +4659,7 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
         // auxiliary tag alone must not advertise overhang data when no percentages were provided.
         if (boost::starts_with(comment, reserved_tag(ETags::Overhang_Z_Distance))) {
             float z_distance = 0.0f;
-            if (!parse_number(comment.substr(reserved_tag(ETags::Overhang_Z_Distance).size()), z_distance) ||
+            if (!parse_overhang_number(comment.substr(reserved_tag(ETags::Overhang_Z_Distance).size()), z_distance) ||
                 !std::isfinite(z_distance) || z_distance < 0.0f) {
                 m_overhang_z_distance = 0.0f;
                 BOOST_LOG_TRIVIAL(error) << "GCodeProcessor encountered an invalid Overhang Z distance (" << comment << ").";
@@ -4674,7 +4677,8 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
             m_overhang_profile_samples = 0;
             m_open_overhang_line_profile = 0;
             float percentage = 0.0f;
-            if (!parse_number(comment.substr(reserved_tag(ETags::Overhang).size()), percentage) || !std::isfinite(percentage)) {
+            if (!parse_overhang_number(comment.substr(reserved_tag(ETags::Overhang).size()), percentage) ||
+                !std::isfinite(percentage)) {
                 m_overhang_percentage = 0.0f;
                 BOOST_LOG_TRIVIAL(error) << "GCodeProcessor encountered an invalid value for Overhang (" << comment << ").";
                 return;
@@ -4701,8 +4705,8 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
             // and reject missing fields before calling converters that require a nonempty string.
             int total = 0;
             int offset = 0;
-            bool valid = !data.empty() && data.back() != ',' && parse_number(next_token(), total) &&
-                !data.empty() && parse_number(next_token(), offset) && !data.empty() &&
+            bool valid = !data.empty() && data.back() != ',' && parse_overhang_number(next_token(), total) &&
+                !data.empty() && parse_overhang_number(next_token(), offset) && !data.empty() &&
                 total >= 2 && total <= MAX_OVERHANG_PROFILE_SAMPLES && offset >= 0;
             if (valid && offset == 0) {
                 m_overhang_profile.clear();
@@ -4717,9 +4721,10 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
                 float percentage = 0.0f;
                 int count = 1;
                 const size_t cells = GCodeProcessorResult::overhang_cells(m_overhang_profile);
-                valid = parse_number(token.substr(0, star), percentage) && std::isfinite(percentage) &&
+                valid = parse_overhang_number(token.substr(0, star), percentage) && std::isfinite(percentage) &&
                     percentage >= 0.0f && percentage <= MAX_OVERHANG_PERCENTAGE &&
-                    (star == std::string_view::npos || (parse_number(token.substr(star + 1), count) && count >= 2)) &&
+                    (star == std::string_view::npos ||
+                        (parse_overhang_number(token.substr(star + 1), count) && count >= 2)) &&
                     cells + size_t(count) <= size_t(total);
                 // Keep runs, whether the G-code wrote equal cells as value*count or one by one.
                 if (valid && !m_overhang_profile.empty() && m_overhang_profile.back().percentage == percentage)
@@ -5393,6 +5398,7 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
     if (!profile.empty()) {
         m_result.overhang_line_profiles.push_back({start, move->position, std::move(profile)});
         move->overhang_profile_id = m_open_overhang_line_profile = static_cast<unsigned int>(m_result.overhang_line_profiles.size());
+        m_result.has_overhang_metadata = true;
         return;
     }
     // The pressure equalizer and the fan mover split a G1 after the profile was written, keeping its marker on
@@ -6314,21 +6320,20 @@ GCodeProcessorResult::OverhangRuns GCodeProcessor::take_overhang_profile(const G
         !line.has_x() && !line.has_y() && !line.has_z() && !line.has_e())
         return {};
 
-    // Every motion consumes the candidate, marked or not. Missing chunks or a missing marker leave
-    // the scalar fallback untouched, so removed/reordered G-code cannot color an unrelated move.
+    // Every motion consumes the candidate, marked or not. Missing chunks or a missing marker leave the scalar
+    // fallback untouched, so a removed or inserted line cannot carry a profile to an unmarked move.
     GCodeProcessorResult::OverhangRuns overhang_profile;
     if (apply_overhang_profile && m_overhang_profile_type == type)
         overhang_profile.swap(m_overhang_profile);
     else
         m_overhang_profile.clear();
     // Orca: An inline marker alone is not metadata: two empty containers also have matching sizes.
-    // Require the minimum valid profile length before advertising the Overhang view. A role the metadata
-    // does not measure stays N/A, whatever profile a foreign file attaches to it.
+    // Require the minimum valid profile length. A role the metadata does not measure stays N/A, whatever
+    // profile a foreign file attaches to it. The Overhang view becomes available once the profile colours an
+    // extrusion the result keeps.
     if (!apply_overhang_profile || !measures_overhang(m_extrusion_role) || m_overhang_profile_samples < 2 ||
         GCodeProcessorResult::overhang_cells(overhang_profile) != m_overhang_profile_samples)
         overhang_profile.clear();
-    else
-        m_result.has_overhang_metadata = true;
     m_overhang_profile_samples = 0;
     return overhang_profile;
 }
@@ -6514,10 +6519,16 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
               const double begin = std::clamp(start_fraction, 0.0, 1.0) * last;
               const double end = std::clamp(end_fraction, 0.0, 1.0) * last;
               const auto at = [&overhang_profile](size_t i) { return GCodeProcessorResult::overhang_run(overhang_profile, i)->percentage; };
+              // The cap stands for no lower edge within reach, not for a distance: between it and a measured sample, a
+              // chord end reads the nearer of the two instead of a blend.
               const auto interpolate = [&at, samples](double position) {
                   const size_t i = size_t(position);
                   const size_t next = std::min(i + 1, samples - 1);
-                  return at(i) + float(position - i) * (at(next) - at(i));
+                  const float here = at(i);
+                  const float there = at(next);
+                  if (here != there && std::max(here, there) >= MAX_OVERHANG_PERCENTAGE)
+                      return position - double(i) < 0.5 ? here : there;
+                  return here + float(position - i) * (there - here);
               };
               m_overhang_percentage = std::max(interpolate(begin), interpolate(end));
               // The interior samples from..to, a run at a time.
@@ -6535,6 +6546,10 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
           if (m_smooth_arc)
               m_smooth_arc->first_chord = false;
           m_overhang_percentage = fallback;
+          // The profile is overhang metadata once it colours an extrusion of this arc that the result keeps.
+          if (!overhang_profile.empty() && !m_result.moves.empty() && m_result.moves.back().gcode_id == m_line_id &&
+              m_result.moves.back().type == EMoveType::Extrude)
+              m_result.has_overhang_metadata = true;
     };
 
     if (m_flavor == gcfMarlinFirmware) {

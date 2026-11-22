@@ -568,6 +568,12 @@ public:
     static bool view_type_from_config_name(const std::string& name, libvgcode::EViewType& type);
     // ORCA: (config value, English label marked for translation) pairs for the "preview_default_view_type" preference
     static std::vector<std::pair<std::string, std::string>> default_view_type_choices();
+    // Orca: The view types the legend's menu offers, in order, without the first layer inspection entry. The Overhang
+    // view needs G-code with overhang metadata.
+    static std::vector<libvgcode::EViewType> view_type_menu(bool has_overhang_metadata);
+    // Orca: The view type the preview shows when `type` is asked for: Line Type for the Overhang view of G-code without
+    // overhang metadata, otherwise `type`.
+    static libvgcode::EViewType available_view_type(libvgcode::EViewType type, bool has_overhang_metadata);
     // Orca: The overhang of vertex `id`'s G-code line in percent or in degrees, none when no vertex of the line is
     // measured. A line with a local profile is drawn as several vertices, each with the value and the width of its
     // part, and reads as its largest one in that unit. `vertex_at(i)` gives the vertex `i` of `count`.
