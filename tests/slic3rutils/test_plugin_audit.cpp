@@ -8,6 +8,8 @@
 #include <libslic3r/Utils.hpp>
 #include <libslic3r/libslic3r.h>         // GCODEVIEWER_APP_KEY, SLIC3R_APP_KEY (via libslic3r_version.h)
 #include <slic3r/plugin/PluginAuditManager.hpp>
+#include <slic3r/plugin/PluginBrowserProfile.hpp>
+#include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
@@ -1602,12 +1604,30 @@ struct AuditHarness
         std::ofstream((root / (key + ".py")).string(), std::ios::binary) << source;
         save_permissions(key, {});
         PluginManager::instance().discover_plugins(/*async=*/false, /*clear=*/true);
+        bind_loaded_identity(key);
+    }
+
+    // A real load binds the plugin key to its package root and sidecar revision before plugin code
+    // runs; the audit gate trusts saved grants only for that installation.
+    void bind_loaded_identity(const std::string& key)
+    {
+        PluginDescriptor descriptor;
+        if (!PluginManager::instance().try_get_plugin_descriptor(key, descriptor) || descriptor.plugin_root.empty())
+            return;
+        PluginInstallState state;
+        read_install_state(boost::filesystem::path(descriptor.plugin_root), state);
+        begin_plugin_browser_profile(key, descriptor.plugin_root, state.installation_revision);
     }
 
     // Grants as if saved in an earlier session.
     void save_permissions(const std::string& key, const PluginPermissions& permissions)
     {
         PluginInstallState state;
+        PluginInstallState existing;
+        if (read_install_state(data.plugins_dir() / key, existing)) {
+            state.browser_profile_id    = existing.browser_profile_id;
+            state.installation_revision = existing.installation_revision;
+        }
         state.installed_from    = "local";
         state.installed_version = "1.0";
         state.plugin_name       = key;
@@ -3231,6 +3251,10 @@ TEST_CASE("A permission mutation changes only the named entries and preserves th
     initial.permissions.fs_create    = {"/kept/create", "/removed/create"};
     initial.permissions.fs_delete    = {"/kept/delete", "/removed/delete"};
     initial.permissions.network_http = {"https://kept.example"};
+    PluginInstallState existing;
+    REQUIRE(read_install_state(plugin_dir, existing));
+    initial.browser_profile_id    = existing.browser_profile_id;
+    initial.installation_revision = existing.installation_revision;
     REQUIRE(write_install_state(plugin_dir, initial));
 
     PluginPermissionMutation mutation;

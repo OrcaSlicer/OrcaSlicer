@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <nlohmann/json.hpp>
 
+#include "slic3r/plugin/PluginBrowserProfile.hpp"
 #include "slic3r/plugin/pluginTypes/pages/PagesPluginCapability.hpp"
 #include "slic3r/GUI/WebPanel.hpp"
 #include <optional>
@@ -77,11 +78,13 @@ constexpr char PLUGIN_PAGE_BRIDGE_JS[] = R"JS(
 
 } // namespace
 
-PluginPage::PluginPage(wxWindow* parent, std::shared_ptr<PagesPluginCapability> capability)
-    : GUI::WebPanel(parent, PLUGIN_PAGE_BRIDGE_JS,
-                    wxString::FromUTF8(capability ? capability->identity().plugin_key : std::string()))
+PluginPage::PluginPage(wxWindow* parent, std::shared_ptr<PagesPluginCapability> capability,
+                       PluginBrowserProfileIdentityRef identity, const wxString& profile, BrowserProfileLease lease)
+    : GUI::WebPanel(parent, PLUGIN_PAGE_BRIDGE_JS, profile)
     , m_cap(std::move(capability))
     , m_lifetime(std::make_shared<std::atomic<PluginPage*>>(this))
+    , m_lease(std::move(lease))
+    , m_identity(std::move(identity))
 {
     browser()->Bind(wxEVT_WEBVIEW_NEWWINDOW, &PluginPage::on_new_window, this);
 
@@ -143,6 +146,8 @@ bool PluginPage::on_page_message(const std::string& kind, const nlohmann::json& 
     if (kind != "message")
         return false;
     if (!m_cap)
+        return true;
+    if (!plugin_browser_profile_is_current(m_identity))
         return true;
 
     try {
@@ -222,6 +227,14 @@ bool PluginPages::create_page(const PluginCapabilityId& id)
     if (!capability)
         return false;
 
+    PluginBrowserProfileIdentityRef identity = current_plugin_browser_profile_identity(id.plugin_key);
+    if (!identity) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " The plugin is not loaded; no browser profile for "
+                                 << id.plugin_key;
+        return false;
+    }
+    const std::string profile_id = identity->profile_id;
+
     std::string icon;
     try {
         icon = capability->get_icon();
@@ -250,10 +263,21 @@ bool PluginPages::create_page(const PluginCapabilityId& id)
     // Built the first time its tab is shown, so a language switch never creates the page's browser
     // while the main window is being rebuilt. Never prebuilt: the idle queue cannot drop a page
     // that remove_page() destroys.
-    auto* page = new GUI::LazyPage<PluginPage>(m_parent, GUI::into_u8(page_tab_id(id)), -1,
-                                               [capability = std::move(capability)](wxWindow* parent) {
-                                                   return new PluginPage(parent, capability);
-                                               });
+    auto* page = new GUI::LazyPage<PluginPage>(
+        m_parent, GUI::into_u8(page_tab_id(id)), -1,
+        [capability = std::move(capability), identity, plugin_key = id.plugin_key,
+         profile = wxString::FromUTF8(profile_id)](wxWindow* parent) -> PluginPage* {
+            // Take the lease only when the page is actually built. A failed attempt returns null
+            // and LazyPage retries on the next show instead of permanently failing the tab.
+            BrowserProfileLease lease = acquire_plugin_browser_profile_lease(identity);
+            if (!lease) {
+                BOOST_LOG_TRIVIAL(warning) << "PluginPages: the plugin browser profile is in use by another "
+                                           << "OrcaSlicer instance: " << plugin_key;
+                warn_plugin_browser_profile_in_use(plugin_key);
+                return nullptr;
+            }
+            return new PluginPage(parent, capability, identity, profile, lease);
+        });
 
     m_pages.emplace(id, Page{page, bitmap});
     m_order.push_back(id);

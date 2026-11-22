@@ -12,7 +12,11 @@
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/nowide/convert.hpp>
 #include <boost/nowide/cstdio.hpp>
+#include <boost/uuid/random_generator.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <ios>
 
@@ -21,6 +25,10 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
+#else
+#include <fcntl.h>
+#include <sys/file.h>
+#include <unistd.h>
 #endif
 
 #include "PluginAuditManager.hpp"
@@ -36,6 +44,7 @@
 #include <cerrno>
 #include <chrono>
 #include <filesystem>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <system_error>
@@ -45,7 +54,11 @@
 #include <cctype>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
+#include <iomanip>
 #include <sstream>
+#include <stdexcept>
+#include <thread>
 #include <unordered_set>
 #include <vector>
 
@@ -53,11 +66,314 @@ namespace Slic3r {
 
 const char* const INSTALL_STATE_FILE = ".install_state.json";
 
-std::mutex& install_state_mutex()
+namespace {
+
+// Cross-process half of install_state_mutex(). The lock file lives in the host-managed profile
+// directory and is never unlinked: deleting it would let two processes lock different inodes and
+// both believe they hold the sidecar lock.
+class InstallStateFileLock
+{
+public:
+    // Fails closed: returns false with an actionable reason. There is deliberately no
+    // process-local-only fallback, because that would let two OrcaSlicer instances mutate the
+    // same package/sidecar without isolation.
+    bool lock(std::string& error)
+    {
+        error.clear();
+        const std::string base = data_dir();
+        if (base.empty()) {
+            error = _u8L("The OrcaSlicer data directory is not initialized, so the plugin install-state lock "
+                         "cannot be acquired.");
+            return false;
+        }
+        boost::system::error_code ec;
+        const boost::filesystem::path lock_dir = boost::filesystem::path(base) / "web_profiles";
+        boost::filesystem::create_directories(lock_dir, ec);
+        if (ec) {
+            // TRN %1% is the lock folder, %2% the system error.
+            error = GUI::format(_u8L("Cannot create the plugin install-state lock directory %1%: %2%. "
+                                     "Check that the OrcaSlicer data directory is writable."),
+                                lock_dir.string(), ec.message());
+            return false;
+        }
+#if defined(_WIN32)
+        if (m_handle != nullptr)
+            return true;
+        const std::string  narrow_path = (boost::filesystem::path(base) / "web_profiles" /
+                                          ".install_state.lock").string();
+        const std::wstring path        = boost::nowide::widen(narrow_path);
+        HANDLE handle = ::CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE,
+                                      FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_ALWAYS,
+                                      FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (handle == INVALID_HANDLE_VALUE) {
+            // TRN %1% is the lock file, %2% the numeric Windows error.
+            error = GUI::format(_u8L("Cannot open the plugin install-state lock file %1% (error %2%). "
+                                     "Check that the file and its folder are writable."),
+                                narrow_path, std::to_string(::GetLastError()));
+            return false;
+        }
+        // Bounded wait: never hold the GUI indefinitely behind another instance.
+        constexpr auto deadline = std::chrono::milliseconds(1500);
+        const auto     start    = std::chrono::steady_clock::now();
+        OVERLAPPED     overlapped{};
+        for (;;) {
+            overlapped = OVERLAPPED{};
+            if (::LockFileEx(handle, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0, MAXDWORD, MAXDWORD,
+                             &overlapped))
+                break;
+            const DWORD code = ::GetLastError();
+            if (code == ERROR_LOCK_VIOLATION && std::chrono::steady_clock::now() - start < deadline) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(25));
+                continue;
+            }
+            ::CloseHandle(handle);
+            // TRN %1% is the lock file, %2% the numeric Windows error.
+            error = GUI::format(_u8L("Cannot lock the plugin install-state lock file %1% (error %2%). "
+                                     "Another OrcaSlicer instance is holding it; close it and retry."),
+                                narrow_path, std::to_string(code));
+            return false;
+        }
+        m_overlapped = overlapped;
+        m_handle     = handle;
+#else
+        if (m_fd >= 0)
+            return true;
+        const std::string path =
+            (boost::filesystem::path(base) / "web_profiles" / ".install_state.lock").string();
+        m_fd = ::open(path.c_str(), O_RDWR | O_CREAT | O_CLOEXEC, 0644);
+        if (m_fd < 0) {
+            // TRN %1% is the lock file, %2% the system error.
+            error = GUI::format(_u8L("Cannot open the plugin install-state lock file %1%: %2%. "
+                                     "Check that the file and its folder are writable."),
+                                path, std::string(std::strerror(errno)));
+            return false;
+        }
+        constexpr auto deadline = std::chrono::milliseconds(1500);
+        const auto     start    = std::chrono::steady_clock::now();
+        for (;;) {
+            if (::flock(m_fd, LOCK_EX | LOCK_NB) == 0)
+                break;
+            const int code = errno;
+            if ((code == EWOULDBLOCK || code == EAGAIN) && std::chrono::steady_clock::now() - start < deadline) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(25));
+                continue;
+            }
+            ::close(m_fd);
+            m_fd = -1;
+            // TRN %1% is the lock file, %2% the system error.
+            error = GUI::format(_u8L("Cannot lock the plugin install-state lock file %1%: %2%. "
+                                     "Another OrcaSlicer instance is holding it; close it and retry."),
+                                path, std::string(std::strerror(code)));
+            return false;
+        }
+#endif
+        return true;
+    }
+
+    void unlock()
+    {
+#if defined(_WIN32)
+        if (m_handle != nullptr) {
+            ::UnlockFileEx(m_handle, 0, MAXDWORD, MAXDWORD, &m_overlapped);
+            ::CloseHandle(m_handle);
+            m_handle = nullptr;
+        }
+#else
+        if (m_fd >= 0) {
+            ::flock(m_fd, LOCK_UN);
+            ::close(m_fd);
+            m_fd = -1;
+        }
+#endif
+    }
+
+private:
+#if defined(_WIN32)
+    void*    m_handle{nullptr};
+    OVERLAPPED m_overlapped{};
+#else
+    int m_fd{-1};
+#endif
+};
+
+InstallStateFileLock& install_state_file_lock()
+{
+    static auto* lock = new InstallStateFileLock;
+    return *lock;
+}
+
+// Reentrancy is per thread: a nested read-modify-write must not try to take the OS lock again.
+thread_local unsigned t_install_state_depth = 0;
+
+// One non-blocking exclusive lock per package key, independent of the sidecar lock. Holding it
+// across Python import prevents a concurrent install/delete from swapping the package files under
+// a module that was selected under the old identity.
+class PackageLeaseLock
+{
+public:
+    PackageLeaseLock() = default;
+
+    bool open(const std::string& path, std::string& error)
+    {
+#if defined(_WIN32)
+        const std::wstring wide = boost::nowide::widen(path);
+        HANDLE handle = ::CreateFileW(wide.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_ALWAYS,
+                                      FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (handle == INVALID_HANDLE_VALUE) {
+            // TRN %1% is the lease file, %2% the numeric Windows error.
+            error = GUI::format(_u8L("The plugin package is being loaded, installed, or removed by another "
+                                     "OrcaSlicer instance (lease %1%, error %2%). Retry after that operation finishes."),
+                                path, std::to_string(::GetLastError()));
+            return false;
+        }
+        m_handle = handle;
+#else
+        m_fd = ::open(path.c_str(), O_RDWR | O_CREAT | O_CLOEXEC, 0644);
+        if (m_fd < 0) {
+            // TRN %1% is the lease file, %2% the system error.
+            error = GUI::format(_u8L("Cannot open the plugin package lease %1%: %2%."), path,
+                                std::string(std::strerror(errno)));
+            return false;
+        }
+        if (::flock(m_fd, LOCK_EX | LOCK_NB) != 0) {
+            const int code = errno;
+            ::close(m_fd);
+            m_fd = -1;
+            // TRN %1% is the lease file, %2% the system error.
+            error = GUI::format(_u8L("The plugin package is being loaded, installed, or removed by another "
+                                     "OrcaSlicer instance (lease %1%, error %2%). Retry after that operation finishes."),
+                                path, std::string(std::strerror(code)));
+            return false;
+        }
+#endif
+        return true;
+    }
+
+    ~PackageLeaseLock() { close(); }
+    PackageLeaseLock(const PackageLeaseLock&)            = delete;
+    PackageLeaseLock& operator=(const PackageLeaseLock&) = delete;
+
+private:
+    void close()
+    {
+#if defined(_WIN32)
+        if (m_handle != nullptr) {
+            ::CloseHandle(static_cast<HANDLE>(m_handle));
+            m_handle = nullptr;
+        }
+#else
+        if (m_fd >= 0) {
+            ::flock(m_fd, LOCK_UN);
+            ::close(m_fd);
+            m_fd = -1;
+        }
+#endif
+    }
+
+#if defined(_WIN32)
+    void* m_handle{nullptr};
+#else
+    int m_fd{-1};
+#endif
+};
+
+uint64_t plugin_package_lease_hash(const std::string& plugin_key)
+{
+    uint64_t hash = 1469598103934665603ull;
+    for (unsigned char ch : plugin_key) {
+        hash ^= ch;
+        hash *= 1099511628211ull;
+    }
+    return hash;
+}
+
+struct PackageLeaseState
+{
+    PackageLeaseLock lock;
+};
+
+} // namespace
+
+void PluginInstallStateMutex::lock()
+{
+    if (t_install_state_depth != 0) {
+        ++t_install_state_depth;
+        return;
+    }
+
+    m_mutex.lock();
+    std::string error;
+    bool        locked = false;
+    try {
+        locked = install_state_file_lock().lock(error);
+    } catch (...) {
+        m_mutex.unlock();
+        throw;
+    }
+    if (!locked) {
+        m_mutex.unlock();
+        throw std::runtime_error(error.empty() ? std::string(_u8L("The plugin install-state lock is unavailable.")) : error);
+    }
+    t_install_state_depth = 1;
+}
+
+void PluginInstallStateMutex::unlock()
+{
+    if (t_install_state_depth == 0)
+        return;
+    if (--t_install_state_depth == 0) {
+        install_state_file_lock().unlock();
+        m_mutex.unlock();
+    }
+}
+
+PluginInstallStateMutex& install_state_mutex()
 {
     // Function-local static: safe to use from any writer regardless of static initialization order.
-    static std::mutex mutex;
+    static PluginInstallStateMutex mutex;
     return mutex;
+}
+
+bool try_lock_plugin_install_state(std::unique_lock<PluginInstallStateMutex>& lock, std::string& error)
+{
+    error.clear();
+    try {
+        lock = std::unique_lock<PluginInstallStateMutex>(install_state_mutex());
+        return true;
+    } catch (const std::exception& ex) {
+        error = ex.what();
+        return false;
+    }
+}
+
+PluginPackageLease acquire_plugin_package_lease(const std::string& plugin_key, std::string& error)
+{
+    error.clear();
+    if (plugin_key.empty()) {
+        error = _u8L("Cannot lease a plugin package without a plugin key.");
+        return nullptr;
+    }
+    const std::string base = data_dir();
+    if (base.empty()) {
+        error = _u8L("The OrcaSlicer data directory is not initialized, so the plugin package lease cannot be acquired.");
+        return nullptr;
+    }
+    boost::system::error_code ec;
+    const boost::filesystem::path dir = boost::filesystem::path(base) / "web_profiles";
+    boost::filesystem::create_directories(dir, ec);
+    if (ec) {
+        // TRN %1% is the lease folder, %2% the system error.
+        error = GUI::format(_u8L("Cannot create the plugin package lease directory %1%: %2%."), dir.string(),
+                            ec.message());
+        return nullptr;
+    }
+    std::ostringstream name;
+    name << ".package-" << std::hex << std::setw(16) << std::setfill('0') << plugin_package_lease_hash(plugin_key)
+         << ".lease";
+    auto state = std::make_unique<PackageLeaseState>();
+    if (!state->lock.open((dir / name.str()).string(), error))
+        return nullptr;
+    return PluginPackageLease(state.release(), [](void* p) { delete static_cast<PackageLeaseState*>(p); });
 }
 
 std::string get_orca_plugins_dir()
@@ -276,7 +592,11 @@ void assign_discovered_plugin_key(PluginDescriptor& descriptor, const boost::fil
         descriptor.plugin_key = make_local_plugin_key(name_source.stem().string());
 }
 
-void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescriptor>& out)
+// Fills `out` with the packages found directly under `dir_path`. A directory that cannot be
+// enumerated or whose packages cannot be inspected (for example the install-state lock is held by
+// another instance) sets `error` and leaves `out` partial: the caller must not merge such a list,
+// because the packages it is missing are present but unread.
+void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescriptor>& out, std::string& error)
 {
     namespace fs = boost::filesystem;
 
@@ -305,7 +625,7 @@ void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescri
             if (entry_path.empty()) {
                 descriptor.set_error(entry_error);
                 {
-                    std::lock_guard<std::mutex> state_lock(install_state_mutex());
+                    std::lock_guard<PluginInstallStateMutex> state_lock(install_state_mutex());
                     descriptor.install_state_valid = read_install_state(plugin_dir, descriptor);
                 }
                 assign_discovered_plugin_key(descriptor, plugin_dir);
@@ -321,7 +641,7 @@ void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescri
             if (!parsed) {
                 descriptor.set_error(meta_error);
                 {
-                    std::lock_guard<std::mutex> state_lock(install_state_mutex());
+                    std::lock_guard<PluginInstallStateMutex> state_lock(install_state_mutex());
                     descriptor.install_state_valid = read_install_state(plugin_dir, descriptor);
                 }
                 assign_discovered_plugin_key(descriptor, entry_path);
@@ -338,7 +658,7 @@ void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescri
             // Cloud identity and the package-level auto-load flag. plugin_key is always derived
             // below, never read from the sidecar.
             {
-                std::lock_guard<std::mutex> state_lock(install_state_mutex());
+                std::lock_guard<PluginInstallStateMutex> state_lock(install_state_mutex());
                 descriptor.install_state_valid = read_install_state(plugin_dir, descriptor);
             }
             assign_discovered_plugin_key(descriptor, entry_path);
@@ -347,7 +667,11 @@ void scan_plugin_directory(const std::string& dir_path, std::vector<PluginDescri
             BOOST_LOG_TRIVIAL(info) << "Discovered plugin: " << out.back().name << " (version: " << out.back().version << ")";
         }
     } catch (const std::exception& ex) {
+        error = "Error scanning directory " + dir_path + ": " + ex.what();
         BOOST_LOG_TRIVIAL(error) << "Error scanning directory " << dir_path << ": " << ex.what();
+    } catch (...) {
+        error = "Error scanning directory " + dir_path + ": unknown error";
+        BOOST_LOG_TRIVIAL(error) << "Error scanning directory " << dir_path << ": unknown error";
     }
 }
 
@@ -395,17 +719,30 @@ std::vector<PluginDescriptor> discover_plugin_packages(const std::vector<std::st
     try {
         BOOST_LOG_TRIVIAL(info) << "Scanning " << dirs.size() << " plugin directories...";
 
-        for (const std::string& dir : dirs)
-            scan_plugin_directory(dir, discovered);
+        for (const std::string& dir : dirs) {
+            scan_plugin_directory(dir, discovered, error);
+            // A directory that could not be scanned leaves `discovered` partial. Stop here so the
+            // caller gets one clear error instead of a merged list that silently drops installed
+            // plugins still present on disk.
+            if (!error.empty())
+                break;
+        }
 
         const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time);
-        BOOST_LOG_TRIVIAL(info) << "Plugin discovery completed in " << duration.count() << "ms. Found " << discovered.size()
-                                << " plugin manifests";
+        if (error.empty())
+            BOOST_LOG_TRIVIAL(info) << "Plugin discovery completed in " << duration.count() << "ms. Found " << discovered.size()
+                                    << " plugin manifests";
+        else
+            BOOST_LOG_TRIVIAL(warning) << "Plugin discovery stopped after " << duration.count() << "ms with " << discovered.size()
+                                       << " plugin manifests; the result is partial: " << error;
     } catch (const std::exception& ex) {
-        error = std::string("Plugin discovery failed: ") + ex.what();
+        // A scan error already describes the first failure; keep it.
+        if (error.empty())
+            error = std::string("Plugin discovery failed: ") + ex.what();
         BOOST_LOG_TRIVIAL(error) << error;
     } catch (...) {
-        error = "Plugin discovery failed: unknown error";
+        if (error.empty())
+            error = "Plugin discovery failed: unknown error";
         BOOST_LOG_TRIVIAL(error) << error;
     }
 
@@ -893,6 +1230,7 @@ bool read_install_state(const boost::filesystem::path& plugin_dir, PluginDescrip
         entry.installed_version = state.installed_version;
     if (!state.cloud_uuid.empty())
         entry.cloud = CloudPluginState{state.cloud_uuid, true, false, false};
+    entry.installation_revision = state.installation_revision;
 
     // Package-level auto-load flag only. The per-capability enable flags stay in the sidecar: a
     // capability has no existence — and so no state — until it is materialized, at which point the
@@ -957,6 +1295,10 @@ InstallStateReadStatus read_install_state_status(const boost::filesystem::path& 
             parsed.plugin_name = state["plugin_name"].get<std::string>();
         if (state.contains("cloud_uuid") && state["cloud_uuid"].is_string())
             parsed.cloud_uuid = state["cloud_uuid"].get<std::string>();
+        if (state.contains("browser_profile_id") && state["browser_profile_id"].is_string())
+            parsed.browser_profile_id = state["browser_profile_id"].get<std::string>();
+        if (state.contains("installation_revision") && state["installation_revision"].is_string())
+            parsed.installation_revision = state["installation_revision"].get<std::string>();
 
         if (state.contains("permissions") && state["permissions"].is_object()) {
             const auto& permissions = state["permissions"];
@@ -1128,6 +1470,16 @@ void seed_install_metadata(PluginInstallState& state, const PluginDescriptor& en
     state.enabled = true;
 }
 
+std::string make_plugin_browser_profile_id()
+{
+    return boost::uuids::to_string(boost::uuids::random_generator()());
+}
+
+std::string make_plugin_installation_revision()
+{
+    return boost::uuids::to_string(boost::uuids::random_generator()());
+}
+
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginInstallState& state)
 {
     namespace fs                = boost::filesystem;
@@ -1140,6 +1492,10 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
     json["enabled"]           = state.enabled;
     if (!state.cloud_uuid.empty())
         json["cloud_uuid"] = state.cloud_uuid;
+    if (!state.browser_profile_id.empty())
+        json["browser_profile_id"] = state.browser_profile_id;
+    if (!state.installation_revision.empty())
+        json["installation_revision"] = state.installation_revision;
 
     json["permissions"] = {
         {"fs_read", state.permissions.fs_read},

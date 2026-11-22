@@ -4,6 +4,7 @@
 
 #include <boost/filesystem/path.hpp>
 
+#include <memory>
 #include <mutex>
 #include <string>
 #include <utility>
@@ -59,6 +60,13 @@ struct PluginInstallState {
     std::string installed_version;
     std::string plugin_name;
     std::string cloud_uuid;          // empty for local
+    // Random installation-scoped browser profile identity. Persisted before plugin code runs.
+    // Empty on sidecars written before this field existed; the loader assigns one before import.
+    std::string browser_profile_id;
+    // Changes on every package install/replacement. Delete uses it as a compare-and-delete token
+    // so a replacement with the same profile id and version is still detected. Empty on older
+    // sidecars, where the field comparisons and entry mtime are the fallback.
+    std::string installation_revision;
 
     PluginPermissions permissions;
 
@@ -108,6 +116,11 @@ std::vector<std::string> get_plugin_directories(const std::string& cloud_user_id
 // parsed comes back with metadata_valid == false and its error set (descriptor.is_invalid_package()).
 // The package-level auto-load flag is read from each package's .install_state.json into
 // descriptor.enabled. Capabilities are NOT discovered here — a package has none until it is loaded.
+//
+// `error` is non-empty when a directory could not be scanned (for example its packages could not be
+// inspected because the install-state lock is held by another instance); scanning then stops. The
+// returned list is partial in that case and must not be merged into an existing catalog, because the
+// packages it is missing are installed and still on disk.
 std::vector<PluginDescriptor> discover_plugin_packages(const std::vector<std::string>& dirs, std::string& error);
 
 bool is_ignored_plugin_directory(const boost::filesystem::path& path);
@@ -137,15 +150,44 @@ std::vector<std::string> collect_resource_texture_files(const std::string& dir,
                                                         const std::string& plugin_root,
                                                         std::string& error);
 
-// Process-wide mutex serializing every in-process read and read-modify-write of a plugin's
-// .install_state.json sidecar. Hold it across the read and the matching write so two writers
-// cannot overwrite each other's grants, and around standalone reads so a reader cannot observe a
-// state while another thread is replacing it. It is not a file lock: another OrcaSlicer process
-// writing the same sidecar is not serialized.
+// Serializes every read and read-modify-write of a plugin's .install_state.json sidecar, across
+// processes and across threads in this process. Hold it across the read and the matching write so
+// two writers cannot overwrite each other's grants or browser-profile identity, and around
+// standalone reads so a reader cannot observe a state while another process is replacing it.
+// The cross-process part is a blocking OS file lock in the host-managed web_profiles directory;
+// the per-thread lock is reentrant so a writer may take it again around an inner read.
+// lock() fails closed: if the OS lock cannot be created or acquired it throws std::runtime_error
+// with a user-actionable reason after releasing the process mutex. Callers must let that failure
+// abort the sidecar operation instead of proceeding unlocked.
 //
-// Lock order: install-state mutex -> PluginManager::m_mutex. Code that already holds the manager
+// Lock order: install-state lock -> PluginManager::m_mutex. Code that already holds the manager
 // lock must not acquire this one.
-std::mutex& install_state_mutex();
+class PluginInstallStateMutex
+{
+public:
+    PluginInstallStateMutex()                                   = default;
+    PluginInstallStateMutex(const PluginInstallStateMutex&)     = delete;
+    PluginInstallStateMutex& operator=(const PluginInstallStateMutex&) = delete;
+
+    void lock();
+    void unlock();
+
+private:
+    std::mutex m_mutex;
+};
+
+PluginInstallStateMutex& install_state_mutex();
+
+// Non-throwing acquisition for callers that must report an actionable error instead of
+// propagating. On failure `lock` stays unlocked and `error` holds the reason.
+bool try_lock_plugin_install_state(std::unique_lock<PluginInstallStateMutex>& lock, std::string& error);
+
+// A non-blocking cross-process lease on one plugin package. Load holds it across selected
+// identity verification, Python import and on_load; install/delete/keep-local hold it across
+// package mutation. It is separate from the install-state lock, so Python callbacks can still
+// read/write audit sidecars while it is held.
+using PluginPackageLease = std::shared_ptr<void>;
+PluginPackageLease acquire_plugin_package_lease(const std::string& plugin_key, std::string& error);
 
 // Canonical writer: emits the .install_state.json schema for the given state.
 // The file is replaced strictly atomically: the payload is written to a uniquely named temporary
@@ -171,6 +213,12 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
 // that creates a sidecar on demand.
 void seed_install_metadata(PluginInstallState& state, const PluginDescriptor& entry);
 
+// A random UUID used as the installation-scoped browser profile identity.
+std::string make_plugin_browser_profile_id();
+
+// A random UUID that changes on every installed-package revision.
+std::string make_plugin_installation_revision();
+
 // Outcome of a sidecar read. Callers that may write a sidecar must distinguish Absent from
 // Unreadable: a missing file is a new install whose metadata may be seeded, while an existing file
 // that cannot be parsed -- or that cannot be examined because of a filesystem error -- holds state
@@ -192,8 +240,8 @@ InstallStateReadStatus read_install_state_status(const boost::filesystem::path& 
 
 // Reads install state back into the descriptor; plugin_key is always derived. Returns whether the
 // sidecar was present and valid.
-// Caller must hold install_state_mutex(); it is not recursive, so a caller already holding the
-// lock must call this raw overload, not PluginManager::get_install_state().
+// Caller must hold install_state_mutex(); prefer this raw overload over
+// PluginManager::get_install_state() inside a locked read-modify-write.
 bool read_install_state(const boost::filesystem::path& plugin_dir, PluginDescriptor& entry);
 // Full read of the sidecar; returns false if there is no/invalid sidecar.
 // Caller must hold install_state_mutex(); see the note above.

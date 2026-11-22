@@ -4,6 +4,7 @@
 #include <boost/filesystem/path.hpp>
 
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -59,7 +60,12 @@ bool install_plugin(const boost::filesystem::path& filepath,
                     PluginDescriptor&              plugin_descriptor,
                     std::string&                   error,
                     bool*                          install_target_intact = nullptr,
-                    const PluginInstallState*      preserved_state      = nullptr);
+                    const PluginInstallState*      preserved_state      = nullptr,
+                    std::shared_ptr<void>          package_lease        = {});
 bool install_plugin(const boost::filesystem::path& filepath, const std::string& cloud_user_id, std::string& error);
+
+// Canonical local plugin key for a source path, used both for the installed key and for the
+// package lease. Symlink names therefore cannot select a different lease.
+std::string local_plugin_package_key(const boost::filesystem::path& filepath);
 
 } // namespace Slic3r::plugin_loader

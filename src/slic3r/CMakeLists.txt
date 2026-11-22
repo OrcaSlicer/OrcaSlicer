@@ -709,6 +709,8 @@ set(SLIC3R_GUI_SOURCES
     plugin/host/PluginResourceTextures.hpp
     plugin/CloudPluginService.cpp
     plugin/CloudPluginService.hpp
+    plugin/PluginBrowserProfile.cpp
+    plugin/PluginBrowserProfile.hpp
     plugin/PluginFsUtils.cpp
     plugin/PluginFsUtils.hpp
     plugin/PluginJsonPy.hpp

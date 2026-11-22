@@ -372,6 +372,7 @@ src/slic3r/Utils/MoonrakerPrinterAgent.cpp
 src/slic3r/Utils/BBLNetworkPlugin.cpp
 src/slic3r/Utils/OrcaCloudServiceAgent.cpp
 src/slic3r/plugin/PluginAuditManager.cpp
+src/slic3r/plugin/PluginBrowserProfile.cpp
 src/slic3r/plugin/PluginConfig.cpp
 src/slic3r/plugin/PluginResolver.cpp
 src/slic3r/plugin/CloudPluginService.cpp

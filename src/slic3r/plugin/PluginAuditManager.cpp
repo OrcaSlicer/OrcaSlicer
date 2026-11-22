@@ -43,6 +43,7 @@
 #include <slic3r/GUI/GUI_App.hpp>
 #include <slic3r/GUI/MsgDialog.hpp>
 #include <slic3r/GUI/format.hpp>
+#include <slic3r/plugin/PluginBrowserProfile.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <string>
@@ -2290,12 +2291,20 @@ void seed_install_metadata(const PluginDescriptor& descriptor, PluginInstallStat
     state.enabled           = true;
 }
 
+bool audit_state_belongs_to_loaded_identity(const std::string& plugin_key, const std::string& plugin_root,
+                                            const std::string& installation_revision);
+
 // Serialize the sidecar read-modify-write against every other writer. The lock is taken before
 // the descriptor lookup, keeping the shared install-state -> PluginManager::m_mutex order.
 bool persist_permission(const std::string& plugin_key, AuditEventCategory category, bool by_event,
                         const std::string& target)
 {
-    std::lock_guard<std::mutex> state_lock(install_state_mutex());
+    std::unique_lock<PluginInstallStateMutex> state_lock;
+    std::string                               lock_error;
+    if (!try_lock_plugin_install_state(state_lock, lock_error)) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << lock_error;
+        return false;
+    }
 
     PluginDescriptor descriptor;
     if (!PluginManager::instance().try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
@@ -2307,6 +2316,11 @@ bool persist_permission(const std::string& plugin_key, AuditEventCategory catego
     // existing sidecar that cannot be read must not be replaced, or its grants would be lost.
     if (read_install_state_status(root, state) == InstallStateReadStatus::Unreadable)
         return false;
+    if (!audit_state_belongs_to_loaded_identity(plugin_key, descriptor.plugin_root, state.installation_revision)) {
+        BOOST_LOG_TRIVIAL(warning) << "[AUDIT] Refusing to persist a grant for a replaced installation: "
+                                   << plugin_key;
+        return false;
+    }
     seed_install_metadata(descriptor, state);
 
     std::vector<std::string>* permission_list = permission_list_for(category, by_event, state.permissions);
@@ -2332,7 +2346,12 @@ bool persist_permission(const std::string& plugin_key, AuditEventCategory catego
 // Threading is a boolean grant, so it has no target list to append to.
 bool persist_threading_grant(const std::string& plugin_key)
 {
-    std::lock_guard<std::mutex> state_lock(install_state_mutex());
+    std::unique_lock<PluginInstallStateMutex> state_lock;
+    std::string                               lock_error;
+    if (!try_lock_plugin_install_state(state_lock, lock_error)) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << lock_error;
+        return false;
+    }
 
     PluginDescriptor descriptor;
     if (!PluginManager::instance().try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
@@ -2343,6 +2362,11 @@ bool persist_threading_grant(const std::string& plugin_key)
     // Same rule as persist_permission: seed a missing sidecar, never replace an unreadable one.
     if (read_install_state_status(root, state) == InstallStateReadStatus::Unreadable)
         return false;
+    if (!audit_state_belongs_to_loaded_identity(plugin_key, descriptor.plugin_root, state.installation_revision)) {
+        BOOST_LOG_TRIVIAL(warning) << "[AUDIT] Refusing to persist a threading grant for a replaced installation: "
+                                   << plugin_key;
+        return false;
+    }
     seed_install_metadata(descriptor, state);
     state.permissions.threading = true;
     return write_install_state(root, state);
@@ -2825,6 +2849,20 @@ bool request_recursive_delete_consent(const std::string& plugin_key, const std::
     return finish_audit_prompt(nullptr, granted && recursive_delete_generation(plugin_key) == generation);
 }
 
+// Audit state must belong to the loaded installation, not a replacement installed by another
+// process under the same plugin key. A missing identity is a fail-closed denial.
+bool audit_state_belongs_to_loaded_identity(const std::string& plugin_key, const std::string& plugin_root,
+                                            const std::string& installation_revision)
+{
+    const PluginBrowserProfileIdentityRef identity = current_plugin_browser_profile_identity(plugin_key);
+    if (!identity || identity->plugin_root != plugin_root)
+        return false;
+    // A sidecar with no revision is a legacy install, or one that was lost and is being seeded
+    // again; it has no installation identity to compare against. A load writes the revision before
+    // plugin code runs, so a real replacement always carries one and still mismatches here.
+    return installation_revision.empty() || identity->installation_revision == installation_revision;
+}
+
 // Records a grant in the plugin's sidecar so it is not asked again. Each persist helper re-reads
 // the sidecar under the shared lock, because the async prompt outlives the caller's copy of it.
 // Returns true when at least one write succeeded, and only then notifies an existing Plugins
@@ -2861,7 +2899,12 @@ bool persist_declared_permissions(const std::string& plugin_key, const std::vect
 
     bool persisted = false;
     {
-        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        std::unique_lock<PluginInstallStateMutex> state_lock;
+        std::string                               lock_error;
+        if (!try_lock_plugin_install_state(state_lock, lock_error)) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << lock_error;
+            return false;
+        }
 
         PluginInstallState state;
         const boost::filesystem::path root(descriptor.plugin_root);
@@ -2872,6 +2915,11 @@ bool persist_declared_permissions(const std::string& plugin_key, const std::vect
             return false;
         if (status == InstallStateReadStatus::Absent && sidecar_was_readable)
             return false;
+        if (!audit_state_belongs_to_loaded_identity(plugin_key, descriptor.plugin_root, state.installation_revision)) {
+            BOOST_LOG_TRIVIAL(warning) << "[AUDIT] Refusing to persist declared permissions for a replaced installation: "
+                                       << plugin_key;
+            return false;
+        }
 
         seed_install_metadata(descriptor, state);
         for (const AuditPromptBucket& bucket : buckets) {
@@ -3353,7 +3401,12 @@ bool authorize_hardlink_source(PluginAuditManager& mgr, const std::string& event
         return true;
 
     PluginInstallState state;
-    const bool have_state = PluginManager::instance().get_install_state(mgr.current_plugin(), state);
+    PluginDescriptor   descriptor;
+    const bool have_state =
+        PluginManager::instance().get_install_state(mgr.current_plugin(), state) &&
+        PluginManager::instance().try_get_plugin_descriptor(mgr.current_plugin(), descriptor) &&
+        audit_state_belongs_to_loaded_identity(mgr.current_plugin(), descriptor.plugin_root,
+                                               state.installation_revision);
     if (have_state && state.permissions.full_access)
         return true;
     if (have_state &&
@@ -3471,9 +3524,19 @@ int audit_plugin_event(PluginAuditManager& mgr, const std::string& event_name, A
     }
 
     PluginInstallState state;
-    const bool have_install_state = PluginManager::instance().get_install_state(mgr.current_plugin(), state);
+    PluginDescriptor   descriptor;
+    const bool have_install_state =
+        PluginManager::instance().get_install_state(mgr.current_plugin(), state) &&
+        PluginManager::instance().try_get_plugin_descriptor(mgr.current_plugin(), descriptor) &&
+        audit_state_belongs_to_loaded_identity(mgr.current_plugin(), descriptor.plugin_root,
+                                               state.installation_revision);
     if (!have_install_state) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " Failed to get install state for " << mgr.current_plugin();
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " Refusing install state for a missing or replaced installation: "
+                                   << mgr.current_plugin();
+        // Never decide with a sidecar that does not belong to this load instance: it may describe
+        // a replacement installed by another process. With no usable state no saved grant applies,
+        // so the operation is prompted for and persist_grant refuses to record it.
+        state = PluginInstallState{};
     }
 
     const std::string plugin_name = state.plugin_name.empty() ? mgr.current_plugin() : state.plugin_name;
@@ -3744,7 +3807,12 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     PluginInstallState     state;
     InstallStateReadStatus state_status;
     {
-        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        std::unique_lock<PluginInstallStateMutex> state_lock;
+        std::string                               lock_error;
+        if (!try_lock_plugin_install_state(state_lock, lock_error)) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << lock_error;
+            return false;
+        }
         state_status = read_install_state_status(boost::filesystem::path(descriptor.plugin_root), state);
     }
 
@@ -3753,6 +3821,10 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     // that has not been given one yet and is seeded when the grant is saved.
     if (state_status == InstallStateReadStatus::Unreadable)
         return false;
+    if (!PluginAuditDetail::audit_state_belongs_to_loaded_identity(plugin_key, descriptor.plugin_root, state.installation_revision)) {
+        BOOST_LOG_TRIVIAL(warning) << "[AUDIT] Refusing to read permissions for a replaced installation: " << plugin_key;
+        return false;
+    }
 
     // Full access is an explicit opt-out of auditing: a declaration neither prompts nor adds a
     // grant. Only a readable sidecar that stores the flag counts, so a missing file is never

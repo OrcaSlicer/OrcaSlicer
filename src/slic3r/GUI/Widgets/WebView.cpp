@@ -110,9 +110,15 @@ static wxString isolated_profile_path(const wxString& profile)
 // WebKitWebContext on Linux. One configuration per profile is therefore what lets two views of the
 // same plugin see each other's login; a configuration per view would share only the directory on
 // disk, not the session in memory.
-static const wxWebViewConfiguration& profile_configuration(const wxString& profile)
+static std::map<wxString, wxWebViewConfiguration>& profile_configurations()
 {
     static std::map<wxString, wxWebViewConfiguration> configs;
+    return configs;
+}
+
+static const wxWebViewConfiguration& profile_configuration(const wxString& profile)
+{
+    auto& configs = profile_configurations();
 
     const auto existing = configs.find(profile);
     if (existing != configs.end())
@@ -127,7 +133,25 @@ static const wxWebViewConfiguration& profile_configuration(const wxString& profi
     config.SetDataPath(isolated_profile_path(profile));
     return configs.emplace(profile, config).first->second;
 }
+
+// Erase the cached configuration, which owns the WebView2 environment / WebKitWebContext. The
+// caller must have destroyed every view of the profile first.
+static void release_profile_configuration(const wxString& profile)
+{
+    profile_configurations().erase(profile);
+}
 #endif // !__WXOSX__
+
+void WebView::ReleaseProfile(const wxString& profile)
+{
+#if !defined(__WXOSX__)
+    release_profile_configuration(profile);
+#else
+    // Drop the shared in-memory website data store for this profile. Views must already be gone;
+    // the caller holds the profile lease until the last view is destroyed.
+    Slic3r::GUI::WKWebViewConfiguration_releaseSharedNonPersistentDataStore(profile);
+#endif
+}
 
 #ifdef __WIN32__
 // Run Download and Install in another thread so we don't block the UI thread

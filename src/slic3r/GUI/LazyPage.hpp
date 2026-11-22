@@ -28,10 +28,12 @@ public:
     LazyPage(wxWindow* parent, std::string name, int order, Factory make = [](wxWindow* parent) { return new Panel(parent); })
         : wxPanel(parent), Lazy<Panel>(std::move(name), order, [this, make = std::move(make)] {
             Panel* panel = make(this);
-            GetSizer()->Add(panel, 1, wxEXPAND);
-            // Hidden while its page is, as an inserted page would be.
-            if (!IsShown())
-                panel->Hide();
+            if (panel != nullptr) {
+                GetSizer()->Add(panel, 1, wxEXPAND);
+                // Hidden while its page is, as an inserted page would be.
+                if (!IsShown())
+                    panel->Hide();
+            }
             return panel;
         })
     {
@@ -61,8 +63,11 @@ public:
         // Built before this page is shown, as an idle prebuild builds it. On MSW every control
         // created or moved inside a shown window re-clips and repaints its shown siblings, so
         // building a large panel into a shown page took seconds.
-        if (show && wxGetTopLevelParent(this)->IsShown())
+        if (show && wxGetTopLevelParent(this)->IsShown()) {
+            if (!this->built() && this->failed())
+                this->reset_failed();
             this->ensure();
+        }
         const bool changed = wxPanel::Show(show);
         if (show) {
             // The book shows its first page as it is inserted, before startup has chosen the
