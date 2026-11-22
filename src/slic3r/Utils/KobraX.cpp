@@ -1,6 +1,9 @@
 #include "KobraX.hpp"
 
+#include "slic3r/GUI/I18N.hpp"
+
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
 #include <algorithm>
@@ -9,6 +12,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <functional>
 #include <map>
 #include <memory>
@@ -183,28 +187,78 @@ bool aes128_cbc_decrypt(const std::string& key, const std::string& iv, const std
     return true;
 }
 
+bool split_address(std::string address, std::string& host, int& port)
+{
+    for (const char* scheme : {"http://", "https://"})
+        if (boost::istarts_with(address, scheme))
+            address.erase(0, std::strlen(scheme));
+    address = address.substr(0, address.find_first_of("/?#"));
+    std::string name = address, port_text;
+    if (!address.empty() && address.front() == '[') {
+        // [IPv6] or [IPv6]:port
+        const size_t end   = address.find(']');
+        if (end == std::string::npos || (end + 1 < address.size() && address[end + 1] != ':'))
+            return false;
+        name = address.substr(1, end - 1);
+        if (end + 1 < address.size()) {
+            port_text = address.substr(end + 2);
+            if (port_text.empty())
+                return false;
+        }
+        if (name.find_first_not_of("0123456789abcdefABCDEF:.%") != std::string::npos || name.find(':') == std::string::npos)
+            return false;
+    } else {
+        const size_t colon = address.find(':');
+        if (colon != std::string::npos) {
+            name      = address.substr(0, colon);
+            port_text = address.substr(colon + 1);
+            // Empty, or a bare IPv6 literal whose port cannot be told apart
+            if (port_text.empty() || port_text.find(':') != std::string::npos)
+                return false;
+        }
+        // A host name or an IPv4 address: no whitespace, no user info ('@'), nothing a URL would read as more
+        if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_") != std::string::npos)
+            return false;
+    }
+    if (name.empty())
+        return false;
+    int number = HTTP_PORT;
+    if (!port_text.empty()) {
+        if (port_text.size() > 5 || port_text.find_first_not_of("0123456789") != std::string::npos)
+            return false;
+        number = std::stoi(port_text);
+        if (number < 1 || number > 65535)
+            return false;
+    }
+    host = name;
+    port = number;
+    return true;
+}
+
+std::string url_host(const std::string& host) { return host.find(':') != std::string::npos ? "[" + host + "]" : host; }
+
 bool parse_ctrl_answer(const std::string& token, const std::string& body, const std::string& host, Credentials& creds, std::string& error)
 {
     const json  answer = json::parse(body, nullptr, false);
     const json  data   = answer.is_object() ? object(answer, "data") : json::object();
     if (token.size() < 32 || !data.contains("info") || !data["info"].is_string() || !data.contains("token") ||
         !data["token"].is_string()) {
-        error = "unexpected /ctrl answer from the printer";
+        error = _u8L("unexpected /ctrl answer from the printer");
         return false;
     }
     std::string cipher, plain;
     if (!base64_decode(data["info"].get<std::string>(), cipher) ||
         !aes128_cbc_decrypt(token.substr(16, 16), data["token"].get<std::string>(), cipher, plain)) {
-        error = "could not decrypt the printer's LAN credentials";
+        error = _u8L("could not decrypt the printer's LAN credentials");
         return false;
     }
     const json login = json::parse(plain, nullptr, false);
     if (!login.is_object()) {
-        error = "could not decrypt the printer's LAN credentials";
+        error = _u8L("could not decrypt the printer's LAN credentials");
         return false;
     }
     if (!str(login, "error").empty()) {
-        error = "the printer refused LAN access: " + str(login, "error");
+        error = _u8L("the printer refused LAN access") + ": " + str(login, "error");
         return false;
     }
     creds           = Credentials{};
@@ -214,7 +268,7 @@ bool parse_ctrl_answer(const std::string& token, const std::string& body, const 
     creds.device_id = str(login, "deviceId");
     creds.mode_id   = str(login, "modeId").empty() ? "20030" : str(login, "modeId");
     if (creds.device_id.empty()) {
-        error = "the printer's LAN credentials name no device";
+        error = _u8L("the printer's LAN credentials name no device");
         return false;
     }
     return true;

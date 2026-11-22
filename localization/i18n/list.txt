@@ -269,6 +269,8 @@ src/slic3r/Utils/Moonraker.cpp
 src/slic3r/Utils/OctoPrint.cpp
 src/slic3r/Utils/Repetier.cpp
 src/slic3r/Utils/ESP3D.cpp
+src/slic3r/Utils/KobraX.cpp
+src/slic3r/Utils/KobraXSession.cpp
 src/slic3r/Utils/KobraXHost.cpp
 src/slic3r/GUI/SendMultiMachinePage.cpp
 src/slic3r/GUI/MultiMachinePage.cpp

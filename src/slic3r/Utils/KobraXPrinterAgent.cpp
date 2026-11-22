@@ -94,13 +94,17 @@ AgentInfo KobraXPrinterAgent::get_agent_info_static()
 
 int KobraXPrinterAgent::connect_printer(const PrinterConnectionParams& params)
 {
-    if (params.dev_id.empty() || params.host.empty())
+    // The host may carry a port ("192.0.2.10:18910", "[fd00::1]:18910"); a separate port wins
+    std::string host;
+    int         http_port = KobraX::HTTP_PORT;
+    if (params.dev_id.empty() || !KobraX::split_address(params.host, host, http_port))
         return BAMBU_NETWORK_ERR_INVALID_HANDLE;
     disconnect_printer();
 
     auto connection         = std::make_shared<Connection>();
     connection->dev_id      = params.dev_id;
-    connection->host        = params.host;
+    connection->host        = host;
+    connection->http_port   = http_port;
     connection->access_code = params.password;
     if (!params.port.empty() && std::all_of(params.port.begin(), params.port.end(), [](unsigned char c) { return std::isdigit(c) != 0; }) && params.port.size() <= 5)
         connection->http_port = std::stoi(params.port);

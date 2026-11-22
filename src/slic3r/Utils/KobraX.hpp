@@ -30,6 +30,14 @@ struct Credentials
     std::string mode_id;
 };
 
+// A print host address ("192.0.2.10", "http://192.0.2.10:18910/", "[fd00::1]:18910") as the host to connect to
+// (an IPv6 literal without its brackets) and the HTTP port (HTTP_PORT when it names none). False, and nothing
+// set, when the host is empty or holds whitespace, '@' or other characters a host cannot have, or the port is
+// not a number from 1 to 65535.
+bool split_address(std::string address, std::string& host, int& port);
+// `host` as it goes in a URL: an IPv6 literal in brackets
+std::string url_host(const std::string& host);
+
 std::string md5_hex(const std::string& text);
 // The /ctrl request's sign: md5(md5(token[0:16]) + ts + nonce)
 std::string ctrl_sign(const std::string& token, const std::string& ts, const std::string& nonce);

@@ -1,12 +1,23 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <cstddef>
+#include <array>
+#include <atomic>
 #include <cstdint>
 #include <ios>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
+#include <boost/asio/buffer.hpp>
+#include <boost/asio/buffers_iterator.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/address.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/read_until.hpp>
+#include <boost/asio/streambuf.hpp>
+#include <boost/asio/write.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -78,6 +89,10 @@ json print_report(const std::string& action, const std::string& state, json data
     return {{"action", action}, {"code", code}, {"state", state}, {"type", "print"}, {"data", data}};
 }
 
+// A /ctrl answer, AES-128-CBC with token[16:32], made with Kobra Control's aes.py
+const char* const CTRL_TOKEN  = "0123456789abcdefFEDCBA9876543210";
+const char* const CTRL_ANSWER = R"({"code": 200, "data": {"info": "J0zaQfUFw0O6Vu224FYbturYJLwePzq/h3WCgYZ6W+gKEhJIetPeaNdH+6sO+Qjy79T2La9kX1GCc3Tpp38fkR4Y4G9xS6RdLp96yJpVPOq3UZm5l0xoa0SEK6H92vnlQl/w7q9L6Ys2uNNy/7DgAtAM68EekNIiAAEdWV5vYxJF9FYG5pXDcFios+nknkDe", "token": "ivivivivivivivIV"}})";
+
 const char* const TEST_CERT = R"(-----BEGIN CERTIFICATE-----
 MIIBZzCCAQ6gAwIBAgIUdAzdgoL0Rb3EUKixkyI7DW1GsZIwCgYIKoZIzj0EAwIw
 GTEXMBUGA1UEAwwOQW55Y3ViaWNTbGljZXIwIBcNMjYxMTE3MjIyNzI1WhgPMjEy
@@ -109,9 +124,8 @@ TEST_CASE("The credential request is signed as the printer checks it", "[KobraX]
 
 TEST_CASE("The printer's credential answer is decrypted, and its own address ignored", "[KobraX]")
 {
-    // AES-128-CBC with token[16:32], made with Kobra Control's aes.py
-    const std::string token  = "0123456789abcdefFEDCBA9876543210";
-    const std::string answer = R"({"code": 200, "data": {"info": "J0zaQfUFw0O6Vu224FYbturYJLwePzq/h3WCgYZ6W+gKEhJIetPeaNdH+6sO+Qjy79T2La9kX1GCc3Tpp38fkR4Y4G9xS6RdLp96yJpVPOq3UZm5l0xoa0SEK6H92vnlQl/w7q9L6Ys2uNNy/7DgAtAM68EekNIiAAEdWV5vYxJF9FYG5pXDcFios+nknkDe", "token": "ivivivivivivivIV"}})";
+    const std::string token  = CTRL_TOKEN;
+    const std::string answer = CTRL_ANSWER;
     KobraX::Credentials creds;
     std::string         error;
     REQUIRE(KobraX::parse_ctrl_answer(token, answer, "192.0.2.10", creds, error));
@@ -623,4 +637,137 @@ TEST_CASE("Requests go to the slicer or the web topic", "[KobraX]")
     creds.device_id = "dev";
     CHECK(KobraX::publish_topic(creds, "fan") == "anycubic/anycubicCloud/v1/slicer/printer/20030/dev/fan");
     CHECK(KobraX::publish_topic(creds, "tempature", "web") == "anycubic/anycubicCloud/v1/web/printer/20030/dev/tempature");
+}
+
+TEST_CASE("Print host addresses become a host and a port", "[KobraX]")
+{
+    std::string host;
+    int         port = 0;
+    CHECK(KobraX::split_address("192.0.2.10", host, port));
+    CHECK(host == "192.0.2.10");
+    CHECK(port == KobraX::HTTP_PORT);
+    CHECK(KobraX::split_address("http://192.0.2.10:8080/", host, port));
+    CHECK(host == "192.0.2.10");
+    CHECK(port == 8080);
+    CHECK(KobraX::split_address("HTTPS://kobra-x.lan", host, port));
+    CHECK(host == "kobra-x.lan");
+    CHECK(port == KobraX::HTTP_PORT);
+
+    SECTION("an IPv6 literal loses its brackets, and keeps its port")
+    {
+        CHECK(KobraX::split_address("[::1]:18911", host, port));
+        CHECK(host == "::1");
+        CHECK(port == 18911);
+        CHECK(KobraX::split_address("http://[fd00::10]/", host, port));
+        CHECK(host == "fd00::10");
+        CHECK(port == KobraX::HTTP_PORT);
+        CHECK(KobraX::url_host(host) == "[fd00::10]");
+        CHECK(KobraX::url_host("192.0.2.10") == "192.0.2.10");
+    }
+    SECTION("anything that is not a plain host is refused, and nothing is set")
+    {
+        host = "kept";
+        port = 1;
+        for (const char* address : {"", "http://", ":18910", "user@192.0.2.10", "192.0.2.10 ", "192.0.2 .10", "192.0.2.10:", "192.0.2.10:0",
+                                    "192.0.2.10:70000", "192.0.2.10:80a", "fd00::10", "[::1", "[::1]x", "[]:18910", "[host]:18910",
+                                    "a\r\nb", "printer%2f"}) {
+            CAPTURE(address);
+            CHECK_FALSE(KobraX::split_address(address, host, port));
+        }
+        CHECK(host == "kept");
+        CHECK(port == 1);
+    }
+}
+
+TEST_CASE("An upload token that would need escaping is refused before anything is sent", "[KobraX]")
+{
+    // Nothing listens on port 1; every refusal below happens before a connection is tried
+    KobraX::Session session({"127.0.0.1", 1, 1, {}}, {}, {});
+    std::string     error;
+    for (const char* url : {"http://192.0.2.10:18910/gcode_upload", "http://192.0.2.10:18910/gcode_upload?s=",
+                            "http://192.0.2.10:18910/gcode_upload?s=ab&c=1", "http://192.0.2.10:18910/gcode_upload?s=ab%0d",
+                            "http://192.0.2.10:18910/gcode_upload?s=a b", "http://192.0.2.10:18910/gcode_upload?s=a/../b"}) {
+        CAPTURE(url);
+        error.clear();
+        CHECK_FALSE(session.upload("/nonexistent/x.gcode", "x.gcode", url, {}, {}, error));
+        CHECK_FALSE(error.empty());
+        CHECK(error.find("x.gcode") == std::string::npos); // refused for the token, not for the missing file
+    }
+    // A token of letters, digits, '-' and '_' passes; the missing file is what stops this one
+    error.clear();
+    CHECK_FALSE(session.upload("/nonexistent/x.gcode", "x.gcode", "http://192.0.2.10:18910/gcode_upload?s=Ab_9-z", {}, {}, error));
+    CHECK(error.find("/nonexistent/x.gcode") != std::string::npos);
+}
+
+namespace {
+// A printer that hands out its LAN login over HTTP, then drops every MQTT connection during the TLS handshake
+struct DroppingPrinter
+{
+    boost::asio::io_context        io;
+    boost::asio::ip::tcp::acceptor http{io, {boost::asio::ip::make_address("127.0.0.1"), 0}};
+    boost::asio::ip::tcp::acceptor mqtt{io, {boost::asio::ip::make_address("127.0.0.1"), 0}};
+    std::thread                    thread;
+    std::atomic<int>               dropped{0};
+
+    DroppingPrinter()
+    {
+        thread = std::thread([this] {
+            using boost::asio::ip::tcp;
+            boost::system::error_code ec;
+            for (int i = 0; i < 2; ++i) { // /info, then /ctrl
+                tcp::socket socket(io);
+                http.accept(socket, ec);
+                if (ec)
+                    return;
+                boost::asio::streambuf request;
+                boost::asio::read_until(socket, request, "\r\n\r\n", ec);
+                const std::string head(boost::asio::buffers_begin(request.data()), boost::asio::buffers_end(request.data()));
+                const std::string body = head.find("/info") != std::string::npos ? json{{"token", CTRL_TOKEN}}.dump() : std::string(CTRL_ANSWER);
+                const std::string answer = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " + std::to_string(body.size()) +
+                                           "\r\nConnection: close\r\n\r\n" + body;
+                boost::asio::write(socket, boost::asio::buffer(answer), ec);
+            }
+            tcp::socket socket(io);
+            mqtt.accept(socket, ec);
+            if (!ec) {
+                std::array<char, 64> hello{};
+                socket.read_some(boost::asio::buffer(hello), ec); // the ClientHello, then hang up
+                socket.close(ec);
+                ++dropped;
+            }
+        });
+    }
+    ~DroppingPrinter()
+    {
+        // Whatever the session did not ask for is asked here, so the server thread always ends
+        boost::system::error_code ec;
+        for (const auto& endpoint : {http.local_endpoint(), http.local_endpoint(), mqtt.local_endpoint()}) {
+            boost::asio::ip::tcp::socket poke(io);
+            poke.connect(endpoint, ec);
+        }
+        thread.join();
+    }
+};
+} // namespace
+
+TEST_CASE("A session the printer drops during the TLS handshake fails, and closes once", "[KobraX]")
+{
+    DroppingPrinter printer;
+    bool            closed_called = false;
+    auto            session       = std::make_unique<KobraX::Session>(
+        KobraX::Session::Options{"127.0.0.1", printer.http.local_endpoint().port(), printer.mqtt.local_endpoint().port(),
+                                 {TEST_CERT, TEST_KEY}},
+        nullptr, [&](const std::string&) { closed_called = true; });
+    std::string error;
+    CHECK_FALSE(session->open(error));
+    CHECK_FALSE(error.empty());
+    CHECK(printer.dropped == 1);
+    CHECK_FALSE(session->is_open());
+    // open() closed it already; closing again, opening again and destroying it must neither hang nor crash
+    session->close();
+    session->close();
+    CHECK_FALSE(session->open(error));
+    session.reset();
+    // A failed login is reported by open(), not as a dropped session
+    CHECK_FALSE(closed_called);
 }

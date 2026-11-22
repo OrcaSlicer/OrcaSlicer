@@ -3,6 +3,7 @@
 #include "KobraX.hpp"
 #include "Http.hpp"
 #include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 #include <array>
 #include <atomic>
@@ -67,7 +68,7 @@ namespace {
 constexpr const char* CERT_FILE    = "anycubic_slicer.pem";
 constexpr const char* KEY_FILE     = "anycubic_slicer_key.pem";
 constexpr const char* EXPECTED_CN  = "AnycubicSlicer";
-constexpr uint64_t    MAX_SCAN     = 200 * 1024 * 1024; // the slicer library is a few MB
+constexpr uint64_t    MAX_SCAN     = 16 * 1024 * 1024; // the slicer library is about 3 MB
 constexpr size_t      MAX_ANSWER   = 1024 * 1024;       // /info, /ctrl and upload answers are a few hundred bytes
 constexpr uint16_t    KEEPALIVE_S  = 60;
 const auto            LOGIN_TIMEOUT = std::chrono::seconds(15);
@@ -82,10 +83,11 @@ int64_t now_ms()
 std::string random_text(size_t size)
 {
     static const char alphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    std::random_device device;
-    std::string        out;
+    std::random_device                 device;
+    std::uniform_int_distribution<int> pick(0, int(sizeof(alphabet)) - 2);
+    std::string                        out;
     for (size_t i = 0; i < size; ++i)
-        out += alphabet[device() % (sizeof(alphabet) - 1)];
+        out += alphabet[pick(device)];
     return out;
 }
 
@@ -191,10 +193,10 @@ bool http_json(Http http, json& answer, std::string& error)
             answer = json::parse(body, nullptr, false);
             ok     = answer.is_object();
             if (!ok)
-                error = "the printer's answer is not JSON";
+                error = _u8L("the printer's answer is not JSON");
         })
         .on_error([&](std::string, std::string err, unsigned status) {
-            error = status ? "the printer answered HTTP " + std::to_string(status) : err;
+            error = status ? _u8L("the printer answered HTTP") + " " + std::to_string(status) : err;
         })
         .perform_sync();
     return ok;
@@ -220,15 +222,33 @@ bool find_client_identity(const std::string& user_folder,
     if (read_identity_folder(user_folder, identity))
         return true;
     std::string searched = (fs::path(user_folder) / CERT_FILE).string();
-    for (const fs::path& path : slicer_locations()) {
-        if (read_client_identity(path.string(), identity))
+    // An installed Anycubic Slicer Next is read once per run, not on every connect
+    static std::mutex                    slicer_mutex;
+    static std::optional<ClientIdentity> slicer_identity;
+    static bool                          slicer_scanned = false;
+    {
+        std::lock_guard<std::mutex> lock(slicer_mutex);
+        if (!slicer_scanned) {
+            for (const fs::path& path : slicer_locations()) {
+                ClientIdentity found;
+                if (read_client_identity(path.string(), found)) {
+                    slicer_identity = found;
+                    break;
+                }
+            }
+            slicer_scanned = true;
+        }
+        if (slicer_identity) {
+            identity = *slicer_identity;
             return true;
-        searched += ", " + path.string();
+        }
     }
+    for (const fs::path& path : slicer_locations())
+        searched += ", " + path.string();
     if (read_identity_folder(bundled_folder, identity))
         return true;
     searched += ", " + (fs::path(bundled_folder) / CERT_FILE).string();
-    error = "no Anycubic Slicer client certificate found (looked in " + searched + ")";
+    error = _u8L("No Anycubic Slicer client certificate found. Looked in:") + " " + searched;
     return false;
 }
 
@@ -259,6 +279,7 @@ struct Session::Impl
     std::future<void> stopped; // ready once the io thread has returned
     std::atomic<bool> up{false};
     std::atomic<bool> closing{false};
+    bool              closed = false; // close() ran: the io_context is stopped and cannot be opened again
 
     struct Waiter
     {
@@ -304,7 +325,7 @@ struct Session::Impl
     {
         net::async_write(*stream, net::buffer(tx.front()), [this](boost::system::error_code ec, size_t) {
             if (ec)
-                return fail("connection lost (" + ec.message() + ")");
+                return fail(_u8L("connection lost") + " (" + ec.message() + ")");
             tx.pop_front();
             if (tx.empty() && close_after_write)
                 fail("closed");
@@ -320,7 +341,7 @@ struct Session::Impl
             if (ec || ended)
                 return;
             if (std::chrono::steady_clock::now() - last_rx > SILENT_LIMIT)
-                return fail("the printer stopped answering");
+                return fail(_u8L("the printer stopped answering"));
             write(Mqtt::pingreq());
             schedule_ping();
         });
@@ -330,13 +351,13 @@ struct Session::Impl
     {
         stream->async_read_some(net::buffer(chunk), [this](boost::system::error_code ec, size_t size) {
             if (ec)
-                return fail(login ? "the printer closed the connection during the TLS/MQTT login (" + ec.message() + ")" :
-                                    "connection lost (" + ec.message() + ")");
+                return fail((login ? _u8L("the printer closed the connection during the TLS/MQTT login") : _u8L("connection lost")) +
+                            " (" + ec.message() + ")");
             last_rx = std::chrono::steady_clock::now();
             rx.append(chunk.data(), size);
             std::vector<Mqtt::Packet> packets;
             if (!Mqtt::split(rx, packets))
-                return fail("MQTT protocol error");
+                return fail(_u8L("MQTT protocol error"));
             for (const Mqtt::Packet& packet : packets)
                 if (!ended)
                     handle(packet);
@@ -350,13 +371,13 @@ struct Session::Impl
         if (packet.type == Mqtt::CONNACK) {
             const int code = packet.body.size() >= 2 ? uint8_t(packet.body[1]) : -1;
             if (code == 4 || code == 5)
-                return fail("the printer refused the MQTT login (code " + std::to_string(code) + ")");
+                return fail(_u8L("the printer refused the MQTT login") + " (" + std::to_string(code) + ")");
             if (code != 0)
-                return fail("MQTT connection refused (code " + std::to_string(code) + ")");
+                return fail(_u8L("the printer refused the MQTT connection") + " (" + std::to_string(code) + ")");
             write(Mqtt::subscribe(1, subscribe_topic(creds)));
         } else if (packet.type == Mqtt::SUBACK) {
             if (packet.body.size() < 3 || (uint8_t(packet.body[2]) & 0x80))
-                return fail("the printer refused the subscription");
+                return fail(_u8L("the printer refused the subscription"));
             up = true;
             if (login) {
                 login->set_value("");
@@ -393,14 +414,15 @@ struct Session::Impl
         resolver.async_resolve(options.host, std::to_string(options.mqtt_port),
                                [this, client_id](boost::system::error_code ec, tcp::resolver::results_type results) {
             if (ec)
-                return fail("cannot resolve " + options.host + " (" + ec.message() + ")");
+                return fail(_u8L("cannot resolve the printer's address") + " " + options.host + " (" + ec.message() + ")");
             net::async_connect(stream->lowest_layer(), results, [this, client_id](boost::system::error_code ec, const tcp::endpoint&) {
                 if (ec)
-                    return fail("no answer on the printer's MQTT port " + std::to_string(options.mqtt_port) + " (" + ec.message() + ")");
+                    return fail(_u8L("no answer on the printer's MQTT port") + " " + std::to_string(options.mqtt_port) + " (" +
+                                ec.message() + ")");
                 stream->async_handshake(ssl::stream_base::client, [this, client_id](boost::system::error_code ec) {
                     if (ec)
-                        return fail("TLS handshake with the printer failed (" + ec.message() +
-                                    "), most likely the client certificate");
+                        return fail(_u8L("the TLS handshake with the printer failed, most likely because of the client certificate") +
+                                    " (" + ec.message() + ")");
                     last_rx = std::chrono::steady_clock::now();
                     write(Mqtt::connect(client_id, creds.username, creds.password, KEEPALIVE_S));
                     read();
@@ -432,15 +454,15 @@ struct Session::Impl
 
     bool fetch_credentials(std::string& error)
     {
-        const std::string base = "http://" + options.host + ":" + std::to_string(options.http_port);
+        const std::string base = "http://" + url_host(options.host) + ":" + std::to_string(options.http_port);
         json              info;
         if (!http_json(Http::get(base + "/info"), info, error)) {
-            error = "the printer did not answer on port " + std::to_string(options.http_port) + ": " + error;
+            error = _u8L("the printer did not answer on its HTTP port") + " " + std::to_string(options.http_port) + ": " + error;
             return false;
         }
         const std::string token = info.contains("token") && info["token"].is_string() ? info["token"].get<std::string>() : "";
         if (token.size() < 32) {
-            error = "the printer gave no LAN token: is LAN mode enabled on the printer?";
+            error = _u8L("the printer gave no LAN token. Is LAN mode enabled on the printer?");
             return false;
         }
         const std::string ts = std::to_string(now_ms()), nonce = random_text(6);
@@ -462,7 +484,7 @@ Session::~Session() { close(); }
 
 bool Session::open(std::string& error)
 {
-    if (p->thread.joinable()) {
+    if (p->thread.joinable() || p->closed) {
         error = "the session was already opened";
         return false;
     }
@@ -472,7 +494,10 @@ bool Session::open(std::string& error)
     try {
         SSL_CTX* ctx = p->tls.native_handle();
         // The printer presents a self-signed certificate; the client identity is what its broker checks.
-        // Security level 0: the Anycubic Slicer certificate is signed with SHA-1.
+        // Security level 0 is what Anycubic Slicer Next and Kobra Control connect with. The client certificate
+        // (SHA-1 signed) is sent at higher levels too; the printer's own key, signature algorithms and ciphers
+        // have not been recorded, so a higher level is not known to complete the handshake. This context
+        // serves this one printer connection only.
         p->tls.set_verify_mode(ssl::verify_none);
         SSL_CTX_set_security_level(ctx, 0);
         SSL_CTX_set_cipher_list(ctx, "DEFAULT:@SECLEVEL=0");
@@ -480,7 +505,7 @@ bool Session::open(std::string& error)
         p->tls.use_certificate(net::buffer(p->options.identity.cert_pem), ssl::context::pem);
         p->tls.use_private_key(net::buffer(p->options.identity.key_pem), ssl::context::pem);
     } catch (const boost::system::system_error& e) {
-        error = std::string("the Anycubic Slicer client certificate cannot be used (") + e.what() + ")";
+        error = _u8L("the Anycubic Slicer client certificate cannot be used") + " (" + e.what() + ")";
         return false;
     }
 
@@ -498,7 +523,7 @@ bool Session::open(std::string& error)
     });
 
     if (login.wait_for(LOGIN_TIMEOUT) != std::future_status::ready)
-        net::post(p->io, [this] { p->fail("the printer did not finish the MQTT login in time"); });
+        net::post(p->io, [this] { p->fail(_u8L("the printer did not finish the MQTT login in time")); });
     error = login.get();
     if (!error.empty()) {
         close();
@@ -509,8 +534,10 @@ bool Session::open(std::string& error)
 
 void Session::close()
 {
-    if (!p->thread.joinable())
+    // Once: the destructor and a failed open() both call it
+    if (p->closed || !p->thread.joinable())
         return;
+    p->closed  = true;
     p->closing = true;
     net::post(p->io, [this] {
         if (p->ended)
@@ -567,25 +594,32 @@ bool Session::upload(const std::string& path,
                      const CancelFn&    cancelled,
                      std::string&       error)
 {
-    const size_t token = upload_url.find("?s=");
-    if (token == std::string::npos) {
-        error = "the printer has not announced its upload address yet";
+    const size_t at = upload_url.find("?s=");
+    if (at == std::string::npos) {
+        error = _u8L("the printer has not announced its upload address yet");
+        return false;
+    }
+    // The token goes into the upload URL as it is: only characters that need no escaping
+    const std::string token = upload_url.substr(at + 3);
+    if (token.empty() ||
+        token.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-") != std::string::npos) {
+        error = _u8L("the printer announced an upload address this version cannot use");
         return false;
     }
     if (name.empty() || name.find_first_of("\"\r\n/\\") != std::string::npos) {
-        error = "unsupported file name for the printer";
+        error = _u8L("unsupported file name for the printer");
         return false;
     }
     boost::system::error_code ec;
     const auto size = fs::file_size(path, ec);
     if (ec) {
-        error = "cannot read " + path;
+        error = _u8L("cannot read the file to upload") + " " + path;
         return false;
     }
     // Only the token is taken from the announced address; the file goes to the printer we are connected to.
     // The headers are those Kobra Control sends, which the printer accepted on firmware 2.0.2.8.
-    Http http = Http::post("http://" + p->options.host + ":" + std::to_string(p->options.http_port) + "/gcode_upload?s=" +
-                           upload_url.substr(token + 3));
+    Http http = Http::post("http://" + url_host(p->options.host) + ":" + std::to_string(p->options.http_port) + "/gcode_upload?s=" +
+                           token);
     bool ok = false;
     http.header("X-File-Length", std::to_string(size))
         .header("X-BBL-Client-Type", "slicer")
@@ -604,14 +638,14 @@ bool Session::upload(const std::string& path,
             const json answer = json::parse(body, nullptr, false);
             ok = answer.is_object() && answer.value("code", json()) == 200;
             if (!ok)
-                error = "the printer refused the upload: " + body.substr(0, 200);
+                error = _u8L("the printer refused the upload") + ": " + body.substr(0, 200);
         })
         .on_error([&](std::string, std::string err, unsigned status) {
-            error = status ? "the printer refused the upload: HTTP " + std::to_string(status) : "upload failed: " + err;
+            error = status ? _u8L("the printer refused the upload") + ": HTTP " + std::to_string(status) : _u8L("the upload failed") + ": " + err;
         })
         .perform_sync();
     if (!ok && cancelled && cancelled())
-        error = "upload cancelled";
+        error = _u8L("upload cancelled");
     return ok;
 }
 
