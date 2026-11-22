@@ -70,7 +70,8 @@ template<class S> struct NfpImpl<S, NfpLevel::CONVEX_ONLY>
 {
     NfpResult<S> operator()(const S &sh, const S &other)
     {
-        return nfpConvexOnly<S, boost::rational<LargeInt>>(sh, other);
+        // The edge sort needs exact cross products of coordinate differences.
+        return nfpConvexOnly<S, LargeInt>(sh, other);
     }
 };
 
@@ -584,6 +585,7 @@ protected:
 
     double    m_norm;           // A coefficient to scale distances
     MultiPolygon m_merged_pile; // The already merged pile (vector of items)
+    std::set<int> m_packed_extruders; // Extruders of the packed items, virtual ones excluded
     Box          m_pilebb;      // The bounding box of the merged pile.
     ItemGroup m_remaining;      // Remaining items
     ItemGroup m_items;          // allready packed items
@@ -771,8 +773,10 @@ protected:
                 auto& index = isBig(item.area()) ? spatindex : smalls_spatindex;
 
                 // Query the spatial index for the neighbors
-                std::vector<SpatElement> result;
-                result.reserve(index.size());
+                // Reused per thread: objfunc runs for every candidate, from several
+                // optimizer threads at once.
+                static thread_local std::vector<SpatElement> result;
+                result.clear();
 
                 index.query(query, std::back_inserter(result));
 
@@ -900,12 +904,7 @@ protected:
                 score += height_score / valid_items_cnt;
         }
 
-        std::set<int> extruder_ids;
-        for (int i = 0; i < m_items.size(); i++) {
-            Item& p = m_items[i];
-            if (p.is_virt_object) continue;
-            extruder_ids.insert(p.extrude_ids.begin(),p.extrude_ids.end());
-        }
+        const std::set<int> &extruder_ids = m_packed_extruders;
 
         // add a large cost if not multi materials on same plate is not allowed
         if (!params.allow_multi_materials_on_same_plate) {
@@ -919,11 +918,12 @@ protected:
         }
         // for layered printing, we want extruder change as few as possible
         // this has very weak effect, CAN NOT use a large weight
-        int last_extruder_cnt = extruder_ids.size();
-        extruder_ids.insert(item.extrude_ids.begin(), item.extrude_ids.end());
-        int new_extruder_cnt= extruder_ids.size();
         if (!params.is_seq_print) {
-            score += 1 * (new_extruder_cnt-last_extruder_cnt);
+            // One per distinct extruder of the item that the plate does not use yet.
+            const std::vector<int> &ids = item.extrude_ids;
+            for (auto it = ids.begin(); it != ids.end(); ++it)
+                if (!extruder_ids.count(*it) && std::find(ids.begin(), it, *it) == it)
+                    score += 1;
         }
 
         // On a belt the parts print in belt order, so every colour change between
@@ -992,6 +992,11 @@ public:
             m_items = items;
             m_merged_pile = merged_pile;
             m_remaining = remaining;
+
+            m_packed_extruders.clear();
+            for (const Item &itm : items)
+                if (!itm.is_virt_object)
+                    m_packed_extruders.insert(itm.extrude_ids.begin(), itm.extrude_ids.end());
 
             m_pilebb.defined = false;
             if (!merged_pile.empty())
