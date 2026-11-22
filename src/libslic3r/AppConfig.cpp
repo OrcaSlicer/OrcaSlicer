@@ -516,10 +516,6 @@ void AppConfig::set_defaults()
         set_bool(SETTING_USE_ENCRYPTED_TOKEN_FILE, false);
 #endif
 
-    if(get("check_stable_update_only").empty()) {
-        set_bool("check_stable_update_only", false);
-    }
-
     // Orca
     if(get("show_splash_screen").empty()) {
         set_bool("show_splash_screen", true);

@@ -353,7 +353,6 @@ private:
     // login widget
     ZUserLogin*     login_dlg { nullptr };
 
-    VersionInfo version_info;
     VersionInfo privacy_version_info;
     // What the last successful check resolved, shown by EVT_SLIC3R_VERSION_ONLINE.
     Slic3r::UpdateCandidate m_update_candidate;
@@ -629,8 +628,9 @@ public:
     // Pushes the persistent "ready to install" notification for the current candidate.
     void            notify_update_ready();
     // Starts the download the automatic check hands to the helper, without a dialog or a
-    // lock; the notification follows once the artifact is verified.
-    void            prefetch_update();
+    // lock; the notification follows once the artifact is verified. False when no helper was
+    // started, so there is nothing to poll for.
+    bool            prefetch_update();
     // Deletes a cached artifact the user no longer wants, unless a prefetch still writes it.
     void            drop_cached_update(const std::string& asset_name);
     // Polls download_is_verified() while a prefetch runs and notifies when it is done.

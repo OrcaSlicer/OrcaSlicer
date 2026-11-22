@@ -102,8 +102,9 @@ nightly reuses one asset name across builds.
 
 The notification carries one action, which opens the same dialog as Help → Check for
 Updates: release notes, channel, "Install and restart", "Skip this Version", "Cancel". A
-manual check with a verified artifact opens it immediately; one that finds nothing answers
-"This is the newest version."; one that runs while a download is in flight says so.
+manual check opens that dialog for any offer, verified or not: "Install and restart" starts
+the helper, which downloads what the cache does not hold yet. A manual check that finds
+nothing answers "This is the newest version." The automatic check never opens it.
 
 Neither the notification nor the candidate is persisted. The next check recomputes both
 from the release list and the cache, which is why an artifact that finished while the
@@ -115,7 +116,8 @@ writing the `.part`; when the lock is held, the deletion is deferred to the next
 check.
 
 In stealth mode the startup check does not run, because it starts a background download;
-the re-check after a channel change and Help → Check for Updates still do.
+the re-check after a channel change and Help → Check for Updates still run, and both answer
+with the dialog.
 
 A failed download leaves a message in `update_failed.txt`, which the next start shows as a
 notification; the detailed trail is in `updater.log`. A failed install is visible in the

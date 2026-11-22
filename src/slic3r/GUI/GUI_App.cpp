@@ -1135,11 +1135,13 @@ void GUI_App::post_init()
         this->finish_pending_update();
 
         // An automatic update shows no dialog when it fails; the helper leaves a message here.
+        // The notification is translated, the helper's English detail goes to the log.
         std::string failure;
         if (this->plater_ != nullptr && read_update_failure(failure)) {
-            this->plater_->get_notification_manager()->push_notification(NotificationType::CustomNotification,
-                                                                         NotificationManager::NotificationLevel::WarningNotificationLevel,
-                                                                         failure);
+            BOOST_LOG_TRIVIAL(warning) << "The background update failed: " << failure;
+            this->plater_->get_notification_manager()->push_notification(
+                NotificationType::CustomNotification, NotificationManager::NotificationLevel::WarningNotificationLevel,
+                _u8L("The update could not be downloaded."));
             remove_update_failure();
         }
     });
@@ -2619,6 +2621,11 @@ GUI_App::~GUI_App()
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(": enter");
 
+    if (m_update_ready_timer != nullptr) {
+        delete m_update_ready_timer;
+        m_update_ready_timer = nullptr;
+    }
+
     if (m_agent)
         m_agent->set_printer_agent(nullptr);
     NetworkAgentFactory::clear_printer_agent_cache();
@@ -3566,16 +3573,17 @@ bool GUI_App::on_init_inner()
                     notify_update_ready();
                 return;
             case UpdateAction::Prefetch:
+                // A click is answered at once: the dialog's install starts the helper, which
+                // downloads whatever is not cached yet.
+                if (request.user_initiated) {
+                    show_update_dialog();
+                    return;
+                }
                 // The automatic check never shows a dialog: it downloads quietly and the
                 // notification follows once the artifact is verified.
-                BOOST_LOG_TRIVIAL(info) << "Update " << m_update_candidate.version_label << ": downloading in the background";
                 if (!in_app) {
                     // prefetch_update() only logs for a flavour that cannot install in place, so
                     // the user would never hear of the release. Point them at it instead.
-                    if (request.user_initiated) {
-                        show_update_dialog();
-                        return;
-                    }
                     if (NotificationManager* notifications = notification_manager()) {
                         const UpdateCandidate candidate = m_update_candidate;
                         notifications->push_notification(
@@ -3591,14 +3599,9 @@ bool GUI_App::on_init_inner()
                     m_update_candidate = UpdateCandidate();
                     return;
                 }
-                prefetch_update();
-                start_update_ready_timer();
-                // Also answers a check made while this session's prefetch is already running.
-                if (request.user_initiated) {
-                    MessageDialog dlg(this->mainframe, _L("The update is downloading in the background."),
-                                      _L("Update"), wxOK | wxICON_INFORMATION);
-                    dlg.ShowModal();
-                }
+                BOOST_LOG_TRIVIAL(info) << "Update " << m_update_candidate.version_label << ": downloading in the background";
+                if (prefetch_update())
+                    start_update_ready_timer();
                 return;
             }
             });
@@ -7017,8 +7020,8 @@ bool running_from(const std::string& path)
     return !ec && same;
 }
 
-// A recorded install needs neither the artifact nor the helper's log any more: there is
-// nothing left to resume, and the log described a run that succeeded.
+// A recorded install needs neither the artifact nor its download directory any more: there
+// is nothing left to resume. The helper's log stays, as the trail of the run that succeeded.
 void clear_install_leftovers()
 {
     boost::system::error_code ec;
@@ -7149,12 +7152,12 @@ void GUI_App::start_in_app_update()
     }
 }
 
-void GUI_App::prefetch_update()
+bool GUI_App::prefetch_update()
 {
     // Without an asset there is no URL or digest to hand off; the helper would refuse the job.
     if (!can_install_in_app(m_update_candidate, current_install_flavour())) {
         BOOST_LOG_TRIVIAL(info) << "Not prefetching the update: no asset for this installation";
-        return;
+        return false;
     }
 
     set_updater_cache_dir(update_cache_dir());
@@ -7164,18 +7167,18 @@ void GUI_App::prefetch_update()
     const std::string artifact = m_update_candidate.identity();
     if (artifact == m_prefetching_artifact) {
         BOOST_LOG_TRIVIAL(info) << "The background download of " << m_update_candidate.asset.name << " was already started";
-        return;
+        return true;
     }
 
     const std::string helper = extract_updater_helper();
     if (helper.empty()) {
         BOOST_LOG_TRIVIAL(warning) << "Not prefetching the update: the updater helper is missing";
-        return;
+        return false;
     }
 
     if (!write_handoff(make_update_handoff(m_update_candidate))) {
         BOOST_LOG_TRIVIAL(warning) << "Not prefetching the update: could not write the handoff";
-        return;
+        return false;
     }
 
     m_prefetching_artifact = artifact;
@@ -7183,9 +7186,10 @@ void GUI_App::prefetch_update()
         m_prefetching_artifact.clear();
         remove_handoff();
         BOOST_LOG_TRIVIAL(warning) << "Could not start the background download of " << m_update_candidate.asset.name;
-        return;
+        return false;
     }
     BOOST_LOG_TRIVIAL(info) << "Started the background download of " << m_update_candidate.asset.name;
+    return true;
 }
 
 void GUI_App::show_update_dialog()
@@ -9699,7 +9703,7 @@ void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_
             m_update_candidate = UpdateCandidate();
             if (!old_asset.empty())
                 drop_cached_update(old_asset);
-            check_new_version_sf(true, 0);
+            check_new_version_sf(true, 1);
         }
         need_recreate_gui = dlg.recreate_GUI();
         pending_language = dlg.pending_language();

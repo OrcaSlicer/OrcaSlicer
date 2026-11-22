@@ -46,6 +46,8 @@
 #include <unistd.h>
 #endif
 
+// The helper's window is English-only by design: it starts no locale or catalog of its own.
+// A failure reaches the app as a translated summary, with the detail in update_failed.txt.
 namespace fs = boost::filesystem;
 
 namespace Slic3r {

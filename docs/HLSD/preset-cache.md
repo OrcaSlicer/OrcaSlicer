@@ -352,9 +352,10 @@ actually has a cache is pruned, so a vendor the generator skipped keeps its JSON
 simply parsed at startup.
 
 Caches are generated into the checkout's own `resources/profiles`, because that is what the
-Windows installer stages from — so that directory is also a prune target in CI. Pruning it deletes the checkout's preset JSONs, which is a packaging
-step, not something a build should do to a working tree by surprise: the Windows script
-refuses that target unless given `--prune-source`, and CI passes it.
+Windows installer stages from — so that directory is also a prune target in CI. Pruning it
+deletes the checkout's preset JSONs, which is a packaging step, not something a build
+should do to a working tree by surprise: the Windows script refuses that target unless
+given `--prune-source`, and CI passes it.
 
 Generation runs after the build, in the same job, so the caches ship with a build that
 can read them. On Linux it runs while the package tree is staged (`build_linux.sh -P`), so
