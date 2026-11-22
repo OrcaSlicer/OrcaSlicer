@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -14,6 +15,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -27,6 +29,7 @@
 #include <boost/asio/ssl/context.hpp>
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/ssl/stream_base.hpp>
+#include <boost/beast/core/buffers_to_string.hpp>
 #include <boost/beast/core/error.hpp>
 #include <boost/beast/core/flat_buffer.hpp>
 #include <boost/beast/core/stream_traits.hpp>
@@ -52,6 +55,7 @@
 #include "slic3r/GUI/DeviceCore/DevStorage.h"
 #include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/Utils/MoonrakerPrinterAgent.hpp"
+#include "slic3r/Utils/SnapmakerPrinterAgent.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "test_utils.hpp"
 
@@ -234,6 +238,16 @@ public:
     {
         std::unique_lock<std::mutex> lock(m_mutex);
         return m_changed.wait_for(lock, 10s, [&] { return m_http_hung_up >= count; });
+    }
+
+    // Waits for a message the agent sent after subscribing that contains `text`.
+    bool wait_for_ws_message(const std::string& text)
+    {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        return m_changed.wait_for(lock, 10s, [&] {
+            return std::any_of(m_ws_messages.begin(), m_ws_messages.end(),
+                               [&](const std::string& message) { return message.find(text) != std::string::npos; });
+        });
     }
 
     int close_frames()
@@ -435,6 +449,11 @@ private:
         });
         std::function<void()> read_next = [&] {
             ws.async_read(message, [&](beast::error_code ec, std::size_t) {
+                if (!ec) {
+                    std::lock_guard<std::mutex> lock(m_mutex);
+                    m_ws_messages.push_back(beast::buffers_to_string(message.data()));
+                    m_changed.notify_all();
+                }
                 message.clear();
                 if (ec)
                     reading = false;
@@ -499,6 +518,7 @@ private:
     nlohmann::json m_disk_usage = {{"total", 8e9}, {"used", 2e9}, {"free", 6e9}};
     std::string m_upload;
     std::string m_script;
+    std::vector<std::string> m_ws_messages;
 };
 
 // Records when the agent dispatches a status report.
@@ -1310,4 +1330,62 @@ TEST_CASE("The Device tab switches the chamber LED with every channel", "[Moonra
     CHECK(light(no_led, {{"led_node", "chamber_light"}, {"led_mode", "on"}}) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
     // None of the refused requests reached the printer
     CHECK(printer.script() == "SET_LED LED=chamber RED=0 GREEN=0 BLUE=0 WHITE=0");
+}
+
+// Sends one JSON-RPC request over the status stream, the first time it is asked.
+class RequestAgent : public StreamAgent
+{
+public:
+    using StreamAgent::StreamAgent;
+
+protected:
+    std::vector<nlohmann::json> take_ws_requests() override
+    {
+        if (m_sent.exchange(true))
+            return {};
+        return {{{"method", "camera.start_monitor"}, {"params", {{"domain", "lan"}, {"interval", 0}}}}};
+    }
+
+private:
+    std::atomic<bool> m_sent{false};
+};
+
+TEST_CASE("The status stream sends an agent's requests to the printer", "[MoonrakerPrinterAgent][StatusStream]")
+{
+    FakePrinter printer(Behavior::Chatters);
+    RequestAgent agent("");
+    agent.start_status_stream("printer", printer.base_url(), "");
+
+    CHECK(printer.wait_for_ws_message("\"method\":\"camera.start_monitor\""));
+    CHECK(printer.wait_for_ws_message("\"jsonrpc\":\"2.0\""));
+    printer.release();
+    agent.stop_status_stream();
+}
+
+TEST_CASE("The filament objects are read from the status stream once it reported them", "[MoonrakerPrinterAgent][Status]")
+{
+    const std::set<std::string> names = {"print_task_config", "filament_detect"};
+    const nlohmann::json        ptc   = {{"filament_type", {"PLA"}}};
+    // A printer without filament_detect needs only print_task_config
+    CHECK(MoonrakerPrinterAgent::pick_objects({{"print_task_config", ptc}}, {"print_task_config"}, names) ==
+          nlohmann::json{{"print_task_config", ptc}});
+    // Not reported yet: the caller asks the printer
+    CHECK(MoonrakerPrinterAgent::pick_objects({{"print_task_config", ptc}}, {"print_task_config", "filament_detect"}, names).is_null());
+    CHECK(MoonrakerPrinterAgent::pick_objects({{"print_task_config", ptc}}, {}, names).is_null());
+}
+
+TEST_CASE("The Snapmaker agent keeps the stock camera picture current only while it is shown", "[SnapmakerPrinterAgent][Camera]")
+{
+    using clock = std::chrono::steady_clock;
+    const clock::time_point now = clock::now();
+    const clock::time_point never{};
+
+    // Shown just now and never asked: ask
+    CHECK(SnapmakerPrinterAgent::camera_request_due(now, now - 1s, never));
+    // Asked 20 s ago: not yet
+    CHECK_FALSE(SnapmakerPrinterAgent::camera_request_due(now, now - 1s, now - 20s));
+    // Asked 50 s ago: again, before the firmware stops renewing the picture
+    CHECK(SnapmakerPrinterAgent::camera_request_due(now, now - 1s, now - 50s));
+    // Not shown for a while: let it stop
+    CHECK_FALSE(SnapmakerPrinterAgent::camera_request_due(now, now - 30s, never));
 }

@@ -7,7 +7,9 @@
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "nlohmann/json.hpp"
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/log/trivial.hpp>
+#include <wx/thread.h>
 #include <vector>
 #include <string>
 #include "libslic3r/Preset.hpp"
@@ -15,6 +17,8 @@
 #include <utility>
 #include <algorithm>
 #include <cctype>
+#include <chrono>
+#include <functional>
 
 namespace Slic3r {
 
@@ -232,6 +236,51 @@ AgentInfo SnapmakerPrinterAgent::get_agent_info_static()
     return AgentInfo{SNAPMAKER_PRINTER_AGENT_ID, "Snapmaker", SNAPMAKER_AGENT_VERSION, "Snapmaker printer agent"};
 }
 
+MoonrakerPrinterAgent::CameraSource SnapmakerPrinterAgent::fetch_camera(const std::string&           base_url,
+                                                                        const std::string&           api_key,
+                                                                        const std::function<bool()>& cancelled) const
+{
+    // A webcam Moonraker lists (Extended firmware's USB camera) first, else the stock firmware's camera picture
+    CameraSource found = MoonrakerPrinterAgent::fetch_camera(base_url, api_key, cancelled);
+    if (found.mode == CameraStreamMode::none) {
+        found = {CameraStreamMode::http_snapshot, join_url(base_url, STOCK_CAMERA_PATH)};
+    }
+    return found;
+}
+
+std::string SnapmakerPrinterAgent::get_camera_url() const
+{
+    // The Device tab asks for the URL on every update while it shows the printer
+    m_camera_watched = std::chrono::steady_clock::now().time_since_epoch().count();
+    return MoonrakerPrinterAgent::get_camera_url();
+}
+
+bool SnapmakerPrinterAgent::camera_request_due(std::chrono::steady_clock::time_point now,
+                                               std::chrono::steady_clock::time_point last_watched,
+                                               std::chrono::steady_clock::time_point last_request)
+{
+    // The firmware stops renewing the picture about a minute after the last request
+    constexpr std::chrono::seconds watching{10};
+    constexpr std::chrono::seconds keepalive{50};
+    return now - last_watched <= watching && (last_request == std::chrono::steady_clock::time_point{} || now - last_request >= keepalive);
+}
+
+std::vector<nlohmann::json> SnapmakerPrinterAgent::take_ws_requests()
+{
+    if (get_camera_stream_mode() != CameraStreamMode::http_snapshot ||
+        !boost::algorithm::ends_with(MoonrakerPrinterAgent::get_camera_url(), STOCK_CAMERA_PATH)) {
+        return {};
+    }
+    const auto now     = std::chrono::steady_clock::now();
+    const auto watched = std::chrono::steady_clock::time_point(std::chrono::steady_clock::duration(m_camera_watched.load()));
+    if (!camera_request_due(now, watched, m_camera_requested)) {
+        return {};
+    }
+    m_camera_requested = now;
+    // Registered for websocket clients only, not over HTTP
+    return {{{"method", "camera.start_monitor"}, {"params", {{"domain", "lan"}, {"interval", 0}}}}};
+}
+
 std::string SnapmakerPrinterAgent::combine_filament_type(const std::string& type, const std::string& sub_type)
 {
     const std::string base = trim_and_upper(type);
@@ -269,23 +318,33 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     if (!device_info.api_key.empty()) {
         http.header("X-Api-Key", device_info.api_key);
     }
-    http.timeout_connect(5)
-        .timeout_max(10)
-        .on_complete([&](std::string body, unsigned status) {
-            if (status == 200) {
-                response_body = body;
-                success       = true;
-            } else {
-                http_error = "HTTP error: " + std::to_string(status);
-            }
-        })
-        .on_error([&](std::string body, std::string err, unsigned status) {
-            http_error = err;
-            if (status > 0) {
-                http_error += " (HTTP " + std::to_string(status) + ")";
-            }
-        })
-        .perform_sync();
+    // The status stream holds both objects once it has reported them. The UI thread, where the Device tab re-reads the
+    // trays, never waits for a request: until the stream has reported them, the trays stay as they are.
+    if (const nlohmann::json cached = cached_objects(filament_objects()); !cached.is_null()) {
+        response_body = nlohmann::json{{"result", {{"status", cached}}}}.dump();
+        success       = true;
+    } else if (wxThread::IsMain()) {
+        BOOST_LOG_TRIVIAL(info) << "SnapmakerPrinterAgent::fetch_filament_info: the status stream has not reported the trays yet";
+        return false;
+    } else {
+        http.timeout_connect(5)
+            .timeout_max(10)
+            .on_complete([&](std::string body, unsigned status) {
+                if (status == 200) {
+                    response_body = body;
+                    success       = true;
+                } else {
+                    http_error = "HTTP error: " + std::to_string(status);
+                }
+            })
+            .on_error([&](std::string body, std::string err, unsigned status) {
+                http_error = err;
+                if (status > 0) {
+                    http_error += " (HTTP " + std::to_string(status) + ")";
+                }
+            })
+            .perform_sync();
+    }
 
     if (!success) {
         BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent::fetch_filament_info: HTTP request failed: " << http_error;
