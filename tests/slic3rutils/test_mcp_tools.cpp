@@ -556,9 +556,8 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
          "item that takes no arguments, a Design tab command or an operation a plugin offers (`tool_list` "
          "lists them; `tool_describe` gives any command's manual)."},
         {"generate_calibration_test", "calibration_generate_test",
-         "Generate a Calibration menu test as its dialog's OK does: a new project named after the test with "
-         "the test model, and the process, filament and printer presets changed as the test needs "
-         "(`presets_changed`)."},
+         "Generate a Calibration menu test as its dialog's OK does: a new project named after the test, with "
+         "the test model and the process, filament and printer presets changed as the test needs."},
         {"export", "project_export", "Write the project to a file without a dialog."},
         {"list_presets", "preset_list",
          "Printer, process or filament presets, each with its name, alias (the name its selector shows, when "
@@ -627,12 +626,9 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
          "Capture what OrcaSlicer shows and return it as an image, downscaled to `max_dim` on the long edge "
          "(default 1280), plus the full-size PNG written to `save_path` (or the session's output folder)."},
         {"set_view", "view_set",
-         "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view (canvas: "
-         "Prepare's, the preview or the assemble view, which has its own gizmos), the camera of the 3D view "
-         "shown (a named direction, the default view, or fit to bed / objects / selection, then `look_at`, "
-         "the point it looks at, an orbit to look from between the named directions, and the zoom), the "
-         "preview's color scheme (picked as in the legend's combo, which shows every feature type again), "
-         "legend rows, time estimate and layers (1-based, or up to a height)."},
+         "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view and its "
+         "camera, the Preview's color scheme, legend, layers and time estimate, and the display switches of "
+         "the View menu and the sidebar."},
         {"encode_recording", "recording_encode", "Encode a recording into an H.265 (or H.264) MP4 with the system ffmpeg (ORCA_FFMPEG, "
                                                  "else ffmpeg on PATH; it needs libx265 or libx264), keeping its timing."},
         {"run_action", "action_run",
@@ -645,12 +641,12 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
          "Size, move, maximize, minimize or raise a window: the main window (default), the topmost modal "
          "dialog, or one `window_list` lists, also while a modal dialog is open."},
         {"list_widgets", "widget_list",
-         "Describe what is on screen as an indented tree, one element per line with a ref to pass to "
-         "`widget_click`, `widget_set_value`, `keyboard_press` and `webview_run_javascript` (a page element's "
-         "to `mouse_gesture` too): the widgets of every shown window, the rows of lists, trees and tables, "
-         "each shown popup after the window it opened from, the main menus, the 3D canvas's toolbar items and "
-         "gizmos, each ImGui panel drawn in the last frame with its items and text, and the elements of each "
-         "shown web page (dialogs, the setup wizard, sign-in, plugin windows) under its web view."},
+         "Describe what is on screen as an indented tree, one element per line with a ref for `widget_click`, "
+         "`widget_set_value`, `keyboard_press`, `webview_run_javascript` and, for a page element, "
+         "`mouse_gesture`: every shown window's widgets, the rows of lists, trees and tables, each shown "
+         "popup after the window it opened from, the main menus, the 3D canvas's toolbar items and gizmos, "
+         "each ImGui panel of the last frame with its items and text, and each shown web page's elements "
+         "(dialogs, the setup wizard, sign-in, plugin windows)."},
         {"click", "widget_click", "Click a GUI element as a person would."},
         {"set_widget_value", "widget_set_value", "Set a widget's value and send the events a person's edit would."},
         {"press_keys", "keyboard_press",

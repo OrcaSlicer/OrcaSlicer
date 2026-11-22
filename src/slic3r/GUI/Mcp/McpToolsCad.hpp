@@ -151,7 +151,7 @@ void leave_out_cad_commands(CommandCatalog& catalog, bool editor);
 
 // What tool_list's description says of the Design commands, which tools/list does not show, so that an agent
 // learns without a call that they exist and are CAD: a lead saying what they cover, that tool_list's group Design
-// lists them with what each does, that tool_describe gives one's manual before it is called, and that a command whose schema has silent does what its menu item does when called
+// says what each does, that tool_describe gives one's manual, and that a command whose schema has silent does what its menu item does when called
 // with no arguments unless silent is true; then each heading of kDesignSections with the keys of its commands
 // (DesignTool::section) in the table's order, Menu items saying that its commands take no arguments. It starts with
 // a space, to follow the description's last sentence.

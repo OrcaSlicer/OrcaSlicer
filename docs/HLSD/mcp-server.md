@@ -1723,8 +1723,8 @@ plate are commands of the catalog (`Mcp/McpToolsCad.cpp`) in the group `Design`,
 never open the Design tab pay in `tools/list` for their names alone. The command set itself, how the commands
 are named and what each takes, is in [mcp-tools.md](mcp-tools.md), The Design tab's commands. The names end
 `tool_list`'s description while the catalog holds the commands (`design_command_index()`): that they are the
-Design tab's CAD commands and what those cover, that `tool_list {group: "Design"}` lists them with what each
-does and `tool_describe {tool}` gives one's manual before it is called, that a command
+Design tab's CAD commands and what those cover, that `tool_list {group: "Design"}` says what each does and
+`tool_describe {tool}` gives one's manual, that a command
 whose schema has `silent` does what its menu item does when called with no arguments unless `silent` is true,
 so `interference {}` with a body selected opens the tool and `interference {silent: true}` returns the result,
 and then every key under its heading, in the table's order: Document, Sketch, Solid, Surface, Construct,

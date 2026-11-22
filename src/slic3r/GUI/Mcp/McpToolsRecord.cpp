@@ -112,18 +112,16 @@ void register_record_tools(CommandCatalog& catalog)
     // The Speed Dial's Start Recording is its action: with no arguments it opens the action's dialog.
     NativeCommand start = record_tool(
         "recording_start", L("Start Recording"),
-        "Record a video of OrcaSlicer until `recording_stop`: the main window with any modal dialog on it (target main), or "
-        "the 3D view shown (canvas). Frames are MJPEG in a Matroska (.mkv) file with their real timestamps. With captions, "
-        "the tool call acting on the app shows as a caption at the bottom (secret setting values never show); with pointer, "
-        "the pointer is highlighted, its clicks rippling. Capture takes at most about a third of the UI thread, so "
-        "the frame rate drops where capturing is slow. One recording at a time: one a replay or script starts ends with it, a "
-        "client's when the server is turned off. With encode, the `recording_stop` that reports it also encodes it to an MP4 "
-        "beside it, as Start Recording does, and the .mkv is deleted once the MP4 is written unless "
-        "`keep_raw_video_file`; `recording_encode` makes an MP4 of any recording later. Called with no "
-        "arguments, it opens the Start Recording dialog instead, as Start Recording does (`blocked_by_dialog`): "
-        "its controls are named after their settings for `widget_set_value`, `dialog_answer` \"Start recording\" starts the "
-        "person's recording, which neither the end of a replay or script nor the server turning off ends, and the dialog "
-        "remembers the settings; `silent: true` starts one here at once with the defaults.",
+        "Record a video of OrcaSlicer until `recording_stop`: MJPEG frames with their real timestamps in a Matroska (.mkv) "
+        "file. Captions show the tool call acting on the app at the bottom (secret setting values never show); pointer "
+        "highlights the pointer, its clicks rippling. Capture takes at most about a third of the UI thread, so the frame "
+        "rate drops where capturing is slow. One recording at a time: a replay's or script's ends with it, a client's when "
+        "the server is turned off. With encode, the `recording_stop` that reports it also writes an MP4 beside it and "
+        "deletes the .mkv unless `keep_raw_video_file`; `recording_encode` encodes any recording later. With no arguments it "
+        "opens the Start Recording dialog (`blocked_by_dialog`), whose controls are named after their settings for "
+        "`widget_set_value`; its \"Start recording\" starts the person's recording, which neither a replay's or script's end "
+        "nor the server turning off ends, and the dialog remembers the settings. `silent: true` starts one at once with the "
+        "defaults.",
         object_schema({{"target", enum_prop({"main", "canvas"}, "main (default): the main window and its dialogs; canvas: the 3D view shown.")},
                        {"fps", int_prop(1, 30, "Frames per second at most (default 10).")},
                        {"max_dim", int_prop(320, 3840, "Long edge of the video in pixels (default 1920).")},
@@ -140,8 +138,7 @@ void register_record_tools(CommandCatalog& catalog)
                        {"profile", enum_prop({"high", "main", "baseline", "main10"},
                                              "With encode: h264 high, main or baseline; h265 main or main10 (default the preset's, else "
                                              "the codec's first).")},
-                       {"keep_raw_video_file", prop("boolean", "With encode: keep the .mkv beside the MP4 (default false: the "
-                                                               "encode deletes it once the MP4 is written).")},
+                       {"keep_raw_video_file", prop("boolean", "With encode: keep the .mkv beside the MP4 (default false).")},
                        {"save_path", prop("string", "Absolute .mkv path; default the session's output folder.")},
                        {"overwrite", prop("boolean", "Replace an existing `save_path`, and with encode its MP4.")}}),
         [](const json& args, ToolContext& ctx) {

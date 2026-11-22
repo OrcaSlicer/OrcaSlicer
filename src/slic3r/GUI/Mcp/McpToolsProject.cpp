@@ -573,28 +573,26 @@ void register_project_tools(CommandCatalog& catalog)
 
     NativeCommand calibration = mutate_tool(
         "calibration_generate_test", L("Generate a calibration test"),
-        "Generate a Calibration menu test as its dialog's OK does: a new project named after the test with the test "
-        "model, and the process, filament and printer presets changed as the test needs (`presets_changed`). The test prints "
-        "with `filament_slot`, a physical filament, on the extruder the filament map gives it, as the dialog's filament list "
-        "picks one, so the filament tab is pointed at that slot's preset. Omitted parameters take the dialog's defaults "
-        "(pressure advance's by the printer's extruder type), except that `filament_slot` defaults to 1 where the dialog starts "
-        "on the filament the filament tab edits; temperatures are clamped to 155-500 °C and rounded "
-        "down to 5 °C. Fails, changing nothing, when the project has unsaved changes (pass `discard_changes`) or presets do "
-        "(pass `preset_changes`). Called with test alone it opens that test's dialog, as the Calibration menu does "
-        "(`blocked_by_dialog`), and the dialog's OK runs the test; `silent: true` with test alone runs it with the dialog's "
-        "defaults. Reply: test, project, params (the values used, which the "
-        "journal records), objects, names, plates, `presets_changed` (its filament names the `filament_slot`, and on a printer "
-        "with several extruders the extruder, 1-based, where the filament map decides it), `result_keys` (where the measured value belongs), "
-        "warnings, adjusted (vfa), and discarded and modified as `project_new`. Then `plate_slice` and `project_export`. To save "
-        "a measured value: `project_new {discard_changes, preset_changes: \"discard\"}`, `settings_set` the value, `preset_save`.",
+        "Generate a Calibration menu test as its dialog's OK does: a new project named after the test, with the test model "
+        "and the process, filament and printer presets changed as the test needs. It prints with `filament_slot` on the "
+        "extruder the filament map gives it, so the filament tab points at that slot's preset. Omitted parameters take the "
+        "dialog's defaults (pressure advance's by the printer's extruder type), but `filament_slot` defaults to 1, not the "
+        "filament tab's; temperatures are clamped to 155-500 °C and rounded down to 5 °C. Fails, changing nothing, while the "
+        "project has unsaved changes (pass `discard_changes`) or the presets do (pass `preset_changes`). With test alone it "
+        "opens that test's dialog (`blocked_by_dialog`), whose OK runs it, unless `silent: true`, which runs it with the "
+        "dialog's defaults. Reply: test, project, params (the values used, as the journal records them), objects, names, "
+        "plates, `presets_changed` (its filament names the `filament_slot`, and with several extruders the 1-based extruder "
+        "where the filament map decides it), `result_keys` (where the measured value belongs), warnings, adjusted (vfa), and "
+        "discarded and modified as `project_new`. Then `plate_slice` and `project_export`. To save a measured value: "
+        "`project_new {discard_changes, preset_changes: \"discard\"}`, `settings_set` the value, `preset_save`.",
         object_schema(
             {{"test", enum_prop({"temperature", "max_volumetric", "pressure_advance", "flow_ratio", "retraction", "vfa", "cornering",
                                  "input_shaping_freq", "input_shaping_damp"},
                                 "The test, as the Calibration menu names it.")},
              {"filament_slot", {{"type", "integer"},
                                 {"minimum", 1},
-                                {"description", "The physical filament (1-based slot) the test prints with, as the dialog's "
-                                                "filament list offers them; a mixed filament is refused. Default 1."}}},
+                                {"description", "The physical filament (1-based slot) to print with, as the dialog's filament "
+                                                "list offers them; not a mixed one. Default 1."}}},
              {"method", enum_prop({"tower", "line", "pattern", "pass1", "pass2", "yolo", "yolo_perfectionist"},
                                   "`pressure_advance`: tower (default), line or pattern; `flow_ratio`: pass1, pass2, yolo (default) or "
                                   "`yolo_perfectionist`.")},
@@ -621,8 +619,8 @@ void register_project_tools(CommandCatalog& catalog)
                                              "maximum volumetric speed (default true); only with `auto_scale`.")},
              {"discard_changes", prop("boolean", "Drop the project's unsaved changes rather than fail; for the presets', "
                                                  "see `preset_changes`.")},
-             {"preset_changes", enum_prop({"keep", "discard"}, "The presets' unsaved changes, not the project's: keep them for the "
-                                                        "test or drop them first. Required when presets are modified.")}},
+             {"preset_changes", enum_prop({"keep", "discard"}, "The presets' unsaved changes: keep them for the test or drop them "
+                                                        "first. Required when there are any.")}},
             {"test"}),
         [](const json& args, ToolContext& ctx) {
             AutomationRuntime& runtime = ctx.runtime();

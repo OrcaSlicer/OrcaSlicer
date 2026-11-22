@@ -846,98 +846,84 @@ void register_view_tools(CommandCatalog& catalog)
 
     NativeCommand view = reaching({"show_layer_range"}, mutate_tool(
         "view_set", L("Set up the view"),
-        "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view (canvas: Prepare's, the "
-        "preview or the assemble view, which has its own gizmos), the camera of the 3D view shown (a named direction, the "
-        "default view, or fit to bed / objects / selection, then `look_at`, the point it looks at, an orbit to look from "
-        "between the named directions, and the zoom), the preview's color scheme (picked as in the legend's combo, which "
-        "shows every feature type again), legend rows, time estimate and layers (1-based, or up to a height). Only the given "
-        "fields change, but a preview field given without tab or canvas shows the Preview tab. On the Design tab the camera points its view (default is its Home view; no `fit_bed`; "
-        "`sketch_normal` looks straight at the open sketch), and with tab design, section, `origin_planes`, `world_axes`, origin and bed "
-        "set the Design view's switches. The reply echoes them; preview layers as `[first, last, count]` with z, the heights of "
-        "first and last; with tab design, design: the section view and the four switches as they then are; with any camera "
-        "field, `camera_state`, the camera it leaves as `app_state.camera` gives it, and adjusted: [\"zoom\"] when the zoom "
-        "was held to its limits. tab takes the id of any other page of the window too, such as a plugin's. projection "
-        "sets the 3D camera's, layout default restores the default window layout, and `layer_percent` shows the Preview "
-        "at that share of the layer range, as Go to layer does. Outside the Design tab, from any tab: section `{on}` turns "
-        "the section view of Prepare and the Preview on or off; labels, overhangs, outline, wireframe, gridlines, axes and "
-        "navigator set the display switches of the View menu and of the 3D view's own menu; `sidebar_collapsed` and "
-        "`sidebar_width` set the sidebar of Prepare and the Preview; in the Preview, `legend_collapsed` folds the legend and "
-        "`gcode_window` shows the G-code window. Each is echoed as the app reads it back, and `app_state`'s view gives them "
-        "under these names. A pick of a view action runs the same code in place, so a camera action turns the Design "
-        "tab's camera too.",
-        object_schema({{"tab", prop("string", "Main window tab: " + tab_words + ", or the id of another page of the window "
-                                              "(`monitor_web`, the web Device page where the app shows one, or a plugin's page).")},
-                       {"canvas", enum_prop({"3d", "preview", "assemble"}, "3D view: Prepare's, the preview, or the assemble view (needs an object; leave it with 3d, as its Return button does).")},
+        "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view and its camera, the "
+        "Preview's color scheme, legend, layers and time estimate, and the display switches of the View menu and the "
+        "sidebar. Only the given fields change; a Preview field given without tab or canvas shows the Preview tab. The "
+        "camera takes camera, then `look_at`, `orbit` and `zoom`. On the Design tab it turns the Design view (default is "
+        "its Home view; no `fit_bed`), and section, `origin_planes`, `world_axes`, origin and bed set that view's "
+        "switches. Reply: each field as the app reads it back, under the names of `app_state`'s view; Preview layers as "
+        "`[first, last, count]` with z, the heights of first and last; with tab design, design: the section view and the "
+        "four switches; with a camera field, `camera_state` as `app_state.camera` gives it, and adjusted: [\"zoom\"] when "
+        "the zoom was held to its limits. A Speed Dial view action runs the same code, so its camera actions turn the "
+        "Design tab's camera too.",
+        object_schema({{"tab", prop("string", "Main window tab: " + tab_words + ", or another page's id (`monitor_web`, the "
+                                              "web Device page where the app shows one, or a plugin's page).")},
+                       {"canvas", enum_prop({"3d", "preview", "assemble"}, "3D view: Prepare's, the preview, or the assemble view "
+                                                                           "(own gizmos; needs an object; leave it with 3d, as its "
+                                                                           "Return button does).")},
                        {"camera", enum_prop({"iso", "top", "bottom", "front", "rear", "left", "right", "default", "fit_bed", "fit_objects", "fit_selection",
                                              "sketch_normal"},
-                                            "Camera direction or fit; `sketch_normal` (Design tab) looks along the open sketch's normal, refused "
-                                            "with no sketch open.")},
+                                            "Direction or fit; `sketch_normal` (Design tab) looks along the open sketch's normal.")},
                        {"section", {{"type", "object"},
-                                    {"properties", {{"on", {{"type", "boolean"}, {"description", "Cut the model, or show it whole."}}},
-                                                    {"z", {{"type", "number"}, {"description", "Height of the cut in mm, in the Design view's world "
-                                                                                               "coordinates; left out, the model's middle."}}},
-                                                    {"keep", enum_prop({"lower", "upper"}, "The half that stays: lower (the default) or upper.")}}},
+                                    {"properties", {{"on", {{"type", "boolean"}, {"description", "Cut, or show it whole."}}},
+                                                    {"z", {{"type", "number"}, {"description", "Cut height in mm, Design view coordinates; "
+                                                                                               "default the model's middle."}}},
+                                                    {"keep", enum_prop({"lower", "upper"}, "The half that stays (default lower).")}}},
                                     {"required", {"on"}},
                                     {"additionalProperties", false},
-                                    {"description", "The section view, a cut that hides part of the model to show inside it. With tab "
-                                                    "design, the Design view's horizontal cut, as its toolbar's Section View and "
-                                                    "Flip set it, at z, keeping one half. Without it, the section view of Prepare "
-                                                    "and the Preview, on alone, as a right click on its toolbar button turns it on "
-                                                    "and off."}}},
-                       {"origin_planes", {{"type", "boolean"}, {"description", "Design tab: show the origin helper planes (key P)."}}},
-                       {"world_axes", {{"type", "boolean"}, {"description", "Design tab: show the world axis triad (key A)."}}},
-                       {"origin", {{"type", "boolean"}, {"description", "Design tab: the Origin row's eye, the XY, XZ and YZ planes kept up "
-                                                                        "where a click picks one; off lets go of a picked plane."}}},
-                       {"bed", {{"type", "boolean"}, {"description", "Design tab: the Bed row's eye, the printer bed drawn."}}},
-                       {"look_at", array_prop({{"type", "number"}}, "`[x, y, z]` in mm: the point the camera looks at, in the 3D view's "
-                                                                   "world coordinates, as `object_list` gives positions; on the Design tab, "
-                                                                   "the Design view's, which the Design commands' world points use (`describe_design`'s "
-                                                                   "`modeling_origin` is the sketch planes' origin). The camera moves "
-                                                                   "parallel, keeping its direction and distance. After camera.")},
-                       {"orbit", array_prop({{"type", "number"}}, "`[yaw, pitch]` in degrees: move the camera around what it looks at, "
-                                                                 "yaw to its right and pitch up (negative looks from lower), after "
-                                                                 "camera and `look_at`. The same on every install, unlike a mouse drag.")},
+                                    {"description", "A cut that hides part of the model to show inside. With tab design, the Design "
+                                                    "view's horizontal cut (its toolbar's Section View and Flip); otherwise the "
+                                                    "section view of Prepare and the Preview, which takes on alone (a right click on "
+                                                    "its toolbar button)."}}},
+                       {"origin_planes", {{"type", "boolean"}, {"description", "Design tab: the origin helper planes (key P)."}}},
+                       {"world_axes", {{"type", "boolean"}, {"description", "Design tab: the world axis triad (key A)."}}},
+                       {"origin", {{"type", "boolean"}, {"description", "Design tab: the Origin row's eye, the XY, XZ and YZ planes a "
+                                                                        "click can pick; off lets go of a picked plane."}}},
+                       {"bed", {{"type", "boolean"}, {"description", "Design tab: the Bed row's eye."}}},
+                       {"look_at", array_prop({{"type", "number"}}, "`[x, y, z]` mm to look at, in world coordinates as `object_list` "
+                                                                   "gives positions; on the Design tab, those of the Design commands' "
+                                                                   "world points (`describe_design`'s `modeling_origin` is the sketch "
+                                                                   "planes' origin). The camera moves parallel, keeping direction and "
+                                                                   "distance.")},
+                       {"orbit", array_prop({{"type", "number"}}, "`[yaw, pitch]` degrees around the point looked at: yaw to the right, "
+                                                                 "pitch up (negative from below). Unlike a mouse drag, the same on "
+                                                                 "every install.")},
                        {"zoom", {{"type", "number"}, {"exclusiveMinimum", 0},
-                                 {"description", "Screenshot pixels per mm at `look_at`'s depth, so everywhere in an orthographic view; "
-                                                 "held to the camera's limits (at most 250, at least what the scene's size allows). Applied last."}}},
+                                 {"description", "Screenshot pixels per mm at `look_at`'s depth (everywhere, if orthographic); at most "
+                                                 "250, at least what the scene's size allows."}}},
                        {"layer", {{"type", "integer"}, {"minimum", 1}, {"description", "Preview: show layers up to this one (1-based)."}}},
                        {"layer_range", array_prop({{"type", "integer"}}, "Preview: `[first, last]` layers, 1-based.")},
-                       {"layer_z", {{"type", "number"}, {"minimum", 0}, {"description", "Preview: show layers up to the first whose top is at or above this height (mm), as the slider places a custom G-code."}}},
-                       {"view_type", enum_prop(view_types, "Preview color scheme.")},
+                       {"layer_z", {{"type", "number"}, {"minimum", 0}, {"description", "Preview: show layers up to the first whose top "
+                                                                                       "reaches this height (mm), as the slider places a "
+                                                                                       "custom G-code."}}},
+                       {"view_type", enum_prop(view_types, "Preview color scheme, as the legend's combo picks it, which shows every "
+                                                           "feature type again.")},
                        {"legend", {{"type", "object"}, {"additionalProperties", {{"type", "boolean"}}},
-                                   {"description", "Preview: show (true) or hide (false) legend rows: feature types by name as `plate_slice_stats` lists them "
-                                                   "(\"Sparse infill\"), and travel, wipe, retract, unretract, seams, `filament_changes`, `color_changes`, "
-                                                   "pauses, `custom_gcode`, in any case and with _ or a space between words. Hiding a row this "
-                                                   "print lacks does nothing. Applied after `view_type`."}}},
-                       {"time_mode", enum_prop({"normal", "silent"}, "Preview: the time estimate the legend and layer times show; silent only when the print has its own.")},
+                                   {"description", "Preview: show (true) or hide (false) legend rows: feature types as `plate_slice_stats` "
+                                                   "names them (\"Sparse infill\"), travel, wipe, retract, unretract, seams, "
+                                                   "`filament_changes`, `color_changes`, pauses, `custom_gcode`; any case, _ or a space "
+                                                   "between words. A row this print lacks is ignored. After `view_type`."}}},
+                       {"time_mode", enum_prop({"normal", "silent"}, "Preview: the time estimate shown; silent only when the print has its own.")},
                        {"layer_percent", {{"type", "number"}, {"minimum", 0}, {"maximum", 100},
-                                          {"description", "Preview: show the layers up to this share of the layer range, as Go to "
-                                                          "layer does; the bottom of the shown range stays."}}},
-                       {"projection", enum_prop({"perspective", "orthographic", "toggle"}, "The 3D camera's projection; toggle "
-                                                                                          "switches between the two.")},
-                       {"layout", enum_prop({"default"}, "default restores the default window layout, as View > Reset Window "
-                                                         "Layout does.")},
-                       {"sidebar_collapsed", prop("boolean", "Collapse (true) or expand (false) the sidebar of Prepare and the "
-                                                             "Preview, as its collapse button does.")},
+                                          {"description", "Preview: show layers up to this share of the range, as Go to layer does, "
+                                                          "keeping the bottom."}}},
+                       {"projection", enum_prop({"perspective", "orthographic", "toggle"}, "The 3D camera's projection.")},
+                       {"layout", enum_prop({"default"}, "Restore the default window layout (View > Reset Window Layout).")},
+                       {"sidebar_collapsed", prop("boolean", "Collapse (true) or expand (false) the sidebar of Prepare and the Preview.")},
                        {"sidebar_width", {{"type", {"integer", "string"}},
                                           {"minimum", 1},
-                                          {"description", "The sidebar's width in pixels, as a drag of its edge sets it, or "
-                                                          "\"default\", its width in the default window layout. A sidebar "
-                                                          "floating in a window of its own is sized with `window_set`."}}},
-                       {"legend_collapsed", prop("boolean", "Preview: fold the legend to its title row (true) or unfold it (false), "
-                                                            "as its fold button does.")},
-                       {"gcode_window", prop("boolean", "Preview: show (true) or hide (false) the G-code window, as View > Show "
-                                                        "G-code Window does.")},
-                       {"labels", prop("boolean", "Prepare: the object labels, as View > Show Labels sets them.")},
-                       {"overhangs", prop("boolean", "Prepare: the overhang highlight, as View > Show Overhang sets it.")},
-                       {"outline", prop("boolean", "The outline around the selected objects, as View > Show Selected Outline sets "
-                                                   "it.")},
-                       {"wireframe", prop("boolean", "The objects' wireframe, as the 3D view's own menu sets it.")},
-                       {"gridlines", prop("boolean", "The plate's gridlines, as View > Show Gridlines sets them.")},
-                       {"axes", prop("boolean", "The axes on the bed of Prepare and the Preview, as the 3D view's own menu sets "
-                                                "them; with tab design, `world_axes` is the Design view's.")},
-                       {"navigator", prop("boolean", "The 3D navigator of Prepare and the Preview, as View > Show 3D Navigator "
-                                                     "sets it.")}}),
+                                          {"description", "The sidebar's width in pixels, or \"default\". A sidebar floating in its "
+                                                          "own window is sized with `window_set`."}}},
+                       {"legend_collapsed", prop("boolean", "Preview: fold the legend to its title row (true) or unfold it (false).")},
+                       {"gcode_window", prop("boolean", "Preview: the G-code window (View > Show G-code Window).")},
+                       {"labels", prop("boolean", "Prepare: object labels (View > Show Labels).")},
+                       {"overhangs", prop("boolean", "Prepare: the overhang highlight (View > Show Overhang).")},
+                       {"outline", prop("boolean", "The selected objects' outline (View > Show Selected Outline).")},
+                       {"wireframe", prop("boolean", "The objects' wireframe (the 3D view's own menu).")},
+                       {"gridlines", prop("boolean", "The plate's gridlines (View > Show Gridlines).")},
+                       {"axes", prop("boolean", "The axes on the bed of Prepare and the Preview (the 3D view's own menu); the Design "
+                                                "view's are `world_axes`.")},
+                       {"navigator", prop("boolean", "The 3D navigator of Prepare and the Preview (View > Show 3D Navigator).")}}),
         [](const json& args, ToolContext& ctx) {
             const bool preview_args = args.contains("layer") || args.contains("layer_range") || args.contains("layer_z") ||
                                       args.contains("layer_percent") || args.contains("view_type") || args.contains("legend") ||

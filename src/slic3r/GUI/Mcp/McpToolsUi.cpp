@@ -88,8 +88,8 @@ const json kPageTimeoutSchema = {{"type", "integer"},
 
 const json kModifiersSchema = {{"type", "array"},
                                {"items", {{"type", "string"}, {"enum", {"ctrl", "cmd", "rawctrl", "shift", "alt"}}}},
-                               {"description", "Modifier keys held during the input, as in `keyboard_press`: ctrl and cmd are both Command on macOS "
-                                               "and Ctrl elsewhere; rawctrl is the macOS Control key."}};
+                               {"description", "Modifier keys held during the input: ctrl and cmd are Command on macOS and Ctrl "
+                                               "elsewhere; rawctrl is the macOS Control key."}};
 
 bool in_top_dialog(AutomationRuntime& runtime, wxWindow* window)
 {
@@ -1397,29 +1397,29 @@ void register_ui_tools(CommandCatalog& catalog)
     {
         NativeCommand def = inspect_tool(
             "widget_list", L("List the widgets"),
-            "Describe what is on screen as an indented tree, one element per line with a ref to pass to `widget_click`, `widget_set_value`, "
-            "`keyboard_press` and `webview_run_javascript` (a page element's to `mouse_gesture` too): the widgets of every shown window, the rows of lists, "
-            "trees and tables, each shown popup after the window it opened from, the main menus, the 3D canvas's toolbar "
-            "items and gizmos, each ImGui panel drawn in the last frame with its items and text, and the elements of each "
-            "shown web page (dialogs, the setup wizard, sign-in, plugin windows) under its web view. With a modal dialog "
-            "open, only the topmost dialog's pages are read. Refs go stale when their element goes away: call `widget_list` "
-            "again then. Prefer `action_run` and the typed tools when one fits.\n"
+            "Describe what is on screen as an indented tree, one element per line with a ref for `widget_click`, "
+            "`widget_set_value`, `keyboard_press`, `webview_run_javascript` and, for a page element, `mouse_gesture`: every "
+            "shown window's widgets, the rows of lists, trees and tables, each shown popup after the window it opened from, "
+            "the main menus, the 3D canvas's toolbar items and gizmos, each ImGui panel of the last frame with its items and "
+            "text, and each shown web page's elements (dialogs, the setup wizard, sign-in, plugin windows). With a modal "
+            "dialog open, only the topmost dialog's pages are read. A ref goes stale when its element goes away; list again "
+            "then. Prefer `action_run` and the typed tools when one fits.\n"
             "A locator names an element without a ref, in any session (`replay_export` records them); index (0-based) picks "
             "one of several matches:\n"
             "- a widget: `{label, class, name, within, index}`, within being its window's title; a notebook page: `{tab: "
             "\"General\", within}`\n"
             "- a setting's field: `{option: \"layer_height\"}`\n"
             "- `{menu: \"File>Export>Export G-code\"}`, `{gltoolbar: \"arrange\"}`, `{gizmo: \"Move\"}`\n"
-            "- an ImGui item: `{imgui: \"label\", imgui_name?: \"name\", window?, canvas?, index?}`, by its label, its name or both\n"
+            "- an ImGui item: `{imgui: \"label\", imgui_name?: \"name\", window?, canvas?, index?}`, by label, name or both\n"
             "- a row of a list, tree, table or drop-down list: `{row: \"Plate 1>Cube>Cylinder\", column?, within?, index?}`, by "
             "its last labels; column names the cell to act on\n"
-            "- a plate or one of its icons in the Prepare view: `{plate_icon: \"lock\", plate: 0}`, the icon being plate, "
-            "delete, orient, arrange, lock, settings, name, `move_to_front`, `filament_map` or `imex_mode`\n"
-            "- a web page's element: `{web: \"Next\", kind?: \"button\", css?: \"#AcceptBtn\", within?, index?}`, by the label "
-            "`widget_list` lists (exactly, else ignoring case, else a part of it), its kind, a CSS selector (the id a line "
-            "shows as name: name=#save is `{css: \"#save\"}`), or together. Without within it looks in the topmost dialog's "
-            "pages while one is open, else in every shown page, and an action on it waits for its element up to 2 s short of "
-            "the action's `timeout_s` (8 s by default), but at least 3 s or the whole of a shorter `timeout_s`.",
+            "- a plate or its icon in Prepare: `{plate_icon: \"lock\", plate: 0}`: plate, delete, orient, arrange, lock, "
+            "settings, name, `move_to_front`, `filament_map` or `imex_mode`\n"
+            "- a web page's element: `{web: \"Next\", kind?: \"button\", css?: \"#AcceptBtn\", within?, index?}`, by its listed "
+            "label (exact, else any case, else a part), kind, CSS selector (a line's name=#save is `{css: \"#save\"}`), or "
+            "together. Without within it looks in the topmost dialog's pages while one is open, else in every shown page; an "
+            "action waits for its element up to 2 s short of `timeout_s` (default 8 s), but at least 3 s or all of a shorter "
+            "`timeout_s`.",
             object_schema({{"target", prop("string", "all (default), main, dialog (the topmost modal), popup, or a window's ref (`window_list`).")},
                            {"query", prop("string", "Case-insensitive text to look for in labels, values, names and classes.")},
                            {"max_nodes", {{"type", "integer"}, {"minimum", 1}, {"maximum", 5000}, {"description", "Default 400."}}},
@@ -1487,26 +1487,25 @@ void register_ui_tools(CommandCatalog& catalog)
 
     catalog.add(recover_input_tool(
         "widget_click", L("Click an element"),
-        "Click a GUI element as a person would. Menu items, buttons, checkboxes, toggles, radio buttons, toolbar items and "
-        "gizmos are activated the way their owners expect: a gizmo opens and a second click closes it (Text on an object "
-        "without text creates a text part: created). Other widgets and ImGui items get a mouse click once scrolled into "
-        "view; with x/y, at that point of a 3D canvas or custom-drawn widget, in logical pixels from its top left. A row is "
-        "selected as a click on its cell selects it (ctrl adds, shift extends; in the object list the named column acts, as "
-        "Printable toggles), double activates it and a right click opens its menu; a drop-down list's row is picked. A "
-        "plate icon does what it does in the Prepare view: lock replies locked, arrange and orient reply done once their "
-        "job ends, settings and `filament_map` list the dialog they open (dialogs). A button, checkbox, toggle or radio "
-        "button is activated so by a plain left click only: with modifiers, double or another button it gets a mouse "
-        "click, which a native control ignores. A menu item runs whatever those options are, a toolbar item takes a "
-        "left or a right click, and a gizmo a single left one. Modifiers reach the 3D canvas, the object list and "
-        "handlers that read them. To click a point of the model, drag, scroll or hold a press, use `mouse_gesture`. A menu the click opens is "
-        "never shown: the reply lists it as `popup_menu`, or "
-        "`popup_item` runs one of its items (ran). A click that opens a dialog replies `blocked_by_dialog`.\n"
-        "A web page's element gets the pointer and mouse events of a click at its centre (or x/y) once scrolled into view, "
-        "refused when something else covers that point. The reply reads back checked, and has closed when the click closed "
-        "its dialog (with dialogs, those still open under it, which still need an answer), navigated (with url) when it "
-        "changed the page, or dialogs when it opened another. Otherwise page says what changed on the page within 300 ms: "
-        "changed (false when its lines are as before), the `widget_list` lines added and removed, partial when a plugin "
-        "configuration frame could not be compared, and posted, how many messages the page sent OrcaSlicer.",
+        "Click a GUI element as a person would. A plain left click activates menu items, buttons, checkboxes, toggles, "
+        "radio buttons, toolbar items and gizmos as their owners expect (a menu item takes any click, a toolbar item a "
+        "right one too); with modifiers, double or another button a control gets a mouse click, which a native one "
+        "ignores. A gizmo opens and a second click closes it (Text on an object without text creates a text part: "
+        "created). Other widgets and ImGui items get a mouse click once scrolled into view, at x/y (logical pixels from the "
+        "top left) on a 3D canvas or custom-drawn widget; modifiers reach the 3D canvas, the object list and handlers that "
+        "read them. A row is selected as a click on its cell selects it (ctrl adds, shift extends; in the object list the "
+        "named column acts, as Printable toggles), double activates it and a right click opens its menu; a drop-down "
+        "list's row is picked. A plate icon does what it does in Prepare: lock replies locked, arrange and orient reply "
+        "done once their job ends, settings and `filament_map` list the dialog they open (dialogs). To click a point of "
+        "the model, drag, scroll or hold a press, use `mouse_gesture`. A menu the click opens is never shown: the reply "
+        "lists it as `popup_menu`, or `popup_item` runs one of its items (ran). A click that opens a dialog replies "
+        "`blocked_by_dialog`.\n"
+        "A web page's element gets a click's pointer and mouse events at its centre (or x/y) once scrolled into view, "
+        "refused when something covers that point. The reply reads back checked, and has closed when the click closed its "
+        "dialog (with dialogs, those still open under it, which need an answer), navigated (with url) when it changed the "
+        "page, or dialogs when it opened another. Otherwise page says what changed within 300 ms: changed (false when its "
+        "lines are as before), the `widget_list` lines added and removed, partial when a plugin configuration frame could "
+        "not be compared, and posted, how many messages the page sent OrcaSlicer.",
         object_schema({{"target", kTargetSchema},
                        {"button", enum_prop({"left", "right", "middle"}, "Default left.")},
                        {"double", prop("boolean", "Double click.")},
@@ -1697,9 +1696,9 @@ void register_ui_tools(CommandCatalog& catalog)
 
     const json target_schema = {
         {"type", "object"},
-        {"description", "A point of the model: {object, instance (default 0), part (default 0), and point `[x, y, z]` in "
-                        "the part's own mesh coordinates (frame \"part\", the default) or the scene's (frame \"world\"), or "
-                        "spot: top | bottom | front | back | left | right, where a ray along that axis first meets the part}."},
+        {"description", "A point of the model: object, instance and part (default 0), and point `[x, y, z]` in the part's "
+                        "mesh coordinates (frame part) or the scene's (frame world), or spot, where a ray along that axis "
+                        "first meets the part."},
         {"properties",
          {{"object", {{"type", "integer"}, {"minimum", 0}}},
           {"instance", {{"type", "integer"}, {"minimum", 0}}},
@@ -1718,20 +1717,20 @@ void register_ui_tools(CommandCatalog& catalog)
     catalog.add(recover_input_tool(
         "mouse_gesture", L("Mouse gesture on a 3D view or page element"),
         "Make a mouse gesture on a 3D canvas as a person would: move, down, up, click, drag or wheel. It starts at `at`, a "
-        "point of the model, which is projected through the camera and by default checked to land on that part (check "
-        "\"point\" only projects it), or at x/y, logical pixels from the canvas's top left. A drag goes through `waypoints` to "
-        "`to`, `steps` moves per leg: on an object it moves the object, in a painting gizmo it paints from a press on the "
-        "object being painted (waypoints zigzagging over an area paint all of it), and elsewhere it turns or pans the camera "
-        "as this install's mouse settings say, so turn the camera with `view_set` camera or orbit instead. A wheel turns delta "
-        "notches; positive zooms in (out with the Reverse mouse zoom preference on) or scrolls a panel up. Modifiers are "
-        "held as keys for the gesture (shift picks points in Measure and erases in a painting gizmo). A down keeps its button and modifiers held, so moves drag, until an up or another "
-        "gesture. Grabbers are set through the gizmo's panel fields or `object_transform`, not dragged. A menu a right click opens "
-        "is listed as `popup_menu`, or `popup_item` (with click or up) runs one of its items. The reply's `camera_moved` says the "
-        "gesture moved the camera, so earlier screenshots and pixels no longer match the view.\n"
+        "model point projected through the camera and by default checked to land on that part, or at x/y, logical pixels "
+        "from the canvas's top left. A drag goes through `waypoints` to `to`: on an object it moves the object; in a "
+        "painting gizmo, from a press on the object being painted, it paints (a zigzag over an area paints all of it); "
+        "elsewhere it turns or pans the camera as this install's mouse settings say, so turn the camera with `view_set` "
+        "instead. A wheel turns delta notches: positive zooms in (out with the Reverse mouse zoom preference) or scrolls a "
+        "panel up. Modifiers are held as keys for the gesture (shift picks points in Measure and erases in a painting "
+        "gizmo). A down keeps its button and modifiers held, so moves drag, until an up or another gesture. Grabbers are set "
+        "through the gizmo's panel fields or `object_transform`, not dragged. A menu a right click opens is listed as "
+        "`popup_menu`, or `popup_item` (with click or up) runs one of its items. `camera_moved` in the reply says the camera "
+        "moved, so earlier screenshots and pixels no longer match.\n"
         "With target, the gesture is on a web page's element instead (a canvas such as the colour picker's spectrum, a "
         "slider, a sortable or scrolled list): x/y, to and waypoints are logical pixels from its top left, a drag keeps the "
-        "pointer captured where the page asks for it, and a wheel scrolls what is under the pointer unless the page takes "
-        "it; page says what the gesture changed there, as for `widget_click`.",
+        "pointer captured where the page asks, and a wheel scrolls what is under the pointer unless the page takes it; page "
+        "says what changed, as for `widget_click`.",
         object_schema({{"action", enum_prop({"move", "down", "up", "click", "drag", "wheel"}, "Default click.")},
                        {"canvas", enum_prop(mouse_canvases, "Default current, the view shown. design takes x/y only.")},
                        {"at", target_schema},
@@ -1739,7 +1738,8 @@ void register_ui_tools(CommandCatalog& catalog)
                        {"y", prop("integer", "Start y, instead of at.")},
                        {"to", pixel_or_target},
                        {"waypoints", array_prop(pixel_or_target, "Where a drag goes after the start, before to.")},
-                       {"check", enum_prop({"surface", "point"}, "For model points: surface (default) or projection only.")},
+                       {"check", enum_prop({"surface", "point"}, "For model points: check they land on the part (surface, "
+                                                                 "default) or only project them (point).")},
                        {"tolerance", {{"type", "number"}, {"minimum", 0}, {"description", "Surface check distance in mm (default 1% of the part's size, at least 0.1)."}}},
                        {"steps", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "Moves per drag leg (default 10)."}}},
                        {"button", enum_prop({"left", "right", "middle"}, "Default left.")},

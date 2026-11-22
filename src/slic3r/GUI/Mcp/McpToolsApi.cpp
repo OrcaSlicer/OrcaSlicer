@@ -654,18 +654,17 @@ void register_api_tools(CommandCatalog& catalog, const std::string& design_index
         "The commands the tool list does not show, each with what it does: the Design tab's (group Design, with the CAD "
         "feature on, each under its heading), the menu items that take no arguments (in their places' groups), and the "
         "operations plugins offer (group Plugins, `plugin.<plugin>.<name>`). The reply says how to read a command's manual "
-        "and how to run one. `group` keeps one group's: a group whose commands the tool list all shows "
-        "gives none and a note, and Design while this run leaves its commands out is refused saying why." +
+        "and how to run one. `group` keeps one group's; one whose commands the tool list all shows gives none and a note." +
             design_index,
         object_schema({{"group", prop("string", "Only this group's commands, its whole name in any case: Tools and actions; The "
                                                 "app; The project; Objects; Parts; Plates; Presets and settings; Filaments; "
-                                                "Printers and prints; Plugins, with the operations plugins offer; View and "
-                                                "windows; Recordings, replays and scripts; Driving the GUI; or Design (the Design "
-                                                "tab's, with the CAD feature on). A command outside Design is in the group of the "
-                                                "place its name starts with (`object_delete` in Objects), but for `window_screenshot` "
-                                                "and `window_save_screenshot`, which are in Recordings, replays and scripts. A name "
-                                                "no command's group has is refused with the groups there are, and Design, "
-                                                "when this run leaves the Design tab's commands out, with the reason.")}}),
+                                                "Printers and prints; Plugins; View and windows; Recordings, replays and "
+                                                "scripts; Driving the GUI; or Design (with the CAD feature on). A command "
+                                                "outside Design is in the group of the place its name starts with "
+                                                "(`object_delete` in Objects), but `window_screenshot` and "
+                                                "`window_save_screenshot` are in Recordings, replays and scripts. An unknown "
+                                                "group is refused with the groups there are, and Design, when this run leaves "
+                                                "its commands out, with the reason.")}}),
         [](const json& args, ToolContext&) {
             return ToolResult::ok(unlisted_commands(NativeCommands::instance(), arg_string(args, "group")));
         }));
