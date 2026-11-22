@@ -7064,48 +7064,40 @@ double GLCanvas3D::get_size_proportional_to_max_bed_size(double factor) const
 //BBS
 std::vector<Vec2f> GLCanvas3D::get_empty_cells(const Vec2f start_point, const Vec2f step)
 {
+    if (step(0) <= 0.0f || step(1) <= 0.0f)
+        return {};
+
     PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
     BoundingBoxf3 build_volume = plate->get_build_volume();
     Vec2d vmin(build_volume.min.x(), build_volume.min.y()), vmax(build_volume.max.x(), build_volume.max.y());
     BoundingBoxf bbox(vmin, vmax);
     std::vector<Vec2f> cells;
-    std::vector<Vec2f> cells_ret;
-    auto min_x = start_point.x() - step(0) * int((start_point.x() - bbox.min.x()) / step(0));
-    auto min_y = start_point.y() - step(1) * int((start_point.y() - bbox.min.y()) / step(1));
-    cells.reserve(((bbox.max.x() - min_x) / step(0)) * ((bbox.max.y() - min_y) / step(1)));
-    cells_ret.reserve(cells.size());
-    for (float x = min_x; x < bbox.max.x() - step(0) / 2; x += step(0))
-        for (float y = min_y; y < bbox.max.y() - step(1) / 2; y += step(1))
-        {
+
+    const float half_x = step(0) * 0.5f;
+    const float half_y = step(1) * 0.5f;
+    const float min_x  = start_point.x() - step(0) * std::floor((start_point.x() - (bbox.min.x() + half_x)) / step(0));
+    const float min_y  = start_point.y() - step(1) * std::floor((start_point.y() - (bbox.min.y() + half_y)) / step(1));
+    for (float x = min_x; x <= bbox.max.x() - half_x; x += step(0))
+        for (float y = min_y; y <= bbox.max.y() - half_y; y += step(1))
             cells.emplace_back(x, y);
-        }
-    for (size_t i = 0; i < m_model->objects.size(); ++i) {
-        ModelObject* model_object = m_model->objects[i];
-        auto id = model_object->id().id;
-        ModelInstance* model_instance0 = model_object->instances.front();
-        Polygon hull_2d = model_object->convex_hull_2d(Geometry::assemble_transform({ 0.0, 0.0, model_instance0->get_offset().z() }, model_instance0->get_rotation(),
-            model_instance0->get_scaling_factor(), model_instance0->get_mirror()));
-        if (hull_2d.empty())
-            continue;
 
-        const auto& instances = model_object->instances;
-        double rotation_z0 = instances.front()->get_rotation().z();
-        for (const auto& instance : instances) {
-            Geometry::Transformation transformation;
-            const Vec3d& offset = instance->get_offset();
-            transformation.set_offset({ scale_(offset.x()), scale_(offset.y()), 0.0 });
-            transformation.set_rotation(Z, instance->get_rotation().z() - rotation_z0);
-            const Transform3d& trafo = transformation.get_matrix();
-            Polygon inst_hull_2d = hull_2d.transform(trafo);
-
-            for (auto it = cells.begin(); it != cells.end(); )
-            {
-                if (!inst_hull_2d.contains(Point(scale_(it->x()), scale_(it->y()))))
-                    cells_ret.push_back(*it);
-
-                it++;
+    if (!cells.empty()) {
+        std::vector<BoundingBoxf> occupied_boxes;
+        for (const ModelObject *model_object : m_model->objects) {
+            for (size_t inst_idx = 0; inst_idx < model_object->instances.size(); ++inst_idx) {
+                const BoundingBoxf3 inst_bb3 = model_object->instance_convex_hull_bounding_box(inst_idx);
+                if (inst_bb3.defined)
+                    occupied_boxes.emplace_back(Vec2d(inst_bb3.min.x(), inst_bb3.min.y()),
+                                                Vec2d(inst_bb3.max.x(), inst_bb3.max.y()));
             }
         }
+
+        cells.erase(std::remove_if(cells.begin(), cells.end(), [&occupied_boxes, half_x, half_y](const Vec2f &cell) {
+            const BoundingBoxf cell_bb(Vec2d(cell.x() - half_x, cell.y() - half_y),
+                                       Vec2d(cell.x() + half_x, cell.y() + half_y));
+            return std::any_of(occupied_boxes.begin(), occupied_boxes.end(),
+                               [&cell_bb](const BoundingBoxf &box) { return box.overlap(cell_bb); });
+        }), cells.end());
     }
 
     Vec2f start = start_point;
@@ -7113,8 +7105,8 @@ std::vector<Vec2f> GLCanvas3D::get_empty_cells(const Vec2f start_point, const Ve
         start(0) = bbox.center()(0);
         start(1) = bbox.center()(1);
     }
-    std::sort(cells_ret.begin(), cells_ret.end(), [start](const Vec2f& cell1, const Vec2f& cell2) {return (cell1 - start).norm() < (cell2 - start).norm(); });
-    return cells_ret;
+    std::sort(cells.begin(), cells.end(), [start](const Vec2f& cell1, const Vec2f& cell2) { return (cell1 - start).norm() < (cell2 - start).norm(); });
+    return cells;
 }
 
 Vec2f GLCanvas3D::get_nearest_empty_cell(const Vec2f start_point, const Vec2f step)
