@@ -10967,7 +10967,9 @@ void Plater::find_new_position(const ModelInstancePtrs &instances)
             }
         }
 
-    if (auto wt = get_wipe_tower_arrangepoly(*this))
+    // The objects placed here are not inflated, so none are passed and the tower keeps the whole
+    // toolhead radius.
+    if (auto wt = get_wipe_tower_arrangepoly(*this, arr_params))
         fixed.emplace_back(*wt);
 
     arrangement::arrange(movable, fixed, this->build_volume().polygon(), arr_params);
