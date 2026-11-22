@@ -90,7 +90,7 @@ void SpinInput::Create(wxWindow *parent,
     text_ctrl->SetForegroundColour(text_color.colorForStates(state_handler.states()));
     wxSize best_size = text_ctrl->GetBestSize();
 #ifdef __WXGTK__
-    // See TextInput::Create(): GTK reports the theme entry height, not the one from RemoveInputBorder() and Body_14.
+    // ORCA: See TextInput::Create(): GTK reports the theme entry height, not the one from RemoveInputBorder() and Body_14.
     best_size.y = text_ctrl->GetCharHeight();
 #endif
     text_ctrl->SetInitialSize(best_size);
