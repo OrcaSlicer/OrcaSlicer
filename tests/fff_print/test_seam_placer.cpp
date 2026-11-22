@@ -1538,3 +1538,37 @@ TEST_CASE("Seam extraction preserves unknown boundary roles for open extrusion p
     REQUIRE(perimeters.size() == 1);
     CHECK(perimeters.front().contour_reliable == !open);
 }
+
+TEST_CASE("Seams are picked on every loop of every object when init() places several objects at once", "[SeamPlacer]")
+{
+    // Random seams are picked by the workers of each object alone, and they finalize every loop. Sixteen objects make
+    // four tasks of four objects each.
+    const size_t object_count = 16;
+    std::vector<TriangleMesh> meshes;
+    for (size_t i = 0; i < object_count; ++ i)
+        meshes.emplace_back(its_make_cube(10, 10, 1));
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict("seam_position", "random"); // Random needs no visibility ray tracing.
+    Model model;
+    Print print;
+    Test::init_print(std::move(meshes), print, model, config);
+    REQUIRE(print.objects().size() == object_count);
+    print.process();
+
+    SeamPlacer placer;
+    placer.init(print, [] {});
+
+    size_t loops = 0, picked = 0;
+    for (const PrintObject *object : print.objects()) {
+        const std::vector<PrintObjectSeamData::LayerSeams> &layers = placer.m_seam_per_object.at(object).layers;
+        REQUIRE(layers.size() == object->layers().size());
+        for (const PrintObjectSeamData::LayerSeams &layer : layers)
+            for (const SeamPlacerImpl::Perimeter &perimeter : layer.perimeters) {
+                ++ loops;
+                if (perimeter.finalized)
+                    ++ picked;
+            }
+    }
+    REQUIRE(loops >= object_count);
+    CHECK(picked == loops);
+}

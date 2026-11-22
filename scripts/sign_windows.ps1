@@ -27,6 +27,10 @@
       ORCA_SIGN_CERTFILE  PEM certificate chain issued for that key, leaf certificate first.
       ORCA_SIGN_JSIGN     Path of the Jsign jar. Java comes from JAVA_HOME, else from PATH.
       ORCA_SIGN_TOKEN     OAuth access token allowed to sign with the key. Not needed for -Verify.
+      ORCA_SIGN_REUSE     Optional record of the files signed so far, kept across runs of this script.
+                          A file whose content before signing matches one already signed takes a copy
+                          of that signed file instead of being signed again; cpack installs a fresh
+                          copy of the app for the installer. Created if missing.
 
     Runs under PowerShell 7 and Windows PowerShell 5.1.
 
@@ -137,6 +141,34 @@ if (-not $unsigned) {
     return
 }
 
+# The record maps a file's SHA-256 before signing to the signed file. A copy is taken only from a
+# file that still carries the release signature.
+$record = @{}
+$hashes = @{}
+$toSign = $unsigned
+if ($env:ORCA_SIGN_REUSE) {
+    if (Test-Path -LiteralPath $env:ORCA_SIGN_REUSE) {
+        (Get-Content -LiteralPath $env:ORCA_SIGN_REUSE -Raw -Encoding UTF8 | ConvertFrom-Json).PSObject.Properties |
+            ForEach-Object { $record[$_.Name] = $_.Value }
+    }
+    $toSign = @()
+    foreach ($file in $unsigned) {
+        $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
+        $hashes[$file] = $hash
+        $signed = $record[$hash]
+        if ($signed -and (Test-Path -LiteralPath $signed) -and
+            (Get-AuthenticodeSignature -LiteralPath $signed).SignerCertificate.Thumbprint -eq $release.Thumbprint) {
+            Copy-Item -LiteralPath $signed -Destination $file -Force
+        } else {
+            $toSign += $file
+        }
+    }
+    Write-Host "$($unsigned.Count - $toSign.Count) of them copied from files already signed."
+    if (-not $toSign) {
+        return
+    }
+}
+
 $java = 'java'
 if ($env:JAVA_HOME) {
     $java = Join-Path $env:JAVA_HOME 'bin\java.exe'
@@ -144,7 +176,7 @@ if ($env:JAVA_HOME) {
 # Jsign reads the files to sign from a list file, one path per line (UTF-8 without a BOM).
 $list = [IO.Path]::GetTempFileName()
 try {
-    [IO.File]::WriteAllLines($list, [string[]] $unsigned)
+    [IO.File]::WriteAllLines($list, [string[]] $toSign)
     & $java -jar $jsign --storetype GOOGLECLOUD --keystore $keyRing --alias $key `
         --storepass env:ORCA_SIGN_TOKEN --certfile $certFile --alg SHA-256 `
         --tsaurl $TimestampUrls --tsmode RFC3161 --tsretries 5 --tsretrywait 15 `
@@ -154,4 +186,11 @@ try {
     }
 } finally {
     Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue
+}
+
+if ($env:ORCA_SIGN_REUSE) {
+    foreach ($file in $toSign) {
+        $record[$hashes[$file]] = $file
+    }
+    $record | ConvertTo-Json | Set-Content -LiteralPath $env:ORCA_SIGN_REUSE -Encoding UTF8
 }

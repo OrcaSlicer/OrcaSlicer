@@ -1,0 +1,25 @@
+diff --git a/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_ModelPreProcessor.cxx b/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_ModelPreProcessor.cxx
+index 6f63781..97a20d3 100644
+--- a/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_ModelPreProcessor.cxx
++++ b/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_ModelPreProcessor.cxx
+@@ -223,10 +223,16 @@ private:
+       return false;
+     }
+ 
+-    // Select the correct pcurve of the seam-edge.
+-    const gp_Pnt2d& aFPntOfPC1 = aPC1->Value(aPC1->FirstParameter());
+-
+-    if (std::abs(aLPntOfIPC1.X() - aFPntOfPC1.X()) > Precision::Confusion())
++    // Select the correct pcurve of the seam-edge: the one closer to the discrete pcurve.
++    // Both pcurves of a seam share the edge's range, so evaluate them at its start. A
++    // Geom2d_Line's FirstParameter() is -Precision::Infinite(), where a direction of (2e-16, -1)
++    // from rounding error gives an X far outside the U range. A Precision::Confusion() threshold
++    // fails too, because BRepMesh_ModelHealer has already moved the ends of the discrete pcurve
++    // onto those of the neighbouring edges, whose pcurves can end slightly past the seam.
++    const gp_Pnt2d aFPntOfPC1 = aPC1->Value(af);
++    const gp_Pnt2d aFPntOfPC2 = aPC2->Value(af);
++
++    if (std::abs(aLPntOfIPC1.X() - aFPntOfPC1.X()) > std::abs(aLPntOfIPC1.X() - aFPntOfPC2.X()))
+     {
+       std::swap(aPC1, aPC2);
+     }
