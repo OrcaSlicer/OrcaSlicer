@@ -83,7 +83,13 @@ void TextInput::Create(wxWindow *     parent,
 #endif
 
     text_ctrl->SetFont(Label::Body_14);
-    text_ctrl->SetInitialSize(text_ctrl->GetBestSize());
+    wxSize best_size = text_ctrl->GetBestSize();
+#ifdef __WXGTK__
+    // wx asks GTK for the entry height, and before the style is revalidated GTK still reports the theme
+    // padding, border and default font instead of the CSS from RemoveInputBorder() and Body_14.
+    best_size.y = text_ctrl->GetCharHeight();
+#endif
+    text_ctrl->SetInitialSize(best_size);
     text_ctrl->SetBackgroundColour(background_color.colorForStates(state_handler.states()));
     text_ctrl->SetForegroundColour(text_color.colorForStates(state_handler.states()));
     state_handler.attach_child(text_ctrl);

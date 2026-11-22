@@ -150,15 +150,9 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
     wxCoord v_pos = 0;
     wxCoord h_pos = get_title_width() * m_em_unit;
 
-    int min_v_gap = 0;
-#ifdef __WXGTK__
-    // GTK3 text entries are taller than the label-based line height, so the line would shrink to the control
-    // and stack consecutive inputs with no gap. Keep a small vertical gap like on Windows.
-    min_v_gap = lround(0.5 * m_em_unit);
-#endif
-    auto correct_line_height = [min_v_gap](int& line_height, wxWindow* win)
+    auto correct_line_height = [](int& line_height, wxWindow* win)
     {
-        int win_height = win->GetSize().GetHeight() + min_v_gap;
+        int win_height = win->GetSize().GetHeight();
         if (line_height < win_height)
             line_height = win_height;
     };
