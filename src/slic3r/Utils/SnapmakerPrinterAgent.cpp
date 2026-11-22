@@ -366,8 +366,10 @@ bool SnapmakerPrinterAgent::parse_filament_status(const nlohmann::json&     stat
                 tray.tray_color = default_color;
 
             // A head with filament that nobody has named (a spool without a tag that was never set
-            // up on the screen) reports NONE. It names no preset, so the sync keeps the project
-            // filament in that position instead of painting it in the firmware's default colour.
+            // up on the screen) reports NONE, or no type at all. It names no preset, so the sync keeps
+            // the project filament in that position instead of painting it in the firmware's default
+            // colour. The empty tray_type is intentional: build_ams_payload marks a tray without a
+            // preset as a placeholder, as it does for an empty head, whose tray_type is empty too.
             const std::string raw_type = safe_at(filament_type, i, empty_str);
             const std::string upper    = trim_and_upper(raw_type);
             if (upper.empty() || upper == "NONE") {
@@ -379,11 +381,18 @@ bool SnapmakerPrinterAgent::parse_filament_status(const nlohmann::json&     stat
             tray.tray_type = combine_filament_type(raw_type, raw_sub_type);
 
             if (color_multi.is_array() && i < static_cast<int>(color_multi.size()) && color_multi[i].is_object()) {
-                const auto& multi  = color_multi[i];
-                const auto  colors = multi.value("colors", std::vector<std::string>{});
-                const int   nums   = std::min(multi.value("nums", 1), static_cast<int>(colors.size()));
-                if (nums > 1)
-                    tray.tray_colors.assign(colors.begin(), colors.begin() + nums);
+                // The colours are optional: a malformed record leaves this head with its single
+                // colour rather than failing the whole sync.
+                try {
+                    const auto& multi  = color_multi[i];
+                    const auto  colors = multi.value("colors", std::vector<std::string>{});
+                    const int   nums   = std::min(multi.value("nums", 1), static_cast<int>(colors.size()));
+                    if (nums > 1)
+                        tray.tray_colors.assign(colors.begin(), colors.begin() + nums);
+                } catch (const nlohmann::json::exception& e) {
+                    BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent::parse_filament_status: Ignoring malformed "
+                                                  "filament_color_multi for head " << i << ": " << e.what();
+                }
             }
 
             // Try to find a matching preset for this filament based on vendor, type and color.

@@ -420,6 +420,28 @@ TEST_CASE("A multi-colour count beyond the listed colours is clamped", "[Snapmak
     CHECK(trays[1].tray_colors.empty());
 }
 
+// Orca: a multi-colour list shorter than the heads, a count below two and a malformed record
+// all leave the head with its single colour, and the other heads still sync.
+TEST_CASE("Missing, short or malformed multi-colour records fall back to the single colour", "[Snapmaker]")
+{
+    const auto trays = parse(R"({"print_task_config": {
+        "filament_vendor": ["Generic", "Generic", "Generic", "Generic"],
+        "filament_type": ["PLA", "PLA", "PLA", "PLA"],
+        "filament_sub_type": ["Silk", "Silk", "Silk", "Silk"],
+        "filament_color_rgba": ["FF0000FF", "00FF00FF", "0000FFFF", "FFFFFFFF"],
+        "filament_color_multi": [{"nums": 0, "colors": ["FF0000", "00FF00"]},
+                                 {"nums": -1, "colors": ["FF0000", "00FF00"]},
+                                 {"nums": 2, "colors": ["FF0000", 7]}],
+        "filament_exist": [true, true, true, true]}})");
+    REQUIRE(trays.size() == 4);
+    for (const auto& tray : trays) {
+        CHECK(tray.has_filament);
+        CHECK(tray.tray_colors.empty());
+        CHECK_FALSE(tray.tray_info_idx.empty());
+    }
+    CHECK(trays[2].tray_color == "0000FFFF");
+}
+
 // Orca: an empty head and a loaded head that reports NONE name no preset. Both leave
 // tray_info_idx empty, which build_ams_payload turns into a placeholder, so the sync keeps the
 // project filament there instead of painting it in the firmware's default white.

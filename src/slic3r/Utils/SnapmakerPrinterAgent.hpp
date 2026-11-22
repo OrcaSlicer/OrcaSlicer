@@ -16,6 +16,8 @@ public:
     explicit SnapmakerPrinterAgent(std::string log_dir);
     ~SnapmakerPrinterAgent() override = default;
 
+    // Public so that parse_filament_status() can be called, and its trays checked, without a
+    // printer. The struct stays the Moonraker agent's; this only names it.
     using MoonrakerPrinterAgent::AmsTrayData;
 
     static AgentInfo get_agent_info_static();
