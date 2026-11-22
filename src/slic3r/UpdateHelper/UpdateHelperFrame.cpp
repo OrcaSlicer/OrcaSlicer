@@ -47,7 +47,7 @@
 #endif
 
 // The helper's window is English-only by design: it starts no locale or catalog of its own.
-// A failure reaches the app as a translated summary, with the detail in update_failed.txt.
+// A failure reaches the app as a translated summary, with the detail in the cache's failure file.
 namespace fs = boost::filesystem;
 
 namespace Slic3r {
@@ -595,7 +595,17 @@ bool UpdateHelperFrame::fetch_artifact(const fs::path& download_dir, const fs::p
     // so the verified file needs the asset's name rather than ".part". A file that
     // prepare_download_dir() found already renamed is used as it is.
     boost::system::error_code rename_ec;
-    if (fs::exists(part, rename_ec)) {
+    boost::system::error_code size_ec;
+    const auto artifact_size = fs::file_size(artifact, size_ec);
+    const bool artifact_in_place = !size_ec && m_handoff.size > 0 &&
+                                   static_cast<int64_t>(artifact_size) == m_handoff.size;
+    if (artifact_in_place) {
+        // A leftover .part of the same build can sit beside a complete artifact. Renaming it
+        // over the artifact would replace a verified download with fewer bytes, so keep the
+        // artifact and drop the partial.
+        if (fs::remove(part, rename_ec))
+            m_log.write("dropped the leftover partial download " + part.string());
+    } else if (fs::exists(part, rename_ec)) {
         fs::rename(part, artifact, rename_ec);
         if (rename_ec) {
             m_log.write("could not rename " + part.string() + ": " + rename_ec.message());
@@ -681,6 +691,11 @@ void UpdateHelperFrame::run()
 
         const WaitResult waited = wait_for_parent();
         if (waited == WaitResult::Cancelled) {
+            // The application closed itself for this update. If it has already gone by the
+            // time the user cancels, it has to come back: leaving them with no application
+            // is worse than the cancelled update.
+            if (!process_alive(m_handoff.parent_pid))
+                m_parent_gone = true;
             m_log.write("cancelled while waiting for the parent process");
             finish(2, "Update cancelled.", false);
             return;
@@ -708,8 +723,18 @@ void UpdateHelperFrame::run()
             return;
         }
 
-        // A manual update downloads here, once the lock has ruled out a second helper.
-        if (!fetch_artifact(download_dir, part, artifact))
+        // A manual update downloads here. The application held the download lock until it
+        // exited, and a prefetch helper that was already writing may hold it now: two writers
+        // on one .part would never match the digest, so refuse rather than race it.
+        const std::string download_lock = Slic3r::updater_download_lock_path();
+        if (!Slic3r::acquire_install_lock(download_lock)) {
+            m_log.write("another download of this install is still running");
+            fail(1, "The update is still downloading. Try again in a moment.");
+            return;
+        }
+        const bool fetched = fetch_artifact(download_dir, part, artifact);
+        Slic3r::release_install_lock(download_lock);
+        if (!fetched)
             return;
 
         // Held from here until the install returns: what is verified is what runs.
@@ -771,8 +796,11 @@ void UpdateHelperFrame::run()
                 finish(0, wxString::FromUTF8(m_install_notice), !silent());
                 return;
             }
-            // A cancel that reached the install before the swap is not a failure.
-            if (m_cancel_requested.load()) {
+            // A cancel that reached the installers before they changed anything is not a
+            // failure; they say so in `install_error`. Any other failure is reported even
+            // when Cancel was pressed after the download: the tree may be half swapped, and
+            // "Update cancelled." with no dialog would tell the user nothing went wrong.
+            if (install_error == "cancelled") {
                 m_log.write("install cancelled before it started");
                 finish(2, "Update cancelled.", false);
                 return;

@@ -104,24 +104,26 @@ The notification carries one action, which opens the same dialog as Help → Che
 Updates: release notes, channel, "Install and restart", "Skip this Version", "Cancel". A
 manual check opens that dialog for any offer, verified or not: "Install and restart" starts
 the helper, which downloads what the cache does not hold yet. A manual check that finds
-nothing answers "This is the newest version." The automatic check never opens it.
+nothing answers "This is the newest version." The automatic check never opens it. A reply
+that is not a release list at all is a failed check, not an empty one: the release on offer
+stays, and a manual check says it could not check rather than claiming the build is newest.
 
 Neither the notification nor the candidate is persisted. The next check recomputes both
 from the release list and the cache, which is why an artifact that finished while the
 application was closed still produces a notification at the next start.
 
 `Skip this Version` stops offering that build and deletes the cached artifact. The deletion
-takes a per-download lock, because a prefetch helper started before a restart may still be
-writing the `.part`; when the lock is held, the deletion is deferred to the next skipped
-check.
+takes the install lock and a per-download lock, because a prefetch helper started before a
+restart may still be writing the `.part`, or an install may be using it; when either lock
+is held, the deletion is deferred to the next skipped check.
 
 In stealth mode the startup check does not run, because it starts a background download;
 the re-check after a channel change and Help → Check for Updates still run, and both answer
 with the dialog.
 
-A failed download leaves a message in `update_failed.txt`, which the next start shows as a
-notification; the detailed trail is in `updater.log`. A failed install is visible in the
-helper window instead, because every install is started by the user.
+A failed download leaves a message in `update_failed-<install>.txt`, which the next start
+shows as a notification; the detailed trail is in `updater.log`. A failed install is
+visible in the helper window instead, because every install is started by the user.
 
 ## What the two processes exchange
 
@@ -135,18 +137,18 @@ the application runs from; the extracted helper and the handoff that names the j
 keyed the same way. Two installs share one cache, and each one downloads the artifact for
 its own platform and channel: a single directory would let one install consume a file the
 other had verified, run a helper the other extracted, or overwrite the job the other had
-handed to its helper. The pending-swap record is keyed the same way, so one install cannot
-settle or delete the recovery record of another.
+handed to its helper. The pending-swap record and the installed record are keyed the same
+way, so one install cannot settle, overwrite or delete the record of another.
 
 | File | Written by | Read by | Purpose |
 |---|---|---|---|
 | `handoff-<install>-<job>.json` | app | helper, once | the job: asset, digest, size, install root, parent pid, lock path. A prefetch and an install each get their own, so neither consumes the other's |
-| `installed.json` | helper | app, next start | what was installed, and the tree it belongs to |
+| `installed-<install>.json` | helper | app, next start | what was installed, and the tree it belongs to |
 | `pending-<install>.json` | helper, before the swap | app, next start | the swap in flight; on macOS the tree moved aside, for rollback and cleanup |
 | `install.lock` | app, then helper | both | an OS file lock held for the life of the holder |
-| `download.lock` | prefetch helper | app, skip path | held while a prefetch writes; a skip defers its cleanup while it is held |
+| `download.lock` | the helper that downloads | app, skip path | held while a download writes; a skip or an install defers while it is held |
 | `<artifact>.verified` | prefetch helper, after verification | app | the digest the artifact verified for |
-| `update_failed.txt` | helper | app, next start | why a background download failed |
+| `update_failed-<install>.txt` | helper | app, next start | why a background download failed |
 | `downloads/<install>/`, `helper/<install>/`, `updater.log` | both | both | artifact, extracted helper, log |
 
 The digest of the build a `.part` belongs to is recorded beside it, so a resumed
@@ -164,11 +166,13 @@ check is repeated on the next start rather than the file being thrown away.
 
 The lock is an OS-level lock on an open handle, not a pid file: the OS releases it
 when the holder dies, and a held lock cannot be read through another handle, so it
-carries no state. It prevents two installs, and the cleanup respects it. A second lock in
-the download directory is held by the prefetch while it writes, so a skip's cleanup and an
-install that follows a click both wait or refuse rather than race it. The helper releases
-it once the new build is in place and recorded, before it starts it: the new build's own
-startup settles those records, and must not find the lock held.
+carries no state. The file stays behind, empty, and the next holder locks it again:
+deleting it would let a waiter lock the unlinked handle while another process locks a
+new file under the same name. It prevents two installs, and the cleanup respects it. A
+second lock in the download directory is held by whichever helper downloads, so a skip's
+cleanup and an install that follows a click both wait or refuse rather than race it. The
+helper releases it once the new build is in place and recorded, before it starts it: the
+new build's own startup settles those records, and must not find the lock held.
 
 ## Installing
 
@@ -180,7 +184,9 @@ scopes and chooses at start:
 - a tree the machine hive records is machine-wide and is replaced in place. The record is
   resolved with the same order on both sides: the 64-bit view first, then WOW6432Node
   because older installers were 32-bit, and within a view `InstallLocation`, else the
-  CPack-era `Software\SoftFever\OrcaSlicer` default value, else `UninstallString`;
+  CPack-era `Software\SoftFever\OrcaSlicer` default value, else `UninstallString`. Both
+  sides expand a `REG_EXPAND_SZ` value and drop trailing separators before comparing, so
+  one tree never reads as two strings;
 - a tree the caller names with `/D=`, which the updater always passes, is used as given —
   except the per-user default path, which the installer takes as "none named" while a
   machine record exists, because a first double-click and a `/D=` naming that same path
@@ -201,7 +207,9 @@ and the tree in place is left alone until a complete new one exists. On an upgra
 uninstaller runs in place with `_?=`, which keeps it from deleting its own file, so that
 file is deleted and the remaining directory removed before the stage is renamed onto it;
 if anything survives in the tree the installer stops rather than renaming into it. A first
-install skips the removal and renames the stage onto an empty or absent folder.
+install skips the removal and renames the stage onto an empty or absent folder. Uninstalling
+removes a stage left beside the tree by a failed update, since that stage is this install's
+payload.
 
 The installer reports three codes of its own. 1 means the tree needs an administrator and
 this run has no token. 2 means nothing was written: the tree is in use, the stage could not
@@ -248,13 +256,16 @@ longer exists as a machine-wide record, and retarget to it.
 
 **macOS.** The downloaded DMG is mounted, the application inside it is verified, and the
 bundle is copied beside the target as `<name>.staged-<pid>`, or into the cache directory
-when the target's parent is not writable. Where the parent is writable the two paths are
-exchanged in one step (`renamex_np` with `RENAME_SWAP`), so no crash can leave the bundle's
-path without an application, and `pending.json` names `staged` as the place the previous
-bundle now sits. A filesystem without an atomic exchange falls back to two renames, and a
-target the user cannot write is handled by one administrator step that does both; on either
-of those the record is rewritten before the first move to name `<name>.backup-<pid>`, which
-is where the previous bundle then lands. The record is written before anything moves, so a
+when the target's parent is not writable. That copy waits in the user's cache until the
+administrator step, so the step verifies it again as root after copying it in beside the
+target: root must not install bytes a process of the user could have replaced. Where the
+parent is writable the two paths are exchanged in one step (`renamex_np` with
+`RENAME_SWAP`), so no crash can leave the bundle's path without an application, and
+`pending-<install>.json` names `staged` as the place the previous bundle now sits. A
+filesystem without an atomic exchange falls back to two renames, and a target the user
+cannot write is handled by one administrator step that does both; on either of those the
+record is rewritten before the first move to name `<name>.backup-<pid>`, which is where the
+previous bundle then lands. The record is written before anything moves, so a
 start after a crash puts the previous bundle back; the next successful start removes both,
 except a previous bundle the administrator step placed where this user cannot delete it,
 which is left in place and named in the log. On Windows the same record names the install
@@ -285,8 +296,9 @@ Checks 3 and 4 together are what let a single click install the file without the
 judging what it is.
 
 A release build carries the pin of its platform and cannot be configured without it:
-`ORCA_RELEASE_BUILD=ON` makes the configure fail when Windows has no publisher or macOS
-has no team id, and every release and nightly build sets it. Each pin is read from the
+`ORCA_RELEASE_BUILD=ON` makes the configure fail when Windows has no publisher, macOS has
+no team id, or either has no build timestamp to identify the build by, and every release
+and nightly build sets it. Each pin is read from the
 environment, which overrides the cached value whenever it is set — including set empty, which
 clears it — so a tree reconfigured after a publisher, team id or timestamp was rotated or
 cleared cannot keep the old one. A developer tree that sets none of them keeps whatever its
@@ -314,8 +326,8 @@ packages under, and refuses to ship a helper that would accept anything else.
   started, so a nightly notifies at every launch until it is installed or skipped.
 - A launch without a network cannot install a cached artifact: the asset URL and digest
   arrive with the check.
-- Skip deletes the cached artifact only when no prefetch holds the download lock, so a
-  skipped build's file can survive one more check.
+- Skip deletes the cached artifact only when no helper holds the install or download lock,
+  so a skipped build's file can survive one more check.
 
 ## Where the code lives
 

@@ -205,10 +205,11 @@ if [ -n "${ORCA_BUILD_TIMESTAMP:-}" ] ; then
     UPDATER_SIGNING_ARGS+=("-DORCA_BUILD_TIMESTAMP=${ORCA_BUILD_TIMESTAMP}")
 fi
 # A release build refuses to configure without the pin this platform needs; the
-# release workflow sets this, a developer build leaves it unset.
-if [ -n "${ORCA_RELEASE_BUILD:-}" ] ; then
-    UPDATER_SIGNING_ARGS+=("-DORCA_RELEASE_BUILD=ON")
-fi
+# release workflow sets this, a developer build leaves it unset. Only ON or 1
+# means release: ORCA_RELEASE_BUILD=OFF must stay a developer build.
+case "${ORCA_RELEASE_BUILD:-}" in
+    ON|on|On|1) UPDATER_SIGNING_ARGS+=("-DORCA_RELEASE_BUILD=ON") ;;
+esac
 
 echo "Build params:"
 echo " - ARCH: $ARCH"

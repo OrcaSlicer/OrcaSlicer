@@ -196,8 +196,8 @@ std::wstring read_machine_value(const std::wstring& key_path, const wchar_t* nam
         if (::RegQueryValueExW(key, name, nullptr, &type, reinterpret_cast<LPBYTE>(value.data()), &size) == ERROR_SUCCESS) {
             while (!value.empty() && value.back() == L'\0')
                 value.pop_back();
-            // NSIS expands this type when it reads it, so the installer would compare a
-            // different string than this one; expand it here too.
+            // The installer expands this type before it reads the record, so
+            // comparing the raw value here would name a different tree.
             if (type == REG_EXPAND_SZ && !value.empty()) {
                 const DWORD needed = ::ExpandEnvironmentStringsW(value.c_str(), nullptr, 0);
                 if (needed > 1) {

@@ -397,6 +397,17 @@ TEST_CASE("A stable release equal to the running version is not offered", "[Upda
     CHECK(candidate.version == "2.5.0");
 }
 
+TEST_CASE("A body that is not a release list is reported as unreadable, not as no release", "[UpdateChannel]")
+{
+    for (const char* body : { "<html>a proxy's page</html>", "{\"message\":\"rate limited\"}", "" }) {
+        const UpdateCandidate candidate = resolve_update(body, UpdateChannel::Stable, "", "", "2.4.9", "",
+                                                         InstallFlavour::WindowsInstaller, "x86_64");
+
+        CHECK_FALSE(candidate.available);
+        CHECK(candidate.reason == "unreadable");
+    }
+}
+
 TEST_CASE("A nightly with a different digest than the installed build is offered", "[UpdateChannel]")
 {
     const UpdateCandidate candidate = resolve_update(nightly_releases_json(), UpdateChannel::Nightly,

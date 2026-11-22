@@ -108,14 +108,20 @@ Var UserRoot
 Var RegRoot
 Var RegChar
 Var RegLen
+Var RegTmp
 
 ; Separators at the end are not part of the tree: "C:\Apps\OrcaSlicer\" and
-; "C:\Apps\OrcaSlicer" name one directory. A drive root keeps its own one.
-; Tag keeps the labels apart per insertion.
+; "C:\Apps\OrcaSlicer" name one directory. Both separators are trimmed, as the
+; helper trims them. A drive root keeps its own one. Tag keeps the labels apart
+; per insertion.
 !macro TrimRoot Root Tag
 trim_root_${Tag}:
   StrCpy $RegChar ${Root} 1 -1
-  StrCmp $RegChar "\" 0 trim_root_done_${Tag}
+  StrCmp $RegChar "\" 0 trim_root_slash_${Tag}
+  Goto trim_root_cut_${Tag}
+trim_root_slash_${Tag}:
+  StrCmp $RegChar "/" 0 trim_root_done_${Tag}
+trim_root_cut_${Tag}:
   StrLen $RegLen ${Root}
   IntCmp $RegLen 3 trim_root_done_${Tag} trim_root_done_${Tag}
   IntOp $RegLen $RegLen - 1
@@ -128,13 +134,17 @@ trim_root_done_${Tag}:
 ; InstallLocation value, else the default value the CPack-era installer wrote,
 ; else UninstallString with the quotes and the trailing \uninstall.exe removed.
 ; Only a whole directory is ever compared with another, never a prefix.
+; A REG_EXPAND_SZ value keeps "%ProgramFiles%" until something expands it, and
+; the helper expands it before comparing, so the installer must expand it too.
 !macro ReadRecordRootView Hive Out Tag
   ReadRegStr $RegRoot ${Hive} "${UNINST_KEY}" "InstallLocation"
-  StrCmp $RegRoot "" 0 read_root_trim_${Tag}
+  StrCmp $RegRoot "" 0 read_root_expand_${Tag}
   ReadRegStr $RegRoot ${Hive} "${LEGACY_KEY}" ""
-  StrCmp $RegRoot "" 0 read_root_trim_${Tag}
+  StrCmp $RegRoot "" 0 read_root_expand_${Tag}
   ReadRegStr $RegRoot ${Hive} "${UNINST_KEY}" "UninstallString"
   StrCmp $RegRoot "" read_root_view_done_${Tag}
+  ExpandEnvStrings $RegTmp $RegRoot
+  StrCpy $RegRoot $RegTmp
 
   ; UninstallString names the uninstaller, quoted by this installer.
   StrCpy $RegChar $RegRoot 1
@@ -152,6 +162,11 @@ read_root_suffix_${Tag}:
   StrCmp $RegChar "\uninstall.exe" 0 read_root_trim_${Tag}
   IntOp $RegLen $RegLen - 14
   StrCpy $RegRoot $RegRoot $RegLen
+  Goto read_root_trim_${Tag}
+
+read_root_expand_${Tag}:
+  ExpandEnvStrings $RegTmp $RegRoot
+  StrCpy $RegRoot $RegTmp
 
 read_root_trim_${Tag}:
   !insertmacro TrimRoot $RegRoot ${Tag}t
@@ -187,6 +202,8 @@ FunctionEnd
 !macro DeleteLegacyRoot Hive Tag
   ReadRegStr $RegRoot ${Hive} "${LEGACY_KEY}" ""
   StrCmp $RegRoot "" delete_legacy_done_${Tag}
+  ExpandEnvStrings $RegTmp $RegRoot
+  StrCpy $RegRoot $RegTmp
   !insertmacro TrimRoot $RegRoot ${Tag}t
   StrCmp $RegRoot $INSTDIR 0 delete_legacy_done_${Tag}
   DeleteRegValue ${Hive} "${LEGACY_KEY}" ""
@@ -498,8 +515,10 @@ un_scope_done:
 FunctionEnd
 
 Section "Uninstall"
-  ; The tree holds nothing but what this installer wrote.
+  ; The tree holds nothing but what this installer wrote. A stage left by a
+  ; failed update sits beside it and is this install's too.
   RMDir /r "$INSTDIR"
+  RMDir /r "$INSTDIR.new"
 
   ; A record this tree does not own says nothing about it: deleting that
   ; install's entry, its shortcuts or its Start-menu folder while removing a

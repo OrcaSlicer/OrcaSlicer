@@ -6,7 +6,7 @@
 //
 //   handoff-<install>-<job>.json  app writes, helper reads once and deletes; one per job,
 //                                 so a prefetch and an install never consume each other's
-//   installed.json  helper writes, app reads on its next start
+//   installed-<install>.json  helper writes, app reads on its next start
 //   pending-<install>.json  helper writes before swapping, app deletes after it starts
 //   install.lock    app locks it to claim the install, helper takes it over once the app exits
 //   downloads/      partial and verified artifacts, one directory per install
@@ -187,10 +187,12 @@ bool        write_pending_install(const PendingInstall& pending);
 bool        read_pending_install(PendingInstall& out);
 void        remove_pending_install();
 
-// Takes an OS file lock on the install lock, which the holder keeps until it exits.
+// Takes an OS file lock on the install lock, which the holder keeps until it exits. The
+// lock file itself stays in place when released: the lock is the open handle, and deleting
+// the file opens a window where two processes can each hold a lock under the same name.
 // False when another handle holds the lock.
 bool acquire_install_lock(const std::string& path);
-// Unlocks and deletes the file this process acquired. A no-op for any other path.
+// Unlocks the file this process acquired. A no-op for any other path.
 void release_install_lock(const std::string& path);
 
 } // namespace Slic3r

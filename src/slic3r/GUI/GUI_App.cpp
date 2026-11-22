@@ -1130,8 +1130,9 @@ void GUI_App::post_init()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " sync_user_preset: false";
     }
 
-    // Restore a backup and consume installed.json before anything else: the G-code viewer
-    // never runs the block below, so it would otherwise never finish an interrupted install.
+    // Restore a backup and consume this install's installed record before anything else: the
+    // G-code viewer never runs the block below, so it would otherwise never finish an
+    // interrupted install.
     CallAfter([this] {
         this->finish_pending_update();
 
@@ -5146,6 +5147,19 @@ void GUI_App::recreate_GUI(const wxString &msg_name)
 
     m_is_recreating_gui = false;
 
+    // The ready notification lived in the old frame's notification manager, and the new frame
+    // has none. An update still on offer is announced again, or the identity guard would keep
+    // it silent for the rest of the session after a language change.
+    if (m_update_candidate.available) {
+        set_updater_cache_dir(update_cache_dir());
+        set_updater_install_root(app_install_root());
+        const bool verified = can_install_in_app(m_update_candidate, current_install_flavour()) &&
+                              download_is_verified(updater_download_dir(), m_update_candidate.asset.name,
+                                                   m_update_candidate.asset.digest, m_update_candidate.asset.size);
+        m_update_notified_identity.clear();
+        notify_update_ready(verified);
+    }
+
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "recreate_GUI exit";
 }
 
@@ -6622,25 +6636,28 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
         .tls_verify(true)
         .timeout_connect(5)
         .timeout_max(10)
-        .on_error([&](std::string body, std::string error, unsigned http_status) {
+        .on_error([](std::string body, std::string error, unsigned http_status) {
           (void)body;
           BOOST_LOG_TRIVIAL(error) << format("Error getting: `%1%`: HTTP %2%, %3%", "check_new_version_sf", http_status,
                                              error);
         })
         .on_complete([this, by_user, channel, installed_artifact, installed_channel, flavour](std::string body, unsigned http_status) {
-          // Every return below offers no update. The candidate is cleared on the UI thread, and
-          // the notification and the poll with it: the release is no longer on offer.
-          auto drop_candidate = [this] {
-            GUI::wxGetApp().CallAfter([this] {
-                m_update_candidate = UpdateCandidate();
-                // The notification is gone, so the same candidate must be able to notify
-                // again once a later check resolves it.
-                m_update_notified_identity.clear();
-                if (m_update_ready_timer)
-                    m_update_ready_timer->Stop();
-                if (NotificationManager* notifications = notification_manager())
-                    notifications->close_notification_of_type(NotificationType::AppUpdateReady);
-            });
+          // Both answers are applied on the UI thread. While the update dialog is modal it owns
+          // the candidate it shows, so a check that completes meanwhile is dropped rather than
+          // replacing or clearing that candidate under the user.
+          auto clear_candidate = [this, by_user] {
+            if (m_update_dialog_open)
+                return;
+            m_update_candidate = UpdateCandidate();
+            // The notification is gone, so the same candidate must be able to notify
+            // again once a later check resolves it.
+            m_update_notified_identity.clear();
+            if (m_update_ready_timer)
+                m_update_ready_timer->Stop();
+            if (NotificationManager* notifications = notification_manager())
+                notifications->close_notification_of_type(NotificationType::AppUpdateReady);
+            if (by_user != 0)
+                no_new_version();
           };
           if (http_status != 200) {
             // The request failed, which says nothing about the release on offer: keep the
@@ -6650,27 +6667,38 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
           }
           try {
             boost::trim(body);
-            if (body.empty()) {
-                drop_candidate();
-                if (by_user != 0)
-                    this->no_new_version();
-                return;
-            }
 
             const std::string build_timestamp = SLIC3R_BUILD_TIMESTAMP;
             const UpdateCandidate candidate = resolve_update(body, channel, installed_artifact, installed_channel,
                                                              SoftFever_VERSION, build_timestamp, flavour,
                                                              platform_architecture());
 
+            if (candidate.reason == "unreadable") {
+                // The body was not a release list at all, such as a proxy's page or a truncated
+                // reply. That is a failed check, so the release on offer stays, and a manual
+                // check says so rather than claiming the running build is the newest.
+                BOOST_LOG_TRIVIAL(warning) << "Could not read the update response; keeping the current release";
+                if (by_user != 0) {
+                    GUI::wxGetApp().CallAfter([this] {
+                        if (m_update_dialog_open)
+                            return;
+                        wxCommandEvent* evt = new wxCommandEvent(EVT_SHOW_DIALOG);
+                        evt->SetString(_L("Could not check for updates. Try again later."));
+                        QueueEvent(evt);
+                    });
+                }
+                return;
+            }
+
             if (!candidate.available) {
                 BOOST_LOG_TRIVIAL(info) << "No update offered: " << candidate.reason;
-                drop_candidate();
-                if (by_user != 0)
-                    this->no_new_version();
+                GUI::wxGetApp().CallAfter(clear_candidate);
                 return;
             }
 
             GUI::wxGetApp().CallAfter([this, by_user, candidate] {
+                if (m_update_dialog_open)
+                    return;
                 // The channel may have changed while the request was in flight.
                 if (update_channel_from_key(this->app_config->update_channel()) != candidate.channel) {
                     m_update_candidate = UpdateCandidate();
@@ -7212,8 +7240,19 @@ bool GUI_App::prefetch_update()
 
 void GUI_App::show_update_dialog()
 {
-    if (!m_update_candidate.available)
+    // One dialog answers for one candidate. A check completing while it is open is dropped
+    // (see check_new_version_sf), so opening a second would only stack modals.
+    if (!m_update_candidate.available || m_update_dialog_open)
         return;
+
+    // Stays set for the whole function, including the nested prompts a refused install can
+    // show, so no check can swap the candidate the user answered for.
+    m_update_dialog_open = true;
+    struct ClearDialogFlag
+    {
+        bool& open;
+        ~ClearDialogFlag() { open = false; }
+    } clear_dialog_flag{ m_update_dialog_open };
 
     // Destroyed before the action runs: the in-app update closes the main frame, which
     // would otherwise delete the dialog as a child and then again at scope exit.
@@ -7233,6 +7272,7 @@ void GUI_App::show_update_dialog()
                                    wxString::FromUTF8(m_update_candidate.version_label));
         answer = dialog.ShowModal();
     }
+
     switch (answer) {
     case wxID_YES:
         // Store builds get updates from the Microsoft Store and Flatpak builds from
@@ -7301,14 +7341,20 @@ void GUI_App::drop_cached_update(const std::string& asset_name)
     if (!fs::is_directory(fs::path(dir), ec))
         return;
 
-    // A prefetch helper started before a restart may still be writing the artifact, and
-    // deleting its .part would fail the write and leave a confusing update_failed.txt. Its
-    // lock says so; the next skipped check retries.
-    const std::string lock_path = updater_download_lock_path();
-    if (!acquire_install_lock(lock_path))
+    // A prefetch helper started before a restart may still be writing the artifact, and an
+    // install helper may be using it. Both take their own lock; while either is held the
+    // file stays, and the next skipped check retries.
+    const std::string install_lock = updater_lock_path();
+    if (!acquire_install_lock(install_lock))
         return;
+    const std::string download_lock = updater_download_lock_path();
+    if (!acquire_install_lock(download_lock)) {
+        release_install_lock(install_lock);
+        return;
+    }
     remove_download(dir, asset_name);
-    release_install_lock(lock_path);
+    release_install_lock(download_lock);
+    release_install_lock(install_lock);
 }
 
 void GUI_App::start_update_ready_timer()
@@ -9711,6 +9757,7 @@ void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_
         previous_opengl_render_settings.emplace_back(app_config->get(key));
 
     bool need_recreate_gui = false;
+    bool update_channel_changed = false;
     std::string pending_language;
     {
         // the dialog needs to be destroyed before the call to recreate_GUI()
@@ -9735,9 +9782,9 @@ void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_
             m_update_candidate = UpdateCandidate();
             if (!old_asset.empty())
                 drop_cached_update(old_asset);
-            // Deferred past the GUI rebuild: the check's answer opens a modal dialog, which
-            // must not land while recreate_GUI() is still swapping the main frame.
-            CallAfter([] { wxGetApp().check_new_version_sf(true, 1); });
+            // Run once the dialog and any GUI rebuild are done, so the check's answer cannot
+            // open a modal dialog while the main frame is still being replaced.
+            update_channel_changed = true;
         }
         need_recreate_gui = dlg.recreate_GUI();
         pending_language = dlg.pending_language();
@@ -9793,6 +9840,11 @@ void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_
 
     if (need_recreate_gui)
         recreate_GUI(_L("Changing application language"));
+
+    // Deferred past the rebuild above: the check's answer opens a modal dialog, which must
+    // not land while recreate_GUI() is still swapping the main frame.
+    if (update_channel_changed)
+        check_new_version_sf(true, 1);
 }
 
 bool GUI_App::has_unsaved_preset_changes() const

@@ -463,6 +463,8 @@ sudo -H -u "${HOST_USER}" env \
     CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL-}" \
     GITHUB_WORKSPACE="${GITHUB_WORKSPACE}" \
     ORCA_UPDATER_SIG_KEY="${ORCA_UPDATER_SIG_KEY-}" \
+    ORCA_BUILD_TIMESTAMP="${ORCA_BUILD_TIMESTAMP-}" \
+    ORCA_RELEASE_BUILD="${ORCA_RELEASE_BUILD-}" \
     bash -c '
         set -e
         cd "${GITHUB_WORKSPACE}"
@@ -633,10 +635,10 @@ if [[ -n "${BUILD_ORCA}" ]] || [[ -n "${BUILD_TESTS}" ]] ; then
     fi
     # Linux ships no updater helper, so this build needs no signature pin; it is
     # told it is a release all the same, which is what the release workflow asks
-    # of every platform it publishes from.
-    if [[ -n "${ORCA_RELEASE_BUILD}" ]] ; then
-        BUILD_ARGS+=(-DORCA_RELEASE_BUILD=ON)
-    fi
+    # of every platform it publishes from. Only ON or 1 means release.
+    case "${ORCA_RELEASE_BUILD:-}" in
+        ON|on|On|1) BUILD_ARGS+=(-DORCA_RELEASE_BUILD=ON) ;;
+    esac
 
     print_and_run cmake -S . -B $BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" "${CMAKE_CCACHE_ARGS[@]}" -G "Ninja Multi-Config" \
 -DSLIC3R_PCH=${SLIC3R_PRECOMPILED_HEADERS} \

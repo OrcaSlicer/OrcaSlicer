@@ -570,9 +570,11 @@ if defined ORCA_UPDATER_TEAM_ID set PIN_FLAGS=%PIN_FLAGS% "-DORCA_UPDATER_TEAM_I
 if defined ORCA_BUILD_TIMESTAMP set PIN_FLAGS=%PIN_FLAGS% "-DORCA_BUILD_TIMESTAMP=%ORCA_BUILD_TIMESTAMP%"
 
 REM A release build refuses to configure without the pin its platform needs, so
-REM this is what the release workflow sets. A developer build leaves it unset.
+REM this is what the release workflow sets. A developer build leaves it unset;
+REM only ON or 1 means release, so ORCA_RELEASE_BUILD=OFF stays a developer build.
 set "RELEASE_FLAG="
-if defined ORCA_RELEASE_BUILD set "RELEASE_FLAG=-DORCA_RELEASE_BUILD=ON"
+if /I "%ORCA_RELEASE_BUILD%" == "ON" set "RELEASE_FLAG=-DORCA_RELEASE_BUILD=ON"
+if "%ORCA_RELEASE_BUILD%" == "1" set "RELEASE_FLAG=-DORCA_RELEASE_BUILD=ON"
 
 set "TESTS_FLAG=-DBUILD_TESTS=OFF"
 if "%build_tests%" == "ON" set "TESTS_FLAG=-DBUILD_TESTS=ON"
@@ -800,6 +802,15 @@ if "%build_slicer%" == "ON" (
         )
         call :print_and_run cmake --install "%build_dir%" --prefix "!installer_stage!" --config %build_type%
         %error_check%
+
+        REM The install tree only carries the helper when the tree was configured
+        REM with this feature; --no-configure against an older build dir would
+        REM otherwise produce an installer whose in-app updates never work.
+        if not exist "!installer_stage!\updater\OrcaSlicerUpdater.exe" (
+            set "die_reason=The installer stage has no updater helper; reconfigure the tree."
+            set rc=1
+            goto :die
+        )
 
         REM version.inc is the only place the version lives.
         set "orca_version="

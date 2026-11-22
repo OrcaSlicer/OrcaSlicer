@@ -281,7 +281,7 @@ if (SLIC3R_GUI AND (WIN32 OR APPLE))
         "ORCA_UPDATER_PUBLISHER=\"${ORCA_UPDATER_PUBLISHER}\""
         "ORCA_UPDATER_TEAM_ID=\"${ORCA_UPDATER_TEAM_ID}\"")
 
-    target_link_libraries(OrcaSlicerUpdater libslic3r cereal::cereal ${wxWidgets_LIBRARIES} libcurl OpenSSL::SSL OpenSSL::Crypto)
+    target_link_libraries(OrcaSlicerUpdater libslic3r boost_headeronly cereal::cereal ${wxWidgets_LIBRARIES} libcurl OpenSSL::SSL OpenSSL::Crypto)
     if (WIN32)
         # libcurl's peer.c calls if_nametoindex, which lives in iphlpapi.
         target_link_libraries(OrcaSlicerUpdater iphlpapi)

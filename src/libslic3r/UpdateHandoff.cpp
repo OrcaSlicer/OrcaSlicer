@@ -309,7 +309,13 @@ std::string updater_handoff_path(const std::string& job)
 
 std::string updater_install_record_path()
 {
-    return (fs::path(cache_root()) / "installed.json").string();
+    const std::string& root = install_root_override();
+    // Keyed like the downloads: a record belongs to the install the helper wrote it for, and
+    // another copy sharing the cache must not consume or overwrite it before that install
+    // starts and records its build.
+    if (root.empty())
+        return (fs::path(cache_root()) / "installed.json").string();
+    return (fs::path(cache_root()) / ("installed-" + install_identity_hex(root) + ".json")).string();
 }
 
 std::string updater_pending_path()
@@ -339,7 +345,12 @@ std::string updater_log_path()
 
 std::string updater_failure_path()
 {
-    return (fs::path(cache_root()) / "update_failed.txt").string();
+    const std::string& root = install_root_override();
+    // Keyed like the other records: a failed download belongs to the install whose helper
+    // started it, and the next start of another copy must not report or clear it.
+    if (root.empty())
+        return (fs::path(cache_root()) / "update_failed.txt").string();
+    return (fs::path(cache_root()) / ("update_failed-" + install_identity_hex(root) + ".txt")).string();
 }
 
 bool write_update_failure(const std::string& message)
@@ -349,12 +360,18 @@ bool write_update_failure(const std::string& message)
 
 bool read_update_failure(std::string& message)
 {
-    return read_file(updater_failure_path(), message) && !message.empty();
+    if (read_file(updater_failure_path(), message) && !message.empty())
+        return true;
+    // A silent run that could not read its handoff does not know which install it belongs
+    // to and leaves the flat name; the next start reports it as a failed check.
+    const std::string flat = (fs::path(cache_root()) / "update_failed.txt").string();
+    return flat != updater_failure_path() && read_file(flat, message) && !message.empty();
 }
 
 void remove_update_failure()
 {
     remove_file(updater_failure_path());
+    remove_file((fs::path(cache_root()) / "update_failed.txt").string());
 }
 
 std::string install_identity_hex(const std::string& install_root)
@@ -389,7 +406,10 @@ std::string install_identity_key(const std::string& install_root)
 
 DownloadPaths download_paths(const std::string& dir, const std::string& asset_name)
 {
-    const std::string name = fs::path(asset_name).filename().string();
+    std::string name = fs::path(asset_name).filename().string();
+    // "." and ".." survive filename() and would name a directory rather than a file.
+    if (name == "." || name == "..")
+        name.clear();
     const std::string keep = name.empty() ? std::string("update.part") : name;
     DownloadPaths     paths;
     paths.part     = (fs::path(dir) / (keep + ".part")).string();
@@ -708,8 +728,10 @@ void release_install_lock(const std::string& path)
     const auto it = held_install_locks().find(path);
     if (it == held_install_locks().end())
         return;
-    // Removed while still locked, so a waiter that gets the lock next finds the path gone.
-    remove_file(path);
+    // The file stays in place. Deleting it lets a waiter that opened it just before the
+    // unlink lock the unlinked handle, while the next process creates and locks a new file
+    // at the same name: two holders. The OS lock is the record, and an empty file holds
+    // nothing, so the name is reused.
     close_lock_file(it->second);
     held_install_locks().erase(it);
 }

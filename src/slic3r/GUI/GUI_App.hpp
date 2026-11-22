@@ -363,6 +363,9 @@ private:
     std::string m_update_notified_identity;
     // Polls the cache while a prefetch runs, so the notification follows without a restart.
     wxTimer*    m_update_ready_timer { nullptr };
+    // True while show_update_dialog() is modal. A check that completes meanwhile must not
+    // replace or clear the candidate the user is looking at.
+    bool        m_update_dialog_open { false };
     static std::string version_display;
     HMSQuery    *hms_query { nullptr };
     FilamentColorCodeQuery* m_filament_color_code_query{ nullptr };

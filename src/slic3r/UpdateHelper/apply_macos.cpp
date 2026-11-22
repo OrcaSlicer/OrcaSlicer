@@ -324,10 +324,12 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
 #else
     const std::string team_id;
 #endif
+    std::string requirement;
+    if (!team_id.empty())
+        requirement = "=anchor apple generic and certificate leaf[subject.OU] = \"" + team_id + "\"";
     if (team_id.empty()) {
         BOOST_LOG_TRIVIAL(warning) << "The updater was built without a signing team, so the new version's developer is not checked.";
     } else {
-        const std::string requirement = "=anchor apple generic and certificate leaf[subject.OU] = \"" + team_id + "\"";
         if (!spawn_and_wait({"/usr/bin/codesign", "--verify", "--strict", "--deep", "-R", requirement, mounted_app}, 300, status, error))
             return false;
         if (status != 0) {
@@ -388,7 +390,11 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
             if (moved_old)
                 undo.push_back({backup, bundle});
 
-            if (elevated) {
+            if (undo.empty()) {
+                // Nothing moved, so there is nothing for an administrator to undo: a prompt
+                // here would ask for the password a second time for no move.
+                restored = true;
+            } else if (elevated) {
                 std::string ignored;
                 restored = elevated_moves(undo, ignored);
             } else {
@@ -433,9 +439,16 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
 
     if (!parent_writable) {
         // One administrator prompt copies the new build in beside the old one and swaps
-        // both; the swap itself is a rename inside the target's parent.
+        // both; the swap itself is a rename inside the target's parent. The build is copied
+        // from this user's cache, so it is checked again as root after the copy: anything
+        // that replaced it between the checks above and this prompt would otherwise be
+        // installed with administrator rights.
+        std::string verify = "/usr/bin/codesign --verify --deep --strict " + shell_quoted(staged);
+        if (!requirement.empty())
+            verify = "/usr/bin/codesign --verify --strict --deep -R " + shell_quoted(requirement) + " " +
+                     shell_quoted(staged);
         const std::string copy = "/usr/bin/ditto " + shell_quoted(scratch) + " " + shell_quoted(staged);
-        if (!elevated_script(copy + " && " + move_script({{bundle, backup}, {staged, bundle}}), error)) {
+        if (!elevated_script(copy + " && " + verify + " && " + move_script({{bundle, backup}, {staged, bundle}}), error)) {
             // Nothing moved aside means nothing for the administrator to put back, so no second prompt.
             moved_old  = path_exists(backup);
             placed_new = moved_old && path_exists(bundle);
@@ -475,6 +488,8 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
             if (!elevated_moves({{bundle, backup}, {staged, bundle}}, error)) {
                 moved_old  = path_exists(backup);
                 placed_new = !path_exists(staged);
+                // Only a move that actually happened needs the administrator again.
+                elevated   = moved_old || placed_new;
                 error = rollback_failure(error + " The downloaded disk image is still in " + download_folder + ".");
                 return false;
             }
@@ -490,6 +505,8 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
                 elevated = true;
                 if (!elevated_moves({{staged, bundle}}, error)) {
                     placed_new = !path_exists(staged);
+                    // The undo is the move the administrator had to make; nothing else moved.
+                    elevated   = placed_new;
                     error = rollback_failure(error + " The downloaded disk image is still in " + download_folder + ".");
                     return false;
                 }
@@ -507,16 +524,16 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
         sink.say(Stage::Launching, 90, "Starting " + label);
 
     // Recorded before the launch: a crash while the new build starts still
-    // leaves the application knowing what it is running.
+    // leaves the application knowing what it is running. A record that cannot be written
+    // does not undo the swap: the build is in place and works, and only the next check's
+    // "already installed" identity is lost.
     InstallRecord record;
     record.digest  = handoff.digest;
     record.channel = handoff.channel;
     record.version = handoff.version;
     record.target  = bundle;
-    if (!write_install_record(record)) {
-        error = rollback_failure("The update could not be recorded.");
-        return false;
-    }
+    if (!write_install_record(record))
+        BOOST_LOG_TRIVIAL(warning) << "Could not record the installed build " << handoff.version;
 
     if (launch) {
         if (sink.release_lock)

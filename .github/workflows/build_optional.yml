@@ -50,6 +50,7 @@ on:
      - 'scripts/check_exception_throw_info.ps1'
      - 'scripts/test_check_exception_throw_info.ps1'
      - 'build_release_macos.sh'
+     - 'packaging/**'
      - 'scripts/build_preset_cache.*'
      - 'scripts/prune_cached_presets.ps1'
      - 'scripts/test_prune_cached_presets.ps1'

@@ -50,6 +50,10 @@ if (ORCA_RELEASE_BUILD)
         message(FATAL_ERROR "ORCA_RELEASE_BUILD needs ORCA_UPDATER_TEAM_ID on macOS. "
                             "Without it the updater helper accepts a download signed by any trusted signer.")
     endif ()
+    if ((WIN32 OR APPLE) AND NOT ORCA_BUILD_TIMESTAMP)
+        message(FATAL_ERROR "ORCA_RELEASE_BUILD needs ORCA_BUILD_TIMESTAMP on Windows and macOS. "
+                            "Without it the build has no id, so the updater cannot tell whether a nightly is newer.")
+    endif ()
 endif ()
 
 # What the updater helper in this tree was built to accept. build_release_macos.sh

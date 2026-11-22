@@ -322,11 +322,13 @@ UpdateCandidate resolve_update(const std::string& releases_json,
     try {
         releases = json::parse(releases_json);
     } catch (const std::exception&) {
-        candidate.reason = "no_release";
+        // Not a release list at all: the caller treats this as a failed check, not as
+        // "nothing newer", so a proxy's page or a truncated reply keeps the offer alive.
+        candidate.reason = "unreadable";
         return candidate;
     }
     if (!releases.is_array()) {
-        candidate.reason = "no_release";
+        candidate.reason = "unreadable";
         return candidate;
     }
 

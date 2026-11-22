@@ -161,8 +161,16 @@ TEST_CASE("Each install downloads into its own directory", "[UpdateHandoff]")
     CHECK(fs::path(keyed_handoff).parent_path() == fs::path(updater_cache_dir()));
     CHECK(fs::path(keyed_handoff) != fs::path(updater_cache_dir()) / "handoff.json");
 
+    // So are the records the helper leaves for the app to consume on its next start: one
+    // install must not settle or overwrite the other's.
+    const std::string keyed_record = updater_install_record_path();
+    CHECK(keyed_record != (fs::path(updater_cache_dir()) / "installed.json").string());
+    CHECK(fs::path(keyed_record).filename().string() == "installed-" + install_identity_hex("/opt/OrcaSlicer") + ".json");
+    CHECK(fs::path(updater_pending_path()).filename().string() == "pending-" + install_identity_hex("/opt/OrcaSlicer") + ".json");
+
     set_updater_install_root("/opt/OrcaSlicer/client");
     CHECK(fs::path(updater_download_dir()) != parent);
+    CHECK(updater_install_record_path() != keyed_record);
 
     // Clearing the cache also clears the install root, or the next one to use it inherits this install.
     clear_updater_cache_dir();
@@ -205,6 +213,10 @@ TEST_CASE("A download is named after the asset, inside its own directory", "[Upd
 
     // No asset name to go by: the artifact still lands in the directory.
     CHECK(fs::path(download_paths("cache", "").artifact) == fs::path("cache") / "update.part");
+
+    // "." and ".." survive filename() but name a directory, not this download.
+    CHECK(fs::path(download_paths("cache", "..").artifact) == fs::path("cache") / "update.part");
+    CHECK(fs::path(download_paths("cache", "../..").artifact) == fs::path("cache") / "update.part");
 }
 
 TEST_CASE("A partial download of the same build is kept for resuming", "[UpdateHandoff]")
@@ -527,7 +539,8 @@ TEST_CASE("A second install lock on the same path is refused while the first is 
     CHECK_FALSE(acquire_install_lock(lock));
 
     release_install_lock(lock);
-    CHECK_FALSE(fs::exists(lock));
+    // The file stays: deleting it lets two processes hold a lock under the same name.
+    CHECK(fs::exists(lock));
     CHECK(acquire_install_lock(lock));
     release_install_lock(lock);
 }
@@ -541,7 +554,7 @@ TEST_CASE("A leftover install lock file that nobody holds is taken over", "[Upda
     CHECK(acquire_install_lock(lock));
     CHECK_FALSE(acquire_install_lock(lock));
     release_install_lock(lock);
-    CHECK_FALSE(fs::exists(lock));
+    CHECK(fs::exists(lock));
 }
 
 TEST_CASE("Releasing an install lock this process does not hold leaves the file in place", "[UpdateHandoff]")
