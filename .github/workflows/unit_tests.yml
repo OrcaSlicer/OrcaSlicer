@@ -63,7 +63,7 @@ jobs:
         timeout-minutes: 20
         shell: bash
         run: |
-          tar -xvf build_tests.tar
+          tar -xf build_tests.tar
           # Every platform builds with a multi-config generator (build_linux.sh uses Ninja
           # Multi-Config), so ctest needs the config: without it, plain add_test() tests
           # lose their labels and report "Not Run".

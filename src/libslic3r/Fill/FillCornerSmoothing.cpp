@@ -26,6 +26,8 @@ static constexpr const double control_spacing = 0.3;
 static constexpr const size_t max_corner_vertices = 256;
 // Bounds the corners a smoother keeps, for paths turning by ever new angles.
 static constexpr const size_t max_cached_corners = 4096;
+// Finer corners turn unevenly on the 0.001 mm grid of the G-code and send more moves than printer hosts plan in time.
+static constexpr const double min_corner_tolerance = 0.005;
 
 // The control points of the quintic Bezier corner curve.
 using ControlPoints = std::array<Vec2d, 6>;
@@ -279,6 +281,11 @@ static Points smooth_corners(const Points &points, const bool polygon, CornerSmo
         // The flushed point is the wrapped first vertex, which a polygon does not store.
         smoothed.pop_back();
     return smoothed;
+}
+
+double corner_smoothing_tolerance(const double resolution)
+{
+    return std::max(min_corner_tolerance, resolution);
 }
 
 void smooth_polyline_corners(Polyline &polyline, const CornerSmoothing &smoothing, const double max_corner_distance,

@@ -21,7 +21,7 @@ struct CrealityPrinterInfo
 {
     bool        reachable{false};
     bool        multi_color{false};
-    bool        no_cfs{false}; // The printer reports that no CFS is connected
+    bool        no_cfs{false}; // The printer reports that no CFS is connected and lists no slots
     std::string model_name;
     std::string boxes_json; // Empty unless the printer lists its CFS slots
 };
@@ -49,7 +49,7 @@ public:
     // value: an F-code on the K2 platform, a literal name on K1-family.
     static bool model_supports_multi_color(const std::string& model);
     static std::string model_display_name(const std::string& model);
-    // Sets *no_cfs to whether the printer reports that no CFS is connected.
+    // Sets *no_cfs when the printer reports that no CFS is connected and then lists no slots.
     std::string query_boxes_info(bool* no_cfs = nullptr) const;
     // Reads the model and, for a CFS-capable model, the CFS slots, without translating any text, so it is safe off the UI thread.
     CrealityPrinterInfo read_printer_info() const;
@@ -66,10 +66,13 @@ protected:
     struct WsSettings
     {
         std::string               port{"9999"};
-        std::chrono::milliseconds connect{std::chrono::seconds(5)};     // Per resolved address tried, then again for the opening handshake
-        std::chrono::milliseconds reply{std::chrono::seconds(10)};      // Commands and the replies read after them
-        std::chrono::milliseconds slots_reply{std::chrono::seconds(5)}; // The CFS slot query, extended to reply once a status reports a CFS connected
-        std::chrono::milliseconds close{std::chrono::seconds(3)};       // Closing handshake
+        std::chrono::milliseconds connect{std::chrono::seconds(5)};      // Per resolved address tried, then again for the opening handshake
+        std::chrono::milliseconds reply{std::chrono::seconds(10)};       // Commands and the replies read after them
+        std::chrono::milliseconds slots_reply{std::chrono::seconds(5)};  // The CFS slot query, extended to reply once a status reports a CFS connected
+        std::chrono::milliseconds no_cfs_reply{std::chrono::seconds(2)}; // The CFS slot query once a status reports no CFS connected
+        std::chrono::milliseconds files_reply{std::chrono::seconds(3)};  // The G-code file list query before a start, asked again within it
+        std::chrono::milliseconds files_retry{std::chrono::milliseconds(500)}; // The pause before asking again for a list without the upload
+        std::chrono::milliseconds close{std::chrono::seconds(3)};        // Closing handshake
     } ws_settings;
 
 private:
@@ -82,7 +85,10 @@ private:
     mutable std::string m_model;
 
     std::string make_url(const std::string& path) const;
-    bool start_print(wxString& msg, const std::string& filename, const std::map<std::string, std::string>& extended_info) const;
+    // remote_path is where the upload went under printer_data/gcodes.
+    bool start_print(wxString& msg, const std::string& remote_path, const std::map<std::string, std::string>& extended_info) const;
+    // The full path the printer lists remote_path at, or nothing when it does not list it. Throws when the printer cannot be reached.
+    std::string query_listed_gcode(const std::string& remote_path) const;
     std::string safe_filename(const std::string& filename) const;
     void query_model() const;
     // Reads /info and caches the model. When msg is not null, it gets a translated error, or on Windows the resolved address.

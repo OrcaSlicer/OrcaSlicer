@@ -9,6 +9,7 @@
 
 #include "clipper2/clipper.engine.h"
 #include "clipper2/clipper.h"
+#include <limits>
 #include <stdexcept>
 #include <new>
 #include <oneapi/tbb/scalable_allocator.h>
@@ -816,9 +817,18 @@ namespace Clipper2Lib {
       std::stable_sort(minima_list_.begin(), minima_list_.end(), LocMinSorter()); //#594
       minima_list_sorted_ = true;
     }
-    LocalMinimaList::const_reverse_iterator i;
-    for (i = minima_list_.rbegin(); i != minima_list_.rend(); ++i)
-      InsertScanline((*i)->vertex->pt.y);
+    // Orca: PopScanline() returns each pending y once, however many times it was inserted, so only the
+    // distinct ys of the local minima are queued. Sorted by descending y they already form a max-heap;
+    // inserting them one by one in ascending order made every insertion climb to the top of the heap.
+    std::vector<int64_t> minima_ys;
+    minima_ys.reserve(minima_list_.size());
+    for (const LocalMinima_ptr& lm : minima_list_)
+      if (minima_ys.empty() || minima_ys.back() != lm->vertex->pt.y)
+        minima_ys.push_back(lm->vertex->pt.y);
+    if (scanline_list_.empty())
+      scanline_list_ = std::priority_queue<int64_t>(std::less<int64_t>(), std::move(minima_ys));
+    else
+      for (int64_t y : minima_ys) InsertScanline(y);
 
     current_locmin_iter_ = minima_list_.begin();
     actives_ = nullptr;
@@ -882,7 +892,9 @@ namespace Clipper2Lib {
 
   void ClipperBase::InsertScanline(int64_t y)
   {
-    scanline_list_.push(y);
+    // Orca: a y already at the top is popped together with this one anyway.
+    if (scanline_list_.empty() || scanline_list_.top() != y)
+      scanline_list_.push(y);
   }
 
 
@@ -2136,10 +2148,12 @@ namespace Clipper2Lib {
   }
 
 
-  inline void ClipperBase::AdjustCurrXAndCopyToSEL(const int64_t top_y)
+  inline bool ClipperBase::AdjustCurrXAndCopyToSEL(const int64_t top_y)
   {
     Active* e = actives_;
     sel_ = e;
+    bool sorted = true;
+    int64_t prev_x = std::numeric_limits<int64_t>::min();
     while (e)
     {
       e->prev_in_sel = e->prev_in_ael;
@@ -2148,8 +2162,11 @@ namespace Clipper2Lib {
       // it is safe to ignore 'joined' edges here because
       // if necessary they will be split in IntersectEdges()
       e->curr_x = TopX(*e, top_y);
+      sorted = sorted && e->curr_x >= prev_x;
+      prev_x = e->curr_x;
       e = e->next_in_ael;
     }
+    return sorted;
   }
 
   bool ClipperBase::ExecuteInternal(ClipType ct, FillRule fillrule, bool use_polytrees)
@@ -2419,7 +2436,9 @@ namespace Clipper2Lib {
 
     //Calculate edge positions at the top of the current scanbeam, and from this
     //we will determine the intersections required to reach these new positions.
-    AdjustCurrXAndCopyToSEL(top_y);
+    // Orca: edges still in order have not crossed, which holds for most scanbeams, and the
+    // merge sort below would only confirm that in log2(n) passes over every edge.
+    if (AdjustCurrXAndCopyToSEL(top_y)) return false;
     //Find all edge intersections in the current scanbeam using a stable merge
     //sort that ensures only adjacent edges are intersecting. Intersect info is
     //stored in FIntersectList ready to be processed in ProcessIntersectList.
@@ -2970,8 +2989,14 @@ namespace Clipper2Lib {
     for (size_t idx = 0; idx < splits->size(); ++idx)
     {
       OutRec* split = (*splits)[idx]; 
-      if (!split->pts && split->splits &&
-        CheckSplitOwner(outrec, split->splits)) return true; //#942
+      if (!split->pts && split->splits)
+      {
+        if (split->recursive_split == outrec) continue;
+        split->recursive_split = outrec; // emptied OutRecs can reference each other
+
+        if (CheckSplitOwner(outrec, split->splits)) return true; //#942
+      }
+
       split = GetRealOutRec(split);
       if (!split || split == outrec || split->recursive_split == outrec) continue;
       split->recursive_split = outrec; // prevent infinite loops

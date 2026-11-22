@@ -32,7 +32,6 @@
 #include <wx/utils.h>
 #include <wx/string.h>
 #include <wx/stattext.h>
-#include <wx/tglbtn.h>
 
 #include "3DScene.hpp"
 #include "BitmapCache.hpp"
@@ -43,7 +42,7 @@
 #include "OpenGLManager.hpp"
 #include "Plater.hpp"
 #include "wxExtensions.hpp"
-#include "Widgets/CheckBox.hpp"
+#include "Widgets/LabeledCheckBox.hpp"
 #include "Widgets/SpinInput.hpp"
 #include "libslic3r/AppConfig.hpp"
 
@@ -2036,18 +2035,16 @@ UVEditorPanel::UVEditorPanel(wxWindow *parent) : wxPanel(parent, wxID_ANY)
                                  "texture not running continuously across the cut. Takes effect at the next Unwrap.");
     seam_label->SetToolTip(seam_tip);
     m_seam_angle->SetToolTip(seam_tip);
-    m_connect            = new ::CheckBox(this);
-    auto *connect_label  = text(_L("Connect islands"), c.ink);
-    const wxString connect_tip = _L("Lay the unwrap out as a connected net: pieces that share an edge are unfolded next to each "
-                                    "other (a cube becomes a joined net rather than six loose squares). They stay separate "
-                                    "islands, so you can still move any of them by hand afterwards.");
-    m_connect->SetToolTip(connect_tip);
-    connect_label->SetToolTip(connect_tip);
+    m_connect = new LabeledCheckBox(this, _L("Connect islands"));
+    m_connect->SetFont(GetFont()); // same as the other texts of the pane
+    m_connect->SetForegroundColour(c.ink);
+    m_connect->SetToolTip(_L("Lay the unwrap out as a connected net: pieces that share an edge are unfolded next to each "
+                             "other (a cube becomes a joined net rather than six loose squares). They stay separate "
+                             "islands, so you can still move any of them by hand afterwards."));
     settings->Add(seam_label, 0, wxALIGN_CENTER_VERTICAL);
     settings->Add(m_seam_angle, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
     settings->AddStretchSpacer();
     settings->Add(m_connect, 0, wxALIGN_CENTER_VERTICAL);
-    settings->Add(connect_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
 
     // ---- tool strip ----
     auto      *strip = new wxBoxSizer(wxVERTICAL);
@@ -2134,19 +2131,10 @@ UVEditorPanel::UVEditorPanel(wxWindow *parent) : wxPanel(parent, wxID_ANY)
         if (value != int(std::lround(m_canvas->pane_state().seam_angle_deg)))
             m_canvas->run_command(UVEditorCanvas::Command::SetSeamAngle, float(value));
     });
-    const auto send_connect = [this]() {
+    m_connect->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent &e) {
         if (m_connect->GetValue() != m_canvas->pane_state().connect_islands)
             m_canvas->run_command(UVEditorCanvas::Command::SetConnectIslands, m_connect->GetValue() ? 1.f : 0.f);
-    };
-    m_connect->Bind(wxEVT_TOGGLEBUTTON, [send_connect](wxCommandEvent &e) {
-        send_connect();
         e.Skip();
-    });
-    connect_label->Bind(wxEVT_LEFT_DOWN, [this, send_connect](wxMouseEvent &) {
-        if (!m_connect->IsEnabled())
-            return;
-        m_connect->SetValue(!m_connect->GetValue());
-        send_connect();
     });
 
     m_canvas->set_status_callback([this](const wxString &label) {
