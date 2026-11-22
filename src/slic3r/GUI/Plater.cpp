@@ -20147,23 +20147,25 @@ void Plater::increase_instances(size_t num)
     const Vec3d point_offset = base_offset - bbox.center();
     const Vec3d start_point  = in_current ? bbox.center() : (plate ? plate->get_build_volume().center() : bbox.center());
     
-    const double spacing = 1.0;
-    const Vec2f step(static_cast<float>(bbox.size()(0) + spacing), static_cast<float>(bbox.size()(1) + spacing));
+    const double arrange_spacing = wxGetApp().plater()->canvas3D()->get_arrange_settings().distance;
+    const double spacing         = arrange_spacing > 0.0 ? arrange_spacing : 1.0;
+    const Vec2f step(bbox.size()(0) + spacing, bbox.size()(1) + spacing);
+    
+    const double base_fallback_offset = canvas3D()->get_size_proportional_to_max_bed_size(0.05);
+    double fallback_offset            = base_fallback_offset;
 
-    const double offset_base = canvas3D()->get_size_proportional_to_max_bed_size(0.05);
-    double fallback_offset   = offset_base;
     for (size_t i = 0; i < num; i++) {
         const std::vector<Vec2f> empty_cells = canvas3D()->get_empty_cells(
-            {static_cast<float>(start_point(0)), static_cast<float>(start_point(1))}, step);
+            {start_point(0), start_point(1)}, step);
         Vec3d offset_vec;
 
         if (!empty_cells.empty()) {
             const Vec2f &empty_cell = empty_cells.front();
             offset_vec = Vec3d(empty_cell.x() + point_offset.x(), empty_cell.y() + point_offset.y(), base_offset(2));
         
-        } else {
+        } else { // fallback
             offset_vec = base_offset + Vec3d(fallback_offset, fallback_offset, 0.0);
-            fallback_offset += offset_base;
+            fallback_offset += base_fallback_offset;
         }
         
         // ORCA: Copy the whole transformation. Rebuilt from scale, rotation and mirror it loses a skew.

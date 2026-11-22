@@ -3341,12 +3341,14 @@ void Selection::paste_objects_from_clipboard()
     const bool  in_current  = plate->intersects(bbox_all);
     const Vec3d start_point = in_current ? bbox_all.center() : plate->get_build_volume().center();
 
-    const double spacing = 1.0;
+    const double arrange_spacing = wxGetApp().plater()->canvas3D()->get_arrange_settings().distance;
+    const double spacing         = arrange_spacing > 0.0 ? arrange_spacing : 1.0;
+    const Vec2f step(bbox_all.size()(0) + spacing, bbox_all.size()(1) + spacing);
+
     const Vec2f empty_cell  = m_model->objects.empty()
         ? Vec2f(start_point(0), start_point(1))
         : wxGetApp().plater()->canvas3D()->get_nearest_empty_cell(
-              {start_point(0), start_point(1)},
-              {bbox_all.size()(0) + spacing, bbox_all.size()(1) + spacing});
+              {start_point(0), start_point(1)}, step);
     const Vec3d delta(empty_cell.x() - bbox_all.center().x(),
                       empty_cell.y() - bbox_all.center().y(),
                       0.0);
@@ -3357,7 +3359,7 @@ void Selection::paste_objects_from_clipboard()
         for (ModelInstance *inst : dst_object->instances) {
             inst->set_offset(inst->get_offset() + delta);
 
-            //BBS init asssmble transformation
+            // init asssmble transformation
             Geometry::Transformation t = inst->get_transformation();
             inst->set_assemble_transformation(t);
         }
