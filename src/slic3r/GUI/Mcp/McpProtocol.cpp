@@ -151,14 +151,14 @@ McpProtocol::McpProtocol(const CommandCatalog& catalog, ToolCaller& caller, Serv
 json McpProtocol::tool_to_json(const NativeCommand& def)
 {
     json t{{"name", def.key}, {"description", def.description}, {"inputSchema", def.input_schema}};
+    // The tool's own title, which protocol 2025-06-18 added and every version this server speaks has; the older
+    // annotations.title it takes precedence over would only repeat it.
     if (!def.title.empty())
         t["title"] = def.title;
     t["annotations"] = {{"readOnlyHint", def.read_only},
                         {"destructiveHint", def.destructive},
                         {"idempotentHint", def.idempotent},
                         {"openWorldHint", def.open_world}};
-    if (!def.title.empty())
-        t["annotations"]["title"] = def.title;
     return t;
 }
 

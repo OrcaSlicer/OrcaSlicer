@@ -9,7 +9,8 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 
 namespace {
 
-// Server instructions shown to the model; clients truncate them at 4096 characters.
+// Server instructions shown to the model; clients truncate them at 4096 characters. They hold what every command
+// relies on and no one command's description can say once for all: what a command's own description says stays there.
 const char* kInstructions =
     "OrcaSlicer, a 3D-printing slicer, driven through its GUI.\n"
     "Workflow: app_state (ready? which presets, plates, dialogs?) -> act -> check with object_list, plate_list, "
@@ -41,6 +42,8 @@ const char* kInstructions =
     "description.\n"
     "- Objects, parts and plates are 0-based, as object_list and plate_list number them; filament slots and Preview "
     "layers are 1-based.\n"
+    "- object_id, part_id and the *_ids lists are optional guards, the ids object_list reports: a call whose index now "
+    "names another object or part is refused.\n"
     "- Lists come in pages: {items, offset, total}, next_offset while more remain (call again with it); object_list "
     "has plates and outside for items.\n"
     "- Paths are absolute; an output replaces a file only with overwrite: true.\n"
@@ -56,11 +59,7 @@ const char* kInstructions =
     "buttons are ImGui items for widget_set_value / widget_click, and painting is a mouse_gesture drag from the "
     "object. Move the camera with view_set, never a drag, which follows the user's mouse settings. gizmo_pick_file "
     "stands in for a file picker inside an open gizmo.\n"
-    "- window_screenshot returns a downscaled image plus the full-size PNG path; target \"canvas\" is the 3D view.\n"
-    "- recording_start / recording_stop record a video (MJPEG .mkv), optionally captioned with the tool calls, the "
-    "pointer highlighted; with encode, recording_stop encodes it to MP4 (system ffmpeg) as a job, and "
-    "recording_encode encodes any later; an encode deletes this session's .mkv once the MP4 is written, unless "
-    "keep_raw_video_file.";
+    "- window_screenshot returns a downscaled image plus the full-size PNG path; target \"canvas\" is the 3D view.";
 
 } // namespace
 

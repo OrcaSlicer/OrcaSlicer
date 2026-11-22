@@ -258,18 +258,16 @@ std::vector<Property> target_props(unsigned kinds, bool one)
     }
     if (kinds & kObjects) {
         out.emplace_back("objects", array_prop({{"type", "integer"}}, "Object indices."));
-        out.emplace_back("object_ids", array_prop({{"type", "integer"}}, "The ids object_list reports for objects, one per entry: refused "
-                                                                         "when an index names another object now."));
+        out.emplace_back("object_ids", array_prop({{"type", "integer"}}, "Optional guard: the objects' ids in object_list, one each."));
     }
     if (kinds & kInstances) {
         out.emplace_back("instances", array_prop({{"type", "array"}}, "[[object, instance], ...]"));
-        out.emplace_back("instance_object_ids", array_prop({{"type", "integer"}}, "The ids object_list reports for the objects of instances, "
-                                                                                  "one per entry: refused when a pair names another object now."));
+        out.emplace_back("instance_object_ids", array_prop({{"type", "integer"}}, "Optional guard: the ids in object_list of the "
+                                                                                  "instances' objects, one each."));
     }
     if (kinds & kParts) {
         out.emplace_back("parts", array_prop({{"type", "array"}}, "[[object, part], ...]"));
-        out.emplace_back("part_ids", array_prop({{"type", "integer"}}, "The ids object_list reports for the entries of parts, one per entry: "
-                                                                       "refused when a pair names another part now."));
+        out.emplace_back("part_ids", array_prop({{"type", "integer"}}, "Optional guard: the parts' ids in object_list, one each."));
     }
     return out;
 }

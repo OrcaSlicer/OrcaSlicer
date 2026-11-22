@@ -116,6 +116,9 @@ job, that a call with exactly a Speed Dial action's arguments may ask as a perso
 runs from its arguments, say how a gizmo opens and is
 driven (and that `gizmo_pick_file` only stands in for a file picker inside one, since its name draws agents to
 it for any gizmo work), that the camera turns with `view_set` rather than a drag, and which indices are 0-based.
+They say what the expected ids are (`object_id`, `part_id` and the `*_ids` lists: optional guards, refusing a call
+whose index now names another object or part), once, where each of the many schemas that take one only names it.
+What one command's description says, such as how `recording_start` records, stays there.
 
 ## Security, token and discovery
 
@@ -694,6 +697,9 @@ part) or asks about (a cut object), and `Ops::deleted_targets()` finds what went
 moved the indices. A plate command with no `plate` acts on the current plate, and its
 reply names it.
 
+A tool's `title` goes out once, at the top level, which protocol 2025-06-18 added and every version the server
+negotiates has; `annotations.title`, which it takes precedence over, would only repeat it.
+
 Each tool also has an access label, which `tools/list` sends as MCP's annotations. Clients act on it
 differently: Codex asks a person before every call of a destructive tool (unless it is also read-only),
 and its `writes` mode before every call of a tool that is not read-only; Claude Code asks by its own
@@ -742,8 +748,8 @@ Descriptions keep one order: what the tool does, the arguments that change it, `
 fields it has, then edge cases; a long one puts each case on a line of its own (the types and targets
 of `settings_get` and `settings_set`, `widget_click`'s web pages). What several tools share is written once,
 since every session loads the whole tool list: the locator grammar in `widget_list`'s description,
-which hands out the refs, each `target` giving two examples and pointing there; the paging shape in
-the server instructions.
+which hands out the refs, each `target` giving two examples and pointing there; the paging shape, that a
+ref stays good across listings and what an expected id does in the server instructions.
 
 An argument name means one thing across the tools, so what an agent learns from one tool holds for
 the next. `target` is the window or element a UI tool acts on (a ref, a locator, or `main`, `dialog`

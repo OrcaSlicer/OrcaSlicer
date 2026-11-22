@@ -68,10 +68,10 @@ using namespace std::chrono_literals;
 
 namespace {
 
-// The locator grammar is spelled out once, in widget_list's description, which hands out the refs.
+// The locator grammar is spelled out once, in widget_list's description, which hands out the refs, and that a ref
+// stays good across later listings in the server instructions.
 const json kTargetSchema = {{"type", json::array({"string", "object"})},
-                            {"description", "A ref widget_list gave (\"w12\"), which later listings leave good (one refused as stale or "
-                                            "unknown needs a new listing), or a locator, such as {label: \"OK\", within: "
+                            {"description", "A ref widget_list gave (\"w12\") or a locator, such as {label: \"OK\", within: "
                                             "\"Preferences\"} or {menu: \"File>Export>Export G-code\"}; widget_list's description "
                                             "lists every kind."}};
 
@@ -130,9 +130,9 @@ NativeCommand recover_input_tool(std::string name, std::string title, std::strin
     return d;
 }
 
-const json kPopupItemSchema = prop("string", "Run this item of the menu the input opens (a right click's context menu, a button's menu), "
-                                             "by its label path, \"Add Modifier>Cylinder\"; \"#2\" picks a repeated label's second item. "
-                                             "Without it, such a menu is listed in the reply (popup_menu), not shown.");
+const json kPopupItemSchema = prop("string", "The item to run of a menu the input opens (a context menu, a button's menu), by "
+                                             "label path (\"Add Modifier>Cylinder\"; \"#2\": a repeated label's second). Without "
+                                             "it the reply lists the menu (popup_menu) instead of showing it.");
 
 // The menu an input call may open, which the inspector takes instead of showing it
 // (UiInspector::arm_menu()): armed in the closure that delivers the input, read once the events the

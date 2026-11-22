@@ -39,6 +39,7 @@ struct Fixture
     {
         NativeCommand echo;
         echo.key          = "echo";
+        echo.title        = "Echo";
         echo.listed       = true;
         echo.description  = "Echo text back.";
         echo.read_only    = true;
@@ -127,6 +128,10 @@ TEST_CASE("tools/list keeps registration order and maps annotations", "[Mcp]")
     CHECK(tools[1]["annotations"]["destructiveHint"] == true);
     CHECK(tools[1]["annotations"]["openWorldHint"] == true);
     CHECK(tools[0]["inputSchema"]["required"][0] == "text");
+    // The title is the tool's own, which every protocol version the server speaks has; the annotations don't repeat it.
+    CHECK(tools[0]["title"] == "Echo");
+    CHECK_FALSE(tools[0]["annotations"].contains("title"));
+    CHECK_FALSE(tools[1].contains("title"));
 }
 
 TEST_CASE("a reply's numbers reach the client with the digits that say something", "[Mcp]")

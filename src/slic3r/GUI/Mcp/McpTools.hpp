@@ -169,7 +169,8 @@ AppActionRunResult quiet_refusal(const Ops::Refusal& refusal);
 // ---- expected object IDs ---------------------------------------------------------------------
 
 // The schema of an expected ID argument: the id object_list reports for an object or part (`of`), which
-// orca.host shows too, so a script addresses what it read.
+// orca.host shows too, so a script addresses what it read. Its description only names the guard: what a guard
+// does is said once, in the server instructions, rather than in each of the many schemas that have one.
 nlohmann::json expected_id_prop(const char* of);
 // `command` with its id_args: the expected-id arguments its schema has (object_id and part_id, as
 // expected_id_prop() describes them, and object_select's object_ids, part_ids and instance_object_ids). Ids are

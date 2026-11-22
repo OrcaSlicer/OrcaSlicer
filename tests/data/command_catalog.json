@@ -1175,7 +1175,7 @@
       "type": "string"
      },
      "object_ids": {
-      "description": "The ids object_list reports for objects, one per entry: refused when an index names another object now.",
+      "description": "Optional guard: the objects' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -1381,7 +1381,7 @@
       "type": "boolean"
      },
      "instance_object_ids": {
-      "description": "The ids object_list reports for the objects of instances, one per entry: refused when a pair names another object now.",
+      "description": "Optional guard: the ids in object_list of the instances' objects, one each.",
       "items": {
        "type": "integer"
       },
@@ -1399,7 +1399,7 @@
       "type": "boolean"
      },
      "object_ids": {
-      "description": "The ids object_list reports for objects, one per entry: refused when an index names another object now.",
+      "description": "Optional guard: the objects' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -1413,7 +1413,7 @@
       "type": "array"
      },
      "part_ids": {
-      "description": "The ids object_list reports for the entries of parts, one per entry: refused when a pair names another part now.",
+      "description": "Optional guard: the parts' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -1470,7 +1470,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "description": "Optional guard: the object's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -1480,7 +1480,7 @@
       "type": "integer"
      },
      "part_id": {
-      "description": "The id object_list reports for this part: the call is refused when the index names another one now.",
+      "description": "Optional guard: the part's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -1863,7 +1863,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "description": "Optional guard: the object's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -1913,7 +1913,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "description": "Optional guard: the object's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -1976,7 +1976,7 @@
       "type": "boolean"
      },
      "instance_object_ids": {
-      "description": "The ids object_list reports for the objects of instances, one per entry: refused when a pair names another object now.",
+      "description": "Optional guard: the ids in object_list of the instances' objects, one each.",
       "items": {
        "type": "integer"
       },
@@ -1990,7 +1990,7 @@
       "type": "array"
      },
      "object_ids": {
-      "description": "The ids object_list reports for objects, one per entry: refused when an index names another object now.",
+      "description": "Optional guard: the objects' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -2004,7 +2004,7 @@
       "type": "array"
      },
      "part_ids": {
-      "description": "The ids object_list reports for the entries of parts, one per entry: refused when a pair names another part now.",
+      "description": "Optional guard: the parts' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -2075,7 +2075,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "description": "Optional guard: the object's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -2085,7 +2085,7 @@
       "type": "integer"
      },
      "part_id": {
-      "description": "The id object_list reports for this part: the call is refused when the index names another one now.",
+      "description": "Optional guard: the part's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -2173,7 +2173,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "description": "Optional guard: the object's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -2218,7 +2218,7 @@
     "additionalProperties": false,
     "properties": {
      "instance_object_ids": {
-      "description": "The ids object_list reports for the objects of instances, one per entry: refused when a pair names another object now.",
+      "description": "Optional guard: the ids in object_list of the instances' objects, one each.",
       "items": {
        "type": "integer"
       },
@@ -2237,7 +2237,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "description": "Optional guard: the object's id in object_list.",
       "minimum": 0,
       "type": "integer"
      }
@@ -2316,7 +2316,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "description": "Optional guard: the object's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -2366,7 +2366,7 @@
     "additionalProperties": false,
     "properties": {
      "object_ids": {
-      "description": "The ids object_list reports for objects, one per entry: refused when an index names another object now.",
+      "description": "Optional guard: the objects' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -2511,7 +2511,7 @@
     "additionalProperties": false,
     "properties": {
      "object_ids": {
-      "description": "The ids object_list reports for objects, one per entry: refused when an index names another object now.",
+      "description": "Optional guard: the objects' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -2525,7 +2525,7 @@
       "type": "array"
      },
      "part_ids": {
-      "description": "The ids object_list reports for the entries of parts, one per entry: refused when a pair names another part now.",
+      "description": "Optional guard: the parts' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -2603,7 +2603,7 @@
       "type": "string"
      },
      "object_ids": {
-      "description": "The ids object_list reports for objects, one per entry: refused when an index names another object now.",
+      "description": "Optional guard: the objects' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -2617,7 +2617,7 @@
       "type": "array"
      },
      "part_ids": {
-      "description": "The ids object_list reports for the entries of parts, one per entry: refused when a pair names another part now.",
+      "description": "Optional guard: the parts' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -2667,7 +2667,7 @@
     "additionalProperties": false,
     "properties": {
      "object_ids": {
-      "description": "The ids object_list reports for objects, one per entry: refused when an index names another object now.",
+      "description": "Optional guard: the objects' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -2719,7 +2719,7 @@
     "additionalProperties": false,
     "properties": {
      "object_ids": {
-      "description": "The ids object_list reports for objects, one per entry: refused when an index names another object now.",
+      "description": "Optional guard: the objects' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -2766,7 +2766,7 @@
     "additionalProperties": false,
     "properties": {
      "object_ids": {
-      "description": "The ids object_list reports for objects, one per entry: refused when an index names another object now.",
+      "description": "Optional guard: the objects' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -2847,7 +2847,7 @@
     "additionalProperties": false,
     "properties": {
      "instance_object_ids": {
-      "description": "The ids object_list reports for the objects of instances, one per entry: refused when a pair names another object now.",
+      "description": "Optional guard: the ids in object_list of the instances' objects, one each.",
       "items": {
        "type": "integer"
       },
@@ -2861,7 +2861,7 @@
       "type": "array"
      },
      "object_ids": {
-      "description": "The ids object_list reports for objects, one per entry: refused when an index names another object now.",
+      "description": "Optional guard: the objects' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -2936,7 +2936,7 @@
       "type": "boolean"
      },
      "object_ids": {
-      "description": "The ids object_list reports for objects, one per entry: refused when an index names another object now.",
+      "description": "Optional guard: the objects' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -3010,7 +3010,7 @@
       "type": "boolean"
      },
      "object_ids": {
-      "description": "The ids object_list reports for objects, one per entry: refused when an index names another object now.",
+      "description": "Optional guard: the objects' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -3024,7 +3024,7 @@
       "type": "array"
      },
      "part_ids": {
-      "description": "The ids object_list reports for the entries of parts, one per entry: refused when a pair names another part now.",
+      "description": "Optional guard: the parts' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -3104,7 +3104,7 @@
       "type": "integer"
      },
      "object_ids": {
-      "description": "The ids object_list reports for objects, one per entry: refused when an index names another object now.",
+      "description": "Optional guard: the objects' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -3171,7 +3171,7 @@
       "type": "boolean"
      },
      "object_ids": {
-      "description": "The ids object_list reports for objects, one per entry: refused when an index names another object now.",
+      "description": "Optional guard: the objects' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -3185,7 +3185,7 @@
       "type": "array"
      },
      "part_ids": {
-      "description": "The ids object_list reports for the entries of parts, one per entry: refused when a pair names another part now.",
+      "description": "Optional guard: the parts' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -3335,7 +3335,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "description": "Optional guard: the object's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -3412,7 +3412,7 @@
     "additionalProperties": false,
     "properties": {
      "object_ids": {
-      "description": "The ids object_list reports for objects, one per entry: refused when an index names another object now.",
+      "description": "Optional guard: the objects' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -3479,7 +3479,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "description": "Optional guard: the object's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -3489,7 +3489,7 @@
       "type": "integer"
      },
      "part_id": {
-      "description": "The id object_list reports for this part: the call is refused when the index names another one now.",
+      "description": "Optional guard: the part's id in object_list.",
       "minimum": 0,
       "type": "integer"
      }
@@ -3583,7 +3583,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "description": "Optional guard: the object's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -3716,7 +3716,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "description": "Optional guard: the object's id in object_list.",
       "minimum": 0,
       "type": "integer"
      }
@@ -3812,7 +3812,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "description": "Optional guard: the object's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -3870,7 +3870,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "description": "Optional guard: the object's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -3941,7 +3941,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "description": "Optional guard: the object's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -3987,7 +3987,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "description": "Optional guard: the object's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -4120,7 +4120,7 @@
     "additionalProperties": false,
     "properties": {
      "part_ids": {
-      "description": "The ids object_list reports for the entries of parts, one per entry: refused when a pair names another part now.",
+      "description": "Optional guard: the parts' ids in object_list, one each.",
       "items": {
        "type": "integer"
       },
@@ -4216,7 +4216,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "description": "Optional guard: the object's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -4226,7 +4226,7 @@
       "type": "integer"
      },
      "part_id": {
-      "description": "The id object_list reports for this part: the call is refused when the index names another one now.",
+      "description": "Optional guard: the part's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -4288,7 +4288,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "description": "Optional guard: the object's id in object_list.",
       "minimum": 0,
       "type": "integer"
      }
@@ -5561,7 +5561,7 @@
       "type": "integer"
      },
      "object_id": {
-      "description": "The id object_list reports for this object: the call is refused when the index names another one now.",
+      "description": "Optional guard: the object's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -5571,7 +5571,7 @@
       "type": "integer"
      },
      "part_id": {
-      "description": "The id object_list reports for this part: the call is refused when the index names another one now.",
+      "description": "Optional guard: the part's id in object_list.",
       "minimum": 0,
       "type": "integer"
      },
@@ -19375,11 +19375,11 @@
       "type": "array"
      },
      "popup_item": {
-      "description": "Run this item of the menu the input opens (a right click's context menu, a button's menu), by its label path, \"Add Modifier>Cylinder\"; \"#2\" picks a repeated label's second item. Without it, such a menu is listed in the reply (popup_menu), not shown.",
+      "description": "The item to run of a menu the input opens (a context menu, a button's menu), by label path (\"Add Modifier>Cylinder\"; \"#2\": a repeated label's second). Without it the reply lists the menu (popup_menu) instead of showing it.",
       "type": "string"
      },
      "target": {
-      "description": "A ref widget_list gave (\"w12\"), which later listings leave good (one refused as stale or unknown needs a new listing), or a locator, such as {label: \"OK\", within: \"Preferences\"} or {menu: \"File>Export>Export G-code\"}; widget_list's description lists every kind.",
+      "description": "A ref widget_list gave (\"w12\") or a locator, such as {label: \"OK\", within: \"Preferences\"} or {menu: \"File>Export>Export G-code\"}; widget_list's description lists every kind.",
       "type": [
        "string",
        "object"
@@ -19428,7 +19428,7 @@
       "type": "boolean"
      },
      "target": {
-      "description": "A ref widget_list gave (\"w12\"), which later listings leave good (one refused as stale or unknown needs a new listing), or a locator, such as {label: \"OK\", within: \"Preferences\"} or {menu: \"File>Export>Export G-code\"}; widget_list's description lists every kind.",
+      "description": "A ref widget_list gave (\"w12\") or a locator, such as {label: \"OK\", within: \"Preferences\"} or {menu: \"File>Export>Export G-code\"}; widget_list's description lists every kind.",
       "type": [
        "string",
        "object"
@@ -19478,11 +19478,11 @@
       "type": "string"
      },
      "popup_item": {
-      "description": "Run this item of the menu the input opens (a right click's context menu, a button's menu), by its label path, \"Add Modifier>Cylinder\"; \"#2\" picks a repeated label's second item. Without it, such a menu is listed in the reply (popup_menu), not shown.",
+      "description": "The item to run of a menu the input opens (a context menu, a button's menu), by label path (\"Add Modifier>Cylinder\"; \"#2\": a repeated label's second). Without it the reply lists the menu (popup_menu) instead of showing it.",
       "type": "string"
      },
      "target": {
-      "description": "A ref widget_list gave (\"w12\"), which later listings leave good (one refused as stale or unknown needs a new listing), or a locator, such as {label: \"OK\", within: \"Preferences\"} or {menu: \"File>Export>Export G-code\"}; widget_list's description lists every kind.",
+      "description": "A ref widget_list gave (\"w12\") or a locator, such as {label: \"OK\", within: \"Preferences\"} or {menu: \"File>Export>Export G-code\"}; widget_list's description lists every kind.",
       "type": [
        "string",
        "object"
@@ -19631,7 +19631,7 @@
       "type": "array"
      },
      "popup_item": {
-      "description": "Run this item of the menu the input opens (a right click's context menu, a button's menu), by its label path, \"Add Modifier>Cylinder\"; \"#2\" picks a repeated label's second item. Without it, such a menu is listed in the reply (popup_menu), not shown.",
+      "description": "The item to run of a menu the input opens (a context menu, a button's menu), by label path (\"Add Modifier>Cylinder\"; \"#2\": a repeated label's second). Without it the reply lists the menu (popup_menu) instead of showing it.",
       "type": "string"
      },
      "steps": {
