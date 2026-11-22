@@ -934,7 +934,10 @@ struct WipeTowerData
     BoundingBoxf                                          bbx;//including brim
     Vec2f                                                 rib_offset;
     std::optional<WipeTowerMeshData>                      wipe_tower_mesh_data;//added rib_offset
+    // Layers that print nothing but the tower of an object printed by itself; they never join the object's own support layers.
+    std::vector<std::shared_ptr<SupportLayer>>            support_layers;
     void clear() {
+        support_layers.clear();
         priming.reset(nullptr);
         tool_changes.clear();
         final_purge.reset(nullptr);
@@ -1223,6 +1226,12 @@ public:
     // Whether this plate gives its multi-filament objects a prime tower each: the "Prime tower per object" setting
     // in a "By object" print of several instances, which the dynamic filament-to-nozzle grouping rules out.
     bool                        has_object_wipe_towers() const;
+    // The prime tower generated for an object, or nullptr when the object has none (it prints one filament, or the
+    // tower has no content). Every copy of the object shares it; where each copy's tower stands is in
+    // object_wipe_tower_placements().
+    const WipeTowerData*        object_wipe_tower_data(const PrintObject *object) const;
+    const ObjectWipeTowerPlacements &object_wipe_tower_placements() const { return m_object_wipe_tower_placements; }
+    const std::vector<StringObjectException> &object_wipe_tower_placement_warnings() const { return m_object_wipe_tower_placement_warnings; }
     ObjectWipeTowerPlacements   estimate_object_wipe_tower_placements(std::vector<StringObjectException> *warnings = nullptr) const;
     const ToolOrdering& 		tool_ordering() const { return m_tool_ordering; }
 
@@ -1513,6 +1522,12 @@ private:
 
     void                _make_skirt();
     void                _make_wipe_tower();
+    // Generates the tower of `object`, or the plate tower into m_wipe_tower_data when no object is given.
+    void                _make_wipe_tower(WipeTowerData &data, PrintObject *object);
+    void                _make_object_wipe_towers();
+    // Stands each generated object tower beside its instance, or leaves the instance without one when there is no room.
+    void                _place_object_wipe_towers();
+    ObjectWipeTowerPlacements _object_wipe_tower_placements(bool generated, std::vector<StringObjectException> *warnings) const;
     // Belt mode: route filament-change purging into the belt purge prism
     // (flush-into-objects) without generating a classic wipe tower.
     void                _plan_belt_purge();
@@ -1608,6 +1623,11 @@ private:
     // Following section will be consumed by the GCodeGenerator.
     ToolOrdering 							m_tool_ordering;
     WipeTowerData                           m_wipe_tower_data {m_tool_ordering};
+    // Prime towers of the objects of a "By object" print, keyed by object; the data refers to the ordering stored beside it.
+    std::map<const PrintObject*, ToolOrdering>                  m_object_wipe_tower_orderings;
+    std::map<const PrintObject*, std::unique_ptr<WipeTowerData>> m_object_wipe_tower_data;
+    ObjectWipeTowerPlacements               m_object_wipe_tower_placements;
+    std::vector<StringObjectException>      m_object_wipe_tower_placement_warnings;
 
     // Estimated print time, filament consumed.
     PrintStatistics                         m_print_statistics;
