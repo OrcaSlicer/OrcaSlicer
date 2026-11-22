@@ -1077,7 +1077,13 @@ TEST_CASE("Walls printed by a nozzle with overhang speed on match a print with i
     const int layer_count = int(std::lround(wedge_height / caged_layer_height));
     for (int layer = 2; layer <= layer_count; ++layer) {
         const double print_z = layer * caged_layer_height;
-        INFO("slope at z = " << print_z);
+        INFO("z = " << print_z);
+        // The supported back wall keeps the wall speed, so the print with overhang speed on for every nozzle measures
+        // each layer against a layer below, not against none, which would slow both prints alike.
+        const std::vector<double> back_wall = wedge_wall_feed_rates(always_on, print_z, false);
+        REQUIRE_FALSE(back_wall.empty());
+        for (const double feed_rate : back_wall)
+            CHECK_THAT(feed_rate / MM_PER_MIN, Catch::Matchers::WithinRel(caged_outer_wall_speed, 0.01));
         const std::vector<double> expected = wedge_wall_feed_rates(always_on, print_z, true);
         REQUIRE_FALSE(expected.empty());
         // The slope is slowed down, so matching speeds are not merely the wall speed.
