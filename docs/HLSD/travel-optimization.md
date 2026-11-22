@@ -108,12 +108,16 @@ order, such as monotonic, would print all of its lines and then come back for
 every piece of gap fill, most of which lies at the walls where the lines end.
 
 So each piece, in turn, goes between the two extrusions of the fill where it
-adds the least travel, flipped when that is shorter. A closed piece counts from
-its point nearest the nozzle, where `GCode::extrude_loop()` starts it. The two
-ends of the fill cost nothing, since the travel to and from them depends on what
-is printed before and after. The fill's own extrusions keep their order and
-direction, so a monotonic fill stays monotonic. When the result travels no less
-than the gap fill printed after the lines in its own order, that order is kept.
+adds the least travel, flipped when that is shorter. A piece fills what the
+extrusions around it left, so it only goes after the last extrusion of the fill
+that passes within half its widest width and a line spacing of it: a spiral
+that starts at a gap in its middle prints that gap when it is done. A closed
+piece counts from its point nearest the nozzle, where `GCode::extrude_loop()`
+starts it. The two ends of the fill cost nothing, since the travel to and from
+them depends on what is printed before and after. The fill's own extrusions keep
+their order and direction, so a monotonic fill stays monotonic. When the result
+travels no less than the gap fill printed after the lines in its own order, that
+order is kept.
 
 ## The search
 

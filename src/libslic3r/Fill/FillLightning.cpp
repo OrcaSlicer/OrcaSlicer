@@ -42,6 +42,7 @@ void Filler::_fill_surface_single(
     multiline_fill(fill_lines, params, spacing);
 
     fill_lines = Slic3r::intersection_pl(std::move(fill_lines), expolygon);
+    join_cut_outlines(fill_lines, params);
 
     chain_or_connect_infill(std::move(fill_lines), expolygon, polylines_out, this->spacing, params);
 }

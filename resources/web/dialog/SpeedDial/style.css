@@ -55,6 +55,8 @@ body {
 
 .fav-tile {
     flex: 0 0 auto;
+    /* why: anchors the absolutely positioned Alt/Option slot badge in the tile's corner. */
+    position: relative;
     /* keep tiles full-size; don't shrink to fit - scroll instead */
     width: 30px;
     height: 30px;
@@ -76,38 +78,6 @@ body {
 .fav-tile.sel {
     outline: 2px solid var(--main-color, var(--orca-accent, #009688));
     outline-offset: 2px;
-}
-
-/* Hover-revealed remove button in the tile's corner; sits inside the tile bounds so overflow:hidden clips it. */
-.fav-tile {
-    position: relative;
-}
-
-.fav-unpin {
-    position: absolute;
-    top: 1px;
-    right: 1px;
-    width: 13px;
-    height: 13px;
-    padding: 0;
-    border: 0;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--muted, var(--orca-muted, #6b7280));
-    background: rgba(127, 127, 127, .35);
-    cursor: pointer;
-    opacity: 0;
-}
-
-.fav-tile:hover .fav-unpin,
-.fav-tile.sel .fav-unpin {
-    opacity: 1;
-}
-
-.fav-unpin:hover {
-    background: rgba(127, 127, 127, .6);
 }
 
 /* Numbered quick-launch slot (Alt/Option+digit), top-left corner of the fav tile. */
@@ -513,8 +483,8 @@ body {
     text-align: center;
 }
 
-/* Footer detail strip: the selected action's description, its wiki link and the expand/collapse
-   arrow. Auto-sizes to the content; the description is clamped to 6 lines. */
+/* Footer detail strip: the highlighted (or hovered) action's description, its wiki link and the
+   expand/collapse arrow. Auto-sizes to the content; the description is clamped to 6 lines. */
 .dial-detail {
     flex: 0 0 auto;
     display: flex;

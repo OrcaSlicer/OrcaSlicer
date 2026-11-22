@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-26 21:45+0800\n"
+"POT-Creation-Date: 2026-11-06 11:06-0600\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -1950,17 +1950,17 @@ msgid "Selection 1"
 msgstr "Auswahl 1"
 
 msgid ""
-"Select 2 faces on objects and \n"
-" make objects assemble together."
+"Select 2 faces on objects and\n"
+"make objects assemble together."
 msgstr ""
-"Wählen Sie 2 Flächen auf Objekten aus und \n"
+"Wählen Sie 2 Flächen auf Objekten aus und\n"
 "lassen Sie die Objekte zusammenfügen."
 
 msgid ""
-"Select 2 points or circles on objects and \n"
-" specify distance between them."
+"Select 2 points or circles on objects and\n"
+"specify distance between them."
 msgstr ""
-"Wählen Sie 2 Punkte oder Kreise auf Objekten aus und \n"
+"Wählen Sie 2 Punkte oder Kreise auf Objekten aus und\n"
 "geben Sie den Abstand zwischen ihnen an."
 
 # AI Translated
@@ -2047,11 +2047,11 @@ msgstr "Warnung: Bitte wählen Sie die Funktion des Punktes oder Kreises."
 
 msgid ""
 "It is recommended to assemble objects first,\n"
-"because they are restricted to the bed \n"
+"because they are restricted to the bed\n"
 "and only parts can be lifted."
 msgstr ""
 "Es wird empfohlen, die Objekte zuerst zusammenzubauen,\n"
-"da sie auf das Druckbett beschränkt sind \n"
+"da sie auf das Druckbett beschränkt sind\n"
 "und nur Teile angehoben werden können."
 
 msgid "Face and face assembly"
@@ -2242,6 +2242,18 @@ msgstr "Falsches Passwort"
 #, c-format, boost-format
 msgid "Connect %s failed! [SN:%s, code=%s]"
 msgstr "Verbindung zu %s fehlgeschlagen! [SN:%s, code=%s]"
+
+# AI Translated
+msgid "Check that the printer is on the same network as this computer and that its IP address is correct."
+msgstr "Überprüfen Sie, ob sich der Drucker im selben Netzwerk wie dieser Computer befindet und ob seine IP-Adresse korrekt ist."
+
+# AI Translated
+msgid "If the connection still fails, try a different network plug-in version in Preferences."
+msgstr "Wenn die Verbindung weiterhin fehlschlägt, versuchen Sie in den Einstellungen eine andere Version des Netzwerk-Plugins."
+
+# AI Translated
+msgid "A missing or damaged TLS/CA certificate in 'printer.cer' can also cause this error."
+msgstr "Auch ein fehlendes oder beschädigtes TLS/CA-Zertifikat in 'printer.cer' kann diesen Fehler verursachen."
 
 msgid ""
 "Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\n"
@@ -3277,8 +3289,9 @@ msgstr "Duplizieren"
 msgid "Simplify Model"
 msgstr "Modell vereinfachen"
 
-msgid "Subdivision mesh (Lost color)"
-msgstr "Netzunterteilung (Farbe verloren)"
+# AI Translated
+msgid "Subdivision mesh"
+msgstr "Netzunterteilung"
 
 msgid "Center"
 msgstr "Zur Mitte"
@@ -3436,6 +3449,26 @@ msgstr "Fehler!"
 msgid "Failed to get the model data in the current file."
 msgstr "Fehler beim Abrufen der Modell-Daten in der aktuellen Datei."
 
+msgid "X"
+msgstr "X"
+
+msgid "Y"
+msgstr "Y"
+
+# AI Translated
+msgid "Z"
+msgstr "Z"
+
+# AI Translated
+#. TRN Size of a torus (ring): the diameter of its hole and the thickness of the ring.
+msgid "Inner diameter"
+msgstr "Innendurchmesser"
+
+# AI Translated
+# Needs human review: Torus size field in the primitive size dialog: the thickness of the ring (tube cross-section). Check that the word reads right next to Innendurchmesser.
+msgid "Tube diameter"
+msgstr "Rohrdurchmesser"
+
 # AI Translated
 msgid "Add primitive"
 msgstr "Primitiv hinzufügen"
@@ -3493,11 +3526,11 @@ msgstr "Das Löschen des letzten festen Teils ist nicht erlaubt."
 msgid "Delete part"
 msgstr "Teil löschen"
 
-msgid "The target object contains only one part and can not be split."
-msgstr "Das Zielobjekt enthält nur ein Teil und kann nicht geteilt werden."
-
 msgid "Split to parts"
 msgstr "In Teile trennen"
+
+msgid "The target object contains only one part and can not be split."
+msgstr "Das Zielobjekt enthält nur ein Teil und kann nicht geteilt werden."
 
 msgid "Assembly"
 msgstr "Zusammenbau"
@@ -4342,8 +4375,9 @@ msgstr "Sende G-Code-Datei an SD-Karte"
 msgid "Successfully sent. Close current page in %s s"
 msgstr "Erfolgreich gesendet. Aktuelle Seite wird in %s s geschlossen"
 
-msgid "Storage needs to be inserted before sending to printer."
-msgstr "Speicher muss vor dem Senden an den Drucker eingelegt werden."
+# AI Translated
+msgid "Insert storage or free up space before sending to the printer."
+msgstr "Legen Sie vor dem Senden an den Drucker einen Speicher ein oder geben Sie Speicherplatz frei."
 
 # AI Translated
 msgid "Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."
@@ -5494,6 +5528,7 @@ msgid "Select automatic or painted brim ears on a printer without a tilted belt 
 msgstr "Wählen Sie auf einem Drucker ohne geneigtes Förderband den Randtyp „Mausohren“ oder „Bemalt“, um diese Einstellung zu verwenden."
 
 # AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."
 msgstr "Aktivieren Sie die Elefantenfußkompensation oder setzen Sie „Dichte der Schichten für die Elefantenfußkompensation“ unter 100%, um diese Einstellung zu verwenden."
 
@@ -6868,6 +6903,10 @@ msgstr "linke Düse: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "rechte Düse: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
+# AI Translated
+msgid "The position or size of some models exceeds the assigned extruder's printable range. Please check and adjust the part's position or size to fit the printable range."
+msgstr "Die Position oder Größe einiger Modelle überschreitet den druckbaren Bereich des zugewiesenen Extruders. Bitte überprüfen Sie die Position oder Größe des Teils und passen Sie sie an den druckbaren Bereich an."
+
 msgid "Mirror object"
 msgstr "Objekt spiegeln"
 
@@ -7123,7 +7162,7 @@ msgstr "Volumen:"
 msgid "Size:"
 msgstr "Größe:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Konflikte von G-Code-Pfaden wurden bei Layer %d, Z = %.2lf mm gefunden.Bitte trennen Sie die konfliktbehafteten Objekte weiter voneinander (%s <-> %s)."
 
@@ -7241,8 +7280,25 @@ msgstr "Live-Ansicht erneut versuchen"
 msgid "Resolution"
 msgstr "Auflösung"
 
+msgid "Custom camera source"
+msgstr "Benutzerdefinierte Kameraquelle"
+
+# AI Translated
+msgid "Camera stream URL"
+msgstr "Kamerastream-URL"
+
+# AI Translated
+msgid "URL of an MJPEG stream or of a web page that shows the camera, for example http://192.168.1.10:8080/?action=stream"
+msgstr "URL eines MJPEG-Streams oder einer Webseite, die die Kamera anzeigt, zum Beispiel http://192.168.1.10:8080/?action=stream"
+
+msgid "Enable"
+msgstr "Aktivieren"
+
 msgid "Show \"Live Video\" guide page."
 msgstr "Anleitungsseite „Live-Video“ anzeigen."
+
+msgid "Disable"
+msgstr "Deaktivieren"
 
 msgid "Connect Printer (LAN)"
 msgstr "Drucker anschließen (LAN)"
@@ -7955,6 +8011,10 @@ msgstr "Herunterladen"
 msgid "Download selected files from printer."
 msgstr "Ausgewählte Dateien vom Drucker herunterladen."
 
+# AI Translated
+msgid "Select all files in the list for batch management."
+msgstr "Alle Dateien der Liste für die Batch-Verwaltung auswählen."
+
 msgid "Batch manage files."
 msgstr "Batch-Verwaltung von Dateien."
 
@@ -8226,10 +8286,10 @@ msgid "Clear"
 msgstr "Löschen"
 
 msgid ""
-"You have completed printing the mall model, \n"
+"You have completed printing the mall model,\n"
 "but synchronizing rating information has failed."
 msgstr ""
-"Sie haben den Druck des Mustermodells abgeschlossen, \n"
+"Sie haben den Druck des Mustermodells abgeschlossen,\n"
 "aber die Synchronisierung der Bewertungsinformationen ist fehlgeschlagen."
 
 msgid "How do you like this printing file?"
@@ -8255,6 +8315,9 @@ msgstr "Speicher"
 
 msgid "Camera Setting"
 msgstr "Kameraeinstellung"
+
+msgid "Switch Camera View"
+msgstr "Schalte Kameraperspektive"
 
 msgid "Control"
 msgstr "Steuerung"
@@ -8492,7 +8555,7 @@ msgid "You can select up to 16 images."
 msgstr "Sie können bis zu 16 Bilder auswählen."
 
 msgid ""
-"At least one successful print record of this print profile is required \n"
+"At least one successful print record of this print profile is required\n"
 "to give a positive rating (4 or 5 stars)."
 msgstr ""
 "Um eine positive Bewertung (4 oder 5 Sterne) abzugeben,\n"
@@ -8924,6 +8987,10 @@ msgstr "Neues Netzwerk-Plugin verfügbar"
 msgid "Details"
 msgstr "Details"
 
+# AI Translated
+msgid "Updates are available for your OrcaCloud plugins."
+msgstr "Für Ihre OrcaCloud-Plugins sind Updates verfügbar."
+
 msgid "New printer config available."
 msgstr "Neue Druckerkonfiguration verfügbar."
 
@@ -9350,6 +9417,7 @@ msgid "Add Mode"
 msgstr "Modus hinzufügen"
 
 # AI Translated
+msgctxt "IDEX/IQEX modes"
 msgid "Tools"
 msgstr "Werkzeuge"
 
@@ -9366,8 +9434,14 @@ msgid "Which tool heads take part in the mode and what role each one plays. Clic
 msgstr "Welche Werkzeugköpfe am Modus beteiligt sind und welche Rolle jeder davon spielt. Klicken Sie auf eine Kachel, um ihre Rolle zu wechseln."
 
 # AI Translated
-msgid "G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call). The slicer only emits the Primary tool's paths; the firmware drives the others."
-msgstr "G-Code, der zu Druckbeginn ausgeführt wird, um den Drucker in diesen Modus zu versetzen (zum Beispiel ein Klipper-Aufruf SET_PRINT_MODE). Der Slicer gibt nur die Pfade des Primär-Werkzeugs (Primary) aus; die Firmware steuert die anderen."
+msgid ""
+"G-code run at print start to put the printer into this mode (for example a Klipper SET_PRINT_MODE call).\n"
+"\n"
+"The slicer only emits the Primary tool's paths; the firmware drives the others."
+msgstr ""
+"G-Code, der zu Druckbeginn ausgeführt wird, um den Drucker in diesen Modus zu versetzen (zum Beispiel ein Klipper-Aufruf SET_PRINT_MODE).\n"
+"\n"
+"Der Slicer gibt nur die Pfade des Primär-Werkzeugs (Primary) aus; die Firmware steuert die anderen."
 
 # AI Translated
 #. TRN IDEX/IQEX role of a tool head that takes no part in the mode.
@@ -9428,8 +9502,14 @@ msgid "Name of this parallel mode, as it appears in the plate's IDEX/IQEX mode s
 msgstr "Name dieses Parallelmodus, wie er in der IDEX/IQEX-Modusauswahl der Platte erscheint. Wird im Projekt über den Namen gespeichert; wenn Sie einen Modus umbenennen, den Platten bereits verwenden, fallen diese auf Primär zurück. Darf nicht leer sein — ein leerer Name wird durch einen generierten ersetzt."
 
 # AI Translated
-msgid "G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools. Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
-msgstr "G-Code, der einmal zu Beginn eines Drucks mit diesem Modus ausgegeben wird, vor dem „Maschinen Start G-Code“. Hier wird der Drucker in den passenden Firmware-Modus versetzt — zum Beispiel mit einem Klipper-Aufruf SET_PRINT_MODE oder einem RepRapFirmware-M567 —, da der Slicer nur die Pfade des Primär-Werkzeugs (Primary) ausgibt und die Firmware die Werkzeuge in den Rollen Kopie (Copy) / Spiegelung (Mirror) steuert. Platzhalter werden unterstützt; verwenden Sie die Bearbeiten-Schaltfläche, um sie zu durchsuchen. Leer lassen, wenn der Modus keine Firmware-Einrichtung benötigt."
+msgid ""
+"G-code emitted once at the start of a print that uses this mode, before the machine start G-code. This is where the printer is put into the matching firmware mode — for example a Klipper SET_PRINT_MODE call or a RepRapFirmware M567 — since the slicer only emits the Primary tool's paths and the firmware drives the Copy / Mirror tools.\n"
+"\n"
+"Placeholders are supported; use the edit button to browse them. Leave empty if the mode needs no firmware setup."
+msgstr ""
+"G-Code, der einmal zu Beginn eines Drucks mit diesem Modus ausgegeben wird, vor dem „Maschinen Start G-Code“. Hier wird der Drucker in den passenden Firmware-Modus versetzt — zum Beispiel mit einem Klipper-Aufruf SET_PRINT_MODE oder einem RepRapFirmware-M567 —, da der Slicer nur die Pfade des Primär-Werkzeugs (Primary) ausgibt und die Firmware die Werkzeuge in den Rollen Kopie (Copy) / Spiegelung (Mirror) steuert.\n"
+"\n"
+"Platzhalter werden unterstützt; verwenden Sie die Bearbeiten-Schaltfläche, um sie zu durchsuchen. Leer lassen, wenn der Modus keine Firmware-Einrichtung benötigt."
 
 # AI Translated
 msgid "Edit G-code / browse placeholders"
@@ -9708,10 +9788,6 @@ msgstr "Filamenttyp- und Farbinformationen wurden synchronisiert, aber Steckplat
 msgid "Do you want to save changes to \"%1%\"?"
 msgstr "Möchten Sie die Änderungen unter \" %1% \" speichern?"
 
-# AI Translated
-msgid "UV Editor"
-msgstr "UV-Editor"
-
 #, c-format, boost-format
 msgid "Successfully unmounted. The device %s (%s) can now be safely removed from the computer."
 msgstr "Erfolgreich ausgeworfen. Das Gerät %s(%s) kann jetzt sicher vom Computer entfernt werden."
@@ -9749,6 +9825,17 @@ msgstr "Seitenleiste reduzieren"
 msgid "Loading file: %s"
 msgstr "Datei wird geladen: %s"
 
+# AI Translated
+msgid "Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."
+msgstr "Einige importierte Objekte enthalten Modifizierer oder Teile mit eigenen Einstellungen. Sie werden als Baugruppen angezeigt, damit diese Einstellungen sichtbar bleiben."
+
+# AI Translated
+msgid "Geometry import"
+msgstr "Geometrie-Import"
+
+msgid "The file does not contain any geometry data."
+msgstr "Die Datei enthält keine Geometriedaten."
+
 msgid "Load 3MF"
 msgstr "Lade 3MF"
 
@@ -9763,6 +9850,10 @@ msgstr "Die 3MF-Datei wurde von einer älteren Version erstellt, es werden nur d
 
 msgid "The 3MF file was generated by BambuStudio, loading geometry data only."
 msgstr "Die 3MF-Datei wurde von BambuStudio erstellt, es werden nur die Geometriedaten geladen."
+
+# AI Translated
+msgid "The 3MF file has no project settings that OrcaSlicer can import."
+msgstr "Die 3MF-Datei enthält keine Projekteinstellungen, die OrcaSlicer importieren kann."
 
 msgid "This project was created with an OrcaSlicer 2.3.1-alpha and uses infill rotation template settings that may not work properly with your current infill pattern. This could result in weak support or print quality issues."
 msgstr "Dieses Projekt wurde mit einem OrcaSlicer 2.3.1-alpha erstellt und verwendet Vorlageneinstellungen für die Infill-Rotation, die möglicherweise nicht richtig mit Ihrem aktuellen Infill-Muster funktionieren. Dies könnte zu schwacher Unterstützung oder Druckqualitätsproblemen führen."
@@ -9813,7 +9904,7 @@ msgstr "Einige veröffentlichte Einstellungen konnten nicht angewendet werden:"
 msgid "Some filament slots were changed:"
 msgstr "Einige Filament-Steckplätze wurden geändert:"
 
-msgid "Component name(s) inside step file not in UTF-8 format!"
+msgid "Component name(s) inside STEP file not in UTF-8 format!"
 msgstr "Der Name der Komponenten in der Step-Datei ist nicht im UTF-8-Format!"
 
 msgid "Because of unsupported text encoding, garbage characters may appear!"
@@ -9846,12 +9937,10 @@ msgstr "Objekt zu klein"
 # AI Translated
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
-"Instead of considering them as multiple objects, should \n"
-"the file be loaded as a single object with multiple parts?"
+"Instead of considering them as multiple objects, should the file be loaded as a single object with multiple parts?"
 msgstr ""
 "Diese Datei enthält mehrere Objekte, die auf verschiedenen Höhen positioniert sind.\n"
-"Soll die Datei, anstatt sie als mehrere Objekte zu betrachten, \n"
-"als ein einziges Objekt mit mehreren Teilen geladen werden?"
+"Soll die Datei, anstatt sie als mehrere Objekte zu betrachten, als ein einziges Objekt mit mehreren Teilen geladen werden?"
 
 msgid "Multi-part object detected"
 msgstr "Mehrteiliges Objekt erkannt"
@@ -9884,9 +9973,6 @@ msgstr "Möchten Sie die Druckerinformationen synchronisieren und das Profil aut
 # AI Translated
 msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
 msgstr "Dieses Projekt enthält ein im Tab Konstruktion erstelltes Modell und keine andere Geometrie. Aktivieren Sie \"CAD-Funktion (experimentell)\" in den Einstellungen und starten Sie neu, um es anzuzeigen und zu bearbeiten; es bleibt beim Speichern des Projekts erhalten."
-
-msgid "The file does not contain any geometry data."
-msgstr "Die Datei enthält keine Geometriedaten."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Ihr Objekt scheint zu groß zu sein. Möchten Sie es verkleinern, um es automatisch an das Druckbett anzupassen?"
@@ -10086,6 +10172,10 @@ msgid ""
 msgstr ""
 "Folgende Bedenken zum IDEX/IQEX-Parallelmodus wurden festgestellt:\n"
 "\n"
+
+# AI Translated
+msgid "UV Editor"
+msgstr "UV-Editor"
 
 msgid "Network plug-in switched successfully."
 msgstr "Netzwerk-Plugin erfolgreich gewechselt."
@@ -10405,10 +10495,10 @@ msgid "Abnormal print file data. Please slice again"
 msgstr "Fehlerhafte Daten in der Druckdatei. Bitte slicen Sie erneut"
 
 msgid ""
-"Print By Object: \n"
+"Print By Object:\n"
 "We suggest using auto-arrange to avoid collisions when printing."
 msgstr ""
-"Nach Objekt drucken: \n"
+"Nach Objekt drucken:\n"
 "Es wird vorgeschlagen, die automatische Anordnung zu verwenden, um Kollisionen beim Drucken zu vermeiden."
 
 msgid "Send G-code"
@@ -10443,6 +10533,12 @@ msgstr "Es sind keine Filamente auf dem Drucker. Bitte laden Sie zuerst die Fila
 # Needs human review: The earlier translation was cut off; completed the end of the sentence.
 msgid "The filaments on the printer are all unknown types. Please go to the printer screen or software device page to set the filament type."
 msgstr "Die Filamente auf dem Drucker sind alle unbekannte Typen. Bitte gehen Sie zum Druckerbildschirm oder zur Software-Geräteseite, um den Filamenttyp festzulegen."
+
+# AI Translated
+#. TRN %s is the connected printer's name.
+#, c-format, boost-format
+msgid "%s is connected, but no filament system (AMS, CFS or other multi-material unit) was found on it, so there are no filaments to synchronize."
+msgstr "%s ist verbunden, aber es wurde kein Filamentsystem (AMS, CFS oder eine andere Multimaterial-Einheit) daran gefunden. Daher gibt es keine Filamente zum Synchronisieren."
 
 msgid "Device Page"
 msgstr "Geräteseite"
@@ -10763,11 +10859,50 @@ msgstr "Auf der dedizierten GPU rendern"
 msgid "On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. Some Wayland systems cannot show frames rendered on the other GPU, or fail to open the window at all. Turn this off if the 3D view stays empty; if OrcaSlicer no longer starts, start it once with DRI_PRIME=0 in the environment to get back here."
 msgstr "Führt OrcaSlicer auf einem Computer mit zwei GPUs auf der dedizierten GPU aus statt auf der GPU, die den Bildschirm ansteuert. Manche Wayland-Systeme können auf der anderen GPU gerenderte Bilder nicht anzeigen oder öffnen das Fenster gar nicht. Deaktivieren Sie diese Option, wenn die 3D-Ansicht leer bleibt; startet OrcaSlicer nicht mehr, starten Sie es einmal mit DRI_PRIME=0 in der Umgebung, um hierher zurückzukehren."
 
-msgid "Downloads folder"
-msgstr "Download-Ordner"
+msgid "Features"
+msgstr "Funktionen"
 
-msgid "Target folder for downloaded items"
-msgstr "Zielordner für heruntergeladene Elemente"
+msgid "Multi device management"
+msgstr "Multi-Geräte-Verwaltung"
+
+msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
+msgstr "Wenn diese Option aktiviert ist, können Sie eine Aufgabe gleichzeitig an mehrere Geräte senden und mehrere Geräte verwalten."
+
+# AI Translated
+msgid "CAD feature (experimental)"
+msgstr "CAD-Funktion (experimentell)"
+
+# AI Translated
+msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
+msgstr "Wenn diese Option aktiviert ist, wird der Tab Konstruktion angezeigt, in dem Modelle parametrisch erstellt und bearbeitet werden können. Diese Funktion ist experimentell und befindet sich noch in Entwicklung."
+
+msgid "Pop up to select filament grouping mode"
+msgstr "Popup zum Auswählen des Filament-Gruppierungsmodus"
+
+msgid "Clear my choice on..."
+msgstr "Meine Auswahl löschen bei ..."
+
+msgid "Unsaved projects"
+msgstr "nicht gespeicherte Projekte"
+
+msgid "Clear my choice on the unsaved projects."
+msgstr "Meine Auswahl für nicht gespeicherte Projekte löschen."
+
+msgid "Unsaved presets"
+msgstr "nicht gespeicherte Profile"
+
+msgid "Clear my choice on the unsaved presets."
+msgstr "Meine Auswahl bei den nicht gespeicherten Profile löschen."
+
+msgid "Synchronizing printer preset"
+msgstr "Synchronisiere Druckerprofil"
+
+msgid "Clear my choice for synchronizing printer preset after loading the file."
+msgstr "Lösche meine Auswahl zum Synchronisieren des Druckerprofils nach dem Laden der Datei."
+
+# AI Translated
+msgid "Files"
+msgstr "Dateien"
 
 msgid "Load All"
 msgstr "Alle laden"
@@ -10793,6 +10928,14 @@ msgstr "Automatische Datensicherung"
 msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "Erstellen Sie regelmäßig Sicherungskopien Ihres Projekts,um es im Falle eines Absturzes wiederherstellen zu können."
 
+# AI Translated
+msgid "Store full source file paths in projects"
+msgstr "Vollständige Quelldateipfade in Projekten speichern"
+
+# AI Translated
+msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
+msgstr "Wenn aktiviert, speichern gespeicherte Projekte den absoluten Pfad zu importierten Quelldateien (STEP/STL/...), sodass „Von Festplatte neu laden“ weiterhin funktioniert, wenn die Quelldatei in einem anderen Ordner als das Projekt aufbewahrt wird. Wenn deaktiviert, wird nur der Dateiname gespeichert, was Projekte portabel hält und das Einbetten absoluter Pfade vermeidet."
+
 msgid "Maximum recent files"
 msgstr "Maximum zuletzt verwendeter Dateien"
 
@@ -10802,11 +10945,54 @@ msgstr "Maximale Anzahl der zuletzt verwendeten Dateien"
 msgid "Add STL/STEP files to recent files list"
 msgstr "STL/STEP Dateien zur Liste der zuletzt verwendeten Dateien hinzufügen"
 
+# AI Translated
+msgid "Folder paths"
+msgstr "Ordnerpfade"
+
+msgid "Downloads folder"
+msgstr "Download-Ordner"
+
+msgid "Target folder for downloaded items"
+msgstr "Zielordner für heruntergeladene Elemente"
+
+# AI Translated
+msgid "File import"
+msgstr "Datei-Import"
+
+# AI Translated
+msgid "Ask how to handle unsupported characters in imported names"
+msgstr "Nachfragen, wie mit nicht unterstützten Zeichen in importierten Namen umgegangen werden soll"
+
+# AI Translated
+msgid "Show the removal or replacement choices when original names contain unsupported characters."
+msgstr "Die Optionen zum Entfernen oder Ersetzen anzeigen, wenn Originalnamen nicht unterstützte Zeichen enthalten."
+
+# AI Translated
+msgid "3MF import"
+msgstr "3MF-Import"
+
+# AI Translated
+msgid "Show options when importing"
+msgstr "Optionen beim Importieren anzeigen"
+
+# AI Translated
+msgid "Show original-name and sorting options when importing a 3MF without project settings into the current project."
+msgstr "Optionen für Originalnamen und Sortierung anzeigen, wenn eine 3MF-Datei ohne Projekteinstellungen in das aktuelle Projekt importiert wird."
+
+# AI Translated
+msgid "Keep original names"
+msgstr "Originalnamen behalten"
+
+# AI Translated
+msgid "Use the body names stored in the imported file when it contains them."
+msgstr "Die in der importierten Datei gespeicherten Körpernamen verwenden, sofern sie welche enthält."
+
 msgid "Don't warn when loading 3MF with modified G-code"
 msgstr "Keine Warnungen beim Laden von 3MF mit modifizierten G-Codes"
 
-msgid "Show options when importing STEP file"
-msgstr "Optionen beim Importieren von STEP-Dateien anzeigen"
+# AI Translated
+msgid "STEP import"
+msgstr "STEP-Import"
 
 # AI Translated
 # Needs human review: The earlier translation was cut off; completed the end of the sentence.
@@ -10814,8 +11000,8 @@ msgid "If enabled, a parameter settings dialog will appear during STEP file impo
 msgstr "Wenn aktiviert, wird während des Imports von STEP-Dateien ein Dialogfeld für Parametereinstellungen angezeigt."
 
 # AI Translated
-msgid "STEP importing: linear deflection"
-msgstr "STEP-Import: lineare Abweichung"
+msgid "Linear deflection"
+msgstr "Lineare Ablenkung"
 
 # AI Translated
 msgid ""
@@ -10830,8 +11016,8 @@ msgstr ""
 "Standard: 0,003 mm."
 
 # AI Translated
-msgid "STEP importing: angle deflection"
-msgstr "STEP-Import: Winkelabweichung"
+msgid "Angle deflection"
+msgstr "Winkelabweichung"
 
 # AI Translated
 msgid ""
@@ -10846,18 +11032,30 @@ msgstr ""
 "Standard: 0,5."
 
 # AI Translated
-msgid "STEP importing: Split into multiple objects"
-msgstr "STEP-Import: In mehrere Objekte aufteilen"
+msgid "Split into multiple objects"
+msgstr "In mehrere Objekte aufteilen"
 
 # AI Translated
 msgid ""
 "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
 "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
-"Default: disabled."
+"Default: enabled."
 msgstr ""
 "Wenn aktiviert, werden Compound- und Compsolid-Formen in importierten STEP-Dateien in mehrere Objekte aufgeteilt.\n"
 "Wird als Standard im Importdialog verwendet oder direkt, wenn der Importdialog deaktiviert ist.\n"
-"Standard: deaktiviert."
+"Standard: aktiviert."
+
+# AI Translated
+msgid "AMF import"
+msgstr "AMF-Import"
+
+# AI Translated
+msgid "Show body grouping, original-name and sorting options when importing geometry into the current project."
+msgstr "Optionen für Körpergruppierung, Originalnamen und Sortierung anzeigen, wenn Geometrie in das aktuelle Projekt importiert wird."
+
+# AI Translated
+msgid "DRC export"
+msgstr "DRC-Export"
 
 msgid "Quality level for Draco export"
 msgstr "Qualitätsstufe für den Draco-Export"
@@ -10874,13 +11072,123 @@ msgstr ""
 "0 = verlustfreie Kompression (Geometrie wird mit voller Präzision beibehalten). Gültige verlustbehaftete Werte liegen zwischen 8 und 30.\n"
 "Niedrigere Werte erzeugen kleinere Dateien, verlieren jedoch mehr geometrische Details; höhere Werte bewahren mehr Details auf Kosten größerer Dateien."
 
-# AI Translated
-msgid "Store full source file paths in projects"
-msgstr "Vollständige Quelldateipfade in Projekten speichern"
+msgid "Associate files to OrcaSlicer"
+msgstr "Dateien mit OrcaSlicer verknüpfen"
+
+msgid "File associations for the Microsoft Store version are managed by Windows Settings."
+msgstr "Dateizuordnungen für die Microsoft Store-Version werden über die Windows-Einstellungen verwaltet."
+
+msgid "Open Windows Default Apps Settings"
+msgstr "Windows-Standardanwendungen öffnen"
+
+msgid "Associate 3MF files to OrcaSlicer"
+msgstr "Dateiendung .3mf mit OrcaSlicer verknüpfen"
+
+msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
+msgstr "Wenn aktiviert, wird OrcaSlicer als Standardanwendung zum Öffnen von .3mf-Dateien festgelegt"
+
+msgid "Associate DRC files to OrcaSlicer"
+msgstr "Dateiendung .drc mit OrcaSlicer verknüpfen"
 
 # AI Translated
-msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
-msgstr "Wenn aktiviert, speichern gespeicherte Projekte den absoluten Pfad zu importierten Quelldateien (STEP/STL/...), sodass „Von Festplatte neu laden“ weiterhin funktioniert, wenn die Quelldatei in einem anderen Ordner als das Projekt aufbewahrt wird. Wenn deaktiviert, wird nur der Dateiname gespeichert, was Projekte portabel hält und das Einbetten absoluter Pfade vermeidet."
+msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
+msgstr "Wenn aktiviert, wird OrcaSlicer als Standardanwendung zum Öffnen von DRC-Dateien festgelegt."
+
+msgid "Associate STL files to OrcaSlicer"
+msgstr "Dateiendung .stl mit OrcaSlicer verknüpfen"
+
+msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
+msgstr "Wenn aktiviert, wird OrcaSlicer als Standardanwendung zum Öffnen von .stl-Dateien festgelegt"
+
+msgid "Associate STEP files to OrcaSlicer"
+msgstr "Dateiendung .step/.stp mit OrcaSlicer verknüpfen"
+
+msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
+msgstr "Wenn aktiviert, wird OrcaSlicer als Standardanwendung zum Öffnen von .step-Dateien festgelegt"
+
+msgid "Associate web links to OrcaSlicer"
+msgstr "Web-Links mit OrcaSlicer verknüpfen"
+
+msgid "Behaviour"
+msgstr "Verhalten"
+
+msgid "Auto flush after changing..."
+msgstr "Automatisches Spülen nach Änderung von ..."
+
+msgid "Auto calculate flushing volumes when selected values changed"
+msgstr "Automatisches Berechnen der Spülvolumina bei Änderung der ausgewählten Werte"
+
+msgid "Auto arrange plate after cloning"
+msgstr "Druckplatte nach dem Klonen automatisch anordnen"
+
+msgid "Auto slice after changes"
+msgstr "Automatisches Schneiden nach Änderungen"
+
+msgid "If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change."
+msgstr "Wenn aktiviert, wird OrcaSlicer automatisch neu geschnitten, sobald sich einstellungen zum Schneiden ändern."
+
+msgid "Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."
+msgstr "Verzögerung in Sekunden, bevor das automatische Schneiden beginnt, um mehrere Änderungen zu gruppieren. Verwenden Sie 0, um sofort zu schneiden."
+
+# AI Translated
+msgid "Show options when adding a primitive"
+msgstr "Optionen beim Hinzufügen eines Primitivs anzeigen"
+
+# AI Translated
+msgid "If enabled, a dialog asks for the dimensions of a primitive shape before it is added."
+msgstr "Wenn aktiviert, fragt ein Dialog vor dem Hinzufügen eines Primitivs nach dessen Abmessungen."
+
+msgid "Remove mixed temperature restriction"
+msgstr "Entfernen der Einschränkung für gemischte Temperaturen"
+
+msgid "With this option enabled, you can print materials with a large temperature difference together."
+msgstr "Mit dieser Option können Sie Materialien mit großen Temperaturunterschieden zusammen drucken."
+
+# AI Translated
+msgid "Remember last print action"
+msgstr "Letzte Druckaktion merken"
+
+# AI Translated
+msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
+msgstr "Wenn aktiviert, merkt sich OrcaSlicer die zuletzt gewählte Option im Dropdown-Menü der Druckschaltfläche (z. B. Drucken, Geslicte Datei der Druckplatte exportieren, G-Code-Datei exportieren) und verwendet sie beim nächsten Start als Standard."
+
+# AI Translated
+msgid "Default view type"
+msgstr "Standard-Ansichtstyp"
+
+# AI Translated
+msgid ""
+"The color scheme the sliced preview opens with.\n"
+"Automatic: Filament for multi material prints, Line Type for single material ones.\n"
+"Last used: the view type you selected last.\n"
+"Any other value always opens that view type.\n"
+"You can still switch the view type in the preview afterwards."
+msgstr ""
+"Das Farbschema, mit dem die geslicte Vorschau geöffnet wird.\n"
+"Automatisch: Filament bei Mehrmaterialdrucken, Linientyp bei Einzelmaterialdrucken.\n"
+"Zuletzt verwendet: der zuletzt ausgewählte Ansichtstyp.\n"
+"Jeder andere Wert öffnet immer diesen Ansichtstyp.\n"
+"Sie können den Ansichtstyp in der Vorschau danach weiterhin wechseln."
+
+# AI Translated
+msgid "Dim lower layers"
+msgstr "Untere Schichten abdunkeln"
+
+# AI Translated
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr "Beim Bewegen des Schichtreglers in der geslicten Vorschau werden die Schichten unterhalb der aktuellen abgedunkelt dargestellt, sodass nur die betrachtete Schicht in voller Helligkeit angezeigt wird."
+
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Helligkeit abgedunkelter Schichten"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"Wie hell die abgedunkelten Schichten dargestellt werden, wenn \"Untere Schichten abdunkeln\" aktiviert ist.\n"
+"99% ist kaum abgedunkelt, 0% stellt sie schwarz dar. Auf 99% begrenzt, da 100% dem Deaktivieren der Option entsprechen würde."
 
 msgid "Preset"
 msgstr "Profil"
@@ -10918,14 +11226,37 @@ msgstr "Benachrichtigung für geteilte Profile anzeigen"
 msgid "Show a notification with a link to browse shared profiles when the selected printer is changed."
 msgstr "Zeigen Sie eine Benachrichtigung mit einem Link zum Durchsuchen von geteilten Profilen an, wenn der ausgewählte Drucker geändert wird."
 
-msgid "Features"
-msgstr "Funktionen"
+# AI Translated
+msgid "Visible plugin pages"
+msgstr "Sichtbare Plugin-Seiten"
 
-msgid "Multi device management"
-msgstr "Multi-Geräte-Verwaltung"
+# AI Translated
+msgid "pages"
+msgstr "Seiten"
 
-msgid "With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."
-msgstr "Wenn diese Option aktiviert ist, können Sie eine Aufgabe gleichzeitig an mehrere Geräte senden und mehrere Geräte verwalten."
+# AI Translated
+msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
+msgstr "Anzahl der Plugin-Seiten, die als feste Tabs angezeigt werden, bevor die übrigen Seiten im letzten Tab zu einem Dropdown zusammengefasst werden."
+
+# AI Translated
+msgid "Draw mate connectors as a face"
+msgstr "Verknüpfungskonnektoren als Fläche zeichnen"
+
+# AI Translated
+msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
+msgstr "Im Tab Konstruktion einen Verknüpfungskonnektor als kleine Fläche statt als herkömmliche Scheibe mit Rollquadrant zeichnen. Eine Fläche zeigt ihre Ausrichtung auf einen Blick, ohne dass man die Scheiben-Konvention kennen muss. Deaktivieren Sie dies für die herkömmliche CAD-Darstellung."
+
+# AI Translated
+msgid "Auto-close sketch loops"
+msgstr "Skizzenschleifen automatisch schließen"
+
+# AI Translated
+msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
+msgstr "Skizzenendpunkte innerhalb von 0,001 mm als einen Verbindungspunkt behandeln und die Schleife zusammenschweißen. Aus: Nur exakt deckungsgleiche Endpunkte werden verbunden, sodass eine Schleife mit einer winzigen Lücke als offen angezeigt wird, statt automatisch geschlossen zu werden. Wird mit jeder Konstruktion gespeichert; gilt für Konstruktionen, die nach der Änderung begonnen werden."
+
+# AI Translated
+msgid "Speed dial"
+msgstr "Schnellwahl"
 
 # AI Translated
 msgid "Open the Speed Dial from the keyboard"
@@ -10947,64 +11278,6 @@ msgstr "Aktionen"
 # AI Translated
 msgid "How many recently launched actions to show at the top of the Speed Dial. Set to 0 to hide recent actions."
 msgstr "Wie viele zuletzt ausgeführte Aktionen oben in der Schnellwahl angezeigt werden. Auf 0 setzen, um die letzten Aktionen auszublenden."
-
-# AI Translated
-msgid "CAD feature (experimental)"
-msgstr "CAD-Funktion (experimentell)"
-
-# AI Translated
-msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
-msgstr "Wenn diese Option aktiviert ist, wird der Tab Konstruktion angezeigt, in dem Modelle parametrisch erstellt und bearbeitet werden können. Diese Funktion ist experimentell und befindet sich noch in Entwicklung."
-
-msgid "Pop up to select filament grouping mode"
-msgstr "Popup zum Auswählen des Filament-Gruppierungsmodus"
-
-# AI Translated
-msgid "Visible plugin pages"
-msgstr "Sichtbare Plugin-Seiten"
-
-# AI Translated
-msgid "pages"
-msgstr "Seiten"
-
-# AI Translated
-msgid "Number of plugin pages shown as fixed tabs before the remaining pages collapse into a dropdown on the last tab."
-msgstr "Anzahl der Plugin-Seiten, die als feste Tabs angezeigt werden, bevor die übrigen Seiten im letzten Tab zu einem Dropdown zusammengefasst werden."
-
-msgid "Behavior"
-msgstr "Verhalten"
-
-msgid "Auto flush after changing..."
-msgstr "Automatisches Spülen nach Änderung von ..."
-
-msgid "Auto calculate flushing volumes when selected values changed"
-msgstr "Automatisches Berechnen der Spülvolumina bei Änderung der ausgewählten Werte"
-
-msgid "Auto arrange plate after cloning"
-msgstr "Druckplatte nach dem Klonen automatisch anordnen"
-
-msgid "Auto slice after changes"
-msgstr "Automatisches Schneiden nach Änderungen"
-
-msgid "If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change."
-msgstr "Wenn aktiviert, wird OrcaSlicer automatisch neu geschnitten, sobald sich einstellungen zum Schneiden ändern."
-
-msgid "Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."
-msgstr "Verzögerung in Sekunden, bevor das automatische Schneiden beginnt, um mehrere Änderungen zu gruppieren. Verwenden Sie 0, um sofort zu schneiden."
-
-msgid "Remove mixed temperature restriction"
-msgstr "Entfernen der Einschränkung für gemischte Temperaturen"
-
-msgid "With this option enabled, you can print materials with a large temperature difference together."
-msgstr "Mit dieser Option können Sie Materialien mit großen Temperaturunterschieden zusammen drucken."
-
-# AI Translated
-msgid "Remember last print action"
-msgstr "Letzte Druckaktion merken"
-
-# AI Translated
-msgid "If enabled, OrcaSlicer will remember the last selected option in the print button's dropdown (e.g. Print, Export plate sliced file, Export G-code file) and use it as the default on next startup."
-msgstr "Wenn aktiviert, merkt sich OrcaSlicer die zuletzt gewählte Option im Dropdown-Menü der Druckschaltfläche (z. B. Drucken, Geslicte Datei der Druckplatte exportieren, G-Code-Datei exportieren) und verwendet sie beim nächsten Start als Standard."
 
 msgid "Camera"
 msgstr "Kamera"
@@ -11048,22 +11321,6 @@ msgstr "Maus-Zoom umkehren"
 msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "Wenn aktiviert, wird die Richtung des Zooms mit dem Mausrad umgekehrt."
 
-# AI Translated
-msgid "Draw mate connectors as a face"
-msgstr "Verknüpfungskonnektoren als Fläche zeichnen"
-
-# AI Translated
-msgid "In the Design tab, draw a mate connector as a small face instead of the conventional disc with a roll quadrant. A face shows its orientation at a glance, without learning the disc convention. Turn this off for the conventional CAD representation."
-msgstr "Im Tab Konstruktion einen Verknüpfungskonnektor als kleine Fläche statt als herkömmliche Scheibe mit Rollquadrant zeichnen. Eine Fläche zeigt ihre Ausrichtung auf einen Blick, ohne dass man die Scheiben-Konvention kennen muss. Deaktivieren Sie dies für die herkömmliche CAD-Darstellung."
-
-# AI Translated
-msgid "Auto-close sketch loops"
-msgstr "Skizzenschleifen automatisch schließen"
-
-# AI Translated
-msgid "Treat sketch endpoints within 0.001 mm as one joint and weld the loop shut. Off: only exactly coincident endpoints join, so a loop with a tiny gap is shown as open instead of being closed for you. Saved with each design; applies to designs started after the change."
-msgstr "Skizzenendpunkte innerhalb von 0,001 mm als einen Verbindungspunkt behandeln und die Schleife zusammenschweißen. Aus: Nur exakt deckungsgleiche Endpunkte werden verbunden, sodass eine Schleife mit einer winzigen Lücke als offen angezeigt wird, statt automatisch geschlossen zu werden. Wird mit jeder Konstruktion gespeichert; gilt für Konstruktionen, die nach der Änderung begonnen werden."
-
 msgid "Pan"
 msgstr "Schwenken"
 
@@ -11097,27 +11354,6 @@ msgstr "Tastaturkürzel"
 msgid "Choose the key for each action."
 msgstr "Wählen Sie die Taste für jede Aktion."
 
-msgid "Clear my choice on..."
-msgstr "Meine Auswahl löschen bei ..."
-
-msgid "Unsaved projects"
-msgstr "nicht gespeicherte Projekte"
-
-msgid "Clear my choice on the unsaved projects."
-msgstr "Meine Auswahl für nicht gespeicherte Projekte löschen."
-
-msgid "Unsaved presets"
-msgstr "nicht gespeicherte Profile"
-
-msgid "Clear my choice on the unsaved presets."
-msgstr "Meine Auswahl bei den nicht gespeicherten Profile löschen."
-
-msgid "Synchronizing printer preset"
-msgstr "Synchronisiere Druckerprofil"
-
-msgid "Clear my choice for synchronizing printer preset after loading the file."
-msgstr "Lösche meine Auswahl zum Synchronisieren des Druckerprofils nach dem Laden der Datei."
-
 msgid "Graphics"
 msgstr "Grafik"
 
@@ -11133,6 +11369,14 @@ msgstr ""
 "Wendet glatte Normalen auf das Modell an.\n"
 "\n"
 "Erfordert manuelles Neuladen der Szene, um wirksam zu werden (Rechtsklick auf die 3D-Ansicht → „Alle neu laden“)."
+
+# AI Translated
+msgid "Translucent filaments"
+msgstr "Durchscheinende Filamente"
+
+# AI Translated
+msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
+msgstr "Zeichnet die Werkzeugwege von Filamenten, deren Farbe teilweise transparent ist, durchsichtig, so wie die 3D-Ansicht ihre Objekte zeichnet. Schalten Sie die Option aus, um jedes Filament undurchsichtig zu zeichnen."
 
 msgid "Phong shading"
 msgstr "Phong-Shading"
@@ -11253,14 +11497,12 @@ msgstr "3D-Szene im Leerlauf wiederverwenden"
 
 # AI Translated
 msgid ""
-"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport,\n"
-"and reuses the previous frame's scene instead. Reduces GPU load.\n"
+"Skips redrawing the 3D scene when only the mouse cursor moves over the viewport, and reuses the previous frame's scene instead. Reduces GPU load.\n"
 "Disable it if the viewport shows stale or missing contents.\n"
 "\n"
 "Takes effect immediately."
 msgstr ""
-"Überspringt das Neuzeichnen der 3D-Szene, wenn sich nur der Mauszeiger über dem Ansichtsfenster bewegt,\n"
-"und verwendet stattdessen die Szene des vorherigen Frames wieder. Verringert die GPU-Last.\n"
+"Überspringt das Neuzeichnen der 3D-Szene, wenn sich nur der Mauszeiger über dem Ansichtsfenster bewegt, und verwendet stattdessen die Szene des vorherigen Frames wieder. Verringert die GPU-Last.\n"
 "Deaktivieren Sie dies, wenn das Ansichtsfenster veraltete oder fehlende Inhalte zeigt.\n"
 "\n"
 "Wird sofort wirksam."
@@ -11330,56 +11572,6 @@ msgstr "Ausführen"
 msgid "Replaces the current project with the OrcaSliced Combo, then measures the frame rate and render timings while the camera turns around it in Prepare and Preview, and while the layer slider moves through the sliced layers."
 msgstr "Ersetzt das aktuelle Projekt durch die OrcaSliced Combo und misst dann die Bildrate und die Render-Zeiten, während sich die Kamera in Vorbereiten und Vorschau um das Modell dreht und während sich der Schichtregler durch die geslicten Schichten bewegt."
 
-# AI Translated
-msgid "G-code Preview"
-msgstr "G-code-Vorschau"
-
-# AI Translated
-msgid "Default view type"
-msgstr "Standard-Ansichtstyp"
-
-# AI Translated
-msgid ""
-"The color scheme the sliced preview opens with.\n"
-"Automatic: Filament for multi material prints, Line Type for single material ones.\n"
-"Last used: the view type you selected last.\n"
-"Any other value always opens that view type.\n"
-"You can still switch the view type in the preview afterwards."
-msgstr ""
-"Das Farbschema, mit dem die geslicte Vorschau geöffnet wird.\n"
-"Automatisch: Filament bei Mehrmaterialdrucken, Linientyp bei Einzelmaterialdrucken.\n"
-"Zuletzt verwendet: der zuletzt ausgewählte Ansichtstyp.\n"
-"Jeder andere Wert öffnet immer diesen Ansichtstyp.\n"
-"Sie können den Ansichtstyp in der Vorschau danach weiterhin wechseln."
-
-# AI Translated
-msgid "Dim lower layers"
-msgstr "Untere Schichten abdunkeln"
-
-# AI Translated
-msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
-msgstr "Beim Bewegen des Schichtreglers in der geslicten Vorschau werden die Schichten unterhalb der aktuellen abgedunkelt dargestellt, sodass nur die betrachtete Schicht in voller Helligkeit angezeigt wird."
-
-# AI Translated
-msgid "Dimmed layer brightness"
-msgstr "Helligkeit abgedunkelter Schichten"
-
-# AI Translated
-msgid ""
-"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
-"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
-msgstr ""
-"Wie hell die abgedunkelten Schichten dargestellt werden, wenn \"Untere Schichten abdunkeln\" aktiviert ist.\n"
-"99% ist kaum abgedunkelt, 0% stellt sie schwarz dar. Auf 99% begrenzt, da 100% dem Deaktivieren der Option entsprechen würde."
-
-# AI Translated
-msgid "Translucent filaments"
-msgstr "Durchscheinende Filamente"
-
-# AI Translated
-msgid "Draw the toolpaths of filaments whose color is partly transparent as see-through, as the 3D view draws their objects. Turn it off to draw every filament opaque."
-msgstr "Zeichnet die Werkzeugwege von Filamenten, deren Farbe teilweise transparent ist, durchsichtig, so wie die 3D-Ansicht ihre Objekte zeichnet. Schalten Sie die Option aus, um jedes Filament undurchsichtig zu zeichnen."
-
 msgid "Login region"
 msgstr "Anmeldungsregion"
 
@@ -11388,9 +11580,11 @@ msgstr "Unsichtbarer Modus"
 
 msgid ""
 "This disables all cloud features, including Orca Cloud profile syncing. Users who prefer to work entirely offline can enable this option.\n"
+"\n"
 "Note: When Stealth Mode is enabled, your user profiles will not be backed up to Orca Cloud."
 msgstr ""
 "Dies deaktiviert alle Cloud-Funktionen, einschließlich der Profil-Synchronisierung mit Orca Cloud. Benutzer, die es vorziehen, vollständig offline zu arbeiten, können diese Option aktivieren.\n"
+"\n"
 "Hinweis: Wenn der Unsichtbare Modus aktiviert ist, werden Ihre Benutzerprofile nicht in Orca Cloud gesichert."
 
 msgid "Hide login side panel"
@@ -11455,46 +11649,6 @@ msgstr "Netzwerk-Plugin-Version"
 
 msgid "Select the network plug-in version to use"
 msgstr "Wählen Sie die zu verwendende Version des Netzwerk-Plugins aus"
-
-msgid "Associate"
-msgstr "Zuordnen"
-
-msgid "Associate files to OrcaSlicer"
-msgstr "Dateien mit OrcaSlicer verknüpfen"
-
-msgid "File associations for the Microsoft Store version are managed by Windows Settings."
-msgstr "Dateizuordnungen für die Microsoft Store-Version werden über die Windows-Einstellungen verwaltet."
-
-msgid "Open Windows Default Apps Settings"
-msgstr "Windows-Standardanwendungen öffnen"
-
-msgid "Associate 3MF files to OrcaSlicer"
-msgstr "Dateiendung .3mf mit OrcaSlicer verknüpfen"
-
-msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
-msgstr "Wenn aktiviert, wird OrcaSlicer als Standardanwendung zum Öffnen von .3mf-Dateien festgelegt"
-
-msgid "Associate DRC files to OrcaSlicer"
-msgstr "Dateiendung .drc mit OrcaSlicer verknüpfen"
-
-# AI Translated
-msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
-msgstr "Wenn aktiviert, wird OrcaSlicer als Standardanwendung zum Öffnen von DRC-Dateien festgelegt."
-
-msgid "Associate STL files to OrcaSlicer"
-msgstr "Dateiendung .stl mit OrcaSlicer verknüpfen"
-
-msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
-msgstr "Wenn aktiviert, wird OrcaSlicer als Standardanwendung zum Öffnen von .stl-Dateien festgelegt"
-
-msgid "Associate STEP files to OrcaSlicer"
-msgstr "Dateiendung .step/.stp mit OrcaSlicer verknüpfen"
-
-msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
-msgstr "Wenn aktiviert, wird OrcaSlicer als Standardanwendung zum Öffnen von .step-Dateien festgelegt"
-
-msgid "Associate web links to OrcaSlicer"
-msgstr "Web-Links mit OrcaSlicer verknüpfen"
 
 msgid "Developer"
 msgstr "Entwickler"
@@ -11695,6 +11849,30 @@ msgid "The selected preset is null!"
 msgstr "Das selektierte Profil ist leer!"
 
 # AI Translated
+msgid "Changing one dimension changes the others in proportion."
+msgstr "Wenn eine Abmessung geändert wird, ändern sich die anderen proportional."
+
+# AI Translated
+msgid "Save these settings as default"
+msgstr "Diese Einstellungen als Standard speichern"
+
+# AI Translated
+msgid "If enabled, these dimensions are used for this shape from now on, also when this dialog is not shown."
+msgstr "Wenn aktiviert, werden diese Abmessungen ab sofort für diese Form verwendet, auch wenn dieser Dialog nicht angezeigt wird."
+
+# AI Translated
+msgid "If enabled, shapes are added at their default size without asking. The dialog can be turned back on in Preferences."
+msgstr "Wenn aktiviert, werden Formen ohne Nachfrage in ihrer Standardgröße hinzugefügt. Der Dialog kann in den Einstellungen wieder aktiviert werden."
+
+# AI Translated
+msgid "The size must be greater than zero"
+msgstr "Die Größe muss größer als null sein"
+
+# AI Translated
+msgid "Invalid numeric input."
+msgstr "Ungültige numerische Eingabe."
+
+# AI Translated
 msgctxt "Layer range"
 msgid "End"
 msgstr "Ende"
@@ -11728,12 +11906,6 @@ msgstr "Druckreihenfolge"
 
 msgid "Same as Global"
 msgstr "Gleich wie global"
-
-msgid "Enable"
-msgstr "Aktivieren"
-
-msgid "Disable"
-msgstr "Deaktivieren"
 
 msgid "Spiral vase"
 msgstr "Vasenmodus"
@@ -11873,6 +12045,18 @@ msgstr "Profil \"%1%\" existiert bereits und ist mit dem aktuellen Drucker nicht
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Bitte beachten Sie, dass das Speichern dieses Profil überschreibt."
+
+# AI Translated
+msgid "control characters are not allowed."
+msgstr "Steuerzeichen sind nicht zulässig."
+
+# AI Translated
+msgid "The name is a reserved system name."
+msgstr "Der Name ist ein reservierter Systemname."
+
+# AI Translated
+msgid "The name is too long."
+msgstr "Der Name ist zu lang."
 
 msgid "The name cannot be the same as a preset alias name."
 msgstr "Der Name kann nicht mit einem Profil-Aliasnamen identisch sein."
@@ -12055,10 +12239,6 @@ msgstr "An Favoriten anheften (%s)"
 #, c-format, boost-format
 msgid "Unpin from favorites (%s)"
 msgstr "Von Favoriten lösen (%s)"
-
-# AI Translated
-msgid "Remove from favorites"
-msgstr "Aus Favoriten entfernen"
 
 # AI Translated
 msgid "Move left"
@@ -12561,8 +12741,9 @@ msgstr "Speicher muss vor dem Drucken über LAN eingelegt werden."
 msgid "Storage is in abnormal state or is in read-only mode."
 msgstr "Speicher ist in einem abnormalen Zustand oder im Nur-Lese-Modus."
 
-msgid "Storage needs to be inserted before printing."
-msgstr "Speicher muss vor dem Drucken eingesetzt werden."
+# AI Translated
+msgid "Insert storage or free up space before printing."
+msgstr "Legen Sie vor dem Drucken einen Speicher ein oder geben Sie Speicherplatz frei."
 
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Der Druckauftrag kann nicht an einen Drucker gesendet werden, dessen Firmware aktualisiert werden muss."
@@ -12639,9 +12820,6 @@ msgstr "Der Druckauftrag kann nicht gesendet werden, während ein Update ausgef�
 msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "Der ausgewählte Drucker ist mit den gewählten Druckerprofilen nicht kompatibel."
 
-msgid "Storage needs to be inserted before send to printer."
-msgstr "Speicher muss vor dem Senden an den Drucker eingesetzt werden."
-
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Der Drucker muss sich im selben LAN befinden wie Orca Slicer."
 
@@ -12696,12 +12874,8 @@ msgstr "Zeitüberschreitung beim Empfang des Anmeldeberichts"
 msgid "Unknown Failure"
 msgstr "Unbekannter Fehler"
 
-msgid ""
-"Please Find the Pin Code in Account page on printer screen,\n"
-" and type in the Pin Code below."
-msgstr ""
-"Bitte finden Sie den Pin-Code auf der Konto-Seite auf dem Druckerbildschirm\n"
-"und geben Sie den Pin-Code unten ein."
+msgid "Please Find the Pin Code in Account page on printer screen, and type in the Pin Code below."
+msgstr "Bitte finden Sie den Pin-Code auf der Konto-Seite auf dem Druckerbildschirm und geben Sie den Pin-Code unten ein."
 
 msgid "Can't find Pin Code?"
 msgstr "Können Sie den Pin-Code nicht finden?"
@@ -12862,12 +13036,10 @@ msgstr ""
 
 msgid ""
 "When using soluble material for the support interface, we recommend the following settings:\n"
-"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
-"and use soluble materials for both support interface and support base."
+"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height and use soluble materials for both support interface and support base."
 msgstr ""
 "Wenn Sie lösliches Material für die Stützschnittstelle verwenden, empfehlen wir folgende Einstellungen:\n"
-"0 obere Z-Distanz, 0 Schnittstellenabstand, verschachteltes rechtwinkliges Muster, unabhängige Stützhöhe deaktivieren \n"
-"und lösliche Materialien sowohl für Stützschnittstelle als auch Stützbasis verwenden."
+"0 obere Z-Distanz, 0 Schnittstellenabstand, verschachteltes rechtwinkliges Muster, unabhängige Stützhöhe deaktivieren und lösliche Materialien sowohl für Stützschnittstelle als auch Stützbasis verwenden."
 
 msgid "Enabling this option will modify the model's shape. If your print requires precise dimensions or is part of an assembly, it's important to double-check whether this change in geometry impacts the functionality of your print."
 msgstr "Wenn Sie diese Option aktivieren, wird die Form des Modells geändert. Wenn Ihr Druck präzise Abmessungen erfordert oder Teil einer Baugruppe ist, ist es wichtig, zu überprüfen, ob diese Änderung der Geometrie die Funktionalität Ihres Drucks beeinträchtigt."
@@ -12884,12 +13056,8 @@ msgstr "Experimentelle Funktion: Filament beim Filamentwechsel weiter zurückzie
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications. Please use with the latest printer firmware."
 msgstr "Experimentelle Funktion: Filament beim Filamentwechsel weiter zurückziehen und abschneiden, um den Flush zu minimieren. Obwohl dies den Flush deutlich reduzieren kann, kann es auch das Risiko von Düsenverstopfungen oder anderen Druckkomplikationen erhöhen. Bitte verwenden Sie die Funktion mit der neuesten Drucker-Firmware."
 
-msgid ""
-"When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
-msgstr ""
-"Wenn Sie einen Zeitraffer ohne Werkzeugkopf aufnehmen, wird empfohlen, einen \"Timelapse Reinigungsturm\" hinzuzufügen,\n"
-"indem Sie mit der rechten Maustaste auf die leere Position der Bauplatte klicken und \"Primitiv hinzufügen\"->\"Timelapse Reinigungsturm\" wählen."
+msgid "When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
+msgstr "Wenn Sie einen Zeitraffer ohne Werkzeugkopf aufnehmen, wird empfohlen, einen \"Timelapse Reinigungsturm\" hinzuzufügen, indem Sie mit der rechten Maustaste auf die leere Position der Bauplatte klicken und \"Primitiv hinzufügen\"->\"Timelapse Reinigungsturm\" wählen."
 
 # AI Translated
 msgid "Setting unavailable"
@@ -13421,12 +13589,10 @@ msgid "Number of extruders of the printer."
 msgstr "Anzahl der Extruder des Druckers."
 
 msgid ""
-"Single Extruder Multi Material is selected,\n"
-"and all extruders must have the same diameter.\n"
+"Single Extruder Multi Material is selected, and all extruders must have the same diameter.\n"
 "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"
 msgstr ""
-"Single-Extruder-Multimaterial ist ausgewählt, \n"
-"und alle Extruder müssen denselben Durchmesser haben.\n"
+"Single-Extruder-Multimaterial ist ausgewählt, und alle Extruder müssen denselben Durchmesser haben.\n"
 "Möchten Sie den Durchmesser für alle Extruder auf den Wert des ersten Extruder-Düsendurchmessers ändern?"
 
 msgid "Nozzle diameter"
@@ -13592,10 +13758,12 @@ msgid "Set retraction length above zero and disable firmware retraction to edit 
 msgstr "Setzen Sie die Rückzugslänge auf einen Wert größer als null und deaktivieren Sie „Filament Rückzug durch Firmware“, um diese Einstellung zu bearbeiten."
 
 # AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."
 msgstr "Aktivieren Sie den Rückzug und „Während des Rückzugs wischen“ und setzen Sie „Rückzugsmenge nach dem Wischen“ unter 100%, um „Rückzugsmenge vor der Reinigung“ zu bearbeiten."
 
 # AI Translated
+#, no-c-format, no-boost-format
 msgid "Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."
 msgstr "Aktivieren Sie den Rückzug und „Während des Rückzugs wischen“ und setzen Sie „Rückzugsmenge vor der Reinigung“ unter 100%, um „Rückzugsmenge nach dem Wischen“ zu bearbeiten."
 
@@ -13922,7 +14090,7 @@ msgstr "Übertragen Sie die ausgewählten Optionen auf das neu ausgewählte Prof
 
 #, boost-format
 msgid ""
-"Save the selected options to preset \n"
+"Save the selected options to preset\n"
 "\"%1%\"."
 msgstr ""
 "Speichern der ausgewählten Optionen in dem Profil\n"
@@ -13930,10 +14098,10 @@ msgstr ""
 
 #, boost-format
 msgid ""
-"Transfer the selected options to the newly selected preset \n"
+"Transfer the selected options to the newly selected preset\n"
 "\"%1%\"."
 msgstr ""
-"Übertragen Sie die ausgewählten Optionen auf das neu ausgewählte Profil \n"
+"Übertragen Sie die ausgewählten Optionen auf das neu ausgewählte Profil\n"
 "\"%1%\"."
 
 #, boost-format
@@ -14767,12 +14935,8 @@ msgstr "Verbindung zum Drucker wird hergestellt... Der Dialog wird später gesch
 msgid "Connection failed, please double check IP and Access Code"
 msgstr "Verbindung fehlgeschlagen, bitte überprüfen Sie IP und Zugriffscode"
 
-msgid ""
-"Connection failed! If your IP and Access Code is correct, \n"
-"please move to step 3 for troubleshooting network issues"
-msgstr ""
-"Verbindung fehlgeschlagen! Wenn Ihre IP und Ihr Zugriffscode korrekt sind, \n"
-"gehen Sie bitte zu Schritt 3, um Netzwerkprobleme zu beheben"
+msgid "Connection failed! If your IP and Access Code is correct, please move to step 3 for troubleshooting network issues"
+msgstr "Verbindung fehlgeschlagen! Wenn Ihre IP und Ihr Zugriffscode korrekt sind, gehen Sie bitte zu Schritt 3, um Netzwerkprobleme zu beheben"
 
 msgid "Connection failed! Please refer to the wiki page."
 msgstr "Verbindung fehlgeschlagen! Bitte beziehen Sie sich auf die Wiki-Seite."
@@ -15271,6 +15435,11 @@ msgstr "%1% schneidet ein Kollisionsvolumen für Extruder %2%."
 msgid "%1% is too close to others, and collisions may be caused."
 msgstr "%1% ist zu nah an anderen, was Kollisionen verursachen kann."
 
+# AI Translated
+#, boost-format
+msgid "%1% is printed later than its place in the object list, to avoid a collision."
+msgstr "%1% wird später gedruckt, als es seinem Platz in der Objektliste entspricht, um eine Kollision zu vermeiden."
+
 #, boost-format
 msgid "%1% is too tall, and collisions will be caused."
 msgstr "%1% ist zu hoch und es kommt zu Kollisionen."
@@ -15411,6 +15580,12 @@ msgstr "Bitte wählen Sie die Druckreihenfolge \"Nach Objekt\", um mehrere Objek
 
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "Der Vasen-Modus funktioniert nicht, wenn ein Objekt mehr als ein Material enthält."
+
+# AI Translated
+#. TRN %1% is the object name.
+#, boost-format
+msgid "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers, but the object %1% uses other values, so it will not print as a continuous spiral."
+msgstr "Der Vasenmodus setzt eine Wandschleife sowie keine Füllung und keine oberen Schalenschichten voraus, aber das Objekt %1% verwendet andere Werte und wird daher nicht als durchgehende Spirale gedruckt."
 
 #, boost-format
 msgid "While the object %1% itself fits the build volume, it exceeds the maximum build volume height because of material shrinkage compensation."
@@ -15575,8 +15750,20 @@ msgstr ""
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
 msgstr "Die Option für präzise Wände wird für Außen-Innen- oder Innen-Außen-Innen-Wand-Sequenzen ignoriert."
 
-msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr "Das Adaptive Pressure Advance-Modell für einen oder mehrere Extruder kann ungültige Werte enthalten."
+# AI Translated
+msgid "Adaptive pressure advance is enabled for one or more extruders, but no measurements have been entered in their Adaptive Pressure Advance model."
+msgstr "Adaptive Pressure Advance ist für einen oder mehrere Extruder aktiviert, aber in deren Adaptive Pressure Advance-Modell wurden keine Messwerte eingegeben."
+
+# AI Translated
+#. TRN %1% is the filament number as shown in the filament list, starting from 1; %2% names the invalid line.
+#. one warning per filament, the notifications stack
+#, boost-format
+msgid ""
+"The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
+"%2%"
+msgstr ""
+"Das Adaptive Pressure Advance-Modell von Filament %1% enthält ungültige Werte.\n"
+"%2%"
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "Filament-Schrumpfung wird nicht verwendet, da sich die Filament-Schrumpfung für die verwendeten Filamente signifikant unterscheidet."
@@ -16294,8 +16481,14 @@ msgstr ""
 msgid "Precise wall"
 msgstr "Exakte Wand"
 
-msgid "Improve shell precision by adjusting outer wall spacing. This also improves layer consistency. NOTE: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
-msgstr "Verbessern Sie die Schalengenauigkeit, indem Sie den Abstand der äußeren Wand anpassen. Dies verbessert auch die Konsistenz der Schichten. HINWEIS: Diese Option wird für Außen-Innen- oder Innen-Außen-Innen-Wand-Sequenzen ignoriert."
+msgid ""
+"Improve shell precision by adjusting outer wall spacing. This also improves layer consistency.\n"
+"\n"
+"Note: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
+msgstr ""
+"Verbessern Sie die Schalengenauigkeit, indem Sie den Abstand der äußeren Wand anpassen. Dies verbessert auch die Konsistenz der Schichten.\n"
+"\n"
+"Hinweis: Diese Option wird für Außen-Innen- oder Innen-Außen-Innen-Wand-Sequenzen ignoriert."
 
 msgid "Only one wall on top surfaces"
 msgstr "Nur eine Wand auf den oberen Flächen"
@@ -16309,9 +16502,11 @@ msgstr "Schwellenwert für eine Wand"
 #, no-c-format, no-boost-format
 msgid ""
 "If a top surface has to be printed and it's partially covered by another layer, it won't be considered at a top layer where its width is below this value. This can be useful to not let the 'one perimeter on top' trigger on surface that should be covered only by perimeters. This value can be a mm or a % of the perimeter extrusion width.\n"
+"\n"
 "Warning: If enabled, artifacts can be created if you have some thin features on the next layer, like letters. Set this setting to 0 to remove these artifacts."
 msgstr ""
 "Wenn eine obere Oberfläche gedruckt werden muss und sie teilweise von einer anderen Schicht bedeckt ist, wird sie nicht als obere Schicht betrachtet, wenn ihre Breite unterhalb dieses Werts liegt. Dies kann nützlich sein, um das Auslösen von 'einem Umfang oben' zu verhindern, wenn Oberflächen nur von Umfängen bedeckt werden sollen. Dieser Wert kann in Millimetern oder als Prozentsatz der Extrusionsbreite des Umfangs angegeben werden.\n"
+"\n"
 "Warnung: Wenn aktiviert, können Artefakte entstehen, wenn Sie dünnere Merkmale auf der nächsten Schicht haben, z. B. Buchstaben. Setzen Sie diesen Wert auf 0, um diese Artefakte zu entfernen."
 
 msgid "Only one wall on first layer"
@@ -16409,7 +16604,7 @@ msgid ""
 "Enable this option to slow down printing in areas where perimeters may have curled upwards.\n"
 "For example, additional slowdown will be applied when printing overhangs on sharp corners like the front of the Benchy hull, reducing curling which compounds over multiple layers.\n"
 "\n"
-"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen. \n"
+"It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed is slow enough that perimeter curling does not happen.\n"
 "If printing with a high external perimeter speed, this parameter may introduce wall artifacts when slowing down, due to the potentially large variance in print speeds causing the extruder to be unable to keep up with the requested flow change.\n"
 "Root cause of these artifacts is most likely PA tuning being slightly off, especially when combined with a high PA smooth time.\n"
 "\n"
@@ -16424,7 +16619,7 @@ msgstr ""
 "Aktivieren Sie diese Option, um den Druck in Bereichen zu verlangsamen, in denen sich die Umfänge möglicherweise nach oben gekrümmt haben.\n"
 "Zum Beispiel wird beim Drucken von Überhängen an scharfen Ecken wie dem Vorderteil der Benchy-Hülle eine zusätzliche Verlangsamung angewendet, um das Krümmen zu reduzieren, das sich über mehrere Schichten hinweg verstärkt.\n"
 "\n"
-"Es wird in der Regel empfohlen, diese Option aktiviert zu lassen, es sei denn, Ihre Druckerkühlung ist stark genug oder die Druckgeschwindigkeit ist langsam genug, sodass sich Umfänge nicht krümmen. \n"
+"Es wird in der Regel empfohlen, diese Option aktiviert zu lassen, es sei denn, Ihre Druckerkühlung ist stark genug oder die Druckgeschwindigkeit ist langsam genug, sodass sich Umfänge nicht krümmen.\n"
 "Wenn Sie mit einer hohen externen Umfangsgeschwindigkeit drucken, kann dieser Parameter bei der Verlangsamung Wandartefakte verursachen, da die potentiell große Varianz der Druckgeschwindigkeiten den Extruder daran hindert, der geforderten Flussänderung zu folgen.\n"
 "Die Ursache dieser Artefakte ist in der Regel eine leicht abweichende PA-Einstellung, insbesondere in Kombination mit einer hohen PA-Glättungszeit.\n"
 "\n"
@@ -16687,8 +16882,12 @@ msgstr "Standard-Prozessprofil beim Wechsel zu diesem Maschinenprofil"
 msgid "Activate air filtration"
 msgstr "Aktiviere Luftfilterung"
 
-msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
-msgstr "aktivieren für eine bessere Luftfilterung. G-Code Befehl: M106 P3 S(0-255)"
+msgid ""
+"Activate for better air filtration.\n"
+"G-code command: M106 P3 S(0-255)"
+msgstr ""
+"aktivieren für eine bessere Luftfilterung.\n"
+"G-Code Befehl: M106 P3 S(0-255)"
 
 msgid "Enable this to override the fan speed set in custom G-code during print."
 msgstr "Aktivieren Sie dies, um die im benutzerdefinierten G-Code während des Drucks eingestellte Lüftergeschwindigkeit zu überschreiben."
@@ -17129,14 +17328,26 @@ msgstr "Die Höhe der Düsenspitze."
 msgid "Bed mesh min"
 msgstr "Bett Min Abtastbereich"
 
-msgid "This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "Diese Option legt den minimalen Punkt für den erlaubten Bett-Mesh-Bereich fest. Aufgrund des XY-Offsets der Sonde sind die meisten Drucker nicht in der Lage, das gesamte Bett abzutasten. Um sicherzustellen, dass der Abtastpunkt nicht außerhalb des Bettbereichs liegt, sollten die minimalen und maximalen Punkte des Bett-Mesh entsprechend festgelegt werden. OrcaSlicer stellt sicher, dass die Werte adaptive_bed_mesh_min/adaptive_bed_mesh_max diese Min-/Max-Punkte nicht überschreiten. Diese Informationen können in der Regel vom Druckerhersteller bezogen werden. Die Standardeinstellung ist (-99999, -99999), was bedeutet, dass es keine Grenzen gibt und somit das Abtasten über das gesamte Bett ermöglicht wird."
+msgid ""
+"This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"Diese Option legt den minimalen Punkt für den erlaubten Bett-Mesh-Bereich fest. Aufgrund des XY-Offsets der Sonde sind die meisten Drucker nicht in der Lage, das gesamte Bett abzutasten. Um sicherzustellen, dass der Abtastpunkt nicht außerhalb des Bettbereichs liegt, sollten die minimalen und maximalen Punkte des Bett-Mesh entsprechend festgelegt werden. OrcaSlicer stellt sicher, dass die Werte adaptive_bed_mesh_min/adaptive_bed_mesh_max diese Min-/Max-Punkte nicht überschreiten. Diese Informationen können in der Regel vom Druckerhersteller bezogen werden.\n"
+"\n"
+"Die Standardeinstellung ist (-99999, -99999), was bedeutet, dass es keine Grenzen gibt und somit das Abtasten über das gesamte Bett ermöglicht wird."
 
 msgid "Bed mesh max"
 msgstr "Bett Max Abtastbereich"
 
-msgid "This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
-msgstr "Diese Option legt den maximalen Punkt für den erlaubten Bett-Mesh-Bereich fest. Aufgrund des XY-Offsets der Sonde sind die meisten Drucker nicht in der Lage, das gesamte Bett abzutasten. Um sicherzustellen, dass der Abtastpunkt nicht außerhalb des Bettbereichs liegt, sollten die minimalen und maximalen Punkte des Bett-Mesh entsprechend festgelegt werden. OrcaSlicer stellt sicher, dass die Werte adaptive_bed_mesh_min/adaptive_bed_mesh_max diese Min-/Max-Punkte nicht überschreiten. Diese Informationen können in der Regel vom Druckerhersteller bezogen werden. Die Standardeinstellung ist (99999, 99999), was bedeutet, dass es keine Grenzen gibt und somit das Abtasten über das gesamte Bett ermöglicht wird."
+msgid ""
+"This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer.\n"
+"\n"
+"The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed."
+msgstr ""
+"Diese Option legt den maximalen Punkt für den erlaubten Bett-Mesh-Bereich fest. Aufgrund des XY-Offsets der Sonde sind die meisten Drucker nicht in der Lage, das gesamte Bett abzutasten. Um sicherzustellen, dass der Abtastpunkt nicht außerhalb des Bettbereichs liegt, sollten die minimalen und maximalen Punkte des Bett-Mesh entsprechend festgelegt werden. OrcaSlicer stellt sicher, dass die Werte adaptive_bed_mesh_min/adaptive_bed_mesh_max diese Min-/Max-Punkte nicht überschreiten. Diese Informationen können in der Regel vom Druckerhersteller bezogen werden.\n"
+"\n"
+"Die Standardeinstellung ist (99999, 99999), was bedeutet, dass es keine Grenzen gibt und somit das Abtasten über das gesamte Bett ermöglicht wird."
 
 msgid "Probe point distance"
 msgstr "Abstand der Abtastpunkte"
@@ -17257,13 +17468,11 @@ msgstr "Statisches Pressure Advance für Brücken"
 
 # AI Translated
 msgid ""
-"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
-"equivalent walls (using adaptive settings if enabled).\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as equivalent walls (using adaptive settings if enabled).\n"
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"Statischer Pressure-Advance-Wert für Brücken. Auf 0 setzen, um denselben Pressure Advance wie bei \n"
-"gleichwertigen Wänden anzuwenden (unter Verwendung adaptiver Einstellungen, falls aktiviert).\n"
+"Statischer Pressure-Advance-Wert für Brücken. Auf 0 setzen, um denselben Pressure Advance wie bei gleichwertigen Wänden anzuwenden (unter Verwendung adaptiver Einstellungen, falls aktiviert).\n"
 "\n"
 "Ein niedrigerer PA-Wert beim Drucken von Brücken hilft, das Auftreten leichter Unterextrusion unmittelbar nach Brücken zu reduzieren. Dies wird durch den Druckabfall in der Düse beim Drucken in der Luft verursacht, und ein niedrigerer PA hilft, dem entgegenzuwirken."
 
@@ -18387,8 +18596,12 @@ msgstr "Beste Objektposition"
 msgid "Best auto arranging position in range [0,1] w.r.t. bed shape."
 msgstr "Beste automatische Positionierung im Bereich [0,1] bezogen auf das Bett."
 
-msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
-msgstr "Aktivieren Sie diese Option, wenn der Drucker einen zusätzlichen Lüfter für die Kühlung von Teilen hat. G-Code-Befehl: M106 P2 S(0-255)."
+msgid ""
+"Enable this option if machine has auxiliary part cooling fan.\n"
+"G-code command: M106 P2 S(0-255)."
+msgstr ""
+"Aktivieren Sie diese Option, wenn der Drucker einen zusätzlichen Lüfter für die Kühlung von Teilen hat.\n"
+"G-Code-Befehl: M106 P2 S(0-255)."
 
 # AI Translated
 msgid "Fan direction"
@@ -18496,8 +18709,14 @@ msgid "Skip G-code config block"
 msgstr "G-code-Konfigurationsblock auslassen"
 
 # AI Translated
-msgid "Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper). Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
-msgstr "Schreibt den CONFIG_BLOCK (die Schlüssel-Wert-Paare der Slicer-Konfiguration) nicht in die G-code-Datei. Das kann bei Druckern helfen, deren Firmware beim Verarbeiten dieser Kommentarzeilen abstürzt (z. B. Anycubic go-klipper). Hinweis: Die G-code-Datei enthält dann keine Slicer-Einstellungen mehr, sodass beim erneuten Importieren in OrcaSlicer die Konfiguration nicht wiederhergestellt wird."
+msgid ""
+"Do not write the CONFIG_BLOCK (slicer configuration key/value pairs) into the G-code file. This can help with printers whose firmware crashes when parsing these comment lines (e.g. Anycubic go-klipper).\n"
+"\n"
+"Note: the G-code file will no longer contain slicer settings, so importing it back into OrcaSlicer will not restore the configuration."
+msgstr ""
+"Schreibt den CONFIG_BLOCK (die Schlüssel-Wert-Paare der Slicer-Konfiguration) nicht in die G-code-Datei. Das kann bei Druckern helfen, deren Firmware beim Verarbeiten dieser Kommentarzeilen abstürzt (z. B. Anycubic go-klipper).\n"
+"\n"
+"Hinweis: Die G-code-Datei enthält dann keine Slicer-Einstellungen mehr, sodass beim erneuten Importieren in OrcaSlicer die Konfiguration nicht wiederhergestellt wird."
 
 msgid "Pellet Modded Printer"
 msgstr "Pellet-Modifizierter Drucker"
@@ -18514,8 +18733,14 @@ msgstr "Aktivieren Sie diese Option, wenn Sie mehrere Betttypen verwenden möcht
 msgid "Label objects"
 msgstr "Objekte beschriften"
 
-msgid "Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in. This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
-msgstr "Aktivieren Sie diese Option, um Kommentare in den G-Code einzufügen, die die Druckbewegungen mit dem zugehörigen Objekt kennzeichnen. Dies ist nützlich für das Octoprint CancelObject-Plugin. Diese Einstellung ist NICHT kompatibel mit der Einzeldruckerdüsen-Mehrmaterial-Konfiguration und mit der Option zum Wischen in das Objekt / in den Innenfüllbereich."
+msgid ""
+"Enable this to add comments into the G-code labeling print moves with what object they belong to, which is useful for the Octoprint CancelObject plug-in.\n"
+"\n"
+"This setting is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill."
+msgstr ""
+"Aktivieren Sie diese Option, um Kommentare in den G-Code einzufügen, die die Druckbewegungen mit dem zugehörigen Objekt kennzeichnen. Dies ist nützlich für das Octoprint CancelObject-Plugin.\n"
+"\n"
+"Diese Einstellung ist NICHT kompatibel mit der Einzeldruckerdüsen-Mehrmaterial-Konfiguration und mit der Option zum Wischen in das Objekt / in den Innenfüllbereich."
 
 msgid "Exclude objects"
 msgstr "Objekte ausschließen"
@@ -18534,16 +18759,28 @@ msgstr "Maximale Abweichung des in EXCLUDE_OBJECT_DEFINE geschriebenen Objektumr
 msgid "Verbose G-code"
 msgstr "ausführlicher G-Code"
 
-msgid "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
-msgstr "Aktivieren Sie diese Option, um eine kommentierte G-Code-Datei zu erhalten, in der jede Zeile durch einen beschreibenden Text erklärt wird. Wenn Sie von der SD-Karte drucken, kann das zusätzliche Gewicht der Datei dazu führen, dass Ihre Firmware langsamer wird."
+msgid ""
+"Enable this to get a commented G-code file, with each line explained by a descriptive text.\n"
+"\n"
+"If you print from SD card, the additional weight of the file could make your firmware slow down."
+msgstr ""
+"Aktivieren Sie diese Option, um eine kommentierte G-Code-Datei zu erhalten, in der jede Zeile durch einen beschreibenden Text erklärt wird.\n"
+"\n"
+"Wenn Sie von der SD-Karte drucken, kann das zusätzliche Gewicht der Datei dazu führen, dass Ihre Firmware langsamer wird."
 
 # AI Translated
 msgid "High precision G-code (experimental)"
 msgstr "Hochpräziser G-Code (experimentell)"
 
 # AI Translated
-msgid "Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated. The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
-msgstr "Schreibt X, Y, Z, I und J mit 4 statt 3 Nachkommastellen und E mit 6 statt 5, um Rundungsfehler im G-Code zu verringern. Bei relativen E-Abständen wird der Rundungsfehler jeder Bewegung zudem auf die nächste übertragen. Stützen werden nach dem Druck entfernt und behalten daher die Standardgenauigkeit. Dies kann helfen, die Extrusion bei kleinen Düsen (z. B. 0,2 mm) und dünnen Schichten (z. B. 0,08 mm oder weniger) zu stabilisieren, bei denen jede Bewegung so wenig Material extrudiert, dass Rundungsfehler am stärksten ins Gewicht fallen. Die Wirkung hängt stark davon ab, wie gut die übrigen Einstellungen abgestimmt sind, und ist ohne gut kalibriertes Druckprofil möglicherweise kaum zu bemerken. Die G-Code-Datei wird etwa 10 Prozent größer, was Drucker verlangsamen kann, die G-Code langsam verarbeiten."
+msgid ""
+"Write X, Y, Z, I and J with 4 decimal places instead of 3, and E with 6 instead of 5, to reduce rounding errors in the G-code. With relative E distances, the rounding error of each move is also carried over to the next one. Supports are removed after printing, so they keep the standard precision. This may help stabilize extrusion with small nozzles (e.g. 0.2 mm) and thin layers (e.g. 0.08 mm or less), where each move extrudes so little material that rounding errors matter most. The effect depends strongly on how well the rest of the settings are tuned and may be hard to notice unless the print profile is well calibrated.\n"
+"\n"
+"The G-code file becomes about 10 percent larger, which may slow down printers that parse G-code slowly."
+msgstr ""
+"Schreibt X, Y, Z, I und J mit 4 statt 3 Nachkommastellen und E mit 6 statt 5, um Rundungsfehler im G-Code zu verringern. Bei relativen E-Abständen wird der Rundungsfehler jeder Bewegung zudem auf die nächste übertragen. Stützen werden nach dem Druck entfernt und behalten daher die Standardgenauigkeit. Dies kann helfen, die Extrusion bei kleinen Düsen (z. B. 0,2 mm) und dünnen Schichten (z. B. 0,08 mm oder weniger) zu stabilisieren, bei denen jede Bewegung so wenig Material extrudiert, dass Rundungsfehler am stärksten ins Gewicht fallen. Die Wirkung hängt stark davon ab, wie gut die übrigen Einstellungen abgestimmt sind, und ist ohne gut kalibriertes Druckprofil möglicherweise kaum zu bemerken.\n"
+"\n"
+"Die G-Code-Datei wird etwa 10 Prozent größer, was Drucker verlangsamen kann, die G-Code langsam verarbeiten."
 
 msgid "Infill combination"
 msgstr "Kombinieren der Füllung"
@@ -18560,14 +18797,34 @@ msgstr "Dieser Parameter fügt jeder Schicht der Füllung eine leichte Verschieb
 msgid "Sparse infill rotation template"
 msgstr "Infill-Rotationsvorlage"
 
-msgid "Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends. Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details. When a template is set, the standard infill direction setting is ignored. Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
-msgstr "Drehen Sie die Richtung der spärlichen Füllung pro Schicht mit einer Vorlage von Winkeln. Geben Sie durch Kommas getrennte Grad ein (z.B. '0,30,60,90'). Winkel werden schichtweise in der Reihenfolge angewendet und wiederholt, wenn die Liste endet. Erweiterte Syntax wird unterstützt: '+5' dreht +5° jede Schicht; '+5#5' dreht +5° alle 5 Schichten. Siehe das Wiki für Details. Wenn eine Vorlage festgelegt ist, wird die Standardfüllrichtungseinstellung ignoriert. Beachten Sie: Einige Füllmuster (z.B. Gyroid) steuern die Rotation selbst; verwenden Sie sie mit Vorsicht."
+msgid ""
+"Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends.\n"
+"\n"
+"Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details.\n"
+"\n"
+"When a template is set, the standard infill direction setting is ignored.\n"
+"\n"
+"Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
+msgstr ""
+"Drehen Sie die Richtung der spärlichen Füllung pro Schicht mit einer Vorlage von Winkeln. Geben Sie durch Kommas getrennte Grad ein (z.B. '0,30,60,90'). Winkel werden schichtweise in der Reihenfolge angewendet und wiederholt, wenn die Liste endet.\n"
+"\n"
+"Erweiterte Syntax wird unterstützt: '+5' dreht +5° jede Schicht; '+5#5' dreht +5° alle 5 Schichten. Siehe das Wiki für Details.\n"
+"\n"
+"Wenn eine Vorlage festgelegt ist, wird die Standardfüllrichtungseinstellung ignoriert.\n"
+"\n"
+"Beachten Sie: Einige Füllmuster (z.B. Gyroid) steuern die Rotation selbst; verwenden Sie sie mit Vorsicht."
 
 msgid "Solid infill rotation template"
 msgstr "Rotationsvorlage für massive Füllung"
 
-msgid "This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated. Note that not all solid infill patterns support rotation."
-msgstr "Dieser Parameter fügt jeder Schicht der massiven Füllung eine Rotation hinzu, um eine Kreuzstruktur zu erzeugen.Die Vorlage ist eine durch Kommas getrennte Liste von Winkeln in Grad, z.B. '0,90'. Der erste Winkel wird auf die erste Schicht angewendet, der zweite Winkel auf die zweite Schicht usw. Wenn es mehr Schichten als Winkel gibt, werden die Winkel wiederholt. Beachten Sie, dass nicht alle massiven Füllmuster eine Rotation unterstützen."
+msgid ""
+"This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated.\n"
+"\n"
+"Note that not all solid infill patterns support rotation."
+msgstr ""
+"Dieser Parameter fügt jeder Schicht der massiven Füllung eine Rotation hinzu, um eine Kreuzstruktur zu erzeugen.Die Vorlage ist eine durch Kommas getrennte Liste von Winkeln in Grad, z.B. '0,90'. Der erste Winkel wird auf die erste Schicht angewendet, der zweite Winkel auf die zweite Schicht usw. Wenn es mehr Schichten als Winkel gibt, werden die Winkel wiederholt.\n"
+"\n"
+"Beachten Sie, dass nicht alle massiven Füllmuster eine Rotation unterstützen."
 
 msgid "Skeleton infill density"
 msgstr "Dichte der Skelettfüllung"
@@ -19274,10 +19531,12 @@ msgstr "Mindestdrehzahl der Bauteilkühlung"
 
 msgid ""
 "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\n"
-"Please enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)"
+"Please enable auxiliary_fan in printer settings to use this feature.\n"
+"G-code command: M106 P2 S(0-255)"
 msgstr ""
 "Geschwindigkeit des Hilfsventilators für die Bauteilkühlung. Der Hilfsventi-lator läuft mit dieser Geschwindigkeit während des Druckens, außer in den ersten Schichten, die durch die Option \"Keine Kühlung\" definiert sind.\n"
-"Bitte aktivieren Sie den Hilfsventilator in den Druckereinstellungen, um diese Funktion zu verwenden. G-Code-Befehl: M106 P2 S(0-255)"
+"Bitte aktivieren Sie den Hilfsventilator in den Druckereinstellungen, um diese Funktion zu verwenden.\n"
+"G-Code-Befehl: M106 P2 S(0-255)"
 
 msgid "For the first"
 msgstr "Für die Erste"
@@ -19364,8 +19623,16 @@ msgstr "Die Start- und Endpunkte, vom Schnittbereich bis zum Auswurfschacht."
 msgid "Reduce infill retraction"
 msgstr "Rückzug bei der Füllung verringern"
 
-msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that Z-hop is also not performed in areas where retraction is skipped."
-msgstr "Kein Rückzug, wenn sich die Bewegung des Druckkopfes vollständig in einem Füllbereich befindet. Das bedeutet, dass das herauslaufen des Filaments nicht zu sehen ist. Dies kann die Zeit für das zurückziehen des Filaments bei komplexeren Modellen verkürzen und Druckzeit sparen, verlangsamt aber das Slicen und die G-Code Generierung."
+# AI Translated
+# Needs human review: Added the missing sentence 'Note that Z-hop is also not performed in areas where retraction is skipped.' as its own paragraph, as in the English; check its wording.
+msgid ""
+"Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower.\n"
+"\n"
+"Note that Z-hop is also not performed in areas where retraction is skipped."
+msgstr ""
+"Kein Rückzug, wenn sich die Bewegung des Druckkopfes vollständig in einem Füllbereich befindet. Das bedeutet, dass das herauslaufen des Filaments nicht zu sehen ist. Dies kann die Zeit für das zurückziehen des Filaments bei komplexeren Modellen verkürzen und Druckzeit sparen, verlangsamt aber das Slicen und die G-Code Generierung.\n"
+"\n"
+"Beachten Sie, dass in Bereichen, in denen der Rückzug übersprungen wird, auch kein Z-Hop ausgeführt wird."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "Diese Option senkt die Temperatur der inaktiven Extruder, um das Herauslaufen des Filaments zu verhindern."
@@ -19805,8 +20072,14 @@ msgstr "Diese Option bestimmt den Überhangsschwellenwert für die Anwendung von
 msgid "Scarf joint speed"
 msgstr "Schrägnaht Geschwindigkeit"
 
-msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "Diese Option legt die Druckgeschwindigkeit für Schrägnähte fest. Es wird empfohlen, Schrägnähte mit einer langsamen Geschwindigkeit (weniger als 100 mm/s) zu drucken. Es ist auch ratsam, die 'Glättung der Extrusionsrate' zu aktivieren, wenn die eingestellte Geschwindigkeit erheblich von der Geschwindigkeit der äußeren oder inneren Wände abweicht. Wenn die hier angegebene Geschwindigkeit höher ist als die Geschwindigkeit der äußeren oder inneren Wände, wird der Drucker auf die langsamere der beiden Geschwindigkeiten zurückgesetzt. Wenn sie als Prozentsatz angegeben wird (z.B. 80%), wird die Geschwindigkeit auf der Grundlage der jeweiligen Geschwindigkeit der äußeren oder inneren Wand berechnet. Der Standardwert ist auf 100% eingestellt."
+msgid ""
+"This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls.\n"
+"\n"
+"If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
+msgstr ""
+"Diese Option legt die Druckgeschwindigkeit für Schrägnähte fest. Es wird empfohlen, Schrägnähte mit einer langsamen Geschwindigkeit (weniger als 100 mm/s) zu drucken. Es ist auch ratsam, die 'Glättung der Extrusionsrate' zu aktivieren, wenn die eingestellte Geschwindigkeit erheblich von der Geschwindigkeit der äußeren oder inneren Wände abweicht.\n"
+"\n"
+"Wenn die hier angegebene Geschwindigkeit höher ist als die Geschwindigkeit der äußeren oder inneren Wände, wird der Drucker auf die langsamere der beiden Geschwindigkeiten zurückgesetzt. Wenn sie als Prozentsatz angegeben wird (z.B. 80%), wird die Geschwindigkeit auf der Grundlage der jeweiligen Geschwindigkeit der äußeren oder inneren Wand berechnet. Der Standardwert ist auf 100% eingestellt."
 
 msgid "Scarf joint flow ratio"
 msgstr "Schrägnaht Flussverhältnis"
@@ -19867,17 +20140,17 @@ msgstr "Reinigen nach innen"
 
 # AI Translated
 msgid ""
-"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
+"Applies only to external walls, including hole boundaries. Moves the hot nozzle toward the inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n"
 "\n"
 "Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n"
 "\n"
-"Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or Outer/Inner wall order), or if no supported inward path can be found, for example at tight corners or seam gaps."
+"Uses the regular wipe where the outer wall has no adjacent inner wall, such as in single-wall areas, or if no supported inward path can be found, for example at tight corners or seam gaps."
 msgstr ""
-"Gilt nur für Außenwände, einschließlich Lochkonturen. Bewegt die heiße Düse beim Reinigen in Richtung bereits gedruckter innerer Wände, um das erneute Aufschmelzen frisch gedruckten Kunststoffs und Nahtmarkierungen zu verringern.\n"
+"Gilt nur für Außenwände, einschließlich Lochkonturen. Bewegt die heiße Düse beim Reinigen in Richtung der inneren Wände, um das erneute Aufschmelzen frisch gedruckten Kunststoffs und Nahtmarkierungen zu verringern.\n"
 "\n"
 "Besonders nützlich bei Schichthöhen unter 0,1 mm, wo Reinigungsspuren deutlicher sichtbar sind.\n"
 "\n"
-"Verwendet die normale Reinigung, wenn keine angrenzende innere Wand bereits gedruckt ist (Bereiche mit nur einer Wand oder die Wandreihenfolge Außen/Innen) oder wenn kein gestützter Weg nach innen gefunden werden kann, zum Beispiel an engen Ecken oder Nahtlücken."
+"Verwendet die normale Reinigung, wo die Außenwand keine angrenzende innere Wand hat, etwa in Bereichen mit nur einer Wand, oder wenn kein gestützter Weg nach innen gefunden werden kann, zum Beispiel an engen Ecken oder Nahtlücken."
 
 # AI Translated
 msgid "Wipe inward distance"
@@ -19888,11 +20161,15 @@ msgstr "Abstand für Reinigen nach innen"
 msgid ""
 "The distance the wipe path is shifted away from the external perimeter, specified in millimeters or as a percentage of the actual outer-wall extrusion width.\n"
 "\n"
-"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset."
+"For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited by both the actual outer-wall width and the available spacing to the adjacent wall, so values above 100% or an equivalent absolute distance have no additional effect. Set to 0 to disable the offset.\n"
+"\n"
+"With Outer/Inner or Inner/Outer/Inner wall order, the offset is limited to 50% of the actual outer-wall width because the adjacent inner wall is printed after the outer wall. This also applies to equivalent distances specified in millimeters."
 msgstr ""
 "Der Abstand, um den der Reinigungsweg vom Außenperimeter weg verschoben wird, angegeben in Millimetern oder als Prozentsatz der tatsächlichen Extrusionsbreite der Außenwand.\n"
 "\n"
-"Zum Beispiel verschiebt 50% den Weg um die halbe Außenwandbreite. Der wirksame Versatz wird sowohl durch die tatsächliche Außenwandbreite als auch durch den verfügbaren Abstand zur benachbarten Wand begrenzt, sodass Werte über 100% oder ein entsprechender absoluter Abstand keine zusätzliche Wirkung haben. Auf 0 setzen, um den Versatz zu deaktivieren."
+"Zum Beispiel verschiebt 50% den Weg um die halbe Außenwandbreite. Der wirksame Versatz wird sowohl durch die tatsächliche Außenwandbreite als auch durch den verfügbaren Abstand zur benachbarten Wand begrenzt, sodass Werte über 100% oder ein entsprechender absoluter Abstand keine zusätzliche Wirkung haben. Auf 0 setzen, um den Versatz zu deaktivieren.\n"
+"\n"
+"Bei der Wandreihenfolge Außen/Innen oder Innen/Außen/Innen ist der Versatz auf 50% der tatsächlichen Außenwandbreite begrenzt, da die angrenzende innere Wand nach der Außenwand gedruckt wird. Dies gilt auch für entsprechende Abstände in Millimetern."
 
 msgid "Wipe before external loop"
 msgstr "Wischbewegung vor äußerer Schleife"
@@ -20050,8 +20327,14 @@ msgstr "Spirale Endflussverhältnis"
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 msgstr "Legt das Endflussverhältnis beim Beenden der Spirale fest. Normalerweise skaliert die Spiralenübergang das Flussverhältnis von 100% auf 0% während der letzten Schleife, was in einigen Fällen zu einer Unterextrusion am Ende der Spirale führen kann."
 
-msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
-msgstr "Wenn der Modus \"Gleichmäßig\" oder \"Traditionell\" ausgewählt ist, wird für jeden Druck ein Zeitraffer-Video generiert. Nachdem jede Schicht gedruckt wurde, wird eine Momentaufnahme mit der Kamerakammer erstellt. Alle diese Schnappschüsse werden zu einem Zeitraffer-Video zusammengesetzt, wenn der Druck abgeschlossen ist. Wenn der Modus \"Gleichmäßig\" ausgewählt ist, bewegt sich der Druckkopf nach dem Drucken jeder Schicht zum Überschusskanal und nimmt dann eine Momentaufnahme auf. Da das geschmolzene Filament während des Aufnahmeprozesses aus der Düse austreten kann, ist ein Reinigungsturm erforderlich, damit der Druckkopf gereinigt wird."
+msgid ""
+"If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes.\n"
+"\n"
+"If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
+msgstr ""
+"Wenn der Modus \"Gleichmäßig\" oder \"Traditionell\" ausgewählt ist, wird für jeden Druck ein Zeitraffer-Video generiert. Nachdem jede Schicht gedruckt wurde, wird eine Momentaufnahme mit der Kamerakammer erstellt. Alle diese Schnappschüsse werden zu einem Zeitraffer-Video zusammengesetzt, wenn der Druck abgeschlossen ist.\n"
+"\n"
+"Wenn der Modus \"Gleichmäßig\" ausgewählt ist, bewegt sich der Druckkopf nach dem Drucken jeder Schicht zum Überschusskanal und nimmt dann eine Momentaufnahme auf. Da das geschmolzene Filament während des Aufnahmeprozesses aus der Düse austreten kann, ist ein Reinigungsturm erforderlich, damit der Druckkopf gereinigt wird."
 
 msgid "Traditional"
 msgstr "Traditionell"
@@ -20265,16 +20548,28 @@ msgstr "Erlaube Filamentrammen"
 msgid "Tool change on wipe tower"
 msgstr "Werkzeugwechsel auf dem Reinigungsturm"
 
-msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
-msgstr "Erzwinge, dass der Werkzeugkopf zum Reinigungsturm fährt, bevor der Werkzeugwechselbefehl (Tx) ausgegeben wird. Nur relevant für Mehrfach-Extruder (Mehrfach-Werkzeugkopf) Drucker, die einen Typ-2-Reinigungsturm verwenden. Standardmäßig überspringt Orca die Fahrt auf Mehrfach-Werkzeugkopf-Maschinen, da die Firmware den Kopfwechsel übernimmt, was dazu führen kann, dass der Tx-Befehl über dem gedruckten Teil ausgegeben wird. Aktivieren Sie diese Option, wenn Sie möchten, dass der Werkzeugwechsel immer über dem Reinigungsturm ausgegeben wird."
+msgid ""
+"Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx).\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
+msgstr ""
+"Erzwinge, dass der Werkzeugkopf zum Reinigungsturm fährt, bevor der Werkzeugwechselbefehl (Tx) ausgegeben wird.\n"
+"\n"
+"Nur relevant für Mehrfach-Extruder (Mehrfach-Werkzeugkopf) Drucker, die einen Typ-2-Reinigungsturm verwenden. Standardmäßig überspringt Orca die Fahrt auf Mehrfach-Werkzeugkopf-Maschinen, da die Firmware den Kopfwechsel übernimmt, was dazu führen kann, dass der Tx-Befehl über dem gedruckten Teil ausgegeben wird. Aktivieren Sie diese Option, wenn Sie möchten, dass der Werkzeugwechsel immer über dem Reinigungsturm ausgegeben wird."
 
 # AI Translated
 msgid "Wait for temperature on wipe tower"
 msgstr "Auf Temperatur am Reinigungsturm warten"
 
 # AI Translated
-msgid "Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating. Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
-msgstr "Nimmt das neue Werkzeug auf, ohne auf das Erreichen der Drucktemperatur zu warten, fährt zum Reinigungsturm und wartet dort unmittelbar vor dem Spülen auf die Temperatur. Das beim Aufheizen austretende Material landet auf dem Turm statt auf dem Modell, und die Fahrt überlappt sich mit dem Aufheizen. Nur relevant für Multi-Extruder-Drucker (mehrere Werkzeugköpfe) mit einem Reinigungsturm vom Typ 2. Die Firmware bzw. das Werkzeugwechsel-Makro darf nicht selbst auf die Temperatur warten. Wenn deaktiviert, wird das Warten auf die Temperatur direkt nach dem Werkzeugwechselbefehl ausgegeben."
+msgid ""
+"Pick up the new tool without waiting for it to reach printing temperature, travel to the wipe tower, and wait for the temperature there, right before purging. Ooze from the heat-up lands on the tower instead of the model, and the travel overlaps with the heating.\n"
+"\n"
+"Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. The firmware or tool change macro must not wait for the temperature itself. When disabled, the temperature wait is issued right after the tool change command."
+msgstr ""
+"Nimmt das neue Werkzeug auf, ohne auf das Erreichen der Drucktemperatur zu warten, fährt zum Reinigungsturm und wartet dort unmittelbar vor dem Spülen auf die Temperatur. Das beim Aufheizen austretende Material landet auf dem Turm statt auf dem Modell, und die Fahrt überlappt sich mit dem Aufheizen.\n"
+"\n"
+"Nur relevant für Multi-Extruder-Drucker (mehrere Werkzeugköpfe) mit einem Reinigungsturm vom Typ 2. Die Firmware bzw. das Werkzeugwechsel-Makro darf nicht selbst auf die Temperatur warten. Wenn deaktiviert, wird das Warten auf die Temperatur direkt nach dem Werkzeugwechselbefehl ausgegeben."
 
 msgid "No sparse layers (beta)"
 msgstr "Keine dünnen Schichten (Beta)"
@@ -20566,10 +20861,16 @@ msgid "This is the speed for support."
 msgstr "Druckgeschwindigkeit für Stützstrukturen."
 
 msgid ""
-"Style and shape of the support. For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"Style and shape of the support.\n"
+"\n"
+"For normal support, projecting the supports into a regular grid will create more stable supports (default), while snug support towers will save material and reduce object scarring.\n"
+"\n"
 "For tree support, slim and organic style will merge branches more aggressively and save a lot of material (default organic), while hybrid style will create similar structure to normal support under large flat overhangs."
 msgstr ""
-"Stil und Form der Stützstrukturen. Für normale Stützstrukturen erzeugt die Projektion der Stützstrukturen in ein regelmäßiges Gitter stabilere Stützstrukturen (Standard), während schlanke Stütztürme Material sparen und Objektverletzungen reduzieren.\n"
+"Stil und Form der Stützstrukturen.\n"
+"\n"
+"Für normale Stützstrukturen erzeugt die Projektion der Stützstrukturen in ein regelmäßiges Gitter stabilere Stützstrukturen (Standard), während schlanke Stütztürme Material sparen und Objektverletzungen reduzieren.\n"
+"\n"
 "Für Baumstützen werden die schlanken und organischen Stile die Äste aggressiver zusammenführen und viel Material sparen (Standardorganisch), während der Hybridstil eine ähnliche Struktur wie normale Stützstrukturen unter großen flachen Überhängen erzeugt."
 
 msgid "Default (Grid/Organic)"
@@ -20601,9 +20902,11 @@ msgstr "Schwellenwinkel"
 
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
+"\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgstr ""
 "Für Überhänge, deren Neigungswinkel unter diesem Schwellwert liegt, werden Stützen generiert.Je kleiner dieser Wert ist, desto steiler kann der Überhang ohne Stützen gedruckt werden.\n"
+"\n"
 "Hinweis: Bei 0 verwenden normale Stützen stattdessen die Schwellwertüberlappung, während Baumstützen auf den Standardwert 30 zurückfallen."
 
 msgid "Threshold overlap"
@@ -20651,16 +20954,6 @@ msgstr "Neigungsachse des Förderbands"
 # AI Translated
 msgid "Axis the mesh is rotated about before slicing. This is the belt printer's tilt: an isometric (no distortion) rotation that also drives bed rendering and support gravity tilt, and that the G-code back-transform inverts before the machine-frame shear/scale and remap. X is the typical gantry tilt (belt travels along Y)."
 msgstr "Achse, um die das Netz vor dem Slicen gedreht wird. Dies ist die Neigung des Förderbanddruckers: eine isometrische (verzerrungsfreie) Drehung, die auch die Darstellung des Druckbetts und die Schwerkraftneigung der Stützen bestimmt und die von der G-Code-Rücktransformation vor der Scherung/Skalierung und Achsenzuordnung im Maschinenkoordinatensystem umgekehrt wird. X ist die typische Portalneigung (das Förderband bewegt sich entlang Y)."
-
-msgid "X"
-msgstr "X"
-
-msgid "Y"
-msgstr "Y"
-
-# AI Translated
-msgid "Z"
-msgstr "Z"
 
 # AI Translated
 msgid "Belt tilt angle"
@@ -20866,13 +21159,11 @@ msgid "Activate temperature control"
 msgstr "aktiviere Temperaturkontrolle"
 
 msgid ""
-"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\"\n"
-" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
+"Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \"machine_start_gcode\" which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\n"
 "\n"
 "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
 msgstr ""
-"Diese Option aktiviert die automatische Druckraumtemperaturkontrolle. Diese Option aktiviert das Aussenden eines M191-Befehls vor dem \"machine_start_gcode\",\n"
-"der die Druckraumtemperatur einstellt und wartet, bis sie erreicht ist. Darüber hinaus wird am Ende des Drucks ein M141-Befehl ausgegeben, um den Druckraumheizer auszuschalten, falls vorhanden.\n"
+"Diese Option aktiviert die automatische Druckraumtemperaturkontrolle. Diese Option aktiviert das Aussenden eines M191-Befehls vor dem \"machine_start_gcode\", der die Druckraumtemperatur einstellt und wartet, bis sie erreicht ist. Darüber hinaus wird am Ende des Drucks ein M141-Befehl ausgegeben, um den Druckraumheizer auszuschalten, falls vorhanden.\n"
 "\n"
 "Diese Option basiert auf der Firmware, die die M191- und M141-Befehle entweder über Makros oder nativ unterstützt und wird normalerweise verwendet, wenn ein aktiver Druckraumheizer installiert ist."
 
@@ -20881,24 +21172,30 @@ msgid ""
 "\n"
 "For PLA, PETG, TPU, PVA, and other low-temperature materials, this option should be disabled (set to 0) as the chamber temperature should be low to avoid extruder clogging caused by material softening at the heat break.\n"
 "\n"
-"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
+"If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this:\n"
+"PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]\n"
+"This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 msgstr ""
 "Für Hochtemperaturmaterialien wie ABS, ASA, PC und PA kann eine höhere Druckraumtemperatur helfen, das Verziehen zu unterdrücken oder zu reduzieren und möglicherweise zu einer höheren Festigkeit der Zwischenschichtbindung führen. Gleichzeitig verringert eine höhere Druckraumtemperatur jedoch die Effizienz der Luftfiltration für ABS und ASA.\n"
 "\n"
 "Für PLA, PETG, TPU, PVA und andere Niedrigtemperaturmaterialien sollte diese Option deaktiviert sein (auf 0 gesetzt werden), da die Druckraumtemperatur niedrig sein sollte, um ein Verstopfen des Extruders durch Erweichung des Materials am Heizblock zu vermeiden.\n"
 "\n"
-"Wenn diese Option aktiviert ist, wird auch eine G-Code-Variable namens chamber_temperature gesetzt, die verwendet werden kann, um die gewünschte Druckraumtemperatur an Ihr Druckstart-Makro oder ein Wärmespeicher-Makro weiterzugeben, wie z.B. PRINT_START (andere Variablen) CHAMBER_TEMP=[chamber_temperature]. Dies kann nützlich sein, wenn Ihr Drucker die Befehle M141/M191 nicht unterstützt oder wenn Sie das Wärmespeichern im Druckstart-Makro behandeln möchten, wenn kein aktiver Druckraumheizer installiert ist."
+"Wenn diese Option aktiviert ist, wird auch eine G-Code-Variable namens chamber_temperature gesetzt, die verwendet werden kann, um die gewünschte Druckraumtemperatur an Ihr Druckstart-Makro oder ein Wärmespeicher-Makro weiterzugeben, wie z.B.\n"
+"PRINT_START (andere Variablen) CHAMBER_TEMP=[chamber_temperature]\n"
+"Dies kann nützlich sein, wenn Ihr Drucker die Befehle M141/M191 nicht unterstützt oder wenn Sie das Wärmespeichern im Druckstart-Makro behandeln möchten, wenn kein aktiver Druckraumheizer installiert ist."
 
 msgid ""
 "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
 "\n"
-"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this:\n"
+"PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
 "Dies ist die Druckraumtemperatur, bei der der Druckvorgang beginnen soll, während der Druckraum weiterhin auf die \"Ziel\"-Druckraumtemperatur erhitzt wird. Zum Beispiel: Setzen Sie das Ziel auf 60 und das Minimum auf 50, um mit dem Drucken zu beginnen, sobald der Druckraum 50℃ erreicht hat, ohne auf die vollen 60℃ zu warten.\n"
 "\n"
-"Es wird eine G-Code-Variable namens chamber_minimal_temperature gesetzt, die an Ihr Druckstart-Makro oder ein Wärmespeicher-Makro übergeben werden kann, wie z.B.: PRINT_START (andere Variablen) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"Es wird eine G-Code-Variable namens chamber_minimal_temperature gesetzt, die an Ihr Druckstart-Makro oder ein Wärmespeicher-Makro übergeben werden kann, wie z.B.:\n"
+"PRINT_START (andere Variablen) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]\n"
 "\n"
 "Im Gegensatz zur \"Ziel\"-Druckraumtemperatur sendet diese Option keine M141/M191-Befehle; sie stellt den Wert nur Ihrem benutzerdefinierten G-Code zur Verfügung. Sie sollte die \"Ziel\"-Druckraumtemperatur nicht überschreiten."
 
@@ -21322,8 +21619,18 @@ msgstr "Beim Übergang zwischen verschiedenen Wandstärken, wenn das Teil dünne
 msgid "Wall transitioning filter margin"
 msgstr "Filter für die Größe des Wandübergangs"
 
-msgid "Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin]. Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems. It's expressed as a percentage over nozzle diameter."
-msgstr "Verhindern Sie das Hin- und Herwechseln zwischen einer zusätzlichen Wand und einer weniger. Diese Spanne erweitert den Bereich der  Extrusionsbreiten auf [Mindestwandbreite - Spanne, 2 * Mindestwandbreite + Spanne]. Durch die Vergrößerung dieses Bereichs wird die Anzahl der Übergänge reduziert, was die Anzahl der Extrusionsstarts/-stopps und die Verfahrzeit verringert. Eine große Variation der Extrusionsbreite kann jedoch zu Unter- oder Überextrusionsproblemen führen. Er wird als Prozentsatz des Düsendurchmessers ausgedrückt"
+msgid ""
+"Prevent transitioning back and forth between one extra wall and one less. This margin extends the range of extrusion widths which follow to [Minimum wall width - margin, 2 * Minimum wall width + margin].\n"
+"\n"
+"Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems.\n"
+"\n"
+"It's expressed as a percentage over nozzle diameter."
+msgstr ""
+"Verhindern Sie das Hin- und Herwechseln zwischen einer zusätzlichen Wand und einer weniger. Diese Spanne erweitert den Bereich der  Extrusionsbreiten auf [Mindestwandbreite - Spanne, 2 * Mindestwandbreite + Spanne].\n"
+"\n"
+"Durch die Vergrößerung dieses Bereichs wird die Anzahl der Übergänge reduziert, was die Anzahl der Extrusionsstarts/-stopps und die Verfahrzeit verringert. Eine große Variation der Extrusionsbreite kann jedoch zu Unter- oder Überextrusionsproblemen führen.\n"
+"\n"
+"Er wird als Prozentsatz des Düsendurchmessers ausgedrückt"
 
 msgid "Wall transitioning threshold angle"
 msgstr "Schwellenwinkel für den Wandübergang"
@@ -21405,8 +21712,14 @@ msgstr "Um ein Austreten von Material zu verhindern, wird die Düsentemperatur w
 msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
 msgstr "Die maximale Volumengeschwindigkeit für das Rammen vor dem Extruderwechsel, wobei -1 die Verwendung der maximalen Volumengeschwindigkeit bedeutet."
 
-msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
-msgstr "Um ein Auslaufen zu verhindern, wird die Düsentemperatur während des Rammens gekühlt. Hinweis: Es wird nur ein Abkühlbefehl und die Aktivierung des Lüfters ausgelöst, das Erreichen der Zieltemperatur ist nicht garantiert. 0 bedeutet deaktiviert."
+msgid ""
+"To prevent oozing, the nozzle temperature will be cooled during ramming. 0 means disabled.\n"
+"\n"
+"Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed."
+msgstr ""
+"Um ein Auslaufen zu verhindern, wird die Düsentemperatur während des Rammens gekühlt. 0 bedeutet deaktiviert.\n"
+"\n"
+"Hinweis: Es wird nur ein Abkühlbefehl und die Aktivierung des Lüfters ausgelöst, das Erreichen der Zieltemperatur ist nicht garantiert."
 
 msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
 msgstr "Die maximale Volumengeschwindigkeit für das Rammen vor einem Hotend-Wechsel, wobei -1 die Verwendung der maximalen Volumengeschwindigkeit bedeutet."
@@ -22008,6 +22321,14 @@ msgstr "Geschätzte Druckzeit, wenn im Normalmodus gedruckt wird (d. h. nicht im
 
 msgid "Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time."
 msgstr "Geschätzte Druckzeit, wenn im Normalmodus gedruckt wird (d. h. nicht im Silent-Modus). Gleichbedeutend mit normal_print_time."
+
+# AI Translated
+msgid "Used filament types"
+msgstr "Genutzte Filamenttypen"
+
+# AI Translated
+msgid "Underscore-separated list of all filament types used during the print."
+msgstr "Durch Unterstriche getrennte Liste aller im Druck verwendeten Filamenttypen."
 
 msgid "Print time (silent mode)"
 msgstr "Druckzeit (Silent-Modus)"
@@ -23302,7 +23623,7 @@ msgid "Expecting a regular expression."
 msgstr "Erwartet wird ein regulärer Ausdruck."
 
 # AI Translated
-msgid "Invalid utf8 sequence"
+msgid "Invalid UTF-8 sequence"
 msgstr "Ungültige UTF-8-Sequenz"
 
 # AI Translated
@@ -23735,6 +24056,10 @@ msgstr ""
 "- Materialien, die dieselbe Heizbetttemperatur haben können\n"
 "- Verschiedene Filamentmarken und -familien (Marke = Bambu, Familie = Basic, Matte)"
 
+msgctxt "PA calibration method"
+msgid "Line"
+msgstr "Linie"
+
 msgid "Pattern"
 msgstr "Muster"
 
@@ -23869,11 +24194,11 @@ msgstr "Automatisch an Düse skalieren"
 
 # AI Translated
 msgid ""
-"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height.\n"
 "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
 "Turn scaling off only if you wish to print the reference model exactly as-is."
 msgstr ""
-"Dieses Modell ist für eine 0,4 mm Düse mit einer Schichthöhe von 0,2 mm ausgelegt. \n"
+"Dieses Modell ist für eine 0,4 mm Düse mit einer Schichthöhe von 0,2 mm ausgelegt.\n"
 "Wenn die Skalierungsoption aktiviert ist (empfohlen), wird das Modell dynamisch an Ihren aktuellen Düsendurchmesser und eine passende Schichthöhe angepasst, sodass der Test sowohl genau als auch gut ablesbar ist.\n"
 "Deaktivieren Sie die Skalierung nur, wenn Sie das Referenzmodell exakt so drucken möchten, wie es ist."
 
@@ -24050,12 +24375,12 @@ msgstr ""
 #, c-format, boost-format
 msgid ""
 "The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
-" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
 "\n"
 "%s"
 msgstr ""
 "Die Endgeschwindigkeit (%.0f mm/s) überschreitet die maximale Volumengeschwindigkeit des Filaments (%.1f mm³/s), wodurch die Außenwand bei dieser Linienbreite und Schichthöhe auf etwa %.0f mm/s begrenzt wird.\n"
-" Höhere Geschwindigkeiten werden begrenzt, sodass die oberen Blöcke des Turms nicht mit der gewünschten Geschwindigkeit gedruckt werden.\n"
+"Höhere Geschwindigkeiten werden begrenzt, sodass die oberen Blöcke des Turms nicht mit der gewünschten Geschwindigkeit gedruckt werden.\n"
 "\n"
 "%s"
 
@@ -24123,10 +24448,10 @@ msgid "Klipper version => 0.9.0"
 msgstr "Klipper Version => 0.9.0"
 
 msgid ""
-"RepRap firmware version => 3.4.0\n"
+"RepRapFirmware version => 3.4.0\n"
 "Check your firmware documentation for supported shaper types."
 msgstr ""
-"RepRap-Firmware Version => 3.4.0\n"
+"RepRapFirmware Version => 3.4.0\n"
 "Überprüfen Sie die Dokumentation Ihrer Firmware auf unterstützte Shaper-Typen."
 
 msgid "Frequency (Start / End): "
@@ -24143,8 +24468,8 @@ msgstr "Y Start / Ende: "
 msgid "Frequency settings"
 msgstr "Frequenz Einstellungen"
 
-msgid "RepRap firmware uses the same frequency range for both axes."
-msgstr "RepRap-Firmware verwendet denselben Frequenzbereich für beide Achsen."
+msgid "RepRapFirmware uses the same frequency range for both axes."
+msgstr "RepRapFirmware verwendet denselben Frequenzbereich für beide Achsen."
 
 msgid "Damp: "
 msgstr "Dämpfung: "
@@ -24183,8 +24508,8 @@ msgstr "Frequenz X / Y: "
 msgid "Damp (Start / End): "
 msgstr "Dämpfung (Start / Ende): "
 
-msgid "RepRap firmware uses the same frequency for both axes."
-msgstr "RepRap-Firmware verwendet dieselbe Frequenz für beide Achsen."
+msgid "RepRapFirmware uses the same frequency for both axes."
+msgstr "RepRapFirmware verwendet dieselbe Frequenz für beide Achsen."
 
 msgid "Note: Use previously calculated frequencies."
 msgstr "Hinweis: Verwenden Sie zuvor berechnete Frequenzen."
@@ -24386,6 +24711,18 @@ msgstr "Strukturierte Bauplatte (Seite A)"
 msgid "Smooth Build Plate (Side B)"
 msgstr "Glatte Bauplatte (Seite B)"
 
+# AI Translated
+msgid "Reading the printer's filament slots..."
+msgstr "Filament-Slots des Druckers werden gelesen..."
+
+# AI Translated
+msgid "Could not read the printer. Close this dialog and try again."
+msgstr "Der Drucker konnte nicht ausgelesen werden. Schließen Sie diesen Dialog und versuchen Sie es erneut."
+
+# AI Translated
+msgid "Could not connect to the printer. Check that it is on, then reopen this dialog."
+msgstr "Verbindung zum Drucker fehlgeschlagen. Prüfen Sie, ob er eingeschaltet ist, und öffnen Sie diesen Dialog dann erneut."
+
 #, c-format, boost-format
 msgid "Printer: %s"
 msgstr "Drucker: %s"
@@ -24401,6 +24738,16 @@ msgstr "Filamentzuordnung:"
 #, c-format, boost-format
 msgid "Ext - %s"
 msgstr "Ext - %s"
+
+# AI Translated
+#. TRN Creality send dialog. CFS is Creality's multi-filament unit.
+msgid "The printer reports no CFS connected, so the print will use the external spool."
+msgstr "Der Drucker meldet kein angeschlossenes CFS, daher verwendet der Druck die externe Spule."
+
+# AI Translated
+#. TRN Creality send dialog, when the printer lists no CFS slots or does not answer
+msgid "The printer did not report any filament slots, so the print will use the external spool."
+msgstr "Der Drucker hat keine Filament-Slots gemeldet, daher verwendet der Druck die externe Spule."
 
 msgid "Unable to perform boolean operation on selected parts"
 msgstr "Die boolesche Operation kann auf den ausgewählten Teilen nicht durchgeführt werden"
@@ -24688,13 +25035,11 @@ msgstr "Sie haben ein unzulässiges Zeichen im Bereich für den druckbaren Berei
 
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
-"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
-"and filament and process presets without the same preset name will be reserved.\n"
+"\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated and filament and process presets without the same preset name will be reserved.\n"
 "\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 "Das von Ihnen erstellte Druckerprofil hat bereits ein Profil mit dem gleichen Namen. Möchten Sie dieses überschreiben?\n"
-"\tJa: Überschreiben Sie das Profil mit dem gleichen Namen, Filament- und Prozessprofile mit dem gleichen Profilnamen werden neu erstellt \n"
-"Filament- und Prozessprofile ohne den gleichen Profilnamen bleiben erhalten.\n"
+"\tJa: Überschreiben Sie das Profil mit dem gleichen Namen, Filament- und Prozessprofile mit dem gleichen Profilnamen werden neu erstellt, Filament- und Prozessprofile ohne den gleichen Profilnamen bleiben erhalten.\n"
 "\tAbbrechen: Es wird kein neues Profil erzeugt, zurück zur Einstellungs-Seite wechseln."
 
 msgid "You need to select at least one filament preset."
@@ -24734,10 +25079,10 @@ msgid "The entered nozzle diameter is invalid, please re-enter:\n"
 msgstr "Der eingegebene Düsendurchmesser ist ungültig, bitte erneut eingeben:\n"
 
 msgid ""
-"The system preset does not allow creation. \n"
+"The system preset does not allow creation.\n"
 "Please re-enter the printer model or nozzle diameter."
 msgstr ""
-"Das Systemprofil erlaubt keine Erstellung. \n"
+"Das Systemprofil erlaubt keine Erstellung.\n"
 "Bitte geben Sie das Druckermodell oder den Düsendurchmesser erneut ein."
 
 msgid ""
@@ -24874,17 +25219,17 @@ msgstr "Nur Druckernamen mit Benutzerdruckerprofilen  werden angezeigt, und jede
 
 # AI Translated
 msgid ""
-"Only the filament names with user filament presets will be displayed, \n"
+"Only the filament names with user filament presets will be displayed,\n"
 "and all user filament presets in each filament name you select will be exported as a ZIP archive."
 msgstr ""
-"Nur die Filamentnamen mit Benutzerfilamentvorlagen werden angezeigt, \n"
+"Nur die Filamentnamen mit Benutzerfilamentvorlagen werden angezeigt,\n"
 "und alle Benutzerfilamentvorlagen in jedem Filamentnamen, den Sie auswählen, werden als ZIP-Archiv exportiert."
 
 msgid ""
-"Only printer names with changed process presets will be displayed, \n"
+"Only printer names with changed process presets will be displayed,\n"
 "and all user process presets in each printer name you select will be exported as a ZIP archive."
 msgstr ""
-"Nur Druckernamen mit geänderten Prozessvorlagen werden angezeigt, \n"
+"Nur Druckernamen mit geänderten Prozessvorlagen werden angezeigt,\n"
 "und alle Benutzerprozessvorlagen in jedem Druckernamen, den Sie auswählen, werden als ZIP exportiert."
 
 msgid "Please select at least one printer or filament."
@@ -26037,7 +26382,7 @@ msgstr "s"
 msgid "Volumetric speed"
 msgstr "Volumetrische Geschwindigkeit"
 
-msgid "Step file import parameters"
+msgid "STEP file import parameters"
 msgstr "STEP-Datei-Importparameter"
 
 msgid "Smaller linear and angular deflections result in higher-quality transformations but increase the processing time."
@@ -26058,6 +26403,34 @@ msgstr "Bitte geben Sie einen gültigen Wert ein (0,01 < Winkelabweichung < 1,0)
 msgid "Split compound and compsolid into multiple objects"
 msgstr "Teile Verbund- und Komposid-Objekte in mehrere Objekte auf"
 
+# AI Translated
+msgid "Loads each body of a multi-body part separately. Needed to keep the bodies' original names."
+msgstr "Lädt jeden Körper eines Teils mit mehreren Körpern einzeln. Erforderlich, um die Originalnamen der Körper zu behalten."
+
+# AI Translated
+msgid "Load as an assembly"
+msgstr "Als Baugruppe laden"
+
+# AI Translated
+msgid "Load as a single object (can be split later)"
+msgstr "Als einzelnes Objekt laden (kann später getrennt werden)"
+
+# AI Translated
+msgid "The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."
+msgstr "Die ursprünglichen Körper und Namen bleiben im Objekt erhalten. Verwenden Sie „In Teile trennen“, um sie als separate Teile anzuzeigen."
+
+# AI Translated
+msgid "Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."
+msgstr "Die in der Datei gespeicherten Körpernamen verwenden, sofern vorhanden. Für Teile mit mehreren Körpern ist „Teile Verbund- und Komposid-Objekte“ erforderlich."
+
+# AI Translated
+msgid "Sort parts by name"
+msgstr "Teile nach Name sortieren"
+
+# AI Translated
+msgid "Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."
+msgstr "Sortiert die Teile innerhalb jeder importierten Baugruppe in der Objektliste. Die beim Slicen verwendete Reihenfolge ändert sich dadurch nicht. Verfügbar, wenn „Originalnamen behalten“ aktiviert ist."
+
 msgid "Number of triangular facets"
 msgstr "Anzahl der dreieckigen Facetten"
 
@@ -26065,12 +26438,98 @@ msgid "Calculating, please wait..."
 msgstr "Berechnung läuft, bitte warten..."
 
 # AI Translated
-msgid "Save these settings as default"
-msgstr "Diese Einstellungen als Standard speichern"
-
-# AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
 msgstr "Wenn aktiviert, werden die obigen Werte als Standardwerte für zukünftige STEP-Importe gespeichert (und in den Einstellungen angezeigt)."
+
+# AI Translated
+msgid "Don't ask again"
+msgstr "Nicht mehr fragen"
+
+# AI Translated
+msgid "Save these choices and apply them without asking next time. You can show this dialog again in Preferences."
+msgstr "Diese Auswahl speichern und beim nächsten Mal ohne Nachfrage anwenden. Sie können diesen Dialog in den Einstellungen wieder anzeigen."
+
+# AI Translated
+msgid "3MF geometry import options"
+msgstr "Optionen für den 3MF-Geometrie-Import"
+
+# AI Translated
+msgid "AMF geometry import options"
+msgstr "Optionen für den AMF-Geometrie-Import"
+
+# AI Translated
+msgid "Choose how to name and order the parts of this file."
+msgstr "Wählen Sie, wie die Teile dieser Datei benannt und sortiert werden sollen."
+
+# AI Translated
+msgid "Choose how to load the bodies in this file."
+msgstr "Wählen Sie, wie die Körper in dieser Datei geladen werden sollen."
+
+# AI Translated
+msgid "Load as separate objects"
+msgstr "Als separate Objekte laden"
+
+# AI Translated
+msgid "Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."
+msgstr "Jedes Objekt in der Datei wird einzeln geladen, so wie OrcaSlicer AMF-Dateien immer geladen hat."
+
+# AI Translated
+msgid "The bodies of each group in the file become parts of one object, in their relative positions."
+msgstr "Die Körper jeder Gruppe in der Datei werden unter Beibehaltung ihrer relativen Positionen zu Teilen eines Objekts."
+
+# AI Translated
+msgid "Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."
+msgstr "Die in der Datei gespeicherten Körpernamen verwenden, sofern vorhanden. Wenn deaktiviert, werden die üblichen OrcaSlicer-Namen verwendet; vorhandene Projektnamen bleiben erhalten."
+
+# AI Translated
+msgid "Use these choices as defaults next time. The dialog still opens."
+msgstr "Diese Auswahl beim nächsten Mal als Standard verwenden. Der Dialog wird weiterhin geöffnet."
+
+# AI Translated
+msgid "A name in the file is not valid Unicode. The geometry was not imported."
+msgstr "Ein Name in der Datei ist kein gültiges Unicode. Die Geometrie wurde nicht importiert."
+
+# AI Translated
+msgid "Invalid name"
+msgstr "Ungültiger Name"
+
+# AI Translated
+msgid "Unsupported characters in names"
+msgstr "Nicht unterstützte Zeichen in Namen"
+
+# AI Translated
+msgid "Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."
+msgstr "Einige Originalnamen enthalten Zeichen, die OrcaSlicer nicht verwenden kann. Wählen Sie vor dem Import, wie sie geändert werden sollen."
+
+# AI Translated
+msgid "Remove unsupported characters"
+msgstr "Nicht unterstützte Zeichen entfernen"
+
+# AI Translated
+msgid "Replace with:"
+msgstr "Ersetzen durch:"
+
+# AI Translated
+msgid "Each unsupported character is replaced with this text. It may be longer than one character."
+msgstr "Jedes nicht unterstützte Zeichen wird durch diesen Text ersetzt. Er darf länger als ein Zeichen sein."
+
+# AI Translated
+msgid "Use this rule as the default next time. The dialog still opens."
+msgstr "Diese Regel beim nächsten Mal als Standard verwenden. Der Dialog wird weiterhin geöffnet."
+
+# AI Translated
+msgid "Save this rule and apply it without asking next time. You can show this dialog again in Preferences."
+msgstr "Diese Regel speichern und beim nächsten Mal ohne Nachfrage anwenden. Sie können diesen Dialog in den Einstellungen wieder anzeigen."
+
+# AI Translated
+msgid "Enter a non-empty replacement containing only supported characters, or choose removal."
+msgstr "Geben Sie einen nicht leeren Ersatz ein, der nur unterstützte Zeichen enthält, oder wählen Sie das Entfernen."
+
+# AI Translated
+#. TRN The placeholders are the original name and its imported replacement.
+#, boost-format
+msgid "%1% → %2%"
+msgstr "%1% → %2%"
 
 msgid "PresetBundle"
 msgstr "Preset-Bündel"
@@ -30011,10 +30470,6 @@ msgid "Those two lines do not meet at a corner — pick two lines that do"
 msgstr "Diese beiden Linien treffen sich nicht in einer Ecke — wählen Sie zwei Linien, die sich in einer Ecke treffen"
 
 # AI Translated
-msgid "The size must be greater than zero"
-msgstr "Die Größe muss größer als null sein"
-
-# AI Translated
 msgid "Fillet: the radius overruns a leg, or the two lines do not meet at a corner"
 msgstr "Abrunden: Der Radius reicht über einen Schenkel hinaus, oder die beiden Linien treffen sich nicht in einer Ecke"
 
@@ -30088,21 +30543,43 @@ msgstr "Geben Sie eine Zahl ein"
 msgid "Not a number"
 msgstr "Keine Zahl"
 
+msgctxt "Design"
+msgid "Create"
+msgstr "Erstellen"
+
 # AI Translated
+msgctxt "Design"
 msgid "Add material"
 msgstr "Material hinzufügen"
 
+msgctxt "Design"
+msgid "Remove"
+msgstr "Entfernen"
+
 # AI Translated
+msgctxt "Design"
 msgid "Fillet / chamfer / draft"
 msgstr "Abrunden / Fasen / Formschräge"
 
 # AI Translated
+msgctxt "Design"
 msgid "Repeat"
 msgstr "Wiederholen"
 
 # AI Translated
+msgctxt "Design"
+msgid "Transform"
+msgstr "Transformieren"
+
+# AI Translated
+msgctxt "Design"
 msgid "Reference"
 msgstr "Referenz"
+
+# AI Translated
+msgctxt "Design"
+msgid "Modify"
+msgstr "Ändern"
 
 # AI Translated
 msgctxt "Design"
@@ -30436,6 +30913,10 @@ msgctxt "Design"
 msgid "Corner rectangle"
 msgstr "Eckrechteck"
 
+msgctxt "Design"
+msgid "Rectangle"
+msgstr "Rechteck"
+
 # AI Translated
 msgctxt "Design"
 msgid "Center rectangle"
@@ -30456,6 +30937,10 @@ msgctxt "Design"
 msgid "Center circle"
 msgstr "Mittelpunktkreis"
 
+msgctxt "Design"
+msgid "Circle"
+msgstr "Kreis"
+
 # AI Translated
 msgctxt "Design"
 msgid "2-point circle"
@@ -30470,6 +30955,11 @@ msgstr "3-Punkt-Kreis"
 msgctxt "Design"
 msgid "3-point arc"
 msgstr "3-Punkt-Bogen"
+
+# AI Translated
+msgctxt "Design"
+msgid "Arc"
+msgstr "Bogen"
 
 # AI Translated
 msgctxt "Design"
@@ -30510,6 +31000,11 @@ msgstr "Spline"
 msgctxt "Design"
 msgid "Triangle"
 msgstr "Dreieck"
+
+# AI Translated
+msgctxt "Design"
+msgid "Polygon"
+msgstr "Polygon"
 
 # AI Translated
 msgid "Triangle — click center, then a vertex"
@@ -30617,6 +31112,7 @@ msgid "Linear array"
 msgstr "Lineare Anordnung"
 
 # AI Translated
+msgctxt "Design"
 msgid "Array"
 msgstr "Anordnung"
 
@@ -30925,6 +31421,46 @@ msgstr "Zwischen Vorbereiten/ Vorschau wechseln"
 
 msgid "Collapse/Expand the sidebar"
 msgstr "Seitenleiste zu-/aufklappen"
+
+# AI Translated
+msgid "Go to the Home tab"
+msgstr "Zum Tab Startseite wechseln"
+
+# AI Translated
+msgid "Go to the Design tab"
+msgstr "Zum Tab Konstruktion wechseln"
+
+# AI Translated
+msgid "Go to the Prepare tab"
+msgstr "Zum Tab Vorbereiten wechseln"
+
+# AI Translated
+msgid "Go to the Preview tab"
+msgstr "Zum Tab Vorschau wechseln"
+
+# AI Translated
+msgid "Go to the Device tab"
+msgstr "Zum Tab Gerät wechseln"
+
+# AI Translated
+msgid "Go to the Multi-device tab"
+msgstr "Zum Tab Multi-Gerät wechseln"
+
+# AI Translated
+msgid "Go to the Project tab"
+msgstr "Zum Tab Projekt wechseln"
+
+# AI Translated
+msgid "Go to the Calibration tab"
+msgstr "Zum Tab Kalibrierung wechseln"
+
+# AI Translated
+msgid "Switch to the next tab"
+msgstr "Zum nächsten Tab wechseln"
+
+# AI Translated
+msgid "Switch to the previous tab"
+msgstr "Zum vorherigen Tab wechseln"
 
 # AI Translated
 msgid "Reload the device page"
@@ -33614,10 +34150,6 @@ msgid "Set the shape of your printer's bed."
 msgstr "Legen Sie die Form des Druckbetts Ihres Druckers fest."
 
 # AI Translated
-msgid "Invalid numeric input."
-msgstr "Ungültige numerische Eingabe."
-
-# AI Translated
 msgid "Filament and Nozzle Diameters"
 msgstr "Filament- und Düsendurchmesser"
 
@@ -33846,6 +34378,71 @@ msgstr "Wiki->"
 # AI Translated
 msgid "Note:"
 msgstr "Hinweis:"
+
+# AI Translated
+#. TRN %1% is a setting's label and %2% the plugin capability name stored in that setting.
+#, boost-format
+msgid "• %1%: %2%"
+msgstr "• %1%: %2%"
+
+# AI Translated
+#. TRN %1% is a preset name, %2% a setting's label and %3% the plugin capability name.
+#, boost-format
+msgid "• %1% — %2%: %3%"
+msgstr "• %1% – %2%: %3%"
+
+# AI Translated
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"Die folgenden Einstellungen verweisen auf Plugins, die Orca Slicer auf diesem Computer nicht erkennen kann:\n"
+"\n"
+"%1%\n"
+"\n"
+"Wenn Sie trotzdem speichern, behält das Profil die Plugin-Verweise für diese Einstellungen nicht bei. Auf einem anderen Computer weiß Orca Slicer dann nicht, welche Plugins angeboten werden sollen, und die Einstellungen funktionieren dort möglicherweise nicht."
+
+# AI Translated
+#, boost-format
+msgid ""
+"The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"Die folgenden Einstellungen verweisen auf Plugins, die Orca Slicer auf diesem Computer nicht erkennen kann:\n"
+"\n"
+"%1%\n"
+"\n"
+"Wenn Sie trotzdem speichern, behält das Projekt die Plugin-Verweise für diese Einstellungen nicht bei. Auf einem anderen Computer weiß Orca Slicer dann nicht, welche Plugins angeboten werden sollen, und die Einstellungen funktionieren dort möglicherweise nicht."
+
+# AI Translated
+msgid "Plugin Not Identified"
+msgstr "Plugin nicht erkannt"
+
+# AI Translated
+msgid "Save anyway"
+msgstr "Trotzdem speichern"
+
+# AI Translated
+#, boost-format
+msgid ""
+"The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
+"\n"
+"%1%\n"
+"\n"
+"If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
+msgstr ""
+"Die zu speichernden Profile verweisen auf Plugins, die Orca Slicer auf diesem Computer nicht erkennen kann:\n"
+"\n"
+"%1%\n"
+"\n"
+"Wenn Sie trotzdem speichern, behalten die Profile die Plugin-Verweise für diese Einstellungen nicht bei. Auf einem anderen Computer weiß Orca Slicer dann nicht, welche Plugins angeboten werden sollen, und die Einstellungen funktionieren dort möglicherweise nicht."
 
 # AI Translated
 msgctxt "Texture Displacement"
@@ -34642,6 +35239,10 @@ msgid "Turn Tile on to choose how the texture repeats."
 msgstr "Aktivieren Sie „Kacheln“, um festzulegen, wie die Textur wiederholt wird."
 
 # AI Translated
+msgid "Repeat"
+msgstr "Wiederholen"
+
+# AI Translated
 msgid "Mirrored repeat"
 msgstr "Gespiegelt wiederholen"
 
@@ -35213,6 +35814,66 @@ msgid "Plugin file: %s"
 msgstr "Plugin-Datei: %s"
 
 # AI Translated
+msgid "A file system permission cannot be empty."
+msgstr "Eine Dateisystemberechtigung darf nicht leer sein."
+
+# AI Translated
+msgid "A file system permission cannot contain a null character."
+msgstr "Eine Dateisystemberechtigung darf kein Nullzeichen enthalten."
+
+# AI Translated
+msgid "A file system permission may use \"*\" only as the final \"/*\" of a folder tree."
+msgstr "Eine Dateisystemberechtigung darf \"*\" nur als abschließendes \"/*\" eines Ordnerbaums verwenden."
+
+# AI Translated
+msgid "A file system permission cannot contain a \"..\" path component."
+msgstr "Eine Dateisystemberechtigung darf keine Pfadkomponente \"..\" enthalten."
+
+# AI Translated
+msgid "A file system permission must be an absolute path on this computer."
+msgstr "Eine Dateisystemberechtigung muss ein absoluter Pfad auf diesem Computer sein."
+
+# AI Translated
+msgid "A network permission cannot be empty."
+msgstr "Eine Netzwerkberechtigung darf nicht leer sein."
+
+# AI Translated
+msgid "A network permission cannot contain control characters."
+msgstr "Eine Netzwerkberechtigung darf keine Steuerzeichen enthalten."
+
+# AI Translated
+msgid "Network permissions do not support wildcards. Enter one full http:// or https:// URL."
+msgstr "Netzwerkberechtigungen unterstützen keine Platzhalterzeichen. Geben Sie eine einzelne vollständige URL mit http:// oder https:// ein."
+
+# AI Translated
+msgid "Enter a full http:// or https:// URL with a host name or IP address. Bare domain names are not accepted."
+msgstr "Geben Sie eine vollständige URL mit http:// oder https:// und einem Hostnamen oder einer IP-Adresse ein. Reine Domainnamen werden nicht akzeptiert."
+
+# AI Translated
+msgid "Only http:// and https:// URLs are supported for network permissions."
+msgstr "Für Netzwerkberechtigungen werden nur URLs mit http:// und https:// unterstützt."
+
+# AI Translated
+msgid "Enter a full http:// or https:// URL with a host name or IP address."
+msgstr "Geben Sie eine vollständige URL mit http:// oder https:// und einem Hostnamen oder einer IP-Adresse ein."
+
+# AI Translated
+msgid "Network permissions cannot include a username or password. Enter a URL with only a scheme and host."
+msgstr "Netzwerkberechtigungen dürfen weder einen Benutzernamen noch ein Passwort enthalten. Geben Sie eine URL ein, die nur Schema und Host enthält."
+
+# AI Translated
+msgid "Enter a valid bracketed IPv6 address."
+msgstr "Geben Sie eine gültige IPv6-Adresse in eckigen Klammern ein."
+
+# AI Translated
+msgid "Network permissions do not support wildcards."
+msgstr "Netzwerkberechtigungen unterstützen keine Platzhalterzeichen."
+
+# AI Translated
+msgid "Enter a host name or IP address, optionally with a port, or a full http:// or https:// URL."
+msgstr "Geben Sie einen Hostnamen oder eine IP-Adresse ein, optional mit Port, oder eine vollständige URL mit http:// oder https://."
+
+# AI Translated
 msgid "Process plugins"
 msgstr "Prozess-Plugins"
 
@@ -35549,6 +36210,191 @@ msgid "Capabilities"
 msgstr "Fähigkeiten"
 
 # AI Translated
+msgid "Permissions"
+msgstr "Berechtigungen"
+
+# AI Translated
+msgid "Permissions are unavailable."
+msgstr "Berechtigungen sind nicht verfügbar."
+
+# AI Translated
+msgid "File system read"
+msgstr "Dateisystem lesen"
+
+# AI Translated
+msgid "File system read and write"
+msgstr "Dateisystem lesen und schreiben"
+
+# AI Translated
+msgid "HTTP network"
+msgstr "HTTP-Netzwerk"
+
+# AI Translated
+msgid "Network sockets"
+msgstr "Netzwerk-Sockets"
+
+# AI Translated
+#. TRN Operating system processes a plugin may start, not print process presets.
+msgctxt "Permission category"
+msgid "Processes"
+msgstr "Prozesse"
+
+# AI Translated
+msgid "Threading"
+msgstr "Threads"
+
+# AI Translated
+msgctxt "Permission category"
+msgid "Events"
+msgstr "Ereignisse"
+
+# AI Translated
+msgid "Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. A read/write grant can create files through open(), but it does not cover create or delete events such as os.mkdir and os.remove. Without Full access, each such event outside allowed folders needs its own approval, which is never saved. When a plugin runs in the background, these events are denied without asking."
+msgstr "Geben Sie einen absoluten Pfad auf diesem Computer ein. Fügen Sie am Ende /* hinzu, um den Ordner und alles darunter einzuschließen; andere Platzhalterzeichen werden nicht akzeptiert. Mit einer Lese-/Schreibberechtigung können über open() Dateien erstellt werden, sie deckt aber keine Erstellungs- oder Löschereignisse wie os.mkdir und os.remove ab. Ohne „Vollzugriff“ benötigt jedes solche Ereignis außerhalb erlaubter Ordner eine eigene Genehmigung, die nie gespeichert wird. Wenn ein Plugin im Hintergrund läuft, werden diese Ereignisse ohne Nachfrage abgelehnt."
+
+# AI Translated
+msgid "C:\\path\\to\\directory\\*"
+msgstr "C:\\path\\to\\directory\\*"
+
+# AI Translated
+msgid "/path/to/directory/*"
+msgstr "/path/to/directory/*"
+
+# AI Translated
+msgid "Enter a full http:// or https:// URL; only its scheme and host are saved, so the grant covers every port, path, and query on that host. A network socket grant also accepts a bare host name or IP address, with or without a port, and covers every port on that host. Other schemes are not accepted. Grants in either list are checked for HTTP and socket access."
+msgstr "Geben Sie eine vollständige URL mit http:// oder https:// ein; nur Schema und Host werden gespeichert, daher gilt die Berechtigung für jeden Port, jeden Pfad und jede Abfrage auf diesem Host. Eine Netzwerk-Socket-Berechtigung akzeptiert auch einen reinen Hostnamen oder eine reine IP-Adresse, mit oder ohne Port, und gilt für jeden Port auf diesem Host. Andere Schemata werden nicht akzeptiert. Berechtigungen aus beiden Listen werden bei HTTP- und Socket-Zugriffen geprüft."
+
+# AI Translated
+msgid "Enter the exact value recorded by the audit. It may be a Python representation of the command."
+msgstr "Geben Sie den exakten Wert ein, den das Audit aufgezeichnet hat. Es kann sich um eine Python-Darstellung des Befehls handeln."
+
+# AI Translated
+msgid "Exact audited value"
+msgstr "Exakter Wert aus dem Audit"
+
+# AI Translated
+msgid "Allow this plugin to create threads."
+msgstr "Diesem Plugin erlauben, Threads zu erstellen."
+
+# AI Translated
+msgid "Enter a category and event separated by a colon, such as Socket:socket.__new__."
+msgstr "Geben Sie eine Kategorie und ein Ereignis ein, getrennt durch einen Doppelpunkt, z. B. Socket:socket.__new__."
+
+# AI Translated
+msgid "Socket:socket.__new__"
+msgstr "Socket:socket.__new__"
+
+# AI Translated
+msgid "Full access"
+msgstr "Vollzugriff"
+
+# AI Translated
+msgid "File system"
+msgstr "Dateisystem"
+
+# AI Translated
+msgid "Network access"
+msgstr "Netzwerkzugriff"
+
+# AI Translated
+msgid "Execution"
+msgstr "Ausführung"
+
+# AI Translated
+msgid "Audit events"
+msgstr "Audit-Ereignisse"
+
+# AI Translated
+msgid "Files and folders"
+msgstr "Dateien und Ordner"
+
+# AI Translated
+msgctxt "Permission access"
+msgid "Read"
+msgstr "Lesen"
+
+# AI Translated
+msgctxt "Permission access"
+msgid "Read and write"
+msgstr "Lesen und schreiben"
+
+# AI Translated
+msgid "Read permissions are unavailable."
+msgstr "Leseberechtigungen sind nicht verfügbar."
+
+# AI Translated
+msgid "Read and write permissions are unavailable."
+msgstr "Lese- und Schreibberechtigungen sind nicht verfügbar."
+
+# AI Translated
+msgid "File system: Read"
+msgstr "Dateisystem: Lesen"
+
+# AI Translated
+msgid "File system: Read and write"
+msgstr "Dateisystem: Lesen und schreiben"
+
+# AI Translated
+msgid "Full access bypasses permission checks. The plugin can read and write most files you can access; modifying startup or application files can let code run outside these checks. Direct Python access to OrcaSlicer's configuration, secret, certificate and install-state paths stays blocked, but subprocesses are not restricted."
+msgstr "„Vollzugriff“ umgeht die Berechtigungsprüfungen. Das Plugin kann die meisten Dateien lesen und schreiben, auf die Sie zugreifen können; durch das Ändern von Start- oder Anwendungsdateien kann Code außerhalb dieser Prüfungen ausgeführt werden. Der direkte Python-Zugriff auf die Konfigurations-, Geheimnis-, Zertifikats- und Installationsstatus-Pfade von OrcaSlicer bleibt blockiert, Unterprozesse werden jedoch nicht eingeschränkt."
+
+# AI Translated
+msgid "Permission list editing is disabled while full access is on."
+msgstr "Die Bearbeitung der Berechtigungsliste ist deaktiviert, solange „Vollzugriff“ aktiviert ist."
+
+# AI Translated
+msgid "Full access status is unavailable."
+msgstr "Der Status von „Vollzugriff“ ist nicht verfügbar."
+
+# AI Translated
+msgid "No values added."
+msgstr "Keine Werte hinzugefügt."
+
+# AI Translated
+msgctxt "Permission value"
+msgid "Apply"
+msgstr "Anwenden"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Apply value for %s"
+msgstr "Wert für %s anwenden"
+
+# AI Translated
+msgid "Install this plugin to edit its permissions."
+msgstr "Installieren Sie dieses Plugin, um seine Berechtigungen zu bearbeiten."
+
+# AI Translated
+#, c-format, boost-format
+msgid "New value for %s"
+msgstr "Neuer Wert für %s"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Edit value for %s"
+msgstr "Wert für %s bearbeiten"
+
+# AI Translated
+msgctxt "Permission value"
+msgid "Add"
+msgstr "Hinzufügen"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Add value to %s"
+msgstr "Wert zu %s hinzufügen"
+
+# AI Translated
+msgctxt "Permission value"
+msgid "Remove"
+msgstr "Entfernen"
+
+# AI Translated
+#, c-format, boost-format
+msgid "Remove %s"
+msgstr "%s entfernen"
+
+# AI Translated
 #, c-format, boost-format
 msgid "Run \"%s\""
 msgstr "„%s“ ausführen"
@@ -35656,6 +36502,39 @@ msgstr "Fehlende Plugins"
 # AI Translated
 msgid "Refreshing plugins data"
 msgstr "Plugin-Daten werden aktualisiert"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Enable full access for \"%s\"?\n"
+"\n"
+"Full access turns off permission auditing for this plugin: its file system, network, process, thread and event permissions are no longer checked. The plugin can read and write most files your user account can access, including startup scripts, SSH keys and a writable OrcaSlicer installation. Modifying startup or application files can let code run outside these checks. Direct Python access to OrcaSlicer's configuration, secret, certificate and install-state paths stays blocked, but subprocesses are not restricted. Full access is not a sandbox.\n"
+"\n"
+"Only enable this for a plugin you trust."
+msgstr ""
+"„Vollzugriff“ für „%s“ aktivieren?\n"
+"\n"
+"„Vollzugriff“ schaltet das Berechtigungs-Audit für dieses Plugin ab: Seine Dateisystem-, Netzwerk-, Prozess-, Thread- und Ereignisberechtigungen werden nicht mehr geprüft. Das Plugin kann die meisten Dateien lesen und schreiben, auf die Ihr Benutzerkonto zugreifen kann, darunter Startskripte, SSH-Schlüssel und eine beschreibbare OrcaSlicer-Installation. Durch das Ändern von Start- oder Anwendungsdateien kann Code außerhalb dieser Prüfungen ausgeführt werden. Der direkte Python-Zugriff auf die Konfigurations-, Geheimnis-, Zertifikats- und Installationsstatus-Pfade von OrcaSlicer bleibt blockiert, Unterprozesse werden jedoch nicht eingeschränkt. „Vollzugriff“ ist keine Sandbox.\n"
+"\n"
+"Aktivieren Sie dies nur für ein Plugin, dem Sie vertrauen."
+
+# AI Translated
+msgid "Invalid permission save request."
+msgstr "Ungültige Anfrage zum Speichern der Berechtigungen."
+
+# AI Translated
+#, boost-format
+msgid "Cannot save \"%1%\": %2%"
+msgstr "„%1%“ kann nicht gespeichert werden: %2%"
+
+# AI Translated
+msgid "Failed to save permissions."
+msgstr "Die Berechtigungen konnten nicht gespeichert werden."
+
+# AI Translated
+#, c-format, boost-format
+msgid "Permissions saved for \"%s\"."
+msgstr "Berechtigungen für „%s“ gespeichert."
 
 # AI Translated
 msgid "Failed to unload plugin."
@@ -36376,6 +37255,10 @@ msgid "Forward"
 msgstr "Vorwärts"
 
 # AI Translated
+msgid "Tools"
+msgstr "Werkzeuge"
+
+# AI Translated
 msgid "View Source"
 msgstr "Quelltext anzeigen"
 
@@ -36503,6 +37386,14 @@ msgid "unknown name"
 msgstr "unbekannter Name"
 
 # AI Translated
+msgid "Don't show this tip again"
+msgstr "Diesen Tipp nicht erneut anzeigen"
+
+# AI Translated
+msgid "Tip: You can review and change this plugin's saved permissions in the Plugins dialog, on the Permissions tab."
+msgstr "Tipp: Sie können die gespeicherten Berechtigungen dieses Plugins im Plugins-Dialog im Tab „Berechtigungen“ prüfen und ändern."
+
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "Plugin \"%s\" is requesting permission for the Python audit event \"%s\".\n"
@@ -36547,31 +37438,47 @@ msgstr[1] ""
 #, c-format, boost-format
 msgid ""
 "Plugin \"%s\" is requesting to create the following file:\n"
-"%s"
+"%s\n"
+"\n"
+"This approval applies only to this operation and is not remembered."
 msgid_plural ""
 "Plugin \"%s\" is requesting to create the following files:\n"
-"%s"
+"%s\n"
+"\n"
+"This approval applies only to this operation and is not remembered."
 msgstr[0] ""
 "Plugin „%s“ möchte die folgende Datei erstellen:\n"
-"%s"
+"%s\n"
+"\n"
+"Diese Genehmigung gilt nur für diesen Vorgang und wird nicht gemerkt."
 msgstr[1] ""
 "Plugin „%s“ möchte die folgenden Dateien erstellen:\n"
-"%s"
+"%s\n"
+"\n"
+"Diese Genehmigung gilt nur für diesen Vorgang und wird nicht gemerkt."
 
 # AI Translated
 #, c-format, boost-format
 msgid ""
 "Plugin \"%s\" is requesting to delete the following file:\n"
-"%s"
+"%s\n"
+"\n"
+"This approval applies only to this operation and is not remembered."
 msgid_plural ""
 "Plugin \"%s\" is requesting to delete the following files:\n"
-"%s"
+"%s\n"
+"\n"
+"This approval applies only to this operation and is not remembered."
 msgstr[0] ""
 "Plugin „%s“ möchte die folgende Datei löschen:\n"
-"%s"
+"%s\n"
+"\n"
+"Diese Genehmigung gilt nur für diesen Vorgang und wird nicht gemerkt."
 msgstr[1] ""
 "Plugin „%s“ möchte die folgenden Dateien löschen:\n"
-"%s"
+"%s\n"
+"\n"
+"Diese Genehmigung gilt nur für diesen Vorgang und wird nicht gemerkt."
 
 # AI Translated
 #, c-format, boost-format
@@ -36640,6 +37547,67 @@ msgstr "Berechtigungsanfrage eines Plugins"
 # AI Translated
 msgid "Plugin permissions"
 msgstr "Plugin-Berechtigungen"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" tried to perform a file operation that requires permission.\n"
+"\n"
+"The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it."
+msgstr ""
+"Plugin „%s“ hat versucht, einen Dateivorgang auszuführen, der eine Berechtigung erfordert.\n"
+"\n"
+"Der Vorgang wurde abgelehnt. Verwenden Sie einen erlaubten Speicherort, oder aktivieren Sie „Vollzugriff“ für dieses Plugin, wenn Sie ihm vertrauen."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" tried to create the following file:\n"
+"%s\n"
+"\n"
+"The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it."
+msgid_plural ""
+"Plugin \"%s\" tried to create the following files:\n"
+"%s\n"
+"\n"
+"The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it."
+msgstr[0] ""
+"Plugin „%s“ hat versucht, die folgende Datei zu erstellen:\n"
+"%s\n"
+"\n"
+"Der Vorgang wurde abgelehnt. Verwenden Sie einen erlaubten Speicherort, oder aktivieren Sie „Vollzugriff“ für dieses Plugin, wenn Sie ihm vertrauen."
+msgstr[1] ""
+"Plugin „%s“ hat versucht, die folgenden Dateien zu erstellen:\n"
+"%s\n"
+"\n"
+"Der Vorgang wurde abgelehnt. Verwenden Sie einen erlaubten Speicherort, oder aktivieren Sie „Vollzugriff“ für dieses Plugin, wenn Sie ihm vertrauen."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Plugin \"%s\" tried to delete the following file:\n"
+"%s\n"
+"\n"
+"The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it."
+msgid_plural ""
+"Plugin \"%s\" tried to delete the following files:\n"
+"%s\n"
+"\n"
+"The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it."
+msgstr[0] ""
+"Plugin „%s“ hat versucht, die folgende Datei zu löschen:\n"
+"%s\n"
+"\n"
+"Der Vorgang wurde abgelehnt. Verwenden Sie einen erlaubten Speicherort, oder aktivieren Sie „Vollzugriff“ für dieses Plugin, wenn Sie ihm vertrauen."
+msgstr[1] ""
+"Plugin „%s“ hat versucht, die folgenden Dateien zu löschen:\n"
+"%s\n"
+"\n"
+"Der Vorgang wurde abgelehnt. Verwenden Sie einen erlaubten Speicherort, oder aktivieren Sie „Vollzugriff“ für dieses Plugin, wenn Sie ihm vertrauen."
+
+# AI Translated
+msgid "Plugin operation denied"
+msgstr "Plugin-Vorgang abgelehnt"
 
 # AI Translated
 msgid "The preset stores invalid plugin capability configuration JSON."
@@ -37053,6 +38021,11 @@ msgstr "Plugin kann nicht lokal behalten werden: Ein lokaler Plugin-Schlüssel e
 
 # AI Translated
 #, boost-format
+msgid "Failed to read plugin install state: %1%"
+msgstr "Lesen des Plugin-Installationsstatus fehlgeschlagen: %1%"
+
+# AI Translated
+#, boost-format
 msgid "Failed to update plugin install state: %1%"
 msgstr "Aktualisieren des Plugin-Installationsstatus fehlgeschlagen: %1%"
 
@@ -37340,18 +38313,18 @@ msgstr "Verdächtig geringe Anzahl an Konfigurationswerten aus %1% extrahiert: %
 
 # AI Translated
 msgid ""
-"Load step file failed.\n"
+"Load STEP file failed.\n"
 "Cannot open file for reading.\n"
 msgstr ""
 "Laden der STEP-Datei fehlgeschlagen.\n"
 "Die Datei kann nicht zum Lesen geöffnet werden.\n"
 
 # AI Translated
-msgid "import svg failed: could not open svg."
+msgid "import SVG failed: could not open SVG."
 msgstr "SVG-Import fehlgeschlagen: SVG konnte nicht geöffnet werden."
 
 # AI Translated
-msgid "import svg failed: could not parse imported svg data."
+msgid "import SVG failed: could not parse imported SVG data."
 msgstr "SVG-Import fehlgeschlagen: Die importierten SVG-Daten konnten nicht analysiert werden."
 
 # AI Translated
@@ -37811,3 +38784,80 @@ msgid ""
 msgstr ""
 "Verwerfungen vermeiden\n"
 "Wussten Sie, dass beim Drucken von Materialien, die zu Verwerfungen neigen, wie z.B. ABS, durch eine entsprechende Erhöhung der Heizbetttemperatur die Wahrscheinlichkeit von Verwerfungen verringert werden kann?"
+
+#~ msgid "Show options when importing STEP file"
+#~ msgstr "Optionen beim Importieren von STEP-Dateien anzeigen"
+
+# AI Translated
+#~ msgid "STEP importing: linear deflection"
+#~ msgstr "STEP-Import: lineare Abweichung"
+
+# AI Translated
+#~ msgid "STEP importing: angle deflection"
+#~ msgstr "STEP-Import: Winkelabweichung"
+
+# AI Translated
+#~ msgid "STEP importing: Split into multiple objects"
+#~ msgstr "STEP-Import: In mehrere Objekte aufteilen"
+
+# AI Translated
+#~ msgid ""
+#~ "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
+#~ "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+#~ "Default: disabled."
+#~ msgstr ""
+#~ "Wenn aktiviert, werden Compound- und Compsolid-Formen in importierten STEP-Dateien in mehrere Objekte aufgeteilt.\n"
+#~ "Wird als Standard im Importdialog verwendet oder direkt, wenn der Importdialog deaktiviert ist.\n"
+#~ "Standard: deaktiviert."
+
+#~ msgid "Behavior"
+#~ msgstr "Verhalten"
+
+# AI Translated
+#~ msgid "G-code Preview"
+#~ msgstr "G-code-Vorschau"
+
+#~ msgid "Associate"
+#~ msgstr "Zuordnen"
+
+# AI Translated
+#~ msgid "Remove from favorites"
+#~ msgstr "Aus Favoriten entfernen"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Plugin \"%s\" is requesting to create the following file:\n"
+#~ "%s"
+#~ msgid_plural ""
+#~ "Plugin \"%s\" is requesting to create the following files:\n"
+#~ "%s"
+#~ msgstr[0] ""
+#~ "Plugin „%s“ möchte die folgende Datei erstellen:\n"
+#~ "%s"
+#~ msgstr[1] ""
+#~ "Plugin „%s“ möchte die folgenden Dateien erstellen:\n"
+#~ "%s"
+
+# AI Translated
+#, c-format, boost-format
+#~ msgid ""
+#~ "Plugin \"%s\" is requesting to delete the following file:\n"
+#~ "%s"
+#~ msgid_plural ""
+#~ "Plugin \"%s\" is requesting to delete the following files:\n"
+#~ "%s"
+#~ msgstr[0] ""
+#~ "Plugin „%s“ möchte die folgende Datei löschen:\n"
+#~ "%s"
+#~ msgstr[1] ""
+#~ "Plugin „%s“ möchte die folgenden Dateien löschen:\n"
+#~ "%s"
+
+# AI Translated
+#~ msgid "import SVG failed: could not open svg."
+#~ msgstr "SVG-Import fehlgeschlagen: SVG konnte nicht geöffnet werden."
+
+# AI Translated
+#~ msgid "import SVG failed: could not parse imported svg data."
+#~ msgstr "SVG-Import fehlgeschlagen: Die importierten SVG-Daten konnten nicht analysiert werden."

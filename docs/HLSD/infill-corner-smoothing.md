@@ -44,9 +44,20 @@ vertex stands out of the chord of its neighbours by less than the resolution, as
 `LayerRegion::simplify_*` simplifies the infill to it afterwards and would drop
 that vertex again.
 
+The resolution is followed down to 5 microns (`corner_smoothing_tolerance()`), no
+finer. G-code coordinates come in steps of 1 micron, and rounding the vertices of
+a corner split for a finer tolerance makes their turns uneven, by about a quarter
+between neighbours at 1 micron, so the planner slows at the sharpest of them and
+the corner prints no faster. Finer corners also pack their moves closer: a curve
+held to its centripetal limit runs through about `sqrt(acceleration / (8 ×
+tolerance))` moves per second, 1,100 at 10,000 mm/s² and 1 micron. A printer host
+that cannot plan moves that fast runs out of buffered moves, and Klipper then
+flushes its lookahead queue and stops the toolhead in the middle of the path, a
+pause the preview does not show.
+
 The vertices depend on the geometry and the resolution only, not on the printer.
-A finer resolution splits a corner into more and gentler turns, which a planner
-takes faster, for a larger G-code file.
+A finer resolution, down to that limit, splits a corner into more and gentler
+turns, which a planner takes faster, for a larger G-code file.
 
 A corner of a given turn and vertex count is the same shape at any reach and
 resolution, scaled. Each thread builds a shape once at unit reach and all its

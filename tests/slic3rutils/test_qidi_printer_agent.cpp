@@ -4,7 +4,10 @@
 
 #include <string>
 
+#include <nlohmann/json.hpp>
+
 #include "slic3r/Utils/QidiPrinterAgent.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
 
 using namespace Slic3r;
 
@@ -45,4 +48,14 @@ TEST_CASE("Filaments past the firmware's last tool variable are skipped", "[Qidi
     mapping += "1, 4]";
 
     CHECK(QidiPrinterAgent::build_tool_slot_script(mapping) == "SAVE_VARIABLE VARIABLE=value_t15 VALUE=\"'slot1'\"");
+}
+
+TEST_CASE("The print start of a 3MF names the plate to print", "[QidiPrinterAgent]")
+{
+    PrintParams params;
+    params.plate_index = 2;
+
+    CHECK(QidiPrinterAgent::print_start_request(params, "Cube.gcode.3mf") ==
+          nlohmann::json{{"filename", "Cube.gcode.3mf"}, {"plateindex", "2"}});
+    CHECK(QidiPrinterAgent::print_start_request(params, "Cube.gcode") == nlohmann::json{{"filename", "Cube.gcode"}});
 }

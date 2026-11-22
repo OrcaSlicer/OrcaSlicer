@@ -3,7 +3,7 @@
 # on your branch, so its findings match what CI reports. Linux and macOS.
 #
 #   scripts/run_clang_tidy.sh            check your changes against OrcaSlicer's main
-#   scripts/run_clang_tidy.sh --fix      also add the missing includes it names
+#   scripts/run_clang_tidy.sh --fix      also apply clang-tidy's fixes
 #
 # It configures a separate build directory (build-tidy) without the precompiled
 # header, uses the clang-tidy on your system or installs the pinned one into a
@@ -23,7 +23,7 @@ Usage: scripts/run_clang_tidy.sh [options]
   -d, --deps-dir DIR   dependency build directory (default: deps/build on Linux,
                        deps/build/<arch> on macOS)
   -j, --jobs N         parallel clang-tidy runs (default: all cores)
-      --fix            apply clang-tidy's fixes (adds the missing includes)
+      --fix            apply clang-tidy's fixes
   -y, --yes            install missing tools without asking; another clang-tidy
                        version found on the system is then not offered
   -h, --help           show this help

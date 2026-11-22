@@ -83,7 +83,7 @@ TEST_CASE("Sequential clearance allows the last object up to printable height", 
     CHECK_THAT(warnings.front().second, WithinAbs(200., 1e-6));
 }
 
-TEST_CASE("Sequential clearance warns the same rotated copy as print validation", "[SequentialClearance][Regression]")
+TEST_CASE("Sequential clearance warns the same copy as print validation", "[SequentialClearance][Regression]")
 {
     constexpr double rod_height = 10.;
     constexpr double lid_height = 30.;
@@ -116,15 +116,17 @@ TEST_CASE("Sequential clearance warns the same rotated copy as print validation"
         Slic3r::Polygon hull = object->convex_hull_2d(object->instances[i]->get_matrix());
         instances.push_back({object->get_instance_max_z(i), hull.bounding_box(), hull, object->instances[i]->id()});
     }
-    const Slic3r::Polygon expected_warning = instances[1].hull_polygon;
+    // Copies print in object-list order, so the first copy is the one held to the rod height: the later
+    // copy shares its Y band. Print validation warns about that copy, and the clearance preview must
+    // warn about the same one.
     REQUIRE(validation_warnings.size() == 1);
-    CHECK(validation_warnings.front().first.bounding_box().contains(instances[1].bounding_box.center()));
-    CHECK_FALSE(validation_warnings.front().first.bounding_box().contains(instances[0].bounding_box.center()));
+    CHECK(validation_warnings.front().first.bounding_box().contains(instances[0].bounding_box.center()));
+    CHECK_FALSE(validation_warnings.front().first.bounding_box().contains(instances[1].bounding_box.center()));
 
     sort_sequential_clearance_instances(instances.begin(), instances.end(), print_order);
     const auto warnings = sequential_clearance_height_polygons(instances, printable_height, lid_height, rod_height);
     REQUIRE(warnings.size() == 1);
-    CHECK(warnings.front().first == expected_warning);
+    CHECK(warnings.front().first == instances[0].hull_polygon);
     CHECK_THAT(warnings.front().second, WithinAbs(rod_height, 1e-6));
 }
 
@@ -134,15 +136,16 @@ TEST_CASE("Sequential clearance keeps copy order when print order is unavailable
     instances[0].instance_id = ObjectID(1);
     instances[1].instance_id = ObjectID(2);
     std::map<ObjectID, int> print_order{{ObjectID(1), 2}, {ObjectID(2), 1}};
+    const auto check_copy_order = [&]() {
+        sort_sequential_clearance_instances(instances.begin(), instances.end(), print_order);
+        CHECK(instances[0].instance_id == ObjectID(1));
+        CHECK(instances[1].instance_id == ObjectID(2));
+    };
 
-    SECTION("No validation order") { print_order.clear(); }
-    SECTION("New copy missing from print") { print_order.erase(ObjectID(2)); }
-    SECTION("Copy has not been ordered") { print_order[ObjectID(2)] = 0; }
-    SECTION("Copy has an invalid order") { print_order[ObjectID(2)] = -1; }
-
-    sort_sequential_clearance_instances(instances.begin(), instances.end(), print_order);
-    CHECK(instances[0].instance_id == ObjectID(1));
-    CHECK(instances[1].instance_id == ObjectID(2));
+    SECTION("No validation order") { print_order.clear(); check_copy_order(); }
+    SECTION("New copy missing from print") { print_order.erase(ObjectID(2)); check_copy_order(); }
+    SECTION("Copy has not been ordered") { print_order[ObjectID(2)] = 0; check_copy_order(); }
+    SECTION("Copy has an invalid order") { print_order[ObjectID(2)] = -1; check_copy_order(); }
 }
 
 TEST_CASE("Sequential clearance keeps object order when sorting copies", "[SequentialClearance]")

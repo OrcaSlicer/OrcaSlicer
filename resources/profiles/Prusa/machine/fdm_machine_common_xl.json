@@ -85,7 +85,7 @@
 	],
 	"retraction_length": "0.8",
 	"retraction_speed": "35",
-	"detraction_speed": "25",
+	"deretraction_speed": "25",
 	"retraction_minimum_travel": "1.5",
 	"retract_when_changing_layer": "1",
 	"wipe": "1",

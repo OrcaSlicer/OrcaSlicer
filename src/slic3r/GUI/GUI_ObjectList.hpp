@@ -37,6 +37,7 @@ class DynamicPrintConfig;
 class ModelConfig;
 class ModelObject;
 class ModelVolume;
+class TriangleSelector;
 class TriangleMesh;
 enum class ModelVolumeType : int;
 
@@ -62,6 +63,9 @@ enum class ObjectOrder { Name, Filament, Height, Size };
 
 // Stable sort by natural name order, filament, top Z, or bounding box volume of the first instance.
 void sort_objects(std::vector<ModelObject*>& objects, ObjectOrder order, bool descending = false);
+
+// Set import-only presentation ranks without changing part order used by slicing.
+void set_import_volume_order(ModelObject& object, bool sort_names);
 
 class PartPlate;
 
@@ -495,6 +499,13 @@ public:
     //BBS: remove const qualifier
     void set_extruder_for_selected_items(const int extruder);
     wxDataViewItemArray reorder_volumes_and_get_selection(int obj_idx, std::function<bool(const ModelVolume*)> add_to_selection = nullptr);
+    // Adds a painted modifier on a part to the model and to the list, without an undo snapshot.
+    // The paint, if any, is stored before the scene refresh, which rebuilds an open paint tool from the model.
+    ModelVolume*        add_painted_modifier(int obj_idx, const ModelVolume &host, const TriangleSelector *paint = nullptr);
+    // Adds a painted modifier on the selected part or object and selects it.
+    void                add_painted_modifier();
+    void                open_painted_modifier_tool(const ModelVolume &painted_modifier);
+    bool                is_painted_modifier_item(const wxDataViewItem &item) const;
     void apply_volumes_order();
 
     // BBS

@@ -81,6 +81,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <boost/format.hpp>
 #include <miniz/miniz.h>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
@@ -422,58 +423,81 @@ std::string PresetBundle::find_preset_vendor(const std::string &preset_name, Pre
         return "";
     }
 
-    // A vendor is named by its profile or, where the build ships preset caches
-    // instead of the raw profile JSONs, by its cache alone.
-    for (const std::string& vendor_name : vendor_names_in(system_dir)) {
-        const fs::path vendor_json = system_dir / (vendor_name + ".json");
-        if (! fs::exists(vendor_json)) {
-            if (VendorCacheFile::carries_preset((system_dir / (vendor_name + ".opc")).string(), vendor_name, type, preset_name)) {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found preset " << preset_name
-                                        << " in vendor cache " << vendor_name;
-                return vendor_name;
+    // A preset's old names are kept in its own file, not in the vendor's list, so they are only read
+    // once no vendor lists the name itself.
+    auto renamed_from = [&preset_name](const fs::path &preset_file) {
+        boost::nowide::ifstream ifs(preset_file.string());
+        const std::string       text((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+        if (text.find(ORCA_JSON_KEY_RENAMED_FROM) == std::string::npos)
+            return false;
+        const json preset = json::parse(text, nullptr, false);
+        if (!preset.is_object() || !preset.contains(ORCA_JSON_KEY_RENAMED_FROM) || !preset[ORCA_JSON_KEY_RENAMED_FROM].is_string())
+            return false;
+        std::vector<std::string> names;
+        return unescape_strings_cstyle(preset[ORCA_JSON_KEY_RENAMED_FROM].get<std::string>(), names) &&
+               std::find(names.begin(), names.end(), preset_name) != names.end();
+    };
+
+    for (const bool renamed : {false, true}) {
+        // A vendor is named by its profile or, where the build ships preset caches
+        // instead of the raw profile JSONs, by its cache alone.
+        for (const std::string& vendor_name : vendor_names_in(system_dir)) {
+            const fs::path vendor_json = system_dir / (vendor_name + ".json");
+            if (! fs::exists(vendor_json)) {
+                if (VendorCacheFile::carries_preset((system_dir / (vendor_name + ".opc")).string(), vendor_name, type, preset_name, renamed)) {
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found preset " << preset_name << (renamed ? " as an old name" : "")
+                                            << " in vendor cache " << vendor_name;
+                    return vendor_name;
+                }
+                continue;
             }
-            continue;
-        }
-        const std::string vendor_file = vendor_json.string();
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Checking vendor: " << vendor_file;
+            const std::string vendor_file = vendor_json.string();
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Checking vendor: " << vendor_file;
 
-        try {
-            // Load and parse the vendor JSON file
-            boost::nowide::ifstream ifs(vendor_file);
-            json j;
-            ifs >> j;
+            try {
+                // Load and parse the vendor JSON file
+                boost::nowide::ifstream ifs(vendor_file);
+                json j;
+                ifs >> j;
 
-            // Check if the preset list key exists
-            if (!j.contains(preset_list_key))
-                continue;
-
-            auto& preset_list = j[preset_list_key];
-            if (!preset_list.is_array())
-                continue;
-
-            // Search for the preset in the list
-            for (auto& preset_entry : preset_list) {
-                if (!preset_entry.is_object())
+                // Check if the preset list key exists
+                if (!j.contains(preset_list_key))
                     continue;
 
-                // Get the preset name
-                std::string p_name;
-                if (preset_entry.contains(BBL_JSON_KEY_NAME) && preset_entry[BBL_JSON_KEY_NAME].is_string())
-                    p_name = preset_entry[BBL_JSON_KEY_NAME].get<std::string>();
-
-                if (p_name != preset_name)
+                auto& preset_list = j[preset_list_key];
+                if (!preset_list.is_array())
                     continue;
 
-                // Found the preset! Get the vendor name and install the entire bundle
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found preset " << p_name
+                // Search for the preset in the list
+                for (auto& preset_entry : preset_list) {
+                    if (!preset_entry.is_object())
+                        continue;
+
+                    if (renamed) {
+                        if (!preset_entry.contains(BBL_JSON_KEY_SUB_PATH) || !preset_entry[BBL_JSON_KEY_SUB_PATH].is_string() ||
+                            !renamed_from(system_dir / vendor_name / preset_entry[BBL_JSON_KEY_SUB_PATH].get<std::string>()))
+                            continue;
+                    } else {
+                        // Get the preset name
+                        std::string p_name;
+                        if (preset_entry.contains(BBL_JSON_KEY_NAME) && preset_entry[BBL_JSON_KEY_NAME].is_string())
+                            p_name = preset_entry[BBL_JSON_KEY_NAME].get<std::string>();
+
+                        if (p_name != preset_name)
+                            continue;
+                    }
+
+                    // Found the preset! Get the vendor name and install the entire bundle
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found preset " << preset_name << (renamed ? " as an old name" : "")
                                             << " in vendor bundle " << vendor_name;
-                
-                return vendor_name;
+
+                    return vendor_name;
+                }
             }
-        }
-        catch (const std::exception &e) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " Failed to find vendor name for " << preset_name << ": " << e.what();
-            return "";
+            catch (const std::exception &e) {
+                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " Failed to find vendor name for " << preset_name << ": " << e.what();
+                return "";
+            }
         }
     }
 
@@ -683,6 +707,8 @@ const PresetBundle *PresetBundle::load_source_vendor(const boost::filesystem::pa
         error = "Vendor bundle contains invalid presets";
         return nullptr;
     }
+    // Lets find_preset() resolve a name a preset was renamed from.
+    bundle->update_system_maps();
     return m_source_vendor_bundles.emplace(std::move(key), std::move(bundle)).first->second.get();
 }
 
@@ -2413,7 +2439,7 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
             bool has_bundle_structure = false;
             BundleMetadata metadata;
             fs::path metadata_path = temp_folder / BUNDLE_STRUCTURE_JSON_NAME;
-            status = mz_zip_reader_extract_file_to_file(&zip_archive, BUNDLE_STRUCTURE_JSON_NAME, encode_path(metadata_path.string().c_str()).c_str(), MZ_ZIP_FLAG_CASE_SENSITIVE);
+            status = mz_zip_reader_extract_file_to_file(&zip_archive, BUNDLE_STRUCTURE_JSON_NAME, metadata_path.string().c_str(), MZ_ZIP_FLAG_CASE_SENSITIVE);
             if (status) {
                 if (metadata.load_from_json(metadata_path.string())) {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found bundle_id: " << metadata.id << " from " << BUNDLE_STRUCTURE_JSON_NAME;
@@ -2496,7 +2522,7 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
                     // create target file path
                     std::string target_file_path = boost::filesystem::path(temp_folder / file_name).make_preferred().string();
 
-                    status = mz_zip_reader_extract_to_file(&zip_archive, i, encode_path(target_file_path.c_str()).c_str(), MZ_ZIP_FLAG_CASE_SENSITIVE);
+                    status = mz_zip_reader_extract_to_file(&zip_archive, i, target_file_path.c_str(), MZ_ZIP_FLAG_CASE_SENSITIVE);
                     // target file is opened
                     if (MZ_FALSE == status) {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Failed to open target file: " << target_file_path;
@@ -4775,6 +4801,16 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         }
     }
 
+    // A slot whose current preset is a compatible user preset for the filament the sync picked keeps
+    // that preset and its overrides, so the sync updates the tray metadata only. User presets carry
+    // their system parent's filament_id.
+    auto synced_preset_name = [this](const std::string &current_name, const std::string &ams_name) -> std::string {
+        const Preset *current = filaments.find_preset(current_name, false);
+        const Preset *synced  = filaments.find_preset(ams_name, false);
+        return current && synced && !current->is_system && current->is_compatible &&
+               !synced->filament_id.empty() && current->filament_id == synced->filament_id ? current_name : ams_name;
+    };
+
     if (color_only) {
         auto get_map_index = [&ams_infos](const std::vector<AMSMapInfo> &infos, const AMSMapInfo &temp) {
             for (int i = 0; i < infos.size(); i++) {
@@ -4887,7 +4923,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                 if (valid_index >= 0 && valid_index < ams_filament_presets.size()) {
                     exist_colors[i]           = ams_filament_colors[valid_index];
                     exist_color_types[i]      = ams_filament_color_types[valid_index];
-                    exist_filament_presets[i] = ams_filament_presets[valid_index];
+                    exist_filament_presets[i] = synced_preset_name(exist_filament_presets[i], ams_filament_presets[valid_index]);
                     exist_multi_color_filment[i] = ams_multi_color_filment[valid_index];
                 } else {
                     BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "check error: array bound (mapping exist)";
@@ -4929,9 +4965,10 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                                       ams_multi_color_filment.end());
         if (need_append_colors.size() > 0 && enable_append) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "need_append_colors.size() > 0 && enable_append";
-            auto get_idx_in_array = [](std::vector<std::string> &presets, std::vector<std::string> &colors, const std::string &preset, const std::string &color) -> int {
+            // A slot that kept a user preset for the tray's filament counts as that filament too.
+            auto get_idx_in_array = [&synced_preset_name](std::vector<std::string> &presets, std::vector<std::string> &colors, const std::string &preset, const std::string &color) -> int {
                 for (size_t i = 0; i < presets.size(); i++) {
-                    if (presets[i] == preset && colors[i] == color) {
+                    if (synced_preset_name(presets[i], preset) == presets[i] && colors[i] == color) {
                         return i;
                     }
                 }
@@ -4982,7 +5019,11 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     // Loaded tray: use tray's filament data
                     result_colors.push_back(ams_filament_colors[i]);
                     result_color_types.push_back(ams_filament_color_types[i]);
-                    result_presets.push_back(ams_filament_presets[i]);
+                    // exist_presets[i] is the current preset for this slot; keep it when it is a user
+                    // preset for the same filament.
+                    result_presets.push_back(i < exist_presets.size()
+                                                 ? synced_preset_name(exist_presets[i], ams_filament_presets[i])
+                                                 : ams_filament_presets[i]);
                     result_multi_colors.push_back(
                         i < ams_multi_color_filment.size() ? ams_multi_color_filment[i]
                                                            : std::vector<std::string>{ams_filament_colors[i]});
@@ -5016,6 +5057,10 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             // BBL: existing wholesale replace
             filament_color->values = ams_filament_colors;
             filament_color_type->values = ams_filament_color_types;
+            // Empty trays are left out of ams_filament_presets, so slot i may now hold a later tray.
+            // That is harmless here: a slot only keeps its preset when it is for the same filament.
+            for (size_t i = 0; i < std::min(ams_filament_presets.size(), this->filament_presets.size()); i++)
+                ams_filament_presets[i] = synced_preset_name(this->filament_presets[i], ams_filament_presets[i]);
             this->filament_presets = ams_filament_presets;
             filament_map->values.resize(ams_filament_colors.size(), 1);
             filament_volume_map->values.resize(ams_filament_colors.size(), static_cast<int>(NozzleVolumeType::nvtStandard));
@@ -5332,6 +5377,16 @@ Preset *PresetBundle::get_similar_printer_preset(std::string printer_model, std:
             return preset.second;
     }
     return printer_presets.begin()->second;
+}
+
+void PresetBundle::install_slot_filaments(AppConfig &config)
+{
+    // User presets have no vendor, so the filaments section never hides them.
+    for (const std::string &name : filament_presets)
+        if (Preset *preset = filaments.find_preset(name, false, true); preset != nullptr && preset->is_system) {
+            preset->is_visible = true;
+            config.set(AppConfig::SECTION_FILAMENTS, preset->name, "true");
+        }
 }
 
 //BBS: check whether this is the only edited filament
@@ -5777,7 +5832,7 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
 
     static const char* keys_with_default[] = {
         "outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_filament_id",
-        "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id"
+        "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id", "brim_filament_id"
     };
     for (size_t i = 0; i < sizeof(keys_with_default) / sizeof(keys_with_default[0]); ++ i) {
         std::string key = std::string(keys_with_default[i]);
@@ -6425,6 +6480,9 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
 
 	this->update_compatible(PresetSelectCompatibleType::Never);
     this->update_multi_material_filament_presets();
+    // The call above does not resize the colour and map arrays, which must match filament_presets.
+    if (printer_technology == ptFFF && this->filament_presets.size() > this->project_config.option<ConfigOptionStrings>("filament_colour")->values.size())
+        this->set_num_filaments(this->filament_presets.size());
 
     // A "published" 3MF project overlays the author-selected published keys onto the user's
     // currently-selected (edited) process preset. Keys that cannot be applied are collected for
@@ -9314,6 +9372,15 @@ bool PresetBundle::install_vendor_cache(const std::string& cache_path, const std
         this->clear_printer_hold_aliases();
         return false;
     }
+}
+
+ConfigOptionInts effective_physical_extruder_map(const PresetBundle& pb)
+{
+    const ConfigOptionInts* explicit_pem = pb.project_config.option<ConfigOptionInts>("physical_extruder_map");
+    if (!explicit_pem || explicit_pem->values.size() < 2)
+        explicit_pem = pb.printers.get_edited_preset().config.option<ConfigOptionInts>("physical_extruder_map");
+    const auto* nozzles = pb.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
+    return effective_physical_extruder_map(explicit_pem, nozzles ? (int) nozzles->values.size() : 0);
 }
 
 } // namespace Slic3r

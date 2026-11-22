@@ -1144,6 +1144,12 @@ void SyncAmsInfoDialog::reinit_dialog()
     m_ams_mapping_result.clear();
     m_preview_colors_in_thumbnail.clear();
 
+    // The dialog is reused across syncs, so the plate picked last time may no longer exist
+    // (plates deleted or another project loaded). update_show_status() reads its thumbnail.
+    PartPlateList &plate_list = wxGetApp().plater()->get_partplate_list();
+    if (m_specify_plate_idx < 0 || m_specify_plate_idx >= plate_list.get_plate_count())
+        m_specify_plate_idx = plate_list.get_curr_plate_index();
+
     show_status(PrintDialogStatus::PrintStatusInit);
     update_show_status();
 }

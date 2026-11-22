@@ -6,7 +6,11 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/LocalesUtils.hpp"
+#include "libslic3r/Utils.hpp"
 #include "test_utils.hpp"
+
+#include <boost/lexical_cast.hpp>
+#include <boost/lexical_cast/bad_lexical_cast.hpp>
 
 #include <string>
 
@@ -83,4 +87,26 @@ TEST_CASE("atof_decimal_point parses what atof parses in the C locale", "[Locale
     }));
     INFO(text);
     CHECK_THAT(atof_decimal_point(text), Catch::Matchers::WithinAbs(value, 1e-12));
+}
+
+TEST_CASE("Nozzle diameter strings read back in a locale whose decimal separator is a comma", "[LocalesUtils]")
+{
+    CommaNumericLocale comma;
+    {
+        CNumericLocalesSetter outer;
+        if (! comma.apply())
+            SKIP("no locale with a comma decimal separator is installed");
+        const std::string diameter = format_diameter_to_str(0.4);
+        CHECK(diameter == "0.4");
+        CHECK_THAT(string_to_double_decimal_point(diameter), Catch::Matchers::WithinAbs(0.4, 1e-12));
+        CHECK_THAT(boost::lexical_cast<double>(diameter), Catch::Matchers::WithinAbs(0.4, 1e-12));
+        CHECK_THAT(boost::lexical_cast<float>(diameter), Catch::Matchers::WithinAbs(0.4, 1e-6));
+        // A comma is not read as the decimal separator.
+        CHECK_THAT(string_to_double_decimal_point("0,4"), Catch::Matchers::WithinAbs(0., 1e-12));
+        // Callers that skip a diameter they cannot read rely on lexical_cast throwing for it.
+        for (const char* text : { "", "abc", "0.4x", "0,4", "1e1000" }) {
+            INFO(text);
+            CHECK_THROWS_AS(boost::lexical_cast<float>(text), boost::bad_lexical_cast);
+        }
+    }
 }
