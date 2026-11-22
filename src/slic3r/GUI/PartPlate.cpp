@@ -55,6 +55,7 @@
 #include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GUI_ObjectLayers.hpp"
+
 #include <vector>
 #include <string>
 #include <sstream>
@@ -4165,7 +4166,7 @@ void PartPlate::set_pos_and_size(Vec3d& origin, int width, int depth, double hei
 
 			//move this instance into the new plate's same position
 			Vec3d offset = instance->get_transformation().get_offset();
-			int off_x, off_y;
+			double off_x, off_y;
 
 			if (size_changed)
 			{
@@ -7068,47 +7069,86 @@ void PartPlateList::update_all_plates_pos_and_size(bool adjust_position, bool wi
 //move the plate to position index
 int PartPlateList::move_plate_to_index(int old_index, int new_index)
 {
-	int ret = 0, delta;
-	Vec3d origin;
+    const int count = static_cast<int>(m_plate_list.size());
+    if (old_index < 0 || old_index >= count || new_index < 0 || new_index >= count || old_index == new_index)
+        return -1;
 
+    std::vector<int> order(count);
+    std::iota(order.begin(), order.end(), 0);
+    order.erase(order.begin() + old_index);
+    order.insert(order.begin() + new_index, old_index);
+    if (!reorder_plates(order))
+        return -1;
 
-	if (old_index == new_index)
-	{
-		BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(":should not happen, the same index %1%") % old_index;
-		return -1;
-	}
+    // Select the moved plate without adding another undo snapshot to the move action.
+    m_current_plate = new_index;
+    return select_plate(new_index);
+}
 
-	// Orca: Rebuild plate membership before moving the plates.
-	reload_all_objects();
+bool PartPlateList::reorder_plates(const std::vector<int>& order)
+{
+    const int count = static_cast<int>(m_plate_list.size());
+    if (order.size() != m_plate_list.size())
+        return false;
+    std::vector<bool> seen(count, false);
+    bool changed = false;
+	// Check for out of bounds or duplicate indices
+    for (int pos = 0; pos < count; ++pos) {
+        const int old_index = order[pos];
+        if (old_index < 0 || old_index >= count || seen[old_index])
+            return false;
+        seen[old_index] = true;
+        changed |= old_index != pos;
+    }
+    if (!changed)
+        return true;
 
-	if (old_index < new_index)
-	{
-		delta = 1;
-	}
-	else
-	{
-		delta = -1;
-	}
+	// Reorder the plates and wipe tower positions
+    auto& project_config = wxGetApp().preset_bundle->project_config;
+    auto* tower_x = project_config.option<ConfigOptionFloats>("wipe_tower_x");
+    auto* tower_y = project_config.option<ConfigOptionFloats>("wipe_tower_y");
+    auto reordered_x = tower_x->values;
+    auto reordered_y = tower_y->values;
+    reordered_x.resize(std::max(reordered_x.size(), order.size()));
+    reordered_y.resize(std::max(reordered_y.size(), order.size()));
 
-	PartPlate* plate = m_plate_list[old_index];
-	//update the plates between old_index and new_index
-	for (unsigned int i = (unsigned int)old_index; i != (unsigned int)new_index; i = i + delta)
-	{
-		m_plate_list[i] = m_plate_list[i + delta];
-		m_plate_list[i]->set_index(i);
+    auto reordered_gcodes = m_model->plates_custom_gcodes;
+    auto reordered_plates = m_plate_list;
+    PartPlate* current_plate = get_curr_plate();
+    for (int pos = 0; pos < count; ++pos) {
+        const int old_index = order[pos];
+        reordered_plates[pos] = m_plate_list[old_index];
+        reordered_x[pos] = tower_x->get_at(old_index);
+        reordered_y[pos] = tower_y->get_at(old_index);
+        const auto gcode = m_model->plates_custom_gcodes.find(old_index);
+        if (gcode == m_model->plates_custom_gcodes.end())
+            reordered_gcodes.erase(pos);
+        else
+            reordered_gcodes.insert_or_assign(pos, gcode->second);
+    }
 
-		origin = compute_origin(i, m_plate_cols);
-		m_plate_list[i]->set_pos_and_size(origin, m_plate_width, m_plate_depth, m_plate_height, true);
-	}
-	origin = compute_origin(new_index, m_plate_cols);
-	m_plate_list[new_index] = plate;
-	plate->set_index(new_index);
-	plate->set_pos_and_size(origin, m_plate_width, m_plate_depth, m_plate_height, true);
-
-	//update the new plate index
-	m_current_plate = new_index;
-
-	return ret;
+    // Capture membership before any plate moves through another plate's old location.
+    // Rebuilding membership also invalidates cached slice results.
+    reload_all_objects();
+    m_plate_list = std::move(reordered_plates);
+    tower_x->values = std::move(reordered_x);
+    tower_y->values = std::move(reordered_y);
+    m_model->plates_custom_gcodes = std::move(reordered_gcodes);
+    for (int pos = 0; pos < count; ++pos) {
+        PartPlate* plate = m_plate_list[pos];
+        plate->set_index(pos);
+        if (order[pos] != pos && plate->fff_print() != nullptr) {
+            // Re-export cached G-code so plate-number placeholders reflect the new index. 
+			// TODO: Don't invalidate gcode
+            plate->fff_print()->set_gcode_file_invalidated();
+        }
+        if (plate == current_plate)
+            m_current_plate = pos;
+    }
+    update_plates();
+    // Set the index first so restoring the same selected plate adds no selection snapshot.
+    select_plate(m_current_plate);
+    return true;
 }
 
 //lock plate

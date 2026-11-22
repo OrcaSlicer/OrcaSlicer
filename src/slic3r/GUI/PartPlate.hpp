@@ -1018,6 +1018,9 @@ public:
     //move the plate to position index
     int move_plate_to_index(int old_index, int new_index);
 
+    // Each entry is the old index of the plate at that new position.
+    bool reorder_plates(const std::vector<int>& order);
+
     //lock plate
     int lock_plate(int index, bool state);
 
