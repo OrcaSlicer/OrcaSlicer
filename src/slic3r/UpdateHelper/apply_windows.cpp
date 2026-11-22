@@ -356,7 +356,15 @@ InstallerResult wait_for_installer(HANDLE process, std::string& error)
         return InstallerResult::Failed;
     }
     if (!got_exit || exit_code != 0) {
-        error = "The installer reported a failure (exit code " + std::to_string(static_cast<long long>(got_exit ? exit_code : 1)) + ").";
+        if (got_exit && exit_code == 2) {
+            // The installer's own code for "nothing was written": the tree was in use or the
+            // stage could not be created. Its silent message never reaches the user.
+            error = "The installer made no changes: another OrcaSlicer window kept the folder in use, "
+                    "or the new files could not be written.";
+        } else {
+            error = "The installer reported a failure (exit code " +
+                    std::to_string(static_cast<long long>(got_exit ? exit_code : 1)) + ").";
+        }
         return InstallerResult::Failed;
     }
     return InstallerResult::Done;
@@ -653,11 +661,16 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
         BOOST_LOG_TRIVIAL(warning) << "Could not record the installed build " << handoff.version;
 
     const std::string exe_path = handoff.exe_path.empty() ? install_root + "\\orca-slicer.exe" : handoff.exe_path;
-    if (launch && !launch_detached(exe_path, error)) {
-        remove_path_quietly(updater_install_record_path());
-        remove_pending_install();
-        error += " The installer finished, but the new version did not start.";
-        return false;
+    if (launch) {
+        if (sink.release_lock)
+            sink.release_lock();
+        if (!launch_detached(exe_path, error)) {
+            // The tree is in place and recorded; only starting it failed. Keep both records
+            // so the build the user starts knows what it is, and report the start, not the
+            // update, as what went wrong.
+            sink.say(Stage::Failed, 100, "OrcaSlicer was updated but could not be started. Start it again.");
+            return false;
+        }
     }
     return true;
 }

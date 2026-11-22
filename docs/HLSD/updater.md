@@ -135,13 +135,14 @@ the application runs from; the extracted helper and the handoff that names the j
 keyed the same way. Two installs share one cache, and each one downloads the artifact for
 its own platform and channel: a single directory would let one install consume a file the
 other had verified, run a helper the other extracted, or overwrite the job the other had
-handed to its helper.
+handed to its helper. The pending-swap record is keyed the same way, so one install cannot
+settle or delete the recovery record of another.
 
 | File | Written by | Read by | Purpose |
 |---|---|---|---|
-| `handoff-<install>.json` | app | helper, once | the job: asset, digest, size, install root, parent pid, lock path |
+| `handoff-<install>-<job>.json` | app | helper, once | the job: asset, digest, size, install root, parent pid, lock path. A prefetch and an install each get their own, so neither consumes the other's |
 | `installed.json` | helper | app, next start | what was installed, and the tree it belongs to |
-| `pending.json` | helper, before the swap | app, next start | the swap in flight; on macOS the tree moved aside, for rollback and cleanup |
+| `pending-<install>.json` | helper, before the swap | app, next start | the swap in flight; on macOS the tree moved aside, for rollback and cleanup |
 | `install.lock` | app, then helper | both | an OS file lock held for the life of the holder |
 | `download.lock` | prefetch helper | app, skip path | held while a prefetch writes; a skip defers its cleanup while it is held |
 | `<artifact>.verified` | prefetch helper, after verification | app | the digest the artifact verified for |
@@ -165,7 +166,9 @@ The lock is an OS-level lock on an open handle, not a pid file: the OS releases 
 when the holder dies, and a held lock cannot be read through another handle, so it
 carries no state. It prevents two installs, and the cleanup respects it. A second lock in
 the download directory is held by the prefetch while it writes, so a skip's cleanup and an
-install that follows a click both wait or refuse rather than race it.
+install that follows a click both wait or refuse rather than race it. The helper releases
+it once the new build is in place and recorded, before it starts it: the new build's own
+startup settles those records, and must not find the lock held.
 
 ## Installing
 
@@ -267,7 +270,9 @@ on the user reading a dialog:
    query, no other segment. The downloader keeps curl from normalising the path and
    accepts redirects only to https.
 2. **Digest.** The artifact's `sha256` from the release listing is checked against the
-   downloaded bytes. This proves the transfer, not the listing.
+   downloaded bytes. This proves the transfer, not the listing. A body larger than the
+   size the listing announces is dropped as it arrives, so it cannot fill the disk before
+   that check runs.
 3. **Signature.** The installer or bundle must verify with the platform's trust
    service.
 4. **Publisher.** The signer must be *ours*: the Authenticode signer's display name on

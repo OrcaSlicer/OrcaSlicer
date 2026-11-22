@@ -620,13 +620,16 @@ public:
 
     void            check_new_version_sf(bool show_tips = false, int by_user = 0);
     // Hands the resolved update to the helper: writes the handoff, extracts and spawns the
-    // helper, and closes the app. Falls back to the release page when that is not possible.
-    void            start_in_app_update();
+    // helper, and closes the app. False when the install did not start, so the caller keeps
+    // the candidate on offer.
+    bool            start_in_app_update();
     // Offers the candidate: install in place or open the release page. Called by a manual
     // check and by the ready notification's action, never by the automatic check.
     void            show_update_dialog();
-    // Pushes the persistent "ready to install" notification for the current candidate.
-    void            notify_update_ready();
+    // Pushes the persistent notification for the current candidate: "ready to install" once
+    // its artifact is verified and this flavour installs in place, "available" otherwise. Its
+    // action opens the update dialog either way, where Skip is offered.
+    void            notify_update_ready(bool verified = true);
     // Starts the download the automatic check hands to the helper, without a dialog or a
     // lock; the notification follows once the artifact is verified. False when no helper was
     // started, so there is nothing to poll for.

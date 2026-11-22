@@ -59,6 +59,8 @@ struct TransferCtx
     bool                      write_failed = false;
     const std::atomic<bool>*  cancel = nullptr;
     bool                      saw_cancel = false;
+    bool                      too_large = false;
+    curl_off_t                max_bytes = 0;
     const HttpDownloader::ProgressFn* progress = nullptr;
     curl_off_t                last_reported = -1;
     curl_off_t                total = 0;
@@ -99,6 +101,11 @@ size_t write_cb(char* ptr, size_t size, size_t nmemb, void* userdata)
                 ctx.last_reported = -1;
             }
         }
+    }
+    if (ctx.max_bytes > 0 && ctx.done + static_cast<curl_off_t>(bytes) > ctx.max_bytes) {
+        // Never let a redirected body run past the size the release announced.
+        ctx.too_large = true;
+        return 0;
     }
     const size_t written = bytes > 0 ? std::fwrite(ptr, 1, bytes, ctx.file) : 0;
     if (written != bytes) {
@@ -165,7 +172,8 @@ std::string HttpDownloader::user_agent()
 DownloadResult HttpDownloader::download(const std::string&       url,
                                         const std::string&       part_path,
                                         const ProgressFn&        progress,
-                                        const std::atomic<bool>& cancel) const
+                                        const std::atomic<bool>& cancel,
+                                        int64_t                  max_bytes) const
 {
     DownloadResult out;
 
@@ -221,6 +229,7 @@ DownloadResult HttpDownloader::download(const std::string&       url,
     ctx.resume = resume;
     ctx.done = resume;
     ctx.cancel = &cancel;
+    ctx.max_bytes = static_cast<curl_off_t>(std::max<int64_t>(max_bytes, 0));
     ctx.progress = &progress;
 
     char error_buffer[CURL_ERROR_SIZE] = { 0 };
@@ -280,6 +289,10 @@ DownloadResult HttpDownloader::download(const std::string&       url,
 
     if (ctx.saw_cancel) {
         out.cancelled = true;
+        return out;
+    }
+    if (ctx.too_large) {
+        out.error = "The download is larger than the release says.";
         return out;
     }
     if (ctx.write_failed) {

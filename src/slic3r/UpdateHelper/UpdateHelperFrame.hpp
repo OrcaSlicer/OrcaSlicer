@@ -29,8 +29,8 @@ namespace Updater {
 // Starts the application again after an update that did not install. False when it could not be started.
 bool relaunch_app(const UpdateHandoff& handoff);
 
-// Writes timestamped lines to handoff.log_path, starting a new log for each run.
-// Safe to call from any thread.
+// Writes timestamped lines to handoff.log_path, appended across runs and rotated once
+// it grows past a few hundred kilobytes. Safe to call from any thread.
 class LogFile
 {
 public:
@@ -108,8 +108,8 @@ private:
     // Worker thread only. Set once the parent is gone, so the application can be started again.
     bool               m_parent_gone = false;
     // Worker thread only. Set by an install that stopped without failing: the Windows
-    // installer outlived its timeout and is still writing the tree.
-    std::string        m_unfinished_install;
+    // installer outlived its timeout, or the new build is in place but did not start.
+    std::string        m_install_notice;
     std::thread        m_worker;
 };
 

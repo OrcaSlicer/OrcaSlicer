@@ -38,7 +38,12 @@ int64_t integer_field(const json& object, const char* key)
     auto it = object.find(key);
     if (it == object.end() || !it->is_number())
         return 0;
-    return it->get<int64_t>();
+    // A number above INT64_MAX parses as unsigned and get<int64_t>() throws.
+    try {
+        return it->get<int64_t>();
+    } catch (const std::exception&) {
+        return 0;
+    }
 }
 
 std::string strip_version_prefix(const std::string& tag)
@@ -408,7 +413,13 @@ UpdateCandidate resolve_update(const std::string& releases_json,
         candidate.available = release_is_newer || channel_switch;
         return candidate;
     }
-    if (!installed_artifact.empty() && installed_artifact == candidate.asset.digest) {
+    // The digest identifies which artifact installed this build. On a channel with
+    // comparable versions it is trusted only while the release is not newer than the
+    // running build: a downgrade or a repair leaves the old digest behind, and trusting
+    // it would hide every newer release. A nightly's version is its release timestamp,
+    // so its digest is the only identity it has.
+    if (!installed_artifact.empty() && installed_artifact == candidate.asset.digest &&
+        (channel == UpdateChannel::Nightly || !release_is_newer)) {
         candidate.reason = "up_to_date";
         return candidate;
     }

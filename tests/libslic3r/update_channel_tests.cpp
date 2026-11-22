@@ -773,6 +773,18 @@ TEST_CASE("A stable release that is not newer is not offered even with a stale i
     CHECK(candidate.version == "2.5.0");
 }
 
+TEST_CASE("A recorded digest of a newer build does not hide it after a downgrade", "[UpdateChannel]")
+{
+    // An in-app install of 2.5.0 recorded its digest, then a 2.4.0 build was run from the same
+    // path. The digest names the installed artifact, not proof that the running build is it.
+    const UpdateCandidate candidate = resolve_update(stable_releases_json(), UpdateChannel::Stable,
+                                                     "sha256:2222", "stable", "2.4.0", "",
+                                                     InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK(candidate.available);
+    CHECK(candidate.version == "2.5.0");
+}
+
 TEST_CASE("A release that is not newer is not offered when its flavour has no asset either", "[UpdateChannel]")
 {
     const UpdateCandidate candidate = resolve_update(stable_releases_json(), UpdateChannel::Stable, "", "",

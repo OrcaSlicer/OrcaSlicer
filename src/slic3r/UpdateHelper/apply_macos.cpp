@@ -518,9 +518,16 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
         return false;
     }
 
-    if (launch && !spawn_unwaited({"/usr/bin/open", "-n", bundle}, error)) {
-        error = rollback_failure(error);
-        return false;
+    if (launch) {
+        if (sink.release_lock)
+            sink.release_lock();
+        if (!spawn_unwaited({ "/usr/bin/open", "-n", bundle }, error)) {
+            // The bundle is in place and recorded, so the update succeeded; only starting it
+            // failed. Rolling back here would undo a good install for a transient
+            // LaunchServices error.
+            sink.say(Stage::Failed, 100, "OrcaSlicer was updated but could not be started. Start it again.");
+            return false;
+        }
     }
 
     // Success: the previous bundle and the pending record stay behind on purpose; the

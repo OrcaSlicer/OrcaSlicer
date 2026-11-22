@@ -574,6 +574,31 @@ TEST_CASE("The handoff round-trips through a cache directory with non-ASCII char
     clear_updater_cache_dir();
 }
 
+TEST_CASE("A prefetch and an install job do not overwrite or consume each other", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    set_updater_cache_dir(dir.path().string());
+    set_updater_install_root("/opt/OrcaSlicer");
+
+    UpdateHandoff prefetch;
+    prefetch.version = "from the prefetch";
+    UpdateHandoff install;
+    install.version = "from the install";
+    CHECK(write_handoff(prefetch, "prefetch"));
+    CHECK(write_handoff(install, "install"));
+    CHECK(updater_handoff_path("prefetch") != updater_handoff_path("install"));
+
+    // Each helper removes only its own file, so the other job stays readable.
+    remove_handoff("prefetch");
+    UpdateHandoff missing;
+    CHECK_FALSE(read_handoff(missing, "prefetch"));
+    UpdateHandoff read;
+    CHECK(read_handoff(read, "install"));
+    CHECK(read.version == "from the install");
+
+    clear_updater_cache_dir();
+}
+
 TEST_CASE("An install record round-trips with the install it describes", "[UpdateHandoff]")
 {
     InstallRecord written;

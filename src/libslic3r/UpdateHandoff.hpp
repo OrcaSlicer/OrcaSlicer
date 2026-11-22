@@ -4,14 +4,15 @@
 // Handoff between the application and the updater helper, plus the small
 // records they exchange through the updater cache directory:
 //
-//   handoff.json    app writes, helper reads once and deletes
+//   handoff-<install>-<job>.json  app writes, helper reads once and deletes; one per job,
+//                                 so a prefetch and an install never consume each other's
 //   installed.json  helper writes, app reads on its next start
-//   pending.json    helper writes before swapping, app deletes after it starts
+//   pending-<install>.json  helper writes before swapping, app deletes after it starts
 //   install.lock    app locks it to claim the install, helper takes it over once the app exits
 //   downloads/      partial and verified artifacts, one directory per install
 //   helper/         the helper, extracted so it can outlive the app, one directory
 //                   per install (see updater_helper_dir())
-//   updater.log     helper log
+//   updater.log     helper log, appended across runs
 //
 // The cache lives in the OS cache directory, not in the data directory: it holds a
 // download the user can lose. The helper never resolves it itself, because its environment
@@ -80,7 +81,10 @@ std::string updater_download_dir();
 // one another install extracted, or delete its folder while a prefetch helper runs from it.
 // Flat <cache>/helper without an install root. The helper never resolves this path itself.
 std::string updater_helper_dir();
-std::string updater_handoff_path();
+// The job file. `job` separates the two jobs the application can hand out at once: a
+// background prefetch and the install it makes possible. Each helper deletes only its
+// own file, so neither can consume or delete the other's. Empty names the default file.
+std::string updater_handoff_path(const std::string& job = std::string());
 std::string updater_install_record_path();
 std::string updater_pending_path();
 std::string updater_lock_path();
@@ -166,9 +170,9 @@ bool is_release_download_url(const std::string& url, const std::string& asset_na
 
 std::string handoff_to_json(const UpdateHandoff& handoff);
 bool        handoff_from_json(const std::string& json, UpdateHandoff& out);
-bool        write_handoff(const UpdateHandoff& handoff);
-bool        read_handoff(UpdateHandoff& out);
-void        remove_handoff();
+bool        write_handoff(const UpdateHandoff& handoff, const std::string& job = std::string());
+bool        read_handoff(UpdateHandoff& out, const std::string& job = std::string());
+void        remove_handoff(const std::string& job = std::string());
 
 std::string install_record_to_json(const InstallRecord& record);
 bool        install_record_from_json(const std::string& json, InstallRecord& out);

@@ -18,10 +18,12 @@
 ;   3  the old tree was removed and the new one could not be put in place
 ;
 ; Supplied with -D by the caller:
-;   STAGE          install tree to package (required)
-;   OUTFILE        installer to write (required)
-;   APP_VERSION    version shown in Apps & features (required)
-;   ORCA_SIGN_CMD  signs one file, "%1" is the file (optional)
+;   STAGE             install tree to package (required)
+;   OUTFILE           installer to write (required)
+;   APP_VERSION       version shown in Apps & features (required)
+;   ORCA_SIGN_CMD     signs one file, "%1" is the file (optional)
+;   ORCA_SIGN_SHELL   shell that runs the signing script (optional, with ORCA_SIGN_SCRIPT)
+;   ORCA_SIGN_SCRIPT  signing script the shell runs (optional, with ORCA_SIGN_SHELL)
 
 Unicode true
 
@@ -76,6 +78,16 @@ InstallDir "${PER_USER_DIR}"
 
 ; The payload is signed before it is compressed, the uninstaller before it is
 ; written, and the installer last. Callers that build unsigned pass no command.
+; A caller whose paths may contain spaces names the shell and the script
+; separately: quoting a whole command inside the define would break at the
+; first space in the path.
+!ifndef ORCA_SIGN_CMD
+  !ifdef ORCA_SIGN_SCRIPT
+    !ifdef ORCA_SIGN_SHELL
+      !define ORCA_SIGN_CMD '${ORCA_SIGN_SHELL} -NoProfile -ExecutionPolicy Bypass -File "${ORCA_SIGN_SCRIPT}" -Path'
+    !endif
+  !endif
+!endif
 !ifdef ORCA_SIGN_CMD
   !system '${ORCA_SIGN_CMD} "${STAGE}"' = 0
   !uninstfinalize '${ORCA_SIGN_CMD} "%1"' = 0
@@ -290,13 +302,19 @@ probe_done:
 
 fresh_install:
   ; Nothing is installed here, so there is nothing to remove. RMDir only fails
-  ; when the chosen folder already holds something, and the rename below then
-  ; fails too, which leaves the folder as it was and the stage unused.
+  ; when the chosen folder already holds something, and the rename then fails
+  ; too, which leaves the folder as it was and the stage unused.
   RMDir "$INSTDIR"
   ; SetOutPath made the stage the working directory, and Windows refuses to
   ; rename a directory the process sits in. Leave it before either rename.
   SetOutPath "$TEMP"
+  ; The rename itself is the test: a folder that already held an executable
+  ; would otherwise satisfy the check below and report a successful install
+  ; while the stage was never moved.
+  ClearErrors
   Rename "$INSTDIR.new" "$INSTDIR"
+  IfErrors install_failed
+  IfFileExists "$INSTDIR.new\*.*" install_failed
   IfFileExists "$INSTDIR\${APP_EXE}" 0 install_failed
   Goto installed
 

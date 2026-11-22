@@ -68,6 +68,8 @@ constexpr int      kParentTimeoutSeconds = 300;
 constexpr int      kLockRetryMs = 250;
 constexpr int      kLockTimeoutMs = 10000;
 constexpr int64_t  kShaBufferSize = 64 * 1024;
+// The log is appended across runs and only rotated past this size.
+constexpr uintmax_t kLogRotateBytes = 512 * 1024;
 
 std::string timestamp()
 {
@@ -235,9 +237,15 @@ void LogFile::write(const std::string& message)
     if (!parent.empty())
         fs::create_directories(parent, ec);
 
-    // Truncated on the first write of a run: the log describes the run in progress, so it
-    // never accumulates one copy of itself per update.
-    boost::nowide::ofstream out(path.string(), (m_started ? std::ios::app : std::ios::trunc) | std::ios::binary);
+    // Appended across runs, so a prefetch helper starting after a failed install does not
+    // wipe the trail that install's dialog points at. Rotated only once it is large.
+    bool truncate = false;
+    if (!m_started) {
+        boost::system::error_code size_ec;
+        const auto size = fs::file_size(path, size_ec);
+        truncate = !size_ec && size > kLogRotateBytes;
+    }
+    boost::nowide::ofstream out(path.string(), (truncate ? std::ios::trunc : std::ios::app) | std::ios::binary);
     if (!out)
         return;
     m_started = true;
@@ -323,7 +331,9 @@ void UpdateHelperFrame::on_cancel(wxCommandEvent& /*event*/)
 void UpdateHelperFrame::on_close(wxCloseEvent& event)
 {
     if (m_worker_done) {
-        event.Skip();
+        // finish() already queued the completion that ends the main loop. Destroying the
+        // frame here would leave that queued work writing to freed widgets.
+        event.Veto();
         return;
     }
     if (m_stage == Stage::Installing || m_stage == Stage::Launching) {
@@ -370,8 +380,12 @@ void UpdateHelperFrame::finish(int code, const wxString& message, bool alert)
     // has no window to say that in, so it leaves the message for the next start.
     const bool relaunch = code != 0 && m_parent_gone && !silent();
     wxTheApp->CallAfter([this, message, alert, relaunch, code]() {
-        if (relaunch && !relaunch_app(m_handoff))
-            m_log.write("could not start the application again");
+        if (relaunch) {
+            // The new start settles the install records; it must not find this run's lock.
+            Slic3r::release_install_lock(m_handoff.lock_path);
+            if (!relaunch_app(m_handoff))
+                m_log.write("could not start the application again");
+        }
         if (!message.empty()) {
             m_status->SetLabel(message);
             Layout();
@@ -562,7 +576,7 @@ bool UpdateHelperFrame::fetch_artifact(const fs::path& download_dir, const fs::p
                     message += " of " + human_bytes(total);
                 post(Stage::Downloading, percent, message);
             },
-            m_cancel_requested);
+            m_cancel_requested, m_handoff.size);
 
         if (result.cancelled) {
             m_log.write("download cancelled at " + std::to_string(result.done) + " bytes");
@@ -730,10 +744,11 @@ void UpdateHelperFrame::run()
         sink.report = [this](Stage stage, int percent, const std::string& message) {
             if (stage == Stage::Failed) {
                 // The install stopped without failing: the Windows installer outlived its
-                // timeout and is still writing the tree. Nothing is recorded and nothing is
-                // started, so the run ends 0 with the message to the user.
-                m_unfinished_install = message;
-                m_log.write("install unfinished: " + message);
+                // timeout and is still writing the tree, or the new build is in place but
+                // could not be started. The run ends 0 with the message to the user instead
+                // of reporting a failed update.
+                m_install_notice = message;
+                m_log.write("install incomplete: " + message);
                 post(stage, percent, message);
                 return;
             }
@@ -741,12 +756,25 @@ void UpdateHelperFrame::run()
             post(stage, percent, message);
         };
         sink.cancelled = [this]() { return m_cancel_requested.load(); };
+        // The installer has run by the time this is called: drop the handle on the file and
+        // the install lock, so the new build's cleanup can delete the download and settle
+        // the records.
+        sink.release_lock = [this, &hold] {
+            hold.close();
+            Slic3r::release_install_lock(m_handoff.lock_path);
+        };
 
         std::string install_error;
         if (!apply_update(m_handoff, artifact.string(), sink, install_error)) {
-            if (!m_unfinished_install.empty()) {
-                m_log.write("leaving the running installer to finish the update");
-                finish(0, wxString::FromUTF8(m_unfinished_install), !silent());
+            if (!m_install_notice.empty()) {
+                m_log.write("leaving the update in place to report: " + m_install_notice);
+                finish(0, wxString::FromUTF8(m_install_notice), !silent());
+                return;
+            }
+            // A cancel that reached the install before the swap is not a failure.
+            if (m_cancel_requested.load()) {
+                m_log.write("install cancelled before it started");
+                finish(2, "Update cancelled.", false);
                 return;
             }
             m_log.write("install failed: " + install_error);

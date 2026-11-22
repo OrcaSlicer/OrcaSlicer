@@ -32,6 +32,10 @@ struct ProgressSink
 {
     std::function<void(Stage, int percent, const std::string& message)> report;
     std::function<bool()> cancelled;
+    // Called once the new build is in place and recorded, immediately before it is
+    // started: the helper releases the install lock here so the new build's own startup
+    // can settle the install records instead of finding the lock still held.
+    std::function<void()> release_lock;
 
     void say(Stage stage, int percent, const std::string& message) const
     {

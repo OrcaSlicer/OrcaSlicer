@@ -412,9 +412,19 @@ function build_slicer() {
                 # release does not use, and nothing in the bundle would say so. The
                 # configure wrote what it baked in, so the two are compared here.
                 signing_stamp="$PROJECT_BUILD_DIR/updater-signing.txt"
+                # A pin the environment does not name is whatever the tree was configured
+                # with: version.inc keeps the cached value when the variable is unset, so
+                # comparing against an unset environment would reject a helper that is
+                # exactly what this tree builds.
+                cached_pin() {
+                    [ -f "$PROJECT_BUILD_DIR/CMakeCache.txt" ] || return 0
+                    sed -n "s/^$1:[A-Z]*=//p" "$PROJECT_BUILD_DIR/CMakeCache.txt" | head -n 1
+                }
                 expected_signing=$(printf 'publisher=%s\nteam_id=%s\nsig_key=%s\ntimestamp=%s\n' \
-                    "${ORCA_UPDATER_PUBLISHER:-}" "${ORCA_UPDATER_TEAM_ID:-}" \
-                    "${ORCA_UPDATER_SIG_KEY:-}" "${ORCA_BUILD_TIMESTAMP:-}")
+                    "${ORCA_UPDATER_PUBLISHER:-$(cached_pin ORCA_UPDATER_PUBLISHER)}" \
+                    "${ORCA_UPDATER_TEAM_ID:-$(cached_pin ORCA_UPDATER_TEAM_ID)}" \
+                    "${ORCA_UPDATER_SIG_KEY:-$(cached_pin ORCA_UPDATER_SIG_KEY)}" \
+                    "${ORCA_BUILD_TIMESTAMP:-$(cached_pin ORCA_BUILD_TIMESTAMP)}")
                 if [ ! -f "$signing_stamp" ]; then
                     echo "Error: $signing_stamp is missing, so what the helper accepts is not known." >&2
                     echo "Reconfigure the tree before packaging it." >&2
@@ -424,7 +434,7 @@ function build_slicer() {
                     echo "Error: the updater helper was built with other signature pins than this package names:" >&2
                     printf '%s\n' "$expected_signing" \
                         | diff -u -L "packaged under" -L "built with" - "$signing_stamp" >&2 || true
-                    echo "Reconfigure the tree before packaging it." >&2
+                    echo "Reconfigure the tree with these ORCA_UPDATER_* values, or unset them and rebuild." >&2
                     exit 1
                 fi
                 echo "Copying OrcaSlicerUpdater..."

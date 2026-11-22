@@ -33,10 +33,13 @@ public:
     // Creates the parent directory of `part_path` when it is missing and resumes
     // from the current .part size. `cancel` is polled from libcurl's progress
     // callback; setting it aborts the transfer and leaves the .part in place.
+    // `max_bytes` stops a body larger than the release announced from filling the disk;
+    // zero means no ceiling.
     DownloadResult download(const std::string&       url,
                             const std::string&       part_path,
                             const ProgressFn&        progress,
-                            const std::atomic<bool>& cancel) const;
+                            const std::atomic<bool>& cancel,
+                            int64_t                  max_bytes = 0) const;
 
     static std::string user_agent();
 };

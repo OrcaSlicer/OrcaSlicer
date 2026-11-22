@@ -821,7 +821,10 @@ if "%build_slicer%" == "ON" (
         if defined ORCA_SIGN_CERTFILE if defined ORCA_SIGN_KMS_KEY if defined ORCA_SIGN_JSIGN (
             set "sign_shell=powershell"
             where pwsh >nul 2>nul && set "sign_shell=pwsh"
-            set sign_arg="-DORCA_SIGN_CMD=!sign_shell! -NoProfile -ExecutionPolicy Bypass -File "%WP%\scripts\sign_windows.ps1" -Path"
+            REM The script path may contain spaces, so it stays its own quoted
+            REM token and the .nsi builds the command; one command string here
+            REM would be cut at the first space in the path.
+            set sign_arg="-DORCA_SIGN_SHELL=!sign_shell!" "-DORCA_SIGN_SCRIPT=%WP%\scripts\sign_windows.ps1"
         )
 
         call :print_and_run "!nsis_exe!" /V3 "-DSTAGE=!installer_stage!" "-DOUTFILE=!installer_out!" "-DAPP_VERSION=!orca_version!" !sign_arg! "%WP%\packaging\windows\orca-slicer.nsi"

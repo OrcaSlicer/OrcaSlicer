@@ -152,9 +152,9 @@ bool UpdateHelperApp::OnInit()
     m_lock_path = handoff.lock_path.empty() ? Slic3r::updater_lock_path() : handoff.lock_path;
     handoff.lock_path = m_lock_path;
 
-    // A handoff is good for one run only: delete it before anything else so a
-    // stale file can never replay this update.
-    Slic3r::remove_handoff();
+    // A handoff is good for one run only: delete this run's file before anything else so a
+    // stale file can never replay this update. Only this job's file is removed, so a helper
+    // started for the other job still finds its own.
     {
         boost::system::error_code ec;
         fs::remove(path, ec);

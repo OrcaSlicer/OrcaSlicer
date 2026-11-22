@@ -57,7 +57,12 @@ int64_t integer_field(const json& object, const char* key)
     auto it = object.find(key);
     if (it == object.end() || !it->is_number())
         return 0;
-    return it->get<int64_t>();
+    // A number above INT64_MAX parses as unsigned and get<int64_t>() throws.
+    try {
+        return it->get<int64_t>();
+    } catch (const std::exception&) {
+        return 0;
+    }
 }
 
 // Parses one of the records below. A file that is not a JSON object is treated as missing,
@@ -289,14 +294,17 @@ std::string updater_helper_dir()
     return (base / install_identity_hex(root)).string();
 }
 
-std::string updater_handoff_path()
+std::string updater_handoff_path(const std::string& job)
 {
     const std::string& root = install_root_override();
-    if (root.empty())
-        return (fs::path(cache_root()) / "handoff.json").string();
+    std::string        name = "handoff";
     // Keyed like the downloads: two copies share one cache, and one must not overwrite the
     // job another one has handed to its helper.
-    return (fs::path(cache_root()) / ("handoff-" + install_identity_hex(root) + ".json")).string();
+    if (!root.empty())
+        name += "-" + install_identity_hex(root);
+    if (!job.empty())
+        name += "-" + job;
+    return (fs::path(cache_root()) / (name + ".json")).string();
 }
 
 std::string updater_install_record_path()
@@ -306,7 +314,12 @@ std::string updater_install_record_path()
 
 std::string updater_pending_path()
 {
-    return (fs::path(cache_root()) / "pending.json").string();
+    const std::string& root = install_root_override();
+    // Keyed like the downloads: a swap in flight belongs to one install, and another copy
+    // sharing the cache must not read, settle or delete its recovery record.
+    if (root.empty())
+        return (fs::path(cache_root()) / "pending.json").string();
+    return (fs::path(cache_root()) / ("pending-" + install_identity_hex(root) + ".json")).string();
 }
 
 std::string updater_lock_path()
@@ -477,6 +490,8 @@ DownloadPrep prepare_download_dir(const std::string& dir,
     if (!prep.complete) {
         own_names.push_back(artifact.filename().string());
         own_names.push_back(verified.filename().string());
+        // A file that could not be read is set aside for the next run; this sweep is that run.
+        own_names.push_back(artifact.filename().string() + ".unreadable");
     }
     if (asset_name.empty()) {
         // The names a download took before it was named after its asset.
@@ -572,22 +587,22 @@ bool handoff_from_json(const std::string& text, UpdateHandoff& out)
     return true;
 }
 
-bool write_handoff(const UpdateHandoff& handoff)
+bool write_handoff(const UpdateHandoff& handoff, const std::string& job)
 {
-    return write_file_atomic(updater_handoff_path(), handoff_to_json(handoff));
+    return write_file_atomic(updater_handoff_path(job), handoff_to_json(handoff));
 }
 
-bool read_handoff(UpdateHandoff& out)
+bool read_handoff(UpdateHandoff& out, const std::string& job)
 {
     std::string text;
-    if (!read_file(updater_handoff_path(), text))
+    if (!read_file(updater_handoff_path(job), text))
         return false;
     return handoff_from_json(text, out);
 }
 
-void remove_handoff()
+void remove_handoff(const std::string& job)
 {
-    remove_file(updater_handoff_path());
+    remove_file(updater_handoff_path(job));
 }
 
 std::string install_record_to_json(const InstallRecord& record)
