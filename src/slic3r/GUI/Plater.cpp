@@ -21157,6 +21157,13 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
         PlateData *plate_data = plate_data_list[i];
         plate_data->printer_model_id = printer_model_id;
         plate_data->nozzle_diameters = nozzle_diameter_str;
+        PlateBBoxData* plate_bbox = nullptr;
+        if (plate_data->is_sliced_valid && plate_data->plate_index >= 0 && plate_data->plate_index < (int) store_params.id_bboxes.size()) {
+            plate_bbox = store_params.id_bboxes[plate_data->plate_index];
+            // Clears filaments a previous export may have added to the plate's bbox data.
+            plate_bbox->filament_ids.clear();
+            plate_bbox->filament_colors.clear();
+        }
         for (auto it = plate_data->slice_filaments_info.begin(); it != plate_data->slice_filaments_info.end(); it++) {
             std::string display_filament_type;
             it->type  = cfg.get_filament_type(display_filament_type, it->id);
@@ -21164,11 +21171,9 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
             if (id_agent)
                 it->filament_id = id_agent->from_orca_filament_id(it->filament_id);
             it->color = filament_color ? filament_color->get_at(it->id) : "#FFFFFF";
-            // save filament info used in curr plate
-            int index = p->partplate_list.get_curr_plate_index();
-            if (store_params.id_bboxes.size() > index) {
-                store_params.id_bboxes[index]->filament_ids.push_back(it->id);
-                store_params.id_bboxes[index]->filament_colors.push_back(it->color);
+            if (plate_bbox) {
+                plate_bbox->filament_ids.push_back(it->id);
+                plate_bbox->filament_colors.push_back(it->color);
             }
         }
     }
