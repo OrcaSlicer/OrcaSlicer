@@ -42,6 +42,10 @@
 #ifdef __WXGTK__
 #include <gtk/gtk.h>
 #include <pango/pangocairo.h>
+#include <pango/pango-context.h>
+#include <pango/pango-font.h>
+#include <pango/pango-language.h>
+#include <pango/pango-types.h>
 #include <map>
 #endif 
 
