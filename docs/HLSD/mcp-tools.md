@@ -35,7 +35,7 @@ them, and `tests/data/speed_dial_actions.json` the actions as a person sees them
    (`settings` and `preferences` are the GUI's words as they stand). A read is its place, then what it
    returns: `app_state`, `object_list`, `plate_slice_stats`. `undo` and `redo` alone have no place: the
    Design tab shares them, and they act on the tab shown.
-2. **The GUI's words**, so that a person's request and an agent's search meet: `object_set_height_ranges`
+2. **The GUI's words**, so that the words of a person's request name the command an agent picks: `object_set_height_ranges`
    edits what the object list calls height ranges (Height Range Modifier), `object_set_variable_layer_height`
    runs the Variable layer height panel, and `replay_run` runs what Action Replay calls a replay file. Where
    the GUI has no name for the thing, the words are plain (`widget_list`, `dialog_answer`). A word the GUI
@@ -641,7 +641,7 @@ How the actions are made and found is in mcp-server.md, Speed Dial catalog.
 
 Each command runs under a guard (mcp-server.md, Threading):
 
-- **Inspect**, 25 commands: the searches, lists and reads, `app_state`, `app_wait`, `app_log`, `printer_status`,
+- **Inspect**, 29 commands: the lists and reads, `app_state`, `app_wait`, `app_log`, `printer_status`,
   `window_screenshot`, `widget_list`, `replay_export` and the three recording commands. They run behind a
   modal dialog and inside another call.
 - **Recover**, 9 commands: `job_cancel`, `window_set`, `dialog_answer`, `dialog_auto_answer`, and the input
@@ -1114,8 +1114,8 @@ opens that item's tool for a person, as a pick of the item does; any other call 
   handler opened held the call until it was answered, the selection's kind, what the tab has open after the
   handler ran, and its status line. It claims nothing about what the handler did, which may be to open a
   card, arm a sketch tool, act at once, or say on the status line why it cannot.
-- A command's description ends with the calls that open a tool, each with its menu item's name, so that a
-  search for "rounded rectangle" or "polar array" finds the command.
+- A command's description ends with the calls that open a tool, each with its menu item's name, so that the
+  name a person knows from the menu, such as "rounded rectangle" or "polar array", is in the command's description.
 
 #### The menu items and the calls they make
 

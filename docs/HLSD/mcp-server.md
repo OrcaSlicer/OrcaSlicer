@@ -1058,8 +1058,8 @@ height range's `layer_height` is checked as its range editor checks it (see `obj
 null value removes an override; `reset_to` and `reset_all` are refused on these targets. A call is one undo
 step (`Plater::SingleSnapshot`).
 
-Read on such a target, `settings_get` with no `keys` gives what the target overrides, and with `keys` or
-`query` any setting it takes. Each item has `value`, the target's own (null where it has none), and
+Read on such a target, `settings_get` with no `keys` gives what the target overrides, and with `keys`
+any setting it takes. Each item has `value`, the target's own (null where it has none), and
 `effective` and `source`, resolved in the order the slicer applies them (`effective_setting()`): the height
 range's own value (`height_range`), else the part's (`part`), else the object's (`object`), else the
 process being edited (`global`), else the option's default (`default`). An `extruder` of 0 is no override.
@@ -1128,7 +1128,7 @@ which an object or a region prints with unless it sets its own. `settings_list` 
 object, a part or a height range overrides is `settings_get` on that target with no `keys`. With
 `where`, or with `include_meta`, its items carry their meta and come 100 a page
 (`settings_list_page()`): a page of a hundred keys with meta runs to about 50,000 characters, and an agent
-that lists everything is scanning values; the keys it then names or searches for come with their meta.
+that lists everything is scanning values; the keys it then names come with their meta.
 An enum's meta lists `labels`, the untranslated texts its combo shows, in the order of `values`, so a
 person's wording maps to a value.
 
