@@ -29,6 +29,9 @@ namespace GUI {
 class DeviceItem : public wxWindow
 {
 public:
+    // The values of state_device
+    enum DeviceState { DEVICE_IDLE = 0, DEVICE_FINISH, DEVICE_FAILED, DEVICE_PRINTING, DEVICE_PAUSE, DEVICE_PREPARE, DEVICE_SLICING, DEVICE_REMOVED };
+
     MachineObject* obj_{nullptr};
     int             state_online = { 0 }; //0-Offline 1-Online
     std::string     state_dev_name;     //device name

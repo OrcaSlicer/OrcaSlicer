@@ -4,12 +4,17 @@
 #include "slic3r/Utils/bambu_networking.hpp"
 
 #include <chrono>
+#include <condition_variable>
+#include <cstdint>
+#include <deque>
 #include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace Slic3r {
@@ -52,49 +57,77 @@ std::vector<LanDevice> lan_devices_from_presets(const PresetBundle& bundle);
 // Multi-device tab filled in.
 PrintParams lan_print_params(const LanDevice& device, PrintParams params);
 
-// The LAN printers of the Multi-device tab. Each has its own printer agent instance, connection
-// and MachineObject, apart from the Device tab's live agent, so several printers report their
-// status at once and a print goes to the printer it was sent to.
+// The LAN printers of the Multi-device tab. Each has its own MachineObject and, once the user picks it
+// in "Manage devices", its own printer agent instance and connection, apart from the Device tab's
+// live agent, so several printers report their status at once and a print goes to the printer it
+// was sent to.
 class LanDevicePool : public std::enable_shared_from_this<LanDevicePool>
 {
 public:
-    explicit LanDevicePool(DeviceManager* manager);
-    ~LanDevicePool();
+    using Task = std::function<void()>;
+    // How the pool makes agents and reaches its threads. Empty members take the app's: the agent
+    // factory, wxApp::CallAfter, and a worker thread of the pool's own. Tests swap them.
+    struct Hooks
+    {
+        std::function<std::shared_ptr<IPrinterAgent>(const std::string& agent_id)> create_agent;
+        std::function<void(Task)>                                                    run_on_main;
+        std::function<void(Task)>                                                    run_in_background;
+    };
 
-    // UI thread: connects new devices, and drops the ones no longer listed or whose agent is gone
-    void sync(const std::vector<LanDevice>& devices);
-    // UI thread: drops the devices whose agent is no longer registered as it was when created
+    explicit LanDevicePool(DeviceManager* manager, Hooks hooks = {});
+    ~LanDevicePool();
+    LanDevicePool(const LanDevicePool&)            = delete;
+    LanDevicePool& operator=(const LanDevicePool&) = delete;
+
+    // UI thread: lists `devices`, connects the ones whose dev_id is in `selected` and disconnects the
+    // others. A cheap diff: agents are created and connected in the background.
+    void sync(const std::vector<LanDevice>& devices, const std::set<std::string>& selected);
+    // UI thread: disconnects the devices whose agent is no longer registered as it was when created
     void prune();
 
     // UI thread
     std::map<std::string, MachineObject*> machines() const;
-    bool owns(const std::string& dev_id) const;
+    bool                                  owns(const std::string& dev_id) const;
 
-    // Any thread: sends a print to the device through its own agent; an error when the device left the pool,
-    // nothing when it never was in it
+    // Any thread: sends a print to a device of the pool through its own agent. An error when the device
+    // is not connected or was removed, never a fall back to another agent; nothing for any other dev_id.
     std::optional<int> start_print(const std::string& dev_id, PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
 
 private:
+    struct Connection;
     struct Entry
     {
-        LanDevice                      device;
-        std::string                    plugin_identifier; // of the agent when created; empty for a built-in
-        std::shared_ptr<IPrinterAgent> agent;
-        std::unique_ptr<NetworkAgent>  network;           // routes the MachineObject's commands to `agent`
-        std::unique_ptr<MachineObject> machine;
-        std::chrono::steady_clock::time_point connected_at; // the last connect_printer()
+        LanDevice                             device;
+        std::unique_ptr<MachineObject>        machine;
+        std::shared_ptr<Connection>           connection; // none until connected
+        std::unique_ptr<NetworkAgent>         network;    // routes the machine's commands to the connection's agent
+        uint64_t                              generation = 0; // of the current connect; other agents' callbacks are ignored
+        bool                                  connecting = false;
+        std::chrono::steady_clock::time_point connected_at; // the last connect attempt
+        std::chrono::steady_clock::time_point last_seen;    // the last message or connect
     };
 
-    std::unique_ptr<Entry> connect(const LanDevice& device);
-    void                   disconnect(std::unique_ptr<Entry> entry);
-    MachineObject*         machine_for(const std::string& dev_id) const;
+    void           disconnect(Entry& entry, std::vector<std::shared_ptr<Connection>>& released);
+    void           release(std::shared_ptr<Connection> connection);
+    void           on_connected(const std::string& dev_id, uint64_t generation, std::shared_ptr<Connection> connection);
+    MachineObject* machine_seen(const std::string& dev_id, uint64_t generation);
+    void           run_worker();
 
-    DeviceManager*                                  m_manager;
-    mutable std::mutex                              m_mutex; // guards m_entries' map, not the MachineObjects
-    std::map<std::string, std::unique_ptr<Entry>>   m_entries;
-    // Dropped devices, disconnected: the pages keep raw MachineObject pointers until they refresh, so their
-    // objects live as long as the pool (as DeviceManager keeps the cloud machines it drops)
-    std::vector<std::unique_ptr<Entry>>             m_retired;
+    DeviceManager*                m_manager;
+    Hooks                         m_hooks;
+    std::unique_ptr<NetworkAgent> m_offline; // the machines' agent while they have no connection: does nothing
+    uint64_t                      m_generation = 0;
+    mutable std::mutex            m_mutex; // guards m_entries and m_removed, which only the UI thread changes
+    std::map<std::string, Entry>  m_entries;
+    // Removed devices: the pages keep raw MachineObject pointers until they refresh, so the objects stay,
+    // without an agent, and come back if the device does. Their dev_ids never fall back to another agent.
+    std::map<std::string, std::unique_ptr<MachineObject>> m_removed;
+
+    std::mutex              m_jobs_mutex;
+    std::condition_variable m_jobs_cv;
+    std::deque<Task>        m_jobs;
+    bool                    m_stopping = false;
+    std::thread             m_worker;
 };
 
 } // namespace Slic3r

@@ -230,6 +230,9 @@ namespace Slic3r
         m_enable_mutil_machine = enable;
         if (enable && !m_lan_devices)
             m_lan_devices = std::make_shared<LanDevicePool>(this);
+        // The Multi-device tab is gone: so are its connections
+        if (!enable && m_lan_devices)
+            m_lan_devices->sync({}, {});
     }
 
     void DeviceManager::start_refresher() { if (m_refresher) m_refresher->Start(); }
@@ -880,9 +883,18 @@ namespace Slic3r
         auto* bundle = GUI::wxGetApp().preset_bundle;
         if (!m_enable_mutil_machine || !m_lan_devices || !bundle)
             return result;
-        m_lan_devices->sync(lan_devices_from_presets(*bundle));
+        std::vector<LanDevice> devices = lan_devices_from_presets(*bundle);
+        // A cloud machine keeps an id it shares with a LAN printer, which is then left out of the pool
+        devices.erase(std::remove_if(devices.begin(), devices.end(), [&](const LanDevice& d) { return result.count(d.dev_id) != 0; }),
+                      devices.end());
+        // Only the printers picked in "Manage devices" are connected
+        std::set<std::string> selected;
+        if (const AppConfig* config = get_app_config(); config && config->has_section("multi_devices"))
+            for (const auto& [index, dev_id] : config->get_section("multi_devices"))
+                selected.insert(dev_id);
+        m_lan_devices->sync(devices, selected);
         for (const auto& [dev_id, obj] : m_lan_devices->machines())
-            result.emplace(dev_id, obj); // a cloud machine with the same id keeps its place
+            result.emplace(dev_id, obj);
         return result;
     }
 

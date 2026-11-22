@@ -17,6 +17,7 @@
 #include "slic3r/GUI/GUI.hpp"
 #include <string>
 #include "libslic3r/Utils.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include <wx/panel.h>
 #include <wx/sizer.h>
 #include <utility>
@@ -220,10 +221,13 @@ void MultiMachineItem::doRender(wxDC& dc)
         else if (state_device > 2 && state_device < 7) {
             dc.SetFont(Label::Body_12);
             dc.SetTextForeground(wxColour(0, 150, 136));
-            // A LAN printer agent reports no stage list, only mc_percent: its progress is drawn the same way.
+            // A printer agent's LAN printer (not Bambu's) reports no stage list or subtask, only mc_print_percent:
+            // its progress is drawn the same way, and its state stands in for the stage
             const wxString stage = obj_->get_curr_stage();
+            const bool agent_printer = obj_->is_lan_mode_printer() && !obj_->printer_agent_id.empty() &&
+                                       obj_->printer_agent_id != BBL_PRINTER_AGENT_ID && obj_->printer_agent_id != ORCA_PRINTER_AGENT_ID;
             const bool bbl_printing = stage == _L("Printing") && obj_->subtask_;
-            if (bbl_printing || (stage.empty() && state_device == 3)) {
+            if (bbl_printing || (agent_printer && stage.empty() && state_device == DEVICE_PRINTING)) {
                 const int progress = bbl_printing ? obj_->subtask_->task_progress : std::clamp(obj_->mc_print_percent, 0, 100);
                 //wxString layer_info = wxString::Format(_L("Layer: %d/%d"), obj_->curr_layer, obj_->total_layers);
                 wxString progress_info = wxString::Format("%d", progress);
@@ -241,7 +245,7 @@ void MultiMachineItem::doRender(wxDC& dc)
                 dc.DrawRoundedRectangle(left, FromDIP(30), FromDIP(DEVICE_LEFT_PRO_INFO) * (static_cast<float>(progress) / 100.0f), FromDIP(10), 2);
             }
             else {
-                DrawTextWithEllipsis(dc, stage.empty() ? get_state_device() : stage, FromDIP(DEVICE_LEFT_PRO_INFO), left);
+                DrawTextWithEllipsis(dc, agent_printer && stage.empty() ? get_state_device() : stage, FromDIP(DEVICE_LEFT_PRO_INFO), left);
             }
 
         }

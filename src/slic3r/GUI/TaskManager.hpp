@@ -163,8 +163,8 @@ public:
 
     void set_agent(NetworkAgent* agent);
 
-    // Sends a task's print through the agent of the printer it names, or nothing when the
-    // printer has none of its own (a Bambu printer), which then goes through the live agent's start_print()
+    // Sends a task's print through the agent of the printer it names, or nothing when the printer is
+    // not a Multi-device LAN printer (a Bambu printer), which then goes through the live agent's start_print()
     using DevicePrintFn = std::function<std::optional<int>(const PrintParams&, OnUpdateStatusFn, WasCancelledFn)>;
     void set_device_print(DevicePrintFn fn);
 
