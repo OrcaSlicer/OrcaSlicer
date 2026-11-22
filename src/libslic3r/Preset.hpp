@@ -101,6 +101,7 @@ static constexpr const char* GENERIC_PREFIX = "Generic ";
 namespace Slic3r {
 
 class AppConfig;
+class Model;
 class PresetBundle;
 
 // Deterministic preset setting_id: uuid5(vendor/type/name) -> 16 base62 chars.
@@ -465,6 +466,12 @@ public:
     static const std::string&               suffix_modified();
     static std::string                      remove_suffix_modified(const std::string& name);
     static void                             normalize(DynamicPrintConfig &config);
+    // Tree supports used to ignore Threshold overlap and read a Threshold angle of 0 as 30 degrees. These keep that
+    // result for configs saved before they honoured it. The first overload is for a preset merged with its parent.
+    // The second is for a project: the caller checks its version, and object overrides are resolved against config.
+    static bool                             predates_tree_support_overlap(const Semver &version);
+    static void                             migrate_tree_support_threshold_angle(DynamicPrintConfig &config, const Semver &version);
+    static void                             migrate_tree_support_threshold_angle(DynamicPrintConfig &config, Model &model);
     // Report configuration fields, which are misplaced into a wrong group, remove them from the config.
     // `added`, when given, is the diff applied over a copy of default_config, and only
     // its keys are checked, since no other key can be missing from default_config.

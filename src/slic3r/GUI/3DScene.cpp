@@ -1002,13 +1002,11 @@ GLVolumeWithIdAndZList volumes_to_render(const GLVolumePtrs& volumes, GLVolumeCo
 }
 
 // ORCA: Compute slope.normal_z for 3D overhang highlight directly from support settings.
-// If support_threshold_angle is 0, use tree fallback angle (30 deg) for tree supports,
-// and derive an equivalent angle from threshold overlap for normal supports.
+// If support_threshold_angle is 0, derive an equivalent angle from threshold overlap.
 float GLVolumeCollection::get_selection_support_normal_z() const
 {
     const DynamicPrintConfig& glb_cfg  = GUI::wxGetApp().preset_bundle->prints.get_edited_preset().config;
     const auto& full_cfg               = GUI::wxGetApp().preset_bundle->full_config();
-    const auto support_type            = glb_cfg.opt_enum<SupportType>("support_type");
     const int  support_threshold_angle = glb_cfg.opt_int("support_threshold_angle");
     double angle_rad;
 
@@ -1016,9 +1014,7 @@ float GLVolumeCollection::get_selection_support_normal_z() const
         // Match support generation: explicit threshold angles are treated as inclusive.
         const int effective_support_threshold_angle = std::min(support_threshold_angle + 1, 89);
         angle_rad = Geometry::deg2rad(static_cast<double>(effective_support_threshold_angle));
-    } else if (is_tree(support_type)) {
-        angle_rad = Geometry::deg2rad(30.0); // fallback value for tree supports
-    } else { // For normal supports, if the angle is set to 0, calculate normal_z from overlap.
+    } else { // If the angle is set to 0, calculate normal_z from overlap.
         const double layer_height        = full_cfg.opt_float("layer_height");
         const auto*  nozzle_diameter_opt = full_cfg.option<ConfigOptionFloats>("nozzle_diameter");
         const int    wall_filament_id       = full_cfg.opt_int("outer_wall_filament_id");

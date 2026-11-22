@@ -7889,7 +7889,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_threshold_angle", coInt);
     def->label = L("Threshold angle");
     def->category = L("Support");
-    def->tooltip = L("Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n\nNote: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30.");
+    def->tooltip = L("Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n\nNote: If set to 0, the Threshold overlap is used instead.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
     def->max = 90;

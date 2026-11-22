@@ -141,6 +141,44 @@ TEST_CASE("Tree support is generated for an overhang and not for a plain cube", 
     REQUIRE(support_point_count(Slic3r::Test::cube(20), "tree_slim") == 0);
 }
 
+// A cone standing on its apex. Its surface rises 35 degrees from horizontal, so at 0.2 mm layers each layer
+// reaches about 0.286 mm past the one below.
+static TriangleMesh inverted_cone()
+{
+    TriangleMesh cone = make_cone(20., 14.);
+    cone.rotate_x(float(PI));
+    cone.translate(0.f, 0.f, 14.f);
+    return cone;
+}
+
+static size_t cone_support_point_count(const char *style, int threshold_angle, const char *threshold_overlap)
+{
+    Slic3r::Print print;
+    slice_with_tree_support(inverted_cone(), print, style, threshold_angle, 0, 0,
+                            { { "support_threshold_overlap", threshold_overlap },
+                              { "line_width", 0.42 },
+                              { "outer_wall_line_width", 0.42 } });
+    return support_points(print).size();
+}
+
+TEST_CASE("Tree support with a threshold angle of 0 follows the threshold overlap", "[TreeSupport]")
+{
+    const char *style = GENERATE("tree_slim", "organic");
+    CAPTURE(style);
+    // With a 0.42 mm line, 90% overlap leaves 0.042 mm of each layer unsupported and 10% leaves 0.378 mm.
+    // The cone's 0.286 mm step is an overhang for the first and not for the second.
+    REQUIRE(cone_support_point_count(style, 0, "90%") > cone_support_point_count(style, 0, "10%"));
+}
+
+TEST_CASE("Tree support with a threshold angle ignores the threshold overlap", "[TreeSupport]")
+{
+    const char  *style     = GENERATE("tree_slim", "organic");
+    CAPTURE(style);
+    const size_t generated = cone_support_point_count(style, 40, "90%");
+    REQUIRE(generated > 1000);
+    REQUIRE(cone_support_point_count(style, 40, "10%") == generated);
+}
+
 TEST_CASE("Restricting tree support to the build plate changes what is generated", "[TreeSupport]")
 {
     const TriangleMesh mesh = two_tier_mesh();

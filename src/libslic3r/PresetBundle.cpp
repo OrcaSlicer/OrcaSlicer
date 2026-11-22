@@ -2688,6 +2688,7 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
         if (inherit_preset) preset.base_id = inherit_preset->setting_id;
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << preset.name << " have filament_id: " << preset.filament_id << " and base_id: " << preset.base_id;
         Preset::normalize(preset.config);
+        Preset::migrate_tree_support_threshold_angle(preset.config, preset.version);
         // Report configuration fields, which are misplaced into a wrong group.
         const Preset &default_preset = collection->default_preset_for(new_config);
         std::string   incorrect_keys = Preset::remove_invalid_keys(preset.config, default_preset.config);

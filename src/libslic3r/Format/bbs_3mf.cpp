@@ -1565,6 +1565,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             if (is_orca_3mf)
                 *is_orca_3mf = false;
         }
+        // Bambu Studio versions are not comparable to OrcaSlicer versions, so a project without the OrcaSlicer tag counts as old.
+        if (result && (!m_orca_slicer_version || Preset::predates_tree_support_overlap(*m_orca_slicer_version)))
+            Preset::migrate_tree_support_threshold_angle(config, model);
         // save for restore
         if (result && m_load_aux && !m_load_restore) {
             save_string_file(model.get_backup_path() + "/origin.txt", filename);

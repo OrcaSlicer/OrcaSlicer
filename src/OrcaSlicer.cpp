@@ -2308,6 +2308,8 @@ int CLI::run(int argc, char **argv)
             else if (config_type == "process") {
                 //config.set("print_settings_id", config_name, true);
                 //print_inherits = config.option<ConfigOptionString>("inherits", true)->value;
+                if (const auto version = Semver::parse(key_values[BBL_JSON_KEY_VERSION]))
+                    Preset::migrate_tree_support_threshold_angle(config, *version);
             }
             else if (config_type == "filament") {
                 auto filament_id_iter = key_values.find(BBL_JSON_KEY_FILAMENT_ID);
