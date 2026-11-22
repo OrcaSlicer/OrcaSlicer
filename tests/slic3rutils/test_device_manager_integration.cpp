@@ -73,9 +73,16 @@ public:
         return 0;
     }
 
+    int set_user_selected_machine(std::string dev_id) override
+    {
+        ++selections;
+        return OrcaPrinterAgent::set_user_selected_machine(std::move(dev_id));
+    }
+
     std::string published_device;
     json published_message;
     std::string connected_ca_file;
+    int selections{0};
 
 private:
     AgentInfo m_info;
@@ -298,6 +305,37 @@ TEST_CASE("Logging out cancels a pending last-machine restore", "[DeviceManager]
     REQUIRE(manager.has_pending_last_machine_restore());
     manager.clean_user_info(true);
     CHECK_FALSE(manager.has_pending_last_machine_restore());
+}
+
+TEST_CASE("A cloud server connection selects a cloud printer again but leaves a LAN printer alone", "[DeviceManager][integration]")
+{
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    network.set_printer_agent(agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine machine;
+    machine.dev_id       = "integration-lan-device";
+    machine.dev_name     = "Integration LAN device";
+    machine.dev_ip       = "192.0.2.10";
+    machine.printer_type = "C11";
+    REQUIRE(manager.insert_local_device(machine, "lan", "free", "", "access-code") != nullptr);
+    manager.parse_user_print_info(machine_list_response(ORCA_CLOUD_PROVIDER, "integration-agent",
+                                                        network.get_user_machine_list_generation(), "Cloud printer"));
+    REQUIRE(manager.get_user_machinelist().count("integration-device") == 1);
+
+    // The agent names the LAN printer once it is connected, as the Bambu network plugin does.
+    agent->set_user_selected_machine(machine.dev_id);
+    agent->selections = 0;
+    manager.reselect_cloud_machine();
+    CHECK(agent->selections == 0);
+
+    agent->set_user_selected_machine("integration-device");
+    agent->selections = 0;
+    manager.reselect_cloud_machine();
+    CHECK(agent->selections == 1);
+    CHECK(agent->get_user_selected_machine() == "integration-device");
 }
 
 TEST_CASE("A CA file stays with the agent that saved it when a device is rebound", "[DeviceManager][integration]")
