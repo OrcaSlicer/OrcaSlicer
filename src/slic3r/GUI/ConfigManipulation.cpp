@@ -1053,11 +1053,19 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_field("brim_ears_max_angle", brim_width > 0.0f, -1, brim_width_reason);
     toggle_field("brim_ears_detection_length", brim_width > 0.0f, -1, brim_width_reason);
     // Painted ears carry their own radius and do not depend on brim_width.
-    toggle_field("brim_ears_outer_only", have_painted_brim_ear || brim_width > 0.0f, -1, _L("Use painted brim ears or set brim width above zero to edit this setting."));
+    const wxString painted_or_brim_width_reason = _L("Use painted brim ears or set brim width above zero to edit this setting.");
+    toggle_field("brim_ears_outer_only", have_painted_brim_ear || brim_width > 0.0f, -1, painted_or_brim_width_reason);
     const wxString automatic_brim_ear_reason = _L("Select automatic brim ears on a printer without a tilted belt to use this setting.");
     toggle_line("brim_ears_max_angle", have_auto_brim_ear, -1, automatic_brim_ear_reason);
     toggle_line("brim_ears_detection_length", have_auto_brim_ear, -1, automatic_brim_ear_reason);
-    toggle_line("brim_ears_outer_only", have_auto_brim_ear || have_painted_brim_ear, -1, _L("Select automatic or painted brim ears on a printer without a tilted belt to use this setting."));
+    const wxString brim_ear_reason = _L("Select automatic or painted brim ears on a printer without a tilted belt to use this setting.");
+    toggle_line("brim_ears_outer_only", have_auto_brim_ear || have_painted_brim_ear, -1, brim_ear_reason);
+    // The sprue width only matters once the ears are moved away from the model.
+    toggle_field("brim_ears_sprue_length", have_painted_brim_ear || brim_width > 0.0f, -1, painted_or_brim_width_reason);
+    toggle_field("brim_ears_sprue_width", (have_painted_brim_ear || brim_width > 0.0f) && config->opt_float("brim_ears_sprue_length") > 0.0f, -1,
+                 _L("Set brim ear sprue length above zero to edit this setting."));
+    toggle_line("brim_ears_sprue_length", have_auto_brim_ear || have_painted_brim_ear, -1, brim_ear_reason);
+    toggle_line("brim_ears_sprue_width", have_auto_brim_ear || have_painted_brim_ear, -1, brim_ear_reason);
 
     // Hide Elephant foot compensation layers if elefant_foot_compensation is not enabled
     // xgettext:no-c-format, no-boost-format

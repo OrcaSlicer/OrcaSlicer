@@ -4,6 +4,7 @@
 #include "GLGizmoBase.hpp"
 #include "slic3r/GUI/GLSelectionRectangle.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "libslic3r/Brim.hpp"
 #include "libslic3r/BrimEarsPoint.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "slic3r/GUI/SceneRaycaster.hpp"
@@ -143,6 +144,7 @@ private:
     bool m_link_text_hover = false;
     
     PickingModel m_cylinder;
+    GLModel      m_sprue_model; // unit box, stretched over the strip between an ear and the model
 
     // This map holds all translated description texts, so they can be easily referenced during layout calculations
     // etc. When language changes, GUI is recreated and this class constructed again, so the change takes effect.
@@ -207,7 +209,8 @@ protected:
     //void update_single_mesh_pick(GLVolume* v);
     void reset_all_pick();
     bool add_point_to_cache(Vec3f pos, float head_radius, bool selected, Vec3f normal);
-    ExPolygon make_polygon(BrimPoint point, const Geometry::Transformation &trsf);
+    // Places an ear the way the slicer does, sprue included, in world coordinates.
+    BrimEar place_ear(BrimPoint point, const Geometry::Transformation &trsf) const;
     void find_single();
 };
 

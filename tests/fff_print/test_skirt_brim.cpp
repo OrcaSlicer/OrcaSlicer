@@ -6,6 +6,7 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include "libslic3r/Brim.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Layer.hpp"
@@ -345,6 +346,79 @@ TEST_CASE("Brim ears appear only at corners within the max angle", "[SkirtBrim]"
         if (expect_ears) CHECK(brim_loop_count(print) > 0);
         else             CHECK(brim_loop_count(print) == 0);
     }
+}
+
+// The sketch the feature follows: a 6 mm radius ear 10 mm off each corner, held by a 3 mm strip.
+TEST_CASE("Brim ear sprue moves ears away from the corners", "[SkirtBrim]")
+{
+    constexpr double ear_radius   = 6.;
+    constexpr double sprue_length = 10.;
+    const double     gap          = GENERATE(0., 0.1);
+    CAPTURE(gap);
+
+    Print print;
+    init_and_process_print({ cube(20) }, print, {
+        { "skirt_loops",              0 },
+        { "brim_type",                "brim_ears" },
+        { "brim_width",               ear_radius },
+        { "brim_object_gap",          gap },
+        { "brim_ears_sprue_length",   sprue_length },
+        { "brim_ears_sprue_width",    3 },
+        { "initial_layer_line_width", 0.5 },
+    });
+
+    const PrintObject *object = print.get_object(0);
+    const Vec3d plate_origin  = print.get_plate_origin();
+    Point center = object->layers().front()->lslices.front().contour.bounding_box().center();
+    center += object->instances().front().shift_without_plate_offset();
+    center += Point(scaled(plate_origin.x()), scaled(plate_origin.y()));
+
+    double min_radius = std::numeric_limits<double>::max();
+    double max_radius = 0.;
+    for (const auto &kv : print.get_brimMap()) {
+        Polylines brim_paths;
+        kv.second.collect_polylines(brim_paths);
+        for (const Polyline &path : brim_paths)
+            for (const Point &point : path.points) {
+                const double r = unscale<double>((point - center).cast<double>().norm());
+                min_radius = std::min(min_radius, r);
+                max_radius = std::max(max_radius, r);
+            }
+    }
+
+    const double half_diagonal = 10. * std::sqrt(2.);
+    INFO("Brim path distance from the cube center: " << min_radius << " .. " << max_radius << " mm");
+    REQUIRE(max_radius > 0.);
+    // The far edge of each ear lies one sprue and one ear diameter beyond the corner.
+    CHECK(max_radius > half_diagonal + sprue_length + 2. * ear_radius - 2.5);
+    CHECK(max_radius < half_diagonal + sprue_length + 2. * ear_radius);
+    // The sprue reaches back to the corner, so the ears stay attached to the model.
+    CHECK(min_radius < half_diagonal + 1.);
+}
+
+// A wedge tip much thinner than the strip: the part of the strip reaching back into the material
+// to close a corner must not stick out beside the wedge.
+TEST_CASE("Brim ear sprue stays off the sides of a thin tip", "[SkirtBrim]")
+{
+    const coord_t sprue_length = scaled<coord_t>(10.);
+    const coord_t sprue_width  = scaled<coord_t>(3.);
+    const coord_t radius       = scaled<coord_t>(5.);
+    // Tip at the origin, 2 mm wide 30 mm further on; counter-clockwise like an ExPolygon contour.
+    const Polygon wedge({ Point(0, 0), Point(scaled<coord_t>(30.), scaled<coord_t>(-1.)), Point(scaled<coord_t>(30.), scaled<coord_t>(1.)) });
+
+    const BrimEar ear = place_brim_ear({ wedge }, Point(0, 0), radius, sprue_length, sprue_width);
+
+    // The sprue continues the tip, so the ear sits straight ahead of it.
+    CHECK_THAT(ear.dir.x(), Catch::Matchers::WithinAbs(-1., 1e-6));
+    CHECK_THAT(unscale<double>(ear.center.x()), Catch::Matchers::WithinAbs(-15., 0.01));
+    // Nothing of the footprint lies beside the wedge, behind its tip.
+    const Polygon behind_tip({ Point(scaled<coord_t>(0.1), scaled<coord_t>(-10.)), Point(scaled<coord_t>(30.), scaled<coord_t>(-10.)),
+                               Point(scaled<coord_t>(30.), scaled<coord_t>(10.)), Point(scaled<coord_t>(0.1), scaled<coord_t>(10.)) });
+    const ExPolygons beside = intersection_ex(diff_ex(ear.footprint, Polygons{ wedge }), Polygons{ behind_tip });
+    double beside_area = 0.;
+    for (const ExPolygon &expoly : beside)
+        beside_area += expoly.area();
+    CHECK_THAT(beside_area * SCALING_FACTOR * SCALING_FACTOR, Catch::Matchers::WithinAbs(0., 0.01));
 }
 
 TEST_CASE("Outer-only brim ears stay out of model holes", "[SkirtBrim]")

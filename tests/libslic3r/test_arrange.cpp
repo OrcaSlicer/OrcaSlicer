@@ -20,6 +20,9 @@
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/ModelArrange.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/MultiMaterialSegmentation.hpp"
@@ -1172,4 +1175,30 @@ TEST_CASE("Objects no taller than the nozzle height only keep the nozzle cone fr
     CHECK_THAT(compacted_tower_arrange_clearance({tall}, params, toolhead_radius), WithinAbs(toolhead_radius, EPSILON));
     // find_new_position() passes no objects.
     CHECK_THAT(compacted_tower_arrange_clearance({}, params, toolhead_radius), WithinAbs(toolhead_radius, EPSILON));
+}
+
+// Ears on a 10 mm sprue with a 5 mm radius reach 10 + 2 * 5 = 20 mm beyond the object; each object
+// keeps 3/4 of that clear, plus 1 mm: corner ears point diagonally, so across a gap they reach only
+// about cos(45°) of it, and those of two neighbours pointing at each other stay apart.
+// Without a sprue the ears hug the object like a brim does.
+TEST_CASE("Arrange keeps brim ears on a sprue clear of neighbours", "[Arrange]")
+{
+    const double sprue_length = GENERATE(0., 10.);
+    CAPTURE(sprue_length);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "brim_type",              "brim_ears" },
+        { "brim_width",             5 },
+        { "brim_ears_sprue_length", sprue_length },
+        { "enable_support",         0 },
+    });
+    Model        model;
+    ModelObject *object = model.add_object();
+    object->add_volume(make_cube(20., 20., 20.));
+    ModelInstance *instance = object->add_instance();
+
+    const ArrangePolygon ap = get_instance_arrange_poly(instance, config);
+    // 1 mm is what arrange keeps around an object without supports.
+    CHECK_THAT(ap.brim_width, Catch::Matchers::WithinAbs(sprue_length > 0. ? 0.75 * (sprue_length + 2. * 5.) + 1. : 1., 1e-9));
 }

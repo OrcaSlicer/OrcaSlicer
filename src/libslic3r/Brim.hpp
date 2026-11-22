@@ -39,6 +39,22 @@ ExtrusionEntityCollection make_brim_auto(const Print &print, PrintTryCancel try_
 Points make_brim_ear_points(const Polygon &contour, coord_t ear_detection_length,
                             coordf_t brim_ears_max_angle, bool is_outer_brim);
 
+//ORCA: A brim ear for the outline point `pt`. Without a sprue the ear is centred on `pt`. With one,
+// the ear sits `sprue_length` out from the outline, joined to it by a strip `sprue_width` wide that
+// runs away from the material: along the edge normal, or the corner bisector at a vertex.
+// `outline` follows the ExPolygon orientation, material on the left of each edge.
+// The slicer and the brim ears gizmo both place ears with it, so the preview matches the print.
+struct BrimEar
+{
+    Point      base;      // where the ear attaches to the outline
+    Point      center;    // centre of the round ear
+    Vec2d      dir;       // unit vector from base to center, zero without a sprue
+    double     back = 0.; // how far the strip reaches behind base into the material, scaled
+    coord_t    sprue_width = 0;
+    ExPolygons footprint; // round ear and strip
+};
+BrimEar place_brim_ear(const Polygons &outline, const Point &pt, coord_t radius, coord_t sprue_length, coord_t sprue_width);
+
 } // Slic3r
 
 #endif // slic3r_Brim_hpp_

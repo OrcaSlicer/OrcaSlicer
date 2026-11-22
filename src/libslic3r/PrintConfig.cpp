@@ -2241,6 +2241,28 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("brim_ears_sprue_length", coFloat);
+    def->label = L("Brim ear sprue length");
+    def->category = L("Support");
+    def->tooltip = L("Distance between the model and the brim ear. The ear is connected to the model by a narrow strip "
+                     "(sprue), which makes it easy to break off after printing.\n"
+                     "0 to place the ear directly on the model.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("brim_ears_sprue_width", coFloat);
+    def->label = L("Brim ear sprue width");
+    def->category = L("Support");
+    def->tooltip = L("Width of the strip that connects a brim ear to the model.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 0.1;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(3));
+
     def = this->add("compatible_printers", coStrings);
     def->label = L("Select printers");
     def->mode = comAdvanced;
