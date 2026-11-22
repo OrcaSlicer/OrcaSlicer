@@ -91,7 +91,7 @@ void SpinInput::Create(wxWindow *parent,
     wxSize best_size = text_ctrl->GetBestSize();
 #ifdef __WXGTK__
     // ORCA: See TextInput::Create(): GTK reports the theme entry height, not the one from RemoveInputBorder() and Body_14.
-    best_size.y = text_ctrl->GetCharHeight();
+    best_size.y = Slic3r::GUI::GetInputTextHeight(text_ctrl);
 #endif
     text_ctrl->SetInitialSize(best_size);
     state_handler.attach_child(text_ctrl);

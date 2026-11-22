@@ -87,7 +87,7 @@ void TextInput::Create(wxWindow *     parent,
 #ifdef __WXGTK__
     // ORCA: wx asks GTK for the entry height, and before the style is revalidated GTK still reports the theme
     // padding, border and default font instead of the CSS from RemoveInputBorder() and Body_14.
-    best_size.y = text_ctrl->GetCharHeight();
+    best_size.y = Slic3r::GUI::GetInputTextHeight(text_ctrl);
 #endif
     text_ctrl->SetInitialSize(best_size);
     text_ctrl->SetBackgroundColour(background_color.colorForStates(state_handler.states()));
