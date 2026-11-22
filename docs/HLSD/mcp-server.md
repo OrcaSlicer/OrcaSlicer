@@ -101,11 +101,12 @@ The rest is in four sections. The first, finding what to call, gives every catal
 agent reads them: `tools/list` place by place, its commands named place first, then verb; `tool_list` for the
 commands `tools/list` never shows (the three menu items that take no arguments, the Design tab's and the
 operations plugins offer, so nothing else tells an agent they exist), which `tool_call` runs; `tool_describe
-{tool}` for a command's manual, to read before a `tool_call`, whose `values_from` names the tool that lists a
+{tool}` for a command's manual, to read before a `tool_call`, whose `values_from` names the tools that list a
 parameter's values; `settings_list_pages {type}`, `settings_list {type, where}` and `settings_get {keys}` for
-what a setting does; `action_list {section}` for the Speed Dial's actions; `script_list_api {within}` and
-`script_describe_api {name}` for the Python API. Each is a list an agent reads and picks from, since a word
-search does not match the words of a person's request to a command. Clients that defer tools load only their
+what a setting does; `action_list`, a section at a time if asked, for the Speed Dial's actions; `script_list_api`,
+from `orca` a module or class at a time, and `script_describe_api {name}` for the Python API. The finding is
+done by listing: an agent reads a catalog's list, picks, and reads the manual or the entry of what it picked, since
+a word search does not match the words of a person's request to a command. Clients that defer tools load only their
 names and the instructions at first, so the instructions are how an agent without a skill learns which tool
 to load, and this section comes first.
 The other three are by what the commands are for: running the session, acting on project data, which an agent
