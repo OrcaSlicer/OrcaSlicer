@@ -165,20 +165,20 @@ void register_preference_tools(CommandCatalog& catalog)
         "preferences_get", L("Read preferences"),
         "Read the app's preferences as the Preferences dialog shows them. With no argument, every preference it shows, "
         "tab by tab in its order, each with key (its control is named after it), tab, section and label (the row's title, "
-        "in English), kind (checkbox, choice, number or text), value (what the dialog shows: true or false for a checkbox, "
-        "a number for a number field), a choice's choices ({value, label}; preferences_set takes the value), a number's "
-        "min and max, stored: false where nothing is stored and the value is the one the dialog shows then, "
-        "restart_needed: true for a preference read at the next start, which a write changes nothing before, and "
-        "refused, the reason, for a preference preferences_set does not write. The MCP server's switch and port read as "
+        "in English), kind (checkbox, choice, number or text), value (what the dialog shows: `true` or `false` for a checkbox, "
+        "a number for a number field), a choice's choices (`{value, label}`; `preferences_set` takes the value), a number's "
+        "min and max, `stored: false` where nothing is stored and the value is the one the dialog shows then, "
+        "`restart_needed: true` for a preference read at the next start, which a write changes nothing before, and "
+        "refused, the reason, for a preference `preferences_set` does not write. The MCP server's switch and port read as "
         "the dialog shows them: on while the server runs, and the port it is on, also where this session's launch "
         "arguments set them without storing them; their stored says whether a value is stored. keys and tab narrow "
         "the list together; a "
-        "named key the dialog does not show is read as the app configuration stores it ({key, value}), and one that is "
-        "neither is listed under unknown_keys. The app configuration also holds account and device state, which is read "
+        "named key the dialog does not show is read as the app configuration stores it (`{key, value}`), and one that is "
+        "neither is listed under `unknown_keys`. The app configuration also holds account and device state, which is read "
         "only by name.",
         object_schema({{"keys", array_prop({{"type", "string"}}, "Preference keys, e.g. [\"project_load_behaviour\"].")},
                        {"tab", enum_prop({"general", "files", "behaviour", "control", "graphics", "online", "developer"},
-                                         "The dialog's tab, as window_open names it.")}}),
+                                         "The dialog's tab, as `window_open` names it.")}}),
         [](const json& args, ToolContext& ctx) {
             return ToolResult::ok(ctx.run_ui([&] {
                 ui_plater();
@@ -190,23 +190,23 @@ void register_preference_tools(CommandCatalog& catalog)
         {"set_preferences"},
         mutate_tool(
             "preferences_set", L("Change preferences"),
-            "Change preferences as their controls in the Preferences dialog do: values {key: value}, a checkbox as true or "
-            "false, a choice as one of its values, a number within its range, as preferences_get lists them, and the "
-            "downloads folder (download_path) as the absolute path of an existing folder. All are checked first and written "
+            "Change preferences as their controls in the Preferences dialog do: values `{key: value}`, a checkbox as true or "
+            "false, a choice as one of its values, a number within its range, as `preferences_get` lists them, and the "
+            "downloads folder (`download_path`) as the absolute path of an existing folder. All are checked first and written "
             "together, so nothing changes if one is refused; then each does what its control does in the app, in the keys' "
             "order (the preview redrawn, the sidebar's lists, the settings' mode, the theme, preset sync started or "
-            "stopped, stealth mode's sign-out of the cloud accounts), and those preferences_get marks restart_needed are "
+            "stopped, stealth mode's sign-out of the cloud accounts), and those `preferences_get` marks `restart_needed` are "
             "stored and take effect at the next start. A key whose value is already the one given is left as it is. "
-            "Refused, by name and with the reason: a key the dialog does not show, and those preferences_get marks "
+            "Refused, by name and with the reason: a key the dialog does not show, and those `preferences_get` marks "
             "refused, whose control opens a dialog, restarts OrcaSlicer, signs out, or reaches outside it (the language, "
             "the login region, the network plug-in, file associations, the mixed-temperature warning, the MCP server's "
-            "switch and port); those change in the dialog: window_open {\"window\": \"preferences\", \"tab\", "
-            "\"key\"}, then widget_set_value. Not in the undo history. Reply: changed, [{key, before, after}] typed as "
-            "preferences_get gives them, with stored_before: false where nothing was stored and before is the value the "
-            "dialog showed, and restart_needed: true where preferences_get gives it; and unchanged, the keys already so.",
+            "switch and port); those change in the dialog: `window_open {\"window\": \"preferences\", \"tab\", "
+            "\"key\"}`, then `widget_set_value`. Not in the undo history. Reply: changed, [`{key, before, after}`] typed as "
+            "`preferences_get` gives them, with `stored_before: false` where nothing was stored and before is the value the "
+            "dialog showed, and `restart_needed: true` where `preferences_get` gives it; and unchanged, the keys already so.",
             object_schema({{"values", {{"type", "object"},
-                                       {"description", "{key: value}, e.g. {\"auto_arrange\": false, \"auto_calculate_flush\": "
-                                                       "\"color change\"}."}}}},
+                                       {"description", "`{key: value}`, e.g. `{\"auto_arrange\": false, \"auto_calculate_flush\": "
+                                                       "\"color change\"}`."}}}},
                           {"values"}),
             [](const json& args, ToolContext& ctx) {
                 const json values = args.value("values", json::object());

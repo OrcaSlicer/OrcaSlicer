@@ -574,11 +574,11 @@ void register_layer_tools(CommandCatalog& catalog)
     catalog.add(with_expected_ids(mutate_tool(
         "object_set_height_ranges", L("Set height range modifiers"),
         "Replace an object's height range modifiers (Height Range Modifier in the object list): Z ranges in mm, each printed "
-        "with its own layer_height, filament and process settings, which settings_get and settings_set read and write with "
-        "the target height_range. A range given with the min_z and max_z of one the object has keeps its settings; a new "
+        "with its own `layer_height`, filament and process settings, which `settings_get` and `settings_set` read and write with "
+        "the target `height_range`. A range given with the `min_z` and `max_z` of one the object has keeps its settings; a new "
         "one starts from the object's layer height and filament. Ranges may touch but not overlap; [] removes them all. "
         "The object is the one named, else the one selected in the Prepare view. One undo step; the object is selected. "
-        "Reply: the object (objects, object), its height and its ranges as object_list shows them, with their settings, and "
+        "Reply: the object (objects, object), its height and its ranges as `object_list` shows them, with their settings, and "
         "warnings, such as a variable layer height profile deciding the layer heights instead.",
         with_targets(object_schema({{"ranges", array_prop(range, "The object's ranges afterwards, in any order.")}}, {"ranges"}), kObjects, true),
         [](const json& args, ToolContext& ctx) {
@@ -590,14 +590,14 @@ void register_layer_tools(CommandCatalog& catalog)
     catalog.add(with_expected_ids(mutate_tool(
         "object_set_variable_layer_height", L("Set a variable layer height profile"),
         "Run the Variable layer height panel's Adaptive, Smooth or Reset on an object, without opening the panel: adaptive "
-        "computes layer heights from the object's shape (inside a height range, the range's layer_height), smooth smooths "
+        "computes layer heights from the object's shape (inside a height range, the range's `layer_height`), smooth smooths "
         "its profile (or the one its height ranges give), reset goes back to its layer height and ranges. The object is "
         "the one named, else the one selected in the Prepare view. One undo step; the object is selected. Reply: the "
-        "object (objects, object), its height, its layer_height_profile {points, min_height, max_height} as object_list "
+        "object (objects, object), its height, its `layer_height_profile {points, min_height, max_height}` as `object_list` "
         "shows it (absent after reset), and warnings.",
         with_targets(object_schema({{"action", enum_prop({"adaptive", "smooth", "reset"}, "The panel's button.")},
                                     {"quality", {{"type", "number"}, {"minimum", 0}, {"maximum", 1},
-                                                 {"description", "adaptive: 0 = quality .. 1 = speed (default 0.5, as the panel)."}}},
+                                                 {"description", "`adaptive`: 0 = quality .. 1 = speed (default 0.5, as the panel)."}}},
                                     {"radius", {{"type", "integer"}, {"minimum", 1}, {"maximum", 10}, {"description", "smooth: default 5."}}},
                                     {"keep_min", prop("boolean", "smooth: keep the minimum layer heights (default false).")}},
                                    {"action"}),
@@ -635,14 +635,14 @@ void register_layer_tools(CommandCatalog& catalog)
         "it and shows the Preview. Applies clear, then remove, then add, all checked first. One code per layer: adding "
         "where a code of the same type is replaces it, and where another type is, is refused (remove it first). Not "
         "undoable, as in the slider. A change invalidates the "
-        "plate's slice: slice again before exporting. Reply: the plate's codes as plate_list's layer_gcode lists them, "
+        "plate's slice: slice again before exporting. Reply: the plate's codes as `plate_list`'s `layer_gcode` lists them, "
         "each with z and layer.",
         object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Default: the current plate."}}},
                        {"add", array_prop(object_schema({{"layer", layer},
                                                          {"z", z},
                                                          {"type", enum_prop({"pause", "custom", "template", "change_filament"},
-                                                                            "template runs the printer's template_custom_gcode.")},
-                                                         {"filament", {{"type", "integer"}, {"minimum", 1}, {"description", "change_filament: printed from this layer up."}}},
+                                                                            "template runs the printer's `template_custom_gcode`.")},
+                                                         {"filament", {{"type", "integer"}, {"minimum", 1}, {"description", "`change_filament`: printed from this layer up."}}},
                                                          {"gcode", prop("string", "custom: the G-code.")}},
                                                         {"type"}),
                                           "Codes to add, each with layer or z.")},

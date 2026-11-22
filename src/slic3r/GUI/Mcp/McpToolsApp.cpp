@@ -320,29 +320,29 @@ void register_app_tools(CommandCatalog& catalog, [[maybe_unused]] bool cad)
         "app_state", L("Get app state"),
         "Snapshot of OrcaSlicer. Call it first and whenever you are unsure what the app is doing. The app: version, platform "
         "and display backend, whether it is ready, the main window, the displays (each one's work area x, y, width and "
-        "height, as window_set takes positions, its scale and whether it is primary), the MCP endpoint (mcp), python "
+        "height, as `window_set` takes positions, its scale and whether it is primary), the MCP endpoint (mcp), python "
         "(available: Python runs "
-        "in this build; scripts_unrestricted: a script's own file, network, process and thread access is not held to "
+        "in this build; `scripts_unrestricted`: a script's own file, network, process and thread access is not held to "
         "OrcaSlicer's folders, which only a person turns on, in Preferences > AI features > Python scripts or for one run "
-        "with --unrestricted-scripts), design_tab "
-        "(the Design tab is on, and tool_call runs its commands, tool_list's group Design) and, when they do not run, "
-        "cad_note, how a person turns the CAD feature on; account (signed_in to the Orca cloud, bambu_signed_in to Bambu "
-        "Lab's), network_plugin (installed, loaded, version, error: the Bambu network plug-in as the app found it) and "
-        "config_folder (presets, app configuration and logs). The view outside the Design tab (view: sidebar_collapsed, "
-        "sidebar_width, legend_collapsed, gcode_window, projection, section and the display switches labels, overhangs, "
-        "outline, wireframe, gridlines, axes and navigator, under the names view_set takes them). "
+        "with --unrestricted-scripts), `design_tab` "
+        "(the Design tab is on, and `tool_call` runs its commands, `tool_list`'s group Design) and, when they do not run, "
+        "`cad_note`, how a person turns the CAD feature on; account (`signed_in` to the Orca cloud, `bambu_signed_in` to Bambu "
+        "Lab's), `network_plugin` (installed, loaded, version, error: the Bambu network plug-in as the app found it) and "
+        "`config_folder` (presets, app configuration and logs). The view outside the Design tab (view: `sidebar_collapsed`, "
+        "`sidebar_width`, `legend_collapsed`, `gcode_window`, projection, section and the display switches labels, overhangs, "
+        "outline, wireframe, gridlines, axes and navigator, under the names `view_set` takes them). "
         "The project: current tab and mode, printer technology, name, path and unsaved changes, "
         "selected printer/process/filament presets, plates (count, current), object count, the selection (objects, the "
-        "instances [[object, instance]] they are selected in and, when parts rather than whole instances are selected, "
-        "parts [[object, part]], in the indices object_select takes; wipe_tower when a prime tower is selected; canvas is the 3D "
+        "instances `[[object, instance]]` they are selected in and, when parts rather than whole instances are selected, "
+        "parts `[[object, part]]`, in the indices `object_select` takes; `wipe_tower` when a prime tower is selected; canvas is the 3D "
         "view it belongs to), slicing state, "
         "the Preview's view type, time mode and layer range (1-based, with their Z), and the camera of the 3D view shown "
-        "(camera: type, look_at, position, zoom, click_px_per_mm, elevation and azimuth, as view_set replies with it). What "
+        "(camera: type, `look_at`, position, zoom, `click_px_per_mm`, elevation and azimuth, as `view_set` replies with it). What "
         "is going on: open modal "
-        "dialogs, each with its title, buttons (enabled: false when disabled) and a message that reads it as shown: its "
-        "text and its controls row by row, fields [value], choices [value ▾], checkboxes [x] / [ ] / [-], radio and "
+        "dialogs, each with its title, buttons (`enabled: false` when disabled) and a message that reads it as shown: its "
+        "text and its controls row by row, fields `[value]`, choices [value ▾], checkboxes `[x]` / [ ] / [-], radio and "
         "selector options (*) / ( ), list rows \"- row | cells\", secrets [******], \" (disabled)\" after a disabled "
-        "control; menus closed unseen (a menu a call opened that no reply listed), dialog_auto_answer rules in force, "
+        "control; menus closed unseen (a menu a call opened that no reply listed), `dialog_auto_answer` rules in force, "
         "notifications, print host uploads (state, progress, error), the open gizmo, running jobs and a running "
         "recording.",
         object_schema({}), [](const json&, ToolContext& ctx) {
@@ -352,11 +352,11 @@ void register_app_tools(CommandCatalog& catalog, [[maybe_unused]] bool cad)
 
     NativeCommand wait = inspect_tool(
         "app_wait", L("Wait for a condition"),
-        "Block until a condition holds or timeout_s passes (max 50). for: \"ready\" (startup finished), \"idle\" (no dialog, "
-        "no running job, nothing slicing or arranging, no gizmo working in the background; a script_run run counts only "
+        "Block until a condition holds or `timeout_s` passes (max 50). `for: \"ready\"` (startup finished), \"idle\" (no dialog, "
+        "no running job, nothing slicing or arranging, no gizmo working in the background; a `script_run` run counts only "
         "through the calls it makes), \"dialog\" / \"no_dialog\", or \"job\" with a job id an earlier call returned, whose "
-        "result is then the reply. On timeout the reply is {satisfied: false}, or for a job {status: \"running\", job, "
-        "note}: call it again.",
+        "result is then the reply. On timeout the reply is `{satisfied: false}`, or for a job `{status: \"running\", job, "
+        "note}`: call it again.",
         object_schema({{"for", enum_prop({"ready", "idle", "dialog", "no_dialog", "job"}, "What to wait for; default job when job "
                                                                                           "is given, else idle.")},
                        {"job", prop("string", "Job id, for \"job\".")},
@@ -392,7 +392,7 @@ void register_app_tools(CommandCatalog& catalog, [[maybe_unused]] bool cad)
     catalog.add(inspect_tool(
         "app_log", L("Read the log"),
         "The last lines of OrcaSlicer's current log file, optionally only those at or above a level. An entry's level is "
-        "the one its first line starts with ([error]); the lines of its message after the first come with it, and the "
+        "the one its first line starts with (`[error]`); the lines of its message after the first come with it, and the "
         "reply holds whole entries.",
         object_schema({{"lines", {{"type", "integer"}, {"minimum", 1}, {"maximum", 2000},
                                   {"description", "The most lines, of the newest whole entries; an entry longer than that gives its "
@@ -436,7 +436,7 @@ void register_app_tools(CommandCatalog& catalog, [[maybe_unused]] bool cad)
         "Take back the last change of a history, as Edit > Undo does. history design is the Design tab's: the last feature "
         "added, edited, deleted, moved, shown or hidden, or renamed, or variable changed, or in a sketch session the last "
         "drawn shape; project is the project's. Without history, the Design tab's while it is shown, else the project's. "
-        "Reply: history and, for the Design tab's, result: scope (design or sketch), undo_depth, redo_depth, features, "
+        "Reply: history and, for the Design tab's, result: scope (design or sketch), `undo_depth`, `redo_depth`, features, "
         "bodies and generation; entities in a sketch.",
         false);
     NativeCommand redo = history_command("redo", L("Redo"), "menu_redo",
@@ -476,7 +476,7 @@ void register_app_tools(CommandCatalog& catalog, [[maybe_unused]] bool cad)
     NativeCommand web_page = menu_command(
         "app_open_web_page", L("Open a web page"),
         "Open one of OrcaSlicer's web pages in the default web browser, as its menu item does: wiki, the OrcaSlicer wiki; "
-        "youtube, the OrcaSlicer YouTube channel; plugin_hub, the plugin hub's page, where a person picks a plugin to install. "
+        "youtube, the OrcaSlicer YouTube channel; `plugin_hub`, the plugin hub's page, where a person picks a plugin to install. "
         "Nothing opens in OrcaSlicer.",
         object_schema({{"page", enum_prop({"wiki", "youtube", "plugin_hub"}, "The page.")}}, {"page"}),
         json::array({action("open_wiki", L("Open Wiki"), L("Help"), "link_wiki_img", {{"page", "wiki"}},

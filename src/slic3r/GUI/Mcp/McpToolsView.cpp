@@ -600,19 +600,19 @@ void register_view_tools(CommandCatalog& catalog)
 {
     NativeCommand screenshot = inspect_tool(
         "window_screenshot", L("Take a screenshot"),
-        "Capture what OrcaSlicer shows and return it as an image, downscaled to max_dim on the long edge (default 1280), "
-        "plus the full-size PNG written to save_path (or the session's output folder). target: \"main\" (the main "
+        "Capture what OrcaSlicer shows and return it as an image, downscaled to `max_dim` on the long edge (default 1280), "
+        "plus the full-size PNG written to `save_path` (or the session's output folder). `target: \"main\"` (the main "
         "window), \"canvas\" (the visible 3D view exactly as rendered: scene, toolpaths, toolbars, ImGui panels; on the "
         "Design tab its view), "
-        "\"dialog\" (the topmost modal dialog), or a ref: a window's from window_list (one that is not modal, say), or a "
-        "widget's from widget_list, cropped to that widget (a page element's ref captures its whole web view). The result "
+        "\"dialog\" (the topmost modal dialog), or a ref: a window's from `window_list` (one that is not modal, say), or a "
+        "widget's from `widget_list`, cropped to that widget (a page element's ref captures its whole web view). The result "
         "says when parts may differ from the "
-        "screen (approximate). Point the view first with view_set.",
+        "screen (approximate). Point the view first with `view_set`.",
         object_schema({{"target", {{"type", json::array({"string", "object"})},
-                                    {"description", "main (default), canvas, dialog, or a widget's ref or locator from widget_list."}}},
+                                    {"description", "main (default), canvas, dialog, or a widget's ref or locator from `widget_list`."}}},
                        {"max_dim", {{"type", "integer"}, {"minimum", 256}, {"maximum", 2000}, {"description", "Long edge of the returned image."}}},
                        {"save_path", prop("string", "Absolute .png path for the full-size image.")},
-                       {"overwrite", prop("boolean", "Replace an existing save_path.")},
+                       {"overwrite", prop("boolean", "Replace an existing `save_path`.")},
                        {"include_image", prop("boolean", "Return the image itself (default true); false returns only the path.")}}),
         [](const json& args, ToolContext& ctx) {
             AutomationRuntime& runtime = ctx.runtime();
@@ -760,16 +760,16 @@ void register_view_tools(CommandCatalog& catalog)
 
     catalog.add(inspect_tool(
         "plate_slice_stats", L("Get slice statistics"),
-        "What the Preview shows for a sliced plate. summary: plate_slice's, plus prepare and travel time and travel "
+        "What the Preview shows for a sliced plate. summary: `plate_slice`'s, plus prepare and travel time and travel "
         "distance. features: seconds, share of the print time and grams per feature type (the Line Type legend), and "
-        "travel. layers: per layer (1-based, as view_set's layer) Z, height, seconds and grams, paged; layer_features adds "
-        "each feature type's seconds. objects: grams per object instance, with its object_list index when its name is "
+        "travel. layers: per layer (1-based, as `view_set`'s layer) Z, height, seconds and grams, paged; `layer_features` adds "
+        "each feature type's seconds. objects: grams per object instance, with its `object_list` index when its name is "
         "unique. view, for the plate the Preview shows: view type, time mode, layer range, which legend rows are visible, "
         "and each view type's colour range for what the legend shows. Times are normal-mode estimates. A G-code file "
         "opened for viewing reads the same.",
         object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Plate index; default the current plate."}}},
                        {"include", array_prop({{"type", "string"}, {"enum", json::array({"features", "layers", "layer_features", "objects", "view"})}},
-                                              "Parts besides the summary; default [\"features\", \"view\"].")},
+                                              "Parts besides the summary; default `[\"features\", \"view\"]`.")},
                        {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 1000}, {"description", "Layers per page (default 100)."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) {
@@ -848,29 +848,29 @@ void register_view_tools(CommandCatalog& catalog)
         "view_set", L("Set up the view"),
         "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view (canvas: Prepare's, the "
         "preview or the assemble view, which has its own gizmos), the camera of the 3D view shown (a named direction, the "
-        "default view, or fit to bed / objects / selection, then look_at, the point it looks at, an orbit to look from "
+        "default view, or fit to bed / objects / selection, then `look_at`, the point it looks at, an orbit to look from "
         "between the named directions, and the zoom), the preview's color scheme (picked as in the legend's combo, which "
         "shows every feature type again), legend rows, time estimate and layers (1-based, or up to a height). Only the given "
-        "fields change, but a preview field given without tab or canvas shows the Preview tab. On the Design tab the camera points its view (default is its Home view; no fit_bed; "
-        "sketch_normal looks straight at the open sketch), and with tab design, section, origin_planes, world_axes, origin and bed "
-        "set the Design view's switches. The reply echoes them; preview layers as [first, last, count] with z, the heights of "
+        "fields change, but a preview field given without tab or canvas shows the Preview tab. On the Design tab the camera points its view (default is its Home view; no `fit_bed`; "
+        "`sketch_normal` looks straight at the open sketch), and with tab design, section, `origin_planes`, `world_axes`, origin and bed "
+        "set the Design view's switches. The reply echoes them; preview layers as `[first, last, count]` with z, the heights of "
         "first and last; with tab design, design: the section view and the four switches as they then are; with any camera "
-        "field, camera_state, the camera it leaves as app_state.camera gives it, and adjusted: [\"zoom\"] when the zoom "
+        "field, `camera_state`, the camera it leaves as `app_state.camera` gives it, and adjusted: [\"zoom\"] when the zoom "
         "was held to its limits. tab takes the id of any other page of the window too, such as a plugin's. projection "
-        "sets the 3D camera's, layout default restores the default window layout, and layer_percent shows the Preview "
-        "at that share of the layer range, as Go to layer does. Outside the Design tab, from any tab: section {on} turns "
+        "sets the 3D camera's, layout default restores the default window layout, and `layer_percent` shows the Preview "
+        "at that share of the layer range, as Go to layer does. Outside the Design tab, from any tab: section `{on}` turns "
         "the section view of Prepare and the Preview on or off; labels, overhangs, outline, wireframe, gridlines, axes and "
-        "navigator set the display switches of the View menu and of the 3D view's own menu; sidebar_collapsed and "
-        "sidebar_width set the sidebar of Prepare and the Preview; in the Preview, legend_collapsed folds the legend and "
-        "gcode_window shows the G-code window. Each is echoed as the app reads it back, and app_state's view gives them "
+        "navigator set the display switches of the View menu and of the 3D view's own menu; `sidebar_collapsed` and "
+        "`sidebar_width` set the sidebar of Prepare and the Preview; in the Preview, `legend_collapsed` folds the legend and "
+        "`gcode_window` shows the G-code window. Each is echoed as the app reads it back, and `app_state`'s view gives them "
         "under these names. A pick of a view action runs the same code in place, so a camera action turns the Design "
         "tab's camera too.",
         object_schema({{"tab", prop("string", "Main window tab: " + tab_words + ", or the id of another page of the window "
-                                              "(monitor_web, the web Device page where the app shows one, or a plugin's page).")},
+                                              "(`monitor_web`, the web Device page where the app shows one, or a plugin's page).")},
                        {"canvas", enum_prop({"3d", "preview", "assemble"}, "3D view: Prepare's, the preview, or the assemble view (needs an object; leave it with 3d, as its Return button does).")},
                        {"camera", enum_prop({"iso", "top", "bottom", "front", "rear", "left", "right", "default", "fit_bed", "fit_objects", "fit_selection",
                                              "sketch_normal"},
-                                            "Camera direction or fit; sketch_normal (Design tab) looks along the open sketch's normal, refused "
+                                            "Camera direction or fit; `sketch_normal` (Design tab) looks along the open sketch's normal, refused "
                                             "with no sketch open.")},
                        {"section", {{"type", "object"},
                                     {"properties", {{"on", {{"type", "boolean"}, {"description", "Cut the model, or show it whole."}}},
@@ -889,26 +889,26 @@ void register_view_tools(CommandCatalog& catalog)
                        {"origin", {{"type", "boolean"}, {"description", "Design tab: the Origin row's eye, the XY, XZ and YZ planes kept up "
                                                                         "where a click picks one; off lets go of a picked plane."}}},
                        {"bed", {{"type", "boolean"}, {"description", "Design tab: the Bed row's eye, the printer bed drawn."}}},
-                       {"look_at", array_prop({{"type", "number"}}, "[x, y, z] in mm: the point the camera looks at, in the 3D view's "
-                                                                   "world coordinates, as object_list gives positions; on the Design tab, "
-                                                                   "the Design view's, which the Design commands' world points use (describe_design's "
-                                                                   "modeling_origin is the sketch planes' origin). The camera moves "
+                       {"look_at", array_prop({{"type", "number"}}, "`[x, y, z]` in mm: the point the camera looks at, in the 3D view's "
+                                                                   "world coordinates, as `object_list` gives positions; on the Design tab, "
+                                                                   "the Design view's, which the Design commands' world points use (`describe_design`'s "
+                                                                   "`modeling_origin` is the sketch planes' origin). The camera moves "
                                                                    "parallel, keeping its direction and distance. After camera.")},
-                       {"orbit", array_prop({{"type", "number"}}, "[yaw, pitch] in degrees: move the camera around what it looks at, "
+                       {"orbit", array_prop({{"type", "number"}}, "`[yaw, pitch]` in degrees: move the camera around what it looks at, "
                                                                  "yaw to its right and pitch up (negative looks from lower), after "
-                                                                 "camera and look_at. The same on every install, unlike a mouse drag.")},
+                                                                 "camera and `look_at`. The same on every install, unlike a mouse drag.")},
                        {"zoom", {{"type", "number"}, {"exclusiveMinimum", 0},
-                                 {"description", "Screenshot pixels per mm at look_at's depth, so everywhere in an orthographic view; "
+                                 {"description", "Screenshot pixels per mm at `look_at`'s depth, so everywhere in an orthographic view; "
                                                  "held to the camera's limits (at most 250, at least what the scene's size allows). Applied last."}}},
                        {"layer", {{"type", "integer"}, {"minimum", 1}, {"description", "Preview: show layers up to this one (1-based)."}}},
-                       {"layer_range", array_prop({{"type", "integer"}}, "Preview: [first, last] layers, 1-based.")},
+                       {"layer_range", array_prop({{"type", "integer"}}, "Preview: `[first, last]` layers, 1-based.")},
                        {"layer_z", {{"type", "number"}, {"minimum", 0}, {"description", "Preview: show layers up to the first whose top is at or above this height (mm), as the slider places a custom G-code."}}},
                        {"view_type", enum_prop(view_types, "Preview color scheme.")},
                        {"legend", {{"type", "object"}, {"additionalProperties", {{"type", "boolean"}}},
-                                   {"description", "Preview: show (true) or hide (false) legend rows: feature types by name as plate_slice_stats lists them "
-                                                   "(\"Sparse infill\"), and travel, wipe, retract, unretract, seams, filament_changes, color_changes, "
-                                                   "pauses, custom_gcode, in any case and with _ or a space between words. Hiding a row this "
-                                                   "print lacks does nothing. Applied after view_type."}}},
+                                   {"description", "Preview: show (true) or hide (false) legend rows: feature types by name as `plate_slice_stats` lists them "
+                                                   "(\"Sparse infill\"), and travel, wipe, retract, unretract, seams, `filament_changes`, `color_changes`, "
+                                                   "pauses, `custom_gcode`, in any case and with _ or a space between words. Hiding a row this "
+                                                   "print lacks does nothing. Applied after `view_type`."}}},
                        {"time_mode", enum_prop({"normal", "silent"}, "Preview: the time estimate the legend and layer times show; silent only when the print has its own.")},
                        {"layer_percent", {{"type", "number"}, {"minimum", 0}, {"maximum", 100},
                                           {"description", "Preview: show the layers up to this share of the layer range, as Go to "
@@ -923,7 +923,7 @@ void register_view_tools(CommandCatalog& catalog)
                                           {"minimum", 1},
                                           {"description", "The sidebar's width in pixels, as a drag of its edge sets it, or "
                                                           "\"default\", its width in the default window layout. A sidebar "
-                                                          "floating in a window of its own is sized with window_set."}}},
+                                                          "floating in a window of its own is sized with `window_set`."}}},
                        {"legend_collapsed", prop("boolean", "Preview: fold the legend to its title row (true) or unfold it (false), "
                                                             "as its fold button does.")},
                        {"gcode_window", prop("boolean", "Preview: show (true) or hide (false) the G-code window, as View > Show "
@@ -935,7 +935,7 @@ void register_view_tools(CommandCatalog& catalog)
                        {"wireframe", prop("boolean", "The objects' wireframe, as the 3D view's own menu sets it.")},
                        {"gridlines", prop("boolean", "The plate's gridlines, as View > Show Gridlines sets them.")},
                        {"axes", prop("boolean", "The axes on the bed of Prepare and the Preview, as the 3D view's own menu sets "
-                                                "them; with tab design, world_axes is the Design view's.")},
+                                                "them; with tab design, `world_axes` is the Design view's.")},
                        {"navigator", prop("boolean", "The 3D navigator of Prepare and the Preview, as View > Show 3D Navigator "
                                                      "sets it.")}}),
         [](const json& args, ToolContext& ctx) {
@@ -1358,15 +1358,15 @@ void register_view_tools(CommandCatalog& catalog)
         "window_open", L("Open a window"),
         "Open one of OrcaSlicer's windows or dialogs for a person, as its menu item does: preferences, the Preferences dialog, "
         "with tab, and key on it, on that tab with that preference's control scrolled into view and focused (its controls are "
-        "named after their preference keys: preferences_get reads them and preferences_set writes those it does not refuse, "
-        "and widget_set_value {\"target\": {\"name\": key, \"within\": \"Preferences\"}} changes one through the "
-        "dialog); plugins, the Plugins window; action_replay, the "
-        "Action Replay window, where a person replays a replay file (agents run one with replay_run); preset_bundle, the preset "
-        "bundle manager; keyboard_shortcuts; setup_wizard; network_test; troubleshoot, the troubleshooting center; "
-        "tip_of_the_day; about. A modal one replies blocked_by_dialog.",
+        "named after their preference keys: `preferences_get` reads them and `preferences_set` writes those it does not refuse, "
+        "and `widget_set_value {\"target\": {\"name\": key, \"within\": \"Preferences\"}}` changes one through the "
+        "dialog); plugins, the Plugins window; `action_replay`, the "
+        "Action Replay window, where a person replays a replay file (agents run one with `replay_run`); `preset_bundle`, the preset "
+        "bundle manager; `keyboard_shortcuts`; `setup_wizard`; `network_test`; troubleshoot, the troubleshooting center; "
+        "`tip_of_the_day`; about. A modal one replies `blocked_by_dialog`.",
         object_schema({{"window", enum_prop(windows, "The window.")},
                        {"tab", enum_prop(MenuItems::preferences_tabs(), "preferences: the tab to show.")},
-                       {"key", prop("string", "preferences, with tab: a preference on that tab, e.g. auto_arrange on behaviour: "
+                       {"key", prop("string", "preferences, with tab: a preference on that tab, e.g. `auto_arrange` on behaviour: "
                                               "its control is scrolled into view and focused.")}},
                       {"window"}),
         std::move(window_actions), [](const json& args) {

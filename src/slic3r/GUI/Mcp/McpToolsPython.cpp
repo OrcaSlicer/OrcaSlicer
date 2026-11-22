@@ -371,25 +371,25 @@ void register_python_tools(CommandCatalog& catalog)
 {
     NativeCommand run = mutate_tool(
         "script_run", L("Run a Python script"),
-        "Run Python code inside OrcaSlicer as its main program (__name__ == \"__main__\") against orca.host, the whole plugin "
-        "API (script_list_api lists it): read objects, meshes and settings, compute, use orca.host.ui and the preset "
-        "API, and call these same tools, with their guards and undo, through orca.host.tools.call(name, args). Mesh and "
+        "Run Python code inside OrcaSlicer as its main program (__name__ == \"__main__\") against `orca.host`, the whole plugin "
+        "API (`script_list_api` lists it): read objects, meshes and settings, compute, use `orca.host.ui` and the preset "
+        "API, and call these same tools, with their guards and undo, through `orca.host.tools.call`(name, args). Mesh and "
         "matrix arrays need numpy, which "
-        "script_list_api says is installed or not; a file run's PEP 723 block can install it. The code runs on a worker "
+        "`script_list_api` says is installed or not; a file run's PEP 723 block can install it. The code runs on a worker "
         "thread, where calls documented as UI thread only raise RuntimeError. The run ends once its code and the non-daemon "
         "threads and pool tasks it started are done; its windows close with it. `args` holds the args you pass; set `result` "
-        "to a JSON value to return it; print() output comes back as output. Reply: {status: finished | raised | cancelled | "
-        "timed_out, result, output, traceback?, message?}; a script that raised changed what it changed before. The code's "
+        "to a JSON value to return it; print() output comes back as output. Reply: `{status: finished | raised | cancelled | "
+        "timed_out, result, output, traceback?, message?}`; a script that raised changed what it changed before. The code's "
         "own file access is held to OrcaSlicer's folders (its data folder, and read only its resources folder and, for a "
         "file run, the file's folder), and it starts no programs or threads and reaches no network: such an access raises "
         "PermissionError, unless a person has let Python scripts run unrestricted in Preferences "
-        "(app_state.python.scripts_unrestricted), when the threads and pool tasks it starts call the tools too while "
+        "(`app_state.python.scripts_unrestricted`), when the threads and pool tasks it starts call the tools too while "
         "the run lasts; the tools it calls work as they do for you. Recorded "
-        "by replay_export as one step with its code, which a replay runs again against the project as it is then.",
+        "by `replay_export` as one step with its code, which a replay runs again against the project as it is then.",
         object_schema({{"code", prop("string", "Python source, run as a module body.")},
                        {"args", {{"type", "object"}, {"description", "Bound to the name `args` in the code."}}},
                        {"timeout_s", {{"type", "integer"}, {"minimum", 1}, {"maximum", 3600},
-                                      {"description", "The run is stopped as timed_out after this many seconds (default 300)."}}},
+                                      {"description", "The run is stopped as `timed_out` after this many seconds (default 300)."}}},
                        {"filename", prop("string", "The name tracebacks show for the code (default <script_run>). An existing file's "
                                                    "path makes it a file run, as `python file.py` runs it: __file__, sys.argv, imports "
                                                    "from its folder and its PEP 723 dependencies; any other name only names it. "
@@ -459,12 +459,13 @@ void register_python_tools(CommandCatalog& catalog)
     };
     catalog.add(inspect_tool(
         "script_list_api", L("List the Python API"),
-        "List orca, the Python API of script_run scripts and plugins, in the running build, one module or class at a time: "
-        "orca.host (the project's model and meshes, presets and their editors, slicing data, orca.host.ui windows and "
-        "dialogs, orca.host.tools calling these tools) and the classes, events and pages plugins build on. It lists what is "
-        "directly inside within, a module or a class (default orca): each entry's name, kind, signature (a class's "
-        "constructors) and the first sentence of its documentation. A module or class it lists is listed with within set "
-        "to its name, and script_describe_api {name} gives an entry's whole documentation. Page with offset. numpy says "
+        "List `orca`, the Python API of `script_run` scripts and plugins, in the running build, one module or class at a time: "
+        "`orca.host` (the project's model and meshes, presets and their editors, slicing data, `orca.host.ui` windows and "
+        "dialogs, `orca.host.tools` calling these tools) and the classes, events and pages plugins build on. It lists what is "
+        "directly inside `within`, a module or a class (default `orca`): each entry's `name`, `kind`, `signature` (a "
+        "class's constructors) and the first sentence of its documentation. A module or class it lists is listed with "
+        "`within` set "
+        "to its name, and `script_describe_api {name}` gives an entry's whole documentation. Page with `offset`. `numpy` says "
         "whether numpy is installed, which mesh and matrix arrays need.",
         object_schema({{"within", {{"type", "string"}, {"default", kPythonApiRoot},
                                    {"description", "A module's or class's dotted name, e.g. \"orca.host\" or "
@@ -480,10 +481,10 @@ void register_python_tools(CommandCatalog& catalog)
         }));
     catalog.add(inspect_tool(
         "script_describe_api", L("Describe a Python API entry"),
-        "Read one entry of orca, the Python API of script_run scripts and plugins, by its dotted name as script_list_api "
-        "lists it (orca.host.TriangleMesh.face_normals): its kind, its signature (a class's constructors) and its whole "
+        "Read one entry of `orca`, the Python API of `script_run` scripts and plugins, by its dotted name as `script_list_api` "
+        "lists it (`orca.host.TriangleMesh.face_normals`): its `kind`, its `signature` (a class's constructors) and its whole "
         "documentation. A name no entry has is refused with the closest names.",
-        object_schema({{"name", prop("string", "An entry's dotted name, as script_list_api lists it.")}}, {"name"}),
+        object_schema({{"name", prop("string", "An entry's dotted name, as `script_list_api` lists it.")}}, {"name"}),
         [while_python_runs](const json& args, ToolContext&) {
             return ToolResult::ok(
                 while_python_runs([&args] { return python_api_entry(python_api_reference(), arg_string(args, "name")); }));

@@ -214,13 +214,13 @@ void register_action_tools(CommandCatalog& catalog)
     catalog.add(inspect_tool(
         "action_list", L("List Speed Dial actions"),
         "List everything the Speed Dial can run, by section and title: built-in commands (slice, export, views, object "
-        "operations, plates, calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an id for "
-        "action_run, its section (where the Speed Dial lists it), a description, the command's key for a built-in command, "
-        "and, when it takes arguments, their input_schema. section keeps them to one of the Speed Dial's sections, which are not "
-        "tool_list's groups; one no action is in is refused with the sections there are, but Recent Projects and Design "
-        "list nothing while there are no recent projects or the Design tab is not shown. include_settings also lists "
-        "settings (each jumps to that setting in the sidebar; use settings_get / settings_set to read or change values).",
-        object_schema({{"section", prop("string", "Only this Speed Dial section, in any case, as an entry's section names it, "
+        "operations, plates, calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an `id` for "
+        "`action_run`, its `section` (where the Speed Dial lists it), a `description`, the `command` of a built-in "
+        "command, and, when it takes arguments, their `input_schema`. `section` keeps them to one of the Speed Dial's sections, which are not "
+        "`tool_list`'s groups; one no action is in is refused with the sections there are, but Recent Projects and Design "
+        "list nothing while there are no recent projects or the Design tab is not shown. `include_settings` also lists "
+        "settings (each jumps to that setting in the sidebar; use `settings_get` / `settings_set` to read or change values).",
+        object_schema({{"section", prop("string", "Only this Speed Dial section, in any case, as an entry's `section` names it, "
                                                   "e.g. \"Object\", \"View\", \"Slice & Export\".")},
                        {"include_settings", prop("boolean", "Also list settings (thousands). Default false.")},
                        {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "Default 50."}}},
@@ -236,19 +236,19 @@ void register_action_tools(CommandCatalog& catalog)
 
     NativeCommand run = mutate_tool(
         "action_run", L("Run a Speed Dial action"),
-        "Run one action by the id action_list returned (orca_command:view_front:orca, or the name inside it, view_front), "
-        "with args, the command's arguments, when it takes some (its input_schema). A command's action (action_list names "
+        "Run one action by the id `action_list` returned (`orca_command:view_front:orca`, or the name inside it, `view_front`), "
+        "with `args`, the command's arguments, when it takes some (its `input_schema`). A command's action (`action_list` names "
         "the command) runs the command as a call with the action's arguments does: an action that asks in a dialog asks, "
-        "and the call returns blocked_by_dialog; answer it with dialog_answer, or, for a native one it can't press (a file "
-        "picker), register dialog_auto_answer before the call. Such an action takes no args, or exactly its own; to run a "
+        "and the call returns `blocked_by_dialog`; answer it with `dialog_answer`, or, for a native one it can't press (a file "
+        "picker), register `dialog_auto_answer` before the call. Such an action takes no `args`, or exactly its own; to run a "
         "command without asking, call it with its arguments (an absolute path skips a file dialog). Go to layer and Go to "
-        "tab take their value alone ({\"percent\": 50}, {\"tab\": \"preview\"}), and a Design command's own action takes "
-        "the command's arguments. An action that starts a background job (obj_arrange, obj_orient) completes when the job "
+        "tab take their value alone (`{\"percent\": 50}`, `{\"tab\": \"preview\"}`), and a Design command's own action takes "
+        "the command's arguments. An action that starts a background job (`obj_arrange`, `obj_orient`) completes when the job "
         "ends. An action that does nothing (no object selected) is an error. Some commands add what they did to the reply "
-        "(the order object_order leaves, the object object_assemble made). The other actions (plates, recent projects, "
+        "(the order `object_order` leaves, the object `object_assemble` made). The other actions (plates, recent projects, "
         "plugin scripts and pages, settings) run only here.",
-        object_schema({{"id", prop("string", "Action id from action_list, or the name inside it.")},
-                       {"args", {{"type", "object"}, {"description", "The command's arguments, as its input_schema gives them."}}}},
+        object_schema({{"id", prop("string", "Action id from `action_list`, or the name inside it.")},
+                       {"args", {{"type", "object"}, {"description", "The command's arguments, as its `input_schema` gives them."}}}},
                       {"id"}),
         [](const json& args, ToolContext& ctx) {
             std::string        id           = arg_string(args, "id");

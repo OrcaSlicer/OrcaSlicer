@@ -116,9 +116,10 @@ job, that a call with exactly a Speed Dial action's arguments may ask as a perso
 runs from its arguments, say how a gizmo opens and is
 driven (and that `gizmo_pick_file` only stands in for a file picker inside one, since its name draws agents to
 it for any gizmo work), that the camera turns with `view_set` rather than a drag, and which indices are 0-based.
-They say what the expected ids are (`object_id`, `part_id` and the `*_ids` lists: optional guards, refusing a call
-whose index now names another object or part), once, where each of the many schemas that take one only names it.
-What one command's description says, such as how `recording_start` records, stays there.
+They say what the Speed Dial is, the app's command palette, since descriptions name it without saying, and what
+the expected ids are (`object_id`, `part_id` and the `*_ids` lists: optional guards, refusing a call whose index
+now names another object or part), once, where each of the many schemas that take one only names it. What one
+command's description says, such as how `recording_start` records, stays there.
 
 ## Security, token and discovery
 
@@ -314,7 +315,9 @@ hidden but stays on top until its modal loop returns, which on a busy machine ca
 so a hidden wx dialog on top holds no call. Its note says how to answer the topmost dialog:
 `dialog_answer` for a wx dialog or a native message box whose buttons are listed, a person for any
 other dialog marked `native: true` (a picker, or any native dialog on macOS), which `dialog_answer`
-can't press.
+can't press. It ends with how the next such call runs without asking, so that an agent learns it from the call
+that asked: `silent: true` where the command's schema takes it, else the dialog's answer given as an argument. A
+call that gave `silent` and still asked gets no advice, since its command's dialog always opens.
 
 On macOS a file picker, folder picker or message box pauses wx's pending events while it is open
 (`wxCFEventLoopPauseIdleEvents` in its `ShowModal()`), and `CallAfter` closures with them, so behind
@@ -745,7 +748,9 @@ its schema where the command is registered, and the core gives the journal its c
 operation's own arguments, are kept as written.
 
 Descriptions keep one order: what the tool does, the arguments that change it, `Reply:` with the
-fields it has, then edge cases; a long one puts each case on a line of its own (the types and targets
+fields it has, then edge cases. They mark as code the names an agent passes or reads (arguments, reply
+fields, commands, and calls such as `app_wait {for: "idle"}`), so that a sentence using a field's name as a
+word still parses: "unless `silent` is true"; a generated list of names marks each one; a long one puts each case on a line of its own (the types and targets
 of `settings_get` and `settings_set`, `widget_click`'s web pages). What several tools share is written once,
 since every session loads the whole tool list: the locator grammar in `widget_list`'s description,
 which hands out the refs, each `target` giving two examples and pointing there; the paging shape, that a

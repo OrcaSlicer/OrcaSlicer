@@ -1830,12 +1830,13 @@ TEST_CASE("the tool_list description names every Design command under its headin
     CHECK(commands_named == std::set<std::string>{});
     const std::string index = told.substr(plain.size());
     CHECK_THAT(index, ContainsSubstring("CAD"));
-    CHECK_THAT(index, ContainsSubstring("tool_describe {tool} gives one's manual"));
+    CHECK_THAT(index, ContainsSubstring("`tool_describe {tool}` gives one's manual"));
     // A command with silent does what its menu item does when it is given no arguments.
-    CHECK_THAT(index, ContainsSubstring("silent does what its menu item does when called with no arguments, unless silent is true"));
+    CHECK_THAT(index,
+               ContainsSubstring("`silent` does what its menu item does when called with no arguments, unless `silent` is true"));
 
     // Each heading starts a sentence once, in the design's order, and its names follow its colon to the full stop,
-    // apart by ", ", in the table's order.
+    // apart by ", ", in the table's order, each marked as code.
     std::size_t at    = 0;
     std::size_t named = 0;
     for (const char* heading : GUI::kDesignSections) {
@@ -1852,7 +1853,11 @@ TEST_CASE("the tool_list description names every Design command under its headin
         std::vector<std::string> names;
         for (std::size_t from = colon + 2; from < stop;) {
             const std::size_t comma = std::min(index.find(", ", from), stop);
-            names.push_back(index.substr(from, comma - from));
+            const std::string marked = index.substr(from, comma - from);
+            REQUIRE(marked.size() > 2);
+            CHECK(marked.front() == '`');
+            CHECK(marked.back() == '`');
+            names.push_back(marked.substr(1, marked.size() - 2));
             from = comma + 2;
         }
         std::vector<std::string> in_table;

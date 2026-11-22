@@ -403,27 +403,35 @@ ToolResult McpCore::run(const NativeCommand& def, const nlohmann::json& args, co
         return ToolResult::ok(std::move(out));
     };
     const std::string running_note = "The call is still running and will finish on its own; do not retry it. "
-                                     "Use app_wait {for:\"job\", job:\"" + job + "\"} for its result.";
+                                     "Use `app_wait {for:\"job\", job:\"" + job + "\"}` for its result.";
     // dialog_answer presses a native message box by the buttons ModalTracker lists for it, but not a
-    // picker, nor a dialog while it holds the UI thread (macOS), so their note asks for a person.
+    // picker, nor a dialog while it holds the UI thread (macOS), so their note asks for a person. A note ends with how
+    // the next such call can run without asking, so that an agent learns it from the one that asked; a call that gave
+    // silent and still asks is of a command whose description says the dialog always opens.
+    const bool        takes_silent = def.input_schema.contains("properties") && def.input_schema["properties"].contains("silent");
+    const std::string ask_less     = args.contains("silent") ? std::string() :
+                                     takes_silent ? " Next time, `silent: true` runs it without asking." :
+                                                    " Next time, give the dialog's answer as an argument where the schema has one, "
+                                                    "so the call doesn't ask.";
     auto blocked = [&](nlohmann::json dialogs, bool ui_held) {
         std::string note;
         const bool  native    = topmost_dialog_is_native(dialogs);
         const bool  pressable = native && !ui_held && !dialogs.back().value("buttons", nlohmann::json::array()).empty();
         if (pressable) {
             note = "The call is waiting on a native message box and continues after it closes; do not retry it. Answer it "
-                   "with dialog_answer and one of its buttons, then app_wait {for:\"job\", job:\"" + job + "\"}.";
+                   "with `dialog_answer` and one of its buttons, then `app_wait {for:\"job\", job:\"" + job + "\"}`.";
         } else if (native) {
-            note = "The call is waiting on a native dialog, which only a person can answer (dialog_answer can't); do not retry it. ";
+            note = "The call is waiting on a native dialog, which only a person can answer (`dialog_answer` can't); do not "
+                   "retry it. ";
             if (ui_held)
                 note += "Until it closes, tools that need the UI thread fail. ";
-            note += "Once it is answered, app_wait {for:\"job\", job:\"" + job +
-                    "\"}. Register dialog_auto_answer before a step that opens a native dialog.";
+            note += "Once it is answered, `app_wait {for:\"job\", job:\"" + job +
+                    "\"}`. Register `dialog_auto_answer` before a step that opens a native dialog.";
         } else {
             note = "The call is waiting on a dialog and continues after it closes; do not retry it. "
-                   "Answer the dialog (widget_list, dialog_answer), then app_wait {for:\"job\", job:\"" + job + "\"}.";
+                   "Answer the dialog (`widget_list`, `dialog_answer`), then `app_wait {for:\"job\", job:\"" + job + "\"}`.";
         }
-        return envelope("blocked_by_dialog", {{"dialogs", std::move(dialogs)}, {"note", note}});
+        return envelope("blocked_by_dialog", {{"dialogs", std::move(dialogs)}, {"note", note + ask_less}});
     };
     if (!acquire_slot())
         return finish(envelope("running", {{"note", running_note}}));

@@ -307,7 +307,7 @@ json expected_id_prop(const char* of)
 {
     return {{"type", "integer"},
             {"minimum", 0},
-            {"description", std::string("Optional guard: the ") + of + "'s id in object_list."}};
+            {"description", std::string("Optional guard: the ") + of + "'s id in `object_list`."}};
 }
 
 NativeCommand with_expected_ids(NativeCommand command)

@@ -2867,29 +2867,29 @@ void register_config_tools(CommandCatalog& catalog)
     const json type_prop        = enum_prop({"printer", "process", "filament"}, "Which settings: the printer, process or filament "
                                                                                  "preset being edited.");
     const json target_prop      = enum_prop({"global", "object", "part", "height_range"},
-                                            "Where they apply: global (default), the type's preset; object, part or height_range, "
+                                            "Where they apply: global (default), the type's preset; object, part or `height_range`, "
                                             "the overrides an object, one of its parts or modifiers, or one of its height ranges "
                                             "carries, which are process settings.");
     const json object_prop = {{"type", "integer"},
                               {"minimum", 0},
-                              {"description", "Object index from object_list (targets object, part and height_range); without it, "
+                              {"description", "Object index from `object_list` (targets object, part and `height_range`); without it, "
                                               "the object selected in Prepare."}};
     const json part_prop   = {{"type", "integer"},
                               {"minimum", 0},
                               {"description", "Part index in the object (target part, with object); without both, the part selected "
                                               "in Prepare."}};
-    const json min_z_prop  = {{"type", "number"}, {"minimum", 0}, {"description", "Target height_range: the range's bottom, mm."}};
-    const json max_z_prop  = {{"type", "number"}, {"minimum", 0}, {"description", "Target height_range: the range's top, mm."}};
-    const json read_preset_prop = prop("string", "Read this saved preset of the type (a name from preset_list) instead of the one "
+    const json min_z_prop  = {{"type", "number"}, {"minimum", 0}, {"description", "Target `height_range`: the range's bottom, mm."}};
+    const json max_z_prop  = {{"type", "number"}, {"minimum", 0}, {"description", "Target `height_range`: the range's top, mm."}};
+    const json read_preset_prop = prop("string", "Read this saved preset of the type (a name from `preset_list`) instead of the one "
                                                  "being edited.");
 
     catalog.add(inspect_tool(
         "preset_list", L("List presets"),
         "Printer, process or filament presets, each with its name, alias (the name its selector shows, when another), "
-        "system, user, project (kept inside the project), inherits, selected (and modified), compatible: false or "
-        "installed: false when so, and vendor; a filament its filament_type and the slots using it (filament_slots), a "
-        "printer its printer_model and nozzle. Only compatible, installed presets unless asked: a fresh install leaves most "
-        "system filaments and printers out of the selectors, and preset_select takes such a preset too. printer lists the "
+        "system, user, project (kept inside the project), inherits, selected (and modified), `compatible: false` or "
+        "`installed: false` when so, and vendor; a filament its `filament_type` and the slots using it (`filament_slots`), a "
+        "printer its `printer_model` and nozzle. Only compatible, installed presets unless asked: a fresh install leaves most "
+        "system filaments and printers out of the selectors, and `preset_select` takes such a preset too. printer lists the "
         "filaments or processes that fit another printer preset, in place of the selected one.",
         object_schema({{"type", enum_prop({"printer", "process", "filament"}, "Preset category.")},
                        {"query", prop("string", "Case-insensitive part of the name or alias.")},
@@ -2897,7 +2897,7 @@ void register_config_tools(CommandCatalog& catalog)
                                                  "printer's or process's vendor bundle (\"BBL\").")},
                        {"filament_type", prop("string", "Type filament: a filament type, in either case (\"PLA\").")},
                        {"printer", prop("string", "Types filament and process: list what fits this printer preset (a name from "
-                                                  "preset_list type printer) in place of the selected printer.")},
+                                                  "`preset_list` type printer) in place of the selected printer.")},
                        {"source", enum_prop({"system", "user", "project"}, "Where the presets come from: the system's, a "
                                                                            "person's own, or kept inside the project.")},
                        {"include_incompatible", prop("boolean", "Also list presets incompatible with the printer.")},
@@ -2918,15 +2918,15 @@ void register_config_tools(CommandCatalog& catalog)
     catalog.add(reaching({"resolve_preset", "select_preset", "assign_filament_preset"}, mutate_tool(
         "preset_select", L("Select a preset"),
         "Select a printer, process or filament preset by the name its selector shows (or its internal name), as a person "
-        "would. One the selectors do not offer (preset_list include_uninstalled) is shown in them first, until the app "
+        "would. One the selectors do not offer (`preset_list` `include_uninstalled`) is shown in them first, until the app "
         "restarts; one the selector leaves out as incompatible with the printer is refused. With unsaved changes the Transfer-or-discard prompt opens "
-        "(blocked_by_dialog) unless preset_changes answers it. A filament is assigned to filament_slot (1-based, default "
+        "(`blocked_by_dialog`) unless `preset_changes` answers it. A filament is assigned to `filament_slot` (1-based, default "
         "1); with several slots the filament tab keeps the preset and the changes it has, so nothing is asked. Reply: "
         "selected, shown (a preset it showed in the selectors); "
         "when presets had or have unsaved changes, discarded and modified list per preset the keys dropped and the keys "
         "still unsaved.",
         object_schema({{"type", enum_prop({"printer", "process", "filament"}, "Preset category.")},
-                       {"name", prop("string", "Preset name as preset_list shows it.")},
+                       {"name", prop("string", "Preset name as `preset_list` shows it.")},
                        {"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "Filament slot, 1-based."}}},
                        {"preset_changes", enum_prop({"transfer", "discard"}, "Unsaved changes of the presets the switch replaces: move "
                                                                        "them to the new preset or drop them, as the prompt's "
@@ -2980,12 +2980,12 @@ void register_config_tools(CommandCatalog& catalog)
     NativeCommand save = mutate_tool(
         "preset_save", L("Save a preset"),
         "Save the printer, process or filament preset being edited, with its unsaved changes, as a preset called name, "
-        "which is then selected: what the tab's Save button does through its dialog. A filament is filament_slot's "
+        "which is then selected: what the tab's Save button does through its dialog. A filament is `filament_slot`'s "
         "(default 1), and every slot using the old preset takes the new one. Replacing another existing preset needs "
         "overwrite (pass it in replays and scripts meant to be rerun). Reply: saved, selected, user, project, inherits, "
-        "filament_slots. A "
-        "temperature warning or an unsaved-changes prompt makes it blocked_by_dialog. To keep only some edits, settings_set "
-        "{reset_all: true, values} first.",
+        "`filament_slots`. A "
+        "temperature warning or an unsaved-changes prompt makes it `blocked_by_dialog`. To keep only some edits, `settings_set "
+        "{reset_all: true, values}` first.",
         object_schema({{"type", enum_prop({"printer", "process", "filament"}, "Preset category.")},
                        {"name", prop("string", "Name to save under.")},
                        {"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "Filament slot, 1-based."}}},
@@ -3047,10 +3047,10 @@ void register_config_tools(CommandCatalog& catalog)
         "and the selection restored; a printer must be selected first, and the physical printers that use only it are "
         "deleted with it. Refused: system, default and bundle presets, presets others inherit from, another preset while "
         "the edited one of its type has unsaved changes. Deleting a selected printer or process can "
-        "ask about other presets' unsaved changes (blocked_by_dialog). Reply: deleted, selected, filaments (per slot), "
-        "attached, and discarded/modified as preset_select's.",
+        "ask about other presets' unsaved changes (`blocked_by_dialog`). Reply: deleted, selected, filaments (per slot), "
+        "attached, and discarded/modified as `preset_select`'s.",
         object_schema({{"type", enum_prop({"printer", "process", "filament"}, "Preset category.")},
-                       {"name", prop("string", "Preset name as preset_list shows it.")},
+                       {"name", prop("string", "Preset name as `preset_list` shows it.")},
                        {"delete_attached", prop("boolean", "A custom printer with process or filament presets made for it alone is "
                                                            "refused without this: they are deleted with it, as the GUI "
                                                            "deletes them.")}},
@@ -3118,19 +3118,20 @@ void register_config_tools(CommandCatalog& catalog)
 
     catalog.add(inspect_tool(
         "settings_list", L("List settings"),
-        "All the settings of a type in one reply, each item with its value as OrcaSlicer writes it, and without meta unless "
-        "include_meta. process, printer and filament: the preset being edited, or with preset a saved one, or with "
-        "filament_slot a slot's. object: the process settings an object or an assembly takes; region: those a part, a "
-        "modifier or a height range takes, whose layer_height item has targets [\"height_range\"], a height range alone "
+        "All the settings of a type in one reply, each item with its `value` as OrcaSlicer writes it, and without `meta` unless "
+        "`include_meta`. `process`, `printer` and `filament`: the preset being edited, or with `preset` a saved one, or "
+        "with `filament_slot` a slot's. `object`: the process settings an object or an assembly takes; `region`: those a "
+        "part, a "
+        "modifier or a height range takes, whose `layer_height` item has targets [\"height_range\"], a height range alone "
         "taking it; in both, each with the process preset's value, which an object or a region prints with unless it "
-        "sets its own. With where, the settings of one settings page or \"Page > Group\", as settings_list_pages lists them "
-        "(an unknown one is refused with the list of them). Items with meta, which where gives them, come 100 a page. "
-        "settings_get reads settings by key, and what an object, a part or a height range overrides.",
+        "sets its own. With `where`, the settings of one settings page or \"Page > Group\", as `settings_list_pages` lists them "
+        "(an unknown one is refused with the list of them). Items with `meta`, which `where` gives them, come 100 a page. "
+        "`settings_get` reads settings by key, and what an object, a part or a height range overrides.",
         object_schema({{"type", enum_prop({"process", "printer", "filament", "object", "region"},
                                           "Which settings: a preset's, or those an object or a region takes.")},
-                       {"where", prop("string", "A settings page, or \"Page > Group\" as meta.where gives it, e.g. "
+                       {"where", prop("string", "A settings page, or \"Page > Group\" as `meta.where` gives it, e.g. "
                                                 "\"Strength > Walls\".")},
-                       {"preset", prop("string", "Read this saved preset (a name from preset_list) instead of the one being "
+                       {"preset", prop("string", "Read this saved preset (a name from `preset_list`) instead of the one being "
                                                  "edited: of the type, or for object and region a process preset.")},
                        {"filament_slot", {{"type", "integer"}, {"minimum", 1},
                                           {"description", "Type filament: the slot whose preset is read, 1-based (default 1), with "
@@ -3150,12 +3151,12 @@ void register_config_tools(CommandCatalog& catalog)
     catalog.add(inspect_tool(
         "settings_list_pages", L("List settings pages"),
         "The pages of a type's settings tab and the groups on each, pages and groups in alphabetical order, each group with "
-        "how many of the settings settings_list lists for the same type it holds: settings_list {type, where} lists that "
-        "many there. A page and a \"Page > Group\" are each a where settings_list takes, which lists those settings with "
-        "their values and what each does. A setting with no row on a page is in no group; settings_list without where "
+        "how many of the settings `settings_list` lists for the same type it holds: `settings_list {type, where}` lists that "
+        "many there. A page and a \"Page > Group\" are each a `where` `settings_list` takes, which lists those settings with "
+        "their values and what each does. A setting with no row on a page is in no group; `settings_list` without `where` "
         "lists it.",
         object_schema({{"type", enum_prop({"process", "printer", "filament", "object", "region"},
-                                          "Which settings, as settings_list takes them: a preset's, or those an object or a "
+                                          "Which settings, as `settings_list` takes them: a preset's, or those an object or a "
                                           "region takes.")}},
                       {"type"}),
         [](const json& args, ToolContext& ctx) {
@@ -3167,34 +3168,34 @@ void register_config_tools(CommandCatalog& catalog)
 
     catalog.add(inspect_tool(
         "settings_get", L("Read settings"),
-        "Read the settings named: each item has its value, as OrcaSlicer writes it, and meta: label, "
-        "description (what the setting does, when to change it), where (its settings page and group), type, unit, range, "
-        "allowed values and mode. Keys the settings lack are listed in unknown_keys, type_of gives where each of those is a "
-        "setting elsewhere (a type, or project for the project's own settings), and similar the keys like each of the others. "
-        "It needs keys, compare or a target other than global; settings_list lists all of a type's settings, a page "
-        "at a time with where, and settings_list_pages the pages.\n"
-        "- No type: keys look through the process, filament and printer settings, and each item names its "
-        "type, the one settings_set takes; otherwise the type is the process.\n"
-        "- type printer, process or filament (target global): the preset being edited, or with preset a saved one; "
-        "compare lists only the keys that differ from another preset (value and other). A per-variant value lists in meta "
-        "its variants (what each entry is for) and active (the entry each extruder prints with).\n"
-        "- target object (object), part (object and part) or height_range (object, min_z and max_z), the object or part "
-        "selected in Prepare where none is named: without keys, what it overrides; keys read the process "
-        "settings it takes (settings_list type object or region lists them) and extruder, its filament, and a key it does "
-        "not take is refused with where it is set. Each has value (its own, null where it has none), effective (the "
-        "value it prints with) and source, in the order the slicer applies them: height_range, part, object, global or "
-        "default; an object's item lists in parts the parts and modifiers that override the key inside their own volume, "
-        "and an object's or a part's item lists in height_ranges the ranges whose value applies to it between their "
+        "Read the settings named: each item has its `value`, as OrcaSlicer writes it, and `meta`: `label`, "
+        "`description` (what the setting does, when to change it), `where` (its settings page and group), `type`, `unit`, "
+        "range, allowed values and `mode`. Keys the settings lack are listed in `unknown_keys`, `type_of` gives where each of those is a "
+        "setting elsewhere (a type, or project for the project's own settings), and `similar` the keys like each of the others. "
+        "It needs `keys`, `compare` or a `target` other than global; `settings_list` lists all of a type's settings, a page "
+        "at a time with `where`, and `settings_list_pages` the pages.\n"
+        "- No `type`: `keys` look through the process, filament and printer settings, and each item names its "
+        "type, the one `settings_set` takes; otherwise the type is the process.\n"
+        "- `type` printer, process or filament (`target` global): the preset being edited, or with `preset` a saved one; "
+        "`compare` lists only the keys that differ from another preset (`value` and `other`). A per-variant value lists in "
+        "`meta` its `variants` (what each entry is for) and `active` (the entry each extruder prints with).\n"
+        "- `target` object (`object`), part (`object` and `part`) or `height_range` (`object`, `min_z` and `max_z`), the "
+        "object or part selected in Prepare where none is named: without `keys`, what it overrides; `keys` read the process "
+        "settings it takes (`settings_list` type object or region lists them) and extruder, its filament, and a key it does "
+        "not take is refused with where it is set. Each has `value` (its own, null where it has none), `effective` (the "
+        "value it prints with) and `source`, in the order the slicer applies them: `height_range`, part, object, global or "
+        "default; an object's item lists in `parts` the parts and modifiers that override the key inside their own volume, "
+        "and an object's or a part's item lists in `height_ranges` the ranges whose value applies to it between their "
         "heights. Inside a modifier, mesh or painted, that sets none of a key, the value of the part it overlaps applies, "
         "which the command does not work out: where a part (or a modifier of either kind before it) sets the key, the "
-        "modifier's item has effective null, source overlapped_part, object_effective and object_source (the object's "
-        "value), and in parts those that set it. These settings are process settings. The reply names the target (objects or parts, and "
-        "height_range).\n"
-        "preferences_get reads the app's preferences, plate_get_settings a plate's settings and project_get_settings the "
+        "modifier's item has `effective` null, `source` `overlapped_part`, `object_effective` and `object_source` (the object's "
+        "value), and in `parts` those that set it. These settings are process settings. The reply names the target (objects or parts, and "
+        "`height_range`).\n"
+        "`preferences_get` reads the app's preferences, `plate_get_settings` a plate's settings and `project_get_settings` the "
         "project's own.",
         object_schema({{"type", type_prop},
                        {"target", target_prop},
-                       {"keys", array_prop({{"type", "string"}}, "Option keys, e.g. [\"layer_height\", \"wall_loops\"].")},
+                       {"keys", array_prop({{"type", "string"}}, "Option keys, e.g. `[\"layer_height\", \"wall_loops\"]`.")},
                        {"object", object_prop},
                        {"part", part_prop},
                        {"min_z", min_z_prop},
@@ -3221,37 +3222,37 @@ void register_config_tools(CommandCatalog& catalog)
     catalog.add(with_expected_ids(mutate_tool(
         "settings_set", L("Change settings"),
         "Change settings as typing them into their settings tab would: a type's preset (target global, the default), or "
-        "the overrides an object, a part or a height range carries (targets object, part and height_range, whose settings "
+        "the overrides an object, a part or a height range carries (targets object, part and `height_range`, whose settings "
         "are process settings). Values "
         "are strings in OrcaSlicer's format (\"15%\", \"0.2\", \"1,2\") or JSON numbers, booleans and arrays (a point as "
-        "[x, y]). All are parsed strictly first and applied together, so nothing changes if one is invalid, and a key of "
-        "another type is refused with that type named. Reply: applied, and changed, every setting the call changed, "
+        "`[x, y]`). All are parsed strictly first and applied together, so nothing changes if one is invalid, and a key of "
+        "another type is refused with that type named. Reply: `applied`, and `changed`, every setting the call changed, "
         "including those the app adjusted in turn. An object's or part's change is one undo step; a preset's is not in the "
-        "undo history. Spiral vase and a few others confirm their adjustments in a dialog (blocked_by_dialog).\n"
-        "- type printer, process (the default) or filament, target global: null takes a key back to its saved value, or "
-        "with reset_to parent to the parent's; reset_all first discards every unsaved change, as the tab's undo button "
-        "does (reply: reverted). A per-variant value (settings_get meta.variants) takes one value for the entries in use "
-        "(meta.active), {index, value} for one entry, or an array of all.\n"
-        "- type printer: extruders_count, alone, as the Extruders field of the Printer settings sets it; "
-        "nozzle_volume_type, each extruder's nozzle flow type as its card in the sidebar picks it; a nozzle_diameter that a "
+        "undo history. Spiral vase and a few others confirm their adjustments in a dialog (`blocked_by_dialog`).\n"
+        "- `type` printer, process (the default) or filament, `target` global: a null value takes a key back to its saved "
+        "value, or with `reset_to` parent to the parent's; `reset_all` first discards every unsaved change, as the tab's undo button "
+        "does (reply: `reverted`). A per-variant value (`settings_get` `meta.variants`) takes one value for the entries in "
+        "use (`meta.active`), `{index, value}` for one entry, or an array of all.\n"
+        "- `type` printer: `extruders_count`, alone, as the Extruders field of the Printer settings sets it; "
+        "`nozzle_volume_type`, each extruder's nozzle flow type as its card in the sidebar picks it; a `nozzle_diameter` that a "
         "variant of the printer model has selects that variant's printer preset, as the sidebar's nozzle diameter does, with "
-        "nozzle_volume_type alone (other keys go in a second call), each flow type checked against what the new preset's "
+        "`nozzle_volume_type` alone (other keys go in a second call), each flow type checked against what the new preset's "
         "nozzle card offers, or gives where it offers none. The switch asks about the printer's unsaved changes "
-        "(blocked_by_dialog) unless reset_all discards them first; the discard stays if the switch is not made.\n"
-        "- target object (object), part (object and part) or height_range (object, min_z and max_z), the object or part "
-        "selected in Prepare where none is named: overrides of the keys its row offers there (settings_list type object or "
-        "region), and extruder; a key it does not take is refused with where it is set. null removes one; a height range "
-        "keeps its layer_height, which is checked against the printer's layer heights for the range's filament. extruder, "
+        "(`blocked_by_dialog`) unless `reset_all` discards them first; the discard stays if the switch is not made.\n"
+        "- `target` object (`object`), part (`object` and `part`) or `height_range` (`object`, `min_z` and `max_z`), the "
+        "object or part selected in Prepare where none is named: overrides of the keys its row offers there (`settings_list` type object or "
+        "region), and `extruder`; a key it does not take is refused with where it is set. null removes one; a height range "
+        "keeps its `layer_height`, which is checked against the printer's layer heights for the range's filament. `extruder`, "
         "in neither list, is the target's filament (1-based; 0 or null for Default, the object's), set as the Change "
-        "Filament menu does. The reply names the target (objects or parts, and height_range).\n"
-        "plate_set_settings changes a plate's settings and project_set_settings the project's own. preferences_set changes "
-        "the app's preferences; those it refuses (preferences_get marks them refused) change in the Preferences dialog, "
-        "whose controls carry their effects: window_open {\"window\": \"preferences\", \"tab\": \"<tab>\", \"key\": "
-        "\"<key>\"}, then widget_set_value {\"target\": {\"name\": \"<key>\", \"within\": \"Preferences\"}, \"value\": "
-        "...}.",
+        "Filament menu does. The reply names the target (objects or parts, and `height_range`).\n"
+        "`plate_set_settings` changes a plate's settings and `project_set_settings` the project's own. `preferences_set` changes "
+        "the app's preferences; those it refuses (`preferences_get` marks them refused) change in the Preferences dialog, "
+        "whose controls carry their effects: `window_open {\"window\": \"preferences\", \"tab\": \"<tab>\", \"key\": "
+        "\"<key>\"}`, then `widget_set_value {\"target\": {\"name\": \"<key>\", \"within\": \"Preferences\"}, \"value\": "
+        "...}`.",
         object_schema({{"type", type_prop},
                        {"target", target_prop},
-                       {"values", {{"type", "object"}, {"description", "{key: value}, or {key: {index, value}} for one entry"}}},
+                       {"values", {{"type", "object"}, {"description", "`{key: value}`, or `{key: {index, value}}` for one entry"}}},
                        {"reset_all", prop("boolean", "Target global: discard the unsaved changes before applying values.")},
                        {"reset_to", enum_prop({"saved", "parent"}, "Target global: what a null value takes a key back to: the "
                                                                      "saved preset (default) or the preset it inherits from.")},
@@ -3264,7 +3265,7 @@ void register_config_tools(CommandCatalog& catalog)
                        {"filament_slot", {{"type", "integer"}, {"minimum", 1},
                                           {"description", "Type filament: the slot whose preset is changed, 1-based (default 1). "
                                                           "The filament tab switches to it, which can ask about the unsaved "
-                                                          "changes it holds (blocked_by_dialog)."}}}}),
+                                                          "changes it holds (`blocked_by_dialog`)."}}}}),
         [](const json& args, ToolContext& ctx) {
             // Refused before the UI is asked for anything: what the arguments alone decide.
             if (const std::string err = settings_request_error(args, /*writes=*/true); !err.empty())
@@ -3419,12 +3420,12 @@ void register_config_tools(CommandCatalog& catalog)
 
     catalog.add(inspect_tool(
         "plate_get_settings", L("Read a plate's settings"),
-        "Read a plate's own settings, as the Plate Settings dialog sets them: curr_bed_type, print_sequence, spiral_mode, "
-        "first_layer_print_sequence and other_layers_print_sequence; and as its filament grouping sets them on a printer "
-        "with several extruders: filament_map_mode and filament_map (the extruder of each filament, 1-based). Each with "
+        "Read a plate's own settings, as the Plate Settings dialog sets them: `curr_bed_type`, `print_sequence`, `spiral_mode`, "
+        "`first_layer_print_sequence` and `other_layers_print_sequence`; and as its filament grouping sets them on a printer "
+        "with several extruders: `filament_map_mode` and `filament_map` (the extruder of each filament, 1-based). Each with "
         "value (the plate's own, null where it follows the global setting or Auto), effective (what the plate prints with) "
         "and meta (meta.offered lists the plate types or grouping modes this printer has). All of them, or those named in "
-        "keys. Reply: plate, items; unknown_keys for the keys a plate does not have, and similar the plate keys like them.",
+        "keys. Reply: plate, items; `unknown_keys` for the keys a plate does not have, and similar the plate keys like them.",
         object_schema({{"plate", plate_prop},
                        {"keys", array_prop({{"type", "string"}}, "Setting keys, e.g. [\"curr_bed_type\"].")},
                        {"include_meta", prop("boolean", "Include labels, types and ranges. Default true.")}}),
@@ -3437,11 +3438,11 @@ void register_config_tools(CommandCatalog& catalog)
 
     catalog.add(mutate_tool(
         "plate_set_settings", L("Change a plate's settings"),
-        "Change a plate's own settings, which it selects and writes as the Plate Settings dialog's OK does: curr_bed_type, "
-        "print_sequence (\"by layer\", \"by object\"), spiral_mode (true asks for confirmation), first_layer_print_sequence "
-        "(every slot once, e.g. [2, 1]) and other_layers_print_sequence ([{from: layer >= 2, to, order}], to omitted for "
-        "the last layer); and as the OK of its filament grouping does, with several extruders: filament_map_mode (an "
-        "offered mode) and, with \"Manual\", filament_map (one extruder per filament, e.g. [1, 2, 2]; on a printer whose "
+        "Change a plate's own settings, which it selects and writes as the Plate Settings dialog's OK does: `curr_bed_type`, "
+        "`print_sequence` (\"by layer\", \"by object\"), `spiral_mode` (true asks for confirmation), `first_layer_print_sequence` "
+        "(every slot once, e.g. `[2, 1]`) and `other_layers_print_sequence` ([`{from: layer >= 2, to, order}`], to omitted for "
+        "the last layer); and as the OK of its filament grouping does, with several extruders: `filament_map_mode` (an "
+        "offered mode) and, with \"Manual\", `filament_map` (one extruder per filament, e.g. `[1, 2, 2]`; on a printer whose "
         "extruder holds several nozzles, refused as the dialog refuses it where an extruder it uses has no nozzle of the "
         "volume type its filaments print with). null returns a value to the global setting or Auto. Values are checked "
         "before anything changes, and the call is one undo step. Reply: plate, applied, changed, and effective for the "
@@ -3453,10 +3454,10 @@ void register_config_tools(CommandCatalog& catalog)
 
     catalog.add(inspect_tool(
         "project_get_settings", L("Read the project's settings"),
-        "Read the project's own settings for its plates: the plate type (curr_bed_type), the prime tower position per plate "
-        "(wipe_tower_x, wipe_tower_y) and, with several extruders, the filament grouping (filament_map_mode, filament_map); "
-        "all of them, or those named in keys. The filament list's colours, mixed filaments and flushing are filament_list's. "
-        "Each item has its value and meta; meta.offered lists the choices this printer has, and meta.read_only marks what is "
+        "Read the project's own settings for its plates: the plate type (`curr_bed_type`), the prime tower position per plate "
+        "(`wipe_tower_x`, `wipe_tower_y`) and, with several extruders, the filament grouping (`filament_map_mode`, `filament_map`); "
+        "all of them, or those named in keys. The filament list's colours, mixed filaments and flushing are `filament_list`'s. "
+        "Each item has its value and meta; meta.offered lists the choices this printer has, and `meta.read_only` marks what is "
         "set elsewhere.",
         object_schema({{"keys", array_prop({{"type", "string"}}, "Setting keys, e.g. [\"curr_bed_type\"].")},
                        {"include_meta", prop("boolean", "Include labels, types and ranges. Default true.")}}),
@@ -3469,25 +3470,25 @@ void register_config_tools(CommandCatalog& catalog)
 
     catalog.add(mutate_tool(
         "project_set_settings", L("Change the project's settings"),
-        "Change the project's own settings as their controls write them: curr_bed_type, as the plate type selector, and "
+        "Change the project's own settings as their controls write them: `curr_bed_type`, as the plate type selector, and "
         "wipe_tower_x/y (mm from the plate's origin, one per plate), as a prime tower's drag. The filament list's colours "
-        "and flushing are set with filament_set_colour and filament_set_flushing. Values are checked before anything "
+        "and flushing are set with `filament_set_colour` and `filament_set_flushing`. Values are checked before anything "
         "changes; a prime tower move is one undo step. Reply: applied, changed, and a note when the app moved a prime tower "
         "that did not fit.",
-        object_schema({{"values", {{"type", "object"}, {"description", "{key: value}, or {key: {index, value}} for one entry"}}}},
+        object_schema({{"values", {{"type", "object"}, {"description", "`{key: value}`, or `{key: {index, value}}` for one entry"}}}},
                       {"values"}),
         [](const json& args, ToolContext& ctx) { return set_project_settings(args, ctx); }));
 
     catalog.add(inspect_tool(
         "plate_list", L("List plates"),
-        "Plates with name, locked, current, objects (how many are on it; object_list lists them), and the settings they print with: curr_bed_type, "
-        "print_sequence, spiral_mode, first_layer_print_sequence and other_layers_print_sequence (null: Auto), with several "
-        "extruders filament_map_mode and filament_map; overrides "
-        "lists those the plate sets itself (plate_set_settings). Also origin and size, the plate's place on the bed in "
-        "mm: the [x, y] of its front left corner and its [width, depth], in the bed coordinates object positions are "
-        "given in, so that origin plus half the size is its middle; sliced (an up-to-date slice), wipe_tower [x, y] "
-        "and layer_gcode: the plate's pauses, custom G-code, templates and filament changes, each {z, layer, type, "
-        "filament, color, gcode}; layer is the Preview slider's number, given while the plate's slice is up to date.",
+        "Plates with name, locked, current, objects (how many are on it; `object_list` lists them), and the settings they print with: `curr_bed_type`, "
+        "`print_sequence`, `spiral_mode`, `first_layer_print_sequence` and `other_layers_print_sequence` (null: Auto), with several "
+        "extruders `filament_map_mode` and `filament_map`; overrides "
+        "lists those the plate sets itself (`plate_set_settings`). Also origin and size, the plate's place on the bed in "
+        "mm: the `[x, y]` of its front left corner and its `[width, depth]`, in the bed coordinates object positions are "
+        "given in, so that origin plus half the size is its middle; sliced (an up-to-date slice), `wipe_tower` `[x, y]` "
+        "and `layer_gcode`: the plate's pauses, custom G-code, templates and filament changes, each `{z, layer, type, "
+        "filament, color, gcode}`; layer is the Preview slider's number, given while the plate's slice is up to date.",
         object_schema({{"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}, {"description", "Default 100."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_plates(args); })); }));
@@ -3533,7 +3534,7 @@ void register_config_tools(CommandCatalog& catalog)
                                                 "placed on it as on that plate, as Duplicate Current Plate does. The new "
                                                 "plate comes last, and the current plate stays current. Refused when the project "
                                                 "holds as many plates as it can, and while slicing. One undo step. Reply: plate (the "
-                                                "plate copied), new_plate (the new plate's index), " +
+                                                "plate copied), `new_plate` (the new plate's index), " +
                                                     plates_after + ".",
                                                 object_schema({{"plate", plate_prop}}), json(), plate_duplicate_command),
                                     L("Plate"), "menu_copy")));
@@ -3542,7 +3543,7 @@ void register_config_tools(CommandCatalog& catalog)
                                                   "Name a plate (plate, else the current one), as its name icon does: a plate other "
                                                   "than the current one is made current first. name \"\" leaves it unnamed. With no "
                                                   "arguments, as its Speed Dial action, the name dialog asks for the current plate's "
-                                                  "name (blocked_by_dialog), and a cancelled dialog renames nothing, which the call "
+                                                  "name (`blocked_by_dialog`), and a cancelled dialog renames nothing, which the call "
                                                   "is told. The name is one undo step; the name the plate has already changes "
                                                   "nothing, the current plate included. Reply: plate and name.",
                                                   object_schema({{"plate", plate_prop},
@@ -3584,7 +3585,7 @@ void register_config_tools(CommandCatalog& catalog)
         {"import_presets"},
         menu_command("preset_import", L("Import Configs"),
                     "Import presets from " + preset_file + " by absolute path, without a dialog, " + imported +
-                        " Called with no arguments it is Import Configs: the file dialog asks for the file (blocked_by_dialog).",
+                        " Called with no arguments it is Import Configs: the file dialog asks for the file (`blocked_by_dialog`).",
                     object_schema({{"path", MenuItems::input_file(preset_file.c_str())},
                                    {"on_conflict", enum_prop({"skip", "overwrite"}, "What happens to a preset that exists already. Default skip.")}},
                                   {"path"}),
@@ -3601,7 +3602,7 @@ void register_config_tools(CommandCatalog& catalog)
                                       "filament), press OK, then answer the result message.";
     catalog.add(menu_command(
         "preset_export", L("Export Preset Bundle"),
-        export_dialog + " Every call opens the dialog (blocked_by_dialog). With path, OK writes into that folder instead of "
+        export_dialog + " Every call opens the dialog (`blocked_by_dialog`). With path, OK writes into that folder instead of "
                         "asking for one, and a cancelled dialog is an error: nothing was exported.",
         object_schema({{"path", prop("string", "Absolute path of an existing folder, which the dialog's OK writes into.")}}),
         json::array({action("export_config", L("Export Preset Bundle"), L("Export"), "save", json::object(),
@@ -3662,15 +3663,15 @@ void register_config_tools(CommandCatalog& catalog)
     catalog.add(inspect_tool(
         "filament_list", L("List the filaments"),
         "Read the filament list as the sidebar shows it. filaments has a row per slot in config order, the physical "
-        "filaments first, then the mixed ones: filament_slot (1-based), mixed, colour (#RRGGBB) and, for a physical "
+        "filaments first, then the mixed ones: `filament_slot` (1-based), mixed, colour (#RRGGBB) and, for a physical "
         "filament, preset and type; for a mixed filament, components (the physical slots it mixes, 1-based, 0 for one "
-        "deleted), ratios (whole percentages, as filament_add_mixed takes them), gradient (null, or {bottom, top: the "
-        "components that lead at the bottom and at the top, per_part, curve: linear or custom}) and broken (a component "
+        "deleted), ratios (whole percentages, as `filament_add_mixed` takes them), gradient (null, or `{bottom, top: the "
+        "components that lead at the bottom and at the top, per_part, curve: linear or custom}`) and broken (a component "
         "deleted or of another filament type: the sidebar marks it, slicing an object on it is refused, and "
-        "filament_edit_mixed repairs it). Then the flushing the list's Flushing volumes and Purge mode buttons set: "
-        "flush_multiplier (one per nozzle), flush_volumes_matrix (per nozzle, slots x slots from row to column in config "
+        "`filament_edit_mixed` repairs it). Then the flushing the list's Flushing volumes and Purge mode buttons set: "
+        "`flush_multiplier` (one per nozzle), `flush_volumes_matrix` (per nozzle, slots x slots from row to column in config "
         "order over every slot, before the multiplier: the dialog shows each entry multiplied by its nozzle's multiplier, "
-        "and the G-code purges that product) and prime_volume_mode, with prime_volume_modes where the printer offers a "
+        "and the G-code purges that product) and `prime_volume_mode`, with `prime_volume_modes` where the printer offers a "
         "choice. The printer keeps all of it across new projects and restarts; a saved project keeps its own.",
         object_schema({}),
         [](const json&, ToolContext& ctx) {
@@ -3682,10 +3683,10 @@ void register_config_tools(CommandCatalog& catalog)
     catalog.add(reaching({"add_filament_slot"},
                          own_action(menu_command("filament_add", L("Add Filament Slot"),
                                                 "Add a filament slot, as the + button above the filament list does. It takes the next "
-                                                "colour and the last slot's preset (change them with filament_set_colour and "
-                                                "preset_select filament_slot). It goes after the physical slots: mixed "
+                                                "colour and the last slot's preset (change them with `filament_set_colour` and "
+                                                "`preset_select` `filament_slot`). It goes after the physical slots: mixed "
                                                 "filaments move up by one, and objects on them follow. " +
-                                                    slot_buttons + " Reply: filament_slot (the new slot) and filament_slots (how many the "
+                                                    slot_buttons + " Reply: `filament_slot` (the new slot) and `filament_slots` (how many the "
                                                                    "project has).",
                                                 object_schema({}), json(), filament_add_command),
                                     L("Filament"), "add_filament")));
@@ -3693,17 +3694,17 @@ void register_config_tools(CommandCatalog& catalog)
         {"delete_filament_slot"},
         own_action(menu_command("filament_delete", L("Delete Filament Slot"),
                                "Delete a filament slot, as its Delete menu item does, the objects on it taking the first filament; "
-                               "with merge_into, as its Merge with item does, the objects on it taking that slot. The slots after "
-                               "it move down by one. A mixed filament (filament_list's mixed rows) is deleted as the mixed "
+                               "with `merge_into`, as its Merge with item does, the objects on it taking that slot. The slots after "
+                               "it move down by one. A mixed filament (`filament_list`'s mixed rows) is deleted as the mixed "
                                "filament list deletes it, and not merged. A physical filament that a mixed filament mixes is "
-                               "deleted as the sidebar deletes it: the mix is broken (broken_mixed) until filament_edit_mixed "
+                               "deleted as the sidebar deletes it: the mix is broken (`broken_mixed`) until `filament_edit_mixed` "
                                "names its filaments again. A merge into a mixed filament that mixes the slot asks first, as Merge "
-                               "with does, and replies blocked_by_dialog, unless break_mix answers: true merges, false refuses "
-                               "(mixed_uses_slot). Refused: the only physical slot, and a mixed filament while one physical "
-                               "slot is left, where the sidebar hides the mixed filaments (filament_add first). " +
-                                   slot_buttons + " Not in the undo history. Reply: filament_slot (the slot deleted), merged_into "
-                                                  "(the slot its objects went to, as numbered afterwards), filament_slots, and "
-                                                  "broken_mixed (the mixed filaments broken afterwards, as numbered then) where "
+                               "with does, and replies `blocked_by_dialog`, unless `break_mix` answers: `true` merges, `false` refuses "
+                               "(`mixed_uses_slot`). Refused: the only physical slot, and a mixed filament while one physical "
+                               "slot is left, where the sidebar hides the mixed filaments (`filament_add` first). " +
+                                   slot_buttons + " Not in the undo history. Reply: `filament_slot` (the slot deleted), `merged_into` "
+                                                  "(the slot its objects went to, as numbered afterwards), `filament_slots`, and "
+                                                  "`broken_mixed` (the mixed filaments broken afterwards, as numbered then) where "
                                                   "there are any.",
                                object_schema({{"filament_slot", {{"type", "integer"},
                                                                  {"minimum", 1},
@@ -3714,17 +3715,17 @@ void register_config_tools(CommandCatalog& catalog)
                                                               {"description", "The 1-based slot the objects on it go to, as Merge "
                                                                               "with does. Default: they take the first filament."}}},
                                               {"break_mix", prop("boolean", "The answer to Merge with's question about a merge into "
-                                                                            "a mixed filament that mixes the slot: true merges, "
-                                                                            "false merges nothing. Default: the question opens.")}}),
+                                                                            "a mixed filament that mixes the slot: `true` merges, "
+                                                                            "`false` merges nothing. Default: the question opens.")}}),
                                json(), filament_delete_command),
                    L("Filament"), "delete_filament")));
 
     // The Add and Edit Mixed Filament dialogs' controls, for an agent that drives a dialog to set a gradient.
     const std::string mixed_dialog =
-        "replies blocked_by_dialog. Its controls are named filament_1 to filament_3 (the components), gradient, "
-        "gradient_direction (item 0 puts the first filament at the bottom, item 1 the second) and per_part_gradient, for "
-        "widget_set_value with within the dialog's title; the gradient shows for a mix of two filaments only, and its curve "
-        "is drawn, changed only by dragging it (mouse_gesture). Its OK makes what it shows; Cancel changes nothing.";
+        "replies `blocked_by_dialog`. Its controls are named `filament_1` to `filament_3` (the components), gradient, "
+        "`gradient_direction` (item 0 puts the first filament at the bottom, item 1 the second) and `per_part_gradient`, for "
+        "`widget_set_value` with within the dialog's title; the gradient shows for a mix of two filaments only, and its curve "
+        "is drawn, changed only by dragging it (`mouse_gesture`). Its OK makes what it shows; Cancel changes nothing.";
     const auto mix_props = [](const char* components) {
         return std::vector<Property>{
             {"components", array_prop({{"type", "integer"}, {"minimum", 1}}, components)},
@@ -3748,7 +3749,7 @@ void register_config_tools(CommandCatalog& catalog)
             "(1-based), each named once, whose filaments are of one type; ratios a whole percentage for each, adding up to "
             "100. It goes after every other slot. A mix the project has already is not added again: the reply names its "
             "slot. With neither components nor ratios it opens the Add Mixed Filament dialog, as the sidebar's button does, "
-            "and " + mixed_dialog + " Not in the undo history. Reply: filament_slot (1-based, where one was added or "
+            "and " + mixed_dialog + " Not in the undo history. Reply: `filament_slot` (1-based, where one was added or "
             "found) and added (false for a mix the project had, or a dialog cancelled).",
             object_schema({add_props[0], add_props[1]}),
             [mix_args](const json& args, ToolContext& ctx) {
@@ -3774,18 +3775,18 @@ void register_config_tools(CommandCatalog& catalog)
             {"tool": "filament_add_mixed", "args": {"components": [1, 2, 3], "ratios": [25, 25, 50]}}]}])json");
     catalog.add(std::move(mixed));
 
-    const std::vector<Property> edit_props = mix_props("The physical filament slots it mixes from now on, as filament_add_mixed "
+    const std::vector<Property> edit_props = mix_props("The physical filament slots it mixes from now on, as `filament_add_mixed` "
                                                        "takes them. Omitted with ratios: the dialog opens.");
     NativeCommand edit_mixed = reaching(
         {"edit_mixed_filament"},
         mutate_tool(
             "filament_edit_mixed", L("Edit Mixed Filament"),
-            "Change a mixed filament (filament_list's mixed rows) as the Edit Mixed Filament dialog's OK does: components "
-            "and ratios as filament_add_mixed takes them. The slot keeps its number and the objects on it, and its colour "
+            "Change a mixed filament (`filament_list`'s mixed rows) as the Edit Mixed Filament dialog's OK does: components "
+            "and ratios as `filament_add_mixed` takes them. The slot keeps its number and the objects on it, and its colour "
             "becomes the blend; a gradient stays for a mix of two filaments and goes for more, as the dialog shows none for "
-            "them. An edit that names its filaments again repairs a broken mix. With filament_slot alone it opens the Edit "
+            "them. An edit that names its filaments again repairs a broken mix. With `filament_slot` alone it opens the Edit "
             "Mixed Filament dialog on the mix, as a click on its swatch does, and " + mixed_dialog +
-            " Not in the undo history. Reply: filament_slot and changed.",
+            " Not in the undo history. Reply: `filament_slot` and changed.",
             object_schema({{"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "The mixed filament's 1-based slot."}}},
                            edit_props[0], edit_props[1]},
                           {"filament_slot"}),
@@ -3811,8 +3812,8 @@ void register_config_tools(CommandCatalog& catalog)
     catalog.add(mutate_tool(
         "filament_set_colour", L("Set a filament's colour"),
         "Set a physical filament slot's colour, as its colour button's picker does: colour is #RRGGBB. Where Auto flush "
-        "after changing is on, the flushing volumes are recalculated, so set flush_volumes_matrix (filament_set_flushing) "
-        "after the colours. A mixed filament's colour is its components' blend and is not set. Reply: filament_slot, "
+        "after changing is on, the flushing volumes are recalculated, so set `flush_volumes_matrix` (`filament_set_flushing`) "
+        "after the colours. A mixed filament's colour is its components' blend and is not set. Reply: `filament_slot`, "
         "colour (as stored, upper case) and changed.",
         object_schema({{"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "The 1-based filament slot."}}},
                        {"colour", prop("string", "#RRGGBB.")}},
@@ -3822,14 +3823,14 @@ void register_config_tools(CommandCatalog& catalog)
     catalog.add(mutate_tool(
         "filament_set_flushing", L("Set the flushing"),
         "Change the flushing the filament list's Flushing volumes and Purge mode buttons set, as their dialogs' OK does, "
-        "any of: flush_multiplier (one per nozzle, or one value for all, within the Flushing volumes dialog's range), "
-        "flush_volumes_matrix (per nozzle, slots x slots from row to column in config order over every slot, before the "
-        "multiplier; whole, or one entry as {index, value}; a mixed filament's entries, which are never flushed, must be "
-        "given as they are) and prime_volume_mode (one of filament_list's prime_volume_modes). A colour change "
-        "(filament_set_colour) can recalculate the matrix, so set it after the colours. Values are checked before "
+        "any of: `flush_multiplier` (one per nozzle, or one value for all, within the Flushing volumes dialog's range), "
+        "`flush_volumes_matrix` (per nozzle, slots x slots from row to column in config order over every slot, before the "
+        "multiplier; whole, or one entry as `{index, value}`; a mixed filament's entries, which are never flushed, must be "
+        "given as they are) and `prime_volume_mode` (one of `filament_list`'s `prime_volume_modes`). A colour change "
+        "(`filament_set_colour`) can recalculate the matrix, so set it after the colours. Values are checked before "
         "anything changes. Reply: applied and changed.",
         object_schema({{"flush_multiplier", {{"type", {"number", "array"}}, {"description", "One value, or one per nozzle."}}},
-                       {"flush_volumes_matrix", {{"type", {"array", "object"}}, {"description", "The whole matrix, or {index, value}."}}},
+                       {"flush_volumes_matrix", {{"type", {"array", "object"}}, {"description", "The whole matrix, or `{index, value}`."}}},
                        {"prime_volume_mode", prop("string", "The purge mode, e.g. \"Default\".")}}),
         [](const json& args, ToolContext& ctx) {
             json values = json::object();
@@ -3848,10 +3849,10 @@ void register_config_tools(CommandCatalog& catalog)
                     ams + " With mode, as the sync dialog's Synchronize now does with that choice, without the dialog: map maps "
                           "each of the project's filaments to a slot, as the dialog's Mapping first does, which takes a project "
                           "with objects; overwrite replaces the filament list with the slots' filaments. Called with no arguments, "
-                          "as its Speed Dial action, it opens the sync dialog where the project has objects (blocked_by_dialog), and "
+                          "as its Speed Dial action, it opens the sync dialog where the project has objects (`blocked_by_dialog`), and "
                           "a warning where it cannot sync. With no printer connected, no AMS or no filament it is refused, saying so. "
                           "Not in the undo history. Reply: mode, filaments (each slot's preset and colour afterwards) and "
-                          "mapped_to_generic (slots whose filament is unknown, mapped to a generic preset).",
+                          "`mapped_to_generic` (slots whose filament is unknown, mapped to a generic preset).",
                     object_schema({{"mode", enum_prop({"map", "overwrite"}, "The sync dialog's choice: map or overwrite.")}}),
                     json::array({action("sync_ams", L("Synchronize Filament List from AMS"), L("Printer"), "ams_fila_sync", json::object(),
                                         ams)}),

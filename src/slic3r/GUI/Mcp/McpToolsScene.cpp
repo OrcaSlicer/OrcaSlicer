@@ -1646,8 +1646,8 @@ void register_object_menu_commands(CommandCatalog& catalog)
 
     // ---- Add Primitive and Add Handy models ---- (the Add menu; each creates a new object)
     const json shape_size = array_prop({{"type", "number"}}, "mm, the Primitive size dialog's fields, in place of the dialog: cube "
-                                                             "[x, y, z]; cylinder, cone, disc [diameter, height]; sphere [diameter]; "
-                                                             "torus [inner diameter, tube diameter]; each above 0.");
+                                                             "`[x, y, z]`; cylinder, cone, disc `[diameter, height]`; sphere `[diameter]`; "
+                                                             "torus `[inner diameter, tube diameter]`; each above 0.");
     // A shape the plate may then turn toward the part-cooling fan.
     const std::string turned = " The shape may then be turned toward the part-cooling fan, so the size is along its own axes before that turn.";
     const auto primitive = [&turned](const char* key, const char* title, const char* icon, const char* shape, bool turns) {
@@ -1661,17 +1661,17 @@ void register_object_menu_commands(CommandCatalog& catalog)
     NativeCommand add_primitive = menu_command(
         "object_add_primitive", L("Add a primitive"),
         "Add a primitive shape (cube, cylinder, sphere, cone, disc or torus) as a new object, as Add Primitive does: on the "
-        "current plate, or on plate, which becomes the current one; at position, in the bed coordinates object_list and "
-        "object_transform use, else where Add Primitive puts it; named name, else after its shape. With a size, at that "
+        "current plate, or on plate, which becomes the current one; at position, in the bed coordinates `object_list` and "
+        "`object_transform` use, else where Add Primitive puts it; named name, else after its shape. With a size, at that "
         "size; with silent, at the shape's built-in size. With shape alone, as its Speed Dial actions, the Primitive size "
-        "dialog asks for the size (blocked_by_dialog), unless a person turned that dialog off, and the call is refused "
-        "while an object is selected (part_add adds a shape to an object); any other call adds the object whatever is "
+        "dialog asks for the size (`blocked_by_dialog`), unless a person turned that dialog off, and the call is refused "
+        "while an object is selected (`part_add` adds a shape to an object); any other call adds the object whatever is "
         "selected. One undo step; the new object is selected. Reply: the object (objects, object), its plate and offset." +
             turned,
         object_schema({{"shape", enum_prop({"cube", "cylinder", "sphere", "cone", "disc", "torus"}, "The shape.")},
                        {"size", shape_size},
                        {"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "The plate to add it on. Default: the current plate."}}},
-                       {"position", array_prop({{"type", "number"}}, "[x, y, z] mm: where its first instance goes, as object_transform's "
+                       {"position", array_prop({{"type", "number"}}, "`[x, y, z]` mm: where its first instance goes, as `object_transform`'s "
                                                                      "position; it then rests on the bed.")},
                        {"name", prop("string", "The object's name. Default: its shape's.")}},
                       {"shape"}),
@@ -1704,8 +1704,8 @@ void register_object_menu_commands(CommandCatalog& catalog)
     }
     catalog.add(menu_command(
         "object_add_handy_model", L("Add a handy model"),
-        "Add one of the test models OrcaSlicer ships to the current plate, as Add Handy models does; orca_cube and "
-        "orcasliced_combo, of several files, then arrange the objects as the toolbar's Arrange does, which moves the others too. "
+        "Add one of the test models OrcaSlicer ships to the current plate, as Add Handy models does; `orca_cube` and "
+        "`orcasliced_combo`, of several files, then arrange the objects as the toolbar's Arrange does, which moves the others too. "
         "Reply: the objects added (objects: index, id and name).",
         object_schema({{"model", enum_prop(models, "The model.")}}, {"model"}), std::move(handy_actions), [](const json& args) {
             const std::string                           model = arg_string(args, "model");
@@ -1729,16 +1729,17 @@ void register_object_menu_commands(CommandCatalog& catalog)
         schema["properties"]["type"] = enum_prop({"part", "negative", "modifier"},
                                                  "The part's type, as the object's Add menu offers it. Default part. Without "
                                                  "object, on the selected object, or the object of the parts selected, "
-                                                 "which is selected whole first: refused (nothing_selected, "
-                                                 "one_object_only) unless one object is selected.");
+                                                 "which is selected whole first: refused (`nothing_selected`, "
+                                                 "`one_object_only`) unless one object is selected.");
         return with_targets(std::move(schema), kObjects, true);
     };
     const std::string text = "Add a text: a part on the selected object, or a new object when nothing is selected. It is created "
-                             "in the background (app_wait {for: \"idle\"} waits for it), and the Text gizmo opens on it.";
+                             "in the background (`app_wait {for: \"idle\"}` waits for it), and the Text gizmo opens on it.";
     catalog.add(with_expected_ids(menu_command(
         "object_add_text", L("Text"),
         text + " With object, the text becomes a part of that object, which is selected first; type makes it a negative part "
-               "or a modifier, as the object's Add menu does.",
+               "or a modifier, as the object's Add menu does. Reply: only that it ran (`ran`, `level`), since the text is made "
+               "later: once `app_wait {for: \"idle\"}` returns, `object_list` shows it and `app_state` the gizmo.",
         part_props({}),
         json::array({action("add_primitive_text", L("Text"), L("Add Primitive"), "menu_obj_text", json::object(), text)}),
         [](const json& args) { return MenuItems::add_primitive_text(args); })));
@@ -1746,10 +1747,11 @@ void register_object_menu_commands(CommandCatalog& catalog)
     catalog.add(with_expected_ids(menu_command(
         "object_add_svg", L("SVG"),
         "Add an SVG as a new object, or as a part of the selected object. With a path, uses that file without a dialog; the "
-        "part is created in the background (app_wait {for: \"idle\"} waits for it), and the SVG gizmo opens on it. With "
+        "part is created in the background (`app_wait {for: \"idle\"}` waits for it), and the SVG gizmo opens on it. With "
         "object, the SVG becomes a part of that object, which is selected first; type makes it a negative part or a modifier, "
         "as the object's Add menu does. Without path the file dialog opens, as the action's does, and the object and type "
-        "apply to the file picked there.",
+        "apply to the file picked there. Reply: only that it ran (`ran`, `level`), since the part is made later: once "
+        "`app_wait {for: \"idle\"}` returns, `object_list` shows it and `app_state` the gizmo.",
         part_props({{"path", MenuItems::input_file("an .svg file")}}),
         json::array({action("add_primitive_svg", L("SVG"), L("Add Primitive"), "menu_obj_svg", json::object(),
                             "Add an SVG as a new object, or as a part of the selected object, from the file a dialog asks for; "
@@ -1765,10 +1767,10 @@ void register_object_menu_commands(CommandCatalog& catalog)
         "with none of these what is selected in the Prepare view. An object whose every instance or every part is named goes "
         "whole. An object's last solid part alone, and a cut object or a solid or negative part of one, are refused with "
         "the message or the question Delete gives; a call with no arguments leaves them to the object list, which shows "
-        "the message or asks the question (blocked_by_dialog), and all deletes cut objects without asking, as Delete All "
+        "the message or asks the question (`blocked_by_dialog`), and all deletes cut objects without asking, as Delete All "
         "does. One undo step. Reply: what was deleted (objects, instances, parts, with the indices they had); kept, what "
         "was named and stayed, with its indices now (the object list deletes from the last named and stops at what it "
-        "refuses or asks about); and object_count, the objects left; the objects after a deleted one move down.",
+        "refuses or asks about); and `object_count`, the objects left; the objects after a deleted one move down.",
         with_targets(object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Delete what stands on this plate."}}},
                                     {"all", prop("boolean", "Delete every object. Default false: the targets.")}}),
                      kEveryTarget, false),
@@ -1797,7 +1799,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
         "object_set_instances", L("Set the number of instances"),
         "Give an object this many instances (count), as Set Number of Instances does, or one more or one fewer (delta 1 "
         "or -1), as the toolbar's + and - do: the object named, else the one selected in the Prepare view, or the object "
-        "of the selected instance or part. With no arguments the dialog asks for the count (blocked_by_dialog). New "
+        "of the selected instance or part. With no arguments the dialog asks for the count (`blocked_by_dialog`). New "
         "instances overlap; arrange afterwards. One undo step; the object is selected. Reply: the object (objects, "
         "object) and instances, how many it has.",
         with_targets(object_schema({{"count", {{"type", "integer"},
@@ -1845,13 +1847,13 @@ void register_object_menu_commands(CommandCatalog& catalog)
         "object's own other than a part's, and into parts a part's row, or another row of the object. A mesh of one shell "
         "is refused, and into parts so is an object of several parts, whose part is selected to split it. Into objects, "
         "the object is removed and its pieces are added last and selected. Where some of them "
-        "would float above the bed of an object that drops, keep_z answers the question Split asks (true keeps their "
-        "height, false lets them drop), and without it the call is refused (auto_drop_question); with only an action's "
-        "arguments Split asks it (blocked_by_dialog). One undo step. Reply: the new objects (objects) or the parts the "
-        "part became (parts), with their indices afterwards, and object_count.",
+        "would float above the bed of an object that drops, `keep_z` answers the question Split asks (true keeps their "
+        "height, false lets them drop), and without it the call is refused (`auto_drop_question`); with only an action's "
+        "arguments Split asks it (`blocked_by_dialog`). One undo step. Reply: the new objects (objects) or the parts the "
+        "part became (parts), with their indices afterwards, and `object_count`.",
         with_targets(object_schema({{"into", enum_prop({"objects", "parts"}, "Separate objects, or parts of the object.")},
                                     {"keep_z", prop("boolean", "Into objects, the answer to the question whether pieces that would "
-                                                               "float above the bed keep their height: true keeps it, false "
+                                                               "float above the bed keep their height: `true` keeps it, `false` "
                                                                "lets them drop.")}},
                                    {"into"}),
                      kObjects, true),
@@ -1910,13 +1912,13 @@ void register_object_menu_commands(CommandCatalog& catalog)
                     "puts them: order names each of the plate's objects once, by index, and anything else is refused; the "
                     "other plates' objects keep their order. One undo step, none when the order stays as it was; object indices "
                     "change. Reply: the new order (order: "
-                    "[{object, name, plate}]), and descending with by.",
+                    "[`{object, name, plate}`]), and descending with by.",
                     object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Order this plate's objects. Default: the current plate."}}},
                                    {"by", enum_prop({"name", "filament", "height", "size"}, "What to order by.")},
                                    {"order", {{"type", "array"},
                                               {"minItems", 1},
                                               {"items", {{"type", "integer"}, {"minimum", 0}}},
-                                              {"description", "In place of by: the plate's objects, by index (object_list), each "
+                                              {"description", "In place of by: the plate's objects, by index (`object_list`), each "
                                                               "once, in the order wanted."}}},
                                    {"descending", prop("boolean", "With by: descending order. Default false.")},
                                    {"all", prop("boolean", "With by: order the objects of every plate. Default false: one plate's.")}}),
@@ -1967,7 +1969,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
             "Prepare view as one group, on plate, or with no arguments, as its Speed Dial action, on the current plate. A "
             "group moves as one, its box to the plate's centre, its objects keeping their places relative to each other, so "
             "a group spread over several plates and sent to plate may not fit on its bed. One undo step; the targets are "
-            "left selected. Reply: what it centred (objects, instances, parts) and the groups (plates: [{plate, objects}]).",
+            "left selected. Reply: what it centred (objects, instances, parts) and the groups (plates: [`{plate, objects}`]).",
             with_targets(object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Centre them all on this plate."}}}}),
                          kObjects, false),
             json::array({action("obj_center", L("Center Selected on Plate"), object_section, "", json::object(),
@@ -1981,7 +1983,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
             "Scale objects as one to fit the current plate's print volume and move them into it, as Scale to build volume does: "
             "those named, else the objects and instances selected in the Prepare view. Cut objects and a bed of another shape "
             "than a rectangle or a circle are refused. One undo step; the targets are left selected. Reply: what it scaled "
-            "(objects, instances) and each instance's scale (scales: [{object, instance, scale}]).",
+            "(objects, instances) and each instance's scale (scales: [`{object, instance, scale}`]).",
             with_targets(object_schema({}), kObjects, false),
             json::array({action("obj_fit_volume", L("Scale to Fit Print Volume"), object_section, "", json::object(),
                                 "Scale the selection to fit the print volume.")}),
@@ -2002,7 +2004,7 @@ void register_object_menu_commands(CommandCatalog& catalog)
             "objects that are not printable, none on a locked plate, leaves the job to turn every other object, as the "
             "toolbar's does. "
             "Waits for the job to end. One undo step; objects named are left selected. Reply: the objects it turned (objects) "
-            "and the rotation of each instance it turned (rotations: [{object, instance, rotation_deg}]).",
+            "and the rotation of each instance it turned (rotations: [`{object, instance, rotation_deg}`]).",
             with_targets(object_schema({{"plates", array_prop({{"type", "integer"}}, "Plate indices: orient the objects that stand on them.")}}),
                          kObjects, false),
             [](const json& args, ToolContext& ctx) {
@@ -2091,15 +2093,15 @@ void register_object_menu_commands(CommandCatalog& catalog)
         with_expected_ids(menu_command(
             "part_change_type", L("Change a part's type"),
             "Change what parts are, as Change Type does: those named, else the part rows selected in the object list. type is "
-            "part, negative, modifier, support_blocker, support_enforcer, or precise_seam, a Center precise seam where a seam "
-            "keeps its subtype; subtype, with precise_seam alone, sets the seam's subtype as the Precise Seam Type menu does. "
+            "part, negative, modifier, `support_blocker`, `support_enforcer`, or `precise_seam`, a Center precise seam where a seam "
+            "keeps its subtype; subtype, with `precise_seam` alone, sets the seam's subtype as the Precise Seam Type menu does. "
             "Not an object's last solid part; a text or SVG part does not become a support blocker or enforcer or a precise "
             "seam; a painted modifier keeps its type. One undo step. Parts are listed by type, so part indices change. Reply: "
             "each part with its index afterwards and its type (parts).",
             with_targets(object_schema({{"type", enum_prop({"part", "negative", "modifier", "support_blocker", "support_enforcer", "precise_seam"},
                                                            "What the parts become.")},
                                         {"subtype", enum_prop({"center", "left", "right", "enforced", "blocked", "neutral"},
-                                                              "With type precise_seam: the seam's subtype, which every part named "
+                                                              "With type `precise_seam`: the seam's subtype, which every part named "
                                                               "takes. Default: a seam keeps its own, another part becomes center.")}},
                                        {"type"}),
                          kParts, false),
@@ -2187,8 +2189,8 @@ void register_object_tools(CommandCatalog& catalog)
             "object_set_auto_drop", L("Set Auto Drop"),
             "Turn Auto Drop on or off for objects, as the 3D view's Auto Drop does: those named, else the objects of what is "
             "selected in the Prepare view, an instance or a part standing for its object. With it off an object stays where "
-            "object_transform or the Move gizmo leaves it, above the bed; with it on it drops onto the bed when it is next "
-            "moved. An object's instances share it. One undo step. Reply: the objects (objects) and auto_drop.",
+            "`object_transform` or the Move gizmo leaves it, above the bed; with it on it drops onto the bed when it is next "
+            "moved. An object's instances share it. One undo step. Reply: the objects (objects) and `auto_drop`.",
             with_targets(object_schema({{"auto_drop", prop("boolean", "true lets the objects drop onto the bed, false lets them "
                                                                       "stay above it.")}},
                                        {"auto_drop"}),
@@ -2229,13 +2231,13 @@ void register_object_tools(CommandCatalog& catalog)
             "object_fix", L("Fix Model"),
             "Repair objects' meshes, as Fix Model does: those named (objects whole, or parts), the objects on a plate (plate, "
             "as Fix All on the current plate), every object (all), else what is selected in the Prepare view, an instance "
-            "standing for its object. A painted modifier is left as it is, and painting is kept only with the keep_painting "
+            "standing for its object. A painted modifier is left as it is, and painting is kept only with the `keep_painting` "
             "preference on. It opens no progress dialog and shows no notification; the call waits for the repair, during "
-            "which the window does not redraw, and job_cancel {job} cancels it: the call fails with the reply in its "
+            "which the window does not redraw, and `job_cancel {job}` cancels it: the call fails with the reply in its "
             "details, and what was repaired before the cancel, a part of the object it stopped in among them, keeps its new "
             "mesh. Refused while a gizmo is open. One undo step. Reply: what it repaired (objects, parts) and repairs, for "
-            "each in turn: changed, failed (why it could not be repaired), the object's mesh_errors_before and "
-            "mesh_errors_after (as object_list gives them), painting_removed, and cancelled: true on the one a cancel "
+            "each in turn: changed, failed (why it could not be repaired), the object's `mesh_errors_before` and "
+            "`mesh_errors_after` (as `object_list` gives them), `painting_removed`, and `cancelled: true` on the one a cancel "
             "stopped, listed when its mesh had changed by then.",
             with_targets(object_schema({{"plate", {{"type", "integer"},
                                                    {"minimum", 0},
@@ -2293,16 +2295,16 @@ void register_object_tools(CommandCatalog& catalog)
             "Prepare view (an object whole, or some of its instances, which a copy holds as one new object). count copies of "
             "each (default 1, as the dialog's field starts), added after the other objects, placed near them on the current "
             "plate; the last copies are left selected. With arrange true the current plate is then arranged, as the dialog's "
-            "Auto arrange plate after cloning does; without arrange, the dialog's choice: the auto_arrange preference. The "
+            "Auto arrange plate after cloning does; without arrange, the dialog's choice: the `auto_arrange` preference. The "
             "call waits for the arrangement. One undo step for the copies, and one for the arrangement. Reply: the new objects "
-            "(objects), what was copied (copied: its objects, or its instances where instances were selected), object_count "
+            "(objects), what was copied (copied: its objects, or its instances where instances were selected), `object_count` "
             "and arranged.",
             with_targets(object_schema({{"count", {{"type", "integer"},
                                                    {"minimum", 1},
                                                    {"maximum", 1000},
                                                    {"description", "Copies of each, up to 1000 as the Clone dialog takes. Default 1."}}},
                                         {"arrange", prop("boolean", "Arrange the current plate afterwards. Default: the Clone dialog's "
-                                                                    "choice, the auto_arrange preference.")}}),
+                                                                    "choice, the `auto_arrange` preference.")}}),
                          kObjects, false),
             [](const json& args, ToolContext& ctx) {
                 AutomationRuntime& runtime  = ctx.runtime();
@@ -2363,7 +2365,7 @@ void register_object_tools(CommandCatalog& catalog)
             "named, the parts named, every object's (all, as Reload All does, cut objects left out), else what is selected in "
             "the Prepare view. A part's file is the one it was loaded from, else the file of that name beside its object's "
             "file. A part whose file is gone is not asked for: it is listed under missing. A part keeps its settings, type, "
-            "filament and placement, and its painting when the keep_painting preference is on. Parts loaded from no file "
+            "filament and placement, and its painting when the `keep_painting` preference is on. Parts loaded from no file "
             "(primitives, the built-in models) are left out; cut objects are refused, since a reload would replace a cut part "
             "with its whole file, and so is a call while a gizmo is open. One undo step, none when every part's file is "
             "missing and nothing is reloaded. Reply: reloaded (parts), missing "
@@ -2424,12 +2426,12 @@ void register_object_tools(CommandCatalog& catalog)
             "part_replace", L("Replace 3D file"),
             "Replace a part's mesh with the mesh of a model file, as Replace 3D file does: the part named (object and part, or "
             "an object of one part), else the one selected in the Prepare view. The part keeps its settings, type, filament "
-            "and placement, and its painting when the keep_painting preference is on; with it off the painting is copied as it "
+            "and placement, and its painting when the `keep_painting` preference is on; with it off the painting is copied as it "
             "is, which fits the same mesh alone. A file that loads as more than one object or part is refused, as Replace 3D "
             "file refuses it. path names the file, so no file dialog opens; the loader may still ask, a STEP file for its mesh "
-            "options (blocked_by_dialog). Cut objects are refused, and so is a call while a gizmo is open. One undo step. "
-            "Reply: the part (parts), with its new part_id and its index, which moves when the object's parts are not in type "
-            "order (the replacement sorts them), and its object_list entry (part_info).",
+            "options (`blocked_by_dialog`). Cut objects are refused, and so is a call while a gizmo is open. One undo step. "
+            "Reply: the part (parts), with its new `part_id` and its index, which moves when the object's parts are not in type "
+            "order (the replacement sorts them), and its `object_list` entry (`part_info`).",
             with_targets(object_schema({{"path", prop("string", "Absolute path of the model file (STL, OBJ, 3MF, STEP, ...).")}}, {"path"}),
                          kParts, true),
             [](const json& args, ToolContext& ctx) {
@@ -2470,34 +2472,33 @@ void register_scene_tools(CommandCatalog& catalog)
 {
     catalog.add(inspect_tool(
         "object_list", L("List objects"),
-        "The project as the Objects panel lists it. plates: each {index, name, objects}, with the objects that have an "
-        "instance on it; outside: the objects with an instance on no plate. An object with instances on two plates is "
-        "listed under both, each time with that plate's instances. An object has its index, id, name, filament, "
-        "part_count, size (mm, of the bounding box below) and instances, the indices of its instances there. With detail, "
-        "an object has its filament, auto_drop, bounding box "
-        "(instance 0), brim ear count and overrides, the keys of the settings it overrides (settings_get target object "
-        "reads them); its mesh_errors, as the list's warning icon reads them: open_edges, manifold (no open edge), and the "
-        "loader's or a repair's counts degenerate_facets, edges_fixed, facets_removed, facets_reversed and "
-        "backwards_edges (object_fix repairs it); its instances as entries (index, offset, rotation in degrees, scale, "
-        "mirrored, bbox); its parts, one or more: parts, negative parts, modifiers, support blockers and enforcers and "
-        "precise seams (type, with subtype for a precise seam; filament: a part's own or its object's, a modifier's only when it sets "
-        "one; position, bbox and scaled_volume in mm3 on the bed, measured on instance 0; rotation_deg and scale in the "
-        "object's frame; mirrored; triangle count; mesh_volume, the unscaled mesh's mm3; painted facets: supports and "
-        "seam enforcers/blockers, fuzzy_skin, mmu per filament, texture per layer; a text part's text and font, an SVG "
-        "part's file); its height range modifiers when it has any (layer_config_ranges: [{min_z, max_z, values}], values "
-        "being a range's settings, which settings_set changes with target height_range; object_set_height_ranges takes "
-        "min_z and max_z) and its variable layer height profile when it has one (layer_height_profile: "
-        "{points, min_height, max_height}). A bbox is {min, max, size} in mm of model parts only, so unlike the panel's Size it "
+        "The project as the Objects panel lists it. `plates`: each `{index, name, objects}`, with the objects that have an "
+        "instance on it; `outside`: the objects with an instance on no plate. An object with instances on two plates is "
+        "listed under both, each time with that plate's instances. An object has its `index`, `id`, `name`, `filament`, "
+        "`part_count`, `size` (mm, of the bounding box below) and `instances`, the indices of its instances there. With "
+        "`detail`, an object has its `filament`, `auto_drop`, `bbox` (instance 0), `brim_ears` (a count) and `overrides`, "
+        "the keys of the settings it overrides (`settings_get` target object reads them); its `mesh_errors`, as the list's warning icon reads them: `open_edges`, manifold (no open edge), and the "
+        "loader's or a repair's counts `degenerate_facets`, `edges_fixed`, `facets_removed`, `facets_reversed` and "
+        "`backwards_edges` (`object_fix` repairs it); its `instances` as entries (`index`, `offset`, `rotation_deg`, `scale`, "
+        "`mirrored`, `bbox`); its `parts`, one or more: parts, negative parts, modifiers, support blockers and enforcers and "
+        "precise seams (`type`, with `subtype` for a precise seam; `filament`: a part's own or its object's, a modifier's only when it sets "
+        "one; `position`, `bbox` and `scaled_volume` in mm3 on the bed, measured on instance 0; `rotation_deg` and `scale` in the "
+        "object's frame; `mirrored`; `triangles`, a count; `mesh_volume`, the unscaled mesh's mm3; `painted` facets: supports and "
+        "seam enforcers/blockers, `fuzzy_skin`, mmu per filament, texture per layer; a text part's text and font, an SVG "
+        "part's file); its height range modifiers when it has any (`layer_config_ranges`: [`{min_z, max_z, values}`], values "
+        "being a range's settings, which `settings_set` changes with target `height_range`; `object_set_height_ranges` takes "
+        "`min_z` and `max_z`) and its variable layer height profile when it has one (`layer_height_profile`: "
+        "`{points, min_height, max_height}`). A bbox is `{min, max, size}` in mm of model parts only, so unlike the panel's Size it "
         "leaves out modifiers. An object's index numbers it in the project and a part's in its object, whatever the plate: "
-        "they are what object_select, object_transform, mouse_gesture targets and the settings tools' object and part targets take. "
+        "they are what `object_select`, `object_transform`, `mouse_gesture` targets and the settings tools' object and part targets take. "
         "Each object and part also has an id, which stays with it when a delete, split or assemble shifts the indices: pass "
-        "it as object_id / part_id to object_transform, part_add, settings_set, object_set_height_ranges and object_set_variable_layer_height "
-        "(object_ids, part_ids and instance_object_ids to object_select), and a call whose index names another one now is "
-        "refused instead of acting on it. limit and offset page the objects and total counts them, each once.",
-        object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "List this plate alone, without outside."}}},
+        "it as `object_id` / `part_id` to `object_transform`, `part_add`, `settings_set`, `object_set_height_ranges` and `object_set_variable_layer_height` "
+        "(`object_ids`, `part_ids` and `instance_object_ids` to `object_select`), and a call whose index names another one now is "
+        "refused instead of acting on it. `limit` and `offset` page the objects and `total` counts them, each once.",
+        object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "List this plate alone, without `outside`."}}},
                        {"detail", prop("boolean", "Each object whole: its instances, parts, bounding boxes, mesh errors, paint and "
                                                   "overrides (default false).")},
-                       {"screen", prop("boolean", "Add each instance's rectangle in the shown 3D view, logical pixels [x, y, w, h], "
+                       {"screen", prop("boolean", "Add each instance's rectangle in the shown 3D view, logical pixels `[x, y, w, h]`, "
                                                   "to its entry, as with detail.")},
                        {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}, {"description", "Objects, default 200."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
@@ -2506,10 +2507,10 @@ void register_scene_tools(CommandCatalog& catalog)
     NativeCommand select = with_expected_ids(mutate_tool(
         "object_select", L("Select objects"),
         "Select objects, instances or parts in the 3D view (the assemble view while it is shown, else Prepare, switching to it), as clicking them would. Give objects, "
-        "instances ([[object, instance], ...]) or parts ([[object, part], ...]); add keeps the current selection; all / "
+        "instances (`[[object, instance], ...]`) or parts (`[[object, part], ...]`); add keeps the current selection; all / "
         "none select everything or nothing, whatever else is given; none also closes the open gizmo, as Deselect All does, "
         "and all is refused while a gizmo that keeps its selection is open. The reply is the selection as "
-        "app_state.selection gives it, for all and none alone (Select All and Deselect All) too.",
+        "`app_state.selection` gives it, for all and none alone (Select All and Deselect All) too.",
         with_targets(object_schema({{"add", prop("boolean", "Add to the selection instead of replacing it.")},
                                     {"all", prop("boolean", "Select all objects.")},
                                     {"none", prop("boolean", "Clear the selection and close the open gizmo.")}}),
@@ -2588,22 +2589,22 @@ void register_scene_tools(CommandCatalog& catalog)
         "object_transform", L("Move, rotate or scale an instance or a part"),
         "Change one instance's placement, or one part's with part. translate is in mm, position where it goes (mm, as "
         "the Move panel shows it, whatever mode says), rotate in degrees about X/Y/Z, "
-        "scale a factor (one number or [x, y, z]), size [x, y, z] mm along the object's or part's own axes, plate moves "
+        "scale a factor (one number or `[x, y, z]`), size `[x, y, z]` mm along the object's or part's own axes, plate moves "
         "the instance onto that plate at the same place. mode \"relative\" (default) adds to the current placement (a scale "
-        "multiplies it), \"absolute\" sets it. An instance is dropped back onto the bed, unless its object's auto_drop is "
-        "off; drop_to_bed false lets it sink into the bed, but an object of one part left above the bed still drops. A part "
+        "multiplies it), \"absolute\" sets it. An instance is dropped back onto the bed, unless its object's `auto_drop` is "
+        "off; `drop_to_bed` false lets it sink into the bed, but an object of one part left above the bed still drops. A part "
         "moves as the "
         "Object manipulation panel moves it: translate and rotate along the bed's axes, measured on instance 0, scale and "
         "size along its own axes; every instance shows the change, and Auto Drop may lower the object afterwards. The "
         "instance is the object's instance (default 0) and the part one of its parts; with no object, the instance or part "
         "selected in the Prepare view, or instance 0 of the object selected. One undo step. Reply: the instance's offset, "
-        "scale and plate, or the part's size along its own axes and its object_list entry (part_info), and what it moved "
+        "scale and plate, or the part's size along its own axes and its `object_list` entry (`part_info`), and what it moved "
         "(instances or parts).",
         with_targets(object_schema({{"translate", array_prop({{"type", "number"}}, "[x, y, z] mm")},
-                                    {"position", array_prop({{"type", "number"}}, "[x, y, z] mm: the position to move to. Not with translate.")},
-                                    {"rotate", array_prop({{"type", "number"}}, "[x, y, z] degrees; relative only for a part")},
-                                    {"scale", {{"type", {"number", "array"}}, {"description", "Factor or [x, y, z] factors."}}},
-                                    {"size", array_prop({{"type", {"number", "null"}}}, "[x, y, z] mm, null keeps an axis; one number "
+                                    {"position", array_prop({{"type", "number"}}, "`[x, y, z]` mm: the position to move to. Not with translate.")},
+                                    {"rotate", array_prop({{"type", "number"}}, "`[x, y, z]` degrees; relative only for a part")},
+                                    {"scale", {{"type", {"number", "array"}}, {"description", "Factor or `[x, y, z]` factors."}}},
+                                    {"size", array_prop({{"type", {"number", "null"}}}, "`[x, y, z]` mm, null keeps an axis; one number "
                                                                                          "and two nulls keep the proportions. Not with scale.")},
                                     {"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Move the instance to this plate."}}},
                                     {"mode", enum_prop({"relative", "absolute"}, "Default relative.")},
@@ -2653,19 +2654,19 @@ void register_scene_tools(CommandCatalog& catalog)
         "menu puts it (a shape beside the object, a file at its coordinates relative to the object's first part) unless "
         "position is given. Like the menu, adding a shape folds the instance's rotation and scale into the object's parts "
         "(the instance's scale then reads 1). Refused for an object with several instances: add parts first. A STEP file "
-        "may ask for mesh options (blocked_by_dialog). The object is the one named, else the one selected in the Prepare "
+        "may ask for mesh options (`blocked_by_dialog`). The object is the one named, else the one selected in the Prepare "
         "view, or the object of the selected instance or part. The new part is selected; one undo step. Reply: its index, "
-        "which is not always the last (parts are ordered by type), the object's part count and the part's object_list entry "
-        "(part_info), and the object (objects).",
+        "which is not always the last (parts are ordered by type), the object's part count and the part's `object_list` entry "
+        "(`part_info`), and the object (objects).",
         with_targets(object_schema({{"type", enum_prop({"part", "negative", "modifier", "support_blocker", "support_enforcer", "precise_seam"},
                                                        "What the new part is.")},
                                     {"shape", enum_prop({"cube", "cylinder", "sphere", "cone", "disc", "torus"}, "A primitive shape.")},
-                                    {"size", array_prop({{"type", "number"}}, "mm, the Primitive size dialog's fields: cube [x, y, z]; "
-                                                                              "cylinder, cone, disc [diameter, height]; sphere "
-                                                                              "[diameter]; torus [inner diameter, tube diameter]. "
+                                    {"size", array_prop({{"type", "number"}}, "mm, the Primitive size dialog's fields: cube `[x, y, z]`; "
+                                                                              "cylinder, cone, disc `[diameter, height]`; sphere "
+                                                                              "`[diameter]`; torus `[inner diameter, tube diameter]`. "
                                                                               "Default: the built-in size.")},
                                     {"path", prop("string", "Instead of shape: absolute path of a model file (STL, OBJ, 3MF, STEP, ...).")},
-                                    {"position", array_prop({{"type", "number"}}, "[x, y, z] mm on the bed for the part's centre, on "
+                                    {"position", array_prop({{"type", "number"}}, "`[x, y, z]` mm on the bed for the part's centre, on "
                                                                                   "instance 0, as the Move panel shows it.")}},
                                    {"type"}),
                      kObjects, true),
@@ -2690,11 +2691,11 @@ void register_scene_tools(CommandCatalog& catalog)
     NativeCommand arrange = reaching({"start_arrange"}, mutate_tool(
         "object_arrange", L("Arrange objects or fill the bed"),
         "Arrange the objects of every unlocked plate as the toolbar's Arrange does, or of one plate (plates: an index or "
-        "\"current\") as its Arrange icon does. With fill_object, fill that object's plate with more of it instead, as Fill "
-        "bed with instances (or copies, by fill_with) does (reply: added, how many). spacing, rotate, align_y and multi_material are the Arrange options "
+        "\"current\") as its Arrange icon does. With `fill_object`, fill that object's plate with more of it instead, as Fill "
+        "bed with instances (or copies, by `fill_with`) does (reply: added, how many). spacing, rotate, `align_y` and `multi_material` are the Arrange options "
         "panel's settings: the values given stay in the panel, so later arranges use them too. Waits for the arrangement "
         "(a longer one replies with a job). Reply: the settings in force, instances left off every plate, plates the "
-        "all-plates arrange skipped and the job's notifications. An arrange may reorder objects, so object_list again. "
+        "all-plates arrange skipped and the job's notifications. An arrange may reorder objects, so `object_list` again. "
         "One undo step. Called with no arguments it is Auto-Arrange, the toolbar's Arrange with the panel's settings, and "
         "waits and replies as any other call.",
         object_schema({{"plates", {{"type", {"string", "integer"}}, {"description", "\"all\" (default), \"current\" or a plate index."}}},
@@ -2753,14 +2754,14 @@ void register_scene_tools(CommandCatalog& catalog)
         "Slice the current plate, all plates, or one plate by index, the way the toolbar's Slice button does, and wait for "
         "the result (or reply with a job id when it takes longer than the reply budget). Each requested plate reports ok, "
         "error, cancelled, empty or skipped; the whole operation is superseded when someone else started a slice or "
-        "edited the project while it ran. An ok plate has time_s (silent_time_s when the printer estimates it), "
-        "filament_m and filament_g including flush, filament_cost, layers, max_z, filament_changes, and filaments[i] for "
-        "slot i+1 with m, g and the grams of model_g, support_g, flush_g and tower_g. Other changes are refused until it "
-        "finishes; job_cancel stops it. The Preview tab shows the result, as after the Slice button; preview: true, alone "
+        "edited the project while it ran. An ok plate has `time_s` (`silent_time_s` when the printer estimates it), "
+        "`filament_m` and `filament_g` including flush, `filament_cost`, layers, `max_z`, `filament_changes`, and filaments[i] for "
+        "slot i+1 with m, g and the grams of `model_g`, `support_g`, `flush_g` and `tower_g`. Other changes are refused until it "
+        "finishes; `job_cancel` stops it. The Preview tab shows the result, as after the Slice button; `preview: true`, alone "
         "or with plates \"all\", is the call of Slice and Preview or Slice All Plates, whose pick starts the slice as a job "
         "and shows its result as a notification.",
         object_schema({{"plates", {{"type", {"string", "integer"}}, {"description", "\"current\" (default), \"all\", or a plate index."}}},
-                       {"timeout_s", {{"type", "integer"}, {"minimum", 10}, {"maximum", 7200}, {"description", "Stop waiting after this long (default 1800): the call fails, and the slice goes on unless job_cancel stops it."}}},
+                       {"timeout_s", {{"type", "integer"}, {"minimum", 10}, {"maximum", 7200}, {"description", "Stop waiting after this long (default 1800): the call fails, and the slice goes on unless `job_cancel` stops it."}}},
                        {"preview", prop("boolean", "Show the Preview tab, as every slice does: the argument of the Slice and "
                                                    "Preview and Slice All Plates actions.")}}),
         [](const json& args, ToolContext& ctx) {
@@ -2892,8 +2893,8 @@ void register_scene_tools(CommandCatalog& catalog)
         "Stop the running operation: a slice or G-code export, as the slicing progress's cancel button does, or a "
         "background job an MCP call started (an arrange, orient or fill bed). Its job then reports cancelled; a background "
         "job keeps other changes out until it has really stopped. With job, only that job is stopped: the running "
-        "operation, an object_fix, a script_run run or a recording_encode. Allowed while an operation holds the project. Reply: "
-        "was_running, and job when one was stopped.",
+        "operation, an `object_fix`, a `script_run` run or a `recording_encode`. Allowed while an operation holds the project. Reply: "
+        "`was_running`, and job when one was stopped.",
         object_schema({{"job", prop("string", "The operation's job to cancel, e.g. \"j12\".")}}),
         [](const json& args, ToolContext& ctx) {
             AutomationRuntime& runtime = ctx.runtime();

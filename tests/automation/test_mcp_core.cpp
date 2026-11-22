@@ -1,6 +1,8 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "automation_test_utils.hpp"
 
@@ -37,6 +39,7 @@
 using namespace Slic3r::GUI;
 using namespace Slic3r::GUI::Mcp;
 using nlohmann::json;
+using Catch::Matchers::ContainsSubstring;
 using Slic3r::GUI::CommandCatalog;
 using Slic3r::GUI::CommandFn;
 using Slic3r::GUI::NativeCommand;
@@ -386,10 +389,42 @@ TEST_CASE("blocked_by_dialog is reported after the soft budget when the probe se
     const ToolResult envelope = h.call("open_modal");
     CHECK(envelope.data["status"] == "blocked_by_dialog");
     CHECK(envelope.data["dialogs"][0]["title"] == "Unsaved changes");
+    // A command without silent is told to give the dialog's answer as an argument next time.
+    CHECK_THAT(envelope.data["note"].get<std::string>(), ContainsSubstring("Next time, give the dialog's answer as an argument"));
     release = true;
     auto result = h.jobs.wait(envelope.data["job"], 3000ms);
     REQUIRE(result.has_value());
     CHECK(result->data["closed"] == true);
+}
+
+TEST_CASE("a blocked call of a command that takes silent is told to pass it next time", "[Mcp]")
+{
+    Harness           h;
+    std::atomic<bool> release{false};
+    NativeCommand     asks = tool("asks", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        ctx.run_ui([&] {
+            h.modal_loop(release, json::array({{{"title", "Primitive size"}}}));
+            return json();
+        });
+        return ToolResult::ok({{"closed", true}});
+    });
+    asks.input_schema = {{"type", "object"}, {"properties", {{"silent", {{"type", "boolean"}, {"enum", {true}}}}}}};
+    h.registry.add(std::move(asks));
+    h.start();
+
+    const ToolResult asked = h.call("asks");
+    REQUIRE(asked.data["status"] == "blocked_by_dialog");
+    CHECK_THAT(asked.data["note"].get<std::string>(), ContainsSubstring("Next time, `silent: true` runs it without asking."));
+    release = true;
+    REQUIRE(h.jobs.wait(asked.data["job"], 3000ms).has_value());
+
+    // A call that gave silent and still asks is of a command whose dialog always opens: no advice.
+    release                 = false;
+    const ToolResult always = h.call("asks", {{"silent", true}});
+    REQUIRE(always.data["status"] == "blocked_by_dialog");
+    CHECK(always.data["note"].get<std::string>().find("Next time") == std::string::npos);
+    release = true;
+    REQUIRE(h.jobs.wait(always.data["job"], 3000ms).has_value());
 }
 
 TEST_CASE("a dialog whose answer was queued as it opened does not hold the call", "[Mcp]")

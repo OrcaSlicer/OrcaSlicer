@@ -376,8 +376,8 @@ struct ManualBuilder
     bool                 classify;
     bool                 complete = true;
 
-    // The value `X` of "Type X:" or "Target X:" that starts `description`, when it is one of the command's own `type`
-    // or `target` values: the parameter goes with it.
+    // The value `X` of "Type X:" or "Target X:" that starts `description`, X marked as code or not, when it is one of
+    // the command's own `type` or `target` values: the parameter goes with it.
     json goes_with(const std::string& description) const
     {
         for (const char* arg : {"type", "target"}) {
@@ -389,7 +389,9 @@ struct ManualBuilder
             const std::size_t colon = description.find(':', lead.size());
             if (colon == std::string::npos)
                 continue;
-            const std::string value = description.substr(lead.size(), colon - lead.size());
+            std::string value = description.substr(lead.size(), colon - lead.size());
+            if (value.size() > 2 && value.front() == '`' && value.back() == '`')
+                value = value.substr(1, value.size() - 2);
             // A plugin's schema may give the property as a boolean subschema, which lists no values.
             const auto props = command.input_schema.find("properties");
             if (props == command.input_schema.end() || !props->is_object())
@@ -651,8 +653,8 @@ void register_api_tools(CommandCatalog& catalog, const std::string& design_index
         "tool_list", L("List more tools"),
         "The commands the tool list does not show, each with what it does: the Design tab's (group Design, with the CAD "
         "feature on, each under its heading), the menu items that take no arguments (in their places' groups), and the "
-        "operations plugins offer (group Plugins, plugin.<plugin>.<name>). The reply says how to read a command's manual "
-        "and how to run one. group keeps one group's: a group whose commands the tool list all shows "
+        "operations plugins offer (group Plugins, `plugin.<plugin>.<name>`). The reply says how to read a command's manual "
+        "and how to run one. `group` keeps one group's: a group whose commands the tool list all shows "
         "gives none and a note, and Design while this run leaves its commands out is refused saying why." +
             design_index,
         object_schema({{"group", prop("string", "Only this group's commands, its whole name in any case: Tools and actions; The "
@@ -660,8 +662,8 @@ void register_api_tools(CommandCatalog& catalog, const std::string& design_index
                                                 "Printers and prints; Plugins, with the operations plugins offer; View and "
                                                 "windows; Recordings, replays and scripts; Driving the GUI; or Design (the Design "
                                                 "tab's, with the CAD feature on). A command outside Design is in the group of the "
-                                                "place its name starts with (object_delete in Objects), but for window_screenshot "
-                                                "and window_save_screenshot, which are in Recordings, replays and scripts. A name "
+                                                "place its name starts with (`object_delete` in Objects), but for `window_screenshot` "
+                                                "and `window_save_screenshot`, which are in Recordings, replays and scripts. A name "
                                                 "no command's group has is refused with the groups there are, and Design, "
                                                 "when this run leaves the Design tab's commands out, with the reason.")}}),
         [](const json& args, ToolContext&) {
@@ -671,12 +673,12 @@ void register_api_tools(CommandCatalog& catalog, const std::string& design_index
     catalog.add(inspect_tool(
         "tool_describe", L("Describe a tool"),
         "One command's manual, listed or not: a tool, a Design tab command, a menu item that takes no arguments, or an "
-        "operation a plugin offers (plugin.<plugin>.<name>). It gives the description; every parameter, at every depth, "
+        "operation a plugin offers (`plugin.<plugin>.<name>`). It gives the description; every parameter, at every depth, "
         "with its type, whether the schema requires it, its default, its allowed values or range, the type or target it "
-        "goes with, and values_from, the tools that list a value the schema can't; the schema's rules as sentences; the "
-        "Speed Dial items that run it, with their arguments; its examples; how to call it; and access, its read-only, "
+        "goes with, and `values_from`, the tools that list a value the schema can't; the schema's rules as sentences; the "
+        "Speed Dial items that run it, with their arguments; its examples; how to call it; and `access`, its read-only, "
         "destructive, idempotent and open-world labels. What a handler requires or supplies beyond the schema is in the "
-        "description. A part of a schema it can't express is kept raw: complete is false and input_schema is the whole schema.",
+        "description. A part of a schema it can't express is kept raw: `complete` is false and `input_schema` is the whole schema.",
         object_schema({{"tool", prop("string", "A command's name.")}}, {"tool"}),
         [](const json& args, ToolContext&) {
             return ToolResult::ok(describe_command(NativeCommands::instance(), arg_string(args, "tool")));
@@ -687,7 +689,7 @@ void register_api_tools(CommandCatalog& catalog, const std::string& design_index
     NativeCommand call = mutate_tool(
         "tool_call", L("Call a tool or plugin operation"),
         "Call any command by name with its arguments: a tool, or one the tool list does not show, a menu item that takes no "
-        "arguments, a Design tab command or an operation a plugin offers (tool_list lists them; tool_describe gives any "
+        "arguments, a Design tab command or an operation a plugin offers (`tool_list` lists them; `tool_describe` gives any "
         "command's manual). It runs and is recorded as that command's own call, with its guards and reply budget.",
         object_schema({{"tool", prop("string", "The command to call.")},
                        {"args", {{"type", "object"}, {"description", "Its arguments."}}}},

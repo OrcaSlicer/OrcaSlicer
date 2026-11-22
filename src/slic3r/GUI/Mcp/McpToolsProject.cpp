@@ -402,10 +402,10 @@ void register_project_tools(CommandCatalog& catalog)
         "project_open", L("Open a project"),
         "Open a project (.3mf) by absolute path, without a file dialog, replacing the current project, with the settings it "
         "was saved with whatever the Preferences' Load behavior says; when the current project has unsaved changes that "
-        "fails, changing nothing, unless discard_changes. A G-code file replaces the project too, to show its toolpaths: "
-        "with unsaved changes the app asks first (blocked_by_dialog), whatever discard_changes says. project_import adds "
+        "fails, changing nothing, unless `discard_changes`. A G-code file replaces the project too, to show its toolpaths: "
+        "with unsaved changes the app asks first (`blocked_by_dialog`), whatever `discard_changes` says. `project_import` adds "
         "models, or a project's objects alone, to the current project. Called with no arguments it is Load Project: the "
-        "Open dialog asks for the file (blocked_by_dialog), after asking about the unsaved changes. Reply: opened (project "
+        "Open dialog asks for the file (`blocked_by_dialog`), after asking about the unsaved changes. Reply: opened (project "
         "or gcode), and objects, names and plates for a project, path for a G-code.",
         object_schema({{"path", prop("string", "Absolute path of a .3mf project, or of a G-code file (.gcode, .bgcode).")},
                        {"discard_changes", prop("boolean", "Drop the project's unsaved changes rather than fail when a project "
@@ -450,13 +450,13 @@ void register_project_tools(CommandCatalog& catalog)
     NativeCommand import_ = reaching({"import_models"}, mutate_tool(
         "project_import", L("Import models"),
         "Add the models of files (STL, 3MF, STEP, OBJ, AMF, SVG...) to the current project by absolute path, without a file "
-        "dialog, as one undo step; a .3mf adds its objects only, not its settings (project_open opens it as a project). A "
+        "dialog, as one undo step; a .3mf adds its objects only, not its settings (`project_open` opens it as a project). A "
         ".zip archive gives the model files it holds (STL, OBJ, AMF, 3MF, STEP; a .3mf its objects only, as above), as Import "
         "ZIP Archive does: those entries names, by their paths in the archive, else all of them, in place of its file list; "
         "an entry the archive lacks is refused with the names it has, before anything is imported. Importing can open a "
-        "dialog (STEP mesh options, for instance); the reply is then blocked_by_dialog. Called with no arguments it is "
-        "Import 3MF/STL/STEP/SVG/OBJ/AMF, and with archive: true alone Import ZIP Archive: a file dialog asks for the files, "
-        "or for the archive and then which of its files to import (blocked_by_dialog). Reply: opened (models), added (how "
+        "dialog (STEP mesh options, for instance); the reply is then `blocked_by_dialog`. Called with no arguments it is "
+        "Import 3MF/STL/STEP/SVG/OBJ/AMF, and with `archive: true` alone Import ZIP Archive: a file dialog asks for the files, "
+        "or for the archive and then which of its files to import (`blocked_by_dialog`). Reply: opened (models), added (how "
         "many objects), archives (each archive's path and the entries taken) and the project's objects, names and plates.",
         object_schema({{"paths", array_prop({{"type", "string"}}, "Absolute paths of model files, or of a .zip archive of them.")},
                        {"entries", {{"type", "array"},
@@ -532,14 +532,14 @@ void register_project_tools(CommandCatalog& catalog)
     NativeCommand project_new = reaching({"new_project"}, mutate_tool(
         "project_new", L("New Project"),
         "Start a new, empty project. Called with no arguments, it asks as New Project does, about the unsaved changes "
-        "if there are any: the reply is then blocked_by_dialog, and dialog_answer answers it. With arguments, or silent: "
-        "true, it asks nothing: it fails, changing nothing, when the current project has unsaved changes, unless "
-        "discard_changes. The presets' unsaved changes carry over to the new project unless preset_changes is \"discard\", as "
+        "if there are any: the reply is then `blocked_by_dialog`, and `dialog_answer` answers it. With arguments, or `silent: "
+        "true`, it asks nothing: it fails, changing nothing, when the current project has unsaved changes, unless "
+        "`discard_changes`. The presets' unsaved changes carry over to the new project unless `preset_changes` is \"discard\", as "
         "New Project's prompt offers. Reply, with arguments: objects, names, plates; when presets had or have unsaved "
         "changes, discarded and modified list per preset the keys dropped and the keys still unsaved. With no arguments "
         "the reply is ran and level, also once a prompt is answered, whatever the answer: Cancel keeps the project.",
         object_schema({{"discard_changes", prop("boolean", "Drop the project's unsaved changes rather than fail; for the "
-                                                           "presets', see preset_changes.")},
+                                                           "presets', see `preset_changes`.")},
                        {"preset_changes", enum_prop({"keep", "discard"}, "The presets' unsaved changes, not the project's: keep "
                                                                   "them for the new project (default) or drop them.")}}),
         [](const json& args, ToolContext& ctx) {
@@ -574,19 +574,19 @@ void register_project_tools(CommandCatalog& catalog)
     NativeCommand calibration = mutate_tool(
         "calibration_generate_test", L("Generate a calibration test"),
         "Generate a Calibration menu test as its dialog's OK does: a new project named after the test with the test "
-        "model, and the process, filament and printer presets changed as the test needs (presets_changed). The test prints "
-        "with filament_slot, a physical filament, on the extruder the filament map gives it, as the dialog's filament list "
+        "model, and the process, filament and printer presets changed as the test needs (`presets_changed`). The test prints "
+        "with `filament_slot`, a physical filament, on the extruder the filament map gives it, as the dialog's filament list "
         "picks one, so the filament tab is pointed at that slot's preset. Omitted parameters take the dialog's defaults "
-        "(pressure advance's by the printer's extruder type), except that filament_slot defaults to 1 where the dialog starts "
+        "(pressure advance's by the printer's extruder type), except that `filament_slot` defaults to 1 where the dialog starts "
         "on the filament the filament tab edits; temperatures are clamped to 155-500 °C and rounded "
-        "down to 5 °C. Fails, changing nothing, when the project has unsaved changes (pass discard_changes) or presets do "
-        "(pass preset_changes). Called with test alone it opens that test's dialog, as the Calibration menu does "
-        "(blocked_by_dialog), and the dialog's OK runs the test; silent: true with test alone runs it with the dialog's "
+        "down to 5 °C. Fails, changing nothing, when the project has unsaved changes (pass `discard_changes`) or presets do "
+        "(pass `preset_changes`). Called with test alone it opens that test's dialog, as the Calibration menu does "
+        "(`blocked_by_dialog`), and the dialog's OK runs the test; `silent: true` with test alone runs it with the dialog's "
         "defaults. Reply: test, project, params (the values used, which the "
-        "journal records), objects, names, plates, presets_changed (its filament names the filament_slot, and on a printer "
-        "with several extruders the extruder, 1-based, where the filament map decides it), result_keys (where the measured value belongs), "
-        "warnings, adjusted (vfa), and discarded and modified as project_new. Then plate_slice and project_export. To save "
-        "a measured value: project_new {discard_changes, preset_changes: \"discard\"}, settings_set the value, preset_save.",
+        "journal records), objects, names, plates, `presets_changed` (its filament names the `filament_slot`, and on a printer "
+        "with several extruders the extruder, 1-based, where the filament map decides it), `result_keys` (where the measured value belongs), "
+        "warnings, adjusted (vfa), and discarded and modified as `project_new`. Then `plate_slice` and `project_export`. To save "
+        "a measured value: `project_new {discard_changes, preset_changes: \"discard\"}`, `settings_set` the value, `preset_save`.",
         object_schema(
             {{"test", enum_prop({"temperature", "max_volumetric", "pressure_advance", "flow_ratio", "retraction", "vfa", "cornering",
                                  "input_shaping_freq", "input_shaping_damp"},
@@ -596,31 +596,31 @@ void register_project_tools(CommandCatalog& catalog)
                                 {"description", "The physical filament (1-based slot) the test prints with, as the dialog's "
                                                 "filament list offers them; a mixed filament is refused. Default 1."}}},
              {"method", enum_prop({"tower", "line", "pattern", "pass1", "pass2", "yolo", "yolo_perfectionist"},
-                                  "pressure_advance: tower (default), line or pattern; flow_ratio: pass1, pass2, yolo (default) or "
-                                  "yolo_perfectionist.")},
-             {"start", prop("number", "Start of the swept value: °C, mm³/s, PA, mm, mm/s (vfa), Hz (input_shaping_freq), "
-                                      "damping (input_shaping_damp), junction deviation mm or jerk mm/s (cornering).")},
+                                  "`pressure_advance`: tower (default), line or pattern; `flow_ratio`: pass1, pass2, yolo (default) or "
+                                  "`yolo_perfectionist`.")},
+             {"start", prop("number", "Start of the swept value: °C, mm³/s, PA, mm, mm/s (vfa), Hz (`input_shaping_freq`), "
+                                      "damping (`input_shaping_damp`), junction deviation mm or jerk mm/s (cornering).")},
              {"end", prop("number", "End of the swept value.")},
-             {"step", prop("number", "Step: max_volumetric, pressure_advance, retraction, vfa.")},
-             {"start_y", prop("number", "input_shaping_freq: start of the Y range; default the X one.")},
-             {"end_y", prop("number", "input_shaping_freq: end of the Y range; default the X one.")},
-             {"damping", prop("number", "input_shaping_freq: the damping ratio printed with.")},
-             {"freq_x", prop("number", "input_shaping_damp: the X frequency, Hz.")},
-             {"freq_y", prop("number", "input_shaping_damp: the Y frequency, Hz; default freq_x.")},
-             {"shaper_type", prop("string", "Input shaping: an input_shaping_type the printer's firmware offers; default the first.")},
+             {"step", prop("number", "Step: `max_volumetric`, `pressure_advance`, retraction, vfa.")},
+             {"start_y", prop("number", "`input_shaping_freq`: start of the Y range; default the X one.")},
+             {"end_y", prop("number", "`input_shaping_freq`: end of the Y range; default the X one.")},
+             {"damping", prop("number", "`input_shaping_freq`: the damping ratio printed with.")},
+             {"freq_x", prop("number", "`input_shaping_damp`: the X frequency, Hz.")},
+             {"freq_y", prop("number", "`input_shaping_damp`: the Y frequency, Hz; default `freq_x`.")},
+             {"shaper_type", prop("string", "Input shaping: an `input_shaping_type` the printer's firmware offers; default the first.")},
              {"test_model", enum_prop({"ringing_tower", "fast_tower", "scv_v2", "standard", "overhang"},
-                                      "Input shaping: ringing_tower (default) or fast_tower; cornering: also scv_v2; temperature on "
+                                      "Input shaping: `ringing_tower` (default) or `fast_tower`; cornering: also `scv_v2`; temperature on "
                                       "belt printers: standard (default) or overhang.")},
-             {"print_numbers", prop("boolean", "pressure_advance line: print the values (default true).")},
+             {"print_numbers", prop("boolean", "`pressure_advance` line: print the values (default true).")},
              {"accelerations", array_prop({{"type", "integer"}, {"minimum", 1}},
-                                          "pressure_advance pattern: one test per acceleration and speed; default the process's.")},
-             {"speeds", array_prop({{"type", "integer"}, {"minimum", 1}}, "pressure_advance pattern: default an optimal speed.")},
-             {"top_surface_pattern", enum_prop({"archimedeanchords", "monotonic"}, "flow_ratio (default archimedeanchords).")},
+                                          "`pressure_advance` pattern: one test per acceleration and speed; default the process's.")},
+             {"speeds", array_prop({{"type", "integer"}, {"minimum", 1}}, "`pressure_advance` pattern: default an optimal speed.")},
+             {"top_surface_pattern", enum_prop({"archimedeanchords", "monotonic"}, "`flow_ratio` (default archimedeanchords).")},
              {"auto_scale", prop("boolean", "temperature, vfa: scale the model to the nozzle (default true).")},
              {"auto_adjust", prop("boolean", "vfa: lower the layer height, else the end speed, to stay within the filament's "
-                                             "maximum volumetric speed (default true); only with auto_scale.")},
+                                             "maximum volumetric speed (default true); only with `auto_scale`.")},
              {"discard_changes", prop("boolean", "Drop the project's unsaved changes rather than fail; for the presets', "
-                                                 "see preset_changes.")},
+                                                 "see `preset_changes`.")},
              {"preset_changes", enum_prop({"keep", "discard"}, "The presets' unsaved changes, not the project's: keep them for the "
                                                         "test or drop them first. Required when presets are modified.")}},
             {"test"}),
@@ -790,13 +790,13 @@ void register_project_tools(CommandCatalog& catalog)
     NativeCommand save = reaching({"save_project_as"}, mutate_tool(
         "project_save", L("Save Project"),
         "Save the project. Called with no arguments, it saves as Save Project does: to the project's file (reply: ran, "
-        "level), or, when it has none, through a file dialog (blocked_by_dialog; a native picker needs dialog_auto_answer "
-        "registered first); with save_as: true alone, as Save Project As does, always through the file dialog. With path, "
+        "level), or, when it has none, through a file dialog (`blocked_by_dialog`; a native picker needs `dialog_auto_answer` "
+        "registered first); with `save_as: true` alone, as Save Project As does, always through the file dialog. With path, "
         "it saves a .3mf there without the file dialog, and the file becomes the project's (reply: path, bytes); a name "
-        "ending in .gcode.3mf is refused (project_export writes that). Either way the save can still open a dialog "
-        "(blocked_by_dialog): a warning when settings name a plugin OrcaSlicer cannot identify, or an error when the file "
+        "ending in .gcode.3mf is refused (`project_export` writes that). Either way the save can still open a dialog "
+        "(`blocked_by_dialog`): a warning when settings name a plugin OrcaSlicer cannot identify, or an error when the file "
         "cannot be written. A save that writes nothing, its file dialog or that warning cancelled or the write failed, "
-        "fails with project_not_saved, and a file already there stays as it was.",
+        "fails with `project_not_saved`, and a file already there stays as it was.",
         object_schema({{"path", prop("string", "Absolute .3mf path.")},
                        {"overwrite", prop("boolean", "Replace an existing file.")},
                        {"save_as", prop("boolean", "true, alone: ask for the file in the save dialog, as Save Project As does. With "
@@ -837,7 +837,7 @@ void register_project_tools(CommandCatalog& catalog)
     });
     // Every call but the two actions' requires path, and a call with path skips the file dialog: silent has nothing to add.
     save.input_schema["properties"]["silent"]["description"] =
-        "Goes with path, which every call but {} and {save_as: true} requires, and adds nothing to it: a call with path skips "
+        "Goes with path, which every call but {} and `{save_as: true}` requires, and adds nothing to it: a call with path skips "
         "the file dialog already.";
     catalog.add(save);
 
@@ -846,23 +846,23 @@ void register_project_tools(CommandCatalog& catalog)
         with_expected_ids(mutate_tool(
         "project_export", L("Export"),
         "Write the project to a file without a dialog. gcode: the plate's G-code (slice first; it is written in the "
-        "background, and the call returns once it is). sliced_3mf: the sliced plate, or all plates, as .gcode.3mf (slice "
+        "background, and the call returns once it is). `sliced_3mf`: the sliced plate, or all plates, as .gcode.3mf (slice "
         "first: a plate that is not sliced is written without G-code). 3mf: the model without slicing data. stl and drc "
-        "(Draco): the objects as one file, or with per_object each in a file of its own, named after it, into the folder "
-        "path names; every object of every plate, or those objects names. toolpaths_obj: the toolpaths the Preview shows, "
+        "(Draco): the objects as one file, or with `per_object` each in a file of its own, named after it, into the folder "
+        "path names; every object of every plate, or those objects names. `toolpaths_obj`: the toolpaths the Preview shows, "
         "as an OBJ, refused while it shows none (slice the plate and show the Preview first). Without format, the path's "
         "extension (.gcode, .gcode.3mf, .3mf, .stl, .drc, .obj) says which. Called with exactly the arguments of one of the "
-        "File > Export menu items (format alone, sliced_3mf with plates \"all\", stl or drc with per_object), it asks for the file "
-        "or folder in the dialog that item opens (blocked_by_dialog). A file per object of a project with no objects, and the "
+        "File > Export menu items (format alone, `sliced_3mf` with plates \"all\", stl or drc with `per_object`), it asks for the file "
+        "or folder in the dialog that item opens (`blocked_by_dialog`). A file per object of a project with no objects, and the "
         "toolpaths while the Preview shows none, are refused in either form. Reply: path and bytes; for gcode, path and "
-        "export (ok, or superseded with a note when the project changed while it was written); for per_object, path and "
+        "export (ok, or superseded with a note when the project changed while it was written); for `per_object`, path and "
         "files (each file written); for stl and drc, objects (those written).",
         with_targets(object_schema({{"format", enum_prop({"gcode", "sliced_3mf", "3mf", "stl", "drc", "toolpaths_obj"},
                                                          "What to write; default from the path's extension.")},
-                                    {"path", prop("string", "Absolute output path: the file, or with per_object an existing folder.")},
+                                    {"path", prop("string", "Absolute output path: the file, or with `per_object` an existing folder.")},
                                     {"plates", {{"type", {"string", "integer"}},
                                                 {"description", "\"current\" (default), a plate index, which is selected first and is "
-                                                                "the plate gcode and sliced_3mf write, or \"all\" (sliced_3mf only)."}}},
+                                                                "the plate gcode and `sliced_3mf` write, or \"all\" (`sliced_3mf` only)."}}},
                                     {"per_object", prop("boolean", "stl and drc: a file per object, into a folder. Default false.")},
                                     {"overwrite", prop("boolean", "Replace an existing file.")}},
                                    {"path"}),

@@ -1813,10 +1813,11 @@ TEST_CASE("a gizmo command's acting arguments are schema properties its descript
             CHECK(command->description.find("Acts from arguments:") == std::string::npos);
             continue;
         }
+        // Each marked as code, as descriptions mark argument names.
         std::string names;
         for (const std::string& name : acting) {
             CHECK(command->input_schema.at("properties").contains(name));
-            names += (names.empty() ? "" : ", ") + name;
+            names += (names.empty() ? "`" : ", `") + name + "`";
         }
         CHECK_THAT(command->description, ContainsSubstring("Acts from arguments: " + names + "."));
     }

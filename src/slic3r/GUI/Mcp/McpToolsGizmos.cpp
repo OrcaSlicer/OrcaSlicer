@@ -98,9 +98,9 @@ json open_on(const json& args, EType type, const GizmoTargets& reading)
 
 // What every gizmo command's description says of working the open gizmo.
 const char* const kWorkTheGizmo =
-    " Read the gizmo's panel with widget_list {include_imgui: true}, set its fields with widget_set_value, press its "
-    "buttons with widget_click, and click or drag on the model with mouse_gesture; object_select {none: true} closes it. "
-    "The gizmo already open on the same target stays open. Reply: gizmo (its name, as app_state.gizmo gives it), active, "
+    " Read the gizmo's panel with `widget_list {include_imgui: true}`, set its fields with `widget_set_value`, press its "
+    "buttons with `widget_click`, and click or drag on the model with `mouse_gesture`; `object_select {none: true}` closes it. "
+    "The gizmo already open on the same target stays open. Reply: gizmo (its name, as `app_state.gizmo` gives it), active, "
     "and what is selected (objects, instances, parts).";
 
 // Whether a call of `command` gives one of its acting arguments, and so does the job with no gizmo.
@@ -291,9 +291,9 @@ void register_gizmo_tools(CommandCatalog& catalog)
     NativeCommand paint = with_expected_ids(mutate_tool(
         "object_paint", L("Paint on an object"),
         std::string("Open a painting gizmo on an object's instance, the first unless instance is given: type supports opens "
-                    "Support Painting, seam Seam Painting, color Color Painting (two filaments or more) and fuzzy_skin Paint-on "
+                    "Support Painting, seam Seam Painting, color Color Painting (two filaments or more) and `fuzzy_skin` Paint-on "
                     "fuzzy skin. Painting is left to the gizmo: pick a tool and a brush in its panel and paint with "
-                    "mouse_gesture strokes on the model. With no target, it opens on the selection as it is.") +
+                    "`mouse_gesture` strokes on the model. With no target, it opens on the selection as it is.") +
             kWorkTheGizmo,
         with_targets(object_schema({{"type", enum_prop(paint_types, "The painting gizmo to open.")}}, {"type"}), kObjects | kInstances, true),
         [](const json& args, ToolContext& ctx) {
@@ -315,7 +315,7 @@ void register_gizmo_tools(CommandCatalog& catalog)
     catalog.add(gizmo_command(
         "object_measure", L("Measure"),
         "Open the Measure gizmo on objects, else on the selection as it is (a part selected is measured as a part). "
-        "Measuring is left to the gizmo: click two features of the model with mouse_gesture (Shift-click for a point) and "
+        "Measuring is left to the gizmo: click two features of the model with `mouse_gesture` (Shift-click for a point) and "
         "read the results in its panel.",
         with_targets(object_schema({}), kObjects, false), EType::Measure, {kObjects, false, nullptr},
         json::parse(R"json([
@@ -335,7 +335,7 @@ void register_gizmo_tools(CommandCatalog& catalog)
     catalog.add(gizmo_command(
         "part_boolean", L("Mesh Boolean"),
         "Open the Mesh Boolean gizmo on an object of two parts or more, its first instance. The operation (Union, Difference "
-        "or Intersection), the two parts and Delete input are left to the gizmo: pick each part with a mouse_gesture click "
+        "or Intersection), the two parts and Delete input are left to the gizmo: pick each part with a `mouse_gesture` click "
         "on a point of it the camera can see, then press the operation's button.",
         with_targets(object_schema({}), kObjects, true), EType::MeshBoolean, {kObjects, true, one_instance},
         json::parse(R"json([
@@ -343,8 +343,8 @@ void register_gizmo_tools(CommandCatalog& catalog)
             {"title": "Open Mesh Boolean on the selected object", "calls": [{"tool": "part_boolean", "args": {}}]}])json")));
 
     const std::vector<std::string> placements{"as_cut", "place_on_cut", "flip"};
-    json                           point  = array_prop({{"type", "number"}}, "[x, y, z] mm: a point of the plane, in the 3D view's coordinates.");
-    json                           normal = array_prop({{"type", "number"}}, "[x, y, z]: the direction the upper piece lies in; any length but zero.");
+    json                           point  = array_prop({{"type", "number"}}, "`[x, y, z]` mm: a point of the plane, in the 3D view's coordinates.");
+    json                           normal = array_prop({{"type", "number"}}, "`[x, y, z]`: the direction the upper piece lies in; any length but zero.");
     point["minItems"] = normal["minItems"] = 3;
     json plane        = object_schema({{"point", std::move(point)}, {"normal", std::move(normal)}}, {"point", "normal"});
     plane["description"] = "Cut along this plane. Not with z.";
@@ -352,21 +352,21 @@ void register_gizmo_tools(CommandCatalog& catalog)
         "object_cut", L("Cut"),
         std::string(
             "Cut an object's instance, the first unless instance is given, along a plane, as the Cut gizmo's Perform cut does. "
-            "Acts from arguments: z, plane, keep, upper, lower, to_parts. With none of them it opens the Cut gizmo. z cuts "
-            "level, that many mm above the bed; plane {point, normal} cuts along any plane, the upper piece being the one "
-            "the normal points into. keep: both (default), upper or lower. upper and lower place a kept piece: as_cut, "
-            "place_on_cut (laid on its cut face) or flip; by default the upper piece is laid on its cut face and the lower "
-            "one stays as cut. to_parts keeps both pieces as two parts of one object, with no placement. A cut is one undo "
+            "Acts from arguments: `z`, `plane`, `keep`, `upper`, `lower`, `to_parts`. With none of them it opens the Cut gizmo. z cuts "
+            "level, that many mm above the bed; plane `{point, normal}` cuts along any plane, the upper piece being the one "
+            "the normal points into. keep: both (default), upper or lower. upper and lower place a kept piece: `as_cut`, "
+            "`place_on_cut` (laid on its cut face) or flip; by default the upper piece is laid on its cut face and the lower "
+            "one stays as cut. `to_parts` keeps both pieces as two parts of one object, with no placement. A cut is one undo "
             "step and replaces the object: its pieces go to the end of the object list, upper first, and the reply gives "
-            "them as pieces [{index, object_id, name, open_edges}], or with to_parts the object and its parts. A piece with "
-            "open edges is repaired by object_fix. Connectors, the dovetail and a cut along a contour are left to the gizmo: "
-            "open it with object_cut naming only the object.") +
+            "them as pieces [`{index, object_id, name, open_edges}`], or with `to_parts` the object and its parts. A piece with "
+            "open edges is repaired by `object_fix`. Connectors, the dovetail and a cut along a contour are left to the gizmo: "
+            "open it with `object_cut` naming only the object.") +
             kWorkTheGizmo,
         with_targets(object_schema({{"z", prop("number", "mm above the bed: cut level at this height. Not with plane.")},
                                     {"plane", std::move(plane)},
                                     {"keep", enum_prop({"both", "upper", "lower"}, "The pieces kept. Default both.")},
-                                    {"upper", enum_prop(placements, "Where the upper piece goes. Default place_on_cut.")},
-                                    {"lower", enum_prop(placements, "Where the lower piece goes. Default as_cut.")},
+                                    {"upper", enum_prop(placements, "Where the upper piece goes. Default `place_on_cut`.")},
+                                    {"lower", enum_prop(placements, "Where the lower piece goes. Default `as_cut`.")},
                                     {"to_parts", prop("boolean", "Keep both pieces as two parts of one object, as the gizmo's "
                                                                  "Cut to parts does. Default false.")}}),
                      kObjects | kInstances, true),
@@ -387,14 +387,14 @@ void register_gizmo_tools(CommandCatalog& catalog)
         "object_lay_on_face", L("Lay on face"),
         std::string(
             "Lay an object's instance, the first unless instance is given, on one of its faces, as a click on that face in "
-            "the Lay on Face gizmo does. Acts from arguments: normal, frame. With none of them it opens the Lay on Face "
+            "the Lay on Face gizmo does. Acts from arguments: `normal`, `frame`. With none of them it opens the Lay on Face "
             "gizmo. normal is the direction the face points out to: in the object's own frame (frame object, the default, "
-            "where [0, 0, -1] is the face that was its bottom) or in the 3D view's (frame world, where the face points now). "
+            "where `[0, 0, -1]` is the face that was its bottom) or in the 3D view's (frame world, where the face points now). "
             "The instance turns so that face lies on the bed and drops onto it, one undo step; the object's other instances "
             "turn with it. No flat face is looked for: the direction is laid down as given. A call that acts replies object, "
-            "instance and rotation, the instance's rotation in degrees as object_list gives it.") +
+            "instance and rotation, the instance's rotation in degrees as `object_list` gives it.") +
             kWorkTheGizmo,
-        with_targets(object_schema({{"normal", array_prop({{"type", "number"}}, "[x, y, z]: the direction the face to lay on the bed "
+        with_targets(object_schema({{"normal", array_prop({{"type", "number"}}, "`[x, y, z]`: the direction the face to lay on the bed "
                                                                                "points out to; any length but zero.")},
                                     {"frame", enum_prop({"object", "world"}, "The frame normal is in: the object's own (default) or "
                                                                              "the 3D view's. Needs normal.")}}),
@@ -414,20 +414,20 @@ void register_gizmo_tools(CommandCatalog& catalog)
             {"tool": "object_lay_on_face", "args": {"object": 0, "normal": [1, 0, 0], "frame": "world"}}]}])json");
     catalog.add(reaching({"open_gizmo", "lay_on_face"}, std::move(lay)));
 
-    json ear = object_schema({{"position", array_prop({{"type", "number"}}, "[x, y] mm: where on the bed.")},
+    json ear = object_schema({{"position", array_prop({{"type", "number"}}, "`[x, y]` mm: where on the bed.")},
                               {"radius", prop("number", "mm. Default: the gizmo's, eight first-layer line widths.")}},
                              {"position"});
     NativeCommand brim = with_expected_ids(mutate_tool(
         "object_set_brim_ears", L("Brim ears"),
         std::string(
             "Set an object's brim ears from positions on the bed, as the Brim Ears gizmo places them, through the instance "
-            "named, the first unless instance is given. Acts from arguments: points, clear. With none of them it opens the "
+            "named, the first unless instance is given. Acts from arguments: `points`, `clear`. With none of them it opens the "
             "Brim Ears gizmo. points replaces the object's ears with those given, each at a bed position, with a radius "
             "from 0.1 to 100 mm or the gizmo's default; clear removes them all. The ears are taken on the bed and stored in "
             "the object's coordinates, so they are the object's, shared by its instances. One undo step. They print only "
-            "with the painted brim type: settings_set on the object sets brim_type. A call that acts replies object, ears "
-            "as stored ({position: [x, y, z] in the object's coordinates, radius}), brim_type, the brim type the object "
-            "prints with, and takes_effect, whether that is painted.") +
+            "with the painted brim type: `settings_set` on the object sets `brim_type`. A call that acts replies object, ears "
+            "as stored ({position: `[x, y, z]` in the object's coordinates, radius}), `brim_type`, the brim type the object "
+            "prints with, and `takes_effect`, whether that is painted.") +
             kWorkTheGizmo,
         with_targets(object_schema({{"points", array_prop(std::move(ear), "The ears, in place of the object's.")},
                                     {"clear", {{"type", "boolean"}, {"enum", {true}}, {"description", "Remove every ear. Not with points."}}}}),

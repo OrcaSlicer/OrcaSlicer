@@ -112,18 +112,18 @@ void register_record_tools(CommandCatalog& catalog)
     // The Speed Dial's Start Recording is its action: with no arguments it opens the action's dialog.
     NativeCommand start = record_tool(
         "recording_start", L("Start Recording"),
-        "Record a video of OrcaSlicer until recording_stop: the main window with any modal dialog on it (target main), or "
+        "Record a video of OrcaSlicer until `recording_stop`: the main window with any modal dialog on it (target main), or "
         "the 3D view shown (canvas). Frames are MJPEG in a Matroska (.mkv) file with their real timestamps. With captions, "
         "the tool call acting on the app shows as a caption at the bottom (secret setting values never show); with pointer, "
         "the pointer is highlighted, its clicks rippling. Capture takes at most about a third of the UI thread, so "
         "the frame rate drops where capturing is slow. One recording at a time: one a replay or script starts ends with it, a "
-        "client's when the server is turned off. With encode, the recording_stop that reports it also encodes it to an MP4 "
+        "client's when the server is turned off. With encode, the `recording_stop` that reports it also encodes it to an MP4 "
         "beside it, as Start Recording does, and the .mkv is deleted once the MP4 is written unless "
-        "keep_raw_video_file; recording_encode makes an MP4 of any recording later. Called with no "
-        "arguments, it opens the Start Recording dialog instead, as Start Recording does (blocked_by_dialog): "
-        "its controls are named after their settings for widget_set_value, dialog_answer \"Start recording\" starts the "
+        "`keep_raw_video_file`; `recording_encode` makes an MP4 of any recording later. Called with no "
+        "arguments, it opens the Start Recording dialog instead, as Start Recording does (`blocked_by_dialog`): "
+        "its controls are named after their settings for `widget_set_value`, `dialog_answer` \"Start recording\" starts the "
         "person's recording, which neither the end of a replay or script nor the server turning off ends, and the dialog "
-        "remembers the settings; silent: true starts one here at once with the defaults.",
+        "remembers the settings; `silent: true` starts one here at once with the defaults.",
         object_schema({{"target", enum_prop({"main", "canvas"}, "main (default): the main window and its dialogs; canvas: the 3D view shown.")},
                        {"fps", int_prop(1, 30, "Frames per second at most (default 10).")},
                        {"max_dim", int_prop(320, 3840, "Long edge of the video in pixels (default 1920).")},
@@ -143,7 +143,7 @@ void register_record_tools(CommandCatalog& catalog)
                        {"keep_raw_video_file", prop("boolean", "With encode: keep the .mkv beside the MP4 (default false: the "
                                                                "encode deletes it once the MP4 is written).")},
                        {"save_path", prop("string", "Absolute .mkv path; default the session's output folder.")},
-                       {"overwrite", prop("boolean", "Replace an existing save_path, and with encode its MP4.")}}),
+                       {"overwrite", prop("boolean", "Replace an existing `save_path`, and with encode its MP4.")}}),
         [](const json& args, ToolContext& ctx) {
             AutomationRuntime& runtime = ctx.runtime();
             RecordingOptions o;
@@ -234,18 +234,18 @@ void register_record_tools(CommandCatalog& catalog)
 
     // The Speed Dial's Stop Recording is its action: with no arguments it stops as the action does.
     NativeCommand stop = record_tool("recording_stop", L("Stop Recording"),
-                        "Stop the running recording. Call it with silent: true for the report: it waits for the file and "
+                        "Stop the running recording. Call it with `silent: true` for the report: it waits for the file and "
                         "returns it with its seconds, frames captured and "
                         "written, frames dropped when encoding fell behind, failed when they could not be encoded, or "
                         "skipped when the window could not be captured, "
-                        "the size, the mean UI-thread time a capture took (capture_ms), and why it ended. A recording that ended on its own (max_seconds, the replay or script that started it ended, a "
-                        "write error) is reported once by the next recording_stop. For a recording started with encode, it then "
-                        "starts the MP4 encode and returns it under encode: a job, whose app_wait {for: \"job\"} returns "
-                        "recording_encode's result, whose raw_video_file_deleted says whether the .mkv was deleted. "
+                        "the size, the mean UI-thread time a capture took (`capture_ms`), and why it ended. A recording that ended on its own (`max_seconds`, the replay or script that started it ended, a "
+                        "write error) is reported once by the next `recording_stop`. For a recording started with encode, it then "
+                        "starts the MP4 encode and returns it under encode: a job, whose `app_wait {for: \"job\"}` returns "
+                        "`recording_encode`'s result, whose `raw_video_file_deleted` says whether the .mkv was deleted. "
                         "Called with no arguments, it stops "
                         "the recording as Stop Recording does, whoever started it: without waiting for its "
                         "file, it shows the person a notification naming it and replies with its path; the next "
-                        "recording_stop with silent: true reports it as ended stopped_in_app.",
+                        "`recording_stop` with `silent: true` reports it as ended `stopped_in_app`.",
                         object_schema({}), [](const json&, ToolContext& ctx) {
                             AutomationRuntime& runtime = ctx.runtime();
                             // The last state too, even if the timer has not ticked since the last call. Without the
@@ -285,12 +285,12 @@ void register_record_tools(CommandCatalog& catalog)
         "recording_encode", L("Encode a recording"),
         "Encode a recording into an H.265 (or H.264) MP4 with the system ffmpeg (ORCA_FFMPEG, else ffmpeg on PATH; it "
         "needs libx265 or libx264), keeping its timing. Takes this session's last finished recording unless path names "
-        "one, and writes beside it unless save_path says where. A long encode returns a job: app_wait waits for it, or job_cancel {job} "
-        "stops it. Once the MP4 is written, it deletes the .mkv if this session recorded it, unless keep_raw_video_file; "
-        "any other .mkv is kept. raw_video_file_deleted in the reply says which.",
+        "one, and writes beside it unless `save_path` says where. A long encode returns a job: `app_wait` waits for it, or `job_cancel {job}` "
+        "stops it. Once the MP4 is written, it deletes the .mkv if this session recorded it, unless `keep_raw_video_file`; "
+        "any other .mkv is kept. `raw_video_file_deleted` in the reply says which.",
         object_schema({{"path", prop("string", "Absolute .mkv of a finished recording; default this session's last.")},
                        {"save_path", prop("string", "Absolute .mp4 path; default the recording's, with .mp4.")},
-                       {"overwrite", prop("boolean", "Replace an existing save_path.")},
+                       {"overwrite", prop("boolean", "Replace an existing `save_path`.")},
                        {"codec", enum_prop({"h265", "h264"}, "Default h265.")},
                        {"crf", int_prop(0, 51, "Constant rate factor, lower is better and larger (default 28 for h265, 23 for h264).")},
                        {"speed", enum_prop(encoder_speeds(), "The encoder's preset: slower makes a smaller file of the same quality (default medium).")},

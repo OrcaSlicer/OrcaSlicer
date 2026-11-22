@@ -271,7 +271,7 @@ ToolFailure plugin_refusal_after(const Ops::Refusal& refusal, const json& before
 void register_plugin_tools(CommandCatalog& catalog)
 {
     using NativeCommands::action;
-    const json plugin_prop = prop("string", "The plugin's key, as plugin_list gives it, or its name where one plugin has it.");
+    const json plugin_prop = prop("string", "The plugin's key, as `plugin_list` gives it, or its name where one plugin has it.");
 
     NativeCommand list = inspect_tool(
         "plugin_list", L("List plugins"),
@@ -293,8 +293,8 @@ void register_plugin_tools(CommandCatalog& catalog)
     NativeCommand local = menu_command(
         "plugin_install_local", L("Install Local Plugin"),
         "Install a plugin from a .py or .whl file by absolute path, as the Plugins dialog's Install local plugin does, without its "
-        "file dialog. " + replacing + " Called with no arguments, the file dialog asks for the file (blocked_by_dialog), and "
-        "replacing an installed plugin asks first (dialog_answer).",
+        "file dialog. " + replacing + " Called with no arguments, the file dialog asks for the file (`blocked_by_dialog`), and "
+        "replacing an installed plugin asks first (`dialog_answer`).",
         object_schema({{"path", MenuItems::input_file("a .py or .whl plugin package")},
                        {"overwrite", prop("boolean", "Replace a plugin of that name installed already. Default false.")}},
                       {"path"}),
@@ -312,9 +312,9 @@ void register_plugin_tools(CommandCatalog& catalog)
                     "Turn a plugin, or with capability one of its capabilities, on or off, as the Plugins window's switches do. "
                     "A plugin turned on is loaded, and the call waits for its load to end; a cloud plugin not installed is "
                     "downloaded and installed first. A plugin that needs a permission while it loads asks in its permission "
-                    "dialog (blocked_by_dialog), which the caller answers. A plugin turned off is unloaded and loses its error. "
+                    "dialog (`blocked_by_dialog`), which the caller answers. A plugin turned off is unloaded and loses its error. "
                     "A capability is one of a loaded plugin's, by its name; an empty one is refused. Reply: plugin (its row, as "
-                    "plugin_list gives it) and changed; a call that fails once it has changed the plugin, a load that fails "
+                    "`plugin_list` gives it) and changed; a call that fails once it has changed the plugin, a load that fails "
                     "among them, is an error naming how the plugin is left.",
                     object_schema({{"plugin", plugin_prop},
                                    {"capability", {{"type", "string"},
@@ -338,9 +338,9 @@ void register_plugin_tools(CommandCatalog& catalog)
         {"reload_plugin"},
         mutate_tool("plugin_reload", L("Reload a plugin"),
                     "Load a plugin again after its files changed, as its row's Reload does: it is unloaded and loaded, and a "
-                    "plugin that was not loaded is unloaded again. clear_cache also removes its extracted wheel cache first, as "
+                    "plugin that was not loaded is unloaded again. `clear_cache` also removes its extracted wheel cache first, as "
                     "Delete cache and reload does. A cloud plugin is installed again from the cloud, as its Reinstall does, and "
-                    "takes no clear_cache; one no longer available is refused. Reply: reloaded, reinstalled and plugin (its row); "
+                    "takes no `clear_cache`; one no longer available is refused. Reply: reloaded, reinstalled and plugin (its row); "
                     "a reload that fails is an error naming how the plugin is left.",
                     object_schema({{"plugin", plugin_prop},
                                    {"clear_cache", prop("boolean", "Remove the plugin's extracted wheel cache before loading it. "
@@ -379,8 +379,8 @@ void register_plugin_tools(CommandCatalog& catalog)
     refresh_command.description =
         "Reload the plugins, as Refresh Plugins does: the installed plugins are rescanned and the plugin hub's list fetched "
         "again, and a notification says how it went. The call waits for the refresh to end and replies with the plugins, as "
-        "plugin_list gives them; a refresh already running, or waiting, runs before the call's own, so the reply comes from a "
-        "rescan that began after the call. job_cancel stops the wait, not the refresh.";
+        "`plugin_list` gives them; a refresh already running, or waiting, runs before the call's own, so the reply comes from a "
+        "rescan that began after the call. `job_cancel` stops the wait, not the refresh.";
     refresh_command.listed      = true;
     refresh_command.cancellable = true;
     // It fetches the plugin hub's list.

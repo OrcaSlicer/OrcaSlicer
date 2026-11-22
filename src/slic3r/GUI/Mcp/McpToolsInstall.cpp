@@ -171,13 +171,13 @@ void register_install_tools(CommandCatalog& catalog)
     const json models_prop = {
         {"type", "array"},
         {"minItems", 1},
-        {"items", object_schema({{"model", prop("string", "The model, as printer_list_models lists it (\"Bambu Lab X1 Carbon\").")},
+        {"items", object_schema({{"model", prop("string", "The model, as `printer_list_models` lists it (\"Bambu Lab X1 Carbon\").")},
                                  {"vendor", prop("string", "Its vendor (\"BBL\"), needed where several vendors have a model of that "
                                                            "name.")},
                                  {"nozzles", {{"type", "array"},
                                               {"minItems", 1},
                                               {"items", {{"type", "string"}}},
-                                              {"description", "Its nozzles, as printer_list_models lists them (\"0.4\"). Default: "
+                                              {"description", "Its nozzles, as `printer_list_models` lists them (\"0.4\"). Default: "
                                                               "all of them, as the dialog's tick of a model."}}}},
                                 {"model"})},
         {"description", "The printer models, each with its nozzles."}};
@@ -186,15 +186,15 @@ void register_install_tools(CommandCatalog& catalog)
                                                "presets selected after it, or drop them, as the Transfer and Discard of the question "
                                                "the dialog's Confirm asks. Needed while presets have unsaved changes; without it the "
                                                "call is refused.");
-    const std::string reload = "Reloading the presets drops their unsaved changes, so while there are some preset_changes says what "
+    const std::string reload = "Reloading the presets drops their unsaved changes, so while there are some `preset_changes` says what "
                                "becomes of them; without it the call is refused. A call that changes nothing reloads nothing. The "
                                "reload installs a printer's default filaments where no installed filament fits it, as the dialog "
                                "does, and where a vendor's profile lists default filaments of its own, which none of the shipped "
-                               "profiles does, swaps a @System filament for the vendor's: those are under filaments_installed and "
-                               "filaments_uninstalled. Two errors come after a change and say what it was: vendors_not_installed, "
+                               "profiles does, swaps a @System filament for the vendor's: those are under `filaments_installed` and "
+                               "`filaments_uninstalled`. Two errors come after a change and say what it was: `vendors_not_installed`, "
                                "where a vendor's profiles cannot be installed (the installed printers are as they were, the "
-                               "unsaved changes discarded if preset_changes said so, and the profiles copied before it stay in "
-                               "the configuration folder), and presets_not_reloaded (the installed printers were written, the "
+                               "unsaved changes discarded if `preset_changes` said so, and the profiles copied before it stay in "
+                               "the configuration folder), and `presets_not_reloaded` (the installed printers were written, the "
                                "presets not reloaded). Not in the undo history.";
 
     NativeCommand list = NativeCommands::long_command(
@@ -229,11 +229,11 @@ void register_install_tools(CommandCatalog& catalog)
             return ToolResult::ok(page(items, args, 100));
         });
     list.description = "Every printer model OrcaSlicer ships or has installed, of every vendor, as the Printer Selection dialog "
-                       "lists them: each with its vendor (the vendor's id, \"BBL\"), model, nozzles and installed_nozzles, the "
+                       "lists them: each with its vendor (the vendor's id, \"BBL\"), model, nozzles and `installed_nozzles`, the "
                        "nozzles whose printer presets the printer selector offers. vendor keeps one vendor's models, and query "
                        "those whose name holds it. The first call after the shipped profiles change reads every vendor, which "
                        "takes a while and can reply with a job to wait for; later calls read the result kept in the configuration "
-                       "folder. printer_install and printer_uninstall change what is installed.";
+                       "folder. `printer_install` and `printer_uninstall` change what is installed.";
     list.listed      = true;
     list.read_only   = true;
     list.idempotent  = true;
@@ -258,8 +258,8 @@ void register_install_tools(CommandCatalog& catalog)
                     "names. " +
                         reload +
                         " Reply: models (what was named, resolved), added (the printer presets the printer selector offers "
-                        "that it did not before the call), selected, not_offered (named nozzles whose presets it still does "
-                        "not offer), and discarded/modified as preset_select's.",
+                        "that it did not before the call), selected, `not_offered` (named nozzles whose presets it still does "
+                        "not offer), and discarded/modified as `preset_select`'s.",
                     object_schema({{"models", models_prop}, {"preset_changes", preset_changes_prop}}, {"models"}),
                     change_printers(true)));
     install.examples = json::parse(R"json([
@@ -276,11 +276,11 @@ void register_install_tools(CommandCatalog& catalog)
                     "Uninstall printer models, for good, as unticking them in the Printer Selection dialog and pressing "
                     "Confirm does: the printer selector no longer offers their printer presets, and the vendor's profiles stay "
                     "on disk. Without nozzles a model goes whole. A printer removed while selected is replaced by another "
-                    "installed one. Removing the last installed printer model is refused, and so are names as printer_install "
+                    "installed one. Removing the last installed printer model is refused, and so are names as `printer_install` "
                     "refuses them. " +
                         reload +
                         " Reply: models, removed (the printer presets the printer selector no longer offers), selected, "
-                        "still_offered (named nozzles whose presets it still offers), and discarded/modified as preset_select's.",
+                        "`still_offered` (named nozzles whose presets it still offers), and discarded/modified as `preset_select`'s.",
                     object_schema({{"models", models_prop}, {"preset_changes", preset_changes_prop}}, {"models"}),
                     change_printers(false)));
     uninstall.examples = json::parse(R"json([
@@ -296,19 +296,19 @@ void register_install_tools(CommandCatalog& catalog)
                                              "printer it fits."}};
     const std::string kept = "The app keeps an installed printer's default filaments installed while no other installed filament "
                              "fits it: where the call leaves one so, they are installed again and listed under "
-                             "filaments_installed, as the next start would. The other filaments, and the presets' unsaved "
+                             "`filaments_installed`, as the next start would. The other filaments, and the presets' unsaved "
                              "changes, are kept, and the selectors are refreshed. Not in the undo history.";
     NativeCommand install_filaments = reaching(
         {"install_filaments"},
         mutate_tool("filament_install", L("Install system filaments"),
                     "Install system filaments, for good, as ticking them in the System Filaments dialog and pressing Confirm "
-                    "does: the filament selectors offer them. Name them by names, or with vendor and filament_type every "
-                    "filament of that vendor and type that an installed printer fits. preset_list {type: \"filament\", "
-                    "include_uninstalled: true} lists the system filaments, those not installed with installed: false. A name "
+                    "does: the filament selectors offer them. Name them by names, or with vendor and `filament_type` every "
+                    "filament of that vendor and type that an installed printer fits. `preset_list {type: \"filament\", "
+                    "include_uninstalled: true}` lists the system filaments, those not installed with `installed: false`. A name "
                     "no filament has is refused with the closest names. " +
-                        kept + " Reply: installed (the presets installed), installed_already, filaments_installed.",
+                        kept + " Reply: installed (the presets installed), `installed_already`, `filaments_installed`.",
                     object_schema({{"names", names_prop},
-                                   {"vendor", prop("string", "With filament_type, in place of names: a filament maker (\"Bambu "
+                                   {"vendor", prop("string", "With `filament_type`, in place of names: a filament maker (\"Bambu "
                                                              "Lab\", \"Generic\"), in any case.")},
                                    {"filament_type", prop("string", "With vendor: a filament type (\"PLA\"), in any case.")}}),
                     change_filaments(true)));
@@ -324,9 +324,9 @@ void register_install_tools(CommandCatalog& catalog)
         {"uninstall_filaments"},
         mutate_tool("filament_uninstall", L("Uninstall system filaments"),
                     "Uninstall system filaments, for good, as unticking them in the System Filaments dialog and pressing "
-                    "Confirm does: the filament selectors no longer offer them. names as filament_install takes them. A "
+                    "Confirm does: the filament selectors no longer offer them. names as `filament_install` takes them. A "
                     "filament a slot of the project uses is refused, naming the slot. " +
-                        kept + " Reply: uninstalled (the presets uninstalled), not_installed, filaments_installed.",
+                        kept + " Reply: uninstalled (the presets uninstalled), `not_installed`, `filaments_installed`.",
                     object_schema({{"names", names_prop}}, {"names"}), change_filaments(false)));
     uninstall_filaments.examples = json::parse(R"json([
         {"title": "Uninstall a filament", "calls": [

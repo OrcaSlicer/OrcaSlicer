@@ -112,18 +112,20 @@ void register_replay_tools(CommandCatalog& catalog)
 {
     NativeCommand run = mutate_tool(
         "replay_run", L("Run a replay"),
-        std::string("Replay a list of tool calls in order and report each step: {orca_replay_version:\"") + REPLAY_VERSION +
-            "\", name, vars, steps:[{tool, args, expect, "
-        "optional, await, save_as, timeout_s}]}, JSON with comments. Strings may use ${replay_dir}, ${out_dir}, ${env:NAME}, "
-        "${vars.NAME} and ${jobs.NAME}. A step that returns a job is awaited unless await:false, which stores the job under "
-        "save_as so later steps can answer the dialog it opened. expect maps a JSON pointer into the step's result to "
-        "matchers (eq ne gt ge lt le contains regex exists empty); the first failed step or expectation stops the run unless "
-        "the step is optional. Writes result.json to out_dir (default: a new folder replay-<timestamp> in orca_action_replay "
-        "in the temp folder, or in the --outputdir folder of a --run launch). Reply: passed, steps, failed_step, out_dir and "
-        "result_file. dialog_auto_answer rules a replay registers end with it. replay_export turns this session into one.",
+        std::string("Replay a list of tool calls in order and report each step: `{\"orca_replay_version\": \"") +
+            REPLAY_VERSION +
+            "\", name, vars, steps: [{tool, args, expect, optional, await, save_as, timeout_s}]}`, JSON with comments. "
+            "Strings may use `${replay_dir}`, `${out_dir}`, `${env:NAME}`, `${vars.NAME}` and `${jobs.NAME}`. A step that "
+            "returns a job is awaited unless `await: false`, which stores the job under `save_as` so later steps can answer "
+            "the dialog it opened. `expect` maps a JSON pointer into the step's result to matchers (`eq` `ne` `gt` `ge` `lt` "
+            "`le` `contains` `regex` `exists` `empty`); the first failed step or expectation stops the run unless the step is "
+            "`optional`. Writes `result.json` to `out_dir` (default: a new folder `replay-<timestamp>` in "
+            "`orca_action_replay` in the temp folder, or in the `--outputdir` folder of a `--run` launch). Reply: `passed`, "
+            "`steps`, `failed_step`, `out_dir` and `result_file`. `dialog_auto_answer` rules a replay registers end with it. "
+            "`replay_export` turns this session into one.",
         object_schema({{"path", prop("string", "Absolute path of a replay file.")},
                        {"replay", {{"type", json::array({"object", "string"})},
-                                   {"description", "The replay itself, as an object or as its JSON text, instead of path."}}},
+                                   {"description", "The replay itself, as an object or as its JSON text, instead of `path`."}}},
                        {"out_dir", prop("string", "Absolute directory for result.json and screenshots; created if missing.")},
                        {"vars", {{"type", "object"}, {"description", "Values that override the replay's vars."}}}}),
         [](const json& args, ToolContext& ctx) {
@@ -172,12 +174,12 @@ void register_replay_tools(CommandCatalog& catalog)
 
     NativeCommand exp = inspect_tool(
         "replay_export", L("Export this session as a replay"),
-        "Turn the calls this session made into a replay that replay_run runs: mutating calls, app_wait, window_screenshot and the "
-        "recording tools, in order, with refs replaced by locators, job replies replayed with await:false, and window_screenshot "
-        "and recording paths moved under ${out_dir}. "
-        "Calls that failed, at once or as a job later, are left out (a script_run that raised or timed out replied, so it "
+        "Turn the calls this session made into a replay that `replay_run` runs: mutating calls, `app_wait`, `window_screenshot` and the "
+        "recording tools, in order, with refs replaced by locators, job replies replayed with await:false, and `window_screenshot` "
+        "and recording paths moved under `${out_dir}`. "
+        "Calls that failed, at once or as a job later, are left out (a `script_run` that raised or timed out replied, so it "
         "stays); so is a call whose job is still running (unless it "
-        "waits on a dialog), which left_out_running lists as {tool, job}. "
+        "waits on a dialog), which `left_out_running` lists as `{tool, job}`. "
         "Reply: the replay, which with path is also written there. clear:true then forgets the calls made so far.",
         object_schema({{"name", prop("string", "Replay name.")},
                        {"path", prop("string", "Absolute .json path to write.")},

@@ -4497,15 +4497,15 @@ std::vector<int> sketch_target_indices(const json& params, const std::vector<int
 std::string design_command_index()
 {
     std::string index = " The Design tab's CAD commands follow by heading (sketches, solid and surface features, bodies, "
-                        "measurements); tool_list {group: \"Design\"} lists them with what each does, and tool_describe {tool} gives "
+                        "measurements); `tool_list {group: \"Design\"}` lists them with what each does, and `tool_describe {tool}` gives "
                         "one's manual before it is called. A "
-                        "command whose schema has silent does what "
-                        "its menu item does when called with no arguments, unless silent is true.";
+                        "command whose schema has `silent` does what "
+                        "its menu item does when called with no arguments, unless `silent` is true.";
     for (const char* section : kDesignSections) {
         std::string names;
         for (const DesignTool& t : kDesignTools)
             if (t.section != nullptr && std::strcmp(t.section, section) == 0)
-                names += (names.empty() ? "" : ", ") + std::string(t.id);
+                names += (names.empty() ? "" : ", ") + std::string("`") + t.id + "`";
         index += std::string(" ") + section;
         if (std::strcmp(section, "Menu items") == 0)
             index += ", which take no arguments and do what their item of the right-click menu does";

@@ -551,17 +551,20 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
         const char* first_sentence;
     };
     static const Renamed renamed[] = {
-        {"call_tool", "tool_call", "Call any command by name with its arguments: a tool, or one the tool list does not show, a menu item "
-                                   "that takes no arguments, a Design tab command or an operation a plugin offers (tool_list lists them; "
-                                   "tool_describe gives any command's manual)."},
+        {"call_tool", "tool_call",
+         "Call any command by name with its arguments: a tool, or one the tool list does not show, a menu "
+         "item that takes no arguments, a Design tab command or an operation a plugin offers (`tool_list` "
+         "lists them; `tool_describe` gives any command's manual)."},
         {"generate_calibration_test", "calibration_generate_test",
-         "Generate a Calibration menu test as its dialog's OK does: a new project named after the test with the test model, and the "
-         "process, filament and printer presets changed as the test needs (presets_changed)."},
+         "Generate a Calibration menu test as its dialog's OK does: a new project named after the test with "
+         "the test model, and the process, filament and printer presets changed as the test needs "
+         "(`presets_changed`)."},
         {"export", "project_export", "Write the project to a file without a dialog."},
         {"list_presets", "preset_list",
-         "Printer, process or filament presets, each with its name, alias (the name its selector shows, when another), system, user, "
-         "project (kept inside the project), inherits, selected (and modified), compatible: false or installed: false when so, and "
-         "vendor; a filament its filament_type and the slots using it (filament_slots), a printer its printer_model and nozzle."},
+         "Printer, process or filament presets, each with its name, alias (the name its selector shows, when "
+         "another), system, user, project (kept inside the project), inherits, selected (and modified), "
+         "`compatible: false` or `installed: false` when so, and vendor; a filament its `filament_type` and "
+         "the slots using it (`filament_slots`), a printer its `printer_model` and nozzle."},
         {"select_preset", "preset_select", "Select a printer, process or filament preset by the name its selector shows (or its "
                                            "internal name), as a person would."},
         {"save_preset", "preset_save", "Save the printer, process or filament preset being edited, with its unsaved changes, as a preset "
@@ -569,9 +572,11 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
         {"delete_preset", "preset_delete", "Delete a user preset or one inside the project, its file and its cloud copy, as the tab's "
                                            "Delete does, without asking."},
         {"list_plates", "plate_list",
-         "Plates with name, locked, current, objects (how many are on it; object_list lists them), and the settings they print with: "
-         "curr_bed_type, print_sequence, spiral_mode, first_layer_print_sequence and other_layers_print_sequence (null: Auto), with "
-         "several extruders filament_map_mode and filament_map; overrides lists those the plate sets itself (plate_set_settings)."},
+         "Plates with name, locked, current, objects (how many are on it; `object_list` lists them), and the "
+         "settings they print with: `curr_bed_type`, `print_sequence`, `spiral_mode`, "
+         "`first_layer_print_sequence` and `other_layers_print_sequence` (null: Auto), with several extruders "
+         "`filament_map_mode` and `filament_map`; overrides lists those the plate sets itself "
+         "(`plate_set_settings`)."},
         {"list_objects", "object_list", "The project as the Objects panel lists it."},
         {"transform", "object_transform", "Change one instance's placement, or one part's with part."},
         {"add_part", "part_add", "Add a part, negative part, modifier, support blocker or enforcer, or precise seam to an object, as its "
@@ -581,32 +586,37 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
         {"slice", "plate_slice", "Slice the current plate, all plates, or one plate by index, the way the toolbar's Slice button does, "
                                  "and wait for the result (or reply with a job id when it takes longer than the reply budget)."},
         {"set_height_ranges", "object_set_height_ranges",
-         "Replace an object's height range modifiers (Height Range Modifier in the object list): Z ranges in mm, each printed with its "
-         "own layer_height, filament and process settings, which settings_get and settings_set read and write with the target "
-         "height_range."},
+         "Replace an object's height range modifiers (Height Range Modifier in the object list): Z ranges in "
+         "mm, each printed with its own `layer_height`, filament and process settings, which `settings_get` "
+         "and `settings_set` read and write with the target `height_range`."},
         {"set_variable_layer_height", "object_set_variable_layer_height",
-         "Run the Variable layer height panel's Adaptive, Smooth or Reset on an object, without opening the panel: adaptive computes "
-         "layer heights from the object's shape (inside a height range, the range's layer_height), smooth smooths its profile (or "
-         "the one its height ranges give), reset goes back to its layer height and ranges."},
+         "Run the Variable layer height panel's Adaptive, Smooth or Reset on an object, without opening the "
+         "panel: adaptive computes layer heights from the object's shape (inside a height range, the range's "
+         "`layer_height`), smooth smooths its profile (or the one its height ranges give), reset goes back to "
+         "its layer height and ranges."},
         {"set_custom_gcode_at_layer", "plate_set_custom_gcode",
          "Add or remove pauses, custom G-code, custom templates and filament changes at the start of a layer, as the Preview layer "
          "slider's menu does; they are saved per plate in the project."},
         {"get_slice_stats", "plate_slice_stats", "What the Preview shows for a sliced plate."},
         {"get_app_state", "app_state", "Snapshot of OrcaSlicer."},
-        {"wait", "app_wait", "Block until a condition holds or timeout_s passes (max 50)."},
+        {"wait", "app_wait",
+         "Block until a condition holds or `timeout_s` passes (max 50)."},
         {"get_log", "app_log", "The last lines of OrcaSlicer's current log file, optionally only those at or above a level."},
         {"cancel_job", "job_cancel", "Stop the running operation: a slice or G-code export, as the slicing progress's cancel button "
                                      "does, or a background job an MCP call started (an arrange, orient or fill bed)."},
-        {"run_replay", "replay_run", "Replay a list of tool calls in order and report each step: {orca_replay_version:\"0.2.0\", name, "
-                                     "vars, steps:[{tool, args, expect, optional, await, save_as, timeout_s}]}, JSON with comments."},
+        {"run_replay", "replay_run",
+         "Replay a list of tool calls in order and report each step: `{\"orca_replay_version\": \"0.2.0\", "
+         "name, vars, steps: [{tool, args, expect, optional, await, save_as, timeout_s}]}`, JSON with "
+         "comments."},
         {"export_replay", "replay_export",
-         "Turn the calls this session made into a replay that replay_run runs: mutating calls, app_wait, window_screenshot and the "
-         "recording tools, in order, with refs replaced by locators, job replies replayed with await:false, and window_screenshot "
-         "and recording paths moved under ${out_dir}."},
+         "Turn the calls this session made into a replay that `replay_run` runs: mutating calls, `app_wait`, "
+         "`window_screenshot` and the recording tools, in order, with refs replaced by locators, job replies "
+         "replayed with await:false, and `window_screenshot` and recording paths moved under `${out_dir}`."},
         {"run_script", "script_run",
-         "Run Python code inside OrcaSlicer as its main program (__name__ == \"__main__\") against orca.host, the whole plugin API "
-         "(script_list_api lists it): read objects, meshes and settings, compute, use orca.host.ui and the preset API, and call "
-         "these same tools, with their guards and undo, through orca.host.tools.call(name, args)."},
+         "Run Python code inside OrcaSlicer as its main program (__name__ == \"__main__\") against "
+         "`orca.host`, the whole plugin API (`script_list_api` lists it): read objects, meshes and settings, "
+         "compute, use `orca.host.ui` and the preset API, and call these same tools, with their guards and "
+         "undo, through `orca.host.tools.call`(name, args)."},
         {"answer_dialog", "dialog_answer", "Press a button of the topmost modal dialog: yes, no, ok, cancel, close, apply, a button's "
                                            "label, or a numeric id."},
         {"auto_answer_dialogs", "dialog_auto_answer", "Answer modal dialogs automatically when their title or message matches a rule's "
@@ -614,30 +624,33 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
         {"select_objects", "object_select", "Select objects, instances or parts in the 3D view (the assemble view while it is shown, "
                                             "else Prepare, switching to it), as clicking them would."},
         {"screenshot", "window_screenshot",
-         "Capture what OrcaSlicer shows and return it as an image, downscaled to max_dim on the long edge (default 1280), plus the "
-         "full-size PNG written to save_path (or the session's output folder)."},
+         "Capture what OrcaSlicer shows and return it as an image, downscaled to `max_dim` on the long edge "
+         "(default 1280), plus the full-size PNG written to `save_path` (or the session's output folder)."},
         {"set_view", "view_set",
-         "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view (canvas: Prepare's, the preview or the "
-         "assemble view, which has its own gizmos), the camera of the 3D view shown (a named direction, the default view, or fit to "
-         "bed / objects / selection, then look_at, the point it looks at, an orbit to look from between the named directions, and the "
-         "zoom), the preview's color scheme (picked as in the legend's combo, which shows every feature type again), legend rows, "
-         "time estimate and layers (1-based, or up to a height)."},
+         "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view (canvas: "
+         "Prepare's, the preview or the assemble view, which has its own gizmos), the camera of the 3D view "
+         "shown (a named direction, the default view, or fit to bed / objects / selection, then `look_at`, "
+         "the point it looks at, an orbit to look from between the named directions, and the zoom), the "
+         "preview's color scheme (picked as in the legend's combo, which shows every feature type again), "
+         "legend rows, time estimate and layers (1-based, or up to a height)."},
         {"encode_recording", "recording_encode", "Encode a recording into an H.265 (or H.264) MP4 with the system ffmpeg (ORCA_FFMPEG, "
                                                  "else ffmpeg on PATH; it needs libx265 or libx264), keeping its timing."},
-        {"run_action", "action_run", "Run one action by the id action_list returned (orca_command:view_front:orca, or the name "
-                                     "inside it, view_front), with args, the command's arguments, when it takes some (its "
-                                     "input_schema)."},
+        {"run_action", "action_run",
+         "Run one action by the id `action_list` returned (`orca_command:view_front:orca`, or the name inside "
+         "it, `view_front`), with `args`, the command's arguments, when it takes some (its `input_schema`)."},
         {"list_windows", "window_list",
          "List OrcaSlicer's open windows: the main window, then the windows that don't block the app (Plugins, an object's settings, "
          "a dock panel floating on its own), then the modal dialogs in the order they opened, the topmost last."},
-        {"set_window", "window_set", "Size, move, maximize, minimize or raise a window: the main window (default), the topmost modal "
-                                     "dialog, or one window_list lists, also while a modal dialog is open."},
+        {"set_window", "window_set",
+         "Size, move, maximize, minimize or raise a window: the main window (default), the topmost modal "
+         "dialog, or one `window_list` lists, also while a modal dialog is open."},
         {"list_widgets", "widget_list",
-         "Describe what is on screen as an indented tree, one element per line with a ref to pass to widget_click, widget_set_value, "
-         "keyboard_press and webview_run_javascript (a page element's to mouse_gesture too): the widgets of every shown window, the "
-         "rows of lists, trees and tables, each shown popup after the window it opened from, the main menus, the 3D canvas's "
-         "toolbar items and gizmos, each ImGui panel drawn in the last frame with its items and text, and the elements of each shown "
-         "web page (dialogs, the setup wizard, sign-in, plugin windows) under its web view."},
+         "Describe what is on screen as an indented tree, one element per line with a ref to pass to "
+         "`widget_click`, `widget_set_value`, `keyboard_press` and `webview_run_javascript` (a page element's "
+         "to `mouse_gesture` too): the widgets of every shown window, the rows of lists, trees and tables, "
+         "each shown popup after the window it opened from, the main menus, the 3D canvas's toolbar items and "
+         "gizmos, each ImGui panel drawn in the last frame with its items and text, and the elements of each "
+         "shown web page (dialogs, the setup wizard, sign-in, plugin windows) under its web view."},
         {"click", "widget_click", "Click a GUI element as a person would."},
         {"set_widget_value", "widget_set_value", "Set a widget's value and send the events a person's edit would."},
         {"press_keys", "keyboard_press",
@@ -645,9 +658,10 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
          "target or, without one, to the focused window (the topmost dialog while one is open, the shown 3D view when nothing has "
          "focus)."},
         {"pick_gizmo_file", "gizmo_pick_file",
-         "Do what a file picker inside the open gizmo does, with a path instead of its dialog: svg_change loads another SVG file into "
-         "the SVG part being edited, svg_save_as writes that part's SVG to a new file (an existing one only with overwrite), "
-         "texture_import imports a height-map image into the texture library and puts it on Texture Displacement's active layer."},
+         "Do what a file picker inside the open gizmo does, with a path instead of its dialog: `svg_change` "
+         "loads another SVG file into the SVG part being edited, `svg_save_as` writes that part's SVG to a "
+         "new file (an existing one only with overwrite), `texture_import` imports a height-map image into "
+         "the texture library and puts it on Texture Displacement's active layer."},
         {"run_javascript", "webview_run_javascript", "Evaluate JavaScript in one of OrcaSlicer's web views (Home, the device page, "
                                                      "dialogs, plugin windows)."},
     };

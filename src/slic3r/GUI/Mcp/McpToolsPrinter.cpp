@@ -37,7 +37,7 @@ NativeCommand job_command(const char* name, const char* title, Ops::JobCommand c
 {
     NativeCommand job = mutate_tool(
         name, title,
-        description + " The printer's new state arrives when it reports: read it with printer_status. Reply: printer (its "
+        description + " The printer's new state arrives when it reports: read it with `printer_status`. Reply: printer (its "
                       "name), state (the state it was in) and sent. A replay sends the command again.",
         object_schema({}),
         [command](const json&, ToolContext& ctx) {
@@ -116,10 +116,10 @@ void register_printer_tools(CommandCatalog& catalog)
         "Print dialog, which leaves the printer, bed levelling, flow calibration, timelapse, the AMS mapping and the button "
         "that prints to it; for a printer with a print host (OctoPrint, Moonraker, PrusaLink, Duet...) it is the host's Send "
         "G-code to printer host dialog, with Upload and Upload and Print. As the button does, it first applies the slicing "
-        "result, and it is refused (not_sliced) where the button would be disabled, as for a plate not sliced: slice with "
-        "plate_slice first. The call replies blocked_by_dialog while the dialog is open: read and set its fields with "
-        "widget_list and widget_set_value, and press its buttons with dialog_answer. Nothing prints until its button is "
-        "pressed. Refused: all_plates_not_offered for plates \"all\" where the button offers no Print all, no_print_host for "
+        "result, and it is refused (`not_sliced`) where the button would be disabled, as for a plate not sliced: slice with "
+        "`plate_slice` first. The call replies `blocked_by_dialog` while the dialog is open: read and set its fields with "
+        "`widget_list` and `widget_set_value`, and press its buttons with `dialog_answer`. Nothing prints until its button is "
+        "pressed. Refused: `all_plates_not_offered` for plates \"all\" where the button offers no Print all, `no_print_host` for "
         "a printer with no print host address.",
         object_schema({{"plates", plates_prop("Print all")}}), [](const json& args, ToolContext& ctx) {
             Ops::OpenPrintDialogArgs op;
@@ -145,12 +145,12 @@ void register_printer_tools(CommandCatalog& catalog)
         "Open the dialog the Print button's Send opens for the selected printer, for the current plate or the plate plates "
         "names. For a printer on the Bambu network or with printer agents it is the dialog that sends the sliced plate to the "
         "printer's storage (with plates \"all\", Send all's), which leaves the printer, the file name, the storage and the "
-        "button that sends to it, and is refused (not_sliced) for a plate not sliced. For a printer with a print host "
+        "button that sends to it, and is refused (`not_sliced`) for a plate not sliced. For a printer with a print host "
         "(OctoPrint, Moonraker, PrusaLink, Duet...) it is the Send G-code to printer host dialog: set the file name with "
-        "widget_set_value and press Upload or Upload and Print with dialog_answer; the plate is sliced if needed, then "
-        "uploaded in the background: app_state.uploads shows the row's state, and a failed upload also opens an error "
-        "dialog. The call replies blocked_by_dialog while the dialog is open. A replay sends again. Refused: "
-        "all_plates_not_offered for plates \"all\" where the button offers no Send all, no_print_host for a printer with no "
+        "`widget_set_value` and press Upload or Upload and Print with `dialog_answer`; the plate is sliced if needed, then "
+        "uploaded in the background: `app_state.uploads` shows the row's state, and a failed upload also opens an error "
+        "dialog. The call replies `blocked_by_dialog` while the dialog is open. A replay sends again. Refused: "
+        "`all_plates_not_offered` for plates \"all\" where the button offers no Send all, `no_print_host` for a printer with no "
         "print host address.";
     const json    send_action  = NativeCommands::action("send_gcode", L("Send G-code to printer host"), L("Slice & Export"), "printer",
                                                         json::object(), send);
@@ -168,7 +168,7 @@ void register_printer_tools(CommandCatalog& catalog)
         "does, with its connection settings as they stand. Reply: ok, whether the host answered, and message, the button's "
         "message in the app's language; branch on ok. A cloud host that wants a login is a failed test with the host's "
         "message: logging in stays in the printer's connection dialog. The window does not redraw while the host is asked. "
-        "Refused: no_print_host for a printer with no print host address, host_cannot_be_tested for a kind of host that has "
+        "Refused: `no_print_host` for a printer with no print host address, `host_cannot_be_tested` for a kind of host that has "
         "no test.",
         object_schema({}), [](const json&, ToolContext& ctx) {
             json reply = ctx.run_ui([] {
@@ -190,10 +190,10 @@ void register_printer_tools(CommandCatalog& catalog)
     NativeCommand status = inspect_tool(
         "printer_status", L("Printer status"),
         "Read what the Device tab shows of the printer it is connected to, without sending it anything. Reply: connected; "
-        "with a printer, name, model (null where the tab would say Unknown), printer_type (the model's id), online, state "
-        "(IDLE, PREPARE, RUNNING, PAUSE, FINISH, FAILED...), stage (a number), percent, remaining_seconds, layer, "
-        "total_layers, file (the job's name), error_code, and temperatures: nozzles (one {current, target} each), bed and "
-        "chamber, null where the tab shows none. With no printer connected the reply is {\"connected\": false}, which is no "
+        "with a printer, name, model (null where the tab would say Unknown), `printer_type` (the model's id), online, state "
+        "(IDLE, PREPARE, RUNNING, PAUSE, FINISH, FAILED...), stage (a number), percent, `remaining_seconds`, layer, "
+        "`total_layers`, file (the job's name), `error_code`, and temperatures: nozzles (one `{current, target}` each), bed and "
+        "chamber, null where the tab shows none. With no printer connected the reply is `{\"connected\": false}`, which is no "
         "error. The values are what the printer last reported.",
         object_schema({}), [](const json&, ToolContext& ctx) {
             return ToolResult::ok(ctx.run_ui([] { return printer_status_reply(Ops::printer_status(Ops::connected_printer())); }));
@@ -205,15 +205,15 @@ void register_printer_tools(CommandCatalog& catalog)
     catalog.add(job_command(
         "print_pause", L("Pause the print"), Ops::JobCommand::Pause,
         "Pause the print running on the printer the Device tab is connected to, as the tab's Pause button does. Refused: "
-        "no_printer_connected with no printer connected, printer_state, naming the state, unless it is RUNNING.",
+        "`no_printer_connected` with no printer connected, `printer_state`, naming the state, unless it is RUNNING.",
         R"json([{"title": "Pause the print once printer_status reads RUNNING", "calls": [
             {"tool": "printer_status", "args": {}}, {"tool": "print_pause", "args": {}}]}])json",
         false));
     catalog.add(job_command(
         "print_resume", L("Resume the print"), Ops::JobCommand::Resume,
         "Resume the paused print on the printer the Device tab is connected to, as the tab's Resume button does. Refused: "
-        "no_printer_connected with no printer connected, printer_state, naming the state, unless it is PAUSE, and "
-        "resume_at_printer, in the app's own sentence, for a job (such as laser processing) that resumes only at the printer.",
+        "`no_printer_connected` with no printer connected, `printer_state`, naming the state, unless it is PAUSE, and "
+        "`resume_at_printer`, in the app's own sentence, for a job (such as laser processing) that resumes only at the printer.",
         R"json([{"title": "Resume the print once printer_status reads PAUSE", "calls": [
             {"tool": "printer_status", "args": {}}, {"tool": "print_resume", "args": {}}]}])json",
         false));
@@ -221,7 +221,7 @@ void register_printer_tools(CommandCatalog& catalog)
         "print_stop", L("Stop the print"), Ops::JobCommand::Stop,
         "Stop the print on the printer the Device tab is connected to, as the tab's Stop button does, but without its "
         "question \"Are you sure you want to stop this print?\": it asks nothing, and a stopped print cannot be resumed. "
-        "Refused: no_printer_connected with no printer connected, printer_state, naming the state, unless it is RUNNING, "
+        "Refused: `no_printer_connected` with no printer connected, `printer_state`, naming the state, unless it is RUNNING, "
         "PAUSE, PREPARE or SLICING.",
         R"json([{"title": "Stop the print", "calls": [{"tool": "print_stop", "args": {}}]}])json",
         true));

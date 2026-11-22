@@ -246,28 +246,28 @@ std::vector<Property> target_props(unsigned kinds, bool one)
 {
     std::vector<Property> out;
     if (one) {
-        out.emplace_back("object", json{{"type", "integer"}, {"minimum", 0}, {"description", "Object index (object_list)."}});
+        out.emplace_back("object", json{{"type", "integer"}, {"minimum", 0}, {"description", "Object index (`object_list`)."}});
         out.emplace_back("object_id", expected_id_prop("object"));
         if (kinds & kInstances)
-            out.emplace_back("instance", json{{"type", "integer"}, {"minimum", 0}, {"description", "An instance of the object (object_list)."}});
+            out.emplace_back("instance", json{{"type", "integer"}, {"minimum", 0}, {"description", "An instance of the object (`object_list`)."}});
         if (kinds & kParts) {
-            out.emplace_back("part", json{{"type", "integer"}, {"minimum", 0}, {"description", "A part of the object (object_list)."}});
+            out.emplace_back("part", json{{"type", "integer"}, {"minimum", 0}, {"description", "A part of the object (`object_list`)."}});
             out.emplace_back("part_id", expected_id_prop("part"));
         }
         return out;
     }
     if (kinds & kObjects) {
         out.emplace_back("objects", array_prop({{"type", "integer"}}, "Object indices."));
-        out.emplace_back("object_ids", array_prop({{"type", "integer"}}, "Optional guard: the objects' ids in object_list, one each."));
+        out.emplace_back("object_ids", array_prop({{"type", "integer"}}, "Optional guard: the objects' ids in `object_list`, one each."));
     }
     if (kinds & kInstances) {
-        out.emplace_back("instances", array_prop({{"type", "array"}}, "[[object, instance], ...]"));
-        out.emplace_back("instance_object_ids", array_prop({{"type", "integer"}}, "Optional guard: the ids in object_list of the "
+        out.emplace_back("instances", array_prop({{"type", "array"}}, "`[[object, instance], ...]`"));
+        out.emplace_back("instance_object_ids", array_prop({{"type", "integer"}}, "Optional guard: the ids in `object_list` of the "
                                                                                   "instances' objects, one each."));
     }
     if (kinds & kParts) {
-        out.emplace_back("parts", array_prop({{"type", "array"}}, "[[object, part], ...]"));
-        out.emplace_back("part_ids", array_prop({{"type", "integer"}}, "Optional guard: the parts' ids in object_list, one each."));
+        out.emplace_back("parts", array_prop({{"type", "array"}}, "`[[object, part], ...]`"));
+        out.emplace_back("part_ids", array_prop({{"type", "integer"}}, "Optional guard: the parts' ids in `object_list`, one each."));
     }
     return out;
 }

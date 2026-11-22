@@ -71,14 +71,14 @@ namespace {
 // The locator grammar is spelled out once, in widget_list's description, which hands out the refs, and that a ref
 // stays good across later listings in the server instructions.
 const json kTargetSchema = {{"type", json::array({"string", "object"})},
-                            {"description", "A ref widget_list gave (\"w12\") or a locator, such as {label: \"OK\", within: "
-                                            "\"Preferences\"} or {menu: \"File>Export>Export G-code\"}; widget_list's description "
+                            {"description", "A ref `widget_list` gave (\"w12\") or a locator, such as `{label: \"OK\", within: "
+                                            "\"Preferences\"}` or `{menu: \"File>Export>Export G-code\"}`; `widget_list`'s description "
                                             "lists every kind."}};
 
 // webview_run_javascript's target: a web view or an element of its page, not a widget.
 const json kPageTargetSchema = {{"type", json::array({"string", "object"})},
-                                {"description", "A web view (its ref; widget_list lists it as kind webview) or an element of its "
-                                                "page (its ref or a {web} / {css} locator), which the code gets as `el`. Default: "
+                                {"description", "A web view (its ref; `widget_list` lists it as kind webview) or an element of its "
+                                                "page (its ref or a `{web}` / `{css}` locator), which the code gets as `el`. Default: "
                                                 "the topmost dialog's web view, else the only one shown."}};
 
 const json kPageTimeoutSchema = {{"type", "integer"},
@@ -88,7 +88,7 @@ const json kPageTimeoutSchema = {{"type", "integer"},
 
 const json kModifiersSchema = {{"type", "array"},
                                {"items", {{"type", "string"}, {"enum", {"ctrl", "cmd", "rawctrl", "shift", "alt"}}}},
-                               {"description", "Modifier keys held during the input, as in keyboard_press: ctrl and cmd are both Command on macOS "
+                               {"description", "Modifier keys held during the input, as in `keyboard_press`: ctrl and cmd are both Command on macOS "
                                                "and Ctrl elsewhere; rawctrl is the macOS Control key."}};
 
 bool in_top_dialog(AutomationRuntime& runtime, wxWindow* window)
@@ -132,7 +132,7 @@ NativeCommand recover_input_tool(std::string name, std::string title, std::strin
 
 const json kPopupItemSchema = prop("string", "The item to run of a menu the input opens (a context menu, a button's menu), by "
                                              "label path (\"Add Modifier>Cylinder\"; \"#2\": a repeated label's second). Without "
-                                             "it the reply lists the menu (popup_menu) instead of showing it.");
+                                             "it the reply lists the menu (`popup_menu`) instead of showing it.");
 
 // The menu an input call may open, which the inspector takes instead of showing it
 // (UiInspector::arm_menu()): armed in the closure that delivers the input, read once the events the
@@ -1351,13 +1351,13 @@ void register_ui_tools(CommandCatalog& catalog)
         "window_list", L("List the windows"),
         "List OrcaSlicer's open windows: the main window, then the windows that don't block the app (Plugins, an "
         "object's settings, a dock panel floating on its own), then the modal dialogs in the order they opened, the "
-        "topmost last. A window's ref goes to window_screenshot as target to capture that window, to widget_list as target to "
-        "list it alone, and to keyboard_press as target; its title is the within of locators for its widgets.\n"
+        "topmost last. A window's ref goes to `window_screenshot` as target to capture that window, to `widget_list` as target to "
+        "list it alone, and to `keyboard_press` as target; its title is the within of locators for its widgets.\n"
         "Reply: each window's title, kind (main, window, dialog, or panel: a dock panel floating on its own), modal, "
         "ref, web (it shows a web page), x and y on screen (not on Wayland, which doesn't say), width and height, state "
-        "(normal, maximized or minimized) and resizable (it has a resize border); window_set changes them.\n"
-        "A native dialog (a message box, a file picker) has native: true and no ref: dialog_answer answers it. hidden: "
-        "true marks the person's own windows (the Run Script panel floating, its prompts and Action Replay's, the Python "
+        "(normal, maximized or minimized) and resizable (it has a resize border); `window_set` changes them.\n"
+        "A native dialog (a message box, a file picker) has `native: true` and no ref: `dialog_answer` answers it. `hidden: "
+        "true` marks the person's own windows (the Run Script panel floating, its prompts and Action Replay's, the Python "
         "scripts setting), which no tool reaches and screenshots leave out.",
         object_schema({{"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "Default 100."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
@@ -1370,9 +1370,9 @@ void register_ui_tools(CommandCatalog& catalog)
         NativeCommand def = recover_input_tool(
             "window_set", L("Size, move or raise a window"),
             "Size, move, maximize, minimize or raise a window: the main window (default), the topmost modal dialog, or one "
-            "window_list lists, also while a modal dialog is open. Size the main window before view_set fits the camera and "
-            "before recording_start, as a recording keeps its first frame's size. size and position are in the units "
-            "window_list reports, whose x/y and width/height are read as position and size too. A size or position restores "
+            "`window_list` lists, also while a modal dialog is open. Size the main window before `view_set` fits the camera and "
+            "before `recording_start`, as a recording keeps its first frame's size. size and position are in the units "
+            "`window_list` reports, whose x/y and width/height are read as position and size too. A size or position restores "
             "a maximized or minimized window first. A window takes only the states its title bar offers; a modal dialog "
             "never minimizes. A refused call changes nothing. Replies once the window holds still and the 3D view has drawn "
             "at its new size (3 s at most): title, kind, ref, size, position, state, resizable, scale (screenshot pixels per "
@@ -1380,10 +1380,10 @@ void register_ui_tools(CommandCatalog& catalog)
             "changed.",
             object_schema({{"target", {{"type", json::array({"string", "object"})},
                                        {"description", "main (default), dialog (the topmost modal "
-                                                       "dialog), or a window's ref or locator from window_list; a widget's ref or "
+                                                       "dialog), or a window's ref or locator from `window_list`; a widget's ref or "
                                                        "locator picks the window it is in."}}},
-                           {"size", array_prop({{"type", "integer"}}, "[width, height], held to the window's minimum and maximum size.")},
-                           {"position", array_prop({{"type", "integer"}}, "[x, y] of the window's top-left corner on screen; not on Wayland.")},
+                           {"size", array_prop({{"type", "integer"}}, "`[width, height]`, held to the window's minimum and maximum size.")},
+                           {"position", array_prop({{"type", "integer"}}, "`[x, y]` of the window's top-left corner on screen; not on Wayland.")},
                            {"state", enum_prop({"normal", "maximized", "minimized"},
                                                "normal restores a maximized or minimized window; maximized and minimized take no size "
                                                "or position.")},
@@ -1397,37 +1397,37 @@ void register_ui_tools(CommandCatalog& catalog)
     {
         NativeCommand def = inspect_tool(
             "widget_list", L("List the widgets"),
-            "Describe what is on screen as an indented tree, one element per line with a ref to pass to widget_click, widget_set_value, "
-            "keyboard_press and webview_run_javascript (a page element's to mouse_gesture too): the widgets of every shown window, the rows of lists, "
+            "Describe what is on screen as an indented tree, one element per line with a ref to pass to `widget_click`, `widget_set_value`, "
+            "`keyboard_press` and `webview_run_javascript` (a page element's to `mouse_gesture` too): the widgets of every shown window, the rows of lists, "
             "trees and tables, each shown popup after the window it opened from, the main menus, the 3D canvas's toolbar "
             "items and gizmos, each ImGui panel drawn in the last frame with its items and text, and the elements of each "
             "shown web page (dialogs, the setup wizard, sign-in, plugin windows) under its web view. With a modal dialog "
-            "open, only the topmost dialog's pages are read. Refs go stale when their element goes away: call widget_list "
-            "again then. Prefer action_run and the typed tools when one fits.\n"
-            "A locator names an element without a ref, in any session (replay_export records them); index (0-based) picks "
+            "open, only the topmost dialog's pages are read. Refs go stale when their element goes away: call `widget_list` "
+            "again then. Prefer `action_run` and the typed tools when one fits.\n"
+            "A locator names an element without a ref, in any session (`replay_export` records them); index (0-based) picks "
             "one of several matches:\n"
-            "- a widget: {label, class, name, within, index}, within being its window's title; a notebook page: {tab: "
-            "\"General\", within}\n"
-            "- a setting's field: {option: \"layer_height\"}\n"
-            "- {menu: \"File>Export>Export G-code\"}, {gltoolbar: \"arrange\"}, {gizmo: \"Move\"}\n"
-            "- an ImGui item: {imgui: \"label\", imgui_name?: \"name\", window?, canvas?, index?}, by its label, its name or both\n"
-            "- a row of a list, tree, table or drop-down list: {row: \"Plate 1>Cube>Cylinder\", column?, within?, index?}, by "
+            "- a widget: `{label, class, name, within, index}`, within being its window's title; a notebook page: `{tab: "
+            "\"General\", within}`\n"
+            "- a setting's field: `{option: \"layer_height\"}`\n"
+            "- `{menu: \"File>Export>Export G-code\"}`, `{gltoolbar: \"arrange\"}`, `{gizmo: \"Move\"}`\n"
+            "- an ImGui item: `{imgui: \"label\", imgui_name?: \"name\", window?, canvas?, index?}`, by its label, its name or both\n"
+            "- a row of a list, tree, table or drop-down list: `{row: \"Plate 1>Cube>Cylinder\", column?, within?, index?}`, by "
             "its last labels; column names the cell to act on\n"
-            "- a plate or one of its icons in the Prepare view: {plate_icon: \"lock\", plate: 0}, the icon being plate, "
-            "delete, orient, arrange, lock, settings, name, move_to_front, filament_map or imex_mode\n"
-            "- a web page's element: {web: \"Next\", kind?: \"button\", css?: \"#AcceptBtn\", within?, index?}, by the label "
-            "widget_list lists (exactly, else ignoring case, else a part of it), its kind, a CSS selector (the id a line "
-            "shows as name: name=#save is {css: \"#save\"}), or together. Without within it looks in the topmost dialog's "
+            "- a plate or one of its icons in the Prepare view: `{plate_icon: \"lock\", plate: 0}`, the icon being plate, "
+            "delete, orient, arrange, lock, settings, name, `move_to_front`, `filament_map` or `imex_mode`\n"
+            "- a web page's element: `{web: \"Next\", kind?: \"button\", css?: \"#AcceptBtn\", within?, index?}`, by the label "
+            "`widget_list` lists (exactly, else ignoring case, else a part of it), its kind, a CSS selector (the id a line "
+            "shows as name: name=#save is `{css: \"#save\"}`), or together. Without within it looks in the topmost dialog's "
             "pages while one is open, else in every shown page, and an action on it waits for its element up to 2 s short of "
-            "the action's timeout_s (8 s by default), but at least 3 s or the whole of a shorter timeout_s.",
-            object_schema({{"target", prop("string", "all (default), main, dialog (the topmost modal), popup, or a window's ref (window_list).")},
+            "the action's `timeout_s` (8 s by default), but at least 3 s or the whole of a shorter `timeout_s`.",
+            object_schema({{"target", prop("string", "all (default), main, dialog (the topmost modal), popup, or a window's ref (`window_list`).")},
                            {"query", prop("string", "Case-insensitive text to look for in labels, values, names and classes.")},
                            {"max_nodes", {{"type", "integer"}, {"minimum", 1}, {"maximum", 5000}, {"description", "Default 400."}}},
                            {"include_imgui", prop("boolean", "List ImGui items (default true).")},
                            {"include_menus", prop("boolean", "List menu items (default true).")},
                            {"include_web", prop("boolean", "List the elements of web pages (default true).")},
                            {"max_web_nodes",
-                            {{"type", "integer"}, {"minimum", 1}, {"maximum", 5000}, {"description", "Page elements, apart from max_nodes; default 300."}}}}),
+                            {{"type", "integer"}, {"minimum", 1}, {"maximum", 5000}, {"description", "Page elements, apart from `max_nodes`; default 300."}}}}),
             [](const json& args, ToolContext& ctx) {
                 AutomationRuntime& runtime = ctx.runtime();
                 SnapshotOptions o;
@@ -1494,18 +1494,18 @@ void register_ui_tools(CommandCatalog& catalog)
         "selected as a click on its cell selects it (ctrl adds, shift extends; in the object list the named column acts, as "
         "Printable toggles), double activates it and a right click opens its menu; a drop-down list's row is picked. A "
         "plate icon does what it does in the Prepare view: lock replies locked, arrange and orient reply done once their "
-        "job ends, settings and filament_map list the dialog they open (dialogs). A button, checkbox, toggle or radio "
+        "job ends, settings and `filament_map` list the dialog they open (dialogs). A button, checkbox, toggle or radio "
         "button is activated so by a plain left click only: with modifiers, double or another button it gets a mouse "
         "click, which a native control ignores. A menu item runs whatever those options are, a toolbar item takes a "
         "left or a right click, and a gizmo a single left one. Modifiers reach the 3D canvas, the object list and "
-        "handlers that read them. To click a point of the model, drag, scroll or hold a press, use mouse_gesture. A menu the click opens is "
-        "never shown: the reply lists it as popup_menu, or "
-        "popup_item runs one of its items (ran). A click that opens a dialog replies blocked_by_dialog.\n"
+        "handlers that read them. To click a point of the model, drag, scroll or hold a press, use `mouse_gesture`. A menu the click opens is "
+        "never shown: the reply lists it as `popup_menu`, or "
+        "`popup_item` runs one of its items (ran). A click that opens a dialog replies `blocked_by_dialog`.\n"
         "A web page's element gets the pointer and mouse events of a click at its centre (or x/y) once scrolled into view, "
         "refused when something else covers that point. The reply reads back checked, and has closed when the click closed "
         "its dialog (with dialogs, those still open under it, which still need an answer), navigated (with url) when it "
         "changed the page, or dialogs when it opened another. Otherwise page says what changed on the page within 300 ms: "
-        "changed (false when its lines are as before), the widget_list lines added and removed, partial when a plugin "
+        "changed (false when its lines are as before), the `widget_list` lines added and removed, partial when a plugin "
         "configuration frame could not be compared, and posted, how many messages the page sent OrcaSlicer.",
         object_schema({{"target", kTargetSchema},
                        {"button", enum_prop({"left", "right", "middle"}, "Default left.")},
@@ -1609,9 +1609,9 @@ void register_ui_tools(CommandCatalog& catalog)
         "replies typed and a note beside it; a combo's option is picked by its text or 0-based index, and a checkbox, radio "
         "or toggle is clicked when it differs. A web page's fields, as typing would leave them: text, number, range, colour "
         "and date fields and editable text get the value with input and change events (submit then leaves the field; "
-        "keyboard_press Return presses Enter), a select its option by text, value or index, and a checkbox or radio is clicked when "
-        "it differs; the value is read back and page says what changed, as for widget_click. File fields can't be set. For "
-        "settings, settings_set is more reliable.",
+        "`keyboard_press` Return presses Enter), a select its option by text, value or index, and a checkbox or radio is clicked when "
+        "it differs; the value is read back and page says what changed, as for `widget_click`. File fields can't be set. For "
+        "settings, `settings_set` is more reliable.",
         object_schema({{"target", kTargetSchema},
                        {"value", {{"type", json::array({"string", "number", "boolean"})}, {"description", "The new value."}}},
                        {"submit", prop("boolean", "Press Enter / commit after setting (default true).")},
@@ -1639,11 +1639,11 @@ void register_ui_tools(CommandCatalog& catalog)
         "Send a key chord (\"Ctrl+S\", \"Escape\", \"Return\", \"Delete\", \"Shift+Tab\", \"Left\", \"F5\") and/or type text to "
         "a target or, without one, to the focused window (the topmost dialog while one is open, the shown 3D view when "
         "nothing has focus). As with a real key press, the shortcut handling of the target's panels and window sees the keys "
-        "first. Typing reaches ImGui fields and key handlers; fill a widget's text field with widget_set_value. A menu the keys open "
-        "is listed as popup_menu, or popup_item runs one of its items. Keys for a web page (its element, or without a "
+        "first. Typing reaches ImGui fields and key handlers; fill a widget's text field with `widget_set_value`. A menu the keys open "
+        "is listed as `popup_menu`, or `popup_item` runs one of its items. Keys for a web page (its element, or without a "
         "target the focused web view or the topmost dialog's only page) go to the page's focused element with the "
         "browser's default actions: typing, Backspace/Delete, Enter (submits a form, activates a button), Space, Tab moving "
-        "the focus, arrows stepping a select, range or radio group; page says what they changed, as for widget_click.",
+        "the focus, arrows stepping a select, range or radio group; page says what they changed, as for `widget_click`.",
         object_schema({{"target", kTargetSchema},
                        {"keys", prop("string", "One chord: a key, after any modifiers joined by +. Keys: one character, Enter, Esc, "
                                                "Tab, Space, Backspace, Delete, Insert, Home, End, PageUp, PageDown, Left, Right, "
@@ -1697,7 +1697,7 @@ void register_ui_tools(CommandCatalog& catalog)
 
     const json target_schema = {
         {"type", "object"},
-        {"description", "A point of the model: {object, instance (default 0), part (default 0), and point [x, y, z] in "
+        {"description", "A point of the model: {object, instance (default 0), part (default 0), and point `[x, y, z]` in "
                         "the part's own mesh coordinates (frame \"part\", the default) or the scene's (frame \"world\"), or "
                         "spot: top | bottom | front | back | left | right, where a ray along that axis first meets the part}."},
         {"properties",
@@ -1710,7 +1710,7 @@ void register_ui_tools(CommandCatalog& catalog)
         {"required", {"object"}},
         {"additionalProperties", false}};
     const json pixel_or_target = {{"type", json::array({"array", "object"})},
-                                  {"description", "A canvas pixel [x, y] or a point of the model, as for at."}};
+                                  {"description", "A canvas pixel `[x, y]` or a point of the model, as for at."}};
     std::vector<std::string> mouse_canvases{"3d", "preview", "assemble", "current"};
 #ifdef SLIC3R_CAD
     mouse_canvases.insert(mouse_canvases.end() - 1, "design");
@@ -1722,16 +1722,16 @@ void register_ui_tools(CommandCatalog& catalog)
         "\"point\" only projects it), or at x/y, logical pixels from the canvas's top left. A drag goes through `waypoints` to "
         "`to`, `steps` moves per leg: on an object it moves the object, in a painting gizmo it paints from a press on the "
         "object being painted (waypoints zigzagging over an area paint all of it), and elsewhere it turns or pans the camera "
-        "as this install's mouse settings say, so turn the camera with view_set camera or orbit instead. A wheel turns delta "
+        "as this install's mouse settings say, so turn the camera with `view_set` camera or orbit instead. A wheel turns delta "
         "notches; positive zooms in (out with the Reverse mouse zoom preference on) or scrolls a panel up. Modifiers are "
         "held as keys for the gesture (shift picks points in Measure and erases in a painting gizmo). A down keeps its button and modifiers held, so moves drag, until an up or another "
-        "gesture. Grabbers are set through the gizmo's panel fields or object_transform, not dragged. A menu a right click opens "
-        "is listed as popup_menu, or popup_item (with click or up) runs one of its items. The reply's camera_moved says the "
+        "gesture. Grabbers are set through the gizmo's panel fields or `object_transform`, not dragged. A menu a right click opens "
+        "is listed as `popup_menu`, or `popup_item` (with click or up) runs one of its items. The reply's `camera_moved` says the "
         "gesture moved the camera, so earlier screenshots and pixels no longer match the view.\n"
         "With target, the gesture is on a web page's element instead (a canvas such as the colour picker's spectrum, a "
         "slider, a sortable or scrolled list): x/y, to and waypoints are logical pixels from its top left, a drag keeps the "
         "pointer captured where the page asks for it, and a wheel scrolls what is under the pointer unless the page takes "
-        "it; page says what the gesture changed there, as for widget_click.",
+        "it; page says what the gesture changed there, as for `widget_click`.",
         object_schema({{"action", enum_prop({"move", "down", "up", "click", "drag", "wheel"}, "Default click.")},
                        {"canvas", enum_prop(mouse_canvases, "Default current, the view shown. design takes x/y only.")},
                        {"at", target_schema},
@@ -1748,7 +1748,7 @@ void register_ui_tools(CommandCatalog& catalog)
                        {"modifiers", kModifiersSchema},
                        {"popup_item", kPopupItemSchema},
                        {"target", {{"type", json::array({"string", "object"})},
-                                   {"description", "A web page's element (its ref or a {web}/{css} locator) to gesture on instead of a 3D canvas."}}},
+                                   {"description", "A web page's element (its ref or a `{web}`/`{css}` locator) to gesture on instead of a 3D canvas."}}},
                        {"timeout_s", kPageTimeoutSchema}}),
         [](const json& args, ToolContext& ctx) {
             AutomationRuntime& runtime = ctx.runtime();
@@ -1802,14 +1802,14 @@ void register_ui_tools(CommandCatalog& catalog)
 
     catalog.add(mutate_tool(
         "gizmo_pick_file", L("Load or save the open gizmo's SVG or texture file"),
-        "Do what a file picker inside the open gizmo does, with a path instead of its dialog: svg_change loads another SVG "
-        "file into the SVG part being edited, svg_save_as writes that part's SVG to a new file (an existing one only with "
-        "overwrite), texture_import imports a height-map image into the texture library and puts it on Texture "
-        "Displacement's active layer. To add an SVG part, use object_add_svg with a path. Gizmos open with "
-        "widget_click {target: {gizmo: name}}, and their panels take widget_set_value / widget_click on the ImGui items widget_list lists.",
+        "Do what a file picker inside the open gizmo does, with a path instead of its dialog: `svg_change` loads another SVG "
+        "file into the SVG part being edited, `svg_save_as` writes that part's SVG to a new file (an existing one only with "
+        "overwrite), `texture_import` imports a height-map image into the texture library and puts it on Texture "
+        "Displacement's active layer. To add an SVG part, use `object_add_svg` with a path. Gizmos open with "
+        "`widget_click {target: {gizmo: name}}`, and their panels take `widget_set_value` / `widget_click` on the ImGui items `widget_list` lists.",
         object_schema({{"action", enum_prop({"svg_change", "svg_save_as", "texture_import"}, "What to do.")},
                        {"path", prop("string", "Absolute path of the file to read or write.")},
-                       {"overwrite", prop("boolean", "svg_save_as: replace an existing file.")}},
+                       {"overwrite", prop("boolean", "`svg_save_as`: replace an existing file.")}},
                       {"action", "path"}),
         [](const json& args, ToolContext& ctx) {
             const std::string action = arg_string(args, "action");
@@ -1850,22 +1850,22 @@ void register_ui_tools(CommandCatalog& catalog)
     catalog.add(recover_input_tool(
         "dialog_answer", L("Answer a dialog"),
         "Press a button of the topmost modal dialog: yes, no, ok, cancel, close, apply, a button's label, or a numeric id. "
-        "A disabled button (enabled: false) is refused, the dialog's message showing what it still needs, and so is one on "
+        "A disabled button (`enabled: false`) is refused, the dialog's message showing what it still needs, and so is one on "
         "a page the dialog does not show, except a hidden cancel or close, which ends the dialog. On a dialog that is "
         "neither native nor a web dialog, a standard name or id it has no button for ends it with that answer too, "
-        "without a handler running (pressed: false). The label of an option of a "
+        "without a handler running (`pressed: false`). The label of an option of a "
         "selector made of buttons (Orca's radio groups, tab bars and multi-switches, shown as (*) / ( ) in the message) "
-        "selects that option and leaves the dialog open; set other radio buttons and switches with widget_click or widget_set_value "
-        "true, and notebook tabs with widget_click. "
+        "selects that option and leaves the dialog open; set other radio buttons and switches with `widget_click` or `widget_set_value` "
+        "true, and notebook tabs with `widget_click`. "
         "dialog.title, text the dialog's title contains, makes sure which dialog that is; it must be the topmost. Reply: "
-        "dialog, button, pressed, and id, the wx id pressed or ended with, or web: true for a button on a web dialog's "
-        "page, with what the page did as widget_click reports it; closed: true when it closed, and dialogs, those still open. A "
-        "native message box (native: true) is pressed through "
-        "the OS, by one of the buttons app_state.dialogs lists for it; a file or folder picker can't be answered here, nor "
-        "any native dialog on macOS (its buttons list is empty): register dialog_auto_answer before opening them. A web "
+        "dialog, button, pressed, and id, the wx id pressed or ended with, or `web: true` for a button on a web dialog's "
+        "page, with what the page did as `widget_click` reports it; `closed: true` when it closed, and dialogs, those still open. A "
+        "native message box (`native: true`) is pressed through "
+        "the OS, by one of the buttons `app_state.dialogs` lists for it; a file or folder picker can't be answered here, nor "
+        "any native dialog on macOS (its buttons list is empty): register `dialog_auto_answer` before opening them. A web "
         "dialog's buttons are on its page: a label is pressed there, waiting up to 3 s for it to show, so the page's own "
         "handler runs. With no such page button, or a page busy for those 3 s, cancel and close end the dialog, and ok, yes, "
-        "no and apply are refused rather than skip the page's commit; page_buttons then lists the page's buttons.",
+        "no and apply are refused rather than skip the page's commit; `page_buttons` then lists the page's buttons.",
         object_schema({{"button", prop("string", "Button to press.")},
                        {"dialog", {{"type", "object"},
                                    {"properties", {{"title", prop("string", "Text the dialog's title contains (case-insensitive).")}}},
@@ -2029,15 +2029,15 @@ void register_ui_tools(CommandCatalog& catalog)
         NativeCommand def = recover_input_tool(
             "dialog_auto_answer", L("Answer dialogs automatically"),
             "Answer modal dialogs automatically when their title or message matches a rule's regex (case-insensitive). "
-            "app_state.auto_answer_rules lists the rules in force. Called from a replay or script, the rules join those "
+            "`app_state.auto_answer_rules` lists the rules in force. Called from a replay or script, the rules join those "
             "it set before and last until it ends, and a plugin's likewise until it unloads; an MCP client's replace the "
             "ones MCP clients set before and last until the MCP server stops, and an empty list clears them. Reply: scope (run, plugin or session), rules (uses counts "
-            "a rule's answers) and answered_open_dialog. A native dialog "
+            "a rule's answers) and `answered_open_dialog`. A native dialog "
             "returns the rule's button at once and never shows. A file or folder picker takes button ok with an absolute path "
             "and returns it without showing; without a path a picker can only be cancelled, "
-            "and a multi-select picker takes no path. A wx dialog is answered as dialog_answer does. A matching dialog "
+            "and a multi-select picker takes no path. A wx dialog is answered as `dialog_answer` does. A matching dialog "
             "already open is answered too "
-            "(answered_open_dialog), so a prompt that shows around the same time, such as the restore prompt after startup, "
+            "(`answered_open_dialog`), so a prompt that shows around the same time, such as the restore prompt after startup, "
             "is caught either way. A web dialog is matched by its title: a button that names one of its shown wx buttons (by "
             "label, standard name or id) is pressed as for a wx dialog, any other on its page once it shows there, for up to "
             "10 s after the page loads; past that, cancel and close end the dialog and any other button gives up.",
@@ -2111,13 +2111,13 @@ void register_ui_tools(CommandCatalog& catalog)
     NativeCommand eval = recover_input_tool(
         "webview_run_javascript", L("Run JavaScript in a web view"),
         "Evaluate JavaScript in one of OrcaSlicer's web views (Home, the device page, dialogs, plugin windows). Prefer "
-        "widget_list and the input tools (widget_click, widget_set_value, keyboard_press, mouse_gesture), which see and drive pages as they do widgets. The code runs in the target's page: "
-        "a web view's (kind webview in widget_list), or a page element's, with the element as `el`; without a target, in "
+        "`widget_list` and the input tools (`widget_click`, `widget_set_value`, `keyboard_press`, `mouse_gesture`), which see and drive pages as they do widgets. The code runs in the target's page: "
+        "a web view's (kind webview in `widget_list`), or a page element's, with the element as `el`; without a target, in "
         "the topmost dialog's web view, else in the only shown one. While a modal dialog is open, only its pages run "
-        "code. Reply: result, the value of the last expression (JSON values come back parsed), and url; closed: true when "
-        "the code closed its dialog, navigated: true when it changed the page, dialogs when it opened another. Messages "
+        "code. Reply: result, the value of the last expression (JSON values come back parsed), and url; `closed: true` when "
+        "the code closed its dialog, `navigated: true` when it changed the page, dialogs when it opened another. Messages "
         "the page posts to OrcaSlicer reach it once the code has returned. It runs through eval, which a page whose "
-        "Content-Security-Policy forbids it may refuse (widget_list and the input tools still work there).",
+        "Content-Security-Policy forbids it may refuse (`widget_list` and the input tools still work there).",
         object_schema({{"code", prop("string", "JavaScript statements, run through eval: the last expression's value is the "
                                                "result. No top-level return or await; a Promise or a DOM node comes back as {}.")},
                        {"target", kPageTargetSchema},
