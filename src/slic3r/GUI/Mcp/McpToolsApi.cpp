@@ -457,11 +457,10 @@ struct ManualBuilder
         }
         if (!requires_only_its_fields(schema))
             raw = true;
-        // What an object takes besides its properties: nothing (false), anything (true), or values of a shape.
-        if (const auto other = schema.find("additionalProperties"); other != schema.end())
-            out["other_keys"] = other->is_boolean() ? json(other->get<bool>()) : shape(*other, path, nullptr, false);
-        else if (takes_an_object(schema))
-            out["other_keys"] = true;
+        // What an object takes besides its properties: nothing (false) or values of a shape; anything (true) below.
+        const auto other = schema.find("additionalProperties");
+        if (other != schema.end() && *other != true)
+            out["other_keys"] = *other == false ? json(false) : shape(*other, path, nullptr, false);
         if (const auto items = schema.find("items"); items != schema.end())
             out["items"] = shape(*items, path + "[]", nullptr, classified);
         // A parameter names where its values come from, unless it lists them itself. One with fields is read through
@@ -477,6 +476,9 @@ struct ManualBuilder
             if (c && c->kind == ParameterClass::Source)
                 out["values_from"] = c->tools;
         }
+        // An open object takes any other key, unless a keyword kept raw (allOf, $ref) may close it: its schema says.
+        if (!raw && !out.contains("other_keys") && (other != schema.end() || takes_an_object(schema)))
+            out["other_keys"] = true;
         if (raw) {
             out["schema"] = schema;
             complete      = false;
@@ -583,18 +585,24 @@ json command_manual(const NativeCommand& command)
                 builder.complete = false;
         if (!requires_only_its_fields(schema))
             builder.complete = false;
-        if (const auto props = schema.find("properties"); props != schema.end() && props->is_object()) {
+        const auto props = schema.find("properties");
+        if (props != schema.end() && !props->is_object())
+            builder.complete = false;
+        // What the top level holds that the manual can't express may close it (allOf, $ref), so an open top level is
+        // said to be one only when the rest of it is expressed.
+        const bool top_expressed = builder.complete;
+        if (props != schema.end() && props->is_object()) {
             params = builder.fields(*props, required, std::string(), builder.classify);
             for (json& p : params)
                 if (p.value("required", false) == false)
                     if (const auto c = conditional.find(p["name"].get<std::string>()); c != conditional.end())
                         p["required"] = c->second;
-        } else if (props != schema.end())
-            builder.complete = false;
+        }
         // A call's other arguments are refused only when the schema closes its top level (validate_value()).
-        if (const auto other = schema.find("additionalProperties"); other == schema.end() || *other == true)
-            rules.push_back("Other arguments are accepted.");
-        else if (*other == false)
+        if (const auto other = schema.find("additionalProperties"); other == schema.end() || *other == true) {
+            if (top_expressed)
+                rules.push_back("Other arguments are accepted.");
+        } else if (*other == false)
             rules.push_back("No other arguments are accepted.");
         else
             builder.complete = false;

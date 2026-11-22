@@ -1244,6 +1244,19 @@ TEST_CASE("tool_describe keeps raw what it can't express, and says the manual is
     CHECK(nested.at("complete") == true);
     CHECK(nested.at("parameters")[0].at("other_keys") == true);
 
+    // A keyword kept raw may close an object its additionalProperties leaves open, so neither a parameter nor the top
+    // level says it takes other keys: the raw schema tells.
+    const json closed_by_all_of = json::parse(R"({"type": "object", "allOf": [{"properties": {"x": {"type": "number"}},
+                                                  "additionalProperties": false}]})");
+    const json nested_all_of    = manual(json{{"type", "object"}, {"properties", {{"opts", closed_by_all_of}}},
+                                              {"additionalProperties", false}});
+    CHECK(nested_all_of.at("complete") == false);
+    CHECK(nested_all_of.at("parameters")[0].at("schema") == closed_by_all_of);
+    CHECK_FALSE(nested_all_of.at("parameters")[0].contains("other_keys"));
+    const json top_all_of = manual(closed_by_all_of);
+    CHECK(top_all_of.at("complete") == false);
+    CHECK(top_all_of.at("rules") == json::array());
+
     // An open top level takes arguments no parameter names; a closed one says it refuses them.
     const json open = manual(json::parse(R"({"type": "object", "additionalProperties": true})"));
     CHECK(open.at("complete") == true);
