@@ -353,6 +353,15 @@ bool requires_only_its_fields(const json& schema)
     });
 }
 
+// Whether `schema` describes an object, whose other keys the manual then states: its type says so, or it has
+// properties.
+bool takes_an_object(const json& schema)
+{
+    const json type = schema.value("type", json());
+    return schema.contains("properties") || type == "object" ||
+           (type.is_array() && std::find(type.begin(), type.end(), "object") != type.end());
+}
+
 // Whether `schema` has fields of its own: an object's properties, or its items'.
 bool has_fields(const json& schema)
 {
@@ -448,13 +457,11 @@ struct ManualBuilder
         }
         if (!requires_only_its_fields(schema))
             raw = true;
-        if (const auto other = schema.find("additionalProperties"); other != schema.end()) {
-            if (other->is_boolean()) {
-                if (!other->get<bool>())
-                    out["other_keys"] = false;
-            } else
-                out["other_keys"] = shape(*other, path, nullptr, false);
-        }
+        // What an object takes besides its properties: nothing (false), anything (true), or values of a shape.
+        if (const auto other = schema.find("additionalProperties"); other != schema.end())
+            out["other_keys"] = other->is_boolean() ? json(other->get<bool>()) : shape(*other, path, nullptr, false);
+        else if (takes_an_object(schema))
+            out["other_keys"] = true;
         if (const auto items = schema.find("items"); items != schema.end())
             out["items"] = shape(*items, path + "[]", nullptr, classified);
         // A parameter names where its values come from, unless it lists them itself. One with fields is read through
@@ -582,7 +589,8 @@ json command_manual(const NativeCommand& command)
                 if (p.value("required", false) == false)
                     if (const auto c = conditional.find(p["name"].get<std::string>()); c != conditional.end())
                         p["required"] = c->second;
-        }
+        } else if (props != schema.end())
+            builder.complete = false;
         // A call's other arguments are refused only when the schema closes its top level (validate_value()).
         if (const auto other = schema.find("additionalProperties"); other == schema.end() || *other == true)
             rules.push_back("Other arguments are accepted.");

@@ -919,6 +919,10 @@ void check_shape(const json& param, const json& schema, const std::string& where
         CHECK(param.at("type") == type_words(schema["type"]));
     else
         CHECK_FALSE(param.contains("type"));
+    if (schema.contains("description"))
+        CHECK(param.at("description") == schema["description"]);
+    else
+        CHECK_FALSE(param.contains("description"));
     static const std::pair<const char*, const char*> kBounds[] = {
         {"minimum", "min"},          {"maximum", "max"},          {"exclusiveMinimum", "exclusive_min"},
         {"minItems", "min_items"},   {"maxItems", "max_items"},   {"minLength", "min_length"},
@@ -940,12 +944,18 @@ void check_shape(const json& param, const json& schema, const std::string& where
         CHECK_FALSE(param.contains("default"));
     if (schema.contains("properties"))
         check_parameters(param.at("properties"), schema["properties"], schema.value("required", json::array()), where + ".");
-    if (schema.contains("additionalProperties")) {
-        if (schema["additionalProperties"] == false)
-            CHECK(param.at("other_keys") == false);
-        else if (schema["additionalProperties"].is_object())
-            CHECK(param.at("other_keys").is_object());
-    }
+    // An object states its other keys: none, any, or values of a shape.
+    const json type   = schema.value("type", json());
+    const bool object = schema.contains("properties") || type == "object" ||
+                        (type.is_array() && std::find(type.begin(), type.end(), "object") != type.end());
+    if (schema.contains("additionalProperties") && schema["additionalProperties"].is_boolean())
+        CHECK(param.at("other_keys") == schema["additionalProperties"]);
+    else if (schema.contains("additionalProperties"))
+        CHECK(param.at("other_keys").is_object());
+    else if (object)
+        CHECK(param.at("other_keys") == true);
+    else
+        CHECK_FALSE(param.contains("other_keys"));
     if (schema.contains("items"))
         check_shape(param.at("items"), schema["items"], where + "[]");
 }
@@ -1076,7 +1086,7 @@ TEST_CASE("tool_describe's manual names a command's menu items with their argume
     CHECK(manual_of(catalog, "fillet").at("call") == "tool_call {tool: \"fillet\", args}");
 }
 
-TEST_CASE("every parameter of a built-in command is classified for the manual", "[Mcp][CAD]")
+TEST_CASE("every built-in parameter is classified for the manual, or read through its fields", "[Mcp][CAD]")
 {
     const CommandCatalog catalog = catalog_with_cad();
     // The parameters with fields of their own that name a source besides their fields, and the source.
@@ -1221,6 +1231,18 @@ TEST_CASE("tool_describe keeps raw what it can't express, and says the manual is
     const json inner_needs  = manual(json{{"type", "object"}, {"properties", {{"a", inner}}}});
     CHECK(inner_needs.at("complete") == false);
     CHECK(inner_needs.at("parameters")[0].at("schema") == inner);
+
+    // A properties that is not an object lists no parameters.
+    const json no_props = json::parse(R"({"type": "object", "properties": true})");
+    const json unlisted = manual(no_props);
+    CHECK(unlisted.at("complete") == false);
+    CHECK(unlisted.at("input_schema") == no_props);
+
+    // A nested object open to other keys says so, as an open top level does.
+    const json nested = manual(json::parse(R"({"type": "object", "properties": {"opts": {"type": "object",
+                                                "properties": {"x": {"type": "number"}}}}, "additionalProperties": false})"));
+    CHECK(nested.at("complete") == true);
+    CHECK(nested.at("parameters")[0].at("other_keys") == true);
 
     // An open top level takes arguments no parameter names; a closed one says it refuses them.
     const json open = manual(json::parse(R"({"type": "object", "additionalProperties": true})"));

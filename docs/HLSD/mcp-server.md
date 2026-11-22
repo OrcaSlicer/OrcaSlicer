@@ -4591,7 +4591,9 @@ call, access, description, parameters, rules, menu_items, examples, complete, in
 to call it, by its name or through `tool_call`, and `access` holds the four labels `tools/list` sends only for
 listed commands. Each parameter is `{name, type, required, default?, values?, min?, max?, exclusive_min?,
 min_items?, max_items?, min_length?, max_length?, pattern?, format?, goes_with?, values_from?, items?,
-properties?, other_keys?, schema?, description}`, the same shape at every depth. `required` is true, false, or
+properties?, other_keys?, schema?, description}`, the same shape at every depth. `other_keys`, on an object,
+is false when it takes nothing besides its properties, true when it takes anything, or the shape of the values
+it takes. `required` is true, false, or
 the condition in words where a schema rule decides it; `default` is the schema's alone, a default a handler
 applies staying in the description's words; `goes_with` names the `type` or `target` the parameter belongs to
 where its description starts "Type X:" or "Target X:". `rules` gives the schema's conditional parts as
@@ -4604,14 +4606,16 @@ as a plugin's schema may hold) stays raw under the parameter's `schema`, and the
 
 `values_from` names, for a value the schema cannot list, the tools that list it: `object_list` for an object
 index, `settings_list` for a setting key, `tools/list` and `tool_list` for a command's name, `tool_describe` for
-another command's arguments. It comes from one table (`parameter_class()`) that classifies every parameter name
-the built-in commands use, at every depth, apart from enums and booleans: a source, with the tools that list its
-values; described, its description listing them; or free, the caller's own value, such as a number, a path or a
-new name. A row keyed by command and path comes before the name's row. A parameter with fields of its own is
-read through them, and names a source besides only where a row keyed by its command and path gives one
-(`printer_install`'s `models`, `dialog_answer`'s `dialog`), since a name such as `plane` is a reference in one
-command and a cut plane's fields in another. A unit test fails for a built-in parameter the table does not classify, so a new command's parameters are classified when it is added; a plugin
-operation's are not, their names being the plugin's own. Every refusal of a call's arguments by the schema check
+another command's arguments. It comes from one table (`parameter_class()`) that classifies every name the
+built-in commands give a parameter without fields of its own, at every depth, apart from enums and booleans: a
+source, with the tools that list its values; described, its description listing them; or free, the caller's own
+value, such as a number, a path or a new name. A row keyed by command and path comes before the name's row. A
+parameter with fields of its own is read through them, and names a source besides only where a row keyed by its
+command and path gives one (`printer_install`'s `models`, `dialog_answer`'s `dialog`), since a name such as
+`plane` is a reference in one command and a cut plane's fields in another. A unit test fails for a built-in
+parameter without fields that the table does not classify, and for one with fields that gains or loses a source,
+so a new command's parameters are classified when it is added; a plugin operation's are not, their names being
+the plugin's own. Every refusal of a call's arguments by the schema check
 names `tool_describe` for the command (`argument_refusal()`), by each route that checks: `tools/call`,
 `tool_call`'s target, a child call, a plugin's call and `action_run`.
 
