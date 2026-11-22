@@ -37,6 +37,7 @@
 #include <boost/log/trivial.hpp>
 
 #include <cereal/access.hpp>
+#include <cereal/cereal.hpp>
 #include <cereal/types/base_class.hpp>
 // The serialize() members below archive ConfigOption hierarchies through
 // cereal::base_class, whose registration machinery lives in polymorphic.hpp.
@@ -377,7 +378,8 @@ public:
     virtual void set(const ConfigOption* rhs, size_t start, size_t len)                                                     = 0;
     virtual void set_with_restore(const ConfigOptionVectorBase* rhs, std::vector<int>& restore_index, int stride)           = 0;
     virtual void set_with_restore_2(const ConfigOptionVectorBase* rhs, std::vector<int>& restore_index, int start, int len, bool skip_error = false) = 0;
-    virtual void set_only_diff(const ConfigOptionVectorBase* rhs, std::vector<int>& diff_index, int stride)                 = 0;
+    // keep_nil: copy a nil column from rhs as well, for options whose nil means "disabled" rather than "inherit".
+    virtual void set_only_diff(const ConfigOptionVectorBase* rhs, std::vector<int>& diff_index, int stride, bool keep_nil = false) = 0;
     virtual void set_to_index(const ConfigOptionVectorBase* rhs, std::vector<int>& dest_index, int stride) = 0;
     virtual void set_with_nil(const ConfigOptionVectorBase* rhs, const ConfigOptionVectorBase* inherits, int stride)        = 0;
     // Resize the vector of values, copy the newly added values from opt_default if provided.
@@ -457,7 +459,9 @@ public:
         }
         if (rhs->type() == this->type()) {
             // Assign the first value of the rhs vector.
-            auto other = static_cast<const ConfigOptionVector<T>*>(rhs);
+            auto other = dynamic_cast<const ConfigOptionVector<T>*>(rhs);
+            if (other == nullptr)
+                throw ConfigurationError("ConfigOptionVector::set_at(): Assigning an incompatible type");
             if (other->values.empty())
                 throw ConfigurationError("ConfigOptionVector::set_at(): Assigning from an empty vector");
             this->values[i] = other->get_at(j);
@@ -580,7 +584,7 @@ public:
     //set a item related with extruder variants when loading user config, only set the different value of some extruder
     //rhs: item from user config
     //diff_index: which index in this vector need to be set
-    virtual void set_only_diff(const ConfigOptionVectorBase* rhs, std::vector<int>& diff_index, int stride) override
+    virtual void set_only_diff(const ConfigOptionVectorBase* rhs, std::vector<int>& diff_index, int stride, bool keep_nil) override
     {
         if (rhs->type() == this->type()) {
             // Assign the first value of the rhs vector.
@@ -592,7 +596,7 @@ public:
             for (size_t i = 0; i < diff_index.size(); i++) {
                 if (diff_index[i] != -1) {
                     for (size_t j = 0; j < stride; j++) {
-                        if (!other->is_nil(diff_index[i] * stride))
+                        if (keep_nil || !other->is_nil(diff_index[i] * stride))
                             this->values[i * stride + j] = other->values[diff_index[i] * stride + j];
                     }
                 }
@@ -841,8 +845,12 @@ public:
     {
         UNUSED(append);
         std::istringstream iss(str);
-        iss >> this->value;
-        return !iss.fail();
+        double value;
+        iss >> value;
+        if (iss.fail())
+            return false;
+        this->value = value;
+        return true;
     }
 
     bool operator==(const ConfigOption &rhs) const override
@@ -891,7 +899,7 @@ public:
     static double 			nil_value() { return std::numeric_limits<double>::quiet_NaN(); }
     // A scalar is nil, or all values of a vector are nil.
     bool 					is_nil() const override { for (auto v : this->values) if (! std::isnan(v)) return false; return true; }
-    bool 					is_nil(size_t idx) const override { return std::isnan(this->values[idx]); }
+    bool 					is_nil(size_t idx) const override { return this->values.empty() || std::isnan(idx < this->values.size() ? this->values[idx] : this->values.front()); }
     virtual void set_at_to_nil(size_t i) override
     {
         assert(nullable() && (i < this->values.size()));
@@ -1033,8 +1041,12 @@ public:
     {
         UNUSED(append);
         std::istringstream iss(str);
-        iss >> this->value;
-        return !iss.fail();
+        int value;
+        iss >> value;
+        if (iss.fail())
+            return false;
+        this->value = value;
+        return true;
     }
 
     ConfigOptionInt& operator=(const ConfigOption *opt)
@@ -1071,7 +1083,7 @@ public:
     static int	 			nil_value() { return std::numeric_limits<int>::max(); }
     // A scalar is nil, or all values of a vector are nil.
     bool 					is_nil() const override { for (auto v : this->values) if (v != nil_value()) return false; return true; }
-    bool 					is_nil(size_t idx) const override { return this->values[idx] == nil_value(); }
+    bool 					is_nil(size_t idx) const override { return this->values.empty() || (idx < this->values.size() ? this->values[idx] : this->values.front()) == nil_value(); }
     virtual void set_at_to_nil(size_t i) override
     {
         assert(nullable() && (i < this->values.size()));
@@ -1252,8 +1264,12 @@ public:
         UNUSED(append);
         // don't try to parse the trailing % since it's optional
         std::istringstream iss(str);
-        iss >> this->value;
-        return !iss.fail();
+        double value;
+        iss >> value;
+        if (iss.fail())
+            return false;
+        this->value = value;
+        return true;
     }
 
 private:
@@ -1365,10 +1381,14 @@ public:
     bool deserialize(const std::string &str, bool append = false) override
     {
         UNUSED(append);
-        this->percent = str.find_first_of("%") != std::string::npos;
         std::istringstream iss(str);
-        iss >> this->value;
-        return !iss.fail();
+        double value;
+        iss >> value;
+        if (iss.fail())
+            return false;
+        this->value   = value;
+        this->percent = str.find_first_of("%") != std::string::npos;
+        return true;
     }
 
 private:
@@ -1404,7 +1424,7 @@ public:
     static FloatOrPercent   nil_value() { return { std::numeric_limits<double>::quiet_NaN(), false }; }
     // A scalar is nil, or all values of a vector are nil.
     bool                    is_nil() const override { for (auto v : this->values) if (! std::isnan(v.value)) return false; return true; }
-    bool                    is_nil(size_t idx) const override { return std::isnan(this->values[idx].value); }
+    bool                    is_nil(size_t idx) const override { return this->values.empty() || std::isnan((idx < this->values.size() ? this->values[idx] : this->values.front()).value); }
     virtual void set_at_to_nil(size_t i) override
     {
         assert(nullable() && (i < this->values.size()));
@@ -1538,8 +1558,12 @@ public:
     {
         UNUSED(append);
         char dummy;
-        return sscanf(str.data(), " %lf , %lf %c", &this->value(0), &this->value(1), &dummy) == 2 ||
-               sscanf(str.data(), " %lf x %lf %c", &this->value(0), &this->value(1), &dummy) == 2;
+        Vec2d value;
+        if (sscanf(str.data(), " %lf , %lf %c", &value(0), &value(1), &dummy) != 2 &&
+            sscanf(str.data(), " %lf x %lf %c", &value(0), &value(1), &dummy) != 2)
+            return false;
+        this->value = value;
+        return true;
     }
 
 private:
@@ -1594,6 +1618,11 @@ public:
 
     bool deserialize(const std::string &str, bool append = false) override
     {
+        // Extended exclusion-volume syntax belongs to the dedicated string option.
+        // Rejecting it here also makes --bed-exclude-area fail instead of silently
+        // turning a volume definition into malformed legacy points.
+        if (str.find('|') != std::string::npos || str.find(';') != std::string::npos || str.find("..") != std::string::npos)
+            return false;
         if (! append)
             this->values.clear();
         std::istringstream is(str);
@@ -1614,18 +1643,18 @@ public:
     }
 
 private:
-	friend class cereal::access;
-	template<class Archive> void save(Archive& archive) const {
-		size_t cnt = this->values.size();
-		archive(cnt);
-		archive.saveBinary((const char*)this->values.data(), sizeof(Vec2d) * cnt);
-	}
-	template<class Archive> void load(Archive& archive) {
-		size_t cnt;
-		archive(cnt);
-		this->values.assign(cnt, Vec2d());
-		archive.loadBinary((char*)this->values.data(), sizeof(Vec2d) * cnt);
-	}
+    friend class cereal::access;
+    template<class Archive> void save(Archive& archive) const {
+        size_t cnt = this->values.size();
+        archive(cnt);
+        archive.saveBinary((const char*)this->values.data(), sizeof(Vec2d) * cnt);
+    }
+    template<class Archive> void load(Archive& archive) {
+        size_t cnt;
+        archive(cnt);
+        this->values.assign(cnt, Vec2d());
+        archive.loadBinary((char*)this->values.data(), sizeof(Vec2d) * cnt);
+    }
 };
 
 class ConfigOptionPoint3 : public ConfigOptionSingle<Vec3d>
@@ -1658,8 +1687,12 @@ public:
     {
         UNUSED(append);
         char dummy;
-        return sscanf(str.data(), " %lf , %lf , %lf %c", &this->value(0), &this->value(1), &this->value(2), &dummy) == 3 ||
-               sscanf(str.data(), " %lf x %lf x %lf %c", &this->value(0), &this->value(1), &this->value(2), &dummy) == 3;
+        Vec3d value;
+        if (sscanf(str.data(), " %lf , %lf , %lf %c", &value(0), &value(1), &value(2), &dummy) != 3 &&
+            sscanf(str.data(), " %lf x %lf x %lf %c", &value(0), &value(1), &value(2), &dummy) != 3)
+            return false;
+        this->value = value;
+        return true;
     }
 
 private:
@@ -1943,7 +1976,7 @@ public:
     static unsigned char	nil_value() { return std::numeric_limits<unsigned char>::max(); }
     // A scalar is nil, or all values of a vector are nil.
     bool 					is_nil() const override { for (auto v : this->values) if (v != nil_value()) return false; return true; }
-    bool 					is_nil(size_t idx) const override { return this->values[idx] == nil_value(); }
+    bool 					is_nil(size_t idx) const override { return this->values.empty() || (idx < this->values.size() ? this->values[idx] : this->values.front()) == nil_value(); }
     virtual void set_at_to_nil(size_t i) override
     {
         assert(nullable() && (i < this->values.size()));
@@ -2692,6 +2725,19 @@ public:
 
 
 
+// A plugin-backed option value that the registered capability resolver cannot map to a plugin
+// reference, i.e. a capability whose plugin is not available here. save_to_json() and
+// update_plugin_manifest() cannot derive a reference for such a value and omit it, so a GUI save
+// entry point queries this first and lets the user decide before writing a preset that loses the
+// reference. See ConfigBase::unresolved_plugin_capabilities().
+struct UnresolvedPluginCapability
+{
+    // Option holding the capability name, e.g. "printer_agent".
+    t_config_option_key opt_key;
+    // Bare capability name as stored in the option, e.g. "agent".
+    std::string         capability_name;
+};
+
 // An abstract configuration store.
 class ConfigBase : public ConfigOptionResolver
 {
@@ -2850,8 +2896,17 @@ public:
     // dispatchers consume) from the plugin-backed options via the registered resolver. save_to_json()
     // derives the same manifest, but only when a preset is written to disk; a config assembled in
     // memory for the backend (PresetBundle::full_config -> Print::apply) must refresh it here or a
-    // picked-but-unsaved plugin never resolves at slice/export time. No-op without a resolver.
+    // picked-but-unsaved plugin never resolves at slice/export time. A capability the resolver cannot
+    // map is omitted from the derived manifest; unresolved_plugin_capabilities() reports those
+    // values. No-op without a resolver.
     void update_plugin_manifest();
+
+    // The plugin-backed option values the registered resolver cannot map to a plugin reference --
+    // exactly the values save_to_json()/update_plugin_manifest() omit from the manifest. GUI save
+    // entry points call this before writing a preset so the user can be warned that the reference
+    // will be lost. Returns empty without a resolver (CLI/headless), where the manifest is left as
+    // loaded and nothing is lost.
+    std::vector<UnresolvedPluginCapability> unresolved_plugin_capabilities() const;
 
 	// Set all the nullable values to nils.
     void null_nullables();
@@ -2861,12 +2916,17 @@ public:
 private:
     // Set a configuration value from a string.
     bool set_deserialize_raw(const t_config_option_key& opt_key_src, const std::string& value, ConfigSubstitutionContext& substitutions, bool append);
-    void save_plugin_collection(const std::string& opt_key, const ConfigOption* opt, std::vector<std::string>& plugin_refs) const;
     // Collect the de-duplicated "name;uuid;capability" plugin references derived from this config's
     // plugin-backed options via the resolver. Shared by save_to_json (serializes them into the JSON
     // manifest) and update_plugin_manifest (writes them back into the "plugins" option). Order is
-    // preserved and empties are dropped; returns empty without a resolver (CLI/headless).
+    // preserved and values that do not resolve are dropped; returns empty without a resolver
+    // (CLI/headless).
     std::vector<std::string> collect_plugin_manifest() const;
+    // Calls fn(opt_key, plugin_type, capability_name) for every non-empty capability name held by a
+    // plugin-backed option of this config, in key order. A single walk feeds both the serializer
+    // (collect_plugin_manifest) and unresolved_plugin_capabilities, so they cannot disagree on which
+    // values resolve.
+    void for_each_plugin_capability(const std::function<void(const std::string& opt_key, const std::string& plugin_type, const std::string& capability_name)>& fn) const;
 
     static std::function<std::string(std::string, std::string)> resolve_capability_fn;
 };

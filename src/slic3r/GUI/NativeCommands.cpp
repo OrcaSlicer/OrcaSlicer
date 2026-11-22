@@ -16,6 +16,7 @@
 #include "NetworkTestDialog.hpp"
 #include "Plater.hpp"
 #include "PluginsDialog.hpp"
+#include "PartPlate.hpp"
 #include "PlateSettingsDialog.hpp"
 #include "SceneBenchmark.hpp"
 #include "DeviceCore/DevManager.h"
@@ -365,7 +366,7 @@ std::vector<NativeCommand> build_command_catalog()
         return object_op(wxGetApp().plater(), [](Plater* p) { return !p->is_selection_empty(); }, [](Plater* p) { p->center_selection(); });
     });
     add_with_icon("obj_drop", L("Drop to Bed"), L("Object"), "toolbar_flatten", [](const std::string&) {
-        return object_op(wxGetApp().plater(), [](Plater* p) { return !p->is_selection_empty(); }, [](Plater* p) { p->drop_selection(); });
+        return object_op(wxGetApp().plater(), [](Plater* p) { return p->get_selection().can_drop(); }, [](Plater* p) { p->drop_selection(); });
     });
     add("obj_fit_volume", L("Scale to Fit Print Volume"), L("Object"), [](const std::string&) {
         return object_op(
@@ -474,7 +475,7 @@ std::vector<NativeCommand> build_command_catalog()
         PlateNameEditDialog dlg((wxWindow*) wxGetApp().mainframe, wxID_ANY, _L("Edit Plate Name"));
         dlg.set_plate_name(from_u8(curr->get_plate_name()));
         if (dlg.ShowModal() == wxID_YES)
-            curr->set_plate_name(dlg.get_plate_name().ToUTF8().data());
+            plater->rename_plate(plater->get_partplate_list().get_curr_plate_index(), dlg.get_plate_name().ToUTF8().data());
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
     add_with_icon("plate_toggle_lock", L("Toggle Plate Lock"), L("Plate"), "lock_normal", [](const std::string&) {
@@ -587,6 +588,10 @@ std::vector<NativeCommand> build_command_catalog()
     });
     add_with_icon("help_open_config_folder", L("Show Configuration Folder"), L("Help"), "open_project", [](const std::string&) {
         Slic3r::GUI::desktop_open_datadir_folder();
+        return AppActionRunResult{AppActionRunResult::Level::Success};
+    });
+    add("help_migrate_filament_presets", L("Migrate Filament Presets"), L("Help"), [](const std::string&) {
+        wxGetApp().check_legacy_user_filament_presets(true);
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
     add("help_troubleshoot", L("Troubleshoot Center"), L("Help"), [](const std::string&) {

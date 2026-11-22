@@ -135,5 +135,7 @@
 		"Direct Drive High Flow",
 		"Direct Drive Standard",
 		"Direct Drive High Flow"
-	]
+	],
+	"top_color_penetration_layers": "6",
+	"bottom_color_penetration_layers": "4"
 }

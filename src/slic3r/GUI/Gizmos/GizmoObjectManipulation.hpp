@@ -13,6 +13,7 @@
 #include <wx/string.h>
 
 #include "slic3r/GUI/GUI_Geometry.hpp"
+#include "GLGizmoAlignment.hpp"
 
 //#include "slic3r/GUI/GLCanvas3D.hpp"
 
@@ -102,7 +103,7 @@ public:
     bool            m_show_reset_0_rotation{false};
     bool            m_show_clear_rotation { false };
     bool            m_show_clear_scale { false };
-    bool            m_show_drop_to_bed { false };
+    bool            m_enable_drop_to_bed { false };
     enum class RotateType { None, Relative, Absolute
     };
     RotateType m_last_rotate_type{RotateType::None}; // 0:no input 1:relative 2:absolute
@@ -151,6 +152,13 @@ public:
 
     void set_init_rotation(const Geometry::Transformation &value);
 
+    // Align/distribute state of the Move panel, which the Move gizmo previews.
+    const GLGizmoAlignment     &get_alignment_helper() const { return m_alignment_helper; }
+    GLGizmoAlignment::AlignType get_hovered_align_type() const { return m_hovered_align_type; }
+    bool                        get_align_to_parent() const { return m_align_to_parent; }
+    // When the Move gizmo opens or closes: no preview, and "Align selected" whenever the selection allows it.
+    void                        reset_align_state();
+
 private:
     void reset_settings_value();
     void update_settings_value(const Selection& selection);
@@ -174,6 +182,14 @@ private:
 
     GLCanvas3D& m_glcanvas;
     unsigned int m_last_active_item { 0 };
+
+    GLGizmoAlignment            m_alignment_helper;
+    // Operation of the enabled align icon under the mouse.
+    GLGizmoAlignment::AlignType m_hovered_align_type{GLGizmoAlignment::AlignType::NONE};
+    // Align to the object or plate holding the selection rather than within the selection.
+    bool                        m_align_to_parent{false};
+    // Whether the selection can align within itself, tracked to detect when the selection crosses that threshold.
+    bool                        m_can_align_within{false};
 
     // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
     std::vector<std::pair<wxString, wxString>> m_shortcuts_move;

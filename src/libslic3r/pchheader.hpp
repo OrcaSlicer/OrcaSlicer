@@ -38,7 +38,6 @@
 #include <numeric>
 #include <ostream>
 #include <queue>
-#include <regex>
 #include <set>
 #include <sstream>
 #include <stack>

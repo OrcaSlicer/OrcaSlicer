@@ -8,6 +8,9 @@
 # key, one process key and two filament keys (one per filament, one per extruder variant) are changed
 # without being listed, one process key and the first filament's density are changed and listed, and it
 # is sliced again: as is, with --uptodate, and with --load-filaments replacing only the second filament.
+# Without any entry in different_settings_to_system the project does not say which values it changed:
+# a plain run then keeps every stored value and takes only the removed keys, three filament keys among
+# them, from the system presets, while --uptodate still refreshes the unlisted ones.
 #
 # usage: test_cli_project_missing_keys.sh <orca-slicer binary> <python3> <resources/profiles/BBL>
 set -u
@@ -71,11 +74,12 @@ with zipfile.ZipFile(src) as zin, zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED
                 config[key] = str(int(float(config[key])) + 1)
             for key in ("filament_cost", "filament_max_volumetric_speed"):
                 expected[key] = config[key]
-                config[key] = [str(float(v) + 1) for v in config[key]]
+                # Written as the slicer writes them, so the value a project keeps reads back the same.
+                config[key] = ["%g" % (float(v) + 1) for v in config[key]]
             expected["wall_loops"] = str(int(config["wall_loops"]) + 1)
             config["wall_loops"] = expected["wall_loops"]
             expected["filament_density"] = [str(float(config["filament_density"][0]) + 1)] + config["filament_density"][1:]
-            config["filament_density"] = [expected["filament_density"][0]] + [str(float(v) + 1) for v in config["filament_density"][1:]]
+            config["filament_density"] = [expected["filament_density"][0]] + ["%g" % (float(v) + 1) for v in config["filament_density"][1:]]
             # One entry for the process, one per filament, one for the printer.
             different = config["different_settings_to_system"]
             different[0] = ";".join([k for k in different[0].split(";") if k] + ["wall_loops"])
@@ -86,8 +90,9 @@ with open(dst + ".expected.json", "w") as f:
     json.dump(expected, f)
 EOF
 
+# check <tag> [expected.json]
 check() {
-    if ! "$PY" - "$WORK/$1/out.3mf" "$WORK/old.3mf.expected.json" "$1" <<'EOF'
+    if ! "$PY" - "$WORK/$1/out.3mf" "${2:-$WORK/old.3mf.expected.json}" "$1" <<'EOF'
 import json, sys, zipfile
 
 with zipfile.ZipFile(sys.argv[1]) as z:
@@ -112,4 +117,46 @@ check uptodate
 # The replaced second filament takes the system values the refresh would have given it.
 slice partial "$WORK/old.3mf" --load-filaments ";$PROFILES/filament/Bambu PLA Basic @BBL P1S 0.4 nozzle.json"
 check partial
+
+# The same project with no list and with an empty entry for every preset, and without two per-variant
+# filament keys and one filament_dev key. A plain run keeps the stored values; --uptodate refreshes them
+# all, and the listed keys have no system value to expect.
+"$PY" - "$WORK/old.3mf" "$WORK/old.3mf.expected.json" "$WORK" <<'EOF' || exit $?
+import json, sys, zipfile
+
+src, expected_path, work = sys.argv[1:]
+with open(expected_path) as f:
+    expected = json.load(f)
+# Read every entry first: writestr() updates the ZipInfo it is given, so zin could not read it again.
+with zipfile.ZipFile(src) as zin:
+    items = [(item, zin.read(item.filename)) for item in zin.infolist()]
+config = json.loads(next(data for item, data in items if item.filename == "Metadata/project_settings.config"))
+stored = {key: config.get(key, want) for key, want in expected.items()}
+refreshed = {key: want for key, want in expected.items() if key not in ("wall_loops", "filament_density")}
+# The removed filament keys, with their option defaults from PrintConfig.cpp.
+for key, default in (("nozzle_temperature", "200"), ("filament_flow_ratio", "1"), ("filament_dev_ams_drying_time", "0")):
+    if default in config[key]:
+        print("SKIP: %s is %s in the system preset, the option default, so the test cannot tell them apart" % (key, default))
+        sys.exit(77)
+    stored[key] = refreshed[key] = config.pop(key)
+for name, different in (("unlisted", None), ("empty_list", [""] * len(config["different_settings_to_system"]))):
+    if different is None:
+        config.pop("different_settings_to_system")
+    else:
+        config["different_settings_to_system"] = different
+    with zipfile.ZipFile("%s/%s.3mf" % (work, name), "w", zipfile.ZIP_DEFLATED) as zout:
+        for item, data in items:
+            if item.filename == "Metadata/project_settings.config":
+                data = json.dumps(config, indent=4)
+            zout.writestr(item, data)
+for name, values in (("stored", stored), ("refreshed", refreshed)):
+    with open("%s/%s.expected.json" % (work, name), "w") as f:
+        json.dump(values, f)
+EOF
+slice unlisted "$WORK/unlisted.3mf"
+check unlisted "$WORK/stored.expected.json"
+slice empty_list "$WORK/empty_list.3mf"
+check empty_list "$WORK/stored.expected.json"
+slice unlisted_uptodate "$WORK/unlisted.3mf" --uptodate
+check unlisted_uptodate "$WORK/refreshed.expected.json"
 echo "PASS"

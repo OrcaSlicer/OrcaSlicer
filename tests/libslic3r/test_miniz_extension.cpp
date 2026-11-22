@@ -18,6 +18,7 @@
 #include <fstream>
 #include <ios>
 #include <iterator>
+#include <libslic3r/Utils.hpp>
 #include <miniz.h>
 #include <string>
 #include <utility>
@@ -174,6 +175,55 @@ TEST_CASE("Confined extraction writes nothing outside the target for Windows-spe
     CAPTURE(name);
     extract_archive_confined(zip_file.string(), target.string());
     CHECK(list_dir(tmp.path()) == std::vector<std::string>{"bundle.zip", "cache"});
+}
+
+TEST_CASE("Confined extraction writes files under a target path longer than MAX_PATH", "[MinizExtension]")
+{
+    ScopedTemporaryDir tmp;
+    const fs::path     zip_file = tmp.path() / "bundle.zip";
+    // Directory entries are explicit: extract_archive_confined recreates directories only for them.
+    write_zip(zip_file, {{"vendor/", ""}, {"vendor/machine/", ""}, {"vendor.json", "{\"a\":1}"},
+                         {"vendor/machine/printer.json", "{\"b\":2}"}});
+
+    // One 240-char component keeps every name below the NTFS 255 limit while pushing the full
+    // target path past the 260-char MAX_PATH the Win32 APIs enforce when LongPathsEnabled is off.
+    const fs::path target = tmp.path() / std::string(240, 'd');
+    REQUIRE(target.string().size() > 260);
+    fs::create_directories(extended_path(target));
+
+    REQUIRE(extract_archive_confined(zip_file.string(), target.string()));
+    // Verify through extended-length paths, otherwise the checks themselves are bounded by MAX_PATH.
+    CHECK(fs::is_directory(extended_path(target / "vendor")));
+    CHECK(read_file(extended_path(target / "vendor.json")) == "{\"a\":1}");
+    CHECK(read_file(extended_path(target / "vendor" / "machine" / "printer.json")) == "{\"b\":2}");
+
+    // The temporary dir guard cannot remove a deep tree on Windows, so drop it here.
+    boost::system::error_code ec;
+    fs::remove_all(extended_path(target), ec);
+    CHECK_FALSE(ec);
+}
+
+TEST_CASE("A zip archive under a path longer than MAX_PATH can be written and read", "[MinizExtension]")
+{
+    ScopedTemporaryDir tmp;
+
+    // Create the long directory with the extended-length path, then exercise the archive
+    // reader/writer against an archive whose own path is past MAX_PATH.
+    const fs::path long_dir = tmp.path() / std::string(240, 'z');
+    fs::create_directories(extended_path(long_dir));
+    const fs::path zip_file = long_dir / "bundle.zip";
+    REQUIRE(zip_file.string().size() > 260);
+
+    write_zip(zip_file, {{"vendor.json", "{\"a\":1}"}});
+
+    const fs::path target = tmp.path() / "out";
+    fs::create_directories(target);
+    REQUIRE(extract_archive_confined(zip_file.string(), target.string()));
+    CHECK(read_file(target / "vendor.json") == "{\"a\":1}");
+
+    boost::system::error_code ec;
+    fs::remove_all(extended_path(long_dir), ec);
+    CHECK_FALSE(ec);
 }
 
 #ifndef _WIN32

@@ -102,6 +102,7 @@ public:
     int LoadProfileFamily(std::string strVendor, std::string strFilePath);
     void init_guide_paths();
     void on_profile_loaded();
+    void notify_profile_loaded();
     bool BuildProfileJson(const PresetBundle& bundle, bool require_all_resource_vendors);
     bool BuildProfileDataFromPresetBundle();
     bool BuildProfileDataFromVendors();
@@ -142,6 +143,10 @@ private:
 
     //First Load
     bool bFirstComplete{false};
+    // The loading page gets userguide_profile_load_finish once both are true;
+    // every instance of it reports in, so the flag is never reset.
+    bool m_profile_ready{false};
+    bool m_page_ready{false};
     // Set once in the destructor. Read through `this` by the loading thread
     // (joined before `this` dies) and captured as the shared_ptr by CallAfter
     // lambdas so they don't touch `this` after the object is freed.

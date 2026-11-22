@@ -29,6 +29,9 @@ bool tsp_2opt_improve(std::vector<size_t>& path, const Points& centers, int max_
 // Returns true if any crossing was removed.
 bool tsp_remove_crossings(std::vector<size_t>& path, const Points& centers);
 
+// The shortest cycle through the points, starting at point 0, by dynamic programming over subsets; for a few points only.
+std::vector<size_t> tsp_exact_cycle(const Points& centers);
+
 // Rotate the cycle so the closing edge (last -> first) is minimized.
 void tsp_rotate_minimize_closing(std::vector<size_t>& path, const Points& centers);
 

@@ -50,5 +50,8 @@
 	"additional_cooling_fan_speed": [
 		"70",
 		"70"
+	],
+	"temperature_vitrification": [
+		"30"
 	]
 }

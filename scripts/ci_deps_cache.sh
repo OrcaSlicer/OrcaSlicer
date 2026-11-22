@@ -1,21 +1,25 @@
 #!/usr/bin/env bash
-# Lets a pull request's macOS deps build wait for a push build of the base
-# branch that builds the same deps, from a Linux job. `check` runs after a cache
-# miss and names a queued or running base build with the same deps/ and .github/
-# to wait for, unless the pull request changes either. `wait` waits until that
-# build saves KEY. actions/cache then confirms the entry can be restored.
+# Lets a pull request's macOS deps build, or its clang-tidy job, wait for a
+# build that saves the deps cache it needs, from a Linux job. `check` runs after
+# a cache miss and names a queued or running push build of the base branch with
+# the same deps/ and .github/ to wait for, unless the pull request changes either.
+# `own` names the pull request's own build instead, for clang-tidy when the pull
+# request changes deps/. `wait` waits until that build saves KEY under CACHE_REF,
+# or its deps job fails. actions/cache then confirms the entry can be restored.
 #
-# Environment: GH_TOKEN, REPO, WORKFLOW_REF and BASE_REF, plus KEY_INPUTS,
-# WAIT_FOR, WAIT_SINCE, WAIT_MINUTES, KEY and ARCH for `wait`.
+# Environment: GH_TOKEN, REPO, WORKFLOW (the build workflow's file name) and
+# BASE_REF, plus HEAD_SHA for `own`, and KEY_INPUTS, WAIT_FOR,
+# WAIT_SINCE, WAIT_MINUTES, KEY, CACHE_REF (default the base branch) and ARCH
+# (or JOB, the matrix job's name) for `wait`.
 # Writes key-inputs, wait-for and wait-since to $GITHUB_OUTPUT.
 set -uo pipefail
 
-workflow=${WORKFLOW_REF%%@*}
-workflow=${workflow##*/}
+workflow=${WORKFLOW:?}
 
 # Must match the job names in build_all.yml, build_check_cache.yml and build_deps.yml.
-check_job_name="build_macos_arch (${ARCH:-}) / Check Cache"
-deps_job_name="build_macos_arch (${ARCH:-}) / Build Deps / Build Deps"
+job=${JOB:-build_macos_arch (${ARCH:-})}
+check_job_name="$job / Check Cache"
+deps_job_name="$job / Build Deps / Build Deps"
 
 out() { echo "$1" >> "${GITHUB_OUTPUT:-/dev/stdout}"; }
 
@@ -63,8 +67,27 @@ check() {
   fi
 }
 
+own() {
+  out "key-inputs=$(local_key_inputs HEAD)"
+  local id
+  # The build can be created a moment after this job.
+  for _ in 1 2 3 4 5; do
+    id=$(gh api -X GET "repos/$REPO/actions/workflows/$workflow/runs" \
+      -f head_sha="$HEAD_SHA" -f event=pull_request -f per_page=1 --jq '.workflow_runs[0].id // empty' < /dev/null)
+    [ -n "$id" ] && break
+    sleep 30
+  done
+  if [ -n "$id" ]; then
+    echo "Waiting for the deps cache of build $id of this pull request."
+    out "wait-for=$id"
+    out "wait-since=$(date +%s)"
+  else
+    echo "No build of this pull request is building its deps."
+  fi
+}
+
 key_saved() {
-  gh cache list -R "$REPO" --ref "refs/heads/$BASE_REF" --key "$KEY" --json key < /dev/null \
+  gh cache list -R "$REPO" --ref "${CACHE_REF:-refs/heads/$BASE_REF}" --key "$KEY" --json key < /dev/null \
     | jq -e --arg key "$KEY" 'any(.[]; .key == $key)' > /dev/null
 }
 
@@ -87,11 +110,11 @@ wait_for() {
           key_saved && { echo "Found $KEY."; return; }
           sleep 20
         done
-        echo "Build $id of $BASE_REF finished its deps without saving $KEY."
+        echo "Build $id finished its deps without saving $KEY."
         return ;;
       "completed cancelled") ;;
       completed*)
-        echo "The deps job of build $id of $BASE_REF did not succeed."
+        echo "The deps job of build $id did not succeed."
         return ;;
       # The deps job exists only once the build's cache check has succeeded.
       "")
@@ -100,7 +123,7 @@ wait_for() {
           completed*)
             check=$(jq -r --arg name "$check_job_name" 'first(.jobs[] | select(.name == $name) | .conclusion) // ""' <<< "$jobs")
             if [ -z "$warned" ] && { [ -z "$check" ] || [ "$check" = success ]; }; then
-              echo "::warning title=Deps wait::Build $id of $BASE_REF has no job named \"$deps_job_name\". If the build jobs were renamed, update scripts/ci_deps_cache.sh. This does not affect this pull request."
+              echo "::warning title=Deps wait::Build $id has no job named \"$deps_job_name\". If the build jobs were renamed, update scripts/ci_deps_cache.sh. This does not affect this pull request."
               warned=1
             fi ;;
           *)
@@ -118,11 +141,12 @@ wait_for() {
     seen="$seen $id"
     echo "Following build $id of $BASE_REF."
   done
-  echo "No build of $BASE_REF saved $KEY."
+  echo "No build saved $KEY."
 }
 
 case "${1:-}" in
   check) check ;;
+  own) own ;;
   wait) wait_for ;;
-  *) echo "usage: $0 check|wait" >&2; exit 2 ;;
+  *) echo "usage: $0 check|own|wait" >&2; exit 2 ;;
 esac

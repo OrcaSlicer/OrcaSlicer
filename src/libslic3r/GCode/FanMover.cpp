@@ -3,6 +3,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/GCodeWriter.hpp"
 #include "GCodeReader.hpp"
 
 #include <cstddef>
@@ -143,6 +144,8 @@ void FanMover::_put_in_middle_G1(std::list<BufferData>::iterator item_to_split, 
     } else if (item_to_split->raw.size() > 2
         && item_to_split->raw[0] == 'G' && item_to_split->raw[1] == '1' && item_to_split->raw[2] == ' ') {
         float percent = nb_sec_since_itemtosplit_start / item_to_split->time;
+        const int xyz_digits = GCodeFormatter::xyz_digits(high_precision(*item_to_split));
+        const int e_digits   = GCodeFormatter::e_digits(high_precision(*item_to_split));
         BufferData before = *item_to_split;
         before.time *= percent;
         item_to_split->time *= (1-percent);
@@ -150,31 +153,31 @@ void FanMover::_put_in_middle_G1(std::list<BufferData>::iterator item_to_split, 
             before.dx = item_to_split->dx * percent;
             item_to_split->x += before.dx;
             item_to_split->dx = item_to_split->dx * (1-percent);
-            change_axis_value(before.raw, 'X', before.x + before.dx, 3);
+            change_axis_value(before.raw, 'X', before.x + before.dx, xyz_digits);
         }
         if (item_to_split->dy != 0) {
             before.dy = item_to_split->dy * percent;
             item_to_split->y += before.dy;
             item_to_split->dy = item_to_split->dy * (1 - percent);
-            change_axis_value(before.raw, 'Y', before.y + before.dy, 3);
+            change_axis_value(before.raw, 'Y', before.y + before.dy, xyz_digits);
         }
         if (item_to_split->dz != 0) {
             before.dz = item_to_split->dz * percent;
             item_to_split->z += before.dz;
             item_to_split->dz = item_to_split->dz * (1 - percent);
-            change_axis_value(before.raw, 'Z', before.z + before.dz, 3);
+            change_axis_value(before.raw, 'Z', before.z + before.dz, xyz_digits);
         }
         if (item_to_split->de != 0) {
             if (relative_e) {
                 before.de = item_to_split->de * percent;
-                change_axis_value(before.raw, 'E', before.de, 5);
+                change_axis_value(before.raw, 'E', before.de, e_digits);
                 item_to_split->de = item_to_split->de * (1 - percent);
-                change_axis_value(item_to_split->raw, 'E', item_to_split->de, 5);
+                change_axis_value(item_to_split->raw, 'E', item_to_split->de, e_digits);
             } else {
                 before.de = item_to_split->de * percent;
                 item_to_split->e += before.de;
                 item_to_split->de = item_to_split->de * (1 - percent);
-                change_axis_value(before.raw, 'E', before.e + before.de, 5);
+                change_axis_value(before.raw, 'E', before.e + before.de, e_digits);
             }
         }
         //add before then line_to_write, then there is the modified data.
@@ -199,23 +202,25 @@ void FanMover::_print_in_middle_G1(BufferData& line_to_split, float nb_sec, cons
     }else if(line_to_split.raw.size() > 2
         && line_to_split.raw[0] == 'G' && line_to_split.raw[1] == '1' && line_to_split.raw[2] == ' ') {
         float percent = nb_sec / line_to_split.time;
+        const int xyz_digits = GCodeFormatter::xyz_digits(high_precision(line_to_split));
+        const int e_digits   = GCodeFormatter::e_digits(high_precision(line_to_split));
         std::string before = line_to_split.raw;
         std::string& after = line_to_split.raw;
         if (line_to_split.dx != 0) {
-            change_axis_value(before, 'X', line_to_split.x + line_to_split.dx * percent, 3);
+            change_axis_value(before, 'X', line_to_split.x + line_to_split.dx * percent, xyz_digits);
         }
         if (line_to_split.dy != 0) {
-            change_axis_value(before, 'Y', line_to_split.y + line_to_split.dy * percent, 3);
+            change_axis_value(before, 'Y', line_to_split.y + line_to_split.dy * percent, xyz_digits);
         }
         if (line_to_split.dz != 0) {
-            change_axis_value(before, 'Z', line_to_split.z + line_to_split.dz * percent, 3);
+            change_axis_value(before, 'Z', line_to_split.z + line_to_split.dz * percent, xyz_digits);
         }
         if (line_to_split.de != 0) {
             if (relative_e) {
-                change_axis_value(before, 'E', line_to_split.de * percent, 5);
-                change_axis_value(after, 'E', line_to_split.de * (1 - percent), 5);
+                change_axis_value(before, 'E', line_to_split.de * percent, e_digits);
+                change_axis_value(after, 'E', line_to_split.de * (1 - percent), e_digits);
             } else {
-                change_axis_value(before, 'E', line_to_split.e + line_to_split.de * percent, 5);
+                change_axis_value(before, 'E', line_to_split.e + line_to_split.de * percent, e_digits);
             }
         }
         m_process_output += before + "\n";
@@ -445,6 +450,11 @@ void FanMover::_process_gcode_line(GCodeReader& reader, const GCodeReader::GCode
                 std::string extrusion_string = line.raw().substr(6, line.raw().size() - 6);
                 current_role = ExtrusionEntity::string_to_role(extrusion_string);
             }
+            if (line.raw().rfind(";_FAN_MOVER_SKIP_", 0) == 0) {
+                // Internal markers: read here, then dropped from the output.
+                m_is_custom_gcode = line.raw().rfind(";_FAN_MOVER_SKIP_START", 0) == 0;
+                time = -1;
+            }
             if (line.raw().size() > 16) {
                 if (line.raw().rfind("; custom gcode", 0) != std::string::npos) {
                     if (line.raw().rfind("; custom gcode end", 0) != std::string::npos)
@@ -458,6 +468,7 @@ void FanMover::_process_gcode_line(GCodeReader& reader, const GCodeReader::GCode
 
     if (time >= 0) {
         BufferData& new_data = put_in_buffer(BufferData(line.raw(), time, fan_speed));
+        new_data.role = current_role;
         if (line.has(Axis::X)) {
             new_data.x = reader.x();
             new_data.dx = line.dist_X(reader);

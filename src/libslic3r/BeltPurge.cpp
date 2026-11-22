@@ -166,7 +166,7 @@ void Print::_plan_belt_purge()
     m_wipe_tower_data.tool_ordering.sort_and_build_data(*this, (unsigned int) -1, false);
 
     if (m_wipe_tower_data.tool_ordering.empty() || m_wipe_tower_data.tool_ordering.last_extruder() == unsigned(-1))
-        throw Slic3r::SlicingError("The print is empty. The model is not printable with current print settings.");
+        throw Slic3r::SlicingError(_u8L("The print is empty. The model is not printable with current print settings."));
 
     // Is there any filament change at all? Not ToolOrdering::has_wipe_tower(): that reads the
     // FIRST layer's flag, and on a belt the first layer may be a brim apron band, which carries

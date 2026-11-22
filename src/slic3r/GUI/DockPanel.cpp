@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <utility>
 #include <wx/webview.h>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r { namespace GUI {
 

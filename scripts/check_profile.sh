@@ -2,12 +2,13 @@
 #
 # Local twin of the "Check profiles" CI job (.github/workflows/check_profiles.yml).
 #
-# Runs the same five checks, in the same order, with the same validator flags, and with the
+# Runs the same seven checks, in the same order, with the same validator flags, and with the
 # same semantics: every check runs even after an earlier one fails (the workflow's
 # continue-on-error), then the script exits non-zero once at the end.
 #
-# Everything that has to be downloaded - the profile validator and the custom-preset fixture
-# archives - lands under a per-user cache directory and is reused on the next run. Being outside
+# Everything that has to be downloaded - the profile validator, the custom-preset fixture
+# archives and the v2.4.2 profile tree - lands under a per-user cache directory and is reused on
+# the next run. Being outside
 # the checkout, that directory is shared by every worktree on the machine. It also holds one log
 # per check plus a copy of the comment CI would post on the PR.
 #
@@ -17,7 +18,9 @@
 #
 # -v/--vendor narrows a run to one vendor while working on that vendor's profiles - the one
 # deliberate divergence from CI, which always checks the whole tree. A check that cannot be
-# narrowed is left out of the run and reported as skipped; see usage().
+# narrowed is left out of the run and reported as skipped; see usage(). version_bump compares
+# the tree with the commit it left main at, where CI compares a PR with the branch it merges
+# into; --base points it elsewhere.
 #
 # Usage: scripts/check_profile.sh [OPTION]... [CHECK]...
 
@@ -54,11 +57,12 @@ VALIDATOR="${ORCA_PROFILE_VALIDATOR:-}"
 # So the flag is passed unconditionally below rather than kept in an array bash 3.2 cannot expand
 # empty under `set -u`.
 VENDOR=""
+BASE_REF=""
 LOG_LEVEL=2
 PREFER_DOWNLOAD=0
 REFRESH=0
 
-ALL_CHECKS=(profile_tool validate_system validate_slice validate_filament_subtypes validate_custom)
+ALL_CHECKS=(profile_tool version_bump legacy_compat validate_system validate_slice validate_filament_subtypes validate_custom)
 CHECKS=()
 # "<check><TAB>pass|fail" per check that ran, plus "<check><TAB>skip<TAB>why" for one a vendor
 # scope left out; a string rather than an array because bash 3.2 (still the /bin/bash on macOS)
@@ -73,6 +77,10 @@ Usage: scripts/check_profile.sh [OPTION]... [CHECK]...
 
 Checks (default: all, in this order):
   profile_tool                  scripts/orca_profile_tool.py check
+  version_bump                  scripts/orca_profile_tool.py version-check: every changed
+                                bundle's <Vendor>.json has a newer version than at --base
+  legacy_compat                 scripts/orca_profile_tool.py legacy-compat --check against the
+                                v2.4.2 profiles
   validate_system               validator -p <profiles> -l <level>
   validate_slice                validator -p <profiles> -s -l <level>
   validate_filament_subtypes    validator -p <profiles> -l <level> -f
@@ -81,6 +89,8 @@ Checks (default: all, in this order):
 Options:
   -p, --profiles DIR   profile tree to validate (default: resources/profiles)
   -v, --vendor NAME    check only this vendor, named after its <Vendor>.json (e.g. "Co Print")
+      --base REF       the git ref version_bump compares the tree with (default: where the
+                       branch left upstream/main, else origin/main)
       --validator BIN  OrcaSlicer_profile_validator to use; also \$ORCA_PROFILE_VALIDATOR.
                        Default: the local build*/ Release build (then RelWithDebInfo, then
                        Debug) for this architecture, else the nightly release build is
@@ -91,16 +101,20 @@ Options:
   -l, --log-level N    validator log level (default: ${LOG_LEVEL}, as in CI)
   -h, --help           show this help
 
-Note: profile_tool is the only check that is not the validator binary; it makes the static
-checks the validator cannot, because the validator loads the tree the way the slicer does
-and so never sees a profile no <vendor>.json indexes, a preset name two files claim, or a
-file normalize and update-index would still rewrite.
+Note: profile_tool, version_bump and legacy_compat are the checks that are not the validator
+binary; they make the static checks the validator cannot, because the validator loads the tree
+the way the slicer does and so never sees a profile no <vendor>.json indexes, a preset name
+two files claim, a file normalize and update-index would still rewrite, or a bundle that
+changed without its version being bumped. version_bump is skipped, unless named, for a
+--profiles tree that is not inside a git checkout, or one with neither upstream/main nor
+origin/main to compare with when no --base is given.
 
 Note: --vendor narrows validate_custom too, by keeping only that vendor's presets in each
 fixture tree. The one check it cannot narrow is validate_slice for a vendor that ships no
 printers; the summary reports that one as skipped, and naming it explicitly still runs it.
 profile_tool keeps its two cross-vendor checks (setting_id and filament_id) tree-wide, so a
-scoped run can still fail on another vendor's files.
+scoped run can still fail on another vendor's files, and legacy_compat is tree-wide too: the map
+it checks covers every vendor.
 EOF
 }
 
@@ -120,6 +134,7 @@ while [ $# -gt 0 ]; do
         -h|--help) usage; exit 0 ;;
         -p|--profiles) [ $# -ge 2 ] || die "$1 needs a directory"; PROFILES_DIR="$2"; shift 2 ;;
         -v|--vendor) [ $# -ge 2 ] || die "$1 needs a vendor name"; VENDOR="$2"; shift 2 ;;
+        --base) [ $# -ge 2 ] || die "$1 needs a git ref"; BASE_REF="$2"; shift 2 ;;
         --validator) [ $# -ge 2 ] || die "$1 needs a path"; VALIDATOR="$2"; shift 2 ;;
         --work-dir) [ $# -ge 2 ] || die "$1 needs a directory"; WORK_DIR="$2"; shift 2 ;;
         -l|--log-level) [ $# -ge 2 ] || die "$1 needs a number"; LOG_LEVEL="$2"; shift 2 ;;
@@ -379,6 +394,67 @@ check_profile_tool() {
     python3 "${REPO_ROOT}/scripts/orca_profile_tool.py" check --profiles "${PROFILES_DIR}" --vendor "${VENDOR}"
 }
 
+# The app installs a bundle only when its version is newer than the installed one, and the OTA
+# profile update is named after it, so a changed bundle whose <Vendor>.json keeps its version
+# never reaches users.
+check_version_bump() {
+    python3 "${REPO_ROOT}/scripts/orca_profile_tool.py" version-check --profiles "${PROFILES_DIR}" \
+        --vendor "${VENDOR}" ${BASE_REF:+--base "${BASE_REF}"}
+}
+
+# Why the default run leaves version_bump out, on stdout; nothing, and status 1, when it can run.
+version_bump_skip_reason() {
+    local main
+    if ! git -C "${PROFILES_DIR}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        echo "${PROFILES_DIR} is not in a git checkout"
+        return 0
+    fi
+    [ -z "${BASE_REF}" ] || return 1
+    for main in upstream/main origin/main; do
+        git -C "${PROFILES_DIR}" rev-parse -q --verify "${main}^{commit}" >/dev/null 2>&1 && return 1
+    done
+    echo "neither upstream/main nor origin/main exists to compare with; pass --base"
+    return 0
+}
+
+# The profile tree of the release resources/info/legacy_compatible_printers.json is generated
+# against. The tag is immutable, so the extracted tree is cached in the work dir and --refresh
+# re-extracts it. A checkout without the tag (a shallow clone, a fork that never fetched tags)
+# gets it from upstream, as CI does.
+LEGACY_BASE_TAG="v2.4.2"
+LEGACY_BASE_URL="https://github.com/OrcaSlicer/OrcaSlicer.git"
+
+legacy_base_profiles() {
+    local base="${WORK_DIR}/legacy-base/${LEGACY_BASE_TAG}"
+    if [ "${REFRESH}" -eq 1 ] || [ ! -d "${base}/resources/profiles" ]; then
+        if ! git -C "${REPO_ROOT}" rev-parse -q --verify "refs/tags/${LEGACY_BASE_TAG}^{commit}" >/dev/null; then
+            msg "fetching tag ${LEGACY_BASE_TAG} from ${LEGACY_BASE_URL} ..."
+            git -C "${REPO_ROOT}" fetch --no-tags "${LEGACY_BASE_URL}" \
+                "refs/tags/${LEGACY_BASE_TAG}:refs/tags/${LEGACY_BASE_TAG}" || return 1
+        fi
+        # Extracted beside its final place and moved there whole, so an interrupted extraction is
+        # never mistaken for the tree on the next run.
+        local partial="${base}.partial"
+        rm -rf "${base}" "${partial}"
+        mkdir -p "${partial}" || return 1
+        if ! git -C "${REPO_ROOT}" archive "${LEGACY_BASE_TAG}" resources/profiles | tar -x -C "${partial}"; then
+            rm -rf "${partial}"
+            return 1
+        fi
+        mv "${partial}" "${base}" || return 1
+    fi
+    printf '%s\n' "${base}/resources/profiles"
+}
+
+# The map says which printers a user filament preset made against 2.4.2 can be migrated back
+# to, so a profile change that renames a filament preset or narrows its compatible_printers has
+# to regenerate it (the CI comment gives the command).
+check_legacy_compat() {
+    local base
+    base="$(legacy_base_profiles)" || return 1
+    python3 "${REPO_ROOT}/scripts/orca_profile_tool.py" legacy-compat --profiles "${PROFILES_DIR}" --base "${base}" --check
+}
+
 check_validate_system() {
     "${VALIDATOR}" -p "${PROFILES_DIR}" -v "${VENDOR}" -l "${LOG_LEVEL}"
 }
@@ -563,6 +639,8 @@ EOF
 comment_heading() {
     case "$1" in
         profile_tool) echo "### Profile Check Failed (orca_profile_tool.py)" ;;
+        version_bump) echo "### Profile Version Not Bumped" ;;
+        legacy_compat) echo "### Legacy Compatible Printers Map Out of Date" ;;
         validate_system) echo "### System Profile Validation Failed" ;;
         validate_slice) echo "### Slice Validation Failed (custom g-code expansion)" ;;
         validate_filament_subtypes) echo "### Filament Subtype Validation Failed" ;;
@@ -594,12 +672,16 @@ fi
 
 # An empty printer set is a failure to the sweep, so validate_slice is recorded as skipped rather
 # than run for a vendor that ships no printers (the filament-only OrcaFilamentLibrary); naming the
-# check explicitly still runs it.
+# check explicitly still runs it. So is version_bump for a --profiles tree git cannot diff, such
+# as a copy made to try a change on, or one with no main to diff against.
 for check in "${ALL_CHECKS[@]}"; do
     wants "${check}" || continue
     if [ "${check}" = validate_slice ] && [ "${NAMED_CHECKS}" -eq 0 ] && [ -n "${VENDOR}" ] &&
         [ ! -d "${PROFILES_DIR}/${VENDOR}/machine" ]; then
         RESULTS="${RESULTS}${check}"$'\t'"skip"$'\t'"${VENDOR} ships no printers"$'\n'
+    elif [ "${check}" = version_bump ] && [ "${NAMED_CHECKS}" -eq 0 ] &&
+        why="$(version_bump_skip_reason)"; then
+        RESULTS="${RESULTS}${check}"$'\t'"skip"$'\t'"${why}"$'\n'
     else
         run_check "${check}"
     fi

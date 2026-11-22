@@ -680,16 +680,15 @@ void ColorDecomposeDialog::update_filament_limit_warning()
         return;
     }
 
-    wxString mode_name;
-    switch (m_selected_mode) {
-    case DecomposeMode::CMYW:         mode_name = "CMYW"; break;
-    case DecomposeMode::RYBW:         mode_name = "RYBW"; break;
-    case DecomposeMode::MaterialList: mode_name = _L("Material List"); break;
-    }
-
-    const wxString warning_text = format_wxstr(
-        _L("The material list supports at most %1% colors. After %2% decomposition, the material count would exceed %1%. Please delete unused filaments on the main screen before decomposing."),
-        m_max_filament_count, mode_name);
+    const unsigned int max_count = static_cast<unsigned int>(m_max_filament_count);
+    const wxString warning_text = m_selected_mode == DecomposeMode::MaterialList ?
+        format_wxstr(_L_PLURAL("The material list supports at most %1% color. After Material List decomposition, the material count would exceed %1%. Please delete unused filaments on the main screen before decomposing.",
+                               "The material list supports at most %1% colors. After Material List decomposition, the material count would exceed %1%. Please delete unused filaments on the main screen before decomposing.",
+                               max_count), max_count) :
+        // TRN %2% is the decomposition mode name, "CMYW" or "RYBW"
+        format_wxstr(_L_PLURAL("The material list supports at most %1% color. After %2% decomposition, the material count would exceed %1%. Please delete unused filaments on the main screen before decomposing.",
+                               "The material list supports at most %1% colors. After %2% decomposition, the material count would exceed %1%. Please delete unused filaments on the main screen before decomposing.",
+                               max_count), max_count, m_selected_mode == DecomposeMode::CMYW ? "CMYW" : "RYBW");
 
     // Show first so the panel is laid out and the text control gets its real
     // width, then wrap to that width so the paragraph fills the content area.

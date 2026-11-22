@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <map>
-#include <numeric>
 #include <cassert>
 #include <cctype>
 #include <optional>
@@ -25,7 +24,6 @@
 #include "Polygon.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/I18N.hpp"
-#include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 // Mark string for localization and translate.
@@ -48,29 +46,6 @@ void strip_whitespace(std::string& token)
                 token.end());
 }
 } // namespace
-
-ConfigOptionInts effective_physical_extruder_map(const ConfigOptionInts* explicit_pem, int nozzle_count)
-{
-    // One entry per logical extruder, so a profile has authored a map only when its length
-    // matches. The single-element PrintConfig default does not, and is replaced rather than
-    // treated as a one-extruder machine.
-    if (explicit_pem && nozzle_count > 0 && (int) explicit_pem->values.size() == nozzle_count)
-        return *explicit_pem;
-
-    ConfigOptionInts derived;
-    derived.values.resize(std::max(nozzle_count, 1));
-    std::iota(derived.values.begin(), derived.values.end(), 0);
-    return derived;
-}
-
-ConfigOptionInts effective_physical_extruder_map(const PresetBundle& pb)
-{
-    const ConfigOptionInts* explicit_pem = pb.project_config.option<ConfigOptionInts>("physical_extruder_map");
-    if (!explicit_pem || explicit_pem->values.size() < 2)
-        explicit_pem = pb.printers.get_edited_preset().config.option<ConfigOptionInts>("physical_extruder_map");
-    const auto* nozzles = pb.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
-    return effective_physical_extruder_map(explicit_pem, nozzles ? (int) nozzles->values.size() : 0);
-}
 
 int imex_pem_tool_for(int filament_id, const std::string& parallel_mode, const ConfigOptionInts& pem)
 {
@@ -198,10 +173,12 @@ std::string imex_multicolor_block_reason(const std::string& parallel_mode,
         // Filaments are numbered from 1 as the sidebar shows them, heads by their T index; the map
         // decides which head a filament is on, so with MMU lanes the two numbers differ.
         if (phys < 0)
-            return (boost::format(L("In this Span mode only %1% print colors, but filament %2% isn't routed to any "
+            // TRN %1% is a list of tools such as "T0/T1", %2% a filament number.
+            return (boost::format(L("In this Span mode, colors are printed only by %1%, but filament %2% isn't routed to any "
                                     "tool. Use filaments routed to %1%, or switch this plate to Primary mode.")) %
                     tools % (filament + 1)).str();
-        return (boost::format(L("In this Span mode only %1% print colors, but filament %2% is routed to T%3%. Use "
+        // TRN %1% is a list of tools such as "T0/T1", %2% a filament number, %3% a tool number.
+        return (boost::format(L("In this Span mode, colors are printed only by %1%, but filament %2% is routed to T%3%. Use "
                                 "filaments routed to %1%, or switch this plate to Primary mode.")) %
                 tools % (filament + 1) % phys).str();
     }

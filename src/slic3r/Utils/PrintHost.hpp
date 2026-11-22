@@ -100,6 +100,7 @@ public:
 
 protected:
     virtual wxString format_error(const std::string &body, const std::string &error, unsigned status) const;
+    static wxString timed_out_message();
 };
 
 

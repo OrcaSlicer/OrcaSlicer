@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Goofoo PHA @System",
+	"inherits": "Goofoo PHA @base",
+	"from": "system",
+	"setting_id": "cfdeMyqld72Lqh38",
+	"instantiation": "true",
+	"compatible_printers": []
+}

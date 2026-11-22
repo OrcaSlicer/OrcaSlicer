@@ -46,5 +46,8 @@
 	],
 	"fan_min_speed": [
 		"0"
+	],
+	"temperature_vitrification": [
+		"100"
 	]
 }

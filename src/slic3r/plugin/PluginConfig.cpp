@@ -34,6 +34,7 @@
 #include <wx/app.h>
 #include <wx/busycursor.h>
 #include <wx/utils.h>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r {
 
@@ -337,11 +338,11 @@ bool parse_plugin_overrides(const std::string& raw, CapabilityConfigDocument& do
 
     const nlohmann::json parsed = nlohmann::json::parse(raw, nullptr, /* allow_exceptions */ false);
     if (parsed.is_discarded()) {
-        error = "The preset stores invalid plugin capability configuration JSON.";
+        error = _u8L("The preset stores invalid plugin capability configuration JSON.");
         return false;
     }
     if (!parsed.is_array()) {
-        error = "The preset's plugin capability configuration is not an array and cannot be edited.";
+        error = _u8L("The preset's plugin capability configuration is not an array and cannot be edited.");
         return false;
     }
 
@@ -371,7 +372,7 @@ bool prune_stale_plugin_overrides(DynamicConfig& config, const std::string& over
 
     // Capability names currently referenced by a plugin-backed option's value(s) — e.g.
     // slicing_pipeline_plugin's ConfigOptionStrings entries name SlicingPipeline capabilities
-    // directly, the same raw values save_plugin_collection() resolves into the "plugins" manifest.
+    // directly, the same raw values ConfigBase::collect_plugin_manifest() resolves into the manifest.
     std::set<std::pair<PluginCapabilityType, std::string>> referenced;
     const ConfigDef* def = config.def();
     for (const std::string& opt_key : config.keys()) {
@@ -529,6 +530,7 @@ std::string PluginConfig::capability_type_label(PluginCapabilityType type)
     case PluginCapabilityType::Visualization: return _u8L("Visualization");
     case PluginCapabilityType::Script: return _u8L("Script");
     case PluginCapabilityType::SlicingPipeline: return _u8L("Slicing Pipeline");
+    case PluginCapabilityType::ResourceTexture: return _u8L("Resource Texture");
     default: return _u8L("Unknown");
     }
 }
@@ -592,7 +594,7 @@ nlohmann::json PluginConfig::get_config_response(const PluginCapabilityId& id)
             } catch (const std::exception& ex) {
                 error = ex.what();
             } catch (...) {
-                error = "Unknown error";
+                error = _u8L("Unknown error");
             }
         }
 
@@ -688,7 +690,7 @@ nlohmann::json PluginConfig::restore_config_response(const PluginCapabilityId& i
         } catch (const std::exception& ex) {
             error = ex.what();
         } catch (...) {
-            error = "Unknown error";
+            error = _u8L("Unknown error");
         }
     }
 

@@ -6,7 +6,6 @@
 #include <cstddef>
 #include <wx/checklst.h>
 #include <wx/colour.h>
-#include <wx/colourdata.h>
 #include <wx/combo.h>
 #include <wx/dataview.h>
 #include <wx/button.h>
@@ -21,7 +20,6 @@
 #include <wx/scrolwin.h>
 #include <wx/spinctrl.h>
 #include <wx/artprov.h>
-#include <wx/colordlg.h>
 
 #include <vector>
 #include <functional>
@@ -89,7 +87,6 @@ wxBitmap * get_extruder_color_icon(std::string color, std::string label, int ico
 wxBitmap * get_extruder_color_icon(std::vector<std::string> colors, bool is_gradient, std::string label, int icon_width, int icon_height,
                                    const std::vector<wxColour> *ramp = nullptr);
 std::vector<std::vector<std::string>> read_color_pack(std::vector<std::string> color_pack);
-wxColourData show_sys_picker_dialog(wxWindow *parent, const wxColourData &clr_data);
 
 namespace Slic3r {
 namespace GUI {

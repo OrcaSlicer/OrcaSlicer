@@ -79,10 +79,9 @@ void FillHoneycomb::_fill_surface_single(
                 x += m.distance;
             }
             p.rotate(-direction.first, m.hex_center);
-            p.simplify(5 * spacing); // simplify to 5x line width
             // Orca: round the corners of the honeycomb cells. Done before the clipping, so that the
             // curves are cut by the region boundary just like the sharp path would be.
-            smooth_polyline_corners(p, params.smooth_factor, scaled<double>(params.resolution));
+            smooth_polyline_corners(p, params.corner_smoothing());
             all_polylines.push_back(p);
         }
     }
@@ -90,6 +89,7 @@ void FillHoneycomb::_fill_surface_single(
     multiline_fill(all_polylines, params, spacing);
 
     all_polylines = intersection_pl(std::move(all_polylines), expolygon);
+    join_cut_outlines(all_polylines, params);
     chain_or_connect_infill(std::move(all_polylines), expolygon, polylines_out, this->spacing, params);
 }
 
