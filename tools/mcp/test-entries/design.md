@@ -35,7 +35,7 @@ folder opens on a prompt to restore it, which `orca_mcp.py launch` answers No, s
 empty project.
 
 ## `test_cad_replays`
-`test_cad_replays.py` · Python, 176 checks (178 off Windows)
+`test_cad_replays.py` · Python, 178 checks (180 off Windows)
 
 **Tests:** The Design tab driven through its commands alone, in one app, one part after another:
 - the six replays in `tests/`, `cad_sketch_to_solid`, `cad_sketch_edit`, `cad_topology_targets`, `cad_features`,
@@ -44,8 +44,8 @@ empty project.
   part;
 - slow_build: that the app stays inspectable while a long Design rebuild runs off the UI thread behind the progress
   dialog;
-- examples: that every example `tool_search {tool}` documents for the Design commands, and for `undo` and `redo`,
-  still runs as written.
+- examples: that every example `tool_describe {tool}` documents for the Design commands, which
+  `tool_list {group: "Design"}` lists, and for `undo` and `redo`, still runs as written.
 
 The replay files are the test's input; the sweep runs none of them on its own. `test_cad_failed_job` stays a test of
 its own, since it runs with a reply budget of 4 s.
@@ -179,7 +179,8 @@ Its start: the Generic Klipper Printer, which its first step after `app_wait` se
 and its project carries the printer; then its own `project_new`, `window_set` 1600 x 900 and `new_design`. The
 objects `object_list` reads land on plate 0 of the 250 x 250 bed. The rule for the "Load project: unsaved changes"
 prompt it sets before the reopen holds only for the replay.
-- Discovery: `tool_search` lists `feature_describe` as Design read-only and `feature_edit` as Design writable.
+- Discovery: `tool_describe` gives `feature_describe` in group Design with `access.read_only` true and `feature_edit`
+  with false.
 - Variables and edits: variable `h` = 12 shows as bound to `distance` in `describe_design` and in `feature_describe`
   (`params`, `expr`, `refs`, `used_by`, `editable`). After unbinding and removing it, `variables` is empty and
   `bound` is absent. `feature_edit` reports `changed` old/new pairs, and the `index`, `params` and `values` aliases
@@ -271,10 +272,11 @@ off when an `app_state` or screenshot probe raises, or when the build is seen ne
   - "the progress dialog is listed while it builds".
   - "a screenshot of the progress dialog captures it": width non-zero and narrower than the main window.
 
-**Part `examples`** · one check per documented example: 156 today, 6 of them skipped
+**Part `examples`** · one check per documented example, 156 today, 6 of them skipped, and two on its inputs
 
-That every example `tool_search {tool}` documents for the Design commands, and for `undo` and `redo`, still runs as
-written. Each example runs on a fresh empty design, with `from_call` arguments filled from earlier results.
+That every example `tool_describe {tool}` documents for the Design commands, which `tool_list {group: "Design"}` lists,
+and for `undo` and `redo`, still runs as written. Two checks hold the part to its inputs: `tool_list {group: "Design"}`
+lists 88 commands, and at least one example of `extrude` ran. Each example runs on a fresh empty design, with `from_call` arguments filled from earlier results.
 
 Its start: before each example, what `start()` closes is closed as between parts (`checks.close_open()`), and
 `new_design` discards the rest. Two examples send bodies to the plate with `commit_to_plate`, which places them on
@@ -371,8 +373,6 @@ An example with `needs` prints `skip` and the part's closing line counts the exa
     example that builds the wrong geometry passes.
   - Examples with `needs` are skipped and count as passes on every platform. There are 6 today: two of
     `sketch_insert_svg`, `body_compare`, `import_step`, `import_mesh` and `export_step`.
-  - There is no minimum count. If `tool_search {group: "Design"}` listed no commands, or the commands no examples,
-    the part checks nothing and passes.
   - A result that is not a dict, or has neither `ok` nor `error`, passes without being examined.
 
 **Strength:** Partial — the replays and round_trip check their results by exact index, count, coordinate or a tight

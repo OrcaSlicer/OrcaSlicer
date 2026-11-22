@@ -4,7 +4,7 @@ The design of this area's sweep tests. The rules every entry follows, the grades
 in [TESTS.md](../TESTS.md).
 
 ## `test_speed_dial`
-`test_speed_dial.py` · Python, 29 checks · in `sweep.json` as `{"path": "test_speed_dial.py"}`
+`test_speed_dial.py` · Python, 33 checks · in `sweep.json` as `{"path": "test_speed_dial.py"}`
 
 **Tests:** The Speed Dial's actions as `action_search` and `action_run` give them: that `action_search` lists every one of the 129 actions of `tests/data/speed_dial_actions.json` with the command `tests/data/speed_dial_action_calls.json` gives it, and that a few actions, run through `action_run` on the Generic Klipper Printer 0.4, each from a state rebuilt by calls, do what a person's pick does: their dialog answered as the row says, their effect read back, the reply naming the action, and the journal keeping an `action_run` step for it with the arguments its command journals. Each action it runs stands for one way an action runs, and is one whose command no other test runs where there is one:
 - `calib_retraction`: a person's form that opens a dialog, answered OK, which then makes the project (the Retraction calibration dialog, which no other test opens).
@@ -14,6 +14,7 @@ in [TESTS.md](../TESTS.md).
 - `go_to_tab`: an action that collects a value, which the journal keeps (`{"tab": "preview"}`).
 - `take_screenshot`: an action that writes a file (`window_save_screenshot`).
 - `sync_presets`: a refused action, which journals nothing.
+- `go_to_layer`: an action whose command's schema refuses the value it is given, whose refusal names `tool_describe` for the command.
 
 An action is its command run with fixed arguments as a person's pick, and `action_run` runs every action the same way, so the test runs a few, not all. What each of the 129 adds to its command is checked without running it: `tests/slic3rutils/test_command_catalog.cpp` ([CommandCatalog][SpeedDial]) checks the command each folds into, its fixed arguments, the value it collects and that it is a person's form of its command, against the same fixture. The commands themselves are checked through their tools in their areas' tests. The Speed Dial's own window, opened with Space and picked from by a click, is `test_speed_dial_open`'s and `test_menu_items_refusals`'.
 
@@ -23,7 +24,7 @@ An action is its command run with fixed arguments as a person's pick, and `actio
 
 **Decides by:** Exits 1 when any check fails.
 - Setup: `starts from the Generic Klipper Printer`; `every action has a call in the fixture`; `every action is listed with its command` (`action_search`, read page by page, lists an item for each of the 129 ids, and its `command` equals the fixture's); `Start Recording's folder is the output folder`.
-- Common to every row that runs but `sync_presets`: `... its reply names the action it ran` (`ran` == `orca_command:<key>:orca`), and `... the journal keeps its action_run with the arguments its command journals`, an `action_run` step of that id whose inner `args` are `{"tab": "preview"}` for `go_to_tab`, the value given for its input, and `{}`, no `args`, for the others: the calibration action opens its test's dialog (the person's form), and `calibration_generate_test` rewrites its journal entry (`ActionContext::set_journal_args`) only when it runs the test itself, with its parameters or `silent`.
+- Common to every row that runs but `sync_presets` and `go_to_layer`: `... its reply names the action it ran` (`ran` == `orca_command:<key>:orca`), and `... the journal keeps its action_run with the arguments its command journals`, an `action_run` step of that id whose inner `args` are `{"tab": "preview"}` for `go_to_tab`, the value given for its input, and `{}`, no `args`, for the others: the calibration action opens its test's dialog (the person's form), and `calibration_generate_test` rewrites its journal entry (`ActionContext::set_journal_args`) only when it runs the test itself, with its parameters or `silent`.
 - `calib_retraction`, from `empty`: the dialog titled "Retraction" answered OK; the project's `name` is "Retraction" and it has at least 1 object.
 - `add_handy_orcasliced_combo`, from `empty`: the objects' names are exactly "Orca Head", "OrcaCube_v2.drc", "OrcaPlug_v2.drc", "Orca Belly" and "Orca Pedestal", in that order, and no dialog is open.
 - `help_keyboard_shortcuts`, from `empty`: a dialog whose title holds "Keyboard Shortcuts" opened; the test closes it.
@@ -31,6 +32,7 @@ An action is its command run with fixed arguments as a person's pick, and `actio
 - `go_to_tab`, from `two_cubes`, given `{"tab": "preview"}`: `app_state.tab` is `preview`.
 - `take_screenshot`, from `two_cubes`: the reply's `path` names a file in the output folder, of more than 0 bytes.
 - `sync_presets`, from `empty`: refused, `not_signed_in`; no `action_run` step of its id in the journal.
+- `go_to_layer`, from `empty`: "a command action's arguments its schema refuses carry the tool_describe hint": `action_run {id: "go_to_layer", args: {percent: -1}}`, the value the action collects, which `view_set`'s `layer_percent` minimum of 0 refuses, is refused with code `invalid_argument` and its `hint` is "tool_describe {tool: \"view_set\"} gives its parameters"; then `app_state.tab` is still "prepare", and `journal_step()` finds no `action_run` step for it.
 
 **Not checked:**
 - The other 122 actions as actions: each is listed with its command here and checked in the catalog's unit test, and its command through its tool in its area's test, so an action whose command and arguments are right but whose run went wrong for it alone passes. `action_run` runs every action by one code path, which the rows here take.
@@ -230,31 +232,31 @@ An action is its command run with fixed arguments as a person's pick, and `actio
 **Strength:** Strong — each command's reply and the resulting `plugin_list`, files and window rows are compared exactly.
 
 ## `test_plugin_tools`
-`test_plugin_tools.py` · Python, 36 checks
+`test_plugin_tools.py` · Python, 30 checks
 
-**Tests:** A plugin's side of the MCP tools, with `mcp_tools_fixture` side-loaded (enabled, 5 capabilities, thread permission) and `mcp_tools_broken`, whose `get_default_config` raises after it registered `measure`. Covers the fixture's `measure` operation through `tool_search`/`tool_call`, its scripts calling tools from the Script worker and a thread, setting an auto-answer rule owned by the plugin, being refused `replay_export`, keeping a progress-dialog handle, and receiving NewProject events. Also covers several `tool_search` queries, unloading via the Plugins dialog (operation and rule withdrawn), and a `--run` launch without MCP where the rule script still runs.
+**Tests:** A plugin's side of the MCP tools, with `mcp_tools_fixture` side-loaded (enabled, 5 capabilities, thread permission) and `mcp_tools_broken`, whose `get_default_config` raises after it registered `measure`. Covers the fixture's `measure` operation through `tool_list`, `tool_describe` and `tool_call`, its scripts calling tools from the Script worker and a thread, setting an auto-answer rule owned by the plugin, being refused `replay_export`, keeping a progress-dialog handle, and receiving NewProject events. Also covers `tool_list` and `tool_describe` on the menu items with no argument form, a group and the Design commands, unloading via the Plugins dialog (operation and rule withdrawn), and a `--run` launch without MCP where the rule script still runs.
 
 **Starts from:** a data folder of its own, not a job's: a new temporary folder with the two plugins side-loaded into it before the first launch, `orca_mcp.py launch --cad` on a port nothing listens on, which seeds it with the default printer, the Generic Klipper Printer 0.4; no check reads a preset. Its plugins are the only ones there. The `--run` launch starts the binary on the same folder, after the first app has stopped (`orca_mcp.py stop` returns once it has exited) and the fixture's install state has been written enabled again.
 
 **Leaves:** nothing in a job's data folder; its own folder is removed at the end.
 
 **Decides by:** Exits 1 when any check fails, or 1 at once if a launch fails.
-- Operation: `group` "Plugins", `description` starting "Offered by a plugin.", `tool_call` result == `{"twice": 4}`, absent from `tools/list`, and withdrawn within 30 s of the untick.
+- Operation: `tool_list {group: "plugins"}` lists `plugin.mcp_tools_fixture.measure`; `tool_describe` of it has `group` "Plugins", `description` starting "Offered by a plugin.", a parameter named `a` and `listed` false; `tool_call` result == `{"twice": 4}`; absent from `tools/list`; and within 30 s of the untick `tool_list {group: "plugins"}` no longer lists it and `tool_describe` of it is refused with code `invalid_argument` and text starting "Unknown tool: plugin.mcp_tools_fixture.measure".
 - Fixture scripts (outcome JSON read from the plugin's storage folder, waited for up to 60 s, since a script runs on its own after `action_run` has replied): `call` and `thread` == `{"ok": true, "result": true}`, `rule` == `{"ok": true, "result": "plugin"}` (both with MCP and under `--run`), `export` gives `ok` false with "agent's session", and a separate script's `handle.update(5)` returns true.
 - Progress dialog: "the plugin opens a progress dialog and keeps its handle": the `handle` script's outcome has `ok` true, and `window_list` lists a window titled `MCP tools fixture`, the title the script gives `create_progress_dialog`.
-- `tool_search`: `listed`/`input_schema`/`summary` per kind of item, the `brim_width` setting, the first Python item `orca.host.TriangleMesh.face_normals`, group "objects" containing `object_arrange`, an unknown group refused naming "Objects", "?" gives `total` 0, and no "cad" section.
-- Design commands: "the Design tab is on (launch --cad)" reads `app_state.design_tab` true, and then `tool_search`'s search for "extrude" finds `extrude` in the group `Design`, unlisted, with its schema.
+- Menu items and groups: `tool_list` lists `settings_toggle_developer_mode` and `script_toggle_panel`, each with `does` equal to the `description` `tool_describe` gives it; `tool_describe {tool: "script_toggle_panel"}` gives `listed` false and no parameters; `tool_list {group: "objects"}` gives no items and a note naming tools/list; an unknown group is refused with code `invalid_argument`, naming "Design".
+- Design commands: "the Design tab is on (launch --cad)" reads `app_state.design_tab` true, and then `tool_list {group: "design"}` lists `extrude` with heading "Solid".
 - A menu item's command: with Prepare shown, "tool_call runs a menu item's command" calls `script_toggle_panel` and waits up to 30 s for the 3D view's height in `widget_list` (its `name=OrcaSceneCanvas` line) to be less than before the call, as the Run Script panel docks under it; "and a second call hides it" waits up to 30 s for it to be greater than after the first call.
 - Events and journal: `new_projects.txt` gains exactly 1 line per `project_new` and per `new_project` action, each waited for up to 30 s. Before the `rule` script runs, the agent calls `dialog_auto_answer {rules: []}` itself (it clears only the rules MCP clients set). "a plugin's calls are not in the agent's journal": `replay_export`'s steps hold exactly one `dialog_auto_answer` step, the agent's, with `rules` `[]`; the plugin's call of the same tool is not there.
-- The plugin whose load failed: "the plugin whose load failed is listed with its error" reads `plugin_list`'s row for `mcp_tools_broken` with an `error` holding "this fixture's load fails here on purpose" (a row's `error` is the plugin's own, `PluginOps`). "and offers none of its operations": `tool_search {tool: "plugin.mcp_tools_broken.measure"}` is refused with text starting "Unknown tool: plugin.mcp_tools_broken.measure".
+- The plugin whose load failed: "the plugin whose load failed is listed with its error" reads `plugin_list`'s row for `mcp_tools_broken` with an `error` holding "this fixture's load fails here on purpose" (a row's `error` is the plugin's own, `PluginOps`). "and offers none of its operations": `tool_describe {tool: "plugin.mcp_tools_broken.measure"}` is refused with code `invalid_argument` and text starting "Unknown tool: plugin.mcp_tools_broken.measure".
 - Rule lifetime: the rule's match is in `auto_answer_rules` while the plugin is loaded and gone within 30 s of the untick.
 
 **Not checked:**
-- `tool_search describes the plugin's operation` checks only that the text holds `"a"`, the quoted name of the operation's argument. `tool_search's search finds the Speed Dial's other actions` accepts any action title containing "fixture".
+- The manual's fields past the operation's `group`, `description`, parameter `a` and `listed`, and past the menu item's `listed` and parameters: the unit tests read every command's manual.
 - The progress dialog's gauge: `handle.update(5)` returns true, but the gauge is not read.
 - The `--run` launch's exit code is ignored, and only the rule script runs there. Its replay gives the script a fixed 10 s to record its outcome before the run ends, with an `app_wait` for a dialog that never opens: the script runs on its own after `action_run` replies (`PluginScriptAction::run()`), and a replay has no step that waits for a file.
 
-**Strength:** Partial — the fixture's operation, script outcomes, events, journal, failed load and unload are each checked exactly, with a control for the journal's absence, but two `tool_search` matchers are loose and the `--run` launch's exit code is not read.
+**Strength:** Partial — the fixture's operation, its listing and manual, script outcomes, events, journal, failed load and unload are each checked exactly, with a control for the journal's absence, but the `--run` launch's exit code is not read.
 
 ## `test_operation_routes`
 `test_operation_routes.py` · Python, 23 checks

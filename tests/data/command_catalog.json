@@ -2,7 +2,7 @@
  "commands": [
   {
    "completion": "immediate",
-   "description": "Find what does something, in one search, or look up one command. With query: the commands that match, best first, each with its group, the first sentence of its description and listed, whether the tool list shows it; one that is not listed (a menu item that takes no arguments, a Design tab command, or an operation a plugin offers, plugin.<plugin>.<name>) comes with its input schema, and its description when that says more, which nothing else shows. Beside them, the best few matches of each other catalog, with its total and how to use it: actions (the Speed Dial's plates, recent projects and plugin scripts and pages), settings, and python (the orca API a script calls). The reply says how to call each kind of match. With tool: that command's description and input schema, and its examples when it has some (the Design commands do). With group alone: that group's commands, each with the first sentence of its description, listed and, for a Design command, its heading. With no tool, query or group: every command's name. With a query, group keeps the command matches to one group; the other catalogs' matches stay as they are. The Design tab's CAD commands follow by heading (sketches, solid and surface features, bodies, measurements); group Design lists them with what each does; look one up with tool before calling it. A command whose schema has silent does what its menu item does when called with no arguments, unless silent is true. Document: describe_design, import_step, import_mesh, set_variable, commit_to_plate, new_design, export_step, select_geometry, confirm_tool, cancel_tool. Sketch: sketch_create, sketch_project, sketch_text, sketch_insert_svg, sketch_offset, sketch_trim, sketch_fillet, sketch_chamfer, sketch_mirror, sketch_dimension, sketch_constrain, sketch_toggle_construction, sketch_extend, sketch_delete, sketch_describe, sketch_validate, sketch_list_constraints, sketch_blend_curve, sketch_finish, sketch_cancel, sketch_edit, sketch_draw, sketch_select, sketch_repair, sketch_set_value, sketch_transform, sketch_pattern, sketch_delete_constraint. Solid: extrude, revolve, sweep, loft, thicken, rib, boolean, hole, thread, shell, split, fillet, chamfer, draft, pattern, mirror, align, delete_face, list_align_types. Surface: surface_extrude, surface_revolve, surface_loft, surface_patch, surface_offset. Construct: construct_plane, construct_axis, construct_coordinate_system, helix. Inspect: measure, body_mass_properties, interference, body_describe, body_section, body_compare. Bodies: body_transform, body_delete, body_set, body_place. History: feature_edit, feature_delete, feature_describe, feature_set_expression, feature_move, feature_suppress, feature_rename. Menu items, which take no arguments and do what their item of the right-click menu does: rename_selected, zoom_to_selection, sketch_polygon_inscribed, sketch_polygon_circumscribed, sketch_constrain_selected.",
+   "description": "The commands the tool list does not show, each with what it does: the Design tab's (group Design, with the CAD feature on, each under its heading), the menu items that take no arguments (in their places' groups), and the operations plugins offer (group Plugins, plugin.<plugin>.<name>). The reply says how to read a command's manual and how to run one. group keeps one group's: a group whose commands the tool list all shows gives none and a note, and Design while this run leaves its commands out is refused saying why. The Design tab's CAD commands follow by heading (sketches, solid and surface features, bodies, measurements); tool_list {group: \"Design\"} lists them with what each does, and tool_describe {tool} gives one's manual before it is called. A command whose schema has silent does what its menu item does when called with no arguments, unless silent is true. Document: describe_design, import_step, import_mesh, set_variable, commit_to_plate, new_design, export_step, select_geometry, confirm_tool, cancel_tool. Sketch: sketch_create, sketch_project, sketch_text, sketch_insert_svg, sketch_offset, sketch_trim, sketch_fillet, sketch_chamfer, sketch_mirror, sketch_dimension, sketch_constrain, sketch_toggle_construction, sketch_extend, sketch_delete, sketch_describe, sketch_validate, sketch_list_constraints, sketch_blend_curve, sketch_finish, sketch_cancel, sketch_edit, sketch_draw, sketch_select, sketch_repair, sketch_set_value, sketch_transform, sketch_pattern, sketch_delete_constraint. Solid: extrude, revolve, sweep, loft, thicken, rib, boolean, hole, thread, shell, split, fillet, chamfer, draft, pattern, mirror, align, delete_face, list_align_types. Surface: surface_extrude, surface_revolve, surface_loft, surface_patch, surface_offset. Construct: construct_plane, construct_axis, construct_coordinate_system, helix. Inspect: measure, body_mass_properties, interference, body_describe, body_section, body_compare. Bodies: body_transform, body_delete, body_set, body_place. History: feature_edit, feature_delete, feature_describe, feature_set_expression, feature_move, feature_suppress, feature_rename. Menu items, which take no arguments and do what their item of the right-click menu does: rename_selected, zoom_to_selection, sketch_polygon_inscribed, sketch_polygon_circumscribed, sketch_constrain_selected.",
    "destructive": false,
    "group": "Tools and actions",
    "guard": "inspect",
@@ -12,84 +12,18 @@
     "additionalProperties": false,
     "properties": {
      "group": {
-      "description": "Only the commands of this group, its whole name in any case: Tools and actions; The app; The project; Objects; Parts; Plates; Presets and settings; Filaments; Printers and prints; Plugins, with the operations plugins offer; View and windows; Recordings, replays and scripts; Driving the GUI; or Design (the Design tab's, with the CAD feature on). A command outside Design is in the group of the place its name starts with (object_delete in Objects), but for window_screenshot and window_save_screenshot, which are in Recordings, replays and scripts. A group no command has is refused with the groups there are.",
-      "type": "string"
-     },
-     "limit": {
-      "description": "At most this many commands (default 5).",
-      "maximum": 200,
-      "minimum": 1,
-      "type": "integer"
-     },
-     "query": {
-      "description": "A few words saying what you want to do or find, e.g. \"brim\" or \"mesh normals\".",
-      "type": "string"
-     },
-     "tool": {
-      "description": "A command's name: its description and schema.",
+      "description": "Only this group's commands, its whole name in any case: Tools and actions; The app; The project; Objects; Parts; Plates; Presets and settings; Filaments; Printers and prints; Plugins, with the operations plugins offer; View and windows; Recordings, replays and scripts; Driving the GUI; or Design (the Design tab's, with the CAD feature on). A command outside Design is in the group of the place its name starts with (object_delete in Objects), but for window_screenshot and window_save_screenshot, which are in Recordings, replays and scripts. A name no command's group has is refused with the groups there are.",
       "type": "string"
      }
     },
     "type": "object"
    },
-   "key": "tool_search",
+   "key": "tool_list",
    "listed": true,
    "open_world": false,
    "operations": [],
    "read_only": true,
-   "title": "Find tools, actions, settings and APIs"
-  },
-  {
-   "completion": "immediate",
-   "description": "Call any command by name with its arguments: a tool, or one the tool list does not show, a menu item that takes no arguments, a Design tab command or an operation a plugin offers (see tool_search). It runs and is recorded as that command's own call, with its guards and reply budget.",
-   "destructive": false,
-   "group": "Tools and actions",
-   "guard": "mutate",
-   "has_own_action": false,
-   "idempotent": false,
-   "input_schema": {
-    "additionalProperties": false,
-    "properties": {
-     "args": {
-      "description": "Its arguments.",
-      "type": "object"
-     },
-     "tool": {
-      "description": "The command to call.",
-      "type": "string"
-     }
-    },
-    "required": [
-     "tool"
-    ],
-    "type": "object"
-   },
-   "key": "tool_call",
-   "listed": true,
-   "open_world": true,
-   "operations": [],
-   "read_only": false,
-   "title": "Call a tool or plugin operation"
-  },
-  {
-   "completion": "immediate",
-   "description": "Snapshot of OrcaSlicer. Call it first and whenever you are unsure what the app is doing. The app: version, platform and display backend, whether it is ready, the main window, the displays (each one's work area x, y, width and height, as window_set takes positions, its scale and whether it is primary), the MCP endpoint (mcp), python (available: Python runs in this build; scripts_unrestricted: a script's own file, network, process and thread access is not held to OrcaSlicer's folders, which only a person turns on, in Preferences > AI features > Python scripts or for one run with --unrestricted-scripts), design_tab (the Design tab is on, and tool_call runs its commands, tool_search's group Design) and, when they do not run, cad_note, how a person turns the CAD feature on; account (signed_in to the Orca cloud, bambu_signed_in to Bambu Lab's), network_plugin (installed, loaded, version, error: the Bambu network plug-in as the app found it) and config_folder (presets, app configuration and logs). The view outside the Design tab (view: sidebar_collapsed, sidebar_width, legend_collapsed, gcode_window, projection, section and the display switches labels, overhangs, outline, wireframe, gridlines, axes and navigator, under the names view_set takes them). The project: current tab and mode, printer technology, name, path and unsaved changes, selected printer/process/filament presets, plates (count, current), object count, the selection (objects, the instances [[object, instance]] they are selected in and, when parts rather than whole instances are selected, parts [[object, part]], in the indices object_select takes; wipe_tower when a prime tower is selected; canvas is the 3D view it belongs to), slicing state, the Preview's view type, time mode and layer range (1-based, with their Z), and the camera of the 3D view shown (camera: type, look_at, position, zoom, click_px_per_mm, elevation and azimuth, as view_set replies with it). What is going on: open modal dialogs, each with its title, buttons (enabled: false when disabled) and a message that reads it as shown: its text and its controls row by row, fields [value], choices [value ▾], checkboxes [x] / [ ] / [-], radio and selector options (*) / ( ), list rows \"- row | cells\", secrets [******], \" (disabled)\" after a disabled control; menus closed unseen (a menu a call opened that no reply listed), dialog_auto_answer rules in force, notifications, print host uploads (state, progress, error), the open gizmo, running jobs and a running recording.",
-   "destructive": false,
-   "group": "The app",
-   "guard": "inspect",
-   "has_own_action": false,
-   "idempotent": true,
-   "input_schema": {
-    "additionalProperties": false,
-    "properties": {},
-    "type": "object"
-   },
-   "key": "app_state",
-   "listed": true,
-   "open_world": false,
-   "operations": [],
-   "read_only": true,
-   "title": "Get app state"
+   "title": "List more tools"
   },
   {
    "completion": "immediate",
@@ -121,7 +55,59 @@
   },
   {
    "completion": "immediate",
-   "description": "Search everything the Speed Dial can run: built-in commands (slice, export, views, object operations, plates, calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an id for action_run, its section (where the Speed Dial lists it), a description, the command's key for a built-in command, and, when it takes arguments, their input_schema. A query ranks them, best match first, as tool_search does; without one they are listed by section and title. section keeps them to one of the Speed Dial's sections, which are not tool_search's groups; one no action is in is refused with the sections there are, but Recent Projects and Design list nothing while there are no recent projects or the Design tab is not shown. include_settings also lists settings (each jumps to that setting in the sidebar; use settings_get / settings_set to read or change values).",
+   "description": "Call any command by name with its arguments: a tool, or one the tool list does not show, a menu item that takes no arguments, a Design tab command or an operation a plugin offers (tool_list lists them; tool_describe gives any command's manual). It runs and is recorded as that command's own call, with its guards and reply budget.",
+   "destructive": false,
+   "group": "Tools and actions",
+   "guard": "mutate",
+   "has_own_action": false,
+   "idempotent": false,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "args": {
+      "description": "Its arguments.",
+      "type": "object"
+     },
+     "tool": {
+      "description": "The command to call.",
+      "type": "string"
+     }
+    },
+    "required": [
+     "tool"
+    ],
+    "type": "object"
+   },
+   "key": "tool_call",
+   "listed": true,
+   "open_world": true,
+   "operations": [],
+   "read_only": false,
+   "title": "Call a tool or plugin operation"
+  },
+  {
+   "completion": "immediate",
+   "description": "Snapshot of OrcaSlicer. Call it first and whenever you are unsure what the app is doing. The app: version, platform and display backend, whether it is ready, the main window, the displays (each one's work area x, y, width and height, as window_set takes positions, its scale and whether it is primary), the MCP endpoint (mcp), python (available: Python runs in this build; scripts_unrestricted: a script's own file, network, process and thread access is not held to OrcaSlicer's folders, which only a person turns on, in Preferences > AI features > Python scripts or for one run with --unrestricted-scripts), design_tab (the Design tab is on, and tool_call runs its commands, tool_list's group Design) and, when they do not run, cad_note, how a person turns the CAD feature on; account (signed_in to the Orca cloud, bambu_signed_in to Bambu Lab's), network_plugin (installed, loaded, version, error: the Bambu network plug-in as the app found it) and config_folder (presets, app configuration and logs). The view outside the Design tab (view: sidebar_collapsed, sidebar_width, legend_collapsed, gcode_window, projection, section and the display switches labels, overhangs, outline, wireframe, gridlines, axes and navigator, under the names view_set takes them). The project: current tab and mode, printer technology, name, path and unsaved changes, selected printer/process/filament presets, plates (count, current), object count, the selection (objects, the instances [[object, instance]] they are selected in and, when parts rather than whole instances are selected, parts [[object, part]], in the indices object_select takes; wipe_tower when a prime tower is selected; canvas is the 3D view it belongs to), slicing state, the Preview's view type, time mode and layer range (1-based, with their Z), and the camera of the 3D view shown (camera: type, look_at, position, zoom, click_px_per_mm, elevation and azimuth, as view_set replies with it). What is going on: open modal dialogs, each with its title, buttons (enabled: false when disabled) and a message that reads it as shown: its text and its controls row by row, fields [value], choices [value ▾], checkboxes [x] / [ ] / [-], radio and selector options (*) / ( ), list rows \"- row | cells\", secrets [******], \" (disabled)\" after a disabled control; menus closed unseen (a menu a call opened that no reply listed), dialog_auto_answer rules in force, notifications, print host uploads (state, progress, error), the open gizmo, running jobs and a running recording.",
+   "destructive": false,
+   "group": "The app",
+   "guard": "inspect",
+   "has_own_action": false,
+   "idempotent": true,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {},
+    "type": "object"
+   },
+   "key": "app_state",
+   "listed": true,
+   "open_world": false,
+   "operations": [],
+   "read_only": true,
+   "title": "Get app state"
+  },
+  {
+   "completion": "immediate",
+   "description": "Search everything the Speed Dial can run: built-in commands (slice, export, views, object operations, plates, calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an id for action_run, its section (where the Speed Dial lists it), a description, the command's key for a built-in command, and, when it takes arguments, their input_schema. A query ranks them, best match first; without one they are listed by section and title. section keeps them to one of the Speed Dial's sections, which are not tool_list's groups; one no action is in is refused with the sections there are, but Recent Projects and Design list nothing while there are no recent projects or the Design tab is not shown. include_settings also lists settings (each jumps to that setting in the sidebar; use settings_get / settings_set to read or change values).",
    "destructive": false,
    "group": "Tools and actions",
    "guard": "inspect",

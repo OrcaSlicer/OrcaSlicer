@@ -37,15 +37,15 @@ struct NativeCommand
 {
     std::string key;
     std::string title; // untranslated English msgid; make_action() translates it for display
-    // What tool_search filters by. Outside the Design tab, the English heading of the command's place
+    // The group tool_list lists it under. Outside the Design tab, the English heading of the command's place
     // (NativeCommands::place_heading()): Objects, Plates, The app, the place its name starts with but for the two
     // screenshot commands, which are under Recordings, replays and scripts; a plugin's operation is in Plugins. A
     // Design command's is kDesignGroup, an untranslated msgid, which is also the Speed Dial section of its own action
     // and of its actions.
     std::string group;
-    // The heading it comes under inside its group, which tool_search's listing of a group gives beside it: a Design
-    // command's heading of the index in tool_search's description (DesignTool::section). Empty elsewhere, where the
-    // group is the place's heading already.
+    // The heading it comes under inside its group, which tool_list gives beside it: a Design command's heading of the
+    // index in tool_list's description (DesignTool::section). Empty elsewhere, where the group is the place's heading
+    // already.
     std::string heading;
     // The Speed Dial section of the command's own action (has_own_action), an untranslated msgid; empty where that
     // action is in `group`, as a Design command's is.
@@ -189,6 +189,10 @@ public:
     std::vector<std::shared_ptr<const NativeCommand>> source_commands() const;
     // Why this catalog leaves out `key` (leave_out()), or nullptr when it does not.
     const std::string* left_out(const std::string& key) const;
+    // Why this catalog leaves out the commands it left out with `code`, or nullptr when it left out none with it: what
+    // a whole set of commands left out together gives, such as the Design tab's (design_unavailable), which all share
+    // one reason.
+    const std::string* left_out_reason(const std::string& code) const;
     // Up to `limit` keys of added commands closest to `key`, for "did you mean" errors: a key that
     // contains `key` first, then by edit distance, none further than max(3, half the length of `key`).
     std::vector<std::string> similar(const std::string& key, std::size_t limit = 3) const;
@@ -197,7 +201,7 @@ public:
     // it out (leave_out()), or else with `suggest` by the closest key.
     std::string unknown_command(const std::string& key, bool suggest = false) const;
     // The code of the error for a key lookup() does not resolve, given as a call's argument (tool_call's tool,
-    // tool_search's, a script's or plugin's call): leave_out()'s code for a key the catalog leaves out, whose name is
+    // tool_describe's, a script's or plugin's call): leave_out()'s code for a key the catalog leaves out, whose name is
     // right, else invalid_argument.
     std::string unknown_command_code(const std::string& key) const;
 

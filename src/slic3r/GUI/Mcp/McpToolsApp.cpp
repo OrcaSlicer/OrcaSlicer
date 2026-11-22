@@ -325,7 +325,7 @@ void register_app_tools(CommandCatalog& catalog, [[maybe_unused]] bool cad)
         "in this build; scripts_unrestricted: a script's own file, network, process and thread access is not held to "
         "OrcaSlicer's folders, which only a person turns on, in Preferences > AI features > Python scripts or for one run "
         "with --unrestricted-scripts), design_tab "
-        "(the Design tab is on, and tool_call runs its commands, tool_search's group Design) and, when they do not run, "
+        "(the Design tab is on, and tool_call runs its commands, tool_list's group Design) and, when they do not run, "
         "cad_note, how a person turns the CAD feature on; account (signed_in to the Orca cloud, bambu_signed_in to Bambu "
         "Lab's), network_plugin (installed, loaded, version, error: the Bambu network plug-in as the app found it) and "
         "config_folder (presets, app configuration and logs). The view outside the Design tab (view: sidebar_collapsed, "

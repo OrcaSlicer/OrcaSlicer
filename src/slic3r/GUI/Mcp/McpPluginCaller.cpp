@@ -110,6 +110,21 @@ std::string named_paths(const json& args)
 
 } // namespace
 
+std::shared_ptr<const NativeCommand> resolve_plugin_call(const CommandCatalog& catalog, const std::string& tool, json& args)
+{
+    std::shared_ptr<const NativeCommand> def = catalog.lookup(tool);
+    if (def == nullptr)
+        throw ToolCallError(catalog.unknown_command(tool),
+                            {{"code", catalog.unknown_command_code(tool)}, {"did_you_mean", catalog.similar(tool)}});
+    if (std::string err = argument_error(*def, args); !err.empty()) {
+        const ToolFailure refused = argument_refusal(def->key, err);
+        throw ToolCallError(refused.what(), refused.details);
+    }
+    if (const std::optional<ToolFailure> refused = resolve_call(catalog, def, args))
+        throw ToolCallError(refused->what(), refused->details);
+    return def;
+}
+
 void install_plugin_tool_caller()
 {
     set_plugin_tool_caller([](const std::string& plugin, const std::string& tool, const json& args) -> json {
@@ -119,16 +134,8 @@ void install_plugin_tool_caller()
             AutomationRuntime* runtime;
             ~Lease() { runtime->release_lease(); }
         } lease{runtime};
-        const CommandCatalog&                catalog = NativeCommands::instance();
-        std::shared_ptr<const NativeCommand> def     = catalog.lookup(tool);
-        if (def == nullptr)
-            throw ToolCallError(catalog.unknown_command(tool),
-                                {{"code", catalog.unknown_command_code(tool)}, {"did_you_mean", catalog.similar(tool)}});
-        json arguments = args;
-        if (std::string err = argument_error(*def, arguments); !err.empty())
-            throw ToolCallError("Invalid arguments: " + err, json{{"code", "invalid_argument"}});
-        if (const std::optional<ToolFailure> refused = resolve_call(catalog, def, arguments))
-            throw ToolCallError(refused->what(), refused->details);
+        json                                       arguments = args;
+        const std::shared_ptr<const NativeCommand> def       = resolve_plugin_call(NativeCommands::instance(), tool, arguments);
 
         const ToolResult r = runtime->core().call_plugin(*def, arguments, plugin);
         // The handlers raise no audit events, so this line is the record of what a plugin did; it is best

@@ -8,7 +8,8 @@ tools/mcp/test-entries/commands.md designs them.
 action_search lists every action of tests/data/speed_dial_actions.json with the command
 tests/data/speed_dial_action_calls.json gives it. Then ROWS runs a few actions through action_run, each standing for
 one way an action runs: a person's form that opens a dialog, one that runs in place, a window opened, fixed arguments
-that choose what the command does, a value collected, a file written and a refusal. Before each, its state is set up
+that choose what the command does, a value collected, a file written, a refusal, and a value its command's schema
+refuses, whose refusal names tool_describe for the command. Before each, its state is set up
 afresh by calls (STATES), and its dialog is answered as the row says. For each that ran, the reply's ran is the
 action's id, and the step replay_export writes for the call is an action_run of that id with the arguments its command
 journals: the value under the action's input token for Go to tab, and none for the others (a step with the id alone
@@ -108,12 +109,12 @@ def screenshot(client, t, name, out, reply):
     t.check(f"{name}: the screenshot has bytes", bool(size), f"{path}: {size}")
 
 
-def row(key, state, expect=None, *, value=None, journal=None, dialog=None, title_exact=True, pre=(), refused=None):
+def row(key, state, expect=None, *, value=None, journal=None, dialog=None, title_exact=True, pre=(), refused=None, hint=None):
     """One action's row: the state it runs from, the calls `pre` makes on that state, the value it is given, the
-    dialog it opens as (title, button to press), and what it reads back (`expect`), or the code it is refused with.
-    `journal` is the inner args its action_run step keeps."""
+    dialog it opens as (title, button to press), and what it reads back (`expect`), or the code it is refused with and
+    the hint its refusal gives, when it gives one. `journal` is the inner args its action_run step keeps."""
     return {"key": key, "state": state, "expect": expect, "value": value, "journal": journal or {}, "dialog": dialog,
-            "title_exact": title_exact, "pre": tuple(pre), "refused": refused}
+            "title_exact": title_exact, "pre": tuple(pre), "refused": refused, "hint": hint}
 
 
 ROWS = [
@@ -124,6 +125,9 @@ ROWS = [
     row("go_to_tab", "two_cubes", preview_tab, value={"tab": "preview"}, journal={"tab": "preview"}),
     row("take_screenshot", "two_cubes", screenshot),
     row("sync_presets", "empty", refused="not_signed_in"),
+    # The value the action collects, which view_set's layer_percent minimum of 0 refuses: a schema's refusal.
+    row("go_to_layer", "empty", value={"percent": -1}, refused="invalid_argument",
+        hint='tool_describe {tool: "view_set"} gives its parameters'),
 ]
 
 
@@ -167,7 +171,19 @@ def run_row(client, t, out, r):
     client.call("replay_export", clear=True)
     call = {"id": action_id(key), **({"args": r["value"]} if r["value"] else {})}
     if r["refused"]:
-        t.refused(f"{name}: refused as {r['refused']}", lambda: client.call("action_run", **call), code=r["refused"])
+        details = {}
+
+        def refused_call():
+            try:
+                return client.call("action_run", **call)
+            except orca_mcp.McpError as e:
+                details.update(checks.refusal(e)[1])
+                raise
+
+        t.refused(f"{name}: refused as {r['refused']}", refused_call, code=r["refused"])
+        if r["hint"]:
+            t.equal(f"{name}: its refusal names tool_describe for the command", details.get("hint"), r["hint"])
+            t.equal(f"{name}: the tab is still Prepare", client.call("app_state")["tab"], "prepare")
         t.check(f"{name}: the journal keeps no step for it", journal_step(client, key) is None)
         return
     first = client.call("action_run", **call)

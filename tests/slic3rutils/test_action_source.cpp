@@ -295,7 +295,7 @@ TEST_CASE("Native command catalog has unique keys and present titles", "[ActionS
         INFO(c.key);
         CHECK_FALSE(c.key.empty());
         CHECK_FALSE(c.title.empty());
-        // A command's group is what tool_search filters by: its place's heading, or Design.
+        // A command's group is what tool_list filters by: its place's heading, or Design.
         CHECK_FALSE(c.group.empty());
         // A duplicated key would silently shadow the earlier command in the Speed Dial.
         CHECK(seen.insert(c.key).second);

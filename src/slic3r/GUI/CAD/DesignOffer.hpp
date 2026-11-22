@@ -6,7 +6,7 @@
 // not apply are shown disabled in place with their reason rather than removed. Row order was
 // ratified 2026-07-31; changing an index is a breaking change to every user's muscle memory.
 // An entry with a handler or a tool block, and no fold_into, is a command of the catalog's group Design
-// (Mcp::register_cad_commands(), Mcp::is_design_command()), under its section in tool_search's index. A
+// (Mcp::register_cad_commands(), Mcp::is_design_command()), under its section in tool_list's index. A
 // call whose arguments are exactly those that choose one of its items opens that item's tool for a person
 // (Mcp::opened_item()): none choose the entry's own item where it has a handler, else the items folded into it
 // with {}; a folded item's args, or the entry's own, choose that item. Any other call runs its tool block's
@@ -125,7 +125,7 @@ struct DesignTool {
     // The arguments that choose this item, as JSON text: a folded item's, or those that choose the own item of
     // an entry with a handler and a tool block as a call with none does; nullptr for none.
     const char* args;
-    // The heading its command is listed under in tool_search's index (kDesignSections,
+    // The heading its command is listed under in tool_list's index (kDesignSections,
     // Mcp::design_command_index()); nullptr for an entry that is no command.
     const char* section;
     // Its handler acts on the selected row of the Feature list, which a call of its command, not a person's
@@ -133,7 +133,7 @@ struct DesignTool {
     bool        feature_row;
 };
 
-// The headings of tool_search's index of the Design commands, in its order. Menu items holds the commands
+// The headings of tool_list's index of the Design commands, in its order. Menu items holds the commands
 // that take no arguments and only do what their menu item does.
 static const char* const kDesignSections[] = {
     "Document",

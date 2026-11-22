@@ -149,7 +149,7 @@ ToolFailure unknown_action(const std::string& id, const CommandCatalog& catalog,
                            {{"code", "wrong_mode"}});
     }
     // The name may be a command's that has no action, which tool_call runs.
-    return ToolFailure("Unknown action id " + id + "; find an action with action_search, or a command with tool_search",
+    return ToolFailure("Unknown action id " + id + "; find an action with action_search, or a command in tools/list or with tool_list",
                        {{"code", "invalid_argument"}});
 }
 
@@ -212,7 +212,7 @@ ToolResult await_gcode_export(ToolContext& ctx, const Ops::ExportTicket& ticket)
 namespace {
 
 // What `actions` lists for `q`. A section no action is in now is a name to correct, refused with the sections there
-// are, as tool_search refuses a group. Recent Projects and Design hold actions only while there are recent projects
+// are, as tool_list refuses a group. Recent Projects and Design hold actions only while there are recent projects
 // and while the Design tab is shown, so either one empty is an answer, not a wrong name.
 json described(ActionRegistry& actions, const ActionRegistry::Query& q)
 {
@@ -246,9 +246,9 @@ void register_action_tools(CommandCatalog& catalog)
         "Search everything the Speed Dial can run: built-in commands (slice, export, views, object operations, plates, "
         "calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an id for action_run, its "
         "section (where the Speed Dial lists it), a description, the command's key for a built-in command, and, when it "
-        "takes arguments, their input_schema. A query ranks them, best match first, as tool_search does; without one they "
+        "takes arguments, their input_schema. A query ranks them, best match first; without one they "
         "are listed by section and title. section keeps them to one of the Speed Dial's sections, which are not "
-        "tool_search's groups; one no action is in is refused with the sections there are, but Recent Projects and Design "
+        "tool_list's groups; one no action is in is refused with the sections there are, but Recent Projects and Design "
         "list nothing while there are no recent projects or the Design tab is not shown. include_settings also lists "
         "settings (each jumps to that setting in the sidebar; use settings_get / settings_set to read or change values).",
         object_schema({{"query", prop("string", "A few words, e.g. \"delete object\": each is matched at the start of the words of "
@@ -322,7 +322,7 @@ void register_action_tools(CommandCatalog& catalog)
             if (command == nullptr)
                 throw ToolFailure("Unknown command " + key);
             if (const std::string err = argument_error(*command, command_args); !err.empty())
-                throw ToolFailure("Invalid arguments for " + key + ": " + err, {{"code", "invalid_argument"}});
+                throw argument_refusal(key, err);
             ActionContext action_ctx(ctx, id, action_args);
             ToolResult    reply = command->run(command_args, action_ctx);
             if (!reply.is_error && reply.data.is_object())

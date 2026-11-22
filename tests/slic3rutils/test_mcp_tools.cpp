@@ -26,9 +26,11 @@
 #include "slic3r/GUI/Mcp/McpArguments.hpp"
 #include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/Mcp/McpJournal.hpp"
+#include "slic3r/GUI/Mcp/McpPluginCaller.hpp"
 #include "slic3r/GUI/Mcp/WindowControl.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
 #include "slic3r/GUI/Camera.hpp"
+#include "slic3r/plugin/host/PluginHostTools.hpp"
 
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Config.hpp"
@@ -583,8 +585,10 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
         INFO(retired);
         CHECK(catalog.find(retired) == nullptr);
     }
+    // The word search's tool is gone with no successor of its name: tool_list and tool_describe took its jobs.
+    CHECK(catalog.find("tool_search") == nullptr);
 
-    // Each of the 42 under its name, listed, the first sentence of its description pinned (the commands that sentence
+    // Each of the 41 under its name, listed, the first sentence of its description pinned (the commands that sentence
     // names under their names too).
     struct Renamed
     {
@@ -593,9 +597,9 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
         const char* first_sentence;
     };
     static const Renamed renamed[] = {
-        {"search_tools", "tool_search", "Find what does something, in one search, or look up one command."},
         {"call_tool", "tool_call", "Call any command by name with its arguments: a tool, or one the tool list does not show, a menu item "
-                                   "that takes no arguments, a Design tab command or an operation a plugin offers (see tool_search)."},
+                                   "that takes no arguments, a Design tab command or an operation a plugin offers (tool_list lists them; "
+                                   "tool_describe gives any command's manual)."},
         {"generate_calibration_test", "calibration_generate_test",
          "Generate a Calibration menu test as its dialog's OK does: a new project named after the test with the test model, and the "
          "process, filament and printer presets changed as the test needs (presets_changed)."},
@@ -699,7 +703,7 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
         {"run_javascript", "webview_run_javascript", "Evaluate JavaScript in one of OrcaSlicer's web views (Home, the device page, "
                                                      "dialogs, plugin windows)."},
     };
-    REQUIRE(std::size(renamed) == 42);
+    REQUIRE(std::size(renamed) == 41);
     for (const Renamed& r : renamed) {
         INFO(r.retired << " is " << r.name);
         CHECK(std::find(kRetiredTools.begin(), kRetiredTools.end(), r.retired) != kRetiredTools.end());
@@ -807,147 +811,6 @@ TEST_CASE("no description starts with a bracketed tag", "[Mcp]")
     CHECK(registry.find("widget_click")->description == "Click a widget.");
 }
 
-TEST_CASE("tool_search reads one inventory", "[Mcp]")
-{
-    const auto command = [](const char* key, const char* group, bool listed, const char* description) {
-        NativeCommand c;
-        c.key          = key;
-        c.group        = group;
-        c.listed       = listed;
-        c.description  = description;
-        c.input_schema = object_schema({{"a", prop("number", "A number.")}});
-        return c;
-    };
-    CommandCatalog catalog;
-    catalog.add(command("measure_bed", "Plugins", true, "Measure the bed. In mm."));
-    NativeCommand measure  = command("measure_action", "View", false, "Measure what the view shows.");
-    measure.has_own_action = true;
-    catalog.add(measure);
-    catalog.add_source(
-        std::make_unique<OneCommandSource>(command("plugin.fixture.measure", "Plugins", false, "Offered by a plugin. Doubles a.")));
-    catalog.seal();
-
-    const json found = search_commands(catalog, {{"query", "measure"}});
-    CHECK(found["total"] == 3);
-    std::map<std::string, json> items;
-    for (const json& item : found["items"])
-        items[item["name"].get<std::string>()] = item;
-    REQUIRE(items.size() == 3);
-    // A listed command's schema is in the tool list; the others' are nowhere else.
-    CHECK(items["measure_bed"]["listed"] == true);
-    CHECK(items["measure_bed"]["summary"] == "Measure the bed.");
-    CHECK_FALSE(items["measure_bed"].contains("input_schema"));
-    for (const char* unlisted : {"measure_action", "plugin.fixture.measure"}) {
-        INFO(unlisted);
-        CHECK(items[unlisted]["listed"] == false);
-        CHECK(items[unlisted]["input_schema"]["properties"].contains("a"));
-    }
-    // An operation's first sentence only says a plugin offers it.
-    CHECK(items["plugin.fixture.measure"]["description"] == "Offered by a plugin. Doubles a.");
-    CHECK(found["use"].get<std::string>().find("tool_call {tool, args}") != std::string::npos);
-
-    // {tool} describes any of them.
-    const json described = search_commands(catalog, {{"tool", "measure_action"}});
-    CHECK(described["listed"] == false);
-    CHECK(described["input_schema"]["properties"].contains("a"));
-    // A name no command has is the call's argument to correct.
-    try {
-        search_commands(catalog, {{"tool", "measure_nothing"}});
-        FAIL("an unknown tool was not refused");
-    } catch (const ToolFailure& f) {
-        CHECK(f.details.value("code", std::string()) == "invalid_argument");
-    }
-
-    // With nothing given, every command's name alone.
-    CHECK(search_commands(catalog, json::object())["names"] == json::array({"measure_bed", "measure_action", "plugin.fixture.measure"}));
-    // A group, in any case, lists its commands, a source's included, each with what it does and whether the tool list
-    // shows it, but not its schema.
-    const json plugins = search_commands(catalog, {{"group", "PLUGINS"}});
-    CHECK(plugins["total"] == 2);
-    CHECK(plugins["items"] == json::array({{{"name", "measure_bed"}, {"summary", "Measure the bed."}, {"listed", true}},
-                                           {{"name", "plugin.fixture.measure"}, {"summary", "Offered by a plugin."}, {"listed", false}}}));
-    CHECK_FALSE(plugins.contains("names"));
-    CHECK_THAT(plugins["use"].get<std::string>(), Catch::Matchers::ContainsSubstring("tool_search {tool}"));
-    CHECK(search_commands(catalog, {{"group", "view"}})["items"][0]["name"] == "measure_action");
-    // group narrows the matches of a query too.
-    const json in_view = search_commands(catalog, {{"group", "View"}, {"query", "measure"}});
-    REQUIRE(in_view["items"].size() == 1);
-    CHECK(in_view["items"][0]["name"] == "measure_action");
-    // A group no command has is refused with the groups there are.
-    try {
-        search_commands(catalog, {{"group", "commands"}});
-        FAIL("an unknown group was not refused");
-    } catch (const ToolFailure& f) {
-        CHECK(std::string(f.what()).find("Unknown group: commands") != std::string::npos);
-        CHECK(f.details["groups"] == json::array({"Plugins", "View"}));
-        CHECK(f.details.value("code", std::string()) == "invalid_argument");
-    }
-}
-
-TEST_CASE("tool_search's groups are the places' headings and Design", "[Mcp]")
-{
-    CommandCatalog catalog;
-    NativeCommands::register_all_commands(catalog, {true});
-    catalog.seal();
-    const auto names_of = [&catalog](const char* group) {
-        const json               found = search_commands(catalog, {{"group", group}});
-        std::vector<std::string> names;
-        for (const json& item : found["items"])
-            names.push_back(item["name"].get<std::string>());
-        return names;
-    };
-
-    // A place's heading, in any case: its commands alone, under no heading of their own.
-    const std::vector<std::string> objects = names_of("Objects");
-    REQUIRE_FALSE(objects.empty());
-    for (const std::string& name : objects) {
-        INFO(name);
-        CHECK(name.rfind("object_", 0) == 0);
-    }
-    CHECK(names_of("objects") == objects);
-    const json objects_listed = search_commands(catalog, {{"group", "Objects"}});
-    REQUIRE(objects_listed["items"].size() == objects.size());
-    for (const json& item : objects_listed["items"]) {
-        INFO(item.dump());
-        CHECK_FALSE(item.contains("heading"));
-        CHECK_FALSE(item["summary"].get<std::string>().empty());
-    }
-    // Every Design tab command, as the group has been, each under its heading of tool_search's index and with what
-    // it does, heading by heading in the index's order.
-    const std::vector<std::string> design = names_of("Design");
-    for (const NativeCommand& c : catalog.commands())
-        if (c.group == Slic3r::GUI::kDesignGroup) {
-            INFO(c.key);
-            CHECK(std::count(design.begin(), design.end(), c.key) == 1);
-        }
-    CHECK(design.size() == 88);
-    const std::string told    = catalog.find("tool_search")->description;
-    std::size_t       indexed = 0;
-    const json design_listed = search_commands(catalog, {{"group", "Design"}});
-    REQUIRE(design_listed["items"].size() == 88);
-    for (const json& item : design_listed["items"]) {
-        INFO(item.dump());
-        const std::string heading = item.value("heading", std::string());
-        CHECK_FALSE(heading.empty());
-        const std::size_t at = told.find(". " + heading);
-        REQUIRE(at != std::string::npos);
-        CHECK(at >= indexed);
-        indexed = at;
-        CHECK_FALSE(item["summary"].get<std::string>().empty());
-        CHECK(item["listed"] == false);
-    }
-    // The groups of how a tool acts are no group.
-    for (const char* gone : {"api", "core", "ui", "Commands"}) {
-        INFO(gone);
-        try {
-            search_commands(catalog, {{"group", gone}});
-            FAIL("an unknown group was not refused");
-        } catch (const ToolFailure& f) {
-            CHECK_THAT(std::string(f.what()), Catch::Matchers::ContainsSubstring(std::string("Unknown group: ") + gone));
-        }
-    }
-}
-
 TEST_CASE("a guessed type is read as a command's one variant argument", "[Mcp]")
 {
     const CommandCatalog& catalog = NativeCommands::instance();
@@ -978,20 +841,6 @@ TEST_CASE("a guessed type is read as a command's one variant argument", "[Mcp]")
     json either{{"type", "stl"}};
     CHECK_THAT(argument_error(two, either), Catch::Matchers::ContainsSubstring("type"));
     CHECK(either == json{{"type", "stl"}});
-}
-
-TEST_CASE("tool_search finds a Design command by the name of a menu item folded into it", "[Mcp][CAD]")
-{
-    CommandCatalog catalog;
-    NativeCommands::register_all_commands(catalog, {true});
-    catalog.seal();
-    for (const auto& [query, command] : {std::pair<const char*, const char*>{"rounded rectangle", "sketch_draw"},
-                                         std::pair<const char*, const char*>{"polar array", "sketch_pattern"}}) {
-        INFO(query);
-        const json found = search_commands(catalog, {{"query", query}});
-        REQUIRE_FALSE(found["items"].empty());
-        CHECK(found["items"][0]["name"] == command);
-    }
 }
 
 namespace {
@@ -1219,7 +1068,7 @@ TEST_CASE("every parameter of a built-in command is classified for the manual", 
     // The sources of names that mean different things in different commands, and of the contested ones.
     const std::vector<std::pair<std::string, std::vector<std::string>>> sources{
         {"tool_call.args", {"tool_describe"}},
-        {"tool_call.tool", {"tools/list", "tool_search"}},
+        {"tool_call.tool", {"tools/list", "tool_list"}},
         {"action_run.id", {"action_search"}},
         {"action_run.args", {"action_search"}},
         {"settings_set.values", {"settings_list"}},
@@ -1359,6 +1208,161 @@ TEST_CASE("tool_describe describes any command a lookup finds, and refuses a nam
         }
     }
 #endif
+}
+
+TEST_CASE("tool_list lists the commands the tool list does not show, a source's included", "[Mcp]")
+{
+    const auto command = [](const char* key, const char* group, bool listed, std::string description) {
+        NativeCommand c;
+        c.key         = key;
+        c.group       = group;
+        c.listed      = listed;
+        c.description = std::move(description);
+        return c;
+    };
+    CommandCatalog catalog;
+    catalog.add(command("measure_bed", "Plugins", true, "Measure the bed. In mm."));
+    catalog.add(command("view_measure", "View and windows", false, "Measure what the view shows. Agents use measure_bed."));
+    catalog.add(command("object_move", "Objects", true, "Move an object."));
+    // An operation's description, past the 300 characters given whole: what it does is its own first sentence.
+    const std::string long_text = "Doubles a. " + std::string(320, 'x') + ".";
+    catalog.add_source(std::make_unique<OneCommandSource>(command("plugin.fixture.measure", "Plugins", false, "Offered by a plugin. " + long_text)));
+    catalog.seal();
+
+    const json all = unlisted_commands(catalog, "");
+    CHECK(all.at("items") == json::array({{{"name", "view_measure"}, {"group", "View and windows"},
+                                           {"does", "Measure what the view shows. Agents use measure_bed."}},
+                                          {{"name", "plugin.fixture.measure"}, {"group", "Plugins"}, {"does", "Doubles a."}}}));
+    CHECK_THAT(all.at("use").get<std::string>(), Catch::Matchers::ContainsSubstring("tool_describe {tool}"));
+    CHECK_FALSE(all.contains("note"));
+    // A group in any case, a source's commands in it.
+    const json plugins = unlisted_commands(catalog, "PLUGINS");
+    REQUIRE(plugins.at("items").size() == 1);
+    CHECK(plugins.at("items")[0].at("name") == "plugin.fixture.measure");
+    // A group whose commands the tool list all shows: none, and a note saying so.
+    const json objects = unlisted_commands(catalog, "objects");
+    CHECK(objects.at("items").empty());
+    CHECK(objects.at("note") == "tools/list shows every command of Objects");
+    // A name no command's group has is refused with the groups there are.
+    try {
+        unlisted_commands(catalog, "commands");
+        FAIL("an unknown group was not refused");
+    } catch (const ToolFailure& f) {
+        CHECK_THAT(std::string(f.what()), Catch::Matchers::StartsWith("Unknown group: commands"));
+        CHECK(f.details.at("groups") == json::array({"Plugins", "View and windows", "Objects"}));
+        CHECK(f.details.at("code") == "invalid_argument");
+    }
+}
+
+TEST_CASE("tool_list gives the menu items then the Design commands by heading, in the catalog's order", "[Mcp][CAD]")
+{
+    const CommandCatalog catalog = catalog_with_cad();
+    const json           all     = unlisted_commands(catalog, "");
+    std::vector<std::string> names, expected;
+    for (const json& item : all.at("items"))
+        names.push_back(item.at("name").get<std::string>());
+    for (const NativeCommand& c : catalog.commands())
+        if (!c.listed)
+            expected.push_back(c.key);
+    CHECK(names == expected);
+    REQUIRE(names.size() == 91);
+    CHECK(std::set<std::string>(names.begin(), names.begin() + 3) ==
+          std::set<std::string>{"window_save_screenshot", "script_toggle_panel", "settings_toggle_developer_mode"});
+    // Each Design command under its heading, heading by heading in the order tool_list's description indexes them.
+    const std::string told    = catalog.find("tool_list")->description;
+    std::size_t       indexed = 0;
+    for (std::size_t i = 3; i < names.size(); ++i) {
+        const json& item = all.at("items")[i];
+        INFO(item.dump());
+        CHECK(item.at("group") == Slic3r::GUI::kDesignGroup);
+        const std::string heading = item.value("heading", std::string());
+        REQUIRE_FALSE(heading.empty());
+        const std::size_t at = told.find(". " + heading);
+        REQUIRE(at != std::string::npos);
+        CHECK(at >= indexed);
+        indexed = at;
+    }
+    // What each does: a description of up to 300 characters whole, a longer one's first sentence.
+    for (const json& item : all.at("items")) {
+        const NativeCommand* c = catalog.find(item.at("name").get<std::string>());
+        REQUIRE(c != nullptr);
+        INFO(c->key);
+        CHECK(item.at("does") == (c->description.size() <= 300 ? c->description : first_sentence(c->description)));
+    }
+    CHECK(unlisted_commands(catalog, "design").at("items").size() == 88);
+    // The groups the refusal names: every place's and Design.
+    try {
+        unlisted_commands(catalog, "commands");
+        FAIL("an unknown group was not refused");
+    } catch (const ToolFailure& f) {
+        CHECK(f.details.at("groups").size() == 14);
+    }
+}
+
+#ifdef SLIC3R_CAD
+TEST_CASE("tool_list refuses the Design group of a run that leaves its commands out, with their reason", "[Mcp][CAD]")
+{
+    // The editor with the CAD feature off, and the G-code viewer, as GUI_App builds them.
+    for (const bool editor : {true, false}) {
+        INFO(editor);
+        CommandCatalog catalog;
+        NativeCommands::register_all_commands(catalog, {false, editor});
+        catalog.seal();
+        const std::string* why = catalog.left_out_reason("design_unavailable");
+        REQUIRE(why != nullptr);
+        CHECK_THAT(*why, Catch::Matchers::ContainsSubstring(editor ? "the CAD feature was off" : "the G-code viewer has no Design tab"));
+        try {
+            unlisted_commands(catalog, "Design");
+            FAIL("the left-out Design group was listed");
+        } catch (const ToolFailure& f) {
+            CHECK(f.details.at("code") == "design_unavailable");
+            CHECK_THAT(std::string(f.what()), Catch::Matchers::EndsWith(*why));
+            // A Design command's own call gives the same reason.
+            CHECK_THAT(catalog.unknown_command("fillet"), Catch::Matchers::EndsWith(*why));
+        }
+        // The other groups are as they are: 13 of them.
+        try {
+            unlisted_commands(catalog, "commands");
+            FAIL("an unknown group was not refused");
+        } catch (const ToolFailure& f) {
+            CHECK(f.details.at("groups").size() == 13);
+        }
+    }
+}
+#endif
+
+TEST_CASE("a plugin's call is checked as a client's, and a bad argument's refusal names tool_describe", "[Mcp]")
+{
+    const CommandCatalog& catalog = NativeCommands::instance();
+    json                  args{{"platez", 1}};
+    try {
+        resolve_plugin_call(catalog, "plate_slice", args);
+        FAIL("a misspelt argument was not refused");
+    } catch (const Slic3r::ToolCallError& e) {
+        CHECK_THAT(std::string(e.what()), Catch::Matchers::StartsWith("Invalid arguments for plate_slice: unknown argument platez"));
+        CHECK(e.details.at("hint") == "tool_describe {tool: \"plate_slice\"} gives its parameters");
+    }
+    // Through tool_call, the refusal names the target.
+    json wrapped{{"tool", "plate_slice"}, {"args", {{"platez", 1}}}};
+    try {
+        resolve_plugin_call(catalog, "tool_call", wrapped);
+        FAIL("a misspelt argument was not refused");
+    } catch (const Slic3r::ToolCallError& e) {
+        CHECK(e.details.at("hint") == "tool_describe {tool: \"plate_slice\"} gives its parameters");
+    }
+    // An unknown tool, with the closest names.
+    json none = json::object();
+    try {
+        resolve_plugin_call(catalog, "plate_slicee", none);
+        FAIL("an unknown tool was not refused");
+    } catch (const Slic3r::ToolCallError& e) {
+        CHECK(e.details.at("code") == "invalid_argument");
+        CHECK_FALSE(e.details.at("did_you_mean").empty());
+    }
+    // A good call resolves to its command, a tool_call to its target with the target's arguments.
+    json ok{{"tool", "plate_slice"}, {"args", json::object()}};
+    CHECK(resolve_plugin_call(catalog, "tool_call", ok)->key == "plate_slice");
+    CHECK(ok == json::object());
 }
 
 TEST_CASE("window_set refuses a request the window can't take, before changing anything", "[Mcp]")

@@ -1385,7 +1385,7 @@ void register_view_tools(CommandCatalog& catalog)
                                                 json::array({NativeCommands::action("take_screenshot", L("Take Screenshot"),
                                                                                     L("Commands"), "screenshot", json::object(), saved)}),
                                                 [](const json&) { return MenuItems::take_screenshot(); });
-    // A menu item with no argument form: tool_search finds it and tool_call runs it, the tool list does not show it.
+    // A menu item with no argument form: tool_list lists it and tool_call runs it, the tool list does not show it.
     save_screenshot.listed = false;
     catalog.add(std::move(save_screenshot));
 }

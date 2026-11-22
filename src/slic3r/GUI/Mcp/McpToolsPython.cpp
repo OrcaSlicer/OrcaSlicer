@@ -455,7 +455,7 @@ void register_python_tools(CommandCatalog& catalog)
                                              json::array({NativeCommands::action("toggle_run_script_panel", L("Run Script"),
                                                                                  L("Commands"), "media_play", json::object(), panel)}),
                                              [](const json&) { return MenuItems::toggle_run_script_panel(); });
-    // A menu item with no argument form: tool_search finds it and tool_call runs it, the tool list does not show it.
+    // A menu item with no argument form: tool_list lists it and tool_call runs it, the tool list does not show it.
     toggle_panel.listed = false;
     catalog.add(std::move(toggle_panel));
 }

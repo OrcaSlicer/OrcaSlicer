@@ -81,7 +81,7 @@ std::optional<ToolFailure> resolve_call(const CommandCatalog& catalog, std::shar
         return ToolFailure("tool_call calls another tool, not itself", {{"code", "invalid_argument"}});
     json inner_args = args.contains("args") && args["args"].is_object() ? args["args"] : json::object();
     if (std::string err = argument_error(*inner, inner_args); !err.empty())
-        return ToolFailure("Invalid arguments for " + target + ": " + err, {{"code", "invalid_argument"}});
+        return argument_refusal(inner->key, err);
     command = std::move(inner);
     args    = std::move(inner_args);
     return std::nullopt;
@@ -170,10 +170,14 @@ json McpProtocol::call_tool(const json& params, bool& unknown_tool, std::string&
         return json();
     }
     json args = params.contains("arguments") && !params["arguments"].is_null() ? params["arguments"] : json::object();
-    if (!args.is_object())
-        return result_to_json(ToolResult::error("arguments must be an object", {{"code", "invalid_argument"}}));
-    if (std::string err = argument_error(*def, args); !err.empty())
-        return result_to_json(ToolResult::error("Invalid arguments: " + err, {{"code", "invalid_argument"}}));
+    if (!args.is_object()) {
+        const ToolFailure refused = argument_refusal(def->key, "arguments must be an object");
+        return result_to_json(ToolResult::error(refused.what(), refused.details));
+    }
+    if (std::string err = argument_error(*def, args); !err.empty()) {
+        const ToolFailure refused = argument_refusal(def->key, err);
+        return result_to_json(ToolResult::error(refused.what(), refused.details));
+    }
     if (const std::optional<ToolFailure> refused = resolve_call(m_catalog, def, args))
         return result_to_json(ToolResult::error(refused->what(), refused->details));
     try {

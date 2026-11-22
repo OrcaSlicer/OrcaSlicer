@@ -1799,14 +1799,14 @@ TEST_CASE("the Design commands are the design's 88, under its headings", "[Mcp][
                                    "Menu items"});
 }
 
-TEST_CASE("the tool_search description names every Design command under its heading", "[Mcp][CAD]")
+TEST_CASE("the tool_list description names every Design command under its heading", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog with = catalog_with_cad();
     GUI::CommandCatalog       without;
     GUI::NativeCommands::register_all_commands(without, {false});
     without.seal();
-    const std::string told  = command_of(with, "tool_search").description;
-    const std::string plain = command_of(without, "tool_search").description;
+    const std::string told  = command_of(with, "tool_list").description;
+    const std::string plain = command_of(without, "tool_list").description;
 
     // With the feature off the description says nothing of them; with it on, the index follows that text.
     REQUIRE(told.size() > plain.size());
@@ -1830,7 +1830,7 @@ TEST_CASE("the tool_search description names every Design command under its head
     CHECK(commands_named == std::set<std::string>{});
     const std::string index = told.substr(plain.size());
     CHECK_THAT(index, ContainsSubstring("CAD"));
-    CHECK_THAT(index, ContainsSubstring("look one up with tool"));
+    CHECK_THAT(index, ContainsSubstring("tool_describe {tool} gives one's manual"));
     // A command with silent does what its menu item does when it is given no arguments.
     CHECK_THAT(index, ContainsSubstring("silent does what its menu item does when called with no arguments, unless silent is true"));
 

@@ -33,7 +33,7 @@ ENUM = {
 # a tool block's access -> CadAccess enumerator
 ACCESS = {"read": "Read", "change": "Change", "sketch": "Sketch", "ui": "Ui"}
 
-# The headings of tool_search's index of the Design commands (Mcp::design_command_index()), in its order: every
+# The headings of tool_list's index of the Design commands (Mcp::design_command_index()), in its order: every
 # command's `section` is one of them. Menu items holds the commands that take no arguments and only do what their menu item
 # does.
 SECTIONS = ("Document", "Sketch", "Solid", "Surface", "Construct", "Inspect", "Bodies", "History", "Menu items")
@@ -119,7 +119,7 @@ def faults(A):
     command's own item takes, which a call with none also gives. A command's items are in one mode.
 
     Every command, an entry with a handler or a block that is no folded item, has a `section`, its heading in
-    tool_search's index (SECTIONS); a folded or greyed item, which is no command, has none.
+    tool_list's index (SECTIONS); a folded or greyed item, which is no command, has none.
 
     `feature_row` marks an item whose handler acts on the selected row of the Feature list, which a call of its
     command takes as its target when nothing is picked in the view (Mcp::open_refusal()): only a command with a menu item
@@ -151,7 +151,7 @@ def faults(A):
         if not command and "section" in v:
             errs.append(f"{vid}: a folded or greyed item is no command and has no section")
         elif command and "section" not in v:
-            errs.append(f"{vid}: a command needs a section, its heading in tool_search's index: one of {list(SECTIONS)}")
+            errs.append(f"{vid}: a command needs a section, its heading in tool_list's index: one of {list(SECTIONS)}")
         elif command and v["section"] not in SECTIONS:
             errs.append(f'{vid}: section {v["section"]!r} is not one of {list(SECTIONS)}')
         if v.get("feature_row") and (not v.get("action") or "fold" in v):
@@ -243,7 +243,7 @@ def main():
         "// not apply are shown disabled in place with their reason rather than removed. Row order was",
         "// ratified 2026-07-31; changing an index is a breaking change to every user's muscle memory.",
         "// An entry with a handler or a tool block, and no fold_into, is a command of the catalog's group Design",
-        "// (Mcp::register_cad_commands(), Mcp::is_design_command()), under its section in tool_search's index. A",
+        "// (Mcp::register_cad_commands(), Mcp::is_design_command()), under its section in tool_list's index. A",
         "// call whose arguments are exactly those that choose one of its items opens that item's tool for a person",
         "// (Mcp::opened_item()): none choose the entry's own item where it has a handler, else the items folded into it",
         "// with {}; a folded item's args, or the entry's own, choose that item. Any other call runs its tool block's",
@@ -330,7 +330,7 @@ def main():
         "    // The arguments that choose this item, as JSON text: a folded item's, or those that choose the own item of",
         "    // an entry with a handler and a tool block as a call with none does; nullptr for none.",
         "    const char* args;",
-        "    // The heading its command is listed under in tool_search's index (kDesignSections,",
+        "    // The heading its command is listed under in tool_list's index (kDesignSections,",
         "    // Mcp::design_command_index()); nullptr for an entry that is no command.",
         "    const char* section;",
         "    // Its handler acts on the selected row of the Feature list, which a call of its command, not a person's",
@@ -338,7 +338,7 @@ def main():
         "    bool        feature_row;",
         "};",
         "",
-        "// The headings of tool_search's index of the Design commands, in its order. Menu items holds the commands",
+        "// The headings of tool_list's index of the Design commands, in its order. Menu items holds the commands",
         "// that take no arguments and only do what their menu item does.",
         "static const char* const kDesignSections[] = {",
     ]

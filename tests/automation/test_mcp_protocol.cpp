@@ -63,6 +63,14 @@ struct Fixture
 
 json body(const PostReply& r) { return json::parse(r.body); }
 
+// The details an error result's text gives after its message, on the line after it.
+json details_of(const json& result)
+{
+    const std::string text = result["content"][0]["text"];
+    const std::size_t line = text.find('\n');
+    return line == std::string::npos ? json() : json::parse(text.substr(line + 1));
+}
+
 json modern_params(json params = json::object())
 {
     params["_meta"] = {{"io.modelcontextprotocol/protocolVersion", "2026-07-28"}};
@@ -140,12 +148,19 @@ TEST_CASE("tool failures and invalid arguments are isError results", "[Mcp]")
     const std::string text = bad["content"][0]["text"];
     CHECK(text.find("unknown argument txt") != std::string::npos);
     CHECK(text.find("\"text\"") != std::string::npos);
-    // Its code says it is the call's arguments, as a command's own argument checks say.
-    CHECK(text.find(R"({"code":"invalid_argument"})") != std::string::npos);
+    // Its code says it is the call's arguments, as a command's own argument checks say, and its hint where the
+    // command's parameters are.
+    CHECK(text.rfind("Invalid arguments for echo: ", 0) == 0);
+    CHECK(details_of(bad) == json{{"code", "invalid_argument"}, {"hint", "tool_describe {tool: \"echo\"} gives its parameters"}});
     const json missing = body(f.post({{"jsonrpc", "2.0"}, {"id", 5}, {"method", "tools/call"}, {"params", {{"name", "echo"}, {"arguments", json::object()}}}}))["result"];
     CHECK(missing["isError"] == true);
     CHECK(missing["content"][0]["text"].get<std::string>().find("text is required") != std::string::npos);
-    CHECK(missing["content"][0]["text"].get<std::string>().find(R"({"code":"invalid_argument"})") != std::string::npos);
+    CHECK(details_of(missing).at("code") == "invalid_argument");
+    // Arguments that are no object are refused the same way.
+    const json scalar = body(f.post({{"jsonrpc", "2.0"}, {"id", 5}, {"method", "tools/call"}, {"params", {{"name", "echo"}, {"arguments", json::array({1})}}}}))["result"];
+    CHECK(scalar["isError"] == true);
+    CHECK(scalar["content"][0]["text"].get<std::string>().rfind("Invalid arguments for echo: arguments must be an object", 0) == 0);
+    CHECK(details_of(scalar).at("hint") == "tool_describe {tool: \"echo\"} gives its parameters");
     // The tool's own failure is not about the arguments.
     CHECK(failed["content"][0]["text"].get<std::string>().find("invalid_argument") == std::string::npos);
 }
@@ -607,7 +622,9 @@ TEST_CASE("tool_call runs and is journaled as the tool it names", "[Mcp]")
     const json invalid = body(f.post({{"jsonrpc", "2.0"}, {"id", 5}, {"method", "tools/call"},
                                       {"params", {{"name", "tool_call"}, {"arguments", {{"tool", "echo"}, {"args", json::object()}}}}}}))["result"];
     CHECK(invalid["isError"] == true);
-    CHECK(invalid["content"][0]["text"].get<std::string>().find(R"({"code":"invalid_argument"})") != std::string::npos);
+    // The hint names the target, whose arguments failed, not tool_call.
+    CHECK(invalid["content"][0]["text"].get<std::string>().rfind("Invalid arguments for echo: ", 0) == 0);
+    CHECK(details_of(invalid) == json{{"code", "invalid_argument"}, {"hint", "tool_describe {tool: \"echo\"} gives its parameters"}});
     // tool_call's own argument names nothing: that is its arguments too.
     const json unknown = body(f.post({{"jsonrpc", "2.0"}, {"id", 6}, {"method", "tools/call"},
                                       {"params", {{"name", "tool_call"}, {"arguments", {{"tool", "ech"}}}}}}))["result"];

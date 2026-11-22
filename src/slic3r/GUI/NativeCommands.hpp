@@ -33,7 +33,7 @@ struct CatalogOptions
 // tools and the commands made from menu items (MenuItems, NativeCommandMenuItems.hpp), whose items are their actions, eight of them
 // with an action of their own (has_own_action). Each is in the group of its place (place_heading()) and is listed, as it runs
 // from its arguments, but for the three menu items that take none (window_save_screenshot, script_toggle_panel,
-// settings_toggle_developer_mode). They come in the order tools/list gives them: tool_search, tool_call and app_state,
+// settings_toggle_developer_mode). They come in the order tools/list gives them: tool_list, tool_describe, tool_call and app_state,
 // then place by place (Tools and actions, The app, The project, Objects, Parts, Plates and on), each place's commands
 // in the order their families declare them, and Driving the GUI last. Before Driving the GUI, with options.cad, the Design tab's commands
 // (Mcp::register_cad_commands()), not listed, of which those with a handler have an action the Speed Dial shows in the
@@ -43,7 +43,7 @@ struct CatalogOptions
 // operations the loaded plugins offer (Mcp::register_plugin_operations()).
 void register_all_commands(CommandCatalog& catalog, const CatalogOptions& options);
 
-// The heading of the place a command outside the Design tab is under, its group, an English text tool_search filters
+// The heading of the place a command outside the Design tab is under, its group, an English text tool_list filters
 // by: the place its name's first word names (object_mirror: Objects; undo and redo: The app), or for the two
 // screenshot commands, which are grouped with the recordings and not with the windows, Recordings, replays and
 // scripts. nullptr for a key whose first word is no place.

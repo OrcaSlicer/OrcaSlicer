@@ -49,15 +49,16 @@ TEST_CASE("tools/list lists the listed commands in the order they were added", "
             added.push_back(def.key);
     CHECK(names == added);
 
-    // The search, the generic call and the app's state first, then the commands by place, the GUI-driving ones last.
+    // The listing of the other commands first, then the manual, the generic call and the app's state, then the commands
+    // by place, the GUI-driving ones last.
     REQUIRE_FALSE(names.empty());
-    CHECK(names.front() == "tool_search");
+    CHECK(names.front() == "tool_list");
     const auto position = [&names](const std::string& name) {
         const auto it = std::find(names.begin(), names.end(), name);
         REQUIRE(it != names.end());
         return it - names.begin();
     };
-    CHECK(position("tool_search") < position("project_open"));
+    CHECK(position("tool_describe") < position("project_open"));
     CHECK(position("plate_slice") < position("widget_click"));
 }
 

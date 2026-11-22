@@ -15,7 +15,8 @@ With no part named, every part runs, in the order of PARTS:
 - slow_build: a thread 250 mm deep, which rebuilds off the UI thread behind the progress dialog for several seconds,
   while app_state and a window screenshot answer, another Design command is refused as busy, and (not on Windows,
   where the dialog is the system's task dialog) widget_list lists the progress dialog and a screenshot captures it;
-- examples: every example tool_search documents for the Design commands, and for undo and redo, run as written on a
+- examples: every example tool_describe documents for the Design commands tool_list lists, and for undo and redo,
+  run as written on a
   fresh design, an argument {"from_call": i, "key": k} taking the value under k in the result of call i of the same
   example. An example fails when a call fails or its result has ok false, a non-empty error, or is the person's form
   (interactive); one with `needs` uses a file from outside the app and is skipped.
@@ -321,10 +322,13 @@ def run_example(client, example):
 
 
 def part_examples(c, client, out):
-    names = [item["name"] for item in client.call("tool_search", group="Design")["items"]] + HISTORY
+    listed = [item["name"] for item in client.call("tool_list", group="Design")["items"]]
+    c.check("examples: tool_list lists the 88 Design commands", len(listed) == 88, len(listed))
+    names = listed + HISTORY
     total = skipped = 0
+    ran = set()
     for name in names:
-        for example in client.call("tool_search", tool=name).get("examples") or []:
+        for example in client.call("tool_describe", tool=name).get("examples") or []:
             total += 1
             label = f"examples: {name}: {example['title']}"
             if example.get("needs"):
@@ -338,8 +342,10 @@ def part_examples(c, client, out):
                 client.call_command("new_design", discard_changes=True)
                 run_example(client, example)
                 c.check(label, True)
+                ran.add(name)
             except (ExampleFailed, McpError) as e:
                 c.check(label, False, e)
+    c.check("examples: at least one example of extrude ran", "extrude" in ran, sorted(ran))
     print(f"examples: {total} examples, {skipped} skipped (needs)")
 
 

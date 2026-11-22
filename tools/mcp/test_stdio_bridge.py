@@ -252,7 +252,7 @@ def main():
         discovery = read_discovery(fresh)
         check("launch: the fresh datadir's discovery file names the bridge's port", discovery.get("port") == port, discovery)
         # The app the bridge started runs as the offline bridge does, without the CAD feature, which adds the Design
-        # commands' index to tool_search's description; the sweep's app runs with it.
+        # commands' index to tool_list's description; the sweep's app runs with it.
         started_tools = reply(launched, 3).get("result", {}).get("tools") or []
         check("offline: tools/list matches that of the app the bridge starts", offline_tools == started_tools,
               catalog_difference(offline_tools or [], started_tools))

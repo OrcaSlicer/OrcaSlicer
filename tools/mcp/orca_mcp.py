@@ -9,7 +9,7 @@ Standard library only. Two halves:
 
     tools/mcp/orca_mcp.py launch --headless         # fresh datadir on a private headless desktop (Linux), wait until ready
     tools/mcp/orca_mcp.py launch --xvfb             # on a private Xvfb display, for a Linux machine without a desktop
-    tools/mcp/orca_mcp.py launch --cad              # with the Design (CAD) tab on, for its commands (tool_search group Design)
+    tools/mcp/orca_mcp.py launch --cad              # with the Design (CAD) tab on, for its commands (tool_list group Design)
     tools/mcp/orca_mcp.py launch --unrestricted-scripts  # with Python scripts (script_run) unrestricted
     tools/mcp/orca_mcp.py call app_state
     tools/mcp/orca_mcp.py call project_import '{"paths": ["/abs/model.stl"]}'
@@ -697,7 +697,7 @@ def main():
     p.add_argument("--filament", help="the filament a fresh datadir's slot starts with (default: Generic PLA @System, or "
                                       "the first default filament of --printer's model)")
     p.add_argument("--cad", action="store_true",
-                   help="start the app with --cad: the Design (CAD) tab on for this run, for its commands (tool_search group Design)")
+                   help="start the app with --cad: the Design (CAD) tab on for this run, for its commands (tool_list group Design)")
     p.add_argument("--unrestricted-scripts", action="store_true",
                    help="start the app with --unrestricted-scripts: Python scripts (script_run) unrestricted for this run")
     p.add_argument("--timeout", type=int, default=120)

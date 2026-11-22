@@ -153,7 +153,7 @@ std::string first_difference(const std::string& actual, const std::string& expec
 // Print button's Print, the print host's test, and the Device tab's status, Pause, Resume and Stop).
 // A part that adds a command adds it here.
 const std::vector<std::pair<std::string, std::set<std::string>>> kPlaces{
-    {"Tools and actions", {"tool_search", "tool_describe", "tool_call", "action_search", "action_run"}},
+    {"Tools and actions", {"tool_list", "tool_describe", "tool_call", "action_search", "action_run"}},
     {"The app",
      {"app_state", "app_log", "app_wait", "job_cancel", "undo", "redo", "app_open_web_page", "app_check_for_updates",
       "app_show_config_folder", "app_benchmark_3d_scene", "preferences_get", "preferences_set"}},
@@ -486,10 +486,10 @@ TEST_CASE("the commands outside the Design tab are the design's, under its headi
     CHECK(by_heading.size() == kPlaces.size());
     CHECK(commands == 136);
 
-    // tool_search's group says which there are.
-    const NativeCommand* search = NativeCommands::find("tool_search");
-    REQUIRE(search != nullptr);
-    const std::string group = search->input_schema.at("properties").at("group").at("description").get<std::string>();
+    // tool_list's group says which there are.
+    const NativeCommand* list = NativeCommands::find("tool_list");
+    REQUIRE(list != nullptr);
+    const std::string group = list->input_schema.at("properties").at("group").at("description").get<std::string>();
     for (const auto& place : kPlaces)
         CHECK_THAT(group, ContainsSubstring(place.first));
     CHECK_THAT(group, ContainsSubstring(Slic3r::GUI::kDesignGroup));
@@ -522,36 +522,36 @@ TEST_CASE("every command that runs from arguments is in the tool list, by place"
         else
             unlisted.insert(c.key);
     }
-    // The three menu items with no argument form, which tool_search finds and tool_call runs.
+    // The three menu items with no argument form, which tool_list lists and tool_call runs.
     CHECK(unlisted == std::set<std::string>{"window_save_screenshot", "script_toggle_panel", "settings_toggle_developer_mode"});
     // Task 3's 98, the seven Parts 4a to 4c add, Part 5a's three, Part 5b's two, Part 5c's one, Part 5d's four, the
     // seven gizmo commands, the six printing commands, the filament list's four and tool_describe.
     CHECK(listed.size() == 133);
 
-    // The search, the generic call and the app's state first; then each heading's commands together, in the
-    // design's order, Driving the GUI last.
-    REQUIRE(listed.size() > 3);
-    const std::vector<std::string> first{"tool_search", "tool_call", "app_state"};
-    CHECK(std::vector<std::string>(listed.begin(), listed.begin() + 3) == first);
+    // The listing of the other commands, the manual, the generic call and the app's state first; then each heading's
+    // commands together, in the design's order, Driving the GUI last.
+    REQUIRE(listed.size() > 4);
+    const std::vector<std::string> first{"tool_list", "tool_describe", "tool_call", "app_state"};
+    CHECK(std::vector<std::string>(listed.begin(), listed.begin() + 4) == first);
     std::vector<std::string> headings;
     for (const auto& place : kPlaces)
         headings.push_back(place.first);
-    CHECK(group_runs(catalog, std::vector<std::string>(listed.begin() + 3, listed.end())) == headings);
+    CHECK(group_runs(catalog, std::vector<std::string>(listed.begin() + 4, listed.end())) == headings);
 
     // With the Design tab, its commands sit between the last of the places and Driving the GUI.
     CommandCatalog with_design = catalog_with_design();
     with_design.seal();
     const std::vector<std::string> keys = keys_of(with_design.commands());
-    REQUIRE(keys.size() > 3);
+    REQUIRE(keys.size() > 4);
     std::vector<std::string> with_design_headings = headings;
     with_design_headings.insert(with_design_headings.end() - 1, Slic3r::GUI::kDesignGroup);
-    CHECK(group_runs(with_design, std::vector<std::string>(keys.begin() + 3, keys.end())) == with_design_headings);
+    CHECK(group_runs(with_design, std::vector<std::string>(keys.begin() + 4, keys.end())) == with_design_headings);
 }
 
 TEST_CASE("only deleting a preset, uninstalling a plugin and stopping a print are labelled destructive", "[CommandCatalog]")
 {
     // The reads: they change nothing in the app or the project.
-    const std::set<std::string> reads{"app_state",          "app_wait",       "app_log",         "tool_search",       "tool_describe",
+    const std::set<std::string> reads{"app_state",          "app_wait",       "app_log",         "tool_list",         "tool_describe",
                                       "preset_list",        "settings_list",  "settings_get",    "preferences_get",
                                       "plate_get_settings", "project_get_settings", "plate_list", "object_list",
                                       "window_screenshot",  "plate_slice_stats",    "script_search_api", "action_search",

@@ -3504,7 +3504,7 @@ json sketch_transform(DesignSketchTool& t, const json& params, bool pattern)
 SketchConstraintType constraint_type_arg(const json& v)
 {
     if (!v.is_string())
-        throw std::runtime_error("type must be a constraint type, such as \"parallel\" (tool_search {tool: \"sketch_constrain\"} lists "
+        throw std::runtime_error("type must be a constraint type, such as \"parallel\" (tool_describe {tool: \"sketch_constrain\"} lists "
                                  "them, and {tool: \"sketch_dimension\"} the dimensions)");
     const std::string s = v.get<std::string>();
     if (s == "equal") return SketchConstraintType::EqualLength;
@@ -3515,7 +3515,7 @@ SketchConstraintType constraint_type_arg(const json& v)
         if (edit_distance(boost::algorithm::to_lower_copy(s), n) <= 2 + s.size() / 4)
             close += std::string(close.empty() ? "" : ", ") + "\"" + n + "\"";
     throw std::runtime_error("unknown constraint type \"" + s + "\"" + (close.empty() ? "" : "; did you mean " + close) +
-                             " (tool_search {tool: \"sketch_constrain\"} lists them, and {tool: \"sketch_dimension\"} the dimensions)");
+                             " (tool_describe {tool: \"sketch_constrain\"} lists them, and {tool: \"sketch_dimension\"} the dimensions)");
 }
 
 // Why the CONSTRAIN bar refuses a pick, in ConstraintReject order: a code an agent can test and the
@@ -4447,7 +4447,7 @@ NativeCommand cad_command(std::string key, std::string title, json schema,
 
 void register_cad_commands(CommandCatalog& catalog)
 {
-    // Heading by heading, as tool_search's description indexes them, so that its listing of the group reads in the
+    // Heading by heading, as tool_list's description indexes them, so that its listing of the group reads in the
     // same order. Every command has a heading (DesignTool::section).
     for (const char* section : kDesignSections)
         for (const DesignTool& t : kDesignTools)
@@ -4481,7 +4481,8 @@ std::vector<int> sketch_target_indices(const json& params, const std::vector<int
 std::string design_command_index()
 {
     std::string index = " The Design tab's CAD commands follow by heading (sketches, solid and surface features, bodies, "
-                        "measurements); group Design lists them with what each does; look one up with tool before calling it. A "
+                        "measurements); tool_list {group: \"Design\"} lists them with what each does, and tool_describe {tool} gives "
+                        "one's manual before it is called. A "
                         "command whose schema has silent does what "
                         "its menu item does when called with no arguments, unless silent is true.";
     for (const char* section : kDesignSections) {

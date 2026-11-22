@@ -57,6 +57,11 @@ nlohmann::json with_silent(nlohmann::json schema, const std::vector<nlohmann::js
 // (normalize_arguments()) and returns why validate_arguments() refuses them; empty when they are valid.
 std::string argument_error(const NativeCommand& command, nlohmann::json& args);
 
+// The refusal of a call whose arguments for the command `name` the schema check found wrong, `error` saying how:
+// "Invalid arguments for <name>: <error>", code invalid_argument, and a hint that tool_describe gives the command's
+// parameters. Every caller that checks a call's arguments against a schema refuses with it.
+ToolFailure argument_refusal(const std::string& name, const std::string& error);
+
 // Rewrites, before validation, what agents often send in place of what the schema asks for: an
 // argument under a name the tool does not take but that stands for one it does, which the call leaves
 // out and the value fits (ref for target, key for keys, text for value, action for id or button, object for objects,

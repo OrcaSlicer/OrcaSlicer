@@ -119,8 +119,8 @@ returns the command's whole reply, which for a Design command is `{"result": ...
 reply says a dialog blocks it fails at once, naming the dialog, rather than waiting on it. A call that
 first replied `running` and opens a dialog later is waited on up to the timeout (600 s), since `app_wait`
 reports only that its job is still running. Every `McpError` it raises starts with the command's name
-(`"extrude: ..."`) and has the original error as its cause. `tool_search {group: "Design"}` lists the
-Design commands with what each does, and `tool_search {tool}` gives one's arguments and examples.
+(`"extrude: ..."`) and has the original error as its cause. `tool_list {group: "Design"}` lists the
+Design commands with what each does, and `tool_describe {tool}` gives one's manual, its arguments and examples among it.
 
 ## The skill's list of actions
 
@@ -180,10 +180,10 @@ the run that outlives its reply budget runs with the budget capped at 4 s (`ORCA
 
 `test_plugin_tools.py` checks a plugin's calls into the tools in the running app: it side-loads
 `tests/plugins/mcp_tools_fixture` into a fresh data folder and launches twice: over MCP, with the Design tab
-on (its operation is in the group Plugins, reached through `tool_search` and `tool_call` and out of
-`tools/list`; a menu item's command is found among `tool_search`'s commands with its schema and its Speed Dial
-action is not among the actions it lists, and `tool_call` runs it; `group` takes a group's name in any case; a
-Design command is found there too, not in a part of the reply of its own; calls from its Script worker
+on (its operation is in the group Plugins, listed by `tool_list`, described by `tool_describe`, run by
+`tool_call` and out of `tools/list`; a menu item's command is listed by `tool_list` with what it does and run
+by `tool_call`; `group` takes a group's name in any case, a group whose commands are all listed gives a note,
+and the Design commands are listed under their headings; calls from its Script worker
 and a thread it starts reach the tools, an auto-answer rule it sets is the plugin's, `replay_export` is
 refused, nothing it calls is journaled, a script that finds its progress dialog handle can use it,
 `tests/plugins/mcp_tools_broken`, whose load fails, offers none of its operations, and unticking the
@@ -373,7 +373,7 @@ shell thicker than the plate answering ok false, which stays in, and face and ed
 `generation`, which the journal drops. `slow_build` runs a long thread build (an M8 thread tapped 250 mm deep, which
 takes several seconds) and checks that while it builds `app_state` answers, a window screenshot succeeds,
 `widget_list` lists the progress dialog and a screenshot of that dialog captures it, and another Design command is
-refused. `examples` runs the examples `tool_search {tool}` gives for every Design command, and for `undo` and
+refused. `examples` runs the examples `tool_describe {tool}` gives for every Design command, and for `undo` and
 `redo`, each on a fresh design, and fails one whose call fails or whose result has `ok` false, an error, or is the
 person's form.
 `test_cad_failed_job.py`, on a `--cad` instance too, sweeps a coil whose every rebuild outlasts the reply budget (its

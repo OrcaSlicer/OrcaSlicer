@@ -90,6 +90,14 @@ const std::string* CommandCatalog::left_out(const std::string& key) const
     return it == m_left_out.end() ? nullptr : &it->second.why;
 }
 
+const std::string* CommandCatalog::left_out_reason(const std::string& code) const
+{
+    for (const auto& [key, left] : m_left_out)
+        if (left.code == code)
+            return &left.why;
+    return nullptr;
+}
+
 std::string CommandCatalog::unknown_command_code(const std::string& key) const
 {
     const auto it = m_left_out.find(key);

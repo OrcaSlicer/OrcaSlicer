@@ -1063,11 +1063,11 @@ constexpr std::pair<const char*, const char*> kPlaceWords[] = {
 constexpr std::pair<const char*, const char*> kPlaceExceptions[] = {{"window_screenshot", kRecordings},
                                                                     {"window_save_screenshot", kRecordings}};
 
-// Where `command`, in its place's group, comes in tools/list: the search, the generic call and the app's state
-// first, as what an agent starts with, then the places in kHeadingOrder.
+// Where `command`, in its place's group, comes in tools/list: the listing of the other commands, the manual, the
+// generic call and the app's state first, as what an agent starts with, then the places in kHeadingOrder.
 std::ptrdiff_t list_rank(const NativeCommand& command)
 {
-    static const char* const kFirst[] = {"tool_search", "tool_call", "app_state"};
+    static const char* const kFirst[] = {"tool_list", "tool_describe", "tool_call", "app_state"};
     if (const auto first = std::find(std::begin(kFirst), std::end(kFirst), command.key); first != std::end(kFirst))
         return first - std::begin(kFirst);
     const auto place = std::find_if(std::begin(kHeadingOrder), std::end(kHeadingOrder),
@@ -1093,7 +1093,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
 {
     // The families' commands are gathered first, so that each takes its place's group and its place in the order
     // (list_rank()), whichever family declares it; a stable sort keeps a place's commands in their families' order.
-    // The Design tab's commands, only while the CAD feature is on, go before the GUI-driving ones; the search's
+    // The Design tab's commands, only while the CAD feature is on, go before the GUI-driving ones; tool_list's
     // description names them then, and undo's and redo's examples show the Design tab's history.
     std::string design_index;
 #ifdef SLIC3R_CAD

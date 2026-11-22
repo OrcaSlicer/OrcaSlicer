@@ -81,6 +81,22 @@ TEST_CASE("find sees added commands, lookup also a source's", "[CommandCatalog]"
     CHECK(catalog.source_commands().front()->key == "plugin.x.y");
 }
 
+TEST_CASE("a set of commands left out together gives its reason by its code", "[CommandCatalog]")
+{
+    CommandCatalog catalog;
+    catalog.add(command("plate_slice"));
+    catalog.leave_out("fillet", "the feature was off", "design_unavailable");
+    catalog.leave_out("extrude", "the feature was off", "design_unavailable");
+    catalog.leave_out("holes", "another reason", "feature_off");
+    catalog.seal();
+    const std::string* design = catalog.left_out_reason("design_unavailable");
+    REQUIRE(design != nullptr);
+    CHECK(*design == "the feature was off");
+    // The reason is the one a call of any of them gets after its name.
+    CHECK(catalog.unknown_command("fillet") == "Unknown tool: fillet; " + *design);
+    CHECK(catalog.left_out_reason("no_such_code") == nullptr);
+}
+
 TEST_CASE("commands keep the order they were added in", "[CommandCatalog]")
 {
     CommandCatalog catalog;

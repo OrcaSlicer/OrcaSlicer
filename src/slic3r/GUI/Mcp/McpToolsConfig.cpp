@@ -2812,31 +2812,6 @@ json list_settings(const json& args)
 
 } // namespace
 
-json search_settings(const std::string& query, std::size_t limit)
-{
-    ui_plater(); // the presets and the settings pages exist once the main window does
-    std::map<std::string, std::string> type_of;
-    const std::vector<std::string>     options = search_type_options(type_of);
-    const std::vector<std::string>     ranked  = rank_settings(query, options, options.size());
-    const std::map<std::string, Preset::Type> types{{"process", Preset::TYPE_PRINT}, {"filament", Preset::TYPE_FILAMENT},
-                                                    {"printer", Preset::TYPE_PRINTER}};
-    std::map<std::string, std::map<std::string, std::string>> places;
-    json                                                      items = json::array();
-    for (std::size_t i = 0; i < ranked.size() && i < limit; ++i) {
-        const std::string&     key   = ranked[i];
-        const std::string&     type  = type_of[key];
-        const ConfigOptionDef* def   = print_config_def.get(key);
-        auto                   place = places.find(type);
-        if (place == places.end())
-            place = places.emplace(type, setting_places(types.at(type))).first;
-        json item{{"key", key}, {"type", type}, {"label", def->full_label.empty() ? def->label : def->full_label}};
-        if (const auto where = place->second.find(key); where != place->second.end())
-            item["where"] = where->second;
-        items.push_back(std::move(item));
-    }
-    return {{"total", ranked.size()}, {"items", std::move(items)}};
-}
-
 std::string settings_request_error(const json& args, bool writes)
 {
     const std::string target = arg_string(args, "target", "global");
@@ -3653,7 +3628,7 @@ void register_config_tools(CommandCatalog& catalog)
                                                json::array({action("toggle_developer_mode", L("Toggle Developer Mode"), L("Mode"),
                                                                    "advanced", json::object(), developer)}),
                                                [](const json&) { return MenuItems::toggle_developer_mode(); });
-    // A menu item with no argument form: tool_search finds it and tool_call runs it, the tool list does not show it.
+    // A menu item with no argument form: tool_list lists it and tool_call runs it, the tool list does not show it.
     developer_mode.listed = false;
     catalog.add(std::move(developer_mode));
 

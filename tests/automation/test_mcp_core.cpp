@@ -891,6 +891,27 @@ TEST_CASE("the call observer hears inline, job and child calls, and not calls re
     CHECK(heard.take() == std::vector<std::string>{"end ok"});
 }
 
+TEST_CASE("a child call whose arguments its schema refuses carries the tool_describe hint", "[Mcp]")
+{
+    Harness       h;
+    NativeCommand echo = tool("echo", GuardClass::Inspect, [](const json& args, ToolContext&) { return ToolResult::ok(args); });
+    echo.inline_call   = true;
+    echo.input_schema  = {{"type", "object"},
+                          {"properties", {{"text", {{"type", "string"}}}}},
+                          {"required", {"text"}},
+                          {"additionalProperties", false}};
+    h.registry.add(echo);
+    NativeCommand parent = tool("replay", GuardClass::Inspect, [](const json&, ToolContext& ctx) { return ctx.call_child("echo", {{"txt", "hi"}}); });
+    parent.inline_call   = true;
+    h.registry.add(parent);
+    h.start();
+
+    const ToolResult r = h.call("replay");
+    REQUIRE(r.is_error);
+    CHECK(r.message.rfind("Invalid arguments for echo: unknown argument txt", 0) == 0);
+    CHECK(r.data == json{{"code", "invalid_argument"}, {"hint", "tool_describe {tool: \"echo\"} gives its parameters"}});
+}
+
 TEST_CASE("an observer that throws fails no call", "[Mcp]")
 {
     struct Throwing final : CallObserver

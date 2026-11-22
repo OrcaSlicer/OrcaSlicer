@@ -410,6 +410,12 @@ std::string argument_error(const NativeCommand& command, json& args)
     return validate_arguments(command.input_schema, args);
 }
 
+ToolFailure argument_refusal(const std::string& name, const std::string& error)
+{
+    return ToolFailure("Invalid arguments for " + name + ": " + error,
+                       {{"code", "invalid_argument"}, {"hint", "tool_describe {tool: \"" + name + "\"} gives its parameters"}});
+}
+
 std::vector<std::string> query_words(const std::string& query)
 {
     std::vector<std::string> words = text_words(query, false);

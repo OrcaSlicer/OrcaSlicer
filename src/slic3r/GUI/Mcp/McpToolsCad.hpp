@@ -2,7 +2,7 @@
 
 // The Design tab's commands, one per entry of its table (kDesignTools, DesignOffer.hpp, generated from
 // scripts/CAD/tool_atlas.json) that has a handler or a tool block and is no folded item (is_design_command()): its
-// tools, sketches, features, measurements and edits, which an agent finds with tool_search (group Design) and
+// tools, sketches, features, measurements and edits, which an agent finds with tool_list (group Design) and
 // runs with tool_call, and a person picks as Speed Dial actions while the Design tab is shown, those of the mode it
 // is in. A call with exactly the arguments that choose one of the command's items (opened_item()) does what that
 // right-click menu item does, in the mode the item belongs to (open_refusal()); any other call, or one with
@@ -149,9 +149,9 @@ void register_cad_commands(CommandCatalog& catalog);
 // project in the editor.
 void leave_out_cad_commands(CommandCatalog& catalog, bool editor);
 
-// What tool_search's description says of the Design commands, which tools/list does not show, so that an agent
-// learns without a search that they exist and are CAD: a lead saying what they cover, that group Design lists them
-// with what each does, that one is looked up with tool before it is called, and that a command whose schema has silent does what its menu item does when called
+// What tool_list's description says of the Design commands, which tools/list does not show, so that an agent
+// learns without a call that they exist and are CAD: a lead saying what they cover, that tool_list's group Design
+// lists them with what each does, that tool_describe gives one's manual before it is called, and that a command whose schema has silent does what its menu item does when called
 // with no arguments unless silent is true; then each heading of kDesignSections with the keys of its commands
 // (DesignTool::section) in the table's order, Menu items saying that its commands take no arguments. It starts with
 // a space, to follow the description's last sentence.

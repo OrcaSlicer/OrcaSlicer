@@ -110,11 +110,11 @@ void register_ui_tools(CommandCatalog& catalog);
 void register_replay_tools(CommandCatalog& catalog);
 void register_record_tools(CommandCatalog& catalog);
 void register_python_tools(CommandCatalog& catalog);
-// `design_index` ends tool_search's description: what it says of the Design commands (design_command_index(),
+// `design_index` ends tool_list's description: what it says of the Design commands (design_command_index(),
 // McpToolsCad.hpp) in a catalog that holds them, and nothing in one that does not.
 void register_api_tools(CommandCatalog& catalog, const std::string& design_index);
 // Adds the source of the operations the loaded plugins offer (plugin.<plugin>.<name>), which come and go with their
-// plugins, in group Plugins: tool_call runs one by name and tool_search finds it; tools/list does not show them.
+// plugins, in group Plugins: tool_call runs one by name and tool_list lists it; tools/list does not show them.
 void register_plugin_operations(CommandCatalog& catalog);
 
 // How run_replay_job() runs a replay beyond what the replay says.
@@ -213,18 +213,16 @@ int         arg_int(const nlohmann::json& args, const char* key, int fallback);
 double      arg_double(const nlohmann::json& args, const char* key, double fallback);
 bool        arg_bool(const nlohmann::json& args, const char* key, bool fallback);
 
-// ---- search ----------------------------------------------------------------------------------
+// ---- tool_list and tool_describe ---------------------------------------------------------------
 
-// tool_search's answer from `catalog`, every command it holds and those its sources hold now, for `args`:
-// - tool: that command's group, read_only, description and input schema, and its examples when it has some;
-//   ToolFailure, naming the closest keys, for a key lookup() does not resolve.
-// - query: {total, items, use}, the `limit` (default 5) best matches by match_score(), each {name, group, summary,
-//   listed}, and one that is not listed, which no listing shows, with its input_schema too, and its description
-//   where it says more than the summary.
-// - neither: {total, names}, in the order the catalog adds its commands, then its sources'.
-// `group` keeps the commands of one group, in any case; a group no command has is refused, naming those there are.
-// Any thread.
-nlohmann::json search_commands(const CommandCatalog& catalog, const nlohmann::json& args);
+// tool_list's answer from `catalog`: {items: [{name, group, heading?, does}], use, note?}, the commands it holds and
+// those its sources hold now that tools/list does not show, in that order; does is the whole description up to 300
+// characters, else its first sentence, an operation's after the "Offered by a plugin." its description starts with.
+// With `group`, compared in any case with every group the catalog's commands are in, that group's alone, and a note
+// that tools/list shows a group's commands when none is left to list. ToolFailure for a name no command's group has
+// (invalid_argument, with the groups), and for Design while the catalog leaves its commands out (design_unavailable,
+// with the reason they were left out with). Any thread.
+nlohmann::json unlisted_commands(const CommandCatalog& catalog, const std::string& group);
 
 // Where tool_describe's manual sends an agent for the values a built-in command's parameter takes when its schema does
 // not list them. Source: the tools that list them, in order ("tools/list" stands for the tool list); Described: the
@@ -256,7 +254,7 @@ nlohmann::json describe_command(const CommandCatalog& catalog, const std::string
 // that `words` (of query_words()) describe, best first: those matching more of the words, then those
 // matching more of them in what the action is called (the name inside its id, its title and its group),
 // then the shorter name, which is the plainer action (obj_delete before obj_delete_all). action_search
-// and tool_search both rank with it, so one query finds the same actions through either.
+// ranks with it.
 nlohmann::json rank_actions(const nlohmann::json& listed, const std::vector<std::string>& words);
 
 // Why action_run refuses `args` for `action`, or empty when it does not: an action that collects a value (input) takes
@@ -397,10 +395,6 @@ nlohmann::json option_meta(const ConfigOptionDef& def);
 // the query has longer ones.
 std::vector<std::string> rank_settings(const std::string& query, const std::vector<std::string>& within, std::size_t limit);
 
-// settings_get's search without a type, for tool_search: the process, filament and printer settings being
-// edited that `query` describes, best first, {total, items: [{key, type, label, where}]} with at most
-// `limit` items. UI thread.
-nlohmann::json search_settings(const std::string& query, std::size_t limit);
 
 // For a per-variant or per-extruder vector `key` of a preset's `config` that has more than one entry:
 // {"variants": [what each entry is for], "active": [the entry each extruder prints with, extruder 1
