@@ -154,6 +154,20 @@ double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, 
     return config.nozzle_diameter.get_at(extruder - 1);
 }
 
+ConfigOptionInts effective_physical_extruder_map(const ConfigOptionInts* explicit_pem, int nozzle_count)
+{
+    // One entry per logical extruder, so a profile has authored a map only when its length
+    // matches. The single-element PrintConfig default does not, and is replaced rather than
+    // treated as a one-extruder machine.
+    if (explicit_pem && nozzle_count > 0 && (int) explicit_pem->values.size() == nozzle_count)
+        return *explicit_pem;
+
+    ConfigOptionInts derived;
+    derived.values.resize(std::max(nozzle_count, 1));
+    std::iota(derived.values.begin(), derived.values.end(), 0);
+    return derived;
+}
+
 
 // Orca: input shaping values types by flavor
 std::vector<std::string> get_shaper_type_values_for_flavor(GCodeFlavor flavor)
@@ -385,6 +399,13 @@ static t_config_enum_values s_keys_map_SurfaceFillOrder{
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SurfaceFillOrder)
 
 //Orca
+static t_config_enum_values s_keys_map_InfillStrategy{
+    { "default",      int(InfillStrategy::Default) },
+    { "crossing",     int(InfillStrategy::Crossing) },
+    { "non_crossing", int(InfillStrategy::NonCrossing) },
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(InfillStrategy)
+
 static t_config_enum_values s_keys_map_AdaptiveInfillMode{
     { "disabled",       int(AdaptiveInfillMode::Disabled) },
     { "distance_warp",  int(AdaptiveInfillMode::DistanceWarp) },
@@ -2174,6 +2195,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("brim_filament_id", coInt);
+    def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
+    def->label = L("Brim");
+    def->category = L("Extruders");
+    def->tooltip = L("Filament to print the brim.\n\"Default\" prints it with the first filament that prints the object on the first layer.");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
     def = this->add("brim_ears", coBool);
     def->label = L("Brim ears");
     def->category = L("Support");
@@ -2196,9 +2226,10 @@ void PrintConfigDef::init_fff_params()
     def = this->add("brim_ears_detection_length", coFloat);
     def->label = L("Brim ear detection radius");
     def->category = L("Support");
-    def->tooltip = L("The geometry will be decimated before detecting sharp angles. "
-                     "This parameter indicates the minimum length of the deviation for the decimation.\n"
-                     "0 to deactivate.");
+    def->tooltip = L("The direction change at a corner is measured over a window of this length along the outline.\n"
+                     "The window grows while the outline keeps curving, so a rounded corner counts as one corner "
+                     "once its whole turn is seen.\n"
+                     "0 to measure the angle at every vertex without smoothing.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3897,6 +3928,26 @@ void PrintConfigDef::init_fff_params()
     def->min = 1;
     def->max = 10; // Maximum number of lines for infill pattern
     def->set_default_value(new ConfigOptionInt(1));
+
+    def             = this->add("sparse_infill_strategy", coEnum);
+    def->label      = L("Sparse infill strategy");
+    def->category   = L("Strength");
+    def->tooltip    = L("How the lines of the Grid, Triangles, Tri-hexagon, Cubic, Quarter Cubic, Adaptive Cubic and "
+                        "Support Cubic patterns meet.\n"
+                        " - Default: crossing with a single line, non-crossing with multiline infill.\n"
+                        " - Crossing: the lines run straight across each other. With multiline infill, the lines of two "
+                        "walls overlap where they cross.\n"
+                        " - Non-crossing: the lines turn back where they meet instead of crossing, so the walls touch "
+                        "without overlapping.");
+    def->enum_keys_map = &ConfigOptionEnum<InfillStrategy>::get_enum_values();
+    def->enum_values.push_back("default");
+    def->enum_values.push_back("crossing");
+    def->enum_values.push_back("non_crossing");
+    def->enum_labels.push_back(L("Default"));
+    def->enum_labels.push_back(L("Crossing"));
+    def->enum_labels.push_back(L("Non-crossing"));
+    def->mode       = comExpert;
+    def->set_default_value(new ConfigOptionEnum<InfillStrategy>(InfillStrategy::Default));
 
     def             = this->add("adaptive_infill_mode", coEnum);
     def->label      = L("Adaptive density (experimental)");
@@ -14629,17 +14680,24 @@ float get_real_skirt_dist(const DynamicPrintConfig& cfg) {
         loops = 1;
     }
 
-    float width = cfg.opt_float("initial_layer_line_width");
+    float nozzle = 0.4f;
+    auto* nd = cfg.opt<ConfigOptionFloats>("nozzle_diameter");
+    if (nd && !nd->values.empty())
+        nozzle = *std::max_element(nd->values.begin(), nd->values.end());
+
+    // A line width can be a percent of the nozzle diameter.
+    auto line_width = [&](const char *key) -> float {
+        const ConfigOption *opt = cfg.option(key);
+        if (const auto *width = dynamic_cast<const ConfigOptionFloatOrPercent *>(opt))
+            return float(width->get_abs_value(nozzle));
+        return opt ? float(opt->getFloat()) : 0.f;
+    };
+    float width = line_width("initial_layer_line_width");
     if (width <= 0.f) {
-        width = cfg.opt_float("line_width");
+        width = line_width("line_width");
     }
     if (width <= 0.f) {
-        auto* nd = cfg.opt<ConfigOptionFloats>("nozzle_diameter");
-        if (nd && !nd->values.empty()) {
-            width = *std::max_element(nd->values.begin(), nd->values.end());
-        } else {
-            width = 0.4f;
-        }
+        width = nozzle;
     }
 
     return dist + loops * width;

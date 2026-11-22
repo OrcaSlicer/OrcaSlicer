@@ -176,10 +176,40 @@ inline bool is_octree_infill_pattern(InfillPattern pattern) { return pattern == 
 // Orca: Infill patterns graded by the "adaptive_infill_mode" option.
 inline bool is_adaptive_infill_pattern(InfillPattern pattern) { return pattern == ipGyroid || pattern == ipTpmsD || pattern == ipTpmsFK; }
 
+// Orca: whether the sparse infill lines run across each other or turn back where they cross.
+enum class InfillStrategy {
+    Default,
+    Crossing,
+    NonCrossing,
+};
+
+// Orca: Infill patterns whose lines can either cross or turn back at the crossings.
+inline bool has_infill_strategy(InfillPattern pattern)
+{
+    switch (pattern) {
+    case ipGrid:
+    case ipTriangles:
+    case ipStars:
+    case ipCubic:
+    case ipQuarterCubic:
+    case ipAdaptiveCubic:
+    case ipSupportCubic:
+        return true;
+    default:
+        return false;
+    }
+}
+
+// Orca: The default strategy crosses with a single line per infill wall and turns back with more.
+inline bool is_non_crossing_strategy(InfillStrategy strategy, int multiline)
+{
+    return strategy == InfillStrategy::Default ? multiline > 1 : strategy == InfillStrategy::NonCrossing;
+}
+
 // Orca: Infill patterns that round their corners by the "sparse_infill_smooth_factor" option.
-// Grid, Triangles and Tri-hexagon only do so in their trapezoidal form, which is generated with more
-// than one line per infill wall; a single line makes them plain crossing lines with nothing to round.
-inline bool is_smoothable_infill_pattern(InfillPattern pattern, int multiline = 1)
+// Grid, Triangles, Tri-hexagon, Cubic and Quarter Cubic only do so with the non-crossing strategy;
+// crossing makes them straight lines with nothing to round.
+inline bool is_smoothable_infill_pattern(InfillPattern pattern, int multiline = 1, InfillStrategy strategy = InfillStrategy::Default)
 {
     switch (pattern) {
     case ipHilbertCurve:
@@ -195,7 +225,7 @@ inline bool is_smoothable_infill_pattern(InfillPattern pattern, int multiline = 
     case ipStars:
     case ipCubic:
     case ipQuarterCubic:
-        return multiline > 1;
+        return is_non_crossing_strategy(strategy, multiline);
     default:
         return false;
     }
@@ -834,6 +864,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ToolChangeOrderingType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ArcFittingMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SurfaceFillOrder)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillStrategy)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AdaptiveInfillMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AdaptiveInfillGradient)
 
@@ -1285,6 +1316,7 @@ PRINT_CONFIG_CLASS_DEFINE(
 
     ((ConfigOptionFloat,               brim_object_gap))
     ((ConfigOptionFloat,               brim_flow_ratio))
+    ((ConfigOptionInt,                 brim_filament_id))
     ((ConfigOptionBool,                brim_use_efc_outline))
     ((ConfigOptionEnum<BrimType>,      brim_type))
     ((ConfigOptionFloat,               brim_width))
@@ -1533,6 +1565,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Orca:
     ((ConfigOptionFloatOrPercent,                infill_combination_max_layer_height))
     ((ConfigOptionInt,                  fill_multiline))
+    ((ConfigOptionEnum<InfillStrategy>, sparse_infill_strategy))
     ((ConfigOptionEnum<AdaptiveInfillMode>, adaptive_infill_mode))
     ((ConfigOptionPercent,              adaptive_infill_interior_density))
     ((ConfigOptionEnum<AdaptiveInfillGradient>, adaptive_infill_gradient))
@@ -2787,6 +2820,21 @@ static bool has_zero_flush_volume_for_used_filaments(const std::vector<T> &fv_ma
 size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id);
 
 double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, bool is_bbl_printer);
+
+// physical_extruder_map has one entry per LOGICAL extruder -- the index space of
+// nozzle_diameter -- with each value a physical extruder index. It is NOT derivable from
+// printer_extruder_id, which is indexed by variant slot (one entry per extruder+variant pair):
+// an X1 Carbon has one nozzle and printer_extruder_id {1,1}, an H2D two nozzles and {1,1,2,2,2}.
+//
+// The setting belongs to every printer, not only IMEX ones: the single-element default is what
+// any multi-nozzle profile that never sets it (a Snapmaker U1, say) carries, so reading it raw by
+// logical extruder runs past its end. GUI and device-side readers go through this helper (or its
+// PresetBundle overload in PresetBundle.hpp); the non-IMEX G-code paths read the raw value on
+// purpose (see the is_imex gate in PrintApply.cpp).
+//
+// A profile has authored a map only when its length matches nozzle_count; otherwise the identity
+// is returned, the default upstream's printer sync starts from before it applies an authored map.
+ConfigOptionInts effective_physical_extruder_map(const ConfigOptionInts* explicit_pem, int nozzle_count);
 
 } // namespace Slic3r
 

@@ -732,7 +732,11 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
             if (const ModelVolume *part = preview_part(*preview); part != nullptr)
                 previewed.push_back(part);
     }
-    m_parent.toggle_model_objects_visibility(true);
+    m_parent.toggle_model_objects_visibility(
+        true,
+        m_c->selection_info()->model_object(),
+        m_c->selection_info()->get_active_instance()
+    );
     for (const ModelVolume *volume : previewed)
         m_parent.toggle_model_objects_visibility(false, m_c->selection_info()->model_object(),
                                                   m_c->selection_info()->get_active_instance(), volume);
