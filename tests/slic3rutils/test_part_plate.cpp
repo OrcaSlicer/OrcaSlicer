@@ -24,6 +24,7 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/TriangleSelector.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 
 using namespace Slic3r;
@@ -131,27 +132,35 @@ TEST_CASE("The filament a layer range prints with is a filament the plate uses",
 
 TEST_CASE("A filament an object, part or layer range sets past the last filament slot is filament 1 on the plate", "[PartPlate]")
 {
-    enum class Where { Object, Part, LayerRange };
-    const auto [where, key] = GENERATE(table<Where, std::string>({
-        {Where::Object, "outer_wall_filament_id"},
-        {Where::Part, "outer_wall_filament_id"},
-        {Where::LayerRange, "outer_wall_filament_id"},
-        {Where::LayerRange, "extruder"},
+    enum class Where { Object, Part, PaintedPart, LayerRange };
+    const auto [where, key, expected] = GENERATE(table<Where, std::string, std::vector<int>>({
+        {Where::Object, "outer_wall_filament_id", {1, 2}},
+        {Where::Part, "outer_wall_filament_id", {1, 2}},
+        {Where::LayerRange, "outer_wall_filament_id", {1, 2}},
+        {Where::Object, "extruder", {1}},
+        {Where::Part, "extruder", {1}},
+        {Where::PaintedPart, "extruder", {1, 3}},
+        {Where::LayerRange, "extruder", {1, 2}},
     }));
     ObjectOnPlate on_plate;
     on_plate.object->config.set("extruder", 2);
     if (where == Where::Object)
         on_plate.object->config.set(key, 4);
-    else if (where == Where::Part)
-        on_plate.part->config.set(key, 4);
-    else
+    else if (where == Where::LayerRange)
         on_plate.object->layer_config_ranges[{2., 5.}].set(key, 4);
+    else
+        on_plate.part->config.set(key, 4);
+    if (where == Where::PaintedPart) {
+        TriangleSelector selector(on_plate.part->mesh());
+        selector.set_facet(0, EnforcerBlockerType::Extruder3);
+        REQUIRE(on_plate.part->mmu_segmentation_facets.set(selector));
+    }
     DynamicPrintConfig config       = config_with_object_filaments_only();
     DynamicPrintConfig print_config = config;
     print_config.erase("filament_colour");
 
-    CHECK(on_plate.plate.get_extruders(false, print_config, config) == std::vector<int>{1, 2});
-    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == std::vector<int>{1, 2});
+    CHECK(on_plate.plate.get_extruders(false, print_config, config) == expected);
+    CHECK(on_plate.plate.get_extruders_under_cli(false, config) == expected);
 }
 
 TEST_CASE("A print-wide filament past the last filament slot resolves as the app's preset reset or the slicer's clamp does", "[PartPlate]")

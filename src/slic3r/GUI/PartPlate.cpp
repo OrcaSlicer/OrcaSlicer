@@ -3029,7 +3029,10 @@ static void append_feature_filaments(const ModelConfig& config, int filament_cou
 static void append_volume_and_layer_range_filaments(const ModelObject& object, int filament_count, std::vector<int>& filaments)
 {
     for (const ModelVolume* mv : object.volumes) {
-        const std::vector<int> volume_extruders = mv->get_extruders();
+        std::vector<int> volume_extruders = mv->get_extruders();
+        // The slicer prints the volume's own filament id past the last slot with filament 1.
+        if (const int own_filament = mv->extruder_id(); own_filament > filament_count)
+            std::replace(volume_extruders.begin(), volume_extruders.end(), own_filament, 1);
         filaments.insert(filaments.end(), volume_extruders.begin(), volume_extruders.end());
         // Only parts and modifiers make print regions, so another volume's feature filaments never print.
         if (mv->is_model_part() || mv->is_region_modifier())
