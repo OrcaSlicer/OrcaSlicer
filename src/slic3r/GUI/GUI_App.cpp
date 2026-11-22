@@ -118,6 +118,7 @@
 #include <wx/localedefs.h>
 #include <wx/eventfilter.h>
 #include <wx/toplevel.h>
+#include <wx/window.h>
 
 // Localization headers: include libslic3r version first so everything in this file
 // uses the slic3r/GUI version (the macros will take precedence over the functions).
