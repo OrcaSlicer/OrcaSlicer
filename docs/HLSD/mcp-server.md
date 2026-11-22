@@ -97,21 +97,24 @@ each was an agent's first guess, many times over, and each cost a failed call an
 
 The server `instructions` (under the 4096 characters clients keep) give the workflow: `app_state`,
 act, then check the result with the reading commands, keeping screenshots for what those do not report.
-The rest is in three sections, by what the commands are for: running the session, acting on project data,
-which an agent should prefer, and driving the GUI itself.
+The rest is in four sections. The first, finding what to call, gives every catalog's lists in the order an
+agent reads them: `tools/list` place by place, its commands named place first, then verb; `tool_list` for the
+commands `tools/list` never shows (the three menu items that take no arguments, the Design tab's and the
+operations plugins offer, so nothing else tells an agent they exist), which `tool_call` runs; `tool_describe
+{tool}` for a command's manual, to read before a `tool_call`, whose `values_from` names the tool that lists a
+parameter's values; `settings_list_pages {type}`, `settings_list {type, where}` and `settings_get {keys}` for
+what a setting does; `action_list {section}` for the Speed Dial's actions; `script_list_api {within}` and
+`script_describe_api {name}` for the Python API. Each is a list an agent reads and picks from, since a word
+search does not match the words of a person's request to a command. Clients that defer tools load only their
+names and the instructions at first, so the instructions are how an agent without a skill learns which tool
+to load, and this section comes first.
+The other three are by what the commands are for: running the session, acting on project data, which an agent
+should prefer, and driving the GUI itself.
 They say to prefer the commands that act on project data over clicks and never retry a call that returned a
-job, that commands are named place first, then verb, and `tools/list` gives them place by place, that a call
-with exactly a Speed Dial action's arguments may ask as a person's pick does while any other runs from its
-arguments, point to `settings_list_pages`, `settings_list {type, where}` and the meta of the settings they list
-for what a setting does, say how a gizmo opens and is
+job, that a call with exactly a Speed Dial action's arguments may ask as a person's pick does while any other
+runs from its arguments, say how a gizmo opens and is
 driven (and that `gizmo_pick_file` only stands in for a file picker inside one, since its name draws agents to
 it for any gizmo work), that the camera turns with `view_set` rather than a drag, and which indices are 0-based.
-They also say that `tool_list` lists the commands `tools/list` never shows (the three menu items that take
-no arguments, the Design tab's and the operations plugins offer, so nothing else tells an agent they exist),
-that `tool_call` runs them, and that `tool_describe {tool}` gives any command's manual. Clients that defer
-tools load only their names and the
-instructions at first, so the instructions are how an agent without a skill learns which tool to
-load.
 
 ## Security, token and discovery
 
