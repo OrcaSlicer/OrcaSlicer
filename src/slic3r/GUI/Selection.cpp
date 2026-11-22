@@ -3260,6 +3260,7 @@ void Selection::paste_volumes_from_clipboard()
         Transform3d src_matrix = src_object->instances[0]->get_transformation().get_matrix_no_offset();
         Transform3d dst_matrix = dst_instance->get_transformation().get_matrix_no_offset();
         bool from_same_object = (src_object->input_file == dst_object->input_file) && src_matrix.isApprox(dst_matrix);
+        const Transform3d vol_linear_correction = dst_matrix.inverse() * src_matrix;
 
         // used to keep relative position of multivolume selections when pasting from another object
         BoundingBoxf3 total_bb;
@@ -3277,9 +3278,11 @@ void Selection::paste_volumes_from_clipboard()
             }
             else
             {
+                // keep the part's real size and orientation in the new object
+                dst_volume->set_transformation(vol_linear_correction * src_volume->get_matrix());
                 // if the volume comes from another object, apply the offset as done when adding modifiers
                 // see ObjectList::load_generic_subobject()
-                total_bb.merge(dst_volume->mesh().bounding_box().transformed(src_volume->get_matrix()));
+                total_bb.merge(dst_volume->mesh().bounding_box().transformed(dst_volume->get_matrix()));
             }
 
             volumes.push_back(dst_volume);

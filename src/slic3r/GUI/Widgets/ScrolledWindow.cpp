@@ -1,6 +1,7 @@
 // for scroll
 #include <wx/gdicmn.h>
 #include <wx/scrolwin.h>
+#include <algorithm>
 #include <cstddef>
 #include <wx/panel.h>
 #include <wx/event.h>
@@ -192,7 +193,7 @@ void ScrolledWindow::OnSize(wxSizeEvent &event)
         {
             m_horizontalSplitter->SetSashPosition(clientH); // we don't need horizontal scrollbar
             if (m_rightScrollbar)
-                m_userPanel->SetSize(clientW - m_marginWidth, clientH); // don't hide the vertical scrollbar
+                m_userPanel->SetSize(std::max(clientW - m_marginWidth, 0), clientH); // don't hide the vertical scrollbar
             else
                 m_userPanel->SetSize(GetClientSize());
 

@@ -5,10 +5,12 @@
 #include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/TriangleSelector.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Point.hpp"
 
 #include <algorithm>
 #include "libslic3r/libslic3r.h"
 #include <vector>
+#include <memory>
 #include <cstddef>
 #include <string>
 
@@ -205,4 +207,38 @@ TEST_CASE("A truncated or malformed paint stream drops only the damaged triangle
     recomputed.reset_used_states();
     REQUIRE_FALSE(recomputed.update_used_states(0));
     REQUIRE(std::none_of(recomputed.used_states.begin(), recomputed.used_states.end(), [](bool used) { return used; }));
+}
+
+// Paints a sphere of the given radius at the middle of the top face of a cube of the given size,
+// shown at the given scale, and returns how many painted triangles that left.
+static size_t painted_triangles(float size, float scale, float radius_world)
+{
+    const TriangleMesh mesh = make_cube(size, size, size);
+    TriangleSelector selector(mesh);
+    Transform3d trafo = Transform3d::Identity();
+    trafo.scale(double(scale));
+    const Vec3f center(0.5f * size, 0.5f * size, size);
+    int top_facet = -1;
+    for (int i = 0; i < int(mesh.its.indices.size()) && top_facet < 0; ++i) {
+        const auto &f = mesh.its.indices[i];
+        const Vec3f a = mesh.its.vertices[f[0]], b = mesh.its.vertices[f[1]], c = mesh.its.vertices[f[2]];
+        if (a.z() == size && b.z() == size && c.z() == size)
+            top_facet = i;
+    }
+    REQUIRE(top_facet >= 0);
+    selector.select_patch(top_facet,
+                          std::make_unique<TriangleSelector::Sphere>(center, center + Vec3f(0.f, 0.f, size), radius_world, trafo,
+                                                                     TriangleSelector::ClippingPlane()),
+                          EnforcerBlockerType::ENFORCER, trafo, true);
+    return selector.get_facets(EnforcerBlockerType::ENFORCER).indices.size();
+}
+
+TEST_CASE("A brush splits a scaled-down mesh as finely as the same mesh at full size", "[TriangleSelector][Regression]")
+{
+    // A 1 mm cube, and a 100 mm cube shown at 1%: the same part in the world.
+    const size_t full_size   = painted_triangles(1.f, 1.f, 0.25f);
+    const size_t scaled_down = painted_triangles(100.f, 0.01f, 0.25f);
+    CAPTURE(full_size, scaled_down);
+    REQUIRE(full_size > 0);
+    CHECK(scaled_down < 2 * full_size);
 }

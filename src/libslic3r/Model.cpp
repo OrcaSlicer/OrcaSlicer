@@ -2384,7 +2384,8 @@ void ModelVolume::restore_painting(const std::optional<TriangleSelector::SavedPa
             TriangleSelector::remap_painting(saved->mesh.its, src_data, mesh().its, Geometry::translation_transform(mesh().get_init_shift()),
                                              keep_existing_paint ?
                                                  std::optional<std::reference_wrapper<const TriangleSelector::TriangleSplittingData>>{std::ref(target_facets.get_data())} :
-                                                 std::optional<std::reference_wrapper<const TriangleSelector::TriangleSplittingData>>{});
+                                                 std::optional<std::reference_wrapper<const TriangleSelector::TriangleSplittingData>>{},
+                                             saved->inside_out);
         if (!result.bitstream.empty())
             target_facets.set_data(std::move(result));
     };
@@ -2408,14 +2409,34 @@ static void invalidate_translations(ModelObject* object, const ModelInstance* sr
     }
 }
 
+// The volume of the intersection of two bounding boxes, 0 if they don't overlap.
+static double bbox_overlap_volume(const BoundingBoxf3 &a, const BoundingBoxf3 &b)
+{
+    const Vec3d size = a.max.cwiseMin(b.max) - a.min.cwiseMax(b.min);
+    return size.minCoeff() > 0. ? size.prod() : 0.;
+}
+
 void ModelObject::split(ModelObjectPtrs* new_objects, const bool remap_paint)
 {
     std::vector<TriangleMesh> all_meshes;
     std::vector<Transform3d> all_transfos;
     std::vector<std::pair<int, int>> volume_mesh_counts;
     all_meshes.reserve(this->volumes.size() * 5);
-    bool is_multi_volume_object = (this->volumes.size() > 1);
+    // Negative parts, modifiers, support blockers and enforcers don't make objects of their own.
+    const bool is_multi_volume_object = std::count_if(this->volumes.begin(), this->volumes.end(),
+        [](const ModelVolume *volume) { return volume->is_model_part(); }) > 1;
     std::optional<TriangleSelector::SavedPainting> saved_painting;
+    struct Piece
+    {
+        ModelObject       *object;
+        const ModelVolume *part;
+        // The part of this object the piece was made from.
+        ObjectID           source;
+        // The offset of the part, which the instances of the new object took over.
+        Vec3d              offset;
+        BoundingBoxf3      bbox;
+    };
+    std::vector<Piece> pieces;
 
     for (int volume_idx = 0; volume_idx < this->volumes.size(); volume_idx++) {
         ModelVolume* volume = this->volumes[volume_idx];
@@ -2473,6 +2494,7 @@ void ModelObject::split(ModelObjectPtrs* new_objects, const bool remap_paint)
             if (mesh.facets_count() < 3)
                 continue;
 
+            const BoundingBoxf3 piece_bbox = mesh.bounding_box().transformed(volume->get_matrix());
             // XXX: this seems to be the only real usage of m_model, maybe refactor this so that it's not needed?
             ModelObject* new_object = m_model->add_object();
             //BBS: refine the config logic
@@ -2529,12 +2551,43 @@ void ModelObject::split(ModelObjectPtrs* new_objects, const bool remap_paint)
                 model_instance->set_offset_to_assembly(new_vol->get_offset());
             }
 
+            pieces.push_back({ new_object, new_vol, volume->id(), new_vol->get_offset(), piece_bbox });
             new_vol->set_offset(Vec3d::Zero());
             // reset the source to disable reload from disk
             new_vol->source = ModelVolume::Source();
             new_objects->emplace_back(new_object);
         }
     }
+
+    auto has_paint_on = [](const ModelVolume &painted_modifier, const Piece &piece) {
+        const Transform3d piece_to_modifier = painted_modifier.get_matrix().inverse() * Geometry::translation_transform(piece.offset) *
+                                              piece.part->get_matrix();
+        return ! TriangleSelector::remap_painting(painted_modifier.mesh().its, painted_modifier.painted_modifier_facets.get_data(),
+                                                  piece.part->mesh().its, piece_to_modifier, {}).triangles_to_split.empty();
+    };
+    // A painted modifier goes to the pieces of its part that hold its paint, any other volume to every piece it overlaps.
+    for (const ModelVolume *volume : this->volumes) {
+        if (volume->is_model_part() || volume->mesh().empty())
+            continue;
+        const BoundingBoxf3       bbox = volume->mesh().bounding_box().transformed(volume->get_matrix());
+        std::vector<const Piece*> targets;
+        for (const Piece &piece : pieces)
+            if (volume->is_painted_modifier() ? piece.source == volume->painted_modifier_host && has_paint_on(*volume, piece) :
+                                                bbox_overlap_volume(bbox, piece.bbox) > 0.)
+                targets.push_back(&piece);
+        // A volume away from every piece stays where it stands, on the first piece.
+        if (targets.empty() && ! volume->is_painted_modifier() && ! pieces.empty())
+            targets.push_back(&pieces.front());
+        for (const Piece *piece : targets) {
+            ModelVolume *copy = piece->object->add_volume(*volume);
+            copy->set_transformation(Geometry::translation_transform(-piece->offset) * volume->get_matrix());
+            if (copy->is_painted_modifier())
+                copy->painted_modifier_host = piece->part->id();
+        }
+    }
+    // Moves the paint of each painted modifier onto the mesh of its piece.
+    for (const Piece &piece : pieces)
+        piece.object->sync_painted_modifiers();
 }
 
 
@@ -3549,7 +3602,7 @@ bool Model::obj_import_vertex_color_deal(const std::vector<unsigned char> &verte
                 auto filament_id0 = vertex_filament_ids[face[0]];
                 auto filament_id1 = vertex_filament_ids[face[1]];
                 auto filament_id2 = vertex_filament_ids[face[2]];
-                if (filament_id0 <= 1 && filament_id1 <= 1 && filament_id2 <= 2) {
+                if (filament_id0 == first_extruder_id && filament_id1 == first_extruder_id && filament_id2 == first_extruder_id) {
                     continue;
                 }
                 VertexColorCase vertex_color_case;

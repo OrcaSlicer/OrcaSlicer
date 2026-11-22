@@ -239,10 +239,15 @@ int wmain(int argc, wchar_t **argv)
 #endif /* SLIC3R_GUI */
     for (int i = 1; i < argc; ++ i) {
 #ifdef SLIC3R_GUI
-        if (wcscmp(argv[i], L"--sw-renderer") == 0)
+        // Read here only: the command line parser of the app rejects them.
+        if (wcscmp(argv[i], L"--sw-renderer") == 0) {
             force_mesa = true;
-        else if (wcscmp(argv[i], L"--no-sw-renderer") == 0)
+            continue;
+        }
+        if (wcscmp(argv[i], L"--no-sw-renderer") == 0) {
             force_mesa = false;
+            continue;
+        }
 #endif /* SLIC3R_GUI */
         argv_extended.emplace_back(argv[i]);
     }

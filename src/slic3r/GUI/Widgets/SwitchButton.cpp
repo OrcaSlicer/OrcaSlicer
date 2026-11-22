@@ -613,19 +613,9 @@ void SwitchBoard::on_left_down(wxMouseEvent &evt)
     if (!is_enable) {
         return;
     }
-    int index = -1;
-    auto pos = ClientToScreen(evt.GetPosition());
-    auto rect = ClientToScreen(wxPoint(0, 0));
 
-    if (pos.x > 0 && pos.x < rect.x + GetSize().x / 2) {
-        switch_left = true;
-        switch_right = false;
-        index = 1;
-    } else {
-        switch_left  = false;
-        switch_right = true;
-        index = 0;
-    }
+    switch_left  = evt.GetPosition().x < GetSize().GetWidth() / 2;
+    switch_right = !switch_left;
 
     if (auto_disable_when_switch)
     {
@@ -634,7 +624,7 @@ void SwitchBoard::on_left_down(wxMouseEvent &evt)
     Refresh();
 
     wxCommandEvent event(wxCUSTOMEVT_SWITCH_POS);
-    event.SetInt(index);
+    event.SetInt(switch_left ? 1 : 0);
     wxPostEvent(this, event);
 }
 
