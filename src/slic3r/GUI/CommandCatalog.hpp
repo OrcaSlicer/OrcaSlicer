@@ -43,6 +43,10 @@ struct NativeCommand
     // Design command's is kDesignGroup, an untranslated msgid, which is also the Speed Dial section of its own action
     // and of its actions.
     std::string group;
+    // The heading it comes under inside its group, which tool_search's listing of a group gives beside it: a Design
+    // command's heading of the index in tool_search's description (DesignTool::section). Empty elsewhere, where the
+    // group is the place's heading already.
+    std::string heading;
     // The Speed Dial section of the command's own action (has_own_action), an untranslated msgid; empty where that
     // action is in `group`, as a Design command's is.
     std::string action_group;

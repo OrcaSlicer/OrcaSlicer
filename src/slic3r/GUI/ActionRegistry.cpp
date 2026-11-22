@@ -1170,15 +1170,19 @@ nlohmann::json ActionRegistry::describe(const Query& query)
         std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return char(std::tolower(c)); });
         return s;
     };
-    const std::string text  = lower(query.text);
-    const std::string group = lower(query.group);
+    const std::string text    = lower(query.text);
+    const std::string section = lower(query.section);
+    // The section an item shows, which an agent passes back as `section`.
+    auto shown_section = [](const AppAction& a) -> const std::string& {
+        return a.group_en.empty() ? (a.group.empty() ? a.source_name() : a.group) : a.group_en;
+    };
 
     std::vector<const AppAction*> matches;
     for (const auto& [id, action] : m_actions) {
         const AppAction& a = *action;
         if (!query.include_settings && id.rfind(kSettingPrefix, 0) == 0)
             continue;
-        if (!group.empty() && lower(a.group) != group && lower(a.group_en) != group)
+        if (!section.empty() && lower(shown_section(a)) != section && lower(a.group) != section)
             continue;
         if (!text.empty()) {
             bool hit = false;
@@ -1208,7 +1212,7 @@ nlohmann::json ActionRegistry::describe(const Query& query)
         const AppAction& a = *matches[i];
         nlohmann::json   j{{"id", a.id()},
                            {"title", a.title_en.empty() ? a.title() : a.title_en},
-                           {"group", a.group_en.empty() ? (a.group.empty() ? a.source_name() : a.group) : a.group_en},
+                           {"section", shown_section(a)},
                            {"kind", a.kind == AppActionKind::Plugin ? "plugin" : "command"}};
         std::string description = a.automation_description;
         if (description.empty() && !a.tooltip.empty())

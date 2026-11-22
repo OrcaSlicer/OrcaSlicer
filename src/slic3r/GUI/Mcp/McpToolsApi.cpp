@@ -231,13 +231,28 @@ json search_commands(const CommandCatalog& catalog, const json& args)
         throw ToolFailure(catalog.unknown_command(name),
                           {{"code", catalog.unknown_command_code(name)}, {"did_you_mean", catalog.similar(name)}});
     }
-    const std::vector<std::shared_ptr<const NativeCommand>> all   = search_inventory(catalog, arg_string(args, "group"));
+    const std::string                                       group = arg_string(args, "group");
+    const std::vector<std::shared_ptr<const NativeCommand>> all   = search_inventory(catalog, group);
     const std::string                                       query = arg_string(args, "query");
     json                                                    items = json::array();
-    if (query.empty()) {
+    if (query.empty() && group.empty()) {
         for (const auto& def : all)
             items.push_back(def->key);
         return {{"total", items.size()}, {"names", std::move(items)}};
+    }
+    // A group is few enough commands to say what each does, so an agent picks one from the listing rather than
+    // looking each up; their schemas stay with {tool}, as the Design group's would take some 140 KB.
+    if (query.empty()) {
+        for (const auto& def : all) {
+            json item{{"name", def->key}, {"summary", first_sentence(def->description)}, {"listed", def->listed}};
+            if (!def->heading.empty())
+                item["heading"] = def->heading;
+            items.push_back(std::move(item));
+        }
+        return {{"total", items.size()},
+                {"items", std::move(items)},
+                {"use", "tool_search {tool} gives a command's description and schema; call a listed command by its name, "
+                        "and tool_call {tool, args} runs one that is not listed"}};
     }
     // A command is called by its key; its title, a person's name for it, counts as its text. Among equal
     // matches a listed command comes first: the typed tools are what an agent calls, and many Speed Dial actions run one.
@@ -287,19 +302,21 @@ void register_api_tools(CommandCatalog& catalog, const std::string& design_index
         "nothing else shows. Beside them, the best few matches of each other catalog, with its total and how to use it: "
         "actions (the Speed Dial's plates, recent projects and plugin scripts and pages), settings, and python (the orca "
         "API a script calls). The reply says how to call each kind of match. With tool: that command's description and "
-        "input schema, and its examples when it has some (the Design commands do). With neither: every command's name. "
-        "group keeps the names and the command matches to one group; the other catalogs' matches stay as they are." +
+        "input schema, and its examples when it has some (the Design commands do). With group alone: that group's commands, "
+        "each with the first sentence of its description, listed and, for a Design command, its heading. With no tool, "
+        "query or group: every command's name. With a query, group keeps the command matches to one group; the other catalogs' "
+        "matches stay as they are." +
             design_index,
         object_schema({{"tool", prop("string", "A command's name: its description and schema.")},
                        {"query", prop("string", "A few words saying what you want to do or find, e.g. \"brim\" or \"mesh normals\".")},
-                       {"group", prop("string", "Only the commands of this group, in any case: the heading of a place (Tools "
-                                                "and actions; The app; The project; Objects; Parts; Plates; Presets and "
-                                                "settings; Filaments; Printers and prints; Plugins, with the operations plugins "
-                                                "offer; View and windows; Recordings, replays and scripts; Driving the GUI), the "
-                                                "place a command's name starts with, but for window_screenshot and "
-                                                "window_save_screenshot, which are under Recordings, replays and scripts; or "
-                                                "Design (the Design tab's, with the CAD feature on). A group no command has is "
-                                                "refused with the groups there are.")},
+                       {"group", prop("string", "Only the commands of this group, its whole name in any case: Tools and "
+                                                "actions; The app; The project; Objects; Parts; Plates; Presets and settings; "
+                                                "Filaments; Printers and prints; Plugins, with the operations plugins offer; View "
+                                                "and windows; Recordings, replays and scripts; Driving the GUI; or Design (the "
+                                                "Design tab's, with the CAD feature on). A command outside Design is in the group "
+                                                "of the place its name starts with (object_delete in Objects), but for "
+                                                "window_screenshot and window_save_screenshot, which are in Recordings, replays "
+                                                "and scripts. A group no command has is refused with the groups there are.")},
                        {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "At most this many commands (default 5)."}}}}),
         [](const json& args, ToolContext& ctx) {
             json out = search_commands(NativeCommands::instance(), args);

@@ -131,7 +131,7 @@ def listed_commands(client):
     """{action id: command} for every action action_search lists, read page by page."""
     commands, offset = {}, 0
     while True:
-        page = client.call("action_search", group="", limit=200, offset=offset)
+        page = client.call("action_search", limit=200, offset=offset)
         commands.update({a["id"]: a.get("command") for a in page.get("items", [])})
         offset = page.get("next_offset")
         if not offset:

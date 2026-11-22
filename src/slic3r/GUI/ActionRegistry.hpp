@@ -260,13 +260,14 @@ public:
     AppActionRunResult run(const std::string& id, const nlohmann::json& args = nlohmann::json::object(), bool record_stats = true);
 
     // The catalog for agents: actions whose id, title, group, source or description contains `text`
-    // (case-insensitive, English aliases included), sorted by group then title, one page of them as
-    // {items, offset, total} with next_offset while more remain. Settings are listed only when asked
-    // for, since there are thousands.
+    // (case-insensitive, English aliases included), those of the Speed Dial section `section` only when it is
+    // given, sorted by group then title, one page of them as {items, offset, total} with next_offset while more
+    // remain. An item's `section` is its group in English, or its source's name where it has none. Settings are
+    // listed only when asked for, since there are thousands.
     struct Query
     {
         std::string text;
-        std::string group;
+        std::string section; // matched, in any case, against what an item shows as its section, or its translated group
         bool        include_settings = false;
         std::size_t offset           = 0;
         std::size_t limit            = 50;

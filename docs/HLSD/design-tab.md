@@ -399,7 +399,7 @@ for a checked-in header, not documentation.
 
 The document is automated through the app's MCP server, on every platform, with the Design tab's commands, one
 per command entry of its table, in the command catalog's group `Design`: `tool_search {group: "Design"}`
-lists them, `tool_search {tool}` gives one's arguments, how its failure shows and runnable examples, and
+lists them with what each does, `tool_search {tool}` gives one's arguments, how its failure shows and runnable examples, and
 `tool_call {tool, args}` runs one. They are named in the industry's terminology, as popular CAD programs such
 as Fusion 360, Onshape and SolidWorks use it, with a prefix for where each works (`sketch_`, `surface_`,
 `construct_`, `feature_`, `body_`, and none for the model), and one argument for a variant: `type` for which

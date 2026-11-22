@@ -209,7 +209,8 @@ nlohmann::json command_reference(const NativeCommand& command)
                          {"guard", guard_name(command.guard)},
                          {"completion", completion_name(command.completion)},
                          {"operations", command.operations}};
-    for (const auto& [name, value] : {std::pair<const char*, const std::string*>{"icon", &command.icon},
+    for (const auto& [name, value] : {std::pair<const char*, const std::string*>{"heading", &command.heading},
+                                      {"icon", &command.icon},
                                       {"input", &command.input},
                                       {"action_group", &command.action_group}})
         if (!value->empty())

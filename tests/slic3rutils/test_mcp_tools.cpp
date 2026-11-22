@@ -162,12 +162,12 @@ TEST_CASE("an action search ranks by the query's words and puts the plainer acti
 {
     // Four of the Speed Dial's actions as it lists them.
     const json listed = json::array({
-        {{"id", "orca_command:obj_delete_all:orca"}, {"title", "Delete All Objects"}, {"group", "Object"},
+        {{"id", "orca_command:obj_delete_all:orca"}, {"title", "Delete All Objects"}, {"section", "Object"},
          {"description", "Delete all objects."}},
-        {{"id", "orca_command:filament_delete:orca"}, {"title", "Delete Filament Slot"}, {"group", "Filament"},
+        {{"id", "orca_command:filament_delete:orca"}, {"title", "Delete Filament Slot"}, {"section", "Filament"},
          {"description", "Delete a filament slot, as its Delete menu item does; objects on it move to another slot."}},
-        {{"id", "orca_command:view_top:orca"}, {"title", "Top"}, {"group", "View"}, {"description", "Point the 3D camera: View: Top."}},
-        {{"id", "orca_command:obj_delete:orca"}, {"title", "Delete Selected"}, {"group", "Object"},
+        {{"id", "orca_command:view_top:orca"}, {"title", "Top"}, {"section", "View"}, {"description", "Point the 3D camera: View: Top."}},
+        {{"id", "orca_command:obj_delete:orca"}, {"title", "Delete Selected"}, {"section", "Object"},
          {"description", "Delete the selected objects or parts."}},
     });
     const auto ids = [](const json& ranked) {
@@ -177,8 +177,8 @@ TEST_CASE("an action search ranks by the query's words and puts the plainer acti
         return out;
     };
 
-    // No entry holds "delete object" as one text. Two are the Object group's deletes, which the Speed Dial
-    // names by group and title, and the shorter name, the plainer action, leads; the third only
+    // No entry holds "delete object" as one text. Two are the Object section's deletes, which the Speed Dial
+    // names by section and title, and the shorter name, the plainer action, leads; the third only
     // mentions objects.
     CHECK(ids(rank_actions(listed, query_words("delete object"))) ==
           std::vector<std::string>{"orca_command:obj_delete:orca", "orca_command:obj_delete_all:orca", "orca_command:filament_delete:orca"});
@@ -857,10 +857,18 @@ TEST_CASE("tool_search reads one inventory", "[Mcp]")
         CHECK(f.details.value("code", std::string()) == "invalid_argument");
     }
 
-    // group narrows the names and the matches, in any case, a source's commands included.
+    // With nothing given, every command's name alone.
     CHECK(search_commands(catalog, json::object())["names"] == json::array({"measure_bed", "measure_action", "plugin.fixture.measure"}));
-    CHECK(search_commands(catalog, {{"group", "PLUGINS"}})["names"] == json::array({"measure_bed", "plugin.fixture.measure"}));
-    CHECK(search_commands(catalog, {{"group", "view"}})["names"] == json::array({"measure_action"}));
+    // A group, in any case, lists its commands, a source's included, each with what it does and whether the tool list
+    // shows it, but not its schema.
+    const json plugins = search_commands(catalog, {{"group", "PLUGINS"}});
+    CHECK(plugins["total"] == 2);
+    CHECK(plugins["items"] == json::array({{{"name", "measure_bed"}, {"summary", "Measure the bed."}, {"listed", true}},
+                                           {{"name", "plugin.fixture.measure"}, {"summary", "Offered by a plugin."}, {"listed", false}}}));
+    CHECK_FALSE(plugins.contains("names"));
+    CHECK_THAT(plugins["use"].get<std::string>(), Catch::Matchers::ContainsSubstring("tool_search {tool}"));
+    CHECK(search_commands(catalog, {{"group", "view"}})["items"][0]["name"] == "measure_action");
+    // group narrows the matches of a query too.
     const json in_view = search_commands(catalog, {{"group", "View"}, {"query", "measure"}});
     REQUIRE(in_view["items"].size() == 1);
     CHECK(in_view["items"][0]["name"] == "measure_action");
@@ -883,12 +891,12 @@ TEST_CASE("tool_search's groups are the places' headings and Design", "[Mcp]")
     const auto names_of = [&catalog](const char* group) {
         const json               found = search_commands(catalog, {{"group", group}});
         std::vector<std::string> names;
-        for (const json& name : found["names"])
-            names.push_back(name.get<std::string>());
+        for (const json& item : found["items"])
+            names.push_back(item["name"].get<std::string>());
         return names;
     };
 
-    // A place's heading, in any case: its commands alone.
+    // A place's heading, in any case: its commands alone, under no heading of their own.
     const std::vector<std::string> objects = names_of("Objects");
     REQUIRE_FALSE(objects.empty());
     for (const std::string& name : objects) {
@@ -896,7 +904,15 @@ TEST_CASE("tool_search's groups are the places' headings and Design", "[Mcp]")
         CHECK(name.rfind("object_", 0) == 0);
     }
     CHECK(names_of("objects") == objects);
-    // Every Design tab command, as the group has been.
+    const json objects_listed = search_commands(catalog, {{"group", "Objects"}});
+    REQUIRE(objects_listed["items"].size() == objects.size());
+    for (const json& item : objects_listed["items"]) {
+        INFO(item.dump());
+        CHECK_FALSE(item.contains("heading"));
+        CHECK_FALSE(item["summary"].get<std::string>().empty());
+    }
+    // Every Design tab command, as the group has been, each under its heading of tool_search's index and with what
+    // it does, heading by heading in the index's order.
     const std::vector<std::string> design = names_of("Design");
     for (const NativeCommand& c : catalog.commands())
         if (c.group == Slic3r::GUI::kDesignGroup) {
@@ -904,6 +920,21 @@ TEST_CASE("tool_search's groups are the places' headings and Design", "[Mcp]")
             CHECK(std::count(design.begin(), design.end(), c.key) == 1);
         }
     CHECK(design.size() == 88);
+    const std::string told    = catalog.find("tool_search")->description;
+    std::size_t       indexed = 0;
+    const json design_listed = search_commands(catalog, {{"group", "Design"}});
+    REQUIRE(design_listed["items"].size() == 88);
+    for (const json& item : design_listed["items"]) {
+        INFO(item.dump());
+        const std::string heading = item.value("heading", std::string());
+        CHECK_FALSE(heading.empty());
+        const std::size_t at = told.find(". " + heading);
+        REQUIRE(at != std::string::npos);
+        CHECK(at >= indexed);
+        indexed = at;
+        CHECK_FALSE(item["summary"].get<std::string>().empty());
+        CHECK(item["listed"] == false);
+    }
     // The groups of how a tool acts are no group.
     for (const char* gone : {"api", "core", "ui", "Commands"}) {
         INFO(gone);

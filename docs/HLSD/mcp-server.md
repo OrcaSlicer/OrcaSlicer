@@ -615,7 +615,7 @@ getters. That is for review: a caller's handler converts, calls, and shapes the 
 
 The command set, how its commands are named and grouped, what each does and takes, which menu items call it and
 which calls open a dialog or a tool, is in [mcp-tools.md](mcp-tools.md), with the Design tab's commands in a
-section of their own. A command's group is the heading of its place, the first word of its name, and
+section of their own. A command's group is named after its place, the first word of its name, and
 `tools/list` gives the places in the order that document lists them. Every command that runs from its
 arguments is `listed`, so `tools/list` shows it. The menu items that take no arguments are not: `tool_search`
 finds them and `tool_call` runs them, as it does the Design tab's commands, which no listing shows.
@@ -1690,7 +1690,8 @@ plate are commands of the catalog (`Mcp/McpToolsCad.cpp`) in the group `Design`,
 never open the Design tab pay in `tools/list` for their names alone. The command set itself, how the commands
 are named and what each takes, is in [mcp-tools.md](mcp-tools.md), The Design tab's commands. The names end
 `tool_search`' description while the catalog holds the commands (`design_command_index()`): that they are the
-Design tab's CAD commands and what those cover, that one is looked up before it is called, that a command
+Design tab's CAD commands and what those cover, that `group` Design lists them with what each does, that one is
+looked up before it is called, that a command
 whose schema has `silent` does what its menu item does when called with no arguments unless `silent` is true,
 so `interference {}` with a body selected opens the tool and `interference {silent: true}` returns the result,
 and then every key under its heading, in the table's order: Document, Sketch, Solid, Surface, Construct,
@@ -1874,7 +1875,8 @@ selection the right-click menu would be built for, by its `OfferSel` and its atl
 (`kDesignSelectionIds`), `picked_plane`, the reference plane picked in the view, and `feature_row`, the
 Feature list's selected row.
 
-An agent finds them as it finds any command: `tool_search {group: "Design"}` lists their names, a query
+An agent finds them as it finds any command: `tool_search {group: "Design"}` lists them, each with its
+heading and the first sentence of its description, a query
 finds them among the commands with their input schemas, and `tool_search {tool}` gives one's group,
 `read_only`, description, input schema and examples. `tool_call {tool, args}` runs one, its arguments
 validated against its schema, and replies `{"result": ...}`, the tool's own reply; a replay step calls one
@@ -2346,7 +2348,7 @@ action of their own: `plate_add`, `plate_delete`, `plate_duplicate`, `plate_rena
 
 An action keeps what a person sees of its menu item: its id (`orca_command:<key>:orca`, the item's id as the
 key, whatever its command is named), its title, its Speed Dial section (the item's `group`, or the command's
-`action_group` for its own action, since a command's `group` is its place's heading and one command's actions
+`action_group` for its own action, since a command's `group` is its place's group and one command's actions
 come from several sections: `export_gcode` is in Slice & Export, `export_stl_multi` in Export), its icon and
 the value its second phase collects (`input`). A person's pins and run counts are stored under the id, so the
 ids of the menu items a released build stored stay the ids of actions. `tests/data/speed_dial_actions.json`
@@ -2480,18 +2482,26 @@ plate.
 
 ### action_search and action_run
 
-`ActionRegistry::describe(Query)` lists the actions, sorted by group and title, one page of them
-(`{items, offset, total}`). It can filter by group, lists settings only when asked, and keeps the
-actions whose id, title, group, source or description holds its `text`, including the English
-aliases. Each entry has `id`, the English `title` and `group`, `kind`, `description`, `command` (the
-catalog key) for a command's action, its `input_schema` when it takes arguments, and `completes: "export"`
-for a command whose effect lands in the background. Built-in ids look like `orca_command:<key>:orca`.
+`ActionRegistry::describe(Query)` lists the actions, sorted by Speed Dial section and title, one page of them
+(`{items, offset, total}`). It can keep one section, lists settings only when asked, and keeps the
+actions whose id, title, section, source or description holds its `text`, including the English
+aliases. Each entry has `id`, the English `title`, `section` (the action's Speed Dial section in English, or
+its source's name where it has none), `kind`, `description`, `command` (the catalog key) for a command's
+action, its `input_schema` when it takes arguments, and `completes: "export"` for a command whose effect lands
+in the background. Built-in ids look like `orca_command:<key>:orca`.
+
+The argument and the field are `section`, not `group`, because the Speed Dial's sections (Object, Plate,
+Slice & Export) are a list of their own, apart from the command groups `tool_search {group}` takes (Objects,
+Plates). `action_search` refuses a section no action is in, with `invalid_argument` and the sections there are,
+as `tool_search` refuses a group, so that a group passed as a section is corrected rather than read as no
+actions. Recent Projects and Design are the exceptions: they hold actions only while there are recent projects
+and while the Design tab is shown, so either one empty lists nothing.
 
 `action_search` gives `describe()` no text. An agent's query is a few words ("delete object"),
 which no action holds as one text, so `rank_actions()` (McpToolsActions.cpp) scores the listing with
 the `match_score()` every other search uses: a word matches where a word of what the action is
 called, or of its description, starts with it. An action is called by its key, its title and its
-group, as the Speed Dial shows one by group and title: Delete Selected is the Object group's delete,
+section, as the Speed Dial shows one by section and title: Delete Selected is the Object section's delete,
 though its own title names no object. The actions matching more of the words come first, then those
 matching more of them in what they are called, then the shorter key, which is the plainer action:
 the action `obj_delete` before `obj_delete_all`. The key is scored without the `orca_command:`
@@ -4575,9 +4585,11 @@ plugin unloads runs to its end; its own tool calls are refused from then on.
 command of the catalog and the operations its source holds. `{tool}` gives any command's description,
 schema, group, `read_only` and `listed`, and its examples when it has some (the Design commands, `undo` and
 `redo`, and the commands that close a gap the menu items left, such as `object_fix`, `printer_install` and
-`plugin_enable`), and a call with neither `tool` nor `query` lists every name. Its `group` narrows the names and
-the command matches to one group (see Tool catalog); the other catalogs' matches beside them are not
-narrowed.
+`plugin_enable`), and a call with none of `tool`, `query` and `group` lists every name. `group` alone lists that
+group's commands (see Tool catalog), each `{name, summary, listed}` and a Design command's `heading`, its
+heading in the description's index, so that an agent picks one from the listing; the schemas stay with `{tool}`,
+as the Design group's would take some 140 KB. With a query, `group` narrows the command matches to one group;
+the other catalogs' matches beside them are not narrowed.
 Its search by words is the one search across catalogs: the best five commands that match (more with
 `limit`), each `{name, group, summary, listed}`, the summary the first sentence of its description. A
 listed command's schema is in `tools/list`; one that is not listed, a menu item with no arguments, a Design
@@ -4742,7 +4754,7 @@ describes and flags a replay's steps; `test_mcp_setup` the HTTP and stdio setups
 In `tests/slic3rutils/`, the files of the same name hold the cases that need the GUI library:
 `test_mcp_core` a context with no runtime and an action's journal update; `test_mcp_protocol` the order of the
 process catalog's `tools/list` and the tool families the stdio bridge lists; `test_command_catalog` the
-process catalog itself: unique keys, the commands under their places' headings in the tool list's order,
+process catalog itself: unique keys, the commands in their places' groups in the tool list's order,
 which are listed, the Speed Dial's 129 actions held as data in `tests/data/speed_dial_actions.json` (tagged
 `[SpeedDial]`: each found with its id, title, section, icon and input, every menu item's id an action's key and
 no command, every action's arguments fitting its command's schema), the person's forms of the commands with

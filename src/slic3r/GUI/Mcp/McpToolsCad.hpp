@@ -129,8 +129,8 @@ NativeCommand cad_command(std::string key, std::string title, nlohmann::json sch
                           std::function<nlohmann::json(const nlohmann::json& args, bool person)> fn,
                           std::function<bool(const nlohmann::json& args)> opens = {});
 
-// Adds the Design commands to `catalog`, one per entry of kDesignTools that is a command (is_design_command()):
-// its id as the key, its name as the title, and its icon. An entry with a handler has an action of its own
+// Adds the Design commands to `catalog`, one per entry of kDesignTools that is a command (is_design_command()),
+// under the headings of kDesignSections in its order and the table's order within each: its id as the key, its name as the title, and its icon. An entry with a handler has an action of its own
 // (has_own_action), and an item folded into a command is one of the command's `actions`, with the item's id as its
 // key, its name, icon and args, and as its description its hint and what a pick does (an action is materialised
 // only while the Design tab is shown in its entry's mode, ActionRegistry::materialize_design_actions()). One with a
@@ -150,8 +150,8 @@ void register_cad_commands(CommandCatalog& catalog);
 void leave_out_cad_commands(CommandCatalog& catalog, bool editor);
 
 // What tool_search's description says of the Design commands, which tools/list does not show, so that an agent
-// learns without a search that they exist and are CAD: a lead saying what they cover, that one is looked up with
-// tool before it is called, and that a command whose schema has silent does what its menu item does when called
+// learns without a search that they exist and are CAD: a lead saying what they cover, that group Design lists them
+// with what each does, that one is looked up with tool before it is called, and that a command whose schema has silent does what its menu item does when called
 // with no arguments unless silent is true; then each heading of kDesignSections with the keys of its commands
 // (DesignTool::section) in the table's order, Menu items saying that its commands take no arguments. It starts with
 // a space, to follow the description's last sentence.

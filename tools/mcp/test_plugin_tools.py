@@ -194,7 +194,7 @@ def main():
         described = orca.call_raw("tool_search", {"tool": "script_toggle_panel"})
         item = {} if described.get("isError") else json.loads(described["content"][0]["text"])
         check("tool_search describes a menu item's command", item.get("listed") is False and "input_schema" in item, described)
-        names = orca.call("tool_search", group="objects").get("names", [])
+        names = [item.get("name") for item in orca.call("tool_search", group="objects").get("items", [])]
         check("tool_search's group is any case, a place's heading", "object_arrange" in names, names)
         unknown = orca.call_raw("tool_search", {"group": "commandz"})
         check("a group no command has is refused, naming the groups there are",

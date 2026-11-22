@@ -4189,6 +4189,7 @@ NativeCommand design_command(const DesignTool& t)
         [entry](const json& args) { return opened_item(*entry, args) != nullptr; });
     c.has_own_action = t.action != nullptr;
     c.icon           = t.icon != nullptr ? t.icon : "";
+    c.heading        = t.section != nullptr ? t.section : "";
     // The items folded into the command keep their actions, each a call of the command with the item's arguments,
     // and say what a pick does as a command with a handler only does.
     for (const DesignTool& item : kDesignTools)
@@ -4446,9 +4447,12 @@ NativeCommand cad_command(std::string key, std::string title, json schema,
 
 void register_cad_commands(CommandCatalog& catalog)
 {
-    for (const DesignTool& t : kDesignTools)
-        if (is_design_command(t))
-            catalog.add(design_command(t));
+    // Heading by heading, as tool_search's description indexes them, so that its listing of the group reads in the
+    // same order. Every command has a heading (DesignTool::section).
+    for (const char* section : kDesignSections)
+        for (const DesignTool& t : kDesignTools)
+            if (is_design_command(t) && t.section != nullptr && std::strcmp(t.section, section) == 0)
+                catalog.add(design_command(t));
 }
 
 void leave_out_cad_commands(CommandCatalog& catalog, bool editor)
@@ -4477,7 +4481,8 @@ std::vector<int> sketch_target_indices(const json& params, const std::vector<int
 std::string design_command_index()
 {
     std::string index = " The Design tab's CAD commands follow by heading (sketches, solid and surface features, bodies, "
-                        "measurements); look one up with tool before calling it. A command whose schema has silent does what "
+                        "measurements); group Design lists them with what each does; look one up with tool before calling it. A "
+                        "command whose schema has silent does what "
                         "its menu item does when called with no arguments, unless silent is true.";
     for (const char* section : kDesignSections) {
         std::string names;

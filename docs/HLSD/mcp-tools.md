@@ -62,9 +62,9 @@ them, and `tests/data/speed_dial_actions.json` the actions as a person sees them
 | `overwrite` | replace a file that exists |
 | `look_at`, `waypoints` | the point the camera looks at; a drag's intermediate points |
 
-A command's group is the heading of its place, the first word of its name (`NativeCommands::place_heading()`):
+A command's group is named after its place, the first word of its name (`NativeCommands::place_heading()`):
 
-| First word | Heading |
+| First word | Group |
 |---|---|
 | `tool`, `action` | Tools and actions |
 | `app`, `job`, `preferences`, `undo`, `redo` | The app |
@@ -87,8 +87,8 @@ project and is under Plates.
 
 ## The command set
 
-The commands are listed under their headings, in the order `tools/list` gives them: `tool_search`,
-`tool_call` and `app_state` first, as what an agent starts with, then each heading's commands. Main arguments
+The commands are listed by group, each under a heading of its name, in the order `tools/list` gives them:
+`tool_search`, `tool_call` and `app_state` first, as what an agent starts with, then each group's commands. Main arguments
 only; every argument, its default and its range are in the command's schema. "Targets" stands for the
 targets of a command of several (`objects`, `instances`, `parts`), which default to the selection (see
 Targets and the selection).
@@ -101,9 +101,9 @@ them and `tool_call` runs them.
 
 | Command | What it does | Variants and main arguments |
 |---|---|---|
-| `tool_search` | Find the command that does something, in one search, or read one command's description and schema; beside the commands, the best matches of the actions, the settings and the Python API | `query`, `group`; `tool` |
+| `tool_search` | Find the command that does something, in one search, list a group's commands with what each does, or read one command's description and schema; beside the commands, the best matches of the actions, the settings and the Python API | `query`, `group`; `tool` |
 | `tool_call` | Call any command by name, one `tools/list` shows or one it does not, as that command's own call | `tool`, `args` |
-| `action_search` | Search what the Speed Dial runs: the commands' actions, plates, recent projects, plugin scripts and pages, and settings on request | `query`, `group`, `include_settings` |
+| `action_search` | Search what the Speed Dial runs: the commands' actions, plates, recent projects, plugin scripts and pages, and settings on request | `query`, `section`, `include_settings` |
 | `action_run` | Run one of those by its id, as a person's pick does | `id`; `args`: none, or exactly the action's |
 
 ### The app
@@ -749,8 +749,9 @@ feature is on. The MCP server gives a client 88 commands for it, in the command 
 client that knows a mainstream CAD program can guess the command, the argument that picks its variant and
 that argument's values, and can do from arguments what a person does with the tab's tools. The same commands
 are what a person's Speed Dial actions run while the tab is shown, what Action Replay and recordings show, and
-what the journal records and replays. No listing shows them: `tool_search`' description names each under its
-heading, `tool_search {tool}` gives its schema, and `tool_call` runs it.
+what the journal records and replays. `tools/list` does not show them: `tool_search`' description names each
+under its heading, `tool_search {group: "Design"}` lists them with what each does, `tool_search {tool}` gives
+one's schema, and `tool_call` runs it.
 
 This section is their command set: how they are named and grouped, what each does and takes, how a call
 opens a tool for a person instead of running, and how the commands relate to the right-click menu's items.
@@ -791,8 +792,8 @@ variable, body and feature.
    choosing an item opens that item's tool for a person; a call that gives more runs it.
 
 **Body, solid and sheet.** A body is what the Bodies list shows: a solid body, which encloses a volume, or a
-sheet body, which is open faces. "Solid" and "Surface" in the headings below are groups of commands, not
-kinds of object: a command of the Solid group has no prefix whether it takes a sketch, faces and edges, or
+sheet body, which is open faces. "Solid" and "Surface" in the headings below name sets of commands, not
+kinds of object: a command under the Solid heading has no prefix whether it takes a sketch, faces and edges, or
 whole bodies.
 
 ### The command set

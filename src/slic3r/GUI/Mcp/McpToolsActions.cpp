@@ -14,6 +14,8 @@
 #include "slic3r/GUI/Operations/ExportOps.hpp"
 #include "slic3r/GUI/Operations/RunStatus.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
+
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
@@ -162,13 +164,13 @@ json rank_actions(const json& listed, const std::vector<std::string>& words)
     std::vector<Hit> hits;
     for (const json& action : listed) {
         // The name inside the id, without the source and plugin every built-in id shares: "orca" and
-        // "command" would match them all. The group is part of what the action is called, as the
-        // Speed Dial shows one by group and title: Delete Selected is the Object group's delete, though
+        // "command" would match them all. The section is part of what the action is called, as the
+        // Speed Dial shows one by section and title: Delete Selected is the Object section's delete, though
         // its own title names no object.
         const std::string         name  = short_id(action.value("id", std::string()));
         const std::pair<int, int> score = match_score(words,
                                                       name + ' ' + action.value("title", std::string()) + ' ' +
-                                                          action.value("group", std::string()),
+                                                          action.value("section", std::string()),
                                                       action.value("description", std::string()));
         if (score.first > 0)
             hits.push_back({score, name.size(), &action});
@@ -207,35 +209,68 @@ ToolResult await_gcode_export(ToolContext& ctx, const Ops::ExportTicket& ticket)
     return ToolResult::error("The export ended " + status, done);
 }
 
+namespace {
+
+// What `actions` lists for `q`. A section no action is in now is a name to correct, refused with the sections there
+// are, as tool_search refuses a group. Recent Projects and Design hold actions only while there are recent projects
+// and while the Design tab is shown, so either one empty is an answer, not a wrong name.
+json described(ActionRegistry& actions, const ActionRegistry::Query& q)
+{
+    json listed = actions.describe(q);
+    if (q.section.empty() || listed.value("total", 0) != 0)
+        return listed;
+    for (const char* comes_and_goes : {"Recent Projects", kDesignGroup})
+        if (boost::algorithm::iequals(q.section, comes_and_goes))
+            return listed;
+    ActionRegistry::Query every;
+    every.include_settings = q.include_settings;
+    every.limit            = 100000;
+    const json  all      = actions.describe(every);
+    json        sections = json::array();
+    std::string names;
+    for (const json& item : all["items"])
+        if (std::find(sections.begin(), sections.end(), item["section"]) == sections.end()) {
+            sections.push_back(item["section"]);
+            names += (names.empty() ? "" : ", ") + item["section"].get<std::string>();
+        }
+    throw ToolFailure("Unknown section: " + q.section + "; the Speed Dial's sections now are " + names,
+                      {{"code", "invalid_argument"}, {"sections", std::move(sections)}});
+}
+
+} // namespace
+
 void register_action_tools(CommandCatalog& catalog)
 {
     catalog.add(inspect_tool(
         "action_search", L("Search Speed Dial actions"),
         "Search everything the Speed Dial can run: built-in commands (slice, export, views, object operations, plates, "
-        "calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an id for action_run, a "
-        "description, the command's key for a built-in command, and, when it takes arguments, their input_schema. A query "
-        "ranks them, best match first, as "
-        "tool_search does; without one they are listed by group and title. include_settings also lists settings (each "
-        "jumps to that setting in the sidebar; use settings_get / settings_set to read or change values).",
+        "calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an id for action_run, its "
+        "section (where the Speed Dial lists it), a description, the command's key for a built-in command, and, when it "
+        "takes arguments, their input_schema. A query ranks them, best match first, as tool_search does; without one they "
+        "are listed by section and title. section keeps them to one of the Speed Dial's sections, which are not "
+        "tool_search's groups; one no action is in is refused with the sections there are, but Recent Projects and Design "
+        "list nothing while there are no recent projects or the Design tab is not shown. include_settings also lists "
+        "settings (each jumps to that setting in the sidebar; use settings_get / settings_set to read or change values).",
         object_schema({{"query", prop("string", "A few words, e.g. \"delete object\": each is matched at the start of the words of "
-                                                "an action's id, title, group and description.")},
-                       {"group", prop("string", "Only this group, e.g. \"Object\", \"View\", \"Slice & Export\".")},
+                                                "an action's id, title, section and description.")},
+                       {"section", prop("string", "Only this Speed Dial section, in any case, as an entry's section names it, "
+                                                  "e.g. \"Object\", \"View\", \"Slice & Export\".")},
                        {"include_settings", prop("boolean", "Also list settings (thousands). Default false.")},
                        {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "Default 50."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) {
             ActionRegistry::Query q;
-            q.group            = arg_string(args, "group");
+            q.section          = arg_string(args, "section");
             q.include_settings = arg_bool(args, "include_settings", false);
             const std::string query = arg_string(args, "query");
             if (query.empty()) {
                 q.limit  = std::size_t(arg_int(args, "limit", 50));
                 q.offset = std::size_t(arg_int(args, "offset", 0));
-                return ToolResult::ok(ctx.run_ui([q] { return registry_or_fail().describe(q); }));
+                return ToolResult::ok(ctx.run_ui([q] { return described(registry_or_fail(), q); }));
             }
             // The registry's own search wants the query as one text; an agent's is a few words.
             q.limit           = 100000;
-            const json listed = ctx.run_ui([q] { return registry_or_fail().describe(q); });
+            const json listed = ctx.run_ui([q] { return described(registry_or_fail(), q); });
             return ToolResult::ok(page(rank_actions(listed["items"], query_words(query)), args, 50));
         }));
 

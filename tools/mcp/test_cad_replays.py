@@ -321,7 +321,7 @@ def run_example(client, example):
 
 
 def part_examples(c, client, out):
-    names = client.call("tool_search", group="Design")["names"] + HISTORY
+    names = [item["name"] for item in client.call("tool_search", group="Design")["items"]] + HISTORY
     total = skipped = 0
     for name in names:
         for example in client.call("tool_search", tool=name).get("examples") or []:

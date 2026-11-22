@@ -119,8 +119,8 @@ returns the command's whole reply, which for a Design command is `{"result": ...
 reply says a dialog blocks it fails at once, naming the dialog, rather than waiting on it. A call that
 first replied `running` and opens a dialog later is waited on up to the timeout (600 s), since `app_wait`
 reports only that its job is still running. Every `McpError` it raises starts with the command's name
-(`"extrude: ..."`) and has the original error as its cause. `tool_search {group: "Design"}` names the
-Design commands, and `tool_search {tool}` gives one's arguments and examples.
+(`"extrude: ..."`) and has the original error as its cause. `tool_search {group: "Design"}` lists the
+Design commands with what each does, and `tool_search {tool}` gives one's arguments and examples.
 
 ## The skill's list of actions
 
@@ -182,8 +182,8 @@ the run that outlives its reply budget runs with the budget capped at 4 s (`ORCA
 `tests/plugins/mcp_tools_fixture` into a fresh data folder and launches twice: over MCP, with the Design tab
 on (its operation is in the group Plugins, reached through `tool_search` and `tool_call` and out of
 `tools/list`; a menu item's command is found among `tool_search`'s commands with its schema and its Speed Dial
-action is not among the actions it lists, and `tool_call` runs it; a group is a place's heading, in any case; a
-Design command is found there too, in no section of its own; calls from its Script worker
+action is not among the actions it lists, and `tool_call` runs it; `group` takes a group's name in any case; a
+Design command is found there too, not in a part of the reply of its own; calls from its Script worker
 and a thread it starts reach the tools, an auto-answer rule it sets is the plugin's, `replay_export` is
 refused, nothing it calls is journaled, a script that finds its progress dialog handle can use it,
 `tests/plugins/mcp_tools_broken`, whose load fails, offers none of its operations, and unticking the
