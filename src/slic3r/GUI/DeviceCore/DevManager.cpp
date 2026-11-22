@@ -886,6 +886,23 @@ namespace Slic3r
         return result;
     }
 
+    void DeviceManager::reselect_cloud_machine()
+    {
+        if (!m_agent)
+            return;
+
+        // The selection is a cloud subscription, and a LAN printer has none. Selecting one makes the
+        // Bambu network plugin unsubscribe the device, which drops the LAN session that connected it:
+        // a connect still in flight fails, and one that already succeeded stays down with no connect
+        // result to say so.
+        const std::string dev_id = m_agent->get_user_selected_machine();
+        const MachineObject* obj = get_my_machine(dev_id);
+        if (obj && obj->is_lan_mode_printer())
+            return;
+
+        m_agent->set_user_selected_machine(dev_id);
+    }
+
     std::map<std::string, MachineObject*> DeviceManager::get_my_machine_list(const std::string& agent_id)
     {
         std::map<std::string, MachineObject*> result;

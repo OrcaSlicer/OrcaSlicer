@@ -107,6 +107,9 @@ public:
     void add_user_subscribe();
     void del_user_subscribe();
     void subscribe_device_list(std::vector<std::string> dev_list);
+    // Selects the agent's selected machine again, which subscribes a cloud printer once the cloud
+    // server has connected. A LAN printer is left as it is.
+    void reselect_cloud_machine();
 
     /* my machine*/
     MachineObject* get_my_machine(std::string dev_id);
