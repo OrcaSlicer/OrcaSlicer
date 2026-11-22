@@ -21,10 +21,9 @@ struct ClientIdentity
 
 // <data dir>/anycubic, where the user may place the identity
 std::string identity_folder();
-// <resources>/cert/anycubic, the copy of the identity OrcaSlicer ships
-std::string bundled_identity_folder();
 // Looks for the identity as anycubic_slicer.pem and anycubic_slicer_key.pem in `user_folder`, then inside an
-// installed Anycubic Slicer Next, then as the same two files in `bundled_folder`, so a user copy always wins.
+// installed Anycubic Slicer Next, then as the same two files in `bundled_folder` (a copy the caller provides, or
+// empty for none), so a user copy always wins.
 // Nothing is copied or written. False, with what was searched, when none is found.
 bool find_client_identity(const std::string& user_folder,
                           const std::string& bundled_folder,

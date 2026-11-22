@@ -77,11 +77,6 @@ public:
     static std::string safe_array_string(const nlohmann::json& arr, int idx);
     static int safe_array_int(const nlohmann::json& arr, int idx);
 
-    // Map filament type to OrcaFilamentLibrary preset ID for AMS sync compatibility
-    static std::string map_filament_type_to_generic_id(const std::string& filament_type);
-    // Writes the G-code of plate `plate_index` (or of the only plate) in a .gcode.3mf to `gcode_path`
-    static bool extract_plate_gcode(const std::string& archive_path, int plate_index, const std::string& gcode_path);
-
 protected:
     struct MoonrakerDeviceInfo
     {
@@ -158,6 +153,9 @@ protected:
 
     // Trim whitespace and convert to uppercase
     static std::string trim_and_upper(const std::string& input);
+
+    // Map filament type to OrcaFilamentLibrary preset ID for AMS sync compatibility
+    static std::string map_filament_type_to_generic_id(const std::string& filament_type);
 
 private:
     int handle_request(const std::string& dev_id, const std::string& json_str);

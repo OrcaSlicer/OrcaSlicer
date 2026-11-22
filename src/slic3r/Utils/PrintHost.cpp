@@ -47,7 +47,6 @@
 #include "ElegooLink.hpp"
 #include "3DPrinterOS.hpp"
 #include "Moonraker.hpp"
-#include "KobraXHost.hpp"
 
 namespace fs = boost::filesystem;
 using Slic3r::GUI::PrintHostQueueDialog;
@@ -90,7 +89,6 @@ PrintHost* PrintHost::get_print_host(DynamicPrintConfig *config)
             case htElegooLink: return new ElegooLink(config);
             case ht3DPrinterOS: return new C3DPrinterOS(config);
             case htMoonraker: return new Moonraker(config);
-            case htKobraX:    return new KobraXHost(config);
             default:          return nullptr;
         }
     } else {
