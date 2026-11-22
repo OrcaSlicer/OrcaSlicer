@@ -8,7 +8,6 @@
 #include "GUI_App.hpp"
 #include "GUI.hpp"
 #include "DeviceManager.hpp"
-#include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevConfigUtil.h"
 #include "libslic3r_version.h"
 #include "slic3r/Utils/NetworkAgent.hpp"
@@ -447,11 +446,20 @@ void MediaPlayCtrl::Play()
             SetStatus(_L("Playing..."), false);
         }
 
-        // Some printers serve their stream only once asked to start it; an agent without such a command refuses it
-        if (!is_webrtc) {
-            DeviceManager* dev = wxGetApp().getDeviceManager();
-            if (MachineObject* obj = dev ? dev->get_selected_machine() : nullptr; obj && obj->get_dev_id() == m_machine)
-                obj->command_start_camera();
+        // Some printers serve their stream only once asked to start it. Bambu Lab printers never get here. The request
+        // goes ahead of the stream's load on the media thread, so a slow printer does not hold up the UI.
+        if (!is_webrtc && printer_agent) {
+            boost::unique_lock lock(m_mutex);
+            m_tasks.push_back({"<run>", nullptr, [printer_agent, dev_id = m_machine] {
+                                   const int ret = printer_agent->command_start_camera(dev_id);
+                                   if (ret == 0)
+                                       BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl: the printer started its camera";
+                                   else if (ret == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED)
+                                       BOOST_LOG_TRIVIAL(trace) << "MediaPlayCtrl: the printer agent needs no camera start";
+                                   else if (ret != 0)
+                                       BOOST_LOG_TRIVIAL(warning) << "MediaPlayCtrl: the printer did not start its camera: " << ret;
+                               }});
+            m_cond.notify_all();
         }
 
         m_button_play->SetIcon("media_stop");
@@ -1020,6 +1028,13 @@ void MediaPlayCtrl::media_proc()
         }
         else if (task.command == "<exit>") {
             break;
+        }
+        else if (task.command == "<run>") {
+            task.run();
+            // Changes no media state, so no state event
+            lock.lock();
+            m_tasks.pop_front();
+            continue;
         }
         else if (task.command == "<play>") {
             BOOST_LOG_TRIVIAL(info) <<  "MediaPlayCtrl: start play";
