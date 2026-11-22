@@ -167,6 +167,8 @@ public:
     ColorRGBA color;
     // Color used to render this volume.
     ColorRGBA render_color;
+    // When set, replaces the RGB of render_color (alpha kept) and hides any painting, e.g. to mark the parts a gizmo works on.
+    std::optional<ColorRGBA> color_override;
 
     struct CompositeID {
         CompositeID(int object_id, int volume_id, int instance_id) : object_id(object_id), volume_id(volume_id), instance_id(instance_id) {}
