@@ -3234,20 +3234,32 @@ namespace DoExport {
 
     // Total tool changes for the print, preferring the wipe-tower count and falling back to the tool
     // ordering when no wipe tower populated it (number_of_toolchanges < 0).
-    static int resolve_total_toolchanges(const WipeTowerData &wipe_tower_data, const ToolOrdering &tool_ordering)
+    static int resolve_total_toolchanges(const WipeTowerData &wipe_tower_data, const ToolOrdering &tool_ordering, int object_tower_toolchanges = 0)
     {
         int changes = wipe_tower_data.number_of_toolchanges;
         if (changes < 0)
             changes = total_toolchanges_from_ordering(tool_ordering);
-        return std::max(0, changes);
+        return std::max(0, changes) + object_tower_toolchanges;
+    }
+
+    // Tool changes the per-object prime towers make, every copy of an object counted once. A by-object print has no
+    // plate-wide tool ordering, so these are not counted anywhere else.
+    static int object_tower_toolchanges(const Print &print)
+    {
+        int changes = 0;
+        for (const auto &placement : print.object_wipe_tower_placements())
+            if (const WipeTowerData *tower = print.object_wipe_tower_data(placement.first->print_object))
+                changes += std::max(0, tower->number_of_toolchanges);
+        return changes;
     }
 
 	// Fill in print_statistics and return formatted string containing filament statistics to be inserted into G-code comment section.
     static std::string update_print_stats_and_format_filament_stats(
         const bool                   has_wipe_tower,
 	    const WipeTowerData         &wipe_tower_data,
-        // Filament of the per-object prime towers, by extruder id.
+        // Filament of the per-object prime towers, by extruder id, and the tool changes they make.
         const std::vector<float>    &object_tower_filament,
+        const int                    object_tower_changes,
 	    const std::vector<Extruder> &extruders,
 		PrintStatistics 		    &print_statistics,
         const ToolOrdering          &tool_ordering)
@@ -3255,7 +3267,7 @@ namespace DoExport {
 		std::string filament_stats_string_out;
 
 	    print_statistics.clear();
-        print_statistics.total_toolchanges = resolve_total_toolchanges(wipe_tower_data, tool_ordering);
+        print_statistics.total_toolchanges = resolve_total_toolchanges(wipe_tower_data, tool_ordering, object_tower_changes);
 	    if (! extruders.empty()) {
 	        std::pair<std::string, unsigned int> out_filament_used_mm ("; filament used [mm] = ", 0);
 	        std::pair<std::string, unsigned int> out_filament_used_cm3("; filament used [cm3] = ", 0);
@@ -3860,7 +3872,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     this->placeholder_parser().set("wipe_tower_center_pos_y", new ConfigOptionFloat(wipe_tower_wait_pos.y()));
     this->placeholder_parser().set("wipe_tower_center_pos_valid", new ConfigOptionBool(wipe_tower_wait_pos_valid));
     this->placeholder_parser().set("has_single_extruder_multi_material_priming", wipe_tower_type == WipeTowerType::Type2 && has_wipe_tower && print.config().single_extruder_multi_material_priming);
-    this->placeholder_parser().set("total_toolchanges", DoExport::resolve_total_toolchanges(print.wipe_tower_data(), print.tool_ordering()));
+    this->placeholder_parser().set("total_toolchanges", DoExport::resolve_total_toolchanges(print.wipe_tower_data(), print.tool_ordering(), DoExport::object_tower_toolchanges(print)));
     this->placeholder_parser().set("num_extruders", int(print.config().nozzle_diameter.values.size()));
     this->placeholder_parser().set("retract_length", new ConfigOptionFloats(print.config().retraction_length));
 
@@ -5000,7 +5012,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // Get filament stats.
     file.write(DoExport::update_print_stats_and_format_filament_stats(
     	// Const inputs
-        has_wipe_tower, print.wipe_tower_data(), m_object_tower_used_filament,
+        has_wipe_tower, print.wipe_tower_data(), m_object_tower_used_filament, DoExport::object_tower_toolchanges(print),
         m_writer.extruders(),
         // Modifies
         print.m_print_statistics,
