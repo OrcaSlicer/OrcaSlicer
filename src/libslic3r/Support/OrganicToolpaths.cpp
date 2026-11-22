@@ -33,6 +33,8 @@
 #include "../format.hpp"
 
 #include <boost/container_hash/hash.hpp>
+#include <clipper2/clipper.core.h>
+#include <clipper2/clipper.h>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 
@@ -2328,11 +2330,37 @@ private:
 // What a route round between two bearings keeps its axis out of, if anything, see WallNeighbours::avoid().
 using AvoidNear = std::function<Polygons(const Point &, const Point &)>;
 
+// What of polygons lies in box, each clipped on its own and closed along the edges of the box, an edge crossing one cut
+// on it to the nearest unit: nothing of them lies outside the box, where the edges of a cut that only drops the corners
+// out of it, see ClipperUtils::clip_clipper_polygons_with_subject_bbox(), may cross each other.
+static Polygons clip_to_box(const Polygons &polygons, const BoundingBox &box)
+{
+    Clipper2Lib::Paths64 paths;
+    for (const Polygon &polygon : polygons)
+        if (polygon.size() >= 3 && get_extents(polygon).overlap(box)) {
+            Clipper2Lib::Path64 &path = paths.emplace_back();
+            path.reserve(polygon.size());
+            for (const Point &point : polygon.points)
+                path.emplace_back(point.x(), point.y());
+        }
+    Polygons clipped;
+    for (const Clipper2Lib::Path64 &path :
+         Clipper2Lib::RectClip(Clipper2Lib::Rect64(box.min.x(), box.min.y(), box.max.x(), box.max.y()), paths)) {
+        Polygon &polygon = clipped.emplace_back();
+        polygon.points.reserve(path.size());
+        for (const Clipper2Lib::Point64 &point : path)
+            polygon.points.emplace_back(coord_t(point.x), coord_t(point.y));
+    }
+    return clipped;
+}
+
 // Connect retained bearings without forbidden material or an excessive free span. A route round runs along the edge of
 // the footing and of what avoid gives it to keep off, if given. A straight join only crosses that. A join reaching the
 // edge of the box of its bearings grown by reach is longer than twice reach, longer than the path the bearings shorten,
-// see trim_unsupported_base(), which drops it: only the polygons of the footing whose boxes overlap that box are looked
-// at, whole, so that the footing has the same outline and holes in the box.
+// see trim_unsupported_base(), which drops it: only the footing and the legal polygons in that box are looked at,
+// clipped to it, see clip_to_box(), which changes them only on the edge of the box, so that a route over what it
+// changes reaches the edge too. Clipping may join two outlines along that edge, and a bearing within rounding of both
+// then lies on one loop twice: each of its places on a loop is tried.
 static bool connect_wall_bearings(const Point &a, const Point &b, const Polygons &whole_footing,
     const Polygons &whole_legal, const AvoidNear *avoid, bool limited, double max_bridge, double reach,
     Polyline &connection)
@@ -2341,15 +2369,8 @@ static bool connect_wall_bearings(const Point &a, const Point &b, const Polygons
     box.merge(a);
     box.merge(b);
     box.offset(reach);
-    const auto near = [&box](const Polygons &polygons) {
-        Polygons found;
-        for (const Polygon &polygon : polygons)
-            if (get_extents(polygon).overlap(box))
-                found.push_back(polygon);
-        return found;
-    };
-    const Polygons footing = near(whole_footing);
-    const Polygons legal   = limited ? near(whole_legal) : Polygons();
+    const Polygons footing = clip_to_box(whole_footing, box);
+    const Polygons legal   = limited ? clip_to_box(whole_legal, box) : Polygons();
     const auto safe = [&](const Polyline &axis) {
         if (!contains(footing, axis.first_point()) || !contains(footing, axis.last_point()) ||
             (limited && !diff_pl(Polylines{axis}, legal).empty()))
@@ -2365,29 +2386,59 @@ static bool connect_wall_bearings(const Point &a, const Point &b, const Polygons
     double         shortest = std::numeric_limits<double>::max();
     const Polygons around   = limited ? intersection(footing, legal) : footing;
     const Polygons off      = avoid != nullptr ? (*avoid)(a, b) : Polygons();
+    // The places of a bearing on a closed loop: the nearest point of each run of its edges within rounding of it, which
+    // meet within rounding of it too, a run going on over the first point of the loop. Two edges near it that meet far
+    // from it, as two outlines clipping joins, are two places.
+    const auto places = [](const Point &p, const Polyline &loop) {
+        std::vector<std::pair<Point, double>> found;
+        bool                                  first_near = false, last_near = false;
+        const Lines                           lines = loop.lines();
+        for (size_t i = 0; i < lines.size(); ++ i) {
+            const Point  at       = p.projection_onto(lines[i]);
+            const double distance = at.distance_to(p);
+            const bool   near     = distance <= 2. * SCALED_EPSILON;
+            const bool   joined   = near && last_near && lines[i].a.distance_to(p) <= 2. * SCALED_EPSILON;
+            if (near && !joined)
+                found.emplace_back(at, distance);
+            else if (joined && distance < found.back().second)
+                found.back() = {at, distance};
+            first_near = first_near || (i == 0 && near);
+            last_near  = near;
+        }
+        if (first_near && last_near && found.size() > 1 && lines.front().a.distance_to(p) <= 2. * SCALED_EPSILON) {
+            if (found.back().second < found.front().second)
+                found.front() = found.back();
+            found.pop_back();
+        }
+        Points points;
+        for (const auto &place : found)
+            points.push_back(place.first);
+        return points;
+    };
     for (const Polygon &boundary : to_polygons(off.empty() ? union_ex(around) : diff_ex(around, off))) {
         const Polyline loop = boundary.split_at_first_point();
-        Point start = a.projection_onto(loop), end = b.projection_onto(loop);
-        if (start.distance_to(a) > 2. * SCALED_EPSILON || end.distance_to(b) > 2. * SCALED_EPSILON)
-            continue;
-        Polyline before, after;
-        loop.split_at(start, &before, &after);
-        after.append(before);
-        Polyline forward, backward;
-        after.split_at(end, &forward, &backward);
-        backward.reverse();
-        for (const Polyline &route : {forward, backward}) {
-            Polyline candidate;
-            candidate.append(a);
-            candidate.append(start);
-            candidate.append(route);
-            candidate.append(b);
-            const double length = candidate.length();
-            if (length < shortest && safe(candidate)) {
-                shortest = length;
-                connection = std::move(candidate);
+        for (const Point &from : places(a, loop))
+            for (const Point &to : places(b, loop)) {
+                Point    start = from, end = to;
+                Polyline before, after;
+                loop.split_at(start, &before, &after);
+                after.append(before);
+                Polyline forward, backward;
+                after.split_at(end, &forward, &backward);
+                backward.reverse();
+                for (const Polyline &route : {forward, backward}) {
+                    Polyline candidate;
+                    candidate.append(a);
+                    candidate.append(start);
+                    candidate.append(route);
+                    candidate.append(b);
+                    const double length = candidate.length();
+                    if (length < shortest && safe(candidate)) {
+                        shortest = length;
+                        connection = std::move(candidate);
+                    }
+                }
             }
-        }
     }
     return shortest < std::numeric_limits<double>::max();
 }
