@@ -153,7 +153,7 @@ std::string first_difference(const std::string& actual, const std::string& expec
 // Print button's Print, the print host's test, and the Device tab's status, Pause, Resume and Stop).
 // A part that adds a command adds it here.
 const std::vector<std::pair<std::string, std::set<std::string>>> kPlaces{
-    {"Tools and actions", {"tool_list", "tool_describe", "tool_call", "action_search", "action_run"}},
+    {"Tools and actions", {"tool_list", "tool_describe", "tool_call", "action_list", "action_run"}},
     {"The app",
      {"app_state", "app_log", "app_wait", "job_cancel", "undo", "redo", "app_open_web_page", "app_check_for_updates",
       "app_show_config_folder", "app_benchmark_3d_scene", "preferences_get", "preferences_set"}},
@@ -554,7 +554,7 @@ TEST_CASE("only deleting a preset, uninstalling a plugin and stopping a print ar
     const std::set<std::string> reads{"app_state",          "app_wait",       "app_log",         "tool_list",         "tool_describe",
                                       "preset_list",        "settings_list",  "settings_get",    "preferences_get",
                                       "plate_get_settings", "project_get_settings", "plate_list", "object_list",
-                                      "window_screenshot",  "plate_slice_stats",    "script_search_api", "action_search",
+                                      "window_screenshot",  "plate_slice_stats",    "script_search_api", "action_list",
                                       "window_list",        "widget_list",          "printer_list_models", "plugin_list",
                                       "printer_status",     "filament_list"};
     // The commands made from menu items whose item reaches a printer, the cloud account or the network.

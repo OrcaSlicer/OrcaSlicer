@@ -544,7 +544,7 @@ def unsaved(client, type):
 def recent(client):
     """The files of the Recent Projects actions, normalised by normal(), read from each one's description ("Open the
     recent project <path>.")."""
-    items = client.call("action_search", section="Recent Projects", limit=100)["items"]
+    items = client.call("action_list", section="Recent Projects", limit=100)["items"]
     return [normal(m.group(1)) for m in (RECENT.match(i.get("description", "")) for i in items) if m]
 
 

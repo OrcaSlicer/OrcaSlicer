@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""The Speed Dial's actions as action_search and action_run give them, as the test_speed_dial entry of
+"""The Speed Dial's actions as action_list and action_run give them, as the test_speed_dial entry of
 tools/mcp/test-entries/commands.md designs them.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_speed_dial.py [--out DIR]
 
-action_search lists every action of tests/data/speed_dial_actions.json with the command
+action_list lists every action of tests/data/speed_dial_actions.json with the command
 tests/data/speed_dial_action_calls.json gives it. Then ROWS runs a few actions through action_run, each standing for
 one way an action runs: a person's form that opens a dialog, one that runs in place, a window opened, fixed arguments
 that choose what the command does, a value collected, a file written, a refusal, and a value its command's schema
@@ -132,10 +132,10 @@ ROWS = [
 
 
 def listed_commands(client):
-    """{action id: command} for every action action_search lists, read page by page."""
+    """{action id: command} for every action action_list lists, read page by page."""
     commands, offset = {}, 0
     while True:
-        page = client.call("action_search", limit=200, offset=offset)
+        page = client.call("action_list", limit=200, offset=offset)
         commands.update({a["id"]: a.get("command") for a in page.get("items", [])})
         offset = page.get("next_offset")
         if not offset:

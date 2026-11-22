@@ -161,39 +161,6 @@ TEST_CASE("a search matches query words at the start of a text's words, CamelCas
     CHECK(match_score(query_words("retract"), "retraction_length", "") == std::pair<int, int>{1, 1});
 }
 
-TEST_CASE("an action search ranks by the query's words and puts the plainer action first", "[Mcp]")
-{
-    // Four of the Speed Dial's actions as it lists them.
-    const json listed = json::array({
-        {{"id", "orca_command:obj_delete_all:orca"}, {"title", "Delete All Objects"}, {"section", "Object"},
-         {"description", "Delete all objects."}},
-        {{"id", "orca_command:filament_delete:orca"}, {"title", "Delete Filament Slot"}, {"section", "Filament"},
-         {"description", "Delete a filament slot, as its Delete menu item does; objects on it move to another slot."}},
-        {{"id", "orca_command:view_top:orca"}, {"title", "Top"}, {"section", "View"}, {"description", "Point the 3D camera: View: Top."}},
-        {{"id", "orca_command:obj_delete:orca"}, {"title", "Delete Selected"}, {"section", "Object"},
-         {"description", "Delete the selected objects or parts."}},
-    });
-    const auto ids = [](const json& ranked) {
-        std::vector<std::string> out;
-        for (const json& action : ranked)
-            out.push_back(action["id"].get<std::string>());
-        return out;
-    };
-
-    // No entry holds "delete object" as one text. Two are the Object section's deletes, which the Speed Dial
-    // names by section and title, and the shorter name, the plainer action, leads; the third only
-    // mentions objects.
-    CHECK(ids(rank_actions(listed, query_words("delete object"))) ==
-          std::vector<std::string>{"orca_command:obj_delete:orca", "orca_command:obj_delete_all:orca", "orca_command:filament_delete:orca"});
-    // An entry matching more of the words in its name outranks a shorter one.
-    CHECK(ids(rank_actions(listed, query_words("delete all"))).front() == "orca_command:obj_delete_all:orca");
-    // "orca" and "command" are in every built-in id, so they find nothing by themselves.
-    CHECK(rank_actions(listed, query_words("command")).empty());
-    CHECK(rank_actions(listed, query_words("slice")).empty());
-    // The entries come back whole.
-    CHECK(rank_actions(listed, query_words("top")) == json::array({listed[2]}));
-}
-
 TEST_CASE("action_run refuses arguments for an action that takes none", "[Mcp][SpeedDial]")
 {
     // A plate's, a setting's, a recent project's and a plugin's action run what they are, whatever args says.
@@ -514,7 +481,7 @@ TEST_CASE("action_run says where an action it cannot find is", "[Mcp][SpeedDial]
     };
     // An id no action has is the call's to correct.
     const auto [typo, typo_code] = refusal("obj_arange", NativeCommands::instance(), true);
-    CHECK_THAT(typo, Catch::Matchers::ContainsSubstring("action_search"));
+    CHECK_THAT(typo, Catch::Matchers::ContainsSubstring("action_list"));
     CHECK(typo_code == "invalid_argument");
 #ifdef SLIC3R_CAD
     // A Design tab action, by its id or its key, while it is not shown: in a run with the CAD feature on at startup
@@ -550,7 +517,7 @@ TEST_CASE("action_run says where an action it cannot find is", "[Mcp][SpeedDial]
                                                                   "OrcaSlicer started: a person turns it on in Preferences > "
                                                                   "Features and restarts OrcaSlicer, or starts it with --cad");
         // A Design command with no Speed Dial action is refused as any unknown action is.
-        CHECK_THAT(refusal("orca_command:describe_design:orca", catalog, cad).first, Catch::Matchers::ContainsSubstring("action_search"));
+        CHECK_THAT(refusal("orca_command:describe_design:orca", catalog, cad).first, Catch::Matchers::ContainsSubstring("action_list"));
     }
     // The CAD feature turned off while the app runs drops every Design action, though their commands stay in the
     // catalog: the action is right, and a person turns the feature back on.
@@ -587,8 +554,10 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
     }
     // The word search's tool is gone with no successor of its name: tool_list and tool_describe took its jobs.
     CHECK(catalog.find("tool_search") == nullptr);
+    // The action search is action_list, a listing with no query, under no other name.
+    CHECK(catalog.find("action_search") == nullptr);
 
-    // Each of the 41 under its name, listed, the first sentence of its description pinned (the commands that sentence
+    // Each of the 40 under its name, listed, the first sentence of its description pinned (the commands that sentence
     // names under their names too).
     struct Renamed
     {
@@ -674,9 +643,7 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
          "time estimate and layers (1-based, or up to a height)."},
         {"encode_recording", "recording_encode", "Encode a recording into an H.265 (or H.264) MP4 with the system ffmpeg (ORCA_FFMPEG, "
                                                  "else ffmpeg on PATH; it needs libx265 or libx264), keeping its timing."},
-        {"search_actions", "action_search", "Search everything the Speed Dial can run: built-in commands (slice, export, views, object "
-                                            "operations, plates, calibration wizards, help), recent projects, plugin scripts and pages."},
-        {"run_action", "action_run", "Run one action by the id action_search returned (orca_command:view_front:orca, or the name "
+        {"run_action", "action_run", "Run one action by the id action_list returned (orca_command:view_front:orca, or the name "
                                      "inside it, view_front), with args, the command's arguments, when it takes some (its "
                                      "input_schema)."},
         {"list_windows", "window_list",
@@ -703,7 +670,7 @@ TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
         {"run_javascript", "webview_run_javascript", "Evaluate JavaScript in one of OrcaSlicer's web views (Home, the device page, "
                                                      "dialogs, plugin windows)."},
     };
-    REQUIRE(std::size(renamed) == 41);
+    REQUIRE(std::size(renamed) == 40);
     for (const Renamed& r : renamed) {
         INFO(r.retired << " is " << r.name);
         CHECK(std::find(kRetiredTools.begin(), kRetiredTools.end(), r.retired) != kRetiredTools.end());
@@ -1069,8 +1036,8 @@ TEST_CASE("every parameter of a built-in command is classified for the manual", 
     const std::vector<std::pair<std::string, std::vector<std::string>>> sources{
         {"tool_call.args", {"tool_describe"}},
         {"tool_call.tool", {"tools/list", "tool_list"}},
-        {"action_run.id", {"action_search"}},
-        {"action_run.args", {"action_search"}},
+        {"action_run.id", {"action_list"}},
+        {"action_run.args", {"action_list"}},
         {"settings_set.values", {"settings_list"}},
         {"project_set_settings.values", {"project_get_settings"}},
         {"preferences_set.values", {"preferences_get"}},

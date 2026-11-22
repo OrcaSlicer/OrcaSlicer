@@ -180,9 +180,9 @@ const std::map<std::string, ParameterClass>& classes_by_path()
         {"tool_describe.tool", source({"tools/list", "tool_list"})},
         {"tool_call.tool", source({"tools/list", "tool_list"})},
         {"tool_call.args", source({"tool_describe"})},
-        {"action_run.id", source({"action_search"})},
-        {"action_run.args", source({"action_search"})},
-        {"action_search.section", source({"action_search"})},
+        {"action_run.id", source({"action_list"})},
+        {"action_run.args", source({"action_list"})},
+        {"action_list.section", source({"action_list"})},
         {"script_run.args", kFree},
         {"replay_run.vars", kFree},
         // Settings and preferences: the keys a tool takes are those its reader lists.

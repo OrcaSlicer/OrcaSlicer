@@ -107,7 +107,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Search everything the Speed Dial can run: built-in commands (slice, export, views, object operations, plates, calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an id for action_run, its section (where the Speed Dial lists it), a description, the command's key for a built-in command, and, when it takes arguments, their input_schema. A query ranks them, best match first; without one they are listed by section and title. section keeps them to one of the Speed Dial's sections, which are not tool_list's groups; one no action is in is refused with the sections there are, but Recent Projects and Design list nothing while there are no recent projects or the Design tab is not shown. include_settings also lists settings (each jumps to that setting in the sidebar; use settings_get / settings_set to read or change values).",
+   "description": "List everything the Speed Dial can run, by section and title: built-in commands (slice, export, views, object operations, plates, calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an id for action_run, its section (where the Speed Dial lists it), a description, the command's key for a built-in command, and, when it takes arguments, their input_schema. section keeps them to one of the Speed Dial's sections, which are not tool_list's groups; one no action is in is refused with the sections there are, but Recent Projects and Design list nothing while there are no recent projects or the Design tab is not shown. include_settings also lists settings (each jumps to that setting in the sidebar; use settings_get / settings_set to read or change values).",
    "destructive": false,
    "group": "Tools and actions",
    "guard": "inspect",
@@ -130,10 +130,6 @@
       "minimum": 0,
       "type": "integer"
      },
-     "query": {
-      "description": "A few words, e.g. \"delete object\": each is matched at the start of the words of an action's id, title, section and description.",
-      "type": "string"
-     },
      "section": {
       "description": "Only this Speed Dial section, in any case, as an entry's section names it, e.g. \"Object\", \"View\", \"Slice & Export\".",
       "type": "string"
@@ -141,16 +137,16 @@
     },
     "type": "object"
    },
-   "key": "action_search",
+   "key": "action_list",
    "listed": true,
    "open_world": false,
    "operations": [],
    "read_only": true,
-   "title": "Search Speed Dial actions"
+   "title": "List Speed Dial actions"
   },
   {
    "completion": "immediate",
-   "description": "Run one action by the id action_search returned (orca_command:view_front:orca, or the name inside it, view_front), with args, the command's arguments, when it takes some (its input_schema). A command's action (action_search names the command) runs the command as a call with the action's arguments does: an action that asks in a dialog asks, and the call returns blocked_by_dialog; answer it with dialog_answer, or, for a native one it can't press (a file picker), register dialog_auto_answer before the call. Such an action takes no args, or exactly its own; to run a command without asking, call it with its arguments (an absolute path skips a file dialog). Go to layer and Go to tab take their value alone ({\"percent\": 50}, {\"tab\": \"preview\"}), and a Design command's own action takes the command's arguments. An action that starts a background job (obj_arrange, obj_orient) completes when the job ends. An action that does nothing (no object selected) is an error. Some commands add what they did to the reply (the order object_order leaves, the object object_assemble made). The other actions (plates, recent projects, plugin scripts and pages, settings) run only here.",
+   "description": "Run one action by the id action_list returned (orca_command:view_front:orca, or the name inside it, view_front), with args, the command's arguments, when it takes some (its input_schema). A command's action (action_list names the command) runs the command as a call with the action's arguments does: an action that asks in a dialog asks, and the call returns blocked_by_dialog; answer it with dialog_answer, or, for a native one it can't press (a file picker), register dialog_auto_answer before the call. Such an action takes no args, or exactly its own; to run a command without asking, call it with its arguments (an absolute path skips a file dialog). Go to layer and Go to tab take their value alone ({\"percent\": 50}, {\"tab\": \"preview\"}), and a Design command's own action takes the command's arguments. An action that starts a background job (obj_arrange, obj_orient) completes when the job ends. An action that does nothing (no object selected) is an error. Some commands add what they did to the reply (the order object_order leaves, the object object_assemble made). The other actions (plates, recent projects, plugin scripts and pages, settings) run only here.",
    "destructive": false,
    "group": "Tools and actions",
    "guard": "mutate",
@@ -164,7 +160,7 @@
       "type": "object"
      },
      "id": {
-      "description": "Action id from action_search, or the name inside it.",
+      "description": "Action id from action_list, or the name inside it.",
       "type": "string"
      }
     },

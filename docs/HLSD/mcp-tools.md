@@ -105,7 +105,7 @@ them and `tool_call` runs them.
 | `tool_list` | List the commands `tools/list` does not show (the Design tab's, the menu items that take no arguments, the plugins' operations), each with what it does, all of them or one group's | `group` |
 | `tool_describe` | Read one command's manual, listed or not: every parameter with its type, whether it is required, its default, its values or range and the tools that list its values; the schema's rules in words; the menu items that run it; its examples | `tool` |
 | `tool_call` | Call any command by name, one `tools/list` shows or one it does not, as that command's own call | `tool`, `args` |
-| `action_search` | Search what the Speed Dial runs: the commands' actions, plates, recent projects, plugin scripts and pages, and settings on request | `query`, `section`, `include_settings` |
+| `action_list` | List what the Speed Dial runs, by section and title: the commands' actions, plates, recent projects, plugin scripts and pages, and settings on request | `section`, `include_settings` |
 | `action_run` | Run one of those by its id, as a person's pick does | `id`; `args`: none, or exactly the action's |
 
 ### The app
@@ -653,7 +653,7 @@ Each command runs under a guard (mcp-server.md, Threading):
 Access labels, which `tools/list` sends as MCP's annotations (mcp-server.md, Tool catalog, says why each is
 set as it is):
 
-- **read_only**, 23 commands: `tool_list`, `tool_describe`, `action_search`, `app_state`, `app_wait`, `app_log`,
+- **read_only**, 23 commands: `tool_list`, `tool_describe`, `action_list`, `app_state`, `app_wait`, `app_log`,
   `preferences_get`, `project_get_settings`, `filament_list`, `object_list`, `plate_get_settings`, `plate_list`,
   `plate_slice_stats`, `preset_list`, `settings_list`, `settings_get`, `printer_list_models`, `printer_status`,
   `plugin_list`, `window_list`, `window_screenshot`, `script_search_api` and `widget_list`. These are idempotent too, and so

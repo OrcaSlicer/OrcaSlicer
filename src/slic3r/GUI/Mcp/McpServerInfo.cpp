@@ -43,7 +43,7 @@ const char* kInstructions =
     "has plates and outside for items.\n"
     "- Paths are absolute; an output replaces a file only with overwrite: true.\n"
     "Driving the GUI, for what those do not reach or to see what a person sees:\n"
-    "- action_run runs a Speed Dial action by id from action_search: a command's as a call with its arguments does; a "
+    "- action_run runs a Speed Dial action by id from action_list: a command's as a call with its arguments does; a "
     "plate, a recent project, a plugin's script or page as a person's pick does.\n"
     "- widget_list lists widgets, menus, 3D toolbar items, gizmos, ImGui items and web page elements with refs; "
     "widget_click / widget_set_value / keyboard_press / mouse_gesture act on its refs (good across later listings) or "

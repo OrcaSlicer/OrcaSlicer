@@ -67,7 +67,7 @@ be to act at once (a Delete item deletes what is selected) or to decline.
 
 A Design row whose arguments are written as a call's own (`{"type": "linear"}`, or `{}`) is one tool of its
 command: `tool_call` given exactly those arguments opens that tool, as a person's pick of its action does, and
-any other call runs the command from its arguments. The action has an id of its own, which `action_search`
+any other call runs the command from its arguments. The action has an id of its own, which `action_list`
 gives, and `action_run` runs it with no arguments or with exactly those.
 """
 

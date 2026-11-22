@@ -58,7 +58,7 @@ path the recent-projects check looks for is this run's alone. It writes a filame
 - `unsaved(type)`: the keys `settings_get {type, compare: ":saved"}` lists, sorted: what differs from the preset as it
   is stored.
 - `recent()`: the files of the Recent Projects actions, read from each action's `description` ("Open the recent
-  project <path>.") in `action_search {section: "Recent Projects"}`, normalised as `project()` normalises. The list holds
+  project <path>.") in `action_list {section: "Recent Projects"}`, normalised as `project()` normalises. The list holds
   what earlier tests on the data folder opened and saved, so a row only asks whether it holds or lacks one of `W`'s
   files, which no other test and no earlier run names.
 - `undo_steps()`: the names of the undo steps logged since its previous call, from the lines

@@ -250,13 +250,6 @@ nlohmann::json command_manual(const NativeCommand& command);
 // catalog's text and code for the name (a left-out command's reason and code) and the closest names. Any thread.
 nlohmann::json describe_command(const CommandCatalog& catalog, const std::string& name);
 
-// The Speed Dial actions of `listed` (ActionRegistry::describe()'s items: id, title, group, description)
-// that `words` (of query_words()) describe, best first: those matching more of the words, then those
-// matching more of them in what the action is called (the name inside its id, its title and its group),
-// then the shorter name, which is the plainer action (obj_delete before obj_delete_all). action_search
-// ranks with it.
-nlohmann::json rank_actions(const nlohmann::json& listed, const std::vector<std::string>& words);
-
 // Why action_run refuses `args` for `action`, or empty when it does not: an action that collects a value (input) takes
 // exactly that value, a command's own action takes its command's arguments, which the command checks, an item of a
 // command's actions (a folded item's, with a preset) takes none or exactly its preset, and every other action (a

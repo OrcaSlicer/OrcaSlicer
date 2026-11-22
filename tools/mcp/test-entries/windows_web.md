@@ -474,7 +474,7 @@ call replies `blocked_by_dialog`, `dialogs()` lists one dialog titled "Send G-co
 check below passes.
 - Start: `start()` returns `{printer: KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}`, and
   `use_printer_agents` reads `false`.
-- Discovery: `action_search "Send G-code"` lists the action's id.
+- Discovery: `action_list {section: "Slice & Export"}` lists the id `orca_command:send_gcode:orca`.
 - No address. `settings_set {type: "printer", values: {host_type: "octoprint", print_host: "", use_3mf: false}}`,
   with the imported cube not sliced (plain G-code, so the dialog proposes a `.gcode` name). The values are the Klipper
   printer's own, so the preset as edited is the preset as stored:
@@ -578,7 +578,7 @@ when the plugin first writes to it, so until then the newest is an earlier run's
 **Leaves:** Measured after a run, and at the next launch on the folder:
 - The fixture plugin, installed and enabled, with the threading permission it was refused stored in its
   `.install_state.json`. Every later launch on the job has the main-window tab "MCP web fixture page" after Project,
-  and five more actions in the Speed Dial and `action_search` (the page and the four scripts). Nothing opens at
+  and five more actions in the Speed Dial and `action_list` (the page and the four scripts). Nothing opens at
   startup and nothing asks: `window_list` lists the main window alone, and an untargeted `webview_run_javascript` on
   Home still reaches the Home page, as the plugin's page makes its web view only when shown. The test does not remove
   the plugin: a plugin a person installs stays, and the tests after it check what they own, as TESTS.md's rule says

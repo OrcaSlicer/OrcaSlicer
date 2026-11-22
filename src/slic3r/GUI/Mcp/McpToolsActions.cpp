@@ -1,5 +1,5 @@
-// action_search and action_run: every Speed Dial action - built-in commands, plates, recent projects,
-// plugin scripts and pages, and (on request) settings - is reachable through these two tools.
+// action_list and action_run: every Speed Dial action - built-in commands, plates, recent projects,
+// plugin scripts and pages, and (on request) settings - is listed and run through these two tools.
 
 #include "slic3r/GUI/I18N.hpp"
 #include "McpArguments.hpp"
@@ -149,38 +149,8 @@ ToolFailure unknown_action(const std::string& id, const CommandCatalog& catalog,
                            {{"code", "wrong_mode"}});
     }
     // The name may be a command's that has no action, which tool_call runs.
-    return ToolFailure("Unknown action id " + id + "; find an action with action_search, or a command in tools/list or with tool_list",
+    return ToolFailure("Unknown action id " + id + "; find an action with action_list, or a command in tools/list or with tool_list",
                        {{"code", "invalid_argument"}});
-}
-
-json rank_actions(const json& listed, const std::vector<std::string>& words)
-{
-    struct Hit
-    {
-        std::pair<int, int> score;
-        std::size_t         name_size;
-        const json*         action;
-    };
-    std::vector<Hit> hits;
-    for (const json& action : listed) {
-        // The name inside the id, without the source and plugin every built-in id shares: "orca" and
-        // "command" would match them all. The section is part of what the action is called, as the
-        // Speed Dial shows one by section and title: Delete Selected is the Object section's delete, though
-        // its own title names no object.
-        const std::string         name  = short_id(action.value("id", std::string()));
-        const std::pair<int, int> score = match_score(words,
-                                                      name + ' ' + action.value("title", std::string()) + ' ' +
-                                                          action.value("section", std::string()),
-                                                      action.value("description", std::string()));
-        if (score.first > 0)
-            hits.push_back({score, name.size(), &action});
-    }
-    std::stable_sort(hits.begin(), hits.end(),
-                     [](const Hit& a, const Hit& b) { return a.score != b.score ? a.score > b.score : a.name_size < b.name_size; });
-    json ranked = json::array();
-    for (const Hit& hit : hits)
-        ranked.push_back(*hit.action);
-    return ranked;
 }
 
 ToolResult await_gcode_export(ToolContext& ctx, const Ops::ExportTicket& ticket)
@@ -242,18 +212,15 @@ json described(ActionRegistry& actions, const ActionRegistry::Query& q)
 void register_action_tools(CommandCatalog& catalog)
 {
     catalog.add(inspect_tool(
-        "action_search", L("Search Speed Dial actions"),
-        "Search everything the Speed Dial can run: built-in commands (slice, export, views, object operations, plates, "
-        "calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an id for action_run, its "
-        "section (where the Speed Dial lists it), a description, the command's key for a built-in command, and, when it "
-        "takes arguments, their input_schema. A query ranks them, best match first; without one they "
-        "are listed by section and title. section keeps them to one of the Speed Dial's sections, which are not "
+        "action_list", L("List Speed Dial actions"),
+        "List everything the Speed Dial can run, by section and title: built-in commands (slice, export, views, object "
+        "operations, plates, calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an id for "
+        "action_run, its section (where the Speed Dial lists it), a description, the command's key for a built-in command, "
+        "and, when it takes arguments, their input_schema. section keeps them to one of the Speed Dial's sections, which are not "
         "tool_list's groups; one no action is in is refused with the sections there are, but Recent Projects and Design "
         "list nothing while there are no recent projects or the Design tab is not shown. include_settings also lists "
         "settings (each jumps to that setting in the sidebar; use settings_get / settings_set to read or change values).",
-        object_schema({{"query", prop("string", "A few words, e.g. \"delete object\": each is matched at the start of the words of "
-                                                "an action's id, title, section and description.")},
-                       {"section", prop("string", "Only this Speed Dial section, in any case, as an entry's section names it, "
+        object_schema({{"section", prop("string", "Only this Speed Dial section, in any case, as an entry's section names it, "
                                                   "e.g. \"Object\", \"View\", \"Slice & Export\".")},
                        {"include_settings", prop("boolean", "Also list settings (thousands). Default false.")},
                        {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "Default 50."}}},
@@ -262,22 +229,15 @@ void register_action_tools(CommandCatalog& catalog)
             ActionRegistry::Query q;
             q.section          = arg_string(args, "section");
             q.include_settings = arg_bool(args, "include_settings", false);
-            const std::string query = arg_string(args, "query");
-            if (query.empty()) {
-                q.limit  = std::size_t(arg_int(args, "limit", 50));
-                q.offset = std::size_t(arg_int(args, "offset", 0));
-                return ToolResult::ok(ctx.run_ui([q] { return described(registry_or_fail(), q); }));
-            }
-            // The registry's own search wants the query as one text; an agent's is a few words.
-            q.limit           = 100000;
-            const json listed = ctx.run_ui([q] { return described(registry_or_fail(), q); });
-            return ToolResult::ok(page(rank_actions(listed["items"], query_words(query)), args, 50));
+            q.limit            = std::size_t(arg_int(args, "limit", 50));
+            q.offset           = std::size_t(arg_int(args, "offset", 0));
+            return ToolResult::ok(ctx.run_ui([q] { return described(registry_or_fail(), q); }));
         }));
 
     NativeCommand run = mutate_tool(
         "action_run", L("Run a Speed Dial action"),
-        "Run one action by the id action_search returned (orca_command:view_front:orca, or the name inside it, view_front), "
-        "with args, the command's arguments, when it takes some (its input_schema). A command's action (action_search names "
+        "Run one action by the id action_list returned (orca_command:view_front:orca, or the name inside it, view_front), "
+        "with args, the command's arguments, when it takes some (its input_schema). A command's action (action_list names "
         "the command) runs the command as a call with the action's arguments does: an action that asks in a dialog asks, "
         "and the call returns blocked_by_dialog; answer it with dialog_answer, or, for a native one it can't press (a file "
         "picker), register dialog_auto_answer before the call. Such an action takes no args, or exactly its own; to run a "
@@ -287,7 +247,7 @@ void register_action_tools(CommandCatalog& catalog)
         "ends. An action that does nothing (no object selected) is an error. Some commands add what they did to the reply "
         "(the order object_order leaves, the object object_assemble made). The other actions (plates, recent projects, "
         "plugin scripts and pages, settings) run only here.",
-        object_schema({{"id", prop("string", "Action id from action_search, or the name inside it.")},
+        object_schema({{"id", prop("string", "Action id from action_list, or the name inside it.")},
                        {"args", {{"type", "object"}, {"description", "The command's arguments, as its input_schema gives them."}}}},
                       {"id"}),
         [](const json& args, ToolContext& ctx) {

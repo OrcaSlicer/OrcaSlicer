@@ -213,8 +213,8 @@ def main():
     client.call("project_import", paths=[os.path.abspath(MODEL)])
     wait(client, "idle")
 
-    found = client.call("action_search", query="Send G-code")
-    t.check("action_search finds the send_gcode action", any(a["id"] == SEND for a in found["items"]), found)
+    found = client.call("action_list", section="Slice & Export", limit=200)
+    t.check("action_list lists the send_gcode action", any(a["id"] == SEND for a in found["items"]), found)
 
     # ---- No address ----
     # Plain G-code, so the dialog proposes a .gcode name (a .gcode.3mf would make it confirm the suffix).

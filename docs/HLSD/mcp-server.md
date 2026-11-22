@@ -269,7 +269,7 @@ window isn't being drawn when it isn't.
 
 | Class | Tools | Runs behind a modal or inside another call |
 |---|---|---|
-| `Inspect` | app_state, app_wait, app_log, the searches and lists (tool_list, action_search, object_list, plate_list, preset_list, settings_list, printer_list_models, plugin_list, window_list), the reads (tool_describe, settings_get, plate_get_settings, project_get_settings, preferences_get, plate_slice_stats, script_search_api), window_screenshot, widget_list, replay_export, recording_start, recording_stop, recording_encode | yes |
+| `Inspect` | app_state, app_wait, app_log, the lists (tool_list, action_list, object_list, plate_list, preset_list, settings_list, printer_list_models, plugin_list, window_list), the reads (tool_describe, settings_get, plate_get_settings, project_get_settings, preferences_get, plate_slice_stats, script_search_api), window_screenshot, widget_list, replay_export, recording_start, recording_stop, recording_encode | yes |
 | `Recover` | dialog_answer, dialog_auto_answer, job_cancel, GUI input aimed at the topmost modal, window_set | yes |
 | `Mutate` | everything else | no |
 
@@ -757,7 +757,7 @@ or discards the presets'.
 An agent calls into two catalogs by name: the commands (those `tools/list` shows, the three menu items it
 does not, the Design tab's and the operations plugins offer) and the Speed Dial's actions, which
 `action_run` runs.
-`tools/list` and `tool_list` list the commands, and `action_search` the actions. A command runs by its key
+`tools/list` and `tool_list` list the commands, and `action_list` the actions. A command runs by its key
 through `tools/call` and `tool_call`, and `tool_describe` gives its manual. `tool_list`'s description
 names the Design commands while the catalog holds them (see Design tab), so an agent knows of them before
 it lists them. A name that misses
@@ -766,14 +766,14 @@ command out (`CommandCatalog::leave_out()`): then it says why. A catalog built w
 leaves out the Design commands, and says that the feature was off when OrcaSlicer started and how a person
 turns it on. `CommandCatalog::unknown_command()` builds the error for every lookup of a command that
 misses: `tools/call`, `tool_call`, `tool_describe {tool}`, a replay step and a plugin's or script's call.
-`action_run` gives the closest action ids, and says that `action_search` finds an action, and `tools/list`
+`action_run` gives the closest action ids, and says that `action_list` lists the actions, and `tools/list`
 and `tool_list` a command, since the name may be a command's that has no action; an action's key runs its
 command. For a Design tab action that is not shown it says when the action is there instead, and that
 `tool_call` runs its command from any tab, or, when the catalog leaves its command out, why.
 
 Each tool family lives in its own `McpTools*.cpp`. List tools take `limit` and `offset` and reply
 `{items, offset, total}` (`page()`; `object_list`, a tree, has `plates` and `outside` in place of
-`items`), with `next_offset` while more remain: `action_search` too. The server instructions give that
+`items`), with `next_offset` while more remain: `action_list` too. The server instructions give that
 shape once, rather than every description, and each `limit` states its default. `McpPaths.hpp` requires
 absolute paths, since a relative one would resolve against `<datadir>/log`, the GUI's working
 directory; an output's directory must exist, and an existing file is replaced only with
@@ -2330,7 +2330,7 @@ Design commands.
 
 ## Speed Dial catalog
 
-`action_search` and `action_run` serve the Speed Dial's `ActionRegistry`, which holds what a person picks
+`action_list` and `action_run` serve the Speed Dial's `ActionRegistry`, which holds what a person picks
 there, its actions: the commands' actions, plates, recent projects, plugin scripts and pages, and, on request,
 settings. A command's actions are those of the Speed Dial's actions that run that command, each with fixed
 arguments. Most of them match a menu item; Go to tab... and Go to layer (percent) collect a value in the
@@ -2478,7 +2478,7 @@ sends the value under the token, and the action passes it on under its command's
 plate, as the menu item did when given none, and the plate family of the Speed Dial calls the command with each
 plate.
 
-### action_search and action_run
+### action_list and action_run
 
 `ActionRegistry::describe(Query)` lists the actions, sorted by Speed Dial section and title, one page of them
 (`{items, offset, total}`). It can keep one section, lists settings only when asked, and keeps the
@@ -2490,20 +2490,13 @@ in the background. Built-in ids look like `orca_command:<key>:orca`.
 
 The argument and the field are `section`, not `group`, because the Speed Dial's sections (Object, Plate,
 Slice & Export) are a list of their own, apart from the command groups `tool_list {group}` takes (Objects,
-Plates). `action_search` refuses a section no action is in, with `invalid_argument` and the sections there are,
+Plates). `action_list` refuses a section no action is in, with `invalid_argument` and the sections there are,
 as `tool_list` refuses a group, so that a group passed as a section is corrected rather than read as no
 actions. Recent Projects and Design are the exceptions: they hold actions only while there are recent projects
 and while the Design tab is shown, so either one empty lists nothing.
 
-`action_search` gives `describe()` no text. An agent's query is a few words ("delete object"),
-which no action holds as one text, so `rank_actions()` (McpToolsActions.cpp) scores the listing with
-the `match_score()` every other search uses: a word matches where a word of what the action is
-called, or of its description, starts with it. An action is called by its key, its title and its
-section, as the Speed Dial shows one by section and title: Delete Selected is the Object section's delete,
-though its own title names no object. The actions matching more of the words come first, then those
-matching more of them in what they are called, then the shorter key, which is the plainer action:
-the action `obj_delete` before `obj_delete_all`. The key is scored without the `orca_command:`
-and `:orca` around it, which would make "orca" and "command" match every built-in.
+`action_list` gives `describe()` no text: an agent reads the listing a section at a time and picks the action
+itself, as it picks a command from `tool_list` (see Plugins and the tools).
 
 `action_run {id, args}` also takes the key alone (`plate_add`) when only one action has it, as agents and
 the commands' own messages write it. It resolves the id on the UI thread with `ActionRegistry::find_live()`,
@@ -2615,7 +2608,7 @@ declared in the `McpTools*.cpp` of its place beside the commands of that place:
    instead. An item with no argument form is a command that is not `listed`.
 
 The command then appears in `tools/list` (in `tool_list` when it is not listed), in `tool_describe`, its
-actions in the Speed Dial, `action_search` and
+actions in the Speed Dial, `action_list` and
 `action_run`, and its calls in replays.
 
 A new or changed command changes the command reference, `tests/data/command_catalog.json`: the
@@ -4798,8 +4791,7 @@ dialog's description, a web dialog rule's wx buttons and web view handles;
 `test_mcp_recording` the Matroska file (read back closed and unclosed), the sink's order, memory
 budget, non-blocking push, finish, abort and failed frames, the video transform, overlays and frame
 repeats, captions and what they hide, the ffmpeg command and listings, the files recordings and
-encodes reserve, and the journal's recording paths; `test_mcp_tools` setting serialization, how a query ranks
-the Speed Dial's actions, what `action_run` takes and journals for an action, a call with an action's arguments
+encodes reserve, and the journal's recording paths; `test_mcp_tools` setting serialization, what `action_run` takes and journals for an action, a call with an action's arguments
 against one with more, what `tool_list` lists and its groups, every command's manual and the class of every
 parameter, the tool names of `retired_names.hpp` that are no
 command, and which arguments the journal leaves out; `test_mcp_config` the keys and effective values of the

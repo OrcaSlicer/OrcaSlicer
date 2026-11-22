@@ -2245,7 +2245,7 @@ TEST_CASE("the operations rule leaves the Design group and the read-only command
 
 TEST_CASE("the field that names a tool's operations is in no listing", "[Operations]")
 {
-    // tools/list and action_search stay as they are: the field is for the catalog test alone.
+    // tools/list and action_list stay as they are: the field is for the catalog test alone.
     const Slic3r::GUI::NativeCommand* tool = Slic3r::GUI::NativeCommands::find("project_export");
     REQUIRE(tool != nullptr);
     REQUIRE_FALSE(tool->operations.empty());

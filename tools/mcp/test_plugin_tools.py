@@ -148,6 +148,10 @@ def main():
         operation_name = f"plugin.{PLUGIN}.measure"
         listed_plugins = lambda: [i["name"] for i in orca.call("tool_list", group="plugins")["items"]]
         check("tool_list lists the plugin's operation", operation_name in listed_plugins(), listed_plugins())
+        scripts = {f"plugin_script_action:{capability}:{PLUGIN}" for capability in CAPABILITIES}
+        fixture_actions = lambda: {a["id"] for a in orca.call("action_list", section="MCP Tools Fixture", limit=200)["items"]}
+        check("action_list lists the fixture's five scripts as its Speed Dial actions",
+              reached(lambda: fixture_actions() == scripts, "the fixture's script actions are listed"), sorted(fixture_actions()))
         described = orca.call_raw("tool_describe", {"tool": operation_name})
         operation = {} if described.get("isError") else json.loads(described["content"][0]["text"])
         check("tool_describe describes the plugin's operation, its parameter a among it",
