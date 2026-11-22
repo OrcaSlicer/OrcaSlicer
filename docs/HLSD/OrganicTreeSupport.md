@@ -639,12 +639,15 @@ none of them is left to the checks below. On a belt a body is not limited
 either.
 
 A hollow body is walls only, so a wall that goes in by more than half a line
-prints over the inside of the body below. Where branches split going up, the
+prints over the inside of the body below, and at layers lower than a sixth of a
+line, one that goes in by more than a layer height leans out over it by more than
+45°, half a line by 80° at 0.02 mm layers. Where branches split going up, the
 walls between them would start over the inside of the trunk, and where a body
 narrows, over the inside of the body below. So going up, a hollow body that goes
-on over a body below keeps all of it but a band of the same step along its
-outline: a gap between branches opens from its mouth a step a layer, and a body
-narrows a step a layer. The model and the roofs of the layer cut it as they
+on over a body below keeps all of it but a band of a step along its outline: half
+a line, or a layer height at such fine layers, or the move of the branch angle
+where that is more. A gap between branches opens from its mouth a step a layer,
+and a body narrows a step a layer. The model and the roofs of the layer cut it as they
 come in, which leaves the wall over the inside, for the checks below. A body
 that ends is not carried on.
 

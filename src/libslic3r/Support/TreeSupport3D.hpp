@@ -22,6 +22,7 @@
 #include "libslic3r/libslic3r.h"
 
 #include <boost/container/small_vector.hpp>
+#include <algorithm>
 #include <cstdint>
 #include <limits>
 #include <cstddef>
@@ -355,6 +356,14 @@ void organic_limit_body_growth(SupportGeneratorLayersPtr &bodies, const std::vec
 // as for organic_widen_bodies_under_roofs().
 void organic_limit_body_shrink(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
     const std::vector<Polygons> &model, coord_t step);
+
+// How far a hollow body narrows a layer at most, see organic_limit_body_shrink(): half a line_width, or at layers lower
+// than a sixth of a line a layer_height, 45 degrees, where half a line leans out over the inside far more, 80 degrees
+// at 0.02 mm layers; and never less than move, the branch angle.
+inline coord_t organic_wall_step(const coord_t layer_height, const coord_t line_width, const coord_t move)
+{
+    return std::max(move, 6 * layer_height < line_width ? layer_height : line_width / 2);
+}
 
 // Whether widening by delta keeps the cut of an island as it is but for the points it drops, see offset_input(): a
 // point closer than a fraction of delta to the last one it keeps, which moves the widened outline less than that. With

@@ -1785,6 +1785,47 @@ TEST_CASE("Organic bodies widen going up by the branch angle where the model nar
     CHECK(checked > 0);
 }
 
+TEST_CASE("Organic hollow bodies narrow going up by a layer height a layer at most at fine layers", "[TreeSupport][Organic][Regression]")
+{
+    // Two pads 4 mm apart 3 mm over the bed at 0.02 mm layers: the trees under them merge going down, and where a trunk
+    // splits going up, the gap between its branches opens from its mouth. A wall going in by more than a layer height a
+    // layer leans out over the inside of the body below by more than 45 degrees, half a line 80 degrees.
+    organic_tdd::Fixture input{"pair-fine", {{50., 98., 2., 2., 3.}, {50., 102., 2., 2., 3.}}};
+    DynamicPrintConfig overrides;
+    overrides.set_deserialize_strict({{"layer_height", .02}});
+    Print print;
+    REQUIRE_FALSE(organic_tdd::process(input, "hollow", print, &overrides).empty());
+    const PrintObject &object = *print.objects().front();
+    const double       step   = .02;
+    const auto         layers = object.support_layers();
+    size_t             checked = 0, splits = 0;
+    for (size_t i = 1; i < layers.size(); ++ i) {
+        // Below the roofs and the flares under them, which widen going up.
+        if (layers[i]->print_z < .3 || layers[i]->print_z > 2.5 ||
+            std::abs(layers[i]->print_z - layers[i - 1]->print_z - step) > EPSILON)
+            continue;
+        ++ checked;
+        CAPTURE(layers[i]->print_z);
+        const Polygons below = to_polygons(layers[i - 1]->support_islands);
+        const Polygons above = to_polygons(layers[i]->support_islands);
+        for (const ExPolygon &part : union_ex(below)) {
+            size_t branches = 0;
+            for (const ExPolygon &branch : union_ex(above))
+                branches += intersection(to_polygons(branch), to_polygons(part)).empty() ? 0 : 1;
+            splits += branches > 1 ? 1 : 0;
+        }
+        // What lies farther than the step and the simplification of the outlines inside a body that goes on up.
+        for (ExPolygon &part : union_ex(offset(below, - scaled<float>(step + .01)))) {
+            const Polygons inside = to_polygons(std::move(part));
+            if (intersection(inside, above).empty())
+                continue;
+            CHECK(opening(diff(inside, above), scaled<float>(0.1 * organic_tdd::line_width)).empty());
+        }
+    }
+    CHECK(checked > 0);
+    CHECK(splits > 0);
+}
+
 // The slow branch angle is at most the branch angle, so a zero branch angle stops the slow movement too.
 TEST_CASE("Organic slow branch angle is limited by a zero branch angle", "[TreeSupport][Regression]")
 {

@@ -5774,10 +5774,10 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
                 if (volumes.m_belt_floor.empty()) {
                     organic_limit_body_growth(bodies, roofs, model_of, config.support_rests_on_model, config.support_line_width,
                         config.maximum_move_distance);
-                    // A hollow body narrows by the step a layer at most as well.
+                    // A hollow body narrows by a step a layer at most as well, a layer height at fine layers.
                     if (hollow)
-                        organic_limit_body_shrink(bodies, roofs, model_of,
-                            std::max(config.support_line_width / 2, config.maximum_move_distance));
+                        organic_limit_body_shrink(bodies, roofs, model_of, organic_wall_step(config.layer_height,
+                            config.support_line_width, config.maximum_move_distance));
                 }
                 throw_on_cancel();
                 const std::vector<double> roof_angles = organic_roof_angles(print_object, support_params);

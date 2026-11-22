@@ -1357,7 +1357,7 @@ TEST_CASE("Organic bodies widen going up by half a line a layer at most", "[Tree
     }
 }
 
-TEST_CASE("Organic hollow bodies narrow going up by half a line a layer at most", "[TreeSupport][Material][Regression]")
+TEST_CASE("Organic hollow bodies narrow going up by the step a layer at most", "[TreeSupport][Material][Regression]")
 {
     using namespace Slic3r;
     using namespace Slic3r::TreeSupport3D;
@@ -1412,6 +1412,24 @@ TEST_CASE("Organic hollow bodies narrow going up by half a line a layer at most"
         // The branch leans within the step.
         CHECK_FALSE(contains(body, Point::new_scale(49.99 + 0.05 * double(i), 1.)));
     }
+}
+
+TEST_CASE("Organic hollow bodies narrow by a layer height a layer at fine layers and by half a line at others", "[TreeSupport][Material][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    const auto step = [](const double layer_height, const double line_width, const double angle) {
+        return unscaled<double>(organic_wall_step(scaled<coord_t>(layer_height), scaled<coord_t>(line_width),
+            scaled<coord_t>(layer_height * std::tan(angle * PI / 180.))));
+    };
+    // Below a sixth of a line, 45 degrees, or the branch angle where it is steeper.
+    CHECK_THAT(step(0.02, 0.22, 40.), Catch::Matchers::WithinAbs(0.02, 1e-6));
+    CHECK_THAT(step(0.03, 0.22, 40.), Catch::Matchers::WithinAbs(0.03, 1e-6));
+    CHECK_THAT(step(0.02, 0.22, 60.), Catch::Matchers::WithinAbs(0.02 * std::tan(PI / 3.), 1e-6));
+    // Half a line at higher layers, at 0.2 mm layers and 0.42 mm lines among them.
+    CHECK_THAT(step(0.04, 0.22, 40.), Catch::Matchers::WithinAbs(0.11, 1e-6));
+    CHECK_THAT(step(0.08, 0.42, 40.), Catch::Matchers::WithinAbs(0.21, 1e-6));
+    CHECK_THAT(step(0.2, 0.42, 40.), Catch::Matchers::WithinAbs(0.21, 1e-6));
 }
 
 TEST_CASE("Organic bodies merged going up narrow down into their trunks by the branch angle", "[TreeSupport][Material][Regression]")
