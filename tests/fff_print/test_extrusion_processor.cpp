@@ -15,11 +15,13 @@
 #include "test_helpers.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <functional>
 #include <limits>
+#include <sstream>
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Point.hpp"
 #include <cstddef>
@@ -346,8 +348,10 @@ double cooled_length(const std::vector<ExtendedPoint<2>>& points, float fan_over
     return length;
 }
 
-DynamicPrintConfig caged_overhang_config(const char* wall_generator){
-    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+// The overhang settings of these tests, on top of `config`, which gives the printer and its filaments. They set one
+// 0.4mm nozzle: a test on more nozzles sets nozzle_diameter again.
+DynamicPrintConfig caged_overhang_config(const char* wall_generator,
+                                         DynamicPrintConfig config = DynamicPrintConfig::full_print_config()){
     config.set_deserialize_strict({
         {"nozzle_diameter", "0.4"},
         {"initial_layer_print_height", caged_layer_height},
@@ -1006,6 +1010,79 @@ TEST_CASE("Walls printed with overhang speed on match a print with it always on 
         // The slope is slowed down, so matching speeds are not merely the wall speed.
         REQUIRE(*std::max_element(expected.begin(), expected.end()) < caged_slow_speed * MM_PER_MIN);
         const std::vector<double> actual = wedge_wall_feed_rates(toggled, print_z, true);
+        REQUIRE(actual.size() == expected.size());
+        for (size_t i = 0; i < actual.size(); ++i)
+            CHECK_THAT(actual[i], Catch::Matchers::WithinAbs(expected[i], 1.));
+    }
+}
+
+// Regression: process_layer() prepared the estimator only when overhang speed was on for the nozzle active before the
+// layer's tool changes. Here the second nozzle prints the walls and slows down for overhangs, the first prints the
+// infill and has overhang speed off. A layer starts with the nozzle that ended the layer below, so every other layer
+// starts with the first one and was not prepared: its walls were measured against an older layer, or against none.
+TEST_CASE("Walls printed by a nozzle with overhang speed on match a print with it on for every nozzle",
+          "[ExtrusionProcessor][Regression]")
+{
+    const auto two_nozzle_gcode = [](const char *overhang_speed) {
+        DynamicPrintConfig config = caged_overhang_config("classic", multifilament_config(2));
+        config.set_deserialize_strict({
+            {"nozzle_diameter", "0.4,0.4"},
+            {"printer_extruder_id", "1,2"},
+            {"printer_extruder_variant", "Direct Drive Standard;Direct Drive Standard"},
+            {"extruder_printable_height", "0,0"},
+            {"filament_self_index", "1,2"},
+            {"single_extruder_multi_material", 0},
+            // Each filament on its own nozzle: left to the automatic grouping, both may share one.
+            {"filament_map_mode", "Manual"},
+            {"filament_map", "1,2"},
+            {"enable_prime_tower", 0},
+            // A process column per nozzle, or every nozzle reads the first overhang speed switch.
+            {"print_extruder_id", "1,2"},
+            {"print_extruder_variant", "Direct Drive Standard;Direct Drive Standard"},
+            {"enable_overhang_speed", overhang_speed},
+            // The overhang fan has every layer prepared for overhang detection, whether overhang speed is on or not.
+            {"enable_overhang_bridge_fan", "0"},
+            {"outer_wall_filament_id", 2},
+            {"inner_wall_filament_id", 2},
+            {"sparse_infill_filament_id", 1},
+            {"internal_solid_filament_id", 1},
+            {"top_surface_filament_id", 1},
+            {"bottom_surface_filament_id", 1},
+            {"skirt_loops", 0},
+            {"brim_type", "no_brim"},
+        });
+        size_flush_to_nozzles(config);
+        Print print;
+        Model model;
+        init_print(std::vector<TriangleMesh>{wedge_mesh()}, print, model, config, nullptr, false);
+        return gcode(print);
+    };
+    const std::string mixed     = two_nozzle_gcode("0,1");
+    const std::string always_on = two_nozzle_gcode("1,1");
+
+    // The regression shows only on the layers process_layer() starts with the first filament (T0), on the first
+    // nozzle. Make sure the checked layers include some: the tool order, not this test, decides which layers those are.
+    int layers_starting_with_first_nozzle = 0;
+    std::istringstream lines(mixed);
+    int tool = -1;
+    for (std::string line; std::getline(lines, line);) {
+        if (line.size() > 1 && line[0] == 'T' && std::isdigit(static_cast<unsigned char>(line[1])))
+            tool = std::stoi(line.substr(1));
+        else if (tool == 0 && line.compare(0, 3, ";Z:") == 0 && std::stod(line.substr(3)) > 1.5 * caged_layer_height)
+            ++layers_starting_with_first_nozzle;
+    }
+    REQUIRE(layers_starting_with_first_nozzle > 0);
+
+    // Every layer above the first, which is never slowed for overhangs.
+    const int layer_count = int(std::lround(wedge_height / caged_layer_height));
+    for (int layer = 2; layer <= layer_count; ++layer) {
+        const double print_z = layer * caged_layer_height;
+        INFO("slope at z = " << print_z);
+        const std::vector<double> expected = wedge_wall_feed_rates(always_on, print_z, true);
+        REQUIRE_FALSE(expected.empty());
+        // The slope is slowed down, so matching speeds are not merely the wall speed.
+        REQUIRE(*std::max_element(expected.begin(), expected.end()) < caged_slow_speed * MM_PER_MIN);
+        const std::vector<double> actual = wedge_wall_feed_rates(mixed, print_z, true);
         REQUIRE(actual.size() == expected.size());
         for (size_t i = 0; i < actual.size(); ++i)
             CHECK_THAT(actual[i], Catch::Matchers::WithinAbs(expected[i], 1.));
