@@ -164,6 +164,7 @@ private:
     std::vector<ToolbarBarSlot> get_bar_slots() const;
     // The group whose slot shows this gizmo, or -1 (always -1 on the Assemble canvas).
     int group_of_slot(EType type) const;
+    int group_of_slot(EType type, const std::vector<ToolbarBarSlot>& slots) const;
     void render_group_list(int group, float left, float top) const;
     EType get_gizmo_from_mouse(const Vec2d &mouse_pos) const;
 

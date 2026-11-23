@@ -607,14 +607,9 @@ bool GLToolbar::on_mouse(wxMouseEvent& evt, GLCanvas3D& parent)
     // mouse anywhere
     if (!evt.Dragging() && !evt.Leaving() && !evt.Entering() && m_mouse_capture.parent != nullptr) {
         if (m_mouse_capture.any() && (evt.LeftUp() || evt.MiddleUp() || evt.RightUp())) {
-            // A right click on the toolbar, where no icon has its own right action, opens the toolbar's menu.
-            const int  item_id   = evt.RightUp() && m_mouse_capture.right && m_context_menu ? contains_mouse(mouse_pos, parent) : -1;
-            const bool show_menu = item_id == -2 || (item_id >= 0 && !m_items[item_id]->is_right_toggable());
             // prevents loosing selection into the scene if mouse down was done inside the toolbar and mouse up was down outside it,
             // as when switching between views
             m_mouse_capture.reset();
-            if (show_menu)
-                m_context_menu();
             return true;
         }
         m_mouse_capture.reset();
@@ -1740,6 +1735,35 @@ bool setup_collapse_toolbar(GLToolbar& toolbar, std::function<void()> toggle)
     return toolbar.add_item(item);
 }
 
+void GLToolbar::apply_layout(const ToolbarGroupLayout& layout)
+{
+    const auto id_of = [](const GLToolbarItem* item) { return item->is_separator() ? std::string(TOOLBAR_SEPARATOR_ID) : item->get_name(); };
+    const auto rank  = [&](const GLToolbarItem* item) { return std::find(layout.order.begin(), layout.order.end(), id_of(item)) - layout.order.begin(); };
+    std::stable_sort(m_items.begin(), m_items.end(), [&](const GLToolbarItem* a, const GLToolbarItem* b) { return rank(a) < rank(b); });
+
+    // The icon texture has one row per item in m_items order.
+    unsigned int sprite_id = 0;
+    for (auto it = m_items.begin(); it != m_items.end();) {
+        GLToolbarItem* item   = *it;
+        const bool     hidden = layout.hidden.count(id_of(item)) != 0;
+        if (item->is_separator()) {
+            // The toolbar rewrites a separator's visibility every frame, so a hidden one is removed instead.
+            if (hidden) {
+                delete item;
+                it = m_items.erase(it);
+                continue;
+            }
+        } else {
+            item->m_data.sprite_id = sprite_id++;
+            // A hidden item stays, only invisible, so lookups by name keep finding it.
+            if (hidden)
+                item->m_data.visibility_callback = [] { return false; };
+        }
+        ++it;
+    }
+    m_layout.dirty = true;
+}
+
 void GLToolbar::set_groups(const std::vector<ToolbarIconGroup>& groups)
 {
     close_group_list();
@@ -1761,6 +1785,9 @@ int GLToolbar::group_of_slot(int item_id) const
 
 bool GLToolbar::fold_groups()
 {
+    // Runs every idle. Without groups there is nothing to fold once the last slots are cleared.
+    if (m_groups.empty() && m_group_slots.empty())
+        return false;
     std::vector<std::string> bar_ids;
     std::set<std::string>    cannot_open;
     std::string              pressed;

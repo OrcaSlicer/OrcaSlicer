@@ -5686,6 +5686,12 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         (selected_object_idx != -1 ? selected_object_idx : m_layers_editing.last_object_id) : -1;
     const bool mouse_in_layer_editing  = layer_editing_object_idx != -1 && m_layers_editing.bar_rect_contains(*this, pos(0), pos(1));
 
+    // A right click anywhere on the top toolbars, an icon, a divider or a gap between gizmos, opens their menu.
+    if (evt.RightDown())
+        m_mouse.menu_armed = m_canvas_type == CanvasView3D && !mouse_in_layer_editing && _is_mouse_over_top_toolbar(pos.cast<double>());
+    else if (evt.RightUp() && std::exchange(m_mouse.menu_armed, false) && _is_mouse_over_top_toolbar(pos.cast<double>()))
+        show_toolbar_context_menu();
+
     if (!mouse_in_layer_editing && m_main_toolbar.on_mouse(evt, *this)) {
         if (m_main_toolbar.is_any_item_pressed())
             m_gizmos.reset_all_states();
@@ -5739,9 +5745,6 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         // all buttons released, also covers a release that never reached this handler. Clears down_on_toolbar
         if (!evt.ButtonIsDown(wxMOUSE_BTN_ANY) && !evt.ButtonDown() && !evt.ButtonDClick())
             mouse_up_cleanup();
-        // A right click on an empty spot of the toolbars, such as a divider or a gap between gizmos, opens their menu.
-        if (evt.RightUp() && !evt.ButtonIsDown(wxMOUSE_BTN_ANY) && m_canvas_type == CanvasView3D && _is_mouse_over_top_toolbar(pos.cast<double>()))
-            show_toolbar_context_menu();
         if (button_event || evt.Dragging())
             return;
     }
@@ -7178,6 +7181,7 @@ void GLCanvas3D::mouse_up_cleanup()
     m_mouse.ignore_left_up = false;
     m_mouse.ignore_right_up = false;
     m_mouse.down_on_toolbar = false;
+    m_mouse.menu_armed      = false;
     m_dirty = true;
     // the frame that follows a release puts the preview's toolpaths back, and on some platforms
     // no idle event follows a button release until the next input
@@ -8413,7 +8417,7 @@ void GLCanvas3D::apply_toolbar_layout()
     if (m_canvas_type != CanvasView3D || !m_initialized || !m_main_toolbar.is_enabled() || !_set_current())
         return;
 
-    const ToolbarLayout layout = parse_toolbar_layout(wxGetApp().app_config->get("toolbar", "layout"));
+    const ToolbarLayout layout = load_toolbar_layout();
     const GLGizmosManager::EType current = m_gizmos.get_current_type();
     if (current != GLGizmosManager::Undefined && layout.gizmos.hidden.count(GLGizmosManager::gizmo_id(current)) != 0)
         m_gizmos.reset_all_states();
@@ -8456,7 +8460,6 @@ bool GLCanvas3D::_init_main_toolbar()
         m_main_toolbar.set_enabled(false);
         return true;
     }
-    m_main_toolbar.set_context_menu(show_toolbar_context_menu);
     // init arrow
     if (!m_main_toolbar.init_arrow("toolbar_arrow.svg"))
         BOOST_LOG_TRIVIAL(error) << "Main toolbar failed to load arrow texture.";
@@ -8476,111 +8479,134 @@ bool GLCanvas3D::_init_main_toolbar()
 
     m_main_toolbar.del_all_item();
 
-    using Builder = std::function<void(GLToolbarItem::Data&)>;
-    const std::map<std::string, Builder> builders{
-        {"add", [this](GLToolbarItem::Data& item) {
-             item.icon_filename = m_is_dark ? "toolbar_open_dark.svg" : "toolbar_open.svg";
-             item.left.action_callback = [this]() { if (m_canvas != nullptr) wxPostEvent(m_canvas, SimpleEvent(EVT_GLTOOLBAR_ADD)); };
-             item.enabling_callback = []()->bool {return wxGetApp().plater()->can_add_model(); };
-         }},
-        {"addplate", [this](GLToolbarItem::Data& item) {
-             item.icon_filename = m_is_dark ? "toolbar_add_plate_dark.svg" : "toolbar_add_plate.svg";
-             item.tooltip = _utf8(L("Add plate"));
-             item.left.action_callback = [this]() { if (m_canvas != nullptr) wxPostEvent(m_canvas, SimpleEvent(EVT_GLTOOLBAR_ADD_PLATE)); };
-             item.enabling_callback = []()->bool {return wxGetApp().plater()->can_add_plate(); };
-         }},
-        {"orient", [this](GLToolbarItem::Data& item) {
-             item.icon_filename = m_is_dark ? "toolbar_orient_dark.svg" : "toolbar_orient.svg";
-             item.enabling_callback = []()->bool { return wxGetApp().plater()->can_arrange(); };
-             item.left.toggable = false;  // allow right mouse click
-             //BBS: GUI refactor: adjust the main toolbar position
-             item.left.action_callback = [this]() {
-                 if (m_canvas != nullptr)
-                 {
-                     wxGetApp().plater()->set_prepare_state(Job::PREPARE_STATE_DEFAULT);
-                     wxGetApp().plater()->orient();
-                     //BBS do not show orient menu
-                     //_render_orient_menu(left, right, bottom, top);
-                     NetworkAgent* agent = GUI::wxGetApp().getAgent();
-                     if (agent) agent->track_update_property("auto_orient", std::to_string(++auto_orient_count));
-                 }
-             };
-         }},
-        {"arrange", [this](GLToolbarItem::Data& item) {
-             item.icon_filename = m_is_dark ? "toolbar_arrange_dark.svg" : "toolbar_arrange.svg";
-             item.left.action_callback = []() {};
-             item.enabling_callback = []()->bool { return wxGetApp().plater()->can_arrange(); };
-             item.left.toggable = true;
-             //BBS: GUI refactor: adjust the main toolbar position
-             item.left.render_callback = [this](float left, float right, float bottom, float top) {
-                 if (m_canvas != nullptr)
-                     _render_arrange_menu(left, right, bottom, top);
-             };
-         }},
-        {"more", [this](GLToolbarItem::Data& item) {
-             item.icon_filename = m_is_dark ? "instance_add_dark.svg" : "instance_add.svg";
-             item.left.action_callback = [this]() { if (m_canvas != nullptr) wxPostEvent(m_canvas, SimpleEvent(EVT_GLTOOLBAR_MORE)); };
-             item.enabling_callback = []()->bool { return wxGetApp().plater()->can_increase_instances(); };
-         }},
-        {"fewer", [this](GLToolbarItem::Data& item) {
-             item.icon_filename = m_is_dark ? "instance_remove_dark.svg" : "instance_remove.svg";
-             item.left.action_callback = [this]() { if (m_canvas != nullptr) wxPostEvent(m_canvas, SimpleEvent(EVT_GLTOOLBAR_FEWER)); };
-             item.enabling_callback = []()->bool { return wxGetApp().plater()->can_decrease_instances(); };
-         }},
-        {"splitobjects", [this](GLToolbarItem::Data& item) {
-             item.icon_filename = m_is_dark ? "split_objects_dark.svg" : "split_objects.svg";
-             item.tooltip = _utf8(L("Split to objects"));
-             item.left.action_callback = [this]() { if (m_canvas != nullptr) wxPostEvent(m_canvas, SimpleEvent(EVT_GLTOOLBAR_SPLIT_OBJECTS)); };
-             item.enabling_callback = []()->bool { return wxGetApp().plater()->can_split_to_objects(); };
-         }},
-        {"splitvolumes", [this](GLToolbarItem::Data& item) {
-             item.icon_filename = m_is_dark ? "split_parts_dark.svg" : "split_parts.svg";
-             item.tooltip = _utf8(L("Split to parts"));
-             item.left.action_callback = [this]() { if (m_canvas != nullptr) wxPostEvent(m_canvas, SimpleEvent(EVT_GLTOOLBAR_SPLIT_VOLUMES)); };
-             item.enabling_callback = []()->bool { return wxGetApp().plater()->can_split_to_volumes(); };
-         }},
-        {"layersediting", [this](GLToolbarItem::Data& item) {
-             item.icon_filename = m_is_dark ? "toolbar_variable_layer_height_dark.svg" : "toolbar_variable_layer_height.svg";
-             item.tooltip = _utf8(L("Variable layer height"));
-             item.left.toggable = true; // ORCA Closes popup if other toolbar icon clicked and it allows closing popup when clicked its button
-             item.left.action_callback = [this]() { if (m_canvas != nullptr) wxPostEvent(m_canvas, SimpleEvent(EVT_GLTOOLBAR_LAYERSEDITING)); };
-             item.visibility_callback = [this]()->bool {
-                 bool res = is_toolbar_item_available("layersediting");
-                 // turns off if changing printer technology
-                 if (!res && m_main_toolbar.is_item_visible("layersediting") && m_main_toolbar.is_item_pressed("layersediting"))
-                     force_main_toolbar_left_action(get_main_toolbar_item_id("layersediting"));
+    GLToolbarItem::Data item;
 
-                 return res;
-             };
-             item.enabling_callback = []()->bool { return wxGetApp().plater()->can_layers_editing(); };
-         }},
-    };
+    item.name = "add";
+    item.icon_filename = m_is_dark ? "toolbar_open_dark.svg" : "toolbar_open.svg";
+    item.sprite_id = 0;
+    item.left.action_callback = [this]() { if (m_canvas != nullptr) wxPostEvent(m_canvas, SimpleEvent(EVT_GLTOOLBAR_ADD)); };
+    item.enabling_callback = []()->bool {return wxGetApp().plater()->can_add_model(); };
+    if (!m_main_toolbar.add_item(item))
+        return false;
 
-    // Items the user hid are still added, only invisible, so lookups by name keep finding them.
-    const ToolbarLayout      saved  = parse_toolbar_layout(wxGetApp().app_config->get("toolbar", "layout"));
-    const ToolbarGroupLayout& layout = saved.main;
-    unsigned int sprite_id = 0;
-    for (const std::string& id : layout.order) {
-        const bool hidden = layout.hidden.count(id) != 0;
-        if (id == TOOLBAR_SEPARATOR_ID) {
-            // The toolbar rewrites a separator's visibility every frame, so a hidden one is left out instead.
-            if (!hidden && !m_main_toolbar.add_separator())
-                return false;
-            continue;
+    item.name = "addplate";
+    item.icon_filename = m_is_dark ? "toolbar_add_plate_dark.svg" : "toolbar_add_plate.svg";
+    item.tooltip = _utf8(L("Add plate"));
+    item.sprite_id++;
+    item.left.action_callback = [this]() { if (m_canvas != nullptr) wxPostEvent(m_canvas, SimpleEvent(EVT_GLTOOLBAR_ADD_PLATE)); };
+    item.enabling_callback = []()->bool {return wxGetApp().plater()->can_add_plate(); };
+    if (!m_main_toolbar.add_item(item))
+        return false;
+
+    item.name = "orient";
+    item.icon_filename = m_is_dark ? "toolbar_orient_dark.svg" : "toolbar_orient.svg";
+    item.sprite_id++;
+    item.left.render_callback = nullptr;
+    item.enabling_callback = []()->bool { return wxGetApp().plater()->can_arrange(); };
+    item.left.toggable = false;  // allow right mouse click
+    //BBS: GUI refactor: adjust the main toolbar position
+    item.left.action_callback = [this]() {
+        if (m_canvas != nullptr)
+        {
+            wxGetApp().plater()->set_prepare_state(Job::PREPARE_STATE_DEFAULT);
+            wxGetApp().plater()->orient();
+            //BBS do not show orient menu
+            //_render_orient_menu(left, right, bottom, top);
+            NetworkAgent* agent = GUI::wxGetApp().getAgent();
+            if (agent) agent->track_update_property("auto_orient", std::to_string(++auto_orient_count));
         }
-        const auto builder = builders.find(id);
-        if (builder == builders.end())
-            continue;
-        GLToolbarItem::Data item;
-        item.name = id;
-        builder->second(item);
-        item.sprite_id = sprite_id++;
-        if (hidden)
-            item.visibility_callback = []() { return false; };
-        if (!m_main_toolbar.add_item(item))
-            return false;
-    }
-    m_main_toolbar.set_groups(saved.groups);
+    };
+    if (!m_main_toolbar.add_item(item))
+        return false;
+
+    item.name = "arrange";
+    item.icon_filename = m_is_dark ? "toolbar_arrange_dark.svg" : "toolbar_arrange.svg";
+    item.sprite_id++;
+    item.left.action_callback = []() {};
+    item.enabling_callback = []()->bool { return wxGetApp().plater()->can_arrange(); };
+    item.left.toggable = true;
+    //BBS: GUI refactor: adjust the main toolbar position
+    item.left.render_callback = [this](float left, float right, float bottom, float top) {
+        if (m_canvas != nullptr)
+        {
+            _render_arrange_menu(left, right, bottom, top);
+            //_render_arrange_menu(0.5f * (left + right));
+        }
+    };
+    if (!m_main_toolbar.add_item(item))
+        return false;
+
+    item.right.toggable = false;
+    item.right.render_callback = GLToolbarItem::Default_Render_Callback;
+
+    if (!m_main_toolbar.add_separator())
+        return false;
+
+    item.name = "more";
+    item.icon_filename = m_is_dark ? "instance_add_dark.svg" : "instance_add.svg";
+    item.sprite_id++;
+    item.left.render_callback = nullptr;
+    item.left.action_callback = [this]() { if (m_canvas != nullptr) wxPostEvent(m_canvas, SimpleEvent(EVT_GLTOOLBAR_MORE)); };
+    item.visibility_callback = GLToolbarItem::Default_Visibility_Callback;
+    item.left.toggable = false;
+    item.enabling_callback = []()->bool { return wxGetApp().plater()->can_increase_instances(); };
+    if (!m_main_toolbar.add_item(item))
+        return false;
+
+    item.name = "fewer";
+    item.icon_filename = m_is_dark ? "instance_remove_dark.svg" : "instance_remove.svg";
+    item.sprite_id++;
+    item.left.render_callback = nullptr;
+    item.left.action_callback = [this]() { if (m_canvas != nullptr) wxPostEvent(m_canvas, SimpleEvent(EVT_GLTOOLBAR_FEWER)); };
+    item.visibility_callback = GLToolbarItem::Default_Visibility_Callback;
+    item.left.toggable = false;
+    item.enabling_callback = []()->bool { return wxGetApp().plater()->can_decrease_instances(); };
+    if (!m_main_toolbar.add_item(item))
+        return false;
+
+    item.name = "splitobjects";
+    item.icon_filename = m_is_dark ? "split_objects_dark.svg" : "split_objects.svg";
+    item.tooltip = _utf8(L("Split to objects"));
+    item.sprite_id++;
+    item.left.render_callback = nullptr;
+    item.left.action_callback = [this]() { if (m_canvas != nullptr) wxPostEvent(m_canvas, SimpleEvent(EVT_GLTOOLBAR_SPLIT_OBJECTS)); };
+    item.visibility_callback = GLToolbarItem::Default_Visibility_Callback;
+    item.left.toggable = false;
+    item.enabling_callback = []()->bool { return wxGetApp().plater()->can_split_to_objects(); };
+    if (!m_main_toolbar.add_item(item))
+        return false;
+
+    item.name = "splitvolumes";
+    item.icon_filename = m_is_dark ? "split_parts_dark.svg" : "split_parts.svg";
+    item.tooltip = _utf8(L("Split to parts"));
+    item.sprite_id++;
+    item.left.action_callback = [this]() { if (m_canvas != nullptr) wxPostEvent(m_canvas, SimpleEvent(EVT_GLTOOLBAR_SPLIT_VOLUMES)); };
+    item.visibility_callback = GLToolbarItem::Default_Visibility_Callback;
+    item.enabling_callback = []()->bool { return wxGetApp().plater()->can_split_to_volumes(); };
+    if (!m_main_toolbar.add_item(item))
+        return false;
+
+    item.name = "layersediting";
+    item.icon_filename = m_is_dark ? "toolbar_variable_layer_height_dark.svg" : "toolbar_variable_layer_height.svg";
+    item.tooltip = _utf8(L("Variable layer height"));
+    item.sprite_id++;
+    item.left.toggable = true; // ORCA Closes popup if other toolbar icon clicked and it allows closing popup when clicked its button
+    item.left.action_callback = [this]() { if (m_canvas != nullptr) wxPostEvent(m_canvas, SimpleEvent(EVT_GLTOOLBAR_LAYERSEDITING)); };
+    item.visibility_callback = [this]()->bool {
+        bool res = current_printer_technology() == ptFFF;
+        // turns off if changing printer technology
+        if (!res && m_main_toolbar.is_item_visible("layersediting") && m_main_toolbar.is_item_pressed("layersediting"))
+            force_main_toolbar_left_action(get_main_toolbar_item_id("layersediting"));
+
+        return res;
+    };
+    item.enabling_callback = []()->bool { return wxGetApp().plater()->can_layers_editing(); };
+    if (!m_main_toolbar.add_item(item))
+        return false;
+
+    const ToolbarLayout layout = load_toolbar_layout();
+    m_main_toolbar.apply_layout(layout.main);
+    m_main_toolbar.set_groups(layout.groups);
 
     update_shortcut_tooltips();
     return true;
@@ -8690,8 +8716,6 @@ bool GLCanvas3D::_init_assemble_view_toolbar()
     m_assemble_view_toolbar.set_gap_size(4);
 
     m_assemble_view_toolbar.del_all_item();
-    if (m_canvas_type == CanvasView3D)
-        m_assemble_view_toolbar.set_context_menu(show_toolbar_context_menu);
 
     GLToolbarItem::Data item;
     item.name = "assembly_view";

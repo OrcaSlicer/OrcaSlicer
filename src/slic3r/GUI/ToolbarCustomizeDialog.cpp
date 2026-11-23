@@ -138,7 +138,7 @@ public:
     explicit ToolbarCustomizeDialog(wxWindow* parent)
         : DPIDialog(parent ? parent : static_cast<wxWindow*>(wxGetApp().mainframe), wxID_ANY, _L("Customize Toolbar"),
                     wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
-        , m_loaded(parse_toolbar_layout(wxGetApp().app_config->get("toolbar", "layout")))
+        , m_loaded(load_toolbar_layout())
         , m_working(m_loaded)
     {
         SetBackgroundColour(*wxWHITE);
@@ -803,6 +803,8 @@ private:
 };
 
 } // namespace
+
+ToolbarLayout load_toolbar_layout() { return parse_toolbar_layout(wxGetApp().app_config->get("toolbar", "layout")); }
 
 void show_toolbar_customize_dialog(wxWindow* parent)
 {

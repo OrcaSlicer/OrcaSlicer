@@ -46,7 +46,6 @@
 #include <iterator>
 #include <set>
 #include <string>
-#include "libslic3r/AppConfig.hpp"
 #include <imgui.h>
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
@@ -146,8 +145,13 @@ int GLGizmosManager::group_of_slot(EType type) const
 {
     if (m_groups.empty() || type == Undefined || m_parent.get_canvas_type() == GLCanvas3D::CanvasAssembleView)
         return -1;
+    return group_of_slot(type, get_bar_slots());
+}
+
+int GLGizmosManager::group_of_slot(EType type, const std::vector<ToolbarBarSlot>& slots) const
+{
     const std::string id = gizmo_id(type);
-    for (const ToolbarBarSlot& slot : get_bar_slots())
+    for (const ToolbarBarSlot& slot : slots)
         if (slot.group >= 0 && slot.shown == id)
             return slot.group;
     return -1;
@@ -371,7 +375,7 @@ bool GLGizmosManager::init()
     m_highlight = std::pair<EType, bool>(Undefined, false);
 
     assert(gizmo_ids_in_etype_order().size() == static_cast<size_t>(EType::Undefined));
-    const ToolbarLayout layout = parse_toolbar_layout(wxGetApp().app_config->get("toolbar", "layout"));
+    const ToolbarLayout layout = load_toolbar_layout();
     set_bar_layout(layout.gizmos, layout.groups);
 
     return true;
@@ -988,9 +992,6 @@ bool GLGizmosManager::gizmos_toolbar_on_mouse(const wxMouseEvent &mouse_event) {
         }
         else if (mc.right && mouse_event.RightUp()) {
             mc.right = false;
-            // Only on the Prepare canvas, whose bar the dialog customizes.
-            if (selected_gizmo && m_parent.get_canvas_type() == GLCanvas3D::CanvasView3D)
-                show_toolbar_context_menu();
             return true;
         }
         else if (mc.middle && mouse_event.MiddleUp()) {
@@ -1460,16 +1461,12 @@ void GLGizmosManager::render_group_list(int group, float left, float top) const
 void GLGizmosManager::do_render_overlay(bool draw_icons) const
 {
     const std::vector<size_t> selectable_idxs = get_selectable_idxs();
-    // With every gizmo hidden from the bar, a gizmo opened by its shortcut still needs its input window.
-    if (selectable_idxs.empty()) {
-        if (!draw_icons && m_current != Undefined) {
-            // Where the bar would start: right after the main toolbar and the separator.
-            const float x = static_cast<float>(m_parent.get_main_toolbar_offset() + m_parent.get_main_toolbar_width()) +
-                            0.5f * static_cast<float>(m_parent.get_separator_toolbar_width());
-            m_gizmos[m_current]->render_input_window(x, get_scaled_total_height(), static_cast<float>(m_parent.get_canvas_size().get_height()));
-        }
+    // With every gizmo hidden from the bar, a gizmo opened by its shortcut still gets its input window, drawn below.
+    if (selectable_idxs.empty() && (draw_icons || m_current == Undefined))
         return;
-    }
+    // The input window pass marks the group slots, computed once for all icons.
+    const std::vector<ToolbarBarSlot> group_slots = draw_icons || m_groups.empty() || m_parent.get_canvas_type() == GLCanvas3D::CanvasAssembleView ?
+                                                        std::vector<ToolbarBarSlot>() : get_bar_slots();
 
     const Size cnv_size = m_parent.get_canvas_size();
     const float cnv_w = (float)cnv_size.get_width();
@@ -1556,7 +1553,7 @@ void GLGizmosManager::do_render_overlay(bool draw_icons) const
 
             is_render_current = true;
         }
-        if (const int group = draw_icons ? -1 : group_of_slot(static_cast<EType>(idx)); group >= 0) {
+        if (const int group = group_of_slot(static_cast<EType>(idx), group_slots); group >= 0) {
             const float left   = 0.5f * cnv_w + 0.5f * top_x * cnv_w;
             const float size   = m_layout.scaled_icons_size();
             const float border = m_layout.scaled_border();

@@ -19,6 +19,7 @@ namespace GUI {
 
 class GLCanvas3D;
 struct ToolbarBarSlot;
+struct ToolbarGroupLayout;
 struct ToolbarIconGroup;
 
 
@@ -416,7 +417,6 @@ private:
     };
 
     MouseCapture m_mouse_capture;
-    std::function<void()> m_context_menu;
     // The user's groups of item names. A group with two or more items on the toolbar is one button, its slot,
     // which shows the pressed member, else the one used last that is enabled. The slots are from the last
     // visibility update; the names are of items used this session, newest first.
@@ -498,6 +498,8 @@ public:
     void render_arrow(const GLCanvas3D& parent, GLToolbarItem* highlighted_item);
 
     bool on_mouse(wxMouseEvent& evt, GLCanvas3D& parent);
+    // Puts the items in the layout's order, items it does not list last, and hides the ones it hides.
+    void apply_layout(const ToolbarGroupLayout& layout);
     void set_groups(const std::vector<ToolbarIconGroup>& groups);
     // Returns whether a group's list was open.
     bool close_group_list();
@@ -506,8 +508,6 @@ public:
     // The item picked in a group's list by the last render_item_windows(), which clears it; "" for none. The
     // caller runs its action after the frame, as the action may render.
     std::string take_picked_group_item() { return std::exchange(m_group_picked, {}); }
-    // Called on a right click on the toolbar outside any icon with a right action; none by default.
-    void set_context_menu(std::function<void()> menu) { m_context_menu = std::move(menu); }
     // get item pointer for highlighter timer
     GLToolbarItem* get_item(const std::string& item_name);
 
