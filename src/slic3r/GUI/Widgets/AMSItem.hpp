@@ -246,6 +246,10 @@ public:
     float                   current_temperature = INVALID_AMS_TEMPERATURE;
     AMSModel                ams_type = AMSModel::GENERIC_AMS;
     AMSModelOriginType      ext_type = AMSModelOriginType::GENERIC_EXT;
+    // Orca: a Bambu AMS always shows its humidity, another printer only when it reports a reading.
+    bool                    show_humidity = true;
+    // Orca: whether the printer agent carries out the slot RFID re-read.
+    bool                    rfid_refresh = true;
 
     // Orca: switch inlet (POS_IN_A/POS_IN_B) carried from the AMS-level DevAms::GetSwitcherPos(); empty on
     // printers without a Filament Track Switch. Drives inlet-aware panel placement (routes_to_main_extruder).
@@ -266,6 +270,8 @@ public:
             current_temperature == other.current_temperature &&
             ams_type == other.ams_type &&
             ext_type == other.ext_type &&
+            show_humidity == other.show_humidity &&
+            rfid_refresh == other.rfid_refresh &&
             switch_pos == other.switch_pos) // Orca: refresh placement when the switch inlet changes
         {
             return true;
@@ -522,6 +528,9 @@ public:
     // View-only mode (2D laser/cut): show the read-only (eye) icon for every editable spool
     // while keeping it clickable to open the read-only filament dialog.
     void         set_view_only(bool view_only) { if (m_view_only != view_only) { m_view_only = view_only; Refresh(); } }
+    // Orca: without filament editing (a printer agent with no filament-setting command) the edit
+    // icon is not drawn and clicking it does nothing.
+    void         set_editable(bool editable) { if (m_editable != editable) { m_editable = editable; Refresh(); } }
     void         msw_rescale();
     void         on_pass_road(bool pass);
 
@@ -559,6 +568,7 @@ protected:
     wxColour m_lib_color;
     bool m_disable_mode{ false };
     bool m_view_only{ false };
+    bool m_editable{ true };
     bool m_pass_road{false};
 
     void on_enter_window(wxMouseEvent &evt);

@@ -82,6 +82,7 @@ bool AMSinfo::parse_ams_info(MachineObject *obj, DevAms *ams, bool remain_flag, 
 {
     if (!ams) return false;
     this->ams_id = ams->GetAmsId();
+    this->rfid_refresh = !obj || obj->supports_filament_change();
 
     if (ams->SupportHumidity()){
         this->ams_humidity = ams->GetHumidityLevel();
@@ -91,6 +92,7 @@ bool AMSinfo::parse_ams_info(MachineObject *obj, DevAms *ams, bool remain_flag, 
     }
 
     this->humidity_raw = ams->GetHumidityPercent();
+    this->show_humidity = !obj || obj->uses_bambu_agent() || this->humidity_raw >= 0;
     this->left_dray_time = ams->GetLeftDryTime();
     this->current_temperature = ams->GetCurrentTemperature();
     this->ams_type = AMSModel(ams->GetAmsType());
@@ -1031,7 +1033,7 @@ void AMSLib::on_leave_window(wxMouseEvent &evt)
 
 void AMSLib::on_left_down(wxMouseEvent &evt)
 {
-    if (m_info.material_state != AMSCanType::AMS_CAN_TYPE_EMPTY && m_info.material_state != AMSCanType::AMS_CAN_TYPE_NONE) {
+    if (m_editable && m_info.material_state != AMSCanType::AMS_CAN_TYPE_EMPTY && m_info.material_state != AMSCanType::AMS_CAN_TYPE_NONE) {
         auto size = GetSize();
         auto pos  = evt.GetPosition();
         if (m_info.material_state == AMSCanType::AMS_CAN_TYPE_THIRDBRAND || m_info.material_state == AMSCanType::AMS_CAN_TYPE_BRAND ||
@@ -1433,7 +1435,7 @@ void AMSLib::render_lite_lib(wxDC& dc)
     }
     dc.SetPen(wxPen(*wxTRANSPARENT_PEN));
     dc.SetBrush(wxBrush(tmp_lib_colour));
-    if (!m_disable_mode) {
+    if (!m_disable_mode && m_editable) {
         // edit icon
         if (m_info.material_state != AMSCanType::AMS_CAN_TYPE_EMPTY && m_info.material_state != AMSCanType::AMS_CAN_TYPE_NONE)
         {
@@ -1534,7 +1536,7 @@ void AMSLib::render_generic_lib(wxDC &dc)
             dc.DrawRoundedRectangle(color_rect.x, color_rect.y, color_rect.width, color_rect.height, m_radius - 1);
         }
 
-        if (!m_disable_mode) {
+        if (!m_disable_mode && m_editable) {
             // edit icon
             if (m_info.material_state != AMSCanType::AMS_CAN_TYPE_EMPTY && m_info.material_state != AMSCanType::AMS_CAN_TYPE_NONE) {
                 if (m_info.material_state == AMSCanType::AMS_CAN_TYPE_THIRDBRAND || m_info.material_state == AMSCanType::AMS_CAN_TYPE_VIRTUAL)
@@ -1714,7 +1716,7 @@ void AMSLib::render_generic_lib(wxDC &dc)
         dc.SetBrush(wxBrush(tmp_lib_colour));
     }
 
-    if (!m_disable_mode) {
+    if (!m_disable_mode && m_editable) {
         // edit icon
         if (m_info.material_state != AMSCanType::AMS_CAN_TYPE_EMPTY && m_info.material_state != AMSCanType::AMS_CAN_TYPE_NONE)
         {
@@ -3136,6 +3138,7 @@ void AmsItem::create(wxWindow *parent)
         if (m_ams_model == AMSModel::GENERIC_AMS || m_ams_model == AMSModel::N3F_AMS || m_ams_model == AMSModel::N3S_AMS){
             m_humidity = new AMSHumidity(this, wxID_ANY, m_info);
             sizer_item->Add(m_humidity, 0, wxALIGN_CENTER_HORIZONTAL, 0);
+            m_humidity->Show(m_info.show_humidity);
         }
         else{
             if (m_ams_model == EXT_AMS){
@@ -3240,7 +3243,9 @@ void AmsItem::AddCan(Caninfo caninfo, int canindex, int maxcan, wxBoxSizer* size
 
     if (m_ams_model != AMSModel::AMS_LITE && m_ams_model != AMSModel::EXT_AMS) {
         m_sizer_ams->Add(0, 0, 0, wxALIGN_CENTER_HORIZONTAL, 0);
-        m_sizer_ams->Add(m_panel_refresh, 0, wxALIGN_CENTER_HORIZONTAL | wxDOWN, FromDIP(4));
+        // Hidden, not removed, without the RFID re-read: the slot keeps its height so the spool still meets the lane line below.
+        m_sizer_ams->Add(m_panel_refresh, 0, wxALIGN_CENTER_HORIZONTAL | wxDOWN | wxRESERVE_SPACE_EVEN_IF_HIDDEN, FromDIP(4));
+        m_panel_refresh->Show(m_info.rfid_refresh);
         m_sizer_ams->Add(m_panel_lib, 0, wxALIGN_CENTER_HORIZONTAL, 0);
     }
     else
@@ -3353,6 +3358,10 @@ void AmsItem::UpdateInfo(AMSinfo info)
     if (m_humidity)
     {
         m_humidity->UpdateInfo(m_info);
+        if (m_humidity->IsShown() != m_info.show_humidity) {
+            m_humidity->Show(m_info.show_humidity);
+            Layout();
+        }
     }
 
     for (int i = 0; i < m_can_count; i++) {
@@ -3362,7 +3371,7 @@ void AmsItem::UpdateInfo(AMSinfo info)
         auto refresh = it->second;
         if (refresh != nullptr){
             refresh->UpdateInfo(info.ams_id, info.cans[i]);
-            refresh->Show();
+            refresh->Show(info.rfid_refresh);
         }
     }
 
