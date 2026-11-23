@@ -1418,8 +1418,10 @@ unsigned int PrintObject::belt_brim_filament() const
 {
     // 1-based, matching PrintRegion::outer_wall_filament_id and the raw values pushed
     // into LayerTools::extruders in ToolOrdering::collect_extruders (the whole list is
-    // reindexed to 0-based later).  Lowest positive outer-wall filament over the
-    // printing regions; 1 when none is explicitly set.
+    // reindexed to 0-based later).  The chosen brim filament, else the lowest positive
+    // outer-wall filament over the printing regions; 1 when none is explicitly set.
+    if (m_config.brim_filament_id.value > 0)
+        return (unsigned int)m_config.brim_filament_id.value;
     unsigned int brim_filament = 0;
     for (size_t i = 0; i < this->num_printing_regions(); ++ i) {
         const unsigned int f = this->printing_region(i).config().outer_wall_filament_id.value;
@@ -1732,7 +1734,8 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "small_area_infill_flow_compensation"
             || opt_key == "lateral_lattice_angle_1"
             || opt_key == "lateral_lattice_angle_2"
-            || opt_key == "infill_overhang_angle") {
+            || opt_key == "infill_overhang_angle"
+            || opt_key == "sparse_infill_strategy") {
             steps.emplace_back(posInfill);
         } else if (opt_key == "sparse_infill_pattern"
                    || opt_key == "adaptive_infill_mode"
@@ -1885,6 +1888,12 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "spiral_starting_flow_ratio"
             || opt_key == "spiral_finishing_flow_ratio") {
             invalidated |= m_print->invalidate_step(psGCodeExport);
+        } else if (opt_key == "brim_filament_id") {
+            // The belt brim is built with the supports and takes its line width from the brim filament's nozzle.
+            if (m_print->config().belt_printer.value)
+                steps.emplace_back(posSupportMaterial);
+            else
+                invalidated |= m_print->invalidate_steps({ psSkirtBrim, psWipeTower, psGCodeExport });
         } else if (
                opt_key == "flush_into_infill"
             || opt_key == "flush_into_objects"
@@ -4331,6 +4340,8 @@ PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObject
     // Clamp invalid extruders to the default extruder (with index 1).
     clamp_exturder_to_default(config.support_filament,           num_extruders);
     clamp_exturder_to_default(config.support_interface_filament, num_extruders);
+    if (config.brim_filament_id.value > (int)num_extruders)
+        config.brim_filament_id.value = 0;
     return config;
 }
 
@@ -4625,15 +4636,17 @@ std::vector<unsigned int> PrintObject::object_extruders() const
 std::vector<unsigned int> PrintObject::printing_extruders() const
 {
     std::vector<unsigned int> extruders = object_extruders();
+    const size_t filament_count = print()->config().filament_diameter.size();
+    auto append_fixed_filament = [&](const int filament_id) {
+        if (filament_id > 0)
+            extruders.emplace_back(std::min<size_t>(size_t(filament_id - 1), filament_count > 0 ? filament_count - 1 : 0));
+    };
     if (has_support_material()) {
-        const size_t filament_count = print()->config().filament_diameter.size();
-        auto append_fixed_filament = [&](const int filament_id) {
-            if (filament_id > 0)
-                extruders.emplace_back(std::min<size_t>(size_t(filament_id - 1), filament_count > 0 ? filament_count - 1 : 0));
-        };
         append_fixed_filament(config().support_filament.value);
         append_fixed_filament(config().support_interface_filament.value);
     }
+    if ((has_brim() && !print()->config().belt_printer.value) || has_belt_brim())
+        append_fixed_filament(config().brim_filament_id.value);
     if (extruders.empty())
         extruders.emplace_back(0);
     sort_remove_duplicates(extruders);

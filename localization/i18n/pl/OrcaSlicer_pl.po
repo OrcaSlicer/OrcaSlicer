@@ -15632,13 +15632,13 @@ msgstr "Modyfikator „%2%” (%1%) obiektu „%3%” (łącznie %4%) obejmuje c
 
 # AI Translated
 #, boost-format
-msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "modyfikator „%1%” obiektu „%2%” nie wpłynął na szew (może nie sięgać linii środkowej drukowanego obrysu)"
+msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam"
+msgstr "modyfikator „%1%” obiektu „%2%” nie wpłynął na szew"
 
 # AI Translated
 #, boost-format
-msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "modyfikator „%1%” obiektu „%2%” (łącznie %3%) nie wpłynął na szew (może nie sięgać linii środkowej drukowanego obrysu)"
+msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam"
+msgstr "modyfikator „%1%” obiektu „%2%” (łącznie %3%) nie wpłynął na szew"
 
 # AI Translated
 msgid "Seam placement may differ from expected."
