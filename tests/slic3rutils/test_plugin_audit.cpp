@@ -2779,14 +2779,14 @@ except TypeError:
     INFO("recorded audit arguments: " << python.str("WINAPI_AUDIT_CALLS"));
     CHECK(python.eval("WINAPI_AUDIT_CALLS == [(None, COMMAND_LINE, None)]") == "True");
 
-    // In a plugin scope the same call is prompted and denied, and the prompt names the command
-    // line exactly as the caller passed it, which an approval saves as the process grant.
+    // In a plugin scope the same call is prompted and denied. The quoted executable is the
+    // permission target; its arguments are not part of the grant.
     python.run_as(PLUGIN, R"PY(
 create_process_outcome = attempt(lambda: _winapi.CreateProcess(
     None, COMMAND_LINE, None, None, False, 0, None, None, subprocess.STARTUPINFO()))
 )PY");
     CHECK(python.str("create_process_outcome") == "denied");
-    CHECK(describe(harness.prompts) == "_winapi.CreateProcess: " + python.str("COMMAND_LINE") + "\n");
+    CHECK(describe(harness.prompts) == "_winapi.CreateProcess: " + python.str("DENIED_EXECUTABLE") + "\n");
 }
 #endif
 

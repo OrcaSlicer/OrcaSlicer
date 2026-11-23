@@ -9387,4 +9387,13 @@ bool PresetBundle::install_vendor_cache(const std::string& cache_path, const std
     }
 }
 
+ConfigOptionInts effective_physical_extruder_map(const PresetBundle& pb)
+{
+    const ConfigOptionInts* explicit_pem = pb.project_config.option<ConfigOptionInts>("physical_extruder_map");
+    if (!explicit_pem || explicit_pem->values.size() < 2)
+        explicit_pem = pb.printers.get_edited_preset().config.option<ConfigOptionInts>("physical_extruder_map");
+    const auto* nozzles = pb.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
+    return effective_physical_extruder_map(explicit_pem, nozzles ? (int) nozzles->values.size() : 0);
+}
+
 } // namespace Slic3r
