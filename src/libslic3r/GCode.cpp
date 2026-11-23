@@ -2854,6 +2854,7 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
 
     // BBS
     m_curr_print = print;
+    m_overhang_layers_cache.valid = false;
     m_skirt_group_done.clear();
     m_pending_start_gcode_position.reset();
     m_exclusion_volume_travel_avoidance.init(print->config(), print->get_plate_origin());
@@ -5125,24 +5126,24 @@ struct PrecomputedLayer
 };
 } // namespace
 
-// Whether process_layer() prepares the overhang estimator for `layer`.
-template<typename OverhangSpeed>
-static bool prepares_overhang_estimator(const Layer &layer, bool overhang_fan, OverhangSpeed overhang_speed)
+// Whether process_layer() prepares the overhang estimator for `layer`. Any filament may print the layer, and
+// process_layer() prepares it before the layer's tool changes, so a region's overhang speed counts if it is enabled for
+// any nozzle.
+static bool prepares_overhang_estimator(const Layer &layer, bool overhang_fan)
 {
     const LayerRegionPtrs &regions = layer.regions();
-    return std::any_of(regions.begin(), regions.end(), [overhang_fan, &overhang_speed](const LayerRegion *region) {
-        return region->has_extrusions() && (overhang_fan || overhang_speed(*region));
+    return std::any_of(regions.begin(), regions.end(), [overhang_fan](const LayerRegion *region) {
+        return region->has_extrusions() &&
+            (overhang_fan || any_enabled(region->region().config().enable_overhang_speed));
     });
 }
 
 std::vector<PrecomputedOverhangLayer> precompute_overhang_layers(const std::vector<GCode::LayerToPrint> &layers, bool overhang_fan)
 {
-    // Any filament may print the layer, so a region's overhang speed counts if it is enabled for any.
-    auto overhang_speed = [](const LayerRegion &region) { return any_enabled(region.region().config().enable_overhang_speed); };
     std::vector<PrecomputedOverhangLayer> out;
     for (const GCode::LayerToPrint &layer : layers)
         if (layer.object_layer != nullptr && layer.object_layer->lower_layer != nullptr &&
-            prepares_overhang_estimator(*layer.object_layer, overhang_fan, overhang_speed)) {
+            prepares_overhang_estimator(*layer.object_layer, overhang_fan)) {
             const LayerRegionPtrs &regions = layer.object_layer->regions();
             const bool curled_lines = std::any_of(regions.begin(), regions.end(), [](const LayerRegion *region) {
                 return any_enabled(region->region().config().slowdown_for_curled_perimeters);
@@ -7026,12 +7027,9 @@ LayerResult GCode::process_layer(
         return next_extruder;
     };
     
-    const bool overhang_fan   = overhang_fan_enabled(m_config, m_enable_cooling_markers);
-    auto       overhang_speed = [this](const LayerRegion &region) {
-        return bool(region.region().config().enable_overhang_speed.get_at(get_nozzle_config_index(m_writer.filament()->id())));
-    };
+    const bool overhang_fan = overhang_fan_enabled(m_config, m_enable_cooling_markers);
     for (const auto &layer_to_print : layers)
-        if (layer_to_print.object_layer && prepares_overhang_estimator(*layer_to_print.object_layer, overhang_fan, overhang_speed))
+        if (layer_to_print.object_layer && prepares_overhang_estimator(*layer_to_print.object_layer, overhang_fan))
             m_extrusion_quality_estimator.prepare_for_new_layer(layer_to_print.original_object, layer_to_print.object_layer);
 
     // Group extrusions by an extruder, then by an object, an island and a region.
@@ -10854,12 +10852,22 @@ bool GCode::needs_retraction(const Polyline &travel, ExtrusionRole role, LiftTyp
         std::pair<float, float> z_range;
         z_range.second = m_layer ? m_layer->print_z : 0.f;
         z_range.first = std::max(0.f, z_range.second - protect_z);
-        std::vector<LayerPtrs> layers_of_objects;
-        std::vector<BoundingBox> boundingBox_for_objects;
-        VecOfPoints objects_instances_shift;
-        std::vector<size_t> idx_of_object_sorted = m_curr_print->layers_sorted_for_object(z_range.first, z_range.second, layers_of_objects, boundingBox_for_objects, objects_instances_shift);
-
-        std::vector<bool> is_layers_of_objects_sorted(layers_of_objects.size(), false);
+        OverhangLayersCache &cache = m_overhang_layers_cache;
+        if (!cache.valid || cache.z_min != z_range.first || cache.z_max != z_range.second) {
+            cache.layers_of_objects.clear();
+            cache.boundingBox_for_objects.clear();
+            cache.idx_of_object_sorted = m_curr_print->layers_sorted_for_object(z_range.first, z_range.second, cache.layers_of_objects,
+                                                                                cache.boundingBox_for_objects, cache.objects_instances_shift);
+            for (LayerPtrs &layers : cache.layers_of_objects)
+                std::sort(layers.begin(), layers.end(), [](auto left, auto right) { return left->loverhangs_bbox.area() > right->loverhangs_bbox.area();});
+            cache.z_min = z_range.first;
+            cache.z_max = z_range.second;
+            cache.valid = true;
+        }
+        const std::vector<LayerPtrs>   &layers_of_objects       = cache.layers_of_objects;
+        const std::vector<BoundingBox> &boundingBox_for_objects = cache.boundingBox_for_objects;
+        const VecOfPoints              &objects_instances_shift = cache.objects_instances_shift;
+        const std::vector<size_t>      &idx_of_object_sorted    = cache.idx_of_object_sorted;
 
         for (size_t idx : idx_of_object_sorted) {
             for (const Point & instance_shift : objects_instances_shift[idx]) {
@@ -10876,11 +10884,6 @@ bool GCode::needs_retraction(const Polyline &travel, ExtrusionRole role, LiftTyp
                 temp.emplace_back(instance_bbox.polygon());
                 if (intersection_pl(travel, temp).empty())
                     continue;
-
-                if (!is_layers_of_objects_sorted[idx]) {
-                    std::sort(layers_of_objects[idx].begin(), layers_of_objects[idx].end(), [](auto left, auto right) { return left->loverhangs_bbox.area() > right->loverhangs_bbox.area();});
-                    is_layers_of_objects_sorted[idx] = true;
-                }
 
                 for (const auto& layer : layers_of_objects[idx]) {
                     for (ExPolygon overhang : layer->loverhangs) {

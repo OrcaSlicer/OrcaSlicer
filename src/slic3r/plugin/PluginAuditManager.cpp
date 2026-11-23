@@ -641,13 +641,56 @@ bool same_path_component(const boost::filesystem::path& lhs, const boost::filesy
 #endif
 }
 
+#ifdef _WIN32
+// Windows spells some locations two ways: the plain form ("C:\dir", "\\server\share\dir") and the
+// documented extended-length form ("\\?\C:\dir", "\\?\UNC\server\share\dir"). A plugin's __file__
+// carries whichever spelling its sys.path entry used, and a path canonicalized past MAX_PATH is
+// necessarily extended, while allowed roots and grants are registered in the plain form. The
+// prefix adds a root-name component ("\\?\C:" sees "C:", "\\?\UNC" sees "\\server"), so a
+// component-wise comparison would never match. Rewrite the two documented aliases to the plain
+// spelling here; the result is only compared, never used for I/O. Every other device-namespace
+// path ("\\?\Volume{...}", "\\?\PIPE\...", "\\.\pipe\...", "\\.\PhysicalDrive0", "\??\C:\...")
+// names something this normalization cannot reinterpret, so it is left exactly as written and
+// keeps failing closed against a plain root.
+boost::filesystem::path plain_spelling(const boost::filesystem::path& path)
+{
+    const std::wstring native = path.native();
+
+    // "\\?\UNC\server\share\..." -> "\\server\share\..." (the Win32 UNC alias).
+    constexpr std::size_t unc_prefix_length = 8; // "\\?\UNC\"
+    if (native.rfind(L"\\\\?\\UNC\\", 0) == 0)
+        return boost::filesystem::path(L"\\\\" + native.substr(unc_prefix_length));
+
+    // "\\?\C:\..." -> "C:\..." for a drive-letter root only. "\\?\UNC\..." is handled above, and
+    // anything else after the prefix is a different namespace, not a longer name for a drive path.
+    constexpr std::size_t prefix_length = 4; // "\\?\"
+    if (native.rfind(L"\\\\?\\", 0) == 0 && native.size() > prefix_length + 1) {
+        const wchar_t drive  = native[prefix_length];
+        const bool    letter = (drive >= L'A' && drive <= L'Z') || (drive >= L'a' && drive <= L'z');
+        if (letter && native[prefix_length + 1] == L':')
+            return boost::filesystem::path(native.substr(prefix_length));
+    }
+
+    return path;
+}
+#else
+boost::filesystem::path plain_spelling(const boost::filesystem::path& path)
+{
+    return path;
+}
+#endif
+
 // True when two canonical paths name the same location: every component must match, using the
 // platform's case rule. Unlike suffix_inside_root() this is full equality, so a lookalike that
 // merely shares a prefix -- or a file beside the granted one -- can never match.
 bool same_canonical_path(const boost::filesystem::path& lhs, const boost::filesystem::path& rhs)
 {
-    auto lhs_it = lhs.begin(), lhs_end = lhs.end();
-    auto rhs_it = rhs.begin(), rhs_end = rhs.end();
+    // Compare in the plain spelling; see plain_spelling().
+    const boost::filesystem::path plain_lhs = plain_spelling(lhs);
+    const boost::filesystem::path plain_rhs = plain_spelling(rhs);
+
+    auto lhs_it = plain_lhs.begin(), lhs_end = plain_lhs.end();
+    auto rhs_it = plain_rhs.begin(), rhs_end = plain_rhs.end();
     for (; lhs_it != lhs_end && rhs_it != rhs_end; ++lhs_it, ++rhs_it) {
         if (!same_path_component(*lhs_it, *rhs_it))
             return false;
@@ -658,18 +701,24 @@ bool same_canonical_path(const boost::filesystem::path& lhs, const boost::filesy
 // Component-wise containment: the whole of canonical_root must be a prefix of
 // canonical_candidate, and the remaining components must not traverse upward. Both arguments are
 // expected to come from canonicalize_for_comparison()/canonical_folder(), i.e. expanded to long
-// names where the platform has 8.3 aliases. On a match, suffix receives the candidate's
-// components below the root (empty when the two paths are equal).
+// names where the platform has 8.3 aliases and possibly carrying the extended-length prefix. On a
+// match, suffix receives the candidate's components below the root (empty when the two paths are
+// equal).
 bool suffix_inside_root(const boost::filesystem::path& canonical_candidate,
                         const boost::filesystem::path& canonical_root,
                         boost::filesystem::path&       suffix)
 {
     suffix.clear();
 
-    auto cand_it  = canonical_candidate.begin();
-    auto cand_end = canonical_candidate.end();
-    auto root_it  = canonical_root.begin();
-    auto root_end = canonical_root.end();
+    // Compare in the plain spelling; see plain_spelling(). The components below the root never
+    // carry the prefix, so the suffix is unaffected.
+    const boost::filesystem::path candidate = plain_spelling(canonical_candidate);
+    const boost::filesystem::path root      = plain_spelling(canonical_root);
+
+    auto cand_it  = candidate.begin();
+    auto cand_end = candidate.end();
+    auto root_it  = root.begin();
+    auto root_end = root.end();
 
     // Consume matching components
     while (root_it != root_end && cand_it != cand_end && same_path_component(*root_it, *cand_it)) {
@@ -697,9 +746,9 @@ bool suffix_inside_root(const boost::filesystem::path& canonical_candidate,
 bool is_inside_allowed_root(const boost::filesystem::path& candidate, const boost::filesystem::path& allowed_root)
 {
     // Both sides are canonicalized identically, including the expansion of Windows 8.3 short
-    // names, so a root registered under one spelling still contains a target reported under the
-    // other. A side that cannot be normalized fails closed: comparing differently spelled paths
-    // could otherwise report containment that does not hold.
+    // names and the extended-length prefix, so a root registered under one spelling still contains
+    // a target reported under the other. A side that cannot be normalized fails closed: comparing
+    // differently spelled paths could otherwise report containment that does not hold.
     boost::filesystem::path canonical_candidate;
     if (!canonicalize_for_comparison(candidate, canonical_candidate))
         return false;

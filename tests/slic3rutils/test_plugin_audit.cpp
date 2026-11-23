@@ -1426,6 +1426,8 @@ import http.client, http.server, os, pathlib, shutil, socket, subprocess, sys, t
 import urllib.request, zipfile
 if os.name != "nt":
     import pty
+else:
+    import _winapi
 
 APPROVED = os.path.join(OUTSIDE, "approved.txt")
 PRIVATE = os.path.join(OUTSIDE, "private.txt")
@@ -2705,6 +2707,58 @@ site_packages_outcome = attempt(lambda: open(SITE_PACKAGE_FILE).close())
     const std::string site_packages_prompt = "open: " + python.str("SITE_PACKAGE_FILE") + "\n";
     CHECK(describe(harness.prompts) == write_prompt + site_packages_prompt);
 }
+
+#ifdef _WIN32
+TEST_CASE("A real _winapi.CreateProcess audit event reports its command line as text", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    // subprocess reaches this event on Windows. CPython 3.12.13 raised it with PySys_Audit's "uuu"
+    // format, reading the command-line object as a wide string, so audit hooks received garbage
+    // instead of the text subprocess passed. The deps patch raises "uOu" (as upstream does,
+    // python/cpython#159237) until the pinned release carries the fix.
+    //
+    // The event is raised before the arguments are used, so a rejected environment mapping ends
+    // the call after the hook saw the event, without reaching CreateProcessW. Run outside a
+    // plugin scope, so the hook below is reached: the plugin audit hook aborts the event when it
+    // denies, and a real prompt is asserted separately at the end.
+    python.exec(R"PY(
+WINAPI_AUDIT_CALLS = []
+
+def record_winapi_audit(event, args):
+    if event == "_winapi.CreateProcess":
+        WINAPI_AUDIT_CALLS.append(args)
+
+sys.addaudithook(record_winapi_audit)
+
+DENIED_EXECUTABLE = os.path.join(OUTSIDE, "Program Files", "audit-denied.exe")
+COMMAND_LINE = '"' + DENIED_EXECUTABLE + '" --flag'
+try:
+    _winapi.CreateProcess(None, COMMAND_LINE, None, None, False, 0, object(), None,
+                          subprocess.STARTUPINFO())
+    audit_arguments_outcome = "started"
+except TypeError:
+    audit_arguments_outcome = "stopped"
+)PY");
+    CHECK(python.str("audit_arguments_outcome") == "stopped");
+    INFO("recorded audit arguments: " << python.str("WINAPI_AUDIT_CALLS"));
+    CHECK(python.eval("WINAPI_AUDIT_CALLS == [(None, COMMAND_LINE, None)]") == "True");
+
+    // In a plugin scope the same call is prompted and denied. The quoted executable is the
+    // permission target; its arguments are not part of the grant.
+    python.run_as(PLUGIN, R"PY(
+create_process_outcome = attempt(lambda: _winapi.CreateProcess(
+    None, COMMAND_LINE, None, None, False, 0, None, None, subprocess.STARTUPINFO()))
+)PY");
+    CHECK(python.str("create_process_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "_winapi.CreateProcess: " + python.str("DENIED_EXECUTABLE") + "\n");
+}
+#endif
 
 TEST_CASE("A filesystem wildcard grant covers the folder and its descendants at any depth", "[audit][Python]")
 {
@@ -5086,6 +5140,76 @@ TEST_CASE("An implicit writable root matches a target spelled with the other 8.3
         // The reverse link lives outside, so its destination being the root does not make it
         // implicit.
         CHECK_FALSE(mgr.delete_target_inside_writable_allowed_root((outside / "link_to_root").string()));
+    }
+#endif
+}
+
+TEST_CASE("An extended-length spelling names the same location as its plain form", "[audit][Regression]")
+{
+#ifndef _WIN32
+    SKIP("The extended-length path prefix exists only on Windows");
+#else
+    ScopedTemporaryDir temp{"orca-plugin-audit-extended-paths"};
+    const fs::path     root    = temp.path() / "root";
+    const fs::path     outside = temp.path() / "outside";
+    fs::create_directories(root / "sub");
+    fs::create_directories(outside);
+
+    // A plugin's __file__ is spelled the way its sys.path entry was, and a cache past MAX_PATH can
+    // only be canonicalized in the extended-length form, while allowed roots are registered plainly.
+    // The same location has to compare equal in both spellings, and the boundary has to stay put.
+    const fs::path extended_root    = extended_path(root);
+    const fs::path extended_outside = extended_path(outside);
+    REQUIRE(extended_root != root);
+    REQUIRE(extended_outside != outside);
+
+    PluginAuditManager& mgr = PluginAuditManager::instance();
+
+    SECTION("a plain root contains extended-spelled targets")
+    {
+        ScopedPluginAuditContext ctx("test_plugin", "");
+        mgr.add_scoped_allowed_root(root);
+
+        CHECK(is_inside_allowed_root(extended_path(root / "sub" / "file.txt"), root));
+        CHECK(is_inside_allowed_root(root, extended_root));
+        CHECK(mgr.delete_target_inside_writable_allowed_root(extended_path(root / "sub").string()));
+        // A target that does not exist yet is still inside: only the existing prefix is compared.
+        CHECK(mgr.delete_target_inside_writable_allowed_root(extended_path(root / "not-created-yet").string()));
+
+        // Outside stays outside in the extended spelling too, including a name that only shares the
+        // root's prefix.
+        CHECK_FALSE(is_inside_allowed_root(extended_outside / "file.txt", root));
+        CHECK_FALSE(mgr.delete_target_inside_writable_allowed_root(extended_outside.string()));
+        CHECK_FALSE(is_inside_allowed_root(extended_path(fs::path(root.string() + "_sibling") / "file.txt"), root));
+    }
+
+    SECTION("an extended-spelled root contains plain targets")
+    {
+        ScopedPluginAuditContext ctx("test_plugin", "");
+        mgr.add_scoped_allowed_root(extended_root);
+
+        CHECK(is_inside_allowed_root(root / "sub" / "file.txt", extended_root));
+        CHECK(is_inside_allowed_root(extended_root, root));
+        CHECK(mgr.delete_target_inside_writable_allowed_root((root / "sub").string()));
+
+        CHECK_FALSE(is_inside_allowed_root(outside / "file.txt", extended_root));
+        CHECK_FALSE(is_inside_allowed_root(fs::path(root.string() + "_sibling"), extended_root));
+    }
+
+    SECTION("device paths that are not drive-letter aliases stay outside")
+    {
+        ScopedPluginAuditContext ctx("test_plugin", "");
+        mgr.add_scoped_allowed_root(root);
+
+        // "\\?\C:\..." is the only device-namespace alias of a lettered path that the comparison
+        // rewrites. A volume GUID, a named pipe, the "\\.\" device namespace and the NT "\??\"
+        // prefix name other objects, so stripping the prefix would invent a path inside the root;
+        // they must stay unmatched, as must an extended UNC spelling of some other share.
+        CHECK_FALSE(is_inside_allowed_root(fs::path(L"\\\\?\\Volume{00000000-0000-0000-0000-000000000000}\\file.txt"), root));
+        CHECK_FALSE(is_inside_allowed_root(fs::path(L"\\\\?\\PIPE\\orca-audit"), root));
+        CHECK_FALSE(is_inside_allowed_root(fs::path(L"\\\\.\\pipe\\orca-audit"), root));
+        CHECK_FALSE(is_inside_allowed_root(fs::path(L"\\??\\C:\\Windows\\win.ini"), root));
+        CHECK_FALSE(is_inside_allowed_root(fs::path(L"\\\\?\\UNC\\orca-audit-host\\share\\file.txt"), root));
     }
 #endif
 }
