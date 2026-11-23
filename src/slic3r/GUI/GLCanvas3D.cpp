@@ -10994,7 +10994,7 @@ void GLCanvas3D::_render_overlays()
     //BBS: GUI refactor: GLToolbar
     _render_imgui_select_plate_toolbar();
     _render_plate_switcher();
-    // Plates are only edited on the Prepare canvas.
+    // Orca: the plate arrangement dialog, on the Prepare canvas only, where plates are edited.
     if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog.get();
         dialog != nullptr && m_canvas_type == ECanvasType::CanvasView3D && !m_design_canvas)
         dialog->render_input_window();

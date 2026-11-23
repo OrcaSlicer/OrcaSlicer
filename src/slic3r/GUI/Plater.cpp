@@ -23847,7 +23847,7 @@ void Plater::open_filament_map_setting_dialog(wxCommandEvent &evt)
 }
 
 
-//BBS: select Plate by hover_id
+// Orca: reorder the plates for the plate arrangement dialog
 int Plater::arrange_plates(const std::vector<int>& new_order)
 {
     PartPlateList&   list = p->partplate_list;
@@ -24061,7 +24061,7 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
             ret = -1;
         }
     } else if ((action == 7) && (!right_click)) {
-        // open the plate arrangement dialog
+        // Orca: open the plate arrangement dialog
         get_view3D_canvas3D()->toggle_plate_arrangement_dialog();
     }
     else if (action == (int)PartPlate::PLATE_IMEX_MODE_ID)

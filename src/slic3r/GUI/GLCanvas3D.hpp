@@ -1217,7 +1217,7 @@ public:
     //BBS: GUI refactor: GLToolbar
     void _update_select_plate_toolbar_stats_item(bool force_selected = false);
     void reset_select_plate_toolbar_selection();
-    // Opens or closes the plate arrangement dialog, building it the first time.
+    // Orca: opens or closes the plate arrangement dialog, building it the first time.
     void toggle_plate_arrangement_dialog();
     void enable_select_plate_toolbar(bool enable);
     void enable_assemble_view_toolbar(bool enable);
