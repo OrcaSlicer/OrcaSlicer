@@ -195,6 +195,7 @@
 #include "3DScene.hpp"
 #include "MainFrame.hpp"
 #include "Plater.hpp"
+#include "AgentActivityPanel.hpp"
 #include "RunScriptPanel.hpp"
 #include "GLCanvas3D.hpp"
 #include "EncodedFilament.hpp"
@@ -5133,6 +5134,8 @@ void GUI_App::recreate_GUI(const wxString &msg_name)
         m_automation->resume();
     if (m_run_script_panel)
         m_run_script_panel->main_window_rebuilt();
+    if (m_agent_activity_panel)
+        m_agent_activity_panel->main_window_rebuilt();
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "recreate_GUI exit";
 }
@@ -8602,8 +8605,9 @@ void GUI_App::stop_automation()
 
 void GUI_App::destroy_automation()
 {
-    // The Run Script panel's session is a job of the runtime: it goes first.
+    // The Run Script panel's session is a job of the runtime, and the Agent Activity pane listens to its log: they go first.
     m_run_script_panel.reset();
+    m_agent_activity_panel.reset();
     stop_automation();
     // Outside any event loop, so nothing the waits hold up can be running. A request thread still inside the
     // protocol reaches the runtime's core through it: then neither is freed.
@@ -8623,6 +8627,13 @@ RunScriptPanel& GUI_App::run_script_panel()
     if (!m_run_script_panel)
         m_run_script_panel = std::make_unique<RunScriptPanel>();
     return *m_run_script_panel;
+}
+
+AgentActivityPanel& GUI_App::agent_activity_panel()
+{
+    if (!m_agent_activity_panel)
+        m_agent_activity_panel = std::make_unique<AgentActivityPanel>();
+    return *m_agent_activity_panel;
 }
 
 #ifdef __linux__

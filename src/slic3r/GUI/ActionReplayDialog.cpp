@@ -235,8 +235,29 @@ std::string expect_text(const json& r)
     return {};
 }
 
-// A screenshot as a 160 px wide PNG data URL for the step's row, or "" when it can't be read.
-std::string thumbnail(const std::string& path)
+} // namespace
+
+json flag_strings()
+{
+    return {
+        {"flag_writes_file", _u8L("Writes a file")},
+        {"flag_changes_presets", _u8L("Changes presets")},
+        {"flag_replaces_project", _u8L("Replaces the project")},
+        {"flag_sends_to_printer", _u8L("Sends to a printer")},
+        {"flag_runs_program", _u8L("Can run a program")},
+    };
+}
+
+std::string script_status_text(const std::string& status)
+{
+    return status == "cancelled"   ? _u8L("The script was stopped.") :
+           status == "timed_out"   ? _u8L("The script ran out of time.") :
+           status == "unavailable" ? _u8L("Python is not available in this OrcaSlicer.") :
+           status == "refused"     ? _u8L("The script could not run.") :
+                                     _u8L("The script raised an exception.");
+}
+
+std::string screenshot_thumbnail(const std::string& path)
 {
     wxImage image;
     if (!image.LoadFile(from_u8(path), wxBITMAP_TYPE_PNG) || !image.IsOk() || image.GetWidth() <= 0)
@@ -251,8 +272,6 @@ std::string thumbnail(const std::string& path)
     out.CopyTo(bytes.data(), bytes.size());
     return "data:image/png;base64," + into_u8(wxBase64Encode(bytes.data(), bytes.size()));
 }
-
-} // namespace
 
 ActionReplayDialog::ActionReplayDialog(wxWindow* parent) : WebViewHostDialog(parent)
 {
@@ -322,7 +341,7 @@ nlohmann::json ActionReplayDialog::localized_strings() const
 #else
     const std::string control = ctrl, enter = "Enter";
 #endif
-    return {
+    json strings = {
         {"key_suggest", control + "Space"},
         {"key_run", ctrl + enter},
         {"key_save", ctrl + "S"},
@@ -360,11 +379,6 @@ nlohmann::json ActionReplayDialog::localized_strings() const
         {"show_in_folder", _u8L("Show in folder")},
         {"skipped", _u8L("Skipped")},
         {"checks_result", _u8L("Checks the result")},
-        {"flag_writes_file", _u8L("Writes a file")},
-        {"flag_changes_presets", _u8L("Changes presets")},
-        {"flag_replaces_project", _u8L("Replaces the project")},
-        {"flag_sends_to_printer", _u8L("Sends to a printer")},
-        {"flag_runs_program", _u8L("Can run a program")},
         // TRN A duration; %s is a number of seconds such as 0.8.
         {"seconds", _u8L("%s s")},
         // TRN %s is the number of the step that is running.
@@ -375,6 +389,8 @@ nlohmann::json ActionReplayDialog::localized_strings() const
         {"starting", _u8L("OrcaSlicer is still starting…")},
         {"code_editor", code_editor_strings()},
     };
+    strings.update(flag_strings());
+    return strings;
 }
 
 void ActionReplayDialog::on_script_message(const nlohmann::json& payload)
@@ -830,10 +846,7 @@ json ActionReplayDialog::step_view(const json& entry) const
             else
                 view["failure_text"] = _u8L("This step needs a job that no step of this replay saves.");
         } else if (kind == "python") {
-            const std::string status = reason.value("status", "");
-            view["failure_text"]     = status == "cancelled" ? _u8L("The script was stopped.") :
-                                       status == "timed_out" ? _u8L("The script ran out of time.") :
-                                                               _u8L("The script raised an exception.");
+            view["failure_text"]   = script_status_text(reason.value("status", ""));
             const json result      = entry.value("result", json::object());
             view["failure_detail"] = result.value("traceback", std::string()).empty() ? entry.value("error", std::string()) :
                                                                                        result.value("traceback", std::string());
@@ -883,7 +896,7 @@ json ActionReplayDialog::step_view(const json& entry) const
     for (const std::string& path : Mcp::result_files(result))
         files.push_back({{"path", path}, {"name", Mcp::path_to_utf8(Mcp::path_from_utf8(path).filename())}});
     if (tool == "window_screenshot" && !files.empty())
-        if (const std::string url = thumbnail(files[0]["path"].get<std::string>()); !url.empty())
+        if (const std::string url = screenshot_thumbnail(files[0]["path"].get<std::string>()); !url.empty())
             view["thumbnail"] = url;
     view["files"] = std::move(files);
     return view;

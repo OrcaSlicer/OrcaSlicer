@@ -2078,6 +2078,7 @@ void register_ui_tools(CommandCatalog& catalog)
                             if (info.value("web", false) && native_dialog_button(top, rule.button) == wxID_NONE) {
                                 const int standard = standard_dialog_button(rule.button);
                                 start_web_answer(runtime.modals(), top, set.layer, rule.pattern, rule.button,
+                                                 info["message"].get<std::string>(),
                                                  standard == wxID_CANCEL || standard == wxID_CLOSE ? standard : int(wxID_NONE));
                                 return {{"dialog", info["title"]}, {"button", rule.button}, {"web", "answering on its page"}};
                             }
@@ -2091,7 +2092,8 @@ void register_ui_tools(CommandCatalog& catalog)
                             // As before any other press, the presses mouse_gesture downs left on pages end first.
                             runtime.modals().before_press();
                             if (press_dialog_button(top, id) != DialogPress::Failed) {
-                                runtime.modals().count_use(set.layer, rule.pattern, rule.button);
+                                runtime.modals().count_use(set.layer, rule.pattern, rule.button, info["title"].get<std::string>(),
+                                                           info["message"].get<std::string>());
                                 return {{"dialog", info["title"]}, {"button", rule.button}};
                             }
                         }

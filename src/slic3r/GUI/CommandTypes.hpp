@@ -127,12 +127,13 @@ public:
 };
 
 // Executes a command for the protocol layer: the runtime's core adds jobs, budgets, guards and the
-// journal; tests call the command's function directly.
+// journal; tests call the command's function directly. `origin` says who made the call, for the core's
+// observers (Mcp::CallObserver::call_started); null when nothing says.
 class ToolCaller
 {
 public:
     virtual ~ToolCaller() = default;
-    virtual ToolResult call(const NativeCommand& command, const nlohmann::json& args) = 0;
+    virtual ToolResult call(const NativeCommand& command, const nlohmann::json& args, const nlohmann::json& origin = nlohmann::json()) = 0;
 };
 
 }} // namespace Slic3r::GUI

@@ -54,11 +54,13 @@ private:
 class DirectCaller final : public ToolCaller
 {
 public:
-    std::vector<std::string> called; // the tools it ran, in order
+    std::vector<std::string>    called;  // the tools it ran, in order
+    std::vector<nlohmann::json> origins; // and who the protocol said made each call
 
-    ToolResult call(const NativeCommand& def, const nlohmann::json& args) override
+    ToolResult call(const NativeCommand& def, const nlohmann::json& args, const nlohmann::json& origin = nlohmann::json()) override
     {
         called.push_back(def.key);
+        origins.push_back(origin);
         struct Context final : ToolContext
         {
             std::string id;

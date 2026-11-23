@@ -36,7 +36,7 @@ DATA = os.path.join(HERE, "..", "..", "tests", "data")
 PREFIX, SUFFIX = "orca_command:", ":orca"
 BED_CENTRE = 125.0  # the middle of the Generic Klipper Printer's 250 mm bed
 START = {"printer": checks.KLIPPER, "process": checks.KLIPPER_STD, "filaments": [checks.GENERIC_PLA]}
-ACTIONS = 129  # the actions of speed_dial_actions.json
+ACTIONS = 130  # the actions of speed_dial_actions.json
 RESTORE = {"match": "restore", "button": "no"}  # the prompt to restore unsaved items after a start
 
 

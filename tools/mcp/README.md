@@ -544,7 +544,7 @@ on a fresh data folder and printers the sweep does not seed: `test_install_print
 and `test_sidebar_floating.py` (`view_set`'s
 `sidebar_width` refused while the sidebar floats).
 
-`test_speed_dial.py` checks that `action_list` lists each of the 129 Speed Dial actions of
+`test_speed_dial.py` checks that `action_list` lists each of the 130 Speed Dial actions of
 `tests/data/speed_dial_actions.json` with the command `tests/data/speed_dial_action_calls.json` gives it, and runs
 seven of them through `action_run`, one for each way an action runs (a calibration dialog, a handy model, a window,
 the rear view, Go to tab with its value, a screenshot and a refused Sync Presets), each from a state set up afresh,

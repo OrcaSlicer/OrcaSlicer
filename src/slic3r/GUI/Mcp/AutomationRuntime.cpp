@@ -1,5 +1,6 @@
 #include "AutomationRuntime.hpp"
 
+#include "ActivityLog.hpp"
 #include "AutomationRuntimePtr.hpp"
 #include "FollowedThreads.hpp"
 #include "JobRegistry.hpp"
@@ -149,6 +150,14 @@ bool AutomationRuntime::start(std::string& err)
         m_modals     = std::make_unique<ModalTracker>();
         m_recorder   = std::make_unique<McpRecorder>(*m_modals, [this] { return m_generation.load(); }, [this] { return m_suspended.load(); },
                                                    [this](std::function<void()> fn) { post_ui(std::move(fn)); });
+        // The pane reads the log on the UI thread, once for any number of changes, finding the runtime again there:
+        // it may be gone by the time the closure runs.
+        m_activity   = std::make_unique<ActivityLog>(m_jobs, [this] {
+            post_ui([] {
+                if (AutomationRuntime* runtime = wxGetApp().automation_if_started(); runtime != nullptr && runtime->m_activity_listener)
+                    runtime->m_activity_listener();
+            });
+        });
         // A call's window for taking menus is the inspector's: none before there is one, and it takes no menu
         // while the GUI instruments are off.
         m_invoker    = std::make_unique<UiInvoker>(*m_dispatcher, [this] { return guards_on_ui(); }, [this] { return m_generation.load(); },
@@ -165,9 +174,11 @@ bool AutomationRuntime::start(std::string& err)
             BOOST_LOG_TRIVIAL(info) << "MCP reply budget capped at " << timing.reply_budget_cap.count()
                                     << " ms by ORCA_MCP_REPLY_BUDGET_MS";
         m_core       = std::make_unique<McpCore>(NativeCommands::instance(), *m_invoker, m_jobs, &m_journal, timing,
-                                                 ui_job_worker_hooks(), m_recorder.get());
+                                                 ui_job_worker_hooks(), std::vector<CallObserver*>{m_recorder.get(), m_activity.get()});
         // A command reaches the runtime through its call's context (ToolContext::runtime()).
         m_core->set_runtime(this);
+        m_modals->set_on_answered([this](int layer, const std::string& title, const std::string& message, const std::string& pattern,
+                                         const std::string& button) { rule_answered(layer, title, message, pattern, button); });
         m_web_presses = std::make_shared<WebPresses>();
         m_modals->set_before_press([this] { release_web_presses(m_web_presses, nullptr); });
         BOOST_LOG_TRIVIAL(info) << "Automation runtime started";
@@ -331,32 +342,39 @@ AutoAnswerSet AutomationRuntime::set_auto_answer(std::vector<AutoAnswerRule> rul
     // A plugin's call is owned by its plugin's scope when no run in its chain is nearer.
     const std::string plugin = ancestry.empty() ? std::string() : m_jobs.owner(ancestry.front());
     std::lock_guard<std::mutex> lock(m_rules_mutex);
-    // The nearest running replay or script in the caller's job chain owns the rules.
-    for (const std::string& job : ancestry)
-        if (auto it = m_run_rule_layers.find(job); it != m_run_rule_layers.end()) {
-            const bool paused = m_paused_scopes.count(job) != 0;
-            if (rules.empty())
-                return {"run", 0, paused};
-            it->second.push_back(m_modals->push_rules(std::move(rules), paused));
-            return {"run", it->second.back(), paused};
+    const AutoAnswerSet set = [&]() -> AutoAnswerSet {
+        // The nearest running replay or script in the caller's job chain owns the rules.
+        for (const std::string& job : ancestry)
+            if (auto it = m_run_rule_layers.find(job); it != m_run_rule_layers.end()) {
+                const bool paused = m_paused_scopes.count(job) != 0;
+                if (rules.empty())
+                    return {"run", 0, paused};
+                it->second.push_back(m_modals->push_rules(std::move(rules), paused));
+                return {"run", it->second.back(), paused};
+            }
+        if (!plugin.empty()) {
+            if (auto it = m_run_rule_layers.find(plugin_scope_key(plugin)); it != m_run_rule_layers.end()) {
+                if (rules.empty())
+                    return {"plugin", 0, false};
+                it->second.push_back(m_modals->push_rules(std::move(rules)));
+                return {"plugin", it->second.back(), false};
+            }
+            if (m_unloaded_plugins.count(plugin) != 0)
+                throw ToolFailure("The plugin that made this call has been unloaded; its rules were not applied");
         }
-    if (!plugin.empty()) {
-        if (auto it = m_run_rule_layers.find(plugin_scope_key(plugin)); it != m_run_rule_layers.end()) {
-            if (rules.empty())
-                return {"plugin", 0, false};
-            it->second.push_back(m_modals->push_rules(std::move(rules)));
-            return {"plugin", it->second.back(), false};
-        }
-        if (m_unloaded_plugins.count(plugin) != 0)
-            throw ToolFailure("The plugin that made this call has been unloaded; its rules were not applied");
-    }
-    // A call that was running when the client scope closed must not bring its client's rules back.
-    if (!m_client_scope_open)
-        throw ToolFailure("The MCP server was turned off while the rules were being set; they were not applied");
-    if (m_session_rule_layer != 0)
-        m_modals->pop_rules(m_session_rule_layer);
-    m_session_rule_layer = rules.empty() ? 0 : m_modals->push_rules(std::move(rules));
-    return {"session", m_session_rule_layer, false};
+        // A call that was running when the client scope closed must not bring its client's rules back.
+        if (!m_client_scope_open)
+            throw ToolFailure("The MCP server was turned off while the rules were being set; they were not applied");
+        if (m_session_rule_layer != 0)
+            m_modals->pop_rules(m_session_rule_layer);
+        m_session_rule_layer = rules.empty() ? 0 : m_modals->push_rules(std::move(rules));
+        return {"session", m_session_rule_layer, false};
+    }();
+    // Still under the rules lock, which an answer's report takes before it reaches the activity log (rule_answered()):
+    // the log knows whose the layer is before any answer by it.
+    if (set.layer != 0 && !ancestry.empty())
+        m_activity->rules_set(ancestry.front(), set.layer);
+    return set;
 }
 
 void AutomationRuntime::begin_run_scope(const std::string& job)
@@ -428,6 +446,26 @@ void AutomationRuntime::cancel_operations_of(const std::string& job)
         if (m_jobs.lineage(op).count(job) != 0 && !m_core->cancel_worker(op))
             if (Plater* plater = wxGetApp().plater())
                 plater->cancel_slicing();
+}
+
+void AutomationRuntime::rule_answered(int layer, const std::string& title, const std::string& message, const std::string& pattern,
+                                      const std::string& button)
+{
+    // Whose the layer is: a run's, a plugin's, else a client's.
+    std::string       run, plugin;
+    const std::string prefix = plugin_scope_key({});
+    {
+        std::lock_guard<std::mutex> lock(m_rules_mutex);
+        for (const auto& [owner, layers] : m_run_rule_layers)
+            if (std::find(layers.begin(), layers.end(), layer) != layers.end()) {
+                if (owner.compare(0, prefix.size(), prefix) == 0)
+                    plugin = owner.substr(prefix.size());
+                else
+                    run = owner;
+                break;
+            }
+    }
+    m_activity->dialog_answered(layer, run, plugin, {{"title", title}, {"message", message}, {"match", pattern}, {"button", button}});
 }
 
 std::string AutomationRuntime::run_owner(const std::vector<std::string>& ancestry) const
@@ -610,7 +648,7 @@ bool AutomationRuntime::follow(FollowedCall call)
             }
             std::optional<ToolResult> r;
             try {
-                r = call_to_end(call.command, call.args, call.person);
+                r = call_to_end(call.command, call.args, call.person, call.origin);
             } catch (const std::exception& e) {
                 r = ToolResult::error(std::string("Internal error: ") + e.what());
             } catch (...) {
@@ -631,9 +669,9 @@ bool AutomationRuntime::follow(FollowedCall call)
 
 void AutomationRuntime::stop_followed() { m_followed.stop_all(); }
 
-std::optional<ToolResult> AutomationRuntime::call_to_end(const NativeCommand& def, const json& args, bool person)
+std::optional<ToolResult> AutomationRuntime::call_to_end(const NativeCommand& def, const json& args, bool person, const json& origin)
 {
-    ToolResult        r      = person ? m_core->call_person(def, args) : m_core->call(def, args);
+    ToolResult        r      = person ? m_core->call_person(def, args, origin) : m_core->call(def, args, origin);
     const std::string status = r.is_error ? std::string() : r.data.value("status", "");
     if ((status != "running" && status != "blocked_by_dialog") || !r.data.contains("job"))
         return r;

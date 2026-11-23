@@ -552,9 +552,6 @@ std::string join(const std::vector<std::string>& parts)
 
 } // namespace
 
-namespace {
-
-// Every scalar under `value`, as text.
 void scalars(const json& value, std::vector<std::string>& out)
 {
     if (value.is_string())
@@ -565,6 +562,8 @@ void scalars(const json& value, std::vector<std::string>& out)
         for (const json& v : value)
             scalars(v, out);
 }
+
+namespace {
 
 // The values of sensitive keys anywhere in `args` (settings_set's values, a per-variant entry's value).
 void sensitive_values(const json& args, std::vector<std::string>& out)
@@ -582,7 +581,8 @@ void sensitive_values(const json& args, std::vector<std::string>& out)
     }
 }
 
-// What caption_detail() leaves out of `tool`'s caption on purpose.
+} // namespace
+
 std::vector<std::string> hidden_values(const std::string& tool, const json& args)
 {
     std::vector<std::string> out;
@@ -602,27 +602,57 @@ std::vector<std::string> hidden_values(const std::string& tool, const json& args
     return out;
 }
 
-} // namespace
+json mask_hidden(json value, std::vector<std::string> hidden)
+{
+    // Longest first, so a value inside another goes with it.
+    std::sort(hidden.begin(), hidden.end(), [](const std::string& a, const std::string& b) { return a.size() > b.size(); });
+    hidden.erase(std::remove(hidden.begin(), hidden.end(), std::string()), hidden.end());
+    // What is taken out of longer text, each value as it is and as text that dumps JSON writes it ("a\"b" for a"b), from
+    // three characters on: a shorter one would take out pieces of unrelated text.
+    std::vector<std::string> forms;
+    for (const std::string& value : hidden)
+        if (value.size() >= 3) {
+            const std::string quoted = json(value).dump(-1, ' ', false, json::error_handler_t::replace);
+            forms.push_back(quoted.substr(1, quoted.size() - 2));
+            forms.push_back(value);
+        }
+    const std::function<void(json&)> walk = [&](json& v) {
+        if (v.is_object()) {
+            for (auto& [key, member] : v.items()) {
+                if (is_sensitive_key(key) && !member.is_null())
+                    member = kMask;
+                else
+                    walk(member);
+            }
+        } else if (v.is_array()) {
+            for (json& item : v)
+                walk(item);
+        } else if (v.is_string()) {
+            std::string& text = v.get_ref<std::string&>();
+            if (std::find(hidden.begin(), hidden.end(), text) != hidden.end()) {
+                v = kMask;
+                return;
+            }
+            for (const std::string& form : forms)
+                for (std::size_t at = text.find(form); at != std::string::npos; at = text.find(form, at + kMask.size()))
+                    text.replace(at, form.size(), kMask);
+        } else if ((v.is_number() || v.is_boolean()) && !hidden.empty()) {
+            if (std::find(hidden.begin(), hidden.end(), v.dump()) != hidden.end())
+                v = kMask;
+        }
+    };
+    walk(value);
+    return value;
+}
 
 std::string caption_error(const std::string& tool, const json& args, const std::string& error)
 {
-    std::vector<std::string> hidden = hidden_values(tool, args);
-    // Longest first, so a value inside another goes with it.
-    std::sort(hidden.begin(), hidden.end(), [](const std::string& a, const std::string& b) { return a.size() > b.size(); });
-    std::string out = error;
-    for (const std::string& value : hidden) {
-        if (value.empty())
-            continue;
-        if (value.size() < 3)
+    const std::vector<std::string> hidden = hidden_values(tool, args);
+    // A value too short to take out of other text safely leaves the error out.
+    for (const std::string& value : hidden)
+        if (!value.empty() && value.size() < 3)
             return {};
-        // As it is, and as an error that dumps JSON writes it ("a\"b" for a"b).
-        const std::string quoted  = json(value).dump();
-        const std::string escaped = quoted.substr(1, quoted.size() - 2);
-        for (const std::string& form : {escaped, value})
-            for (std::size_t at = out.find(form); at != std::string::npos; at = out.find(form, at + 9))
-                out.replace(at, form.size(), "\xE2\x80\xA2\xE2\x80\xA2\xE2\x80\xA2");
-    }
-    return out;
+    return mask_hidden(json(error), hidden).get<std::string>();
 }
 
 std::string shorten(const std::string& text, std::size_t limit)
@@ -671,7 +701,7 @@ std::string caption_detail(const std::string& tool, const json& args)
     if (args.contains("values") && args["values"].is_object()) {
         std::vector<std::string> pairs;
         for (const auto& [key, value] : args["values"].items())
-            pairs.push_back(key + " = " + (is_sensitive_key(key) ? std::string("\xE2\x80\xA2\xE2\x80\xA2\xE2\x80\xA2") : scalar_text(value)));
+            pairs.push_back(key + " = " + (is_sensitive_key(key) ? kMask : scalar_text(value)));
         return join(pairs);
     }
     const json what = describe_call(NativeCommands::instance(), tool, args);

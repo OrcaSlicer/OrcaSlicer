@@ -76,7 +76,15 @@ public:
     // only as a picker opens, so a path rule sharing a pattern and button with another never takes its uses. Any
     // thread.
     bool rule_in_force(int layer, const std::string& pattern, const std::string& button) const;
-    void count_use(int layer, const std::string& pattern, const std::string& button);
+    // A rule of layer `layer` answered the dialog titled `title`: its uses grow, and the answer is reported
+    // (set_on_answered()). UI thread.
+    void count_use(int layer, const std::string& pattern, const std::string& button, const std::string& title,
+                   const std::string& message);
+    // Told each time a rule answers a dialog: the rule's layer, the dialog's title and message (empty when unknown),
+    // and the rule's pattern and button. UI thread; set before the first dialog.
+    using RuleAnswered = std::function<void(int layer, const std::string& title, const std::string& message, const std::string& pattern,
+                                            const std::string& button)>;
+    void set_on_answered(RuleAnswered fn) { m_on_answered = std::move(fn); }
 
     // [{title, message, class, native, buttons:[{id,label}]}] of the open modals, outermost first.
     // On the UI thread the dialogs are described as they are now, and that is published; other
@@ -105,6 +113,7 @@ private:
     std::vector<std::uint64_t> m_serials; // m_stack's dialogs' serials
     std::uint64_t              m_last_serial = 0;
     std::function<void()>      m_before_press;
+    RuleAnswered               m_on_answered;
 
     mutable std::mutex                                     m_mutex;
     nlohmann::json                                         m_snapshot = nlohmann::json::array();

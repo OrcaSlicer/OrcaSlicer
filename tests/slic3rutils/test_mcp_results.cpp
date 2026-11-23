@@ -284,8 +284,14 @@ TEST_CASE("an auto-answer rule presses a wx dialog's button, and answers a nativ
     wxInitializer init;
     REQUIRE(init.IsOk());
     {
-        ModalTracker tracker;
-        tracker.push_rules({make_rule("unsaved", "Transfer"), make_rule("discard", "no")});
+        ModalTracker              tracker;
+        const int                 layer = tracker.push_rules({make_rule("unsaved", "Transfer"), make_rule("discard", "no")});
+        std::vector<std::string>  answers; // what the tracker reports of each answer, for the Agent Activity pane
+        tracker.set_on_answered([&answers](int layer, const std::string& title, const std::string&, const std::string& pattern,
+                                           const std::string& button) {
+            answers.push_back(std::to_string(layer) + " " + title + " / " + pattern + " / " + button);
+        });
+        const std::string in_layer = std::to_string(layer) + " ";
 
         // The button's handler does the dialog's work, which ShowModal() returning its id would skip.
         wxDialog dialog(nullptr, wxID_ANY, "Unsaved changes");
@@ -300,6 +306,7 @@ TEST_CASE("an auto-answer rule presses a wx dialog's button, and answers a nativ
         wxModalDialogHook::CallExit(&dialog);
         CHECK(tracker.top() == nullptr);
         CHECK(tracker.rules_json()[0]["uses"] == 1);
+        CHECK(answers == std::vector<std::string>{in_layer + "Unsaved changes / unsaved / Transfer"});
 
         // A modal opened above it before its loop ran leaves it to dialog_answer.
         wxDialog above(nullptr, wxID_ANY, "Other");
@@ -314,6 +321,8 @@ TEST_CASE("an auto-answer rule presses a wx dialog's button, and answers a nativ
         wxMessageDialog native(nullptr, "Discard the changes?", "Changes", wxYES_NO);
         CHECK(wxModalDialogHook::CallEnter(&native) == wxID_NO);
         CHECK(tracker.top() == nullptr);
+        CHECK(answers.size() == 2); // the press a modal above held back is no answer
+        CHECK(answers.back() == in_layer + "Changes / discard / no");
     }
 }
 

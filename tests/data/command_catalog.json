@@ -7218,6 +7218,36 @@
   {
    "actions": [
     {
+     "args": {},
+     "description": "Show or hide the Agent Activity pane, where a person watches what agents, Action Replay, Run Script, the command line's run and plugins do in the app, call by call. It is the person's: it lists your calls, and you never need it.",
+     "group": "View",
+     "icon": "",
+     "key": "toggle_agent_activity_panel",
+     "title": "Agent Activity"
+    }
+   ],
+   "completion": "immediate",
+   "description": "Show or hide the Agent Activity pane, where a person watches what agents, Action Replay, Run Script, the command line's run and plugins do in the app, call by call. It is the person's: it lists your calls, and you never need it.",
+   "destructive": false,
+   "group": "View and windows",
+   "guard": "mutate",
+   "has_own_action": false,
+   "idempotent": false,
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {},
+    "type": "object"
+   },
+   "key": "view_toggle_activity_panel",
+   "listed": false,
+   "open_world": false,
+   "operations": [],
+   "read_only": false,
+   "title": "Agent Activity"
+  },
+  {
+   "actions": [
+    {
      "args": {
       "camera": "top"
      },

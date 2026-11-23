@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <exception>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <utility>
@@ -192,32 +193,68 @@ json McpProtocol::tools_list() const
     return tools;
 }
 
-json McpProtocol::call_tool(const json& params, bool& unknown_tool, std::string& unknown_name)
+void McpProtocol::client_seen(const json& params)
 {
-    unknown_tool          = false;
-    const std::string                    name = params.value("name", "");
-    std::shared_ptr<const NativeCommand> def  = m_catalog.lookup(name);
+    const auto info = params.find("clientInfo");
+    if (info == params.end() || !info->is_object() || !info->contains("name") || !info->at("name").is_string())
+        return;
+    const std::string name = info->at("name").get<std::string>();
+    if (name.empty())
+        return;
+    std::lock_guard<std::mutex> lock(m_clients_mutex);
+    m_clients.insert(name);
+}
+
+std::string McpProtocol::client_label() const
+{
+    std::lock_guard<std::mutex> lock(m_clients_mutex);
+    return m_clients.size() == 1 ? *m_clients.begin() : std::string();
+}
+
+void McpProtocol::refused(const std::string& tool, const json& origin, const ToolResult& error) const
+{
+    if (!m_on_refused)
+        return;
+    try {
+        m_on_refused(tool, origin, error);
+    } catch (...) {
+        // Whoever listens, the client still gets its reply.
+    }
+}
+
+json McpProtocol::call_tool(const json& message, const std::string& client, bool& unknown_tool, std::string& unknown_name)
+{
+    unknown_tool                              = false;
+    const json&                          params = message["params"];
+    const std::string                    name   = params.value("name", "");
+    const json                           origin{{"source", "agent"}, {"client", client}, {"request", message}};
+    std::shared_ptr<const NativeCommand> def = m_catalog.lookup(name);
     if (def == nullptr) {
         unknown_tool = true;
         unknown_name = name;
+        refused(name, origin, ToolResult::error(m_catalog.unknown_command(name)));
         return json();
     }
+    const auto refuse = [&](const std::string& tool, const ToolFailure& f) {
+        const ToolResult r = ToolResult::error(f.what(), f.details);
+        refused(tool, origin, r);
+        return result_to_json(r);
+    };
     json args = params.contains("arguments") && !params["arguments"].is_null() ? params["arguments"] : json::object();
-    if (!args.is_object()) {
-        const ToolFailure refused = argument_refusal(def->key, "arguments must be an object");
-        return result_to_json(ToolResult::error(refused.what(), refused.details));
-    }
-    if (std::string err = argument_error(*def, args); !err.empty()) {
-        const ToolFailure refused = argument_refusal(def->key, err);
-        return result_to_json(ToolResult::error(refused.what(), refused.details));
-    }
-    if (const std::optional<ToolFailure> refused = resolve_call(m_catalog, def, args))
-        return result_to_json(ToolResult::error(refused->what(), refused->details));
+    if (!args.is_object())
+        return refuse(def->key, argument_refusal(def->key, "arguments must be an object"));
+    if (std::string err = argument_error(*def, args); !err.empty())
+        return refuse(def->key, argument_refusal(def->key, err));
+    // A tool_call it cannot resolve is the call of the tool it names, where it names one.
+    const std::string named = args.contains("tool") && args["tool"].is_string() ? args["tool"].get<std::string>() : std::string();
+    const std::string outer = def->key;
+    if (const std::optional<ToolFailure> refusal = resolve_call(m_catalog, def, args))
+        return refuse(outer == "tool_call" && !named.empty() ? named : outer, *refusal);
     const auto meta  = params.find("_meta");
     const bool exact = meta != params.end() && meta->is_object() && meta->contains(kExactNumbers) &&
                        meta->at(kExactNumbers) == true;
     try {
-        return result_to_json(m_caller.call(*def, args), exact);
+        return result_to_json(m_caller.call(*def, args, origin), exact);
     } catch (const ToolFailure& f) {
         return result_to_json(ToolResult::error(f.what(), f.details), exact);
     } catch (const std::exception& e) {
@@ -250,7 +287,10 @@ PostReply McpProtocol::handle_post(const PostRequest& request)
     const std::string method = msg["method"].get<std::string>();
     if (msg.contains("params") && !msg["params"].is_object())
         return reply(200, error_body(id, kInvalidParams, "params must be an object"));
-    const json params = msg.contains("params") ? msg["params"] : json::object();
+    // The message as the handlers read it: params, checked here, an empty object when there are none.
+    if (!msg.contains("params"))
+        msg["params"] = json::object();
+    const json& params = msg["params"];
     // The member a method reads as a string (the header check and the dispatch call value() on it, which throws for
     // any other type) is refused here as a parameter error, rather than escaping as an internal one.
     const char* const text_key = method == "resources/read" ? "uri" : method == "tools/call" || method == "prompts/get" ? "name" : nullptr;
@@ -260,16 +300,19 @@ PostReply McpProtocol::handle_post(const PostRequest& request)
     try {
         if (params.contains("_meta") && params["_meta"].is_object() && params["_meta"].contains(kMetaVersion)) {
             const json& v = params["_meta"][kMetaVersion];
-            return handle_modern(id, method, params, v.is_string() ? v.get<std::string>() : v.dump(), request);
+            return handle_modern(msg, v.is_string() ? v.get<std::string>() : v.dump(), request);
         }
-        return handle_legacy(id, method, params, request);
+        return handle_legacy(msg, request);
     } catch (const std::exception& e) {
         return reply(500, error_body(id, kInternalError, e.what()));
     }
 }
 
-PostReply McpProtocol::handle_legacy(const json& id, const std::string& method, const json& params, const PostRequest& request)
+PostReply McpProtocol::handle_legacy(const json& message, const PostRequest& request)
 {
+    const json&       id     = message["id"];
+    const std::string method = message["method"].get<std::string>();
+    const json&       params = message["params"];
     const auto& versions = legacy_versions();
     if (method != "initialize" && !request.protocol_version.empty() &&
         std::find(versions.begin(), versions.end(), request.protocol_version) == versions.end())
@@ -277,6 +320,7 @@ PostReply McpProtocol::handle_legacy(const json& id, const std::string& method, 
                                      {{"supported", versions}}));
 
     if (method == "initialize") {
+        client_seen(params);
         const std::string requested  = params.value("protocolVersion", "");
         const bool        supported  = std::find(versions.begin(), versions.end(), requested) != versions.end();
         json              server_info{{"name", m_info.name}, {"title", m_info.title}, {"version", m_info.version}};
@@ -292,7 +336,7 @@ PostReply McpProtocol::handle_legacy(const json& id, const std::string& method, 
     if (method == "tools/call") {
         bool        unknown = false;
         std::string name;
-        json        result = call_tool(params, unknown, name);
+        json        result = call_tool(message, client_label(), unknown, name);
         if (unknown) {
             json data{{"name", name}};
             if (auto close = m_catalog.similar(name); !close.empty())
@@ -304,9 +348,11 @@ PostReply McpProtocol::handle_legacy(const json& id, const std::string& method, 
     return reply(200, error_body(id, kMethodNotFound, "Method not found: " + method));
 }
 
-PostReply McpProtocol::handle_modern(const json& id, const std::string& method, const json& params, const std::string& version,
-                                     const PostRequest& request)
+PostReply McpProtocol::handle_modern(const json& message, const std::string& version, const PostRequest& request)
 {
+    const json&       id     = message["id"];
+    const std::string method = message["method"].get<std::string>();
+    const json&       params = message["params"];
     if (version != kModernVersion)
         return reply(400, error_body(id, kUnsupportedProto, "Unsupported protocol version",
                                      {{"supported", supported_versions()}, {"requested", version}}));
@@ -354,7 +400,8 @@ PostReply McpProtocol::handle_modern(const json& id, const std::string& method, 
     if (method == "tools/call") {
         bool        unknown = false;
         std::string name;
-        json        result = call_tool(params, unknown, name);
+        // This era has no handshake that names the client.
+        json        result = call_tool(message, std::string(), unknown, name);
         if (unknown) {
             json data{{"name", name}};
             if (auto close = m_catalog.similar(name); !close.empty())

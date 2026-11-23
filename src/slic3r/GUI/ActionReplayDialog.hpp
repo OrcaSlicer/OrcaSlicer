@@ -38,6 +38,18 @@ struct ReplayContext;
 // titled as its own action is, and a call that is one of its actions (`what`'s `action`) as that action.
 std::pair<std::string, std::string> replay_what_text(const nlohmann::json& what, const CommandCatalog& catalog);
 
+// A screenshot as a 160 px wide PNG data URL for a step's row, as Action Replay and Agent Activity show one, or "" when
+// the file at `path` can't be read as a PNG.
+std::string screenshot_thumbnail(const std::string& path);
+
+// The labels of what a step does beyond the open project (describe_step()'s flags), keyed "flag_" + flag_id(), for the
+// strings of a page that tags steps with them: Action Replay's and Agent Activity's.
+nlohmann::json flag_strings();
+
+// A Python script's ending other than by finishing, by its status (cancelled, timed_out, unavailable, refused; any other
+// is a raised exception), as Action Replay and Agent Activity word it.
+std::string script_status_text(const std::string& status);
+
 // The Action Replay window: a person opens or writes a replay file (the JSON list of tool calls an
 // agent session exports), saves it, reads its steps and replays it, whole or one step at a time, watching each step's
 // outcome. The page (resources/web/dialog/ActionReplay) shows; this host parses, describes, words and runs, through the

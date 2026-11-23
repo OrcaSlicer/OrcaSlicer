@@ -145,6 +145,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/ActionRegistry.hpp
     GUI/ActionReplayDialog.cpp
     GUI/ActionReplayDialog.hpp
+    GUI/AgentActivityPanel.cpp
+    GUI/AgentActivityPanel.hpp
     GUI/NativeCommandMenuItems.hpp
     GUI/NativeCommands.cpp
     GUI/NativeCommands.hpp
@@ -174,6 +176,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Operations/RunStatus.hpp
     GUI/SyntheticInput.cpp
     GUI/SyntheticInput.hpp
+    GUI/Mcp/ActivityLog.cpp
+    GUI/Mcp/ActivityLog.hpp
     GUI/Mcp/AutomationRuntime.cpp
     GUI/Mcp/AutomationRuntime.hpp
     GUI/Mcp/AutomationRuntimePtr.hpp

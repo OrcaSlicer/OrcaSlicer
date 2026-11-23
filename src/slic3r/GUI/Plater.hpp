@@ -611,9 +611,13 @@ public:
     // Dock panes sit alongside the sidebar; `window` must be a child of the Plater. `dock` is
     // "left", "right", "bottom" or "float", and `size` is in DIPs. A pane closed from its own close
     // button is destroyed after on_close runs, or, with `hide_on_close`, hidden as show_dock_pane(window,
-    // false) hides it, keeping the window; remove_dock_pane() destroys it without calling on_close.
+    // false) hides it, keeping the window; remove_dock_pane() destroys it without calling on_close. A pane
+    // shows on Prepare and Preview, docked or floating; with `floats_on_every_tab`, floating it shows on every tab.
     void add_dock_pane(wxWindow* window, const std::string& name, const wxString& caption, const std::string& dock,
-                       const wxSize& size, std::function<void()> on_close, bool hide_on_close = false);
+                       const wxSize& size, std::function<void()> on_close, bool hide_on_close = false,
+                       bool floats_on_every_tab = false);
+    // Whether the dock pane `window` floats in a window of its own.
+    bool is_dock_pane_floating(wxWindow* window) const;
     void remove_dock_pane(wxWindow* window);
     void show_dock_pane(wxWindow* window, bool show);
     // Removes every dock pane without calling on_close, for MainFrame::shutdown() (app exit and a

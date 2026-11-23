@@ -510,6 +510,18 @@ void register_app_tools(CommandCatalog& catalog, [[maybe_unused]] bool cad)
                             json::array({action("help_benchmark_3d_scene", L("Benchmark 3D Scene"), L("Help"), "", json::object(),
                                                 benchmark)}),
                             [](const json&) { return MenuItems::benchmark_3d_scene(); }));
+
+    // The Agent Activity pane's menu item, which has no argument form.
+    const std::string activity = "Show or hide the Agent Activity pane, where a person watches what agents, Action Replay, Run Script, "
+                                 "the command line's run and plugins do in the app, call by call. It is the person's: it lists your "
+                                 "calls, and you never need it.";
+    NativeCommand toggle_activity = menu_command("view_toggle_activity_panel", L("Agent Activity"), activity, object_schema({}),
+                                                 json::array({action("toggle_agent_activity_panel", L("Agent Activity"), L("View"), "",
+                                                                     json::object(), activity)}),
+                                                 [](const json&) { return MenuItems::toggle_agent_activity_panel(); });
+    // A menu item with no argument form: tool_list lists it and tool_call runs it, the tool list does not show it.
+    toggle_activity.listed = false;
+    catalog.add(std::move(toggle_activity));
 }
 
 }}} // namespace Slic3r::GUI::Mcp

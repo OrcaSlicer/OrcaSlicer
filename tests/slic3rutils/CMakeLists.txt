@@ -30,6 +30,7 @@ add_executable(${_TEST_NAME}_tests
     test_scene_raycaster.cpp
     test_scene_benchmark.cpp
     test_lazy.cpp
+    test_mcp_activity_log.cpp
     test_mcp_config.cpp
     test_mcp_core.cpp
     test_operations.cpp

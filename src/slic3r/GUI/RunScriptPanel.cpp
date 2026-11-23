@@ -11,6 +11,7 @@
 #include "Plater.hpp"
 #include "Shortcuts.hpp"
 #include "format.hpp"
+#include "Mcp/ActivityLog.hpp"
 #include "Mcp/AutomationRuntime.hpp"
 #include "Mcp/McpArguments.hpp"
 #include "Mcp/McpPaths.hpp"
@@ -40,7 +41,6 @@
 #include <wx/gdicmn.h>
 #include <wx/glcanvas.h>
 #include <wx/panel.h>
-#include <wx/sizer.h>
 #include <wx/string.h>
 #include <wx/timer.h>
 #include <wx/webview.h>
@@ -270,41 +270,9 @@ RunScriptPane::RunScriptPane(wxWindow* parent, RunScriptPanel& owner)
 {
     const fs::path page = fs::path(resources_dir()) / "web" / "dialog" / "RunScript" / "index.html";
     m_page              = wxFileName(from_path(page));
-    // Created empty and loaded once the user scripts are in, so the first load has them, as a WebViewHostDialog's page does.
-    m_web = WebView::CreateWebView(this, wxEmptyString);
-    auto* sizer = new wxBoxSizer(wxVERTICAL);
-    if (m_web != nullptr)
-        sizer->Add(m_web, 1, wxEXPAND);
-    SetSizer(sizer);
-    if (m_web == nullptr)
-        return;
-    // WebView2's accelerator keys would reload the page (Ctrl+R, F5) and zoom it.
-    m_web->EnableBrowserAcceleratorKeys(false);
-    m_web->AddUserScript(wxString::FromUTF8(WebViewHostDialog::theme_user_script()));
-    m_web->AddUserScript(wxString::FromUTF8(WebViewHostDialog::localized_strings_script(page_strings())));
-    m_web->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, [this](wxWebViewEvent& event) {
-        json payload;
-        try {
-            payload = json::parse(event.GetString().utf8_string());
-        } catch (const std::exception&) {
-            return;
-        }
-        // Out of the web view's message callback: window work on its stack (file dialogs, prompts) is a crash class on GTK
-        // and macOS.
-        wxGetApp().CallAfter([owner = &m_owner, alive = m_alive, payload = std::move(payload)] {
-            if (alive->load())
-                owner->handle(payload);
-        });
-    });
-    m_web->Bind(wxEVT_WEBVIEW_NAVIGATING, &RunScriptPane::on_navigating, this);
-    // A theme toggle re-themes the page in place.
-    m_web->Bind(EVT_WEBVIEW_RECREATED, [this](wxCommandEvent&) {
-        WebView::RunScript(m_web, wxString::FromUTF8(WebViewHostDialog::theme_apply_script()));
-    });
-    wxString url = file_url_from_path(page);
-    if (const wxString lang = wxGetApp().current_language_code_safe(); !lang.empty())
-        url += "?lang=" + lang;
-    WebView::LoadUrl(m_web, url);
+    m_web               = WebViewHostDialog::create_pane_web_view(
+        this, page, page_strings(), m_alive, [owner = &m_owner](const json& payload) { owner->handle(payload); },
+        [this](wxWebViewEvent& event) { on_navigating(event); });
 }
 
 RunScriptPane::~RunScriptPane()
@@ -372,6 +340,8 @@ RunScriptPanel::~RunScriptPanel()
         m_session->end();
         m_session->stop();
     }
+    if (m_running)
+        work_ended("cancelled", {});
     if (m_api_thread.joinable())
         m_api_thread.join();
 }
@@ -478,7 +448,9 @@ void RunScriptPanel::main_window_closing()
         m_backlog.clear();
     }
     m_waiting.reset();
-    m_running = false;
+    // The work's end, which its session reports to no page now, is the stop.
+    if (m_running)
+        work_ended("cancelled", {});
     m_ready_timer.Stop();
     m_pane = nullptr;
     m_editor_keys.clear();
@@ -868,6 +840,12 @@ void RunScriptPanel::run(const json& payload)
         work.first_line = std::max(1, payload.value("first_line", 1));
     }
     json started{{"command", "run_started"}, {"kind", kind}, {"first_line", work.first_line}};
+    m_work = {{"work", kind}, {"file", m_file.empty() ? std::string("<script_run>") : Mcp::path_to_utf8(m_file)}, {"code", work.code}};
+    if (kind == "cell") {
+        m_work["cell"]  = payload.value("cell", 1);
+        m_work["title"] = payload.value("title", "");
+        m_work["lines"] = {work.first_line, std::max(work.first_line, payload.value("last_line", work.first_line))};
+    }
 
     // The script's tool calls act on the main window, and keys it sends without a target go where the focus is.
     if (MainFrame* frame = wxGetApp().mainframe) {
@@ -905,8 +883,7 @@ bool RunScriptPanel::start_session()
     events.finished = [this, alive = m_alive, session](const json& result, const json&) {
         if (!alive->load() || session != m_session || !m_running)
             return;
-        m_running = false;
-        send({{"command", "run_finished"}, {"status", "refused"}, {"message", result.value("error", std::string())}});
+        refused_run(result.value("error", std::string()));
     };
     m_session_run = Mcp::start_python_session(*s, session, m_file, std::move(events));
     if (!m_session_run) {
@@ -933,8 +910,12 @@ void RunScriptPanel::end_session()
 
 void RunScriptPanel::submit(PythonWork work, const json& started)
 {
+    // Reported before the session can run it, so the calls it makes find it.
+    m_work_result.clear();
+    if (Mcp::AutomationRuntime* runtime = wxGetApp().automation_if_started())
+        runtime->activity().work_started(m_work);
     if (!m_session->submit(std::move(work))) {
-        m_running = false;
+        work_ended("refused", _u8L("The script could not run."));
         refuse(_u8L("The script could not run."));
         return;
     }
@@ -988,8 +969,10 @@ void RunScriptPanel::tick()
         flush();
         if (event.kind == PythonSessionEvent::Kind::Cell)
             send({{"command", "cell"}, {"index", event.cell}});
-        else if (event.kind == PythonSessionEvent::Kind::Result)
+        else if (event.kind == PythonSessionEvent::Kind::Result) {
+            m_work_result = event.text;
             send({{"command", "result"}, {"text", event.text}});
+        }
         else
             finish_run(event);
         m_backlog.pop_front();
@@ -1011,16 +994,36 @@ void RunScriptPanel::tick()
             }
         } else if (m_running) {
             // Ended without reporting its work: its job was refused, or the runtime stopped.
-            m_running = false;
-            send({{"command", "run_finished"}, {"status", "refused"}, {"message", _u8L("Scripts can't run while OrcaSlicer is starting or closing.")}});
+            refused_run(_u8L("Scripts can't run while OrcaSlicer is starting or closing."));
         }
     }
     send_session_state();
 }
 
+void RunScriptPanel::work_ended(const std::string& status, const std::string& message)
+{
+    m_running = false;
+    // The result is the JSON text the session wrote (PythonSessionEvent::Result).
+    json result;
+    if (!m_work_result.empty()) {
+        result = json::parse(m_work_result, nullptr, false);
+        if (result.is_discarded())
+            result = m_work_result;
+    }
+    m_work_result.clear();
+    if (Mcp::AutomationRuntime* runtime = wxGetApp().automation_if_started())
+        runtime->activity().work_ended(status, message, result);
+}
+
+void RunScriptPanel::refused_run(const std::string& message)
+{
+    work_ended("refused", message);
+    send({{"command", "run_finished"}, {"status", "refused"}, {"message", message}});
+}
+
 void RunScriptPanel::finish_run(const PythonSessionEvent& done)
 {
-    m_running                = false;
+    work_ended(done.status, done.message);
     const std::string status = done.status;
     std::string       status_text;
     if (status == "cancelled" || status == "timed_out")

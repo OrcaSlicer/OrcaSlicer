@@ -67,6 +67,20 @@ nlohmann::json substitute(const nlohmann::json& value, const Replay& replay, con
 // for describing steps before a run, when saved jobs and the like may not exist yet.
 nlohmann::json substitute_lenient(const nlohmann::json& value, const Replay& replay, const ReplayContext& ctx);
 
+// As substitute_lenient(), with what is put in bounded: each value put in takes its size from `budget` (an empty string
+// or null nothing), and once it is spent the placeholders left stay as written. Variables that put each other in grow as the power of
+// the nesting, which reading what a replay will put in (the activity log's masking) must not follow without end.
+nlohmann::json substitute_lenient(const nlohmann::json& value, const Replay& replay, const ReplayContext& ctx, std::size_t& budget);
+
+// A step's arguments as the bounded substitute_lenient() fills them in, except Python source, which a replay runs as
+// written: the code of a script_run call, of one a tool_call makes, and of those an inline replay's steps make.
+nlohmann::json substitute_args_lenient(const std::string& tool, const nlohmann::json& args, const Replay& replay,
+                                       const ReplayContext& ctx, std::size_t& budget);
+
+// What a replay puts in for one placeholder body ("vars.model", "env:HOME", "jobs.save", "replay_dir"); nullopt for
+// one it can't resolve.
+std::optional<nlohmann::json> resolve_placeholder(const std::string& key, const Replay& replay, const ReplayContext& ctx);
+
 // Checks `expect` ({"/json/pointer": {"op": operand, ...}, ...}) against a step's result. nullopt
 // when every matcher passes, else a message naming the pointer and matcher that failed.
 // Matchers: eq ne gt ge lt le contains regex exists empty.

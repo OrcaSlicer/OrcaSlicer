@@ -224,6 +224,34 @@ TEST_CASE("await false stores the job under save_as for later steps", "[Mcp]")
     CHECK(f.calls[2].second["job"] == "j5");
 }
 
+TEST_CASE("a bounded substitution charges what it puts in, and nothing for an empty string or null", "[Mcp]")
+{
+    Replay r;
+    r.vars             = {{"a", "xyz"}, {"e", ""}, {"n", nullptr}};
+    std::size_t budget = 3;
+    // Free: the empty variable, the replay's folder (empty here) and null, which is still put in.
+    CHECK(substitute_lenient(json("${vars.e}${out_dir}${vars.n}"), r, ReplayContext{}, budget) == "null");
+    CHECK(substitute_lenient(json("${vars.n}"), r, ReplayContext{}, budget).is_null());
+    CHECK(budget == 3);
+    // A value costs its length; past the budget, a placeholder stays as written.
+    CHECK(substitute_lenient(json("${vars.a}${vars.a}"), r, ReplayContext{}, budget) == "xyz${vars.a}");
+    CHECK(budget == 0);
+}
+
+TEST_CASE("an inline replay's step whose tool isn't a string is left to the nested run to refuse", "[Mcp]")
+{
+    FakeHost f;
+    f.tools["replay_run"] = [](const json&) { return ToolResult::error("step 1: \"tool\" must be a string"); };
+    const Replay s = parse_ok(R"({"orca_replay_version": "0.2.0", "steps": [
+        {"tool": "replay_run", "args": {"replay": {"steps": [{"tool": 17, "args": {}}]}}}]})");
+    ReplayContext ctx;
+    const json    out = run_replay(s, ctx, f.host());
+    CHECK(out["passed"] == false);
+    CHECK(out["failed_step"] == 1);
+    REQUIRE(f.calls.size() == 1);
+    CHECK(f.calls[0].second["replay"]["steps"][0]["tool"] == 17);
+}
+
 TEST_CASE("a run stops at the first failed step unless it is optional", "[Mcp]")
 {
     FakeHost f;

@@ -17,6 +17,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -24,6 +25,7 @@
 #include <cstdint>
 #include <deque>
 #include <functional>
+#include <map>
 #include <memory>
 #include <new>
 #include <optional>
@@ -862,7 +864,7 @@ struct HeardCalls final : CallObserver
 {
     std::mutex               mutex;
     std::vector<std::string> events;
-    void call_started(uint64_t, const NativeCommand& def, const json&, const std::string& parent) override
+    void call_started(uint64_t, const NativeCommand& def, const json&, const std::string& parent, const std::string&, const json&) override
     {
         std::lock_guard<std::mutex> lock(mutex);
         events.push_back("start " + def.key + (parent.empty() ? "" : " in a job"));
@@ -906,7 +908,7 @@ TEST_CASE("the call observer hears inline, job and child calls, and not calls re
     });
     slice.budget_ms = 100;
     h.registry.add(slice);
-    h.core = std::make_unique<McpCore>(h.registry, h.invoker, h.jobs, &h.journal, h.timing, WorkerHooks{}, &heard);
+    h.core = std::make_unique<McpCore>(h.registry, h.invoker, h.jobs, &h.journal, h.timing, WorkerHooks{}, std::vector<CallObserver*>{&heard});
 
     CHECK_FALSE(h.call("look").is_error);
     CHECK(heard.take() == std::vector<std::string>{"start look", "end ok"});
@@ -924,6 +926,114 @@ TEST_CASE("the call observer hears inline, job and child calls, and not calls re
     release = true;
     REQUIRE(h.jobs.wait(running.data["job"], 3000ms).has_value());
     CHECK(heard.take() == std::vector<std::string>{"end ok"});
+}
+
+// What the activity list hears of each call: its tool, its parent's job, its own job and its origin, in order.
+struct HeardOrigins final : CallObserver
+{
+    struct Heard
+    {
+        std::string tool, parent, job;
+        json        origin;
+    };
+    std::mutex               mutex;
+    std::vector<Heard>       heard;
+    std::vector<std::string> queued; // "queued <job>" and "ended <call>" as they come, for the order
+    std::map<uint64_t, std::string> jobs_of; // call -> its job, as queued
+    void call_queued(uint64_t call, const std::string& job, const std::string&, const json&) override
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        queued.push_back("queued " + job);
+        jobs_of[call] = job;
+    }
+    void call_started(uint64_t, const NativeCommand& def, const json&, const std::string& parent, const std::string& job,
+                      const json& origin) override
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        heard.push_back({def.key, parent, job, origin});
+        queued.push_back("started " + job);
+    }
+    void call_args(uint64_t, const json&) override {}
+    void call_ended(uint64_t call, const ToolResult&) override
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        if (const auto it = jobs_of.find(call); it != jobs_of.end())
+            queued.push_back("ended " + it->second);
+    }
+    std::vector<Heard> take()
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        return std::exchange(heard, {});
+    }
+};
+
+TEST_CASE("every observer hears a call's job and origin, and a child call's parent job without an origin", "[Mcp]")
+{
+    Harness       h;
+    HeardOrigins  first, second;
+    NativeCommand look = tool("look", GuardClass::Inspect, [](const json&, ToolContext&) { return ToolResult::ok(); });
+    look.inline_call   = true;
+    h.registry.add(look);
+    h.registry.add(tool("act", GuardClass::Mutate, [](const json&, ToolContext&) { return ToolResult::ok(); }));
+    h.registry.add(tool("replay", GuardClass::Mutate, [](const json&, ToolContext& ctx) {
+        ctx.call_child("look", json::object());
+        return ctx.call_child("act", json::object());
+    }));
+    h.core = std::make_unique<McpCore>(h.registry, h.invoker, h.jobs, &h.journal, h.timing, WorkerHooks{},
+                                       std::vector<CallObserver*>{&first, &second});
+
+    const json agent{{"source", "agent"}, {"client", "Claude Code"}, {"request", {{"method", "tools/call"}, {"id", 7}}}};
+    CHECK_FALSE(h.core->call(*h.registry.find("look"), json::object(), agent).is_error);
+    std::vector<HeardOrigins::Heard> heard = first.take();
+    REQUIRE(heard.size() == 1);
+    CHECK(heard[0].tool == "look");
+    CHECK(heard[0].job.empty()); // inline: no job of its own
+    CHECK(heard[0].parent.empty());
+    CHECK(heard[0].origin == agent);
+
+    CHECK_FALSE(h.core->call(*h.registry.find("replay"), json::object(), {{"source", "action_replay"}}).is_error);
+    heard = first.take();
+    REQUIRE(heard.size() == 3);
+    CHECK(heard[0].tool == "replay");
+    CHECK_FALSE(heard[0].job.empty());
+    CHECK(heard[0].origin == json{{"source", "action_replay"}});
+    CHECK(heard[1].tool == "look");
+    CHECK(heard[1].parent == heard[0].job);
+    CHECK(heard[1].job.empty());
+    CHECK(heard[1].origin.is_null());
+    CHECK(heard[2].tool == "act");
+    CHECK(heard[2].parent == heard[0].job);
+    CHECK_FALSE(heard[2].job.empty());
+    CHECK(heard[2].origin.is_null());
+
+    CHECK_FALSE(h.core->call_plugin(*h.registry.find("act"), json::object(), "measure").is_error);
+    heard = first.take();
+    REQUIRE(heard.size() == 1);
+    CHECK_FALSE(heard[0].job.empty());
+    CHECK(heard[0].origin == json{{"source", "plugin"}, {"plugin", "measure"}});
+
+    std::promise<ToolResult> ended;
+    REQUIRE_FALSE(h.core->submit(*h.registry.find("act"), json::object(), [&ended](const ToolResult& r) { ended.set_value(r); }).empty());
+    CHECK_FALSE(ended.get_future().get().is_error);
+    heard = first.take();
+    REQUIRE(heard.size() == 1);
+    CHECK(heard[0].origin == json{{"source", "person"}});
+
+    CHECK(second.take().size() == 6); // the second observer heard every call too
+
+    // A job call is queued, on the calling thread, before its thread starts it; an inline call is not queued.
+    const std::vector<std::string> order = [&] {
+        std::lock_guard<std::mutex> lock(first.mutex);
+        return first.queued;
+    }();
+    REQUIRE_FALSE(order.empty());
+    for (std::size_t i = 0; i < order.size(); ++i)
+        if (order[i].rfind("started ", 0) == 0 && order[i] != "started ") {
+            const std::string job = order[i].substr(8);
+            const auto        at  = std::find(order.begin(), order.end(), "queued " + job);
+            CHECK(at != order.end());
+            CHECK(at - order.begin() < std::ptrdiff_t(i));
+        }
 }
 
 TEST_CASE("a child call whose arguments its schema refuses carries the tool_describe hint", "[Mcp]")
@@ -951,7 +1061,10 @@ TEST_CASE("an observer that throws fails no call", "[Mcp]")
 {
     struct Throwing final : CallObserver
     {
-        void call_started(uint64_t, const NativeCommand&, const json&, const std::string&) override { throw std::runtime_error("started"); }
+        void call_started(uint64_t, const NativeCommand&, const json&, const std::string&, const std::string&, const json&) override
+        {
+            throw std::runtime_error("started");
+        }
         void call_args(uint64_t, const json&) override { throw std::bad_alloc(); }
         void call_ended(uint64_t, const ToolResult&) override { throw std::runtime_error("ended"); }
     } throwing;
@@ -963,7 +1076,7 @@ TEST_CASE("an observer that throws fails no call", "[Mcp]")
         ctx.set_journal_args({{"x", 1}});
         return ToolResult::ok({{"done", true}});
     }));
-    h.core = std::make_unique<McpCore>(h.registry, h.invoker, h.jobs, &h.journal, h.timing, WorkerHooks{}, &throwing);
+    h.core = std::make_unique<McpCore>(h.registry, h.invoker, h.jobs, &h.journal, h.timing, WorkerHooks{}, std::vector<CallObserver*>{&throwing});
     const ToolResult looked = h.call("look");
     CHECK_FALSE(looked.is_error);
     CHECK(looked.data["seen"] == true);
@@ -1735,11 +1848,23 @@ TEST_CASE("a plugin's job never starts once the plugin unloads, as it registers 
     h.registry.add(tool("make", GuardClass::Mutate, [&](const json&, ToolContext&) { ++ran; return ToolResult::ok(); }));
     h.timing.soft_budget = std::chrono::milliseconds(10000);
     h.start();
+    HeardOrigins heard;
+    h.core = std::make_unique<McpCore>(h.registry, h.invoker, h.jobs, &h.journal, h.timing, WorkerHooks{},
+                                       std::vector<CallObserver*>{&heard});
     const ToolResult r = h.core->call_plugin(*h.registry.find("make"), json::object(), "measure");
     CHECK(r.is_error);
     CHECK(r.message.find("unloaded") != std::string::npos);
     CHECK(ran == 0);
     CHECK(h.jobs.running_owned_by("measure").empty());
+    // A call queued and never started is ended all the same; one refused before its job registered is never queued.
+    std::lock_guard<std::mutex> lock(heard.mutex);
+    if (unload_at == 3) {
+        REQUIRE(heard.queued.size() == 2);
+        CHECK(heard.queued[0].rfind("queued ", 0) == 0);
+        CHECK(heard.queued[1].rfind("ended ", 0) == 0);
+    } else
+        CHECK(heard.queued.empty());
+    CHECK(heard.heard.empty());
 }
 
 TEST_CASE("a plugin's running call is cancelled the moment the plugin unloads", "[Mcp]")

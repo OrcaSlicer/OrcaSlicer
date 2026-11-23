@@ -181,7 +181,7 @@ const std::vector<std::pair<std::string, std::set<std::string>>> kPlaces{
      {"printer_send", "printer_list_models", "printer_install", "printer_uninstall", "print_start", "printer_test_host",
       "printer_status", "print_pause", "print_resume", "print_stop"}},
     {"Plugins", {"plugin_list", "plugin_install_local", "plugin_enable", "plugin_reload", "plugin_uninstall", "plugin_refresh"}},
-    {"View and windows", {"view_set", "window_list", "window_set", "window_open"}},
+    {"View and windows", {"view_set", "view_toggle_activity_panel", "window_list", "window_set", "window_open"}},
     {"Recordings, replays and scripts",
      {"script_list_api", "script_describe_api", "window_screenshot", "recording_start", "recording_stop", "recording_encode", "replay_run", "replay_export",
       "script_run", "window_save_screenshot", "script_toggle_panel"}},
@@ -202,12 +202,12 @@ std::vector<std::string> group_runs(const CommandCatalog& catalog, const std::ve
 
 } // namespace
 
-TEST_CASE("the process catalog gives the Speed Dial its 129 command actions", "[CommandCatalog]")
+TEST_CASE("the process catalog gives the Speed Dial its 130 command actions", "[CommandCatalog]")
 {
     const CommandCatalog& catalog = NativeCommands::instance();
     CHECK(catalog.sealed());
     const std::vector<NativeCommands::SpeedDialAction> speed_dial = NativeCommands::speed_dial_actions(catalog);
-    CHECK(speed_dial.size() == 129);
+    CHECK(speed_dial.size() == 130);
     for (const NativeCommands::SpeedDialAction& t : speed_dial) {
         REQUIRE(t.command != nullptr);
         INFO(t.command->key);
@@ -223,12 +223,12 @@ TEST_CASE("the process catalog gives the Speed Dial its 129 command actions", "[
 
 TEST_CASE("every Speed Dial action of today is still a command's action", "[CommandCatalog][SpeedDial]")
 {
-    // The Speed Dial's 129 actions of commands, each with its id, title, section, icon and input: each is an action of
+    // The Speed Dial's 130 actions of commands, each with its id, title, section, icon and input: each is an action of
     // the Speed Dial with that presentation, and the Speed Dial has no other.
     std::ifstream in(std::string(TEST_DATA_DIR) + "/speed_dial_actions.json", std::ios::binary);
     REQUIRE(in.is_open());
     const json fixture = json::parse(in);
-    REQUIRE(fixture.size() == 129);
+    REQUIRE(fixture.size() == 130);
 
     const CommandCatalog&    catalog = NativeCommands::instance();
     std::vector<std::string> expected;
@@ -272,11 +272,11 @@ TEST_CASE("a menu item's id is an action's key, not a command", "[CommandCatalog
 
 TEST_CASE("every action is its command's, with the design's arguments, and they fit its schema", "[CommandCatalog][SpeedDial]")
 {
-    // Each of the 129 actions with the command the design folds its menu item into and the arguments it runs it with.
+    // Each of the 130 actions with the command the design folds its menu item into and the arguments it runs it with.
     std::ifstream in(std::string(TEST_DATA_DIR) + "/speed_dial_action_calls.json", std::ios::binary);
     REQUIRE(in.is_open());
     const json fixture = json::parse(in);
-    REQUIRE(fixture.size() == 129);
+    REQUIRE(fixture.size() == 130);
 
     const CommandCatalog& catalog = NativeCommands::instance();
     std::size_t           folded  = 0;
@@ -314,7 +314,7 @@ TEST_CASE("every action is its command's, with the design's arguments, and they 
         CHECK(Mcp::argument_error(*command, call).empty());
     }
     // Every action of today, under the command the design folds its menu item into.
-    CHECK(folded == 129);
+    CHECK(folded == 130);
 
     // The actions that ask need none of what the silent form requires; one more argument is the silent form.
     const NativeCommand* save   = catalog.find("project_save");
@@ -430,7 +430,7 @@ TEST_CASE("a menu item's action runs its command with the item's arguments", "[S
     }
 }
 
-TEST_CASE("outside the Design tab the catalog has its commands and 129 actions", "[CommandCatalog]")
+TEST_CASE("outside the Design tab the catalog has its commands and 130 actions", "[CommandCatalog]")
 {
     // The section the Speed Dial shows each action in, by its key.
     std::ifstream in(std::string(TEST_DATA_DIR) + "/speed_dial_actions.json", std::ios::binary);
@@ -457,12 +457,12 @@ TEST_CASE("outside the Design tab the catalog has its commands and 129 actions",
     // The commands outside the Design tab: the typed tools, the commands made from menu items, the seven Parts 4a to 4c
     // add, Part 5a's three, Part 5b's two, Part 5c's one, Part 5d's four, the seven gizmo commands, the six printing
     // commands, the four of the filament list (filament_list, filament_edit_mixed, filament_set_colour and
-    // filament_set_flushing), tool_describe, script_describe_api and settings_list_pages.
-    CHECK(commands == 138);
-    // The eight commands named as their menu items keep an action of their own; the other 121 actions are items.
+    // filament_set_flushing), tool_describe, script_describe_api, settings_list_pages and view_toggle_activity_panel.
+    CHECK(commands == 139);
+    // The eight commands named as their menu items keep an action of their own; the other 122 actions are items.
     CHECK(own == std::set<std::string>{"plate_add", "plate_delete", "plate_duplicate", "plate_rename", "filament_add", "filament_delete",
                                        "undo", "redo"});
-    CHECK(items == 121);
+    CHECK(items == 122);
 }
 
 TEST_CASE("the commands outside the Design tab are the design's, under its headings", "[CommandCatalog]")
@@ -485,7 +485,7 @@ TEST_CASE("the commands outside the Design tab are the design's, under its headi
         commands += keys.size();
     }
     CHECK(by_heading.size() == kPlaces.size());
-    CHECK(commands == 138);
+    CHECK(commands == 139);
 
     // tool_list's group says which there are.
     const NativeCommand* list = NativeCommands::find("tool_list");
@@ -523,8 +523,9 @@ TEST_CASE("every command that runs from arguments is in the tool list, by place"
         else
             unlisted.insert(c.key);
     }
-    // The three menu items with no argument form, which tool_list lists and tool_call runs.
-    CHECK(unlisted == std::set<std::string>{"window_save_screenshot", "script_toggle_panel", "settings_toggle_developer_mode"});
+    // The four menu items with no argument form, which tool_list lists and tool_call runs.
+    CHECK(unlisted == std::set<std::string>{"window_save_screenshot", "script_toggle_panel", "settings_toggle_developer_mode",
+                                            "view_toggle_activity_panel"});
     // Task 3's 98, the seven Parts 4a to 4c add, Part 5a's three, Part 5b's two, Part 5c's one, Part 5d's four, the
     // seven gizmo commands, the six printing commands, the filament list's four, tool_describe, script_describe_api and
     // settings_list_pages.
@@ -747,10 +748,10 @@ TEST_CASE("the Speed Dial's actions are under the menu items' keys, not the tool
         "open_preferences", "open_wiki", "open_youtube", "plate_add", "plate_delete", "plate_duplicate", "plate_goto",
         "plate_rename", "plate_toggle_lock", "preset_bundle", "redo", "refresh_plugins", "reset_window_layout", "save_project",
         "save_project_as", "select_all", "send_gcode", "slice_all", "slice_and_preview", "start_recording", "stop_recording",
-        "sync_ams", "sync_presets", "take_screenshot", "toggle_developer_mode", "toggle_run_script_panel", "undo", "view_bottom",
+        "sync_ams", "sync_presets", "take_screenshot", "toggle_agent_activity_panel", "toggle_developer_mode", "toggle_run_script_panel", "undo", "view_bottom",
         "view_default", "view_fit_bed", "view_front", "view_iso", "view_left", "view_rear", "view_right",
         "view_toggle_perspective", "view_top"};
-    REQUIRE(actions.size() == 129);
+    REQUIRE(actions.size() == 130);
 
     std::set<std::string> speed_dial;
     for (const NativeCommands::SpeedDialAction& t : NativeCommands::speed_dial_actions(NativeCommands::instance()))
@@ -925,7 +926,7 @@ TEST_CASE("the catalog needs no runtime", "[CommandCatalog]")
     const CommandCatalog& catalog = NativeCommands::instance();
     struct NoApp final : ToolCaller
     {
-        ToolResult call(const NativeCommand&, const json&) override { return ToolResult::error("no app"); }
+        ToolResult call(const NativeCommand&, const json&, const json&) override { return ToolResult::error("no app"); }
     } caller;
     Mcp::McpProtocol protocol(catalog, caller, Mcp::ServerInfo{});
     const Mcp::PostReply reply = protocol.handle_post({json{{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/list"}}.dump(), {}, {}, {}});
@@ -1402,7 +1403,7 @@ TEST_CASE("the reference leaves out nothing a client is told", "[CommandCatalog]
     // The entries marked listed are the tools a client's tools/list names.
     struct NoApp final : ToolCaller
     {
-        ToolResult call(const NativeCommand&, const json&) override { return ToolResult::error("no app"); }
+        ToolResult call(const NativeCommand&, const json&, const json&) override { return ToolResult::error("no app"); }
     } caller;
     Mcp::McpProtocol protocol(catalog, caller, Mcp::ServerInfo{});
     const Mcp::PostReply reply = protocol.handle_post({json{{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/list"}}.dump(), {}, {}, {}});

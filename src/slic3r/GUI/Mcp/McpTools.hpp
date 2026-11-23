@@ -213,6 +213,8 @@ std::string refusal_hint(const Ops::Refusal& refusal);
 
 // Typed argument access with defaults; schema validation has already checked the types. arg_int() refuses
 // (ToolFailure, invalid_argument) a number that no int holds, rather than narrowing it into another value.
+// arg_string() gives the fallback for a missing or non-string member, and for `args` that isn't an object, so it also
+// reads JSON nothing checked.
 std::string arg_string(const nlohmann::json& args, const char* key, const std::string& fallback = {});
 int         arg_int(const nlohmann::json& args, const char* key, int fallback);
 double      arg_double(const nlohmann::json& args, const char* key, double fallback);
@@ -332,8 +334,8 @@ nlohmann::json editor_tool_catalog(const CommandCatalog& catalog);
 
 // Starts recording_encode with `args` as an unjournaled job of its own and returns at once: the job's envelope, or
 // the error that refused it. For a recording's encode that recording_stop starts, which a replay of the recording
-// asks for again. Any thread.
-ToolResult start_encode(AutomationRuntime& runtime, const nlohmann::json& args);
+// asks for again; the Agent Activity pane lists it with the stop, whose job is `stop_job`. Any thread.
+ToolResult start_encode(AutomationRuntime& runtime, const nlohmann::json& args, const std::string& stop_job);
 
 // ---- settings (McpToolsConfig.cpp) -----------------------------------------------------------
 

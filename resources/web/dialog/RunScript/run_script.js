@@ -334,7 +334,7 @@ function runCell() {
   const code = cellText(cell, text.split("\n"));
   S.pending = { kind: "cell", cells, text, cell, code };
   S.message = null;
-  send("run", { kind: "cell", text, first_line: cell.start, last_line: cell.end, code });
+  send("run", { kind: "cell", text, first_line: cell.start, last_line: cell.end, cell: cell.index, title: cell.title, code });
   render();
 }
 

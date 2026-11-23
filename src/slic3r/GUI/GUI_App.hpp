@@ -100,6 +100,7 @@ class ObjectSettings;
 class ObjectList;
 class ObjectLayers;
 class Plater;
+class AgentActivityPanel;
 class RunScriptPanel;
 class ParamsPanel;
 class NotificationManager;
@@ -397,6 +398,7 @@ private:
     // opened it.
     std::unique_ptr<Mcp::McpEndpoint> m_mcp_endpoint;
     std::unique_ptr<RunScriptPanel> m_run_script_panel;
+    std::unique_ptr<AgentActivityPanel> m_agent_activity_panel;
     bool             m_show_gcode_window{true};
     boost::thread    m_check_network_thread;
 public:
@@ -708,6 +710,10 @@ public:
     // its session, goes away.
     RunScriptPanel&  run_script_panel();
     RunScriptPanel*  run_script_panel_if_built() { return m_run_script_panel.get(); }
+    // The Agent Activity pane's controller, built on first use and kept until the automation runtime, whose activity
+    // log it shows, goes away.
+    AgentActivityPanel& agent_activity_panel();
+    AgentActivityPanel* agent_activity_panel_if_built() { return m_agent_activity_panel.get(); }
 
     void            on_show_check_privacy_dlg(int online_login = 0, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            show_check_privacy_dlg(wxCommandEvent& evt);

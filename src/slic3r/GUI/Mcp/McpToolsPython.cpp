@@ -351,6 +351,7 @@ std::shared_ptr<PersonRun> start_python_session(AutomationRuntime& runtime, std:
 
     FollowedCall call;
     call.command = std::move(def);
+    call.origin  = {{"source", "run_script"}};
     call.person  = true;
     call.ended   = [&runtime, run, session, hosted](const std::optional<ToolResult>& r) {
         run->mark_ended();

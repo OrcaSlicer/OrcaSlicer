@@ -24,20 +24,21 @@
 #include <system_error>
 #include <thread>
 #include <utility>
+#include <vector>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
 namespace {
 
-// Calls an observer method; what it throws stays here, out of the call's thread.
-template<class Fn> void notify(CallObserver* observer, Fn&& fn)
+// Calls an observer method on each observer; what one throws stays here, out of the call's thread.
+template<class Fn> void notify(const std::vector<CallObserver*>& observers, Fn&& fn)
 {
-    if (observer == nullptr)
-        return;
-    try {
-        fn(*observer);
-    } catch (...) {
-        // A recording's caption is not worth a call.
+    for (CallObserver* observer : observers) {
+        try {
+            fn(*observer);
+        } catch (...) {
+            // A caption or an activity entry is not worth a call.
+        }
     }
 }
 
@@ -64,7 +65,7 @@ class CallContext final : public ToolContext
 {
 public:
     CallContext(McpCore& core, const NativeCommand& def, std::string job, std::string parent, std::string plugin, Journal* journal,
-                uint64_t journal_seq, CallObserver* observer, uint64_t call)
+                uint64_t journal_seq, const std::vector<CallObserver*>& observers, uint64_t call)
         : m_core(core)
         , m_def(def)
         , m_job(std::move(job))
@@ -72,7 +73,7 @@ public:
         , m_plugin(std::move(plugin))
         , m_journal(journal)
         , m_seq(journal_seq)
-        , m_observer(observer)
+        , m_observers(observers)
         , m_call(call)
     {}
 
@@ -140,7 +141,7 @@ public:
 
     void set_journal_args(nlohmann::json args) override
     {
-        notify(m_observer, [&](CallObserver& o) { o.call_args(m_call, args); });
+        notify(m_observers, [&](CallObserver& o) { o.call_args(m_call, args); });
         if (m_journal != nullptr && m_seq != 0)
             m_journal->set_args(m_seq, without_guard_ids(m_core.catalog(), m_def.key, std::move(args)));
     }
@@ -175,7 +176,7 @@ private:
     std::string    m_plugin;
     Journal*       m_journal;
     uint64_t       m_seq;
-    CallObserver*  m_observer;
+    const std::vector<CallObserver*>& m_observers;
     uint64_t       m_call;
     bool           m_saw_idle = false; // UI thread
 };
@@ -209,8 +210,14 @@ std::chrono::milliseconds reply_budget_cap_from(const char* value)
 }
 
 McpCore::McpCore(const CommandCatalog& catalog, UiInvoker& ui, JobRegistry& jobs, Journal* journal, CoreTiming timing, WorkerHooks worker,
-                 CallObserver* observer)
-    : m_catalog(catalog), m_ui(ui), m_jobs(jobs), m_journal(journal), m_timing(timing), m_worker(std::move(worker)), m_observer(observer)
+                 std::vector<CallObserver*> observers)
+    : m_catalog(catalog)
+    , m_ui(ui)
+    , m_jobs(jobs)
+    , m_journal(journal)
+    , m_timing(timing)
+    , m_worker(std::move(worker))
+    , m_observers(std::move(observers))
 {}
 
 McpCore::~McpCore()
@@ -244,14 +251,20 @@ bool McpCore::shutting_down()
     return m_stopping || m_ui.is_shutdown();
 }
 
-ToolResult McpCore::call(const NativeCommand& command, const nlohmann::json& args) { return run(command, args, {}, {}, false); }
+ToolResult McpCore::call(const NativeCommand& command, const nlohmann::json& args, const nlohmann::json& origin)
+{
+    return run(command, args, {}, {}, false, origin);
+}
 
-ToolResult McpCore::call_person(const NativeCommand& command, const nlohmann::json& args) { return run(command, args, {}, {}, true); }
+ToolResult McpCore::call_person(const NativeCommand& command, const nlohmann::json& args, const nlohmann::json& origin)
+{
+    return run(command, args, {}, {}, true, origin);
+}
 
 ToolResult McpCore::call_child(const NativeCommand& command, const nlohmann::json& args, const std::string& parent_job,
                                const std::string& plugin)
 {
-    return run(command, args, parent_job, plugin, false);
+    return run(command, args, parent_job, plugin, false, nlohmann::json());
 }
 
 ToolResult McpCore::call_child_named(const std::string& tool, const nlohmann::json& raw_args, const std::string& parent_job,
@@ -272,7 +285,7 @@ ToolResult McpCore::call_child_named(const std::string& tool, const nlohmann::js
 
 ToolResult McpCore::call_plugin(const NativeCommand& command, const nlohmann::json& args, const std::string& plugin_key)
 {
-    return run(command, args, {}, plugin_key, false);
+    return run(command, args, {}, plugin_key, false, {{"source", "plugin"}, {"plugin", plugin_key}});
 }
 
 std::string McpCore::submit(const NativeCommand& command, const nlohmann::json& args, std::function<void(const ToolResult&)> done)
@@ -282,7 +295,7 @@ std::string McpCore::submit(const NativeCommand& command, const nlohmann::json& 
     struct Leave { McpCore* core; ~Leave() { core->leave(); } } leave_on_return{this};
     ToolResult refused;
     // A person's pick: its job, and a script it runs, are the person's, as a run the person starts is.
-    const std::string job = start_job(command, args, {}, {}, true, 0, m_next_call++, done, refused);
+    const std::string job = start_job(command, args, {}, {}, true, {{"source", "person"}}, 0, m_next_call++, done, refused);
     // A refusal at shutdown is no answer to give: the caller is told nothing, as a call it never made.
     if (job.empty() && !shutting_down())
         deliver(done, refused);
@@ -290,8 +303,8 @@ std::string McpCore::submit(const NativeCommand& command, const nlohmann::json& 
 }
 
 std::string McpCore::start_job(const NativeCommand& def, const nlohmann::json& args, const std::string& parent, const std::string& plugin,
-                               bool person, uint64_t seq, uint64_t call, const std::function<void(const ToolResult&)>& done,
-                               ToolResult& refused)
+                               bool person, const nlohmann::json& origin, uint64_t seq, uint64_t call,
+                               const std::function<void(const ToolResult&)>& done, ToolResult& refused)
 {
     // Operation admission: an MCP operation holds the project until it finishes; only recovery
     // input and the commands that may run during an operation (job_cancel) get through.
@@ -321,19 +334,21 @@ std::string McpCore::start_job(const NativeCommand& def, const nlohmann::json& a
         m_jobs.finish(job, refused);
         return {};
     }
+    notify(m_observers, [&](CallObserver& o) { o.call_queued(call, job, parent, origin); });
     // The job thread owns copies of what it needs; the core outlives it, as the owner destroys the
     // core only once drain() has seen every job thread leave.
     try {
-        std::thread([this, def, args, job, parent, plugin, seq, call, done]() {
-            CallContext ctx(*this, def, job, parent, plugin, m_journal, seq, m_observer, call);
+        std::thread([this, def, args, job, parent, plugin, origin, seq, call, done]() {
+            CallContext ctx(*this, def, job, parent, plugin, m_journal, seq, m_observers, call);
             ToolResult  result;
             // The plugin may have unloaded since the job was registered; its handler then never starts.
             if (m_jobs.unloaded(job, {})) {
                 result = ToolResult::error(kPluginUnloaded);
+                notify(m_observers, [&](CallObserver& o) { o.call_ended(call, result); });
             } else {
-                notify(m_observer, [&](CallObserver& o) { o.call_started(call, def, args, parent); });
+                notify(m_observers, [&](CallObserver& o) { o.call_started(call, def, args, parent, job, origin); });
                 result = await_worker(job, def.key, invoke(def, args, ctx));
-                notify(m_observer, [&](CallObserver& o) { o.call_ended(call, result); });
+                notify(m_observers, [&](CallObserver& o) { o.call_ended(call, result); });
             }
             // Before finish(): a replay_export right after the app_wait that sees the result must know it.
             if (seq != 0)
@@ -345,6 +360,7 @@ std::string McpCore::start_job(const NativeCommand& def, const nlohmann::json& a
         }).detach();
     } catch (const std::system_error& e) {
         refused = ToolResult::error(std::string("Cannot start the call: ") + e.what());
+        notify(m_observers, [&](CallObserver& o) { o.call_ended(call, refused); });
         if (seq != 0)
             m_journal->job_ended(seq, refused);
         m_jobs.finish(job, refused);
@@ -355,7 +371,7 @@ std::string McpCore::start_job(const NativeCommand& def, const nlohmann::json& a
 }
 
 ToolResult McpCore::run(const NativeCommand& def, const nlohmann::json& args, const std::string& parent, const std::string& plugin,
-                        bool person)
+                        bool person, const nlohmann::json& origin)
 {
     if (m_ui.is_shutdown() || !enter())
         return ToolResult::error("OrcaSlicer is shutting down");
@@ -381,19 +397,19 @@ ToolResult McpCore::run(const NativeCommand& def, const nlohmann::json& args, co
 
     const uint64_t call = m_next_call++;
     if (def.inline_call) {
-        CallContext ctx(*this, def, {}, parent, plugin, m_journal, seq, m_observer, call);
+        CallContext ctx(*this, def, {}, parent, plugin, m_journal, seq, m_observers, call);
         // Any inline call can wait for the UI thread, so each holds a blocking slot.
         if (!acquire_slot())
             return finish(ToolResult::ok({{"status", "pending"}, {"note", "Too many calls are waiting right now; try again shortly."}}));
-        notify(m_observer, [&](CallObserver& o) { o.call_started(call, def, args, parent); });
+        notify(m_observers, [&](CallObserver& o) { o.call_started(call, def, args, parent, std::string(), origin); });
         ToolResult r = invoke(def, args, ctx);
-        notify(m_observer, [&](CallObserver& o) { o.call_ended(call, r); });
+        notify(m_observers, [&](CallObserver& o) { o.call_ended(call, r); });
         release_slot();
         return finish(std::move(r));
     }
 
     ToolResult        refused;
-    const std::string job = start_job(def, args, parent, plugin, person, seq, call, {}, refused);
+    const std::string job = start_job(def, args, parent, plugin, person, origin, seq, call, {}, refused);
     if (job.empty())
         return finish(std::move(refused));
 

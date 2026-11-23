@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -668,6 +669,89 @@ TEST_CASE("tool_call runs and is journaled as the tool it names", "[Mcp]")
     CHECK(unknown["isError"] == true);
     CHECK(unknown["content"][0]["text"].get<std::string>().find("did you mean echo") != std::string::npos);
     CHECK(unknown["content"][0]["text"].get<std::string>().find(R"({"code":"invalid_argument"})") != std::string::npos);
+}
+
+TEST_CASE("a call carries its client's name while one client has said its name, and none once two have", "[Mcp]")
+{
+    Fixture    f;
+    const auto initialize = [&f](const char* name) {
+        f.post({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "initialize"},
+                {"params", {{"protocolVersion", "2025-06-18"}, {"clientInfo", {{"name", name}, {"version", "1"}}}}}});
+    };
+    const json call{{"jsonrpc", "2.0"}, {"id", 3}, {"method", "tools/call"}, {"params", {{"name", "echo"}, {"arguments", {{"text", "hi"}}}}}};
+
+    // Before any handshake a call is the agent's, unnamed, and carries the message it came in.
+    f.post(call);
+    REQUIRE(f.caller.origins.size() == 1);
+    CHECK(f.caller.origins.back() == json{{"source", "agent"}, {"client", ""}, {"request", call}});
+
+    initialize("Claude Code");
+    initialize("Claude Code"); // the same client reconnecting is still one name
+    f.post(call);
+    CHECK(f.caller.origins.back()["client"] == "Claude Code");
+
+    initialize("Codex");
+    f.post(call);
+    CHECK(f.caller.origins.back()["client"] == "");
+
+    // A 2026-07-28 call has no handshake: whoever it is, it is unnamed.
+    Fixture fresh;
+    fresh.post({{"jsonrpc", "2.0"}, {"id", 1}, {"method", "initialize"},
+                {"params", {{"protocolVersion", "2025-06-18"}, {"clientInfo", {{"name", "Claude Code"}}}}}});
+    fresh.post({{"jsonrpc", "2.0"}, {"id", 2}, {"method", "tools/call"}, {"params", modern_params({{"name", "echo"}, {"arguments", {{"text", "hi"}}}})}},
+               "2026-07-28", "tools/call", "echo");
+    REQUIRE(fresh.caller.origins.size() == 1);
+    CHECK(fresh.caller.origins.back()["client"] == "");
+}
+
+TEST_CASE("a tool_call reaches the caller with its message as sent, and a call refused before it is reported", "[Mcp]")
+{
+    Fixture f;
+    NativeCommand api;
+    api.key          = "tool_call";
+    api.input_schema = {{"type", "object"},
+                        {"properties", {{"tool", {{"type", "string"}}}, {"args", {{"type", "object"}}}}},
+                        {"required", {"tool"}}};
+    api.run          = [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("not dispatched"); };
+    f.registry.add(api);
+    struct Refusal
+    {
+        std::string tool;
+        json        origin;
+        ToolResult  error;
+    };
+    std::vector<Refusal> refusals;
+    f.protocol.set_on_refused([&refusals](const std::string& tool, const json& origin, const ToolResult& error) {
+        refusals.push_back({tool, origin, error});
+    });
+
+    const json wrapped{{"jsonrpc", "2.0"}, {"id", 4}, {"method", "tools/call"},
+                       {"params", {{"name", "tool_call"}, {"arguments", {{"tool", "echo"}, {"args", {{"text", "hi"}}}}}}}};
+    f.post(wrapped);
+    REQUIRE(f.caller.called == std::vector<std::string>{"echo"});
+    CHECK(f.caller.origins.back()["request"] == wrapped);
+    CHECK(refusals.empty());
+
+    const json bad{{"jsonrpc", "2.0"}, {"id", 5}, {"method", "tools/call"}, {"params", {{"name", "echo"}, {"arguments", {{"txt", "hi"}}}}}};
+    f.post(bad);
+    REQUIRE(refusals.size() == 1);
+    CHECK(refusals[0].tool == "echo");
+    CHECK(refusals[0].origin == json{{"source", "agent"}, {"client", ""}, {"request", bad}});
+    CHECK(refusals[0].error.is_error);
+    CHECK(refusals[0].error.message.rfind("Invalid arguments for echo: unknown argument txt", 0) == 0);
+
+    // A tool_call that names an unknown tool is the call of the tool it names; an unknown tool is refused too.
+    f.post({{"jsonrpc", "2.0"}, {"id", 6}, {"method", "tools/call"}, {"params", {{"name", "tool_call"}, {"arguments", {{"tool", "ech"}}}}}});
+    f.post({{"jsonrpc", "2.0"}, {"id", 7}, {"method", "tools/call"}, {"params", {{"name", "ecko"}}}});
+    REQUIRE(refusals.size() == 3);
+    CHECK(refusals[1].tool == "ech");
+    CHECK(refusals[2].tool == "ecko");
+    CHECK(refusals[2].error.message == f.registry.unknown_command("ecko"));
+    CHECK(f.caller.called.size() == 1); // none of them reached the caller
+
+    // What the listener throws never reaches the client.
+    f.protocol.set_on_refused([](const std::string&, const json&, const ToolResult&) { throw std::runtime_error("listener"); });
+    CHECK(f.post(bad).status == 200);
 }
 
 // Holds the one operation a plugin offers while it is loaded.

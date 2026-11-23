@@ -316,7 +316,7 @@ PostReply answer_offline(const std::string& line, const std::map<std::string, st
     // A tool needs the app, so the bridge never brings a tools/call here.
     struct NoApp final : ToolCaller
     {
-        ToolResult call(const NativeCommand&, const json&) override { return ToolResult::error("OrcaSlicer is not running."); }
+        ToolResult call(const NativeCommand&, const json&, const json&) override { return ToolResult::error("OrcaSlicer is not running."); }
     };
     static NoApp       caller;
     // Made on the first request answered here, the only time `catalog` is called: this process never starts

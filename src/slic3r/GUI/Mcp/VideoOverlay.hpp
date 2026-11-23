@@ -225,6 +225,23 @@ std::string caption_detail(const std::string& tool, const nlohmann::json& args);
 // left out altogether. Give it the whole error, and shorten() it afterwards.
 std::string caption_error(const std::string& tool, const nlohmann::json& args, const std::string& error);
 
+// What caption_detail() leaves out of `tool`'s caption on purpose, as text: the values of sensitive settings and
+// arguments (is_sensitive_key()), typed text, a value set into a field not found by its setting key, and a page's
+// JavaScript.
+std::vector<std::string> hidden_values(const std::string& tool, const nlohmann::json& args);
+
+// `value` with what must not show replaced by "•••": every member of a sensitive key (is_sensitive_key()), every string
+// or number that is one of `hidden`, and `hidden`'s values inside longer strings, as they are and as JSON escapes them,
+// where a value has three characters or more (a shorter one would take out pieces of unrelated text).
+nlohmann::json mask_hidden(nlohmann::json value, std::vector<std::string> hidden);
+
+// What mask_hidden() and caption_error() put in place of what they hide.
+inline const std::string kMask = "\xE2\x80\xA2\xE2\x80\xA2\xE2\x80\xA2";
+
+// Adds every string and number under `value` to `out`, as text: what a hidden value that is an object or an array
+// holds.
+void scalars(const nlohmann::json& value, std::vector<std::string>& out);
+
 // The first line of `text`, cut to at most `limit` bytes at a character boundary and marked "..." when cut.
 std::string shorten(const std::string& text, std::size_t limit);
 

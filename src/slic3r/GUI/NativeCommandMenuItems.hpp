@@ -101,6 +101,9 @@ AppActionRunResult refresh_plugins();
 // ---- Scripts ----
 AppActionRunResult toggle_run_script_panel();
 
+// ---- Agent Activity ----
+AppActionRunResult toggle_agent_activity_panel();
+
 // The schema of the argument of a command that opens or imports a file, in place of its file dialog: the absolute path
 // of `what`.
 nlohmann::json input_file(const char* what);

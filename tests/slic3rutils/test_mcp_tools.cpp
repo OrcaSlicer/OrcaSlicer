@@ -214,8 +214,8 @@ TEST_CASE("what action_run journals for an action of fixed arguments is a call i
         }
         return checked;
     };
-    // The 129 Speed Dial entries outside the Design tab are commands' actions: eight own and 121 items.
-    CHECK(check_actions(NativeCommands::instance()) == 129);
+    // The 130 Speed Dial entries outside the Design tab are commands' actions: eight own and 122 items.
+    CHECK(check_actions(NativeCommands::instance()) == 130);
 
     const auto recorded_for = [](const CommandCatalog& catalog, const char* key, const json& given) {
         const auto [command, action] = find_command_action(catalog, key);
@@ -229,7 +229,7 @@ TEST_CASE("what action_run journals for an action of fixed arguments is a call i
     CommandCatalog design;
     NativeCommands::register_all_commands(design, {true});
     design.seal();
-    CHECK(check_actions(design) > 129);
+    CHECK(check_actions(design) > 130);
     CHECK(recorded_for(design, "sk_array_polar", json::object()) == json{{"type", "circular"}});
 #endif
 }
@@ -1407,13 +1407,13 @@ TEST_CASE("tool_list gives the menu items then the Design commands by heading, i
         if (!c.listed)
             expected.push_back(c.key);
     CHECK(names == expected);
-    REQUIRE(names.size() == 91);
-    CHECK(std::set<std::string>(names.begin(), names.begin() + 3) ==
-          std::set<std::string>{"window_save_screenshot", "script_toggle_panel", "settings_toggle_developer_mode"});
+    REQUIRE(names.size() == 92);
+    CHECK(std::set<std::string>(names.begin(), names.begin() + 4) ==
+          std::set<std::string>{"window_save_screenshot", "script_toggle_panel", "settings_toggle_developer_mode", "view_toggle_activity_panel"});
     // Each Design command under its heading, heading by heading in the order tool_list's description indexes them.
     const std::string told    = catalog.find("tool_list")->description;
     std::size_t       indexed = 0;
-    for (std::size_t i = 3; i < names.size(); ++i) {
+    for (std::size_t i = 4; i < names.size(); ++i) {
         const json& item = all.at("items")[i];
         INFO(item.dump());
         CHECK(item.at("group") == Slic3r::GUI::kDesignGroup);

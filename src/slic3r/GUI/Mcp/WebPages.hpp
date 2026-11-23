@@ -198,9 +198,9 @@ void release_web_presses(const std::shared_ptr<WebPresses>& presses, const std::
 // and the answer ends. The 10 s limit counts only time a complete document is shown and restarts
 // when the document changes, so a dialog's bootstrap page replaced by its content is waited out;
 // script errors, navigation and pending replies never end it. Past the limit, `fallback` (cancel or
-// close, else wxID_NONE) ends the dialog natively, otherwise the answer gives up. UI thread only;
-// `tracker` outlives every answer.
+// close, else wxID_NONE) ends the dialog natively, otherwise the answer gives up. `message` is the dialog's, which the
+// answer reports (ModalTracker::count_use()). UI thread only; `tracker` outlives every answer.
 void start_web_answer(ModalTracker& tracker, wxDialog* dialog, int layer, const std::string& pattern, const std::string& label,
-                      int fallback);
+                      const std::string& message, int fallback);
 
 }}} // namespace Slic3r::GUI::Mcp

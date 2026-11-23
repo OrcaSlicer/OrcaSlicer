@@ -18,6 +18,7 @@
 #include <mutex>
 #include <set>
 #include <string>
+#include <vector>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
@@ -49,16 +50,29 @@ struct WorkerHooks
     std::function<void()> cancel; // asks the running job to stop, without waiting for it
 };
 
-// Told about each call the core runs, client and child calls alike: what a recording captions. A call
-// refused before its handler runs (admission, blocking slots) is not reported. Methods are called on
-// the call's own thread, must be quick, and must not call back into the core; what they throw is
-// swallowed, so a caption never fails a call.
+// Told about each call the core runs, client and child calls alike: what a recording captions and the Agent
+// Activity pane lists. A call refused before its handler runs (admission, blocking slots) is not reported.
+// Methods are called on the call's own thread, must be quick, and must not call back into the core; what
+// they throw is swallowed, so a caption never fails a call.
 class CallObserver
 {
 public:
     virtual ~CallObserver() = default;
+    // A call that runs as a job, as its job is registered and before its thread starts, on the thread that made the
+    // call: the parent job, or the call that started it (`origin`'s `under`), is still running. Every call queued is
+    // later ended, also when it never starts (its thread can't start, its plugin unloaded before its handler).
+    virtual void call_queued(uint64_t /*call*/, const std::string& /*job*/, const std::string& /*parent*/,
+                             const nlohmann::json& /*origin*/)
+    {}
     // Right before the handler runs: on the request thread for an inline call, the job's thread for a job.
-    virtual void call_started(uint64_t call, const NativeCommand& command, const nlohmann::json& args, const std::string& parent) = 0;
+    // `parent` is the job of the run that made a child call ("" for a top-level call), `job` the call's own
+    // ("" for an inline call). `origin` says who made a top-level call, as an object whose `source` is
+    // "agent" (with the client's name as `client`, empty when unknown, and its tools/call message as
+    // `request`), "action_replay", "run_script", "command_line", "plugin" (with the plugin's key as `plugin`)
+    // or "person"; a child call's is null, as its parent's job says where it comes from. A call a call starts to
+    // outlive it (a recording's encode) names that call's job as `under`, and is listed with it.
+    virtual void call_started(uint64_t call, const NativeCommand& command, const nlohmann::json& args, const std::string& parent,
+                              const std::string& job, const nlohmann::json& origin) = 0;
     // The handler replaced the arguments the journal records (refs became locators).
     virtual void call_args(uint64_t call, const nlohmann::json& args) = 0;
     // The call's final result: a job's once it finished, its UI job worker included.
@@ -77,17 +91,18 @@ public:
 class McpCore : public ToolCaller
 {
 public:
-    // `observer`, when given, must outlive the core.
+    // The observers, told about every call in this order, must outlive the core.
     McpCore(const CommandCatalog& catalog, UiInvoker& ui, JobRegistry& jobs, Journal* journal, CoreTiming timing = {},
-            WorkerHooks worker = {}, CallObserver* observer = nullptr);
+            WorkerHooks worker = {}, std::vector<CallObserver*> observers = {});
     // Refuses new calls and waits for every call and job thread to leave, however long that takes:
     // they use the core. The owner drains first, so this returns at once.
     ~McpCore() override;
 
-    // A call from a client. Mutate commands become top-level jobs.
-    ToolResult call(const NativeCommand& command, const nlohmann::json& args) override;
+    // A call from a client, or a run a front end follows, which `origin` names to the observers
+    // (CallObserver::call_started). Mutate commands become top-level jobs.
+    ToolResult call(const NativeCommand& command, const nlohmann::json& args, const nlohmann::json& origin = nlohmann::json()) override;
     // As call(), with the job marked a person's.
-    ToolResult call_person(const NativeCommand& command, const nlohmann::json& args);
+    ToolResult call_person(const NativeCommand& command, const nlohmann::json& args, const nlohmann::json& origin = nlohmann::json());
     // A call made by a running job (a replay step or a script's call). The new job's parent is `parent_job`, so a
     // `app_wait {for:"idle"}` from that job does not wait for it, and the journal leaves it out.
     ToolResult call_child(const NativeCommand& command, const nlohmann::json& args, const std::string& parent_job,
@@ -140,15 +155,16 @@ public:
 
 private:
     std::uint64_t dialog_of(const std::string& job) const;
-    // `person` marks the call's job a person's (JobRegistry::create()); an inline call has no job to mark.
+    // `person` marks the call's job a person's (JobRegistry::create()); an inline call has no job to mark. `origin`
+    // goes to the observers.
     ToolResult run(const NativeCommand& command, const nlohmann::json& args, const std::string& parent, const std::string& plugin,
-                   bool person);
+                   bool person, const nlohmann::json& origin);
     // Starts `command` as a job on a thread of its own, under operation admission: returns the job's id, or ""
     // with `refused` set when no job started. The job's journal entry is `seq` (0 for none); `done`, when
     // given, gets the job's result on its thread as it ends, before a wait on the job sees it.
     std::string start_job(const NativeCommand& command, const nlohmann::json& args, const std::string& parent, const std::string& plugin,
-                          bool person, uint64_t seq, uint64_t call, const std::function<void(const ToolResult&)>& done,
-                          ToolResult& refused);
+                          bool person, const nlohmann::json& origin, uint64_t seq, uint64_t call,
+                          const std::function<void(const ToolResult&)>& done, ToolResult& refused);
     // Whether the core refuses new calls.
     bool shutting_down();
     // On `job`'s thread once its handler returned: when it holds the UI job worker, waits until the
@@ -162,7 +178,7 @@ private:
     Journal*              m_journal;
     CoreTiming            m_timing;
     WorkerHooks           m_worker;
-    CallObserver*         m_observer;
+    std::vector<CallObserver*> m_observers;
     AutomationRuntime*    m_runtime = nullptr;
     std::atomic<uint64_t> m_next_call{1};
 

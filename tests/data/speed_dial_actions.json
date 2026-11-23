@@ -63,6 +63,13 @@
   "input": ""
  },
  {
+  "key": "toggle_agent_activity_panel",
+  "title": "Agent Activity",
+  "group": "View",
+  "icon": "",
+  "input": ""
+ },
+ {
   "key": "open_action_replay",
   "title": "Action Replay",
   "group": "Commands",

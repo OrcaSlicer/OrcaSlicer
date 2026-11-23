@@ -103,6 +103,11 @@ private:
     void end_session();
     // Submits `work` and tells the page with `started`, unless that is null: the page was told when the work had to wait.
     void submit(PythonWork work, const nlohmann::json& started);
+    // The run ended, and the work the panel reported to the Agent Activity pane with it, with the status a Finished
+    // event gives.
+    void work_ended(const std::string& status, const std::string& message);
+    // The run was refused after it started: its work ends, and the page is told the run finished, refused.
+    void refused_run(const std::string& message);
     void tick();
     void finish_run(const PythonSessionEvent& done);
     void send_runtime_state();
@@ -129,6 +134,9 @@ private:
     bool                               m_detached       = false;
     bool                               m_session_ending = false;
     std::optional<PythonWork>          m_waiting; // a Run all waiting for the old session to end
+    // The run's work as the Agent Activity pane lists it, and the JSON result it left.
+    nlohmann::json                     m_work;
+    std::string                        m_work_result;
     std::deque<PythonSessionEvent>     m_backlog;
     bool                               m_running = false;
     std::chrono::steady_clock::time_point m_run_started;

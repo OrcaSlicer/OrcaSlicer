@@ -48,7 +48,8 @@ bool is_job_envelope(const ToolResult& r)
     return status == "running" || status == "blocked_by_dialog";
 }
 
-// Resolves one placeholder body ("vars.model", "env:HOME", ...) to a JSON value.
+} // namespace
+
 std::optional<json> resolve_placeholder(const std::string& key, const Replay& replay, const ReplayContext& ctx)
 {
     if (key == "replay_dir")
@@ -74,6 +75,8 @@ std::optional<json> resolve_placeholder(const std::string& key, const Replay& re
     return std::nullopt;
 }
 
+namespace {
+
 // How a substitution went: in lenient mode an unresolvable placeholder is kept as written; otherwise
 // the first one fails the substitution and is recorded here, so replay_run can say why.
 struct Substitution
@@ -81,7 +84,26 @@ struct Substitution
     bool        lenient = false;
     std::string err;
     std::string failed; // the placeholder's body, e.g. "jobs.prefs"
+    // What may still be put in, when bounded (substitute_lenient()'s budget); once it is spent, a placeholder is left
+    // unresolved.
+    std::size_t* budget = nullptr;
 };
+
+// resolve_placeholder(), charged to `sub`'s budget: each value put in takes its size. An empty string and null are free:
+// neither holds a placeholder, so neither leads to more work, and the text that holds theirs is the caller's or a value
+// already charged, at least four bytes a placeholder.
+std::optional<json> resolve_charged(const std::string& key, const Replay& replay, const ReplayContext& ctx, Substitution& sub)
+{
+    if (sub.budget != nullptr && *sub.budget == 0)
+        return std::nullopt;
+    std::optional<json> v = resolve_placeholder(key, replay, ctx);
+    if (v && sub.budget != nullptr && !v->is_null()) {
+        const std::size_t size = v->is_string() ? v->get_ref<const std::string&>().size() :
+                                                  v->dump(-1, ' ', false, json::error_handler_t::replace).size();
+        *sub.budget -= std::min(*sub.budget, size);
+    }
+    return v;
+}
 
 // The 1-based index of the step that saves its job as `name`, or 0.
 std::size_t step_saving(const Replay& replay, const std::string& name)
@@ -135,7 +157,7 @@ json substitute_value(const json& value, const Replay& replay, const ReplayConte
     const std::string       text = value.get<std::string>();
     std::smatch             whole;
     if (std::regex_match(text, whole, placeholder)) {
-        auto v = resolve_placeholder(whole[1].str(), replay, ctx);
+        auto v = resolve_charged(whole[1].str(), replay, ctx, sub);
         if (!v) {
             if (!sub.lenient)
                 fail_placeholder(sub, whole[1].str(), text, replay);
@@ -150,7 +172,7 @@ json substitute_value(const json& value, const Replay& replay, const ReplayConte
     for (auto it = begin; it != std::sregex_iterator(); ++it) {
         out.append(text, last, std::size_t(it->position()) - last);
         last   = std::size_t(it->position() + it->length());
-        auto v = resolve_placeholder((*it)[1].str(), replay, ctx);
+        auto v = resolve_charged((*it)[1].str(), replay, ctx, sub);
         if (!v) {
             if (!sub.lenient) {
                 fail_placeholder(sub, (*it)[1].str(), it->str(), replay);
@@ -160,7 +182,7 @@ json substitute_value(const json& value, const Replay& replay, const ReplayConte
             continue;
         }
         const json resolved = substitute_value(*v, replay, ctx, sub, depth + 1);
-        out += resolved.is_string() ? resolved.get<std::string>() : resolved.dump();
+        out += resolved.is_string() ? resolved.get<std::string>() : resolved.dump(-1, ' ', false, json::error_handler_t::replace);
     }
     out.append(text, last, std::string::npos);
     return json(out);
@@ -358,9 +380,11 @@ json substitute_args(const std::string& tool, const json& args, const Replay& re
                         steps.push_back(substitute_value(step, replay, ctx, sub, 0));
                         continue;
                     }
-                    json done = json::object();
+                    // A step's tool that isn't a string is the nested replay's to refuse, as it parses it.
+                    const std::string nested_tool = step.contains("tool") && step["tool"].is_string() ? step["tool"].get<std::string>() : std::string();
+                    json              done        = json::object();
                     for (auto part = step.begin(); part != step.end(); ++part)
-                        done[part.key()] = part.key() == "args" ? substitute_args(step.value("tool", std::string()), part.value(), replay, ctx, sub) :
+                        done[part.key()] = part.key() == "args" ? substitute_args(nested_tool, part.value(), replay, ctx, sub) :
                                                                   substitute_value(part.value(), replay, ctx, sub, 0);
                     steps.push_back(std::move(done));
                 }
@@ -388,6 +412,22 @@ json substitute_lenient(const json& value, const Replay& replay, const ReplayCon
     Substitution sub;
     sub.lenient = true;
     return substitute_value(value, replay, ctx, sub, 0);
+}
+
+json substitute_lenient(const json& value, const Replay& replay, const ReplayContext& ctx, std::size_t& budget)
+{
+    Substitution sub;
+    sub.lenient = true;
+    sub.budget  = &budget;
+    return substitute_value(value, replay, ctx, sub, 0);
+}
+
+json substitute_args_lenient(const std::string& tool, const json& args, const Replay& replay, const ReplayContext& ctx, std::size_t& budget)
+{
+    Substitution sub;
+    sub.lenient = true;
+    sub.budget  = &budget;
+    return substitute_args(tool, args, replay, ctx, sub);
 }
 
 std::optional<ExpectFailure> check_expect_detail(const json& result, const json& expect)

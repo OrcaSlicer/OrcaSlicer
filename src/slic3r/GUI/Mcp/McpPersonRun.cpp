@@ -111,6 +111,7 @@ std::shared_ptr<PersonRun> start_replay_run(AutomationRuntime& runtime, Replay r
 
     FollowedCall call;
     call.command = std::move(def);
+    call.origin  = {{"source", "action_replay"}};
     call.person  = true;
     call.ended   = [&runtime, run, ctx_held](const std::optional<ToolResult>& r) {
         run->mark_ended();

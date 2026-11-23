@@ -22,12 +22,14 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 class wxTimer;
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
+class ActivityLog;
 class McpRecorder;
 class ModalTracker;
 class UiInspector;
@@ -50,6 +52,8 @@ struct FollowedCall
 {
     NativeCommand  command;
     nlohmann::json args = nlohmann::json::object();
+    // Who started it, for the Agent Activity pane, as McpCore::call() takes it: {source: "action_replay"}, ...
+    nlohmann::json origin;
     // The job is a person's run (JobRegistry::person_in).
     bool person = false;
     // Runs first on the following thread and may complete `args`; false gives the call up, and `ended` is not
@@ -144,6 +148,10 @@ public:
     WebPresses&   web_presses() { return *m_web_presses; }
     // recording_start and its kin; also told about every call, for the captions.
     McpRecorder&  recorder() { return *m_recorder; }
+    // What the Agent Activity pane lists: told about every call, and about the calls the endpoint refuses. Any thread.
+    ActivityLog&  activity() { return *m_activity; }
+    // Called on the UI thread when the activity log has changed since it was last read; empty for none. UI thread.
+    void set_activity_listener(std::function<void()> listener) { m_activity_listener = std::move(listener); }
 
     // Auto-answer rules from dialog_auto_answer. Rules registered from inside a run (the nearest
     // running replay or script in `ancestry`, the caller's job chain, nearest first) last until that run
@@ -198,7 +206,12 @@ private:
 
     // Calls `command`, as a person's call with `person`, and follows the job it starts to its end; nullopt when
     // the runtime stops first. A thread follow() starts calls it.
-    std::optional<ToolResult> call_to_end(const NativeCommand& command, const nlohmann::json& args, bool person);
+    std::optional<ToolResult> call_to_end(const NativeCommand& command, const nlohmann::json& args, bool person,
+                                          const nlohmann::json& origin);
+    // An auto-answer rule of `layer` answered a dialog: the activity log lists it with the run, plugin or client whose
+    // rule it was. UI thread.
+    void rule_answered(int layer, const std::string& title, const std::string& message, const std::string& pattern,
+                       const std::string& button);
     void set_ready();
     GuardState guards_on_ui() const;
     // Whether something drives the GUI (see enable_gui_instruments()). UI thread.
@@ -217,8 +230,10 @@ private:
     Journal                        m_journal;
     // Before the invoker, so it outlives the invoker's callbacks, which read it.
     std::unique_ptr<ModalTracker>  m_modals;
-    // Before the core, which reports its calls to it.
+    // Before the core, which reports its calls to them.
     std::unique_ptr<McpRecorder>   m_recorder;
+    std::unique_ptr<ActivityLog>   m_activity;
+    std::function<void()>          m_activity_listener; // UI thread
     std::unique_ptr<UiInvoker>     m_invoker;
     std::unique_ptr<McpCore>       m_core;
     // Null until enable_gui_instruments(). UI thread.

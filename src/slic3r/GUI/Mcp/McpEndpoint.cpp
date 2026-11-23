@@ -1,5 +1,6 @@
 #include "McpEndpoint.hpp"
 
+#include "ActivityLog.hpp"
 #include "AutomationRuntime.hpp"
 #include "McpHttpServer.hpp"
 #include "McpOptions.hpp"
@@ -7,6 +8,7 @@
 #include "McpProtocol.hpp"
 #include "McpToken.hpp"
 
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 
@@ -15,6 +17,7 @@
 
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/cstdlib.hpp>
+#include <nlohmann/json.hpp>
 
 #include <wx/event.h>
 #include <wx/timer.h>
@@ -137,6 +140,10 @@ bool McpEndpoint::listen(int port, std::string& err)
     // Request threads of an endpoint closed earlier may still be using the protocol object.
     if (!m_protocol) {
         m_protocol       = std::make_unique<McpProtocol>(NativeCommands::instance(), m_runtime.core(), server_info());
+        // A call refused before it ran is shown too: it is the agent's.
+        m_protocol->set_on_refused([&runtime = m_runtime](const std::string& tool, const nlohmann::json& origin, const ToolResult& error) {
+            runtime.activity().refused(tool, origin, error);
+        });
         m_gate           = std::make_shared<RequestGate>();
         m_gate->protocol = m_protocol.get();
     }

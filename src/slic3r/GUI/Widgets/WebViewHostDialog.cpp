@@ -25,6 +25,10 @@
 #include <wx/string.h>
 
 #include <algorithm>
+#include <atomic>
+#include <functional>
+#include <memory>
+#include <utility>
 #include <wx/webview.h>
 
 namespace Slic3r { namespace GUI {
@@ -168,6 +172,47 @@ boost::filesystem::path WebViewHostDialog::dropped_file(const wxString& url)
     if (!url.Lower().StartsWith("file:"))
         return {};
     return into_path(wxFileSystem::URLToFileName(url.BeforeFirst('?').BeforeFirst('#')).GetFullPath());
+}
+
+wxWebView* WebViewHostDialog::create_pane_web_view(wxWindow* pane, const boost::filesystem::path& page, const nlohmann::json& strings,
+                                                   std::shared_ptr<std::atomic<bool>>         alive,
+                                                   std::function<void(const nlohmann::json&)> on_message,
+                                                   std::function<void(wxWebViewEvent&)>       on_navigating)
+{
+    // Created empty and loaded once the user scripts are in, so the first load has them, as a WebViewHostDialog's page does.
+    wxWebView* web   = WebView::CreateWebView(pane, wxEmptyString);
+    auto*      sizer = new wxBoxSizer(wxVERTICAL);
+    if (web != nullptr)
+        sizer->Add(web, 1, wxEXPAND);
+    pane->SetSizer(sizer);
+    if (web == nullptr)
+        return nullptr;
+    // WebView2's accelerator keys would reload the page (Ctrl+R, F5) and zoom it.
+    web->EnableBrowserAcceleratorKeys(false);
+    web->AddUserScript(wxString::FromUTF8(theme_user_script()));
+    web->AddUserScript(wxString::FromUTF8(localized_strings_script(strings)));
+    web->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, [alive, on_message = std::move(on_message)](wxWebViewEvent& event) {
+        nlohmann::json payload;
+        try {
+            payload = nlohmann::json::parse(event.GetString().utf8_string());
+        } catch (const std::exception&) {
+            return;
+        }
+        // Out of the web view's message callback: window work on its stack (file dialogs, prompts) is a crash class on
+        // GTK and macOS.
+        wxGetApp().CallAfter([alive, on_message, payload = std::move(payload)] {
+            if (alive->load())
+                on_message(payload);
+        });
+    });
+    web->Bind(wxEVT_WEBVIEW_NAVIGATING, std::move(on_navigating));
+    // A theme toggle re-themes the page in place.
+    web->Bind(EVT_WEBVIEW_RECREATED, [web](wxCommandEvent&) { WebView::RunScript(web, wxString::FromUTF8(theme_apply_script())); });
+    wxString url = file_url_from_path(page);
+    if (const wxString lang = wxGetApp().current_language_code_safe(); !lang.empty())
+        url += "?lang=" + lang;
+    WebView::LoadUrl(web, url);
+    return web;
 }
 
 nlohmann::json WebViewHostDialog::code_editor_strings()

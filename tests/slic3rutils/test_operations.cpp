@@ -2116,6 +2116,7 @@ const std::map<std::string, const char*> kExceptions = {
     {"app_open_web_page", kMenuItemOpens},
     {"app_show_config_folder", kMenuItemOpens},
     {"script_toggle_panel", "it runs its menu item's function, which shows or hides the Run Script panel for a person"},
+    {"view_toggle_activity_panel", "it runs its menu item's function, which shows or hides the Agent Activity pane for a person"},
     {"settings_set_mode", kMenuItemAppSetting},
     {"settings_toggle_developer_mode", kMenuItemAppSetting},
     {"undo", kHistory},

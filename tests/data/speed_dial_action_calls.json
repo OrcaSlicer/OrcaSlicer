@@ -819,6 +819,11 @@
   "args": {}
  },
  {
+  "key": "toggle_agent_activity_panel",
+  "command": "view_toggle_activity_panel",
+  "args": {}
+ },
+ {
   "key": "toggle_developer_mode",
   "command": "settings_toggle_developer_mode",
   "args": {}

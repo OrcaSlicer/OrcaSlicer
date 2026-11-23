@@ -63,7 +63,8 @@ application/json` (415) and the size cap (413). No CORS headers are sent, so bro
 `McpProtocol` picks one of two protocol eras for each message.
 
 - **Handshake era.** `initialize` echoes the client's version if it is 2025-11-25 or 2025-06-18,
-  and answers 2025-11-25 otherwise. Then come `notifications/initialized`, `ping`, `tools/list`
+  and answers 2025-11-25 otherwise; the name it gives (`clientInfo.name`) names its calls in the Agent Activity
+  pane. Then come `notifications/initialized`, `ping`, `tools/list`
   and `tools/call`. A present `MCP-Protocol-Version` header must be supported (400).
 - **2026-07-28.** A request whose `params._meta` carries
   `io.modelcontextprotocol/protocolVersion` is served without a handshake. `server/discover`
@@ -2404,7 +2405,7 @@ key, whatever its command is named), its title, its Speed Dial section (the item
 come from several sections: `export_gcode` is in Slice & Export, `export_stl_multi` in Export), its icon and
 the value its second phase collects (`input`). A person's pins and run counts are stored under the id, so the
 ids of the menu items a released build stored stay the ids of actions. `tests/data/speed_dial_actions.json`
-holds the 129 actions (key, title, section, icon, input), and the unit test "every Speed Dial action of today
+holds the 130 actions (key, title, section, icon, input), and the unit test "every Speed Dial action of today
 is still a command's action" finds each in the Speed Dial with that presentation and no other; "a menu item's id
 is an action's key, not a command" holds that no menu item's id is a command's name.
 
@@ -3861,7 +3862,8 @@ is in neither. Recordings and screenshots show it as the person sees it, since c
 shows, so its pulsing dot is in the frames and a recording never sees an idle window: each frame in which the
 dot changed is queued.
 
-**Captions.** `McpCore` reports each call it runs to a `CallObserver`: when its handler starts, when
+**Captions.** `McpCore` reports each call it runs to its `CallObserver`s, the recorder and the activity log
+(see Agent Activity pane): when its handler starts, when
 `set_journal_args()` replaces its arguments (refs become locators), and its final result (a job's,
 worker job included). Calls refused before they run are not reported. The recorder captions calls
 that are not `Inspect` (mutate and recover tools, replay steps included) as the tool's translated
@@ -4686,6 +4688,119 @@ doing. `tool_call {tool, args}` runs any command of the catalog, listed or not, 
 arguments are normalized and validated, and the call runs as the target's own, with its guard, mode, budget and
 journal flag, so the journal records the target.
 
+## Agent Activity pane
+
+View › Agent Activity, a check item that is on while the pane is on screen, its Speed Dial action
+`toggle_agent_activity_panel` and the command `view_toggle_activity_panel`, which the tool list does not show, show or
+hide the Agent Activity pane (`AgentActivityPanel`, page `resources/web/dialog/AgentActivity/`). While it is open, it
+lists, live, every call automation makes in the app, reads included: an agent's, a run's from Action Replay, the Run Script panel or the
+command line (`--run`), and a plugin's, with the dialogs auto-answer rules answered and the agent's calls the protocol
+refused before they ran. A person's own picks from the Speed Dial and the menus are left out, with what they run. The
+pane only watches: it stops, pauses and exports nothing, and it opens only when a person opens it.
+
+**Origins.** Each call into the core says who made it, and `CallObserver::call_started()` gets that with the call's
+own job: `McpCore::call()` and `call_person()` take an origin, a JSON object whose `source` is `agent`,
+`action_replay`, `run_script`, `command_line`, `plugin` or `person`. The protocol gives an agent's: `client`, the name
+of the handshakes it answered while only one name has come since it was made, else empty (shown as "Agent"), since
+two clients' calls can't be told apart over stateless HTTP, and a 2026-07-28 call has no handshake; and `request`, the
+JSON-RPC message as it came, so a `tool_call` shows the wrapper and the command it names. The runtime's followed calls
+carry their front end's (`FollowedCall::origin`): Action Replay's runs, the Run Script panel's session, `--run`, and a
+person's recording's encode as the person's. `call_plugin()` gives `plugin` with the plugin's key, and `submit()`, a
+person's pick, `person`. A child call has none: its parent's job says where it comes from. A recording's encode that
+`recording_stop` starts names the stop's job as `under`, and is listed with the stop. The core tells each of its
+observers in turn. A call that runs as a job is also told as it is queued (`call_queued()`), on the thread that made
+it, right after its job is registered and before its thread starts: its parent, or the call it is `under`, still runs
+then. Every queued call is later ended, also one whose thread can't start or whose plugin unloaded before its handler.
+
+**The log.** `ActivityLog` (no wx) is an observer the runtime makes as it starts. It lists only while it records
+(`set_recording()`), which the pane turns on while the person has it open: docked while another tab is up and across a
+main-window rebuild too, off as they hide or close it and as the panel goes at exit. Nothing that comes while it is off
+is listed, but what it already lists still ends, the list stays until Clear list, and the log keeps what placing and
+masking later entries needs: the marks and the masking records below. An entry is a call, a dialog a rule answered, or a
+work of the Run Script panel, with its source and label, tool, arguments, request (an agent's message, else
+`{tool, args}` as the app runs the call), response (the final result's data, or `{isError, message, details}`; a job's
+once it ends), status, error, times, job and the entry it nests under. A replay whose step failed and a script that
+did not finish report success to their caller; the log reads their result and fails them, with the script's exception
+as the error, or else a `failure` the pane words in the UI's language: the failed step's number and error, or how the
+script ended (stopped, out of time, Python unavailable, not run), whose runner message is agent-facing English. A Run
+Script work's end reads the same way. It is numbered as Action Replay numbers its steps: the top-level calls and works count up, the entries
+under a run from 1, and a dialog takes no number. Every job call, listed or not, leaves marks by its job, set as it is
+queued and dropped as it ends: its run's source, client and plugin, or that it is a person's pick or a Run Script
+session. A child job copies its nearest marked ancestor's, which still runs then, so a run that outlives its parent keeps
+them. A child call nests under the nearest of its parent jobs that has an entry (`JobRegistry::ancestry()`), past any
+that has none; with no such job, its marks place it: a run that started before the pane opened lists its later calls at
+the top level under its own source, and a person's pick's calls stay out however late they come. A Run Script session
+has no entry of its own: each work the panel runs in it is one, which the panel reports as it submits the work
+(`work_started()`, the code its request) and as it ends (`work_ended()`: the Finished event's result or error, or a
+stop when its session ends without one or the panel lets the session go). A call the session makes goes under the work
+running at the time, or at the top level between works.
+
+The protocol reports a `tools/call` it refuses before the core sees it, for an unknown tool, arguments the schema
+refuses or a `tool_call` it can't resolve (`McpProtocol::set_on_refused()`), and the endpoint hands it to the log as a
+failed entry. Calls the core refuses (admission, blocking slots) are not reported, as they aren't to the recorder.
+`ModalTracker` reports each answer a rule gives (`set_on_answered()`, wherever a rule's `uses` grows) with the rule's
+layer; the runtime finds the run, plugin or client whose layer it is, and the log places the dialog's entry there. Each
+`dialog_auto_answer` call puts its rules in a layer of their own, which no later call changes (a client's next call
+replaces the layer). The runtime tells the log the layer and the call's job while it still holds the rules lock that an
+answer's report takes first (`rules_set()`), so no answer comes before it: an answer links the call that set its
+rules, and none when that call isn't listed, made while the log didn't record or dropped since. A client's answer
+carries the client of the call that set the rule. The log keeps a layer while its call is listed, and the latest others,
+up to 4000 layers in all.
+
+Arguments, requests, responses and errors are masked as captions are: `hidden_values()` gives what `caption_detail()`
+leaves out of a call (sensitive values, typed text, a value set into a field not found by its key, a page's
+JavaScript), and `mask_hidden()` replaces it, and every member of a sensitive key, by `•••`, inside longer text only
+from three characters on. A string that is JSON text (a replay given as its text) is read as JSON and, when that masks
+something, written out again masked, so what the text escapes is masked too. What nests arrays and objects deeper than
+64 levels, a payload or JSON text in one, is neither read nor shown (`•••`), since masking recurses through what it
+reads and nlohmann's copy recurses too, so the depth is checked before anything is copied; a job call whose arguments or
+result nest deeper has no masking record, and a call whose own arguments do shows no result, nor a dialog answered
+while it runs. A run whose result nests deeper is still failed when the fields that tell its outcome say so, which are
+read without going down the deep branches, but the pane words the failure without its reason. A replay hides what each
+of its steps hides, as written and with its placeholders put in by the replay engine's own substitution
+(`substitute_args_lenient()`, which leaves Python source as written, as a run does), and each value a placeholder in a
+hidden value puts in, directly or through another placeholder (a variable, an environment variable), with every string
+and number inside one that is an object or an array; the log has no saved jobs or folders, whose placeholders put in
+nothing secret. Variables that put each other in grow as the power of the nesting, so the log puts in at most 1 MiB for
+the replays written in one call and keeps the rest as written: what that cuts short only shows whole in a payload over
+32 KiB, which is shown by its size. A call
+that names a job (`app_wait`,
+`job_cancel`) also hides what that job's call hid, as the call ends. Every job call, listed or not, has a masking record
+from when it starts: what its arguments, their rewrite and its result hide, kept for the last 2000 job calls within
+4 MiB. A value longer than 32 KiB drops its record, since a shortened error could show part of it. A call naming a job
+with no record as it ends is `withheld`: it shows neither its response nor its error text, which may repeat that job's
+secrets. A dialog's title and message hide what the calls running as it is answered hide, also the start of a value a
+message ends in where `ModalTracker` cut it (from three bytes on, as written and escaped); past 10 000 such values or
+1 MiB of them, which would hold up the UI thread that reports the answer, the title and message are not shown. A
+payload over 32 KiB as JSON is `{truncated: true, bytes}`, unmasked since it shows nothing, and one, or an error, whose
+check would scan more than 256 MiB (values × length) is `•••`. The log keeps 2000 entries, dropping the oldest whose calls have all ended, with what is
+nested under them. Each change moves a version on: `changes_since()` gives the entries changed since a version and the
+ids dropped, or every entry with `reset` when the reader is too far behind or Clear list has run (`clear()`, which
+keeps what still runs and the masking records, and numbers from 1 again once nothing is left). The log
+calls its `changed` hook once until the next read, which the runtime posts to the UI thread for the pane, so nothing
+runs for it while no pane reads it. What an observer throws, the core drops, so the log never fails a call.
+
+**The pane.** A Plater dock pane, docked on the right of the 3D view at first (420 × 640 DIPs) and kept where the
+person moves it by the saved layout; its close button hides it. Docked it shows on Prepare and Preview, and showing it
+from another tab selects Prepare; floated it stays up on every tab, the Design tab included
+(`add_dock_pane(..., floats_on_every_tab)`). `GUI_App` owns `AgentActivityPanel`, which builds the pane again after a
+main-window rebuild, as the Run Script panel does. While the pane is on screen it reads the log's changes at most ten
+times a second and words them on the UI thread for its page: a call's translated title and target as the recording
+captions word them (`shown_title()`, `caption_detail()`), the source's label (the agent's name or "Agent", Action
+Replay, Run Script, Command line, the plugin's name), the effect tags Action Replay shows (`describe_step()`), and a
+screenshot's thumbnail. The page draws the rail Action Replay draws its steps with (`css/step_rail.css`): a read is a
+quiet line with a hollow dot, a change a filled one, a failure red with its reason, a running call a ringing dot with
+its job; a run and a Run Script work hold their own steps, shown while they run or once opened. An opened step shows
+its request and its response as JSON, laid out as the Run Script console lays out a result, with Copy, which the host
+puts on the clipboard. Everything, Changes or Failures, a source and Find a call filter the list. It follows the
+newest call until the person scrolls up, and then counts the calls that came below.
+
+**Out of the tools' reach.** As the Run Script panel's, the pane is named `kHiddenFromAutomation`, as is the frame it
+floats in (`AuiMgr::CreateFloatingFrame()`): `skipped_by_walks()` keeps the walks of `widget_list`, locators and
+`webview_run_javascript`'s search for a web view out of it, and `window_list` lists the floating frame as hidden, with
+no ref. Its page navigates nowhere but its own loads. Docked, the pane is part of the main window and shows in its
+screenshots and recordings; floating, it stays out of them, as the person's own dialogs do.
+
 ## stdio bridge
 
 `orca-slicer --mcp-stdio [--datadir DIR] [--mcp-port N]` serves clients that speak only stdio,
@@ -4829,7 +4944,7 @@ In `tests/slic3rutils/`, the files of the same name hold the cases that need the
 `test_mcp_core` a context with no runtime and an action's journal update; `test_mcp_protocol` the order of the
 process catalog's `tools/list` and the tool families the stdio bridge lists; `test_command_catalog` the
 process catalog itself: unique keys, the commands in their places' groups in the tool list's order,
-which are listed, the Speed Dial's 129 actions held as data in `tests/data/speed_dial_actions.json` (tagged
+which are listed, the Speed Dial's 130 actions held as data in `tests/data/speed_dial_actions.json` (tagged
 `[SpeedDial]`: each found with its id, title, section, icon and input, every menu item's id an action's key and
 no command, every action's arguments fitting its command's schema), the person's forms of the commands with
 actions and what a pick of an action runs in place, the names of `retired_names.hpp`, which no command has, the

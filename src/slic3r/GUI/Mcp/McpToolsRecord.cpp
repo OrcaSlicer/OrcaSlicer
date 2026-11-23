@@ -96,7 +96,7 @@ std::vector<std::string> encode_preset_keys()
 
 } // namespace
 
-ToolResult start_encode(AutomationRuntime& runtime, const json& args)
+ToolResult start_encode(AutomationRuntime& runtime, const json& args, const std::string& stop_job)
 {
     const NativeCommand* encode = NativeCommands::instance().find("recording_encode");
     if (encode == nullptr || runtime.stopping())
@@ -104,7 +104,7 @@ ToolResult start_encode(AutomationRuntime& runtime, const json& args)
     NativeCommand def = *encode;
     def.journal   = false;
     def.budget_ms = 0; // the envelope at once; the result comes from app_wait
-    return runtime.core().call(def, args);
+    return runtime.core().call(def, args, {{"source", "agent"}, {"under", stop_job}});
 }
 
 void register_record_tools(CommandCatalog& catalog)
@@ -259,7 +259,7 @@ void register_record_tools(CommandCatalog& catalog)
                             if (report.is_null())
                                 throw ToolFailure("No recording is running");
                             if (!encode.is_null()) {
-                                const ToolResult r = start_encode(runtime, encode);
+                                const ToolResult r = start_encode(runtime, encode, ctx.job_id());
                                 report["encode"]   = r.is_error ? json{{"error", r.message}} : r.data;
                             }
                             return ToolResult::ok(report);

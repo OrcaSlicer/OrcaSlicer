@@ -836,6 +836,7 @@ bool McpRecorder::encode_when_closed(AutomationRuntime& runtime, json args, std:
     call.command         = *encode;
     call.command.journal = false;
     call.args            = std::move(args);
+    call.origin          = {{"source", "person"}};
     // The sink's threads close the file soon after the recording ends.
     call.ready = [this, &runtime](json& encode_args) {
         const fs::path source = path_from_utf8(encode_args.value("path", std::string()));
@@ -893,7 +894,8 @@ void McpRecorder::shutdown(std::chrono::milliseconds timeout)
         rec->sink->abort("app_closing");
 }
 
-void McpRecorder::call_started(uint64_t call, const NativeCommand& def, const json& args, const std::string& /*parent*/)
+void McpRecorder::call_started(uint64_t call, const NativeCommand& def, const json& args, const std::string& /*parent*/,
+                               const std::string& /*job*/, const json& /*origin*/)
 {
     // Calls that act on the app; the inspect ones, recording tools included, only look.
     if (def.guard == GuardClass::Inspect)

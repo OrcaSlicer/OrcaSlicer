@@ -7316,12 +7316,14 @@ struct Plater::priv
     // GUI elements
     AuiMgr m_aui_mgr;
     // Live dock panes. `on_close` runs when the user closes one from its close button; `shown` is
-    // what the owner asked for; `hide_on_close` keeps the pane's window when it is closed.
+    // what the owner asked for; `hide_on_close` keeps the pane's window when it is closed; `floats_on_every_tab`
+    // keeps it up, floated, on the tabs other than Prepare and Preview.
     struct DockPane
     {
         std::function<void()> on_close;
         bool                  hide_on_close{false};
         bool                  shown{true};
+        bool                  floats_on_every_tab{false};
     };
     std::map<wxWindow*, DockPane> m_dock_panes;
     wxString m_default_window_layout;
@@ -7544,7 +7546,7 @@ struct Plater::priv
     void reset_window_layout();
     Sidebar::DockingState get_sidebar_docking_state();
     void add_dock_pane(wxWindow* window, const std::string& name, const wxString& caption, const std::string& dock,
-                       const wxSize& size, std::function<void()> on_close, bool hide_on_close);
+                       const wxSize& size, std::function<void()> on_close, bool hide_on_close, bool floats_on_every_tab);
     void remove_dock_pane(wxWindow* window);
     void show_dock_pane(wxWindow* window, bool show);
     bool dock_pane_visible(const DockPane& dock_pane, const wxAuiPaneInfo& pane) const;
@@ -8855,12 +8857,13 @@ void Plater::priv::reset_window_layout()
 
 bool Plater::priv::dock_pane_visible(const DockPane& dock_pane, const wxAuiPaneInfo& pane) const
 {
-    // A floating pane is a top-level window, so it does not hide with the Plater on other tabs.
-    return dock_pane.shown && (!pane.IsFloating() || sidebar_layout.show);
+    // A floating pane is a top-level window, so it does not hide with the Plater on other tabs: it is hidden there,
+    // unless it stays up on every tab.
+    return dock_pane.shown && (!pane.IsFloating() || sidebar_layout.show || dock_pane.floats_on_every_tab);
 }
 
 void Plater::priv::add_dock_pane(wxWindow* window, const std::string& name, const wxString& caption, const std::string& dock,
-                                 const wxSize& size, std::function<void()> on_close, bool hide_on_close)
+                                 const wxSize& size, std::function<void()> on_close, bool hide_on_close, bool floats_on_every_tab)
 {
     const wxString base_name   = wxString::FromUTF8(name);
     wxString       unique_name = base_name;
@@ -8894,7 +8897,7 @@ void Plater::priv::add_dock_pane(wxWindow* window, const std::string& name, cons
             info.Right();
     }
 
-    const DockPane& dock_pane = m_dock_panes[window] = DockPane{std::move(on_close), hide_on_close};
+    const DockPane& dock_pane = m_dock_panes[window] = DockPane{std::move(on_close), hide_on_close, true, floats_on_every_tab};
     info.Show(dock_pane_visible(dock_pane, info));
     m_aui_mgr.AddPane(window, info);
 
@@ -19974,9 +19977,14 @@ void Plater::reset_window_layout()
 }
 
 void Plater::add_dock_pane(wxWindow* window, const std::string& name, const wxString& caption, const std::string& dock,
-                           const wxSize& size, std::function<void()> on_close, bool hide_on_close)
+                           const wxSize& size, std::function<void()> on_close, bool hide_on_close, bool floats_on_every_tab)
 {
-    p->add_dock_pane(window, name, caption, dock, size, std::move(on_close), hide_on_close);
+    p->add_dock_pane(window, name, caption, dock, size, std::move(on_close), hide_on_close, floats_on_every_tab);
+}
+bool Plater::is_dock_pane_floating(wxWindow* window) const
+{
+    const wxAuiPaneInfo& pane = p->m_aui_mgr.GetPane(window);
+    return pane.IsOk() && pane.IsFloating();
 }
 void Plater::remove_dock_pane(wxWindow* window) { p->remove_dock_pane(window); }
 void Plater::remove_dock_panes()

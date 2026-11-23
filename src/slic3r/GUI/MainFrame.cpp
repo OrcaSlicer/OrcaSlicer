@@ -89,6 +89,7 @@
 #include "PrintHostDialogs.hpp"
 #include "RecordingIndicator.hpp"
 #include "ActionReplayDialog.hpp"
+#include "AgentActivityPanel.hpp"
 #include "RunScriptPanel.hpp"
 #include "CodeEditorWindow.hpp"
 #include "NativeCommands.hpp"
@@ -1377,6 +1378,8 @@ void MainFrame::shutdown()
         project->shutdown();
     m_plugin_pages->shutdown();
     if (RunScriptPanel* panel = wxGetApp().run_script_panel_if_built())
+        panel->main_window_closing();
+    if (AgentActivityPanel* panel = wxGetApp().agent_activity_panel_if_built())
         panel->main_window_closing();
     if (m_plater != nullptr)
         m_plater->remove_dock_panes();
@@ -3699,6 +3702,15 @@ void MainFrame::init_menubar_as_editor()
                 return false;
             },
             []() { return wxGetApp().app_config->get("show_imex_toolhead_boxes") != "false"; },
+            this);
+
+        append_menu_check_item(
+            viewMenu, wxID_ANY, _L("Agent Activity"), _L("Show or hide the Agent Activity pane, which lists what automation does in the app"),
+            [](wxCommandEvent&) { wxGetApp().agent_activity_panel().toggle(); }, this, []() { return true; },
+            []() {
+                AgentActivityPanel* panel = wxGetApp().agent_activity_panel_if_built();
+                return panel != nullptr && panel->on_screen();
+            },
             this);
 
         append_menu_item(

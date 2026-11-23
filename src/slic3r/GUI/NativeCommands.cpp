@@ -17,6 +17,7 @@
 #include "I18N.hpp"
 #include "Shortcuts.hpp"
 #include "MainFrame.hpp"
+#include "AgentActivityPanel.hpp"
 #include "RunScriptPanel.hpp"
 #include "NetworkTestDialog.hpp"
 #include "Operations/ExportOps.hpp"
@@ -1021,6 +1022,14 @@ AppActionRunResult MenuItems::toggle_run_script_panel()
 {
     if (wxGetApp().mainframe != nullptr)
         wxGetApp().run_script_panel().toggle();
+    return AppActionRunResult{AppActionRunResult::Level::Succeeded};
+}
+
+// ---- Agent Activity ----
+AppActionRunResult MenuItems::toggle_agent_activity_panel()
+{
+    if (wxGetApp().mainframe != nullptr)
+        wxGetApp().agent_activity_panel().toggle();
     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
 }
 

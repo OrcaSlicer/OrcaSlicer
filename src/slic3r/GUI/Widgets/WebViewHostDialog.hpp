@@ -7,6 +7,7 @@
 
 #include <atomic>
 #include <exception>
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -84,6 +85,15 @@ public:
     static bool own_page_navigation(const wxString& url, const wxFileName& page);
     // The file a file: URL names: a web view navigates to a file dropped on it. Empty for any other URL.
     static boost::filesystem::path dropped_file(const wxString& url);
+    // A web view filling the dock pane `pane`, on the bundled page `page`, as every dock pane's page wants it: with the
+    // theme and `strings` in before it loads, the browser's reload and zoom keys off, a theme toggle applied in place
+    // and the UI's language in the URL. A message from the page reaches `on_message` after the web view's callback,
+    // while `alive`; every navigation reaches `on_navigating`, which vetoes what isn't the page's own. Null when no web
+    // view can be made.
+    static wxWebView* create_pane_web_view(wxWindow* pane, const boost::filesystem::path& page, const nlohmann::json& strings,
+                                           std::shared_ptr<std::atomic<bool>>              alive,
+                                           std::function<void(const nlohmann::json&)>      on_message,
+                                           std::function<void(wxWebViewEvent&)>            on_navigating);
 
 protected:
     wxWebView* browser() const { return m_browser; }

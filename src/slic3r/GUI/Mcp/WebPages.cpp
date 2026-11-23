@@ -637,8 +637,14 @@ namespace {
 class WebAnswer : public wxTimer
 {
 public:
-    WebAnswer(ModalTracker& tracker, wxDialog* dialog, int layer, std::string pattern, std::string label, int fallback)
-        : m_tracker(tracker), m_dialog(dialog), m_layer(layer), m_pattern(std::move(pattern)), m_label(std::move(label)), m_fallback(fallback)
+    WebAnswer(ModalTracker& tracker, wxDialog* dialog, int layer, std::string pattern, std::string label, std::string message, int fallback)
+        : m_tracker(tracker)
+        , m_dialog(dialog)
+        , m_layer(layer)
+        , m_pattern(std::move(pattern))
+        , m_label(std::move(label))
+        , m_message(std::move(message))
+        , m_fallback(fallback)
     {}
 
     void Notify() override
@@ -681,7 +687,7 @@ private:
         if (m_done || reply.state != PageReply::State::Answered || reply.value.contains("error"))
             return;
         if (reply.value.contains("pressed") && reply.value["pressed"].is_string()) {
-            m_tracker.count_use(m_layer, m_pattern, m_label);
+            m_tracker.count_use(m_layer, m_pattern, m_label, title(), m_message);
             BOOST_LOG_TRIVIAL(info) << "MCP: auto-answered web dialog \"" << title() << "\" with its page's \"" << m_label << "\" (rule \""
                                     << m_pattern << "\")";
             finish();
@@ -716,7 +722,7 @@ private:
                                         << " for \"" << m_label << "\", and its " << m_label << " button is "
                                         << (press == DialogPress::Hidden ? "not shown" : "disabled") << "; gave up";
             else {
-                m_tracker.count_use(m_layer, m_pattern, m_label);
+                m_tracker.count_use(m_layer, m_pattern, m_label, dialog_title, m_message);
                 BOOST_LOG_TRIVIAL(info) << "MCP: auto-answer rule \"" << m_pattern << "\": the page of \"" << dialog_title << "\" " << why
                                         << " for \"" << m_label << "\"; ended the dialog with " << m_label;
             }
@@ -742,7 +748,7 @@ private:
     ModalTracker&                                        m_tracker;
     wxWeakRef<wxDialog>                                  m_dialog;
     int                                                  m_layer;
-    std::string                                          m_pattern, m_label;
+    std::string                                          m_pattern, m_label, m_message;
     int                                                  m_fallback;
     bool                                                 m_pending = false, m_done = false;
     int                                                  m_unshown = 0; // ticks in a row without a shown web view
@@ -752,9 +758,10 @@ private:
 
 } // namespace
 
-void start_web_answer(ModalTracker& tracker, wxDialog* dialog, int layer, const std::string& pattern, const std::string& label, int fallback)
+void start_web_answer(ModalTracker& tracker, wxDialog* dialog, int layer, const std::string& pattern, const std::string& label,
+                      const std::string& message, int fallback)
 {
-    auto* answer = new WebAnswer(tracker, dialog, layer, pattern, label, fallback);
+    auto* answer = new WebAnswer(tracker, dialog, layer, pattern, label, message, fallback);
     answer->Start(250);
 }
 

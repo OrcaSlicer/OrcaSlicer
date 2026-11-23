@@ -5,7 +5,11 @@
 
 #include <nlohmann/json.hpp>
 
+#include <functional>
+#include <mutex>
+#include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
@@ -47,9 +51,19 @@ struct PostReply
     std::string body;
 };
 
+// A tools/call the protocol refused before the caller saw it (an unknown tool, arguments its schema refuses, a
+// tool_call it could not resolve): the tool the client named, the call's origin as the caller would have got it
+// (McpCore::call()), and the error the client was sent.
+using RefusedCall = std::function<void(const std::string& tool, const nlohmann::json& origin, const ToolResult& error)>;
+
 // The MCP protocol layer: JSON-RPC 2.0 framing and the MCP methods of both eras, independent of
 // the HTTP transport and of wx. It never throws; every failure becomes a JSON-RPC error or an
 // isError tool result.
+//
+// Every tools/call reaches the caller with its origin: `{source: "agent", client, request}`, where `request` is the
+// JSON-RPC message as received and `client` the name the client gave in `initialize`, while only one name has been
+// given since the protocol was made; once a second name comes, or for a call of the 2026-07-28 era, which has no
+// handshake, `client` is empty, since the call could be either client's.
 class McpProtocol
 {
 public:
@@ -57,22 +71,32 @@ public:
     McpProtocol(const CommandCatalog& catalog, ToolCaller& caller, ServerInfo info);
 
     PostReply handle_post(const PostRequest& request);
+    // Told about each tools/call refused before the caller, on the request's thread; what it throws is dropped.
+    // Set before the first request.
+    void set_on_refused(RefusedCall on_refused) { m_on_refused = std::move(on_refused); }
 
     static nlohmann::json tool_to_json(const NativeCommand& command);
     // The MCP result of a tool's outcome, its numbers rounded to what they say (reply_number()) unless `exact`.
     static nlohmann::json result_to_json(const ToolResult& result, bool exact = false);
 
 private:
-    PostReply handle_legacy(const nlohmann::json& id, const std::string& method, const nlohmann::json& params,
-                            const PostRequest& request);
-    PostReply handle_modern(const nlohmann::json& id, const std::string& method, const nlohmann::json& params,
-                            const std::string& version, const PostRequest& request);
-    nlohmann::json call_tool(const nlohmann::json& params, bool& unknown_tool, std::string& unknown_name);
+    // `message` is a request whose id, method and params handle_post() checked.
+    PostReply handle_legacy(const nlohmann::json& message, const PostRequest& request);
+    PostReply handle_modern(const nlohmann::json& message, const std::string& version, const PostRequest& request);
+    // `message` is the whole tools/call request, `client` the name its origin carries.
+    nlohmann::json call_tool(const nlohmann::json& message, const std::string& client, bool& unknown_tool, std::string& unknown_name);
     nlohmann::json tools_list() const;
+    // Remembers the client name an initialize gave; the name a legacy call is labelled with.
+    void        client_seen(const nlohmann::json& params);
+    std::string client_label() const;
+    void        refused(const std::string& tool, const nlohmann::json& origin, const ToolResult& error) const;
 
     const CommandCatalog& m_catalog;
     ToolCaller&           m_caller;
     ServerInfo            m_info;
+    RefusedCall           m_on_refused;
+    mutable std::mutex    m_clients_mutex;
+    std::set<std::string> m_clients;
 };
 
 // Decodes the `=?base64?...?=` sentinel form of an Mcp-Name / Mcp-Param header value; plain values

@@ -979,16 +979,23 @@ bool ModalTracker::rule_in_force(int layer, const std::string& pattern, const st
     return false;
 }
 
-void ModalTracker::count_use(int layer, const std::string& pattern, const std::string& button)
+void ModalTracker::count_use(int layer, const std::string& pattern, const std::string& button, const std::string& title,
+                             const std::string& message)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    for (auto& [id, rules] : m_layers)
-        if (layer == 0 || id == layer)
-            for (AutoAnswerRule& r : rules)
-                if (r.path.empty() && r.pattern == pattern && r.button == button) {
-                    ++r.uses;
-                    return;
-                }
+    int used = 0;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        for (auto& [id, rules] : m_layers)
+            if (used == 0 && (layer == 0 || id == layer))
+                for (AutoAnswerRule& r : rules)
+                    if (r.path.empty() && r.pattern == pattern && r.button == button) {
+                        ++r.uses;
+                        used = id;
+                        break;
+                    }
+    }
+    if (used != 0 && m_on_answered)
+        m_on_answered(used, title, message, pattern, button);
 }
 
 json ModalTracker::snapshot()
@@ -1124,7 +1131,7 @@ int ModalTracker::Enter(wxDialog* dialog)
         const bool        picker  = is_picker(dialog);
         // A web dialog's rule whose button is not one of its wx buttons is answered on its page, and a
         // wx dialog's rule once its button is pressed.
-        std::optional<std::tuple<int, std::string, std::string>> web_rule, wx_rule;
+        std::optional<std::tuple<int, std::string, std::string>> web_rule, wx_rule, used;
         const int         answer = [&] {
             std::lock_guard<std::mutex> lock(m_mutex);
             for (auto layer = m_layers.rbegin(); layer != m_layers.rend(); ++layer) {
@@ -1140,6 +1147,7 @@ int ModalTracker::Enter(wxDialog* dialog)
                             std::string why;
                             const int   id = answer_picker(dialog, rule, why);
                             ++rule.uses;
+                            used.emplace(layer->first, rule.pattern, rule.button);
                             // A picker is named by its prompt, as its title is often empty.
                             if (why.empty())
                                 BOOST_LOG_TRIVIAL(info) << "MCP: auto-answered picker \"" << message << "\" with path \"" << rule.path
@@ -1160,6 +1168,7 @@ int ModalTracker::Enter(wxDialog* dialog)
                         if (id != wxID_NONE && (id == wxID_CANCEL || !picker) && box_answers(dialog, id)) {
                             if (native) {
                                 ++rule.uses;
+                                used.emplace(layer->first, rule.pattern, rule.button);
                                 BOOST_LOG_TRIVIAL(info) << "MCP: auto-answered dialog \"" << title << "\" with " << rule.button
                                                         << " (rule \"" << rule.pattern << "\")";
                             } else
@@ -1170,6 +1179,10 @@ int ModalTracker::Enter(wxDialog* dialog)
             }
             return int(wxID_NONE);
         }();
+        if (used && m_on_answered) {
+            const auto& [layer, pattern, button] = *used;
+            m_on_answered(layer, title, message, pattern, button);
+        }
         // A native dialog has no handlers to run: ShowModal() returns the id without showing it.
         if (answer != wxID_NONE && native)
             return answer;
@@ -1185,7 +1198,7 @@ int ModalTracker::Enter(wxDialog* dialog)
         // with it if it is destroyed first; a modal opened above it before then leaves it to
         // dialog_answer. The tracker lives as long as the app.
         if (wx_rule)
-            dialog->CallAfter([this, dialog, answer, title, rule = *wx_rule] {
+            dialog->CallAfter([this, dialog, answer, title, message, rule = *wx_rule] {
                 const auto& [layer, pattern, button] = rule;
                 // The rule may have been paused (a Run Script work ended) or dropped since the press was queued.
                 if (top() != dialog || !rule_in_force(layer, pattern, button))
@@ -1197,14 +1210,15 @@ int ModalTracker::Enter(wxDialog* dialog)
                                             << "; the dialog stays open";
                     return;
                 }
-                count_use(layer, pattern, button);
+                count_use(layer, pattern, button, title, message);
                 BOOST_LOG_TRIVIAL(info) << "MCP: auto-answered dialog \"" << title << "\" with " << button << " (rule \"" << pattern
                                         << "\")";
             });
         if (web_rule) {
             const auto& [layer, pattern, button] = *web_rule;
             const int standard = standard_dialog_button(button);
-            start_web_answer(*this, dialog, layer, pattern, button, standard == wxID_CANCEL || standard == wxID_CLOSE ? standard : int(wxID_NONE));
+            start_web_answer(*this, dialog, layer, pattern, button, message,
+                             standard == wxID_CANCEL || standard == wxID_CLOSE ? standard : int(wxID_NONE));
         }
     } catch (...) {
     }
