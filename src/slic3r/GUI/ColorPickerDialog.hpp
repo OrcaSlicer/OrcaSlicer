@@ -99,6 +99,9 @@ private:
     wxRect m_work_area;
     int m_content_height = 360;
     int m_content_width = 330;
+    // Window pixels (DIP) per CSS pixel of the page. Not always 1: WebKitGTK zooms the whole
+    // page by the system font DPI / text scaling. Measured from the page's "resize" message.
+    double m_page_zoom = 1.0;
     bool m_positioning = false;
     std::shared_ptr<std::atomic<bool>> m_alive = std::make_shared<std::atomic<bool>>(true);
 };
