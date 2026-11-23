@@ -52,14 +52,19 @@ namespace fs = boost::filesystem;
 #include <Shellapi.h>
 #include <slic3r/Utils/Http.hpp>
 #elif defined __linux__
+#include <dlfcn.h>
 #include <gtk/gtk.h>
 #define WEBKIT_API
 struct WebKitWebView;
 struct WebKitJavascriptResult;
 struct WebKitSettings;
+struct WebKitFeature;
+struct WebKitFeatureList;
 extern "C" {
 WEBKIT_API WebKitSettings *
 webkit_settings_new                                  (void);
+WEBKIT_API WebKitSettings *
+webkit_web_view_get_settings                         (WebKitWebView             *web_view);
 WEBKIT_API const gchar *
 webkit_settings_get_user_agent                       (WebKitSettings            *settings);
 WEBKIT_API void
@@ -293,37 +298,31 @@ static WebViewRef *webview_ref(wxWebView *webView)
     return webView ? static_cast<WebViewRef *>(webView->GetRefData()) : nullptr;
 }
 
-#ifdef __linux__
-#include <dlfcn.h>
-#endif
-
 void WebView::DisableGamepads(wxWebView *webView)
 {
 #ifdef __linux__
     // The feature API is WebKitGTK 2.42+, and Orca declares the WebKitGTK calls it uses by hand rather
     // than requiring a version, so look it up at runtime: an older WebKitGTK just keeps gamepads on.
-    using GetSettings       = void *(*)(void *web_view);
-    using GetAllFeatures    = void *(*)();
-    using ListLength        = gsize (*)(void *list);
-    using ListGet           = void *(*)(void *list, gsize index);
-    using ListUnref         = void (*)(void *list);
-    using FeatureId         = const char *(*)(void *feature);
-    using SetFeatureEnabled = void (*)(void *settings, void *feature, gboolean enabled);
-    static const auto get_settings = reinterpret_cast<GetSettings>(dlsym(RTLD_DEFAULT, "webkit_web_view_get_settings"));
+    using GetAllFeatures    = WebKitFeatureList *(*)();
+    using ListLength        = gsize (*)(WebKitFeatureList *list);
+    using ListGet           = WebKitFeature *(*)(WebKitFeatureList *list, gsize index);
+    using ListUnref         = void (*)(WebKitFeatureList *list);
+    using FeatureId         = const char *(*)(WebKitFeature *feature);
+    using SetFeatureEnabled = void (*)(WebKitSettings *settings, WebKitFeature *feature, gboolean enabled);
     static const auto all_features = reinterpret_cast<GetAllFeatures>(dlsym(RTLD_DEFAULT, "webkit_settings_get_all_features"));
     static const auto list_length  = reinterpret_cast<ListLength>(dlsym(RTLD_DEFAULT, "webkit_feature_list_get_length"));
     static const auto list_get     = reinterpret_cast<ListGet>(dlsym(RTLD_DEFAULT, "webkit_feature_list_get"));
     static const auto list_unref   = reinterpret_cast<ListUnref>(dlsym(RTLD_DEFAULT, "webkit_feature_list_unref"));
     static const auto feature_id   = reinterpret_cast<FeatureId>(dlsym(RTLD_DEFAULT, "webkit_feature_get_identifier"));
     static const auto set_enabled  = reinterpret_cast<SetFeatureEnabled>(dlsym(RTLD_DEFAULT, "webkit_settings_set_feature_enabled"));
-    if (!webView || !get_settings || !all_features || !list_length || !list_get || !list_unref || !feature_id || !set_enabled)
+    if (!webView || !all_features || !list_length || !list_get || !list_unref || !feature_id || !set_enabled)
         return;
-    void *settings = get_settings(webView->GetNativeBackend());
+    WebKitSettings *settings = webkit_web_view_get_settings(static_cast<WebKitWebView *>(webView->GetNativeBackend()));
     if (!settings)
         return;
-    void *features = all_features();
+    WebKitFeatureList *features = all_features();
     for (gsize i = 0; i < list_length(features); ++i) {
-        void *feature = list_get(features, i);
+        WebKitFeature *feature = list_get(features, i);
         const char *id = feature_id(feature);
         if (id && std::string(id) == "Gamepads") {
             set_enabled(settings, feature, FALSE);
