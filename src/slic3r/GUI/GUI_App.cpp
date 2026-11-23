@@ -8762,7 +8762,8 @@ bool GUI_App::load_language(wxString language, bool initial)
         //}
     }
 
-	BOOST_LOG_TRIVIAL(trace) << boost::format("Switching wxLocales to %1%") % locale_language_info->CanonicalName.ToUTF8().data();
+    const std::string locale_name = use_environment_locale ? "the environment locale" : into_u8(locale_language_info->CanonicalName);
+	BOOST_LOG_TRIVIAL(trace) << boost::format("Switching wxLocales to %1%") % locale_name;
 
     if (!use_environment_locale && !wxLocale::IsAvailable(locale_language_info->Language)) {
     	// Loading the language dictionary failed.
@@ -8786,7 +8787,7 @@ bool GUI_App::load_language(wxString language, bool initial)
     m_wxLocale = Slic3r::make_unique<wxLocale>();
     // Defers the wxstd catalog until after SetLanguage() below, so it matches the dictionary's language.
     if (!m_wxLocale->Init(use_environment_locale ? wxLANGUAGE_DEFAULT : locale_language_info->Language, wxLOCALE_DONT_LOAD_DEFAULT))
-        BOOST_LOG_TRIVIAL(error) << boost::format("Failed to set the locale for language %1%") % requested_language_code.ToUTF8().data();
+        BOOST_LOG_TRIVIAL(error) << boost::format("Failed to set the locale to %1%") % locale_name;
     // Override language at the active wxTranslations class (which is stored in the active m_wxLocale)
     // to load possibly different dictionary, for example, load Czech dictionary for Slovak language.
     wxTranslations::Get()->SetLanguage(language_dict);
