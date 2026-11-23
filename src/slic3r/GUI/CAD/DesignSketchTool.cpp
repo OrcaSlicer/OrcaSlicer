@@ -1231,7 +1231,7 @@ void DesignSketchTool::resolve_live_drag(int dragged_ei, SketchPointRole dragged
             m_over_key = key;
             const int nc = int(rep.conflicting.size()), nr = int(rep.redundant.size());
             notify(std::string((wxString::Format(_L_PLURAL("Over-constrained: %d constraint conflicts with the others (red)", "Over-constrained: %d constraints conflict with the others (red)", unsigned(nc)), nc) + ", " +
-                                wxString::Format(_L_PLURAL("%d only repeats what the sketch already fixes (amber)", "%d only repeat what the sketch already fixes (amber)", unsigned(nr)), nr)).ToUTF8()), false);
+                                wxString::Format(_L_PLURAL("%d constraint only repeats what the sketch already fixes (amber)", "%d constraints only repeat what the sketch already fixes (amber)", unsigned(nr)), nr)).ToUTF8()), false);
         }
     } else {
         m_dof = -1; m_solve_ok = true;

@@ -2535,7 +2535,6 @@ void GCodeViewer::render_solid_model_casters(const Transform3d& light_view_matri
 
     // the walls, cut by the section view as the camera sees it, so what it cuts away casts nothing
     shader->start_using();
-    shader->set_uniform("use_gooch", false);   // the program is shared with the Design canvas, which sets it on; Preview keeps the normal shading
     shader->set_uniform("projection_matrix", light_projection_matrix);
     shader->set_uniform("clipping_plane", m_clipping_plane);
     shader->set_uniform("z_range", *z_range);
@@ -3860,6 +3859,7 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     m_shells.volumes.set_clipping_plane({ m_clipping_plane[0], m_clipping_plane[1], m_clipping_plane[2], m_clipping_plane[3] });
 
     shader->start_using();
+    shader->set_uniform("use_gooch", false);   // the program is shared with the Design canvas, which sets it on; Preview keeps the normal shading
     // The realistic view's shadow map, bound by the canvas for the toolpaths, shades the solid
     // too, under the same light; both are off when the map is not there. The 3D view leaves its
     // own settings on the shared program, so each is set here.
