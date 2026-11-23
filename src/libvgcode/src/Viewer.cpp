@@ -79,6 +79,21 @@ void Viewer::set_gloss(bool gloss)
     m_impl->set_gloss(gloss);
 }
 
+void Viewer::set_focus(const Focus& focus)
+{
+    m_impl->set_focus(focus);
+}
+
+const Focus& Viewer::get_focus() const
+{
+    return m_impl->get_focus();
+}
+
+bool Viewer::is_in_focus(const PathVertex& vertex) const
+{
+    return m_impl->is_in_focus(vertex);
+}
+
 void Viewer::set_tone(float exposure, float saturation)
 {
     m_impl->set_tone(exposure, saturation);

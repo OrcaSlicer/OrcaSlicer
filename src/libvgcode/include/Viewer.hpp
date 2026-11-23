@@ -102,6 +102,16 @@ public:
     // view and its glossy toolpaths setting.
     //
     void set_gloss(bool gloss);
+    //
+    // ORCA: the paths out of the focus are not drawn. Changing it recolours no vertex, so it can follow the mouse;
+    // the default Focus draws every path.
+    //
+    void set_focus(const Focus& focus);
+    const Focus& get_focus() const;
+    //
+    // ORCA: whether the given vertex is drawn under the current focus.
+    //
+    bool is_in_focus(const PathVertex& vertex) const;
 
     //
     // ************************************************************************

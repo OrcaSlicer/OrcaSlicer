@@ -55,6 +55,10 @@ public:
     //
     Color get_color_at(float value) const;
     //
+    // ORCA: return where get_color_at() takes the given value from, 0 at the first color of the palette, 1 at the last.
+    //
+    float get_position_at(float value) const;
+    //
     // Return the range of this ColorRange.
     // The range is detected during the call to Viewer::load().
     // [0] -> min
@@ -103,6 +107,8 @@ private:
     void reset();
 
     friend class ViewerImpl;
+    // ORCA
+    friend struct ColorRangeTestAccess;
 };
 
 } // namespace libvgcode

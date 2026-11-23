@@ -8,6 +8,7 @@
 #include "ShadersES.hpp"
 #include "OpenGLUtils.hpp"
 #include "Utils.hpp"
+#include "Focus.hpp"
 
 #include <cstdint>
 #include "../include/Types.hpp"
@@ -302,6 +303,9 @@ static void delete_buffers(unsigned int& id)
 // ORCA: the opaque depth, then the accumulated colors of the translucent segments, see render_translucent().
 // Past the units render_segments() and the shadow map take.
 static constexpr int TRANSLUCENT_TEXTURE_UNIT = 5;
+#endif // ENABLE_OPENGL_ES
+// ORCA: past the units of the translucent segments
+static constexpr int FOCUS_TEXTURE_UNIT = 8;
 
 // ORCA: the source with a #define after its #version line
 static std::string with_define(const char* source, const char* define)
@@ -310,7 +314,31 @@ static std::string with_define(const char* source, const char* define)
     const size_t body = src.find('\n') + 1;
     return src.substr(0, body) + "#define " + define + "\n" + src.substr(body);
 }
+
+// ORCA: the layout of the focus key and the kinds below FOCUS_EXTRUSION_KINDS, which are extrusions, for VGCODE_FOCUS_GLSL
+static std::string with_focus_defines(const char* source)
+{
+    const auto unsigned_define = [](const char* name, uint32_t value) { return std::string(name) + " " + std::to_string(value) + "u"; };
+    std::string result = with_define(source, ("FOCUS_EXTRUSION_KINDS " + std::to_string(GCODE_EXTRUSION_ROLES_COUNT)).c_str());
+    for (const std::string& define : { unsigned_define("FOCUS_KIND_MASK", FOCUS_KIND_MASK), unsigned_define("FOCUS_EXTRUDER_SHIFT", FOCUS_EXTRUDER_SHIFT),
+                                       unsigned_define("FOCUS_EXTRUDER_MASK", FOCUS_EXTRUDER_MASK), unsigned_define("FOCUS_VALUE_SHIFT", FOCUS_VALUE_SHIFT) })
+        result = with_define(result.c_str(), define.c_str());
+    return result;
+}
+
+FocusVertexShaders focus_vertex_shaders()
+{
+    FocusVertexShaders shaders;
+#ifdef ENABLE_OPENGL_ES
+    shaders.segments = with_focus_defines(Segments_Vertex_Shader_ES);
+    shaders.options  = with_focus_defines(Options_Vertex_Shader_ES);
+#else
+    shaders.segments       = with_focus_defines(Segments_Vertex_Shader);
+    shaders.segments_depth = with_define(with_focus_defines(Segments_Vertex_Shader).c_str(), "DEPTH_ONLY");
+    shaders.options        = with_focus_defines(Options_Vertex_Shader);
 #endif // ENABLE_OPENGL_ES
+    return shaders;
+}
 
 static const std::array<Color, size_t(EGCodeExtrusionRole::COUNT)> DEFAULT_EXTRUSION_ROLES_COLORS = { {
     { 230, 179, 179 }, // None
@@ -540,6 +568,59 @@ void ViewerImpl::TextureData::set_colors(const std::vector<ColorWithAlpha>& colo
     glsafe(glPixelStorei(GL_UNPACK_ALIGNMENT, curr_unpack_alignment));
 }
 
+void ViewerImpl::TextureData::set_focus_keys(const std::vector<uint32_t>& keys)
+{
+    if (m_count == 0)
+        return;
+
+    for (TexIds& ids : m_tex_ids) {
+        delete_textures(ids.focus_keys.first);
+        ids.focus_keys.second = 0;
+    }
+
+    m_focus_keys_size = 0;
+
+    if (keys.empty())
+        return;
+
+    int curr_bound_texture = 0;
+    glsafe(glGetIntegerv(GL_TEXTURE_BINDING_2D, &curr_bound_texture));
+    int curr_unpack_alignment = 0;
+    glsafe(glGetIntegerv(GL_UNPACK_ALIGNMENT, &curr_unpack_alignment));
+
+    glsafe(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
+
+    const size_t tex_capacity = max_texture_capacity();
+    size_t remaining = keys.size();
+    for (size_t i = 0; i < m_count; ++i) {
+        const auto [w, h] = width_height(std::min(remaining, tex_capacity));
+        const size_t offset = i * tex_capacity;
+
+        glsafe(glGenTextures(1, &m_tex_ids[i].focus_keys.first));
+        glsafe(glBindTexture(GL_TEXTURE_2D, m_tex_ids[i].focus_keys.first));
+        glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+        glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+        glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0));
+        if (remaining >= tex_capacity) {
+            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_R32UI, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &keys[offset]));
+            m_tex_ids[i].focus_keys.second = w * h;
+        }
+        else {
+            // the last row is only partially fitted with data, send it separately
+            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_R32UI, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr));
+            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h - 1), GL_RED_INTEGER, GL_UNSIGNED_INT, &keys[offset]));
+            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, static_cast<GLsizei>(h - 1), static_cast<GLsizei>(remaining % w), 1, GL_RED_INTEGER, GL_UNSIGNED_INT, &keys[offset + w * (h - 1)]));
+            m_tex_ids[i].focus_keys.second = w * (h - 1) + remaining % w;
+        }
+        m_focus_keys_size += m_tex_ids[i].focus_keys.second * sizeof(uint32_t);
+
+        remaining = (remaining > tex_capacity) ? remaining - tex_capacity : 0;
+    }
+
+    glsafe(glBindTexture(GL_TEXTURE_2D, curr_bound_texture));
+    glsafe(glPixelStorei(GL_UNPACK_ALIGNMENT, curr_unpack_alignment));
+}
+
 void ViewerImpl::TextureData::set_enabled_segments(const std::vector<uint32_t>& enabled_segments, const std::vector<ColorWithAlpha>& colors, bool sort_by_opacity)
 {
     if (m_count == 0)
@@ -688,6 +769,7 @@ void ViewerImpl::TextureData::reset()
     for (TexIds& ids : m_tex_ids) {
         delete_textures(ids.enabled_options.first);
         delete_textures(ids.enabled_segments.first);
+        delete_textures(ids.focus_keys.first);
         delete_textures(ids.colors.first);
         delete_textures(ids.heights_widths_angles.first);
         delete_textures(ids.positions.first);
@@ -701,6 +783,7 @@ void ViewerImpl::TextureData::reset()
     m_positions_size = 0;
     m_height_width_angle_size = 0;
     m_colors_size = 0;
+    m_focus_keys_size = 0;
     m_enabled_segments_size = 0;
     m_enabled_options_size = 0;
 }
@@ -721,6 +804,12 @@ std::pair<unsigned int, size_t> ViewerImpl::TextureData::get_colors_tex_id(size_
 {
     assert(id < m_tex_ids.size());
     return m_tex_ids[id].colors;
+}
+
+std::pair<unsigned int, size_t> ViewerImpl::TextureData::get_focus_keys_tex_id(size_t id) const
+{
+    assert(id < m_tex_ids.size());
+    return m_tex_ids[id].focus_keys;
 }
 
 std::pair<unsigned int, size_t> ViewerImpl::TextureData::get_enabled_segments_tex_id(size_t id) const
@@ -759,6 +848,7 @@ size_t ViewerImpl::TextureData::get_used_gpu_memory() const
     ret += m_positions_size;
     ret += m_height_width_angle_size;
     ret += m_colors_size;
+    ret += m_focus_keys_size;
     ret += m_enabled_segments_size;
     ret += m_enabled_options_size;
     return ret;
@@ -804,11 +894,13 @@ void ViewerImpl::init(const std::string& opengl_context_version)
         }
     }
 
+    const FocusVertexShaders shaders = focus_vertex_shaders();
+
     // segments shader
 #ifdef ENABLE_OPENGL_ES
-    m_segments_shader_id = init_shader("segments", Segments_Vertex_Shader_ES, Segments_Fragment_Shader_ES);
+    m_segments_shader_id = init_shader("segments", shaders.segments.c_str(), Segments_Fragment_Shader_ES);
 #else
-    m_segments_shader_id = init_shader("segments", Segments_Vertex_Shader, Segments_Fragment_Shader, { "fragment_color", "oit_reveal", "oit_front" });
+    m_segments_shader_id = init_shader("segments", shaders.segments.c_str(), Segments_Fragment_Shader, { "fragment_color", "oit_reveal", "oit_front" });
     m_uni_segments_oit_pass_id        = glGetUniformLocation(m_segments_shader_id, "oit_pass");
     m_uni_segments_opaque_depth_id    = glGetUniformLocation(m_segments_shader_id, "opaque_depth");
     m_uni_segments_front_depth_id     = glGetUniformLocation(m_segments_shader_id, "front_depth");
@@ -818,10 +910,10 @@ void ViewerImpl::init(const std::string& opengl_context_version)
     m_uni_translucent_composite_reveal_tex_id = glGetUniformLocation(m_translucent_composite_shader_id, "reveal_tex");
     m_uni_translucent_composite_front_tex_id  = glGetUniformLocation(m_translucent_composite_shader_id, "front_tex");
     m_uni_translucent_composite_origin_id     = glGetUniformLocation(m_translucent_composite_shader_id, "origin");
-    const std::string depth_vs = with_define(Segments_Vertex_Shader, "DEPTH_ONLY");
     const std::string depth_fs = with_define(Segments_Fragment_Shader, "DEPTH_ONLY");
-    m_segments_depth_shader_id = init_shader("segments_depth", depth_vs.c_str(), depth_fs.c_str(), { "fragment_color", "oit_reveal", "oit_front" });
+    m_segments_depth_shader_id = init_shader("segments_depth", shaders.segments_depth.c_str(), depth_fs.c_str(), { "fragment_color", "oit_reveal", "oit_front" });
     m_uni_segments_depth.init(m_segments_depth_shader_id);
+    m_uni_segments_depth_layer_colors.init(m_segments_depth_shader_id);
     m_uni_segments_depth_opaque_depth_id = glGetUniformLocation(m_segments_depth_shader_id, "opaque_depth");
 #endif // ENABLE_OPENGL_ES
 
@@ -862,9 +954,9 @@ void ViewerImpl::init(const std::string& opengl_context_version)
 
     // options shader
 #ifdef ENABLE_OPENGL_ES
-    m_options_shader_id = init_shader("options", Options_Vertex_Shader_ES, Options_Fragment_Shader_ES);
+    m_options_shader_id = init_shader("options", shaders.options.c_str(), Options_Fragment_Shader_ES);
 #else
-    m_options_shader_id = init_shader("options", Options_Vertex_Shader, Options_Fragment_Shader);
+    m_options_shader_id = init_shader("options", shaders.options.c_str(), Options_Fragment_Shader);
 #endif // ENABLE_OPENGL_ES
 
     m_uni_options_view_matrix_id            = glGetUniformLocation(m_options_shader_id, "view_matrix");
@@ -984,6 +1076,7 @@ void ViewerImpl::reset()
     // should go back, not sit reserved until the next load
     std::vector<PathVertex>().swap(m_vertices);
     std::vector<ColorWithAlpha>().swap(m_vertices_colors);
+    std::vector<uint32_t>().swap(m_vertices_focus);
     m_has_translucent_colors = false;
     m_enabled_translucent_segments_count = 0;
     m_extrusions_box = { Vec3{ 0.0f, 0.0f, 0.0f }, Vec3{ 0.0f, 0.0f, 0.0f } };
@@ -1019,6 +1112,8 @@ void ViewerImpl::reset()
     delete_buffers(m_enabled_options_buf_id);
     delete_textures(m_enabled_segments_tex_id);
     delete_buffers(m_enabled_segments_buf_id);
+    delete_textures(m_focus_keys_tex_id);
+    delete_buffers(m_focus_keys_buf_id);
     delete_textures(m_colors_tex_id);
     delete_buffers(m_colors_buf_id);
     delete_textures(m_heights_widths_angles_tex_id);
@@ -1284,6 +1379,12 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
         glsafe(glGenTextures(1, &m_colors_tex_id));
         glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_colors_tex_id));
 
+        // ORCA
+        glsafe(glGenBuffers(1, &m_focus_keys_buf_id));
+        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_focus_keys_buf_id));
+        glsafe(glGenTextures(1, &m_focus_keys_tex_id));
+        glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_focus_keys_tex_id));
+
         // create (but do not fill) enabled segments buffer (data is set in update_enabled_entities())
         glsafe(glGenBuffers(1, &m_enabled_segments_buf_id));
         glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_enabled_segments_buf_id));
@@ -1469,15 +1570,23 @@ void ViewerImpl::update_colors_texture()
     // ORCA: the colors of the vertices alone; the layers greyed or dimmed around the one the sliders
     // show are left to the shaders, see set_layer_colors(), so that a slider step uploads nothing.
     #ifdef ENABLE_OPENGL_ES
-        if (!m_vertices_colors.empty())
+        if (!m_vertices_colors.empty()) {
             // update gpu buffer for colors
             m_texture_data.set_colors(m_vertices_colors);
+            if (!m_vertices_focus.empty())
+                m_texture_data.set_focus_keys(m_vertices_focus);
+        }
     #else
         m_colors_tex_size = m_vertices_colors.size() * sizeof(ColorWithAlpha);
+        m_focus_keys_tex_size = m_vertices_focus.size() * sizeof(uint32_t);
 
         // update gpu buffer for colors
         glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_colors_buf_id));
         glsafe(glBufferData(GL_TEXTURE_BUFFER, m_colors_tex_size, m_vertices_colors.data(), GL_STATIC_DRAW));
+        if (!m_vertices_focus.empty()) {
+            glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_focus_keys_buf_id));
+            glsafe(glBufferData(GL_TEXTURE_BUFFER, m_focus_keys_tex_size, m_vertices_focus.data(), GL_STATIC_DRAW));
+        }
         glsafe(glBindBuffer(GL_TEXTURE_BUFFER, 0));
     #endif // ENABLE_OPENGL_ES
 }
@@ -1488,6 +1597,10 @@ void ViewerImpl::LayerColorsUniforms::init(unsigned int shader_id)
     grey_below_layer = glGetUniformLocation(shader_id, "grey_below_layer");
     dim_brightness   = glGetUniformLocation(shader_id, "dim_brightness");
     kept_vertex      = glGetUniformLocation(shader_id, "kept_vertex");
+    focus_tex        = glGetUniformLocation(shader_id, "focus_tex");
+    focus_kind       = glGetUniformLocation(shader_id, "focus_kind");
+    focus_extruder   = glGetUniformLocation(shader_id, "focus_extruder");
+    focus_range      = glGetUniformLocation(shader_id, "focus_range");
 }
 
 void ViewerImpl::set_layer_colors(const LayerColorsUniforms& uni) const
@@ -1517,6 +1630,11 @@ void ViewerImpl::set_layer_colors(const LayerColorsUniforms& uni) const
     glsafe(glUniform1i(uni.grey_below_layer, color_top_layer_only ? static_cast<int>(top_layer_id) : 0));
     glsafe(glUniform1f(uni.dim_brightness, dim_previous_layers ? m_settings.dim_previous_layers_brightness : -1.0f));
     glsafe(glUniform1i(uni.kept_vertex, m_settings.spiral_vase_mode ? static_cast<int>(m_view_range.get_enabled()[0]) : -1));
+    glsafe(glUniform1i(uni.focus_tex, FOCUS_TEXTURE_UNIT));
+    glsafe(glUniform1i(uni.focus_kind, m_focus.kind));
+    glsafe(glUniform1i(uni.focus_extruder, m_focus.extruder));
+    const std::array<int, 2> focus_range = focus_value_range(m_focus);
+    glsafe(glUniform2i(uni.focus_range, focus_range[0], focus_range[1]));
 }
 
 void ViewerImpl::update_colors()
@@ -1542,10 +1660,15 @@ void ViewerImpl::update_colors()
     // the "normal" color on every slider move.
     const bool had_translucent_colors = m_has_translucent_colors;
     m_has_translucent_colors = false;
+    const bool focus_keys = m_focus.any() || !m_vertices_focus.empty();
+    if (focus_keys)
+        m_vertices_focus.resize(m_vertices.size());
     for (size_t i = 0; i < m_vertices.size(); ++i) {
         const Color color = get_vertex_color(m_vertices[i]);
         const uint8_t alpha = get_vertex_alpha(m_vertices[i]);
         m_vertices_colors[i] = { color[0], color[1], color[2], alpha };
+        if (focus_keys)
+            m_vertices_focus[i] = get_vertex_focus_key(m_vertices[i]);
         m_has_translucent_colors |= alpha < 255;
     }
 
@@ -1948,6 +2071,36 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
     return DUMMY_COLOR;
 }
 
+std::optional<float> ViewerImpl::get_vertex_range_position(const PathVertex& v) const
+{
+    // ORCA: as get_vertex_color() decides
+    const EViewType view = m_settings.view_type;
+    const bool grades_moves = view == EViewType::Speed || view == EViewType::ActualSpeed || view == EViewType::Acceleration || view == EViewType::Jerk;
+    if (v.type == EMoveType::Noop || v.is_option() || ((v.is_travel() || v.is_wipe()) && !grades_moves))
+        return std::nullopt;
+    const std::optional<float> value = get_vertex_value(v);
+    if (!value.has_value())
+        return std::nullopt;
+    return get_color_range(view).get_position_at(*value);
+}
+
+uint32_t ViewerImpl::get_vertex_focus_key(const PathVertex& v) const
+{
+    return encode_focus_key(focus_kind(v), v.extruder_id, get_vertex_range_position(v));
+}
+
+void ViewerImpl::set_focus(const Focus& focus)
+{
+    m_focus = focus;
+    if (m_focus.any() && m_vertices_focus.empty())
+        m_settings.update_colors = true;
+}
+
+bool ViewerImpl::is_in_focus(const PathVertex& vertex) const
+{
+    return is_key_in_focus(get_vertex_focus_key(vertex), m_focus);
+}
+
 // ORCA: only the extrusions colored by filament can be translucent.
 uint8_t ViewerImpl::get_vertex_alpha(const PathVertex& v) const
 {
@@ -2082,6 +2235,7 @@ size_t ViewerImpl::get_used_cpu_memory() const
     ret += sizeof(m_options_colors);
     ret += STDVEC_MEMSIZE(m_vertices, PathVertex);
     ret += STDVEC_MEMSIZE(m_vertices_colors, ColorWithAlpha);
+    ret += STDVEC_MEMSIZE(m_vertices_focus, uint32_t);
     for (const std::vector<float>& times : m_layer_start_times)
         ret += STDVEC_MEMSIZE(times, float);
     ret += STDVEC_MEMSIZE(m_layer_first_vertex, uint32_t);
@@ -2123,6 +2277,7 @@ size_t ViewerImpl::get_used_gpu_memory() const
     ret += m_positions_tex_size;
     ret += m_height_width_angle_tex_size;
     ret += m_colors_tex_size;
+    ret += m_focus_keys_tex_size;
     ret += m_enabled_segments_tex_size;
     ret += m_enabled_options_tex_size;
     ret += m_enabled_segments_reduced_tex_size;
@@ -2388,8 +2543,11 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glUniform1i(uni.reverse_order, reverse_order ? 1 : 0));
     glsafe(glUniform4fv(uni.clipping_plane, 1, m_clipping_plane.data()));
 #ifndef ENABLE_OPENGL_ES
-    if (depth_only)
+    if (depth_only) {
         glsafe(glUniform1i(m_uni_segments_depth_opaque_depth_id, TRANSLUCENT_TEXTURE_UNIT));
+        // ORCA: the focus, which cuts paths from the depth too
+        set_layer_colors(m_uni_segments_depth_layer_colors);
+    }
 #endif // ENABLE_OPENGL_ES
     if (!m_rendering_shadow_casters && !depth_only) {
         // ORCA: realistic view
@@ -2473,6 +2631,8 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
         glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_heights_widths_angles_tex_id(i).first));
         glsafe(glActiveTexture(GL_TEXTURE2));
         glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_colors_tex_id(i).first));
+        glsafe(glActiveTexture(GL_TEXTURE0 + FOCUS_TEXTURE_UNIT));
+        glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_focus_keys_tex_id(i).first));
         glsafe(glActiveTexture(GL_TEXTURE3));
         glsafe(glBindTexture(GL_TEXTURE_2D, id));
         draw(count, m_texture_data.get_enabled_translucent_segments_count(i));
@@ -2494,6 +2654,11 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glActiveTexture(GL_TEXTURE2));
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_colors_tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA8, m_colors_buf_id));
+    int curr_focus_keys_texture = 0;
+    glsafe(glActiveTexture(GL_TEXTURE0 + FOCUS_TEXTURE_UNIT));
+    glsafe(glGetIntegerv(GL_TEXTURE_BINDING_BUFFER, &curr_focus_keys_texture));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_focus_keys_tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_focus_keys_buf_id));
     glsafe(glActiveTexture(GL_TEXTURE3));
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, segments.tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, segments.buf_id));
@@ -2521,6 +2686,8 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
         glsafe(glActiveTexture(GL_TEXTURE0 + i));
         glsafe(glBindTexture(GL_TEXTURE_BUFFER, curr_bound_texture[i]));
     }
+    glsafe(glActiveTexture(GL_TEXTURE0 + FOCUS_TEXTURE_UNIT));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, curr_focus_keys_texture));
 #endif // ENABLE_OPENGL_ES
     glsafe(glActiveTexture(curr_active_texture));
 }
@@ -2572,6 +2739,8 @@ void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& project
         glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_heights_widths_angles_tex_id(i).first));
         glsafe(glActiveTexture(GL_TEXTURE2));
         glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_colors_tex_id(i).first));
+        glsafe(glActiveTexture(GL_TEXTURE0 + FOCUS_TEXTURE_UNIT));
+        glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_focus_keys_tex_id(i).first));
         glsafe(glActiveTexture(GL_TEXTURE3));
         glsafe(glBindTexture(GL_TEXTURE_2D, id));
         m_option_template.render(count);
@@ -2593,6 +2762,11 @@ void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& project
     glsafe(glActiveTexture(GL_TEXTURE2));
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_colors_tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA8, m_colors_buf_id));
+    int curr_focus_keys_texture = 0;
+    glsafe(glActiveTexture(GL_TEXTURE0 + FOCUS_TEXTURE_UNIT));
+    glsafe(glGetIntegerv(GL_TEXTURE_BINDING_BUFFER, &curr_focus_keys_texture));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_focus_keys_tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_focus_keys_buf_id));
     glsafe(glActiveTexture(GL_TEXTURE3));
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, options.tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, options.buf_id));
@@ -2611,6 +2785,8 @@ void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& project
         glsafe(glActiveTexture(GL_TEXTURE0 + i));
         glsafe(glBindTexture(GL_TEXTURE_BUFFER, curr_bound_texture[i]));
     }
+    glsafe(glActiveTexture(GL_TEXTURE0 + FOCUS_TEXTURE_UNIT));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, curr_focus_keys_texture));
 #endif // ENABLE_OPENGL_ES
     glsafe(glActiveTexture(curr_active_texture));
 }

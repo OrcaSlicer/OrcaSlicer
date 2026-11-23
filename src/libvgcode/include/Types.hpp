@@ -219,6 +219,30 @@ enum class EOptionType : uint8_t
 static constexpr std::size_t OPTION_TYPES_COUNT = static_cast<std::size_t>(EOptionType::COUNT);
 
 //
+// ORCA: what keeps its color, the other paths not being drawn, see Viewer::set_focus().
+// Each part is optional, -1 for none, and all the parts set must match:
+// kind      - one extrusion role or option, see focus_kind()
+// extruder  - the extrusions of one extruder
+// range     - the positions, from 0 to 1, on the color range of the view, of the values kept, ends included
+//
+struct Focus
+{
+    int kind{ -1 };
+    int extruder{ -1 };
+    std::array<float, 2> range{ -1.0f, -1.0f };
+
+    bool any() const { return kind >= 0 || extruder >= 0 || range[0] >= 0.0f; }
+    bool operator==(const Focus& other) const
+    {
+        return kind == other.kind && extruder == other.extruder && range == other.range;
+    }
+    bool operator!=(const Focus& other) const { return !(*this == other); }
+};
+
+inline int focus_kind(EGCodeExtrusionRole role) { return static_cast<int>(role); }
+inline int focus_kind(EOptionType type) { return static_cast<int>(GCODE_EXTRUSION_ROLES_COUNT) + static_cast<int>(type); }
+
+//
 // Time modes
 //
 enum class ETimeMode : uint8_t
