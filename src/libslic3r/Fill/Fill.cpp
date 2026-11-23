@@ -2045,6 +2045,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
         }
         f->z        = this->print_z;
         f->angle    = surface_fill.params.angle;
+        f->shift    = surface_fill.params.shift;
         f->fixed_angle = surface_fill.params.fixed_angle;
         const FillAdaptive::Octrees *octrees = fill_octrees ? fill_octrees->region(surface_fill.region_id) : nullptr;
         f->adaptive_infill_field   = this->object()->adaptive_infill_field(surface_fill.params.adaptive_infill_mode);
