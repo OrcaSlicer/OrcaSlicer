@@ -13,6 +13,7 @@
 #include "libslic3r/Color.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "libslic3r/PrintBase.hpp"
+#include "libslic3r/CustomGCode.hpp"
 #include <map>
 #include <cstddef>
 #include <cereal/access.hpp>
@@ -792,6 +793,8 @@ class PartPlateList : public ObjectBase
     PrinterTechnology  printer_technology;
 
     std::vector<PartPlate*> m_plate_list;
+    // Orca: custom G-codes of plates removed by undo / redo, restored if the plate comes back.
+    std::map<ObjectID, CustomGCode::Info> m_custom_gcodes_by_plate_id;
     std::map<int, PrintBase*> m_print_list;
     std::map<int, GCodeResult*> m_gcode_result_list;
     std::mutex m_plates_mutex;
@@ -1019,6 +1022,9 @@ public:
 
     // Moves the plates to new indices with their objects: new_order[k] is the current index of the plate that goes to k.
     int reorder_plates(const std::vector<int>& new_order);
+    // Orca: custom G-codes are keyed by plate index; re-key them by plate ID after plates are reordered.
+    std::vector<ObjectID> get_plate_ids() const;
+    void remap_custom_gcodes(const std::vector<ObjectID>& plate_ids_before);
 
     //lock plate
     int lock_plate(int index, bool state);

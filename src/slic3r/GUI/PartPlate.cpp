@@ -3028,6 +3028,8 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 	int glb_internal_solid_extr = glb_config.opt_int("internal_solid_filament_id");
 	int glb_top_surface_extr = glb_config.opt_int("top_surface_filament_id");
 	int glb_bottom_surface_extr = glb_config.opt_int("bottom_surface_filament_id");
+	const int glb_brim_extr = glb_config.opt_int("brim_filament_id");
+	const bool glb_brim = glb_config.option("brim_type")->getInt() != int(BrimType::btNoBrim);
 	bool glb_support = glb_config.opt_bool("enable_support");
     glb_support |= glb_config.opt_int("raft_layers") > 0;
 
@@ -3138,6 +3140,12 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 		else if (glb_bottom_surface_extr != 0)
 			plate_extruders.push_back(glb_bottom_surface_extr);
 
+		const ConfigOption* brim_type_opt = mo->config.option("brim_type");
+		if (brim_type_opt != nullptr ? brim_type_opt->getInt() != int(BrimType::btNoBrim) : glb_brim) {
+			const ConfigOption* brim_opt = mo->config.option("brim_filament_id");
+			if (const int brim_extr = brim_opt != nullptr ? brim_opt->getInt() : glb_brim_extr; brim_extr != 0)
+				plate_extruders.push_back(brim_extr);
+		}
 	}
 
 	if (conside_custom_gcode) {
@@ -3193,6 +3201,9 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 	int glb_internal_solid_extr = full_config.opt_int("internal_solid_filament_id");
 	int glb_top_surface_extr = full_config.opt_int("top_surface_filament_id");
 	int glb_bottom_surface_extr = full_config.opt_int("bottom_surface_filament_id");
+	const ConfigOption* glb_brim_opt = full_config.option("brim_filament_id");
+	const int glb_brim_extr = glb_brim_opt != nullptr ? glb_brim_opt->getInt() : 0;
+	const bool glb_brim = full_config.option("brim_type")->getInt() != int(BrimType::btNoBrim);
 
     bool glb_support = full_config.opt_bool("enable_support");
     glb_support |= full_config.opt_int("raft_layers") > 0;
@@ -3309,6 +3320,13 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 				plate_extruders.push_back(obj_bottom_surface_extr);
 			else if (glb_bottom_surface_extr != 0)
 				plate_extruders.push_back(glb_bottom_surface_extr);
+
+			const ConfigOption* brim_type_opt = object->config.option("brim_type");
+			if (brim_type_opt != nullptr ? brim_type_opt->getInt() != int(BrimType::btNoBrim) : glb_brim) {
+				const ConfigOption* brim_opt = object->config.option("brim_filament_id");
+				if (const int brim_extr = brim_opt != nullptr ? brim_opt->getInt() : glb_brim_extr; brim_extr != 0)
+					plate_extruders.push_back(brim_extr);
+			}
         }
     }
 
@@ -3434,19 +3452,22 @@ std::vector<int> PartPlate::get_extruders_without_support(bool conside_custom_gc
 int PartPlate::get_physical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const
 {
 	const std::vector<int>& filament_map = get_real_filament_maps(g_config);
-	if (filament_map.size() < idx)
+	if (idx <= 0 || idx > static_cast<int>(filament_map.size()))
 	{
 		return -1;
 	}
 
-	const auto the_map = g_config.option<ConfigOptionInts>("physical_extruder_map");
-	if (!the_map)
+	// A multi-nozzle printer whose profile never sets physical_extruder_map carries the
+	// single-element default, so the raw option cannot be indexed by logical extruder.
+	const auto* nozzles = g_config.option<ConfigOptionFloats>("nozzle_diameter");
+	const ConfigOptionInts pem = effective_physical_extruder_map(g_config.option<ConfigOptionInts>("physical_extruder_map"),
+	                                                             nozzles ? static_cast<int>(nozzles->values.size()) : 0);
+	const int zero_base_logical_idx = filament_map[idx - 1] - 1;
+	if (zero_base_logical_idx < 0 || zero_base_logical_idx >= static_cast<int>(pem.values.size()))
 	{
 		return -1;
 	}
-
-	int zero_base_logical_idx = filament_map[idx - 1] - 1;
-	return the_map->values[zero_base_logical_idx];
+	return pem.values[zero_base_logical_idx];
 }
 
 int PartPlate::get_logical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const
@@ -3545,6 +3566,9 @@ std::map<int, size_t> PartPlate::get_object_filament_extruders(
         if (active && !object.config.has(key) && process_config.has(key) && process_config.opt_int(key) > 0)
             filament_ids.emplace(process_config.opt_int(key));
     }
+
+    if (has_brim && effective_int("brim_filament_id") > 0)
+        filament_ids.emplace(effective_int("brim_filament_id"));
 
     const bool has_support = effective_bool("enable_support") || effective_int("raft_layers") > 0;
     if (has_support) {
@@ -6702,6 +6726,7 @@ int PartPlateList::delete_plate(int index)
 		return -1;
 	}
 	const std::string plate_name = plate->get_plate_name();
+	const std::vector<ObjectID> plate_ids_before = get_plate_ids();
 
 	if (m_plater) {
 		// In GUI mode
@@ -6722,6 +6747,8 @@ int PartPlateList::delete_plate(int index)
 	int old_cols = compute_colum_count(m_plate_list.size());
 
 	m_plate_list.erase(m_plate_list.begin() + index);
+	// Orca: custom G-codes are keyed by plate index, so re-key them for the plates after it.
+	remap_custom_gcodes(plate_ids_before);
 	update_plate_cols();
 	//update this plate
 	//move this plate's instance to the end
@@ -7057,6 +7084,24 @@ int PartPlateList::reorder_plates(const std::vector<int>& new_order)
 	if (old_list.empty() || new_order.size() != old_list.size())
 		return -1;
 
+	const std::vector<ObjectID> plate_ids_before = get_plate_ids();
+
+	// Orca: wipe tower positions are stored per plate index, so move them with the plates.
+	if (m_plater) {
+		DynamicConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
+		for (const char* key : { "wipe_tower_x", "wipe_tower_y" }) {
+			ConfigOptionFloats* opt = proj_cfg.opt<ConfigOptionFloats>(key);
+			if (opt->empty())
+				continue;
+			// Missing entries fall back to the first one; resize() fills them in with it.
+			if (opt->size() < old_list.size())
+				opt->resize(old_list.size());
+			const std::vector<double> old_values = opt->values;
+			for (size_t k = 0; k < old_list.size(); ++k)
+				opt->values[k] = old_values[new_order[k]];
+		}
+	}
+
 	reload_all_objects();
 	PartPlate* current = m_plate_list[m_current_plate];
 	for (int k = 0; k < (int)old_list.size(); ++k) {
@@ -7067,7 +7112,46 @@ int PartPlateList::reorder_plates(const std::vector<int>& new_order)
 		plate->set_pos_and_size(origin, m_plate_width, m_plate_depth, m_plate_height, true);
 	}
 	m_current_plate = current->get_index();
+
+	remap_custom_gcodes(plate_ids_before);
 	return 0;
+}
+
+std::vector<ObjectID> PartPlateList::get_plate_ids() const
+{
+	std::vector<ObjectID> ids;
+	for (const PartPlate* plate : m_plate_list)
+		ids.push_back(plate->id());
+	return ids;
+}
+
+void PartPlateList::remap_custom_gcodes(const std::vector<ObjectID>& plate_ids_before)
+{
+	if (!m_model)
+		return;
+
+	// Move each plate's entry into the map keyed by plate ID; entries without a plate keep their index.
+	std::map<int, CustomGCode::Info> remapped;
+	for (auto& [idx, info] : m_model->plates_custom_gcodes) {
+		if (idx >= 0 && idx < (int)plate_ids_before.size())
+			m_custom_gcodes_by_plate_id[plate_ids_before[idx]] = std::move(info);
+		else
+			remapped[idx] = std::move(info);
+	}
+
+	// Put back the entries of plates that exist now.
+	for (auto it = m_custom_gcodes_by_plate_id.begin(); it != m_custom_gcodes_by_plate_id.end();) {
+		const ObjectID plate_id = it->first;
+		auto plate = std::find_if(m_plate_list.begin(), m_plate_list.end(), [plate_id](const PartPlate* p) { return p->id() == plate_id; });
+		if (plate == m_plate_list.end()) {
+			++it;
+			continue;
+		}
+		remapped[int(plate - m_plate_list.begin())] = std::move(it->second);
+		it = m_custom_gcodes_by_plate_id.erase(it);
+	}
+
+	m_model->plates_custom_gcodes = std::move(remapped);
 }
 
 //lock plate

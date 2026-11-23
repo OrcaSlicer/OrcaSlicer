@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 #include <vector>
 #include <cassert>
 #include <cstdlib>

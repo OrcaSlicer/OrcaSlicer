@@ -23,6 +23,8 @@ add_executable(${_TEST_NAME}_tests
     test_assemble_list.cpp
     test_bambu_networking.cpp
     test_belt_brim.cpp
+    # Mouse ear detection is pure contour geometry; the slicing pipeline stays in fff_print.
+    test_brim.cpp
     test_buildvolume.cpp
     test_calib.cpp
     test_clipper_offset.cpp
@@ -35,6 +37,7 @@ add_executable(${_TEST_NAME}_tests
     test_drc.cpp
     test_gcodereader.cpp
     test_toolordering_nozzle_group.cpp
+    test_parallel_for_first_error.cpp
     test_parallel_resolve.cpp
     test_preset_bundle_loading.cpp
     test_preset_collection.cpp
@@ -45,12 +48,14 @@ add_executable(${_TEST_NAME}_tests
     test_preset_options.cpp
     test_edge_grid.cpp
     test_elephant_foot_compensation.cpp
+    test_expolygon.cpp
     test_exclusion_volumes.cpp
     test_fill_corner_smoothing.cpp
     test_filament_mixer.cpp
     test_fill_plane_path.cpp
     test_adaptive_infill_field.cpp
     test_geometry.cpp
+    test_measure.cpp
     test_kdtree.cpp
     test_lightning.cpp
     test_imex_arrange.cpp

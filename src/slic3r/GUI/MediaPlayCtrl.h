@@ -84,6 +84,9 @@ private:
 
     void on_show_hide(wxShowEvent & evt);
 
+    // The picture shown before the camera plays: Bambu's for a Bambu printer preset, Orca's otherwise.
+    void update_idle_image();
+
     void media_proc();
 
     static bool start_stream_service(bool *need_install = nullptr);

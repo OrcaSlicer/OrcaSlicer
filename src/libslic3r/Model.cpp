@@ -61,6 +61,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/iostream.hpp>
+#include <boost/format.hpp>
 
 #include "SVG.hpp"
 #include <Eigen/Dense>
@@ -71,6 +72,7 @@
 #include <map>
 #include <utility>
 #include <memory>
+#include <mutex>
 #include <iterator>
 #include <limits>
 #include <sstream>
@@ -2884,11 +2886,19 @@ int ModelVolume::extruder_id() const
 
 bool ModelVolume::is_splittable() const
 {
-    // the call mesh.is_splittable() is expensive, so cache the value to calculate it only once
-    if (m_is_splittable == -1)
-        m_is_splittable = its_is_splittable(this->mesh().its);
-
-    return m_is_splittable == 1;
+    // The call its_is_splittable() is expensive, so cache the value to calculate it only once. The PrintObjects made from
+    // one ModelObject ask at the same time while they prepare their infill, so the cache is read and written under a
+    // lock; the call itself runs outside it, and only callers that find the cache empty at the same time make it twice.
+    static std::mutex cache_mutex;
+    {
+        std::scoped_lock<std::mutex> lock(cache_mutex);
+        if (m_is_splittable != -1)
+            return m_is_splittable == 1;
+    }
+    const int splittable = its_is_splittable(this->mesh().its) ? 1 : 0;
+    std::scoped_lock<std::mutex> lock(cache_mutex);
+    m_is_splittable = splittable;
+    return splittable == 1;
 }
 
 // BBS
