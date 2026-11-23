@@ -1084,6 +1084,8 @@ void ViewerImpl::reset()
         std::vector<float>().swap(times);
     std::vector<uint32_t>().swap(m_layer_first_vertex);
     m_layers_in_vertex_order = false;
+    // ORCA: the layers the colour ranges span belong to the print that goes; the next one starts from all of its own
+    m_settings.ranges_layers = Settings().ranges_layers;
     // BitSet::clear() only zeroes the bits, it keeps the blocks allocated; load() builds a new
     // bitset anyway and it is never read while m_vertices is empty
     m_valid_lines_bitset = BitSet<>();
@@ -1770,6 +1772,14 @@ void ViewerImpl::toggle_top_layer_only_view_range()
 }
 
 // ORCA: enable/disable darkening of the layers the layer slider is not scrubbed to
+void ViewerImpl::set_color_ranges_layers(const Interval& layers)
+{
+    if (m_settings.ranges_layers == layers)
+        return;
+    m_settings.ranges_layers = layers;
+    m_settings.update_colors = true;
+}
+
 void ViewerImpl::set_dim_previous_layers(bool value)
 {
     if (m_settings.dim_previous_layers == value)
@@ -1935,9 +1945,9 @@ float ViewerImpl::get_estimated_time_at(size_t id) const
     return time;
 }
 
-std::optional<float> ViewerImpl::get_vertex_value(const PathVertex& v) const
+std::optional<float> ViewerImpl::get_vertex_value(const PathVertex& v, EViewType type) const
 {
-    switch (m_settings.view_type)
+    switch (type)
     {
     case EViewType::Height:                   return v.height;
     case EViewType::Width:                    return v.width;
@@ -1969,7 +1979,7 @@ size_t ViewerImpl::find_extrusion_vertex(const Interval& layers, EGCodeExtrusion
     std::vector<size_t> ids;
     const size_t count = (layers[1] >= layers[0]) ? layers[1] - layers[0] + 1 : 0;
     const size_t steps = std::min(count, VERTEX_SAMPLE_LAYERS);
-    const auto value_of = [this](const PathVertex& v) { return get_vertex_value(v); };
+    const auto value_of = [this](const PathVertex& v) { return get_vertex_value(v, m_settings.view_type); };
     for (size_t step = 0; step < steps; ++step) {
         const size_t layer_id = layers[0] + ((steps > 1) ? step * (count - 1) / (steps - 1) : 0);
         const std::optional<size_t> first = collect_role_samples(m_vertices, m_layers.get_layer_vertex_range(layer_id),
@@ -1994,63 +2004,6 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
     {
         return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : get_extrusion_role_color(v.role);
     }
-    case EViewType::Height:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_height_range.get_color_at(v.height);
-    }
-    case EViewType::Width:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_width_range.get_color_at(v.width);
-    }
-    case EViewType::Speed:
-    {
-        return m_speed_range.get_color_at(v.feedrate);
-    }
-    case EViewType::ActualSpeed:
-    {
-        return m_actual_speed_range.get_color_at(v.actual_feedrate);
-    }
-    case EViewType::FanSpeed:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_fan_speed_range.get_color_at(v.fan_speed);
-    }
-    case EViewType::Temperature:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_temperature_range.get_color_at(v.temperature);
-    }
-// ORCA: Add Pressure Advance visualization support
-    case EViewType::PressureAdvance:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_pressure_advance_range.get_color_at(v.pressure_advance);
-    }
-    // ORCA: Add Acceleration visualization support
-    case EViewType::Acceleration:
-    {
-        return m_acceleration_range.get_color_at(v.acceleration);
-    }
-    // ORCA: Add Jerk visualization support
-    case EViewType::Jerk:
-    {
-        return m_jerk_range.get_color_at(v.jerk);
-    }
-    case EViewType::VolumetricFlowRate:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_volumetric_rate_range.get_color_at(v.volumetric_rate());
-    }
-    case EViewType::ActualVolumetricFlowRate:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_actual_volumetric_rate_range.get_color_at(v.actual_volumetric_rate());
-    }
-    case EViewType::LayerTimeLinear:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) :
-            m_layer_time_range[0].get_color_at(m_layers.get_layer_time(m_settings.time_mode, static_cast<size_t>(v.layer_id)));
-    }
-    case EViewType::LayerTimeLogarithmic:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) :
-            m_layer_time_range[1].get_color_at(m_layers.get_layer_time(m_settings.time_mode, static_cast<size_t>(v.layer_id)));
-    }
     case EViewType::Tool:
     {
         assert(static_cast<size_t>(v.extruder_id) < m_tool_colors.size());
@@ -2065,23 +2018,23 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
         const ColorWithAlpha& color = m_color_print_colors[static_cast<size_t>(v.color_id) % m_color_print_colors.size()];
         return { color[0], color[1], color[2] };
     }
-    default: { break; }
+    // ORCA: the views that grade by a value
+    default:
+    {
+        const std::optional<float> value = get_range_value(v, m_settings.view_type);
+        if (value.has_value())
+            return get_color_range(m_settings.view_type).get_color_at(*value);
+        return v.is_extrusion() ? DUMMY_COLOR : get_option_color(move_type_to_option(v.type));
     }
-
-    return DUMMY_COLOR;
+    }
 }
 
 std::optional<float> ViewerImpl::get_vertex_range_position(const PathVertex& v) const
 {
-    // ORCA: as get_vertex_color() decides
-    const EViewType view = m_settings.view_type;
-    const bool grades_moves = view == EViewType::Speed || view == EViewType::ActualSpeed || view == EViewType::Acceleration || view == EViewType::Jerk;
-    if (v.type == EMoveType::Noop || v.is_option() || ((v.is_travel() || v.is_wipe()) && !grades_moves))
-        return std::nullopt;
-    const std::optional<float> value = get_vertex_value(v);
+    const std::optional<float> value = get_range_value(v, m_settings.view_type);
     if (!value.has_value())
         return std::nullopt;
-    return get_color_range(view).get_position_at(*value);
+    return get_color_range(m_settings.view_type).get_position_at(*value);
 }
 
 uint32_t ViewerImpl::get_vertex_focus_key(const PathVertex& v) const
@@ -2408,7 +2361,8 @@ void ViewerImpl::update_color_ranges()
     // as last time, the current ranges are still valid. The recalculation is quite expensive.
     if (m_settings_used_for_ranges.has_value() &&
         m_settings.extrusion_roles_visibility == m_settings_used_for_ranges->extrusion_roles_visibility &&
-        m_settings.options_visibility == m_settings_used_for_ranges->options_visibility)
+        m_settings.options_visibility == m_settings_used_for_ranges->options_visibility &&
+        m_settings.ranges_layers == m_settings_used_for_ranges->ranges_layers)
         return;
 
     m_width_range.reset();
@@ -2428,41 +2382,82 @@ void ViewerImpl::update_color_ranges()
     m_layer_time_range[0].reset(); // ColorRange::EType::Linear
     m_layer_time_range[1].reset(); // ColorRange::EType::Logarithmic
 
+    struct VertexRange
+    {
+        EViewType type;
+        ColorRange& range;
+        bool binned;
+    };
+    const std::array<VertexRange, 11> vertex_ranges{ {
+        { EViewType::Height, m_height_range, true },
+        { EViewType::Width, m_width_range, true },
+        { EViewType::VolumetricFlowRate, m_volumetric_rate_range, true },
+        { EViewType::ActualVolumetricFlowRate, m_actual_volumetric_rate_range, true },
+        { EViewType::FanSpeed, m_fan_speed_range, true },
+        { EViewType::Temperature, m_temperature_range, true },
+        { EViewType::PressureAdvance, m_pressure_advance_range, false },
+        { EViewType::Speed, m_speed_range, false },
+        { EViewType::ActualSpeed, m_actual_speed_range, false },
+        { EViewType::Acceleration, m_acceleration_range, false },
+        { EViewType::Jerk, m_jerk_range, false },
+    } };
+    const Interval& layers = m_settings.ranges_layers;
     for (size_t i = 0; i < m_vertices.size(); i++) {
         const PathVertex& v = m_vertices[i];
-        if (v.is_extrusion()) {
-            m_height_range.update(round_to_bin(v.height));
-            if (!v.is_custom_gcode() || m_settings.extrusion_roles_visibility[size_t(EGCodeExtrusionRole::Custom)]) {
-                m_width_range.update(round_to_bin(v.width));
-                m_volumetric_rate_range.update(round_to_bin(v.volumetric_rate()));
-                m_actual_volumetric_rate_range.update(round_to_bin(v.actual_volumetric_rate()));
-            }
-            m_fan_speed_range.update(round_to_bin(v.fan_speed));
-            m_temperature_range.update(round_to_bin(v.temperature));
-            // ORCA: Add Pressure Advance visualization support
-            if (v.pressure_advance >= 0.0f)
-                m_pressure_advance_range.update(v.pressure_advance);
-        }
-        if ((v.is_travel() && m_settings.options_visibility[size_t(EOptionType::Travels)]) ||
-            (v.is_wipe() && m_settings.options_visibility[size_t(EOptionType::Wipes)]) ||
-             v.is_extrusion()) {
-            m_speed_range.update(v.feedrate);
-            m_actual_speed_range.update(v.actual_feedrate);
-            // ORCA: Add Acceleration visualization support
-            m_acceleration_range.update(v.acceleration);
-            // ORCA: Add Jerk visualization support
-            m_jerk_range.update(v.jerk);
+        // ORCA: the ranges may span the layers the slider shows alone
+        if (v.layer_id < layers[0] || v.layer_id > layers[1])
+            continue;
+        for (const VertexRange& r : vertex_ranges) {
+            if (const std::optional<float> value = get_range_value(v, r.type))
+                r.range.update(r.binned ? round_to_bin(*value) : *value);
         }
     }
 
     const std::vector<float> times = m_layers.get_times(m_settings.time_mode);
     for (size_t i = 0; i < m_layer_time_range.size(); ++i) {
-        for (float t : times) {
-            m_layer_time_range[i].update(t);
+        for (size_t layer = 0; layer < times.size(); ++layer) {
+            if (layer >= layers[0] && layer <= layers[1])
+                m_layer_time_range[i].update(times[layer]);
         }
     }
 
     m_settings_used_for_ranges = m_settings;
+}
+
+bool ViewerImpl::counts_custom(const PathVertex& v) const
+{
+    return !v.is_custom_gcode() || m_settings.extrusion_roles_visibility[size_t(EGCodeExtrusionRole::Custom)];
+}
+
+bool ViewerImpl::counts_move(const PathVertex& v) const
+{
+    return (v.is_travel() && m_settings.options_visibility[size_t(EOptionType::Travels)]) ||
+           (v.is_wipe() && m_settings.options_visibility[size_t(EOptionType::Wipes)]) || v.is_extrusion();
+}
+
+bool ViewerImpl::counts_in_range(const PathVertex& v, EViewType type) const
+{
+    switch (type) {
+    case EViewType::Height:
+    case EViewType::FanSpeed:
+    case EViewType::Temperature:
+    case EViewType::LayerTimeLinear:
+    case EViewType::LayerTimeLogarithmic: return v.is_extrusion();
+    case EViewType::Width:
+    case EViewType::VolumetricFlowRate:
+    case EViewType::ActualVolumetricFlowRate: return v.is_extrusion() && counts_custom(v);
+    case EViewType::PressureAdvance: return v.is_extrusion() && v.pressure_advance >= 0.0f;
+    case EViewType::Speed:
+    case EViewType::ActualSpeed:
+    case EViewType::Acceleration:
+    case EViewType::Jerk: return counts_move(v);
+    default: return false;
+    }
+}
+
+std::optional<float> ViewerImpl::get_range_value(const PathVertex& v, EViewType type) const
+{
+    return counts_in_range(v, type) ? get_vertex_value(v, type) : std::nullopt;
 }
 
 void ViewerImpl::update_heights_widths()

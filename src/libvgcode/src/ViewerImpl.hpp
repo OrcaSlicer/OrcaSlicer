@@ -132,6 +132,8 @@ public:
     // one(s) - the top thumb's layer, the bottom thumb's layer, or both - stay at full
     // brightness. dim_previous_layers_brightness sets how dark the rest go, 1.0 = unchanged,
     // 0.0 = black
+    const Interval& get_color_ranges_layers() const { return m_settings.ranges_layers; }
+    void set_color_ranges_layers(const Interval& layers);
     bool is_dim_previous_layers() const { return m_settings.dim_previous_layers; }
     void set_dim_previous_layers(bool value);
     float get_dim_previous_layers_brightness() const { return m_settings.dim_previous_layers_brightness; }
@@ -206,8 +208,8 @@ public:
     float get_estimated_time() const { return m_total_time[static_cast<size_t>(m_settings.time_mode)]; }
     float get_estimated_time_at(size_t id) const;
     Color get_vertex_color(const PathVertex& vertex) const;
-    // the value the current view grades the vertex by, where it grades by one
-    std::optional<float> get_vertex_value(const PathVertex& vertex) const;
+    // the value the view type grades the vertex by, where it grades by one
+    std::optional<float> get_vertex_value(const PathVertex& vertex, EViewType type) const;
     // how many layers of an interval find_extrusion_vertex() samples
     static constexpr std::size_t VERTEX_SAMPLE_LAYERS = 8;
     size_t find_extrusion_vertex(const Interval& layers, EGCodeExtrusionRole role, const XYBox& box) const;
@@ -239,6 +241,7 @@ public:
     void reset_default_options_colors();
 
     const ColorRange& get_color_range(EViewType type) const;
+    std::optional<float> get_range_value(const PathVertex& vertex, EViewType type) const;
     void set_color_range_palette(EViewType type, const Palette& palette);
 
     float get_travels_radius() const { return m_travels_radius; }
@@ -726,6 +729,12 @@ private:
     void apply_pending_updates();
     void update_view_full_range();
     void update_color_ranges();
+    // ORCA: whether a vertex counts for the ranges of the values of extrusions that custom G-code may leave out, and for the
+    // ranges of the values of moves
+    bool counts_custom(const PathVertex& v) const;
+    bool counts_move(const PathVertex& v) const;
+    // ORCA: whether the value of the vertex counts in the color range of the view type, which then gives the vertex its color
+    bool counts_in_range(const PathVertex& v, EViewType type) const;
     void update_heights_widths();
     uint8_t get_vertex_alpha(const PathVertex& v) const;
     // ORCA: where the color of the vertex comes from the color range of the view, the position of its value on it

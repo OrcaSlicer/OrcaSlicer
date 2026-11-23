@@ -57,6 +57,8 @@ struct ViewerImplTestAccess
         for (std::size_t i = 0; i < viewer.m_vertices.size(); ++i)
             viewer.m_layers.update(viewer.m_vertices[i], static_cast<uint32_t>(i));
     }
+    static void show_travels(ViewerImpl& viewer) { viewer.m_settings.options_visibility[std::size_t(EOptionType::Travels)] = true; }
+    static std::optional<float> range_position(const ViewerImpl& viewer, const PathVertex& v) { return viewer.get_vertex_range_position(v); }
     static const std::vector<uint32_t>& focus_keys(const ViewerImpl& viewer) { return viewer.m_vertices_focus; }
     static bool colors_pending(const ViewerImpl& viewer) { return viewer.m_settings.update_colors; }
 };
@@ -236,6 +238,34 @@ TEST_CASE("Every vertex shader the viewer compiles that reads the focus key has 
         }
     }
     CHECK(compiled >= 2);
+}
+
+TEST_CASE("Whether a vertex's value counts on a scale decides its value, its colour and the position in its focus key alike", "[Libvgcode]")
+{
+    ViewerImpl viewer;
+    libvgcode::ViewerImplTestAccess::load(viewer, extrusion_and_travel());
+    const PathVertex& extrusion = viewer.get_vertex_at(0);
+    const PathVertex& travel = viewer.get_vertex_at(1);
+
+    CHECK_FALSE(viewer.get_range_value(travel, EViewType::Speed).has_value());
+    libvgcode::ViewerImplTestAccess::show_travels(viewer);
+    CHECK(viewer.get_range_value(travel, EViewType::Speed) == std::optional<float>(150.0f));
+    CHECK(viewer.get_range_value(travel, EViewType::Acceleration) == std::optional<float>(3000.0f));
+    CHECK_FALSE(viewer.get_range_value(travel, EViewType::LayerTimeLinear).has_value());
+    CHECK(viewer.get_range_value(extrusion, EViewType::Speed) == std::optional<float>(50.0f));
+    CHECK(viewer.get_range_value(extrusion, EViewType::LayerTimeLinear) == std::optional<float>(3.0f));
+
+    const EViewType type = GENERATE(EViewType::Speed, EViewType::Acceleration, EViewType::LayerTimeLinear);
+    viewer.set_view_type(type);
+    viewer.update_colors();
+    for (const PathVertex* v : { &extrusion, &travel }) {
+        const std::optional<float> value = viewer.get_range_value(*v, type);
+        CHECK(libvgcode::ViewerImplTestAccess::range_position(viewer, *v).has_value() == value.has_value());
+        if (value.has_value())
+            CHECK(viewer.get_vertex_color(*v) == viewer.get_color_range(type).get_color_at(*value));
+        else
+            CHECK(viewer.get_vertex_color(*v) == viewer.get_option_color(EOptionType::Travels));
+    }
 }
 
 TEST_CASE("The focus keys are built once a focus is set and kept after it is cleared", "[Libvgcode]")

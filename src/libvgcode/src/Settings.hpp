@@ -9,6 +9,7 @@
 
 #include <array>
 #include <cstddef>
+#include <limits>
 #include <map>
 
 namespace libvgcode {
@@ -28,6 +29,8 @@ struct Settings
 		float dim_previous_layers_brightness{ 0.4f };
 		// ORCA: when disabled, the filaments are drawn opaque whatever their color's opacity
 		bool translucent_filaments{ true };
+		// ORCA: the layers the color ranges span; all of them by default
+		Interval ranges_layers{ 0, std::numeric_limits<std::size_t>::max() };
 		bool spiral_vase_mode{ false };
 		// what the reduced set holds and whether it is drawn. Ignored on the OpenGL ES path.
 		EReducedDetailMode reduced_detail_mode{ EReducedDetailMode::Off };

@@ -4,6 +4,7 @@
 ///|/
 #include "../include/Viewer.hpp"
 #include "ViewerImpl.hpp"
+#include <optional>
 #include <array>
 #include <string>
 #include <utility>
@@ -132,6 +133,16 @@ bool Viewer::is_top_layer_only_view_range() const
 void Viewer::toggle_top_layer_only_view_range()
 {
     m_impl->toggle_top_layer_only_view_range();
+}
+
+const Interval& Viewer::get_color_ranges_layers() const
+{
+    return m_impl->get_color_ranges_layers();
+}
+
+void Viewer::set_color_ranges_layers(const Interval& layers)
+{
+    m_impl->set_color_ranges_layers(layers);
 }
 
 bool Viewer::is_dim_previous_layers() const
@@ -272,6 +283,11 @@ void Viewer::set_color_print_colors(const PaletteWithAlpha& colors)
 const ColorRange& Viewer::get_color_range(EViewType type) const
 {
     return m_impl->get_color_range(type);
+}
+
+std::optional<float> Viewer::get_range_value(const PathVertex& vertex, EViewType type) const
+{
+    return m_impl->get_range_value(vertex, type);
 }
 
 void Viewer::set_color_range_palette(EViewType type, const Palette& palette)
