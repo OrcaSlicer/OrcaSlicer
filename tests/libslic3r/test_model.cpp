@@ -120,6 +120,34 @@ TriangleMesh flat_triangle_then_cubes(const std::vector<double> &cube_offsets)
 
 } // namespace
 
+TEST_CASE("Splitting a scaled object keeps each part in place in the assembly view", "[Model]")
+{
+    Model model;
+    ModelObject *object = model.add_object();
+    ModelInstance *instance = object->add_instance();
+    instance->set_scaling_factor(Vec3d::Constant(2.));
+    Geometry::Transformation assembly = instance->get_transformation();
+    assembly.set_rotation(Z, 0.5 * PI);
+    assembly.set_offset(Vec3d(40., 30., 10.));
+    instance->set_assemble_transformation(assembly);
+
+    std::vector<Transform3d> expected;
+    for (double x : {0., 20.}) {
+        ModelVolume *volume = object->add_volume(make_cube(10., 10., 10.));
+        volume->set_offset(Vec3d(x, 0., 0.));
+        expected.push_back(assembly.get_matrix() * volume->get_matrix());
+    }
+
+    ModelObjectPtrs parts;
+    object->split(&parts, false);
+    REQUIRE(parts.size() == expected.size());
+    for (size_t i = 0; i < parts.size(); ++i) {
+        const ModelObject &part = *parts[i];
+        const Transform3d actual = part.instances.front()->get_assemble_transformation().get_matrix() * part.volumes.front()->get_matrix();
+        CHECK(actual.isApprox(expected[i]));
+    }
+}
+
 TEST_CASE("Splitting a part drops pieces enclosing no volume and keeps the part itself", "[Model]")
 {
     Model model;
