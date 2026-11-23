@@ -530,6 +530,7 @@ TEST_CASE_METHOD(HealthCheckFixture, "Stopping the health check cancels the requ
 
 TEST_CASE_METHOD(HealthCheckFixture, "Connecting to the server reports the result synchronously", "[OrcaCloudServiceAgent]")
 {
+    sign_in("test-user");
     server.set_mode(LoopbackServer::Mode::Ok);
     CHECK(agent->connect_server() == BAMBU_NETWORK_SUCCESS);
     CHECK(agent->is_server_connected());

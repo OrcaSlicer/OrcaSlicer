@@ -530,7 +530,8 @@ void AMSSetting::on_insert_material_read(wxCommandEvent &event)
     bool tray_read_opt = m_checkbox_Insert_material_auto_read->GetValue();
     bool remain_opt = m_checkbox_remain->GetValue();
 
-    m_obj->command_ams_user_settings(start_read_opt, tray_read_opt, remain_opt);
+    if (m_obj->command_ams_user_settings(start_read_opt, tray_read_opt, remain_opt) != 0)
+        UpdateByObj(m_obj);
 
     m_sizer_Insert_material_tip_inline->Layout();
     Layout();
@@ -556,7 +557,8 @@ void AMSSetting::on_starting_read(wxCommandEvent &event)
     bool tray_read_opt  = m_checkbox_Insert_material_auto_read->GetValue();
     bool remain_opt = m_checkbox_remain->GetValue();
 
-    m_obj->command_ams_user_settings(start_read_opt, tray_read_opt, remain_opt);
+    if (m_obj->command_ams_user_settings(start_read_opt, tray_read_opt, remain_opt) != 0)
+        UpdateByObj(m_obj);
 
     m_sizer_starting_tip_inline->Layout();
     Layout();
@@ -570,7 +572,8 @@ void AMSSetting::on_remain(wxCommandEvent& event)
     bool start_read_opt = m_checkbox_starting_auto_read->GetValue();
     bool tray_read_opt = m_checkbox_Insert_material_auto_read->GetValue();
     bool remain_opt = m_checkbox_remain->GetValue();
-    m_obj->command_ams_user_settings(start_read_opt, tray_read_opt, remain_opt);
+    if (m_obj->command_ams_user_settings(start_read_opt, tray_read_opt, remain_opt) != 0)
+        UpdateByObj(m_obj);
     event.Skip();
 }
 

@@ -10,6 +10,7 @@
 // Same Windows include prologue as test_texture_color_palette.cpp: wx pulls in <windows.h>, so keep
 // WIN32_LEAN_AND_MEAN / NOMINMAX ahead of the Catch2 headers.
 #include "test_utils.hpp"
+#include <libslic3r/Format/ProjectStrategy.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #ifdef WIN32
     #ifndef WIN32_LEAN_AND_MEAN
