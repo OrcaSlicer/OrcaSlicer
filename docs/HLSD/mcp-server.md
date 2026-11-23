@@ -2125,9 +2125,11 @@ leaves it exact, the ones the tool binds inside the shape are added where it lef
 tangencies and equal ends, a `slot_arc`'s equal ends, and a `rectangle_rounded`'s level and upright sides,
 tangencies and equal corners, batched as the tool's inference batches them. A constraint between a shape and
 the sketch's axes or what is already in the sketch, or between plain lines, is inferred only where it holds
-exactly, so a square on the axes, whose sides lie a rounding step off them, is level only on a side lying
-exactly on one, and right angles hold the others: as many constraints and degrees of freedom as its tool's,
-some of another kind. Each item of `entities` carries its own fields, so a shape's field beside the list is
+exactly. A polygon's side on an axis is built exactly on it (`DesignSketchTool::make_polygon()` puts a side
+within 1e-9 rad of level or upright on the axis), because the rounding of its vertices' sines and cosines
+differs between platforms' math libraries and would leave a different set of sides exact on each; a square on
+the axes therefore has its four sides pinned Horizontal and Vertical, as its tool pins them, on every
+platform. Each item of `entities` carries its own fields, so a shape's field beside the list is
 refused, and a `construction` beside it is each item's that gives none of its own. A refused `sketch_draw`
 leaves the sketch exactly as it was. Angles are radians, or degrees
 under a `_deg` name.

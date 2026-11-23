@@ -72,6 +72,10 @@ namespace GUI {
 // correction silently biases every reported area.
 static constexpr int kArcFacets = 24;
 
+// How near level or upright, in radians, a polygon's side counts as lying on that axis. The rounding of its
+// vertices' sines and cosines leaves a side meant for an axis far inside it, and no side drawn at a slant is.
+static constexpr double kPolygonAxisTol = 1e-9;
+
 // Positioning helpers (defined lower down, used by the dimension methods above them).
 static bool entity_ref_point(const SketchEntity& e, Vec2d& out);
 static void translate_entity(SketchEntity& e, const Vec2d& d);
@@ -3346,6 +3350,19 @@ std::vector<SketchEntity> DesignSketchTool::make_polygon(const Vec2d& center, co
     for (int i = 0; i < sides; ++i) {
         const double a = a0 + 2.0 * M_PI * double(i) / double(sides);
         verts.push_back(Vec2d(center.x() + R * std::cos(a), center.y() + R * std::sin(a)));
+    }
+    // A side on an axis is built exactly on it: its end takes its start's coordinate across the axis. The sines
+    // and cosines above leave such a side a few rounding steps off, and which sides come out exact depends on the
+    // platform's math library, so inference at zero tolerance would pin a different set of sides on each. A vertex
+    // has at most one level and one upright side, so no coordinate is set twice.
+    for (int i = 0; i < sides; ++i) {
+        const Vec2d& start = verts[i];
+        Vec2d&       end   = verts[(i + 1) % sides];
+        const auto   axis  = infer_axis_constraint(start, end, kPolygonAxisTol);
+        if (axis == SketchConstraintType::Horizontal)
+            end.y() = start.y();
+        else if (axis == SketchConstraintType::Vertical)
+            end.x() = start.x();
     }
     for (int i = 0; i < sides; ++i) {
         SketchEntity e; e.type = SketchEntity::Type::Line;
@@ -10975,9 +10992,9 @@ int DesignSketchTool::add_shape_scripted(Mode mode, const std::vector<Vec2d>& cl
     // tried as one and then one at a time, so that one the solver refuses as redundant is left out, save the
     // relations of a slot, an arc slot and a rounded rectangle, which go as one batch only, as the gesture's relational
     // rule adds them: on the axes the solver refuses a slot's beside its level sides, as it refuses the Slot tool's,
-    // and one at a time would keep three the tool's slot does not carry. A square's right angles go one at a time
-    // too, because on the axes its sides lie a rounding step off them, so exact inference levels only some, where the
-    // Polygon tool's levels all four and they hold the right angles.
+    // and one at a time would keep three the tool's slot does not carry. A square on the axes has its four sides
+    // exactly level and upright, as make_polygon builds them, so exact inference pins all four, as the Polygon
+    // tool's does, and they hold its right angles: the solver refuses each of those beside them.
     using T = SketchConstraintType;
     std::vector<SketchEntityConstraintDef> defining, pins, together;
     const auto binds = [this](int a, int b, std::initializer_list<SketchConstraintType> types) {
@@ -12772,10 +12789,10 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 const int base = int(m_entities.size());
                 begin_feature(FeatureKind::Polygon);
                 append_entities(make_polygon(m_points[0], p, m_polygon_sides));
-                // The polygon is regular as drawn, so only an edge already on an axis is pinned to it:
-                // a solve meeting a pin on an edge a little off the axis moves that edge's ends and
-                // leaves the polygon irregular.
-                infer_auto_constraints(base, 1e-9);
+                // The polygon is regular as drawn, so only an edge on an axis, which make_polygon built
+                // exactly on it, is pinned to it: a solve meeting a pin on an edge a little off the axis
+                // moves that edge's ends and leaves the polygon irregular.
+                infer_auto_constraints(base, kPolygonAxisTol);
                 end_feature(m_points[0], p, (p - m_points[0]).norm(), m_polygon_sides);
                 m_points.clear();
             }

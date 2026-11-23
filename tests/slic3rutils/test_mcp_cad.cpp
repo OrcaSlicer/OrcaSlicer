@@ -4638,6 +4638,9 @@ TEST_CASE("sketch_draw draws polygons, slots, ellipses and splines as their tool
     CHECK_THAT(hex.size().x(), WithinAbs(8.0, 1e-9));   // opposite flats 8 apart
     CHECK_THAT(hex.size().y(), WithinAbs(8.0 / std::cos(PI / 6.0), 1e-9));
     CHECK(only_loop_area(tool) > 0);
+    // Its two flats across x are built exactly upright, so exact inference pins both.
+    CHECK(std::count_if(tool.constraints().begin(), tool.constraints().end(),
+                        [](const SketchEntityConstraintDef& c) { return c.type == SketchConstraintType::Vertical; }) == 2);
 
     // The inscribed form puts its first vertex at the radius, turned by angle_deg.
     r = sketch(tool, "sketch_draw", {{"type", "polygon"}, {"center", {50, 0}}, {"sides", 4}, {"radius", 5}, {"angle_deg", 90}});
@@ -5239,8 +5242,8 @@ TEST_CASE("a slot and a square on the axes have the degrees of freedom their too
         CHECK(r.at("dof") == 8);
         CHECK(tool.solve_ok());
     }
-    // A square's sides lie a rounding step off the axes, so exact inference levels only the sides that lie exactly on
-    // one, and right angles hold the others, as the Polygon tool's four level and upright sides hold all of them: 4
+    // A square's sides are built exactly on the axes, whichever way the platform's sines and cosines round, so exact
+    // inference pins all four level and upright, as the Polygon tool pins them, and they hold its right angles: 4
     // degrees of freedom left, and its vertices where the call put them.
     for (const auto& [flats, deg] : {std::pair{true, 0.0}, std::pair{false, 45.0}, std::pair{true, 90.0}}) {
         INFO((flats ? "across_flats 20, angle " : "radius 10, angle ") << deg);
@@ -5249,6 +5252,9 @@ TEST_CASE("a slot and a square on the axes have the degrees of freedom their too
         json args = {{"type", "polygon"}, {"center", {0, 0}}, {"sides", 4}, {"angle_deg", deg}};
         args[flats ? "across_flats" : "radius"] = flats ? 20 : 10;
         const json r = sketch(tool, "sketch_draw", args);
+        CHECK(count(T::Coincident) == 4);
+        CHECK(count(T::Horizontal) == 2);
+        CHECK(count(T::Vertical) == 2);
         CHECK(tool.constraints().size() == 8);
         CHECK(r.at("dof") == 4);
         CHECK(tool.solve_ok());

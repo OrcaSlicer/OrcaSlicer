@@ -1017,9 +1017,9 @@ Points are `[x, y]` in the sketch plane, in mm; angles are radians, or degrees u
   and a square's right angles, a tangent arc's tangency to the line it leaves, a slot's tangencies and equal
   ends, an arc slot's equal ends, a rounded rectangle's level sides, tangencies and equal radii. A
   constraint between a shape and the sketch's axes, or what is already in the sketch, or between plain
-  lines, is inferred only where it holds exactly, so that none moves a point the caller gave. A square drawn
-  on the axes therefore has its tool's constraint count and degrees of freedom, with right angles where the
-  tool pins its sides Horizontal and Vertical: it is level only on a side lying exactly on an axis.
+  lines, is inferred only where it holds exactly, so that none moves a point the caller gave. A polygon's
+  side on an axis is built exactly on it, so a square drawn on the axes has its four sides pinned Horizontal
+  and Vertical, as its tool pins them, on every platform.
 - A polygon is lines; its side count is not kept once the sketch is committed.
 - Reply: `first_index`, `added`, `shapes` (`{first, count}` per item), `entities`, `dof`.
 
