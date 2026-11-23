@@ -530,6 +530,8 @@ private:
         void set_delete_callback(DeleteCallback);
         bool is_valid_delete_callback();
 	protected:
+		// Puts the window being drawn in front of every other overlay.
+		static void bring_to_display_front();
 		// Call after every size change
 		virtual void init();
 		// Calculetes correct size but not se it in imgui!
