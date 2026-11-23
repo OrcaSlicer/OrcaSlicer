@@ -237,7 +237,7 @@ Please refer to the wiki to ensure you're following the latest and most accurate
    | **clang-cl + Ninja (default)** | **~70 min** | **~65%** |
    | + ccache (incremental) | **~15 min** | **~15%** |
 
-2. **Add `-Cache ccache`** (or `-Preset x64-clang-cache`) — Speeds up incremental builds
+2. **Enable ccache** (auto if `ccache` in PATH, or `-Cache ccache` / `-Preset x64-clang-cache`) — Speeds up incremental builds
 3. **Use `-Clean` only when needed** — Keeps dependency cache, only removes slicer tree
 
 ### CI/CD Integration
