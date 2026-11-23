@@ -3,6 +3,7 @@
 #include <catch2/generators/catch_generators.hpp>
 
 #include "slic3r/GUI/GUI_ObjectList.hpp"
+#include "slic3r/GUI/ObjectDataViewModel.hpp"
 
 #include <libslic3r/Model.hpp>
 #include <libslic3r/Point.hpp>
@@ -198,4 +199,20 @@ TEST_CASE("A part that repeats the object's filament has no settings of its own"
     object->imported_parts_hidden = true;
     CHECK(object->has_individual_part_settings() == c.individual);
     CHECK(object->hides_imported_parts() == !c.individual);
+}
+
+// The list deletes an object's model object first and its row after, part rows one by one. On macOS each part
+// row's change makes the outline reload the object row at once, and its child order read the freed object:
+// deleting or merging the parts of a multi-part object crashed.
+TEST_CASE("An object row reads its model object only while the model still holds it", "[ObjectList]")
+{
+    Model model;
+    ModelObject* held = model.add_object();
+    model.add_object();
+    Model other;
+    const ModelObject* elsewhere = other.add_object();
+
+    CHECK(live_model_object(held, model.objects) == held);
+    CHECK(live_model_object(elsewhere, model.objects) == nullptr);
+    CHECK(live_model_object(nullptr, model.objects) == nullptr);
 }
