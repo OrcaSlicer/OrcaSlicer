@@ -30,8 +30,8 @@ All values are percentages of the bead width, measured in XY against the layer b
     widths, before it leaves the layer's material. So the side of a shelf, or an island across a gap from the body,
     reads horizontal. Deeper walls read how far they reach past the nearest lower edge.
   - When the nearest lower edge faces away from the nearest edge of the wall's own layer (their directions differ by
-    more than 90°), as the far side of a hole or of a thin wall does, neither rule above applies: the wall reads how
-    far it reaches past that edge, and the cap from a full width on.
+    more than 90°), as the far side of a hole or of a thin wall does, or the other side of a sharp tip, neither rule
+    above applies: the wall reads how far it reaches past that edge, and the cap from a full width on.
 - Gap fill, infill, solid infill and bridges: the share of the bead's cross-section (the segment one width long across
   the path) that has no material printed on the layer below under it, up to 100 %. The material is the footprint of the
   lower layer's walls and fills. Combined infill is measured against the layer under its bottom.
@@ -50,8 +50,9 @@ bead or 0.1 mm apart, whichever is more, for every role.
 Both tag dialects are supported: `; OVERHANG: ` for Bambu-style G-code, `;OVERHANG:` for the others
 (`GCodeProcessor::Reserved_Tags` and `Reserved_Tags_compatible`).
 
-- `OVERHANG: <percentage>`: the scalar value of the following moves, rounded to one decimal, written when it changes
-  and again on entering each measured role. A move with a profile carries its largest cell or sample.
+- `OVERHANG: <percentage>`: the scalar value of the following moves, rounded to one decimal and written without
+  trailing zeros (`50`, `12.5`), when it changes and again on entering each measured role. A move with a profile
+  carries its largest cell or sample.
 - `OVERHANG_Z_DISTANCE: <mm>`: the distance between the slice planes of the layer and its reference layer, the
   denominator of the angle. Zero, or a file without it, falls back to the extrusion height.
 - `OVERHANG_LINE: <total>,<offset>,<values>` and `OVERHANG_ARC: ...`: a profile in chunks, each a comment line with
@@ -61,7 +62,8 @@ Both tag dialects are supported: `; OVERHANG: ` for Bambu-style G-code, `;OVERHA
 - `OVERHANG_LINE_APPLY` / `OVERHANG_ARC_APPLY`: an inline marker, after a space, on the motion the profile belongs
   to. A profile applies only to the next move, and only when that move carries the marker of its kind; any other move
   drops it. The moves are G0 to G3 and the commands the processor runs as G1 (firmware retraction G10 and G11, and
-  G28); feedrate-only lines are skipped, and other commands, such as G29, leave the profile pending. A scalar
+  G28); a line profile binds only to a G1, so a marked G0 drops it, even one that extrudes. Feedrate-only lines are
+  skipped, and other commands, such as G29, leave the profile pending. A scalar
   `OVERHANG:` tag drops it too. So a removed or inserted move cannot carry a profile to an unmarked one. The marker
   does not name its move, though: a marked move moved after another move's profile reads that profile.
 

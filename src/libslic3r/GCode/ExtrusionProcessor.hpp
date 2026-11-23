@@ -758,7 +758,7 @@ class ExtrusionQualityEstimator
                 const double current_distance = current_boundaries().distance_from_lines<true>(position);
                 const double inset_error = std::isfinite(current_distance) ?
                     std::max(0.0, current_distance + 0.5 * width) : 0.0;
-                // Past a full bead, the distance to the far side of a hole or thin wall is no slope of this wall.
+                // From a full bead on, the distance to the far side of a hole or thin wall is no slope of this wall.
                 const double widths = (previous_distance + 0.5 * width - inset_error) / width;
                 return widths >= 1.0 ? MAX_OVERHANG_PERCENTAGE : float(100.0 * std::max(0.0, widths));
             }
@@ -847,7 +847,8 @@ public:
         else if (!cached)
             cached = infill_support_footprint(support_layer);
         prev_layer_boundaries[object] = cached;
-        // A footprint, not a layer's outline: nothing to build it from later.
+        // A footprint, not a layer's outline. The tree is always set here; without a source, lower_outline() could
+        // never replace it by the layer's outline if it were reset.
         prev_layer_sources[object] = nullptr;
     }
 

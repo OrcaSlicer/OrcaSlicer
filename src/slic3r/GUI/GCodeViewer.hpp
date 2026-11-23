@@ -574,11 +574,18 @@ public:
     // Orca: The view type the preview shows when `type` is asked for: Line Type for the Overhang view of G-code without
     // overhang metadata, otherwise `type`.
     static libvgcode::EViewType available_view_type(libvgcode::EViewType type, bool has_overhang_metadata);
-    // Orca: The overhang of vertex `id`'s G-code line in percent or in degrees, none when no vertex of the line is
-    // measured. A line with a local profile is drawn as several vertices, each with the value and the width of its
-    // part, and reads as its largest one in that unit. `vertex_at(i)` gives the vertex `i` of `count`.
+    // Orca: A line's overhang in percent and in degrees.
+    struct LineOverhang
+    {
+        float share;
+        float degree;
+        float in(bool percentage) const { return percentage ? share : degree; }
+    };
+    // Orca: The overhang of vertex `id`'s G-code line, none when no vertex of the line is measured. A line with a local
+    // profile is drawn as several vertices, each with the value and the width of its part, and reads as its largest one
+    // in each unit, which may be different parts. `vertex_at(i)` gives the vertex `i` of `count`.
     template<typename VertexAt>
-    static std::optional<float> line_overhang_value(size_t id, size_t count, bool percentage, const VertexAt &vertex_at)
+    static std::optional<LineOverhang> line_overhang(size_t id, size_t count, const VertexAt &vertex_at)
     {
         assert(id < count);
         const libvgcode::PathVertex &line = vertex_at(id);
@@ -589,11 +596,16 @@ public:
         size_t first = id;
         while (first > 0 && on_line(first - 1))
             --first;
-        std::optional<float> largest;
+        std::optional<LineOverhang> largest;
         for (size_t i = first; i < count && on_line(i); ++i) {
-            const std::optional<float> value = vertex_at(i).overhang_view_value(percentage);
-            if (value && (!largest || *value > *largest))
+            const libvgcode::PathVertex &vertex = vertex_at(i);
+            if (!vertex.has_overhang())
+                continue;
+            const LineOverhang value{vertex.overhang_share(), vertex.overhang_degree()};
+            if (!largest)
                 largest = value;
+            else
+                largest = LineOverhang{std::max(largest->share, value.share), std::max(largest->degree, value.degree)};
         }
         return largest;
     }

@@ -898,23 +898,47 @@ TEST_CASE("Infill cross-sections through corners and along edges of the material
 
 // An edge of the material below that runs along the cross-section, over part of it or all of it, lies on its line only
 // up to rounding once the two are turned off the axes. The section must still read it as lying a hair ahead of it, not
-// as crossed somewhere along it: a false crossing flips the side of every piece after it.
+// as crossed somewhere along it: a false crossing flips the side of every piece after it. Material under the middle of
+// the section, a hole's edge along it and a corner on its middle read the same at any angle too.
 TEST_CASE("Infill cross-sections along an edge of the material below read the same turned to any angle",
           "[ExtrusionProcessor][Overhang][Regression]")
 {
     struct Case
     {
-        const char *name;
-        double      x0, x1, y0, y1;
-        double      expected;
+        const char                     *name;
+        std::vector<std::vector<Vec2d>> blocks; // counterclockwise, holes clockwise
+        double                          expected;
+    };
+    const auto rectangle = [](double x0, double x1, double y0, double y1) {
+        return std::vector<Vec2d>{{x0, y0}, {x1, y0}, {x1, y1}, {x0, y1}};
+    };
+    const auto hole = [&rectangle](double x0, double x1, double y0, double y1) {
+        std::vector<Vec2d> out = rectangle(x0, x1, y0, y1);
+        std::reverse(out.begin(), out.end());
+        return out;
+    };
+    const auto diamond = [](double x, double y) {
+        return std::vector<Vec2d>{{x, y - 0.1}, {x + 0.1, y}, {x, y + 0.1}, {x - 0.1, y}};
     };
     // The cross-section runs along X from -0.2 to 0.2 and behind it lies at negative Y. Material from x = 0.1 to 0.3
-    // reaches under the last quarter of the section; from x = -0.3 to 0.3, its edge runs past both ends.
-    const Case test = GENERATE(values<Case>({
-        {"material behind", 0.1, 0.3, -1.0, 0.0, 75.0},
-        {"material ahead", 0.1, 0.3, 0.0, 1.0, 100.0},
-        {"material behind the whole section", -0.3, 0.3, -1.0, 0.0, 0.0},
-        {"material ahead of the whole section", -0.3, 0.3, 0.0, 1.0, 100.0},
+    // reaches under the last quarter of the section; from x = -0.3 to 0.3, its edge runs past both ends. The holes lie
+    // in material around the whole section, the inner corner joins material behind the section to material ahead of
+    // its first half, and the notch's tip is drawn twice.
+    const Case test = GENERATE_COPY(values<Case>({
+        {"material behind", {rectangle(0.1, 0.3, -1.0, 0.0)}, 75.0},
+        {"material ahead", {rectangle(0.1, 0.3, 0.0, 1.0)}, 100.0},
+        {"material behind the whole section", {rectangle(-0.3, 0.3, -1.0, 0.0)}, 0.0},
+        {"material ahead of the whole section", {rectangle(-0.3, 0.3, 0.0, 1.0)}, 100.0},
+        {"material behind the middle of the section", {rectangle(-0.1, 0.1, -1.0, 0.0)}, 50.0},
+        {"material on both sides of the section", {rectangle(-0.1, 0.1, -1.0, 1.0)}, 50.0},
+        {"a hole ahead of the section", {rectangle(-0.5, 0.5, -1.0, 1.0), hole(-0.1, 0.1, 0.0, 0.5)}, 0.0},
+        {"a hole behind the section", {rectangle(-0.5, 0.5, -1.0, 1.0), hole(-0.1, 0.1, -0.5, 0.0)}, 50.0},
+        {"a corner touching the middle from ahead", {diamond(0.0, 0.1)}, 100.0},
+        {"a corner touching the middle from behind", {diamond(0.0, -0.1)}, 100.0},
+        {"an inner corner of the material at the middle",
+         {{{-0.5, -1.0}, {0.5, -1.0}, {0.5, 1.0}, {0.0, 1.0}, {0.0, 0.0}, {-0.5, 0.0}}}, 0.0},
+        {"a notch reaching the middle, its tip drawn twice",
+         {{{-0.5, -1.0}, {0.5, -1.0}, {0.5, 1.0}, {0.1, 1.0}, {0.0, 0.0}, {0.0, 0.0}, {-0.1, 1.0}, {-0.5, 1.0}}}, 0.0},
     }));
     CAPTURE(test.name);
     Print print;
@@ -924,16 +948,16 @@ TEST_CASE("Infill cross-sections along an edge of the material below read the sa
     PrintObject *object = print.get_object(0);
     ExtrusionQualityEstimator estimator;
     estimator.set_current_object(object);
-    const std::vector<Vec2d> outline{{test.x0, test.y0}, {test.x1, test.y0}, {test.x1, test.y1}, {test.x0, test.y1}};
     for (int degrees = 0; degrees < 360; degrees += 3) {
         CAPTURE(degrees);
         const Eigen::Rotation2Dd turn(degrees * PI / 180.);
         std::vector<Linef3> lines;
-        for (size_t i = 0; i < outline.size(); ++i) {
-            const Vec2d a = turn * outline[i];
-            const Vec2d b = turn * outline[(i + 1) % outline.size()];
-            lines.emplace_back(Vec3d(a.x(), a.y(), 0.0), Vec3d(b.x(), b.y(), 0.0));
-        }
+        for (const std::vector<Vec2d> &block : test.blocks)
+            for (size_t i = 0; i < block.size(); ++i) {
+                const Vec2d a = turn * block[i];
+                const Vec2d b = turn * block[(i + 1) % block.size()];
+                lines.emplace_back(Vec3d(a.x(), a.y(), 0.0), Vec3d(b.x(), b.y(), 0.0));
+            }
         estimator.prepare_for_infill_layer(object, object->get_layer(0),
             std::make_shared<const AABBTreeLines::LinesDistancer<Linef3>>(std::move(lines)));
         const Vec2d start = turn * Vec2d(0, -0.05);

@@ -883,7 +883,8 @@ template<typename T>
 }
 
 // Orca: parse_number() for overhang metadata, which an empty field never satisfies: the legacy floating-point
-// converter reads an empty field as zero.
+// converter reads an empty field as zero. The other converters reject it themselves, so only a build with the legacy
+// one can tell the check from the parse.
 template<typename T>
 [[nodiscard]] static inline bool parse_overhang_number(const std::string_view sv, T &out)
 {
@@ -6520,7 +6521,8 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
               const double end = std::clamp(end_fraction, 0.0, 1.0) * last;
               const auto at = [&overhang_profile](size_t i) { return GCodeProcessorResult::overhang_run(overhang_profile, i)->percentage; };
               // The cap stands for no lower edge within reach, not for a distance: between it and a measured sample, a
-              // chord end reads the nearer of the two instead of a blend.
+              // chord end reads the nearer of the two instead of a blend. A wall clamped at ten widths reads the same
+              // cap, and stands for no one distance either.
               const auto interpolate = [&at, samples](double position) {
                   const size_t i = size_t(position);
                   const size_t next = std::min(i + 1, samples - 1);

@@ -488,15 +488,17 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         }
         const bool is_extrusion = vertex.is_extrusion();
         // Orca: A line drawn as several vertices by its overhang profile reads as its largest measured part, in each
-        // unit. A move that is no extrusion has no overhang.
-        const auto line_overhang = [viewer, vertex_id, &vertex, is_extrusion](bool percentage) -> std::optional<float> {
-            if (!is_extrusion)
-                return std::nullopt;
-            if (vertex_id >= viewer->get_vertices_count())
-                return vertex.overhang_view_value(percentage);
-            return line_overhang_value(vertex_id, viewer->get_vertices_count(), percentage,
-                [viewer](size_t i) -> const libvgcode::PathVertex& { return viewer->get_vertex_at(i); });
-        };
+        // unit, found once and only for a readout that shows it. A move that is no extrusion has no overhang.
+        std::optional<LineOverhang> overhang;
+        const bool overhang_shown = view_type == libvgcode::EViewType::Overhang ||
+                                    (properties_shown && has_overhang_metadata);
+        if (is_extrusion && overhang_shown) {
+            if (vertex_id < viewer->get_vertices_count())
+                overhang = line_overhang(vertex_id, viewer->get_vertices_count(),
+                    [viewer](size_t i) -> const libvgcode::PathVertex& { return viewer->get_vertex_at(i); });
+            else if (vertex.has_overhang())
+                overhang = LineOverhang{vertex.overhang_share(), vertex.overhang_degree()};
+        }
 
         const ImGuiStyle& style = ImGui::GetStyle();
 
@@ -524,15 +526,15 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                 break;
             // Orca: Match the active legend units at the sequential marker; non-extrusion moves have no overhang.
             case libvgcode::EViewType::Overhang:
-                if (const std::optional<float> overhang = line_overhang(viewer->is_overhang_percentage())) {
+                if (overhang) {
                     if (viewer->is_overhang_percentage())
                         // TRN G-code preview, next to the position marker: the share of the line's width that has
                         // no material below it. %.1f is the number, %% the percent sign.
-                        sprintf(detail_buf, _u8L("Overhang: %.1f %%").c_str(), *overhang);
+                        sprintf(detail_buf, _u8L("Overhang: %.1f %%").c_str(), overhang->share);
                     else
                         // TRN G-code preview, next to the position marker: the overhang angle. %.1f is the number
                         // of degrees.
-                        sprintf(detail_buf, _u8L("Overhang: %.1f °").c_str(), *overhang);
+                        sprintf(detail_buf, _u8L("Overhang: %.1f °").c_str(), overhang->degree);
                 } else
                     // TRN G-code preview, next to the position marker: %s is "N/A", the line has no overhang data.
                     sprintf(detail_buf, _u8L("Overhang: %s").c_str(), NA_CSTR);
@@ -593,15 +595,15 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             // Orca: Missing metadata is not evidence of a fully supported wall. Match the selector's
             // availability rule, but retain both representations for files that actually provide them.
             if (has_overhang_metadata) {
-                if (const std::optional<float> share = line_overhang(true))
-                    sprintf(buff, "%.1f %%", *share);
+                if (overhang)
+                    sprintf(buff, "%.1f %%", overhang->share);
                 else
                     strcpy(buff, NA_CSTR);
                 // TRN G-code preview, a row of the line's properties and the legend title: the overhang as the
                 // share of the line's width with no material below it, in percent.
                 add_row(_u8L("Overhang (%)"), buff);
-                if (const std::optional<float> angle = line_overhang(false))
-                    sprintf(buff, "%.1f %s", *angle, "°");
+                if (overhang)
+                    sprintf(buff, "%.1f %s", overhang->degree, "°");
                 else
                     strcpy(buff, NA_CSTR);
                 // TRN G-code preview, a row of the line's properties and the legend title: the overhang angle, in
@@ -1375,9 +1377,6 @@ std::vector<libvgcode::EViewType> GCodeViewer::view_type_menu(bool has_overhang_
         // ORCA: Add Pressure Advance visualization support
         libvgcode::EViewType::PressureAdvance,
     });
-    //if (mode == ConfigOptionMode::comDevelop) {
-    //    items.push_back(EViewType::Tool);
-    //}
     return items;
 }
 
@@ -1493,7 +1492,8 @@ void GCodeViewer::update_by_mode(ConfigOptionMode mode)
     }
 
     // Orca: Restore the previous selection by type. An overhang view active for the preceding G-code falls back to
-    // Line Type when the new G-code has no metadata, keeping the roles the user hid, as the default view does.
+    // Line Type when the new G-code has no metadata, keeping the roles the user hid, as the default view does: only the
+    // user's own pick of a view in the combo box shows them all again.
     const libvgcode::EViewType shown_view_type = available_view_type(selected_view_type, m_has_overhang_metadata);
     const auto selected_it = std::find(view_type_items.begin(), view_type_items.end(), shown_view_type);
     m_view_type_sel = selected_it != view_type_items.end() ?
@@ -5603,7 +5603,14 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             { _u8L("Display"), { "" } } }, icon_size);
         append_headers({ { _u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1] } });
         const bool percentage = m_viewer.is_overhang_percentage();
+        // Orca: An option's tooltip shows over its whole row, the eye icon included, which starts at `row_top`.
+        const auto row_hovered = [](float row_top) {
+            const ImVec2 window = ImGui::GetWindowPos();
+            return ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect({ window.x, row_top },
+                { window.x + ImGui::GetWindowWidth(), ImGui::GetItemRectMax().y });
+        };
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 3.f));
+        const float percentage_row = ImGui::GetCursorScreenPos().y;
         // TRN G-code preview, an option of the Overhang view: show percentages instead of angles.
         append_item(EItemType::None, ColorRGBA::WHITE(), { { _u8L("Show as percentage"), offsets[0] } },
             true, predictable_icon_pos, percentage, [this, &imgui, percentage]() {
@@ -5612,7 +5619,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 imgui.set_requires_extra_frame();
                 wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
             });
-        if (ImGui::IsItemHovered())
+        if (row_hovered(percentage_row))
             // TRN G-code preview, tooltip of the "Show as percentage" option of the Overhang view, which otherwise
             // shows angles.
             imgui.tooltip(_u8L("On: the share of each line's width that has no material below it. Walls that reach "
@@ -5622,14 +5629,15 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                                "jumps to 90° once they are fully unsupported."),
                 ImGui::GetFontSize() * 20.0f);
         // Orca: Reuse the legend's option row and refresh immediately without modifying G-code or reslicing.
-        // TRN G-code preview, an option of the Overhang view: a logarithmic colour scale.
+        const float logarithmic_row = ImGui::GetCursorScreenPos().y;
+        // TRN G-code preview, an option of the Overhang view: a logarithmic color scale.
         append_item(EItemType::None, ColorRGBA::WHITE(), { { _u8L("Show as logarithmic scale"), offsets[0] } },
             true, predictable_icon_pos, logarithmic, [this, &imgui, logarithmic]() {
                 m_viewer.set_overhang_logarithmic(!logarithmic);
                 imgui.set_requires_extra_frame();
                 wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
             });
-        if (ImGui::IsItemHovered())
+        if (row_hovered(logarithmic_row))
             // TRN G-code preview, tooltip of the "Show as logarithmic scale" option of the Overhang view.
             imgui.tooltip(_u8L("Spreads the colors over small values, so slight overhangs stand out, while steep ones "
                                "share the last colors."),
