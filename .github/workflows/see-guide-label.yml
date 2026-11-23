@@ -1,0 +1,57 @@
+name: See guide label
+
+# Adds "wait for response" so stale.yml closes the PR if nothing changes.
+on:
+  pull_request_target:
+    types: [labeled]
+
+permissions:
+  pull-requests: write
+
+concurrency:
+  group: see-guide-label-${{ github.event.pull_request.number }}
+
+jobs:
+  comment:
+    if: >-
+      github.repository == 'OrcaSlicer/OrcaSlicer' &&
+      github.event.pull_request.state == 'open' &&
+      github.event.label.name == 'see guide'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Add the wait for response label and comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          LABEL: ${{ github.event.label.name }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/issues/$NUMBER/labels" -f "labels[]=wait for response" --silent
+
+          # Posts once per PR, so removing and adding the label again doesn't repeat the comment.
+          marker='<!-- see-guide-label -->'
+          if [ -n "$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$NUMBER/comments" \
+                --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id")" ]; then
+            exit 0
+          fi
+
+          cat > body.md <<'EOF'
+          <!-- see-guide-label -->
+          Hi @AUTHOR, thanks for the PR. A reviewer added the `LABEL` label. It means this PR doesn't follow the [contributing guide](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/CONTRIBUTING.md#prs-we-dont-review) yet. A reviewer can look at it again after it is fixed.
+
+          If a reviewer left a comment on this PR, that comment says what to change. If there is no comment, check this list:
+
+          - The PR doesn't say how you tested it. For changes you can see in the app, add screenshots.
+          - The description doesn't say what the change does or why it is needed.
+          - The PR has unrelated changes, or it reformats existing code.
+          - It replaces working code instead of changing only what needs to change.
+          - It ports code that another project has not merged, or it doesn't link and credit the source.
+          - Another PR already makes the same change. Say how yours is different, or test the other PR instead.
+
+          To fix it, push new commits to this PR or edit the description. Please don't open a new PR. Then write a comment that says what you changed. If you think the label is a mistake, reply and say why.
+
+          The `wait for response` label means we are waiting for you. If nothing happens on this PR, it may be closed.
+          EOF
+          sed -i "s/@AUTHOR/@$AUTHOR/; s/\`LABEL\`/\`$LABEL\`/" body.md
+          gh api "repos/$GITHUB_REPOSITORY/issues/$NUMBER/comments" -F body=@body.md --silent

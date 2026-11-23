@@ -11,6 +11,7 @@
 #include <boost/asio/ip/address_v4.hpp>
 #include <boost/asio/error.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <cstring>
 #include <ctime>
 #include <chrono>
 #include <string>
@@ -197,7 +198,7 @@ bool validate_local_api_response(const std::string& response_body, wxString& err
     return true;
 }
 
-std::string sanitize_flashforge_filename(const std::string& filename, const std::string& fallback_extension = {})
+std::string sanitize_flashforge_filename(const std::string& filename, const std::string& fallback_extension = {}, bool local_api = false)
 {
     std::string basename = fs::path(filename).filename().string();
     if (basename.empty()) {
@@ -208,7 +209,9 @@ std::string sanitize_flashforge_filename(const std::string& filename, const std:
 
     for (char& ch : basename) {
         const bool is_ascii_alnum = (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z');
-        if (!is_ascii_alnum && ch != '.' && ch != '_' && ch != '-') {
+        // Local API accepts the same names as FlashPrint/Orca-Flashforge: everything except <>[]:/\|?*" and control chars
+        const bool is_allowed = local_api && static_cast<unsigned char>(ch) >= 0x20 && !std::strchr("<>[]:/\\|?*\"", ch);
+        if (!is_ascii_alnum && !is_allowed && ch != '.' && ch != '_' && ch != '-') {
             ch = '_';
         }
     }
@@ -605,7 +608,7 @@ bool Flashforge::upload_local_api(PrintHostUpload upload_data, ProgressFn progre
 
     auto        url      = make_http_url("uploadGcode");
     const std::string fallback_extension = upload_data.source_path.extension().string().empty() ? (upload_data.use_3mf ? ".3mf" : ".gcode") : upload_data.source_path.extension().string();
-    auto        filename = sanitize_flashforge_filename(upload_data.upload_path.string(), fallback_extension);
+    auto        filename = sanitize_flashforge_filename(upload_data.upload_path.string(), fallback_extension, true);
     std::string file_size;
     try {
         file_size = std::to_string(fs::file_size(upload_data.source_path));
