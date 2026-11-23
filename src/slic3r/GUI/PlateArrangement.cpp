@@ -525,16 +525,17 @@ void PlateArrangementDialog::render_bottom_bar()
         });
     };
     const bool all_locked = std::all_of(m_selection.begin(), m_selection.end(), [](PartPlate* plate) { return plate->is_locked(); });
-    const bool unlocked   = single != nullptr && !single->is_locked(); // a locked plate keeps its objects where they are
+    // A locked plate keeps its objects where they are; an empty plate has none to move.
+    const bool movable    = single != nullptr && !single->is_locked() && !single->empty();
     ImGui::SetCursorPos(ImVec2(x0 + cfg.grid_size - 5.f * btn - 4.f * gap, row2));
     if (render_icon_button(IconId::Sort, single != nullptr && !single->empty(), _u8L("Order objects on current plate")))
         ImGui::OpenPopup("##order_objects");
     const ImVec2 order_pos(ImGui::GetItemRectMin().x, ImGui::GetItemRectMax().y + gap);
     ImGui::SameLine();
-    if (render_icon_button(IconId::Orient, unlocked, _u8L("Auto orient objects on current plate")))
+    if (render_icon_button(IconId::Orient, movable, _u8L("Auto orient objects on current plate")))
         plate_action(ActionOrient);
     ImGui::SameLine();
-    if (render_icon_button(IconId::Arrange, unlocked, _u8L("Arrange objects on current plate")))
+    if (render_icon_button(IconId::Arrange, movable, _u8L("Arrange objects on current plate")))
         plate_action(ActionArrange);
     ImGui::SameLine();
     const std::string lock_tip = single != nullptr ? (all_locked ? _u8L("Unlock current plate")   : _u8L("Lock current plate")) :
@@ -584,7 +585,7 @@ void PlateArrangementDialog::render_bottom_bar()
     if (render_icon_button(IconId::ZoomOut, true, _u8L("Zoom out to all plates")))
         m_parent.zoom_to_plate(REQUIRES_ZOOM_TO_ALL_PLATE);
     ImGui::SameLine(0.f, group);
-    if (render_icon_button(IconId::Sort, true, _u8L("Sort")))
+    if (render_icon_button(IconId::Sort, true, _u8L("Arrange plates or order objects on all plates")))
         ImGui::OpenPopup("##sort_plates");
     const ImVec2 sort_pos(ImGui::GetItemRectMin().x, ImGui::GetItemRectMax().y + gap);
     ImGui::SameLine();
@@ -686,9 +687,12 @@ void PlateArrangementDialog::render_sort_menu(const ImVec2& pos)
     ImGuiWrapper::push_menu_style(m_parent.get_scale());
     if (ImGui::BeginPopup("##sort_plates", ImGuiWindowFlags_NoMove)) {
         m_imgui->text_colored(ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled), _u8L("Arrange all plates by"));
-        const std::vector<int> order = order_by_name();
-        if (menu_item_with_icon(_u8L("Alphabetically").c_str(), "", ImVec2(0.f, 0.f), 0, false, !is_identity(order)))
+        const std::vector<int> order    = order_by_name();
+        const bool             arranged = is_identity(order);
+        if (menu_item_with_icon(_u8L("Alphabetically").c_str(), "", ImVec2(0.f, 0.f), 0, false, !arranged))
             apply_order(order);
+        if (arranged && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+            m_imgui->tooltip(_u8L("Plates already arranged alphabetically"), m_gui_cfg->tooltip_width);
         // The object list's Order By > All Plates: repeating an order reverses it.
         m_imgui->text_colored(ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled), _u8L("Order objects on all plates by"));
         render_object_orders(nullptr, !wxGetApp().plater()->model().objects.empty());
@@ -715,21 +719,26 @@ void PlateArrangementDialog::render_plates_menu(const ImVec2& pos)
             if (std::string stem = name_stem(plate->get_plate_name()); !stem.empty())
                 stems.insert(std::move(stem));
         std::set<PartPlate*> empty, filled, inverse, similar;
+        bool                 can_extend = false; // a similar plate is not selected yet
         for (int i = 0; i < m_plate_count; ++i) {
             PartPlate* plate = m_plate_list->get_plate(i);
             (plate->empty() ? empty : filled).insert(plate);
             if (!is_selected(plate))
                 inverse.insert(plate);
-            if (stems.count(name_stem(plate->get_plate_name())))
+            if (stems.count(name_stem(plate->get_plate_name()))) {
                 similar.insert(plate);
+                can_extend |= !is_selected(plate);
+            }
         }
         // As a Ctrl + click does, without moving the canvas to another plate.
         auto select_plates = [this](const std::set<PartPlate*>& plates) {
             m_selection = plates;
             m_anchor = m_cursor = *std::min_element(plates.begin(), plates.end(), [](PartPlate* a, PartPlate* b) { return a->get_index() < b->get_index(); });
         };
-        if (menu_item_with_icon(_u8L("Select plates with similar name").c_str(), "", ImVec2(0.f, 0.f), 0, false, !similar.empty()))
+        if (menu_item_with_icon(_u8L("Select plates with similar name").c_str(), "", ImVec2(0.f, 0.f), 0, false, can_extend))
             select_plates(similar);
+        if (!can_extend && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+            m_imgui->tooltip(_u8L("Nothing to add to selection"), m_gui_cfg->tooltip_width);
         ImGui::Separator();
         if (menu_item_with_icon(_u8L("Select empty plates").c_str(), "", ImVec2(0.f, 0.f), 0, false, !empty.empty()))
             select_plates(empty);
