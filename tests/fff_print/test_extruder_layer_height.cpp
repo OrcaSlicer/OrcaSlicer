@@ -18,6 +18,7 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include <cmath>
 #include <functional>
+#include <libslic3r/libslic3r.h>
 #include <limits>
 #include <map>
 #include <vector>
