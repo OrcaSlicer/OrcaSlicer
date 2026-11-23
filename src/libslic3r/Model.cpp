@@ -2551,20 +2551,16 @@ void ModelObject::split(ModelObjectPtrs* new_objects, const bool remap_paint)
             // BBS: clear volume's config, as we already set them into object
             new_vol->config.reset();
 
+            const Vec3d volume_offset = new_vol->get_offset();
             for (ModelInstance* model_instance : new_object->instances)
             {
-                const Vec3d shift = model_instance->get_transformation().get_matrix_no_offset() * new_vol->get_offset();
+                const Vec3d shift = model_instance->get_transformation().get_matrix_no_offset() * volume_offset;
                 model_instance->set_offset(model_instance->get_offset() + shift);
 
-                //BBS: add assemble_view related logic
-                Geometry::Transformation instance_transformation_copy = model_instance->get_transformation();
-                instance_transformation_copy.set_offset(-new_vol->get_offset());
-                const Transform3d &assemble_matrix = model_instance->get_assemble_transformation().get_matrix();
-                const Transform3d &instance_inverse_matrix = instance_transformation_copy.get_matrix().inverse();
-                Transform3d new_instance_inverse_matrix = instance_inverse_matrix * model_instance->get_transformation().get_matrix_no_offset().inverse();
-                Transform3d new_assemble_transform      = assemble_matrix * new_instance_inverse_matrix;
-                model_instance->set_assemble_from_transform(new_assemble_transform);
-                model_instance->set_offset_to_assembly(new_vol->get_offset());
+                // Absorb the part's local offset before clearing it below.
+                const Transform3d &assembly = model_instance->get_assemble_transformation().get_matrix();
+                model_instance->set_assemble_from_transform(assembly * Geometry::translation_transform(volume_offset));
+                model_instance->set_offset_to_assembly(volume_offset);
             }
 
             new_vol->set_offset(Vec3d::Zero());
