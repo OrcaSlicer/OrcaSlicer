@@ -689,7 +689,6 @@ void PlateArrangementDialog::render_sort_menu(const ImVec2& pos)
         const std::vector<int> order = order_by_name();
         if (menu_item_with_icon(_u8L("Alphabetically").c_str(), "", ImVec2(0.f, 0.f), 0, false, !is_identity(order)))
             apply_order(order);
-        ImGui::Separator();
         // The object list's Order By > All Plates: repeating an order reverses it.
         m_imgui->text_colored(ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled), _u8L("Order objects on all plates by"));
         render_object_orders(nullptr, !wxGetApp().plater()->model().objects.empty());
@@ -729,14 +728,15 @@ void PlateArrangementDialog::render_plates_menu(const ImVec2& pos)
             m_selection = plates;
             m_anchor = m_cursor = *std::min_element(plates.begin(), plates.end(), [](PartPlate* a, PartPlate* b) { return a->get_index() < b->get_index(); });
         };
+        if (menu_item_with_icon(_u8L("Select plates with similar name").c_str(), "", ImVec2(0.f, 0.f), 0, false, !similar.empty()))
+            select_plates(similar);
+        ImGui::Separator();
         if (menu_item_with_icon(_u8L("Select empty plates").c_str(), "", ImVec2(0.f, 0.f), 0, false, !empty.empty()))
             select_plates(empty);
         if (menu_item_with_icon(_u8L("Select non-empty plates").c_str(), "", ImVec2(0.f, 0.f), 0, false, !filled.empty()))
             select_plates(filled);
         if (menu_item_with_icon(_u8L("Inverse selection").c_str(), "", ImVec2(0.f, 0.f), 0, false, !inverse.empty()))
             select_plates(inverse);
-        if (menu_item_with_icon(_u8L("Select plates with similar name").c_str(), "", ImVec2(0.f, 0.f), 0, false, !similar.empty()))
-            select_plates(similar);
         ImGui::EndPopup();
     }
     ImGuiWrapper::pop_menu_style();
