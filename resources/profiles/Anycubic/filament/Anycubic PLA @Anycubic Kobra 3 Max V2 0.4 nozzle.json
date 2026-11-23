@@ -27,9 +27,6 @@
 	"eng_plate_temp_initial_layer": [
 		"45"
 	],
-	"fan_cooling_layer_time": [
-		"80"
-	],
 	"filament_deretraction_speed": [
 		"0"
 	],

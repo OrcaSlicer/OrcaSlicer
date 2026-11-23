@@ -15,6 +15,12 @@
 	"filament_max_volumetric_speed": [
 		"8"
 	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	],
 	"pressure_advance": [
 		"0.02"
 	],

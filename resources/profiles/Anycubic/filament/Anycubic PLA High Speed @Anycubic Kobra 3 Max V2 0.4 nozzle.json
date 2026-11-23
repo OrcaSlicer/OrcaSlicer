@@ -94,10 +94,13 @@
 		"65"
 	],
 	"nozzle_temperature": [
-		"210"
+		"205"
 	],
 	"pressure_advance": [
 		"0.026"
+	],
+	"slow_down_layer_time": [
+		"8"
 	],
 	"slow_down_min_speed": [
 		"20"

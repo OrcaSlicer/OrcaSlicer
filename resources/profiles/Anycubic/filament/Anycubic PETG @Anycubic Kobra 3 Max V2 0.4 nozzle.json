@@ -6,6 +6,9 @@
 	"setting_id": "GYAym2WhB9k29s3a",
 	"filament_id": "OFo6n2pB",
 	"instantiation": "true",
+	"fan_max_speed": [
+		"80"
+	],
 	"filament_vendor": [
 		"Anycubic"
 	],
@@ -33,11 +36,8 @@
 	"eng_plate_temp_initial_layer": [
 		"45"
 	],
-	"fan_cooling_layer_time": [
-		"30"
-	],
 	"fan_min_speed": [
-		"40"
+		"50"
 	],
 	"filament_cost": [
 		"20"
@@ -112,10 +112,10 @@
 		"75"
 	],
 	"nozzle_temperature": [
-		"240"
+		"225"
 	],
 	"nozzle_temperature_initial_layer": [
-		"240"
+		"235"
 	],
 	"nozzle_temperature_range_high": [
 		"270"
@@ -130,7 +130,7 @@
 		"0.035"
 	],
 	"slow_down_layer_time": [
-		"12"
+		"10"
 	],
 	"slow_down_min_speed": [
 		"20"

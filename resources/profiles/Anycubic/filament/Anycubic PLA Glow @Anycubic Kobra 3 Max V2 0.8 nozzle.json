@@ -54,6 +54,12 @@
 	"full_fan_speed_layer": [
 		"0"
 	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	],
 	"pressure_advance": [
 		"0.033"
 	],

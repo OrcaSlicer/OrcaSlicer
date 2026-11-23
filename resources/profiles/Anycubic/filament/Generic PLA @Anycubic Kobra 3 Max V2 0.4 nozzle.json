@@ -18,6 +18,9 @@
 	"pressure_advance": [
 		"0.04"
 	],
+	"slow_down_layer_time": [
+		"11"
+	],
 	"compatible_printers": [
 		"Anycubic Kobra 3 Max V2 0.4 nozzle"
 	]

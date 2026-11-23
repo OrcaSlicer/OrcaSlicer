@@ -21,11 +21,8 @@
 	"cool_plate_temp_initial_layer": [
 		"0"
 	],
-	"fan_cooling_layer_time": [
-		"30"
-	],
 	"fan_max_speed": [
-		"60"
+		"30"
 	],
 	"filament_density": [
 		"1.24"
@@ -81,17 +78,14 @@
 	"hot_plate_temp_initial_layer": [
 		"100"
 	],
-	"nozzle_temperature": [
-		"260"
+	"nozzle_temperature_initial_layer": [
+		"250"
 	],
 	"nozzle_temperature_range_high": [
 		"280"
 	],
 	"nozzle_temperature_range_low": [
 		"240"
-	],
-	"slow_down_layer_time": [
-		"3"
 	],
 	"textured_plate_temp": [
 		"100"

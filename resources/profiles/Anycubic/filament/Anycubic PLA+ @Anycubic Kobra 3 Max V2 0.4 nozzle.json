@@ -94,7 +94,10 @@
 		"65"
 	],
 	"nozzle_temperature": [
-		"210"
+		"205"
+	],
+	"nozzle_temperature_initial_layer": [
+		"215"
 	],
 	"pressure_advance": [
 		"0.03"

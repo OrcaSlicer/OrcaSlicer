@@ -54,11 +54,14 @@
 	"full_fan_speed_layer": [
 		"0"
 	],
-	"nozzle_temperature_initial_layer": [
-		"215"
+	"nozzle_temperature": [
+		"220"
 	],
 	"pressure_advance": [
 		"0.035"
+	],
+	"slow_down_layer_time": [
+		"9"
 	],
 	"compatible_printers": [
 		"Anycubic Kobra 3 Max V2 0.8 nozzle"

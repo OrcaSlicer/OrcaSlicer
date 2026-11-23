@@ -6,6 +6,9 @@
 	"setting_id": "LuWN1dGaxVTOpo0a",
 	"filament_id": "OF223rZv",
 	"instantiation": "true",
+	"fan_min_speed": [
+		"1"
+	],
 	"filament_vendor": [
 		"Anycubic"
 	],
@@ -37,7 +40,7 @@
 		"20"
 	],
 	"fan_max_speed": [
-		"30"
+		"15"
 	],
 	"filament_density": [
 		"1.05"
@@ -109,10 +112,7 @@
 		"95"
 	],
 	"nozzle_temperature": [
-		"270"
-	],
-	"nozzle_temperature_initial_layer": [
-		"270"
+		"250"
 	],
 	"nozzle_temperature_range_low": [
 		"230"
@@ -121,7 +121,7 @@
 		"0.03"
 	],
 	"slow_down_layer_time": [
-		"12"
+		"16"
 	],
 	"slow_down_min_speed": [
 		"20"

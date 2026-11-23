@@ -88,10 +88,7 @@
 		"60"
 	],
 	"nozzle_temperature": [
-		"205"
-	],
-	"nozzle_temperature_initial_layer": [
-		"215"
+		"220"
 	],
 	"textured_plate_temp": [
 		"60"

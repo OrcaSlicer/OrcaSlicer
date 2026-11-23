@@ -6,17 +6,23 @@
 	"setting_id": "HiLLxOk6W9lpFVg0",
 	"filament_id": "OFMsDGbs",
 	"instantiation": "true",
+	"fan_max_speed": [
+		"80"
+	],
+	"fan_min_speed": [
+		"50"
+	],
 	"filament_flow_ratio": [
 		"1"
 	],
 	"nozzle_temperature": [
-		"210"
+		"240"
 	],
 	"close_fan_the_first_x_layers": [
 		"5"
 	],
 	"fan_cooling_layer_time": [
-		"80"
+		"20"
 	],
 	"filament_cooling_final_speed": [
 		"0"
@@ -96,11 +102,17 @@
 	"hot_plate_temp_initial_layer": [
 		"35"
 	],
+	"nozzle_temperature_initial_layer": [
+		"240"
+	],
 	"overhang_fan_threshold": [
 		"95%"
 	],
 	"pressure_advance": [
 		"0.036"
+	],
+	"slow_down_layer_time": [
+		"10"
 	],
 	"textured_plate_temp": [
 		"35"

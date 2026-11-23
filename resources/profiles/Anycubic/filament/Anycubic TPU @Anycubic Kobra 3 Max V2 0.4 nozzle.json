@@ -117,6 +117,9 @@
 	"overhang_fan_threshold": [
 		"50%"
 	],
+	"pressure_advance": [
+		"0.02"
+	],
 	"slow_down_min_speed": [
 		"20"
 	],

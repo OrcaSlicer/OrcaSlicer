@@ -9,6 +9,9 @@
 	"filament_vendor": [
 		"Generic"
 	],
+	"nozzle_temperature": [
+		"235"
+	],
 	"compatible_printers": [
 		"Anycubic Kobra 3 Max V2 0.4 nozzle"
 	]

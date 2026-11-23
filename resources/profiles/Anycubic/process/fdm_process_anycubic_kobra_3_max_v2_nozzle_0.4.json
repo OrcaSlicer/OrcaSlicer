@@ -20,7 +20,7 @@
 	"seam_slope_conditional": "0",
 	"seam_slope_inner_walls": "0",
 	"seam_slope_min_length": "20",
-	"sparse_infill_pattern": "zigzag",
+	"sparse_infill_pattern": "rectilinear",
 	"support_line_width": "0.42",
 	"top_bottom_infill_wall_overlap": "25%",
 	"top_shell_layers": "4",

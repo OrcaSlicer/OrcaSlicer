@@ -12,9 +12,6 @@
 	"filament_max_volumetric_speed": [
 		"8"
 	],
-	"fan_cooling_layer_time": [
-		"100"
-	],
 	"filament_cooling_final_speed": [
 		"0"
 	],
@@ -76,7 +73,7 @@
 		"0"
 	],
 	"nozzle_temperature": [
-		"205"
+		"220"
 	],
 	"pressure_advance": [
 		"0.036"
