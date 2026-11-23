@@ -561,17 +561,17 @@ void PlateArrangementDialog::render_bottom_bar()
     const wxString shift = from_u8(shortkey_shift_prefix());
     // TRN Keyboard and mouse shortcuts
     const std::vector<std::pair<wxString, wxString>> shortcuts = {
-        { _L("Left mouse button"), _L("Select plate") },
-        { ctrl + _L("Left mouse button"), _L("Add or remove from selection") },
+        { _L("Left mouse button")        , _L("Select plate") },
+        { ctrl + _L("Left mouse button") , _L("Add or remove from selection") },
         { shift + _L("Left mouse button"), _L("Select range") },
-        { _L("Double click"), _L("Zoom to plate") },
-        { _L("Drag"), _L("Move selected plates") },
-        { _L("Arrow keys"), _L("Select neighbouring plate") },
-        { shift + _L("Arrow keys"), _L("Extend selection") },
-        { _L("Home / End"), _L("Select first / last plate") },
+        { _L("Double click")             , _L("Zoom to plate") },
+        { _L("Drag")                     , _L("Move selected plates") },
+        { _L("Arrow keys")               , _L("Select neighbouring plate") },
+        { shift + _L("Arrow keys")       , _L("Extend selection") },
+        { _L("Home / End")               , _L("Select first / last plate") },
         { ctrl + _L("Left / Right arrow"), _L("Move to previous / next") },
-        { ctrl + _L("Home / End"), _L("Move to beginning / end") },
-        { _L("Esc"), _L("Cancel dragging or close") },
+        { ctrl + _L("Home / End")        , _L("Move to beginning / end") },
+        { _L("Esc")                      , _L("Cancel dragging or close") },
     };
     // The gizmos' shortcuts button; its tooltip opens below the dialog.
     GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, shortcuts, m_window_pos.x, m_window_pos.y);
@@ -664,8 +664,8 @@ void PlateArrangementDialog::render_order_menu(const ImVec2& pos, PartPlate* pla
 
 void PlateArrangementDialog::render_object_orders(PartPlate* plate, bool enabled)
 {
-    for (const auto& [object_order, label] : { std::pair{ ObjectOrder::Name, _u8L("Name") }, std::pair{ ObjectOrder::Filament, _u8L("Filament") },
-                                               std::pair{ ObjectOrder::Height, _u8L("Height") }, std::pair{ ObjectOrder::Size, _u8L("Size") } })
+    for (const auto& [object_order, label] : {std::pair{ ObjectOrder::Name  , _u8L("Name") }  , std::pair{ ObjectOrder::Filament, _u8L("Filament") },
+                                              std::pair{ ObjectOrder::Height, _u8L("Height") }, std::pair{ ObjectOrder::Size    , _u8L("Size") } })
         if (menu_item_with_icon(label.c_str(), "", ImVec2(0.f, 0.f), 0, false, enabled))
             wxGetApp().plater()->CallAfter([this, plate, o = object_order]() {
                 // The object list orders the canvas' current plate, or all of them.
