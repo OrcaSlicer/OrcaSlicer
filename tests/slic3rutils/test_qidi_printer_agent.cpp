@@ -86,52 +86,17 @@ TEST_CASE("Qidi slot response rejects null variables without throwing", "[QidiPr
 
 TEST_CASE("Qidi slot response rejects missing and non-object fields without throwing", "[QidiPrinterAgent]")
 {
-    std::string response;
-
-    SECTION("missing result")
-    {
-        response = R"({})";
-    }
-
-    SECTION("non-object result")
-    {
-        response = R"({"result":null})";
-    }
-
-    SECTION("missing status")
-    {
-        response = R"({"result":{}})";
-    }
-
-    SECTION("non-object status")
-    {
-        response = R"({"result":{"status":null}})";
-    }
-
-    SECTION("missing save_variables")
-    {
-        response = R"({"result":{"status":{}}})";
-    }
-
-    SECTION("non-object save_variables")
-    {
-        response = R"({"result":{"status":{"save_variables":null}}})";
-    }
-
-    SECTION("missing variables")
-    {
-        response = R"({"result":{"status":{"save_variables":{}}}})";
-    }
-
-    SECTION("scalar")
-    {
-        response = R"({"result":{"status":{"save_variables":{"variables":42}}}})";
-    }
-
-    SECTION("array")
-    {
-        response = R"({"result":{"status":{"save_variables":{"variables":[]}}}})";
-    }
+    const std::string response = GENERATE(as<std::string>{},
+                                          R"({})",                                                // missing result
+                                          R"({"result":null})",                                   // non-object result
+                                          R"({"result":{}})",                                     // missing status
+                                          R"({"result":{"status":null}})",                        // non-object status
+                                          R"({"result":{"status":{}}})",                          // missing save_variables
+                                          R"({"result":{"status":{"save_variables":null}}})",     // non-object save_variables
+                                          R"({"result":{"status":{"save_variables":{}}}})",       // missing variables
+                                          R"({"result":{"status":{"save_variables":{"variables":42}}}})", // scalar
+                                          R"({"result":{"status":{"save_variables":{"variables":[]}}}})"); // array
+    CAPTURE(response);
 
     nlohmann::json status;
     nlohmann::json variables;
