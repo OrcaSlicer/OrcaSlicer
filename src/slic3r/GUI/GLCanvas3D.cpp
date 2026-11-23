@@ -29,6 +29,8 @@
 #include "slic3r/GUI/SceneRaycaster.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/GCodeViewer.hpp"
+#include "slic3r/GUI/CanvasUi/CanvasFrame.hpp"
+#include "slic3r/GUI/CanvasUi/Context.hpp"
 #include <optional>
 #include <map>
 #include "slic3r/GUI/GUI_Geometry.hpp"
@@ -3056,6 +3058,15 @@ static float canvas_corner_height()
     return CANVAS_TOOLBAR_MARGIN + 2.f * CANVAS_TOOLBAR_PADDING + buttons * CANVAS_TOOLBAR_BUTTON + (buttons - 1) * CANVAS_TOOLBAR_SPACING;
 }
 
+float GLCanvas3D::get_ui_scale() const
+{
+    float sc = get_scale();
+#ifdef WIN32
+    sc *= (float) get_dpi_for_window(wxGetApp().GetTopWindow()) / (float) DPI_DEFAULT;
+#endif // WIN32
+    return sc;
+}
+
 float GLCanvas3D::get_canvas_toolbar_right() const
 {
     // The toolbar scale, which on Windows follows the monitor's DPI where the ImGui style does not.
@@ -3190,6 +3201,10 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     const ImGuiID active_id = ImGui::GetActiveID();
     wxGetApp().imgui()->new_frame();
+    CanvasUi::CanvasFrame ui_frame(m_ui);
+    ui_frame.begin(m_is_dark, get_ui_scale(), std::chrono::steady_clock::now(), ImGui::GetFrameCount(), &wxGetApp().get_opengl_manager().ui_icons(),
+                   wxGetApp().imgui()->canvas_ui_fonts());
+    const CanvasUi::ScopedContext ui_scope(m_ui);
 
     if (_update_inactive_plates_visibility())
         scene_dirty = true;
@@ -3351,6 +3366,14 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     ImDrawData* draw_data = wxGetApp().imgui()->end_frame();
     m_overlay_dirty |= active_id != ImGui::GetActiveID();
+    ui_frame.end();
+    // A toolkit request redraws the overlay only; a camera the overlay turns changes the scene cache
+    // key, which redraws the scene as well.
+    if (ui_frame.frame_requested())
+        m_overlay_dirty = true;
+    m_ui_wake_at = ui_frame.wake_at();
+    if (m_ui_wake_at)
+        schedule_extra_frame(std::max(1, int(std::chrono::duration_cast<std::chrono::milliseconds>(*m_ui_wake_at - std::chrono::steady_clock::now()).count()) + 1));
 
     std::optional<size_t> signature;
     if (_is_frame_skipping_enabled())
@@ -4685,6 +4708,16 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
             schedule_extra_frame(static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(m_preview_interaction_until - now).count()) + 1);
     }
 
+    // the render timer only wakes the idle loop, so the frame the toolkit asked for is drawn from here
+    if (m_ui_wake_at) {
+        const auto now = std::chrono::steady_clock::now();
+        if (now >= *m_ui_wake_at) {
+            m_ui_wake_at.reset();
+            m_overlay_dirty = true;
+        } else
+            schedule_extra_frame(static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(*m_ui_wake_at - now).count()) + 1);
+    }
+
     if (!m_dirty && !m_overlay_dirty)
         return;
 
@@ -4721,7 +4754,7 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
         m_extra_frame_requested = false;
     }
 
-    if (m_dirty)
+    if (m_dirty || m_overlay_dirty)
         evt.RequestMore();
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     else if (imgui_requires_extra_frame || wxGetApp().imgui()->requires_extra_frame()) {

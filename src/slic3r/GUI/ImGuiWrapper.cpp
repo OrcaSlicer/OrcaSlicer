@@ -1,6 +1,7 @@
 #include "ImGuiWrapper.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <cassert>
 #include <cstdio>
@@ -63,6 +64,8 @@
 #include "GUI.hpp"
 #include "I18N.hpp"
 #include "Search.hpp"
+#include "CanvasUi/Font.hpp"
+#include "CanvasUi/Tokens.hpp"
 #include "BitmapCache.hpp"
 #include "GUI_App.hpp"
 #include "KeyChord.hpp"
@@ -2038,6 +2041,17 @@ void ImGuiWrapper::bold_text(const std::string& str)
         text(str);
     }
 }
+CanvasUi::Fonts ImGuiWrapper::canvas_ui_fonts()
+{
+    CanvasUi::Fonts fonts;
+    if (push_bold_font()) {
+        fonts.bold = ImGui::GetFont();
+        pop_bold_font();
+    }
+    fonts.mono = m_mono_fonts;
+    return fonts;
+}
+
 bool ImGuiWrapper::push_bold_font() {
     if (bold_font) {
         ImGui::PushFont(bold_font);
@@ -3050,6 +3064,21 @@ void ImGuiWrapper::init_font(bool compress)
         [[maybe_unused]]ImFont *font_cjk = io.Fonts->AddFontFromFileTTF((Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Regular.ttf").c_str(), m_font_size, &config, ranges_keyboard_shortcuts);
         assert(font_cjk != nullptr);
     }
+#endif
+
+    // After the merges above, which go into the font added last.
+    static const ImWchar mono_ranges[] = {0x0020, 0x00FF, 0x0400, 0x052F, 0x2000, 0x206F, 0};
+    static const std::array<const char*, CanvasUi::MONO_STYLE_COUNT> mono_files = {"JetBrainsMonoNL-Regular.ttf", "JetBrainsMonoNL-Bold.ttf", "JetBrainsMonoNL-Italic.ttf"};
+    for (size_t style = 0; style < mono_files.size(); ++style)
+        for (size_t size = 0; size < CanvasUi::MONO_FONT_SIZES.size(); ++size)
+            m_mono_fonts[style * CanvasUi::MONO_FONT_SIZES.size() + size] = io.Fonts->AddFontFromFileTTF(
+                (Slic3r::resources_dir() + "/fonts/" + mono_files[style]).c_str(), std::round(m_font_size * float(CanvasUi::MONO_FONT_SIZES[size]) / float(CanvasUi::INTERFACE_FONT_SIZE)),
+                &cfg, mono_ranges);
+#ifdef _WIN32
+    if (wxGetApp().em_unit() > 30)
+        for (ImFont* font : m_mono_fonts)
+            if (font != nullptr)
+                font->Scale = 1.5f;
 #endif
 
     float font_scale = m_font_size/15;

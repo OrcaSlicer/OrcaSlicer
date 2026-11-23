@@ -38,6 +38,7 @@
 #include "MeshUtils.hpp"
 #include "GCodeViewer.hpp"
 #include "Camera.hpp"
+#include "CanvasUi/Context.hpp"
 #include "SceneRaycaster.hpp"
 #include "SceneCache.hpp"
 #include "SelectionOutline.hpp"
@@ -884,6 +885,9 @@ private:
     bool m_navigator_dragging{ false };
     // whether a click on the navigator is still turning the camera, over the frames that follow it
     bool m_navigator_animating{ false };
+    CanvasUi::Context m_ui;
+    // when the toolkit wants a frame it asked for, such as the one a tooltip is due in
+    std::optional<std::chrono::steady_clock::time_point> m_ui_wake_at;
     // until when a wheel step keeps the preview's reduced set drawn
     std::chrono::time_point<std::chrono::steady_clock> m_preview_interaction_until{};
     // whether the frame that restores the toolpaths once that time is up is still owed
@@ -1266,6 +1270,8 @@ public:
     // Right edge, in canvas pixels, of the bottom-left corner the 3D navigator and the round
     // canvas buttons own. An overlay along the bottom edge starts past it.
     float get_canvas_toolbar_right() const;
+    // get_scale() times the monitor's DPI factor on Windows, where the ImGui style does not follow it.
+    float get_ui_scale() const;
 
     void update_volumes_colors_by_extruder();
 

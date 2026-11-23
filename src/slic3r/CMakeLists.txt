@@ -315,6 +315,34 @@ set(SLIC3R_GUI_SOURCES
     GUI/ImGuiWrapper.hpp
     GUI/IMSlider.cpp
     GUI/IMSlider.hpp
+    GUI/CanvasUi/Card.cpp
+    GUI/CanvasUi/Card.hpp
+    GUI/CanvasUi/Corners.cpp
+    GUI/CanvasUi/Corners.hpp
+    GUI/CanvasUi/CanvasFrame.cpp
+    GUI/CanvasUi/CanvasFrame.hpp
+    GUI/CanvasUi/Context.cpp
+    GUI/CanvasUi/Context.hpp
+    GUI/CanvasUi/Font.cpp
+    GUI/CanvasUi/Font.hpp
+    GUI/CanvasUi/Icons.cpp
+    GUI/CanvasUi/Icons.hpp
+    GUI/CanvasUi/ImGuiBridge.hpp
+    GUI/CanvasUi/Input.cpp
+    GUI/CanvasUi/Input.hpp
+    GUI/CanvasUi/Layout.cpp
+    GUI/CanvasUi/Layout.hpp
+    GUI/CanvasUi/Metrics.hpp
+    GUI/CanvasUi/Paint.cpp
+    GUI/CanvasUi/Paint.hpp
+    GUI/CanvasUi/ScrollArea.cpp
+    GUI/CanvasUi/ScrollArea.hpp
+    GUI/CanvasUi/Shadow.cpp
+    GUI/CanvasUi/Theme.cpp
+    GUI/CanvasUi/Theme.hpp
+    GUI/CanvasUi/Types.cpp
+    GUI/CanvasUi/Tokens.hpp
+    GUI/CanvasUi/Types.hpp
     GUI/DeviceErrorDialog.hpp
     GUI/DeviceErrorDialog.cpp
     GUI/IMToolbar.cpp
