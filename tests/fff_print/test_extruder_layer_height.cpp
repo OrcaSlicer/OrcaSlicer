@@ -739,10 +739,13 @@ void check_support_heights(const char *style, bool zero_gap, bool coarse_interfa
     CAPTURE(base_heights.size(), interface_heights.size(), interface_bottom, interface_top);
     check(base_heights, coarse_interface ? fine_height : 0.3);
     check(interface_heights, coarse_interface ? 0.3 : fine_height);
-    // More than one configured interface layer includes one adhesion layer on the base tool.
+    // Mixed-height Organic adds an adhesion layer outside the configured interface stack.
+    // Other support styles count it as one of the configured layers.
     // A second ceiling introduces extra geometry boundaries. They may subdivide the
     // deposited layers, but must not shorten the requested physical interface depth.
-    const double interface_depth = (interface_count > 1 ? interface_count - 1 : 1) * (coarse_interface ? 0.3 : fine_height);
+    const bool organic = std::string_view(style) == "organic" || std::string_view(style) == "default";
+    const int interface_layers = !organic && interface_count > 1 ? interface_count - 1 : interface_count;
+    const double interface_depth = interface_layers * (coarse_interface ? 0.3 : fine_height);
     CHECK(interface_top - interface_bottom >= interface_depth - 1e-5);
     CHECK(interface_top - interface_bottom <= interface_depth + (staggered ? 0.1 : 0.) + 1e-5);
 }
@@ -766,7 +769,7 @@ TEST_CASE("Organic support preserves per-tool heights and interface depth", "[Ex
     const bool zero_gap = GENERATE(false, true);
     const bool coarse_interface = GENERATE(false, true);
     const double fine_height = GENERATE(0.1, 0.15);
-    const int interface_count = GENERATE(1, 3);
+    const int interface_count = GENERATE(1, 2, 3);
     const bool staggered = GENERATE(false, true);
     check_support_heights(style, zero_gap, coarse_interface, true, fine_height, interface_count, staggered);
 }

@@ -222,6 +222,11 @@ struct SupportParameters {
                 support_style = smsGrid;
             }
         }
+        if (support_style == smsTreeOrganic && use_extruder_layer_heights) {
+            // Add adhesion layers at the base tool's height outside the requested interface depth.
+            num_top_interface_layers += num_top_base_interface_layers;
+            num_bottom_interface_layers += num_bottom_base_interface_layers;
+        }
     }
     // Zero-gap interface flags for top / bottom contact.
     bool                    zero_gap_interface_top;
@@ -231,9 +236,9 @@ struct SupportParameters {
     bool                    has_top_contacts;
     // Is there at least a bottom contact layer extruded below support base?
     bool                    has_bottom_contacts;
-    // User-configured number of top interface layers, including the contact layer.
+    // Total number of top interface layers, including the contact and base interface layers.
     size_t                  num_top_interface_layers;
-    // User-configured number of bottom interface layers, including the contact layer.
+    // Total number of bottom interface layers, including the contact and base interface layers.
     size_t                  num_bottom_interface_layers;
     // Number of top base interface layers.
     size_t                  num_top_base_interface_layers;

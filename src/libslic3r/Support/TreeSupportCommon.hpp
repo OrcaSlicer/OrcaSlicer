@@ -761,11 +761,9 @@ public:
     {
         assert(support_parameters.has_top_contacts);
         assert(dtt_roof <= top_layers());
-        // ORCA: Reserve one top interface layer but only when top base-interface layers exist.
-        // This prevents all interface layers from being classified as base-interface layers
-        // and preserves correct top contact and interface behavior.
+        const bool has_base_interface = support_parameters.num_top_base_interface_layers > 0;
         size_t interface_threshold = support_parameters.num_top_interface_layers_only();
-        if (interface_threshold > 0 && support_parameters.num_top_base_interface_layers > 0)
+        if (interface_threshold > 0 && has_base_interface)
             --interface_threshold;
         if (slicing_parameters.use_extruder_layer_heights) {
             const double depth = support_parameters.num_top_interface_layers_only() *
@@ -780,9 +778,10 @@ public:
             size_t(std::ceil(support_parameters.support_material_interface_flow.height() /
                              slicing_parameters.layer_height - EPSILON)) : 1;
         const bool contact = dtt_roof < contact_layers;
+        const bool base_interface = has_base_interface && dtt_roof > interface_threshold;
         SupportGeneratorLayersPtr &layers =
             contact ? this->top_contacts :
-            dtt_roof <= interface_threshold ? this->top_interfaces : this->top_base_interfaces;
+            base_interface ? this->top_base_interfaces : this->top_interfaces;
         SupportGeneratorLayer*& l = layers[insert_layer_idx];
         if (l == nullptr)
             l = &layer_allocate_unguarded(layer_storage, contact ? SupporLayerType::TopContact : SupporLayerType::TopInterface,
