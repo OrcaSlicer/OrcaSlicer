@@ -1,0 +1,10 @@
+// ImGui named in a comment
+/* ImVec2 in a block comment
+   over two lines */
+const char* text = "ImGui and \"ImVec2\" in a string";
+const char  quote = '"';
+const char  slash = '\\';
+int ImageWidth = 0;
+void f() { CanvasUi::button("##ok", "", {}); }
+const char* raw = R"x(ImGui::Begin("y"))x";
+const int   thousands = 1'000'000;

@@ -1,0 +1,2 @@
+const char* text = R"(a "quoted" ImGui word)";
+void draw() { ImGui::Text("x"); }

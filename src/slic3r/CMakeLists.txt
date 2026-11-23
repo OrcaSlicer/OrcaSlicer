@@ -3,7 +3,12 @@ project(libslic3r_gui)
 
 include(PrecompiledHeader)
 
+# The panels drawn over the 3D scene, which go through the CanvasUi toolkit only (see CheckCanvasPanels).
+set(SLIC3R_CANVAS_PANEL_SOURCES
+)
+
 set(SLIC3R_GUI_SOURCES
+    ${SLIC3R_CANVAS_PANEL_SOURCES}
     GUI/Widgets/AnimaController.hpp
     GUI/Widgets/AnimaController.cpp
     Config/Snapshot.cpp
@@ -1029,6 +1034,31 @@ endif()
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SLIC3R_GUI_SOURCES})
 
 encoding_check(libslic3r_gui)
+
+list(TRANSFORM SLIC3R_CANVAS_PANEL_SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/" OUTPUT_VARIABLE _canvas_panel_files)
+set(_canvas_panel_check "${CMAKE_SOURCE_DIR}/cmake/modules/CheckCanvasPanels.cmake")
+set(_canvas_panel_examples_dir "${CMAKE_SOURCE_DIR}/cmake/modules/canvas_panels_check")
+set(_canvas_panel_list "${CMAKE_CURRENT_BINARY_DIR}/canvas_panels.txt")
+set(_canvas_panel_stamp "${CMAKE_CURRENT_BINARY_DIR}/canvas_panels_checked.stamp")
+set(_canvas_panel_candidates ${SLIC3R_GUI_SOURCES})
+list(FILTER _canvas_panel_candidates INCLUDE REGEX "^GUI/.+\\.(cpp|hpp|h)$")
+list(TRANSFORM _canvas_panel_candidates PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
+set(_canvas_panel_candidates_list "${CMAKE_CURRENT_BINARY_DIR}/canvas_panel_candidates.txt")
+file(WRITE "${_canvas_panel_candidates_list}.new" "${_canvas_panel_candidates}")
+configure_file("${_canvas_panel_candidates_list}.new" "${_canvas_panel_candidates_list}" COPYONLY)
+file(GLOB_RECURSE _canvas_panel_examples "${_canvas_panel_examples_dir}/*")
+file(WRITE "${_canvas_panel_list}.new" "${_canvas_panel_files}")
+configure_file("${_canvas_panel_list}.new" "${_canvas_panel_list}" COPYONLY)
+add_custom_command(
+    OUTPUT "${_canvas_panel_stamp}"
+    COMMAND ${CMAKE_COMMAND} "-DFILES_LIST=${_canvas_panel_list}" "-DCANDIDATES_LIST=${_canvas_panel_candidates_list}"
+            "-DGUI_DIR=${CMAKE_CURRENT_SOURCE_DIR}/GUI" "-DFIXTURES=${_canvas_panel_examples_dir}" "-DSTAMP=${_canvas_panel_stamp}"
+            -P "${_canvas_panel_check}"
+    DEPENDS ${_canvas_panel_candidates} "${_canvas_panel_list}" "${_canvas_panel_candidates_list}" "${_canvas_panel_check}" ${_canvas_panel_examples}
+    COMMENT "Checking that the panels over the scene go through CanvasUi only"
+    VERBATIM)
+add_custom_target(check_canvas_panels DEPENDS "${_canvas_panel_stamp}")
+add_dependencies(libslic3r_gui check_canvas_panels)
 
 # Only BuildCommit.cpp includes the generated header, plus BaseException.cpp on
 # Windows. Both build into libslic3r_gui, so the header only has to exist before

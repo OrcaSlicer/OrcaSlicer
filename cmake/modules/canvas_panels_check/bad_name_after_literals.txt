@@ -1,0 +1,5 @@
+// An ImGui name after a quote character, an escaped quote and a digit separator.
+const char  quote   = '\'';
+const char* escaped = "\"";
+const int   many    = 1'000;
+void draw() { ImGui::Text("x"); }
