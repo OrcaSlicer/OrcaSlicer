@@ -405,9 +405,6 @@ void AppConfig::set_defaults()
     if (get("show_gcode_window").empty())
         set_bool("show_gcode_window", true);
 
-    if (get("show_3d_navigator").empty())
-        set_bool("show_3d_navigator", true);
-
     // Show the one-time "Filament Track Switch is ready" tip until it has been seen once.
     if (get("show_fila_switch_tips").empty())
         set_bool("show_fila_switch_tips", true);
@@ -550,10 +547,6 @@ void AppConfig::set_defaults()
 
     if (get("auto_calculate_flush").empty()){
         set("auto_calculate_flush","all");
-    }
-
-    if (get("show_canvas_zoom_button").empty()) {
-        set_bool("show_canvas_zoom_button", true);
     }
 
     if (get("remember_printer_config").empty()) {

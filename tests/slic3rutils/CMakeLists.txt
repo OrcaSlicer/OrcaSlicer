@@ -23,6 +23,7 @@ add_executable(${_TEST_NAME}_tests
     test_preview_marks.cpp
     test_move_panel_layout.cpp
     test_canvas_ui.cpp
+    test_navigator_geometry.cpp
     # The reduced toolpath set's end bands, from libvgcode's layer table.
     test_libvgcode_layers.cpp
     # The vertex that stands for a role when the solid model takes the toolpaths' colours.

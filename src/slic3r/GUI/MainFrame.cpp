@@ -3480,15 +3480,6 @@ void MainFrame::init_menubar_as_editor()
             []() { return wxGetApp().show_gcode_window(); }, this);
         m_shortcut_menu_items.push_back({ gcode_window, Shortcut::ToggleGcodeWindow, _L("Show &G-code Window"), true });
 
-        append_menu_check_item(
-            viewMenu, wxID_ANY, _L("Show 3D Navigator"), _L("Show 3D navigator in Prepare and Preview scene."),
-            [this](wxCommandEvent&) {
-                wxGetApp().toggle_show_3d_navigator();
-                m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT));
-            },
-            this, [this]() { return is_prepare_or_preview_tab(); },
-            []() { return wxGetApp().show_3d_navigator(); }, this);
-
         append_menu_check_item(viewMenu, wxID_ANY, _L("Show Gridlines"), _L("Show Gridlines on plate"),
             [this](wxCommandEvent&) {
                 wxGetApp().toggle_show_plate_gridlines();

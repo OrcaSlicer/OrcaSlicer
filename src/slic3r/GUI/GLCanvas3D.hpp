@@ -99,6 +99,10 @@ namespace CustomGCode { struct Item; }
 
 namespace GUI {
 
+class Navigator3D;
+struct NavLayout;
+struct NavigatorToggleGroup;
+
 class Bed3D;
 class PartPlateList;
 #ifdef SLIC3R_CAD
@@ -771,7 +775,6 @@ private:
     bool     m_plate_switcher_scrollbar{ false };
     mutable GLToolbar m_assemble_view_toolbar;
     mutable IMReturnToolbar m_return_toolbar;
-    mutable Vec2i32 m_canvas_toolbar_pos = {140, 5};
     std::optional<PreviewOverlayLayout> m_preview_layout;
     mutable float m_sc{1};
     mutable float m_paint_toolbar_width;
@@ -884,9 +887,7 @@ private:
     bool m_toolpath_outside{ false };
     ECursorType m_cursor_type;
     GLSelectionRectangle m_rectangle_selection;
-    bool m_navigator_dragging{ false };
-    // whether a click on the navigator is still turning the camera, over the frames that follow it
-    bool m_navigator_animating{ false };
+    std::unique_ptr<Navigator3D> m_navigator;
     CanvasUi::Context m_ui;
     // when the toolkit wants a frame it asked for, such as the one a tooltip is due in
     std::optional<std::chrono::steady_clock::time_point> m_ui_wake_at;
@@ -1269,13 +1270,16 @@ public:
     bool  is_collapse_toolbar_on_left() const;
     float get_collapse_toolbar_width() const;
     float get_collapse_toolbar_height() const;
-    // Right edge, in canvas pixels, of the bottom-left corner the 3D navigator and the round
-    // canvas buttons own. An overlay along the bottom edge starts past it.
+    // Right edge, in canvas pixels, of the bottom-left corner the 3D navigator and the section view
+    // button own. An overlay along the bottom edge starts past it.
     float get_canvas_toolbar_right() const;
     // get_scale() times the monitor's DPI factor on Windows, where the ImGui style does not follow it.
     float get_ui_scale() const;
     // Height the preview sliders keep clear under the bottom-left corner.
     float preview_corner_offset() const;
+    NavLayout navigator_corner_layout() const;
+    // Height of the bottom-left corner above preview_corner_offset().
+    float navigator_corner_height() const;
 
     void update_volumes_colors_by_extruder();
 
@@ -1727,6 +1731,8 @@ private:
     void _render_return_toolbar() const;
     void _render_canvas_toolbar();
     void _render_section_view_panel(const ImVec2& bottom_left);
+    std::vector<NavigatorToggleGroup> _navigator_display_toggles();
+    void _fit_camera();
     void _render_separator_toolbar_right() const;
     void _render_separator_toolbar_left() const;
     bool _is_mouse_over_top_toolbar(const Vec2d& mouse_pos) const;
