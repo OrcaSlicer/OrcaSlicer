@@ -3005,6 +3005,7 @@ TEST_CASE("Infill lines do not end where the rings of the pattern start", "[Fill
         std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
         filler->spacing  = spacing;
         filler->angle    = float(M_PI / 4.);
+        filler->set_bounding_box(get_extents(box));
         filler->z        = z;
         filler->layer_id = size_t(std::lround(z / 0.2));
         filler->adaptive_infill_field = field.get();

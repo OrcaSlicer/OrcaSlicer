@@ -2096,7 +2096,8 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
         // Without the sparse extrusion role, the filler uses each surface's bounds
         // instead of the object's bounds, so bridge anchors shift away from printed infill.
         params.extrusion_role            = surface_fill.params.extrusion_role;
-        params.pattern_mode              = surface_fill.params.pattern_mode; 
+        params.pattern                   = surface_fill.params.pattern;
+        params.pattern_mode              = surface_fill.params.pattern_mode;
         for (ExPolygon &expoly : surface_fill.expolygons) {
             // Orca: Match the per-body box and octree of make_fills() before generating physical anchors.
             const int body = infill_body(*this, surface_fill, expoly);
