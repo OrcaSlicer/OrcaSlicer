@@ -17529,7 +17529,8 @@ void Plater::calib_pa(const Calib_Params& params, bool skip_confirm)
         }
     }
     const auto calib_pa_name = _L("Pressure Advance Test");
-    new_project(skip_confirm, false, calib_pa_name);
+    if (new_project(skip_confirm, false, calib_pa_name) == wxID_CANCEL)
+        return;
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (!_calib_select_filament(params.filament_id))
         return;
@@ -18082,7 +18083,8 @@ void Plater::calib_temp(const Calib_Params& params, bool skip_confirm) {
     }
 
     const auto calib_temp_name = _L("Nozzle temperature test");
-    new_project(skip_confirm, false, calib_temp_name);
+    if (new_project(skip_confirm, false, calib_temp_name) == wxID_CANCEL)
+        return;
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (!_calib_select_filament(params.filament_id))
         return;
@@ -18360,7 +18362,8 @@ void Plater::_calib_temp_belt_sectioned(const Calib_Params& params, double belt_
 void Plater::calib_max_vol_speed(const Calib_Params& params, bool skip_confirm)
 {
     const auto calib_vol_speed_name = _L("Max volumetric speed test");
-    new_project(skip_confirm, false, calib_vol_speed_name);
+    if (new_project(skip_confirm, false, calib_vol_speed_name) == wxID_CANCEL)
+        return;
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (!_calib_select_filament(params.filament_id))
         return;
@@ -18445,7 +18448,8 @@ void Plater::calib_max_vol_speed(const Calib_Params& params, bool skip_confirm)
 void Plater::calib_retraction(const Calib_Params& params, bool skip_confirm)
 {
     const auto calib_retraction_name = _L("Retraction");
-    new_project(skip_confirm, false, calib_retraction_name);
+    if (new_project(skip_confirm, false, calib_retraction_name) == wxID_CANCEL)
+        return;
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (!_calib_select_filament(params.filament_id))
         return;
@@ -18512,7 +18516,8 @@ void Plater::calib_retraction(const Calib_Params& params, bool skip_confirm)
 void Plater::calib_VFA(const Calib_Params& params, bool skip_confirm)
 {
     const auto calib_vfa_name = _L("VFA test");
-    new_project(skip_confirm, false, calib_vfa_name);
+    if (new_project(skip_confirm, false, calib_vfa_name) == wxID_CANCEL)
+        return;
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (!_calib_select_filament(params.filament_id))
         return;
@@ -18599,7 +18604,8 @@ void Plater::calib_VFA(const Calib_Params& params, bool skip_confirm)
 void Plater::calib_input_shaping_freq(const Calib_Params& params, bool skip_confirm)
 {
     const auto calib_input_shaping_name = _L("Input shaping Frequency test");
-    new_project(skip_confirm, false, calib_input_shaping_name);
+    if (new_project(skip_confirm, false, calib_input_shaping_name) == wxID_CANCEL)
+        return;
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (!_calib_select_filament(params.filament_id))
         return;
@@ -18670,7 +18676,8 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params, bool skip_conf
 void Plater::calib_input_shaping_damp(const Calib_Params& params, bool skip_confirm)
 {
     const auto calib_input_shaping_name = _L("Input shaping Damping test");
-    new_project(skip_confirm, false, calib_input_shaping_name);
+    if (new_project(skip_confirm, false, calib_input_shaping_name) == wxID_CANCEL)
+        return;
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (!_calib_select_filament(params.filament_id))
         return;
@@ -18740,7 +18747,8 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params, bool skip_conf
 void Plater::Calib_Cornering(const Calib_Params& params, bool skip_confirm)
 {
     const auto Calib_Cornering = _L("Cornering test");
-    new_project(skip_confirm, false, Calib_Cornering);
+    if (new_project(skip_confirm, false, Calib_Cornering) == wxID_CANCEL)
+        return;
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (!_calib_select_filament(params.filament_id))
         return;
