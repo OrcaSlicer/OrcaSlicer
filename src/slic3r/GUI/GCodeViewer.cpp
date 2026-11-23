@@ -2535,6 +2535,7 @@ void GCodeViewer::render_solid_model_casters(const Transform3d& light_view_matri
 
     // the walls, cut by the section view as the camera sees it, so what it cuts away casts nothing
     shader->start_using();
+    shader->set_uniform("use_gooch", false);   // the program is shared with the Design canvas, which sets it on; Preview keeps the normal shading
     shader->set_uniform("projection_matrix", light_projection_matrix);
     shader->set_uniform("clipping_plane", m_clipping_plane);
     shader->set_uniform("z_range", *z_range);

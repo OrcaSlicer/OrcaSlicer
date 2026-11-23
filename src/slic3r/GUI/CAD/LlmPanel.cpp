@@ -7,6 +7,7 @@
 #include "slic3r/GUI/CAD/McpControl.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include <regex>
+#include <random>
 #include "slic3r/GUI/Widgets/WebView.hpp"
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
@@ -38,6 +39,7 @@
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
+#include <wx/tglbtn.h>
 #include <cctype>
 #include <cstddef>
 #include <functional>
@@ -296,10 +298,11 @@ void LlmPanel::build_settings()
         show_examples(m_hist.empty());
     });
     CheckBox* nosave = nullptr;
-    wxBoxSizer* nosave_row = check_row(m_settings, nosave, _L("Do not save the chat in this project"),
-        _L("By default the chat is saved inside the project (.3mf) so it comes back when you reopen it. Tick this to keep this project's chat out of its saved file. The choice belongs to the project."));
+    wxBoxSizer* nosave_row = check_row(m_settings, nosave, _L("Save the chat in this project"),
+        _L("Off by default: the chat stays out of the project file, so a project you share does not carry your conversation or the local paths of attached files. Tick this to save the chat inside the project (.3mf) so it comes back when you reopen it. The choice belongs to the project."));
     m_nosave_cb = nosave;
-    nosave->Bind(wxEVT_TOGGLEBUTTON, [this, nosave](wxCommandEvent&) { m_nosave = nosave->GetValue(); save_chat(); });
+    nosave->SetValue(!m_nosave);
+    nosave->Bind(wxEVT_TOGGLEBUTTON, [this, nosave](wxCommandEvent&) { m_nosave = !nosave->GetValue(); save_chat(); });
     auto* key = new Button(m_settings, _L("API key..."));
     key->SetToolTip(_L("API agents only. Stored in the system keyring, never in the settings file. The ANTHROPIC_API_KEY / OPENAI_API_KEY / ORCA_LLM_API_KEY environment variables also work."));
     key->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
@@ -318,8 +321,10 @@ void LlmPanel::build_settings()
     auto* test = new Button(m_settings, _L("Test the agent"));
     test->SetToolTip(_L("Starts the agent against this app's MCP and asks it to read the open document."));
     test->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        std::weak_ptr<bool> alive = m_alive;
         llm_agent_run("Use the orca-cad MCP tools: call inspect_design once, then reply with one short sentence saying how many bodies the open document has.",
-                      [this](bool ok, const std::string& reply) {
+                      [this, alive](bool ok, const std::string& reply) {
+            if (alive.expired() || !*alive.lock()) return;   // the panel was destroyed while the test ran
             MessageDialog(this, wxString::FromUTF8(reply.empty() ? std::string("(no output)") : reply), ok ? _L("Agent test: OK") : _L("Agent test: failed"),
                           wxOK | (ok ? wxICON_INFORMATION : wxICON_ERROR)).ShowModal();
         });
@@ -358,7 +363,7 @@ std::string markdown_html(const std::string& md)
 {
     std::string out;
     md_html(md.data(), static_cast<MD_SIZE>(md.size()), [](const MD_CHAR* t, MD_SIZE n, void* u) { static_cast<std::string*>(u)->append(t, n); }, &out,
-            MD_DIALECT_GITHUB | MD_FLAG_STRIKETHROUGH, 0);
+            MD_DIALECT_GITHUB | MD_FLAG_STRIKETHROUGH | MD_FLAG_NOHTML, 0);   // raw HTML in a reply or a shared project is shown as text
     return out;
 }
 // The colours the panel itself uses for the timeline and errors; any other non-bold line is the assistant's reply (markdown).
@@ -392,11 +397,17 @@ void LlmPanel::render()
         }
         const std::string bg = StateColor::darkModeColorFor(wxColour("#FFFFFF")).GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
         const std::string fg = StateColor::darkModeColorFor(wxColour("#262E30")).GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
-        std::string h = "<html oncontextmenu=\"location.href='orcacad-menu:go';return false\"><head><meta charset=\"utf-8\"><style>body{color:" + fg + ";background-color:" + bg + ";font-family:sans-serif;font-size:13px;margin:6px}"
+        // The page runs only its own script (matched by a per-render nonce): raw HTML is already refused by markdown_html, and this
+        // keeps a javascript: link or any injected element from running should one get through.
+        char nonce[33];
+        { std::random_device rd; for (int i = 0; i < 32; ++i) nonce[i] = "0123456789abcdef"[rd() % 16]; nonce[32] = 0; }
+        std::string h = std::string("<html><head><meta charset=\"utf-8\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; img-src data:; script-src 'nonce-") + nonce + "'\">"
+                        "<script nonce=\"" + nonce + "\">document.addEventListener('contextmenu',function(e){e.preventDefault();location.href='orcacad-menu:go'});"
+                        "window.addEventListener('load',function(){window.scrollTo(0,1e9)})</script><style>body{color:" + fg + ";background-color:" + bg + ";font-family:sans-serif;font-size:13px;margin:6px}"
                         "a{color:#009688} p{margin:4px 0} ul,ol{padding-inline-start:20px;margin:4px 0}"
                         "table{border-collapse:collapse;margin:4px 0} th,td{border:1px solid #888;padding:2px 6px} th{background:rgba(128,128,128,.2)}"
                         "pre{background:rgba(128,128,128,.15);padding:4px;overflow-x:auto} code{font-family:monospace}"
-                        ".u{color:#007a74;font-weight:bold} .t{white-space:pre-wrap}</style></head><body onload=\"window.scrollTo(0,1e9)\">";
+                        ".u{color:#007a74;font-weight:bold} .t{white-space:pre-wrap}</style></head><body>";
         std::string reply;   // consecutive reply lines form one markdown block, so a table or a list is not cut at a line break
         bool user_next = false;
         auto flush = [&]() { if (!reply.empty()) { h += markdown_html(reply); reply.clear(); } };
@@ -549,8 +560,8 @@ void LlmPanel::load_chat(const std::string& json)
 {
     if (m_busy || json == m_chat_json) return;   // the project we already show (this runs every time the tab is shown)
     m_chat_json = json;
-    m_nosave = json == "off";
-    if (m_nosave_cb) m_nosave_cb->SetValue(m_nosave);
+    m_nosave = json.empty() || json == "off";   // a project with no saved chat has not opted in
+    if (m_nosave_cb) m_nosave_cb->SetValue(!m_nosave);
     m_hist.clear();
     m_session_id.clear();   // an agent session belongs to one conversation on one machine
     m_result->Hide();

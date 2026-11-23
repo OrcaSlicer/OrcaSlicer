@@ -5300,7 +5300,7 @@ bool CadDocument::recompute()
                     const int lost = remap_feature_refs(features[fi], was->second, built, t);
                     prof.remap_ms += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - tr).count(); ++prof.remaps;
                     if (lost > 0)
-                        feature_warnings.emplace_back(int(fi), format(_u8L("%1% face/edge reference(s) could not be followed through the edit and may point elsewhere"), lost));
+                        feature_warnings.emplace_back(int(fi), _u8L("Some face/edge references could not be followed through the edit and may point elsewhere"));
                 }
             }
             std::vector<CadBody> before;
@@ -5397,7 +5397,7 @@ bool CadDocument::recompute()
             if (!f.enabled || (f.type != CadFeatureType::Plane && f.type != CadFeatureType::Axis && f.type != CadFeatureType::CoordSys)) continue;
             const int lost = remap_feature_refs(f, bodies, built, -1);
             if (lost > 0)
-                feature_warnings.emplace_back(fi, format(_u8L("%1% face/edge reference(s) could not be followed through the edit and may point elsewhere"), lost));
+                feature_warnings.emplace_back(fi, _u8L("Some face/edge references could not be followed through the edit and may point elsewhere"));
         }
     }
     bodies = std::move(built);

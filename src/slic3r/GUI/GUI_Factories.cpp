@@ -47,7 +47,9 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Event.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#ifdef SLIC3R_CAD
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
+#endif
 #include <cassert>
 #include "libslic3r/Point.hpp"
 #include <cstdlib>
@@ -1111,6 +1113,7 @@ void MenuFactory::append_menu_item_export_stl(wxMenu* menu, bool is_mulity_menu)
         }, m_parent);
 }
 
+#ifdef SLIC3R_CAD
 // Prepare -> Design without exporting a file: the selected objects' meshes (placed as on the plate) go into the Design tab as editable bodies.
 void MenuFactory::append_menu_item_edit_in_design(wxMenu* menu)
 {
@@ -1139,6 +1142,7 @@ void MenuFactory::append_menu_item_edit_in_design(wxMenu* menu)
                 || selection.is_multiple_full_instance() || selection.is_multiple_full_object();
         }, m_parent);
 }
+#endif
 
 void MenuFactory::append_menu_item_export_drc(wxMenu* menu, bool is_mulity_menu)
 {
@@ -1791,7 +1795,9 @@ void MenuFactory::create_common_object_menu(wxMenu* menu)
     append_menu_item_reload_from_disk(menu);
     append_menu_item_export_stl(menu);
     append_menu_item_export_drc(menu);
+#ifdef SLIC3R_CAD
     append_menu_item_edit_in_design(menu);
+#endif
     // "Scale to print volume" makes a sense just for whole object
     append_menu_item_scale_selection_to_fit_print_volume(menu);
 }
@@ -1856,7 +1862,9 @@ void MenuFactory::create_extra_object_menu()
     // ORCA Utilities menu
     m_object_menu.AppendSeparator();
     append_menu_item_more(&m_object_menu, false /*multi_selection*/, true /*disk_op*/, true/*export_op*/);
+#ifdef SLIC3R_CAD
     append_menu_item_edit_in_design(&m_object_menu);
+#endif
 }
 
 void MenuFactory::create_bbl_assemble_object_menu()
@@ -2338,7 +2346,9 @@ wxMenu* MenuFactory::multi_selection_menu()
 
         // Reload from disk / Replace all with STL / Export STL / Export DRC
         append_menu_item_more(menu, true /*multi_selection*/, true /*disk_op*/, true /*export_op*/);
+#ifdef SLIC3R_CAD
         append_menu_item_edit_in_design(menu);
+#endif
     }
     else {
         append_menu_item_center(menu);

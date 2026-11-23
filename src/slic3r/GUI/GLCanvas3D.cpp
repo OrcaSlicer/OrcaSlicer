@@ -9869,6 +9869,7 @@ void GLCanvas3D::_render_below_plate_volumes()
     glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
     shader->start_using();
+    shader->set_uniform("use_gooch", false);   // shared program: the Design canvas sets it on, this ghost must not inherit it
     // Keep z <= SINKING_Z_THRESHOLD, the complement of the clip the painting gizmo applies.
     shader->set_uniform("z_range", std::array<float, 2>{ -FLT_MAX, float(SINKING_Z_THRESHOLD) });
     shader->set_uniform("clipping_plane", m_volumes.get_clipping_plane());

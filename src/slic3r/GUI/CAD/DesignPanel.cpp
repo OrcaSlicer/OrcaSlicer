@@ -544,7 +544,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         if (!m_viewport || !m_viewport->is_sketching()) return;
         const int n = m_viewport->include_into_sketch(m_doc.in_plane_edges(m_viewport->sketch_plane()));
         set_status(n > 0 ? StatusKind::Info : StatusKind::Warning,
-                   n > 0 ? wxString::Format(_L("Included %d edge(s) of the model as fixed reference lines"), n)
+                   n > 0 ? wxString::Format(_L_PLURAL("Included %d edge of the model as a fixed reference line", "Included %d edges of the model as fixed reference lines", unsigned(n)), n)
                          : _L("No edge of the model lies in this sketch's plane (or they are already included)"));
     };
     // N: square up to the plane. Not a view preference but part of drawing — a sketch read at an
