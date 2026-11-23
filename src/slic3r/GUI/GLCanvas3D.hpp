@@ -776,6 +776,7 @@ private:
     mutable GLToolbar m_assemble_view_toolbar;
     mutable IMReturnToolbar m_return_toolbar;
     std::optional<PreviewOverlayLayout> m_preview_layout;
+    float                               m_plate_toolbar_right{0.f};
     mutable float m_sc{1};
     mutable float m_paint_toolbar_width;
     bool m_collapse_toolbar_enabled{true};

@@ -20,6 +20,7 @@ add_executable(${_TEST_NAME}_tests
     test_ams_materials_setting.cpp
     test_gcode_preview_colors.cpp
     test_preview_overlay_layout.cpp
+    test_preview_panel_slots.cpp
     test_preview_marks.cpp
     test_move_panel_layout.cpp
     test_canvas_ui.cpp

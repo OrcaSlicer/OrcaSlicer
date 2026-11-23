@@ -1,11 +1,16 @@
 #include "PreviewOverlayLayout.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstddef>
+#include <iterator>
+#include <vector>
 
 #include "CanvasUi/Metrics.hpp"
 #include "CanvasUi/Tokens.hpp"
 #include "CanvasUi/Types.hpp"
+#include "PreviewPanelSlots.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -27,6 +32,49 @@ float PreviewOverlayLayout::panel_left(float width) const
     return std::round(std::clamp(band_center - 0.5f * width, band_left, std::max(band_left, band_right - width)));
 }
 
+float PreviewOverlayLayout::bottom_clear_of(const CanvasUi::Rect &move_panel, float left, float right, float bottom) const
+{
+    if (move_panel.width() > 0.f && move_panel.right + gap > left && move_panel.left - gap < right)
+        return std::min(bottom, move_panel.top - gap);
+    return bottom;
+}
+
+std::array<PreviewPanelPlacement, PREVIEW_PANEL_COUNT> PreviewOverlayLayout::place_panels(const PreviewPanelSlots &slots, const PreviewPanelHeights &heights,
+                                                                                      const PreviewPanelShown &shown) const
+{
+    std::array<size_t, PREVIEW_PANEL_COUNT> order;
+    for (size_t i = 0; i < order.size(); ++i)
+        order[i] = i;
+    std::sort(order.begin(), order.end(), [&slots](size_t a, size_t b) {
+        if (slots[a].order != slots[b].order)
+            return slots[a].order < slots[b].order;
+        return preview_panel_rank(PreviewPanel(a)) < preview_panel_rank(PreviewPanel(b));
+    });
+
+    std::array<PreviewPanelPlacement, PREVIEW_PANEL_COUNT> placements;
+    for (const PreviewColumn column : {PreviewColumn::Left, PreviewColumn::Right}) {
+        const bool  right  = column == PreviewColumn::Right;
+        const float bottom = right ? overlays_bottom : left_column_bottom;
+        float       top    = right ? column_top : left_column_top;
+        for (auto it = order.begin(); it != order.end(); ++it) {
+            const size_t i = *it;
+            if (slots[i].column != column)
+                continue;
+            const auto  followers = std::count_if(std::next(it), order.end(),
+                                                  [&slots, &shown, column](size_t j) { return slots[j].column == column && shown[j]; });
+            // The panels below keep at least their headers in the column, and so does this one.
+            const float panel_top    = std::min(top, std::max(right ? column_top : left_column_top, bottom - panel_header - float(followers) * (panel_header + gap)));
+            const float room_bottom  = std::max(panel_top, bottom - float(followers) * (panel_header + gap));
+            const float panel_bottom = followers > 0 && PreviewPanel(i) == PreviewPanel::GCode ? std::min(room_bottom, panel_top + 0.5f * (bottom - panel_top))
+                                                                                              : room_bottom;
+            placements[i] = {column, right ? overlay_right : left_column_left, panel_top, panel_bottom};
+            if (heights[i] > 0.f)
+                top += heights[i] + gap;
+        }
+    }
+    return placements;
+}
+
 PreviewOverlayLayout compute_preview_overlay_layout(const PreviewOverlayInput &input)
 {
     const float             s = input.scale;
@@ -38,6 +86,7 @@ PreviewOverlayLayout compute_preview_overlay_layout(const PreviewOverlayInput &i
     l.handle_radius   = HANDLE_RADIUS * s;
     l.track_thickness = TRACK_THICKNESS * s;
     l.gap             = metrics.px(GAP);
+    l.panel_header    = metrics.panel_header;
 
     const float W = input.canvas_width;
     const float H = input.canvas_height;
@@ -69,6 +118,9 @@ PreviewOverlayLayout compute_preview_overlay_layout(const PreviewOverlayInput &i
     l.overlay_right   = l.right_band.left - l.gap;
     l.column_top      = l.top_pill.bottom + l.gap;
     l.overlays_bottom = l.bottom_pill.top - l.gap;
+    l.left_column_left   = input.plates_right + l.gap;
+    l.left_column_top    = std::max(l.column_top, input.top_left_reserved + l.gap);
+    l.left_column_bottom = std::max(l.left_column_top, l.band_bottom - input.corner_height - l.gap);
     return l;
 }
 

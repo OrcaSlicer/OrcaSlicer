@@ -12,6 +12,8 @@ set(SLIC3R_CANVAS_PANEL_SOURCES
     GUI/GLCanvas3DNavigator.cpp
     GUI/PreviewOverlayLayout.cpp
     GUI/PreviewOverlayLayout.hpp
+    GUI/PreviewPanelSlots.cpp
+    GUI/PreviewPanelSlots.hpp
     GUI/PreviewMarks.cpp
     GUI/PreviewMarks.hpp
     GUI/MovePanelLayout.cpp

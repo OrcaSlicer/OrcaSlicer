@@ -10736,6 +10736,9 @@ void GLCanvas3D::_update_preview_layout(const Size& cnv_size)
     input.corner_right      = get_canvas_toolbar_right();
     input.pill_height       = pill.y;
     input.pill_width        = pill.x;
+    input.plates_right      = m_plate_toolbar_right;
+    input.corner_height     = navigator_corner_height();
+    input.top_left_reserved = is_collapse_toolbar_on_left() ? get_collapse_toolbar_height() : 0.f;
     m_preview_layout        = compute_preview_overlay_layout(input);
 }
 
@@ -11198,6 +11201,10 @@ static bool plate_toolbar_keeps_scrollbar(bool shown, float scrollbar_size)
 void GLCanvas3D::_render_imgui_select_plate_toolbar()
 {
     if (!m_sel_plate_toolbar.is_enabled()) {
+        if (m_plate_toolbar_right != 0.f) {
+            m_plate_toolbar_right = 0.f;
+            wxGetApp().imgui()->set_requires_extra_frame();
+        }
         if (!m_render_preview)
             m_render_preview = true;
         return;
@@ -11608,6 +11615,13 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
     ImGui::PopStyleVar(7);
 
     m_sel_plate_toolbar.is_display_scrollbar = plate_toolbar_keeps_scrollbar(show_scroll, scrollbar_size);
+    // The scrollbar shows only under the mouse; the panels beside the list keep its room, so they do not move.
+    const bool  overflows           = window_height_calc > window_height_max;
+    const float plate_toolbar_right = ImGui::GetWindowPos().x + ImGui::GetWindowWidth() + (overflows && !show_scroll ? scrollbar_size : 0.f);
+    if (plate_toolbar_right != m_plate_toolbar_right) {
+        m_plate_toolbar_right = plate_toolbar_right;
+        wxGetApp().imgui()->set_requires_extra_frame();
+    }
 
     imgui.end();
 }
