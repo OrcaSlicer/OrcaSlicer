@@ -7,6 +7,7 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "McpTargets.hpp"
 #include "McpTools.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GCodeViewer.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"

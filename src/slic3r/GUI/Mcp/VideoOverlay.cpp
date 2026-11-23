@@ -394,8 +394,8 @@ bool encode_jpeg(const uint8_t* rgb, int width, int height, int stride, int qual
     job->info.input_components = 3;
     job->info.in_color_space   = JCS_RGB;
     jpeg_set_defaults(&job->info);
-    jpeg_set_quality(&job->info, quality, TRUE);
-    jpeg_start_compress(&job->info, TRUE);
+    jpeg_set_quality(&job->info, quality, true);
+    jpeg_start_compress(&job->info, true);
     for (int y = 0; y < height; ++y) {
         JSAMPROW row = const_cast<JSAMPROW>(rgb + std::size_t(y) * std::size_t(stride));
         jpeg_write_scanlines(&job->info, &row, 1);

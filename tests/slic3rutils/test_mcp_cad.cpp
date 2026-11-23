@@ -71,6 +71,7 @@
 #include <functional>
 #include <iterator>
 #include <map>
+#include <math.h>
 #include <memory>
 #include <optional>
 #include <ratio>

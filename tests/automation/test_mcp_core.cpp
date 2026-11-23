@@ -1634,10 +1634,12 @@ TEST_CASE("a plugin's session tools act only on the jobs of its own calls", "[Mc
 TEST_CASE("an unloaded plugin's calls start no job, nor do the children of one already running", "[Mcp]")
 {
     Harness h;
+    std::atomic<bool> started{false};
     std::atomic<bool> release{false};
     ToolResult        child;
     h.registry.add(tool("make", GuardClass::Mutate, [](const json&, ToolContext&) { return ToolResult::ok(); }));
     h.registry.add(tool("slow", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        started = true;
         while (!release)
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
         child = ctx.call_child("make", json::object());
@@ -1645,9 +1647,10 @@ TEST_CASE("an unloaded plugin's calls start no job, nor do the children of one a
     }));
     h.timing.soft_budget = std::chrono::milliseconds(10000);
     h.start();
-    // A call that was admitted before the unload and is still running when it comes.
+    // A call that was admitted before the unload and is still running when it comes. Its job is listed before its
+    // admission ends, and a block between the two refuses the call itself, so the test waits for its handler.
     std::thread running([&] { h.core->call_plugin(*h.registry.find("slow"), json::object(), "measure"); });
-    while (h.jobs.running_owned_by("measure").empty())
+    while (!started)
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
     h.jobs.block_owner("measure");

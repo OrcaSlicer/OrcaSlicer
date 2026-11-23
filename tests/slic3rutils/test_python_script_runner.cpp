@@ -2721,14 +2721,15 @@ TEST_CASE("a task queued when a cell is stopped never runs, and the next cell's 
     if (!harness.initialized)
         SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
 
-    SharedModule  shared("_queued", {"ran"});
+    SharedModule  shared("_queued", {"ran", "submitted"});
     HostedSession hosted;
     REQUIRE(hosted.session.submit(cell("import time, _queued\nfrom concurrent.futures import ThreadPoolExecutor\n"
                                        "ex = ThreadPoolExecutor(1)\n"
                                        "def spin():\n    while True:\n        time.sleep(0.01)\n"
-                                       "ex.submit(spin)\nsecond = ex.submit(_queued.ran.set)\n"
+                                       "ex.submit(spin)\nsecond = ex.submit(_queued.ran.set)\n_queued.submitted.set()\n"
                                        "while True:\n    time.sleep(0.01)\n")));
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    // The stop comes after both submits: a task submitted after a stop is the session's next work, which runs.
+    REQUIRE(shared.wait("submitted", 10));
     hosted.session.stop();
     const WorkEvents stopped = await_work(hosted.session);
     REQUIRE(stopped.finished);

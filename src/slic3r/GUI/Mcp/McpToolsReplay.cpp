@@ -1,6 +1,7 @@
 // replay_run and replay_export: deterministic replays of tool calls, and turning a session into one.
 
 #include "JobRegistry.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"

@@ -1,6 +1,5 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
-#include <boost/nowide/filesystem.hpp>
 #include <boost/system/error_code.hpp>
 #include <catch2/catch_all.hpp>
 
@@ -1020,14 +1019,6 @@ TEST_CASE("Plugin audit denies secret/certificate/config-like paths by keyword",
 
 namespace {
 
-// Converts paths as UTF-8 for the test's lifetime, as the app does from startup
-// (boost::nowide::nowide_filesystem() in OrcaSlicer.cpp).
-struct Utf8PathConversion
-{
-    std::locale previous = boost::nowide::nowide_filesystem();
-    ~Utf8PathConversion() { fs::path::imbue(previous); }
-};
-
 // Switches the C library's character classification to a single-byte code page, as the app's UI
 // language does on Windows (Russian_Russia.1251), when the system has one.
 struct SingleByteCtypeLocale
@@ -1057,7 +1048,7 @@ TEST_CASE("Plugin audit keyword check keeps non-Latin path names intact", "[audi
 
     // Lowering these names byte by byte in a single-byte C locale broke their UTF-8, and turning
     // the result back into a path threw out of the audit hook: the plugin call never returned.
-    const Utf8PathConversion    utf8_paths;
+    // Paths convert as UTF-8, as in the app, for the whole test run (slic3rutils_tests_main.cpp).
     const SingleByteCtypeLocale ctype;
     INFO("single-byte C locale in use: " << (ctype.applied ? "yes" : "no"));
 

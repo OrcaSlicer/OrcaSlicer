@@ -50,6 +50,7 @@
 #include <windows.h>
 #else
 #include <csignal>
+#include <fcntl.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -248,10 +249,15 @@ bool launch_app(const std::string& exe, const std::string& datadir, int port)
     if (pid == 0) {
         setsid();
         // The GUI must not inherit the MCP stdio pipes, stderr included: it outlives the bridge, and
-        // would keep the client's pipe open and write into it once the client has gone.
-        std::freopen("/dev/null", "r", stdin);
-        std::freopen("/dev/null", "w", stdout);
-        std::freopen("/dev/null", "w", stderr);
+        // would keep the client's pipe open and write into it once the client has gone. Without
+        // /dev/null to put in their place it does not start, which the parent reports as a failed launch.
+        const int null_fd = open("/dev/null", O_RDWR);
+        if (null_fd < 0)
+            _exit(127);
+        for (int fd = STDIN_FILENO; fd <= STDERR_FILENO; ++fd)
+            dup2(null_fd, fd);
+        if (null_fd > STDERR_FILENO)
+            close(null_fd);
         std::vector<std::string> args{exe, "--mcp"};
         if (!datadir.empty()) {
             args.push_back("--datadir");
