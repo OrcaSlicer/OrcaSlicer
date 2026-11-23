@@ -39,6 +39,12 @@ bool GCodeViewer::is_panel_shown(PreviewPanel panel) const
     return false;
 }
 
+void GCodeViewer::set_panel_slots(const PreviewPanelSlots& slots)
+{
+    m_panel_slots = slots;
+    save_preview_panel_slots(*wxGetApp().app_config, slots);
+}
+
 // The first vertex of the line or, if the line moves nothing, of the next line that does; the vertex count past the last.
 static size_t first_vertex_from_line(const libvgcode::Viewer& viewer, uint64_t line)
 {
@@ -56,6 +62,7 @@ static size_t first_vertex_from_line(const libvgcode::Viewer& viewer, uint64_t l
 
 void GCodeViewer::bind_gcode_panel()
 {
+    m_panel_slots = load_preview_panel_slots(*wxGetApp().app_config);
     m_sequential_view.gcode_window.load_settings(*wxGetApp().app_config);
     m_sequential_view.gcode_window.save_settings = [](const GCodePanelSettings& settings) {
         save_gcode_panel_settings(*wxGetApp().app_config, settings);

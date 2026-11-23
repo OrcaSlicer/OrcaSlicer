@@ -527,6 +527,7 @@ public:
     bool is_summary_shown() const;
     void enable_legend(bool enable) { m_legend_enabled = enable; }
     const PreviewPanelSlots& get_panel_slots() const { return m_panel_slots; }
+    void                     set_panel_slots(const PreviewPanelSlots& slots);
     float get_legend_height() const { return get_legend_rect().height(); }
 
     void export_toolpaths_to_obj(const char* filename) const;

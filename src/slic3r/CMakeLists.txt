@@ -27,6 +27,8 @@ set(SLIC3R_CANVAS_PANEL_SOURCES
     GUI/NavigatorGeometry.hpp
     GUI/GCodeViewerPanels.cpp
     GUI/GLCanvas3DNavigator.cpp
+    GUI/PreviewLayoutMenu.cpp
+    GUI/PreviewLayoutMenu.hpp
     GUI/PreviewOverlayLayout.cpp
     GUI/PreviewOverlayLayout.hpp
     GUI/PreviewPanels.cpp

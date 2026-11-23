@@ -95,6 +95,8 @@
 #include "I18N.hpp"
 #include "GLCanvas3D.hpp"
 #include "Plater.hpp"
+#include "GCodeViewer.hpp"
+#include "PreviewLayoutMenu.hpp"
 #ifdef SLIC3R_CAD
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
 #include "slic3r/GUI/CAD/McpControl.hpp"
@@ -3496,6 +3498,11 @@ void MainFrame::init_menubar_as_editor()
             this, [this]() { return m_tabpanel->GetSelectedPageName() == TAB_ID_PREVIEW; },
             []() { return wxGetApp().show_print_summary(); }, this);
         m_shortcut_menu_items.push_back({ summary, Shortcut::TogglePrintSummary, _L("Show Print Summary"), true });
+
+        append_preview_layout_menu(
+            viewMenu, this, [this]() { return m_tabpanel->GetSelectedPageName() == TAB_ID_PREVIEW; },
+            [this]() -> GCodeViewer& { return m_plater->get_preview_canvas3D()->get_gcode_viewer(); },
+            [this]() { m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT)); });
 
         append_menu_check_item(viewMenu, wxID_ANY, _L("Show Gridlines"), _L("Show Gridlines on plate"),
             [this](wxCommandEvent&) {
