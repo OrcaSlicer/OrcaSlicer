@@ -1422,6 +1422,12 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", has_scarf_joint_seam:" << has_scarf_joint_seam;
     }
 
+    // A plate's filament maps can be longer than the filament list after a printer switch removes filaments.
+    if (const auto* diameter_opt = new_full_config.option<ConfigOptionFloats>("filament_diameter"); diameter_opt && !diameter_opt->values.empty())
+        for (const char* key : {"filament_map", "filament_volume_map", "filament_nozzle_map"})
+            if (auto* map_opt = new_full_config.option<ConfigOptionInts>(key); map_opt && map_opt->values.size() > diameter_opt->values.size())
+                map_opt->values.resize(diameter_opt->values.size());
+
     // A value outside [1, nozzle count] means nozzle 1. Normalize it here so the slicing engine
     // (Extruder::extruder_id(), the machine envelope, the variant expansion and the snapshot below)
     // only sees in-range values. This works on this print's copy of the config; readers of the

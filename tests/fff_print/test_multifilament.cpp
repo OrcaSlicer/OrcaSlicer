@@ -2370,6 +2370,19 @@ TEST_CASE("A filament_map within the nozzle range is not changed", "[MultiFilame
     CHECK(print.config().filament_map.values == std::vector<int>({ 1, 2 }));
 }
 
+TEST_CASE("Filament maps longer than the filament list are cut to the filament count", "[MultiFilament]")
+{
+    DynamicPrintConfig config = two_nozzle_map_config("1,2,1,1");
+    config.set_key_value("filament_volume_map", new ConfigOptionInts({ 0, 0, 0, 0 }));
+    config.set_key_value("filament_nozzle_map", new ConfigOptionInts({ 0, 1, 0, 0 }));
+    Print print;
+    init_and_process_print({ cube(20) }, print, config);
+    CHECK(print.config().filament_map.values == std::vector<int>({ 1, 2 }));
+    CHECK(print.config().filament_volume_map.values.size() == 2);
+    CHECK(print.config().filament_nozzle_map.values.size() == 2);
+    CHECK(gcode_body(slice({ cube(20) }, config)) == gcode_body(slice({ cube(20) }, two_nozzle_map_config("1,2"))));
+}
+
 // The map value is a firmware tool number, so a value outside the nozzle range must not index the
 // per-nozzle first-filament table.
 TEST_CASE("A physical_extruder_map entry outside the nozzle range still exports", "[MultiFilament]")
