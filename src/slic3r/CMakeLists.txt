@@ -315,6 +315,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/ImGuiWrapper.hpp
     GUI/IMSlider.cpp
     GUI/IMSlider.hpp
+    GUI/CanvasUi/Alert.cpp
+    GUI/CanvasUi/Alert.hpp
     GUI/CanvasUi/Availability.hpp
     GUI/CanvasUi/Button.cpp
     GUI/CanvasUi/Button.hpp
@@ -352,13 +354,27 @@ set(SLIC3R_GUI_SOURCES
     GUI/CanvasUi/Metrics.hpp
     GUI/CanvasUi/NumberField.cpp
     GUI/CanvasUi/NumberField.hpp
+    GUI/CanvasUi/PanelBody.cpp
+    GUI/CanvasUi/PanelBody.hpp
+    GUI/CanvasUi/PanelCard.cpp
+    GUI/CanvasUi/PanelCard.hpp
     GUI/CanvasUi/Paint.cpp
     GUI/CanvasUi/Paint.hpp
+    GUI/CanvasUi/Popover.cpp
+    GUI/CanvasUi/Popover.hpp
     GUI/CanvasUi/PositionField.cpp
     GUI/CanvasUi/PositionField.hpp
     GUI/CanvasUi/ScrollArea.cpp
     GUI/CanvasUi/ScrollArea.hpp
+    GUI/CanvasUi/Select.cpp
+    GUI/CanvasUi/Select.hpp
+    GUI/CanvasUi/SettingsForm.cpp
+    GUI/CanvasUi/SettingsForm.hpp
     GUI/CanvasUi/Shadow.cpp
+    GUI/CanvasUi/Swatch.cpp
+    GUI/CanvasUi/Swatch.hpp
+    GUI/CanvasUi/Table.cpp
+    GUI/CanvasUi/Table.hpp
     GUI/CanvasUi/Tabs.cpp
     GUI/CanvasUi/Tabs.hpp
     GUI/CanvasUi/Theme.cpp
@@ -370,6 +386,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/CanvasUi/Types.cpp
     GUI/CanvasUi/Tokens.hpp
     GUI/CanvasUi/Types.hpp
+    GUI/CanvasUi/Zone.cpp
+    GUI/CanvasUi/Zone.hpp
     GUI/DeviceErrorDialog.hpp
     GUI/DeviceErrorDialog.cpp
     GUI/IMToolbar.cpp

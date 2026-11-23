@@ -105,8 +105,42 @@ struct Metrics
     float menu_separator{whole_px(space<8>())};
     float popup_side_offset{px(space<8>())};
 
+    float swatch_radius{px(Radius::sm)};
+
+    // A panel of a column over the scene: its width, the height of its header and the side of the header's buttons.
+    float panel_width{std::round(px(space<300>()))};
+    float panel_header{whole_px(TextRole::title.leading, space<12>())};
+    float panel_header_button{px(space<24>())};
+    // Above the first component of a panel's body and under its last, and between the body's sections.
+    float panel_body_padding{whole_px(space<4>())};
+    float panel_section_gap{whole_px(space<8>())};
+    // A line of caption text, as under a scale or a table.
+    float caption_line{whole_px(TextRole::caption.leading)};
+
+    float popover_padding{px(space<12>())};
+    float popover_title{whole_px(TextRole::title.leading)};
+    float popover_radius{px(Radius::lg)};
+    float popover_title_gap{whole_px(space<8>())};
+
     float collapsible_content_top{px(space<4>())};
     float collapsible_content_bottom{px(space<6>())};
+
+    float table_row{whole_px(space<24>())};
+    float table_row_radius{px(Radius::sm)};
+    float table_padding_left{px(space<10>())};
+    float table_padding_right{px(space<6>())};
+    float table_swatch{px(space<10>())};
+    float table_swatch_numbered{px(space<16>())};
+    float table_swatch_gap{px(space<8>())};
+    float table_cell_gap{px(space<8>())};
+
+    float alert_padding{px(space<10>())};
+    float alert_radius{px(Radius::md)};
+    float alert_icon{px(icon_size<16>())};
+    float alert_icon_gap{px(space<8>())};
+    float alert_line_gap{px(space<2>())};
+    float alert_actions_gap{px(space<8>())};
+    float alert_action_gap{px(space<8>())};
 
     float tooltip_text{px(TextRole::label.size)};
     float tooltip_max_width{px(space<260>())};

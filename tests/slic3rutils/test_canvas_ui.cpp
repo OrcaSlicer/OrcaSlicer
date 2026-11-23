@@ -7,6 +7,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
+#include "slic3r/GUI/CanvasUi/Alert.hpp"
 #include "slic3r/GUI/CanvasUi/Availability.hpp"
 #include "slic3r/GUI/CanvasUi/Button.hpp"
 #include "slic3r/GUI/CanvasUi/Field.hpp"
@@ -29,11 +30,17 @@
 #include "slic3r/GUI/CanvasUi/Metrics.hpp"
 #include "slic3r/GUI/CanvasUi/MenuPopup.hpp"
 #include "slic3r/GUI/CanvasUi/Paint.hpp"
+#include "slic3r/GUI/CanvasUi/PanelBody.hpp"
+#include "slic3r/GUI/CanvasUi/PanelCard.hpp"
 #include "slic3r/GUI/CanvasUi/Card.hpp"
 #include "slic3r/GUI/CanvasUi/Collapsible.hpp"
+#include "slic3r/GUI/CanvasUi/Popover.hpp"
 #include "slic3r/GUI/CanvasUi/ScrollArea.hpp"
+#include "slic3r/GUI/CanvasUi/SettingsForm.hpp"
+#include "slic3r/GUI/CanvasUi/Table.hpp"
 #include "slic3r/GUI/CanvasUi/Theme.hpp"
 #include "slic3r/GUI/CanvasUi/Types.hpp"
+#include "slic3r/GUI/CanvasUi/Zone.hpp"
 
 #include <algorithm>
 #include <array>
@@ -145,7 +152,7 @@ TEST_CASE("Row heights are whole pixels at any scale", "[CanvasUi]")
 
     for (const float height : {m.menu_row, m.item_gap, m.control_height, m.small_button, m.toggle_gap, m.field_height, m.field_label_gap,
                                m.field_stack_bottom, m.tabs_list_height, m.tab_height, m.switch_text_padding, m.menu_group_label,
-                               m.menu_separator})
+                               m.menu_separator, m.table_row})
         CHECK_THAT(height, WithinAbs(std::round(height), 1e-6));
 }
 
@@ -208,6 +215,14 @@ TEST_CASE("A menu opens its preferred way, flips when only the other way fits, a
     CHECK_THAT(CanvasUi::position_popup_axis(right_of, 900.f, 0.f, 500.f), WithinAbs(0.f, 1e-4));
 }
 
+TEST_CASE("A select's menu opens under its field, or over it when there is no room below", "[CanvasUi]")
+{
+    const CanvasUi::Positioner below = CanvasUi::Positioner::below(CanvasUi::Rect(40.f, 100.f, 240.f, 124.f), 8.f);
+    CHECK_THAT(CanvasUi::position_popup_axis(below.x, 300.f, 0.f, 1000.f), WithinAbs(40.f, 1e-4));
+    CHECK_THAT(CanvasUi::position_popup_axis(below.y, 200.f, 0.f, 1000.f), WithinAbs(132.f, 1e-4));
+    CHECK_THAT(CanvasUi::position_popup_axis(below.y, 90.f, 0.f, 200.f) + 90.f, WithinAbs(92.f, 1e-4));
+}
+
 TEST_CASE("A value on the right of an item widens the menu as a key does", "[CanvasUi]")
 {
     using CanvasUi::MenuItem;
@@ -230,6 +245,42 @@ TEST_CASE("Text too wide is cut with an ellipsis and fits", "[CanvasUi]")
     CHECK(measure.width(cut) <= 100.f);
     CHECK(cut.size() > 3);
     CHECK(cut.substr(cut.size() - 3) == "\xE2\x80\xA6");
+}
+
+TEST_CASE("Table columns keep their widths and the name takes what is left", "[CanvasUi]")
+{
+    const CanvasUi::Metrics m(1.5f);
+    const std::vector<CanvasUi::TableCell> cells = {{"Sparse infill", 0.f, CanvasUi::CellAlign::Left},
+                                                    {"8m11s", m.px(CanvasUi::space<52>())},
+                                                    {"9.4", m.px(CanvasUi::space<36>())},
+                                                    {"1.59 g", m.px(CanvasUi::space<54>())}};
+    const std::vector<CanvasUi::RowSpan> with_swatch = CanvasUi::table_columns(m, 0.f, 600.f, cells, m.table_swatch);
+    const std::vector<CanvasUi::RowSpan> without     = CanvasUi::table_columns(m, 0.f, 600.f, cells, 0.f);
+    REQUIRE(with_swatch.size() == 4);
+    for (size_t i = 1; i < cells.size(); ++i)
+        CHECK_THAT(with_swatch[i].width, WithinAbs(cells[i].width, 1e-4));
+    CHECK_THAT(with_swatch.back().right(), WithinAbs(600.f - m.table_padding_right, 1e-3));
+    CHECK_THAT(without[0].width - with_swatch[0].width, WithinAbs(m.table_swatch + m.table_swatch_gap, 1e-3));
+    CHECK(with_swatch[0].left >= m.table_padding_left + m.table_swatch);
+}
+
+TEST_CASE("An alert grows with its wrapped text and its actions", "[CanvasUi]")
+{
+    const CanvasUi::Metrics          m(1.f);
+    const CanvasUi::MonospaceMeasure measure(7.f, 14.f);
+    CanvasUi::AlertOptions           alert;
+    alert.width = 300.f;
+    alert.title = "Grouping is not optimal";
+    const CanvasUi::MonospaceMeasure bold(9.f, 28.f);
+    const float title_only = CanvasUi::alert_height(m, measure, bold, alert);
+    CHECK_THAT(title_only - CanvasUi::alert_height(m, measure, measure, alert), WithinAbs(28.f - 14.f, 1e-4));
+    alert.text = "Optimal grouping saves 12 g of filament and 3 changes compared to this one.";
+    const float with_text = CanvasUi::alert_height(m, measure, bold, alert);
+    alert.actions = {"Set to optimal", "Regroup filament"};
+    const float with_actions = CanvasUi::alert_height(m, measure, bold, alert);
+
+    CHECK(with_text > title_only + 14.f);
+    CHECK_THAT(with_actions - with_text, WithinAbs(m.alert_actions_gap + CanvasUi::button_height(m, CanvasUi::ButtonSize::Sm), 1.f));
 }
 
 TEST_CASE("A toggle group is sized by its options' widest face, side by side or one under another", "[CanvasUi]")
@@ -656,6 +707,7 @@ TEST_CASE("Components take the size their size functions give, and a stack advan
     std::vector<std::pair<ImVec2, ImVec2>> sizes;
     float       advance  = 0.f;
     float       expected = 0.f;
+    float       alert_bottom = 0.f, actions_bottom = 0.f, alert_padding = 0.f;
     {
         Frames frames(scale, std::round(16.f * scale));
         frames.frame(ImVec2(-1.f, -1.f), false, [&]() {
@@ -690,6 +742,19 @@ TEST_CASE("Components take the size their size functions give, and a stack advan
             CanvasUi::field_switch("##switch", on, {"Shade lines not yet printed, a label that wraps", 160.f});
             drawn(ImVec2(160.f, CanvasUi::field_switch_height(m, measure, "Shade lines not yet printed, a label that wraps", 160.f)));
 
+            CanvasUi::AlertOptions alert;
+            alert.width   = width;
+            alert.title   = "A title long enough to wrap onto a second line";
+            alert.text    = "And a line of text under it.";
+            alert.actions = {"Apply", "Dismiss"};
+            const float alert_top = ImGui::GetCursorScreenPos().y;
+            CanvasUi::alert("##alert", alert);
+            const float alert_height = CanvasUi::alert_height(m, measure, CanvasUi::FontMeasure(CanvasUi::Context::current()->bold_font()), alert);
+            actions_bottom = ImGui::GetItemRectMax().y;
+            alert_bottom   = alert_top + alert_height;
+            alert_padding  = m.alert_padding;
+            heights.push_back(alert_height);
+
             advance  = ImGui::GetCursorScreenPos().y - top;
             expected = CanvasUi::stack_height(m, heights) + m.item_gap;
         });
@@ -699,6 +764,8 @@ TEST_CASE("Components take the size their size functions give, and a stack advan
         CHECK_THAT(drawn_size.y, WithinAbs(measured.y, 1e-3));
     }
     CHECK_THAT(advance, WithinAbs(expected, 1e-3));
+    CHECK(actions_bottom <= alert_bottom - alert_padding + 1e-3f);
+    CHECK(actions_bottom > alert_bottom - alert_padding - 1.f);
 
     {
         Frames frames(scale, std::round(16.f * scale));
@@ -720,6 +787,60 @@ TEST_CASE("Components take the size their size functions give, and a stack advan
         CHECK(glyphs_right(*menu->DrawList) <= menu->Pos.x + menu->Size.x - menu->WindowPadding.x + 1.f);
     }
 
+    {
+        Frames frames(scale, std::round(16.f * scale));
+        ImGui::GetStyle().AntiAliasedLinesUseTex = false;
+        CanvasUi::PopoverOptions popover;
+        popover.title   = "Highlight range";
+        popover.content = CanvasUi::Size(220.f, 80.f);
+        bool opened = false;
+        for (int i = 0; i < 2; ++i)
+            frames.frame(ImVec2(-1.f, -1.f), false, [&]() {
+                if (!opened)
+                    CanvasUi::open_popup("##popover");
+                opened = true;
+                const CanvasUi::Popover shown("##popover", CanvasUi::Positioner::point(10.f, 10.f), popover);
+                if (shown.open())
+                    ImGui::Dummy(ImVec2(popover.content.width, popover.content.height));
+            });
+        const ImGuiWindow* window = open_popup_window();
+        REQUIRE(window != nullptr);
+        CHECK_THAT(window->DC.CursorMaxPos.y + window->WindowPadding.y, WithinAbs(window->Pos.y + window->Size.y, 1.));
+        CHECK_THAT(window->DC.CursorMaxPos.x + window->WindowPadding.x, WithinAbs(window->Pos.x + window->Size.x, 1.));
+        CHECK(glyphs_right(*window->DrawList) <= window->Pos.x + window->Size.x - window->WindowPadding.x + 1.f);
+    }
+}
+
+TEST_CASE("An alert is as tall as its title drawn in the bold face and its text", "[CanvasUi]")
+{
+    Frames frames(1.f, 26.f);
+    ImGui::GetStyle().AntiAliasedLinesUseTex = false;
+    CanvasUi::AlertOptions alert;
+    alert.width = 200.f;
+    alert.title = "A title long enough to wrap onto several lines";
+    alert.text  = "And a line of text under it.";
+    float bold_size = 0.f, regular_size = 0.f, padding = 0.f, top = 0.f, height = 0.f, measured = 0.f, text_bottom = 0.f;
+    frames.frame(ImVec2(-1.f, -1.f), false, [&]() {
+        const CanvasUi::Context& ui = *CanvasUi::Context::current();
+        const CanvasUi::Metrics& m  = ui.metrics();
+        bold_size    = ui.bold_font().size();
+        regular_size = ui.regular_font().size();
+        padding      = m.alert_padding;
+        ImDrawList& list  = *ImGui::GetWindowDrawList();
+        const int   first = list.VtxBuffer.Size;
+        top               = ImGui::GetCursorScreenPos().y;
+        CanvasUi::alert("##alert", alert);
+        height   = ImGui::GetItemRectSize().y;
+        measured = CanvasUi::alert_height(m, CanvasUi::FontMeasure(), CanvasUi::FontMeasure(ui.bold_font()), alert);
+        const ImVec2 white = ImGui::GetIO().Fonts->TexUvWhitePixel;
+        for (int i = first; i < list.VtxBuffer.Size; ++i)
+            if (list.VtxBuffer[i].uv.x != white.x || list.VtxBuffer[i].uv.y != white.y)
+                text_bottom = std::max(text_bottom, list.VtxBuffer[i].pos.y);
+    });
+    CHECK(bold_size > regular_size);
+    CHECK_THAT(height, WithinAbs(measured, 1e-3));
+    CHECK(text_bottom <= top + height - padding + 1e-3f);
+    CHECK(text_bottom > top + height - padding - regular_size);
 }
 
 TEST_CASE("A scroll area scrolls taller content up and down, never sideways", "[CanvasUi]")
@@ -1074,6 +1195,108 @@ bool convex_clockwise(const std::vector<CanvasUi::Point>& outline)
 
 } // namespace
 
+TEST_CASE("A table row that is no action still shows its tooltip", "[CanvasUi]")
+{
+    Frames     frames;
+    const auto draw = [&]() {
+        CanvasUi::TableRowOptions row;
+        row.width       = 200.f;
+        row.cells       = {{"Filament 1", 0.f, CanvasUi::CellAlign::Left}};
+        row.interactive = false;
+        row.tooltip     = "Model 1.20 m";
+        CanvasUi::table_row("##row", row);
+    };
+    frames.hover(ImVec2(50.f, 10.f), std::chrono::milliseconds(1000), draw);
+    CHECK(tooltip_shown());
+}
+
+TEST_CASE("A panel body is as tall as what is drawn in it and its padding, its sections the section gap apart", "[CanvasUi]")
+{
+    const float scale = GENERATE(1.f, 1.5f);
+    Frames      frames(scale);
+    const float top = 10.f, left = 20.f, width = 260.f;
+    std::vector<ImRect> items;
+    float               height = 0.f, padding = 0.f, gap = 0.f, row = 0.f;
+    frames.frame(ImVec2(-1.f, -1.f), false, [&]() {
+        const CanvasUi::Metrics& m = CanvasUi::Context::current()->metrics();
+        padding                    = m.panel_body_padding;
+        gap                        = m.panel_section_gap;
+        row                        = m.table_row;
+        CanvasUi::PanelBody body(CanvasUi::Painter::current(), left, top, width);
+        body.table_header({{"Line type", 0.f, CanvasUi::CellAlign::Left}, {"Time", 52.f}}, m.table_swatch);
+        items.emplace_back(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+        body.gap();
+        body.section_title("Moves", "g");
+        items.emplace_back(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+        CanvasUi::TableRowOptions options;
+        options.width = body.width();
+        options.cells = {{"Travel", 0.f, CanvasUi::CellAlign::Left}};
+        body.place();
+        CanvasUi::table_row("##row", options);
+        items.emplace_back(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+        body.advance(m.table_row);
+        height = body.height();
+    });
+    REQUIRE(items.size() == 3);
+    for (const ImRect& item : items) {
+        CHECK_THAT(item.Min.x, WithinAbs(left, 1e-3));
+        CHECK_THAT(item.GetWidth(), WithinAbs(width, 1e-3));
+        CHECK_THAT(item.GetHeight(), WithinAbs(row, 1e-3));
+    }
+    CHECK_THAT(items[0].Min.y, WithinAbs(top + padding, 1e-3));
+    CHECK_THAT(items[1].Min.y, WithinAbs(items[0].Max.y + gap, 1e-3));
+    CHECK_THAT(items[2].Min.y, WithinAbs(items[1].Max.y, 1e-3));
+    CHECK_THAT(top + height, WithinAbs(items[2].Max.y + padding, 1e-3));
+}
+
+TEST_CASE("A panel's card, header and body are as wide as the panel asks, 300 logical pixels unless it asks", "[CanvasUi]")
+{
+    const float scale = GENERATE(1.f, 1.5f);
+    Frames      frames(scale);
+    float       default_card = 0.f, card = 0.f, divider = 0.f, body = 0.f;
+    frames.frame(ImVec2(-1.f, -1.f), false, [&]() {
+        float                       content = 40.f;
+        CanvasUi::PanelCardOptions options;
+        options.at   = CanvasUi::Point(420.f, 10.f);
+        options.room = 200.f;
+        default_card = CanvasUi::PanelCard("##default", options, content).rect().width();
+        options.at    = CanvasUi::Point(420.f, 300.f);
+        options.width = 240.f;
+        const CanvasUi::PanelCard frame("##narrow", options, content);
+        card              = frame.rect().width();
+        ImDrawList& list  = *ImGui::GetWindowDrawList();
+        const int   first = list.VtxBuffer.Size;
+        frame.body("##body", 4.f, [&](const CanvasUi::Painter&, float, float, float width) {
+            body = width;
+            return content;
+        });
+        for (int i = first; i < list.VtxBuffer.Size; ++i)
+            divider = std::max(divider, list.VtxBuffer[i].pos.x - 420.f);
+    });
+    CHECK_THAT(default_card, WithinAbs(std::round(300.f * scale), 1e-3));
+    CHECK_THAT(card, WithinAbs(240.f, 1e-3));
+    CHECK(divider <= 240.f + 1.f);
+    CHECK(divider > 200.f);
+    CHECK_THAT(body, WithinAbs(240.f - 8.f, 1e-3));
+}
+
+TEST_CASE("A panel's collapse button takes effect in the next frame, and each change is saved once", "[CanvasUi]")
+{
+    CanvasUi::PanelCollapse collapse;
+    std::vector<bool>       saved;
+    collapse.save = [&saved](bool collapsed) { saved.push_back(collapsed); };
+    collapse.load(false);
+    CHECK_FALSE(collapse.take_pending());
+    collapse.toggle_next_frame();
+    CHECK_FALSE(collapse.collapsed());
+    CHECK(collapse.take_pending());
+    CHECK(collapse.collapsed());
+    CHECK_FALSE(collapse.take_pending());
+    collapse.set(true);
+    collapse.set(false);
+    CHECK(saved == std::vector<bool>{true, false});
+}
+
 TEST_CASE("Two presses make a double click by the frame's clock, not ImGui's", "[CanvasUi]")
 {
     Frames                    frames;
@@ -1129,6 +1352,20 @@ TEST_CASE("Without smoothing a corner is a circular arc, and a short side takes 
     CHECK_THAT(pill[size_t(2 * CanvasUi::CORNER_POINTS - 1)].y, WithinAbs(10., 1e-3));
 }
 
+TEST_CASE("A popover is as wide as its content or its title and stacks the title over the content in its padding", "[CanvasUi]")
+{
+    const CanvasUi::Metrics          m(1.f);
+    const CanvasUi::MonospaceMeasure measure(8.f, 15.f);
+    CanvasUi::PopoverOptions         options;
+    options.title   = "Highlight range";
+    options.content = CanvasUi::Size(200.f, 100.f);
+    const CanvasUi::Size wide = CanvasUi::popover_size(m, measure, options);
+    CHECK_THAT(wide.width, WithinAbs(200. + 2. * m.popover_padding, 1e-4));
+    CHECK_THAT(wide.height, WithinAbs(100. + m.popover_title + m.popover_title_gap + 2. * m.popover_padding, 1e-4));
+    options.content.width = 50.f;
+    CHECK_THAT(CanvasUi::popover_size(m, measure, options).width, WithinAbs(15. * 8. + 2. * m.popover_padding, 1e-4));
+}
+
 TEST_CASE("An open collapsible panel as tall as its height function shows its content under its bar with room below", "[CanvasUi]")
 {
     const float scale   = GENERATE(1.f, 1.5f);
@@ -1154,6 +1391,76 @@ TEST_CASE("An open collapsible panel as tall as its height function shows its co
     CHECK_THAT(height - CanvasUi::collapsible_panel_height(CanvasUi::Metrics(scale), 0.f), WithinAbs(content, 1e-4));
 }
 
+TEST_CASE("Esc closes a popover even while a number field in it is being edited, and the edit is dropped", "[CanvasUi]")
+{
+    Frames     frames;
+    long long  value = 42;
+    bool       opening = true, focus = true, open = false;
+    const auto draw = [&]() {
+        if (opening)
+            CanvasUi::open_popup("##popover");
+        opening = false;
+        CanvasUi::PopoverOptions options;
+        options.title   = "Range";
+        options.content = CanvasUi::Size(120.f, 30.f);
+        const CanvasUi::Popover popover("##popover", CanvasUi::Positioner::point(50.f, 50.f), options);
+        open = popover.open();
+        if (!open)
+            return;
+        if (focus)
+            ImGui::SetKeyboardFocusHere();
+        focus = false;
+        CanvasUi::number_field("##from", value, {120.f});
+    };
+    for (int i = 0; i < 3; ++i)
+        frames.frame(ImVec2(-1.f, -1.f), false, draw);
+    REQUIRE(open);
+    REQUIRE(ImGui::GetActiveID() != 0);
+    ImGui::GetIO().AddInputCharacter(static_cast<unsigned int>('7'));
+    frames.frame(ImVec2(-1.f, -1.f), false, draw);
+    press_key(frames, 27, draw);
+    CHECK_FALSE(open);
+    CHECK(value == 42);
+}
+
+TEST_CASE("A click outside a popover closes it", "[CanvasUi]")
+{
+    Frames     frames;
+    bool       opening = true, open = false;
+    const auto draw = [&]() {
+        if (opening)
+            CanvasUi::open_popup("##popover");
+        opening = false;
+        CanvasUi::PopoverOptions options;
+        options.content = CanvasUi::Size(100.f, 20.f);
+        const CanvasUi::Popover popover("##popover", CanvasUi::Positioner::point(50.f, 50.f), options);
+        open = popover.open();
+        return false;
+    };
+    frames.frame(ImVec2(-1.f, -1.f), false, draw);
+    REQUIRE(open);
+    frames.click(ImVec2(390.f, 290.f), draw);
+    CHECK_FALSE(open);
+}
+
+TEST_CASE("Esc closes an open collapsible panel, unless a field holds the keyboard or a popup takes the key", "[CanvasUi]")
+{
+    Frames     frames;
+    bool       settings = true, opening = true;
+    const auto draw = [&]() {
+        CanvasUi::collapsible_close_on_escape(settings);
+        if (opening)
+            CanvasUi::open_popup("##popover");
+        opening = false;
+        const CanvasUi::Popover popover("##popover", CanvasUi::Positioner::point(50.f, 50.f), {});
+    };
+    frames.frame(ImVec2(-1.f, -1.f), false, draw);
+    press_key(frames, 27, draw);
+    CHECK(settings);
+    press_key(frames, 27, draw);
+    CHECK_FALSE(settings);
+}
+
 TEST_CASE("A collapsible trigger opens and closes its panel, and the panel stacks its content under its bar", "[CanvasUi]")
 {
     Frames frames;
@@ -1177,4 +1484,170 @@ TEST_CASE("A collapsible trigger opens and closes its panel, and the panel stack
     CHECK_THAT(content.x, WithinAbs(m.card_padding, 1e-4));
     CHECK_THAT(content.y, WithinAbs(50.f + m.tabs_list_height + m.collapsible_content_top, 1e-4));
     CHECK_THAT(width, WithinAbs(300.f - 2.f * m.card_padding, 1e-4));
+}
+
+TEST_CASE("A settings form is as tall as its bar and the fields of the tab shown, stacked in its padding", "[CanvasUi]")
+{
+    Frames             frames;
+    int                tab = 0, lines = 0;
+    bool               stripe = true, shade = true;
+    std::vector<float> tops;
+    const auto recorded = [&tops](CanvasUi::SettingsField field) {
+        const std::function<int()> get = field.get;
+        field.get = [&tops, get]() {
+            tops.push_back(ImGui::GetCursorScreenPos().y);
+            return get();
+        };
+        return field;
+    };
+    float view = 0.f, highlighting = 0.f, shade_height = 0.f;
+    frames.frame(ImVec2(-1.f, -1.f), false, [&]() {
+        const CanvasUi::Metrics& m = CanvasUi::Context::current()->metrics();
+        CanvasUi::SettingsFormOptions form;
+        form.width       = 300.f;
+        form.tabs        = {"View", "Highlighting"};
+        form.tab         = &tab;
+        form.reset_label = "Reset";
+        CanvasUi::SettingsField count;
+        count.id      = "##lines";
+        count.label   = "Lines";
+        count.options = {"Auto", "5", "15"};
+        count.get     = [&lines]() { return lines; };
+        count.set     = [&lines](int i) { lines = i; };
+        form.fields.push_back(recorded(count));
+        CanvasUi::SettingsField stripe_field = CanvasUi::settings_switch("##stripe", "Line type stripe", stripe);
+        stripe_field.tab                     = 1;
+        form.fields.push_back(recorded(stripe_field));
+        form.fields.push_back(recorded(CanvasUi::settings_switch("##shade", "Shade lines not yet printed, a label long enough to wrap", shade)));
+        tab          = 1;
+        highlighting = CanvasUi::settings_form_height(m, CanvasUi::FontMeasure(), CanvasUi::ChoiceMeasure(), form);
+        tab          = 0;
+        view         = CanvasUi::settings_form_height(m, CanvasUi::FontMeasure(), CanvasUi::ChoiceMeasure(), form);
+        shade_height = CanvasUi::field_switch_height(m, CanvasUi::FontMeasure(), form.fields.back().label, form.width - 2.f * m.card_padding);
+        form.height  = view;
+        CanvasUi::settings_form("##form", CanvasUi::Point(0.f, 40.f), form);
+    });
+    const CanvasUi::Metrics m(1.f);
+    REQUIRE(tops.size() == 2);
+    CHECK_THAT(tops.front(), WithinAbs(40.f + m.tabs_list_height + m.collapsible_content_top, 1e-3));
+    CHECK_THAT(40.f + view, WithinAbs(tops.back() + shade_height + m.collapsible_content_bottom, 1e-3));
+    CHECK(highlighting < view);
+}
+
+TEST_CASE("A settings form resets only while some settings are changed, and reports a field changed", "[CanvasUi]")
+{
+    Frames     frames;
+    bool       on     = true;
+    int        resets = 0;
+    const auto draw   = [&](size_t changed) {
+        const CanvasUi::Metrics&      m = CanvasUi::Context::current()->metrics();
+        CanvasUi::SettingsFormOptions form;
+        form.width         = 300.f;
+        form.changed       = changed;
+        form.changed_count = "Changed: 1";
+        form.reset_label   = "Reset";
+        form.reset         = [&]() {
+            ++resets;
+            on = true;
+        };
+        form.fields.push_back(CanvasUi::settings_switch("##on", "Histogram", on));
+        form.height = CanvasUi::settings_form_height(m, CanvasUi::FontMeasure(), CanvasUi::ChoiceMeasure(), form);
+        return CanvasUi::settings_form("##form", CanvasUi::Point(0.f, 40.f), form);
+    };
+    const CanvasUi::Metrics m(1.f);
+    const ImVec2            reset(300.f - m.tabs_bar_right - 4.f, 40.f + m.tabs_list_height - .5f * m.tab_height);
+    CHECK_FALSE(frames.click(reset, [&]() { return draw(0); }));
+    CHECK(resets == 0);
+    const ImVec2 field(150.f, 40.f + m.tabs_list_height + m.collapsible_content_top + 4.f);
+    CHECK(frames.click(field, [&]() { return draw(0); }));
+    CHECK_FALSE(on);
+    CHECK(frames.click(reset, [&]() { return draw(1); }));
+    CHECK(resets == 1);
+    CHECK(on);
+}
+
+TEST_CASE("A settings form reads a field's availability after a reset in the same frame", "[CanvasUi]")
+{
+    Frames                   frames;
+    bool                     on = false;
+    std::vector<std::string> reads;
+    const auto               draw = [&]() {
+        const CanvasUi::Metrics&      m = CanvasUi::Context::current()->metrics();
+        CanvasUi::SettingsFormOptions form;
+        form.width         = 300.f;
+        form.changed       = 1;
+        form.changed_count = "Changed: 1";
+        form.reset_label   = "Reset";
+        form.reset         = [&]() {
+            reads.push_back("reset");
+            on = true;
+        };
+        CanvasUi::SettingsField field = CanvasUi::settings_switch("##on", "Histogram", on);
+        field.availability            = [&]() {
+            reads.push_back(on ? "on" : "off");
+            return CanvasUi::Availability{!on, "Kept on"};
+        };
+        form.fields.push_back(field);
+        form.height = CanvasUi::settings_form_height(m, CanvasUi::FontMeasure(), CanvasUi::ChoiceMeasure(), form);
+        return CanvasUi::settings_form("##form", CanvasUi::Point(0.f, 40.f), form);
+    };
+    const CanvasUi::Metrics m(1.f);
+    CHECK(frames.click(ImVec2(300.f - m.tabs_bar_right - 4.f, 40.f + m.tabs_list_height - .5f * m.tab_height), draw));
+    const auto reset = std::find(reads.begin(), reads.end(), "reset");
+    REQUIRE(reset != reads.end());
+    REQUIRE(reset + 1 != reads.end());
+    CHECK(*(reset + 1) == "on");
+}
+
+TEST_CASE("A zone reports a press, the hold wherever the pointer goes, the release and a double click", "[CanvasUi]")
+{
+    Frames                          frames;
+    std::vector<CanvasUi::ZoneState> states;
+    const auto draw = [&]() { states.push_back(CanvasUi::zone("##zone", CanvasUi::Rect(10.f, 10.f, 110.f, 60.f))); };
+    frames.hover(ImVec2(50.f, 30.f), std::chrono::milliseconds(400), draw);
+    CHECK(states.back().hovered);
+    states.clear();
+    frames.frame(ImVec2(50.f, 30.f), true, draw);
+    frames.frame(ImVec2(200.f, 200.f), true, draw);
+    frames.frame(ImVec2(200.f, 200.f), false, draw);
+    CHECK(states[0].pressed);
+    CHECK(states[1].held);
+    CHECK_FALSE(states[1].pressed);
+    CHECK(states[2].released);
+    CHECK_FALSE(states[2].held);
+
+    frames.hover(ImVec2(50.f, 30.f), std::chrono::milliseconds(400), draw);
+    states.clear();
+    frames.frame(ImVec2(50.f, 30.f), true, draw);
+    frames.frame(ImVec2(50.f, 30.f), false, draw);
+    frames.frame(ImVec2(50.f, 30.f), true, draw);
+    CHECK_FALSE(states[0].double_clicked);
+    CHECK(states[2].double_clicked);
+    frames.frame(ImVec2(50.f, 30.f), false, draw);
+}
+
+TEST_CASE("A zone under a popover or out of its window's clip sees no pointer", "[CanvasUi]")
+{
+    Frames                frames;
+    bool                  opening = true;
+    CanvasUi::ZoneState   under, outside;
+    const auto            draw = [&]() {
+        under   = CanvasUi::zone("##under", CanvasUi::Rect(0.f, 0.f, 400.f, 300.f));
+        outside = CanvasUi::zone("##outside", CanvasUi::Rect(450.f, 0.f, 550.f, 100.f));
+        if (opening)
+            CanvasUi::open_popup("##popover");
+        opening = false;
+        CanvasUi::PopoverOptions options;
+        options.content = CanvasUi::Size(100.f, 20.f);
+        const CanvasUi::Popover popover("##popover", CanvasUi::Positioner::point(50.f, 50.f), options);
+    };
+    frames.frame(ImVec2(-1.f, -1.f), false, draw);
+    frames.frame(ImVec2(80.f, 60.f), false, draw);
+    frames.frame(ImVec2(80.f, 60.f), true, draw);
+    CHECK_FALSE(under.hovered);
+    CHECK_FALSE(under.pressed);
+    frames.frame(ImVec2(500.f, 50.f), false, draw);
+    frames.frame(ImVec2(500.f, 50.f), true, draw);
+    CHECK_FALSE(outside.hovered);
+    CHECK_FALSE(outside.pressed);
 }
