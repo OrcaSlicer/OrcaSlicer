@@ -853,6 +853,55 @@ TEST_CASE("Print::validate ignores a flow ratio of 0 on an unused filament", "[P
     CHECK(err.string.empty());
 }
 
+TEST_CASE("Print::validate checks skin and skeleton line widths only for Locked Zag infill", "[Print][validate][Regression]")
+{
+    const auto [pattern, rejected] = GENERATE(table<std::string, bool>({ { "crosshatch", false }, { "lockedzag", true } }));
+
+    // 100% of a 0.2 mm nozzle is no wider than a 0.2 mm layer. Thick bridges keep the bridge check out of it.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "nozzle_diameter",            "0.2" },
+        { "layer_height",               "0.2" },
+        { "initial_layer_print_height", "0.2" },
+        { "skin_infill_line_width",     "100%" },
+        { "skeleton_infill_line_width", "100%" },
+        { "thick_bridges",              "1" },
+        { "thick_internal_bridges",     "1" },
+        { "sparse_infill_pattern",      pattern },
+    });
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException err = validate_cubes(config, warnings);
+
+    if (rejected)
+        CHECK(err.opt_key == "skin_infill_line_width");
+    else
+        CHECK(err.string.empty());
+}
+
+TEST_CASE("Print::validate accepts a thin bridge as wide as the layer is tall", "[Print][validate][Regression]")
+{
+    const auto [bridge_line_width, rejected] = GENERATE(table<std::string, bool>({ { "100%", false }, { "0.15", true } }));
+
+    // 0.2 mm layers on a 0.2 mm nozzle, without thick bridges.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "nozzle_diameter",            "0.2" },
+        { "layer_height",               "0.2" },
+        { "initial_layer_print_height", "0.2" },
+        { "thick_bridges",              "0" },
+        { "bridge_line_width",          bridge_line_width },
+    });
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException err = validate_cubes(config, warnings);
+
+    if (rejected)
+        CHECK(err.opt_key == "bridge_line_width");
+    else
+        CHECK(err.string.empty());
+}
+
 TEST_CASE("Purge tower selection keeps ordinary printers on the classic path", "[Print][PurgeTower][Regression]")
 {
     DynamicPrintConfig config = multifilament_config(2, {
