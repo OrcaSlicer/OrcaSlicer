@@ -5,6 +5,8 @@ include(PrecompiledHeader)
 
 # The panels drawn over the 3D scene, which go through the CanvasUi toolkit only (see CheckCanvasPanels).
 set(SLIC3R_CANVAS_PANEL_SOURCES
+    GUI/GCodePanelText.cpp
+    GUI/GCodePanelText.hpp
     GUI/Navigator3D.cpp
     GUI/Navigator3D.hpp
     GUI/NavigatorGeometry.cpp
