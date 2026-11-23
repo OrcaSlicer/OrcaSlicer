@@ -188,8 +188,8 @@ static void run_round_trip(bool use_tls_flag_only) {
     conn.stop();
 }
 
-TEST_CASE("OrcaMqtt round-trip — LAN-style config",   "[OrcaMqtt]") { run_round_trip(false); }
-TEST_CASE("OrcaMqtt round-trip — cloud-style config", "[OrcaMqtt]") { run_round_trip(true);  }
+TEST_CASE("OrcaMqtt round-trip - LAN-style config",   "[OrcaMqtt]") { run_round_trip(false); }
+TEST_CASE("OrcaMqtt round-trip - cloud-style config", "[OrcaMqtt]") { run_round_trip(true);  }
 
 TEST_CASE("OrcaMqtt keepalive runs while the connection is idle", "[OrcaMqtt]") {
     orca_mqtt_test::MockBroker broker;
