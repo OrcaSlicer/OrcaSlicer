@@ -353,6 +353,7 @@ public:
     std::map<std::string, std::string> m_models_map;// display_name -> model_id
 
     void switch_input_panel(int index);
+    void clamp_to_work_area();
     void on_cancel();
     void update_title(wxString title);
     void set_machine_obj(MachineObject* obj);
