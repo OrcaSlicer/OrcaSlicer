@@ -5276,12 +5276,12 @@ void GUI_App::persist_window_geometry(wxTopLevelWindow *window, bool default_max
     const std::string name = into_u8(window->GetName());
 
     window->Bind(wxEVT_CLOSE_WINDOW, [=](wxCloseEvent &event) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< ": received wxEVT_CLOSE_WINDOW, trigger save for window_mainframe";
-        window_pos_save(window, "mainframe");
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": received wxEVT_CLOSE_WINDOW, trigger save for window_" << name;
+        window_pos_save(window, name);
         event.Skip();
     });
 
-    if (window_pos_restore(window, "mainframe", default_maximized)) {
+    if (window_pos_restore(window, name, default_maximized)) {
         on_window_geometry(window, [=]() {
             window_pos_sanitize(window);
         });
@@ -10130,19 +10130,34 @@ bool GUI_App::window_pos_restore(wxTopLevelWindow* window, const std::string &na
     }
 
     const wxRect& rect = metrics->get_rect();
+    const bool    maximized = metrics->get_maximized();
 #if defined(__WXGTK__)
+    const bool on_x11 = !Slic3r::GUI::is_running_on_wayland();
     // On Wayland, SetPosition() is a no-op for top-level windows.
-    // Only restore size and maximize state.
-    if (!Slic3r::GUI::is_running_on_wayland())
+    if (on_x11)
+#else
+    constexpr bool on_x11 = false;
 #endif
         window->SetPosition(rect.GetPosition());
-    window->SetSize(rect.GetSize());
-    window->Maximize(metrics->get_maximized());
+    // The rect saved for a maximized window is the maximized one. On X11 an
+    // undecorated window that resizes itself to exactly the monitor rect is turned
+    // into a fullscreen window by Mutter based WMs; the other ports need the resize
+    // to give Restore Down the saved normal size. #17191
+    if (! on_x11 || ! maximized)
+        window->SetSize(rect.GetSize());
+    window->Maximize(maximized);
     return true;
 }
 
 void GUI_App::window_pos_sanitize(wxTopLevelWindow* window)
 {
+#if defined(__WXGTK__)
+    // On X11, moving or resizing a maximized or fullscreen window is read as a
+    // fullscreen request by Mutter based WMs. #17191
+    if (!Slic3r::GUI::is_running_on_wayland() && (window->IsMaximized() || window->IsFullScreen()))
+        return;
+#endif
+
     /*unsigned*/int display_idx = wxDisplay::GetFromWindow(window);
     wxRect display;
     if (display_idx == wxNOT_FOUND) {
