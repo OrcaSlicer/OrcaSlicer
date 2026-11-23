@@ -1,9 +1,11 @@
 #include <catch2/catch_all.hpp>
 #include <algorithm>
 #include <cstddef>
+#include <map>
 #include <thread>
 #include <utility>
 #include <vector>
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/BoundingBox.hpp"
@@ -650,4 +652,43 @@ TEST_CASE("Converting a part's units keeps an id whose material is missing", "[M
     // convert_units() hands its objects to the caller unowned; give them to a model so they are freed.
     Model owner;
     owner.objects = std::move(converted);
+}
+
+TEST_CASE("Per-feature filament assignments follow mixed slots at each model scope", "[Model][FilamentMixer]")
+{
+    const char *key = GENERATE("outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_filament_id",
+                               "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id");
+    CAPTURE(key);
+    Model model;
+    ModelObject *object = model.add_object();
+    ModelVolume *part = object->add_volume(make_cube(10, 10, 10));
+    ModelVolume *painted_modifier = object->add_painted_modifier(*part);
+    auto &modifier = object->add_volume(make_cube(5, 5, 5), ModelVolumeType::PARAMETER_MODIFIER)->config;
+    auto &range = object->layer_config_ranges[{0., 5.}];
+    auto &material = model.add_material("shared")->config;
+    auto &inherited = object->layer_config_ranges[{5., 10.}];
+    auto &physical = model.add_object()->config;
+    physical.set(key, 2);
+    inherited.set("extruder", 0);
+
+    ModelConfig *scopes[] = {&object->config, &part->config, &modifier, &painted_modifier->config, &range, &material};
+    for (ModelConfig *config : scopes)
+        config->set(key, 3);
+    remap_model_filament_configs(model, {{2, 3}, {3, 4}}, true);
+    auto check_assignments = [&](int expected) {
+        for (const ModelConfig *config : scopes)
+            CHECK(config->opt_int(key) == expected);
+        CHECK(physical.opt_int(key) == 2);
+        CHECK_FALSE(inherited.has(key));
+    };
+    check_assignments(4);
+    remap_model_filament_configs(model, {{2, -1}, {3, 2}, {4, 3}}, false);
+    check_assignments(3);
+    remap_model_filament_slots(model, {{2, 4}});
+    check_assignments(5);
+    // Merge the selected slot into slot 4, then remove it without a replacement.
+    remap_model_filament_configs(model, {{4, 3}}, false);
+    check_assignments(4);
+    remap_model_filament_configs(model, {{3, -1}}, false);
+    check_assignments(0);
 }
