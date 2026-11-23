@@ -2365,6 +2365,25 @@ TEST_CASE("Smoothing multiline lightning infill keeps its outlines connected", "
     REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
 }
 
+// The farthest point, in mm, of the sparse infill that layer 4 hands to internal bridges as anchors from the printed sparse infill.
+static double max_anchor_distance_from_printed_infill(const Print &print)
+{
+    const Layer &layer = *print.objects().front()->get_layer(4);
+    const Polylines printed = layer_paths(layer, erInternalInfill);
+    REQUIRE_FALSE(printed.empty());
+    const AABBTreeLines::LinesDistancer<Line> printed_tree(to_lines(printed));
+
+    // Orca: Exclude perimeter connections: anchoring and extrusion can trim those differently.
+    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr),
+                                              shrink(to_polygons(layer.lslices), scale_(3.)));
+    REQUIRE_FALSE(anchors.empty());
+    double max_distance = 0.;
+    for (const Polyline &path : anchors)
+        for (const Point &point : path.equally_spaced_points(scale_(0.25)))
+            max_distance = std::max(max_distance, printed_tree.distance_from_lines<false>(point));
+    return unscale<double>(max_distance);
+}
+
 TEST_CASE("Sparse plane-path anchors match the printed infill", "[Fill][InternalBridge][Regression]")
 {
     // Orca: Compare generated anchors with actual extrusion across plane-path patterns,
@@ -2408,22 +2427,34 @@ TEST_CASE("Sparse plane-path anchors match the printed infill", "[Fill][Internal
     }
     print.process();
 
-    const Layer &layer = *print.objects().front()->get_layer(4);
-    const Polylines printed = layer_paths(layer, erInternalInfill);
-    REQUIRE_FALSE(printed.empty());
-    const AABBTreeLines::LinesDistancer<Line> printed_tree(to_lines(printed));
-
-    // Orca: Exclude perimeter connections: anchoring and extrusion can trim those differently.
-    const Polylines anchors = intersection_pl(layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr),
-                                              shrink(to_polygons(layer.lslices), scale_(3.)));
-    REQUIRE_FALSE(anchors.empty());
-    double max_distance = 0.;
-    for (const Polyline &path : anchors)
-        for (const Point &point : path.equally_spaced_points(scale_(0.25)))
-            max_distance = std::max(max_distance, printed_tree.distance_from_lines<false>(point));
     // Orca: Allow only the configured simplification tolerance; infill-scale offsets
     // would hide anchors that no longer coincide with printed lines.
-    CHECK(unscale<double>(max_distance) <= config.opt_float("resolution"));
+    CHECK(max_anchor_distance_from_printed_infill(print) <= config.opt_float("resolution"));
+}
+
+TEST_CASE("Sparse infill anchors follow the XY shift of the rotation template", "[Fill][InternalBridge][Regression]")
+{
+    // The shift moves the printed infill of every pattern, not only the plane-path ones.
+    const std::string pattern = GENERATE("rectilinear", "hilbertcurve", "archimedeanchords");
+    CAPTURE(pattern);
+
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"sparse_infill_pattern", pattern},
+                                   {"sparse_infill_density", "15%"},
+                                   {"sparse_infill_rotate_template", "0X1.3Y0.7"},
+                                   {"top_shell_layers", 0},
+                                   {"bottom_shell_layers", 0},
+                                   {"top_shell_thickness", 0},
+                                   {"bottom_shell_thickness", 0},
+                                   {"layer_height", 0.2},
+                                   {"initial_layer_print_height", 0.2},
+                                   {"resolution", 0.012}});
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({make_cube(30, 24, 1)}, print, model, config, nullptr, false);
+    print.process();
+
+    CHECK(max_anchor_distance_from_printed_infill(print) <= config.opt_float("resolution"));
 }
 
 // Orca: Slices the meshes as the parts of one object, where they are, with modifiers of their own config.
