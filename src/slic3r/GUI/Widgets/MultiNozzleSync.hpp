@@ -31,6 +31,7 @@
 #include <wx/webview.h>
 
 #include <memory>
+#include <cstdint>
 #include <optional>
 #include <set>
 #include <unordered_map>
@@ -150,10 +151,15 @@ private:
     std::vector<NozzleOption> m_nozzle_options;
 
     void SendSelectionChangedEvent();
+    void RequestTableMeasurement(const wxString& script = wxEmptyString);
 
     wxWebView* m_web_view;
+    std::uint32_t m_measurement_id{0};
+    int m_measurement_width{0};
+    int m_last_width{0};
+    std::uint64_t m_last_measurement_sequence{0};
 
-    int m_selected_idx;
+    int m_selected_idx{-1};
 };
 
 class MultiNozzleStatusTable : public wxPanel

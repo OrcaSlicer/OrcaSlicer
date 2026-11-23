@@ -23,19 +23,24 @@ add_executable(${_TEST_NAME}_tests
     test_assemble_list.cpp
     test_bambu_networking.cpp
     test_belt_brim.cpp
+    # Mouse ear detection is pure contour geometry; the slicing pipeline stays in fff_print.
+    test_brim.cpp
     test_buildvolume.cpp
     test_calib.cpp
     test_clipper_offset.cpp
     test_clipper_utils.cpp
     test_cut_connectors.cpp
+    test_cut.cpp
     test_config.cpp
     test_config_variant_expansion.cpp
     test_locales_utils.cpp
     test_drc.cpp
     test_gcodereader.cpp
     test_toolordering_nozzle_group.cpp
+    test_parallel_for_first_error.cpp
     test_parallel_resolve.cpp
     test_preset_bundle_loading.cpp
+    test_preset_collection.cpp
     test_preset_setting_id.cpp
     test_preset_diff.cpp
     test_publish_settings.cpp
@@ -44,12 +49,14 @@ add_executable(${_TEST_NAME}_tests
     test_user_printer_variants.cpp
     test_edge_grid.cpp
     test_elephant_foot_compensation.cpp
+    test_expolygon.cpp
     test_exclusion_volumes.cpp
     test_fill_corner_smoothing.cpp
     test_filament_mixer.cpp
     test_fill_plane_path.cpp
     test_adaptive_infill_field.cpp
     test_geometry.cpp
+    test_measure.cpp
     test_kdtree.cpp
     test_lightning.cpp
     test_imex_arrange.cpp
@@ -64,6 +71,7 @@ add_executable(${_TEST_NAME}_tests
     test_minimum_spanning_tree.cpp
     test_nozzle_volume_type.cpp
     test_obj.cpp
+    test_painted_modifier.cpp
     test_step.cpp
     test_stl.cpp
     test_triangle_mesh_deal.cpp
@@ -82,6 +90,7 @@ add_executable(${_TEST_NAME}_tests
     test_wipe_tower_estimate.cpp
     test_wipe_tower.cpp
     test_wipe_path.cpp
+    test_slicing.cpp
     test_optimizers.cpp
     test_ordering_strategies.cpp
     test_parameter_utils.cpp

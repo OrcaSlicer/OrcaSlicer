@@ -47,7 +47,13 @@ jobs:
               'build',
               'test',
               'dependencies',
-              'documentation'
+              'documentation',
+              // optional builds (build_optional.yml)
+              'build-flatpak',
+              'build-macos-x86_64',
+              'build-windows-arm64',
+              'build-windows-msvc',
+              'build-all'
             ];
             const pr = context.payload.pull_request;
             // First-time contributors also get a link to the contributing guide
@@ -80,6 +86,8 @@ jobs:
                 body:
                   `${greeting} manage the labels for this PR by \`/bot add-label\` and \`/bot remove-label\`.\n\n` +
                   `Allowed labels are:\n${labelsList}\n\n` +
+                  `The \`build-\` labels start the builds a PR does not get by default: the Flatpak, ` +
+                  `the Intel Mac app, Windows arm64 and a Windows build with MSVC's compiler. A maintainer may first have to approve the run.\n\n` +
                   `Examples:\n${examplesText}`
               });
             } catch (error) {
@@ -192,10 +200,34 @@ jobs:
       pull-requests: write
       issues: write
     runs-on: ubuntu-latest
+    # GitHub starts no workflow from an event the job's own token causes, so a
+    # build-* label added with it would not start the build it asks for. An
+    # installation token of a GitHub App does, and the run it starts still waits
+    # for a maintainer's approval when the pull request's runs need one. The app
+    # needs issues and pull requests write access to this repository. Without
+    # the secrets, labels are still applied and the build starts with the pull
+    # request's next push.
+    env:
+      LABEL_BOT_APP_ID: ${{ secrets.LABEL_BOT_APP_ID }}
     steps:
+      - name: Mint a token that starts workflows
+        id: token
+        if: ${{ env.LABEL_BOT_APP_ID != '' }}
+        # An app that is not installed here, or a rotated key, costs the early
+        # start, not the labels.
+        continue-on-error: true
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.LABEL_BOT_APP_ID }}
+          private-key: ${{ secrets.LABEL_BOT_APP_PRIVATE_KEY }}
+          permission-issues: write
+          permission-pull-requests: write
       - name: Apply label command from PR author
         uses: actions/github-script@v9
+        env:
+          STARTS_WORKFLOWS: ${{ steps.token.outcome == 'success' }}
         with:
+          github-token: ${{ steps.token.outputs.token || github.token }}
           script: |
             function isPermissionDenied(error) {
               return error && error.status === 403 && /Resource not accessible by integration/i.test(error.message || '');
@@ -217,7 +249,13 @@ jobs:
               'build',
               'test',
               'dependencies',
-              'documentation'
+              'documentation',
+              // optional builds (build_optional.yml)
+              'build-flatpak',
+              'build-macos-x86_64',
+              'build-windows-arm64',
+              'build-windows-msvc',
+              'build-all'
             ];
 
             const issue = context.payload.issue;
@@ -314,6 +352,28 @@ jobs:
               }
 
               core.info(`Added labels: ${uniqueRequestedLabels.join(', ')}`);
+
+              const buildLabels = uniqueRequestedLabels.filter((label) => label.startsWith('build-'));
+              if (buildLabels.length) {
+                const buildText = buildLabels.map((label) => `\`${label}\``).join(', ');
+                const when = process.env.STARTS_WORKFLOWS === 'true'
+                  ? 'starts now under "Optional builds" in the Checks tab; a maintainer may first have to approve the workflow run'
+                  : 'starts with the next push to this PR, under "Optional builds" in the Checks tab';
+                try {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issue.number,
+                    body: `@${commenter} the build for ${buildText} ${when}.`
+                  });
+                } catch (error) {
+                  if (isPermissionDenied(error)) {
+                    core.warning('Cannot post the build label reply because token cannot write comments.');
+                  } else {
+                    throw error;
+                  }
+                }
+              }
             }
 
             if (action === 'remove' && uniqueRequestedLabels.length) {
