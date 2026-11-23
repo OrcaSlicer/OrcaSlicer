@@ -3,12 +3,15 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <cmath>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/GCode/AdaptivePAProcessor.hpp"
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintBase.hpp"
@@ -75,6 +78,84 @@ TEST_CASE("Adaptive pressure advance reads the speed of an extrusion that inheri
         for (const double speed : speeds)
             CHECK_THAT(speed, Catch::Matchers::WithinAbs(150.0, 0.01));
     }
+}
+
+// The pressure advance change tags inside gap fill, and the gap fill runs whose start they mark.
+struct GapFillPAMarks
+{
+    int changes = 0;
+    int runs    = 0;
+};
+
+// A gap fill run is a continuous stretch of gap fill extrusion. Classic gap fill splits each run into one path per width change, without a travel between them.
+static GapFillPAMarks gap_fill_pa_marks(const std::string &gcode)
+{
+    const std::string_view gap_fill_role = "TYPE:Gap infill";
+    GapFillPAMarks         marks;
+    bool                   in_gap_fill     = false;
+    bool                   in_gap_fill_run = false;
+    GCodeReader            reader;
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view comment = line.comment();
+        if (comment.rfind("TYPE:", 0) == 0) {
+            in_gap_fill = comment == gap_fill_role;
+            if (! in_gap_fill)
+                in_gap_fill_run = false;
+            return;
+        }
+        if (comment.rfind(" PA_CHANGE:", 0) == 0) {
+            if (in_gap_fill)
+                ++marks.changes;
+            return;
+        }
+        if (! line.cmd_is("G0") && ! line.cmd_is("G1") && ! line.cmd_is("G2") && ! line.cmd_is("G3"))
+            return;
+        // An unretraction has positive E but lays down nothing and must not break a run.
+        const bool deposits = line.extruding(self) && (line.dist_XY(self) > EPSILON || std::abs(line.dist_Z(self)) > EPSILON);
+        if (in_gap_fill && deposits) {
+            if (! in_gap_fill_run) {
+                ++marks.runs;
+                in_gap_fill_run = true;
+            }
+        } else if (line.dist_XY(self) > EPSILON || std::abs(line.dist_Z(self)) > EPSILON) {
+            in_gap_fill_run = false;
+        }
+    });
+    return marks;
+}
+
+TEST_CASE("Adaptive pressure advance changes once at the start of each gap fill run", "[AdaptivePressureAdvance]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "gcode_flavor",                    "marlin2" },
+        // the pressure advance change tag is kept only in commented G-code
+        { "gcode_comments",                  1 },
+        { "enable_pressure_advance",         "1" },
+        { "adaptive_pressure_advance",       "1" },
+        { "adaptive_pressure_advance_model", "0.08,1,4000\n0.04,20,4000\n0.08,1,100000\n0.04,20,100000" },
+        { "pressure_advance",                "0.08" },
+        { "gap_fill_target",                 "everywhere" },
+        { "layer_height",                    0.2 },
+        { "initial_layer_print_height",      0.2 },
+        { "skirt_loops",                     0 },
+        { "brim_type",                       "no_brim" },
+        { "wipe",                            "0" },
+        { "retraction_length",               "0" },
+        { "z_hop",                           "0" },
+    });
+    // The slanted legs of the letter A leave classic gap fill next to their walls.
+    const GapFillPAMarks without_within_features = gap_fill_pa_marks(slice({ TestMesh::A }, config));
+    INFO("gap fill changes: " << without_within_features.changes << ", runs: " << without_within_features.runs);
+    REQUIRE(without_within_features.runs > 0);
+    // A width change inside a gap fill run keeps the pressure advance of the run.
+    CHECK(without_within_features.changes == without_within_features.runs);
+
+    // Evaluating the pressure advance within a feature marks every path, which shows the runs above are split by width.
+    config.set_deserialize_strict({ { "adaptive_pressure_advance_overhangs", "1" } });
+    const GapFillPAMarks with_within_features = gap_fill_pa_marks(slice({ TestMesh::A }, config));
+    INFO("gap fill changes within features: " << with_within_features.changes);
+    CHECK(with_within_features.changes > without_within_features.runs);
 }
 
 TEST_CASE("The adaptive pressure advance model validator ignores whitespace around the values", "[AdaptivePressureAdvance]")
