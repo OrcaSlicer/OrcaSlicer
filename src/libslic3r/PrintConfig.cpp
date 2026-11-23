@@ -158,6 +158,20 @@ double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, 
     return config.nozzle_diameter.get_at(extruder - 1);
 }
 
+ConfigOptionInts effective_physical_extruder_map(const ConfigOptionInts* explicit_pem, int nozzle_count)
+{
+    // One entry per logical extruder, so a profile has authored a map only when its length
+    // matches. The single-element PrintConfig default does not, and is replaced rather than
+    // treated as a one-extruder machine.
+    if (explicit_pem && nozzle_count > 0 && (int) explicit_pem->values.size() == nozzle_count)
+        return *explicit_pem;
+
+    ConfigOptionInts derived;
+    derived.values.resize(std::max(nozzle_count, 1));
+    std::iota(derived.values.begin(), derived.values.end(), 0);
+    return derived;
+}
+
 
 // Orca: input shaping values types by flavor
 std::vector<std::string> get_shaper_type_values_for_flavor(GCodeFlavor flavor)

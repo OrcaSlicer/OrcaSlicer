@@ -70,6 +70,7 @@
 #include "Geometry/ConvexHull.hpp"
 #include "I18N.hpp"
 #include "LifecycleEvents.hpp"
+#include "ParallelForFirstError.hpp"
 #include "ShortestPath.hpp"
 #include "Thread.hpp"
 #include "Time.hpp"
@@ -2921,10 +2922,16 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 if (!validate_extrusion_width(object->config(), "support_line_width", layer_height, err_msg))
                     return {err_msg, object, "support_line_width"};
             }
-            for (const char *opt_key : { "inner_wall_line_width", "outer_wall_line_width", "sparse_infill_line_width", "internal_solid_infill_line_width", "top_surface_line_width","skin_infill_line_width" ,"skeleton_infill_line_width"})
+            for (const char *opt_key : { "inner_wall_line_width", "outer_wall_line_width", "sparse_infill_line_width", "internal_solid_infill_line_width", "top_surface_line_width"})
 				for (const PrintRegion &region : object->all_regions())
                     if (!validate_extrusion_width(region.config(), opt_key, layer_height, err_msg))
 		            	return  {err_msg, object, opt_key};
+            // Only the Locked Zag sparse infill prints skin and skeleton lines.
+            for (const PrintRegion &region : object->all_regions())
+                if (region.config().sparse_infill_pattern == ipLockedZag)
+                    for (const char *opt_key : { "skin_infill_line_width", "skeleton_infill_line_width" })
+                        if (!validate_extrusion_width(region.config(), opt_key, layer_height, err_msg))
+                            return {err_msg, object, opt_key};
 
             const bool allow_thin_bridge_width = object->config().thick_bridges && object->config().thick_internal_bridges;
             for (const PrintRegion &region : object->all_regions()) {
@@ -2938,7 +2945,8 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                         err_msg = L("Bridge line width must not exceed nozzle diameter");
                         return { err_msg, object, "bridge_line_width" };
                     }
-                    if (!allow_thin_bridge_width && bridge_width <= layer_height) {
+                    // A bridge as wide as the layer is tall is a round strand, the same as a thick bridge.
+                    if (!allow_thin_bridge_width && bridge_width < layer_height) {
                         err_msg = L("Line width too small");
                         return { err_msg, object, "bridge_line_width" };
                     }
@@ -3664,16 +3672,37 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": total object counts %1% in current print, need to slice %2%")%m_objects.size()%need_slicing_objects.size();
     BOOST_LOG_TRIVIAL(info) << "Starting the slicing process." << log_memory_info();
+    // Runs a step on the objects `needs` selects and `skip` on the others. A step of an object reads that object and
+    // the print's configuration only, which the support step has always relied on, so the objects run the step
+    // together: one after another, each object's serial parts and slowest layers kept most of the cores idle.
+    // A slicing pipeline plugin runs its hook between the objects, so with one active they keep their order.
+    // Nothing enforces that rule. In particular, the PrintObjects made from one ModelObject, one per distinct instance
+    // transformation, share its ModelVolumes, whose lazily filled caches are not guarded: a step must not fill them
+    // (ModelVolume::is_splittable() is the exception, under a lock).
+    auto for_each_object_step = [this](auto &&needs, auto &&process, auto &&skip) {
+        std::vector<PrintObject*> objects;
+        for (PrintObject *obj : m_objects)
+            if (! needs(obj))
+                skip(obj);
+            else if (m_pipeline_plugin_active)
+                process(obj);
+            else
+                objects.push_back(obj);
+        if (objects.size() == 1)
+            process(objects.front());
+        else if (objects.size() > 1)
+            parallel_for_first_error(objects.size(), 1, [&process, &objects](size_t i) { process(objects[i]); });
+    };
     if (!use_cache) {
         // Fire the SlicingPipeline hook for `obj` iff it just (re)computed `pstep` this pass.
         auto hook_after = [this](PrintObject* obj, bool was_done, PrintObjectStep pstep, SlicingPipelineStepPlugin sstep) {
             if (m_pipeline_plugin_active && !was_done && obj->is_step_done(pstep))
                 run_pipeline_hook(sstep, obj);
         };
+        auto needs_slicing = [&need_slicing_objects](PrintObject *obj) { return need_slicing_objects.count(obj) != 0; };
 
         // SlicingPipeline: dedicated slice loop so the Slice boundary is hookable before perimeters.
-        for (PrintObject *obj : m_objects) {
-            if (need_slicing_objects.count(obj) != 0) {
+        for_each_object_step(needs_slicing, [&](PrintObject *obj) {
                 const bool was_done = obj->is_step_done(posSlice);
                 obj->slice();
                 hook_after(obj, was_done, posSlice, SlicingPipelineStepPlugin::posSlice);
@@ -3688,32 +3717,25 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 if (m_pipeline_plugin_active && !was_done && obj->is_step_done(posSlice))
                     for (Layer *layer : obj->layers())
                         layer->backup_untyped_slices();
-            } else {
+            }, [](PrintObject *obj) {
                 if (obj->set_started(posSlice)) obj->set_done(posSlice);   // shared/duplicate — no hook
-            }
-        }
-        for (PrintObject *obj : m_objects) {
-            if (need_slicing_objects.count(obj) != 0) {
+            });
+        for_each_object_step(needs_slicing, [&](PrintObject *obj) {
                 const bool was_done = obj->is_step_done(posPerimeters);
                 obj->make_perimeters();   // slice() inside is a no-op: posSlice already DONE
                 hook_after(obj, was_done, posPerimeters, SlicingPipelineStepPlugin::posPerimeters);
-            } else {
+            }, [](PrintObject *obj) {
                 if (obj->set_started(posPerimeters)) obj->set_done(posPerimeters);
-            }
-        }
-        for (PrintObject *obj : m_objects) {
-            if (need_slicing_objects.count(obj) != 0) {
+            });
+        for_each_object_step(needs_slicing, [&](PrintObject *obj) {
                 const bool was_done = obj->is_step_done(posEstimateCurledExtrusions);
                 obj->estimate_curled_extrusions();
                 hook_after(obj, was_done, posEstimateCurledExtrusions, SlicingPipelineStepPlugin::posEstimateCurledExtrusions);
-            }
-            else {
+            }, [](PrintObject *obj) {
                 if (obj->set_started(posEstimateCurledExtrusions))
                     obj->set_done(posEstimateCurledExtrusions);
-            }
-        }
-        for (PrintObject *obj : m_objects) {
-            if (need_slicing_objects.count(obj) != 0) {
+            });
+        for_each_object_step(needs_slicing, [&](PrintObject *obj) {
                 // split prepare_infill (fill-surface prep) from infill (make_fills) so a
                 // plugin can mutate fill surfaces at the PrepareInfill seam and have make_fills
                 // consume them (unlike the Infill seam, which fires after the fills are already
@@ -3725,25 +3747,20 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 const bool was_done = obj->is_step_done(posInfill);
                 obj->infill();
                 hook_after(obj, was_done, posInfill, SlicingPipelineStepPlugin::posInfill);
-            }
-            else {
+            }, [](PrintObject *obj) {
                 if (obj->set_started(posPrepareInfill))
                     obj->set_done(posPrepareInfill);
                 if (obj->set_started(posInfill))
                     obj->set_done(posInfill);
-            }
-        }
-        for (PrintObject *obj : m_objects) {
-            if (need_slicing_objects.count(obj) != 0) {
+            });
+        for_each_object_step(needs_slicing, [&](PrintObject *obj) {
                 const bool was_done = obj->is_step_done(posIroning);
                 obj->ironing();
                 hook_after(obj, was_done, posIroning, SlicingPipelineStepPlugin::posIroning);
-            }
-            else {
+            }, [](PrintObject *obj) {
                 if (obj->set_started(posIroning))
                     obj->set_done(posIroning);
-            }
-        }
+            });
 
         // Z-Contouring
         for (PrintObject *obj : m_objects) {
@@ -3791,17 +3808,14 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                     && m_objects[i]->is_step_done(posSupportMaterial))
                     run_pipeline_hook(SlicingPipelineStepPlugin::posSupportMaterial, m_objects[i]);
 
-        for (PrintObject* obj : m_objects) {
-            if (need_slicing_objects.count(obj) != 0) {
+        for_each_object_step(needs_slicing, [&](PrintObject *obj) {
                 const bool was_done = obj->is_step_done(posDetectOverhangsForLift);
                 obj->detect_overhangs_for_lift();
                 hook_after(obj, was_done, posDetectOverhangsForLift, SlicingPipelineStepPlugin::posDetectOverhangsForLift);
-            }
-            else {
+            }, [](PrintObject *obj) {
                 if (obj->set_started(posDetectOverhangsForLift))
                     obj->set_done(posDetectOverhangsForLift);
-            }
-        }
+            });
     }
     else {
         for (PrintObject *obj : m_objects) {
@@ -4166,9 +4180,9 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         }
     }
     //BBS
-    for (PrintObject *obj : m_objects) {
-        if (((!use_cache)&&(need_slicing_objects.count(obj) != 0))
-            || (use_cache &&(re_slicing_objects.count(obj) != 0))){
+    for_each_object_step([&](PrintObject *obj) {
+            return (!use_cache && need_slicing_objects.count(obj) != 0) || (use_cache && re_slicing_objects.count(obj) != 0);
+        }, [&](PrintObject *obj) {
             const bool was_done = obj->is_step_done(posSimplifyPath);
             obj->simplify_extrusion_path();
             // Unlike every other seam (all inside the `if (!use_cache)` block above), this loop is
@@ -4176,16 +4190,14 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             // explicitly here to keep hooks from ever firing on cache-loaded (plugin-final) objects.
             if (!use_cache && m_pipeline_plugin_active && !was_done && obj->is_step_done(posSimplifyPath))
                 run_pipeline_hook(SlicingPipelineStepPlugin::posSimplifyPath, obj);
-        }
-        else {
+        }, [](PrintObject *obj) {
             if (obj->set_started(posSimplifyPath))
                 obj->set_done(posSimplifyPath);
             if (obj->set_started(posSimplifyInfill))
                 obj->set_done(posSimplifyInfill);
             if (obj->set_started(posSimplifySupportPath))
                 obj->set_done(posSimplifySupportPath);
-        }
-    }
+        });
 
     // BBS
     bool has_adaptive_layer_height = false;
