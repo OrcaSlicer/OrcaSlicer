@@ -56,11 +56,11 @@ private:
 
     // resources/images/plate_arrangement_<name>[_dark].svg
     enum IconId {
-        First, Previous, Next, Last, ZoomIn, ZoomOut, Locked, Unlocked, Settings, Arrange, Orient, Count
+        First, Previous, Next, Last, ZoomIn, ZoomOut, Locked, Unlocked, Settings, Arrange, Orient, Sort, Menu, Count
     };
 
     static constexpr const char* icon_names[IconId::Count] = {
-        "first", "previous", "next", "last", "zoom_in", "zoom_out", "locked", "unlocked", "settings", "arrange", "orient"
+        "first", "previous", "next", "last", "zoom_in", "zoom_out", "locked", "unlocked", "settings", "arrange", "orient", "sort", "menu"
     };
 
     // The actions of the icons on a plate, as Plater::select_plate_by_hover_id() numbers them.
@@ -77,6 +77,12 @@ private:
     void render_bottom_bar();
     // A bottom bar button; `state` colours its background (locked, modified settings) like the plate's own icon.
     bool render_icon_button(IconId icon, bool enabled, const std::string& tooltip, const ImVec4* state = nullptr);
+    // The menus of the bottom bar's order, sort and menu buttons, opened below `pos`.
+    void render_order_menu(const ImVec2& pos, PartPlate* plate);
+    // Name, Filament, Height and Size, as the object list's Order By menu: for `plate`, or all plates when null.
+    void render_object_orders(PartPlate* plate, bool enabled);
+    void render_sort_menu(const ImVec2& pos);
+    void render_plates_menu(const ImVec2& pos);
 
     // Sizes from the ImGui font, so they follow the display scaling; made again when the font size changes.
     void  create_gui_cfg();
@@ -100,6 +106,8 @@ private:
     // Each returns new_order (new_order[k] = current index of the plate that goes to slot k).
     std::vector<int> order_after_move(Move move) const;
     std::vector<int> order_after_drop(int insert_index) const;
+    // By name, numbers by value ("Plate 2" before "Plate 10"); unnamed plates stay last, in their order.
+    std::vector<int> order_by_name() const;
     static bool      is_identity(const std::vector<int>& order);
     static void      apply_order(const std::vector<int>& order);
 
@@ -181,6 +189,8 @@ private:
     PartPlate*            m_name_plate{ nullptr };  // plate whose name is in m_name_buf
     std::array<char, 256> m_name_buf{};
     bool                  m_name_editing{ false };  // the name field was active in the last frame
+    std::array<char, 256> m_rename_buf{};           // name typed for the selected plates
+    bool                  m_popup_open{ false };    // a menu of the dialog was open in the last frame
 
     std::map<PartPlate*, Thumbnail> m_thumbnails;
 

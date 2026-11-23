@@ -1,6 +1,7 @@
 #include "PlateArrangement.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cfloat>
 #include <cmath>
 #include <cstring>
@@ -29,6 +30,7 @@
 
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
+#include "libslic3r/Model.hpp"
 #include "libslic3r/Utils.hpp"
 #include <libslic3r/Point.hpp>
 #include "libslic3r/format.hpp"
@@ -39,6 +41,7 @@
 #include "GLCanvas3D.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "GUI_ObjectList.hpp"
 #include "GUI_Utils.hpp"
 #include "Gizmos/GLGizmoUtils.hpp"
 #include "I18N.hpp"
@@ -46,6 +49,7 @@
 #include "ImGuiWrapper.hpp"
 #include "PartPlate.hpp"
 #include "Plater.hpp"
+#include "PluginSort.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -97,12 +101,16 @@ bool PlateArrangementDialog::on_key(const wxKeyEvent& evt)
     m_imgui->set_requires_extra_frame();
 
     if (key == WXK_ESCAPE) {
-        if (m_drag.active)
+        if (m_popup_open)
+            m_imgui->close_top_popup();
+        else if (m_drag.active)
             m_drag = Drag();
         else
             set_open(false);
         return true;
     }
+    if (m_popup_open)
+        return true;
     // Between frames: a plate may have been added or removed since the last one.
     m_plate_count = m_plate_list->get_plate_count();
     if (m_drag.pressed || m_cursor == nullptr || m_plate_count < 1)
@@ -142,6 +150,8 @@ void PlateArrangementDialog::on_set_state()
 {
     if (m_name_editing) // closed mid-edit
         apply_plate_name();
+    if (std::exchange(m_popup_open, false)) // else ImGui keeps it open for the next time
+        m_imgui->close_top_popup();
     m_drag       = Drag();
     m_name_plate = nullptr;
     m_selection.clear();
@@ -201,7 +211,7 @@ void PlateArrangementDialog::on_render_input_window()
     render_title_bar();
     render_plate_grid();
     render_bottom_bar();
-    m_focused = m_open && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+    m_focused = m_open && (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || m_popup_open);
 
     m_imgui->end();
     ImGui::PopStyleVar(5);
@@ -279,8 +289,9 @@ void PlateArrangementDialog::render_plate_grid()
         render_plate(dl, plate, cell_min(i), cell, is_selected(plate), hovered, lifted ? cfg.dragged_alpha : 1.f);
         if (hovered) {
             const std::string nm = plate->get_plate_name();
-            // TRN %1% is the plate number, %2% the name the user gave the plate.
-            m_imgui->tooltip(nm.empty() ? format(_u8L("Plate %1%"), i + 1) : format(_u8L("Plate %1%: %2%"), i + 1, nm), cfg.tooltip_width);
+            // TRN %1% is the plate number.
+            const std::string number = format(_u8L("Plate %1%"), i + 1);
+            m_imgui->tooltip(nm.empty() ? number : number + "\n" + nm, cfg.tooltip_width);
         }
     }
     ImGui::SetCursorScreenPos(origin + ImVec2(0.f, float(rows) * pitch - cfg.plate_spacing));
@@ -414,16 +425,17 @@ void PlateArrangementDialog::render_bottom_bar()
 
     // Every item in a row, the name field included, is as tall as a button.
     const float row1 = std::round(ImGui::GetCursorPosY() - ImGui::GetStyle().ItemSpacing.y + cfg.v_spacing);
-    const float row2 = row1 + btn + cfg.v_spacing;
+    const float row2 = row1 + btn + std::round(cfg.v_spacing * .5f);
+    const float row3 = row2 + btn + std::round(cfg.v_spacing * 1.5f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(cfg.item_spacing, (btn - ImGui::GetFontSize()) * .5f));
 
-    // Top row for plate
-    const float  actions = x0 + cfg.grid_size - 4.f * btn - 3.f * gap;
+    // Top row: the plate name across the whole width, or a name for the selected plates and Apply
+    const bool   batch   = m_selection.size() > 1;
     const float  badge   = btn - 2.f * cfg.plate_inset;
     ImGui::SetCursorPos(ImVec2(x0, row1));
     const ImVec2 f0      = ImGui::GetCursorScreenPos();
-    const ImVec2 f1      = f0 + ImVec2(actions - group - x0, btn);
-    const bool   editing = ImGui::GetActiveID() == ImGui::GetID("##plate_name");
+    const ImVec2 f1      = f0 + ImVec2(cfg.grid_size - (batch ? cfg.choose_width + gap : 0.f), btn);
+    const bool   editing = ImGui::GetActiveID() == ImGui::GetID(batch ? "##batch_name" : "##plate_name");
     const ImU32  frame   = editing ? ImGui::ColorConvertFloat4ToU32(ImGuiWrapper::COL_ORCA) : ImGui::GetColorU32(ImGuiCol_Border);
     ImDrawList*  dl      = ImGui::GetWindowDrawList();
     // While editing: Orca accent at 15% and an accent border.
@@ -431,6 +443,10 @@ void PlateArrangementDialog::render_bottom_bar()
     dl->AddRect(f0, f1, frame, cfg.frame_rounding);
     if (m_name_editing && single != m_name_plate) // the field moves to another plate, or goes away, mid-edit
         apply_plate_name();
+    // The text fields have no frame of their own: the rectangle above is their frame.
+    ImGui::PushStyleColor(ImGuiCol_FrameBg       , ImVec4(0.f, 0.f, 0.f, 0.f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.f, 0.f, 0.f, 0.f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive , ImVec4(0.f, 0.f, 0.f, 0.f));
     if (single != nullptr) {
         if (single != m_name_plate || (!m_name_editing && single->get_plate_name() != m_name_buf.data())) {
             m_name_buf.fill('\0');
@@ -442,23 +458,64 @@ void PlateArrangementDialog::render_bottom_bar()
         dl->AddText(b0 + (ImVec2(badge, badge) - ImGui::CalcTextSize(num.c_str())) * .5f, ImGui::GetColorU32(ImGuiCol_Text), num.c_str());
         dl->AddLine(ImVec2(b0.x + badge + .5f, b0.y), ImVec2(b0.x + badge + .5f, b0.y + badge), ImGui::GetColorU32(ImGuiCol_Border), 1.f);
 
-        // The text field itself starts after the number and has no frame of its own.
+        // The text field starts after the number.
         ImGui::SetCursorScreenPos(ImVec2(b0.x + badge + gap, f0.y));
         ImGui::SetNextItemWidth(f1.x - b0.x - badge - gap);
-        ImGui::PushStyleColor(ImGuiCol_FrameBg       , ImVec4(0.f, 0.f, 0.f, 0.f));
-        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.f, 0.f, 0.f, 0.f));
-        ImGui::PushStyleColor(ImGuiCol_FrameBgActive , ImVec4(0.f, 0.f, 0.f, 0.f));
         ImGui::InputTextWithHint("##plate_name", _u8L("Plate name").c_str(), m_name_buf.data(), m_name_buf.size());
-        ImGui::PopStyleColor(3);
         // Not IsItemDeactivatedAfterEdit(): a canvas click clears the active widget between frames, unseen by ImGui.
         const bool active = ImGui::IsItemActive();
         if (m_name_editing && !active)
             apply_plate_name();
         m_name_editing = active;
-    } else {
-        const int         n    = int(m_selection.size());
-        const std::string text = format(std::string(_L_PLURAL("%1% plate selected", "%1% plates selected", n).utf8_str()), n);
-        dl->AddText(f0 + ImVec2(gap * 2.f, (btn - ImGui::GetTextLineHeight()) * .5f), ImGui::GetColorU32(ImGuiCol_TextDisabled), text.c_str());
+    } else if (batch) {
+        const int n = int(m_selection.size());
+        // TRN Hint of the name field while %1% plates are selected, at least 2.
+        const std::string hint = format(std::string(_L_PLURAL("%1% plate selected. Click to batch rename", "%1% plates selected. Click to batch rename", n).utf8_str()), n);
+        ImGui::SetCursorScreenPos(ImVec2(f0.x + gap, f0.y));
+        ImGui::SetNextItemWidth(f1.x - f0.x - gap);
+        const bool        enter = ImGui::InputTextWithHint("##batch_name", hint.c_str(), m_rename_buf.data(), m_rename_buf.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+        const std::string base(m_rename_buf.data());
+        const bool        valid = base.find_first_not_of(' ') != std::string::npos;
+        // The selected plates are numbered from 01 in plate order: "Plate 01", "Plate 02", ...
+        ImGui::SetCursorPos(ImVec2(x0 + cfg.grid_size - cfg.choose_width, row1));
+        if ((m_imgui->button(_L("Apply"), ImVec2(cfg.choose_width, btn), valid) || enter) && valid) {
+            plater->CallAfter([this, base, plates = std::vector<PartPlate*>(m_selection.begin(), m_selection.end())]() {
+                std::vector<int> indices;
+                for (PartPlate* plate : plates)
+                    if (const int i = index_of(plate); i >= 0) // the plate may be gone by now
+                        indices.push_back(i);
+                std::sort(indices.begin(), indices.end());
+                // At least two digits, and as many as the number of renamed plates needs.
+                const std::size_t width = std::max<std::size_t>(2, std::to_string(indices.size()).size());
+                auto numbered_name = [&base, width](std::size_t number) {
+                    std::string digits = std::to_string(number);
+                    return base + " " + std::string(width - digits.size(), '0') + digits;
+                };
+                Plater*              pl = wxGetApp().plater();
+                Plater::TakeSnapshot snapshot(pl, "Rename plates"); // one undo step for all of them
+                for (size_t k = 0; k < indices.size(); ++k)
+                    pl->rename_plate(indices[k], numbered_name(k + 1));
+                pl->get_view3D_canvas3D()->set_as_dirty(); // redraw the names on the bed
+            });
+            m_rename_buf.fill('\0');
+        }
+    }
+    ImGui::PopStyleColor(3);
+
+    // Middle row: moving the selected plates on the left, the plate's own actions on the right
+    struct MoveButton { IconId icon; Move move; std::string tooltip; };
+    const MoveButton moves[] = {
+        { IconId::First,    Move::First,    _u8L("Move to beginning") },
+        { IconId::Previous, Move::Previous, _u8L("Move to previous") },
+        { IconId::Next,     Move::Next,     _u8L("Move to next") },
+        { IconId::Last,     Move::Last,     _u8L("Move to end") },
+    };
+    ImGui::SetCursorPos(ImVec2(x0, row2));
+    for (const MoveButton& b : moves) {
+        const std::vector<int> order = order_after_move(b.move);
+        if (render_icon_button(b.icon, !is_identity(order), b.tooltip))
+            apply_order(order);
+        ImGui::SameLine();
     }
 
     auto plate_action = [this, plater, single](int action) {
@@ -469,7 +526,11 @@ void PlateArrangementDialog::render_bottom_bar()
     };
     const bool all_locked = std::all_of(m_selection.begin(), m_selection.end(), [](PartPlate* plate) { return plate->is_locked(); });
     const bool unlocked   = single != nullptr && !single->is_locked(); // a locked plate keeps its objects where they are
-    ImGui::SetCursorPos(ImVec2(actions, row1));
+    ImGui::SetCursorPos(ImVec2(x0 + cfg.grid_size - 5.f * btn - 4.f * gap, row2));
+    if (render_icon_button(IconId::Sort, single != nullptr && !single->empty(), _u8L("Order objects on current plate")))
+        ImGui::OpenPopup("##order_objects");
+    const ImVec2 order_pos(ImGui::GetItemRectMin().x, ImGui::GetItemRectMax().y + gap);
+    ImGui::SameLine();
     if (render_icon_button(IconId::Orient, unlocked, _u8L("Auto orient objects on current plate")))
         plate_action(ActionOrient);
     ImGui::SameLine();
@@ -494,8 +555,8 @@ void PlateArrangementDialog::render_bottom_bar()
                            single != nullptr && single->has_custom_settings() ? &ImGuiWrapper::COL_WARNING : nullptr))
         plate_action(ActionSettings);
 
-    // Bottom row for actions
-    ImGui::SetCursorPos(ImVec2(x0, row2 + std::round((btn - m_info_button_size) * .5f)));
+    // Bottom row: shortcuts and zoom on the left, adding and removing plates on the right
+    ImGui::SetCursorPos(ImVec2(x0, row3 + std::round((btn - m_info_button_size) * .5f)));
     const wxString ctrl  = from_u8(shortkey_ctrl_prefix());
     const wxString shift = from_u8(shortkey_shift_prefix());
     // TRN Keyboard and mouse shortcuts
@@ -516,29 +577,22 @@ void PlateArrangementDialog::render_bottom_bar()
     GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, shortcuts, m_window_pos.x, m_window_pos.y);
     m_info_button_size = ImGui::GetItemRectSize().y;
 
-    struct MoveButton { IconId icon; Move move; std::string tooltip; };
-    const MoveButton moves[] = {
-        { IconId::First,    Move::First,    _u8L("Move to beginning") },
-        { IconId::Previous, Move::Previous, _u8L("Move to previous") },
-        { IconId::Next,     Move::Next,     _u8L("Move to next") },
-        { IconId::Last,     Move::Last,     _u8L("Move to end") },
-    };
-    ImGui::SetCursorPos(ImVec2(x0 + ImGui::GetItemRectSize().x + group, row2));
-    for (const MoveButton& b : moves) {
-        const std::vector<int> order = order_after_move(b.move);
-        if (render_icon_button(b.icon, !is_identity(order), b.tooltip))
-            apply_order(order);
-        ImGui::SameLine();
-    }
-
-    ImGui::SameLine(0.f, group);
+    ImGui::SetCursorPos(ImVec2(x0 + ImGui::GetItemRectSize().x + group, row3));
     if (render_icon_button(IconId::ZoomIn, true, _u8L("Zoom to selected plates")))
         zoom_to_selection();
     ImGui::SameLine();
     if (render_icon_button(IconId::ZoomOut, true, _u8L("Zoom out to all plates")))
         m_parent.zoom_to_plate(REQUIRES_ZOOM_TO_ALL_PLATE);
+    ImGui::SameLine(0.f, group);
+    if (render_icon_button(IconId::Sort, true, _u8L("Sort")))
+        ImGui::OpenPopup("##sort_plates");
+    const ImVec2 sort_pos(ImGui::GetItemRectMin().x, ImGui::GetItemRectMax().y + gap);
+    ImGui::SameLine();
+    if (render_icon_button(IconId::Menu, true, _u8L("More options")))
+        ImGui::OpenPopup("##plates_menu");
+    const ImVec2 menu_pos(ImGui::GetItemRectMin().x, ImGui::GetItemRectMax().y + gap);
 
-    ImGui::SetCursorPos(ImVec2(x0 + cfg.grid_size - cfg.choose_width * 2.f - cfg.item_spacing, row2));
+    ImGui::SetCursorPos(ImVec2(x0 + cfg.grid_size - cfg.choose_width * 2.f - cfg.item_spacing, row3));
     if (m_imgui->button(_L("Add"), ImVec2(cfg.choose_width, cfg.button_size), plater->can_add_plate()))
         plater->CallAfter([]() { wxGetApp().plater()->add_plate(); }); // the new plate becomes current, and selected
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
@@ -559,6 +613,11 @@ void PlateArrangementDialog::render_bottom_bar()
     }
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
         m_imgui->tooltip(_u8L("Remove selected plates"), cfg.tooltip_width);
+
+    render_order_menu(order_pos, single);
+    render_sort_menu(sort_pos);
+    render_plates_menu(menu_pos);
+    m_popup_open = ImGui::IsPopupOpen("##order_objects") || ImGui::IsPopupOpen("##sort_plates") || ImGui::IsPopupOpen("##plates_menu");
     ImGui::PopStyleVar();
 }
 
@@ -577,8 +636,11 @@ bool PlateArrangementDialog::render_icon_button(IconId icon, bool enabled, const
         ImGui::PushStyleColor(ImGuiCol_ButtonActive , *state);
     }
     m_imgui->disabled_begin(!enabled);
-    ImGui::PushID(icon_names[size_t(icon)]); // the icons share one texture, which image_button() takes for the ID
+    // image_button() takes the texture, shared by all icons, for the ID. The sort icon is on two buttons: the tooltip tells them apart.
+    ImGui::PushID(icon_names[size_t(icon)]);
+    ImGui::PushID(tooltip.c_str());
     const bool clicked = m_imgui->image_button((ImTextureID)(intptr_t)i.tex_id, ImVec2(size, size), i.tl, i.br, int(cfg.button_padding)) && enabled;
+    ImGui::PopID();
     ImGui::PopID();
     m_imgui->disabled_end();
     if (state != nullptr)
@@ -586,6 +648,98 @@ bool PlateArrangementDialog::render_icon_button(IconId icon, bool enabled, const
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
         m_imgui->tooltip(tooltip, cfg.tooltip_width);
     return clicked;
+}
+
+void PlateArrangementDialog::render_order_menu(const ImVec2& pos, PartPlate* plate)
+{
+    ImGui::SetNextWindowPos(pos, ImGuiCond_Appearing);
+    ImGuiWrapper::push_menu_style(m_parent.get_scale());
+    if (ImGui::BeginPopup("##order_objects", ImGuiWindowFlags_NoMove)) {
+        m_imgui->text_colored(ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled), _u8L("Order objects by"));
+        render_object_orders(plate, plate != nullptr && !plate->empty());
+        ImGui::EndPopup();
+    }
+    ImGuiWrapper::pop_menu_style();
+}
+
+void PlateArrangementDialog::render_object_orders(PartPlate* plate, bool enabled)
+{
+    for (const auto& [object_order, label] : { std::pair{ ObjectOrder::Name, _u8L("Name") }, std::pair{ ObjectOrder::Filament, _u8L("Filament") },
+                                               std::pair{ ObjectOrder::Height, _u8L("Height") }, std::pair{ ObjectOrder::Size, _u8L("Size") } })
+        if (menu_item_with_icon(label.c_str(), "", ImVec2(0.f, 0.f), 0, false, enabled))
+            wxGetApp().plater()->CallAfter([this, plate, o = object_order]() {
+                // The object list orders the canvas' current plate, or all of them.
+                if (plate != nullptr) {
+                    const int i = index_of(plate);
+                    if (i < 0) // the plate may be gone by now
+                        return;
+                    if (i != m_plate_list->get_curr_plate_index())
+                        wxGetApp().plater()->select_plate(i);
+                }
+                wxGetApp().obj_list()->order_objects(o, plate == nullptr);
+            });
+}
+
+void PlateArrangementDialog::render_sort_menu(const ImVec2& pos)
+{
+    ImGui::SetNextWindowPos(pos, ImGuiCond_Appearing);
+    ImGuiWrapper::push_menu_style(m_parent.get_scale());
+    if (ImGui::BeginPopup("##sort_plates", ImGuiWindowFlags_NoMove)) {
+        m_imgui->text_colored(ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled), _u8L("Arrange all plates by"));
+        const std::vector<int> order = order_by_name();
+        if (menu_item_with_icon(_u8L("Alphabetically").c_str(), "", ImVec2(0.f, 0.f), 0, false, !is_identity(order)))
+            apply_order(order);
+        ImGui::Separator();
+        // The object list's Order By > All Plates: repeating an order reverses it.
+        m_imgui->text_colored(ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled), _u8L("Order objects on all plates by"));
+        render_object_orders(nullptr, !wxGetApp().plater()->model().objects.empty());
+        ImGui::EndPopup();
+    }
+    ImGuiWrapper::pop_menu_style();
+}
+
+void PlateArrangementDialog::render_plates_menu(const ImVec2& pos)
+{
+    ImGui::SetNextWindowPos(pos, ImGuiCond_Appearing);
+    ImGuiWrapper::push_menu_style(m_parent.get_scale());
+    if (ImGui::BeginPopup("##plates_menu", ImGuiWindowFlags_NoMove)) {
+        // Lowercased, without a trailing number and the separators before it, so "Plate 01", "plate 5" and "Plate-12"
+        // are similar. Empty for an unnamed plate or a name that is only a number.
+        auto name_stem = [](std::string name) {
+            while (!name.empty() && std::strchr("0123456789 -_.#()[]", name.back()) != nullptr)
+                name.pop_back();
+            std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return char(std::tolower(c)); });
+            return name;
+        };
+        std::set<std::string> stems; // of the selected plates' names
+        for (PartPlate* plate : m_selection)
+            if (std::string stem = name_stem(plate->get_plate_name()); !stem.empty())
+                stems.insert(std::move(stem));
+        std::set<PartPlate*> empty, filled, inverse, similar;
+        for (int i = 0; i < m_plate_count; ++i) {
+            PartPlate* plate = m_plate_list->get_plate(i);
+            (plate->empty() ? empty : filled).insert(plate);
+            if (!is_selected(plate))
+                inverse.insert(plate);
+            if (stems.count(name_stem(plate->get_plate_name())))
+                similar.insert(plate);
+        }
+        // As a Ctrl + click does, without moving the canvas to another plate.
+        auto select_plates = [this](const std::set<PartPlate*>& plates) {
+            m_selection = plates;
+            m_anchor = m_cursor = *std::min_element(plates.begin(), plates.end(), [](PartPlate* a, PartPlate* b) { return a->get_index() < b->get_index(); });
+        };
+        if (menu_item_with_icon(_u8L("Select empty plates").c_str(), "", ImVec2(0.f, 0.f), 0, false, !empty.empty()))
+            select_plates(empty);
+        if (menu_item_with_icon(_u8L("Select non-empty plates").c_str(), "", ImVec2(0.f, 0.f), 0, false, !filled.empty()))
+            select_plates(filled);
+        if (menu_item_with_icon(_u8L("Inverse selection").c_str(), "", ImVec2(0.f, 0.f), 0, false, !inverse.empty()))
+            select_plates(inverse);
+        if (menu_item_with_icon(_u8L("Select plates with similar name").c_str(), "", ImVec2(0.f, 0.f), 0, false, !similar.empty()))
+            select_plates(similar);
+        ImGui::EndPopup();
+    }
+    ImGuiWrapper::pop_menu_style();
 }
 
 void PlateArrangementDialog::create_gui_cfg()
@@ -609,7 +763,7 @@ void PlateArrangementDialog::create_gui_cfg()
     cfg.frame_rounding  = px(3.f);
     cfg.title_height    = px(26.f);
     cfg.close_width     = std::round(std::max(px(60.f), m_imgui->calc_text_size(_L("Close")).x)  + px(20.f));
-    cfg.choose_width    = std::round(std::max(px(60.f), std::max(m_imgui->calc_text_size(_L("Remove")).x, m_imgui->calc_text_size(_L("Add")).x)) + px(20.f));
+    cfg.choose_width    = std::round(std::max(px(60.f), std::max({ m_imgui->calc_text_size(_L("Remove")).x, m_imgui->calc_text_size(_L("Add")).x, m_imgui->calc_text_size(_L("Apply")).x })) + px(20.f));
     cfg.button_size     = px(26.f);
     cfg.button_padding  = cfg.frame_rounding; // image_button() rounds its corners by at most the padding
     cfg.item_spacing    = px(4.f);
@@ -832,6 +986,21 @@ std::vector<int> PlateArrangementDialog::order_after_drop(int insert_index) cons
     const auto pos = std::count_if(rest.begin(), rest.end(), [insert_index](int i) { return i < insert_index; });
     rest.insert(rest.begin() + pos, moving.begin(), moving.end());
     return rest;
+}
+
+std::vector<int> PlateArrangementDialog::order_by_name() const
+{
+    std::vector<std::string> names(static_cast<size_t>(m_plate_count));
+    for (size_t i = 0; i < names.size(); ++i)
+        names[i] = m_plate_list->get_plate(int(i))->get_plate_name();
+    std::vector<int> order(names.size());
+    std::iota(order.begin(), order.end(), 0);
+    std::stable_sort(order.begin(), order.end(), [&names](int a, int b) {
+        if (names[a].empty() || names[b].empty())
+            return !names[a].empty() && names[b].empty();
+        return compare_ascii_case_insensitive_natural(names[a], names[b]) < 0;
+    });
+    return order;
 }
 
 bool PlateArrangementDialog::is_identity(const std::vector<int>& order)
