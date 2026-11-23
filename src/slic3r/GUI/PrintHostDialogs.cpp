@@ -806,7 +806,7 @@ void FlashforgePrintHostSendDialog::init()
 
     const std::string printer_model = wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_string("printer_model");
     if (printer_model == "Flashforge Creator 5" || printer_model == "Flashforge Creator 5 Pro") {
-        add_option_checkbox(m_flashforge_options_sizer, _L("Flow Calibration"), m_flow_calibration,
+        add_option_checkbox(m_flashforge_options_sizer, _L("Flow calibration"), m_flow_calibration,
                             [this](bool checked) { m_flow_calibration = checked; });
     }
 
