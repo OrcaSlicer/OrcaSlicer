@@ -32,9 +32,88 @@ struct Metrics
     // Outlines and dividers stay one physical pixel whatever the scale.
     float outline{1.f};
 
+    float control_radius{px(Radius::sm)};
+    float control_height{whole_px(TextRole::body.leading, space<4>())};
     float control_padding{px(space<8>())};
+    // Each side of a button's label.
+    float button_padding{px(space<12>())};
+    // A small button, as the reset in a row of tabs.
+    float small_button{whole_px(TextRole::body.leading)};
+    float small_button_padding{px(space<6>())};
+    float small_button_radius{px(Radius::sm)};
+    float small_button_icon{px(icon_size<12>())};
+    float button_icon_gap{px(space<4>())};
+    float focus_ring{px(Stroke::md)};
     // Between components stacked in a card.
     float item_gap{whole_px(space<4>())};
+    // Between components side by side in a row, and from a row to the card's edge.
+    float inline_gap{px(space<4>())};
+
+    float toggle_gap{whole_px(space<2>())};
+    float toggle_radius{px(Radius::md)};
+    // Each side of a segment's label.
+    float toggle_padding{px(space<8>())};
+    // How far the shadow of the selected segment drops under it.
+    float toggle_pressed_drop{px(space<1>())};
+    float field_height{whole_px(TextRole::body.leading, space<8>())};
+    float field_gap{px(space<12>())};
+    float field_label_top{px(space<2>())};
+    float field_label_gap{whole_px(space<6>())};
+    float field_stack_bottom{whole_px(space<4>())};
+    // Folder tabs on the bottom edge of a row.
+    float tabs_list_height{whole_px(TextRole::body.leading, space<12>())};
+    float tab_height{whole_px(TextRole::body.leading, space<6>())};
+    float tab_padding{px(space<12>())};
+    float tab_gap{px(space<2>())};
+    float tab_radius{px(Radius::md)};
+    // From the ends of a tabs bar to its tabs and to its reset button.
+    float tabs_bar_left{px(space<4>())};
+    float tabs_bar_right{px(space<6>())};
+    float switch_width{px(space<28>())};
+    float switch_height{px(space<16>())};
+    float switch_text_padding{whole_px(space<4>())};
+    float switch_thumb_inset{px(space<2>())};
+    float switch_thumb_drop{px(space<1>())};
+
+    float icon_button{px(space<32>())};
+    float icon_button_radius{px(Radius::md)};
+    float button_icon{px(icon_size<18>())};
+    float icon_button_gap{px(space<2>())};
+    float menu_indicator{px(space<6>())};
+    float menu_indicator_inset{px(space<4>())};
+
+    float menu_radius{px(Radius::lg)};
+    float menu_padding_x{px(space<4>())};
+    float menu_padding_y{px(space<6>())};
+    float menu_row{whole_px(TextRole::body.leading, space<8>())};
+    float menu_row_radius{nested_radius(menu_radius, menu_padding_x)};
+    float menu_mark_center{px(space<16>())};
+    float menu_text_left{px(space<32>())};
+    float menu_key_gap{px(space<24>())};
+    float menu_key_right{px(space<10>())};
+    // From the edge of a row to a group label.
+    float menu_label_inset{px(space<10>())};
+    // From the edge of a row to its text, on the right and, when no item has a mark, on the left.
+    float menu_text_inset{px(space<14>())};
+    float menu_group_label{whole_px(TextRole::body.leading, space<4>())};
+    // From the bottom of a group label to the bottom of its text.
+    float group_label_baseline{px(space<2>())};
+    float menu_icon{px(icon_size<16>())};
+    float radio_outer{px(space<6>())};
+    float radio_inner{.5f * px(space<6>())};
+    float radio_stroke{px(Stroke::md)};
+    float menu_separator{whole_px(space<8>())};
+    float popup_side_offset{px(space<8>())};
+
+    float collapsible_content_top{px(space<4>())};
+    float collapsible_content_bottom{px(space<6>())};
+
+    float tooltip_text{px(TextRole::label.size)};
+    float tooltip_max_width{px(space<260>())};
+    float tooltip_padding_x{px(space<12>())};
+    float tooltip_padding_y{px(space<6>())};
+    float tooltip_radius{px(Radius::md)};
+    float tooltip_key_gap{px(space<8>())};
 };
 
 } // namespace CanvasUi
