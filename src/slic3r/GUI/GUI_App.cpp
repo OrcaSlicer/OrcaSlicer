@@ -3620,10 +3620,8 @@ bool GUI_App::on_init_inner()
         wxYield();
     }
 
-    // Initialize plugins after network then register on_load callbacks so once the plugin loads finish, it gets registered automatically.
-    // initialize() also installs the libslic3r hooks (capability resolver,
-    // slicing-pipeline dispatcher) via plugin_hooks::install() -- no
-    // per-capability wiring belongs here.
+    // initialize() installs the libslic3r hooks (capability resolver, slicing-pipeline dispatcher)
+    // through plugin_hooks::install(), so per-capability wiring does not belong here.
     PluginManager& plugin_mgr = PluginManager::instance();
     plugin_mgr.initialize();
 
@@ -3640,13 +3638,6 @@ bool GUI_App::on_init_inner()
 
     // Subscribe to the plugin loader and enumerate current actions (UI thread, once).
     m_action_registry->init();
-
-    for (const std::string& plugin_key : plugin_mgr.get_enabled_plugin_keys()) {
-        if (!plugin_mgr.is_plugin_loaded(plugin_key)) {
-            plugin_mgr.load_plugin(plugin_key, false);
-            BOOST_LOG_TRIVIAL(info) << "Auto-loading plugin on startup: " << plugin_key;
-        }
-    }
 
     copy_network_if_available();
     on_init_network();
@@ -3799,6 +3790,15 @@ bool GUI_App::on_init_inner()
         plater_->reset_project_dirty_initial_presets();
         plater_->update_project_dirty_from_presets();
         plater_->get_partplate_list().set_filament_count(preset_bundle->filament_presets.size());
+    }
+
+    // Plugin code runs on the load thread and may read the presets, so start the loads only once
+    // the presets are loaded and selected.
+    for (const std::string& plugin_key : plugin_mgr.get_enabled_plugin_keys()) {
+        if (!plugin_mgr.is_plugin_loaded(plugin_key)) {
+            plugin_mgr.load_plugin(plugin_key, false);
+            BOOST_LOG_TRIVIAL(info) << "Auto-loading plugin on startup: " << plugin_key;
+        }
     }
 
     // BBS:
