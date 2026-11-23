@@ -383,7 +383,7 @@ void PlateArrangementDialog::render_drag_preview() const
         return;
     // The first dragged plate in plate order.
     PartPlate* lead = *std::min_element(m_selection.begin(), m_selection.end(),
-                                        [](const PartPlate* a, const PartPlate* b) { return a->get_index() < b->get_index(); });
+                                        [](PartPlate* a, PartPlate* b) { return a->get_index() < b->get_index(); });
 
     const float  size = cell_size(grid_columns(m_plate_count)) * cfg.ghost_scale;
     const ImVec2 pmin = ImGui::GetIO().MousePos - m_drag.grab_offset * cfg.ghost_scale;
