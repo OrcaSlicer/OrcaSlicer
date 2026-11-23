@@ -93,6 +93,7 @@ public:
     void SetKoefForLabels(const double koef) { m_label_koef = koef; }
     void SetSliderValues(const std::vector<double> &values);
     void SetSliderAlternateValues(const std::vector<double> &values) { m_alternate_values = values; }
+    const std::vector<double> &GetSliderAlternateValues() const { return m_alternate_values; }
 
     CustomGCode::Info GetTicksValues() const;
     void SetTicksValues(const CustomGCode::Info &custom_gcode_per_print_z);

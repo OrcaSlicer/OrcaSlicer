@@ -7,6 +7,8 @@ include(PrecompiledHeader)
 set(SLIC3R_CANVAS_PANEL_SOURCES
     GUI/AllPlatesStatsPanel.cpp
     GUI/AllPlatesStatsPanel.hpp
+    GUI/GCodePanel.cpp
+    GUI/GCodePanel.hpp
     GUI/GCodePanelText.cpp
     GUI/GCodePanelText.hpp
     GUI/LegendAxis.cpp

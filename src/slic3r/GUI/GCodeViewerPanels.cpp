@@ -3,10 +3,19 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <optional>
 #include <vector>
 
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libvgcode/include/PathVertex.hpp"
+#include "libvgcode/include/Types.hpp"
+#include "libvgcode/include/Viewer.hpp"
+#include "slic3r/GUI/GCodePanelText.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/IMSlider.hpp"
 #include "slic3r/GUI/PreviewOverlayLayout.hpp"
 #include "slic3r/GUI/PreviewPanelSlots.hpp"
 #include "slic3r/GUI/CanvasUi/Context.hpp"
@@ -28,6 +37,72 @@ bool GCodeViewer::is_panel_shown(PreviewPanel panel) const
     case PreviewPanel::Count: break;
     }
     return false;
+}
+
+// The first vertex of the line or, if the line moves nothing, of the next line that does; the vertex count past the last.
+static size_t first_vertex_from_line(const libvgcode::Viewer& viewer, uint64_t line)
+{
+    size_t lo = 0;
+    size_t hi = viewer.get_vertices_count();
+    while (lo < hi) {
+        const size_t mid = lo + (hi - lo) / 2;
+        if (viewer.get_vertex_at(mid).gcode_id < line)
+            lo = mid + 1;
+        else
+            hi = mid;
+    }
+    return lo;
+}
+
+void GCodeViewer::bind_gcode_panel()
+{
+    m_sequential_view.gcode_window.load_settings(*wxGetApp().app_config);
+    m_sequential_view.gcode_window.save_settings = [](const GCodePanelSettings& settings) {
+        save_gcode_panel_settings(*wxGetApp().app_config, settings);
+    };
+    m_sequential_view.gcode_window.collapse.save = [](bool collapsed) {
+        save_preview_panel_collapsed(*wxGetApp().app_config, PreviewPanel::GCode, collapsed);
+    };
+    m_sequential_view.gcode_window.line_color = [this](uint64_t line) -> std::optional<CanvasUi::Color> {
+        const size_t vertex = first_vertex_from_line(m_viewer, line);
+        if (vertex == m_viewer.get_vertices_count())
+            return std::nullopt;
+        const libvgcode::PathVertex& v = m_viewer.get_vertex_at(vertex);
+        if (v.gcode_id != line)
+            return std::nullopt;
+        const libvgcode::EOptionType option = libvgcode::move_type_to_option(v.type);
+        if (!v.is_extrusion() && option == libvgcode::EOptionType::COUNT)
+            return std::nullopt;
+        const libvgcode::Color& c = v.is_extrusion() && !v.is_wipe() ? m_viewer.get_extrusion_role_color(v.role) : m_viewer.get_option_color(option);
+        return CanvasUi::Color::from_bytes(c[0], c[1], c[2]);
+    };
+    m_sequential_view.gcode_window.go_to_line = [this](uint64_t line) {
+        const size_t vertex = first_vertex_from_line(m_viewer, line);
+        if (vertex == m_viewer.get_vertices_count())
+            return;
+        const libvgcode::PathVertex& v = m_viewer.get_vertex_at(vertex);
+        const int                    layer = int(v.layer_id);
+        if (m_layers_slider->GetLowerValue() > layer)
+            m_layers_slider->SetLowerValue(layer);
+        m_layers_slider->SetHigherValue(layer);
+        m_layers_slider->set_as_dirty();
+        m_pending_gcode_id = v.gcode_id;
+        CanvasUi::Context::current()->request_frame();
+    };
+}
+
+// The move slider follows a jump to a line once the layer slider has taken the layer, which loads that layer's moves.
+void GCodeViewer::apply_pending_gcode_jump()
+{
+    if (!m_pending_gcode_id || m_layers_slider->is_dirty())
+        return;
+    const std::vector<double>& ids = m_moves_slider->GetSliderAlternateValues();
+    const auto                 it  = std::lower_bound(ids.begin(), ids.end(), double(*m_pending_gcode_id));
+    if (it != ids.end()) {
+        m_moves_slider->SetHigherValue(int(it - ids.begin()));
+        m_moves_slider->set_as_dirty();
+    }
+    m_pending_gcode_id.reset();
 }
 
 PreviewPanelPlacement GCodeViewer::panel_place(PreviewPanel panel, const PreviewOverlayLayout& layout) const

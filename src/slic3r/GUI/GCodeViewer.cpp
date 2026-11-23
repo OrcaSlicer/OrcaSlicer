@@ -858,247 +858,6 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
     ImGui::PopStyleColor(2);
 }
 
-void GCodeViewer::SequentialView::GCodeWindow::load_gcode(const std::string& filename, const std::vector<size_t> &lines_ends)
-{
-    assert(! m_file.is_open());
-    if (m_file.is_open())
-        return;
-
-    m_filename   = filename;
-    m_lines_ends = lines_ends;
-
-    m_selected_line_id = 0;
-    m_last_lines_size = 0;
-
-    try
-    {
-        m_file.open(boost::filesystem::path(m_filename));
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": mapping file " << m_filename;
-    }
-    catch (...)
-    {
-        BOOST_LOG_TRIVIAL(error) << "Unable to map file " << m_filename << ". Cannot show G-code window.";
-        reset();
-    }
-}
-
-// Byte offset just past the first count characters of str, or its length if it is shorter.
-static size_t utf8_offset(const std::string& str, size_t count)
-{
-    const char* const begin = str.c_str();
-    const char* const end   = begin + str.size();
-    const char*       pos   = begin;
-    for (size_t i = 0; i < count && pos < end; ++i) {
-        unsigned int codepoint = 0;
-        pos += ImTextCharFromUtf8(&codepoint, pos, end);
-    }
-    return pos - begin;
-}
-
-//BBS: GUI refactor: move to right
-void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, float right, uint64_t curr_line_id) const
-{
-    // Orca: truncate long lines(>55 characters), add "..." at the end
-    auto update_lines = [this](uint64_t start_id, uint64_t end_id) {
-        std::vector<Line> ret;
-        ret.reserve(end_id - start_id + 1);
-        // Orca: m_lines_ends indexes into a memory mapping, so it must be clamped to the mapping. If the
-        // file was modified behind our back (an in-place post-processing script that shrank it), an
-        // unchecked read is an access violation, which the caller's try/catch cannot catch on Windows.
-        const size_t file_size = m_file.size();
-        for (uint64_t id = start_id; id <= end_id; ++id) {
-            // read line from file
-            // Keep one entry per id: render() indexes m_lines by (id - start_id).
-            const size_t start = id == 1 ? 0 : std::min(m_lines_ends[id - 2], file_size);
-            const size_t end   = std::min(m_lines_ends[id - 1], file_size);
-            const size_t original_len = end > start ? end - start : 0;
-            // A character is four bytes at most, so 55 of them always fit in 220.
-            const size_t len          = std::min(original_len, (size_t) 55 * 4);
-            std::string  gline(m_file.data() + start, len);
-
-            // If original line is longer than 55 characters, truncate and append "...".
-            // The cut must land on a character boundary or it leaves half a character behind.
-            if (len < original_len || utf8_offset(gline, 55) < gline.size())
-                gline = gline.substr(0, utf8_offset(gline, 52)) + "...";
-
-            std::string command, parameters, comment;
-            const size_t comment_start = gline.find(';');
-            if (comment_start == std::string::npos)
-                command = gline;
-            else {
-                command = gline.substr(0, comment_start);
-                comment = gline.substr(comment_start);
-            }
-
-            // extract gcode command and parameters
-            if (!command.empty()) {
-                std::vector<std::string> tokens;
-                boost::split(tokens, command, boost::is_any_of(" "), boost::token_compress_on);
-                command = tokens.front();
-                if (tokens.size() > 1) {
-                    for (size_t i = 1; i < tokens.size(); ++i) {
-                        parameters += " " + tokens[i];
-                    }
-                }
-            }
-            ret.push_back({command, parameters, comment});
-        }
-        return ret;
-    };
-
-    static const ImVec4 LINE_NUMBER_COLOR    = ImGuiWrapper::COL_ORANGE_LIGHT;
-    static const ImVec4 SELECTION_RECT_COLOR = ImGuiWrapper::COL_ORANGE_DARK;
-    static const ImVec4 COMMAND_COLOR        = {0.8f, 0.8f, 0.0f, 1.0f};
-    static const ImVec4 PARAMETERS_COLOR     = { 1.0f, 1.0f, 1.0f, 1.0f };
-    static const ImVec4 COMMENT_COLOR        = { 0.7f, 0.7f, 0.7f, 1.0f };
-
-    if (!wxGetApp().show_gcode_window() || m_filename.empty() || m_lines_ends.empty() || curr_line_id == 0)
-        return;
-
-    // window height
-    const float wnd_height = bottom - top;
-
-    // number of visible lines
-    const float text_height = ImGui::CalcTextSize("0").y;
-    const ImGuiStyle& style = ImGui::GetStyle();
-    const uint64_t lines_count = static_cast<uint64_t>((wnd_height - 2.0f * style.WindowPadding.y + style.ItemSpacing.y) / (text_height + style.ItemSpacing.y));
-
-    if (lines_count == 0)
-        return;
-
-    // visible range
-    const uint64_t half_lines_count = lines_count / 2;
-    uint64_t start_id = (curr_line_id >= half_lines_count) ? curr_line_id - half_lines_count : 0;
-    uint64_t end_id = start_id + lines_count - 1;
-    if (end_id >= static_cast<uint64_t>(m_lines_ends.size())) {
-        end_id = static_cast<uint64_t>(m_lines_ends.size()) - 1;
-        start_id = end_id - lines_count + 1;
-    }
-
-    // updates list of lines to show, if needed
-    if (m_selected_line_id != curr_line_id || m_last_lines_size != end_id - start_id + 1) {
-        try
-        {
-            *const_cast<std::vector<Line>*>(&m_lines) = update_lines(start_id, end_id);
-        }
-        catch (...)
-        {
-            BOOST_LOG_TRIVIAL(error) << "Error while loading from file " << m_filename << ". Cannot show G-code window.";
-            return;
-        }
-        *const_cast<uint64_t*>(&m_selected_line_id) = curr_line_id;
-        *const_cast<size_t*>(&m_last_lines_size) = m_lines.size();
-    }
-
-    // line number's column width
-    const float id_width = ImGui::CalcTextSize(std::to_string(end_id).c_str()).x;
-
-    float required_width = 0.0f;
-    { // --- Compute required G-code window width ---
-        float max_text_width = id_width;
-        for (const Line& line : m_lines) {
-            float w = 0.0f;
-
-            if (!line.command.empty())
-                w += ImGui::CalcTextSize(line.command.c_str()).x;
-
-            if (!line.parameters.empty())
-                w += ImGui::CalcTextSize(line.parameters.c_str()).x;
-
-            if (!line.comment.empty())
-                w += ImGui::CalcTextSize(line.comment.c_str()).x;
-
-            // spacing between segments
-            w += 3 * ImGui::GetStyle().ItemSpacing.x;
-
-            if (w > max_text_width)
-                max_text_width = w;
-        }
-
-        required_width = id_width + max_text_width;
-    }
-
-    ImGuiWrapper& imgui = *wxGetApp().imgui();
-
-    //BBS: GUI refactor: move to right
-    imgui.set_next_window_pos(right, top + 6 * m_scale, ImGuiCond_Always, 1.0f, 0.0f); // ORCA add a small gap between legend and code viewer
-    ImGui::SetNextWindowSize(ImVec2(required_width, wnd_height), ImGuiCond_Always);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f * m_scale); // ORCA add window rounding to modernize / match style
-    ImGui::SetNextWindowBgAlpha(0.8f);
-    imgui.begin(std::string("G-code"), ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
-
-    // center the text in the window by pushing down the first line
-    const float f_lines_count = static_cast<float>(lines_count);
-    ImGui::SetCursorPosY(0.5f * (wnd_height - f_lines_count * text_height - (f_lines_count - 1.0f) * style.ItemSpacing.y));
-
-    // render text lines
-    for (uint64_t id = start_id; id <= end_id; ++id) {
-        const Line& line = m_lines[id - start_id];
-
-        // rect around the current selected line
-        if (id == curr_line_id) {
-            //BBS: GUI refactor: move to right
-            const float pos_y = ImGui::GetCursorScreenPos().y;
-            const float pos_x = ImGui::GetCursorScreenPos().x;
-            const float half_ItemSpacing_y = 0.5f * style.ItemSpacing.y;
-            const float half_ItemSpacing_x = 0.5f * style.ItemSpacing.x;
-            //ImGui::GetWindowDrawList()->AddRect({ half_padding_x, pos_y - half_ItemSpacing_y },
-            //    { ImGui::GetCurrentWindow()->Size.x - half_padding_x, pos_y + text_height + half_ItemSpacing_y },
-            //    ImGui::GetColorU32(SELECTION_RECT_COLOR));
-            ImGui::GetWindowDrawList()->AddRect({ pos_x - half_ItemSpacing_x, pos_y - half_ItemSpacing_y },
-                { right - half_ItemSpacing_x, pos_y + text_height + half_ItemSpacing_y },
-                ImGui::GetColorU32(SELECTION_RECT_COLOR));
-        }
-
-        // render line number
-        const std::string id_str = std::to_string(id);
-        // spacer to right align text
-        ImGui::Dummy({ id_width - ImGui::CalcTextSize(id_str.c_str()).x, text_height });
-        ImGui::SameLine(0.0f, 0.0f);
-        ImGui::PushStyleColor(ImGuiCol_Text, LINE_NUMBER_COLOR);
-        imgui.text(id_str);
-        ImGui::PopStyleColor();
-
-        if (!line.command.empty() || !line.comment.empty())
-            ImGui::SameLine();
-
-        // render command
-        if (!line.command.empty()) {
-            ImGui::PushStyleColor(ImGuiCol_Text, COMMAND_COLOR);
-            imgui.text(line.command);
-            ImGui::PopStyleColor();
-        }
-
-        // render parameters
-        if (!line.parameters.empty()) {
-            ImGui::SameLine(0.0f, 0.0f);
-            ImGui::PushStyleColor(ImGuiCol_Text, PARAMETERS_COLOR);
-            imgui.text(line.parameters);
-            ImGui::PopStyleColor();
-        }
-
-        // render comment
-        if (!line.comment.empty()) {
-            if (!line.command.empty())
-                ImGui::SameLine(0.0f, 0.0f);
-            ImGui::PushStyleColor(ImGuiCol_Text, COMMENT_COLOR);
-            imgui.text(line.comment);
-            ImGui::PopStyleColor();
-        }
-    }
-
-    imgui.end();
-    ImGui::PopStyleVar();
-}
-
-void GCodeViewer::SequentialView::GCodeWindow::stop_mapping_file()
-{
-    //BBS: add log to trace the gcode file issue
-    if (m_file.is_open()) {
-        m_file.close();
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": finished mapping file " << m_filename;
-    }
-}
 void GCodeViewer::SequentialView::render_marker(const bool has_render_path, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type)
 {
     if (has_render_path && m_show_marker) {
@@ -1114,8 +873,12 @@ void GCodeViewer::SequentialView::render_overlay(const bool has_render_path, con
 {
     marker.render_position_window(has_render_path ? viewer : nullptr, layout, move_number, move_count, view_type);
 
-    if (has_render_path)
-        gcode_window.render(gcode_place.top, std::max(gcode_place.top + 10.f, gcode_place.bottom), gcode_place.x, gcode_id);
+    if (has_render_path && wxGetApp().show_gcode_window()) {
+        const CanvasUi::Rect& code   = gcode_window.last_rect();
+        const float           bottom = code.width() > 0.f ? layout.bottom_clear_of(marker.panel_rect(), code.left, code.right, gcode_place.bottom) : gcode_place.bottom;
+        gcode_window.render(gcode_place, std::max(gcode_place.top + 10.f, bottom), gcode_id);
+    } else
+        gcode_window.hide();
 }
 
 GCodeViewer::GCodeViewer() : m_panels(std::make_unique<PreviewPanels>(*this))
@@ -1143,6 +906,7 @@ void GCodeViewer::init(ConfigOptionMode mode, PresetBundle* preset_bundle)
     if (m_gl_data_initialized)
         return;
 
+    bind_gcode_panel();
     m_panels->bind();
 
     // initializes tool marker
@@ -1196,7 +960,6 @@ void GCodeViewer::init(ConfigOptionMode mode, PresetBundle* preset_bundle)
 void GCodeViewer::on_change_color_mode(bool is_dark) {
     m_is_dark = is_dark;
     m_sequential_view.marker.on_change_color_mode(m_is_dark);
-    m_sequential_view.gcode_window.on_change_color_mode(m_is_dark);
 }
 
 void GCodeViewer::set_scale(float scale)
@@ -1205,7 +968,6 @@ void GCodeViewer::set_scale(float scale)
     if (m_sequential_view.m_scale != scale) {
         m_sequential_view.m_scale = scale;
         m_sequential_view.marker.m_scale = scale;
-        m_sequential_view.gcode_window.m_scale = scale; // ORCA
     }
 }
 
@@ -2629,11 +2391,15 @@ void GCodeViewer::set_clipping_plane(const ClippingPlane& plane)
 
 void GCodeViewer::render_overlay(int canvas_width, int canvas_height, const PreviewOverlayLayout& layout)
 {
+    apply_pending_gcode_jump();
     m_panels->render(layout);
 
     const int move_number = m_moves_slider->GetHigherValue() - m_moves_slider->GetMinValue() + 1;
     const int move_count  = m_moves_slider->GetMaxValue() - m_moves_slider->GetMinValue() + 1;
+    const libvgcode::Color& wipe = m_viewer.get_option_color(libvgcode::EOptionType::Wipes);
+    m_sequential_view.gcode_window.wipe_color = CanvasUi::Color::from_bytes(wipe[0], wipe[1], wipe[2]);
     m_sequential_view.render_overlay(!m_no_render_path, panel_place(PreviewPanel::GCode, layout), &m_viewer, m_viewer.get_current_vertex().gcode_id, layout, move_number, move_count, m_viewer.get_view_type());
+    panel_drawn(PreviewPanel::GCode, m_sequential_view.gcode_window.last_rect());
 
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     if (is_legend_shown()) {

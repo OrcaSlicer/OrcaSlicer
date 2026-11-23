@@ -7,13 +7,13 @@
 #include "IMSlider.hpp"
 #include "PreviewOverlayLayout.hpp"
 #include "PreviewPanelSlots.hpp"
+#include "GCodePanel.hpp"
 #include "CanvasUi/Types.hpp"
 #include <imgui/imgui.h>
 #include "GLModel.hpp"
 #include "I18N.hpp"
 
 #include <algorithm>
-#include <boost/iostreams/device/mapped_file.hpp>
 
 #include "LibVGCode/LibVGCodeWrapper.hpp"
 // needed for tech VGCODE_ENABLE_COG_AND_TOOL_MARKERS
@@ -136,55 +136,15 @@ public:
             void on_change_color_mode(bool is_dark) { m_is_dark = is_dark; }
         };
 
-        class GCodeWindow
-        {
-            struct Line
-            {
-                std::string command;
-                std::string parameters;
-                std::string comment;
-            };
-            bool m_is_dark = false;
-            uint64_t m_selected_line_id{ 0 };
-            size_t m_last_lines_size{ 0 };
-            std::string m_filename;
-            boost::iostreams::mapped_file_source m_file;
-            // map for accessing data in file by line number
-            std::vector<size_t> m_lines_ends;
-            // current visible lines
-            std::vector<Line> m_lines;
-
-        public:
-            float m_scale = 1.0f;
-            GCodeWindow() = default;
-            ~GCodeWindow() { stop_mapping_file(); }
-            void load_gcode(const std::string& filename, const std::vector<size_t> &lines_ends);
-            void reset() {
-                stop_mapping_file();
-                m_lines_ends.clear();
-                m_lines_ends.shrink_to_fit();
-                m_lines.clear();
-                m_lines.shrink_to_fit();
-                m_filename.clear();
-                m_filename.shrink_to_fit();
-            }
-
-            //BBS: GUI refactor: add canvas size
-            //void render(float top, float bottom, uint64_t curr_line_id) const;
-            void render(float top, float bottom, float right, uint64_t curr_line_id) const;
-            void on_change_color_mode(bool is_dark) { m_is_dark = is_dark; }
-
-            void stop_mapping_file();
-        };
 
         Marker marker;
         std::vector<Marker> m_imex_secondary_markers; // one per active secondary carriage in IDEX/IQEX mode
-        GCodeWindow gcode_window;
+        GCodePanel gcode_window;
         float m_scale = 1.0;
         bool m_show_marker = false;
         // The tool marker at the current move, drawn in 3D.
         void render_marker(const bool has_render_path, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
-        // The marker's position window and the G-code window, both ImGui.
+        // The marker's position window through ImGui and the G-code panel through CanvasUi.
         void render_overlay(const bool has_render_path, const PreviewPanelPlacement& gcode_place, const libvgcode::Viewer* viewer, uint32_t gcode_id, const PreviewOverlayLayout& layout, int move_number, int move_count, const libvgcode::EViewType& view_type);
     };
     struct ExtruderFilament
@@ -399,6 +359,7 @@ private:
     PreviewPanelSlots   m_panel_slots{DEFAULT_PREVIEW_PANEL_SLOTS};
     // Where each panel was drawn last; empty while it is hidden.
     std::array<CanvasUi::Rect, PREVIEW_PANEL_COUNT> m_panel_rects{};
+    std::optional<uint32_t> m_pending_gcode_id;
     // The legend, the print summary and what they point at, see PreviewPanels.
     friend class PreviewPanels;
     std::unique_ptr<PreviewPanels> m_panels;
@@ -458,7 +419,7 @@ public:
     // ORCA: the toolpaths of translucent filaments, blended over the scene, then the markers. render_scene() leaves both out.
     void render_translucent_toolpaths(int canvas_width, int canvas_height);
     bool has_overlay() const { return m_viewer.get_extrusion_roles_count() > 0; }
-    // The legend and the print summary through CanvasUi; the sliders, the marker's position window and the G-code window through ImGui.
+    // The legend, the print summary and the G-code panel through CanvasUi; the sliders and the marker's position window through ImGui.
     void render_overlay(int canvas_width, int canvas_height, const PreviewOverlayLayout& layout);
     const CanvasUi::Rect& get_move_panel_rect() const { return m_sequential_view.marker.panel_rect(); }
     const CanvasUi::Rect& get_legend_rect() const { return m_panel_rects[size_t(PreviewPanel::Legend)]; }
@@ -596,6 +557,8 @@ private:
 
 
     // The preview panels this viewer places and feeds, in GCodeViewerPanels.cpp.
+    void                  bind_gcode_panel();
+    void                  apply_pending_gcode_jump();
     bool                  is_panel_shown(PreviewPanel panel) const;
     PreviewPanelPlacement panel_place(PreviewPanel panel, const PreviewOverlayLayout& layout) const;
     void                  panel_drawn(PreviewPanel panel, const CanvasUi::Rect& rect);
