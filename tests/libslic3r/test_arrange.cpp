@@ -1109,3 +1109,67 @@ TEST_CASE("Arrange keeps relevant objects outside conditional exclusion obstacle
     }
     require_no_overlap(items);
 }
+
+TEST_CASE("Objects taller than the rod clearance stay out of the Y span of a compacted prime tower", "[Arrange]")
+{
+    // A tower spanning Y 180..240 at the right edge of the bed, with no extra growth on its polygon.
+    ArrangePolygon tower;
+    Polygon        outline;
+    outline.points       = {Point(scaled(180.), scaled(180.)), Point(scaled(240.), scaled(180.)), Point(scaled(240.), scaled(240.)), Point(scaled(180.), scaled(240.))};
+    tower.poly           = ExPolygon(outline);
+    tower.bed_idx        = 0;
+    tower.is_virt_object = true;
+    tower.is_wipe_tower  = true;
+
+    ArrangeParams params           = quiet_params(scaled(2.));
+    params.clearance_height_to_rod = 24.f;
+    params.clearance_dist_to_rod   = 40.f;
+    params.compacted_tower_growth  = 0;
+
+    // The pile gathers around the tower, so without the rule the objects end up beside it. A
+    // best_object_pos away from the bed centre, as some printer profiles set, must not carry the
+    // pile back into the span either.
+    for (const Vec2d &align_center : {Vec2d(0.5, 0.5), Vec2d(0.3, 0.5), Vec2d(0.7, 0.5), Vec2d(0.5, 0.7)}) {
+        INFO("best_object_pos " << align_center.x() << "x" << align_center.y());
+        params.align_center   = align_center;
+        ArrangePolygons items = squares(4, 40., 50.);
+        arrange(items, {tower}, bed(250, 250), params);
+
+        for (const ArrangePolygon &ap : items) {
+            REQUIRE(ap.bed_idx == 0);
+            CHECK(ap.transformed_poly().contour.bounding_box().max.y() <= scaled(180. - 40.));
+        }
+    }
+
+    // Objects that stay under the rod may share the span.
+    params.align_center = Vec2d(0.5, 0.5);
+    ArrangePolygons low = squares(4, 40., 10.);
+    arrange(low, {tower}, bed(250, 250), params);
+    CHECK(std::any_of(low.begin(), low.end(), [](const ArrangePolygon &ap) {
+        return ap.transformed_poly().contour.bounding_box().max.y() > scaled(180. - 40.);
+    }));
+}
+
+TEST_CASE("Objects no taller than the nozzle height only keep the nozzle cone from a compacted prime tower", "[Arrange]")
+{
+    // A K2: toolhead radius 64 mm, nozzle height 4 mm.
+    const double  toolhead_radius = 64.;
+    ArrangeParams params;
+    params.nozzle_height = 4.f;
+
+    ArrangePolygon keychain;
+    keychain.height = 3.;
+    ArrangePolygon at_nozzle_height;
+    at_nozzle_height.height = 4.;
+    ArrangePolygon tall;
+    tall.height = 30.;
+
+    using Catch::Matchers::WithinAbs;
+    CHECK_THAT(compacted_tower_arrange_clearance({keychain, at_nozzle_height}, params, toolhead_radius), WithinAbs(MAX_OUTER_NOZZLE_DIAMETER, EPSILON));
+    // The tower is one polygon for all the objects placed, so one taller object gives every one of
+    // them the toolhead radius.
+    CHECK_THAT(compacted_tower_arrange_clearance({keychain, tall}, params, toolhead_radius), WithinAbs(toolhead_radius, EPSILON));
+    CHECK_THAT(compacted_tower_arrange_clearance({tall}, params, toolhead_radius), WithinAbs(toolhead_radius, EPSILON));
+    // find_new_position() passes no objects.
+    CHECK_THAT(compacted_tower_arrange_clearance({}, params, toolhead_radius), WithinAbs(toolhead_radius, EPSILON));
+}
