@@ -15,6 +15,11 @@ class WebView
 {
 public:
     static wxWebView *CreateWebView(wxWindow *parent, wxString const &url);
+
+    // Turn off the Gamepad API in a web view. On Linux a page that asks for gamepads makes WebKitGTK
+    // enumerate HID devices through libmanette, which crashes OrcaSlicer on some devices; Orca never
+    // needs gamepads. A no-op elsewhere. CreateWebView already does this.
+    static void DisableGamepads(wxWebView *webView);
 #if wxUSE_WEBVIEW_EDGE
     static bool CheckWebViewRuntime();
     static bool DownloadAndInstallWebViewRuntime();

@@ -43,6 +43,7 @@
 #include "DeviceCore/DevDefs.h"
 #include <nlohmann/json.hpp>
 #include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/GUI/Widgets/WebView.hpp"
 #include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
 #include <boost/filesystem.hpp>
 
@@ -496,6 +497,7 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
         applied_size,
         wxWebViewBackendDefault,
         wxNO_BORDER);
+    WebView::DisableGamepads(m_webview);
 
     m_webview->AddScriptMessageHandler("wipingDialog");
     // The page's strings (resources/web/flush/WipingDialog.html), keyed by their T() ids.

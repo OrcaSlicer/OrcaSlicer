@@ -294,6 +294,49 @@ static WebViewRef *webview_ref(wxWebView *webView)
 }
 
 #ifdef __linux__
+#include <dlfcn.h>
+#endif
+
+void WebView::DisableGamepads(wxWebView *webView)
+{
+#ifdef __linux__
+    // The feature API is WebKitGTK 2.42+, and Orca declares the WebKitGTK calls it uses by hand rather
+    // than requiring a version, so look it up at runtime: an older WebKitGTK just keeps gamepads on.
+    using GetSettings       = void *(*)(void *web_view);
+    using GetAllFeatures    = void *(*)();
+    using ListLength        = gsize (*)(void *list);
+    using ListGet           = void *(*)(void *list, gsize index);
+    using ListUnref         = void (*)(void *list);
+    using FeatureId         = const char *(*)(void *feature);
+    using SetFeatureEnabled = void (*)(void *settings, void *feature, gboolean enabled);
+    static const auto get_settings = reinterpret_cast<GetSettings>(dlsym(RTLD_DEFAULT, "webkit_web_view_get_settings"));
+    static const auto all_features = reinterpret_cast<GetAllFeatures>(dlsym(RTLD_DEFAULT, "webkit_settings_get_all_features"));
+    static const auto list_length  = reinterpret_cast<ListLength>(dlsym(RTLD_DEFAULT, "webkit_feature_list_get_length"));
+    static const auto list_get     = reinterpret_cast<ListGet>(dlsym(RTLD_DEFAULT, "webkit_feature_list_get"));
+    static const auto list_unref   = reinterpret_cast<ListUnref>(dlsym(RTLD_DEFAULT, "webkit_feature_list_unref"));
+    static const auto feature_id   = reinterpret_cast<FeatureId>(dlsym(RTLD_DEFAULT, "webkit_feature_get_identifier"));
+    static const auto set_enabled  = reinterpret_cast<SetFeatureEnabled>(dlsym(RTLD_DEFAULT, "webkit_settings_set_feature_enabled"));
+    if (!webView || !get_settings || !all_features || !list_length || !list_get || !list_unref || !feature_id || !set_enabled)
+        return;
+    void *settings = get_settings(webView->GetNativeBackend());
+    if (!settings)
+        return;
+    void *features = all_features();
+    for (gsize i = 0; i < list_length(features); ++i) {
+        void *feature = list_get(features, i);
+        const char *id = feature_id(feature);
+        if (id && std::string(id) == "Gamepads") {
+            set_enabled(settings, feature, FALSE);
+            break;
+        }
+    }
+    list_unref(features);
+#else
+    (void) webView;
+#endif
+}
+
+#ifdef __linux__
 // WebKitGTK's own User-Agent with the tags the bundled pages (globalapi.js) and Bambu's cloud read
 // appended. wx's GTK backend cannot report the stock string, so it comes from a throwaway settings object.
 static wxString linux_user_agent()
@@ -364,6 +407,7 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
         webView->Create(parent, wxID_ANY, url2, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
 #ifdef __linux__
         webView->SetUserAgent(linux_user_agent());
+        DisableGamepads(webView);
 #else
         webView->SetUserAgent(wxString::Format("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) BBL-Slicer/v%s (%s) BBL-Language/%s",
                                                Slic3r::GUI::wxGetApp().get_bbl_client_version(), Slic3r::GUI::wxGetApp().dark_mode() ? "dark" : "light", language_code.mb_str()));
