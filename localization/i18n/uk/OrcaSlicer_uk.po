@@ -15533,13 +15533,13 @@ msgstr "Модифікатор «%2%» (%1%) обʼєкта «%3%» (усьог�
 
 # AI Translated
 #, boost-format
-msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "модифікатор \"%1%\" обʼєкта \"%2%\" не вплинув на шов (можливо, він не досягає осьової лінії надрукованого периметра)"
+msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam"
+msgstr "модифікатор \"%1%\" обʼєкта \"%2%\" не вплинув на шов"
 
 # AI Translated
 #, boost-format
-msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "модифікатор \"%1%\" обʼєкта \"%2%\" (усього %3%) не вплинув на шов (можливо, він не досягає осьової лінії надрукованого периметра)"
+msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam"
+msgstr "модифікатор \"%1%\" обʼєкта \"%2%\" (усього %3%) не вплинув на шов"
 
 # AI Translated
 msgid "Seam placement may differ from expected."
