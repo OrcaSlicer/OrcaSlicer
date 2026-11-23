@@ -9,6 +9,12 @@ set(SLIC3R_CANVAS_PANEL_SOURCES
     GUI/GCodePanelText.hpp
     GUI/LegendAxis.cpp
     GUI/LegendAxis.hpp
+    GUI/LegendModel.cpp
+    GUI/LegendModel.hpp
+    GUI/LegendPanel.cpp
+    GUI/LegendPanel.hpp
+    GUI/LegendScaleView.cpp
+    GUI/LegendScaleView.hpp
     GUI/LegendText.cpp
     GUI/LegendText.hpp
     GUI/Navigator3D.cpp
@@ -18,6 +24,8 @@ set(SLIC3R_CANVAS_PANEL_SOURCES
     GUI/GLCanvas3DNavigator.cpp
     GUI/PreviewOverlayLayout.cpp
     GUI/PreviewOverlayLayout.hpp
+    GUI/PreviewPanelParts.cpp
+    GUI/PreviewPanelParts.hpp
     GUI/PreviewPanelSlots.cpp
     GUI/PreviewPanelSlots.hpp
     GUI/PreviewMarks.cpp

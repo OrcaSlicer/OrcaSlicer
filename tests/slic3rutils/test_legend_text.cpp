@@ -5,7 +5,10 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "libslic3r/AppConfig.hpp"
+#include "slic3r/GUI/LegendModel.hpp"
+#include "slic3r/GUI/LegendScaleView.hpp"
 #include "slic3r/GUI/LegendText.hpp"
+#include "slic3r/GUI/CanvasUi/Alert.hpp"
 #include "libvgcode/include/Types.hpp"
 
 #include <algorithm>
@@ -207,6 +210,18 @@ TEST_CASE("Masses and lengths follow the unit system once", "[LegendText]")
     CHECK(legend_distance(12340.0, false, units) == "12.34 m");
 }
 
+TEST_CASE("A value of a scale takes its unit unless it is a time", "[LegendText]")
+{
+    LegendScale scale;
+    scale.unit = "mm/s";
+    CHECK(legend_with_unit(scale, legend_scale_value(scale, 12.345, 1, LegendUnits())) == "12.3 mm/s");
+    scale.unit.clear();
+    CHECK(legend_with_unit(scale, legend_scale_value(scale, 12.345, 1, LegendUnits())) == "12.3");
+    scale.unit  = "s";
+    scale.times = true;
+    CHECK(legend_with_unit(scale, legend_scale_value(scale, 75.0, 1, LegendUnits())) == legend_time(75.f, LegendUnits()));
+}
+
 TEST_CASE("Values keep the decimals of their mode", "[LegendText]")
 {
     CHECK(legend_value(9.0, legend_value_decimals(LegendMode::Jerk)) == "9.0");
@@ -384,4 +399,46 @@ TEST_CASE("Categories take no more decimals than they need, and none of them tel
     CHECK(legend_category_decimals({49.6f, 50.4f}, 0, false) == std::optional<int>(1));
     CHECK(legend_category_decimals({12.f, 15.f}, 1, true) == std::optional<int>(1));
     CHECK_FALSE(legend_category_decimals({12.2f, 12.4f}, 1, true).has_value());
+}
+
+TEST_CASE("The range filter lives only while the legend shows it on an open scale", "[LegendText]")
+{
+    LegendScale scale;
+    scale.palette = {CanvasUi::Color(0.f, 0.f, 0.f), CanvasUi::Color(1.f, 1.f, 1.f)};
+    scale.spread  = LegendSpread::Scale;
+    CHECK(legend_range_filter_shown(false, scale));
+    CHECK_FALSE(legend_range_filter_shown(true, scale));
+    scale.spread = LegendSpread::Few;
+    CHECK_FALSE(legend_range_filter_shown(false, scale));
+    scale.spread = LegendSpread::One;
+    CHECK_FALSE(legend_range_filter_shown(false, scale));
+    scale.spread = LegendSpread::Scale;
+    scale.palette.clear();
+    CHECK_FALSE(legend_range_filter_shown(false, scale));
+}
+
+TEST_CASE("The filter row of a histogram of layers gives the share of the layers", "[LegendText]")
+{
+    const std::string layers = legend_filter_text("10s–20s", .1, true);
+    const std::string time   = legend_filter_text("120–130 mm/s", .2, false);
+    CHECK(layers.find("10.0%") != std::string::npos);
+    CHECK(layers.find("of the layers") != std::string::npos);
+    CHECK(layers.find("of the time") == std::string::npos);
+    CHECK(time.find("of the time") != std::string::npos);
+}
+
+TEST_CASE("The note under a scale of flow warns only when some of the print runs at the limit", "[LegendText]")
+{
+    LegendScale scale;
+    scale.limits = {{12.f, {1}}};
+    scale.at_limit_share = 0.0;
+    const std::optional<CanvasUi::AlertOptions> none = legend_limit_note(scale, LegendUnits());
+    REQUIRE(none.has_value());
+    CHECK(none->variant == CanvasUi::AlertVariant::Info);
+    CHECK(none->text.find("capped") == std::string::npos);
+    scale.at_limit_share = .23;
+    const std::optional<CanvasUi::AlertOptions> some = legend_limit_note(scale, LegendUnits());
+    REQUIRE(some.has_value());
+    CHECK(some->variant == CanvasUi::AlertVariant::Warning);
+    CHECK(some->text.find("23") != std::string::npos);
 }
