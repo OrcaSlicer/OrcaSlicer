@@ -2398,8 +2398,12 @@ void SeamPlacer::place_seam(const Layer *layer, ExtrusionLoop &loop,
                                                               perimeter_point.perimeter.start_index :
                                                               seam_index + 1;
 
+    // At a hairpin (angle close to -pi) beta_angle is close to zero and the snap below would move the point
+    // millions of mm away, so such corners are treated like convex ones.
+    constexpr float min_concave_beta_angle = 0.05f; // corners sharper than about 174 degrees
     if ((seam_position - perimeter_point.position).squaredNorm() < depth && // seam is on perimeter point
-        perimeter_point.local_ccw_angle < -EPSILON // In concave angles
+        perimeter_point.local_ccw_angle < -EPSILON && // In concave angles
+        beta_angle > min_concave_beta_angle
     ) { // In this case, we are at internal perimeter, where the external perimeter has seam in concave angle. We want to align
                                                                             // the internal seam into the concave corner, and not on the perpendicular projection on the closest edge (which is what the split_at function does)
       Vec2f dir_to_middle =
@@ -2423,6 +2427,8 @@ void SeamPlacer::place_seam(const Layer *layer, ExtrusionLoop &loop,
     if (po->config().staggered_inner_seams && loop.length() > 0.0) {
       //fix depth, it is sometimes strongly underestimated
       depth = std::max(loop.paths[projected_point.path_idx].width, depth);
+      // Whole laps end where they started; dropping them keeps the walk below one lap. The walk measures in XY.
+      depth = std::fmod(depth, static_cast<float>(unscale<double>(loop.polygon().length())));
 
       while (depth > 0.0f) {
         auto next_point = get_next_loop_point(projected_point);
