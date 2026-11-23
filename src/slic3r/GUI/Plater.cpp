@@ -2789,12 +2789,8 @@ Sidebar::Sidebar(Plater *parent)
 {
     Choice::register_dynamic_list("support_filament", &dynamic_physical_filament_list);
     Choice::register_dynamic_list("support_interface_filament", &dynamic_physical_filament_list);
-    Choice::register_dynamic_list("outer_wall_filament_id", &dynamic_filament_list);
-    Choice::register_dynamic_list("inner_wall_filament_id", &dynamic_filament_list);
-    Choice::register_dynamic_list("sparse_infill_filament_id", &dynamic_filament_list);
-    Choice::register_dynamic_list("internal_solid_filament_id", &dynamic_filament_list);
-    Choice::register_dynamic_list("top_surface_filament_id", &dynamic_filament_list);
-    Choice::register_dynamic_list("bottom_surface_filament_id", &dynamic_filament_list);
+    for (const char *key : feature_filament_keys)
+        Choice::register_dynamic_list(key, &dynamic_filament_list);
     Choice::register_dynamic_list("brim_filament_id", &dynamic_physical_filament_list);
     Choice::register_dynamic_list("wipe_tower_filament", &dynamic_physical_filament_list);
 
@@ -5872,6 +5868,17 @@ void Sidebar::add_filament() {
     filament_list->Scroll(-1, INT_MAX); // ORCA scroll to end of list on changes to inform user about filament count
 }
 
+// Refresh the controls after the sidebar has rebuilt their list of available slots.
+static void update_print_tab_after_filament_change(bool process_changed)
+{
+    Tab *tab = wxGetApp().get_tab(Preset::TYPE_PRINT);
+    if (process_changed) {
+        tab->update_dirty();
+        tab->reload_config();
+    }
+    tab->update();
+}
+
 void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
     if (is_new_project_in_gcode3mf()) { return; }
     if (p->combos_filament.size() <= 1) return;
@@ -5909,14 +5916,23 @@ void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
     if (auto* opt = wxGetApp().preset_bundle->project_config.option<ConfigOptionBools>("filament_is_mixed"))
         is_mixed_snapshot = opt->values;
 
+    // Replacement is expressed in the list before deletion. Resolve its final index once.
+    if (replace_filament_id > int(filament_id))
+        --replace_filament_id;
+    std::map<int, int> slots{{int(filament_id), replace_filament_id}};
+    for (int i = int(filament_id) + 1; i < int(total_filaments); ++i)
+        slots.emplace(i, i - 1);
+    remap_model_filament_configs(wxGetApp().model(), slots, false);
+    const bool process_changed = remap_feature_filaments(wxGetApp().preset_bundle->prints.get_edited_preset().config, slots);
+
     wxGetApp().preset_bundle->update_num_filaments(filament_id);
 
     // filament_count only counts physical combos, so with mixed slots present it is not the
     // new number of slots; recompute from the shrunk preset list for the downstream updates.
     size_t total_after_delete = wxGetApp().preset_bundle->filament_presets.size();
     wxGetApp().plater()->get_partplate_list().on_filament_deleted(total_after_delete, filament_id);
-    wxGetApp().plater()->on_filaments_delete(total_after_delete, filament_id, replace_filament_id > (int)filament_id ? (replace_filament_id - 1) : replace_filament_id, is_mixed_snapshot);
-    wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
+    wxGetApp().plater()->on_filaments_delete(total_after_delete, filament_id, replace_filament_id, is_mixed_snapshot);
+    update_print_tab_after_filament_change(process_changed);
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
 
     wxGetApp().plater()->update();
@@ -5997,6 +6013,7 @@ void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_na
     std::string new_color      = new_col.GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
     bundle->set_num_filaments(filament_count, new_color);
 
+    bool process_changed = false;
     // Maintain physical-first ordering: rotate the new slot from end to insert_pos.
     // No mixed slots -> insert_pos == total -> every rotate below is a no-op.
     if (insert_pos < total) {
@@ -6040,21 +6057,16 @@ void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_na
             std::rotate(ams_mc.begin() + insert_pos, ams_mc.begin() + total, ams_mc.end());
 
         // Model configs and paint states store one-based filament slots.
-        const int threshold_1based = int(insert_pos + 1);
-        auto shift_extruder = [threshold_1based](ModelConfig &config) {
-            if (config.has("extruder") && config.extruder() >= threshold_1based)
-                config.set("extruder", config.extruder() + 1);
-        };
-        auto ebt_threshold = EnforcerBlockerType(threshold_1based);
-        for (auto* obj : wxGetApp().plater()->model().objects) {
-            shift_extruder(obj->config);
-            for (auto &[range, config] : obj->layer_config_ranges)
-                shift_extruder(config);
-            for (auto* vol : obj->volumes) {
-                shift_extruder(vol->config);
+        std::map<int, int> slots;
+        for (int i = int(insert_pos); i < int(total); ++i)
+            slots.emplace(i, i + 1);
+        Model &model = wxGetApp().model();
+        remap_model_filament_configs(model, slots, true);
+        process_changed = remap_feature_filaments(bundle->prints.get_edited_preset().config, slots);
+        auto ebt_threshold = EnforcerBlockerType(insert_pos + 1);
+        for (ModelObject *obj : model.objects)
+            for (ModelVolume *vol : obj->volumes)
                 vol->mmu_segmentation_facets.shift_states_above(*vol, ebt_threshold, +1);
-            }
-        }
     }
 
     if (!preset_name.empty() &&
@@ -6065,7 +6077,7 @@ void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_na
 
     wxGetApp().plater()->get_partplate_list().on_filament_added(filament_count);
     wxGetApp().plater()->on_filament_count_change(filament_count);
-    wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
+    update_print_tab_after_filament_change(process_changed);
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
     auto_calc_flushing_volumes(insert_pos);
 }

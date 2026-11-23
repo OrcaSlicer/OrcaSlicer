@@ -5245,7 +5245,7 @@ TEST_CASE("Published 3MF relocates the receiver's mixed filament past the incomi
         REQUIRE(colour.size() == 5);
         CHECK(colour[4] == "#800080");
         CHECK(colour[2] == "#FFFFFF");
-        CHECK(pub.mixed_slot_relocations.at(2) == 4);
+        CHECK(pub.mixed_slot_relocations.empty());
         bool relocated_reported = false;
         for (const std::string &message : pub.material_replacements)
             if (message.find("slot 2 -> slot 4") != std::string::npos &&
@@ -5293,6 +5293,11 @@ TEST_CASE("Published 3MF relocates the receiver's mixed filament past the incomi
         pub.published     = true;
         pub.material_keys = { make_real_entry(0, "#FF0000"), make_real_entry(1, "#000000"),
                               make_real_entry(2, "#0000FF"), mix };
+        auto &process = bundle.prints.get_edited_preset().config;
+        process.set("inner_wall_filament_id", 3);
+        config.set("outer_wall_filament_id", 4);
+        config.set("bottom_surface_filament_id", 3);
+        pub.published_keys = {"outer_wall_filament_id", "bottom_surface_filament_id"};
         Preset::normalize(config);
         bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
 
@@ -5308,8 +5313,10 @@ TEST_CASE("Published 3MF relocates the receiver's mixed filament past the incomi
         REQUIRE(components.size() == 5);
         CHECK(components[3] == "1,2");
         CHECK(components[4] == "1,3");
-        REQUIRE(pub.mixed_slot_relocations.size() == 2);
-        CHECK(pub.mixed_slot_relocations.at(2) == 3);
+        CHECK(process.opt_int("inner_wall_filament_id") == 4);      // Receiver's mix
+        CHECK(process.opt_int("outer_wall_filament_id") == 5);      // Author's mix
+        CHECK(process.opt_int("bottom_surface_filament_id") == 3);  // Author's physical filament
+        REQUIRE(pub.mixed_slot_relocations.size() == 1);
         CHECK(pub.mixed_slot_relocations.at(3) == 4);
         CHECK(pub.skipped_keys.empty());
     }
@@ -5371,9 +5378,7 @@ TEST_CASE("Published 3MF rebalances several receiver mixed slots past the physic
     REQUIRE(components.size() == 5);
     CHECK(components[3] == "1,2");
     CHECK(components[4] == "1,3");
-    REQUIRE(pub.mixed_slot_relocations.size() == 2);
-    CHECK(pub.mixed_slot_relocations.at(1) == 3);
-    CHECK(pub.mixed_slot_relocations.at(2) == 4);
+    CHECK(pub.mixed_slot_relocations.empty());
     CHECK(pub.skipped_keys.empty());
 }
 
