@@ -706,7 +706,9 @@ public:
     enum ECursorType : unsigned char
     {
         Standard,
-        Cross
+        Cross,
+        // ORCA: over a panel's part that drags sideways, as the edges of the legend's range
+        ResizeHorizontal
     };
 
     struct ArrangeSettings

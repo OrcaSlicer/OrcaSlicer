@@ -3479,6 +3479,23 @@ void MainFrame::init_menubar_as_editor()
             this, [this]() { return m_tabpanel->GetSelectedPageName() == TAB_ID_PREVIEW; },
             []() { return wxGetApp().show_gcode_window(); }, this);
         m_shortcut_menu_items.push_back({ gcode_window, Shortcut::ToggleGcodeWindow, _L("Show &G-code Window"), true });
+        wxMenuItem* legend = append_menu_check_item(viewMenu, wxID_ANY, shortcut_label(_L("Show Legend"), Shortcut::ToggleLegend, true), _L("Show the legend in Preview scene."),
+            [this](wxCommandEvent &) {
+                wxGetApp().toggle_show_legend();
+                m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT));
+            },
+            this, [this]() { return m_tabpanel->GetSelectedPageName() == TAB_ID_PREVIEW; },
+            []() { return wxGetApp().show_legend(); }, this);
+        m_shortcut_menu_items.push_back({ legend, Shortcut::ToggleLegend, _L("Show Legend"), true });
+        wxMenuItem* summary = append_menu_check_item(viewMenu, wxID_ANY, shortcut_label(_L("Show Print Summary"), Shortcut::TogglePrintSummary, true),
+            _L("Show the print summary in Preview scene."),
+            [this](wxCommandEvent &) {
+                wxGetApp().toggle_show_print_summary();
+                m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT));
+            },
+            this, [this]() { return m_tabpanel->GetSelectedPageName() == TAB_ID_PREVIEW; },
+            []() { return wxGetApp().show_print_summary(); }, this);
+        m_shortcut_menu_items.push_back({ summary, Shortcut::TogglePrintSummary, _L("Show Print Summary"), true });
 
         append_menu_check_item(viewMenu, wxID_ANY, _L("Show Gridlines"), _L("Show Gridlines on plate"),
             [this](wxCommandEvent&) {

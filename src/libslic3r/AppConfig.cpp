@@ -404,6 +404,10 @@ void AppConfig::set_defaults()
 
     if (get("show_gcode_window").empty())
         set_bool("show_gcode_window", true);
+    if (get("show_legend").empty())
+        set_bool("show_legend", true);
+    if (get("show_print_summary").empty())
+        set_bool("show_print_summary", true);
 
     // Show the one-time "Filament Track Switch is ready" tip until it has been seen once.
     if (get("show_fila_switch_tips").empty())

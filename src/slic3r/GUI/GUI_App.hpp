@@ -384,6 +384,8 @@ private:
     wxString         m_info_dialog_content;
     std::unique_ptr<HttpServer> m_http_server;
     bool             m_show_gcode_window{true};
+    bool             m_show_legend{true};
+    bool             m_show_print_summary{true};
     boost::thread    m_check_network_thread;
 public:
     //try again when subscription fails
@@ -450,6 +452,10 @@ public:
     // SoftFever
     bool show_gcode_window() const { return m_show_gcode_window; }
     void toggle_show_gcode_window();
+    bool show_legend() const { return m_show_legend; }
+    void toggle_show_legend();
+    bool show_print_summary() const { return m_show_print_summary; }
+    void toggle_show_print_summary();
 
 
     bool show_plate_gridlines() const { return app_config->get_bool("show_plate_gridlines"); }

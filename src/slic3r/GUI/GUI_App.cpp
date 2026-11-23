@@ -912,6 +912,18 @@ void GUI_App::toggle_show_gcode_window()
     app_config->set_bool("show_gcode_window", m_show_gcode_window);
 }
 
+void GUI_App::toggle_show_legend()
+{
+    m_show_legend = !m_show_legend;
+    app_config->set_bool("show_legend", m_show_legend);
+}
+
+void GUI_App::toggle_show_print_summary()
+{
+    m_show_print_summary = !m_show_print_summary;
+    app_config->set_bool("show_print_summary", m_show_print_summary);
+}
+
 std::vector<std::string> GUI_App::split_str(std::string src, std::string separator)
 {
     std::string::size_type pos;
@@ -1105,6 +1117,8 @@ void GUI_App::post_init()
     hms_query = new HMSQuery();
 
     m_show_gcode_window = app_config->get_bool("show_gcode_window");
+    m_show_legend        = app_config->get_bool("show_legend");
+    m_show_print_summary = app_config->get_bool("show_print_summary");
     if (m_networking_need_update) {
         show_network_plugin_download_dialog(false);
     }

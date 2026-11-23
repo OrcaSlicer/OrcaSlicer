@@ -3359,6 +3359,10 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     ImDrawData* draw_data = wxGetApp().imgui()->end_frame();
     m_overlay_dirty |= active_id != ImGui::GetActiveID();
     ui_frame.end();
+    if (ui_frame.cursor() == CanvasUi::Cursor::ResizeHorizontal)
+        set_cursor(ResizeHorizontal);
+    else if (m_cursor_type == ResizeHorizontal)
+        set_cursor(Standard);
     // A toolkit request redraws the overlay only; a camera the overlay turns changes the scene cache
     // key, which redraws the scene as well.
     if (ui_frame.frame_requested())
@@ -4936,6 +4940,16 @@ bool GLCanvas3D::handle_shortcut(const KeyChord& chord)
     case Shortcut::KeyboardShortcuts: post_event(SimpleEvent(EVT_GLCANVAS_QUESTION_MARK)); break;
     case Shortcut::ToggleGcodeWindow:
         wxGetApp().toggle_show_gcode_window();
+        m_dirty = true;
+        request_extra_frame();
+        break;
+    case Shortcut::ToggleLegend:
+        wxGetApp().toggle_show_legend();
+        m_dirty = true;
+        request_extra_frame();
+        break;
+    case Shortcut::TogglePrintSummary:
+        wxGetApp().toggle_show_print_summary();
         m_dirty = true;
         request_extra_frame();
         break;
@@ -7052,6 +7066,7 @@ void GLCanvas3D::set_cursor(ECursorType type)
         {
         case Standard: { m_canvas->SetCursor(*wxSTANDARD_CURSOR); break; }
         case Cross: { m_canvas->SetCursor(*wxCROSS_CURSOR); break; }
+        case ResizeHorizontal: { m_canvas->SetCursor(wxCursor(wxCURSOR_SIZEWE)); break; }
         }
 
         m_cursor_type = type;
@@ -9351,9 +9366,10 @@ void GLCanvas3D::_render_fps_overlay(int fps) const
     // Last frame's size; zero until the overlay has been shown once.
     const ImGuiWindow* self = ImGui::FindWindowByName("###fps_overlay");
     const float left = pos.x - (self != nullptr ? self->Size.x : 0.0f);
-    // The Preview legend takes the top-right corner.
-    if (const ImGuiWindow* legend = ImGui::FindWindowByName("Legend"); m_canvas_type == ECanvasType::CanvasPreview && legend != nullptr && legend->Active)
-        pos = ImVec2(legend->Pos.x - margin, legend->Pos.y);
+    // The Preview legend takes the top-right corner when it is in the right column.
+    if (const CanvasUi::Rect& legend = m_gcode_viewer.get_legend_rect();
+        m_canvas_type == ECanvasType::CanvasPreview && legend.width() > 0.f && legend.left > 0.5f * display_size.x)
+        pos = ImVec2(legend.left - margin, legend.top);
     // The toolbar row can reach the corner on a narrow canvas; stack the overlay below it then.
     else if (m_main_toolbar.is_enabled() && get_main_toolbar_offset() + get_top_toolbar_width() > left)
         pos.y = get_top_toolbar_height() + margin;

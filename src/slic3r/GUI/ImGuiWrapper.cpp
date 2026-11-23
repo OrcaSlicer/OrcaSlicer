@@ -2667,6 +2667,10 @@ static const ImWchar ranges_language_independent[] =
     0x0370, 0x03FF, // Greek and Coptic
     0x0400, 0x04FF, // Cyrillic
     0x1E00, 0x1EFF, // Latin Extended Additional (Vietnamese)
+    0x2010, 0x2027, // Dashes, quotation marks, bullet and ellipsis
+    0x2103, 0x2103, // Degree Celsius
+    0x2190, 0x2193, // Arrows
+    0x2212, 0x2212, // Minus sign
     0,
 };
 
