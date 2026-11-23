@@ -100,7 +100,7 @@
 #include "MainFrame.hpp"
 #include "WipeTowerDialog.hpp"
 #include "GUI_App.hpp"
-#include "PlateArrangementDialog.hpp"
+#include "PlateArrangement.hpp"
 #include "Shortcuts.hpp"
 #include "GUI_ObjectList.hpp"
 #include "GUI_Colors.hpp"

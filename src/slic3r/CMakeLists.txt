@@ -460,10 +460,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/PhysicalPrinterDialog.hpp
     GUI/Plater.cpp
     GUI/Plater.hpp
+    GUI/PlateArrangement.cpp
+    GUI/PlateArrangement.hpp
     GUI/PlateSettingsDialog.cpp
     GUI/PlateSettingsDialog.hpp
-    GUI/PlateArrangementDialog.cpp
-    GUI/PlateArrangementDialog.hpp
     GUI/PrebuildQueue.hpp
     GUI/Preferences.cpp
     GUI/Preferences.hpp

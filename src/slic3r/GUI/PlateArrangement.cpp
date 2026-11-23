@@ -1,4 +1,4 @@
-#include "PlateArrangementDialog.hpp"
+#include "PlateArrangement.hpp"
 
 #include <algorithm>
 #include <cfloat>
