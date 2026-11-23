@@ -1432,7 +1432,11 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     // (Extruder::extruder_id(), the machine envelope, the variant expansion and the snapshot below)
     // only sees in-range values. This works on this print's copy of the config; readers of the
     // plate/project config are not changed.
+    // Keep the authored values first: Print::validate reports them in manual modes instead of
+    // letting this safe normalization hide an invalid assignment from the user.
+    m_authored_filament_map.clear();
     if (auto* filament_map_opt = new_full_config.option<ConfigOptionInts>("filament_map")) {
+        m_authored_filament_map = filament_map_opt->values;
         const auto* nozzle_diameter_opt = new_full_config.option<ConfigOptionFloats>("nozzle_diameter");
         const int   nozzle_count        = nozzle_diameter_opt ? std::max(1, static_cast<int>(nozzle_diameter_opt->values.size())) : 1;
         bool        out_of_range        = false;

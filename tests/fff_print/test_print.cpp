@@ -519,6 +519,62 @@ TEST_CASE("Print validation applies individual exclusion volumes to the mapped p
     }
 }
 
+TEST_CASE("Print validation checks the stored filament map only in manual modes", "[Print][MultiNozzle]")
+{
+    std::vector<StringObjectException> warnings;
+
+    const auto make_config = [](FilamentMapMode mode, std::vector<int> filament_map) {
+        DynamicPrintConfig config = dual_extruder_exclusion_config(BedExcludeVolumeMode::Shared, {"", ""}, filament_map);
+        config.set_key_value("filament_map_mode", new ConfigOptionEnum<FilamentMapMode>(mode));
+        return config;
+    };
+
+    SECTION("valid manual assignment is accepted") {
+        const StringObjectException error = validate_cubes(make_config(fmmManual, {1}), warnings);
+        CHECK(error.string.empty());
+    }
+
+    SECTION("valid nozzle-manual assignment is accepted") {
+        const StringObjectException error = validate_cubes(make_config(fmmNozzleManual, {2}), warnings);
+        CHECK(error.string.empty());
+    }
+
+    SECTION("manual assignment to an absent extruder is rejected") {
+        const StringObjectException error = validate_cubes(make_config(fmmManual, {3}), warnings);
+        CHECK(error.string.find("Filament 1") != std::string::npos);
+        CHECK(error.string.find("extruder 3") != std::string::npos);
+    }
+
+    SECTION("nozzle-manual assignment to an absent extruder is rejected") {
+        const StringObjectException error = validate_cubes(make_config(fmmNozzleManual, {3}), warnings);
+        CHECK(error.string.find("Filament 1") != std::string::npos);
+        CHECK(error.string.find("extruder 3") != std::string::npos);
+    }
+
+    SECTION("missing map entry on a multi-tool printer is rejected") {
+        // Two valid filament slots, but the stored map only covers filament 1.
+        DynamicPrintConfig config = dual_extruder_exclusion_config(BedExcludeVolumeMode::Shared, {"", ""}, {1});
+        config.set_num_filaments(2);
+        config.set_key_value("filament_map", new ConfigOptionInts{1});
+        const StringObjectException error = validate_multimaterial_cube(config);
+        CHECK(error.string.find("Filament 2") != std::string::npos);
+    }
+
+    SECTION("missing map entry on a single-tool printer is rejected") {
+        // Two valid filament slots and a short map: ToolOrdering indexes it by used filament.
+        DynamicPrintConfig config = Test::multifilament_config(2);
+        config.set_key_value("filament_map_mode", new ConfigOptionEnum<FilamentMapMode>(fmmManual));
+        config.set_key_value("filament_map", new ConfigOptionInts{1});
+        const StringObjectException error = validate_multimaterial_cube(config);
+        CHECK(error.string.find("Filament 2") != std::string::npos);
+    }
+
+    SECTION("auto mode does not judge its seed map") {
+        const StringObjectException error = validate_cubes(make_config(fmmAutoForFlush, {3}), warnings);
+        CHECK(error.string.empty());
+    }
+}
+
 TEST_CASE("Print validation applies shared exclusions and ignores volumes above the object", "[Print][ExclusionVolume]")
 {
     std::vector<StringObjectException> warnings;
