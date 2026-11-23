@@ -3083,6 +3083,9 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
             }
             return nullptr;
         }, &keys);
+    // cfg is built over the default preset, so a config with no compatible_printers would otherwise reset the named process's list to All.
+    if (m_type == Preset::TYPE_PRINT && found && !combined_config.has("compatible_printers"))
+        keys.erase(std::remove(keys.begin(), keys.end(), "compatible_printers"), keys.end());
     std::string                 &inherits = Preset::inherits(cfg);
 
     //BBS: add config related logs

@@ -6341,6 +6341,9 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             if (!print_compatible_printers.empty()) {
                 ConfigOptionStrings* compatible_printers = config.option<ConfigOptionStrings>("compatible_printers", true);
                 compatible_printers->values = print_compatible_printers;
+            } else {
+                // Without a stored list, load_external_preset does not apply compatible_printers over the local process the project names.
+                config.erase("compatible_printers");
             }
 
             load_preset(this->prints, 0, "print_settings_id", print_different_keys_set, std::string());
