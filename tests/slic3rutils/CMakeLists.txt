@@ -27,6 +27,7 @@ add_executable(${_TEST_NAME}_tests
     test_legend_text.cpp
     test_legend_axis.cpp
     test_legend_model.cpp
+    test_print_summary_model.cpp
     test_canvas_ui.cpp
     test_navigator_geometry.cpp
     # The reduced toolpath set's end bands, from libvgcode's layer table.

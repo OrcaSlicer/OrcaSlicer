@@ -5,6 +5,8 @@ include(PrecompiledHeader)
 
 # The panels drawn over the 3D scene, which go through the CanvasUi toolkit only (see CheckCanvasPanels).
 set(SLIC3R_CANVAS_PANEL_SOURCES
+    GUI/AllPlatesStatsPanel.cpp
+    GUI/AllPlatesStatsPanel.hpp
     GUI/GCodePanelText.cpp
     GUI/GCodePanelText.hpp
     GUI/LegendAxis.cpp
@@ -30,6 +32,10 @@ set(SLIC3R_CANVAS_PANEL_SOURCES
     GUI/PreviewPanelSlots.hpp
     GUI/PreviewMarks.cpp
     GUI/PreviewMarks.hpp
+    GUI/PrintSummaryModel.cpp
+    GUI/PrintSummaryModel.hpp
+    GUI/PrintSummaryPanel.cpp
+    GUI/PrintSummaryPanel.hpp
     GUI/MovePanelLayout.cpp
     GUI/MovePanelLayout.hpp
 )
