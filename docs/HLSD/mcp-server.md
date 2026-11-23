@@ -4164,8 +4164,11 @@ stop every run first (`stop_followed()`), while the main window they run in is s
 
 Before a run the dialog describes each step with `describe_step()` (`McpReplaySummary.cpp`, wx-free):
 what it acts on, and flags for effects beyond the open project (writes a file outside the output
-folder, changes presets, replaces the project, sends to a printer). It reads the
-arguments after substitution, and nested replays as their run sees them: an inline one with the outer
+folder, changes presets, replaces the project, sends to a printer, can run a program). A step can run a
+program when it is a `script_run`, whose Python code has the app's access to the computer, or a `settings_set`
+that sets a post-processing script (`post_process`), which the next G-code export starts: a replay is a file
+people pass around, so the window says so before it plays. It reads the
+arguments after substitution, a `tool_call` step as the call it makes, and nested replays as their run sees them: an inline one with the outer
 replay's placeholders already applied, as `replay_run` substitutes the whole step first, and a file
 with its own vars and output folder; a step whose effect can't be
 read (a plugin action, a nested replay too deep or unreadable) gets every flag. Flags only inform. A

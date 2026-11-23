@@ -16,10 +16,12 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 // Everything here is data for a host to word and translate; nothing is user-visible text.
 
 // Effects beyond the open project. Where a step's effect can't be read before the run (a plugin
-// action, a nested replay too deep or unreadable), it gets every flag.
-enum class StepFlag { WritesFile, ChangesPresets, ReplacesProject, SendsToPrinter };
+// action, a nested replay too deep or unreadable), it gets every flag. RunsProgram is a step that can
+// start a program on the computer: a script_run, whose Python code has the app's access to it, and a
+// settings_set that sets a post-processing script, which the next G-code export runs.
+enum class StepFlag { WritesFile, ChangesPresets, ReplacesProject, SendsToPrinter, RunsProgram };
 
-// "writes_file", "changes_presets", "replaces_project", "sends_to_printer".
+// "writes_file", "changes_presets", "replaces_project", "sends_to_printer", "runs_program".
 const char* flag_id(StepFlag flag);
 
 struct StepDescription
@@ -45,7 +47,7 @@ struct StepDescription
 // of its actions (with exactly an action's arguments, or with none where it has an action of its own, or, for one the
 // tool list does not show, a Design command, with any) is described as action_run of that action is. A step's flags
 // come from the command it runs and its arguments, whether it calls the command or action_run of its action (an export
-// flags writes_file either way). A replay_run step is described by
+// flags writes_file either way). A tool_call step is described as the call it makes. A replay_run step is described by
 // the steps of its inline replay, or of its file when `path` reads and parses, each in the nested
 // run's own context (its vars merged with the step's `vars`, its own replay and output folders);
 // past `depth` 4, or when the file doesn't read or parse, it gets every flag, "checked" and

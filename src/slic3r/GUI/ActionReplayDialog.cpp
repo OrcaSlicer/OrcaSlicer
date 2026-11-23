@@ -364,6 +364,7 @@ nlohmann::json ActionReplayDialog::localized_strings() const
         {"flag_changes_presets", _u8L("Changes presets")},
         {"flag_replaces_project", _u8L("Replaces the project")},
         {"flag_sends_to_printer", _u8L("Sends to a printer")},
+        {"flag_runs_program", _u8L("Can run a program")},
         // TRN A duration; %s is a number of seconds such as 0.8.
         {"seconds", _u8L("%s s")},
         // TRN %s is the number of the step that is running.

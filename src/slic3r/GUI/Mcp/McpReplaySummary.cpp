@@ -10,6 +10,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/nowide/fstream.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <initializer_list>
@@ -31,7 +32,7 @@ namespace {
 // Nested replays are read this deep; a deeper one counts as unreadable.
 constexpr int kMaxDepth = 4;
 
-constexpr std::size_t kFlagCount = 4;
+constexpr std::size_t kFlagCount = 5;
 
 // The description being built: flags as a set, so nested steps can be joined in.
 struct Builder
@@ -124,10 +125,23 @@ bool one_of(const std::string& s, std::initializer_list<const char*> names)
     return false;
 }
 
+// A post_process value that names a script: a text that is not empty, or a list holding one.
+bool names_script(const json& value)
+{
+    if (value.is_string())
+        return !value.get_ref<const std::string&>().empty();
+    return value.is_array() && std::any_of(value.begin(), value.end(), names_script);
+}
+
 // The effects of command `key` called with `args`, whichever way it is called: the files it writes, the presets it
-// changes, what it sends to a printer.
+// changes, what it sends to a printer, the programs it can start.
 void flag_effects(Builder& b, const std::string& key, const json& args)
 {
+    // A script is a program of its own, and a post-processing script is one the next G-code export starts.
+    const bool sets_script = key == "settings_set" && args.is_object() && args.contains("values") && args["values"].is_object() &&
+                             args["values"].contains("post_process") && names_script(args["values"]["post_process"]);
+    if (key == "script_run" || sets_script)
+        b.flag(StepFlag::RunsProgram);
     if (one_of(key, {"project_save", "project_export", "preset_export"}))
         b.flag(StepFlag::WritesFile);
     // The preset bundle manager imports and deletes bundles of presets.
@@ -343,6 +357,7 @@ const char* flag_id(StepFlag flag)
     case StepFlag::ChangesPresets: return "changes_presets";
     case StepFlag::ReplacesProject: return "replaces_project";
     case StepFlag::SendsToPrinter: return "sends_to_printer";
+    case StepFlag::RunsProgram: return "runs_program";
     }
     return "";
 }
@@ -350,10 +365,17 @@ const char* flag_id(StepFlag flag)
 StepDescription describe_step(const CommandCatalog& catalog, const ReplayStep& step, const Replay& replay, const ReplayContext& ctx,
                               int depth)
 {
-    const json        args = substitute_lenient(step.args, replay, ctx);
-    const std::string tool = step.tool;
-    Builder           b;
+    json        args = substitute_lenient(step.args, replay, ctx);
+    std::string tool = step.tool;
+    Builder     b;
     b.d.checks_result = !step.expect.empty();
+
+    // A tool_call runs as the call it makes, which is what the step is described as.
+    if (tool == "tool_call") {
+        const json call = std::move(args);
+        tool = call.is_object() && call.contains("tool") && call["tool"].is_string() ? call["tool"].get<std::string>() : std::string();
+        args = call.is_object() && call.contains("args") && call["args"].is_object() ? call["args"] : json::object();
+    }
 
     if (tool == "action_run") {
         describe_action(b, catalog, args);

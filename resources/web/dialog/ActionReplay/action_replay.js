@@ -6,6 +6,7 @@ const FLAG_LABELS = {
   changes_presets: ["flag_changes_presets", "Changes presets"],
   replaces_project: ["flag_replaces_project", "Replaces the project"],
   sends_to_printer: ["flag_sends_to_printer", "Sends to a printer"],
+  runs_program: ["flag_runs_program", "Can run a program"],
 };
 
 const state = {

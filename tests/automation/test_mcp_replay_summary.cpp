@@ -22,7 +22,7 @@ namespace {
 
 using Flags = std::vector<std::string>;
 
-const Flags kEveryFlag{"writes_file", "changes_presets", "replaces_project", "sends_to_printer"};
+const Flags kEveryFlag{"writes_file", "changes_presets", "replaces_project", "sends_to_printer", "runs_program"};
 
 // The commands the cases call by their key, with actions and places in the tool list as the app's catalog has them:
 // commands whose menu items are their actions, view_set's two among them collecting a value, and object_mirror's
@@ -397,6 +397,44 @@ TEST_CASE("files written inside the output folder are not flagged", "[Mcp]")
     }));
     INFO(step);
     CHECK(flags_of(describe(step)) == flags);
+}
+
+TEST_CASE("a script, and a step that sets a post-processing script, can run a program", "[Mcp]")
+{
+    const auto [step, flags] = GENERATE(table<std::string, Flags>({
+        {R"({"tool": "script_run", "args": {"code": "x = 1"}})", {"runs_program"}},
+        {R"({"tool": "settings_set", "args": {"type": "print", "values": {"post_process": ["/x/run.sh"]}}})", {"runs_program"}},
+        {R"({"tool": "settings_set", "args": {"values": {"wall_loops": 3, "post_process": "/x/run.sh"}}})", {"runs_program"}},
+        {R"({"tool": "settings_set", "args": {"values": {"post_process": "${script}"}}})", {"runs_program"}},
+        // A step that clears the setting names no script, and no other setting starts one.
+        {R"({"tool": "settings_set", "args": {"values": {"post_process": []}}})", {}},
+        {R"({"tool": "settings_set", "args": {"values": {"post_process": [""]}}})", {}},
+        {R"({"tool": "settings_set", "args": {"values": {"post_process": ""}}})", {}},
+        {R"({"tool": "settings_set", "args": {"values": {"wall_loops": 3}}})", {}},
+    }));
+    INFO(step);
+    CHECK(flags_of(describe(step)) == flags);
+}
+
+TEST_CASE("a tool_call step is described as the call it makes", "[Mcp]")
+{
+    // tool_call's arguments are {"tool", "args"}, as a step's are.
+    const auto [call, flags] = GENERATE(table<std::string, Flags>({
+        {R"({"tool": "project_save", "args": {"path": "C:/x/a.3mf"}})", {"writes_file"}},
+        {R"({"tool": "script_run", "args": {"code": "x = 1"}})", {"runs_program"}},
+        {R"({"tool": "settings_set", "args": {"values": {"post_process": ["/x/run.sh"]}}})", {"runs_program"}},
+        {R"({"tool": "project_new", "args": {"discard_changes": true}})", {"replaces_project"}},
+        {R"({"tool": "project_new"})", {"replaces_project"}},
+        {R"({"tool": "action_run", "args": {"id": "plugin_page_action:page:plugin"}})", kEveryFlag},
+        {R"({"tool": "dialog_answer", "args": {"button": "ok"}})", {}},
+    }));
+    INFO(call);
+    const StepDescription wrapped = describe(json{{"tool", "tool_call"}, {"args", json::parse(call)}}.dump());
+    const StepDescription direct  = describe(call);
+    CHECK(flags_of(wrapped) == flags);
+    CHECK(wrapped.what == direct.what);
+    CHECK(wrapped.replace == direct.replace);
+    CHECK(wrapped.answers_dialogs == direct.answers_dialogs);
 }
 
 TEST_CASE("steps that can answer a dialog are told apart", "[Mcp]")
