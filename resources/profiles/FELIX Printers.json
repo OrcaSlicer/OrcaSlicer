@@ -1,6 +1,6 @@
 {
 	"name": "FELIX Printers",
-	"version": "1.0.0",
+	"version": "01.00.01.02",
 	"force_update": "0",
 	"description": "Configuration file for printers by FELIX Printers",
 	"machine_model_list": [

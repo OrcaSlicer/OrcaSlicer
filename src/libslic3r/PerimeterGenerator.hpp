@@ -164,6 +164,8 @@ public:
     Polygons    lower_slices_polygons() const { return m_lower_slices_polygons; }
     // ORCA: the slices less the slivers the wall generator prints nothing for, so they never count as support.
     ExPolygons  printable_slices(const ExPolygons &slices) const;
+    // ORCA: whether this layer prints its outer walls first for the brim, see brim_puts_outer_walls_first().
+    bool        outer_walls_first_for_brim() const;
 
 private:
     std::vector<Polygons>     generate_lower_polygons_series(float width);
@@ -182,6 +184,10 @@ private:
     double      m_ext_mm3_per_mm_smaller_width;
     Polygons    m_lower_slices_polygons;
 };
+
+// ORCA: a brim against the outer walls makes the first layer print them first, whatever the wall sequence, so the
+// brim runs straight on into the outer wall. Auto, ear and painted brims may leave the outer walls bare.
+bool brim_puts_outer_walls_first(BrimType brim_type, double brim_width);
 
 }
 

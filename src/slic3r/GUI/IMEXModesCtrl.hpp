@@ -147,9 +147,8 @@ private:
 
     // Everything the editor draws for one role, in ONE place: a new role needs a color and
     // a legend name here and nowhere else in this file. nullopt is Inactive (gray).
-    // `label` is deliberately untranslated — it names a role, and the legend sits next to
-    // the same letters the preset stores.
-    struct RoleStyle { wxColour bg; wxColour fg; const char* label; };
+    // `label` is display-only and translated; the preset stores the role letters, never it.
+    struct RoleStyle { wxColour bg; wxColour fg; wxString label; };
     static RoleStyle role_style(std::optional<ImexRole> role);
 
     // True when this printer offers `role` at all, regardless of which tile is clicked.

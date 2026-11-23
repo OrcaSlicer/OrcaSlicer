@@ -520,6 +520,11 @@ void IMSlider::draw_background_and_groove(const ImRect& bg_rect, const ImRect& g
     ImGui::RenderFrame(groove.Min, groove.Max, groove_col, false, 0.5 * groove.GetWidth());
 }
 
+bool IMSlider::is_dragging() const
+{
+    return GImGui != nullptr && m_imgui_id != 0 && GImGui->ActiveId == m_imgui_id && GImGui->IO.MouseDown[0];
+}
+
 bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int v_max, const ImVec2& size, float scale)
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -528,6 +533,7 @@ bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int 
 
     ImGuiContext& context = *GImGui;
     const ImGuiID id = window->GetID(str_id);
+    m_imgui_id = id;
 
     const ImVec2 pos = window->DC.CursorPos;
     const ImRect draw_region(pos, pos + size);
@@ -920,6 +926,7 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
 
     ImGuiContext& context = *GImGui;
     const ImGuiID id = window->GetID(str_id);
+    m_imgui_id = id;
 
     const ImVec2 pos = window->DC.CursorPos;
     const ImRect draw_region(pos, pos + size);
@@ -1564,7 +1571,7 @@ void IMSlider::render_add_menu()
                     ImU32                icon_clr = ImGuiWrapper::to_ImU32(rgba);
                     if (rgba.a() == 0)
                         icon_clr = 0;
-                    if (menu_item_with_icon((_u8L("Filament ") + std::to_string(i + 1)).c_str(), "", ImVec2(14, 14) * m_scale, icon_clr, false, true, &hovered)) add_code_as_tick(ToolChange, i + 1);
+                    if (menu_item_with_icon(into_u8(wxString::Format(_L("Filament %d"), i + 1)).c_str(), "", ImVec2(14, 14) * m_scale, icon_clr, false, true, &hovered)) add_code_as_tick(ToolChange, i + 1);
                     if (hovered) { show_tooltip(_u8L("Change filament at the beginning of this layer.")); }
                 }
                 end_menu();
@@ -1614,7 +1621,7 @@ void IMSlider::render_edit_menu(const TickCode& tick)
                     for (int i = 0; i < extruder_num; i++) {
                         ColorRGBA rgba = decode_color_to_float_array(m_extruder_colors[i]);
                         ImU32     icon_clr = ImGuiWrapper::to_ImU32(rgba);
-                        if (menu_item_with_icon((_u8L("Filament ") + std::to_string(i + 1)).c_str(), "", ImVec2(14, 14) * m_scale, icon_clr)) add_code_as_tick(ToolChange, i + 1);
+                        if (menu_item_with_icon(into_u8(wxString::Format(_L("Filament %d"), i + 1)).c_str(), "", ImVec2(14, 14) * m_scale, icon_clr)) add_code_as_tick(ToolChange, i + 1);
                     }
                     end_menu();
                 }

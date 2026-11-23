@@ -9,6 +9,9 @@
 #ifdef __WXGTK__
 #include "../GUI_Utils.hpp"
 #endif
+#ifdef __WXOSX__
+#include "slic3r/GUI/Accessibility/AccessibilityMac.h"
+#endif
 
 CheckBox::CheckBox(wxWindow *parent, int id)
     : wxBitmapToggleButton(parent, id, wxNullBitmap, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE)
@@ -38,6 +41,9 @@ CheckBox::CheckBox(wxWindow *parent, int id)
 #endif
 
     Rescale();
+#ifdef __WXOSX__
+    applyAccessibility();
+#endif
 }
 
 void CheckBox::SetValue(bool value)
@@ -88,6 +94,13 @@ void CheckBox::update()
 
 CheckBox::State CheckBox::GetNormalState() const { return State_Normal; }
 
+bool CheckBox::MSWCommand(WXUINT param, WXWORD id)
+{
+    // Owner-drawn, so a double click sends BN_DBLCLK besides the click wxAnyButton makes of it,
+    // and wxToggleButton toggles on both. Ignore it so a double click toggles twice, not three times.
+    return param == BN_DBLCLK || wxBitmapToggleButton::MSWCommand(param, id);
+}
+
 #endif
 
 
@@ -134,6 +147,23 @@ void CheckBox::updateBitmap(wxEvent & evt)
         else
             OnLeaveWindow(e);
     }
+}
+
+void CheckBox::DoSetToolTipText(const wxString& tip)
+{
+    wxWindow::DoSetToolTipText(tip);
+    // The accessible name comes from the tooltip, which callers set after construction.
+    applyAccessibility();
+}
+
+void CheckBox::applyAccessibility()
+{
+    // This is an NSButton-backed control, so apply() only fills in the accessible name
+    // and Voice Control identifier; the checkbox role, checked value and press action
+    // are already reported natively by AppKit.
+    Slic3r::GUI::Accessibility::Descriptor desc;
+    desc.role = Slic3r::GUI::Accessibility::Role::Checkbox;
+    Slic3r::GUI::Accessibility::apply(this, desc);
 }
 	
 #endif

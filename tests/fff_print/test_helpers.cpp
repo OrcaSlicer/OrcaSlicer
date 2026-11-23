@@ -223,7 +223,10 @@ DynamicPrintConfig multifilament_config(unsigned int filaments, std::initializer
 	// These are read by filament id during export but absent from filament_option_keys(),
 	// so set_num_filaments leaves them size 1; size them too, else out-of-range access.
 	const auto &defaults = FullPrintConfig::defaults();
-	for (const char *key : { "filament_type", "filament_vendor", "filament_start_gcode" })
+	for (const char *key : { "filament_type", "filament_vendor", "filament_start_gcode", "filament_change_length", "filament_change_length_nc",
+	                         "filament_ramming_travel_time", "filament_ramming_travel_time_nc",
+	                         "filament_ramming_volumetric_speed", "filament_ramming_volumetric_speed_nc",
+	                         "nozzle_temperature", "nozzle_temperature_initial_layer" })
 		static_cast<ConfigOptionVectorBase *>(config.option(key, true))->resize(filaments, defaults.option(key));
 
 	// flush_volumes_matrix must be sized filaments*filaments or export rejects it.

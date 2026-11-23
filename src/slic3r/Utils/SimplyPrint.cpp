@@ -350,9 +350,13 @@ bool SimplyPrint::do_temp_upload(const boost::filesystem::path& file_path,
             if (should_open_in_external_browser()) {
                 wxLaunchDefaultBrowser(url);
             } else {
-                const auto mainframe = GUI::wxGetApp().mainframe;
-                mainframe->request_select_tab(TAB_ID_MONITOR);
-                mainframe->load_printer_url(url);
+                // The tab switch queues a reload of the printer's home page, so switch synchronously
+                // first and queue the import page after it.
+                GUI::wxGetApp().CallAfter([url = wxString::FromUTF8(url)] {
+                    const auto mainframe = GUI::wxGetApp().mainframe;
+                    mainframe->select_tab(TAB_ID_MONITOR);
+                    mainframe->load_printer_url(url);
+                });
             }
 
             return true;

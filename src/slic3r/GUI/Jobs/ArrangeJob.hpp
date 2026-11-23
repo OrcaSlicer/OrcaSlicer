@@ -16,10 +16,17 @@
 namespace Slic3r {
 
 class ModelInstance;
+class ModelObject;
 
 namespace GUI {
 
 class Plater;
+class PartPlate;
+
+void set_arrange_polygon_bed_exclusion_extruders(arrangement::ArrangePolygon &polygon,
+                                                  const ModelObject &object,
+                                                  const PartPlate &plate,
+                                                  const DynamicPrintConfig &config);
 
 class ArrangeJob : public Job
 {
@@ -71,7 +78,7 @@ class ArrangeJob : public Job
     void prepare_belt_regions(int num_plates);
     void prepare_imex_zones();
 
-    ArrangePolygon prepare_arrange_polygon(void* instance);
+    ArrangePolygon prepare_arrange_polygon(void *instance, const PartPlate *mapping_plate = nullptr);
 
 protected:
 
@@ -94,7 +101,12 @@ public:
     void finalize(bool canceled, std::exception_ptr &e) override;
 };
 
-std::optional<arrangement::ArrangePolygon> get_wipe_tower_arrangepoly(const Plater &);
+// The prime tower of the plate being sliced, to arrange around. A tower compacted by "No sparse
+// layers" comes grown by the clearance the objects in placed need from it, which is then recorded in
+// params; the inflation they will get counts towards it, so leave placed empty when they get none,
+// and the tower keeps the whole toolhead radius.
+std::optional<arrangement::ArrangePolygon> get_wipe_tower_arrangepoly(const Plater &, arrangement::ArrangeParams &params,
+                                                                      const arrangement::ArrangePolygons &placed = {});
 
 // The gap between logical beds in the x axis expressed in ratio of
 // the current bed width.

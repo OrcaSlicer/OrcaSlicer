@@ -211,6 +211,35 @@ bool decode_colored_png(const ReadBuf &in_buf, ImageColorscale &out_img)
     return decode_colored_png(stream, out_img);
 }
 
+bool is_decodable_8bit_png(const ReadBuf &pngbuf)
+{
+    static const constexpr int PNG_SIG_BYTES = 8;
+
+    struct ReadBufStream stream{pngbuf};
+    std::vector<png_byte> sig(PNG_SIG_BYTES, 0);
+    stream.read(sig.data(), PNG_SIG_BYTES);
+    if (!png_check_sig(sig.data(), PNG_SIG_BYTES))
+        return false;
+
+    PNGDescr dsc;
+    dsc.png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+    if (!dsc.png)
+        return false;
+    dsc.info = png_create_info_struct(dsc.png);
+    if (!dsc.info)
+        return false;
+
+    if (!png_read_header_guarded(dsc.png, dsc.info, &stream, PNG_SIG_BYTES))
+        return false;
+
+    const size_t color_type = png_get_color_type(dsc.png, dsc.info);
+    const size_t bit_depth  = png_get_bit_depth(dsc.png, dsc.info);
+    const bool   grey       = color_type == PNG_COLOR_TYPE_GRAY;
+    const bool   colour     = color_type == PNG_COLOR_TYPE_RGB || color_type == PNG_COLOR_TYPE_RGB_ALPHA;
+    return png_get_image_width(dsc.png, dsc.info) > 0 && png_get_image_height(dsc.png, dsc.info) > 0 &&
+           bit_depth == 8 && (grey || colour);
+}
+
 
 // Down to earth function to store a packed RGB image to file. Mostly useful for debugging purposes.
 // Based on https://www.lemoda.net/c/write-png/

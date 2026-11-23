@@ -83,11 +83,13 @@ namespace Slic3r::GUI::GLGizmoUtils {
         bool  clicked = toolbar_circular_button(icon, "##wiki_guide_btn", scale);
         if (url && *url && clicked)
             wxLaunchDefaultBrowser(wxString::FromUTF8(url));
+        // ImGuiWrapper::tooltip keeps the text readable on the dark tooltip background whatever text colour the
+        // host window pushed; a negative wrap position keeps the URL on one line.
         if (ImGui::IsItemHovered()){
             if(url && *url)
-                ImGui::SetTooltip("%s\n%s", _u8L("Wiki Guide").c_str(), url);
+                wxGetApp().imgui()->tooltip(_u8L("Wiki Guide") + "\n" + url, -1.f);
             else
-                ImGui::SetTooltip("%s", _u8L("Wiki Guide").c_str());
+                wxGetApp().imgui()->tooltip(_u8L("Wiki Guide"), -1.f);
         }
         return clicked; // for dynamically generated links
     }
@@ -101,9 +103,9 @@ namespace Slic3r::GUI::GLGizmoUtils {
             wxLaunchDefaultBrowser(wxString::FromUTF8(url));
         if (ImGui::IsItemHovered()){
             if(url && *url)
-                ImGui::SetTooltip("%s\n%s", _u8L("Video Guide").c_str(), url);
+                wxGetApp().imgui()->tooltip(_u8L("Video Guide") + "\n" + url, -1.f);
             else
-                ImGui::SetTooltip("%s", _u8L("Video Guide").c_str());
+                wxGetApp().imgui()->tooltip(_u8L("Video Guide"), -1.f);
         }
         return clicked; // for dynamically generated links
     }

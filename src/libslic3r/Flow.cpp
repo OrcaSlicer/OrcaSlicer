@@ -7,9 +7,11 @@
 #include <assert.h>
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/format.hpp>
 #include <string>
 #include <math.h>
 #include "PrintConfig.hpp"
+#include "I18N.hpp"
 
 // Mark string for localization and translate.
 #define L(s) Slic3r::I18N::translate(s)
@@ -17,10 +19,10 @@
 namespace Slic3r {
 
 FlowErrorNegativeSpacing::FlowErrorNegativeSpacing() : 
-	FlowError("Flow::spacing() produced negative spacing. Did you set some extrusion width too small?") {}
+	FlowError(L("Flow::spacing() produced negative spacing. Did you set some extrusion width too small?")) {}
 
 FlowErrorNegativeFlow::FlowErrorNegativeFlow() :
-    FlowError("Flow::mm3_per_mm() produced negative flow. Did you set some extrusion width too small?") {}
+    FlowError(L("Flow::mm3_per_mm() produced negative flow. Did you set some extrusion width too small?")) {}
 
 // This static method returns a sane extrusion width default.
 float Flow::auto_extrusion_width(FlowRole role, float nozzle_diameter)
@@ -66,7 +68,8 @@ static inline FlowRole opt_key_to_flow_role(const std::string &opt_key)
 
 static inline void throw_on_missing_variable(const std::string &opt_key, const char *dependent_opt_key) 
 {
-	throw FlowErrorMissingVariable((boost::format("Failed to calculate line width of %1%. Cannot get value of \u201c%2%\u201d.") % opt_key % dependent_opt_key).str());
+	// TRN %1% and %2% are names of settings.
+	throw FlowErrorMissingVariable((boost::format(L("Failed to calculate line width of %1%. Cannot get value of \"%2%\".")) % opt_key % dependent_opt_key).str());
 }
 
 // Used to provide hints to the user on default extrusion width values, and to provide reasonable values to the PlaceholderParser.
@@ -162,7 +165,7 @@ Flow Flow::with_spacing(float new_spacing) const
         assert(m_width >= m_height);
         out.m_width += new_spacing - m_spacing;
         if (out.m_width < out.m_height)
-            throw Slic3r::InvalidArgument("Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width.");
+            throw Slic3r::InvalidArgument(L("Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."));
     }
     out.m_spacing = new_spacing;
     return out;
@@ -195,7 +198,7 @@ Flow Flow::with_cross_section(float area_new) const
             return this->with_width(width_new);
         } else {
             // Create a rounded extrusion.
-            auto dmr = float(sqrt(area_new / M_PI));
+            auto dmr = float(2. * sqrt(area_new / M_PI));
             return Flow(dmr, dmr, m_spacing, m_nozzle_diameter, false);
         }
     } else

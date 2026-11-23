@@ -55,6 +55,10 @@ public:
 
     void StopWebStream();
 
+    // Stops playback for a view switch: not a stream failure, so it leaves no retry count,
+    // back-off or LAN dialog behind.
+    void StopPlayback();
+
     bool IsStreaming() const;
 
     void ToggleStream();
@@ -79,6 +83,9 @@ private:
     void load();
 
     void on_show_hide(wxShowEvent & evt);
+
+    // The picture shown before the camera plays: Bambu's for a Bambu printer preset, Orca's otherwise.
+    void update_idle_image();
 
     void media_proc();
 

@@ -1,7 +1,6 @@
 #include "ParamsDialog.hpp"
 #include "ParamsPanel.hpp"
 #include "GUI_App.hpp"
-#include "MainFrame.hpp"
 #include "Plater.hpp"
 #include "Tab.hpp"
 
@@ -95,9 +94,6 @@ ParamsDialog::ParamsDialog(wxWindow * parent)
 void ParamsDialog::Popup()
 {
     wxGetApp().UpdateDlgDarkUI(this);
-#ifdef __WIN32__
-    Reparent(wxGetApp().mainframe);
-#endif
     Center();
     if (m_panel && m_panel->get_current_tab()) {
         bool just_edit = false;

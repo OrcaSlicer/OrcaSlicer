@@ -435,7 +435,7 @@ void CalibrationWizard::cache_preset_info(MachineObject *obj, float nozzle_dia, 
         if (obj->is_multi_extruders()) {
             int ams_id, slot_id, tray_id;
             get_tray_ams_and_slot_id(curr_obj, result.tray_id, ams_id, slot_id, tray_id);
-            result.extruder_id = preset_page->get_extruder_id(ams_id);
+            result.extruder_id = preset_page->get_extruder_id_by_tray_id(result.tray_id);
             result.nozzle_diameter  = preset_page->get_nozzle_diameter(result.extruder_id);
         }
         else {
@@ -753,7 +753,7 @@ void PressureAdvanceWizard::on_cali_start()
 
             X1CCalibInfos::X1CCalibInfo calib_info;
             get_tray_ams_and_slot_id(curr_obj, item.first, calib_info.ams_id, calib_info.slot_id, calib_info.tray_id);
-            calib_info.extruder_id          = preset_page->get_extruder_id(calib_info.ams_id);
+            calib_info.extruder_id          = preset_page->get_extruder_id_by_tray_id(item.first);
             calib_info.extruder_type        = preset_page->get_extruder_type(calib_info.extruder_id);
             calib_info.nozzle_volume_type   = preset_page->get_nozzle_volume_type(calib_info.extruder_id);
             calib_info.nozzle_diameter      = preset_page->get_nozzle_diameter(calib_info.extruder_id);
@@ -792,7 +792,7 @@ void PressureAdvanceWizard::on_cali_start()
             CalibInfo calib_info;
             calib_info.dev_id            = curr_obj->get_dev_id();
             get_tray_ams_and_slot_id(curr_obj, selected_filaments.begin()->first, calib_info.ams_id, calib_info.slot_id, selected_tray_id);
-            calib_info.extruder_id       = preset_page->get_extruder_id(calib_info.ams_id);
+            calib_info.extruder_id       = preset_page->get_extruder_id_by_tray_id(selected_filaments.begin()->first);
             calib_info.extruder_type     = preset_page->get_extruder_type(calib_info.extruder_id);
             calib_info.nozzle_volume_type = preset_page->get_nozzle_volume_type(calib_info.extruder_id);
             calib_info.nozzle_diameter    = preset_page->get_nozzle_diameter(calib_info.extruder_id);
@@ -877,7 +877,7 @@ void PressureAdvanceWizard::on_cali_start()
             calib_info.dev_id = curr_obj->get_dev_id();
             get_tray_ams_and_slot_id(curr_obj, item.first, calib_info.ams_id, calib_info.slot_id, selected_tray_id);
             calib_info.index              = preset_page->get_index_by_tray_id(item.first);
-            calib_info.extruder_id        = preset_page->get_extruder_id(calib_info.ams_id);
+            calib_info.extruder_id        = preset_page->get_extruder_id_by_tray_id(item.first);
             calib_info.nozzle_diameter    = preset_page->get_nozzle_diameter(calib_info.extruder_id);
             calib_info.extruder_type      = preset_page->get_extruder_type(calib_info.extruder_id);
             calib_info.nozzle_volume_type = preset_page->get_nozzle_volume_type(calib_info.extruder_id);
@@ -973,7 +973,7 @@ bool PressureAdvanceWizard::can_save_cali_result(const std::vector<PACalibResult
     }
 
     if (curr_obj->get_printer_series() != PrinterSeries::SERIES_X1 && curr_obj->pa_calib_tab.size() >= MAX_PA_HISTORY_RESULTS_NUMS) {
-        MessageDialog msg_dlg(nullptr, wxString::Format(_L("This machine type can only hold %d historical results per nozzle. This result will not be saved."), MAX_PA_HISTORY_RESULTS_NUMS),
+        MessageDialog msg_dlg(nullptr, wxString::Format(_L_PLURAL("This machine type can only hold %d historical result per nozzle. This result will not be saved.", "This machine type can only hold %d historical results per nozzle. This result will not be saved.", MAX_PA_HISTORY_RESULTS_NUMS), MAX_PA_HISTORY_RESULTS_NUMS),
                               wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return false;
@@ -1252,7 +1252,7 @@ void FlowRateWizard::on_cali_start(CaliPresetStage stage, float cali_value, Flow
             X1CCalibInfos::X1CCalibInfo calib_info;
             calib_info.tray_id          = item.first;
             get_tray_ams_and_slot_id(curr_obj, item.first, calib_info.ams_id, calib_info.slot_id, calib_info.tray_id);
-            calib_info.extruder_id      = preset_page->get_extruder_id(calib_info.ams_id);
+            calib_info.extruder_id      = preset_page->get_extruder_id_by_tray_id(item.first);
             calib_info.extruder_type    = preset_page->get_extruder_type(calib_info.extruder_id);
             calib_info.nozzle_volume_type = preset_page->get_nozzle_volume_type(calib_info.extruder_id);
             calib_info.nozzle_diameter  = preset_page->get_nozzle_diameter(calib_info.extruder_id);
@@ -1308,7 +1308,15 @@ void FlowRateWizard::on_cali_start(CaliPresetStage stage, float cali_value, Flow
             int selected_tray_id  = 0;
             get_tray_ams_and_slot_id(curr_obj, selected_filaments.begin()->first, calib_info.ams_id, calib_info.slot_id, selected_tray_id);
             calib_info.select_ams         = std::to_string(selected_tray_id);
-            calib_info.extruder_id = preset_page->get_extruder_id(calib_info.ams_id);
+            calib_info.extruder_id = preset_page->get_extruder_id_by_tray_id(selected_filaments.begin()->first);
+            if (from_page == FlowRatioCaliSource::FROM_COARSE_PAGE) {
+                // The fine pass must run on the extruder the coarse pass used. The cache records it;
+                // the preset page's selection may have changed or been reset since.
+                const auto cached = get_cached_selected_filament_for_multi_extruder(curr_obj);
+                const auto it     = cached.find(selected_filaments.begin()->first);
+                if (it != cached.end())
+                    calib_info.extruder_id = it->second.extruder_id;
+            }
             calib_info.extruder_type      = preset_page->get_extruder_type(calib_info.extruder_id);
             calib_info.nozzle_volume_type = preset_page->get_nozzle_volume_type(calib_info.extruder_id);
             calib_info.nozzle_diameter    = preset_page->get_nozzle_diameter(calib_info.extruder_id);
@@ -1724,7 +1732,7 @@ void MaxVolumetricSpeedWizard::on_cali_start()
         int selected_tray_id = 0;
         get_tray_ams_and_slot_id(curr_obj, selected_filaments.begin()->first, calib_info.ams_id, calib_info.slot_id, selected_tray_id);
         calib_info.select_ams     = std::to_string(selected_tray_id);
-        calib_info.extruder_id        = preset_page->get_extruder_id(calib_info.ams_id);
+        calib_info.extruder_id        = preset_page->get_extruder_id_by_tray_id(selected_filaments.begin()->first);
         calib_info.extruder_type      = preset_page->get_extruder_type(calib_info.extruder_id);
         calib_info.nozzle_volume_type = preset_page->get_nozzle_volume_type(calib_info.extruder_id);
         calib_info.nozzle_diameter    = preset_page->get_nozzle_diameter(calib_info.extruder_id);

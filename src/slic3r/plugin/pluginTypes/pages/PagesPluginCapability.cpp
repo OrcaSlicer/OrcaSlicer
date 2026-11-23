@@ -2,6 +2,7 @@
 #include "PagesPluginCapabilityTrampoline.hpp"
 
 #include "../../PluginFsUtils.hpp"
+#include "../../PluginJsonPy.hpp"
 #include <pybind11/pytypes.h>
 #include <pybind11/cast.h>
 

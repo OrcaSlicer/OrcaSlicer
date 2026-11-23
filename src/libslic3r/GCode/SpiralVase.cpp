@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/GCodeWriter.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r {
@@ -132,9 +133,11 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
     float finishing_flowrate = float(m_config.spiral_finishing_flow_ratio.value);
     const float min_segment_length = std::max(float(EPSILON), 2 * float(m_config.resolution.value));
 
+    const int xyz_digits = GCodeFormatter::xyz_digits(m_config.high_precision_gcode.value);
+    const int e_digits = GCodeFormatter::e_digits(m_config.high_precision_gcode.value);
     float len = 0.f;
     SpiralVase::SpiralPoint last_point = previous_layer != NULL && previous_layer->size() >0? previous_layer->at(previous_layer->size()-1): SpiralVase::SpiralPoint(0,0);
-    m_reader.parse_buffer(gcode, [&new_gcode, &z, total_layer_length, layer_height, transition_in, &len, &current_layer, &previous_layer, &transition_gcode, transition_out, smooth_spiral, &max_xy_dist_for_smoothing, &last_point, starting_flowrate, finishing_flowrate, min_segment_length]
+    m_reader.parse_buffer(gcode, [&new_gcode, &z, total_layer_length, layer_height, transition_in, &len, &current_layer, &previous_layer, &transition_gcode, transition_out, smooth_spiral, &max_xy_dist_for_smoothing, &last_point, starting_flowrate, finishing_flowrate, min_segment_length, xyz_digits, e_digits]
         (GCodeReader &reader, GCodeReader::GCodeLine line) {
         if (line.cmd_is("G1")) {
             // Orca: Filter out retractions at layer change
@@ -142,7 +145,7 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
             if (line.has_z() && !(line.has_x() || line.has_y())) {
                 // If this is the initial Z move of the layer, replace it with a
                 // (redundant) move to the last Z of previous layer.
-                line.set(Z, z);
+                line.set(Z, z, xyz_digits);
                 new_gcode += line.raw() + '\n';
                 return;
             } else {
@@ -154,7 +157,7 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
                         if (transition_in){
                             // Transition layer, interpolate the amount of extrusion starting from spiral_vase_starting_flow_rate to 100%.
                             float starting_e_factor = starting_flowrate + (factor * (1.f - starting_flowrate));
-                            line.set(E, line.e() * starting_e_factor, 5 /*decimal_digits*/);
+                            line.set(E, line.e() * starting_e_factor, e_digits);
                         } else if (transition_out) {
                             // We want the last layer to ramp down extrusion, but without changing z height!
                             // So clone the line before we mess with its Z and duplicate it into a new layer that ramps down E
@@ -162,11 +165,11 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
                             // As with transition_in, the amount is ramped down from 100% to spiral_vase_finishing_flow_rate
                             GCodeReader::GCodeLine transitionLine(line);
                             float finishing_e_factor = finishing_flowrate + ((1.f -factor) * (1.f - finishing_flowrate));
-                            transitionLine.set(E, line.e() * finishing_e_factor, 5 /*decimal_digits*/);
+                            transitionLine.set(E, line.e() * finishing_e_factor, e_digits);
                             transition_gcode += transitionLine.raw() + '\n';
                         }
                         // This line is the core of Spiral Vase mode, ramp up the Z smoothly
-                        line.set(Z, z + factor * layer_height);
+                        line.set(Z, z + factor * layer_height, xyz_digits);
                         if (smooth_spiral) {
                             // Now we also need to try to interpolate X and Y
                             SpiralVase::SpiralPoint p(line.x(), line.y()); // Get current x/y coordinates
@@ -185,10 +188,10 @@ std::string SpiralVase::process_layer(const std::string &gcode, bool last_layer)
                                     if (modified_dist_XY < min_segment_length)
                                         line.clear();
                                     else {
-                                        line.set(X, target.x);
-                                        line.set(Y, target.y);
+                                        line.set(X, target.x, xyz_digits);
+                                        line.set(Y, target.y, xyz_digits);
                                         // Scale the extrusion amount according to change in length
-                                        line.set(E, line.e() * modified_dist_XY / dist_XY, 5 /*decimal_digits*/);
+                                        line.set(E, line.e() * modified_dist_XY / dist_XY, e_digits);
                                         last_point = target;
                                     }
                                 } else {

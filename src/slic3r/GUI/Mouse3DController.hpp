@@ -221,6 +221,8 @@ public:
     // Apply the received 3DConnexion mouse events to the camera. Called from the UI rendering thread.
     bool apply(Camera& camera);
 
+    // Whether the settings dialog can be shown: a device is connected and, on Windows, the legacy driver path is in use.
+    bool can_show_settings_dialog() const;
     bool is_settings_dialog_shown() const { return m_show_settings_dialog; }
     void show_settings_dialog(bool show) { m_show_settings_dialog = show && this->connected(); }
     void render_settings_dialog(GLCanvas3D& canvas) const;

@@ -5,6 +5,6 @@
 	"nozzle_diameter": "0.4",
 	"machine_tech": "FFF",
 	"family": "VOLUMIC",
-	"bed_model": "EXO42_bed.STL",
+	"bed_model": "EXO42_bed.stl",
 	"default_materials": "Volumic PLA Ultra;Volumic PLA Ultra (Performance)"
 }

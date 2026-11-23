@@ -1,0 +1,47 @@
+{
+	"type": "filament",
+	"name": "PrintaLot PLA @BBL X2D 0.4 nozzle",
+	"inherits": "PrintaLot PLA @base",
+	"from": "system",
+	"setting_id": "bjfuW3kuf7eKmdrh",
+	"instantiation": "true",
+	"eng_plate_temp": [
+		"55"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive E3D High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden E3D High Flow"
+	],
+	"filament_tower_interface_print_temp": [
+		"220"
+	],
+	"long_retractions_when_ec": [
+		"1",
+		"1",
+		"1",
+		"1",
+		"1",
+		"1"
+	],
+	"retraction_distances_when_ec": [
+		"3",
+		"3",
+		"3",
+		"4",
+		"4",
+		"4"
+	],
+	"first_x_layer_fan_speed": [
+		"40"
+	],
+	"compatible_printers": [
+		"Bambu Lab X2D 0.4 nozzle"
+	]
+}

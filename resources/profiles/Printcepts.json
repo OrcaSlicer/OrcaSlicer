@@ -1,6 +1,6 @@
 {
 	"name": "Printcepts",
-	"version": "01.00.00.04",
+	"version": "01.00.00.05",
 	"force_update": "0",
 	"description": "Printcepts belt printer configurations",
 	"machine_model_list": [

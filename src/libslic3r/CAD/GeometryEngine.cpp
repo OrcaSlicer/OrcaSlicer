@@ -325,10 +325,10 @@ std::vector<TopoDS_Edge> GeometryEngine::collect_edges(const TopoDS_Shape& solid
 // handing the solid back unchanged, which recompute then reported as a success.
 TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radius, FaceGroup faces)
 {
-    if (radius <= 0.001) throw std::runtime_error("the fillet radius must be greater than 0");
+    if (radius <= 0.001) throw std::runtime_error(_u8L("the fillet radius must be greater than 0"));
 
     std::vector<TopoDS_Edge> edges = collect_edges(solid, faces);
-    if (edges.empty()) throw std::runtime_error("no edges to fillet in that group");
+    if (edges.empty()) throw std::runtime_error(_u8L("no edges to fillet in that group"));
 
     BRepFilletAPI_MakeFillet fillet(solid);
     for (const auto& edge : edges)
@@ -344,10 +344,10 @@ TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radi
 
 TopoDS_Shape GeometryEngine::apply_chamfer(const TopoDS_Shape& solid, double distance, FaceGroup faces)
 {
-    if (distance <= 0.001) throw std::runtime_error("the chamfer distance must be greater than 0");
+    if (distance <= 0.001) throw std::runtime_error(_u8L("the chamfer distance must be greater than 0"));
 
     std::vector<TopoDS_Edge> edges = collect_edges(solid, faces);
-    if (edges.empty()) throw std::runtime_error("no edges to chamfer in that group");
+    if (edges.empty()) throw std::runtime_error(_u8L("no edges to chamfer in that group"));
 
     BRepFilletAPI_MakeChamfer chamfer(solid);
     for (const auto& edge : edges)
@@ -370,7 +370,7 @@ TopoDS_Shape GeometryEngine::apply_chamfer(const TopoDS_Shape& solid, double dis
 
 TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radius, const std::vector<int>& edge_ids)
 {
-    if (radius <= 0.001) throw std::runtime_error("the fillet radius must be greater than 0");
+    if (radius <= 0.001) throw std::runtime_error(_u8L("the fillet radius must be greater than 0"));
     if (edge_ids.empty()) throw std::runtime_error("apply_fillet: no edge picked");
 
     BRepFilletAPI_MakeFillet mk(solid);
@@ -387,7 +387,7 @@ TopoDS_Shape GeometryEngine::apply_fillet(const TopoDS_Shape& solid, double radi
 
 TopoDS_Shape GeometryEngine::apply_chamfer(const TopoDS_Shape& solid, double distance, const std::vector<int>& edge_ids)
 {
-    if (distance <= 0.001) throw std::runtime_error("the chamfer distance must be greater than 0");
+    if (distance <= 0.001) throw std::runtime_error(_u8L("the chamfer distance must be greater than 0"));
     if (edge_ids.empty()) throw std::runtime_error("apply_chamfer: no edge picked");
 
     BRepFilletAPI_MakeChamfer mk(solid);

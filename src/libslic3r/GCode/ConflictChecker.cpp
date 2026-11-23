@@ -18,8 +18,9 @@
 #include <tbb/parallel_for.h>
 #include <tbb/concurrent_vector.h>
 
-#include <map>
 #include <functional>
+#include <iterator>
+#include <unordered_map>
 #include <atomic>
 #include <utility>
 #include <vector>
@@ -40,9 +41,10 @@ inline IndexPair point_map_grid_index(const Point &pt, int64_t xdist, int64_t yd
 
 inline bool nearly_equal(const Point &p1, const Point &p2) { return std::abs(p1.x() - p2.x()) < SCALED_EPSILON && std::abs(p1.y() - p2.y()) < SCALED_EPSILON; }
 
-inline Grids line_rasterization(const Line &line, int64_t xdist = scale_(1), int64_t ydist = scale_(1))
+// The grid cells the line passes through, in order, into res.
+inline void line_rasterization(const Line &line, Grids &res, int64_t xdist = scale_(1), int64_t ydist = scale_(1))
 {
-    Grids     res;
+    res.clear();
     Point     rayStart     = line.a;
     Point     rayEnd       = line.b;
     IndexPair currentVoxel = point_map_grid_index(rayStart, xdist, ydist);
@@ -99,9 +101,12 @@ inline Grids line_rasterization(const Line &line, int64_t xdist = scale_(1), int
             assert(0);
         }
     }
-
-    return res;
 }
+
+struct IndexPairHash
+{
+    size_t operator()(const IndexPair &p) const { return std::hash<int64_t>()(p.first) ^ (std::hash<int64_t>()(p.second) * 0x9e3779b97f4a7c15ull); }
+};
 } // namespace RasterizationImpl
 
 void LinesBucketQueue::emplace_back_bucket(ExtrusionLayers &&els, const void *objPtr, Point offset)
@@ -207,7 +212,7 @@ ObjectExtrusions getAllLayersExtrusionPathsFromObject(PrintObject *obj)
 
     for (auto layerPtr : obj->layers()) {
         auto perimeters = getExtrusionPathsFromLayer(layerPtr->regions());
-        oe.perimeters.insert(oe.perimeters.end(), perimeters.begin(), perimeters.end());
+        oe.perimeters.insert(oe.perimeters.end(), std::make_move_iterator(perimeters.begin()), std::make_move_iterator(perimeters.end()));
     }
 
     for (auto supportLayerPtr : obj->support_layers()) { oe.support.push_back(getExtrusionPathsFromSupportLayer(supportLayerPtr)); }
@@ -218,18 +223,20 @@ ObjectExtrusions getAllLayersExtrusionPathsFromObject(PrintObject *obj)
 ConflictComputeOpt ConflictChecker::find_inter_of_lines(const LineWithIDs &lines)
 {
     using namespace RasterizationImpl;
-    std::map<IndexPair, std::vector<int>> indexToLine;
+    // Only looked up, never iterated, so the order of the cells does not matter.
+    std::unordered_map<IndexPair, std::vector<int>, IndexPairHash> indexToLine;
+    Grids indexes;
 
     for (int i = 0; i < lines.size(); ++i) {
-        const LineWithID &l1      = lines[i];
-        auto              indexes = line_rasterization(l1._line);
+        const LineWithID &l1 = lines[i];
+        line_rasterization(l1._line, indexes);
         for (auto index : indexes) {
-            const auto &possibleIntersectIdxs = indexToLine[index];
+            auto &possibleIntersectIdxs = indexToLine[index];
             for (auto possibleIntersectIdx : possibleIntersectIdxs) {
                 const LineWithID &l2 = lines[possibleIntersectIdx];
                 if (auto interRes = line_intersect(l1, l2); interRes.has_value()) { return interRes; }
             }
-            indexToLine[index].push_back(i);
+            possibleIntersectIdxs.push_back(i);
         }
     }
     return {};

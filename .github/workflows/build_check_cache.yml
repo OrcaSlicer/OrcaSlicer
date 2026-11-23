@@ -20,10 +20,13 @@ on:
         required: false
         type: boolean
   
-# Read by scripts/ci_deps_cache.sh.
+# Read by scripts/ci_deps_cache.sh and scripts/ci_macos_admission.py.
 env:
   REPO: ${{ github.repository }}
-  WORKFLOW_REF: ${{ github.workflow_ref }}
+  # The workflow whose push and nightly builds save the deps caches.
+  WORKFLOW: build_all.yml
+  # Every workflow with macOS builds, the first of them the one above.
+  MACOS_WORKFLOWS: build_all.yml build_optional.yml
   BASE_REF: ${{ github.base_ref }}
 
 jobs:

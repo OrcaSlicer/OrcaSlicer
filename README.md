@@ -86,7 +86,8 @@ The [wiki](https://www.orcaslicer.com/wiki) aims to provide a detailed explanati
 ## Stable Release
 
 📥 **[Download the Latest Stable Release](https://github.com/OrcaSlicer/OrcaSlicer/releases/latest)**  
-Visit our GitHub Releases page for the latest stable version of OrcaSlicer, recommended for most users.
+Visit our GitHub Releases page for the latest stable version of OrcaSlicer, recommended for most users.  
+Windows and macOS release and nightly builds are code signed.
 
 ## Nightly Builds
 

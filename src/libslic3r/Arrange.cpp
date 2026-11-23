@@ -1,6 +1,8 @@
 #include "Arrange.hpp"
+#include "ClipperUtils.hpp"
 #include "ExPolygon.hpp"
 #include "Point.hpp"
+#include "Polygon.hpp"
 #include "Print.hpp"
 #include "BoundingBox.hpp"
 #include "PrintConfig.hpp"
@@ -105,6 +107,46 @@ using ItemGroup = std::vector<std::reference_wrapper<Item>>;
 const double BIG_ITEM_TRESHOLD = 0.02;
 #define VITRIFY_TEMP_DIFF_THRSH 15  // bed temp can be higher than vitrify temp, but not higher than this thresh
 
+static bool z_ranges_overlap(double first_min, double first_max, double second_min, double second_max)
+{
+    if (first_min > first_max)
+        std::swap(first_min, first_max);
+    if (second_min > second_max)
+        std::swap(second_min, second_max);
+
+    // Touching a volume is treated as a collision. Arrangement may leave some
+    // usable space empty, but it must not create a marginally unsafe placement.
+    return first_max >= second_min - EPSILON && second_max >= first_min - EPSILON;
+}
+
+template<typename T>
+static bool bed_exclusion_applies_impl(const T &item, const T &fixed_item)
+{
+    if (!fixed_item.is_bed_exclusion)
+        return false;
+    if (item.has_z_range && fixed_item.has_z_range &&
+        !z_ranges_overlap(item.z_min, item.z_max, fixed_item.z_min, fixed_item.z_max))
+        return false;
+
+    // Shared volumes and unresolved object mappings apply conservatively to
+    // every nozzle. Otherwise only the owning physical nozzle participates.
+    return fixed_item.bed_exclusion_extruder_id < 0 || item.bed_exclusion_extruder_ids.empty() ||
+           std::find(item.bed_exclusion_extruder_ids.begin(), item.bed_exclusion_extruder_ids.end(),
+                     fixed_item.bed_exclusion_extruder_id) != item.bed_exclusion_extruder_ids.end();
+}
+
+bool has_bed_exclusion_regions(const ArrangePolygons &polygons)
+{
+    return std::any_of(polygons.begin(), polygons.end(), [](const ArrangePolygon &polygon) {
+        return polygon.is_bed_exclusion;
+    });
+}
+
+bool bed_exclusion_applies(const ArrangePolygon &item, const ArrangePolygon &fixed_item)
+{
+    return bed_exclusion_applies_impl(item, fixed_item);
+}
+
 void update_arrange_params(ArrangeParams& params, const DynamicPrintConfig* print_cfg, const ArrangePolygons& selected)
 {
     double                             skirt_distance = get_real_skirt_dist(*print_cfg);
@@ -113,22 +155,68 @@ void update_arrange_params(ArrangeParams& params, const DynamicPrintConfig* prin
     params.brim_skirt_distance = skirt_distance;
     params.bed_shrink_x += params.brim_skirt_distance;
     params.bed_shrink_y += params.brim_skirt_distance;
-    // for sequential print, we need to inflate the bed because clearance_radius is so large
-    if (params.is_seq_print) {
-        params.bed_shrink_x -= params.clearance_radius / 2;
-        params.bed_shrink_y -= params.clearance_radius / 2;
+}
+
+void update_arrange_items(ArrangePolygons& selected, ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, ArrangeParams& params)
+{
+    update_arrange_params(params, print_cfg, selected);
+    update_selected_items_axis_align(selected, print_cfg, params);
+    update_selected_items_inflation(selected, print_cfg, params);
+    update_unselected_items_inflation(unselected, print_cfg, params);
+}
+
+// The size of an item as the nester packs it, inflated with square joins and then turned by `rotation`.
+static Point packed_size(const ArrangePolygon &ap, coord_t inflation, double rotation)
+{
+    const ExPolygons inflated = inflation > 0 ? offset_ex(ap.poly, float(inflation), jtSquare) : ExPolygons();
+    Polygon          outline  = inflated.empty() ? ap.poly.contour : inflated.front().contour;
+    outline.rotate(rotation);
+    return outline.bounding_box().size();
+}
+
+// An item's inflation as set, the rotation it is measured at, and its packed size without and with the inflation.
+struct ItemSizes
+{
+    coord_t inflation;
+    double  rotation;
+    Point   bare;
+    Point   inflated;
+};
+
+// Lowers the inflation of `ap`, which starts as `item`'s, so it fits `room` where it can, and returns its packed size.
+static Point cap_to_room(ArrangePolygon &ap, const ItemSizes &item, const Point &room)
+{
+    Point size = item.inflated;
+    // The packed size grows convexly with the inflation, so one step along the line from the bare size
+    // fits the item, and a second covers rounding.
+    for (int pass = 0; pass < 2 && ap.inflation > 0 && (size.x() > room.x() || size.y() > room.y()); ++pass) {
+        double ratio = 1.;
+        for (int axis : {0, 1})
+            if (size[axis] > room[axis])
+                ratio = std::min(ratio, double(room[axis] - item.bare[axis]) / double(size[axis] - item.bare[axis]));
+        ap.inflation = coord_t(ap.inflation * std::max(0., ratio));
+        size         = packed_size(ap, ap.inflation, item.rotation);
     }
+    return size;
+}
+
+// Whether the bed fills its bounding box, so the nester packs it as a box.
+static bool is_box_bed(const Points &bed)
+{
+    const BoundingBox bb(bed);
+    return 1.0 - std::abs(Polygon::area(bed)) / (double(bb.size().x()) * double(bb.size().y())) < 1e-3;
 }
 
 void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, ArrangeParams& params) {
     // do not inflate brim_width. Objects are allowed to have overlapped brim.
-    Points      bedpts = get_shrink_bedpts(print_cfg, params);
-    BoundingBox bedbb = Polygon(bedpts).bounding_box();
+    const Points      bed_shape = get_bed_shape(*print_cfg);
+    const BoundingBox bedbb(bed_shape);
     // set obj distance for auto seq_print
     if (params.is_seq_print) {
         bool all_objects_are_short = std::all_of(selected.begin(), selected.end(), [&](ArrangePolygon& ap) { return ap.height < params.nozzle_height; });
         if (all_objects_are_short) {
-            params.min_obj_distance = std::max(params.min_obj_distance, scaled(std::max(MAX_OUTER_NOZZLE_DIAMETER/2.f, params.object_skirt_offset*2)+0.001));
+            // The gap Print::sequential_print_clearance_valid() requires between short objects.
+            params.min_obj_distance = std::max(params.min_obj_distance, scaled(std::max(float(MAX_OUTER_NOZZLE_DIAMETER), params.object_skirt_offset*2)+0.001));
         }
         else
             params.min_obj_distance = std::max(params.min_obj_distance, scaled(params.clearance_radius + 0.001)); // +0.001mm to avoid clearance check fail due to rounding error
@@ -144,25 +232,96 @@ void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPri
         // 3. otherwise, use each object's own brim width
         ap.inflation = params.min_obj_distance != 0 ? params.min_obj_distance / 2 :
             plate_has_tree_support ? scaled(brim_max / 2) : scaled(ap.brim_width);
-        BoundingBox apbb = ap.poly.contour.bounding_box();
-        auto        diffx = bedbb.size().x() - apbb.size().x() - 5;
-        auto        diffy = bedbb.size().y() - apbb.size().y() - 5;
-        if (diffx > 0 && diffy > 0) {
-            auto min_diff = std::min(diffx, diffy);
-            ap.inflation = std::min(min_diff / 2, ap.inflation);
-        }
         });
+
+    // The inflation past every item's brim or tree support only keeps items apart, so the bed may grow
+    // by it, and by all of it when printing by object. A round bed would grow unevenly at its
+    // diagonals, so a set distance grows only a rectangular bed.
+    coord_t reach = params.is_seq_print  ? params.min_obj_distance / 2 :
+                    is_box_bed(bed_shape) ? params.min_obj_distance / 2 - (plate_has_tree_support ? scaled(brim_max / 2) : scaled(brim_max)) :
+                                            0;
+    reach = std::max<coord_t>(0, reach);
+
+    // Kept between an item and the edge of the arrange bed, since the nester cannot place an
+    // item beside one that fills the bed exactly.
+    const coord_t slack = scaled(EPSILON);
+    // The bed less the room for the skirt and the slack, grown by `grow`.
+    auto room = [&](coord_t grow) {
+        const coord_t edge = 2 * (scaled(params.brim_skirt_distance) + slack - grow);
+        return Point(bedbb.size().x() - edge, bedbb.size().y() - edge);
+    };
+    // An item no larger than the bed less the room for the skirt can be placed.
+    const Point plain = room(0) + Point(2 * slack, 2 * slack);
+    auto        fits  = [&](const Point &bare) { return bare.x() <= plain.x() && bare.y() <= plain.y(); };
+    // With rotations allowed the nester turns an item that does not fit as it lies, so no item is too big for the bed.
+    auto placeable = [&](const ItemSizes &item) { return params.allow_rotations || fits(item.bare); };
+
+    std::vector<ItemSizes> sizes;
+    sizes.reserve(selected.size());
+    for (const ArrangePolygon &ap : selected) {
+        double rotation = ap.rotation;
+        Point  bare     = packed_size(ap, 0, rotation);
+        // An item the nester has to turn is measured at an angle it fits along the bed's axes, if there is one.
+        // Printing by object nothing is capped, so every item is measured as it lies.
+        if (params.allow_rotations && !params.is_seq_print && !fits(bare))
+            for (double turned : {0., PI / 2, ap.rotation + PI / 2}) {
+                const Point size = packed_size(ap, 0, turned);
+                if (fits(size)) {
+                    rotation = turned;
+                    bare     = size;
+                    break;
+                }
+            }
+        sizes.push_back({ap.inflation, rotation, bare, packed_size(ap, ap.inflation, rotation)});
+    }
+    // Caps every item to the bed grown by `grow` and returns the largest that can be placed, as packed.
+    auto cap_items = [&](coord_t grow) {
+        const Point fit = room(grow);
+        Point       largest(0, 0);
+        for (size_t i = 0; i < selected.size(); ++i) {
+            selected[i].inflation = sizes[i].inflation;
+            // An almost bed filling item gets less inflation, or it could never be placed. An item too
+            // big for the bed keeps all of it and stays too big for the grown bed, unless the nester
+            // may turn it. Printing by object, the distance keeps the extruder clear of printed
+            // objects, so it is never shrunk.
+            const bool  capped = !params.is_seq_print && placeable(sizes[i]);
+            const Point size   = capped ? cap_to_room(selected[i], sizes[i], fit) : sizes[i].inflated;
+            if (placeable(sizes[i]))
+                largest = largest.cwiseMax(size);
+        }
+        return largest;
+    };
+    Point largest = cap_items(reach);
+    // An item cut to less inflation than the reach could be placed off the bed, so the bed does not grow.
+    // An item that fills the bed falls short by the slack at most, which BuildVolume::BedEpsilon covers.
+    for (size_t i = 0; i < selected.size() && reach > 0; ++i)
+        if (placeable(sizes[i]) && selected[i].inflation + slack < reach) {
+            reach   = 0;
+            largest = cap_items(reach);
+        }
+
+    // Give the bed margin, which the arrange bed keeps from the printable area, back
+    // where the largest item needs it. The skirt keeps its room: pushing a skirt off
+    // the bed is worse than saying the item does not fit.
+    if (!selected.empty()) {
+        auto margin = [&](coord_t bed, coord_t item) { return std::max(0., unscale<double>(bed - item + 2 * (reach - slack)) / 2.); };
+        params.bed_shrink_x = std::min<double>(params.bed_shrink_x, std::max<double>(params.brim_skirt_distance, margin(bedbb.size().x(), largest.x())));
+        params.bed_shrink_y = std::min<double>(params.bed_shrink_y, std::max<double>(params.brim_skirt_distance, margin(bedbb.size().y(), largest.y())));
+    }
+    // Grow the bed by the reach, so the items themselves keep the bed margin.
+    params.bed_shrink_x -= unscale<float>(reach);
+    params.bed_shrink_y -= unscale<float>(reach);
 }
 
 void update_unselected_items_inflation(ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params)
 {
     float exclusion_gap = 1.f;
     if (params.is_seq_print) {
-        // bed_shrink_x is typically (-params.clearance_radius / 2+5) for seq_print
-        exclusion_gap = std::max(exclusion_gap, params.clearance_radius / 2 + params.bed_shrink_x + 1.f);  // +1mm gap so the exclusion region is not too close
-        // dont forget to move the excluded region
+        // bed_shrink_x includes the bed's growth by min_obj_distance / 2; add it back so the gap is the bed margin.
+        exclusion_gap = std::max(exclusion_gap, unscale<float>(params.min_obj_distance) / 2 + params.bed_shrink_x + 1.f);  // +1mm gap so the exclusion region is not too close
+        // dont forget to move the excluded region when the bed grows
         for (auto& region : unselected) {
-            if (region.is_virt_object) region.poly.translate(scaled(params.bed_shrink_x), scaled(params.bed_shrink_y));
+            if (region.is_virt_object) region.poly.translate(scaled(std::min(0.f, params.bed_shrink_x)), scaled(std::min(0.f, params.bed_shrink_y)));
         }
     }
     // For occulusion regions, inflation should be larger to prevent genrating brim on them.
@@ -173,6 +332,19 @@ void update_unselected_items_inflation(ArrangePolygons& unselected, const Dynami
     std::for_each(unselected.begin(), unselected.end(),
         [&](auto& ap) { ap.inflation = !ap.is_virt_object ? (params.min_obj_distance == 0 ? scaled(ap.brim_width) : params.min_obj_distance / 2)
         : (ap.is_extrusion_cali_object ? 0 : scale_(exclusion_gap)); });
+}
+
+double compacted_tower_arrange_clearance(const ArrangePolygons& placed, const ArrangeParams& params, double toolhead_radius)
+{
+    // The head body sits above the nozzle cone, so an object that rises no higher than nozzle_height
+    // only has to clear the cone, as compacted_wipe_tower_clearance() decides. Arrange measures the
+    // height from the plate, which is never less than the rise above the tower that check measures.
+    // The tower is one polygon for every object placed, so a single taller one gives them all the
+    // toolhead radius, and so does an empty list, whose objects are unknown.
+    const bool all_short = !placed.empty() && std::all_of(placed.begin(), placed.end(), [&params](const ArrangePolygon& ap) {
+        return ap.height <= params.nozzle_height + EPSILON;
+    });
+    return all_short ? double(MAX_OUTER_NOZZLE_DIAMETER) : toolhead_radius;
 }
 
 void update_selected_items_axis_align(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params)
@@ -300,12 +472,10 @@ template<class PConf>
 void fill_config(PConf& pcfg, const ArrangeParams &params) {
 
         if (params.is_belt) {
-            // Pack from the end of the belt that prints first, and keep the pile on the
-            // bed when it is larger than the room around that end.
+            // Pack from the end of the belt that prints first.
             pcfg.starting_point = !params.belt_reversed    ? PConf::Alignment::BOTTOM_LEFT :
                                   params.belt_axis == 1    ? PConf::Alignment::TOP_LEFT :
                                                              PConf::Alignment::BOTTOM_RIGHT;
-            pcfg.clamp_to_bin = true;
         }
         else if (params.is_seq_print) {
             // Start placing the items from the center of the print bed
@@ -335,6 +505,14 @@ void fill_config(PConf& pcfg, const ArrangeParams &params) {
 
     // Allow parallel execution.
     pcfg.parallel = params.parallel;
+
+    pcfg.should_check_collision = [](const Item &candidate, const Item &packed) {
+        if (packed.is_bed_exclusion)
+            return bed_exclusion_applies_impl(candidate, packed);
+        if (candidate.is_bed_exclusion)
+            return bed_exclusion_applies_impl(packed, candidate);
+        return true;
+    };
 
     // BBS: excluded regions in BBS bed
     for (auto& poly : params.excluded_regions)
@@ -735,6 +913,22 @@ protected:
                 score += height_score / valid_items_cnt;
         }
 
+        // Orca: the nozzle keeps coming down to a prime tower compacted by "No sparse layers", and
+        // the rod then sweeps the tower's Y span over the whole bed, so nothing taller than the rod
+        // clearance may share that span. Same test as compacted_wipe_tower_clearance().
+        if (params.compacted_tower_growth >= 0 && item.height > params.clearance_height_to_rod) {
+            const auto item_bb = item.boundingBox();
+            const auto iy1     = item_bb.minCorner().y() + item.inflation();
+            const auto iy2     = item_bb.maxCorner().y() - item.inflation();
+            for (const Item& p : m_items) {
+                if (!p.is_wipe_tower) continue;
+                const auto tower_bb = p.boundingBox();
+                const auto grown    = p.inflation() + params.compacted_tower_growth;
+                if (std::max(iy1, tower_bb.minCorner().y() + grown) - std::min(iy2, tower_bb.maxCorner().y() - grown) < scaled(params.clearance_dist_to_rod))
+                    score += LARGE_COST_TO_REJECT * 1.2;
+            }
+        }
+
         std::set<int> extruder_ids;
         for (int i = 0; i < m_items.size(); i++) {
             Item& p = m_items[i];
@@ -1027,13 +1221,19 @@ std::function<double(const Item &, const ItemGroup&)> AutoArranger<ExPolygon>::g
     };
 }
 
-template<class Bin> void remove_large_items(std::vector<Item> &items, Bin &&bin)
+// Drop the fixed objects lying wholly outside the bin, such as those on other plates. One that reaches
+// into the bin still takes the room it covers there, like an object at the bed edge whose inflation
+// crosses the edge of a shrunk bed.
+template<class Bin> void remove_items_outside_bin(std::vector<Item> &items, const Bin &bin)
 {
+    const auto binbb = sl::boundingBox(bin);
     auto it = items.begin();
     while (it != items.end())
     {
+        const auto bb = it->boundingBox();
         //BBS: skip virtual object
-        if (!it->is_virt_object && !sl::isInside(it->transformedShape(), bin))
+        if (!it->is_virt_object && (bb.maxCorner().x() < binbb.minCorner().x() || bb.minCorner().x() > binbb.maxCorner().x() ||
+                                    bb.maxCorner().y() < binbb.minCorner().y() || bb.minCorner().y() > binbb.maxCorner().y()))
             it = items.erase(it);
         else
             it++;
@@ -1076,10 +1276,19 @@ void _arrange(
     //sl::offset(corrected_bin, md);
     ArrangeParams mod_params = params;
     mod_params.min_obj_distance = 0;  // items are already inflated
+    // Orca: aligning the finished pile would carry objects taller than the rod clearance back into
+    // the Y span of a compacted prime tower, which objfunc() has just kept them out of. A
+    // best_object_pos away from the bed centre makes the AutoArranger align the pile to it whatever
+    // do_final_align says, so that point goes back to the centre as well.
+    if (params.compacted_tower_growth >= 0 &&
+        std::any_of(shapes.begin(), shapes.end(), [&params](const Item &itm) { return itm.height > params.clearance_height_to_rod; })) {
+        mod_params.do_final_align = false;
+        mod_params.align_center   = Vec2d(0.5, 0.5);
+    }
 
     AutoArranger<BinT> arranger{corrected_bin, mod_params, progressfn, stopfn};
 
-    remove_large_items(excludes, corrected_bin);
+    remove_items_outside_bin(excludes, corrected_bin);
 
     // If there is something on the plate
     if (!excludes.empty()) arranger.preload(excludes);
@@ -1121,8 +1330,6 @@ inline Box to_nestbin(const InfiniteBed &bed)
 
 inline coord_t width(const BoundingBox& box) { return box.max.x() - box.min.x(); }
 inline coord_t height(const BoundingBox& box) { return box.max.y() - box.min.y(); }
-inline double area(const BoundingBox& box) { return double(width(box)) * height(box); }
-inline double poly_area(const Points &pts) { return std::abs(Polygon::area(pts)); }
 inline double distance_to(const Point& p1, const Point& p2)
 {
     double dx = p2.x() - p1.x();
@@ -1177,6 +1384,12 @@ static void process_arrangeable(const ArrangePolygon &arrpoly,
     item.itemId(arrpoly.itemid);
     item.extrude_ids = arrpoly.extrude_ids;
     item.height = arrpoly.height;
+    item.z_min = arrpoly.z_min;
+    item.z_max = arrpoly.z_max;
+    item.has_z_range = arrpoly.has_z_range;
+    item.is_bed_exclusion = arrpoly.is_bed_exclusion;
+    item.bed_exclusion_extruder_ids = arrpoly.bed_exclusion_extruder_ids;
+    item.bed_exclusion_extruder_id = arrpoly.bed_exclusion_extruder_id;
     item.name = arrpoly.name;
     //BBS: add virtual object logic
     item.is_virt_object = arrpoly.is_virt_object;
@@ -1195,11 +1408,10 @@ template<class Fn> auto call_with_bed(const Points &bed, Fn &&fn)
     else if (bed.size() == 1)
         return fn(InfiniteBed{bed.front()});
     else {
-        auto      bb    = BoundingBox(bed);
-        CircleBed circ  = to_circle(bb.center(), bed);
-        auto      parea = poly_area(bed);
+        auto      bb   = BoundingBox(bed);
+        CircleBed circ = to_circle(bb.center(), bed);
 
-        if ((1.0 - parea / area(bb)) < 1e-3)
+        if (is_box_bed(bed))
             return fn(bb);
         else if (!std::isnan(circ.radius()))
             return fn(circ);

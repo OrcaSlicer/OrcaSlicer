@@ -31,6 +31,10 @@
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Point.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Geometry.hpp"
+#include "libslic3r/Geometry/Voronoi.hpp"
+#include "libslic3r/Arachne/utils/PolygonsSegmentIndex.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -389,4 +393,109 @@ TEST_CASE("Fuzzy skin displacement mode leaves widths untouched", "[Arachne][Fuz
 
     REQUIRE(loop.size() > 100);
     CHECK(std::all_of(loop.begin(), loop.end(), [width](const auto& j) { return j.w == width; }));
+}
+
+// A long strip whose edge is almost straight, with shallow notches: the narrow internal solid infill
+// outline of an OpenSCAD part, as FillConcentricInternal hands it to Arachne. Simplifying the edge meets
+// nearly parallel lines whose intersection lies metres away; such a point must never replace a vertex.
+TEST_CASE("Arachne toolpaths stay inside a nearly straight notched strip", "[Arachne][Regression]") {
+    static const std::vector<std::pair<coord_t, coord_t>> coords = {
+        {7087503, -23391709}, {7087132, -20561941}, {7086747, -20553248}, {7073628, -20405423},
+        {7073626, -20392159}, {7086708, -20244320}, {7087091, -20235627}, {7086662, -16961945},
+        {7086277, -16953252}, {7073158, -16805426}, {7073156, -16792162}, {7086238, -16644323},
+        {7086621, -16635629}, {7086192, -13361943}, {7085807, -13353250}, {7072688, -13205426},
+        {7072686, -13192162}, {7085768, -13044324}, {7086151, -13035631}, {7085722, -9761944},
+        {7085337, -9753253}, {7072218, -9605425}, {7072216, -9592161}, {7085298, -9444322},
+        {7085681, -9435629}, {7085253, -6161945}, {7084868, -6153252}, {7071749, -6005424},
+        {7071747, -5992161}, {7084828, -5844323}, {7085211, -5835630}, {7084783, -2561944},
+        {7084398, -2553251}, {7071279, -2405423}, {7071277, -2392160}, {7084358, -2244322},
+        {7084741, -2235629}, {7084313, 1038057}, {7083928, 1046751}, {7070809, 1194575},
+        {7070807, 1207839}, {7083888, 1355677}, {7084271, 1364370}, {7083843, 4638057},
+        {7083458, 4646751}, {7070339, 4794575}, {7070337, 4807839}, {7083418, 4955677},
+        {7083801, 4964370}, {7083372, 8238057}, {7082987, 8246750}, {7069868, 8394573},
+        {7069866, 8407837}, {7082948, 8555676}, {7083331, 8564369}, {7082902, 11838056},
+        {7082517, 11846749}, {7069398, 11994573}, {7069396, 12007837}, {7082478, 12155676},
+        {7082861, 12164370}, {7082432, 15438057}, {7082047, 15446750}, {7068928, 15594573},
+        {7068926, 15607837}, {7082008, 15755676}, {7082391, 15764369}, {7081962, 19038059},
+        {7081577, 19046752}, {7068458, 19194574}, {7068456, 19207839}, {7081538, 19355678},
+        {7081921, 19364372}, {7081495, 22594134}, {6593891, 22594071}, {6594318, 19358230},
+        {6581172, 19201141}, {6594355, 19044073}, {6594788, 15758227}, {6581642, 15601139},
+        {6594825, 15444071}, {6595258, 12158228}, {6582111, 12001139}, {6595295, 11844070},
+        {6595728, 8558227}, {6582582, 8401139}, {6595765, 8244072}, {6596197, 4958229},
+        {6583052, 4801135}, {6596236, 4644072}, {6596667, 1358228}, {6583522, 1201135},
+        {6596706, 1044072}, {6597137, -2241771}, {6583992, -2398865}, {6597176, -2555929},
+        {6597607, -5841771}, {6584462, -5998865}, {6597646, -6155929}, {6598078, -9441771},
+        {6584931, -9598860}, {6598115, -9755930}, {6598548, -13041773}, {6585402, -13198861},
+        {6598585, -13355929}, {6599018, -16641771}, {6585871, -16798860}, {6599055, -16955931},
+        {6599488, -20241769}, {6586342, -20398858}, {6599525, -20555927}, {6599898, -23391773},
+    };
+    Polygon strip;
+    for (const auto &[x, y] : coords)
+        strip.points.emplace_back(x, y);
+    // WallToolPaths keeps a reference to its outline, so the outline must outlive it.
+    const Polygons outline{strip};
+
+    // FillConcentricInternal's settings for a 0.4 mm nozzle, 0.4 mm lines at 0.2 mm layers.
+    constexpr double nozzle_mm = 0.4, layer_height = 0.2;
+    WallToolPathsParams params;
+    params.min_bead_width                   = static_cast<float>(0.85 * nozzle_mm);
+    params.min_feature_size                 = static_cast<float>(0.25 * nozzle_mm);
+    params.wall_transition_length           = 0.4f;
+    params.wall_transition_angle            = 10.f;
+    params.wall_transition_filter_deviation = static_cast<float>(0.25 * nozzle_mm);
+    params.wall_distribution_count          = 1;
+
+    const coord_t spacing     = scaled<coord_t>(Flow::rounded_rectangle_extrusion_spacing(0.4f, static_cast<float>(layer_height)));
+    const Point   size        = strip.bounding_box().size();
+    const size_t  inset_count = static_cast<size_t>(std::max(size.x(), size.y()) / spacing + 1);
+
+    WallToolPaths wall_tool_paths(outline, spacing, spacing, inset_count, 0, layer_height, params);
+    const std::vector<VariableWidthLines> &toolpaths = wall_tool_paths.getToolPaths();
+
+    BoundingBox bounds = strip.bounding_box();
+    bounds.offset(scaled<coord_t>(0.1));
+    size_t junctions = 0;
+    for (const VariableWidthLines &lines : toolpaths)
+        for (const ExtrusionLine &line : lines)
+            for (const ExtrusionJunction &junction : line) {
+                ++junctions;
+                CAPTURE(junction.p.x(), junction.p.y());
+                REQUIRE(bounds.contains(junction.p));
+            }
+    CHECK(junctions > 0);
+}
+
+// A sliver whose apex lies metres away gives a Voronoi diagram that rotating the input cannot repair.
+// The skeletal graph built from such a diagram has edges without twins, so it must not be used.
+TEST_CASE("Arachne generates no toolpaths from an unrepairable Voronoi diagram", "[Arachne][Regression]") {
+    const Polygon sliver = GENERATE(Polygon{{7085722, -9761944}, {7086662, -16961944}, {8169022, static_cast<coord_t>(-8295690726)}},
+                                    Polygon{{8805310, -23391484}, {8008853, static_cast<coord_t>(6064690973)}, {8534015, -23391518}});
+    CAPTURE(sliver.points);
+    const Polygons outline{sliver};
+
+    std::vector<PolygonsSegmentIndex> segments;
+    for (size_t point_idx = 0; point_idx < sliver.size(); ++point_idx)
+        segments.emplace_back(&outline, 0, point_idx);
+    Geometry::VoronoiDiagram voronoi;
+    voronoi.construct_voronoi(segments.cbegin(), segments.cend());
+    REQUIRE_FALSE(voronoi.is_valid());
+
+    // FillConcentricInternal's settings for a 0.4 mm nozzle, 0.4 mm lines at 0.2 mm layers.
+    const coord_t spacing        = scaled<coord_t>(Flow::rounded_rectangle_extrusion_spacing(0.4f, 0.2f));
+    const coord_t min_bead_width = scaled<coord_t>(0.85 * 0.4);
+    const auto    strategy       = BeadingStrategyFactory::makeStrategy(spacing, spacing, scaled<coord_t>(0.4), static_cast<float>(Geometry::deg2rad(10.)),
+                                                                        /*print_thin_walls*/ false, min_bead_width, scaled<coord_t>(0.25 * 0.4),
+                                                                        /*split_middle_threshold*/ 0.5, /*add_middle_threshold*/ 0.5,
+                                                                        /*max_bead_count*/ 260, /*outer_wall_offset*/ 0, /*inward_distributed_center_wall_count*/ 1);
+
+    SkeletalTrapezoidation wall_maker(outline, *strategy, strategy->getTransitioningAngle(), scaled<coord_t>(0.8), scaled<coord_t>(100.),
+                                      scaled<coord_t>(0.25 * 0.4), scaled<coord_t>(0.4));
+    std::vector<VariableWidthLines> toolpaths;
+    wall_maker.generateToolpaths(toolpaths);
+
+    size_t junctions = 0;
+    for (const VariableWidthLines &lines : toolpaths)
+        for (const ExtrusionLine &line : lines)
+            junctions += line.size();
+    CHECK(junctions == 0);
 }

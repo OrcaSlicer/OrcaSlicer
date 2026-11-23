@@ -268,6 +268,8 @@ class GLToolbar
 {
 public:
     static const float Default_Icons_Size;
+    // Corner radius of the toolbars along the top edge of the 3D canvas, matching its ImGui panels.
+    static constexpr float Top_Corner_Radius = 8.0f;
 
     enum EType : unsigned char
     {
@@ -307,6 +309,9 @@ public:
         float top;
         float left;
         float border;
+        // Radius of the background corners left free by the orientation, in the units of border;
+        // 0 draws every corner square.
+        float corner_radius;
         float separator_size;
         float gap_size;
         float icons_size;
@@ -371,6 +376,7 @@ public:
 
     void set_position(float top, float left);
     void set_border(float border);
+    void set_corner_radius(float radius) { m_layout.corner_radius = radius; }
     void set_separator_size(float size);
     void set_gap_size(float size);
     void set_icons_size(float size);
@@ -445,7 +451,9 @@ private:
     int contains_mouse_horizontal(const Vec2d& mouse_pos, const GLCanvas3D& parent) const;
     int contains_mouse_vertical(const Vec2d& mouse_pos, const GLCanvas3D& parent) const;
 
-    void render_background(float left, float top, float right, float bottom, float border_w, float border_h) const;
+    // Nine-slice background whose corner slices are corner_w x corner_h; the corners the orientation
+    // leaves free take the texture's rounded corners, the others its square center.
+    void render_background(float left, float top, float right, float bottom, float corner_w, float corner_h) const;
     void render_horizontal(const GLCanvas3D &parent, GLToolbarItem::EType type, bool draw_icons);
     void render_vertical(const GLCanvas3D& parent, bool draw_icons);
 

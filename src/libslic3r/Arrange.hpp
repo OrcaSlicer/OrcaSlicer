@@ -81,6 +81,17 @@ struct ArrangePolygon {
     int       itemid{ 0 };         // item id in the vector, used for accessing all possible params like extrude_id
     int       is_applied{ 0 };     // transform has been applied
     double    height{ 0 };         // item height
+    double    z_min{ 0 };          // lowest occupied Z coordinate
+    double    z_max{ 0 };          // highest occupied Z coordinate
+    bool      has_z_range{ false }; // whether z_min / z_max are authoritative
+    bool      is_bed_exclusion{ false }; // conditional bed-exclusion obstacle
+    // Physical nozzle ids used only for per-nozzle exclusion checks. These are
+    // deliberately separate from extrude_ids, which contains logical filament
+    // ids used by Orca's normal material-aware arrangement. Empty is treated
+    // conservatively as unresolved and therefore applicable to every nozzle.
+    std::vector<int> bed_exclusion_extruder_ids{};
+    // Zero-based nozzle owning an exclusion obstacle; -1 means shared.
+    int       bed_exclusion_extruder_id{ -1 };
     double    brim_width{ 0 };     // brim width
     std::string name;
 
@@ -145,6 +156,13 @@ struct ArrangeParams {
     float object_skirt_offset = 0;
     float nozzle_height = 0;
     float printable_height = 256.0;
+    // Orca: whether the prime tower stays low because "No sparse layers" drops its sparse layers, on a
+    // plate printed by layer: the condition the slicer's clearance check applies.
+    bool    compacted_tower        = false;
+    // Orca: how far (scaled) the polygon of such a tower was grown past the tower itself, or negative
+    // when no tower was grown.
+    coord_t compacted_tower_growth = -1;
+    float   clearance_dist_to_rod  = 0;
     Vec2d align_center{ 0.5,0.5 };
     // Belt printer: items print in the order they lie along the belt axis, from
     // its low end unless belt_reversed, and a part's top prints
@@ -187,6 +205,7 @@ struct ArrangeParams {
         ret += "\"clearance_height_to_rod\":" + std::to_string(clearance_height_to_rod) + ",";
         ret += "\"clearance_height_to_lid\":" + std::to_string(clearance_height_to_lid) + ",";
         ret += "\"clearance_radius\":" + std::to_string(clearance_radius) + ",";
+        ret += "\"compacted_tower_growth\":" + std::to_string(compacted_tower_growth) + ",";
         ret += "\"printable_height\":" + std::to_string(printable_height) + ",";
         return ret;
     }
@@ -195,11 +214,23 @@ struct ArrangeParams {
 
 void update_arrange_params(ArrangeParams& params, const DynamicPrintConfig* print_cfg, const ArrangePolygons& selected);
 
+// Runs update_arrange_params() and the item updates below in the order they depend on.
+void update_arrange_items(ArrangePolygons& selected, ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, ArrangeParams& params);
+
+// Call after update_selected_items_axis_align(), since it measures each item as it is turned.
 void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, ArrangeParams& params);
 
 void update_unselected_items_inflation(ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
 
+// Orca: how far in mm the objects in placed have to stay from a prime tower compacted by "No sparse
+// layers": MAX_OUTER_NOZZLE_DIAMETER when none of them is taller than params.nozzle_height,
+// toolhead_radius otherwise or when placed is empty.
+double compacted_tower_arrange_clearance(const ArrangePolygons& placed, const ArrangeParams& params, double toolhead_radius);
+
 void update_selected_items_axis_align(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
+
+bool has_bed_exclusion_regions(const ArrangePolygons& polygons);
+bool bed_exclusion_applies(const ArrangePolygon& item, const ArrangePolygon& fixed_item);
 
 Points get_shrink_bedpts(const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
 

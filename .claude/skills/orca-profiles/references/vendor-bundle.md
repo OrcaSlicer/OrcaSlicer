@@ -65,8 +65,10 @@ Four components, `MM.mm.pp.bb`, compared as a version number in which the fourth
 third (`patch × 100 + build`). Write all four components, zero-padded.
 
 - **Bump the version for every bundle the change touches.** The app installs bundled profiles only
-  when their version is newer than the installed one, and the `.opc` preset cache is also keyed on
-  the version. Nothing in profile CI checks the bump.
+  when their version is newer than the installed one, the `.opc` preset cache is also keyed on
+  the version, and the OTA profile update is named after it. `version-check` (CI's `version_bump`)
+  fails a bundle with a changed file whose version is not newer than at the branch's base, or is
+  not four numbers; a bundle the base does not have passes.
 - **Keep the last component ≤ 99.** `02.04.00.100` and `02.04.01.00` both read as
   `2.4.100`. A bundle that
   reaches `.99` carries into the third component (`02.03.02.99` → `02.03.03.00`).

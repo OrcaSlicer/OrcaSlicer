@@ -382,7 +382,7 @@ void ObjectSettings::update_config_values(ModelConfig* config, const std::string
     };
 
 #if !NEW_OBJECT_SETTING
-    auto toggle_field = [this](const t_config_option_key & opt_key, bool toggle, int opt_index)
+    auto toggle_field = [this](const t_config_option_key & opt_key, bool toggle, int opt_index, const wxString&)
     {
         Field* field = nullptr;
         for (auto og : m_og_settings) {
@@ -394,9 +394,9 @@ void ObjectSettings::update_config_values(ModelConfig* config, const std::string
             field->toggle(toggle);
     };
 #else
-    auto toggle_field = [this](const t_config_option_key & opt_key, bool toggle, int opt_index)
+    auto toggle_field = [this](const t_config_option_key & opt_key, bool toggle, int opt_index, const wxString& reason)
     {
-        m_tab_active->toggle_option(opt_key, toggle, opt_index);
+        m_tab_active->toggle_option(opt_key, toggle, opt_index, reason);
     };
 #endif
 

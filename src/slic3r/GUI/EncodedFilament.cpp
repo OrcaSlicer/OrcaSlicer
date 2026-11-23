@@ -1,17 +1,21 @@
 #include "EncodedFilament.hpp"
 #include "libslic3r/Utils.hpp"
 #include <fstream>
+#include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
 #include <cassert>
 #include <nlohmann/json.hpp>
 #include <wx/string.h>
+#include <wx/strconv.h>
 #include <wx/colour.h>
+#include <string>
 #include <unordered_map>
 #include <vector>
 #include <utility>
 
 #include "GUI_App.hpp"
 #include "I18N.hpp"
+#include "slic3r/Utils/BBLPrinterAgent.hpp"
 
 using json = nlohmann::json;
 
@@ -23,10 +27,19 @@ static wxString _ColourToString(const wxColour& color)
     return wxString::Format("#%02X%02X%02X%02X", color.Red(), color.Green(), color.Blue(), color.Alpha());
 }
 
+// A vendor installed from its preset cache (<vendor>.opc) has no system/BBL
+// directory in the data dir, so fall back to the copy shipped with the app.
+static std::string filament_color_codes_path()
+{
+    const std::string relative_path = "/BBL/filament/filaments_color_codes.json";
+    const std::string installed     = data_dir() + "/system" + relative_path;
+    return boost::filesystem::exists(installed) ? installed : resources_dir() + "/profiles" + relative_path;
+}
+
 FilamentColorCodeQuery::FilamentColorCodeQuery()
 {
     m_fila_id2colors_map = new std::unordered_map<wxString, FilamentColorCodes*>;
-    m_fila_path = data_dir() + "/system/BBL/filament/filaments_color_codes.json";
+    m_fila_path = filament_color_codes_path();
     LoadFromLocal();
 }
 
@@ -41,7 +54,11 @@ FilamentColorCodeQuery::~FilamentColorCodeQuery()
 
 FilamentColorCodes* FilamentColorCodeQuery::GetFilaInfoMap(const wxString& fila_id) const
 {
-    const auto& iter = m_fila_id2colors_map->find(fila_id);
+    // The color codes are keyed by Bambu's filament ids. Callers holding Orca's id only get it
+    // translated when the Bambu agent is live, so translate here for every other agent.
+    auto iter = m_fila_id2colors_map->find(fila_id);
+    if (iter == m_fila_id2colors_map->end())
+        iter = m_fila_id2colors_map->find(wxString::FromUTF8(BBLPrinterAgent::bambu_filament_id(fila_id.ToStdString(wxConvUTF8))));
     return (iter != m_fila_id2colors_map->end()) ? iter->second : nullptr;
 }
 
@@ -96,7 +113,7 @@ void FilamentColorCodeQuery::LoadFromLocal()
                     const auto& fila_color_strs = json_data_item["fila_color"].get<std::vector<wxString>>();
                     for (const auto& color_str : fila_color_strs) {
                         if (color_str.size() > 3) /* Skip the value like "#0"*/{
-                            fila_color.m_colors.emplace(wxColour(color_str));
+                            fila_color.AddColor(wxColour(color_str));
                         }
                     }
                 }

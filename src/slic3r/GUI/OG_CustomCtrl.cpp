@@ -1,5 +1,6 @@
 #include "OG_CustomCtrl.hpp"
 #include "OptionsGroup.hpp"
+#include "OptionStateRegistry.hpp"
 #include "MarkdownTip.hpp"
 #include "Plater.hpp"
 #include "GUI_App.hpp"
@@ -19,6 +20,7 @@
 #include <wx/dc.h>
 #include <wx/colour.h>
 #include <cstddef>
+#include <string>
 #include <wx/settings.h>
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/GUI.hpp"
@@ -372,6 +374,7 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
 {
     const wxPoint pos = event.GetLogicalPosition(wxClientDC(this));
     wxString tooltip;
+    wxString availability;
     std::string markdowntip;
 
     // BBS: markdown tip
@@ -387,6 +390,19 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
             if (!suppress_hyperlinks && !line.og_line.label_path.empty())
                 tooltip = OptionsGroup::get_url(line.og_line.label_path) + "\n\n";
             tooltip += line.og_line.label_tooltip;
+            if (m_option_state_registry) {
+                std::vector<wxString> reasons;
+                for (const Option& option : line.og_line.get_options()) {
+                    const std::string& key = option.opt.opt_key.empty() ? option.opt_id : option.opt.opt_key;
+                    wxString reason = m_option_state_registry->description(key);
+                    if (!reason.empty() && std::find(reasons.begin(), reasons.end(), reason) == reasons.end()) {
+                        reasons.push_back(reason);
+                        if (!availability.empty())
+                            availability += "\n\n";
+                        availability += reason;
+                    }
+                }
+            }
             // BBS: markdown tip
             focusedLine = &line;
             markdowntip = line.og_line.label.empty()
@@ -432,13 +448,16 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
         assert(focusedLine);
         wxPoint pos2 = { 250, focusedLine->rect_label.y };
         pos2 = ClientToScreen(pos2);
-        if (MarkdownTip::ShowTip(markdowntip, into_u8(tooltip), pos2)) {
+        if (MarkdownTip::ShowTip(markdowntip, into_u8(tooltip), pos2, into_u8(availability))) {
             tooltip.clear();
+            availability.clear();
         }
     }
     else {
         MarkdownTip::ShowTip(markdowntip, "", {tooltip.empty() ? 0 : 1, 0});
     }
+    if (!availability.empty())
+        tooltip = availability + "\n\n" + tooltip;
     if (GetToolTipText() != tooltip)
         this->SetToolTip(tooltip);
     // BBS

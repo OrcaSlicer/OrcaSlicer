@@ -10,6 +10,11 @@ function OnInit()
 	// Orca: fallback timeout in case the C++ -> JS signal fails (e.g., WebKit issues).
 	// Jump to the target page after 3 minutes so slow computers don't get stuck on a partially loaded page.
 	setTimeout("JumpToTarget()",180*1000);
+
+	var tSend={};
+	tSend['sequence_id']=Math.round(new Date() / 1000);
+	tSend['command']="userguide_loading_page_ready";
+	SendWXMessage(JSON.stringify(tSend));
 }
 
 function HandleStudio( pVal )

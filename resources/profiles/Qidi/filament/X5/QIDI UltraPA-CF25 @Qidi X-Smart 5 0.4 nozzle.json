@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "QIDI UltraPA-CF25 @Qidi X-Smart 5 0.4 nozzle",
+	"inherits": "QIDI UltraPA-CF25@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "zv4x846kGA9PlO1F",
+	"instantiation": "true",
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"additional_cooling_fan_speed_unseal": [
+		"0"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.4 nozzle"
+	]
+}

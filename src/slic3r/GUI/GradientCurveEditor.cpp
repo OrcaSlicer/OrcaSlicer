@@ -362,7 +362,7 @@ void GradientCurveEditor::on_paint(wxPaintEvent& /*evt*/)
     }
 
     const MixedGradientTheme theme{bg, grid_color, axis_color, label_muted, label_strong, outline_color, point_fill};
-    draw_mixed_gradient_plot(raw_dc, GetClientSize(), curves, anchors, theme);
+    draw_mixed_gradient_plot(raw_dc, GetClientSize(), curves, anchors, theme, kGradientMinRatio);
 }
 
 void GradientCurveEditor::on_left_down(wxMouseEvent& evt)

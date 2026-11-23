@@ -23,6 +23,7 @@
 #include "../GUI/Plater.hpp"
 #include <memory>
 #include "slic3r/GUI/Jobs/Worker.hpp"
+#include "slic3r/GUI/format.hpp"
 #include <string>
 #include <vector>
 #include "libslic3r/PrintConfig.hpp"
@@ -181,7 +182,7 @@ void update_speed_parameter( const std::string& key)
     }
 }
 
-std::vector<double> generate_max_speed_parameter_value(const std::string &key, const bool linear, const int pass)
+std::vector<double> generate_max_speed_parameter_value(const std::string &key, const float line_width, const float layer_height, const bool linear, const int pass)
 {
     auto  preset_bundle   = wxGetApp().preset_bundle;
     auto &printer_config  = preset_bundle->printers.get_edited_preset().config;
@@ -193,8 +194,6 @@ std::vector<double> generate_max_speed_parameter_value(const std::string &key, c
     std::vector<int> nozzle_volume_types = preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
 
     float nozzle_diameter = printer_config.option<ConfigOptionFloats>("nozzle_diameter")->values[0];
-    float layer_height    = print_config.option<ConfigOptionFloat>("layer_height")->value;
-    float line_width      = print_config.get_abs_value("line_width", nozzle_diameter);
 
     Flow flow = Flow(line_width, layer_height, nozzle_diameter);
 
@@ -312,7 +311,7 @@ static bool is_same_nozzle_type(const DynamicPrintConfig &full_config, const Mac
         if (abs(filament_nozzle_hrc) > abs(printer_nozzle_hrc)) {
             BOOST_LOG_TRIVIAL(info) << "filaments hardness mismatch:  printer_nozzle_hrc = " << printer_nozzle_hrc << ", filament_nozzle_hrc = " << filament_nozzle_hrc;
             std::string filament_type = full_config.opt_string("filament_type", 0);
-            error_msg = wxString::Format(_L("Printing %1s material with %2s nozzle may cause nozzle damage."), filament_type, to_wstring_name(NozzleTypeEumnToStr[obj->GetExtderSystem()->GetNozzleType(0)]));
+            error_msg = format_wxstr(_L("Printing %1% material with %2% nozzle may cause nozzle damage."), filament_type, to_wstring_name(NozzleTypeEumnToStr[obj->GetExtderSystem()->GetNozzleType(0)]));
             error_msg += "\n";
 
             MessageDialog msg_dlg(nullptr, error_msg, wxEmptyString, wxICON_WARNING | wxOK | wxCANCEL);
@@ -368,7 +367,9 @@ static void init_multi_extruder_params_for_cali(DynamicPrintConfig& config, cons
     nozzle_volume_types.clear();
     nozzle_volume_types.resize(extruder_count, (int)calib_info.nozzle_volume_type);
 
-    std::vector<int> physical_extruder_maps = dynamic_cast<ConfigOptionInts*>(config.option("physical_extruder_map", true))->values;
+    // One entry per nozzle even when the profile never set the map (the single-element default).
+    const std::vector<int> physical_extruder_maps =
+        effective_physical_extruder_map(config.option<ConfigOptionInts>("physical_extruder_map", true), extruder_count).values;
     int extruder_id = calib_info.extruder_id;
     for (size_t index = 0; index < extruder_count; ++index) {
         if (physical_extruder_maps[index] == extruder_id)
@@ -970,7 +971,8 @@ void CalibUtils::set_for_auto_pa_model_and_config(const std::vector<CalibInfo> &
     nozzle_flush_dataset.resize(extruder_count, 0);
 
     int               filament_nums = calib_infos.size();
-    std::vector<int> physical_extruder_maps = dynamic_cast<ConfigOptionInts *>(full_config.option("physical_extruder_map", true))->values;
+    const std::vector<int> physical_extruder_maps =
+        effective_physical_extruder_map(full_config.option<ConfigOptionInts>("physical_extruder_map", true), extruder_count).values;
     for (size_t filament_index = 0; filament_index < calib_infos.size(); ++filament_index) {
         CalibInfo calib_info  = calib_infos[filament_index];
         int extruder_id = calib_info.extruder_id;
@@ -1056,7 +1058,10 @@ bool CalibUtils::calib_generic_auto_pa_cali(const std::vector<CalibInfo> &calib_
     std::vector<Preset> filament_presets;
     std::vector<int>    filament_map;
     filament_map.resize(calib_infos.size());
-    std::vector<int> physical_extruder_maps = dynamic_cast<ConfigOptionInts *>(printer_config.option("physical_extruder_map", true))->values;
+    const auto*            nozzle_diameters       = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
+    const int              nozzle_count           = nozzle_diameters ? static_cast<int>(nozzle_diameters->values.size()) : 0;
+    const std::vector<int> physical_extruder_maps =
+        effective_physical_extruder_map(printer_config.option<ConfigOptionInts>("physical_extruder_map", true), nozzle_count).values;
     for (size_t i = 0; i < calib_infos.size(); ++i) {
         CalibInfo calib_info = calib_infos[i];
         calib_info.filament_prest->config.set_key_value("curr_bed_type", new ConfigOptionEnum<BedType>(calib_info.bed_type));
@@ -1141,6 +1146,7 @@ bool CalibUtils::calib_generic_PA(const CalibInfo &calib_info, wxString &error_m
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
     print_config.set_key_value("wipe_inward", new ConfigOptionBool(false));
+    print_config.set_key_value("retract_after_outer_wall", new ConfigOptionBool(false));
     DynamicPrintConfig filament_config = calib_info.filament_prest->config;
     DynamicPrintConfig printer_config  = calib_info.printer_prest->config;
 
@@ -1403,6 +1409,7 @@ void CalibUtils::calib_retraction(const CalibInfo &calib_info, wxString &error_m
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
     print_config.set_key_value("wipe_inward", new ConfigOptionBool(false));
+    print_config.set_key_value("retract_after_outer_wall", new ConfigOptionBool(false));
     DynamicPrintConfig filament_config = calib_info.filament_prest->config;
     DynamicPrintConfig printer_config  = calib_info.printer_prest->config;
 
@@ -1497,7 +1504,7 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
 
     for (const auto &cali_info : cali_infos.calib_datas) {
         wxString name = "";
-        if (is_multi_extruder) { name = cali_info.extruder_id == MAIN_EXTRUDER_ID ? _L("right") + " ": _L("left") + " "; }
+        if (is_multi_extruder) { name = cali_info.extruder_id == MAIN_EXTRUDER_ID ? _L("right") : _L("left"); }
 
         float cali_diameter = cali_info.nozzle_diameter;
         int   extruder_id   = cali_info.extruder_id;
@@ -1508,6 +1515,7 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
 
 
         if (is_approx(double(cali_info.nozzle_diameter), 0.2) && !obj->is_series_x()) {
+            // TRN %s is "left" or "right".
             error_message = wxString::Format(_L("The nozzle diameter of %s extruder is 0.2mm which does not support automatic Flow Dynamics calibration."), name);
             return false;
         }
@@ -1516,6 +1524,7 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
         NozzleFlowType nozzle_volume_type = obj->GetExtderSystem()->GetNozzleFlowType(extruder_id);
         if (!obj->GetExtderSystem()->NozzleDiameterMatchesOrUnknown(extruder_id, cali_info.nozzle_diameter)) {
             if (is_multi_extruder)
+                // TRN %s is "left" or "right".
                 error_message = wxString::Format(_L("The currently selected nozzle diameter of %s extruder does not match the actual nozzle diameter.\n"
                                "Please click the Sync button above and restart the calibration."), name);
             else
@@ -1526,6 +1535,7 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
 
         if (nozzle_volume_type == NozzleFlowType::NONE_FLOWTYPE) {
             if (is_multi_extruder)
+                // TRN %s is "left" or "right".
                 error_message = wxString::Format(_L("Printer %s nozzle information has not been set. Please configure it before proceeding with the calibration."), name);
             else
                 error_message = nozzle_not_set_text;
@@ -1534,6 +1544,7 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
 
         if (NozzleVolumeType(nozzle_volume_type - 1) != cali_info.nozzle_volume_type) {
             if (is_multi_extruder)
+                // TRN %s is "left" or "right".
                 error_message = wxString::Format(_L("The currently selected nozzle type of %s extruder does not match the actual printer nozzle type.\n"
                                                 "Please click the Sync button above and restart the calibration."), name);
             else
@@ -1558,7 +1569,7 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
 
     for (const auto &cali_info : cali_infos) {
         wxString name = "";
-        if (is_multi_extruder) { name = cali_info.extruder_id == MAIN_EXTRUDER_ID ? _L("right") + " " : _L("left") + " "; }
+        if (is_multi_extruder) { name = cali_info.extruder_id == MAIN_EXTRUDER_ID ? _L("right") : _L("left"); }
 
         if (cali_info.params.mode == CalibMode::Calib_Auto_PA_Line && !is_support_auto_pa_cali(cali_info.filament_prest->filament_id)) {
             error_message = _L("TPU 90A/TPU 85A is too soft and does not support automatic Flow Dynamics calibration.");
@@ -1850,7 +1861,7 @@ void CalibUtils::send_to_print(const CalibInfo &calib_info, wxString &error_mess
     }
 
     else if (!obj_->GetConfig()->SupportPrintWithoutSD() && (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::NO_SDCARD)) {
-        error_message = _L("Storage needs to be inserted before printing.");
+        error_message = _L("Insert storage or free up space before printing.");
         return;
     }
     if (obj_->is_lan_mode_printer()) {
@@ -1956,7 +1967,7 @@ void CalibUtils::send_to_print(const std::vector<CalibInfo> &calib_infos, wxStri
     }
 
     else if (!obj_->GetConfig()->SupportPrintWithoutSD() && (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::NO_SDCARD)) {
-        error_message = _L("Storage needs to be inserted before printing.");
+        error_message = _L("Insert storage or free up space before printing.");
         return;
     }
     if (obj_->is_lan_mode_printer()) {

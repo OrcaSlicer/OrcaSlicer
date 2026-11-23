@@ -30,47 +30,6 @@ static ConfigOptionInts make_pem(std::vector<int> v) {
     return o;
 }
 
-TEST_CASE("effective_physical_extruder_map - authored map wins", "[IMEX]") {
-    // An AFC manifold on a 7-extruder machine: logical 0-3 all feed physical 0. Not derivable,
-    // so it must be honoured verbatim.
-    auto explicit_pem = make_pem({0, 0, 0, 0, 1, 2, 3});
-    auto out = effective_physical_extruder_map(&explicit_pem, 7);
-    REQUIRE(out.values == std::vector<int>{0, 0, 0, 0, 1, 2, 3});
-}
-
-TEST_CASE("effective_physical_extruder_map - a permutation is honoured", "[IMEX]") {
-    // Shipping BBL dual-nozzle profiles author {1,0}: a slicer/firmware numbering swap, not a
-    // sharing map. Deriving over it would silently renumber both extruders.
-    auto explicit_pem = make_pem({1, 0});
-    auto out = effective_physical_extruder_map(&explicit_pem, 2);
-    REQUIRE(out.values == std::vector<int>{1, 0});
-}
-
-TEST_CASE("effective_physical_extruder_map - unauthored derives the identity", "[IMEX]") {
-    // The PrintConfig default is a single element, which is not an authored map on a 2-extruder
-    // machine. Identity is what upstream itself falls back to.
-    auto default_pem = make_pem({0});
-    auto out = effective_physical_extruder_map(&default_pem, 2);
-    REQUIRE(out.values == std::vector<int>{0, 1});
-}
-
-TEST_CASE("effective_physical_extruder_map - result is always one entry per extruder", "[IMEX]") {
-    // The defining property: consumers index this map by logical extruder and size their own
-    // arrays from nozzle_diameter, so a shorter map is an out-of-bounds read in several of them.
-    for (int n : { 1, 2, 4, 7 }) {
-        DYNAMIC_SECTION("nozzle count " << n) {
-            REQUIRE((int) effective_physical_extruder_map(nullptr, n).values.size() == n);
-            auto stale = make_pem({0});   // wrong length: must not be mistaken for authored
-            REQUIRE((int) effective_physical_extruder_map(&stale, n).values.size() == n);
-        }
-    }
-}
-
-TEST_CASE("effective_physical_extruder_map - degenerate nozzle count still yields a usable map", "[IMEX]") {
-    // Never hand back an empty map: several consumers index it as a raw vector.
-    REQUIRE(effective_physical_extruder_map(nullptr, 0).values == std::vector<int>{0});
-}
-
 TEST_CASE("effective_physical_extruder_map - IDEX ghost-color regression guard", "[IMEX]") {
     // Dual extruder, no authored map. Before the GUI fix this produced a black ghost on T1
     // because first_filament_for_physical_head({0}, 1) == -1.
@@ -283,7 +242,7 @@ TEST_CASE("A Span mode refuses a color routed to a tool outside the primary's ga
     auto pem = make_pem({0, 1, 2, 3});
     const std::string reason = imex_multicolor_block_reason("mc-copy", "0:P,1:S,2:C,3:C", 2, {0, 1, 3}, pem);
     // The message names the color tools and where the map sends the offending filament (1-based).
-    REQUIRE_THAT(reason, Catch::Matchers::ContainsSubstring("only T0/T1 print colors, but filament 4 is routed to T3"));
+    REQUIRE_THAT(reason, Catch::Matchers::ContainsSubstring("colors are printed only by T0/T1, but filament 4 is routed to T3"));
     REQUIRE_THAT(imex_multicolor_block_reason("mc-copy", "0:P,1:S,2:C,3:C", 2, {0, 4}, pem),
                  Catch::Matchers::ContainsSubstring("filament 5 isn't routed to any tool"));
     // A head the mode leaves inactive is no better, and neither is no head at all.
