@@ -98,6 +98,8 @@ Reviewers are volunteers, and a first response can take a while. If you already 
 Reviewers won't review these PRs until they are fixed:
 
 - **Untested PRs.** Build and run your change before you open the PR, and say how you tested it. For anything you can see in the app, add screenshots. A PR that was never built is not ready for review.
+- **PRs that don't explain the change.** Use the PR template. Say what the change does and why it is needed.
+- **PRs that mix unrelated changes.** Keep each PR to one topic. Don't reformat existing code or make unrelated edits.
 - **Rewrites of working code.** Change the part that needs to change. A PR that replaces a working file or feature with new code brings new bugs into code that works, and it is very hard to review. If you think a rewrite is needed, open an issue first and wait until a maintainer agrees.
 - **Unmerged code from other forks.** Only port code that the other project has merged. Check that its license allows it, link the source, and credit the original author. OrcaSlicer's code may have drifted from the other project, so a ported change may no longer be right here or may cause unexpected problems. Test it in OrcaSlicer like your own change.
 - **Duplicates.** If another PR already makes the same change, test it and comment there instead.
