@@ -23,15 +23,14 @@
 #include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/file_status.hpp>
 #include <boost/log/trivial.hpp>
-#include <slic3r/Utils/BoostProcessCompat.hpp>
 #include "slic3r/plugin/PluginDescriptor.hpp"
 #include <optional>
+#include <system_error>
 #include <vector>
 #include <memory>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
 #include <cstddef>
 #include <functional>
-#include <system_error>
 
 #include <algorithm>
 #include <chrono>
@@ -148,6 +147,15 @@ void teardown_capabilities(std::vector<std::shared_ptr<PluginCapabilityInterface
     capabilities.clear();
 }
 
+// True when the path is reachable through its plain spelling. A path past the legacy Windows
+// MAX_PATH fails the probe with an error rather than reporting nothing there, so this is the
+// non-throwing form callers need before deciding to retry with the extended-length one.
+bool plain_path_exists(const boost::filesystem::path& path)
+{
+    boost::system::error_code ec;
+    return boost::filesystem::exists(path, ec) && !ec;
+}
+
 // Add every .whl sitting next to the plugin entry file to sys.path, extracting it first.
 bool add_wheel_dependencies_to_sys_path(const PluginDescriptor& descriptor,
                                          std::vector<std::string>& plugin_paths,
@@ -155,35 +163,57 @@ bool add_wheel_dependencies_to_sys_path(const PluginDescriptor& descriptor,
 {
     namespace fs = boost::filesystem;
 
-    const fs::path entry_path(descriptor.entry_path);
-    const fs::path plugin_dir = entry_path.has_extension() ? entry_path.parent_path() : entry_path;
-    if (!fs::exists(plugin_dir) || !fs::is_directory(plugin_dir))
+    // The plugin folder, and every cache directory below it, can pass the legacy Windows
+    // MAX_PATH, where the plain spelling cannot be probed at all. Each probe below therefore
+    // falls back to the extended-length form (the identity off Windows), and only keeps it where
+    // the plain spelling failed: those paths are what a plugin then sees as __file__ and sys.path
+    // and what the host compares against the plain plugin root, so an install that resolves
+    // plainly keeps the plain path it had before.
+    const fs::path plain_entry_path(descriptor.entry_path);
+    const fs::path plain_plugin_dir = plain_entry_path.has_extension() ? plain_entry_path.parent_path() : plain_entry_path;
+
+    // Walk the folder through whichever spelling reaches it; an install that fits uses the plain
+    // one, as before.
+    const bool     plain_reachable = plain_path_exists(plain_plugin_dir);
+    const fs::path entry_path      = plain_reachable ? plain_entry_path : extended_path(plain_entry_path);
+    const fs::path scan_dir        = plain_reachable ? plain_plugin_dir : extended_path(plain_plugin_dir);
+
+    boost::system::error_code scan_ec;
+    if (!fs::is_directory(scan_dir, scan_ec) || scan_ec)
         return true;
 
     PythonInterpreter& interpreter = PythonInterpreter::instance();
-    for (fs::directory_iterator it(plugin_dir); it != fs::directory_iterator(); ++it) {
-        if (!fs::is_regular_file(it->status()) || it->path().extension() != ".whl")
+    for (fs::directory_iterator it(scan_dir); it != fs::directory_iterator(); ++it) {
+        if (!fs::is_regular_file(it->status()) || !has_wheel_extension(it->path()))
             continue;
-        // Skip the entry file itself — it is loaded by its own path.
+        // Skip the entry file itself — it is loaded by its own path. Both sides carry the same
+        // spelling, so the comparison holds in the extended form too.
         if (it->path() == entry_path)
             continue;
 
-        const fs::path dep_dir = plugin_dir / "__whl_extracted__" / it->path().stem().string();
-        if (!fs::exists(dep_dir)) {
+        // Build from the plain folder so the recorded spelling stays plain whenever it can.
+        const fs::path plain_dep_dir = plain_plugin_dir / plugin_wheel_install::EXTRACTED_DIR_NAME / it->path().stem().string();
+        const fs::path io_dep_dir    = extended_path(plain_dep_dir);
+        if (!plain_path_exists(plain_dep_dir) && !plain_path_exists(io_dep_dir)) {
             std::string extract_error;
-            if (!extract_zip_to_directory(it->path(), dep_dir, extract_error)) {
+            if (!extract_zip_to_directory(it->path(), plain_dep_dir, extract_error)) {
                 // TRN %1% is the dependency file, %2% the error detail.
-                error = GUI::format(_u8L("Failed to extract plugin .whl dependency %1%: %2%"), it->path().string(), extract_error);
+                error = GUI::format(_u8L("Failed to extract plugin .whl dependency %1%: %2%"),
+                                    (plain_plugin_dir / it->path().filename()).string(), extract_error);
                 return false;
             }
         }
 
-        std::string syspath_error;
-        if (!interpreter.add_plugin_sys_path(dep_dir.string(), syspath_error)) {
+        // The string handed to the interpreter is the one recorded for unload, so the sys.path
+        // entry is removed by the same key. Re-probe after extraction: a first extraction through
+        // a path that fits resolves plainly and must keep that spelling.
+        const std::string dep_path = plain_path_exists(plain_dep_dir) ? plain_dep_dir.string() : io_dep_dir.string();
+        std::string       syspath_error;
+        if (!interpreter.add_plugin_sys_path(dep_path, syspath_error)) {
             error = GUI::format(_u8L("Failed to add .whl dependency to sys.path: %1%"), syspath_error);
             return false;
         }
-        plugin_paths.push_back(dep_dir.string());
+        plugin_paths.push_back(dep_path);
     }
 
     return true;
@@ -199,12 +229,13 @@ PyObject* import_plugin_module(const PluginDescriptor& descriptor,
     if (descriptor.entry_package.empty())
         return interpreter.load_module_from_file(descriptor.entry_path, error, &plugin_paths, &plugin_modules);
 
-    if (boost::filesystem::path(descriptor.entry_path).extension() == ".whl")
-        return interpreter.load_module_from_whl(
-            descriptor.entry_path, descriptor.entry_package, error, &plugin_paths, &plugin_modules);
+    // A wheel entry is imported from the directory its installation lives in; a .py entry in place.
+    const std::string dir_path = has_wheel_extension(descriptor.entry_path) ?
+        plugin_wheel_install::install_dir(descriptor.plugin_root, descriptor.entry_package) :
+        descriptor.entry_path;
 
     return interpreter.load_module_from_directory(
-        descriptor.entry_path, descriptor.entry_package, error, &plugin_paths, &plugin_modules);
+        dir_path, descriptor.entry_package, error, &plugin_paths, &plugin_modules);
 }
 
 std::string plugin_module_name(const PluginDescriptor& descriptor)
@@ -290,6 +321,22 @@ bool load(const PluginDescriptor&                          descriptor,
     Plugin plugin;
     plugin.descriptor  = descriptor;
     plugin.module_name = plugin_module_name(descriptor);
+
+    // Wheel entries have one installation and one loading path: uv installs the entry wheel into
+    // the legacy extraction path, then the entry package is imported from there. An existing
+    // markerless extraction at that path is a pre-uv cache and is used directly when it contains
+    // the entry package. Dependency wheels are extracted alongside it under __whl_extracted__/
+    // and are not touched.
+    const bool has_entry_wheel = plugin_package_extension(descriptor.entry_path) == ".whl";
+    if (has_entry_wheel) {
+        std::string wheel_install_error;
+        if (!plugin_wheel_install::ensure_installed(descriptor, wheel_install_error)) {
+            // Report the failure instead of silently falling back to extraction.
+            // TRN %1% is the uv/installation error detail.
+            error = GUI::format(_u8L("Failed to install plugin wheel: %1%"), wheel_install_error);
+            return false;
+        }
+    }
 
     if (!skip_deps) {
         std::string pkg_install_error;
@@ -510,12 +557,6 @@ bool install_packages(const std::vector<std::string>& pkgs, std::string& error)
     if (pkgs.empty())
         return true;
 
-    const std::string uv_path = PythonInterpreter::bundled_uv_path();
-    if (uv_path.empty()) {
-        error = "Bundled uv executable not found. Python package installation is unavailable.";
-        return false;
-    }
-
     const std::string python_executable = PythonInterpreter::bundled_python_executable();
     if (python_executable.empty()) {
         error = "Bundled Python executable not found. Python package installation is unavailable.";
@@ -538,81 +579,7 @@ bool install_packages(const std::vector<std::string>& pkgs, std::string& error)
     BOOST_LOG_TRIVIAL(info) << "Installing Python packages via uv for " << python_executable << ": "
                             << boost::algorithm::join(pkgs, ", ");
 
-    try {
-        namespace process = boost::process;
-
-        process::ipstream std_err;
-        process::child    child(uv_path, process::args(args),
-#ifdef _WIN32
-                                // uv.exe (and the python.exe it spawns) are console-subsystem programs.
-                                // OrcaSlicer is a GUI app with no console of its own, so without this flag
-                                // Windows allocates a fresh console window for the child that flashes on
-                                // screen during startup plugin loading. Matches ProcessRunner/MediaPlayCtrl.
-                                process::windows::create_no_window,
-#endif
-                                process::std_err > std_err);
-
-        std::string err_output;
-        std::thread stderr_reader([&std_err, &err_output]() {
-            std::string line;
-            while (std::getline(std_err, line)) {
-                err_output += line + '\n';
-            }
-        });
-
-        // Wait up to 120 seconds for package install to complete.
-        //
-        // NOTE: we poll child.running() instead of calling child.wait_for().
-        // On macOS (which lacks sigtimedwait) boost.process v1 implements the
-        // timed waits with a sigwait()-based fallback that deadlocks inside a
-        // multi-threaded process: SIGCHLD is delivered to an arbitrary thread
-        // and consumed by an async handler, so the worker thread's sigwait()
-        // never returns and the timeout never fires — the plugin load hangs
-        // forever (the "Loading" status never clears). child.running() uses
-        // waitpid(WNOHANG), which behaves correctly on every platform.
-        // (boost.process v2, in Boost >= 1.86, implements timed waits via Asio
-        // and is unaffected — revisit this when the bundled Boost is upgraded.)
-        constexpr auto kInstallTimeout = std::chrono::seconds(120);
-        const auto     deadline        = std::chrono::steady_clock::now() + kInstallTimeout;
-
-        std::error_code run_ec;
-        while (child.running(run_ec)) {
-            if (run_ec) {
-                stderr_reader.join();
-                error = "Failed to query uv process status: " + run_ec.message();
-                BOOST_LOG_TRIVIAL(error) << error;
-                return false;
-            }
-            if (std::chrono::steady_clock::now() >= deadline) {
-                std::error_code term_ec;
-                child.terminate(term_ec);
-                child.wait(term_ec);
-                stderr_reader.join();
-                error = "uv pip install timed out after 120s";
-                BOOST_LOG_TRIVIAL(error) << error;
-                return false;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-        stderr_reader.join();
-
-        const int exit_code = child.exit_code();
-        if (exit_code != 0) {
-            if (!err_output.empty())
-                error = "uv pip install failed (exit code " + std::to_string(exit_code) + "): " + err_output;
-            else
-                error = "uv pip install failed with exit code " + std::to_string(exit_code);
-            BOOST_LOG_TRIVIAL(error) << error;
-            return false;
-        }
-
-        BOOST_LOG_TRIVIAL(info) << "Python packages installed successfully";
-        return true;
-    } catch (const std::exception& ex) {
-        error = std::string("Failed to run uv: ") + ex.what();
-        BOOST_LOG_TRIVIAL(error) << error;
-        return false;
-    }
+    return PythonInterpreter::run_uv(args, std::chrono::seconds(120), error);
 }
 
 bool inspect_local_plugin_package(const boost::filesystem::path& filepath,
@@ -634,7 +601,11 @@ bool inspect_local_plugin_package(const boost::filesystem::path& filepath,
     boost::system::error_code ec;
     const fs::path            source_path = canonical_or_absolute(filepath);
 
-    if (!fs::exists(source_path, ec) || !fs::is_regular_file(source_path, ec))
+    // Both the package file chosen by the user and the install folder derived from its name can
+    // pass the legacy Windows MAX_PATH, where the plain spelling cannot be probed. The descriptor
+    // keeps the plain paths; only these probes use the extended-length form.
+    const fs::path io_source_path = extended_path(source_path);
+    if (!fs::exists(io_source_path, ec) || !fs::is_regular_file(io_source_path, ec))
         return fail("Plugin package is not a file: " + filepath.string());
 
     std::string metadata_error;
@@ -646,7 +617,7 @@ bool inspect_local_plugin_package(const boost::filesystem::path& filepath,
     plugin_descriptor.plugin_root = final_dir.string();
 
     ec.clear();
-    const fs::file_status final_status = fs::status(final_dir, ec);
+    const fs::file_status final_status = fs::status(extended_path(final_dir), ec);
     if (ec && final_status.type() != fs::file_not_found)
         return fail("Failed to check existing plugin " + final_dir.string() + ": " + ec.message());
 
@@ -677,6 +648,7 @@ bool install_plugin(const boost::filesystem::path& filepath,
     const bool        is_cloud_install = !cloud_uuid.empty();
 
     fs::path backup_dir;
+    fs::path io_backup_dir;
     bool     backup_created = false;
 
     auto fail = [&error](const std::string& message) {
@@ -687,7 +659,14 @@ bool install_plugin(const boost::filesystem::path& filepath,
     boost::system::error_code ec;
     const fs::path            source_path = canonical_or_absolute(filepath);
 
-    if (!fs::exists(source_path, ec) || !fs::is_regular_file(source_path, ec))
+    // The installed copy is <plugin_root>/<escaped plugin filename>/<plugin filename>, so a long
+    // wheel filename pushes the cache past the legacy Windows MAX_PATH even when the plugin root
+    // stays well below it. The descriptor and the error messages keep the plain spelling; every
+    // filesystem operation below goes through the extended-length form, which the Win32 APIs
+    // accept past the limit. extended_path() is the identity off Windows.
+    const fs::path io_source_path = extended_path(source_path);
+
+    if (!fs::exists(io_source_path, ec) || !fs::is_regular_file(io_source_path, ec))
         return fail(GUI::format(_u8L("Plugin package is not a file: %1%"), filepath.string()));
 
     const std::string ext = plugin_package_extension(source_path);
@@ -701,7 +680,7 @@ bool install_plugin(const boost::filesystem::path& filepath,
 
     const fs::path plugin_root = is_cloud_install && !cloud_user_id.empty() ? fs::path(get_cloud_plugin_dir(cloud_user_id)) :
                                                                              local_plugin_root();
-    fs::create_directories(plugin_root, ec);
+    fs::create_directories(extended_path(plugin_root), ec);
     if (ec)
         // TRN %1% is a folder path, %2% the system error message.
         return fail(GUI::format(_u8L("Failed to create plugin directory %1%: %2%"), plugin_root.string(), ec.message()));
@@ -735,6 +714,11 @@ bool install_plugin(const boost::filesystem::path& filepath,
     const fs::path final_dir = is_cloud_install ? plugin_root / cloud_uuid : local_plugin_install_dir(source_path);
     const fs::path dest_file = final_dir / source_path.filename();
 
+    // The spelled-out install and backup paths above are the identity used by the descriptor and
+    // the error messages; these are the same locations in the form the filesystem calls need.
+    const fs::path io_final_dir = extended_path(final_dir);
+    const fs::path io_dest_file = extended_path(dest_file);
+
     // Local key is the plugin file stem; cloud key is the cloud UUID.
     if (is_cloud_install)
         plugin_descriptor.plugin_key = cloud_uuid;
@@ -747,12 +731,12 @@ bool install_plugin(const boost::filesystem::path& filepath,
     auto restore_backup = [&]() {
         // A fresh install has no backup, but its partial destination must still be removed.
         boost::system::error_code restore_ec;
-        fs::remove_all(final_dir, restore_ec);
+        fs::remove_all(io_final_dir, restore_ec);
         if (!backup_created)
             return;
 
         restore_ec.clear();
-        fs::rename(backup_dir, final_dir, restore_ec);
+        fs::rename(io_backup_dir, io_final_dir, restore_ec);
         if (restore_ec) {
             BOOST_LOG_TRIVIAL(error) << "Failed to restore plugin backup " << backup_dir.string() << " to "
                                      << final_dir.string() << ": " << restore_ec.message();
@@ -765,10 +749,11 @@ bool install_plugin(const boost::filesystem::path& filepath,
 
     // Backup existing installation if present. The "__" prefix keeps an abandoned backup out of
     // discovery if the process dies or the final cleanup below cannot remove it.
-    if (fs::exists(final_dir, ec)) {
+    if (fs::exists(io_final_dir, ec)) {
         backup_dir = plugin_root /
             ("__" + final_dir.filename().string() + ".backup-" + fs::unique_path("%%%%-%%%%-%%%%").string());
-        fs::rename(final_dir, backup_dir, ec);
+        io_backup_dir = extended_path(backup_dir);
+        fs::rename(io_final_dir, io_backup_dir, ec);
         if (ec)
             // TRN %1% is a folder path, %2% the system error message.
             return fail(GUI::format(_u8L("Failed to back up existing plugin %1%: %2%"), final_dir.string(), ec.message()));
@@ -776,13 +761,13 @@ bool install_plugin(const boost::filesystem::path& filepath,
     }
 
     // Create the plugin directory and copy the file.
-    fs::create_directories(final_dir, ec);
+    fs::create_directories(io_final_dir, ec);
     if (ec) {
         restore_backup();
         return fail(GUI::format(_u8L("Failed to create plugin directory %1%: %2%"), final_dir.string(), ec.message()));
     }
 
-    fs::copy_file(source_path, dest_file, ec);
+    fs::copy_file(io_source_path, io_dest_file, ec);
     if (ec) {
         restore_backup();
         // TRN %1% is a file path, %2% the system error message.
@@ -825,7 +810,7 @@ bool install_plugin(const boost::filesystem::path& filepath,
 
     if (backup_created) {
         boost::system::error_code remove_ec;
-        fs::remove_all(backup_dir, remove_ec);
+        fs::remove_all(io_backup_dir, remove_ec);
         if (remove_ec)
             BOOST_LOG_TRIVIAL(warning) << "Failed to remove plugin backup " << backup_dir.string() << ": " << remove_ec.message();
     }
@@ -834,7 +819,7 @@ bool install_plugin(const boost::filesystem::path& filepath,
 
     if (is_cloud_install) {
         boost::system::error_code remove_ec;
-        fs::remove(source_path, remove_ec);
+        fs::remove(io_source_path, remove_ec);
     }
     return true;
 }

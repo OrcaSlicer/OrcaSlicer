@@ -5832,7 +5832,7 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
 
     static const char* keys_with_default[] = {
         "outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_filament_id",
-        "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id"
+        "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id", "brim_filament_id"
     };
     for (size_t i = 0; i < sizeof(keys_with_default) / sizeof(keys_with_default[0]); ++ i) {
         std::string key = std::string(keys_with_default[i]);
@@ -9372,6 +9372,15 @@ bool PresetBundle::install_vendor_cache(const std::string& cache_path, const std
         this->clear_printer_hold_aliases();
         return false;
     }
+}
+
+ConfigOptionInts effective_physical_extruder_map(const PresetBundle& pb)
+{
+    const ConfigOptionInts* explicit_pem = pb.project_config.option<ConfigOptionInts>("physical_extruder_map");
+    if (!explicit_pem || explicit_pem->values.size() < 2)
+        explicit_pem = pb.printers.get_edited_preset().config.option<ConfigOptionInts>("physical_extruder_map");
+    const auto* nozzles = pb.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
+    return effective_physical_extruder_map(explicit_pem, nozzles ? (int) nozzles->values.size() : 0);
 }
 
 } // namespace Slic3r
