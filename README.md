@@ -208,9 +208,6 @@ Please refer to the wiki to ensure you're following the latest and most accurate
 # Clean build (removes slicer tree, keeps cached deps)
 .\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64 -Clean
 
-# With ccache for faster incremental builds
-.\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64 -Cache ccache
-
 # Build dependencies only
 .\build_win.ps1 -Deps -Arch x64
 ```
