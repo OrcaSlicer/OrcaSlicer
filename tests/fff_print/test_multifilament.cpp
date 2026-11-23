@@ -2596,7 +2596,7 @@ TEST_CASE("Each filament's walls keep their own max volumetric speed", "[MultiFi
     DynamicPrintConfig config = multifilament_config(2, {
         { "filament_max_volumetric_speed", "20,2" },
         { "filament_self_index",           "1,2" },
-        { "filament_extruder_variant",     "Direct Drive Standard" }, // one column, so filament 2 has none
+        { "filament_extruder_variant",     "Direct Drive Standard" }, // one column, as a project saved before filament variants has
         { "layer_height",                  "0.2" },
         { "wall_loops",                    2 },
         { "outer_wall_line_width",         "0.42" },
@@ -2611,6 +2611,8 @@ TEST_CASE("Each filament's walls keep their own max volumetric speed", "[MultiFi
         // custom G-code indexes the per-filament arrays by filament
         { "machine_start_gcode",           "; filament 2 cap {filament_max_volumetric_speed[1]}" },
     });
+    // The CLI calls this after merging the project config and before Print applies it.
+    ensure_filament_variant_columns(config, 2);
 
     const std::string gcode = slice_with_object_overrides(
         { make_cube(20., 20., 4.), make_cube(20., 20., 4.) }, config,

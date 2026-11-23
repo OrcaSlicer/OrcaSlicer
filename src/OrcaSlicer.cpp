@@ -4303,6 +4303,8 @@ int CLI::run(int argc, char **argv)
     if (printer_technology == ptFFF) {
         fff_print_config.apply(m_print_config, true);
         m_print_config.apply(fff_print_config, true);
+        if (filament_count > 0)
+            ensure_filament_variant_columns(m_print_config, size_t(filament_count));
         //ORCA: an option no preset or project defines has just come in as its single default value, and a
         //      command line override may hold one value per filament.
         normalize_filament_values_to_variants(m_print_config);

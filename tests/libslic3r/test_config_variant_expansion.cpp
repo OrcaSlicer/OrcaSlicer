@@ -898,3 +898,53 @@ TEST_CASE("The mixed filament metadata is sized to the filament count", "[Config
     REQUIRE(config.option<ConfigOptionBools>("filament_is_mixed")->values == std::vector<unsigned char>({false, false, false, false}));
     REQUIRE(config.option<ConfigOptionStrings>("filament_mixed_components")->values == std::vector<std::string>({"", "", "", ""}));
 }
+
+TEST_CASE("Every filament gets a variant column of its own", "[Config]")
+{
+    DynamicPrintConfig config;
+    config.option<ConfigOptionInts>("filament_self_index", true)->values          = {1, 2};
+    config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = {"Direct Drive Standard"};
+
+    ensure_filament_variant_columns(config, 2);
+    CHECK(config.option<ConfigOptionInts>("filament_self_index")->values == std::vector<int>({1, 2}));
+    CHECK(config.option<ConfigOptionStrings>("filament_extruder_variant")->values ==
+          std::vector<std::string>({"Direct Drive Standard", "Direct Drive Standard"}));
+}
+
+TEST_CASE("A filament left out of the variant columns gets the layout rebuilt", "[Config]")
+{
+    DynamicPrintConfig config;
+    config.option<ConfigOptionInts>("filament_self_index", true)->values          = {1};
+    config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = {"Direct Drive High Flow"};
+
+    ensure_filament_variant_columns(config, 3);
+    CHECK(config.option<ConfigOptionInts>("filament_self_index")->values == std::vector<int>({1, 2, 3}));
+    CHECK(config.option<ConfigOptionStrings>("filament_extruder_variant")->values ==
+          std::vector<std::string>({"Direct Drive High Flow", "Direct Drive Standard", "Direct Drive Standard"}));
+}
+
+TEST_CASE("Rebuilt variant columns leave the two arrays the same length", "[Config]")
+{
+    DynamicPrintConfig config;
+    config.option<ConfigOptionInts>("filament_self_index", true)->values          = {1, 1, 3};
+    config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = {"Direct Drive Standard", "Direct Drive High Flow",
+                                                                                     "Direct Drive Standard"};
+
+    ensure_filament_variant_columns(config, 2);
+    const std::vector<int> &columns = config.option<ConfigOptionInts>("filament_self_index")->values;
+    CHECK(columns == std::vector<int>({1, 2}));
+    CHECK(config.option<ConfigOptionStrings>("filament_extruder_variant")->size() == columns.size());
+}
+
+TEST_CASE("Variant columns that already name every filament are left alone", "[Config]")
+{
+    const std::vector<std::string> variants = {"Direct Drive Standard", "Direct Drive High Flow", "Direct Drive Standard",
+                                               "Direct Drive High Flow"};
+    DynamicPrintConfig             config;
+    config.option<ConfigOptionInts>("filament_self_index", true)->values          = {1, 1, 2, 2};
+    config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = variants;
+
+    ensure_filament_variant_columns(config, 2);
+    CHECK(config.option<ConfigOptionInts>("filament_self_index")->values == std::vector<int>({1, 1, 2, 2}));
+    CHECK(config.option<ConfigOptionStrings>("filament_extruder_variant")->values == variants);
+}

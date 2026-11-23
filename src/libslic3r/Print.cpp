@@ -5320,11 +5320,6 @@ int Print::get_nozzle_config_index(int filament_id, int layer_id)
 
 int Print::get_config_index(int filament_id, int layer_id, const std::vector<std::string> &variant_list, const std::vector<int>& self_index_list, FilamentIndexMap *index_map)
 {
-    // Orca: no column names this filament, so the filament-indexed options hold one value per
-    // filament and the filament's own index is its column.
-    if (std::find(self_index_list.begin(), self_index_list.end(), filament_id + 1) == self_index_list.end())
-        return filament_id;
-
     const MultiNozzleUtils::LayeredNozzleGroupResult *group_result = m_layered_nozzle_group_result.get();
     // Orca: defensive — when no grouping producer has published a result yet, fall back to the
     // static identity: one filament-variant column per filament.
