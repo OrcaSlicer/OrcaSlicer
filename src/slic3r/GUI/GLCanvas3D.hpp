@@ -37,6 +37,7 @@
 #include "GLModel.hpp"
 #include "MeshUtils.hpp"
 #include "GCodeViewer.hpp"
+#include "PreviewOverlayLayout.hpp"
 #include "Camera.hpp"
 #include "CanvasUi/Context.hpp"
 #include "SceneRaycaster.hpp"
@@ -771,6 +772,7 @@ private:
     mutable GLToolbar m_assemble_view_toolbar;
     mutable IMReturnToolbar m_return_toolbar;
     mutable Vec2i32 m_canvas_toolbar_pos = {140, 5};
+    std::optional<PreviewOverlayLayout> m_preview_layout;
     mutable float m_sc{1};
     mutable float m_paint_toolbar_width;
     bool m_collapse_toolbar_enabled{true};
@@ -1272,6 +1274,8 @@ public:
     float get_canvas_toolbar_right() const;
     // get_scale() times the monitor's DPI factor on Windows, where the ImGui style does not follow it.
     float get_ui_scale() const;
+    // Height the preview sliders keep clear under the bottom-left corner.
+    float preview_corner_offset() const;
 
     void update_volumes_colors_by_extruder();
 
@@ -1695,6 +1699,7 @@ private:
     void _render_gcode_translucent(int canvas_width, int canvas_height);
     // Realistic view: binds, or unbinds, the shadow map the toolpaths read on texture unit 4. False without a map.
     bool _bind_gcode_shadow_map(bool bind) const;
+    void _update_preview_layout(const Size& cnv_size);
     void _render_gcode_overlay(int canvas_width, int canvas_height);
     // decides whether the preview draws its reduced set this frame and returns whether what the scene
     // pass draws changed; runs before the cached scene is consulted

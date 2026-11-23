@@ -5,6 +5,9 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "IMSlider.hpp"
+#include "PreviewOverlayLayout.hpp"
+#include "CanvasUi/Types.hpp"
+#include <imgui/imgui.h>
 #include "GLModel.hpp"
 #include "I18N.hpp"
 
@@ -52,9 +55,6 @@ class OpenGLManager;
 static const float GCODE_VIEWER_SLIDER_SCALE = 0.6f;
 static const float SLIDER_DEFAULT_RIGHT_MARGIN  = 10.0f;
 static const float SLIDER_DEFAULT_BOTTOM_MARGIN = 10.0f;
-// ORCA: match right margin to the vertical slider window width to prevent overlap.
-static inline const float SLIDER_RIGHT_MARGIN = IMSlider::vertical_slider_window_width();
-static const float SLIDER_BOTTOM_MARGIN = 64.0f;
 class GCodeViewer
 {
 public:
@@ -64,8 +64,6 @@ public:
 #if ENABLE_ACTUAL_SPEED_DEBUG
         struct ActualSpeedImguiWidget
         {
-            std::pair<float, float> y_range = { 0.0f, 0.0f };
-            std::vector<std::pair<float, ColorRGBA>> levels;
             struct Item
             {
               float pos{ 0.0f };
@@ -73,7 +71,7 @@ public:
               bool internal{ false };
             };
             std::vector<Item> data;
-            int plot(const char* label, const std::array<float, 2>& frame_size = { 0.0f, 0.0f });
+            void plot(const ImVec2& size, float scale) const;
         };
 #endif // ENABLE_ACTUAL_SPEED_DEBUG
 
@@ -97,6 +95,7 @@ public:
 #if ENABLE_ACTUAL_SPEED_DEBUG
             ActualSpeedImguiWidget m_actual_speed_imgui_widget;
 #endif // ENABLE_ACTUAL_SPEED_DEBUG
+            CanvasUi::Rect m_panel_rect;
 
         public:
             float m_scale = 1.0f;
@@ -113,12 +112,6 @@ public:
             void set_high_precision_gcode(bool high_precision) { m_high_precision_gcode = high_precision; }
 
 #if ENABLE_ACTUAL_SPEED_DEBUG
-            void set_actual_speed_y_range(const std::pair<float, float>& y_range) {
-                m_actual_speed_imgui_widget.y_range = y_range;
-            }
-            void set_actual_speed_levels(const std::vector<std::pair<float, ColorRGBA>>& levels) {
-                m_actual_speed_imgui_widget.levels = levels;
-            }
             void set_actual_speed_data(const std::vector<ActualSpeedImguiWidget::Item>& data) {
                 m_actual_speed_imgui_widget.data = data;
             }
@@ -131,7 +124,8 @@ public:
             void set_color(const ColorRGBA& color) { m_model.set_color(color); }
 
             void render(int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
-            void render_position_window(const libvgcode::Viewer* viewer, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
+            void render_position_window(const libvgcode::Viewer* viewer, const PreviewOverlayLayout& layout, int move_number, int move_count, const libvgcode::EViewType& view_type);
+            const CanvasUi::Rect& panel_rect() const { return m_panel_rect; }
             void on_change_color_mode(bool is_dark) { m_is_dark = is_dark; }
         };
 
@@ -184,7 +178,7 @@ public:
         // The tool marker at the current move, drawn in 3D.
         void render_marker(const bool has_render_path, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
         // The marker's position window and the G-code window, both ImGui.
-        void render_overlay(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type);
+        void render_overlay(const bool has_render_path, float legend_bottom, const libvgcode::Viewer* viewer, uint32_t gcode_id, const PreviewOverlayLayout& layout, int move_number, int move_count, const libvgcode::EViewType& view_type);
     };
     struct ExtruderFilament
     {
@@ -459,8 +453,10 @@ public:
     void render_scene(int canvas_width, int canvas_height);
     // ORCA: the toolpaths of translucent filaments, blended over the scene, then the markers. render_scene() leaves both out.
     void render_translucent_toolpaths(int canvas_width, int canvas_height);
+    bool has_overlay() const { return m_viewer.get_extrusion_roles_count() > 0; }
     // Legend, sliders, the marker's position window and the G-code window, all ImGui.
-    void render_overlay(int canvas_width, int canvas_height, int right_margin);
+    void render_overlay(int canvas_width, int canvas_height, const PreviewOverlayLayout& layout);
+    const CanvasUi::Rect& get_move_panel_rect() const { return m_sequential_view.marker.panel_rect(); }
     // ORCA: realistic view. Depth-only pass drawing the toolpaths as the light sees them, into
     // the shadow map the caller has bound, and the map they sample back in render_scene.
     void render_shadow_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix, const Vec3d& light_position);
@@ -600,8 +596,6 @@ public:
 private:
     //BBS: always load shell at preview
     //void load_shells(const Print& print);
-    // Canvas height minus the room the horizontal slider takes.
-    int sequential_view_height(int canvas_height) const;
     void render_toolpaths();
     // The sequential markers and the IDEX/IQEX toolhead boxes.
     void render_markers(int canvas_width, int canvas_height);
@@ -610,9 +604,9 @@ private:
     ColorRGBA shown_filament_color(ColorRGBA color) const;
 
     //BBS: GUI refactor: add canvas size
-    void render_legend(float &legend_height, int canvas_width, int canvas_height, int right_margin);
+    void render_legend(float &legend_height, int canvas_width, int canvas_height, const PreviewOverlayLayout& layout);
     void render_legend_color_arr_recommen(float window_padding);
-    void render_slider(int canvas_width, int canvas_height);
+    void render_slider(const PreviewOverlayLayout& layout);
 };
 
 } // namespace GUI

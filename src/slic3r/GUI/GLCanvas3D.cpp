@@ -29,8 +29,10 @@
 #include "slic3r/GUI/SceneRaycaster.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/GCodeViewer.hpp"
+#include "slic3r/GUI/PreviewOverlayLayout.hpp"
 #include "slic3r/GUI/CanvasUi/CanvasFrame.hpp"
 #include "slic3r/GUI/CanvasUi/Context.hpp"
+#include "slic3r/GUI/CanvasUi/Types.hpp"
 #include <optional>
 #include <map>
 #include "slic3r/GUI/GUI_Geometry.hpp"
@@ -3058,6 +3060,11 @@ static float canvas_corner_height()
     return CANVAS_TOOLBAR_MARGIN + 2.f * CANVAS_TOOLBAR_PADDING + buttons * CANVAS_TOOLBAR_BUTTON + (buttons - 1) * CANVAS_TOOLBAR_SPACING;
 }
 
+float GLCanvas3D::preview_corner_offset() const
+{
+    return m_preview_layout ? m_preview_layout->corner_offset(float(get_canvas_size().get_height())) : 0.f;
+}
+
 float GLCanvas3D::get_ui_scale() const
 {
     float sc = get_scale();
@@ -3205,6 +3212,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     ui_frame.begin(m_is_dark, get_ui_scale(), std::chrono::steady_clock::now(), ImGui::GetFrameCount(), &wxGetApp().get_opengl_manager().ui_icons(),
                    wxGetApp().imgui()->canvas_ui_fonts());
     const CanvasUi::ScopedContext ui_scope(m_ui);
+    _update_preview_layout(cnv_size);
 
     if (_update_inactive_plates_visibility())
         scene_dirty = true;
@@ -3252,7 +3260,6 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     }
 
     if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
-        // BBS: GUI refactor: add canvas size as parameters
         _render_gcode_overlay(cnv_size.get_width(), cnv_size.get_height());
         m_frame_profiler.mark("legend");
     }
@@ -3350,14 +3357,13 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     if (m_canvas_type != ECanvasType::CanvasAssembleView) {
         float right_margin = SLIDER_DEFAULT_RIGHT_MARGIN;
         float bottom_margin = SLIDER_DEFAULT_BOTTOM_MARGIN;
-        if (m_canvas_type == ECanvasType::CanvasPreview && m_gcode_viewer.has_data()) { // ORCA only shift position of notifiations when sliders / gcode_viewer exist
-            float scale_factor = get_scale();
-#ifdef WIN32
-            int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-            scale_factor *= (float) dpi / (float) DPI_DEFAULT;
-#endif // WIN32
-            right_margin = SLIDER_RIGHT_MARGIN * scale_factor * GCODE_VIEWER_SLIDER_SCALE;
-            bottom_margin = SLIDER_BOTTOM_MARGIN * scale_factor * GCODE_VIEWER_SLIDER_SCALE;
+        if (m_preview_layout) {
+            float              bottom = m_preview_layout->overlays_bottom;
+            const CanvasUi::Rect& panel  = m_gcode_viewer.get_move_panel_rect();
+            if (panel.width() > 0.f)
+                bottom = std::min(bottom, panel.top - m_preview_layout->gap);
+            right_margin  = float(cnv_size.get_width()) - m_preview_layout->overlay_right;
+            bottom_margin = float(cnv_size.get_height()) - bottom;
         }
         wxGetApp().plater()->get_notification_manager()->render_notifications(*this, get_overlay_window_width(), bottom_margin, right_margin);
         wxGetApp().plater()->get_dailytips()->render();
@@ -5213,14 +5219,23 @@ void GLCanvas3D::on_mouse_wheel(wxMouseEvent& evt)
 
     // A marker's details move with the view, so zooming can bring them under the mouse, where the wheel keeps zooming.
     if (wxGetApp().imgui()->update_mouse_data(evt) && !m_center_of_mass.details_hovered()) {
-        if (m_canvas_type == CanvasPreview) {
-            IMSlider* m_layers_slider = get_gcode_viewer().get_layers_slider();
-            IMSlider* m_moves_slider = get_gcode_viewer().get_moves_slider();
-            m_layers_slider->on_mouse_wheel(evt);
-            m_moves_slider->on_mouse_wheel(evt);
+        bool slider_moved = false;
+        if (m_canvas_type == CanvasPreview && m_preview_layout) {
+            slider_moved |= get_gcode_viewer().get_layers_slider()->on_mouse_wheel(evt);
+            slider_moved |= get_gcode_viewer().get_moves_slider()->on_mouse_wheel(evt);
         }
-        render();
-        m_dirty = true;
+        // A slider changes what the scene shows. Any other ImGui window only scrolls, which ImGui takes inside
+        // the frame the step opened, so that frame is drawn now; left for the idle frame, the steps that come
+        // before it would overwrite one another.
+        if (slider_moved) {
+            m_dirty = true;
+            wxWakeUpIdle();
+        } else {
+            _render_frame(m_dirty);
+#ifdef __WXMSW__
+            wxWakeUpIdle();
+#endif
+        }
         return;
     }
 
@@ -7605,7 +7620,7 @@ void GLCanvas3D::_render_3d_navigator()
 #endif // WIN32
 
     const float viewManipulateLeft = 0;
-    const float viewManipulateTop  = io.DisplaySize.y;
+    const float viewManipulateTop  = io.DisplaySize.y - preview_corner_offset();
     const float camDistance        = 8.f;
 
     Camera&     camera           = wxGetApp().plater()->get_camera();
@@ -10835,11 +10850,31 @@ bool GLCanvas3D::_bind_gcode_shadow_map(bool bind) const
     return true;
 }
 
+void GLCanvas3D::_update_preview_layout(const Size& cnv_size)
+{
+    m_preview_layout.reset();
+    if (m_canvas_type != ECanvasType::CanvasPreview || !m_render_preview || !m_gcode_viewer.has_overlay())
+        return;
+
+    const float  sc   = get_ui_scale();
+    const ImVec2 pill = m_gcode_viewer.get_layers_slider()->pill_size(sc);
+    PreviewOverlayInput input;
+    input.canvas_width      = float(cnv_size.get_width());
+    input.canvas_height     = float(cnv_size.get_height());
+    input.scale             = sc;
+    input.corner_right      = get_canvas_toolbar_right();
+    input.pill_height       = pill.y;
+    input.pill_width        = pill.x;
+    m_preview_layout        = compute_preview_overlay_layout(input);
+}
+
 void GLCanvas3D::_render_gcode_overlay(int canvas_width, int canvas_height)
 {
-    m_gcode_viewer.render_overlay(canvas_width, canvas_height, SLIDER_RIGHT_MARGIN * GCODE_VIEWER_SLIDER_SCALE);
     IMSlider *layers_slider = m_gcode_viewer.get_layers_slider();
     IMSlider *moves_slider  = m_gcode_viewer.get_moves_slider();
+
+    if (m_preview_layout)
+        m_gcode_viewer.render_overlay(canvas_width, canvas_height, *m_preview_layout);
 
     if (layers_slider->is_need_post_tick_event()) {
         auto evt = new wxCommandEvent(EVT_CUSTOMEVT_TICKSCHANGED, m_canvas->GetId());
@@ -11400,7 +11435,7 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
 
     const float y_offset = is_collapse_toolbar_on_left() ? (get_collapse_toolbar_height() + 5) : 0;
     // Make sure the window does not overlap the 3d navigator
-    auto window_height_max = canvas_h - y_offset;
+    auto window_height_max = canvas_h - y_offset - preview_corner_offset();
     if (wxGetApp().show_3d_navigator()) {
         window_height_max -= (128 * f_scale + 5);
     }
@@ -11920,7 +11955,7 @@ void GLCanvas3D::_render_canvas_toolbar()
     ImVec2        padding  = ImVec2(CANVAS_TOOLBAR_PADDING, CANVAS_TOOLBAR_PADDING) * sc;
     Vec2i32       pos      = {
         m_canvas_toolbar_pos[0]        + margin.x,
-        get_canvas_size().get_height() - margin.y
+        get_canvas_size().get_height() - margin.y - preview_corner_offset()
     };
     bool          zoom_btn = wxGetApp().show_canvas_zoom_button();
 

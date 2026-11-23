@@ -2,6 +2,8 @@
 #define slic3r_GUI_IMSlider_hpp_
 
 #include "TickCode.hpp"
+#include "PreviewOverlayLayout.hpp"
+#include "CanvasUi/Types.hpp"
 #include <cstddef>
 #include <functional>
 #include <array>
@@ -38,6 +40,10 @@ bool check_color_change(PrintObject* object, size_t frst_layer_id, size_t layers
                         // and return true when detection have to be desturbed
                         std::function<bool(Layer*)> break_condition);
 
+// Fills the inner corner where a docked tab meets a band, so the tab flows into it. dx and dy
+// (+1 or -1) point from the corner into the gap the fillet covers.
+void draw_concave_corner(ImDrawList* draw_list, const ImVec2& corner, float dx, float dy, float radius, ImU32 color);
+
 enum SelectedSlider {
     ssUndef = 0,
     ssLower = 1,
@@ -56,6 +62,7 @@ enum LabelType
 {
     ltHeightWithLayer,
     ltHeight,
+    ltLayer,
     ltEstimatedTime,
 };
 
@@ -64,7 +71,6 @@ class IMSlider
 public:
     IMSlider(int lowerValue, int higherValue, int minValue, int maxValue, long style = wxSL_VERTICAL);
 
-    bool init_texture();
 
     ~IMSlider() {}
 
@@ -115,13 +121,18 @@ public:
 
     void UseDefaultColors(bool def_colors_on) { m_ticks.set_default_colors(def_colors_on); }
 
-    void on_mouse_wheel(wxMouseEvent& evt);
+    // Whether the wheel was over one of the wheel areas and moved the slider.
+    bool on_mouse_wheel(wxMouseEvent& evt);
+    // An area outside the slider's own windows where the wheel moves it too, for this frame.
+    void add_wheel_area(const CanvasUi::Rect& area) { m_wheel_areas.push_back(area); }
     void post_ticks_changed_event(CustomGCode::Type type = CustomGCode::Unknown);
     bool check_ticks_changed_event(CustomGCode::Type type);
     bool switch_one_layer_mode();
     void show_go_to_layer(bool show) { m_show_go_to_layer_dialog = show; }
 
-    bool render(int canvas_width, int canvas_height);
+    bool render(const PreviewOverlayLayout& layout);
+    // Size of a layer pill holding the longest label of this print, in canvas pixels.
+    ImVec2 pill_size(float scale);
 
     //BBS update scroll value changed
     bool is_dirty() { return m_dirty; }
@@ -138,8 +149,6 @@ public:
 
     float m_scale = 1.0;
     void set_scale(float scale = 1.0);
-    // ORCA: expose vertical slider width for right-margin alignment in the preview UI.
-    static float vertical_slider_window_width();
     void on_change_color_mode(bool is_dark);
     void set_menu_enable(bool enable = true) { m_menu_enable = enable; }
 
@@ -150,27 +159,46 @@ protected:
     void do_go_to_layer(size_t layer_number); //menu
     void correct_lower_value();
     void correct_higher_value();
-    bool horizontal_slider(const char* str_id, int* v, int v_min, int v_max, const ImVec2& size, float scale = 1.0);
+    bool horizontal_slider(const char* str_id, int* v, int v_min, int v_max);
     void render_go_to_layer_dialog(); //menu
     void render_input_custom_gcode(std::string custom_gcode = ""); //menu
     void render_menu();
     void render_add_menu(); //menu
     void render_edit_menu(const TickCode& tick); //menu
-    void draw_background_and_groove(const ImRect& bg_rect, const ImRect& groove);
     void draw_colored_band(const ImRect& groove, const ImRect& slideable_region);
-    void draw_custom_label_block(const ImVec2 anchor, CustomGCode::Type type);
     void draw_ticks(const ImRect& slideable_region);
     void draw_tick_on_mouse_position(const ImRect& slideable_region);
-    void show_tooltip(const TickCode& tick); //menu
     void show_tooltip(const std::string tooltip); //menu
-    bool vertical_slider(const char* str_id, int* higher_value, int* lower_value,
-        std::string& higher_label, std::string& lower_label,
-        int v_min, int v_max, const ImVec2& size,
-        SelectedSlider& selection, bool one_layer_flag = false, float scale = 1.0f);
+    bool vertical_slider(const char* str_id, int* higher_value, int* lower_value, int v_min, int v_max,
+        SelectedSlider& selection, bool one_layer_flag);
+    bool  render_pill(const char* str_id, int tick, const CanvasUi::Rect& rect, int corners);
+    void  render_single_layer_button(float size);
+    void render_marks_popup();
+    void move_active_handle_to(int tick);
     bool is_wipe_tower_layer(int tick) const;
 
 private:
+    struct PillText
+    {
+        std::string prefix;
+        std::string number;
+        std::string suffix;
+        std::string z;
+    };
+    // Widths of the pill's parts for the last layer, so the pill does not change size with the handle.
+    struct PillSlots
+    {
+        float prefix{0.f};
+        float number{0.f};
+        float suffix{0.f};
+        float z{0.f};
+        float width{0.f};
+    };
+    PillText  pill_text(int tick);
+    PillSlots pill_slots();
+
     std::string get_label(int tick, LabelType label_type = ltHeightWithLayer);
+    ImU32       tick_color(std::set<TickCode>::const_iterator it) const;
     double get_double_value(const SelectedSlider& selection);
     int    get_tick_from_value(double value, bool force_lower_bound = false);
     float get_pos_from_value(int v_min, int v_max, int value, const ImRect& rect);
@@ -207,18 +235,23 @@ private:
     bool m_is_wipe_tower      = false; // This flag indicates that there is multiple extruder print with wipe tower
     bool m_is_spiral_vase     = false;
 
-    /* BBS slider images */
-    void *m_one_layer_on_id;
-    void *m_one_layer_on_hover_id;
-    void *m_one_layer_off_id;
-    void *m_one_layer_off_hover_id;
-    void* m_one_layer_on_dark_id;
-    void* m_one_layer_on_hover_dark_id;
-    void* m_one_layer_off_dark_id;
-    void* m_one_layer_off_hover_dark_id;
-    void *m_pause_icon_id;
-    void *m_custom_icon_id;
-    void *m_delete_icon_id;
+    PreviewOverlayLayout     m_layout;
+    std::vector<CanvasUi::Rect> m_wheel_areas;
+
+    struct MarksPopup
+    {
+        bool             open{false};
+        std::vector<int> ticks;
+        ImVec2           anchor;
+        ImVec2           mark_min;
+        ImVec2           mark_max;
+        ImVec2           window_min;
+        ImVec2           window_max;
+        bool             submenu_open{false};
+        int              filament_tick{-1};
+    };
+    MarksPopup m_marks_popup;
+    bool       m_mark_hovered{false};
 
     DrawMode            m_draw_mode = dmRegular;
     CustomGCode::Mode   m_mode          = CustomGCode::SingleExtruder;

@@ -17,6 +17,8 @@
 #include <algorithm>
 #include <vector>
 #include "slic3r/GUI/TickCode.hpp"
+#include "slic3r/GUI/PreviewOverlayLayout.hpp"
+#include "slic3r/GUI/PreviewMarks.hpp"
 #include <boost/log/trivial.hpp>
 #include <wx/colour.h>
 #include "libslic3r/Color.hpp"
@@ -30,6 +32,7 @@
 #include <wx/utils.h>
 #include <wx/slider.h>
 #include <array>
+#include <initializer_list>
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
@@ -42,6 +45,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/format.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
 namespace Slic3r {
@@ -55,28 +59,20 @@ inline double min_delta_area() { return scale_(scale_(25)); }
 // equal to 1 mm2
 inline double miscalculation() { return scale_(scale_(1)); }
 
-static const float  LEFT_MARGIN       = 13.0f + 100.0f;  // avoid thumbnail toolbar
-static const float  HORIZONTAL_SLIDER_WINDOW_HEIGHT  = 64.0f;
-// ORCA: widen slider window to account for one-layer label box left shift.
-static const float  VERTICAL_SLIDER_WINDOW_WIDTH     = 164.0f;
-static const float  GROOVE_WIDTH      = 12.0f;
-static const ImVec2 ONE_LAYER_MARGIN  = ImVec2(20.0f, 20.0f);
-static const ImVec2 ONE_LAYER_BUTTON_SIZE  = ImVec2(56.0f, 56.0f);
-
 static const ImU32 BACKGROUND_COLOR_DARK  = IM_COL32(65, 65, 71, 255);
 static const ImU32 BACKGROUND_COLOR_LIGHT = IM_COL32(255, 255, 255, 255);
 static const ImU32 GROOVE_COLOR_DARK      = IM_COL32(45, 45, 49, 255);
 static const ImU32 GROOVE_COLOR_LIGHT     = IM_COL32(206, 206, 206, 255);
 static const ImU32 BRAND_COLOR            = IM_COL32(0, 150, 136, 255);
+static const ImU32 BRAND_HOVER_COLOR      = IM_COL32(38, 166, 154, 255);
+static const ImU32 PAUSE_COLOR            = IM_COL32(255, 111, 0, 255);
+static const ImU32 CUSTOM_GCODE_COLOR     = IM_COL32(178, 156, 232, 255);
+static const ImU32 HANDLE_RING_COLOR      = IM_COL32(255, 255, 255, 255);
+static const ImU32 TRACK_COLOR            = IM_COL32(150, 150, 150, 255);
+static const ImU32 BADGE_TEXT_COLOR       = IM_COL32(40, 40, 44, 255);
 
 static int m_tick_value = -1;
 static ImVec4 m_tick_rect;
-
-// ORCA: keep the slider window width in one place for layout alignment.
-float IMSlider::vertical_slider_window_width()
-{
-    return VERTICAL_SLIDER_WINDOW_WIDTH;
-}
 
 bool equivalent_areas(const double& bottom_area, const double& top_area)
 {
@@ -183,27 +179,6 @@ IMSlider::IMSlider(int lowerValue, int higherValue, int minValue, int maxValue, 
     m_tick_change_event_type = Type::Unknown;
 
     m_ticks.set_extruder_colors(&m_extruder_colors);
-}
-
-bool IMSlider::init_texture()
-{
-    bool result = true;
-    if (!is_horizontal()) {
-        // BBS init image texture id
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_on.svg", 56, 56, m_one_layer_on_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_on_hover.svg", 56, 56, m_one_layer_on_hover_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_off.svg", 56, 56, m_one_layer_off_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_off_hover.svg", 56, 56, m_one_layer_off_hover_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_on_dark.svg", 56, 56, m_one_layer_on_dark_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_on_hover_dark.svg", 56, 56, m_one_layer_on_hover_dark_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_off_dark.svg", 56, 56, m_one_layer_off_dark_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_off_hover_dark.svg", 56, 56, m_one_layer_off_hover_dark_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/im_gcode_pause.svg", 14, 14, m_pause_icon_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/im_gcode_custom.svg", 14, 14, m_custom_icon_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/im_slider_delete.svg", 14, 14, m_delete_icon_id);
-    }
-
-    return result;
 }
 
 int IMSlider::GetActiveValue() const
@@ -510,22 +485,40 @@ bool IMSlider::switch_one_layer_mode()
     return true;
 }
 
-void IMSlider::draw_background_and_groove(const ImRect& bg_rect, const ImRect& groove) {
-    const ImU32 bg_rect_col = m_is_dark ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
-    const ImU32 groove_col = m_is_dark ? GROOVE_COLOR_DARK : GROOVE_COLOR_LIGHT;
-
-    // draw bg of slider
-    ImGui::RenderFrame(bg_rect.Min, bg_rect.Max, bg_rect_col, false, 0.5 * bg_rect.GetWidth());
-    // draw groove
-    ImGui::RenderFrame(groove.Min, groove.Max, groove_col, false, 0.5 * groove.GetWidth());
-}
-
 bool IMSlider::is_dragging() const
 {
     return GImGui != nullptr && m_imgui_id != 0 && GImGui->ActiveId == m_imgui_id && GImGui->IO.MouseDown[0];
 }
 
-bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int v_max, const ImVec2& size, float scale)
+void draw_concave_corner(ImDrawList* draw_list, const ImVec2& corner, float dx, float dy, float radius, ImU32 color)
+{
+    const ImVec2 center(corner.x + dx * radius, corner.y + dy * radius);
+    const float  from = std::atan2(0.f, -dx);
+    float        to   = std::atan2(-dy, 0.f);
+    if (to - from > IM_PI)
+        to -= 2.f * IM_PI;
+    else if (from - to > IM_PI)
+        to += 2.f * IM_PI;
+    const float outer = radius * 1.4143f + 1.f;
+    draw_list->PushClipRect(ImVec2(std::min(corner.x, center.x), std::min(corner.y, center.y)),
+                            ImVec2(std::max(corner.x, center.x), std::max(corner.y, center.y)), true);
+    draw_list->PathArcTo(center, 0.5f * (radius + outer), from - 0.1f * (to - from), to + 0.1f * (to - from), 16);
+    draw_list->PathStroke(color, 0, outer - radius);
+    draw_list->PopClipRect();
+}
+
+static void draw_rail_handle(ImDrawList* draw_list, const ImVec2& center, float radius, float scale, bool active)
+{
+    draw_list->AddCircleFilled(center, radius, HANDLE_RING_COLOR);
+    draw_list->AddCircleFilled(center, radius - 2.f * scale, BRAND_COLOR);
+    if (active) {
+        const float half = 0.5f * radius;
+        draw_list->AddLine(center - ImVec2(half, 0.f), center + ImVec2(half, 0.f), HANDLE_RING_COLOR, 1.5f * scale);
+        draw_list->AddLine(center - ImVec2(0.f, half), center + ImVec2(0.f, half), HANDLE_RING_COLOR, 1.5f * scale);
+    }
+}
+
+bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int v_max)
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
@@ -535,89 +528,31 @@ bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int 
     const ImGuiID id = window->GetID(str_id);
     m_imgui_id = id;
 
-    const ImVec2 pos = window->DC.CursorPos;
-    const ImRect draw_region(pos, pos + size);
+    const ImRect draw_region(window->Pos, window->Pos + window->Size);
     ImGui::ItemSize(draw_region);
 
-    const float  handle_dummy_width  = 10.0f * m_scale;
-    const float  text_right_dummy    = 70.0f * scale * m_scale;
+    const float  radius = m_layout.handle_radius;
+    const float  mid_y  = m_layout.bottom_rail_y;
+    const ImRect region(ImVec2(m_layout.bottom_rail_left, mid_y - radius), ImVec2(m_layout.bottom_rail_right, mid_y + radius));
+    const ImRect track(ImVec2(region.Min.x, mid_y - 0.5f * m_layout.track_thickness),
+                       ImVec2(region.Max.x, mid_y + 0.5f * m_layout.track_thickness));
 
-    const float  handle_radius       = 12.0f * m_scale;
-    const float  handle_border       = 2.0f * m_scale;
-    const float  text_start_offset   = 8.0f * m_scale;
-    const ImVec2 text_padding        = ImVec2(5.0f, 2.0f) * m_scale;
-
-    const ImU32 handle_clr = BRAND_COLOR;
-    const ImU32 handle_border_clr = m_is_dark ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
-    const wxColour label_bg = StateColor::darkModeColorFor(wxGetApp().get_window_default_clr());
-    const wxColour label_border = StateColor::darkModeColorFor(wxColour("#CECECE"));
-    const wxColour rail_inner_bg = m_is_dark ? StateColor::darkModeColorFor(wxColour("#CECECE")) : wxGetApp().get_highlight_default_clr();
-    const wxColour rail_border = m_is_dark ? StateColor::darkModeColorFor(wxColour("#F0F0F1")) : wxColour("#CECECE");
-    const ImU32 label_bg_clr = IM_COL32(label_bg.Red(), label_bg.Green(), label_bg.Blue(), 238);
-    const ImU32 label_border_clr = IM_COL32(label_border.Red(), label_border.Green(), label_border.Blue(), 255);
-    const ImU32 label_shadow_clr = m_is_dark ? IM_COL32(0, 0, 0, 84) : IM_COL32(0, 0, 0, 38);
-    ImVec4 range_fill = ImGui::ColorConvertU32ToFloat4(BRAND_COLOR);
-    range_fill.w = (m_is_dark ? 210.0f : 190.0f) / 255.0f;
-    const ImU32 range_fill_clr = ImGui::GetColorU32(range_fill);
-    const ImU32 rail_inner_clr = IM_COL32(rail_inner_bg.Red(), rail_inner_bg.Green(), rail_inner_bg.Blue(), 255);
-    const ImU32 rail_border_clr = IM_COL32(rail_border.Red(), rail_border.Green(), rail_border.Blue(), 190);
-
-    // calculate groove size
-    const ImVec2 groove_start = ImVec2(pos.x + handle_dummy_width, pos.y + size.y - ONE_LAYER_MARGIN.y * m_scale - (ONE_LAYER_BUTTON_SIZE.y / 2) * m_scale * 0.5f - GROOVE_WIDTH * m_scale * 0.5f);
-    const ImVec2 groove_size = ImVec2(size.x - 2 * handle_dummy_width - text_right_dummy, GROOVE_WIDTH * m_scale);
-    const ImRect groove = ImRect(groove_start, groove_start + groove_size);
-    const ImRect bg_rect = ImRect(groove.Min - ImVec2(6.0f, 6.0f) * m_scale, groove.Max + ImVec2(6.0f, 6.0f) * m_scale);
-    const float mid_y = groove.GetCenter().y;
-
-    // set mouse active region. active region.
-    bool slider_hovered = ImGui::ItemHoverable(draw_region, id);
-    if (slider_hovered && context.IO.MouseDown[0]) {
+    if (ImGui::ItemHoverable(draw_region, id) && context.IO.MouseDown[0]) {
         ImGui::SetActiveID(id, window);
         ImGui::SetFocusID(id, window);
         ImGui::FocusWindow(window);
     }
 
-    // draw background
-    draw_background_and_groove(bg_rect, groove);
-    window->DrawList->AddRect(groove.Min, groove.Max, rail_border_clr, 0.5f * groove.GetHeight(), 0, 1.0f * m_scale);
-    const ImRect rail_inner(groove.Min + ImVec2(2.0f, 2.0f) * m_scale, groove.Max - ImVec2(2.0f, 2.0f) * m_scale);
-    window->DrawList->AddRectFilled(rail_inner.Min, rail_inner.Max, rail_inner_clr, 0.5f * rail_inner.GetHeight());
+    const float handle_pos = get_pos_from_value(v_min, v_max, *value, region);
+    ImRect      handle(handle_pos - radius, mid_y - radius, handle_pos + radius, mid_y + radius);
+    const bool  value_changed = slider_behavior(id, region, (const ImS32) v_min, (const ImS32) v_max, (ImS32 *) value, &handle);
+    const ImVec2 center = handle.GetCenter();
 
-    // set scrollable region
-    const ImRect slideable_region = ImRect(bg_rect.Min + ImVec2(handle_radius, 0.0f), bg_rect.Max - ImVec2(handle_radius, 0.0f));
-
-    // initialize the handle
-    float  handle_pos = get_pos_from_value(v_min, v_max, *value, groove);
-    ImRect handle = ImRect(handle_pos - handle_radius, mid_y - handle_radius, handle_pos + handle_radius, mid_y + handle_radius);
-
-    // update handle position and value
-    bool   value_changed = slider_behavior(id, slideable_region, (const ImS32) v_min, (const ImS32) v_max, (ImS32 *) value, &handle);
-    ImVec2 handle_center = handle.GetCenter();
-
-    // draw scroll line
-    ImRect scroll_line = ImRect(ImVec2(groove.Min.x, groove.Min.y - 2.0f * m_scale),
-        ImVec2(handle_center.x, groove.Max.y + 2.0f * m_scale));
-    window->DrawList->AddRectFilled(scroll_line.Min, scroll_line.Max, range_fill_clr, 0.5f * scroll_line.GetHeight());
-
-    // draw handle
-    window->DrawList->AddCircleFilled(handle_center, handle_radius + 2.0f * m_scale, handle_border_clr);
-    window->DrawList->AddCircleFilled(handle_center, handle_radius, handle_border_clr);
-    window->DrawList->AddCircleFilled(handle_center, handle_radius - handle_border, handle_clr);
-    window->DrawList->AddCircle(handle_center, handle_radius + 3.0f * m_scale, handle_clr, 0, 2.0f * m_scale);
-
-    // draw label
-    const std::string value_label = std::to_string(*value);
-    const ImVec2 text_content_size = ImGui::CalcTextSize(value_label.c_str());
-    ImVec2 text_size = text_content_size + text_padding * 2;
-    ImVec2 text_start = ImVec2(handle_center.x + handle_radius + text_start_offset, handle_center.y - 0.5 * text_size.y);
-    ImRect text_rect(text_start, text_start + text_size);
-    const float label_rounding = 5.0f * m_scale;
-    const ImVec2 shadow_offset = ImVec2(2.0f, 2.0f) * m_scale;
-    window->DrawList->AddRectFilled(text_rect.Min + shadow_offset, text_rect.Max + shadow_offset, label_shadow_clr, label_rounding);
-    ImGui::RenderFrame(text_rect.Min, text_rect.Max, label_bg_clr, false, label_rounding);
-    window->DrawList->AddRect(text_rect.Min, text_rect.Max, label_border_clr, label_rounding, 0, 1.0f * m_scale);
-    ImGui::RenderText(text_rect.Min + ImVec2((text_size.x - text_content_size.x) * 0.5f,
-        (text_size.y - text_content_size.y) * 0.5f), value_label.c_str());
+    ImDrawList* draw_list = window->DrawList;
+    const float rounding  = 0.5f * track.GetHeight();
+    draw_list->AddRectFilled(track.Min, track.Max, TRACK_COLOR, rounding);
+    draw_list->AddRectFilled(track.Min, ImVec2(center.x, track.Max.y), BRAND_COLOR, rounding);
+    draw_rail_handle(draw_list, center, radius, m_layout.scale, false);
 
     return value_changed;
 }
@@ -694,139 +629,93 @@ void IMSlider::draw_colored_band(const ImRect& groove, const ImRect& slideable_r
     }
 }
 
-void IMSlider::draw_custom_label_block(const ImVec2 anchor, Type type)
+ImU32 IMSlider::tick_color(std::set<TickCode>::const_iterator it) const
 {
-    wxString label;
-    switch (type)
-    {
-    case ColorChange:
-        label = _L("Color");
-        break;
-    case PausePrint:
-        label = _L("Pause");
-        break;
-    case ToolChange:
-        label = _L("Color");
-        break;
-    case Template:
-        label = _L("Template");
-        break;
-    case Custom:
-        label = _L("Custom");
-        break;
-    case Unknown:
-        break;
-    default:
-        break;
-    }
-    const ImVec2 text_size = ImGui::CalcTextSize(into_u8(label).c_str());
-    const ImVec2 padding = ImVec2(4, 2) * m_scale;
-    const ImU32  clr = IM_COL32(255, 111, 0, 255);
-    const float  rounding = 2.0f * m_scale;
-    ImVec2 block_pos = { anchor.x - text_size.x - padding.x * 2, anchor.y - text_size.y / 2 - padding.y };
-    ImVec2 block_size = { text_size.x + padding.x * 2, text_size.y + padding.y * 2 };
-    ImGui::RenderFrame(block_pos, block_pos + block_size, clr, false, rounding);
-    ImGui::PushStyleColor(ImGuiCol_Text, { 1,1,1,1 });
-    ImGui::RenderText(block_pos + padding, into_u8(label).c_str());
-    ImGui::PopStyleColor();
+    if (it->type == Custom || it->type == Template)
+        return CUSTOM_GCODE_COLOR;
+    if (it->type == PausePrint)
+        return PAUSE_COLOR;
+    const std::string color = it->type == ToolChange && m_mode != SingleExtruder ? get_color_for_tool_change_tick(it) : it->color;
+    return color.empty() ? IM_COL32(144, 144, 144, 255) : ImGuiWrapper::to_ImU32(decode_color_to_float_array(color));
 }
 
-void IMSlider::draw_ticks(const ImRect& slideable_region) {
-    //if(m_draw_mode != dmRegular)
-    //    return;
-    //if (m_ticks.empty() || m_mode == MultiExtruder)
-    //    return;
+static void draw_mark_icon(ImDrawList* draw_list, const ImVec2& center, Type type, ImU32 color, float radius, float scale)
+{
+    switch (type) {
+    case PausePrint: {
+        const ImVec2 bar(0.3f * radius, radius);
+        draw_list->AddRectFilled(center + ImVec2(-1.6f * bar.x, -bar.y), center + ImVec2(-0.6f * bar.x, bar.y), color, scale);
+        draw_list->AddRectFilled(center + ImVec2(0.6f * bar.x, -bar.y), center + ImVec2(1.6f * bar.x, bar.y), color, scale);
+        break;
+    }
+    case Custom:
+    case Template:
+        draw_list->AddQuadFilled(center + ImVec2(0.f, -radius), center + ImVec2(radius, 0.f), center + ImVec2(0.f, radius),
+                                 center + ImVec2(-radius, 0.f), color);
+        break;
+    default: draw_list->AddCircleFilled(center, radius, color); break;
+    }
+}
+
+void IMSlider::draw_ticks(const ImRect& slideable_region)
+{
+    m_mark_hovered = false;
+    m_tick_value   = -1;
+    m_tick_rect    = ImVec4();
     if (m_ticks.empty())
         return;
 
-    ImGuiContext &context       = *GImGui;
+    ImDrawList* draw_list  = ImGui::GetWindowDrawList();
+    const float scale      = m_layout.scale;
+    const float mid_x      = m_layout.side_rail_x;
+    const float half_hit   = 0.5f * m_layout.band;
+    const float dot_radius = 4.5f * scale;
+    const float badge_h    = ImGui::GetTextLineHeight();
 
-    ImVec2 tick_box      = ImVec2(52.0f, 16.0f) * m_scale;
-    ImVec2 tick_offset   = ImVec2(22.0f, 14.0f) * m_scale;
-    float  tick_width    = 1.0f * m_scale;
-    ImVec2 icon_offset   = ImVec2(16.0f, 7.0f) * m_scale;
-    ImVec2 icon_size     = ImVec2(14.0f, 14.0f) * m_scale;
-
-    const ImU32 tick_clr = IM_COL32(144, 144, 144, 255);
-    const ImU32 tick_hover_box_clr = m_is_dark ? IM_COL32(65, 65, 71, 255) : IM_COL32(219, 253, 231, 255);
-
-    auto get_tick_pos = [this, slideable_region](int tick)
-    {
-        int v_min = GetMinValue();
-        int v_max = GetMaxValue();
-        return get_pos_from_value(v_min, v_max, tick, slideable_region);
-    };
-
-    std::set<TickCode>::const_iterator tick_it = m_ticks.ticks.begin();
-    while (tick_it != m_ticks.ticks.end())
-    {
-        float tick_pos = get_tick_pos(tick_it->tick);
-
-        //draw tick hover box when hovered
-        ImRect tick_hover_box = ImRect(slideable_region.GetCenter().x - tick_box.x / 2, tick_pos - tick_box.y / 2, slideable_region.GetCenter().x + tick_box.x / 2,
-                                       tick_pos + tick_box.y / 2);
-
-        if (ImGui::IsMouseHoveringRect(tick_hover_box.Min, tick_hover_box.Max))
-        {
-            // render left tick box
-            ImRect left_hover_box = ImRect(tick_hover_box.Min, { slideable_region.Min.x, tick_hover_box.Max.y });
-            ImGui::RenderFrame(left_hover_box.Min, left_hover_box.Max, tick_hover_box_clr, false);
-            // render right tick box
-            ImRect right_hover_box = ImRect({ slideable_region.Max.x, tick_hover_box.Min.y }, tick_hover_box.Max);
-            ImGui::RenderFrame(right_hover_box.Min, right_hover_box.Max, tick_hover_box_clr, false);
-
-            show_tooltip(*tick_it);
-            m_tick_value = tick_it->tick;
-            m_tick_rect = ImVec4(tick_hover_box.Min.x, tick_hover_box.Min.y, tick_hover_box.Max.x, tick_hover_box.Max.y);
-        }
-        ++tick_it;
+    std::vector<std::set<TickCode>::const_iterator> ticks;
+    std::vector<float>                              positions;
+    for (auto it = m_ticks.ticks.begin(); it != m_ticks.ticks.end(); ++it) {
+        ticks.push_back(it);
+        positions.push_back(get_pos_from_value(GetMinValue(), GetMaxValue(), it->tick, slideable_region));
     }
 
-    tick_it = m_ticks.ticks.begin();
-    while (tick_it != m_ticks.ticks.end())
-    {
-        float tick_pos = get_tick_pos(tick_it->tick);
+    for (const TickGroup& group : group_ticks_by_position(positions, badge_h + 2.f * scale)) {
+        const float  y      = group.pos;
+        const float  half_h = group.count > 1 ? 0.5f * badge_h : dot_radius + 2.f * scale;
+        const ImVec2 hover_min(mid_x - half_hit, y - half_h - 2.f * scale);
+        const ImVec2 hover_max(mid_x + half_hit, y + half_h + 2.f * scale);
 
-        //draw ticks
-        ImRect tick_left  = ImRect(slideable_region.GetCenter().x - tick_offset.x, tick_pos - tick_width, slideable_region.GetCenter().x - tick_offset.y, tick_pos);
-        ImRect tick_right = ImRect(slideable_region.GetCenter().x + tick_offset.y, tick_pos - tick_width, slideable_region.GetCenter().x + tick_offset.x, tick_pos);
-        ImGui::RenderFrame(tick_left.Min, tick_left.Max, tick_clr, false);
-        ImGui::RenderFrame(tick_right.Min, tick_right.Max, tick_clr, false);
-
-        //draw pause icon
-        if (tick_it->type == PausePrint) {
-            ImTextureID pause_icon_id = m_pause_icon_id;
-            ImVec2      icon_pos     = ImVec2(slideable_region.GetCenter().x + icon_offset.x, tick_pos - icon_offset.y);
-            button_with_pos(pause_icon_id, icon_size, icon_pos);
+        if (group.count > 1) {
+            const std::string label  = std::to_string(group.count);
+            const ImVec2      text   = ImGui::CalcTextSize(label.c_str());
+            const float       half_w = 0.5f * (text.x + 8.f * scale);
+            const float       half_h = 0.5f * (text.y + 2.f * scale);
+            draw_list->AddRectFilled(ImVec2(mid_x - half_w, y - half_h), ImVec2(mid_x + half_w, y + half_h), HANDLE_RING_COLOR, 3.f * scale);
+            draw_list->AddText(ImVec2(mid_x - 0.5f * text.x, y - 0.5f * text.y), BADGE_TEXT_COLOR, label.c_str());
+        } else {
+            const auto it = ticks[group.first];
+            if (it->type == PausePrint) {
+                const float half_bar = half_hit - 2.f * scale;
+                draw_list->AddRectFilled(ImVec2(mid_x - half_bar, y - 2.f * scale), ImVec2(mid_x + half_bar, y + 2.f * scale), PAUSE_COLOR,
+                                         2.f * scale);
+            } else {
+                draw_list->AddCircleFilled(ImVec2(mid_x, y), dot_radius + 1.5f * scale, BADGE_TEXT_COLOR);
+                draw_mark_icon(draw_list, ImVec2(mid_x, y), it->type, tick_color(it), dot_radius, scale);
+            }
         }
-        if (tick_it->type == Custom || tick_it->type == Template) {
-            ImTextureID custom_icon_id = m_custom_icon_id;
-            ImVec2      icon_pos = ImVec2(slideable_region.GetCenter().x + icon_offset.x, tick_pos - icon_offset.y);
-            button_with_pos(custom_icon_id, icon_size, icon_pos);
-        }
 
-        //draw label block
-        ImVec2 label_block_anchor = ImVec2(slideable_region.GetCenter().x - tick_offset.y, tick_pos);
-        draw_custom_label_block(label_block_anchor, tick_it->type);
-
-        ++tick_it;
-    }
-
-    tick_it = GetSelection() == ssHigher ? m_ticks.ticks.find(TickCode{this->GetHigherValue()}) :
-              GetSelection() == ssLower  ? m_ticks.ticks.find(TickCode{this->GetLowerValue()}) :
-                                           m_ticks.ticks.end();
-    if (tick_it != m_ticks.ticks.end()) {
-        //draw label block again, to keep it in front
-        ImVec2 label_block_anchor = ImVec2(slideable_region.GetCenter().x - tick_offset.y, get_tick_pos(tick_it->tick));
-        draw_custom_label_block(label_block_anchor, tick_it->type);
-
-        // draw delete icon
-        ImVec2      icon_pos       = ImVec2(slideable_region.GetCenter().x + icon_offset.x, get_tick_pos(tick_it->tick) - icon_offset.y);
-        button_with_pos(m_delete_icon_id, icon_size, icon_pos);
-        if (ImGui::IsMouseHoveringRect(icon_pos, icon_pos + icon_size)) {
-            if (context.IO.MouseClicked[0]) {
-                // delete tick
-                delete_tick(*tick_it);
+        if (ImGui::IsWindowHovered() && ImGui::IsMouseHoveringRect(hover_min, hover_max, false)) {
+            m_mark_hovered = true;
+            m_marks_popup.open     = true;
+            m_marks_popup.anchor   = ImVec2(hover_min.x, y);
+            m_marks_popup.mark_min = hover_min;
+            m_marks_popup.mark_max = hover_max;
+            m_marks_popup.ticks.clear();
+            for (size_t i = group.first + group.count; i > group.first; --i)
+                m_marks_popup.ticks.push_back(ticks[i - 1]->tick);
+            if (group.count == 1) {
+                m_tick_value = ticks[group.first]->tick;
+                m_tick_rect  = ImVec4(hover_min.x, hover_min.y, hover_max.x, hover_max.y);
             }
         }
     }
@@ -843,39 +732,6 @@ void IMSlider::show_tooltip(const std::string tooltip) {
     ImGui::EndTooltip();
     ImGui::PopStyleColor(3);
     ImGui::PopStyleVar(2);
-}
-
-void IMSlider::show_tooltip(const TickCode& tick){
-    // Use previous layer's complete time as current layer's tick time,
-    // since ticks are added at the beginning of current layer
-    std::string time_str = "";
-    // TODO: support first layer
-    if (tick.tick > 0) {
-        time_str = get_label(tick.tick - 1, ltEstimatedTime);
-    }
-    if (!time_str.empty()) {
-        time_str += "\n";
-    }
-    
-    switch (tick.type)
-    {
-    case CustomGCode::ColorChange:
-        break;
-    case CustomGCode::PausePrint:
-        show_tooltip(time_str + _u8L("Pause:") + " \"" + gcode(PausePrint) + "\"");
-        break;
-    case CustomGCode::ToolChange:
-        show_tooltip(time_str + _u8L("Change Filament"));
-        break;
-    case CustomGCode::Template:
-        show_tooltip(time_str + _u8L("Custom Template:") + " \"" + gcode(Template) + "\"");
-        break;
-    case CustomGCode::Custom:
-        show_tooltip(time_str + _u8L("Custom G-code:") + " \"" + tick.extra + "\"");
-        break;
-    default:
-        break;
-    }
 }
 
 int IMSlider::get_tick_near_point(int v_min, int v_max, const ImVec2& pt, const ImRect& rect) {
@@ -898,27 +754,19 @@ void IMSlider::draw_tick_on_mouse_position(const ImRect& slideable_region) {
     int v_min = GetMinValue();
     int v_max = GetMaxValue();
     ImGuiContext& context = *GImGui;
-    
-    int tick = get_tick_near_point(v_min, v_max, context.IO.MousePos, slideable_region);
-    
-    //draw tick
-    ImVec2 tick_offset   = ImVec2(22.0f, 14.0f) * m_scale;
-    float  tick_width    = 1.0f * m_scale;
 
-    const ImU32 tick_clr = IM_COL32(144, 144, 144, 255);
+    const int   tick     = get_tick_near_point(v_min, v_max, context.IO.MousePos, slideable_region);
+    const float tick_pos = get_pos_from_value(v_min, v_max, tick, slideable_region);
+    const float half     = 0.35f * m_layout.band;
+    ImGui::GetWindowDrawList()->AddLine(ImVec2(m_layout.side_rail_x - half, tick_pos), ImVec2(m_layout.side_rail_x + half, tick_pos),
+                                        IM_COL32(144, 144, 144, 255), m_layout.scale);
 
-    float tick_pos = get_pos_from_value(v_min, v_max, tick, slideable_region);
-    ImRect tick_left  = ImRect(slideable_region.GetCenter().x - tick_offset.x, tick_pos - tick_width, slideable_region.GetCenter().x - tick_offset.y, tick_pos);
-    ImRect tick_right = ImRect(slideable_region.GetCenter().x + tick_offset.y, tick_pos - tick_width, slideable_region.GetCenter().x + tick_offset.x, tick_pos);
-    ImGui::RenderFrame(tick_left.Min, tick_left.Max, tick_clr, false);
-    ImGui::RenderFrame(tick_right.Min, tick_right.Max, tick_clr, false);
-    
-    // draw layer time
-    std::string label = get_label(tick, ltEstimatedTime);
-    show_tooltip(label);
+    const std::string label = get_label(tick, ltEstimatedTime);
+    if (!label.empty())
+        show_tooltip(label);
 }
 
-bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower_value, std::string& higher_label, std::string& lower_label,int v_min, int v_max, const ImVec2& size, SelectedSlider& selection, bool one_layer_flag, float scale)
+bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower_value, int v_min, int v_max, SelectedSlider& selection, bool one_layer_flag)
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
@@ -928,410 +776,528 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
     const ImGuiID id = window->GetID(str_id);
     m_imgui_id = id;
 
-    const ImVec2 pos = window->DC.CursorPos;
-    const ImRect draw_region(pos, pos + size);
+    const ImRect draw_region(window->Pos, window->Pos + window->Size);
     ImGui::ItemSize(draw_region);
 
-    const float  text_dummy_height   = 60.0f * scale * m_scale;
+    const float  radius = m_layout.handle_radius;
+    const float  mid_x  = m_layout.side_rail_x;
+    const float  top    = m_layout.side_rail_top;
+    const float  bottom = m_layout.side_rail_bottom;
+    const ImRect track(ImVec2(mid_x - 0.5f * m_layout.track_thickness, top), ImVec2(mid_x + 0.5f * m_layout.track_thickness, bottom));
+    const ImRect higher_region(ImVec2(mid_x - radius, top), ImVec2(mid_x + radius, bottom - radius));
+    const ImRect lower_region(ImVec2(mid_x - radius, top + radius), ImVec2(mid_x + radius, bottom));
+    const ImRect one_region(ImVec2(mid_x - radius, top), ImVec2(mid_x + radius, bottom));
 
-    const float  handle_radius       = 12.0f * m_scale;
-    const float  handle_border       = 2.0f * m_scale;
-    const float  line_width          = 1.0f * m_scale;
-    const float  line_length         = 12.0f * m_scale;
-
-    const ImVec2 text_padding        = ImVec2(5.0f, 2.0f) * m_scale;
-    ImVec2 text_size;
-
-    const ImU32 white_bg = m_is_dark ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
-    const ImU32 handle_clr = BRAND_COLOR;
-    const ImU32 handle_border_clr = m_is_dark ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
-    const wxColour label_bg = StateColor::darkModeColorFor(wxGetApp().get_window_default_clr());
-    const wxColour label_bg_active = StateColor::darkModeColorFor(wxColour("#E5F0EE"));
-    const wxColour label_border = StateColor::darkModeColorFor(wxColour("#CECECE"));
-    const wxColour rail_inner_bg = m_is_dark ? StateColor::darkModeColorFor(wxColour("#CECECE")) : wxGetApp().get_highlight_default_clr();
-    const wxColour rail_border = m_is_dark ? StateColor::darkModeColorFor(wxColour("#F0F0F1")) : wxColour("#CECECE");
-    const ImU32 label_bg_clr = IM_COL32(label_bg.Red(), label_bg.Green(), label_bg.Blue(), 238);
-    const ImU32 label_bg_active_clr = IM_COL32(label_bg_active.Red(), label_bg_active.Green(), label_bg_active.Blue(), 246);
-    const ImU32 label_border_clr = IM_COL32(label_border.Red(), label_border.Green(), label_border.Blue(), 255);
-    const ImU32 label_shadow_clr = m_is_dark ? IM_COL32(0, 0, 0, 84) : IM_COL32(0, 0, 0, 38);
-    ImVec4 range_fill = ImGui::ColorConvertU32ToFloat4(BRAND_COLOR);
-    range_fill.w = (m_is_dark ? 210.0f : 190.0f) / 255.0f;
-    const ImU32 range_fill_clr = ImGui::GetColorU32(range_fill);
-    const ImU32 rail_inner_clr = IM_COL32(rail_inner_bg.Red(), rail_inner_bg.Green(), rail_inner_bg.Blue(), 255);
-    const ImU32 rail_border_clr = IM_COL32(rail_border.Red(), rail_border.Green(), rail_border.Blue(), 190);
-    // calculate slider groove size
-    const ImVec2 groove_start = ImVec2(pos.x + size.x - ONE_LAYER_MARGIN.x * m_scale - (ONE_LAYER_BUTTON_SIZE.x / 2) * m_scale * 0.5f - GROOVE_WIDTH * m_scale * 0.5f, pos.y + text_dummy_height);
-    const ImVec2 groove_size = ImVec2(GROOVE_WIDTH * m_scale, size.y - 2 * text_dummy_height);
-    const ImRect groove = ImRect(groove_start, groove_start + groove_size);
-    const ImRect bg_rect = ImRect(groove.Min - ImVec2(6.0f, 6.0f) * m_scale, groove.Max + ImVec2(6.0f, 6.0f) * m_scale);
-    const float mid_x = groove.GetCenter().x;
-    // ORCA: tune label box width to fit the slider window without overlapping the groove.
-    const float label_width_margin = 10.0f * m_scale;
-    const float max_label_width = std::max(0.0f,
-        groove.Min.x - draw_region.Min.x - label_width_margin * 2.0f - text_padding.x * 2.0f);
-
-    // Processing interacting
-    // set scrollable region
-    const ImRect region = ImRect(bg_rect.Min + ImVec2(0.0f, handle_radius), bg_rect.Max - ImVec2(0.0f, handle_radius));
-    const ImRect higher_slideable_region = ImRect(region.Min, region.Max - ImVec2(0, handle_radius));
-    const ImRect lower_slideable_region = ImRect(region.Min + ImVec2(0, handle_radius), region.Max);
-    const ImRect one_slideable_region = region;
-
-    // initialize the handles.
-    float higher_handle_pos = get_pos_from_value(v_min, v_max, *higher_value, higher_slideable_region);
-    ImRect higher_handle = ImRect(mid_x - handle_radius, higher_handle_pos - handle_radius, mid_x + handle_radius, higher_handle_pos + handle_radius);
-
-    float  lower_handle_pos = get_pos_from_value(v_min, v_max, *lower_value, lower_slideable_region);
-    ImRect lower_handle = ImRect(mid_x - handle_radius, lower_handle_pos - handle_radius, mid_x + handle_radius, lower_handle_pos + handle_radius);
-
-    auto one_layer_handle = [&](int value) {
-        const float handle_pos = get_pos_from_value(v_min, v_max, value, one_slideable_region);
-        return ImRect(mid_x - handle_radius, handle_pos - handle_radius,
-            mid_x + handle_radius, handle_pos + handle_radius);
-    };
-    ImRect one_handle;
-    if (one_layer_flag)
-        one_handle = one_layer_handle(*higher_value);
-
-    // Label hit testing enables delta-based label drag without jumping to the mouse position.
-    SelectedSlider hovered_label = ssUndef;
-    const bool menu_open = ImGui::IsPopupOpen("slider_add_menu_popup") || ImGui::IsPopupOpen("slider_edit_menu_popup");
-    const ImVec2 higher_text_content_size = ImGui::CalcTextSize(into_u8(higher_label).c_str());
-    const ImVec2 lower_text_content_size = one_layer_flag ? ImVec2() : ImGui::CalcTextSize(into_u8(lower_label).c_str());
-    auto label_hit = [&](const ImRect& label_rect, SelectedSlider selection_value) {
-        if (!label_rect.Contains(context.IO.MousePos))
-            return;
-        hovered_label = selection_value;
-    };
-    auto range_label_rect = [&](const ImRect& handle, const ImVec2& content_size, bool top_label) {
-        const ImVec2 text_size = ImVec2(max_label_width, content_size.y) + text_padding * 2.0f;
-        const ImVec2 text_start = ImVec2(handle.Min.x - text_size.x - label_width_margin,
-            top_label ? handle.GetCenter().y - text_size.y : handle.GetCenter().y);
-        return ImRect(text_start, text_start + text_size + ImVec2(label_width_margin, 0.0f));
-    };
-    auto one_layer_label_rect = [&](const ImRect& handle) {
-        const ImVec2 text_size = ImVec2(max_label_width, higher_text_content_size.y) + text_padding * 2.0f;
-        const ImVec2 text_start = ImVec2(handle.Min.x - text_size.x - label_width_margin,
-            handle.GetCenter().y - 0.5f * text_size.y);
-        return ImRect(text_start, text_start + text_size);
-    };
-    auto draw_label = [&](const ImRect& rect, const ImVec2& content_size, const std::string& label, bool hovered, bool active) {
-        const float rounding = 5.0f * m_scale;
-        const ImU32 bg_clr = active ? label_bg_active_clr : label_bg_clr;
-        const ImVec2 shadow_offset = ImVec2(2.0f, 2.0f) * m_scale;
-        window->DrawList->AddRectFilled(rect.Min + shadow_offset, rect.Max + shadow_offset, label_shadow_clr, rounding);
-        ImGui::RenderFrame(rect.Min, rect.Max, bg_clr, false, rounding);
-        window->DrawList->AddRect(rect.Min, rect.Max, hovered ? handle_clr : label_border_clr, rounding, 0, hovered ? 1.5f * m_scale : 1.0f * m_scale);
-        const ImVec2 rect_size = rect.GetSize();
-        ImGui::RenderText(rect.Min + ImVec2((rect_size.x - content_size.x) * 0.5f,
-            (rect_size.y - content_size.y) * 0.5f), label.c_str());
-    };
-    auto draw_handle = [&](const ImVec2& center) {
-        window->DrawList->AddCircleFilled(center, handle_radius, handle_border_clr);
-        window->DrawList->AddCircleFilled(center, handle_radius - handle_border, handle_clr);
-    };
-    auto draw_active_handle = [&](const ImVec2& center) {
-        window->DrawList->AddCircleFilled(center, handle_radius + 2.0f * m_scale, handle_border_clr);
-        draw_handle(center);
-        window->DrawList->AddCircle(center, handle_radius + 3.0f * m_scale, handle_clr, 0, 2.0f * m_scale);
-        window->DrawList->AddLine(center + ImVec2(-0.5f * line_length, 0.0f), center + ImVec2(0.5f * line_length, 0.0f), white_bg, line_width);
-        window->DrawList->AddLine(center + ImVec2(0.0f, -0.5f * line_length), center + ImVec2(0.0f, 0.5f * line_length), white_bg, line_width);
+    auto handle_at = [&](int value, const ImRect& region) {
+        const float pos = get_pos_from_value(v_min, v_max, value, region);
+        return ImRect(mid_x - radius, pos - radius, mid_x + radius, pos + radius);
     };
 
-    // Prevent interaction with labels if slider add/edit menu is open
-    // or the mouse was pressed elsewhere and then dragged over them.
-    if (!menu_open && (!context.IO.MouseDown[0] || context.IO.MouseClicked[0])) {
-        if (!one_layer_flag) {
-            label_hit(range_label_rect(higher_handle, higher_text_content_size, true), ssHigher);
-            label_hit(range_label_rect(lower_handle, lower_text_content_size, false), ssLower);
-        } else {
-            label_hit(one_layer_label_rect(one_handle), ssHigher);
-        }
-    }
-
-    // set mouse active region
-    const ImRect slider_active_region = ImRect(ImVec2(draw_region.Min.x + 35.0f * m_scale, draw_region.Min.y), draw_region.Max);
-    bool slider_hovered = !menu_open && ImGui::ItemHoverable(slider_active_region, id) && !ImGui::ItemHoverable(m_tick_rect, id) && hovered_label == ssUndef;
-    struct LabelDragState
-    {
-        ImGuiID        id = 0;
-        SelectedSlider selection = ssUndef;
-        ImVec2         start_mouse;
-        int            start_value = 0;
-    };
-    // Persist the label that started the drag after the cursor leaves its rect.
-    static LabelDragState label_drag;
-
-    if (hovered_label != ssUndef && context.IO.MouseClicked[0]) {
-        selection = hovered_label;
-        label_drag.id = id;
-        label_drag.selection = hovered_label;
-        label_drag.start_mouse = context.IO.MousePos;
-        label_drag.start_value = hovered_label == ssHigher ? *higher_value : *lower_value;
-        ImGui::SetActiveID(id, window);
-        ImGui::SetFocusID(id, window);
-        ImGui::FocusWindow(window);
-    }
+    const bool menu_open      = ImGui::IsPopupOpen("slider_add_menu_popup") || ImGui::IsPopupOpen("slider_edit_menu_popup");
+    const ImRect grab_region(ImVec2(draw_region.Min.x, m_layout.top_toggle_square.bottom), ImVec2(draw_region.Max.x, m_layout.bottom_toggle_square.top));
+    const bool   slider_hovered = !menu_open && ImGui::ItemHoverable(grab_region, id);
     if (slider_hovered && context.IO.MouseDown[0]) {
         ImGui::SetActiveID(id, window);
         ImGui::SetFocusID(id, window);
         ImGui::FocusWindow(window);
     }
 
-    // draw background
-    draw_background_and_groove(bg_rect, groove);
-    window->DrawList->AddRect(groove.Min, groove.Max, rail_border_clr, 0.5f * groove.GetWidth(), 0, 1.0f * m_scale);
-    const ImRect rail_inner(groove.Min + ImVec2(2.0f, 2.0f) * m_scale, groove.Max - ImVec2(2.0f, 2.0f) * m_scale);
-    window->DrawList->AddRectFilled(rail_inner.Min, rail_inner.Max, rail_inner_clr, 0.5f * rail_inner.GetWidth());
+    ImDrawList* draw_list = window->DrawList;
+    draw_list->AddRectFilled(track.Min, track.Max, TRACK_COLOR, 0.5f * track.GetWidth());
+
+    auto update_menu = [&](const ImRect& handle) {
+        if (!menu_open && ImGui::ItemHoverable(handle, id) && context.IO.MouseClicked[1])
+            m_show_menu = true;
+        if (!menu_open && ((!ImGui::ItemHoverable(handle, id) && context.IO.MouseClicked[1]) || context.IO.MouseClicked[0]))
+            m_show_menu = false;
+    };
 
     bool value_changed = false;
-    if (!one_layer_flag)
-    {
-        const SelectedSlider dragged_label = label_drag.id == id && context.IO.MouseDown[0] ? label_drag.selection : ssUndef;
-        if (dragged_label == ssUndef && !menu_open) {
-            if (ImGui::ItemHoverable(higher_handle, id) && context.IO.MouseClicked[0]) {
+    if (!one_layer_flag) {
+        ImRect higher_handle = handle_at(*higher_value, higher_region);
+        ImRect lower_handle  = handle_at(*lower_value, lower_region);
+        if (!menu_open) {
+            if (ImGui::ItemHoverable(higher_handle, id) && context.IO.MouseClicked[0])
                 selection = ssHigher;
-            }
-            if (ImGui::ItemHoverable(lower_handle, id) && context.IO.MouseClicked[0]) {
+            if (ImGui::ItemHoverable(lower_handle, id) && context.IO.MouseClicked[0])
                 selection = ssLower;
-            }
         }
-        bool h_selected = selection != ssLower;
+        const bool h_selected = selection != ssLower;
+        if (h_selected)
+            value_changed = slider_behavior(id, higher_region, v_min, v_max, higher_value, &higher_handle, ImGuiSliderFlags_Vertical,
+                                            m_tick_value, m_tick_rect);
+        else
+            value_changed = slider_behavior(id, lower_region, v_min, v_max, lower_value, &lower_handle, ImGuiSliderFlags_Vertical,
+                                            m_tick_value, m_tick_rect);
 
-        // update handle position and value
-        if (dragged_label != ssUndef) {
-            const ImRect& drag_region = dragged_label == ssHigher ? higher_slideable_region : lower_slideable_region;
-            const float region_height = drag_region.GetHeight();
-            if (region_height > 0.0f) {
-                const float delta = context.IO.MousePos.y - label_drag.start_mouse.y;
-                const float value_delta = delta * (float)(v_max - v_min) / region_height;
-                const int new_value = (int)ImClamp((float)label_drag.start_value - value_delta, (float)v_min, (float)v_max);
-                if (dragged_label == ssHigher) {
-                    value_changed = *higher_value != new_value;
-                    *higher_value = new_value;
-                } else {
-                    value_changed = *lower_value != new_value;
-                    *lower_value = new_value;
-                }
-            }
-            h_selected = dragged_label == ssHigher;
-            if (dragged_label == ssHigher) {
-                higher_handle_pos = get_pos_from_value(v_min, v_max, *higher_value, higher_slideable_region);
-                higher_handle = ImRect(mid_x - handle_radius, higher_handle_pos - handle_radius, mid_x + handle_radius, higher_handle_pos + handle_radius);
-            } else {
-                lower_handle_pos = get_pos_from_value(v_min, v_max, *lower_value, lower_slideable_region);
-                lower_handle = ImRect(mid_x - handle_radius, lower_handle_pos - handle_radius, mid_x + handle_radius, lower_handle_pos + handle_radius);
-            }
-        } else {
-            if (h_selected)
-            {
-                value_changed = slider_behavior(id, higher_slideable_region, v_min, v_max,
-                    higher_value, &higher_handle, ImGuiSliderFlags_Vertical,
-                    m_tick_value, m_tick_rect);
-            }
-            if (!h_selected) {
-                value_changed = slider_behavior(id, lower_slideable_region, v_min, v_max,
-                    lower_value, &lower_handle, ImGuiSliderFlags_Vertical,
-                    m_tick_value, m_tick_rect);
-            }
-        }
-        SelectedSlider active_label = ssUndef;
-        if (dragged_label != ssUndef)
-            active_label = dragged_label;
-        else if (context.ActiveId == id && context.IO.MouseDown[0])
-            active_label = h_selected ? ssHigher : ssLower;
-
-        ImVec2 higher_handle_center = higher_handle.GetCenter();
-        ImVec2 lower_handle_center = lower_handle.GetCenter();
-        if (higher_handle_center.y + handle_radius > lower_handle_center.y && h_selected)
-        {
+        ImVec2 higher_center = higher_handle.GetCenter();
+        ImVec2 lower_center  = lower_handle.GetCenter();
+        if (higher_center.y + radius > lower_center.y && h_selected) {
             lower_handle = higher_handle;
-            lower_handle.TranslateY(handle_radius);
-            lower_handle_center.y = higher_handle_center.y + handle_radius;
-            *lower_value = *higher_value;
+            lower_handle.TranslateY(radius);
+            lower_center.y = higher_center.y + radius;
+            *lower_value   = *higher_value;
         }
-        if (higher_handle_center.y + handle_radius > lower_handle_center.y && !h_selected)
-        {
+        if (higher_center.y + radius > lower_center.y && !h_selected) {
             higher_handle = lower_handle;
-            higher_handle.TranslateY(-handle_radius);
-            higher_handle_center.y = lower_handle_center.y - handle_radius;
-            *higher_value = *lower_value;
+            higher_handle.TranslateY(-radius);
+            higher_center.y = lower_center.y - radius;
+            *higher_value   = *lower_value;
         }
 
-        // judge whether to open menu
-        if (!menu_open && ImGui::ItemHoverable(h_selected ? higher_handle : lower_handle, id) && context.IO.MouseClicked[1])
-            m_show_menu = true;
-        if (!menu_open && ((!ImGui::ItemHoverable(h_selected ? higher_handle : lower_handle, id) && context.IO.MouseClicked[1]) ||
-            context.IO.MouseClicked[0]))
-            m_show_menu = false;
+        update_menu(h_selected ? higher_handle : lower_handle);
 
-        // draw ticks
-        draw_ticks(h_selected ? higher_slideable_region : lower_slideable_region);
-        // draw colored band
-        draw_colored_band(groove, h_selected ? higher_slideable_region : lower_slideable_region);
+        const ImRect& region = h_selected ? higher_region : lower_region;
+        draw_colored_band(track, region);
+        if (!m_ticks.has_tick_with_code(ToolChange))
+            draw_list->AddRectFilled(ImVec2(track.Min.x, higher_center.y), ImVec2(track.Max.x, lower_center.y), BRAND_COLOR,
+                                     0.5f * track.GetWidth());
+        draw_ticks(region);
 
-        if (!m_ticks.has_tick_with_code(ToolChange)) {
-            // draw scroll line
-            ImRect scroll_line = ImRect(ImVec2(groove.Min.x - 2.0f * m_scale, higher_handle_center.y),
-                ImVec2(groove.Max.x + 2.0f * m_scale, lower_handle_center.y));
-            window->DrawList->AddRectFilled(scroll_line.Min, scroll_line.Max, range_fill_clr, 0.5f * scroll_line.GetWidth());
-        }
+        draw_rail_handle(draw_list, higher_center, radius, m_layout.scale, h_selected);
+        draw_rail_handle(draw_list, lower_center, radius, m_layout.scale, !h_selected);
 
-        // draw handles
-        draw_handle(higher_handle_center);
-        draw_handle(lower_handle_center);
-        draw_active_handle(h_selected ? higher_handle_center : lower_handle_center);
+        if (slider_hovered && !context.IO.MouseDown[0] && !m_mark_hovered && !m_marks_popup.open)
+            draw_tick_on_mouse_position(region);
+    } else {
+        ImRect one_handle = handle_at(*higher_value, one_region);
+        value_changed     = slider_behavior(id, one_region, v_min, v_max, higher_value, &one_handle, ImGuiSliderFlags_Vertical, m_tick_value,
+                                            m_tick_rect);
+        update_menu(one_handle);
 
-        // ORCA: render fixed-width label boxes
-        // draw higher label
-        text_size = ImVec2(max_label_width, higher_text_content_size.y) + text_padding * 2;
-        ImVec2 text_start = ImVec2(higher_handle.Min.x - text_size.x - label_width_margin, higher_handle_center.y - text_size.y);
-        ImRect text_rect(text_start, text_start + text_size);
-        const bool higher_label_active = active_label == ssHigher;
-        draw_label(text_rect, higher_text_content_size, higher_label,
-            hovered_label == ssHigher || higher_label_active, higher_label_active);
-        // draw lower label
-        text_size = ImVec2(max_label_width, lower_text_content_size.y) + text_padding * 2;
-        text_start        = ImVec2(lower_handle.Min.x - text_size.x - label_width_margin, lower_handle_center.y);
-        text_rect = ImRect(text_start, text_start + text_size);
-        const bool lower_label_active = active_label == ssLower;
-        draw_label(text_rect, lower_text_content_size, lower_label,
-            hovered_label == ssLower || lower_label_active, lower_label_active);
-        
-        // draw mouse position
-        if (slider_hovered && !context.IO.MouseDown[0]) {
-            draw_tick_on_mouse_position(h_selected ? higher_slideable_region : lower_slideable_region);
-        }
-    }
-    if (one_layer_flag)
-    {
-        // update handle position
-        const SelectedSlider dragged_label = label_drag.id == id && context.IO.MouseDown[0] ? label_drag.selection : ssUndef;
-        if (dragged_label == ssHigher) {
-            const float region_height = one_slideable_region.GetHeight();
-            if (region_height > 0.0f) {
-                const float delta = context.IO.MousePos.y - label_drag.start_mouse.y;
-                const float value_delta = delta * (float)(v_max - v_min) / region_height;
-                const int new_value = (int)ImClamp((float)label_drag.start_value - value_delta, (float)v_min, (float)v_max);
-                value_changed = *higher_value != new_value;
-                *higher_value = new_value;
-            }
-            one_handle = one_layer_handle(*higher_value);
-        } else {
-            value_changed = slider_behavior(id, one_slideable_region, v_min, v_max,
-                higher_value, &one_handle, ImGuiSliderFlags_Vertical,
-                m_tick_value, m_tick_rect);
-        }
+        draw_colored_band(track, one_region);
+        draw_ticks(one_region);
+        draw_rail_handle(draw_list, one_handle.GetCenter(), radius, m_layout.scale, true);
 
-        ImVec2 handle_center = one_handle.GetCenter();
-
-        // judge whether to open menu
-        if (!menu_open && ImGui::ItemHoverable(one_handle, id) && context.IO.MouseClicked[1])
-            m_show_menu = true;
-        if (!menu_open && ((!ImGui::ItemHoverable(one_handle, id) && context.IO.MouseClicked[1]) ||
-            context.IO.MouseClicked[0]))
-            m_show_menu = false;
-
-        // draw ticks
-        draw_ticks(one_slideable_region);
-        // draw colored band
-        draw_colored_band(groove, one_slideable_region);
-
-        // draw handle
-        draw_active_handle(handle_center);
-
-        // draw label
-        text_size = ImVec2(max_label_width, higher_text_content_size.y) + text_padding * 2;
-        ImVec2 text_start = ImVec2(one_handle.Min.x - text_size.x - label_width_margin, handle_center.y - 0.5 * text_size.y);
-        ImRect text_rect = ImRect(text_start, text_start + text_size);
-        const bool label_active = context.ActiveId == id && context.IO.MouseDown[0];
-        draw_label(text_rect, higher_text_content_size, higher_label, hovered_label == ssHigher || label_active, label_active);
-        
-        // draw mouse position
-        if (slider_hovered && !context.IO.MouseDown[0]) {
-            draw_tick_on_mouse_position(one_slideable_region);
-        }
-    }
-
-    if (!context.IO.MouseDown[0] && label_drag.id == id) {
-        label_drag.id = 0;
-        label_drag.selection = ssUndef;
-        if (context.ActiveId == id)
-            ImGui::ClearActiveID();
+        if (slider_hovered && !context.IO.MouseDown[0] && !m_mark_hovered && !m_marks_popup.open)
+            draw_tick_on_mouse_position(one_region);
     }
 
     return value_changed;
 }
 
-bool IMSlider::render(int canvas_width, int canvas_height)
+IMSlider::PillText IMSlider::pill_text(int tick)
 {
+    static constexpr const char* NUMBER_MARK = "\x1f";
+    const std::string layer = format(_u8L("Layer %1%"), NUMBER_MARK);
+    const size_t      split = layer.find(NUMBER_MARK);
+
+    PillText text;
+    text.prefix = layer.substr(0, split);
+    text.suffix = split == std::string::npos ? "" : layer.substr(split + std::strlen(NUMBER_MARK));
+    text.number = get_label(tick, ltLayer);
+    text.z      = format(_u8L("%1% mm"), get_label(tick, ltHeight));
+    return text;
+}
+
+IMSlider::PillSlots IMSlider::pill_slots()
+{
+    ImGuiWrapper&  imgui = *wxGetApp().imgui();
+    const PillText last  = pill_text(GetMaxValue());
+    PillSlots      slots;
+    slots.prefix = ImGui::CalcTextSize(last.prefix.c_str()).x;
+    slots.suffix = ImGui::CalcTextSize(last.suffix.c_str()).x;
+    slots.z      = ImGui::CalcTextSize(last.z.c_str()).x;
+    const bool bold = imgui.push_bold_font();
+    slots.number    = ImGui::CalcTextSize(last.number.c_str()).x;
+    if (bold)
+        imgui.pop_bold_font();
+    const float space = ImGui::CalcTextSize(" ").x;
+    slots.width       = slots.prefix + slots.number + slots.suffix + 3.f * space + ImGui::CalcTextSize("Z").x + space + slots.z;
+    return slots;
+}
+
+ImVec2 IMSlider::pill_size(float scale)
+{
+    return ImVec2(std::ceil(pill_slots().width + 20.f * scale), std::ceil(ImGui::GetTextLineHeight() + 12.f * scale));
+}
+
+static void draw_single_layer_icon(ImDrawList* draw_list, const ImVec2& center, float scale, ImU32 color, bool filled)
+{
+    const float w     = 7.f * scale;
+    const float h     = 3.5f * scale;
+    const float step  = 3.5f * scale;
+    const float top   = center.y - 3.5f * scale;
+    const float thick = 1.4f * scale;
+
+    for (int i = 2; i >= 1; --i) {
+        const float  y       = top + step * float(i);
+        const ImVec2 edge[3] = {ImVec2(center.x - w, y), ImVec2(center.x, y + h), ImVec2(center.x + w, y)};
+        draw_list->AddPolyline(edge, 3, color, 0, thick);
+    }
+    const ImVec2 plate[4] = {ImVec2(center.x, top - h), ImVec2(center.x + w, top), ImVec2(center.x, top + h), ImVec2(center.x - w, top)};
+    if (filled)
+        draw_list->AddConvexPolyFilled(plate, 4, color);
+    else
+        draw_list->AddPolyline(plate, 4, color, ImDrawFlags_Closed, thick);
+}
+
+void IMSlider::render_single_layer_button(float size)
+{
+    const float scale = m_layout.scale;
+    const bool  on    = is_one_layer();
+    if (ImGui::InvisibleButton("##single_layer", ImVec2(size, size)))
+        switch_one_layer_mode();
+    const bool   hovered  = ImGui::IsItemHovered();
+    const ImVec2 min      = ImGui::GetItemRectMin();
+    const ImVec2 max      = ImGui::GetItemRectMax();
+    const float  rounding = 4.f * scale;
+    const ImVec4 text     = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+    ImDrawList*  draw_list = ImGui::GetWindowDrawList();
+    if (on)
+        draw_list->AddRectFilled(min, max, hovered ? BRAND_HOVER_COLOR : BRAND_COLOR, rounding);
+    else if (hovered)
+        draw_list->AddRectFilled(min, max, ImGui::GetColorU32(ImGuiCol_FrameBgHovered), rounding);
+    draw_single_layer_icon(draw_list, (min + max) * 0.5f, scale,
+                           on ? HANDLE_RING_COLOR : ImGui::GetColorU32(ImVec4(text.x, text.y, text.z, 0.85f)), on);
+    if (hovered)
+        show_tooltip(_u8L("Single layer"));
+}
+
+bool IMSlider::render_pill(const char* str_id, int tick, const CanvasUi::Rect& rect, int corners)
+{
+    ImGuiWrapper&   imgui = *wxGetApp().imgui();
+    const float     scale = m_layout.scale;
+    const float     space = ImGui::CalcTextSize(" ").x;
+    const PillText  text  = pill_text(tick);
+    const PillSlots slots = pill_slots();
+    const ImVec2    size(rect.width(), rect.height());
+
+    ImVec4 background = ImGui::GetStyleColorVec4(ImGuiCol_WindowBg);
+    background.w      = 0.8f;
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.f, 0.f, 0.f, 0.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 0.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+    imgui.set_next_window_pos(rect.left, rect.top, ImGuiCond_Always, 0.f, 0.f);
+    ImGui::SetNextWindowSize(size);
+    imgui.begin(std::string(str_id), ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
+                                         ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoScrollWithMouse);
+
+    ImDrawList*  draw_list = ImGui::GetWindowDrawList();
+    const ImVec2 origin    = ImGui::GetCursorScreenPos();
+    draw_list->AddRectFilled(origin, origin + size, ImGui::GetColorU32(background), 10.f * scale, corners);
+
+    const bool clicked = ImGui::InvisibleButton("##pill", size);
+    if (ImGui::IsItemHovered())
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+
+    const ImVec4 text_color = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+    const ImU32  muted      = ImGui::GetColorU32(ImVec4(text_color.x, text_color.y, text_color.z, 0.65f));
+    const ImU32  normal     = ImGui::GetColorU32(ImGuiCol_Text);
+    ImVec2       cursor(origin.x + std::floor(0.5f * (size.x - slots.width)), origin.y + std::floor(0.5f * (size.y - ImGui::GetTextLineHeight())));
+    draw_list->AddText(ImVec2(cursor.x + slots.prefix - ImGui::CalcTextSize(text.prefix.c_str()).x, cursor.y), muted, text.prefix.c_str());
+    cursor.x += slots.prefix;
+    const bool  bold        = imgui.push_bold_font();
+    const float number_text = ImGui::CalcTextSize(text.number.c_str()).x;
+    draw_list->AddText(ImVec2(cursor.x + slots.number - number_text, cursor.y), normal, text.number.c_str());
+    if (bold)
+        imgui.pop_bold_font();
+    cursor.x += slots.number;
+    draw_list->AddText(cursor, muted, text.suffix.c_str());
+    cursor.x += slots.suffix + 3.f * space;
+    draw_list->AddText(cursor, ImGuiWrapper::to_ImU32(ColorRGBA::Z()), "Z");
+    cursor.x += ImGui::CalcTextSize("Z").x + space;
+    draw_list->AddText(ImVec2(cursor.x + slots.z - ImGui::CalcTextSize(text.z.c_str()).x, cursor.y), normal, text.z.c_str());
+
+    const ImVec2 pos = ImGui::GetWindowPos();
+    m_wheel_areas.push_back({pos.x, pos.y, pos.x + size.x, pos.y + size.y});
+    imgui.end();
+    ImGui::PopStyleVar(3);
+    ImGui::PopStyleColor();
+    return clicked;
+}
+
+void IMSlider::move_active_handle_to(int tick)
+{
+    if (m_is_one_layer) {
+        SetHigherValue(tick);
+        m_one_layer_value = tick;
+    } else if (m_selection == ssLower)
+        SetLowerValue(tick);
+    else {
+        m_selection = ssHigher;
+        SetHigherValue(tick);
+    }
+}
+
+static std::string mark_type_name(Type type)
+{
+    switch (type) {
+    case PausePrint: return _u8L("Pause");
+    case ColorChange: return _u8L("Color change");
+    case ToolChange: return _u8L("Filament change");
+    case Custom: return _u8L("Custom G-code");
+    case Template: return _u8L("Template");
+    default: return {};
+    }
+}
+
+void IMSlider::render_marks_popup()
+{
+    MarksPopup& popup = m_marks_popup;
+    if (!popup.open)
+        return;
+
+    popup.ticks.erase(std::remove_if(popup.ticks.begin(), popup.ticks.end(),
+                                     [this](int tick) { return m_ticks.ticks.find(TickCode{tick}) == m_ticks.ticks.end(); }),
+                      popup.ticks.end());
+
+    const ImVec2 mouse = ImGui::GetIO().MousePos;
+    if (!m_mark_hovered && !popup.submenu_open) {
+        const ImRect window_rect(popup.window_min, popup.window_max);
+        const ImRect bridge(ImVec2(popup.window_max.x - 1.f, std::min(popup.mark_min.y, popup.window_min.y)),
+                            ImVec2(popup.mark_max.x, std::max(popup.mark_max.y, popup.window_max.y)));
+        if (popup.ticks.empty() || (!window_rect.Contains(mouse) && !bridge.Contains(mouse))) {
+            popup = MarksPopup();
+            return;
+        }
+    }
+
+    ImGuiWrapper& imgui = *wxGetApp().imgui();
+    const float   scale = m_layout.scale;
+    const float   line  = ImGui::GetTextLineHeight();
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.f * scale);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.f, 6.f) * scale);
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.f, 4.f) * scale);
+    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(4.f, 2.f) * scale);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgHovered));
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgActive));
+    ImGui::SetNextWindowBgAlpha(0.9f);
+    imgui.set_next_window_pos(popup.anchor.x - m_layout.gap, popup.anchor.y, ImGuiCond_Always, 1.f, 0.5f);
+    imgui.begin(std::string("layers_slider_marks"), ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize |
+                                                        ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing);
+    ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
+
+    int      jump_to = -1;
+    int      edit_custom = -1;
+    bool     open_filaments = false;
+    TickCode to_delete{-1};
+    const ImU32       icon_hover = ImGui::GetColorU32(ImGuiCol_FrameBgHovered);
+    const ImU32       text_color = ImGui::GetColorU32(ImGuiCol_Text);
+
+    std::vector<std::string> times;
+    float                    time_w = 0.f;
+    for (int tick : popup.ticks) {
+        times.push_back(tick > 0 ? get_label(tick - 1, ltEstimatedTime) : "");
+        time_w = std::max(time_w, ImGui::CalcTextSize(times.back().c_str()).x);
+    }
+    const int actions_column = time_w > 0.f ? 4 : 3;
+
+    if (ImGui::BeginTable("##marks", actions_column + 1, ImGuiTableFlags_SizingFixedFit)) {
+        for (size_t row = 0; row < popup.ticks.size(); ++row) {
+            const int  tick = popup.ticks[row];
+            const auto it   = m_ticks.ticks.find(TickCode{tick});
+            ImGui::PushID(tick);
+            ImGui::TableNextRow();
+
+            ImGui::TableSetColumnIndex(0);
+            const float  row_top     = ImGui::GetCursorScreenPos().y;
+            const ImVec2 icon_center = ImGui::GetCursorScreenPos() + ImVec2(0.5f * line, 0.5f * line);
+            ImGui::Dummy(ImVec2(line, line));
+            draw_mark_icon(ImGui::GetWindowDrawList(), icon_center, it->type, tick_color(it), 0.32f * line, scale);
+
+            ImGui::TableSetColumnIndex(1);
+            const bool bold = imgui.push_bold_font();
+            ImGui::TextUnformatted(mark_type_name(it->type).c_str());
+            if (bold)
+                imgui.pop_bold_font();
+
+            ImGui::TableSetColumnIndex(2);
+            // TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+            const std::string where = format(_u8L("%1% · %2% mm"), get_label(tick, ltLayer), get_label(tick, ltHeight));
+            ImGui::TextDisabled("%s", where.c_str());
+
+            if (time_w > 0.f) {
+                ImGui::TableSetColumnIndex(3);
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + time_w - ImGui::CalcTextSize(times[row].c_str()).x);
+                ImGui::TextDisabled("%s", times[row].c_str());
+            }
+
+            ImGui::TableSetColumnIndex(actions_column);
+            const bool can_edit = m_menu_enable && (it->type == Custom ||
+                                                    (it->type == ToolChange && m_extruder_colors.size() > 1 && m_can_change_color));
+            if (can_edit) {
+                if (ImGui::InvisibleButton("##edit", ImVec2(line, line))) {
+                    if (it->type == Custom)
+                        edit_custom = tick;
+                    else {
+                        popup.filament_tick = tick;
+                        open_filaments      = true;
+                    }
+                }
+                if (ImGui::IsItemHovered())
+                    ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), icon_hover, 3.f * scale);
+                const std::string pencil = into_u8(ImGui::SliderFloatEditBtnIcon);
+                const ImVec2      size   = ImGui::CalcTextSize(pencil.c_str());
+                ImGui::GetWindowDrawList()->AddText((ImGui::GetItemRectMin() + ImGui::GetItemRectMax() - size) * 0.5f, text_color,
+                                                    pencil.c_str());
+            } else if (m_menu_enable)
+                ImGui::Dummy(ImVec2(line, line));
+            if (m_menu_enable) {
+                ImGui::SameLine();
+                if (ImGui::InvisibleButton("##delete", ImVec2(line, line)))
+                    to_delete = *it;
+                const ImVec2 min = ImGui::GetItemRectMin();
+                const ImVec2 max = ImGui::GetItemRectMax();
+                if (ImGui::IsItemHovered())
+                    ImGui::GetWindowDrawList()->AddRectFilled(min, max, icon_hover, 3.f * scale);
+                const ImVec2 c    = (min + max) * 0.5f;
+                const float  half = 0.22f * line;
+                ImGui::GetWindowDrawList()->AddLine(c - ImVec2(half, half), c + ImVec2(half, half), text_color, 1.5f * scale);
+                ImGui::GetWindowDrawList()->AddLine(c + ImVec2(-half, half), c + ImVec2(half, -half), text_color, 1.5f * scale);
+                if (ImGui::IsItemHovered())
+                    show_tooltip(_u8L("Delete"));
+            }
+
+            const ImVec2 row_min(ImGui::GetWindowPos().x, row_top);
+            const ImVec2 row_max(ImGui::GetWindowPos().x + ImGui::GetWindowWidth(), row_top + line);
+            if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered() && ImGui::IsMouseHoveringRect(row_min, row_max, false)) {
+                ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, icon_hover);
+                ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                    jump_to = tick;
+                const std::string code = it->type == Custom ? it->extra : it->type == PausePrint || it->type == Template ? gcode(it->type) : "";
+                const size_t      end  = code.find_last_not_of(" \t\r\n");
+                if (end != std::string::npos)
+                    show_tooltip(code.substr(0, end + 1));
+            }
+
+            ImGui::PopID();
+        }
+        ImGui::EndTable();
+    }
+
+    if (open_filaments)
+        ImGui::OpenPopup("##marks_filaments");
+    if (ImGui::BeginPopup("##marks_filaments")) {
+        for (size_t i = 0; i < m_extruder_colors.size(); ++i) {
+            const ImU32 icon_clr = ImGuiWrapper::to_ImU32(decode_color_to_float_array(m_extruder_colors[i]));
+            if (menu_item_with_icon(into_u8(wxString::Format(_L("Filament %d"), int(i + 1))).c_str(), "", ImVec2(14, 14) * m_scale, icon_clr)) {
+                move_active_handle_to(popup.filament_tick);
+                add_code_as_tick(ToolChange, int(i + 1));
+            }
+        }
+        ImGui::EndPopup();
+    }
+    popup.submenu_open = ImGui::IsPopupOpen("##marks_filaments");
+
+    popup.window_min = ImGui::GetWindowPos();
+    popup.window_max = popup.window_min + ImGui::GetWindowSize();
+    imgui.end();
+    ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar(5);
+
+    if (jump_to >= 0)
+        move_active_handle_to(jump_to);
+    if (edit_custom >= 0) {
+        move_active_handle_to(edit_custom);
+        m_show_custom_gcode_window = true;
+        imgui.set_requires_extra_frame();
+    }
+    if (to_delete.tick >= 0)
+        delete_tick(to_delete);
+}
+
+bool IMSlider::render(const PreviewOverlayLayout& layout)
+{
+    m_layout = layout;
+    m_wheel_areas.assign(1, is_horizontal() ? layout.bottom_band : layout.right_band);
     bool result = false;
     ImGuiWrapper &imgui = *wxGetApp().imgui();
-    /* style and colors */
     ImGui::PushStyleVar(ImGuiStyleVar_::ImGuiStyleVar_WindowBorderSize, 0);
     ImGui::PushStyleVar(ImGuiStyleVar_::ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_::ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImVec4 rail_background = ImGui::GetStyleColorVec4(ImGuiCol_WindowBg);
+    rail_background.w      = 0.8f;
+    const ImU32 rail_bg    = ImGui::GetColorU32(rail_background);
+    auto begin_band = [&imgui, rail_bg, &layout](const char* name, const CanvasUi::Rect& band, int flags, int corners) {
+        imgui.set_next_window_pos(band.left, band.top, ImGuiCond_Always, 0.f, 0.f);
+        ImGui::SetNextWindowSize(ImVec2(band.width(), band.height()));
+        imgui.begin(std::string(name), flags);
+        ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetWindowPos(), ImGui::GetWindowPos() + ImGui::GetWindowSize(), rail_bg,
+                                                  corners == ImDrawFlags_RoundCornersNone ? 0.f : 0.5f * layout.band, corners);
+    };
     ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-    ImGui::PushStyleColor(ImGuiCol_::ImGuiCol_Text, ImGuiWrapper::COL_ORCA); // ORCA: Use orca color for slider value text
 
-    int windows_flag = ImGuiWindowFlags_NoTitleBar
+    const int windows_flag = ImGuiWindowFlags_NoTitleBar
                        | ImGuiWindowFlags_NoCollapse
                        | ImGuiWindowFlags_NoMove
                        | ImGuiWindowFlags_NoResize
                        | ImGuiWindowFlags_NoScrollbar
                        | ImGuiWindowFlags_NoScrollWithMouse;
-
-    float scale = (float) wxGetApp().em_unit() / 10.0f;
-
     if (is_horizontal()) {
-        ImVec2 size  = ImVec2(canvas_width - 2 * std::max(LEFT_MARGIN * m_scale, 0.2f * canvas_width), HORIZONTAL_SLIDER_WINDOW_HEIGHT * m_scale);
-        imgui.set_next_window_pos(0.5f * static_cast<float>(canvas_width), canvas_height, ImGuiCond_Always, 0.5f, 1.0f);
-        imgui.begin(std::string("moves_slider"), windows_flag);
+        int corners = ImDrawFlags_RoundCornersNone;
+        if (layout.bottom_band.left > 0.f)
+            corners = ImDrawFlags_RoundCornersTopLeft;
+        if (layout.bottom_band.right < layout.bottom_pill.left)
+            corners = corners == ImDrawFlags_RoundCornersNone ? ImDrawFlags_RoundCornersTopRight : ImDrawFlags_RoundCornersTop;
+        begin_band("moves_slider", layout.bottom_band, windows_flag, corners);
+        if (layout.bottom_band.right >= layout.bottom_pill.left) {
+            const ImVec4 text  = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+            const float  x     = layout.bottom_band.right - 0.5f * layout.scale;
+            const float  inset = 6.f * layout.scale;
+            ImGui::GetWindowDrawList()->AddLine(ImVec2(x, layout.bottom_band.top + inset), ImVec2(x, layout.bottom_band.bottom - inset),
+                                                ImGui::GetColorU32(ImVec4(text.x, text.y, text.z, 0.3f)), layout.scale);
+        }
         int value = GetHigherValue();
-        if (horizontal_slider("moves_slider", &value, GetMinValue(), GetMaxValue(), size, scale)) {
+        if (horizontal_slider("moves_slider", &value, GetMinValue(), GetMaxValue())) {
             result = true;
             SetHigherValue(value);
         }
         imgui.end();
-    } else {
-        ImVec2 size = ImVec2(VERTICAL_SLIDER_WINDOW_WIDTH * m_scale, 0.8f * canvas_height);
-        imgui.set_next_window_pos(canvas_width, 0.5f * static_cast<float>(canvas_height), ImGuiCond_Always, 1.0f, 0.5f);
-        imgui.begin(std::string("laysers_slider"), windows_flag);
-
-        int higher_value = GetHigherValue();
-        int lower_value = GetLowerValue();
-        std::string higher_label = get_label(m_higher_value);
-        std::string lower_label  = get_label(m_lower_value);
-        int temp_higher_value    = higher_value;
-        int temp_lower_value     = lower_value;
-        if (vertical_slider("laysers_slider", &higher_value, &lower_value, higher_label, lower_label, GetMinValue(), GetMaxValue(),
-                  size, m_selection, is_one_layer(), scale)) {
-            if (temp_higher_value != higher_value)
-                SetHigherValue(higher_value);
-            if (temp_lower_value != lower_value)
-                SetLowerValue(lower_value);
-            result = true;
-        }
-        render_menu();
-        imgui.end();
-
-        imgui.set_next_window_pos(canvas_width, canvas_height, ImGuiCond_Always, 1.0f, 1.0f);
-        ImGui::SetNextWindowSize((ONE_LAYER_BUTTON_SIZE + ONE_LAYER_MARGIN) * m_scale, 0);
-        imgui.begin(std::string("one_layer_button"), windows_flag);
-        ImTextureID normal_id = m_is_dark ?
-            is_one_layer() ? m_one_layer_on_dark_id : m_one_layer_off_dark_id :
-            is_one_layer() ? m_one_layer_on_id : m_one_layer_off_id;
-        ImTextureID hover_id  = m_is_dark ?
-            is_one_layer() ? m_one_layer_on_hover_dark_id : m_one_layer_off_hover_dark_id :
-            is_one_layer() ? m_one_layer_on_hover_id : m_one_layer_off_hover_id;
-        if (ImGui::ImageButton3(normal_id, hover_id, ONE_LAYER_BUTTON_SIZE * m_scale)) {
-            switch_one_layer_mode();
-        }
-        imgui.end();
+        ImGui::PopStyleVar(3);
+        ImGui::PopStyleColor();
+        return result;
     }
 
+    begin_band("laysers_slider", layout.right_band, windows_flag, ImDrawFlags_RoundCornersNone);
+
+    const int old_higher   = GetHigherValue();
+    const int old_lower    = GetLowerValue();
+    int       higher_value = old_higher;
+    int       lower_value  = old_lower;
+    if (vertical_slider("laysers_slider", &higher_value, &lower_value, GetMinValue(), GetMaxValue(), m_selection, is_one_layer())) {
+        if (higher_value != old_higher)
+            SetHigherValue(higher_value);
+        if (lower_value != old_lower)
+            SetLowerValue(lower_value);
+        result = true;
+    }
+    const float inset = 3.f * layout.scale;
+    for (const CanvasUi::Rect& square : {layout.top_toggle_square, layout.bottom_toggle_square}) {
+        ImGui::PushID(square.top > 0.f ? 1 : 0);
+        ImGui::SetCursorScreenPos(ImVec2(square.left + inset, square.top + inset));
+        render_single_layer_button(square.width() - 2.f * inset);
+        ImGui::PopID();
+    }
+    render_menu();
+    imgui.end();
     ImGui::PopStyleVar(3);
-    ImGui::PopStyleColor(2);
+    ImGui::PopStyleColor();
+
+    if (render_pill("##layers_top_pill", m_higher_value, layout.top_pill, ImDrawFlags_RoundCornersBottomLeft)) {
+        m_selection               = ssHigher;
+        m_show_go_to_layer_dialog = true;
+        imgui.set_requires_extra_frame();
+    }
+    if (render_pill("##layers_bottom_pill", is_one_layer() ? m_higher_value : m_lower_value,
+                    layout.bottom_pill,
+                    layout.bottom_band.right >= layout.bottom_pill.left ? ImDrawFlags_RoundCornersNone : ImDrawFlags_RoundCornersTopLeft)) {
+        m_selection               = is_one_layer() ? ssHigher : ssLower;
+        m_show_go_to_layer_dialog = true;
+        imgui.set_requires_extra_frame();
+    }
+    ImDrawList* background = ImGui::GetBackgroundDrawList();
+    const float legend_rounding = 8.f * layout.scale;
+    draw_concave_corner(background, ImVec2(layout.right_band.left, layout.top_pill.bottom), -1.f, 1.f,
+                        layout.column_top - layout.top_pill.bottom + legend_rounding, rail_bg);
+    draw_concave_corner(background, ImVec2(layout.right_band.left, layout.bottom_pill.top), -1.f, -1.f,
+                        layout.bottom_pill.top - layout.overlays_bottom + legend_rounding, rail_bg);
+
+    render_marks_popup();
 
     return result;
 }
@@ -1499,8 +1465,10 @@ void IMSlider::render_go_to_layer_dialog()
 }
 
 void IMSlider::render_menu() {
-    if (!m_menu_enable)
+    if (!m_menu_enable) {
+        render_go_to_layer_dialog();
         return;
+    }
 
     ImGuiWrapper::push_menu_style(m_scale);
     ImGui::PushStyleVar(ImGuiStyleVar_::ImGuiStyleVar_ChildRounding, 4.0f * m_scale);
@@ -1649,20 +1617,18 @@ void IMSlider::set_scale(float scale)
     if(m_scale != scale) m_scale = scale;
 }
 
-void IMSlider::on_mouse_wheel(wxMouseEvent& evt) {
-    auto moves_slider_window = ImGui::FindWindowByName("moves_slider");
-    auto layers_slider_window = ImGui::FindWindowByName("laysers_slider");
-    if (!moves_slider_window || !layers_slider_window) {
-        BOOST_LOG_TRIVIAL(info) << "Couldn't find slider window";
-        return;
-    }
+bool IMSlider::on_mouse_wheel(wxMouseEvent& evt) {
+    const float x = float(evt.GetPosition().x);
+    const float y = float(evt.GetPosition().y);
+    if (std::none_of(m_wheel_areas.begin(), m_wheel_areas.end(), [x, y](const CanvasUi::Rect& area) { return area.contains(CanvasUi::Point(x, y)); }))
+        return false;
 
     ImGuiWrapper& imgui = *wxGetApp().imgui();
 
     float wheel = evt.GetWheelRotation();
     // mac trackpads trigger this event with value 0 when right-clicking with two fingers
     if (wheel == 0.0f)
-        return;
+        return false;
     wheel = wheel > 0 ? 1.0f : -1.0f;
 
 #ifdef __WXOSX__
@@ -1676,35 +1642,19 @@ void IMSlider::on_mouse_wheel(wxMouseEvent& evt) {
     if (wxGetKeyState(WXK_COMMAND) || wxGetKeyState(WXK_SHIFT))
         wheel *= 5;
 #endif
-    if (is_horizontal()) {
-        if( evt.GetPosition().x > moves_slider_window->Pos.x &&
-            evt.GetPosition().x < moves_slider_window->Pos.x + moves_slider_window->Size.x &&
-            evt.GetPosition().y > moves_slider_window->Pos.y &&
-            evt.GetPosition().y < moves_slider_window->Pos.y + moves_slider_window->Size.y){
-            const int new_pos = GetHigherValue() + wheel;
-            SetHigherValue(new_pos);
-            set_as_dirty();
-            imgui.set_requires_extra_frame();
-        }
+    if (is_horizontal())
+        SetHigherValue(GetHigherValue() + wheel);
+    else if (is_one_layer()) {
+        const int new_pos = GetHigherValue() + wheel;
+        SetHigherValue(new_pos);
+        m_one_layer_value = new_pos; // ORCA backup value for single layer mode
+    } else {
+        const int new_pos = m_selection == ssLower ? GetLowerValue() + wheel : GetHigherValue() + wheel;
+        m_selection == ssLower ? SetLowerValue(new_pos) : SetHigherValue(new_pos);
     }
-    else {
-        if (evt.GetPosition().x > layers_slider_window->Pos.x &&
-            evt.GetPosition().x < layers_slider_window->Pos.x + layers_slider_window->Size.x &&
-            evt.GetPosition().y > layers_slider_window->Pos.y &&
-            evt.GetPosition().y < layers_slider_window->Pos.y + layers_slider_window->Size.y) {
-            if (is_one_layer()) {
-                const int new_pos = GetHigherValue() + wheel;
-                SetHigherValue(new_pos);
-                m_one_layer_value = new_pos; // ORCA backup value for single layer mode
-            }
-            else {
-                const int new_pos = m_selection == ssLower ? GetLowerValue() + wheel : GetHigherValue() + wheel;
-                m_selection == ssLower ? SetLowerValue(new_pos) : SetHigherValue(new_pos);
-            }
-            set_as_dirty();
-            imgui.set_requires_extra_frame();
-        }
-    }
+    set_as_dirty();
+    imgui.set_requires_extra_frame();
+    return true;
 }
 
 void IMSlider::correct_lower_value()
@@ -1777,10 +1727,12 @@ std::string IMSlider::get_label(int tick, LabelType label_type)
         char layer_height[64];
         ::sprintf(layer_height, "%.2f", m_values.empty() ? m_label_koef * value : m_values[value]);
         if (label_type == ltHeight) return std::string(layer_height);
+        const size_t layer_number = m_draw_mode == dmSequentialFffPrint ? (m_values.empty() ? value : value + 1) :
+                                    m_is_wipe_tower                    ? get_layer_number(value, label_type) + 1 :
+                                                                         (m_values.empty() ? value : value + 1);
+        if (label_type == ltLayer) return std::to_string(layer_number);
         if (label_type == ltHeightWithLayer) {
-            char   buffer[90];
-            size_t layer_number;
-            layer_number = m_draw_mode == dmSequentialFffPrint ? (m_values.empty() ? value : value + 1) : m_is_wipe_tower ? get_layer_number(value, label_type) + 1 : (m_values.empty() ? value : value + 1);
+            char buffer[90];
             ::sprintf(buffer, "%5s\n%5s", std::to_string(layer_number).c_str(), layer_height);
             return std::string(buffer);
         }

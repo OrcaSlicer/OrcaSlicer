@@ -19,6 +19,9 @@ add_executable(${_TEST_NAME}_tests
     test_filament_color_picker.cpp
     test_ams_materials_setting.cpp
     test_gcode_preview_colors.cpp
+    test_preview_overlay_layout.cpp
+    test_preview_marks.cpp
+    test_move_panel_layout.cpp
     test_canvas_ui.cpp
     # The reduced toolpath set's end bands, from libvgcode's layer table.
     test_libvgcode_layers.cpp

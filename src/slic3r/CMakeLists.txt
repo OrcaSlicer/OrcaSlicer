@@ -5,6 +5,12 @@ include(PrecompiledHeader)
 
 # The panels drawn over the 3D scene, which go through the CanvasUi toolkit only (see CheckCanvasPanels).
 set(SLIC3R_CANVAS_PANEL_SOURCES
+    GUI/PreviewOverlayLayout.cpp
+    GUI/PreviewOverlayLayout.hpp
+    GUI/PreviewMarks.cpp
+    GUI/PreviewMarks.hpp
+    GUI/MovePanelLayout.cpp
+    GUI/MovePanelLayout.hpp
 )
 
 set(SLIC3R_GUI_SOURCES
