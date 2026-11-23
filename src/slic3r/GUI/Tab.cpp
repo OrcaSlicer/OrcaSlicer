@@ -7781,7 +7781,13 @@ bool Tab::select_preset(
         // Orca: update presets for the selected printer
         if (m_type == Preset::TYPE_PRINTER && wxGetApp().app_config->get_bool("remember_printer_config")) {
             m_preset_bundle->update_selections(*wxGetApp().app_config);
-            wxGetApp().plater()->sidebar().on_filament_count_change(m_preset_bundle->filament_presets.size());
+            const size_t filament_count = m_preset_bundle->filament_presets.size();
+            wxGetApp().plater()->sidebar().on_filament_count_change(filament_count);
+            // Model paint and filament assignments past the new count must survive, so switching back restores them.
+            PartPlateList &plate_list = wxGetApp().plater()->get_partplate_list();
+            plate_list.set_filament_count(filament_count);
+            for (int i = 0; i < plate_list.get_plate_count(); ++i)
+                plate_list.get_plate(i)->update_first_layer_print_sequence(filament_count);
         }
         load_current_preset();
 
