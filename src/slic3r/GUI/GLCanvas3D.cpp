@@ -5093,7 +5093,7 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
 
     // Orca: A key moving or rotating the selection stays with the canvas until released, so the edit is saved.
     const bool key_edits_selection = m_selection_edit.kind != SelectionEdit::None && keyCode == m_selection_edit.key;
-    // The plate arrangement dialog takes its navigation keys before ImGui and the shortcuts, which move objects on arrows.
+    // The plate arrangement dialog takes its keys before the shortcuts, which move objects on arrows.
     if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog.get(); dialog != nullptr && !key_edits_selection && dialog->on_key(evt)) {
         render();
         return;
@@ -5550,17 +5550,13 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         if (!m_mouse.dragging && m_tooltip.is_empty() && (m_gizmos.get_current_type() != GLGizmosManager::MmSegmentation || !evt.Moving()))
             return;
     }
-    // ORCA A left press on the canvas outside ImGui's windows releases their focus, as a click on the void does
-    // inside ImGui (focused window, active widget and popups are cleared). ImGui applies that rule only in a frame
-    // drawn while the button is down, and a press that changes nothing (one on a plate) draws none, so the dialog
-    // kept the focus and the arrow keys after a plate was picked on the canvas. For every ImGui window, not only
-    // the dialog, so a canvas click means the same thing whatever overlay is open. An active widget is left to
-    // ImGui: cleared here, between frames, an edited field never reports IsItemDeactivatedAfterEdit() and its value
-    // is lost. The frame below sees the click and ends the edit itself.
+    // ORCA A canvas click releases ImGui's focus, as a click on empty space inside ImGui does. ImGui only sees clicks
+    // in frames drawn while the button is down, which a click on a plate does not cause. An active widget is left to
+    // ImGui, which ends the edit in the next frame: cleared here, the edited value would be lost.
     else if (evt.LeftDown() && imgui->display_initialized()) {
         if (!ImGui::IsAnyItemActive())
             ImGui::SetWindowFocus(nullptr);
-        _set_overlay_as_dirty(); // a press on empty canvas draws no frame by itself; show the change now
+        _set_overlay_as_dirty(); // a click on empty canvas draws no frame by itself
     }
 
     // Design tab: the interactive sketch tool owns the mouse whenever it has
@@ -8826,8 +8822,7 @@ void GLCanvas3D::_picking_pass()
         {
             // BBS: add plate picking logic
             int plate_hover_id = hit.raycaster_id;
-            // ORCA Prevent tooltips visible while an ImGui window over a plate, such as the arrange plates/simplify dialog,
-            // ImGui updated WantCaptureMouse in new_frame(), just before this pass.
+            // ORCA No plate tooltips under an ImGui window; new_frame() updated WantCaptureMouse just before this pass.
             if (plate_hover_id >= 0 && plate_hover_id < PartPlateList::MAX_PLATES_COUNT * PartPlate::GRABBER_COUNT &&
                 !wxGetApp().imgui()->want_mouse()) {
                 wxGetApp().plater()->get_partplate_list().set_hover_id(plate_hover_id);

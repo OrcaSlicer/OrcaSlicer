@@ -1020,7 +1020,7 @@ public:
     //get the plate cols
     int get_plate_cols() { return m_plate_cols; }
 
-    // Moves the plates to new indices with their objects: new_order[k] is the current index of the plate that goes to k.
+    // Moves the plates with their objects; new_order[k] is the current index of the plate going to k.
     int reorder_plates(const std::vector<int>& new_order);
     // Orca: custom G-codes are keyed by plate index; re-key them by plate ID after plates are reordered.
     std::vector<ObjectID> get_plate_ids() const;

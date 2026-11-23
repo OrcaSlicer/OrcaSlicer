@@ -24,9 +24,8 @@ class IMToolbarItem;
 class PartPlate;
 class PartPlateList;
 
-// ImGui window on the Prepare canvas for arranging plates by drag & drop, keyboard or the bottom bar buttons.
-// Every change is applied to the plate list right away, as one undo step. Laid out like a gizmo: GLCanvas3D owns
-// it, opens it with set_open(), draws it with render_input_window() and forwards it keys and double clicks.
+// ImGui window on the Prepare canvas for arranging plates; each change is applied at once, as one undo step.
+// Built like a gizmo: GLCanvas3D owns it, draws it and forwards it keys and double clicks.
 class PlateArrangementDialog
 {
 public:
@@ -40,13 +39,11 @@ public:
     // Called from GLCanvas3D::_render_overlays() within the ImGui frame.
     void render_input_window();
 
-    // Called by the canvas for each key event before its own shortcuts. Returns true when the dialog takes the
-    // key; a key-down's decision also covers its char event and its release.
+    // Before the canvas shortcuts; true when the dialog takes the key. A key-down's answer covers its char and release.
     bool on_key(const wxKeyEvent& evt);
     // When the canvas loses the keyboard focus: the releases of the keys taken so far go elsewhere.
     void forget_key_claims() { m_claimed_keys.clear(); }
-    // The canvas forwards wx's double click: ImGui's own detection times clicks by its frame clock, which only
-    // advances when the canvas redraws, so it misses most double clicks.
+    // From wx: ImGui times double clicks by its frame clock, which stops while the canvas is idle.
     void on_double_click() { m_double_click = m_open; }
 
     void on_change_color_mode(bool is_dark);
@@ -134,6 +131,7 @@ private:
         float group_spacing;      // between button groups
         float v_spacing;          // between the title bar, the grid and the bottom bar rows
         float drag_threshold;
+        float tooltip_width;      // wrap width of the tooltips
     };
     std::optional<GuiCfg> m_gui_cfg;
 
@@ -157,20 +155,19 @@ private:
     GLCanvas3D&    m_parent;
     ImGuiWrapper*  m_imgui;
     bool           m_is_dark_mode{ false };
-    // The plates, fetched by render_input_window() for every function; on_set_state() fetches them for opening,
-    // on_key() refreshes the count between frames.
+    // Fetched each frame by render_input_window(), and by on_set_state() on opening.
     PartPlateList* m_plate_list{ nullptr };
     int            m_plate_count{ 0 };
 
     bool   m_open{ false };
     bool   m_focused{ false };       // the window had the ImGui focus in the last frame
     bool   m_focus_request{ false };
-    int    m_center_frames{ 0 };     // frames left to keep centering: an auto-sized window has its size from its 2nd frame on
+    int    m_center_frames{ 0 };     // frames left to centre: an auto-sized window knows its size from its 2nd frame
     bool   m_positioned{ false };    // placed once: later opens in this session reuse m_window_pos
     bool   m_double_click{ false };  // for the frame drawn for a double click
     ImVec2 m_window_pos;
     ImVec2 m_window_size;
-    float  m_info_button_size{ 0.f }; // GLGizmoUtils::render_tooltip_button() as drawn last frame, to centre it in its row
+    float  m_info_button_size{ 0.f }; // the info button's height last frame, to centre it in its row
     Drag   m_drag;
     std::set<int> m_claimed_keys;    // keys whose key-down the dialog took
 
@@ -178,7 +175,7 @@ private:
     PartPlate*           m_anchor{ nullptr };       // shift range start
     PartPlate*           m_cursor{ nullptr };
     PartPlate*           m_canvas_plate{ nullptr }; // the canvas' current plate as last seen
-    // Plate switches the dialog asked for that have not run yet: they must not read as the user's own.
+    // The dialog's own plate switches still queued, so they are not taken for the user's.
     std::shared_ptr<int> m_pending_switches{ std::make_shared<int>(0) };
 
     PartPlate*            m_name_plate{ nullptr };  // plate whose name is in m_name_buf

@@ -5,7 +5,6 @@
 #include <cmath>
 #include <cstring>
 #include <cstdint>
-#include <functional>
 #include <iterator>
 #include <map>
 #include <memory>
@@ -13,13 +12,14 @@
 #include <set>
 #include <string>
 #include <tuple>
-#include <type_traits>
 #include <vector>
 #include <utility>
 
 #include <wx/colour.h> // the WXK_* key codes, as misc-include-cleaner maps them
 #include <wx/event.h>
 #include <wx/string.h>
+
+#include <boost/container_hash/hash.hpp>
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -88,8 +88,7 @@ bool PlateArrangementDialog::on_key(const wxKeyEvent& evt)
         return m_claimed_keys.count(key) > 0;
 
     static const std::set<int> keys = { WXK_LEFT, WXK_RIGHT, WXK_UP, WXK_DOWN, WXK_HOME, WXK_END, WXK_ESCAPE };
-    // The name field keeps its keys, and the canvas keeps them while the dialog is not the focused overlay.
-    // A key the dialog does not take also drops any claim left on it: its release went elsewhere and the canvas gets this press's release.
+    // Not taken while the name field is edited or the dialog is unfocused. Drop any old claim: its release went elsewhere.
     if (!m_open || !m_focused || !keys.count(key) || m_imgui->text_input_active()) {
         m_claimed_keys.erase(key);
         return false;
@@ -147,14 +146,14 @@ void PlateArrangementDialog::on_set_state()
     m_name_plate = nullptr;
     m_selection.clear();
     if (!m_open) {
-        // The previews may still be in this frame's draw lists: they are freed by the next render_input_window().
+        // The previews may still be drawn this frame: the next render_input_window() frees them.
         m_focused = false;
         m_anchor = m_cursor = nullptr;
         return;
     }
     m_center_frames = m_positioned ? 0 : 3; // centred the first time, then where the user left it
     m_focus_request = true;
-    // Opened before its first frame, which is where the plate list is fetched otherwise.
+    // Not fetched by a frame yet.
     m_plate_list   = &wxGetApp().plater()->get_partplate_list();
     m_plate_count  = m_plate_list->get_plate_count();
     m_canvas_plate = m_anchor = m_cursor = m_plate_list->get_curr_plate();
@@ -168,7 +167,7 @@ void PlateArrangementDialog::on_render_input_window()
 {
     const GuiCfg& cfg = *m_gui_cfg;
 
-    // Whole-pixel position, so the icons are not resampled. Centred once the auto-sized window knows its size.
+    // Whole pixels keep the icons sharp. Centred once the auto-sized window knows its size.
     const Size   cnv = m_parent.get_canvas_size();
     const ImVec2 room(std::max(0.f, cnv.get_width() - m_window_size.x), std::max(0.f, cnv.get_height() - m_window_size.y));
     if (std::exchange(m_focus_request, false))
@@ -180,7 +179,7 @@ void PlateArrangementDialog::on_render_input_window()
     m_window_pos = ImVec2(std::round(std::clamp(m_window_pos.x, 0.f, room.x)), std::round(std::clamp(m_window_pos.y, 0.f, room.y)));
     m_imgui->set_next_window_pos(m_window_pos.x, m_window_pos.y, ImGuiCond_Always);
 
-    // The gizmos' window style, with this window's sizes and the Regular buttons of Widgets/Button.
+    // The gizmos' window style, with the Regular buttons of Widgets/Button.
     ImGuiWrapper::push_toolbar_style(m_parent.get_scale());
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding  , ImVec2(cfg.window_padding, cfg.window_padding));
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing    , ImVec2(cfg.item_spacing, cfg.item_spacing));
@@ -281,7 +280,7 @@ void PlateArrangementDialog::render_plate_grid()
         if (hovered) {
             const std::string nm = plate->get_plate_name();
             // TRN %1% is the plate number, %2% the name the user gave the plate.
-            m_imgui->tooltip(nm.empty() ? format(_u8L("Plate %1%"), i + 1) : format(_u8L("Plate %1%: %2%"), i + 1, nm), ImGui::GetFontSize() * 20.f);
+            m_imgui->tooltip(nm.empty() ? format(_u8L("Plate %1%"), i + 1) : format(_u8L("Plate %1%: %2%"), i + 1, nm), cfg.tooltip_width);
         }
     }
     ImGui::SetCursorScreenPos(origin + ImVec2(0.f, float(rows) * pitch - cfg.plate_spacing));
@@ -313,7 +312,7 @@ void PlateArrangementDialog::render_plate_grid()
         if (m_drag.insert_index >= 0) { // drop marker, in the gap next to the target cell
             const ImVec2 cmin = cell_min(idx);
             const float  t    = cfg.marker;
-            // At the outer columns the gap's centre is the child window's edge, where the child clips: kept inside it.
+            // Kept inside the child window, which clips at the outer gaps' centre.
             const float  x = std::clamp(after ? cmin.x + cell + bleed : cmin.x - bleed, origin.x - bleed + t * .5f, origin.x + cfg.grid_size + bleed - t * .5f);
             dl->AddLine(ImVec2(x, cmin.y + t), ImVec2(x, cmin.y + cell - t), ImGui::ColorConvertFloat4ToU32(ImGuiWrapper::COL_ORCA), t);
         }
@@ -380,12 +379,11 @@ void PlateArrangementDialog::render_plate(ImDrawList* dl, PartPlate* plate, cons
 void PlateArrangementDialog::render_drag_preview() const
 {
     const GuiCfg& cfg  = *m_gui_cfg;
-    PartPlate*    lead = nullptr; // first dragged plate in plate order
-    for (PartPlate* p : m_selection)
-        if (lead == nullptr || p->get_index() < lead->get_index())
-            lead = p;
-    if (lead == nullptr)
+    if (m_selection.empty())
         return;
+    // The first dragged plate in plate order.
+    PartPlate* lead = *std::min_element(m_selection.begin(), m_selection.end(),
+                                        [](const PartPlate* a, const PartPlate* b) { return a->get_index() < b->get_index(); });
 
     const float  size = cell_size(grid_columns(m_plate_count)) * cfg.ghost_scale;
     const ImVec2 pmin = ImGui::GetIO().MousePos - m_drag.grab_offset * cfg.ghost_scale;
@@ -414,7 +412,7 @@ void PlateArrangementDialog::render_bottom_bar()
 
     auto w_alpha = [](ImVec4 c, float alpha) { c.w *= alpha; return c; }; // reduce on drag preview
 
-    // Every item of a row starts at the row's top and is as tall as a button, the name field included.
+    // Every item in a row, the name field included, is as tall as a button.
     const float row1 = std::round(ImGui::GetCursorPosY() - ImGui::GetStyle().ItemSpacing.y + cfg.v_spacing);
     const float row2 = row1 + btn + cfg.v_spacing;
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(cfg.item_spacing, (btn - ImGui::GetFontSize()) * .5f));
@@ -452,8 +450,7 @@ void PlateArrangementDialog::render_bottom_bar()
         ImGui::PushStyleColor(ImGuiCol_FrameBgActive , ImVec4(0.f, 0.f, 0.f, 0.f));
         ImGui::InputTextWithHint("##plate_name", _u8L("Plate name").c_str(), m_name_buf.data(), m_name_buf.size());
         ImGui::PopStyleColor(3);
-        // The edit ends when the field stops being active, however that happened. Not IsItemDeactivatedAfterEdit():
-        // a click on the canvas clears ImGui's active widget between frames, where ImGui does not see the change.
+        // Not IsItemDeactivatedAfterEdit(): a canvas click clears the active widget between frames, unseen by ImGui.
         const bool active = ImGui::IsItemActive();
         if (m_name_editing && !active)
             apply_plate_name();
@@ -545,7 +542,7 @@ void PlateArrangementDialog::render_bottom_bar()
     if (m_imgui->button(_L("Add"), ImVec2(cfg.choose_width, cfg.button_size), plater->can_add_plate()))
         plater->CallAfter([]() { wxGetApp().plater()->add_plate(); }); // the new plate becomes current, and selected
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-        m_imgui->tooltip(_u8L("Add plate"), ImGui::GetFontSize() * 20.f);
+        m_imgui->tooltip(_u8L("Add plate"), cfg.tooltip_width);
 
     ImGui::SameLine(0.f, cfg.item_spacing); // apart from Add, as it removes plates
     if (m_imgui->button(_L("Remove"), ImVec2(cfg.choose_width, cfg.button_size), (m_plate_count > 1 && int(m_selection.size()) < m_plate_count))){
@@ -561,7 +558,7 @@ void PlateArrangementDialog::render_bottom_bar()
         });
     }
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-        m_imgui->tooltip(_u8L("Remove selected plates"), ImGui::GetFontSize() * 20.f);
+        m_imgui->tooltip(_u8L("Remove selected plates"), cfg.tooltip_width);
     ImGui::PopStyleVar();
 }
 
@@ -587,7 +584,7 @@ bool PlateArrangementDialog::render_icon_button(IconId icon, bool enabled, const
     if (state != nullptr)
         ImGui::PopStyleColor(3);
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-        m_imgui->tooltip(tooltip, ImGui::GetFontSize() * 20.f);
+        m_imgui->tooltip(tooltip, cfg.tooltip_width);
     return clicked;
 }
 
@@ -596,8 +593,8 @@ void PlateArrangementDialog::create_gui_cfg()
     const float font_size = m_imgui->get_font_size();
     if (m_gui_cfg.has_value() && m_gui_cfg->font_size == font_size)
         return;
-    // Design sizes in pixels at 100% display scaling, scaled as the gizmos scale theirs (ImGuiWrapper::scaled()).
-    auto px = [this](float v) { return std::round(m_imgui->scaled(v / 15.f)); }; // em_unit() 10 x 1.5 (GLCanvas3D::set_imgui_scaling())
+    // Pixels at 100% display scaling, scaled like the gizmos' sizes; 15 = em_unit() 10 x 1.5 of set_imgui_scaling().
+    auto px = [this](float v) { return std::round(m_imgui->scaled(v / 15.f)); };
 
     GuiCfg cfg;
     cfg.font_size       = font_size;
@@ -617,18 +614,18 @@ void PlateArrangementDialog::create_gui_cfg()
     cfg.button_padding  = cfg.frame_rounding; // image_button() rounds its corners by at most the padding
     cfg.item_spacing    = px(4.f);
     cfg.group_spacing   = px(10.f);
-    cfg.v_spacing     = px(12.f);
+    cfg.v_spacing       = px(12.f);
     cfg.drag_threshold  = px(5.f);
+    cfg.tooltip_width   = font_size * 20.f;
     m_gui_cfg = cfg;
 }
 
 int PlateArrangementDialog::index_of(PartPlate* plate) // -1 once the plate is gone
 {
-    // Called from CallAfter(), after the plates may have changed: the live count, not the frame's.
-    for (int i = 0; i < m_plate_list->get_plate_count(); ++i)
-        if (m_plate_list->get_plate(i) == plate)
-            return i;
-    return -1;
+    // Also called from CallAfter(), when the plates may have changed since the frame.
+    const std::vector<PartPlate*>& plates = m_plate_list->get_plate_list();
+    const auto                     it     = std::find(plates.begin(), plates.end(), plate);
+    return it == plates.end() ? -1 : int(it - plates.begin());
 }
 
 float PlateArrangementDialog::cell_size(int cols) const
@@ -667,7 +664,7 @@ void PlateArrangementDialog::update_plates()
 
 void PlateArrangementDialog::update_thumbnails()
 {
-    // Wait until a drag (of plates, objects or the camera) ends: re-rendering on every move would stall it.
+    // Not during a drag (plates, objects or camera), which re-rendering would stall.
     if (ImGui::GetIO().MouseDown[0])
         return;
 
@@ -683,15 +680,9 @@ void PlateArrangementDialog::update_thumbnails()
         return;
     }
 
-    // Fingerprints, per plate, what the thumbnail renderer draws: which volumes, their geometry, placement and color
-    // re-rendered when its fingerprint changes, whatever code path changed the scene.
+    // Per plate, a hash of the volumes the preview draws (geometry, placement, colour): it is redrawn when that changes.
     std::vector<std::size_t> fingerprints(size_t(m_plate_count), 0);
     std::map<std::pair<int, int>, int> plate_of; // (object, instance) -> plate index
-
-    auto hash_combine = [](std::size_t& seed, const auto& v) {
-        using T = std::decay_t<decltype(v)>;
-        seed ^= std::hash<T>{}(v) + 0x9e3779b97f4a7c15ull + (seed << 6) + (seed >> 2);
-    };
 
     for (const GLVolume* v : m_parent.get_volumes().volumes) {
         if (v == nullptr || v->is_wipe_tower || v->object_idx() < 0)
@@ -705,16 +696,16 @@ void PlateArrangementDialog::update_thumbnails()
         if (it->second < 0)
             continue;
         std::size_t& h = fingerprints[size_t(it->second)];
-        hash_combine(h, v->composite_id.object_id);
-        hash_combine(h, v->composite_id.volume_id);
-        hash_combine(h, v->composite_id.instance_id);
-        hash_combine(h, v->geometry_id.first);
-        hash_combine(h, v->geometry_id.second);
+        boost::hash_combine(h, v->composite_id.object_id);
+        boost::hash_combine(h, v->composite_id.volume_id);
+        boost::hash_combine(h, v->composite_id.instance_id);
+        boost::hash_combine(h, v->geometry_id.first);
+        boost::hash_combine(h, v->geometry_id.second);
         const Transform3d m = v->world_matrix();
         for (int k = 0; k < 16; ++k)
-            hash_combine(h, m.data()[k]);
+            boost::hash_combine(h, m.data()[k]);
         for (int k = 0; k < 4; ++k)
-            hash_combine(h, v->color.data()[k]);
+            boost::hash_combine(h, v->color.data()[k]);
     }
 
     for (int i = 0; i < m_plate_count; ++i) {
@@ -733,7 +724,7 @@ void PlateArrangementDialog::update_thumbnails()
 
 void PlateArrangementDialog::update_icons()
 {
-    // Rasterised at the exact size they are drawn at, so they stay sharp; again when the DPI or the theme changes.
+    // Rasterised at their drawn size to stay sharp, and again on a DPI or theme change.
     const int px = int(m_gui_cfg->button_size - 2.f * m_gui_cfg->button_padding);
     if (!m_icons.empty() && px == m_icons_px && m_is_dark_mode == m_icons_dark)
         return;
@@ -845,10 +836,7 @@ std::vector<int> PlateArrangementDialog::order_after_drop(int insert_index) cons
 
 bool PlateArrangementDialog::is_identity(const std::vector<int>& order)
 {
-    for (size_t i = 0; i < order.size(); ++i)
-        if (order[i] != int(i))
-            return false;
-    return true;
+    return std::is_sorted(order.begin(), order.end()); // the orders here are permutations
 }
 
 void PlateArrangementDialog::apply_order(const std::vector<int>& order)

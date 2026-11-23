@@ -23858,10 +23858,9 @@ int Plater::arrange_plates(const std::vector<int>& new_order)
 
     TakeSnapshot snapshot(this, "Reorder plates");
     list.reorder_plates(new_order);
-    // Same refresh as after moving a plate; select_plate() also moves the bed origin to the current plate's new place.
+    // select_plate() also moves the bed origin to the current plate's new place.
     list.select_plate(list.get_curr_plate_index());
-    list.update_slice_context_to_current_plate(p->background_process);
-    p->preview->update_gcode_result(list.get_current_slice_result());
+    update_slicing_context_to_current_partplate();
     p->sidebar->obj_list()->reload_all_plates();
     list.update_plates();
     update();

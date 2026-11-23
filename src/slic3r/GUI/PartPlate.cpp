@@ -7075,9 +7075,8 @@ void PartPlateList::update_all_plates_pos_and_size(bool adjust_position, bool wi
 	unprintable_plate.set_pos_and_size(origin2, m_plate_width, m_plate_depth, m_plate_height, with_unprintable_move);
 }
 
-// Moves every plate to its new index in one pass, with the objects on it; new_order[k] is the current index of the
-// plate that goes to index k. Objects are assigned to plates once, up front: set_pos_and_size() moves a plate's
-// origin but not the bounding box reload_all_objects() tests against, which update_plates() rebuilds afterwards.
+// Moves the plates with their objects in one pass; new_order[k] is the current index of the plate going to k.
+// Objects are assigned to plates first, while reload_all_objects() still tests the old plate bounds.
 int PartPlateList::reorder_plates(const std::vector<int>& new_order)
 {
 	const std::vector<PartPlate*> old_list = m_plate_list;
