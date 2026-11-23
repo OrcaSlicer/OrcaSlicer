@@ -129,6 +129,7 @@ jobs:
         run: echo "::warning title=Older deps::No cache matches this PR's deps/, so clang-tidy parsed against ${{ steps.newest_cache.outputs.cache-matched-key }}. If it reports errors in code that uses a dependency, rerun clang-tidy once the base branch's Build all has saved the new deps."
 
       - name: Apt-Install Dependencies
+        # Without it on Linux: apt unavailable on self-hosted
         if: steps.changes.outputs.cpp == 'true' && !vars.SELF_HOSTED
         uses: ./.github/actions/apt-install-deps
 

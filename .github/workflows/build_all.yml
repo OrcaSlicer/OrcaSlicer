@@ -83,6 +83,7 @@ jobs:
   # the builds.
   check_build_script:
     name: Windows build script tests
+    # Without it on Windows: build script tests run on wrong runner
     runs-on: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-2022' }}
     steps:
       - name: Checkout
@@ -107,6 +108,7 @@ jobs:
       matrix:
         include:
           - arch: x64
+            # Without it on Windows: self-hosted build runs on hosted runner
             os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-2022' }}
             compiler: clang
             preset: x64-clang
@@ -139,6 +141,7 @@ jobs:
       # macos-15 is the arm64 pool, so an x86_64 build there is a cross build and
       # CMake forces BUILD_TESTS off, which leaves nothing for the test artifact.
       # The Intel pool builds x86_64 natively. A self-hosted Mac covers both.
+      # Without it on macOS: x86_64 builds on arm64 runner (cross, tests off)
       os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || (matrix.arch == 'arm64' && 'macos-15' || 'macos-15-intel') }}
       arch: ${{ matrix.arch }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
@@ -152,6 +155,7 @@ jobs:
     if: ${{ !cancelled() && needs.build_macos_arch.result == 'success' && !inputs.build-deps-only && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_orca.yml
     with:
+      # Without it on macOS: self-hosted uses arm64 runner
       os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
       arch: universal
       macos-combine-only: true
@@ -164,6 +168,7 @@ jobs:
     strategy:
       fail-fast: false
       # SELF_HOSTED skips arm64: the local Linux server is x86_64 only.
+      # Without it on Linux: self-hosted (x86_64 only) gets arm64 leg
       matrix:
         include: ${{ fromJSON(vars.SELF_HOSTED
           && '[{"arch":"x64","os":"orca-lnx-server","compiler":"clang","preset":"x64-clang","flags":"-l -x"}]'
@@ -188,12 +193,15 @@ jobs:
     if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
+      # Without it on Linux: self-hosted tests run on wrong runner
       os: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
       artifact: ${{ github.sha }}-tests-linux-x86_64
   
   unit_tests_linux_aarch64:
     name: Linux aarch64
     needs: build_linux
+    # Without it on Linux: arm64 tests run on self-hosted (no arm64 runner)
+    # Without it on macOS: x86_64 tests run on self-hosted (cross build, tests off)
     if: ${{ !cancelled() && success() && !vars.SELF_HOSTED }}
     uses: ./.github/workflows/unit_tests.yml
     with:
@@ -206,6 +214,7 @@ jobs:
     if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
+      # Without it on Windows: self-hosted tests run on wrong runner
       os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-2022' }}
       artifact: ${{ github.sha }}-tests-windows-x64-x64-clang
   
@@ -215,6 +224,7 @@ jobs:
     if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
+      # Without it on macOS: self-hosted uses arm64 runner
       os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
       artifact: ${{ github.sha }}-tests-macos-arm64
       test-dir: build/arm64/tests
@@ -222,6 +232,7 @@ jobs:
   unit_tests_macos_x86_64:
     name: macOS x86_64
     needs: build_macos_arch
+    # Without it on macOS: x86_64 tests run on self-hosted (cross build, tests off)
     if: ${{ !cancelled() && success() && !vars.SELF_HOSTED }}
     uses: ./.github/workflows/unit_tests.yml
     with:
@@ -237,10 +248,12 @@ jobs:
   # Profile-only PRs are covered by check_profiles.yml's nightly binary; this
   # covers src/engine PRs with the PR-built binary.
   slice_check_linux:
+    # Without it on Linux: slice check arch wrong on self-hosted
     name: Slice check (Linux ${{ vars.SELF_HOSTED && 'x86_64' || 'aarch64' }})
     needs: build_linux
     if: ${{ !cancelled() && success() }}
     # Follows whichever Linux leg built the validator.
+    # Without it on Linux: slice check runs on wrong runner
     runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04-arm' }}
     steps:
       - name: Checkout repository
@@ -248,6 +261,7 @@ jobs:
       - name: Download profile validator
         uses: actions/download-artifact@v8
         with:
+          # Without it on Linux: validator artifact name wrong on self-hosted
           name: ${{ github.sha }}-profile-validator-linux-${{ vars.SELF_HOSTED && 'x86_64' || 'aarch64' }}
           path: validator-bin
       - name: Validate slice (expand custom g-code)

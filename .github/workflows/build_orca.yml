@@ -515,6 +515,7 @@ jobs:
       # PATH also makes cpack use it over the NSIS preinstalled on some images.
       - name: Restore NSIS
         id: nsis-cache
+        # Without it on Windows: NSIS cache restore fails on self-hosted (no cloud cache)
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
         uses: actions/cache/restore@v6
         with:
@@ -522,6 +523,7 @@ jobs:
           key: nsis-${{ env.NSIS_VERSION }}
 
       - name: Install NSIS
+        # Without it on Windows: NSIS install fails on self-hosted (choco unavailable)
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
         shell: powershell
         run: |
@@ -542,6 +544,7 @@ jobs:
           $nsisDir | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
 
       - name: Save NSIS
+        # Without it on Windows: NSIS cache save fails on self-hosted (no cloud cache)
         if: runner.os == 'Windows' && !vars.SELF_HOSTED && steps.nsis-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
         with:
@@ -642,6 +645,7 @@ jobs:
       # NSIS is x86-only; it runs (and the installer it emits runs) under ARM64's
       # x86 emulation, packaging the native arm64 payload from build-arm64.
       - name: Create installer Win
+        # Without it on Windows: NSIS installer creation fails on self-hosted (no NSIS)
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
         working-directory: ${{ github.workspace }}/${{ env.BUILD_DIR }}
         run: |
@@ -673,6 +677,7 @@ jobs:
           path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer
 
       - name: Upload artifacts Win installer
+        # Without it on Windows: installer artifact upload (hosted only)
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
         uses: actions/upload-artifact@v7
         with:
@@ -680,6 +685,7 @@ jobs:
           path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer*.exe
 
       - name: Upload artifacts Win PDB
+        # Without it on Windows: PDB artifact upload (hosted only)
         if: runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED
         uses: actions/upload-artifact@v7
         with:
@@ -687,6 +693,7 @@ jobs:
           path: ${{ github.workspace }}/build/src/Release/Debug_PDB_${{ env.ver }}_for_developers_only.7z
 
       - name: Upload OrcaSlicer_profile_validator Win
+        # Without it on Windows: validator artifact upload (hosted only)
         if: runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED
         uses: actions/upload-artifact@v7
         with:
@@ -701,6 +708,7 @@ jobs:
         run: scripts\check_exception_throw_info.ps1 -BuildDir $env:BUILD_DIR
 
       - name: Deploy Windows release portable
+        # Without it on Windows: deploy only on hosted
         if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED
         uses: ./.github/actions/deploy-nightly
         with:
@@ -709,6 +717,7 @@ jobs:
           content_type: application/x-zip-compressed
 
       - name: Deploy Windows release installer
+        # Without it on Windows: deploy only on hosted
         if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED
         uses: ./.github/actions/deploy-nightly
         with:
@@ -717,6 +726,7 @@ jobs:
           content_type: application/x-msdownload
 
       - name: Deploy Windows OrcaSlicer_profile_validator release
+        # Without it on Windows: validator deploy only on hosted x86_64
         if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED
         uses: ./.github/actions/deploy-nightly
         with:
@@ -725,6 +735,7 @@ jobs:
           content_type: application/x-msdownload
 
       - name: Build MSIX Store package Win
+        # Without it on Windows: MSIX build requires signing (hosted only)
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
         working-directory: ${{ github.workspace }}
         shell: powershell
@@ -738,6 +749,7 @@ jobs:
             -PublisherDisplayName "${{ vars.ORCA_MSIX_PUBLISHER_DISPLAY_NAME || 'OrcaSlicer' }}"
 
       - name: Upload artifacts Win MSIX
+        # Without it on Windows: MSIX artifact upload (hosted only)
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
         uses: actions/upload-artifact@v7
         with:
@@ -746,6 +758,7 @@ jobs:
 
 # Ubuntu
       - name: Apt-Install Dependencies
+        # Without it on Linux: apt packages unavailable on self-hosted
         if: runner.os == 'Linux' && !vars.SELF_HOSTED
         uses: ./.github/actions/apt-install-deps
 
@@ -819,6 +832,7 @@ jobs:
           python3 "$test_repo_dir/run_test.py" "${{ github.workspace }}/build/package/bin/orca-slicer"
 
       - name: Build orca_custom_preset_tests
+        # Without it on Linux: custom preset tests only on hosted x86_64
         if: github.ref == 'refs/heads/main' && runner.os == 'Linux' && !vars.SELF_HOSTED && inputs.arch != 'aarch64'
         working-directory: ${{ github.workspace }}/build/src/Release
         shell: bash

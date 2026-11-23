@@ -196,12 +196,14 @@ Please refer to the wiki to ensure you're following the latest and most accurate
 ### Quick Start
 
 ```powershell
-# Clone the repository
-git clone --recurse-submodules https://github.com/OrcaSlicer/OrcaSlicer.git
-cd OrcaSlicer
-
 # Build everything (clang-cl + Ninja now default)
 .\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64
+
+# Build and launch after successful build
+.\build_win.ps1 -Slicer -Tests -Launch -Arch x64
+
+# Build, launch, and wait for app to exit
+.\build_win.ps1 -Slicer -Tests -LaunchWait -Arch x64
 
 # Clean build (removes slicer tree, keeps cached deps)
 .\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64 -Clean
@@ -212,23 +214,6 @@ cd OrcaSlicer
 # Build dependencies only
 .\build_win.ps1 -Deps -Arch x64
 ```
-
-### Key Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `-Slicer` | Build OrcaSlicer | ✅ |
-| `-Deps` | Build dependencies only |  |
-| `-Tests` | Build unit tests | ✅ |
-| `-RunTests` | Run unit tests after build | ✅ |
-| `-InstallSlicer` | Install into build tree |  |
-| `-Arch x64` | Target architecture (`x64` or `arm64`) | `x64` |
-| `-Clean` | Remove slicer tree (keeps deps cache) |  |
-| `-ClangCl` | Use clang-cl compiler | ✅ |
-| `-Ninja` | Use Ninja generator (faster) | ✅ |
-| `-Cache ccache` | Enable ccache for incremental builds |  |
-| `-MaxJobs N` | Limit parallel jobs (default: auto) |  |
-| `-NoConfigure` | Skip CMake configure (incremental) |  |
 
 ### Presets
 
@@ -241,7 +226,6 @@ cd OrcaSlicer
 ```
 
 > **Note**: `-ClangCl` and `-Ninja` are now defaults. The presets still work and are recommended for clarity.
-```
 
 ### Performance Tips
 
@@ -249,7 +233,7 @@ cd OrcaSlicer
 
    | Config | Time on GitHub Runner | Relative |
    |--------|----------------------|----------|
-   | MSVC + MSBuild | ~110 min | 100% (baseline) |
+   | MSVC + MSBuild | ~110 min | 100% |
    | **clang-cl + Ninja (default)** | **~70 min** | **~65%** |
    | + ccache (incremental) | **~15 min** | **~15%** |
 
@@ -265,12 +249,11 @@ cd OrcaSlicer
     .\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64 -Clean:${{ inputs.clean-build }}
 ```
 
-**Flag breakdown:**
-- `-Slicer` — Build OrcaSlicer (default: on)
-- `-Tests` — Build unit tests (default: on)
-- `-InstallSlicer` — Install into `build/OrcaSlicer` tree
-- `-Arch x64` — Target x64 (or `arm64`)
-- `-Clean:${{ inputs.clean-build }}` — Clean build if `true`
+### Full Option Reference
+
+```powershell
+.\build_win.ps1 -Help
+```
 
 ### Troubleshooting
 
@@ -283,28 +266,10 @@ cd OrcaSlicer
 | `Iconv not found` | Uses deps cache v2 (built-in, no system Iconv needed) |
 
 ### Prerequisites
+
 - **Visual Studio 2022/2026** with "Desktop development with C++" workload
 - **Git** (for version info)
 - **Optional**: ccache (`winget install ccache`)
-
-# Klipper Note
-
-If you're running Klipper, it's recommended to add the following configuration to your `printer.cfg` file.
-
-```gcode
-# Enable object exclusion
-[exclude_object]
-
-# Enable arcs support
-[gcode_arcs]
-resolution: 0.1
-```
-
-# Supports
-
-**OrcaSlicer** is an open-source project, and we're deeply grateful to all our sponsors and backers.  
-Their generous support helps fund filaments and other essential 3D printing materials for the project.  
-Thank you! :)
 
 ## Sponsors
 

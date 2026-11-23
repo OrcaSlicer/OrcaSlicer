@@ -80,6 +80,7 @@ jobs:
 
       # Load cached deps: self-hosted uses local cache first, GitHub-hosted uses cloud
       - name: load cached deps (self-hosted local)
+        # Without it on self-hosted: local deps cache restore skipped
         if: ${{ vars.SELF_HOSTED }}
         uses: actions/cache@v6
         with:
@@ -92,6 +93,7 @@ jobs:
           enableCrossOsArchive: true
 
       - name: load cached deps (GitHub-hosted cloud)
+        # Without it on hosted: cloud deps cache restore skipped
         if: ${{ !vars.SELF_HOSTED }}
         uses: actions/cache@v6
         with:
@@ -190,6 +192,7 @@ jobs:
             Add-Content -LiteralPath $env:GITHUB_PATH -Value (Join-Path $spDest 'c\bin')
             # NASM for OpenSSL SIMD (warning only if missing, but nice to have).
             # Chocolatey is unavailable on the self-hosted runner.
+            # Without it on Windows: choco fails on self-hosted (no admin)
             if (-not "${{ vars.SELF_HOSTED }}") {
               choco install nasm -y 2>$null | Out-Null
             }
@@ -199,6 +202,7 @@ jobs:
 
             # Install clang-cl component when compiler is clang (needed for deps build)
             # windows-2022 has clang-cl pre-installed in VS 2022 Enterprise; winget is not available.
+            # Without it on Windows: clang-cl not pre-installed on hosted
             if ("${{ inputs.compiler }}" -eq "clang" -and -not "${{ vars.SELF_HOSTED }}") {
               $clangClPath = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin\clang-cl.exe"
               if (Test-Path $clangClPath) {
@@ -236,6 +240,7 @@ jobs:
         if: runner.os == 'macOS'
         working-directory: ${{ github.workspace }}
         run: |
+            # Without it on macOS: build tools missing on hosted
             if [ -z "${{ vars.SELF_HOSTED }}" ]; then
               brew install automake texinfo libtool pkgconf yasm nasm
             fi

@@ -38,6 +38,7 @@ jobs:
             tests
             resources
       - name: Apt-Install Dependencies
+        # Without it on Linux: apt unavailable on self-hosted
         if: runner.os == 'Linux' && !vars.SELF_HOSTED
         uses: ./.github/actions/apt-install-deps
       - name: Restore Test Artifact
@@ -51,6 +52,7 @@ jobs:
           useCloudCache: true
       # Skips self-hosted runners, where this machine-wide setting would stay after the job ends.
       - name: Enable Crash Dumps
+        # Without it on Windows: crash dumps not configured on self-hosted
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
         shell: pwsh
         run: |
@@ -75,6 +77,7 @@ jobs:
           name: unit-test-logs-${{ inputs.artifact }}
           path: ${{ inputs.test-dir }}/**/*.log
       - name: Upload Crash Dumps
+        # Without it on Windows: crash dumps upload fails on self-hosted
         if: ${{ failure() && runner.os == 'Windows' && !vars.SELF_HOSTED }}
         uses: actions/upload-artifact@v7
         with:
