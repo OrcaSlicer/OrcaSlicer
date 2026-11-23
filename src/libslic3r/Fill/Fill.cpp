@@ -85,25 +85,16 @@ inline double get_layer_z(const PrintObject* object, int layer_id)
     return object->get_layer(idx)->bottom_z() + sdx * object->config().layer_height.value;
 };
 
-// Orca: The parameters that are taken into account when calculating a rotating infill.
-struct InfillParams
-{
-    double angle     = 0.;
-    Vec2d  shift     = Vec2d(0, 0);
-    double density   = 100.;
-    int    multiline = 1;
-};
-
 // Calculate infill rotation angle (in radians) for a given layer from a rotation template.
 // Check the link for more info: https://www.orcaslicer.com/wiki/print_settings/strength/strength_settings_infill_rotation_template_metalanguage
 // Attention: all incoming and outgoing direction values in radians!
-static InfillParams calculate_infill_position_rad(const PrintObject* object,
-                                                  size_t layer_id,
-                                                  const double& fixed_infill_angle, // if template is used then it parameter must recieve model's direction
-                                                  const std::string& template_string,
-                                                  const double& fixed_infill_density = 100.,
-                                                  const int& fixed_multiline = 1,
-                                                  double line_width = 0.) // Get initial value from options
+InfillParams calculate_infill_position_rad(const PrintObject* object,
+                                           size_t layer_id,
+                                           const double& fixed_infill_angle, // if template is used then it parameter must recieve model's direction
+                                           const std::string& template_string,
+                                           const double& fixed_infill_density,
+                                           const int& fixed_multiline,
+                                           double line_width) // Get initial value from options
 {
     InfillParams params{fixed_infill_angle, Vec2d(0, 0), fixed_infill_density, fixed_multiline};
     if (template_string.empty())
