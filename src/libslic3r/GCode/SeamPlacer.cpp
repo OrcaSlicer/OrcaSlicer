@@ -11,6 +11,7 @@
 #include "libslic3r/PrintBase.hpp"
 #include "PrintConfig.hpp"
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/ParallelForFirstError.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/TriangleSelector.hpp"
 #include "tbb/parallel_for.h"
@@ -390,20 +391,18 @@ struct GlobalModelInfo {
   }
 
   float calculate_point_visibility(const Vec3f &position) const {
-    std::vector<size_t> points = find_nearby_points(mesh_samples_tree, position, mesh_samples_radius);
-    if (points.empty()) {
-      return 1.0f;
-    }
-
     auto compute_dist_to_plane = [](const Vec3f &position, const Vec3f &plane_origin, const Vec3f &plane_normal) {
       Vec3f orig_to_point = position - plane_origin;
       return std::abs(orig_to_point.dot(plane_normal));
     };
 
+    // Accumulated in the order find_nearby_points() lists the samples, without collecting them first:
+    // this runs for every seam candidate.
+    bool  any_sample = false;
     float total_weight = 0;
     float total_visibility = 0;
-    for (size_t i = 0; i < points.size(); ++i) {
-      size_t sample_idx = points[i];
+    visit_nearby_points(mesh_samples_tree, position, mesh_samples_radius, [&](size_t sample_idx) {
+      any_sample = true;
 
       Vec3f sample_point = this->mesh_samples.positions[sample_idx];
       Vec3f sample_normal = this->mesh_samples.normals[sample_idx];
@@ -412,10 +411,9 @@ struct GlobalModelInfo {
       weight += (mesh_samples_radius - (position - sample_point).norm());
       total_visibility += weight * mesh_samples_visibility[sample_idx];
       total_weight += weight;
-    }
+    });
 
-    return total_visibility / total_weight;
-
+    return any_sample ? total_visibility / total_weight : 1.0f;
   }
 
 #ifdef DEBUG_FILES
@@ -485,16 +483,8 @@ Polygons extract_perimeter_polygons(const Layer *layer, std::vector<const LayerR
         const size_t collection_begin = polygons.size(); // The fallback below applies per collection, not per layer.
         for (const ExtrusionEntity *perimeter : static_cast<const ExtrusionEntityCollection*>(ex_entity)->entities) {
           ExtrusionRole role = perimeter->role();
-          if (perimeter->is_loop()) {
-            for (const ExtrusionPath &path : static_cast<const ExtrusionLoop*>(perimeter)->paths) {
-              if (path.role() == ExtrusionRole::erExternalPerimeter) {
-                role = ExtrusionRole::erExternalPerimeter;
-              }
-            }
-            // A fully overhanging outer loop has no external paths but keeps inset_idx 0.
-            if (perimeter->inset_idx == 0)
-              role = ExtrusionRole::erExternalPerimeter;
-          }
+          if (perimeter->is_loop() && is_outer_wall(*static_cast<const ExtrusionLoop*>(perimeter)))
+            role = ExtrusionRole::erExternalPerimeter;
 
           if (role == ExtrusionRole::erExternalPerimeter) {
             Points p;
@@ -1635,7 +1625,7 @@ Vec3f place_on_loop(const std::vector<SeamCandidate> &points, size_t index, cons
 void SeamPlacer::gather_seam_candidates(const PrintObject *po, const SeamPlacerImpl::GlobalModelInfo &global_model_info,
                                         PreciseSeam::PreciseSeamWarnings* warnings) {
   using namespace SeamPlacerImpl;
-  PrintObjectSeamData &seam_data = m_seam_per_object.emplace(po, PrintObjectSeamData { }).first->second;
+  PrintObjectSeamData &seam_data = m_seam_per_object.at(po);
   seam_data.layers.resize(po->layer_count());
 
   tbb::parallel_for(tbb::blocked_range<size_t>(0, po->layers().size()),
@@ -1668,7 +1658,7 @@ void SeamPlacer::gather_seam_candidates(const PrintObject *po, const SeamPlacerI
 void SeamPlacer::calculate_candidates_visibility(const PrintObject *po,
                                                  const SeamPlacerImpl::GlobalModelInfo &global_model_info) {
 
-  std::vector<PrintObjectSeamData::LayerSeams> &layers = m_seam_per_object[po].layers;
+  std::vector<PrintObjectSeamData::LayerSeams> &layers = m_seam_per_object.at(po).layers;
   tbb::parallel_for(tbb::blocked_range<size_t>(0, layers.size()),
                     [&layers, &global_model_info](tbb::blocked_range<size_t> r) {
                       for (size_t layer_idx = r.begin(); layer_idx < r.end(); ++layer_idx) {
@@ -1684,7 +1674,7 @@ void SeamPlacer::calculate_overhangs_and_layer_embedding(const PrintObject *po) 
   using namespace SeamPlacerImpl;
   using PerimeterDistancer = AABBTreeLines::LinesDistancer<Linef>;
 
-  std::vector<PrintObjectSeamData::LayerSeams> &layers = m_seam_per_object[po].layers;
+  std::vector<PrintObjectSeamData::LayerSeams> &layers = m_seam_per_object.at(po).layers;
   tbb::parallel_for(tbb::blocked_range<size_t>(0, layers.size()),
                     [po, &layers](tbb::blocked_range<size_t> r) {
                       std::unique_ptr<PerimeterDistancer> prev_layer_distancer;
@@ -1904,7 +1894,7 @@ void SeamPlacer::align_seam_points(const PrintObject *po, const SeamPlacerImpl::
 #endif
 
   //gather vector of all seams on the print_object - pair of layer_index and seam__index within that layer
-  const std::vector<PrintObjectSeamData::LayerSeams> &layers = m_seam_per_object[po].layers;
+  const std::vector<PrintObjectSeamData::LayerSeams> &layers = m_seam_per_object.at(po).layers;
   // Share the largest nozzle diameter between contour bounds and corner protection.
   double max_nozzle_diameter = 0.0;
   for (double diameter : po->print()->config().nozzle_diameter.values)
@@ -2120,7 +2110,33 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
   // Warning flags for Precise Seam processing — shared across all objects
   PreciseSeam::PreciseSeamWarnings precise_seam_warnings;
 
+  // The objects get their seams independently of each other, so they are processed concurrently. Their seam data
+  // and the usage tracking of their Precise Seam modifiers are created first: the objects only look them up.
+  struct ObjectSeams {
+    const PrintObject              *po;
+    PrintObjectSeamData            *seam_data;
+    std::vector<const ModelVolume*> precise_seam_strong_volumes;
+    std::vector<const ModelVolume*> precise_seam_weak_volumes;
+  };
+  std::vector<ObjectSeams> objects;
+  objects.reserve(print.objects().size());
   for (const PrintObject *po : print.objects()) {
+    ObjectSeams &object = objects.emplace_back(ObjectSeams{ po, &m_seam_per_object[po], {}, {} });
+    PreciseSeam::init_precise_seam_data(
+        object.precise_seam_strong_volumes,
+        object.precise_seam_weak_volumes,
+        object.seam_data->has_precise_seam_strong_volumes,
+        po->model_object());
+    // Workers only set the usage flags. Several print objects of one model object share volumes, and
+    // try_emplace keeps what earlier ones recorded.
+    for (const ModelVolume* vol : object.precise_seam_strong_volumes)
+        precise_seam_warnings.modifier_usage.try_emplace(vol);
+    for (const ModelVolume* vol : object.precise_seam_weak_volumes)
+        precise_seam_warnings.modifier_usage.try_emplace(vol);
+  }
+
+  auto place_seams = [this, &throw_if_canceled_func, &precise_seam_warnings](ObjectSeams &object) {
+    const PrintObject *po = object.po;
     throw_if_canceled_func();
     SeamPosition configured_seam_preference = po->config().seam_position.value;
     SeamComparator comparator { configured_seam_preference };
@@ -2128,23 +2144,14 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
     {
       GlobalModelInfo global_model_info { };
       gather_enforcers_blockers(global_model_info, po);
-      PreciseSeam::init_precise_seam_data(
-          global_model_info.precise_seam_strong_volumes,
-          global_model_info.precise_seam_weak_volumes,
-          m_seam_per_object[po].has_precise_seam_strong_volumes,
-          po->model_object());
+      global_model_info.precise_seam_strong_volumes = std::move(object.precise_seam_strong_volumes);
+      global_model_info.precise_seam_weak_volumes   = std::move(object.precise_seam_weak_volumes);
 
       // Slice each Precise Seam modifier once per object; both consumers read the cache.
       for (const ModelVolume* vol : global_model_info.precise_seam_strong_volumes)
           global_model_info.precise_seam_slices[vol] = PreciseSeam::prepare_modifier_slices(po->slice_single_volume_regions(vol));
       for (const ModelVolume* vol : global_model_info.precise_seam_weak_volumes)
           global_model_info.precise_seam_slices[vol] = PreciseSeam::prepare_modifier_slices(po->slice_single_volume_regions(vol));
-      // Register usage tracking before the parallel phase; workers only set its flags. Several print
-      // objects of one model object share volumes, and try_emplace keeps what earlier ones recorded.
-      for (const ModelVolume* vol : global_model_info.precise_seam_strong_volumes)
-          precise_seam_warnings.modifier_usage.try_emplace(vol);
-      for (const ModelVolume* vol : global_model_info.precise_seam_weak_volumes)
-          precise_seam_warnings.modifier_usage.try_emplace(vol);
 
       throw_if_canceled_func();
       if (configured_seam_preference == spAligned || configured_seam_preference == spNearest || configured_seam_preference == spAlignedBack) {
@@ -2177,7 +2184,7 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
       BOOST_LOG_TRIVIAL(debug)
           << "SeamPlacer: pick_seam_point : start";
       //pick seam point
-      std::vector<PrintObjectSeamData::LayerSeams> &layers = m_seam_per_object[po].layers;
+      std::vector<PrintObjectSeamData::LayerSeams> &layers = object.seam_data->layers;
       tbb::parallel_for(tbb::blocked_range<size_t>(0, layers.size()),
                         [&layers, configured_seam_preference, comparator](tbb::blocked_range<size_t> r) {
                           for (size_t layer_idx = r.begin(); layer_idx < r.end(); ++layer_idx) {
@@ -2203,13 +2210,24 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
     }
 
     // Restore precise seam positions that were potentially modified
-    if (m_seam_per_object[po].has_precise_seam_strong_volumes) {
-      PreciseSeam::restore_precise_seam_positions(m_seam_per_object[po].layers);
+    if (object.seam_data->has_precise_seam_strong_volumes) {
+      PreciseSeam::restore_precise_seam_positions(object.seam_data->layers);
     }
 
 #ifdef DEBUG_FILES
-    debug_export_points(m_seam_per_object[po].layers, po->bounding_box(), comparator);
+    debug_export_points(object.seam_data->layers, po->bounding_box(), comparator);
 #endif
+  };
+
+  if (objects.size() == 1)
+    place_seams(objects.front());
+  else if (objects.size() > 1) {
+    // One object at a time, its serial steps (mesh decimation, building the search trees, aligning the seams)
+    // keep most of the cores idle. A few objects at once overlap them with the others' parallel steps; no more,
+    // as each holds its sampled mesh until it is done.
+    constexpr size_t max_objects_at_once = 4;
+    const size_t     objects_per_task    = (objects.size() + max_objects_at_once - 1) / max_objects_at_once;
+    parallel_for_first_error(objects.size(), objects_per_task, [&objects, &place_seams](size_t i) { place_seams(objects[i]); });
   }
 
   // Prepare one combined Precise Seam warning; G-code export issues it. Keep it single: separate
@@ -2398,8 +2416,12 @@ void SeamPlacer::place_seam(const Layer *layer, ExtrusionLoop &loop,
                                                               perimeter_point.perimeter.start_index :
                                                               seam_index + 1;
 
+    // At a hairpin (angle close to -pi) beta_angle is close to zero and the snap below would move the point
+    // millions of mm away, so such corners are treated like convex ones.
+    constexpr float min_concave_beta_angle = 0.05f; // corners sharper than about 174 degrees
     if ((seam_position - perimeter_point.position).squaredNorm() < depth && // seam is on perimeter point
-        perimeter_point.local_ccw_angle < -EPSILON // In concave angles
+        perimeter_point.local_ccw_angle < -EPSILON && // In concave angles
+        beta_angle > min_concave_beta_angle
     ) { // In this case, we are at internal perimeter, where the external perimeter has seam in concave angle. We want to align
                                                                             // the internal seam into the concave corner, and not on the perpendicular projection on the closest edge (which is what the split_at function does)
       Vec2f dir_to_middle =
@@ -2423,6 +2445,8 @@ void SeamPlacer::place_seam(const Layer *layer, ExtrusionLoop &loop,
     if (po->config().staggered_inner_seams && loop.length() > 0.0) {
       //fix depth, it is sometimes strongly underestimated
       depth = std::max(loop.paths[projected_point.path_idx].width, depth);
+      // Whole laps end where they started; dropping them keeps the walk below one lap. The walk measures in XY.
+      depth = std::fmod(depth, static_cast<float>(unscale<double>(loop.polygon().length())));
 
       while (depth > 0.0f) {
         auto next_point = get_next_loop_point(projected_point);

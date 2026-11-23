@@ -7,16 +7,14 @@
 # request changes deps/. `wait` waits until that build saves KEY under CACHE_REF,
 # or its deps job fails. actions/cache then confirms the entry can be restored.
 #
-# Environment: GH_TOKEN, REPO, WORKFLOW_REF (or WORKFLOW, the build workflow's
-# file name) and BASE_REF, plus HEAD_SHA for `own`, and KEY_INPUTS, WAIT_FOR,
+# Environment: GH_TOKEN, REPO, WORKFLOW (the build workflow's file name) and
+# BASE_REF, plus HEAD_SHA for `own`, and KEY_INPUTS, WAIT_FOR,
 # WAIT_SINCE, WAIT_MINUTES, KEY, CACHE_REF (default the base branch) and ARCH
 # (or JOB, the matrix job's name) for `wait`.
 # Writes key-inputs, wait-for and wait-since to $GITHUB_OUTPUT.
 set -uo pipefail
 
-workflow=${WORKFLOW_REF:-}
-workflow=${workflow%%@*}
-workflow=${WORKFLOW:-${workflow##*/}}
+workflow=${WORKFLOW:?}
 
 # Must match the job names in build_all.yml, build_check_cache.yml and build_deps.yml.
 job=${JOB:-build_macos_arch (${ARCH:-})}

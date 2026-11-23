@@ -22,6 +22,8 @@
 #include "libslic3r/Preset.hpp"
 #include <cstddef>
 #include <utility>
+#include <algorithm>
+#include <cctype>
 
 namespace Slic3r {
 
@@ -94,25 +96,13 @@ std::vector<bool> read_bool_array_or(const nlohmann::json& obj, const char* key)
     return out;
 }
 
-// Parse a hex colour, stopping at the first non-hex character. std::stoul throws on
-// empty/non-hex input, which must not escape the detached fetch thread.
-unsigned int parse_hex_color(const std::string& hex)
-{
-    unsigned int value = 0;
-    for (char c : hex) {
-        int digit;
-        if (c >= '0' && c <= '9')
-            digit = c - '0';
-        else if (c >= 'a' && c <= 'f')
-            digit = c - 'a' + 10;
-        else if (c >= 'A' && c <= 'F')
-            digit = c - 'A' + 10;
-        else
-            break;
-        value = (value << 4) | static_cast<unsigned int>(digit);
-    }
-    return value;
-}
+// Ranks a candidate that declares no usable colour behind every candidate that does, while
+// still leaving it ahead of no match at all. The largest real distance is 3 * 255^2 = 195075.
+constexpr unsigned int UNRANKED_COLOR_DISTANCE = 0xfffffffeu;
+
+// filament_vendor of the presets Orca ships in OrcaFilamentLibrary, set in that library's own
+// filament/base/fdm_filament_common.json, so every "Generic ..." preset inherits it.
+constexpr const char* GENERIC_FILAMENT_VENDOR = "Generic";
 
 // Safely access a parallel array by index, returning a fallback if out of bounds.
 template<typename T>
@@ -121,46 +111,154 @@ T safe_at(const std::vector<T>& vec, int index, const T& fallback)
     return (index >= 0 && index < static_cast<int>(vec.size())) ? vec[index] : fallback;
 }
 
-std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection& filaments,
-                                                         const std::string&      vendor_name,
-                                                         const std::string&      filament_type,
-                                                         const std::string&      color_rgba)
+// Parse the RRGGBB part of a colour into 0xRRGGBB, skipping a leading '#' and
+// dropping any alpha channel. Returns false rather than letting std::stoul throw
+// on an empty or malformed value.
+bool parse_rgb(const std::string& value, unsigned int& out)
 {
-    std::string best_match_id       = "";
-    int         best_color_distance = 0xffffffff;
+    const size_t hash_pos = value.find('#');
+    std::string  digits   = value.substr(hash_pos != std::string::npos ? hash_pos + 1 : 0);
+    if (digits.size() > 6)
+        digits.resize(6);
+    if (digits.size() != 6)
+        return false;
+    for (char c : digits) {
+        if (!std::isxdigit(static_cast<unsigned char>(c)))
+            return false;
+    }
+    out = static_cast<unsigned int>(std::stoul(digits, nullptr, 16));
+    return true;
+}
+
+// Case-insensitive whole-word search. The needle must not be flanked by alphanumeric
+// characters, so "CF" matches "PETG-CF" and "PLA CF" but not "Scaffold" or "CF10".
+bool contains_word_ci(const std::string& haystack, const std::string& needle)
+{
+    if (needle.empty() || needle.size() > haystack.size())
+        return false;
+
+    const auto equal_ci = [](unsigned char a, unsigned char b) { return std::toupper(a) == std::toupper(b); };
+    const auto is_word  = [](char c) { return std::isalnum(static_cast<unsigned char>(c)) != 0; };
+
+    for (auto it = haystack.begin(); it != haystack.end(); ++it) {
+        it = std::search(it, haystack.end(), needle.begin(), needle.end(), equal_ci);
+        if (it == haystack.end())
+            return false;
+
+        const auto after    = it + static_cast<std::string::difference_type>(needle.size());
+        const bool left_ok  = it == haystack.begin() || !is_word(*(it - 1));
+        const bool right_ok = after == haystack.end() || !is_word(*after);
+        if (left_ok && right_ok)
+            return true;
+    }
+    return false;
+}
+
+// A tag reports the fibre loading in its sub type ("CF10", "GF30"), while the material types in
+// MaterialType::all() and the profile names only ever say CF or GF. Expects upper case input.
+std::string normalize_fibre_sub_type(const std::string& sub)
+{
+    for (const char* fibre : {"CF", "GF"}) {
+        const std::string prefix = fibre;
+        if (sub.size() >= prefix.size() && sub.compare(0, prefix.size(), prefix) == 0 &&
+            std::all_of(sub.begin() + static_cast<std::string::difference_type>(prefix.size()), sub.end(),
+                        [](char c) { return std::isdigit(static_cast<unsigned char>(c)) != 0; }))
+            return prefix;
+    }
+    return sub;
+}
+
+// Like contains_word_ci, but a trailing digit run belongs to the same word, so a CF sub type
+// matches a "PA12-CF10" preset as well as "PA12-CF". A trailing letter does not: "CFX" is
+// a different product.
+bool contains_sub_type_ci(const std::string& haystack, const std::string& needle)
+{
+    if (needle.empty() || needle.size() > haystack.size())
+        return false;
+
+    const auto equal_ci = [](unsigned char a, unsigned char b) { return std::toupper(a) == std::toupper(b); };
+    const auto is_word  = [](char c) { return std::isalnum(static_cast<unsigned char>(c)) != 0; };
+
+    for (auto it = haystack.begin(); it != haystack.end(); ++it) {
+        it = std::search(it, haystack.end(), needle.begin(), needle.end(), equal_ci);
+        if (it == haystack.end())
+            return false;
+
+        auto after = it + static_cast<std::string::difference_type>(needle.size());
+        while (after != haystack.end() && std::isdigit(static_cast<unsigned char>(*after)) != 0)
+            ++after;
+
+        const bool left_ok  = it == haystack.begin() || !is_word(*(it - 1));
+        const bool right_ok = after == haystack.end() || !is_word(*after);
+        if (left_ok && right_ok)
+            return true;
+    }
+    return false;
+}
+
+// Tags written by older tools (or as a workaround) carry the full product name in the vendor
+// field, e.g. vendor "Anycubic PLA Basic" with an empty sub type, while profiles may use either
+// "Anycubic" or "Anycubic PLA Basic". Treat the vendors as matching when they are equal or when
+// either contains the other as whole words, ignoring case.
+bool vendor_matches(const std::string& tag_vendor, const std::string& profile_vendor)
+{
+    if (tag_vendor.empty() || profile_vendor.empty())
+        return false;
+    return contains_word_ci(tag_vendor, profile_vendor) || contains_word_ci(profile_vendor, tag_vendor);
+}
+// Rank the visible, compatible base presets of one filament type by colour distance, preferring a
+// name that carries the spool's sub type. Candidates are limited to vendor_filter, which nothing
+// matches when it is empty; tag_vendor is the tag's own vendor field, which a legacy tag uses to
+// name the variant.
+std::string closest_preset_by_colour(const PresetCollection& filaments, const std::string& vendor_filter,
+                                     const std::string& tag_vendor, const std::string& filament_type,
+                                     const std::string& sub_wanted, unsigned int target_color_value)
+{
+    std::string  best_match_id       = "";
+    unsigned int best_color_distance = 0xffffffffu;
+    bool         best_matches_sub    = false;
 
     for (const auto& p : filaments.get_presets()) {
-        if (p.is_visible && p.is_compatible &&
-            // Filament profile must be detached from parent to be considered for matching
-            filaments.get_preset_base(p) == &p && p.config.opt_string("filament_vendor", 0u) == vendor_name &&
+        // Only a base preset can be loaded: sync_ams_list() resolves a filament_id to the first
+        // base preset carrying it, so a derived copy never loads and could outrank its parent.
+        if (p.is_visible && p.is_compatible && filaments.get_preset_base(p) == &p && !p.filament_id.empty() &&
+            vendor_matches(vendor_filter, p.config.opt_string("filament_vendor", 0u)) &&
             p.config.opt_string("filament_type", 0u) == filament_type) {
-            // The printer returns RGBA in the format RRGGBBAA, but profiles store color as #RRGGBB,
-            // so we must remove # and ignore alpha channel for distance calculation. Firmware
-            // colours are untrusted; parse_hex_color tolerates empty/non-hex instead of throwing.
-            unsigned int target_color_value =
-                parse_hex_color(color_rgba.substr(0, color_rgba.size() >= 2 ? color_rgba.size() - 2 : 0));
-
-            std::string  p_color = p.config.opt_string("default_filament_colour", 0u);
+            // A profile that specifies no colour, or one that cannot be parsed, is unranked: it
+            // is kept as a last resort rather than scored as black, which would otherwise let a
+            // colourless profile win every dark spool and beat profiles that do declare a colour.
+            std::string  p_color       = p.config.opt_string("default_filament_colour", 0u);
             unsigned int p_color_value = 0;
-            if (!p_color.empty()) {
-                size_t hash_pos = p_color.find("#");
-                p_color_value   = parse_hex_color(p_color.substr(hash_pos != std::string::npos ? hash_pos + 1 : 0));
-            } else {
-                // Default to black if no color specified in profile. Assume other profiles might be a closer color match.
-                // Could be a problem if the target color is also black and there exist a specific profile for that type, vendor and color
-                // combination.
-                p_color_value = 0;
+            unsigned int distance      = UNRANKED_COLOR_DISTANCE;
+            if (parse_rgb(p_color, p_color_value)) {
+                // Euclidean colour distance in RGB space
+                const int dr = ((target_color_value & 0xff) - (p_color_value & 0xff));
+                const int dg = (((target_color_value >> 8) & 0xff) - ((p_color_value >> 8) & 0xff));
+                const int db = (((target_color_value >> 16) & 0xff) - ((p_color_value >> 16) & 0xff));
+                distance      = static_cast<unsigned int>(dr * dr + dg * dg + db * db);
             }
 
-            // Calculate Euclidean color distance in RGB space
-            int dr = ((target_color_value & 0xff) - (p_color_value & 0xff));
-            int dg = (((target_color_value >> 8) & 0xff) - ((p_color_value >> 8) & 0xff));
-            int db = (((target_color_value >> 16) & 0xff) - ((p_color_value >> 16) & 0xff));
-            unsigned int distance = dr * dr + dg * dg + db * db;
+            // Variants (Matte, Silk, Basic, Eco, ...) are not filament_type values -- the
+            // profiles carry them in the preset name, so "Snapmaker PLA Matte" and
+            // "Snapmaker PLA Basic" are both vendor Snapmaker, type PLA. Prefer a candidate
+            // whose name mentions the spool's sub type, and rank by colour within that
+            // preference, so a matte spool stops resolving to whichever variant happens to
+            // sit nearest in colour.
+            // A profile's own filament_subtype counts too. When the tag has no sub type, a
+            // legacy tag may still name the variant in its vendor field ("Anycubic PLA Silk"),
+            // so look for the profile's subtype, or the whole tag vendor, there instead.
+            const std::string p_sub = p.config.has("filament_subtype") ? p.config.opt_string("filament_subtype", 0u) : std::string();
+            const bool matches_sub  = !sub_wanted.empty() ?
+                                          (contains_sub_type_ci(p.name, sub_wanted) || contains_sub_type_ci(p_sub, sub_wanted)) :
+                                          (contains_word_ci(tag_vendor, p_sub) || contains_word_ci(p.name, tag_vendor) ||
+                                           contains_word_ci(tag_vendor, p.name));
+            if (best_matches_sub && !matches_sub)
+                continue;
 
-            if (distance < best_color_distance) {
+            if ((matches_sub && !best_matches_sub) || distance < best_color_distance) {
                 best_color_distance = distance;
                 best_match_id       = p.filament_id;
+                best_matches_sub    = matches_sub;
             }
         }
     }
@@ -168,6 +266,38 @@ std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection&
 }
 
 } // anonymous namespace
+
+std::string SnapmakerPrinterAgent::find_closest_color_preset_by_vendor_and_type(const PresetCollection& filaments,
+                                                                                const std::string&      vendor_name,
+                                                                                const std::string&      filament_type,
+                                                                                const std::string&      sub_type,
+                                                                                const std::string&      color_rgba)
+{
+    // The printer returns RGBA in the format RRGGBBAA, but profiles store color as #RRGGBB,
+    // so we must remove # and ignore alpha channel for distance calculation.
+    // An unusable colour cannot rank candidates; leave the match to the type-only lookup.
+    unsigned int target_color_value = 0;
+    if (!parse_rgb(color_rgba, target_color_value))
+        return {};
+
+    const std::string sub_wanted = normalize_fibre_sub_type(trim_and_upper(sub_type));
+
+    // The spool's own vendor first, with the sub type as a preference. A tag that reports no
+    // vendor matches no profile's filament_vendor, so such a spool finds nothing in this pass.
+    const std::string vendor_match = closest_preset_by_colour(filaments, vendor_name, vendor_name, filament_type,
+                                                              sub_wanted, target_color_value);
+    if (!vendor_match.empty())
+        return vendor_match;
+
+    // Orca ships no preset for this spool's vendor, so fall back to its own Generic presets: they
+    // cover the sub types the U1 sees (Generic PLA Silk @U1, Generic PLA High Speed @U1,
+    // Generic PETG HF @U1) and carry no other brand's temperatures or flow. That beats another
+    // brand's preset of the same finish, and it beats the caller's fallback,
+    // filament_id_by_type(), which takes the first visible preset of the type whatever its vendor
+    // and finish.
+    return closest_preset_by_colour(filaments, GENERIC_FILAMENT_VENDOR, vendor_name, filament_type, sub_wanted,
+                                    target_color_value);
+}
 
 SnapmakerPrinterAgent::SnapmakerPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(std::move(log_dir)) {}
 
@@ -212,22 +342,17 @@ std::string SnapmakerPrinterAgent::combine_filament_type(const std::string& type
     if (sub.empty() || sub == "NONE")
         return base;
 
-    if (sub == "CF")
-        return base + "-CF";
-    if (sub == "GF")
-        return base + "-GF";
-    if (sub == "SNAPSPEED" || sub == "HS")
-        return base + " HIGH SPEED";
-    if (sub == "SILK")
-        return base + " SILK";
-    if (sub == "WOOD")
-        return base + " WOOD";
-    if (sub == "MATTE")
-        return base + " MATTE";
-    if (sub == "MARBLE")
-        return base + " MARBLE";
+    // Only CF and GF are material types, whatever fibre loading the tag reports ("CF10"); skip
+    // the suffix when the base already carries it.
+    const std::string fibre = normalize_fibre_sub_type(sub);
+    if (fibre == "CF" || fibre == "GF") {
+        const std::string suffix     = "-" + fibre;
+        const bool        has_suffix = base.size() >= suffix.size() &&
+                                base.compare(base.size() - suffix.size(), suffix.size(), suffix) == 0;
+        return has_suffix ? base : base + suffix;
+    }
 
-    // Unrecognized sub-type (brand names like Polylite, Basic, etc.) -- use base type only
+    // Every other sub type is a finish or a brand name, not a material type.
     return base;
 }
 
@@ -317,8 +442,9 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
             static const std::string empty_str;
             static const std::string default_color = "FFFFFFFF";
 
-            // Per-tray vendor names, kept so the preset lookup can run on the main thread.
+            // Per-tray vendor and raw sub type, kept so the preset lookup can run on the main thread.
             std::vector<std::string> vendors(slot_count);
+            std::vector<std::string> sub_types(slot_count);
 
             std::vector<AmsTrayData> trays;
             trays.reserve(slot_count);
@@ -329,9 +455,15 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
                 tray.has_filament = filament_exist[i];
 
                 if (tray.has_filament) {
-                    tray.tray_type  = combine_filament_type(safe_at(filament_type, i, empty_str), safe_at(filament_sub_type, i, empty_str));
-                    tray.tray_color = safe_at(filament_color, i, default_color);
-                    vendors[i]      = safe_at(filament_vendor, i, empty_str);
+                    const std::string raw_sub_type = safe_at(filament_sub_type, i, empty_str);
+                    tray.tray_type  = combine_filament_type(safe_at(filament_type, i, empty_str), raw_sub_type);
+                    tray.tray_color = safe_at(filament_color, i, empty_str);
+                    if (tray.tray_color.empty())
+                        tray.tray_color = default_color;
+
+                    // Vendor and raw sub type are kept so the preset lookup can run on the main thread.
+                    vendors[i]   = safe_at(filament_vendor, i, empty_str);
+                    sub_types[i] = raw_sub_type;
 
                     // Generic id derived from device data only; the preset-dependent lookup runs
                     // on the main thread in the resolve hook passed to build_ams_payload.
@@ -339,15 +471,10 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
 
                     // Extract NFC temperature data if available
                     if (nfc_info.is_array() && i < static_cast<int>(nfc_info.size()) && nfc_info[i].is_object()) {
-                        auto&       nfc_slot = nfc_info[i];
-                        std::string vendor   = "NONE";
-                        if (auto vendor_it = nfc_slot.find("VENDOR"); vendor_it != nfc_slot.end() && vendor_it->is_string()) {
-                            vendor = vendor_it->get<std::string>();
-                        }
-                        if (vendor != "NONE" && !vendor.empty()) {
-                            tray.bed_temp    = read_int_or(nfc_slot, "BED_TEMP", 0);
-                            tray.nozzle_temp = read_int_or(nfc_slot, "FIRST_LAYER_TEMP", 0);
-                        }
+                        auto& nfc_slot = nfc_info[i];
+                        tray.bed_temp  = read_int_or(nfc_slot, "BED_TEMP", 0);
+                        // build_ams_payload publishes this as `nozzle_temp_max`, and FIRST_LAYER_TEMP is 0 for external tags.
+                        tray.nozzle_temp = read_int_or(nfc_slot, "HOTEND_MAX_TEMP", 0);
                     }
                 }
 
@@ -355,7 +482,7 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
             }
 
             // Resolve against GUI-owned presets on the main thread (inside build_ams_payload).
-            auto resolve_ids = [vendors](std::vector<AmsTrayData>& resolved_trays) {
+            auto resolve_ids = [vendors, sub_types](std::vector<AmsTrayData>& resolved_trays) {
                 auto* bundle = GUI::wxGetApp().preset_bundle;
                 if (!bundle) {
                     return; // keep the generic ids computed from device data
@@ -365,10 +492,19 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
                     if (!tray.has_filament) {
                         continue;
                     }
-                    // Prefer a manufacturer/colour-specific preset, else fall back to type.
-                    std::string filament_id = find_closest_color_preset_by_vendor_and_type(bundle->filaments, vendors[i], tray.tray_type,
-                                                                                           tray.tray_color);
-                    tray.tray_info_idx = filament_id.empty() ? bundle->filaments.filament_id_by_type(tray.tray_type) : filament_id;
+                    // "NONE" means the tag reports no finish sub type.
+                    std::string sub_type = i < sub_types.size() ? sub_types[i] : std::string();
+                    if (trim_and_upper(sub_type) == "NONE")
+                        sub_type.clear();
+                    // Prefer a manufacturer/colour-specific preset, else fall back to the type and
+                    // finally the OrcaFilamentLibrary generic for that material.
+                    std::string filament_id = find_closest_color_preset_by_vendor_and_type(
+                        bundle->filaments, vendors[i], tray.tray_type, sub_type, tray.tray_color);
+                    if (filament_id.empty())
+                        filament_id = bundle->filaments.filament_id_by_type(tray.tray_type);
+                    if (filament_id.empty())
+                        filament_id = map_filament_type_to_generic_id(tray.tray_type);
+                    tray.tray_info_idx = filament_id;
                 }
             };
             build_ams_payload(1, slot_count - 1, trays, apply_inline, resolve_ids);

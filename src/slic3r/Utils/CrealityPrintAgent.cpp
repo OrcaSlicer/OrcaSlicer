@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
 #include <map>
 #include <set>
 #include <string>
@@ -32,17 +33,6 @@ std::string to_lower(std::string s)
 {
     for (auto& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     return s;
-}
-
-bool has_visible_base_preset(const PresetCollection& filaments, const std::string& filament_id)
-{
-    for (const auto& p : filaments.get_presets()) {
-        if (p.is_visible && p.is_compatible
-            && filaments.get_preset_base(p) == &p
-            && p.filament_id == filament_id)
-            return true;
-    }
-    return false;
 }
 
 // Lower-case words of a preset name with the "@scope" suffix dropped:
@@ -150,12 +140,11 @@ std::string CrealityPrintAgent::match_filament_preset(const PresetCollection& fi
     }
 
     if (matches.empty()) {
-        // first_visible_idx_by_type() returns any visible preset when no base of this
-        // type exists. Never sync an unrelated material to the CFS.
-        const auto&       fallback_preset = filaments.preset(filaments.first_visible_idx_by_type(base_type));
-        const std::string fallback        = fallback_preset.filament_id;
-        const bool        fallback_ok     = fallback_preset.config.opt_string("filament_type", 0u) == base_type &&
-                                    has_visible_base_preset(filaments, fallback);
+        // Only a visible base of exactly this type; never sync another material to the CFS.
+        const size_t      fallback_idx    = filaments.first_visible_idx_by_type(base_type);
+        const Preset*     fallback_preset = fallback_idx == size_t(-1) ? nullptr : &filaments.preset(fallback_idx);
+        const std::string fallback        = fallback_preset ? fallback_preset->filament_id : std::string();
+        const bool        fallback_ok     = fallback_preset && fallback_preset->config.opt_string("filament_type", 0u) == base_type;
         BOOST_LOG_TRIVIAL(info)
             << "CrealityPrintAgent: no preset scored for spool {" << vendor << " "
             << brand_name << " (" << base_type << ")} after considering " << considered

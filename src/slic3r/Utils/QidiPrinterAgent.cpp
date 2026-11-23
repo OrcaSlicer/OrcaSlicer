@@ -161,6 +161,8 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode 
                         continue;
                     }
                     tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
+                    if (tray.tray_info_idx.empty())
+                        tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
                 }
             };
             build_ams_payload(box_count, box_count * 4 - 1, trays, apply_inline, resolve_ids);

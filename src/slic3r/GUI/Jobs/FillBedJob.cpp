@@ -166,7 +166,7 @@ void FillBedJob::prepare()
 
                 m_unselected.emplace_back(ap);
             }*/
-    if (auto wt = get_wipe_tower_arrangepoly(*m_plater))
+    if (auto wt = get_wipe_tower_arrangepoly(*m_plater, params, m_selected))
         m_unselected.emplace_back(std::move(*wt));
 
     double sc = scaled<double>(1.) * scaled(1.);
@@ -396,6 +396,11 @@ void FillBedJob::finalize(bool canceled, std::exception_ptr &eptr)
 
         if (m_instances && model_object->instances.size() > inst_cnt) {
             const size_t new_instance_count = model_object->instances.size() - inst_cnt;
+            // Register the copies with the plate they land on, which is what plate lookups and
+            // object labels read. As new instances they take a spiral-vase plate's settings
+            // without asking once per copy, as the objects Fill bed with copies adds do.
+            for (size_t i = inst_cnt; i < model_object->instances.size(); ++i)
+                plate_list.notify_instance_update(m_object_idx, int(i), true);
             // Match the normal add-instance flow: update the scene before the
             // object tree starts referring to the newly created instances.
             m_plater->update();
