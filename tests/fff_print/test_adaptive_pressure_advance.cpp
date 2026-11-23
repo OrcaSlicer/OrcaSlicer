@@ -16,6 +16,7 @@
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintBase.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 #include "test_helpers.hpp"
 
 using namespace Slic3r;
@@ -135,27 +136,27 @@ TEST_CASE("Adaptive pressure advance changes once at the start of each gap fill 
         { "adaptive_pressure_advance",       "1" },
         { "adaptive_pressure_advance_model", "0.08,1,4000\n0.04,20,4000\n0.08,1,100000\n0.04,20,100000" },
         { "pressure_advance",                "0.08" },
-        { "gap_fill_target",                 "everywhere" },
-        { "layer_height",                    0.2 },
-        { "initial_layer_print_height",      0.2 },
+        // classic walls leave gap fill between them in a thin plate
+        { "wall_generator",                  "classic" },
+        { "wall_loops",                      2 },
         { "skirt_loops",                     0 },
         { "brim_type",                       "no_brim" },
         { "wipe",                            "0" },
         { "retraction_length",               "0" },
         { "z_hop",                           "0" },
     });
-    // The slanted legs of the letter A leave classic gap fill next to their walls.
-    const GapFillPAMarks without_within_features = gap_fill_pa_marks(slice({ TestMesh::A }, config));
-    INFO("gap fill changes: " << without_within_features.changes << ", runs: " << without_within_features.runs);
-    REQUIRE(without_within_features.runs > 0);
+    // A 1.9mm plate leaves classic gap fill between its two walls, split into one path per width change along the run.
+    const GapFillPAMarks within_features_off = gap_fill_pa_marks(slice({ make_cube(20., 1.9, 5.) }, config));
+    INFO("gap fill changes: " << within_features_off.changes << ", runs: " << within_features_off.runs);
+    REQUIRE(within_features_off.runs > 0);
     // A width change inside a gap fill run keeps the pressure advance of the run.
-    CHECK(without_within_features.changes == without_within_features.runs);
+    CHECK(within_features_off.changes == within_features_off.runs);
 
-    // Evaluating the pressure advance within a feature marks every path, which shows the runs above are split by width.
+    // Within-features adaptation evaluates the pressure advance on every width path instead.
     config.set_deserialize_strict({ { "adaptive_pressure_advance_overhangs", "1" } });
-    const GapFillPAMarks with_within_features = gap_fill_pa_marks(slice({ TestMesh::A }, config));
-    INFO("gap fill changes within features: " << with_within_features.changes);
-    CHECK(with_within_features.changes > without_within_features.runs);
+    const GapFillPAMarks within_features_on = gap_fill_pa_marks(slice({ make_cube(20., 1.9, 5.) }, config));
+    INFO("gap fill changes within features: " << within_features_on.changes);
+    CHECK(within_features_on.changes > within_features_on.runs);
 }
 
 TEST_CASE("The adaptive pressure advance model validator ignores whitespace around the values", "[AdaptivePressureAdvance]")
