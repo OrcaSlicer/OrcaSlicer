@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:06-0600\n"
+"POT-Creation-Date: 2026-11-06 11:18-0600\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -3667,21 +3667,18 @@ msgstr "Пауза"
 msgid "Template"
 msgstr "Шаблон"
 
+# AI Translated
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr "%1% · %2% мм"
+
 # Тянется из 9 мест: группировка материалов: Auto/Custom, Форма стола: %s, тип
 # линии: %s, калибровка температуры – Тип материала: %s (тут колонки узкие, но
 # место вроде есть),). Причём местами должно согласоваться с разными родами
 # (форма: пользов.). Лучше сократить до Пользов.
 msgid "Custom"
 msgstr "Пользовательский"
-
-msgid "Pause:"
-msgstr "Пауза:"
-
-msgid "Custom Template:"
-msgstr "Шаблон пользовательского G-кода:"
-
-msgid "Custom G-code:"
-msgstr "Пользовательский G-код:"
 
 msgid "Custom G-code"
 msgstr "Пользовательский G-код"
@@ -6462,11 +6459,36 @@ msgstr "PA: "
 msgid "mm/s"
 msgstr "мм/с"
 
+# AI Translated
+msgctxt "Move details"
+msgid "LINE"
+msgstr "ЛИНИЯ"
+
+# AI Translated
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr "Ш × В"
+
+# AI Translated
+msgctxt "Move details"
+msgid "MOTION"
+msgstr "ДВИЖЕНИЕ"
+
 msgid "mm/s²"
 msgstr "мм/с²"
 
+# AI Translated
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr "ЭКСТРУЗИЯ"
+
 msgid "mm³/s"
 msgstr "мм³/с"
+
+# AI Translated
+msgctxt "Move details"
+msgid "THERMAL"
+msgstr "ТЕМПЕРАТУРА"
 
 # В идеале должно быть "Объёмный расход", но кое-как пытаемся совместить с
 # меню калибровок. Используется в табличке просмотра слоёв в значении "расход"
@@ -6481,15 +6503,35 @@ msgstr "Расход"
 msgid "Fan speed"
 msgstr "Обдув"
 
+# AI Translated
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr "Ход %1% из %2%"
+
 msgid "Time"
 msgstr "Время"
 
-msgid "Speed: "
-msgstr "Скорость: "
+# AI Translated
+msgid "Speed profile"
+msgstr "Профиль скорости"
 
-# Перед строкой подставляется кнопка "Показать"/"Скрыть"
-msgid "Actual speed profile"
-msgstr "график расчётной скорости"
+# AI Translated
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
+msgstr "Профиль действительной скорости · %1% мм · %2% с"
+
+# AI Translated
+msgid "No speed profile for this move"
+msgstr "У этого хода нет профиля скорости"
+
+# AI Translated
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] "Ещё %1% группа"
+msgstr[1] "Ещё %1% группы"
+msgstr[2] "Ещё %1% групп"
 
 msgid "Automatic"
 msgstr "Авто"
@@ -6513,9 +6555,6 @@ msgstr "Башня"
 # ???? было Общее
 msgid "Total"
 msgstr "Всего"
-
-msgid "Total estimation"
-msgstr "Общая оценка"
 
 msgid "Total time"
 msgstr "Общее время печати"
@@ -6586,50 +6625,11 @@ msgstr "Оптимизировать"
 msgid "Regroup filament"
 msgstr "Изменить"
 
-#, boost-format
-msgid "up to %1% mm"
-msgstr "до %1% мм"
-
-#, boost-format
-msgid "above %1% mm"
-msgstr "выше %1% мм"
-
-#, boost-format
-msgid "from %1% to %2% mm"
-msgstr "от %1% до %2% мм"
-
 msgid "Usage"
 msgstr "Расход"
 
-msgid "Layer height (mm)"
-msgstr "Высота слоя (мм)"
-
-msgid "Line width (mm)"
-msgstr "Ширина линии (мм)"
-
-msgid "Speed (mm/s)"
-msgstr "Скорость (мм/с)"
-
-msgid "Actual Speed (mm/s)"
-msgstr "Фактическая скорость (мм/с)"
-
-msgid "Acceleration (mm/s²)"
-msgstr "Ускорение (мм/с²)"
-
 msgid "Jerk (mm/s)"
 msgstr "Рывок (мм/с)"
-
-msgid "Fan speed (%)"
-msgstr "Скорость вентилятора (%)"
-
-msgid "Temperature (℃)"
-msgstr "Температура (℃)"
-
-msgid "Volumetric flow rate (mm³/s)"
-msgstr "Объёмный расход (мм³/с)"
-
-msgid "Actual volumetric flow rate (mm³/s)"
-msgstr "Действительный расход (мм³/с)"
 
 msgid "Seams"
 msgstr "Швы"
@@ -6643,9 +6643,6 @@ msgstr "Параметры"
 msgid "Cost"
 msgstr "Стоимость"
 
-msgid "Filament change times"
-msgstr "Смен прутка"
-
 msgid "Tool changes"
 msgstr "Смена инструмента"
 
@@ -6655,32 +6652,6 @@ msgstr "Смена цвета"
 msgctxt "Noun"
 msgid "Print"
 msgstr "Печать"
-
-msgid "Time Estimation"
-msgstr "Оценка времени"
-
-msgid "Normal mode"
-msgstr "Нормальный режим"
-
-msgid "Total Filament"
-msgstr "Общий расход"
-
-msgid "Model Filament"
-msgstr "Расход для моделей"
-
-msgid "Prepare time"
-msgstr "Время подготовки"
-
-msgid "Model printing time"
-msgstr "Печать моделей"
-
-# переименовано из "Переключиться на тихий режим"
-msgid "Show stealth mode"
-msgstr "Тихий режим"
-
-# переименовано из "Переключиться на обычный режим"
-msgid "Show normal mode"
-msgstr "Обычный режим"
 
 msgid ""
 "An object is placed in the left/right nozzle-only area or exceeds the printable height of the left nozzle.\n"
@@ -6961,16 +6932,6 @@ msgstr "Панель инструментов рабочей области"
 
 msgid "Section view"
 msgstr "Сечение"
-
-# Тут баг с переносом строк, каждое слово переносится. Чем короче – тем лучше.
-msgid "Fit camera to scene or selected object."
-msgstr "Показать текущий объект"
-
-msgid "3D Navigator"
-msgstr "Навигатор видов"
-
-msgid "Zoom button"
-msgstr "Кнопка поиска объекта"
 
 msgid "Overhangs"
 msgstr "Нависания"
@@ -7537,12 +7498,6 @@ msgstr "&Панель просмотра G-кода"
 
 msgid "Show G-code window in Preview scene."
 msgstr "Показать панель G-кода в окне предпросмотра."
-
-msgid "Show 3D Navigator"
-msgstr "Навигационный куб"
-
-msgid "Show 3D navigator in Prepare and Preview scene."
-msgstr "Показать навигационный куб в режиме подготовки и предварительного просмотра."
 
 msgid "Show Gridlines"
 msgstr "Разметка стола"
@@ -16396,11 +16351,10 @@ msgid "Brim ear detection radius"
 msgstr "Радиус обнаружения ушек"
 
 msgid ""
-"The geometry will be decimated before detecting sharp angles. This parameter indicates the minimum length of the deviation for the decimation.\n"
-"0 to deactivate."
+"The direction change at a corner is measured over a window of this length along the outline.\n"
+"The window grows while the outline keeps curving, so a rounded corner counts as one corner once its whole turn is seen.\n"
+"0 to measure the angle at every vertex without smoothing."
 msgstr ""
-"Геометрия модели будет упрощена перед обнаружением острых углов. Этот параметр задаёт минимальную длину отклонения для её упрощения.\n"
-"Установите 0 для отключения."
 
 # AI Translated
 msgid "Brim ears outer only"
@@ -34255,6 +34209,15 @@ msgid "Layer %1%"
 msgstr "Слой %1%"
 
 # AI Translated
+#, boost-format
+msgid "%1% mm"
+msgstr "%1% мм"
+
+# AI Translated
+msgid "Single layer"
+msgstr "Один слой"
+
+# AI Translated
 msgid "Average island scale"
 msgstr "Выравнивание масштаба островов"
 
@@ -38582,6 +38545,1266 @@ msgstr ""
 "Предотвращение коробления материала\n"
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как ABS, повышение температуры подогреваемого стола может снизить эту вероятность?"
 
+# AI Translated
+msgctxt "G-code window"
+msgid "Collapse"
+msgstr "Свернуть"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Expand"
+msgstr "Развернуть"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Settings"
+msgstr "Настройки"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "View"
+msgstr "Вид"
+
+# AI Translated
+#. TRN The number of G-code lines the window shows.
+msgctxt "G-code window"
+msgid "Lines"
+msgstr "Строк"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Auto"
+msgstr "Авто"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Font size"
+msgstr "Размер шрифта"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Current line"
+msgstr "Текущая строка"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Center"
+msgstr "По центру"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Upper third"
+msgstr "В верхней трети"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Long lines"
+msgstr "Длинные строки"
+
+# AI Translated
+#. TRN Long G-code lines: cut at the window's edge, or continued on the next row.
+msgctxt "G-code window"
+msgid "Clip"
+msgstr "Обрезать"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Wrap"
+msgstr "Переносить"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Comments"
+msgstr "Комментарии"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "All"
+msgstr "Все"
+
+# AI Translated
+#. TRN Show only the tag comments Orca writes, such as ;TYPE: or ;WIPE_START.
+msgctxt "G-code window"
+msgid "Tags"
+msgstr "Служебные"
+
+# AI Translated
+#. TRN Show no comments.
+msgctxt "G-code window"
+msgid "None"
+msgstr "Нет"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Highlighting"
+msgstr "Подсветка"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Align parameters in columns"
+msgstr "Выравнивать параметры по колонкам"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Color axis letters"
+msgstr "Цвет букв осей"
+
+# AI Translated
+#. TRN A coloured stripe left of each line, in the colour of its line type.
+msgctxt "G-code window"
+msgid "Line type stripe"
+msgstr "Полоса типа линии"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Shade lines not yet printed"
+msgstr "Затенять ещё не напечатанное"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Reset"
+msgstr "Сброс"
+
+# AI Translated
+#. TRN The number of settings of the G-code window that differ from their defaults.
+#, boost-format
+msgctxt "G-code window"
+msgid "Changed: %1%"
+msgstr "Изменено: %1%"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Copy line"
+msgstr "Копировать строку"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Copy visible lines"
+msgstr "Копировать видимые строки"
+
+# AI Translated
+msgid "Legend on the Left"
+msgstr "Легенда слева"
+
+# AI Translated
+msgid "Show the legend at the left edge of the Preview scene."
+msgstr "Показывать легенду у левого края окна предпросмотра."
+
+# AI Translated
+msgid "G-code Window on the Left"
+msgstr "Панель G-кода слева"
+
+# AI Translated
+msgid "Show the G-code window at the left edge of the Preview scene."
+msgstr "Показывать панель G-кода у левого края окна предпросмотра."
+
+# AI Translated
+msgid "G-code Window Above the Legend"
+msgstr "Панель G-кода над легендой"
+
+# AI Translated
+msgid "When the legend and the G-code window are on the same side, show the G-code window first."
+msgstr "Если легенда и панель G-кода на одной стороне, показывать панель G-кода первой."
+
+# AI Translated
+msgid "Preview Layout"
+msgstr "Раскладка предпросмотра"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Default view"
+msgstr "Вид по умолчанию"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Realistic view"
+msgstr "Продвинутая графика"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Auto perspective"
+msgstr "Автоперспектива"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Front right"
+msgstr "Спереди справа"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Front left"
+msgstr "Спереди слева"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Rear right"
+msgstr "Сзади справа"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Rear left"
+msgstr "Сзади слева"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Top front"
+msgstr "Сверху спереди"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Top rear"
+msgstr "Сверху сзади"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Top left"
+msgstr "Сверху слева"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Top right"
+msgstr "Сверху справа"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Bottom front"
+msgstr "Снизу спереди"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Bottom rear"
+msgstr "Снизу сзади"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Bottom left"
+msgstr "Снизу слева"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Bottom right"
+msgstr "Снизу справа"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Top front right"
+msgstr "Сверху спереди справа"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Top front left"
+msgstr "Сверху спереди слева"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Top rear right"
+msgstr "Сверху сзади справа"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Top rear left"
+msgstr "Сверху сзади слева"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Bottom front right"
+msgstr "Снизу спереди справа"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Bottom front left"
+msgstr "Снизу спереди слева"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Bottom rear right"
+msgstr "Снизу сзади справа"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Bottom rear left"
+msgstr "Снизу сзади слева"
+
+# AI Translated
+msgid "Orthographic"
+msgstr "Ортогональная"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Set current view as home"
+msgstr "Сделать текущий вид исходным"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Reset home view"
+msgstr "Сбросить исходный вид"
+
+# AI Translated
+#. TRN Why "Reset home view" is unavailable: no view was set as home.
+msgctxt "Navigator"
+msgid "No home view is set"
+msgstr "Исходный вид не задан"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Home view"
+msgstr "Исходный вид"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Rotate left by 90°"
+msgstr "Повернуть влево на 90°"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Rotate right by 90°"
+msgstr "Повернуть вправо на 90°"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Views"
+msgstr "Виды"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Fit view"
+msgstr "Вписать"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Display"
+msgstr "Отображение"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Available only in Prepare"
+msgstr "Доступно только на вкладке «Подготовка»"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Not available in Preview"
+msgstr "Недоступно на вкладке «Просмотр нарезки»"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Not available in Assembly View"
+msgstr "Недоступно в сборочном виде"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Not available in Design"
+msgstr "Недоступно на вкладке «Создание»"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Model"
+msgstr "Модель"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Scene"
+msgstr "Сцена"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Navigator background"
+msgstr "Фон навигатора"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Belt printer"
+msgstr "Ленточный принтер"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Actual"
+msgstr "Факт"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Alt+click"
+msgstr "Alt+щелчок"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Click"
+msgstr "Щелчок"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Click hides or shows it, Alt+click shows only it."
+msgstr "Щелчок скрывает или показывает, Alt+щелчок оставляет только его."
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Collapse"
+msgstr "Свернуть"
+
+# AI Translated
+#. TRN Under the only value of a mode in the preview legend, when its range is the visible layers.
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Constant in the visible layers, so there is no scale"
+msgstr "В видимых слоях значение одно, поэтому шкалы нет"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Constant in this file, so there is no scale"
+msgstr "В этом файле значение одно, поэтому шкалы нет"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Copy statistics"
+msgstr "Копировать статистику"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "Count: %1%"
+msgstr "Количество: %1%"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "Distance: %1%"
+msgstr "Расстояние: %1%"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Expand"
+msgstr "Развернуть"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "Extruder %1%"
+msgstr "Экструдер %1%"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "Filament %1%"
+msgstr "Материал %1%"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "Filament: %1%, %2%"
+msgstr "Материал: %1%, %2%"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "Hidden: %1%"
+msgstr "Скрыто: %1%"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Hide"
+msgstr "Скрыть"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Hide all moves"
+msgstr "Скрыть все движения"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Include travel"
+msgstr "Учитывать перемещения"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "layer %1%"
+msgstr "слой %1%"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Layers"
+msgstr "Слои"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "layers %1%–%2%"
+msgstr "слои %1%–%2%"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Linear"
+msgstr "Линейная"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Line type"
+msgstr "Тип линии"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Log"
+msgstr "Логарифм."
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend modes"
+msgid "Categories"
+msgstr "Категории"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend modes"
+msgid "Cooling and heat"
+msgstr "Охлаждение и нагрев"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend modes"
+msgid "Extrusion"
+msgstr "Экструзия"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend modes"
+msgid "Motion"
+msgstr "Движение"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend modes"
+msgid "Time"
+msgstr "Время"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Moves"
+msgstr "Движения"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "on every move"
+msgstr "на всех движениях"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Planned"
+msgstr "План"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Show"
+msgstr "Показать"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Show all line types"
+msgstr "Показать все типы линий"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "Show only %1%"
+msgstr "Показать только «%1%»"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Time"
+msgstr "Время"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "Time: %1%, %2% of the print"
+msgstr "Время: %1%, %2% от всей печати"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend time"
+msgid "<1s"
+msgstr "<1с"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend time"
+msgid "%1%d %2%h"
+msgstr "%1% д %2% ч"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend time"
+msgid "%1%d%2%h"
+msgstr "%1%д%2%ч"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend time"
+msgid "%1%h %2%m"
+msgstr "%1% ч %2% мин"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend time"
+msgid "%1%h%2%m"
+msgstr "%1%ч%2%м"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend time"
+msgid "%1%m %2%s"
+msgstr "%1% мин %2% с"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend time"
+msgid "%1%m%2%s"
+msgstr "%1%м%2%с"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend time"
+msgid "%1%s"
+msgstr "%1%с"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend unit"
+msgid "%1% g"
+msgstr "%1% г"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend unit"
+msgid "%1% in"
+msgstr "%1%″"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend unit"
+msgid "%1% kg"
+msgstr "%1% кг"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend unit"
+msgid "%1% m"
+msgstr "%1% м"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend unit"
+msgid "%1% mm"
+msgstr "%1% мм"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend unit"
+msgid "%1% oz"
+msgstr "%1% унц."
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend unit"
+msgid "g"
+msgstr "г"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend unit"
+msgid "oz"
+msgstr "унц."
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Value"
+msgstr "Значение"
+
+# AI Translated
+#. TRN The heading of the values column of the preview legend with their unit, as "Value, °C".
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Value, %1%"
+msgstr "Значение, %1%"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "weight · length"
+msgstr "масса · длина"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "cost"
+msgstr "стоимость"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, boost-format
+msgctxt "Print summary"
+msgid "Model filament: %1%"
+msgstr "Материал на модели: %1%"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Normal"
+msgstr "Обычный"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Stealth"
+msgstr "Тихий"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, boost-format
+msgctxt "Print summary"
+msgid "Prepare %1% · printing %2%"
+msgstr "Подготовка %1% · печать %2%"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, boost-format
+msgctxt "Print summary"
+msgid "model %1%"
+msgstr "модель %1%"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, boost-format
+msgctxt "Print summary"
+msgid "support %1%"
+msgstr "поддержки %1%"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, boost-format
+msgctxt "Print summary"
+msgid "flush %1%"
+msgstr "прочистка %1%"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, boost-format
+msgctxt "Print summary"
+msgid "tower %1%"
+msgstr "башня %1%"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, boost-format
+msgctxt "Print summary"
+msgid "Filaments · %1%"
+msgstr "Материалы · %1%"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Changes"
+msgstr "Смены"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Events"
+msgstr "События"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Layer"
+msgstr "Слой"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Time"
+msgstr "Время"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Go to its layer"
+msgstr "Перейти к его слою"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "How grouping works"
+msgstr "Как работает группировка"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Profiles in this file"
+msgstr "Профили в этом файле"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, boost-format
+msgctxt "Print summary"
+msgid "Filament %1%"
+msgstr "Материал %1%"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Expand"
+msgstr "Развернуть"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Collapse"
+msgstr "Свернуть"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Print summary"
+msgstr "Сводка печати"
+
+# AI Translated
+#: src/slic3r/GUI/PreviewLayoutMenu.cpp
+msgid "Print Summary on the Left"
+msgstr "Сводка печати слева"
+
+# AI Translated
+#: src/slic3r/GUI/MainFrame.cpp
+msgid "Show the print summary at the left edge of the Preview scene."
+msgstr "Показывать сводку печати у левого края сцены предпросмотра."
+
+# AI Translated
+#: src/slic3r/GUI/PreviewLayoutMenu.cpp
+msgid "Choose where the legend, the print summary and the G-code window stand in the Preview scene."
+msgstr "Выбор места легенды, сводки печати и окна G-кода в сцене предпросмотра."
+
+# AI Translated
+#: src/slic3r/GUI/MainFrame.cpp
+msgid "Show Legend"
+msgstr "Показать легенду"
+
+# AI Translated
+#: src/slic3r/GUI/MainFrame.cpp
+msgid "Show the legend in Preview scene."
+msgstr "Показывать легенду в сцене предпросмотра."
+
+# AI Translated
+#: src/slic3r/GUI/MainFrame.cpp
+msgid "Show Print Summary"
+msgstr "Показать сводку печати"
+
+# AI Translated
+#: src/slic3r/GUI/MainFrame.cpp
+msgid "Show the print summary in Preview scene."
+msgstr "Показывать сводку печати в сцене предпросмотра."
+
+# AI Translated
+#: src/slic3r/GUI/Shortcuts.cpp
+msgid "On/Off legend"
+msgstr "Вкл/выкл легенду"
+
+# AI Translated
+#: src/slic3r/GUI/Shortcuts.cpp
+msgid "On/Off print summary"
+msgstr "Вкл/выкл сводку печати"
+
+# AI Translated
+#. TRN How a filament's row of the preview legend or the print summary acts on a click.
+msgctxt "Legend"
+msgid "Click shows every filament again."
+msgstr "Щелчок снова показывает все материалы."
+
+# AI Translated
+msgctxt "Legend"
+msgid "Click keeps only this filament in colour."
+msgstr "Щелчок оставляет в цвете только этот материал."
+
+# AI Translated
+msgctxt "Legend unit"
+msgid "in"
+msgstr "дюйм"
+
+# AI Translated
+msgctxt "Legend unit"
+msgid "m"
+msgstr "м"
+
+# AI Translated
+#. TRN A bar of the preview legend's histogram of layer times: how many layers took that long, and their share of the layers.
+#, boost-format
+msgid "%1% layer, %2% of the layers"
+msgid_plural "%1% layers, %2% of the layers"
+msgstr[0] "%1% слой, %2% от всех слоёв"
+msgstr[1] "%1% слоя, %2% от всех слоёв"
+msgstr[2] "%1% слоёв, %2% от всех слоёв"
+
+# AI Translated
+#. TRN A bar of the preview legend's histogram: the print time at these values, and its share.
+#, boost-format
+msgctxt "Legend"
+msgid "%1%, %2% of the time"
+msgstr "%1%, %2% от всего времени"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Reset"
+msgstr "Сбросить"
+
+# AI Translated
+#. TRN Under the preview legend's scale of layer times: the values kept in colour, and their share of the layers, as "77%".
+#, boost-format
+msgctxt "Legend"
+msgid "Highlight %1% · %2% of the layers"
+msgstr "Выделено %1% · %2% от всех слоёв"
+
+# AI Translated
+#. TRN Under the preview legend's scale: the values kept in colour, and their share of the print time, as "77%".
+#, boost-format
+msgctxt "Legend"
+msgid "Highlight %1% · %2% of the time"
+msgstr "Выделено %1% · %2% от всего времени"
+
+# AI Translated
+#. TRN A line on the preview legend's scale of flow: the filament's maximum volumetric speed from its profile.
+#, boost-format
+msgctxt "Legend"
+msgid "Max volumetric speed %1%"
+msgstr "Предел объёмного расхода %1%"
+
+# AI Translated
+#. TRN A line on the preview legend's scale of layer times: the time under which a layer is slowed down for cooling.
+#, boost-format
+msgctxt "Legend"
+msgid "Layer time %1%"
+msgstr "Время слоя %1%"
+
+# AI Translated
+#. TRN The filament a limit of the profile belongs to, after the limit on the preview legend's scale, as "filament 2".
+#, boost-format
+msgctxt "Legend"
+msgid "filament %1%"
+msgstr "материал %1%"
+
+# AI Translated
+#. TRN The filaments a limit of the profile belongs to, after the limit on the preview legend's scale, as "filaments 1, 3".
+#, boost-format
+msgctxt "Legend"
+msgid "filaments %1%"
+msgstr "материалы %1%"
+
+# AI Translated
+#. TRN A limit on the preview legend's scale and the filaments it belongs to, as "Max volumetric speed 12 · filaments 1, 3".
+#, boost-format
+msgctxt "Legend"
+msgid "%1% · %2%"
+msgstr "%1% · %2%"
+
+# AI Translated
+#. TRN Under the preview legend's scale of flow. %1% is a share of the print time, as "23%".
+#, boost-format
+msgctxt "Legend"
+msgid "%1% of the print runs at the filament limit: speed there is capped by flow, not by the speed settings."
+msgstr "%1% печати идёт на пределе материала: скорость там ограничена расходом, а не настройками скорости."
+
+# AI Translated
+#. TRN Under the preview legend's scale of flow, when no move reaches the filament's maximum volumetric speed from its profile.
+msgctxt "Legend"
+msgid "No part of the print reaches the filament limit."
+msgstr "Печать нигде не достигает предела материала."
+
+# AI Translated
+#, boost-format
+msgid "%1% layer is under %2% and was slowed down for cooling."
+msgid_plural "%1% layers are under %2% and were slowed down for cooling."
+msgstr[0] "%1% слой короче %2% и был замедлен для охлаждения."
+msgstr[1] "%1% слоя короче %2% и были замедлены для охлаждения."
+msgstr[2] "%1% слоёв короче %2% и были замедлены для охлаждения."
+
+# AI Translated
+#, boost-format
+msgid "%1% layer was slowed down for cooling."
+msgid_plural "%1% layers were slowed down for cooling."
+msgstr[0] "%1% слой замедлен для охлаждения."
+msgstr[1] "%1% слоя замедлены для охлаждения."
+msgstr[2] "%1% слоёв замедлены для охлаждения."
+
+# AI Translated
+msgctxt "Legend"
+msgid "Time column"
+msgstr "Столбец времени"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Share column"
+msgstr "Столбец доли"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Weight column"
+msgstr "Столбец массы"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Length column"
+msgstr "Столбец длины"
+
+# AI Translated
+#. TRN A setting of the preview legend: bars of the print time at each value above the bar of a scale.
+msgctxt "Legend"
+msgid "Histogram on scales"
+msgstr "Гистограмма на шкалах"
+
+# AI Translated
+#. TRN A setting of the preview legend: a row under the mouse keeps its paths in colour in the 3D view and hides the rest.
+msgctxt "Legend"
+msgid "Highlight in 3D on hover"
+msgstr "Подсвечивать в 3D при наведении"
+
+# AI Translated
+#. TRN A setting of the preview legend: what the scale of a mode spans, the whole print or the layers the slider shows.
+msgctxt "Legend"
+msgid "Scale range"
+msgstr "Диапазон шкалы"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Whole print"
+msgstr "Вся печать"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Visible layers"
+msgstr "Видимые слои"
+
+# AI Translated
+#. TRN A setting of the preview legend: the colours of the scales; perceptual ones read evenly, also to colour-blind eyes.
+msgctxt "Legend"
+msgid "Palette"
+msgstr "Палитра"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Classic"
+msgstr "Классическая"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Perceptual"
+msgstr "Перцептивная"
+
+# AI Translated
+#. TRN The number of settings of the preview legend that differ from their defaults.
+#, boost-format
+msgctxt "Legend"
+msgid "Changed: %1%"
+msgstr "Изменено: %1%"
+
+# AI Translated
+#. TRN Why the last column of the preview legend's line types cannot be turned off.
+msgctxt "Legend"
+msgid "The line types keep at least one column"
+msgstr "У типов линий остаётся хотя бы один столбец"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Legend settings"
+msgstr "Настройки легенды"
+
+# AI Translated
+msgctxt "Legend"
+msgid "From"
+msgstr "От"
+
+# AI Translated
+msgctxt "Legend"
+msgid "To"
+msgstr "До"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Apply"
+msgstr "Применить"
+
+# AI Translated
+#. TRN The title of the box with the exact values the preview legend keeps in colour.
+msgctxt "Legend"
+msgid "Highlight range"
+msgstr "Диапазон выделения"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Click shows them all again."
+msgstr "Щелчок снова показывает всё."
+
+# AI Translated
+#. TRN Why the preview legend's count of hidden line types cannot be pressed.
+msgctxt "Legend"
+msgid "Nothing is hidden"
+msgstr "Ничего не скрыто"
+
+# AI Translated
+#~ msgid "Choose where the legend and the G-code window stand in the Preview scene."
+#~ msgstr "Выбрать, где в окне предпросмотра стоят легенда и панель G-кода."
+
+# AI Translated
+#, boost-format
+#~ msgid "filament %1%"
+#~ msgid_plural "filaments %1%"
+#~ msgstr[0] "материал %1%"
+#~ msgstr[1] "материалы %1%"
+#~ msgstr[2] "материалы %1%"
+
+#~ msgid "Total estimation"
+#~ msgstr "Общая оценка"
+
+#, boost-format
+#~ msgid "up to %1% mm"
+#~ msgstr "до %1% мм"
+
+#, boost-format
+#~ msgid "above %1% mm"
+#~ msgstr "выше %1% мм"
+
+#, boost-format
+#~ msgid "from %1% to %2% mm"
+#~ msgstr "от %1% до %2% мм"
+
+#~ msgid "Layer height (mm)"
+#~ msgstr "Высота слоя (мм)"
+
+#~ msgid "Line width (mm)"
+#~ msgstr "Ширина линии (мм)"
+
+#~ msgid "Speed (mm/s)"
+#~ msgstr "Скорость (мм/с)"
+
+#~ msgid "Actual Speed (mm/s)"
+#~ msgstr "Фактическая скорость (мм/с)"
+
+#~ msgid "Acceleration (mm/s²)"
+#~ msgstr "Ускорение (мм/с²)"
+
+#~ msgid "Fan speed (%)"
+#~ msgstr "Скорость вентилятора (%)"
+
+#~ msgid "Temperature (℃)"
+#~ msgstr "Температура (℃)"
+
+#~ msgid "Volumetric flow rate (mm³/s)"
+#~ msgstr "Объёмный расход (мм³/с)"
+
+#~ msgid "Actual volumetric flow rate (mm³/s)"
+#~ msgstr "Действительный расход (мм³/с)"
+
+#~ msgid "Filament change times"
+#~ msgstr "Смен прутка"
+
+#~ msgid "Time Estimation"
+#~ msgstr "Оценка времени"
+
+#~ msgid "Normal mode"
+#~ msgstr "Нормальный режим"
+
+#~ msgid "Total Filament"
+#~ msgstr "Общий расход"
+
+#~ msgid "Model Filament"
+#~ msgstr "Расход для моделей"
+
+#~ msgid "Prepare time"
+#~ msgstr "Время подготовки"
+
+#~ msgid "Model printing time"
+#~ msgstr "Печать моделей"
+
+# переименовано из "Переключиться на тихий режим"
+#~ msgid "Show stealth mode"
+#~ msgstr "Тихий режим"
+
+# переименовано из "Переключиться на обычный режим"
+#~ msgid "Show normal mode"
+#~ msgstr "Обычный режим"
+
+# Тут баг с переносом строк, каждое слово переносится. Чем короче – тем лучше.
+#~ msgid "Fit camera to scene or selected object."
+#~ msgstr "Показать текущий объект"
+
+#~ msgid "3D Navigator"
+#~ msgstr "Навигатор видов"
+
+#~ msgid "Zoom button"
+#~ msgstr "Кнопка поиска объекта"
+
+#~ msgid "Show 3D Navigator"
+#~ msgstr "Навигационный куб"
+
+#~ msgid "Show 3D navigator in Prepare and Preview scene."
+#~ msgstr "Показать навигационный куб в режиме подготовки и предварительного просмотра."
+
+#~ msgid ""
+#~ "The geometry will be decimated before detecting sharp angles. This parameter indicates the minimum length of the deviation for the decimation.\n"
+#~ "0 to deactivate."
+#~ msgstr ""
+#~ "Геометрия модели будет упрощена перед обнаружением острых углов. Этот параметр задаёт минимальную длину отклонения для её упрощения.\n"
+#~ "Установите 0 для отключения."
+
+# AI Translated
+#~ msgctxt "G-code window"
+#~ msgid "Markers"
+#~ msgstr "Разметка"
+
+# AI Translated
+#~ msgctxt "G-code window"
+#~ msgid "Hide"
+#~ msgstr "Скрыть"
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Показывать настройки импорта STEP"
 
@@ -38658,3 +39881,8 @@ msgstr ""
 # AI Translated
 #~ msgid "import SVG failed: could not parse imported svg data."
 #~ msgstr "ошибка импорта SVG: не удалось разобрать импортированные данные SVG."
+
+# AI Translated
+#~ msgctxt "Navigator"
+#~ msgid "Switch projection automatically"
+#~ msgstr "Переключать проекцию автоматически"

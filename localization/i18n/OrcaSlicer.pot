@@ -3456,16 +3456,12 @@ msgstr ""
 msgid "Template"
 msgstr ""
 
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, possible-boost-format
+msgid "%1% · %2% mm"
+msgstr ""
+
 msgid "Custom"
-msgstr ""
-
-msgid "Pause:"
-msgstr ""
-
-msgid "Custom Template:"
-msgstr ""
-
-msgid "Custom G-code:"
 msgstr ""
 
 msgid "Custom G-code"
@@ -5953,10 +5949,30 @@ msgstr ""
 msgid "mm/s"
 msgstr ""
 
+msgctxt "Move details"
+msgid "LINE"
+msgstr ""
+
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr ""
+
+msgctxt "Move details"
+msgid "MOTION"
+msgstr ""
+
 msgid "mm/s²"
 msgstr ""
 
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr ""
+
 msgid "mm³/s"
+msgstr ""
+
+msgctxt "Move details"
+msgid "THERMAL"
 msgstr ""
 
 msgid "Flow rate"
@@ -5965,14 +5981,29 @@ msgstr ""
 msgid "Fan speed"
 msgstr ""
 
+#, possible-boost-format
+msgid "Move %1% of %2%"
+msgstr ""
+
 msgid "Time"
 msgstr ""
 
-msgid "Speed: "
+msgid "Speed profile"
 msgstr ""
 
-msgid "Actual speed profile"
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, possible-boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
 msgstr ""
+
+msgid "No speed profile for this move"
+msgstr ""
+
+#, possible-boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Automatic"
 msgstr ""
@@ -5993,9 +6024,6 @@ msgid "Tower"
 msgstr ""
 
 msgid "Total"
-msgstr ""
-
-msgid "Total estimation"
 msgstr ""
 
 msgid "Total time"
@@ -6061,49 +6089,10 @@ msgstr ""
 msgid "Regroup filament"
 msgstr ""
 
-#, possible-boost-format
-msgid "up to %1% mm"
-msgstr ""
-
-#, possible-boost-format
-msgid "above %1% mm"
-msgstr ""
-
-#, possible-boost-format
-msgid "from %1% to %2% mm"
-msgstr ""
-
 msgid "Usage"
 msgstr ""
 
-msgid "Layer height (mm)"
-msgstr ""
-
-msgid "Line width (mm)"
-msgstr ""
-
-msgid "Speed (mm/s)"
-msgstr ""
-
-msgid "Actual Speed (mm/s)"
-msgstr ""
-
-msgid "Acceleration (mm/s²)"
-msgstr ""
-
 msgid "Jerk (mm/s)"
-msgstr ""
-
-msgid "Fan speed (%)"
-msgstr ""
-
-msgid "Temperature (℃)"
-msgstr ""
-
-msgid "Volumetric flow rate (mm³/s)"
-msgstr ""
-
-msgid "Actual volumetric flow rate (mm³/s)"
 msgstr ""
 
 msgid "Seams"
@@ -6118,9 +6107,6 @@ msgstr ""
 msgid "Cost"
 msgstr ""
 
-msgid "Filament change times"
-msgstr ""
-
 msgid "Tool changes"
 msgstr ""
 
@@ -6129,30 +6115,6 @@ msgstr ""
 
 msgctxt "Noun"
 msgid "Print"
-msgstr ""
-
-msgid "Time Estimation"
-msgstr ""
-
-msgid "Normal mode"
-msgstr ""
-
-msgid "Total Filament"
-msgstr ""
-
-msgid "Model Filament"
-msgstr ""
-
-msgid "Prepare time"
-msgstr ""
-
-msgid "Model printing time"
-msgstr ""
-
-msgid "Show stealth mode"
-msgstr ""
-
-msgid "Show normal mode"
 msgstr ""
 
 msgid ""
@@ -6421,15 +6383,6 @@ msgid "Canvas Toolbar"
 msgstr ""
 
 msgid "Section view"
-msgstr ""
-
-msgid "Fit camera to scene or selected object."
-msgstr ""
-
-msgid "3D Navigator"
-msgstr ""
-
-msgid "Zoom button"
 msgstr ""
 
 msgid "Overhangs"
@@ -6963,12 +6916,6 @@ msgid "Show &G-code Window"
 msgstr ""
 
 msgid "Show G-code window in Preview scene."
-msgstr ""
-
-msgid "Show 3D Navigator"
-msgstr ""
-
-msgid "Show 3D navigator in Prepare and Preview scene."
 msgstr ""
 
 msgid "Show Gridlines"
@@ -29453,6 +29400,13 @@ msgstr ""
 msgid "Layer %1%"
 msgstr ""
 
+#, possible-boost-format
+msgid "%1% mm"
+msgstr ""
+
+msgid "Single layer"
+msgstr ""
+
 msgid "Average island scale"
 msgstr ""
 
@@ -32619,4 +32573,963 @@ msgstr ""
 
 #: resources/data/hints.ini: [hint:Avoid warping]
 msgid "Avoid warping\nDid you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "Collapse"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "Expand"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "Settings"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "View"
+msgstr ""
+
+#. TRN The number of G-code lines the window shows.
+msgctxt "G-code window"
+msgid "Lines"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "Auto"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "Font size"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "Current line"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "Center"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "Upper third"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "Long lines"
+msgstr ""
+
+#. TRN Long G-code lines: cut at the window's edge, or continued on the next row.
+msgctxt "G-code window"
+msgid "Clip"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "Wrap"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "Comments"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "All"
+msgstr ""
+
+#. TRN Show only the tag comments Orca writes, such as ;TYPE: or ;WIPE_START.
+msgctxt "G-code window"
+msgid "Tags"
+msgstr ""
+
+#. TRN Show no comments.
+msgctxt "G-code window"
+msgid "None"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "Highlighting"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "Align parameters in columns"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "Color axis letters"
+msgstr ""
+
+#. TRN A coloured stripe left of each line, in the colour of its line type.
+msgctxt "G-code window"
+msgid "Line type stripe"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "Shade lines not yet printed"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "Reset"
+msgstr ""
+
+#. TRN The number of settings of the G-code window that differ from their defaults.
+#, possible-boost-format
+msgctxt "G-code window"
+msgid "Changed: %1%"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "Copy line"
+msgstr ""
+
+msgctxt "G-code window"
+msgid "Copy visible lines"
+msgstr ""
+
+msgid "Legend on the Left"
+msgstr ""
+
+msgid "Show the legend at the left edge of the Preview scene."
+msgstr ""
+
+msgid "G-code Window on the Left"
+msgstr ""
+
+msgid "Show the G-code window at the left edge of the Preview scene."
+msgstr ""
+
+msgid "G-code Window Above the Legend"
+msgstr ""
+
+msgid "When the legend and the G-code window are on the same side, show the G-code window first."
+msgstr ""
+
+msgid "Preview Layout"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Default view"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Realistic view"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Auto perspective"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Front right"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Front left"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Rear right"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Rear left"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Top front"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Top rear"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Top left"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Top right"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Bottom front"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Bottom rear"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Bottom left"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Bottom right"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Top front right"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Top front left"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Top rear right"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Top rear left"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Bottom front right"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Bottom front left"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Bottom rear right"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Bottom rear left"
+msgstr ""
+
+msgid "Orthographic"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Set current view as home"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Reset home view"
+msgstr ""
+
+#. TRN Why "Reset home view" is unavailable: no view was set as home.
+msgctxt "Navigator"
+msgid "No home view is set"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Home view"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Rotate left by 90°"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Rotate right by 90°"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Views"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Fit view"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Display"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Available only in Prepare"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Not available in Preview"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Not available in Assembly View"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Not available in Design"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Model"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Scene"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Navigator background"
+msgstr ""
+
+msgctxt "Navigator"
+msgid "Belt printer"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Actual"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Alt+click"
+msgstr ""
+
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Click"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Click hides or shows it, Alt+click shows only it."
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Collapse"
+msgstr ""
+
+#. TRN Under the only value of a mode in the preview legend, when its range is the visible layers.
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Constant in the visible layers, so there is no scale"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Constant in this file, so there is no scale"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Copy statistics"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend"
+msgid "Count: %1%"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend"
+msgid "Distance: %1%"
+msgstr ""
+
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Expand"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend"
+msgid "Extruder %1%"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend"
+msgid "Filament %1%"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend"
+msgid "Filament: %1%, %2%"
+msgstr ""
+
+
+
+
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend"
+msgid "Hidden: %1%"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Hide"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Hide all moves"
+msgstr ""
+
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Include travel"
+msgstr ""
+
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend"
+msgid "layer %1%"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Layers"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend"
+msgid "layers %1%–%2%"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Linear"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Line type"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Log"
+msgstr ""
+
+
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend modes"
+msgid "Categories"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend modes"
+msgid "Cooling and heat"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend modes"
+msgid "Extrusion"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend modes"
+msgid "Motion"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend modes"
+msgid "Time"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Moves"
+msgstr ""
+
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "on every move"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Planned"
+msgstr ""
+
+
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Show"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Show all line types"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend"
+msgid "Show only %1%"
+msgstr ""
+
+
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Time"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend"
+msgid "Time: %1%, %2% of the print"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend time"
+msgid "<1s"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend time"
+msgid "%1%d %2%h"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend time"
+msgid "%1%d%2%h"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend time"
+msgid "%1%h %2%m"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend time"
+msgid "%1%h%2%m"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend time"
+msgid "%1%m %2%s"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend time"
+msgid "%1%m%2%s"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend time"
+msgid "%1%s"
+msgstr ""
+
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend unit"
+msgid "%1% g"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend unit"
+msgid "%1% in"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend unit"
+msgid "%1% kg"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend unit"
+msgid "%1% m"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend unit"
+msgid "%1% mm"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+#, possible-boost-format
+msgctxt "Legend unit"
+msgid "%1% oz"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend unit"
+msgid "g"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend unit"
+msgid "oz"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Value"
+msgstr ""
+
+#. TRN The heading of the values column of the preview legend with their unit, as "Value, °C".
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Value, %1%"
+msgstr ""
+
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "weight · length"
+msgstr ""
+
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "cost"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, possible-boost-format
+msgctxt "Print summary"
+msgid "Model filament: %1%"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Normal"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Stealth"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, possible-boost-format
+msgctxt "Print summary"
+msgid "Prepare %1% · printing %2%"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, possible-boost-format
+msgctxt "Print summary"
+msgid "model %1%"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, possible-boost-format
+msgctxt "Print summary"
+msgid "support %1%"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, possible-boost-format
+msgctxt "Print summary"
+msgid "flush %1%"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, possible-boost-format
+msgctxt "Print summary"
+msgid "tower %1%"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, possible-boost-format
+msgctxt "Print summary"
+msgid "Filaments · %1%"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Changes"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Events"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Layer"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Time"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Go to its layer"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "How grouping works"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Profiles in this file"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, possible-boost-format
+msgctxt "Print summary"
+msgid "Filament %1%"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Expand"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Collapse"
+msgstr ""
+
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Print summary"
+msgstr ""
+
+#: src/slic3r/GUI/PreviewLayoutMenu.cpp
+msgid "Print Summary on the Left"
+msgstr ""
+
+#: src/slic3r/GUI/MainFrame.cpp
+msgid "Show the print summary at the left edge of the Preview scene."
+msgstr ""
+
+#: src/slic3r/GUI/PreviewLayoutMenu.cpp
+msgid "Choose where the legend, the print summary and the G-code window stand in the Preview scene."
+msgstr ""
+
+#: src/slic3r/GUI/MainFrame.cpp
+msgid "Show Legend"
+msgstr ""
+
+#: src/slic3r/GUI/MainFrame.cpp
+msgid "Show the legend in Preview scene."
+msgstr ""
+
+#: src/slic3r/GUI/MainFrame.cpp
+msgid "Show Print Summary"
+msgstr ""
+
+#: src/slic3r/GUI/MainFrame.cpp
+msgid "Show the print summary in Preview scene."
+msgstr ""
+
+#: src/slic3r/GUI/Shortcuts.cpp
+msgid "On/Off legend"
+msgstr ""
+
+#: src/slic3r/GUI/Shortcuts.cpp
+msgid "On/Off print summary"
+msgstr ""
+
+#. TRN How a filament's row of the preview legend or the print summary acts on a click.
+msgctxt "Legend"
+msgid "Click shows every filament again."
+msgstr ""
+
+msgctxt "Legend"
+msgid "Click keeps only this filament in colour."
+msgstr ""
+
+msgctxt "Legend unit"
+msgid "in"
+msgstr ""
+
+msgctxt "Legend unit"
+msgid "m"
+msgstr ""
+
+#. TRN A bar of the preview legend's histogram of layer times: how many layers took that long, and their share of the layers.
+#, boost-format
+msgid "%1% layer, %2% of the layers"
+msgid_plural "%1% layers, %2% of the layers"
+msgstr[0] ""
+msgstr[1] ""
+
+#. TRN A bar of the preview legend's histogram: the print time at these values, and its share.
+#, boost-format
+msgctxt "Legend"
+msgid "%1%, %2% of the time"
+msgstr ""
+
+msgctxt "Legend"
+msgid "Reset"
+msgstr ""
+
+#. TRN Under the preview legend's scale of layer times: the values kept in colour, and their share of the layers, as "77%".
+#, boost-format
+msgctxt "Legend"
+msgid "Highlight %1% · %2% of the layers"
+msgstr ""
+
+#. TRN Under the preview legend's scale: the values kept in colour, and their share of the print time, as "77%".
+#, boost-format
+msgctxt "Legend"
+msgid "Highlight %1% · %2% of the time"
+msgstr ""
+
+#. TRN A line on the preview legend's scale of flow: the filament's maximum volumetric speed from its profile.
+#, boost-format
+msgctxt "Legend"
+msgid "Max volumetric speed %1%"
+msgstr ""
+
+#. TRN A line on the preview legend's scale of layer times: the time under which a layer is slowed down for cooling.
+#, boost-format
+msgctxt "Legend"
+msgid "Layer time %1%"
+msgstr ""
+
+#. TRN The filament a limit of the profile belongs to, after the limit on the preview legend's scale, as "filament 2".
+#, boost-format
+msgctxt "Legend"
+msgid "filament %1%"
+msgstr ""
+
+#. TRN The filaments a limit of the profile belongs to, after the limit on the preview legend's scale, as "filaments 1, 3".
+#, boost-format
+msgctxt "Legend"
+msgid "filaments %1%"
+msgstr ""
+
+#. TRN A limit on the preview legend's scale and the filaments it belongs to, as "Max volumetric speed 12 · filaments 1, 3".
+#, boost-format
+msgctxt "Legend"
+msgid "%1% · %2%"
+msgstr ""
+
+#. TRN Under the preview legend's scale of flow. %1% is a share of the print time, as "23%".
+#, boost-format
+msgctxt "Legend"
+msgid "%1% of the print runs at the filament limit: speed there is capped by flow, not by the speed settings."
+msgstr ""
+
+#. TRN Under the preview legend's scale of flow, when no move reaches the filament's maximum volumetric speed from its profile.
+msgctxt "Legend"
+msgid "No part of the print reaches the filament limit."
+msgstr ""
+
+#, boost-format
+msgid "%1% layer is under %2% and was slowed down for cooling."
+msgid_plural "%1% layers are under %2% and were slowed down for cooling."
+msgstr[0] ""
+msgstr[1] ""
+
+#, boost-format
+msgid "%1% layer was slowed down for cooling."
+msgid_plural "%1% layers were slowed down for cooling."
+msgstr[0] ""
+msgstr[1] ""
+
+msgctxt "Legend"
+msgid "Time column"
+msgstr ""
+
+msgctxt "Legend"
+msgid "Share column"
+msgstr ""
+
+msgctxt "Legend"
+msgid "Weight column"
+msgstr ""
+
+msgctxt "Legend"
+msgid "Length column"
+msgstr ""
+
+#. TRN A setting of the preview legend: bars of the print time at each value above the bar of a scale.
+msgctxt "Legend"
+msgid "Histogram on scales"
+msgstr ""
+
+#. TRN A setting of the preview legend: a row under the mouse keeps its paths in colour in the 3D view and hides the rest.
+msgctxt "Legend"
+msgid "Highlight in 3D on hover"
+msgstr ""
+
+#. TRN A setting of the preview legend: what the scale of a mode spans, the whole print or the layers the slider shows.
+msgctxt "Legend"
+msgid "Scale range"
+msgstr ""
+
+msgctxt "Legend"
+msgid "Whole print"
+msgstr ""
+
+msgctxt "Legend"
+msgid "Visible layers"
+msgstr ""
+
+#. TRN A setting of the preview legend: the colours of the scales; perceptual ones read evenly, also to colour-blind eyes.
+msgctxt "Legend"
+msgid "Palette"
+msgstr ""
+
+msgctxt "Legend"
+msgid "Classic"
+msgstr ""
+
+msgctxt "Legend"
+msgid "Perceptual"
+msgstr ""
+
+#. TRN The number of settings of the preview legend that differ from their defaults.
+#, boost-format
+msgctxt "Legend"
+msgid "Changed: %1%"
+msgstr ""
+
+#. TRN Why the last column of the preview legend's line types cannot be turned off.
+msgctxt "Legend"
+msgid "The line types keep at least one column"
+msgstr ""
+
+msgctxt "Legend"
+msgid "Legend settings"
+msgstr ""
+
+msgctxt "Legend"
+msgid "From"
+msgstr ""
+
+msgctxt "Legend"
+msgid "To"
+msgstr ""
+
+msgctxt "Legend"
+msgid "Apply"
+msgstr ""
+
+#. TRN The title of the box with the exact values the preview legend keeps in colour.
+msgctxt "Legend"
+msgid "Highlight range"
+msgstr ""
+
+msgctxt "Legend"
+msgid "Click shows them all again."
+msgstr ""
+
+#. TRN Why the preview legend's count of hidden line types cannot be pressed.
+msgctxt "Legend"
+msgid "Nothing is hidden"
 msgstr ""
