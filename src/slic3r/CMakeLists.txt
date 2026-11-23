@@ -7,6 +7,10 @@ include(PrecompiledHeader)
 set(SLIC3R_CANVAS_PANEL_SOURCES
     GUI/GCodePanelText.cpp
     GUI/GCodePanelText.hpp
+    GUI/LegendAxis.cpp
+    GUI/LegendAxis.hpp
+    GUI/LegendText.cpp
+    GUI/LegendText.hpp
     GUI/Navigator3D.cpp
     GUI/Navigator3D.hpp
     GUI/NavigatorGeometry.cpp
