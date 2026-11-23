@@ -1672,6 +1672,7 @@ TEST_CASE("a plugin's calls are refused once it unloads, before the block comes,
 {
     Harness           h;
     std::atomic<bool> loaded{true};
+    std::atomic<bool> started{false};
     std::atomic<bool> release{false};
     std::atomic<int>  looks{0};
     ToolResult        inline_child;
@@ -1683,6 +1684,7 @@ TEST_CASE("a plugin's calls are refused once it unloads, before the block comes,
     h.registry.add(look);
     h.registry.add(tool("make", GuardClass::Mutate, [](const json&, ToolContext&) { return ToolResult::ok(); }));
     h.registry.add(tool("slow", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        started = true;
         while (!release)
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
         inline_child = ctx.call_child("look", json::object());
@@ -1691,8 +1693,10 @@ TEST_CASE("a plugin's calls are refused once it unloads, before the block comes,
     }));
     h.timing.soft_budget = std::chrono::milliseconds(10000);
     h.start();
+    // A call that is running when the plugin unloads. Its job is listed before its handler starts, and an unload
+    // between the two refuses the call itself, so the test waits for its handler.
     std::thread running([&] { h.core->call_plugin(*h.registry.find("slow"), json::object(), "measure"); });
-    while (h.jobs.running_owned_by("measure").empty())
+    while (!started)
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
     loaded = false;

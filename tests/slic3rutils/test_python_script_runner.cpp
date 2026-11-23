@@ -973,7 +973,7 @@ TEST_CASE("a tool call in flight when the run ends finishes before the run does"
     if (!harness.initialized)
         SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
 
-    SharedModule shared("_late", {"in_call"});
+    SharedModule shared("_late", {"in_call", "done"});
     FakeBridge   bridge;
     bridge.hook = [&](const std::string&, const json&) -> std::optional<json> {
         shared.set("in_call");
@@ -983,10 +983,12 @@ TEST_CASE("a tool call in flight when the run ends finishes before the run does"
     ScopedToolBridge bound(bridge);
     const auto       start = std::chrono::steady_clock::now();
     REQUIRE(run("import orca, threading, _late\n"
-                "def work(orca=orca, late=_late):\n    late.result = orca.host.tools.call('app_state')\n"
+                "def work(orca=orca, late=_late):\n    late.result = orca.host.tools.call('app_state')\n    late.done.set()\n"
                 "threading.Thread(target=work, daemon=True).start()\n_late.in_call.wait(10)\n")
                 .status == "finished");
     CHECK(std::chrono::steady_clock::now() - start >= std::chrono::seconds(1));
+    // The run waits for the call, not for the daemon thread that made it, which keeps the result once it runs again.
+    REQUIRE(shared.wait("done", 5));
     CHECK(shared.get("result") == json{{"ready", true}});
 }
 
