@@ -7,6 +7,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "libslic3r/Config.hpp"
@@ -125,6 +126,15 @@ static GapFillPAMarks gap_fill_pa_marks(const std::string &gcode)
     return marks;
 }
 
+// A plate whose width tapers along its length, so the classic gap fill between its two walls changes width along a single run and is split into one path per width change. A plate of constant width would leave a gap fill run made of a single path, which exercises nothing.
+static TriangleMesh tapered_plate(double length, double narrow_width, double wide_width, double height)
+{
+    indexed_triangle_set plate = its_make_cube(length, 1., height);
+    for (Vec3f &vertex : plate.vertices)
+        vertex.y() *= float(vertex.x() > 0.f ? wide_width : narrow_width);
+    return TriangleMesh(std::move(plate));
+}
+
 TEST_CASE("Adaptive pressure advance changes once at the start of each gap fill run", "[AdaptivePressureAdvance]")
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
@@ -145,8 +155,9 @@ TEST_CASE("Adaptive pressure advance changes once at the start of each gap fill 
         { "retraction_length",               "0" },
         { "z_hop",                           "0" },
     });
-    // A 1.9mm plate leaves classic gap fill between its two walls, split into one path per width change along the run.
-    const GapFillPAMarks within_features_off = gap_fill_pa_marks(slice({ make_cube(20., 1.9, 5.) }, config));
+    // A 20mm plate tapering from 1.5mm to 2.1mm wide leaves classic gap fill between its two walls, split into one path per width change along a run.
+    const TriangleMesh plate = tapered_plate(20., 1.5, 2.1, 5.);
+    const GapFillPAMarks within_features_off = gap_fill_pa_marks(slice({ plate }, config));
     INFO("gap fill changes: " << within_features_off.changes << ", runs: " << within_features_off.runs);
     REQUIRE(within_features_off.runs > 0);
     // A width change inside a gap fill run keeps the pressure advance of the run.
@@ -154,8 +165,10 @@ TEST_CASE("Adaptive pressure advance changes once at the start of each gap fill 
 
     // Within-features adaptation evaluates the pressure advance on every width path instead.
     config.set_deserialize_strict({ { "adaptive_pressure_advance_overhangs", "1" } });
-    const GapFillPAMarks within_features_on = gap_fill_pa_marks(slice({ make_cube(20., 1.9, 5.) }, config));
-    INFO("gap fill changes within features: " << within_features_on.changes);
+    const GapFillPAMarks within_features_on = gap_fill_pa_marks(slice({ plate }, config));
+    INFO("gap fill changes within features: " << within_features_on.changes << ", runs: " << within_features_on.runs);
+    // Both slices have the same geometry, so within-features adaptation must now change PA inside the split runs too.
+    REQUIRE(within_features_on.runs == within_features_off.runs);
     CHECK(within_features_on.changes > within_features_on.runs);
 }
 
