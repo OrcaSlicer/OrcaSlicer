@@ -142,8 +142,8 @@ public:
         m_stream->write(net::buffer(bytes), ec);
     }
 
-    // Force-close the live client socket; the worker's read returns an error and
-    // the accept loop picks up the client's reconnect.
+    // Shut down the live socket to wake the worker's read. The worker closes it
+    // after the read returns, then the accept loop picks up the reconnect.
     void drop_client()
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -373,14 +373,9 @@ private:
         m_stream_ready = false;
         boost::system::error_code ec;
         auto&                     socket = beast::get_lowest_layer(*m_stream).socket();
-        if (socket.cancel(ec))
-            return;
-        // shutdown() before close() is what actually wakes a blocking read on the
-        // worker thread; close() alone does not on POSIX.
-        if (socket.shutdown(tcp::socket::shutdown_both, ec))
-            return;
-        if (socket.close(ec))
-            return;
+        // Keep the descriptor open until the worker has finished its read.
+        // Closing it from this thread can leave that read blocked on macOS.
+        socket.shutdown(tcp::socket::shutdown_both, ec);
     }
 
     const bool                                   m_refuse_auth;
