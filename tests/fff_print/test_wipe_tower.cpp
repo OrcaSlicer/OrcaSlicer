@@ -1339,3 +1339,252 @@ TEST_CASE("Smooth timelapse prints each tower layer's wall once when a layer joi
     slice_precise_z_pair(config, "type1", 10.004, print);
     CHECK(count_joined_layers(print) > 0);
 }
+
+// A tool change on the wipe tower travels to the tower with a Z hop, and which hop it is depends on
+// the writer tracking the head: GCode.cpp:1721 resolves the configured z_hop_types only while
+// is_current_position_clear() holds, and the per-layer timelapse block is inserted just before the
+// tower tool change (GCode.cpp:7561, then :7564). At the tower, GCode.cpp:1716-1735 emits the lift, an
+// optional gap travel, the travel to the tower start point, and an unretract that moves in E only,
+// before the region tags. A spiral lift reaches the writer as a G2/G3 arc (arc fitting on) or as
+// linear XY+Z segments (arc fitting off); both merge the lift into the travel, which needs a known
+// position. A standing hop is a Z-only move followed by a plain XY travel.
+
+namespace {
+
+// Tower entries counted by the shape of the hop they were entered with.
+struct TowerHops {
+    size_t entries   = 0;
+    size_t arc       = 0; // arc word carrying Z: the spiral lift, arc fitting on
+    size_t merged    = 0; // linear move carrying XY and Z: slope lift, or spiral segments
+    size_t z_then_xy = 0; // Z-only move, then an XY travel: the standing hop
+    size_t plain_xy  = 0; // XY travel with no Z: lifted already, or no lift requested
+    size_t no_move   = 0; // no toolhead move in front of the tag
+
+    size_t lifted() const { return arc + merged + z_then_xy; }
+    size_t moved() const { return entries - no_move; }
+};
+
+// The coordinate words of a G0-G3 line.
+struct MoveWords {
+    bool is_move = false;
+    bool arc     = false;
+    bool xy      = false;
+    bool z       = false;
+    bool e       = false;
+};
+
+MoveWords move_words(const std::string & line)
+{
+    MoveWords m;
+    if (line.size() < 2 || line[0] != 'G' || line[1] < '0' || line[1] > '3')
+        return m;
+    m.is_move = true;
+    m.arc     = line[1] == '2' || line[1] == '3';
+    std::istringstream words(line);
+    std::string        w;
+    words >> w;
+    while (words >> w) {
+        if (w.empty())
+            continue;
+        if (w[0] == 'X' || w[0] == 'Y')
+            m.xy = true;
+        else if (w[0] == 'Z')
+            m.z = true;
+        else if (w[0] == 'E')
+            m.e = true;
+    }
+    return m;
+}
+
+// Classify the moves in front of a tower entry. Walking back: an E-only move is the unretract, which
+// moves no toolhead; a move that extrudes while moving in XY belongs to the previous block and ends
+// the window; the lift sits in front of the entry travel, so both are read together.
+void count_hop(TowerHops & hops, const std::vector<std::string> & window)
+{
+    bool arc_z  = false;
+    bool z_only = false;
+    bool xy     = false;
+    bool xyz    = false;
+    for (auto it = window.rbegin(); it != window.rend(); ++it) {
+        const MoveWords m = move_words(*it);
+        if (!m.is_move)
+            continue;
+        if (m.e && m.xy)
+            break;
+        if (m.e)
+            continue;
+        if (m.arc && m.z)
+            arc_z = true;
+        if (m.xy && m.z)
+            xyz = true;
+        else if (m.xy)
+            xy = true;
+        else if (m.z)
+            z_only = true;
+    }
+    ++hops.entries;
+    if (arc_z)
+        ++hops.arc;
+    else if (z_only && (xy || xyz))
+        ++hops.z_then_xy;
+    else if (xyz)
+        ++hops.merged;
+    else if (xy)
+        ++hops.plain_xy;
+    else
+        ++hops.no_move;
+}
+
+const std::string & tower_start_tag() { return GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_Start); }
+
+// Count non-overlapping occurrences of `needle`.
+size_t count_occurrences(const std::string & haystack, const std::string & needle)
+{
+    size_t n = 0;
+    for (size_t p = haystack.find(needle); p != std::string::npos; p = haystack.find(needle, p + needle.size()))
+        ++n;
+    return n;
+}
+
+TowerHops tower_hops(const std::string & gcode)
+{
+    const std::string &      tag = tower_start_tag();
+    TowerHops                hops;
+    std::vector<std::string> window;
+    std::istringstream       in(gcode);
+    std::string              line;
+    while (std::getline(in, line)) {
+        if (line.find(tag) != std::string::npos) {
+            count_hop(hops, window);
+            window.clear();
+            continue;
+        }
+        line.erase(std::find(line.begin(), line.end(), ';'), line.end());
+        if (line.empty() || (line.front() != 'G' && line.front() != 'M'))
+            continue;
+        window.push_back(line);
+        if (window.size() > 40)
+            window.erase(window.begin());
+    }
+    return hops;
+}
+
+// G-code in the order the tower path emits it (GCode.cpp:1716-1735): the lift, the entry travel, the
+// unretract, the tag. One entry per hop shape, so every bucket of the classifier is exercised.
+std::string tower_hop_fixture()
+{
+    const std::string & tag       = tower_start_tag();
+    const std::string   unretract = "G1 E0.8 F2700 ; unretract\n";
+    const std::string   travel    = "G1 X50 Y50 F12000 ; travel to a Wipe Tower\n";
+
+    std::string out;
+    out += "G1 Z0.6 F1200 ; normal lift Z\n" + unretract + travel + tag + "\n";
+    out += "G3 Z0.6 I0.08 J0 P1 F1200 ; spiral lift Z\n" + unretract + travel + tag + "\n";
+    out += "G1 X49.7 Y50.1 Z0.6 F1200 ; slope lift Z\n" + unretract + travel + tag + "\n";
+    out += unretract + travel + tag + "\n";
+    out += "M1002 judge_flag timelapse_record_flag\n" + tag + "\n";
+    return out;
+}
+
+// Walls with filament 2, infill with filament 1: the head returns to the prime tower on every layer.
+// Spiral lift with a finite slope, so a known head position merges the lift into the entry travel and
+// an unknown one falls back to the standing hop; the two shapes are how the tests read the flag.
+DynamicPrintConfig tower_hop_config(const std::string & time_lapse_gcode)
+{
+    return multifilament_config(2, {
+        { "sparse_infill_filament_id",  1 },
+        { "internal_solid_filament_id", 1 },
+        { "top_surface_filament_id",    1 },
+        { "bottom_surface_filament_id", 1 },
+        { "outer_wall_filament_id",     2 },
+        { "inner_wall_filament_id",     2 },
+        { "enable_prime_tower",         true },
+        { "wipe_tower_x",               50 }, // inside the 200x200 test bed
+        { "wipe_tower_y",               50 }, // (the default y, 220, is not)
+        { "layer_height",               0.3 },
+        { "z_hop",                      0.4 },
+        { "travel_slope",               0.4 }, // a zero slope has no finite spiral radius
+        { "z_hop_types",                "Spiral Lift" },
+        { "reduce_crossing_wall",       false },
+        { "time_lapse_gcode",           time_lapse_gcode },
+    });
+}
+
+struct TowerSlice {
+    TowerHops hops;
+    size_t    blocks = 0; // per-layer blocks found in the g-code
+    size_t    tags   = 0; // tower entries the tags mark
+};
+
+// The tower of a multifilament print, sliced with a machine that inserts the per-layer block.
+TowerSlice slice_tower(const std::string & time_lapse_gcode, const std::string & marker)
+{
+    const DynamicPrintConfig config = tower_hop_config(time_lapse_gcode);
+    Print                    print;
+    Model                    model;
+    init_print({ cube(10) }, print, model, config);
+    print.apply(model, config);
+    print.is_BBL_printer() = true;
+
+    const std::string g = gcode(print);
+    TowerSlice        out;
+    out.hops   = tower_hops(g);
+    out.blocks = count_occurrences(g, marker);
+    out.tags   = count_occurrences(g, tower_start_tag());
+    return out;
+}
+
+std::string tower_hop_info(const TowerSlice & slice)
+{
+    std::ostringstream o;
+    o << "blocks=" << slice.blocks << " tags=" << slice.tags << " entries=" << slice.hops.entries
+      << " arc=" << slice.hops.arc << " merged=" << slice.hops.merged << " z_then_xy=" << slice.hops.z_then_xy
+      << " plain_xy=" << slice.hops.plain_xy << " no_move=" << slice.hops.no_move;
+    return o.str();
+}
+
+} // namespace
+
+TEST_CASE("The tower hop probe separates a merged lift from a standing hop", "[WipeTower][GCode]")
+{
+    // The shapes GCode.cpp:1716-1735 emits, read through the same classifier the slice tests use.
+    const TowerHops hops = tower_hops(tower_hop_fixture());
+    INFO("entries=" << hops.entries << " arc=" << hops.arc << " merged=" << hops.merged
+         << " z_then_xy=" << hops.z_then_xy << " plain_xy=" << hops.plain_xy << " no_move=" << hops.no_move);
+    REQUIRE(hops.entries == 5);
+    CHECK(hops.arc == 1);
+    CHECK(hops.merged == 1);
+    CHECK(hops.z_then_xy == 1);
+    CHECK(hops.plain_xy == 1);
+    CHECK(hops.no_move == 1);
+    CHECK(hops.lifted() + hops.plain_xy + hops.no_move == hops.entries);
+}
+
+TEST_CASE("A tower tool change is entered with a standing hop for an inert and for a moving per-layer block", "[WipeTower][GCode]")
+{
+    // The tower hop reads the writer position (GCode.cpp:1721) and the per-layer block is inserted just
+    // before the tower tool change, so this consumer is downstream of the insertion. It is still entered
+    // with a standing hop on both blocks: the tool-change path clears the position for the custom
+    // change_filament_gcode it inserts (GCode.cpp:1464), and that clear is unconditional and upstream of
+    // the lift choice. Pinning the shape here keeps a future change to either clear visible.
+    const TowerSlice inert =
+        slice_tower("; take a photo\nM1002 judge_flag timelapse_record_flag\nM400 P300\n", "M400 P300");
+    const TowerSlice moved =
+        slice_tower("; photo move\nG1 X0 Y0 F18000\nM400 P300\nG1 X0 F18000\n", "M400 P300");
+    INFO("inert: " << tower_hop_info(inert));
+    INFO("moved: " << tower_hop_info(moved));
+    REQUIRE(inert.blocks >= 3);   // the block really is inserted on the layers
+    REQUIRE(moved.blocks >= 3);
+    REQUIRE(inert.hops.moved() >= 3);
+    // The classifier is total, and it sees the Z motion of a real tower hop.
+    CHECK(inert.hops.arc + inert.hops.merged + inert.hops.z_then_xy + inert.hops.plain_xy + inert.hops.no_move ==
+          inert.hops.entries);
+    CHECK(inert.hops.z_then_xy > 0);
+    // The per-layer block decides the lift type only through the position, and the position is cleared
+    // upstream here: both blocks travel into the tower the same way.
+    CHECK(inert.hops.entries   == moved.hops.entries);
+    CHECK(inert.hops.arc       == moved.hops.arc);
+    CHECK(inert.hops.merged    == moved.hops.merged);
+    CHECK(inert.hops.z_then_xy == moved.hops.z_then_xy);
+    CHECK(inert.hops.plain_xy  == moved.hops.plain_xy);
+}

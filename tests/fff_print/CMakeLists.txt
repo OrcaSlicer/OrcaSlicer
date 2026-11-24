@@ -5,7 +5,6 @@ add_executable(${_TEST_NAME}_tests
 	test_helpers.hpp
 	test_adaptive_pressure_advance.cpp
 	test_avoid_crossing_walls.cpp
-	test_wipe_tower_hop.cpp
 	test_bridge.cpp
 	test_calib.cpp
 	test_cooling.cpp
