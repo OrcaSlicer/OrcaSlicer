@@ -3064,6 +3064,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
         it = this->find_preset_renamed(original_name);
         found = it != m_presets.end();
     }
+    const bool found_by_name = found;
 
     t_config_option_keys keys;
     DynamicPrintConfig cfg = Preset::load_external_config(m_type, this->default_preset_for(combined_config).config, combined_config, different_settings_list,
@@ -3083,9 +3084,11 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
             }
             return nullptr;
         }, &keys);
-    // cfg is built over the default preset, so a config with no compatible_printers would otherwise reset the named process's list to All.
-    if (m_type == Preset::TYPE_PRINT && found && !combined_config.has("compatible_printers"))
-        keys.erase(std::remove(keys.begin(), keys.end(), "compatible_printers"), keys.end());
+    // A project stores no filament compatible lists, and a process's only as print_compatible_printers; without one, cfg's lists come from the default or parent preset and are not applied over an existing preset.
+    if (m_type == Preset::TYPE_FILAMENT || (m_type == Preset::TYPE_PRINT && found_by_name && !combined_config.has("compatible_printers")))
+        keys.erase(std::remove_if(keys.begin(), keys.end(),
+                                  [](const std::string &key) { return key == "compatible_printers" || key == "compatible_prints"; }),
+                   keys.end());
     std::string                 &inherits = Preset::inherits(cfg);
 
     //BBS: add config related logs
@@ -3186,6 +3189,9 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
             // There is a profile with the same name already loaded. Should we update the "inherits" field?
             inherits = it->vendor ? it->name : it->inherits();
         }
+        // The new preset built from cfg copies compatible_printers and compatible_prints from the filament the project names, since the project does not store them.
+        if (m_type == Preset::TYPE_FILAMENT && found_by_name)
+            cfg.apply_only(it->config, {"compatible_printers", "compatible_prints"});
     }
 
     // The external preset does not match an internal preset, load the external preset.
