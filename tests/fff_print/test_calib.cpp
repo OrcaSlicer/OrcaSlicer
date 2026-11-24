@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <catch2/catch_message.hpp>
@@ -14,7 +15,10 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "libslic3r/Config.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/Flow.hpp"
+#include "libslic3r/Layer.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -146,4 +150,42 @@ TEST_CASE("The PA line test prints with the speed and extrusion of the filament 
     }
     for (const Move &move : box)
         CHECK_THAT(move.e_per_mm, Catch::Matchers::WithinRel(e_per_mm, 0.005));
+}
+
+TEST_CASE("Ironing flow calibration grows the ironing flow along the strip", "[Calib][IroningFlow]")
+{
+    Print print;
+    Model model;
+    DynamicPrintConfig config = Test::multifilament_config(1, {
+        {"enable_prime_tower", 0},
+        {"skirt_loops", 0},
+        {"brim_type", "no_brim"},
+        {"layer_height", 0.2},
+        {"initial_layer_print_height", 0.2},
+        {"ironing_type", "top"},
+        {"ironing_pattern", "rectilinear"},
+    });
+    Test::init_print({Test::cube(60)}, print, model, config);
+    Calib_Params params;
+    params.mode  = CalibMode::Calib_Ironing_Flow;
+    params.start = 10.;
+    params.end   = 60.;
+    params.step  = 50.;
+    print.set_calib_params(params);
+    print.process();
+
+    // Ironing lines of the top layer: their height follows their position between 5 mm in from either end.
+    const PrintObject &object = *print.objects().front();
+    std::vector<std::pair<double, double>> samples; // x [mm], height [mm]
+    for (const LayerRegion *region : object.layers().back()->regions())
+        for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+            if (entity->role() == erIroning)
+                if (const auto *path = dynamic_cast<const ExtrusionPath *>(entity))
+                    samples.emplace_back(unscale<double>(path->polyline.points.front().x()), double(path->height));
+    REQUIRE(samples.size() > 10);
+    std::sort(samples.begin(), samples.end());
+    // Never decreasing from left to right, and the ends differ by the ratio of the flows.
+    for (size_t i = 1; i < samples.size(); ++i)
+        CHECK(samples[i].second >= samples[i - 1].second - 1e-6);
+    CHECK_THAT(samples.back().second / samples.front().second, Catch::Matchers::WithinRel(params.end / params.start, 0.05));
 }

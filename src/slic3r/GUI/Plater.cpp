@@ -15,6 +15,7 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <climits>
 #include <array>
 #include <boost/filesystem/fstream.hpp>
@@ -18239,6 +18240,75 @@ void Plater::calib_retraction(const Calib_Params& params)
     if (height < obj_bb.size().z()) {
         cut_horizontal(0, 0, height, ModelObjectCutAttribute::KeepLower);
     }
+
+    _calib_assign_filament(params.filament_id);
+    _calib_apply_belt_mode();
+    p->background_process.fff_print()->set_calib_params(params);
+}
+
+// Name of the filament preset without its printer suffix, written on the ironing flow test.
+static std::string ironing_flow_filament_name(size_t filament_idx)
+{
+    PresetBundle *bundle   = wxGetApp().preset_bundle;
+    const Preset *filament = filament_idx < bundle->filament_presets.size() ? bundle->filaments.find_preset(bundle->filament_presets[filament_idx]) : nullptr;
+    if (!filament)
+        return {};
+    std::string name = filament->name.substr(0, filament->name.find('@'));
+    boost::algorithm::trim(name);
+    return name;
+}
+
+void Plater::calib_ironing_flow(const Calib_Params& params)
+{
+    if (params.mode != CalibMode::Calib_Ironing_Flow)
+        return;
+
+    // The band plus 5 mm at each end.
+    const double length = params.step + 10.;
+    {
+        const auto        &printer_config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        const BoundingBoxf bed            = get_extents(printer_config.option<ConfigOptionPoints>("printable_area")->values);
+        if (length > bed.size().x() - 10.) {
+            MessageDialog dlg(this, wxString::Format(_L("A band %.0f mm long makes a test %.0f mm long, which does not fit on the bed. Use at most %.0f mm."),
+                                                     params.step, length, bed.size().x() - 20.),
+                              _L("Warning"), wxOK | wxICON_WARNING);
+            dlg.ShowModal();
+            return;
+        }
+    }
+
+    const auto calib_ironing_flow_name = _L("Ironing flow test");
+    new_project(false, false, calib_ironing_flow_name);
+    wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+    if (!_calib_select_filament(params.filament_id))
+        return;
+
+    auto print_config   = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
+
+    // 2 base layers, 2 layers of marks and text, 1 ironed top layer.
+    constexpr double calib_layer_height = 0.12;
+    print_config->set_key_value("layer_height", new ConfigOptionFloat(calib_layer_height));
+    print_config->set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
+    const double first_layer_height = print_config->option<ConfigOptionFloat>("initial_layer_print_height")->value;
+    const double nozzle_diameter    = printer_config->option<ConfigOptionFloats>("nozzle_diameter")->get_at(params.extruder_id);
+
+    // The strip, the base under it and the labels (marks, flows and the filament name), as separate parts of one object.
+    IroningFlowCalibMeshes meshes = ironing_flow_calib_meshes(params.start, params.end, params.step,
+        ironing_flow_filament_name(size_t(std::max(params.filament_id, 0))), nozzle_diameter,
+        first_layer_height + calib_layer_height, first_layer_height + 3. * calib_layer_height, first_layer_height + 4. * calib_layer_height);
+    const std::array<TriangleMesh, 3> parts = { TriangleMesh(std::move(meshes.strip)), TriangleMesh(std::move(meshes.base)), TriangleMesh(std::move(meshes.labels)) };
+    // TRN: Parts of the ironing flow test: the ironed strip, the base under it, and the flow marks, their labels and the filament name
+    sidebar().obj_list()->load_mesh_object({ { &parts[0], _L("Strip") }, { &parts[1], _L("Base") }, { &parts[2], _L("Labels") } },
+                                           _L("Ironing flow test"), true);
+    auto obj = model().objects[0];
+    obj->config.set_key_value("ironing_type", new ConfigOptionEnum<IroningType>(IroningType::TopmostOnly));
+    obj->config.set_key_value("ironing_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
+    obj->config.set_key_value("ironing_flow", new ConfigOptionPercent(params.start));
+
+    changed_objects({ 0 });
+    wxGetApp().get_tab(Preset::TYPE_PRINT)->update_dirty();
+    wxGetApp().get_tab(Preset::TYPE_PRINT)->reload_config();
 
     _calib_assign_filament(params.filament_id);
     _calib_apply_belt_mode();

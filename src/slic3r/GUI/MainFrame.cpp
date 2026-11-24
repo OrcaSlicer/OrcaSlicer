@@ -3739,6 +3739,11 @@ void MainFrame::init_menubar_as_editor()
         [this](wxCommandEvent&) { run_calibration(CalibKind::VFA); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
+    // Ironing flow
+    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Ironing flow"), _L("Ironing flow test"),
+        [this](wxCommandEvent&) { run_calibration(CalibKind::IroningFlow); }, "", nullptr,
+        [this]() {return m_plater->is_view3D_shown();; }, this);
+
     // help
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Calibration Guide"), _L("Calibration Guide"), [](wxCommandEvent &)
                      { wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/calibration_guide", wxBROWSER_NEW_WINDOW); }, "", nullptr, [this]()
@@ -3843,6 +3848,10 @@ void MainFrame::init_menubar_as_editor()
     // VFA
     append_menu_item(calib_menu, wxID_ANY, _L("VFA"), _L("VFA"),
         [this](wxCommandEvent&) { run_calibration(CalibKind::VFA); }, "", nullptr,
+        [this]() {return m_plater->is_view3D_shown();; }, this);
+    // Ironing flow
+    append_menu_item(calib_menu, wxID_ANY, _L("Ironing flow"), _L("Ironing flow test"),
+        [this](wxCommandEvent&) { run_calibration(CalibKind::IroningFlow); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     // help
     append_menu_item(calib_menu, wxID_ANY, _L("Calibration Guide"), _L("Calibration Guide"),
@@ -4768,6 +4777,12 @@ void MainFrame::run_calibration(CalibKind calib_kind)
         if (!m_vfa_test_dlg)
             m_vfa_test_dlg = new VFA_Test_Dlg((wxWindow*) this, wxID_ANY, m_plater);
         m_vfa_test_dlg->ShowModal();
+        break;
+    }
+    case CalibKind::IroningFlow: {
+        if (!m_ironing_flow_dlg)
+            m_ironing_flow_dlg = new IroningFlow_Test_Dlg((wxWindow*) this, wxID_ANY, m_plater);
+        m_ironing_flow_dlg->ShowModal();
         break;
     }
     }

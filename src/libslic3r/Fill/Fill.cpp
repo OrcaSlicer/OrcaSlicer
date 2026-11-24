@@ -28,6 +28,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/calib.hpp"
 #include "ExtrusionEntity.hpp"
 #include "Fill.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
@@ -1723,6 +1724,38 @@ int Layer::choose_ironing_extruder(const PrintRegionConfig &cfg,
     return cfg.top_surface_filament_id;
 }
 
+// Ironing flow calibration: the flow grows linearly from calib.start % at x_start to calib.end % at x_end, constant before and after.
+static void extrusion_entities_append_calib_ironing_paths(ExtrusionEntitiesPtr &dst, const Polylines &polylines, const Calib_Params &calib,
+	coord_t x_start, coord_t x_end, double height_per_percent, double nozzle_dmr)
+{
+	const double max_piece_x = scale_(0.5);
+	for (const Polyline &polyline : polylines) {
+		if (! polyline.is_valid())
+			continue;
+		ExtrusionPath *path         = nullptr;
+		double         path_percent = 0.;
+		for (size_t i = 1; i < polyline.points.size(); ++ i) {
+			const Vec2d a        = polyline.points[i - 1].cast<double>();
+			const Vec2d b        = polyline.points[i].cast<double>();
+			const int   n_pieces = std::max(1, int(std::ceil(std::abs(b.x() - a.x()) / max_piece_x)));
+			for (int k = 0; k < n_pieces; ++ k) {
+				const Point  p0(Vec2d(a + (b - a) * (double(k) / n_pieces)));
+				const Point  p1(Vec2d(a + (b - a) * (double(k + 1) / n_pieces)));
+				const double t       = std::clamp((0.5 * double(p0.x() + p1.x()) - x_start) / double(x_end - x_start), 0., 1.);
+				const double percent = calib.start + (calib.end - calib.start) * t;
+				if (path == nullptr || percent != path_percent) {
+					const double height = height_per_percent * percent;
+					const float  width  = Flow::rounded_rectangle_extrusion_width_from_spacing(float(nozzle_dmr), float(height));
+					dst.push_back(path = new ExtrusionPath(erIroning, nozzle_dmr * height, width, float(height)));
+					path->polyline.points.push_back(p0);
+					path_percent = percent;
+				}
+				path->polyline.points.push_back(p1);
+			}
+		}
+	}
+}
+
 // Create ironing extrusions over top surfaces.
 void Layer::make_ironing()
 {
@@ -1788,6 +1821,12 @@ void Layer::make_ironing()
 	std::vector<IroningParams> by_extruder;
     double default_layer_height = this->object()->config().layer_height;
 
+	// Ironing flow calibration: from 5 mm after the left edge to 5 mm before the right edge.
+	const Calib_Params &calib              = this->object()->print()->calib_params();
+	const bool          calib_ironing_flow = calib.mode == CalibMode::Calib_Ironing_Flow;
+	const coord_t       calib_x_start      = this->object()->bounding_box().min.x() + coord_t(scale_(5.));
+	const coord_t       calib_x_end        = this->object()->bounding_box().max.x() - coord_t(scale_(5.));
+
 	for (LayerRegion *layerm : m_regions)
 		if (! layerm->slices.empty()) {
 			IroningParams ironing_params;
@@ -1824,6 +1863,9 @@ void Layer::make_ironing()
                 }
                 ironing_params.angle      = ironing_angle;
                 ironing_params.fixed_angle = config.ironing_angle_fixed || top_layer_direction_set || !config.solid_infill_rotate_template.value.empty();
+                if (calib_ironing_flow)
+                    // Lines along Y: Fill::_infill_direction() adds 90 degrees. No layer_id is set, so it does not alternate.
+                    ironing_params.angle = M_PI / 2.;
 				ironing_params.pattern      = config.ironing_pattern;
 				ironing_params.layerm 		= layerm;
 				by_extruder.emplace_back(ironing_params);
@@ -1837,7 +1879,7 @@ void Layer::make_ironing()
     InfillPattern         f_pattern = ipRectilinear;
     std::unique_ptr<Fill> f         = std::unique_ptr<Fill>(Fill::new_from_type(f_pattern));
     f->set_bounding_box(this->object()->bounding_box());
-    f->layer_id = this->id();
+    f->layer_id = calib_ironing_flow ? size_t(-1) : this->id();
     f->z        = this->print_z;
     f->overlap  = 0;
 	for (size_t i = 0; i < by_extruder.size();) {
@@ -1850,7 +1892,7 @@ void Layer::make_ironing()
             f_pattern               = ironing_params.pattern;
             f = std::unique_ptr<Fill>(Fill::new_from_type(f_pattern));
             f->set_bounding_box(this->object()->bounding_box());
-            f->layer_id = this->id();
+            f->layer_id = calib_ironing_flow ? size_t(-1) : this->id();
             f->z        = this->print_z;
             f->overlap  = 0;
 		}
@@ -1925,6 +1967,7 @@ void Layer::make_ironing()
 		double  extrusion_height = ironing_params.height * f->spacing / nozzle_dmr;
 		float  extrusion_width  = Flow::rounded_rectangle_extrusion_width_from_spacing(float(nozzle_dmr), float(extrusion_height));
 		double flow_mm3_per_mm = nozzle_dmr * extrusion_height;
+		const double calib_height_per_percent = default_layer_height * 0.01 * f->spacing / nozzle_dmr;
         Surface surface_fill(stTop, ExPolygon());
         for (ExPolygon &expoly : ironing_areas) {
 			surface_fill.expolygon = std::move(expoly);
@@ -1939,6 +1982,16 @@ void Layer::make_ironing()
 		        ironing_params.layerm->fills.entities.push_back(eec = new ExtrusionEntityCollection());
 		        // Don't sort the ironing infill lines as they are monotonicly ordered.
 				eec->no_sort = true;
+				if (calib_ironing_flow) {
+					// From left to right.
+					for (Polyline &polyline : polylines)
+						if (polyline.first_point().x() > polyline.last_point().x())
+							polyline.reverse();
+					std::sort(polylines.begin(), polylines.end(),
+						[](const Polyline &a, const Polyline &b) { return get_extents(a).min.x() < get_extents(b).min.x(); });
+					extrusion_entities_append_calib_ironing_paths(eec->entities, polylines, calib, calib_x_start, calib_x_end,
+						calib_height_per_percent, nozzle_dmr);
+				} else
 		        extrusion_entities_append_paths(
 		            eec->entities, std::move(polylines),
 		            erIroning,

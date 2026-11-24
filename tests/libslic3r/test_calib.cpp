@@ -185,3 +185,45 @@ TEST_CASE("PA pattern extrudes with the diameter and flow ratio of its test fila
     const double expected = (1.75 * 1.75) / (2.85 * 2.85) * 0.9;
     REQUIRE_THAT(second / first, Catch::Matchers::WithinRel(expected, 0.005));
 }
+
+TEST_CASE("Ironing flow marks are at least 10 mm apart", "[Calib][IroningFlow]")
+{
+    // 10 % to 60 % over 100 mm: a mark every 5 % would be 10 mm apart, so the next step of 1, 2, 5, 10, 20 is 5.
+    CHECK(ironing_flow_calib_mark_step(10., 60., 100.) == 5.);
+    // The finest step that keeps the marks at least 10 mm apart.
+    CHECK(ironing_flow_calib_mark_step(0., 10., 100.) == 1.);
+    CHECK(ironing_flow_calib_mark_step(0., 100., 100.) == 10.);
+    // Nothing fits: even 20 % steps are closer than 10 mm.
+    CHECK(ironing_flow_calib_mark_step(0., 100., 40.) == 0.);
+}
+
+TEST_CASE("Ironing flow test parts are stacked on the bed", "[Calib][IroningFlow]")
+{
+    const double base_z = 0.32, marks_z = 0.56, top_z = 0.68;
+    const IroningFlowCalibMeshes meshes = ironing_flow_calib_meshes(10., 60., 100., "PLA", 0.4, base_z, marks_z, top_z);
+
+    const BoundingBoxf3 strip = bounding_box(meshes.strip);
+    const BoundingBoxf3 base  = bounding_box(meshes.base);
+    REQUIRE_FALSE(meshes.strip.indices.empty());
+    REQUIRE_FALSE(meshes.base.indices.empty());
+
+    // The ironed strip is the band plus 5 mm at each end, from the base up to the top layer.
+    CHECK_THAT(strip.size().x(), Catch::Matchers::WithinAbs(110., 0.01));
+    CHECK_THAT(strip.min.z(), Catch::Matchers::WithinAbs(base_z, 1e-4));
+    CHECK_THAT(strip.max.z(), Catch::Matchers::WithinAbs(top_z, 1e-4));
+    // The base lies on the bed and carries the strip, with room in front of it for the labels.
+    CHECK_THAT(base.min.z(), Catch::Matchers::WithinAbs(0., 1e-4));
+    CHECK_THAT(base.max.z(), Catch::Matchers::WithinAbs(base_z, 1e-4));
+    CHECK_THAT(base.size().x(), Catch::Matchers::WithinAbs(110., 0.01));
+    CHECK(base.size().y() > strip.size().y());
+    CHECK_THAT(base.max.y(), Catch::Matchers::WithinAbs(strip.max.y(), 1e-4));
+
+    // The labels, when the font is available, stay between the base and the marks height.
+    if (!meshes.labels.indices.empty()) {
+        const BoundingBoxf3 labels = bounding_box(meshes.labels);
+        CHECK_THAT(labels.min.z(), Catch::Matchers::WithinAbs(base_z, 1e-4));
+        CHECK_THAT(labels.max.z(), Catch::Matchers::WithinAbs(marks_z, 1e-4));
+        CHECK(labels.max.y() <= 0. + 1e-4);
+        CHECK(labels.min.y() >= base.min.y() - 1e-4);
+    }
+}

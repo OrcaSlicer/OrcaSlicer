@@ -1091,6 +1091,107 @@ void VFA_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect)
 // Retraction_Test_Dlg
 //
 
+// IroningFlow_Test_Dlg
+//
+
+IroningFlow_Test_Dlg::IroningFlow_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
+    : DPIDialog(parent, id, _L("Ironing flow test"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+{
+    SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
+    SetForegroundColour(wxColour("#363636"));
+    SetFont(Label::Body_14);
+
+    wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
+    SetSizer(v_sizer);
+    m_filament = std::make_unique<CalibFilamentSelector>(this);
+    v_sizer->Add(m_filament->sizer(), 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+
+    // How to read the result.
+    auto info_text = new wxStaticText(this, wxID_ANY,
+        _L("Calibration test to check the optimum value of the ironing flow between the values specified below. The longer the "
+           "test piece, the easier it is to visualize it. Check the result by looking at light reflected on the test piece. The "
+           "optimum value is high enough to hide the lines of the surface, but low enough to avoid roughness by overextrusion. In "
+           "between these two values, the lower ones are matte, the higher ones are glossier."));
+    info_text->Wrap(FromDIP(560));
+    v_sizer->Add(info_text, 0, wxTOP | wxRIGHT | wxLEFT, FromDIP(10));
+
+    // Settings
+    wxString start_str  = _L("Minimum ironing flow: ");
+    wxString end_str    = _L("Maximum ironing flow: ");
+    wxString length_str = _L("Length: ");
+    int text_max = GetTextMax(this, std::vector<wxString>{start_str, end_str, length_str});
+
+    auto st_size = wxSize(text_max, -1);
+    auto ti_size = FromDIP(wxSize(120, -1));
+
+    LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Settings"));
+    wxStaticBoxSizer* settings_sizer = new wxStaticBoxSizer(stb, wxVERTICAL);
+    settings_sizer->AddSpacer(FromDIP(5));
+
+    auto add_row = [&](const wxString& label, TextInput*& input, const wxString& value, const wxString& unit) {
+        auto sizer = new wxBoxSizer(wxHORIZONTAL);
+        auto text  = new wxStaticText(this, wxID_ANY, label, wxDefaultPosition, st_size, wxALIGN_LEFT);
+        input = new TextInput(this, value, unit, "", wxDefaultPosition, ti_size);
+        input->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+        sizer->Add(text,  0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+        sizer->Add(input, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+        settings_sizer->Add(sizer, 0, wxLEFT, FromDIP(3));
+    };
+    add_row(start_str,  m_tiStart,  std::to_string(10),  _L("%"));
+    add_row(end_str,    m_tiEnd,    std::to_string(60),  _L("%"));
+    add_row(length_str, m_tiLength, std::to_string(100), _L("mm"));
+
+    settings_sizer->AddSpacer(FromDIP(5));
+    v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+    v_sizer->AddSpacer(FromDIP(5));
+
+    auto dlg_btns = new DialogButtons(this, {"OK"});
+    v_sizer->Add(dlg_btns, 0, wxEXPAND);
+    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &IroningFlow_Test_Dlg::on_start, this);
+
+    wxGetApp().UpdateDlgDarkUI(this);
+
+    Layout();
+    Fit();
+    v_sizer->SetSizeHints(this);
+}
+
+IroningFlow_Test_Dlg::~IroningFlow_Test_Dlg() {
+    // Disconnect Events
+}
+
+void IroningFlow_Test_Dlg::on_start(wxCommandEvent& event) {
+    bool read_double = false;
+    read_double = m_tiStart->GetTextCtrl()->GetValue().ToDouble(&m_params.start);
+    read_double = read_double && m_tiEnd->GetTextCtrl()->GetValue().ToDouble(&m_params.end);
+    // Length of the ironed band in mm.
+    read_double = read_double && m_tiLength->GetTextCtrl()->GetValue().ToDouble(&m_params.step);
+
+    if (!read_double || m_params.start < 0 || m_params.end <= m_params.start || m_params.end > 100 || m_params.step < 10) {
+        MessageDialog msg_dlg(nullptr, _L("Please input valid values:\n0 <= minimum < maximum <= 100\nlength >= 10 mm"), wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+        return;
+    }
+    // The marks are at least 10 mm apart.
+    if (ironing_flow_calib_mark_step(m_params.start, m_params.end, m_params.step) == 0.) {
+        MessageDialog msg_dlg(nullptr, wxString::Format(_L("Marks every 20 %% would be less than 10 mm apart: use a length of at least %.0f mm."),
+                                                        std::ceil((m_params.end - m_params.start) / 2.)),
+                              wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+        return;
+    }
+
+    m_params.mode = CalibMode::Calib_Ironing_Flow;
+    m_filament->apply_to(m_params);
+    m_plater->calib_ironing_flow(m_params);
+    EndModal(wxID_OK);
+}
+
+void IroningFlow_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
+    this->Refresh();
+    Fit();
+}
+
 Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     : DPIDialog(parent, id, _L("Retraction"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE), m_plater(plater)
 {
