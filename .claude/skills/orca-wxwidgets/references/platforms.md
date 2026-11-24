@@ -771,6 +771,14 @@ required by other styles (#23575)" (`docs/changes.txt:581`). Commit eefdabcd98 a
   gtk_window_begin_move_drag(GTK_WINDOW(m_frame->m_widget), 1, p.x, p.y, gtk_get_current_event_time());
   ```
   Cite: `BBLTopbar::OnMouseLeftDown`; `ResizeEdgePanel::OnLeftDown` (`MainFrame.cpp`).
+- **Rule:** On X11, never move or resize a borderless frame that is maximized or fullscreen:
+  `window_pos_restore` skips `SetSize` for a maximized save, and `window_pos_sanitize` returns early.
+  **Why:** a client-side resize that lands on exactly the monitor rect counts as a legacy fullscreen
+  request to Mutter/Muffin (`force_fullscreen` defaults on) for an undecorated window without
+  `_GTK_FRAME_EXTENTS`, so the frame came up `_NET_WM_STATE_FULLSCREEN` and an auto-hide panel became
+  unreachable (#17191). It needs a work area equal to the monitor to reproduce, i.e. a panel that
+  reserves no strut. Windows and macOS keep that `SetSize`: it is what gives Restore Down a saved
+  normal size.
 
 ### macOS: a native titled window
 

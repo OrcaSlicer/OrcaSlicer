@@ -547,7 +547,9 @@ void add_style_for_default_text(EmbossStyles &styles)
     if (text == default_text || can_write(styles.front(), text))
         return;
 
-    for (const char *face_name : {"HarmonyOS Sans SC", "NanumGothic", "Sarabun"}) {
+    // Sarabun ships as Medium and SemiBold only. Windows lists such weights as families of their own,
+    // "Sarabun Medium" and "Sarabun SemiBold", so the plain family name is not a valid face name there.
+    for (const char *face_name : {"HarmonyOS Sans SC", "NanumGothic", "Sarabun", "Sarabun Medium"}) {
         wxFont wx_font = *wxNORMAL_FONT;
         if (!wx_font.SetFaceName(face_name))
             continue;

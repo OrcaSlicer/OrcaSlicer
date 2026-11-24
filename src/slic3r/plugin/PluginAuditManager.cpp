@@ -15,9 +15,18 @@
 #include <boost/log/trivial.hpp>
 #include <boost/system/error_code.hpp>
 
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <deque>
 #include <exception>
@@ -25,10 +34,15 @@
 #include <future>
 #include <mutex>
 #include <memory>
+#ifdef __APPLE__
+#include <fcntl.h>
+#include <limits.h>
+#endif
 #include <optional>
 #include <slic3r/GUI/BindDialog.hpp>
 #include <slic3r/GUI/GUI_App.hpp>
 #include <slic3r/GUI/MsgDialog.hpp>
+#include <slic3r/GUI/format.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <string>
@@ -163,7 +177,7 @@ static const std::unordered_set<std::string> operation_root_events{
 };
 
 // True for the categories whose targets are filesystem paths, as opposed to a network
-// address or a process command line -- the deny-path and allowed-root checks only make sense
+// address or a process executable -- the deny-path and allowed-root checks only make sense
 // against a path.
 static bool is_fs_category(AuditEventCategory category)
 {
@@ -186,8 +200,10 @@ static bool is_network_category(AuditEventCategory category)
     return category == AuditEventCategory::Http || category == AuditEventCategory::Socket;
 }
 
-// Create and delete have no persistent grant list. Off the main thread they are denied outright and
-// reported with an informational dialog rather than a Yes/No prompt that could not grant anything.
+// Create and delete grants name the folder that directly contains the target: an approval stores
+// that parent folder rather than the target, and a saved exact grant allows later operations in
+// the same folder. A tree grant "<folder>/*" also allows operations in every folder below it.
+// Empty means no grant and a sole "*" means any location; see create_delete_grant_covers.
 static bool is_create_delete_category(AuditEventCategory category)
 {
     return category == AuditEventCategory::FsCreate || category == AuditEventCategory::FsDelete;
@@ -479,10 +495,93 @@ private:
     wxSize m_content_dip;
 };
 
+#ifdef _WIN32
+// True when a status error only says the path does not exist. Boost clears `ec` for that case on
+// POSIX, but its Windows status path (process_status_failure()) always stores the Win32 error, so
+// ERROR_FILE_NOT_FOUND and ERROR_PATH_NOT_FOUND mean "just missing" there too. Anything else
+// (access denied, sharing violation, invalid name) is a real failure.
+bool missing_path_error(const boost::system::error_code& ec)
+{
+    return !ec || ec.value() == ERROR_FILE_NOT_FOUND || ec.value() == ERROR_PATH_NOT_FOUND;
+}
+
+// Windows can spell one directory with either its long name or its 8.3 short name, and both name
+// the same location. Python reports long names (os.path.realpath() and os.scandir()), while an
+// allowed root is registered with whatever spelling the process was given, so the two spellings
+// must compare equal. weakly_canonical() does not unify them: boost resolves symlinks and "."/".."
+// but keeps every component as written, so link resolution stays exactly Boost's and this helper
+// only re-spells the path it produced.
+//
+// GetLongPathNameW is a name-conversion API: it requires an existing path, can fail (for example
+// when a parent cannot be read), and its documentation makes no promise about symbolic links. A
+// caller that must keep a final link entry therefore must not hand a link to it (see
+// delete_entry_names_subtree_root). Components below the longest existing prefix do not exist yet
+// and have no short name, so they are appended as written. On failure `out` keeps the unexpanded
+// canonical path and the caller decides whether to fail closed.
+bool expand_short_name_prefix(const boost::filesystem::path& canonical, boost::filesystem::path& out)
+{
+    namespace fs = boost::filesystem;
+
+    out = canonical;
+    if (canonical.empty() || !canonical.is_absolute())
+        return false;
+
+    // No cheap test says whether a spelling is short: Windows does not guarantee that an 8.3 alias
+    // contains '~' (or matches any other shape), so every comparison has to ask the file system.
+    // Split off the components that do not exist yet; only an existing prefix has a long form.
+    fs::path existing = canonical;
+    fs::path tail;
+    boost::system::error_code ec;
+    for (;;) {
+        if (fs::exists(existing, ec) && !ec)
+            break;
+        // A missing component is exactly the tail this function appends as written; any other
+        // status error (access denied, sharing violation, invalid name) fails closed.
+        if (!missing_path_error(ec) || !existing.has_relative_path())
+            return false;
+        const fs::path component = existing.filename();
+        if (component.empty())
+            return false;
+        tail = tail.empty() ? component : component / tail;
+        existing = existing.parent_path();
+    }
+
+    std::wstring buffer(static_cast<std::size_t>(MAX_PATH) + 1, L'\0');
+    for (;;) {
+        const DWORD length = ::GetLongPathNameW(existing.c_str(), buffer.data(),
+                                                static_cast<DWORD>(buffer.size()));
+        if (length == 0)
+            return false;
+        if (length < buffer.size()) {
+            buffer.resize(length);
+            break;
+        }
+        buffer.resize(static_cast<std::size_t>(length) + 1);
+    }
+
+    const fs::path expanded(buffer);
+    if (!expanded.is_absolute())
+        return false;
+
+    out = tail.empty() ? expanded : expanded / tail;
+    return true;
+}
+#else
+// 8.3 short names are a Windows-only alias; elsewhere the canonical path is already comparable.
+bool expand_short_name_prefix(const boost::filesystem::path& canonical, boost::filesystem::path& out)
+{
+    out = canonical;
+    return true;
+}
+#endif
+
 // Canonicalize a path for containment comparison.  weakly_canonical resolves symlinks but does
 // NOT require the path to exist — it canonicalizes the prefix that exists and appends the
-// non-existing tail lexically.
-boost::filesystem::path canonical_for_comparison(const boost::filesystem::path& path)
+// non-existing tail lexically. The result then has its Windows 8.3 short names expanded, so both
+// sides of a comparison are spelled the same way.
+// Returns false when the short-name expansion failed; `out` then holds the unexpanded canonical
+// path, and a caller that must fail closed instead of comparing two spellings has to check it.
+bool canonicalize_for_comparison(const boost::filesystem::path& path, boost::filesystem::path& out)
 {
     namespace fs = boost::filesystem;
 
@@ -494,7 +593,16 @@ boost::filesystem::path canonical_for_comparison(const boost::filesystem::path& 
         if (ec)
             canon = path;
     }
-    return canon;
+    return expand_short_name_prefix(canon, out);
+}
+
+// Best-effort form for checks that need one canonical path only, e.g. the denied-keyword scan:
+// when the expansion fails the plain canonical spelling is used, as it was before it existed.
+boost::filesystem::path canonical_for_comparison(const boost::filesystem::path& path)
+{
+    boost::filesystem::path out;
+    canonicalize_for_comparison(path, out);
+    return out;
 }
 
 // True when the final component of `path` is a symlink whose target does not exist.
@@ -533,13 +641,56 @@ bool same_path_component(const boost::filesystem::path& lhs, const boost::filesy
 #endif
 }
 
+#ifdef _WIN32
+// Windows spells some locations two ways: the plain form ("C:\dir", "\\server\share\dir") and the
+// documented extended-length form ("\\?\C:\dir", "\\?\UNC\server\share\dir"). A plugin's __file__
+// carries whichever spelling its sys.path entry used, and a path canonicalized past MAX_PATH is
+// necessarily extended, while allowed roots and grants are registered in the plain form. The
+// prefix adds a root-name component ("\\?\C:" sees "C:", "\\?\UNC" sees "\\server"), so a
+// component-wise comparison would never match. Rewrite the two documented aliases to the plain
+// spelling here; the result is only compared, never used for I/O. Every other device-namespace
+// path ("\\?\Volume{...}", "\\?\PIPE\...", "\\.\pipe\...", "\\.\PhysicalDrive0", "\??\C:\...")
+// names something this normalization cannot reinterpret, so it is left exactly as written and
+// keeps failing closed against a plain root.
+boost::filesystem::path plain_spelling(const boost::filesystem::path& path)
+{
+    const std::wstring native = path.native();
+
+    // "\\?\UNC\server\share\..." -> "\\server\share\..." (the Win32 UNC alias).
+    constexpr std::size_t unc_prefix_length = 8; // "\\?\UNC\"
+    if (native.rfind(L"\\\\?\\UNC\\", 0) == 0)
+        return boost::filesystem::path(L"\\\\" + native.substr(unc_prefix_length));
+
+    // "\\?\C:\..." -> "C:\..." for a drive-letter root only. "\\?\UNC\..." is handled above, and
+    // anything else after the prefix is a different namespace, not a longer name for a drive path.
+    constexpr std::size_t prefix_length = 4; // "\\?\"
+    if (native.rfind(L"\\\\?\\", 0) == 0 && native.size() > prefix_length + 1) {
+        const wchar_t drive  = native[prefix_length];
+        const bool    letter = (drive >= L'A' && drive <= L'Z') || (drive >= L'a' && drive <= L'z');
+        if (letter && native[prefix_length + 1] == L':')
+            return boost::filesystem::path(native.substr(prefix_length));
+    }
+
+    return path;
+}
+#else
+boost::filesystem::path plain_spelling(const boost::filesystem::path& path)
+{
+    return path;
+}
+#endif
+
 // True when two canonical paths name the same location: every component must match, using the
 // platform's case rule. Unlike suffix_inside_root() this is full equality, so a lookalike that
 // merely shares a prefix -- or a file beside the granted one -- can never match.
 bool same_canonical_path(const boost::filesystem::path& lhs, const boost::filesystem::path& rhs)
 {
-    auto lhs_it = lhs.begin(), lhs_end = lhs.end();
-    auto rhs_it = rhs.begin(), rhs_end = rhs.end();
+    // Compare in the plain spelling; see plain_spelling().
+    const boost::filesystem::path plain_lhs = plain_spelling(lhs);
+    const boost::filesystem::path plain_rhs = plain_spelling(rhs);
+
+    auto lhs_it = plain_lhs.begin(), lhs_end = plain_lhs.end();
+    auto rhs_it = plain_rhs.begin(), rhs_end = plain_rhs.end();
     for (; lhs_it != lhs_end && rhs_it != rhs_end; ++lhs_it, ++rhs_it) {
         if (!same_path_component(*lhs_it, *rhs_it))
             return false;
@@ -549,18 +700,25 @@ bool same_canonical_path(const boost::filesystem::path& lhs, const boost::filesy
 
 // Component-wise containment: the whole of canonical_root must be a prefix of
 // canonical_candidate, and the remaining components must not traverse upward. Both arguments are
-// expected to come from canonical_for_comparison(). On a match, suffix receives the candidate's
-// components below the root (empty when the two paths are equal).
+// expected to come from canonicalize_for_comparison()/canonical_folder(), i.e. expanded to long
+// names where the platform has 8.3 aliases and possibly carrying the extended-length prefix. On a
+// match, suffix receives the candidate's components below the root (empty when the two paths are
+// equal).
 bool suffix_inside_root(const boost::filesystem::path& canonical_candidate,
                         const boost::filesystem::path& canonical_root,
                         boost::filesystem::path&       suffix)
 {
     suffix.clear();
 
-    auto cand_it  = canonical_candidate.begin();
-    auto cand_end = canonical_candidate.end();
-    auto root_it  = canonical_root.begin();
-    auto root_end = canonical_root.end();
+    // Compare in the plain spelling; see plain_spelling(). The components below the root never
+    // carry the prefix, so the suffix is unaffected.
+    const boost::filesystem::path candidate = plain_spelling(canonical_candidate);
+    const boost::filesystem::path root      = plain_spelling(canonical_root);
+
+    auto cand_it  = candidate.begin();
+    auto cand_end = candidate.end();
+    auto root_it  = root.begin();
+    auto root_end = root.end();
 
     // Consume matching components
     while (root_it != root_end && cand_it != cand_end && same_path_component(*root_it, *cand_it)) {
@@ -587,7 +745,13 @@ bool suffix_inside_root(const boost::filesystem::path& canonical_candidate,
 
 bool is_inside_allowed_root(const boost::filesystem::path& candidate, const boost::filesystem::path& allowed_root)
 {
-    const boost::filesystem::path canonical_candidate = canonical_for_comparison(candidate);
+    // Both sides are canonicalized identically, including the expansion of Windows 8.3 short
+    // names and the extended-length prefix, so a root registered under one spelling still contains
+    // a target reported under the other. A side that cannot be normalized fails closed: comparing
+    // differently spelled paths could otherwise report containment that does not hold.
+    boost::filesystem::path canonical_candidate;
+    if (!canonicalize_for_comparison(candidate, canonical_candidate))
+        return false;
 
     // Fail closed on a dangling final symlink instead of comparing the path it is spelled as: the
     // grant describes the link, not the destination a write through it would create. The test is
@@ -596,8 +760,12 @@ bool is_inside_allowed_root(const boost::filesystem::path& candidate, const boos
     if (ends_in_dangling_symlink(canonical_candidate))
         return false;
 
+    boost::filesystem::path canonical_root;
+    if (!canonicalize_for_comparison(allowed_root, canonical_root))
+        return false;
+
     boost::filesystem::path suffix;
-    return suffix_inside_root(canonical_candidate, canonical_for_comparison(allowed_root), suffix);
+    return suffix_inside_root(canonical_candidate, canonical_root, suffix);
 }
 
 // ---------------------------------------------------------------------------
@@ -607,7 +775,7 @@ bool is_inside_allowed_root(const boost::filesystem::path& candidate, const boos
 thread_local std::string PluginAuditManager::m_current_plugin_key = "";
 thread_local std::string PluginAuditManager::m_current_capability_name = "";
 thread_local std::vector<AllowedRoot> PluginAuditManager::m_scoped_allowed_roots;
-thread_local std::vector<PyObject*> PluginAuditManager::m_root_frames;
+thread_local std::vector<PluginAuditManager::RootFrame> PluginAuditManager::m_root_frames;
 thread_local int PluginAuditManager::m_releasing_frames = 0;
 thread_local bool PluginAuditManager::m_audit_denial_pending = false;
 thread_local bool PluginAuditManager::m_has_last_violation = false;
@@ -641,7 +809,7 @@ ScopedPluginAuditContext::~ScopedPluginAuditContext()
         mgr.set_current_plugin(m_plugin_key);
         mgr.set_current_capability(m_capability);
         while (!PluginAuditManager::m_root_frames.empty()) {
-            std::vector<PyObject*> frames = std::move(PluginAuditManager::m_root_frames);
+            std::vector<PluginAuditManager::RootFrame> frames = std::move(PluginAuditManager::m_root_frames);
             PluginAuditManager::m_root_frames.clear();
             mgr.release_frames(frames);
         }
@@ -1028,6 +1196,216 @@ bool PluginAuditManager::last_violation(AuditViolation& violation) const
 
 namespace PluginAuditDetail {
 
+// Defined below: the process-wide serialized prompt queue. Declared here because invalidating a
+// plugin's recursive-delete state also drops its queued consents.
+AuditPromptQueue& runtime_audit_prompts();
+
+// A one-time consent for a recursive delete whose prompt could not run inline. It is deliberately
+// in-memory only: no sidecar grant is written, so the approval cannot widen future delete access.
+// The plugin key and canonical subtree root bind it to exactly one retry, and the short lifetime
+// plus bounded count keep abandoned prompts from accumulating.
+struct RecursiveDeleteApproval
+{
+    std::string                             plugin_key;
+    std::string                             canonical_root;
+    std::chrono::steady_clock::time_point   expires_at;
+};
+
+using RecursiveDeleteClock = std::chrono::steady_clock;
+
+constexpr int                            kRecursiveDeleteApprovalLifetimeSeconds = 60;
+std::mutex                               s_recursive_delete_approval_mutex;
+std::vector<RecursiveDeleteApproval>     s_recursive_delete_approvals;
+std::chrono::milliseconds                s_recursive_delete_approval_lifetime{kRecursiveDeleteApprovalLifetimeSeconds * 1000};
+constexpr std::size_t                    kMaxRecursiveDeleteApprovals = 16;
+
+// Prompts that have been posted but not yet answered. The key is the same plugin/target pair an
+// approval would use, so a plugin retry loop cannot queue a second modal while the first is still
+// open. The entry is cleared when the dialog is answered, or when posting is abandoned.
+struct RecursiveDeletePromptKey
+{
+    std::string   plugin_key;
+    std::string   canonical_root;
+    std::uint64_t generation;
+};
+
+std::vector<RecursiveDeletePromptKey>    s_pending_recursive_delete_prompts;
+// Bounds the recursive-delete consents that may be waiting for an answer at once, for both the
+// test seam's pending set and the serialized production queue. A plugin retry loop can name many
+// distinct targets; at capacity the new consent is rejected rather than queued.
+constexpr std::size_t                    kMaxRecursiveDeletePrompts = 16;
+
+// Incremented whenever a plugin's permission state is edited, revoked, or reinstalled. Posted
+// dialog callbacks capture this value and must not store an approval after it changes.
+std::unordered_map<std::string, std::uint64_t> s_recursive_delete_generations;
+
+PluginAuditManager::RecursiveDeletePrompt s_recursive_delete_prompt_for_testing;
+bool                                      s_recursive_delete_prompt_background_for_testing = false;
+bool                                      s_recursive_delete_prompt_deferred_for_testing = false;
+
+std::uint64_t recursive_delete_generation(const std::string& plugin_key)
+{
+    std::lock_guard<std::mutex> lock(s_recursive_delete_approval_mutex);
+    const auto it = s_recursive_delete_generations.find(plugin_key);
+    return it == s_recursive_delete_generations.end() ? 0 : it->second;
+}
+
+void invalidate_recursive_delete_state(const std::string& plugin_key)
+{
+    if (plugin_key.empty())
+        return;
+
+    {
+        std::lock_guard<std::mutex> lock(s_recursive_delete_approval_mutex);
+        ++s_recursive_delete_generations[plugin_key];
+
+        // Any approval or dedup key was granted for the previous permission state. Erase both so
+        // a later retry starts from the current state. A dialog already posted cannot be
+        // withdrawn; its callback becomes a no-op through the generation token it captured.
+        s_recursive_delete_approvals.erase(
+            std::remove_if(s_recursive_delete_approvals.begin(), s_recursive_delete_approvals.end(),
+                           [&plugin_key](const RecursiveDeleteApproval& approval) {
+                               return approval.plugin_key == plugin_key;
+                           }),
+            s_recursive_delete_approvals.end());
+        s_pending_recursive_delete_prompts.erase(
+            std::remove_if(s_pending_recursive_delete_prompts.begin(), s_pending_recursive_delete_prompts.end(),
+                           [&plugin_key](const RecursiveDeletePromptKey& prompt) {
+                               return prompt.plugin_key == plugin_key;
+                           }),
+            s_pending_recursive_delete_prompts.end());
+    }
+
+    // Queued production consents for the old permission state are dropped too. An active dialog
+    // cannot be withdrawn; the generation it captured makes its late answer a no-op.
+    runtime_audit_prompts().discard_recursive_delete_consents(plugin_key);
+}
+
+// Caller holds s_recursive_delete_approval_mutex.
+void prune_recursive_delete_approvals(const RecursiveDeleteClock::time_point& now)
+{
+    s_recursive_delete_approvals.erase(
+        std::remove_if(s_recursive_delete_approvals.begin(), s_recursive_delete_approvals.end(),
+                       [now](const RecursiveDeleteApproval& approval) { return approval.expires_at <= now; }),
+        s_recursive_delete_approvals.end());
+}
+
+// True when no prompt for this plugin and target is already posted. The caller must pair a true
+// result with finish_recursive_delete_prompt() after the dialog is answered.
+bool begin_recursive_delete_prompt(const std::string& plugin_key, const std::string& canonical_root,
+                                   std::uint64_t generation)
+{
+    std::lock_guard<std::mutex> lock(s_recursive_delete_approval_mutex);
+    const auto same = [&plugin_key, &canonical_root](const RecursiveDeletePromptKey& prompt) {
+        return prompt.plugin_key == plugin_key && prompt.canonical_root == canonical_root;
+    };
+    if (std::find_if(s_pending_recursive_delete_prompts.begin(), s_pending_recursive_delete_prompts.end(), same) !=
+        s_pending_recursive_delete_prompts.end())
+        return false;
+
+    // At capacity, reject the new prompt instead of evicting an existing key: the evicted
+    // dialog is already queued and cannot be withdrawn, so eviction would let repeated distinct
+    // targets queue unlimited dialogs while losing the ability to deduplicate them.
+    if (s_pending_recursive_delete_prompts.size() >= kMaxRecursiveDeletePrompts)
+        return false;
+
+    s_pending_recursive_delete_prompts.push_back({plugin_key, canonical_root, generation});
+    return true;
+}
+
+void finish_recursive_delete_prompt(const std::string& plugin_key, const std::string& canonical_root,
+                                    std::uint64_t generation)
+{
+    std::lock_guard<std::mutex> lock(s_recursive_delete_approval_mutex);
+    s_pending_recursive_delete_prompts.erase(
+        std::remove_if(s_pending_recursive_delete_prompts.begin(), s_pending_recursive_delete_prompts.end(),
+                       [&plugin_key, &canonical_root, generation](const RecursiveDeletePromptKey& prompt) {
+                           return prompt.plugin_key == plugin_key && prompt.canonical_root == canonical_root &&
+                                  prompt.generation == generation;
+                       }),
+        s_pending_recursive_delete_prompts.end());
+}
+
+std::size_t pending_recursive_delete_prompts()
+{
+    std::lock_guard<std::mutex> lock(s_recursive_delete_approval_mutex);
+    return s_pending_recursive_delete_prompts.size();
+}
+
+// Releases a pending-prompt dedup key on every exit path, including an exception thrown by the
+// dialog or the test seam. A deferred test answer deliberately keeps the key and calls
+// dismiss(); production callbacks just let the guard run.
+class RecursiveDeletePromptGuard
+{
+public:
+    RecursiveDeletePromptGuard(std::string plugin_key, std::string canonical_root, std::uint64_t generation)
+        : m_plugin_key(std::move(plugin_key))
+        , m_canonical_root(std::move(canonical_root))
+        , m_generation(generation)
+    {}
+    ~RecursiveDeletePromptGuard()
+    {
+        if (m_active)
+            finish_recursive_delete_prompt(m_plugin_key, m_canonical_root, m_generation);
+    }
+
+    void dismiss() { m_active = false; }
+
+    RecursiveDeletePromptGuard(const RecursiveDeletePromptGuard&)            = delete;
+    RecursiveDeletePromptGuard& operator=(const RecursiveDeletePromptGuard&) = delete;
+
+private:
+    std::string   m_plugin_key;
+    std::string   m_canonical_root;
+    std::uint64_t m_generation;
+    bool          m_active = true;
+};
+
+void store_recursive_delete_approval(const std::string& plugin_key, const std::string& canonical_root)
+{
+    if (plugin_key.empty() || canonical_root.empty())
+        return;
+
+    std::lock_guard<std::mutex> lock(s_recursive_delete_approval_mutex);
+    const RecursiveDeleteClock::time_point now = RecursiveDeleteClock::now();
+    prune_recursive_delete_approvals(now);
+
+    // Bound the store even when a user answers many prompts: the oldest pending consent is no
+    // more useful than an expired one.
+    if (s_recursive_delete_approvals.size() >= kMaxRecursiveDeleteApprovals)
+        s_recursive_delete_approvals.erase(s_recursive_delete_approvals.begin());
+
+    s_recursive_delete_approvals.push_back({plugin_key, canonical_root, now + s_recursive_delete_approval_lifetime});
+}
+
+bool take_recursive_delete_approval(const std::string& plugin_key, const std::string& canonical_root)
+{
+    if (plugin_key.empty() || canonical_root.empty())
+        return false;
+
+    std::lock_guard<std::mutex> lock(s_recursive_delete_approval_mutex);
+    prune_recursive_delete_approvals(RecursiveDeleteClock::now());
+
+    const auto found = std::find_if(s_recursive_delete_approvals.begin(), s_recursive_delete_approvals.end(),
+                                    [&plugin_key, &canonical_root](const RecursiveDeleteApproval& approval) {
+                                        return approval.plugin_key == plugin_key &&
+                                               approval.canonical_root == canonical_root;
+                                    });
+    if (found == s_recursive_delete_approvals.end())
+        return false;
+
+    // Single use: the retry this consent authorised is the only one it can start.
+    s_recursive_delete_approvals.erase(found);
+    return true;
+}
+
+std::size_t pending_recursive_delete_approvals()
+{
+    std::lock_guard<std::mutex> lock(s_recursive_delete_approval_mutex);
+    prune_recursive_delete_approvals(RecursiveDeleteClock::now());
+    return s_recursive_delete_approvals.size();
+}
+
 PyObject* tuple_item(PyObject* args, Py_ssize_t index)
 {
     if (!args || !PyTuple_Check(args) || index < 0 || index >= PyTuple_GET_SIZE(args))
@@ -1165,13 +1543,15 @@ std::vector<PyObject*> stack_frames()
 // Moves the held root frames whose operation has returned from `held` to `dropped`. A suspended
 // generator's frame (os.walk between two items) is off the stack, but its operation resumes, so
 // it stays held until the scope ends.
-void take_returned_frames(std::vector<PyObject*>& held, std::vector<PyObject*>& dropped)
+template<typename Record>
+void take_returned_frames(std::vector<Record>& held, std::vector<Record>& dropped)
 {
     if (held.empty())
         return;
 
     const std::vector<PyObject*> stack = stack_frames();
-    const auto running = [&stack](PyObject* frame) {
+    const auto running = [&stack](const Record& record) {
+        PyObject* frame = record.frame;
         if (std::find(stack.begin(), stack.end(), frame) != stack.end())
             return true;
         // NULL once the generator has finished or been deleted: its frame then owns its own data.
@@ -1191,31 +1571,250 @@ static const std::unordered_set<std::string> two_path_fs_events{
     "shutil.unpack_archive", "_winapi.CreateJunction",
 };
 
-static const std::unordered_map<std::string, std::vector<Py_ssize_t>> audit_target_arg_indices{
-    {"http.client.connect", {1}},
-    {"urllib.Request", {0}},
+// Audit events whose path arguments are resolved against a directory file descriptor. CPython's
+// tuple layouts (verified against 3.12):
+//   os.mkdir(path, mode, dir_fd)
+//   os.remove(path, dir_fd) / os.rmdir(path, dir_fd)
+//   os.symlink(src, dst, dir_fd)            -- dir_fd applies to the destination only
+//   os.link(src, dst, src_dir_fd, dst_dir_fd)
+//   shutil.rmtree(path, dir_fd)             -- newer Python releases expose dir_fd here too
+//
+// A relative path must be resolved against the descriptor's folder, not the process working
+// directory. Returns the dir_fd argument index for the given path argument, or -1 when the path
+// argument is not resolved through a descriptor.
+static int create_delete_dir_fd_index(const std::string& event_name, Py_ssize_t path_index)
+{
+    if (event_name == "os.mkdir")
+        return path_index == 0 ? 2 : -1;
+    if (event_name == "os.remove" || event_name == "os.rmdir")
+        return path_index == 0 ? 1 : -1;
+    if (event_name == "os.symlink")
+        return path_index == 1 ? 2 : -1;
+    if (event_name == "os.link")
+        return path_index == 0 ? 2 : (path_index == 1 ? 3 : -1);
+    if (event_name == "shutil.rmtree")
+        return path_index == 0 ? 1 : -1;
+    return -1;
+}
 
-    {"socket.connect", {1}},
-    {"socket.bind", {1}},
-    {"socket.getaddrinfo", {0}},
-    {"socket.gethostbyname", {0}},
-    {"socket.gethostbyaddr", {0}},
-    {"socket.getnameinfo", {0}},
-    {"socket.getservbyname", {0}},
-    {"socket.getservbyport", {0}},
-    {"socket.sendto", {1}},
-    {"socket.sendmsg", {1}},
+// Resolves an open directory descriptor to its folder. Linux uses the /proc/self/fd link and
+// macOS uses F_GETPATH. Returns false when the platform or the running environment cannot name
+// the folder; the caller then fails closed instead of checking a path inside the working
+// directory that the operation does not use.
+static bool resolve_dir_fd_folder(int fd, boost::filesystem::path& out)
+{
+    namespace fs = boost::filesystem;
 
-    {"os.system", {0}},
-    {"subprocess.Popen", {1, 0}},
-    {"os.posix_spawn", {1, 0}},
-    {"os.spawn", {2, 1}},
-    {"os.startfile", {0}},
-    {"os.startfile/2", {0}},
-    {"pty.spawn", {0}},
-    {"_winapi.CreateProcess", {1, 0}},
-    {"_posixsubprocess.fork_exec", {0}},
-    {"os.exec", {0}},
+#if defined(__linux__)
+    boost::system::error_code ec;
+    const fs::path target = fs::read_symlink(fs::path("/proc/self/fd") / std::to_string(fd), ec);
+    if (ec || target.empty() || !target.is_absolute())
+        return false;
+    out = target;
+    return true;
+#elif defined(__APPLE__)
+    char buffer[PATH_MAX] = {};
+    if (fcntl(fd, F_GETPATH, buffer) == -1)
+        return false;
+    const fs::path target(buffer);
+    if (target.empty() || !target.is_absolute())
+        return false;
+    out = target;
+    return true;
+#else
+    (void) fd;
+    (void) out;
+    return false;
+#endif
+}
+
+// Replaces create/delete target paths that were resolved against a non-default dir_fd with paths
+// under the folder that descriptor names. An absolute path ignores dir_fd (POSIX semantics), so it
+// keeps its spelling. Returns false when a descriptor cannot be resolved or is not an integer;
+// the caller then denies the operation.
+static bool resolve_create_delete_targets(const std::string& event_name, PyObject* args,
+                                          std::vector<std::string>& targets)
+{
+    const Py_ssize_t path_count = two_path_fs_events.count(event_name) ? 2 : 1;
+    std::vector<std::string> resolved;
+    resolved.reserve(targets.size());
+
+    for (Py_ssize_t path_index = 0; path_index < path_count; ++path_index) {
+        const std::string path = python_path(tuple_item(args, path_index));
+        if (path.empty())
+            continue;
+
+        const int fd_index = create_delete_dir_fd_index(event_name, path_index);
+        PyObject* const fd_item = fd_index >= 0 ? tuple_item(args, fd_index) : nullptr;
+        if (fd_item != nullptr && fd_item != Py_None) {
+            if (!PyLong_Check(fd_item))
+                return false;
+            const long fd_value = PyLong_AsLong(fd_item);
+            if (PyErr_Occurred()) {
+                PyErr_Clear();
+                return false;
+            }
+            // CPython passes AT_FDCWD (negative) for an omitted dir_fd.
+            if (fd_value >= 0 && !boost::filesystem::path(path).is_absolute()) {
+                boost::filesystem::path base;
+                if (!resolve_dir_fd_folder(static_cast<int>(fd_value), base))
+                    return false;
+                resolved.push_back((base / boost::filesystem::path(path)).string());
+                continue;
+            }
+        }
+
+        resolved.push_back(path);
+    }
+
+    targets = std::move(resolved);
+    return true;
+}
+
+// A link creation reports its existing source and its new destination, but only the destination
+// is created. The create grant covers the destination's parent folder; the source is not treated
+// as created (a hardlink source is separately required to be writable). Both paths stay subject
+// to the deny registry, and an unreadable destination fails closed rather than falling back to
+// the source.
+static std::vector<std::string> create_permission_targets(const std::string& event_name,
+                                                          const std::vector<std::string>& targets)
+{
+    if (event_name == "os.link" || event_name == "os.symlink" || event_name == "_winapi.CreateJunction")
+        return targets.size() == 2 ? std::vector<std::string>{targets.back()} : std::vector<std::string>{};
+    return targets;
+}
+
+// Network events name their target directly: a host, an address tuple or a URL.
+static const std::unordered_map<std::string, Py_ssize_t> network_target_arg_indices{
+    {"http.client.connect", 1},
+    {"urllib.Request", 0},
+
+    {"socket.connect", 1},
+    {"socket.bind", 1},
+    {"socket.getaddrinfo", 0},
+    {"socket.gethostbyname", 0},
+    {"socket.gethostbyaddr", 0},
+    {"socket.getnameinfo", 0},
+    {"socket.getservbyname", 0},
+    {"socket.getservbyport", 0},
+    {"socket.sendto", 1},
+    {"socket.sendmsg", 1},
+};
+
+// Process events each expose the executable in a different argument, and some pass the whole
+// command line or argv. A grant normally names the tool only, so the arguments are dropped; the
+// exception is a Windows command line whose executable is unquoted and followed by arguments
+// (see windows_command_line_target).
+enum class ProcessTargetFormat {
+    Path,               // the argument is the executable path or name
+    FirstToken,         // a command string or argv sequence: its first token or element
+    WindowsCommandLine, // a Windows command line: its first argument, possibly a quoted path
+};
+
+struct ProcessTargetSource {
+    Py_ssize_t          index;
+    ProcessTargetFormat format;
+};
+
+// An exact-command entry shares the process list with executable entries. This reserved prefix
+// keeps the two namespaces apart: an exact command line can never be mistaken for an executable
+// name, and an existing executable grant (which does not carry the prefix) keeps its
+// argument-insensitive meaning. It is stored in the sidecar and listed by the Plugins dialog; the
+// permission prompt shows the command line without it.
+static const std::string kWindowsCommandLineGrantPrefix = "CommandLine:";
+
+static bool is_exact_command_grant(const std::string& target)
+{
+    return boost::algorithm::starts_with(target, kWindowsCommandLineGrantPrefix);
+}
+
+static std::string exact_command_grant(const std::string& command_line)
+{
+    return kWindowsCommandLineGrantPrefix + command_line;
+}
+
+// The prompt shows the command line the user is asked about, not the storage marker.
+static std::string process_target_for_display(const std::string& target)
+{
+    return is_exact_command_grant(target) ? target.substr(kWindowsCommandLineGrantPrefix.size()) : target;
+}
+
+// A process prompt can list executable grants and exact command lines together (a declaration may
+// do so; a runtime event has one target). The wording must not claim argument-insensitive scope
+// for an exact command line.
+struct ProcessPromptScope {
+    bool exact_command = false;
+    bool executable    = false;
+};
+
+static ProcessPromptScope process_prompt_scope(const std::vector<std::string>& targets)
+{
+    ProcessPromptScope scope;
+    for (const std::string& target : targets) {
+        if (is_exact_command_grant(target))
+            scope.exact_command = true;
+        else
+            scope.executable = true;
+    }
+    return scope;
+}
+
+// os.system does not run a program named by its first token: it hands the whole string to the
+// platform shell. POSIX passes it to /bin/sh. The Windows C runtime runs the command interpreter
+// named by COMSPEC, or cmd.exe when COMSPEC is unset or empty, and also falls back to cmd.exe
+// when it cannot open the configured file (ENOENT or EACCES). Either interpreter may therefore
+// run the command, so every one of them is a required target: a narrow grant for a harmless
+// COMSPEC target must not admit the fallback shell. Approving the shells covers every command
+// string the plugin passes to os.system, because a shell parses and executes all of the string,
+// arguments included.
+//
+// The runtime chooses the interpreter when it runs the command, so the audit names the possible
+// interpreters instead of checking whether the COMSPEC file exists: a file that is present while
+// the prompt is answered can be removed before the call. A COMSPEC that already is the bare name
+// cmd.exe, in any casing, names the fallback itself and is listed once.
+#ifdef _WIN32
+static std::vector<std::string> system_shell_targets()
+{
+    constexpr const char* kFallbackShell = "cmd.exe";
+
+    // _wsystem reads COMSPEC through the CRT environment, which is the copy it consults; the
+    // process environment block can differ. Read the same value and copy it at once, because a
+    // concurrent _wputenv may replace the buffer the pointer names.
+    const wchar_t* const comspec_value = ::_wgetenv(L"COMSPEC");
+    // An unset or empty COMSPEC leaves only the runtime's default interpreter.
+    if (comspec_value == nullptr || *comspec_value == L'\0')
+        return {kFallbackShell};
+
+    std::string comspec = wxString(comspec_value).utf8_string();
+    // A bare cmd.exe is the fallback interpreter itself, whatever the casing, so one target stays.
+    if (comspec.find_first_of("/\\") == std::string::npos &&
+        wxString::FromUTF8(comspec).CmpNoCase(wxString::FromUTF8(kFallbackShell)) == 0)
+        return {kFallbackShell};
+
+    return {std::move(comspec), kFallbackShell};
+}
+#else
+static std::vector<std::string> system_shell_targets()
+{
+    return {"/bin/sh"};
+}
+#endif
+
+static const std::unordered_map<std::string, std::vector<ProcessTargetSource>> process_target_sources{
+    {"os.exec",                    {{0, ProcessTargetFormat::Path}}},
+    {"os.posix_spawn",             {{0, ProcessTargetFormat::Path}}},
+    {"os.spawn",                   {{1, ProcessTargetFormat::Path}}},
+    {"os.startfile",               {{0, ProcessTargetFormat::Path}}},
+    {"os.startfile/2",             {{0, ProcessTargetFormat::Path}}},
+    // executable is unresolved when the caller did not pass one, as on Windows, where args is
+    // then a single command line; on POSIX args is an argv sequence and executable is always set.
+    {"subprocess.Popen",           {{0, ProcessTargetFormat::Path}, {1, ProcessTargetFormat::WindowsCommandLine}}},
+    // application_name wins when it is given, so its source comes first; when it is omitted
+    // command_line is a Windows command line whose first argument names the executable.
+    {"_winapi.CreateProcess",      {{0, ProcessTargetFormat::Path}, {1, ProcessTargetFormat::WindowsCommandLine}}},
+    {"pty.spawn",                  {{0, ProcessTargetFormat::FirstToken}}},
+    // The first argument is argv; its first element names the program.
+    {"_posixsubprocess.fork_exec", {{0, ProcessTargetFormat::FirstToken}}},
 };
 
 AuditEventCategory open_category(PyObject* args)
@@ -1224,6 +1823,115 @@ AuditEventCategory open_category(PyObject* args)
     if (!mode.empty() && mode.find_first_of("wax+") == std::string::npos)
         return AuditEventCategory::FsRead;
     return AuditEventCategory::FsReadWrite;
+}
+
+// The first token of a command string, or the first element of an argv sequence. A sequence
+// element is kept whole, so an executable path may contain spaces.
+std::string first_process_token(PyObject* object)
+{
+    if (!object)
+        return {};
+
+    std::string text;
+    if (python_text(object, text)) {
+        const size_t start = text.find_first_not_of(" \t\r\n");
+        if (start == std::string::npos)
+            return {};
+        const size_t end = text.find_first_of(" \t\r\n", start);
+        return text.substr(start, end == std::string::npos ? std::string::npos : end - start);
+    }
+
+    if (!PySequence_Check(object))
+        return python_path(object);
+
+    PyObject* first = PySequence_GetItem(object, 0); // new reference
+    if (!first) {
+        PyErr_Clear();
+        return {};
+    }
+    std::string value = python_path(first);
+    Py_DECREF(first);
+    return value;
+}
+
+// The grant target for a Windows command line. Windows does not split it like a POSIX shell: a
+// path that contains spaces is enclosed in double quotes, and backslashes before a quote follow
+// the CommandLineToArgvW rules (2n backslashes and a quote give n backslashes and end the
+// argument, 2n+1 give n backslashes and a literal quote).
+//
+// A quoted first argument names the executable unambiguously and is returned alone, as is a
+// command line that is only the executable: both keep the argument-insensitive executable grant.
+// An unquoted first argument followed by more text is different. CreateProcess resolves it by
+// trying successively longer prefixes of the name, so the first whitespace-delimited token need
+// not be the executable it starts (the command line "C:\Program Files\app.exe --x" can start
+// "C:\Program Files\app.exe", not "C:\Program"). Such a command line is returned as one exact
+// grant instead, because granting the first token would describe a different program and would
+// cover every later command line with that token.
+std::string windows_command_line_target(const std::string& command_line)
+{
+    size_t index = command_line.find_first_not_of(" \t");
+    if (index == std::string::npos)
+        return {};
+
+    if (command_line[index] != '"') {
+        const size_t end       = command_line.find_first_of(" \t", index);
+        const size_t token_end = end == std::string::npos ? command_line.size() : end;
+        if (command_line.find_first_not_of(" \t", token_end) != std::string::npos)
+            return exact_command_grant(command_line.substr(index));
+        return command_line.substr(index, token_end - index);
+    }
+
+    std::string token;
+    ++index; // the opening quote is not part of the argument
+    while (index < command_line.size()) {
+        if (command_line[index] == '\\') {
+            size_t backslashes = 0;
+            while (index < command_line.size() && command_line[index] == '\\') {
+                ++backslashes;
+                ++index;
+            }
+            if (index < command_line.size() && command_line[index] == '"') {
+                token.append(backslashes / 2, '\\');
+                if (backslashes % 2) {
+                    token.push_back('"');
+                    ++index;
+                } else {
+                    ++index; // the closing quote
+                    break;
+                }
+            } else {
+                token.append(backslashes, '\\');
+            }
+            continue;
+        }
+        if (command_line[index] == '"') {
+            ++index; // the closing quote
+            break;
+        }
+        token.push_back(command_line[index]);
+        ++index;
+    }
+    return token;
+}
+
+std::string process_target(const ProcessTargetSource& source, PyObject* args)
+{
+    PyObject* const item = tuple_item(args, source.index);
+    if (!item || item == Py_None)
+        return {};
+    switch (source.format) {
+    case ProcessTargetFormat::Path:
+        return python_path(item);
+    case ProcessTargetFormat::FirstToken:
+        return first_process_token(item);
+    case ProcessTargetFormat::WindowsCommandLine: {
+        std::string command_line;
+        if (python_text(item, command_line))
+            return windows_command_line_target(command_line);
+        return first_process_token(item);
+    }
+    }
+    return {};
 }
 
 std::vector<std::string> audit_targets(const std::string& event_name, AuditEventCategory category, PyObject* args)
@@ -1243,6 +1951,24 @@ std::vector<std::string> audit_targets(const std::string& event_name, AuditEvent
         }
         return targets;
     }
+    case AuditEventCategory::ProcessCreate:
+    case AuditEventCategory::ProcessReplace: {
+        // The shells a command string may run in, not the command itself. Every possible
+        // interpreter has to be granted before the event is allowed.
+        if (event_name == "os.system")
+            return system_shell_targets();
+        const auto it = process_target_sources.find(event_name);
+        if (it == process_target_sources.end())
+            return targets;
+        for (const ProcessTargetSource& source : it->second) {
+            std::string value = process_target(source, args);
+            if (!value.empty()) {
+                targets.push_back(std::move(value));
+                break;
+            }
+        }
+        return targets;
+    }
     case AuditEventCategory::Threading:
         // Thread creation exposes no user-supplied target. Use a fixed sentinel so the grant
         // persists per plugin: the permission list matches targets by exact string, and the
@@ -1253,18 +1979,14 @@ std::vector<std::string> audit_targets(const std::string& event_name, AuditEvent
         break;
     }
 
-    const auto it = audit_target_arg_indices.find(event_name);
-    if (it != audit_target_arg_indices.end()) {
-        for (const Py_ssize_t index : it->second) {
-            // None is an argument left out (sendmsg without an address), not a target named "None".
-            PyObject* const item = tuple_item(args, index);
-            if (item == Py_None)
-                continue;
+    const auto it = network_target_arg_indices.find(event_name);
+    if (it != network_target_arg_indices.end()) {
+        // None is an argument left out (sendmsg without an address), not a target named "None".
+        PyObject* const item = tuple_item(args, it->second);
+        if (item != Py_None) {
             std::string value = python_str(item);
-            if (!value.empty()) {
+            if (!value.empty())
                 targets.push_back(std::move(value));
-                break;
-            }
         }
     }
 
@@ -1282,6 +2004,8 @@ std::vector<std::string>* permission_list_for(AuditEventCategory category, bool 
     switch (category) {
     case AuditEventCategory::FsRead:        return &permissions.fs_read;
     case AuditEventCategory::FsReadWrite:   return &permissions.fs_readwrite;
+    case AuditEventCategory::FsCreate:      return &permissions.fs_create;
+    case AuditEventCategory::FsDelete:      return &permissions.fs_delete;
     case AuditEventCategory::Http:          return &permissions.network_http;
     case AuditEventCategory::Socket:        return &permissions.network_socket;
     case AuditEventCategory::ProcessCreate: return &permissions.process;
@@ -1300,11 +2024,11 @@ std::string event_grant_key(AuditEventCategory category, const std::string& even
     return std::string(category_name(category)) + ":" + event_name;
 }
 
-// The directory named by a directory-tree grant, i.e. "<dir>/*". "*" is the only wildcard, and
-// only as the grant's final path component; any other "*" is an ordinary character, so a grant
-// can never widen into a pattern the plugin did not spell out. Returns false for a grant that is
-// not a tree grant.
-bool tree_grant_root(const std::string& grant, boost::filesystem::path& root)
+// The folder named by a tree grant, i.e. "<dir>/*", exactly as spelled. "*" is the only wildcard,
+// and only as the grant's final path component; any other "*" is an ordinary character, so a
+// grant can never widen into a pattern the plugin did not spell out. Returns false for a grant
+// that is not a tree grant.
+bool tree_grant_parent(const std::string& grant, boost::filesystem::path& parent)
 {
     if (grant.size() < 2 || grant.back() != '*' || grant.find('*') != grant.size() - 1)
         return false;
@@ -1313,12 +2037,24 @@ bool tree_grant_root(const std::string& grant, boost::filesystem::path& root)
     if (path.filename() != "*")
         return false;
 
-    const boost::filesystem::path parent = path.parent_path();
-    if (parent.empty())
+    const boost::filesystem::path root = path.parent_path();
+    if (root.empty())
         return false;
 
-    // Never resolve ".." here: a grant shown to the user as "/a/../*" must not silently become
-    // the root or another ancestor. Without a wildcard the string still matches verbatim.
+    parent = root;
+    return true;
+}
+
+// The directory named by a directory-tree grant, i.e. "<dir>/*". Unlike tree_grant_parent this is
+// applied to a stored grant, so ".." is rejected rather than resolved: a grant shown to the user
+// as "/a/../*" must not silently become the root or another ancestor. Without a wildcard the
+// string still matches verbatim. Returns false for a grant that is not a tree grant.
+bool tree_grant_root(const std::string& grant, boost::filesystem::path& root)
+{
+    boost::filesystem::path parent;
+    if (!tree_grant_parent(grant, parent))
+        return false;
+
     for (const boost::filesystem::path& component : parent) {
         if (component == "..")
             return false;
@@ -1372,8 +2108,8 @@ std::string absolute_tree_grant(const std::string& grant)
 // could equate different files across unresolved symlinks and "..". A target whose final
 // component is a dangling symlink is not matched by equivalence, and neither is a grant ending in
 // one. Windows compares case-insensitively and accepts either separator; POSIX stays
-// case-sensitive and treats "\" as an ordinary name character. Hardlinks, 8.3 short names and
-// extended-length paths remain distinct paths.
+// case-sensitive and treats "\" as an ordinary name character. 8.3 short names of the same file are
+// unified on Windows; hardlinks and extended-length spellings remain distinct paths.
 bool exact_grant_covers(const std::string& grant, const std::string& target)
 {
     if (grant == target)
@@ -1405,7 +2141,16 @@ bool exact_grant_covers(const std::string& grant, const std::string& target)
     if (ec || !canonical_target.is_absolute() || ends_in_dangling_symlink(canonical_target))
         return false;
 
-    return same_canonical_path(canonical_grant, canonical_target);
+    // Expand 8.3 short names on both sides exactly like the create/delete comparisons, or a grant
+    // saved under one spelling would not cover the same file named the other way and the user
+    // would be asked again. Any expansion failure fails closed, as the canonicalization above does.
+    fs::path expanded_grant;
+    fs::path expanded_target;
+    if (!expand_short_name_prefix(canonical_grant, expanded_grant) ||
+        !expand_short_name_prefix(canonical_target, expanded_target))
+        return false;
+
+    return same_canonical_path(expanded_grant, expanded_target);
 }
 
 // True when a filesystem grant covers a target: the exact string, an equivalent spelling of the
@@ -1443,15 +2188,345 @@ bool fs_grant_covers(const std::string& grant, const std::string& target)
     return grant == target || is_inside_allowed_root(boost::filesystem::path(target), root);
 }
 
+// ---------------------------------------------------------------------------
+// Create and delete permission identity
+// ---------------------------------------------------------------------------
+
+// A create or delete grant names a folder whose direct entries may be created or deleted, or a
+// tree grant "<root>/*" that additionally covers every folder below that root, at any depth.
+// An empty list grants nothing, and a sole "*" grants any location. Any other entry must be an
+// absolute folder path or an absolute tree grant; a relative or unreadable entry never matches.
+// A "*" beside another entry is therefore an ordinary, non-matching entry: full access is only
+// ever the explicit one-element form.
+bool create_delete_grant_full(const std::vector<std::string>& granted)
+{
+    return granted.size() == 1 && granted.front() == "*";
+}
+
+// Strictly resolves an absolute folder for a grant comparison. Unlike canonical_for_comparison it
+// does not fall back to a lexical path: a path that cannot be canonicalized, or whose final
+// component is a dangling symlink, never names a folder the grant covers. Relative paths never
+// match -- which folder they name depends on the working directory at check time.
+bool canonical_folder(const boost::filesystem::path& folder, boost::filesystem::path& out)
+{
+    namespace fs = boost::filesystem;
+
+    if (folder.empty() || !folder.is_absolute())
+        return false;
+    if (ends_in_dangling_symlink(folder))
+        return false;
+
+    boost::system::error_code ec;
+    const fs::path canonical = fs::weakly_canonical(folder, ec);
+    if (ec || !canonical.is_absolute() || ends_in_dangling_symlink(canonical))
+        return false;
+
+    // Both sides of every grant comparison come through here or through
+    // is_inside_allowed_root(), so expanding Windows 8.3 short names keeps a stored grant
+    // spelled one way comparable to a target spelled the other. Failing closed on an expansion
+    // error keeps an unresolvable spelling from authorizing anything.
+    if (!expand_short_name_prefix(canonical, out))
+        return false;
+    return true;
+}
+
+// The folder that directly contains the entry a create/delete event targets. The target itself may
+// not exist yet (a create), so its parent is canonicalized with weakly_canonical: the existing
+// prefix is resolved and the non-existing tail is appended lexically. A final ".." or "." names a
+// directory rather than an entry, so that target is resolved first and its parent is used instead.
+// The final component itself is deliberately not canonicalized: deleting or creating a symlink
+// acts on the link inside its parent folder, not on the link's destination. A trailing separator
+// on a symlink is rejected instead of resolving through the link: the path is ambiguous between
+// the link and its destination, and must not grant the destination's parent folder. Returns false
+// when the folder cannot be resolved, and the operation then fails closed.
+bool create_delete_target_folder(const std::string& target, boost::filesystem::path& folder)
+{
+    namespace fs = boost::filesystem;
+
+    if (target.empty())
+        return false;
+
+    const fs::path path(target);
+    boost::system::error_code ec;
+    const fs::path absolute = path.is_absolute() ? path : fs::absolute(path, ec);
+    if (ec || !absolute.is_absolute())
+        return false;
+
+    const fs::path filename = path.filename();
+    if (filename == "." || filename == "..") {
+        if (filename == ".") {
+            // A trailing separator (or a trailing ".") names the directory itself. Strip those
+            // components to find the entry the path ends at; if it is a symlink, resolve-through
+            // would name the link destination's folder, so fail closed.
+            fs::path entry = path;
+            while (entry.filename() == "." && !entry.parent_path().empty())
+                entry = entry.parent_path();
+            if (!entry.empty() && entry.filename() != ".") {
+                boost::system::error_code status_ec;
+                const fs::file_status status = fs::symlink_status(entry, status_ec);
+                if (!status_ec && fs::is_symlink(status))
+                    return false;
+            }
+        }
+
+        // The target names a directory: resolve it, then use the directory that contains it.
+        const fs::path resolved = fs::weakly_canonical(absolute, ec);
+        if (ec || !resolved.is_absolute())
+            return false;
+        const fs::path parent = resolved.parent_path();
+        if (parent.empty())
+            return false;
+        folder = parent;
+        return true;
+    }
+
+    const fs::path parent = fs::weakly_canonical(absolute.parent_path(), ec);
+    if (ec || !parent.is_absolute())
+        return false;
+
+    folder = parent;
+    return true;
+}
+
+// True when `target` names the approved subtree root itself, without resolving the final path
+// component through a symlink. Deleting a link acts on the link entry, not on its destination, so
+// an outside link pointing into the subtree must not be treated as the subtree root. The parent is
+// canonicalized, which resolves intermediate symlinks and ".." with the operating system's
+// semantics; the path is never lexically folded first, because "link/.." must follow the link
+// before stepping up. The final component is compared by name -- with an 8.3 short name of a
+// non-link entry expanded to its long spelling -- and a final ".." fails closed.
+bool delete_entry_names_subtree_root(const std::string& target, const boost::filesystem::path& canonical_subtree)
+{
+    namespace fs = boost::filesystem;
+
+    if (target.empty() || canonical_subtree.empty() || !canonical_subtree.is_absolute())
+        return false;
+
+    boost::system::error_code ec;
+    const fs::path path(target);
+    const fs::path absolute = path.is_absolute() ? path : fs::absolute(path, ec);
+    if (ec || !absolute.is_absolute())
+        return false;
+
+    // Strip only trailing separators / "." components so a trailing slash still names the entry.
+    // Do not lexically fold the remaining path: that would turn "<link>/.." into the link's
+    // lexical parent instead of the parent of the link's destination.
+    fs::path entry = absolute;
+    while (!entry.empty() && (entry.filename() == "." || entry.filename().empty()) &&
+           !entry.parent_path().empty())
+        entry = entry.parent_path();
+
+    if (entry.empty() || entry.filename() == "." || entry.filename() == "..")
+        return false;
+
+    const fs::path parent = fs::weakly_canonical(entry.parent_path(), ec);
+    if (ec || !parent.is_absolute() || !fs::is_directory(parent, ec) || ec)
+        return false;
+
+    fs::path expanded_parent;
+    if (!expand_short_name_prefix(parent, expanded_parent))
+        return false;
+
+    // The final component stays compared by name, so the expanded parent alone is enough for a link
+    // entry: its destination is never followed. Spelling the component long is only safe when it is
+    // not a link, because GetLongPathNameW's documentation does not promise to leave a link
+    // unresolved; it is needed when a target names the root through the root's own 8.3 alias. A
+    // missing entry has no alias and stays as written.
+    const fs::path entry_path = expanded_parent / entry.filename();
+    boost::system::error_code status_ec;
+    const fs::file_status status = fs::symlink_status(entry_path, status_ec);
+    if (status_ec || fs::is_symlink(status))
+        return same_canonical_path(entry_path, canonical_subtree);
+
+    fs::path expanded_entry;
+    if (!expand_short_name_prefix(entry_path, expanded_entry))
+        return false;
+
+    return same_canonical_path(expanded_entry, canonical_subtree);
+}
+
+// True when deleting `target` acts on an entry inside `canonical_subtree`. The containing folder
+// decides scope, so a symlink entry is judged by where it lives, not by what it points at. The one
+// exception is the subtree root itself, recognised without following its final component.
+bool delete_target_within_subtree(const std::string& target, const boost::filesystem::path& canonical_subtree)
+{
+    boost::filesystem::path folder;
+    if (create_delete_target_folder(target, folder) && is_inside_allowed_root(folder, canonical_subtree))
+        return true;
+
+    return delete_entry_names_subtree_root(target, canonical_subtree);
+}
+
+// True when a runtime folder path contains '*'. A folder literally named with a wildcard cannot
+// be stored as a literal create/delete grant: the sidecar would read the marker as a tree grant
+// and cover a broader scope than the approved folder. Runtime callers fail closed before
+// prompting for or persisting such a grant.
+bool create_delete_folder_has_wildcard(const boost::filesystem::path& folder)
+{
+    return folder.string().find('*') != std::string::npos;
+}
+
+// True when one saved create/delete grant covers the canonical folder `wanted`. A tree grant
+// covers its canonical root and every folder below it, at any depth. An exact grant names exactly
+// one folder, so it is consulted only when `allow_exact_grant` is true: a tree request is never
+// covered by an exact grant, because that grant authorizes only the entries directly inside its
+// folder, not the subtree.
+bool create_delete_grant_covers_canonical_folder(const std::vector<std::string>& granted,
+                                                 const boost::filesystem::path&  wanted,
+                                                 bool                            allow_exact_grant)
+{
+    for (const std::string& grant : granted) {
+        boost::filesystem::path root;
+        if (tree_grant_root(grant, root)) {
+            boost::filesystem::path canonical_root;
+            if (!canonical_folder(root, canonical_root))
+                continue; // relative or unresolvable roots never authorize
+            boost::filesystem::path suffix;
+            if (suffix_inside_root(wanted, canonical_root, suffix))
+                return true;
+            continue;
+        }
+        if (!allow_exact_grant)
+            continue;
+        if (!canonical_folder(boost::filesystem::path(grant), root))
+            continue; // relative or unresolvable entries never authorize
+        if (same_canonical_path(root, wanted))
+            return true;
+    }
+    return false;
+}
+
+// True when a saved create/delete grant already covers `folder`, the directory directly
+// containing a create or delete target. An exact grant names that folder; a tree grant names
+// its root and every folder below it. Folders are compared in canonical form so "." / "..",
+// repeated separators and symlinked folders do not create a second grant for the same location,
+// and a symlink inside a tree cannot escape it. A full grant covers every folder.
+bool create_delete_grant_covers_folder(const std::vector<std::string>& granted, const std::string& folder)
+{
+    if (create_delete_grant_full(granted))
+        return true;
+
+    boost::filesystem::path wanted;
+    if (!canonical_folder(boost::filesystem::path(folder), wanted))
+        return false;
+
+    return create_delete_grant_covers_canonical_folder(granted, wanted, /*allow_exact_grant=*/true);
+}
+
+// True when the saved create/delete grants cover creating or deleting `target`: the folder
+// directly containing it is named by an exact grant, or lies inside a tree grant's root.
+bool create_delete_grant_covers(const std::vector<std::string>& granted, const std::string& target)
+{
+    if (create_delete_grant_full(granted))
+        return true;
+
+    boost::filesystem::path folder;
+    return create_delete_target_folder(target, folder) && create_delete_grant_covers_folder(granted, folder.string());
+}
+
+// Resolves a folder path to the absolute, canonical location stored in the sidecar. A relative
+// path is resolved against the working directory the request is made in, like a relative tree
+// grant. Returns false for an empty or unresolvable path; the caller fails closed instead of
+// storing a grant with a different scope. The final component must not be a dangling symlink
+// (see canonical_folder).
+bool resolve_create_delete_folder(const boost::filesystem::path& path, boost::filesystem::path& folder)
+{
+    if (path.empty())
+        return false;
+
+    boost::system::error_code ec;
+    const boost::filesystem::path absolute = path.is_absolute() ? path : boost::filesystem::absolute(path, ec);
+    if (ec || !absolute.is_absolute())
+        return false;
+
+    return canonical_folder(absolute, folder);
+}
+
+// Resolves a folder requested by a plugin declaration to the absolute, canonical path stored in
+// the sidecar. A relative folder is resolved against the working directory the request is made
+// in, like a relative tree grant. Returns false for an empty, wildcard-containing, unresolvable or
+// dangling entry; the declaration then fails closed instead of storing a grant with a different
+// scope. The sole "*" full form is handled before this helper.
+bool absolute_create_delete_folder(const std::string& requested, std::string& folder)
+{
+    if (requested.empty() || requested.find('*') != std::string::npos)
+        return false;
+
+    boost::filesystem::path canonical;
+    if (!resolve_create_delete_folder(boost::filesystem::path(requested), canonical))
+        return false;
+
+    folder = canonical.string();
+    return true;
+}
+
+// Splits a requested create/delete tree grant into its root. Unlike tree_grant_root, this is
+// applied to a declaration, not to a stored grant: "." and ".." are allowed because the root is
+// canonicalized and shown to the user before it is stored. Returns false for every shape
+// tree_grant_parent rejects.
+bool requested_tree_grant_root(const std::string& requested, boost::filesystem::path& root)
+{
+    return tree_grant_parent(requested, root);
+}
+
+// Resolves one entry from a create/delete declaration to the string stored for it. An exact
+// folder becomes its canonical absolute path. A tree grant "<dir>/*" resolves its root the same
+// way and is stored as "<canonical-root>/*", so the sidecar records the absolute scope the prompt
+// showed. Returns false for an empty entry, a wildcard other than a final tree marker, or an
+// entry that cannot be resolved; the declaration then fails closed. The sole "*" full form is
+// handled before this helper.
+bool absolute_create_delete_grant(const std::string& requested, std::string& grant)
+{
+    boost::filesystem::path root;
+    if (!requested_tree_grant_root(requested, root))
+        return absolute_create_delete_folder(requested, grant);
+
+    boost::filesystem::path canonical;
+    if (!resolve_create_delete_folder(root, canonical))
+        return false;
+
+    grant = (canonical / "*").string();
+    return true;
+}
+
+// True when a saved create/delete grant already covers the whole scope of another grant entry.
+// An exact requested folder is covered by an exact grant naming it, or by a tree grant whose root
+// contains it. A requested tree grant is covered only by a tree grant whose root contains its
+// root (or by full access): an exact grant authorizes direct entries in one folder, not the
+// subtree the request asks for.
+bool create_delete_grant_covers_grant(const std::vector<std::string>& granted, const std::string& requested)
+{
+    if (create_delete_grant_full(granted))
+        return true;
+
+    boost::filesystem::path requested_root;
+    if (!tree_grant_root(requested, requested_root))
+        return create_delete_grant_covers_folder(granted, requested);
+
+    boost::filesystem::path wanted_root;
+    if (!canonical_folder(requested_root, wanted_root))
+        return false;
+
+    return create_delete_grant_covers_canonical_folder(granted, wanted_root, /*allow_exact_grant=*/false);
+}
+
 // True when `granted` already covers `target`. Only the filesystem buckets accept a tree grant,
 // and their exact entries may name the target file by an equivalent path spelling: an event
 // grant ("FsRead:open") and the non-filesystem buckets (URLs, socket addresses, commands) are
-// matched verbatim, as before.
+// matched verbatim, as before. The create/delete buckets are folder grants: they match the
+// folder directly containing the target (an exact folder grant) or any folder inside a tree
+// grant's root, not the target's spelling.
 bool has_permission(AuditEventCategory category, bool by_event, const std::vector<std::string>& granted,
                     const std::string& target)
 {
     const bool fs_bucket =
         !by_event && (category == AuditEventCategory::FsRead || category == AuditEventCategory::FsReadWrite);
+    const bool create_delete_bucket =
+        !by_event && is_create_delete_category(category);
+
+    if (create_delete_bucket)
+        return create_delete_grant_covers(granted, target);
+
     for (const auto& grant : granted) {
         // fs_grant_covers also owns the exact match, so that a relative tree entry cannot match
         // by spelling alone.
@@ -1514,8 +2589,19 @@ bool persist_permission(const std::string& plugin_key, AuditEventCategory catego
     if (!permission_list)
         return false;
 
-    if (!has_permission(category, by_event, *permission_list, target))
+    if (is_create_delete_category(category)) {
+        // A runtime folder whose name contains '*' cannot be stored as a literal create/delete
+        // grant: the sidecar would read it as a tree grant. Fail closed rather than persist a
+        // grant whose scope differs from the one the prompt showed.
+        if (target.find('*') != std::string::npos)
+            return false;
+        // The caller passes the target's parent folder for these buckets, so compare it as a
+        // folder rather than as a target path.
+        if (!create_delete_grant_covers_folder(*permission_list, target))
+            permission_list->push_back(target);
+    } else if (!has_permission(category, by_event, *permission_list, target)) {
         permission_list->push_back(target);
+    }
     return write_install_state(root, state);
 }
 
@@ -1560,13 +2646,106 @@ int report_denied(PluginAuditManager&            mgr,
 }
 
 wxString audit_message(AuditEventCategory category, const wxString& plugin_name, const wxString& event_name,
-                       const wxString& target_list, size_t target_count)
+                       const wxString& target_list, size_t target_count, bool full_fs_scope = false,
+                       bool tree_scope = false, bool root_tree_scope = false, bool exact_process_command = false,
+                       bool executable_process_target = false)
 {
+    // Create and delete grants name folders, and a declaration may ask for the whole filesystem
+    // with a sole "*". Describe that scope instead of printing the marker as a folder.
+    if (full_fs_scope) {
+        switch (category) {
+        case AuditEventCategory::FsCreate:
+            return wxString::Format(
+                _L("Plugin \"%s\" is requesting to create files anywhere on this computer.\n\n"
+                   "Paths the host denies stay blocked."),
+                plugin_name);
+        case AuditEventCategory::FsDelete:
+            return wxString::Format(
+                _L("Plugin \"%s\" is requesting to delete files anywhere on this computer.\n\n"
+                   "Paths the host denies stay blocked."),
+                plugin_name);
+        default:
+            break;
+        }
+    }
+
     if (target_list.IsEmpty())
         return wxString::Format(
             _L("Plugin \"%s\" is requesting permission for the Python audit event \"%s\".\n\n"
                 "This operation does not expose a target the audit hook can display."),
             plugin_name, event_name);
+
+    if (tree_scope) {
+        if (root_tree_scope) {
+            switch (category) {
+            // A tree grant rooted at a filesystem, drive, or network share root covers everything
+            // on it. Say so explicitly instead of describing it like an ordinary nested folder.
+            // A mixed target list may also hold exact folders: only the entries ending in /* or \*
+            // cover subfolders, so the message cannot say that every listed folder does.
+            case AuditEventCategory::FsCreate:
+                return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to create files in the following folder:\n%s\n\n"
+                                                  "Approval covers creating entries directly inside the listed folder. "
+                                                  "Only a target ending in /* or \\* also includes that folder's subfolders, at any depth. "
+                                                  "An exact folder target covers the entries directly inside that folder only. "
+                                                  "A target that is a filesystem, drive, or network share root, such as /*, "
+                                                  "C:\\*, or \\\\server\\share\\*, covers that entire filesystem, drive, or network share.",
+                                                  "Plugin \"%s\" is requesting to create files in the following folders:\n%s\n\n"
+                                                  "Approval covers creating entries directly inside each listed folder. "
+                                                  "Only targets ending in /* or \\* also include their folder's subfolders, at any depth. "
+                                                  "Exact folder targets cover the entries directly inside that folder only. "
+                                                  "A target that is a filesystem, drive, or network share root, such as /*, "
+                                                  "C:\\*, or \\\\server\\share\\*, covers that entire filesystem, drive, or network share.",
+                                                  target_count),
+                                        plugin_name, target_list);
+            case AuditEventCategory::FsDelete:
+                return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to delete files in the following folder:\n%s\n\n"
+                                                  "Approval covers deleting entries directly inside the listed folder. "
+                                                  "Only a target ending in /* or \\* also includes that folder's subfolders, at any depth. "
+                                                  "An exact folder target covers the entries directly inside that folder only. "
+                                                  "A target that is a filesystem, drive, or network share root, such as /*, "
+                                                  "C:\\*, or \\\\server\\share\\*, covers that entire filesystem, drive, or network share.",
+                                                  "Plugin \"%s\" is requesting to delete files in the following folders:\n%s\n\n"
+                                                  "Approval covers deleting entries directly inside each listed folder. "
+                                                  "Only targets ending in /* or \\* also include their folder's subfolders, at any depth. "
+                                                  "Exact folder targets cover the entries directly inside that folder only. "
+                                                  "A target that is a filesystem, drive, or network share root, such as /*, "
+                                                  "C:\\*, or \\\\server\\share\\*, covers that entire filesystem, drive, or network share.",
+                                                  target_count),
+                                        plugin_name, target_list);
+            default:
+                break;
+            }
+        }
+        switch (category) {
+        // The target list shows a tree grant as "<folder>/*". Its approval covers subfolders,
+        // unlike a literal folder entry, so the prompt says so. The scope sentence is part of
+        // each msgid rather than appended, so a translator can reorder it.
+        case AuditEventCategory::FsCreate:
+            return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to create files in the following folder:\n%s\n\n"
+                                              "Approval covers creating entries directly inside the listed folder. "
+                                              "Only a target ending in /* or \\* also includes that folder's subfolders, at any depth. "
+                                              "An exact folder target covers the entries directly inside that folder only.",
+                                              "Plugin \"%s\" is requesting to create files in the following folders:\n%s\n\n"
+                                              "Approval covers creating entries directly inside each listed folder. "
+                                              "Only targets ending in /* or \\* also include their folder's subfolders, at any depth. "
+                                              "Exact folder targets cover the entries directly inside that folder only.",
+                                              target_count),
+                                    plugin_name, target_list);
+        case AuditEventCategory::FsDelete:
+            return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to delete files in the following folder:\n%s\n\n"
+                                              "Approval covers deleting entries directly inside the listed folder. "
+                                              "Only a target ending in /* or \\* also includes that folder's subfolders, at any depth. "
+                                              "An exact folder target covers the entries directly inside that folder only.",
+                                              "Plugin \"%s\" is requesting to delete files in the following folders:\n%s\n\n"
+                                              "Approval covers deleting entries directly inside each listed folder. "
+                                              "Only targets ending in /* or \\* also include their folder's subfolders, at any depth. "
+                                              "Exact folder targets cover the entries directly inside that folder only.",
+                                              target_count),
+                                    plugin_name, target_list);
+        default:
+            break;
+        }
+    }
 
     switch (category) {
     case AuditEventCategory::FsRead:
@@ -1577,21 +2756,24 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
         return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to read/write the following file:\n%s",
                                           "Plugin \"%s\" is requesting to read/write the following files:\n%s", target_count),
                                 plugin_name, target_list);
-    // Creating and deleting have no persistent grant list, so the inline prompt says a Yes covers
-    // this operation only. Off the main thread they use the informational denial instead. The
-    // sentence is part of each msgid rather than appended: a translator must be able to reorder
-    // it inside the message.
+    // These buckets persist a folder grant: a Yes stores the folder shown in the prompt, and
+    // later operations whose target is directly inside it are allowed. The scope sentence is part
+    // of each msgid rather than appended, so a translator can reorder it.
     case AuditEventCategory::FsCreate:
-        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to create the following file:\n%s\n\n"
-                                          "This approval applies only to this operation and is not remembered.",
-                                          "Plugin \"%s\" is requesting to create the following files:\n%s\n\n"
-                                          "This approval applies only to this operation and is not remembered.", target_count),
+        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to create files in the following folder:\n%s\n\n"
+                                          "Approval covers creating entries directly inside the listed folder. "
+                                          "It does not cover its subfolders.",
+                                          "Plugin \"%s\" is requesting to create files in the following folders:\n%s\n\n"
+                                          "Approval covers creating entries directly inside each listed folder. "
+                                          "It does not cover their subfolders.", target_count),
                                 plugin_name, target_list);
     case AuditEventCategory::FsDelete:
-        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to delete the following file:\n%s\n\n"
-                                          "This approval applies only to this operation and is not remembered.",
-                                          "Plugin \"%s\" is requesting to delete the following files:\n%s\n\n"
-                                          "This approval applies only to this operation and is not remembered.", target_count),
+        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to delete files in the following folder:\n%s\n\n"
+                                          "Approval covers deleting entries directly inside the listed folder. "
+                                          "It does not cover its subfolders.",
+                                          "Plugin \"%s\" is requesting to delete files in the following folders:\n%s\n\n"
+                                          "Approval covers deleting entries directly inside each listed folder. "
+                                          "It does not cover their subfolders.", target_count),
                                 plugin_name, target_list);
     case AuditEventCategory::Http:
         return wxString::Format(
@@ -1606,13 +2788,43 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
                "Approval covers raw network connections to the listed hosts. It does not restrict ports."),
             plugin_name, target_list);
     case AuditEventCategory::ProcessCreate:
-        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to run the following command:\n%s",
-                                          "Plugin \"%s\" is requesting to run the following commands:\n%s", target_count),
+        // An exact command line is saved with its arguments rather than as a tool name, so the
+        // prompt must not promise that approval covers any arguments. The full line is stored,
+        // which can include credentials or tokens in its arguments.
+        if (exact_process_command && !executable_process_target)
+            return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to run the following exact command line:\n%s\n\n"
+                                              "Approval is saved for this exact command line, including its arguments, and covers "
+                                              "only it. A different command line, including different arguments, asks again. The "
+                                              "full command line is shown and saved, so it may contain sensitive values.",
+                                              "Plugin \"%s\" is requesting to run the following exact command lines:\n%s\n\n"
+                                              "Approval is saved for each exact command line, including its arguments, and covers "
+                                              "only that line. A different command line, including different arguments, asks again. "
+                                              "The full command lines are shown and saved, so they may contain sensitive values.",
+                                              target_count),
+                                    plugin_name, target_list);
+        if (exact_process_command)
+            return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to run the following commands:\n%s\n\n"
+                                              "Approval covers the listed executables with any arguments. A listed exact command "
+                                              "line is saved with its arguments and covers only that command line. Exact command "
+                                              "lines are shown and saved in full, so they may contain sensitive values. Approving a "
+                                              "shell allows it to run any command.",
+                                              "Plugin \"%s\" is requesting to run the following commands:\n%s\n\n"
+                                              "Approval covers the listed executables with any arguments. Each listed exact command "
+                                              "line is saved with its arguments and covers only that command line. Exact command "
+                                              "lines are shown and saved in full, so they may contain sensitive values. Approving a "
+                                              "shell allows it to run any command.",
+                                              target_count),
+                                    plugin_name, target_list);
+        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to run the following command:\n%s\n\n"
+                                          "Approval covers any arguments. Approving a shell allows it to run any command.",
+                                          "Plugin \"%s\" is requesting to run the following commands:\n%s\n\n"
+                                          "Approval covers any arguments. Approving a shell allows it to run any command.", target_count),
                                 plugin_name, target_list);
     case AuditEventCategory::Threading:
         return wxString::Format(_L("Plugin \"%s\" is requesting permission to create a thread."), plugin_name);
     case AuditEventCategory::ProcessReplace:
-        return wxString::Format(_L("Plugin \"%s\" is requesting to replace the running application with:\n%s"), plugin_name, target_list);
+        return wxString::Format(_L("Plugin \"%s\" is requesting to replace the running application with:\n%s\n\n"
+                                   "Approval covers any arguments. Approving a shell allows it to run any command."), plugin_name, target_list);
     default:
         return wxString::Format(_L("Plugin \"%s\" is requesting permission for the Python audit event \"%s\"."), plugin_name, event_name);
     }
@@ -1620,15 +2832,21 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
 
 // Format with a placeholder first so translated messages can put the target list anywhere.
 PermissionMessage formatted_audit_message(AuditEventCategory category, const wxString& plugin_name,
-                                          const wxString& event_name, const wxString& targets, size_t count)
+                                          const wxString& event_name, const wxString& targets, size_t count,
+                                          bool full_fs_scope = false, bool tree_scope = false,
+                                          bool root_tree_scope = false, bool exact_process_command = false,
+                                          bool executable_process_target = false)
 {
     if (targets.empty())
-        return {audit_message(category, plugin_name, event_name, targets, count), {}};
+        return {audit_message(category, plugin_name, event_name, targets, count, full_fs_scope, tree_scope,
+                              root_tree_scope, exact_process_command, executable_process_target), {}};
 
     wxString marker = "__ORCA_PERMISSION_TARGETS__";
     while (plugin_name.Contains(marker) || event_name.Contains(marker) || targets.Contains(marker))
         marker += "_";
-    PermissionMessage message{audit_message(category, plugin_name, event_name, marker, count), {}};
+    PermissionMessage message{
+        audit_message(category, plugin_name, event_name, marker, count, full_fs_scope, tree_scope, root_tree_scope,
+                      exact_process_command, executable_process_target), {}};
     const size_t pos = message.text.find(marker);
     if (pos != wxString::npos) {
         message.text.replace(pos, marker.length(), targets);
@@ -1637,16 +2855,103 @@ PermissionMessage formatted_audit_message(AuditEventCategory category, const wxS
     return message;
 }
 
+// A runtime create/delete prompt shows both the path that triggered it and the folder a Yes
+// saves, so the user can see why the plugin was stopped and what the persistent grant covers.
+// The declaration prompt keeps showing only the requested folder scope.
+PermissionMessage formatted_create_delete_message(AuditEventCategory category, const wxString& plugin_name,
+                                                 const std::vector<PluginAuditManager::PermissionPromptEntry>& entries)
+{
+    // TRN %1% is the path the plugin tried to create or delete; %2% is the folder saved as a
+    // grant if the user approves.
+    const wxString entry_format = _L("Target: %1%\nSaved folder: %2%");
+    wxString       target_list;
+    for (const auto& entry : entries) {
+        if (!target_list.IsEmpty())
+            target_list += "\n";
+        target_list += GUI::format_wxstr(entry_format, entry.target, entry.grant_folder);
+    }
+
+    wxString marker = "__ORCA_PERMISSION_TARGETS__";
+    while (plugin_name.Contains(marker) || target_list.Contains(marker))
+        marker += "_";
+
+    wxString text;
+    switch (category) {
+    case AuditEventCategory::FsCreate:
+        // TRN %1% is the plugin name; %2% is the list of targets, each with the folder saved as a
+        // grant.
+        text = GUI::format_wxstr(
+            _L_PLURAL("Plugin \"%1%\" is requesting to create the following entry:\n%2%\n\n"
+                      "If you approve, the folder shown with this target is saved as a grant for future "
+                      "operations. The grant covers creating entries directly inside that folder. It does not "
+                      "cover the subfolders inside that folder.",
+                      "Plugin \"%1%\" is requesting to create the following entries:\n%2%\n\n"
+                      "If you approve, the folder shown with each target is saved as a grant for future "
+                      "operations. Each grant covers creating entries directly inside its folder. It does not "
+                      "cover the subfolders inside that folder.",
+                      entries.size()),
+            plugin_name, marker);
+        break;
+    case AuditEventCategory::FsDelete:
+        // TRN %1% is the plugin name; %2% is the list of targets, each with the folder saved as a
+        // grant.
+        text = GUI::format_wxstr(
+            _L_PLURAL("Plugin \"%1%\" is requesting to delete the following entry:\n%2%\n\n"
+                      "If you approve, the folder shown with this target is saved as a grant for future "
+                      "operations. The grant covers deleting entries directly inside that folder. It does not "
+                      "cover the subfolders inside that folder.",
+                      "Plugin \"%1%\" is requesting to delete the following entries:\n%2%\n\n"
+                      "If you approve, the folder shown with each target is saved as a grant for future "
+                      "operations. Each grant covers deleting entries directly inside its folder. It does not "
+                      "cover the subfolders inside that folder.",
+                      entries.size()),
+            plugin_name, marker);
+        break;
+    default:
+        return {};
+    }
+
+    PermissionMessage message{text, {}};
+    const size_t pos = message.text.find(marker);
+    if (pos != wxString::npos) {
+        message.text.replace(pos, marker.length(), target_list);
+        message.targets.emplace_back(pos, target_list.length());
+    }
+    return message;
+}
+
 // Builds and shows the modal permission prompt. Must run on the GUI thread.
 bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_name, const std::string& event_name,
-                        const std::vector<std::string>& unresolved)
+                        const std::vector<std::string>& unresolved,
+                        const std::vector<PluginAuditManager::PermissionPromptEntry>& entries)
 {
+    if (is_create_delete_category(category) && !entries.empty()) {
+        PermissionMessage message =
+            formatted_create_delete_message(category, wxString::FromUTF8(plugin_name.c_str()), entries);
+        return show_permission_dialog(message, _L("Plugin permission request"));
+    }
+
+    const bool process_category =
+        category == AuditEventCategory::ProcessCreate || category == AuditEventCategory::ProcessReplace;
+    const ProcessPromptScope process_scope =
+        process_category ? process_prompt_scope(unresolved) : ProcessPromptScope{};
+
     wxString target_list;
-    for (const auto& target : unresolved)
-        target_list += wxString::FromUTF8(target.c_str()) + "\n";
+    for (const auto& target : unresolved) {
+        const std::string shown = process_category ? process_target_for_display(target) : target;
+        target_list += wxString::FromUTF8(shown.c_str()) + "\n";
+    }
+
+    const bool tree_scope = std::any_of(unresolved.begin(), unresolved.end(), [](const std::string& target) {
+        boost::filesystem::path root;
+        return tree_grant_root(target, root);
+    });
 
     PermissionMessage message = formatted_audit_message(category, wxString::FromUTF8(plugin_name.c_str()),
-                                                         wxString::FromUTF8(event_name.c_str()), target_list, unresolved.size());
+                                                         wxString::FromUTF8(event_name.c_str()), target_list,
+                                                         unresolved.size(), /*full_fs_scope=*/false, tree_scope,
+                                                         /*root_tree_scope=*/false, process_scope.exact_command,
+                                                         process_scope.executable);
     return show_permission_dialog(message, _L("Plugin permission request"));
 }
 
@@ -1657,19 +2962,45 @@ bool prompt_for_permission_message(const PermissionMessage& message)
 }
 
 // Builds the combined body for a load-time declaration. Each bucket keeps its own formatted target
-// block, so a translated sentence can place its target list independently.
+// block, so a translated sentence can place its target list independently. A create/delete
+// bucket keeps the scope disclosure the declaration prompt has always shown: a sole "*" is
+// unrestricted scope, and a tree grant ("<folder>/*") also covers every subfolder.
 PermissionMessage build_permission_message(const std::string& plugin_name, const std::vector<AuditPromptBucket>& buckets)
 {
     PermissionMessage message;
     for (const AuditPromptBucket& bucket : buckets) {
+        const bool full_fs_scope = is_create_delete_category(bucket.category) && bucket.targets.size() == 1 &&
+                                   bucket.targets.front() == "*";
+        const bool tree_scope =
+            is_create_delete_category(bucket.category) &&
+            std::any_of(bucket.targets.begin(), bucket.targets.end(), [](const std::string& target) {
+                boost::filesystem::path root;
+                return tree_grant_root(target, root);
+            });
+        const bool root_tree_scope =
+            tree_scope && std::any_of(bucket.targets.begin(), bucket.targets.end(), [](const std::string& target) {
+                boost::filesystem::path root;
+                return tree_grant_root(target, root) && is_filesystem_root(root);
+            });
+
+        const bool process_category =
+            bucket.category == AuditEventCategory::ProcessCreate || bucket.category == AuditEventCategory::ProcessReplace;
+        const ProcessPromptScope process_scope =
+            process_category ? process_prompt_scope(bucket.targets) : ProcessPromptScope{};
+
         wxString targets;
-        for (const std::string& target : bucket.targets)
-            targets += wxString::FromUTF8(target.c_str()) + "\n";
+        if (!full_fs_scope)
+            for (const std::string& target : bucket.targets) {
+                const std::string shown = process_category ? process_target_for_display(target) : target;
+                targets += wxString::FromUTF8(shown.c_str()) + "\n";
+            }
 
         if (!message.text.IsEmpty())
             message.text += "\n\n";
         PermissionMessage part = formatted_audit_message(bucket.category, wxString::FromUTF8(plugin_name.c_str()),
-                                                          wxEmptyString, targets, bucket.targets.size());
+                                                          wxEmptyString, targets, bucket.targets.size(),
+                                                          full_fs_scope, tree_scope, root_tree_scope,
+                                                          process_scope.exact_command, process_scope.executable);
         for (const auto& range : part.targets)
             message.targets.emplace_back(message.text.length() + range.first, range.second);
         message.text += part.text;
@@ -1677,50 +3008,146 @@ PermissionMessage build_permission_message(const std::string& plugin_name, const
     return message;
 }
 
-// Builds the informational message shown when an off-main-thread create/delete event is denied.
-// There is no Yes/No choice: that path cannot grant create/delete permission, so the dialog must
-// not imply that approving it would make a later attempt succeed.
-wxString permission_denied_message(AuditEventCategory category, const wxString& plugin_name,
-                                   const wxString& target_list, size_t target_count)
+// A recursive delete consent shows the canonical subtree root and states that the approval lasts
+// only for this operation (or, when posted asynchronously, for one next matching attempt). That
+// scope cannot be expressed by the persistent create/delete grant prompt, so it has its own
+// complete message rather than a fragment appended to the folder prompt. A filesystem, drive, or
+// network share root gets an additional sentence: deleting it covers everything on that root.
+PermissionMessage formatted_recursive_delete_message(const wxString& plugin_name, const wxString& target,
+                                                     bool root_scope, bool background)
 {
-    if (target_list.IsEmpty())
-        return wxString::Format(
-            _L("Plugin \"%s\" tried to perform a file operation that requires permission.\n\n"
-               "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it."),
-            plugin_name);
+    wxString marker = "__ORCA_RECURSIVE_DELETE_TARGET__";
+    while (plugin_name.Contains(marker) || target.Contains(marker))
+        marker += "_";
 
-    switch (category) {
-    case AuditEventCategory::FsCreate:
-        return wxString::Format(_L_PLURAL("Plugin \"%s\" tried to create the following file:\n%s\n\n"
-                                          "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it.",
-                                          "Plugin \"%s\" tried to create the following files:\n%s\n\n"
-                                          "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it.", target_count),
-                                plugin_name, target_list);
-    case AuditEventCategory::FsDelete:
-        return wxString::Format(_L_PLURAL("Plugin \"%s\" tried to delete the following file:\n%s\n\n"
-                                          "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it.",
-                                          "Plugin \"%s\" tried to delete the following files:\n%s\n\n"
-                                          "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it.", target_count),
-                                plugin_name, target_list);
-    default:
-        return wxString::Format(_L("Plugin \"%s\" tried to perform a file operation that requires permission.\n\n"
-                                   "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it."),
-                                plugin_name);
+    // TRN %1% is the plugin name; %2% is the canonical folder whose subtree may be deleted.
+    wxString format;
+    if (root_scope) {
+        format = background
+                     ? _L("Plugin \"%1%\" is requesting to recursively delete the following folder:\n%2%\n\n"
+                          "This target is a filesystem, drive, or network share root. Approval covers that entire "
+                          "filesystem, drive, or network share, and applies to the next matching attempt within one "
+                          "minute after you approve. The current attempt has already been denied. It is not saved as "
+                          "a permission and cannot be reused for another operation. Protected paths stay blocked.")
+                     : _L("Plugin \"%1%\" is requesting to recursively delete the following folder:\n%2%\n\n"
+                          "This target is a filesystem, drive, or network share root. Approval covers that entire "
+                          "filesystem, drive, or network share while this operation runs. It is not saved as a "
+                          "permission and cannot be reused for another operation. Protected paths stay blocked.");
+    } else {
+        format = background
+                     ? _L("Plugin \"%1%\" is requesting to recursively delete the following folder:\n%2%\n\n"
+                          "Approval covers deleting the entries in this folder and everything inside it, and applies "
+                          "to the next matching attempt within one minute after you approve. The current attempt has "
+                          "already been denied. It is not saved as a permission and cannot be reused for another "
+                          "operation. Protected paths stay blocked.")
+                     : _L("Plugin \"%1%\" is requesting to recursively delete the following folder:\n%2%\n\n"
+                          "Approval covers deleting the entries in this folder and everything inside it while this "
+                          "operation runs. It is not saved as a permission and cannot be reused for another operation. "
+                          "Protected paths stay blocked.");
     }
+    wxString text = GUI::format_wxstr(format, plugin_name, marker);
+
+    PermissionMessage message{text, {}};
+    const size_t pos = message.text.find(marker);
+    if (pos != wxString::npos) {
+        message.text.replace(pos, marker.length(), target);
+        message.targets.emplace_back(pos, target.length());
+    }
+    return message;
 }
 
-// Shows the informational denial for a create/delete event whose prompt had to be handled off the
-// main thread. Must run on the GUI thread.
-void show_permission_denied_dialog(AuditEventCategory category, const std::string& plugin_name,
-                                   const std::vector<std::string>& targets)
+// Builds and shows the modal recursive-delete prompt. Must run on the GUI thread.
+bool prompt_for_recursive_delete(const std::string& plugin_name, const std::string& target, bool root_scope,
+                                 bool background)
 {
-    wxString target_list;
-    for (const auto& target : targets)
-        target_list += wxString::FromUTF8(target.c_str()) + "\n";
+    return show_permission_dialog(
+        formatted_recursive_delete_message(wxString::FromUTF8(plugin_name.c_str()), wxString::FromUTF8(target.c_str()),
+                                           root_scope, background),
+        _L("Plugin permission request"));
+}
 
-    const wxString message = permission_denied_message(category, wxString::FromUTF8(plugin_name.c_str()),
-                                                       target_list, targets.size());
-    GUI::MessageDialog(audit_prompt_parent(), message, _L("Plugin operation denied"), wxOK | wxICON_WARNING).ShowModal();
+// Defined below: the drain scheduler and the completion helper. A recursive-delete consent joins
+// the same serialization as every other audit prompt.
+bool schedule_runtime_prompt_drain_checked();
+bool finish_audit_prompt(const std::shared_ptr<AuditPromptCompletion>& completion, bool satisfied);
+
+// Asks for one-time consent to delete the canonical `target` subtree. On the wx main thread the
+// answer is available before the operation returns, so a Yes lets this attempt proceed. Off that
+// thread, or while another audit prompt is active, the modal is serialized through
+// AuditPromptQueue and the current attempt is denied; a Yes records a short-lived single-use
+// approval that only the same plugin and target can consume on a retry. A pending prompt for the
+// same plugin/target is not queued again, so a plugin retry loop cannot flood the user with
+// duplicate modals.
+bool request_recursive_delete_consent(const std::string& plugin_key, const std::string& plugin_name,
+                                      const std::string& target, bool root_scope)
+{
+    BOOST_LOG_TRIVIAL(info) << "[AUDIT PROMPT] plugin=" << plugin_key << " event=shutil.rmtree scope=subtree target=["
+                            << target << "]";
+
+    const std::uint64_t generation = recursive_delete_generation(plugin_key);
+
+    if (s_recursive_delete_prompt_for_testing) {
+        if (s_recursive_delete_prompt_background_for_testing) {
+            if (!begin_recursive_delete_prompt(plugin_key, target, generation))
+                return false;
+            RecursiveDeletePromptGuard guard(plugin_key, target, generation);
+            const bool granted = s_recursive_delete_prompt_for_testing(plugin_name, target);
+            if (s_recursive_delete_prompt_deferred_for_testing) {
+                guard.dismiss(); // answered later through answer_recursive_delete_prompt_for_testing
+                return false;
+            }
+            if (granted && recursive_delete_generation(plugin_key) == generation)
+                PluginAuditManager::instance().add_recursive_delete_approval(plugin_key, target);
+            return false;
+        }
+        return s_recursive_delete_prompt_for_testing(plugin_name, target);
+    }
+
+    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing() || PluginManager::instance().is_shutting_down() ||
+        PluginManager::instance().is_plugin_load_cancelled(plugin_key))
+        return false;
+
+    // A recursive-delete consent joins the same serialized prompt queue as every other audit
+    // prompt, so it cannot open a second dialog inside another permission dialog's modal loop.
+    // On the GUI thread an idle queue shows it inline and its answer can authorize this attempt;
+    // any queued request was raised off the GUI thread (or behind another prompt), so the current
+    // attempt is denied and a Yes becomes a one-time retry approval.
+    AuditPromptRequest request;
+    request.kind                        = AuditPromptKind::RecursiveDeleteConsent;
+    request.plugin_key                  = plugin_key;
+    request.plugin_name                 = plugin_name;
+    request.event_name                  = "shutil.rmtree";
+    request.shown                       = {target};
+    request.root_scope                  = root_scope;
+    request.recursive_delete_generation = generation;
+
+    const AuditPromptQueue::Admission admission = runtime_audit_prompts().admit(request, wxIsMainThread() != 0);
+    if (admission == AuditPromptQueue::Admission::Duplicate || admission == AuditPromptQueue::Admission::Rejected)
+        return false;
+    if (admission == AuditPromptQueue::Admission::Queued) {
+        schedule_runtime_prompt_drain_checked();
+        return false;
+    }
+
+    // A permission edit may have landed between reading the generation and claiming the queue
+    // slot. Do not show consent for a stale state; the retry will ask again with the new one.
+    if (recursive_delete_generation(plugin_key) != generation)
+        return finish_audit_prompt(nullptr, false);
+
+    // ShowNow: no other audit prompt is active, so present this consent synchronously.
+    bool granted = false;
+    try {
+        const bool alive = !PluginManager::instance().is_shutting_down() &&
+                           !PluginManager::instance().is_plugin_load_cancelled(plugin_key);
+        granted = alive && prompt_for_recursive_delete(plugin_name, target, root_scope, /*background=*/false);
+    } catch (const std::exception& ex) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to show recursive-delete prompt for plugin=" << plugin_key
+                                 << ": " << ex.what();
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to show recursive-delete prompt for plugin=" << plugin_key
+                                 << ": unknown exception";
+    }
+    return finish_audit_prompt(nullptr, granted && recursive_delete_generation(plugin_key) == generation);
 }
 
 // Records a grant in the plugin's sidecar so it is not asked again. Each persist helper re-reads
@@ -1781,9 +3208,26 @@ bool persist_declared_permissions(const std::string& plugin_key, const std::vect
                 permission_list_for(bucket.category, /*by_event=*/false, state.permissions);
             if (!permission_list)
                 continue;
-            for (const std::string& target : bucket.targets)
+            if (is_create_delete_category(bucket.category)) {
+                // A full grant added by another writer while the dialog was open already covers
+                // every folder; adding a folder beside it would stop it reading as the full form.
+                if (create_delete_grant_full(*permission_list))
+                    continue;
+                if (std::find(bucket.targets.begin(), bucket.targets.end(), "*") != bucket.targets.end()) {
+                    // Unrestricted create/delete is the one-element form; drop folder grants it covers.
+                    permission_list->assign(1, "*");
+                    continue;
+                }
+            }
+            for (const std::string& target : bucket.targets) {
+                // Another writer may have added an exact grant or a tree grant that already covers
+                // this entry while the dialog was open; do not store a redundant duplicate.
+                if (is_create_delete_category(bucket.category) &&
+                    create_delete_grant_covers_grant(*permission_list, target))
+                    continue;
                 if (std::find(permission_list->begin(), permission_list->end(), target) == permission_list->end())
                     permission_list->push_back(target);
+            }
         }
 
         persisted = write_install_state(root, state);
@@ -1812,12 +3256,16 @@ bool show_queued_prompt(const AuditPromptRequest& request)
 {
     switch (request.kind) {
     case AuditPromptKind::RuntimeEvent:
-        return prompt_for_targets(request.category, request.plugin_name, request.event_name, request.shown);
+        return prompt_for_targets(request.category, request.plugin_name, request.event_name, request.shown,
+                                  request.entries);
     case AuditPromptKind::DeclaredPermissions:
         return prompt_for_permission_message(build_permission_message(request.plugin_name, request.buckets));
-    case AuditPromptKind::DeniedOperation:
-        show_permission_denied_dialog(request.category, request.plugin_name, request.shown);
-        return false;
+    case AuditPromptKind::RecursiveDeleteConsent:
+        // The request is shown only after the attempt that raised it was denied, so the consent
+        // must describe itself as applying to the next matching attempt.
+        return !request.shown.empty() &&
+               prompt_for_recursive_delete(request.plugin_name, request.shown.front(), request.root_scope,
+                                           /*background=*/true);
     }
     return false;
 }
@@ -1895,8 +3343,14 @@ void drain_runtime_prompts()
 
     bool satisfied = false;
     try {
-        const bool alive   = plugin_available(*request);
-        const bool granted = alive && show_queued_prompt(*request);
+        const bool alive = plugin_available(*request);
+        // A permission edit racing the enqueue can leave a consent queued with the previous
+        // generation. Do not show it: its Yes could not store anything, and a fresh retry should
+        // be the prompt the user sees.
+        const bool stale_consent =
+            request->kind == AuditPromptKind::RecursiveDeleteConsent &&
+            recursive_delete_generation(request->plugin_key) != request->recursive_delete_generation;
+        const bool granted = alive && !stale_consent && show_queued_prompt(*request);
 
         // Decide under the still-active queue entry so a shutdown/unload that arrives before the
         // sidecar write cancels this request. begin_commit() makes an accepted answer atomic
@@ -1918,7 +3372,15 @@ void drain_runtime_prompts()
                     BOOST_LOG_TRIVIAL(warning) << "[AUDIT PROMPT] Failed to persist declared permissions for "
                                                << request->plugin_key;
                 break;
-            case AuditPromptKind::DeniedOperation:
+            case AuditPromptKind::RecursiveDeleteConsent:
+                // One-time consent is never persisted. A permission edit or reinstall while the
+                // dialog was open invalidated the generation, so a stale Yes stores nothing.
+                if (!request->shown.empty() &&
+                    recursive_delete_generation(request->plugin_key) == request->recursive_delete_generation)
+                    PluginAuditManager::instance().add_recursive_delete_approval(request->plugin_key,
+                                                                                request->shown.front());
+                else
+                    satisfied = false;
                 break;
             }
         }
@@ -1964,8 +3426,11 @@ static const char* audit_category_name(AuditEventCategory category)
 }
 
 // Asks the user to grant an audited event, returning true when they approve an inline prompt.
-// `keys` are what a Yes saves: the unresolved targets, or the event-grant key when the event has
-// no target (by_event), which the prompt does not show as a target.
+// `keys` are what a Yes saves and, for a targeted event, what the prompt shows. For a targetless
+// event (by_event) the prompt shows no target and `keys` holds the event-grant key. Create/delete
+// pass the canonical parent folder of each target in `keys`, and `entries` additionally pairs
+// every triggering target with that folder, so the prompt shows both the reason for the prompt
+// and exactly what it saves.
 //
 // An audited event can fire on a thread the UI thread may itself be blocked waiting on: the
 // SlicingPipeline hook runs on the slicing worker thread (see PluginHooks.cpp), and
@@ -1980,11 +3445,11 @@ static const char* audit_category_name(AuditEventCategory category)
 // Runtime prompts are serialized by AuditPromptQueue: at most one is modal at a time, and the next
 // is scheduled only after the active dialog has closed. An event delivered inside that dialog's
 // nested event loop is queued and denied instead of opening a second dialog. Create and delete
-// have no persistent grant to save, so a queued request for them becomes an informational denial:
-// a Yes/No prompt would falsely imply that accepting it could authorize the operation or a later
-// retry.
+// keep the request's target entries and persist the approved folder, so a queued approval still
+// grants what a retry needs; only the inline GUI-thread prompt lets the current operation proceed.
 bool request_permission(AuditEventCategory category, const std::string& plugin_key, const std::string& plugin_name,
-                        const std::string& event_name, bool by_event, const std::vector<std::string>& keys)
+                        const std::string& event_name, bool by_event, const std::vector<std::string>& keys,
+                        const std::vector<PluginAuditManager::PermissionPromptEntry>& entries = {})
 {
     const std::vector<std::string> shown = by_event ? std::vector<std::string>{} : keys;
     std::string targets_text = by_event ? "<none>" : "";
@@ -1999,7 +3464,7 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
                             << (by_event && !keys.empty() ? " grant=" + keys.front() : std::string{});
 
     if (s_permission_prompt_for_testing)
-        return s_permission_prompt_for_testing(event_name, shown);
+        return s_permission_prompt_for_testing(event_name, shown, entries);
 
     if (wxTheApp == nullptr || GUI::wxGetApp().is_closing() || PluginManager::instance().is_shutting_down() ||
         PluginManager::instance().is_plugin_load_cancelled(plugin_key))
@@ -2007,9 +3472,6 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
 
     const bool on_gui_thread = wxIsMainThread() != 0;
 
-    // A queued create/delete prompt cannot grant anything: that path has no persistent permission.
-    // Show the inline Yes/No prompt only when it can be presented immediately on the GUI thread;
-    // any queued fallback is the OK-only informational denial, wherever the event originated.
     AuditPromptRequest request;
     request.kind        = AuditPromptKind::RuntimeEvent;
     request.category    = category;
@@ -2019,23 +3481,17 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
     request.by_event    = by_event;
     request.keys        = keys;
     request.shown       = shown;
+    request.entries     = entries;
 
-    AuditPromptQueue::Admission admission;
-    if (is_create_delete_category(category)) {
-        AuditPromptRequest denied = request;
-        denied.kind               = AuditPromptKind::DeniedOperation;
-        admission = runtime_audit_prompts().admit_with_fallback(request, std::move(denied), on_gui_thread);
-    } else {
-        admission = runtime_audit_prompts().admit(request, on_gui_thread);
-    }
-
+    const AuditPromptQueue::Admission admission = runtime_audit_prompts().admit(request, on_gui_thread);
     if (admission == AuditPromptQueue::Admission::Duplicate || admission == AuditPromptQueue::Admission::Rejected)
         return false;
 
     if (admission == AuditPromptQueue::Admission::Queued) {
         // A prompt is already active (this event arrived inside its modal loop) or an earlier one
         // is waiting. The current operation stays denied, as for an unanswered prompt; the
-        // queued prompt is shown once the active dialog has fully closed.
+        // queued prompt is shown once the active dialog has fully closed, and a Yes persists the
+        // same grant an inline answer would.
         schedule_runtime_prompt_drain_checked();
         return false;
     }
@@ -2058,15 +3514,19 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
 }
 
 // Decides an event that no allowed root or running operation covers: a saved grant allows it,
-// otherwise the user is asked. A Yes is saved when the category has a persistent grant list;
-// create/delete has none and off the main thread only reports the denial.
+// otherwise the user is asked. A Yes is saved for every category that has a persistent grant
+// list, including create/delete, whose grant is the folder containing each approved target.
+// Recursive deletes are the exception: their consent covers one subtree for one operation and
+// is never written to the sidecar. `approved_delete_subtree` is set to that canonical subtree so
+// the recorded root frame can cover its nested deletes.
 int decide_audited_event(PluginAuditManager&             mgr,
                          PluginInstallState&              state,
                          const std::string&                plugin_key,
                          const std::string&                plugin_name,
                          const std::string&                event_name,
                          AuditEventCategory                category,
-                         const std::vector<std::string>&   targets)
+                         const std::vector<std::string>&   targets,
+                         boost::filesystem::path&          approved_delete_subtree)
 {
     // Full access turns permission auditing off for this plugin, so no grant or prompt applies.
     // This is reached only after audit_plugin_event's unconditional denied-path loop: the
@@ -2079,38 +3539,115 @@ int decide_audited_event(PluginAuditManager&             mgr,
     const bool                     by_event = targets.empty();
     const std::vector<std::string> keys     = by_event ? std::vector<std::string>{event_grant_key(category, event_name)} : targets;
     const bool                     threading_category = category == AuditEventCategory::Threading;
+    const bool                     create_delete_category = is_create_delete_category(category);
     std::vector<std::string>*      permission_list = permission_list_for(category, by_event, state.permissions);
 
-    std::vector<std::string> unresolved = keys;
-    if (permission_list || is_network_category(category) || threading_category) {
-        unresolved.clear();
-        if (threading_category) {
-            // Threading is a boolean grant rather than a target list. The event still reports the
-            // fixed sentinel target so it is not treated as a targetless event grant.
-            if (!state.permissions.threading)
-                unresolved = keys;
-        } else {
-            for (const auto& key : keys) {
-                // A network grant authorizes a specific host, except for a targetless event such as
-                // http.client.send, which names no host: any network grant covers that.
-                const bool granted_network =
-                    is_network_category(category) &&
-                    (by_event ? has_any_network_permission(state.permissions)
-                              : has_network_permission(state.permissions, key));
-                if (!(permission_list && has_permission(category, by_event, *permission_list, key)) && !granted_network)
-                    unresolved.push_back(key);
+    // A recursive delete walks and deletes a whole subtree, so it is judged as a subtree
+    // operation before the ordinary folder-grant check. A plain folder grant names direct
+    // entries only: even one naming the target folder or its parent is insufficient. Saved tree
+    // grants must cover both the entries inside the target and removal of the target folder
+    // itself. Otherwise the user is asked for one-time consent for this canonical subtree before
+    // the walk starts; that consent is never persisted.
+    if (category == AuditEventCategory::FsDelete && event_name == "shutil.rmtree" && !by_event) {
+        if (targets.size() != 1)
+            return report_denied(mgr, event_name, {false, "recursive delete target cannot be resolved"});
+
+        boost::filesystem::path root;
+        if (!resolve_create_delete_folder(boost::filesystem::path(targets.front()), root))
+            return report_denied(mgr, event_name, {false, "recursive delete target cannot be resolved"}, targets.front());
+
+        const std::string canonical_root = root.string();
+        const std::string subtree_grant  = (root / "*").string();
+        const bool subtree_covered =
+            permission_list &&
+            (create_delete_grant_full(*permission_list) ||
+             create_delete_grant_covers_grant(*permission_list, subtree_grant));
+        if (subtree_covered) {
+            // A tree grant over the target covers the entries inside it, not necessarily deleting
+            // the target folder itself: a target-rooted "<target>/*" grant leaves the final
+            // os.rmdir(target) to the containing folder of target. Only return here when that
+            // removal is separately covered too; otherwise the one-time consent below has to
+            // authorise the root removal explicitly before the walk starts.
+            if (has_permission(AuditEventCategory::FsDelete, /*by_event=*/false, *permission_list, targets.front())) {
+                // A matching consent is obsolete once saved grants cover the whole operation.
+                mgr.consume_recursive_delete_approval(plugin_key, canonical_root);
+                return 0;
             }
         }
-        if (unresolved.empty())
+
+        // A Yes posted by an earlier attempt is bound to this plugin and canonical target. Take
+        // it before asking again; consuming removes it, so it cannot authorise a second run.
+        if (mgr.consume_recursive_delete_approval(plugin_key, canonical_root)) {
+            approved_delete_subtree = root;
             return 0;
+        }
+
+        // Letting a root frame go runs finalizers where no dialog may open: what they do must
+        // already be granted.
+        if (mgr.releasing_frames())
+            return report_denied(mgr, event_name, {false, "recursive delete requires subtree permission"}, canonical_root);
+
+        const bool root_scope = is_filesystem_root(root);
+        if (!request_recursive_delete_consent(plugin_key, plugin_name, canonical_root, root_scope))
+            return report_denied(mgr, event_name, {false, "recursive delete requires subtree permission"}, canonical_root);
+
+        approved_delete_subtree = root;
+        return 0;
     }
+
+    // Create/delete grants name folders: an approval saves the folder that directly contains
+    // each unresolved target, and the prompt shows both the triggering target and that canonical
+    // folder -- including the absolute form of relative targets and the resolved form of
+    // symlinked parents -- so the user approves exactly the scope that will be stored. Every
+    // target has to be covered, and a target whose folder cannot be resolved fails closed.
+    std::vector<std::string> unresolved;
+    std::vector<PluginAuditManager::PermissionPromptEntry> prompt_entries;
+    if (threading_category) {
+        // Threading is a boolean grant rather than a target list. The event still reports the
+        // fixed sentinel target so it is not treated as a targetless event grant.
+        if (!state.permissions.threading)
+            unresolved = keys;
+    } else if (create_delete_category && !by_event) {
+        for (const std::string& target : targets) {
+            if (permission_list && has_permission(category, /*by_event=*/false, *permission_list, target))
+                continue;
+            boost::filesystem::path folder;
+            if (!create_delete_target_folder(target, folder))
+                return report_denied(mgr, event_name, {false, "target folder cannot be resolved"}, target);
+            const std::string grant = folder.string();
+            // A folder whose own name contains '*' cannot be shown or stored as a literal grant:
+            // the sidecar would read it as a tree grant over a broader scope. Fail closed.
+            if (create_delete_folder_has_wildcard(folder))
+                return report_denied(mgr, event_name, {false, "target folder contains a wildcard"}, target);
+            // Show every triggering target, even when several targets resolve to the same folder;
+            // the folder list stays deduplicated because a Yes saves each folder once.
+            prompt_entries.push_back({target, grant});
+            if (std::find(unresolved.begin(), unresolved.end(), grant) != unresolved.end())
+                continue; // another target in this folder already requires the same approval
+            unresolved.push_back(grant);
+        }
+    } else {
+        for (const auto& key : keys) {
+            // A network grant authorizes a specific host, except for a targetless event such as
+            // http.client.send, which names no host: any network grant covers that.
+            const bool granted_network =
+                is_network_category(category) &&
+                (by_event ? has_any_network_permission(state.permissions)
+                          : has_network_permission(state.permissions, key));
+            if (!(permission_list && has_permission(category, by_event, *permission_list, key)) && !granted_network)
+                unresolved.push_back(key);
+        }
+    }
+
+    if (unresolved.empty())
+        return 0;
 
     // Letting a root frame go runs finalizers inside a scope destructor or another event's hook,
     // where no dialog may open: what they do must already be granted.
     if (mgr.releasing_frames())
         return report_denied(mgr, event_name, {false, "audit permission required"});
 
-    if (!request_permission(category, plugin_key, plugin_name, event_name, by_event, unresolved))
+    if (!request_permission(category, plugin_key, plugin_name, event_name, by_event, unresolved, prompt_entries))
         return report_denied(mgr, event_name, {false, "audit permission required"});
 
     // persist_grant re-reads the sidecar under the shared lock and handles the threading
@@ -2121,11 +3658,63 @@ int decide_audited_event(PluginAuditManager&             mgr,
     return 0;
 }
 
+// A hardlink makes an existing source writable through its new name, so the source needs write
+// authorization independently of the destination's create permission, not merely read access:
+// a writable allowed root, a saved fs_readwrite grant, full access, or a read/write approval.
+// A read grant is deliberately insufficient because the link turns a read-only path into a
+// writable one. A create grant is never stored for the source. Returns false when the source is
+// not writable or the approval is missing; the caller then denies the event. Called only after
+// root-frame coverage, so a link performed by an approved read/write operation is covered as
+// part of that operation.
+bool authorize_hardlink_source(PluginAuditManager& mgr, const std::string& event_name, const std::string& source)
+{
+    if (source.empty())
+        return false;
+
+    // check_path_access also consults the deny registry; a denied source already denied the event
+    // earlier, and a false result here still fails closed. is_write=true admits only writable
+    // allowed roots, not read-only ones such as the bundled resources folder.
+    if (mgr.check_path_access(boost::filesystem::path(source), /*is_write=*/true).allowed)
+        return true;
+
+    PluginInstallState state;
+    const bool have_state = PluginManager::instance().get_install_state(mgr.current_plugin(), state);
+    if (have_state && state.permissions.full_access)
+        return true;
+    if (have_state &&
+        has_permission(AuditEventCategory::FsReadWrite, /*by_event=*/false, state.permissions.fs_readwrite, source))
+        return true;
+
+    // Letting a root frame go runs finalizers where no dialog may open: what they do must already
+    // be granted, so the source check fails closed instead of prompting.
+    if (mgr.releasing_frames())
+        return false;
+
+    const std::string plugin_name = state.plugin_name.empty() ? mgr.current_plugin() : state.plugin_name;
+    if (!request_permission(AuditEventCategory::FsReadWrite, mgr.current_plugin(), plugin_name, event_name,
+                            /*by_event=*/false, {source}))
+        return false;
+
+    persist_grant(mgr.current_plugin(), AuditEventCategory::FsReadWrite, /*by_event=*/false, {source});
+    return true;
+}
+
 // Judges an audited event raised while a plugin context is active.
 int audit_plugin_event(PluginAuditManager& mgr, const std::string& event_name, AuditEventCategory event_type, PyObject* args)
 {
     const bool                      fs_category = is_fs_category(event_type);
-    const std::vector<std::string>  targets      = audit_targets(event_name, event_type, args);
+    std::vector<std::string>        targets      = audit_targets(event_name, event_type, args);
+
+    // A dir_fd makes a relative path name an entry in the descriptor's folder, not in the working
+    // directory. Resolve it before any check so the deny registry, allowed roots and folder grants
+    // all see the folder the operation actually uses. A descriptor that cannot be resolved denies
+    // the operation; every later shortcut would otherwise judge the wrong path.
+    if (is_create_delete_category(event_type) && !resolve_create_delete_targets(event_name, args, targets))
+        return report_denied(mgr, event_name, {false, "directory file descriptor cannot be resolved"});
+
+    // A link creation writes only its destination; its existing source is not a create target.
+    const std::vector<std::string> permission_targets =
+        event_type == AuditEventCategory::FsCreate ? create_permission_targets(event_name, targets) : targets;
 
     // A denied path (secrets, certificates, config files -- see is_denied_path) is an
     // unconditional block: checked before the running-operation check below, so no granted
@@ -2139,25 +3728,71 @@ int audit_plugin_event(PluginAuditManager& mgr, const std::string& event_name, A
         }
     }
 
+    // A create/delete event with no readable destination cannot be matched against a folder grant.
+    if (is_create_delete_category(event_type) && permission_targets.empty())
+        return report_denied(mgr, event_name, {false, "target path cannot be resolved"});
+
     // A nested event of an operation already granted, e.g. socket.connect inside an approved
     // urlopen(), is not asked again. urllib.Request is always judged on its own URL, so a
-    // redirect or a nested urlopen() inside a running request is not covered by it.
-    if (event_name != "urllib.Request" && mgr.covered_by_root_frame())
+    // redirect or a nested urlopen() inside a running request is not covered by it. A read/write
+    // root (copytree, unpack_archive, move) covers the create/delete events it performs, but a
+    // delete root (rmtree) does not cover nested deletes unless this operation was started with a
+    // subtree-scoped delete (one-time consent or an implicit writable root). In that case a
+    // nested delete is covered only while its target stays inside the approved subtree and the
+    // stack between it and the root holds stdlib frames only; a tree grant can still allow a
+    // nested delete on its own. Protected paths were already denied above, so they remain blocked
+    // even inside an approved subtree.
+    const bool approved_subtree_covers_delete =
+        event_type == AuditEventCategory::FsDelete &&
+        mgr.delete_target_inside_approved_subtree(permission_targets);
+    if (event_name != "urllib.Request" &&
+        (mgr.covered_by_root_frame(/*allow_delete_roots=*/event_type != AuditEventCategory::FsDelete) ||
+         approved_subtree_covers_delete))
         return 0;
+
+    // A hardlink's source becomes writable through the new name, so the source needs write
+    // authorization on its own. This runs after root-frame coverage, so a link performed by an
+    // approved read/write operation is covered as part of it, and before implicit allowed roots,
+    // so a destination inside data_dir cannot authorize a source outside it. The destination's
+    // create permission does not cover the source.
+    if (event_name == "os.link" && is_create_delete_category(event_type)) {
+        if (targets.size() < 2)
+            return report_denied(mgr, event_name, {false, "hardlink source cannot be resolved"});
+        if (!authorize_hardlink_source(mgr, event_name, targets.front()))
+            return report_denied(mgr, event_name, {false, "hardlink source requires write permission"}, targets.front());
+    }
 
     // A filesystem target that resolves entirely inside a pre-determined allowed root -- the
     // plugin system's own data_dir() tree (which holds each plugin's storage folder and the
     // installed/system profile cache), the read-only bundled resources folder, or a per-call
     // scoped root such as the current G-code folder -- is part of the plugin system's normal
     // workflow and does not need a prompt.
-    if (fs_category && !targets.empty()) {
+    if (fs_category && !permission_targets.empty()) {
         const bool is_write = event_type != AuditEventCategory::FsRead;
         const bool all_inside_allowed_root =
-            std::all_of(targets.begin(), targets.end(), [&](const std::string& target) {
+            std::all_of(permission_targets.begin(), permission_targets.end(), [&](const std::string& target) {
+                if (event_type == AuditEventCategory::FsDelete) {
+                    // Delete scope is the entry's containing folder (or the root itself), not the
+                    // final symlink's destination. This both keeps an outside link entry outside
+                    // its allowed root and lets a recursive delete remove a link that lives inside
+                    // a writable root but points outside.
+                    return mgr.delete_target_inside_writable_allowed_root(target);
+                }
                 return mgr.check_path_access(boost::filesystem::path(target), is_write).allowed;
             });
-        if (all_inside_allowed_root)
+        if (all_inside_allowed_root) {
+            // A recursive delete allowed by an implicit root still records its operation frame,
+            // scoped to the target subtree. That covers the fd-based reads and os.open calls
+            // rmtree performs (os.scandir(fd) exposes no path) and lets the walk remove symlink
+            // entries without prompting, while nested deletes stay inside the target subtree.
+            if (event_type == AuditEventCategory::FsDelete && event_name == "shutil.rmtree" &&
+                permission_targets.size() == 1) {
+                boost::filesystem::path implicit_subtree;
+                if (resolve_create_delete_folder(boost::filesystem::path(permission_targets.front()), implicit_subtree))
+                    mgr.record_root_frame(event_type, implicit_subtree);
+            }
             return 0;
+        }
     }
 
     PluginInstallState state;
@@ -2168,16 +3803,52 @@ int audit_plugin_event(PluginAuditManager& mgr, const std::string& event_name, A
 
     const std::string plugin_name = state.plugin_name.empty() ? mgr.current_plugin() : state.plugin_name;
 
-    const int result = decide_audited_event(mgr, state, mgr.current_plugin(), plugin_name, event_name, event_type, targets);
+    boost::filesystem::path approved_delete_subtree;
+    const int result = decide_audited_event(mgr, state, mgr.current_plugin(), plugin_name, event_name, event_type,
+                                            permission_targets, approved_delete_subtree);
 
-    // A granted operation covers its nested events while it runs. A targetless grant names no
-    // operation, so it covers nothing else.
-    if (result == 0 && !targets.empty() && operation_root_events.count(event_name))
-        mgr.record_root_frame();
+    // A granted operation covers its nested events while it runs, except that a delete root does
+    // not cover a nested delete unless a subtree-scoped delete was recorded on the frame (see the
+    // coverage check above). A targetless grant names no operation, so it covers nothing else.
+    if (result == 0 && !permission_targets.empty() && operation_root_events.count(event_name))
+        mgr.record_root_frame(event_type, approved_delete_subtree);
     return result;
 }
 
 } // namespace PluginAuditDetail
+
+bool PluginAuditManager::delete_target_inside_writable_allowed_root(const std::string& target) const
+{
+    if (target.empty())
+        return false;
+
+    // Deleting `target` acts on an entry in its containing folder, or on the root itself. Never
+    // decide from the final component's symlink destination: an outside link pointing into a
+    // writable root must not become an implicit delete of the outside entry.
+    const auto inside_root = [&target](const AllowedRoot& root) {
+        if (!root.allow_write)
+            return false;
+        boost::filesystem::path canonical_root;
+        return PluginAuditDetail::canonical_folder(root.path, canonical_root) &&
+               PluginAuditDetail::delete_target_within_subtree(target, canonical_root);
+    };
+
+    if (std::any_of(m_scoped_allowed_roots.begin(), m_scoped_allowed_roots.end(), inside_root))
+        return true;
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return std::any_of(m_global_allowed_roots.begin(), m_global_allowed_roots.end(), inside_root);
+}
+
+bool PluginAuditManager::consume_recursive_delete_approval(const std::string& plugin_key, const std::string& canonical_root)
+{
+    return PluginAuditDetail::take_recursive_delete_approval(plugin_key, canonical_root);
+}
+
+void PluginAuditManager::add_recursive_delete_approval(const std::string& plugin_key, const std::string& canonical_root)
+{
+    PluginAuditDetail::store_recursive_delete_approval(plugin_key, canonical_root);
+}
 
 AuditPromptQueue& runtime_prompt_queue_for_testing() { return PluginAuditDetail::runtime_audit_prompts(); }
 
@@ -2189,10 +3860,11 @@ bool prompt_plugin_is_available(const AuditPromptPluginState& state, AuditPrompt
     if (state.loaded || state.load_in_progress)
         return true;
 
-    // No worker is left to answer a load-time declaration after its load failed, and an
-    // informational denial was never an approval request. A runtime event has no worker: its
-    // denial may be what aborted the load, so an ordinary failure keeps it actionable.
-    return kind == AuditPromptKind::RuntimeEvent && state.load_failed;
+    // No worker is left to answer a load-time declaration after its load failed. A runtime event
+    // or a one-time recursive-delete consent has no worker: its denial may be what aborted the
+    // load, so an ordinary failure keeps it actionable.
+    return (kind == AuditPromptKind::RuntimeEvent || kind == AuditPromptKind::RecursiveDeleteConsent) &&
+           state.load_failed;
 }
 
 bool AuditPromptBucket::operator==(const AuditPromptBucket& other) const
@@ -2225,26 +3897,34 @@ AuditPromptQueue::Admission AuditPromptQueue::admit_synchronous(AuditPromptReque
 
 AuditPromptQueue::Admission AuditPromptQueue::admit(AuditPromptRequest request, bool may_show_now)
 {
-    AuditPromptRequest queued = request;
-    return admit_with_fallback(std::move(request), std::move(queued), may_show_now);
-}
-
-AuditPromptQueue::Admission AuditPromptQueue::admit_with_fallback(AuditPromptRequest immediate_request,
-                                                                  AuditPromptRequest queued_request, bool may_show_now)
-{
     std::lock_guard<std::mutex> lock(m_mutex);
 
     if (may_show_now && !m_active && m_pending.empty()) {
-        m_active = std::move(immediate_request);
+        m_active = std::move(request);
         m_active_cancelled  = false;
         m_active_committing = false;
         return Admission::ShowNow;
     }
 
-    if (contains_locked(queued_request))
+    if (contains_locked(request))
         return Admission::Duplicate;
 
-    m_pending.push_back(std::move(queued_request));
+    // A recursive-delete consent is a modal per target, and a plugin retry loop can name many
+    // distinct targets. Keep that set bounded, as the direct-prompt path did: at capacity, reject
+    // the new consent instead of letting pending dialogs grow without limit. The count includes
+    // the active prompt because its dialog is still on screen.
+    if (request.kind == AuditPromptKind::RecursiveDeleteConsent) {
+        const auto is_consent = [](const AuditPromptRequest& queued) {
+            return queued.kind == AuditPromptKind::RecursiveDeleteConsent;
+        };
+        std::size_t consent_count = std::count_if(m_pending.begin(), m_pending.end(), is_consent);
+        if (m_active && is_consent(*m_active))
+            ++consent_count;
+        if (consent_count >= PluginAuditDetail::kMaxRecursiveDeletePrompts)
+            return Admission::Rejected;
+    }
+
+    m_pending.push_back(std::move(request));
     return Admission::Queued;
 }
 
@@ -2317,6 +3997,15 @@ void AuditPromptQueue::discard_plugin(const std::string& plugin_key)
         completion->resolve(false);
 }
 
+void AuditPromptQueue::discard_recursive_delete_consents(const std::string& plugin_key)
+{
+    // No worker ever waits on a consent, so the returned completions are always empty; ignore
+    // them. The active consent, if any, is marked cancelled so its answer stores nothing.
+    discard_matching([&plugin_key](const AuditPromptRequest& request) {
+        return request.kind == AuditPromptKind::RecursiveDeleteConsent && request.plugin_key == plugin_key;
+    });
+}
+
 std::vector<std::shared_ptr<AuditPromptCompletion>>
 AuditPromptQueue::discard_matching(const std::function<bool(const AuditPromptRequest&)>& matches)
 {
@@ -2345,11 +4034,17 @@ bool AuditPromptQueue::same_request(const AuditPromptRequest& a, const AuditProm
 
     switch (a.kind) {
     case AuditPromptKind::RuntimeEvent:
-        return a.category == b.category && a.by_event == b.by_event && a.keys == b.keys;
+        // The entries are what the dialog shows for a create/delete target, so two requests that
+        // trigger on different paths are not equivalent even when they save the same folder.
+        return a.category == b.category && a.by_event == b.by_event && a.keys == b.keys && a.shown == b.shown &&
+               a.entries == b.entries;
     case AuditPromptKind::DeclaredPermissions:
         return a.buckets == b.buckets;
-    case AuditPromptKind::DeniedOperation:
-        return a.category == b.category && a.shown == b.shown;
+    case AuditPromptKind::RecursiveDeleteConsent:
+        // One pending consent per plugin and canonical subtree within one permission generation.
+        // A permission edit or revocation starts a new generation: the stale prompt's Yes is
+        // ignored, and a retry after the edit must not be coalesced into that dead request.
+        return a.shown == b.shown && a.recursive_delete_generation == b.recursive_delete_generation;
     }
     return false;
 }
@@ -2430,6 +4125,51 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
 
     collect_missing(AuditEventCategory::FsRead, requested.fs_read, state.permissions.fs_read);
     collect_missing(AuditEventCategory::FsReadWrite, requested.fs_readwrite, state.permissions.fs_readwrite);
+
+    // Create/delete requests name folders and are stored as canonical absolute paths. A trailing
+    // "/*" requests the folder and every folder below it at any depth; any other wildcard is
+    // rejected. A sole "*" requests unrestricted access. An entry that cannot be resolved fails
+    // the whole request: storing a grant with a different scope than the one approved is not
+    // acceptable.
+    const auto collect_missing_create_delete =
+        [&missing_buckets](AuditEventCategory category, const std::vector<std::string>& requested_folders,
+                           const std::vector<std::string>& granted_folders) {
+            const size_t requested_count = static_cast<size_t>(
+                std::count_if(requested_folders.begin(), requested_folders.end(),
+                              [](const std::string& folder) { return !folder.empty(); }));
+            AuditPromptBucket bucket{category, {}};
+            for (const std::string& requested_folder : requested_folders) {
+                if (requested_folder.empty())
+                    continue;
+                if (requested_folder == "*") {
+                    // Unrestricted access is the one-element form, matching what the sidecar
+                    // stores. A "*" beside other entries is ambiguous, so the request fails closed
+                    // instead of widening or silently ignoring it.
+                    if (requested_count != 1)
+                        return false;
+                    if (!PluginAuditDetail::create_delete_grant_full(granted_folders))
+                        bucket.targets.assign(1, "*");
+                    break;
+                }
+                // A trailing "/*" is a tree grant. Declarations accept literal folders, tree
+                // grants and the sole "*" full form; any other wildcard makes the request fail
+                // closed instead of being stored as a literal name or widened into a folder grant.
+                std::string grant;
+                if (!PluginAuditDetail::absolute_create_delete_grant(requested_folder, grant))
+                    return false;
+                if (!PluginAuditDetail::create_delete_grant_covers_grant(granted_folders, grant) &&
+                    std::find(bucket.targets.begin(), bucket.targets.end(), grant) == bucket.targets.end())
+                    bucket.targets.push_back(grant);
+            }
+            if (!bucket.targets.empty())
+                missing_buckets.push_back(std::move(bucket));
+            return true;
+        };
+
+    if (!collect_missing_create_delete(AuditEventCategory::FsCreate, requested.fs_create, state.permissions.fs_create) ||
+        !collect_missing_create_delete(AuditEventCategory::FsDelete, requested.fs_delete, state.permissions.fs_delete))
+        return false;
+
     collect_missing(AuditEventCategory::Http, requested.network_http, state.permissions.network_http);
     collect_missing(AuditEventCategory::Socket, requested.network_socket, state.permissions.network_socket);
     collect_missing(AuditEventCategory::ProcessCreate, requested.process, state.permissions.process);
@@ -2554,18 +4294,37 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     return false;
 }
 
-void PluginAuditManager::record_root_frame()
+bool PluginAuditManager::is_create_delete_tree_grant(const std::string& target)
+{
+    boost::filesystem::path root;
+    return PluginAuditDetail::requested_tree_grant_root(target, root);
+}
+
+void PluginAuditManager::record_root_frame(AuditEventCategory category,
+                                           const boost::filesystem::path& approved_delete_subtree)
 {
     PyObject* frame = reinterpret_cast<PyObject*>(PyEval_GetFrame()); // borrowed reference
     if (!frame || !PluginAuditDetail::is_stdlib_frame(frame))
         return;
-    if (std::find(m_root_frames.begin(), m_root_frames.end(), frame) != m_root_frames.end())
-        return; // glob.glob and glob.glob/2 share a frame
-    Py_INCREF(frame);
-    m_root_frames.push_back(frame);
+
+    const bool delete_root = category == AuditEventCategory::FsDelete;
+    auto       it          = std::find_if(m_root_frames.begin(), m_root_frames.end(),
+                                          [frame](const RootFrame& record) { return record.frame == frame; });
+    if (it == m_root_frames.end()) {
+        Py_INCREF(frame);
+        m_root_frames.push_back({frame, delete_root, approved_delete_subtree});
+        return;
+    }
+    // The record owns the one reference; the mark is sticky, so a frame first recorded as a
+    // read/write root still stops covering nested deletes once it is also a delete root.
+    if (delete_root)
+        it->delete_root = true;
+    // Keep a subtree consent already recorded on this frame; a later grant does not widen it.
+    if (!approved_delete_subtree.empty())
+        it->approved_delete_subtree = approved_delete_subtree;
 }
 
-bool PluginAuditManager::covered_by_root_frame() const
+bool PluginAuditManager::covered_by_root_frame(bool allow_delete_roots) const
 {
     if (m_root_frames.empty())
         return false;
@@ -2573,10 +4332,50 @@ bool PluginAuditManager::covered_by_root_frame() const
     // Only stdlib frames may sit between the event and the operation: plugin or library code
     // the operation calls back into (an os.walk onerror, a urllib handler) acts on its own.
     for (PyObject* frame : PluginAuditDetail::stack_frames()) {
-        if (std::find(m_root_frames.begin(), m_root_frames.end(), frame) != m_root_frames.end())
-            return true;
+        const auto root = std::find_if(m_root_frames.begin(), m_root_frames.end(),
+                                       [frame](const RootFrame& record) { return record.frame == frame; });
+        if (root != m_root_frames.end()) {
+            // A delete root does not cover a nested delete by itself: an exact folder grant
+            // covers direct entries only, while an outer read/write root may still cover the
+            // same operation, and a tree grant may allow it when the event is judged. A delete
+            // root started with one-time subtree consent is handled by
+            // delete_target_inside_approved_subtree(), which also checks the target's scope.
+            if (!root->delete_root || allow_delete_roots)
+                return true;
+            continue;
+        }
         if (!PluginAuditDetail::is_stdlib_frame(frame))
             return false;
+    }
+    return false;
+}
+
+bool PluginAuditManager::delete_target_inside_approved_subtree(const std::vector<std::string>& targets) const
+{
+    if (m_root_frames.empty() || targets.empty())
+        return false;
+
+    // Same frame walk as covered_by_root_frame: stop at plugin or third-party code, so a callback
+    // the operation invokes is judged on its own. The first delete root carrying a one-time
+    // consent is the operation boundary; only its canonical subtree covers the nested deletes.
+    for (PyObject* frame : PluginAuditDetail::stack_frames()) {
+        const auto root = std::find_if(m_root_frames.begin(), m_root_frames.end(),
+                                       [frame](const RootFrame& record) { return record.frame == frame; });
+        if (root == m_root_frames.end()) {
+            if (!PluginAuditDetail::is_stdlib_frame(frame))
+                break;
+            continue;
+        }
+
+        if (!root->delete_root || root->approved_delete_subtree.empty())
+            continue; // keep looking for an outer operation with subtree consent
+
+        const boost::filesystem::path& approved_subtree = root->approved_delete_subtree;
+        for (const std::string& target : targets) {
+            if (!PluginAuditDetail::delete_target_within_subtree(target, approved_subtree))
+                return false;
+        }
+        return true;
     }
     return false;
 }
@@ -2617,7 +4416,7 @@ bool PluginAuditManager::is_stdlib_path(const boost::filesystem::path& path)
     return inside_any(PluginAuditDetail::s_stdlib_dirs) && !inside_any(PluginAuditDetail::s_site_package_dirs);
 }
 
-void PluginAuditManager::release_frames(std::vector<PyObject*>& frames)
+void PluginAuditManager::release_frames(std::vector<RootFrame>& frames)
 {
     if (frames.empty())
         return;
@@ -2629,11 +4428,11 @@ void PluginAuditManager::release_frames(std::vector<PyObject*>& frames)
     const bool           has_violation  = m_has_last_violation;
     const AuditViolation violation      = m_last_violation;
 
-    std::vector<PyObject*> released;
+    std::vector<RootFrame> released;
     released.swap(frames);
     ++m_releasing_frames;
-    for (PyObject* frame : released)
-        Py_DECREF(frame);
+    for (const RootFrame& record : released)
+        Py_DECREF(record.frame);
     --m_releasing_frames;
 
     m_audit_denial_pending = denial_pending;
@@ -2645,6 +4444,90 @@ void PluginAuditManager::release_frames(std::vector<PyObject*>& frames)
 void PluginAuditManager::set_permission_prompt_for_testing(PermissionPrompt prompt)
 {
     PluginAuditDetail::s_permission_prompt_for_testing = std::move(prompt);
+}
+
+void PluginAuditManager::set_recursive_delete_prompt_for_testing(RecursiveDeletePrompt prompt)
+{
+    PluginAuditDetail::s_recursive_delete_prompt_for_testing = std::move(prompt);
+}
+
+void PluginAuditManager::set_recursive_delete_prompt_background_for_testing(bool background)
+{
+    PluginAuditDetail::s_recursive_delete_prompt_background_for_testing = background;
+}
+
+std::string PluginAuditManager::format_recursive_delete_permission_prompt_for_testing(const std::string& plugin_name,
+                                                                                       const std::string& target,
+                                                                                       bool root_scope,
+                                                                                       bool background)
+{
+    return PluginAuditDetail::formatted_recursive_delete_message(wxString::FromUTF8(plugin_name.c_str()),
+                                                                wxString::FromUTF8(target.c_str()), root_scope,
+                                                                background)
+        .text.utf8_string();
+}
+
+void PluginAuditManager::set_recursive_delete_prompt_deferred_for_testing(bool deferred)
+{
+    PluginAuditDetail::s_recursive_delete_prompt_deferred_for_testing = deferred;
+}
+
+std::uint64_t PluginAuditManager::recursive_delete_generation_for_testing(const std::string& plugin_key)
+{
+    return PluginAuditDetail::recursive_delete_generation(plugin_key);
+}
+
+void PluginAuditManager::answer_recursive_delete_prompt_for_testing(const std::string& plugin_key,
+                                                                     const std::string& canonical_root, bool granted,
+                                                                     std::uint64_t generation)
+{
+    PluginAuditDetail::finish_recursive_delete_prompt(plugin_key, canonical_root, generation);
+    if (granted && PluginAuditDetail::recursive_delete_generation(plugin_key) == generation)
+        PluginAuditDetail::store_recursive_delete_approval(plugin_key, canonical_root);
+}
+
+void PluginAuditManager::invalidate_recursive_delete_state(const std::string& plugin_key)
+{
+    PluginAuditDetail::invalidate_recursive_delete_state(plugin_key);
+}
+
+std::size_t PluginAuditManager::pending_recursive_delete_prompts_for_testing()
+{
+    return PluginAuditDetail::pending_recursive_delete_prompts();
+}
+
+bool PluginAuditManager::delete_target_inside_subtree_for_testing(const std::string& target,
+                                                                  const std::string& canonical_subtree)
+{
+    boost::filesystem::path subtree;
+    if (!PluginAuditDetail::canonical_folder(boost::filesystem::path(canonical_subtree), subtree))
+        return false;
+    return PluginAuditDetail::delete_target_within_subtree(target, subtree);
+}
+
+void PluginAuditManager::clear_recursive_delete_approvals_for_testing()
+{
+    std::lock_guard<std::mutex> lock(PluginAuditDetail::s_recursive_delete_approval_mutex);
+    PluginAuditDetail::s_recursive_delete_approvals.clear();
+    PluginAuditDetail::s_pending_recursive_delete_prompts.clear();
+}
+
+void PluginAuditManager::set_recursive_delete_approval_lifetime_for_testing(std::chrono::milliseconds lifetime)
+{
+    std::lock_guard<std::mutex> lock(PluginAuditDetail::s_recursive_delete_approval_mutex);
+    PluginAuditDetail::s_recursive_delete_approval_lifetime = lifetime;
+}
+
+std::size_t PluginAuditManager::pending_recursive_delete_approvals_for_testing()
+{
+    return PluginAuditDetail::pending_recursive_delete_approvals();
+}
+
+std::string PluginAuditManager::format_create_delete_permission_prompt_for_testing(
+    AuditEventCategory category, const std::string& plugin_name, const std::vector<PermissionPromptEntry>& entries)
+{
+    return PluginAuditDetail::formatted_create_delete_message(category, wxString::FromUTF8(plugin_name.c_str()), entries)
+        .text.utf8_string();
 }
 
 void PluginAuditManager::set_permission_message_prompt_for_testing(PermissionMessagePrompt prompt)
@@ -2691,7 +4574,7 @@ int PluginAuditManager::audit_hook(const char* event, PyObject* args, void* user
 
     // Root frames whose operation has returned are let go once this event is decided, so that a
     // finalizer they run re-enters a hook whose held frames are already consistent.
-    std::vector<PyObject*> returned_frames;
+    std::vector<RootFrame> returned_frames;
     PluginAuditDetail::take_returned_frames(m_root_frames, returned_frames);
     int result = -1;
     // A C++ exception must not unwind through the interpreter that raised the event, so a check
