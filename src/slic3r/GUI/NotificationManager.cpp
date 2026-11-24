@@ -2458,6 +2458,54 @@ void NotificationManager::SharedProfilesNotification::render_hypertext(ImGuiWrap
 	    render_hyperlink_action(imgui, text_x, text_y, text, "##browse_btn", [this] { if (on_text_click()) close(); });
 }
 
+void NotificationManager::PreviewSlowRenderNotification::init()
+{
+	PopNotification::init();
+	// A dedicated row for the two links.
+	m_lines_count = m_lines_count + 1;
+}
+
+void NotificationManager::PreviewSlowRenderNotification::render_text(ImGuiWrapper& imgui,
+	const float win_size_x, const float win_size_y,
+	const float win_pos_x, const float win_pos_y)
+{
+	float x_offset = m_left_indentation;
+	float shift_y = m_line_height;
+	float starting_y = m_line_height / 2;
+
+	int last_end = 0;
+	std::string line;
+	for (size_t i = 0; i < m_endlines.size(); i++) {
+		if (m_text1.size() >= m_endlines[i]) {
+			line = m_text1.substr(last_end, m_endlines[i] - last_end);
+			last_end = m_endlines[i];
+			if (m_text1.size() > m_endlines[i])
+				last_end += (m_text1[m_endlines[i]] == '\n' || m_text1[m_endlines[i]] == ' ' ? 1 : 0);
+			ImGui::SetCursorPosX(x_offset);
+			ImGui::SetCursorPosY(starting_y + i * shift_y);
+			imgui.text(line.c_str());
+		}
+	}
+
+	const float action_y = starting_y + m_endlines.size() * shift_y;
+	// TRN Link in the slow preview notification. "Shell only" is the option of "Simplify preview while dragging" in Preferences.
+	const std::string shell_text = _u8L("Use Shell only");
+	render_hyperlink_action(imgui, x_offset, action_y, shell_text, "##preview_slow_shell", [this] {
+		wxGetApp().CallAfter([] {
+			if (Plater* plater = wxGetApp().plater())
+				if (GLCanvas3D* canvas = plater->get_preview_canvas3D())
+					canvas->apply_preview_reduced_detail_mode("shell");
+		});
+		close();
+	});
+	const float dont_show_x = x_offset + ImGui::CalcTextSize((shell_text + "   ").c_str()).x;
+	render_hyperlink_action(imgui, dont_show_x, action_y, _u8L("Don't show again"), "##preview_slow_dont_show", [this] {
+		wxGetApp().app_config->set_bool("show_preview_slow_render_hint", false);
+		wxGetApp().app_config->save();
+		close();
+	});
+}
+
 void NotificationManager::OrcaSyncConflictNotification::init()
 {
 	PopNotification::init();
@@ -2506,6 +2554,15 @@ void NotificationManager::push_shared_profiles_notification(const std::string& e
 		_u8L("Shared profiles may be available for this printer."),
 		_u8L("Browse shared profiles") };
 	push_notification_data(std::make_unique<NotificationManager::SharedProfilesNotification>(data, m_id_provider, m_evt_handler, explore_url), 0);
+}
+
+void NotificationManager::push_preview_slow_render_notification(int fps)
+{
+	close_notification_of_type(NotificationType::PreviewSlowRender);
+	NotificationData data{ NotificationType::PreviewSlowRender, NotificationLevel::RegularNotificationLevel, 0,
+		// TRN %1% is the measured frame rate. "Shell only" is the option of "Simplify preview while dragging" in Preferences.
+		format(_u8L("The preview is rendering slowly (about %1% fps) while you move it. Shell only hides the infill while dragging so the view moves faster."), fps) };
+	push_notification_data(std::make_unique<NotificationManager::PreviewSlowRenderNotification>(data, m_id_provider, m_evt_handler), 0);
 }
 
 void NotificationManager::push_orca_sync_conflict_notification(const std::string& text,
@@ -3352,6 +3409,8 @@ void NotificationManager::set_in_preview(bool preview)
         if (notification->get_type() == NotificationType::BBLPlateInfo)
             notification->hide(preview);
         if (notification->get_type() == NotificationType::SignDetected)
+            notification->hide(!preview);
+        if (notification->get_type() == NotificationType::PreviewSlowRender)
             notification->hide(!preview);
         if (notification->get_type() == NotificationType::BBLObjectInfo)
             notification->hide(preview);

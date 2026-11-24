@@ -186,6 +186,8 @@ enum class NotificationType
     // A mixed-color filament is printed on a single-nozzle printer (frequent changes and purging).
     BBLSingleExtruderMixedFilamentRisk,
     OrcaSharedProfilesAvailable,
+    // The sliced preview keeps drawing slowly while dragged; suggests the Shell only drag mode.
+    PreviewSlowRender,
 	OrcaCloudAPIError,
     OrcaSyncConflict,
     // Active preset requires plugin capabilities that are not installed/loadable. Persistent,
@@ -323,6 +325,8 @@ public:
 
 	// Shared profiles available for selected printer
 	void push_shared_profiles_notification(const std::string& explore_url);
+	// fps is the measured frame rate, shown in the text.
+	void push_preview_slow_render_notification(int fps);
 	void push_orca_sync_conflict_notification(const std::string& text,
 		int conflict_code,
 		std::function<bool(wxEvtHandler*)> pull_callback,
@@ -957,6 +961,21 @@ private:
 
 		std::string m_explore_url;
 		bool m_dont_show_clicked{ false };
+	};
+
+	class PreviewSlowRenderNotification : public PopNotification
+	{
+	public:
+		PreviewSlowRenderNotification(const NotificationData& n, NotificationIDProvider& id_provider, wxEvtHandler* evt_handler)
+			: PopNotification(n, id_provider, evt_handler)
+		{
+			m_multiline = true;
+		}
+	protected:
+		void init() override;
+		void render_text(ImGuiWrapper& imgui,
+			const float win_size_x, const float win_size_y,
+			const float win_pos_x, const float win_pos_y) override;
 	};
 
 	class OrcaSyncConflictNotification : public PopNotification
