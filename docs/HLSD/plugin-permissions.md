@@ -29,7 +29,7 @@ Permissions are stored per plugin key. A plugin can hold:
 | `fs_delete` | folder list | Filesystem delete events such as `os.remove` and `shutil.rmtree`. |
 | `network_http` | target list | Network targets, consulted together with `network_socket` for both HTTP and socket events. A canonical `scheme://host` entry is host-wide and covers both layers; a URL with a path, port, query or trailing slash is exact; a bare host or legacy address tuple covers raw sockets. |
 | `network_socket` | target list | The same network matching, kept as a separate list so a plugin can declare socket access without an HTTP URL. |
-| `process` | target list | Process creation and process replacement: `os.system`, `subprocess.Popen`, `os.spawn*`, `os.exec*`, `pty.spawn`, `_winapi.CreateProcess`, and similar. Targets match the audited value verbatim. |
+| `process` | target list | Process creation and process replacement: `subprocess.Popen`, `os.spawn*`, `os.exec*`, `pty.spawn`, `_winapi.CreateProcess`, and similar. Targets name the tool, not its arguments. The exception is a Windows command line with an unquoted executable followed by arguments: it is stored as an exact full command line, because `CreateProcess` may resolve a longer executable prefix than the first token shows. `os.system` names the shell it runs (see "Target matching"). |
 | `threading` | boolean | Permission to start a Python thread with `_thread.start_new_thread`. |
 | `events` | target list | Audited events that expose no target, keyed as `<Category>:<event>`, for example `Socket:socket.__new__`. Matched verbatim. |
 | `full_access` | boolean | Turns off the permission decision for the plugin. See "Full access". |
@@ -89,8 +89,36 @@ that requested it and the nested deletes it performs inside that subtree.
   A canonical entry is host-wide and applies to HTTP and raw socket events for that host.
   A URL with a path, port, query, fragment or trailing slash that was stored without
   normalization remains an exact match.
-- Process entries are compared verbatim with the string the audit event reports,
-  including Python representations of a command.
+- Process entries name the tool an event runs, compared verbatim. When the event exposes
+  the executable or path, that argument is the target. For a command string or argv, the
+  first token or element is the target. Arguments after the tool are ignored, so one grant
+  covers repeated runs of the tool with different arguments. The exception is a Windows
+  command line whose executable is unquoted and followed by non-whitespace text.
+  `CreateProcess` resolves such a name by trying successively longer prefixes, so the first
+  whitespace-delimited token need not be the executable it starts: a command line
+  `C:\Program Files\app.exe --x` can start `C:\Program Files\app.exe`, not `C:\Program`.
+  The audit therefore stores the exact full command line instead of the first token, in a
+  reserved `CommandLine:` namespace in the `process` list. An exact entry matches only the
+  same full command line, compared verbatim, and a later run with different arguments asks
+  again. A quoted first argument, an explicit executable or application name, and a command
+  line that has no arguments keep the executable-only, argument-insensitive grant. The
+  command line is not parsed further, and the resolved executable is not checked: the same
+  approved command line can start a different binary if the working directory, `PATH`, or
+  the files it resolves through change. `os.system` works differently:
+  Python hands its whole string to the platform shell, so the target is every shell that may
+  run it. On POSIX that is `/bin/sh`. On Windows the C runtime runs the interpreter named by
+  `COMSPEC`, or `cmd.exe` when `COMSPEC` is unset or empty, and also falls back to `cmd.exe`
+  when it cannot open the configured file (ENOENT or EACCES). The configured interpreter and
+  the fallback are both required targets: a grant for a narrow `COMSPEC` does not authorize
+  the fallback shell. A `COMSPEC` that is already the bare name `cmd.exe`, in any casing,
+  names the fallback itself and is listed once. The value is read from the CRT environment
+  that `_wsystem` consults, not the process environment block, which can differ. The audit
+  does not test whether the `COMSPEC` file exists; the runtime decides that when it runs the
+  command, so a file present at prompt time can be gone by the call. The command string is
+  not parsed, and approving the shells covers every command and argument the plugin passes
+  to `os.system`. The targets are read when the event is raised, so a grant saved under one
+  `COMSPEC` value does not cover a run under another. Direct process creation, such as
+  `subprocess.Popen`, still names its executable.
 - An event with no target is granted by the `events` entry for its category and name. A
   targetless network event, such as `http.client.send`, is covered by any recorded
   network grant instead.
@@ -191,8 +219,12 @@ whose denial aborted the load and then retry with the saved grant.
 
 Runtime approvals store the target observed by the audit hook, except that create and delete
 approvals store its parent folder. A URL with a path, port or
-query is therefore an exact grant; a bare host remains usable for raw sockets. The
-declared form and the runtime form are not normalized by the same code path.
+query is therefore an exact grant; a bare host remains usable for raw sockets. A Windows
+command line that needs the exact fallback is saved in the reserved `CommandLine:` namespace
+as its full text, so the approval is argument-sensitive; the prompt shows the command line
+without the storage marker and states that the full line, including any sensitive values in
+its arguments, is shown and saved. The declared form and the runtime form are not normalized
+by the same code path.
 
 A recursive delete is different: a Yes grants consent for the canonical target subtree for
 that operation only. The prompt shows the subtree root and states that the consent is not
@@ -361,6 +393,15 @@ never treated as an opt-out.
   context, so its events are not attributed or restricted.
 - **Subprocesses leave the policy.** A process created by a granted or full-access
   plugin runs with the user's rights and is not covered by the parent's audit scope.
+- **An `os.system` grant is a shell grant.** It authorizes every command string the plugin
+  passes to `os.system`, not only the one that triggered the prompt, because the shell
+  parses and runs the whole string. Arguments are not inspected or restricted.
+- **An exact command line grant is command-sensitive, not binary-sensitive.** It is stored
+  and shown in full, so it can expose credentials or tokens passed as arguments to anyone
+  who sees the prompt or the sidecar. Approval covers only the same full command line.
+  `CreateProcess` still resolves the executable from the working directory, `PATH`, and the
+  filesystem, so the same approved command line can start a different binary later; the
+  grant does not pin the resolved image or verify it.
 - **Host APIs are not audit events.** Calls into OrcaSlicer's Python host APIs, such as
   preset updates or UI actions, execute C++ host code and follow that API's contract. The
   audit hook judges the Python-level filesystem, network, process and thread events it is
