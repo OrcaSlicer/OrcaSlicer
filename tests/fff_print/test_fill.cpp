@@ -925,6 +925,21 @@ TEST_CASE("Infill rotation template underscore sets a negative absolute angle", 
     check_rotate_template(rotate_template, expected);
 }
 
+TEST_CASE("Infill rotation template fraction is a share of a half turn or of a full turn with a percent", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, expected] = GENERATE(table<std::string, std::vector<double>>({
+        {"A1:2", std::vector<double>(20, 90.)},
+        {"1:2", std::vector<double>(20, 90.)},
+        {"1:2%", std::vector<double>(20, 180.)},
+        {"A1:8%", std::vector<double>(20, 45.)},
+        {"+1:1", {180, 360, 540, 720, 900, 1080, 1260, 1440, 1620, 1800, 1980, 2160, 2340, 2520, 2700, 2880, 3060, 3240, 3420, 3600}},
+        {"+1:2", {90, 180, 270, 360, 450, 540, 630, 720, 810, 900, 990, 1080, 1170, 1260, 1350, 1440, 1530, 1620, 1710, 1800}},
+        {"+1:5%", {72, 144, 216, 288, 360, 432, 504, 576, 648, 720, 792, 864, 936, 1008, 1080, 1152, 1224, 1296, 1368, 1440}},
+        {"_3:5%", std::vector<double>(20, -216.)},
+        {"+:2", {90, 180, 270, 360, 450, 540, 630, 720, 810, 900, 990, 1080, 1170, 1260, 1350, 1440, 1530, 1620, 1710, 1800}},    }));
+    check_rotate_template(rotate_template, expected);
+}
+
 TEST_CASE("Infill rotation template J, C, O and o joints shape the turn over the range", "[Fill][RotateTemplate]")
 {
     const auto [rotate_template, expected] = GENERATE(table<std::string, std::vector<double>>({
