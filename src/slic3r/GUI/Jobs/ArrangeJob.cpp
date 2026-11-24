@@ -1252,6 +1252,10 @@ void ArrangeJob::apply_result(ArrangePolygons &selected, ArrangePolygons &unsele
     // BBS: update slice context and gcode result.
     m_plater->update_slicing_context_to_current_partplate();
 
+    // Rebuilding the plates may have re-sorted the objects: refresh the GLVolumes first, as the live preview does,
+    // so that ObjectList::update_selections() in reload_all_plates() does not index with ids from before.
+    m_plater->canvas3D()->reload_scene(true);
+
     wxGetApp().obj_list()->reload_all_plates();
 
     m_plater->update();
