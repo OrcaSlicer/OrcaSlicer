@@ -20,8 +20,8 @@ The Design tab, OrcaSlicer's optional CAD component, adds 88 commands of its own
 on. They run on the same server and keep the same rule for menu items, but are named and grouped as CAD
 programs name theirs, so they have a section of their own at the end, The Design tab's commands.
 
-Each place's commands are written in its family's file, `src/slic3r/GUI/Mcp/McpTools*.cpp`, and gathered by
-`register_all_commands()`. A menu item's function is in namespace `MenuItems` (`NativeCommandMenuItems.hpp`),
+Each place's commands are written in its own file, `src/slic3r/GUI/Mcp/Tools/<Place>Tools.cpp` (Objects and
+Parts share `ObjectTools.cpp`), and gathered by `register_all_commands()`. A menu item's function is in namespace `MenuItems` (`NativeCommandMenuItems.hpp`),
 and what a command does that a dialog or another interface does too is an operation of
 `src/slic3r/GUI/Operations/`. What every command takes and replies is in its description and input schema,
 which `tools/list` gives a client and `tool_describe {tool}` gives for any command, as its manual.
@@ -768,7 +768,10 @@ How the server holds them (the catalog with the CAD feature on, the gate) is in
 [design-tab.md](design-tab.md).
 
 One table defines them all: `scripts/CAD/tool_atlas.json`. `scripts/CAD/gen_offer_table.py` writes
-`src/slic3r/GUI/CAD/DesignOffer.hpp` from it, and the commands' code is `src/slic3r/GUI/Mcp/McpToolsCad.cpp`.
+`src/slic3r/GUI/CAD/DesignOffer.hpp` from it, and the commands' code is in `src/slic3r/GUI/Mcp/Tools/`:
+one file per Design heading: `DesignTools.cpp` (the gate, the registration and the Document heading),
+`DesignSketchTools.cpp`, `DesignSolidTools.cpp`, `DesignSurfaceTools.cpp`, `DesignConstructTools.cpp`,
+`DesignInspectTools.cpp`, `DesignBodyTools.cpp` and `DesignHistoryTools.cpp`.
 What every command takes and replies is in its entry's tool block, which the agent reads through
 `tool_describe {tool}`; `tests/data/command_catalog.json` holds every command's schema, actions and examples as
 an agent sees them.
@@ -1079,7 +1082,7 @@ nothing, or names an object whose kind or geometry the operation does not take),
 right but the state is not: no body yet, a body hidden, no sketch open, a tool open), `rebuild_failed`,
 `kernel_failure`, `export_failed`, or one of the gate's (`design_unavailable`, `design_busy`, `stale_ids`) and the
 menu items' (`wrong_mode`, `wrong_selection`), and `no_silent_form` for an entry with no silent form called as one
-(only by `run_cad_tool()` called directly); the server's design (mcp-server.md) draws the line between geometry and
+(only by `run_design_tool()` called directly); the server's design (mcp-server.md) draws the line between geometry and
 state. It leaves the design as it was, so
 `replay_export` leaves it out. That holds for argument errors and for a rebuild the engine rejects alike. Twenty-one commands
 instead report a rejected rebuild in their reply, `ok` false or `error` not empty, after the same rollback,

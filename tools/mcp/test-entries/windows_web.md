@@ -31,7 +31,7 @@ mini and the ER20 are the subject, not a default: their extruders, nozzle varian
 checks read. The X1 Carbon is chosen for what the folder may keep, not for a behaviour of its own (see **Starts
 from**).
 
-The refusals of `settings_set` on a printer each stand for one check of `McpToolsConfig.cpp`, all made before
+The refusals of `settings_set` on a printer each stand for one check of `Tools/PresetTools.cpp`, all made before
 anything changes:
 
 | Case | Code path |

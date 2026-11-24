@@ -318,7 +318,7 @@ stored state (see **To settle**). The start is checked: the project's `curr_bed_
   Close element by their ids, and the top list's column headings as text; its auto-update switch is commented out of
   the page, and its bundle lists, which hold what the data folder holds, are not read.
 - The web view a script runs in (web dialogs, steps 1 to 9 and 28): `webview_run_javascript` without a target takes
-  the topmost modal's web view, else the only one shown (`default_webview()` in `McpToolsUi.cpp`), and refuses a web
+  the topmost modal's web view, else the only one shown (`default_webview()` in `Tools/GuiTools.cpp`), and refuses a web
   view in a dialog under the topmost, or behind a modal, before it runs (`guard_page()`); no dialog is named there.
   The Flushing volumes dialog (steps 27 to 29) runs that same code as step 4; it stays as the one web dialog here
   whose web view the app makes with `wxWebView::New` (`WipingDialog`), where the bundle dialogs' come from
@@ -354,7 +354,7 @@ stored state (see **To settle**). The start is checked: the project's `curr_bed_
   printer page holds beyond the card step 25 ticks.
 - The printers other tests installed: the printer list is read for the one printer the wizard's card names.
 - Closing a dialog from its page by a script (`webview_run_javascript` clicking `#close_btn`): it takes the branch
-  step 10's click takes. Both tools follow their page call with `observe_page()` (`McpToolsUi.cpp`), which replies
+  step 10's click takes. Both tools follow their page call with `observe_page()` (`Tools/GuiTools.cpp`), which replies
   `closed` once the dialog leaves the modal stack, so step 10 covers it.
 - How soon the page's Close is told (web dialogs, step 10): the web view's destruction ends the click's wait for its
   page (`PageCalls` in `WebPages.cpp`), and without that the click is refused after its 10 s, so the reply's `closed`
@@ -481,7 +481,7 @@ The default limit of an hour is step 1 of the first scenario (`max_seconds` 3600
   and a skipped check is not counted among the checks.
 - Typed keys leave a setting's field as it was (first scenario, step 6): `keyboard_press` sends key events to the
   field's `TextInput`, which a native text control does not take as typing; its description says typing reaches
-  ImGui fields and key handlers and sends a widget's text field to `widget_set_value` (`McpToolsUi.cpp`, this
+  ImGui fields and key handlers and sends a widget's text field to `widget_set_value` (`Tools/GuiTools.cpp`, this
   branch's d64e10f4dd). The step stays as the recording's typed caption, and step 8 shows that the first layer kept
   its 0.2 mm while the layer height set by `widget_set_value` took effect.
 - A recording's first frame is the size `window_screenshot` captures of the same target (`MAIN`, `CANVAS`): both

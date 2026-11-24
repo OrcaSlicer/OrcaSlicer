@@ -1,78 +1,89 @@
-// object_list, object_select, object_transform, part_add, object_arrange, plate_slice and job_cancel: the model on the plates, the
-// arrange and Fill bed jobs, and the slice operation, which reports its own outcome per plate (see
-// Operations/RunStatus). The object and part commands made from menu items: those that add a primitive, delete, rename,
-// set the number of instances, make instances separate objects, split, assemble, order, mirror, centre, scale to fit,
-// drop and orient objects and change a part's type take their targets (McpTargets.hpp) and run their operations
-// (Operations/ObjectOps, ProjectOps); the others run their menu items' functions (NativeCommandMenuItems.hpp) on the selection.
-// The object and part commands of menu items with no Speed Dial action, which mark objects printable, turn their Auto
-// Drop on or off, repair their meshes, clone them, reload them from their files and replace a part's mesh, take their
-// targets and run their operations too.
+// The places Objects and Parts: the model on the plates. object_list, object_select, object_transform, part_add and
+// object_arrange, with the arrange and Fill bed jobs. The object and part commands made from menu items: those that
+// add a primitive, delete, rename, set the number of instances, make instances separate objects, split, assemble,
+// order, mirror, centre, scale to fit, drop and orient objects and change a part's type take their targets
+// (McpTargets.hpp) and run their operations (Operations/ObjectOps, ProjectOps); the others run their menu items'
+// functions (NativeCommandMenuItems.hpp) on the selection. The object and part commands of menu items with no Speed
+// Dial action, which mark objects printable, turn their Auto Drop on or off, repair their meshes, clone them, reload
+// them from their files and replace a part's mesh, take their targets and run their operations too.
+//
+// The gizmo commands: a named target's gizmo opened on it (object_paint, object_measure, object_simplify,
+// part_boolean, object_cut, object_lay_on_face, object_set_brim_ears). A call that names only its targets opens the
+// gizmo and the client works it with the GUI tools; a command whose gizmo has an entry point that asks nothing also
+// acts from its acting arguments (gizmo_acting_args()), with no gizmo: a cut by a plane, a lay on face by a
+// direction, brim ears by position.
+//
+// object_set_height_ranges: an object's height range modifiers (the object list's Height Range Modifier), given as
+// the whole set of ranges, whose settings the settings tools set. object_set_variable_layer_height: the Variable
+// layer height panel's Adaptive, Smooth and Reset on an object. And how object_list reports both.
 
-#include "CanvasTarget.hpp"
-#include "slic3r/GUI/I18N.hpp"
-#include "JobRegistry.hpp"
-#include "McpCore.hpp"
-#include "libslic3r/Config.hpp"
-#include "libslic3r/Point.hpp"
-#include "McpPaths.hpp"
-#include "AutomationRuntime.hpp"
-#include "McpArguments.hpp"
-#include "McpTargets.hpp"
-#include "McpTools.hpp"
-#include "UiInspector.hpp"
+#include "slic3r/GUI/Mcp/AutomationRuntime.hpp"
+#include "slic3r/GUI/Mcp/CanvasTarget.hpp"
+#include "slic3r/GUI/Mcp/McpArguments.hpp"
+#include "slic3r/GUI/Mcp/McpCore.hpp"
+#include "slic3r/GUI/Mcp/McpPaths.hpp"
+#include "slic3r/GUI/Mcp/McpTargets.hpp"
+#include "slic3r/GUI/Mcp/McpTools.hpp"
+#include "slic3r/GUI/Mcp/UiInspector.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
+#include "slic3r/GUI/GCodeViewer.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/GUI_Factories.hpp"
 #include "slic3r/GUI/GUI_Geometry.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
-#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Jobs/Worker.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/NativeCommandMenuItems.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
 #include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include "slic3r/GUI/Operations/GizmoOps.hpp"
 #include "slic3r/GUI/Operations/ObjectOps.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
 #include "slic3r/GUI/Operations/PlateOps.hpp"
 #include "slic3r/GUI/Operations/ProjectOps.hpp"
-#include "slic3r/GUI/Operations/RunStatus.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Selection.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/BrimEarsPoint.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/EmbossShape.hpp"
-#include "libslic3r/GCode/GCodeProcessor.hpp"
-#include "libslic3r/GCode/GCodeStatistics.hpp"
 #include "libslic3r/Geometry.hpp"
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Slicing.hpp"
 #include "libslic3r/TextConfiguration.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/TriangleSelector.hpp"
-#include "libslic3r/Utils.hpp"
-#include "libslic3r/libslic3r.h"
 
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/filesystem/path.hpp>
 #include <wx/arrstr.h>
 #include <wx/dataview.h>
-#include <wx/string.h>
+
+#include <boost/algorithm/string/predicate.hpp>
+
+#include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <functional>
 #include <initializer_list>
@@ -81,17 +92,13 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
 using nlohmann::json;
-using Ops::PlateObservation;
-using Ops::PlateOutcome;
-using Ops::SliceObservation;
-using Ops::SliceTicketState;
-using Ops::TicketStatus;
 
 namespace {
 
@@ -149,9 +156,9 @@ std::optional<Ops::Refusal> select_everything(GLCanvas3D& canvas)
     return std::nullopt;
 }
 
-} // namespace
-
-// Refused in the assemble view, which shows another canvas, and while a gizmo owns the selection.
+// The Prepare canvas, for edits made through the object list and the canvas selection as a person makes them:
+// switches to it from another tab. Refused in the assemble view, which shows another canvas, and while a gizmo owns
+// the selection. UI thread.
 GLCanvas3D& require_prepare_scene(Plater& plater)
 {
     if (GLCanvas3D* assemble = plater.get_assmeble_canvas3D(); assemble != nullptr && plater.get_current_canvas3D() == assemble)
@@ -165,6 +172,8 @@ GLCanvas3D& require_prepare_scene(Plater& plater)
         canvas.reload_scene(true);
     return canvas;
 }
+
+} // namespace
 
 // The 3D view then selects a part on instance 0, since nothing else is selected.
 void select_rows(ModelObject* object, ModelVolume* volume)
@@ -320,14 +329,6 @@ json list_objects(const json& args)
     }
     return out;
 }
-
-// The plate_slice tool's view of its request: slice_status()'s state, which adds when the tool started
-// waiting to what the operation's ticket holds.
-struct SliceTicket
-{
-    SliceTicketState state;
-    std::vector<int> plates;
-};
 
 // object_transform on an instance: written straight into the ModelInstance, then dropped, registered with
 // its plate and reloaded. Arguments are checked before anything changes.
@@ -681,6 +682,20 @@ json add_part(Plater& plater, int oi, const json& args)
     return {{"object", oi}, {"part", vi}, {"part_count", object->volumes.size()}, {"part_info", volume_info(*volume, vi)}};
 }
 
+// An object's height range modifiers as object_list and object_set_height_ranges report them:
+// [{min_z, max_z, values: {key: value serialized as settings_get returns it}}], lowest first.
+json layer_config_ranges_json(const t_layer_config_ranges& ranges)
+{
+    json out = json::array();
+    for (const auto& [range, config] : ranges) {
+        json values = json::object();
+        for (const std::string& key : config.keys())
+            values[key] = config.opt_serialize(key);
+        out.push_back({{"min_z", range.first}, {"max_z", range.second}, {"values", std::move(values)}});
+    }
+    return out;
+}
+
 } // namespace
 
 int instance_plate(PartPlateList& plates, int object, int instance)
@@ -982,56 +997,6 @@ Vec3d size_factors(const Vec3d& current, const json& size)
     return given == 1 ? Vec3d::Constant(factors[axis]) : factors;
 }
 
-json plate_summary(const json& statistics, const GCodeProcessorResult& result)
-{
-    const auto   hundredths = [](double value) { return std::round(value * 100.) / 100.; };
-    const json&  summary    = statistics.at("summary");
-    const double seconds    = summary.at("time").get<double>();
-    json         out{{"time_s", std::lround(seconds)},
-                     {"time", get_time_dhms(float(seconds))},
-                     {"filament_g", hundredths(summary.at("weight").get<double>())},
-                     {"filament_cost", summary.at("filament_cost")},
-                     {"layers", summary.at("layer_count")},
-                     {"filament_changes", summary.at("filament_changes")}};
-    // The processor leaves the silent-mode time 0 when the printer has no such estimate.
-    const PrintEstimatedStatistics& estimates = result.print_statistics;
-    const double silent = estimates.modes[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Stealth)].time;
-    if (silent > 0.)
-        out["silent_time_s"] = std::lround(silent);
-    if (estimates.total_extruder_changes > 0)
-        out["extruder_changes"] = estimates.total_extruder_changes;
-    double max_z = 0.;
-    for (const json& layer : statistics.at("layers"))
-        max_z = std::max(max_z, layer.at("z").get<double>());
-    out["max_z"] = max_z;
-
-    json filaments = json::array();
-    const auto add_slot = [&filaments] {
-        filaments.push_back({{"slot", filaments.size() + 1}, {"m", 0.}, {"g", 0.}, {"model_g", 0.}, {"support_g", 0.},
-                             {"flush_g", 0.}, {"tower_g", 0.}});
-    };
-    while (filaments.size() < result.filaments_count)
-        add_slot();
-    double length = 0.;
-    for (const json& used : summary.at("filaments")) {
-        const size_t slot = used.at("id").get<size_t>();
-        while (filaments.size() < slot)
-            add_slot();
-        const auto grams = [&used, &hundredths](const char* use) { return hundredths(used.at(use).at("weight").get<double>()); };
-        json&      f     = filaments[slot - 1];
-        f["m"]           = hundredths(used.at("length").get<double>() / 1000.);
-        f["g"]           = hundredths(used.at("weight").get<double>());
-        f["model_g"]     = grams("model");
-        f["support_g"]   = grams("support");
-        f["flush_g"]     = grams("flush");
-        f["tower_g"]     = grams("prime_tower");
-        length += used.at("length").get<double>();
-    }
-    out["filament_m"] = hundredths(length / 1000.);
-    out["filaments"]  = std::move(filaments);
-    return out;
-}
-
 namespace {
 
 // The Prepare view's selection, the view shown first when another is, as the object menu items read it: what a command made
@@ -1097,6 +1062,7 @@ struct SplitRow
     Targets target;
     bool    object_row = false;
 };
+
 Ops::Outcome<SplitRow> split_row(bool to_objects)
 {
     Ops::show_prepare_view();
@@ -2150,7 +2116,7 @@ json fix_reply(const Model& model, const Ops::FixedModels& fixed)
 
 // The object and part commands of the GUI's menus that have no Speed Dial action: Printable, Auto Drop, Fix Model,
 // Clone, Reload from disk and Replace 3D file. Each reads its targets through resolve_targets() and runs its operation.
-void register_object_tools(CommandCatalog& catalog)
+void register_actionless_object_commands(CommandCatalog& catalog)
 {
     NativeCommand printable = reaching(
         {"set_objects_printable"},
@@ -2475,9 +2441,459 @@ void register_object_tools(CommandCatalog& catalog)
     catalog.add(std::move(replace));
 }
 
+using EType = GLGizmosManager::EType;
+
+// How a call's targets become what its gizmo opens on: `kinds` and `one` read them (resolve_targets()), and `to_gizmo`
+// turns them into the selection the gizmo works on.
+struct GizmoTargets
+{
+    unsigned kinds = kObjects;
+    bool     one   = true;
+    Targets (*to_gizmo)(const Model& model, Targets named) = nullptr;
+};
+
+// One instance of one object: the instance named, else the object's first.
+Targets one_instance(const Model&, Targets named)
+{
+    if (!named.objects.empty()) {
+        named.instances = {{named.objects.front(), 0}};
+        named.objects.clear();
+    }
+    return named;
+}
+
+// One part: the part named, else the only part of an object of one part. An object of several parts stays as it is,
+// which the operation refuses as Simplify's panel would.
+Targets one_part(const Model& model, Targets named)
+{
+    if (!named.objects.empty() && model.objects[std::size_t(named.objects.front())]->volumes.size() == 1) {
+        named.parts = {{named.objects.front(), 0}};
+        named.objects.clear();
+    }
+    return named;
+}
+
+// Opens the gizmo of `type` on what `args` name, else on the selection as it is: a call that names no target does not
+// read the selection as targets, so the gizmo's own condition decides what it opens on (Measure on a part). The reply
+// is the gizmo, that it is open, and what is selected.
+json open_on(const json& args, EType type, const GizmoTargets& reading)
+{
+    Plater&           plater = ui_plater();
+    Ops::OpenGizmoArgs op;
+    op.type = type;
+    if (names_targets(args)) {
+        const Ops::Outcome<Targets> named = resolve_targets(plater.model(), nullptr, args, reading.kinds, reading.one);
+        if (!named)
+            throw refused(named.refusal());
+        op.targets = reading.to_gizmo != nullptr ? reading.to_gizmo(plater.model(), named.value()) : named.value();
+    } else
+        op.targets.from_selection = true;
+    const Ops::Outcome<Ops::OpenedGizmo> opened = Ops::open_gizmo(op);
+    if (!opened)
+        throw refused(opened.refusal());
+    json reply      = targets_reply(plater.model(), opened.value().on);
+    reply["gizmo"]  = gizmo_name(int(type));
+    reply["active"] = true;
+    return reply;
+}
+
+// What every gizmo command's description says of working the open gizmo.
+const char* const kWorkTheGizmo =
+    " Read the gizmo's panel with `widget_list {include_imgui: true}`, set its fields with `widget_set_value`, press its "
+    "buttons with `widget_click`, and click or drag on the model with `mouse_gesture`; `object_select {none: true}` closes it. "
+    "The gizmo already open on the same target stays open. Reply: gizmo (its name, as `app_state.gizmo` gives it), active, "
+    "and what is selected (objects, instances, parts).";
+
+// Whether a call of `command` gives one of its acting arguments, and so does the job with no gizmo.
+bool acts(const json& args, const std::string& command)
+{
+    for (const std::string& name : gizmo_acting_args(command))
+        if (args.contains(name))
+            return true;
+    return false;
+}
+
+Ops::CutPlacement placement(const std::string& name)
+{
+    return name == "as_cut" ? Ops::CutPlacement::AsCut : name == "flip" ? Ops::CutPlacement::Flip : Ops::CutPlacement::PlaceOnCut;
+}
+
+// What an object of the model is in a cut's reply: its index, id and name, and the open edges its parts have, which
+// object_fix repairs.
+json piece(const Model& model, int index)
+{
+    const ModelObject& object     = *model.objects[std::size_t(index)];
+    std::size_t        open_edges = 0;
+    for (const ModelVolume* volume : object.volumes)
+        open_edges += its_num_open_edges(volume->mesh().its);
+    return {{"index", index}, {"object_id", object.id().id}, {"name", object.name}, {"open_edges", open_edges}};
+}
+
+// The one instance a gizmo command acts on: the instance or object named (the object's first instance), else the one
+// selected.
+std::pair<int, int> acted_on(Plater& plater, const json& args)
+{
+    const Ops::Outcome<Targets> named = resolve_targets(plater.model(), &plater.get_view3D_canvas3D()->get_selection(), args,
+                                                        kObjects | kInstances, true);
+    if (!named)
+        throw refused(named.refusal());
+    return one_instance(plater.model(), named.value()).instances.front();
+}
+
+// object_cut from its acting arguments. The arguments the Cut gizmo's panel could not set together are refused before
+// anything is read: z with plane, a placement for a piece not kept, and placements or one piece with Cut to parts.
+json cut_from_args(const json& args)
+{
+    if (args.contains("z") && args.contains("plane"))
+        throw ToolFailure("Give z or plane, not both.");
+    if (!args.contains("z") && !args.contains("plane"))
+        throw refused(Ops::Refusal{Ops::RefusalKind::Precondition, "needs_plane",
+                                   L("A cut needs its plane: give z or plane with keep, upper, lower or to_parts.")});
+    Ops::CutObjectArgs op;
+    if (args.contains("plane")) {
+        op.point  = to_vec3(args["plane"]["point"], "plane.point");
+        op.normal = to_vec3(args["plane"]["normal"], "plane.normal");
+        if (op.normal.norm() < EPSILON)
+            throw ToolFailure("plane.normal is zero: give the direction the upper piece lies in.");
+    }
+    const std::string keep = args.value("keep", std::string("both"));
+    op.keep_upper          = keep != "lower";
+    op.keep_lower          = keep != "upper";
+    if (args.contains("upper") && !op.keep_upper)
+        throw ToolFailure("upper places the upper piece, but the upper piece is not kept (keep \"lower\").");
+    if (args.contains("lower") && !op.keep_lower)
+        throw ToolFailure("lower places the lower piece, but the lower piece is not kept (keep \"upper\").");
+    op.to_parts = args.value("to_parts", false);
+    if (op.to_parts && keep != "both")
+        throw ToolFailure("to_parts keeps both pieces, as two parts of one object; leave keep out.");
+    if (op.to_parts && (args.contains("upper") || args.contains("lower")))
+        throw ToolFailure("to_parts places no piece: both stay as cut; leave upper and lower out.");
+    if (args.contains("upper"))
+        op.upper = placement(args["upper"].get<std::string>());
+    if (args.contains("lower"))
+        op.lower = placement(args["lower"].get<std::string>());
+
+    Plater& plater                   = ui_plater();
+    std::tie(op.object, op.instance) = acted_on(plater, args);
+    if (args.contains("z")) {
+        // A level plane that high above the bed, through the instance.
+        op.point = plater.model().objects[std::size_t(op.object)]->instances[std::size_t(op.instance)]->get_offset();
+        op.point.z() = args["z"].get<double>();
+        op.normal    = Vec3d::UnitZ();
+    }
+
+    const Ops::Outcome<Targets> cut = Ops::cut_object(op);
+    if (!cut)
+        throw refused(cut.refusal());
+    const Model& model = plater.model();
+    json         reply;
+    if (op.to_parts) {
+        reply["object"] = piece(model, cut.value().objects.front());
+        reply["parts"]  = targets_reply(model, cut.value()).value("parts", json::array());
+    } else {
+        reply["pieces"] = json::array();
+        for (int index : cut.value().objects)
+            reply["pieces"].push_back(piece(model, index));
+    }
+    return reply;
+}
+
+// object_lay_on_face from its acting arguments.
+json lay_from_args(const json& args)
+{
+    if (!args.contains("normal"))
+        throw refused(Ops::Refusal{Ops::RefusalKind::Precondition, "needs_normal",
+                                   L("Laying an object on a face needs the face's direction: give normal with frame.")});
+    Plater&           plater = ui_plater();
+    Ops::LayOnFaceArgs op;
+    std::tie(op.object, op.instance) = acted_on(plater, args);
+    op.normal = to_vec3(args["normal"], "normal");
+    op.world  = args.value("frame", std::string("object")) == "world";
+    const Ops::Outcome<Vec3d> turned = Ops::lay_on_face(op);
+    if (!turned)
+        throw refused(turned.refusal());
+    const Vec3d degrees = turned.value() * (180. / PI);
+    return {{"object", op.object}, {"instance", op.instance}, {"rotation", {degrees.x(), degrees.y(), degrees.z()}}};
+}
+
+// object_set_brim_ears from its acting arguments.
+json brim_ears_from_args(const json& args)
+{
+    if (args.contains("points") && args.contains("clear"))
+        throw ToolFailure("Give points or clear, not both.");
+    Plater&              plater = ui_plater();
+    Ops::SetBrimEarsArgs op;
+    std::tie(op.object, op.instance) = acted_on(plater, args);
+    for (const json& point : args.value("points", json::array())) {
+        const json& at = point.at("position");
+        if (!at.is_array() || at.size() != 2)
+            throw ToolFailure("points[].position must be [x, y]");
+        Ops::BrimEar ear;
+        ear.position = Vec2d(at[0].get<double>(), at[1].get<double>());
+        if (point.contains("radius"))
+            ear.radius = point["radius"].get<float>();
+        op.ears.push_back(ear);
+    }
+    const Ops::Outcome<Ops::BrimEarsSet> set = Ops::set_brim_ears(op);
+    if (!set)
+        throw refused(set.refusal());
+    json ears = json::array();
+    for (const BrimPoint& ear : set.value().ears)
+        ears.push_back({{"position", {ear.pos.x(), ear.pos.y(), ear.pos.z()}}, {"radius", ear.head_front_radius}});
+    return {{"object", op.object}, {"ears", std::move(ears)}, {"brim_type", set.value().brim_type},
+            {"takes_effect", set.value().takes_effect}};
+}
+
+NativeCommand gizmo_command(std::string name, std::string title, std::string description, json schema, EType type,
+                            GizmoTargets reading, json examples)
+{
+    NativeCommand command = with_target_ids(mutate_tool(std::move(name), std::move(title), description + kWorkTheGizmo,
+                                                          std::move(schema), [type, reading](const json& args, ToolContext& ctx) {
+                                                              json out = ctx.run_ui([&] { return open_on(args, type, reading); });
+                                                              settle(ctx);
+                                                              return ToolResult::ok(out);
+                                                          }));
+    command.examples = std::move(examples);
+    return reaching({"open_gizmo"}, std::move(command));
+}
+
+// The painting gizmos, by object_paint's type.
+const std::vector<std::pair<std::string, EType>> kPaintTypes{
+    {"supports", EType::FdmSupports}, {"seam", EType::Seam}, {"color", EType::MmSegmentation}, {"fuzzy_skin", EType::FuzzySkin}};
+
 } // namespace
 
-void register_scene_tools(CommandCatalog& catalog)
+const std::vector<std::string>& gizmo_acting_args(const std::string& command)
+{
+    // The gizmo commands' acting arguments: a call with any of them does the job and opens no gizmo.
+    static const std::map<std::string, std::vector<std::string>> acting{
+        {"object_paint", {}}, {"object_measure", {}}, {"object_simplify", {}}, {"part_boolean", {}},
+        {"object_cut", {"z", "plane", "keep", "upper", "lower", "to_parts"}},
+        {"object_lay_on_face", {"normal", "frame"}},
+        {"object_set_brim_ears", {"points", "clear"}}};
+    static const std::vector<std::string> none;
+    const auto                            found = acting.find(command);
+    return found != acting.end() ? found->second : none;
+}
+
+namespace {
+
+ToolFailure overlap(const Slic3r::t_layer_height_range& lower, const Slic3r::t_layer_height_range& upper)
+{
+    return ToolFailure("Ranges " + height_range_text(lower) + " and " + height_range_text(upper) +
+                       " overlap; ranges may touch, one's max_z being the next one's min_z");
+}
+
+bool same_ranges(const t_layer_config_ranges& a, const t_layer_config_ranges& b)
+{
+    return a.size() == b.size() &&
+           std::equal(a.begin(), a.end(), b.begin(), [](const auto& x, const auto& y) { return x.first == y.first && x.second.get() == y.second.get(); });
+}
+
+// What the GUI tells a person about an object's layer heights, as warnings: the dialog it shows before
+// variable layer heights or height ranges when the process mixes colours in sublayers, and what the
+// object list's variable layer height mark implies for the ranges.
+json layer_height_warnings(const ModelObject& object)
+{
+    json       warnings = json::array();
+    const bool variable = !layer_height_profile_json(object.layer_height_profile.get()).is_null();
+    if (!variable && object.layer_config_ranges.empty())
+        return warnings;
+    const auto* mixed = wxGetApp().preset_bundle->prints.get_edited_preset().config.option<ConfigOptionBool>("enable_mixed_color_sublayer");
+    if (mixed != nullptr && mixed->value)
+        warnings.push_back("Using variable layer height together with mixed color sublayer may result in poor color mixing quality.");
+    if (variable && !object.layer_config_ranges.empty())
+        warnings.push_back("The object's variable layer height profile, not the ranges' layer_height, decides its layer heights.");
+    return warnings;
+}
+
+// The index of the object a layer call names, else of the one selected in the Prepare view (or of the object of the
+// selected instance or part), on an FFF printer.
+int layer_object(Plater& plater, const json& args)
+{
+    if (plater.printer_technology() != ptFFF)
+        throw ToolFailure("Height range modifiers and variable layer heights are for FFF printers");
+    const Ops::Outcome<Ops::Targets> target =
+        resolve_targets(plater.model(), &plater.get_view3D_canvas3D()->get_selection(), args, kObjects | kObjectOfSelection, true);
+    if (!target)
+        throw refused(target.refusal());
+    return target.value().objects.front();
+}
+
+// The reply's naming of object `oi`, as every command with a target gives it.
+json named_object(const Plater& plater, int oi)
+{
+    Ops::Targets object;
+    object.objects = {oi};
+    return targets_reply(plater.model(), object);
+}
+
+// The object object_set_variable_layer_height names, or the one selected, after the checks that need no view, such as
+// an argument that goes with another action.
+int profile_object(Plater& plater, const json& args)
+{
+    const int         oi     = layer_object(plater, args);
+    const std::string action = arg_string(args, "action");
+    if (args.contains("quality") && action != "adaptive")
+        throw ToolFailure("quality goes with action adaptive");
+    if ((args.contains("radius") || args.contains("keep_min")) && action != "smooth")
+        throw ToolFailure("radius and keep_min go with action smooth");
+    return oi;
+}
+
+// What the panel's Adaptive, Smooth and Reset buttons run, on the object selected as the panel's
+// object is, without opening the panel. Reset of an object without a profile changes nothing.
+json set_variable_layer_height(Plater& plater, const json& args)
+{
+    const int         oi     = profile_object(plater, args);
+    ModelObject&      object = *plater.model().objects[std::size_t(oi)];
+    const std::string action = arg_string(args, "action");
+    GLCanvas3D&       canvas = require_prepare_scene(plater);
+
+    if (action != "reset" || !object.layer_height_profile.empty()) {
+        select_rows(&object, nullptr);
+        // The rule that enables the toolbar's Variable layer height item, with the reason it fails.
+        if (!plater.can_layers_editing())
+            throw ToolFailure(object.max_z() <= SINKING_Z_THRESHOLD ?
+                                  "object " + std::to_string(oi) + " is below the bed, where its layer heights can't be edited" :
+                              !canvas.is_layers_editing_allowed() ?
+                                  "The variable layer height tool needs an OpenGL shader that this system did not load" :
+                                  "object " + std::to_string(oi) + " could not be selected for the variable layer height tool");
+        if (action == "adaptive")
+            canvas.adaptive_layer_height_profile(float(arg_double(args, "quality", 0.5)));
+        else if (action == "smooth")
+            canvas.smooth_layer_height_profile(HeightProfileSmoothingParams(unsigned(arg_int(args, "radius", 5)), arg_bool(args, "keep_min", false)));
+        else
+            canvas.reset_layer_height_profile();
+    }
+
+    json out = named_object(plater, oi);
+    out.update({{"object", oi}, {"height", object.instance_bounding_box(0).max.z()}});
+    if (json profile = layer_height_profile_json(object.layer_height_profile.get()); !profile.is_null())
+        out["layer_height_profile"] = std::move(profile);
+    if (json warnings = layer_height_warnings(object); !warnings.empty())
+        out["warnings"] = std::move(warnings);
+    return out;
+}
+
+// What the object list does when a person adds and removes ranges, with the whole set given at once, on the object the
+// call names or the one selected. A range's settings are the settings tools' (target height_range). Everything the
+// arguments can tell is checked before anything changes.
+json set_height_ranges(Plater& plater, const json& args)
+{
+    const int             oi     = layer_object(plater, args);
+    ModelObject*          object = plater.model().objects[std::size_t(oi)];
+    ObjectList*           list   = wxGetApp().obj_list();
+    t_layer_config_ranges ranges = layer_config_ranges_from_json(args.value("ranges", json()), object->layer_config_ranges,
+                                                                 list->get_default_layer_config(oi));
+    require_prepare_scene(plater);
+
+    if (!same_ranges(ranges, object->layer_config_ranges)) {
+        // The object's row, as right-clicking it selects it, so no row or sidebar editor of the old ranges
+        // stays in use while they are replaced.
+        select_rows(object, nullptr);
+        plater.take_snapshot("Edit height ranges");
+        object->layer_config_ranges = std::move(ranges);
+        list->reload_layer_rows(oi);
+        plater.changed_object(oi);
+    }
+
+    json out = named_object(plater, oi);
+    out.update({{"object", oi},
+                {"height", object->instance_bounding_box(0).max.z()},
+                {"layer_config_ranges", layer_config_ranges_json(object->layer_config_ranges)}});
+    if (json warnings = layer_height_warnings(*object); !warnings.empty())
+        out["warnings"] = std::move(warnings);
+    return out;
+}
+
+} // namespace
+
+std::string height_range_text(const Slic3r::t_layer_height_range& range) { return mm(range.first) + "-" + mm(range.second); }
+
+std::vector<std::string> layer_range_option_keys(int filaments)
+{
+    // A range's page in the sidebar edits layer_height and the per-region settings, of which the object
+    // list's Add settings menus offer a part or a range those with a category (no internal option),
+    // leaving out support settings, and per-feature filaments and wipe options while there is one
+    // filament (SettingsFactory's is_improper_category()).
+    std::vector<std::string> keys{"layer_height"};
+    for (const std::string& key : PrintRegionConfig().keys()) {
+        const ConfigOptionDef* def = print_config_def.get(key);
+        if (def == nullptr || def->category.empty() || def->category == "Support material" ||
+            (filaments == 1 && (def->category == "Extruders" || def->category == "Wipe options")))
+            continue;
+        keys.push_back(key);
+    }
+    // The filament column of a range's row.
+    keys.push_back("extruder");
+    return keys;
+}
+
+t_layer_config_ranges layer_config_ranges_from_json(const json&                  ranges,
+                                                    const t_layer_config_ranges& current,
+                                                    const DynamicPrintConfig&    defaults)
+{
+    if (!ranges.is_array())
+        throw ToolFailure("ranges must be a list of {min_z, max_z}");
+    t_layer_config_ranges out;
+    for (const json& r : ranges) {
+        if (!r.is_object())
+            throw ToolFailure("A range is {min_z, max_z}");
+        const Slic3r::t_layer_height_range range{arg_double(r, "min_z", -1.), arg_double(r, "max_z", -1.)};
+        if (!(range.first >= 0. && range.first < range.second))
+            throw ToolFailure("A height range needs 0 <= min_z < max_z, not " + height_range_text(range));
+        if (out.count(range) != 0)
+            throw overlap(range, range);
+        // A range of the object's with these heights keeps its settings, as the object list keeps a range it is not asked
+        // to change.
+        const auto kept = current.find(range);
+        if (kept != current.end())
+            out[range].assign_config(kept->second.get());
+        else
+            out[range].assign_config(defaults);
+    }
+    // Sorted by min_z; the slicer would trim an overlap silently, which from an agent is always a mistake.
+    const Slic3r::t_layer_height_range* lower = nullptr;
+    for (const auto& entry : out) {
+        if (lower != nullptr && entry.first.first + EPSILON < lower->second)
+            throw overlap(*lower, entry.first);
+        lower = &entry.first;
+    }
+    return out;
+}
+
+void check_height_range_layer_height(const DynamicPrintConfig& values, const DynamicPrintConfig& range,
+                                     const std::function<std::pair<double, double>(int extruder)>& layer_height_bounds)
+{
+    // Only a layer height given is checked, as the range editor checks only what a person types.
+    if (!values.has("layer_height"))
+        return;
+    const DynamicPrintConfig&       source   = values.has("extruder") ? values : range;
+    const int                       extruder = source.has("extruder") ? source.opt_int("extruder") : 0;
+    const double                    height   = values.opt_float("layer_height");
+    const std::pair<double, double> bounds   = layer_height_bounds(extruder);
+    if (!(height >= bounds.first && height <= bounds.second))
+        throw ToolFailure("layer_height " + mm(height) + " is outside this printer's " + mm(bounds.first) + "-" + mm(bounds.second));
+}
+
+json layer_height_profile_json(const std::vector<double>& profile)
+{
+    // The object list marks an object's layer height as variable when its profile is more than a flat
+    // bottom-to-top pair.
+    if (profile.size() <= 4)
+        return nullptr;
+    double low = profile[1], high = profile[1];
+    for (std::size_t i = 3; i < profile.size(); i += 2) {
+        low  = std::min(low, profile[i]);
+        high = std::max(high, profile[i]);
+    }
+    // Computed heights, to the G-code's 0.001 mm.
+    const auto um = [](double h) { return std::round(h * 1000.) / 1000.; };
+    return {{"points", profile.size() / 2}, {"min_height", um(low)}, {"max_height", um(high)}};
+}
+
+void register_object_tools(CommandCatalog& catalog)
 {
     catalog.add(inspect_tool(
         "object_list", L("List objects"),
@@ -2692,7 +3108,7 @@ void register_scene_tools(CommandCatalog& catalog)
         })));
 
     register_object_menu_commands(catalog);
-    register_object_tools(catalog);
+    register_actionless_object_commands(catalog);
 
     NativeCommand arrange = reaching({"start_arrange"}, mutate_tool(
         "object_arrange", L("Arrange objects or fill the bed"),
@@ -2756,189 +3172,225 @@ void register_scene_tools(CommandCatalog& catalog)
         with_target_ids(std::move(arrange)), [](const json&) { return MenuItems::obj_arrange(); }, /*person_form_behind_dialogs=*/false,
         std::vector<json>{json::object()}));
 
-    NativeCommand slice = reaching({"start_slice"}, mutate_tool(
-        "plate_slice", L("Slice"),
-        "Slice the current plate, all plates, or one plate by index, the way the toolbar's Slice button does, and wait for "
-        "the result (or reply with a job id when it takes longer than the reply budget). Each requested plate reports ok, "
-        "error, cancelled, empty or skipped; the whole operation is superseded when someone else started a slice or "
-        "edited the project while it ran. An ok plate has `time_s` (`silent_time_s` when the printer estimates it), "
-        "`filament_m` and `filament_g` including flush, `filament_cost`, layers, `max_z`, `filament_changes`, and filaments[i] for "
-        "slot i+1 with m, g and the grams of `model_g`, `support_g`, `flush_g` and `tower_g`. Other changes are refused until it "
-        "finishes; `job_cancel` stops it. The Preview tab shows the result, as after the Slice button; `preview: true`, alone "
-        "or with plates \"all\", is the call of Slice and Preview or Slice All Plates, whose pick starts the slice as a job "
-        "and shows its result as a notification.",
-        object_schema({{"plates", {{"type", {"string", "integer"}}, {"description", "\"current\" (default), \"all\", or a plate index."}}},
-                       {"timeout_s", {{"type", "integer"}, {"minimum", 10}, {"maximum", 7200}, {"description", "Stop waiting after this long (default 1800): the call fails, and the slice goes on unless `job_cancel` stops it."}}},
-                       {"preview", prop("boolean", "Show the Preview tab, as every slice does: the argument of the Slice and "
-                                                   "Preview and Slice All Plates actions.")}}),
+    std::vector<std::string> paint_types;
+    for (const auto& [name, type] : kPaintTypes)
+        paint_types.push_back(name);
+    NativeCommand paint = with_target_ids(mutate_tool(
+        "object_paint", L("Paint on an object"),
+        std::string("Open a painting gizmo on an object's instance, the first unless instance is given: type supports opens "
+                    "Support Painting, seam Seam Painting, color Color Painting (two filaments or more) and `fuzzy_skin` Paint-on "
+                    "fuzzy skin. Painting is left to the gizmo: pick a tool and a brush in its panel and paint with "
+                    "`mouse_gesture` strokes on the model. With no target, it opens on the selection as it is.") +
+            kWorkTheGizmo,
+        with_targets(object_schema({{"type", enum_prop(paint_types, "The painting gizmo to open.")}}, {"type"}), kObjects | kInstances, true),
         [](const json& args, ToolContext& ctx) {
-            const json plates_arg = args.value("plates", json("current"));
-            if (plates_arg.is_string() && plates_arg != "all" && plates_arg != "current")
-                throw ToolFailure("plates is \"all\", \"current\" or a plate index");
-            auto       ticket     = std::make_shared<SliceTicket>();
-            // Held from before the wait below, so no call admitted meanwhile can change the project
-            // under the slice, and a cancel meanwhile finds the operation.
-            const uint64_t cancels_before = ctx.run_ui([&] {
-                ctx.begin_operation();
-                return json(ui_plater().slice_cancel_seq());
-            }).get<uint64_t>();
-            // A change made just before (settings_set, project_open) is validated by an update
-            // scheduled a moment later; a slice requested first would be refused on the old state.
+            EType type = EType::FdmSupports;
+            for (const auto& [name, t] : kPaintTypes)
+                if (name == args.value("type", std::string()))
+                    type = t;
+            json out = ctx.run_ui([&] { return open_on(args, type, {kObjects | kInstances, true, one_instance}); });
+            settle(ctx);
+            return ToolResult::ok(out);
+        }));
+    paint.examples = json::parse(R"json([
+        {"title": "Paint support enforcers on object 0", "calls": [
+            {"tool": "object_paint", "args": {"object": 0, "type": "supports"}}]},
+        {"title": "Paint colors on the second instance of object 1", "calls": [
+            {"tool": "object_paint", "args": {"object": 1, "instance": 1, "type": "color"}}]}])json");
+    catalog.add(reaching({"open_gizmo"}, std::move(paint)));
+
+    catalog.add(gizmo_command(
+        "object_measure", L("Measure"),
+        "Open the Measure gizmo on objects, else on the selection as it is (a part selected is measured as a part). "
+        "Measuring is left to the gizmo: click two features of the model with `mouse_gesture` (Shift-click for a point) and "
+        "read the results in its panel.",
+        with_targets(object_schema({}), kObjects, false), EType::Measure, {kObjects, false, nullptr},
+        json::parse(R"json([
+            {"title": "Measure between objects 0 and 1", "calls": [{"tool": "object_measure", "args": {"objects": [0, 1]}}]},
+            {"title": "Measure the selected part", "calls": [
+                {"tool": "object_select", "args": {"parts": [[0, 1]]}}, {"tool": "object_measure", "args": {}}]}])json")));
+
+    catalog.add(gizmo_command(
+        "object_simplify", L("Simplify Model"),
+        "Open the Simplify gizmo on a part: the part named, else the only part of the object named (an object of several "
+        "parts needs part), else the selected part. The detail level or ratio and Apply are left to the gizmo.",
+        with_targets(object_schema({}), kObjects | kParts, true), EType::Simplify, {kObjects | kParts, true, one_part},
+        json::parse(R"json([
+            {"title": "Simplify object 0, an object of one part", "calls": [{"tool": "object_simplify", "args": {"object": 0}}]},
+            {"title": "Simplify part 1 of object 2", "calls": [{"tool": "object_simplify", "args": {"object": 2, "part": 1}}]}])json")));
+
+    catalog.add(gizmo_command(
+        "part_boolean", L("Mesh Boolean"),
+        "Open the Mesh Boolean gizmo on an object of two parts or more, its first instance. The operation (Union, Difference "
+        "or Intersection), the two parts and Delete input are left to the gizmo: pick each part with a `mouse_gesture` click "
+        "on a point of it the camera can see, then press the operation's button.",
+        with_targets(object_schema({}), kObjects, true), EType::MeshBoolean, {kObjects, true, one_instance},
+        json::parse(R"json([
+            {"title": "Open Mesh Boolean on object 0", "calls": [{"tool": "part_boolean", "args": {"object": 0}}]},
+            {"title": "Open Mesh Boolean on the selected object", "calls": [{"tool": "part_boolean", "args": {}}]}])json")));
+
+    const std::vector<std::string> placements{"as_cut", "place_on_cut", "flip"};
+    json                           point  = array_prop({{"type", "number"}}, "`[x, y, z]` mm: a point of the plane, in the 3D view's coordinates.");
+    json                           normal = array_prop({{"type", "number"}}, "`[x, y, z]`: the direction the upper piece lies in; any length but zero.");
+    point["minItems"] = normal["minItems"] = 3;
+    json plane        = object_schema({{"point", std::move(point)}, {"normal", std::move(normal)}}, {"point", "normal"});
+    plane["description"] = "Cut along this plane. Not with z.";
+    NativeCommand cut    = with_target_ids(mutate_tool(
+        "object_cut", L("Cut"),
+        std::string(
+            "Cut an object's instance, the first unless instance is given, along a plane, as the Cut gizmo's Perform cut does. "
+            "Acts from arguments: `z`, `plane`, `keep`, `upper`, `lower`, `to_parts`. With none of them it opens the Cut gizmo. z cuts "
+            "level, that many mm above the bed; plane `{point, normal}` cuts along any plane, the upper piece being the one "
+            "the normal points into. keep: both (default), upper or lower. upper and lower place a kept piece: `as_cut`, "
+            "`place_on_cut` (laid on its cut face) or flip; by default the upper piece is laid on its cut face and the lower "
+            "one stays as cut. `to_parts` keeps both pieces as two parts of one object, with no placement. A cut is one undo "
+            "step and replaces the object: its pieces go to the end of the object list, upper first, and the reply gives "
+            "them as pieces [`{index, object_id, name, open_edges}`], or with `to_parts` the object and its parts. A piece with "
+            "open edges is repaired by `object_fix`. Connectors, the dovetail and a cut along a contour are left to the gizmo: "
+            "open it with `object_cut` naming only the object.") +
+            kWorkTheGizmo,
+        with_targets(object_schema({{"z", prop("number", "mm above the bed: cut level at this height. Not with plane.")},
+                                    {"plane", std::move(plane)},
+                                    {"keep", enum_prop({"both", "upper", "lower"}, "The pieces kept. Default both.")},
+                                    {"upper", enum_prop(placements, "Where the upper piece goes. Default `place_on_cut`.")},
+                                    {"lower", enum_prop(placements, "Where the lower piece goes. Default `as_cut`.")},
+                                    {"to_parts", prop("boolean", "Keep both pieces as two parts of one object, as the gizmo's "
+                                                                 "Cut to parts does. Default false.")}}),
+                     kObjects | kInstances, true),
+        [](const json& args, ToolContext& ctx) {
+            json out = ctx.run_ui([&] {
+                return acts(args, "object_cut") ? cut_from_args(args) : open_on(args, EType::Cut, {kObjects | kInstances, true, one_instance});
+            });
+            settle(ctx);
+            return ToolResult::ok(out);
+        }));
+    cut.examples = json::parse(R"json([
+        {"title": "Cut object 0 in two, 10 mm above the bed", "calls": [{"tool": "object_cut", "args": {"object": 0, "z": 10}}]},
+        {"title": "Keep the part of object 1 above a tilted plane", "calls": [
+            {"tool": "object_cut", "args": {"object": 1, "plane": {"point": [100, 100, 10], "normal": [1, 0, 1]}, "keep": "upper"}}]}])json");
+    catalog.add(reaching({"open_gizmo", "cut_object"}, std::move(cut)));
+
+    NativeCommand lay = with_target_ids(mutate_tool(
+        "object_lay_on_face", L("Lay on face"),
+        std::string(
+            "Lay an object's instance, the first unless instance is given, on one of its faces, as a click on that face in "
+            "the Lay on Face gizmo does. Acts from arguments: `normal`, `frame`. With none of them it opens the Lay on Face "
+            "gizmo. normal is the direction the face points out to: in the object's own frame (frame object, the default, "
+            "where `[0, 0, -1]` is the face that was its bottom) or in the 3D view's (frame world, where the face points now). "
+            "The instance turns so that face lies on the bed and drops onto it, one undo step; the object's other instances "
+            "turn with it. No flat face is looked for: the direction is laid down as given. A call that acts replies object, "
+            "instance and rotation, the instance's rotation in degrees as `object_list` gives it.") +
+            kWorkTheGizmo,
+        with_targets(object_schema({{"normal", array_prop({{"type", "number"}}, "`[x, y, z]`: the direction the face to lay on the bed "
+                                                                               "points out to; any length but zero.")},
+                                    {"frame", enum_prop({"object", "world"}, "The frame normal is in: the object's own (default) or "
+                                                                             "the 3D view's. Needs normal.")}}),
+                     kObjects | kInstances, true),
+        [](const json& args, ToolContext& ctx) {
+            json out = ctx.run_ui([&] {
+                return acts(args, "object_lay_on_face") ? lay_from_args(args) :
+                                                          open_on(args, EType::Flatten, {kObjects | kInstances, true, one_instance});
+            });
+            settle(ctx);
+            return ToolResult::ok(out);
+        }));
+    lay.examples = json::parse(R"json([
+        {"title": "Lay object 0 on the face that points down in its own frame", "calls": [
+            {"tool": "object_lay_on_face", "args": {"object": 0, "normal": [0, 0, -1]}}]},
+        {"title": "Lay object 0 on the face that now points to +X", "calls": [
+            {"tool": "object_lay_on_face", "args": {"object": 0, "normal": [1, 0, 0], "frame": "world"}}]}])json");
+    catalog.add(reaching({"open_gizmo", "lay_on_face"}, std::move(lay)));
+
+    json ear = object_schema({{"position", array_prop({{"type", "number"}}, "`[x, y]` mm: where on the bed.")},
+                              {"radius", prop("number", "mm. Default: the gizmo's, eight first-layer line widths.")}},
+                             {"position"});
+    NativeCommand brim = with_target_ids(mutate_tool(
+        "object_set_brim_ears", L("Brim ears"),
+        std::string(
+            "Set an object's brim ears from positions on the bed, as the Brim Ears gizmo places them, through the instance "
+            "named, the first unless instance is given. Acts from arguments: `points`, `clear`. With none of them it opens the "
+            "Brim Ears gizmo. points replaces the object's ears with those given, each at a bed position, with a radius "
+            "from 0.1 to 100 mm or the gizmo's default; clear removes them all. The ears are taken on the bed and stored in "
+            "the object's coordinates, so they are the object's, shared by its instances. One undo step. They print only "
+            "with the painted brim type: `settings_set` on the object sets `brim_type`. A call that acts replies object, ears "
+            "as stored ({position: `[x, y, z]` in the object's coordinates, radius}), `brim_type`, the brim type the object "
+            "prints with, and `takes_effect`, whether that is painted.") +
+            kWorkTheGizmo,
+        with_targets(object_schema({{"points", array_prop(std::move(ear), "The ears, in place of the object's.")},
+                                    {"clear", {{"type", "boolean"}, {"enum", {true}}, {"description", "Remove every ear. Not with points."}}}}),
+                     kObjects | kInstances, true),
+        [](const json& args, ToolContext& ctx) {
+            json out = ctx.run_ui([&] {
+                return acts(args, "object_set_brim_ears") ? brim_ears_from_args(args) :
+                                                            open_on(args, EType::BrimEars, {kObjects | kInstances, true, one_instance});
+            });
+            settle(ctx);
+            return ToolResult::ok(out);
+        }));
+    brim.examples = json::parse(R"json([
+        {"title": "Paint object 0's brim as two ears at its front corners", "calls": [
+            {"tool": "settings_set", "args": {"target": "object", "object": 0, "values": {"brim_type": "painted"}}},
+            {"tool": "object_set_brim_ears", "args": {"object": 0, "points": [{"position": [90, 90], "radius": 3}, {"position": [110, 90]}]}}]},
+        {"title": "Remove object 1's ears", "calls": [{"tool": "object_set_brim_ears", "args": {"object": 1, "clear": true}}]}])json");
+    catalog.add(reaching({"open_gizmo", "set_brim_ears"}, std::move(brim)));
+
+    const json range = object_schema({{"min_z", {{"type", "number"}, {"minimum", 0}, {"description", "Bottom, mm above the bed."}}},
+                                      {"max_z", {{"type", "number"}, {"minimum", 0}, {"description", "Top, mm above the bed."}}}},
+                                     {"min_z", "max_z"});
+
+    catalog.add(with_target_ids(mutate_tool(
+        "object_set_height_ranges", L("Set height range modifiers"),
+        "Replace an object's height range modifiers (Height Range Modifier in the object list): Z ranges in mm, each printed "
+        "with its own `layer_height`, filament and process settings, which `settings_get` and `settings_set` read and write with "
+        "the target `height_range`. A range given with the `min_z` and `max_z` of one the object has keeps its settings; a new "
+        "one starts from the object's layer height and filament. Ranges may touch but not overlap; [] removes them all. "
+        "The object is the one named, else the one selected in the Prepare view. One undo step; the object is selected. "
+        "Reply: the object (objects, object), its height and its ranges as `object_list` shows them, with their settings, and "
+        "warnings, such as a variable layer height profile deciding the layer heights instead.",
+        with_targets(object_schema({{"ranges", array_prop(range, "The object's ranges afterwards, in any order.")}}, {"ranges"}), kObjects, true),
+        [](const json& args, ToolContext& ctx) {
+            json out = ctx.run_ui([&] { return set_height_ranges(ui_plater(), args); });
+            settle(ctx);
+            return ToolResult::ok(out);
+        })));
+
+    catalog.add(with_target_ids(mutate_tool(
+        "object_set_variable_layer_height", L("Set a variable layer height profile"),
+        "Run the Variable layer height panel's Adaptive, Smooth or Reset on an object, without opening the panel: adaptive "
+        "computes layer heights from the object's shape (inside a height range, the range's `layer_height`), smooth smooths "
+        "its profile (or the one its height ranges give), reset goes back to its layer height and ranges. The object is "
+        "the one named, else the one selected in the Prepare view. One undo step; the object is selected. Reply: the "
+        "object (objects, object), its height, its `layer_height_profile {points, min_height, max_height}` as `object_list` "
+        "shows it (absent after reset), and warnings.",
+        with_targets(object_schema({{"action", enum_prop({"adaptive", "smooth", "reset"}, "The panel's button.")},
+                                    {"quality", {{"type", "number"}, {"minimum", 0}, {"maximum", 1},
+                                                 {"description", "`adaptive`: 0 = quality .. 1 = speed (default 0.5, as the panel)."}}},
+                                    {"radius", {{"type", "integer"}, {"minimum", 1}, {"maximum", 10}, {"description", "smooth: default 5."}}},
+                                    {"keep_min", prop("boolean", "smooth: keep the minimum layer heights (default false).")}},
+                                   {"action"}),
+                     kObjects, true),
+        [](const json& args, ToolContext& ctx) {
+            // Refused calls leave the view alone. The Prepare canvas edits layer heights only once it has drawn:
+            // GLCanvas3D::init() makes the texture the tool needs, and the app starts on Home. The object is read once,
+            // before the wait, and named in the call that follows it.
+            json call = args;
+            ctx.run_ui([&] {
+                Plater& plater = ui_plater();
+                call["object"] = profile_object(plater, args);
+                require_prepare_scene(plater);
+                return json();
+            });
             poll_ui(
                 ctx,
-                [cancels_before]() -> json {
-                    const Plater& plater = ui_plater();
-                    const bool    pending = plater.is_background_process_update_scheduled();
-                    return pending && plater.slice_cancel_seq() == cancels_before ? json() : json(true);
+                []() -> json {
+                    const GLCanvas3D* canvas = ui_plater().canvas3D();
+                    return canvas->is_initialized() && !canvas->is_reload_delayed() ? json(true) : json();
                 },
-                std::chrono::seconds(10), "the pending update of the slicing state");
-            const bool cancelled = ctx.run_ui([&] {
-                Plater&        plater = ui_plater();
-                Ops::SliceArgs slice;
-                slice.all_plates = plates_arg.is_string() && plates_arg.get<std::string>() == "all";
-                if (plates_arg.is_number_integer())
-                    slice.plate = plates_arg.get<int>();
-                const Ops::Outcome<std::vector<int>> plates = Ops::slice_plates(slice);
-                if (!plates)
-                    throw refused(plates.refusal());
-                ticket->plates = plates.value();
-                // A cancel that came while the update was pending stops the slice before it starts.
-                if (plater.slice_cancel_seq() != cancels_before)
-                    return json(true);
-                ticket->state.started = std::chrono::steady_clock::now();
-                const Ops::Outcome<Ops::SliceTicket> started = Ops::start_slice(slice);
-                if (!started)
-                    throw refused(started.refusal());
-                ticket->state.run_seq_before    = started.value().run_seq_before;
-                ticket->state.revision_at_start = started.value().revision;
-                ticket->state.request_seq_mine  = started.value().request_seq;
-                ticket->state.seen_running      = started.value().slicing;
-                ticket->state.adopted_run       = started.value().adopted_run;
-                return json(false);
-            }).get<bool>();
-            if (cancelled) {
-                json plates = json::array();
-                for (int index : ticket->plates)
-                    plates.push_back({{"index", index}, {"outcome", to_string(PlateOutcome::Cancelled)}});
-                return ToolResult::ok({{"status", "done"}, {"plates", std::move(plates)}});
-            }
-            const auto timeout = std::chrono::seconds(arg_int(args, "timeout_s", 1800));
-            json result = poll_ui(
-                ctx,
-                [ticket]() -> json {
-                    Plater&          plater = ui_plater();
-                    SliceObservation obs;
-                    obs.slicing_any      = plater.is_slicing_any();
-                    obs.request_seq      = plater.slice_request_seq();
-                    obs.interrupted      = plater.slice_request_interrupted(ticket->state.request_seq_mine);
-                    obs.current_revision = plater.project_revision();
-                    const uint64_t first = ticket->state.adopted_run != 0 ? ticket->state.adopted_run : ticket->state.run_seq_before + 1;
-                    for (uint64_t seq = first; seq <= plater.slice_run_seq(); ++seq)
-                        if (auto run = plater.slice_run(seq))
-                            obs.runs_since_start.push_back({run->seq, run->finished, run->cancelled, run->ok, run->error,
-                                                            run->revision_at_finish, run->request_seq_at_finish,
-                                                            run->request_seq_at_start, run->for_request, run->plate});
-                    ticket->state.seen_running = ticket->state.seen_running || obs.slicing_any || !obs.runs_since_start.empty();
-                    const TicketStatus status  = slice_status(ticket->state, obs, std::chrono::steady_clock::now());
-                    if (status == TicketStatus::Pending)
-                        return json();
-                    json out{{"status", status == TicketStatus::Done ? "done" : "superseded"}};
-                    PartPlateList&                list = plater.get_partplate_list();
-                    std::vector<PlateObservation> observed;
-                    for (int index : ticket->plates)
-                        if (PartPlate* plate = list.get_plate(index))
-                            observed.push_back({index, plate->is_slice_result_valid(), !plate->has_printable_instances(),
-                                                plater.plate_validation_error(index)});
-                    const auto results = classify_plates(ticket->plates, observed, own_runs(ticket->state, obs));
-                    json       plates  = json::array();
-                    for (size_t i = 0; i < ticket->plates.size(); ++i) {
-                        json p{{"index", ticket->plates[i]}, {"outcome", to_string(results[i].outcome)}};
-                        if (results[i].outcome == PlateOutcome::Ok) {
-                            // The statistics are the plate's current result, so only while the
-                            // project is as the operation sliced it and nobody sliced the plate since.
-                            // They are read in this closure, which decides the outcome, since a later UI
-                            // call would wait behind the preview's loading of the new result; the
-                            // serializer's one pass over the moves is short next to that.
-                            PartPlate*                  plate = list.get_plate(ticket->plates[i]);
-                            const GCodeProcessorResult* gcode = plate != nullptr ? plate->get_slice_result() : nullptr;
-                            if (gcode != nullptr && plate->is_slice_result_valid() &&
-                                plater.project_revision() == ticket->state.revision_at_start &&
-                                plate_result_is_own(ticket->plates[i], ticket->state, obs))
-                                p.update(plate_summary(json::parse(gcode_statistics_json(*gcode)), *gcode));
-                            else
-                                p["note"] = "The plate changed after it was sliced; slice again for its statistics.";
-                        }
-                        if (!results[i].error.empty())
-                            p["error"] = results[i].error;
-                        plates.push_back(std::move(p));
-                    }
-                    out["plates"] = std::move(plates);
-                    json notes = json::array();
-                    for (const NotificationSummary& n : plater.get_notification_manager()->summaries())
-                        if (n.level == "warning" || n.level == "error")
-                            notes.push_back({{"level", n.level}, {"text", n.text}});
-                    if (!notes.empty())
-                        out["notifications"] = std::move(notes);
-                    return out;
-                },
-                timeout, "slicing to finish");
-            return ToolResult::ok(result);
-        }));
-    slice.budget_ms = 45000;
-    slice.actions   = json::array(
-        {NativeCommands::action("slice_and_preview", L("Slice and Preview"), L("Slice & Export"), "media_play", {{"preview", true}},
-                                "Slice the current plate and show the Preview tab; the call waits for the result, and a pick starts "
-                                "the slice as a job."),
-         NativeCommands::action("slice_all", L("Slice All Plates"), L("Slice & Export"), "media_play",
-                                {{"plates", "all"}, {"preview", true}},
-                                "Slice every plate and show the Preview tab; the call waits for the results, and a pick starts the "
-                                "slice as a job.")});
-    catalog.add(std::move(slice));
-
-    NativeCommand cancel = mutate_tool(
-        "job_cancel", L("Cancel a job"),
-        "Stop the running operation: a slice or G-code export, as the slicing progress's cancel button does, or a "
-        "background job an MCP call started (an arrange, orient or fill bed). Its job then reports cancelled; a background "
-        "job keeps other changes out until it has really stopped. With job, only that job is stopped: the running "
-        "operation, an `object_fix`, a `script_run` run or a `recording_encode`. Allowed while an operation holds the project. Reply: "
-        "`was_running`, and job when one was stopped.",
-        object_schema({{"job", prop("string", "The operation's job to cancel, e.g. \"j12\".")}}),
-        [](const json& args, ToolContext& ctx) {
-            AutomationRuntime& runtime = ctx.runtime();
-            const auto ops = runtime.jobs().running_operations();
-            // A plugin stops only what its own calls started, so it names the job.
-            if (!ctx.caller_plugin().empty() && !args.contains("job"))
-                throw ToolFailure("A plugin cancels only the jobs of its own calls: give the job");
-            if (args.contains("job"))
-                require_own_job(ctx, runtime.jobs(), arg_string(args, "job"), "cancels");
-            if (args.contains("job")) {
-                const std::string job = arg_string(args, "job");
-                if (std::find(ops.begin(), ops.end(), job) == ops.end()) {
-                    // A call that is no operation but can be stopped: its handler watches for the stop.
-                    const NativeCommand* def = NativeCommands::instance().find(runtime.jobs().running_tool(job));
-                    if (def == nullptr || !def->cancellable)
-                        throw ToolFailure("Job " + job + " is not a running operation", {{"running", ops}});
-                    runtime.jobs().request_stop(job);
-                    return ToolResult::ok({{"was_running", true}, {"job", job}});
-                }
-            }
-            json out = ctx.run_ui([&]() -> json {
-                // Only a job an MCP call started: a person's (Text typing) is theirs to stop.
-                for (const std::string& op : ops)
-                    if ((!args.contains("job") || op == arg_string(args, "job")) && runtime.core().cancel_worker(op))
-                        return {{"was_running", true}, {"job", op}};
-                Plater& plater = ui_plater();
-                // A slice operation still waiting to request its slice counts: the cancel keeps it from starting.
-                const bool running = plater.is_slicing_any() || !ops.empty();
-                plater.cancel_slicing();
-                return json{{"was_running", running}};
-            });
+                std::chrono::seconds(15), "the Prepare view to draw");
+            json out = ctx.run_ui([&] { return set_variable_layer_height(ui_plater(), call); });
+            settle(ctx);
             return ToolResult::ok(out);
-        });
-    cancel.allowed_during_operation = true;
-    // Recovery: it must get through a dialog the operation opened and another call's nested loop.
-    cancel.guard = GuardClass::Recover;
-    catalog.add(cancel);
+        })));
 }
 
 }}} // namespace Slic3r::GUI::Mcp

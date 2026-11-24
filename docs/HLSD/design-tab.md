@@ -412,7 +412,7 @@ takes no place on the favourites bar meanwhile. A folded item's action runs its 
 arguments. A call whose arguments are exactly those that choose an item (none for an entry's own item) does what
 the menu item does, only in the mode the item belongs to, and replies `{"interactive": true, ...}`
 with what the tab shows then (its busy reason and status line); with other arguments, or `silent: true`, the
-commands (`Mcp/McpToolsCad.*`) describe the design, read topology, measure, and run the same verbs the offer
+commands (`Mcp/McpToolsDesign.hpp`, `Mcp/Tools/Design*.cpp`) describe the design, read topology, measure, and run the same verbs the offer
 does — they re-implement nothing, so a scripted action and a clicked one cannot diverge. Where a GUI action is
 bound to a selection, a card or a dialog, its work is split into a function both callers share, and the command
 calls that function with explicit arguments instead of driving the widgets. The command set, what each command
@@ -544,7 +544,7 @@ and replay tests.
 | `src/slic3r/GUI/CAD/DesignRowList.*` | the Feature tree and Bodies lists, with per-row actions |
 | `src/slic3r/GUI/CAD/DesignCanvas.*` | viewport integration |
 | `src/slic3r/GUI/CAD/DesignSketchTool.*` | in-canvas sketching |
-| `src/slic3r/GUI/Mcp/McpToolsCad.*` | the automation surface: the Design commands made from the table, their silent forms (`kSilentForms`) and their gate |
+| `src/slic3r/GUI/Mcp/McpToolsDesign.hpp`, `src/slic3r/GUI/Mcp/Tools/Design*.cpp` | the automation surface: the Design commands made from the table, their silent forms (`silent_forms()`) and their gate; `DesignTools.cpp` holds the gate, the registration and the Document heading's commands, and each other heading's are in a file of its own (`DesignSketchTools.cpp`, `DesignSolidTools.cpp` and so on) |
 | `src/slic3r/GUI/CAD/DesignInteraction.hpp` | the Esc level contract |
 | `src/slic3r/GUI/CAD/DesignOffer.hpp` | the generated table: the offer, the Speed Dial actions and the commands |
 | `scripts/CAD/tool_atlas.json` | source of truth for the table |

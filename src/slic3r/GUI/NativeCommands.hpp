@@ -29,16 +29,16 @@ struct CatalogOptions
     bool editor = true;
 };
 
-// Adds the built-in commands to `catalog`, family by family (Mcp::register_app_tools() and the others): the typed
+// Adds the built-in commands to `catalog`, place by place (Mcp::register_app_tools() and the others): the typed
 // tools and the commands made from menu items (MenuItems, NativeCommandMenuItems.hpp), whose items are their actions, eight of them
 // with an action of their own (has_own_action). Each is in the group of its place (place_heading()) and is listed, as it runs
 // from its arguments, but for the three menu items that take none (window_save_screenshot, script_toggle_panel,
 // settings_toggle_developer_mode). They come in the order tools/list gives them: tool_list, tool_describe, tool_call and app_state,
 // then place by place (Tools and actions, The app, The project, Objects, Parts, Plates and on), each place's commands
-// in the order their families declare them, and Driving the GUI last. Before Driving the GUI, with options.cad, the Design tab's commands
-// (Mcp::register_cad_commands()), not listed, of which those with a handler have an action the Speed Dial shows in the
+// in the order their place's file adds them, and Driving the GUI last. Before Driving the GUI, with options.cad, the Design tab's commands
+// (Mcp::register_design_tools()), not listed, of which those with a handler have an action the Speed Dial shows in the
 // Design tab; without it, in a build with CAD, it records that it leaves them out and why
-// (Mcp::leave_out_cad_commands()). undo and redo act on the Design tab's history or the project's, a person's pick
+// (Mcp::leave_out_design_tools()). undo and redo act on the Design tab's history or the project's, a person's pick
 // as the Edit menu's item does; with options.cad their examples show the Design tab's. Also adds the source of the
 // operations the loaded plugins offer (Mcp::register_plugin_operations()).
 void register_all_commands(CommandCatalog& catalog, const CatalogOptions& options);

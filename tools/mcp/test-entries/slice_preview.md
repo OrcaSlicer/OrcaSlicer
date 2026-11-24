@@ -391,7 +391,7 @@ checked not to be a person's own folder (`APPDATA` or `~` plus `OrcaSlicer`), wh
 **To settle in review:**
 - A layer asked of a Preview with none (nothing to slice, steps 1, 2 and 11; the layers, step 21) still shows the
   Preview tab before it is refused, and an arrange refused for its plate (plate index, step 16) still shows Prepare.
-  Both are this branch's code (`view_set` in `McpToolsView.cpp` and `start_arrange()` in `McpToolsScene.cpp`, commit
+  Both are this branch's code (`view_set` in `Tools/ViewTools.cpp` and `start_arrange()` in `Tools/ObjectTools.cpp`, commit
   d64e10f4dd, not on `main`) and both are its design, not a bug: a field of the Preview shows the Preview, as a
   person's Go to layer pick does, and an arrangement runs on Prepare, as the toolbar's Arrange does. The rows expect
   that tab.
@@ -410,10 +410,10 @@ checked not to be a person's own folder (`APPDATA` or `~` plus `OrcaSlicer`), wh
   `plate_slice_stats` and `plate_set_custom_gcode`, whose text is the same. A refusal without a code is not a bug:
   those are matched by their words.
 - A `plates` string other than "all" taken as the current plate (plate index, step 4). A bug in this branch's code,
-  fixed when the test is written: `plate_slice`'s handler (`McpToolsScene.cpp`, commit 0616068e26) and
-  `project_export`'s (`McpToolsProject.cpp`, commits dc522e59e4 and 5e5571a99f), none on `main`, read `{plates:
+  fixed when the test is written: `plate_slice`'s handler (`Tools/PlateTools.cpp`, commit 0616068e26) and
+  `project_export`'s (`Tools/ProjectTools.cpp`, commits dc522e59e4 and 5e5571a99f), none on `main`, read `{plates:
   "abc"}` as the current plate. The fix, in both handlers: refuse a string other than "all" and "current" with
-  `object_arrange`'s words, `plates is "all", "current" or a plate index` (`start_arrange()`, `McpToolsScene.cpp`),
+  `object_arrange`'s words, `plates is "all", "current" or a plate index` (`start_arrange()`, `Tools/ObjectTools.cpp`),
   before anything changes. The row expects that refusal from all three commands.
 - The two-colour slice (statistics, step 4) changes filament once a layer: the tool order puts each layer's last
   filament first on the next, so 100 changes and one tool line a layer. The replay this takes the place of checked

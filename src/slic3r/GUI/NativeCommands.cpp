@@ -45,7 +45,7 @@
 #include "Mcp/McpTools.hpp"
 #ifdef SLIC3R_CAD
 #include "CAD/DesignPanel.hpp"
-#include "Mcp/McpToolsCad.hpp"
+#include "Mcp/McpToolsDesign.hpp"
 #endif
 #include "Mcp/RecordingSettings.hpp"
 #include "Mcp/ScreenCapture.hpp"
@@ -773,7 +773,7 @@ AppActionRunResult MenuItems::toggle_developer_mode()
 
 // ---- The app ----
 // The Design tab's history is "design", else "project". Without args.history it is the shown tab's, as the Edit menu's
-// Undo and Redo choose it. The reply says which history it was and, for the Design tab's, what Mcp::cad_undo_redo()
+// Undo and Redo choose it. The reply says which history it was and, for the Design tab's, what Mcp::design_undo_redo()
 // replies.
 AppActionRunResult MenuItems::undo_redo(const json& args, bool redo)
 {
@@ -787,7 +787,7 @@ AppActionRunResult MenuItems::undo_redo(const json& args, bool redo)
     }
     if (history == "design") {
 #ifdef SLIC3R_CAD
-        json reply{{"history", "design"}, {"result", Mcp::cad_undo_redo(redo)}};
+        json reply{{"history", "design"}, {"result", Mcp::design_undo_redo(redo)}};
         return {AppActionRunResult::Level::Succeeded, {}, true, reply.dump()};
 #else
         throw ToolFailure("The CAD feature is off: this build of OrcaSlicer has no Design tab");
@@ -1100,8 +1100,8 @@ const char* NativeCommands::place_heading(const std::string& key)
 
 void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unused]] const CatalogOptions& options)
 {
-    // The families' commands are gathered first, so that each takes its place's group and its place in the order
-    // (list_rank()), whichever family declares it; a stable sort keeps a place's commands in their families' order.
+    // The places' commands are gathered first, so that each takes its place's group and its place in the order
+    // (list_rank()); a stable sort keeps a place's commands in the order its file adds them.
     // The Design tab's commands, only while the CAD feature is on, go before the GUI-driving ones; tool_list's
     // description names them then, and undo's and redo's examples show the Design tab's history.
     std::string design_index;
@@ -1109,29 +1109,24 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
     if (options.cad)
         design_index = Mcp::design_command_index();
 #endif
-    // The families register into a catalog of their own, which keeps only their commands for the sort: a source or a
+    // The places register into a catalog of their own, which keeps only their commands for the sort: a source or a
     // left-out record added to it would be lost with it. So the plugin operations' source is added to `catalog` apart
     // (register_plugin_operations()), as are the Design commands and their left-out records.
-    CommandCatalog families;
-    Mcp::register_app_tools(families, options.cad);
-    Mcp::register_api_tools(families, design_index);
-    Mcp::register_project_tools(families);
-    Mcp::register_config_tools(families);
-    Mcp::register_preference_tools(families);
-    Mcp::register_install_tools(families);
-    Mcp::register_scene_tools(families);
-    Mcp::register_gizmo_tools(families);
-    Mcp::register_printer_tools(families);
-    Mcp::register_layer_tools(families);
-    Mcp::register_view_tools(families);
-    Mcp::register_plugin_tools(families);
-    Mcp::register_replay_tools(families);
-    Mcp::register_python_tools(families);
-    Mcp::register_record_tools(families);
-    Mcp::register_action_tools(families);
-    Mcp::register_ui_tools(families);
+    CommandCatalog places;
+    Mcp::register_catalog_tools(places, design_index);
+    Mcp::register_app_tools(places, options.cad);
+    Mcp::register_project_tools(places);
+    Mcp::register_object_tools(places);
+    Mcp::register_plate_tools(places);
+    Mcp::register_preset_tools(places);
+    Mcp::register_filament_tools(places);
+    Mcp::register_printer_tools(places);
+    Mcp::register_plugin_tools(places);
+    Mcp::register_view_tools(places);
+    Mcp::register_recording_tools(places);
+    Mcp::register_gui_tools(places);
 
-    std::vector<NativeCommand> placed(families.commands().begin(), families.commands().end());
+    std::vector<NativeCommand> placed(places.commands().begin(), places.commands().end());
     for (NativeCommand& command : placed) {
         const char* heading = place_heading(command.key);
         if (heading == nullptr)
@@ -1147,9 +1142,9 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         catalog.add(std::move(*it));
 #ifdef SLIC3R_CAD
     if (options.cad)
-        Mcp::register_cad_commands(catalog);
+        Mcp::register_design_tools(catalog);
     else
-        Mcp::leave_out_cad_commands(catalog, options.editor);
+        Mcp::leave_out_design_tools(catalog, options.editor);
 #endif
     for (auto it = gui; it != placed.end(); ++it)
         catalog.add(std::move(*it));

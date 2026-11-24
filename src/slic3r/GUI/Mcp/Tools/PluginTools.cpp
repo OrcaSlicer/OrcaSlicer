@@ -1,9 +1,9 @@
-// The plugin commands: what the Plugins window lists and does (plugin_list, plugin_enable, plugin_uninstall,
+// The place Plugins: what the Plugins window lists and does (plugin_list, plugin_enable, plugin_uninstall,
 // plugin_reload) on the operations of GUI/Operations/PluginOps.hpp, and the Plugins menu's items (plugin_install_local,
 // plugin_refresh).
 
-#include "McpArguments.hpp"
-#include "McpTools.hpp"
+#include "slic3r/GUI/Mcp/McpArguments.hpp"
+#include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
@@ -20,7 +20,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cstdint>
 #include <exception>
 #include <optional>
 #include <string>

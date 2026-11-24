@@ -16,7 +16,7 @@
 // libslic3r_automation, which is built without wx.
 namespace Slic3r { namespace GUI {
 
-// The group of the Design tab's commands (Mcp::register_cad_commands()), an untranslated msgid as every
+// The group of the Design tab's commands (Mcp::register_design_tools()), an untranslated msgid as every
 // group is. Their actions are the Speed Dial's only while the Design tab is shown.
 inline constexpr const char* kDesignGroup = "Design";
 

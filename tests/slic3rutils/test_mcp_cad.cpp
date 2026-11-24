@@ -39,7 +39,7 @@
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/Mcp/McpArguments.hpp"
 #include "slic3r/GUI/Mcp/McpTools.hpp"
-#include "slic3r/GUI/Mcp/McpToolsCad.hpp"
+#include "slic3r/GUI/Mcp/McpToolsDesign.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "retired_names.hpp"
 #include "test_utils.hpp"
@@ -195,7 +195,7 @@ void add_bound_block(CadDocument& doc)
 GUI::CommandCatalog cad_catalog()
 {
     GUI::CommandCatalog catalog;
-    GUI::Mcp::register_cad_commands(catalog);
+    GUI::Mcp::register_design_tools(catalog);
     catalog.seal();
     return catalog;
 }
@@ -464,10 +464,10 @@ TEST_CASE("every block has a silent function and every silent function a block",
     for (int i = 0; i < GUI::kDesignToolCount; ++i)
         if (GUI::kDesignTools[i].doc != nullptr)
             blocks.insert(GUI::kDesignTools[i].id);
-    for (std::size_t i = 0; i < GUI::Mcp::kSilentFormCount; ++i) {
-        INFO(GUI::Mcp::kSilentForms[i].first);
-        CHECK(functions.insert(GUI::Mcp::kSilentForms[i].first).second);
-        CHECK(GUI::Mcp::kSilentForms[i].second != nullptr);
+    for (const auto& [id, run] : GUI::Mcp::silent_forms()) {
+        INFO(id);
+        CHECK(functions.insert(id).second);
+        CHECK(run != nullptr);
     }
     CHECK(blocks.size() == 83);
     CHECK(blocks == functions);
@@ -659,7 +659,7 @@ TEST_CASE("a folded item opens only in its own mode", "[Mcp][CAD]")
 TEST_CASE("a tool block's schema refuses an argument it does not name", "[Mcp][CAD]")
 {
     const json block{{"params", json::array({{{"name", "radius"}, {"type", "number"}, {"default", 1}}})}};
-    const json schema = GUI::Mcp::cad_input_schema(block);
+    const json schema = GUI::Mcp::design_input_schema(block);
     CHECK(schema.at("additionalProperties") == false);
     CHECK_THAT(GUI::Mcp::validate_arguments(schema, {{"radius", 2}, {"edge", 3}}), ContainsSubstring("unknown argument edge"));
     // What it names, the generation among them, it takes.
@@ -1353,22 +1353,22 @@ TEST_CASE("a CAD call's generation is any integer of 0 or more, signed or unsign
 {
     // A script's or plugin's Python integers reach the command as signed JSON integers, which must read as the same
     // generation a reply gave.
-    CHECK_FALSE(GUI::Mcp::cad_generation(json::object()).has_value());
-    CHECK_FALSE(GUI::Mcp::cad_generation(json()).has_value());
-    CHECK(GUI::Mcp::cad_generation({{"generation", std::uint64_t(7)}}) == std::optional<std::uint64_t>(7));
-    CHECK(GUI::Mcp::cad_generation({{"generation", std::int64_t(7)}}) == std::optional<std::uint64_t>(7));
-    CHECK(GUI::Mcp::cad_generation({{"generation", std::int64_t(0)}}) == std::optional<std::uint64_t>(0));
+    CHECK_FALSE(GUI::Mcp::design_generation(json::object()).has_value());
+    CHECK_FALSE(GUI::Mcp::design_generation(json()).has_value());
+    CHECK(GUI::Mcp::design_generation({{"generation", std::uint64_t(7)}}) == std::optional<std::uint64_t>(7));
+    CHECK(GUI::Mcp::design_generation({{"generation", std::int64_t(7)}}) == std::optional<std::uint64_t>(7));
+    CHECK(GUI::Mcp::design_generation({{"generation", std::int64_t(0)}}) == std::optional<std::uint64_t>(0));
     // A whole number written as a float passes the schema's integer type, so it counts too.
-    CHECK(GUI::Mcp::cad_generation({{"generation", 7.0}}) == std::optional<std::uint64_t>(7));
+    CHECK(GUI::Mcp::design_generation({{"generation", 7.0}}) == std::optional<std::uint64_t>(7));
     // The largest unsigned integer is a generation. A float is one where the schema's integer type takes it, below 2^63
     // (is_whole_number()), so the call and a caller that skips the schema read the same numbers.
-    CHECK(GUI::Mcp::cad_generation({{"generation", std::uint64_t(18446744073709551615ull)}}) ==
+    CHECK(GUI::Mcp::design_generation({{"generation", std::uint64_t(18446744073709551615ull)}}) ==
           std::optional<std::uint64_t>(18446744073709551615ull));
-    CHECK(GUI::Mcp::cad_generation({{"generation", 9.0e18}}) == std::optional<std::uint64_t>(9000000000000000000ull));
+    CHECK(GUI::Mcp::design_generation({{"generation", 9.0e18}}) == std::optional<std::uint64_t>(9000000000000000000ull));
     for (const json& bad : {json(std::int64_t(-1)), json(-1.0), json("7"), json(7.5), json(nullptr), json(9.3e18),
                             json(9223372036854775808.0), json(18446744073709551616.0), json(1.0e300)}) {
         INFO(bad.dump());
-        CHECK(failure_code([&] { GUI::Mcp::cad_generation({{"generation", bad}}); }) == "invalid_argument");
+        CHECK(failure_code([&] { GUI::Mcp::design_generation({{"generation", bad}}); }) == "invalid_argument");
     }
 }
 
@@ -1881,7 +1881,7 @@ TEST_CASE("the tool_list description names every Design command under its headin
 TEST_CASE("a Design reply keeps a rejected rebuild's ok false and its error", "[Mcp][CAD]")
 {
     const json rejected{{"ok", false}, {"replaced", false}, {"error", "the sketch was not replaced: open profile"}};
-    const GUI::NativeCommand finish = GUI::Mcp::cad_command("sketch_finish", "Finish sketch",
+    const GUI::NativeCommand finish = GUI::Mcp::design_command("sketch_finish", "Finish sketch",
                                                             json{{"type", "object"}, {"properties", json::object()}},
                                                             [&rejected](const json&, bool) { return rejected; });
     JournalContext        agent;
@@ -1893,7 +1893,7 @@ TEST_CASE("a Design reply keeps a rejected rebuild's ok false and its error", "[
 TEST_CASE("a CAD call is journaled without its generation and with its silent", "[Mcp][CAD]")
 {
     json                     seen;
-    const GUI::NativeCommand fillet = GUI::Mcp::cad_command("fillet", "Fillet", json{{"type", "object"}, {"properties", json::object()}},
+    const GUI::NativeCommand fillet = GUI::Mcp::design_command("fillet", "Fillet", json{{"type", "object"}, {"properties", json::object()}},
                                                             [&seen](const json& args, bool) {
                                                                 seen = args;
                                                                 return json{{"ok", true}, {"error", ""}, {"feature_index", 3}};
@@ -1917,7 +1917,7 @@ TEST_CASE("a CAD call is journaled without its generation and with its silent", 
 
     // A call that ran and gave nothing but its generation is journaled silent when a call with no arguments
     // opens a tool: its replay, given none, would open the tool.
-    const GUI::NativeCommand shell = GUI::Mcp::cad_command(
+    const GUI::NativeCommand shell = GUI::Mcp::design_command(
         "shell", "Shell", GUI::Mcp::with_silent(json{{"type", "object"}, {"properties", json::object()}}),
         [](const json&, bool) { return json{{"ok", true}}; }, [](const json& args) { return GUI::Mcp::person_form(args); });
     JournalContext generation_only;
@@ -1939,7 +1939,7 @@ TEST_CASE("a CAD call is journaled without its generation and with its silent", 
     CHECK(cut.journaled == json{{"operation", "cut"}, {"silent", true}});
 
     // A failure is the call's error.
-    const GUI::NativeCommand refused = GUI::Mcp::cad_command("hole", "Hole", json{{"type", "object"}, {"properties", json::object()}},
+    const GUI::NativeCommand refused = GUI::Mcp::design_command("hole", "Hole", json{{"type", "object"}, {"properties", json::object()}},
                                                              [](const json&, bool) -> json {
                                                                  throw GUI::ToolFailure("removed no material", {{"code", "rebuild_failed"}});
                                                              });
@@ -1951,7 +1951,7 @@ TEST_CASE("a CAD command tells its function a person's pick from a call", "[Mcp]
     // The four menu items that act on the Feature list's row are not refused for the selection on a call, and a person's
     // pick keeps the menu's rule: the function is told which it runs for.
     std::vector<bool>        told;
-    const GUI::NativeCommand rename = GUI::Mcp::cad_command("rename_selected", "Rename", json{{"type", "object"}, {"properties", json::object()}},
+    const GUI::NativeCommand rename = GUI::Mcp::design_command("rename_selected", "Rename", json{{"type", "object"}, {"properties", json::object()}},
                                                             [&told](const json&, bool person) {
                                                                 told.push_back(person);
                                                                 return json{{"ok", true}};
@@ -1983,7 +1983,7 @@ bool takes_arg(const GUI::NativeCommand& command, const std::string& key)
     if (key.size() <= suffix.size() || key.compare(key.size() - suffix.size(), suffix.size(), suffix) != 0) return false;
     const auto radians = properties.find(key.substr(0, key.size() - suffix.size()));
     if (radians == properties.end()) return false;
-    // cad_input_schema() writes a param's unit into its description.
+    // design_input_schema() writes a param's unit into its description.
     const std::string description = radians->value("description", std::string());
     const std::string unit        = " (rad)";
     return description == "In rad." ||

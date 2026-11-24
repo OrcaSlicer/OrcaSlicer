@@ -198,24 +198,19 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/McpTools.hpp
     GUI/Mcp/McpPluginCaller.cpp
     GUI/Mcp/McpPluginCaller.hpp
-    GUI/Mcp/McpToolsActions.cpp
-    GUI/Mcp/McpToolsApi.cpp
-    GUI/Mcp/McpToolsApp.cpp
-    GUI/Mcp/McpToolsCommon.cpp
-    GUI/Mcp/McpToolsConfig.cpp
-    GUI/Mcp/McpToolsGizmos.cpp
-    GUI/Mcp/McpToolsInstall.cpp
-    GUI/Mcp/McpToolsLayers.cpp
-    GUI/Mcp/McpToolsPlugins.cpp
-    GUI/Mcp/McpToolsPreferences.cpp
-    GUI/Mcp/McpToolsPrinter.cpp
-    GUI/Mcp/McpToolsProject.cpp
-    GUI/Mcp/McpToolsPython.cpp
-    GUI/Mcp/McpToolsRecord.cpp
-    GUI/Mcp/McpToolsReplay.cpp
-    GUI/Mcp/McpToolsScene.cpp
-    GUI/Mcp/McpToolsUi.cpp
-    GUI/Mcp/McpToolsView.cpp
+    GUI/Mcp/Tools/AppTools.cpp
+    GUI/Mcp/Tools/CatalogTools.cpp
+    GUI/Mcp/Tools/FilamentTools.cpp
+    GUI/Mcp/Tools/GuiTools.cpp
+    GUI/Mcp/Tools/ObjectTools.cpp
+    GUI/Mcp/Tools/PlateTools.cpp
+    GUI/Mcp/Tools/PluginTools.cpp
+    GUI/Mcp/Tools/PresetTools.cpp
+    GUI/Mcp/Tools/PrinterTools.cpp
+    GUI/Mcp/Tools/ProjectTools.cpp
+    GUI/Mcp/Tools/RecordingTools.cpp
+    GUI/Mcp/Tools/ToolsCommon.cpp
+    GUI/Mcp/Tools/ViewTools.cpp
     GUI/Mcp/ScreenCapture.cpp
     GUI/Mcp/ScreenCapture.hpp
     GUI/Mcp/PythonScriptsDialog.cpp
@@ -993,8 +988,16 @@ if (SLIC3R_CAD)
         GUI/CAD/DesignInteraction.hpp
         GUI/CAD/SketchInlineEditor.cpp
         GUI/CAD/SketchInlineEditor.hpp
-        GUI/Mcp/McpToolsCad.cpp
-        GUI/Mcp/McpToolsCad.hpp
+        GUI/Mcp/McpToolsDesign.hpp
+        GUI/Mcp/Tools/DesignCommon.hpp
+        GUI/Mcp/Tools/DesignBodyTools.cpp
+        GUI/Mcp/Tools/DesignConstructTools.cpp
+        GUI/Mcp/Tools/DesignHistoryTools.cpp
+        GUI/Mcp/Tools/DesignInspectTools.cpp
+        GUI/Mcp/Tools/DesignSketchTools.cpp
+        GUI/Mcp/Tools/DesignSolidTools.cpp
+        GUI/Mcp/Tools/DesignSurfaceTools.cpp
+        GUI/Mcp/Tools/DesignTools.cpp
     )
 endif ()
 

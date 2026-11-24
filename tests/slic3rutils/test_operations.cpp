@@ -2220,7 +2220,7 @@ TEST_CASE("the exception list names only commands the catalog has under the rule
 }
 
 // The Design tab's commands act on its document, which no operation stands for, as
-// scripts/check_operation_calls.py leaves McpToolsCad.cpp out.
+// scripts/check_operation_calls.py leaves their files, Mcp/Tools/Design*.cpp, out.
 TEST_CASE("the operations rule leaves the Design group and the read-only commands out", "[Operations]")
 {
     Slic3r::GUI::NativeCommand shell;

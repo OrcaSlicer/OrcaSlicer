@@ -5198,7 +5198,7 @@ TEST_CASE("unknown identifier fails recompute", "[CadDocument][variables]")
 }
 
 // The checkpoint -> mutate -> recompute -> undo-on-failure pattern is what both the GUI and
-// Mcp/McpToolsCad.cpp use to keep a bad edit out of the document. It only works if the snapshot
+// the Design commands (Mcp/Tools/Design*.cpp) use to keep a bad edit out of the document. It only works if the snapshot
 // covers `variables` as well as `features`: an undo() that restored features alone would let a bad
 // variable survive the rollback, and every later recompute would fail — the document left unusable.
 TEST_CASE("undo rolls back a bad variable, not just features", "[CadDocument][variables]")

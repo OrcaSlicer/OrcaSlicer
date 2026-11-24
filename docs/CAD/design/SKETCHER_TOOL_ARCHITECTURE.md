@@ -306,7 +306,7 @@ codebase. Current state, verified:
   **"Measure (no GUI route)"** and is permanently disabled (`DesignPanel.cpp:6519`). With no
   refusal in the row, it contributes nothing to the family's "why" line either.
 - The maths exists, for MCP callers only: the `measure` CAD tool (`cad_measure` in
-  `Mcp/McpToolsCad.cpp`) — refs `{face|edge|point}`, distance = `|pa - pb|` of **representative
+  `Mcp/Tools/DesignInspectTools.cpp`) — refs `{face|edge|point}`, distance = `|pa - pb|` of **representative
   points** (face centroid, edge mid-sample), angle = `acos(da·db)` when both refs carry a direction.
 - The correct OCCT primitive is already linked and already used: `BRepExtrema_DistShapeShape`
   (`GeometryEngine.cpp:31`, `:457`).
@@ -444,7 +444,7 @@ thresholds move nothing for `v <= 0` (Length/Diameter/Radius, `:611-613`) or `v 
 solver as a constraint it must satisfy and cannot, silently corrupting the sketch. So a guard at the
 top of `apply_dimension` refuses a value that is not finite, not above zero for a length, radius or
 diameter, or negative for a distance, and says why on the status line, before it moves or records
-anything. The `sketch_set_value` CAD tool (`Mcp/McpToolsCad.cpp`) checks the same rule, and refuses a
+anything. The `sketch_set_value` CAD tool (`Mcp/Tools/DesignSketchTools.cpp`) checks the same rule, and refuses a
 selection with nothing to dimension, before it calls `apply_dimension`, so that its call fails with
 the reason rather than reporting a value the sketch tool refused only on its status line. The GUI
 and the agent surface are equally safe callers of the function.
@@ -529,7 +529,7 @@ Three rules the type enforces, each closing a defect above:
    from §0.2) — the same type for the solver path, the geometric path and the MCP server. The
    range guard `apply_dimension` runs becomes `apply`'s `Refused`, so every caller learns of a
    refusal from the result rather than from the status line, and `sketch_set_value` in
-   `Mcp/McpToolsCad.cpp` keeps no copy of the check. `Refused` keeps the field open with the typed
+   `Mcp/Tools/DesignSketchTools.cpp` keeps no copy of the check. `Refused` keeps the field open with the typed
    text and the reason, which is also what makes the `Coincident`-flip reversible: the dimension
    keeps its `type` and only its value changes.
 3. **One dimension per (type, operand pair) lives in one `std::vector<Dimension>`**, and the

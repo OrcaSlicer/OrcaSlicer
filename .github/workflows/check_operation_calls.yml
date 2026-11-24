@@ -7,7 +7,7 @@ on:
   push:
     paths:
     - 'src/slic3r/GUI/NativeCommands.cpp'
-    - 'src/slic3r/GUI/Mcp/McpTools*.cpp'
+    - 'src/slic3r/GUI/Mcp/Tools/*.cpp'
     - 'src/slic3r/plugin/host/*.cpp'
     - 'scripts/check_operation_calls.py'
     - 'scripts/operation_calls_baseline.txt'
@@ -15,7 +15,7 @@ on:
   pull_request:
     paths:
     - 'src/slic3r/GUI/NativeCommands.cpp'
-    - 'src/slic3r/GUI/Mcp/McpTools*.cpp'
+    - 'src/slic3r/GUI/Mcp/Tools/*.cpp'
     - 'src/slic3r/plugin/host/*.cpp'
     - 'scripts/check_operation_calls.py'
     - 'scripts/operation_calls_baseline.txt'

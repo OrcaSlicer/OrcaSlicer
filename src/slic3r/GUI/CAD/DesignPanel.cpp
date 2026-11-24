@@ -7,7 +7,7 @@
 #include "slic3r/GUI/CAD/DesignOffer.hpp"                // generated offer table — see scripts/CAD/tool_atlas.json
 #include "slic3r/GUI/GLToolbar.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
-#include "slic3r/GUI/Mcp/McpToolsCad.hpp"                // cad_body_vertices: a vertex id as body_describe numbers it
+#include "slic3r/GUI/Mcp/McpToolsDesign.hpp"                // cad_body_vertices: a vertex id as body_describe numbers it
 #include "slic3r/GUI/SyntheticInput.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "libslic3r/CAD/GeometryEngine.hpp"   // face_by_index for face-extrude gizmo anchor

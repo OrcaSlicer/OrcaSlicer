@@ -243,7 +243,7 @@ def main():
         "// not apply are shown disabled in place with their reason rather than removed. Row order was",
         "// ratified 2026-07-31; changing an index is a breaking change to every user's muscle memory.",
         "// An entry with a handler or a tool block, and no fold_into, is a command of the catalog's group Design",
-        "// (Mcp::register_cad_commands(), Mcp::is_design_command()), under its section in tool_list's index. A",
+        "// (Mcp::register_design_tools(), Mcp::is_design_command()), under its section in tool_list's index. A",
         "// call whose arguments are exactly those that choose one of its items opens that item's tool for a person",
         "// (Mcp::opened_item()): none choose the entry's own item where it has a handler, else the items folded into it",
         "// with {}; a folded item's args, or the entry's own, choose that item. Any other call runs its tool block's",

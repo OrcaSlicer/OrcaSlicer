@@ -2998,7 +2998,7 @@ std::vector<std::pair<wxBookCtrlBase*, int>> UiInspector::match_tabs(const json&
 
 json UiInspector::locator_for(const UiTarget& t)
 {
-    // A page element's locator comes from its page, which the tool asks (see McpToolsUi.cpp).
+    // A page element's locator comes from its page, which the tool asks (see Tools/GuiTools.cpp).
     if (t.kind == UiTarget::Kind::WebElement)
         return t.locator;
     json loc = t.locator;

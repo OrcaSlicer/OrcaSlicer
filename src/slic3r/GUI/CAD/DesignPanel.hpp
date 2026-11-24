@@ -139,7 +139,7 @@ public:
     void set_body_color(int b, const ColorRGBA& color);
     void show_body(int b, bool shown);
 
-    // MCP hooks: let the MCP server's Design commands (Mcp/McpToolsCad.cpp) drive and
+    // MCP hooks: let the MCP server's Design commands (Mcp/Tools/Design*.cpp) drive and
     // perceive the SAME kernel the GUI uses. Called only on the wx main thread.
     CadDocument& mcp_doc()        { return m_doc; }            // live document (read + mutate)
     // Refresh tree + viewport + status after a change; `ok` false says "Edit rejected: <m_doc.error>".
@@ -258,7 +258,7 @@ public:
     // Mcp::CadPrecondition, as a view not built throws Mcp::no_design_view(). Otherwise whatever is selected goes first, of every
     // kind (the solid and loop picks, the Feature list's and Bodies list's rows, the picked reference plane), so that
     // one form never leaves another's behind, and a feature's highlight is in place when this returns. For the model
-    // at rest: cad_gate() refuses the call while a card or anything else a click would feed is open.
+    // at rest: design_gate() refuses the call while a card or anything else a click would feed is open.
     bool mcp_select(const DesignSelection& s, std::string& why);
     // The selected row of the Feature list, a feature index, or -1.
     int mcp_feature_row() const;

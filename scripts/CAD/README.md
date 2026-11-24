@@ -62,8 +62,8 @@ in its reply), a `summary` of one sentence,
 null, unless `nullable` is false, which marks a param whose function reads a null as given), one to three
 `examples` and `ids`
 (it takes or gives face and edge ids). Entries with no `slot` and no handler are commands only, and
-`modal` marks a verb whose handler opens a dialog. `src/slic3r/GUI/Mcp/McpToolsCad.cpp` binds each block
-to the function that runs it (`kSilentForms`), and a unit test fails when a block has no function or a
+`modal` marks a verb whose handler opens a dialog. `src/slic3r/GUI/Mcp/Tools/Design*.cpp` bind each block
+to the function that runs it (`silent_forms()`), and a unit test fails when a block has no function or a
 function no block. The generator refuses an entry with neither a handler nor a block, but `align`.
 
 `python3 scripts/CAD/gen_offer_table.py` rewrites the header and `--check` proves the

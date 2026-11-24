@@ -7,11 +7,15 @@
 // is in. A call with exactly the arguments that choose one of the command's items (opened_item()) does what that
 // right-click menu item does, in the mode the item belongs to (open_refusal()); any other call, or one with
 // silent: true, runs the entry's tool block's silent form. They run on the UI thread through the GUI's own
-// CadDocument (no engine of their own), behind one gate (cad_gate()): every command is refused (design_busy) during a
-// rebuild, whose worker owns the document, and a silent form that changes the document also while the Design tab
-// is busy with it, an open feature card or a sketch session; face and edge ids read at another generation are
-// refused (stale_ids). The catalog holds the commands only while the CAD feature is on
-// (NativeCommands::register_all_commands()). The unit tests call the cad_* helpers directly.
+// CadDocument (no engine of their own), behind one gate (design_gate(), DesignTools.cpp): every command is refused
+// (design_busy) during a rebuild, whose worker owns the document, and a silent form that changes the document also
+// while the Design tab is busy with it, an open feature card or a sketch session; face and edge ids read at another
+// generation are refused (stale_ids). The catalog holds the commands only while the CAD feature is on
+// (NativeCommands::register_all_commands()).
+//
+// The design_* names here are the place's command machinery: its registration, schema, runs, menu items and undo.
+// The cad_* names are the parts of the commands' work that the unit tests call directly, on the model, its sketches
+// and features, and the plate; cad_note() is app_state's report of the CAD feature, named for its JSON key.
 //
 // A failed call's error names its cause in `code`, a word as the other commands' refusals have:
 // - design_unavailable: no Design tab to act on (the G-code viewer, the CAD feature off, a panel or a view that is not
@@ -30,16 +34,14 @@
 // - kernel_failure: a CAD kernel (OCCT) error reached the command's guard, wherever it was raised, its message after
 //   "OCCT: ";
 // - export_failed: export_step could not transfer or write the STEP file;
-// - no_silent_form: an entry with no silent form called as one (run_cad_tool() called directly).
+// - no_silent_form: an entry with no silent form called as one (run_design_tool() called directly).
 
 #include "libslic3r/Point.hpp"
-#include "slic3r/GUI/CAD/DesignOffer.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 
 #include <nlohmann/json.hpp>
 
-#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -62,6 +64,7 @@ namespace GUI {
 
 class DesignPanel;
 class DesignSketchTool;
+struct DesignTool;
 
 namespace Mcp {
 
@@ -91,13 +94,14 @@ struct CadKernelFailure : std::runtime_error
 // plain exceptions.
 nlohmann::json run_guarded(const std::function<nlohmann::json()>& run);
 
-// Why there is no Design panel to act on, as cad_gate() refuses it, each design_unavailable: the G-code viewer, which
-// has no Design tab; the CAD feature off; else a panel that cannot be built (no page made at startup because the
-// feature was turned on later, a page mid-build, or a build that failed), which a retry or a restart mends. UI thread.
+// Why there is no Design panel to act on, as design_gate() refuses it, each design_unavailable: the G-code viewer,
+// which has no Design tab; the CAD feature off; else a panel that cannot be built (no page made at startup because
+// the feature was turned on later, a page mid-build, or a build that failed), which a retry or a restart mends. UI
+// thread.
 ToolFailure no_design_tab();
 
 // The refusal of a call that finds no Design view to act on (the panel's viewport, Feature list or parts list not
-// built), which no change to the call mends: design_unavailable, as cad_gate() refuses a panel that cannot be built.
+// built), which no change to the call mends: design_unavailable, as design_gate() refuses a panel that cannot be built.
 ToolFailure no_design_view();
 
 // The refusal of a call the Design tab is too busy to take, `why` saying with what (DesignPanel::mcp_busy()):
@@ -108,14 +112,16 @@ ToolFailure design_busy(const std::string& why);
 // integer type takes (is_whole_number(): a JSON integer stored signed or unsigned, since a script's or plugin's Python
 // integers reach the command as signed ones, or a whole float within int64) that is not negative. Anything else
 // throws ToolFailure (invalid_argument).
-std::optional<std::uint64_t> cad_generation(const nlohmann::json& args);
+std::optional<std::uint64_t> design_generation(const nlohmann::json& args);
 
-// A Design command's silent form: what it does given its arguments, on the panel cad_gate() returned.
-using CadRun = nlohmann::json (*)(DesignPanel* panel, const nlohmann::json& params);
+// A Design command's silent form: what it does given its arguments, on the panel design_gate() returned.
+using DesignRun = nlohmann::json (*)(DesignPanel* panel, const nlohmann::json& params);
 
-// The silent forms, by the id of the table's entry whose tool block describes them: one per block.
-extern const std::pair<const char*, CadRun> kSilentForms[];
-extern const std::size_t                    kSilentFormCount;
+// A silent form, by the id of the table's entry whose tool block describes it.
+using SilentForm = std::pair<const char*, DesignRun>;
+
+// The silent forms: one per block.
+const std::vector<SilentForm>& silent_forms();
 
 // A Design command: group Design, not listed, its function run on the UI thread and told whether it runs for a
 // person's pick (ToolContext::person()), which keeps the menu's rules where a call may target the Feature list's row
@@ -125,7 +131,7 @@ extern const std::size_t                    kSilentFormCount;
 // records would open a tool and the call did not, so that a replay runs the silent form too (`opens` empty:
 // nothing opens a tool); then `fn` runs in one UI closure and the call settles. The reply is fn's value, without
 // an "ok": true or an empty "error", which say nothing; a ToolFailure is the call's error.
-NativeCommand cad_command(std::string key, std::string title, nlohmann::json schema,
+NativeCommand design_command(std::string key, std::string title, nlohmann::json schema,
                           std::function<nlohmann::json(const nlohmann::json& args, bool person)> fn,
                           std::function<bool(const nlohmann::json& args)> opens = {});
 
@@ -136,18 +142,18 @@ NativeCommand cad_command(std::string key, std::string title, nlohmann::json sch
 // only while the Design tab is shown in its entry's mode, ActionRegistry::materialize_design_actions()). One with a
 // block is read_only for Read access, and its description is the block's summary, details and, for a silent form
 // that reports a rejected rebuild in its reply, how that shows, then the other calls that open a tool, each with its
-// item's name; its examples are the block's and its schema cad_input_schema() of it, through with_silent() when a
+// item's name; its examples are the block's and its schema design_input_schema() of it, through with_silent() when a
 // call with no arguments opens a tool. One with a handler only takes no arguments, and its description is its hint
 // and what the call does.
 // undo and redo are the shared commands of NativeCommands.cpp and not among them.
-void register_cad_commands(CommandCatalog& catalog);
+void register_design_tools(CommandCatalog& catalog);
 
-// Records in `catalog`, built without the Design commands, that it leaves out the keys register_cad_commands()
+// Records in `catalog`, built without the Design commands, that it leaves out the keys register_design_tools()
 // adds, and the ids of the items folded into them, which name actions, with code design_unavailable and why
 // (CommandCatalog::leave_out()): in the editor (`editor`) the CAD feature was off when OrcaSlicer started, and how a
 // person turns it on; in the G-code viewer, which has no Design tab whatever the preference, that a person opens the
 // project in the editor.
-void leave_out_cad_commands(CommandCatalog& catalog, bool editor);
+void leave_out_design_tools(CommandCatalog& catalog, bool editor);
 
 // What tool_list's description says of the Design commands, which tools/list does not show, so that an agent
 // learns without a call that they exist and are CAD: a lead saying what they cover, that tool_list's group Design
@@ -170,16 +176,7 @@ std::vector<int> sketch_target_indices(const nlohmann::json& params, const std::
 // generation the call's face and edge ids were read at, is an optional property of every one. Every schema
 // refuses an argument it does not name (additionalProperties false), so a misspelt argument is an error rather
 // than a default the caller did not mean; a name agents often use for a param is read by normalize_arguments().
-nlohmann::json cad_input_schema(const nlohmann::json& block);
-
-// The checks every Design command passes before its function, in this order: the main window is up (not
-// shutting down or still starting), the app is the editor and not the G-code viewer (design_unavailable),
-// the CAD feature is on, and the Design panel can be built (design_unavailable for each); then the busy rules of
-// `access` (design_busy, with a hint naming confirm_tool and cancel_tool; with Read, None and Ui only a rebuild's), the
-// project's recipe loaded into an empty document (DesignPanel::hydrate_from_model()), as showing the tab would, and a
-// `generation` in `args` that cad_generation() refuses (invalid_argument) or that is not the model's (stale_ids).
-// Returns the panel. Throws ToolFailure, whose details carry the code. UI thread only.
-DesignPanel* cad_gate(CadAccess access, const nlohmann::json& args);
+nlohmann::json design_input_schema(const nlohmann::json& block);
 
 // The Design table's entry `id`, or nullptr.
 const DesignTool* find_design_tool(const std::string& id);
@@ -212,7 +209,7 @@ struct DesignAction
 // The Speed Dial actions the Design tab has while it is shown in the mode `sketching` names (as offered_in_mode()
 // takes it): one per entry of the Design table with a handler offered in that mode, in the table's order, whose
 // command `catalog` holds: a folded item's runs the command it is folded into with the item's args. None while the
-// CAD feature is off (`cad_on` false): the tab stays until a restart, but cad_gate() would refuse every pick of
+// CAD feature is off (`cad_on` false): the tab stays until a restart, but design_gate() would refuse every pick of
 // its actions.
 std::vector<DesignAction> design_actions(const CommandCatalog& catalog, bool sketching, bool cad_on);
 
@@ -227,16 +224,16 @@ std::vector<DesignAction> design_actions(const CommandCatalog& catalog, bool ske
 // is a msgid, the code wrong_mode, with a hint naming the commands that change the mode, or wrong_selection.
 std::optional<ToolFailure> open_refusal(const DesignTool& t, bool sketching, int kind, bool row_target = false);
 
-// Runs the silent form of Design command `id` with `args` past cad_gate() with its entry's access, and
+// Runs the silent form of Design command `id` with `args` past design_gate() with its entry's access, and
 // returns its result. One that fails has the code of its cause (the list at the top), with "OCCT: " before a
 // kernel exception's message; an id with no silent form is no_silent_form. UI thread only.
-nlohmann::json run_cad_tool(const std::string& id, const nlohmann::json& args);
+nlohmann::json run_design_tool(const std::string& id, const nlohmann::json& args);
 
-// Edit > Undo, or Redo, in the Design tab, past cad_gate() with Sketch access: the Design history, or in a
+// Edit > Undo, or Redo, in the Design tab, past design_gate() with Sketch access: the Design history, or in a
 // sketch session the sketch's own, which takes off or puts back the last drawn shape. Returns its scope,
 // "sketch" with the sketch's entities, or "design" and the undo and redo depth, features, bodies and
 // generation. Fails (precondition) when there is nothing to take back or put back. UI thread only.
-nlohmann::json cad_undo_redo(bool redo);
+nlohmann::json design_undo_redo(bool redo);
 
 // app_state's cad_note: how a person turns the CAD feature on, in the editor while the Design commands
 // cannot run, because `catalog` holds none of them (the feature was off at startup) or the feature is off

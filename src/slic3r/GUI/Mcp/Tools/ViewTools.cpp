@@ -1,62 +1,61 @@
-// window_screenshot, plate_slice_stats and view_set: what the agent looks at and reads off the Preview, and
-// pointing the view before looking; and the window commands made from menu items, window_open and
-// window_save_screenshot.
+// The place View and windows: view_set, pointing the view before looking: the main tab, the 3D view and its camera,
+// the Preview's colour scheme, legend and layers, and the display switches; window_list and window_set, the app's
+// windows listed, sized, moved and raised; and the window commands made from menu items, window_open and
+// view_toggle_activity_panel.
 
-#include "libvgcode/include/ColorRange.hpp"
-#include "slic3r/GUI/I18N.hpp"
-#include "libvgcode/include/Types.hpp"
-#include "libvgcode/include/Viewer.hpp"
-#include "McpPaths.hpp"
-#include "AutomationRuntime.hpp"
-#include "McpTools.hpp"
-#include "ModalTracker.hpp"
-#include "ScreenCapture.hpp"
-#include "UiInspector.hpp"
+#include "slic3r/GUI/Mcp/AutomationRuntime.hpp"
+#include "slic3r/GUI/Mcp/McpCore.hpp"
+#include "slic3r/GUI/Mcp/McpEndpoint.hpp"
+#include "slic3r/GUI/Mcp/McpRecorder.hpp"
+#include "slic3r/GUI/Mcp/McpTools.hpp"
+#include "slic3r/GUI/Mcp/ModalTracker.hpp"
+#include "slic3r/GUI/Mcp/PythonScriptsDialog.hpp"
+#include "slic3r/GUI/Mcp/ScreenCapture.hpp"
+#include "slic3r/GUI/Mcp/UiInspector.hpp"
+#include "slic3r/GUI/Mcp/WebPages.hpp"
+#include "slic3r/GUI/Mcp/WindowControl.hpp"
+#include "slic3r/GUI/Mcp/WindowNames.hpp"
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GCodeViewer.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/IMSlider.hpp"
 #include "slic3r/GUI/LibVGCode/LibVGCodeWrapper.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/NativeCommandMenuItems.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Notebook.hpp"
+#include "slic3r/GUI/NotificationManager.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
 #include "slic3r/GUI/Operations/PlateOps.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
-#ifdef SLIC3R_CAD
-#include "McpToolsCad.hpp"
-#include "slic3r/GUI/CAD/DesignCanvas.hpp"
-#include "slic3r/GUI/CAD/DesignPanel.hpp"
-#endif
 
 #include "libslic3r/AppConfig.hpp"
-#include "libslic3r/Config.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
-#include "libslic3r/GCode/GCodeProcessor.hpp"
-#include "libslic3r/GCode/GCodeStatistics.hpp"
 #include "libslic3r/Geometry.hpp"
-#include "libslic3r/Model.hpp"
 #include "libslic3r/Point.hpp"
+#include "libvgcode/include/Types.hpp"
+#include "libvgcode/include/Viewer.hpp"
 
-#include <boost/beast/core/detail/base64.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-
-#include <wx/bookctrl.h>
+#include <wx/app.h>
+#include <wx/defs.h>
 #include <wx/dialog.h>
+#include <wx/display.h>
+#include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/glcanvas.h>
-#include <wx/image.h>
-#include <wx/popupwin.h>
 #include <wx/toplevel.h>
+#include <wx/weakref.h>
 #include <wx/window.h>
+
+#include <boost/beast/core/detail/base64.hpp>
 
 #include <algorithm>
 #include <array>
@@ -65,28 +64,28 @@
 #include <cmath>
 #include <cstddef>
 #include <functional>
-#include <iterator>
+#include <initializer_list>
+#include <limits>
 #include <optional>
-#include <set>
 #include <string>
-#include <thread>
 #include <utility>
 #include <vector>
+
+#ifdef SLIC3R_CAD
+#include "slic3r/GUI/Mcp/McpToolsDesign.hpp"
+#include "slic3r/GUI/CAD/DesignCanvas.hpp"
+#include "slic3r/GUI/CAD/DesignPanel.hpp"
+#endif
+
+#if defined(__WXGTK__)
+#include "slic3r/GUI/LinuxDisplayBackend.hpp"
+#endif
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
 using nlohmann::json;
-namespace fs = boost::filesystem;
 
 namespace {
-
-std::string base64(const std::string& bytes)
-{
-    namespace b64 = boost::beast::detail::base64;
-    std::string out(b64::encoded_size(bytes.size()), '\0');
-    out.resize(b64::encode(out.data(), bytes.data(), bytes.size()));
-    return out;
-}
 
 // The ids of the main window's notebook pages, in the notebook's order.
 std::vector<std::string> notebook_pages(const Notebook& notebook)
@@ -95,49 +94,6 @@ std::vector<std::string> notebook_pages(const Notebook& notebook)
     for (size_t i = 0; i < notebook.GetPageCount(); ++i)
         pages.push_back(into_u8(notebook.GetPageName(i)));
     return pages;
-}
-
-// Rounded for a reply, which reads like the legend rather than the raw floats.
-double rounded(double value, double scale) { return std::round(value * scale) / scale; }
-
-// The view types the legend shows a colour range for; the logarithmic layer time repeats the linear one.
-constexpr libvgcode::EViewType range_view_types[] = {
-    libvgcode::EViewType::Height,       libvgcode::EViewType::Width,
-    libvgcode::EViewType::Speed,        libvgcode::EViewType::ActualSpeed,
-    libvgcode::EViewType::Acceleration, libvgcode::EViewType::Jerk,
-    libvgcode::EViewType::VolumetricFlowRate, libvgcode::EViewType::ActualVolumetricFlowRate,
-    libvgcode::EViewType::LayerTimeLinear,    libvgcode::EViewType::FanSpeed,
-    libvgcode::EViewType::Temperature,        libvgcode::EViewType::PressureAdvance};
-
-// preview_state() of the Preview's toolpaths, plus which legend rows are visible and the colour range of
-// every view type. Ranges span the whole print, but count travels, wipes and Custom extrusions only
-// while the legend shows them. UI thread.
-json preview_view(GLCanvas3D& canvas)
-{
-    // The viewer recomputes its ranges at its next frame after a legend change; nothing draws while
-    // the Preview is hidden, and nothing changes the legend then either.
-    canvas.set_as_dirty();
-    canvas.render();
-    GCodeViewer&             viewer    = canvas.get_gcode_viewer();
-    const libvgcode::Viewer& toolpaths = viewer.get_viewer();
-    json                     view      = preview_state(viewer);
-    json                     features  = json::object();
-    for (const libvgcode::EGCodeExtrusionRole role : toolpaths.get_extrusion_roles())
-        features[legend_feature_key(role)] = toolpaths.is_extrusion_role_visible(role);
-    json options = json::object();
-    for (const libvgcode::EOptionType type : toolpaths.get_options())
-        if (const char* key = legend_option_key(type))
-            options[key] = toolpaths.is_option_visible(type);
-    view["legend"] = {{"features", std::move(features)}, {"options", std::move(options)}};
-    json ranges    = json::object();
-    for (const libvgcode::EViewType type : range_view_types) {
-        // [FLT_MAX, -FLT_MAX] when the print has no such value.
-        const std::array<float, 2>& range = toolpaths.get_color_range(type).get_range();
-        if (range[0] <= range[1])
-            ranges[GCodeViewer::view_type_to_config_name(type)] = {rounded(range[0], 1e4), rounded(range[1], 1e4)};
-    }
-    view["ranges"] = std::move(ranges);
-    return view;
 }
 
 // A legend key in any case, with _ or a space between words: "Filament changes" is filament_changes,
@@ -519,319 +475,305 @@ const char* legend_option_key(libvgcode::EOptionType type)
     }
 }
 
-json preview_features(const json& statistics)
+namespace {
+
+// Whether the shown 3D view has drawn at its canvas's size, asking for a frame when it hasn't: until it
+// has, the camera's viewport is the old size, which a fit or a screen_rect would use. True when no 3D
+// view is shown. UI thread.
+bool view_drawn_at_size()
 {
-    const json&  summary = statistics.at("summary");
-    const double total   = summary.at("time").get<double>();
-    const auto   row     = [total](double seconds) {
-        return json{{"time_s", rounded(seconds, 100.)}, {"percent", total > 0. ? rounded(100. * seconds / total, 10.) : 0.}};
-    };
-    json out = json::object();
-    for (const auto& feature : summary.at("features").items()) {
-        json r = row(feature.value().at("time").get<double>());
-        r["g"] = rounded(feature.value().at("weight").get<double>(), 100.);
-        out[feature.key()] = std::move(r);
-    }
-    json travel   = row(summary.at("travel_time").get<double>());
-    travel["mm"]  = rounded(summary.at("travel_distance").get<double>(), 10.);
-    out["Travel"] = std::move(travel);
-    return out;
+    GLCanvas3D* canvas = shown_canvas();
+    if (canvas == nullptr || !canvas->get_wxglcanvas()->IsShownOnScreen())
+        return true;
+    // What render() gives the viewport: the canvas's size in GL pixels, at least 10.
+    const Size                size     = canvas->get_canvas_size();
+    const std::array<int, 4>& viewport = ui_plater().get_camera().get_viewport();
+    if (viewport[2] == std::max(10, size.get_width()) && viewport[3] == std::max(10, size.get_height()))
+        return true;
+    canvas->set_as_dirty();
+    return false;
 }
 
-json preview_layers(const json& statistics, bool with_features)
+// The window window_set's target names: the main window, the topmost modal dialog, or the window a ref or
+// locator is in. Refuses one no tool may size or move. `locator` gets what the journal records for a
+// ref. UI thread.
+wxTopLevelWindow& window_target(AutomationRuntime& runtime, const json& target, json& locator)
 {
-    json   items = json::array();
-    double below = 0.;
-    for (const json& layer : statistics.at("layers")) {
-        const double z = layer.at("z").get<double>();
-        json         item{{"layer", items.size() + 1},
-                          {"z", z},
-                          {"height", rounded(z > below ? z - below : z, 1000.)},
-                          {"time_s", rounded(layer.at("time").get<double>(), 100.)},
-                          {"g", rounded(layer.at("weight").get<double>(), 1000.)}};
-        if (with_features) {
-            json features = json::object();
-            for (const auto& feature : layer.at("features").items())
-                features[feature.key()] = rounded(feature.value().at("time").get<double>(), 100.);
-            item["features"] = std::move(features);
+    wxWindow* window = nullptr;
+    if (target == "main") {
+        window = wxGetApp().mainframe;
+        if (window == nullptr)
+            throw ToolFailure("The main window is not up yet");
+    } else if (target == "dialog") {
+        window = runtime.modals().top();
+        if (window == nullptr)
+            throw ToolFailure(no_modal_dialog(runtime.modals()));
+    } else {
+        UiTarget t;
+        try {
+            t = runtime.inspector().resolve(target);
+        } catch (const ToolFailure& e) {
+            // A window's ref goes stale once the window is destroyed, and window_list gives the open ones'.
+            if (!target.is_string())
+                throw;
+            throw ToolFailure(std::string(e.what()) + ", or window_list for the open windows", e.details);
         }
-        items.push_back(std::move(item));
-        below = z;
+        locator = runtime.inspector().locator_for(t);
+        window  = t.window.get() != nullptr ? wxGetTopLevelParent(t.window.get()) : nullptr;
     }
-    return items;
+    if (dynamic_cast<wxPopupWindow*>(window) != nullptr)
+        throw ToolFailure("The target is in a popup, which the window it opened from places; give that window (window_list)");
+    auto* tlw = dynamic_cast<wxTopLevelWindow*>(window);
+    if (tlw == nullptr)
+        throw ToolFailure("The target is in no window");
+    if (tlw->GetName() == kHiddenFromAutomation)
+        throw ToolFailure("The window is the person's own, which no tool reaches");
+    if (auto* dlg = dynamic_cast<wxDialog*>(tlw); dlg != nullptr && is_native_dialog(dlg))
+        throw ToolFailure("A native dialog is placed by the system; answer it with dialog_answer");
+    // A closed dialog may be hidden rather than destroyed, so its ref still resolves.
+    if (!tlw->IsShown())
+        throw ToolFailure("The window is closed; window_list lists the open windows");
+    return *tlw;
 }
 
-json preview_objects(const json& statistics, const std::vector<std::string>& object_names)
+// `window` while it is still one of the app's top-level windows, else null: window_set keeps a plain
+// pointer across its UI closures and checks it before following it. UI thread.
+wxTopLevelWindow* live_window(wxTopLevelWindow* window)
 {
-    json out = json::array();
-    for (const json& object : statistics.at("objects")) {
-        const std::string name = object.at("name").get<std::string>();
-        json              item{{"name", name},
-                               {"instance", object.at("instance")},
-                               {"g", rounded(object.at("weight").get<double>(), 100.)},
-                               {"support_g", rounded(object.at("support_weight").get<double>(), 100.)}};
-        const auto first = std::find(object_names.begin(), object_names.end(), name);
-        if (first != object_names.end() && std::find(std::next(first), object_names.end(), name) == object_names.end())
-            item["object"] = std::distance(object_names.begin(), first);
-        out.push_back(std::move(item));
+    for (wxWindow* w : wxTopLevelWindows)
+        if (w == window)
+            return window;
+    return nullptr;
+}
+
+// window_set: checks the request and applies it in one UI closure, waits for the window to take it,
+// then replies with what the window became. A size or position applies to the normal window, so a
+// maximized or minimized one is restored first. Where the window system restores it later (GTK), the call
+// waits for that before sizing, as a size given meanwhile is lost: on Wayland the compositor's answer to
+// the restore sizes the window again, and wx would size it by the maximized window's decorations. A window
+// brought back from the minimized state is finished restoring once it is back (finish_restore(), macOS).
+ToolResult set_window(AutomationRuntime& runtime, ToolContext& ctx, const json& args)
+{
+    const json target = args.value("target", json("main"));
+    json       locator;
+    // Never followed off the UI thread, and checked by live_window() on it: a wxWeakRef can't be made or
+    // dropped on this thread.
+    wxTopLevelWindow* window = nullptr;
+    bool              main = false, modal = false, restoring = false, unminimizing = false;
+    WindowSettling    settling;
+    const bool        placing = args.contains("size") || args.contains("position");
+    const std::string state   = arg_string(args, "state");
+    const auto        minimized = [](const wxTopLevelWindow& w) { return std::string(window_state(w)) == "minimized"; };
+    // The request, less the restore that comes before a size or position. UI thread.
+    const auto apply = [&](wxTopLevelWindow& w) {
+        if (args.contains("size"))
+            settling.limited = resize_window(w, wxSize(args["size"][0].get<int>(), args["size"][1].get<int>()));
+        // -1 is a place on a screen left of or above the primary one, not "keep this coordinate".
+        if (args.contains("position"))
+            w.Move(args["position"][0].get<int>(), args["position"][1].get<int>(), wxSIZE_ALLOW_MINUS_ONE);
+        if (state == "maximized") {
+            maximize_window(w);
+        } else if (state == "minimized") {
+            minimize_window(w);
+        } else if (state == "normal") {
+            settling.activation = settling.activation || (restore_needs_activation() && minimized(w));
+            unminimizing        = unminimizing || minimized(w);
+            restore_window(w);
+        }
+        if (arg_bool(args, "raise", false))
+            raise_window(w);
+    };
+    ctx.run_ui([&] {
+        wxTopLevelWindow& w   = window_target(runtime, target, locator);
+        auto*             dlg = dynamic_cast<wxDialog*>(&w);
+        main                  = &w == wxGetApp().mainframe;
+        modal                 = dlg != nullptr && dlg->IsModal();
+        WindowAbilities abilities;
+        abilities.main            = main;
+        abilities.modal           = modal;
+        abilities.can_maximize    = w.HasFlag(wxMAXIMIZE_BOX);
+        abilities.can_minimize    = w.HasFlag(wxMINIMIZE_BOX);
+        abilities.positions_known = window_positions_known();
+        if (const std::string refusal = window_request_refusal(args, abilities); !refusal.empty())
+            throw ToolFailure(refusal);
+        window = &w;
+        if (placing && std::string(window_state(w)) != "normal") {
+            settling.activation = restore_needs_activation() && minimized(w);
+            unminimizing        = minimized(w);
+            restoring           = restore_window(w);
+        }
+        if (!restoring)
+            apply(w);
+        return json();
+    });
+    journal_with_locator(ctx, args, locator);
+
+    // The window manager may apply a request later (X11) or animate it (macOS): a wait ends at two equal
+    // readings in a row in the state asked for. `holds` takes a reading and says whether the window held
+    // still in `wanted` (any state when empty). UI thread.
+    const char* closed = "The request was applied before the window closed";
+    json        last;
+    const auto  holds = [&](const std::string& wanted) {
+        wxTopLevelWindow* w = live_window(window);
+        if (w == nullptr)
+            throw ToolFailure(closed);
+        const wxPoint     pos  = w->GetScreenPosition();
+        const wxSize      size = window_size(*w);
+        const std::string now  = window_state(*w);
+        const json        reading{pos.x, pos.y, size.x, size.y, now};
+        return reading == std::exchange(last, reading) && (wanted.empty() || now == wanted);
+    };
+    const auto cancelled = [] { return ToolFailure("Cancelled: OrcaSlicer is closing or the replay or script was stopped"); };
+    if (restoring) {
+        // The rest of the request goes to the window the restore left, normal or not.
+        poll_until(ctx, [&] { return holds("normal") ? json(true) : json(); }, state_change_timeout("normal"), std::chrono::milliseconds(50));
+        if (ctx.cancelled())
+            throw cancelled();
+        ctx.run_ui([&] {
+            wxTopLevelWindow* w = live_window(window);
+            if (w == nullptr)
+                throw ToolFailure(closed);
+            apply(*w);
+            return json();
+        });
+        last = json();
     }
-    return out;
+
+    // For the main window the wait also lasts until its 3D view has drawn at the new size, which a
+    // minimized window never does.
+    std::string wanted = state;
+    if (wanted.empty() && placing)
+        wanted = "normal";
+    const std::chrono::seconds timeout = state_change_timeout(wanted);
+    settling.seconds                   = int(timeout.count());
+    const json done                    = poll_until(
+        ctx,
+        [&]() -> json {
+            if (wxTopLevelWindow* w = live_window(window); w != nullptr && unminimizing)
+                unminimizing = !finish_restore(*w);
+            settling.held = holds(wanted);
+            if (!settling.held)
+                return json();
+            return !main || minimized(*live_window(window)) || view_drawn_at_size() ? json(true) : json();
+        },
+        timeout, std::chrono::milliseconds(50));
+    if (done.is_null() && ctx.cancelled())
+        throw cancelled();
+    settling.drawn = !done.is_null();
+    if (settling.held && !settling.drawn)
+        settling.undrawn = undrawn_window(ctx);
+
+    json out = ctx.observe_ui([&] {
+        wxTopLevelWindow* w = live_window(window);
+        if (w == nullptr)
+            throw ToolFailure(closed);
+        // window_list's own entry, so the two report a window alike.
+        const json entry = runtime.inspector().window_entry(*w, modal);
+        json       reply{{"title", entry["title"]}, {"kind", entry["kind"]}, {"ref", entry["ref"]}, {"size", {entry["width"], entry["height"]}}};
+        if (entry.contains("x"))
+            reply["position"] = {entry["x"], entry["y"]};
+        reply["state"]     = entry["state"];
+        reply["resizable"] = entry["resizable"];
+        reply["scale"]     = w->GetContentScaleFactor();
+        // A minimized window may be on no display; the primary one stands for it then.
+        int index = wxDisplay::GetFromWindow(w);
+        for (unsigned i = 0; index == wxNOT_FOUND && i < wxDisplay::GetCount(); ++i)
+            if (wxDisplay(i).IsPrimary())
+                index = int(i);
+        reply["display"] = display_area(unsigned(std::max(index, 0)));
+        if (arg_bool(args, "raise", false))
+            reply["active"] = w->IsActive();
+        return reply;
+    });
+    add_window_notes(args, settling, out);
+    return ToolResult::ok(out);
 }
 
-bool viewer_holds(const GCodeViewer& viewer, const GCodeProcessorResult* result)
+} // namespace
+
+void add_window_notes(const json& args, const WindowSettling& settling, json& reply)
 {
-    return result != nullptr && viewer.has_data() && viewer.last_result_id() == result->id;
+    json adjusted = json::array();
+    for (const std::string field : {"size", "position", "state"})
+        if (args.contains(field) && reply.contains(field) && reply[field] != args[field])
+            adjusted.push_back(field);
+    std::string note = settling.limited ? "size is held to the window's minimum or maximum size" : "";
+    const auto  add  = [&note](const std::string& why) { note += (note.empty() ? "" : "; ") + why; };
+    if (!settling.held && settling.activation)
+        add("the compositor did not bring the window back: Wayland lets an app restore its minimized window only by "
+            "activating it, which the compositor allows only while the app may take the focus, so the person restores it "
+            "from the taskbar");
+    else if (!settling.held)
+        add("the window manager did not apply the request within " + std::to_string(settling.seconds) + " s");
+    else if (!settling.drawn)
+        add("the 3D view did not draw at the window's size within " + std::to_string(settling.seconds) + " s" +
+            (settling.undrawn.empty() ? "" : ": " + settling.undrawn));
+    else if (note.empty() && !adjusted.empty())
+        note = "the window manager adjusted the request";
+    if (!adjusted.empty())
+        reply["adjusted"] = std::move(adjusted);
+    if (!note.empty())
+        reply["note"] = note;
 }
 
-json preview_state(GCodeViewer& viewer)
+std::string window_request_refusal(const json& args, const WindowAbilities& window)
 {
-    IMSlider* layers = viewer.get_layers_slider();
-    if (!viewer.has_data() || layers == nullptr)
-        return nullptr;
-    const bool silent = viewer.get_viewer().get_time_mode() == libvgcode::ETimeMode::Stealth;
-    return json{{"view_type", GCodeViewer::view_type_to_config_name(viewer.get_view_type())},
-                {"time_mode", silent ? "silent" : "normal"},
-                {"layers", {layers->GetLowerValue() + 1, layers->GetHigherValue() + 1}},
-                {"z", {rounded(layers->GetLowerValueD(), 1000.), rounded(layers->GetHigherValueD(), 1000.)}},
-                {"layer_count", layers->GetMaxValue() + 1}};
+    const bool size = args.contains("size"), position = args.contains("position");
+    if (!size && !position && !args.contains("state") && !args.contains("raise"))
+        return "Give at least one of size, position, state or raise; window_list reads a window's geometry without changing it";
+    // Two whole numbers that fit wx's int coordinates, both positive for a size. Whole floats pass, as
+    // they pass the schema's integer type.
+    const auto is_pair = [](const json& value, bool positive) {
+        const auto whole = [positive](const json& n) {
+            if (!n.is_number())
+                return false;
+            const double d = n.get<double>();
+            return d == std::floor(d) && d >= (positive ? 1.0 : double(std::numeric_limits<int>::min())) &&
+                   d <= double(std::numeric_limits<int>::max());
+        };
+        return value.is_array() && value.size() == 2 && std::all_of(value.begin(), value.end(), whole);
+    };
+    if (size && !is_pair(args.at("size"), true))
+        return "Give size as [width, height], two positive integers";
+    if (position && !is_pair(args.at("position"), false))
+        return "Give position as [x, y], two integers";
+    const json state = args.value("state", json());
+    if ((state == "maximized" || state == "minimized") && (size || position))
+        return "A " + state.get<std::string>() +
+               " window's size and position are set by the system: give state alone, or size and position without state";
+    if (state == "maximized" && !window.main && !window.can_maximize)
+        return "This window's title bar has no maximize button: give it a size instead";
+    if (state == "minimized" && window.modal)
+        return "A modal dialog never minimizes, as the app would stay blocked with nothing showing: close the dialog instead";
+    if (state == "minimized" && !window.main && !window.can_minimize)
+        return "This window's title bar has no minimize button: move it aside with position, or close it, instead";
+    if (position && !window.positions_known)
+        return "position needs X11: Wayland gives an app no way to place its window or to read where it is. Leave position "
+               "out, or start OrcaSlicer with GDK_BACKEND=x11 to run it under XWayland, where every field works";
+    return {};
+}
+
+json display_area(unsigned index)
+{
+    const wxRect area = wxDisplay(index).GetClientArea();
+    return {{"index", index}, {"x", area.x}, {"y", area.y}, {"width", area.width}, {"height", area.height}};
 }
 
 void register_view_tools(CommandCatalog& catalog)
 {
-    NativeCommand screenshot = inspect_tool(
-        "window_screenshot", L("Take a screenshot"),
-        "Capture what OrcaSlicer shows and return it as an image, downscaled to `max_dim` on the long edge (default 1280), "
-        "plus the full-size PNG written to `save_path` (or the session's output folder). `target: \"main\"` (the main "
-        "window), \"canvas\" (the visible 3D view exactly as rendered: scene, toolpaths, toolbars, ImGui panels; on the "
-        "Design tab its view), "
-        "\"dialog\" (the topmost modal dialog), or a ref: a window's from `window_list` (one that is not modal, say), or a "
-        "widget's from `widget_list`, cropped to that widget (a page element's ref captures its whole web view). The result "
-        "says when parts may differ from the "
-        "screen (approximate). Point the view first with `view_set`.",
-        object_schema({{"target", {{"type", json::array({"string", "object"})},
-                                    {"description", "main (default), canvas, dialog, or a widget's ref or locator from `widget_list`."}}},
-                       {"max_dim", {{"type", "integer"}, {"minimum", 256}, {"maximum", 2000}, {"description", "Long edge of the returned image."}}},
-                       {"save_path", prop("string", "Absolute .png path for the full-size image.")},
-                       {"overwrite", prop("boolean", "Replace an existing `save_path`.")},
-                       {"include_image", prop("boolean", "Return the image itself (default true); false returns only the path.")}}),
-        [](const json& args, ToolContext& ctx) {
-            AutomationRuntime& runtime = ctx.runtime();
-            const json target_arg = args.value("target", json("main"));
-            const std::string target = target_arg.is_string() ? target_arg.get<std::string>() : std::string();
-            json              locator;
-            fs::path          path;
-            if (args.contains("save_path")) {
-                std::string err;
-                auto        p = resolve_output_path(arg_string(args, "save_path"), arg_bool(args, "overwrite", false), err);
-                if (!p)
-                    throw ToolFailure(err);
-                path = *p;
-            } else {
-                path = timestamped_path(output_dir(), "screenshot", ".png");
-            }
-            const int max_dim = std::clamp(arg_int(args, "max_dim", 1280), 256, 2000);
-            json      info;
-            wxImage   full;
-            if (target != "main" && target != "canvas" && target != "dialog")
-                // Scrolled into view first, and painted before the capture below runs.
-                ctx.run_ui([&] {
-                    UiTarget t = runtime.inspector().resolve(target_arg);
-                    runtime.inspector().reveal(t);
-                    return json();
-                });
-            // A canvas that comes back blank has not drawn yet; it does within moments.
-            bool blank = false;
-            for (int attempt = 0;; ++attempt) {
-                ctx.run_ui([&] {
-                    std::string             err;
-                    std::optional<Capture>  cap;
-                    if (target == "canvas") {
-                        ui_plater(); // refuses while OrcaSlicer starts or closes
-                        GLCanvas3D* canvas = shown_canvas();
-                        if (canvas == nullptr)
-                            throw ToolFailure("No 3D view is shown; switch to one with view_set tab");
-                        cap = capture_canvas(*canvas, err);
-                    } else if (target == "dialog") {
-                        wxDialog* top = runtime.modals().top();
-                        if (top == nullptr)
-                            throw ToolFailure(no_modal_dialog(runtime.modals()));
-                        cap = capture_window(*top, err);
-                    } else if (target != "main") {
-                        // A widget: its top-level window, cropped to the widget unless it is that window.
-                        const UiTarget t = runtime.inspector().resolve(target_arg);
-                        locator          = runtime.inspector().locator_for(t);
-                        // A page element is captured as its web view.
-                        wxWindow*      w = t.window.get();
-                        if ((t.kind != UiTarget::Kind::Window && t.kind != UiTarget::Kind::WebElement) || w == nullptr)
-                            throw ToolFailure("target must be main, canvas, dialog or the ref of a widget");
-                        if (t.kind == UiTarget::Kind::WebElement) {
-                            // A replay captures the same web view, by its own locator: a page element's
-                            // has none the window_screenshot's target takes.
-                            UiTarget view;
-                            view.kind    = UiTarget::Kind::Window;
-                            view.window  = w;
-                            view.locator = {{"class", "webview"}};
-                            if (const std::string within = within_of(w); !within.empty())
-                                view.locator["within"] = within;
-                            locator = runtime.inspector().locator_for(view);
-                        }
-                        if (t.page >= 0) {
-                            // A tab: its page, which only the selected tab shows.
-                            auto* book = dynamic_cast<wxBookCtrlBase*>(w);
-                            if (book == nullptr || t.page >= int(book->GetPageCount()))
-                                throw ToolFailure("The tab is gone; call widget_list again");
-                            if (book->GetSelection() != t.page)
-                                throw ToolFailure("The tab's page is not shown; click the tab (widget_click) first");
-                            w = book->GetPage(size_t(t.page));
-                        }
-                        if (GLCanvas3D* canvas = runtime.inspector().canvas_of(&t); canvas != nullptr && canvas->get_wxglcanvas() == w) {
-                            cap = capture_canvas(*canvas, err);
-                        } else {
-                            wxWindow* top = wxGetTopLevelParent(w);
-                            // A popup is a native window of its own, which its window's capture draws in.
-                            if (dynamic_cast<wxPopupWindow*>(top) != nullptr)
-                                throw ToolFailure("The widget is in a popup; a screenshot of its window shows the popup, and widget_list "
-                                                  "{target: \"popup\"} lists it");
-                            auto* tlw = dynamic_cast<wxTopLevelWindow*>(top);
-                            if (tlw == nullptr)
-                                throw ToolFailure("The widget has no window");
-                            tlw->Update();
-                            cap = capture_window(*tlw, err);
-                            if (cap && w != tlw) {
-                                // The capture is in physical pixels, like client_offset_in().
-                                const wxPoint at    = client_offset_in(*w, *tlw);
-                                const double  scale = tlw->GetContentScaleFactor();
-                                const wxSize  size(int(std::lround(w->GetSize().x * scale)), int(std::lround(w->GetSize().y * scale)));
-                                const wxRect  r = wxRect(at, size).Intersect(wxRect(cap->image.GetSize()));
-                                if (r.IsEmpty())
-                                    throw ToolFailure("The widget is outside its window's visible area");
-                                cap->image = cap->image.GetSubImage(r);
-                            }
-                        }
-                    } else {
-                        wxTopLevelWindow* frame = wxGetApp().mainframe;
-                        if (frame == nullptr)
-                            throw ToolFailure("The main window is not up yet");
-                        cap = capture_window(*frame, err);
-                    }
-                    if (!cap)
-                        throw ToolFailure(err);
-                    full = cap->image;
-                    info = {{"source", target.empty() ? json(target_arg) : json(target)}, {"width", full.GetWidth()}, {"height", full.GetHeight()}};
-                    if (cap->approximate)
-                        info["approximate"] = true;
-                    if (!cap->note.empty())
-                        info["note"] = cap->note;
-                    blank = cap->blank_canvas;
-                    return json();
-                });
-                if (!blank || attempt >= 10 || ctx.cancelled())
-                    break;
-                std::this_thread::sleep_for(std::chrono::milliseconds(300));
-            }
-            if (blank) {
-                const std::string undrawn = undrawn_window(ctx);
-                info["approximate"]       = true;
-                info["note"] = info.value("note", std::string()) + (info.contains("note") ? "; " : "") + "the 3D view came back blank" +
-                               (undrawn.empty() ? ", as if not drawn yet" : ": " + undrawn);
-            }
-            if (target_arg.is_string() && !locator.is_null()) {
-                // A replay needs the locator; refs mean nothing in another session.
-                json recorded      = args;
-                recorded["target"] = locator;
-                ctx.set_journal_args(std::move(recorded));
-            }
-            // Encoding and scaling run off the UI thread.
-            if (!full.SaveFile(from_path(path), wxBITMAP_TYPE_PNG))
-                throw ToolFailure("Could not write " + path_to_utf8(path));
-            info["path"]   = path_to_utf8(path);
-            ToolResult out = ToolResult::ok(info);
-            if (arg_bool(args, "include_image", true)) {
-                const wxSize  size  = fit_within(full.GetSize(), max_dim);
-                const wxImage scaled = size == full.GetSize() ? full : full.Scale(size.x, size.y, wxIMAGE_QUALITY_HIGH);
-                out.data["image_width"]  = size.x;
-                out.data["image_height"] = size.y;
-                out.content.push_back({{"type", "image"}, {"mimeType", "image/png"}, {"data", base64(encode_png(scaled))}});
-            }
-            return out;
-        });
-    screenshot.journal = true; // a replay takes the same screenshots
-    catalog.add(screenshot);
+    using NativeCommands::action;
 
-    catalog.add(inspect_tool(
-        "plate_slice_stats", L("Get slice statistics"),
-        "What the Preview shows for a sliced plate. summary: `plate_slice`'s, plus prepare and travel time and travel "
-        "distance. features: seconds, share of the print time and grams per feature type (the Line Type legend), and "
-        "travel. layers: per layer (1-based, as `view_set`'s layer) Z, height, seconds and grams, paged; `layer_features` adds "
-        "each feature type's seconds. objects: grams per object instance, with its `object_list` index when its name is "
-        "unique. view, for the plate the Preview shows: view type, time mode, layer range, which legend rows are visible, "
-        "and each view type's colour range for what the legend shows. Times are normal-mode estimates. A G-code file "
-        "opened for viewing reads the same.",
-        object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Plate index; default the current plate."}}},
-                       {"include", array_prop({{"type", "string"}, {"enum", json::array({"features", "layers", "layer_features", "objects", "view"})}},
-                                              "Parts besides the summary; default `[\"features\", \"view\"]`.")},
-                       {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 1000}, {"description", "Layers per page (default 100)."}}},
-                       {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
-        [](const json& args, ToolContext& ctx) {
-            const std::set<std::string> parts = args.contains("include") ? args["include"].get<std::set<std::string>>() :
-                                                                           std::set<std::string>{"features", "view"};
-            return ToolResult::ok(ctx.run_ui([&]() -> json {
-                Plater& plater = ui_plater();
-                if (plater.printer_technology() != ptFFF)
-                    throw ToolFailure("The Preview needs an FFF printer");
-                // The background process may be rewriting a result whatever its valid flag says.
-                if (plater.is_slicing_any())
-                    throw ToolFailure("Slicing is in progress; app_wait {\"for\": \"idle\"} first");
-                PartPlateList& plates  = plater.get_partplate_list();
-                const int      current = plates.get_curr_plate_index();
-                const int      index   = arg_int(args, "plate", current);
-                if (index >= plates.get_plate_count())
-                    throw ToolFailure(no_such_plate(index, plates.get_plate_count()));
-                GLCanvas3D* canvas = plater.get_preview_canvas3D();
-                if (canvas == nullptr)
-                    throw ToolFailure("The preview is not available");
-                PartPlate*                  plate  = plates.get_plate(index);
-                const GCodeProcessorResult* result = plate->get_slice_result();
-                const bool                  shown  = index == current && viewer_holds(canvas->get_gcode_viewer(), result);
-                // A G-code file opened for viewing fills the current plate's result, which the Preview
-                // shows, without marking the plate sliced.
-                const bool        gcode_file = plater.only_gcode_mode() && shown;
-                const std::string name       = "Plate " + std::to_string(index);
-                const std::string slice_it   = "plate_slice {\"plates\": " + std::to_string(index) + "}";
-                if (result == nullptr || !(plate->is_slice_result_valid() || gcode_file))
-                    throw ToolFailure(name + " has no up-to-date slice; " + slice_it + " first");
-                // Of a project opened from a sliced 3MF, a plate the Preview has not shown keeps only the file's totals.
-                if (result->moves.empty())
-                    throw ToolFailure(name + " has no toolpaths, only the totals of a sliced 3MF; " + slice_it + " again for layer data");
-
-                const json statistics      = json::parse(gcode_statistics_json(*result));
-                const json& totals         = statistics.at("summary");
-                json        summary        = plate_summary(statistics, *result);
-                summary["prepare_time_s"]  = std::lround(totals.at("prepare_time").get<double>());
-                summary["travel_time_s"]   = std::lround(totals.at("travel_time").get<double>());
-                summary["travel_mm"]       = std::lround(totals.at("travel_distance").get<double>());
-                json out{{"plate", index}, {"summary", std::move(summary)}};
-                if (parts.count("features") > 0)
-                    out["features"] = preview_features(statistics);
-                if (parts.count("layers") > 0 || parts.count("layer_features") > 0)
-                    out["layers"] = page(preview_layers(statistics, parts.count("layer_features") > 0), args, 100);
-                if (parts.count("objects") > 0) {
-                    std::vector<std::string> names;
-                    for (const ModelObject* object : plater.model().objects)
-                        names.push_back(object->name);
-                    out["objects"] = preview_objects(statistics, names);
-                }
-                if (parts.count("view") > 0) {
-                    out["view"] = shown ? preview_view(*canvas) : json();
-                    if (index != current)
-                        out["note"] = "The Preview shows plate " + std::to_string(current) + "; show plate " + std::to_string(index) +
-                                      " there (plate_select {\"plate\": " + std::to_string(index) + "}) to read its legend";
-                    else if (!shown)
-                        out["note"] = "The Preview has not loaded this plate's toolpaths; show it with view_set {\"tab\": \"preview\"}";
-                }
-                return out;
-            }));
-        }));
+    // The Agent Activity pane's menu item, which has no argument form.
+    const std::string activity = "Show or hide the Agent Activity pane, where a person watches what agents, Action Replay, Run Script, "
+                                 "the command line's run and plugins do in the app, call by call. It is the person's: it lists your "
+                                 "calls, and you never need it.";
+    NativeCommand toggle_activity = menu_command("view_toggle_activity_panel", L("Agent Activity"), activity, object_schema({}),
+                                                 json::array({action("toggle_agent_activity_panel", L("Agent Activity"), L("View"), "",
+                                                                     json::object(), activity)}),
+                                                 [](const json&) { return MenuItems::toggle_agent_activity_panel(); });
+    // A menu item with no argument form: tool_list lists it and tool_call runs it, the tool list does not show it.
+    toggle_activity.listed = false;
+    catalog.add(std::move(toggle_activity));
 
     // The legend combo's view types; the first-layer inspection type has no name and no combo entry.
     std::vector<std::string> view_types;
@@ -965,7 +907,7 @@ void register_view_tools(CommandCatalog& catalog)
                 // Design view refuses (point_camera()), are refused here, before the tab or anything else
                 // changes; a rebuild refuses the options, its worker holding the document the reference planes
                 // are read from.
-                // With no Design panel to show or set, the refusal is cad_gate()'s (Mcp::no_design_tab()).
+                // With no Design panel to show or set, the refusal is design_gate()'s (Mcp::no_design_tab()).
                 DesignPanel* design = nullptr;
                 if (arg_string(args, "tab") == "design" && frame->m_design_page != nullptr)
                     design = DesignPanel::ensure();
@@ -1364,16 +1306,52 @@ void register_view_tools(CommandCatalog& catalog)
             return MenuItems::open_window(window, preferences);
         }));
 
-    const std::string saved = "Save a PNG of the main window in the folder Start Recording saves in (the person's Downloads unless "
-                              "they chose another) and show the person a notification naming it; the reply has its path. Agents use "
-                              "the window_screenshot tool, which returns the image.";
-    NativeCommand save_screenshot = menu_command("window_save_screenshot", L("Take Screenshot"), saved, object_schema({}),
-                                                json::array({NativeCommands::action("take_screenshot", L("Take Screenshot"),
-                                                                                    L("Commands"), "screenshot", json::object(), saved)}),
-                                                [](const json&) { return MenuItems::take_screenshot(); });
-    // A menu item with no argument form: tool_list lists it and tool_call runs it, the tool list does not show it.
-    save_screenshot.listed = false;
-    catalog.add(std::move(save_screenshot));
+    catalog.add(inspect_tool(
+        "window_list", L("List the windows"),
+        "List OrcaSlicer's open windows: the main window, then the windows that don't block the app (Plugins, an "
+        "object's settings, a dock panel floating on its own), then the modal dialogs in the order they opened, the "
+        "topmost last. A window's ref goes to `window_screenshot` as target to capture that window, to `widget_list` as target to "
+        "list it alone, and to `keyboard_press` as target; its title is the within of locators for its widgets.\n"
+        "Reply: each window's title, kind (main, window, dialog, or panel: a dock panel floating on its own), modal, "
+        "ref, web (it shows a web page), x and y on screen (not on Wayland, which doesn't say), width and height, state "
+        "(normal, maximized or minimized) and resizable (it has a resize border); `window_set` changes them.\n"
+        "A native dialog (a message box, a file picker) has `native: true` and no ref: `dialog_answer` answers it. `hidden: "
+        "true` marks the person's own windows (the Run Script panel floating, its prompts and Action Replay's, the Python "
+        "scripts setting), which no tool reaches and screenshots leave out.",
+        object_schema({{"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "Default 100."}}},
+                       {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
+        [](const json& args, ToolContext& ctx) {
+            AutomationRuntime& runtime = ctx.runtime();
+            return ToolResult::ok(page(ctx.run_ui([&] { return runtime.inspector().windows(); }), args));
+        }));
+
+    {
+        NativeCommand def = recover_input_tool(
+            "window_set", L("Size, move or raise a window"),
+            "Size, move, maximize, minimize or raise a window: the main window (default), the topmost modal dialog, or one "
+            "`window_list` lists, also while a modal dialog is open. Size the main window before `view_set` fits the camera and "
+            "before `recording_start`, as a recording keeps its first frame's size. size and position are in the units "
+            "`window_list` reports, whose x/y and width/height are read as position and size too. A size or position restores "
+            "a maximized or minimized window first. A window takes only the states its title bar offers; a modal dialog "
+            "never minimizes. A refused call changes nothing. Replies once the window holds still and the 3D view has drawn "
+            "at its new size (3 s at most): title, kind, ref, size, position, state, resizable, scale (screenshot pixels per "
+            "window unit), display (its work area), active with raise, and adjusted with a note: what the OS or a size limit "
+            "changed.",
+            object_schema({{"target", {{"type", json::array({"string", "object"})},
+                                       {"description", "main (default), dialog (the topmost modal "
+                                                       "dialog), or a window's ref or locator from `window_list`; a widget's ref or "
+                                                       "locator picks the window it is in."}}},
+                           {"size", array_prop({{"type", "integer"}}, "`[width, height]`, held to the window's minimum and maximum size.")},
+                           {"position", array_prop({{"type", "integer"}}, "`[x, y]` of the window's top-left corner on screen; not on Wayland.")},
+                           {"state", enum_prop({"normal", "maximized", "minimized"},
+                                               "normal restores a maximized or minimized window; maximized and minimized take no size "
+                                               "or position.")},
+                           {"raise", prop("boolean", "Bring the window in front of the app's other windows; active in the reply says "
+                                                     "whether it became the active one.")}}),
+            [](const json& args, ToolContext& ctx) { return set_window(ctx.runtime(), ctx, args); });
+        def.allowed_during_operation = true;
+        catalog.add(def);
+    }
 }
 
 }}} // namespace Slic3r::GUI::Mcp

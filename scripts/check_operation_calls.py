@@ -27,10 +27,10 @@ import sys
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASELINE = "scripts/operation_calls_baseline.txt"
 
-# The callers: the command runners, the tools (the Design commands, whose functions are the Design tab's own
-# entry points, are not among them) and the plugin API.
-CALLERS = ["src/slic3r/GUI/NativeCommands.cpp", "src/slic3r/GUI/Mcp/McpTools*.cpp", "src/slic3r/plugin/host/*.cpp"]
-NOT_CALLERS = {"src/slic3r/GUI/Mcp/McpToolsCad.cpp"}
+# The callers: the command runners, the tools of every place and the plugin API. The Design commands
+# (Tools/Design*.cpp), whose functions are the Design tab's own entry points, are not among them.
+CALLERS = ["src/slic3r/GUI/NativeCommands.cpp", "src/slic3r/GUI/Mcp/Tools/*.cpp", "src/slic3r/plugin/host/*.cpp"]
+NOT_CALLERS = ["src/slic3r/GUI/Mcp/Tools/Design*.cpp"]
 
 # Owner methods an operation calls, by the operation that stands for them.
 BANNED = {
@@ -109,12 +109,15 @@ CALL = re.compile(r"(?:\.|->)\s*(" + "|".join(sorted({m for names in BANNED.valu
 
 
 def caller_files():
-    files = set()
-    for pattern in CALLERS:
-        for path in glob.glob(os.path.join(REPO, pattern)):
-            rel = os.path.relpath(path, REPO).replace(os.sep, "/")
-            if rel not in NOT_CALLERS:
-                files.add(rel)
+    def matches(pattern, name):
+        paths = glob.glob(os.path.join(REPO, pattern))
+        # A pattern that matches nothing would pass every check unseen, as after its files move.
+        if not paths:
+            sys.exit(f"{pattern} matches no file: correct {name} in {os.path.basename(__file__)}")
+        return {os.path.relpath(path, REPO).replace(os.sep, "/") for path in paths}
+
+    files = set().union(*(matches(pattern, "CALLERS") for pattern in CALLERS))
+    files -= set().union(*(matches(pattern, "NOT_CALLERS") for pattern in NOT_CALLERS))
     return sorted(files)
 
 

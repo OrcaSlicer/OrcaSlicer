@@ -510,6 +510,51 @@ TEST_CASE("the commands outside the Design tab are the design's, under its headi
     CHECK(heading_of("") == "(none)");
 }
 
+TEST_CASE("each place's file adds only its place's commands", "[CommandCatalog]")
+{
+    // Each file under Mcp/Tools/ holds one place's commands (ObjectTools.cpp two); the catalog groups a command by its
+    // key wherever it is added, so only this keeps a command out of another place's file.
+    struct PlaceFile
+    {
+        const char*           file;
+        void                  (*add)(CommandCatalog&);
+        std::set<std::string> headings;
+    };
+    const std::vector<PlaceFile> files{
+        {"CatalogTools.cpp", [](CommandCatalog& c) { Mcp::register_catalog_tools(c, ""); }, {"Tools and actions"}},
+        {"AppTools.cpp", [](CommandCatalog& c) { Mcp::register_app_tools(c, false); }, {"The app"}},
+        {"ProjectTools.cpp", Mcp::register_project_tools, {"The project"}},
+        {"ObjectTools.cpp", Mcp::register_object_tools, {"Objects", "Parts"}},
+        {"PlateTools.cpp", Mcp::register_plate_tools, {"Plates"}},
+        {"PresetTools.cpp", Mcp::register_preset_tools, {"Presets and settings"}},
+        {"FilamentTools.cpp", Mcp::register_filament_tools, {"Filaments"}},
+        {"PrinterTools.cpp", Mcp::register_printer_tools, {"Printers and prints"}},
+        {"PluginTools.cpp", Mcp::register_plugin_tools, {"Plugins"}},
+        {"ViewTools.cpp", Mcp::register_view_tools, {"View and windows"}},
+        {"RecordingTools.cpp", Mcp::register_recording_tools, {"Recordings, replays and scripts"}},
+        {"GuiTools.cpp", Mcp::register_gui_tools, {"Driving the GUI"}},
+    };
+    std::set<std::string> added;
+    for (const PlaceFile& place : files) {
+        INFO(place.file);
+        CommandCatalog catalog;
+        place.add(catalog);
+        CHECK_FALSE(catalog.commands().empty());
+        for (const NativeCommand& c : catalog.commands()) {
+            INFO(c.key);
+            const char* heading = NativeCommands::place_heading(c.key);
+            REQUIRE(heading != nullptr);
+            CHECK(place.headings.count(heading) == 1);
+            CHECK(added.insert(c.key).second);
+        }
+    }
+    // Together the files add every place's commands.
+    std::set<std::string> expected;
+    for (const auto& [heading, keys] : kPlaces)
+        expected.insert(keys.begin(), keys.end());
+    CHECK(added == expected);
+}
+
 TEST_CASE("every command that runs from arguments is in the tool list, by place", "[CommandCatalog]")
 {
     const CommandCatalog&    catalog = NativeCommands::instance();

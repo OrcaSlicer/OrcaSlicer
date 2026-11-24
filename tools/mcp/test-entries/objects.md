@@ -667,7 +667,7 @@ unscaled and not mirrored, and a plate's settings as in a plate's own settings.
   it. Without that bound the step shows only that the spacing was taken.
 - The arrange options an arrange stores (arranging, steps 4 and 7; cloning, steps 3 and 6). An arrange given
   `spacing`, `rotate` or `multi_material` stores the panel's options (`start_arrange()` in
-  `src/slic3r/GUI/Mcp/McpToolsScene.cpp` calls `GLCanvas3D::store_arrange_settings()`), and every arrange after takes
+  `src/slic3r/GUI/Mcp/Tools/ObjectTools.cpp` calls `GLCanvas3D::store_arrange_settings()`), and every arrange after takes
   them, Clone's among them (`Ops::clone_objects()` arranges with `Plater::arrange()`), so step 4's options are the
   ones cloning arranges with until arranging's later steps change the spacing.
 - The plate an arrange of one plate or a Fill bed leaves current (arranging, steps 14 and 17): `Ops::start_arrange()`
@@ -699,13 +699,13 @@ unscaled and not mirrored, and a plate's settings as in a plate's own settings.
   meshes' centres in their files, (10, 10, 5) here, for an instance that is neither turned nor scaled. The cylinder's
   centre is (0, 0, 5) only to its facets, hence 0.05.
 - A reload that finds only missing files takes no undo step (files, step 6): `Ops::reload_parts()` reloads nothing,
-  so it takes no snapshot. `object_reload_from_disk`'s description (`register_object_tools()` in
-  `src/slic3r/GUI/Mcp/McpToolsScene.cpp`) and the comment on `reload_parts()` in
+  so it takes no snapshot. `object_reload_from_disk`'s description (`register_actionless_object_commands()` in
+  `src/slic3r/GUI/Mcp/Tools/ObjectTools.cpp`) and the comment on `reload_parts()` in
   `src/slic3r/GUI/Operations/ObjectOps.hpp` say so: one undo step, none when every part's file is missing.
 - An order the objects already have takes no undo step (ordering, steps 13 and 14): `Ops::reorder_objects()` takes its
   snapshot only when it moves an object, as `ObjectList::order_objects()`, the app's own code, takes one only when the
   order changes. `object_order`'s description (`register_object_menu_commands()` in
-  `src/slic3r/GUI/Mcp/McpToolsScene.cpp`) and the comments on `order_objects()` and `reorder_objects()` in
+  `src/slic3r/GUI/Mcp/Tools/ObjectTools.cpp`) and the comments on `order_objects()` and `reorder_objects()` in
   `src/slic3r/GUI/Operations/ObjectOps.hpp` say so: one undo step, none when the order stays as it was.
 - The words of `part_add`'s refusals (parts, steps 8 and 9) carry no code, so they are matched by their text. A
   shape's size names the fields of Add Primitive's size dialog (`primitive_size_names()`), so a cylinder's is

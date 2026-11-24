@@ -1,26 +1,33 @@
-#include "McpTools.hpp"
+// The helpers every place's commands are built with (McpTools.hpp): the schema helpers, the command makers, the
+// handler helpers and the id arguments.
 
-#include "McpArguments.hpp"
-#include "McpTargets.hpp"
-
-#include "libslic3r/Model.hpp"
-
-#include "UiInspector.hpp"
+#include "slic3r/GUI/Mcp/McpArguments.hpp"
+#include "slic3r/GUI/Mcp/McpTargets.hpp"
+#include "slic3r/GUI/Mcp/McpTools.hpp"
+#include "slic3r/GUI/Mcp/UiInspector.hpp"
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
-#include "slic3r/GUI/NativeCommands.hpp"
-#include "slic3r/GUI/Operations/Outcome.hpp"
-#include "slic3r/GUI/Operations/PlateOps.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
+#include "slic3r/GUI/Operations/ObjectOps.hpp"
+#include "slic3r/GUI/Operations/Outcome.hpp"
+#include "slic3r/GUI/Operations/PlateOps.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
-#include <nlohmann/json.hpp>
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Slicing.hpp"
+
 #include <wx/app.h>
+#include <wx/defs.h>
+#include <wx/event.h>
 #include <wx/glcanvas.h>
 #include <wx/window.h>
+
+#include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -30,7 +37,9 @@
 #include <functional>
 #include <initializer_list>
 #include <limits>
+#include <map>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <utility>
@@ -133,6 +142,7 @@ bool canvas_being_mapped()
 }
 
 #ifdef __WXGTK__
+
 // The main window's frame clock, or null while the window is hidden or minimized, so not meant to be
 // drawn. UI thread.
 GdkFrameClock* main_frame_clock()
@@ -351,6 +361,38 @@ void check_expected_ids(const ModelObject& object, const ModelVolume* volume, co
                               ", not the expected id " + std::to_string(args["instance_id"].get<std::size_t>()) +
                               ": object_list again",
                           {{"id", instance->id().id}});
+}
+
+std::string mm(double z)
+{
+    std::ostringstream out;
+    out << z;
+    return out.str();
+}
+
+double rounded(double value, double scale) { return std::round(value * scale) / scale; }
+
+void journal_with_locator(ToolContext& ctx, const json& args, const json& locator)
+{
+    json recorded = args;
+    if (recorded.contains("target") && recorded["target"].is_string() && !locator.is_null())
+        recorded["target"] = locator;
+    ctx.set_journal_args(std::move(recorded));
+}
+
+NativeCommand recover_input_tool(std::string name, std::string title, std::string description, json schema, CommandFn handler)
+{
+    NativeCommand d = mutate_tool(std::move(name), std::move(title), std::move(description), std::move(schema), std::move(handler));
+    d.guard   = GuardClass::Recover;
+    return d;
+}
+
+NativeCommand own_action(NativeCommand command, std::string section, std::string icon)
+{
+    command.has_own_action = true;
+    command.action_group   = std::move(section);
+    command.icon           = std::move(icon);
+    return command;
 }
 
 }}} // namespace Slic3r::GUI::Mcp

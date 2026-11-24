@@ -20,7 +20,7 @@
 #ifdef SLIC3R_CAD
 #include "CAD/DesignOffer.hpp"
 #include "CAD/DesignPanel.hpp"
-#include "Mcp/McpToolsCad.hpp"
+#include "Mcp/McpToolsDesign.hpp"
 #endif
 
 #include <cassert>

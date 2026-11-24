@@ -23,38 +23,39 @@ plater->export_stl(false, false, true);
 plater->export_stl(false, false, false, FT_DRC);
 plater->export_stl(false, false, true, FT_DRC);
 
-[src/slic3r/GUI/Mcp/McpToolsConfig.cpp]
-# The undo step of a tool whose function has one automation entry point (settings_set's object and part
-# targets, plate_set_settings and project_set_settings).
-plater.take_snapshot("Move object");
+[src/slic3r/GUI/Mcp/Tools/ObjectTools.cpp]
+# The asking path of a command, its person's form: object_rename {} and object_set_instances {} call the owner's
+# method on the target they resolved from the selection, which asks the person what an operation would be told.
+list->rename_item();
+plater.set_number_of_copies();
+# The undo step of a tool whose function has one automation entry point (object_transform and
+# object_set_height_ranges).
+plater.take_snapshot("Transform object");
+plater.take_snapshot("Transform part", UndoRedo::SnapshotType::GizmoAction);
+plater.take_snapshot("Edit height ranges");
+
+[src/slic3r/GUI/Mcp/Tools/PlateTools.cpp]
+# The undo step of a tool whose function has one automation entry point (plate_set_settings).
 plater.take_snapshot("Plate Settings");
-plater.take_snapshot("Change object settings");
 # A tool selecting the plate it was given before its own work, as the plate's settings icon does.
 plater.select_plate(index);
+
+[src/slic3r/GUI/Mcp/Tools/PresetTools.cpp]
+# The undo step of a tool whose function has one automation entry point (settings_set's object and part
+# targets, and project_set_settings, whose settings this file writes).
+plater.take_snapshot("Move object");
+plater.take_snapshot("Change object settings");
 # Another function that uses the same owner method: settings_set makes the filament tab edit a slot's
 # preset, and preset_delete selects the preset, deletes it and selects back.
 if (!tab->select_preset(name))
 if (!tab->select_preset(name))
 tab->select_preset(selected);
 
-[src/slic3r/GUI/Mcp/McpToolsLayers.cpp]
-# The undo step of a tool whose function has one automation entry point (object_set_height_ranges).
-plater.take_snapshot("Edit height ranges");
-
-[src/slic3r/GUI/Mcp/McpToolsProject.cpp]
+[src/slic3r/GUI/Mcp/Tools/ProjectTools.cpp]
 # The asking path of a command, its person's form: project_new and project_save called with no arguments
 # call the owner's method, which asks the person what an operation would be told.
 plater->new_project();
 return NativeCommands::project_save_result(plater->save_project(false));
-
-[src/slic3r/GUI/Mcp/McpToolsScene.cpp]
-# The asking path of a command, its person's form: object_rename {} and object_set_instances {} call the owner's
-# method on the target they resolved from the selection, which asks the person what an operation would be told.
-list->rename_item();
-plater.set_number_of_copies();
-# The undo step of a tool whose function has one automation entry point (object_transform).
-plater.take_snapshot("Transform object");
-plater.take_snapshot("Transform part", UndoRedo::SnapshotType::GizmoAction);
 
 [src/slic3r/plugin/host/PluginHostPresets.cpp]
 # The plugin API's own step between resolving a filament and assigning it: its transaction edits the

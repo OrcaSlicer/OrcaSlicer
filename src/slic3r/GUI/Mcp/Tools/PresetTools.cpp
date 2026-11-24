@@ -1,73 +1,58 @@
-// preset_list, preset_select, preset_save, preset_delete, settings_list, settings_get, settings_set,
-// plate_get_settings, plate_set_settings, project_get_settings, project_set_settings and
-// plate_list: presets are selected through the same selectors a person uses, saved and deleted through the tab, and
-// settings change through the Tab's own transaction (strict parsing, on_change callbacks, rollback on failure), or
-// for the project's and the plates' own settings through the code of their sidebar controls and dialogs, so the UI
-// and the project stay consistent. The preferences have commands of their own (McpToolsPreferences.cpp). The plate
-// commands made from menu items act on the plate a call names, else on the
-// current plate, through the plate operations (Operations/PlateOps.hpp); plate_add runs its menu item's function
-// (NativeCommandMenuItems.hpp).
+// The place Presets and settings: preset_list, preset_select, preset_save, preset_delete, settings_list, settings_get
+// and settings_set. Presets are selected through the same selectors a person uses, saved and deleted through the
+// tab, and settings change through the Tab's own transaction (strict parsing, on_change callbacks, rollback on
+// failure), so the UI and the project stay consistent. The project's and the plates' own settings, and the
+// filament list's flushing, are read and written by the code here too, through the code of their sidebar controls
+// and dialogs; their commands are in ProjectTools.cpp, PlateTools.cpp and FilamentTools.cpp. Also the commands made
+// from the presets' and the settings mode's menu items.
 
-#include "slic3r/GUI/I18N.hpp"
-#include "McpArguments.hpp"
-#include "McpTargets.hpp"
-#include "McpTools.hpp"
+#include "slic3r/GUI/Mcp/McpArguments.hpp"
+#include "slic3r/GUI/Mcp/McpTargets.hpp"
+#include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/CreatePresetsDialog.hpp"
 #include "slic3r/GUI/FilamentMapPanel.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/GUI_Factories.hpp"
-#include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
-#include "slic3r/GUI/IMSlider.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
-#include "slic3r/GUI/MixedFilamentDialog.hpp"
 #include "slic3r/GUI/NativeCommandMenuItems.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/ObjectDataViewModel.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
-#include "slic3r/GUI/Operations/PlateOps.hpp"
 #include "slic3r/GUI/Operations/PresetOps.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
-#include "slic3r/GUI/PlateSettingsDialog.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/PresetComboBoxes.hpp"
 #include "slic3r/GUI/SavePresetDialog.hpp"
 #include "slic3r/GUI/SettingsIndex.hpp"
 #include "slic3r/GUI/Tab.hpp"
 #include "slic3r/GUI/WipeTowerDialog.hpp"
-#include "slic3r/GUI/format.hpp"
 
 #include "libslic3r/AppConfig.hpp"
-#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/CustomGCode.hpp"
-#include "libslic3r/ExtrusionEntity.hpp"
-#include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/FlushVolCalc.hpp"
-#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/ParameterUtils.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
-#include "libslic3r/Utils.hpp"
-#include "libslic3r/libslic3r.h"
 
 #include <wx/dataview.h>
 #include <wx/defs.h>
-#include <wx/event.h>
 #include <wx/string.h>
 
 #include <algorithm>
 #include <cctype>
 #include <cfloat>
-#include <climits>
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
@@ -75,10 +60,8 @@
 #include <functional>
 #include <initializer_list>
 #include <iterator>
-#include <limits>
 #include <map>
 #include <memory>
-#include <numeric>
 #include <optional>
 #include <set>
 #include <sstream>
@@ -316,7 +299,8 @@ std::string filament_list_hint(const std::string& key)
     return {};
 }
 
-// Per filament slot, in config order, whether it is a mixed filament. UI thread.
+} // namespace
+
 std::vector<unsigned char> mixed_slots()
 {
     const PresetBundle&        bundle = *wxGetApp().preset_bundle;
@@ -325,6 +309,8 @@ std::vector<unsigned char> mixed_slots()
         mixed.push_back(bundle.is_mixed_filament(i));
     return mixed;
 }
+
+namespace {
 
 // The types settings_get looks through when keys come without one: the process, filament and printer settings being
 // edited, since a key read for what it does rarely comes with the tab that holds it.
@@ -350,9 +336,8 @@ std::string type_of_key(const std::string& key)
     return std::find(project.begin(), project.end(), key) != project.end() ? "project" : "";
 }
 
-// Sets unknown_keys to the keys a read named that its settings, `within`, lack; type_of to where each of those is a
-// setting elsewhere (type_of_key()), so the agent can ask there; and similar to the keys of `within` like each of the
-// others, as settings_set's refusal gives them. UI thread.
+} // namespace
+
 void add_unknown_keys(json& out, const json& unknown, const std::vector<std::string>& within)
 {
     if (unknown.empty())
@@ -373,9 +358,6 @@ void add_unknown_keys(json& out, const json& unknown, const std::vector<std::str
         out["similar"] = std::move(similar);
 }
 
-// The refusal of a key that the settings `where` names (a type, "project" or "plate") lack: it says where the key is a
-// setting when it is one elsewhere, since the usual cause is a key passed with the wrong type or to none (the
-// process). Its code is invalid_argument. UI thread.
 ToolFailure unknown_setting(const std::string& key, const std::string& where, json details)
 {
     const json code = {{"code", "invalid_argument"}};
@@ -389,8 +371,6 @@ ToolFailure unknown_setting(const std::string& key, const std::string& where, js
     return ToolFailure("Unknown setting \"" + key + "\" for the " + where + " settings", std::move(details));
 }
 
-// The project's settings and the filament list's flushing: project_config's, with the wipe tower position one entry
-// per plate, since a project can store fewer. UI thread.
 DynamicPrintConfig project_settings()
 {
     const PresetBundle& bundle = *wxGetApp().preset_bundle;
@@ -411,7 +391,6 @@ DynamicPrintConfig project_settings()
     return out;
 }
 
-// The values a project setting's control offers this printer; empty while the control is hidden. UI thread.
 std::vector<std::string> project_offered(const std::string& key)
 {
     PresetBundle&             bundle  = *wxGetApp().preset_bundle;
@@ -437,9 +416,6 @@ std::vector<std::string> project_offered(const std::string& key)
     return out;
 }
 
-// project_set_settings, with the project's keys, and filament_set_flushing, with the filament list's flushing
-// (`flushing`). Every key is written by the code its control runs: the plate type selector, the Flushing volumes and
-// Purge mode dialogs' OK, a wipe tower drag. Everything is checked before anything changes.
 ToolResult set_project_values(const json& values_in, ToolContext& ctx, bool flushing)
 {
     DynamicPrintConfig before;
@@ -568,657 +544,7 @@ ToolResult set_project_values(const json& values_in, ToolContext& ctx, bool flus
     return ToolResult::ok(reply);
 }
 
-ToolResult set_project_settings(const json& args, ToolContext& ctx)
-{
-    const json values_in = args.value("values", json::object());
-    if (values_in.empty())
-        throw ToolFailure("values must be a non-empty object {key: value}");
-    return set_project_values(values_in, ctx, false);
-}
-
-// What a slot's colour button does with the colour its picker gives: the slot's colour, then its
-// EVT_FILAMENT_COLOR_CHANGED, which recalculates the flushing volumes where Auto flush after changing is on. UI thread.
-void apply_slot_colour(std::size_t slot, const std::string& colour)
-{
-    auto& combos = ui_plater().sidebar().combos_filament();
-    auto  combo  = std::find_if(combos.begin(), combos.end(),
-                                [slot](PlaterPresetComboBox* c) { return c != nullptr && c->get_filament_idx() == int(slot); });
-    if (combo == combos.end())
-        throw ToolFailure("Filament slot " + std::to_string(slot + 1) + " has no colour button");
-    (*combo)->sync_colour_config({colour}, false);
-    wxCommandEvent* evt = new wxCommandEvent(EVT_FILAMENT_COLOR_CHANGED);
-    evt->SetInt(int(slot));
-    wxQueueEvent(&ui_plater(), evt);
-}
-
-// filament_set_colour: one slot's colour, checked as check_filament_colours() checks a colour list. The reply reads it
-// back once the change has settled.
-ToolResult set_filament_colour(const json& args, ToolContext& ctx)
-{
-    const int         slot   = arg_int(args, "filament_slot", 1);
-    const std::string colour = arg_string(args, "colour");
-    bool              changed = false;
-    ctx.run_ui([&]() -> json {
-        ui_plater();
-        const std::vector<std::string>& current =
-            wxGetApp().preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour")->values;
-        if (slot < 1 || std::size_t(slot) > current.size())
-            throw ToolFailure("filament_slot must be 1.." + std::to_string(current.size()));
-        std::vector<std::string> colours = current;
-        colours[std::size_t(slot) - 1]   = colour;
-        colours                          = check_filament_colours(colours, current, mixed_slots());
-        changed                          = colours[std::size_t(slot) - 1] != current[std::size_t(slot) - 1];
-        if (changed)
-            apply_slot_colour(std::size_t(slot) - 1, colours[std::size_t(slot) - 1]);
-        return json();
-    });
-    settle(ctx);
-    return ToolResult::ok(ctx.run_ui([&]() -> json {
-        const std::vector<std::string>& colours =
-            wxGetApp().preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour")->values;
-        return {{"filament_slot", slot}, {"colour", colours[std::size_t(slot) - 1]}, {"changed", changed}};
-    }));
-}
-
-// filament_list: the filament list as the sidebar shows it, a row per slot in config order (the physical filaments,
-// then the mixed ones), with the flushing its Flushing volumes and Purge mode buttons set. UI thread.
-json filament_list()
-{
-    Sidebar&                        sidebar    = ui_plater().sidebar();
-    PresetBundle&                   bundle     = *wxGetApp().preset_bundle;
-    const std::vector<std::string>& colours    = bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values;
-    const auto*                     components = bundle.project_config.option<ConfigOptionStrings>("filament_mixed_components");
-    const std::vector<std::size_t>  broken     = sidebar.broken_mixed_filaments();
-    json                            rows       = json::array();
-    for (std::size_t i = 0; i < colours.size(); ++i) {
-        const bool mixed = bundle.is_mixed_filament(i);
-        json       row{{"filament_slot", i + 1}, {"mixed", mixed}, {"colour", colours[i]}};
-        if (!mixed) {
-            const std::string name   = i < bundle.filament_presets.size() ? bundle.filament_presets[i] : std::string();
-            Preset*           preset = bundle.filaments.find_preset(name);
-            std::string       display;
-            row["preset"] = name;
-            row["type"]   = preset != nullptr ? preset->config.get_filament_type(display) : std::string();
-            rows.push_back(std::move(row));
-            continue;
-        }
-        // The components as stored, a deleted one as 0; the ratios and the gradient as the Edit Mixed Filament dialog
-        // reads them.
-        json parts = json::array();
-        if (components != nullptr && i < components->size())
-            for (const unsigned int component : parse_mixed_components(components->values[i]))
-                parts.push_back(component);
-        const MixedFilamentResult mix = sidebar.mixed_filament_result(i);
-        row["components"]             = std::move(parts);
-        row["ratios"]                 = mix.ratios;
-        row["gradient"]               = nullptr;
-        if (mix.gradient_enabled && mix.components.size() == 2) {
-            // Direction 0 starts with the first component's share high: it leads at the bottom (filament_mixed_gradient_range).
-            const bool first_at_bottom = mix.gradient_direction == 0;
-            row["gradient"]            = {{"bottom", first_at_bottom ? mix.components[0] : mix.components[1]},
-                                          {"top", first_at_bottom ? mix.components[1] : mix.components[0]},
-                                          {"per_part", mix.per_part_gradient},
-                                          {"curve", mix.gradient_curve.empty() ? "linear" : "custom"}};
-        }
-        row["broken"] = std::find(broken.begin(), broken.end(), i) != broken.end();
-        rows.push_back(std::move(row));
-    }
-    const DynamicPrintConfig settings = project_settings();
-    json                     out{{"filaments", std::move(rows)},
-                                 {"flush_multiplier", settings.option<ConfigOptionFloats>("flush_multiplier")->values},
-                                 {"flush_volumes_matrix", settings.option<ConfigOptionFloats>("flush_volumes_matrix")->values},
-                                 {"prime_volume_mode", settings.opt_serialize("prime_volume_mode")}};
-    if (std::vector<std::string> offered = project_offered("prime_volume_mode"); !offered.empty())
-        out["prime_volume_modes"] = std::move(offered);
-    return out;
-}
-
-bool is_plate_setting(const std::string& key)
-{
-    const std::vector<std::string>& keys = plate_setting_keys();
-    return std::find(keys.begin(), keys.end(), key) != keys.end();
-}
-
-// The plate settings plate_list and an unnamed plate_get_settings show: the filament grouping only on a printer with
-// several extruders, whose plates show the filament map icon (a plate keeps a mode of its own on any printer). UI thread.
-std::vector<std::string> listed_plate_keys()
-{
-    std::vector<std::string> keys = plate_setting_keys();
-    if (wxGetApp().preset_bundle->get_printer_extruder_count() < 2)
-        keys.erase(std::remove_if(keys.begin(), keys.end(),
-                                  [](const std::string& key) { return key == "filament_map_mode" || key == "filament_map"; }),
-                   keys.end());
-    return keys;
-}
-
-// The plate the call's `plate` argument names, the current one without it. UI thread.
-int scope_plate(const json& args)
-{
-    PartPlateList& plates = ui_plater().get_partplate_list();
-    const int      index  = arg_int(args, "plate", plates.get_curr_plate_index());
-    if (index < 0 || index >= plates.get_plate_count())
-        throw ToolFailure(no_such_plate(index, plates.get_plate_count()));
-    return index;
-}
-
-// How many filaments the filament grouping dialog groups: one per slot of the project.
-int grouped_filaments()
-{
-    const auto* colours = ui_plater().config()->option<ConfigOptionStrings>("filament_colour");
-    return colours != nullptr ? int(colours->size()) : 0;
-}
-
-// The extruder of each filament as the plate's filament grouping dialog shows it: the plate's own map, else the
-// project's, extruder 1 for a filament it lacks. With `volumes`, the nozzle volume type of each filament the same way,
-// Standard for one it lacks.
-std::vector<int> shown_filament_map(const PartPlate& plate, bool volumes = false)
-{
-    const DynamicPrintConfig& project = wxGetApp().preset_bundle->project_config;
-    std::vector<int> map = volumes ? plate.get_real_filament_volume_maps(project) : plate.get_real_filament_maps(project);
-    map.resize(std::size_t(grouped_filaments()), volumes ? 0 : 1);
-    return map;
-}
-
-// The filament_map_mode values the plate's filament grouping dialog offers: none on a printer with one extruder, whose
-// plates show no filament map icon, and Auto For Match, which groups by the filaments a printer has loaded, once that
-// printer is synced and has no filament track switch ready. UI thread.
-std::vector<std::string> offered_map_modes()
-{
-    if (wxGetApp().preset_bundle->get_printer_extruder_count() < 2)
-        return {};
-    Plater&                  plater = ui_plater();
-    std::vector<std::string> modes{"Auto For Flush"};
-    if (plater.get_machine_sync_status() && !plater.sidebar().is_fila_switch_ready())
-        modes.push_back("Auto For Match");
-    modes.push_back("Manual");
-    return modes;
-}
-
-// A plate's filament_map_mode as plate_set_settings takes it: an offered mode, or null, no mode of the plate's own, so
-// that it follows the project's grouping (PartPlate::set_filament_map_mode() with fmmDefault; the plate's grouping
-// dialog offers no page for it). UI thread.
-FilamentMapMode filament_map_mode_value(const json& value)
-{
-    if (value.is_null())
-        return fmmDefault;
-    const std::vector<std::string> offered = offered_map_modes();
-    if (!value.is_string() || std::find(offered.begin(), offered.end(), value.get<std::string>()) == offered.end())
-        throw ToolFailure("filament_map_mode is a mode the plate's filament grouping offers (meta.offered of plate_get_settings), "
-                          "or null for the project's grouping" +
-                              std::string(value == "Auto For Match" ? "; Auto For Match groups by the filaments a printer has "
-                                                                      "loaded, and is offered once that printer is synced" :
-                                                                      ""),
-                          {{"offered", offered}});
-    return FilamentMapMode(ConfigOptionEnum<FilamentMapMode>::get_enum_values().at(value.get<std::string>()));
-}
-
-// A plate setting in the form plate_set_settings takes: the plate's own value, null where it follows the
-// project's plate type, the process, Auto or the project's filament grouping; or with `effective` what the plate
-// prints with.
-json plate_value(PartPlate& plate, const std::string& key, bool effective)
-{
-    if (key == "filament_map_mode") {
-        const FilamentMapMode mode = effective ? plate.get_real_filament_map_mode(wxGetApp().preset_bundle->project_config) :
-                                                 plate.get_filament_map_mode();
-        return mode == fmmDefault ? json() : json(ConfigOptionEnum<FilamentMapMode>(mode).serialize());
-    }
-    if (key == "filament_map") {
-        const std::vector<int> own = plate.get_filament_maps();
-        return effective ? json(shown_filament_map(plate)) : own.empty() ? json() : json(own);
-    }
-    if (key == "curr_bed_type") {
-        const BedType type = plate.get_bed_type(effective);
-        return type == btDefault ? json() : json(ConfigOptionEnum<BedType>(type).serialize());
-    }
-    if (key == "print_sequence") {
-        const PrintSequence sequence = effective ? plate.get_real_print_seq() : plate.get_print_seq();
-        return sequence == PrintSequence::ByDefault ? json() : json(ConfigOptionEnum<PrintSequence>(sequence).serialize());
-    }
-    if (key == "spiral_mode")
-        return effective || plate.has_spiral_mode_config() ? json(plate.get_spiral_vase_mode()) : json();
-    if (key == "first_layer_print_sequence") {
-        const std::vector<int> order = plate.get_first_layer_print_sequence();
-        return order.empty() ? json() : json(order);
-    }
-    const std::vector<LayerPrintSequence> ranges = plate.get_other_layers_print_sequence();
-    return ranges.empty() ? json() : layer_sequences_json(ranges);
-}
-
-// Every listed setting of a plate (listed_plate_keys()): its own value, or with `effective` what it prints with.
-json plate_values(PartPlate& plate, bool effective)
-{
-    json out = json::object();
-    for (const std::string& key : listed_plate_keys())
-        out[key] = plate_value(plate, key, effective);
-    return out;
-}
-
-// plate_get_settings: every key, or those named, with the plate's own value and the one it prints with. UI thread.
-json plate_settings(const json& args)
-{
-    const int                index = scope_plate(args);
-    PartPlate&               plate = *ui_plater().get_partplate_list().get_plate(index);
-    std::vector<std::string> keys  = listed_plate_keys();
-    json                     unknown = json::array();
-    if (args.contains("keys")) {
-        keys.clear();
-        for (const json& k : args["keys"]) {
-            const std::string key = k.get<std::string>();
-            if (is_plate_setting(key))
-                keys.push_back(key);
-            else
-                unknown.push_back(key);
-        }
-    }
-    json items = json::array();
-    for (const std::string& key : keys) {
-        json item{{"key", key}, {"value", plate_value(plate, key, false)}, {"effective", plate_value(plate, key, true)}};
-        if (arg_bool(args, "include_meta", true)) {
-            item["meta"] = option_meta(*print_config_def.get(key));
-            if (key == "curr_bed_type")
-                item["meta"]["offered"] = project_offered(key);
-            if (key == "filament_map_mode")
-                item["meta"]["offered"] = offered_map_modes();
-        }
-        items.push_back(std::move(item));
-    }
-    json out     = page(items, args, 100);
-    out["plate"] = index;
-    add_unknown_keys(out, unknown, listed_plate_keys());
-    return out;
-}
-
-// plate_set_settings. The Plate Settings dialog's values go through its OK (Plater::apply_plate_settings()) with the
-// plate's other values as they are, after selecting the plate as its settings icon does; the filament grouping's go
-// through the OK of the dialog the plate's filament map icon opens (Plater::open_filament_map_setting_dialog()), which
-// takes no undo snapshot of its own. Everything is checked before anything changes, a key a plate's settings lack
-// before the app is read, and the call is one undo step.
-ToolResult set_plate_settings(const json& args, ToolContext& ctx)
-{
-    const json values_in = args.value("values", json::object());
-    if (values_in.empty())
-        throw ToolFailure("values must be a non-empty object {key: value}");
-    int  index = -1;
-    json reply = ctx.run_ui([&]() -> json {
-        for (auto it = values_in.begin(); it != values_in.end(); ++it)
-            if (!is_plate_setting(it.key()))
-                throw unknown_setting(it.key(), "plate", {{"keys", plate_setting_keys()}});
-        Plater& plater = ui_plater();
-        if (plater.printer_technology() != ptFFF || plater.only_gcode_mode())
-            throw ToolFailure("Plates are a filament (FFF) feature");
-        index                 = scope_plate(args);
-        PartPlateList& plates = plater.get_partplate_list();
-        PartPlate&     plate  = *plates.get_plate(index);
-        const json     before = plate_values(plate, false);
-        // The dialog's choices, starting from the plate's own.
-        const int                       own_spiral   = plate.has_spiral_mode_config() ? (plate.get_spiral_vase_mode() ? 1 : 2) : 0;
-        BedType                         bed_type     = plate.get_bed_type();
-        PrintSequence                   sequence     = plate.get_print_seq();
-        int                             spiral       = own_spiral;
-        std::vector<int>                first_layer  = plate.get_first_layer_print_sequence();
-        std::vector<LayerPrintSequence> other_layers = plate.get_other_layers_print_sequence();
-        const int                       slots        = wxGetApp().filaments_cnt();
-        // The filament grouping dialog's choices: its mode, and the map its Custom page sets.
-        const FilamentMapMode           own_mode     = plate.get_filament_map_mode();
-        FilamentMapMode                 map_mode     = own_mode;
-        std::optional<std::vector<int>> map;
-        const int                       extruders    = wxGetApp().preset_bundle->get_printer_extruder_count();
-        for (auto it = values_in.begin(); it != values_in.end(); ++it) {
-            const std::string& key   = it.key();
-            const json&        value = it.value();
-            if (key == "curr_bed_type") {
-                bed_type = btDefault; // "Same as Global Plate Type"
-                if (value.is_null())
-                    continue;
-                const std::vector<std::string> offered = project_offered(key);
-                if (offered.empty())
-                    throw ToolFailure("curr_bed_type: this printer has a single plate type");
-                if (!value.is_string() || std::find(offered.begin(), offered.end(), value.get<std::string>()) == offered.end())
-                    throw ToolFailure("This printer does not offer curr_bed_type " + value.dump(), {{"offered", offered}});
-                bed_type = BedType(ConfigOptionEnum<BedType>::get_enum_values().at(value.get<std::string>()));
-            } else if (key == "print_sequence") {
-                const auto& names = ConfigOptionEnum<PrintSequence>::get_enum_values();
-                if (!value.is_null() && (!value.is_string() || names.count(value.get<std::string>()) == 0))
-                    throw ToolFailure("print_sequence is \"by layer\", \"by object\" or null (the process's)");
-                sequence = value.is_null() ? PrintSequence::ByDefault : PrintSequence(names.at(value.get<std::string>()));
-            } else if (key == "spiral_mode") {
-                if (!value.is_null() && !value.is_boolean())
-                    throw ToolFailure("spiral_mode is true, false or null (the process's)");
-                spiral = value.is_null() ? 0 : value.get<bool>() ? 1 : 2;
-            } else if (key == "first_layer_print_sequence" || key == "other_layers_print_sequence") {
-                // The dialog greys the custom orders out while a slot is a mixed filament, which prints a different
-                // physical filament from layer to layer.
-                if (!value.is_null() && wxGetApp().preset_bundle->num_mixed_filaments() > 0)
-                    throw ToolFailure(key + " cannot be set while the project has mixed filaments (filament_list's mixed rows); "
-                                            "null sets Auto");
-                if (key == "first_layer_print_sequence")
-                    first_layer = value.is_null() ? std::vector<int>() : filament_order(value, slots);
-                else
-                    other_layers = value.is_null() ? std::vector<LayerPrintSequence>() : layer_sequences(value, slots);
-            } else {
-                // The plate shows its filament map icon on a printer with several extruders alone.
-                if (extruders < 2)
-                    throw ToolFailure(key + " groups the filaments onto the extruders of a printer that has several; this one has one");
-                if (key == "filament_map_mode") {
-                    map_mode = filament_map_mode_value(value);
-                } else {
-                    if (!value.is_array() ||
-                        std::any_of(value.begin(), value.end(), [](const json& extruder) { return !extruder.is_number_integer(); }))
-                        throw ToolFailure("filament_map is the extruder of each filament, 1-based, e.g. [1, 2, 2]");
-                    map = value.get<std::vector<int>>();
-                }
-            }
-        }
-        if (map) {
-            const std::string mode = map_mode == fmmDefault ? std::string() : ConfigOptionEnum<FilamentMapMode>(map_mode).serialize();
-            if (const std::string err = filament_map_error(mode, *map, grouped_filaments(), extruders); !err.empty())
-                throw ToolFailure(err);
-        }
-        const bool settings = bed_type != plate.get_bed_type() || sequence != plate.get_print_seq() ||
-                              first_layer != plate.get_first_layer_print_sequence() ||
-                              other_layers != plate.get_other_layers_print_sequence() || spiral != own_spiral;
-        // The grouping dialog's OK: in the Manual mode the map and nozzle volume types its Custom page shows become the
-        // plate's own, and the slice is invalidated when the mode or what the plate prints with changes.
-        const DynamicPrintConfig& project     = wxGetApp().preset_bundle->project_config;
-        const std::vector<int>    old_maps    = plate.get_real_filament_maps(project);
-        const std::vector<int>    old_volumes = plate.get_real_filament_volume_maps(project);
-        const std::vector<int>    new_maps    = map ? *map : shown_filament_map(plate);
-        const std::vector<int>    new_volumes = shown_filament_map(plate, true);
-        const bool                manual      = map_mode == fmmManual;
-        const bool                regrouped   = map_mode != own_mode || old_maps != new_maps || old_volumes != new_volumes;
-        const bool                own_map     = manual && (plate.get_filament_maps() != new_maps ||
-                                                    plate.get_filament_volume_maps() != new_volumes);
-        const bool grouping_given = values_in.contains("filament_map_mode") || values_in.contains("filament_map");
-        const bool grouping       = grouping_given && (regrouped || own_map);
-        // The Custom page disables the dialog's OK while an extruder its map gives a filament the plate prints has no
-        // nozzle of the volume type that filament needs.
-        if (const std::optional<NozzleShortage> shortage = manual && grouping_given ?
-                manual_map_nozzle_shortage(nozzle_inventory(*wxGetApp().preset_bundle), plate.get_extruders(true), new_maps,
-                                           new_volumes) :
-                std::nullopt) {
-            const std::string type = ConfigOptionEnum<NozzleVolumeType>(shortage->volume_type).serialize();
-            const char*       side = shortage->extruder == 0 ? " (left)" : shortage->extruder == 1 ? " (right)" : "";
-            throw ToolFailure("The manual grouping gives extruder " + std::to_string(shortage->extruder + 1) + side +
-                                  " a filament that prints with a " + type + " nozzle, and the extruder has no " + type +
-                                  " nozzle, so the filament grouping dialog does not take this map: give that filament another "
-                                  "extruder, or set the extruder's nozzles first",
-                              {{"code", "no_nozzle_for_grouping"}, {"extruder", shortage->extruder + 1}, {"nozzle_volume_type", type}});
-        }
-        if (settings || grouping) {
-            // The settings and filament map icons select their plate first; the dialogs work on the current plate.
-            if (index != plates.get_curr_plate_index())
-                plater.select_plate(index);
-            Plater::SingleSnapshot single(&plater);
-            plater.take_snapshot("Plate Settings");
-            if (settings)
-                plater.apply_plate_settings(index, bed_type, first_layer, other_layers, sequence, spiral);
-            if (grouping) {
-                if (map_mode != own_mode)
-                    plate.set_filament_map_mode(map_mode);
-                if (manual) {
-                    plate.set_filament_maps(new_maps);
-                    plate.set_filament_volume_maps(new_volumes);
-                }
-                if (regrouped) {
-                    plate.update_slice_result_valid_state(false);
-                    plater.set_plater_dirty(true);
-                    plater.update();
-                }
-            }
-        }
-        const json after     = plate_values(plate, false);
-        json       applied   = json::object();
-        json       effective = json::object();
-        json       changed   = json::object();
-        for (auto it = values_in.begin(); it != values_in.end(); ++it) {
-            applied[it.key()]   = after.value(it.key(), json());
-            effective[it.key()] = plate_value(plate, it.key(), true);
-        }
-        for (auto it = after.begin(); it != after.end(); ++it)
-            if (it.value() != before.value(it.key(), json()))
-                changed[it.key()] = it.value();
-        return json{{"plate", index}, {"applied", applied}, {"changed", changed}, {"effective", effective}};
-    });
-    // A replay sets the same plate, whichever is current then.
-    if (!args.contains("plate")) {
-        json recorded     = args;
-        recorded["plate"] = index;
-        ctx.set_journal_args(std::move(recorded));
-    }
-    settle(ctx);
-    return ToolResult::ok(reply);
-}
-
-// How many objects have an instance on plate `plate`; object_list lists them.
-int objects_on_plate(const Model& model, PartPlateList& plates, int plate)
-{
-    int objects = 0;
-    for (std::size_t o = 0; o < model.objects.size(); ++o) {
-        const std::size_t instances = model.objects[o]->instances.size();
-        std::size_t       j         = 0;
-        while (j < instances && instance_plate(plates, int(o), int(j)) != plate)
-            ++j;
-        objects += j < instances;
-    }
-    return objects;
-}
-
-// plate_list: every plate's name, lock, settings as it prints them, what it sets itself, its objects, place on the bed,
-// slice state, prime tower position and layer G-codes. UI thread.
-json list_plates(const json& args)
-{
-    Plater&                   plater  = ui_plater();
-    PartPlateList&            plates  = plater.get_partplate_list();
-    const Model&              model   = plater.model();
-    const DynamicPrintConfig& project = wxGetApp().preset_bundle->project_config;
-    const auto*               tower_x = project.option<ConfigOptionFloats>("wipe_tower_x");
-    const auto*               tower_y = project.option<ConfigOptionFloats>("wipe_tower_y");
-    json                      items   = json::array();
-    for (int i = 0; i < plates.get_plate_count(); ++i) {
-        PartPlate& plate = *plates.get_plate(i);
-        json       entry = plate_values(plate, true);
-        entry["index"]   = i;
-        entry["name"]    = plate.get_plate_name();
-        entry["locked"]  = plate.is_locked();
-        entry["current"] = i == plates.get_curr_plate_index();
-        json overrides   = json::array();
-        for (const std::string& key : listed_plate_keys())
-            if (!plate_value(plate, key, false).is_null())
-                overrides.push_back(key);
-        entry["overrides"] = std::move(overrides);
-        entry["objects"]   = objects_on_plate(model, plates, i);
-        entry.update(plate_place(plate));
-        entry["sliced"]    = plate.is_slice_result_valid();
-        if (tower_x != nullptr && tower_y != nullptr && !tower_x->empty() && !tower_y->empty())
-            entry["wipe_tower"] = {tower_x->get_at(std::size_t(i)), tower_y->get_at(std::size_t(i))};
-        // Layer numbers only from an up-to-date slice that no slice is rewriting.
-        const auto          codes = model.plates_custom_gcodes.find(i);
-        std::vector<double> layer_zs;
-        if (codes != model.plates_custom_gcodes.end() && !codes->second.gcodes.empty() && plate.is_slice_result_valid() &&
-            !plater.is_slicing_any() && plate.get_slice_result() != nullptr)
-            layer_zs = gcode_layer_zs(*plate.get_slice_result());
-        entry["layer_gcode"] = codes != model.plates_custom_gcodes.end() ? layer_gcode_json(codes->second, layer_zs) : json::array();
-        items.push_back(std::move(entry));
-    }
-    return page(items, args, 100);
-}
-
-// ---- The plate commands made from menu items ----
-
-// What a plate command made from menu items answers for a refusal: as information where its item told it so (no plates to
-// edit, the only plate, no room for another, a slice running), else as an error.
-AppActionRunResult plate_refused(const Ops::Refusal& refusal)
-{
-    const std::string code = refusal.code;
-    const bool        info = refusal.kind == Ops::RefusalKind::Busy || code == "no_plates" || code == "last_plate" ||
-                      code == "too_many_plates";
-    return NativeCommands::refused(refusal, info ? AppActionRunResult::Level::Info : AppActionRunResult::Level::Error);
-}
-
-// The plate a call's `plate` argument names; none without it, for the current plate.
-std::optional<int> named_plate(const json& args)
-{
-    return args.contains("plate") ? std::optional<int>(arg_int(args, "plate", 0)) : std::nullopt;
-}
-
-// The plates as a command that adds or removes one replies with them afterwards: each plate's index, name and how many
-// objects stand on it, and the current plate. UI thread.
-json plates_reply()
-{
-    Plater&        plater = ui_plater();
-    PartPlateList& plates = plater.get_partplate_list();
-    json           items  = json::array();
-    for (int i = 0; i < plates.get_plate_count(); ++i)
-        items.push_back(
-            {{"index", i}, {"name", plates.get_plate(i)->get_plate_name()}, {"objects", objects_on_plate(plater.model(), plates, i)}});
-    return {{"plates", std::move(items)}, {"current", plates.get_curr_plate_index()}};
-}
-
-AppActionRunResult plate_delete_command(const json& args)
-{
-    const Ops::Outcome<int> deleted = Ops::delete_plate({named_plate(args)});
-    if (!deleted)
-        return plate_refused(deleted.refusal());
-    json reply     = plates_reply();
-    reply["plate"] = deleted.value();
-    return menu_reply(reply);
-}
-
-AppActionRunResult plate_duplicate_command(const json& args)
-{
-    const Ops::Outcome<Ops::PlateCopy> made = Ops::duplicate_plate({named_plate(args)});
-    if (!made)
-        return plate_refused(made.refusal());
-    json reply         = plates_reply();
-    reply["plate"]     = made.value().plate;
-    reply["new_plate"] = made.value().copy;
-    return menu_reply(reply);
-}
-
-// plate_rename: a call with no arguments asks for the current plate's name in its name dialog, as the menu item does; any
-// other gives it.
-AppActionRunResult plate_rename_command(const json& args)
-{
-    Ops::RenamePlateArgs op;
-    op.plate = named_plate(args);
-    if (person_form(args)) {
-        if (std::optional<Ops::Refusal> refusal = Ops::plates_refusal())
-            return plate_refused(*refusal);
-        PlateNameEditDialog dlg(wxGetApp().mainframe, wxID_ANY, _L("Edit Plate Name"));
-        dlg.set_plate_name(from_u8(ui_plater().get_partplate_list().get_curr_plate()->get_plate_name()));
-        // The person called it off, and knows nothing was renamed.
-        if (dlg.ShowModal() != wxID_YES)
-            return quiet_refusal(Ops::plate_not_renamed());
-        op.name = into_u8(dlg.get_plate_name());
-    } else {
-        op.name = arg_string(args, "name");
-    }
-    const Ops::Outcome<int> renamed = Ops::rename_plate(op);
-    if (!renamed)
-        return plate_refused(renamed.refusal());
-    const PartPlate& plate = *ui_plater().get_partplate_list().get_plate(renamed.value());
-    return menu_reply({{"plate", renamed.value()}, {"name", plate.get_plate_name()}});
-}
-
-AppActionRunResult plate_lock_command(const json& args)
-{
-    Ops::SetPlateLockedArgs op;
-    op.plate = named_plate(args);
-    if (args.contains("locked"))
-        op.locked = arg_bool(args, "locked", true);
-    const Ops::Outcome<Ops::PlateLocked> locked = Ops::set_plate_locked(op);
-    if (!locked)
-        return plate_refused(locked.refusal());
-    return menu_reply({{"plate", locked.value().plate}, {"locked", locked.value().locked}, {"changed", locked.value().changed}});
-}
-
-// plate_select: Ops::select_plate() also serves the commands that select a plate on the way, so the check of the menu items,
-// that the project has plates to select, is made here.
-AppActionRunResult plate_select_command(const json& args)
-{
-    if (std::optional<Ops::Refusal> refusal = Ops::plates_refusal())
-        return plate_refused(*refusal);
-    Ops::SelectPlateArgs op;
-    op.plate = arg_int(args, "plate", ui_plater().get_partplate_list().get_curr_plate_index());
-    if (const Ops::Outcome<Ops::Done> selected = Ops::select_plate(op); !selected)
-        return plate_refused(selected.refusal());
-    return menu_reply({{"plate", op.plate}});
-}
-
-// ---- The filament slot commands made from menu items, and Sync Presets ----
-
-// What a filament slot command answers for a refusal: as information where its menu item told it so (no slots to change, no
-// + and - buttons for the printer, no room for another slot, the only slot), else as an error.
-AppActionRunResult filament_refused(const Ops::Refusal& refusal)
-{
-    const std::string code = refusal.code;
-    const bool info = code == "filaments_unavailable" || code == "one_filament_per_extruder" || code == "too_many_filaments" ||
-                      code == "last_filament_slot";
-    return NativeCommands::refused(refusal, info ? AppActionRunResult::Level::Info : AppActionRunResult::Level::Error);
-}
-
-// What a filament slot command that ran shows a person, `message`, and replies to a call: `reply` with how many slots
-// the project has afterwards.
-AppActionRunResult filament_reply(const wxString& message, json reply)
-{
-    reply["filament_slots"] = wxGetApp().preset_bundle->filament_presets.size();
-    AppActionRunResult result{AppActionRunResult::Level::Succeeded, message};
-    result.reply = reply.dump();
-    return result;
-}
-
-AppActionRunResult filament_add_command(const json&)
-{
-    const Ops::Outcome<int> added = Ops::add_filament_slot();
-    if (!added)
-        return filament_refused(added.refusal());
-    // TRN %1% is a filament slot number.
-    return filament_reply(format_wxstr(_L("Added filament slot %1%."), added.value()), {{"filament_slot", added.value()}});
-}
-
-AppActionRunResult filament_delete_command(const json& args)
-{
-    Ops::DeleteFilamentArgs op;
-    if (args.contains("filament_slot"))
-        op.filament_slot = arg_int(args, "filament_slot", 1);
-    if (args.contains("merge_into"))
-        op.merge_into = arg_int(args, "merge_into", 1);
-    if (args.contains("break_mix"))
-        op.break_mix = arg_bool(args, "break_mix", false);
-    const Ops::Outcome<Ops::DeletedFilament> deleted = Ops::delete_filament_slot(op);
-    if (!deleted)
-        return filament_refused(deleted.refusal());
-    json reply{{"filament_slot", deleted.value().filament_slot}};
-    if (deleted.value().merged_into)
-        reply["merged_into"] = *deleted.value().merged_into;
-    if (!deleted.value().broken_mixed.empty())
-        reply["broken_mixed"] = deleted.value().broken_mixed;
-    // TRN %1% is a filament slot number.
-    return filament_reply(format_wxstr(_L("Deleted filament slot %1%."), deleted.value().filament_slot), std::move(reply));
-}
-
-// filament_sync_ams: with no arguments, as its Speed Dial action, the sync dialog's run, which asks and warns; with
-// mode, the sync with that choice of the dialog, which opens nothing. Reply: each slot's preset and colour afterwards.
-AppActionRunResult sync_ams_command(const json& args)
-{
-    if (!args.contains("mode"))
-        return MenuItems::sync_ams();
-    const Ops::AmsSyncMode             mode   = arg_string(args, "mode") == "map" ? Ops::AmsSyncMode::Map : Ops::AmsSyncMode::Overwrite;
-    const Ops::Outcome<Ops::AmsSynced> synced = Ops::sync_filaments_from_ams(mode);
-    if (!synced)
-        return NativeCommands::refused(synced.refusal(), AppActionRunResult::Level::Error);
-    json slots = json::array();
-    for (std::size_t slot = 0; slot < synced.value().presets.size(); ++slot) {
-        json item{{"filament_slot", slot + 1}, {"preset", synced.value().presets[slot]}};
-        if (slot < synced.value().colours.size())
-            item["colour"] = synced.value().colours[slot];
-        slots.push_back(std::move(item));
-    }
-    json reply{{"mode", arg_string(args, "mode")}, {"filaments", std::move(slots)}};
-    if (!synced.value().unknowns.empty())
-        reply["mapped_to_generic"] = synced.value().unknowns;
-    return menu_reply(reply);
-}
+namespace {
 
 // preset_sync: signed out, a pick says to sign in, as its menu item did, and a call is refused.
 AppActionRunResult preset_sync_command(const json&)
@@ -2286,42 +1612,6 @@ std::vector<double> check_flush_matrix(std::vector<double> matrix, std::size_t s
     return matrix;
 }
 
-json plate_place(PartPlate& plate)
-{
-    // The plate's shape on the bed, moved to where the plate list places the plate; the extended box holds the grabber
-    // in front of it too.
-    const BoundingBoxf3& box = plate.get_bounding_box();
-    const auto           mm  = [](double v) { return std::round(v * 1000.) / 1000. + 0.; };
-    return {{"origin", {mm(box.min.x()), mm(box.min.y())}}, {"size", {mm(box.size().x()), mm(box.size().y())}}};
-}
-
-const std::vector<std::string>& plate_setting_keys()
-{
-    static const std::vector<std::string> keys{"curr_bed_type",
-                                               "print_sequence",
-                                               "spiral_mode",
-                                               "first_layer_print_sequence",
-                                               "other_layers_print_sequence",
-                                               "filament_map_mode",
-                                               "filament_map"};
-    return keys;
-}
-
-std::string filament_map_error(const std::string& mode, const std::vector<int>& map, int filaments, int extruders)
-{
-    if (mode != "Manual")
-        return "filament_map is a plate's own grouping, which filament_map_mode \"Manual\" takes: the automatic modes group the "
-               "filaments when the plate slices, and null follows the project's grouping";
-    if (int(map.size()) != filaments)
-        return "filament_map gives one extruder per filament: " + std::to_string(filaments) + " filaments, " +
-               std::to_string(map.size()) + " given";
-    for (const int extruder : map)
-        if (extruder < 1 || extruder > extruders)
-            return "filament_map names extruder " + std::to_string(extruder) + "; this printer has extruders 1 to " +
-                   std::to_string(extruders);
-    return {};
-}
-
 json filter_preset_items(json items, const json& args, const std::function<bool(const json&)>& fits)
 {
     const bool        include_incompatible = arg_bool(args, "include_incompatible", false);
@@ -2396,115 +1686,6 @@ std::string nozzle_diameter_variant(const std::vector<double>& diameters, const 
             return variant == current ? std::string() : variant;
     }
     return {};
-}
-
-std::vector<int> filament_order(const json& order, int slots)
-{
-    std::vector<int> out;
-    if (order.is_array())
-        for (const json& slot : order)
-            out.push_back(slot.is_number_integer() ? slot.get<int>() : 0);
-    std::vector<int> sorted = out;
-    std::sort(sorted.begin(), sorted.end());
-    std::vector<int> every(std::size_t(std::max(slots, 0)));
-    std::iota(every.begin(), every.end(), 1);
-    if (sorted != every)
-        throw ToolFailure("A filament order lists every filament slot 1.." + std::to_string(slots) + " once, e.g. [2, 1]; got " +
-                          order.dump());
-    return out;
-}
-
-std::vector<LayerPrintSequence> layer_sequences(const json& ranges, int slots)
-{
-    // The dialog's "End" of a range: up to the last layer.
-    constexpr int last_layer = INT_MAX - 1;
-    if (!ranges.is_array() || ranges.empty())
-        throw ToolFailure("other_layers_print_sequence is [{from, to, order}, ...] or null for Auto");
-    std::vector<LayerPrintSequence> out;
-    for (const json& range : ranges) {
-        const bool shaped = range.is_object() && range.contains("from") && range["from"].is_number_integer() && range.contains("order") &&
-                            (!range.contains("to") || range["to"].is_number_integer()) && range.size() == (range.contains("to") ? 3u : 2u);
-        if (!shaped)
-            throw ToolFailure("A range is {\"from\": layer, \"to\": layer, \"order\": [slots]}, to optional (the last layer); got " + range.dump());
-        const int from = range["from"].get<int>();
-        const int to   = range.value("to", last_layer);
-        if (from < 2)
-            throw ToolFailure("Ranges start at layer 2 or later; the first layer's order is first_layer_print_sequence");
-        if (to < from)
-            throw ToolFailure("Range " + range.dump() + " ends before it starts");
-        out.push_back({{from, std::min(to, last_layer)}, filament_order(range["order"], slots)});
-    }
-    std::sort(out.begin(), out.end(), [](const LayerPrintSequence& a, const LayerPrintSequence& b) { return a.first < b.first; });
-    for (std::size_t i = 1; i < out.size(); ++i)
-        if (out[i].first.first <= out[i - 1].first.second)
-            throw ToolFailure("Layer ranges overlap: one " +
-                              (out[i - 1].first.second == last_layer ? std::string("runs to the last layer") :
-                                                                       "ends at layer " + std::to_string(out[i - 1].first.second)) +
-                              ", the next starts at layer " + std::to_string(out[i].first.first));
-    return out;
-}
-
-json layer_sequences_json(const std::vector<LayerPrintSequence>& ranges)
-{
-    json out = json::array();
-    for (const LayerPrintSequence& range : ranges) {
-        json item{{"from", range.first.first}, {"order", range.second}};
-        // The dialog's "End" is INT_MAX - 1, the plate tab's default INT_MAX.
-        if (range.first.second < INT_MAX - 1)
-            item["to"] = range.first.second;
-        out.push_back(std::move(item));
-    }
-    return out;
-}
-
-std::vector<double> gcode_layer_zs(const GCodeProcessorResult& result)
-{
-    // GCodeViewer::load() and libvgcode::Layers::update(): layers numbered consecutively over the moves
-    // there are, each labelled with its last extrusion's height, or a belt print's with its print Z.
-    const bool          belt = result.belt_tilt_angle > 0.f;
-    std::vector<double> zs;
-    unsigned int        layer = std::numeric_limits<unsigned int>::max();
-    for (std::size_t i = 1; i < result.moves.size(); ++i) {
-        const GCodeProcessorResult::MoveVertex& move = result.moves[i];
-        if (move.layer_id != layer) {
-            layer = move.layer_id;
-            zs.push_back(belt ? double(move.print_z) : 0.);
-        }
-        if (!belt && move.type == EMoveType::Extrude && move.extrusion_role != erCustom)
-            zs.back() = double(move.position.z());
-    }
-    return zs;
-}
-
-json layer_gcode_json(const CustomGCode::Info& codes, const std::vector<double>& layer_zs)
-{
-    std::vector<CustomGCode::Item> items = codes.gcodes;
-    std::stable_sort(items.begin(), items.end());
-    json out = json::array();
-    for (const CustomGCode::Item& item : items) {
-        json code{{"z", std::round(item.print_z * 1000.) / 1000.}};
-        // IMSlider::get_tick_from_value(z, true): the first layer whose top is at or above the height.
-        const auto layer = std::lower_bound(layer_zs.begin(), layer_zs.end(), item.print_z - epsilon());
-        if (layer != layer_zs.end())
-            code["layer"] = int(layer - layer_zs.begin()) + 1;
-        const bool change = item.type == CustomGCode::ToolChange || item.type == CustomGCode::ColorChange;
-        switch (item.type) {
-        case CustomGCode::PausePrint: code["type"] = "pause"; break;
-        case CustomGCode::Custom: code["type"] = "custom"; break;
-        case CustomGCode::Template: code["type"] = "template"; break;
-        case CustomGCode::ToolChange: code["type"] = "change_filament"; break;
-        case CustomGCode::ColorChange: code["type"] = "color_change"; break;
-        default: code["type"] = "unknown"; break;
-        }
-        if (change && item.extruder > 0)
-            code["filament"] = item.extruder;
-        if (change && !item.color.empty())
-            code["color"] = item.color;
-        if (item.type == CustomGCode::Custom && !item.extra.empty())
-            code["gcode"] = item.extra;
-        out.push_back(std::move(code));
-    }
-    return out;
 }
 
 json changed_settings(const DynamicPrintConfig& before, const DynamicPrintConfig& after)
@@ -2867,9 +2048,10 @@ std::string settings_request_error(const json& args, bool writes)
     return {};
 }
 
-void register_config_tools(CommandCatalog& catalog)
+json read_project_settings(const json& args) { return read_target(args, project_target()); }
+
+void register_preset_tools(CommandCatalog& catalog)
 {
-    const json plate_prop = {{"type", "integer"}, {"minimum", 0}, {"description", "Plate index; default: the current plate."}};
     // The settings tools' type and target, as the Process panel's Global and Objects rows choose them.
     const json type_prop        = enum_prop({"printer", "process", "filament"}, "Which settings: the printer, process or filament "
                                                                                  "preset being edited.");
@@ -3420,164 +2602,6 @@ void register_config_tools(CommandCatalog& catalog)
             return ToolResult::ok(result);
         })));
 
-    catalog.add(inspect_tool(
-        "plate_get_settings", L("Read a plate's settings"),
-        "Read a plate's own settings, as the Plate Settings dialog sets them: `curr_bed_type`, `print_sequence`, `spiral_mode`, "
-        "`first_layer_print_sequence` and `other_layers_print_sequence`; and as its filament grouping sets them on a printer "
-        "with several extruders: `filament_map_mode` and `filament_map` (the extruder of each filament, 1-based). Each with "
-        "value (the plate's own, null where it follows the global setting or Auto), effective (what the plate prints with) "
-        "and meta (meta.offered lists the plate types or grouping modes this printer has). All of them, or those named in "
-        "keys. Reply: plate, items; `unknown_keys` for the keys a plate does not have, and similar the plate keys like them.",
-        object_schema({{"plate", plate_prop},
-                       {"keys", array_prop({{"type", "string"}}, "Setting keys, e.g. [\"curr_bed_type\"].")},
-                       {"include_meta", prop("boolean", "Include labels, types and ranges. Default true.")}}),
-        [](const json& args, ToolContext& ctx) {
-            return ToolResult::ok(ctx.run_ui([&] {
-                ui_plater();
-                return plate_settings(args);
-            }));
-        }));
-
-    catalog.add(mutate_tool(
-        "plate_set_settings", L("Change a plate's settings"),
-        "Change a plate's own settings, which it selects and writes as the Plate Settings dialog's OK does: `curr_bed_type`, "
-        "`print_sequence` (\"by layer\", \"by object\"), `spiral_mode` (true asks for confirmation), `first_layer_print_sequence` "
-        "(every slot once, e.g. `[2, 1]`) and `other_layers_print_sequence` ([`{from: layer >= 2, to, order}`], to omitted for "
-        "the last layer); and as the OK of its filament grouping does, with several extruders: `filament_map_mode` (an "
-        "offered mode) and, with \"Manual\", `filament_map` (one extruder per filament, e.g. `[1, 2, 2]`; on a printer whose "
-        "extruder holds several nozzles, refused as the dialog refuses it where an extruder it uses has no nozzle of the "
-        "volume type its filaments print with). null returns a value to the global setting or Auto. Values are checked "
-        "before anything changes, and the call is one undo step. Reply: plate, applied, changed, and effective for the "
-        "settings the plate prints with.",
-        object_schema({{"plate", plate_prop},
-                       {"values", {{"type", "object"}, {"description", "{key: value}"}}}},
-                      {"values"}),
-        [](const json& args, ToolContext& ctx) { return set_plate_settings(args, ctx); }));
-
-    catalog.add(inspect_tool(
-        "project_get_settings", L("Read the project's settings"),
-        "Read the project's own settings for its plates: the plate type (`curr_bed_type`), the prime tower position per plate "
-        "(`wipe_tower_x`, `wipe_tower_y`) and, with several extruders, the filament grouping (`filament_map_mode`, `filament_map`); "
-        "all of them, or those named in keys. The filament list's colours, mixed filaments and flushing are `filament_list`'s. "
-        "Each item has its value and meta; meta.offered lists the choices this printer has, and `meta.read_only` marks what is "
-        "set elsewhere.",
-        object_schema({{"keys", array_prop({{"type", "string"}}, "Setting keys, e.g. [\"curr_bed_type\"].")},
-                       {"include_meta", prop("boolean", "Include labels, types and ranges. Default true.")}}),
-        [](const json& args, ToolContext& ctx) {
-            return ToolResult::ok(ctx.run_ui([&] {
-                ui_plater();
-                return read_target(args, project_target());
-            }));
-        }));
-
-    catalog.add(mutate_tool(
-        "project_set_settings", L("Change the project's settings"),
-        "Change the project's own settings as their controls write them: `curr_bed_type`, as the plate type selector, and "
-        "wipe_tower_x/y (mm from the plate's origin, one per plate), as a prime tower's drag. The filament list's colours "
-        "and flushing are set with `filament_set_colour` and `filament_set_flushing`. Values are checked before anything "
-        "changes; a prime tower move is one undo step. Reply: applied, changed, and a note when the app moved a prime tower "
-        "that did not fit.",
-        object_schema({{"values", {{"type", "object"}, {"description", "`{key: value}`, or `{key: {index, value}}` for one entry"}}}},
-                      {"values"}),
-        [](const json& args, ToolContext& ctx) { return set_project_settings(args, ctx); }));
-
-    catalog.add(inspect_tool(
-        "plate_list", L("List plates"),
-        "Plates with name, locked, current, objects (how many are on it; `object_list` lists them), and the settings they print with: `curr_bed_type`, "
-        "`print_sequence`, `spiral_mode`, `first_layer_print_sequence` and `other_layers_print_sequence` (null: Auto), with several "
-        "extruders `filament_map_mode` and `filament_map`; overrides "
-        "lists those the plate sets itself (`plate_set_settings`). Also origin and size, the plate's place on the bed in "
-        "mm: the `[x, y]` of its front left corner and its `[width, depth]`, in the bed coordinates object positions are "
-        "given in, so that origin plus half the size is its middle; sliced (an up-to-date slice), `wipe_tower` `[x, y]` "
-        "and `layer_gcode`: the plate's pauses, custom G-code, templates and filament changes, each `{z, layer, type, "
-        "filament, color, gcode}`; layer is the Preview slider's number, given while the plate's slice is up to date.",
-        object_schema({{"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}, {"description", "Default 100."}}},
-                       {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
-        [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_plates(args); })); }));
-
-    // The plate commands made from menu items: each acts on the plate the call names, else on the current plate, as its item
-    // does, and its reply names the plate. A command named as its item is that item's action, in the Speed Dial's section
-    // `section`.
-    const auto own_action = [](NativeCommand command, std::string section, std::string icon) {
-        command.has_own_action = true;
-        command.action_group   = std::move(section);
-        command.icon           = std::move(icon);
-        return command;
-    };
-    const std::string plates_after = "plates (each plate afterwards: index, name and objects, how many stand on it) and current "
-                                     "(the current plate)";
-    catalog.add(own_action(menu_command("plate_add", L("Add Plate"),
-                                        "Add a plate after the others and make it current, as Add Plate does. One undo step. "
-                                        "Reply: plate (the new plate's index), " +
-                                            plates_after + ".",
-                                        object_schema({}), json(),
-                                        [](const json&) {
-                                            AppActionRunResult added = MenuItems::plate_add();
-                                            // Add Plate makes the plate it adds current.
-                                            if (added.level == AppActionRunResult::Level::Succeeded) {
-                                                json reply     = plates_reply();
-                                                reply["plate"] = ui_plater().get_partplate_list().get_curr_plate_index();
-                                                added.reply    = reply.dump();
-                                            }
-                                            return added;
-                                        }),
-                           L("Plate"), "toolbar_add_plate"));
-    catalog.add(reaching({"delete_plate"},
-                         own_action(menu_command("plate_delete", L("Delete Plate"),
-                                                "Delete a plate (plate, else the current one), as Delete Plate does. The objects on it "
-                                                "stay in the project, outside the plates, and the plates after it move down one. The "
-                                                "only plate is refused. One undo step. Reply: plate (the index it had), " +
-                                                    plates_after + ".",
-                                                object_schema({{"plate", plate_prop}}), json(), plate_delete_command),
-                                    L("Plate"), "delete")));
-    catalog.add(reaching({"duplicate_plate"},
-                         own_action(menu_command("plate_duplicate", L("Duplicate Plate"),
-                                                "Add a plate with a copy of each object on the plate (plate, else the current one), "
-                                                "placed on it as on that plate, as Duplicate Current Plate does. The new "
-                                                "plate comes last, and the current plate stays current. Refused when the project "
-                                                "holds as many plates as it can, and while slicing. One undo step. Reply: plate (the "
-                                                "plate copied), `new_plate` (the new plate's index), " +
-                                                    plates_after + ".",
-                                                object_schema({{"plate", plate_prop}}), json(), plate_duplicate_command),
-                                    L("Plate"), "menu_copy")));
-    // The name dialog's name, which every call but the action's gives.
-    NativeCommand rename = own_action(menu_command("plate_rename", L("Rename Plate"),
-                                                  "Name a plate (plate, else the current one), as its name icon does: a plate other "
-                                                  "than the current one is made current first. name \"\" leaves it unnamed. With no "
-                                                  "arguments, as its Speed Dial action, the name dialog asks for the current plate's "
-                                                  "name (`blocked_by_dialog`), and a cancelled dialog renames nothing, which the call "
-                                                  "is told. The name is one undo step; the name the plate has already changes "
-                                                  "nothing, the current plate included. Reply: plate and name.",
-                                                  object_schema({{"plate", plate_prop},
-                                                                 {"name", prop("string", "The plate's name, in place of "
-                                                                                         "the name dialog.")}},
-                                                                {"name"}),
-                                                  json(), plate_rename_command),
-                                      L("Plate"), "plate_name_edit");
-    rename.input_schema = with_silent(std::move(rename.input_schema), person_forms(rename));
-    catalog.add(reaching({"rename_plate", "select_plate"}, std::move(rename)));
-    catalog.add(reaching(
-        {"set_plate_locked"},
-        menu_command("plate_lock", L("Toggle Plate Lock"),
-                    "Lock or unlock a plate (plate, else the current one), as its lock icon does: locked true locks it and false "
-                    "unlocks it; without locked it toggles, as its Speed Dial action does. An arrange of every plate leaves a "
-                    "locked one as it is. One undo step, none when the plate is in that state already. Reply: plate, locked, and "
-                    "changed (false when it was so already).",
-                    object_schema({{"plate", plate_prop},
-                                   {"locked", prop("boolean", "true locks the plate, false unlocks it. Default: the other state.")}}),
-                    json::array({NativeCommands::action("plate_toggle_lock", L("Toggle Plate Lock"), L("Plate"), "lock_normal",
-                                                        json::object(), "Lock or unlock the current plate.")}),
-                    plate_lock_command)));
-    catalog.add(reaching(
-        {"select_plate"},
-        menu_command("plate_select", L("Go to Plate"),
-                    "Make a plate the current one, as a click on it does: plate; without it, the current plate stays current. "
-                    "An index the project lacks is an error. Reply: plate.",
-                    object_schema({{"plate", plate_prop}}),
-                    json::array({NativeCommands::action("plate_goto", L("Go to Plate"), L("Plate"), "go_next_plate", {{"plate", 0}},
-                                                        "Make the first plate the current one.")}),
-                    plate_select_command)));
-
     // ---- The presets and settings commands made from menu items ----
     using NativeCommands::action;
     const std::string preset_file = "a preset .json, a .zip of them, an .orca_printer, .orca_filament or .orca_bundle, or a .gcode";
@@ -3657,211 +2681,6 @@ void register_config_tools(CommandCatalog& catalog)
     // A menu item with no argument form: tool_list lists it and tool_call runs it, the tool list does not show it.
     developer_mode.listed = false;
     catalog.add(std::move(developer_mode));
-
-    // ---- The filament slot and printer commands made from menu items ----
-    // The + and - buttons above the filament list and a slot's Delete menu item, each named as the button or menu item is, in the Speed
-    // Dial's section Filament.
-    const std::string slot_buttons = "Refused for a printer that has one filament per extruder, which shows no + and - buttons.";
-    catalog.add(inspect_tool(
-        "filament_list", L("List the filaments"),
-        "Read the filament list as the sidebar shows it. filaments has a row per slot in config order, the physical "
-        "filaments first, then the mixed ones: `filament_slot` (1-based), mixed, colour (#RRGGBB) and, for a physical "
-        "filament, preset and type; for a mixed filament, components (the physical slots it mixes, 1-based, 0 for one "
-        "deleted), ratios (whole percentages, as `filament_add_mixed` takes them), gradient (null, or `{bottom, top: the "
-        "components that lead at the bottom and at the top, per_part, curve: linear or custom}`) and broken (a component "
-        "deleted or of another filament type: the sidebar marks it, slicing an object on it is refused, and "
-        "`filament_edit_mixed` repairs it). Then the flushing the list's Flushing volumes and Purge mode buttons set: "
-        "`flush_multiplier` (one per nozzle), `flush_volumes_matrix` (per nozzle, slots x slots from row to column in config "
-        "order over every slot, before the multiplier: the dialog shows each entry multiplied by its nozzle's multiplier, "
-        "and the G-code purges that product) and `prime_volume_mode`, with `prime_volume_modes` where the printer offers a "
-        "choice. The printer keeps all of it across new projects and restarts; a saved project keeps its own.",
-        object_schema({}),
-        [](const json&, ToolContext& ctx) {
-            return ToolResult::ok(ctx.run_ui([] {
-                ui_plater();
-                return filament_list();
-            }));
-        }));
-    catalog.add(reaching({"add_filament_slot"},
-                         own_action(menu_command("filament_add", L("Add Filament Slot"),
-                                                "Add a filament slot, as the + button above the filament list does. It takes the next "
-                                                "colour and the last slot's preset (change them with `filament_set_colour` and "
-                                                "`preset_select` `filament_slot`). It goes after the physical slots: mixed "
-                                                "filaments move up by one, and objects on them follow. " +
-                                                    slot_buttons + " Reply: `filament_slot` (the new slot) and `filament_slots` (how many the "
-                                                                   "project has).",
-                                                object_schema({}), json(), filament_add_command),
-                                    L("Filament"), "add_filament")));
-    catalog.add(reaching(
-        {"delete_filament_slot"},
-        own_action(menu_command("filament_delete", L("Delete Filament Slot"),
-                               "Delete a filament slot, as its Delete menu item does, the objects on it taking the first filament; "
-                               "with `merge_into`, as its Merge with item does, the objects on it taking that slot. The slots after "
-                               "it move down by one. A mixed filament (`filament_list`'s mixed rows) is deleted as the mixed "
-                               "filament list deletes it, and not merged. A physical filament that a mixed filament mixes is "
-                               "deleted as the sidebar deletes it: the mix is broken (`broken_mixed`) until `filament_edit_mixed` "
-                               "names its filaments again. A merge into a mixed filament that mixes the slot asks first, as Merge "
-                               "with does, and replies `blocked_by_dialog`, unless `break_mix` answers: `true` merges, `false` refuses "
-                               "(`mixed_uses_slot`). Refused: the only physical slot, and a mixed filament while one physical "
-                               "slot is left, where the sidebar hides the mixed filaments (`filament_add` first). " +
-                                   slot_buttons + " Not in the undo history. Reply: `filament_slot` (the slot deleted), `merged_into` "
-                                                  "(the slot its objects went to, as numbered afterwards), `filament_slots`, and "
-                                                  "`broken_mixed` (the mixed filaments broken afterwards, as numbered then) where "
-                                                  "there are any.",
-                               object_schema({{"filament_slot", {{"type", "integer"},
-                                                                 {"minimum", 1},
-                                                                 {"description", "The 1-based filament slot. Default: the last "
-                                                                                 "physical slot, as the - button."}}},
-                                              {"merge_into", {{"type", "integer"},
-                                                              {"minimum", 1},
-                                                              {"description", "The 1-based slot the objects on it go to, as Merge "
-                                                                              "with does. Default: they take the first filament."}}},
-                                              {"break_mix", prop("boolean", "The answer to Merge with's question about a merge into "
-                                                                            "a mixed filament that mixes the slot: `true` merges, "
-                                                                            "`false` merges nothing. Default: the question opens.")}}),
-                               json(), filament_delete_command),
-                   L("Filament"), "delete_filament")));
-
-    // The Add and Edit Mixed Filament dialogs' controls, for an agent that drives a dialog to set a gradient.
-    const std::string mixed_dialog =
-        "replies `blocked_by_dialog`. Its controls are named `filament_1` to `filament_3` (the components), gradient, "
-        "`gradient_direction` (item 0 puts the first filament at the bottom, item 1 the second) and `per_part_gradient`, for "
-        "`widget_set_value` with within the dialog's title; the gradient shows for a mix of two filaments only, and its curve "
-        "is drawn, changed only by dragging it (`mouse_gesture`). Its OK makes what it shows; Cancel changes nothing.";
-    const auto mix_props = [](const char* components) {
-        return std::vector<Property>{
-            {"components", array_prop({{"type", "integer"}, {"minimum", 1}}, components)},
-            {"ratios", array_prop({{"type", "integer"}, {"exclusiveMinimum", 0}},
-                                  "Each component's share in percent, in the order of components, adding up to 100.")}};
-    };
-    const auto mix_args = [](const json& args, std::vector<int>& components, std::vector<double>& ratios) {
-        for (const json& component : args.value("components", json::array()))
-            components.push_back(component.get<int>());
-        for (const json& ratio : args.value("ratios", json::array()))
-            ratios.push_back(ratio.get<double>());
-    };
-    const std::vector<Property> add_props = mix_props("The physical filament slots to mix, 1-based, two or more, each once, of "
-                                                      "filaments of one type. Omitted with ratios: the dialog opens.");
-    NativeCommand mixed = reaching(
-        {"add_mixed_filament"},
-        mutate_tool(
-            "filament_add_mixed", L("Add Mixed Filament"),
-            "Add a mixed filament: a slot that prints its physical filaments in turn, layer by layer, in the ratios given, as "
-            "the Add Mixed Filament dialog's OK does with no gradient. components are two or more of the physical slots "
-            "(1-based), each named once, whose filaments are of one type; ratios a whole percentage for each, adding up to "
-            "100. It goes after every other slot. A mix the project has already is not added again: the reply names its "
-            "slot. With neither components nor ratios it opens the Add Mixed Filament dialog, as the sidebar's button does, "
-            "and " + mixed_dialog + " Not in the undo history. Reply: `filament_slot` (1-based, where one was added or "
-            "found) and added (false for a mix the project had, or a dialog cancelled).",
-            object_schema({add_props[0], add_props[1]}),
-            [mix_args](const json& args, ToolContext& ctx) {
-                Ops::AddMixedFilamentArgs op;
-                mix_args(args, op.components, op.ratios);
-                json reply = ctx.run_ui([&] {
-                    ui_plater();
-                    const Ops::Outcome<Ops::MixedFilament> mixed = Ops::add_mixed_filament(op);
-                    if (!mixed)
-                        throw refused(mixed.refusal());
-                    json out{{"added", mixed.value().added}};
-                    if (mixed.value().filament_slot > 0)
-                        out["filament_slot"] = mixed.value().filament_slot;
-                    return out;
-                });
-                settle(ctx);
-                return ToolResult::ok(reply);
-            }));
-    mixed.examples = json::parse(R"json([
-        {"title": "Mix the first two filaments half and half", "calls": [
-            {"tool": "filament_add_mixed", "args": {"components": [1, 2], "ratios": [50, 50]}}]},
-        {"title": "Mix three filaments, the third the most", "calls": [
-            {"tool": "filament_add_mixed", "args": {"components": [1, 2, 3], "ratios": [25, 25, 50]}}]}])json");
-    catalog.add(std::move(mixed));
-
-    const std::vector<Property> edit_props = mix_props("The physical filament slots it mixes from now on, as `filament_add_mixed` "
-                                                       "takes them. Omitted with ratios: the dialog opens.");
-    NativeCommand edit_mixed = reaching(
-        {"edit_mixed_filament"},
-        mutate_tool(
-            "filament_edit_mixed", L("Edit Mixed Filament"),
-            "Change a mixed filament (`filament_list`'s mixed rows) as the Edit Mixed Filament dialog's OK does: components "
-            "and ratios as `filament_add_mixed` takes them. The slot keeps its number and the objects on it, and its colour "
-            "becomes the blend; a gradient stays for a mix of two filaments and goes for more, as the dialog shows none for "
-            "them. An edit that names its filaments again repairs a broken mix. With `filament_slot` alone it opens the Edit "
-            "Mixed Filament dialog on the mix, as a click on its swatch does, and " + mixed_dialog +
-            " Not in the undo history. Reply: `filament_slot` and changed.",
-            object_schema({{"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "The mixed filament's 1-based slot."}}},
-                           edit_props[0], edit_props[1]},
-                          {"filament_slot"}),
-            [mix_args](const json& args, ToolContext& ctx) {
-                Ops::EditMixedFilamentArgs op;
-                op.filament_slot = arg_int(args, "filament_slot", 1);
-                mix_args(args, op.components, op.ratios);
-                json reply = ctx.run_ui([&] {
-                    ui_plater();
-                    const Ops::Outcome<Ops::EditedMixedFilament> edited = Ops::edit_mixed_filament(op);
-                    if (!edited)
-                        throw refused(edited.refusal());
-                    return json{{"filament_slot", edited.value().filament_slot}, {"changed", edited.value().changed}};
-                });
-                settle(ctx);
-                return ToolResult::ok(reply);
-            }));
-    edit_mixed.examples = json::parse(R"json([
-        {"title": "Make the mixed filament in slot 3 mostly its first filament", "calls": [
-            {"tool": "filament_edit_mixed", "args": {"filament_slot": 3, "components": [1, 2], "ratios": [75, 25]}}]}])json");
-    catalog.add(std::move(edit_mixed));
-
-    catalog.add(mutate_tool(
-        "filament_set_colour", L("Set a filament's colour"),
-        "Set a physical filament slot's colour, as its colour button's picker does: colour is #RRGGBB. Where Auto flush "
-        "after changing is on, the flushing volumes are recalculated, so set `flush_volumes_matrix` (`filament_set_flushing`) "
-        "after the colours. A mixed filament's colour is its components' blend and is not set. Reply: `filament_slot`, "
-        "colour (as stored, upper case) and changed.",
-        object_schema({{"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "The 1-based filament slot."}}},
-                       {"colour", prop("string", "#RRGGBB.")}},
-                      {"filament_slot", "colour"}),
-        [](const json& args, ToolContext& ctx) { return set_filament_colour(args, ctx); }));
-
-    catalog.add(mutate_tool(
-        "filament_set_flushing", L("Set the flushing"),
-        "Change the flushing the filament list's Flushing volumes and Purge mode buttons set, as their dialogs' OK does, "
-        "any of: `flush_multiplier` (one per nozzle, or one value for all, within the Flushing volumes dialog's range), "
-        "`flush_volumes_matrix` (per nozzle, slots x slots from row to column in config order over every slot, before the "
-        "multiplier; whole, or one entry as `{index, value}`; a mixed filament's entries, which are never flushed, must be "
-        "given as they are) and `prime_volume_mode` (one of `filament_list`'s `prime_volume_modes`). A colour change "
-        "(`filament_set_colour`) can recalculate the matrix, so set it after the colours. Values are checked before "
-        "anything changes. Reply: applied and changed.",
-        object_schema({{"flush_multiplier", {{"type", {"number", "array"}}, {"description", "One value, or one per nozzle."}}},
-                       {"flush_volumes_matrix", {{"type", {"array", "object"}}, {"description", "The whole matrix, or `{index, value}`."}}},
-                       {"prime_volume_mode", prop("string", "The purge mode, e.g. \"Default\".")}}),
-        [](const json& args, ToolContext& ctx) {
-            json values = json::object();
-            for (const char* key : {"flush_multiplier", "flush_volumes_matrix", "prime_volume_mode"})
-                if (args.contains(key))
-                    values[key] = args[key];
-            if (values.empty())
-                throw ToolFailure("Give flush_multiplier, flush_volumes_matrix or prime_volume_mode");
-            return set_project_values(values, ctx, true);
-        }));
-
-    const std::string ams = "Synchronize the filament list from the connected printer's AMS.";
-    NativeCommand     sync_ams = reaching(
-        {"sync_filaments_from_ams"},
-        menu_command("filament_sync_ams", L("Synchronize Filament List from AMS"),
-                    ams + " With mode, as the sync dialog's Synchronize now does with that choice, without the dialog: map maps "
-                          "each of the project's filaments to a slot, as the dialog's Mapping first does, which takes a project "
-                          "with objects; overwrite replaces the filament list with the slots' filaments. Called with no arguments, "
-                          "as its Speed Dial action, it opens the sync dialog where the project has objects (`blocked_by_dialog`), and "
-                          "a warning where it cannot sync. With no printer connected, no AMS or no filament it is refused, saying so. "
-                          "Not in the undo history. Reply: mode, filaments (each slot's preset and colour afterwards) and "
-                          "`mapped_to_generic` (slots whose filament is unknown, mapped to a generic preset).",
-                    object_schema({{"mode", enum_prop({"map", "overwrite"}, "The sync dialog's choice: map or overwrite.")}}),
-                    json::array({action("sync_ams", L("Synchronize Filament List from AMS"), L("Printer"), "ams_fila_sync", json::object(),
-                                        ams)}),
-                    sync_ams_command));
-    // It reads the connected printer's AMS.
-    sync_ams.open_world = true;
-    catalog.add(std::move(sync_ams));
 }
 
 }}} // namespace Slic3r::GUI::Mcp

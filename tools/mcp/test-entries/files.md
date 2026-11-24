@@ -339,7 +339,7 @@ refusal with other words fails at once.
 - An object index the project lacks (exporting meshes, step 7) is refused by the target check,
   `IndexCheck::object()` (`src/slic3r/GUI/Mcp/McpTargets.cpp`), with "object index 5 is out of range" and no code,
   before `Ops::export_objects_refusal()` runs, so the export's own refusal for it, `no_such_object`, never answers. The
-  fix: `project_export`'s handler (`src/slic3r/GUI/Mcp/McpToolsProject.cpp`) runs `Ops::export_objects_refusal()` on
+  fix: `project_export`'s handler (`src/slic3r/GUI/Mcp/Tools/ProjectTools.cpp`) runs `Ops::export_objects_refusal()` on
   the indices `objects` gives before `resolve_targets()`. The step expects the fixed behaviour: `no_such_object`, "Object
   5 does not exist (the project has objects 0..1)".
 - `project_import` of model files leaves an untitled project named `Untitled`, while File > Import names it after the

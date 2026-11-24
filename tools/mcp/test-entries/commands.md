@@ -41,7 +41,7 @@ An action is its command run with fixed arguments as a person's pick, and `actio
 - The calibration's project beyond its name and an object: the test's objects and the settings it changes are `test_presets`' calibration scenarios'.
 
 **To settle in review:**
-- That a calibration action's journal step has the id alone, not `{"test": "<name>"}`. The action runs its command's person form (`NativeCommands::with_person_form()`), which opens the test's dialog and journals nothing; only `calibration_generate_test`'s own run, with parameters or `silent`, calls `set_journal_args`, and `ActionContext` puts the action's fixed arguments in the step only in place of such a rewrite. Both are this branch's code (`McpToolsProject.cpp`, `McpPersonContext.hpp`, not on `main`). The step with the id alone replays the same, since the action supplies `test`.
+- That a calibration action's journal step has the id alone, not `{"test": "<name>"}`. The action runs its command's person form (`NativeCommands::with_person_form()`), which opens the test's dialog and journals nothing; only `calibration_generate_test`'s own run, with parameters or `silent`, calls `set_journal_args`, and `ActionContext` puts the action's fixed arguments in the step only in place of such a rewrite. Both are this branch's code (`Tools/PlateTools.cpp`, `McpPersonContext.hpp`, not on `main`). The step with the id alone replays the same, since the action supplies `test`.
 
 **Strength:** Partial — the handy model, the rear view and Go to tab have their effect read back exactly, the calibration loosely, the window only by its title and the screenshot by its file; every action is listed with its command, and the journal step is pinned exactly for every row that runs.
 
@@ -69,7 +69,7 @@ An action is its command run with fixed arguments as a person's pick, and `actio
 - `and takes no undo snapshot` reads the info-level log through `ops_undo.py`. It would pass if snapshots stopped being logged; the Duplicate Plate count-1 check in the same run would catch that.
 
 **To settle in review:**
-- The notices the pairs share are regular notices, not error notices that never fade: `menu_info()` (`McpToolsScene.cpp`, from commits not on `main`) answers `too_few_objects` and `one_object_only` as information, as the menu items told them, since the person can select something else and pick again. So the first notice may fade before the second pick, and the close step then finds nothing; "the earlier notice is closed" still reads the text gone before the second pick, and that pick's own check reads it shown again.
+- The notices the pairs share are regular notices, not error notices that never fade: `menu_info()` (`Tools/ObjectTools.cpp`, from commits not on `main`) answers `too_few_objects` and `one_object_only` as information, as the menu items told them, since the person can select something else and pick again. So the first notice may fade before the second pick, and the close step then finds nothing; "the earlier notice is closed" still reads the text gone before the second pick, and that pick's own check reads it shown again.
 - Reaching the close button through a refusal's count is roundabout. Naming the button in the app (`record_named_item` on the close button in `render_close_button()`) would let the test click it by name; that is a change to the app.
 
 **Strength:** Strong — refusal codes and the state after each refusal are compared exactly, and each pick's notice is its own; only a few picks rest on notice text alone.
