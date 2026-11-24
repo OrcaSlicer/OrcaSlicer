@@ -5,6 +5,7 @@
 #include <slic3r/GUI/DeviceCore/DevManager.h>
 #include <slic3r/GUI/DeviceManager.hpp>
 #include <libslic3r/AppConfig.hpp>
+#include "catch2/catch_message.hpp"
 #include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/Utils/CloudProvider.hpp"
 #include <slic3r/Utils/NetworkAgent.hpp>
