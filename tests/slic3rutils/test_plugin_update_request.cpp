@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginUpdateRequest.hpp>
 #include <functional>
 #include <stdexcept>

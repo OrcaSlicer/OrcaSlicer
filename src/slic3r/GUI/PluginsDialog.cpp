@@ -3,6 +3,7 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/CloudProvider.hpp"
 #include "I18N.hpp"
 #include "MsgDialog.hpp"
 #include "OrcaCloudServiceAgent.hpp"
@@ -13,6 +14,7 @@
 #include <cctype>
 #include <cstddef>
 #include <exception>
+#include <stdexcept>
 #include <atomic>
 #include <boost/filesystem/operations.hpp>
 #include <chrono>

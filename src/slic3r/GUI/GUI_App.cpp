@@ -9,6 +9,7 @@
 #include "slic3r/plugin/PluginAuditManager.hpp"
 #include "slic3r/plugin/PluginUpdateRequest.hpp"
 #include <stdexcept>
+#include <wx/thread.h>
 #include "BBLTopbar.hpp"
 #include "Shortcuts.hpp"
 #include "DeviceCore/DevConfigUtil.h"
