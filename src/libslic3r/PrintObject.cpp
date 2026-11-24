@@ -1525,6 +1525,7 @@ bool PrintObject::invalidate_state_by_config_options(
             }
         } else if (
                opt_key == "wall_loops"
+            || opt_key == "bridge_anchor_walls" // ORCA: Bridge anchor walls, also anchors counterbore bridges
             || opt_key == "alternate_extra_wall"
             || opt_key == "top_one_wall_type"
             || opt_key == "min_width_top_surface"
@@ -1714,7 +1715,6 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "bridge_angle"
             || opt_key == "internal_bridge_angle" // ORCA: Internal bridge angle override
             || opt_key == "relative_bridge_angle" // ORCA: Relative bridge angle
-            || opt_key == "bridge_anchor_walls" // ORCA: Bridge anchor walls
             //BBS
             || opt_key == "bridge_line_width"
             || opt_key == "bridge_density"

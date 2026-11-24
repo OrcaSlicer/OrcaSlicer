@@ -2191,6 +2191,15 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                         }
                         if (!bridgeable.empty() && !surface->expolygon.holes.empty()) { // keep out if cannot be bridged or no holes to bridge
                             const coordf_t bridge_anchor_offset = std::min({bridged_infill_margin, coordf_t(perimeter_spacing), coordf_t(ext_perimeter_width)});
+                            // ORCA: Bridge anchor walls. Anchor the counterbore bridge over this many walls around it instead
+                            // of the default single wall. The longer anchor stays inside the outer wall of the surface.
+                            coordf_t bridge_anchor_length = bridge_anchor_offset;
+                            if (const int anchor_walls = this->config->bridge_anchor_walls.value; anchor_walls > 0)
+                                bridge_anchor_length = std::max(bridge_anchor_offset,
+                                                                coordf_t(this->ext_perimeter_flow.scaled_spacing()) +
+                                                                    coordf_t(this->perimeter_flow.scaled_spacing()) * (anchor_walls - 1));
+                            const bool       long_anchor   = bridge_anchor_length > bridge_anchor_offset;
+                            const ExPolygons anchor_limit  = long_anchor ? offset_ex(last, -float(ext_perimeter_width)) : ExPolygons();
 
                             // Handle filled vs partial counterbore bridging modes.
                             if (this->config->counterbore_hole_bridging.value == chbFilled) {
@@ -2216,8 +2225,13 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                                     }
                                 }
 
-                                unsupported_filtered = offset_ex(unsupported_filtered, perimeter_spacing + bridge_anchor_offset); // restore it back to its original size and add anchor
+                                ExPolygons restored  = offset_ex(unsupported_filtered, perimeter_spacing); // restore it back to its original size
+                                unsupported_filtered = offset_ex(restored, bridge_anchor_offset); // and add anchor
                                 unsupported_filtered = intersection_ex(last, unsupported_filtered); // clamp to the original surface, to avoid creating new unsupported areas
+                                if (long_anchor && !unsupported_filtered.empty())
+                                    // ORCA: Bridge anchor walls, the longer anchor clamped inside the outer wall.
+                                    unsupported_filtered = union_ex(unsupported_filtered,
+                                                                    intersection_ex(anchor_limit, offset_ex(restored, bridge_anchor_length)));
 
                                 for (ExPolygon& expol : unsupported_filtered) {
                                     // Remove holes that need sacrificial fill, but keep holes
@@ -2302,6 +2316,11 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                                 bridgeable_filtered = diff_ex(bridgeable_filtered, offset_ex(remaining, -bridge_anchor_offset));
 
                                 ExPolygons bridge_anchor_areas = intersection_ex(remaining, offset_ex(unsupported_filtered, bridge_anchor_offset));
+                                if (long_anchor)
+                                    // ORCA: Bridge anchor walls, the longer anchor clamped inside the outer wall.
+                                    bridge_anchor_areas = union_ex(bridge_anchor_areas,
+                                                                   intersection_ex(intersection_ex(remaining, anchor_limit),
+                                                                                   offset_ex(unsupported_filtered, bridge_anchor_length)));
                                 unsupported_filtered = union_ex(bridgeable_filtered, bridge_anchor_areas); // add bridge anchor
                                 unsupported_filtered = opening_ex(unsupported_filtered, bridge_anchor_offset); // remove anchor area from hole-side walls, it must remain unbridgeable
 
