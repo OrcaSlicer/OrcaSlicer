@@ -6731,9 +6731,6 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 swept_mix_slots.insert(slot);
                 receiver_mix_moves.emplace_back(slot, dest);
                 any_mixed_relocated = true;
-                // A payload mix authored at the same slot (a mix inside the physical region) is
-                // processed after this sweep and overrides its own destination below.
-                published_config->mixed_slot_relocations.insert_or_assign(int(slot), int(dest));
                 // TRN Filament slot change after loading a published project. %1% and %2% are slot numbers.
                 published_config->material_replacements.emplace_back(
                     (boost::format(L("slot %1% -> slot %2%: mixed filament")) % slot % dest).str());
@@ -6832,6 +6829,15 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                             << " placed as an unassigned mixed filament at slot " << dest_slot
                                             << " (printer supports only " << physical_capacity << " filaments)";
                     ++entry_it;
+                }
+            }
+            // Published process options refer to the author's slots. Options kept from the
+            // edited preset follow the receiver's own mixes, which may have moved elsewhere.
+            if (!mixed_moves.empty() || !receiver_mix_moves.empty()) {
+                const std::map<int, int> receiver_slots(receiver_mix_moves.begin(), receiver_mix_moves.end());
+                for (const char *key : feature_filament_keys) {
+                    const auto &slots = applied_keys.count(key) ? published_config->mixed_slot_relocations : receiver_slots;
+                    remap_filament_option(prints.get_edited_preset().config, key, slots);
                 }
             }
             if (!mixed_moves.empty())
@@ -9372,6 +9378,15 @@ bool PresetBundle::install_vendor_cache(const std::string& cache_path, const std
         this->clear_printer_hold_aliases();
         return false;
     }
+}
+
+ConfigOptionInts effective_physical_extruder_map(const PresetBundle& pb)
+{
+    const ConfigOptionInts* explicit_pem = pb.project_config.option<ConfigOptionInts>("physical_extruder_map");
+    if (!explicit_pem || explicit_pem->values.size() < 2)
+        explicit_pem = pb.printers.get_edited_preset().config.option<ConfigOptionInts>("physical_extruder_map");
+    const auto* nozzles = pb.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
+    return effective_physical_extruder_map(explicit_pem, nozzles ? (int) nozzles->values.size() : 0);
 }
 
 } // namespace Slic3r

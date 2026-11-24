@@ -1,0 +1,108 @@
+{
+	"type": "process",
+	"name": "fdm_process_anycubic_kobra_3_max_v2_common",
+	"inherits": "fdm_process_common",
+	"from": "system",
+	"instantiation": "false",
+	"bridge_acceleration": [
+		"3000"
+	],
+	"bridge_speed": [
+		"30"
+	],
+	"default_acceleration": [
+		"5000"
+	],
+	"default_jerk": [
+		"9"
+	],
+	"elefant_foot_compensation": "0.1",
+	"exclude_object": "1",
+	"filename_format": "{if plate_name==\"\" then input_filename_base+\"_plate\" else plate_name endif}{\"(\"+plate_number+\")\"}_{filament_type[initial_tool]}_{layer_height}_{print_time}.gcode",
+	"fuzzy_skin": "none",
+	"fuzzy_skin_point_distance": "0.8",
+	"fuzzy_skin_thickness": "0.3",
+	"gap_fill_target": "topbottom",
+	"gap_infill_speed": [
+		"50"
+	],
+	"infill_wall_overlap": "15%",
+	"initial_layer_infill_speed": [
+		"100"
+	],
+	"initial_layer_min_bead_width": "100%",
+	"initial_layer_speed": [
+		"40"
+	],
+	"inner_wall_acceleration": [
+		"5000"
+	],
+	"inner_wall_speed": [
+		"150"
+	],
+	"internal_solid_infill_acceleration": [
+		"5000"
+	],
+	"internal_solid_infill_pattern": "rectilinear",
+	"ironing_angle": "-1",
+	"max_volumetric_extrusion_rate_slope_segment_length": "1",
+	"only_one_wall_top": "1",
+	"outer_wall_acceleration": [
+		"2000"
+	],
+	"outer_wall_speed": [
+		"60"
+	],
+	"precise_outer_wall": "0",
+	"prime_tower_brim_width": "5",
+	"prime_tower_width": "30",
+	"prime_volume": "30",
+	"raft_first_layer_expansion": "5",
+	"scarf_joint_speed": "30",
+	"seam_slope_conditional": "1",
+	"seam_slope_inner_walls": "1",
+	"seam_slope_min_length": "10",
+	"slow_down_layers": "1",
+	"sparse_infill_acceleration": [
+		"5000"
+	],
+	"sparse_infill_pattern": "grid",
+	"standby_temperature_delta": "0",
+	"support_base_pattern": "default",
+	"support_interface_bottom_layers": "-1",
+	"support_interface_spacing": "0.2",
+	"support_interface_top_layers": "3",
+	"support_on_build_plate_only": "1",
+	"support_speed": [
+		"100"
+	],
+	"support_top_z_distance": "0.15",
+	"support_type": "tree(auto)",
+	"thick_internal_bridges": "0",
+	"top_bottom_infill_wall_overlap": "15%",
+	"top_shell_layers": "3",
+	"top_surface_acceleration": [
+		"1000"
+	],
+	"top_surface_speed": [
+		"100"
+	],
+	"travel_acceleration": [
+		"10000"
+	],
+	"travel_jerk": [
+		"9"
+	],
+	"travel_speed": [
+		"300"
+	],
+	"tree_support_branch_angle": "45",
+	"tree_support_branch_diameter": "2",
+	"tree_support_tip_diameter": "1.5",
+	"tree_support_top_rate": "10%",
+	"wall_direction": "auto",
+	"wall_generator": "classic",
+	"wall_loops": "2",
+	"wipe_tower_cone_angle": "15",
+	"wipe_tower_extra_spacing": "120%"
+}
