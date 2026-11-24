@@ -522,6 +522,9 @@ CustomGCode::Info CalibPressureAdvanceLine::generate_custom_gcodes(const Dynamic
                                                                    const Vec3d& origin)
 {
     refresh_setup(config, is_bbl_machine, object, origin);
+    const auto tag = [is_bbl_machine](GCodeProcessor::ETags type) -> const std::string& {
+        return GCodeProcessor::reserved_tag(type, is_bbl_machine);
+    };
 
     GCodeWriter& writer          = *m_writer;
     const double start_x         = m_starting_point.x();
@@ -545,7 +548,8 @@ CustomGCode::Info CalibPressureAdvanceLine::generate_custom_gcodes(const Dynamic
     std::stringstream second_layer;
 
     first_layer << writer.travel_to_z(m_height_layer + z_offset);
-    first_layer << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height) << (m_height_layer + z_offset) << "\n";
+    first_layer << ";" << tag(GCodeProcessor::ETags::Height) << m_height_layer << "\n";
+    first_layer << ";" << tag(GCodeProcessor::ETags::Width) << m_line_width << "\n";
     const unsigned int accel = static_cast<unsigned int>(
         std::max(1.0, std::round(m_config.get_abs_value_at("outer_wall_acceleration", extruder_id))));
     writer.invalidate_acceleration();
@@ -557,7 +561,7 @@ CustomGCode::Info CalibPressureAdvanceLine::generate_custom_gcodes(const Dynamic
     }
 
     // Purge/first perimeter - acts as an anchor to the rest of the model
-    first_layer << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Custom\n";
+    first_layer << ";" << tag(GCodeProcessor::ETags::Role) << "Custom\n";
     first_layer << writer.set_pressure_advance(0.0);
     first_layer << move_to(Vec2d(start_x, start_y + num * m_space_y), writer);
     first_layer << writer.set_speed(slow);
@@ -566,14 +570,14 @@ CustomGCode::Info CalibPressureAdvanceLine::generate_custom_gcodes(const Dynamic
     for (int i = 0; i < num; ++i) {
         first_layer << writer.set_pressure_advance(m_params.start + i * m_params.step);
         first_layer << move_to(Vec2d(start_x, start_y + i * m_space_y), writer);
-        first_layer << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Custom\n";
+        first_layer << ";" << tag(GCodeProcessor::ETags::Role) << "Custom\n";
         first_layer << writer.set_speed(slow);
         first_layer << writer.extrude_to_xy(Vec2d(start_x + m_length_short, start_y + i * m_space_y), e_per_mm * m_length_short);
-        first_layer << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Outer wall\n";
+        first_layer << ";" << tag(GCodeProcessor::ETags::Role) << "Outer wall\n";
         first_layer << writer.set_speed(fast);
         first_layer << writer.extrude_to_xy(Vec2d(start_x + m_length_short + m_length_long, start_y + i * m_space_y),
                                             e_per_mm * m_length_long);
-        first_layer << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Custom\n";
+        first_layer << ";" << tag(GCodeProcessor::ETags::Role) << "Custom\n";
         first_layer << writer.set_speed(slow);
         first_layer << writer.extrude_to_xy(Vec2d(start_x + m_length_short + m_length_long + m_length_short, start_y + i * m_space_y),
                                       e_per_mm * m_length_short);
@@ -592,12 +596,13 @@ CustomGCode::Info CalibPressureAdvanceLine::generate_custom_gcodes(const Dynamic
     DrawBoxOptArgs default_box_opt_args(2, m_height_layer, m_line_width, box_speed);
     default_box_opt_args.is_filled = true;
     default_box_opt_args.e_per_mm = e_per_mm;
-    first_layer << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Bottom surface\n";
+    first_layer << ";" << tag(GCodeProcessor::ETags::Role) << "Bottom surface\n";
     first_layer << draw_box(writer, box_start_x, start_y + label_box_y_offset(), label_box_width(), label_box_height(), default_box_opt_args);
     first_layer << writer.reset_e();
 
-    second_layer << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height) << (m_height_layer + second_height + z_offset) << "\n";
-    second_layer << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role) << "Top surface\n";
+    second_layer << ";" << tag(GCodeProcessor::ETags::Height) << second_height << "\n";
+    second_layer << ";" << tag(GCodeProcessor::ETags::Width) << m_number_line_width << "\n";
+    second_layer << ";" << tag(GCodeProcessor::ETags::Role) << "Top surface\n";
     second_layer << writer.travel_to_z(m_height_layer + second_height + z_offset);
     second_layer << writer.reset_e();
     const double number_start_x = box_start_x + m_label_padding + m_number_line_width / 2;

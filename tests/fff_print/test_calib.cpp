@@ -36,7 +36,7 @@ struct Move
 // Extruding moves under a role tag: only the first one after each tag, or all of them.
 std::vector<Move> extrusions_of_type(const std::string &gcode, const std::string &type, bool first_only, const DynamicPrintConfig& config)
 {
-    const std::string  prefix = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
+    const std::string  prefix = ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role, false);
     const std::string  tag = prefix + type;
     std::vector<Move> out;
     bool armed = false;
@@ -90,6 +90,8 @@ TEST_CASE("The PA line test prints with the speed and extrusion of the filament 
     CalibPressureAdvanceLine line(params, config, false, *object, Vec3d::Zero());
     const CustomGCode::Info custom = line.generate_custom_gcodes(config, false, *object, Vec3d::Zero());
     REQUIRE(custom.gcodes.size() == 2);
+    CHECK(custom.gcodes.front().extra.find(";WIDTH:0.6\n") != std::string::npos);
+    CHECK(custom.gcodes.back().extra.find(";WIDTH:0.4\n") != std::string::npos);
     const std::string       gcode    = "M82\n" + custom.gcodes.front().extra;
     const std::vector<Move> segments = extrusions_of_type(gcode, "Outer wall", true, config);
     REQUIRE_FALSE(segments.empty());
@@ -165,11 +167,14 @@ TEST_CASE("PA Line preserves selected parameters when regenerating G-code", "[Ca
         {"initial_layer_print_height", "0.3"},
         {"layer_height", "0.24"},
         {"nozzle_diameter", "0.6"},
+        {"z_offset", "0.05"},
     });
     const CustomGCode::Info regenerated = line.generate_custom_gcodes(config, false, *object, Vec3d::Zero());
 
     REQUIRE(regenerated.gcodes.size() == 2);
     CHECK_THAT(regenerated.gcodes.front().print_z, Catch::Matchers::WithinAbs(0.3, 1e-9));
     CHECK_THAT(regenerated.gcodes.back().print_z, Catch::Matchers::WithinAbs(0.3 + 0.24, 1e-9));
+    CHECK(regenerated.gcodes.front().extra.find(";HEIGHT:0.3\n") != std::string::npos);
+    CHECK(regenerated.gcodes.back().extra.find(";HEIGHT:0.24\n") != std::string::npos);
     CHECK_THAT(line.line_width(), Catch::Matchers::WithinAbs(0.6 * 1.05, 1e-9));
 }

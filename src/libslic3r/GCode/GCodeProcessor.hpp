@@ -655,7 +655,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             Outer_Overhang_Wall,
         };
 
-        static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
+        static const std::string& reserved_tag(ETags tag, bool is_bbl_printer) { return (is_bbl_printer ? Reserved_Tags : Reserved_Tags_compatible)[static_cast<unsigned char>(tag)]; }
+        static const std::string& reserved_tag(ETags tag) { return reserved_tag(tag, s_IsBBLPrinter); }
         // checks the given gcode for reserved tags and returns true when finding the 1st (which is returned into found_tag) 
         static bool contains_reserved_tag(const std::string& gcode, std::string& found_tag);
         // checks the given gcode for reserved tags and returns true when finding any

@@ -6950,6 +6950,9 @@ LayerResult GCode::process_layer(
     if (single_object_instance_idx == size_t(-1)) {
         // Normal (non-sequential) print.
         gcode += ProcessLayer::emit_custom_gcode_per_print_z(*this, layer_tools.custom_gcode, m_writer.filament()->id(), first_extruder_id, print.config());
+        // PA Line declares its own widths. Re-emit the width of the next sliced path.
+        if (layer_tools.custom_gcode != nullptr && print.calib_mode() == CalibMode::Calib_PA_Line)
+            m_last_width = 0.f;
     }
 
     // BBS: get next extruder according to flush and soluble
