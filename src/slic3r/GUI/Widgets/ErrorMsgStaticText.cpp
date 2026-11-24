@@ -1,5 +1,10 @@
 #include "ErrorMsgStaticText.hpp"
 #include <wx/dcclient.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/string.h>
+
+class wxWindow;
 
 ErrorMsgStaticText::ErrorMsgStaticText() {}
 

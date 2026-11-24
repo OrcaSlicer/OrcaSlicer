@@ -3,7 +3,7 @@
 	"name": "PolyTerra PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFL01",
+	"filament_id": "OFW29a9R",
 	"instantiation": "false",
 	"filament_vendor": [
 		"Polymaker"

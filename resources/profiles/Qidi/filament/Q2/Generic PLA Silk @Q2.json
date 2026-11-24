@@ -3,7 +3,7 @@
 	"name": "Generic PLA Silk@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_1_0_4",
+	"filament_id": "OFesA6rF",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"0"

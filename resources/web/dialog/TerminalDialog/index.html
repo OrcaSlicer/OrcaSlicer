@@ -9,9 +9,9 @@
   <link rel="stylesheet" type="text/css" href="../css/common.css" />
   <link rel="stylesheet" type="text/css" href="../css/theme.css" />
   <link rel="stylesheet" href="./styles.css" />
-  <script type="text/javascript" src="../js/jquery-3.6.0.min.js"></script>
+  <script type="text/javascript" src="../../include/jquery-3.6.0.min.js"></script>
   <script type="text/javascript" src="../js/json2.js"></script>
-  <script type="text/javascript" src="../../data/text.js"></script>
+  <script type="text/javascript" src="../../include/i18n.js"></script>
   <script type="text/javascript" src="../js/globalapi.js"></script>
   <script type="text/javascript" src="../../include/xterm/xterm.js"></script>
   <script type="text/javascript" src="../../include/xterm/xterm-addon-fit.js"></script>
@@ -21,8 +21,8 @@
   <div class="app">
     <div id="terminal-container"></div>
     <div class="input-row">
-      <input type="text" id="cmd-input" placeholder="python ... or uv ..." />
-      <button id="run-btn">Run</button>
+      <input type="text" id="cmd-input" placeholder="python ... or uv ..." data-i18n-placeholder="command_hint" />
+      <button id="run-btn" data-i18n="run">Run</button>
     </div>
   </div>
 </body>

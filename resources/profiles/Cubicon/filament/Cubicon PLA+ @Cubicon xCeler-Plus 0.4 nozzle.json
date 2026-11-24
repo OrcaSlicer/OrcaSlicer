@@ -4,6 +4,7 @@
 	"inherits": "Cubicon PLA+ @base",
 	"from": "system",
 	"setting_id": "JVShu8DKQ3euGHec",
+	"filament_id": "OF7tt7DO",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Cubicon xCeler-Plus 0.4 nozzle"

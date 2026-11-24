@@ -5,43 +5,61 @@ on:
     branches:
      - main
      - release/*
-     - belt-printer
     paths:
      - 'deps/**'
+     - 'deps_src/**'
+     - 'cmake/**'
      - 'src/**'
      - '**/CMakeLists.txt'
      - 'version.inc'
      - 'localization/**'
      - 'resources/**'
      - ".github/workflows/build_*.yml"
+     - ".github/workflows/unit_tests*.yml"
+     - 'build_linux.sh'
+     - 'build_win.bat'
+     - 'scripts/test_build_win.ps1'
+     - 'scripts/check_exception_throw_info.ps1'
+     - 'scripts/test_check_exception_throw_info.ps1'
+     - 'build_release_macos.sh'
      - 'scripts/build_preset_cache.*'
+     - 'scripts/prune_cached_presets.ps1'
+     - 'scripts/test_prune_cached_presets.ps1'
      - 'scripts/flatpak/**'
      - 'scripts/msix/**'
+     - 'scripts/sign_windows.ps1'
      - 'tests/**'
 
   pull_request:
     branches:
      - main
      - release/*
+    # build_optional.yml keeps the same list, plus scripts/flatpak/**.
     paths:
      - 'deps/**'
      - 'deps_src/**'
+     - 'cmake/**'
      - 'src/**'
      - '**/CMakeLists.txt'
      - 'version.inc'
      - ".github/workflows/build_*.yml"
+     - ".github/workflows/unit_tests*.yml"
      - 'build_linux.sh'
-     - 'build_release_vs.bat'
-     - 'build_release_vs2022.bat'
+     - 'build_win.bat'
+     - 'scripts/test_build_win.ps1'
+     - 'scripts/check_exception_throw_info.ps1'
+     - 'scripts/test_check_exception_throw_info.ps1'
      - 'build_release_macos.sh'
      - 'scripts/build_preset_cache.*'
-     - 'scripts/flatpak/**'
+     - 'scripts/prune_cached_presets.ps1'
+     - 'scripts/test_prune_cached_presets.ps1'
      - 'scripts/msix/**'
+     - 'scripts/sign_windows.ps1'
      - 'tests/**'
 
 
   schedule:
-      - cron: '0 17 * * *' # run once a day at 1 AM Singapore time (UTC+8)
+      - cron: '15 2 * * *' # 10:15 AM Singapore time (UTC+8), when macOS runners are least busy
 
   workflow_dispatch: # allows for manual dispatch
     inputs:
@@ -51,11 +69,70 @@ on:
         default: false
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # cancel_closed_pr_builds.yml joins this group by name, so update that file
+  # with any change here.
+  group: build-all-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  # Pushes don't cancel a running build, because only a finished branch build
+  # saves caches every pull request can restore.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
   
 
 jobs:
+  # build_win.bat and two of the scripts it runs ship test suites. They run
+  # before the Windows builds, on a pull request only when it changes one of
+  # the scripts or the suites: the suites build their own fixtures and read
+  # nothing else from the tree. Pushes and the nightly always run them.
+  build_script_changes:
+    name: Look for build script changes
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-24.04
+    outputs:
+      changed: ${{ steps.changes.outputs.changed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          lfs: 'false'
+          # The merge commit plus its first parent, the base it is diffed against.
+          fetch-depth: 2
+          sparse-checkout: .github/workflows
+      - name: Look for changed files
+        id: changes
+        run: |
+          if git diff --quiet HEAD^1 HEAD -- build_win.bat .github/workflows/build_all.yml \
+              scripts/check_exception_throw_info.ps1 scripts/prune_cached_presets.ps1 \
+              scripts/test_build_win.ps1 scripts/test_check_exception_throw_info.ps1 scripts/test_prune_cached_presets.ps1; then
+            echo "No build script changes."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+  check_build_script:
+    name: Windows build script tests
+    needs: build_script_changes
+    # Runs unless the lookup ran and found nothing: skipped off pull requests,
+    # and failed lookups run the suites rather than skip them.
+    if: ${{ !cancelled() && (needs.build_script_changes.result != 'success' || needs.build_script_changes.outputs.changed == 'true') }}
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          lfs: 'false'
+
+      # Windows PowerShell rather than pwsh: the suite drives build_win.bat
+      # through cmd, and the two differ in how they quote native arguments.
+      - name: Run the build script test suite
+        shell: powershell
+        run: .\scripts\test_build_win.ps1
+
+      - name: Run the exception throw info check tests
+        shell: powershell
+        run: .\scripts\test_check_exception_throw_info.ps1
+
+      - name: Run the preset prune tests
+        shell: powershell
+        run: .\scripts\test_prune_cached_presets.ps1
+
   build_linux:
     strategy:
       fail-fast: false
@@ -79,31 +156,44 @@ jobs:
     strategy:
       fail-fast: false
       # SELF_HOSTED skips arm64 (the self-hosted Windows server is x64-only).
+      # So does a pull request; build_optional.yml builds arm64 on the
+      # build-windows-arm64 label or a change outside the sources.
       matrix:
         include: ${{ fromJSON(vars.SELF_HOSTED
-          && '[{"arch":"x64","os":"orca-win-server"}]'
-          || '[{"arch":"x64","os":"windows-latest"},{"arch":"arm64","os":"windows-11-arm"}]') }}
+          && '[{"arch":"x64","os":"orca-win-server","compiler":"clang"}]'
+          || (github.event_name == 'pull_request'
+            && '[{"arch":"x64","os":"windows-latest","compiler":"clang"}]'
+            || '[{"arch":"x64","os":"windows-latest","compiler":"clang"},{"arch":"arm64","os":"windows-11-vs2026-arm","compiler":"clang"}]')) }}
+    needs: check_build_script
+    # id-token lets release builds sign through Google Cloud Workload Identity Federation (see
+    # "Configure code signing" in build_orca.yml); the rest is what the build already used.
+    permissions:
+      actions: write
+      contents: write
+      id-token: write
     # Don't run scheduled builds on forks:
-    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    if: ${{ !cancelled() && contains(fromJSON('["success", "skipped"]'), needs.check_build_script.result) && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
       os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
+      compiler: ${{ matrix.compiler }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
   build_macos_arch:
     strategy:
       fail-fast: false
+      # Hosted macOS runners are scarce, so a pull request builds arm64 only and
+      # ships it as its own DMG; build_optional.yml builds x86_64 on the
+      # build-macos-x86_64 label. Pushes build both and combine them below.
       matrix:
-        arch:
-          - arm64
-          - x86_64
+        arch: ${{ fromJSON(github.event_name == 'pull_request' && '["arm64"]' || '["arm64", "x86_64"]') }}
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
-      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-14' }}
+      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
       arch: ${{ matrix.arch }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
       force-build: ${{ github.event_name == 'schedule' }}
@@ -111,10 +201,10 @@ jobs:
   build_macos_universal:
     name: Build macOS Universal
     needs: build_macos_arch
-    if: ${{ !cancelled() && needs.build_macos_arch.result == 'success' && !inputs.build-deps-only && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    if: ${{ !cancelled() && needs.build_macos_arch.result == 'success' && !inputs.build-deps-only && github.event_name != 'pull_request' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_orca.yml
     with:
-      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-14' }}
+      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
       arch: universal
       macos-combine-only: true
     secrets: inherit
@@ -135,10 +225,11 @@ jobs:
     with:
       os: ubuntu-24.04-arm
       artifact: ${{ github.sha }}-tests-linux-aarch64
+  # The explicit result, as the script tests ahead of the build may be skipped.
   unit_tests_windows_x64:
     name: Windows x64
     needs: build_windows
-    if: ${{ !cancelled() && success() }}
+    if: ${{ !cancelled() && needs.build_windows.result == 'success' }}
     uses: ./.github/workflows/unit_tests.yml
     with:
       os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
@@ -146,10 +237,10 @@ jobs:
   unit_tests_windows_arm64:
     name: Windows arm64
     needs: build_windows
-    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED }}
+    if: ${{ !cancelled() && needs.build_windows.result == 'success' && !vars.SELF_HOSTED && github.event_name != 'pull_request' }}
     uses: ./.github/workflows/unit_tests.yml
     with:
-      os: windows-11-arm
+      os: windows-11-vs2026-arm
       artifact: ${{ github.sha }}-tests-windows-arm64
       test-dir: build-arm64/tests
   unit_tests_macos_arm64:
@@ -158,12 +249,14 @@ jobs:
     if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests.yml
     with:
-      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-14' }}
+      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
       artifact: ${{ github.sha }}-tests-macos-arm64
       test-dir: build/arm64/tests
-  # Slice a two-colour cube through every shipped printer so all custom g-code
-  # (change_filament_gcode, machine start/end, etc.) is expanded - catches
-  # slicing regressions the static profile checks and unit tests can't see.
+  # Slice a two-colour cube through every shipped printer, and through every
+  # system process/filament whose templates no printer's own slice reaches, so
+  # every custom g-code and filename_format shipped is expanded (names in {if}
+  # branches not taken included) - catches slicing regressions the static
+  # profile checks and unit tests can't see.
   # Profile-only PRs are covered by check_profiles.yml's nightly binary; this
   # covers src/engine PRs with the PR-built binary.
   slice_check_linux:
@@ -187,7 +280,7 @@ jobs:
           ./validator-bin/OrcaSlicer_profile_validator -p "${{ github.workspace }}/resources/profiles" -s -l 2
   publish_test_results:
     name: Publish Test Results
-    needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64]
+    needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64, flatpak]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -198,7 +291,9 @@ jobs:
           path: test-results
       # Best-effort: a read-only token (e.g. fork PRs) can't write the check, so
       # don't let a publish failure fail the run. The test jobs gate correctness.
+      # Skipped when every build failed: there is nothing to publish.
       - name: Publish Test Results
+        if: ${{ hashFiles('test-results/**/*.xml') != '' }}
         continue-on-error: true
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
@@ -209,100 +304,10 @@ jobs:
         with:
           name: test-results-*
           failOnError: false
+  # Pull requests build it on the build-flatpak label, from build_optional.yml.
   flatpak:
-    name: "Flatpak"
-    container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
-      options: --privileged
-      volumes:
-        - /usr/local/lib/android:/usr/local/lib/android
-        - /usr/share/dotnet:/usr/share/dotnet
-        - /opt/ghc:/opt/ghc1
-        - /usr/local/share/boost:/usr/local/share/boost1
-        - /opt/hostedtoolcache:/opt/hostedtoolcache1
-    strategy:
-      fail-fast: false
-      matrix:
-        variant:
-          - arch: x86_64
-            runner: ubuntu-24.04
-          - arch: aarch64
-            runner: ubuntu-24.04-arm
+    name: Flatpak
     # Don't run scheduled builds on forks; skip entirely on self-hosted runners
-    if: ${{ !cancelled() && !vars.SELF_HOSTED && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
-
-    runs-on: ${{ matrix.variant.runner }}
-    env:
-      date:
-      ver:
-      ver_pure:
-      # Belt-printer nightlies share the main nightly release but carry a `_belt`
-      # suffix so they never overwrite the main assets.
-      nightly_suffix: ${{ github.ref == 'refs/heads/belt-printer' && '_belt' || '' }}
-    steps:
-    - name: "Remove unneeded stuff to free disk space"
-      run:
-        rm -rf /usr/local/lib/android/* /usr/share/dotnet/* /opt/ghc1/* "/usr/local/share/boost1/*" /opt/hostedtoolcache1/*
-    - uses: actions/checkout@v7
-    - name: Get the version and date
-      run: |
-        ver_pure=$(grep 'set(SoftFever_VERSION' version.inc | cut -d '"' -f2)
-        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-          ver="PR-${{ github.event.number }}"
-          git_commit_hash="${{ github.event.pull_request.head.sha }}"
-        else
-          ver=V$ver_pure
-          git_commit_hash="${{ github.sha }}"
-        fi
-        echo "ver=$ver" >> $GITHUB_ENV
-        echo "ver_pure=$ver_pure" >> $GITHUB_ENV
-        echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
-        echo "git_commit_hash=$git_commit_hash" >> $GITHUB_ENV
-      shell: bash
-    # Manage flatpak-builder cache externally so PRs restore but never upload
-    - name: Restore flatpak-builder cache
-      if: github.event_name == 'pull_request'
-      uses: actions/cache/restore@v6
-      with:
-        path: .flatpak-builder
-        key: flatpak-builder-${{ matrix.variant.arch }}-${{ github.event.pull_request.base.sha }}
-        restore-keys: flatpak-builder-${{ matrix.variant.arch }}-
-    - name: Save/restore flatpak-builder cache
-      if: github.event_name != 'pull_request'
-      uses: actions/cache@v6
-      with:
-        path: .flatpak-builder
-        key: flatpak-builder-${{ matrix.variant.arch }}-${{ github.sha }}
-        restore-keys: flatpak-builder-${{ matrix.variant.arch }}-
-    - name: Disable debug info for faster CI builds
-      run: |
-        sed -i '/^build-options:/a\  no-debuginfo: true\n  strip: true' \
-          scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
-      shell: bash
-    - name: Inject git commit hash into Flatpak manifest
-      run: |
-        sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        git_commit_hash: \"$git_commit_hash\"|}" \
-          scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
-      shell: bash
-    - uses: flatpak/flatpak-github-actions/flatpak-builder@master
-      with:
-        bundle: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
-        manifest-path: scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
-        cache: false
-        arch: ${{ matrix.variant.arch }}
-        upload-artifact: false
-    - name: Upload artifacts Flatpak
-      uses: actions/upload-artifact@v7
-      with:
-        name: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
-        path: '/__w/OrcaSlicer/OrcaSlicer/OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak'
-    - name: Deploy Flatpak to nightly release
-      if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/belt-printer')
-      uses: WebFreak001/deploy-nightly@v3.2.0
-      with:
-        upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}
-        release_id: 137995723
-        asset_path: /__w/OrcaSlicer/OrcaSlicer/OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
-        asset_name: OrcaSlicer-Linux-flatpak_nightly${{ env.nightly_suffix }}_${{ matrix.variant.arch }}.flatpak
-        asset_content_type: application/octet-stream
-        max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
+    if: ${{ !cancelled() && !vars.SELF_HOSTED && github.event_name != 'pull_request' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    uses: ./.github/workflows/build_flatpak.yml
+    secrets: inherit

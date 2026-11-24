@@ -1,10 +1,10 @@
 {
 	"type": "filament",
 	"name": "Anycubic PLA @Anycubic Kobra Neo 0.4 nozzle",
-	"inherits": "Anycubic Generic PLA",
+	"inherits": "Generic PLA @Anycubic",
 	"from": "system",
 	"setting_id": "GblA3LvgCL63V7Qx",
-	"filament_id": "GFL99",
+	"filament_id": "OFmjN2bc",
 	"instantiation": "true",
 	"filament_vendor": [
 		"Anycubic"
@@ -111,9 +111,6 @@
 	"filament_is_support": [
 		"0"
 	],
-	"filament_load_time": [
-		"0"
-	],
 	"filament_loading_speed": [
 		"0"
 	],
@@ -181,9 +178,6 @@
 		"; filament start gcode\n"
 	],
 	"filament_toolchange_delay": [
-		"0"
-	],
-	"filament_unload_time": [
 		"0"
 	],
 	"filament_unloading_speed": [

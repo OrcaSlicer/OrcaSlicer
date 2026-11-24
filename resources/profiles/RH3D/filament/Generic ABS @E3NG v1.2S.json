@@ -4,7 +4,7 @@
 	"inherits": "fdm_filament_abs",
 	"from": "system",
 	"setting_id": "VNx6rdTN7OIIXVpC",
-	"filament_id": "Generic ABS @E3NG v1.2S",
+	"filament_id": "OFY9muEs",
 	"instantiation": "true",
 	"compatible_printers": [
 		"E3NG v1.2S - 0.2 nozzle",

@@ -8,5 +8,5 @@
 	"bed_model": "comgrow_t300_buildplate_model.stl",
 	"bed_texture": "comgrow_t300_buildplate_texture.svg",
 	"hotend_model": "",
-	"default_materials": "Comgrow T300 PLA"
+	"default_materials": "Generic PLA @Comgrow T300"
 }

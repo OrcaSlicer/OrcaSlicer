@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFA00_01",
-	"setting_id": "BASsUdyvElEVJ9AA",
 	"name": "Afinia Value PLA@HS",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "BASsUdyvElEVJ9AA",
+	"filament_id": "OFgHh8ly",
+	"instantiation": "true",
 	"filament_cost": [
 		"24.99"
 	],

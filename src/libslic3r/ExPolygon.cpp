@@ -1,14 +1,22 @@
 #include "BoundingBox.hpp"
 #include "ExPolygon.hpp"
-#include "Exception.hpp"
 #include "Geometry/MedialAxis.hpp"
+#include "Point.hpp"
+#include "MultiPoint.hpp"
 #include "Polygon.hpp"
 #include "Line.hpp"
 #include "ClipperUtils.hpp"
-#include "SVG.hpp"
+#include "Polyline.hpp"
+#include "libslic3r.h"
 #include <algorithm>
 #include <cassert>
+#include <limits>
+#include <cstddef>
+#include <cmath>
+#include <cstdlib>
 #include <list>
+#include <utility>
+#include <vector>
 
 namespace Slic3r {
 
@@ -83,6 +91,22 @@ bool ExPolygon::contains(const Polyline &polyline) const
     bbox2.inflated(1);
     if (!bbox1.overlap(bbox2))
         return false;
+
+    // A polyline reaching further than SCALED_EPSILON out of the bounding box of all the outlines runs
+    // outside of them all there, which the difference keeps: no need to compute it. This does not hold for
+    // a polyline of a single point, which the difference drops.
+    if (bbox2.min != bbox2.max) {
+        auto reaches_out = [&bbox2](BoundingBox outlines) {
+            outlines.offset(SCALED_EPSILON);
+            return !outlines.contains(bbox2.min) || !outlines.contains(bbox2.max);
+        };
+        if (reaches_out(bbox1)) {
+            for (const Polygon &hole : this->holes)
+                bbox1.merge(get_extents(hole));
+            if (reaches_out(bbox1))
+                return false;
+        }
+    }
 
     return diff_pl(polyline, *this).empty();
 }

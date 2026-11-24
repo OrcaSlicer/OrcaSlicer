@@ -2,9 +2,12 @@
 #define slic3r_GUI_StateHandler_hpp_
 
 #include <memory>
+#include <vector>
 #include <wx/event.h>
 
 #include "StateColor.hpp"
+
+class wxWindow;
 
 wxDECLARE_EVENT(EVT_ENABLE_CHANGED, wxCommandEvent);
 

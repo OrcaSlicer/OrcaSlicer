@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"filament_id": "QD_4_1_36",
 	"name": "QIDI PEBA 95A@X-Plus 5-Series",
-	"from": "system",
-	"instantiation": "false",
 	"inherits": "fdm_filament_x5_common",
+	"from": "system",
+	"filament_id": "OFhiJE7Y",
+	"instantiation": "false",
 	"cool_plate_temp_initial_layer": [
 		"30"
 	],

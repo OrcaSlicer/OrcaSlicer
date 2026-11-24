@@ -3,7 +3,7 @@
 	"name": "QIDI PAHT-GF@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_1_1_31",
+	"filament_id": "OFo15hcT",
 	"instantiation": "false",
 	"box_temperature_range_high": [
 		"65"

@@ -1,10 +1,14 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Color Change",
-	"inherits": "Flashforge Generic PLA",
+	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "pCQ2qmeXUyJzP7kS",
+	"filament_id": "OFMkAW6r",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"filament_settings_id": [
 		"Flashforge PLA Color Change"
 	],

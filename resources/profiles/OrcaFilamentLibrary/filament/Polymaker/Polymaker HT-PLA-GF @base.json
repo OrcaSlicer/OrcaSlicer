@@ -3,7 +3,7 @@
 	"name": "Polymaker HT-PLA-GF @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFPM018",
+	"filament_id": "OFlwmqrC",
 	"instantiation": "false",
 	"filament_cost": [
 		"32.99"

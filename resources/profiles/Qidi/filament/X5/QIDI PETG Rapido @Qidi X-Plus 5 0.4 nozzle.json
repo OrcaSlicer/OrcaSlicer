@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "SZOwb16vrcdtaDzJ",
 	"name": "QIDI PETG Rapido @Qidi X-Plus 5 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PETG Rapido@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "SZOwb16vrcdtaDzJ",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi X-Plus 5 0.4 nozzle"
 	]

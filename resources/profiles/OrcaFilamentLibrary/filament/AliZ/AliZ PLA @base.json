@@ -3,7 +3,7 @@
 	"name": "AliZ PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "AliZ002",
+	"filament_id": "OFyxayW4",
 	"instantiation": "false",
 	"enable_pressure_advance": [
 		"0"

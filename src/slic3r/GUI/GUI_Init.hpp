@@ -3,6 +3,9 @@
 
 #include <libslic3r/Preset.hpp>
 #include <libslic3r/PrintConfig.hpp>
+#include <vector>
+#include <utility>
+#include <string>
 
 namespace Slic3r {
 

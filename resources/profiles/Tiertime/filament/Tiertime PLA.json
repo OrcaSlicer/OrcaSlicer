@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFA00",
-	"setting_id": "dlXQZNrJfvkJ3kWs",
 	"name": "Tiertime PLA",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "dlXQZNrJfvkJ3kWs",
+	"filament_id": "OFNGTH3w",
+	"instantiation": "true",
 	"filament_cost": [
 		"24.99"
 	],

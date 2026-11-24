@@ -1,9 +1,9 @@
 {
 	"type": "machine",
 	"name": "fgf_re3D_common",
+	"inherits": "fdm_machine_common",
 	"from": "system",
 	"instantiation": "false",
-	"inherits": "fdm_machine_common",
 	"gcode_flavor": "klipper",
 	"printer_settings_id": "",
 	"printer_technology": "FFF",
@@ -43,7 +43,6 @@
 		"30"
 	],
 	"z_hop_types": "Normal Lift",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "0",
 	"change_filament_gcode": "M600",
 	"machine_pause_gcode": "PAUSE",

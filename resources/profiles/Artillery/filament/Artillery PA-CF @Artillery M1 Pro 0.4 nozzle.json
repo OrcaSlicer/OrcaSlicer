@@ -1,9 +1,10 @@
 {
 	"type": "filament",
 	"name": "Artillery PA-CF @Artillery M1 Pro 0.4 nozzle",
-	"inherits": "Artillery Generic PLA",
+	"inherits": "Generic PLA @Artillery",
 	"from": "system",
 	"setting_id": "b4BKJMUxArvLuEOh",
+	"filament_id": "OFtGC1ye",
 	"instantiation": "true",
 	"complete_print_exhaust_fan_speed": [
 		"0"

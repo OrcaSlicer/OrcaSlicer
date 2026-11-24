@@ -4,7 +4,14 @@
 	"inherits": "Generic PA-CF @System",
 	"from": "system",
 	"setting_id": "RX2Tg8KpwQpCbkLI",
+	"filament_id": "OFGxuI0n",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"activate_chamber_temp_control": [
 		"1"
 	],

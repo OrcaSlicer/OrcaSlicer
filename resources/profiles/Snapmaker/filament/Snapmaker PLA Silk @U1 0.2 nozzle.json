@@ -4,30 +4,36 @@
 	"inherits": "Snapmaker PLA Basic @U1 base",
 	"from": "system",
 	"setting_id": "Q5xH6oGGlbXr14Pa",
-	"filament_id": "11813638720",
+	"filament_id": "OFWgFOjn",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.2 nozzle)"
 	],
 	"activate_air_filtration": [
+		"0",
 		"0"
 	],
 	"activate_chamber_temp_control": [
 		"0"
 	],
 	"adaptive_pressure_advance": [
+		"0",
 		"0"
 	],
 	"adaptive_pressure_advance_bridges": [
+		"0",
 		"0"
 	],
 	"adaptive_pressure_advance_model": [
+		"0,0,0\n0,0,0",
 		"0,0,0\n0,0,0"
 	],
 	"adaptive_pressure_advance_overhangs": [
+		"0",
 		"0"
 	],
 	"additional_cooling_fan_speed": [
+		"100",
 		"100"
 	],
 	"chamber_temperature": [
@@ -40,6 +46,7 @@
 	"compatible_prints": [],
 	"compatible_prints_condition": "",
 	"complete_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"cool_plate_temp": [
@@ -49,12 +56,14 @@
 		"60"
 	],
 	"during_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"enable_overhang_bridge_fan": [
 		"1"
 	],
 	"enable_pressure_advance": [
+		"0",
 		"0"
 	],
 	"eng_plate_temp": [
@@ -67,9 +76,11 @@
 		"100"
 	],
 	"fan_max_speed": [
+		"100",
 		"100"
 	],
 	"fan_min_speed": [
+		"100",
 		"100"
 	],
 	"filament_cost": [
@@ -79,6 +90,7 @@
 		"1.32"
 	],
 	"filament_deretraction_speed": [
+		"nil",
 		"nil"
 	],
 	"filament_diameter": [
@@ -88,24 +100,30 @@
 		"; filament end gcode \n"
 	],
 	"filament_flow_ratio": [
+		"1.02",
 		"1.02"
 	],
 	"filament_is_support": [
 		"0"
 	],
 	"filament_long_retractions_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
+		"15",
 		"15"
 	],
 	"filament_multitool_ramming": [
+		"1",
 		"1"
 	],
 	"filament_multitool_ramming_flow": [
+		"3",
 		"3"
 	],
 	"filament_multitool_ramming_volume": [
+		"5",
 		"5"
 	],
 	"filament_notes": [
@@ -115,33 +133,43 @@
 		"120 100 6.6 6.8 7.2 7.6 7.9 8.2 8.7 9.4 9.9 10.0| 0.05 6.6 0.45 6.8 0.95 7.8 1.45 8.3 1.95 9.7 2.45 10 2.95 7.6 3.45 7.6 3.95 7.6 4.45 7.6 4.95 7.6"
 	],
 	"filament_retract_before_wipe": [
+		"nil",
 		"nil"
 	],
 	"filament_retract_length_toolchange": [
+		"5",
 		"5"
 	],
 	"filament_retract_lift_above": [
+		"nil",
 		"nil"
 	],
 	"filament_retract_lift_below": [
+		"nil",
 		"nil"
 	],
 	"filament_retract_lift_enforce": [
+		"nil",
 		"nil"
 	],
 	"filament_retract_restart_extra": [
+		"nil",
 		"nil"
 	],
 	"filament_retract_when_changing_layer": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_distances_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_minimum_travel": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_speed": [
+		"nil",
 		"nil"
 	],
 	"filament_shrink": [
@@ -169,15 +197,19 @@
 		"Snapmaker"
 	],
 	"filament_wipe": [
+		"1",
 		"1"
 	],
 	"filament_wipe_distance": [
+		"nil",
 		"nil"
 	],
 	"filament_z_hop": [
+		"nil",
 		"nil"
 	],
 	"filament_z_hop_types": [
+		"Slope Lift",
 		"Slope Lift"
 	],
 	"full_fan_speed_layer": [
@@ -187,9 +219,11 @@
 		"0"
 	],
 	"nozzle_temperature_range_high": [
+		"240",
 		"240"
 	],
 	"nozzle_temperature_range_low": [
+		"190",
 		"190"
 	],
 	"overhang_fan_speed": [
@@ -253,9 +287,11 @@
 		"3"
 	],
 	"filament_max_volumetric_speed": [
+		"2",
 		"2"
 	],
 	"filament_retraction_length": [
+		"0.4",
 		"0.4"
 	],
 	"filament_stamping_distance": [
@@ -274,12 +310,19 @@
 		"65"
 	],
 	"nozzle_temperature": [
+		"230",
 		"230"
 	],
 	"nozzle_temperature_initial_layer": [
+		"230",
 		"230"
 	],
 	"pressure_advance": [
+		"0.015",
 		"0.015"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
 	]
 }

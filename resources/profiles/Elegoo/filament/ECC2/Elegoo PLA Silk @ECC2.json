@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA Silk @ECC2",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA Silk @base",
 	"from": "system",
 	"setting_id": "R20HD2TcTFmVt8ei",
 	"instantiation": "true",

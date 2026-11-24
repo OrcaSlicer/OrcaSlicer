@@ -4,9 +4,10 @@
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
 	"setting_id": "w4Hpl2qNPmgNvaeM",
-	"filament_id": "GFU99",
+	"filament_id": "OFY7jxcS",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
+		"3.5",
 		"3.5"
 	],
 	"compatible_printers": [
@@ -19,63 +20,81 @@
 		"; filament end gcode \n\n"
 	],
 	"filament_multitool_ramming": [
+		"1",
 		"1"
 	],
 	"filament_multitool_ramming_volume": [
+		"0.1",
 		"0.1"
 	],
 	"pressure_advance": [
+		"0.02",
 		"0.02"
 	],
 	"additional_cooling_fan_speed": [
+		"70",
 		"70"
 	],
 	"complete_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"during_print_exhaust_fan_speed": [
+		"70",
 		"70"
 	],
 	"enable_pressure_advance": [
+		"0",
 		"0"
 	],
 	"filament_deretraction_speed": [
+		"20",
 		"20"
 	],
 	"filament_flow_ratio": [
+		"1.095",
 		"1.095"
 	],
 	"filament_multitool_ramming_flow": [
+		"5",
 		"5"
 	],
 	"filament_retract_length_toolchange": [
+		"4",
 		"4"
 	],
 	"filament_retraction_length": [
+		"1.2",
 		"1.2"
 	],
 	"filament_retraction_speed": [
+		"20",
 		"20"
 	],
 	"filament_vendor": [
 		"Snapmaker"
 	],
 	"nozzle_temperature": [
+		"220",
 		"220"
 	],
 	"nozzle_temperature_initial_layer": [
+		"220",
 		"220"
 	],
 	"slow_down_layer_time": [
 		"14"
 	],
 	"nozzle_temperature_range_high": [
+		"240",
 		"240"
 	],
 	"filament_z_hop_types": [
+		"Slope Lift",
 		"Slope Lift"
 	],
 	"activate_air_filtration": [
+		"0",
 		"0"
 	],
 	"chamber_temperatures": [
@@ -94,27 +113,34 @@
 		"30"
 	],
 	"fan_max_speed": [
+		"100",
 		"100"
 	],
 	"fan_min_speed": [
+		"100",
 		"100"
 	],
 	"filament_cost": [
 		"20"
 	],
 	"filament_long_retractions_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
+		"15",
 		"15"
 	],
 	"filament_retract_when_changing_layer": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_distances_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_z_hop": [
+		"nil",
 		"nil"
 	],
 	"hot_plate_temp": [
@@ -139,6 +165,11 @@
 		"35"
 	],
 	"nozzle_temperature_range_low": [
+		"200",
 		"200"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
 	]
 }

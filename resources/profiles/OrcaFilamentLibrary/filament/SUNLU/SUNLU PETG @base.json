@@ -3,7 +3,7 @@
 	"name": "SUNLU PETG @base",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"filament_id": "OGFSNL08",
+	"filament_id": "OF2GCW1l",
 	"instantiation": "false",
 	"description": "To get better transparent or translucent results with the corresponding filament, please refer to this wiki: Printing tips for transparent PETG.",
 	"cool_plate_temp": [

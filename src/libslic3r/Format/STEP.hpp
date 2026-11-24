@@ -3,16 +3,28 @@
 #include "XCAFDoc_DocumentTool.hxx"
 #include "XCAFApp_Application.hxx"
 #include "XCAFDoc_ShapeTool.hxx"
+#include <Standard_TypeDef.hxx>
+#include <Standard_Handle.hxx>
+#include <NCollection_DataMap.hxx>
+#include <TopTools_ShapeMapHasher.hxx>
+#include <TopoDS_Shape.hxx>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem.hpp>
 #include <Message_ProgressIndicator.hxx>
 #include <atomic>
+#include <functional>
+#include <string>
+#include <iostream>
+#include <ios>
+#include <iomanip>
+#include <ostream>
+#include <vector>
 
-namespace fs = boost::filesystem;
 
 namespace Slic3r {
 
 class TriangleMesh;
+class Model;
 class ModelObject;
 
 // load step stage
@@ -28,10 +40,13 @@ typedef std::function<void(bool isUtf8)> StepIsUtf8Fn;
 struct NamedSolid
 {
     NamedSolid(const TopoDS_Shape& s,
-               const std::string& n) : solid{ s }, name{ n } {
+               const std::string& n,
+               bool original = false) : solid{ s }, name{ n }, original_name{ original } {
     }
     const TopoDS_Shape solid;
     const std::string  name;
+    // The name is the CAD body label rather than a generated or product name.
+    const bool         original_name;
     int tri_face_cout = 0;
 };
 
@@ -75,9 +90,9 @@ class StepProgressIncdicator : public Message_ProgressIndicator
 public:
     StepProgressIncdicator(std::atomic<bool>& stop_flag) : should_stop(stop_flag){}
 
-    Standard_Boolean UserBreak() override { return should_stop.load(); }
+    bool UserBreak() override { return should_stop.load(); }
 
-    void Show(const Message_ProgressScope&, const Standard_Boolean) override {
+    void Show(const Message_ProgressScope&, const bool) override {
         std::cout << "Progress: " << std::fixed << std::setprecision(2) << 100.0 * GetPosition() << "%" << std::endl;
     }
 private:
@@ -94,10 +109,17 @@ public:
         MESH_SUCCESS,
         MESH_ERROR
     };
-    Step(fs::path path, ImportStepProgressFn stepFn = nullptr, StepIsUtf8Fn isUtf8Fn = nullptr);
+    Step(boost::filesystem::path path, ImportStepProgressFn stepFn = nullptr, StepIsUtf8Fn isUtf8Fn = nullptr);
     Step(std::string path, ImportStepProgressFn stepFn = nullptr, StepIsUtf8Fn isUtf8Fn = nullptr);
     ~Step();
-    Step_Status load();
+    Step_Status load(bool collect_original_names = false);
+    // The import dialog may change this preference after the CAD document is read.
+    void set_keep_original_names(bool keep) { m_keep_original_names = keep; }
+    bool keep_original_names() const { return m_keep_original_names; }
+    // Valid after load(true): the file stores body labels that Keep original names can apply.
+    bool has_original_names() const { return !m_body_names.IsEmpty(); }
+    // Valid after load(): some compound holds several bodies, so their names need Split compound.
+    bool has_multi_body_compound() const { return m_multi_body_compound; }
     unsigned int get_triangle_num(double linear_deflection, double angle_deflection);
     unsigned int get_triangle_num_tbb(double linear_deflection, double angle_deflection);
     void clean_mesh_data();
@@ -105,7 +127,8 @@ public:
                      bool& is_cancel,
                      bool isSplitCompound,
                      double linear_deflection = 0.003,
-                     double angle_deflection = 0.5);
+                     double angle_deflection = 0.5,
+                     bool keep_original_names = false);
 
     std::atomic<bool> m_stop_mesh{false};
     void update_process(int load_stage, int current, int total, bool& cancel);
@@ -117,6 +140,10 @@ private:
     Handle(TDocStd_Document) m_doc;
     Handle(XCAFDoc_ShapeTool) m_shape_tool;
     std::vector<NamedSolid> m_name_solids;
+    // Keys retain the exact transferred topology and location, before copied transforms.
+    NCollection_DataMap<TopoDS_Shape, std::string, TopTools_ShapeMapHasher> m_body_names;
+    bool m_keep_original_names = false;
+    bool m_multi_body_compound = false;
 };
 
 }; // namespace Slic3r

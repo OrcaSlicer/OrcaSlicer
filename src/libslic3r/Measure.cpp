@@ -1,3 +1,5 @@
+#include "Point.hpp"
+#include "TriangleMesh.hpp"
 #include "libslic3r/libslic3r.h"
 #include "Measure.hpp"
 #include "MeasureUtils.hpp"
@@ -6,8 +8,30 @@
 #include "libslic3r/SurfaceMesh.hpp"
 
 
+#include <cstdlib>
+#include <limits>
+#include <array>
+#include <cstddef>
+#include <algorithm>
+#include <cassert>
+#include <boost/container/small_vector.hpp>
+#include <Eigen/Geometry>
+#include <cmath>
+#include <math.h>
+#include <iterator>
+#include <memory>
+#include <iostream>
+#include <Eigen/Core>
+#include <cstdint>
 #include <numeric>
+#include <optional>
+#include <set>
 #include <tbb/parallel_for.h>
+#include <tuple>
+#include <vector>
+#include <utility>
+
+namespace Slic3r { enum Face_index : int; }
 
 #define DEBUG_EXTRACT_ALL_FEATURES_AT_ONCE 0
 
@@ -1393,10 +1417,8 @@ void SurfaceFeature::translate(const Transform3d &tran)
     }
     case Measure::SurfaceFeatureType::Plane: {
         // m_pt1 is normal;
-        Vec3d temp_pt1 = m_pt2 + m_pt1;
-        temp_pt1       = tran * temp_pt1;
+        m_pt1          = (tran.linear().inverse().transpose() * m_pt1).normalized();
         m_pt2          = tran * m_pt2;
-        m_pt1          = (temp_pt1 - m_pt2).normalized();
         break;
     }
     case Measure::SurfaceFeatureType::Circle: {

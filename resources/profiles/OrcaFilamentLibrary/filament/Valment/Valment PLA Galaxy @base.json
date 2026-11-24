@@ -3,7 +3,7 @@
 	"name": "Valment PLA Galaxy @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "VLMNT04",
+	"filament_id": "OFB5SmWk",
 	"instantiation": "false",
 	"filament_cost": [
 		"850"

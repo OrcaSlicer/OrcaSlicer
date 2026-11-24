@@ -1,9 +1,7 @@
 #pragma once
 #include <optional>
 #include <nlohmann/json.hpp>
-#include "slic3r/Utils/json_diff.hpp"
 
-#include "DevDefs.h"
 
 namespace Slic3r {
 
@@ -36,7 +34,7 @@ public:
     void ParseStatus(const nlohmann::json& print_jj);
 
 private:
-    MachineObject *m_owner = nullptr;
+    [[maybe_unused]] MachineObject *m_owner = nullptr;
     std::optional<DevJobState> m_job_state; // could be nullopt for some old firmware
 };
 

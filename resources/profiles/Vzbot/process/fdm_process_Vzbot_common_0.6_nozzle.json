@@ -4,7 +4,6 @@
 	"inherits": "fdm_process_common_0.6_nozzle",
 	"from": "system",
 	"instantiation": "false",
-	"adaptive_layer_height": "0",
 	"reduce_crossing_wall": "0",
 	"max_travel_detour_distance": "0",
 	"bottom_surface_pattern": "monotonic",

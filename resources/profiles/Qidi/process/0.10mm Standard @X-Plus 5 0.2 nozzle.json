@@ -1,10 +1,10 @@
 {
 	"type": "process",
-	"setting_id": "3k8N3voNC9Kp0Ov6",
 	"name": "0.10mm Standard @X-Plus 5 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_process_n_common",
+	"from": "system",
+	"setting_id": "3k8N3voNC9Kp0Ov6",
+	"instantiation": "true",
 	"bottom_color_penetration_layers": "5",
 	"bottom_shell_layers": "5",
 	"bridge_flow": "1",

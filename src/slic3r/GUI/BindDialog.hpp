@@ -3,9 +3,16 @@
 
 #include "I18N.hpp"
 
+#include <cstddef>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <memory>
+#include <wx/event.h>
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include <wx/font.h>
 #include <wx/colour.h>
+#include <wx/panel.h>
 #include <wx/settings.h>
+#include <wx/simplebook.h>
 #include <wx/string.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
@@ -65,18 +72,10 @@ private:
     wxPanel* request_bind_panel;
     wxPanel* binding_panel;
 
-    wxScrolledWindow* m_sw_bind_failed_info;
-    Label* m_bind_failed_info;
-    Label* m_st_txt_error_code{ nullptr };
-    Label* m_st_txt_error_desc{ nullptr };
-    Label* m_st_txt_extra_info{ nullptr };
-    HyperLink*      m_link_network_state{ nullptr };
     wxString        m_result_info;
     wxString        m_result_extra;
     wxString        m_ping_code_wiki;
-    bool            m_show_error_info_state = true;
 
-    int             m_result_code;
     std::shared_ptr<BBLStatusBarBind> m_status_bar;
 
 public:
@@ -110,7 +109,6 @@ private:
     wxBitmap      m_bitmap_show_error_close;
     wxBitmap      m_bitmap_show_error_open;
     wxScrolledWindow* m_sw_bind_failed_info;
-    Label*          m_bind_failed_info;
     Label*          m_st_txt_error_code{ nullptr };
     Label*          m_st_txt_error_desc{ nullptr };
     Label*          m_st_txt_extra_info{ nullptr };

@@ -3,7 +3,7 @@
 	"name": "Snapmaker J1 PLA Eco @base",
 	"inherits": "fdm_filament_pla_eco",
 	"from": "system",
-	"filament_id": "3383257822",
+	"filament_id": "OFLbdkrE",
 	"instantiation": "false",
 	"filament_density": [
 		"1.26"

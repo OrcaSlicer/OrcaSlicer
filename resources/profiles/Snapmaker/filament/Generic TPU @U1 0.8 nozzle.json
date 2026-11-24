@@ -1,0 +1,27 @@
+{
+	"type": "filament",
+	"name": "Generic TPU @U1 0.8 nozzle",
+	"inherits": "Generic TPU @System",
+	"from": "system",
+	"setting_id": "Wfhd3jLEjSKzCeHE",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.8 nozzle)"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"fan_min_speed": [
+		"70",
+		"70"
+	],
+	"fan_max_speed": [
+		"70",
+		"70"
+	],
+	"additional_cooling_fan_speed": [
+		"70",
+		"70"
+	]
+}

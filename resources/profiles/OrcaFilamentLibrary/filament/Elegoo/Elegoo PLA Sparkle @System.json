@@ -1,11 +1,11 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA Sparkle @System",
-	"inherits": "Elegoo PLA @base",
+	"renamed_from": "Elegoo PLA Sparkle",
+	"inherits": "Elegoo PLA Sparkle @base",
 	"from": "system",
 	"setting_id": "VwZIFCojZLQLPrI1",
 	"instantiation": "true",
-	"renamed_from": "Elegoo PLA Sparkle",
 	"fan_min_speed": [
 		"80"
 	],

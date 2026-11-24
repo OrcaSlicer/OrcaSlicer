@@ -3,7 +3,7 @@
 	"name": "FDplast HIPS @base",
 	"inherits": "fdm_filament_hips",
 	"from": "system",
-	"filament_id": "FDPLAST02",
+	"filament_id": "OFmJAd3A",
 	"instantiation": "false",
 	"description": "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",
 	"filament_cost": [

@@ -1,6 +1,9 @@
 #ifndef slic3r_Utils_TCPConsole_hpp_
 #define slic3r_Utils_TCPConsole_hpp_
 
+#include <chrono>
+#include <cstddef>
+#include <boost/asio/io_context.hpp>
 #include <string>
 #include <deque>
 #include <boost/system/error_code.hpp>
@@ -8,16 +11,17 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/streambuf.hpp>
 #include "SerialMessage.hpp"
+#include "SerialMessageType.hpp"
 
 namespace Slic3r {
 namespace Utils {
-
-using boost::asio::ip::tcp;
 
 // Generic command / response TCP telnet like console class.
 // Used by the MKS host to send G-code commands to test connection ("M105") and to start printing ("M23 filename", "M24").
 class TCPConsole
 {
+    using tcp = boost::asio::ip::tcp;
+
 public:
     TCPConsole() : m_resolver(m_io_context), m_socket(m_io_context) { set_defaults(); }
     TCPConsole(const std::string& host_name, const std::string& port_name) : m_resolver(m_io_context), m_socket(m_io_context)

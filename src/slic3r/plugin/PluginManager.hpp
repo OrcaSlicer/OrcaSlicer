@@ -1,29 +1,35 @@
 #ifndef slic3r_PluginManager_hpp_
 #define slic3r_PluginManager_hpp_
 
+#include <atomic>
 #include <boost/filesystem/path.hpp>
 
 #include <algorithm>
+#include <boost/log/trivial.hpp>
 #include <chrono>
 #include <condition_variable>
 #include <functional>
 #include <libslic3r/Config.hpp>
+#include <libslic3r/LifecycleEvents.hpp>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
+#include "slic3r/plugin/PluginFsUtils.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
-#include <pybind11/embed.h>
-
 #include "CloudPluginService.hpp"
-#include "PluginFsUtils.hpp"
 #include "PluginDescriptor.hpp"
 #include "PluginLoader.hpp"
 #include "PluginConfig.hpp"
+
+struct _object;
+using PyObject = _object;
+namespace pybind11 { class object; }
 
 namespace Slic3r {
 
@@ -94,6 +100,48 @@ struct Plugin
     void release_module();
 };
 
+// Outcome of one Script invocation, delivered to a script completion callback.
+//
+// `cancelled` marks a run terminated by PluginManager's own cancellation (plugin unload / shutdown):
+// expected termination, not a failure. Callers must not surface it as an error nor as a normal
+// success. `error` carries only genuine user/plugin exceptions; `result` is meaningful when neither
+// `cancelled` nor a non-empty `error` is set.
+struct ScriptCompletion
+{
+    ExecutionResult result;
+    std::string     error;
+    bool            cancelled = false;
+};
+
+// One string bucket of PluginPermissions. Used by PluginPermissionMutation.
+enum class PluginPermissionCategory {
+    FsRead,
+    FsReadWrite,
+    FsCreate,
+    FsDelete,
+    NetworkHttp,
+    NetworkSocket,
+    Process,
+    Events,
+};
+
+// A granular edit of a plugin's stored permissions, applied to the latest sidecar contents.
+// Entries are matched verbatim. An empty add/remove list means "change nothing"; the boolean
+// grants change only when the corresponding optional is engaged.
+struct PluginPermissionMutation
+{
+    struct Entry
+    {
+        PluginPermissionCategory category = PluginPermissionCategory::FsRead;
+        std::string              value;
+    };
+
+    std::vector<Entry>  add;
+    std::vector<Entry>  remove;
+    std::optional<bool> threading;
+    std::optional<bool> full_access;
+};
+
 class PluginManager
 {
 public:
@@ -112,6 +160,7 @@ public:
 
     // Reject new plugin loads. Called early in app teardown, before shutdown() drains.
     void set_shutting_down();
+    bool is_shutting_down() const { return m_shutting_down.load(std::memory_order_acquire); }
 
     void discover_plugins(bool async = false, bool clear = false);
     // Manually trigger a manifest-only rescan. Blocks until discovery is complete.
@@ -143,6 +192,13 @@ public:
     bool try_get_plugin_descriptor_for_capability(const std::string& capability_name,
                                                   PluginCapabilityType type,
                                                   PluginDescriptor& out) const;
+    // The "name;uuid;capability" reference for a loaded capability, as stored in a preset's
+    // "plugins" manifest; std::nullopt when no loaded package provides it.
+    std::optional<PluginCapabilityRef> resolve_capability_ref(const std::string& capability_name, PluginCapabilityType type) const;
+    // Per-plugin storage directory under orca_plugins/plugin_data, created if missing. Throws
+    // std::runtime_error if the plugin is unregistered, the key is invalid, or (cloud plugins)
+    // no user is logged in yet.
+    std::string get_storage_dir(const std::string& plugin_key) const;
 
     std::vector<std::shared_ptr<PluginCapabilityInterface>> get_plugin_capabilities(
         const std::string& plugin_key = "",                            // "" => all plugins
@@ -155,17 +211,46 @@ public:
                                                                      PluginCapabilityType type = PluginCapabilityType::Unknown,
                                                                      bool only_enabled         = true) const;
 
+    // Reads the sidecar under install_state_mutex(), so the result is not interleaved with a
+    // permission write. Returns false when the plugin is unknown or has no readable sidecar.
+    // Must not be called while already holding install_state_mutex(); the lock is not recursive.
+    bool get_install_state(const std::string& plugin_key, PluginInstallState& install_state);
+
+    // Applies a granular edit to the plugin's latest sidecar contents in one locked read-modify-
+    // write. Only the named entries and engaged boolean grants change; every other stored grant,
+    // including one another writer added after the caller last read the state, is preserved.
+    // Additions are deduplicated, removals of absent entries are ignored, and empty values are
+    // skipped. Requires a known installed package with a readable sidecar; enabling full access
+    // additionally requires a loadable (non-invalid) package, while disabling it and plain list
+    // edits accept any known installed package.
+    // Accepted while the plugin is loaded or loading; the running audit re-reads the sidecar, so
+    // the edit applies to its next audited operation. On success `applied`, when non-null,
+    // receives the permissions as written.
+    bool mutate_plugin_permissions(const std::string& plugin_key, const PluginPermissionMutation& mutation,
+                                   PluginPermissions* applied = nullptr);
+
     void load_plugin(const std::string& plugin_key, bool skip_deps = false, std::vector<std::string> capabilities_to_enable = {});
     bool unload_plugin(const std::string& plugin_key);
     void unload_all_plugins();
     void unload_cloud_plugins();
     bool is_plugin_loaded(const std::string& plugin_key) const;
     bool is_plugin_load_in_progress(const std::string& plugin_key) const;
+    // True when an in-flight load has been cancelled but its worker has not released the slot yet.
+    // Such a load stays "in progress" for wait_for_all_plugin_loads(), but it is no longer treated
+    // as a live plugin when cancellation is observed. A dialog racing with cancellation may still
+    // appear or remain open, but its answer is discarded unless the commit already won.
+    bool is_plugin_load_cancelled(const std::string& plugin_key) const;
     void wait_for_all_plugin_loads() const;
     bool wait_for_all_plugin_loads(std::chrono::milliseconds timeout) const; // false on timeout
     bool wait_for_plugin_load(const std::string& plugin_key, std::chrono::milliseconds timeout, std::string& error) const;
     bool cancel_plugin_load(const std::string& plugin_key);
     std::string get_plugin_load_error(const std::string& plugin_key) const;
+    // True when a discovered plugin's most recent load attempt failed for an ordinary reason.
+    // Cancelling the load, starting another one, unloading the plugin, installing it again, or
+    // removing its package clears it. A discovery rescan leaves it alone, because a rescan does
+    // not prove the executable package changed. A queued runtime prompt stays actionable in this
+    // state, because approving it saves the grant that lets the retry load succeed.
+    bool is_plugin_load_failed(const std::string& plugin_key) const;
 
     void set_capability_enabled(const PluginCapabilityId& id, bool enabled);
 
@@ -195,7 +280,15 @@ public:
 
     bool download_and_install_cloud_plugin(const std::string& plugin_key, const std::string& version, std::string& error);
     bool subscribe_and_install_cloud_plugin(const std::string& plugin_key, std::string& error);
-    // If the version is empty, take the latest version.
+    // If the version is empty, take the latest version. The new package is downloaded before the
+    // old one is replaced, so a download failure leaves the installed package and its state intact.
+    // On success the previous per-capability choices are retained while every permission is reset,
+    // and a loaded package is reloaded afterwards; a deactivated one keeps enabled=false in its
+    // sidecar across the restart. A load already in progress makes the update fail instead of
+    // being cancelled by the replacement. A failed install restores the previous permissions and
+    // reloads the old package only when that package is still present at its recorded root; a
+    // committed replacement never inherits them. The install always targets the account the update
+    // started under, and a detected account change aborts before the installed package is touched.
     bool update_cloud_plugin(const std::string& plugin_key, std::string& error, std::string version = "");
 
     bool delete_plugin(const std::string& plugin_key, std::string& error);
@@ -203,6 +296,27 @@ public:
     bool delete_and_unsubscribe_cloud_plugin(const std::string& plugin_key, std::string& error);
 
     ExecutionResult run_script_capability(const std::string& plugin_key, const std::string& capability_name, std::string& error);
+
+    // Outcome of launching a Script capability.
+    struct ScriptLaunchResult
+    {
+        bool             launched_async = false; // true => a run started off-thread; wait for on_done
+        ScriptCompletion outcome;                // meaningful when !launched_async (start failure only)
+    };
+    // Invoked on the GUI thread when a Script invocation finishes (or inline, on the calling thread,
+    // when the run could not be started at all).
+    using ScriptCompletionFn = std::function<void(const ScriptCompletion&)>;
+
+    // Starts a Script capability off the caller's thread. Both a synchronous `def execute` and an
+    // `async def execute` run on a ScriptAsyncRuntime worker, so this never blocks the UI thread and
+    // no invocation runs before returning. `launched_async` is true exactly when a run started; the
+    // caller then waits for on_done instead of a returned result. When it is false, `outcome.error`
+    // explains why (the caller's guarded UI normally prevents this).
+    ScriptLaunchResult launch_script_capability(const std::string& plugin_key,
+                                                const std::string& capability_name,
+                                                ScriptCompletionFn on_done = {});
+
+    void dispatch_lifecycle_event(LifecycleEvent evt, const LifecycleEventContext& ctx);
 
 private:
     PluginManager()                                = default;
@@ -251,6 +365,57 @@ private:
 
     // Writes the sidecar for a loaded plugin (enabled=true plus the current per-capability flags).
     void write_loaded_plugin_install_state(const std::string& plugin_key);
+    // Persists enabled=false and mirrors it into the in-memory descriptor. A sidecar that cannot be
+    // read or written is left untouched.
+    void mark_plugin_install_state_disabled(const std::string& plugin_key);
+    // Revoke permissions after a package replacement so the new package must request them again.
+    void revoke_plugin_permissions(const std::string& plugin_key);
+
+    // Keep the cloud install directory in step with the signed-in agent, as every cloud install
+    // must land in _subscribed/<user_id>/.
+    void sync_cloud_user_from_agent();
+
+    // What a failed cloud package install left behind, for the updater's rollback decision.
+    enum class CloudUpdateFailure {
+        PreviousPackageUsable, // the installer left the previously installed package in place
+        ReplacementInstalled,  // the replacement was installed; only the metadata update failed
+        RollbackFailed,        // the install target could not be restored; the previous package may
+                               // have lived at a different root and is then unaffected
+    };
+
+    // Installs a package. The caller holds no manager lock. cloud_user_id_override, when given, is
+    // the account directory resolved and validated by an update; otherwise the current cloud user
+    // is read after the discovery wait. preserved_state, when given, carries the previous
+    // activation and capability choices into the installer's sidecar. mark_error_on_failure is
+    // false when the caller owns the failure (an update that may restore the previous package).
+    bool install_plugin_impl(const boost::filesystem::path& filepath,
+                             PluginDescriptor&              plugin_descriptor,
+                             const std::string*             cloud_user_id_override,
+                             std::string&                   error,
+                             bool*                          install_target_intact,
+                             const PluginInstallState*      preserved_state      = nullptr,
+                             bool                           mark_error_on_failure = true);
+
+    // Installs an already downloaded cloud package and updates the in-memory descriptor. The
+    // caller owns the package file: it is removed here on both success and failure. cloud_user_id,
+    // when given, is the account directory the caller validated the install target against;
+    // otherwise the current cloud user is used. When the call fails, `failure` (if given) reports
+    // what was left on disk so the caller can decide whether restoring the previous package's
+    // state and reloading it is meaningful; the caller then also owns marking the plugin error.
+    bool install_cloud_plugin_package(const std::string& plugin_key,
+                                      const std::string& requested_version,
+                                      const boost::filesystem::path& package_path,
+                                      const PluginDescriptor& descriptor,
+                                      const std::string* cloud_user_id,
+                                      std::string& error,
+                                      CloudUpdateFailure* failure = nullptr,
+                                      const PluginInstallState* preserved_state = nullptr);
+    // Puts back the sidecar (permissions, capability choices and enabled flag) that the unload
+    // step overwrote when a replacement failed and the previous package is still in place.
+    void restore_plugin_state_after_failed_update(const PluginDescriptor& previous,
+                                                  const PluginInstallState& previous_state,
+                                                  bool had_previous_state,
+                                                  bool was_enabled);
 
     bool finalize_cloud_plugin_removal(const PluginDescriptor& plugin, bool keep_local, std::string& error);
     bool delete_installed_plugin_package(const PluginDescriptor& plugin, std::string& error);
@@ -270,17 +435,24 @@ private:
     std::unordered_set<std::string> m_missing_plugin_keys;
 
     std::unordered_set<std::string> m_load_in_progress;
+    // Keys owned by an in-flight package update. load_plugin() refuses to start while a key is
+    // here, so the old package cannot be imported while it is unloaded or replaced on disk. The
+    // updater removes the key before it reloads the replacement itself.
+    std::unordered_set<std::string> m_updates_in_progress;
     // Keys whose in-flight load has been cancelled. Cancellation does NOT remove the key from
     // m_load_in_progress: the detached worker is still inside the loader touching Python, and it
     // releases its own slot only once it has unwound. Dropping the key here would let
     // wait_for_all_plugin_loads() return early, after which shutdown() unloads everything and
     // GUI_App finalizes the interpreter — leaving the live worker to run Python against it.
     std::unordered_set<std::string> m_cancelled;
+    // Keys whose most recent load attempt failed without being cancelled. Kept separately from
+    // m_load_errors so clearing it never changes the error a load waiter reads.
+    std::unordered_set<std::string> m_failed_loads;
     std::map<std::string, std::string> m_load_errors;
     mutable std::condition_variable m_load_cv;
 
-    // Serialize sidecar snapshots so concurrent capability toggles cannot write stale state out of order.
-    mutable std::mutex m_install_state_mutex;
+    // Sidecar readers and writers serialize on Slic3r::install_state_mutex() (PluginFsUtils),
+    // shared with the audit grant writers. Taken before m_mutex, never after it.
 
     std::map<CallbackType, std::vector<PluginLifecycleCompleteFn>> m_callbacks;
     std::map<CallbackType, std::vector<CapabilityLifecycleFn>> m_capability_callbacks;
@@ -292,6 +464,74 @@ private:
 
     std::string m_cloud_user_id;
     std::atomic<bool> m_shutting_down{false};
+};
+
+// ── Async Script execution ──────────────────────────────────────────────────────────────────
+//
+// A Script capability whose Python `execute` is an `async def` (or otherwise returns a
+// coroutine) must not run on the UI thread, and cannot use the synchronous trampoline path,
+// which casts the return value to ExecutionResult and would reject a coroutine.
+//
+// ScriptAsyncRuntime drives such executions off the calling (UI) thread. Each invocation gets its
+// own worker thread and, for an `async def`, its own asyncio event loop. Every invocation body —
+// detection, a synchronous `def execute`, or an `async def` coroutine — runs on that worker, so no
+// Script invocation ever blocks the UI thread and no invocation is queued behind another plugin's.
+// For the whole invocation the worker holds:
+//   * a shared_ptr to the capability, so the capability and its module stay alive across awaits;
+//   * a PythonRuntimeLease plus the GIL, so the interpreter cannot finalize underneath it;
+//   * the capability's audit scope (ScopedPluginAuditContext),
+// which keeps plugin unload and interpreter shutdown from tearing the module out from under a
+// suspended run. Unload cancels the run and drains it (it never force-unloads after a timeout).
+//
+// Interface for host awaitables (see plugin/host/): a host awaitable is constructed inside the
+// Script coroutine, i.e. on the worker thread with that invocation's loop running, so it can
+// read that loop with asyncio.get_running_loop() or ScriptAsyncRuntime::current_loop(). To
+// resume from another thread (typically the UI thread) it must resolve its future with
+// loop.call_soon_threadsafe(...) and must never touch plugin Python objects, or the loop,
+// directly from that other thread. The loop only runs while the coroutine is suspended inside
+// run_until_complete; once Script execute returns the loop is closed and the module may unload.
+class ScriptAsyncRuntime
+{
+public:
+    static ScriptAsyncRuntime& instance();
+
+    ~ScriptAsyncRuntime();
+    ScriptAsyncRuntime(const ScriptAsyncRuntime&)            = delete;
+    ScriptAsyncRuntime& operator=(const ScriptAsyncRuntime&) = delete;
+
+    // Starts one Script invocation on its own worker thread. The invocation body (Python `execute`,
+    // whether `def` or `async def`) and its detection both run on that worker, never on the calling
+    // thread. `on_done` is invoked on the GUI thread (or inline when there is no wx app) when the
+    // invocation finishes; a `cancelled` completion is expected termination from cancel_plugin().
+    // Returns false when the runtime is shutting down.
+    bool start(const std::string& plugin_key,
+               const std::string& capability_name,
+               std::shared_ptr<PluginCapabilityInterface> capability,
+               std::function<void(const ScriptCompletion&)> on_done);
+
+    // Requests cancellation of every active run owned by plugin_key: marks the run and cancels
+    // its asyncio task via loop.call_soon_threadsafe (a synchronous invocation has no loop).
+    void cancel_plugin(const std::string& plugin_key);
+
+    // True while a run for `capability` is active.
+    bool has_active_run(const PluginCapabilityInterface* capability) const;
+
+    // Stops accepting runs and waits for every in-flight invocation worker. Nothing is torn down
+    // by force.
+    void shutdown();
+
+    // Re-arms the runtime after a shutdown() so a later initialize() in the same process can
+    // start runs again.
+    void reset();
+
+    // The asyncio loop of the Script invocation running on the calling thread, or an empty
+    // object when the calling thread is not running one. Must be called with the GIL held.
+    static pybind11::object current_loop();
+
+private:
+    ScriptAsyncRuntime();
+    struct Impl;
+    std::unique_ptr<Impl> m_impl;
 };
 
 // Resolve each configured capability reference to a loaded capability of type T and run `execute`.
@@ -326,6 +566,15 @@ void execute_capabilities_from_refs(const ConfigOptionStrings& capabilities,
                     break;
                 }
             }
+        }
+
+        // The manifest is derived from the picker value only when that value changes, so it can be
+        // stale or empty (e.g. derived before the plugin finished loading) even though the
+        // capability is loaded now. Resolve it by name instead of silently skipping the step.
+        if (!ref) {
+            ref = plugin_mgr.resolve_capability_ref(capability, type);
+            if (ref)
+                BOOST_LOG_TRIVIAL(warning) << tag << ": capability '" << capability << "' missing from the plugins manifest; resolved by name";
         }
 
         if (!ref) {

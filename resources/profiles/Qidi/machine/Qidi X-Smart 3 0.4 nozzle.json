@@ -48,6 +48,6 @@
 	"change_filament_gcode": "",
 	"machine_pause_gcode": "PAUSE",
 	"default_filament_profile": [
-		"Qidi Generic PLA"
+		"Generic PLA @Qidi"
 	]
 }

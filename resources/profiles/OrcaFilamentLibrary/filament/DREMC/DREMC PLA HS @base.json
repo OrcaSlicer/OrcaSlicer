@@ -3,7 +3,7 @@
 	"name": "DREMC PLA+ HS @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "DREMC011",
+	"filament_id": "OFJHBEGD",
 	"instantiation": "false",
 	"filament_cost": [
 		"26"

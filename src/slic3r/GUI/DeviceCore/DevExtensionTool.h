@@ -1,8 +1,9 @@
 #pragma once
+#include <memory>
 #include <optional>
 #include "libslic3r/CommonDefs.hpp"
 
-#include "slic3r/Utils/json_diff.hpp"
+#include <nlohmann/json.hpp>
 #include <wx/string.h>
 
 #include "DevDefs.h"
@@ -31,7 +32,7 @@ protected:
     DevExtensionTool(MachineObject* obj);
 
 private:
-    MachineObject* m_owner = nullptr;
+    [[maybe_unused]] MachineObject* m_owner = nullptr;
 
     enum MountState
     {

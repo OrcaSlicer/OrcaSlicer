@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFN99",
-	"setting_id": "wuZ0EvlbcJ8GxajY",
 	"name": "PA6 CF20 (Performance)",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pa",
+	"from": "system",
+	"setting_id": "wuZ0EvlbcJ8GxajY",
+	"filament_id": "OFcKtw8W",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.96"
 	],

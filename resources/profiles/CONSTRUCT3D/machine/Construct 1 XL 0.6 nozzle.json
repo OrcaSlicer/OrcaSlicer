@@ -22,12 +22,15 @@
 	"nozzle_type": "hardened_steel",
 	"thumbnails_format": "QOI",
 	"machine_max_acceleration_e": [
+		"9000",
 		"9000"
 	],
 	"machine_max_acceleration_extruding": [
+		"9000",
 		"9000"
 	],
 	"machine_max_acceleration_retracting": [
+		"9000",
 		"9000"
 	],
 	"machine_max_acceleration_travel": [
@@ -35,30 +38,39 @@
 		"1250"
 	],
 	"machine_max_acceleration_x": [
+		"18000",
 		"18000"
 	],
 	"machine_max_acceleration_y": [
+		"18000",
 		"18000"
 	],
 	"machine_max_jerk_e": [
+		"6",
 		"6"
 	],
 	"machine_max_jerk_x": [
+		"25",
 		"25"
 	],
 	"machine_max_jerk_y": [
+		"25",
 		"25"
 	],
 	"machine_max_speed_e": [
+		"100",
 		"100"
 	],
 	"machine_max_speed_x": [
+		"320",
 		"320"
 	],
 	"machine_max_speed_y": [
+		"320",
 		"320"
 	],
 	"machine_max_speed_z": [
+		"40",
 		"40"
 	],
 	"machine_end_gcode": ";Retract the filament\nG92 E1\nG1 E-5 F900\n;Move nozzle fast\nG1 X5 Y369 F15000\n;Move Bed Down\nG1 Z400 F6000\n\n;Set machine to idle\nT-1\nM104 S0\nM104 S0 ; turn off temperature\nM140 S0 ; turn off heatbed\nM107 ; turn off fan\nM84 ; disable motors\n",

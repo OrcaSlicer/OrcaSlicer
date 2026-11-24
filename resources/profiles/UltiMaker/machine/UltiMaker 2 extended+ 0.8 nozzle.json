@@ -1,0 +1,13 @@
+{
+  "type": "machine",
+  "name": "UltiMaker 2 extended+ 0.8 nozzle",
+  "inherits": "UltiMaker 2+ 0.8 nozzle",
+  "from": "system",
+  "setting_id": "MNYwZSVqB1rrYo2g",
+  "instantiation": "true",
+  "printer_model": "UltiMaker 2 extended+",
+  "printable_height": "305",
+  "default_print_profile": "0.20mm Standard @UltiMaker 2 extended+ 0.8 nozzle",
+  "default_filament_profile": ["Generic PLA @UltiMaker 2 extended+ 0.8 nozzle"],
+  "printer_variant": "0.8"
+}

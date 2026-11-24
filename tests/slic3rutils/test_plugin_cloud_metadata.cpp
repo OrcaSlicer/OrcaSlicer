@@ -1,6 +1,8 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
-#include <libslic3r/Utils.hpp>
+#include <ios>
 #include <slic3r/plugin/PluginConfig.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
@@ -8,6 +10,8 @@
 #include <slic3r/plugin/PythonInterpreter.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
 #include "plugin_test_utils.hpp"
 
 #include <boost/filesystem.hpp>
@@ -23,21 +27,19 @@ using json   = nlohmann::json;
 
 namespace {
 
-// Brings the plugin manager up and shuts both singletons down while boost::log is still alive;
-// left to their static destructors, shutdown()'s logging runs after boost::log tears down its
-// thread-local storage and crashes the process on exit (same reason ScopedPluginManager exists in
-// test_plugin_lifecycle.cpp). initialize() IS needed here: the plugin under test is a
-// slicing-pipeline script, so discover_plugins() brings up the Python interpreter to parse it,
-// same as any other plugin.
+// Brings the plugin manager up for the duration of one test and tears the manager down at the end.
+// The interpreter itself is process-wide: PythonInterpreterRunEnd in slic3rutils_tests_main.cpp
+// finalizes it once, after the last test case, because CPython cannot be reinitialized after
+// Py_Finalize. initialize() IS needed here: the plugin under test is a slicing-pipeline script, so
+// discover_plugins() brings up the Python interpreter to parse it, same as any other plugin.
 struct ScopedManagerShutdown
 {
+    // Before initialize(): the interpreter creates {data_dir}/python/packages and {data_dir}/log,
+    // which would otherwise land in the working directory.
+    ScopedDataDir python_data_dir{"plugin-python"};
     bool initialized = PluginManager::instance().initialize();
 
-    ~ScopedManagerShutdown()
-    {
-        PluginManager::instance().shutdown();
-        PythonInterpreter::instance().shutdown();
-    }
+    ~ScopedManagerShutdown() { PluginManager::instance().shutdown(); }
 };
 
 const char* const CLOUD_PLUGIN_SOURCE = R"PY(# /// script

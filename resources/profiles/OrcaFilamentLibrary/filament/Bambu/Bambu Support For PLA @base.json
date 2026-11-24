@@ -3,7 +3,7 @@
 	"name": "Bambu Support For PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFS02",
+	"filament_id": "OFAnyRUI",
 	"instantiation": "false",
 	"description": "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function.",
 	"cool_plate_temp": [
@@ -13,10 +13,18 @@
 		"40"
 	],
 	"filament_cost": [
-		"69.98"
+		"39.98"
 	],
 	"filament_density": [
 		"1.30"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
 	],
 	"filament_is_support": [
 		"1"

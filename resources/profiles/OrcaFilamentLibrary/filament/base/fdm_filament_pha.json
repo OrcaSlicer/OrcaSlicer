@@ -3,7 +3,6 @@
 	"name": "fdm_filament_pha",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "OGFR98",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"70"

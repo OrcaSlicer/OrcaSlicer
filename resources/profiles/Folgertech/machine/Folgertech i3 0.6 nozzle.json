@@ -12,7 +12,7 @@
 	"printer_variant": "0.6",
 	"printable_area": [
 		"0x0",
-		"20x0",
+		"200x0",
 		"200x200",
 		"0x200"
 	],

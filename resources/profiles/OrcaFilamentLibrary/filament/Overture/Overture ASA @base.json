@@ -3,7 +3,7 @@
 	"name": "Overture ASA @base",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"filament_id": "GFOT009",
+	"filament_id": "OFM91vZs",
 	"instantiation": "false",
 	"fan_cooling_layer_time": [
 		"45"

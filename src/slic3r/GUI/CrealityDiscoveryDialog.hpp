@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+class wxWindow;
+
 class wxListView;
 class wxStaticText;
 

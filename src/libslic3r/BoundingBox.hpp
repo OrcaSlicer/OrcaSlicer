@@ -5,7 +5,10 @@
 #include "Exception.hpp"
 #include "Point.hpp"
 #include "Polygon.hpp"
+#include <cassert>
+#include <cstddef>
 #include <ostream>
+#include <vector>
 
 namespace Slic3r {
 

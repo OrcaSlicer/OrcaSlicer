@@ -6,9 +6,27 @@
 #include "GUI_App.hpp"
 #include "GUI.hpp"
 
+#include <utility>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <wx/colour.h>
+#include <cstddef>
+#include <wx/dcclient.h>
+#include <cstring>
+#include <wx/dc.h>
+#include <cmath>
+#include <wx/chartype.h>
+#include <algorithm>
+#include <ctime>
+#include <wx/arrstr.h>
 #include <wx/dcgraph.h>
 
 #include <boost/log/trivial.hpp>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/timer.h>
+#include <wx/string.h>
+#include <wx/image.h>
+#include <wx/dcmemory.h>
 
 wxDEFINE_EVENT(EVT_ITEM_ACTION, wxCommandEvent);
 
@@ -521,7 +539,7 @@ void ImageGrid::render(wxDC& dc)
         if (!m_status_msg.IsEmpty()) {
             auto   si = m_status_icon.GetBmpSize();
             auto st   = dc.GetMultiLineTextExtent(m_status_msg);
-            auto   rect = wxRect{0, 0, max(st.x, si.x), si.y + 26 + st.y}.CenterIn(wxRect({0, 0}, size));
+            auto   rect = wxRect{0, 0, std::max(st.x, si.x), si.y + 26 + st.y}.CenterIn(wxRect({0, 0}, size));
             dc.DrawBitmap(m_status_icon.bmp(), rect.x + (rect.width - si.x) / 2, rect.y);
             dc.SetTextForeground(wxColor(0x909090));
             dc.DrawText(m_status_msg, rect.x + (rect.width - st.x) / 2, rect.GetBottom() - st.y);

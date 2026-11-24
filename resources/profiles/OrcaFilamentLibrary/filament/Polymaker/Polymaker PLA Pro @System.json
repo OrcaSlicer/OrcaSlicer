@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Polymaker PLA Pro @System",
+	"inherits": "Polymaker PLA Pro @base",
+	"from": "system",
+	"setting_id": "i5Fvxdl7AAJcErsv",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.96"
+	],
+	"filament_max_volumetric_speed": [
+		"15"
+	]
+}

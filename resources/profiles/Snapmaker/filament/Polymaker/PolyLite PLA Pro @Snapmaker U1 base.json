@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA Pro @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFPM019",
+	"filament_id": "OFF9OKoY",
 	"instantiation": "false",
 	"filament_cost": [
 		"24.99"

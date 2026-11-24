@@ -1,10 +1,14 @@
 {
 	"type": "filament",
 	"name": "Flashforge HIPS @FF G4",
-	"inherits": "Flashforge Generic HS PLA",
+	"inherits": "Generic HS PLA @Flashforge",
 	"from": "system",
 	"setting_id": "oLeLrIjFJzoZha3E",
+	"filament_id": "OFvaLVML",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"additional_cooling_fan_speed": [
 		"0"
 	],

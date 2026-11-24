@@ -3,7 +3,7 @@
 	"name": "Generic PA @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "GPAB00",
+	"filament_id": "OFg8ndtj",
 	"instantiation": "false",
 	"chamber_temperatures": [
 		"60"

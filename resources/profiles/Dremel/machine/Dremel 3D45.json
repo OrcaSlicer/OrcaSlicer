@@ -8,5 +8,5 @@
 	"hotend_model": "",
 	"machine_tech": "FFF",
 	"model_id": "Dremel_3D45",
-	"default_materials": "Dremel Generic PLA @3D45 all"
+	"default_materials": "Generic PLA @Dremel 3D45 all"
 }

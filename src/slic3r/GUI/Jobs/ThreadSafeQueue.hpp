@@ -1,6 +1,9 @@
 #ifndef THREADSAFEQUEUE_HPP
 #define THREADSAFEQUEUE_HPP
 
+#include <deque>
+#include <chrono>
+#include <cstddef>
 #include <type_traits>
 #include <queue>
 #include <mutex>

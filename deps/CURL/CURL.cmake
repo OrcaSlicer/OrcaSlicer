@@ -1,8 +1,7 @@
 set(_curl_platform_flags 
   -DENABLE_IPV6:BOOL=ON
-  -DENABLE_VERSIONED_SYMBOLS:BOOL=ON
   -DENABLE_THREADED_RESOLVER:BOOL=ON
-  -DENABLE_MANUAL:BOOL=OFF
+  -DENABLE_CURL_MANUAL:BOOL=OFF
   -DCURL_DISABLE_LDAP:BOOL=ON
   -DCURL_DISABLE_LDAPS:BOOL=ON
   -DCURL_DISABLE_RTSP:BOOL=ON
@@ -10,30 +9,37 @@ set(_curl_platform_flags
   -DCURL_DISABLE_TELNET:BOOL=ON
   -DCURL_DISABLE_POP3:BOOL=ON
   -DCURL_DISABLE_IMAP:BOOL=ON
-  -DCURL_DISABLE_SMB:BOOL=ON
   -DCURL_DISABLE_SMTP:BOOL=ON
   -DCURL_DISABLE_GOPHER:BOOL=ON
   -DCURL_DISABLE_TFTP:BOOL=ON
   -DCURL_DISABLE_MQTT:BOOL=ON
-  #-DHTTP_ONLY=ON
+  -DCURL_DISABLE_WEBSOCKETS:BOOL=ON
 
-  -DCMAKE_USE_GSSAPI:BOOL=OFF
-  -DCMAKE_USE_LIBSSH2:BOOL=OFF
-  -DUSE_RTMP:BOOL=OFF
+  # Optional libraries curl 8 enables or probes for by default. Keep the set
+  # of features the same as before: OpenSSL and zlib only, so no new shared
+  # library sneaks into the AppImage or the macOS bundle.
+  -DCURL_USE_GSSAPI:BOOL=OFF
+  -DCURL_USE_LIBSSH2:BOOL=OFF
+  -DCURL_USE_LIBSSH:BOOL=OFF
+  -DCURL_USE_LIBPSL:BOOL=OFF
+  -DUSE_LIBIDN2:BOOL=OFF
   -DUSE_NGHTTP2:BOOL=OFF
-  -DUSE_MBEDTLS:BOOL=OFF
+  -DCURL_USE_MBEDTLS:BOOL=OFF
+  -DCURL_ZLIB:STRING=ON
+  -DCURL_BROTLI:STRING=OFF
+  -DCURL_ZSTD:STRING=OFF
 )
 
 if (WIN32)
-  #set(_curl_platform_flags  ${_curl_platform_flags} -DCMAKE_USE_SCHANNEL=ON)
-  set(_curl_platform_flags  ${_curl_platform_flags} -DCMAKE_USE_OPENSSL=ON -DCURL_CA_PATH:STRING=none)
+  #set(_curl_platform_flags  ${_curl_platform_flags} -DCURL_USE_SCHANNEL=ON)
+  set(_curl_platform_flags  ${_curl_platform_flags} -DCURL_USE_OPENSSL=ON -DCURL_CA_PATH:STRING=none)
 elseif (APPLE)
   set(_curl_platform_flags 
     
     ${_curl_platform_flags}
 
-    #-DCMAKE_USE_SECTRANSP:BOOL=ON 
-    -DCMAKE_USE_OPENSSL:BOOL=ON
+    #-DCURL_USE_SECTRANSP:BOOL=ON
+    -DCURL_USE_OPENSSL:BOOL=ON
 
     -DCURL_CA_PATH:STRING=none
   )
@@ -42,7 +48,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
     ${_curl_platform_flags}
 
-    -DCMAKE_USE_OPENSSL:BOOL=ON
+    -DCURL_USE_OPENSSL:BOOL=ON
 
     -DCURL_CA_PATH:STRING=none
     -DCURL_CA_BUNDLE:STRING=none
@@ -57,18 +63,14 @@ else()
 endif()
 
 orcaslicer_add_cmake_project(CURL
-  # GIT_REPOSITORY      https://github.com/curl/curl.git
-  # GIT_TAG             curl-7_75_0
-  URL                 https://github.com/curl/curl/archive/refs/tags/curl-7_75_0.zip
-  URL_HASH            SHA256=a63ae025bb0a14f119e73250f2c923f4bf89aa93b8d4fafa4a9f5353a96a765a
+  URL                 https://github.com/curl/curl/archive/refs/tags/curl-8_23_0.zip
+  URL_HASH            SHA256=4f443969ea4ea6ccb5ac984488683bb92384bc4df0affa3938ce77f20b30d853
   DEPENDS             ${ZLIB_PKG}
-  # PATCH_COMMAND       ${GIT_EXECUTABLE} checkout -f -- . && git clean -df && 
-  #                     ${GIT_EXECUTABLE} apply --whitespace=fix ${CMAKE_CURRENT_LIST_DIR}/curl-mods.patch
   CMAKE_ARGS
     -DBUILD_TESTING:BOOL=OFF
     -DBUILD_CURL_EXE:BOOL=OFF
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-    -DCURL_STATICLIB=${_curl_static}
+    -DBUILD_STATIC_LIBS:BOOL=${_curl_static}
     ${_curl_platform_flags}
 )
 

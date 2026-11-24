@@ -2,6 +2,7 @@
 #define NOTIFICATIONPROGRESSINDICATOR_HPP
 
 #include "ProgressIndicator.hpp"
+#include <wx/string.h>
 
 namespace Slic3r { namespace GUI {
 

@@ -1,11 +1,11 @@
 {
 	"type": "filament",
 	"name": "Elegoo PC @System",
+	"renamed_from": "Elegoo PC",
 	"inherits": "Elegoo PC @base",
 	"from": "system",
 	"setting_id": "NlNHcKHlkiq8khIf",
 	"instantiation": "true",
-	"renamed_from": "Elegoo PC",
 	"pressure_advance": [
 		"0.052"
 	],

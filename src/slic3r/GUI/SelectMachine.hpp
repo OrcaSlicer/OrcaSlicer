@@ -1,13 +1,30 @@
 #ifndef slic3r_GUI_SelectMachine_hpp_
 #define slic3r_GUI_SelectMachine_hpp_
 
+#include <string>
+#include "libslic3r/PrintConfig.hpp"
+#include <vector>
+#include "libslic3r/ProjectTask.hpp"
+#include <map>
+#include <wx/image.h>
+#include <wx/event.h>
+#include <wx/dc.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <list>
+#include <memory>
+#include "libslic3r/Format/bbs_3mf.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Jobs/PrintJob.hpp"
+#include "libslic3r/GCode/ThumbnailData.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include "libslic3r/CommonDefs.hpp"
 #include <wx/wx.h>
 #include <wx/intl.h>
 #include <wx/collpane.h>
 #include <wx/dataview.h>
 #include <wx/artprov.h>
 #include <wx/xrc/xmlres.h>
-#include <wx/dataview.h>
 #include <wx/gdicmn.h>
 #include <wx/font.h>
 #include <wx/colour.h>
@@ -20,7 +37,6 @@
 #include <wx/dialog.h>
 #include <wx/popupwin.h>
 #include <wx/spinctrl.h>
-#include <wx/artprov.h>
 #include <wx/wrapsizer.h>
 #include <wx/srchctrl.h>
 
@@ -66,6 +82,7 @@ namespace Slic3r { namespace GUI {
 
 std::string get_nozzle_volume_type_cloud_string(NozzleVolumeType nozzle_volume_type);
 void        print_ams_mapping_result(std::vector<FilamentInfo> &result);
+wxString    get_shown_printer_name(const MachineObject* obj);
 // enum PrintFromType moved to DeviceCore/DevDefs.h so shared device-mapping GUI
 // headers can name it without an include cycle. SelectMachine.hpp still sees it via DeviceManager.hpp.
 
@@ -307,6 +324,7 @@ private:
     bool                                m_is_canceled{ false };
     bool                                m_is_rename_mode{ false };
     bool                                m_check_flag {false};
+    bool                                m_pull_filament_pending{false};
     bool                                m_ext_change_assist{ false };
     PrintPageMode                       m_print_page_mode{PrintPageMode::PrintPageModePrepare};
     std::string                         m_print_error_msg;
@@ -319,7 +337,7 @@ private:
     wxColour                            m_colour_bold_color{wxColour(38, 46, 48)};
     StateColor                          m_btn_bg_enable;
 
-    std::unordered_map<string, PrintOption*> m_checkbox_list;
+    std::unordered_map<std::string, PrintOption*> m_checkbox_list;
     std::list<PrintOption*>                  m_checkbox_list_order;
 
     std::shared_ptr<int>                m_token = std::make_shared<int>(0);
@@ -522,7 +540,7 @@ public:
     bool is_timeout();
     int  update_print_required_data(Slic3r::DynamicPrintConfig config, Slic3r::Model model, Slic3r::PlateDataPtrs plate_data_list, std::string file_name, std::string file_path);
     void set_print_type(PrintFromType type) {m_print_type = type;};
-    bool Show(bool show);
+    bool Show(bool show) override;
     void show_init();
     bool do_ams_mapping(MachineObject *obj_,bool use_ams);
     bool get_ams_mapping_result(std::string& mapping_array_str, std::string& mapping_array_str2, std::string& ams_mapping_info) const;
@@ -662,7 +680,6 @@ private:
     ScalableButton* m_button_question { nullptr };
 
     wxStaticBitmap* m_bed_image{ nullptr };
-    Label*         m_text_bed_type;
 };
 
 

@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA Neon @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFL66",
+	"filament_id": "OFitS8al",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

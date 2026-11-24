@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Rapido@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_1_1_1",
+	"filament_id": "OFKIQO2W",
 	"instantiation": "false",
 	"cool_plate_temp_initial_layer": [
 		"45"

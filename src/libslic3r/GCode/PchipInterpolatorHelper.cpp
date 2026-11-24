@@ -4,9 +4,13 @@
 // Implementation file for the PchipInterpolatorHelper class
 
 #include "PchipInterpolatorHelper.hpp"
+#include <cstddef>
+#include <iterator>
 #include <stdexcept>
 #include <cmath>
 #include <algorithm>
+#include <vector>
+#include <utility>
 
 /**
  * @brief Constructs the PCHIP interpolator with given data points.

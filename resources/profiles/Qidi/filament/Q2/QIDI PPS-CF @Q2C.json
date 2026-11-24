@@ -3,7 +3,7 @@
 	"name": "QIDI PPS-CF@Q2C-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"filament_id": "QD_2_1_44",
+	"filament_id": "OFZOuWrO",
 	"instantiation": "false",
 	"box_temperature_range_high": [
 		"65"

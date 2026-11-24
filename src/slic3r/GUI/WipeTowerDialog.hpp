@@ -1,8 +1,16 @@
 #ifndef _WIPE_TOWER_DIALOG_H_
 #define _WIPE_TOWER_DIALOG_H_
 
+#include <string>
+#include <vector>
+#include <wx/colour.h>
+#include <cstddef>
 #include <wx/dialog.h>
+#include <wx/panel.h>
+#include <wx/event.h>
+#include <wx/string.h>
 #include <wx/webview.h>
+#include "libslic3r/FlushVolCalc.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "Widgets/SpinInput.hpp"
 
@@ -58,12 +66,16 @@ private:
 	wxString BuildTableObjStr();
 	wxString BuildTextObjStr(bool multi_language = true);
 	void StoreFlushData(int extruder_num, const std::vector<std::vector<double>>& flush_volume_vecs, const std::vector<double>& flush_multipliers);
+	// Maps the physical-only matrix shown in the table back onto the full config-indexed matrix.
+	std::vector<double> ExpandToFullMatrix(const std::vector<double>& sub_matrix, int nozzle_idx) const;
 
 	wxWebView* m_webview;
 	int m_max_flush_volume;
 
 	VolumeMatrix m_raw_matrixs;
 	std::vector<double> m_flush_multipliers;
+	// Config indices of the physical (non-mixed) filaments, in table order.
+	std::vector<size_t> m_physical_indices;
 	bool m_submit_flag{ false };
 };
 

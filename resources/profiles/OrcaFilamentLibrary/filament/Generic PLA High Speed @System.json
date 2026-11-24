@@ -4,15 +4,38 @@
 	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "L9wOwDxavVR7vrL7",
-	"filament_id": "OGFL95",
+	"filament_id": "OFmpMwxS",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
 	"filament_flow_ratio": [
+		"0.98",
+		"0.98",
+		"0.98",
+		"0.98",
+		"0.98",
 		"0.98"
 	],
 	"filament_max_volumetric_speed": [
-		"18"
+		"18",
+		"25",
+		"40",
+		"18",
+		"25",
+		"30"
 	],
 	"filament_multitool_ramming_flow": [
+		"25",
+		"25",
+		"25",
+		"25",
+		"25",
 		"25"
 	],
 	"slow_down_layer_time": [

@@ -6,6 +6,9 @@
 #pragma once
 
 #include <stdint.h>
+#include <cstddef>
+#include <cstring>
+#include <string.h>
 
 template <typename T, typename T1, typename T2>
 constexpr T RVA2VA(T1 base, T2 rva)

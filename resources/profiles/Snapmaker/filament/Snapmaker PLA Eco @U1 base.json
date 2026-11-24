@@ -3,7 +3,7 @@
 	"name": "Snapmaker PLA Eco @U1 base",
 	"inherits": "fdm_filament_pla_eco",
 	"from": "system",
-	"filament_id": "2008037900",
+	"filament_id": "OFpu74Qe",
 	"instantiation": "false",
 	"filament_end_gcode": [
 		""
@@ -26,12 +26,6 @@
 	"filament_unloading_speed": [
 		"35"
 	],
-	"filament_load_time": [
-		"2"
-	],
-	"filament_unload_time": [
-		"2"
-	],
 	"filament_cooling_moves": [
 		"2"
 	],
@@ -40,5 +34,8 @@
 	],
 	"filament_cooling_final_speed": [
 		"60"
+	],
+	"temperature_vitrification": [
+		"45"
 	]
 }

@@ -132,7 +132,6 @@
 		"50"
 	],
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "0",
 	"support_air_filtration": "0",
 	"support_chamber_temp_control": "0",

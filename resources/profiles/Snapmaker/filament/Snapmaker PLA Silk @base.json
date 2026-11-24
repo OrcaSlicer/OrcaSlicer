@@ -3,7 +3,7 @@
 	"name": "Snapmaker PLA Silk @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "1655727393",
+	"filament_id": "OFWgFOjn",
 	"instantiation": "false",
 	"hot_plate_temp_initial_layer": [
 		"65"

@@ -6,6 +6,13 @@
 #include "DragDropPanel.hpp"
 #include "wxExtensions.hpp"
 #include "Widgets/Label.hpp"
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <vector>
+#include <string>
+#include <wx/timer.h>
+#include <wx/string.h>
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -69,10 +76,9 @@ class FilamentMapBtnPanel : public wxPanel
 {
 public:
     FilamentMapBtnPanel(wxWindow *parent, const wxString &label, const wxString &detail, const std::string &icon_path);
-    void Hide();
-    void Show();
+    bool Show(bool show = true) override;
     void Select(bool selected);
-    bool Enable(bool enable);
+    bool Enable(bool enable) override;
     bool IsEnabled() const { return m_enabled; }
 protected:
     void OnPaint(wxPaintEvent &event);
@@ -99,8 +105,7 @@ class FilamentMapAutoPanel : public wxPanel
 {
 public:
     FilamentMapAutoPanel(wxWindow *parent, FilamentMapMode mode, bool machine_synced);
-    void            Hide();
-    void            Show();
+    bool Show(bool show = true) override;
     FilamentMapMode GetMode() const { return m_mode; }
 
 private:
@@ -116,8 +121,7 @@ class FilamentMapDefaultPanel : public wxPanel
 {
 public:
     FilamentMapDefaultPanel(wxWindow *parent);
-    void Hide();
-    void Show();
+    bool Show(bool show = true) override;
 
 private:
     Label *m_label;

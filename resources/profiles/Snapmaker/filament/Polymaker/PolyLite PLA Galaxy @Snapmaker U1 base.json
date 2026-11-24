@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA Galaxy @Snapmaker U1 base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFL63",
+	"filament_id": "OFvyB0Bz",
 	"instantiation": "false",
 	"bed_type": [
 		"Cool Plate"

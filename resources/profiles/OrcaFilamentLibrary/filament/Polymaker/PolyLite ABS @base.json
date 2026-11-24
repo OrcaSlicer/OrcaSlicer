@@ -3,7 +3,7 @@
 	"name": "PolyLite ABS @base",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"filament_id": "OGFB60",
+	"filament_id": "OFOvv91M",
 	"instantiation": "false",
 	"filament_cost": [
 		"26.9"

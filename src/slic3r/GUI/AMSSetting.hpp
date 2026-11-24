@@ -12,6 +12,16 @@
 #include "Widgets/CheckBox.hpp"
 
 #include "slic3r/GUI/DeviceCore/DevFilaAmsSetting.h"
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <string>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/sizer.h>
+#include <memory>
+#include <map>
 
 #define AMS_SETTING_DEF_COLOUR wxColour(255, 255, 255)
 #define AMS_SETTING_GREY800 wxColour(50, 58, 61)
@@ -110,7 +120,7 @@ public:
     ~AMSSettingTypePanel();
 
 public:
-    void Update(const MachineObject* obj);
+    void UpdateInfo(const MachineObject* obj);
 
 private:
     void CreateGui();
@@ -120,7 +130,7 @@ private:
     std::weak_ptr<DevAmsSystemFirmwareSwitch> m_ams_firmware_switch;
 
     int m_ams_firmware_current_idx{ -1 };
-    std::unordered_map<int, DevAmsSystemFirmwareSwitch::DevAmsSystemFirmware> m_ams_firmwares;
+    std::map<int, DevAmsSystemFirmwareSwitch::DevAmsSystemFirmware> m_ams_firmwares;
 
     // widgets
     AMSSetting*     m_setting_dlg;

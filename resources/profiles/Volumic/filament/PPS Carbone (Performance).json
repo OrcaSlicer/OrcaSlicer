@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFN99",
-	"setting_id": "HE0yILdkhbiXbH1j",
 	"name": "PPS Carbone (Performance)",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pa",
+	"from": "system",
+	"setting_id": "HE0yILdkhbiXbH1j",
+	"filament_id": "OFEZpel7",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1.00"
 	],

@@ -3,7 +3,6 @@
 	"name": "fdm_filament_petg",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "GFRH03",
 	"instantiation": "false",
 	"cool_plate_temp": [
 		"70"
@@ -24,10 +23,10 @@
 		"90"
 	],
 	"fan_cooling_layer_time": [
-		"10"
+		"15"
 	],
 	"filament_max_volumetric_speed": [
-		"26"
+		"18"
 	],
 	"filament_type": [
 		"PETG"
@@ -73,9 +72,9 @@
 		"260"
 	],
 	"slow_down_min_speed": [
-		"12"
+		"20"
 	],
 	"slow_down_layer_time": [
-		"3"
+		"6"
 	]
 }

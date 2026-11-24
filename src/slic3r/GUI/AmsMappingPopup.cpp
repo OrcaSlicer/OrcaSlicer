@@ -2,15 +2,47 @@
 #include "I18N.hpp"
 
 #include "libslic3r/Utils.hpp"
-#include "libslic3r/Thread.hpp"
 #include "slic3r/Utils/WxFontUtils.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "DeviceCore/DevConfigUtil.h"
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
-#include "format.hpp"
 #include "Widgets/ProgressDialog.hpp"
+#include <wx/event.h>
+#include <wx/colour.h>
+#include <string>
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include <vector>
+#include <boost/log/trivial.hpp>
+#include <wx/dcclient.h>
+#include <cstddef>
+#include <wx/arrstr.h>
+#include "slic3r/GUI/DeviceManager.hpp"
+#include <math.h>
+#include <cmath>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/peninfobase.h>
+#include <wx/string.h>
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <wx/popupwin.h>
+#include <wx/anybutton.h>
+#include <wx/sizer.h>
+#include <map>
+#include "slic3r/GUI/DeviceCore/DevUtil.h"
+#include <cstdlib>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#ifdef __WXGTK__
+#include "LinuxDisplayBackend.hpp"
+#endif
+#include "slic3r/GUI/Widgets/SwitchButton.hpp"
+#include <utility>
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include <unordered_map>
+#include <wx/tooltip.h>
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/StaticBox.hpp"
 
@@ -22,8 +54,10 @@
 #include <miniz.h>
 #include <algorithm>
 #include <optional>
+#include <wx/wx.h>
+#include <wx/toplevel.h>
+#include <wx/wrapsizer.h>
 #include "Plater.hpp"
-#include "BitmapCache.hpp"
 #include "BindDialog.hpp"
 #include "FilamentBitmapUtils.hpp"
 
@@ -34,6 +68,11 @@
 
 #include "DeviceTab/wgtDeviceNozzleSelect.h"
 #include "DeviceTab/wgtMsgPanel.h"
+#include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
+#include "slic3r/GUI/DeviceCore/DevNozzleSystem.h"
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
 
 namespace Slic3r { namespace GUI {
 #define MATERIAL_ITEM_SIZE wxSize(FromDIP(65), FromDIP(50))
@@ -818,7 +857,7 @@ AmsMapingPopup::AmsMapingPopup(wxWindow *parent, bool use_in_sync_dialog) :
 
      m_scrolled_window = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL | wxHSCROLL);
      m_scrolled_window->SetBackgroundColour(*wxWHITE);
-     m_scrolled_window->SetScrollRate(0, FromDIP(10));
+     m_scrolled_window->SetScrollRate(0, FromDIP(20));
 
      wxBoxSizer *title_sizer_h= new wxBoxSizer(wxHORIZONTAL);
      wxBoxSizer *title_sizer_v = new wxBoxSizer(wxVERTICAL);
@@ -982,31 +1021,24 @@ AmsMapingPopup::AmsMapingPopup(wxWindow *parent, bool use_in_sync_dialog) :
 
              wxRect screen_size = wxDisplay(display_idx).GetClientArea();
              auto   parent_size = m_parent_item->GetRect();
-             auto   content_size = m_sizer_main_h->GetMinSize();
-             int    popup_width  = content_size.x + FromDIP(28);
-             int    popup_height = content_size.y;
-             wxSize popup_size(popup_width, popup_height);
+              auto   content_size = m_sizer_main_h->GetMinSize();
+              int    popup_width  = content_size.x + FromDIP(28);
+              int    popup_height = content_size.y;
+              const int frame_padding = FromDIP(28);
+              const bool horizontal_scroll = popup_width + frame_padding > screen_size.GetWidth();
+              const int viewport_width = horizontal_scroll
+                  ? std::max(screen_size.GetWidth() - frame_padding, 0)
+                  : popup_width;
+              const int popup_total_width = viewport_width + frame_padding;
+              wxSize popup_size(popup_total_width, popup_height);
 
-              // Horizontal Direction Processing
-              if (show_pos.x + popup_size.x > screen_size.GetRight())
-              {
-                  show_pos.x = screen_size.GetRight() - popup_size.x;
-              }
-
-              //if popup size bigger than screen
-              if (show_pos.x < screen_size.GetLeft())
-              {
-                  show_pos.x = screen_size.GetLeft();
-                  m_scrolled_window->SetMaxSize(wxSize(screen_size.GetWidth(), popup_height));
-                  m_scrolled_window->SetMinSize(wxSize(screen_size.GetWidth(), popup_height));
-                  m_scrolled_window->SetScrollRate(FromDIP(10), FromDIP(10));
-              }
-              else
-              {
-                  m_scrolled_window->SetMaxSize(wxSize(popup_width, popup_height));
-                  m_scrolled_window->SetMinSize(wxSize(popup_width, popup_height));
-                  m_scrolled_window->SetScrollRate(0, FromDIP(10));
-              }
+              // Keep placement independent from content overflow. A tile anchor outside the
+              // display bounds must not make the scroll viewport as wide as the display.
+              const int max_show_x = std::max(screen_size.GetLeft(), screen_size.GetRight() - popup_total_width);
+              show_pos.x = std::clamp(show_pos.x, screen_size.GetLeft(), max_show_x);
+              m_scrolled_window->SetMaxSize(wxSize(viewport_width, popup_height));
+              m_scrolled_window->SetMinSize(wxSize(viewport_width, popup_height));
+              m_scrolled_window->SetScrollRate(horizontal_scroll ? FromDIP(10) : 0, FromDIP(20));
 
               //Vertical Direction Processing
               int available_height_below = screen_size.GetBottom() - (show_pos.y + parent_size.height);
@@ -1039,7 +1071,10 @@ AmsMapingPopup::AmsMapingPopup(wxWindow *parent, bool use_in_sync_dialog) :
               }
               Layout();
               Fit();
-              this->Move(show_pos);
+#if defined(__WXGTK__)
+              if (!is_running_on_wayland())
+#endif
+                  this->Move(show_pos);
          }
      });
  }
@@ -2116,7 +2151,7 @@ void AmsReplaceMaterialDialog::create()
     identical_filament->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#009688"))); // Orca: accent teal (not brand green)
 
     m_scrollview_groups = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHSCROLL | wxVSCROLL);
-    m_scrollview_groups->SetScrollRate(5, 5);
+    m_scrollview_groups->SetScrollRate(5, FromDIP(20));
     //m_scrollview_groups->SetMinSize(wxSize(400, 400));
     //m_scrollview_groups->SetMaxSize(wxSize(400, 400));
     m_scrollview_sizer = new wxBoxSizer(wxVERTICAL);

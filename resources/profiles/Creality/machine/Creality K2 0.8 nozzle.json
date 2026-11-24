@@ -1,9 +1,10 @@
 {
 	"type": "machine",
+	"name": "Creality K2 0.8 nozzle",
+	"inherits": "fdm_creality_common",
 	"from": "system",
 	"setting_id": "O1ardlnBQ2nqCs07",
 	"instantiation": "true",
-	"inherits": "fdm_creality_common",
 	"printer_model": "Creality K2",
 	"printer_settings_id": "Creality",
 	"auxiliary_fan": "1",
@@ -106,7 +107,6 @@
 	"printhost_authorization_type": "key",
 	"purge_in_prime_tower": "1",
 	"scan_first_layer": "0",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"support_air_filtration": "1",
 	"support_chamber_temp_control": "0",
@@ -120,7 +120,7 @@
 	"use_relative_e_distances": "1",
 	"z_offset": "0",
 	"default_filament_profile": [
-		"Creality Generic PLA @K2-all"
+		"Generic PLA @Creality K2-all"
 	],
 	"deretraction_speed": [
 		"30"
@@ -179,7 +179,6 @@
 	"z_hop": [
 		"0.4"
 	],
-	"name": "Creality K2 0.8 nozzle",
 	"adaptive_bed_mesh_margin": "0",
 	"bbl_use_printhost": "0",
 	"bed_exclude_area": "0x0",

@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "fdm_filament_template_nextruder_pla_hf",
+	"from": "system",
+	"instantiation": "false",
+	"filament_ramming_parameters": [
+		"250 100 39.871 39.871| 0.05 39.9547 0.45 39.9547 0.95 39.9547 1.45 39.9547 1.95 39.9547 2.45 39.9547 2.95 39.9547 3.45 39.9547 3.95 39.9547 4.45 39.9547 4.95 39.9547"
+	]
+}

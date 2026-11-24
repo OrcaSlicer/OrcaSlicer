@@ -3,6 +3,6 @@
 	"name": "Snapmaker PA-CF @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "581236806",
+	"filament_id": "OFEmsric",
 	"instantiation": "false"
 }

@@ -1,6 +1,8 @@
 #ifndef MULTI_NOZZLE_UTILS_HPP
 #define MULTI_NOZZLE_UTILS_HPP
 
+#include <string>
+#include <cstddef>
 #include <vector>
 #include <map>
 #include <optional>

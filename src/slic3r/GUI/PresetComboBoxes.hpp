@@ -2,7 +2,16 @@
 #define slic3r_PresetComboBoxes_hpp_
 
 //#include <wx/bmpcbox.h>
-#include <wx/colourdata.h>
+#include <cstddef>
+#include "libslic3r/Config.hpp"
+#include <functional>
+#include <string>
+#include <wx/colour.h>
+#include <vector>
+#include "libslic3r/PrintConfig.hpp"
+#include <map>
+#include <utility>
+#include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/clrpicker.h>
 
@@ -191,11 +200,11 @@ public:
 
     // BBS
     wxButton* clr_picker { nullptr };
-    wxColourData m_clrData;
 
     wxColor get_color() { return m_color; }
 
-    bool switch_to_tab();
+    // Opens this slot's preset in its tab; `show_tab` false only loads it, without showing the tab.
+    bool switch_to_tab(bool show_tab = true);
     void change_extruder_color();
     void show_add_menu();
     void show_edit_menu();
@@ -205,6 +214,7 @@ public:
     void msw_rescale() override;
     void OnSelect(wxCommandEvent& evt) override;
     void update_badge_according_flag();
+    void set_sync_badge(bool show);
 
     FilamentColor get_cur_color_info();
     void show_default_color_picker();
@@ -214,6 +224,7 @@ public:
 private:
     // BBS
     wxColor m_color;
+    bool    m_sync_badge{false};
 };
 
 

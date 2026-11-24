@@ -3,7 +3,7 @@
 	"name": "Arena PLA Metal @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFA02",
+	"filament_id": "OFOAdMCB",
 	"instantiation": "false",
 	"filament_vendor": [
 		"Orca Arena"

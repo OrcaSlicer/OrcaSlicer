@@ -1,7 +1,9 @@
 #ifndef BICUBIC_HPP
 #define BICUBIC_HPP
 
+#include <Eigen/Core>
 #include <algorithm>
+#include <cstddef>
 #include <vector>
 #include <cmath>
 

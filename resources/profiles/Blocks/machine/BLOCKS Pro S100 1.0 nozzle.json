@@ -6,7 +6,7 @@
 	"setting_id": "elLdUyy9RhUoa37o",
 	"instantiation": "true",
 	"printer_model": "BLOCKS Pro S100",
-	"default_print_profile": "0.50mm Standard 1.0 nozzle @Blocks",
+	"default_print_profile": "0.50mm Standard 1.0 nozzle @Blocks_Pro_S100",
 	"max_layer_height": [
 		"0.7"
 	],
@@ -26,5 +26,8 @@
 	"upward_compatible_machine": [
 		"BLOCKS Pro S100"
 	],
-	"printer_variant": "1.0"
+	"printer_variant": "1.0",
+	"default_filament_profile": [
+		"Blocks PLA @Blocks_Pro_S100"
+	]
 }

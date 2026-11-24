@@ -2,6 +2,7 @@
 #include "GUI_App.hpp"
 #include "I18N.hpp"
 
+#include "libslic3r_version.h"
 #include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
@@ -11,6 +12,19 @@
 #include "slic3r/GUI/Widgets/AnimaController.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/string.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/tglbtn.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/DeviceCore/DevFilaAmsSetting.h"
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include <wx/event.h>
+#include <vector>
 
 namespace Slic3r { namespace GUI {
 
@@ -292,7 +306,7 @@ void AMSSetting::UpdateByObj(MachineObject* obj)
 
     update_ams_img(obj);
 
-    m_ams_type->Update(obj);
+    m_ams_type->UpdateInfo(obj);
     //m_ams_arrange_order->Update(obj);
     update_insert_material_read_mode(obj);
     m_sizer_remain_block->Show(obj->is_support_update_remain);
@@ -624,7 +638,7 @@ void AMSSettingTypePanel::CreateGui()
     Fit();
 }
 
-void AMSSettingTypePanel::Update(const MachineObject* obj)
+void AMSSettingTypePanel::UpdateInfo(const MachineObject* obj)
 {
     if (!obj) {
         Show(false);

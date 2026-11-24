@@ -1,10 +1,14 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Luminous @FF AD5X 0.8 nozzle",
-	"inherits": "Flashforge Generic PLA",
+	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "SLYD2YcQTQgbSjIF",
+	"filament_id": "OFdqkWtz",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"cool_plate_temp": [
 		"45"
 	],

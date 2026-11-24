@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Rapido Silk@X-Max 4-Series",
 	"inherits": "fdm_filament_x4_common",
 	"from": "system",
-	"filament_id": "QD_3_1_4",
+	"filament_id": "OFW5FqkL",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"100"

@@ -1,9 +1,10 @@
 {
 	"type": "filament",
 	"name": "Generic PET @FF G4P",
-	"inherits": "Flashforge Generic TPU",
+	"inherits": "Generic TPU @Flashforge",
 	"from": "system",
 	"setting_id": "1Lyq9gOfcZ5hPIdW",
+	"filament_id": "OF6MOPWx",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"0"

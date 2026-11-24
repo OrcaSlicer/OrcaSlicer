@@ -1,6 +1,10 @@
 #include "OctoPrint.hpp"
 
 #include <algorithm>
+#include <boost/optional/optional.hpp>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Exception.hpp"
 #include <sstream>
 #include <exception>
 #include <boost/format.hpp>
@@ -14,8 +18,14 @@
 
 #include <curl/curl.h>
 
+#include <string>
+#include <utility>
+#include <wx/arrstr.h>
+#include <vector>
 #include <wx/progdlg.h>
+#include <wx/string.h>
 
+#include "PrintHost.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -24,8 +34,9 @@
 #include "libslic3r/AppConfig.hpp"
 #include "Bonjour.hpp"
 #include "slic3r/GUI/BonjourDialog.hpp"
+#include <boost/asio/ip/address.hpp>
+#include <cstddef>
 
-namespace fs = boost::filesystem;
 namespace pt = boost::property_tree;
 
 
@@ -337,6 +348,11 @@ bool OctoPrint::upload_inner_with_resolved_ip(PrintHostUpload upload_data, Progr
         return false;
     }
 
+    return upload_after_test_with_resolved_ip(std::move(upload_data), prorgess_fn, error_fn, info_fn, resolved_addr);
+}
+
+bool OctoPrint::upload_after_test_with_resolved_ip(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn, const boost::asio::ip::address& resolved_addr) const
+{
     const char* name = get_name();
     const auto upload_filename = upload_data.upload_path.filename();
     const auto upload_parent_path = upload_data.upload_path.parent_path();
@@ -397,11 +413,6 @@ bool OctoPrint::upload_inner_with_resolved_ip(PrintHostUpload upload_data, Progr
 
 bool OctoPrint::upload_inner_with_host(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const
 {
-    const char* name = get_name();
-
-    const auto upload_filename = upload_data.upload_path.filename();
-    const auto upload_parent_path = upload_data.upload_path.parent_path();
-
     // If test fails, test_msg_or_host_ip contains the error message.
     // Otherwise on Windows it contains the resolved IP address of the host.
     wxString test_msg_or_host_ip;
@@ -409,6 +420,16 @@ bool OctoPrint::upload_inner_with_host(PrintHostUpload upload_data, ProgressFn p
         error_fn(std::move(test_msg_or_host_ip));
         return false;
     }
+
+    return upload_after_test_with_host(std::move(upload_data), prorgess_fn, error_fn, info_fn, test_msg_or_host_ip);
+}
+
+bool OctoPrint::upload_after_test_with_host(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn, const wxString& test_msg_or_host_ip) const
+{
+    const char* name = get_name();
+
+    const auto upload_filename = upload_data.upload_path.filename();
+    const auto upload_parent_path = upload_data.upload_path.parent_path();
 
     std::string url;
     bool res = true;

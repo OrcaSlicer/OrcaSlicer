@@ -1,8 +1,10 @@
 #pragma once
 #include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/fstream.hpp>
-#include "stackwalker.h"
+#include "StackWalker.h"
 #include <eh.h>
+#include <cstddef>
+#include <string>
 
 class CBaseException : public CStackWalker
 {

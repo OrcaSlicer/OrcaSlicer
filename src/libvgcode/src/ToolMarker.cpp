@@ -7,6 +7,7 @@
 #include "Utils.hpp"
 
 #include <cmath>
+#include "../include/Types.hpp"
 
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
 

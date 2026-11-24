@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFSEP008",
-	"setting_id": "LAihILsSxo3djWjq",
 	"name": "Eolas Prints PLA Antibacterial @System",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "LAihILsSxo3djWjq",
+	"filament_id": "OFkzr35f",
+	"instantiation": "true",
 	"filament_color": [
 		"#4d9398"
 	],

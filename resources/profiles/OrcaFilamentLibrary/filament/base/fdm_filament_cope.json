@@ -3,7 +3,6 @@
 	"name": "fdm_filament_cope",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "OGFLC99",
 	"instantiation": "false",
 	"filament_type": [
 		"CoPE"

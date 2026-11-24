@@ -1,12 +1,14 @@
 #ifndef slic3r_SupportMaterial_hpp_
 #define slic3r_SupportMaterial_hpp_
 
-#include "Flow.hpp"
+#include "libslic3r/Polygon.hpp"
 #include "PrintConfig.hpp"
 #include "Slicing.hpp"
-#include "Fill/FillBase.hpp"
 #include "SupportLayer.hpp"
 #include "SupportParameters.hpp"
+#include <vector>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Config.hpp"
 namespace Slic3r {
 
 class PrintObject;
@@ -86,7 +88,6 @@ private:
 */
 
 	// Following objects are not owned by SupportMaterial class.
-	const PrintObject 		*m_object;
 	const PrintConfig 		*m_print_config;
 	const PrintObjectConfig *m_object_config;
 	// Pre-calculated parameters shared between the object slicer and the support generator,

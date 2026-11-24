@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFPM001",
+	"filament_id": "OFsRDvTM",
 	"instantiation": "false",
 	"filament_cost": [
 		"19.99"

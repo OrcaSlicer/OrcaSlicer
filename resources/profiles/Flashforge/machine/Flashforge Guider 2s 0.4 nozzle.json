@@ -117,7 +117,7 @@
 	"change_filament_gcode": "",
 	"machine_pause_gcode": "M25",
 	"default_filament_profile": [
-		"Flashforge Generic PLA"
+		"Generic PLA @Flashforge"
 	],
 	"machine_start_gcode": "M118 X10 Y10 Z10\nM140 S[bed_temperature_initial_layer_single]; set initial bed temp\nM104 S[nozzle_temperature_initial_layer] T0; set initial extruder temp\nM107; disable cooling fan\nG90; set to absolute positioning\nG28; home axes\nM132 X Y A B; recall home offsets from EPROM\nG1 Z50.0 F420; adjust Z\nG161 X Y F3300\nM7; wait for bed to stabilize\nM6 T0; wait for extruder to stabilize\nM651 S255; start case fan\nG1 Z0.3 F3600; move down to purge\nG92 E0; zero extruders\nG1 X120 Y-125 E20 F2000; extrude a line of filament across the front edge of the bed\nG1 X130 Y-125 F180; wait for ooze\nG1 X140 Y-125 F5000; fast wipe\nG1 Z1 F100; lift\nG92 E0; zero extruders again\nG1 E-1.0000 F1800",
 	"machine_end_gcode": "M104 S0 T0; cool down extruder\nM140 S0 T0; cool down bed\nG162 Z F1800\nG28 X Y; home axes\nM132 X Y A B; recall home offsets from EPROM\nM652; turn off rear fan\nG91; set to relative positioning\nM18; disable stepper motors",

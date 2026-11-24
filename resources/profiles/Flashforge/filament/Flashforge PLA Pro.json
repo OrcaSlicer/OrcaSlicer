@@ -1,10 +1,14 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Pro",
-	"inherits": "Flashforge Generic PLA",
+	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "vI875WYbMyQeMwlh",
+	"filament_id": "OFm4SivL",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"filament_settings_id": [
 		"Flashforge PLA Pro"
 	],
