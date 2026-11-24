@@ -1688,6 +1688,21 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    // ORCA: Bridge anchor walls
+    def = this->add("bridge_anchor_walls", coInt);
+    def->label = L("Bridge anchor walls");
+    def->category = L("Quality");
+    def->tooltip = L("How far external bridges reach onto the supported area around them, as a number of walls.\n"
+        "The bridge lines then extend over this many walls of the layer below, which anchors them better "
+        "and reduces sagging and detached bridge ends, especially with 3 or more walls.\n"
+        "If set to 0, the default anchoring is used: one wall over sparse infill and the shell thickness over solid infill.\n"
+        "The anchor is never made shorter than the default one.");
+    def->sidetext = L("walls");
+    def->min = 0;
+    def->max = 20;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
     def = this->add("bridge_density", coPercent);
     def->label = L("External bridge density");
     def->category = L("Strength");

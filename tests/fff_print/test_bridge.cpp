@@ -27,6 +27,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <limits>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -414,4 +415,79 @@ TEST_CASE("The anchor of a bridge in another filament follows the settings it is
     const auto [fresh_deck_area, fresh_bridge_length] = summary(fresh_print);
     CHECK_THAT(deck_area, Catch::Matchers::WithinRel(fresh_deck_area, 1e-6));
     CHECK_THAT(bridge_length, Catch::Matchers::WithinRel(fresh_bridge_length, 1e-6));
+}
+
+TEST_CASE("Bridge anchor walls extend a bridge over that many walls of the layer below", "[Bridge]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    // Two 10x20x6mm pillars 10mm apart, bridged at z=[5,6] by a 30x20mm deck over both of them, all in one object. The
+    // deck is bridged across the gap, with the sparse infill of the pillars around it on its first layer (print_z 5.2).
+    DynamicPrintConfig config = multifilament_config(1, {
+        { "wall_generator",             wall_generator },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "wall_loops",                 3 },
+        { "sparse_infill_density",      "15%" },
+        { "bottom_shell_layers",        3 },
+        { "outer_wall_line_width",      0.42 },
+        { "inner_wall_line_width",      0.45 },
+        { "enable_support",             false },
+    });
+
+    // The shortest reach of the bridge lines past the gap, on either side, measured to the edge of the extrusion.
+    const auto shortest_anchor = [&config](int anchor_walls, double &perimeter_spacing, double &anchor_expected) {
+        config.set_deserialize_strict("bridge_anchor_walls", std::to_string(anchor_walls));
+        TriangleMesh mesh = make_cube(10., 20., 6.);
+        TriangleMesh far_pillar = make_cube(10., 20., 6.);
+        far_pillar.translate(20.f, 0.f, 0.f);
+        mesh.merge(far_pillar);
+        TriangleMesh deck = make_cube(30., 20., 1.);
+        deck.translate(0.f, 0.f, 5.f);
+        mesh.merge(deck);
+        Print print;
+        Model model;
+        init_print({ mesh }, print, model, config);
+        print.process();
+        const Layer *layer = nullptr;
+        for (const Layer *l : print.objects().front()->layers())
+            if (std::abs(l->print_z - 5.2) < EPSILON)
+                layer = l;
+        REQUIRE(layer != nullptr);
+        REQUIRE(! layer->regions().empty());
+        const LayerRegion *layerm = layer->regions().front();
+        perimeter_spacing = layerm->flow(frPerimeter).spacing();
+        anchor_expected   = layerm->flow(frExternalPerimeter).spacing() + perimeter_spacing * (anchor_walls - 1);
+        const BoundingBox gap = get_extents(diff_ex(layer->lslices, layer->lower_layer->lslices));
+        double shortest = std::numeric_limits<double>::max();
+        size_t anchored = 0;
+        for (const LayerRegion *region : layer->regions())
+            for_each_extrusion_path(region->fills, [&](const ExtrusionPath &path) {
+                if (path.role() != erBridgeInfill)
+                    return;
+                for (const Line &line : path.polyline.to_polyline().lines()) {
+                    // Only the lines across the gap, away from the walls along the outline.
+                    if (std::abs(line.b.x() - line.a.x()) < gap.size().x() ||
+                        std::abs(line.a.y() - gap.center().y()) > gap.size().y() / 2 - scaled(3.))
+                        continue;
+                    shortest = std::min(shortest, unscale<double>(gap.min.x() - std::min(line.a.x(), line.b.x())) + path.width / 2.);
+                    shortest = std::min(shortest, unscale<double>(std::max(line.a.x(), line.b.x()) - gap.max.x()) + path.width / 2.);
+                    ++ anchored;
+                }
+            });
+        REQUIRE(anchored > 10);
+        return shortest;
+    };
+
+    double perimeter_spacing = 0.;
+    double anchor_expected   = 0.;
+    const double default_anchor = shortest_anchor(0, perimeter_spacing, anchor_expected);
+    const double long_anchor    = shortest_anchor(3, perimeter_spacing, anchor_expected);
+    CAPTURE(default_anchor, long_anchor, anchor_expected);
+    // By default the bridge reaches about one wall into the sparse infill around it.
+    CHECK(default_anchor < 0.75 * anchor_expected);
+    // With 3 anchor walls it reaches over the outer wall and the two inner walls of the pillars.
+    CHECK(long_anchor > 0.75 * anchor_expected);
+    CHECK(long_anchor > default_anchor + perimeter_spacing);
 }
