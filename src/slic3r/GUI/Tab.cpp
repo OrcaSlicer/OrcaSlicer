@@ -6469,6 +6469,8 @@ if (is_marlin_flavor)
 
     // The page holds only the "#0" controls, so register every extruder's options with the search
     // index under "Extruder N"; a search hit selects that extruder (TabPrinter::activate_option()).
+    // The extruders a printer selected earlier had beyond this one's are dropped, so that the search
+    // and the Speed Dial offer none of their pages.
     if (Page *page = extruder_page()) {
         auto &index = wxGetApp().sidebar().settings_index();
         for (auto &group : page->m_optgroups) {
@@ -6480,6 +6482,7 @@ if (is_marlin_flavor)
                     const wxString category = m_extruders_count > 1 ? wxString::Format("Extruder %d", int(i + 1)) : wxString("Extruder");
                     index.add_key(opt.second.first + "#" + std::to_string(i), m_type, group->title, category, group->icon);
                 }
+                index.remove_indexed_keys(opt.second.first, m_type, m_extruders_count);
             }
         }
     }
