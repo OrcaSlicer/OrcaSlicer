@@ -3333,8 +3333,11 @@ help without closing the box), and a press goes to the OS's box by message. On W
 `WM_COMMAND` to a message box, or a `TDM_CLICK_BUTTON` to the task dialog wx shows where Windows has
 one, found among the UI thread's windows by class and caption, the active one first. On GTK it is
 `gtk_dialog_response()` on the dialog's widget. The box closes once its own loop runs again, which
-`dialog_answer` waits up to 1 s for, so its reply says `closed`. A box that is no longer shown is
-refused. On macOS a message box lists no buttons, since no call reaches one (above).
+may be after the UI thread has served other calls, and `dialog_answer` waits up to 5 s for that, so its
+reply says `closed` however busy the app is. It waits the same for any dialog it ends without
+pressing a button, a web dialog whose page could not press Cancel included; a press of a dialog's
+own button is not waited for, since its handler may keep the dialog open. A box that is no longer
+shown is refused. On macOS a message box lists no buttons, since no call reaches one (above).
 
 A picker, and on macOS any native dialog, can only be answered ahead with an `dialog_auto_answer` rule:
 a regex and a button, and for a file or folder picker a path. The regex is searched in three places:

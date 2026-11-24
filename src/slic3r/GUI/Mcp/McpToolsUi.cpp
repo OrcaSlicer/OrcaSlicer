@@ -1909,6 +1909,21 @@ void register_ui_tools(CommandCatalog& catalog)
             std::string     dialog_title;
             std::uint64_t   serial = 0;
             bool            native = false;
+            DialogPress     press  = DialogPress::Pressed;
+            // Whether the dialog has closed, asking for up to `limit`. A dialog closes once its own loop runs
+            // again, which may be after the UI thread has served other calls, so a press that always closes it
+            // (a message box's, or one that ends the dialog) is waited for: its reply then says `closed` however
+            // busy the app is. Any other press may leave the dialog open on purpose, so its close is not waited for.
+            auto closed_within = [&](std::chrono::milliseconds limit) {
+                for (const auto end = std::chrono::steady_clock::now() + limit;;) {
+                    if (!ctx.observe_ui([&] { return json(runtime.modals().is_open(serial)); }).get<bool>())
+                        return true;
+                    if (std::chrono::steady_clock::now() >= end)
+                        return false;
+                    std::this_thread::sleep_for(20ms);
+                }
+            };
+            constexpr std::chrono::milliseconds close_wait = 5s;
             json out = ctx.run_ui([&]() -> json {
                 wxDialog* dialog = find_dialog();
                 dialog_title     = into_u8(dialog->GetTitle());
@@ -1929,7 +1944,7 @@ void register_ui_tools(CommandCatalog& catalog)
                     throw ToolFailure("The dialog has no button \"" + button + "\"", {{"dialog", describe_dialog(dialog)}});
                 if (const std::optional<DialogPress> refused = refused_press(dialog, id))
                     throw ToolFailure(refused_button(button, *refused), {{"dialog", describe_dialog(dialog)}});
-                const DialogPress press = press_dialog_button(dialog, id);
+                press = press_dialog_button(dialog, id);
                 if (press == DialogPress::Failed)
                     throw ToolFailure("The message box is not shown, so its button could not be pressed; call widget_list again",
                                       {{"dialog", describe_dialog(dialog)}});
@@ -1937,15 +1952,7 @@ void register_ui_tools(CommandCatalog& catalog)
             });
             if (!out.is_null()) {
                 settle(ctx);
-                // A message box closes once its own loop runs again, which a press always makes it do;
-                // that loop may run after the UI thread has served other calls.
-                auto open = [&] { return ctx.observe_ui([&] { return json(runtime.modals().is_open(serial)); }).get<bool>(); };
-                bool still_open = open();
-                for (const auto end = std::chrono::steady_clock::now() + 1s; native && still_open && std::chrono::steady_clock::now() < end;) {
-                    std::this_thread::sleep_for(20ms);
-                    still_open = open();
-                }
-                if (!still_open)
+                if (closed_within(native || press == DialogPress::Ended ? close_wait : 0ms))
                     out.update(closed_reply(runtime));
                 return ToolResult::ok(out);
             }
@@ -2007,20 +2014,15 @@ void register_ui_tools(CommandCatalog& catalog)
                 const int id     = standard;
                 if (const std::optional<DialogPress> refused = id != wxID_NONE ? refused_press(dialog, id) : std::nullopt)
                     throw ToolFailure(refused_button(button, *refused), {{"dialog", describe_dialog(dialog)}});
-                if (id != wxID_NONE && (ends_dialog || has_dialog_button(dialog, id)))
-                    return {{"dialog", dialog_title},
-                            {"button", button},
-                            {"id", id},
-                            {"pressed", press_dialog_button(dialog, id) == DialogPress::Pressed}};
+                if (id != wxID_NONE && (ends_dialog || has_dialog_button(dialog, id))) {
+                    press = press_dialog_button(dialog, id);
+                    return {{"dialog", dialog_title}, {"button", button}, {"id", id}, {"pressed", press == DialogPress::Pressed}};
+                }
                 throw ToolFailure("The dialog's page has no button \"" + button + "\"",
                                   {{"dialog", describe_dialog(dialog)}, {"page_buttons", page_buttons}});
             });
             settle(ctx);
-            const bool gone = ctx.observe_ui([&]() -> json {
-                                     const auto& stack = runtime.modals().stack();
-                                     return std::find(stack.begin(), stack.end(), web_dialog) == stack.end();
-                                 }).get<bool>();
-            if (gone)
+            if (closed_within(press == DialogPress::Ended ? close_wait : 0ms))
                 out.update(closed_reply(runtime));
             return ToolResult::ok(out);
         }));
