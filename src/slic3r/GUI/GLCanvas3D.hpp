@@ -1283,7 +1283,8 @@ public:
     float get_assemble_view_toolbar_width() const { return m_assemble_view_toolbar.get_width(); }
     float get_assemble_view_toolbar_height() const { return m_assemble_view_toolbar.get_height(); }
     float get_assembly_paint_toolbar_width() const { return m_paint_toolbar_width; }
-    float get_separator_toolbar_width() const { return m_separator_toolbar.get_width(); }
+    // Half the separator toolbar follows each bar that shows icons: left the main toolbar, right the gizmo bar.
+    float get_separator_toolbar_width(bool left) const;
     float get_separator_toolbar_height() const { return m_separator_toolbar.get_height(); }
     bool  is_collapse_toolbar_on_left() const;
     float get_collapse_toolbar_width() const;
@@ -1758,6 +1759,7 @@ private:
     void _render_volumes_for_picking(const Camera& camera) const;
     void _render_current_gizmo() const;
     void _render_gizmos_overlay();
+    void _place_main_toolbar();
     void _render_main_toolbar();
     void _render_imgui_select_plate_toolbar();
     // Prepare: picks the plate to show while the inactive ones are hidden.

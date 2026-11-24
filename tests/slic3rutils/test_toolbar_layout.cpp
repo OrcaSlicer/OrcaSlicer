@@ -1,5 +1,17 @@
+// wx pulls in <windows.h>; keep WIN32_LEAN_AND_MEAN / NOMINMAX ahead of it.
+#ifdef WIN32
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #include <Windows.h>
+#endif
+
 #include <catch2/catch_test_macros.hpp>
 
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/ToolbarLayout.hpp"
 
 #include <nlohmann/json.hpp>
@@ -8,6 +20,7 @@
 #include <cstddef>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace Slic3r::GUI;
@@ -87,6 +100,37 @@ TEST_CASE("ToolbarLayout gizmo ids cover the bar without svg and simplify", "[To
     CHECK(stock_gizmo_bar_ids().size() == 16);
     CHECK(std::count(stock_gizmo_bar_ids().begin(), stock_gizmo_bar_ids().end(), "svg") == 0);
     CHECK(parse_toolbar_layout(R"({"gizmos":["simplify","move"]})").gizmos.order.front() == "move");
+}
+
+// The id list is a hand-kept copy of the gizmo enum: a gizmo added to the enum, or inserted mid-enum, fails here.
+TEST_CASE("ToolbarLayout gizmo ids follow the gizmo enum", "[ToolbarLayout]")
+{
+    using G = GLGizmosManager;
+    const std::vector<std::pair<G::EType, std::string>> ids{
+        {G::Move, "move"},
+        {G::Rotate, "rotate"},
+        {G::Scale, "scale"},
+        {G::Flatten, "flatten"},
+        {G::Cut, "cut"},
+        {G::MeshBoolean, "mesh_boolean"},
+        {G::FdmSupports, "fdm_supports"},
+        {G::Seam, "seam"},
+        {G::FuzzySkin, "fuzzy_skin"},
+        {G::MmSegmentation, "mmu_segmentation"},
+        {G::PaintedModifier, "painted_modifier"},
+        {G::TextureDisplacement, "texture_displacement"},
+        {G::Emboss, "emboss"},
+        {G::Svg, "svg"},
+        {G::Measure, "measure"},
+        {G::Assembly, "assembly"},
+        {G::Simplify, "simplify"},
+        {G::BrimEars, "brim_ears"},
+    };
+    CHECK(ids.size() == static_cast<size_t>(G::Undefined));
+    for (const auto& [type, id] : ids) {
+        CHECK(G::gizmo_id(type) == id);
+        CHECK(G::gizmo_type_of(id) == type);
+    }
 }
 
 TEST_CASE("ToolbarLayout user groups round-trip", "[ToolbarLayout]")

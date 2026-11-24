@@ -736,6 +736,9 @@ float GLToolbar::get_width_horizontal() const
         }
     }
 
+    // A toolbar with every item hidden takes no space.
+    if (shown == 0)
+        return 0.0f;
     if (shown > 1)
         size += static_cast<float>(shown - 1) * m_layout.gap_size;
 
@@ -1909,7 +1912,7 @@ void render_group_dots(float icon_left, float y, float icon_size, bool open, boo
     const float r      = std::max(1.5f, 0.04f * icon_size);
     const ImU32 colour = open ? IM_COL32(0, 150, 136, 255) : dark ? IM_COL32(220, 220, 220, 255) : IM_COL32(80, 80, 80, 255);
     for (int dot = -1; dot <= 1; ++dot)
-        ImGui::GetForegroundDrawList()->AddCircleFilled(ImVec2(icon_left + 0.5f * icon_size + static_cast<float>(dot) * 3.0f * r, y), r,
+        ImGui::GetBackgroundDrawList()->AddCircleFilled(ImVec2(icon_left + 0.5f * icon_size + static_cast<float>(dot) * 3.0f * r, y), r,
                                                         colour);
 }
 

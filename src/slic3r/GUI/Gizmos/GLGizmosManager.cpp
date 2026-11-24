@@ -218,10 +218,8 @@ GLGizmosManager::EType GLGizmosManager::get_gizmo_from_mouse(const Vec2d &mouse_
 
         top_x = 0.5f * cnv_w + 0.5f * (m_parent.get_assembly_paint_toolbar_width());
     } else {
-        const float separator_width = m_parent.get_separator_toolbar_width();
-
         top_x = m_parent.get_main_toolbar_offset();
-        top_x += m_parent.get_main_toolbar_width() + separator_width / 2 + border;
+        top_x += m_parent.get_main_toolbar_width() + m_parent.get_separator_toolbar_width(true) + border;
     }
     float top_y = 0;
     float stride_x = m_layout.scaled_stride_x();
@@ -1490,7 +1488,7 @@ void GLGizmosManager::do_render_overlay(bool draw_icons) const
     else {
         //BBS: GUI refactor: GLToolbar&&Gizmo adjust
         float main_toolbar_width = (float)m_parent.get_main_toolbar_width();
-        float separator_width = (float)m_parent.get_separator_toolbar_width();
+        float separator_width = 2.0f * m_parent.get_separator_toolbar_width(true);
         //float space_width = GLGizmosManager::Default_Icons_Size * wxGetApp().toolbar_icon_scale();
         //float zoomed_top_x = 0.5f *(cnv_w + main_toolbar_width - 2 * space_width - width) * inv_zoom;
 
@@ -1584,7 +1582,9 @@ float GLGizmosManager::get_scaled_total_width() const
 {
 //BBS: GUI refactor: to support top layout
 #if BBS_TOOLBAR_ON_TOP
-    return m_layout.scale * (2.0f * m_layout.border + (float)get_selectable_idxs().size() * m_layout.stride_x() - m_layout.gap_x);
+    // A bar with every icon hidden takes no space.
+    const size_t count = get_selectable_idxs().size();
+    return count == 0 ? 0.0f : m_layout.scale * (2.0f * m_layout.border + static_cast<float>(count) * m_layout.stride_x() - m_layout.gap_x);
 #else
     return 2.0f * m_layout.scaled_border() + m_layout.scaled_icons_size();
 #endif

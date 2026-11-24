@@ -616,8 +616,7 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& 
         // The toolbar row can end next to the bar, where the labels near its top would cover its last buttons.
         ImVec2 toolbar_end(0.0f, 0.0f);
         if (canvas.m_main_toolbar.is_enabled())
-            toolbar_end = ImVec2(float(canvas.get_main_toolbar_offset()) + canvas.m_main_toolbar.get_width() + canvas.m_separator_toolbar.get_width() +
-                                     canvas.m_gizmos.get_scaled_total_width() + canvas.m_assemble_view_toolbar.get_width(),
+            toolbar_end = ImVec2(float(canvas.get_main_toolbar_offset()) + canvas.get_top_toolbar_width(),
                                  std::max(canvas.m_main_toolbar.get_height(), canvas.m_gizmos.get_scaled_total_height()));
         for (const TopMark& mark : marks)
             label_bottom = render_object_top_mark(object_top_mark_label(mark.names), cnv_width - thickness_bar_width(canvas), cnv_width,
@@ -11113,7 +11112,7 @@ void GLCanvas3D::_check_and_update_toolbar_icon_scale()
 #if BBS_TOOLBAR_ON_TOP
     float collapse_toolbar_width = collapse_toolbar.is_enabled() ? collapse_toolbar.get_width() : 0;
 
-    float top_tb_width = m_main_toolbar.get_width() + m_gizmos.get_scaled_total_width() + m_assemble_view_toolbar.get_width() + m_separator_toolbar.get_width() + collapse_toolbar_width * 2;
+    float top_tb_width = get_top_toolbar_width() + collapse_toolbar_width * 2;
     int   items_cnt = m_main_toolbar.get_visible_items_cnt() + m_gizmos.get_selectable_icons_cnt() + m_assemble_view_toolbar.get_visible_items_cnt() + m_separator_toolbar.get_visible_items_cnt() + collapse_toolbar.get_visible_items_cnt();
     float noitems_width = top_tb_width - size * items_cnt; // width of separators and borders in top toolbars
 
@@ -11167,7 +11166,8 @@ void GLCanvas3D::_render_overlays()
     //_render_view_toolbar();
     _render_paint_toolbar();
 
-    // The options window of a pressed toolbar item (arrange).
+    // The options window of a pressed toolbar item (arrange). Placed here too: the GL half places it later in the frame.
+    _place_main_toolbar();
     m_main_toolbar.render_item_windows(*this);
     if (const std::string picked = m_main_toolbar.take_picked_group_item(); !picked.empty())
         // After this frame: the item's action may render the canvas.
@@ -11401,7 +11401,14 @@ void GLCanvas3D::_render_gizmos_overlay()
 
 float GLCanvas3D::get_top_toolbar_width() const
 {
-    return m_main_toolbar.get_width() + m_separator_toolbar.get_width() + m_gizmos.get_scaled_total_width() + m_assemble_view_toolbar.get_width();
+    return m_main_toolbar.get_width() + get_separator_toolbar_width(true) + m_gizmos.get_scaled_total_width() + get_separator_toolbar_width(false) +
+           m_assemble_view_toolbar.get_width();
+}
+
+float GLCanvas3D::get_separator_toolbar_width(bool left) const
+{
+    const bool shown = left ? m_main_toolbar.get_width() > 0.0f : m_gizmos.get_scaled_total_width() > 0.0f;
+    return shown ? 0.5f * m_separator_toolbar.get_width() : 0.0f;
 }
 
 float GLCanvas3D::get_top_toolbar_height() const
@@ -11423,18 +11430,21 @@ int GLCanvas3D::get_main_toolbar_offset() const
     }
 }
 
+void GLCanvas3D::_place_main_toolbar()
+{
+    const Size cnv_size = get_canvas_size();
+    m_main_toolbar.set_position(0.5f * static_cast<float>(cnv_size.get_height()), -0.5f * cnv_size.get_width() + get_main_toolbar_offset());
+}
+
 //BBS: GUI refactor: GLToolbar adjust
 //when rendering, {0, 0} is at the center, left-up is -0.5, 0.5, right-up is 0.5, -0.5
 void GLCanvas3D::_render_main_toolbar()
 {
-    if (!m_main_toolbar.is_enabled())
+    // With every item hidden there is nothing to draw, not even the background's corners.
+    if (!m_main_toolbar.is_enabled() || m_main_toolbar.get_width() == 0.0f)
         return;
 
-    const Size cnv_size = get_canvas_size();
-    const float top = 0.5f * (float)cnv_size.get_height();
-
-    const float left = -0.5f * cnv_size.get_width() + get_main_toolbar_offset();
-    m_main_toolbar.set_position(top, left);
+    _place_main_toolbar();
     m_main_toolbar.render(*this);
     if (m_toolbar_highlighter.m_render_arrow)
         m_main_toolbar.render_arrow(*this, m_toolbar_highlighter.m_toolbar_item);
@@ -12000,11 +12010,9 @@ void GLCanvas3D::_render_assemble_view_toolbar() const
         return;
 
     const Size cnv_size = get_canvas_size();
-    const float gizmo_width = m_gizmos.get_scaled_total_width();
-    const float separator_width = m_separator_toolbar.get_width();
     const float top = 0.5f * (float)cnv_size.get_height();
     const float main_toolbar_left = -0.5f * cnv_size.get_width() + get_main_toolbar_offset();
-    const float left = main_toolbar_left + (m_main_toolbar.get_width() + gizmo_width + separator_width);
+    const float left = main_toolbar_left + get_top_toolbar_width() - m_assemble_view_toolbar.get_width();
 
     m_assemble_view_toolbar.set_position(top, left);
     m_assemble_view_toolbar.render(*this);
@@ -12436,15 +12444,13 @@ void GLCanvas3D::_render_section_view_panel(const ImVec2& bottom_left)
 
 void GLCanvas3D::_render_separator_toolbar_right() const
 {
-    if (!m_separator_toolbar.is_enabled())
+    if (!m_separator_toolbar.is_enabled() || get_separator_toolbar_width(false) == 0.0f)
         return;
 
     const Size cnv_size = get_canvas_size();
-    const float gizmo_width = m_gizmos.get_scaled_total_width();
-    const float separator_width = m_separator_toolbar.get_width();
     const float top = 0.5f * (float)cnv_size.get_height();
     const float main_toolbar_left = -0.5f * cnv_size.get_width() + get_main_toolbar_offset();
-    const float left = main_toolbar_left + (m_main_toolbar.get_width() + gizmo_width + separator_width / 2);
+    const float left = main_toolbar_left + (m_main_toolbar.get_width() + get_separator_toolbar_width(true) + m_gizmos.get_scaled_total_width());
 
     m_separator_toolbar.set_position(top, left);
     m_separator_toolbar.render(*this,GLToolbarItem::SeparatorLine);
@@ -12452,7 +12458,7 @@ void GLCanvas3D::_render_separator_toolbar_right() const
 
 void GLCanvas3D::_render_separator_toolbar_left() const
 {
-    if (!m_separator_toolbar.is_enabled())
+    if (!m_separator_toolbar.is_enabled() || get_separator_toolbar_width(true) == 0.0f)
         return;
 
     const Size cnv_size = get_canvas_size();
