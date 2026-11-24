@@ -3084,7 +3084,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
             }
             return nullptr;
         }, &keys);
-    // A project stores no filament compatible lists, and a process's only as print_compatible_printers; without one, cfg's lists come from the default or parent preset and are not applied over an existing preset.
+    // A project stores no filament compatible lists and a process's only as print_compatible_printers, so cfg fills a missing list from the default or parent preset, which is not applied over an existing preset.
     if (m_type == Preset::TYPE_FILAMENT || (m_type == Preset::TYPE_PRINT && found_by_name && !combined_config.has("compatible_printers")))
         keys.erase(std::remove_if(keys.begin(), keys.end(),
                                   [](const std::string &key) { return key == "compatible_printers" || key == "compatible_prints"; }),
