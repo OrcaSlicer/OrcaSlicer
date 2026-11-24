@@ -18,6 +18,10 @@
 #include <string>
 #include <vector>
 
+#ifndef _WIN32
+#include <stdlib.h> // setenv
+#endif
+
 using namespace Slic3r::GUI;
 using namespace Slic3r::GUI::Mcp;
 using nlohmann::json;
