@@ -1747,10 +1747,10 @@ static void extrusion_entities_append_calib_ironing_paths(ExtrusionEntitiesPtr &
 					const double height = height_per_percent * percent;
 					const float  width  = Flow::rounded_rectangle_extrusion_width_from_spacing(float(nozzle_dmr), float(height));
 					dst.push_back(path = new ExtrusionPath(erIroning, nozzle_dmr * height, width, float(height)));
-					path->polyline.points.push_back(p0);
+					path->polyline.points.push_back(Point3(p0));
 					path_percent = percent;
 				}
-				path->polyline.points.push_back(p1);
+				path->polyline.points.push_back(Point3(p1));
 			}
 		}
 	}

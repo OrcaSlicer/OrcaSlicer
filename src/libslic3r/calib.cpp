@@ -26,6 +26,7 @@
 #include "ClipperUtils.hpp"
 #include "Emboss.hpp"
 #include "ExPolygon.hpp"
+#include "Polygon.hpp"
 #include "LocalesUtils.hpp"
 #include "TextConfiguration.hpp"
 #include "TriangleMesh.hpp"
