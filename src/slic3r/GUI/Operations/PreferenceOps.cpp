@@ -835,10 +835,8 @@ void apply_preference(const std::string& key)
         }
     } else if (key == "preview_reduced_detail_mode") {
         // apply the new mode immediately to the currently loaded preview
-        if (GLCanvas3D* canvas = preview_canvas()) {
-            canvas->get_gcode_viewer().set_reduced_detail_mode(config.get(key));
-            redraw_preview(*canvas);
-        }
+        if (GLCanvas3D* canvas = preview_canvas())
+            canvas->apply_preview_reduced_detail_mode(config.get(key));
 #ifdef __WXMSW__
     } else if (key == "associate_3mf" || key == "associate_drc" || key == "associate_stl" || key == "associate_step") {
         const std::wstring extension = wxString::FromUTF8(key.substr(std::string("associate_").size())).ToStdWstring();

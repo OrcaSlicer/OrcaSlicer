@@ -10865,6 +10865,16 @@ void GLCanvas3D::_render_wireframe_overlay()
 // step has no duration, so it holds the reduced set for a settle time instead, and the frame that
 // restores the full toolpaths is scheduled for when that time runs out. Returns whether what the scene
 // pass draws changed, since a frame that reuses the cached scene would hide the change.
+void GLCanvas3D::apply_preview_reduced_detail_mode(const std::string& mode)
+{
+    AppConfig* cfg = wxGetApp().app_config;
+    cfg->set("preview_reduced_detail_mode", mode);
+    cfg->save();
+    m_gcode_viewer.set_reduced_detail_mode(mode);
+    set_as_dirty();
+    request_extra_frame();
+}
+
 bool GLCanvas3D::_update_preview_interaction()
 {
     const auto now = std::chrono::steady_clock::now();
@@ -12123,22 +12133,27 @@ void GLCanvas3D::_render_canvas_toolbar()
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding  , ImVec2(4.f, 10.f) * sc);
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing    , ImVec2(0.f, 8.f ) * sc);
 
+    // Drawn after the popup's style is popped, so the tooltip does not take the popup's colors.
+    std::string hovered_tip;
     if (ImGui::BeginPopup("CanvasToolbarMenu", ImGuiWindowFlags_NoMove)) {
         ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
 
         Plater*    p   = wxGetApp().plater();
         AppConfig* cfg = wxGetApp().app_config;
 
-        auto create_menu_item = [sc](
+        auto create_menu_item = [sc, &hovered_tip](
             const std::string& name,
             bool enable,
             bool condition,
-            const std::function<void()>& action
+            const std::function<void()>& action,
+            const std::string& tooltip = {}
         ) {
             ImGui::Dummy({2.f * sc,0});
             ImGui::SameLine();
             if (ImGui::BBLMenuItem(("        " + _u8L(name)).c_str(), nullptr, false, enable, ImGui::CalcTextSize(_u8L(name).c_str()).y))
                 action();
+            if (!tooltip.empty() && ImGui::IsItemHovered())
+                hovered_tip = tooltip;
             ImGui::SameLine(12.f * sc);
             ImGui::TextColored(enable ? ImVec4(1,1,1,1) : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled), "%s", into_u8(condition ? ImGui::VisibleIcon : ImGui::HiddenIcon).c_str());
         };
@@ -12248,6 +12263,30 @@ void GLCanvas3D::_render_canvas_toolbar()
             [this]{wxGetApp().toggle_show_center_of_mass(); m_dirty = true;}
         );
 
+        ImGui::Separator();
+
+        // Both eyes closed means the full toolpaths are drawn while dragging.
+        const std::string reduced_detail_mode = cfg->get("preview_reduced_detail_mode");
+        auto create_drag_mode_item = [&](const std::string& name, const std::string& mode, const std::string& tooltip) {
+            const bool on = reduced_detail_mode == mode;
+            create_menu_item(name,
+                m_canvas_type == ECanvasType::CanvasPreview, // work only on preview
+                on,
+                [this, p, next = on ? std::string("off") : mode]{
+                    p->CallAfter([this, next]{ apply_preview_reduced_detail_mode(next); });
+                },
+                tooltip
+            );
+        };
+        // TRN View menu toggle: what the sliced preview draws while the camera or a slider is dragged.
+        create_drag_mode_item(_utf8(L("Solid model while dragging")), "solid",
+            _u8L("While you drag the camera or a preview slider, or zoom, the sliced objects are drawn as solid shapes. "
+                 "The full toolpaths return when you let go."));
+        // TRN View menu toggle: what the sliced preview draws while the camera or a slider is dragged.
+        create_drag_mode_item(_utf8(L("Shell only while dragging")), "shell",
+            _u8L("While you drag the camera or a preview slider, or zoom, the toolpaths are drawn without the infill hidden under the walls. "
+                 "The full toolpaths return when you let go."));
+
         // Belt printers, G-code preview only: show the raw machine-frame G-code instead of
         // the designed (upright) view. This menu is the only place the toggle lives (plus
         // its shortcut); the reload is deferred (CallAfter) so the preview is not rebuilt
@@ -12270,6 +12309,9 @@ void GLCanvas3D::_render_canvas_toolbar()
 
     ImGui::PopStyleColor(6);
     ImGui::PopStyleVar(6);
+
+    if (!hovered_tip.empty())
+        imgui.tooltip(hovered_tip, ImGui::GetFontSize() * 20.f);
 
     imgui.end();
 

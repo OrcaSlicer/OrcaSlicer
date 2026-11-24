@@ -1542,6 +1542,9 @@ public:
     void msw_rescale() { m_gcode_viewer.invalidate_legend(); }
 
     void request_extra_frame() { m_extra_frame_requested = true; }
+    // Stores what the preview draws while dragging ("off", "solid" or "shell") and applies it to this canvas.
+    // Inside a frame, call it through CallAfter: switching can upload volumes.
+    void apply_preview_reduced_detail_mode(const std::string& mode);
     // whether the user is holding the camera, the navigator, a gizmo, the rectangle selection or a preview slider
     bool is_user_interacting() const;
 
