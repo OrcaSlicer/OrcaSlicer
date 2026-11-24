@@ -1189,12 +1189,16 @@ tooltip (what it does, when to change it, what it affects), and `where`, the pag
 row on the settings tab. `where` comes from the sidebar's settings index (`Search::SettingsIndex`),
 which the settings tabs fill as they build their pages and the Speed Dial reads for its own setting
 actions; a setting with no row on a page has none, and an object's or part's settings are placed on
-the process tab. The help text sits in `settings_get` rather than in a command of its own because that is
-where agents look: in the bench, agents read settings with the settings reads three to five times as often
-as they called a separate explanation tool, and with the tooltips out of the meta they set a draft
-shield without skirt loops and a support threshold measured from the wrong side, mistakes the same
-agents avoided when the tooltip came with the value. The size stays bounded by the rule above: only
-keys that are named or listed with their group carry meta.
+the process tab. A printer's extruder settings are on its one Extruder page, whatever its number of
+extruders: the index gives each extruder's copy of a setting a row, "Extruder N" on a printer of
+several, so that a search hit picks that extruder, and `where` names the page, "Extruder > Retraction",
+while the values of each extruder are in `value` and `meta.variants`. The help text sits in
+`settings_get` rather than in a command of its own because that is where agents look: in the bench,
+agents read settings with the settings reads three to five times as often as they called a separate
+explanation tool, and with the tooltips out of the meta they set a draft shield without skirt loops and
+a support threshold measured from the wrong side, mistakes the same agents avoided when the tooltip
+came with the value. The size stays bounded by the rule above: only keys that are named or listed with
+their group carry meta.
 
 `settings_list_pages {type}` lists the pages and groups of the type's settings tab, both in alphabetical order
 (the settings index the places come from keeps no tab order), each group with how many settings it holds
@@ -2883,7 +2887,7 @@ OrcaSlicer doesn't activate itself for it, which would take the keyboard from th
 tool needs it active: a capture reads a covered window whole and input goes through wx. Under X11 the
 window manager may adjust a request.
 
-With no window manager, as under a bare Xvfb, the app does the window manager's part
+With no window manager, as under Xvfb without Openbox, the app does the window manager's part
 (`WindowControl.cpp`); every EWMH window manager lists `_NET_WM_STATE` among the hints it takes, so its
 absence says none runs. `maximized` remembers the normal rect, adds the maximized atoms to the window's
 `_NET_WM_STATE`, which GDK reads back, so `IsMaximized()` follows, and fills the work area of the window's
@@ -4990,8 +4994,8 @@ scripts setting's saved value and value in force, and `calibration_generate_test
 defaults, the dialogs' shared rules, VFA's auto-adjust and the parameters the journal records. End to end, `tools/mcp/orca_mcp.py` launches
 the app on Linux on the XWayland of a private headless compositor (KWin, else mutter, which is not
 tested yet), which gives it the GPU's OpenGL and a window manager, or, on a machine without a desktop,
-on a private Xvfb display (with `-noreset`, and the pointer parked in a corner so no tooltip lands in
-a screenshot); on macOS and Windows it opens the app on the desktop. It runs
+on a private Xvfb display (with `-noreset`, Openbox as its window manager when installed, and the pointer
+parked in a corner so no tooltip lands in a screenshot); on macOS and Windows it opens the app on the desktop. It runs
 `tools/mcp/smoke_test.json`, which `--run` also runs headless. `tools/mcp/test_gizmos.py`
 checks every gizmo through the GUI tools, with auto-answers that run a button's handler and canvas targets on
 negative parts and from below the bed, and the gizmo commands' openings, refusals and acting calls, read back

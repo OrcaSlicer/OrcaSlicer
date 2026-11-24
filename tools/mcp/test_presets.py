@@ -45,6 +45,10 @@ PLA = GENERIC_PLA
 TOOLCHANGER = "MyToolChanger 0.4 nozzle"
 TOOLCHANGER_STD = "0.20mm Standard @MyToolChanger"
 TOOLCHANGER_PLA = "Generic PLA @MyToolChanger"
+# The printer's Extruder page's Retraction group, in the tab's order (publishable_printer_retraction_options()).
+RETRACTION_KEYS = ["retraction_length", "retract_restart_extra", "retraction_speed", "deretraction_speed",
+                   "retraction_minimum_travel", "retract_when_changing_layer", "wipe", "wipe_distance",
+                   "retract_before_wipe", "retract_after_wipe"]
 # The entry's terms for the presets it names often.
 TERMS = {"Klipper": KLIPPER, "Klipper 0.6": KLIPPER_06, "Klipper 0.8": KLIPPER_08, "Marlin": MARLIN,
          "ToolChanger": TOOLCHANGER, "Std": STD, "Opt": OPT, "TC Std": TOOLCHANGER_STD, "PLA": PLA,
@@ -1784,6 +1788,10 @@ class PresetsTest:
         self.select("printer", TOOLCHANGER)
         self.named_selection_is(f"{s} 1", named("ToolChanger | TC Std | " + ", ".join(["TC PLA"] * 5)))
         t.equal(f"{s} 1: the nozzles", self.value("printer", "nozzle_diameter"), times(0.4, 5))
+        self.extruder_page(f"{s} 1")
+        t.equal(f"{s} 1: the Speed Dial has an action per extruder", self.dial("retraction_length"),
+                [(f"orca_setting:retraction_length#{n}:5", f"Printer : Extruder {n + 1} : Retraction")
+                 for n in range(5)])
 
         # Tool 2's nozzle differs from tool 1's, so what a test takes from its extruder tells the two apart.
         tool2_06 = {"nozzle_diameter": "0.4,0.6,0.4,0.4,0.4"}
@@ -1821,6 +1829,42 @@ class PresetsTest:
         printers = self.names("printer")
         t.equal(f"{s} 5: the Klipper listed and the ToolChanger not", (KLIPPER in printers, TOOLCHANGER in printers),
                 (True, False))
+        # After a printer of five extruders, the Klipper keeps no row for the four it lacks.
+        self.extruder_page(f"{s} 5")
+        t.equal(f"{s} 5: the Speed Dial has one action", self.dial("retraction_length"),
+                [("orca_setting:retraction_length#0:5", "Printer : Extruder : Retraction")])
+        t.equal(f"{s} 5: no setting on a numbered extruder page", self.numbered(), [])
+
+    def extruder_page(self, label):
+        """The entry's Extruder page check: the printer has one Extruder page, whose Retraction group holds the ten
+        retraction keys, each placed there."""
+        pages = self.c.call("settings_list_pages", type="printer")["pages"]
+        self.t.equal(f"{label}: one Extruder page", [p["page"] for p in pages if p["page"].startswith("Extruder")],
+                     ["Extruder"])
+        self.t.equal(f"{label}: its Retraction group counts ten", group_size(pages, "Extruder", "Retraction"), 10)
+        listed = self.settings_pages(type="printer", where="Extruder > Retraction")
+        self.t.equal(f"{label}: the retraction keys, each on the Extruder page",
+                     sorted((i["key"], i.get("meta", {}).get("where")) for i in listed),
+                     sorted((key, "Extruder > Retraction") for key in RETRACTION_KEYS))
+
+    def setting_actions(self):
+        """Every item of the Speed Dial's listing with its settings, page after page."""
+        items, offset = [], 0
+        while offset is not None:
+            page = self.c.call("action_list", include_settings=True, offset=offset, limit=200)
+            items += page["items"]
+            offset = page.get("next_offset")
+        return items
+
+    def dial(self, key):
+        """The entry's dial(key): the Speed Dial's actions for the printer setting `key`, as (id, section)."""
+        return sorted((a["id"], a.get("section")) for a in self.setting_actions()
+                      if a["id"].startswith(f"orca_setting:{key}#"))
+
+    def numbered(self):
+        """The entry's numbered(): the Speed Dial's actions on a numbered extruder page, as (id, section)."""
+        return [(a["id"], a.get("section")) for a in self.setting_actions()
+                if re.match(r"Printer : Extruder \d+ : ", a.get("section") or "")]
 
     def hide_printers(self):
         """Hides every printer that is neither installed nor selected, the hidden printers among them, with the

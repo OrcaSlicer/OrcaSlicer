@@ -10,16 +10,17 @@ one whose file is not a test, and the shipped sweep.json lists every test there 
 pool and the serial phase, each longest first with those without a time ahead, or in the order a --shuffle seed
 gives, the same for the same seed. pick_next() passes over a test whose lock another holds. The app launches on the
 job's data folder, always with --cad and --unrestricted-scripts, and the commands fill {bin} and {datadir}; on Linux
-the app is an X11 client unless --wayland asks for a native Wayland one, --headless is added only when the run asks
-for it, and both flags are refused off Linux and together. Two tests of one job share its data folder and its app's
-session file, and have their own temporary and working folders; a test that starts its own apps has a session file
-of its own. A test whose run raises is recorded as an error, one that runs out of time is ended so that what it
-started ends too, the history file reads its earlier form and takes a bare file name, -j takes a whole number from 1
-up, and --shuffle a seed or none. The stand-in sweep runs main() on four scripts that launch nothing, and checks each
-run's record, the folders it keeps, the serial mark it learns, --list and --forget. The stand-in app sweep runs
-main() on scripts that run in a stand-in app, an HTTP server a stand-in orca_mcp.py launches and stops, and checks
-when the runner launches and stops it. Exits 0 when every check passes. The checks are asserts, so a Python that runs
-with its asserts off (-O, or PYTHONOPTIMIZE, which the sweep's runner passes on) fails the test before any of them.
+the app is an X11 client unless --wayland asks for a native Wayland one, --headless or --xvfb is added only when the
+run asks for it, and the three flags are refused off Linux and any two of them together. Two tests of one job share
+its data folder and its app's session file, and have their own temporary and working folders; a test that starts its
+own apps has a session file of its own, and with --xvfb a private Xvfb display that is gone when it ends. A test
+whose run raises is recorded as an error, one that runs out of time is ended so that what it started ends too, the
+history file reads its earlier form and takes a bare file name, -j takes a whole number from 1 up, and --shuffle a
+seed or none. The stand-in sweep runs main() on four scripts that launch nothing, and checks each run's record, the
+folders it keeps, the times it records and --list. The stand-in app sweep runs main() on scripts that
+run in a stand-in app, an HTTP server a stand-in orca_mcp.py launches and stops, and checks when the runner launches
+and stops it. Exits 0 when every check passes. The checks are asserts, so a Python that runs with its asserts off
+(-O, or PYTHONOPTIMIZE, which the sweep's runner passes on) fails the test before any of them.
 """
 
 import contextlib
@@ -92,17 +93,16 @@ def check_manifest_problems():
 
 
 def check_order():
-    manifest = {n: entry({"path": f"test_{n}.py"}) for n in "abce"}
-    manifest["d"] = entry({"path": "test_d.py", "exclusive": True, "why": "reads the focus"})
-    history = {"times": {"a": 10.0, "b": 20.0, "d": 5.0, "e": 30.0}, "serial": {"e": "2026-11-20"}}
-    got = run_sweep.order(["a", "b", "c", "d", "e"], manifest, history)
+    manifest = {n: entry({"path": f"test_{n}.py"}) for n in "abc"}
+    manifest.update({n: entry({"path": f"test_{n}.py", "exclusive": True, "why": "reads the focus"}) for n in "de"})
+    got = run_sweep.order(["a", "b", "c", "d", "e"], manifest, {"a": 10.0, "b": 20.0, "d": 5.0, "e": 30.0})
     assert got == (["c", "b", "a"], ["e", "d"]), got
-    ok("order() runs untimed tests first, then the longest, and puts the exclusive and the serial-marked ones in the "
-       "serial phase, longest first")
+    ok("order() runs untimed tests first, then the longest, and puts the exclusive ones in the serial phase, longest "
+       "first")
 
     many = {f"t{i:02}": entry({"path": f"test_t{i:02}.py"}) for i in range(20)}
     many["t00"] = entry({"path": "test_t00.py", "exclusive": True, "why": "reads the focus"})
-    names, none = list(many), {"times": {}, "serial": {}}
+    names, none = list(many), {}
     first = run_sweep.order(names, many, none, seed=123456)
     assert run_sweep.order(list(reversed(names)), many, none, seed=123456) == first, first
     assert first[1] == ["t00"] and sorted(first[0]) == names[1:], first
@@ -126,10 +126,10 @@ def check_pick_next():
 ROOT = os.path.join(tempfile.gettempdir(), "orca-sweep-check")
 
 
-def context(platform, headless=False, wayland=False, test="run", job="job-1"):
+def context(platform, headless=False, xvfb=False, wayland=False, test="run", job="job-1"):
     return RunContext(mcp_dir=MCP_DIR, binary=os.path.join(ROOT, "bin", "orca-slicer"),
                       run_dir=os.path.join(ROOT, test), job_dir=os.path.join(ROOT, job), port=14101, python="python3",
-                      platform=platform, headless=headless, wayland=wayland)
+                      platform=platform, headless=headless, xvfb=xvfb, wayland=wayland)
 
 
 def check_launch_commands():
@@ -139,14 +139,15 @@ def check_launch_commands():
     assert launch == ["python3", os.path.join(MCP_DIR, "orca_mcp.py"), "launch", "--bin", ctx.binary,
                       "--datadir", ctx.datadir, "--port", "14101", "--cad", "--unrestricted-scripts"], launch
     assert run_sweep.launch_command(context("linux", wayland=True)) == launch
-    # A headless launch is an X11 client on the compositor it starts, which its own launch sets.
+    # A launch with --headless or --xvfb is an X11 client on the display it starts, which its own launch sets.
     assert run_sweep.launch_command(context("linux", headless=True)) == launch + ["--headless"]
+    assert run_sweep.launch_command(context("linux", xvfb=True)) == launch + ["--xvfb"]
     for platform in ("darwin", "win32"):
         mac_or_win = run_sweep.launch_command(context(platform))
-        assert mac_or_win[-2:] == ["--cad", "--unrestricted-scripts"] and "--headless" not in mac_or_win, mac_or_win
+        assert mac_or_win[-2:] == ["--cad", "--unrestricted-scripts"], mac_or_win
     assert run_sweep.stop_command(ctx) == ["python3", os.path.join(MCP_DIR, "orca_mcp.py"), "stop"]
     ok("the launch runs on the job's data folder, always with --cad and --unrestricted-scripts, and with --headless "
-       "only when the run asks for it")
+       "or --xvfb only when the run asks for it")
 
 
 def check_launch_env():
@@ -155,9 +156,10 @@ def check_launch_env():
     assert run_sweep.launch_env(context("linux"), {"PATH": "p"}) == {"PATH": "p", "GDK_BACKEND": "x11"}
     assert run_sweep.launch_env(context("linux", wayland=True), {"PATH": "p"}) == {"PATH": "p", "GDK_BACKEND": "wayland"}
     assert run_sweep.launch_env(context("linux", headless=True), {"PATH": "p"}) == {"PATH": "p"}
+    assert run_sweep.launch_env(context("linux", xvfb=True), {"PATH": "p"}) == {"PATH": "p"}
     assert run_sweep.launch_env(context("darwin"), {"PATH": "p"}) == {"PATH": "p"}
-    ok("the launch runs the app as an X11 client on Linux unless --wayland, and leaves the backend alone headless "
-       "and off Linux")
+    ok("the launch runs the app as an X11 client on Linux unless --wayland, and leaves the backend alone with "
+       "--headless or --xvfb and off Linux")
 
 
 def check_test_commands():
@@ -194,11 +196,14 @@ def check_shared_datadir():
     a, b = context("darwin", test="test_a"), context("darwin", test="test_b")
     assert a.datadir == b.datadir, (a.datadir, b.datadir)
     assert a.session == b.session, (a.session, b.session)
+    assert a.app_cwd == b.app_cwd == os.path.join(ROOT, "job-1", "app-cwd"), (a.app_cwd, b.app_cwd)
+    for ctx in (a, b):
+        assert not ctx.app_cwd.startswith(ctx.run_dir + os.sep), (ctx.app_cwd, ctx.run_dir)
     for field in ("tmp", "cwd"):
         ours, theirs = getattr(a, field), getattr(b, field)
         assert ours != theirs and ours.startswith(a.run_dir + os.sep) and theirs.startswith(b.run_dir + os.sep), field
-    ok("two tests of one job share its data folder and its app's session file, and have their own temporary folder "
-       "and working folder")
+    ok("two tests of one job share its data folder, its app's session file and its app's working folder, outside "
+       "either test's folder, and have their own temporary folder and working folder")
 
 
 def check_discover():
@@ -222,6 +227,48 @@ def check_run_error():
     assert rec["name"] == "t" and rec["exit"] == "error" and rec.get("error"), rec
     assert run_sweep.missing(["a", "t"], [{"name": "a"}]) == ["t"], run_sweep.missing(["a", "t"], [{"name": "a"}])
     ok("a test whose run raises is recorded as an error, and a test with no record is named")
+
+
+ENV_WRITER = """
+import json, os, sys
+keys = ("DISPLAY", "GDK_BACKEND", "WAYLAND_DISPLAY")
+seen = {k: os.environ.get(k) for k in keys}
+seen["socket"] = os.path.exists("/tmp/.X11-unix/X" + (seen["DISPLAY"] or ":").lstrip(":"))
+json.dump(seen, open(sys.argv[1], "w"))
+"""
+
+
+def check_own_display():
+    with run_sweep.own_display(entry({"path": "t.py"}), context("linux", xvfb=True)) as env:
+        assert env is None, env
+    with run_sweep.own_display(entry({"path": "t.py", "launch": "own"}), context("linux")) as env:
+        assert env is None, env
+    name = "with --xvfb, a test that starts its own apps runs them on a private Xvfb display, gone when it ends"
+    if not sys.platform.startswith("linux") or not shutil.which("Xvfb"):
+        print(f"SKIP {name}: " + ("Xvfb runs only on Linux" if not sys.platform.startswith("linux")
+                                  else "Xvfb is not installed"))
+        ok("own_display() gives no display to a test in the job's app, nor to one that starts its own on the desktop")
+        return
+    with tempfile.TemporaryDirectory(prefix="orca-sweep-check-") as root:
+        with open(os.path.join(root, "test_env.py"), "w") as f:
+            f.write(ENV_WRITER)
+        seen_file = os.path.join(root, "seen.json")
+        ctx = RunContext(mcp_dir=root, binary="orca-slicer", run_dir=os.path.join(root, "run"),
+                         job_dir=os.path.join(root, "job"), port=14101, python=sys.executable, platform="linux",
+                         xvfb=True)
+        e = entry({"path": "test_env.py", "launch": "own", "args": [seen_file]})
+        rec = run_sweep.run_test("test_env", e, ctx, JobApp())
+        assert rec["exit"] == 0, rec
+        with open(seen_file) as f:
+            seen = json.load(f)
+        number = (seen["DISPLAY"] or ":").lstrip(":")
+        assert number.isdigit() and 90 <= int(number) < 120, seen
+        assert seen == {"DISPLAY": f":{number}", "GDK_BACKEND": "x11", "WAYLAND_DISPLAY": None, "socket": True}, seen
+        with open(rec["log"]) as f:
+            assert f"private display :{number}" in f.read(), rec["log"]
+        assert not os.path.exists(f"/tmp/.X11-unix/X{number}"), f"Xvfb :{number} outlived the test"
+    ok("own_display() gives no display to a test in the job's app, nor to one that starts its own on the desktop; "
+       + name)
 
 
 def alive(pid):
@@ -268,27 +315,25 @@ def check_timeout_ends_children():
 
 
 def check_history_file():
-    empty = {"times": {}, "serial": {}}
     with tempfile.TemporaryDirectory(prefix="orca-sweep-check-") as root:
         here = os.getcwd()
         os.chdir(root)
         try:
             with open("flat.json", "w") as f:
                 json.dump({"a": 1.5}, f)
-            assert run_sweep.read_history("flat.json") == {"times": {"a": 1.5}, "serial": {}}
-            history = {"times": {"a": 1.5}, "serial": {"e": "2026-11-20"}}
-            run_sweep.write_history("times.json", history)
-            assert run_sweep.read_history("times.json") == history
+            assert run_sweep.read_history("flat.json") == {"a": 1.5}
+            run_sweep.write_history("times.json", {"a": 1.5})
+            assert run_sweep.read_history("times.json") == {"a": 1.5}
             with open("times.json") as f:
-                assert json.load(f) == history
-            assert run_sweep.read_history("missing.json") == empty
+                assert json.load(f) == {"times": {"a": 1.5}}
+            assert run_sweep.read_history("missing.json") == {}
             with open("broken.json", "w") as f:
                 f.write("not json")
-            assert run_sweep.read_history("broken.json") == empty
+            assert run_sweep.read_history("broken.json") == {}
         finally:
             os.chdir(here)
-    ok("the history file reads its earlier flat form as times, keeps times and serial marks through a bare file name, "
-       "and reads as empty when missing or not JSON")
+    ok("the history file reads its earlier flat form as times, keeps the times through a bare file name, and reads as "
+       "empty when missing or not JSON")
 
 
 def check_options():
@@ -316,22 +361,25 @@ def check_display_options():
     def parse(*flags):
         return run_sweep.parse_args(list(flags))
 
-    for flags in ([], ["--headless"], ["--wayland"]):
+    single = (["--headless"], ["--xvfb"], ["--wayland"])
+    for flags in ([], *single):
         assert run_sweep.option_problems(parse(*flags), "linux") == [], flags
-    assert run_sweep.option_problems(parse("--headless", "--wayland"), "linux"), "--headless --wayland"
+    for flags in (["--headless", "--wayland"], ["--headless", "--xvfb"], ["--xvfb", "--wayland"]):
+        assert run_sweep.option_problems(parse(*flags), "linux"), flags
     for platform in ("darwin", "win32"):
-        for flags in (["--headless"], ["--wayland"]):
+        for flags in single:
             assert run_sweep.option_problems(parse(*flags), platform), (platform, flags)
 
     session = {"DISPLAY": ":0", "WAYLAND_DISPLAY": "wayland-1"}
     assert run_sweep.session_problems(parse(), session, "linux") == []
     assert run_sweep.session_problems(parse("--wayland"), session, "linux") == []
     assert run_sweep.session_problems(parse("--headless"), {}, "linux") == []
+    assert run_sweep.session_problems(parse("--xvfb"), {}, "linux") == []
     assert run_sweep.session_problems(parse(), {"WAYLAND_DISPLAY": "wayland-1"}, "linux"), "no DISPLAY"
     assert run_sweep.session_problems(parse("--wayland"), {"DISPLAY": ":0"}, "linux"), "no WAYLAND_DISPLAY"
     assert run_sweep.session_problems(parse(), {}, "darwin") == []
-    ok("--headless and --wayland are taken on Linux, refused elsewhere and together, and each backend needs "
-       "its display")
+    ok("--headless, --xvfb and --wayland are taken one at a time on Linux, refused elsewhere and in pairs, and each "
+       "backend needs its display")
 
 
 def check_shipped_manifest():
@@ -428,27 +476,28 @@ def check_stand_in_sweep():
         lines = printed.splitlines()
         assert any(line.startswith("test_load") and "passed alone" in line for line in lines), printed
         assert any(line.startswith("FAIL test_broken") for line in lines), printed
-        h = run_sweep.read_history(history)
-        assert sorted(h["times"]) == ["test_load", "test_quick", "test_slow"], h
-        assert list(h["serial"]) == ["test_load"], h
+        times = run_sweep.read_history(history)
+        assert sorted(times) == ["test_load", "test_quick", "test_slow"], times
         for name in STAND_INS:
             assert os.path.isdir(os.path.join(out, name)), name
         for j in {r["job"] for r in recs}:
             assert os.path.isdir(os.path.join(out, f"job-{j}", "datadir")), j
-        ok("the stand-in sweep runs a test that fails beside others again alone on its job, counts it passed and marks "
-           "it serial, runs the exclusive one alone, and records each run's job and what ran before it there")
+        ok("the stand-in sweep runs a test that fails beside others again alone on its job and counts it passed, runs "
+           "the exclusive one alone, and records each run's job and what ran before it there")
 
         code, printed = sweep(mcp_dir, "--list", *common)
-        names = [line.split()[0] for line in printed.splitlines() if line.strip()]
-        assert code == 0 and names == ["test_broken", "test_slow", "test_load", "test_quick"], (code, printed)
-        assert "serial since" in printed.splitlines()[2] and "runs alone" in printed.splitlines()[3], printed
-        ok("--list puts the serial-marked test in the serial phase with its mark, and the exclusive one with its why")
+        lines = printed.splitlines()
+        assert code == 0 and [line.split()[0] for line in lines] == \
+            ["test_broken", "test_slow", "test_load", "test_quick"], (code, printed)
+        assert len(lines[2].split()) == 2 and "runs alone" in lines[3], printed
+        ok("--list keeps a test that passed only alone among the others, and puts the exclusive one in the serial "
+           "phase with its why")
 
         code, printed = sweep(mcp_dir, "--list", "--shuffle", "7", *common)
         lines = printed.splitlines()
         assert code == 0 and lines[0] == "shuffled with seed 7", (code, printed)
-        assert sorted(line.split()[0] for line in lines[1:3]) == ["test_broken", "test_slow"], printed
-        assert sorted(line.split()[0] for line in lines[3:]) == ["test_load", "test_quick"], printed
+        assert sorted(line.split()[0] for line in lines[1:4]) == ["test_broken", "test_load", "test_slow"], printed
+        assert [line.split()[0] for line in lines[4:]] == ["test_quick"], printed
         assert sweep(mcp_dir, "--list", "--shuffle", "7", *common) == (code, printed)
         code, printed = sweep(mcp_dir, "--list", "--shuffle", *common)
         assert code == 0 and printed.startswith("shuffled with seed "), (code, printed)
@@ -459,60 +508,28 @@ def check_stand_in_sweep():
         code, printed = sweep(mcp_dir, "-j", "2", "--out", out, *common)
         assert code == 1, (code, printed)
         recs = records(out)
-        load = [r for r in recs if r["name"] == "test_load"]
-        assert [(r["phase"], r["exit"]) for r in load] == [("serial", 0)], load
-        for name in ("test_slow", "test_load", "test_quick"):
+        load = [(r["phase"], r["exit"]) for r in recs if r["name"] == "test_load"]
+        assert load == [("pool", 1), ("alone", 0)], (load, printed)
+        assert os.path.isfile(os.path.join(out, "test_load", "test.log")), os.listdir(out)
+        for name in ("test_load-alone", "test_slow", "test_quick"):
             assert not os.path.exists(os.path.join(out, name)), name
         assert os.path.isfile(os.path.join(out, "test_broken", "test.log"))
         assert os.path.isfile(os.path.join(out, "test_broken", "broken.log"))
         broken_job = next(r["job"] for r in recs if r["name"] == "test_broken")
         for j in {r["job"] for r in recs}:
             assert os.path.isdir(os.path.join(out, f"job-{j}")) == (j == broken_job), j
-        h = run_sweep.read_history(history)
-        assert list(h["serial"]) == ["test_load"], h
-        ok("a later sweep runs the serial-marked test alone, deletes what passed, and keeps a failed test's folder with "
-           "the app's log and its job's data folder")
-
-        times = h["times"]
-        out = os.path.join(root, "forget")
-        code, printed = sweep(mcp_dir, "--forget", "test_load", "--out", out, *common)
-        h = run_sweep.read_history(history)
-        assert code == 0 and h == {"times": times, "serial": {}} and not os.path.exists(out), (code, printed, h)
-        code, printed = sweep(mcp_dir, "--forget", "test_nobody", *common)
-        assert code == 2, (code, printed)
-        ok("--forget clears a serial mark and runs nothing, and refuses a test sweep.json does not list")
-
-        marks = {"test_load": "2026-01-01", "test_slow": "2026-01-02"}
-        run_sweep.write_history(history, {"times": times, "serial": marks})
-        code, printed = sweep(mcp_dir, "--forget", "all", *common)
-        h = run_sweep.read_history(history)
-        assert code == 0 and h == {"times": times, "serial": {}}, (code, printed, h)
-        assert "test_load: serial mark cleared" in printed and "test_slow: serial mark cleared" in printed, printed
-        code, printed = sweep(mcp_dir, "--forget", "all", *common)
-        assert code == 0 and "no test has a serial mark" in printed, (code, printed)
-        ok("--forget all clears every serial mark and keeps the times, and says when there is none")
-
-        code, printed = sweep(mcp_dir, "--list", *common)
-        assert code == 0 and [line.split()[0] for line in printed.splitlines()][:3] == \
-            ["test_broken", "test_slow", "test_load"] and "serial since" not in printed, printed
-        ok("a test whose mark is cleared runs in the pool again")
-
-        out = os.path.join(root, "third")
-        code, printed = sweep(mcp_dir, "-j", "2", "--out", out, *common)
-        load = [(r["phase"], r["exit"]) for r in records(out) if r["name"] == "test_load"]
-        assert code == 1 and load == [("pool", 1), ("alone", 0)], (code, load, printed)
-        assert os.path.isfile(os.path.join(out, "test_load", "test.log")), os.listdir(out)
-        assert not os.path.exists(os.path.join(out, "test_load-alone")), os.listdir(out)
-        assert list(run_sweep.read_history(history)["serial"]) == ["test_load"]
-        ok("a test that passes alone keeps the folder of its run beside the others, and its passing run's goes")
+        ok("a later sweep runs a test that passed only alone among the others again, keeps the folder of its run "
+           "beside them and deletes what passed, and keeps a failed test's folder with the app's log and its job's "
+           "data folder")
     shutil.rmtree(ROOT, ignore_errors=True)
 
 
 # ---- The stand-in app sweep: scripts that run in a stand-in app, which a stand-in orca_mcp.py launches and stops ----
 
 # The stand-in app is an HTTP server that answers every MCP call with an empty result, with the data folder on its
-# command line, as the app's is, so that the runner's wait for the app's processes waits for it. Each launch and stop
-# is noted in apps.txt in the data folder: "launch <pid> <flags> budget=<ORCA_MCP_REPLY_BUDGET_MS>" and "stop <pid>".
+# command line, as the app's is, so that the runner's wait for the app's processes waits for it. It keeps the working
+# folder of its launch, as the app launched with --datadir does. Each launch and stop is noted in apps.txt in the data
+# folder: "launch <pid> <flags> budget=<ORCA_MCP_REPLY_BUDGET_MS> cwd=<working folder>" and "stop <pid>".
 FAKE_ORCA_MCP = r'''
 import http.server, json, os, signal, subprocess, sys, time, urllib.request
 
@@ -557,7 +574,7 @@ elif command == "launch":
         json.dump({"port": port, "token": "", "pid": app.pid, "datadir": datadir}, f)
     flags = [a for a in args if a in ("--cad", "--unrestricted-scripts", "--headless")]
     note(datadir, " ".join(["launch", str(app.pid), *flags,
-                            "budget=" + os.environ.get("ORCA_MCP_REPLY_BUDGET_MS", "-")]))
+                            "budget=" + os.environ.get("ORCA_MCP_REPLY_BUDGET_MS", "-"), "cwd=" + os.getcwd()]))
     deadline = time.monotonic() + 30
     while not answers(port):
         if time.monotonic() > deadline:
@@ -615,6 +632,24 @@ def lines(path):
         return [line.split(" ", 2) for line in f.read().splitlines()]
 
 
+def launch_notes(apps):
+    """The (flags, budget, working folder) of each launch line of apps.txt; the folder is last, since it may hold
+    spaces."""
+    notes = []
+    for a in apps:
+        if a[0] == "launch":
+            head, _, cwd = a[2].partition(" cwd=")
+            *flags, budget = head.split()
+            notes.append((flags, budget, cwd))
+    return notes
+
+
+def same_folder(a, b):
+    """Whether two paths name one folder, links resolved: the temporary folder can be reached through one (/var on
+    macOS), and a process's working folder names the real path."""
+    return os.path.normcase(os.path.realpath(a)) == os.path.normcase(os.path.realpath(b))
+
+
 def check_stand_in_app_sweep():
     with tempfile.TemporaryDirectory(prefix="orca-sweep-check-") as root:
         mcp_dir = os.path.join(root, "mcp")
@@ -646,11 +681,12 @@ def check_stand_in_app_sweep():
         assert [a[0] for a in apps] == ["launch", "stop"] * 8, apps
         assert [a[1] for a in apps if a[0] == "stop"] == launched and len(set(launched)) == 8, apps
         A, B, C, D, E, F, G, H = launched
-        budgets = [a[2].split()[-1] for a in apps if a[0] == "launch"]
-        assert budgets == ["budget=-"] * 4 + ["budget=4000"] + ["budget=-"] * 3, apps
-        for a in apps:
-            if a[0] == "launch":
-                assert a[2].split()[:2] == ["--cad", "--unrestricted-scripts"], a
+        notes = launch_notes(apps)
+        assert [budget for _, budget, _ in notes] == ["budget=-"] * 4 + ["budget=4000"] + ["budget=-"] * 3, apps
+        for flags, _, cwd in notes:
+            assert flags[:2] == ["--cad", "--unrestricted-scripts"], apps
+            # Not the launching test's folder, which the runner deletes when that test passes.
+            assert same_folder(cwd, os.path.join(job, "app-cwd")), (cwd, job)
         own_session = os.path.join(out, "test_own", "session.json")
         session = os.path.join(job, "session.json")
         assert lines(os.path.join(job, "datadir", "visits.txt")) == [
@@ -671,16 +707,18 @@ def check_stand_in_app_sweep():
 
         serial_apps = lines(os.path.join(serial, "datadir", "apps.txt"))
         assert [a[0] for a in serial_apps] == ["launch", "stop"] and serial_apps[0][1] == serial_apps[1][1], serial_apps
+        assert same_folder(launch_notes(serial_apps)[0][2], os.path.join(serial, "app-cwd")), serial_apps
         assert lines(os.path.join(serial, "datadir", "visits.txt")) == [
             ["test_serial", serial_apps[0][1], os.path.join(serial, "session.json")]]
         for d in (job, serial):
             assert not os.path.exists(os.path.join(d, "session.json")), d
         for pid in launched + [serial_apps[0][1]]:
             assert not alive(int(pid)), pid
-        ok("each job's tests run in one app, launched with --cad and --unrestricted-scripts and named by the job's "
-           "session file; a new one comes for a test marked fresh, after a test that ran out of time, after one that "
-           "ended the app, for a test whose variables differ, and after a setup; a test that starts its own apps "
-           "leaves it alone; each job's app is stopped at its end, and a run alone has an app of its own")
+        ok("each job's tests run in one app, launched with --cad and --unrestricted-scripts in the job's app-cwd "
+           "folder and named by the job's session file; a new one comes for a test marked fresh, after a test that "
+           "ran out of time, after one that ended the app, for a test whose variables differ, and after a setup; a "
+           "test that starts its own apps leaves it alone; each job's app is stopped at its end, and a run alone has "
+           "an app of its own")
 
 
 def main():
@@ -697,6 +735,7 @@ def main():
     check_env()
     check_shared_datadir()
     check_run_error()
+    check_own_display()
     check_timeout_ends_children()
     check_history_file()
     check_options()

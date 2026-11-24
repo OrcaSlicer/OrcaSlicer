@@ -234,14 +234,21 @@ std::vector<std::string> similar_keys(const std::string& key, const std::vector<
 }
 
 // The "Page > Group" of each setting on the settings tab of `type`, as the tabs register their rows
-// when they build their pages; a setting with no row on a page has none.
+// when they build their pages; a setting with no row on a page has none. A printer's extruder settings
+// have a row per extruder, "Extruder N" on a printer of several so that a search hit picks that
+// extruder, and all of them are on its one Extruder page (TabPrinter::activate_option()).
 std::map<std::string, std::string> setting_places(Preset::Type type)
 {
     std::map<std::string, std::string> places;
     for (const Search::Option& row : wxGetApp().sidebar().settings_index().all_options())
         if (row.type == type) {
             const std::string key = row.opt_key();
-            places.emplace(key.substr(0, key.find('#')), into_u8(row.category) + " > " + into_u8(row.group));
+            wxString          page = row.category;
+            wxString          number;
+            long              n = 0;
+            if (type == Preset::TYPE_PRINTER && page.StartsWith("Extruder ", &number) && number.ToLong(&n))
+                page = "Extruder";
+            places.emplace(key.substr(0, key.find('#')), into_u8(page) + " > " + into_u8(row.group));
         }
     return places;
 }

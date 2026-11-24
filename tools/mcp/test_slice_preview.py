@@ -768,6 +768,8 @@ class SlicePreviewTest:
         # frame between a change and its first capture to draw the change before the capture does. The legend click
         # left ImGui's highlight on its row until the pointer moves, which on a busy machine can come between two
         # captures, so the pointer first moves to the empty space above the plate, as a person's does after a click.
+        # The slice's notification goes first, so that its fade is not among the captures.
+        self.slice_notice_gone()
         self.run("mouse_gesture", action="move", x=430, y=80)
         out_dir = os.path.join(self.folder, "captures")
         os.makedirs(out_dir, exist_ok=True)
@@ -1249,6 +1251,19 @@ class SlicePreviewTest:
         self.t.equal(f"{s} 17: the cube on plate 2", [o["plate"] for o in got], [2])
         self.t.near(f"{s} 17: the cube's offset", got[0]["offset"][:2] if got else None, want, 0.001)
 
+    def slice_notice_gone(self):
+        """Waits until the Slice complete notification a slice leaves has gone: it shows for 3 s and then fades for 2, and
+        a capture taken while it fades differs from the next. The wait goes by what widget_list lists, not by time, so a
+        machine that draws slowly waits as long as it needs. The notification counts down only while the main window is
+        active, so on a desktop where another window is it stays as it is; after 15 s the wait goes on, since a
+        notification that stays draws the same in every capture."""
+        def gone():
+            return self.c.call("widget_list", query="Slice complete", include_menus=False).get("nodes") == 0
+        try:
+            until(gone, "the Slice complete notification gone", timeout_s=15, interval_s=0.25)
+        except TimeoutError:
+            pass
+
     def capture(self, label):
         """The canvas's PNG bytes and width once two captures in a row, taken back to back, are byte-identical. A
         capture whose reply has `approximate` or a `note` fails the check at once, and so do 30 s without two alike."""
@@ -1407,6 +1422,7 @@ class SlicePreviewTest:
         self.slice_is(f"{s} 17", self.run("plate_slice", preview=True), [(0, "ok")], layers=(149, 151))
         view_is(f"{s} 17", V(sidebar_width=D))
         self.tab_is(f"{s} 17", "preview")
+        self.slice_notice_gone()
         C1, _ = self.capture(f"{s}: C1")
         reply = self.run("view_set", legend_collapsed=True)
         self.t.equal(f"{s} 18: the reply", reply.get("legend_collapsed"), True)

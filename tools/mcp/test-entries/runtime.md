@@ -90,16 +90,17 @@ in [TESTS.md](../TESTS.md).
 **Strength:** Strong — the functions it covers are checked by exact value and error text, and the test refuses to run with its asserts off. It covers the attach-and-call half of `orca_mcp.py` and the seeding of a data folder, not the rest of launch, stop or run-replay.
 
 ## `test_run_sweep`
-`test_run_sweep.py` · Python, 28 checks (assert-based)
+`test_run_sweep.py` · Python, 25 checks (assert-based; 1 only on Linux with Xvfb installed)
 
 **Tests:** The building blocks of `run_sweep.py`, without the app (`launch: none`), and its whole run, `main()`, on
 two stand-in sweeps: one of small scripts that launch nothing, and one whose scripts run in a stand-in app that a
 stand-in `orca_mcp.py` launches and stops. It covers manifest entries and their launch kinds, test discovery,
 ordering by history or by a `--shuffle` seed into the pool and the serial phase, picking around held locks, the
-launch, stop, test and setup commands and their environments, each job's shared data folder and its app's session
-file, the Linux display options, the timeout kill, recording a run that raises, the history file with its serial
-marks, `--forget`, `--list`, `--keep`, `--shuffle` and `-j`, and when the runner launches a job's app and stops it.
-It also checks, last, that the shipped `sweep.json` lists exactly the tests on disk.
+launch, stop, test and setup commands and their environments, each job's shared data folder, its app's session
+file and the working folder its app runs in, the Linux display options and the private display of a test that
+starts its own apps, the timeout kill, recording a run that raises, the history file, `--list`, `--keep`, `--shuffle`
+and `-j`, and when the runner launches a job's app and stops it. It also checks, last, that the shipped `sweep.json`
+lists exactly the tests on disk.
 
 **Starts from:** No app. Each check that writes makes its own folder under the temporary folder. Each stand-in sweep
 runs `main()` with `mcp_dir` set to a folder of its own that holds its `sweep.json` and its scripts, and with
@@ -122,29 +123,38 @@ deletes with the test's folder when it passes.
   is none. `manifest_problems()` gives exactly three problems for an unlisted test, a missing file and an entry whose
   file is `smoke_test.json`, which is not a test. The shipped manifest has no problems; this check runs last, so that
   a `sweep.json` behind the files on disk fails it without stopping the checks of the runner before it.
-- Scheduling: with times `a` 10 s, `b` 20 s, none for `c`, `d` exclusive at 5 s and `e` marked serial at 30 s,
+- Scheduling: with times `a` 10 s, `b` 20 s, none for `c`, and `d` at 5 s and `e` at 30 s both exclusive,
   `order()` returns `(["c", "b", "a"], ["e", "d"])`: the pool longest first with a test that has no time ahead, and
   the serial phase longest first. With a seed, 20 tests, one of them exclusive, and no history: the seed 123456 gives
   the same order whether the names come in order or reversed, the exclusive test alone in the serial phase and the
   other 19 in the pool, not in name order; the seeds 1 to 5 give more than one order. `pick_next()` passes over a
   test whose lock is held.
 - Commands: the argv of `launch_command` is exact, with `--datadir` the job's data folder (`<job>/datadir`),
-  `--cad --unrestricted-scripts` on every platform, the same with `--wayland`, and `--headless` added only when the
-  run asks. `stop_command` is exactly `orca_mcp.py stop`. `launch_env` sets `GDK_BACKEND` to x11, to wayland, or not
-  at all for headless and off Linux. `test_command` is exact for a script with no arguments and for one whose `{bin}`
-  it fills; `setup_command` is None for an entry without a setup and fills `{datadir}` with the job's data folder.
-  `test_env` gives a test of kind `app` or `fresh` the job's session file, `<job>/session.json`, and one of kind
-  `own` or `none` a session file in its own folder, and sets `TMPDIR`, `TMP` and `TEMP` to its temporary folder and
-  the entry's variables. Two `RunContext`s of one job and two tests share `datadir` and `session` and differ in
-  `tmp` and `cwd`, each under its own test's folder.
+  `--cad --unrestricted-scripts` on every platform, the same with `--wayland`, and `--headless` or `--xvfb` added
+  only when the run asks. `stop_command` is exactly `orca_mcp.py stop`. `launch_env` sets `GDK_BACKEND` to x11, to
+  wayland, or not at all with `--headless` or `--xvfb` and off Linux. `test_command` is exact for a script with no
+  arguments and for one whose `{bin}` it fills; `setup_command` is None for an entry without a setup and fills
+  `{datadir}` with the job's data folder. `test_env` gives a test of kind `app` or `fresh` the job's session file,
+  `<job>/session.json`, and one of kind `own` or `none` a session file in its own folder, and sets `TMPDIR`, `TMP`
+  and `TEMP` to its temporary folder and the entry's variables. Two `RunContext`s of one job and two tests share
+  `datadir`, `session` and `app_cwd`, the working folder of the job's app, which is `<job>/app-cwd` and under neither
+  test's folder; they differ in `tmp` and `cwd`, each under its own test's folder.
+- Own display: `own_display` yields None for a test of kind `app`, and for one of kind `own` in a run with neither
+  `--headless` nor `--xvfb`. On Linux with Xvfb installed, `run_test` of a stand-in script of kind `own`, in a run
+  with `--xvfb`, exits 0, and the script, which writes its environment to a file, saw `DISPLAY` a display from `:90`
+  to `:119` whose socket was there, `GDK_BACKEND` x11 and no `WAYLAND_DISPLAY`; the test's log names that display,
+  and once `run_test` returns its socket is gone. Elsewhere this part prints a `SKIP` line saying why.
 - Timeout: `run_step` raises `TimeoutExpired` after 3 s, and the stand-in's child is gone within 10 s.
 - Error: `guarded_run_test` records `exit: "error"` with a traceback, and `missing()` names a test with no record.
-- History file: a file of the earlier flat form, `{"a": 1.5}`, reads as times `{a: 1.5}` and no marks. The form
-  `{"times": {"a": 1.5}, "serial": {"e": "2026-11-20"}}` reads and writes back unchanged, through a bare file name
-  too. A missing file, and one that is not JSON, read as no times and no marks.
+- History file: a file of the earlier flat form, `{"a": 1.5}`, reads as times `{a: 1.5}`. The times `{a: 1.5}`
+  write as `{"times": {"a": 1.5}}` and read back unchanged, through a bare file name too. A missing file, and one
+  that is not JSON, read as no times.
 - Options: `-j 3` and `--jobs 2` set the jobs, and the default is the source's formula; `-j 0`, `-2` and `x` exit 2.
-  `--shuffle` is None when not given, 123456 when given that, and a whole number it picks when given alone. The option
-  and session problems hold per platform.
+  `--shuffle` is None when not given, 123456 when given that, and a whole number it picks when given alone.
+  `option_problems` takes none or one of `--headless`, `--xvfb` and `--wayland` on Linux, and refuses each of them off
+  Linux and every pair of them on Linux. `session_problems` refuses a run on the desktop without a `DISPLAY` and a
+  `--wayland` one without a `WAYLAND_DISPLAY`, and asks neither of a `--headless` or `--xvfb` run or of one off
+  Linux.
 
 **Scenario: a stand-in sweep**
 
@@ -162,31 +172,31 @@ With no history the pool keeps the manifest's order, so `test_slow` and `test_lo
 
 | # | Step | Exit | Also checked |
 |---|---|---|---|
-| 1 | `main(["-j", "2", "--keep", ...])` | 1 | `results.jsonl` has 6 records: `test_slow` 0, `test_load` 1 then 0 with `phase: "alone"` on the job it failed on, `test_broken` 1 then 1 alone on its job, `test_quick` 0 with `phase: "serial"` on the serial job. Each record's `after` lists the tests before it on its job, and each job's `visits.txt` lists that job's records in order. The output has a line `test_load` … `passed alone` and a FAIL line for `test_broken`. The history has times for `test_slow`, `test_load` and `test_quick`, none for `test_broken`, and marks only `test_load` serial. With `--keep`, every test's folder and every job's data folder is there |
-| 2 | `main(["--list", ...])` | 0 | the pool lists `test_broken`, which has no time, then `test_slow`; the serial phase lists `test_load` with its mark and `test_quick` with its `why` |
-| 3 | `main(["--list", "--shuffle", "7", ...])`, twice, then `main(["--list", "--shuffle", ...])` | 0 | the first line is `shuffled with seed 7`, the next two are `test_broken` and `test_slow` in either order, then `test_load` and `test_quick`; the second run prints the same; without a seed the first line names the seed picked |
-| 4 | `main(["-j", "2", ...])`, a new `--out` | 1 | `test_load` runs once, in the serial phase, and passes. The folders of `test_slow`, `test_load` and `test_quick` are gone; `test_broken`'s folder is kept with its `test.log` and a copy of `broken.log`, and so is its job's data folder; the other jobs' data folders are gone. The history keeps `test_load`'s mark, since it passed alone |
-| 5 | `main(["--forget", "test_load", ...])`, then `main(["--forget", "test_nobody", ...])` | 0, then 2 | the history has no marks and its times are as after 4; nothing runs, and the `--out` given is not made; a test `sweep.json` does not list is refused. Then, with marks on `test_load` and `test_slow` written into the history, `main(["--forget", "all", ...])` twice: 0 both times; both marks go and the times stay, and the second says no test has a serial mark |
-| 6 | `main(["--list", ...])` | 0 | `test_load` is in the pool again, third, and no line names a serial mark |
-| 7 | `main(["-j", "2", ...])`, a new `--out` | 1 | `test_load`, after `test_broken` on its job and beside `test_slow`, fails, then passes alone: its records are `pool` 1 and `alone` 0, the folder of its failed run is kept with its `test.log` and that of its passing run is gone, and the history marks it serial again |
+| 1 | `main(["-j", "2", "--keep", ...])` | 1 | `results.jsonl` has 6 records: `test_slow` 0, `test_load` 1 then 0 with `phase: "alone"` on the job it failed on, `test_broken` 1 then 1 alone on its job, `test_quick` 0 with `phase: "serial"` on the serial job. Each record's `after` lists the tests before it on its job, and each job's `visits.txt` lists that job's records in order. The output has a line `test_load` … `passed alone` and a FAIL line for `test_broken`. The history has times for `test_slow`, `test_load` and `test_quick`, none for `test_broken`. With `--keep`, every test's folder and every job's data folder is there |
+| 2 | `main(["--list", ...])` | 0 | the pool lists `test_broken`, which has no time, then `test_slow` and `test_load`: a test that passed only alone runs among the others again, with no note on its line; the serial phase lists `test_quick` with its `why` |
+| 3 | `main(["--list", "--shuffle", "7", ...])`, twice, then `main(["--list", "--shuffle", ...])` | 0 | the first line is `shuffled with seed 7`, the next three are `test_broken`, `test_slow` and `test_load` in any order, then `test_quick`; the second run prints the same; without a seed the first line names the seed picked |
+| 4 | `main(["-j", "2", ...])`, a new `--out` | 1 | `test_load`, after `test_broken` on its job and beside `test_slow`, fails, then passes alone: its records are `pool` 1 and `alone` 0, the folder of its failed run is kept with its `test.log`, and that of its passing run is gone. The folders of `test_slow` and `test_quick` are gone; `test_broken`'s folder is kept with its `test.log` and a copy of `broken.log`, and so is its job's data folder; the other jobs' data folders are gone |
 
 **Scenario: a stand-in app sweep**
 
 The stand-in folder holds an `orca_mcp.py` of its own. Its `launch` starts a stand-in app, an HTTP server that
 answers every call with an empty result and has the data folder on its command line, as the app has, writes the
-session file the runner names, and notes `launch <pid> <flags> budget=<ORCA_MCP_REPLY_BUDGET_MS>` in `apps.txt` in
-the data folder; its `stop` ends the app and notes `stop <pid>`. `sweep.json` lists twelve scripts, each with
-`args: ["{datadir}"]`, in this order: `test_first`; `test_own`, `launch: own`; `test_second`; `test_fresh`,
-`launch: fresh`; `test_hang`, which sleeps past its `timeout_s` of 3; `test_after`; `test_kill`, which ends the app
-and waits until it no longer answers; `test_revived`; `test_budget`, with `ORCA_MCP_REPLY_BUDGET_MS` 4000 in its
-`env`; `test_setup`, with a setup step; `test_fails`, which exits 1; and `test_serial`, `exclusive`. Each notes in
-`visits.txt` its name, the pid of the app its session file names (or `-` when there is none) and that session file;
-its setup run notes `<name>-setup`.
+session file the runner names, and notes `launch <pid> <flags> budget=<ORCA_MCP_REPLY_BUDGET_MS> cwd=<folder>` in
+`apps.txt` in the data folder, where `<folder>` is the launch's working folder, which the stand-in app keeps as the
+app launched with `--datadir` does; its `stop` ends the app and notes `stop <pid>`. `sweep.json` lists twelve
+scripts, each with `args: ["{datadir}"]`, in this order: `test_first`; `test_own`, `launch: own`; `test_second`;
+`test_fresh`, `launch: fresh`; `test_hang`, which sleeps past its `timeout_s` of 3; `test_after`; `test_kill`, which
+ends the app and waits until it no longer answers; `test_revived`; `test_budget`, with `ORCA_MCP_REPLY_BUDGET_MS`
+4000 in its `env`; `test_setup`, with a setup step; `test_fails`, which exits 1; and `test_serial`, `exclusive`.
+Each notes in `visits.txt` its name, the pid of the app its session file names (or `-` when there is none) and that
+session file; its setup run notes `<name>-setup`.
 
 `main(["-j", "1", "--keep", "--bin", <python>, ...])` exits 1, and:
 - Job 1's `apps.txt` is eight launches, each followed by the stop of the same pid, eight different apps A to H. The
   budget is `-` for the first four, 4000 for the fifth and `-` for the last three, and every launch has
-  `--cad --unrestricted-scripts` first.
+  `--cad --unrestricted-scripts` first. Every launch's working folder is job 1's `app-cwd`, compared with both
+  paths resolved, since the temporary folder can be reached through a link (`/var` on macOS): the app never runs in
+  a test's folder, which the runner deletes when that test passes.
 - Job 1's `visits.txt` is exactly: `test_first` A, `test_own` with no app and a session file in its own folder,
   `test_second` A, `test_fresh` B, `test_hang` B, `test_after` C, `test_kill` C, `test_revived` D, `test_budget` E,
   `test_setup-setup` with no app, `test_setup` F, `test_fails` F, and then the runs alone, `test_hang` G and
@@ -194,16 +204,21 @@ its setup run notes `<name>-setup`.
 - The records with a `launch_seconds` are exactly those of `test_first`, `test_fresh`, `test_after`, `test_revived`,
   `test_budget` and `test_setup` in the pool, `test_hang` and `test_fails` alone and `test_serial`. The records that
   did not exit 0 are exactly `test_hang`, `timeout` in the pool and alone, and `test_fails`, 1 in the pool and alone.
-- The serial job's `apps.txt` is one launch and the stop of its pid, and its `visits.txt` is `test_serial` with that
-  pid and the serial job's session file. Neither job's session file is left, and no app the sweep launched is still
-  running.
+- The serial job's `apps.txt` is one launch, in the serial job's `app-cwd`, and the stop of its pid, and its
+  `visits.txt` is `test_serial` with that pid and the serial job's session file. Neither job's session file is
+  left, and no app the sweep launched is still running.
 
 **Not checked:**
 - A real app's launch and stop: `orca_mcp.py launch` seeding the data folder, recording its baseline and waiting for
   ready, and the WebView2 processes the runner waits for after the stop. The stand-in app has the data folder on its
   command line, so the wait for the app's processes runs, on it alone; the full sweep runs the rest.
 - `app_answers()` meets an app that answers and one that is gone, never one that hangs.
+- What an app does once its working folder is deleted: the check pins the folder the runner launches the app in,
+  not the app's calls that read it. The stand-in sweep with `--keep` deletes no test's folder, so it could not
+  show that failure; the full sweep, whose passing tests' folders go, does.
 - Locks held across threads in `main()`, and an interrupt (Ctrl-C) during a run.
+- The private display of a test marked `own` with `--headless`, which starts a compositor, and the run recorded as
+  an error when its display does not start.
 - The copy of the app's own log: the stand-in writes a file where the app writes its log, so the check covers the
   copy, not that the app's log is where the runner looks.
 - The macOS crash-report verdict, and `Ports.take()`.
@@ -215,7 +230,7 @@ its setup run notes `<name>-setup`.
 - The default `-j` is compared with a copy of the source's own formula.
 
 **Strength:** Strong — the pieces it covers are pinned to exact values, the whole run is checked on stand-ins down
-to each record, folder, history mark and app launch, and the test refuses to run with its asserts off. What only a
+to each record, folder, history time and app launch, and the test refuses to run with its asserts off. What only a
 real app exercises is left to the sweep itself.
 
 ## `test_runtime_calls`

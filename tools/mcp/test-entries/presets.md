@@ -4,7 +4,7 @@ The design of this area's sweep tests. The rules every entry follows, the grades
 in [TESTS.md](../TESTS.md).
 
 ## `test_presets`
-`test_presets.py` · Python, 806 checks · in `sweep.json` as `{"path": "test_presets.py", "timeout_s": 1500}`
+`test_presets.py` · Python, 815 checks · in `sweep.json` as `{"path": "test_presets.py", "timeout_s": 1500}`
 
 **Tests:** The presets of the three types, through the tools a person's preset work maps to: selecting a preset by
 the name its selector shows, hidden ones included (`preset_select`); listing presets with filters (`preset_list`);
@@ -20,7 +20,8 @@ parameters it uses, the presets and objects it changes, the warnings for values 
 take, the layer height it lowers to reach a speed, and the refusals that leave the project and presets as they were;
 `preset_changes` "keep" and "discard", including the filament tab on another slot's modified preset; a test printing
 with another filament (`filament_slot`), and the mixed and missing slots it refuses; on the ToolChanger, the extruder
-that slot prints on and the settings the test takes from it; and, through the
+that slot prints on and the settings the test takes from it, and, there and on the Klipper after it, the page an
+extruder setting is on, as the settings reads and the Speed Dial give it; and, through the
 exported G-code, that the temperature, pressure advance and retraction towers change their value band by band. A
 calibration test is first a change to the presets this test reads (`presets_changed`), so the calibration tests are
 this test's scenarios. It runs on the default printer, the Generic Klipper Printer 0.4, and switches to other
@@ -97,6 +98,11 @@ makes are written by their full names ("MCP Test PLA"). A value written `v×n` i
 - `plugin(code)` runs `code` with `script_run` and gives what it returns; the code catches what the plugin API raises
   and returns `{raised: {type, message}}`, so the test asserts the raise instead of losing it. It replaces
   `ops_presets.preset_api`, which returns every raise as data.
+- `dial(key)` gives the Speed Dial's actions for the printer setting `key`, one per extruder: the items of
+  `action_list {include_settings: true}`, page after page, whose `id` begins `orca_setting:<key>#`, each as
+  `(id, section)`; an id is `orca_setting:<key>#<n>:5`, n the extruder's index and 5 the printer settings' type.
+  `numbered()` gives the items of the same listing whose `section` names a numbered extruder page,
+  `Printer : Extruder <n> : …`.
 - `gcode_config(path)` gives the `; key = value` lines between `; CONFIG_BLOCK_START` and `; CONFIG_BLOCK_END` of an
   exported G-code file as a dict, quotes around a value removed; `gcode_heights(path)` gives the heights of its `;Z:`
   lines in order, the line the Klipper's G-code writes at each layer change.
@@ -471,15 +477,34 @@ test starts from `project_new {discard_changes: true, preset_changes: "discard"}
 kept the previous one's `spiral_mode` would ask the spiral mode question. TC PLA holds three entries of each per-variant
 key, and every slot holds it, so the filament tab never moves.
 
+A printer's extruder settings are on its one Extruder page, whatever its number of extruders: the page's controls
+edit the extruder its switch picks. The settings index gives each extruder's copy of a setting a row of its own,
+"Extruder <n>" on a printer of several, so that a Speed Dial hit picks that extruder. Steps 1 and 5 check both
+sides, on the ToolChanger's five extruders and then on the Klipper's one, which follows a printer of more extruders
+than it has. **The Extruder page check:** `settings_list_pages {type: printer}` lists one page whose name begins
+with "Extruder", "Extruder", whose group "Retraction" counts 10; `settings_list {type: printer, where: "Extruder >
+Retraction"}` lists exactly the ten keys of that group (`publishable_printer_retraction_options()`):
+`retraction_length`, `retract_restart_extra`, `retraction_speed`, `deretraction_speed`, `retraction_minimum_travel`,
+`retract_when_changing_layer`, `wipe`, `wipe_distance`, `retract_before_wipe` and `retract_after_wipe`, each with
+`meta.where` "Extruder > Retraction".
+
 | # | Step | Checked |
 |---|---|---|
-| 1 | `start(client)`, then `preset_select` of the ToolChanger | it returns `Klipper \| Std \| PLA`; then the selection is `ToolChanger \| TC Std \| TC PLA, TC PLA, TC PLA, TC PLA, TC PLA`, a slot per tool, and the printer's `nozzle_diameter` reads `0.4×5` |
+| 1 | `start(client)`, then `preset_select` of the ToolChanger | it returns `Klipper \| Std \| PLA`; then the selection is `ToolChanger \| TC Std \| TC PLA, TC PLA, TC PLA, TC PLA, TC PLA`, a slot per tool, and the printer's `nozzle_diameter` reads `0.4×5`; the Extruder page check holds; `dial(retraction_length)` is exactly five actions, `orca_setting:retraction_length#<n>:5` in section `Printer : Extruder <n+1> : Retraction` for n from 0 to 4 |
 | 2 | `settings_set {type: printer, values: {nozzle_diameter: "0.4,0.6,0.4,0.4,0.4"}}`, then `{test: "max_volumetric", filament_slot: 2, preset_changes: "keep"}` | `project` "Max volumetric speed test"; `params` `{start: 5, end: 20, step: 0.5}`; `presets_changed.filament` is `{name: TC PLA, filament_slot: 2, extruder: 2, changes: {filament_max_volumetric_speed: 200×3, slow_down_layer_time: "0"}}`; the tower's own `layer_height` "0.48" and `outer_wall_line_width` "1.05", tool 2's 0.6 nozzle × 0.8 and × 1.75; the printer's `max_layer_height` reads `0.48×5`; `object_list` lists `SpeedTestStructure.drc` alone, its `filament` 2 |
 | 3 | a slice | every tool the G-code picks, a `T<n>` at a line's start, is T1, tool 2 |
 | 4 | `project_new {discard_changes: true, preset_changes: "discard"}`, the same `settings_set`, then `{test: "max_volumetric", preset_changes: "keep"}` | `presets_changed.filament` gives `filament_slot` 1 and `extruder` 1; the tower's own `layer_height` "0.32" and `outer_wall_line_width` "0.7", tool 1's 0.4 nozzle; `object_list` lists `SpeedTestStructure.drc`, its `filament` 1 |
-| 5 | `start(client)`, then the printers hidden as `setup()` hides them (the hidden printers installed, the Klipper selected, the hidden printers uninstalled) | it returns `Klipper \| Std \| PLA`; `preset_list {type: printer}` lists the Klipper and not the ToolChanger |
+| 5 | `start(client)`, then the printers hidden as `setup()` hides them (the hidden printers installed, the Klipper selected, the hidden printers uninstalled) | it returns `Klipper \| Std \| PLA`; `preset_list {type: printer}` lists the Klipper and not the ToolChanger; the Extruder page check holds; `dial(retraction_length)` is exactly one action, `orca_setting:retraction_length#0:5` in section `Printer : Extruder : Retraction`, and `numbered()` is empty: no setting is offered on a page of the ToolChanger's extruders 2 to 5 |
 
 **To settle in review:**
+- The page an extruder setting is on (another extruder, steps 1 and 5). `meta.where` is the page and group of the
+  setting's row on the settings tab, and a printer of several extruders has one Extruder page whose controls a switch
+  points at an extruder (`TabPrinter::activate_option()` in `Tab.cpp`); so `where` is "Extruder > …" on every
+  printer, and the value of each extruder is in the setting's `value` and `meta.variants`, not on a page of its own.
+  The Speed Dial keeps an action per extruder, since picking one selects that extruder. Step 5 runs after a printer
+  of five extruders, so it catches rows the Klipper would keep for extruders it lacks: with them, the Speed Dial
+  offers the Klipper's retraction settings on pages "Extruder 2" to "Extruder 5", and `settings_list` puts each on
+  whichever of its rows the index's sort orders first.
 - The hidden presets and how they are chosen (hidden presets; listing, step 4; nozzle, step 1). The Klipper's 0.6 and
   0.8 nozzles share its process and filament, so a switch to them changes the printer alone; the Marlin is another
   model with processes of its own. The test runs in an app earlier tests used, and one of them may have installed
@@ -583,6 +608,11 @@ key, and every slot holds it, so the filament tab never moves.
 **Not checked:**
 - User presets other tests left: every read of a list they join picks this test's own presets by name, and checks
   the others no further.
+- The sidebar's settings search, which lists the same rows of the settings index as the Speed Dial: the Speed Dial's
+  actions stand for it. Nor where a Speed Dial action on a numbered extruder page goes, the Extruder page with that
+  extruder picked: no action is run.
+- A printer of two to four extruders: the ToolChanger's five and the Klipper's one stand for more and fewer, and
+  dropping the rows of the extruders a printer lacks is the same for any count.
 - That a hidden printer no shown filament fits shows its model's default filaments (`show_default_filaments()` in
   `PresetOps.cpp`): every printer of the Custom vendor but the ToolChanger takes PLA (see **To settle**).
   `test_install_filaments`, on a Bambu Lab data folder of its own, selects such a printer, the A1 mini.

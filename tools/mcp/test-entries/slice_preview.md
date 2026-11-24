@@ -63,6 +63,10 @@ off again in a `finally` once its step 9 has turned it on.
 - `capture()` (new) gives the PNG bytes and the width of `window_screenshot {target: "canvas", include_image: false}`
   once two captures in a row, taken back to back with `until()`, are byte-identical; 30 s without that fail the check,
   and so does a capture whose reply has `approximate` or a `note`, such as a 3D view that came back blank.
+- `slice_notice_gone()` (new) waits until `widget_list {query: "Slice complete", include_menus: false}` lists no
+  node, asking every 0.25 s: the notification a slice leaves has gone. After 15 s it goes on without failing, since
+  the notification counts down only while the main window is active, and one that stays draws the same in every
+  capture.
 - `conf(key)` (new) gives the `app` section's value of `key` in `<datadir>/OrcaSlicer.conf`, the datadir the session
   file names (the job's data folder), read with `until()` every 0.1 s until it holds the expected value, since the app
   writes the file at an idle moment; after 30 s it gives the value read last, which the row's check then fails on.
@@ -223,7 +227,7 @@ each step `shown()` gives tab `preview` and the layers the row names, written as
 | 3 | `widget_list {query: "Sparse infill"}`, which draws the legend, then `widget_click {target: {imgui_name: "Sparse infill"}}` | as after 2 | `legend()` `Sparse infill` false: a click on its row hides the feature type |
 | 4 | `view_set {view_type: "speed"}` | `1–100 (0.2–20.0)`, `view_type` `speed` | `conf("preview_last_view_type")` `speed`; `legend()` `Sparse infill` still false |
 | 5 | `view_set {view_type: "feature_type"}` | as after 2 | `legend()` `Sparse infill` true: picking Line Type shows every feature type; `conf("preview_last_view_type")` `feature_type` |
-| 6 | `mouse_gesture {action: "move", x: 430, y: 80}`, then one `replay_run` of eight changes, each a `view_set` followed by two canvas captures (`window_screenshot {target: "canvas", save_path}`): `layer_range` [1, 40], `view_type` `speed`, `layer_range` [64, 64], `view_type` `height`, `layer_range` [20, 100], `view_type` `fan_speed`, `layer_range` [1, 100], `view_type` `feature_type` | `1–100 (0.2–20.0)`, `view_type` `feature_type` | the replay passes; the two captures after each change are byte-identical, and from the second change on, the first capture after a change differs from the last one before it: each change shows, settled, in the capture taken right after it |
+| 6 | `slice_notice_gone()`, `mouse_gesture {action: "move", x: 430, y: 80}`, then one `replay_run` of eight changes, each a `view_set` followed by two canvas captures (`window_screenshot {target: "canvas", save_path}`): `layer_range` [1, 40], `view_type` `speed`, `layer_range` [64, 64], `view_type` `height`, `layer_range` [20, 100], `view_type` `fan_speed`, `layer_range` [1, 100], `view_type` `feature_type` | `1–100 (0.2–20.0)`, `view_type` `feature_type` | the replay passes; the two captures after each change are byte-identical, and from the second change on, the first capture after a change differs from the last one before it: each change shows, settled, in the capture taken right after it |
 | 7 | `view_set {layer_z: 1.05}` | `1–6 (0.2–1.2)` | reply `[1, 6, 100]`, `z` [0.2, 1.2]: a height between two layer tops shows up to the upper one |
 | 8 | `view_set {layer_range: [60, 20]}` | `60–60 (12.0–12.0)` | reply `[60, 60, 100]`, `z` [12.0, 12.0]: a range given backwards shows its first layer alone |
 | 9 | `keyboard_press {keys: "L"}`, which turns the layer slider's one-layer mode on, then `view_set {layer_range: [2, 5]}` | `2–2 (0.4–0.4)` | reply `[2, 5, 100]`, `z` [0.4, 0.4]: the reply gives the range asked for, and the slider shows its first layer alone |
@@ -367,7 +371,7 @@ gives the switch's value as the row does.
 | 14 | `view_set {sidebar_width: W + 150}`, W being `app_state.view.sidebar_width` at the start (the default layout's, which `start()` sets), at least 390 | start, `sidebar_width` W + 150 | `capture()` narrower than C0 |
 | 15 | `view_set {layout: "default"}` | start, `sidebar_width` D, at least 390 | `capture()` as wide as C0 |
 | 16 | `view_set {sidebar_width: W + 150}`, then `{sidebar_width: "default"}` | start, `sidebar_width` D | the default width is the one the default layout gives |
-| 17 | `plate_slice {preview: true}` | start | `[0 ok]` with `layers` 150 ± 1 (a 30 mm sphere); tab `preview`; C1 is `capture()` |
+| 17 | `plate_slice {preview: true}` | start | `[0 ok]` with `layers` 150 ± 1 (a 30 mm sphere); tab `preview`; after `slice_notice_gone()`, C1 is `capture()` |
 | 18 | `view_set {legend_collapsed: true}` | start, `legend_collapsed` true | `capture()` differs from C1 |
 | 19 | `view_set {legend_collapsed: false}` | start | `capture()` is C1 |
 | 20 | `view_set {gcode_window: false}`, then `{gcode_window: true}` | start − `gcode_window`, then start | `conf("show_gcode_window")` `false`, then `true` |
@@ -438,6 +442,15 @@ checked not to be a person's own folder (`APPDATA` or `~` plus `OrcaSlicer`), wh
   (z 0.1 to 20.1); after a canvas screenshot it writes 3.9 to 5.1. The fix: apply the pending slider values to the
   viewer before the export (a public `GLCanvas3D::apply_gcode_sliders()` called from `Ops::export_toolpaths_obj()`).
   The row expects the fixed behaviour.
+- The Slice complete notification in the captures after a slice (a legend row clicked, step 6; view switches, steps
+  17 to 19). It shows for 3 s (`SlicingProgressNotification::get_duration()`) and then fades for 2
+  (`FADING_OUT_DURATION`), so a capture taken while it fades differs from the next. On the GPU the captures of both
+  scenarios fit in the 3 s; with software OpenGL (Xvfb) a capture takes up to 200 ms (measured: step 6's replay 2.0 s
+  against 0.7 s on KWin), which put the fade inside step 6's pairs and between C1 and step 19. So both wait for it to
+  go first, by what `widget_list` lists rather than by time. It counts down only while the main window is active
+  (`NotificationManager::update_notifications()`), so on a desktop where another window is active it stays as it is
+  and the wait gives up after 15 s; a window that becomes active during the captures would still start the fade among
+  them. On `--headless` and `--xvfb` each app's window is the only one on its display and stays active.
 - A display switch turned back draws the 3D view as before it was changed, so the capture is byte-identical: every
   check that a capture is C0 or C1 (view switches, steps 7, 11 and 19). If a switch leaves a trace (the
   navigator's or another ImGui window's position), that check falls back to "differs from the capture taken with the

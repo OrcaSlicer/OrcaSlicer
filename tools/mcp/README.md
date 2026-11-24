@@ -56,9 +56,11 @@ machine, so check the window, input, screenshots and the OpenGL driver the app's
 relying on it); `--headless kwin` or `--headless mutter` names one. The compositor's output goes to
 `<datadir>/mcp-display.log`. When neither is installed or starts, `--headless` says so and falls
 back to Xvfb. `--xvfb` is for a machine without a desktop, such as a CI runner or a server. It
-starts Xvfb on a free display between `:90` and `:119`, which draws OpenGL in software and runs no
-window manager, so a popup list, such as a combo box's drop-down or the Print button's menu, closes
-as soon as it opens. Xvfb runs with `-noreset`, and its pointer is parked in the bottom-right
+starts Xvfb on a free display between `:90` and `:119`, one of its own even when other launches
+start at the same moment, as a sweep's jobs do. Xvfb draws OpenGL in software, and runs Openbox
+as its window manager when Openbox is installed, as Chromium's tests do under Xvfb. Without a window
+manager, a popup list, such as a combo box's drop-down or the Print button's menu, closes as soon as
+it opens, and `launch` says so. Xvfb runs with `-noreset`, and its pointer is parked in the bottom-right
 corner. In the middle of the screen, the pointer would raise tooltips over whatever opens there, and
 they would show in screenshots. The app's output goes to `<datadir>/mcp-launch.log`. `--timeout`
 (default 120 s) limits how long `launch` waits for `ready`.
@@ -444,8 +446,8 @@ in the reply, or an item of them run with `popup_item`, none ever shown, so on m
 pressing Escape; the Edit menu's Undo and Redo by the paths `Edit>Undo` and `Edit>Redo`, which name them on every
 platform; the rows of the object list, Compare presets and the parameter table; the print button's popup and a
 drop-down list; and Orca's web dialogs. Each item, row or page element it runs is checked by what it does to the
-project, the selection, the camera or the settings. On Linux run it with `--headless`: under Xvfb those popups close
-as soon as they open.
+project, the selection, the camera or the settings. On Linux run it with `--headless`, or with `--xvfb` where Openbox
+is installed: under Xvfb with no window manager those popups close as soon as they open.
 
 Web pages are driven like widgets: `widget_list` lists each shown page's elements under its web view
 with `d` refs, and `widget_click`, `widget_set_value`, `keyboard_press`, `mouse_gesture` and `dialog_answer` act on them, by
@@ -571,19 +573,18 @@ launch the runner waits for the last app's processes, its WebView2 ones included
 (`ORCA_MCP_SESSION`) is `job-<n>/session.json`, and each launch serves on a port of its own (from 14100 up, or from
 `--first-port`, so that two sweeps can run side by side). Each test also runs in a folder of its own under `--out`,
 with its own temporary folder (`TMPDIR`, `TMP`, `TEMP`) and empty working folder, and leaves `test.log` there. The
-longest tests start first, by each one's last passing time in `--history` (`~/.cache/orca-mcp/sweep-times.json`),
-and tests that share a lock never run at the same time. `--shuffle SEED` orders them at random from `SEED` instead
-and names the seed on the first line, so that an order that fails can be run again with the same seed; `--shuffle`
-alone picks a seed.
+job's app runs in `job-<n>/app-cwd`, with `job-<n>/app-tmp` as its temporary folder, since it outlives the test that
+launched it, whose folder goes when that test passes. The longest tests start first, by each one's last passing
+time in `--history` (`~/.cache/orca-mcp/sweep-times.json`), and tests that share a lock never run at the same time.
+`--shuffle SEED` orders them at random from `SEED` instead and names the seed on the first line, so that an order
+that fails can be run again with the same seed; `--shuffle` alone picks a seed.
 
-The serial tests run after the rest, one at a time with nothing else running, on a job of their own with an app of
-its own: the ones `sweep.json` marks `exclusive`, and the ones the history marks serial. A test that fails while
-others run runs again in that phase, alone, in a new app on the datadir it failed on: one that passes then counts
-as passed, shows as `passed alone`, and is marked serial in the history, so later sweeps run it alone from the
-start, until `--forget NAME` clears the mark (`--forget all` clears every mark). A test that runs out of time is
-interrupted, as Ctrl-C would, so its own cleanup closes the apps it started (on Windows its process tree is ended),
-and a test the runner could not run is recorded as an error, so a run that leaves a test without a result never
-exits 0.
+The serial tests, the ones `sweep.json` marks `exclusive`, run after the rest, one at a time with nothing else
+running, on a job of their own with an app of its own. A test that fails while others run runs again in that phase,
+alone, in a new app on the datadir it failed on: one that passes then counts as passed and shows as `passed alone`.
+A test that runs out of time is interrupted, as Ctrl-C would, so its own cleanup closes the apps it started (on
+Windows its process tree is ended), and a test the runner could not run is recorded as an error, so a run that
+leaves a test without a result never exits 0.
 
 A passing run's folder is deleted as soon as it passes. A failed run's folder is kept, with a copy of the app's
 log from the job's datadir, also when the test then passes alone, so the log says why it failed beside the others;
@@ -599,9 +600,15 @@ and reports its position. `--wayland` runs them as native Wayland clients instea
 does: the compositor then owns positions, minimization and activation, so a check that needs a window
 moved, or a minimized one brought back, is reported SKIP and does not fail its test. `--headless` runs
 them on a private compositor instead, as `orca_mcp.py launch --headless` does, which is what a machine
-without a desktop needs. Each flag is Linux-only, and `--headless` can't be combined with `--wayland`,
-since the app on the compositor it starts is an X11 client. Without either flag the run needs an X
-display, and `--wayland` needs a Wayland session; `--list` needs neither.
+without a desktop needs. `--xvfb` runs each job's app on a private Xvfb display of its own, with
+Openbox as its window manager, as `orca_mcp.py launch --xvfb` does. OpenGL is drawn in software, so
+`--headless` is the better pick wherever KWin is installed; without Openbox, the tests that open a
+popup list, `test_gui_tools.py` and `test_filaments.py`, fail under `--xvfb`. With either `--headless`
+or `--xvfb`, a test that starts its own apps (`launch: own`) gets a private display of its own for the
+length of the test, which those apps inherit whether they start with `orca_mcp.py launch` or run the
+binary, so no window opens on your desktop. Each flag is Linux-only, and only one of the three can be
+given. Without any of them the run needs an X display, and `--wayland` needs a Wayland session;
+`--list` needs none.
 
 An entry's keys:
 

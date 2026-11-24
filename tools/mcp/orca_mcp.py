@@ -31,6 +31,7 @@ import collections
 import json
 import os
 import platform
+import select
 import shlex
 import shutil
 import signal
@@ -56,6 +57,8 @@ PROFILES = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, o
 # screen to show all of it, so instances started side by side stay on screen and a view or screenshot taken in
 # one has the same size in another.
 WINDOW_SIZE = (1600, 900)
+# The private screen --headless and --xvfb start, unless --width and --height size it.
+SCREEN_SIZE = (1600, 1000)
 
 
 def reply_budget_s():
@@ -396,9 +399,9 @@ def start_headless(compositor, width, height, datadir):
     the app needs to run on it as an X11 client and the process group to stop, or None when it did
     not come up (its output is in <datadir>/mcp-display.log).
 
-    Unlike Xvfb, the app draws with the GPU's OpenGL driver, and a window manager runs, so focus and
-    stacking behave as on a desktop and popup lists stay open; with no window manager, GDK moves the
-    focus to a drop-down list itself, which deactivates the main window and closes the list. The private bus keeps the D-Bus services the app starts, such as
+    Unlike on Xvfb, the app draws with the GPU's OpenGL driver, and the compositor is its window
+    manager, so focus and stacking behave as on a desktop and popup lists stay open (start_openbox()
+    gives Xvfb a window manager). The private bus keeps the D-Bus services the app starts, such as
     the desktop portals, out of the person's session. Only the compositor knows its XWayland display,
     so it starts a command that writes its environment to a file.
 
@@ -409,7 +412,9 @@ def start_headless(compositor, width, height, datadir):
         os.remove(env_file)
     keys = ("DISPLAY", "WAYLAND_DISPLAY", "DBUS_SESSION_BUS_ADDRESS", "XAUTHORITY")
     report = 'printf "%s\\n" ' + " ".join(f'"{k}=${k}"' for k in keys) + ' > "$0.tmp" && mv "$0.tmp" "$0"'
-    socket = f"orca-mcp-{os.getpid()}"
+    # A Wayland socket of its own for each start: one process may start several compositors side by side, as
+    # the sweep's runner does for the tests that start their own apps, and a second one on a taken name fails.
+    socket = f"orca-mcp-{os.getpid()}-{os.urandom(4).hex()}"
     if compositor == "kwin":
         # KWin starts the command detached, outside the process group stop() ends, so the command
         # exits once it has written the file; XWayland stays up without it.
@@ -461,12 +466,12 @@ def start_display(args, datadir):
             if explicit:
                 sys.exit(message)
             print(message, file=sys.stderr)
-        print("no headless compositor started, so the app runs on Xvfb: software OpenGL, no window manager",
-              file=sys.stderr)
+        print("no headless compositor started, so the app runs on Xvfb: software OpenGL", file=sys.stderr)
     if args.headless or args.xvfb:
         if not shutil.which("Xvfb"):
             sys.exit("Xvfb is not installed")
         display, pid = start_xvfb(args.width, args.height)
+        start_openbox(display)
         return "xvfb", {"DISPLAY": display, "GDK_BACKEND": "x11", "WAYLAND_DISPLAY": None}, pid
     return None, None, None
 
@@ -497,16 +502,58 @@ def stop_group(pid, timeout=5, force=True):
 
 
 def start_xvfb(width, height):
+    """Start Xvfb on the first free display from :90 to :119, and return the display and Xvfb's pid.
+
+    Launches run side by side, as the sweep's jobs do, so a display that looks free may be taken by
+    another launch before this one's Xvfb starts on it. Xvfb takes a display by its lock file, which
+    only one server can hold, and writes the display's number to -displayfd once it accepts clients;
+    one that finds the display taken exits without writing it, and the next display is tried. So each
+    launch gets a display of its own, never one another launch's Xvfb serves."""
     for display in range(90, 120):
-        if not os.path.exists(f"/tmp/.X11-unix/X{display}") and not os.path.exists(f"/tmp/.X{display}-lock"):
-            proc = subprocess.Popen(["Xvfb", f":{display}", "-screen", "0", f"{width}x{height}x24", "-nolisten", "tcp", "-noreset"],
-                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
-            deadline = time.time() + 10
-            while not os.path.exists(f"/tmp/.X11-unix/X{display}") and time.time() < deadline:
-                time.sleep(0.1)
+        if os.path.exists(f"/tmp/.X11-unix/X{display}") or os.path.exists(f"/tmp/.X{display}-lock"):
+            continue
+        ready_r, ready_w = os.pipe()
+        proc = subprocess.Popen(["Xvfb", f":{display}", "-screen", "0", f"{width}x{height}x24", "-nolisten", "tcp",
+                                 "-noreset", "-displayfd", str(ready_w)], pass_fds=(ready_w,),
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        os.close(ready_w)
+        with os.fdopen(ready_r) as ready:
+            named = ready.readline().strip() if select.select([ready], [], [], 10)[0] else ""
+        if named == str(display):
             park_pointer(f":{display}", width, height)
             return f":{display}", proc.pid
+        stop_group(proc.pid)
     sys.exit("no free X display for Xvfb")
+
+
+def start_openbox(display):
+    """Start Openbox as the window manager of the Xvfb `display` and wait until it manages the screen. True when it
+    does. It needs no stopping of its own: like any X client it exits when its display ends.
+
+    With no window manager, GTK focuses a window itself: a popup list that opens takes the keyboard focus from the
+    main window, which then deactivates and closes the list at once. A window manager keeps the focus where a desktop
+    keeps it. Openbox is light and needs no session, and is the one Chromium's tests run under Xvfb. Without it, the
+    app runs with no window manager, as it says."""
+    if not shutil.which("openbox"):
+        print("openbox is not installed, so Xvfb runs no window manager: a popup list closes as soon as it opens",
+              file=sys.stderr)
+        return False
+    # Openbox runs its --startup command once it manages the screen.
+    folder = tempfile.mkdtemp(prefix="orca-mcp-openbox-")
+    ready = os.path.join(folder, "ready")
+    env = {k: v for k, v in os.environ.items() if k != "WAYLAND_DISPLAY"}
+    env["DISPLAY"] = display
+    subprocess.Popen(["openbox", "--sm-disable", "--startup", shlex.join(["touch", ready])], env=env,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    deadline = time.time() + 10
+    while not os.path.exists(ready) and time.time() < deadline:
+        time.sleep(0.1)
+    started = os.path.exists(ready)
+    shutil.rmtree(folder, ignore_errors=True)
+    if not started:
+        print(f"openbox did not start on {display} within 10 s, so the app may run with no window manager",
+              file=sys.stderr)
+    return started
 
 
 def park_pointer(display, width, height):
@@ -694,9 +741,10 @@ def main():
                          help="run on a private headless desktop with XWayland (Linux): KWin, else mutter (not tested "
                               "yet), else Xvfb")
     display.add_argument("--xvfb", action="store_true",
-                         help="run on a private Xvfb display (Linux), for a machine without a desktop")
-    p.add_argument("--width", type=int, default=1600)
-    p.add_argument("--height", type=int, default=1000)
+                         help="run on a private Xvfb display (Linux), with Openbox as its window manager when it is "
+                              "installed, for a machine without a desktop")
+    p.add_argument("--width", type=int, default=SCREEN_SIZE[0])
+    p.add_argument("--height", type=int, default=SCREEN_SIZE[1])
     p.add_argument("--printer", help="\"<model>@<nozzle>\" of --vendor for a fresh datadir, e.g. \"Bambu Lab X1 Carbon@0.4\" "
                                      "(default: the Custom vendor's \"Generic Klipper Printer@0.4\")")
     p.add_argument("--vendor", default="BBL", help="the vendor of --printer, as its profiles name it (default: %(default)s)")

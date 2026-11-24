@@ -192,16 +192,17 @@ that the app answers and launches it again on the folder when it does not: after
 it, or after the runner killed it for a test that ran past its time limit. A test whose checks need a newly
 started app has `"launch": "fresh"` in `sweep.json`, and the runner launches the app again before it; a test that
 starts apps of its own has `"launch": "own"` and runs them on folders of its own. Each test has a folder of its own
-for its session file, temporary files and working folder. The longest tests, by their last passing time in the
-history file, start first, and tests that hold the same lock never overlap. `--shuffle SEED` orders them at random
-instead and prints the seed, so that an order that fails can be run again.
+for its session file, temporary files and working folder. The job's app has its temporary files and working folder
+in the job's folder instead, since it outlives the test that launched it, whose folder goes when that test passes.
+The longest tests, by their last passing time in the history file, start first, and tests that hold the same lock
+never overlap. `--shuffle SEED` orders them at random instead and prints the seed, so that an order that fails can
+be run again.
 
-The serial tests run after the rest, one at a time with nothing else running, on a job of their own: those
-`sweep.json` marks `exclusive`, and those the history marks serial. A test that fails while other tests run is
-run again in that phase, alone, in a new app on the data folder it failed on, so that a failure that follows from
-what an earlier test left in the folder fails again, and one that follows from the load passes. A test that passes alone counts as
-passed, the summary lists it as `passed alone`, and the history marks it serial, so later sweeps run it alone from
-the start. The mark stays until `--forget NAME` clears it, or `--forget all` clears every mark.
+The serial tests, those `sweep.json` marks `exclusive`, run after the rest, one at a time with nothing else
+running, on a job of their own. A test that fails while other tests run is run again in that phase, alone, in a new
+app on the data folder it failed on, so that a failure that follows from what an earlier test left in the folder
+fails again, and one that follows from the load passes. A test that passes alone counts as passed, and the summary
+lists it as `passed alone`.
 
 A test passes when its process exits 0. A failed setup or launch, a run past its time limit (900 s unless the
 entry sets `timeout_s`), or an error running the test fails it, and so does a test left without a result. On macOS
@@ -216,8 +217,9 @@ log from the job's data folder, also when the test then passes alone, and so is 
 whose tests failed; the other data folders are deleted at the end, and `--keep` keeps everything. `results.jsonl` records each run of each test with
 its job and the tests that ran before it on that job's data folder, so that a failure can be traced to what they
 left. Tests that start their own app (`"launch": "own"`) start it on data folders of their own, with their own
-environment, so on Linux they follow neither the X11 default nor `--headless`. No CI job runs the sweep: it runs
-when someone runs it.
+environment, so on Linux they don't follow the X11 default. With `--headless` or `--xvfb` the runner starts a private
+display for each such test, which its apps inherit through that environment, so they stay off the desktop too. No CI
+job runs the sweep: it runs when someone runs it.
 
 **Replays a test runs.** A test that runs a replay with `replay_run` reads its `passed`, which is true when every
 step was ok. A step is ok
