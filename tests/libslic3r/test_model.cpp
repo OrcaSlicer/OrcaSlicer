@@ -1,8 +1,11 @@
 #include <catch2/catch_all.hpp>
 #include <algorithm>
 #include <cstddef>
+#include <map>
+#include <thread>
 #include <utility>
 #include <vector>
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/BoundingBox.hpp"
@@ -119,6 +122,34 @@ TriangleMesh flat_triangle_then_cubes(const std::vector<double> &cube_offsets)
 
 } // namespace
 
+TEST_CASE("Splitting a scaled object keeps each part in place in the assembly view", "[Model]")
+{
+    Model model;
+    ModelObject *object = model.add_object();
+    ModelInstance *instance = object->add_instance();
+    instance->set_scaling_factor(Vec3d::Constant(2.));
+    Geometry::Transformation assembly = instance->get_transformation();
+    assembly.set_rotation(Z, 0.5 * PI);
+    assembly.set_offset(Vec3d(40., 30., 10.));
+    instance->set_assemble_transformation(assembly);
+
+    std::vector<Transform3d> expected;
+    for (double x : {0., 20.}) {
+        ModelVolume *volume = object->add_volume(make_cube(10., 10., 10.));
+        volume->set_offset(Vec3d(x, 0., 0.));
+        expected.push_back(assembly.get_matrix() * volume->get_matrix());
+    }
+
+    ModelObjectPtrs parts;
+    object->split(&parts, false);
+    REQUIRE(parts.size() == expected.size());
+    for (size_t i = 0; i < parts.size(); ++i) {
+        const ModelObject &part = *parts[i];
+        const Transform3d actual = part.instances.front()->get_assemble_transformation().get_matrix() * part.volumes.front()->get_matrix();
+        CHECK(actual.isApprox(expected[i]));
+    }
+}
+
 TEST_CASE("Splitting a part drops pieces enclosing no volume and keeps the part itself", "[Model]")
 {
     Model model;
@@ -133,6 +164,25 @@ TEST_CASE("Splitting a part drops pieces enclosing no volume and keeps the part 
         CHECK(part->mesh().facets_count() == 12);
         CHECK_FALSE(part->is_splittable());
     }
+}
+
+TEST_CASE("A part asked from several threads at once whether it can be split answers the same for all", "[Model]")
+{
+    // The PrintObjects made from one ModelObject prepare their infill at the same time, and each asks the object's first
+    // part whether it can be split, which fills a cache in the part. Without the lock around the cache the answers
+    // still agree on most runs: ThreadSanitizer is what reports the race.
+    Model model;
+    ModelObject *object = model.add_object();
+    const ModelVolume *volume = object->add_volume(flat_triangle_then_cubes({0., 30.}), ModelVolumeType::MODEL_PART, false);
+
+    std::vector<char>        answers(8, 0);
+    std::vector<std::thread> threads;
+    for (size_t i = 0; i < answers.size(); ++ i)
+        threads.emplace_back([volume, &answers, i] { answers[i] = volume->is_splittable() ? 1 : 0; });
+    for (std::thread &thread : threads)
+        thread.join();
+
+    CHECK(std::all_of(answers.begin(), answers.end(), [](char answer) { return answer == 1; }));
 }
 
 TEST_CASE("Splitting a part with a single solid piece keeps just that piece", "[Model]")
@@ -602,4 +652,43 @@ TEST_CASE("Converting a part's units keeps an id whose material is missing", "[M
     // convert_units() hands its objects to the caller unowned; give them to a model so they are freed.
     Model owner;
     owner.objects = std::move(converted);
+}
+
+TEST_CASE("Per-feature filament assignments follow mixed slots at each model scope", "[Model][FilamentMixer]")
+{
+    const char *key = GENERATE("outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_filament_id",
+                               "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id");
+    CAPTURE(key);
+    Model model;
+    ModelObject *object = model.add_object();
+    ModelVolume *part = object->add_volume(make_cube(10, 10, 10));
+    ModelVolume *painted_modifier = object->add_painted_modifier(*part);
+    auto &modifier = object->add_volume(make_cube(5, 5, 5), ModelVolumeType::PARAMETER_MODIFIER)->config;
+    auto &range = object->layer_config_ranges[{0., 5.}];
+    auto &material = model.add_material("shared")->config;
+    auto &inherited = object->layer_config_ranges[{5., 10.}];
+    auto &physical = model.add_object()->config;
+    physical.set(key, 2);
+    inherited.set("extruder", 0);
+
+    ModelConfig *scopes[] = {&object->config, &part->config, &modifier, &painted_modifier->config, &range, &material};
+    for (ModelConfig *config : scopes)
+        config->set(key, 3);
+    remap_model_filament_configs(model, {{2, 3}, {3, 4}}, true);
+    auto check_assignments = [&](int expected) {
+        for (const ModelConfig *config : scopes)
+            CHECK(config->opt_int(key) == expected);
+        CHECK(physical.opt_int(key) == 2);
+        CHECK_FALSE(inherited.has(key));
+    };
+    check_assignments(4);
+    remap_model_filament_configs(model, {{2, -1}, {3, 2}, {4, 3}}, false);
+    check_assignments(3);
+    remap_model_filament_slots(model, {{2, 4}});
+    check_assignments(5);
+    // Merge the selected slot into slot 4, then remove it without a replacement.
+    remap_model_filament_configs(model, {{4, 3}}, false);
+    check_assignments(4);
+    remap_model_filament_configs(model, {{3, -1}}, false);
+    check_assignments(0);
 }

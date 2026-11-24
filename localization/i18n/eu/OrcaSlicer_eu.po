@@ -15044,13 +15044,13 @@ msgstr "%1% motako \"%2%\" aldatzaileak (\"%3%\" objektukoak, guztira %4%) perim
 
 # AI Translated
 #, boost-format
-msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "\"%2%\" objektuaren \"%1%\" aldatzaileak ez du eraginik izan josturan (baliteke inprimatutako perimetroaren erdiko lerrora ez iristea)"
+msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam"
+msgstr "\"%2%\" objektuaren \"%1%\" aldatzaileak ez du eraginik izan josturan"
 
 # AI Translated
 #, boost-format
-msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "\"%2%\" objektuaren \"%1%\" aldatzaileak (%3% guztira) ez du eraginik izan josturan (baliteke inprimatutako perimetroaren erdiko lerrora ez iristea)"
+msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam"
+msgstr "\"%2%\" objektuaren \"%1%\" aldatzaileak (%3% guztira) ez du eraginik izan josturan"
 
 # AI Translated
 msgid "Seam placement may differ from expected."

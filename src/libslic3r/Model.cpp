@@ -1,4 +1,5 @@
 #include "Model.hpp"
+#include "FilamentMixer.hpp"
 #include "calib.hpp"
 #include "Format/STEP.hpp"
 #include "TriangleMesh.hpp"
@@ -72,6 +73,7 @@
 #include <map>
 #include <utility>
 #include <memory>
+#include <mutex>
 #include <iterator>
 #include <limits>
 #include <sstream>
@@ -834,6 +836,42 @@ void Model::set_assembly_pos(ModelObject *model_object, const std::vector<const 
     const Vec3d shift(target.x() - box.center().x(), target.y() - box.center().y(), 0.);
     for (ModelInstance *instance : model_object->instances)
         instance->set_assemble_offset(instance->get_assemble_offset() + shift);
+}
+
+void Model::set_assembly_pos_of_copies(ModelObject *model_object, size_t source_idx, size_t first_copy)
+{
+    ModelInstancePtrs &instances = model_object->instances;
+    if (source_idx >= first_copy || first_copy >= instances.size())
+        return;
+
+    // ORCA: A source without an assembly pose (e.g. a text object) is placed as a new object first.
+    // Its copies sit on it meanwhile, so that they do not widen its bounding box.
+    if (!instances[source_idx]->is_assemble_initialized()) {
+        for (size_t i = first_copy; i < instances.size(); ++i)
+            instances[i]->set_assemble_transformation(instances[source_idx]->get_transformation());
+        this->set_assembly_pos(model_object);
+    }
+
+    const ModelInstance     &source     = *instances[source_idx];
+    Geometry::Transformation pose       = source.get_assemble_transformation();
+    const BoundingBoxf3     &raw_box    = model_object->raw_mesh_bounding_box();
+    const BoundingBoxf3      source_box = raw_box.transformed(pose.get_matrix());
+    // ORCA: Bounding box of everything in the assembly view, except the copies.
+    BoundingBoxf3 placed;
+    for (const ModelObject *o : this->objects)
+        if (o != model_object)
+            placed.merge(o->bounding_box_in_assembly_view());
+    for (size_t i = 0; i < first_copy; ++i)
+        placed.merge(raw_box.transformed(instances[i]->get_assemble_transformation().get_matrix()));
+
+    // ORCA: Line the copies up to the right of that box, 10 mm apart.
+    Vec3d offset = pose.get_offset() + (placed.max.x() - source_box.max.x()) * Vec3d::UnitX();
+    for (size_t i = first_copy; i < instances.size(); ++i) {
+        offset.x() += source_box.size().x() + 10.;
+        pose.set_offset(offset);
+        instances[i]->set_assemble_transformation(pose);
+        instances[i]->set_offset_to_assembly(source.get_offset_to_assembly());
+    }
 }
 
 // this returns the bounding box of the *transformed* instances
@@ -1609,6 +1647,9 @@ void ModelObject::delete_volume(size_t idx)
         for (ModelInstance* inst : this->instances)
         {
             inst->set_transformation(Geometry::Transformation(inst->get_transformation().get_matrix() * v_t));
+            // ORCA: Same for the pose in the assembly view, otherwise the object turns or moves there.
+            if (inst->is_assemble_initialized())
+                inst->set_assemble_from_transform(inst->get_assemble_transformation().get_matrix() * v_t);
         }
         Geometry::Transformation t;
         v->set_transformation(t);
@@ -2512,20 +2553,16 @@ void ModelObject::split(ModelObjectPtrs* new_objects, const bool remap_paint)
             // BBS: clear volume's config, as we already set them into object
             new_vol->config.reset();
 
+            const Vec3d volume_offset = new_vol->get_offset();
             for (ModelInstance* model_instance : new_object->instances)
             {
-                const Vec3d shift = model_instance->get_transformation().get_matrix_no_offset() * new_vol->get_offset();
+                const Vec3d shift = model_instance->get_transformation().get_matrix_no_offset() * volume_offset;
                 model_instance->set_offset(model_instance->get_offset() + shift);
 
-                //BBS: add assemble_view related logic
-                Geometry::Transformation instance_transformation_copy = model_instance->get_transformation();
-                instance_transformation_copy.set_offset(-new_vol->get_offset());
-                const Transform3d &assemble_matrix = model_instance->get_assemble_transformation().get_matrix();
-                const Transform3d &instance_inverse_matrix = instance_transformation_copy.get_matrix().inverse();
-                Transform3d new_instance_inverse_matrix = instance_inverse_matrix * model_instance->get_transformation().get_matrix_no_offset().inverse();
-                Transform3d new_assemble_transform      = assemble_matrix * new_instance_inverse_matrix;
-                model_instance->set_assemble_from_transform(new_assemble_transform);
-                model_instance->set_offset_to_assembly(new_vol->get_offset());
+                // Absorb the part's local offset before clearing it below.
+                const Transform3d &assembly = model_instance->get_assemble_transformation().get_matrix();
+                model_instance->set_assemble_from_transform(assembly * Geometry::translation_transform(volume_offset));
+                model_instance->set_offset_to_assembly(volume_offset);
             }
 
             new_vol->set_offset(Vec3d::Zero());
@@ -2885,11 +2922,19 @@ int ModelVolume::extruder_id() const
 
 bool ModelVolume::is_splittable() const
 {
-    // the call mesh.is_splittable() is expensive, so cache the value to calculate it only once
-    if (m_is_splittable == -1)
-        m_is_splittable = its_is_splittable(this->mesh().its);
-
-    return m_is_splittable == 1;
+    // The call its_is_splittable() is expensive, so cache the value to calculate it only once. The PrintObjects made from
+    // one ModelObject ask at the same time while they prepare their infill, so the cache is read and written under a
+    // lock; the call itself runs outside it, and only callers that find the cache empty at the same time make it twice.
+    static std::mutex cache_mutex;
+    {
+        std::scoped_lock<std::mutex> lock(cache_mutex);
+        if (m_is_splittable != -1)
+            return m_is_splittable == 1;
+    }
+    const int splittable = its_is_splittable(this->mesh().its) ? 1 : 0;
+    std::scoped_lock<std::mutex> lock(cache_mutex);
+    m_is_splittable = splittable;
+    return splittable == 1;
 }
 
 // BBS
@@ -4529,41 +4574,41 @@ bool model_has_advanced_features(const Model &model)
     return false;
 }
 
+void remap_model_filament_configs(Model &model, const std::map<int, int> &slots, bool include_extruder)
+{
+    auto remap = [&](ModelConfig &config) {
+        remap_feature_filaments(config, slots);
+        if (include_extruder)
+            remap_filament_option(config, "extruder", slots);
+    };
+    for (auto &[id, material] : model.materials)
+        remap(material->config);
+    for (ModelObject *object : model.objects) {
+        remap(object->config);
+        for (auto &[range, config] : object->layer_config_ranges)
+            remap(config);
+        for (ModelVolume *volume : object->volumes)
+            remap(volume->config);
+    }
+}
+
 void remap_model_filament_slots(Model &model, const std::map<int, int> &slot_relocations)
 {
     if (slot_relocations.empty())
         return;
 
-    // Paint states and the object/volume "extruder" configs store one-based slot numbers
-    // (see Sidebar::on_action_add_filament's insertion remap for the same encoding).
-    std::map<int, int> one_based_slots;
-    for (const auto &[from, to] : slot_relocations)
-        one_based_slots.emplace(from + 1, to + 1);
-
+    remap_model_filament_configs(model, slot_relocations, true);
     EnforcerBlockerStateMap paint_state_map;
     for (size_t state = 0; state < paint_state_map.size(); ++state)
         paint_state_map[state] = EnforcerBlockerType(state);
-    for (const auto &[one_based_from, one_based_to] : one_based_slots) {
-        assert(one_based_from >= 0 && size_t(one_based_from) < paint_state_map.size());
-        assert(one_based_to > 0 && size_t(one_based_to) < paint_state_map.size());
-        paint_state_map[size_t(one_based_from)] = EnforcerBlockerType(one_based_to);
+    for (const auto &[from, to] : slot_relocations) {
+        assert(from >= 0 && size_t(from + 1) < paint_state_map.size());
+        assert(to >= 0 && size_t(to + 1) < paint_state_map.size());
+        paint_state_map[size_t(from + 1)] = EnforcerBlockerType(to + 1);
     }
-
-    auto remap_extruder_config = [&one_based_slots](ModelConfig &config) -> bool {
-        const auto it = config.has("extruder") ? one_based_slots.find(config.extruder()) : one_based_slots.end();
-        if (it == one_based_slots.end())
-            return false;
-        config.set("extruder", it->second);
-        return true;
-    };
-
-    for (ModelObject *object : model.objects) {
-        remap_extruder_config(object->config);
-        for (ModelVolume *volume : object->volumes) {
-            remap_extruder_config(volume->config);
+    for (ModelObject *object : model.objects)
+        for (ModelVolume *volume : object->volumes)
             volume->mmu_segmentation_facets.remap_states(*volume, paint_state_map);
-        }
-    }
 }
 
 #ifndef NDEBUG

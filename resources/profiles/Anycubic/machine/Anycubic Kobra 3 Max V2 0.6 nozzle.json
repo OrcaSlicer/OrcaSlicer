@@ -1,0 +1,26 @@
+{
+	"type": "machine",
+	"name": "Anycubic Kobra 3 Max V2 0.6 nozzle",
+	"inherits": "fdm_anycubic_kobra_3_max_v2_common",
+	"from": "system",
+	"setting_id": "k3ZMogk2NTOZhx9R",
+	"instantiation": "true",
+	"printer_model": "Anycubic Kobra 3 Max V2",
+	"printer_variant": "0.6",
+	"nozzle_diameter": [
+		"0.6"
+	],
+	"default_print_profile": "0.30mm Standard @Anycubic Kobra 3 Max V2 0.6 nozzle",
+	"default_filament_profile": [
+		"Anycubic PLA @Anycubic Kobra 3 Max V2 0.6 nozzle"
+	],
+	"max_layer_height": [
+		"0.42"
+	],
+	"min_layer_height": [
+		"0.12"
+	],
+	"nozzle_type": [
+		"hardened_steel"
+	]
+}

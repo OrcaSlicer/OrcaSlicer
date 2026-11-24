@@ -334,6 +334,19 @@ void update_unselected_items_inflation(ArrangePolygons& unselected, const Dynami
         : (ap.is_extrusion_cali_object ? 0 : scale_(exclusion_gap)); });
 }
 
+double compacted_tower_arrange_clearance(const ArrangePolygons& placed, const ArrangeParams& params, double toolhead_radius)
+{
+    // The head body sits above the nozzle cone, so an object that rises no higher than nozzle_height
+    // only has to clear the cone, as compacted_wipe_tower_clearance() decides. Arrange measures the
+    // height from the plate, which is never less than the rise above the tower that check measures.
+    // The tower is one polygon for every object placed, so a single taller one gives them all the
+    // toolhead radius, and so does an empty list, whose objects are unknown.
+    const bool all_short = !placed.empty() && std::all_of(placed.begin(), placed.end(), [&params](const ArrangePolygon& ap) {
+        return ap.height <= params.nozzle_height + EPSILON;
+    });
+    return all_short ? double(MAX_OUTER_NOZZLE_DIAMETER) : toolhead_radius;
+}
+
 void update_selected_items_axis_align(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params)
 {
     // now only need to consider "Align to x axis"
@@ -900,6 +913,22 @@ protected:
                 score += height_score / valid_items_cnt;
         }
 
+        // Orca: the nozzle keeps coming down to a prime tower compacted by "No sparse layers", and
+        // the rod then sweeps the tower's Y span over the whole bed, so nothing taller than the rod
+        // clearance may share that span. Same test as compacted_wipe_tower_clearance().
+        if (params.compacted_tower_growth >= 0 && item.height > params.clearance_height_to_rod) {
+            const auto item_bb = item.boundingBox();
+            const auto iy1     = item_bb.minCorner().y() + item.inflation();
+            const auto iy2     = item_bb.maxCorner().y() - item.inflation();
+            for (const Item& p : m_items) {
+                if (!p.is_wipe_tower) continue;
+                const auto tower_bb = p.boundingBox();
+                const auto grown    = p.inflation() + params.compacted_tower_growth;
+                if (std::max(iy1, tower_bb.minCorner().y() + grown) - std::min(iy2, tower_bb.maxCorner().y() - grown) < scaled(params.clearance_dist_to_rod))
+                    score += LARGE_COST_TO_REJECT * 1.2;
+            }
+        }
+
         std::set<int> extruder_ids;
         for (int i = 0; i < m_items.size(); i++) {
             Item& p = m_items[i];
@@ -1247,6 +1276,15 @@ void _arrange(
     //sl::offset(corrected_bin, md);
     ArrangeParams mod_params = params;
     mod_params.min_obj_distance = 0;  // items are already inflated
+    // Orca: aligning the finished pile would carry objects taller than the rod clearance back into
+    // the Y span of a compacted prime tower, which objfunc() has just kept them out of. A
+    // best_object_pos away from the bed centre makes the AutoArranger align the pile to it whatever
+    // do_final_align says, so that point goes back to the centre as well.
+    if (params.compacted_tower_growth >= 0 &&
+        std::any_of(shapes.begin(), shapes.end(), [&params](const Item &itm) { return itm.height > params.clearance_height_to_rod; })) {
+        mod_params.do_final_align = false;
+        mod_params.align_center   = Vec2d(0.5, 0.5);
+    }
 
     AutoArranger<BinT> arranger{corrected_bin, mod_params, progressfn, stopfn};
 
