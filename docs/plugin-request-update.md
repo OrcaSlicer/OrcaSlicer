@@ -34,9 +34,3 @@ success from the requesting version. Read the running version after reload inste
 Older hosts have no such attribute. Feature-detect the API and explain the manual
 **Preferences ? Plugins** update path when it is unavailable. Local wheel installs
 must continue using the plugin manager's local installation workflow.
-
-## Validation status
-
-The request gate is covered by `test_plugin_update_request.cpp`; the Python binding
-has a missing-context regression in `test_plugin_host_api.cpp`. A complete native
-version-switch test is required before treating this experimental API as accepted.
