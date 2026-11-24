@@ -1,0 +1,78 @@
+{
+	"type": "filament",
+	"name": "Anycubic PLA Silk @Anycubic Kobra 3 Max V2 0.8 nozzle",
+	"inherits": "Anycubic PLA Silk @Anycubic Kobra 3 Max V2 0.4 nozzle",
+	"from": "system",
+	"setting_id": "rYajHRGstEnZUEGK",
+	"filament_id": "OFFwJWea",
+	"instantiation": "true",
+	"filament_flow_ratio": [
+		"0.95"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"filament_deretraction_speed": [
+		"nil"
+	],
+	"filament_retract_before_wipe": [
+		"nil"
+	],
+	"filament_retract_lift_above": [
+		"nil"
+	],
+	"filament_retract_lift_below": [
+		"nil"
+	],
+	"filament_retract_lift_enforce": [
+		"nil"
+	],
+	"filament_retract_restart_extra": [
+		"nil"
+	],
+	"filament_retract_when_changing_layer": [
+		"nil"
+	],
+	"filament_retraction_length": [
+		"nil"
+	],
+	"filament_retraction_minimum_travel": [
+		"nil"
+	],
+	"filament_retraction_speed": [
+		"nil"
+	],
+	"filament_unloading_speed": [
+		"90"
+	],
+	"filament_unloading_speed_start": [
+		"100"
+	],
+	"filament_wipe": [
+		"nil"
+	],
+	"filament_wipe_distance": [
+		"nil"
+	],
+	"filament_z_hop": [
+		"nil"
+	],
+	"filament_z_hop_types": [
+		"nil"
+	],
+	"full_fan_speed_layer": [
+		"0"
+	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	],
+	"pressure_advance": [
+		"0.032"
+	],
+	"compatible_printers": [
+		"Anycubic Kobra 3 Max V2 0.8 nozzle"
+	]
+}
