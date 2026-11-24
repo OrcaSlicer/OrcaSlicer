@@ -16,11 +16,106 @@
 #include <wx/gdicmn.h>
 #include <wx/event.h>
 #include <wx/tipwin.h>
+#include <wx/window.h>
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #ifdef __APPLE__
 #include "libslic3r/MacUtils.hpp"
 #endif
+#include <wx/setup.h>
+#if wxUSE_ACCESSIBILITY
+#include <wx/access.h>
+#endif
+#ifdef __WXOSX__
+#include "slic3r/GUI/Accessibility/AccessibilityMac.h"
+#endif
+
+#if wxUSE_ACCESSIBILITY
+
+namespace {
+
+// Exposes the custom-drawn Button to screen readers. On Windows the base
+// wxWindowAccessible reports every window as a generic client area, so NVDA and
+// Narrator announce the label but not the button role. Overriding these
+// callbacks reports the button as a push button with its name and state, and
+// lets the screen reader activate it through DoDefaultAction.
+class ButtonAccessible : public wxWindowAccessible
+{
+public:
+    explicit ButtonAccessible(Button* btn)
+        : wxWindowAccessible(btn)
+        , m_btn(btn)
+    {
+    }
+
+    wxAccStatus GetName(int childId, wxString* name) override
+    {
+        if (childId != wxACC_SELF)
+            return wxACC_NOT_IMPLEMENTED;
+
+        *name = m_btn->GetLabel();
+        if (name->empty())
+            *name = m_btn->GetToolTipText();
+        return name->empty() ? wxACC_NOT_IMPLEMENTED : wxACC_OK;
+    }
+
+    wxAccStatus GetRole(int childId, wxAccRole* role) override
+    {
+        if (childId != wxACC_SELF)
+            return wxACC_NOT_IMPLEMENTED;
+
+        *role = wxROLE_SYSTEM_PUSHBUTTON;
+        return wxACC_OK;
+    }
+
+    wxAccStatus GetValue(int childId, wxString* strValue) override
+    {
+        if (childId != wxACC_SELF)
+            return wxACC_NOT_IMPLEMENTED;
+
+        // A push button carries no value; expose an explicit empty one.
+        strValue->clear();
+        return wxACC_OK;
+    }
+
+    wxAccStatus GetState(int childId, long* state) override
+    {
+        if (childId != wxACC_SELF)
+            return wxACC_NOT_IMPLEMENTED;
+
+        long st = 0;
+        if (!m_btn->IsEnabled())
+            st |= wxACC_STATE_SYSTEM_UNAVAILABLE;
+        if (!m_btn->IsShown())
+            st |= wxACC_STATE_SYSTEM_INVISIBLE;
+        if (m_btn->IsFocusable())
+            st |= wxACC_STATE_SYSTEM_FOCUSABLE;
+        if (m_btn->HasFocus())
+            st |= wxACC_STATE_SYSTEM_FOCUSED;
+        if (m_btn->GetValue())
+            st |= wxACC_STATE_SYSTEM_PRESSED;
+
+        *state = st;
+        return wxACC_OK;
+    }
+
+    wxAccStatus DoDefaultAction(int childId) override
+    {
+        if (childId != wxACC_SELF)
+            return wxACC_NOT_IMPLEMENTED;
+
+        m_btn->Click();
+        return wxACC_OK;
+    }
+
+private:
+    Button* m_btn;
+};
+
+} // anonymous namespace
+
+#endif // wxUSE_ACCESSIBILITY
+
 BEGIN_EVENT_TABLE(Button, StaticBox)
 
 EVT_LEFT_DOWN(Button::mouseDown)
@@ -66,6 +161,10 @@ bool Button::Create(wxWindow* parent, wxString text, wxString icon, long style, 
         this->active_icon = ScalableBitmap(this, icon.ToStdString(), iconSize > 0 ? iconSize : 20);
     }
     messureSize();
+#ifdef __WXOSX__
+    applyAccessibility();
+    Bind(wxEVT_DESTROY, [this](wxWindowDestroyEvent&) { Slic3r::GUI::Accessibility::detach(this); });
+#endif
     return true;
 }
 
@@ -75,6 +174,10 @@ void Button::SetLabel(const wxString& label)
         wxWindow::SetLabel(label);
         messureSize();
         Refresh();
+#ifdef __WXOSX__
+        // Keep the accessible name in sync with the visible label.
+        applyAccessibility();
+#endif
     }
 }
 
@@ -509,6 +612,45 @@ void Button::sendButtonEvent()
     event.SetEventObject(this);
     GetEventHandler()->ProcessEvent(event);
 }
+
+void Button::Click()
+{
+    if (IsEnabled())
+        sendButtonEvent();
+}
+
+#ifdef __WXOSX__
+void Button::DoSetToolTipText(const wxString& tip)
+{
+    wxWindow::DoSetToolTipText(tip);
+    // Icon-only buttons are named by their tooltip, which callers set after Create().
+    applyAccessibility();
+}
+
+void Button::DoEnable(bool enable)
+{
+    wxWindow::DoEnable(enable);
+    // Keep the accessibility enabled state in sync; wx cascades DoEnable to children
+    // when an ancestor is (re)enabled, and apply() reads the ancestor-aware IsEnabled().
+    applyAccessibility();
+}
+
+void Button::applyAccessibility()
+{
+    Slic3r::GUI::Accessibility::Descriptor desc;
+    desc.role  = Slic3r::GUI::Accessibility::Role::Button;
+    desc.name  = GetLabel();
+    desc.press = [this] { Click(); };
+    Slic3r::GUI::Accessibility::apply(this, desc);
+}
+#endif
+
+#if wxUSE_ACCESSIBILITY
+wxAccessible* Button::CreateAccessible()
+{
+    return new ButtonAccessible(this);
+}
+#endif
 
 #ifdef __WIN32__
 

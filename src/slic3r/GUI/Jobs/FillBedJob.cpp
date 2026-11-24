@@ -56,6 +56,7 @@ void FillBedJob::prepare()
     //select current plate at first
     int sel_id = m_plater->get_selection().get_instance_idx();
     sel_id = std::max(sel_id, 0);
+    m_instance_idx = sel_id;
 
     int sel_ret = plate_list.select_plate_by_obj(m_object_idx, sel_id);
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(":select plate obj_id %1%, ins_id %2%, ret %3%}") % m_object_idx % sel_id % sel_ret;
@@ -166,7 +167,7 @@ void FillBedJob::prepare()
 
                 m_unselected.emplace_back(ap);
             }*/
-    if (auto wt = get_wipe_tower_arrangepoly(*m_plater))
+    if (auto wt = get_wipe_tower_arrangepoly(*m_plater, params, m_selected))
         m_unselected.emplace_back(std::move(*wt));
 
     double sc = scaled<double>(1.) * scaled(1.);
@@ -396,6 +397,13 @@ void FillBedJob::finalize(bool canceled, std::exception_ptr &eptr)
 
         if (m_instances && model_object->instances.size() > inst_cnt) {
             const size_t new_instance_count = model_object->instances.size() - inst_cnt;
+            // Register the copies with the plate they land on, which is what plate lookups and
+            // object labels read. As new instances they take a spiral-vase plate's settings
+            // without asking once per copy, as the objects Fill bed with copies adds do.
+            for (size_t i = inst_cnt; i < model_object->instances.size(); ++i)
+                plate_list.notify_instance_update(m_object_idx, int(i), true);
+            // ORCA: Place the copies in the assembly view, otherwise they all sit on their source.
+            m_plater->model().set_assembly_pos_of_copies(model_object, size_t(m_instance_idx), inst_cnt);
             // Match the normal add-instance flow: update the scene before the
             // object tree starts referring to the newly created instances.
             m_plater->update();

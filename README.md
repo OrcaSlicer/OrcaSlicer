@@ -87,7 +87,7 @@ The [wiki](https://www.orcaslicer.com/wiki) aims to provide a detailed explanati
 
 📥 **[Download the Latest Stable Release](https://github.com/OrcaSlicer/OrcaSlicer/releases/latest)**  
 Visit our GitHub Releases page for the latest stable version of OrcaSlicer, recommended for most users.  
-Windows release binaries are code signed; see our [Code signing policy](#code-signing-policy).
+Windows and macOS release and nightly builds are code signed.
 
 ## Nightly Builds
 
@@ -245,19 +245,9 @@ OrcaSlicer began in that same spirit, drawing from BambuStudio, PrusaSlicer, and
 
 The OrcaSlicer logo was designed by community member [Justin Levine](https://github.com/jal-co).
 
-# Code Signing Policy
-
-Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
-
-Windows release binaries are built by GitHub Actions from this repository and signed through the SignPath Foundation program. Every signing request is manually approved.
-
-**Team roles:** [SoftFever](https://github.com/SoftFever) is the committer, reviewer and approver for all signed releases.
-
-**Privacy policy:** See the [OrcaSlicer privacy policy](https://www.orcaslicer.com/privacy-policy/).
-
 # License
 
 - **OrcaSlicer** is licensed under the GNU Affero General Public License, version 3.
 - The **GNU Affero General Public License**, version 3 ensures that if you use any part of this software in any way (even behind a web server), your software must be released under the same license.
 - OrcaSlicer includes a **pressure advance calibration pattern test** adapted from Andrew Ellis' generator, which is licensed under GNU General Public License, version 3. Ellis' generator is itself adapted from a generator developed by Sineos for Marlin, which is licensed under GNU General Public License, version 3.
-- The **Bambu networking plugin** is based on non-free libraries from BambuLab. It is optional to the OrcaSlicer and provides extended functionalities for Bambulab printer users.
+- The **Bambu networking plugin** is based on non-free libraries from BambuLab. It is optional to OrcaSlicer and provides extended functionalities for Bambulab printer users.

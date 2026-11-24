@@ -95,6 +95,7 @@ public:
         Seam,
         FuzzySkin,
         MmSegmentation,
+        PaintedModifier,
         TextureDisplacement,
         Emboss,
         Svg,
@@ -164,7 +165,6 @@ private:
     static std::map<int, void*> icon_list;
 
     bool m_is_dark = false;
-    bool m_restore_realistic_view_after_paint = false;
 
     /// <summary>
     /// Process mouse event on gizmo toolbar
@@ -275,6 +275,8 @@ public:
     }
 
     bool is_enabled() const { return m_enabled; }
+    // ORCA
+    bool is_mouse_over_toolbar_icon(const Vec2d& mouse_pos) const { return get_gizmo_from_mouse(mouse_pos) != Undefined; }
     void set_enabled(bool enable) { m_enabled = enable; }
 
     void set_icon_dirty() { m_icons_texture_dirty = true; }

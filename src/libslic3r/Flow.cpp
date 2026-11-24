@@ -7,6 +7,7 @@
 #include <assert.h>
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/format.hpp>
 #include <string>
 #include <math.h>
 #include "PrintConfig.hpp"
@@ -197,7 +198,7 @@ Flow Flow::with_cross_section(float area_new) const
             return this->with_width(width_new);
         } else {
             // Create a rounded extrusion.
-            auto dmr = float(sqrt(area_new / M_PI));
+            auto dmr = float(2. * sqrt(area_new / M_PI));
             return Flow(dmr, dmr, m_spacing, m_nozzle_diameter, false);
         }
     } else

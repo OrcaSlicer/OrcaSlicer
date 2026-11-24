@@ -6,8 +6,10 @@
 #include "Polygon.hpp"
 #include "Polyline.hpp"
 
+#include <algorithm>
 #include <assert.h>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <cstddef>
 #include <string_view>
@@ -472,6 +474,13 @@ public:
     // nothing to lean on until this layer is bridged, so the G-code writer holds it back until the
     // infill is down. See defer_unsupported_loops() in PerimeterGenerator.cpp.
     bool print_after_infill = false;
+    // ORCA: The centerline of this loop before surface texturing (fuzzy skin), or null. The perimeter generator sets
+    // it on an external loop whose points the texture changed; Precise Seam reconstructs the model surface from it.
+    // Copying, moving, reversing or turning the start of the same geometry keeps it, and so does simplifying or
+    // arc fitting the paths: that is still the same textured loop. Giving the loop other geometry must reset it.
+    // Kept whether or not Precise Seam is used, since adding its helpers does not regenerate perimeters. The
+    // storage could be optimized later.
+    std::shared_ptr<const Polygon> untextured;
 
     ExtrusionLoop(ExtrusionLoopRole role = elrDefault) : m_loop_role(role) {}
     ExtrusionLoop(const ExtrusionPaths &paths, ExtrusionLoopRole role = elrDefault) : paths(paths), m_loop_role(role) {}
@@ -554,6 +563,14 @@ public:
 private:
     ExtrusionLoopRole m_loop_role;
 };
+
+// Orca: A fully overhanging outer loop has no outer wall paths but keeps inset index 0. Not the negation of
+// is_inner_wall(), which goes by the first path while the inset index is unset.
+inline bool is_outer_wall(const ExtrusionLoop &loop)
+{
+    return loop.inset_idx == 0 ||
+           std::any_of(loop.paths.begin(), loop.paths.end(), [](const ExtrusionPath &path) { return path.role() == erExternalPerimeter; });
+}
 
 class ExtrusionLoopSloped : public ExtrusionLoop
 {

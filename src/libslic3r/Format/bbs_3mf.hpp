@@ -8,6 +8,7 @@
 #include "libslic3r/ProjectTask.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <set>
@@ -140,12 +141,8 @@ struct PlateData
     std::vector<MultiNozzleUtils::NozzleInfo> nozzles_info;
     std::optional<MultiNozzleUtils::LayeredNozzleGroupResult> nozzle_group_result;
 
-    // Hexadecimal number,
-    // the 0th digit corresponds to extruder 1
-    // the 1th digit corresponds to extruder 2
-    // ...  and so on.
-    // 0 means can be print on this extruder, 1 means cannot
-    std::vector<int>          limit_filament_maps;
+    // Per filament, bit i is set when extruder i + 1 can't print it.
+    std::vector<uint64_t>     limit_filament_maps;
 
     std::vector<GCodeProcessorResult::SliceWarning> warnings;
 

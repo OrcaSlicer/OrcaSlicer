@@ -941,6 +941,10 @@ The per-widget table (event types, ids and event objects, which setters emit, wh
   constructor (clears the half state, refreshes the bitmap, Skips); `TextInput`'s handlers on the inner control run
   `OnEdit` and the re-dispatch. A user handler bound on the widget (or on `GetTextCtrl()`) for those events must
   `Skip()`. Capture-lost handling: `references/mouse-keyboard-focus.md`.
+- **`LabeledCheckBox` re-emits.** It consumes its inner check's `wxEVT_TOGGLEBUTTON` and sends `wxEVT_CHECKBOX`, then
+  `wxEVT_TOGGLEBUTTON`, from itself (own id and object), for label clicks too. It has no handler of its own for the
+  two, so a handler bound on it needs no `Skip()` — but one bound to both runs twice
+  (`references/orca-widgets.md §LabeledCheckBox`).
 - **`EVT_ENABLE_CHANGED`** (`StateHandler.hpp`, a `wxCommandEvent` with id 0) comes from the `Enable` overrides of
   `Button`, `SpinInput`, `RadioGroup` and the other `StateHandler` widgets. `StateHandler` Skips it, so it
   propagates to ancestors like any command event.

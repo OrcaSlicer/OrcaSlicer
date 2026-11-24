@@ -368,7 +368,9 @@ static void init_multi_extruder_params_for_cali(DynamicPrintConfig& config, cons
     nozzle_volume_types.clear();
     nozzle_volume_types.resize(extruder_count, (int)calib_info.nozzle_volume_type);
 
-    std::vector<int> physical_extruder_maps = dynamic_cast<ConfigOptionInts*>(config.option("physical_extruder_map", true))->values;
+    // One entry per nozzle even when the profile never set the map (the single-element default).
+    const std::vector<int> physical_extruder_maps =
+        effective_physical_extruder_map(config.option<ConfigOptionInts>("physical_extruder_map", true), extruder_count).values;
     int extruder_id = calib_info.extruder_id;
     for (size_t index = 0; index < extruder_count; ++index) {
         if (physical_extruder_maps[index] == extruder_id)
@@ -970,7 +972,8 @@ void CalibUtils::set_for_auto_pa_model_and_config(const std::vector<CalibInfo> &
     nozzle_flush_dataset.resize(extruder_count, 0);
 
     int               filament_nums = calib_infos.size();
-    std::vector<int> physical_extruder_maps = dynamic_cast<ConfigOptionInts *>(full_config.option("physical_extruder_map", true))->values;
+    const std::vector<int> physical_extruder_maps =
+        effective_physical_extruder_map(full_config.option<ConfigOptionInts>("physical_extruder_map", true), extruder_count).values;
     for (size_t filament_index = 0; filament_index < calib_infos.size(); ++filament_index) {
         CalibInfo calib_info  = calib_infos[filament_index];
         int extruder_id = calib_info.extruder_id;
@@ -1056,7 +1059,10 @@ bool CalibUtils::calib_generic_auto_pa_cali(const std::vector<CalibInfo> &calib_
     std::vector<Preset> filament_presets;
     std::vector<int>    filament_map;
     filament_map.resize(calib_infos.size());
-    std::vector<int> physical_extruder_maps = dynamic_cast<ConfigOptionInts *>(printer_config.option("physical_extruder_map", true))->values;
+    const auto*            nozzle_diameters       = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
+    const int              nozzle_count           = nozzle_diameters ? static_cast<int>(nozzle_diameters->values.size()) : 0;
+    const std::vector<int> physical_extruder_maps =
+        effective_physical_extruder_map(printer_config.option<ConfigOptionInts>("physical_extruder_map", true), nozzle_count).values;
     for (size_t i = 0; i < calib_infos.size(); ++i) {
         CalibInfo calib_info = calib_infos[i];
         calib_info.filament_prest->config.set_key_value("curr_bed_type", new ConfigOptionEnum<BedType>(calib_info.bed_type));
@@ -1138,6 +1144,7 @@ bool CalibUtils::calib_generic_PA(const CalibInfo &calib_info, wxString &error_m
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
     print_config.set_key_value("wipe_inward", new ConfigOptionBool(false));
+    print_config.set_key_value("retract_after_outer_wall", new ConfigOptionBool(false));
     DynamicPrintConfig filament_config = calib_info.filament_prest->config;
     DynamicPrintConfig printer_config  = calib_info.printer_prest->config;
 
@@ -1438,6 +1445,7 @@ void CalibUtils::calib_retraction(const CalibInfo &calib_info, wxString &error_m
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
     print_config.set_key_value("wipe_inward", new ConfigOptionBool(false));
+    print_config.set_key_value("retract_after_outer_wall", new ConfigOptionBool(false));
     DynamicPrintConfig filament_config = calib_info.filament_prest->config;
     DynamicPrintConfig printer_config  = calib_info.printer_prest->config;
 

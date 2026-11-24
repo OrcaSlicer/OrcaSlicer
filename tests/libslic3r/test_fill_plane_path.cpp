@@ -26,9 +26,9 @@ constexpr double output_scale = 1'000'000.;
 class TestableHilbertCurve : public FillHilbertCurve
 {
 public:
-    Points generate_points(double resolution, double smooth_factor = 0., coord_t max_coordinate = 7)
+    Points generate_points(double resolution, double smooth_factor = 0., coord_t max_coordinate = 7, double scale = output_scale)
     {
-        InfillPolylineOutput output(output_scale);
+        InfillPolylineOutput output(scale);
         FillParams params;
         params.smooth_factor = smooth_factor;
         FillHilbertCurve::generate(0, 0, max_coordinate, max_coordinate, resolution, params, output);
@@ -70,13 +70,13 @@ double path_length(const Points &points)
 }
 
 // The edges of the first rounded corner of the order 1 Hilbert curve, which leaves the leg x = 0 and joins the leg y = 1.
-std::vector<double> first_corner_edges(const Points &points)
+std::vector<double> first_corner_edges(const Points &points, double scale)
 {
     std::vector<double> edges;
     for (size_t i = 1; i < points.size(); ++i) {
         if (points[i - 1].x() == 0 && points[i].x() == 0)
             continue;
-        if (points[i - 1].y() == coord_t(output_scale) && points[i].y() == coord_t(output_scale))
+        if (points[i - 1].y() == coord_t(scale) && points[i].y() == coord_t(scale))
             break;
         edges.push_back((points[i] - points[i - 1]).cast<double>().norm());
     }
@@ -159,10 +159,18 @@ TEST_CASE("Smoothed Hilbert corners turn by the same angle at every vertex", "[F
 TEST_CASE("Hilbert smoothing eases into the turn", "[FillPlanePath]")
 {
     // Every vertex turns by the same angle, so the edges are as long as the curve is gentle. The curvature starts
-    // from zero at the legs, so the edges shorten away from them.
-    const std::vector<double> edges = first_corner_edges(TestableHilbertCurve().generate_points(0.0002, 1., 1));
+    // from zero at the legs, so the edges shorten away from them. Lines 25 mm apart keep the resolution at 5 microns.
+    const double              scale = 25. * output_scale;
+    const std::vector<double> edges = first_corner_edges(TestableHilbertCurve().generate_points(0.0002, 1., 1, scale), scale);
     REQUIRE(edges.size() >= 16);
     REQUIRE(edges[0] / edges[1] > 1.1);
+}
+
+TEST_CASE("Smoothed Hilbert corners are split no finer than at 5 microns", "[FillPlanePath]")
+{
+    // Lines 1 mm apart give the resolution in mm.
+    REQUIRE(TestableHilbertCurve().generate_points(0.001, 1.) == TestableHilbertCurve().generate_points(0.005, 1.));
+    REQUIRE(TestableHilbertCurve().generate_points(0.0125, 1.).size() < TestableHilbertCurve().generate_points(0.005, 1.).size());
 }
 
 TEST_CASE("Octagram spiral smoothing rounds the turns of the spiral", "[FillPlanePath]")

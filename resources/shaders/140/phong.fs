@@ -1,7 +1,4 @@
 #version 140
-// Multisample depth texture for the anti-aliased outline (see 3DScene.cpp render_with_outline).
-// Optional on the GLSL 140 path: if unavailable, fallback to a non-multisample depth texture.
-#extension GL_ARB_texture_multisample : enable
 
 const vec3 ZERO = vec3(0.0, 0.0, 0.0);
 const vec3 LightRed = vec3(0.78, 0.0, 0.0);
@@ -53,21 +50,10 @@ uniform vec4 uniform_color_clip_plane_1;
 uniform vec4 uniform_color_clip_plane_2;
 uniform SlopeDetection slope;
 
-//BBS: add outline_color
-uniform bool is_outline;
 // ORCA: a part of a translucent filament, drawn as its print would show in premultiplied color, see
 // GLVolumeCollection::render(). It catches a highlight only with translucent_gloss, in realistic view.
 uniform bool translucent_filament;
 uniform bool translucent_gloss;
-// The outline is a per-fragment discard mask, which the framebuffer MSAA cannot smooth, so the
-// silhouette is resolved per sample from a multisample copy of the outlined model's depth buffer.
-#ifdef GL_ARB_texture_multisample
-uniform sampler2DMS depth_tex;
-uniform int msaa_samples; // samples in depth_tex, 1 when MSAA is off
-#else
-uniform sampler2D depth_tex;
-#endif
-uniform vec2 screen_size;
 
 #ifdef ENABLE_ENVIRONMENT_MAP
     uniform sampler2D environment_tex;
@@ -76,8 +62,6 @@ uniform vec2 screen_size;
 
 uniform PrintVolumeDetection print_volume;
 
-uniform float z_far;
-uniform float z_near;
 uniform bool enable_ssao;
 // 1 = the Design tab's studio lighting (studio_shade below); 0 = the two-light model above, which
 // every other canvas keeps. world_up_eye is world +Z in eye space, for the hemisphere ambient.
@@ -111,95 +95,6 @@ vec4 translucent_filament_color(vec3 diffuse, float alpha, vec3 highlight, float
 }
 
 out vec4 out_color;
-
-vec3 getBackfaceColor(vec3 fill) {
-    float brightness = 0.2126 * fill.r + 0.7152 * fill.g + 0.0722 * fill.b;
-    return (brightness > 0.75) ? vec3(0.11, 0.165, 0.208) : vec3(0.988, 0.988, 0.988);
-}
-
-// Silhouette edge detection & rendering algorithm by leoneruggiero
-// https://www.shadertoy.com/view/DslXz2
-#define INFLATE 1
-
-float GetTolerance(float d, float k)
-{
-    float A=-   (z_far+z_near)/(z_far-z_near);
-    float B=-2.0*z_far*z_near /(z_far-z_near);
-
-    d = d*2.0-1.0;
-
-    return -k*(d+A)*(d+A)/B;
-}
-
-// Depth of sample s at integer pixel coord.
-#ifdef GL_ARB_texture_multisample
-float FetchDepth(ivec2 coord, int s)
-{
-    // texelFetch has no wrap mode, so clamp to the edge texel (sampler2D used CLAMP_TO_EDGE).
-    ivec2 sz = textureSize(depth_tex);
-    return abs(texelFetch(depth_tex, clamp(coord, ivec2(0), sz - 1), s).r);
-}
-#else
-float FetchDepth(ivec2 coord, int s)
-{
-    return abs(texture(depth_tex, (vec2(coord) + 0.5) / screen_size).r);
-}
-#endif
-
-float DetectSilho(ivec2 coord, ivec2 dir, int s)
-{
-    float x0 = FetchDepth(coord + dir*-2, s);
-    float x1 = FetchDepth(coord + dir*-1, s);
-    float x2 = FetchDepth(coord,          s);
-    float x3 = FetchDepth(coord + dir* 1, s);
-
-    float d0 = (x1-x0);
-    float d1 = (x2-x3);
-
-    float r0 = x1 + d0 - x2;
-    float r1 = x2 + d1 - x1;
-
-    float tol = GetTolerance(x2, 0.04);
-
-    return smoothstep(0.0, tol*tol, max( - r0*r1, 0.0));
-}
-
-float DetectSilho(ivec2 coord, int s)
-{
-    return max(
-        DetectSilho(coord, ivec2(1,0), s),
-        DetectSilho(coord, ivec2(0,1), s)
-        );
-}
-
-// Full response of one sample. Reduce the max() per sample and average only afterwards:
-// max(mean) <= mean(max), and averaging first hollows out diagonal and curved lines.
-float DetectSilhoSample(ivec2 coord, int s)
-{
-    float v = DetectSilho(coord, s);
-    // Makes silhouettes thicker.
-    for (int i = 1; i <= INFLATE; ++i)
-    {
-        v = max(v, DetectSilho(coord + ivec2(i, 0), s));
-        v = max(v, DetectSilho(coord + ivec2(0, i), s));
-    }
-    return v;
-}
-
-// Average the per-sample coverage into the sub-pixel anti-aliasing of the line.
-float DetectSilho(vec2 fragCoord)
-{
-    ivec2 coord = ivec2(fragCoord);
-#ifdef GL_ARB_texture_multisample
-    int n = max(msaa_samples, 1);
-#else
-    const int n = 1;
-#endif
-    float acc = 0.0;
-    for (int s = 0; s < n; ++s)
-        acc += DetectSilhoSample(coord, s);
-    return acc / float(n);
-}
 
 float compute_ssao_factor(vec3 normal, vec3 view_dir, vec3 eye_pos)
 {
@@ -364,21 +259,12 @@ void main()
     vec3 lit = (lighting_model == 1) ? studio_shade(color.rgb, normal, view_dir)
                                      : (vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS;
 
-    if (is_outline) {
-        vec3 shaded_rgb = lit * shade;
-        vec4 shaded_color = vec4(clamp(shaded_rgb, vec3(0.0), vec3(1.0)), color.a);
-        float s = DetectSilho(gl_FragCoord.xy);
-        if (s < 0.01)
-            discard;
-        out_color = vec4(mix(shaded_color.rgb, getBackfaceColor(shaded_color.rgb), s), shaded_color.a);
-        if (translucent_filament)
-            out_color.rgb *= out_color.a;
-    }
 #ifdef ENABLE_ENVIRONMENT_MAP
-    else if (use_environment_tex)
+    if (use_environment_tex)
         out_color = vec4(clamp((0.45 * texture(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + window_reflection + 0.8 * color.rgb * diffuse) * PHONG_BRIGHTNESS * shade, vec3(0.0), vec3(1.0)), color.a);
+    else
 #endif
-    else if (translucent_filament)
+    if (translucent_filament)
         out_color = translucent_filament_color(clamp(color.rgb * diffuse * PHONG_BRIGHTNESS * shade, vec3(0.0), vec3(1.0)), color.a,
                                                translucent_gloss ? (vec3(specular) + window_reflection) * PHONG_BRIGHTNESS * shade : ZERO,
                                                abs(dot(normal, view_dir)));

@@ -5,6 +5,7 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/BeltTransform.hpp"
 #include "libslic3r/BoundingBox.hpp"
@@ -23,11 +24,16 @@
 #include "test_utils.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <fstream>
 #include <initializer_list>
+#include <ios>
+#include <iterator>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
+#include <set>
 #include <sstream>
 #include <string>
 #include <tuple>
@@ -658,36 +664,253 @@ TEST_CASE("Each extrusion weighs its filament's density", "[GCodeProcessor]")
 
 namespace {
 
-// Two nozzles over a 200 mm square bed: nozzle 1 reaches only `nozzle_1_area`, nozzle 2 the whole bed.
-// A 20 mm cube centered on `center` prints with filament 1, mapped to nozzle 1.
-void slice_cube_in_nozzle_area(const Vec2ds &nozzle_1_area, const Vec2d &center, GCodeProcessorResult &result)
+const std::string OUTER_OVERHANG_TAG = "; OUTER_OVERHANG_WALL\n";
+
+// A closed square at X/Y 10..50, printed from where the nozzle stands.
+std::string square_moves() { return "G1 X10.1 Y10 E0.01 F3000\nG1 X50 Y10 E2\nG1 X50 Y50 E2\nG1 X10 Y50 E2\nG1 X10 Y10 E2\n"; }
+
+std::string layer_start() { return "M83\nG90\n; CHANGE_LAYER\nG1 X10 Y10 Z0.2 F12000\n"; }
+std::string feature(ExtrusionRole role) { return "; FEATURE: " + ExtrusionEntity::role_to_string(role) + "\n"; }
+
+// Closes the seam candidate with an inner-wall move.
+std::string inner_wall_end() { return feature(erPerimeter) + "G1 X12 Y12 E0.1\nG1 X30 Y12 E1\n"; }
+
+// Streams G-code through the processor as an export does and returns its moves.
+std::vector<GCodeProcessorResult::MoveVertex> process_stream(const std::string &gcode)
 {
+    FullPrintConfig config;
+    config.gcode_flavor.value = gcfMarlinFirmware;
+    // s_IsBBLPrinter selects the "; FEATURE: " tags these fixtures use.
+    const bool       was_bbl_printer = GCodeProcessor::s_IsBBLPrinter;
+    const ScopeGuard restore_bbl_printer([was_bbl_printer] { GCodeProcessor::s_IsBBLPrinter = was_bbl_printer; });
+    GCodeProcessor::s_IsBBLPrinter = true;
+    GCodeProcessor processor;
+    processor.reset();
+    processor.initialize("stream.gcode");
+    processor.initialize_result_moves();
+    processor.apply_config(config);
+    processor.process_buffer(gcode);
+    processor.finalize(false);
+    return std::move(processor.result().moves);
+}
+
+std::vector<GCodeProcessorResult::MoveVertex> seams_of(const std::vector<GCodeProcessorResult::MoveVertex> &moves)
+{
+    std::vector<GCodeProcessorResult::MoveVertex> seams;
+    std::copy_if(moves.begin(), moves.end(), std::back_inserter(seams),
+                 [](const GCodeProcessorResult::MoveVertex &move) { return move.type == EMoveType::Seam; });
+    return seams;
+}
+
+void check_same_seams(const std::vector<GCodeProcessorResult::MoveVertex> &actual, const std::vector<GCodeProcessorResult::MoveVertex> &expected,
+                      float tolerance)
+{
+    REQUIRE_FALSE(expected.empty());
+    REQUIRE(actual.size() == expected.size());
+    for (size_t i = 0; i < actual.size(); ++i) {
+        INFO("seam " << i);
+        CHECK(actual[i].gcode_id == expected[i].gcode_id);
+        CHECK_THAT(actual[i].position.x(), Catch::Matchers::WithinAbs(expected[i].position.x(), tolerance));
+        CHECK_THAT(actual[i].position.y(), Catch::Matchers::WithinAbs(expected[i].position.y(), tolerance));
+        CHECK_THAT(actual[i].position.z(), Catch::Matchers::WithinAbs(expected[i].position.z(), tolerance));
+        CHECK_THAT(actual[i].actual_feedrate, Catch::Matchers::WithinAbs(expected[i].actual_feedrate, 1e-4));
+    }
+}
+
+} // namespace
+
+TEST_CASE("A tagged overhang wall gets the seam an outer wall would get", "[GCodeProcessor][OverhangSeam]")
+{
+    // An "Outer wall" tag with no move leaves the seam detector active without a first vertex.
+    const bool outer_tag_first = GENERATE(false, true);
+    INFO("outer tag first " << outer_tag_first);
+    const auto wall = [&](ExtrusionRole role) {
+        return layer_start() + (outer_tag_first ? feature(erExternalPerimeter) : "") + feature(role) + OUTER_OVERHANG_TAG +
+               square_moves() + inner_wall_end();
+    };
+    const auto overhang = process_stream(wall(erOverhangPerimeter));
+    check_same_seams(seams_of(overhang), seams_of(process_stream(wall(erExternalPerimeter))), 1e-5f);
+    REQUIRE(seams_of(overhang).size() == 1);
+
+    // The wall keeps its real role.
+    CHECK(std::any_of(overhang.begin(), overhang.end(), [](const GCodeProcessorResult::MoveVertex &move) {
+        return move.type == EMoveType::Extrude && move.extrusion_role == erOverhangPerimeter;
+    }));
+}
+
+TEST_CASE("An overhang wall without the tag gets no seam", "[GCodeProcessor][OverhangSeam]")
+{
+    CHECK(seams_of(process_stream(layer_start() + feature(erOverhangPerimeter) + square_moves() + inner_wall_end())).empty());
+}
+
+TEST_CASE("The tag marks only the wall that follows it", "[GCodeProcessor][OverhangSeam]")
+{
+    const std::string travel = "G1 X80 Y80 F12000\nG1 X10 Y10 F12000\n";
+
+    SECTION("an overhang wall after a tagged one")
+    {
+        const std::string gcode = layer_start() + feature(erOverhangPerimeter) + OUTER_OVERHANG_TAG + square_moves() + travel + square_moves() + travel;
+        CHECK(seams_of(process_stream(gcode)).size() == 1);
+    }
+    SECTION("an overhang wall after a tagged wall that started as an outer wall")
+    {
+        const std::string gcode = layer_start() + feature(erExternalPerimeter) + OUTER_OVERHANG_TAG + square_moves() + travel +
+                                  feature(erOverhangPerimeter) + square_moves() + travel;
+        CHECK(seams_of(process_stream(gcode)).size() == 1);
+    }
+}
+
+TEST_CASE("The tag waits for the printing move while the previous candidate closes", "[GCodeProcessor][OverhangSeam]")
+{
+    // No travel between the walls; the unretract after the tag closes the first wall's candidate.
+    const std::string gcode = layer_start() + feature(erExternalPerimeter) + square_moves() + feature(erOverhangPerimeter) + OUTER_OVERHANG_TAG +
+                              "G1 F3000\nG1 E0.8 F1800\n" + square_moves() + inner_wall_end();
+    CHECK(seams_of(process_stream(gcode)).size() == 2);
+}
+
+TEST_CASE("A tagged wall with no move before it merges like an outer wall", "[GCodeProcessor][OverhangSeam]")
+{
+    // Two walls with no move between them: the detector keeps the first wall's candidate.
+    const auto two_walls = [](ExtrusionRole second) {
+        return layer_start() + feature(erExternalPerimeter) + square_moves() + feature(second) + OUTER_OVERHANG_TAG +
+               "G1 X30 Y10 E1\nG1 X30 Y30 E1\nG1 X10 Y30 E1\nG1 X10 Y10 E1\n" + inner_wall_end();
+    };
+    check_same_seams(seams_of(process_stream(two_walls(erOverhangPerimeter))), seams_of(process_stream(two_walls(erExternalPerimeter))), 1e-5f);
+}
+
+TEST_CASE("Exported overhang outer walls get the seams of outer walls", "[GCodeProcessor][OverhangSeam]")
+{
+    // One wall, so every wall is an outer wall. Replaying the same G-code with "Overhang wall"
+    // relabelled "Outer wall" gives the reference seams.
+    const std::string seam_slope = GENERATE("none", "all");
+    INFO("seam slope " << seam_slope);
+    Print print;
+    Model model;
+    Test::init_print({ Test::TestMesh::sphere_50mm }, print, model,
+                     { { "detect_overhang_wall", true }, { "layer_height", 0.4 }, { "initial_layer_print_height", 0.4 },
+                       { "wall_loops", 1 }, { "sparse_infill_density", "0%" }, { "top_shell_layers", 0 }, { "bottom_shell_layers", 0 },
+                       { "skirt_loops", 0 }, { "brim_type", "no_brim" }, { "seam_slope_type", seam_slope }, { "seam_gap", "10%" },
+                       { "z_offset", 0 } });
+    GCodeProcessorResult exported;
+    std::string          gcode = Test::gcode(print, &exported);
+    REQUIRE(gcode.find("OUTER_OVERHANG_WALL") != std::string::npos);
+
+    const std::string overhang = ExtrusionEntity::role_to_string(erOverhangPerimeter);
+    const std::string outer    = ExtrusionEntity::role_to_string(erExternalPerimeter);
+    for (size_t pos = gcode.find(overhang); pos != std::string::npos; pos = gcode.find(overhang, pos + outer.size()))
+        gcode.replace(pos, overhang.size(), outer);
+    ScopedTemporaryFile temp(".gcode");
+    // Preserve exported line endings: Windows text mode can split a CRLF at a reader buffer
+    // boundary and introduce an extra parsed line, invalidating the gcode_id comparison.
+    std::ofstream(temp.string(), std::ios::binary) << gcode;
+    GCodeProcessor processor;
+    processor.process_file(temp.string());
+
+    check_same_seams(seams_of(exported.moves), seams_of(processor.get_result().moves), 1e-4f);
+}
+
+TEST_CASE("Inner walls of an exported sphere are not tagged", "[GCodeProcessor][OverhangSeam]")
+{
+    // A single island per layer has one outer wall, so one seam at most per layer.
+    Print print;
+    Model model;
+    Test::init_print({ Test::TestMesh::sphere_50mm }, print, model,
+                     { { "detect_overhang_wall", true }, { "layer_height", 0.4 }, { "initial_layer_print_height", 0.4 },
+                       { "wall_loops", 2 }, { "sparse_infill_density", "0%" }, { "top_shell_layers", 0 }, { "bottom_shell_layers", 0 } });
+    GCodeProcessorResult result;
+    const std::string gcode = Test::gcode(print, &result);
+    REQUIRE(gcode.find("OUTER_OVERHANG_WALL") != std::string::npos);
+
+    std::set<int> layers;
+    const auto seams = seams_of(result.moves);
+    for (const GCodeProcessorResult::MoveVertex &seam : seams)
+        layers.insert(int(std::lround(seam.position.z() * 10.f)));
+    CHECK(layers.size() == seams.size());
+}
+
+TEST_CASE("A reset processor does not keep the previous G-code's pressure advance", "[GCodeProcessor][Regression]")
+{
+    FullPrintConfig config;
+    config.gcode_flavor.value = gcfMarlinFirmware;
+    GCodeProcessor processor;
+    // Streams G-code through the same processor, resetting it first as a reused one is.
+    const auto process = [&](const std::string &gcode) {
+        processor.reset();
+        processor.initialize("stream.gcode");
+        processor.initialize_result_moves();
+        processor.apply_config(config);
+        processor.process_buffer(gcode);
+        processor.finalize(false);
+        return processor.result().moves;
+    };
+    const auto is_extrusion = [](const GCodeProcessorResult::MoveVertex &move) { return move.type == EMoveType::Extrude; };
+    const std::string square = "M83\nG90\nG1 X10 Y10 Z0.2 F12000\nG1 X50 Y10 E2 F3000\nG1 X50 Y50 E2\nG1 X10 Y50 E2\nG1 X10 Y10 E2\n";
+
+    const std::vector<GCodeProcessorResult::MoveVertex> with_pa = process("M900 K0.05\n" + square);
+    REQUIRE(std::any_of(with_pa.begin(), with_pa.end(), is_extrusion));
+    for (const GCodeProcessorResult::MoveVertex &move : with_pa)
+        if (is_extrusion(move))
+            CHECK_THAT(move.pressure_advance, Catch::Matchers::WithinAbs(0.05, 1e-6));
+
+    const std::vector<GCodeProcessorResult::MoveVertex> without_pa = process(square);
+    REQUIRE(std::any_of(without_pa.begin(), without_pa.end(), is_extrusion));
+    for (const GCodeProcessorResult::MoveVertex &move : without_pa)
+        CHECK(move.pressure_advance == 0.0f);
+}
+
+namespace {
+
+// A printer with `nozzles` nozzles over a 200 mm square bed: nozzle `filament_1_nozzle` reaches only
+// `nozzle_area`, the others the whole bed. A 20 mm cube centered on `center` prints with filament 1,
+// mapped to that nozzle and printable on every nozzle.
+void slice_cube_in_nozzle_area(const Vec2ds &nozzle_area, const Vec2d &center, GCodeProcessorResult &result, int nozzles = 2,
+                               int filament_1_nozzle = 1)
+{
+    const auto per_nozzle = [nozzles](const std::string &value) {
+        std::string values = value;
+        for (int i = 1; i < nozzles; ++i)
+            values += "," + value;
+        return values;
+    };
+    std::string extruder_ids = "1";
+    for (int i = 2; i <= nozzles; ++i)
+        extruder_ids += "," + std::to_string(i);
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
-        { "nozzle_diameter",           "0.4,0.4" },
-        { "printer_extruder_id",       "1,2" },
-        { "printer_extruder_variant",  "Direct Drive Standard,Direct Drive Standard" },
-        { "extruder_offset",           "0x0,0x0" },
+        { "nozzle_diameter",           per_nozzle("0.4") },
+        { "printer_extruder_id",       extruder_ids },
+        { "printer_extruder_variant",  per_nozzle("Direct Drive Standard") },
+        { "extruder_offset",           per_nozzle("0x0") },
         { "printable_area",            "0x0,200x0,200x200,0x200" },
         { "printable_height",          100 },
-        { "extruder_printable_height", "100,100" },
+        { "extruder_printable_height", per_nozzle("100") },
+        // One filament, so one purge volume per nozzle, as the GUI and the CLI size it.
+        { "flush_volumes_matrix",      per_nozzle("0") },
         { "skirt_loops",               0 },
         { "brim_type",                 "no_brim" },
+        { "layer_change_gcode",        "G92 E0\n" }, // validate() relative-E reset
         { "filament_map_mode",         "Manual" },
-        { "filament_map",              "1" },
+        { "filament_map",              filament_1_nozzle },
+        { "filament_printable",        -1 },
     });
+    // Other per-nozzle printer options, at their defaults.
+    for (const char *key : { "extruder_type", "nozzle_volume_type", "min_layer_height", "max_layer_height", "extruder_max_nozzle_count" })
+        dynamic_cast<ConfigOptionVectorBase *>(config.option(key))->resize(nozzles);
     const Vec2ds bed { Vec2d(0., 0.), Vec2d(200., 0.), Vec2d(200., 200.), Vec2d(0., 200.) };
-    config.set_key_value("extruder_printable_area", new ConfigOptionPointsGroups(std::vector<Vec2ds>{ nozzle_1_area, bed }));
+    std::vector<Vec2ds> areas(nozzles, bed);
+    areas[filament_1_nozzle - 1] = nozzle_area;
+    config.set_key_value("extruder_printable_area", new ConfigOptionPointsGroups(areas));
 
     TriangleMesh mesh = Test::cube(20);
     mesh.translate(float(center.x() - 10.), float(center.y() - 10.), 0.f);
     Print print;
     Model model;
     Test::init_print(std::vector<TriangleMesh>{ std::move(mesh) }, print, model, config, nullptr, false);
+    REQUIRE_THAT(print.validate().string, Catch::Matchers::Equals(std::string()));
     Test::gcode(print, &result);
 }
 
-// Nozzle 1's area inset from the bed on one side, on two adjacent sides (leaving an L-shaped
+// A nozzle's area inset from the bed on one side, on two adjacent sides (leaving an L-shaped
 // unprintable region), on three (a U) and on all four (a frame). Each contains the bed center and
 // has an X 150 edge; all but the first also have a Y 50 edge, meeting it in an inner corner.
 Vec2ds inset_nozzle_area(int sides)
@@ -801,4 +1024,65 @@ TEST_CASE("A filament mapped to no nozzle has no errors listed under a nozzle", 
     check_path_in_nozzle_area(inset_nozzle_area(2), path, Vec2d(0., 0.), result, 0);
 
     CHECK(result.gcode_check_result.print_area_error_infos.count(-1) == 0);
+}
+
+TEST_CASE("Nozzles up to the 64th are marked as unable to print a filament they can't", "[GCodeProcessor][Regression]")
+{
+    // 64 nozzles over a 200 mm square bed. Filament 1 maps to one of them and prints a 20 mm square
+    // at X 160-180, Y 100-120, Z 10, which that nozzle alone can't print.
+    const int nozzle = GENERATE(1, 31, 32, 63); // 0-based
+    // It can't reach the square, the square is above its printable height, or it can't print the filament's type.
+    const std::string limit = GENERATE(as<std::string>{}, "area", "height", "filament type");
+    CAPTURE(nozzle, limit);
+    const Vec2ds bed { Vec2d(0., 0.), Vec2d(200., 0.), Vec2d(200., 200.), Vec2d(0., 200.) };
+    std::vector<Polygons>      unprintable_areas(MAXIMUM_EXTRUDER_NUMBER);
+    std::vector<double>        printable_heights(MAXIMUM_EXTRUDER_NUMBER, 100.);
+    std::vector<std::set<int>> unprintable_filament_types(MAXIMUM_EXTRUDER_NUMBER);
+    int                        expected_error = 0;
+    if (limit == "area") {
+        const Vec2ds nozzle_area { Vec2d(0., 0.), Vec2d(150., 0.), Vec2d(150., 200.), Vec2d(0., 200.) };
+        unprintable_areas[nozzle] = diff(Polygon::new_scale(bed), Polygon::new_scale(nozzle_area));
+        expected_error            = 1;
+    } else if (limit == "height") {
+        printable_heights[nozzle] = 5.;
+        expected_error            = 1 << 1;
+    } else {
+        REQUIRE(limit == "filament type");
+        unprintable_filament_types[nozzle] = { 0 };
+    }
+
+    GCodeProcessor processor;
+    for (const Vec2d &point : { Vec2d(160., 100.), Vec2d(180., 100.), Vec2d(180., 120.), Vec2d(160., 120.) }) {
+        GCodeProcessorResult::MoveVertex move;
+        move.type            = EMoveType::Extrude;
+        move.extrusion_role  = erExternalPerimeter;
+        move.extruder_id     = 0; // filament 1
+        move.object_label_id = 1;
+        move.position        = Vec3f(float(point.x()), float(point.y()), 10.f);
+        move.print_z         = 10.f;
+        processor.result().moves.emplace_back(move);
+    }
+    processor.check_multi_extruder_gcode_valid(int(MAXIMUM_EXTRUDER_NUMBER), bed, 100., {}, unprintable_areas, printable_heights,
+                                               { nozzle + 1 }, unprintable_filament_types);
+    const GCodeProcessorResult &result = processor.result();
+
+    CHECK(result.gcode_check_result.error_code == expected_error);
+    REQUIRE(result.limit_filament_maps.size() == 1);
+    CHECK(result.limit_filament_maps[0] == uint64_t(1) << nozzle);
+}
+
+TEST_CASE("A cube on the 64th nozzle of a 64-nozzle printer slices, and fails the area check only outside that nozzle's area", "[GCodeProcessor][Regression]")
+{
+    // Filament 1 maps to nozzle 64, which reaches X 0-150. The cube sits at the bed center, or at X 165-185.
+    const int  nozzles = 64;
+    const bool outside = GENERATE(false, true);
+    INFO("cube " << (outside ? "outside" : "inside") << " nozzle 64's area");
+    GCodeProcessorResult result;
+    slice_cube_in_nozzle_area(inset_nozzle_area(1), outside ? Vec2d(175., 100.) : Vec2d(100., 100.), result, nozzles, nozzles);
+
+    const int expected = outside ? 1 : 0;
+    CHECK((result.gcode_check_result.error_code & 1) == expected);
+    CHECK(result.gcode_check_result.print_area_error_infos.count(nozzles - 1) == size_t(expected));
+    REQUIRE(result.limit_filament_maps.size() == 1);
+    CHECK(result.limit_filament_maps[0] == uint64_t(expected) << (nozzles - 1));
 }

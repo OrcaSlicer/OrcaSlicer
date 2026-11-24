@@ -31,8 +31,8 @@ public:
         int         box_id  = 0;   // CFS unit index (0 for first box, 1 for chained second box)
         int         slot_id = 0;   // Slot index within the box (0..3)
         std::string color_hex;     // "#RRGGBB"
-        std::string filament_type; // "PLA", "ABS", "PETG", ...
-        std::string brand_name;    // "Hyper PLA", ...
+        std::string filament_type; // "PLA", "ABS", "PETG", ... or "" if the printer cannot name the spool
+        std::string brand_name;    // "Hyper PLA", ... or ""
         std::string vendor;        // "Creality", "eSUN", or "" if unknown
     };
 

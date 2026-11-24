@@ -481,11 +481,11 @@ public:
     };
     typedef std::function<void(const SlicingStatus&)>  status_callback_type;
     // Default status console print out in the form of percent => message.
-    void                    set_status_default() { m_status_callback = nullptr; }
+    void                    set_status_default() { set_status_callback(nullptr); }
     // No status output or callback whatsoever, useful mostly for automatic tests.
-    void                    set_status_silent() { m_status_callback = [](const SlicingStatus&){}; }
+    void                    set_status_silent() { set_status_callback([](const SlicingStatus&){}); }
     // Register a custom status callback.
-    void                    set_status_callback(status_callback_type cb) { m_status_callback = cb; }
+    void                    set_status_callback(status_callback_type cb) { std::scoped_lock<std::mutex> lock(m_status_callback_mutex); m_status_callback = std::move(cb); }
     // Calls a registered callback to update the status, or print out the default message.
     void                    set_status(int percent, const std::string &message, unsigned int flags = SlicingStatus::DEFAULT, int warning_step = -1) const;
 
@@ -583,6 +583,9 @@ private:
     // The mutex will be used to guard the worker thread against entering a stage
     // while the data influencing the stage is modified.
     mutable std::mutex                      m_state_mutex;
+    // Held while the status callback runs or is replaced: the objects run their steps concurrently, a callback may keep
+    // state of its own, such as the warnings the command line collects, and the GUI replaces it while a slice runs.
+    mutable std::mutex                      m_status_callback_mutex;
 
     friend PrintTryCancel;
 };
@@ -621,6 +624,10 @@ protected:
         { return m_state.invalidate_multiple(il.begin(), il.end(), this->cancel_callback()); }
     bool            invalidate_all_steps()
         { return m_state.invalidate_all(this->cancel_callback()); }
+    // invalidate_step() for the background processing thread, about a step it finished itself. It skips the
+    // cancel callback, which stops the background processing and so would wait for this very thread.
+    bool            invalidate_step_from_worker(PrintStepEnum step)
+        { std::scoped_lock<std::mutex> lock(this->state_mutex()); return m_state.invalidate(step, []() {}); }
 
 	bool            is_step_started_unguarded(PrintStepEnum step) const { return m_state.is_started_unguarded(step); }
 	bool            is_step_done_unguarded(PrintStepEnum step) const { return m_state.is_done_unguarded(step); }

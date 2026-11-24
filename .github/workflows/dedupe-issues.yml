@@ -23,22 +23,35 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Run Claude Code slash command
-        uses: anthropics/claude-code-base-action@beta
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLAUDE_CODE_SCRIPT_CAPS: '{"comment-on-duplicates.sh":1}'
+          # The action stops at Claude's first result, so a turn that ends while a background agent
+          # still works would drop the rest of the dedupe; keep agents in the foreground.
+          CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: "1"
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Issues are opened by users without write access; the job's permissions and the
+          # allowed-tools list in .claude/commands/dedupe.md keep what Claude can do narrow.
+          allowed_non_write_users: "*"
+          # The backfill workflow dispatches this one with GITHUB_TOKEN, so those runs come from github-actions[bot]
+          allowed_bots: "github-actions"
           prompt: "/dedupe ${{ github.repository }}/issues/${{ github.event.issue.number || inputs.issue_number }}"
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          model: "claude-sonnet-4-5-20250929"
-          claude_env: |
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # The allowed-tools in .claude/commands/dedupe.md cover only the command's own turn, not the
+          # agents it starts, so the same two scripts are allowed for the whole session here.
+          claude_args: '--model claude-haiku-5-5 --allowedTools "Bash(./scripts/gh.sh:*),Bash(./scripts/comment-on-duplicates.sh:*)" --disallowedTools "WebFetch,WebSearch,Write,Edit,MultiEdit,NotebookEdit"'
 
       - name: Log duplicate comment event to Statsig
         if: always()
         env:
           STATSIG_API_KEY: ${{ secrets.STATSIG_API_KEY }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+          REPO: ${{ github.repository }}
+          TRIGGERED_BY: ${{ github.event_name }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
         run: |
-          ISSUE_NUMBER=${{ github.event.issue.number || inputs.issue_number }}
-          REPO=${{ github.repository }}
-          
           if [ -z "$STATSIG_API_KEY" ]; then
             echo "STATSIG_API_KEY not found, skipping Statsig logging"
             exit 0
@@ -48,7 +61,8 @@ jobs:
           EVENT_PAYLOAD=$(jq -n \
             --arg issue_number "$ISSUE_NUMBER" \
             --arg repo "$REPO" \
-            --arg triggered_by "${{ github.event_name }}" \
+            --arg triggered_by "$TRIGGERED_BY" \
+            --arg workflow_run_id "$WORKFLOW_RUN_ID" \
             '{
               events: [{
                 eventName: "github_duplicate_comment_added",
@@ -57,7 +71,7 @@ jobs:
                   repository: $repo,
                   issue_number: ($issue_number | tonumber),
                   triggered_by: $triggered_by,
-                  workflow_run_id: "${{ github.run_id }}"
+                  workflow_run_id: $workflow_run_id
                 },
                 time: (now | floor | tostring)
               }]

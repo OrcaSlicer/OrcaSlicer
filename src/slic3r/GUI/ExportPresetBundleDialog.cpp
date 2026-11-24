@@ -160,8 +160,7 @@ static mz_bool initial_zip_archive(mz_zip_archive& zip_archive, const std::strin
 
     // Initialize the ZIP file to write to the structure, using memory storage
 
-    std::string export_dir = encode_path(file_path.c_str());
-    status                 = mz_zip_writer_init_file(&zip_archive, export_dir.c_str(), 0);
+    status = mz_zip_writer_init_file(&zip_archive, file_path.c_str(), 0);
     return status;
 }
 
@@ -403,7 +402,7 @@ void ExportPresetBundleDialog::OnExportData(const wxString& path, const wxString
 
         // Add a file to the ZIP file
         std::string printer_config_file_name = "printer/" + printer_file_path.filename().string();
-        status = mz_zip_writer_add_file(&zip_archive, printer_config_file_name.c_str(), encode_path(preset_path.c_str()).c_str(), NULL, 0,
+        status = mz_zip_writer_add_file(&zip_archive, printer_config_file_name.c_str(), preset_path.c_str(), NULL, 0,
                                         MZ_DEFAULT_COMPRESSION);
         if (MZ_FALSE == status) {
             BOOST_LOG_TRIVIAL(info) << printer->name << " Failed to add file to ZIP archive";
@@ -422,7 +421,7 @@ void ExportPresetBundleDialog::OnExportData(const wxString& path, const wxString
             continue;
         }
         std::string filament_config_file_name = "filament/" + filament_file_path.filename().string();
-        status = mz_zip_writer_add_file(&zip_archive, filament_config_file_name.c_str(), encode_path(filament_preset_path.c_str()).c_str(),
+        status = mz_zip_writer_add_file(&zip_archive, filament_config_file_name.c_str(), filament_preset_path.c_str(),
                                         NULL, 0, MZ_DEFAULT_COMPRESSION);
         if (MZ_FALSE == status) {
             BOOST_LOG_TRIVIAL(info) << filament->name << " Failed to add file to ZIP archive";
@@ -443,7 +442,7 @@ void ExportPresetBundleDialog::OnExportData(const wxString& path, const wxString
         }
 
         std::string process_config_file_name = "process/" + process_file_path.filename().string();
-        status = mz_zip_writer_add_file(&zip_archive, process_config_file_name.c_str(), encode_path(process_preset_path.c_str()).c_str(),
+        status = mz_zip_writer_add_file(&zip_archive, process_config_file_name.c_str(), process_preset_path.c_str(),
                                         NULL, 0, MZ_DEFAULT_COMPRESSION);
         if (MZ_FALSE == status) {
             BOOST_LOG_TRIVIAL(info) << process->name << " Failed to add file to ZIP archive";

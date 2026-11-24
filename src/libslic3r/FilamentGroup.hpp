@@ -72,7 +72,7 @@ namespace Slic3r
 
         using MemoryedGroupHeap = std::priority_queue<MemoryedGroup, std::vector<MemoryedGroup>, std::greater<MemoryedGroup>>;
 
-        void update_memoryed_groups(const MemoryedGroup& item,const double gap_threshold, MemoryedGroupHeap& groups);
+        void update_memoryed_groups(const MemoryedGroup& item, const double one_change_budget, const double gap_threshold, MemoryedGroupHeap& groups);
     }
 
     struct FilamentGroupContext
@@ -183,6 +183,9 @@ namespace Slic3r
         std::vector<int> calc_group_by_kmedoids(int k, const std::vector<unsigned int>& used_filaments,
             const std::unordered_map<int, std::vector<int>>& unplaceable_limits, int* cost = nullptr);
 
+        // The cost of one typical filament change, on the evaluate_score scale; sizes the candidate pool
+        double calc_one_change_budget(const std::vector<unsigned int>& used_filaments) const;
+
         std::map<int, int> rebuild_unprintables(const std::vector<unsigned int>& used_filaments, const std::map<int,int>& extruder_unprintables);
         std::unordered_map<int, std::vector<int>> rebuild_nozzle_unprintables(const std::vector<unsigned int>& used_filaments, const std::unordered_map<int, std::vector<int>>& extruder_unprintables, const std::vector<int>& filament_volume_map);
 
@@ -238,6 +241,7 @@ namespace Slic3r
         void set_unplacable_limits(const std::unordered_map<int, std::vector<int>>& unplacable_limits) { m_unplaceable_limits = unplacable_limits; }
 
         void set_memory_threshold(double threshold) { memory_threshold = threshold; }
+        void set_one_change_budget(double budget) { m_one_change_budget = budget; }
         MemoryedGroupHeap get_memoryed_groups()const { return memoryed_groups; }
 
         void do_clustering(const FilamentGroupContext& context, const ClusteringBudget& budget);
@@ -268,6 +272,7 @@ namespace Slic3r
         int m_elem_count;
         int m_default_group_id{ 0 };
         double memory_threshold{ 0 };
+        double m_one_change_budget{ 0 };
     };
 }
 #endif // !FILAMENT_GROUP_HPP

@@ -9,6 +9,7 @@
 #include "libslic3r/MaterialType.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/GCode/AdaptivePAProcessor.hpp"
 #include "Plater.hpp"
 
@@ -174,22 +175,18 @@ void ConfigManipulation::check_nozzle_temperature_initial_layer_range(DynamicPri
     }
 }
 
-void ConfigManipulation::check_adaptive_pressure_advance_model(DynamicPrintConfig* config)
+void ConfigManipulation::check_adaptive_pressure_advance_model(DynamicPrintConfig* config, unsigned int variant_index)
 {
     if (is_msg_dlg_already_exist || !config->has("adaptive_pressure_advance_model"))
         return;
 
     const auto* model = config->option<ConfigOptionStrings>("adaptive_pressure_advance_model");
-    if (model == nullptr)
+    if (model == nullptr || model->values.empty())
         return;
 
-    // Each extruder variant holds its own model.
-    std::string error;
-    for (const std::string& variant_model : model->values) {
-        error = AdaptivePAProcessor::validate_adaptive_pa_model(variant_model);
-        if (!error.empty())
-            break;
-    }
+    // Each extruder variant holds its own model; only the one being edited is checked, the
+    // others may still hold the default placeholder.
+    const std::string error = AdaptivePAProcessor::validate_adaptive_pa_model(model->get_at(variant_index));
     if (!error.empty()) {
         wxString msg_text = _L("Adaptive Pressure Advance model validation failed:\n");
         msg_text += from_u8(error);
@@ -638,13 +635,10 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     }
 
     // BBS
-    // Reset filament overrides pointing at a slot that no longer exists. Support and the wipe
+    // Reset filament overrides pointing at a slot that no longer exists. Support, brim and the wipe
     // tower additionally reject mixed slots: the engine consumes those keys directly, so a virtual
     // slot would reach the G-code unresolved, while the per-feature keys are resolved per layer.
-    static const char* physical_only_keys[] = { "support_filament", "support_interface_filament", "wipe_tower_filament" };
-    static const char* feature_keys[] = { "outer_wall_filament_id", "inner_wall_filament_id",
-                                          "sparse_infill_filament_id", "internal_solid_filament_id",
-                                          "top_surface_filament_id", "bottom_surface_filament_id" };
+    static const char* physical_only_keys[] = { "support_filament", "support_interface_filament", "brim_filament_id", "wipe_tower_filament" };
     auto reset_invalid_filament = [this, config, filament_cnt](const char* key, bool allow_mixed) {
         auto* opt = dynamic_cast<ConfigOptionInt*>(config->option(key, false));
         if (opt == nullptr)
@@ -667,7 +661,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     };
     for (const char* key : physical_only_keys)
         reset_invalid_filament(key, false);
-    for (const char* key : feature_keys)
+    for (const char* key : feature_filament_keys)
         reset_invalid_filament(key, true);
 
     // Sub-layer splitting divides each layer by the mix ratio; an adaptive layer profile makes
@@ -820,7 +814,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     for (auto el : { "extra_perimeters_on_overhangs", "ensure_vertical_shell_thickness", "detect_thin_wall", "detect_overhang_wall",
         "seam_position", "staggered_inner_seams", "wall_sequence", "outer_wall_line_width" })
         toggle_field(el, have_perimeters, -1, wall_loops_reason);
-    for (auto el : { "inner_wall_speed", "outer_wall_speed", "small_perimeter_speed", "small_perimeter_threshold" })
+    for (auto el : { "inner_wall_speed", "outer_wall_speed", "small_perimeter_speed", "small_perimeter_threshold",
+                     "inner_wall_volumetric_flow", "outer_wall_volumetric_flow" })
         toggle_field(el, have_perimeters, variant_index, wall_loops_reason);
 
     bool have_infill = config->option<ConfigOptionPercent>("sparse_infill_density")->value > 0;
@@ -858,6 +853,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // gyroid_optimized only applies when the sparse infill pattern is gyroid without adaptive density;
     // hide the whole line otherwise.
     toggle_line("gyroid_optimized", have_infill && pattern == ipGyroid && !have_adaptive_infill, -1, _L("Select Gyroid infill with nonzero sparse infill density and disable adaptive density to use this setting."));
+    toggle_line("sparse_infill_strategy", have_infill && has_infill_strategy(pattern), -1, _L("Select the Grid, Triangles, Tri-hexagon, Cubic, Quarter Cubic, Adaptive Cubic or Support Cubic sparse infill pattern with nonzero sparse infill density to use this setting."));
 
     // If there is infill, enable/disable fill_multiline according to whether the pattern supports multiline infill.
     if (have_infill) {
@@ -907,7 +903,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool has_bottom_shell = config->opt_int("bottom_shell_layers") > 0;
     const wxString bottom_shell_reason = _L("Set bottom shell layers above zero to use this setting.");
     bool has_solid_infill = has_top_shell_layers || has_bottom_shell;
-    toggle_line("sparse_infill_smooth_factor", have_infill && is_smoothable_infill_pattern(pattern, config->opt_int("fill_multiline")), -1, _L("Use nonzero sparse infill density and an infill pattern and multiline setting that support infill smoothing."));
+    toggle_line("sparse_infill_smooth_factor", have_infill && is_smoothable_infill_pattern(pattern, config->opt_int("fill_multiline"), config->opt_enum<InfillStrategy>("sparse_infill_strategy")), -1, _L("Use nonzero sparse infill density and an infill pattern, multiline and strategy setting that support infill smoothing."));
     toggle_field("top_surface_pattern", has_top_shell, -1, top_shell_reason);
     toggle_field("bottom_surface_pattern", has_bottom_shell, -1, bottom_shell_reason);
     toggle_field("top_surface_density", has_top_shell_layers, -1, top_shell_layers_reason);
@@ -949,7 +945,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         "solid_infill_direction", "solid_infill_rotate_template", "internal_solid_infill_pattern", "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id",
         })
         toggle_field(el, have_infill || has_solid_infill, -1, infill_or_shell_reason);
-    for (auto el : { "sparse_infill_speed", "bridge_speed", "internal_bridge_speed"})
+    for (auto el : { "sparse_infill_speed", "bridge_speed", "internal_bridge_speed",
+                     "sparse_infill_volumetric_flow", "bridge_volumetric_flow", "internal_bridge_volumetric_flow" })
         toggle_field(el, have_infill || has_solid_infill, variant_index, infill_or_shell_reason);
 
     toggle_field("top_shell_thickness", ! has_spiral_vase && has_top_shell_layers, -1, _L("Disable spiral vase mode and set top shell layers above zero to edit top shell thickness."));
@@ -957,9 +954,21 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     // Gap fill is newly allowed in between perimeter lines even for empty infill (see GH #1476).
     toggle_field("gap_infill_speed", have_perimeters, variant_index, wall_loops_reason);
+    toggle_field("gap_infill_volumetric_flow", have_perimeters, variant_index, wall_loops_reason);
     
     toggle_field("top_surface_line_width", has_top_shell, -1, top_shell_reason);
     toggle_field("top_surface_speed", has_top_shell, variant_index, top_shell_reason);
+    toggle_field("top_surface_volumetric_flow", has_top_shell, variant_index, top_shell_reason);
+
+    // Orca: each feature shows either its linear speed or its volumetric alternative.
+    const bool use_volumetric_speeds = config->opt_bool("enable_volumetric_speeds");
+    const wxString linear_speed_reason     = _L("Disable volumetric speeds to use this setting.");
+    const wxString volumetric_speed_reason = _L("Enable volumetric speeds to use this setting.");
+    for (const std::string feature : { "initial_layer", "initial_layer_infill", "outer_wall", "inner_wall", "sparse_infill",
+                                       "internal_solid_infill", "top_surface", "gap_infill", "support", "support_interface", "bridge" }) {
+        toggle_line(feature + "_speed", !use_volumetric_speeds, variant_index, linear_speed_reason);
+        toggle_line(feature + "_volumetric_flow", use_volumetric_speeds, variant_index, volumetric_speed_reason);
+    }
 
     bool have_default_acceleration = config->opt_float_nullable("default_acceleration", variant_index) > 0;
 
@@ -1020,6 +1029,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // configured width, so the width field has to stay live for them too.
     toggle_field("brim_width", have_brim_width || (have_brim && is_belt_tilted), -1, _L("Select a brim type with an editable width, or enable a brim on a tilted belt printer."));
     toggle_field("brim_flow_ratio", have_brim, -1, brim_reason);
+    toggle_field("brim_filament_id", have_brim, -1, brim_reason);
     // Paired toggle_line + toggle_field: cb_toggle_line is null in the per-object
     // override panel, so the row cannot be hidden there and greying out is the
     // fallback.  Both extras are belt-only: one extends the brim ahead along the belt,
@@ -1050,6 +1060,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("brim_ears_outer_only", have_auto_brim_ear || have_painted_brim_ear, -1, _L("Select automatic or painted brim ears on a printer without a tilted belt to use this setting."));
 
     // Hide Elephant foot compensation layers if elefant_foot_compensation is not enabled
+    // xgettext:no-c-format, no-boost-format
     toggle_line("elefant_foot_compensation_layers", config->opt_float("elefant_foot_compensation") > 0 || config->option<ConfigOptionPercent>("elefant_foot_layers_density")->get_abs_value(1.0f) < 1.0f, -1, _L("Enable elephant foot compensation or set elephant foot layer density below 100% to use this setting."));
 
     bool have_raft = config->opt_int("raft_layers") > 0 && !is_belt_printer;
@@ -1225,6 +1236,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("toolchange_cyclic_first_layer", use_cyclic_ordering, -1, cyclic_order_reason);
 
     toggle_line("prime_volume",have_prime_tower && (!purge_in_primetower || !bSEMM), -1, _L("Enable the prime tower and either disable purging in the prime tower or disable single extruder multimaterial mode."));
+    // Orca: the Type 1 tower takes the prime volume of each filament instead.
+    toggle_field("prime_volume", supports_wipe_tower_2, -1, _L("The Type 1 prime tower takes the prime volume from each filament, on its Multimaterial page."));
 
     for (auto el : {"flush_into_infill", "flush_into_support", "flush_into_objects"})
         toggle_field(el, have_prime_tower, -1, _L("Enable the prime tower to use this setting."));
@@ -1352,7 +1365,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     for (auto el : { "lateral_lattice_angle_1", "lateral_lattice_angle_2"})
         toggle_line(el, lattice_options, -1, _L("Select the Lateral Lattice sparse infill pattern to use this setting."));
 
-    bool lightning_options = config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLightning;
+    bool lightning_options = config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLightning && have_infill;
     for (auto el : { "lightning_overhang_angle", "lightning_prune_angle", "lightning_straightening_angle" })
         toggle_line(el, lightning_options, -1, _L("Select the Lightning sparse infill pattern to use this setting."));
         

@@ -41,7 +41,6 @@
 #include <boost/filesystem/file_status.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/exception.hpp>
-#include <boost/locale/encoding_utf.hpp>
 #include <boost/log/detail/native_typeof.hpp>
 #include <cstdint>
 #include <iomanip>
@@ -593,7 +592,7 @@ private:
 #ifdef __linux__
 static void migrate_flatpak_legacy_datadir(const boost::filesystem::path &data_dir_path)
 {
-    if(!boost::filesystem::exists("/.flatpak-info"))
+    if (!is_running_in_flatpak())
         return; // Not running as a Flatpak, nothing to migrate.
     
     namespace fs = boost::filesystem;
@@ -1693,7 +1692,6 @@ int GUI_App::install_plugin(std::string name, std::string package_name, InstallP
                     return InstallStatusUnzipFailed;
                 }
                 auto dest_path = plugin_folder / dest_file;
-                std::string dest_zip_file = encode_path(dest_path.string().c_str());
 #ifndef WIN32
                 // Validate a symlink's target before anything at the destination is replaced.
                 const bool is_link = S_ISLNK(stat.m_external_attr >> 16);
@@ -1749,23 +1747,17 @@ int GUI_App::install_plugin(std::string name, std::string package_name, InstallP
                         }
                     } else {
 #endif
-                        res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
+                        res = extract_zip_entry_to_file(&archive, stat.m_file_index, dest_path);
 #ifndef WIN32
                     }
 #endif
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from plugin zip %2%\n") % dest_file % stat.m_filename;
                     if (res == 0) {
-#ifdef WIN32
-                        std::wstring new_dest_zip_file = boost::locale::conv::utf_to_utf<wchar_t>(dest_path.generic_string());
-                        res                            = mz_zip_reader_extract_to_file_w(&archive, stat.m_file_index, new_dest_zip_file.c_str(), 0);
-#endif
-                        if (res == 0) {
-                            mz_zip_error zip_error = mz_zip_get_last_error(&archive);
-                            BOOST_LOG_TRIVIAL(error) << "[install_plugin]Archive read error:" << mz_zip_get_error_string(zip_error) << std::endl;
-                            close_zip_reader(&archive);
-                            if (pro_fn) { pro_fn(InstallStatusUnzipFailed, 0, cancel); }
-                            return InstallStatusUnzipFailed;
-                        }
+                        mz_zip_error zip_error = mz_zip_get_last_error(&archive);
+                        BOOST_LOG_TRIVIAL(error) << "[install_plugin]Archive read error:" << mz_zip_get_error_string(zip_error) << std::endl;
+                        close_zip_reader(&archive);
+                        if (pro_fn) { pro_fn(InstallStatusUnzipFailed, 0, cancel); }
+                        return InstallStatusUnzipFailed;
                     }
                 }
                 catch (const std::exception& e)
@@ -2349,12 +2341,14 @@ void GUI_App::init_networking_callbacks()
                 if (provider != this->get_printer_cloud_provider()) {
                     return;
                 }
-                m_agent->set_user_selected_machine(m_agent->get_user_selected_machine());
+                if (m_device_manager)
+                    m_device_manager->reselect_cloud_machine();
                 if (this->is_enable_multi_machine()) {
                     auto evt = new wxCommandEvent(EVT_UPDATE_MACHINE_LIST);
                     wxQueueEvent(this, evt);
                 }
-                m_agent->set_user_selected_machine(m_agent->get_user_selected_machine());
+                if (m_device_manager)
+                    m_device_manager->reselect_cloud_machine();
                 if (m_agent->is_user_login(provider)) {
 
                     /*disconnect lan*/
@@ -2420,6 +2414,10 @@ void GUI_App::init_networking_callbacks()
                     if (is_closing()) {
                         return;
                     }
+                    // Orca: ends the connect a selection started; with the selection logs this shows
+                    // whether a later selection landed while that connect was in flight.
+                    BOOST_LOG_TRIVIAL(info) << "local connect result: dev_id=" << dev_id << ", state=" << state
+                                            << ", msg=" << msg;
                     /* request_pushing */
                     MachineObject* obj = m_device_manager->get_my_machine(dev_id);
                     wxCommandEvent event(EVT_CONNECT_LAN_MODE_PRINT);
@@ -3658,9 +3656,10 @@ bool GUI_App::on_init_inner()
 
     if (m_agent && m_agent->is_user_login()) {
         enable_user_preset_folder(true);
-        plugin_mgr.set_cloud_user(m_agent->get_user_id());
+        const std::string cloud_user_id = m_agent->get_user_id();
+        plugin_mgr.set_cloud_user(cloud_user_id);
         // Sync cloud plugin metadata off the UI thread; the network round trips took ~2 s of startup.
-        m_startup_cloud_plugin_fetch_thread = Slic3r::create_thread([this] {
+        m_startup_cloud_plugin_fetch_thread = Slic3r::create_thread([this, cloud_user_id] {
             std::vector<std::string> not_found, unauthorized;
             try {
                 PluginManager::instance().fetch_plugins_from_cloud(&not_found, &unauthorized);
@@ -3671,14 +3670,15 @@ bool GUI_App::on_init_inner()
                 BOOST_LOG_TRIVIAL(error) << "Startup cloud plugin fetch failed";
                 return;
             }
-            auto report = [this, not_found = std::move(not_found), unauthorized = std::move(unauthorized)] {
+            auto report = [this, cloud_user_id, not_found = std::move(not_found), unauthorized = std::move(unauthorized)] {
                 if (is_closing())
                     return;
                 if (m_plugins_dlg)
                     m_plugins_dlg->update_plugin_dialog_ui();
                 Plater* plater = this->plater();
-                if (plater == nullptr || m_agent == nullptr || !m_agent->is_user_login())
-                    return; // logged out meanwhile
+                if (plater == nullptr || m_agent == nullptr || !m_agent->is_user_login() ||
+                    m_agent->get_user_id() != cloud_user_id)
+                    return; // logged out or switched account meanwhile
                 for (const auto& uuid : not_found) {
                     plater->get_notification_manager()->push_notification(
                         NotificationType::CustomNotification,
@@ -3690,6 +3690,20 @@ bool GUI_App::on_init_inner()
                         NotificationType::CustomNotification,
                         NotificationManager::NotificationLevel::RegularNotificationLevel,
                         format(_L("Plugin %s access is unauthorized."), uuid));
+                }
+
+                // If the fetch finished before the plater existed, PluginManager could not deliver
+                // its update notice. Deliver it here from post_init(). update_available is only set
+                // by a successful fetch, so this remains success-only, and reading it now keeps the
+                // notice fresh if updates were installed while the report was deferred.
+                NotificationManager* notifications = plater->get_notification_manager();
+                if (notifications != nullptr &&
+                    !notifications->has_notification_of_type(NotificationType::OrcaCloudPluginUpdateAvailable)) {
+                    const std::vector<PluginDescriptor> descriptors = PluginManager::instance().get_plugin_descriptors();
+                    const bool has_update = std::any_of(descriptors.begin(), descriptors.end(),
+                                                        [](const PluginDescriptor& descriptor) { return descriptor.has_update_available(); });
+                    if (has_update)
+                        notifications->push_notification(NotificationType::OrcaCloudPluginUpdateAvailable);
                 }
             };
             // This can run in a splash wxYield() before the main window exists.
@@ -4308,7 +4322,11 @@ void GUI_App::set_live_printer_agent(std::shared_ptr<IPrinterAgent> agent)
     // a standalone helper. Pass nullptr to clear the selection.
     if (DeviceManager* dev = getDeviceManager())
     {
+        // why: the swap tears the connection down, it is not the user leaving that printer, so it
+        // stays remembered under the outgoing agent and reconnects when that agent is live again
+        const std::string last_machine = dev->get_user_last_machine();
         dev->set_selected_machine(""); // why: empty id disconnects and deselects the current machine
+        dev->record_user_last_machine(last_machine);
         m_agent->set_user_selected_machine("");
         // note: belt-and-suspenders (precedent: DeviceManagerRefresher::on_timer)
         dev->OnSelectedMachineLost(); // why: clear stale sidebar sync-status / AMS
@@ -4318,7 +4336,9 @@ void GUI_App::set_live_printer_agent(std::shared_ptr<IPrinterAgent> agent)
     }
 
     m_agent->set_printer_agent(agent);
-    sidebar().update_all_preset_comboboxes();
+    // Before mainframe is shown this runs from load_current_presets(), right after
+    // printer refilled the filament combos; no printer is connected yet, so they would not change
+    sidebar().update_all_preset_comboboxes(mainframe == nullptr || mainframe->IsShown());
 }
 
 std::string GUI_App::resolve_printer_agent_id(const std::string& stored_id) const
@@ -4430,14 +4450,17 @@ void GUI_App::switch_printer_agent_if_pending()
 
 void GUI_App::select_machine(const std::string& agent_id)
 {
-    // Skip for BBL agent for now - uses its own device discovery/selection
-    // Orca todo: revisit in future if we want to support auto-switching for BBL printers
-    if (agent_id == BBL_PRINTER_AGENT_ID) {
+    if (!m_device_manager || !preset_bundle) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": no device manager or preset bundle";
         return;
     }
 
-    if (!m_device_manager || !preset_bundle) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": no device manager or preset bundle";
+    // Orca: Bambu printers are not tied to the preset's print_host. Reconnect the one the user last
+    // selected, as BambuStudio does at startup: a saved LAN printer now, a cloud printer once the
+    // account's machine list arrives. Directly, not through the Device tab's selection flow, which
+    // would also queue a nozzle sync for the next visit to Prepare.
+    if (agent_id == BBL_PRINTER_AGENT_ID) {
+        m_device_manager->restore_last_machine();
         return;
     }
 
@@ -4490,14 +4513,21 @@ void GUI_App::select_machine(const std::string& agent_id)
         }
     }
 
-    // If machine doesn't exist, create it first
-    if (!existing) {
+    // Orca: the print dialog blocks a printer whose type differs from the preset's model id, so the
+    // type must be that id, not the model name. A model no vendor profile lists has no id; the
+    // dialog accepts any printer then, and the name stays.
+    const std::string model_id = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
+
+    // If machine doesn't exist, create it first. The Orca agent never connects, so an entry saved
+    // under it holds no binding; re-insert it for the active agent, whose machine list can't see
+    // it otherwise. Entries bound by any other agent stay with that agent.
+    if (!existing || (existing->printer_agent_id == ORCA_PRINTER_AGENT_ID && agent_id != ORCA_PRINTER_AGENT_ID)) {
         BBLocalMachine machine;
         machine.dev_id = dev_id;
         // We use dev_id as dev_ip to store the address (host:port)
         machine.dev_ip = dev_id;
         machine.dev_name = dev_id;
-        machine.printer_type = preset.config.opt_string("printer_model");
+        machine.printer_type = model_id.empty() ? preset.config.opt_string("printer_model") : model_id;
 
         existing = m_device_manager->insert_local_device(
             machine, "lan", "free", "", access_code);
@@ -4506,10 +4536,15 @@ void GUI_App::select_machine(const std::string& agent_id)
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to create machine dev_id=" << dev_id;
             return;
         }
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": created new machine dev_id=" << dev_id;
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": created or adopted machine dev_id=" << dev_id;
     } else if (agent_id == MOONRAKER_PRINTER_AGENT_ID && existing->printer_agent_id == agent_id &&
                (!existing->has_access_right() || existing->get_access_code() != access_code)) {
         existing->set_access_code(access_code);
+    }
+    // Entries saved before held the model name; this printer's preset gives the id to repair them.
+    if (!model_id.empty() && existing->printer_agent_id == agent_id && existing->printer_type != model_id) {
+        existing->printer_type = model_id;
+        DeviceManager::update_local_machine(*existing, app_config);
     }
     existing->local_use_ssl = boost::istarts_with(print_host, "https://");
     select_dev(dev_id);
@@ -5251,12 +5286,12 @@ void GUI_App::persist_window_geometry(wxTopLevelWindow *window, bool default_max
     const std::string name = into_u8(window->GetName());
 
     window->Bind(wxEVT_CLOSE_WINDOW, [=](wxCloseEvent &event) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< ": received wxEVT_CLOSE_WINDOW, trigger save for window_mainframe";
-        window_pos_save(window, "mainframe");
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": received wxEVT_CLOSE_WINDOW, trigger save for window_" << name;
+        window_pos_save(window, name);
         event.Skip();
     });
 
-    if (window_pos_restore(window, "mainframe", default_maximized)) {
+    if (window_pos_restore(window, name, default_maximized)) {
         on_window_geometry(window, [=]() {
             window_pos_sanitize(window);
         });
@@ -9015,6 +9050,17 @@ void GUI_App::open_plugins_dialog(size_t open_on_tab, const std::string& highlig
     }
 }
 
+void GUI_App::notify_plugin_permissions_changed(const std::string& plugin_key)
+{
+    // The dialog owns its webview and clears m_plugins_dlg from its destroy handler, so check the
+    // pointer here on the GUI thread rather than capturing it in an asynchronous callback.
+    if (is_closing() || m_plugins_dlg == nullptr)
+        return;
+
+    BOOST_LOG_TRIVIAL(debug) << "Plugins dialog refresh after a stored permission change for " << plugin_key;
+    m_plugins_dlg->refresh_permissions_if_visible();
+}
+
 void GUI_App::refresh_plugins()
 {
     // The metadata refresh blocks on disc discovery and a cloud round-trip, so run it on a worker
@@ -9144,7 +9190,8 @@ void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_
     static constexpr const char* opengl_render_setting_keys[] = {
         SETTING_OPENGL_FXAA_ENABLED, SETTING_OPENGL_FPS_CAP, SETTING_OPENGL_SHOW_FPS_OVERLAY, SETTING_OPENGL_SHOW_RENDER_TIMINGS,
         SETTING_OPENGL_SCENE_CACHE, SETTING_OPENGL_SKIP_IDENTICAL_FRAMES, SETTING_OPENGL_REALISTIC_SHADOWS,
-        SETTING_OPENGL_REALISTIC_GLOSS
+        SETTING_OPENGL_REALISTIC_GLOSS, SETTING_OPENGL_OUTLINE_PERSISTENT, SETTING_OPENGL_OUTLINE_COLOR,
+        SETTING_OPENGL_SELECTION_OUTLINE_COLOR
     };
     std::vector<std::string> previous_opengl_render_settings;
     for (const char* key : opengl_render_setting_keys)
@@ -9586,6 +9633,11 @@ void GUI_App::MacOpenURL(const wxString& url)
 {
     if (url.empty())
         return;
+    // A cold launch delivers the URL before post_init, so open it there like a command-line URL.
+    if (!m_post_initialized) {
+        init_params->input_files = { into_u8(url) };
+        return;
+    }
     start_download(into_u8(url));
 }
 
@@ -10089,19 +10141,34 @@ bool GUI_App::window_pos_restore(wxTopLevelWindow* window, const std::string &na
     }
 
     const wxRect& rect = metrics->get_rect();
+    const bool    maximized = metrics->get_maximized();
 #if defined(__WXGTK__)
+    const bool on_x11 = !Slic3r::GUI::is_running_on_wayland();
     // On Wayland, SetPosition() is a no-op for top-level windows.
-    // Only restore size and maximize state.
-    if (!Slic3r::GUI::is_running_on_wayland())
+    if (on_x11)
+#else
+    constexpr bool on_x11 = false;
 #endif
         window->SetPosition(rect.GetPosition());
-    window->SetSize(rect.GetSize());
-    window->Maximize(metrics->get_maximized());
+    // The rect saved for a maximized window is the maximized one. On X11 an
+    // undecorated window that resizes itself to exactly the monitor rect is turned
+    // into a fullscreen window by Mutter based WMs; the other ports need the resize
+    // to give Restore Down the saved normal size. #17191
+    if (! on_x11 || ! maximized)
+        window->SetSize(rect.GetSize());
+    window->Maximize(maximized);
     return true;
 }
 
 void GUI_App::window_pos_sanitize(wxTopLevelWindow* window)
 {
+#if defined(__WXGTK__)
+    // On X11, moving or resizing a maximized or fullscreen window is read as a
+    // fullscreen request by Mutter based WMs. #17191
+    if (!Slic3r::GUI::is_running_on_wayland() && (window->IsMaximized() || window->IsFullScreen()))
+        return;
+#endif
+
     /*unsigned*/int display_idx = wxDisplay::GetFromWindow(window);
     wxRect display;
     if (display_idx == wxNOT_FOUND) {

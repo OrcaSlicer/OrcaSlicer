@@ -146,6 +146,7 @@ void FillPlanePath::_fill_surface_single(
 
     if (polyline.size() >= 2) {
         polylines = intersection_pl(std::move(polylines), expolygon);
+        join_cut_outlines(polylines, params);
         if (!polylines.empty()) {
             Polylines chained;
             if (params.dont_connect() || params.density > 0.5) {
@@ -343,7 +344,8 @@ template<typename GenerateFn>
 static void generate_path(InfillPolylineOutput &output, const FillParams &params, const double resolution, GenerateFn generate)
 {
     // The path runs in units of the line spacing, as the resolution passed in does.
-    const CornerSmoothing smoothing{ params.smooth_factor, resolution };
+    const double          unit = unscaled(output.scale_out());
+    const CornerSmoothing smoothing{ params.smooth_factor, corner_smoothing_tolerance(resolution * unit) / unit };
     auto run = [&smoothing, &generate](auto &out) {
         if (sanitize_smooth_factor(smoothing.factor) == 0.) {
             generate(out);

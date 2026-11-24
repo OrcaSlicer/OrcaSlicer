@@ -79,10 +79,13 @@ DistanceField::DistanceField(const coord_t& radius, const Polygons& current_outl
                     }
                 }
                 self.m_unsupported_points[unsupported_points_prev_size + sp_idx] = {sp, coord_t(std::sqrt(d2))};
-                assert(self.m_unsupported_points_bbox.contains(sp));
             }
         }); // end of parallel_for
     }
+    // Orca: Samples of the opened overhang can lie past the outlines, and generateNewTrees() never ends unless update()
+    // can erase every sample, which it does only inside this box.
+    for (const UnsupportedCell &cell : m_unsupported_points)
+        m_unsupported_points_bbox.merge(cell.loc);
     std::stable_sort(m_unsupported_points.begin(), m_unsupported_points.end(), [&radius](const UnsupportedCell &a, const UnsupportedCell &b) {
         constexpr coord_t prime_for_hash = 191;
         return std::abs(b.dist_to_boundary - a.dist_to_boundary) > radius ?
