@@ -395,12 +395,20 @@ int MoonrakerPrinterAgent::bind_detect(std::string dev_ip, std::string sec_link,
 {
     (void) sec_link;
 
-    detect.dev_id   = device_info.dev_id.empty() ? dev_ip : device_info.dev_id;
-    detect.model_id = device_info.model_id.empty() ? device_info.model_name : device_info.model_id;
-    // Prefer fetched hostname, then preset model name, then generic fallback
-    detect.dev_name     = device_info.dev_name.empty() ? dev_ip : device_info.dev_name;
-    detect.model_id     = device_info.model_id;
-    detect.version      = device_info.version;
+    // The binding target is the address the user entered. device_info may still describe the
+    // printer the agent was connected to before, so its identity must not be used for another
+    // address. Split it the way the input dialog stores the print host and port, then derive
+    // the dev_id the same way GUI_App::select_machine does.
+    std::string port;
+    std::string host = Http::get_host_from_url(dev_ip, &port);
+    if (host.empty())
+        host = dev_ip;
+    const std::string dev_id = MachineObject::dev_id_from_address(host, port);
+
+    detect.dev_id       = dev_id;
+    detect.dev_name     = dev_id;
+    detect.model_id.clear();
+    detect.version.clear();
     detect.connect_type = "lan";
     detect.bind_state   = "free";
 
