@@ -343,12 +343,6 @@ private:
 // custom message the model sends to associated control to notify a last volume deleted from the object:
 wxDECLARE_EVENT(wxCUSTOMEVT_LAST_VOLUME_IS_DELETED, wxCommandEvent);
 
-// An object row's model object (`row_object`), or null once the model no longer holds it. The list deletes
-// the model object before the row, and removes the row's part rows one by one; on macOS each one makes the
-// outline reload the object row at once, while its model object is already freed. Compares pointers only,
-// so a freed one is never read.
-const ModelObject* live_model_object(const ModelObject* row_object, const std::vector<ModelObject*>& model_objects);
-
 class ObjectDataViewModel :public wxDataViewModel
 {
     std::vector<ObjectDataViewModelNode*>       m_plates;
@@ -374,6 +368,9 @@ public:
     ~ObjectDataViewModel();
 
     void Init();
+    // `row_object` while `model_objects` holds it, else null. A delete frees the model object before its row
+    // goes, and macOS reads the row in between; compares pointers only, so a freed one is never read.
+    static const ModelObject* live_model_object(const ModelObject* row_object, const std::vector<ModelObject*>& model_objects);
     std::map<int, std::map<int, int>> &get_ui_and_3d_volume_map() { return m_ui_and_3d_volume_maps; }
     int   get_real_volume_index_in_3d(int ui_object_value, int ui_volume_value)
     {

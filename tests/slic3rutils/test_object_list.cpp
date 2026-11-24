@@ -201,9 +201,6 @@ TEST_CASE("A part that repeats the object's filament has no settings of its own"
     CHECK(object->hides_imported_parts() == !c.individual);
 }
 
-// The list deletes an object's model object first and its row after, part rows one by one. On macOS each part
-// row's change makes the outline reload the object row at once, and its child order read the freed object:
-// deleting or merging the parts of a multi-part object crashed.
 TEST_CASE("An object row reads its model object only while the model still holds it", "[ObjectList]")
 {
     Model model;
@@ -212,7 +209,7 @@ TEST_CASE("An object row reads its model object only while the model still holds
     Model other;
     const ModelObject* elsewhere = other.add_object();
 
-    CHECK(live_model_object(held, model.objects) == held);
-    CHECK(live_model_object(elsewhere, model.objects) == nullptr);
-    CHECK(live_model_object(nullptr, model.objects) == nullptr);
+    CHECK(ObjectDataViewModel::live_model_object(held, model.objects) == held);
+    CHECK(ObjectDataViewModel::live_model_object(elsewhere, model.objects) == nullptr);
+    CHECK(ObjectDataViewModel::live_model_object(nullptr, model.objects) == nullptr);
 }

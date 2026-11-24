@@ -2092,7 +2092,7 @@ bool ObjectDataViewModel::IsContainer(const wxDataViewItem &item) const
 	return node->IsContainer();
 }
 
-const ModelObject* live_model_object(const ModelObject* row_object, const std::vector<ModelObject*>& model_objects)
+const ModelObject* ObjectDataViewModel::live_model_object(const ModelObject* row_object, const std::vector<ModelObject*>& model_objects)
 {
     if (row_object == nullptr)
         return nullptr;
@@ -2126,8 +2126,6 @@ unsigned int ObjectDataViewModel::GetChildren(const wxDataViewItem &parent, wxDa
     std::vector<ObjectDataViewModelNode*> children;
     for (auto* child : node->GetChildren())
         children.push_back(child);
-    // Only while the model still holds the row's object: a delete frees it before the row goes, and on
-    // macOS the outline asks for the row's children in between (live_model_object).
     const ModelObject* live_object = node->m_type == itObject ? live_model_object(node->m_model_object, wxGetApp().model().objects) : nullptr;
     if (live_object != nullptr) {
         const ModelObject& object = *live_object;
