@@ -3744,9 +3744,8 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
 
     PlaterPresetComboBox* combobox = (*combo);
     edit_btn->Bind(wxEVT_BUTTON, [this, edit_btn, combobox, filament_idx](wxCommandEvent) {
-        bool single_or_bbl     = should_show_SEMM_buttons();
         bool is_multi_material = p->combos_filament.size() > 1;
-        if(single_or_bbl && is_multi_material) {
+        if(is_multi_material) {
            // MULTI MATERIAL Show menu
             auto menu = p->plater->filament_action_menu(filament_idx);
             wxPoint pt { 0, edit_btn->GetSize().GetHeight() + FromDIP(2) };
@@ -3756,7 +3755,7 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
             p->plater->PopupMenu(menu, (int) pt.x, pt.y);
         }
         else {
-            // SINGLE MATERIAL / MULTI EXTRUDER / TOOLCHANGER / IDEX Opens Dialog directly
+            // SINGLE MATERIAL Opens Dialog directly
             // -1 first, like Sidebar::edit_filament(): switch_to_tab() can run select_preset(),
             // whose on_presets_changed() cascade would otherwise write into this slot mid-switch.
             p->editing_filament = -1;
@@ -6636,20 +6635,20 @@ void Sidebar::show_SEMM_buttons()
         return;
     
     bool is_multi_material = p->combos_filament.size() > 1;
-    bool single_or_bbl     = should_show_SEMM_buttons();
-    bool is_single = single_or_bbl && !is_multi_material; // SINGLE EXTRUDER / BBL WITH 1 MATERIAL
-    bool is_multi  = single_or_bbl && is_multi_material;  // MULTI MATERIAL WITH SINGLE EXTRUDER
-    bool is_fixed  = !is_single && !is_multi;             // MULTI EXTRUDER / TOOLCHANGER / IDEX WITH FIXED MATERIAL
+    // Flushing volumes only apply to single-extruder multi-material (SEMM) and BBL printers.
+    bool is_seMM_multi = should_show_SEMM_buttons() && is_multi_material;
 
-    p->m_bpButton_add_filament->Show(single_or_bbl);
-    p->m_bpButton_del_filament->Show(is_multi);
-    p->m_flushing_volume_btn->Show(  is_multi);
+    // Filament slots can be added and removed for every printer; the add/delete paths
+    // enforce the >= 1 and MAXIMUM_EXTRUDER_NUMBER bounds themselves.
+    p->m_bpButton_add_filament->Show(true);
+    p->m_bpButton_del_filament->Show(is_multi_material);
+    p->m_flushing_volume_btn->Show(  is_seMM_multi);
 
-    if (is_multi) {
+    if (is_multi_material) {
         for (auto &c : p->combos_filament)
             c->edit_btn->SetBitmap_("menu_filament");
     }
-    else if (is_single || is_fixed) {
+    else {
         for (auto &c : p->combos_filament)
             c->edit_btn->SetBitmap_("edit");
     }
