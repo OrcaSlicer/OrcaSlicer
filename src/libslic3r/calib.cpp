@@ -657,6 +657,11 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
     std::stringstream gcode;
     gcode << "; start pressure advance pattern for layer\n";
 
+    // The pattern is emitted as custom G-code, so the G-code processor would otherwise reuse the forced width left behind by the last sliced path, which after the initial layer is the initial layer line width. Declare the width of every group of lines explicitly.
+    auto append_width_tag = [&gcode](double width) {
+        gcode << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Width) << width << "\n";
+    };
+
         refresh_setup(config, is_bbl_machine, object, origin);
 
     gcode << move_to(Vec2d(m_starting_point.x(), m_starting_point.y()), *m_writer, "Move to start XY position");
@@ -665,6 +670,7 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
 
     const DrawBoxOptArgs default_box_opt_args(wall_count(), height_first_layer(), line_width_first_layer(),
                                               speed_adjust(speed_first_layer()));
+    append_width_tag(line_width_first_layer());
 
     // create anchoring frame
     //pattern uses outer wall speed/width
@@ -680,6 +686,9 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
     gcode << draw_box(*m_writer, m_starting_point.x(), m_starting_point.y() + frame_size_y() + line_spacing_first_layer(),
                       print_size_x(),
                       max_numbering_height() + line_spacing_first_layer() + m_glyph_padding_vertical * 2, draw_box_opt_args);
+
+    // The pattern lines, including the number glyphs, use the regular line width on every layer.
+    append_width_tag(line_width());
 
     std::vector<CustomGCode::Item> gcode_items;
     const int                      num_patterns = get_num_patterns(); // "cache" for use in loops
@@ -707,6 +716,7 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
 
             gcode << m_writer->travel_to_z(layer_height, "Move to layer height");
             gcode << m_writer->reset_e();
+            append_width_tag(line_width());
         }
 
         // line numbering
