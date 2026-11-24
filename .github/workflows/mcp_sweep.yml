@@ -86,9 +86,9 @@ jobs:
           {
             echo "## MCP sweep"
             echo '```'
-            # The failures, the tests that passed only alone, any crash report,
-            # and the closing count
-            grep -E "^FAIL |failed beside the others|^crash report: | passed \(.* alone\)" \
+            # Each failed run, beside the others and then alone, the failures'
+            # logs, any crash report, and the closing count
+            grep -E "^[^ ]+ +(FAIL \(|passed alone)|^FAIL |^crash report: | passed \(.* alone\)" \
               "$RUNNER_TEMP/mcp-sweep.log" || echo "no result lines, see the log"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"

@@ -170,7 +170,10 @@ a cube's face.
 From row 17 the table gives `painted.texture`, its layers in order, each as `slot name painted`, with `?` for a name
 the scenario does not fix and `>0` for painted facets a stroke gives. A stroke is a drag from a spot through a
 waypoint to a point of the cube's part frame. The panel names each closed layer's row by its place in the list,
-"Layer 1" for the first; the open layer's card has no such row.
+"Layer 1" for the first; the open layer's card has no such row. The panel takes the canvas's right part and,
+once a card is open, reaches over the front face of a cube fitted to the canvas, whose width follows the
+sidebar's and so the system's UI font; row 17 looks at a point to the cube's right on screen at 12 px/mm, which
+keeps the cube in the canvas's left half on any canvas.
 
 `H` is the name the imported height map takes, the stem of the file the import writes into the data folder's texture
 library: `heightmap`, or `heightmap (n)` with n from 2 when the library already holds `heightmap.png`, which an
@@ -200,7 +203,7 @@ own first copy.
 | 14 | Color Painting opened, `{imgui_name: "extruder_color_2"}` clicked, Fill, a click at `{spot: "front"}` | as after 11, mmu {2: 2} | |
 | 15 | `undo` | as after 11 | |
 | 16 | `redo`, then Done | as after 14 | no texture layer |
-| 17 | Texture Displacement opened | layers `0 ? 0` | the gizmo gives a part without layers one layer in slot 0, though the part has other painting |
+| 17 | Texture Displacement opened, then `view_set {look_at: [108, 92, 10], zoom: 12}` | layers `0 ? 0` | the gizmo gives a part without layers one layer in slot 0, though the part has other painting |
 | 18 | `gizmo_pick_file {action: "texture_import", path: heightmap.png}` | `0 H 0` | `depth_mm` 0.4 (the default) |
 | 19 | `widget_click {target: {imgui_name: "add_layer"}}` | `0 H 0` · `1 ? 0` | |
 | 20 | a stroke from `{spot: "top"}` through `[6, 0, 10]` to `[6, 6, 10]`, then idle | `0 H 0` · `1 ? >0` | the new layer, slot 1, is the active one, and a stroke paints only the active layer |

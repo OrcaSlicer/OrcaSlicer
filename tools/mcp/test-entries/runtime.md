@@ -104,7 +104,9 @@ lists exactly the tests on disk.
 
 **Starts from:** No app. Each check that writes makes its own folder under the temporary folder. Each stand-in sweep
 runs `main()` with `mcp_dir` set to a folder of its own that holds its `sweep.json` and its scripts, and with
-`--out` and `--history` in that folder, so it never reads the person's history file. The stand-in app sweep's
+`--out` and `--history` in that folder, so it never reads the person's history file. On Linux, a session with no X
+display, as on a CI runner, gets a placeholder `DISPLAY` while each stand-in sweep runs, since `main()` asks for one
+on the desktop backend and the stand-ins open no window. The stand-in app sweep's
 `--bin` is the Python that runs the test, and the longest `--out` the runner takes on Windows is set to the
 length of its `--out` while it runs, since the stand-in app copies no profiles.
 

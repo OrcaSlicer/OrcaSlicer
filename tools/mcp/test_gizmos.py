@@ -601,6 +601,10 @@ class GizmosTest:
         self.painted(f"{s} 16", color)
         # Texture Displacement on the same part, still selected, which has painting and no texture layer.
         self.open(f"{s} 17", "Texture Displacement")
+        # The panel takes the canvas's right part and, once a layer's card is open, reaches over the front face of a
+        # cube fitted to the canvas, whose width follows the sidebar's and so the system's UI font. Looking at a point
+        # to the cube's right on screen, at a set zoom, keeps the cube in the canvas's left half on any canvas.
+        self.run("view_set", look_at=[108, 92, 10], zoom=12)
         self.texture(f"{s} 17: one layer in slot 0", layers("0 ? 0"))
         self.run("gizmo_pick_file", action="texture_import", path=HEIGHTMAP)
         self.texture(f"{s} 18", layers("0 H 0"), depth=0.4)

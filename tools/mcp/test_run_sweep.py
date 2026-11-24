@@ -32,6 +32,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import run_sweep  # noqa: E402
@@ -436,9 +437,12 @@ def stand_in_folder(root):
 
 
 def sweep(mcp_dir, *argv):
-    """main() on the stand-in folder: its exit code and what it printed."""
+    """main() on the stand-in folder: its exit code and what it printed. On the desktop backend main() asks the session
+    for an X display, which a CI runner's has none of; the stand-ins open no window, so a placeholder serves."""
     printed = io.StringIO()
-    with contextlib.redirect_stdout(printed), contextlib.redirect_stderr(printed):
+    display = {"DISPLAY": ":0"} if sys.platform.startswith("linux") and not os.environ.get("DISPLAY") else {}
+    with mock.patch.dict(os.environ, display), contextlib.redirect_stdout(printed), \
+            contextlib.redirect_stderr(printed):
         code = run_sweep.main(list(argv), mcp_dir=mcp_dir)
     return code, printed.getvalue()
 
