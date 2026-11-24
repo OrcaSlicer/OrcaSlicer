@@ -11,6 +11,7 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Print.hpp"
+#include <cstring>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -1340,14 +1341,19 @@ TEST_CASE("Smooth timelapse prints each tower layer's wall once when a layer joi
     CHECK(count_joined_layers(print) > 0);
 }
 
-// A tool change on the wipe tower travels to the tower with a Z hop, and which hop it is depends on
-// the writer tracking the head: GCode.cpp:1721 resolves the configured z_hop_types only while
-// is_current_position_clear() holds, and the per-layer timelapse block is inserted just before the
-// tower tool change (GCode.cpp:7561, then :7564). At the tower, GCode.cpp:1716-1735 emits the lift, an
-// optional gap travel, the travel to the tower start point, and an unretract that moves in E only,
-// before the region tags. A spiral lift reaches the writer as a G2/G3 arc (arc fitting on) or as
-// linear XY+Z segments (arc fitting off); both merge the lift into the travel, which needs a known
-// position. A standing hop is a Z-only move followed by a plain XY travel.
+// A tool change on the wipe tower travels to the tower with a Z hop. There are two implementations:
+// a Type 1 tower (every BBL printer, Print.hpp:1382) is emitted by WipeTowerIntegration::append_tcr
+// (GCode.cpp:1082), a Type 2 tower by append_tcr2, whose lift choice at GCode.cpp:1721 resolves the
+// configured z_hop_types only while the writer tracks the head. The per-layer timelapse block runs
+// just before the tower tool change (GCode.cpp:7561, then :7564), so the flag is reachable from both.
+// At the entry, GCode.cpp:1716-1735 (and append_tcr) emit the lift, an optional gap travel, the travel
+// to the tower start point, and an unretract that moves in E only, before the region tags.
+//
+// The entry travel descends to the tower's layer, and a descending travel cannot merge a lift into
+// itself: GCodeWriter.cpp:1019 gates both the spiral and the slope shape on delta(2) > 0. The shape
+// therefore comes from GCodeWriter.cpp:1126, which moves XY first and Z after - for a head position
+// that is untracked, and equally for a tracked one coming down from a lift (descend_after_xy,
+// GCodeWriter.cpp:1109). That convergence is what the tower cases below pin, per tower type.
 
 namespace {
 
@@ -1487,9 +1493,10 @@ std::string tower_hop_fixture()
 }
 
 // Walls with filament 2, infill with filament 1: the head returns to the prime tower on every layer.
-// Spiral lift with a finite slope, so a known head position merges the lift into the entry travel and
-// an unknown one falls back to the standing hop; the two shapes are how the tests read the flag.
-DynamicPrintConfig tower_hop_config(const std::string & time_lapse_gcode)
+// Spiral lift with a finite slope, so a merged lift is what a known head position would produce on a
+// travel that can carry one; the tower entry travel descends, so it cannot, and the shapes below are
+// the standing hop.
+DynamicPrintConfig tower_hop_config(const std::string & time_lapse_gcode, const char * tower_type)
 {
     return multifilament_config(2, {
         { "sparse_infill_filament_id",  1 },
@@ -1499,6 +1506,7 @@ DynamicPrintConfig tower_hop_config(const std::string & time_lapse_gcode)
         { "outer_wall_filament_id",     2 },
         { "inner_wall_filament_id",     2 },
         { "enable_prime_tower",         true },
+        { "wipe_tower_type",            tower_type }, // "type1" (BBL) or "type2"
         { "wipe_tower_x",               50 }, // inside the 200x200 test bed
         { "wipe_tower_y",               50 }, // (the default y, 220, is not)
         { "layer_height",               0.3 },
@@ -1516,15 +1524,16 @@ struct TowerSlice {
     size_t    tags   = 0; // tower entries the tags mark
 };
 
-// The tower of a multifilament print, sliced with a machine that inserts the per-layer block.
-TowerSlice slice_tower(const std::string & time_lapse_gcode, const std::string & marker)
+// The tower of a multifilament print, sliced with a machine that inserts the per-layer block. Type 1
+// is the BBL implementation (Print.hpp:1382 forces it for a BBL printer), Type 2 the append_tcr2 one.
+TowerSlice slice_tower(const std::string & time_lapse_gcode, const std::string & marker, const char * tower_type)
 {
-    const DynamicPrintConfig config = tower_hop_config(time_lapse_gcode);
+    const DynamicPrintConfig config = tower_hop_config(time_lapse_gcode, tower_type);
     Print                    print;
     Model                    model;
     init_print({ cube(10) }, print, model, config);
     print.apply(model, config);
-    print.is_BBL_printer() = true;
+    print.is_BBL_printer() = strcmp(tower_type, "type1") == 0;
 
     const std::string g = gcode(print);
     TowerSlice        out;
@@ -1560,17 +1569,18 @@ TEST_CASE("The tower hop probe separates a merged lift from a standing hop", "[W
     CHECK(hops.lifted() + hops.plain_xy + hops.no_move == hops.entries);
 }
 
-TEST_CASE("A tower tool change is entered with a standing hop for an inert and for a moving per-layer block", "[WipeTower][GCode]")
+TEST_CASE("A Type 1 tower entry is a standing hop for an inert and for a moving per-layer block", "[WipeTower][GCode]")
 {
-    // The tower hop reads the writer position (GCode.cpp:1721) and the per-layer block is inserted just
-    // before the tower tool change, so this consumer is downstream of the insertion. It is still entered
-    // with a standing hop on both blocks: the tool-change path clears the position for the custom
-    // change_filament_gcode it inserts (GCode.cpp:1464), and that clear is unconditional and upstream of
-    // the lift choice. Pinning the shape here keeps a future change to either clear visible.
+    // Type 1 (BBL) path: append_tcr (GCode.cpp:1082) retracts eagerly with the configured lift type
+    // (GCode.cpp:1189-1197) and then travels to the tower start point. That travel descends, so the
+    // merged spiral and slope shapes are gated out by GCodeWriter.cpp:1019, and GCodeWriter.cpp:1126
+    // emits XY-then-Z both for an untracked head and for a tracked one coming down from a lift
+    // (descend_after_xy, :1109). The head position therefore decides nothing for this travel, and the
+    // equality of the two blocks is the shape rule, not an absence of Z motion: 16 entries carry a hop.
     const TowerSlice inert =
-        slice_tower("; take a photo\nM1002 judge_flag timelapse_record_flag\nM400 P300\n", "M400 P300");
+        slice_tower("; take a photo\nM1002 judge_flag timelapse_record_flag\nM400 P300\n", "M400 P300", "type1");
     const TowerSlice moved =
-        slice_tower("; photo move\nG1 X0 Y0 F18000\nM400 P300\nG1 X0 F18000\n", "M400 P300");
+        slice_tower("; photo move\nG1 X0 Y0 F18000\nM400 P300\nG1 X0 F18000\n", "M400 P300", "type1");
     INFO("inert: " << tower_hop_info(inert));
     INFO("moved: " << tower_hop_info(moved));
     REQUIRE(inert.blocks >= 3);   // the block really is inserted on the layers
@@ -1580,9 +1590,32 @@ TEST_CASE("A tower tool change is entered with a standing hop for an inert and f
     CHECK(inert.hops.arc + inert.hops.merged + inert.hops.z_then_xy + inert.hops.plain_xy + inert.hops.no_move ==
           inert.hops.entries);
     CHECK(inert.hops.z_then_xy > 0);
-    // The per-layer block decides the lift type only through the position, and the position is cleared
-    // upstream here: both blocks travel into the tower the same way.
+    // Both blocks travel into the tower the same way, for the reason above.
     CHECK(inert.hops.entries   == moved.hops.entries);
+    CHECK(inert.hops.arc       == moved.hops.arc);
+    CHECK(inert.hops.merged    == moved.hops.merged);
+    CHECK(inert.hops.z_then_xy == moved.hops.z_then_xy);
+    CHECK(inert.hops.plain_xy  == moved.hops.plain_xy);
+}
+
+TEST_CASE("A Type 2 tower entry is entered the same way for an inert and for a moving per-layer block", "[WipeTower][GCode]")
+{
+    // Type 2 path: append_tcr2 chooses the lift type at GCode.cpp:1721 from the writer position, so this
+    // is the site the change feeds. The travel it emits descends onto the tower layer, so the merged
+    // spiral and slope shapes stay gated out by GCodeWriter.cpp:1019 and GCodeWriter.cpp:1126 emits
+    // XY-then-Z for both readings of the flag: the choice at :1721 cannot reach the emitted shape here.
+    const TowerSlice inert =
+        slice_tower("; take a photo\nM1002 judge_flag timelapse_record_flag\nM400 P300\n", "M400 P300", "type2");
+    const TowerSlice moved =
+        slice_tower("; photo move\nG1 X0 Y0 F18000\nM400 P300\nG1 X0 F18000\n", "M400 P300", "type2");
+    INFO("inert: " << tower_hop_info(inert));
+    INFO("moved: " << tower_hop_info(moved));
+    REQUIRE(inert.blocks >= 3);
+    REQUIRE(moved.blocks >= 3);
+    REQUIRE(inert.hops.entries >= 3);
+    CHECK(inert.hops.arc + inert.hops.merged + inert.hops.z_then_xy + inert.hops.plain_xy + inert.hops.no_move ==
+          inert.hops.entries);
+    CHECK(inert.hops.entries == moved.hops.entries);
     CHECK(inert.hops.arc       == moved.hops.arc);
     CHECK(inert.hops.merged    == moved.hops.merged);
     CHECK(inert.hops.z_then_xy == moved.hops.z_then_xy);
