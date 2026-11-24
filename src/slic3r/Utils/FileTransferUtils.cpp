@@ -7,6 +7,7 @@
 #include <wx/wx.h>
 #include <type_traits>
 #include "FileTransferUtils.hpp"
+#include "PrinterCommLogger.hpp"
 
 namespace Slic3r {
 
@@ -56,11 +57,19 @@ FileTransferTunnel::FileTransferTunnel(FileTransferModule &m, const std::string 
         throw std::runtime_error("ft_tunnel_create failed");
     }
     h_ = h;
+    PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("filetransfer", "tunnel_create",
+                                           {{"url", PrinterCommLogger::redact_url(url)}}));
 
     // C API: ft_status_cb(void* user, int old_status, int new_status, int err, const char* msg)
     auto tramp = [](void *user, int old_status, int new_status, int err_code, const char *msg) noexcept {
         auto *self    = reinterpret_cast<FileTransferTunnel *>(user);
         self->status_ = new_status;
+        PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event(
+            "filetransfer", "tunnel_status",
+            {{"old_status", old_status},
+             {"new_status", new_status},
+             {"err", err_code},
+             {"msg", PrinterCommLogger::body_for_log(msg ? msg : "", 4096)}}));
         if (!self->status_cb_) return;
         try {
             self->status_cb_(old_status, new_status, err_code, std::string(msg ? msg : ""));
@@ -97,6 +106,7 @@ void FileTransferTunnel::shutdown()
 
 FileTransferJob::FileTransferJob(FileTransferModule &m, const std::string &params_json) : m_(&m)
 {
+    PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("filetransfer", "job_create", PrinterCommLogger::body_for_log(params_json, 65536)));
     FT_JobHandle *h{};
     if (m_->ft_job_create(params_json.c_str(), &h) != 0 || !h) {
 
@@ -112,6 +122,11 @@ FileTransferJob::FileTransferJob(FileTransferModule &m, const std::string &param
             self->finished_ = true;
             self->solve_result(r);
 
+            PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("filetransfer", "job_result",
+                                                    {{"ec", self->res_},
+                                                     {"resp_ec", self->resp_ec_},
+                                                     {"json", PrinterCommLogger::body_for_log(self->res_json_, 65536)},
+                                                     {"bin_size", self->res_bin_.size()}}));
             if (self->result_cb_) self->result_cb_(self->res_, self->resp_ec_, self->res_json_, self->res_bin_);
             self->m_->ft_job_result_destroy(&r);
         } catch (...) {
@@ -165,6 +180,8 @@ void FileTransferJob::on_msg(MsgCb cb)
         auto *self = reinterpret_cast<FileTransferJob *>(user);
         if (!self) return;
         try {
+            PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("filetransfer", "job_msg",
+                                                    {{"kind", m.kind}, {"json", PrinterCommLogger::body_for_log(m.json ? m.json : "", 65536)}}));
             if (self->msg_cb_) { self->msg_cb_(m.kind, std::string(m.json ? m.json : "")); }
         } catch (...) {}
 

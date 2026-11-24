@@ -2,6 +2,7 @@
 #include "PrinterNetworkTypes.hpp"
 #include "WebMediaController.hpp"
 #include "IPrinterAgent.hpp"
+#include "slic3r/Utils/PrinterCommLogger.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/Label.hpp"
@@ -389,6 +390,7 @@ void refresh_agora_url(char const* device, char const* dev_ver, char const* chan
     device2 += dev_ver;
     device2 += "|\"agora\"|";
     device2 += channel;
+    PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("video", "agora_refresh", {{"request", device2}}));
     wxGetApp().getAgent()->get_camera_url(device2, [context, callback](std::string url) {
         callback(context, url.c_str());
     }, wxGetApp().get_printer_cloud_provider());
@@ -481,6 +483,15 @@ void MediaPlayCtrl::Play()
     }
 
     BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl::Play: " << m_lan_proto << m_remote_proto << m_disable_lan;
+    PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("video", "play",
+                                           {{"lan_mode", m_lan_mode},
+                                            {"lan_proto", m_lan_proto},
+                                            {"remote_proto", m_remote_proto},
+                                            {"disable_lan", m_disable_lan},
+                                            {"has_lan_ip", !m_lan_ip.empty()},
+                                            {"tutk_state", m_tutk_state},
+                                            {"camera_exists", m_camera_exists},
+                                            {"device_busy", m_device_busy}}));
     std::string  agent_version = agent ? agent->get_version() : "";
     if (m_lan_proto > LiveviewLocal::LVL_Disable && (m_lan_mode || !m_remote_proto) && !m_disable_lan && !m_lan_ip.empty()) {
         m_disable_lan = m_remote_proto && !m_lan_mode; // try remote next time
@@ -497,6 +508,8 @@ void MediaPlayCtrl::Play()
         url += "&cli_id=" + wxGetApp().app_config->get("slicer_uuid");
         url += "&cli_ver=" + std::string(SLIC3R_VERSION);
         BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl: " << hide_passwd(hide_id_middle_string(url, url.find(m_lan_ip), m_lan_ip.length()), {m_lan_passwd});
+        PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("video", "url_lan",
+                                               {{"lan_proto", m_lan_proto}, {"url", PrinterCommLogger::redact_url(url)}}));
         m_url = url;
         load();
         m_button_play->SetIcon("media_stop");
@@ -552,6 +565,8 @@ void MediaPlayCtrl::Play()
             }
             BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl: " << hide_passwd(url,
                     {"?uid=", "authkey=", "passwd=", "license=", "token="});
+            PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("video", "url_remote",
+                                                   {{"url", PrinterCommLogger::redact_url(url)}}));
             CallAfter([this, m, url] {
                 if (m != m_machine) {
                     BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl drop late ttcode for machine: " << m;
@@ -696,6 +711,11 @@ void MediaPlayCtrl::Stop(wxString const &msg, wxString const &msg2)
     auto tunnel = m_url.empty() ? "" : into_u8(wxURI(m_url).GetPath()).substr(1);
     if (auto n = tunnel.find_first_of("/_"); n != std::string::npos)
         tunnel = tunnel.substr(0, n);
+    PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("video", "stop",
+                                           {{"tunnel", tunnel},
+                                            {"last_state", last_state},
+                                            {"failed_code", m_failed_code},
+                                            {"failed_retry", m_failed_retry}}));
     if (last_state != wxMEDIASTATE_PLAYING && m_failed_code != 0
             && m_last_failed_codes.find(m_failed_code) == m_last_failed_codes.end()
             && (m_user_triggered || m_failed_retry > 3)) {

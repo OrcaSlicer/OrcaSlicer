@@ -5,6 +5,7 @@
 #include "NetworkAgentFactory.hpp"
 #include "OrcaCloudServiceAgent.hpp"
 #include "OrcaMqttConnection.hpp"
+#include "PrinterCommLogger.hpp"
 #include "bambu_networking.hpp"
 
 #include <boost/algorithm/string.hpp>
@@ -744,8 +745,10 @@ void OrcaPrinterAgent::forget_device_capabilities(const std::string& dev_id)
 
 void OrcaPrinterAgent::deliver_to_sink(const std::string& dev_id, const std::string& payload, bool local)
 {
-    // A files.* reply answers a pending request and is not printer state.
-    if (try_consume_files_reply(dev_id, payload))
+    // A files.* reply answers a pending request and is not printer state. It never reaches the
+    // message callbacks, which record every other inbound message, so the capture records it here.
+    if (PRINTER_COMM_RESULT(try_consume_files_reply(dev_id, payload),
+                            if (rc) PrinterCommLogger::instance().log_mqtt_raw(local ? "lan-mqtt" : "cloud-mqtt", dev_id, payload, true)))
         return;
 
     parse_ipcam_info(dev_id, payload);

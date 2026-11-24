@@ -1,5 +1,6 @@
 #include "OrcaMqttConnection.hpp"
 #include "Http.hpp"
+#include "PrinterCommLogger.hpp"
 
 #include <boost/asio.hpp>
 #include <boost/asio/io_context.hpp>
@@ -119,6 +120,25 @@ std::size_t mqtt_packet_length(const std::string& stream, std::size_t offset) {
     }
     return kMqttPacketMalformed; // more than four length bytes
 }
+
+#ifdef ORCA_PRINTER_COMM_LOG
+// The cloud form of the connection is the one that authenticates with a bearer token.
+const char* comm_transport(const OrcaMqttConnection::Config& config) { return config.bearer_provider ? "cloud-mqtt" : "lan-mqtt"; }
+
+// Connection lifecycle as seen from this client, next to the plugin-reported events for Bambu printers.
+void comm_lifecycle(const char* name, const OrcaMqttConnection::Config& config, nlohmann::json fields)
+{
+    fields["transport"] = comm_transport(config);
+    PrinterCommLogger::instance().log_event("lifecycle", name, fields);
+}
+
+// The device of a "device/<id>/report" topic.
+std::string comm_device_of(const std::string& topic)
+{
+    const std::size_t id_end = topic.rfind('/');
+    return topic.rfind("device/", 0) == 0 && id_end != std::string::npos && id_end > 7 ? topic.substr(7, id_end - 7) : std::string();
+}
+#endif
 } // namespace
 
 OrcaMqttConnection::~OrcaMqttConnection() { stop(); }
@@ -624,14 +644,19 @@ bool OrcaMqttConnection::send_request(const std::string& dev_id, const std::stri
         return false;
     }
     const std::string report = report_topic(dev_id);
+    PRINTER_COMM_LOG(const char* transport = nullptr);
     {
         std::lock_guard<std::mutex> lock(mutex);
         if (subscriptions.count(report) != 0 && acknowledged_subscriptions.count(report) == 0) {
             pending_requests.emplace_back(dev_id, payload);
             return true;
         }
+        PRINTER_COMM_LOG(transport = comm_transport(current_config));
     }
     post_packet(conn, make_publish_packet(request_topic(dev_id), payload));
+    // Every request this client publishes passes here, including the ones OrcaPrinterAgent sends on
+    // its own (subscription setup, pushing stop, file requests); a held-back one when it is released.
+    PRINTER_COMM_LOG(PrinterCommLogger::instance().log_mqtt("send", transport, dev_id, PrinterCommLogger::body_for_log(payload, 1024 * 1024), 0, 0));
     return true;
 }
 
@@ -686,6 +711,7 @@ void OrcaMqttConnection::connect_and_read() {
                            ? static_cast<int>(static_cast<uint8_t>(connack[3]))
                            : -1;
         m_last_connack_rc.store(rc);
+        PRINTER_COMM_LOG(comm_lifecycle("mqtt_connack", current_config, {{"url", current_config.url}, {"rc", rc}}));
         if (rc != 0) {
             if (rc == 4 || rc == 5) {
                 // Bad credentials / not authorized — retrying cannot help. Make run()'s
@@ -727,6 +753,7 @@ void OrcaMqttConnection::connect_and_read() {
         if (connection->terminal_error && !stopping.load())
             throw boost::system::system_error(connection->terminal_error, "read Orca MQTT message");
         clear_connection();
+        PRINTER_COMM_LOG(if (!stopping.load()) comm_lifecycle("mqtt_closed", current_config, nlohmann::json::object()));
         if (!stopping.load())
             notify_state(false);
     } catch (...) {
@@ -821,6 +848,12 @@ void OrcaMqttConnection::handle_packet(const std::string& packet) {
                     }
                 }
             }
+            // Requests queued behind a rejected subscription are dropped with it.
+            PRINTER_COMM_LOG(if (!topic.empty()) comm_lifecycle("mqtt_suback", current_config,
+                                                                {{"dev_id", comm_device_of(topic)},
+                                                                 {"result", result},
+                                                                 {"granted", result == 0 || result == 1},
+                                                                 {"queued_requests", requests.size()}}));
             if (topic.empty()) {
             } else if (result == 0 || result == 1) {
                 for (const auto& request : requests) {
@@ -904,6 +937,10 @@ void OrcaMqttConnection::run() {
         try {
             connect_and_read();
         } catch (const std::exception& error) {
+            // Failures from a stop() this client asked for, and the CONNECT refusals that stop
+            // retrying (which have their mqtt_connack record), are not recorded.
+            PRINTER_COMM_LOG(if (!stopping.load()) comm_lifecycle("mqtt_error", current_config,
+                                                                  {{"attempt", attempt}, {"error", error.what()}, {"retry_in_s", retry_seconds}}));
             if (!stopping.load())
                 notify_state(false);
         }

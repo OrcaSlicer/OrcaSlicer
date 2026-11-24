@@ -2,6 +2,7 @@
 #include "BBLNetworkPlugin.hpp"
 #include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
+#include "PrinterCommLogger.hpp"
 #include "bambu_networking.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -185,6 +186,114 @@ void replace_file(const boost::filesystem::path& path, const std::string& conten
         throw std::system_error(ec, "Cannot replace " + path.string());
 }
 
+#ifdef ORCA_PRINTER_COMM_LOG
+// Capture of the calls this agent makes into the Bambu network plugin. The plugin is closed and
+// builds the actual traffic itself, so each call's arguments, result and progress callbacks are
+// all this side can see of that exchange. Sends are recorded as the plugin receives them, after
+// this agent's filament-id translation.
+void comm_mqtt_send(const char* transport, const std::string& dev_id, const std::string& json_str, int qos, int rc)
+{
+    const json payload = json::parse(json_str, nullptr, false);
+    if (payload.is_discarded()) {
+        PrinterCommLogger::instance().log_event("mqtt", "send_unparsed",
+                                                {{"transport", transport},
+                                                 {"dev_id", dev_id},
+                                                 {"qos", qos},
+                                                 {"rc", rc},
+                                                 {"raw", PrinterCommLogger::body_for_log(json_str, 4096)}});
+        return;
+    }
+    PrinterCommLogger::instance().log_mqtt("send", transport, dev_id, payload, qos, rc);
+}
+
+void comm_call(const std::string& name, json args, int rc)
+{
+    args["rc"] = rc;
+    PrinterCommLogger::instance().log_event("agent", name, args);
+}
+
+// Every stage tick of a print job or bind, as the plugin reports it.
+OnUpdateStatusFn comm_wrap(const char* entry, const std::string& dev_id, OnUpdateStatusFn fn)
+{
+    return [entry, dev_id, fn](int stage, int code, std::string info) {
+        PrinterCommLogger::instance().log_event("printjob", "stage",
+                                                {{"entry", entry}, {"dev_id", dev_id}, {"stage", stage}, {"code", code}, {"info", info}});
+        if (fn)
+            fn(stage, code, info);
+    };
+}
+
+// The plugin's job progress, which it reports as a JSON blob.
+OnWaitFn comm_wrap(const char* entry, const std::string& dev_id, OnWaitFn fn)
+{
+    return [entry, dev_id, fn](int status, std::string job_info) -> bool {
+        const json parsed = json::parse(job_info, nullptr, false);
+        PrinterCommLogger::instance().log_event("printjob", "wait",
+                                                {{"entry", entry},
+                                                 {"dev_id", dev_id},
+                                                 {"status", status},
+                                                 {"job_info", parsed.is_discarded() ? json(job_info) : parsed}});
+        return fn ? fn(status, job_info) : false;
+    };
+}
+
+// Records a print job's params and routes its progress callbacks through the capture. Returns
+// the device id, since the dispatch moves out of `params`.
+std::string comm_print_job(const char* entry, const PrintParams& p, OnUpdateStatusFn& update_fn, OnWaitFn* wait_fn = nullptr)
+{
+    PrinterCommLogger::instance().log_event("printjob", entry,
+                                            {{"dev_id", p.dev_id},
+                                             {"dev_name", p.dev_name},
+                                             {"dev_ip", p.dev_ip},
+                                             {"task_name", p.task_name},
+                                             {"project_name", p.project_name},
+                                             {"preset_name", p.preset_name},
+                                             {"filename", p.filename},
+                                             {"config_filename", p.config_filename},
+                                             {"plate_index", p.plate_index},
+                                             {"ftp_folder", p.ftp_folder},
+                                             {"ftp_file", p.ftp_file},
+                                             {"ftp_file_md5", p.ftp_file_md5},
+                                             {"nozzle_mapping", p.nozzle_mapping},
+                                             {"ams_mapping", p.ams_mapping},
+                                             {"ams_mapping2", p.ams_mapping2},
+                                             {"ams_mapping_info", p.ams_mapping_info},
+                                             {"nozzles_info", p.nozzles_info},
+                                             {"connection_type", p.connection_type},
+                                             {"comments", p.comments},
+                                             {"origin_profile_id", p.origin_profile_id},
+                                             {"stl_design_id", p.stl_design_id},
+                                             {"origin_model_id", p.origin_model_id},
+                                             {"print_type", p.print_type},
+                                             {"dst_file", p.dst_file},
+                                             {"use_ssl_for_ftp", p.use_ssl_for_ftp},
+                                             {"use_ssl_for_mqtt", p.use_ssl_for_mqtt},
+                                             {"username", p.username},
+                                             {"password", p.password}, // redacted by the logger
+                                             {"task_bed_leveling", p.task_bed_leveling},
+                                             {"task_flow_cali", p.task_flow_cali},
+                                             {"task_vibration_cali", p.task_vibration_cali},
+                                             {"task_layer_inspect", p.task_layer_inspect},
+                                             {"task_record_timelapse", p.task_record_timelapse},
+                                             {"task_timelapse_use_internal", p.task_timelapse_use_internal},
+                                             {"task_use_ams", p.task_use_ams},
+                                             {"task_bed_type", p.task_bed_type},
+                                             {"extra_options", p.extra_options},
+                                             {"auto_bed_leveling", p.auto_bed_leveling},
+                                             {"auto_flow_cali", p.auto_flow_cali},
+                                             {"auto_offset_cali", p.auto_offset_cali},
+                                             {"extruder_cali_manual_mode", p.extruder_cali_manual_mode},
+                                             {"task_ext_change_assist", p.task_ext_change_assist},
+                                             {"try_emmc_print", p.try_emmc_print},
+                                             {"svc_context", p.svc_context},
+                                             {"slicer_uid", p.slicer_uid}});
+    update_fn = comm_wrap(entry, p.dev_id, update_fn);
+    if (wait_fn)
+        *wait_fn = comm_wrap(entry, p.dev_id, *wait_fn);
+    return p.dev_id;
+}
+#endif
+
 } // namespace
 
 // The plug-in has one cert folder for all printers, and multi-printer sending talks to several at
@@ -357,17 +466,20 @@ int BBLPrinterAgent::send_message(std::string dev_id, std::string json_str, int 
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
     auto func = plugin.get_send_message();
+    PRINTER_COMM_LOG(const std::string sent_dev_id = dev_id, sent_json = json_str);
     if (func && agent) {
         // Only the legacy plug-in lacks `flag`; 02.03.00 already takes it, and routing that
         // series through the legacy form would silently drop MessageFlag sign/encrypt.
         switch (plugin.network_abi()) {
         case NetworkAbi::Legacy: {
             auto legacy_func = as_abi<func_send_message_legacy>(func);
-            return legacy_func(agent, std::move(dev_id), std::move(json_str), qos);
+            return PRINTER_COMM_RESULT(legacy_func(agent, std::move(dev_id), std::move(json_str), qos),
+                                       comm_mqtt_send("cloud-mqtt", sent_dev_id, sent_json, qos, rc));
         }
         case NetworkAbi::V0203:
         case NetworkAbi::Current:
-            return func(agent, std::move(dev_id), std::move(json_str), qos, flag);
+            return PRINTER_COMM_RESULT(func(agent, std::move(dev_id), std::move(json_str), qos, flag),
+                                       comm_mqtt_send("cloud-mqtt", sent_dev_id, sent_json, qos, rc));
         default:
             return -1;
         }
@@ -392,7 +504,14 @@ int BBLPrinterAgent::connect_printer(const PrinterConnectionParams& params)
 #endif
     if (func && agent) {
         trust_ca_file(params.dev_id, params.ca_file);
-        return func(agent, params.dev_id, params.host, params.username, params.password, use_ssl_for_mqtt);
+        return PRINTER_COMM_RESULT(func(agent, params.dev_id, params.host, params.username, params.password, use_ssl_for_mqtt),
+                                   comm_call("connect_printer",
+                                             {{"dev_id", params.dev_id},
+                                              {"host", params.host},
+                                              {"username", params.username},
+                                              {"password", params.password},
+                                              {"use_ssl", use_ssl_for_mqtt}},
+                                             rc));
     }
     return -1;
 }
@@ -448,7 +567,7 @@ int BBLPrinterAgent::disconnect_printer()
     auto agent = plugin.get_agent();
     auto func = plugin.get_disconnect_printer();
     if (func && agent) {
-        return func(agent);
+        return PRINTER_COMM_RESULT(func(agent), comm_call("disconnect_printer", json::object(), rc));
     }
     return -1;
 }
@@ -459,15 +578,18 @@ int BBLPrinterAgent::send_message_to_printer(std::string dev_id, std::string jso
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
     auto func = plugin.get_send_message_to_printer();
+    PRINTER_COMM_LOG(const std::string sent_dev_id = dev_id, sent_json = json_str);
     if (func && agent) {
         switch (plugin.network_abi()) {
         case NetworkAbi::Legacy: {
             auto legacy_func = as_abi<func_send_message_to_printer_legacy>(func);
-            return legacy_func(agent, std::move(dev_id), std::move(json_str), qos);
+            return PRINTER_COMM_RESULT(legacy_func(agent, std::move(dev_id), std::move(json_str), qos),
+                                       comm_mqtt_send("lan-mqtt", sent_dev_id, sent_json, qos, rc));
         }
         case NetworkAbi::V0203:
         case NetworkAbi::Current:
-            return func(agent, std::move(dev_id), std::move(json_str), qos, flag);
+            return PRINTER_COMM_RESULT(func(agent, std::move(dev_id), std::move(json_str), qos, flag),
+                                       comm_mqtt_send("lan-mqtt", sent_dev_id, sent_json, qos, rc));
         default:
             return -1;
         }
@@ -510,7 +632,8 @@ bool BBLPrinterAgent::start_discovery(bool start, bool sending)
     auto agent = plugin.get_agent();
     auto func = plugin.get_start_discovery();
     if (func && agent) {
-        return func(agent, start, sending);
+        return PRINTER_COMM_RESULT(func(agent, start, sending),
+                                   comm_call("start_discovery", {{"start", start}, {"sending", sending}}, rc ? 0 : -1));
     }
     return false;
 }
@@ -525,7 +648,7 @@ int BBLPrinterAgent::ping_bind(std::string ping_code)
     auto agent = plugin.get_agent();
     auto func = plugin.get_ping_bind();
     if (func && agent) {
-        return func(agent, ping_code);
+        return PRINTER_COMM_RESULT(func(agent, ping_code), comm_call("ping_bind", {{"ping_code", ping_code}}, rc));
     }
     return -1;
 }
@@ -536,7 +659,16 @@ int BBLPrinterAgent::bind_detect(std::string dev_ip, std::string sec_link, detec
     auto agent = plugin.get_agent();
     auto func = plugin.get_bind_detect();
     if (func && agent) {
-        return func(agent, dev_ip, sec_link, detect);
+        return PRINTER_COMM_RESULT(func(agent, dev_ip, sec_link, detect),
+                                   comm_call("bind_detect",
+                                             {{"dev_ip", dev_ip},
+                                              {"sec_link", sec_link},
+                                              {"dev_id", detect.dev_id},
+                                              {"dev_name", detect.dev_name},
+                                              {"connect_type", detect.connect_type},
+                                              {"bind_state", detect.bind_state},
+                                              {"version", detect.version}},
+                                             rc));
     }
     return -1;
 }
@@ -546,6 +678,14 @@ int BBLPrinterAgent::bind(std::string dev_ip, std::string dev_id, std::string de
     auto& plugin = BBLNetworkPlugin::instance();
     auto agent = plugin.get_agent();
     auto func = plugin.get_bind();
+    PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("bind", "bind",
+                                                             {{"dev_ip", dev_ip},
+                                                              {"dev_id", dev_id},
+                                                              {"dev_model", dev_model},
+                                                              {"sec_link", sec_link},
+                                                              {"timezone", timezone},
+                                                              {"improved", improved}});
+                     update_fn = comm_wrap("bind", dev_id, update_fn));
     if (func && agent) {
         // dev_model was added in 02.08.01. Passing it to a plug-in that takes the 7-argument
         // form shifts every following argument, so the older generations get the older call.
@@ -553,10 +693,12 @@ int BBLPrinterAgent::bind(std::string dev_ip, std::string dev_id, std::string de
         case NetworkAbi::Legacy:
         case NetworkAbi::V0203: {
             auto older_func = as_abi<func_bind_pre0208>(func);
-            return older_func(agent, dev_ip, dev_id, sec_link, timezone, improved, update_fn);
+            return PRINTER_COMM_RESULT(older_func(agent, dev_ip, dev_id, sec_link, timezone, improved, update_fn),
+                                       comm_call("bind.result", {{"dev_id", dev_id}}, rc));
         }
         case NetworkAbi::Current:
-            return func(agent, dev_ip, dev_id, dev_model, sec_link, timezone, improved, update_fn);
+            return PRINTER_COMM_RESULT(func(agent, dev_ip, dev_id, dev_model, sec_link, timezone, improved, update_fn),
+                                       comm_call("bind.result", {{"dev_id", dev_id}}, rc));
         default:
             return -1;
         }
@@ -570,7 +712,7 @@ int BBLPrinterAgent::unbind(std::string dev_id)
     auto agent = plugin.get_agent();
     auto func = plugin.get_unbind();
     if (func && agent) {
-        return func(agent, dev_id);
+        return PRINTER_COMM_RESULT(func(agent, dev_id), comm_call("unbind", {{"dev_id", dev_id}}, rc));
     }
     return -1;
 }
@@ -646,7 +788,7 @@ int BBLPrinterAgent::start_subscribe(std::string module)
     auto agent = plugin.get_agent();
     auto func = plugin.get_start_subscribe();
     if (func && agent) {
-        return func(agent, module);
+        return PRINTER_COMM_RESULT(func(agent, module), comm_call("start_subscribe", {{"module", module}}, rc));
     }
     return -1;
 }
@@ -657,7 +799,7 @@ int BBLPrinterAgent::stop_subscribe(std::string module)
     auto agent = plugin.get_agent();
     auto func = plugin.get_stop_subscribe();
     if (func && agent) {
-        return func(agent, module);
+        return PRINTER_COMM_RESULT(func(agent, module), comm_call("stop_subscribe", {{"module", module}}, rc));
     }
     return -1;
 }
@@ -668,7 +810,7 @@ int BBLPrinterAgent::add_subscribe(std::vector<std::string> dev_list)
     auto agent = plugin.get_agent();
     auto func = plugin.get_add_subscribe();
     if (func && agent) {
-        return func(agent, dev_list);
+        return PRINTER_COMM_RESULT(func(agent, dev_list), comm_call("add_subscribe", {{"count", dev_list.size()}, {"dev_list", dev_list}}, rc));
     }
     return -1;
 }
@@ -679,7 +821,7 @@ int BBLPrinterAgent::del_subscribe(std::vector<std::string> dev_list)
     auto agent = plugin.get_agent();
     auto func = plugin.get_del_subscribe();
     if (func && agent) {
-        return func(agent, dev_list);
+        return PRINTER_COMM_RESULT(func(agent, dev_list), comm_call("del_subscribe", {{"count", dev_list.size()}, {"dev_list", dev_list}}, rc));
     }
     return -1;
 }
@@ -727,14 +869,18 @@ int dispatch_start(CurrentFn func, PrintParams& params, const CallbackFns&... ca
 
 int BBLPrinterAgent::start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
 {
-    return dispatch_start<func_start_print_legacy, func_start_print_0203>(
-        BBLNetworkPlugin::instance().get_start_print(), params, update_fn, cancel_fn, wait_fn);
+    PRINTER_COMM_LOG(const std::string job_dev_id = comm_print_job("start_print", params, update_fn, &wait_fn));
+    return PRINTER_COMM_RESULT((dispatch_start<func_start_print_legacy, func_start_print_0203>(
+                                   BBLNetworkPlugin::instance().get_start_print(), params, update_fn, cancel_fn, wait_fn)),
+                               comm_call("start_print.result", {{"dev_id", job_dev_id}}, rc));
 }
 
 int BBLPrinterAgent::start_local_print_with_record(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
 {
-    return dispatch_start<func_start_local_print_with_record_legacy, func_start_local_print_with_record_0203>(
-        BBLNetworkPlugin::instance().get_start_local_print_with_record(), params, update_fn, cancel_fn, wait_fn);
+    PRINTER_COMM_LOG(const std::string job_dev_id = comm_print_job("start_local_print_with_record", params, update_fn, &wait_fn));
+    return PRINTER_COMM_RESULT((dispatch_start<func_start_local_print_with_record_legacy, func_start_local_print_with_record_0203>(
+                                   BBLNetworkPlugin::instance().get_start_local_print_with_record(), params, update_fn, cancel_fn, wait_fn)),
+                               comm_call("start_local_print_with_record.result", {{"dev_id", job_dev_id}}, rc));
 }
 
 int BBLPrinterAgent::start_send_gcode_to_sdcard(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
@@ -744,6 +890,7 @@ int BBLPrinterAgent::start_send_gcode_to_sdcard(PrintParams params, OnUpdateStat
     const bool        try_emmc_print = params.try_emmc_print;
     const std::string dev_ip         = params.dev_ip;
     const std::string dev_id         = params.dev_id;
+    PRINTER_COMM_LOG(comm_print_job("start_send_gcode_to_sdcard", params, update_fn, &wait_fn));
 
     int result = dispatch_start<func_start_send_gcode_to_sdcard_legacy, func_start_send_gcode_to_sdcard_0203>(
         BBLNetworkPlugin::instance().get_start_send_gcode_to_sdcard(), params, update_fn, cancel_fn, wait_fn);
@@ -753,19 +900,24 @@ int BBLPrinterAgent::start_send_gcode_to_sdcard(PrintParams params, OnUpdateStat
             << ", legacy_mode=" << BBLNetworkPlugin::instance().use_legacy_network()
             << ", dev_ip=" << dev_ip << ", dev_id=" << dev_id;
     }
+    PRINTER_COMM_LOG(comm_call("start_send_gcode_to_sdcard.result", {{"dev_id", dev_id}}, result));
     return result;
 }
 
 int BBLPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
 {
-    return dispatch_start<func_start_local_print_legacy, func_start_local_print_0203>(
-        BBLNetworkPlugin::instance().get_start_local_print(), params, update_fn, cancel_fn);
+    PRINTER_COMM_LOG(const std::string job_dev_id = comm_print_job("start_local_print", params, update_fn));
+    return PRINTER_COMM_RESULT((dispatch_start<func_start_local_print_legacy, func_start_local_print_0203>(
+                                   BBLNetworkPlugin::instance().get_start_local_print(), params, update_fn, cancel_fn)),
+                               comm_call("start_local_print.result", {{"dev_id", job_dev_id}}, rc));
 }
 
 int BBLPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
 {
-    return dispatch_start<func_start_sdcard_print_legacy, func_start_sdcard_print_0203>(
-        BBLNetworkPlugin::instance().get_start_sdcard_print(), params, update_fn, cancel_fn);
+    PRINTER_COMM_LOG(const std::string job_dev_id = comm_print_job("start_sdcard_print", params, update_fn));
+    return PRINTER_COMM_RESULT((dispatch_start<func_start_sdcard_print_legacy, func_start_sdcard_print_0203>(
+                                   BBLNetworkPlugin::instance().get_start_sdcard_print(), params, update_fn, cancel_fn)),
+                               comm_call("start_sdcard_print.result", {{"dev_id", job_dev_id}}, rc));
 }
 
 // ============================================================================

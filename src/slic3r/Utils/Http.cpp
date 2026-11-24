@@ -1,5 +1,6 @@
 #include "Http.hpp"
 #include "libslic3r_version.h"
+#include "PrinterCommLogger.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -513,6 +514,26 @@ void Http::priv::http_perform()
 	CURLcode res = ::curl_easy_perform(curl);
 
     putFile.reset();
+
+#ifdef ORCA_PRINTER_COMM_LOG
+	if (PrinterCommLogger::instance().is_enabled()) {
+		long http_status = 0;
+		::curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_status);
+		nlohmann::json hdrs = nlohmann::json::array();
+		for (::curl_slist *h = headerlist; h != nullptr; h = h->next)
+			hdrs.push_back(h->data ? h->data : "");
+		PrinterCommLogger::instance().log_event(
+			"http", method.empty() ? "GET" : method,
+			{{"url", PrinterCommLogger::redact_url(url)},
+			 {"headers", std::move(hdrs)},
+			 {"post_bytes", postfields.size()},
+			 {"post", PrinterCommLogger::body_for_log(postfields, 2048)},
+			 {"curl_code", int(res)},
+			 {"http_status", http_status},
+			 {"resp_bytes", buffer.size()},
+			 {"resp", PrinterCommLogger::body_for_log(buffer, 8192)}});
+	}
+#endif
 
 	if (res != CURLE_OK) {
 		if (res == CURLE_ABORTED_BY_CALLBACK) {

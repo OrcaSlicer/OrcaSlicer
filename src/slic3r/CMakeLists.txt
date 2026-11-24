@@ -874,7 +874,14 @@ set(SLIC3R_GUI_SOURCES
     Utils/wxInspectorPlugins/CustomWidgetsPlugin.hpp
     Utils/wxInspectorPlugins/CustomWidgetsPlugin.cpp
     Utils/wxInspectorPlugins/Registration.hpp
+    Utils/PrinterCommLogger.hpp
 )
+
+# Developer tool: a redacted capture of all printer and cloud traffic. Off by default; the
+# call sites compile to nothing without it.
+if (ORCA_PRINTER_COMM_LOG)
+    list(APPEND SLIC3R_GUI_SOURCES Utils/PrinterCommLogger.cpp)
+endif ()
 
 # Design/CAD tab: parametric sketch UI, its gizmos, and the MCP control socket.
 # All of it sits behind SLIC3R_CAD and links the CAD kernel in libslic3r.
@@ -1104,6 +1111,9 @@ endif ()
 
 # Add a definition so that we can tell we are compiling slic3r.
 target_compile_definitions(libslic3r_gui PRIVATE SLIC3R_CURRENTLY_COMPILING_GUI_MODULE)
+if (ORCA_PRINTER_COMM_LOG)
+    target_compile_definitions(libslic3r_gui PRIVATE ORCA_PRINTER_COMM_LOG)
+endif ()
 
 if (ORCA_BUILD_PYTHON_STUBGEN_MODULE)
     add_library(orca_stubgen MODULE

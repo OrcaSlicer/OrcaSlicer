@@ -3,6 +3,7 @@
 #include "Http.hpp"
 #include "OrcaCloudServiceAgent.hpp"
 #include "ICameraSignalingChannel.hpp"
+#include "PrinterCommLogger.hpp"
 
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/connect.hpp>
@@ -117,6 +118,17 @@ std::string OrcaCloudSignalingChannel::encode_path_component(const std::string& 
 
 void OrcaCloudSignalingChannel::unavailable(CameraUnavailableReason reason, std::string detail)
 {
+#ifdef ORCA_PRINTER_COMM_LOG
+    const char* reason_name = "error";
+    switch (reason) {
+    case CameraUnavailableReason::Busy: reason_name = "busy"; break;
+    case CameraUnavailableReason::Error: reason_name = "error"; break;
+    case CameraUnavailableReason::Disabled: reason_name = "disabled"; break;
+    case CameraUnavailableReason::Closed: reason_name = "closed"; break;
+    }
+    PrinterCommLogger::instance().log_event("video", "signaling_unavailable",
+                                            {{"dev_id", m_dev_id}, {"reason", reason_name}, {"detail", detail}});
+#endif
     if (on_unavailable)
         on_unavailable(reason, std::move(detail));
 }
@@ -245,6 +257,8 @@ void OrcaCloudSignalingChannel::run()
         websocket.handshake(host, ws_target);
         BOOST_LOG_TRIVIAL(info) << "signaling: websocket handshake ok (" << ice_servers.size()
                                 << " ice servers)";
+        PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("video", "signaling_open",
+                                                                 {{"dev_id", m_dev_id}, {"ice_servers", ice_servers.size()}}));
 
         if (on_ready)
             on_ready(std::move(ice_servers));
@@ -297,10 +311,44 @@ static std::string json_string(const nlohmann::json& object, const char* key)
     return (it != object.end() && it->is_string()) ? it->get<std::string>() : std::string{};
 }
 
+#ifdef ORCA_PRINTER_COMM_LOG
+// A signaling message as recorded in the capture. An SDP body is reduced to its size and an ICE
+// candidate to its type (host, srflx, relay): they carry the session's ICE password and the
+// host's addresses. Every other field is protocol and is kept.
+static nlohmann::json signaling_record(const std::string& dev_id, const nlohmann::json& message)
+{
+    nlohmann::json body = message.is_object() ? message : nlohmann::json::object();
+    const auto     sdp  = body.find("sdp");
+    if (sdp != body.end() && sdp->is_string())
+        *sdp = std::to_string(sdp->get<std::string>().size()) + " bytes";
+
+    const auto summarize = [](nlohmann::json& candidate) {
+        if (!candidate.is_string())
+            return;
+        const std::string text = candidate.get<std::string>();
+        const size_t      typ  = text.find(" typ ");
+        if (typ == std::string::npos) {
+            candidate = "<candidate>";
+            return;
+        }
+        const size_t start = typ + 5;
+        const size_t end   = text.find(' ', start);
+        candidate          = "typ " + text.substr(start, end == std::string::npos ? std::string::npos : end - start);
+    };
+    const auto candidate = body.find("candidate");
+    if (candidate != body.end()) {
+        const auto inner = candidate->is_object() ? candidate->find("candidate") : candidate->end();
+        summarize(inner != candidate->end() ? *inner : *candidate);
+    }
+    return {{"dev_id", dev_id}, {"message", std::move(body)}};
+}
+#endif
+
 void OrcaCloudSignalingChannel::dispatch_message(const nlohmann::json& message, const std::string& raw)
 {
     const std::string type = json_string(message, "type");
     BOOST_LOG_TRIVIAL(info) << "signaling: recv type=" << type << " raw=" << raw.substr(0, 256);
+    PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("video", "signaling_recv", signaling_record(m_dev_id, message)));
     if (type == "webrtc.answer") {
         const std::string sdp = json_string(message, "sdp");
         if (on_answer && !sdp.empty())
@@ -339,6 +387,8 @@ void OrcaCloudSignalingChannel::send_json(const std::string& message)
     }
     if (!conn || m_stop.load())
         return;
+    PRINTER_COMM_LOG(PrinterCommLogger::instance().log_event("video", "signaling_send",
+                                                             signaling_record(m_dev_id, nlohmann::json::parse(message, nullptr, false))));
     // Serialize the write onto the io_context thread (same thread that runs
     // async_read), so reads and writes never touch the stream concurrently.
     auto payload = std::make_shared<std::string>(message);
