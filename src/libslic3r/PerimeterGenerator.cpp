@@ -2731,7 +2731,10 @@ void PerimeterGenerator::process_arachne()
                 loop_number = 0;
 
             Arachne::WallToolPathsParams input_params_tmp = input_params;
-        
+            // These walls are all the island prints, so keep their last line however short. The inner walls generated
+            // below use input_params: they sit inside an outer wall that is already printed.
+            input_params_tmp.keep_last_printed_line = true;
+
             Polygons   last_p = to_polygons(last);
             Arachne::WallToolPaths wallToolPaths(last_p, bead_width_0, perimeter_spacing, coord_t(loop_number + 1),
                                                    wall_0_inset, layer_height, input_params_tmp);
@@ -2835,7 +2838,7 @@ void PerimeterGenerator::process_arachne()
                     const Polygons inner_region        = to_polygons(offset_ex(clip_walls_over_top ? infill_contour
                                                                                                    : diff_ex(infill_contour, top_expolygons),
                                                                               wall_0_inset));
-                    Arachne::WallToolPaths inner_wall_tool_paths(inner_region, perimeter_spacing, perimeter_spacing, coord_t(inner_loop_number + 1), 0, layer_height, input_params_tmp);
+                    Arachne::WallToolPaths inner_wall_tool_paths(inner_region, perimeter_spacing, perimeter_spacing, coord_t(inner_loop_number + 1), 0, layer_height, input_params);
                     std::vector<Arachne::VariableWidthLines> inner_perimeters = inner_wall_tool_paths.getToolPaths();
 
                     if (clip_walls_over_top) {

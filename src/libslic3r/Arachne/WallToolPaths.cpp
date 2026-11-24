@@ -694,14 +694,36 @@ template<typename T> bool shorterThan(const T &shape, const coord_t check_length
 
 void WallToolPaths::removeSmallLines(std::vector<VariableWidthLines> &toolpaths)
 {
+    // Zero-width lines are the inner contour, which is not printed.
+    const auto is_printed = [](const ExtrusionLine &line) {
+        return std::any_of(line.begin(), line.end(), [](const ExtrusionJunction &j) { return j.w > 0; });
+    };
+    size_t printed_lines = 0;
+    if (m_params.keep_last_printed_line)
+        for (const VariableWidthLines &inset : toolpaths)
+            printed_lines += std::count_if(inset.begin(), inset.end(), is_printed);
+
     for (VariableWidthLines &inset : toolpaths) {
         for (size_t line_idx = 0; line_idx < inset.size(); line_idx++) {
             ExtrusionLine &line      = inset[line_idx];
             coord_t        min_width = std::numeric_limits<coord_t>::max();
-            for (const ExtrusionJunction &j : line)
+            coord_t        max_width = 0;
+            for (const ExtrusionJunction &j : line) {
                 min_width = std::min(min_width, j.w);
+                max_width = std::max(max_width, j.w);
+            }
             // Only use min_length_factor for non-topmost, to prevent top gaps. Otherwise use default value.
             if (line.is_odd && !line.is_closed && shorterThan(line, m_params.is_top_or_bottom_layer ? (min_width / 2) : (min_width * m_params.min_length_factor))) { // remove line
+                if (m_params.keep_last_printed_line && is_printed(line)) {
+                    // A near-square or near-round outline's only bead can be nanometres long, as long as its sides differ.
+                    // Removing it would leave the outline unprinted, so keep it, as a dot when it is shorter than one.
+                    if (printed_lines == 1) {
+                        if (line.getLength() < max_width * 5 / 8) // the length of make_dot()'s open hexagon
+                            line.make_dot((line.front().p + line.back().p) / 2, max_width);
+                        continue;
+                    }
+                    --printed_lines;
+                }
                 line = std::move(inset.back());
                 inset.erase(--inset.end());
                 line_idx--; // reconsider the current position

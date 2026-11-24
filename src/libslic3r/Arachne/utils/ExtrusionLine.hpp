@@ -136,6 +136,11 @@ struct ExtrusionLine
     void reverse() { std::reverse(junctions.begin(), junctions.end()); }
 
     /*!
+     * Replace the path with a small circle around centre, for a bead too short to be printed as a line.
+     */
+    void make_dot(Point centre, coord_t width);
+
+    /*!
      * Sum the total length of this path.
      */
     int64_t getLength() const;

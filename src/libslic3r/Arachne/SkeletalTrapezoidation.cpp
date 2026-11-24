@@ -2094,18 +2094,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
                 generated_toolpaths.resize(inset_index + 1);
             }
             generated_toolpaths[inset_index].emplace_back(inset_index, is_odd);
-            ExtrusionLine& line = generated_toolpaths[inset_index].back();
-            const coord_t width = beading.bead_widths[inset_index];
-            // total area to be extruded is pi*(w/2)^2 = pi*w*w/4
-            // Width a constant extrusion width w, that would be a length of pi*w/4
-            // If we make a small circle to fill up the hole, then that circle would have a circumference of 2*pi*r
-            // So our circle needs to be such that r=w/8
-            const coord_t     r          = width / 8;
-            constexpr coord_t n_segments = 6;
-            for (coord_t segment = 0; segment < n_segments; segment++) {
-                float a = 2.0 * M_PI / n_segments * segment;
-                line.junctions.emplace_back(node.p + Point(r * cos(a), r * sin(a)), width, inset_index);
-            }
+            generated_toolpaths[inset_index].back().make_dot(node.p, beading.bead_widths[inset_index]);
         }
     }
 }
