@@ -1,0 +1,107 @@
+name: MCP Sweep
+
+# Run the MCP sweep (tools/mcp/run_sweep.py) against the x86_64 Linux AppImage
+# the calling build_all.yml run built, each job's app on a private Xvfb display
+# with Openbox as its window manager. Called once from build_all.yml.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  mcp_sweep:
+    # Static "MCP Sweep"; the caller's job name adds the arch, as for the unit tests.
+    name: MCP Sweep
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # The app comes from the AppImage. The tests read tools/mcp, the test
+          # data in tests/, the handy models and profiles in resources/, and
+          # scripts/CAD.
+          sparse-checkout: |
+            tools
+            tests
+            resources
+            scripts
+
+      - name: Download the AppImage
+        uses: actions/download-artifact@v8
+        with:
+          # <ver> is V<version> or PR-<number>, so this leaves out the aarch64
+          # build's OrcaSlicer_Linux_ubuntu_2404_aarch64_<ver>.
+          pattern: OrcaSlicer_Linux_ubuntu_2404_{V,PR-}*
+          path: ${{ runner.temp }}/appimage
+
+      - name: Extract the AppImage
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          mapfile -t found < <(find appimage -name '*.AppImage')
+          [ ${#found[@]} -eq 1 ] || { echo "expected one x86_64 AppImage, found: ${found[*]:-none}" >&2; exit 1; }
+          chmod +x "${found[0]}"
+          "${found[0]}" --appimage-extract > /dev/null
+          # The bare binary cannot find the AppImage's bundled libraries; AppRun
+          # sets them up and execs it, so the pid, exit codes and signals the
+          # sweep reads are the app's own.
+          [ -x squashfs-root/AppRun ] || { echo "no AppRun in the AppImage" >&2; exit 1; }
+          echo "ORCA_BIN=$PWD/squashfs-root/AppRun" >> "$GITHUB_ENV"
+
+      # Openbox keeps popup lists open under Xvfb, which test_gui_tools.py and
+      # test_filaments.py need; ffmpeg lets test_recording.py encode. The rest
+      # are the host libraries the AppImage leaves out (scripts/appimage_lib_policy.sh),
+      # with Mesa's software OpenGL for Xvfb.
+      - name: Install Xvfb, Openbox and the AppImage's host runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb openbox ffmpeg dbus \
+            libopengl0 libgl1 libegl1 libgl1-mesa-dri libwebkit2gtk-4.1-0
+
+      # WebKitGTK runs its web processes in a bubblewrap sandbox, which needs
+      # unprivileged user namespaces, and Ubuntu 24.04's AppArmor denies them.
+      # The runner is discarded after the job.
+      - name: Allow unprivileged user namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Run the sweep
+        id: sweep
+        # Short of the job's limit, so the steps after it still run.
+        timeout-minutes: 120
+        run: |
+          set -o pipefail
+          # One session bus for the run's apps, as a desktop session gives them.
+          # -j defaults to half the cores: 2 on this 4-vCPU runner, which also
+          # draws every app's OpenGL in software.
+          dbus-run-session -- python3 tools/mcp/run_sweep.py --xvfb --bin "$ORCA_BIN" \
+            --out "$RUNNER_TEMP/mcp-sweep" \
+            2>&1 | tee "$RUNNER_TEMP/mcp-sweep.log"
+
+      - name: Publish job summary
+        if: ${{ !cancelled() && steps.sweep.outcome != 'skipped' }}
+        run: |
+          {
+            echo "## MCP sweep"
+            echo '```'
+            # The failures, the tests that passed only alone, any crash report,
+            # and the closing count
+            grep -E "^FAIL |failed beside the others|^crash report: | passed \(.* alone\)" \
+              "$RUNNER_TEMP/mcp-sweep.log" || echo "no result lines, see the log"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # A failed run keeps each failed test's folder (test.log and a copy of the
+      # app's log), the data folders of the jobs it failed on, and results.jsonl.
+      - name: Upload the failed runs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: mcp-sweep-linux-x86_64
+          path: |
+            ${{ runner.temp }}/mcp-sweep
+            ${{ runner.temp }}/mcp-sweep.log
+          retention-days: 7
+          if-no-files-found: ignore

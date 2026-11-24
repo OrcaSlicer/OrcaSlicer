@@ -44,6 +44,7 @@ on:
      - 'version.inc'
      - ".github/workflows/build_*.yml"
      - ".github/workflows/unit_tests*.yml"
+     - ".github/workflows/mcp_sweep.yml"
      - 'build_linux.sh'
      - 'build_win.bat'
      - 'scripts/test_build_win.ps1'

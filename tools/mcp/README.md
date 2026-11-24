@@ -610,6 +610,11 @@ binary, so no window opens on your desktop. Each flag is Linux-only, and only on
 given. Without any of them the run needs an X display, and `--wayland` needs a Wayland session;
 `--list` needs none.
 
+CI runs the sweep on every Build all run (`.github/workflows/mcp_sweep.yml`): it downloads the run's
+x86_64 Linux AppImage, extracts it, and runs `run_sweep.py --xvfb --bin squashfs-root/AppRun` with
+Openbox and ffmpeg installed. A failed run uploads its `--out` folder as the `mcp-sweep-linux-x86_64`
+artifact.
+
 An entry's keys:
 
 - `path`: the test, relative to `tools/mcp`.

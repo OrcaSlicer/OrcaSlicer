@@ -218,8 +218,8 @@ whose tests failed; the other data folders are deleted at the end, and `--keep` 
 its job and the tests that ran before it on that job's data folder, so that a failure can be traced to what they
 left. Tests that start their own app (`"launch": "own"`) start it on data folders of their own, with their own
 environment, so on Linux they don't follow the X11 default. With `--headless` or `--xvfb` the runner starts a private
-display for each such test, which its apps inherit through that environment, so they stay off the desktop too. No CI
-job runs the sweep: it runs when someone runs it.
+display for each such test, which its apps inherit through that environment, so they stay off the desktop too. CI
+runs the sweep with `--xvfb` on the x86_64 Linux AppImage of each Build all run (`.github/workflows/mcp_sweep.yml`).
 
 **Replays a test runs.** A test that runs a replay with `replay_run` reads its `passed`, which is true when every
 step was ok. A step is ok
