@@ -399,3 +399,5 @@ ObjectWipeTowerPlacementResult place_object_wipe_towers(const std::vector<Object
                                                         const std::function<void()>                         &throw_if_canceled)
 { return PlacementSearch(instances, parameters, throw_if_canceled).run(); }
 
+
+} // namespace Slic3r
