@@ -406,10 +406,13 @@ TEST_CASE("a script, and a step that sets a post-processing script, can run a pr
         {R"({"tool": "settings_set", "args": {"type": "print", "values": {"post_process": ["/x/run.sh"]}}})", {"runs_program"}},
         {R"({"tool": "settings_set", "args": {"values": {"wall_loops": 3, "post_process": "/x/run.sh"}}})", {"runs_program"}},
         {R"({"tool": "settings_set", "args": {"values": {"post_process": "${script}"}}})", {"runs_program"}},
+        // One entry of the list, replacing a script the person already has.
+        {R"({"tool": "settings_set", "args": {"values": {"post_process": {"index": 0, "value": "/x/run.sh"}}}})", {"runs_program"}},
         // A step that clears the setting names no script, and no other setting starts one.
         {R"({"tool": "settings_set", "args": {"values": {"post_process": []}}})", {}},
         {R"({"tool": "settings_set", "args": {"values": {"post_process": [""]}}})", {}},
         {R"({"tool": "settings_set", "args": {"values": {"post_process": ""}}})", {}},
+        {R"({"tool": "settings_set", "args": {"values": {"post_process": {"index": 0, "value": ""}}}})", {}},
         {R"({"tool": "settings_set", "args": {"values": {"wall_loops": 3}}})", {}},
     }));
     INFO(step);

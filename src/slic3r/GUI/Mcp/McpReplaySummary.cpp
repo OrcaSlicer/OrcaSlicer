@@ -125,11 +125,14 @@ bool one_of(const std::string& s, std::initializer_list<const char*> names)
     return false;
 }
 
-// A post_process value that names a script: a text that is not empty, or a list holding one.
+// A post_process value that names a script: a text that is not empty, a list holding one, or one entry
+// ({"index", "value"}, as settings_set takes it) whose value names one.
 bool names_script(const json& value)
 {
     if (value.is_string())
         return !value.get_ref<const std::string&>().empty();
+    if (value.is_object())
+        return value.contains("value") && names_script(value["value"]);
     return value.is_array() && std::any_of(value.begin(), value.end(), names_script);
 }
 
