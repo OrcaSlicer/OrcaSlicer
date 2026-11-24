@@ -390,12 +390,12 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
                                     bool is_fractional = cs[0] == ':';
                                     if (is_fractional) { // fractional
                                         if (angle_value == 0.)
-                                            angle_value = 0.5;
+                                            angle_value = 1.;
                                         cs++;
                                         double angle_frac = strtod(cs, &cs);
                                         if (angle_frac == 0.)
                                             angle_frac = 1.;
-                                        angle_value /= angle_frac;
+                                        angle_value *= 180 / angle_frac;
                                     } 
 
                                     if (cs[0] == '%') { // percentage of full circle
