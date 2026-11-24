@@ -18258,6 +18258,53 @@ static std::string ironing_flow_filament_name(size_t filament_idx)
     return name;
 }
 
+// 2 base layers, 2 layers of marks and text, 1 ironed top layer: the strip, the base and the labels.
+static IroningFlowCalibMeshes ironing_flow_test_meshes(const Calib_Params &params, const std::string &name)
+{
+    const auto  &print_config       = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    const double first_layer_height = print_config.option<ConfigOptionFloat>("initial_layer_print_height")->value;
+    const double layer_height       = print_config.option<ConfigOptionFloat>("layer_height")->value;
+    const double nozzle_diameter    = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter")->get_at(params.extruder_id);
+    return ironing_flow_calib_meshes(params.start, params.end, params.step, name, nozzle_diameter,
+                                     first_layer_height + layer_height, first_layer_height + 3. * layer_height, first_layer_height + 4. * layer_height);
+}
+
+// Write the name of the filament the test is printed with on it, so that it follows a change of the filament. Only the
+// labels change; they keep their place beside the strip.
+static bool update_ironing_flow_name(Model &model, const Print *print)
+{
+    if (!print || print->calib_params().mode != CalibMode::Calib_Ironing_Flow)
+        return false;
+    bool changed = false;
+    for (ModelObject *object : model.objects) {
+        if (object->name != into_u8(_L("Ironing flow test")))
+            continue;
+        ModelVolume *labels_volume = nullptr;
+        for (ModelVolume *volume : object->volumes)
+            if (volume->name == into_u8(_L("Labels")))
+                labels_volume = volume;
+        if (labels_volume == nullptr)
+            continue;
+        const size_t filament_idx = object->config.has("extruder") ? size_t(std::max(object->config.option("extruder")->getInt(), 1) - 1) : 0;
+        TriangleMesh labels(ironing_flow_test_meshes(print->calib_params(), ironing_flow_filament_name(filament_idx)).labels);
+        // Centred the way ModelVolume::center_geometry_after_creation() centres the volumes on load.
+        const Vec3d shift = labels.bounding_box().center();
+        labels.translate(-float(shift.x()), -float(shift.y()), -float(shift.z()));
+        labels.set_init_shift(shift);
+        if (labels.its.vertices == labels_volume->mesh().its.vertices)
+            continue;
+        labels_volume->set_offset(labels_volume->get_offset() + shift - labels_volume->mesh().get_init_shift());
+        labels_volume->set_mesh(std::move(labels));
+        labels_volume->set_new_unique_id();
+        labels_volume->calculate_convex_hull();
+        labels_volume->invalidate_convex_hull_2d();
+        object->invalidate_bounding_box();
+        object->ensure_on_bed();
+        changed = true;
+    }
+    return changed;
+}
+
 void Plater::calib_ironing_flow(const Calib_Params& params)
 {
     if (params.mode != CalibMode::Calib_Ironing_Flow)
@@ -18283,20 +18330,15 @@ void Plater::calib_ironing_flow(const Calib_Params& params)
     if (!_calib_select_filament(params.filament_id))
         return;
 
-    auto print_config   = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
-    auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
 
     // 2 base layers, 2 layers of marks and text, 1 ironed top layer.
     constexpr double calib_layer_height = 0.12;
     print_config->set_key_value("layer_height", new ConfigOptionFloat(calib_layer_height));
     print_config->set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
-    const double first_layer_height = print_config->option<ConfigOptionFloat>("initial_layer_print_height")->value;
-    const double nozzle_diameter    = printer_config->option<ConfigOptionFloats>("nozzle_diameter")->get_at(params.extruder_id);
 
     // The strip, the base under it and the labels (marks, flows and the filament name), as separate parts of one object.
-    IroningFlowCalibMeshes meshes = ironing_flow_calib_meshes(params.start, params.end, params.step,
-        ironing_flow_filament_name(size_t(std::max(params.filament_id, 0))), nozzle_diameter,
-        first_layer_height + calib_layer_height, first_layer_height + 3. * calib_layer_height, first_layer_height + 4. * calib_layer_height);
+    IroningFlowCalibMeshes meshes = ironing_flow_test_meshes(params, ironing_flow_filament_name(size_t(std::max(params.filament_id, 0))));
     const std::array<TriangleMesh, 3> parts = { TriangleMesh(std::move(meshes.strip)), TriangleMesh(std::move(meshes.base)), TriangleMesh(std::move(meshes.labels)) };
     // TRN: Parts of the ironing flow test: the ironed strip, the base under it, and the flow marks, their labels and the filament name
     sidebar().obj_list()->load_mesh_object({ { &parts[0], _L("Strip") }, { &parts[1], _L("Base") }, { &parts[2], _L("Labels") } },
@@ -21420,6 +21462,10 @@ void Plater::reslice()
                                  << timeout_ms << " milliseconds timeout!";
         return;
     }
+
+    // The ironing flow test carries the name of its filament.
+    if (update_ironing_flow_name(p->model, p->background_process.fff_print()))
+        p->update();
 
     // Orca: regenerate CalibPressureAdvancePattern custom G-code to apply changes
     if (model().calib_pa_pattern) {
