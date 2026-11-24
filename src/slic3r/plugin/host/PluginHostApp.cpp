@@ -54,6 +54,9 @@ PresetBundle* current_preset_bundle()
     if (wxTheApp == nullptr)
         throw std::runtime_error("OrcaSlicer application is not initialized");
 
+    if (!GUI::wxGetApp().presets_loaded())
+        throw std::runtime_error("Presets are not available until startup loading has completed");
+
     PresetBundle* preset_bundle = GUI::wxGetApp().preset_bundle;
     if (preset_bundle == nullptr)
         throw std::runtime_error("Preset bundle is not available");
@@ -174,7 +177,8 @@ void host_bindings::register_app(py::module_& host)
     host.def("model", []() -> Model& {
         return current_plater()->model();
     }, py::return_value_policy::reference);
-    host.def("preset_bundle", &current_preset_bundle, py::return_value_policy::reference);
+    host.def("preset_bundle", &current_preset_bundle, py::return_value_policy::reference,
+             "Return the preset bundle. Raises RuntimeError until startup preset loading completes.");
     host.def("app_info", &app_info,
              "The running app: version, build, mode, language, app_config_version (the version that wrote the app config "
              "before this run, empty when there was none), stealth_mode, is_signed_in (Orca Cloud), is_bambu_signed_in (Bambu Cloud), network_plugin_version (empty "

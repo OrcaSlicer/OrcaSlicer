@@ -271,6 +271,7 @@ public:
 private:
     bool            m_initialized { false };
     bool            m_post_initialized { false };
+    std::atomic<bool> m_presets_loaded { false }; // Published to plugin workers after startup preset loading.
     bool            m_app_conf_exists{ false };
     EAppMode        m_app_mode{ EAppMode::Editor };
     bool            m_is_recreating_gui{ false };
@@ -443,6 +444,7 @@ public:
     std::string logo_name() const { return is_editor() ? "OrcaSlicer" : "OrcaSlicer-gcodeviewer"; }
 
     bool is_closing() const { return m_is_closing.load(std::memory_order_acquire); }
+    bool presets_loaded() const { return m_presets_loaded.load(std::memory_order_acquire); }
     void set_closing(bool closing) { m_is_closing.store(closing, std::memory_order_release); }
     // Called once closing can no longer be vetoed: ends the process if closing does not finish in time.
     void start_exit_watchdog();

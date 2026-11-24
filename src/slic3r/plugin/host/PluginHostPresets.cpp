@@ -21,6 +21,7 @@
 
 #include <pybind11/stl.h>
 
+#include <wx/app.h>
 #include <wx/string.h>
 
 #include <set>
@@ -33,6 +34,13 @@ namespace py = pybind11;
 
 namespace Slic3r {
 namespace {
+
+void require_loaded_presets()
+{
+    // Plugin registration runs on a worker while startup loads the preset bundle.
+    if (wxTheApp == nullptr || !GUI::wxGetApp().presets_loaded())
+        throw std::runtime_error("Presets are not available until startup loading has completed");
+}
 
 py::list current_filament_presets(PresetBundle& bundle)
 {
@@ -159,6 +167,7 @@ struct PresetTransaction
 
 GUI::GUI_App& require_gui_app()
 {
+    require_loaded_presets();
     GUI::GUI_App& app = GUI::wxGetApp();
     if (app.is_closing())
         throw std::runtime_error("OrcaSlicer is closing");
@@ -594,6 +603,7 @@ void reload_local_bundle(const std::string& bundle_id)
     bool        reloaded = false;
     std::string error;
     PluginHostUi::run_on_ui_thread([&] {
+        require_loaded_presets();
         GUI::GUI_App& app = GUI::wxGetApp();
         if (app.is_closing())
             throw std::runtime_error("OrcaSlicer is closing");
@@ -624,6 +634,7 @@ std::vector<std::string> list_bundle_ids()
 {
     std::vector<std::string> ids;
     PluginHostUi::run_on_ui_thread([&] {
+        require_loaded_presets();
         GUI::GUI_App& app = GUI::wxGetApp();
         if (app.is_closing())
             throw std::runtime_error("OrcaSlicer is closing");

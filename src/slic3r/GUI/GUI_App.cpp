@@ -3731,6 +3731,7 @@ bool GUI_App::on_init_inner()
             // installation of a compatible system preset, thus nullifying the system preset substitutions.
             if (scrn) { scrn->SetText(_L("Loading printer & filament profiles") + dots, 30); wxYield(); }
             init_params->preset_substitutions = preset_bundle->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::EnableSystemSilent);
+            m_presets_loaded.store(true, std::memory_order_release);
         }
         catch (const std::exception& ex) {
             show_error(nullptr, ex.what());
