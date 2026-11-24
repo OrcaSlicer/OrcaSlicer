@@ -3102,7 +3102,7 @@ static void append_volume_and_layer_range_filaments(const ModelObject& object, i
             std::replace(volume_extruders.begin(), volume_extruders.end(), own_filament, 1);
         filaments.insert(filaments.end(), volume_extruders.begin(), volume_extruders.end());
         // Only parts and modifiers make print regions, so another volume's feature filaments never print.
-        if (mv->is_model_part() || mv->is_region_modifier())
+        if (mv->is_model_part() || mv->is_modifier())
             append_feature_filaments(mv->config, filament_count, filaments);
     }
     for (const auto& [range, config] : object.layer_config_ranges) {

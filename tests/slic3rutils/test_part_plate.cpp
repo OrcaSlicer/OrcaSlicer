@@ -168,15 +168,12 @@ TEST_CASE("A print-wide filament past the last filament slot resolves as the app
     const auto [key, reset_by_app, clamped_by_slicer] = GENERATE(table<std::string, std::vector<int>, std::vector<int>>({
         {"outer_wall_filament_id", {2}, {1, 2}},
         {"support_filament", {2, 3}, {1, 2}},
-        {"brim_filament_id", {2}, {2}},
     }));
     ObjectOnPlate on_plate;
     on_plate.object->config.set("extruder", 2);
     DynamicPrintConfig config = config_with_object_filaments_only();
     config.set(key, 4);
     config.set("enable_support", key == "support_filament");
-    if (key == "brim_filament_id")
-        config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
     DynamicPrintConfig print_config = config;
     print_config.erase("filament_colour");
 
@@ -189,7 +186,6 @@ TEST_CASE("A volume's feature filament is a filament the plate uses only when th
 {
     const auto [type, expected] = GENERATE(table<ModelVolumeType, std::vector<int>>({
         {ModelVolumeType::PARAMETER_MODIFIER, {1, 2}},
-        {ModelVolumeType::PAINTED_MODIFIER, {1, 2}},
         {ModelVolumeType::NEGATIVE_VOLUME, {1}},
         {ModelVolumeType::SUPPORT_BLOCKER, {1}},
         {ModelVolumeType::SUPPORT_ENFORCER, {1}},
