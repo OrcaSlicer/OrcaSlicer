@@ -267,6 +267,8 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
                 tray.tray_info_idx = setting_id;
             } else {
                 tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
+                if (tray.tray_info_idx.empty())
+                    tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
             }
 
             // Look up color from dictionary

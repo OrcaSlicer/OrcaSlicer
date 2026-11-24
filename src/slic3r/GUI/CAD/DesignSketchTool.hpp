@@ -510,16 +510,43 @@ public:
     bool selected_constrain_entities(int& e0, int& e1) const { e0 = m_pick0; e1 = m_pick1; return m_pick0 >= 0; }
     // Third pick slot (Symmetric axis): only filled after slots 0 and 1 are set.
     int  pick2() const { return m_pick2; }
+    // A Constrain-mode click at `p` in plane coordinates: fills the next pick slot with the entity
+    // nearest `p` within `reach`, or drops the picks when none is that near. Either way it drops the
+    // selected constraint, since a sketch holds one selection at a time.
+    void constrain_pick(const Vec2d& p, double reach);
     // Plane-coords of the click that filled slot 0 (for pick-point edit ops: trim/extend).
     bool pick0_point(Vec2d& out) const { out = m_pick0_pt; return m_pick0 >= 0; }
     // Refresh the displayed entities after the kernel re-solved them.
     void set_constrain_entities(const std::vector<SketchEntity>& ents) { m_entities = ents; }
-    // Constraint manager (C3.4): entity indices the panel asks to highlight (the
-    // entities a selected constraint references); rendered yellow in Constrain mode.
-    void set_constraint_highlight(std::vector<int> v) { m_constraint_hl = std::move(v); }
     // The committed feature's constraints, supplied so Constrain-mode render can draw
-    // an iconic glyph badge per constraint near its primary entity (C3.4b).
-    void set_constraint_glyphs(std::vector<SketchEntityConstraintDef> v) { m_constrain_cons = std::move(v); }
+    // an iconic glyph badge per constraint near its primary entity (C3.4b). In Constrain mode a
+    // set of another size drops the selected constraint, whose index no longer names it.
+    void set_constraint_glyphs(std::vector<SketchEntityConstraintDef> v);
+
+    // ---- Constraint selection -----------------------------------------------------------
+    // One of the constraints on show, picked by a click on its badge or from the panel's list:
+    // its badge wears the selection colour and the entities it binds are highlighted. The
+    // constraints on show are the live session's, or in Constrain mode the committed feature's
+    // (set_constraint_glyphs). A sketch holds one selection at a time, so selecting a constraint
+    // drops the picked geometry and picking geometry drops the constraint. -1 for none.
+    int  selected_constraint() const { return m_sel_con; }
+    // Select constraint `con`; -1, or an index not on show, clears the selection.
+    void select_constraint(int con);
+    // Where constraint `con`'s badge is drawn at `unit_per_px` plane units per pixel. Badges stack
+    // up the plane's +Y from the middle of the constraint's first entity, one 11 px cell each,
+    // 1.5 cells apart. Nothing for an index not on show, or for a constraint whose first reference
+    // is the origin or an axis, which has no badge.
+    std::optional<Vec2d> constraint_badge(int con, double unit_per_px) const;
+    // A plain Select-mode click at `p` on a constraint badge selects that constraint. It only
+    // selects: a badge is small and sits where a person aims at the geometry and its labels, so
+    // deleting takes Delete or the list's button. False, with nothing changed, when no badge lies
+    // under `p`.
+    bool click_constraint_badge(const Vec2d& p, double unit_per_px);
+    // What Zoom to selection frames for constraint `con`: the entities it binds, in world
+    // coordinates. Undefined when it binds none on show.
+    BoundingBoxf3 constraint_box(int con) const;
+    // The selected constraint changed; `con` is the new one, -1 for none.
+    std::function<void(int con)> on_constraint_selected;
 
     // Line tool: after a single segment is placed, the panel pops a length dialog
     // (length, angle_deg are the as-drawn values); it then resolves via
@@ -552,7 +579,7 @@ public:
     const std::vector<int>& selection() const { return m_selection; }
     // Entities OR bare points: clear_selection() drops both, so "is anything picked" must ask
     // about both, or Esc at idle would report nothing to do while a point sat highlighted.
-    bool sketch_has_selection() const { return !m_selection.empty() || !m_point_sel.empty(); }
+    bool sketch_has_selection() const { return !m_selection.empty() || !m_point_sel.empty() || m_sel_con >= 0; }
     // Type of the first selected entity. False when nothing is selected, so the offer menu can
     // tell a line from an arc from a point and stop collapsing every sketch selection to "none".
     bool first_selected_type(SketchEntity::Type& out) const {
@@ -587,11 +614,7 @@ public:
     // inconsistent. Returns true when the batch was kept. Public so the panel's live-constraint
     // path can commit a plan through the SAME append→solve→keep-or-rollback the gestures use.
     bool try_add_constraints(const std::vector<SketchEntityConstraintDef>& cands);
-    // Click-to-delete on a constraint badge: drop the constraint whose glyph sits under `p`
-    // and re-solve. Returns true if one was removed (the caller then repaints).
-    bool remove_constraint_near(const Vec2d& p);
-    // Drop constraint `idx` from the live session and re-solve. Same operation the badge click
-    // performs, addressed by index instead of by position — the panel list needs the index form.
+    // Drop constraint `idx` from the live session and re-solve.
     bool remove_constraint(int idx);
 
     // The loop report: what is CLOSED, what its internal voids are, and where a chain is still
@@ -755,6 +778,7 @@ private:
     static constexpr double kToolPickPx = 24.0;   // pick an entity for a tool to act on (trim, edit-ops,
                                                   // transforms, constrain)
     static constexpr double kLabelPx    = 24.0;   // click or double-click a value label
+    static constexpr double kBadgePx    = 11.0;   // a constraint badge's cell
     double screen_tol(GLCanvas3D& canvas, const wxMouseEvent& evt, const Vec2d& at, double px = kPickPx) const;
     // Run kernel inference at the cursor, cache the target for the hint renderer.
     InferenceSnap infer_at(GLCanvas3D& canvas, const wxMouseEvent& evt, const Vec2d& raw) const;
@@ -952,12 +976,28 @@ private:
     // editing shows live values; click one (m_live_quotes) to promote it to a driving
     // dim. Self-gates; skips a dim already driven on that entity.
     void render_live_quotes(double unit_per_px);
-    // Iconic constraint badges (C3.4b): for each m_constrain_cons entry, append a
-    // small screen-constant glyph (H, V, ∥, ⊥, =, ○, …) near its primary entity into
-    // `out`; glyphs touching the same entity stack so they don't overlap.
+    // Iconic constraint badges (C3.4b): for each constraint on show, append a small
+    // screen-constant glyph (H, V, ∥, ⊥, =, ○, …) at its constraint_badge() into `out`, the
+    // selected constraint's into `out_selected`, so it can be drawn in the selection colour.
     void build_constraint_glyphs(double unit_per_px,
-                                 const std::vector<SketchEntityConstraintDef>& cons,
-                                 std::vector<std::pair<Vec2d, Vec2d>>& out);
+                                 std::vector<std::pair<Vec2d, Vec2d>>& out,
+                                 std::vector<std::pair<Vec2d, Vec2d>>& out_selected) const;
+    // Draw every badge of the constraints on show, the selected one in the selection colour.
+    void draw_constraint_badges(double unit_per_px);
+    // Every badge centre of the constraints on show, in order (see constraint_badge()).
+    std::vector<std::optional<Vec2d>> constraint_badges(double unit_per_px) const;
+    // The live session's constraints, or in Constrain mode the committed feature's.
+    const std::vector<SketchEntityConstraintDef>& shown_constraints() const
+    {
+        return m_mode == Mode::Constrain ? m_constrain_cons : m_constraints;
+    }
+    // Whether entity `ei` is one the selected constraint binds, to highlight it.
+    bool bound_by_selected_constraint(int ei) const;
+    // The one write of m_sel_con: reports a change through on_constraint_selected.
+    void set_selected_constraint(int con);
+    // After the live constraints were rewritten, `remap[i]` being constraint i's new index
+    // (-1 for dropped): keep the selected constraint selected under its new index.
+    void remap_selected_constraint(const std::vector<int>& remap);
     void draw_strokes(GLModel& model, const std::vector<std::pair<Vec2d, Vec2d>>& segs,
                       double hw, const ColorRGBA& color);
     void draw_text(GLModel& model, const std::string& s, const Vec2d& center,
@@ -1248,13 +1288,8 @@ private:
     int                 m_pick1{-1};
     int                 m_pick2{-1};   // third slot (Symmetric axis)
     Vec2d               m_pick0_pt{0,0}; // plane-coords of the slot-0 pick (trim/extend)
-    std::vector<int>    m_constraint_hl; // entities highlighted by the constraint manager
     std::vector<SketchEntityConstraintDef> m_constrain_cons; // for glyph badges (C3.4b)
-    // Where each badge landed, so a click can find the constraint it stands for. Rebuilt by
-    // build_constraint_glyphs on every render, which is always the frame the user clicked on.
-    struct GlyphHit { Vec2d c{0,0}; int con{-1}; };
-    std::vector<GlyphHit> m_glyph_hits;
-    double                m_glyph_r{0.0};   // badge half-size in plane units (hit radius)
+    int                 m_sel_con{-1};   // the selected constraint, an index into shown_constraints()
     GLModel             m_line_model;
     GLModel             m_vertex_model;
     GLModel             m_highlight_model;

@@ -1,0 +1,27 @@
+{
+	"type": "filament",
+	"name": "Generic PLA @Anycubic Kobra 3 Max V2 0.4 nozzle",
+	"inherits": "Anycubic PLA @Anycubic Kobra 3 Max V2 0.4 nozzle",
+	"from": "system",
+	"setting_id": "TPjqgj2ZgVJ7ndau",
+	"filament_id": "OFDSrzZ8",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Generic"
+	],
+	"filament_flow_ratio": [
+		"0.97"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"pressure_advance": [
+		"0.04"
+	],
+	"slow_down_layer_time": [
+		"11"
+	],
+	"compatible_printers": [
+		"Anycubic Kobra 3 Max V2 0.4 nozzle"
+	]
+}

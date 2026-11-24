@@ -30,7 +30,7 @@
 
 // Orca's own widgets (slic3r/GUI/Widgets), declared at global scope.
 class SpinInput;
-class CheckBox;
+class LabeledCheckBox;
 
 namespace Slic3r::GUI {
 
@@ -437,7 +437,7 @@ private:
     UVToolButton   *m_unwrap     = nullptr;
 
     ::SpinInput    *m_seam_angle = nullptr;
-    ::CheckBox     *m_connect    = nullptr;
+    LabeledCheckBox *m_connect   = nullptr;
 
     UVToolButton   *m_select[3]{};
     UVToolButton   *m_mark_seams  = nullptr;

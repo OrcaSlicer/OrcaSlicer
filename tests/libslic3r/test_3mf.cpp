@@ -1293,9 +1293,7 @@ SCENARIO("Non-standard nozzle diameter survives .3mf save on a single-nozzle pri
     }
 }
 
-// A legacy / foreign project (no multi-nozzle metadata) must load crash-safe through the BBS
-// importer and must not fabricate a filament_volume_map.
-SCENARIO("Legacy project loads crash-safe via load_bbs_3mf", "[3mf][MultiNozzle]") {
+SCENARIO("Loading via load_bbs_3mf is crash-safe and invents no volume map", "[3mf][MultiNozzle]") {
     GIVEN("a project without any multi-nozzle metadata") {
         std::string path = std::string(TEST_DATA_DIR) + "/test_3mf/Geräte/Büchse.3mf";
         Model                model;
@@ -1312,10 +1310,47 @@ SCENARIO("Legacy project loads crash-safe via load_bbs_3mf", "[3mf][MultiNozzle]
                                                   &project_presets, &is_bbl_3mf, &is_orca_3mf,
                                                   &file_version, nullptr,
                                                   LoadStrategy::LoadModel | LoadStrategy::LoadConfig));
-            THEN("it does not crash and invents no per-filament volume map") {
-                for (PlateData* p : plates) {
-                    REQUIRE(p->config.option<ConfigOptionInts>("filament_volume_map") == nullptr);
-                }
+            THEN("it loads") {
+                CHECK(loaded);
+            }
+            release_PlateData_list(plates);
+        }
+    }
+    GIVEN("a project whose plate has no per-filament volume map") {
+        Model model;
+        REQUIRE(load_stl((std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl").c_str(), &model));
+        model.add_default_instances();
+        ScopedTemporaryDir backup_dir("orca_no_volume_map");
+        model.set_backup_path(backup_dir.string());
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        PlateData          plate;
+        plate.plate_index = 0;
+
+        ScopedTemporaryFile temp(".3mf");
+        const std::string   path = temp.string();
+        StoreParams         store_params;
+        store_params.path     = path.c_str();
+        store_params.model    = &model;
+        store_params.config   = &config;
+        store_params.plate_data_list.push_back(&plate);
+        store_params.strategy = SaveStrategy::Zip64 | SaveStrategy::Silence;
+        REQUIRE(store_bbs_3mf(store_params));
+
+        WHEN("loaded through the BBS importer") {
+            Model                     dst_model;
+            DynamicPrintConfig        dst_config;
+            ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Enable };
+            PlateDataPtrs             plates;
+            std::vector<Preset*>      project_presets;
+            bool   is_bbl_3mf = false, is_orca_3mf = false;
+            Semver file_version;
+            const bool loaded = load_bbs_3mf(path.c_str(), &dst_config, &ctxt, &dst_model, &plates, &project_presets,
+                                             &is_bbl_3mf, &is_orca_3mf, &file_version, nullptr,
+                                             LoadStrategy::LoadModel | LoadStrategy::LoadConfig);
+            THEN("the loaded plate has no per-filament volume map") {
+                REQUIRE(loaded);
+                REQUIRE(plates.size() == 1);
+                CHECK(plates.front()->config.option<ConfigOptionInts>("filament_volume_map") == nullptr);
             }
             release_PlateData_list(plates);
         }
@@ -1518,6 +1553,7 @@ SCENARIO("BBS 3MF round-trips per-plate IMEX state (parallel mode + head filamen
         plate0->plate_index = 0;
         plate0->config.set_key_value("imex_parallel_mode",     new ConfigOptionString(hostile_mode));
         plate0->config.set_key_value("imex_head_filament_map", new ConfigOptionString(hostile_hfm));
+        plate0->config.set_key_value("skirt_start_angle",      new ConfigOptionFloat(12.5));
         src_plates.push_back(plate0);
 
         WHEN("the model is saved to BBS 3MF and loaded back") {
@@ -1559,6 +1595,12 @@ SCENARIO("BBS 3MF round-trips per-plate IMEX state (parallel mode + head filamen
                 auto *hfm_opt = dst_plates[0]->config.option<ConfigOptionString>("imex_head_filament_map");
                 REQUIRE(hfm_opt != nullptr);
                 REQUIRE(hfm_opt->value == hostile_hfm);
+            }
+            THEN("skirt_start_angle round-trips with its fraction") {
+                REQUIRE(dst_plates.size() >= 1);
+                auto *angle_opt = dst_plates[0]->config.option<ConfigOptionFloat>("skirt_start_angle");
+                REQUIRE(angle_opt != nullptr);
+                REQUIRE_THAT(angle_opt->value, Catch::Matchers::WithinAbs(12.5, 1e-6));
             }
 
             release_PlateData_list(dst_plates);

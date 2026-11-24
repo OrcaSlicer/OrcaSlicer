@@ -1,4 +1,5 @@
 #include "ActionRegistry.hpp"
+#include "slic3r/plugin/host/PluginPages.hpp"
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
