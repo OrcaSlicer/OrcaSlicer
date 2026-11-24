@@ -5096,6 +5096,8 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
                         m_mouse.ignore_left_up = true;
                         m_dirty = true;
                     }
+                    else if (m_is_touchpad_navigation && m_mouse.drag.camera_pan_anchor.has_value())
+                        mouse_up_cleanup();
 //                    set_cursor(Standard);
                 }
                 else if (keyCode == WXK_ALT) {
