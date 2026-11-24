@@ -6,6 +6,9 @@
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Platform.hpp"
 #include "GUI_App.hpp"
+#include "slic3r/plugin/PluginAuditManager.hpp"
+#include "slic3r/plugin/PluginUpdateRequest.hpp"
+#include <stdexcept>
 #include "BBLTopbar.hpp"
 #include "Shortcuts.hpp"
 #include "DeviceCore/DevConfigUtil.h"
@@ -9010,6 +9013,47 @@ void GUI_App::open_presetbundledialog(size_t open_on_tab, const std::string& hig
         }
         this->plater_->get_current_canvas3D()->force_set_focus();
         
+    }
+}
+
+bool GUI_App::request_plugin_update(const std::string& plugin_key)
+{
+    if (!wxIsMainThread() || is_closing())
+        throw std::runtime_error(_u8L("Plugin updates are unavailable while OrcaSlicer is closing."));
+    PluginDescriptor descriptor;
+    if (!PluginManager::instance().try_get_plugin_descriptor(plugin_key, descriptor))
+        throw std::runtime_error(_u8L("Plugin not found."));
+    const std::string user = m_agent ? m_agent->get_user_id(ORCA_CLOUD_PROVIDER) : std::string{};
+    if (!m_plugin_update_requests)
+        m_plugin_update_requests = std::make_unique<PluginUpdateRequests>();
+    auto result = m_plugin_update_requests->request(plugin_key, descriptor, !user.empty(),
+        [this](PluginUpdateRequests::Task task) { CallAfter(std::move(task)); },
+        [this, plugin_key, user] {
+            if (is_closing())
+                return;
+            try {
+                // A plugin can enter a nested event loop after requesting an update. Never
+                // unload it while any Python plugin callback is still on the UI stack.
+                if (!PluginAuditManager::instance().current_plugin().empty())
+                    throw std::runtime_error(_u8L("A plugin callback is still running. Try the update again after it finishes."));
+                if (!m_agent || m_agent->get_user_id(ORCA_CLOUD_PROVIDER) != user)
+                    throw std::runtime_error(_u8L("The OrcaCloud account changed. Request the plugin update again."));
+                open_plugins_dialog();
+                if (m_plugins_dlg)
+                    m_plugins_dlg->request_update(plugin_key);
+            } catch (const std::exception& error) {
+                MessageDialog(mainframe, from_u8(error.what()), _L("Plugin update"), wxOK | wxICON_ERROR).ShowModal();
+            }
+        });
+    using Result = PluginUpdateRequests::Result;
+    switch (result) {
+    case Result::Accepted: return true;
+    case Result::Busy: return false;
+    case Result::NotSignedIn: throw std::runtime_error(_u8L("Sign in to OrcaCloud to update this plugin."));
+    case Result::Unavailable: throw std::runtime_error(_u8L("This plugin is not available to update for the current OrcaCloud account."));
+    case Result::LocalPlugin: throw std::runtime_error(_u8L("Only cloud plugins can be updated."));
+    case Result::NotInstalled: throw std::runtime_error(_u8L("The cloud plugin is not installed."));
+    default: throw std::runtime_error(_u8L("A plugin can only request its own update."));
     }
 }
 

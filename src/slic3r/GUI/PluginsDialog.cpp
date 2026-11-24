@@ -1583,7 +1583,42 @@ void PluginsDialog::run_script_plugin_capability(const std::string& plugin_key, 
         finish(launch.outcome);
 }
 
-void PluginsDialog::update_plugin(const std::string& plugin_key)
+void PluginsDialog::request_update(const std::string& plugin_key)
+{
+    const auto alive = m_alive;
+    auto& manager = PluginManager::instance();
+    const auto* agent = wxGetApp().getAgent();
+    const std::string user = agent ? wxGetApp().getAgent()->get_user_id(ORCA_CLOUD_PROVIDER) : std::string{};
+    // Orca's catalog may be older than the plugin's own version check. Refresh it
+    // on the normal host worker before choosing and displaying the target version.
+    run_with_dialog_wait([&manager] { manager.fetch_plugins_from_cloud(); return true; },
+                         _L("Plugin update"), _L("Checking for plugin updates..."));
+    if (!alive->load(std::memory_order_acquire) || wxGetApp().is_closing())
+        return;
+    if (!wxGetApp().getAgent() || wxGetApp().getAgent()->get_user_id(ORCA_CLOUD_PROVIDER) != user)
+        throw std::runtime_error(_u8L("The OrcaCloud account changed. Request the plugin update again."));
+    PluginDescriptor descriptor;
+    if (!manager.try_get_plugin_descriptor(plugin_key, descriptor) || !descriptor.cloud ||
+        !descriptor.cloud->installed || descriptor.cloud->unauthorized || descriptor.cloud->orphaned)
+        throw std::runtime_error(_u8L("This plugin is not available to update for the current OrcaCloud account."));
+    if (!descriptor.cloud->update_available) {
+        MessageDialog(this, _L("No update is available for this plugin."), _L("Plugin update"), wxOK | wxICON_INFORMATION).ShowModal();
+        return;
+    }
+    const std::string version = descriptor.latest_available_version();
+    // TRN: %1% is a plugin name and %2% is the new version number.
+    MessageDialog confirm(this, format(_L("Update \"%1%\" to version %2%?"), descriptor.name, version),
+                          _L("Plugin update"), wxYES_NO | wxNO_DEFAULT | wxICON_QUESTION);
+    if (confirm.ShowModal() == wxID_YES) {
+        if (!alive->load(std::memory_order_acquire) || wxGetApp().is_closing())
+            return;
+        if (!wxGetApp().getAgent() || wxGetApp().getAgent()->get_user_id(ORCA_CLOUD_PROVIDER) != user)
+            throw std::runtime_error(_u8L("The OrcaCloud account changed. Request the plugin update again."));
+        update_plugin(plugin_key, version);
+    }
+}
+
+void PluginsDialog::update_plugin(const std::string& plugin_key, const std::string& version)
 {
     if (plugin_key.empty())
         return;
@@ -1599,7 +1634,7 @@ void PluginsDialog::update_plugin(const std::string& plugin_key)
     std::string error;
     bool updated = false;
     try {
-        updated = run_with_dialog_wait([plugin_key, &error]() { return PluginManager::instance().update_cloud_plugin(plugin_key, error); },
+        updated = run_with_dialog_wait([plugin_key, version, &error]() { return PluginManager::instance().update_cloud_plugin(plugin_key, error, version); },
                                        _L("Updating plugin"), _L("Updating") + ": " + name);
     } catch (const std::exception& ex) {
         error = ex.what();

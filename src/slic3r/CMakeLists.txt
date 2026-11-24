@@ -721,6 +721,7 @@ set(SLIC3R_GUI_SOURCES
     plugin/PluginHooks.hpp
     plugin/PluginManager.cpp
     plugin/PluginManager.hpp
+    plugin/PluginUpdateRequest.hpp
     plugin/PluginAuditManager.cpp
     plugin/PluginAuditManager.hpp
     plugin/PluginResolver.cpp
