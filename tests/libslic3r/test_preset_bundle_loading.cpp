@@ -1257,6 +1257,41 @@ TEST_CASE("A project filament storing one value for a per-variant key applies it
     check_double_vector(loaded->config.option<ConfigOptionFloats>("pressure_advance")->values, {0.016, 0.016});
 }
 
+TEST_CASE("A project's edited filament keeps the preset's compatible printers and processes", "[Preset][Bundle][Regression]")
+{
+    enum class Load { FirstSlotSelected, FirstSlotParentSelected, LaterSlotEmbedded, LaterSlotCopied };
+    const Load load = GENERATE(Load::FirstSlotSelected, Load::FirstSlotParentSelected, Load::LaterSlotEmbedded, Load::LaterSlotCopied);
+    CAPTURE(load);
+    const bool first_slot = load == Load::FirstSlotSelected || load == Load::FirstSlotParentSelected;
+    // For FirstSlotParentSelected only the parent the project inherits from is loaded, so it is the one selected.
+    const std::string preset_name = load == Load::FirstSlotParentSelected ? "Parent PLA" : "My PLA";
+    PresetCollection filaments(Preset::TYPE_FILAMENT, Preset::filament_options(),
+                               static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()));
+    Preset &user = add_inmemory_preset(filaments, preset_name);
+    user.is_project_embedded = load == Load::LaterSlotEmbedded;
+    user.config.option<ConfigOptionStrings>("compatible_printers", true)->values = {"My Printer"};
+    user.config.option<ConfigOptionStrings>("compatible_prints", true)->values   = {"My Process"};
+    user.config.option<ConfigOptionInts>("nozzle_temperature", true)->values     = {210};
+
+    DynamicPrintConfig project(user.config);
+    project.option<ConfigOptionStrings>("compatible_printers")->values.clear();
+    project.option<ConfigOptionStrings>("compatible_prints")->values.clear();
+    project.option<ConfigOptionInts>("nozzle_temperature")->values = {225};
+    if (load == Load::FirstSlotParentSelected)
+        project.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS)->value = preset_name;
+
+    const Preset *loaded = filaments.load_external_preset("test.3mf", "test.3mf", "My PLA", project, {},
+                                                          first_slot ? PresetCollection::LoadAndSelect::Always :
+                                                                       PresetCollection::LoadAndSelect::OnlyIfModified).first;
+    REQUIRE(loaded != nullptr);
+
+    const Preset &result = first_slot ? filaments.get_edited_preset() : *loaded;
+    REQUIRE(result.name == (load == Load::LaterSlotCopied ? "My PLA(test.3mf)" : preset_name));
+    CHECK(result.config.option<ConfigOptionInts>("nozzle_temperature")->values == std::vector<int>{225});
+    CHECK(result.config.option<ConfigOptionStrings>("compatible_printers")->values == std::vector<std::string>{"My Printer"});
+    CHECK(result.config.option<ConfigOptionStrings>("compatible_prints")->values == std::vector<std::string>{"My Process"});
+}
+
 TEST_CASE("Repeated loads of a user preset directory produce the same presets", "[Preset][Bundle]")
 {
     ScopedTemporaryDir temp_dir;
