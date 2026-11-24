@@ -42,6 +42,7 @@
 #include "SceneCache.hpp"
 #include "SelectionOutline.hpp"
 #include "FrameProfiler.hpp"
+#include "PreviewFrameRateMonitor.hpp"
 #include "IMToolbar.hpp"
 #include "slic3r/GUI/3DBed.hpp"
 #include "libslic3r/Slicing.hpp"
@@ -904,6 +905,12 @@ private:
     std::chrono::time_point<std::chrono::steady_clock> m_preview_interaction_until{};
     // whether the frame that restores the toolpaths once that time is up is still owed
     bool m_preview_settle_pending{ false };
+    // whether this frame is drawn while the user moves the preview (a drag or a wheel step's settle time)
+    bool m_preview_interacting{ false };
+    // watches those frames for a preview too slow to move without the reduced set
+    PreviewFrameRateMonitor m_preview_frame_monitor;
+    // the slow preview notification is shown once per session
+    bool m_preview_slow_hint_shown{ false };
 
     //BBS:add plate related logic
     mutable std::vector<int> m_hover_volume_idxs;
@@ -1740,6 +1747,8 @@ private:
     // decides whether the preview draws its reduced set this frame and returns whether what the scene
     // pass draws changed; runs before the cached scene is consulted
     bool _update_preview_interaction();
+    // feeds the render time of a frame drawn while the user moves the preview to the slow preview monitor
+    void _track_preview_frame_time(double frame_ms);
     //BBS: render a plane for assemble
     void _render_plane() const;
     void _render_selection();

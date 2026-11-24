@@ -3222,6 +3222,8 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     if (only_init)
         return;
 
+    const auto frame_start = std::chrono::steady_clock::now();
+
 #if ENABLE_ENVIRONMENT_MAP
     if (wxGetApp().is_editor())
         wxGetApp().plater()->init_environment_texture();
@@ -3302,6 +3304,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     // Whether the preview draws its reduced set is decided before the cached scene is consulted,
     // since switching changes what the scene pass draws.
+    m_preview_interacting = false;
     if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview && m_gcode_viewer.has_data() && _update_preview_interaction())
         scene_dirty = true;
 
@@ -3488,6 +3491,8 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
         if (!overlay_tick)
             m_render_stats.increment_fps_counter();
         m_presented_signature = signature;
+        if (m_preview_interacting && !reuse_scene && !overlay_tick && !m_benchmarking)
+            _track_preview_frame_time(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - frame_start).count());
     }
     else {
         if (m_canvas->IsShownOnScreen()) {
@@ -4590,6 +4595,9 @@ void GLCanvas3D::load_gcode_preview(const GCodeProcessorResult& gcode_result, co
     PartPlateList& partplate_list = wxGetApp().plater()->get_partplate_list();
     PartPlate* plate = partplate_list.get_curr_plate();
     const std::vector<BoundingBoxf3>& exclude_bounding_box = plate->get_exclude_areas();
+
+    // The first frames of a new preview upload it; they say nothing about how fast it draws.
+    m_preview_frame_monitor.reset();
 
     _set_shown_canvas_current();
     // The viewer uploads to the GPU from here on. Without a context the driver lets us make
@@ -10861,10 +10869,20 @@ void GLCanvas3D::_render_wireframe_overlay()
     shader->stop_using();
 }
 
-// The reduced set is drawn while the camera, the navigator or either slider is dragged. A wheel
-// step has no duration, so it holds the reduced set for a settle time instead, and the frame that
-// restores the full toolpaths is scheduled for when that time runs out. Returns whether what the scene
-// pass draws changed, since a frame that reuses the cached scene would hide the change.
+void GLCanvas3D::_track_preview_frame_time(double frame_ms)
+{
+    const AppConfig* cfg = wxGetApp().app_config;
+    if (m_preview_slow_hint_shown || cfg->get("preview_reduced_detail_mode") != "off" || !cfg->get_bool("show_preview_slow_render_hint")) {
+        m_preview_frame_monitor.reset();
+        return;
+    }
+    if (const std::optional<double> fps = m_preview_frame_monitor.add_frame(frame_ms)) {
+        m_preview_slow_hint_shown = true;
+        wxGetApp().plater()->get_notification_manager()->push_preview_slow_render_notification(
+            std::clamp(static_cast<int>(std::lround(*fps)), 1, 14));
+    }
+}
+
 void GLCanvas3D::apply_preview_reduced_detail_mode(const std::string& mode)
 {
     AppConfig* cfg = wxGetApp().app_config;
@@ -10875,11 +10893,16 @@ void GLCanvas3D::apply_preview_reduced_detail_mode(const std::string& mode)
     request_extra_frame();
 }
 
+// The reduced set is drawn while the camera, the navigator or either slider is dragged. A wheel
+// step has no duration, so it holds the reduced set for a settle time instead, and the frame that
+// restores the full toolpaths is scheduled for when that time runs out. Returns whether what the scene
+// pass draws changed, since a frame that reuses the cached scene would hide the change.
 bool GLCanvas3D::_update_preview_interaction()
 {
     const auto now = std::chrono::steady_clock::now();
     const bool settling = now < m_preview_interaction_until;
     const bool dragging = is_user_interacting();
+    m_preview_interacting = dragging || settling;
     const bool was_reduced = m_gcode_viewer.is_reduced_detail();
     m_gcode_viewer.set_interacting(dragging || settling);
     if (settling && !dragging && m_gcode_viewer.is_reduced_detail()) {
