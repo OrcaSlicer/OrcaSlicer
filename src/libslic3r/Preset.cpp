@@ -3048,6 +3048,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
         it = this->find_preset_renamed(original_name);
         found = it != m_presets.end();
     }
+    const bool found_by_name = found;
 
     t_config_option_keys keys;
     DynamicPrintConfig cfg = Preset::load_external_config(m_type, this->default_preset_for(combined_config).config, combined_config, different_settings_list,
@@ -3067,6 +3068,11 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
             }
             return nullptr;
         }, &keys);
+    // A project does not store a filament's compatible_printers or compatible_prints, so they are not applied over the existing preset.
+    if (m_type == Preset::TYPE_FILAMENT)
+        keys.erase(std::remove_if(keys.begin(), keys.end(),
+                                  [](const std::string &key) { return key == "compatible_printers" || key == "compatible_prints"; }),
+                   keys.end());
     std::string                 &inherits = Preset::inherits(cfg);
 
     //BBS: add config related logs
@@ -3167,6 +3173,9 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
             // There is a profile with the same name already loaded. Should we update the "inherits" field?
             inherits = it->vendor ? it->name : it->inherits();
         }
+        // The new preset built from cfg copies compatible_printers and compatible_prints from the filament the project names, since the project does not store them.
+        if (m_type == Preset::TYPE_FILAMENT && found_by_name)
+            cfg.apply_only(it->config, {"compatible_printers", "compatible_prints"});
     }
 
     // The external preset does not match an internal preset, load the external preset.
