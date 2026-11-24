@@ -608,10 +608,12 @@ TEST_CASE("Legacy excluded areas retain object placement validation", "[Print][E
 TEST_CASE("Print validation checks every nozzle used by a multimaterial object", "[Print][ExclusionVolume][MultiNozzle]")
 {
     const std::string colliding = "0..256;-100x-100,300x-100,300x300,-100x300";
-    const DynamicPrintConfig config = dual_extruder_exclusion_config(
+    DynamicPrintConfig config = dual_extruder_exclusion_config(
         BedExcludeVolumeMode::PerExtruder, {"", colliding}, {1, 2});
+    config.set_key_value("filament_diameter", new ConfigOptionFloats{1.75, 1.75});
 
     const StringObjectException error = validate_multimaterial_cube(config);
+    INFO(error.string);
     CHECK(error.string.find("extruder 2") != std::string::npos);
 }
 
