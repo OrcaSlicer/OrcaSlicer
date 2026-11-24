@@ -5812,6 +5812,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                     && m_gizmos.get_current_type() != GLGizmosManager::Cut
                     && m_gizmos.get_current_type() != GLGizmosManager::MmSegmentation
                     && m_gizmos.get_current_type() != GLGizmosManager::FuzzySkin
+                    && m_gizmos.get_current_type() != GLGizmosManager::Measure
+                    && m_gizmos.get_current_type() != GLGizmosManager::Assembly
                     && m_gizmos.get_current_type() != GLGizmosManager::PaintedModifier) {
                     m_rectangle_selection.start_dragging(m_mouse.position, evt.ShiftDown() ? GLSelectionRectangle::Select : GLSelectionRectangle::Deselect);
 
@@ -6157,7 +6159,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             // forces a frame render to ensure that m_hover_volume_idxs is updated even when the user right clicks while
             // the context menu is already shown
             render();
-            if (!m_hover_volume_idxs.empty()) {
+            // Orca: do not select the hovered volume when ending a camera pan/rotation
+            const bool camera_dragged = m_mouse.ignore_right_up;
+            if (!camera_dragged && !m_hover_volume_idxs.empty()) {
                 // if right clicking on volume, propagate event through callback (shows context menu)
                 int volume_idx = get_first_hover_volume_idx();
                 if (!m_volumes.volumes[volume_idx]->is_wipe_tower // no context menu for the wipe tower
@@ -6673,7 +6677,14 @@ void GLCanvas3D::do_scale(const std::string& snapshot_type)
             continue;
 
         if (selection_mode == Selection::Instance) {
-            model_object->instances[instance_idx]->set_transformation(v->get_instance_transformation());
+            ModelInstance* instance = model_object->instances[instance_idx];
+            // ORCA: Apply the same change of scale to the pose in the assembly view.
+            // Done here, after the snapshot is taken, so that undo reverts it.
+            const Transform3d change = instance->get_transformation().get_matrix_no_offset().inverse() *
+                                       v->get_instance_transformation().get_matrix_no_offset();
+            if (instance->is_assemble_initialized() && !change.isApprox(Transform3d::Identity()))
+                instance->set_assemble_from_transform(instance->get_assemble_transformation().get_matrix() * change);
+            instance->set_transformation(v->get_instance_transformation());
         }
         else if (selection_mode == Selection::Volume) {
             auto cur_mv = model_object->volumes[volume_idx];
