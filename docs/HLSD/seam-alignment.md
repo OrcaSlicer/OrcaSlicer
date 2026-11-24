@@ -49,8 +49,9 @@ no penalty and do not change candidate ranking. Precise Seam modifiers apply aft
 classification and take priority over it.
 
 Random placement samples an outgoing edge of its selected candidate. On loops with exact
-green ranges, an Enforced candidate followed by a non-Enforced candidate contributes no outgoing
-edge length: the endpoint belongs to the paint, but the following segment leaves the permitted run.
+green ranges, and on loops with an Enforced zone of a Precise Seam modifier in effect, an Enforced
+candidate followed by a non-Enforced candidate contributes no outgoing edge length: the endpoint
+belongs to the paint or the zone, but the following segment leaves the permitted run.
 This also respects weak modifiers that retype part of a painted run as Blocked or Neutral.
 On loops with exact red ranges, a permitted candidate followed by a Blocked candidate contributes no outgoing
 edge length, so Random cannot sample toward the closed red boundary. A zero-length selected
@@ -243,6 +244,9 @@ Properties:
 ### Allowed arc
 
 - For an Enforced C on a loop with exact ends: the Enforced run itself, which ends at the paint.
+  A loop with an Enforced zone of a Precise Seam modifier in effect counts as one here and for
+  Random placement only: the zone ends at its inserted boundaries, and its candidates are typed by
+  the zone, not by painted ranges.
 - For another Enforced C: the Enforced run, extended past each open end by the oversampling distance
   (0.2 mm) but never into a Blocked candidate. The run ends sit on candidates and move in sampling
   steps between layers, and Rear tends to choose the candidate right at an end; without the

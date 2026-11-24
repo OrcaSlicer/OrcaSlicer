@@ -41,7 +41,6 @@
 #include <boost/filesystem/file_status.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/exception.hpp>
-#include <boost/locale/encoding_utf.hpp>
 #include <boost/log/detail/native_typeof.hpp>
 #include <cstdint>
 #include <iomanip>
@@ -593,7 +592,7 @@ private:
 #ifdef __linux__
 static void migrate_flatpak_legacy_datadir(const boost::filesystem::path &data_dir_path)
 {
-    if(!boost::filesystem::exists("/.flatpak-info"))
+    if (!is_running_in_flatpak())
         return; // Not running as a Flatpak, nothing to migrate.
     
     namespace fs = boost::filesystem;
@@ -1693,7 +1692,6 @@ int GUI_App::install_plugin(std::string name, std::string package_name, InstallP
                     return InstallStatusUnzipFailed;
                 }
                 auto dest_path = plugin_folder / dest_file;
-                std::string dest_zip_file = encode_path(dest_path.string().c_str());
 #ifndef WIN32
                 // Validate a symlink's target before anything at the destination is replaced.
                 const bool is_link = S_ISLNK(stat.m_external_attr >> 16);
@@ -1749,23 +1747,17 @@ int GUI_App::install_plugin(std::string name, std::string package_name, InstallP
                         }
                     } else {
 #endif
-                        res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
+                        res = extract_zip_entry_to_file(&archive, stat.m_file_index, dest_path);
 #ifndef WIN32
                     }
 #endif
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from plugin zip %2%\n") % dest_file % stat.m_filename;
                     if (res == 0) {
-#ifdef WIN32
-                        std::wstring new_dest_zip_file = boost::locale::conv::utf_to_utf<wchar_t>(dest_path.generic_string());
-                        res                            = mz_zip_reader_extract_to_file_w(&archive, stat.m_file_index, new_dest_zip_file.c_str(), 0);
-#endif
-                        if (res == 0) {
-                            mz_zip_error zip_error = mz_zip_get_last_error(&archive);
-                            BOOST_LOG_TRIVIAL(error) << "[install_plugin]Archive read error:" << mz_zip_get_error_string(zip_error) << std::endl;
-                            close_zip_reader(&archive);
-                            if (pro_fn) { pro_fn(InstallStatusUnzipFailed, 0, cancel); }
-                            return InstallStatusUnzipFailed;
-                        }
+                        mz_zip_error zip_error = mz_zip_get_last_error(&archive);
+                        BOOST_LOG_TRIVIAL(error) << "[install_plugin]Archive read error:" << mz_zip_get_error_string(zip_error) << std::endl;
+                        close_zip_reader(&archive);
+                        if (pro_fn) { pro_fn(InstallStatusUnzipFailed, 0, cancel); }
+                        return InstallStatusUnzipFailed;
                     }
                 }
                 catch (const std::exception& e)
@@ -2349,12 +2341,14 @@ void GUI_App::init_networking_callbacks()
                 if (provider != this->get_printer_cloud_provider()) {
                     return;
                 }
-                m_agent->set_user_selected_machine(m_agent->get_user_selected_machine());
+                if (m_device_manager)
+                    m_device_manager->reselect_cloud_machine();
                 if (this->is_enable_multi_machine()) {
                     auto evt = new wxCommandEvent(EVT_UPDATE_MACHINE_LIST);
                     wxQueueEvent(this, evt);
                 }
-                m_agent->set_user_selected_machine(m_agent->get_user_selected_machine());
+                if (m_device_manager)
+                    m_device_manager->reselect_cloud_machine();
                 if (m_agent->is_user_login(provider)) {
 
                     /*disconnect lan*/
@@ -4519,6 +4513,11 @@ void GUI_App::select_machine(const std::string& agent_id)
         }
     }
 
+    // Orca: the print dialog blocks a printer whose type differs from the preset's model id, so the
+    // type must be that id, not the model name. A model no vendor profile lists has no id; the
+    // dialog accepts any printer then, and the name stays.
+    const std::string model_id = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
+
     // If machine doesn't exist, create it first. The Orca agent never connects, so an entry saved
     // under it holds no binding; re-insert it for the active agent, whose machine list can't see
     // it otherwise. Entries bound by any other agent stay with that agent.
@@ -4528,7 +4527,7 @@ void GUI_App::select_machine(const std::string& agent_id)
         // We use dev_id as dev_ip to store the address (host:port)
         machine.dev_ip = dev_id;
         machine.dev_name = dev_id;
-        machine.printer_type = preset.config.opt_string("printer_model");
+        machine.printer_type = model_id.empty() ? preset.config.opt_string("printer_model") : model_id;
 
         existing = m_device_manager->insert_local_device(
             machine, "lan", "free", "", access_code);
@@ -4541,6 +4540,11 @@ void GUI_App::select_machine(const std::string& agent_id)
     } else if (agent_id == MOONRAKER_PRINTER_AGENT_ID && existing->printer_agent_id == agent_id &&
                (!existing->has_access_right() || existing->get_access_code() != access_code)) {
         existing->set_access_code(access_code);
+    }
+    // Entries saved before held the model name; this printer's preset gives the id to repair them.
+    if (!model_id.empty() && existing->printer_agent_id == agent_id && existing->printer_type != model_id) {
+        existing->printer_type = model_id;
+        DeviceManager::update_local_machine(*existing, app_config);
     }
     existing->local_use_ssl = boost::istarts_with(print_host, "https://");
     select_dev(dev_id);
@@ -5282,12 +5286,12 @@ void GUI_App::persist_window_geometry(wxTopLevelWindow *window, bool default_max
     const std::string name = into_u8(window->GetName());
 
     window->Bind(wxEVT_CLOSE_WINDOW, [=](wxCloseEvent &event) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< ": received wxEVT_CLOSE_WINDOW, trigger save for window_mainframe";
-        window_pos_save(window, "mainframe");
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": received wxEVT_CLOSE_WINDOW, trigger save for window_" << name;
+        window_pos_save(window, name);
         event.Skip();
     });
 
-    if (window_pos_restore(window, "mainframe", default_maximized)) {
+    if (window_pos_restore(window, name, default_maximized)) {
         on_window_geometry(window, [=]() {
             window_pos_sanitize(window);
         });
@@ -10137,19 +10141,34 @@ bool GUI_App::window_pos_restore(wxTopLevelWindow* window, const std::string &na
     }
 
     const wxRect& rect = metrics->get_rect();
+    const bool    maximized = metrics->get_maximized();
 #if defined(__WXGTK__)
+    const bool on_x11 = !Slic3r::GUI::is_running_on_wayland();
     // On Wayland, SetPosition() is a no-op for top-level windows.
-    // Only restore size and maximize state.
-    if (!Slic3r::GUI::is_running_on_wayland())
+    if (on_x11)
+#else
+    constexpr bool on_x11 = false;
 #endif
         window->SetPosition(rect.GetPosition());
-    window->SetSize(rect.GetSize());
-    window->Maximize(metrics->get_maximized());
+    // The rect saved for a maximized window is the maximized one. On X11 an
+    // undecorated window that resizes itself to exactly the monitor rect is turned
+    // into a fullscreen window by Mutter based WMs; the other ports need the resize
+    // to give Restore Down the saved normal size. #17191
+    if (! on_x11 || ! maximized)
+        window->SetSize(rect.GetSize());
+    window->Maximize(maximized);
     return true;
 }
 
 void GUI_App::window_pos_sanitize(wxTopLevelWindow* window)
 {
+#if defined(__WXGTK__)
+    // On X11, moving or resizing a maximized or fullscreen window is read as a
+    // fullscreen request by Mutter based WMs. #17191
+    if (!Slic3r::GUI::is_running_on_wayland() && (window->IsMaximized() || window->IsFullScreen()))
+        return;
+#endif
+
     /*unsigned*/int display_idx = wxDisplay::GetFromWindow(window);
     wxRect display;
     if (display_idx == wxNOT_FOUND) {

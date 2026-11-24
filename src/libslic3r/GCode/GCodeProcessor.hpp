@@ -652,6 +652,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             Total_Cost_Placeholder,
             Total_Wipe_Tower_Cost_Placeholder,
             Total_Wipe_Tower_Filament_Placeholder,
+            Outer_Overhang_Wall,
         };
 
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
@@ -1102,6 +1103,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
 
             bool is_active() const { return m_active; }
             bool has_first_vertex() const { return m_first_vertex.has_value(); }
+            // Orca: activate(false) keeps the first vertex; a new export must not inherit it.
+            void reset() { m_active = false; m_first_vertex.reset(); }
         };
 
         // Helper class used to fix the z for color change, pause print and
@@ -1364,6 +1367,11 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         unsigned int m_layer_id;
         CpColor m_cp_color;
         SeamsDetector m_seams_detector;
+        // Orca: an outer wall tagged in the G-code starts on the next printing move
+        // (docs/HLSD/overhang-seam-preview.md).
+        bool m_outer_overhang_pending{false};
+        // Orca: the seam detector candidate is such a wall, so "Overhang wall" counts as "Outer wall".
+        bool m_outer_overhang_candidate{false};
         OptionsZCorrector m_options_z_corrector;
         size_t m_last_default_color_id;
         bool m_detect_layer_based_on_tag {false};
