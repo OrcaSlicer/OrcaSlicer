@@ -3045,6 +3045,7 @@ TEST_CASE("A saved filament list longer than the extruder count is restored unch
         select_multi_nozzle_printer(bundle, 2, false);
         add_inmemory_preset(bundle.filaments, "Test Filament");
         bundle.filaments.select_preset_by_name("Test Filament", true);
+        bundle.filament_presets = { "Test Filament" };
         bundle.set_num_filaments(4u, "#123456");
         bundle.export_selections(app_config);
     }
@@ -8185,6 +8186,9 @@ TEST_CASE("A project with fewer filaments than tools keeps its filament slots", 
     const size_t material_count = 2;
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000", "#00FF00" };
+    config.option<ConfigOptionStrings>("filament_colour_type", true)->values = { "1", "1" };
+    config.option<ConfigOptionStrings>("filament_multi_colour", true)->values = { "#FF0000", "#00FF00" };
+    config.option<ConfigOptionInts>("filament_map", true)->values = { 1, 1 };
     config.opt<ConfigOptionFloats>("nozzle_diameter")->values = std::vector<double>(tool_count, 0.4);
     config.option<ConfigOptionBool>("single_extruder_multi_material")->value = false;
     Preset::normalize(config);
