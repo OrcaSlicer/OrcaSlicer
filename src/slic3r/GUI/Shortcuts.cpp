@@ -90,6 +90,8 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     REPEATING(RemoveInstance,   "remove_instance",    L("Remove instance"),                                      PLATER | OBJECT_LIST, { '-' }),
     SHORTCUT(TogglePrintable,   "toggle_printable",   L("Toggle printable for object/part"),                     PLATER | OBJECT_LIST, { 'V' }),
     SHORTCUT(ToggleAutoDrop,    "toggle_auto_drop",   L("Auto Drop"),                                            OBJECT_LIST,          { 'D' }),
+    // Not F5, which ReloadDevicePage holds in the Plater context.
+    SHORTCUT(ReloadFromDisk,    "reload_from_disk",   L("Reload from disk"),                                     PLATER | OBJECT_LIST, { 'R', CTRL_SHIFT }),
 
     // Placement
     SHORTCUT(Arrange,           "arrange",            L("Arrange all objects"),                                  PLATER, { 'A' }),

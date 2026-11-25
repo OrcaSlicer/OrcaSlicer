@@ -23,7 +23,7 @@
 #include <exception>
 #include <boost/log/trivial.hpp>
 #include "slic3r/GUI/Widgets/HyperLink.hpp"
-#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/Widgets/LabeledCheckBox.hpp"
 #include <sstream>
 #include <ios>
 #include <iomanip>
@@ -32,6 +32,7 @@
 #include <md4c/src/md4c.h>
 #include <wx/image.h>
 #include <wx/datetime.h>
+#include <wx/display.h>
 #include <utility>
 #include "slic3r/GUI/Widgets/AMSItem.hpp"
 #include "slic3r/GUI/Widgets/TextInput.hpp"
@@ -54,7 +55,6 @@
 #include <wx/simplebook.h>
 #include <wx/webview.h>
 #include <wx/utils.h>
-#include <wx/tglbtn.h>
 #include <wx/webrequest.h>
 #include <wx/timer.h>
 #include "Plater.hpp"
@@ -71,7 +71,9 @@
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/HMS.hpp"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "slic3r/Utils/BBLPrinterAgent.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include <boost/filesystem.hpp>
 #include <nlohmann/json.hpp>
 
@@ -380,15 +382,13 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
         EndModal(wxID_NO);
     });
 
-    m_cb_stable_only = new CheckBox(this);
+    m_cb_stable_only = new LabeledCheckBox(this, _L("Check for stable updates only"));
+    m_cb_stable_only->SetFont(Label::Body_12);
     m_cb_stable_only->SetValue(wxGetApp().app_config->get_bool("check_stable_update_only"));
-    m_cb_stable_only->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
+    m_cb_stable_only->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
         wxGetApp().app_config->set_bool("check_stable_update_only", m_cb_stable_only->GetValue());
         e.Skip();
     });
-
-    auto stable_only_label = new Label(this, _L("Check for stable updates only"));
-    stable_only_label->SetFont(Label::Body_12);
 
     m_button_cancel = new Button(this, _L("Cancel"));
     m_button_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
@@ -400,7 +400,6 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
     //sizer_button->Add(m_remind_choice, 0, wxALL | wxEXPAND, FromDIP(5));
 
     sizer_button->Add(m_cb_stable_only     , 0, wxALIGN_CENTER);
-    sizer_button->Add(stable_only_label    , 0, wxALIGN_CENTER | wxLEFT, FromDIP(5));
     sizer_button->AddStretchSpacer();
     sizer_button->Add(m_button_download    , 0, wxLEFT, FromDIP(10));
     sizer_button->Add(m_button_skip_version, 0, wxLEFT, FromDIP(10));
@@ -598,8 +597,8 @@ SecondaryCheckDialog::SecondaryCheckDialog(wxWindow* parent, wxWindowID id, cons
 
     if (not_show_again_check) {
         auto checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
-        m_show_again_checkbox = new wxCheckBox(this, wxID_ANY, _L("Don't show again"), wxDefaultPosition, wxDefaultSize, 0);
-        m_show_again_checkbox->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, [this](wxCommandEvent& e) {
+        m_show_again_checkbox = new LabeledCheckBox(this, _L("Don't show again"));
+        m_show_again_checkbox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
             not_show_again = !not_show_again;
             m_show_again_checkbox->SetValue(not_show_again);
         });
@@ -1182,8 +1181,8 @@ ConfirmBeforeSendDialog::ConfirmBeforeSendDialog(wxWindow* parent, wxWindowID id
 
     if (not_show_again_check) {
         auto checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
-        m_show_again_checkbox = new wxCheckBox(this, wxID_ANY, _L("Don't show again"), wxDefaultPosition, wxDefaultSize, 0);
-        m_show_again_checkbox->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, [this](wxCommandEvent& e) {
+        m_show_again_checkbox = new LabeledCheckBox(this, _L("Don't show again"));
+        m_show_again_checkbox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
             not_show_again = !not_show_again;
             m_show_again_checkbox->SetValue(not_show_again);
         });
@@ -1535,19 +1534,7 @@ InputIpAddressDialog::InputIpAddressDialog(wxWindow *parent)
     m_input_top_sizer->Add(m_tips_cafile, 0, wxTOP | wxEXPAND, FromDIP(10));
     m_input_top_sizer->Add(cafile_input_sizer, 0, wxTOP | wxEXPAND, FromDIP(4));
     m_input_top_sizer->Add(m_cafile_hint, 0, wxTOP | wxEXPAND, FromDIP(4));
-
-    if (!Http::ca_file_supported()) {
-        m_input_cafile->Disable();
-        m_button_cafile->Disable();
-        m_cafile_hint->SetLabel(_L("This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."));
-        m_cafile_hint->Wrap(FromDIP(352));
-    }
-
-    if (wxGetApp().preset_bundle) {
-        const auto& config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
-        if (config.has("printhost_cafile"))
-            m_input_cafile->SetValue(from_u8(config.opt_string("printhost_cafile")));
-    }
+    init_cafile_input();
 
     ip_input_top_panel->SetSizer(m_input_top_sizer);
     ip_input_top_panel->Layout();
@@ -1744,6 +1731,7 @@ InputIpAddressDialog::InputIpAddressDialog(wxWindow *parent)
 
     CentreOnParent(wxBOTH);
     Move(wxPoint(GetScreenPosition().x, GetScreenPosition().y - FromDIP(50)));
+    clamp_to_work_area();
     wxGetApp().UpdateDlgDarkUI(this);
 
     closeTimer = new wxTimer();
@@ -1769,6 +1757,22 @@ InputIpAddressDialog::InputIpAddressDialog(wxWindow *parent)
         Layout();
         Fit();
     });
+}
+
+void InputIpAddressDialog::clamp_to_work_area()
+{
+    // CentreOnParent picks the display from the parent, so the clamp has to use the same one.
+    const wxRect  work_area = wxDisplay(GetParent() ? GetParent() : this).GetClientArea();
+    const wxSize  size      = GetSize();
+    const wxPoint pos       = GetScreenPosition();
+
+    wxPoint clamped = pos;
+    // std::max runs last, so a dialog bigger than the work area keeps its top left corner, and its title bar, on screen.
+    clamped.x = std::max(work_area.x, std::min(clamped.x, work_area.x + work_area.width - size.x));
+    clamped.y = std::max(work_area.y, std::min(clamped.y, work_area.y + work_area.height - size.y));
+
+    if (clamped != pos)
+        Move(clamped);
 }
 
 void InputIpAddressDialog::switch_input_panel(int index)
@@ -1815,6 +1819,7 @@ void InputIpAddressDialog::set_machine_obj(MachineObject* obj)
     m_input_ip->GetTextCtrl()->ChangeValue(m_obj->get_dev_ip());
     m_input_access_code->GetTextCtrl()->ChangeValue(m_obj->get_access_code());
     m_input_printer_name->GetTextCtrl()->ChangeValue(m_obj->get_dev_name());
+    init_cafile_input(); // m_obj may use another agent than the current one
 
     std::string img_str = DevPrinterConfigUtil::get_printer_connect_help_img(m_obj->printer_type);
     if (img_str.empty()) { img_str = "input_access_code_x1"; }
@@ -1926,14 +1931,48 @@ void InputIpAddressDialog::on_ok(wxMouseEvent& evt)
         std::string port;
         Http::get_host_from_url(str_ip, &port);
         config.opt_string("print_host") = str_ip;
-        if (!port.empty())
-            config.opt_string("printhost_port") = port;
-        if (Http::ca_file_supported())
+        config.opt_string("printhost_port") = port;
+        if (!is_bbl_agent() && Http::ca_file_supported())
             config.opt_string("printhost_cafile") = m_input_cafile->GetValue().ToStdString();
     }
+    std::string str_ca_file = is_bbl_agent() ? into_u8(m_input_cafile->GetValue().Strip(wxString::both)) : std::string();
 
     token_.reset(this, nop_deleter);
-    m_thread = new boost::thread(boost::bind(&InputIpAddressDialog::workerThreadFunc, this, str_ip, str_access_code, str_sn, str_model_id, str_name));
+    m_thread = new boost::thread(boost::bind(&InputIpAddressDialog::workerThreadFunc, this, str_ip, str_access_code, str_sn, str_model_id, str_name, str_ca_file));
+}
+
+// Bambu printers check certificates in the network plug-in and keep their CA per device; other
+// printers use curl and the printer preset's CA.
+void InputIpAddressDialog::init_cafile_input()
+{
+    const bool bbl_agent = is_bbl_agent();
+    const bool editable  = bbl_agent || Http::ca_file_supported();
+    m_input_cafile->Enable(editable);
+    m_button_cafile->Enable(editable);
+    m_cafile_hint->SetLabel(editable ? _L("HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate.") :
+                                       _L("This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."));
+    m_cafile_hint->Wrap(FromDIP(352));
+
+    wxString ca_file;
+    if (bbl_agent) {
+        if (m_obj)
+            ca_file = from_u8(m_obj->get_ca_file());
+    } else if (wxGetApp().preset_bundle) {
+        const auto& config = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        if (config.has("printhost_cafile"))
+            ca_file = from_u8(config.opt_string("printhost_cafile"));
+    }
+    m_input_cafile->ChangeValue(ca_file);
+}
+
+bool InputIpAddressDialog::is_bbl_agent() const
+{
+    // Like MachineObject::connect: a printer without an agent id belongs to the current agent.
+    std::string agent_id = m_obj ? m_obj->printer_agent_id : std::string();
+    if (agent_id.empty())
+        if (DeviceManager* dev = wxGetApp().getDeviceManager())
+            agent_id = dev->get_current_printer_agent_id();
+    return agent_id.empty() || agent_id == BBL_PRINTER_AGENT_ID;
 }
 
 void InputIpAddressDialog::on_send_retry()
@@ -1952,7 +1991,11 @@ void InputIpAddressDialog::on_send_retry()
 
     // check support function
     if (!m_obj) return;
+    const bool        bbl_agent = is_bbl_agent();
+    const std::string ca_file   = into_u8(m_input_cafile->GetValue().Strip(wxString::both));
     if (!m_obj->is_support_send_to_sdcard) {
+        if (bbl_agent)
+            m_obj->set_ca_file(ca_file);
         wxString input_str = wxString::Format("%s|%s", ip, str_access_code);
         auto     event     = wxCommandEvent(EVT_ENTER_IP_ADDRESS);
         event.SetString(input_str);
@@ -1994,20 +2037,34 @@ void InputIpAddressDialog::on_send_retry()
     m_send_job->has_sdcard       = m_obj->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::HAS_SDCARD_NORMAL;
     m_send_job->set_check_mode();
     m_send_job->set_project_name("verify_job");
+    // The check connects before the CA is saved.
+    if (bbl_agent)
+        BBLPrinterAgent::trust_ca_file(m_obj->get_dev_id(), ca_file);
 
     m_send_job->on_check_ip_address_fail([this](int result) {
         this->check_ip_address_failed(result);
     });
 
-    m_send_job->on_check_ip_address_success([this, ip, str_access_code]() {
+    // Runs on the job's worker thread.
+    m_send_job->on_check_ip_address_success([this, ip, str_access_code, bbl_agent, ca_file, dev_id = m_obj->get_dev_id()]() {
+        if (bbl_agent) {
+            wxGetApp().CallAfter([dev_id, ca_file]() {
+                if (DeviceManager* dev = wxGetApp().getDeviceManager())
+                    if (MachineObject* obj = dev->get_my_machine(dev_id))
+                        obj->set_ca_file(ca_file);
+                wxGetApp().app_config->save();
+            });
+        }
         wxString input_str = wxString::Format("%s|%s", ip, str_access_code);
         auto     event     = wxCommandEvent(EVT_ENTER_IP_ADDRESS);
         event.SetString(input_str);
         event.SetEventObject(this);
         wxPostEvent(this, event);
-        m_result = 0;
 
-        update_test_msg(_L("IP and Access Code Verified! You may close the window"), true);
+        CallAfter([this]() {
+            m_result = 0;
+            update_test_msg(_L("IP and Access Code Verified! You may close the window"), true);
+        });
     });
 
      replace_job(*m_worker, std::move(m_send_job));
@@ -2033,7 +2090,7 @@ void InputIpAddressDialog::post_update_test_msg(std::weak_ptr<InputIpAddressDial
     wxPostEvent(this, event);
 }
 
-void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_access_code, std::string sn, std::string model_id, std::string name)
+void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_access_code, std::string sn, std::string model_id, std::string name, std::string ca_file)
 {
     std::weak_ptr<InputIpAddressDialog> w = std::weak_ptr<InputIpAddressDialog>(token_);
 
@@ -2090,7 +2147,7 @@ void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_
     }
     if (w.expired()) return;
 
-    CallAfter([this, detectData, str_ip, str_access_code, w]() {
+    CallAfter([this, detectData, str_ip, str_access_code, ca_file, w]() {
         DeviceManager* dev = wxGetApp().getDeviceManager();
         BBLocalMachine machine;
         machine.dev_name = detectData.dev_name;
@@ -2105,6 +2162,7 @@ void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_
         if (w.expired()) return;
 
         if (m_obj) {
+            m_obj->set_ca_file(ca_file, false); // saved together with the access code below
             m_obj->set_access_code(str_access_code);
             wxGetApp().getDeviceManager()->set_selected_machine(m_obj->get_dev_id());
         }

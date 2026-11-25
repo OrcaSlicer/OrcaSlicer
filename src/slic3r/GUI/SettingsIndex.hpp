@@ -112,7 +112,7 @@ public:
     const Option &get_option(const std::string &opt_key, Preset::Type type, int &variant_index) const;
     Option        get_option(const std::string &opt_key, const wxString &label, Preset::Type type) const;
 
-    const GroupAndCategory &get_group_and_category(const std::string &opt_key) { return m_groups_and_categories[opt_key]; }
+    GroupAndCategory get_group_and_category(const std::string &opt_key, Preset::Type type) const;
 
     void sort_options_by_key()
     {

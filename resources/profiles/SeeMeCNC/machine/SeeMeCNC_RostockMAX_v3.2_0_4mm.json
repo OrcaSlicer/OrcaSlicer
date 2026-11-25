@@ -6,8 +6,6 @@
 	"instantiation": "true",
 	"adaptive_bed_mesh_margin": "0",
 	"auxiliary_fan": "0",
-	"bed_custom_model": "SeeMeCNC_Buildplate_Model.STL",
-	"bed_custom_texture": "SeeMeCNC_Buildplate_texture.png",
 	"bed_exclude_area": [
 		"0x0"
 	],

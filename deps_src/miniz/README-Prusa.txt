@@ -1,4 +1,39 @@
-This library is based on miniz 2.1.0 - amalgamated version.
+This library is based on miniz 3.1.2 - amalgamated version
+(https://github.com/richgel999/miniz/releases/download/3.1.2/miniz-3.1.2.zip).
+
+----------------------------------------------------------------
+
+Local changes
+
+Every change to the upstream miniz.c and miniz.h is recorded in
+0001-OrcaSlicer-local-changes.patch, which turns the two upstream files into
+the two files in this directory. Keep the patch and the sources in step: when
+one of them changes, regenerate the other.
+
+To move to a new upstream release, unpack its miniz.c and miniz.h over the
+files here and apply the patch from this directory:
+
+    patch -p1 < 0001-OrcaSlicer-local-changes.patch
+
+Resolve any rejects by hand, then regenerate the patch against the pristine
+files (diff -u, paths a/ and b/) so the next bump starts from a clean apply.
+
+What the patch carries:
+
+- mz_zip_archive_file_stat.m_is_utf8, set from the UTF-8 general purpose bit
+  while reading the central directory (BBS).
+- mz_zip_reader_get_extra(), which returns an entry's central directory extra
+  field (BBS), and mz_zip_reader_get_filename_from_extra(), which reads the
+  Unicode Path extra field (0x7075) out of it (OrcaSlicer).
+- mz_zip_writer_add_file_ex(), which adds a file with local and central extra
+  fields; mz_zip_writer_add_file() now calls it (BBS).
+- The staged writer, mz_zip_writer_add_staged_open()/_data()/_finish() and
+  mz_zip_writer_staged_context, described below (PrusaResearch). The
+  mz_zip_writer_add_state struct and MZ_ZIP64_MAX_CENTRAL_EXTRA_FIELD_SIZE move
+  from miniz.c to miniz.h so the context can embed them.
+- Local and central directory headers write version-needed 45 (4.5) and
+  0xFFFFFFFF sizes when an entry needs zip64, and the central header's
+  version-made-by follows version-needed.
 
 ----------------------------------------------------------------
 

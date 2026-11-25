@@ -876,3 +876,28 @@ TEST_CASE("A delete that fails to reach the gateway keeps its .info for a later 
     CHECK(fs::exists(fixture.info_path));
     CHECK(fixture.queue.size() == 1);
 }
+
+TEST_CASE_METHOD(HealthCheckFixture, "A session with no saved sync state pulls without a cursor", "[OrcaCloudServiceAgent]")
+{
+    // Nothing has been pulled yet, so there is no cursor to resume from.
+    CHECK(agent->get_sync_state().last_sync_timestamp == 0);
+
+    sign_in("user-a");
+    server.set_reply("200 OK", R"({"upserts":[],"deletes":[],"next_cursor":0})");
+    REQUIRE(agent->get_setting_list2("", nullptr, nullptr, nullptr) == BAMBU_NETWORK_SUCCESS);
+
+    const auto requests = server.requests();
+    REQUIRE(requests.size() == 1);
+    CHECK(requests.front().request_line == "GET /api/v1/sync/pull HTTP/1.1");
+}
+
+TEST_CASE_METHOD(HealthCheckFixture, "A pull answered 304 keeps the sync state it had", "[OrcaCloudServiceAgent]")
+{
+    sign_in("user-a");
+    server.set_reply("304 Not Modified", "");
+    REQUIRE(agent->get_setting_list2("", nullptr, nullptr, nullptr) == BAMBU_NETWORK_SUCCESS);
+
+    // Nothing changed, so there is still no cursor and none is written for the next session.
+    CHECK(agent->get_sync_state().last_sync_timestamp == 0);
+    CHECK_FALSE(fs::exists(dir.path() / "user" / "user-a" / "sync_state"));
+}

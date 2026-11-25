@@ -1,6 +1,6 @@
 {
 	"name": "OrcaFilamentLibrary",
-	"version": "02.04.00.24",
+	"version": "02.04.00.26",
 	"force_update": "0",
 	"description": "Orca Filament Library",
 	"filament_list": [
@@ -171,6 +171,10 @@
 		{
 			"name": "PrintaLot ABS @base",
 			"sub_path": "filament/Printalot/PrintaLot ABS @base.json"
+		},
+		{
+			"name": "Recycling Fabrik rABS @base",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rABS @base.json"
 		},
 		{
 			"name": "BETA ASA @base",
@@ -553,6 +557,10 @@
 			"sub_path": "filament/Eolas Prints/Eolas Prints PETG UV Resistant @System.json"
 		},
 		{
+			"name": "EverLoop rPETG Premium @base",
+			"sub_path": "filament/EverLoop/EverLoop rPETG Premium @base.json"
+		},
+		{
 			"name": "FDplast PETG @base",
 			"sub_path": "filament/FDplast/FDplast PETG @base.json"
 		},
@@ -623,6 +631,14 @@
 		{
 			"name": "PolyLite PETG @base",
 			"sub_path": "filament/Polymaker/PolyLite PETG @base.json"
+		},
+		{
+			"name": "PrintaLot PETG @base",
+			"sub_path": "filament/Printalot/PrintaLot PETG @base.json"
+		},
+		{
+			"name": "Recycling Fabrik rPETG @base",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rPETG @base.json"
 		},
 		{
 			"name": "SUNLU PETG @base",
@@ -905,6 +921,14 @@
 			"sub_path": "filament/Eolas Prints/Eolas Prints PLA Transition @System.json"
 		},
 		{
+			"name": "EverLoop rPLA Premium @base",
+			"sub_path": "filament/EverLoop/EverLoop rPLA Premium @base.json"
+		},
+		{
+			"name": "EverLoop rPLA Premium Matte @base",
+			"sub_path": "filament/EverLoop/EverLoop rPLA Premium Matte @base.json"
+		},
+		{
 			"name": "FDplast PLA @base",
 			"sub_path": "filament/FDplast/FDplast PLA @base.json"
 		},
@@ -1139,6 +1163,10 @@
 		{
 			"name": "PrintaLot PLA @base",
 			"sub_path": "filament/Printalot/PrintaLot PLA @base.json"
+		},
+		{
+			"name": "Recycling Fabrik rPLA @base",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rPLA @base.json"
 		},
 		{
 			"name": "SUNLU PLA Marble @base",
@@ -1503,6 +1531,10 @@
 		{
 			"name": "PrintaLot ABS @System",
 			"sub_path": "filament/Printalot/PrintaLot ABS @System.json"
+		},
+		{
+			"name": "Recycling Fabrik rABS @System",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rABS @System.json"
 		},
 		{
 			"name": "BETA ASA @BBL A1 0.4 nozzle",
@@ -2209,6 +2241,10 @@
 			"sub_path": "filament/Elegoo/Elegoo Rapid PETG @base.json"
 		},
 		{
+			"name": "EverLoop rPETG Premium @System",
+			"sub_path": "filament/EverLoop/EverLoop rPETG Premium @System.json"
+		},
+		{
 			"name": "FDplast PETG @System",
 			"sub_path": "filament/FDplast/FDplast PETG @System.json"
 		},
@@ -2379,6 +2415,106 @@
 		{
 			"name": "PolyLite PETG @System",
 			"sub_path": "filament/Polymaker/PolyLite PETG @System.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A1",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A1.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A1M",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A1M.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A2L",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A2L.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A2L 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A2L 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2C",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2C.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2C 0.4 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2D",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2D.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2D 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2D 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2DP",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2DP.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2DP 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2DP 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2S",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2S.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2S 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2S 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL P1P",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL P1P.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL P2S",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL P2S.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL P2S 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL P2S 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X1C",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X1C.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X2D",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X2D.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Recycling Fabrik rPETG @System",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rPETG @System.json"
 		},
 		{
 			"name": "SUNLU PETG @System",
@@ -3079,6 +3215,14 @@
 		{
 			"name": "Elegoo Rapid PLA+ @base",
 			"sub_path": "filament/Elegoo/Elegoo Rapid PLA+ @base.json"
+		},
+		{
+			"name": "EverLoop rPLA Premium @System",
+			"sub_path": "filament/EverLoop/EverLoop rPLA Premium @System.json"
+		},
+		{
+			"name": "EverLoop rPLA Premium Matte @System",
+			"sub_path": "filament/EverLoop/EverLoop rPLA Premium Matte @System.json"
 		},
 		{
 			"name": "FDplast PLA @System",
@@ -4035,6 +4179,10 @@
 		{
 			"name": "PrintaLot PLA @BBL X2D 0.4 nozzle",
 			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Recycling Fabrik rPLA @System",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rPLA @System.json"
 		},
 		{
 			"name": "SUNLU PLA Marble @System",

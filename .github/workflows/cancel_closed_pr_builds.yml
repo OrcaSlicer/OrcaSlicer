@@ -19,3 +19,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "Joined concurrency group build-all-pull_request-${{ github.event.pull_request.number }}."
+  cancel_optional:
+    # The same for the builds of build_optional.yml, which keep a group each.
+    strategy:
+      matrix:
+        build:
+          - flatpak
+          - macos-x86_64
+          - windows-arm64
+          - windows-msvc
+    concurrency:
+      group: build-optional-${{ matrix.build }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Joined concurrency group build-optional-${{ matrix.build }}-${{ github.event.pull_request.number }}."

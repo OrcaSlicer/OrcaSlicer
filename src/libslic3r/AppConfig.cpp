@@ -224,6 +224,13 @@ void AppConfig::set_defaults()
     if (get("seq_top_layer_only").empty())
         set("seq_top_layer_only", "1");
 
+    // what the preview draws while the user drags it
+    {
+        const std::string mode = get("preview_reduced_detail_mode");
+        if (mode != "off" && mode != "solid" && mode != "shell")
+            set("preview_reduced_detail_mode", "off");
+    }
+
     // ORCA: darken the layers the preview layer slider is not scrubbed to
     if (get("preview_dim_previous_layers").empty())
         set_bool("preview_dim_previous_layers", false);
@@ -413,6 +420,13 @@ void AppConfig::set_defaults()
 
     if (get("show_outline").empty())
         set_bool("show_outline", false);
+
+    if (get(SETTING_OPENGL_OUTLINE_PERSISTENT).empty())
+        set_bool(SETTING_OPENGL_OUTLINE_PERSISTENT, false);
+    if (get(SETTING_OPENGL_OUTLINE_COLOR).empty())
+        set(SETTING_OPENGL_OUTLINE_COLOR, "#FFFFFF");
+    if (get(SETTING_OPENGL_SELECTION_OUTLINE_COLOR).empty())
+        set(SETTING_OPENGL_SELECTION_OUTLINE_COLOR, "#FFFFFF");
     
     if (get("show_axes").empty())
         set_bool("show_axes", true);
@@ -749,11 +763,6 @@ void AppConfig::set_defaults()
         set_bool("use_printer_agents", false);
     }
 
-    if (get("enable_ota").empty())
-    {
-        set_bool("enable_ota", false);
-    }
-
     // Remove legacy window positions/sizes
     erase("app", "main_frame_maximized");
     erase("app", "main_frame_pos");
@@ -987,8 +996,15 @@ std::string AppConfig::load(bool read_only)
                         local_machine.printer_type = p["printer_type"].get<std::string>();
                     if (p.contains("printer_agent_id"))
                         local_machine.printer_agent_id = p["printer_agent_id"].get<std::string>();
+                    // Entries saved before agents were recorded have none. Bambu printers are keyed by
+                    // serial number; the other agents used the address, which is the IP or has a '.' or ':'.
+                    if (local_machine.printer_agent_id.empty() && local_machine.dev_id != local_machine.dev_ip &&
+                        local_machine.dev_id.find_first_of(".:") == std::string::npos)
+                        local_machine.printer_agent_id = "bbl";
                     if (p.contains("access_code"))
                         local_machine.access_code = p["access_code"].get<std::string>();
+                    if (p.contains("ca_file"))
+                        local_machine.ca_file = p["ca_file"].get<std::string>();
                     m_local_machines[local_machine.dev_id] = local_machine;
                 }
             } else {
@@ -1202,6 +1218,8 @@ void AppConfig::save()
         m_json["printer_type"]     = local_machine.second.printer_type;
         m_json["printer_agent_id"] = local_machine.second.printer_agent_id;
         m_json["access_code"]      = local_machine.second.access_code;
+        if (!local_machine.second.ca_file.empty())
+            m_json["ca_file"] = local_machine.second.ca_file;
 
         j["local_machines"][local_machine.first] = m_json;
     }
