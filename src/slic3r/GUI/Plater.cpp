@@ -19008,9 +19008,7 @@ void Plater::load_gcode(const wxString& filename)
         on_bed_type_change(bed_type);
     }
 
-    DynamicPrintConfig print_config = wxGetApp().preset_bundle->full_config();
-    wxGetApp().app_config->apply_print_config_overrides(print_config);
-    current_print.apply(this->model(), print_config);
+    current_print.apply(this->model(), wxGetApp().preset_bundle->full_config());
 
     current_print.apply_config_for_render(processor.export_config_for_render());
 

@@ -32,7 +32,6 @@
 #include "libslic3r/ParameterUtils.hpp"
 #include <imgui.h>
 #include "libslic3r/Format/bbs_3mf.hpp"
-#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 #include <cstdlib>
@@ -5520,7 +5519,6 @@ int PartPlate::load_gcode_from_file(const std::string& filename)
 	}
 	DynamicPrintConfig full_config   = preset_bundle->full_config(false, filament_maps, f_volume_maps);
 	full_config.apply(m_config, true);
-	wxGetApp().app_config->apply_print_config_overrides(full_config);
 	m_print->apply(*m_model, full_config, false);
 
 	// BBS: use backup path to save temp gcode
