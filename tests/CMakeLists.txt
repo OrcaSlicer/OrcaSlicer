@@ -17,6 +17,10 @@ file(TO_NATIVE_PATH "${TEST_DATA_DIR}" TEST_DATA_DIR)
 set(PROFILES_DIR ${CMAKE_SOURCE_DIR}/resources/profiles)
 file(TO_NATIVE_PATH "${PROFILES_DIR}" PROFILES_DIR)
 
+# Shipped resources, for tests that need a real asset such as a font file.
+set(RESOURCES_DIR ${CMAKE_SOURCE_DIR}/resources)
+file(TO_NATIVE_PATH "${RESOURCES_DIR}" RESOURCES_DIR)
+
 include(CTest)
 include(Catch)
 
@@ -24,7 +28,7 @@ set(CATCH_EXTRA_ARGS "" CACHE STRING "Extra arguments ctest passes to every Catc
 separate_arguments(CATCH_EXTRA_ARGS_LIST NATIVE_COMMAND "${CATCH_EXTRA_ARGS}")
 
 add_library(test_common INTERFACE)
-target_compile_definitions(test_common INTERFACE TEST_DATA_DIR=R"\(${TEST_DATA_DIR}\)" PROFILES_DIR=R"\(${PROFILES_DIR}\)" CATCH_CONFIG_FAST_COMPILE)
+target_compile_definitions(test_common INTERFACE TEST_DATA_DIR=R"\(${TEST_DATA_DIR}\)" PROFILES_DIR=R"\(${PROFILES_DIR}\)" RESOURCES_DIR=R"\(${RESOURCES_DIR}\)" CATCH_CONFIG_FAST_COMPILE)
 target_include_directories(test_common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 if (APPLE)

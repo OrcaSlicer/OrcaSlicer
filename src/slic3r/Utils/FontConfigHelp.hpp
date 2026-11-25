@@ -21,6 +21,10 @@ namespace Slic3r::GUI {
 /// <returns>Font FilePath by FontConfig</returns>
 std::string get_font_path(const wxFont &font, bool reload_fonts = false);
 
+// Read the font directories again when the process can find no font at all.
+// Call it before GTK, Pango or a WebKit process reads the caches.
+void repair_unusable_font_cache();
+
 } // namespace Slic3r
 #endif // EXIST_FONT_CONFIG_INCLUDE
 #endif // slic3r_FontConfigHelp_hpp_
