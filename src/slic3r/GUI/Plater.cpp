@@ -2587,8 +2587,13 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
     const bool optional_target_model  = DevPrinterConfigUtil::is_optional_printer_model_id(target_model_id);
     Preset* machine_preset = optional_printer_model ? nullptr : get_printer_preset(obj);
     if (!optional_printer_model && !optional_target_model && !machine_preset) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "check error: machine_preset empty";
-        return false;
+        // get_printer_preset() can return nothing even when the selected preset is for this printer model.
+        // Continue without switching presets; the nozzle check below reports any diameter mismatch.
+        if (machine_print_name != target_model_id) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "check error: machine_preset empty";
+            return false;
+        }
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "machine_preset empty, continue with the selected preset";
     }
     if (!optional_printer_model && !optional_target_model && machine_print_name != target_model_id) {
         MessageDialog dlg(this->plater, _L("The currently selected machine preset is inconsistent with the connected printer type.\n"
@@ -23413,9 +23418,11 @@ bool Plater::is_same_printer_for_connected_and_selected(bool popup_warning)
     const std::string machine_model = obj->printer_type;
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
     const std::string selected_model = preset_bundle ? preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) : std::string();
+    // Same-model printers count as the same printer even when get_printer_preset() returns nothing. The
+    // fallback uses the shown type; is_blocking_printing() still rejects incompatible models.
     if (!DevPrinterConfigUtil::is_optional_printer_model_id(machine_model) &&
         !DevPrinterConfigUtil::is_optional_printer_model_id(selected_model) &&
-        !get_printer_preset(obj)) {
+        obj->get_show_printer_type() != selected_model && !get_printer_preset(obj)) {
         return false;
     }
 
