@@ -3648,10 +3648,9 @@ bool PartPlate::check_filament_printable(const DynamicPrintConfig &config, wxStr
             std::string filament_type = filament_types[filament_id];
             int filament_printable_status = filament_printables[filament_id];
             int extruder_idx = filament_map[filament_id] - 1;
-            // An assignment outside the printer's nozzles is invalid; Print::validate reports it
-            // when the plate is next sliced. Shifting by a negative or too-wide amount is
-            // undefined, and labeling it as the right nozzle would misattribute the failure, so
-            // leave it for that check.
+            // An assignment outside the printer's nozzles is invalid. Shifting by a negative or
+            // too-wide amount is undefined, and labeling it as the right nozzle would
+            // misattribute the failure, so skip it here.
             if (extruder_idx < 0 || extruder_idx >= (int)(sizeof(int) * 8) ||
                 (nozzle_count > 0 && extruder_idx >= nozzle_count))
                 continue;
@@ -5851,7 +5850,6 @@ void PartPlate::on_extruder_count_changed(int extruder_count)
 
     // Keep saved multi-tool assignments when the printer changes. Log the filaments whose
     // assignment no longer names an available tool; switching printers does not reset or block.
-    // The authored map is rejected by Print::validate when the plate is next sliced.
     const PresetBundle* preset_bundle = wxGetApp().preset_bundle;
     if (preset_bundle == nullptr)
         return;

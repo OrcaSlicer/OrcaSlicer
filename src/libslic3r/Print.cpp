@@ -2176,39 +2176,6 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
     if (extruders.empty())
         return { L("No extrusions under current settings.") };
 
-    // filament_map is authoritative only in the two manual modes: ToolOrdering consumes it
-    // directly there. Auto modes derive it during process(), and fmmDefault falls back to the
-    // global mode, so neither is judged here. Include custom-gcode tool changes, which can name
-    // a filament outside the layer set, and only judge used filaments; an unused stale entry does
-    // not affect the print. This runs when the plate is validated/sliced, not while the printer
-    // is being switched.
-    {
-        const FilamentMapMode map_mode = m_config.filament_map_mode;
-        if (nozzles > 0 && (map_mode == FilamentMapMode::fmmManual || map_mode == FilamentMapMode::fmmNozzleManual)) {
-            // Print::apply normalizes the engine copy; validate the values as authored.
-            const std::vector<int>         &filament_map  = m_authored_filament_map.empty() ? m_config.filament_map.values : m_authored_filament_map;
-            const std::vector<unsigned int> map_filaments = this->extruders(true);
-            for (unsigned int filament_id : map_filaments) {
-                if (filament_id >= filament_map.size()) {
-                    StringObjectException err;
-                    // TRN %1% is the filament number shown in the filament list, starting from 1.
-                    err.string = Slic3r::format(L("Filament %1% has no extruder assignment for this printer. Choose an extruder for this filament."),
-                                                filament_id + 1);
-                    return err;
-                }
-                const int assigned_extruder = filament_map[filament_id];
-                if (assigned_extruder < 1 || (unsigned int) assigned_extruder > nozzles) {
-                    StringObjectException err;
-                    // TRN %1% is the filament number shown in the filament list, starting from 1;
-                    // %2% is the stored extruder number. Not a plural message.
-                    err.string = Slic3r::format(L("Filament %1% is assigned to extruder %2%, which this printer does not have. Choose a different extruder for this filament."),
-                                                filament_id + 1, assigned_extruder);
-                    return err;
-                }
-            }
-        }
-    }
-
     // A flow ratio of 0 would extrude nothing, and a nil one would write NaN extrusion lengths.
     {
         const std::vector<double> &flow_ratios = m_config.filament_flow_ratio.values;

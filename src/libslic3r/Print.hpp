@@ -1593,9 +1593,6 @@ private:
     std::set<int> m_missing_nozzle_group_logged;
     // save the config value of "filament_self_index"
     std::vector<int> m_filament_self_index;
-    // filament_map values as authored, captured before Print::apply normalizes out-of-range
-    // entries for the slicing engine. Print::validate reports the authored values in manual modes.
-    std::vector<int> m_authored_filament_map;
 
     // Following section will be consumed by the GCodeGenerator.
     ToolOrdering 							m_tool_ordering;
