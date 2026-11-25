@@ -2012,6 +2012,21 @@ void PreferencesDialog::create_items()
         _L("Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."));
     g_sizer->Add(item_auto_reslice);
 
+    // ORCA: install-wide override for setups that keep getting interference travel back from
+    // presets, .3mf projects and version upgrades (OrcaSlicer#17866).
+    auto item_disable_interference_travel = create_item_checkbox(
+        _L("Disable interference travel everywhere"),
+        _L("Keep \"Reduce infill retraction\" switched off for every slice on this OrcaSlicer - in the "
+           "editor and on the command line - whatever the printer, filament and process presets ask for, "
+           "and whatever a .3mf project carries with it.\n"
+           "Turn this on when travel moves over already printed material leave blobs and burnt crumbs on "
+           "the print or knock tall parts over: every such travel then retracts (and z-hops) first, which "
+           "can add a few minutes to a print.\n"
+           "The setting is stored in the OrcaSlicer configuration file, so it survives a version upgrade. "
+           "It takes effect from the next slice."),
+        SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL);
+    g_sizer->Add(item_disable_interference_travel);
+
     auto item_primitive_dialog = create_item_checkbox(_L("Show options when adding a primitive"),
         _L("If enabled, a dialog asks for the dimensions of a primitive shape before it is added."), "enable_primitive_size_dialog");
     g_sizer->Add(item_primitive_dialog);

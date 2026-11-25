@@ -26,6 +26,7 @@
 #include "slic3r/GUI/format.hpp"
 #include <string>
 #include <vector>
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Flow.hpp"
@@ -1688,6 +1689,9 @@ bool CalibUtils::process_and_store_3mf(Model *model, const DynamicPrintConfig &f
 
     // apply the new print config
     DynamicPrintConfig new_print_config = full_config;
+    // OrcaSlicer#17866: calibration-generated slicing is still a slice on this install, so the
+    // install-wide overrides hold here too.
+    Slic3r::GUI::wxGetApp().app_config->apply_print_config_overrides(new_print_config);
     print->apply(*model, new_print_config);
 
     Print *fff_print = dynamic_cast<Print *>(print);

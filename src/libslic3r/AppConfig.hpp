@@ -25,6 +25,13 @@
 #define OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK "always_ask"
 #define OPTION_PROJECT_LOAD_BEHAVIOUR_LOAD_GEOMETRY "load_geometry_only"
 
+// OrcaSlicer#17866: keep interference travel (travel moves over already printed material that
+// skip the retraction, i.e. what "reduce_infill_retraction" allows) disabled for every slice on
+// this install. Stored in the application configuration, not in a preset, so that neither a
+// preset change, nor a loaded .3mf project, nor a version upgrade that rewrites the presets can
+// switch it back on.
+#define SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL "global_disable_interference_travel"
+
 #define SETTING_NETWORK_PLUGIN_VERSION "network_plugin_version"
 #define SETTING_NETWORK_PLUGIN_SKIPPED_VERSIONS "network_plugin_skipped_versions"
 #define SETTING_NETWORK_PLUGIN_UPDATE_DISABLED "network_plugin_update_prompts_disabled"
@@ -102,6 +109,14 @@ struct BBLocalMachine
     bool operator!=(const BBLocalMachine& other) const { return !operator==(other); }
 };
 
+// OrcaSlicer#17866: the print options forced install-wide while
+// SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL is on, as (option key, forced value) pairs.
+// Listed here (not buried in a .cpp) so the tests can assert every key still exists in the
+// print config definition - an upstream option rename must break the build, not the feature.
+const std::vector<std::pair<std::string, bool>> &interference_travel_forced_options();
+
+class DynamicPrintConfig;
+
 class AppConfig
 {
 public:
@@ -125,6 +140,13 @@ public:
 	std::string get_hms_host();
 	bool get_stealth_mode();
 	bool get_hide_login_side_panel();
+
+	// ORCA: Applies the print setting overrides that must hold for every slice on this install,
+	// whatever the printer, filament and process presets, the plate configuration or the loaded
+	// project ask for (OrcaSlicer#17866). Call it on the full print configuration right before a
+	// Print applies it. GUI and CLI slicing both call this, so a scripted slice produces the same
+	// G-code as a slice started from the editor.
+	void				apply_print_config_overrides(DynamicPrintConfig &config) const;
 
 	// Clear and reset to defaults.
 	void 			   	reset();

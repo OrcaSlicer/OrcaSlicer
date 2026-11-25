@@ -753,6 +753,11 @@ Print::ApplyStatus BackgroundSlicingProcess::apply(const Model& model, const Dyn
     // TODO: add partplate config
     DynamicPrintConfig new_config = config;
     new_config.apply(*m_current_plate->config());
+    // ORCA: install-wide overrides (OrcaSlicer#17866) come last, so they win over the presets,
+    // the plate configuration and anything a loaded .3mf project carried in. See
+    // AppConfig::apply_print_config_overrides().
+    if (m_print->technology() == ptFFF)
+        GUI::wxGetApp().app_config->apply_print_config_overrides(new_config);
     Print::ApplyStatus invalidated = m_print->apply(model, new_config);
 
     // Orca: prevent resetting under gcode viewer mode

@@ -3,6 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Thread.hpp"
 #include "../slic3rutils/plugin_test_utils.hpp"
 #include "test_utils.hpp"
@@ -392,5 +393,56 @@ TEST_CASE("AppConfig keeps only the preview drag modes it knows", "[AppConfig]")
         config.set(key, mode);
         config.set_defaults();
         REQUIRE(config.get(key) == "off");
+    }
+}
+
+TEST_CASE("Global interference travel override reaches the print configuration", "[AppConfig][InterferenceTravel]") {
+    AppConfig config;
+    config.set_defaults();
+    REQUIRE_FALSE(config.get_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL));
+
+    DynamicPrintConfig print_config;
+    print_config.set_key_value("reduce_infill_retraction", new ConfigOptionBool(true));
+
+    SECTION("switched off, the preset value is left alone") {
+        config.apply_print_config_overrides(print_config);
+        REQUIRE(print_config.opt_bool("reduce_infill_retraction"));
+    }
+
+    SECTION("switched on, interference travel is forced off") {
+        config.set_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL, true);
+        config.apply_print_config_overrides(print_config);
+        REQUIRE_FALSE(print_config.opt_bool("reduce_infill_retraction"));
+    }
+
+    SECTION("switched on, a configuration without the option is left alone") {
+        // SLA configurations do not carry the FFF option; nothing may be added to them.
+        config.set_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL, true);
+        DynamicPrintConfig sla_config;
+        config.apply_print_config_overrides(sla_config);
+        REQUIRE(sla_config.empty());
+    }
+
+    SECTION("switched on, an already conforming configuration is not rewritten") {
+        config.set_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL, true);
+        DynamicPrintConfig quiet_config;
+        quiet_config.set_key_value("reduce_infill_retraction", new ConfigOptionBool(false));
+        config.apply_print_config_overrides(quiet_config);
+        REQUIRE_FALSE(quiet_config.opt_bool("reduce_infill_retraction"));
+    }
+}
+
+TEST_CASE("Every forced interference travel option exists in the print config definition", "[AppConfig][InterferenceTravel]") {
+    // OrcaSlicer#17866: guards against an upstream option rename or type change silently
+    // voiding the install-wide override. If this test fails, update
+    // interference_travel_forced_options() together with the print configuration definition.
+    for (const auto &[key, forced_value] : interference_travel_forced_options()) {
+        CAPTURE(key);
+        REQUIRE(print_config_def.has(key));
+        const ConfigOptionDef *option_def = print_config_def.get(key);
+        REQUIRE(option_def != nullptr);
+        // The override mechanism writes ConfigOptionBool values; it only makes sense for
+        // options whose default is boolean.
+        REQUIRE(dynamic_cast<const ConfigOptionBool *>(option_def->default_value.get()) != nullptr);
     }
 }
