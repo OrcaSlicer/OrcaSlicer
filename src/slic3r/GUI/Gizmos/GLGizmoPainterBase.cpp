@@ -255,6 +255,12 @@ void GLGizmoPainterBase::render_ortho_switch(float scale, bool show_vertical, bo
         m_vertical_only   = ortho_mode == vertical_idx;
         m_horizontal_only = ortho_mode == horizontal_idx;
     }
+    if (ImGui::IsItemHovered()) {
+        std::string          tip =         _u8L("Free: paint in any direction.");
+        if (show_vertical)   tip += "\n" + _u8L("Vertical: keep the stroke on a vertical line.");
+        if (show_horizontal) tip += "\n" + _u8L("Horizontal: keep the stroke on a horizontal line.");
+        m_imgui->tooltip(tip, ImGui::GetFontSize() * 20.0f);
+    }
     ImGui::PopStyleColor(4);
     ImGui::PopStyleVar(1);
 }
