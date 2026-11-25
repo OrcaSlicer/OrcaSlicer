@@ -82,11 +82,8 @@ orcaslicer_add_cmake_project(OpenCV
        -DWITH_IMGCODEC_GIF=OFF
        -DWITH_KLEIDICV=OFF
        -DENABLE_PRECOMPILED_HEADERS=OFF
-       # Build only baseline CPU code: SSE3 on Windows/Linux x64, the compiler's default target on macOS and ARM64
-       # (e.g. NEON + FP16 on Linux aarch64; Apple silicon also has DOTPROD). By default OpenCV also compiles its hot
-       # loops for SSE4.1 up to AVX-512 (NEON FP16/BF16/DOTPROD on ARM64) and picks one at runtime. Orca only does
-       # light image work (decoding, color conversion, k-means, contours), where that saves milliseconds;
-       # it costs ~40% of OpenCV's build time and ~4 MB in the app.
+       # Build only the baseline CPU code, without the per-CPU copies OpenCV picks from at runtime.
+       # Orca's image work is too light to gain from them, and they make OpenCV slower to build and the app bigger.
        -DCPU_DISPATCH=
        -DINSTALL_TESTS=OFF
        -DINSTALL_C_EXAMPLES=OFF
