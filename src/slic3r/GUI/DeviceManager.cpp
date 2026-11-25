@@ -2700,6 +2700,15 @@ static bool connects_through_moonraker_agent(const std::string& agent_id)
            agent_id == SNAPMAKER_PRINTER_AGENT_ID || agent_id == CREALITYPRINT_PRINTER_AGENT_ID;
 }
 
+std::string MachineObject::get_web_ui_host() const
+{
+    // A Moonraker agent's dev_ip carries Moonraker's API port. The web interface is on the
+    // printer's default HTTP port.
+    if (connects_through_moonraker_agent(printer_agent_id))
+        return Http::get_host_from_url(get_dev_ip());
+    return get_dev_ip();
+}
+
 int MachineObject::connect()
 {
     if (m_access_revoked || get_dev_ip().empty()) return -1;
