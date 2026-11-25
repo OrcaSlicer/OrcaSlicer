@@ -12,8 +12,13 @@
 #include <wx/filename.h>
 #include <fontconfig/fontconfig.h>
 #include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/log/trivial.hpp>
 #include <boost/system/error_code.hpp>
+#include <set>
+#include <utility>
+#include <vector>
 #include "libslic3r/Utils.hpp"
 
 
@@ -158,6 +163,86 @@ std::string Slic3r::GUI::get_font_path(const wxFont &font, bool reload_fonts)
     // File exists and is accessible
     wxString fullFileName = myFileName.GetFullPath();
     return std::string(fullFileName.c_str());
+}
+
+static std::string list_fc_strings(FcStrList *list)
+{
+    if (list == nullptr)
+        return {};
+    std::string joined;
+    while (const FcChar8 *entry = FcStrListNext(list))
+        joined += (joined.empty() ? "" : ", ") + std::string(reinterpret_cast<const char *>(entry));
+    FcStrListDone(list);
+    return joined;
+}
+
+static int font_count(FcConfig *config)
+{
+    if (config == nullptr)
+        return 0;
+    const FcFontSet *fonts = FcConfigGetFonts(config, FcSetSystem);
+    return fonts == nullptr ? 0 : fonts->nfont;
+}
+
+// Fontconfig accepts a cache that reports a font directory as empty and never
+// reads the directory again, so after another application damages a cache the
+// process can find no font at all.
+// https://github.com/brave/brave-browser/issues/59380
+void Slic3r::GUI::repair_unusable_font_cache()
+{
+    FcConfig *config = FcConfigGetCurrent();
+    if (config == nullptr || font_count(config) > 0)
+        return;
+
+    const std::string cache_dirs = list_fc_strings(FcConfigGetCacheDirs(config));
+    BOOST_LOG_TRIVIAL(warning) << "fontconfig reports no font at all; scanning the font directories again (cache "
+                                  "directories: " << (cache_dirs.empty() ? "none" : cache_dirs.c_str()) << ")";
+
+    std::vector<std::string> pending;
+    if (FcStrList *dirs = FcConfigGetFontDirs(config)) {
+        while (const FcChar8 *dir = FcStrListNext(dirs))
+            pending.emplace_back(reinterpret_cast<const char *>(dir));
+        FcStrListDone(dirs);
+    }
+
+    // Reading a directory again can reveal subdirectories that are missing from
+    // its bad cache.
+    std::set<std::string> visited;
+    int                   scanned = 0;
+    while (!pending.empty()) {
+        const std::string dir = std::move(pending.back());
+        pending.pop_back();
+        // A symlink to an ancestor yields a new path at every level. Fontconfig
+        // keys each cache by the path as configured, not by the resolved one.
+        boost::system::error_code ec;
+        const boost::filesystem::path resolved = boost::filesystem::canonical(dir, ec);
+        if (!visited.insert(ec ? dir : resolved.string()).second)
+            continue;
+        // FcDirCacheRescan would keep the cache's font list and only refresh the
+        // subdirectory list.
+        FcCache *cache = FcDirCacheRead(reinterpret_cast<const FcChar8 *>(dir.c_str()), FcTrue, config);
+        if (cache == nullptr)
+            continue;
+        ++scanned;
+        for (int i = 0; i < FcCacheNumSubdir(cache); ++i)
+            pending.emplace_back(reinterpret_cast<const char *>(FcCacheSubdir(cache, i)));
+        FcDirCacheUnload(cache);
+    }
+
+    const char *const remedy = ", so the Home, Device and setup wizard panels will stay blank; remove "
+                               "~/.cache/fontconfig and start OrcaSlicer again";
+    if (scanned == 0) {
+        BOOST_LOG_TRIVIAL(error) << "no font directory could be read" << remedy;
+        return;
+    }
+
+    FcInitReinitialize();
+    const int available = font_count(FcConfigGetCurrent());
+    if (available > 0)
+        BOOST_LOG_TRIVIAL(warning) << "scanned " << scanned << " font directories, " << available
+                                   << " fonts are available again";
+    else
+        BOOST_LOG_TRIVIAL(error) << "scanning " << scanned << " font directories found no font" << remedy;
 }
 
 #endif // EXIST_FONT_CONFIG_INCLUDE

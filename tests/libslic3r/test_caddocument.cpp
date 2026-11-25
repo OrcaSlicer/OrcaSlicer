@@ -41,6 +41,7 @@
 #include "libslic3r/CAD/SketchImport.hpp"
 #include "libslic3r/CAD/ThreadStandards.hpp"
 #include "libslic3r/Utils.hpp"
+#include "test_utils.hpp"   // shipped_resource
 
 #include <cmath>
 #include <cstring>
@@ -772,9 +773,8 @@ TEST_CASE("entity constraints: tangent/midpoint/symmetric/angle", "[CadDocument]
 
 TEST_CASE("imported text glyphs all extrude without failing (charset sweep)", "[CadDocument]")
 {
-    std::string font = resources_dir().empty()
-        ? std::string("resources/fonts/HarmonyOS_Sans_SC_Regular.ttf")
-        : resources_dir() + "/fonts/HarmonyOS_Sans_SC_Regular.ttf";
+    // The Flatpak test asset prunes resources/fonts (build_flatpak.yml).
+    std::string font = shipped_resource("fonts/HarmonyOS_Sans_SC_Regular.ttf");
     {
         std::ifstream probe(font);
         if (!probe.good()) {

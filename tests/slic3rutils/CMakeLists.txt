@@ -15,6 +15,7 @@ add_executable(${_TEST_NAME}_tests
     test_snapmaker_filament_match.cpp
     test_network_discovery.cpp
     test_filament_bitmap_utils.cpp
+    test_font_config_help.cpp
     test_colour_picker_field.cpp
     test_field_number_text.cpp
     test_filament_color_picker.cpp

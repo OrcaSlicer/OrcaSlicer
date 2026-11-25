@@ -173,6 +173,9 @@ using json = nlohmann::json;
     // which only a SLIC3R_GUI build links (see target_link_libraries(OrcaSlicer libslic3r_gui)
     // in CMakeLists).
     #include "slic3r/Utils/BBLPrinterAgent.hpp"
+    #if defined(__WXGTK__) && defined(__linux__)
+        #include "slic3r/Utils/FontConfigHelp.hpp"
+    #endif
 #endif /* SLIC3R_GUI */
 
 using namespace Slic3r;
@@ -1514,6 +1517,7 @@ int CLI::run(int argc, char **argv)
     #endif // some linux / unix system
     #if defined(__WXGTK__) && defined(__linux__)
         apply_discrete_gpu_preference();
+        Slic3r::GUI::repair_unusable_font_cache();
     #endif
         Slic3r::GUI::GUI_InitParams params;
         params.argc = argc;

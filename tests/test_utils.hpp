@@ -28,6 +28,13 @@
 #define PATH_SEPARATOR R"(/)"
 #endif
 
+// A file shipped in resources/, named relative to it, e.g. "fonts/NanumGothic-Regular.ttf".
+// Absolute, so it does not depend on the directory ctest runs the suite from.
+inline std::string shipped_resource(const std::string &relative_path)
+{
+    return RESOURCES_DIR PATH_SEPARATOR + relative_path;
+}
+
 inline Slic3r::TriangleMesh load_model(const std::string &obj_filename)
 {
     Slic3r::TriangleMesh mesh;
