@@ -2804,9 +2804,9 @@ void GUI_App::init_app_config()
     buf << get_current_pid() << ".log";
     std::string log_filename = buf.str();
 #if !BBL_RELEASE_TO_PUBLIC
-    set_log_path_and_level(log_filename, 5);
+    set_log_path_and_level(log_filename, command_line_logging_level(5));
 #else
-    set_log_path_and_level(log_filename, 3);
+    set_log_path_and_level(log_filename, command_line_logging_level(3));
 #endif
 
     BOOST_LOG_TRIVIAL(info) << boost::format("gui mode, Current OrcaSlicer Version %1% build %2%") % SoftFever_VERSION % build_commit_label;
@@ -2847,7 +2847,8 @@ void GUI_App::init_app_config()
     // MainFrame shortcut read the same value; an existing config (true or false) is left untouched.
     if (app_config->get("enable_speed_dial").empty())
         app_config->set_bool("enable_speed_dial", true);
-    set_logging_level(Slic3r::level_string_to_boost(app_config->get("log_severity_level")));
+    const unsigned int preference = Slic3r::level_string_to_boost(app_config->get("log_severity_level"));
+    set_logging_level(command_line_logging_level(preference));
 
 }
 

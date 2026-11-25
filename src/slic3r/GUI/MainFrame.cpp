@@ -454,7 +454,8 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
 
     //reset log level
     auto loglevel = wxGetApp().app_config->get("log_severity_level");
-    Slic3r::set_logging_level(Slic3r::level_string_to_boost(loglevel));
+    const unsigned int preference = Slic3r::level_string_to_boost(loglevel);
+    Slic3r::set_logging_level(Slic3r::command_line_logging_level(preference));
 
     // BBS
     m_recent_projects.SetMenuPathStyle(wxFH_PATH_SHOW_ALWAYS);

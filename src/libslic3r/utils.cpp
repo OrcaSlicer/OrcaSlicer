@@ -25,6 +25,7 @@
 #include <boost/log/expressions/message.hpp>
 #include <boost/log/keywords/auto_flush.hpp>
 #include <initializer_list>
+#include <optional>
 #include <boost/filesystem/file_status.hpp>
 #include <cstdint>
 #include <boost/filesystem/directory.hpp>
@@ -179,6 +180,9 @@ static boost::log::trivial::severity_level level_to_boost(unsigned level)
     }
 }
 
+// --debug and log_severity_level count 0=fatal..5=trace, the opposite way to boost's severity_level.
+static constexpr unsigned int log_level_info = 3;
+
 void set_logging_level(unsigned int level)
 {
     logSeverity = level_to_boost(level);
@@ -186,7 +190,7 @@ void set_logging_level(unsigned int level)
     // Orca: force at info or lower level logging for pre-release builds.
     // Note: not setting to debug or trace as they might affect long time usage especially with BBL printers.
     const std::string version = SoftFever_VERSION;
-    if (level < (unsigned int) boost::log::trivial::info &&
+    if (level < log_level_info &&
         (boost::algorithm::icontains(version, "dev") || boost::algorithm::icontains(version, "alpha") ||
          boost::algorithm::icontains(version, "beta"))) {
         logSeverity = boost::log::trivial::info;
@@ -196,6 +200,22 @@ void set_logging_level(unsigned int level)
     (
         boost::log::trivial::severity >= logSeverity
     );
+}
+
+// init_app_config() sets the level first and runs from the GUI_App constructor, which is before
+// GUI_Run assigns the GUI_InitParams.
+static std::optional<unsigned int> g_command_line_log_level;
+
+void set_command_line_logging_level(std::optional<unsigned int> level)
+{
+    g_command_line_log_level = level;
+    if (level)
+        set_logging_level(*level);
+}
+
+unsigned int command_line_logging_level(unsigned int fallback)
+{
+    return g_command_line_log_level.value_or(fallback);
 }
 
 void set_logging_file(const std::string &file)

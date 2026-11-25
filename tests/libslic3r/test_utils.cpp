@@ -668,3 +668,54 @@ TEST_CASE("default_data_dir is the XDG config dir without a portable data_dir fo
     CHECK(Slic3r::default_data_dir() == "/tmp/xdg-test/" SLIC3R_APP_KEY);
 }
 #endif
+
+namespace {
+// Puts back the process-wide log level, however the test case exits.
+struct ScopedLoggingLevel
+{
+    const unsigned int level = get_logging_level();
+    ~ScopedLoggingLevel()
+    {
+        set_command_line_logging_level(std::nullopt);
+        set_logging_level(level);
+    }
+};
+} // namespace
+
+TEST_CASE("the command line log level outranks the fallback a caller passes", "[Utils]") {
+    ScopedLoggingLevel restore;
+
+    SECTION("no --debug given, so each caller keeps its own default") {
+        CHECK(command_line_logging_level(3) == 3);
+        CHECK(command_line_logging_level(0) == 0);
+    }
+    SECTION("--debug given, so the fallback is ignored and the level applied") {
+        // 5 is above the level set_logging_level() clamps pre-release builds to, so it comes back unchanged.
+        set_command_line_logging_level(5);
+        CHECK(command_line_logging_level(3) == 5);
+        CHECK(get_logging_level() == 5);
+    }
+    SECTION("--debug 0 is a level that was asked for, not an absent flag") {
+        set_command_line_logging_level(0);
+        CHECK(command_line_logging_level(3) == 0);
+    }
+    SECTION("an empty level forgets what the command line asked for") {
+        set_command_line_logging_level(5);
+        set_command_line_logging_level(std::nullopt);
+        CHECK(command_line_logging_level(3) == 3);
+    }
+}
+
+TEST_CASE("a more verbose log level is never quieter than a less verbose one", "[Utils]") {
+    ScopedLoggingLevel restore;
+
+    // Pre-release builds raise the quietest levels to info, which must not invert the order.
+    unsigned int previous = 0;
+    for (unsigned int asked = 0; asked <= 5; ++asked) {
+        set_logging_level(asked);
+        const unsigned int in_force = get_logging_level();
+        CAPTURE(asked, in_force, previous);
+        CHECK(in_force >= previous);
+        previous = in_force;
+    }
+}

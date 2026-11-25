@@ -20,6 +20,7 @@
 #include <type_traits>
 #include <system_error>
 #include <initializer_list>
+#include <optional>
 #include <string_view>
 
 #include <boost/system/error_code.hpp>
@@ -94,6 +95,11 @@ namespace boost { namespace filesystem { class directory_entry; }}
 namespace Slic3r {
 
 extern void set_logging_level(unsigned int level);
+// Applies the level --debug asked for and remembers it, so GUI start-up can prefer it over the
+// log_severity_level preference. An empty level forgets it without changing the level in force.
+extern void set_command_line_logging_level(std::optional<unsigned int> level);
+// The level --debug asked for, or fallback when the command line gives none.
+extern unsigned int command_line_logging_level(unsigned int fallback);
 extern void set_logging_file(const std::string &file);
 extern unsigned int level_string_to_boost(std::string level);
 extern std::string  get_string_logging_level(unsigned level);
