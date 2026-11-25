@@ -1416,10 +1416,31 @@ static void for_each_line_between(const std::string &gcode, const std::string &f
     });
 }
 
+// Only a real toolchange is numbered. The final purge unloads the last tool with no swap and no wipe,
+// so its unload runs on into the end of the print.
+static bool is_numbered_toolchange(const std::string &raw_line)
+{
+    return raw_line.find("; toolchange #") != std::string::npos;
+}
+
 // Calls on_line for each line from the unload to the wipe, the stretch where the tool is swapped.
 static void for_each_toolchange_line(const std::string &gcode, const GCodeReader::callback_t &on_line)
 {
-    for_each_line_between(gcode, "; CP TOOLCHANGE UNLOAD", "; CP TOOLCHANGE WIPE", on_line);
+    bool numbered = false;
+    bool inside   = false;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.raw().find("; CP TOOLCHANGE START") != std::string::npos)
+            numbered = false;
+        if (is_numbered_toolchange(line.raw()))
+            numbered = true;
+        if (line.raw().find("; CP TOOLCHANGE UNLOAD") != std::string::npos)
+            inside = numbered;
+        if (line.raw().find("; CP TOOLCHANGE WIPE") != std::string::npos)
+            inside = false;
+        if (inside)
+            on_line(self, line);
+    });
 }
 
 // Calls on_line for each line of the wipe that follows a toolchange.
@@ -1540,10 +1561,19 @@ static std::vector<GapLeave> gap_leaves(const std::string &gcode)
 {
     enum class Stage { Outside, BeforeSwap, AfterRetract, AfterSwap };
     std::vector<GapLeave> leaves;
-    Stage stage = Stage::Outside;
+    Stage stage    = Stage::Outside;
+    bool  numbered = false;
     GCodeReader reader;
     reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
-        if (line.raw().find("; CP TOOLCHANGE UNLOAD") != std::string::npos) {
+        if (line.raw().find("; CP TOOLCHANGE START") != std::string::npos) {
+            numbered = false;
+            return;
+        }
+        if (is_numbered_toolchange(line.raw())) {
+            numbered = true;
+            return;
+        }
+        if (numbered && line.raw().find("; CP TOOLCHANGE UNLOAD") != std::string::npos) {
             leaves.emplace_back();
             stage = Stage::BeforeSwap;
             return;

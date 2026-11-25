@@ -369,9 +369,12 @@ private:
     // grown by `clearance` all around. The cone wall uses its widest envelope.
     std::pair<float, float> row_span_x(float y, float clearance) const;
     bool park_point_on_bed(const WipeTowerWriter2 &writer, const Vec2f &tower_pt) const;
-    // X of a park spot beside the printed wall on the row of `from`, on the side nearest
-    // `from`. Falls back to the far side unless near_side_only; nullopt if both leave the bed.
-    std::optional<float> park_x_beside_tower(const WipeTowerWriter2 &writer, const Vec2f &from, bool near_side_only) const;
+    // Tower-local x span a park spot on the row at y keeps `clearance` away from: the printed wall
+    // on that row for a swap, the whole envelope for the heat-up park.
+    std::pair<float, float> park_keep_out_x(float y, float clearance, bool for_swap) const;
+    // X of a park spot beside the tower on the row of `from`, on the side nearest `from`.
+    // The heat-up park falls back to the far side; nullopt if no spot is on the bed.
+    std::optional<float> park_x_beside_tower(const WipeTowerWriter2 &writer, const Vec2f &from, bool for_swap) const;
     // Park spots for a swap that starts at the writer position and leaves the tower on its row:
     // the retract ends at `retract_end_x`; with m_leave_dry_travel the tool then travels on dry before it parks.
     WipeTower::ToolChangeResult::ParkBeside park_beside_tower(const WipeTowerWriter2 &writer, float retract_end_x) const;

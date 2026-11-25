@@ -1802,7 +1802,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             }
             // Orca: ramming moves the head inside the tcr, away from the position the writer holds.
             // Mark it unknown so the eager spiral lift in set_extruder is a straight Z lift in place.
-            if (is_ramming)
+            // A single extruder multi material printer only rams with enable_filament_ramming on.
+            if (is_ramming && (!gcodegen.config().single_extruder_multi_material || gcodegen.config().enable_filament_ramming))
                 gcodegen.writer().set_current_position_clear(false);
             toolchange_gcode_str = gcodegen.set_extruder(new_extruder_id, tcr.print_z, false, toolchange_temp_override,
                                                          WipeTower2::wait_for_temp_enabled(gcodegen.m_config)); // TODO: toolchange_z vs print_z

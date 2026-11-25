@@ -1465,11 +1465,19 @@ bool WipeTower2::park_point_on_bed(const WipeTowerWriter2 &writer, const Vec2f &
     return m_bed_polygon.contains(Point::new_scale(bed_pt.x(), bed_pt.y()));
 }
 
-std::optional<float> WipeTower2::park_x_beside_tower(const WipeTowerWriter2 &writer, const Vec2f &from, bool near_side_only) const
+std::pair<float, float> WipeTower2::park_keep_out_x(float y, float clearance, bool for_swap) const
 {
-    constexpr float gap     = 2.8f;
+    if (for_swap)
+        return row_span_x(y, clearance);
+    const auto [envelope_min_x, envelope_max_x] = tower_envelope_x();
+    return {envelope_min_x - clearance, envelope_max_x + clearance};
+}
+
+std::optional<float> WipeTower2::park_x_beside_tower(const WipeTowerWriter2 &writer, const Vec2f &from, bool for_swap) const
+{
+    const float     gap     = for_swap ? 2.8f : 2.f;
     constexpr float min_gap = 0.5f;
-    const auto [near_min_x, near_max_x] = row_span_x(from.y(), gap);
+    const auto [near_min_x, near_max_x] = park_keep_out_x(from.y(), gap, for_swap);
     const bool  on_left = from.x() < m_wipe_tower_width / 2.f;
     const float near_x  = on_left ? near_min_x : near_max_x;
     if (park_point_on_bed(writer, Vec2f(near_x, from.y())))
@@ -1478,7 +1486,7 @@ std::optional<float> WipeTower2::park_x_beside_tower(const WipeTowerWriter2 &wri
     // as that still clears the wall by min_gap (the BBL tower clamps its
     // stop_pos against the bed the same way in append_tcr). Bisection, because with
     // tower rotation and non-rectangular beds the bed edge is not axis-aligned.
-    const auto [limit_min_x, limit_max_x] = row_span_x(from.y(), min_gap);
+    const auto [limit_min_x, limit_max_x] = park_keep_out_x(from.y(), min_gap, for_swap);
     const float limit_x = on_left ? limit_min_x : limit_max_x;
     if (park_point_on_bed(writer, Vec2f(limit_x, from.y()))) {
         float on = limit_x, off = near_x;
@@ -1491,7 +1499,7 @@ std::optional<float> WipeTower2::park_x_beside_tower(const WipeTowerWriter2 &wri
         }
         return on;
     }
-    if (near_side_only)
+    if (for_swap)
         return std::nullopt;
     const float far_x = on_left ? near_max_x : near_min_x;
     if (park_point_on_bed(writer, Vec2f(far_x, from.y())))
