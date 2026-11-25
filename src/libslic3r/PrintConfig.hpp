@@ -1406,6 +1406,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                flush_into_objects))
     // BBS
     ((ConfigOptionBool,                flush_into_infill))
+    ((ConfigOptionBool,                flush_into_infill_solid))
     ((ConfigOptionBool,                flush_into_support))
     // Marker for the auto-generated belt purge prism; identifies the object to
     // the auto-manager (GUI) and the layer-grid alignment step (backend).

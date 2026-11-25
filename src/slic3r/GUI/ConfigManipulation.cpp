@@ -1242,6 +1242,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     for (auto el : {"flush_into_infill", "flush_into_support", "flush_into_objects"})
         toggle_field(el, have_prime_tower, -1, _L("Enable the prime tower to use this setting."));
 
+    bool have_flush_into_infill = config->opt_bool("flush_into_infill");
+    toggle_field("flush_into_infill_solid", have_prime_tower && have_flush_into_infill, -1, _L("Enable Flush into objects' infill to use this setting."));
+
     bool have_avoid_crossing_perimeters = config->opt_bool("reduce_crossing_wall");
     toggle_line("max_travel_detour_distance", have_avoid_crossing_perimeters, -1, _L("Enable avoiding crossing walls to edit the maximum travel detour distance."));
 

@@ -2327,6 +2327,15 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         update_filament_self_index_cache();
     }
 
+    // Orca: the Solid Infill flush zones of an object are sized for a purge shared by the infills of all
+    // objects (Print::plan_solid_infill_flush()), so whatever invalidated the tool changes (another object
+    // added, removed or changed, a new flush volume) may change them: plan them again, from fresh fill surfaces
+    // as the zones split them.
+    if (!this->is_step_done_unguarded(psWipeTower))
+        for (PrintObject *object : m_objects)
+            if (object->config().flush_into_infill && object->config().flush_into_infill_solid)
+                update_apply_status(object->invalidate_step(posPrepareInfill));
+
     // Update SlicingParameters for each object where the SlicingParameters is not valid.
     // If it is not valid, then it is ensured that PrintObject.m_slicing_params is not in use
     // (posSlicing and posSupportMaterial was invalidated).

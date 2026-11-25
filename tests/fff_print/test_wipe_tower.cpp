@@ -1379,3 +1379,464 @@ TEST_CASE("Smooth timelapse prints each tower layer's wall once when a layer joi
     slice_precise_z_pair(config, "type1", 10.004, print);
     CHECK(count_joined_layers(print) > 0);
 }
+
+TEST_CASE("Solid infill flush partitions interior zone for toolchange purge", "[WipeTower][FlushInfill]")
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "enable_prime_tower",         true },
+        { "wipe_tower_x",               50 },
+        { "wipe_tower_y",               50 },
+        { "flush_into_infill",          true },
+        { "flush_into_infill_solid",    true },
+        { "sparse_infill_density",      "15%" },
+        { "flush_volumes_matrix",       "0,70,70,0" },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+    });
+
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides {
+        { { "extruder", 1 }, { "flush_into_infill", true }, { "flush_into_infill_solid", true } },
+        { { "extruder", 2 } },
+    };
+
+    Print print;
+    Model model;
+    init_print({ cube(20), cube(20) }, print, model, config, &overrides);
+    print.process();
+
+    const PrintObject *obj = print.objects().front();
+    REQUIRE(obj != nullptr);
+
+    bool found_partitioned_layer = false;
+    for (const Layer *layer : obj->layers()) {
+        for (const LayerRegion *layerm : layer->regions()) {
+            bool has_solid_flush = false;
+            bool has_sparse = false;
+            for (const Surface &s : layerm->fill_surfaces.surfaces) {
+                if (s.is_solid_flush)
+                    has_solid_flush = true;
+                else if (s.surface_type == stInternal)
+                    has_sparse = true;
+            }
+            if (has_solid_flush) {
+                found_partitioned_layer = true;
+                CHECK(has_sparse);
+
+                REQUIRE(!layerm->fills.entities.empty());
+                const auto *fill0 = dynamic_cast<const ExtrusionEntityCollection*>(layerm->fills.entities.front());
+                REQUIRE(fill0 != nullptr);
+                CHECK(fill0->role() == erInternalInfill);
+            }
+        }
+    }
+    CHECK(found_partitioned_layer);
+}
+
+TEST_CASE("Solid infill flush is not partitioned when option is disabled", "[WipeTower][FlushInfill]")
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "enable_prime_tower",         true },
+        { "wipe_tower_x",               50 },
+        { "wipe_tower_y",               50 },
+        { "flush_into_infill",          true },
+        { "flush_into_infill_solid",    false },
+        { "sparse_infill_density",      "15%" },
+        { "flush_volumes_matrix",       "0,70,70,0" },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+    });
+
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides {
+        { { "extruder", 1 }, { "flush_into_infill", true }, { "flush_into_infill_solid", false } },
+        { { "extruder", 2 } },
+    };
+
+    Print print;
+    Model model;
+    init_print({ cube(20), cube(20) }, print, model, config, &overrides);
+    print.process();
+
+    const PrintObject *obj = print.objects().front();
+    REQUIRE(obj != nullptr);
+
+    for (const Layer *layer : obj->layers()) {
+        for (const LayerRegion *layerm : layer->regions()) {
+            for (const Surface &s : layerm->fill_surfaces.surfaces) {
+                CHECK(!s.is_solid_flush);
+            }
+        }
+    }
+}
+
+TEST_CASE("Solid infill flush is not partitioned when parent flush_into_infill is disabled", "[WipeTower][FlushInfill]")
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "enable_prime_tower",         true },
+        { "wipe_tower_x",               50 },
+        { "wipe_tower_y",               50 },
+        { "flush_into_infill",          false },
+        { "flush_into_infill_solid",    true },
+        { "sparse_infill_density",      "15%" },
+        { "flush_volumes_matrix",       "0,70,70,0" },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+    });
+
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides {
+        { { "extruder", 1 }, { "flush_into_infill", false }, { "flush_into_infill_solid", true } },
+        { { "extruder", 2 } },
+    };
+
+    Print print;
+    Model model;
+    init_print({ cube(20), cube(20) }, print, model, config, &overrides);
+    print.process();
+
+    const PrintObject *obj = print.objects().front();
+    REQUIRE(obj != nullptr);
+
+    for (const Layer *layer : obj->layers()) {
+        for (const LayerRegion *layerm : layer->regions()) {
+            for (const Surface &s : layerm->fill_surfaces.surfaces) {
+                CHECK(!s.is_solid_flush);
+            }
+        }
+    }
+}
+
+TEST_CASE("Purge tower is bypassed when solid infill flush absorbs all purge volume", "[WipeTower][FlushInfill]")
+{
+    const char *tower_type = GENERATE("type1", "type2");
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "wipe_tower_type",            tower_type },
+        { "enable_prime_tower",         true },
+        { "wipe_tower_x",               50 },
+        { "wipe_tower_y",               50 },
+        { "flush_into_infill",          true },
+        { "flush_into_infill_solid",    true },
+        { "is_infill_first",            true },
+        { "sparse_infill_density",      "10%" },
+        { "flush_volumes_matrix",       "0,200,200,0" },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+    });
+
+    Print print;
+    Model model;
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides {
+        { { "flush_into_infill", true }, { "flush_into_infill_solid", true } },
+    };
+    init_print({ cube(50) }, print, model, config, &overrides);
+    DynamicPrintConfig range_config;
+    range_config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    range_config.set_key_value("extruder", new ConfigOptionInt(2));
+    model.objects.front()->layer_config_ranges[{10.0, 20.0}].assign_config(std::move(range_config));
+    print.apply(model, config);
+    print.process();
+
+    const PrintObject *print_obj = print.objects().front();
+    REQUIRE(print_obj != nullptr);
+
+    bool found_solid_flush = false;
+    for (const Layer *layer : print_obj->layers()) {
+        for (const LayerRegion *layerm : layer->regions()) {
+            for (const Surface &s : layerm->fill_surfaces.surfaces) {
+                if (s.is_solid_flush)
+                    found_solid_flush = true;
+            }
+        }
+    }
+    CHECK(found_solid_flush);
+
+    // Large object absorbs 100% of purge volume, so wipe tower should not be generated.
+    CHECK(print.wipe_tower_data().tool_changes.empty());
+    CHECK(!print.wipe_tower_data().tool_ordering.has_wipe_tower());
+    CHECK(print.first_layer_wipe_tower_corners().empty());
+    CHECK(print.wipe_tower_data().wipe_tower_mesh_data == std::nullopt);
+}
+
+TEST_CASE("Purge tower is generated when object infill cannot absorb all purge volume", "[WipeTower][FlushInfill]")
+{
+    const char *tower_type = GENERATE("type1", "type2");
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "wipe_tower_type",            tower_type },
+        { "enable_prime_tower",         true },
+        { "wipe_tower_x",               50 },
+        { "wipe_tower_y",               50 },
+        { "flush_into_infill",          true },
+        { "flush_into_infill_solid",    true },
+        { "is_infill_first",            true },
+        { "sparse_infill_density",      "10%" },
+        { "flush_volumes_matrix",       "0,200,200,0" },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+    });
+
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides {
+        { { "extruder", 1 }, { "flush_into_infill", true }, { "flush_into_infill_solid", true } },
+        { { "extruder", 2 }, { "flush_into_infill", true }, { "flush_into_infill_solid", true } },
+    };
+
+    Print print;
+    Model model;
+    // Small cube cannot absorb all 70 mm3 of flush volume on each toolchange layer.
+    init_print({ cube(20), cube(20) }, print, model, config, &overrides);
+    print.process();
+
+    CHECK(!print.wipe_tower_data().tool_changes.empty());
+    CHECK(print.wipe_tower_data().tool_ordering.has_wipe_tower());
+    CHECK(!print.first_layer_wipe_tower_corners().empty());
+}
+
+TEST_CASE("Solid infill flush is deducted when unavoidable deficit is covered by minimal wipe tower", "[WipeTower][FlushInfill]")
+{
+    // A 10mm cube has internal area ~70.5 mm2. At layer height 0.2mm, max capacity is ~14.1 mm3.
+    // With 18 mm3 purge volume and 15 mm3 minimal purge on wipe tower, the deficit is 3.9 mm3.
+    // The wipe tower is forced to purge at least 15 mm3, so infill only needs to purge 18 - 15 = 3 mm3.
+    // With 30% sparse infill, V_sparse (~4.2 mm3) >= 3 mm3, so no solid infill flush is needed.
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "enable_prime_tower",         true },
+        { "wipe_tower_x",               50 },
+        { "wipe_tower_y",               50 },
+        { "flush_into_infill",          true },
+        { "flush_into_infill_solid",    true },
+        { "is_infill_first",            true },
+        { "sparse_infill_density",      "30%" },
+        { "flush_volumes_matrix",       "0,18,18,0" },
+        { "flush_multiplier",           1.0 },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+    });
+
+    Print print;
+    Model model;
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides {
+        { { "flush_into_infill", true }, { "flush_into_infill_solid", true } },
+    };
+    init_print({ cube(10) }, print, model, config, &overrides);
+    DynamicPrintConfig range_config;
+    range_config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    range_config.set_key_value("extruder", new ConfigOptionInt(2));
+    model.objects.front()->layer_config_ranges[{4.0, 6.0}].assign_config(std::move(range_config));
+    print.apply(model, config);
+    print.process();
+
+    const PrintObject *print_obj = print.objects().front();
+    REQUIRE(print_obj != nullptr);
+
+    bool found_solid_flush = false;
+    for (const Layer *layer : print_obj->layers()) {
+        for (const LayerRegion *layerm : layer->regions()) {
+            for (const Surface &s : layerm->fill_surfaces.surfaces) {
+                if (s.is_solid_flush)
+                    found_solid_flush = true;
+            }
+        }
+    }
+    // Solid infill flush was not generated because minimal wipe tower covered the deficit:
+    CHECK_FALSE(found_solid_flush);
+
+    // The wipe tower is still generated for the minimal purge:
+    CHECK(!print.wipe_tower_data().tool_changes.empty());
+    CHECK(print.wipe_tower_data().tool_ordering.has_wipe_tower());
+}
+
+
+// Area of the Solid Infill flush zones of an object, in mm^2 summed over its layers.
+static double solid_flush_area(const PrintObject &object)
+{
+    double area = 0.;
+    for (const Layer *layer : object.layers())
+        for (const LayerRegion *layerm : layer->regions())
+            for (const Surface &s : layerm->fill_surfaces.surfaces)
+                if (s.is_solid_flush)
+                    area += unscale<double>(unscale<double>(s.area()));
+    return area;
+}
+
+TEST_CASE("Solid infill flush shares the purge among all objects on the plate", "[WipeTower][FlushInfill]")
+{
+    const char *tower_type = GENERATE("type1", "type2");
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "wipe_tower_type",            tower_type },
+        { "enable_prime_tower",         true },
+        { "wipe_tower_x",               50 },
+        { "wipe_tower_y",               50 },
+        { "flush_into_infill",          true },
+        { "flush_into_infill_solid",    true },
+        { "is_infill_first",            true },
+        { "sparse_infill_density",      "10%" },
+        { "flush_volumes_matrix",       "0,600,600,0" },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+    });
+
+    Print print;
+    Model model;
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides {
+        { { "flush_into_infill", true }, { "flush_into_infill_solid", true } },
+    };
+    init_print({ cube(50) }, print, model, config, &overrides);
+    // Tool changes only where the object switches to filament 2 and back.
+    DynamicPrintConfig range_config;
+    range_config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    range_config.set_key_value("extruder", new ConfigOptionInt(2));
+    model.objects.front()->layer_config_ranges[{10.0, 20.0}].assign_config(std::move(range_config));
+    print.apply(model, config);
+    print.process();
+
+    const double alone = solid_flush_area(*print.objects().front());
+    REQUIRE(alone > 0.);
+
+    // A second identical object, sliced again with the first one left as it was.
+    ModelObject *second = model.add_object(*model.objects.front());
+    second->instances.front()->set_offset(model.objects.front()->instances.front()->get_offset() + Vec3d(60., 0., 0.));
+    print.apply(model, config);
+    print.process();
+    REQUIRE(print.objects().size() == 2);
+
+    // Their sparse infill takes twice as much as one, and the rest is shared:
+    // the two objects take the purge between them: each turns less of its infill solid than one alone.
+    const double first  = solid_flush_area(*print.objects().front());
+    const double second_area = solid_flush_area(*print.objects().back());
+    CHECK(first > 0.);
+    CHECK(first < 0.6 * alone);
+    CHECK_THAT(second_area, Catch::Matchers::WithinRel(first, 0.1));
+    // And together they still absorb the whole purge, so no tower is needed.
+    CHECK(print.wipe_tower_data().tool_changes.empty());
+}
+
+// A 50mm cube switching to filament 2 between z 10 and 20, so the tool changes start a layer and go into the cube's own walls.
+static void slice_cube_switching_filament(DynamicPrintConfig &config, Print &print, Model &model, bool identical_copy)
+{
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides {
+        { { "flush_into_infill", true }, { "flush_into_infill_solid", config.opt_bool("flush_into_infill_solid") } },
+    };
+    init_print({ cube(50) }, print, model, config, &overrides);
+    DynamicPrintConfig range_config;
+    range_config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    range_config.set_key_value("extruder", new ConfigOptionInt(2));
+    model.objects.front()->layer_config_ranges[{10.0, 20.0}].assign_config(std::move(range_config));
+    if (identical_copy) {
+        ModelObject *copy = model.add_object(*model.objects.front());
+        copy->instances.front()->set_offset(model.objects.front()->instances.front()->get_offset() + Vec3d(60., 0., 0.));
+        // Like a clone in the GUI: the same settings, so it shares the layers of the first cube.
+        copy->config.assign_config(model.objects.front()->config.get());
+    }
+    print.apply(model, config);
+    print.process();
+}
+
+TEST_CASE("Flush as solid infill takes the purge of a tool change into the walls of the object", "[WipeTower][FlushInfill]")
+{
+    const char *tower_type = GENERATE("type1", "type2");
+    const bool  solid      = GENERATE(false, true);
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "wipe_tower_type",            tower_type },
+        { "enable_prime_tower",         true },
+        { "wipe_tower_x",               50 },
+        { "wipe_tower_y",               50 },
+        { "flush_into_infill",          true },
+        { "flush_into_infill_solid",    solid },
+        // Walls first: the infill of a region walled by the new filament is printed after the tool change only
+        // because Flush as solid infill prints it before the walls.
+        { "is_infill_first",            false },
+        { "sparse_infill_density",      "10%" },
+        { "flush_volumes_matrix",       "0,200,200,0" },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+    });
+    Print print;
+    Model model;
+    slice_cube_switching_filament(config, print, model, false);
+
+    INFO("flush_into_infill_solid " << solid);
+    // Without it the tool changes at z 10 and 20 have no infill to purge into, so the tower stays.
+    CHECK(print.wipe_tower_data().tool_changes.empty() == solid);
+}
+
+TEST_CASE("Solid infill flush counts the infill of identical objects sliced once", "[WipeTower][FlushInfill]")
+{
+    const char *tower_type = GENERATE("type1", "type2");
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "wipe_tower_type",            tower_type },
+        { "enable_prime_tower",         true },
+        { "wipe_tower_x",               50 },
+        { "wipe_tower_y",               50 },
+        { "flush_into_infill",          true },
+        { "flush_into_infill_solid",    true },
+        { "is_infill_first",            true },
+        { "sparse_infill_density",      "10%" },
+        { "flush_volumes_matrix",       "0,600,600,0" },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+    });
+
+    Print print_alone;
+    Model model_alone;
+    slice_cube_switching_filament(config, print_alone, model_alone, false);
+    const double alone = solid_flush_area(*print_alone.objects().front());
+    REQUIRE(alone > 0.);
+
+    Print print;
+    Model model;
+    slice_cube_switching_filament(config, print, model, true);
+    REQUIRE(print.objects().size() == 2);
+    // The copy is not sliced, it takes over the layers of the first cube.
+    REQUIRE(print.objects().back()->get_shared_object() == print.objects().front());
+
+    // Both cubes take the purge, so each turns less of its infill solid than one alone.
+    const double first = solid_flush_area(*print.objects().front());
+    CHECK(first > 0.);
+    CHECK(first < 0.6 * alone);
+    CHECK(print.wipe_tower_data().tool_changes.empty());
+}
+
+TEST_CASE("Flush as solid infill takes a purge into infill whose walls are printed later", "[WipeTower][FlushInfill]")
+{
+    const char        *tower_type = GENERATE("type1", "type2");
+    const unsigned int filaments  = GENERATE(3u, 4u, 8u);
+    // Leaving filament 1 costs most and coming back to it least, so the layers end with filament 1, like the flush volumes
+    // of a light main color under darker paint.
+    std::string flush_matrix;
+    for (unsigned int from = 0; from < filaments; ++from)
+        for (unsigned int to = 0; to < filaments; ++to)
+            flush_matrix += std::string(flush_matrix.empty() ? "" : ",") + (from == to ? "0" : from == 0 ? "400" : to == 0 ? "50" : "200");
+    DynamicPrintConfig config = multifilament_config(filaments, {
+        { "wipe_tower_type",            tower_type },
+        { "enable_prime_tower",         true },
+        { "wipe_tower_x",               50 },
+        { "wipe_tower_y",               50 },
+        { "flush_into_infill",          true },
+        { "flush_into_infill_solid",    true },
+        { "is_infill_first",            false },
+        { "sparse_infill_density",      "10%" },
+        { "flush_volumes_matrix",       flush_matrix },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+    });
+    // A big cube in filament 1 and a 10x10x30mm column for each other filament, which switches to it between z 10 and 20, like a
+    // cube painted in many colors: all the filaments on each layer there. When the big cube's filament comes last on a
+    // layer, the tool changes before it have only the small columns' infill, which cannot take a purge, unless the big
+    // cube's infill goes down before its walls.
+    std::vector<TriangleMesh> meshes { cube(70) };
+    for (unsigned int i = 1; i < filaments; ++i)
+        meshes.emplace_back(its_make_cube(10., 10., 30.));
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides(filaments,
+        { { "flush_into_infill", true }, { "flush_into_infill_solid", true } });
+    Print print;
+    Model model;
+    init_print(std::move(meshes), print, model, config, &overrides);
+    for (unsigned int i = 1; i < filaments; ++i) {
+        DynamicPrintConfig range_config;
+        range_config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+        range_config.set_key_value("extruder", new ConfigOptionInt(int(i) + 1));
+        model.objects[i]->layer_config_ranges[{ 10.0, 20.0 }].assign_config(std::move(range_config));
+    }
+    print.apply(model, config);
+    print.process();
+
+    INFO(filaments << " filaments");
+    // The big cube takes all of it, whatever the order of the filaments on a layer.
+    CHECK(print.wipe_tower_data().tool_changes.empty());
+}

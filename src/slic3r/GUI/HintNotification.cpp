@@ -339,6 +339,10 @@ void HintDatabase::init()
 }
 void HintDatabase::init_random_hint_id()
 {
+	if (m_loaded_hints.empty()) {
+		m_hint_id = 0;
+		return;
+	}
 	srand(time(NULL));
 	m_hint_id = rand() % m_loaded_hints.size();
 }
@@ -533,11 +537,15 @@ HintData* HintDatabase::get_hint(HintDataNavigation nav)
 
 size_t HintDatabase::get_next_hint_id()
 {
+	if (m_loaded_hints.empty())
+		return 0;
 	return m_hint_id < m_loaded_hints.size() - 1 ? m_hint_id + 1 : 0;
 }
 
 size_t HintDatabase::get_prev_hint_id()
 {
+	if (m_loaded_hints.empty())
+		return 0;
 	return m_hint_id > 0 ? m_hint_id - 1 : m_loaded_hints.size() - 1;
 }
 

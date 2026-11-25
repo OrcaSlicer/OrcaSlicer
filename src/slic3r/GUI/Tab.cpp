@@ -3455,6 +3455,7 @@ void TabPrint::build()
 
         optgroup = page->new_optgroup(L("Flush options"), L"param_flush");
         optgroup->append_single_option_line("flush_into_infill", "multimaterial_settings_flush_options#flush-into-objects-infill");
+        optgroup->append_single_option_line("flush_into_infill_solid", "");
         optgroup->append_single_option_line("flush_into_objects", "multimaterial_settings_flush_options#flush-into-this-object");
         optgroup->append_single_option_line("flush_into_support", "multimaterial_settings_flush_options#flush-into-objects-support");
         optgroup = page->new_optgroup(L("Advanced"), L"advanced");

@@ -96,7 +96,7 @@ static SettingsFactory::Bundle FREQ_SETTINGS_BUNDLE_FFF =
                                     "support_remove_small_overhang",
                                     "support_base_pattern_spacing", "support_expansion"}},
     //BBS
-    { L("Flush options")         , { "flush_into_infill", "flush_into_objects", "flush_into_support"} }
+    { L("Flush options")         , { "flush_into_infill", "flush_into_infill_solid", "flush_into_objects", "flush_into_support"} }
 };
 
 // pt_SLA

@@ -3542,7 +3542,10 @@ float WipingExtrusions::mark_wiping_extrusions(const Print& print, unsigned int 
                         if (wipe_into_infill_only && ! is_infill_first)
                             // In this case we must check that the original extruder is used on this layer before the one we are overridding
                             // (and the perimeters will be finished before the infill is printed):
-                            if (!lt.is_extruder_order(lt.wall_extruder_id(region), new_extruder))
+                            if (!lt.is_extruder_order(lt.wall_extruder_id(region), new_extruder)
+                                // With Flush as solid infill, any region takes the purge: GCode prints the overridden extrusions
+                                // of an extruder first, so the infill of a region walled later goes down before its walls.
+                                && !object->config().flush_into_infill_solid)
                                 continue;
 
                         if ((!is_entity_overridden(fill, object, copy) && fill->total_volume() > min_infill_volume))
