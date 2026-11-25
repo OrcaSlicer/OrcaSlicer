@@ -54,6 +54,7 @@
 #include <wx/event.h>
 #include <wx/panel.h>
 #include <wx/scrolwin.h>
+#include <wx/settings.h>
 #include <wx/sizer.h>
 #include <wx/tglbtn.h>
 #include <wx/filedlg.h>
@@ -3999,6 +4000,9 @@ void ExportConfigsDialog::select_curr_radiobox(std::vector<std::pair<RadioBox *,
             m_presets_window->Fit();
             int width  = m_presets_window->GetSize().GetWidth();
             int height = m_presets_window->GetSize().GetHeight();
+            // Past the width cap the list gets a horizontal scrollbar, which takes its height from the list and can cover the checkboxes
+            if (width > 1200)
+                height += wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y, m_scrolled_preset_window);
             m_scrolled_preset_window->SetMinSize(wxSize(std::min(1200, width), std::min(600, height)));
             m_scrolled_preset_window->SetMaxSize(wxSize(std::min(1200, width), std::min(600, height)));
             m_scrolled_preset_window->SetSize(wxSize(std::min(1200, width), std::min(600, height)));

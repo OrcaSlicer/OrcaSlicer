@@ -13,6 +13,7 @@
 #include "libslic3r/Color.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "libslic3r/PrintBase.hpp"
+#include "libslic3r/CustomGCode.hpp"
 #include <map>
 #include <cstddef>
 #include <cereal/access.hpp>
@@ -511,7 +512,9 @@ public:
     // Callers that mirror Print::validate need that form: validate counts the mixed slot itself,
     // so an expanded list makes the two disagree.
     std::vector<int> get_extruders(bool conside_custom_gcode = false, bool expand_mixed_slots = true) const;
-    std::vector<int> get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config, bool expand_mixed_slots = true) const;
+    // reset_print_wide_ids = true resolves a print-wide filament id past the last slot as PresetBundle::full_config()
+    // does for the edited print preset, and false resolves it as the slicer does.
+    std::vector<int> get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config, bool expand_mixed_slots = true, bool reset_print_wide_ids = false) const;
     std::vector<int> get_extruders_under_cli(bool conside_custom_gcode, DynamicPrintConfig& full_config, bool expand_mixed_slots = true) const;
     std::vector<int> get_extruders_without_support(bool conside_custom_gcode = false) const;
     // get used filaments from gcode result, 1 based idx
@@ -790,6 +793,8 @@ class PartPlateList : public ObjectBase
     PrinterTechnology  printer_technology;
 
     std::vector<PartPlate*> m_plate_list;
+    // Orca: custom G-codes of plates removed by undo / redo, restored if the plate comes back.
+    std::map<ObjectID, CustomGCode::Info> m_custom_gcodes_by_plate_id;
     std::map<int, PrintBase*> m_print_list;
     std::map<int, GCodeResult*> m_gcode_result_list;
     std::mutex m_plates_mutex;
@@ -1017,6 +1022,9 @@ public:
 
     //move the plate to position index
     int move_plate_to_index(int old_index, int new_index);
+    // Orca: custom G-codes are keyed by plate index; re-key them by plate ID after plates are reordered.
+    std::vector<ObjectID> get_plate_ids() const;
+    void remap_custom_gcodes(const std::vector<ObjectID>& plate_ids_before);
 
     //lock plate
     int lock_plate(int index, bool state);
