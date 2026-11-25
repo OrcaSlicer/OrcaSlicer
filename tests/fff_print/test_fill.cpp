@@ -940,11 +940,14 @@ TEST_CASE("Infill rotation template fraction is a share of a half turn or of a f
     check_rotate_template(rotate_template, expected);
 }
 
-TEST_CASE("Infill rotation template J, C, O and o joints shape the turn over the range", "[Fill][RotateTemplate]")
+TEST_CASE("Infill rotation template M, C, O and o joints shape the turn over the range", "[Fill][RotateTemplate]")
 {
     const auto [rotate_template, expected] = GENERATE(table<std::string, std::vector<double>>({
         // \ turns the angle like /, it only rounds the multiline count differently.
         {"+90\\10", turn_9_per_layer},
+        // M holds the middle angle of each range, and | is the same.
+        {"+90M5", {45, 45, 45, 45, 45, 135, 135, 135, 135, 135, 225, 225, 225, 225, 225, 315, 315, 315, 315, 315}},
+        {"+90|5", {45, 45, 45, 45, 45, 135, 135, 135, 135, 135, 225, 225, 225, 225, 225, 315, 315, 315, 315, 315}},
         // Half of a circle: sqrt(1 - (2x - 1)^2).
         {"+90C10", {54, 72, 82.49, 88.18, 90, 88.18, 82.49, 72, 54, 0,
                     144, 162, 172.49, 178.18, 180, 178.18, 172.49, 162, 144, 90}},
