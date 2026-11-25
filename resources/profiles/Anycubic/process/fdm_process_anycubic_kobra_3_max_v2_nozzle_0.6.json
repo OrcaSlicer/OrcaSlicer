@@ -1,0 +1,59 @@
+{
+	"type": "process",
+	"name": "fdm_process_anycubic_kobra_3_max_v2_nozzle_0.6",
+	"inherits": "fdm_process_anycubic_kobra_3_max_v2_common",
+	"from": "system",
+	"instantiation": "false",
+	"bridge_no_support": "1",
+	"detect_thin_wall": "1",
+	"extra_perimeters_on_overhangs": "1",
+	"infill_wall_overlap": "80%",
+	"initial_layer_acceleration": [
+		"5000"
+	],
+	"initial_layer_infill_speed": [
+		"50"
+	],
+	"initial_layer_line_width": "0.62",
+	"initial_layer_print_height": "0.3",
+	"inner_wall_line_width": "0.62",
+	"internal_solid_infill_line_width": "0.62",
+	"line_width": "0.62",
+	"outer_wall_line_width": "0.7",
+	"overhang_1_4_speed": [
+		"50"
+	],
+	"overhang_2_4_speed": [
+		"25"
+	],
+	"overhang_3_4_speed": [
+		"10"
+	],
+	"prime_tower_width": "35",
+	"prime_volume": "20",
+	"raft_first_layer_density": "100%",
+	"seam_slope_inner_walls": "0",
+	"seam_slope_start_height": "10%",
+	"sparse_infill_line_width": "0.62",
+	"sparse_infill_pattern": "3dhoneycomb",
+	"sparse_infill_speed": [
+		"100"
+	],
+	"standby_temperature_delta": "-5",
+	"support_interface_spacing": "0.5",
+	"support_interface_top_layers": "2",
+	"support_line_width": "0.62",
+	"support_on_build_plate_only": "0",
+	"support_top_z_distance": "0.2",
+	"top_surface_acceleration": [
+		"4000"
+	],
+	"top_surface_line_width": "0.62",
+	"top_surface_speed": [
+		"150"
+	],
+	"travel_acceleration": [
+		"5000"
+	],
+	"tree_support_tip_diameter": "0.8"
+}

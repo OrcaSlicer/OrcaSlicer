@@ -5568,7 +5568,8 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     out.apply(this->project_config);
 
     // BBS
-    size_t  num_filaments = this->filament_presets.size();
+    // Before the presets load, filament_presets is empty; that bundle has one filament, the edited preset.
+    size_t  num_filaments = std::max<size_t>(this->filament_presets.size(), 1);
 
     std::vector<int> filament_maps = out.option<ConfigOptionInts>("filament_map")->values;
     std::vector<int> filament_volume_maps(num_filaments, (int)nvtStandard);
@@ -5655,7 +5656,7 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
         compatible_prints_condition  .emplace_back(this->filaments.get_edited_preset().compatible_prints_condition());
         //BBS: add logic for settings check between different system presets
         //std::string filament_inherits = this->filaments.get_edited_preset().inherits();
-        std::string current_preset_name = this->filament_presets[0];
+        std::string current_preset_name = this->filament_presets.empty() ? this->filaments.get_edited_preset().name : this->filament_presets[0];
         const Preset* preset = this->filaments.find_preset(current_preset_name, true);
         std::string filament_inherits = preset->inherits();
         inherits                     .emplace_back(filament_inherits);
@@ -6731,9 +6732,6 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 swept_mix_slots.insert(slot);
                 receiver_mix_moves.emplace_back(slot, dest);
                 any_mixed_relocated = true;
-                // A payload mix authored at the same slot (a mix inside the physical region) is
-                // processed after this sweep and overrides its own destination below.
-                published_config->mixed_slot_relocations.insert_or_assign(int(slot), int(dest));
                 // TRN Filament slot change after loading a published project. %1% and %2% are slot numbers.
                 published_config->material_replacements.emplace_back(
                     (boost::format(L("slot %1% -> slot %2%: mixed filament")) % slot % dest).str());
@@ -6832,6 +6830,15 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                             << " placed as an unassigned mixed filament at slot " << dest_slot
                                             << " (printer supports only " << physical_capacity << " filaments)";
                     ++entry_it;
+                }
+            }
+            // Published process options refer to the author's slots. Options kept from the
+            // edited preset follow the receiver's own mixes, which may have moved elsewhere.
+            if (!mixed_moves.empty() || !receiver_mix_moves.empty()) {
+                const std::map<int, int> receiver_slots(receiver_mix_moves.begin(), receiver_mix_moves.end());
+                for (const char *key : feature_filament_keys) {
+                    const auto &slots = applied_keys.count(key) ? published_config->mixed_slot_relocations : receiver_slots;
+                    remap_filament_option(prints.get_edited_preset().config, key, slots);
                 }
             }
             if (!mixed_moves.empty())

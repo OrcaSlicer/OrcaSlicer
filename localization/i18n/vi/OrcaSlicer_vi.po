@@ -15982,13 +15982,13 @@ msgstr "Modifier %1% \"%2%\" của \"%3%\" (tổng cộng %4%) bao phủ toàn b
 
 # AI Translated
 #, boost-format
-msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "modifier \"%1%\" của \"%2%\" không có tác dụng lên đường nối (có thể nó không chạm tới đường tâm của chu vi được in)"
+msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam"
+msgstr "modifier \"%1%\" của \"%2%\" không có tác dụng lên đường nối"
 
 # AI Translated
 #, boost-format
-msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "modifier \"%1%\" của \"%2%\" (tổng cộng %3%) không có tác dụng lên đường nối (có thể nó không chạm tới đường tâm của chu vi được in)"
+msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam"
+msgstr "modifier \"%1%\" của \"%2%\" (tổng cộng %3%) không có tác dụng lên đường nối"
 
 # AI Translated
 msgid "Seam placement may differ from expected."

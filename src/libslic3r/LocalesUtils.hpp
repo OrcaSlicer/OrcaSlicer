@@ -51,6 +51,9 @@ double string_to_double_decimal_point(const std::string_view str, size_t* pos = 
 // Parses like atof in the C locale, skipping leading whitespace and a '+',
 // without the C runtime's per-call locale lookup.
 double atof_decimal_point(std::string_view str);
+// Parses a decimal number like strtod in the C locale, and sets *endptr past it, or to str when there is none.
+// strtod on macOS 13.3 to 14.0 reads the process locale, so a CNumericLocalesSetter does not affect it.
+double strtod_decimal_point(const char *str, char **endptr);
 
 } // namespace Slic3r
 
