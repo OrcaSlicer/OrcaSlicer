@@ -194,12 +194,13 @@ TEST_CASE("Device manager filters and rehomes devices by printer-agent ownership
     CHECK(manager.get_my_machine_list("integration-agent-b").count(machine.dev_id) == 1);
 }
 
-TEST_CASE("A Moonraker-derived device without a model is not given Bambu's C11 model", "[DeviceManager][integration]")
+TEST_CASE("A non-Bambu device without a model is not given Bambu's C11 model", "[DeviceManager][integration]")
 {
     const std::string agent_id = GENERATE(std::string(MOONRAKER_PRINTER_AGENT_ID),
                                           std::string(QIDI_PRINTER_AGENT_ID),
                                           std::string(SNAPMAKER_PRINTER_AGENT_ID),
-                                          std::string(CREALITYPRINT_PRINTER_AGENT_ID));
+                                          std::string(CREALITYPRINT_PRINTER_AGENT_ID),
+                                          std::string("integration-agent"));
     CAPTURE(agent_id);
 
     ScopedAppConfig app_config;
@@ -235,12 +236,13 @@ TEST_CASE("A Bambu device without a model still gets the C11 fallback", "[Device
     CHECK(object->printer_type == "C11");
 }
 
-TEST_CASE("A known model survives a Moonraker-derived rebind that does not name one", "[DeviceManager][integration]")
+TEST_CASE("A known model survives a non-Bambu rebind that does not name one", "[DeviceManager][integration]")
 {
     const std::string agent_id = GENERATE(std::string(MOONRAKER_PRINTER_AGENT_ID),
                                           std::string(QIDI_PRINTER_AGENT_ID),
                                           std::string(SNAPMAKER_PRINTER_AGENT_ID),
-                                          std::string(CREALITYPRINT_PRINTER_AGENT_ID));
+                                          std::string(CREALITYPRINT_PRINTER_AGENT_ID),
+                                          std::string("integration-agent"));
     CAPTURE(agent_id);
 
     ScopedAppConfig app_config;
@@ -263,14 +265,10 @@ TEST_CASE("A known model survives a Moonraker-derived rebind that does not name 
     CHECK(object->printer_type == "test_model");
 }
 
-TEST_CASE("A non-Moonraker rebind without a model keeps the C11 fallback", "[DeviceManager][integration]")
+TEST_CASE("A Bambu rebind without a model keeps the C11 fallback", "[DeviceManager][integration]")
 {
-    const std::string agent_id = GENERATE(std::string(BBL_PRINTER_AGENT_ID),
-                                          std::string("integration-agent"));
-    CAPTURE(agent_id);
-
     ScopedAppConfig app_config;
-    auto agent = std::make_shared<TestPrinterAgent>(agent_id);
+    auto agent = std::make_shared<TestPrinterAgent>(BBL_PRINTER_AGENT_ID);
     NetworkAgent network(nullptr, agent);
     DeviceManager manager(&network, false, &app_config.config);
 

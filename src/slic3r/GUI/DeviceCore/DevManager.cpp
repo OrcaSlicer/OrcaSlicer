@@ -502,17 +502,11 @@ namespace Slic3r
             obj->printer_agent_id = get_current_printer_agent_id();
             localMachineList.insert(std::make_pair(machine.dev_id, obj));
         }
-        const std::string agent_id          = get_current_printer_agent_id();
-        const bool        moonraker_derived = agent_id == MOONRAKER_PRINTER_AGENT_ID ||
-                                              agent_id == QIDI_PRINTER_AGENT_ID ||
-                                              agent_id == SNAPMAKER_PRINTER_AGENT_ID ||
-                                              agent_id == CREALITYPRINT_PRINTER_AGENT_ID;
-        // Moonraker does not necessarily report a model, so an empty one must not turn a
-        // Moonraker-derived printer into a Bambu C11, and must leave a known model in place.
-        // Every other agent keeps the old C11 fallback for an unknown model, rebinds included.
+        // Only Bambu printers use the C11 fallback. Other agents may not report a model,
+        // so leave their existing model unchanged when none is provided.
         if (!machine.printer_type.empty())
             obj->printer_type = _parse_printer_type(machine.printer_type);
-        else if (!moonraker_derived)
+        else if (obj->printer_agent_id == BBL_PRINTER_AGENT_ID)
             obj->printer_type = _parse_printer_type("C11");
         obj->dev_connection_type = connection_type == "farm" ? "lan":connection_type;
         obj->bind_state          = connection_type == "farm" ? "free":bind_state;

@@ -401,8 +401,6 @@ int MoonrakerPrinterAgent::bind_detect(std::string dev_ip, std::string sec_link,
     // the dev_id the same way GUI_App::select_machine does.
     std::string port;
     std::string host = Http::get_host_from_url(dev_ip, &port);
-    if (host.empty())
-        host = dev_ip;
     const std::string dev_id = MachineObject::dev_id_from_address(host, port);
 
     detect.dev_id       = dev_id;
