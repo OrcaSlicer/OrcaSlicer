@@ -2690,9 +2690,10 @@ struct MachineFilaments
                       std::vector<std::string> compatible_printers)
     {
         Preset &preset = add_inmemory_preset(bundle.filaments, name);
-        preset.is_system = true;
-        preset.alias     = alias;
-        preset.vendor    = &owner;
+        preset.is_system   = true;
+        preset.alias       = alias;
+        preset.vendor      = &owner;
+        preset.filament_id = alias;
         compatible_list(bundle.filaments, name, "compatible_printers") = std::move(compatible_printers);
     }
 
@@ -2729,6 +2730,74 @@ TEST_CASE("Filaments offered for a machine follow the app's compatibility rule",
 
         CHECK_FALSE(f.offers("My PLA", /*include_user_presets=*/false));
         CHECK(f.offers("My PLA", /*include_user_presets=*/true));
+    }
+}
+
+// A connected machine whose model and nozzle match no installed printer preset is unresolved, which
+// is not the same as a resolved machine with nothing compatible. The AMS material dropdown falls back
+// to the enabled presets only in the first case.
+TEST_CASE("Enabled filament presets back an unresolved machine", "[Preset][Bundle]")
+{
+    MachineFilaments f;
+
+    auto has = [](const std::vector<Preset *> &presets, const std::string &name) {
+        return std::any_of(presets.begin(), presets.end(),
+                           [&name](const Preset *preset) { return preset->name == name; });
+    };
+
+    SECTION("the printer and nozzle pair reports whether the machine resolved") {
+        bool resolved = false;
+        f.bundle.get_filament_presets_for_machine("Printer A", "0.4", /*include_user_presets=*/false, &resolved);
+        CHECK(resolved);
+
+        f.bundle.get_filament_presets_for_machine("Uninstalled Model", "0.4", /*include_user_presets=*/false, &resolved);
+        CHECK_FALSE(resolved);
+    }
+
+    SECTION("the fallback lists the enabled system presets and no default preset") {
+        const std::vector<Preset *> enabled = f.bundle.get_enabled_filament_presets(/*include_user_presets=*/false);
+        CHECK(has(enabled, "FilAr ABS @System"));
+        CHECK(has(enabled, "Vendor PLA @Printer B"));
+        CHECK_FALSE(has(enabled, f.bundle.filaments.default_preset().name));
+    }
+
+    SECTION("a disabled preset is not part of the fallback") {
+        Preset *preset = f.bundle.filaments.find_preset("FilAr ABS @System");
+        REQUIRE(preset != nullptr);
+        preset->is_visible = false;
+
+        const std::vector<Preset *> enabled = f.bundle.get_enabled_filament_presets(/*include_user_presets=*/false);
+        CHECK_FALSE(has(enabled, "FilAr ABS @System"));
+    }
+
+    SECTION("firmware without user preset support keeps user filaments out of the fallback") {
+        Preset &user = add_inmemory_preset(f.bundle.filaments, "My PLA");
+        user.filament_id = "Pmypla01";
+
+        const std::vector<Preset *> without_user = f.bundle.get_enabled_filament_presets(/*include_user_presets=*/false);
+        CHECK_FALSE(has(without_user, "My PLA"));
+
+        const std::vector<Preset *> with_user = f.bundle.get_enabled_filament_presets(/*include_user_presets=*/true);
+        CHECK(has(with_user, "My PLA"));
+    }
+
+    SECTION("an enabled inherited user preset is part of the fallback") {
+        Preset &user = add_inmemory_preset(f.bundle.filaments, "My calibrated PLA", "Generic ABS @System");
+        user.filament_id = "Pmycal01";
+
+        const std::vector<Preset *> enabled = f.bundle.get_enabled_filament_presets(/*include_user_presets=*/true);
+        CHECK(has(enabled, "My calibrated PLA"));
+    }
+
+    SECTION("a preset without a tray filament_id is not part of the fallback") {
+        Preset &empty_id = add_inmemory_preset(f.bundle.filaments, "No id PLA");
+        empty_id.filament_id.clear();
+        Preset &null_id = add_inmemory_preset(f.bundle.filaments, "Null id PLA");
+        null_id.filament_id = "null";
+
+        const std::vector<Preset *> enabled = f.bundle.get_enabled_filament_presets(/*include_user_presets=*/true);
+        CHECK_FALSE(has(enabled, "No id PLA"));
+        CHECK_FALSE(has(enabled, "Null id PLA"));
     }
 }
 

@@ -486,9 +486,20 @@ public:
     // of the app applies (is_compatible_with_printer): an empty compatible_printers means every
     // printer, minus the alias shadowing exclusions the Orca Filament Library records in
     // Preset::m_excluded_from.
+    // printer_resolved, when given, tells apart an unresolved machine (no installed system printer
+    // preset matches the model and nozzle) from a resolved one whose compatible list is empty; the
+    // returned list is empty in both cases. It is false when printer_type is empty as well.
     std::vector<Preset *> get_filament_presets_for_machine(const std::string &printer_type,
                                                            const std::string &nozzle_diameter_str,
-                                                           bool               include_user_presets);
+                                                           bool               include_user_presets,
+                                                           bool *             printer_resolved = nullptr);
+    // Orca: the filament presets the user enabled in the Configuration Wizard (Preset::is_visible
+    // is set from AppConfig::SECTION_FILAMENTS) that an AMS tray can reference. Includes enabled
+    // user presets whether root or inherited, and skips presets without a usable filament_id
+    // (empty or "null"), which the tray payload cannot identify. User presets follow the same
+    // firmware gate as get_filament_presets_for_machine(). Used as a fallback when a connected
+    // machine's model and nozzle resolve to no installed printer preset.
+    std::vector<Preset *> get_enabled_filament_presets(bool include_user_presets);
     // Orca: the variant index of a filament preset's per-variant options on extruder extruder_id of a printer
     // preset, with the nozzle volume type the machine reports; 0 when the filament has no such variant.
     static int            get_filament_variant_index(const DynamicPrintConfig &filament_config,

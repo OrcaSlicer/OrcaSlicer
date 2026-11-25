@@ -5405,14 +5405,21 @@ std::set<std::string> PresetBundle::get_printer_names_by_printer_type_and_nozzle
 
 std::vector<Preset *> PresetBundle::get_filament_presets_for_machine(const std::string &printer_type,
                                                                     const std::string &nozzle_diameter_str,
-                                                                    bool               include_user_presets)
+                                                                    bool               include_user_presets,
+                                                                    bool *             printer_resolved)
 {
+    if (printer_resolved != nullptr)
+        *printer_resolved = false;
+
     // Printer model plus nozzle diameter normally resolves to a single system printer preset.
     // Zero matches is normal for a connected machine the user never installed.
     const std::set<std::string> printer_names = get_printer_names_by_printer_type_and_nozzle(printer_type, nozzle_diameter_str);
     const Preset *printer = printer_names.empty() ? nullptr : printers.find_preset(*printer_names.begin());
     if (printer == nullptr)
         return {};
+
+    if (printer_resolved != nullptr)
+        *printer_resolved = true;
 
     // Preset::is_visible is deliberately not consulted: it tracks what the Configuration Wizard
     // installed, while the caller identifies a physically connected machine the user may never
@@ -5435,6 +5442,31 @@ std::vector<Preset *> PresetBundle::get_filament_presets_for_machine(const std::
             compatible.push_back(&preset);
     }
     return compatible;
+}
+
+std::vector<Preset *> PresetBundle::get_enabled_filament_presets(bool include_user_presets)
+{
+    std::vector<Preset *> enabled;
+    for (Preset &preset : filaments) {
+        // The "- default -" preset is not something the user enabled, and
+        // set_visible_from_appconfig() never hides it because it has no vendor.
+        if (preset.is_default)
+            continue;
+        if (!preset.is_system && !include_user_presets)
+            continue;
+        // is_visible is the Configuration Wizard's "enabled" flag for filaments
+        // (Preset::set_visible_from_appconfig reading AppConfig::SECTION_FILAMENTS). User presets
+        // have no vendor, so it never hides them; they are enabled by being installed.
+        if (!preset.is_visible)
+            continue;
+        // An AMS tray identifies its material by filament_id (tray_info_idx), and confirming this
+        // dialog rejects an empty one, so an id-less preset would offer a choice that cannot be
+        // applied. "null" is what cloud presets use for a missing id.
+        if (preset.filament_id.empty() || preset.filament_id == "null")
+            continue;
+        enabled.push_back(&preset);
+    }
+    return enabled;
 }
 
 int PresetBundle::get_filament_variant_index(const DynamicPrintConfig &filament_config, const DynamicPrintConfig &printer_config,

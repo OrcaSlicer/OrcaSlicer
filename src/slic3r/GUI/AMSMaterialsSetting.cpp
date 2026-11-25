@@ -1188,6 +1188,54 @@ bool AMSMaterialsSetting::Show(bool show)
     return DPIDialog::Show(show);
 }
 
+// The nozzle diameter string the filament list is looked up with. The connected extruder's report
+// wins; until (or unless) the device reports one, the selected printer profile supplies it, using
+// the second nozzle of a multi-nozzle profile - the same value get_printer_names_by_printer_type_
+// and_nozzle matches printer preset names against.
+static std::string filament_lookup_nozzle_diameter(MachineObject *obj, PresetBundle *preset_bundle)
+{
+    float machine_diameter = obj != nullptr ? obj->GetExtderSystem()->GetNozzleDiameter(0) : 0.0f;
+    if (machine_diameter == 0.0f && preset_bundle != nullptr) {
+        const ConfigOption *opt = preset_bundle->printers.get_selected_preset().config.option("nozzle_diameter");
+        if (opt != nullptr) {
+            const auto &nd = static_cast<const ConfigOptionFloats *>(opt)->values;
+            if (!nd.empty())
+                machine_diameter = nd.size() > 1 ? nd[1] : nd[0];
+        }
+    }
+
+    std::ostringstream stream;
+    stream << std::fixed << std::setprecision(1) << machine_diameter;
+    return stream.str();
+}
+
+// Filament presets the AMS material dropdown offers for the connected machine.
+// A machine whose model and nozzle resolve to no installed printer preset - normal for a device the
+// user never installed in the Configuration Wizard - falls back to the filament presets the user
+// enabled, so the dropdown is not empty. A machine that does resolve keeps its compatibility result,
+// even when that is empty: there the empty list is a real answer, not a resolution failure.
+static std::vector<Preset *> filament_presets_for_ams_tray(PresetBundle *     preset_bundle,
+                                                           const std::string &filament_printer_model,
+                                                           const std::string &nozzle_diameter_str,
+                                                           bool               include_user_presets)
+{
+    if (preset_bundle == nullptr)
+        return {};
+
+    bool printer_resolved = false;
+    if (!filament_printer_model.empty()) {
+        std::vector<Preset *> presets = preset_bundle->get_filament_presets_for_machine(
+            filament_printer_model, nozzle_diameter_str, include_user_presets, &printer_resolved);
+        if (printer_resolved)
+            return presets;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "filament_presets_for_ams_tray: no printer preset for model \""
+                            << filament_printer_model << "\" at nozzle " << nozzle_diameter_str
+                            << "; falling back to the enabled filament presets";
+    return preset_bundle->get_enabled_filament_presets(include_user_presets);
+}
+
 static void _collect_filament_info(const wxString& shown_name,
                                    const Preset& filament,
                                    std::unordered_map<wxString, wxString>& query_filament_vendors,
@@ -1350,28 +1398,21 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
     // popup (a different printer, a different nozzle) would resolve to that printer's filament_id.
     map_filament_items.clear();
     PresetBundle *        preset_bundle = wxGetApp().preset_bundle;
-    std::ostringstream    stream;
-    // Defensive: this dialog is opened only from StatusPanel (BBL-only) today, so the fallback fires
-    // only during the brief BBL startup window before firmware reports nozzle info. Without this,
-    // the "0.0" lookup string returns an empty set and the filament dropdown goes blank.
-    float machine_diameter = obj->GetExtderSystem()->GetNozzleDiameter(0);
-    if (machine_diameter == 0.0f && preset_bundle) {
-        const ConfigOption *opt = preset_bundle->printers.get_selected_preset().config.option("nozzle_diameter");
-        if (opt) {
-            const auto &nd = static_cast<const ConfigOptionFloats *>(opt)->values;
-            if (!nd.empty()) machine_diameter = nd.size() > 1 ? nd[1] : nd[0];
-        }
-    }
-    stream << std::fixed << std::setprecision(1) << machine_diameter;
-    std::string nozzle_diameter_str = stream.str();
-    // OrcaSonar's model id is optional, so the device model alone can resolve to nothing;
-    // the helper falls back to the selected profile so the dropdown is never empty.
+    // The connected device may not have reported its nozzle yet (or at all), so the selected
+    // printer profile supplies the lookup diameter until it does. The value is kept for
+    // on_select_filament() so both halves resolve the filament list against the same nozzle.
+    m_filament_lookup_nozzle_diameter = filament_lookup_nozzle_diameter(obj, preset_bundle);
+    const std::string nozzle_diameter_str = m_filament_lookup_nozzle_diameter;
+    // The device's model id is optional, and the selected profile may have no printer_model either,
+    // so the id alone can resolve to nothing; the helper falls back to the selected profile's model,
+    // and filament_presets_for_ams_tray() falls back to the enabled presets when neither yields an
+    // installed printer preset.
     const std::string filament_printer_model = resolve_filament_printer_model(obj->printer_type, preset_bundle);
 
-    if (preset_bundle && !filament_printer_model.empty()) {
+    if (preset_bundle) {
         BOOST_LOG_TRIVIAL(trace) << "system_preset_bundle filament number=" << preset_bundle->filaments.size();
-        for (Preset *filament_it : preset_bundle->get_filament_presets_for_machine(
-                 filament_printer_model, nozzle_diameter_str, obj->is_support_user_preset)) {
+        for (Preset *filament_it : filament_presets_for_ams_tray(
+                 preset_bundle, filament_printer_model, nozzle_diameter_str, obj->is_support_user_preset)) {
             if (!filament_id_set.insert(filament_it->filament_id).second)
                 continue;
             const std::string alias = preset_bundle->filaments.get_preset_alias(*filament_it, true);
@@ -1631,27 +1672,22 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
     PresetBundle* preset_bundle = wxGetApp().preset_bundle;
     std::string filament_printer_model;
     if (preset_bundle) {
-        std::ostringstream stream;
         if (obj) {
-            // Use the selected profile's nozzle diameter until the connected device reports one.
-            float machine_diameter = obj->GetExtderSystem()->GetNozzleDiameter(0);
-            if (machine_diameter == 0.0f) {
-                const ConfigOption *opt = preset_bundle->printers.get_selected_preset().config.option("nozzle_diameter");
-                if (opt) {
-                    const auto &nd = static_cast<const ConfigOptionFloats *>(opt)->values;
-                    if (!nd.empty()) machine_diameter = nd.size() > 1 ? nd[1] : nd[0];
-                }
-            }
-            stream << std::fixed << std::setprecision(1) << machine_diameter;
             filament_printer_model = resolve_filament_printer_model(obj->printer_type, preset_bundle);
         }
-        std::string nozzle_diameter_str = stream.str();
+        // Reuse the diameter Popup() built the dropdown with. A fresh device reading could have
+        // changed (firmware may report the nozzle after the popup opens) and would resolve a
+        // different preset list than the one the user is picking from. An empty value means the
+        // event came from outside a Popup, so read the current one.
+        const std::string nozzle_diameter_str = m_filament_lookup_nozzle_diameter.empty()
+                                                    ? filament_lookup_nozzle_diameter(obj, preset_bundle)
+                                                    : m_filament_lookup_nozzle_diameter;
         // Resolve the selection against the same list Popup() built the dropdown from, so the two
         // halves of the dialog cannot disagree about which filaments this machine can use.
-        if (selected_info && !filament_printer_model.empty()) {
+        if (selected_info && obj) {
             const std::string& filament_id = selected_info->filament_id;
-            for (Preset *it : preset_bundle->get_filament_presets_for_machine(
-                     filament_printer_model, nozzle_diameter_str, obj->is_support_user_preset)) {
+            for (Preset *it : filament_presets_for_ams_tray(
+                     preset_bundle, filament_printer_model, nozzle_diameter_str, obj->is_support_user_preset)) {
                 if (it->filament_id != filament_id)
                     continue;
                 if (!initial_printer_selection) {

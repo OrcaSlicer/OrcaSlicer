@@ -1,5 +1,6 @@
 #include "DevConfigUtil.h"
 
+#include <libslic3r/Preset.hpp>
 #include <nlohmann/json.hpp>
 #include "slic3r/GUI/DeviceManager.hpp"
 

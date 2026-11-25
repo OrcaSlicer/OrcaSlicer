@@ -162,6 +162,9 @@ public:
 
     std::string    ams_filament_id;
     std::string    ams_setting_id;
+    // Nozzle diameter string Popup() resolved the filament list with. on_select_filament() reuses
+    // it so the dropdown and the selection cannot resolve against different nozzle values.
+    std::string    m_filament_lookup_nozzle_diameter;
 
     bool           m_is_third = false;
     // Orca: view-only mode (laser/cut). When set, the dialog is inspectable but every
