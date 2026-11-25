@@ -22023,22 +22023,27 @@ void Plater::on_filaments_delete(size_t num_filaments, size_t filament_id, int r
     // update UI — runs after remap so update_mixed_filament_list() won't clip remapped extruder IDs
     sidebar().on_filaments_delete(filament_id);
 
-    // update customize gcode
-    for (auto item = p->model.plates_custom_gcodes.begin(); item != p->model.plates_custom_gcodes.end(); ++item) {
-        auto iter = std::remove_if(item->second.gcodes.begin(), item->second.gcodes.end(), [filament_id](const CustomGCode::Item& gcode_item) {
-            return (gcode_item.type == CustomGCode::Type::ToolChange && gcode_item.extruder == filament_id + 1);
-        });
-        if (replace_filament_id == -1)
-            item->second.gcodes.erase(iter, item->second.gcodes.end());
-        else if(iter != item->second.gcodes.end()) {
-            iter->extruder = replace_filament_id + 1;
+    // The replacement is already numbered in the palette after removal.
+    auto remap_events = [removed = int(filament_id) + 1, replace_filament_id](CustomGCode::Info &events) {
+        for (auto it = events.gcodes.begin(); it != events.gcodes.end();) {
+            if (it->type == CustomGCode::ToolChange) {
+                if (it->extruder == removed && replace_filament_id < 0) {
+                    it = events.gcodes.erase(it);
+                    continue;
+                }
+                if (it->extruder == removed)
+                    it->extruder = replace_filament_id + 1;
+                else if (it->extruder > removed)
+                    --it->extruder;
+            }
+            ++it;
         }
-
-        for (auto& item : item->second.gcodes) {
-            if (item.type == CustomGCode::Type::ToolChange && item.extruder > filament_id)
-                item.extruder--;
-        }
-    }
+    };
+    for (auto &plate : p->model.plates_custom_gcodes)
+        remap_events(plate.second);
+    for (ModelObject *object : p->model.objects)
+        for (ModelInstance *instance : object->instances)
+            remap_events(instance->layer_events);
 }
 
 std::vector<Slic3r::ColorRGBA> Plater::get_extruders_colors()

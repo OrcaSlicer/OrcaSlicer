@@ -1,3 +1,4 @@
+#include "CustomGCode.hpp"
 #include "ExPolygon.hpp"
 #include "Config.hpp"
 #include "Exception.hpp"
@@ -361,14 +362,13 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
         for (BedExcludeRegion &region : regions)
             region.polygon.translate(plate_origin);
 
-    const std::vector<unsigned int> used_filaments = printing_extruders();
-    for (size_t extruder_id = 0; extruder_id < exclusion_regions.size(); ++extruder_id) {
-        const bool collision = std::any_of(m_instances.begin(), m_instances.end(), [&](const PrintInstance &instance) {
-            return instance.model_instance != nullptr &&
-                instance.model_instance->intersects_bed_exclude_regions(exclusion_regions[extruder_id]);
-        });
-        if (collision)
-            geometric_unprintables[extruder_id].insert(used_filaments.begin(), used_filaments.end());
+    for (const PrintInstance &instance : m_instances) {
+        if (!instance.model_instance)
+            continue;
+        const auto used_filaments = printing_extruders(instance.model_instance);
+        for (size_t nozzle = 0; nozzle < exclusion_regions.size(); ++nozzle)
+            if (instance.model_instance->intersects_bed_exclude_regions(exclusion_regions[nozzle]))
+                geometric_unprintables[nozzle].insert(used_filaments.begin(), used_filaments.end());
     }
 
     std::vector<double> printable_height_per_extruder = m_print->config().extruder_printable_height.values;
@@ -4633,7 +4633,7 @@ std::vector<unsigned int> PrintObject::object_extruders() const
     return extruders;
 }
 
-std::vector<unsigned int> PrintObject::printing_extruders() const
+std::vector<unsigned int> PrintObject::printing_extruders(const ModelInstance *instance) const
 {
     std::vector<unsigned int> extruders = object_extruders();
     const size_t filament_count = print()->config().filament_diameter.size();
@@ -4641,6 +4641,11 @@ std::vector<unsigned int> PrintObject::printing_extruders() const
         if (filament_id > 0)
             extruders.emplace_back(std::min<size_t>(size_t(filament_id - 1), filament_count > 0 ? filament_count - 1 : 0));
     };
+    if (instance && print()->config().print_sequence == PrintSequence::ByObject && extruders.size() == 1 &&
+        instance->layer_events.mode == CustomGCode::MultiAsSingle)
+        for (const auto &event : instance->layer_events.gcodes)
+            if (event.type == CustomGCode::ToolChange && event.extruder > 0 && size_t(event.extruder) <= filament_count)
+                extruders.emplace_back(event.extruder - 1);
     if (has_support_material()) {
         append_fixed_filament(config().support_filament.value);
         append_fixed_filament(config().support_interface_filament.value);

@@ -31,6 +31,7 @@ namespace Slic3r {
 
 class Print;
 class PrintObject;
+struct PrintInstance;
 class LayerTools;
 namespace CustomGCode { struct Item; }
 class PrintRegion;
@@ -278,7 +279,7 @@ public:
 
     // For the use case when each object is printed separately
     // (print->config().print_sequence == PrintSequence::ByObject is true).
-    ToolOrdering(const PrintObject &object, unsigned int first_extruder, bool prime_multi_material = false);
+    ToolOrdering(const PrintInstance &instance, unsigned int first_extruder, bool prime_multi_material = false);
 
     // For the use case when all objects are printed at once.
     // (print->config().print_sequence == PrintSequence::ByObject is false).

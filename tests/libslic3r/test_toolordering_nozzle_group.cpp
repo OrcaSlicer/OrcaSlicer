@@ -9,6 +9,7 @@
 #include "libslic3r/FilamentGroupUtils.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/GCode/ToolOrdering.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
@@ -901,9 +902,13 @@ TEST_CASE("Sequential selector prints publish a stitched result and cache the pl
     ModelObject *object_a = model.add_object("cube_a", "", make_cube(20, 20, 20));
     ModelInstance *instance_a = object_a->add_instance();
     instance_a->set_offset(Vec3d(70., 100., 0.));
-    ModelObject *object_b = model.add_object("cube_b", "", make_cube(20, 20, 20));
-    object_b->config.set_key_value("extruder", new ConfigOptionInt(2));
+    const bool copies = GENERATE(false, true);
+    ModelObject *object_b = copies ? object_a : model.add_object("cube_b", "", make_cube(20, 20, 20));
     ModelInstance *instance_b = object_b->add_instance();
+    if (copies)
+        instance_b->layer_events = {CustomGCode::MultiAsSingle, {{2., CustomGCode::ToolChange, 2, {}, {}}}};
+    else
+        object_b->config.set_key_value("extruder", new ConfigOptionInt(2));
     instance_b->set_offset(Vec3d(150., 100., 0.));
     // The sequential instance ordering keys on arrange_order, which validate() assigns before
     // process() in the real pipeline (instances tying at 0 get dropped from the ordering);
@@ -913,15 +918,21 @@ TEST_CASE("Sequential selector prints publish a stitched result and cache the pl
 
     Print print;
     print.apply(model, config);
-    REQUIRE(print.objects().size() == 2);
+    REQUIRE(print.objects().size() == (copies ? 1 : 2));
     print.process();
     REQUIRE(print.is_step_done(psSlicingFinished));
 
     auto result = print.get_layered_nozzle_group_result();
     REQUIRE(result != nullptr);
-    // One cached plan per unique object, and a stitched layer axis spanning both objects.
+    // One cached plan per printed copy, including copies sharing the same sliced geometry.
     REQUIRE(print.sequential_dynamic_orderings().size() == 2);
-    REQUIRE(result->get_layer_count() > 0);
+    const auto &plans = print.sequential_dynamic_orderings();
+    REQUIRE(result->get_layer_count() == plans.at(instance_a->id()).get_layered_nozzle_group_result().get_layer_count() +
+                                         plans.at(instance_b->id()).get_layered_nozzle_group_result().get_layer_count());
+    if (copies) {
+        CHECK(plans.at(instance_a->id()).tools_for_layer(2.).extruder_override == 0);
+        CHECK(plans.at(instance_b->id()).tools_for_layer(2.).extruder_override == 2);
+    }
     // The write-back mirrors the stitched result's extruder map.
     REQUIRE(print.config().filament_map.values == result->get_extruder_map(false));
     // The per-slot filament arrays stay label-consistent whether or not the stitched plan

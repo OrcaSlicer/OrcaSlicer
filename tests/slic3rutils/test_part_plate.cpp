@@ -1,3 +1,4 @@
+#include "libslic3r/CustomGCode.hpp"
 // PartPlate.hpp reaches wx/wxprec.h, which needs the Windows headers first.
 #ifdef WIN32
     #ifndef WIN32_LEAN_AND_MEAN
@@ -72,6 +73,21 @@ struct ObjectOnPlate
     }
 };
 } // namespace
+
+TEST_CASE("Plate filament estimates use the layer switches of copies on that plate", "[PartPlate][InstanceLayerEvents]")
+{
+    ObjectOnPlate scene;
+    scene.plate.set_index(0);
+    auto config = config_with_object_filaments_only();
+    scene.object->instances.front()->layer_events = {CustomGCode::MultiAsSingle, {{1., CustomGCode::ToolChange, 2, {}, {}}}};
+    scene.object->add_instance()->layer_events = {CustomGCode::MultiAsSingle, {{1., CustomGCode::ToolChange, 3, {}, {}}}};
+    scene.model.plates_custom_gcodes[0] = {CustomGCode::MultiAsSingle, {{1., CustomGCode::ToolChange, 3, {}, {}}}};
+    config.set_deserialize_strict("print_sequence", "by object");
+    CHECK(scene.plate.get_extruders(true, config, config) == std::vector<int>{1, 2});
+    CHECK(scene.plate.get_extruders_under_cli(true, config) == std::vector<int>{1, 2});
+    scene.plate.config()->set_deserialize_strict("print_sequence", "by layer");
+    CHECK(scene.plate.get_extruders(true, config, config) == std::vector<int>{1, 3});
+}
 
 TEST_CASE("A multi-nozzle printer without its own physical extruder map puts each filament on its own nozzle", "[PartPlate]")
 {

@@ -201,7 +201,7 @@ static std::optional<BedExclusionCollision> colliding_bed_exclusion(
     }
 
     // A mixed filament prints with its component filaments.
-    const std::vector<unsigned int> filament_ids = expand_mixed_filaments(print_object.printing_extruders(),
+    const std::vector<unsigned int> filament_ids = expand_mixed_filaments(print_object.printing_extruders(&instance),
         print.config().filament_is_mixed.values, print.config().filament_mixed_components.values);
     for (const unsigned int filament_id : filament_ids) {
         const int resolved_extruder = bed_exclusion_extruder_for_filament(
@@ -794,14 +794,20 @@ std::vector<unsigned int> Print::extruders(bool conside_custom_gcode) const
 // Appends 0-based indices of the filaments the tool changes of the current plate switch to.
 void Print::append_tool_change_extruders(std::vector<unsigned int> &extruders) const
 {
-    //BBS
-    int num_extruders = m_config.filament_colour.size();
-    if (m_model.plates_custom_gcodes.find(m_model.curr_plate_index) != m_model.plates_custom_gcodes.end()) {
-        for (auto item : m_model.plates_custom_gcodes.at(m_model.curr_plate_index).gcodes) {
-            if (item.type == CustomGCode::Type::ToolChange && item.extruder <= num_extruders)
-                extruders.push_back((unsigned int)(item.extruder - 1));
-        }
-    }
+    const int count = int(m_config.filament_diameter.size());
+    auto append_events = [&](const CustomGCode::Info &events) {
+        for (const auto &event : events.gcodes)
+            if (event.type == CustomGCode::ToolChange && event.extruder > 0 && event.extruder <= count)
+                extruders.emplace_back(event.extruder - 1);
+    };
+    if (m_config.print_sequence == PrintSequence::ByObject) {
+        // Shrinkage compensation also asks before PrintObjects have been constructed.
+        for (const ModelObject *object : m_model.objects)
+            for (const ModelInstance *instance : object->instances)
+                if (instance->is_printable() && instance->layer_events.mode == CustomGCode::MultiAsSingle)
+                    append_events(instance->layer_events);
+    } else if (auto plate = m_model.plates_custom_gcodes.find(m_model.curr_plate_index); plate != m_model.plates_custom_gcodes.end())
+        append_events(plate->second);
 }
 
 void Print::append_wipe_tower_extruder(std::vector<unsigned int> &extruders) const
@@ -3903,7 +3909,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             std::vector<unsigned int> first_layer_used_filaments;
             std::vector<std::vector<unsigned int>> all_filaments;
             for (print_object_instance_sequential_active = print_object_instances_ordering.begin(); print_object_instance_sequential_active != print_object_instances_ordering.end(); ++print_object_instance_sequential_active) {
-                tool_ordering = ToolOrdering(*(*print_object_instance_sequential_active)->print_object, initial_extruder_id);
+                tool_ordering = ToolOrdering(**print_object_instance_sequential_active, initial_extruder_id);
                 for (size_t idx = 0; idx < tool_ordering.layer_tools().size(); ++idx) {
                     auto layer_filament = tool_ordering.layer_tools()[idx].extruders;
                     if (has_mixed)
@@ -3966,7 +3972,6 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             }
 
             //        print_object_instances_ordering = sort_object_instances_by_max_z(print);
-            const PrintObject                     *prev_planned_object = nullptr;
             unsigned int                           seq_last_extruder   = (unsigned int)-1;
             MultiNozzleUtils::NozzleStatusRecorder nozzle_status;
             std::vector<std::vector<int>>          nozzle_map_per_layer;
@@ -3974,32 +3979,24 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             print_object_instance_sequential_active = print_object_instances_ordering.begin();
             std::vector<unsigned int> used_mixed_filaments;
             for (; print_object_instance_sequential_active != print_object_instances_ordering.end(); ++print_object_instance_sequential_active) {
-                const PrintObject *print_object = (*print_object_instance_sequential_active)->print_object;
+                const PrintInstance &instance = **print_object_instance_sequential_active;
+                const PrintObject *print_object = instance.print_object;
                 if (dynamic_reorder) {
-                    if (print_object != prev_planned_object) {
-                        // Plan each unique object once, threading the physical nozzle occupancy and
-                        // the previous object's last filament into the next plan; repeated instances
-                        // of an object reuse the plan, mirroring the export loop's reuse.
-                        ToolOrdering ordering(*print_object, seq_last_extruder);
-                        ordering.set_nozzle_status(nozzle_status);
-                        ordering.sort_and_build_data(*print_object, seq_last_extruder);
-                        nozzle_status = ordering.get_nozzle_status();
-                        if (ordering.last_extruder() != static_cast<unsigned int>(-1))
-                            seq_last_extruder = ordering.last_extruder();
-                        const auto &object_maps = ordering.get_layered_nozzle_group_result().get_layer_filament_nozzle_maps();
-                        nozzle_map_per_layer.insert(nozzle_map_per_layer.end(), object_maps.begin(), object_maps.end());
-                        // Orca: the stitch input comes from the same orderings that produced the
-                        // per-layer maps — the collection loop above is per-instance and seeded -1,
-                        // so its layers are misaligned with these plans. layer_tools() of a sorted
-                        // ordering already carries the planned per-layer filament order.
-                        for (const auto &layer_tool : ordering.layer_tools())
-                            stitched_layer_filaments.emplace_back(layer_tool.extruders);
-                        m_sequential_dynamic_orderings[print_object] = std::move(ordering);
-                        prev_planned_object = print_object;
-                    }
-                    tool_ordering = m_sequential_dynamic_orderings.at(print_object);
+                    // Equal geometry can have different layer switches. Plan in print order so
+                    // each copy starts with the physical nozzle occupancy left by the previous one.
+                    tool_ordering = ToolOrdering(instance, seq_last_extruder);
+                    tool_ordering.set_nozzle_status(nozzle_status);
+                    tool_ordering.sort_and_build_data(*print_object, seq_last_extruder);
+                    nozzle_status = tool_ordering.get_nozzle_status();
+                    if (tool_ordering.last_extruder() != static_cast<unsigned int>(-1))
+                        seq_last_extruder = tool_ordering.last_extruder();
+                    const auto &maps = tool_ordering.get_layered_nozzle_group_result().get_layer_filament_nozzle_maps();
+                    nozzle_map_per_layer.insert(nozzle_map_per_layer.end(), maps.begin(), maps.end());
+                    for (const auto &layer : tool_ordering.layer_tools())
+                        stitched_layer_filaments.emplace_back(layer.extruders);
+                    m_sequential_dynamic_orderings.emplace(instance.model_instance->id(), tool_ordering);
                 } else {
-                    tool_ordering = ToolOrdering(*print_object, initial_extruder_id);
+                    tool_ordering = ToolOrdering(instance, initial_extruder_id);
                     tool_ordering.sort_and_build_data(*print_object, initial_extruder_id);
                     if (!tool_ordering.layer_tools().empty())
                         seq_mixed_resolution[print_object->id()] = tool_ordering.layer_tools().front().mixed_filament_resolution;
@@ -4013,7 +4010,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             }
             sort_remove_duplicates(used_mixed_filaments);
             this->set_slice_used_mixed_filaments(used_mixed_filaments);
-            if (dynamic_reorder && m_objects.size() > 1) {
+            if (dynamic_reorder && print_object_instances_ordering.size() > 1) {
                 // Stitch the per-object plans into one print-wide selector result. A single-object
                 // sequential print publishes (and writes back) from its own ordering instead: the
                 // per-object publish gate treats one object as not sequential.

@@ -513,8 +513,9 @@ void ToolOrdering::sort_and_build_data(const PrintObject& object , unsigned int 
 
 // For the use case when each object is printed separately
 // (print->config().print_sequence == PrintSequence::ByObject is true).
-ToolOrdering::ToolOrdering(const PrintObject &object, unsigned int first_extruder, bool prime_multi_material)
+ToolOrdering::ToolOrdering(const PrintInstance &instance, unsigned int first_extruder, bool prime_multi_material)
 {
+    const PrintObject &object = *instance.print_object;
     m_print_full_config = &object.print()->full_print_config();
     m_print_config_ptr = &object.print()->config();
     m_print_object_ptr = &object;
@@ -539,8 +540,14 @@ ToolOrdering::ToolOrdering(const PrintObject &object, unsigned int first_extrude
         this->initialize_layers(zs);
     }
 
-    // Collect extruders reuqired to print the layers. Add dontcare extruders
-    this->collect_extruders(object, std::vector<std::pair<double, unsigned int>>());
+    const auto &events = instance.model_instance->layer_events;
+    std::vector<std::pair<double, unsigned int>> switches;
+    if (!events.gcodes.empty() && events.mode == CustomGCode::MultiAsSingle &&
+        m_print_config_ptr->filament_diameter.size() > 1 && object.object_extruders().size() == 1) {
+        switches = CustomGCode::custom_tool_changes(events, m_print_config_ptr->filament_diameter.size());
+        std::stable_sort(switches.begin(), switches.end(), [](const auto &a, const auto &b) { return a.first < b.first; });
+    }
+    this->collect_extruders(object, switches);
 
     // BBS
     // Reorder the extruders to minimize tool switches.
@@ -595,15 +602,16 @@ ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool
 	// Do it only if all the objects were configured to be printed with a single extruder.
 	std::vector<std::pair<double, unsigned int>> per_layer_extruder_switches;
 
-    // BBS
-	if (auto num_filaments = unsigned(print.config().filament_diameter.size());
-		num_filaments > 1 && print.object_extruders().size() == 1 && // the current Print's configuration is CustomGCode::MultiAsSingle
-        //BBS: replace model custom gcode with current plate custom gcode
-        print.model().get_curr_plate_custom_gcodes().mode == CustomGCode::MultiAsSingle) {
-		// Printing a single extruder platter on a printer with more than 1 extruder (or single-extruder multi-material).
-		// There may be custom per-layer tool changes available at the model.
-        per_layer_extruder_switches = custom_tool_changes(print.model().get_curr_plate_custom_gcodes(), num_filaments);
-	}
+    const auto num_filaments = print.config().filament_diameter.size();
+    const CustomGCode::Info *events = nullptr;
+    if (print.config().print_sequence == PrintSequence::ByLayer) {
+        const auto &model = print.model();
+        if (auto plate = model.plates_custom_gcodes.find(model.curr_plate_index); plate != model.plates_custom_gcodes.end())
+            events = &plate->second;
+    } else if (print.num_object_instances() == 1)
+        events = &print.objects().front()->instances().front().model_instance->layer_events;
+    if (events && events->mode == CustomGCode::MultiAsSingle && num_filaments > 1 && print.object_extruders().size() == 1)
+        per_layer_extruder_switches = custom_tool_changes(*events, num_filaments);
 
     // Collect extruders reuqired to print the layers.
     for (auto object : print.objects())
@@ -963,6 +971,8 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
         this->tools_for_layer(object.layers().front()->print_z).extruders.push_back(object.config().brim_filament_id.value);
 
     // Collect the support extruders.
+    auto support_switch = per_layer_extruder_switches.begin();
+    unsigned int support_override = 0;
     for (auto support_layer : object.support_layers()) {
         LayerTools   &layer_tools   = this->tools_for_layer(support_layer->print_z);
         ExtrusionRole role          = support_layer->support_fills.role();
@@ -976,6 +986,15 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
         }
         unsigned int extruder_support   = object.config().support_filament.value;
         unsigned int extruder_interface = object.config().support_interface_filament.value;
+        if (m_print->config().print_sequence == PrintSequence::ByObject && !per_layer_extruder_switches.empty()) {
+            while (support_switch != per_layer_extruder_switches.end() && support_switch->first <= support_layer->print_z + EPSILON)
+                support_override = (support_switch++)->second;
+            layer_tools.extruder_override = support_override;
+            if (extruder_support == 0)
+                extruder_support = support_override;
+            if (extruder_interface == 0)
+                extruder_interface = support_override;
+        }
         if (has_support) {
             if (extruder_support > 0 || !has_interface || extruder_interface == 0 || layer_tools.has_object)
                 layer_tools.extruders.push_back(extruder_support);
@@ -3071,7 +3090,7 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
     // one object) publish and write back from the by-object branch in Print::process instead of
     // from each per-object ordering.
     const bool not_sequential = print_config->print_sequence != PrintSequence::ByObject ||
-                                (m_print && m_print->objects().size() == 1);
+                                (m_print && m_print->num_object_instances() == 1);
 
     if (dynamic_reorder) {
         // Build the grouping context, plan per-combo-range nozzle maps + filament orders, then wrap the
@@ -3110,7 +3129,7 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
         std::transform(filament_maps.begin(), filament_maps.end(), filament_maps.begin(), [](int value) { return value - 1; });
     }
     // only check and map in sequence mode, in by object mode, we check the map in print.cpp
-    else if (print_config->print_sequence != PrintSequence::ByObject || m_print->objects().size() == 1) {
+    else if (not_sequential) {
         grouping_result = ToolOrdering::get_recommended_filament_maps(layer_filaments, m_print, map_mode, physical_unprintables, geometric_unprintables, filament_unprintable_volumes);
         std::vector<int> derived_maps = grouping_result.get_extruder_map(false); // 1-based extruder map
 

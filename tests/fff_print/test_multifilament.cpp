@@ -59,6 +59,73 @@ static std::set<int> tools_for_role(const std::string& gcode, const std::string&
     return tools;
 }
 
+TEST_CASE("Sequential copies print their own layer filament schedules", "[MultiFilament][InstanceLayerEvents]")
+{
+    Print print;
+    Model model;
+    auto config = multifilament_config(3, {{"print_sequence", "by object"}, {"enable_prime_tower", 0},
+        {"layer_height", 0.2}, {"initial_layer_print_height", 0.2}, {"gcode_comments", true},
+        {"layer_change_gcode", ";COPY {current_object_idx} Z{layer_z}\nG92 E0"}, {"change_filament_gcode", "T[next_extruder]"}});
+    init_print({cube(2)}, print, model, config);
+    auto &copies = model.objects.front()->instances;
+    ModelInstance *left = copies[0];
+    left->set_offset(Vec3d(50, 50, 0));
+    ModelInstance *right = model.objects.front()->add_instance();
+    right->set_offset(Vec3d(150, 50, 0));
+    left->layer_events = {CustomGCode::MultiAsSingle, {{0.6, CustomGCode::ToolChange, 2, {}, {}}}};
+    right->layer_events = {CustomGCode::MultiAsSingle, {{1.2, CustomGCode::ToolChange, 3, {}, {}}}};
+    for (int pass = 0; pass < 3; ++pass) {
+        if (pass == 1)
+            std::swap(copies[0], copies[1]);
+        if (pass == 2)
+            right->layer_events.gcodes.clear();
+        print.apply(model, config);
+        REQUIRE(print.validate().string.empty());
+        const std::string output = gcode(print);
+        REQUIRE(print.objects().size() == 1);
+        const auto used = print.get_slice_used_filaments(false);
+        CHECK(used == (pass == 2 ? std::vector<unsigned>{0, 1} : std::vector<unsigned>{0, 1, 2}));
+        for (int copy = 0; copy < 2; ++copy) {
+            const bool is_left = copies[copy] == left;
+            const auto start = output.find(";COPY " + std::to_string(copy) + " Z0.2\n");
+            REQUIRE(start != std::string::npos);
+            const auto next = output.find(";COPY 1 Z0.2\n", start + 1);
+            const std::string section = output.substr(start, next - start);
+            const auto change = section.find(is_left ? "\nT1\n" : "\nT2\n");
+            if (is_left || pass != 2) {
+                REQUIRE(change != std::string::npos);
+                const auto layer = section.rfind(";COPY ", change);
+                CHECK(section.substr(layer, section.find('\n', layer) - layer) ==
+                      ";COPY " + std::to_string(copy) + (is_left ? " Z0.6" : " Z1.2"));
+            } else
+                CHECK(change == std::string::npos);
+            // Each copy starts in filament 1, including after the previous copy ended in another one.
+            if (copy == 1 && (pass != 2 || copies.front() == left)) {
+                const auto reset = output.rfind("\nT0\n", start);
+                REQUIRE(reset != std::string::npos);
+                CHECK(reset > output.find(";COPY 0 Z2\n"));
+            }
+        }
+    }
+}
+
+TEST_CASE("A lone sequential instance uses its layer events with a prime tower", "[MultiFilament][InstanceLayerEvents]")
+{
+    auto config = multifilament_config(2, {{"print_sequence", "by object"}, {"enable_prime_tower", 1}, {"wipe_tower_x", 60}, {"wipe_tower_y", 65},
+        {"layer_height", 0.2}, {"initial_layer_print_height", 0.2}, {"gcode_comments", true},
+        {"change_filament_gcode", "T[next_extruder]"}});
+    Print print;
+    Model model;
+    init_print({cube(3)}, print, model, config);
+    model.objects.front()->instances.front()->layer_events = {CustomGCode::MultiAsSingle, {
+        {0.6, CustomGCode::ToolChange, 2, {}, {}}, {1., CustomGCode::Custom, 1, {}, "M117 tower copy"}}};
+    print.apply(model, config);
+    const auto output = gcode(print);
+    REQUIRE(print.has_wipe_tower());
+    CHECK(output.find("\nT1\n") != std::string::npos);
+    CHECK(output.find("\nM117 tower copy\n") != std::string::npos);
+}
+
 TEST_CASE("Painted filaments slice when the display palette is shorter than the filament list", "[MultiFilament][Regression]")
 {
     auto config = multifilament_config(2, {

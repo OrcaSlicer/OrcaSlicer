@@ -238,6 +238,7 @@ private:
 
     void init();
     bool valid_instance(int obj_id, int instance_id) const;
+    void append_layer_event_filaments(std::vector<int> &filaments, int count, const DynamicPrintConfig &global_config) const;
     void generate_print_polygon(ExPolygon &print_polygon);
     void generate_exclude_polygon(ExPolygon &exclude_polygon);
     void generate_logo_polygon(ExPolygon &logo_polygon);
