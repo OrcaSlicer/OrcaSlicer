@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Semver.hpp"
 #include "calib.hpp"
 
@@ -78,6 +77,7 @@
 
 namespace Slic3r {
 
+class DynamicPrintConfig;
 
 // Connected LAN mode BambuLab printer
 struct BBLocalMachine
