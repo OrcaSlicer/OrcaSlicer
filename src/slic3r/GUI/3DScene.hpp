@@ -448,6 +448,10 @@ private:
     bool m_use_color_clip_plane{ false };
     std::array<ColorRGBA, 2> m_color_clip_plane_colors{ ColorRGBA::RED(), ColorRGBA::BLUE() };
 
+    // per volume, by index: the colours of its faces that point up and down, used by the G-code
+    // preview's solid model; a volume past the end, or an unset colour, keeps its own
+    std::vector<std::array<std::optional<ColorRGBA>, 2>> m_flat_face_colors;
+
     struct Slope
     {
         // toggle for slope rendering
@@ -541,6 +545,7 @@ public:
         m_color_clip_plane[3] = offset;
     }
     void set_color_clip_plane_colors(const std::array<ColorRGBA, 2>& colors) { m_color_clip_plane_colors = colors; }
+    void set_flat_face_colors(std::vector<std::array<std::optional<ColorRGBA>, 2>> colors) { m_flat_face_colors = std::move(colors); }
 
     bool is_slope_GlobalActive() const { return m_slope.isGlobalActive; }
     bool is_slope_active() const { return m_slope.active; }

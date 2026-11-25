@@ -285,3 +285,30 @@ TEST_CASE("Between the end layers the shell view drops only the infill under the
     CHECK_FALSE(keep_in_reduced_set(shell, true, move_of(EMoveType::Extrude, EGCodeExtrusionRole::InternalInfill), false));
     CHECK(keep_in_reduced_set(shell, false, move_of(EMoveType::Extrude, EGCodeExtrusionRole::InternalInfill), false));
 }
+
+TEST_CASE("The layer table records which extrusion roles each layer has", "[Libvgcode]")
+{
+    const std::vector<EGCodeExtrusionRole> top = { EGCodeExtrusionRole::ExternalPerimeter, EGCodeExtrusionRole::TopSolidInfill };
+    const Layers layers = layers_with(3, { walls_and_infill, top, support_only });
+    CHECK(layers.layer_has_role(0, EGCodeExtrusionRole::InternalInfill));
+    CHECK(!layers.layer_has_role(0, EGCodeExtrusionRole::TopSolidInfill));
+    CHECK(layers.layer_has_role(1, EGCodeExtrusionRole::TopSolidInfill));
+    CHECK(layers.layer_has_role(1, EGCodeExtrusionRole::ExternalPerimeter));
+    CHECK(!layers.layer_has_role(2, EGCodeExtrusionRole::ExternalPerimeter));
+    // the travel that opens each layer counts for no role
+    CHECK(!layers.layer_has_role(2, EGCodeExtrusionRole::None));
+    CHECK(!layers.layer_has_role(3, EGCodeExtrusionRole::SupportMaterial));
+}
+
+TEST_CASE("A layer that opens with an extrusion records its role", "[Libvgcode]")
+{
+    Layers layers;
+    PathVertex v;
+    v.type = EMoveType::Extrude;
+    v.role = EGCodeExtrusionRole::BridgeInfill;
+    v.layer_id = 0;
+    v.position = { 0.0f, 0.0f, 0.2f };
+    layers.update(v, 0);
+    CHECK(layers.layer_has_role(0, EGCodeExtrusionRole::BridgeInfill));
+    CHECK(!layers.layer_has_role(0, EGCodeExtrusionRole::ExternalPerimeter));
+}

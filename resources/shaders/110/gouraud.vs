@@ -31,6 +31,8 @@ uniform mat4 projection_matrix;
 uniform mat3 view_normal_matrix;
 uniform mat4 volume_world_matrix;
 uniform SlopeDetection slope;
+// The G-code preview's solid model colours the faces that point up and down apart, see gouraud.fs
+uniform bool use_flat_face_colors;
 
 // Clipping plane, x = min z, y = max z. Used by the FFF and SLA previews to clip with a top / bottom plane.
 uniform vec2 z_range;
@@ -76,8 +78,10 @@ void main()
     // Point in homogenous coordinates.
     world_pos = volume_world_matrix * vec4(v_position, 1.0);
 
-    // dot product of world normal with up direction, used for slope shading
-    world_normal_z = slope.actived ? dot(normalize(slope.volume_world_normal_matrix * v_normal), slope.up_direction) : 0.0;
+    // dot product of world normal with up direction, used for slope shading; the flat face colours
+    // follow the layers, which are horizontal whatever the build plate's tilt
+    vec3 world_normal = normalize(slope.volume_world_normal_matrix * v_normal);
+    world_normal_z = slope.actived ? dot(world_normal, slope.up_direction) : (use_flat_face_colors ? world_normal.z : 0.0);
 
     gl_Position = projection_matrix * position;
     // Fill in the scalars for fragment shader clipping. Fragments with any of these components lower than zero are discarded.

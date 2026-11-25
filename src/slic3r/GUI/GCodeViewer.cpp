@@ -3932,6 +3932,7 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     own_colors.reserve(m_shells.volumes.volumes.size());
     // the tower draws itself in its own colours and leaves the volume's at the default; one list per volume
     std::vector<std::vector<ColorRGBA>> own_tower_colors(m_shells.volumes.volumes.size());
+    std::vector<std::array<std::optional<ColorRGBA>, 2>> flat_face_colors(m_shells.volumes.volumes.size());
     for (size_t k = 0; k < m_shells.volumes.volumes.size(); ++k) {
         GLVolume* volume = m_shells.volumes.volumes[k];
         own_colors.push_back(volume->color);
@@ -3943,7 +3944,12 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
         }
         volume->color = shade(body.value_or(volume->color));
         volume->set_render_color();
+        for (size_t f = 0; f < 2; ++f) {
+            if (const std::optional<ColorRGBA>& face = colors.bodies[k].faces[f]; face.has_value())
+                flat_face_colors[k][f] = shade(*face);
+        }
     }
+    m_shells.volumes.set_flat_face_colors(std::move(flat_face_colors));
     m_shells.volumes.set_z_range(z_bottom, z_top);
     // the section view cuts the solid as it cuts the toolpaths
     m_shells.volumes.set_clipping_plane({ m_clipping_plane[0], m_clipping_plane[1], m_clipping_plane[2], m_clipping_plane[3] });
@@ -3962,6 +3968,8 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     shader->set_uniform("z_far", camera.get_far_z());
     shader->set_uniform("z_near", camera.get_near_z());
     m_shells.volumes.render(GLVolumeCollection::ERenderType::Opaque, false, camera.get_view_matrix(), camera.get_projection_matrix());
+    // the program keeps the last body's value, and not every user of it goes through the collection
+    shader->set_uniform("use_flat_face_colors", false);
     shader->stop_using();
 
     // The cut faces, one cap of one body at a time. A pixel looks into a body through a cut where,
@@ -4026,6 +4034,7 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
     }
 
     m_shells.volumes.set_z_range(-FLT_MAX, FLT_MAX);
+    m_shells.volumes.set_flat_face_colors({});
     for (size_t k = 0; k < m_shells.volumes.volumes.size(); ++k) {
         GLVolume* volume = m_shells.volumes.volumes[k];
         if (auto* tower = dynamic_cast<GLWipeTowerVolume*>(volume); tower != nullptr)
@@ -4036,8 +4045,9 @@ void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
 }
 
 // The solid stands in for the toolpaths, so it takes their colours in the view that colours them by
-// something other than the filament: each body the outer wall's, each layer cap the infill's of the
-// layer it is cut under, sparse if the layer has any, else solid, the section view's cap the
+// something other than the filament: each body the outer wall's, its faces that point up the top
+// surfaces' and those that point down the bridges' or bottom surfaces', each layer cap the infill's
+// of the layer it is cut under, sparse if the layer has any, else solid, the section view's cap the
 // infill's over all the layers, and the tower its own role's, each from the toolpaths within the
 // body's own footprint, so that objects printed at different grades keep their own. The views that
 // colour by filament leave every body its own colour. The bodies and the section view's cap are
@@ -4076,6 +4086,9 @@ void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_lay
     };
     const std::initializer_list<Role> walls = { Role::ExternalPerimeter, Role::Perimeter, Role::OverhangPerimeter };
     const std::initializer_list<Role> tower_role = { Role::WipeTower };
+    const std::initializer_list<Role> up_faces = { Role::TopSolidInfill };
+    // a face that points down above the first layer is printed over air or over a support
+    const std::initializer_list<Role> down_faces = { Role::BridgeInfill, Role::BottomSurface };
     const std::initializer_list<Role> infill = { Role::InternalInfill, Role::SolidInfill, Role::TopSolidInfill, Role::BottomSurface,
                                                  Role::BridgeInfill, Role::InternalBridgeInfill, Role::Ironing };
     for (size_t n = 0; n < volumes.size(); ++n) {
@@ -4089,6 +4102,8 @@ void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_lay
         SolidModelColors::Body& body = colors.bodies[n];
         if (!held) {
             body.body = sample(whole_layers, tower ? tower_role : walls, box);
+            if (!tower)
+                body.faces = { sample(whole_layers, up_faces, box), sample(whole_layers, down_faces, box) };
             // the section view's cut may cross any of the layers, so it is sampled over all of them, as the body is
             body.caps[2] = tower ? std::nullopt : sample(whole_layers, infill, box);
             if (!body.caps[2].has_value())

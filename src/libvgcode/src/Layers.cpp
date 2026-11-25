@@ -47,6 +47,8 @@ void Layers::update(const PathVertex& vertex, uint32_t vertex_id)
         item.contains_colorprint_options |= is_colorprint_option(vertex);
         item.has_infill = is_infill(vertex);
         item.has_sparse_infill = vertex.type == EMoveType::Extrude && vertex.role == EGCodeExtrusionRole::InternalInfill;
+        if (vertex.is_extrusion())
+            item.roles = role_bit(vertex.role);
     }
     else {
         Item& item = m_items.back();
@@ -59,6 +61,8 @@ void Layers::update(const PathVertex& vertex, uint32_t vertex_id)
         item.contains_colorprint_options |= is_colorprint_option(vertex);
         item.has_infill |= is_infill(vertex);
         item.has_sparse_infill |= vertex.type == EMoveType::Extrude && vertex.role == EGCodeExtrusionRole::InternalInfill;
+        if (vertex.is_extrusion())
+            item.roles |= role_bit(vertex.role);
     }
 }
 

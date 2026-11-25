@@ -101,11 +101,20 @@ The solid stands in for the toolpaths, so it wears their colours. In the views t
 filament (Summary, Filament, Tool) each body keeps the filament colour its shell was loaded with.
 In every other view `GCodeViewer::update_solid_model_colors()` samples the toolpaths through
 `Viewer::get_vertex_color()`: the body takes the outer wall's colour over the layers the solid
-stands for, each layer cap the infill's in the layer it is cut under, sparse infill before solid, and
+stands for, its faces that point up, within about ten degrees, the top surfaces', and those that
+point down the bridges' or, failing those, the bottom surfaces', so that a broad floor or ledge
+keeps the colour it shows at rest rather than the walls'.
+`GLVolumeCollection::set_flat_face_colors()` hands those two to the `gouraud` shader per body. Each
+layer cap takes the infill's colour in the layer it is cut under, sparse infill before solid, and
 the prime tower its own role's. One vertex stands for the role, chosen by
-`Viewer::find_extrusion_vertex()`: in a view that grades the toolpaths by a value, the
-length-weighted median of that value over the role's extrusions in up to eight layers spread over
-the interval, so that neither the acceleration ramp a wall starts on nor one layer with the fan
+`Viewer::find_extrusion_vertex()` among up to eight of the interval's layers that have the role,
+spread evenly over them, so that a role printed on a few layers only, as top surfaces and bridges
+are, is found where it was printed; the layer table records the roles of each layer as it is built.
+On a plate of several objects another object's layers with the role can take every pick; where none
+of them has the role inside the body's footprint, the interval's other layers with the role are
+walked until one has. In a view that grades the toolpaths by a value, it is the length-weighted
+median of that value over the role's extrusions on the sampled layers, or on that one layer when
+the walk found it, so that neither the acceleration ramp a wall starts on nor one layer with the fan
 turned up sets the colour of the whole body; in any other view the first extrusion found. The
 colours are resolved when a drag starts and when the view type or the bands change, not per frame.
 

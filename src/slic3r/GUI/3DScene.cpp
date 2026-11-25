@@ -1130,6 +1130,14 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         shader->set_uniform("color_clip_plane", m_color_clip_plane);
         shader->set_uniform("uniform_color_clip_plane_1", m_color_clip_plane_colors[0]);
         shader->set_uniform("uniform_color_clip_plane_2", m_color_clip_plane_colors[1]);
+        const unsigned int volume_id = volume.second.first;
+        const bool flat_face_colors = volume_id < m_flat_face_colors.size() &&
+                                      (m_flat_face_colors[volume_id][0].has_value() || m_flat_face_colors[volume_id][1].has_value());
+        shader->set_uniform("use_flat_face_colors", flat_face_colors);
+        if (flat_face_colors) {
+            shader->set_uniform("up_face_color", m_flat_face_colors[volume_id][0].value_or(volume.first->render_color));
+            shader->set_uniform("down_face_color", m_flat_face_colors[volume_id][1].value_or(volume.first->render_color));
+        }
         //BOOST_LOG_TRIVIAL(info) << boost::format("set uniform_color to {%1%, %2%, %3%, %4%}, with_outline=%5%, selected %6%")
         //    %volume.first->render_color[0]%volume.first->render_color[1]%volume.first->render_color[2]%volume.first->render_color[3]
         //    %with_outline%volume.first->selected;
