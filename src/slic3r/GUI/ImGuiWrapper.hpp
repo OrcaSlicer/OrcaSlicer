@@ -211,8 +211,11 @@ public:
     void title(const std::string& str);
     void title(const std::string &str, bool suppress_seperator);
 
-
-    bool MultiSwitch(const char* id, const std::vector<wxString>& labels, int& selected);
+    // ORCA: Row of labeled segments in one rounded track, exactly one of them selected. Returns true when
+    // the user picks another segment, whose index is then in "selected". Labels are UTF-8, e.g. from _u8L().
+    // The track is drawn in ImGuiCol_FrameBg, the selected segment in ImGuiCol_Button / ImGuiCol_ButtonHovered,
+    // and ImGuiStyleVar_FramePadding sets the padding around each label.
+    bool multi_switch(const char* id, const std::vector<std::string>& labels, int& selected);
 
     // set font
     const std::vector<std::string> get_fonts_names() const { return m_fonts_names; }

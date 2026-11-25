@@ -235,7 +235,7 @@ void GLGizmoPainterBase::render_ortho_switch(float scale)
     // The flags are per gizmo, so read the mode from them on every frame: a function-local static
     // would be shared by every painter gizmo now that they all draw the switch through here.
     int ortho_mode = m_vertical_only ? 1 : m_horizontal_only ? 2 : 0;
-    if (m_imgui->MultiSwitch("##ortho", {_u8L("Free"), _u8L("Vertical"), _u8L("Horizontal")}, ortho_mode)) {
+    if (m_imgui->multi_switch("##ortho", {_u8L("Free"), _u8L("Vertical"), _u8L("Horizontal")}, ortho_mode)) {
         m_vertical_only   = ortho_mode == 1;
         m_horizontal_only = ortho_mode == 2;
     }
