@@ -3076,7 +3076,6 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     }
     if (result != nullptr) {
         *result = std::move(m_processor.extract_result());
-        result->from_live_slice = true;
         // set the filename to the correct value
         result->filename = path;
     }
@@ -4741,7 +4740,6 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 // and export G-code into file.
                 tool_ordering.cal_most_used_extruder(print.config());
                 m_printed_objects.emplace_back(&object);
-                file.write_format(";%s%zu\n", CustomGCode::SequentialInstanceTag, instance.model_instance->get_labeled_id());
                 this->process_layers(print, tool_ordering, collect_layers_to_print(object, print.config().belt_printer.value), **print_object_instance_sequential_active, file,
                                      prime_extruder);
                 {
@@ -4825,8 +4823,6 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             // Process all layers of all objects (non-sequential mode) with a parallel pipeline:
             // Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
             // and export G-code into file.
-            if (print.config().print_sequence == PrintSequence::ByObject && print_object_instances_ordering.size() == 1)
-                file.write_format(";%s%zu\n", CustomGCode::SequentialInstanceTag, print_object_instances_ordering.front()->model_instance->get_labeled_id());
             this->process_layers(print, tool_ordering, print_object_instances_ordering, layers_to_print, file);
             {
                 //save the flush statitics stored in tool ordering
@@ -5210,6 +5206,14 @@ static auto instance_events_by_layer(const ModelInstance *instance, const Layers
     };
 }
 
+static void store_instance_layers(GCodeProcessor &processor, GCodeProcessorResult::InstanceLayerRange &&range)
+{
+    // Custom G-code may contain its own layer-change markers. A mismatch makes this
+    // instance ambiguous; the next instance starts at the processor's actual layer count.
+    if (!range.print_zs.empty() && range.print_zs.size() == processor.layer_count() - range.first_layer_id)
+        processor.result().instance_layer_ranges.emplace_back(std::move(range));
+}
+
 // Process all layers of all objects (non-sequential mode) with a parallel pipeline:
 // Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
 // and export G-code into file.
@@ -5223,6 +5227,7 @@ void GCode::process_layers(
     // A single sequential instance with an active tower uses the tower-aware pipeline.
     const auto *instance = print.config().print_sequence == PrintSequence::ByObject && print_object_instances_ordering.size() == 1 ?
                            print_object_instances_ordering.front()->model_instance : nullptr;
+    GCodeProcessorResult::InstanceLayerRange range{instance ? instance->id().id : 0, m_processor.layer_count(), {}};
     const auto events_at = instance_events_by_layer(instance, layers_to_print, [](const auto &layer) { return layer.first; });
     // The pipeline is variable: The vase mode filter is optional.
     size_t layer_to_print_idx = 0;
@@ -5230,7 +5235,7 @@ void GCode::process_layers(
         overhang_fan_enabled(print.config(), m_enable_cooling_markers),
         [&layers_to_print](size_t index) -> const std::vector<LayerToPrint> & { return layers_to_print[index].second; });
     const auto generator = tbb::make_filter<PrecomputedLayer, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
-        [this, &print, &tool_ordering, &print_object_instances_ordering, &layers_to_print, &events_at](PrecomputedLayer precomputed) -> LayerResult {
+        [this, &print, &tool_ordering, &print_object_instances_ordering, &layers_to_print, &events_at, &range](PrecomputedLayer precomputed) -> LayerResult {
             if (precomputed.index == size_t(-1))
                 return LayerResult::make_nop_layer_result();
             const std::pair<coordf_t, std::vector<LayerToPrint>>& layer = layers_to_print[precomputed.index];
@@ -5247,7 +5252,10 @@ void GCode::process_layers(
             check_placeholder_parser_failed();
             print.throw_if_canceled();
             m_extrusion_quality_estimator.set_precomputed_layers(std::move(precomputed.overhang_layers));
-            return this->process_layer(print, layer.second, layer_tools, &layer == &layers_to_print.back(), &print_object_instances_ordering, tool_ordering.get_most_used_extruder(), size_t(-1), false, events_at(precomputed.index));
+            auto result = this->process_layer(print, layer.second, layer_tools, &layer == &layers_to_print.back(), &print_object_instances_ordering, tool_ordering.get_most_used_extruder(), size_t(-1), false, events_at(precomputed.index));
+            if (range.instance_id && !result.gcode.empty())
+                range.print_zs.push_back(layer.first);
+            return result;
         });
     if (m_spiral_vase) {
         float nozzle_diameter  = EXTRUDER_CONFIG(nozzle_diameter);
@@ -5314,7 +5322,7 @@ void GCode::process_layers(
     	tbb::parallel_pipeline(12, source & generator & cooling & fan_mover & pa_processor_filter & output);
     // The estimator's precomputed data points into this print's layers.
     m_extrusion_quality_estimator.set_precomputed_layers({});
-
+    store_instance_layers(m_processor, std::move(range));
 }
 
 // Process all layers of a single object instance (sequential mode) with a parallel pipeline:
@@ -5330,6 +5338,7 @@ void GCode::process_layers(
     const bool                               prime_extruder)
 {
     const size_t single_object_idx = &instance - instance.print_object->instances().data();
+    GCodeProcessorResult::InstanceLayerRange range{instance.model_instance->id().id, m_processor.layer_count(), {}};
     const auto events_at = instance_events_by_layer(instance.model_instance, layers_to_print,
         [](const LayerToPrint &layer) { return layer.print_z(); });
     // The pipeline is variable: The vase mode filter is optional.
@@ -5338,7 +5347,7 @@ void GCode::process_layers(
         overhang_fan_enabled(print.config(), m_enable_cooling_markers),
         [&layers_to_print](size_t index) { return std::vector<LayerToPrint>{layers_to_print[index]}; });
     const auto generator = tbb::make_filter<PrecomputedLayer, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
-        [this, &print, &tool_ordering, &layers_to_print, &events_at, single_object_idx, prime_extruder](PrecomputedLayer precomputed) -> LayerResult {
+        [this, &print, &tool_ordering, &layers_to_print, &events_at, &range, single_object_idx, prime_extruder](PrecomputedLayer precomputed) -> LayerResult {
             if (precomputed.index == size_t(-1))
                 return LayerResult::make_nop_layer_result();
             LayerToPrint &layer = layers_to_print[precomputed.index];
@@ -5347,7 +5356,11 @@ void GCode::process_layers(
             check_placeholder_parser_failed();
             print.throw_if_canceled();
             m_extrusion_quality_estimator.set_precomputed_layers(std::move(precomputed.overhang_layers));
-            return this->process_layer(print, { layer }, tool_ordering.tools_for_layer(layer.print_z()), &layer == &layers_to_print.back(), nullptr, tool_ordering.get_most_used_extruder(), single_object_idx, prime_extruder, events_at(precomputed.index));
+            const double print_z = layer.print_z();
+            auto result = this->process_layer(print, { layer }, tool_ordering.tools_for_layer(print_z), &layer == &layers_to_print.back(), nullptr, tool_ordering.get_most_used_extruder(), single_object_idx, prime_extruder, events_at(precomputed.index));
+            if (!result.gcode.empty())
+                range.print_zs.push_back(print_z);
+            return result;
         });
     if (m_spiral_vase) {
         float nozzle_diameter  = EXTRUDER_CONFIG(nozzle_diameter);
@@ -5411,6 +5424,7 @@ void GCode::process_layers(
     	tbb::parallel_pipeline(12, source & generator & cooling & fan_mover & pa_processor_filter & output);
     // The estimator's precomputed data points into this print's layers.
     m_extrusion_quality_estimator.set_precomputed_layers({});
+    store_instance_layers(m_processor, std::move(range));
 }
 
 std::string GCode::placeholder_parser_process(const std::string &name, const std::string &templ, unsigned int current_filament_id, const DynamicConfig *config_override)

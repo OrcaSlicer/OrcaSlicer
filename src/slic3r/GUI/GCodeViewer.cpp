@@ -1685,7 +1685,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     // layers: consecutively over the moves that exist.
     m_source_layer_ids.clear();
     m_belt_layer_zs.clear();
-    if (is_belt || !gcode_result.sequential_layers.empty()) {
+    if (is_belt || gcode_result.print_by_object) {
         unsigned int src_layer_id = std::numeric_limits<unsigned int>::max();
         for (size_t i = 1; i < gcode_result.moves.size(); ++ i) {
             const auto &move = gcode_result.moves[i];

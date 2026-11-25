@@ -40,9 +40,7 @@ TEST_CASE("Preview layer edits stay with a copy through reordering and reslicing
                               {0.4, CustomGCode::PausePrint, 1, {}, {}},
                               {4.0, CustomGCode::Custom, 1, {}, "M117 above"}};
     GCodeProcessorResult result;
-    result.from_live_slice = true;
-    result.sequential_layers = {{a->id().id, 0.2, 1}, {a->id().id, 0.4, 2},
-                                {b->id().id, 0.2, 1}, {b->id().id, 0.4, 2}};
+    result.instance_layer_ranges = {{a->id().id, 0, {0.2, 0.4}}, {b->id().id, 2, {0.2, 0.4}}};
     Slider slider(0, 3, 0, 3);
     slider.SetDrawMode(true);
     slider.SetExtruderColors({"#FFFFFF", "#123456"});
@@ -64,7 +62,7 @@ TEST_CASE("Preview layer edits stay with a copy through reordering and reslicing
 
     // The wx event may be delivered after the user moves the slider or changes the order.
     std::swap(object->instances.front(), object->instances.back());
-    std::rotate(result.sequential_layers.begin(), result.sequential_layers.begin() + 2, result.sequential_layers.end());
+    std::swap(result.instance_layer_ranges[0].instance_id, result.instance_layer_ranges[1].instance_id);
     refresh();
     REQUIRE(pause.apply_to_instance(a->layer_events));
     REQUIRE(a->layer_events.gcodes.size() == 1);
@@ -101,14 +99,8 @@ TEST_CASE("Preview layer edits stay with a copy through reordering and reslicing
     CHECK(b->layer_events.gcodes.front().extruder == 2);
     CHECK(a->layer_events.gcodes.size() == 1);
 
-    // Saved project labels may differ from today's model IDs. Missing or ambiguous labels are read-only.
-    result.from_live_slice = false;
-    a->loaded_id = 91;
-    result.sequential_layers = {{91, 0.2, 1}, {91, 0.4, 2}, {92, 0.2, 1}, {92, 0.4, 2}};
-    refresh();
-    CHECK(slider.instance_layer(1).instance_id == a->id().id);
-    CHECK(slider.instance_layer(3).instance_id == 0);
-    b->loaded_id = 91;
+    // A file preview has chronological events, but no layer ranges from the slice.
+    result.instance_layer_ranges.clear();
     refresh();
     CHECK(slider.instance_layer(1).instance_id == 0);
     slider.reset_post_tick_event();

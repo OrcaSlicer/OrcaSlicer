@@ -23,6 +23,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/ObjectID.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintBase.hpp"
@@ -120,8 +121,14 @@ TEST_CASE("A lone sequential instance uses its layer events with a prime tower",
     model.objects.front()->instances.front()->layer_events = {CustomGCode::MultiAsSingle, {
         {0.6, CustomGCode::ToolChange, 2, {}, {}}, {1., CustomGCode::Custom, 1, {}, "M117 tower copy"}}};
     print.apply(model, config);
-    const auto output = gcode(print);
+    GCodeProcessorResult preview;
+    const auto output = gcode(print, &preview);
     REQUIRE(print.has_wipe_tower());
+    REQUIRE(preview.instance_layer_ranges.size() == 1);
+    REQUIRE(preview.custom_gcode_layer_ids.size() == 1);
+    const auto layer = preview.instance_layer(preview.custom_gcode_layer_ids.front());
+    CHECK(layer.instance_id == model.objects.front()->instances.front()->id().id);
+    CHECK_THAT(layer.print_z, Catch::Matchers::WithinAbs(1., EPSILON));
     CHECK(output.find("\nT1\n") != std::string::npos);
     CHECK(output.find("\nM117 tower copy\n") != std::string::npos);
 }

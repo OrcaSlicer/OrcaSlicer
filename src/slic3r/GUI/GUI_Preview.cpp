@@ -566,9 +566,8 @@ void Preview::update_layers_slider(const std::vector<double>& layers_z, bool kee
     const Model &model = plater->model();
     const bool editor = wxGetApp().is_editor() && !plater->only_gcode_mode() && !plater->using_exported_file() && !model.objects.empty();
     auto *plate = plater->get_partplate_list().get_curr_plate();
-    const bool sliced_by_object = !m_gcode_result->sequential_layers.empty();
     const bool project_by_object = editor && plate->get_real_print_seq() == PrintSequence::ByObject;
-    const bool sequential = sliced_by_object || project_by_object;
+    const bool sequential = m_gcode_result->print_by_object || project_by_object;
     const auto old_low = m_layers_slider->instance_layer(m_layers_slider->GetLowerValue());
     const auto old_high = m_layers_slider->instance_layer(m_layers_slider->GetHigherValue());
     m_layers_slider->SetTickProject(editor ? model.id().id : 0, model.curr_plate_index);

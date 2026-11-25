@@ -341,7 +341,7 @@ void IMSlider::SetSequentialTicks(const Model &model, const Print &print, const 
     if (source_layers.size() != m_values.size())
         return;
 
-    std::map<size_t, const ModelInstance *> by_label;
+    std::vector<const ModelInstance *> marked_instances;
     std::map<size_t, int> base_filaments;
     if (editor) {
         for (const PrintObject *object : print.objects()) {
@@ -353,12 +353,8 @@ void IMSlider::SetSequentialTicks(const Model &model, const Print &print, const 
             const int filament = base != base_filaments.end() ? base->second : (m_can_change_color ? std::max(1, m_only_extruder) : 0);
             for (size_t copy = 0; copy < object->instances.size(); ++copy) {
                 const auto *instance = object->instances[copy];
-                const size_t label = result.from_live_slice ? instance->get_labeled_id() : instance->loaded_id;
-                if (label == 0)
-                    continue;
-                auto entry = by_label.emplace(label, instance);
-                if (!entry.second)
-                    entry.first->second = nullptr; // ambiguous labels in an imported project
+                if (!instance->layer_events.gcodes.empty())
+                    marked_instances.push_back(instance);
                 // TRN %1% is the object name and %2% is its copy number in the object list.
                 m_instances.emplace(instance->id().id, InstanceInfo{format(_u8L("%1% (instance %2%)"), object->name, copy + 1), filament});
             }
@@ -366,30 +362,23 @@ void IMSlider::SetSequentialTicks(const Model &model, const Print &print, const 
     }
 
     for (size_t tick = 0; tick < source_layers.size(); ++tick) {
-        if (source_layers[tick] >= result.sequential_layers.size())
-            continue;
-        auto address = result.sequential_layers[source_layers[tick]];
-        if (!address.instance_id)
+        const auto address = result.instance_layer(source_layers[tick]);
+        auto owner = m_instances.find(address.instance_id);
+        if (owner == m_instances.end())
             continue;
         m_values[tick] = address.print_z;
-        const auto owner = by_label.find(address.instance_id);
-        address.instance_id = owner != by_label.end() && owner->second ? owner->second->id().id : 0;
         m_instance_layers[tick] = address;
-        if (address.instance_id) {
-            auto &info = m_instances.at(address.instance_id);
-            if (info.first == -1)
-                info.first = int(tick);
-            info.end = int(tick + 1);
-        }
+        auto &info = owner->second;
+        if (info.first == -1)
+            info.first = int(tick);
+        info.end = int(tick + 1);
     }
     auto add = [&](int tick, const CustomGCode::Item &item) {
         m_ticks.ticks.emplace(TickCode{tick, item.type, item.extruder, item.color, item.extra});
         m_instance_events.emplace(tick, item);
     };
     if (editor) {
-        for (const auto &[label, instance] : by_label) {
-            if (!instance)
-                continue;
+        for (const ModelInstance *instance : marked_instances) {
             for (const auto &item : instance->layer_events.gcodes) {
                 int tick = find_instance_layer({instance->id().id, item.print_z});
                 if (tick >= 0)
