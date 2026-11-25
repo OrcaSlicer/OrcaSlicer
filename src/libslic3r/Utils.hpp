@@ -210,11 +210,9 @@ bool is_running_in_flatpak();
 // Wayland backend tries before X11.
 bool wayland_socket_available();
 #endif
-#ifdef __linux__
-// The data directory a start without --datadir uses: a data_dir folder next to the executable
-// when one exists, otherwise xdg_config_dir(SLIC3R_APP_KEY). Does not throw.
+// The data directory a start without --datadir uses: a data_dir folder beside the executable
+// when one exists, otherwise the platform per-user configuration directory. Does not throw.
 std::string default_data_dir();
-#endif
 
 // BBL: true: succeed create or dir exists; false: fail to create
 bool makedir(const std::string path);
