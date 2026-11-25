@@ -5,6 +5,7 @@
 #include "bambu_networking.hpp"
 
 #include <functional>
+#include <future>
 #include <chrono>
 #include <cstdint>
 #include <atomic>
@@ -71,6 +72,35 @@ public:
     FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
 
+    // The camera found at connection: the first enabled webcam Moonraker lists
+    CameraStreamMode get_camera_stream_mode() const override;
+    std::string      get_camera_url() const override;
+
+    struct CameraSource
+    {
+        CameraStreamMode mode = CameraStreamMode::none;
+        std::string      url;
+    };
+    // The first enabled webcam of a /server/webcams/list answer: its MJPEG or RTSP stream when the player can open it,
+    // else its snapshot. Relative URLs are resolved against the origin of base_url, as the web frontends do. Only http,
+    // https, rtsp and rtsps URLs are taken.
+    static CameraSource pick_webcam(const nlohmann::json& webcams, const std::string& base_url);
+    // The status report MachineObject parses, from the cached Moonraker objects
+    // chamber_led: the Klipper LED shown as the chamber light, or empty for none;
+    // chamber_sensor: the Klipper object whose temperature is the chamber's, or empty for none
+    static nlohmann::json build_print_payload(const nlohmann::json&        status,
+                                              const std::set<std::string>& objects,
+                                              bool                         has_storage,
+                                              const std::string&           chamber_led    = {},
+                                              const std::string&           chamber_sensor = {});
+    // The speed factor (percent) M220 sets for a Device tab speed level (1 silent .. 4 ludicrous), and back
+    static int speed_percent_for_level(int level);
+    static int speed_level_for_factor(double speed_factor);
+    // The URL of the largest thumbnail in a /server/files/metadata answer for a file in the gcodes root, or empty
+    static std::string thumbnail_url(const nlohmann::json& metadata, const std::string& base_url, const std::string& filename);
+    // Those of `names` in `available` as `status` holds them, or null when `status` lacks one of them or none is available
+    static nlohmann::json pick_objects(const nlohmann::json& status, const std::set<std::string>& available, const std::set<std::string>& names);
+
     // JSON helper methods
     static std::string safe_json_string(const nlohmann::json& obj, const char* key);
     static int safe_json_int(const nlohmann::json& obj, const char* key);
@@ -131,6 +161,19 @@ protected:
                                    MoonrakerDeviceInfo&         info,
                                    std::string&                 error,
                                    const std::function<bool()>& cancelled) const;
+    // The printer's camera, read once per connection; an override must give up once `cancelled` returns true
+    virtual CameraSource fetch_camera(const std::string& base_url, const std::string& api_key, const std::function<bool()>& cancelled) const;
+    // JSON-RPC requests (method and params) to send over the status websocket now. Asked after every message the stream
+    // reads, which is at least every second while Moonraker sends its notify_proc_stat_update.
+    virtual std::vector<nlohmann::json> take_ws_requests() { return {}; }
+    // Klipper objects that describe the loaded filament: subscribed, and a change re-reads the filament info
+    virtual std::set<std::string> filament_objects() const { return {}; }
+    // The status stream's copy of those of `names` the printer has, or null until it reported each of them
+    nlohmann::json cached_objects(const std::set<std::string>& names) const;
+    // The Klipper LED (the name after "led ") the Device tab switches as the chamber light; empty for none
+    virtual std::string chamber_led() const { return {}; }
+    // The Klipper object (full name) that reads the chamber temperature
+    virtual std::string chamber_sensor() const { return "temperature_sensor chamber"; }
     // Starts the print of a file already uploaded to the gcodes root
     virtual bool print_uploaded_file(const PrintParams& params, const std::string& filename);
     // Whether the printer prints a .gcode.3mf bundle as is (its use_3mf option)
@@ -230,6 +273,22 @@ private:
     OnMessageFn          on_local_message_fn;
     QueueOnMainFn        queue_on_main_fn;
     OnServerErrFn        on_server_err_fn;
+
+    // The live agent re-reads its filament info on the UI thread, where the Device tab reads it
+    void refresh_filaments_on_main(const std::string& dev_id);
+    // Starts reading the printed file's thumbnail on a task of its own when the file changed; stream thread only
+    void follow_job_thumbnail(const std::string& base_url, const std::string& api_key);
+    // Reads the thumbnail URL of a file in the gcodes root into job_thumbnail_url; false when its metadata could not be read
+    bool fetch_job_thumbnail(const std::string& base_url, const std::string& filename);
+    std::future<bool>  job_thumbnail_task;    // the read of job_thumbnail_pending, waited for when the stream ends
+    std::string        job_thumbnail_pending; // stream thread only, as the three below
+    std::string        job_thumbnail_file;    // the file job_thumbnail_url is for
+    std::string        job_thumbnail_failed; // the file whose metadata read failed, tried again at job_thumbnail_retry
+    std::chrono::steady_clock::time_point job_thumbnail_retry;
+    std::string        job_thumbnail_url; // guarded by payload_mutex
+
+    mutable std::mutex camera_mutex;
+    CameraSource       camera;
 
     mutable std::recursive_mutex payload_mutex;
     nlohmann::json     status_cache;

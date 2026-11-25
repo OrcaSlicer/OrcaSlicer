@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -14,6 +15,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -27,6 +29,7 @@
 #include <boost/asio/ssl/context.hpp>
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/ssl/stream_base.hpp>
+#include <boost/beast/core/buffers_to_string.hpp>
 #include <boost/beast/core/error.hpp>
 #include <boost/beast/core/flat_buffer.hpp>
 #include <boost/beast/core/stream_traits.hpp>
@@ -52,6 +55,7 @@
 #include "slic3r/GUI/DeviceCore/DevStorage.h"
 #include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/Utils/MoonrakerPrinterAgent.hpp"
+#include "slic3r/Utils/SnapmakerPrinterAgent.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "test_utils.hpp"
 
@@ -236,6 +240,16 @@ public:
         return m_changed.wait_for(lock, 10s, [&] { return m_http_hung_up >= count; });
     }
 
+    // Waits for a message the agent sent after subscribing that contains `text`.
+    bool wait_for_ws_message(const std::string& text)
+    {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        return m_changed.wait_for(lock, 10s, [&] {
+            return std::any_of(m_ws_messages.begin(), m_ws_messages.end(),
+                               [&](const std::string& message) { return message.find(text) != std::string::npos; });
+        });
+    }
+
     int close_frames()
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -261,6 +275,13 @@ public:
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_script;
+    }
+
+    // Waits for the G-code script sent to the printer to be `script`.
+    bool wait_for_script(const std::string& script)
+    {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        return m_changed.wait_for(lock, 10s, [&] { return m_script == script; });
     }
 
     // Hangs up every connection that is waiting.
@@ -399,6 +420,7 @@ private:
             std::lock_guard<std::mutex> lock(m_mutex);
             const nlohmann::json body = nlohmann::json::parse(request.body(), nullptr, false);
             m_script                  = body.is_object() ? body.value("script", "") : "";
+            m_changed.notify_all();
             response.result(http::status::ok);
             response.body() = R"({"result": "ok"})";
         }
@@ -427,6 +449,11 @@ private:
         });
         std::function<void()> read_next = [&] {
             ws.async_read(message, [&](beast::error_code ec, std::size_t) {
+                if (!ec) {
+                    std::lock_guard<std::mutex> lock(m_mutex);
+                    m_ws_messages.push_back(beast::buffers_to_string(message.data()));
+                    m_changed.notify_all();
+                }
                 message.clear();
                 if (ec)
                     reading = false;
@@ -491,6 +518,7 @@ private:
     nlohmann::json m_disk_usage = {{"total", 8e9}, {"used", 2e9}, {"free", 6e9}};
     std::string m_upload;
     std::string m_script;
+    std::vector<std::string> m_ws_messages;
 };
 
 // Records when the agent dispatches a status report.
@@ -1076,4 +1104,288 @@ TEST_CASE("A file that is not a 3MF is uploaded as it is, named after the job wh
     CHECK(upload.find("filename=\"" + file_name + "\"") != std::string::npos);
     CHECK(upload.find("; plain G-code") != std::string::npos);
     CHECK(std::distance(boost::filesystem::directory_iterator(dir.path()), boost::filesystem::directory_iterator()) == 1);
+}
+
+TEST_CASE("The camera is the first enabled webcam the player can open", "[MoonrakerPrinterAgent][Camera]")
+{
+    const std::string base = "http://192.0.2.10:7125";
+    const auto pick = [&](nlohmann::json webcams) { return MoonrakerPrinterAgent::pick_webcam({{"webcams", webcams}}, base); };
+
+    SECTION("An MJPEG stream plays as a stream, resolved against the web frontend on the printer's address")
+    {
+        const auto camera = pick({{{"name", "cam"}, {"service", "mjpegstreamer-adaptive"}, {"stream_url", "/webcam/?action=stream"},
+                                   {"snapshot_url", "/webcam/?action=snapshot"}}});
+        CHECK(camera.mode == CameraStreamMode::http);
+        CHECK(camera.url == "http://192.0.2.10/webcam/?action=stream");
+    }
+    SECTION("A frontend port other than Moonraker's is kept")
+    {
+        const auto camera = MoonrakerPrinterAgent::pick_webcam(
+            {{"webcams", {{{"service", "mjpegstreamer"}, {"stream_url", "/webcam/?action=stream"}}}}}, "http://192.0.2.10:4408");
+        CHECK(camera.url == "http://192.0.2.10:4408/webcam/?action=stream");
+    }
+    SECTION("An absolute RTSP stream is kept as it is")
+    {
+        const auto camera = pick({{{"service", "ipstream"}, {"stream_url", "rtsp://192.0.2.11/live"}}});
+        CHECK(camera.mode == CameraStreamMode::rtsp);
+        CHECK(camera.url == "rtsp://192.0.2.11/live");
+    }
+    SECTION("A WebRTC camera falls back to its snapshot")
+    {
+        const auto camera = pick({{{"service", "webrtc-camerastreamer"}, {"stream_url", "/webcam/webrtc"},
+                                   {"snapshot_url", "/webcam/snapshot.jpg"}}});
+        CHECK(camera.mode == CameraStreamMode::http_snapshot);
+        CHECK(camera.url == "http://192.0.2.10/webcam/snapshot.jpg");
+    }
+    SECTION("A disabled webcam is skipped")
+    {
+        const auto camera = pick({{{"enabled", false}, {"service", "mjpegstreamer"}, {"stream_url", "/one"}},
+                                  {{"service", "mjpegstreamer"}, {"stream_url", "https://cam.example/two"}}});
+        CHECK(camera.mode == CameraStreamMode::https);
+        CHECK(camera.url == "https://cam.example/two");
+    }
+    SECTION("A printer behind HTTPS keeps the scheme")
+    {
+        const auto camera = MoonrakerPrinterAgent::pick_webcam(
+            {{"webcams", {{{"service", "mjpegstreamer"}, {"stream_url", "/webcam/?action=stream"}}}}}, "https://printer.example");
+        CHECK(camera.mode == CameraStreamMode::https);
+        CHECK(camera.url == "https://printer.example/webcam/?action=stream");
+    }
+    SECTION("A relative URL that carries a URL in its query stays relative")
+    {
+        const auto camera = pick({{{"service", "mjpegstreamer"}, {"stream_url", "/webcam/?src=http://192.0.2.99/x"}}});
+        CHECK(camera.url == "http://192.0.2.10/webcam/?src=http://192.0.2.99/x");
+    }
+    SECTION("A protocol-relative URL takes the printer's scheme")
+    {
+        const auto camera = pick({{{"service", "mjpegstreamer"}, {"stream_url", "//192.0.2.12:8080/stream"}}});
+        CHECK(camera.url == "http://192.0.2.12:8080/stream");
+    }
+    SECTION("An RTSPS stream plays as RTSP")
+    {
+        const auto camera = pick({{{"service", "ipstream"}, {"stream_url", "RTSPS://192.0.2.11/live"}}});
+        CHECK(camera.mode == CameraStreamMode::rtsp);
+    }
+    SECTION("A scheme the player cannot open is never taken")
+    {
+        CHECK(pick({{{"service", "mjpegstreamer"}, {"stream_url", "file:///etc/passwd"}}}).mode == CameraStreamMode::none);
+        CHECK(pick({{{"service", "webrtc-camerastreamer"}, {"stream_url", "/webrtc"}, {"snapshot_url", "smb://192.0.2.13/s.jpg"}}}).mode ==
+              CameraStreamMode::none);
+        // Nor an RTSP URL as a snapshot
+        CHECK(pick({{{"service", "webrtc-camerastreamer"}, {"stream_url", "/webrtc"}, {"snapshot_url", "rtsp://192.0.2.13/s"}}}).mode ==
+              CameraStreamMode::none);
+        // The next webcam is taken instead
+        const auto camera = pick({{{"service", "mjpegstreamer"}, {"stream_url", "javascript:alert(1)"}},
+                                  {{"service", "mjpegstreamer"}, {"stream_url", "/two"}}});
+        CHECK(camera.url == "http://192.0.2.10/two");
+    }
+    SECTION("No webcam, no camera")
+    {
+        CHECK(pick(nlohmann::json::array()).mode == CameraStreamMode::none);
+        CHECK(MoonrakerPrinterAgent::pick_webcam(nlohmann::json::object(), base).mode == CameraStreamMode::none);
+    }
+}
+
+TEST_CASE("Status reports carry the layers and the time left", "[MoonrakerPrinterAgent][Status]")
+{
+    const nlohmann::json status = {
+        {"print_stats", {{"state", "printing"}, {"print_duration", 600.0}, {"total_duration", 900.0},
+                         {"info", {{"current_layer", 12}, {"total_layer", 48}}}}},
+        {"virtual_sdcard", {{"progress", 0.25}}},
+    };
+    const nlohmann::json print = MoonrakerPrinterAgent::build_print_payload(status, {}, true).at("print");
+
+    CHECK(print.at("layer_num") == 12);
+    CHECK(print.at("total_layer_num") == 48);
+    CHECK(print.at("mc_percent") == 25);
+    // 10 minutes for the first quarter: 30 minutes for the rest
+    CHECK(print.at("mc_remaining_time") == 30);
+    CHECK(print.at("gcode_state") == "RUNNING");
+
+    const nlohmann::json no_layers = MoonrakerPrinterAgent::build_print_payload({{"print_stats", {{"state", "standby"}}}}, {}, true);
+    CHECK_FALSE(no_layers.at("print").contains("total_layer_num"));
+}
+
+TEST_CASE("Status reports show the active extruder of a printer with several", "[MoonrakerPrinterAgent][Status]")
+{
+    const nlohmann::json status = {
+        {"toolhead", {{"extruder", "extruder2"}}},
+        {"extruder", {{"temperature", 25.0}, {"target", 0.0}}},
+        {"extruder2", {{"temperature", 215.0}, {"target", 220.0}}},
+    };
+    const nlohmann::json print = MoonrakerPrinterAgent::build_print_payload(status, {}, true).at("print");
+    CHECK(print.at("nozzle_temper") == 215.0);
+    CHECK(print.at("nozzle_target_temper") == 220.0);
+}
+
+TEST_CASE("The Device tab's speed levels map to the printer's speed factor and back", "[MoonrakerPrinterAgent][Status]")
+{
+    CHECK(MoonrakerPrinterAgent::speed_percent_for_level(1) == 50);
+    CHECK(MoonrakerPrinterAgent::speed_percent_for_level(4) == 166);
+    CHECK(MoonrakerPrinterAgent::speed_percent_for_level(7) == 0);
+    CHECK(MoonrakerPrinterAgent::speed_level_for_factor(1.0) == 2);
+    CHECK(MoonrakerPrinterAgent::speed_level_for_factor(1.3) == 3);
+    CHECK(MoonrakerPrinterAgent::speed_level_for_factor(0.4) == 1);
+    // Halfway between two levels: the one nearer standard
+    CHECK(MoonrakerPrinterAgent::speed_level_for_factor(0.75) == 2);
+    CHECK(MoonrakerPrinterAgent::speed_level_for_factor(1.12) == 2);
+    CHECK(MoonrakerPrinterAgent::speed_level_for_factor(1.45) == 3);
+
+    const nlohmann::json status = {{"gcode_move", {{"speed_factor", 1.66}}}};
+    CHECK(MoonrakerPrinterAgent::build_print_payload(status, {}, true).at("print").at("spd_lvl") == 4);
+}
+
+TEST_CASE("Status reports show the chamber LED as the chamber light and the chamber sensor's temperature", "[MoonrakerPrinterAgent][Status]")
+{
+    const auto light = [](const nlohmann::json& color_data) {
+        const nlohmann::json status = {{"led cavity_led", {{"color_data", color_data}}}};
+        return MoonrakerPrinterAgent::build_print_payload(status, {}, true, "cavity_led").at("print").at("lights_report").at(0);
+    };
+    CHECK(light({{0, 0, 0, 1}}).at("mode") == "on");
+    CHECK(light({{0, 0, 0, 0}}).at("mode") == "off");
+    CHECK(light({{0, 0, 0, 0}}).at("node") == "chamber_light");
+    // The chamber sensor's temperature, shown because it is reported
+    const nlohmann::json chamber = MoonrakerPrinterAgent::build_print_payload(
+        {{"temperature_sensor cavity", {{"temperature", 31.5}}}}, {}, true, {}, "temperature_sensor cavity").at("print");
+    CHECK(chamber.at("chamber_temper") == 31.5);
+    CHECK(chamber.at("support_chamber_temp_display") == true);
+    // An agent without a chamber LED reports no light
+    CHECK_FALSE(MoonrakerPrinterAgent::build_print_payload({{"led cavity_led", {{"color_data", {{1, 1, 1, 1}}}}}}, {}, true)
+                    .at("print")
+                    .contains("lights_report"));
+}
+
+TEST_CASE("The printed file's thumbnail is its largest one, in the file's folder", "[MoonrakerPrinterAgent][Status]")
+{
+    const nlohmann::json metadata = {{"result",
+                                      {{"filename", "Toys/dragon 4.gcode"},
+                                       {"thumbnails",
+                                        {{{"width", 32}, {"height", 32}, {"relative_path", ".thumbs/dragon 4-32x32.png"}},
+                                         {{"width", 300}, {"height", 300}, {"relative_path", ".thumbs/dragon 4-300x300.png"}}}}}}};
+    CHECK(MoonrakerPrinterAgent::thumbnail_url(metadata, "http://192.0.2.10:7125", "Toys/dragon 4.gcode") ==
+          "http://192.0.2.10:7125/server/files/gcodes/Toys/.thumbs/dragon%204-300x300.png");
+    CHECK(MoonrakerPrinterAgent::thumbnail_url({{"result", {{"thumbnails", nlohmann::json::array()}}}}, "http://h", "a.gcode").empty());
+    CHECK(MoonrakerPrinterAgent::thumbnail_url(nlohmann::json::object(), "http://h", "a.gcode").empty());
+    // A size of the wrong type counts as none
+    CHECK(MoonrakerPrinterAgent::thumbnail_url({{"result", {{"thumbnails", {{{"width", "big"}, {"relative_path", "a.png"}}}}}}}, "http://h",
+                                               "a.gcode") == "http://h/server/files/gcodes/a.png");
+}
+
+// Sends G-code to a printer without connecting to it, with the given chamber LED.
+class CommandAgent : public MoonrakerPrinterAgent
+{
+public:
+    CommandAgent(const FakePrinter& printer, std::string led) : MoonrakerPrinterAgent(""), m_led(std::move(led))
+    {
+        device_info.base_url = printer.base_url();
+    }
+
+protected:
+    std::string chamber_led() const override { return m_led; }
+
+private:
+    std::string m_led;
+};
+
+TEST_CASE("The Device tab's speed level reaches the printer as M220", "[MoonrakerPrinterAgent][Command]")
+{
+    FakePrinter  printer(Behavior::AnswersPings);
+    CommandAgent agent(printer, "");
+    const auto   speed = [&](const nlohmann::json& param) {
+        return agent.send_message("printer", nlohmann::json{{"print", {{"command", "print_speed"}, {"param", param}}}}.dump(), 0, 0);
+    };
+
+    CHECK(speed("3") == BAMBU_NETWORK_SUCCESS);
+    CHECK(printer.wait_for_script("M220 S124"));
+    for (const char* invalid : {"0", "5", "-1", "", "abc", "2x", " 2"}) {
+        CAPTURE(invalid);
+        CHECK(speed(invalid) == BAMBU_NETWORK_ERR_INVALID_RESULT);
+    }
+}
+
+TEST_CASE("The Device tab switches the chamber LED with every channel", "[MoonrakerPrinterAgent][Command]")
+{
+    FakePrinter printer(Behavior::AnswersPings);
+    const auto  light = [&](CommandAgent& agent, const nlohmann::json& system) {
+        nlohmann::json request = {{"system", system}};
+        request["system"]["command"] = "ledctrl";
+        return agent.send_message("printer", request.dump(), 0, 0);
+    };
+
+    CommandAgent agent(printer, "chamber");
+    CHECK(light(agent, {{"led_node", "chamber_light"}, {"led_mode", "on"}}) == BAMBU_NETWORK_SUCCESS);
+    CHECK(printer.wait_for_script("SET_LED LED=chamber RED=1 GREEN=1 BLUE=1 WHITE=1"));
+    CHECK(light(agent, {{"led_node", "chamber_light"}, {"led_mode", "off"}}) == BAMBU_NETWORK_SUCCESS);
+    CHECK(printer.wait_for_script("SET_LED LED=chamber RED=0 GREEN=0 BLUE=0 WHITE=0"));
+
+    // Modes other than on and off, and values of the wrong type
+    CHECK(light(agent, {{"led_node", "chamber_light"}, {"led_mode", "flashing"}}) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    CHECK(light(agent, {{"led_node", "chamber_light"}, {"led_mode", 1}}) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    CHECK(light(agent, {{"led_node", "chamber_light"}}) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    // Another LED, or a node of the wrong type, is not the chamber light
+    CHECK(light(agent, {{"led_node", "work_light"}, {"led_mode", "on"}}) == BAMBU_NETWORK_SUCCESS);
+    CHECK(light(agent, {{"led_node", 7}, {"led_mode", "on"}}) == BAMBU_NETWORK_SUCCESS);
+    // An agent without a chamber LED
+    CommandAgent no_led(printer, "");
+    CHECK(light(no_led, {{"led_node", "chamber_light"}, {"led_mode", "on"}}) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    // None of the refused requests reached the printer
+    CHECK(printer.script() == "SET_LED LED=chamber RED=0 GREEN=0 BLUE=0 WHITE=0");
+}
+
+// Sends one JSON-RPC request over the status stream, the first time it is asked.
+class RequestAgent : public StreamAgent
+{
+public:
+    using StreamAgent::StreamAgent;
+
+protected:
+    std::vector<nlohmann::json> take_ws_requests() override
+    {
+        if (m_sent.exchange(true))
+            return {};
+        return {{{"method", "camera.start_monitor"}, {"params", {{"domain", "lan"}, {"interval", 0}}}}};
+    }
+
+private:
+    std::atomic<bool> m_sent{false};
+};
+
+TEST_CASE("The status stream sends an agent's requests to the printer", "[MoonrakerPrinterAgent][StatusStream]")
+{
+    FakePrinter printer(Behavior::Chatters);
+    RequestAgent agent("");
+    agent.start_status_stream("printer", printer.base_url(), "");
+
+    CHECK(printer.wait_for_ws_message("\"method\":\"camera.start_monitor\""));
+    CHECK(printer.wait_for_ws_message("\"jsonrpc\":\"2.0\""));
+    printer.release();
+    agent.stop_status_stream();
+}
+
+TEST_CASE("The filament objects are read from the status stream once it reported them", "[MoonrakerPrinterAgent][Status]")
+{
+    const std::set<std::string> names = {"print_task_config", "filament_detect"};
+    const nlohmann::json        ptc   = {{"filament_type", {"PLA"}}};
+    // A printer without filament_detect needs only print_task_config
+    CHECK(MoonrakerPrinterAgent::pick_objects({{"print_task_config", ptc}}, {"print_task_config"}, names) ==
+          nlohmann::json{{"print_task_config", ptc}});
+    // Not reported yet: the caller asks the printer
+    CHECK(MoonrakerPrinterAgent::pick_objects({{"print_task_config", ptc}}, {"print_task_config", "filament_detect"}, names).is_null());
+    CHECK(MoonrakerPrinterAgent::pick_objects({{"print_task_config", ptc}}, {}, names).is_null());
+}
+
+TEST_CASE("The Snapmaker agent keeps the stock camera picture current only while it is shown", "[SnapmakerPrinterAgent][Camera]")
+{
+    using clock = std::chrono::steady_clock;
+    const clock::time_point now = clock::now();
+    const clock::time_point never{};
+
+    // Shown just now and never asked: ask
+    CHECK(SnapmakerPrinterAgent::camera_request_due(now, now - 1s, never));
+    // Asked 20 s ago: not yet
+    CHECK_FALSE(SnapmakerPrinterAgent::camera_request_due(now, now - 1s, now - 20s));
+    // Asked 50 s ago: again, before the firmware stops renewing the picture
+    CHECK(SnapmakerPrinterAgent::camera_request_due(now, now - 1s, now - 50s));
+    // Not shown for a while: let it stop
+    CHECK_FALSE(SnapmakerPrinterAgent::camera_request_due(now, now - 30s, never));
 }

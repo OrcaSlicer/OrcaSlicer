@@ -24,6 +24,8 @@ public:
     // chamber
     bool HasChamber() const { return m_has_chamber; }
     bool SupportChamberTempDisplay() const;
+    // Whether the printer's status said so itself, as printer agents of other vendors do
+    bool ReportsChamberTempDisplay() const { return m_support_chamber_temp_display.value_or(false); }
     bool SupportChamberEdit() const { return m_support_chamber_edit; }
     int  GetChamberTempEditMin() const { return m_chamber_temp_edit_min; }
     int  GetChamberTempEditMax() const { return m_chamber_temp_edit_max; }

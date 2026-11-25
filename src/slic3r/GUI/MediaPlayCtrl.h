@@ -14,6 +14,7 @@
 #include <wx/gdicmn.h>
 #include <wx/mediactrl.h>
 #include <wx/event.h>
+#include <functional>
 #include <string>
 #include <memory>
 #include <cstdint>
@@ -131,6 +132,7 @@ private:
     struct MediaTask {
         wxString command;
         IMediaController *controller = nullptr;
+        std::function<void()> run; // for the "<run>" command
     };
     std::deque<MediaTask> m_tasks;
     boost::mutex m_mutex;

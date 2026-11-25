@@ -446,6 +446,22 @@ void MediaPlayCtrl::Play()
             SetStatus(_L("Playing..."), false);
         }
 
+        // Some printers serve their stream only once asked to start it. Bambu Lab printers never get here. The request
+        // goes ahead of the stream's load on the media thread, so a slow printer does not hold up the UI.
+        if (!is_webrtc && printer_agent) {
+            boost::unique_lock lock(m_mutex);
+            m_tasks.push_back({"<run>", nullptr, [printer_agent, dev_id = m_machine] {
+                                   const int ret = printer_agent->command_start_camera(dev_id);
+                                   if (ret == 0)
+                                       BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl: the printer started its camera";
+                                   else if (ret == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED)
+                                       BOOST_LOG_TRIVIAL(trace) << "MediaPlayCtrl: the printer agent needs no camera start";
+                                   else if (ret != 0)
+                                       BOOST_LOG_TRIVIAL(warning) << "MediaPlayCtrl: the printer did not start its camera: " << ret;
+                               }});
+            m_cond.notify_all();
+        }
+
         m_button_play->SetIcon("media_stop");
         if (m_active_media_controller == m_media_ctrl) {
             // wxMediaCtrl3 reports when it has a decoded frame; load() waits for
@@ -1012,6 +1028,13 @@ void MediaPlayCtrl::media_proc()
         }
         else if (task.command == "<exit>") {
             break;
+        }
+        else if (task.command == "<run>") {
+            task.run();
+            // Changes no media state, so no state event
+            lock.lock();
+            m_tasks.pop_front();
+            continue;
         }
         else if (task.command == "<play>") {
             BOOST_LOG_TRIVIAL(info) <<  "MediaPlayCtrl: start play";
