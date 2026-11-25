@@ -808,6 +808,28 @@ json described(ActionRegistry& actions, const ActionRegistry::Query& q)
                       {{"code", "invalid_argument"}, {"sections", std::move(sections)}});
 }
 
+// What tool_list's group argument takes, from the places' headings in their order and the commands outside their
+// first word's place, so that a new heading or exception is named with no edit here.
+std::string group_help()
+{
+    std::string groups;
+    for (const std::string& heading : NativeCommands::place_headings())
+        groups += heading + "; ";
+    std::map<std::string, json> elsewhere;
+    for (const auto& [key, heading] : NativeCommands::place_exceptions())
+        elsewhere[heading].push_back("`" + key + "`");
+    std::string exceptions;
+    for (const auto& [heading, keys] : elsewhere)
+        exceptions += (exceptions.empty() ? ", but " : "; ") + names_text(keys) + (keys.size() == 1 ? " is in " : " are in ") +
+                      heading;
+    return "Only this group's commands, its whole name in any case: " + groups +
+           "or Design (with the CAD feature on). A command outside Design is in the group of the place its name starts "
+           "with (`object_delete` in Objects)" +
+           exceptions +
+           ". An unknown group is refused with the groups there are, and Design, when this run leaves its commands out, "
+           "with the reason.";
+}
+
 } // namespace
 
 void register_catalog_tools(CommandCatalog& catalog, const std::string& design_index)
@@ -820,15 +842,7 @@ void register_catalog_tools(CommandCatalog& catalog, const std::string& design_i
         "operations plugins offer (group Plugins, `plugin.<plugin>.<name>`). The reply says how to read a command's manual "
         "and how to run one. `group` keeps one group's; one whose commands the tool list all shows gives none and a note." +
             design_index,
-        object_schema({{"group", prop("string", "Only this group's commands, its whole name in any case: Tools and actions; The "
-                                                "app; The project; Objects; Parts; Plates; Presets and settings; Filaments; "
-                                                "Printers and prints; Plugins; View and windows; Recordings, replays and "
-                                                "scripts; Driving the GUI; or Design (with the CAD feature on). A command "
-                                                "outside Design is in the group of the place its name starts with "
-                                                "(`object_delete` in Objects), but `window_screenshot` and "
-                                                "`window_save_screenshot` are in Recordings, replays and scripts. An unknown "
-                                                "group is refused with the groups there are, and Design, when this run leaves "
-                                                "its commands out, with the reason.")}}),
+        object_schema({{"group", prop("string", group_help())}}),
         [](const json& args, ToolContext&) {
             return ToolResult::ok(unlisted_commands(NativeCommands::instance(), arg_string(args, "group")));
         }));

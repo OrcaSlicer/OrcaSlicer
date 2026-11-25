@@ -4,12 +4,8 @@
     tools/mcp/orca_mcp.py launch --cad
     tools/mcp/test_call_forms.py [--out DIR]
 
-Names and value shapes agents send in place of the schema's, each shown by what the call did; settings_list leaving
-meta out of a whole listing; and a call with exactly an action's arguments doing what a person's pick does: a test's
-dialog asked or silent, View: Top turning the camera of the view shown, Deselect All closing the open gizmo too, Go to
-layer through action_run, and plate_slice {preview: true}. It needs the Design tab (launch with --cad), starts on
-the Generic Klipper Printer in the sweep's baseline, and exits 0 when every check passes. The files it exports go to
---out, else to a new temporary folder.
+It needs the Design tab (launch with --cad). The files it exports go to --out, else to a new temporary folder. Exits
+0 when every check passes.
 """
 
 import argparse

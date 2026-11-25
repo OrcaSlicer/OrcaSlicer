@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Checks preferences_get and preferences_set against the Preferences dialog.
+Its design is the test_preferences entry of tools/mcp/test-entries/commands.md.
 
     tools/mcp/orca_mcp.py launch --datadir <a scratch folder>
     tools/mcp/test_preferences.py
@@ -47,12 +48,9 @@ AWAY = {"auto_arrange": False, "auto_calculate_flush": "color change"}
 STARTING = {**AWAY, "opengl_fps_cap": 0, "enable_multi_machine": False, "backup_interval": 10, "hide_login_side_panel": False,
             "sync_user_preset": False, "stealth_mode": False}
 
-results = []
-
-
-def check(name, ok, detail=""):
-    results.append(bool(ok))
-    print(("PASS " if ok else "FAIL ") + name + ("" if ok else "  " + str(detail)[:600]), flush=True)
+# The test's named checks; check() records one and prints it.
+t = shared.Checks()
+check = t.check
 
 
 def refusal(client, tool, **args):
@@ -109,14 +107,6 @@ def shown_value(item, control):
     return value
 
 
-def reached(fn, what):
-    """Whether fn() comes true within shared.until()'s 30 s, for a check to report rather than to stop the test."""
-    try:
-        return bool(shared.until(fn, what))
-    except TimeoutError:
-        return False
-
-
 def log_lines(client):
     return client.call("app_log", lines=2000).get("lines", [])
 
@@ -135,8 +125,7 @@ def main():
     read = {key: item["value"] for key, item in items_by_key(client, keys=list(STARTING)).items()}
     check("the preferences start as written", read == STARTING, read)
     scenarios(client, session)
-    print(f"\n{sum(results)}/{len(results)} passed")
-    return 0 if all(results) else 1
+    return t.exit_code()
 
 
 def scenarios(client, session):
@@ -317,13 +306,13 @@ def scenarios(client, session):
             return None
 
     # The page shows the panel with jQuery's show(), which leaves its display "block" (home.js).
-    shown = reached(lambda: panel() == "block", "the login side panel shows")
+    shown = shared.reached(lambda: panel() == "block", "the login side panel shows")
     check("the Home page shows its login side panel", shown, panel())
     client.call("preferences_set", values={"hide_login_side_panel": True})
-    hidden = reached(lambda: panel() == "none", "the login side panel is hidden")
+    hidden = shared.reached(lambda: panel() == "none", "the login side panel is hidden")
     check("preferences_set hide_login_side_panel true hides it at once, without the dialog", hidden, panel())
     client.call("preferences_set", values={"hide_login_side_panel": False})
-    shown_again = reached(lambda: panel() == "block", "the login side panel shows again")
+    shown_again = shared.reached(lambda: panel() == "block", "the login side panel shows again")
     check("and false shows it again", shown_again, panel())
     client.call("view_set", tab="prepare")
 

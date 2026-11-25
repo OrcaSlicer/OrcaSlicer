@@ -114,13 +114,9 @@ import zlib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import checks  # noqa: E402
 import orca_mcp  # noqa: E402
-from cad_gui import CANVAS, CadGui, until  # noqa: E402
+from cad_gui import CANVAS, CadGui, mid, near, until  # noqa: E402
 
 gui = None  # the CadGui main() starts
-
-
-def near(a, b, tol=1e-6):
-    return abs(a - b) <= tol
 
 
 def square(half):
@@ -266,18 +262,6 @@ def menu_path(verb):
     row, its family when it has one, and its name, as DesignPanel::show_offer_menu lays out a row of many verbs."""
     v = next(v for v in gui.verbs() if v["id"] == verb)
     return ">".join([v["row_name"]] + ([v["family"]] if v["family"] else []) + [v["name"]])
-
-
-def keep_as_drawn():
-    """Close the value fields the last click opened, keeping what it drew. Esc is pressed only on a field that is
-    open, since with none open it drops the armed tool; whether one is open is read once the app has run what the
-    click or the last Esc set off (CadGui.opened_field()), as a field queued behind another opens as that one closes."""
-    for _ in range(8):
-        if gui.opened_field() is None:
-            return
-        gui.keys("Escape", target=CANVAS)
-        until(lambda: gui.value_field() is None)
-    raise AssertionError("value fields kept opening after 8 Esc presses")
 
 
 def same_sketch_value(a, b, key=""):
@@ -880,10 +864,6 @@ def selected():
     return d["selection"]["id"], d.get("picked_plane"), d.get("feature_row")
 
 
-def feature_names():
-    return [f["name"] for f in gui.cad("design_describe")["features"]]
-
-
 def rename_selected(old, name):
     """Call design_rename_selected {}, then type `name` into the row editor it opens on the row named `old`, as a person does,
     and commit it with Enter. The editor opens holding the row's name."""
@@ -892,7 +872,7 @@ def rename_selected(old, name):
     if found is None:
         raise AssertionError(f"design_rename_selected opened no row editor on {old}: {reply}")
     gui.fill({"ref": found.ref}, name)
-    until(lambda: name in feature_names() or any(b["name"] == name for b in gui.cad("design_describe")["bodies"]))
+    until(lambda: name in gui.feature_names() or any(b["name"] == name for b in gui.cad("design_describe")["bodies"]))
 
 
 def canvas_rows(out_dir, name):
@@ -970,8 +950,9 @@ def rung_select():
     # The shown sketch's loop, straight after the vertex: its Sketch's row is the one Rename edits.
     r = select(sketch=f["shown"], loop=0)
     gui.check("select: {sketch, loop} reads back sk_loop", r["selection"]["id"] == "sk_loop", r)
-    rename_selected(feature_names()[f["shown"]], "Ring")
-    gui.check("select: design_rename_selected then renames the Sketch", feature_names()[f["shown"]] == "Ring", feature_names())
+    rename_selected(gui.feature_names()[f["shown"]], "Ring")
+    gui.check("select: design_rename_selected then renames the Sketch", gui.feature_names()[f["shown"]] == "Ring",
+              gui.feature_names())
     r = gui.cad("design_zoom_to_selection")
     gui.check("select: design_zoom_to_selection applies to the loop", r.get("applies") is True, r)
 
@@ -979,20 +960,22 @@ def rung_select():
     r = select(feature=f["box"])
     gui.check("select: {feature} reads back the feature's row, and nothing picked in the view",
               r["feature"] == f["box"] and r["selection"]["id"] == "none" and selected() == ("none", None, f["box"]), r)
-    rename_selected(feature_names()[f["box"]], "Block")
-    gui.check("select: design_rename_selected then renames that feature", feature_names()[f["box"]] == "Block", feature_names())
-    names = feature_names()
+    rename_selected(gui.feature_names()[f["box"]], "Block")
+    gui.check("select: design_rename_selected then renames that feature", gui.feature_names()[f["box"]] == "Block",
+              gui.feature_names())
+    names = gui.feature_names()
     select(feature=f["second"])
     gui.cad("feature_delete")
     settled()
-    gui.check("select: feature_delete then deletes the second Extrude", names[f["second"]] not in feature_names(),
-              feature_names())
+    gui.check("select: feature_delete then deletes the second Extrude", names[f["second"]] not in gui.feature_names(),
+              gui.feature_names())
     gui.client.call_command("undo", history="design")
     settled()
-    gui.check("select: one undo brings it back", feature_names() == names, feature_names())
+    gui.check("select: one undo brings it back", gui.feature_names() == names, gui.feature_names())
     select(feature=f["plane"])
-    rename_selected(feature_names()[f["plane"]], "Datum")
-    gui.check("select: design_rename_selected then renames the Plane", feature_names()[f["plane"]] == "Datum", feature_names())
+    rename_selected(gui.feature_names()[f["plane"]], "Datum")
+    gui.check("select: design_rename_selected then renames the Plane", gui.feature_names()[f["plane"]] == "Datum",
+              gui.feature_names())
     before = [(x["type"], x["name"]) for x in gui.cad("design_describe")["features"]]
     r = gui.cad("feature_edit")
     gui.check("select: feature_edit {} then opens the Plane's card", "a feature card is open" in (r.get("busy") or ""), r)
@@ -1131,10 +1114,6 @@ def rung_select_loops():
 
 def generation():
     return gui.cad("design_describe")["generation"]
-
-
-def mid(edge):
-    return [(a + b) / 2 for a, b in zip(edge["p0"], edge["p1"])]
 
 
 def fillet_shell_block():
@@ -1308,7 +1287,7 @@ def rung_edit_repick_hole():
     before = gui.cad("body_describe", body=0, before=hole, at_extreme="+z")["faces"][0]
     edit_card_of(hole)
     gui.click_mm(*on_frame(frame, before["centroid"]))
-    keep_as_drawn()   # Confirm with a value field open takes the value, not the card
+    gui.keep_as_drawn()   # Confirm with a value field open takes the value, not the card
     gui.press("Confirm")
     settled()
     f = gui.cad("feature_describe", feature=hole)
@@ -1905,8 +1884,8 @@ def rung_shapes_match_tools():
         for p in shape["clicks"]:
             gui.click_mm(*p)
             if shape.get("each_click"):
-                keep_as_drawn()
-        keep_as_drawn()
+                gui.keep_as_drawn()
+        gui.keep_as_drawn()
         by_tool = drawn()
         added = by_tool["entities"][len(setup):]
         gui.check(f"shapes_match_tools: the {name} tool drew {shape['adds']} entities", len(added) == shape["adds"],

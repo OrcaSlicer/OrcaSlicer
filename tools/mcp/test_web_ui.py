@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Checks the GUI tools on web pages, on the pages of the MCP web fixture plugin.
+Its design is the test_web_ui entry of tools/mcp/test-entries/windows_web.md.
 
     tools/mcp/test_web_ui.py --install DATADIR      # side-loads the fixture plugin into DATADIR
     tools/mcp/orca_mcp.py launch --datadir DATADIR

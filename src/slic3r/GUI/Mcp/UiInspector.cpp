@@ -444,15 +444,7 @@ std::string label_of(wxWindow* w)
             label.clear();
     }
     label.Replace("\n", " ");
-    std::string out = into_u8(wxStripMenuCodes(label));
-    if (out.size() > 120) {
-        // Cut where a character starts, so the label stays UTF-8.
-        std::size_t cut = 117;
-        while (cut > 0 && (static_cast<unsigned char>(out[cut]) & 0xC0) == 0x80)
-            --cut;
-        out = out.substr(0, cut) + "...";
-    }
-    return out;
+    return into_u8(wxStripMenuCodes(label));
 }
 
 // Orca's setting fields have a "parameter name: <option key>" line in their tooltip.
@@ -2329,7 +2321,7 @@ void UiInspector::add_imgui_items(GLCanvas3D& canvas, int depth, std::vector<UiN
                 const ImGuiWrapper::RecordedText& text = texts[e.text];
                 UiNode node;
                 node.kind  = "text";
-                node.label = text.text.size() > 120 ? text.text.substr(0, 117) + "..." : text.text;
+                node.label = text.text;
                 std::replace(node.label.begin(), node.label.end(), '\n', ' ');
                 node.depth = depth + 1;
                 const wxPoint at = imgui_to_canvas(canvas, text.x, text.y);

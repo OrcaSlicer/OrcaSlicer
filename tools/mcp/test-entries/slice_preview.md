@@ -1,10 +1,10 @@
 # Slicing, layers and the Preview
 
-The design of this area's sweep tests. The rules every entry follows, the grades and the table of all tests are
-in [TESTS.md](../TESTS.md).
+The design of this area's sweep tests. The rules every entry follows and the grades are in
+[TESTS.md](../TESTS.md).
 
 ## `test_slice_preview`
-`test_slice_preview.py` · Python, 832 checks · in `sweep.json` as `{"path": "test_slice_preview.py", "timeout_s": 1500}`
+`test_slice_preview.py` · Python
 
 **Tests:** Slicing and what a slice leaves: the plates `plate_slice` and the Slice and Preview and Slice All Plates
 actions slice, with no objects, with a plate that fails validation and with two plates; the statistics a slice reports,

@@ -16,6 +16,7 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include "mcp_test_utils.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/FilamentMapPanel.hpp"
@@ -52,6 +53,7 @@
 #include <utility>
 #include <vector>
 
+using Slic3r::GUI::Mcp::Test::NoUiContext;
 using namespace Slic3r;
 using namespace Slic3r::GUI;
 using namespace Slic3r::GUI::Mcp;
@@ -976,31 +978,6 @@ std::set<std::string> enum_of(const NativeCommand& command, const char* property
         values.insert(v.get<std::string>());
     return values;
 }
-
-// A call's context that fails the case when the call reaches its UI closure.
-class NoUiContext final : public ToolContext
-{
-public:
-    json run_ui(const std::function<json()>& /*fn*/) override
-    {
-        FAIL("the call reached its UI closure");
-        return json();
-    }
-    json observe_ui(const std::function<json()>& /*fn*/) override
-    {
-        FAIL("the call reached its UI closure");
-        return json();
-    }
-    const std::string&    job_id() const override { return m_job; }
-    bool                  cancelled() const override { return false; }
-    ToolResult            call_child(const std::string& /*tool*/, const json& /*args*/) override { return ToolResult::error("no child calls"); }
-    std::set<std::string> lineage() const override { return {}; }
-    void                  set_journal_args(json /*args*/) override {}
-    void                  begin_operation() override {}
-
-private:
-    std::string m_job;
-};
 
 // A call's context that runs its UI closures in place, for a check a call makes there before it reads the app.
 class InPlaceContext final : public ToolContext

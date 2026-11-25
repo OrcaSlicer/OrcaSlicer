@@ -99,6 +99,21 @@ def until(fn, timeout=30.0, interval=0.05):
         time.sleep(interval)
 
 
+def near(a, b, tol=1e-6):
+    return abs(a - b) <= tol
+
+
+def lengths(ents):
+    """The lengths of the lines among sketch entities `ents`, sorted and rounded to 1e-6 mm."""
+    return sorted(round(e["length"], 6) for e in ents if e["type"] == "line")
+
+
+def mid(e):
+    """The midpoint of an entity or edge from p0 to p1, a tuple as long as its points: (x, y) in a sketch, (x, y, z)
+    for a body's edge."""
+    return tuple((a + b) / 2.0 for a, b in zip(e["p0"], e["p1"]))
+
+
 def reset_switches(client):
     """Put the Design view's switches as SWITCHES gives them and its section view off, on the Design tab, which
     view_set shows to take them; raises when its reply reads them otherwise."""
@@ -389,6 +404,14 @@ class CadGui:
     def sketch(self):
         return self.cad("sketch_describe")
 
+    def closed_loops(self):
+        return self.sketch()["closed_loops"]
+
+    def feature_names(self):
+        """The design's features by name, from design_describe, which passes the Design commands' gate and so
+        reads the design as loaded from the model's copy of it."""
+        return [f["name"] for f in self.cad("design_describe")["features"]]
+
     def _sketch_or_none(self):
         """sketch_describe, or None when no sketch is open. Any other error (a modal dialog refuses
         every Design command while it is open) is raised, since it says nothing about the sketch."""
@@ -503,6 +526,27 @@ class CadGui:
         if target is not None:
             args["target"] = target
         return self.client.call("keyboard_press", **args)
+
+    def canvas_keys(self, chord):
+        """A tool key or Esc, pressed over the canvas, whichever widget a ribbon click left holding the keyboard
+        focus."""
+        return self.keys(chord, target=CANVAS)
+
+    def keep_as_drawn(self):
+        """Close the value fields the last gesture left open, keeping the geometry as drawn.
+
+        Esc means keep-as-drawn only while a field is open: with none open it drops the armed tool,
+        and from Select it leaves the sketch. So Esc is pressed only on a field that is there. The
+        fields come one after another (a rectangle queues Width, then Height, the next opened as the
+        previous one closes), from work the gesture sets off, so whether one is open is read once the
+        app has run that work (opened_field()), where one not open yet would look like one that never
+        opens."""
+        for _ in range(8):
+            if self.opened_field() is None:
+                return
+            self.canvas_keys("Escape")
+            until(lambda: self.value_field() is None)
+        raise AssertionError("value fields kept opening after 8 Esc presses")
 
     def text(self, s):
         return self.client.call("keyboard_press", text=s)
@@ -685,6 +729,12 @@ class CadGui:
         self._answer(self.press("Cancel"), "Discard sketch")
         if not until(lambda: self._sketch_or_none() is None):
             raise RuntimeError("the sketch is still open after Cancel")
+
+    def cancel_and_clear(self):
+        """Leave the sketch, discarding what it holds, and empty the design: a rung that commits its sketch leaves
+        a feature, and the rungs after it start from none."""
+        self.cancel()
+        self.new_design()
 
     def constrain(self):
         """Commit the open sketch and enter Constrain mode on it with K, as a person does; returns

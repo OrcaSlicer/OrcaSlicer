@@ -4,14 +4,7 @@
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_settings.py
 
-settings_list giving a type's settings whole, a saved preset's and a filament slot's, and the settings an object and a
-region take; settings_set and settings_get on an object, a part, a modifier and a height range, named by index and taken
-from the selection, with each value's effective value and source; what those settings do in the print; and the height
-ranges replaced, the range that stays keeping its settings. After every step of the targets scenario the test reads
-every target's settings back and compares them, whole, with the state the entry writes out. Each scenario sets its own
-start with checks.start(): a new project on the Generic Klipper Printer 0.4 with 0.20mm Standard @MyKlipper and one
-slot of Generic PLA @System, the presets a seeded data folder starts with, so it runs on a data folder and in an app
-earlier tests used. It exits 0 when every check passes.
+Exits 0 when every check passes.
 """
 
 import os
@@ -20,8 +13,8 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, SLOT_COLOURS, Checks, add_slot, presets, run,  # noqa: E402
-                    start, wait)
+from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, SLOT_COLOURS, Checks, add_slot, g_text, presets,  # noqa: E402
+                    run, start, wait)
 
 B = GENERIC_PLA
 G = "Generic PETG @System"
@@ -31,10 +24,6 @@ RANGE_NOTE = ('A height range\'s value (source "height_range", or in height_rang
 OVERLAP_NOTE = ('Inside a modifier, mesh or painted, that sets none of a key (source "overlapped_part"), the value of '
                 'the part it overlaps applies: that part\'s own in parts, else object_effective; which parts it overlaps '
                 'is not worked out.')
-
-
-def g(value):
-    return "%g" % float(value)
 
 
 def values_text(values):
@@ -95,7 +84,8 @@ class SettingsTest:
 
     def targets(self):
         """`O · P0 · P1 · ranges`, a range as `min–max {values}`."""
-        ranges = ", ".join(f"{g(r['min_z'])}–{g(r['max_z'])} {values_text(r['values'])}" for r in self.ranges())
+        ranges = ", ".join(f"{g_text(r['min_z'])}–{g_text(r['max_z'])} {values_text(r['values'])}"
+                           for r in self.ranges())
         return " · ".join([values_text(self.overrides("object", object=0)),
                            values_text(self.overrides("part", object=0, part=0)),
                            values_text(self.overrides("part", object=0, part=1)), ranges])
@@ -317,7 +307,7 @@ class SettingsTest:
         for name, (bottom, top), height in [("the range's layers", (5.3, 9.7), 0.12),
                                             ("the layers above it", (10.5, 19.5), 0.2)]:
             window = [(layer["z"], layer["height"]) for layer in layers if bottom <= layer["z"] <= top]
-            self.t.check(f"{s} 12: {name} are {g(height)} mm high",
+            self.t.check(f"{s} 12: {name} are {g_text(height)} mm high",
                          bool(window) and all(abs(h - height) <= 0.001 for _, h in window), window)
         low, high = self.nearest(layers, 3.0), self.nearest(layers, 15.0)
         self.t.check(f"{s} 12: six walls in the range, four on the object, three in the control",

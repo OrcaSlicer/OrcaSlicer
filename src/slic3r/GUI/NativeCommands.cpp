@@ -1054,7 +1054,8 @@ constexpr const char* kHeadingOrder[]  = {kToolsAndActions, kTheApp,     kThePro
                                           kViewAndWindows,  kRecordings, kDrivingTheGui};
 
 // The place a command's first word names, by that word: a name is its place, then its verb. undo and redo, shared with
-// the Design tab, have no place word: they are the app's.
+// the Design tab, have no place word: they are the app's. A preference is kept by the app, not by a preset or a
+// project, so preferences is the app's too, and calibration builds a test plate's project, so it is the plates'.
 constexpr std::pair<const char*, const char*> kPlaceWords[] = {
     {"tool", kToolsAndActions},  {"action", kToolsAndActions}, {"app", kTheApp},
     {"job", kTheApp},            {"preferences", kTheApp},     {"undo", kTheApp},
@@ -1096,6 +1097,13 @@ const char* NativeCommands::place_heading(const std::string& key)
         if (word == first)
             return heading;
     return nullptr;
+}
+
+std::vector<std::string> NativeCommands::place_headings() { return {std::begin(kHeadingOrder), std::end(kHeadingOrder)}; }
+
+std::vector<std::pair<std::string, std::string>> NativeCommands::place_exceptions()
+{
+    return {std::begin(kPlaceExceptions), std::end(kPlaceExceptions)};
 }
 
 void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unused]] const CatalogOptions& options)

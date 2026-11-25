@@ -46,7 +46,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import orca_mcp  # noqa: E402
-from cad_gui import BADGE_PICK_PX, BADGE_STEP_PX, CANVAS, CadGui, until  # noqa: E402
+from cad_gui import BADGE_PICK_PX, BADGE_STEP_PX, CadGui, lengths, mid, near, until  # noqa: E402
 
 gui = None  # the CadGui main() starts
 
@@ -56,29 +56,12 @@ HEADER = {"SkNone": "Sketch — nothing selected", "SkLine": "Sketch line", "SkA
           "SkPoint": "Sketch point", "Sk2Ent": "2 sketch entities"}
 
 
-def near(a, b, tol=1e-6):
-    return abs(a - b) <= tol
-
-
 def spread(vals):
     return max(vals) - min(vals)
 
 
-def lengths(ents):
-    return sorted(round(e["length"], 6) for e in ents if e["type"] == "line")
-
-
-def loops():
-    return gui.sketch()["closed_loops"]
-
-
 def ents(kind=None):
     return [e for e in gui.sketch()["entities"] if kind is None or e["type"] == kind]
-
-
-def key(k):
-    """A tool key or Esc, pressed over the canvas."""
-    gui.keys(k, target=CANVAS)
 
 
 # ---------------------------------------------------------------- the table, as the menu lays it out
@@ -145,23 +128,6 @@ def choose(offer, X, Y, verb):
 
 # ---------------------------------------------------------------- fixtures
 
-def keep_as_drawn():
-    """Close the value fields the last gesture left open, keeping the geometry as drawn.
-
-    Esc means keep-as-drawn only while a field is open: with none open it drops the armed tool,
-    and from Select it leaves the sketch. So Esc is pressed only on a field that is there. The
-    fields come one after another (a rectangle queues Width, then Height, the next opened as the
-    previous one closes), from work the gesture sets off, so whether one is open is read once the
-    app has run that work (CadGui.opened_field()), where one not open yet would look like one
-    that never opens."""
-    for _ in range(8):
-        if gui.opened_field() is None:
-            return
-        key("Escape")
-        until(lambda: gui.value_field() is None)
-    raise AssertionError("value fields kept opening after 8 Esc presses")
-
-
 def clear_sketch():
     """Empty the open sketch through the UI, keeping it open on the same plane and view.
 
@@ -169,7 +135,7 @@ def clear_sketch():
     Delete selected cannot take everything in one go. Cancel discards the sketch instead, and a new
     one opens on the XY plane and is calibrated again. The camera has not moved, so plane points
     computed before keep their pixels."""
-    keep_as_drawn()
+    gui.keep_as_drawn()
     if gui.sketch()["entities"]:
         gui.cancel()
         gui.enter_sketch()
@@ -214,16 +180,12 @@ def arm(rung, verb, X, Y, check_tool=True):
     return o
 
 
-def mid(e):
-    return ((e["p0"][0] + e["p1"][0]) / 2.0, (e["p0"][1] + e["p1"][1]) / 2.0)
-
-
 def poly_click(pt):
     """One click of a multi-segment tool, then close the value field that click opened. The
     polyline opens a Length field after every segment, and the canvas takes no click while one is
     open."""
     gui.click_mm(*pt)
-    keep_as_drawn()
+    gui.keep_as_drawn()
 
 
 def draw_line_at(x0, y0, x1, y1, length):
@@ -232,18 +194,12 @@ def draw_line_at(x0, y0, x1, y1, length):
     solves by moving the line's ends, so the line is not where the clicks put it, and the clicks
     that pick it are placed on the line read back. The tool stays armed, and the fields are closed
     before the caller clicks again."""
-    key("l")
+    gui.canvas_keys("l")
     gui.click_mm(x0, y0)
     gui.click_mm(x1, y1)
     gui.values(int(length), 0)
-    keep_as_drawn()
+    gui.keep_as_drawn()
     return ents("line")[-1]
-
-
-def leave():
-    """Leave the sketch, discarding what it holds, and empty the design."""
-    gui.cancel()
-    gui.new_design()
 
 
 def safe_box():
@@ -350,7 +306,7 @@ def close_fields():
     (CadGui.opened_field())."""
     if gui.opened_field() is None:
         return
-    key("Escape")
+    gui.canvas_keys("Escape")
     if not until(lambda: gui.value_field() is None):
         raise AssertionError("Esc left the value field open")
 
@@ -378,20 +334,20 @@ def rung_vocabulary():
     leaves = [p.split(">")[-1] for p in o.items if p not in o.disabled]
     gui.check("vocabulary: the sketch vocabulary is the one offered", leaves and all(n in names for n in leaves),
               f"items not named for a sketch verb: {[n for n in leaves if n not in names]}")
-    key("l")
+    gui.canvas_keys("l")
     gui.click_mm(cx, hi)
     o = gui.offer(cx + W * 0.1, hi)
     gui.check("vocabulary: with an anchor down, a right-click abandons it and opens no offer",
               o.header is None and not o.items, f"menu {o}")
     o = gui.offer(cx, hi)
     gui.check("vocabulary: and the offer is back on the next right-click", o.header is not None, f"menu {o}")
-    key("Escape")
+    gui.canvas_keys("Escape")
 
     ax, ay = x0 + W * 0.15, cy
     bx = x0 + W * 0.55
     line = draw_line_at(ax, ay, bx, ay, 40)
 
-    key("c")
+    gui.canvas_keys("c")
     ccx, ccy = x0 + W * 0.30, cy + H * 0.25
     gui.click_mm(ccx, ccy)
     gui.click_mm(ccx + W * 0.10, ccy)
@@ -405,7 +361,7 @@ def rung_vocabulary():
     gui.check("vocabulary: Circle armed, nothing anchored: a right-click on the circle offers for a curve",
               o.header == HEADER["SkArc"], f"header {o.header!r} (tool {gui.sketch()['tool']})")
 
-    key("p")
+    gui.canvas_keys("p")
     pxx, pyy = x0 + W * 0.80, cy + H * 0.25
     gui.click_mm(pxx, pyy)
 
@@ -419,8 +375,8 @@ def rung_vocabulary():
         if name == "Sk2Ent":
             # sk_angdist accepts the pair and nothing else, so it is offered from this selection
             # alone.
-            keep_as_drawn()
-            key("Escape")
+            gui.keep_as_drawn()
+            gui.canvas_keys("Escape")
             # Each click lands where it takes its entity and nothing else (clear_pick): clear of
             # the line's Length label and the circle's radius label, and of the circle's radius
             # grip, a click on which starts a handle drag that replaces the selection.
@@ -448,7 +404,7 @@ def rung_vocabulary():
     added = seen["SkLine"] - seen["SkNone"]
     gui.check("vocabulary: a picked line adds verbs an empty pick has not", added,
               f"{len(added)} added: {', '.join(sorted(added)[:8])}")
-    leave()
+    gui.cancel_and_clear()
 
 
 def rung_author():
@@ -466,11 +422,11 @@ def rung_author():
     gui.values(int(w), int(h))
     ls = lengths(ents())
     gui.check("author: the sides are the typed 120 x 80", ls == [80.0, 80.0, 120.0, 120.0], f"sides {ls}")
-    lp = loops()
+    lp = gui.closed_loops()
     gui.check("author: one closed loop", len(lp) == 1, f"{len(lp)} closed loop(s)")
     gui.check("author: area 9600", len(lp) == 1 and near(abs(lp[0]["area"]), w * h, 1e-9),
               f"areas {[abs(l['area']) for l in lp]}")
-    leave()
+    gui.cancel_and_clear()
 
 
 def rung_no_shortcut():
@@ -497,7 +453,7 @@ def rung_no_shortcut():
     es = ents()
     ls = lengths(es)
     gui.check("no_shortcut: the sides are the typed 120 x 80", ls == [80.0, 80.0, 120.0, 120.0], f"sides {ls}")
-    lp = loops()
+    lp = gui.closed_loops()
     gui.check("no_shortcut: one closed loop of area 9600", len(lp) == 1 and near(abs(lp[0]["area"]), w * h, 1e-9),
               f"{len(lp)} closed loop(s), areas {[abs(l['area']) for l in lp]}")
     xs = sorted({round(p, 6) for e in es for p in (e["p0"][0], e["p1"][0])})
@@ -510,7 +466,7 @@ def rung_no_shortcut():
     gui.check(f"no_shortcut: centred on the click within 1.5 px ({tol:.3f} mm)",
               abs(mx - cx) <= tol and abs(my - cy) <= tol,
               f"off by {abs(mx - cx):.4f}, {abs(my - cy):.4f} mm")
-    leave()
+    gui.cancel_and_clear()
 
 
 # ---------------------------------------------------------------- the keyless sketch vocabulary
@@ -537,7 +493,7 @@ def rung_curves():
     for pt in ring:
         poly_click(pt)
     poly_click(ring[0])
-    ls, lp = ents("line"), loops()
+    ls, lp = ents("line"), gui.closed_loops()
     gui.check("curves: sk_polyline closed by clicking its start: 4 lines, 1 closed loop",
               len(ls) == 4 and len(lp) == 1, f"{len(ls)} lines, {len(lp)} closed loop(s)")
 
@@ -585,7 +541,7 @@ def rung_curves():
     if len(ar) == 4:
         rr = sorted(round(e["radius"], 9) for e in ar)
         gui.check("curves: its four corners share one radius to 1e-9", spread(rr) == 0.0, f"radii {rr}")
-        lp = loops()
+        lp = gui.closed_loops()
         gui.check("curves: the rounded rectangle is one closed loop", len(lp) == 1, f"{len(lp)} closed loop(s)")
         if len(lp) == 1:
             # Rounding takes off the four corner squares less their quarter discs: r^2 (4 - pi).
@@ -656,7 +612,7 @@ def rung_curves():
     # The line it leaves from, drawn by key. Its typed length moves both its ends, so the arc
     # starts on the end read back, not on the one clicked.
     line = draw_line_at(cx - W * 0.20, cy - H * 0.05, cx + W * 0.05, cy - H * 0.05, 40)
-    key("Escape")
+    gui.canvas_keys("Escape")
     arm("curves", "sk_arc_tangent", *free)
     gui.click_mm(*line["p1"])  # the start snaps onto the line's end
     gui.click_mm(cx + W * 0.12, cy + H * 0.12)
@@ -741,7 +697,7 @@ def rung_curves():
     got = radii["circumscribed"] / radii["inscribed"] if radii["inscribed"] else 0.0
     gui.check("curves: circumscribed over inscribed circumradius is 1/cos(pi/5) to 1e-6", near(got, want, 1e-6),
               f"{got:.9f}, expected {want:.9f}")
-    leave()
+    gui.cancel_and_clear()
 
 
 def tf_fixture(cx, cy, W, L=40):
@@ -752,7 +708,7 @@ def tf_fixture(cx, cy, W, L=40):
     line's middle, the handle at half its length), so the value labels the rung clicks sit where
     the line's length puts them."""
     line = draw_line_at(cx - W * 0.10, cy, cx + W * 0.10, cy, L)
-    key("Escape")
+    gui.canvas_keys("Escape")
     return line
 
 
@@ -888,7 +844,7 @@ def rung_transforms():
         gaps = [round(angs[(i + 1) % 6] - angs[i], 9) % 360.0 for i in range(6)]
         gui.check("transforms: and they are 60 deg apart all the way round, to 1e-9",
                   all(abs(g - 60.0) < 1e-9 for g in gaps), f"gaps {gaps}")
-    leave()
+    gui.cancel_and_clear()
 
 
 # ---------------------------------------------------------------- a label opens the field again
@@ -931,10 +887,10 @@ def rung_label():
     gui.click_mm(*inside((w / 2.0, -30)))
     if until(gui.value_field) is None:
         raise AssertionError("the rectangle opened no value field")
-    key("Escape")
+    gui.canvas_keys("Escape")
     if not until(lambda: gui.value_field() is None):
         raise AssertionError("Esc left the rectangle's value field open")
-    key("Escape")
+    gui.canvas_keys("Escape")
     if not until(lambda: gui.sketch()["tool"] == "select"):
         raise AssertionError(f"Esc left the tool {gui.sketch()['tool']} armed")
 
@@ -991,12 +947,6 @@ def ok_text(s):
         raise AssertionError("the Text dialog is still open after OK")
 
 
-def feature_names():
-    """The design's features by name, from design_describe, which passes the Design commands' gate and so
-    reads the design as loaded from the model's copy of it."""
-    return [f["name"] for f in gui.cad("design_describe")["features"]]
-
-
 def rung_art():
     """O7: Text and SVG, the two verbs that go through a dialog.
 
@@ -1014,17 +964,17 @@ def rung_art():
     gui.enter_sketch()
     x0, x1, y0, y1, cx, cy = safe_box()
     free = (cx, y1 - (y1 - y0) * 0.10)
-    before = feature_names()
+    before = gui.feature_names()
     choose(gui.offer(*free), *free, "sketch_text")
     if not until(text_dialog_shown):
         raise AssertionError(f"choosing sketch_text opened no Text dialog: windows {gui.modeless()}")
     ok_text("LT")
-    added = feature_names()
+    added = gui.feature_names()
     gui.check("art: OK in the Text dialog adds the text to the design", len(added) == len(before) + 1,
               f"features {added}, before the text {before}")
     gui.press("Cancel")  # the ribbon's Cancel, on the Insert step
-    until(lambda: feature_names() == before)
-    left = feature_names()
+    until(lambda: gui.feature_names() == before)
+    left = gui.feature_names()
     gui.check("art: the ribbon's Cancel after OK leaves no text, read back through design_describe", left == before,
               f"features {left}, before the text {before}")
 
@@ -1073,7 +1023,7 @@ def rung_art():
             gui.client.call("dialog_auto_answer", rules=[])
         except Exception as e:  # reported, so that it does not hide an error from the choice
             gui.check("art: the Import SVG rule is cleared", False, f"{type(e).__name__}: {e}")
-    ls, lp = ents("line"), loops()
+    ls, lp = ents("line"), gui.closed_loops()
     gui.check("art: the imported path is 4 lines and 1 closed loop", len(lp) == 1 and len(ls) == 4,
               f"{len(ls)} lines, {len(lp)} closed loop(s)")
     if ls:
@@ -1085,7 +1035,7 @@ def rung_art():
         # up, a ratio of 1.999999811. What the sketcher draws itself is exact to 1e-9.
         gui.check("art: and its proportions survived the import, 2:1 to 1e-6", abs(w / h - 2.0) < 1e-6,
                   f"{w:.9f} x {h:.9f} = {w / h:.9f}")
-    leave()
+    gui.cancel_and_clear()
 
 
 # Every sketch verb the rungs drive from the offer, by id, kept as data so that coverage can check

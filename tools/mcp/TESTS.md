@@ -1,7 +1,7 @@
 # MCP sweep tests
 
 The design of the tests `run_sweep.py` runs. This file holds the rules every test follows, the grades, and the index
-of all tests. Each test's entry is in its area's file under `test-entries/`: what the test checks, how it decides
+of the areas. Each test's entry is in its area's file under `test-entries/`: what the test checks, how it decides
 pass or fail, what it leaves unchecked, and how far its verdict can be trusted. Change an entry first, before its
 test is written or changed.
 
@@ -57,8 +57,8 @@ A test decides by comparing the app's state with values its entry writes down be
   project or the print, add one check through the file: save and reopen the project, or read the G-code.
 
 An entry is ready for review when every step has its expected state, and every value a step leaves that nothing
-checks appears under **Not checked** with the reason. An entry is written before its test exists; the table of all
-tests lists the ones the sweep runs.
+checks appears under **Not checked** with the reason. An entry is written before its test exists; `sweep.json` lists
+the tests the sweep runs.
 
 ### Sharing an app and a data folder
 
@@ -148,78 +148,83 @@ left to go; and `app_state`'s `closed_menus`, of which a test reads those closed
 
 ### The shared check module
 
-`checks.py` holds what the tests use to apply the rule, so that it is applied in one place:
-
-- `Checks` collects named checks, prints `ok <name>` or `FAIL <name>: <detail>` for each, and gives the test's exit
-  code. A failed check lets the test go on. `Checks.scenario(name, fn)` runs one scenario: an exception fails that
-  scenario under its name, and the next scenario still runs.
-- `refused(call, code=None, words=None)` passes only when the call is refused with exactly that code, or, for a
-  refusal without one, with text that holds those words; it returns the refusal's text.
-- `run(client, tool, **args)` makes a call and follows its job to the end, and fails at once, naming the dialog,
-  when a dialog the test does not answer holds the call.
-- `wait(client, condition, timeout_s)` makes one `app_wait` and fails when it runs out of time.
-- `until(fn, what, timeout_s=30, interval_s=0.5)` is how a test waits for anything else: it calls `fn` at once and
-  then every `interval_s` until `fn` returns something true, and returns that; when `timeout_s` passes it raises,
-  naming `what` and `fn`'s last return, so that a failure says what never happened and what was seen instead. The
-  Design tab's helpers in `cad_gui.py` check every 0.05 s, since a click there takes effect within a frame or two.
-- `start(client, printer=KLIPPER, process=None, filaments=None, colours=None)` puts the app in [the
-  baseline](#the-baseline) with `printer` selected, installed first with `printer_install` when the data folder
-  lacks it, then `process` (default: the printer's default process), then one filament slot per name in `filaments`
-  (default: the printer's default filament), each slot coloured from `colours` (default: `SLOT_COLOURS`). Any mixed
-  filament slot an earlier test left goes first, after adding a slot where one physical slot is left, beside which
-  the sidebar deletes no mix, and each switch discards unsaved preset changes. It returns `presets()`, which the
-  test compares with the start its entry writes out. `KLIPPER`, `KLIPPER_STD` and `GENERIC_PLA` name the default
-  printer's three presets; `X1C`, `X1C_STD` and `BAMBU_PLA` the Bambu Lab X1 Carbon 0.4 nozzle's.
-- `add_slot(client, colour)` adds a filament slot as the sidebar's Add does and gives it `colour`, read back. A
-  scenario adds slots with it, never with `filament_add` alone: the colour `filament_add` gives is the next of a
-  palette the app's run cycles through, so it depends on how many slots the run added before, and a slot's purge,
-  and so the prime tower's size, follows its colour.
-- `dial_pick(client, title, canvas=SCENE_CANVAS)` opens the Speed Dial with Space and picks the action titled
-  `title` as a person's click does, once the dial shows and its page answers; `speed_dial(client)` is the dial as
-  `window_list` lists it.
-- `menus_left(state, since)` is the part of `app_state`'s `closed_menus` closed after `since`: the list keeps the
-  app's run's last three menus, an earlier test's among them, so a test checks the ones its own calls left.
-- Readers give the state a scenario checks in a fixed shape, such as `plates()`: a list of `{name, current, locked,
-  objects}`, one per plate, and `presets()`: `{printer, process, filaments}`, the selected presets' names with one
-  filament per slot.
+`checks.py` holds what the tests use to apply the rule, so that it is applied in one place: `Checks`, which
+collects named checks and scenarios and gives the test's exit code; the helpers for refusals, calls and waits;
+`start()`, which puts the app in [the baseline](#the-baseline); the steps a person takes that scenarios share, such
+as `add_slot()` and `dial_pick()`; `launched()` for a test that starts apps of its own; and readers that give the
+state a scenario checks in a fixed shape, such as `plates()` and `presets()`. Each one's docstring says what it
+takes, does and returns.
 
 ## How the sweep decides
 
-**The runner.** `run_sweep.py` runs the entries of `sweep.json` on `-j` jobs at once. Each job has one data folder
-and one app for all its tests: the first launch seeds the folder with the default printer, and the app, launched
-with `--cad --unrestricted-scripts`, runs the job's tests one after another. Before each test the runner checks
-that the app answers and launches it again on the folder when it does not: after a crash, after a test that closed
-it, or after the runner killed it for a test that ran past its time limit. A test whose checks need a newly
-started app has `"launch": "fresh"` in `sweep.json`, and the runner launches the app again before it; a test that
-starts apps of its own has `"launch": "own"` and runs them on folders of its own. Each test has a folder of its own
-for its session file, temporary files and working folder. The job's app has its temporary files and working folder
-in the job's folder instead, since it outlives the test that launched it, whose folder goes when that test passes.
-The longest tests, by their last passing time in the history file, start first, and tests that hold the same lock
-never overlap. `--shuffle SEED` orders them at random instead and prints the seed, so that an order that fails can
-be run again.
+**The runner.** `run_sweep.py` runs the tests `sweep.json` lists, the `test_*.py` files beside it, on `-j` jobs at
+once: half the cores, up to six, by default. A test file `sweep.json` does not list, or an entry whose file is missing
+or is not a test, stops the run before anything starts, so a new test is never skipped by accident. Each job has one
+data folder and one app for all its tests, under `--out` (by default a new `orca-sweep-<time>` folder in the temporary
+folder): the first launch seeds `job-<n>/datadir` with the default printer, and the app, launched with `--cad
+--unrestricted-scripts`, runs the job's tests one after another, each finding the app and the data folder as the tests
+before it left them (see Sharing an app and a data folder). Each launch serves on a port of its own, from 14100 up or
+from `--first-port`, so that two sweeps can run side by side, and the app's session file (`ORCA_MCP_SESSION`) is
+`job-<n>/session.json`.
+
+Before each test the runner checks that the app answers an MCP call, and launches it again on the folder when it
+does not: after a crash, after a test that closed it, or after the runner stopped it for a test that ran past its
+time limit. It also launches it again for a test marked `"launch": "fresh"`, whose checks need a newly started app;
+after a test's `setup` step, which runs with the app stopped; and for a test whose `env` differs from the one the
+app was launched with. Before a launch it waits for the last app's processes, its WebView2 ones included, to end. A
+test that starts apps of its own has `"launch": "own"` and runs them on folders of its own. Each test runs in a
+folder of its own under `--out`, with its own temporary folder (`TMPDIR`, `TMP`, `TEMP`) and an empty working
+folder, and leaves `test.log` there. The job's app has its temporary folder and working folder in the job's folder
+instead (`job-<n>/app-tmp`, `job-<n>/app-cwd`), since it outlives the test that launched it, whose folder goes when
+that test passes. The longest tests, by their last passing time in `--history` (`~/.cache/orca-mcp/sweep-times.json`
+by default), start first, and tests that hold the same lock never overlap. `--shuffle SEED` orders them at random
+from `SEED` instead and names the seed on the first line, so that an order that fails can be run again;
+`--shuffle` alone picks a seed.
 
 The serial tests, those `sweep.json` marks `exclusive`, run after the rest, one at a time with nothing else
-running, on a job of their own. A test that fails while other tests run is run again in that phase, alone, in a new
-app on the data folder it failed on, so that a failure that follows from what an earlier test left in the folder
-fails again, and one that follows from the load passes. A test that passes alone counts as passed, and the summary
-lists it as `passed alone`.
+running, on a job of their own. A test that fails while other tests run is run again in that phase, alone, in a
+new app on the data folder it failed on, so that a failure that follows from what an earlier test left in the
+folder fails again, and one that follows from the load passes. A test that passes alone counts as passed, and the
+summary lists it as `passed alone`.
 
 A test passes when its process exits 0. A failed setup or launch, a run past its time limit (900 s unless the
-entry sets `timeout_s`), or an error running the test fails it, and so does a test left without a result. On macOS
-a new OrcaSlicer crash report fails the run. A test during which the app dies fails, since its calls go unanswered,
-and the next test on the job starts a new app. When a job's last test ends, the runner's `stop` ends its app
-(`TerminateProcess` on Windows, `SIGTERM` elsewhere) and waits until the app's processes, its WebView2 ones
-included, are gone, so that two apps never hold one folder; it ignores how the app exited, so a crash while the app
-closes fails nothing on Windows or Linux, and only the tests that close the app themselves see it.
+entry sets `timeout_s`), or an error running the test fails it, and so does a test left without a result, so a
+run that leaves one never exits 0. A test that runs out of time is interrupted as Ctrl-C would, so that its own
+cleanup closes the apps it started (on Windows its process tree is ended), and the job's app is stopped, so that
+the next test gets a new one. On macOS a new OrcaSlicer crash report fails the run. A test during which the app dies
+fails, since its calls go unanswered, and the next test on the job starts a new app. When a job's last test ends,
+the runner's `stop` ends its app (`TerminateProcess` on Windows, `SIGTERM` elsewhere) and waits until the app's
+processes, its WebView2 ones included, are gone, so that two apps never hold one folder; it ignores how the app
+exited, so a crash while the app closes fails nothing on Windows or Linux, and only the tests that close the app
+themselves see it.
 
 A passing run's folder is deleted as soon as it passes. A failed run's folder is kept with a copy of the app's
 log from the job's data folder, also when the test then passes alone, and so is the data folder of a job one of
-whose tests failed; the other data folders are deleted at the end, and `--keep` keeps everything. `results.jsonl` records each run of each test with
-its job and the tests that ran before it on that job's data folder, so that a failure can be traced to what they
-left. Tests that start their own app (`"launch": "own"`) start it on data folders of their own, with their own
-environment, so on Linux they don't follow the X11 default. With `--headless` or `--xvfb` the runner starts a private
-display for each such test, which its apps inherit through that environment, so they stay off the desktop too. CI
-runs the sweep with `--xvfb` on the x86_64 Linux AppImage of each Build all run (`.github/workflows/mcp_sweep.yml`).
+whose tests failed; the other data folders are deleted at the end, and `--keep` keeps everything.
+`results.jsonl` in `--out` records each run of each test with its job, its phase (`pool`, `serial` or `alone`),
+the tests that ran before it on that job's data folder, so that a failure can be traced to what they left, and
+`launch_seconds` when the run launched the job's app. Tests that start their own app (`"launch": "own"`) start it
+on data folders of their own, with their own environment, so on Linux they don't follow the X11 default. With
+`--headless` or `--xvfb` the runner starts a private display for each such test, which its apps inherit through
+that environment, so they stay off the desktop too.
+
+**A test's entry in `sweep.json`** has these keys:
+
+- `path`: the test, relative to `tools/mcp`.
+- `launch`: `app` (the default; the test runs in the job's app), `fresh` (the runner launches a new app for the
+  test, which the tests after it then run in), `own` (the test starts its own apps on data folders of its own,
+  and the job's app is left as it is) or `none` (no app).
+- `setup`: arguments for a run of the test's own file before the test; for a test in the job's app it runs with
+  the app stopped, and a new app is launched after it. `args`: the test's arguments. Both fill in `{bin}` and
+  `{datadir}`.
+- `env`: variables for the test and, for a test in the job's app, for the launch: a test whose `env` differs from
+  the one the job's app was launched with gets a new app launched with it.
+- `exclusive`, `locks`, and `why`, which each of them needs: what the test shares with others. An exclusive test
+  runs in the serial phase.
+- `timeout_s`: how long the test may run (900 by default).
+
+`sweep.json` is the only place a test's values are kept; an entry in `test-entries/` names one only to say why
+the test needs it.
 
 **Replays a test runs.** A test that runs a replay with `replay_run` reads its `passed`, which is true when every
 step was ok. A step is ok
@@ -252,68 +257,25 @@ Each entry ends with one of three grades:
 
 ## Areas
 
-Each area's tests are designed in a file of their own under `test-entries/`. A test not yet in `sweep.json` has its
-entry there before it is written.
+Each area's tests are designed in a file of their own under `test-entries/`, one heading per test, written exactly
+`` ## `test_<name>` ``. A test not yet in `sweep.json` has its entry there before it is written. `test_run_sweep` checks this index:
+each test `sweep.json` lists has exactly one heading, and the table links each area file once. The table has one
+form, which the check holds it to: the heading written exactly `## Areas`, a `| Area |` header, a `|---|` row, then
+one `| [Area](test-entries/<file>.md) |` row per area, unindented, with no comment or fenced block in the section.
 
-| Area | Python tests |
-|---|---|
-| [Plates and objects](test-entries/objects.md) | [`test_objects`](test-entries/objects.md#test_objects) |
-| [Presets and calibration](test-entries/presets.md) | [`test_presets`](test-entries/presets.md#test_presets) |
-| [Filaments and settings](test-entries/filaments_settings.md) | [`test_filaments`](test-entries/filaments_settings.md#test_filaments), [`test_settings`](test-entries/filaments_settings.md#test_settings) |
-| [Project files, imports and exports](test-entries/files.md) | [`test_files`](test-entries/files.md#test_files) |
-| [Slicing, layers and the Preview](test-entries/slice_preview.md) | [`test_slice_preview`](test-entries/slice_preview.md#test_slice_preview) |
-| [Gizmos and canvas input](test-entries/gizmos.md) | [`test_gizmos`](test-entries/gizmos.md#test_gizmos) |
-| [GUI automation tools](test-entries/gui_tools.md) | [`test_gui_tools`](test-entries/gui_tools.md#test_gui_tools), [`test_recording`](test-entries/gui_tools.md#test_recording), [`test_call_forms`](test-entries/gui_tools.md#test_call_forms) |
-| [Commands, preferences, installs and plugins](test-entries/commands.md) | [`test_speed_dial`](test-entries/commands.md#test_speed_dial), [`test_menu_items_refusals`](test-entries/commands.md#test_menu_items_refusals), [`test_additions_refusals`](test-entries/commands.md#test_additions_refusals), [`test_person_forms`](test-entries/commands.md#test_person_forms), [`test_preferences`](test-entries/commands.md#test_preferences), [`test_install_printers`](test-entries/commands.md#test_install_printers), [`test_install_filaments`](test-entries/commands.md#test_install_filaments), [`test_plugin_commands`](test-entries/commands.md#test_plugin_commands), [`test_plugin_tools`](test-entries/commands.md#test_plugin_tools), [`test_operation_routes`](test-entries/commands.md#test_operation_routes) |
-| [Windows, views, printers and web pages](test-entries/windows_web.md) | [`test_printers`](test-entries/windows_web.md#test_printers), [`test_project_open_settings`](test-entries/windows_web.md#test_project_open_settings), [`test_sidebar_floating`](test-entries/windows_web.md#test_sidebar_floating), [`test_set_window`](test-entries/windows_web.md#test_set_window), [`test_set_view_camera`](test-entries/windows_web.md#test_set_view_camera), [`test_speed_dial_open`](test-entries/windows_web.md#test_speed_dial_open), [`test_send_gcode`](test-entries/windows_web.md#test_send_gcode), [`test_web_ui`](test-entries/windows_web.md#test_web_ui) |
-| [Runtime, command line and harness](test-entries/runtime.md) | [`test_runtime_lifecycle`](test-entries/runtime.md#test_runtime_lifecycle), [`test_stdio_bridge`](test-entries/runtime.md#test_stdio_bridge), [`test_orca_mcp_attach`](test-entries/runtime.md#test_orca_mcp_attach), [`test_run_sweep`](test-entries/runtime.md#test_run_sweep), [`test_runtime_calls`](test-entries/runtime.md#test_runtime_calls), [`test_export_running_job`](test-entries/runtime.md#test_export_running_job) |
-| [Design tab](test-entries/design.md) | [`test_cad_replays`](test-entries/design.md#test_cad_replays), [`test_cad_failed_job`](test-entries/design.md#test_cad_failed_job), [`test_cad_commands`](test-entries/design.md#test_cad_commands), [`test_cad_sketching`](test-entries/design.md#test_cad_sketching), [`test_cad_context_menu`](test-entries/design.md#test_cad_context_menu) |
-
-## All tests
-
-The 39 tests `sweep.json` lists: 29 Strong, 10 Partial.
-
-| Test | Area | Kind | Strength |
-|---|---|---|---|
-| [`test_objects`](test-entries/objects.md#test_objects) | [Plates and objects](test-entries/objects.md) | Python | Strong |
-| [`test_presets`](test-entries/presets.md#test_presets) | [Presets and calibration](test-entries/presets.md) | Python | Strong |
-| [`test_filaments`](test-entries/filaments_settings.md#test_filaments) | [Filaments and settings](test-entries/filaments_settings.md) | Python | Strong |
-| [`test_settings`](test-entries/filaments_settings.md#test_settings) | [Filaments and settings](test-entries/filaments_settings.md) | Python | Strong |
-| [`test_files`](test-entries/files.md#test_files) | [Project files, imports and exports](test-entries/files.md) | Python | Strong |
-| [`test_slice_preview`](test-entries/slice_preview.md#test_slice_preview) | [Slicing, layers and the Preview](test-entries/slice_preview.md) | Python | Strong |
-| [`test_gizmos`](test-entries/gizmos.md#test_gizmos) | [Gizmos and canvas input](test-entries/gizmos.md) | Python | Strong |
-| [`test_gui_tools`](test-entries/gui_tools.md#test_gui_tools) | [GUI automation tools](test-entries/gui_tools.md) | Python | Strong |
-| [`test_recording`](test-entries/gui_tools.md#test_recording) | [GUI automation tools](test-entries/gui_tools.md) | Python | Strong |
-| [`test_call_forms`](test-entries/gui_tools.md#test_call_forms) | [GUI automation tools](test-entries/gui_tools.md) | Python | Strong |
-| [`test_speed_dial`](test-entries/commands.md#test_speed_dial) | [Commands, preferences, installs and plugins](test-entries/commands.md) | Python | Partial |
-| [`test_menu_items_refusals`](test-entries/commands.md#test_menu_items_refusals) | [Commands, preferences, installs and plugins](test-entries/commands.md) | Python | Strong |
-| [`test_additions_refusals`](test-entries/commands.md#test_additions_refusals) | [Commands, preferences, installs and plugins](test-entries/commands.md) | Python | Strong |
-| [`test_person_forms`](test-entries/commands.md#test_person_forms) | [Commands, preferences, installs and plugins](test-entries/commands.md) | Python | Strong |
-| [`test_preferences`](test-entries/commands.md#test_preferences) | [Commands, preferences, installs and plugins](test-entries/commands.md) | Python | Strong |
-| [`test_install_printers`](test-entries/commands.md#test_install_printers) | [Commands, preferences, installs and plugins](test-entries/commands.md) | Python | Strong |
-| [`test_install_filaments`](test-entries/commands.md#test_install_filaments) | [Commands, preferences, installs and plugins](test-entries/commands.md) | Python | Strong |
-| [`test_plugin_commands`](test-entries/commands.md#test_plugin_commands) | [Commands, preferences, installs and plugins](test-entries/commands.md) | Python | Strong |
-| [`test_plugin_tools`](test-entries/commands.md#test_plugin_tools) | [Commands, preferences, installs and plugins](test-entries/commands.md) | Python | Partial |
-| [`test_operation_routes`](test-entries/commands.md#test_operation_routes) | [Commands, preferences, installs and plugins](test-entries/commands.md) | Python | Partial |
-| [`test_printers`](test-entries/windows_web.md#test_printers) | [Windows, views, printers and web pages](test-entries/windows_web.md) | Python | Strong |
-| [`test_project_open_settings`](test-entries/windows_web.md#test_project_open_settings) | [Windows, views, printers and web pages](test-entries/windows_web.md) | Python | Strong |
-| [`test_sidebar_floating`](test-entries/windows_web.md#test_sidebar_floating) | [Windows, views, printers and web pages](test-entries/windows_web.md) | Python | Strong |
-| [`test_set_window`](test-entries/windows_web.md#test_set_window) | [Windows, views, printers and web pages](test-entries/windows_web.md) | Python | Partial |
-| [`test_set_view_camera`](test-entries/windows_web.md#test_set_view_camera) | [Windows, views, printers and web pages](test-entries/windows_web.md) | Python | Partial |
-| [`test_speed_dial_open`](test-entries/windows_web.md#test_speed_dial_open) | [Windows, views, printers and web pages](test-entries/windows_web.md) | Python | Partial |
-| [`test_send_gcode`](test-entries/windows_web.md#test_send_gcode) | [Windows, views, printers and web pages](test-entries/windows_web.md) | Python | Strong |
-| [`test_web_ui`](test-entries/windows_web.md#test_web_ui) | [Windows, views, printers and web pages](test-entries/windows_web.md) | Python | Strong |
-| [`test_runtime_lifecycle`](test-entries/runtime.md#test_runtime_lifecycle) | [Runtime, command line and harness](test-entries/runtime.md) | Python | Strong |
-| [`test_stdio_bridge`](test-entries/runtime.md#test_stdio_bridge) | [Runtime, command line and harness](test-entries/runtime.md) | Python | Partial |
-| [`test_orca_mcp_attach`](test-entries/runtime.md#test_orca_mcp_attach) | [Runtime, command line and harness](test-entries/runtime.md) | Python | Strong |
-| [`test_run_sweep`](test-entries/runtime.md#test_run_sweep) | [Runtime, command line and harness](test-entries/runtime.md) | Python | Strong |
-| [`test_runtime_calls`](test-entries/runtime.md#test_runtime_calls) | [Runtime, command line and harness](test-entries/runtime.md) | Python | Partial |
-| [`test_export_running_job`](test-entries/runtime.md#test_export_running_job) | [Runtime, command line and harness](test-entries/runtime.md) | Python | Strong |
-| [`test_cad_replays`](test-entries/design.md#test_cad_replays) | [Design tab](test-entries/design.md) | Python | Partial |
-| [`test_cad_failed_job`](test-entries/design.md#test_cad_failed_job) | [Design tab](test-entries/design.md) | Python | Strong |
-| [`test_cad_commands`](test-entries/design.md#test_cad_commands) | [Design tab](test-entries/design.md) | Python | Partial |
-| [`test_cad_sketching`](test-entries/design.md#test_cad_sketching) | [Design tab](test-entries/design.md) | Python | Strong |
-| [`test_cad_context_menu`](test-entries/design.md#test_cad_context_menu) | [Design tab](test-entries/design.md) | Python | Strong |
+| Area |
+|---|
+| [Plates and objects](test-entries/objects.md) |
+| [Presets and calibration](test-entries/presets.md) |
+| [Filaments and settings](test-entries/filaments_settings.md) |
+| [Project files, imports and exports](test-entries/files.md) |
+| [Slicing, layers and the Preview](test-entries/slice_preview.md) |
+| [Gizmos and canvas input](test-entries/gizmos.md) |
+| [GUI automation tools](test-entries/gui_tools.md) |
+| [Commands, preferences, installs and plugins](test-entries/commands.md) |
+| [Windows, views, printers and web pages](test-entries/windows_web.md) |
+| [Runtime, command line and harness](test-entries/runtime.md) |
+| [Design tab](test-entries/design.md) |
 
 ## What the sweep does not catch
 
@@ -330,6 +292,9 @@ nothing.
 **What the app works out is held to bounds.** Grams, times, adaptive layer profiles, arrangements, frame counts and
 capture times follow the slicer's or the machine's work, so their checks are bounds or properties, and a change that
 stays inside them passes.
+
+**Input does not pass through the window manager.** MCP input reaches the app through wxWidgets, not the OS,
+so a focus problem that only a window manager causes is out of the GUI tests' reach.
 
 **Pictures are compared only with each other.** Screenshots and recordings are checked by their size, their source,
 or how they differ from another capture of the same run, never against a reference picture, so a view that draws

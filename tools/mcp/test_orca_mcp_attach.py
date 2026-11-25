@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Checks how orca_mcp.py attaches to a running OrcaSlicer and calls commands, without the app.
+Its design is the test_orca_mcp_attach entry of tools/mcp/test-entries/runtime.md.
 
     python tools/mcp/test_orca_mcp_attach.py
 
@@ -37,6 +38,7 @@ from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
+from checks import asserts_live, ok, read_conf  # noqa: E402
 from orca_mcp import McpError, OrcaMcp  # noqa: E402
 
 _ROOT = None  # the temporary folder main() makes, which holds every folder the checks make
@@ -45,21 +47,6 @@ _ROOT = None  # the temporary folder main() makes, which holds every folder the 
 def scratch(prefix):
     """A new folder for a check, removed with the rest when main() returns."""
     return tempfile.mkdtemp(prefix=prefix, dir=_ROOT)
-
-
-def ok(name):
-    print(f"ok - {name}")
-
-
-def asserts_live():
-    """Whether Python runs the asserts every other check is, printing the check's line: with them off every check
-    would pass without checking anything."""
-    if sys.flags.optimize > 0:
-        print(f"FAIL - the asserts are live: Python runs with its asserts off (optimize level {sys.flags.optimize}, "
-              "from -O or PYTHONOPTIMIZE)")
-        return False
-    ok("the asserts are live")
-    return True
 
 
 def same_path(a, b):
@@ -294,12 +281,6 @@ def check_reply_budget():
             got = orca_mcp.reply_budget_s()
         assert got == budget, f"{value!r}: {got} != {budget}"
     ok("reply_budget_s() is 45 s, or less where ORCA_MCP_REPLY_BUDGET_MS caps it, read as the app reads it")
-
-
-def read_conf(datadir):
-    with open(os.path.join(datadir, "OrcaSlicer.conf"), encoding="utf-8") as f:
-        text = f.read()
-    return json.loads(text[:text.rfind("}") + 1])
 
 
 def check_seed_datadir():

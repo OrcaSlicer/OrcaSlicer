@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Checks view_set's camera fields, look_at and zoom, on Prepare, Preview and the Design tab, with the
 camera_state the reply gives and app_state.camera.
+Its design is the test_set_view_camera entry of tools/mcp/test-entries/windows_web.md.
 
     tools/mcp/orca_mcp.py launch --cad
     tools/mcp/test_set_view_camera.py

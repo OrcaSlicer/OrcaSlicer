@@ -4,18 +4,7 @@
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_filaments.py
 
-Assigning a filament preset to a slot by each route a person or a plugin has (a pick in the slot's selector, the
-selector's value set, preset_select and the plugin API), with one slot, where the filament tab switches and its
-unsaved-changes prompt applies, and with three, where the Auto-flush preference decides what happens to the flushing
-volumes; then the filaments of objects and parts, one slot merged into another, the slot colours and flushing
-(filament_set_colour, filament_set_flushing) and the project's own settings (project_set_settings), with what reaches
-the print and what the project file keeps; last, the mixed filaments: adding and changing one, from its arguments and
-through its dialog, a mixed slot having no preset or colour of its own, and what deleting or merging a filament that
-a mix mixes does to the mix. After every step the test reads the state back through other tools and compares it with
-the state the entry writes out. Every scenario runs on the Generic Klipper Printer 0.4 from a start of its own
-(checks.start()), the project's own settings with the printer's plate types turned on, so it runs on a data folder and
-in an app earlier tests used; it installs and then uninstalls the filaments it shows by name first, so that the
-selectors start without them. It exits 0 when every check passes.
+Exits 0 when every check passes.
 """
 
 import os
@@ -26,7 +15,7 @@ import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
 from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, SLOT_COLOURS, Checks, add_slot, filament_rows,  # noqa: E402
-                    presets, run, slot_colours, slots, start, wait)
+                    g_text, presets, run, slot_colours, slots, start, wait)
 
 B = GENERIC_PLA
 X = "FilAr PLA Blanco Calido"
@@ -135,10 +124,6 @@ def four(matrix):
     return [m[1], m[3], m[5], m[7]]
 
 
-def g(value):
-    return "%g" % float(value)
-
-
 class FilamentsTest:
     def __init__(self, client, folder):
         self.c = client
@@ -160,7 +145,7 @@ class FilamentsTest:
 
     def matrix(self):
         """filament_list's flush_volumes_matrix, written as the project stores it: `0,777,777,0`."""
-        return ",".join(g(x) for x in self.c.call("filament_list")["flush_volumes_matrix"])
+        return ",".join(g_text(x) for x in self.c.call("filament_list")["flush_volumes_matrix"])
 
     def dialogs(self, message=False):
         """The open dialogs as {title, buttons}, with their message too where `message` asks for it."""
@@ -214,13 +199,13 @@ class FilamentsTest:
         with plate_list's plate 0 added where it disagrees with project_get_settings."""
         listed = self.c.call("filament_list")
         v = self.project_values("curr_bed_type", "wipe_tower_x", "wipe_tower_y")
-        tower = f"{g(v['wipe_tower_x'].split(',')[0])},{g(v['wipe_tower_y'].split(',')[0])}"
+        tower = f"{g_text(v['wipe_tower_x'].split(',')[0])},{g_text(v['wipe_tower_y'].split(',')[0])}"
         plate = self.c.call("plate_list", limit=500)["items"][0]
         out = {"colours": ";".join(row["colour"] for row in listed["filaments"]),
-               "multiplier": ",".join(g(x) for x in listed["flush_multiplier"]),
-               "matrix": ",".join(g(x) for x in listed["flush_volumes_matrix"]),
+               "multiplier": ",".join(g_text(x) for x in listed["flush_multiplier"]),
+               "matrix": ",".join(g_text(x) for x in listed["flush_volumes_matrix"]),
                "bed": v["curr_bed_type"], "tower": tower}
-        plate_tower = ",".join(g(x) for x in plate.get("wipe_tower") or [])
+        plate_tower = ",".join(g_text(x) for x in plate.get("wipe_tower") or [])
         if (plate.get("curr_bed_type"), plate_tower) != (out["bed"], tower):
             out["plate_list"] = f"{plate.get('curr_bed_type')} {plate_tower}"
         return out

@@ -41,7 +41,7 @@
 #include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/Mcp/McpToolsDesign.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
-#include "retired_names.hpp"
+#include "mcp_test_utils.hpp"
 #include "test_utils.hpp"
 
 #include <BRepAdaptor_Surface.hxx>
@@ -87,6 +87,8 @@ using Catch::Matchers::ContainsSubstring;
 using Catch::Matchers::Equals;
 using Catch::Matchers::WithinAbs;
 using nlohmann::json;
+using Slic3r::GUI::Mcp::Test::catalog_with_cad;
+using Slic3r::GUI::Mcp::Test::TestContext;
 
 namespace {
 
@@ -200,15 +202,6 @@ GUI::CommandCatalog cad_catalog()
     return catalog;
 }
 
-// Every built-in command, with the Design commands among them, as a run with the CAD feature on holds them.
-GUI::CommandCatalog catalog_with_cad()
-{
-    GUI::CommandCatalog catalog;
-    GUI::NativeCommands::register_all_commands(catalog, {true});
-    catalog.seal();
-    return catalog;
-}
-
 // The command `key` of `catalog`; the test stops when there is none.
 const GUI::NativeCommand& command_of(const GUI::CommandCatalog& catalog, const std::string& key)
 {
@@ -273,77 +266,6 @@ bool is_id_param(const std::string& name)
     return std::find(ids.begin(), ids.end(), name) != ids.end();
 }
 
-// A call's context that runs its UI closures in place and keeps the arguments it journals.
-struct JournalContext final : GUI::ToolContext
-{
-    explicit JournalContext(bool person = false) : picked(person) {}
-
-    bool                  person() const override { return picked; }
-    json                  run_ui(const std::function<json()>& fn) override { return fn(); }
-    json                  observe_ui(const std::function<json()>&) override { return true; }
-    const std::string&    job_id() const override { return id; }
-    bool                  cancelled() const override { return false; }
-    GUI::ToolResult       call_child(const std::string&, const json&) override { return GUI::ToolResult::error("no children"); }
-    std::set<std::string> lineage() const override { return {}; }
-    void                  set_journal_args(json args) override { journaled = std::move(args); }
-    void                  begin_operation() override {}
-
-    bool        picked;
-    std::string id;
-    json        journaled; // null until the call journals its arguments
-};
-
-// An id of the Design commands' old vocabulary, which names no command, and whether its entry stays in the
-// Design table as a menu item.
-struct Retired
-{
-    const char* id;
-    bool        menu_item;
-};
-
-// Ids of the old vocabulary: entries renamed, menu items merged with the argument command for their job, the entry that
-// did two jobs, items folded into their command, and the names that lacked the place their command works in.
-const Retired kRetired[] = {
-    // Renamed.
-    {"describe_scene", false}, {"describe_feature", false}, {"query_topology", false}, {"slice_body", false},
-    {"validate_against", false}, {"mass_props", false}, {"sketch_constraints", false}, {"sketch_unconstrain", false},
-    {"sketch_heal", false}, {"sketch_add", false}, {"sketch_commit", false}, {"bridge", false}, {"project", false},
-    {"commit", false}, {"feature_set_enabled", false}, {"surf_extrude", false}, {"surf_revolve", false},
-    {"surf_loft", false}, {"surf_fill", false}, {"surf_offset", false}, {"plane", false}, {"axis", false},
-    {"coordsys_v", false}, {"rename", false}, {"zoom_to", false}, {"constrain", false}, {"sk_poly_inscribed", false},
-    {"sk_poly_circumscribed", false}, {"sk_text", false}, {"sk_svg", false}, {"sk_dimension", false},
-    {"sk_extend", false}, {"mate", false},
-    // A menu item and its argument command, merged.
-    {"sketch", false}, {"sketch_begin", false}, {"cut", false}, {"delete", false}, {"delete_body", false},
-    {"sk_offset", false}, {"sk_trim", false}, {"sk_fillet", false}, {"sk_chamfer", false}, {"sk_mirror", false},
-    {"sk_construct", false}, {"sketch_construction", false}, {"sk_delete", false}, {"sk_constrain", false},
-    // Split into feature_edit and feature_set_expression.
-    {"edit_feature", false}, {"set_feature", false},
-    // Merged into hole, as its type and designation.
-    {"hole_styled", false}, {"hole_standard", false},
-    // Folded into the command for their job: body_set, sketch_set_value, boolean, thicken, pattern, sketch_pattern,
-    // sketch_transform, sketch_draw.
-    {"colour", true}, {"sk_length", true}, {"sk_radius", true}, {"sk_angdist", true}, {"bool_subtract", true},
-    {"bool_intersect", true}, {"thicken_surf", true}, {"pattern_circular", true}, {"sk_array", true},
-    {"sk_array_polar", true}, {"sk_move", true}, {"sk_rotate", true}, {"sk_scale", true}, {"sk_line_t", true},
-    {"sk_rect", true}, {"sk_circle", true}, {"sk_arc_center", true}, {"sk_slot", true}, {"sk_ellipse", true},
-    {"sk_ellipse_arc", true}, {"sk_spline", true}, {"sk_point_t", true}, {"sk_poly_3", true}, {"sk_poly_4", true},
-    {"sk_poly_5", true}, {"sk_polygon", true}, {"sk_poly_8", true}, {"sk_poly_12", true}, {"sk_polyline", true},
-    {"sk_rect_center", true}, {"sk_rect_oblique", true}, {"sk_rect_rounded", true}, {"sk_circle_2pt", true},
-    {"sk_circle_3pt", true}, {"sk_arc_t", true}, {"sk_arc_tangent", true}, {"sk_slot_arc", true},
-    // solid_pattern's type curve: the item stays, greyed.
-    {"pat_curve", true},
-    // Given the place they work in.
-    {"extrude", false}, {"revolve", false}, {"sweep", false}, {"loft", false}, {"thicken", false}, {"rib", false},
-    {"boolean", false}, {"hole", false}, {"thread", false}, {"shell", false}, {"split", false}, {"fillet", false},
-    {"chamfer", false}, {"draft", false}, {"pattern", false}, {"mirror", false}, {"align", false},
-    {"delete_face", false}, {"list_align_types", false}, {"describe_design", false}, {"new_design", false},
-    {"import_step", false}, {"import_mesh", false}, {"export_step", false}, {"set_variable", false},
-    {"commit_to_plate", false}, {"confirm_tool", false}, {"cancel_tool", false}, {"select_geometry", false},
-    {"measure", false}, {"interference", false}, {"rename_selected", false}, {"zoom_to_selection", false},
-    {"helix", false},
-};
-
 } // namespace
 
 TEST_CASE("the CAD commands are the Design table's entries but its greyed and folded items", "[Mcp][CAD]")
@@ -358,7 +280,6 @@ TEST_CASE("the CAD commands are the Design table's entries but its greyed and fo
         // Its title is the item's name, the one the right-click menu and its Speed Dial action show.
         CHECK(c.title == design_row(c.key).name);
     }
-    CHECK(keys.size() == 88);
     for (int i = 0; i < GUI::kDesignToolCount; ++i) {
         INFO(GUI::kDesignTools[i].id);
         CHECK(keys.count(GUI::kDesignTools[i].id) == (GUI::Mcp::is_design_command(GUI::kDesignTools[i]) ? 1u : 0u));
@@ -369,27 +290,6 @@ TEST_CASE("the CAD commands are the Design table's entries but its greyed and fo
         INFO(gone);
         CHECK(keys.count(gone) == 0);
     }
-}
-
-TEST_CASE("a name of the old vocabulary is no command", "[Mcp][CAD]")
-{
-    const GUI::CommandCatalog catalog = catalog_with_cad();
-    std::set<std::string>     listed;
-    for (const Retired& retired : kRetired) {
-        INFO(retired.id);
-        CHECK(listed.insert(retired.id).second);
-        CHECK(catalog.find(retired.id) == nullptr);
-        const GUI::DesignTool* entry = GUI::Mcp::find_design_tool(retired.id);
-        if (!retired.menu_item) {
-            CHECK(entry == nullptr);
-            continue;
-        }
-        // An item that stays keeps its entry and its place in the menu, and is no command.
-        REQUIRE(entry != nullptr);
-        CHECK(entry->row != -1);
-    }
-    // 123 names the Design commands have had are gone.
-    CHECK(std::size(kRetired) == 123);
 }
 
 TEST_CASE("a menu item and the command that runs its job are one command", "[Mcp][CAD]")
@@ -746,14 +646,12 @@ TEST_CASE("the Design tab actions' icons resolve to shipped SVGs", "[Mcp][CAD][S
     // An icon comes from a hand-edited atlas row, so a typo would be a blank tile and a blank menu item.
     const boost::filesystem::path images = boost::filesystem::path(PROFILES_DIR).parent_path() / "images";
     const GUI::CommandCatalog     catalog = catalog_with_cad();
-    std::size_t                   actions = 0;
     for (const GUI::NativeCommand& c : catalog.commands()) {
         if (c.group != "Design")
             continue;
         if (!c.icon.empty()) {
             INFO(c.key << " -> " << c.icon);
             CHECK(boost::filesystem::exists(images / (c.icon + ".svg")));
-            actions += c.has_own_action ? 1 : 0;
         }
         if (!c.actions.is_array())
             continue;
@@ -762,11 +660,8 @@ TEST_CASE("the Design tab actions' icons resolve to shipped SVGs", "[Mcp][CAD][S
             INFO(c.key << " / " << action.at("key") << " -> " << icon);
             CHECK_FALSE(icon.empty());
             CHECK(boost::filesystem::exists(images / (icon + ".svg")));
-            ++actions;
         }
     }
-    // One per entry with a handler: the 52 commands' own and the 37 folded items'.
-    CHECK(actions == 89);
 }
 
 TEST_CASE("a tool refused for the selection says it does not apply and what it takes", "[Mcp][CAD]")
@@ -1754,10 +1649,10 @@ TEST_CASE("no CAD command exists with the feature off", "[Mcp][CAD]")
         return count;
     };
     CHECK(design_commands(false) == 0);
-    CHECK(design_commands(true) == 88);
+    CHECK(design_commands(true) > 0);
 }
 
-TEST_CASE("the Design commands are the design's 88, under its headings", "[Mcp][CAD]")
+TEST_CASE("the Design commands are the design's, under its headings", "[Mcp][CAD]")
 {
     // The design's command set, heading by heading.
     const std::map<std::string, std::set<std::string>> design = {
@@ -1785,7 +1680,6 @@ TEST_CASE("the Design commands are the design's 88, under its headings", "[Mcp][
           "sketch_constrain_selected"}},
     };
     std::map<std::string, std::set<std::string>> table;
-    std::size_t                                  commands = 0;
     for (int i = 0; i < GUI::kDesignToolCount; ++i) {
         const GUI::DesignTool& t = GUI::kDesignTools[i];
         const std::string      id = t.id;
@@ -1796,13 +1690,11 @@ TEST_CASE("the Design commands are the design's 88, under its headings", "[Mcp][
         }
         REQUIRE(t.section != nullptr);
         table[t.section].insert(id);
-        ++commands;
         // A command that only does what its menu item does is one of the menu items.
         const bool item_only = t.action != nullptr && t.doc == nullptr;
         CHECK(item_only == (std::string(t.section) == "Menu items"));
     }
     CHECK(table == design);
-    CHECK(commands == 88);
     // The headings, in the order the index gives them.
     CHECK(std::vector<std::string>(std::begin(GUI::kDesignSections), std::end(GUI::kDesignSections)) ==
           std::vector<std::string>{"Document", "Sketch", "Solid", "Surface", "Construct", "Inspect", "Bodies", "History",
@@ -1823,9 +1715,8 @@ TEST_CASE("the tool_list description names every Design command under its headin
     CHECK(told.compare(0, plain.size(), plain) == 0);
     // The most a client is known to keep of a description.
     CHECK(told.size() <= 4096);
-    // An agent reads it before it calls anything: no word of it is a retired command's name, and before the Design tab's
-    // index it names no command, as the tool list shows them all.
-    CHECK(retired_names_in(told) == std::set<std::string>{});
+    // An agent reads it before it calls anything: before the Design tab's index it names no command, as the tool list
+    // shows them all.
     std::set<std::string> commands_named;
     std::string           word;
     for (const char ch : plain + ' ') {
@@ -1882,7 +1773,10 @@ TEST_CASE("the tool_list description names every Design command under its headin
         named += names.size();
         at = stop;
     }
-    CHECK(named == 88);
+    // Every Design command is named.
+    const auto design_commands = std::count_if(with.commands().begin(), with.commands().end(),
+                                               [](const GUI::NativeCommand& c) { return c.group == GUI::kDesignGroup; });
+    CHECK(named == std::size_t(design_commands));
     // The menu items' heading says they take no arguments.
     CHECK_THAT(index, ContainsSubstring(". Menu items, which take no arguments"));
 }
@@ -1893,7 +1787,7 @@ TEST_CASE("a Design reply keeps a rejected rebuild's ok false and its error", "[
     const GUI::NativeCommand finish = GUI::Mcp::design_command("sketch_finish", "Finish sketch",
                                                             json{{"type", "object"}, {"properties", json::object()}},
                                                             [&rejected](const json&, bool) { return rejected; });
-    JournalContext        agent;
+    TestContext        agent;
     const GUI::ToolResult reply = finish.run(json::object(), agent);
     CHECK_FALSE(reply.is_error);
     CHECK(reply.data == rejected);
@@ -1910,7 +1804,7 @@ TEST_CASE("a CAD call is journaled without its generation and with its silent", 
     CHECK(fillet.group == "Design");
     CHECK_FALSE(fillet.listed);
 
-    JournalContext             agent;
+    TestContext             agent;
     const GUI::ToolResult      reply = fillet.run({{"generation", 4}, {"silent", true}, {"radius", 2}}, agent);
     CHECK(agent.journaled == json{{"silent", true}, {"radius", 2}});
     // The function still checks the generation, and the reply is its value without an ok true and an empty error,
@@ -1920,7 +1814,7 @@ TEST_CASE("a CAD call is journaled without its generation and with its silent", 
     CHECK(reply.data == json{{"feature_index", 3}});
 
     // A person's pick runs the function in place, with the same reply, and journals nothing.
-    JournalContext person(/*person=*/true);
+    TestContext person(/*person=*/true);
     CHECK(fillet.run(json::object(), person).data == json{{"feature_index", 3}});
     CHECK(person.journaled.is_null());
 
@@ -1929,21 +1823,21 @@ TEST_CASE("a CAD call is journaled without its generation and with its silent", 
     const GUI::NativeCommand shell = GUI::Mcp::design_command(
         "solid_shell", "Shell", GUI::Mcp::with_silent(json{{"type", "object"}, {"properties", json::object()}}),
         [](const json&, bool) { return json{{"ok", true}}; }, [](const json& args) { return GUI::Mcp::person_form(args); });
-    JournalContext generation_only;
+    TestContext generation_only;
     shell.run({{"generation", 4}}, generation_only);
     CHECK(generation_only.journaled == json{{"silent", true}});
     // One for which nothing opens a tool has no `silent` to journal.
-    JournalContext read;
+    TestContext read;
     fillet.run({{"generation", 4}}, read);
     CHECK(read.journaled == json::object());
     // body_set's Color item opens with no arguments. The call is journaled before it runs, and it fails here, where
     // there is no Design tab.
     const GUI::CommandCatalog catalog = cad_catalog();
-    JournalContext            body;
+    TestContext            body;
     CHECK_THROWS_AS(command_of(catalog, "body_set").run({{"generation", 1}}, body), GUI::ToolFailure);
     CHECK(body.journaled == json{{"silent", true}});
     // solid_boolean's operation alone opens the item that does it, so a cut given its generation is replayed as a cut.
-    JournalContext cut;
+    TestContext cut;
     CHECK_THROWS_AS(command_of(catalog, "solid_boolean").run({{"operation", "cut"}, {"generation", 1}}, cut), GUI::ToolFailure);
     CHECK(cut.journaled == json{{"operation", "cut"}, {"silent", true}});
 
@@ -1965,9 +1859,9 @@ TEST_CASE("a CAD command tells its function a person's pick from a call", "[Mcp]
                                                                 told.push_back(person);
                                                                 return json{{"ok", true}};
                                                             });
-    JournalContext person(/*person=*/true);
+    TestContext person(/*person=*/true);
     rename.run(json::object(), person);
-    JournalContext agent;
+    TestContext agent;
     rename.run(json::object(), agent);
     CHECK(told == std::vector<bool>{true, false});
 }

@@ -69,7 +69,8 @@ struct NativeCommand
     // group. input is the Speed Dial's token for the value its second phase collects ("percent", "tab"), which the
     // action passes on under input_arg, the command's argument, or under the token where it has no input_arg.
     nlohmann::json actions;
-    // shown in tools/list: every command outside the Design tab that runs from its arguments, all but three menu items
+    // shown in tools/list: every command outside the Design tab that runs from its arguments, all but the menu items
+    // that take none
     bool listed         = false;
     bool has_own_action = false; // a person can pick it: it has an action of its own, under its key
     // The access labels sent as MCP's annotations. Clients act on them: Codex asks a person before every call

@@ -5,33 +5,6 @@ tools/mcp/test-entries/runtime.md designs them.
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_runtime_calls.py
 
-Each part starts from start() on the Generic Klipper Printer 0.4 nozzle and checks it, and the parts run in this
-order:
-- Recovery under load, first, while the server has no connections or blocking slots in use: with Preferences open
-  in a running job, 32 `app_wait` calls block on it (every blocking slot) and 32 more connections sit idle or
-  half-sent, which fills the server's 64 connections. A `dialog_answer` on a new connection must still close the
-  dialog, and the waits must then return.
-- A slice requested right after a setting change waits for the update the change scheduled (half a second) before
-  it starts. A cancel sent during that wait, as soon as app_state lists the slice's job, keeps it from starting: the
-  slice reports its plate cancelled, Prepare stays shown (a slice that starts shows the Preview) and the plate stays
-  unsliced, so its G-code export is refused as plate_not_sliced. A slice made afterwards is the control: it shows the
-  Preview, slices the plate and exports.
-- The Run Script panel stays out of reach of the GUI tools, so a script can't act on the panel that runs it. The
-  panel is first seen up: the 3D view is shorter once it docks under it. With it shown on Prepare, widget_list lists
-  no more web views than before, webview_run_javascript without a target behaves as before, keyboard_press without
-  a target reaches the 3D view, a window screenshot works and an agent's script_run finishes. replay_run still runs
-  smoke_test.json, and a replay nesting an inline replay_run passes.
-- Two ImGui refs outlive a change to what they were taken by. The Text gizmo's font button shows the font, so its
-  label changes with every pick: one ref is used for two picks, the first to a font other than the one shown. Texture
-  Displacement names its collapsed layer rows by place: a ref to "Layer 2" is clicked after the first layer is
-  removed, when that row is "Layer 1", and must open the layer it was taken for. The exported session finds each item
-  by what it is at each step, so replaying it passes.
-- An arrange holds the UI job worker. It is started three ways: `object_arrange` with arguments, `action_run
-  obj_arrange`, and a click on the Arrange options panel's Arrange button, a recover input. Once a change that moves
-  nothing is refused as "Busy: job", an `object_transform`, `keyboard_press Delete` on the canvas and a GL toolbar
-  click are refused and `object_list` answers; `job_cancel` stops it, the call reports it cancelled, and a change is
-  admitted once the worker is idle.
-
 A part that raises fails under its name, and the next part still runs. Exits 0 when every check passes.
 """
 

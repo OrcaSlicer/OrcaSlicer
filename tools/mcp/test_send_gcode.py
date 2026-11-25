@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Checks printing and sending through a print host: printer_send's Speed Dial action (send_gcode), printer_send with
 plates, print_start and printer_test_host, read back through app_state.uploads, the open dialogs and an OctoPrint stub
-host. The design is tools/mcp/test-entries/windows_web.md, test_send_gcode.
+host.
+Its design is the test_send_gcode entry of tools/mcp/test-entries/windows_web.md.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_send_gcode.py
@@ -27,15 +28,14 @@ import http.server
 import json
 import os
 import re
-import socket
 import sys
 import tempfile
 import threading
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, dialogs, plates, start, undo_steps, unsaved,  # noqa: E402
-                    until, wait)
+from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, dialogs, free_port, plates, start,  # noqa: E402
+                    undo_steps, unsaved, until, wait)
 
 MODEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "resources", "handy_models", "OrcaCube_v2.drc")
 SEND = "orca_command:send_gcode:orca"
@@ -110,13 +110,6 @@ class StubHost:
         self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         self.port = self.server.server_address[1]
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
-
-
-def closed_port():
-    """A loopback port nothing listens on: one the system gave out and that was closed again."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
 
 
 def current_plate(client):
@@ -303,7 +296,8 @@ def main():
     close_error_dialog(client)
 
     # ---- A port nothing listens on ----
-    client.call("settings_set", type="printer", values={"print_host": f"127.0.0.1:{closed_port()}"})
+    # free_port() is a port the system handed out and closed again, so no host answers on it.
+    client.call("settings_set", type="printer", values={"print_host": f"127.0.0.1:{free_port()}"})
     tested = client.call("printer_test_host")
     t.check("printer_test_host on a closed port fails, saying it could not connect",
             tested.get("ok") is False and str(tested.get("message", "")).startswith("Could not connect to OctoPrint"), tested)

@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """Checks run_sweep.py without the app: its building blocks, and its whole run on a stand-in sweep of small scripts.
+Its design is the test_run_sweep entry of tools/mcp/test-entries/runtime.md.
 
     python tools/mcp/test_run_sweep.py
 
 entry() fills a manifest entry's defaults, takes the launch kind fresh, and refuses an unknown key (`cad` among them),
 an unknown launch kind, and `exclusive` or `locks` without a `why`. discover() finds the test_*.py files beside
 sweep.json and no replay. manifest_problems() names a test the manifest leaves out, an entry whose file is gone and
-one whose file is not a test, and the shipped sweep.json lists every test there is. order() splits the tests into the
+one whose file is not a test, and the shipped sweep.json lists every test there is. index_problems() names a listed
+test with no entry heading in test-entries/ or with headings in two files, an area file TESTS.md's Areas table does
+not link or links twice, a row whose link names a missing file or has no text, two rows with one name, a table line
+not in the index's one form, and a TESTS.md with no Areas section, no table there or a comment or fence in it,
+ignoring what HTML comments and fenced blocks hold, and the shipped index has none of them. order() splits the tests into the
 pool and the serial phase, each longest first with those without a time ahead, or in the order a --shuffle seed
 gives, the same for the same seed. pick_next() passes over a test whose lock another holds. The app launches on the
 job's data folder, always with --cad and --unrestricted-scripts, and the commands fill {bin} and {datadir}; on Linux
@@ -27,6 +32,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -36,26 +42,12 @@ from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import run_sweep  # noqa: E402
+from checks import asserts_live, ok  # noqa: E402
 from run_sweep import JobApp, RunContext, entry  # noqa: E402
 
 MCP_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULTS = {"launch": "app", "setup": [], "args": [], "env": {}, "exclusive": False, "locks": [], "timeout_s": 900,
             "why": ""}
-
-
-def ok(name):
-    print(f"ok - {name}", flush=True)
-
-
-def asserts_live():
-    """Whether Python runs the asserts every other check is, printing the check's line: with them off every check
-    would pass without checking anything."""
-    if sys.flags.optimize > 0:
-        print(f"FAIL - the asserts are live: Python runs with its asserts off (optimize level {sys.flags.optimize}, "
-              "from -O or PYTHONOPTIMIZE)")
-        return False
-    ok("the asserts are live")
-    return True
 
 
 def refused(raw):
@@ -91,6 +83,183 @@ def check_manifest_problems():
     assert any(p.startswith("smoke_test:") and "not a test" in p for p in problems), problems
     ok("manifest_problems() names a test sweep.json leaves out, an entry whose file is gone and one whose file is not "
        "a test")
+
+
+# TESTS.md's Areas table and the entry headings of test-entries/ (tools/mcp/TESTS.md, "Areas"). The table has one
+# form, so that a line in another form is reported rather than read some way a Markdown renderer might not.
+HEADING = re.compile(r"^## `(test_[a-z0-9_]+)`$")
+AREA_ROW = re.compile(r"^\| \[([^\]|]*)\]\(test-entries/([^)/|]+\.md)\) \|$")
+FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
+SECTION_END = re.compile(r"^ {0,3}#{1,2}(?:[ \t]|$)")
+
+
+def shown_lines(text):
+    """Each line of Markdown `text` as a reader sees it, with whether a comment or a fenced block touched it. One pass
+    reads both, so that each takes the other's markers as text: a fence closes only on a line of its own character at
+    least as long as the one that opened it, with nothing after but spaces or tabs, and a comment runs from <!-- to the
+    next -->."""
+    out, fence, in_comment = [], None, False
+    for line in text.split("\n"):
+        if fence is not None:
+            m = FENCE.match(line)
+            if m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence) and \
+                    not line.strip(" \t" + fence[0]):
+                fence = None
+            out.append(("", True))
+            continue
+        if not in_comment and FENCE.match(line):
+            fence = FENCE.match(line).group(1)
+            out.append(("", True))
+            continue
+        kept, touched = "", in_comment
+        while line:
+            if in_comment:
+                end = line.find("-->")
+                if end < 0:
+                    line = ""
+                else:
+                    in_comment, line = False, line[end + 3:]
+            else:
+                start = line.find("<!--")
+                if start < 0:
+                    kept, line = kept + line, ""
+                else:
+                    kept, line, in_comment, touched = kept + line[:start], line[start + 4:], True, True
+        out.append((kept, touched))
+    return out
+
+
+def index_problems(manifest, mcp_dir):
+    """What keeps TESTS.md's Areas table and the entry headings of test-entries/ from indexing exactly the tests the
+    manifest lists: each listed test has one `## `<test>`` heading among the area files, and the table, in its one
+    form, has one row per area, each linking one area file that exists, and links each area file once. A heading for a
+    test the manifest does not list is a draft, which TESTS.md allows."""
+    problems = []
+    entries = os.path.join(mcp_dir, "test-entries")
+    files = sorted(f for f in os.listdir(entries) if f.endswith(".md"))
+    headings = {}
+    for f in files:
+        with open(os.path.join(entries, f), encoding="utf-8") as fh:
+            for line, touched in shown_lines(fh.read()):
+                m = None if touched else HEADING.match(line)
+                if m:
+                    headings.setdefault(m.group(1), []).append(f)
+    for name in manifest:
+        found = headings.get(name, [])
+        if not found:
+            problems.append(f"{name}: no entry heading in test-entries/")
+        elif len(found) > 1:
+            problems.append(f"{name}: an entry heading in each of {', '.join(found)}")
+
+    with open(os.path.join(mcp_dir, "TESTS.md"), encoding="utf-8") as fh:
+        seen = shown_lines(fh.read())
+    # A heading counts only written in its one form on a line no comment or fence touched, so that one a comment
+    # sits on, or makes by joining two halves, is no heading.
+    start = next((i for i, (line, touched) in enumerate(seen) if line == "## Areas" and not touched), None)
+    if start is None:
+        return problems + ["TESTS.md: no Areas section"]
+    end = next((i for i in range(start + 1, len(seen)) if not seen[i][1] and SECTION_END.match(seen[i][0])), len(seen))
+    lines, hidden = [line for line, _ in seen[start + 1:end]], any(touched for _, touched in seen[start + 1:end])
+    if hidden:
+        return problems + ["TESTS.md: the Areas section holds a comment or a fenced block"]
+    head = next((i for i, line in enumerate(lines) if line == "| Area |"), None)
+    if head is None or head + 1 >= len(lines) or lines[head + 1] != "|---|":
+        return problems + ["TESTS.md: the Areas section has no table"]
+    linked, names = {}, {}
+    for line in lines[head + 2:]:
+        if not line.strip():
+            break
+        m = AREA_ROW.match(line)
+        if not m:
+            problems.append(f"Areas: {line!r} is not a row of the form | [Area](test-entries/<file>.md) |")
+            continue
+        name, area = m.groups()
+        names[name] = names.get(name, 0) + 1
+        if not name.strip():
+            problems.append(f"Areas row {line!r}: its link has no text")
+        if area not in files:
+            problems.append(f"Areas row {line!r}: no area file test-entries/{area}")
+        else:
+            linked[area] = linked.get(area, 0) + 1
+    for f in files:
+        if f not in linked:
+            problems.append(f"test-entries/{f}: no row of the Areas table links it")
+        elif linked[f] > 1:
+            problems.append(f"test-entries/{f}: {linked[f]} rows of the Areas table link it")
+    problems += [f"Areas: {n} rows are named {name!r}" for name, n in names.items() if n > 1]
+    return problems
+
+
+def write_index(mcp_dir, tests_md, entry_files):
+    os.makedirs(os.path.join(mcp_dir, "test-entries"))
+    for f, text in entry_files.items():
+        with open(os.path.join(mcp_dir, "test-entries", f), "w", encoding="utf-8") as fh:
+            fh.write(text)
+    with open(os.path.join(mcp_dir, "TESTS.md"), "w", encoding="utf-8") as fh:
+        fh.write(tests_md)
+
+
+def check_index_problems():
+    entry_files = {
+        # test_b's headings are hidden from a reader: in an HTML comment, and in fenced blocks, one of four tildes that
+        # a line of three does not close and that a line of four followed by a tab does. test_e's heading follows a
+        # fence that holds a comment marker, which is text there, so it counts.
+        "one.md": "## `test_a`\n\n## `test_draft`\n\n<!--\n## `test_b`\n-->\n\n~~~~\n~~~\n## `test_b`\n~~~~\t\n"
+                  "\n```html\n<!-- an example\n```\n## `test_e`\n<!-- a real comment -->\n",
+        "two.md": "## `test_c`\n\n```\n## `test_b`\n```\n\n## `test_b`<!-- a note -->\n\n#<!-- --># `test_b`\n",
+        "three.md": "## `test_c`\n", "four.md": "", "five.md": "", "six.md": ""}
+    table = ("| Area |\n|---|\n"
+             "| [One](test-entries/one.md) |\n"
+             "| [One again](test-entries/one.md) |\n"
+             "| [Two](test-entries/two.md) |\n"
+             "| [Three](test-entries/three.md) |\n"
+             "| Nothing |\n"
+             "| [X](test-entries/x.md), [Y](test-entries/y.md) |\n"
+             "| [Seven](test-entries/seven.md) | more |\n"
+             "   | [Eight](test-entries/eight.md) |\n"
+             "| [Gone](test-entries/gone.md) |\n"
+             "| [One](test-entries/five.md) |\n"
+             "| [](test-entries/six.md) |\n"
+             "| [One | two](test-entries/one.md) |\n")
+    manifest = {n: entry({"path": f"{n}.py"}) for n in ("test_a", "test_b", "test_c", "test_e")}
+    with tempfile.TemporaryDirectory(prefix="orca-sweep-check-") as mcp_dir:
+        write_index(mcp_dir, f"# Tests\n\n## Areas\n\n{table}\n## Next\n", entry_files)
+        problems = index_problems(manifest, mcp_dir)
+    assert len(problems) == 12, problems
+    for name, words, n in (("no heading", "test_b: no entry heading", 1),
+                           ("two headings", "test_c: an entry heading in each", 1),
+                           ("unlinked", "test-entries/four.md: no row", 1),
+                           ("linked twice", "test-entries/one.md: 2 rows", 1),
+                           ("missing file", "no area file test-entries/gone.md", 1),
+                           ("no text", "its link has no text", 1),
+                           ("one name", "2 rows are named 'One'", 1),
+                           ("not in the form", "is not a row of the form", 5)):
+        assert sum(words in p for p in problems) == n, (name, problems)
+    assert not any("test_draft" in p or "test_e" in p for p in problems), problems
+
+    # One area file and one test, with the Areas section around its one row written several ways.
+    one = {"one.md": "## `test_a`\n"}
+    row = "| [One](test-entries/one.md) |\n"
+    for areas, want in (("## The areas\n\n| Area |\n|---|\n" + row, ["TESTS.md: no Areas section"]),
+                        ("<!--\n## Areas\n\n| Area |\n|---|\n" + row + "-->\n", ["TESTS.md: no Areas section"]),
+                        ("## Areas\n\n| Area |\n" + row, ["TESTS.md: the Areas section has no table"]),
+                        ("## Areas\n\n<!-- the table -->\n| Area |\n|---|\n" + row,
+                         ["TESTS.md: the Areas section holds a comment or a fenced block"]),
+                        ("```md\n## Areas\n| Area |\n|---|\n| [Fake](test-entries/fake.md) |\n```\n\n"
+                         "## Areas\n\n| Area |\n|---|\n" + row, []),
+                        ("## Areas ##\n\n| Area |\n|---|\n" + row, ["TESTS.md: no Areas section"]),
+                        ("## Areas<!-- a note -->\n\n| Area |\n|---|\n" + row, ["TESTS.md: no Areas section"]),
+                        ("#<!-- --># Areas\n\n| Area |\n|---|\n" + row, ["TESTS.md: no Areas section"]),
+                        ("## Areas\n\n| Area |\n|---|\n" + row + "\n   ## Next\n<!-- after the table -->\n", [])):
+        with tempfile.TemporaryDirectory(prefix="orca-sweep-check-") as mcp_dir:
+            write_index(mcp_dir, f"# Tests\n\n{areas}", one)
+            problems = index_problems({"test_a": entry({"path": "test_a.py"})}, mcp_dir)
+        assert problems == want, (areas, problems)
+    ok("index_problems() names a listed test with no entry heading or with headings in two files, an area file the "
+       "Areas table does not link or links twice, a row whose link names a missing file or has no text, two rows with "
+       "one name, each table line not in the index's one form, and a TESTS.md with no Areas section a reader sees, no "
+       "table there or a comment or fence in it; it takes a heading for a test sweep.json does not list as a draft, and reads no "
+       "heading a reader does not see")
 
 
 def check_order():
@@ -387,7 +556,10 @@ def check_shipped_manifest():
     manifest = run_sweep.load_manifest(os.path.join(MCP_DIR, "sweep.json"))
     problems = run_sweep.manifest_problems(manifest, run_sweep.discover(MCP_DIR), MCP_DIR)
     assert problems == [], problems
-    ok("sweep.json lists every test, and nothing that is not a test file")
+    problems = index_problems(manifest, MCP_DIR)
+    assert problems == [], problems
+    ok("sweep.json lists every test, and nothing that is not a test file; TESTS.md's Areas table and the entry "
+       "headings of test-entries/ index exactly those tests")
 
 
 # ---- The stand-in sweep: four scripts that launch nothing, each given its job's data folder ----
@@ -731,6 +903,7 @@ def main():
     check_entry()
     check_discover()
     check_manifest_problems()
+    check_index_problems()
     check_order()
     check_pick_next()
     check_launch_commands()

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Checks `orca-slicer --mcp-stdio` against an instance started with `orca_mcp.py launch`.
+Its design is the test_stdio_bridge entry of tools/mcp/test-entries/runtime.md.
 
     tools/mcp/orca_mcp.py launch --headless
     tools/mcp/test_stdio_bridge.py [--bin build/src/Release/orca-slicer]
@@ -20,7 +21,6 @@ import json
 import os
 import shutil
 import signal
-import socket
 import subprocess
 import sys
 import tempfile
@@ -31,12 +31,6 @@ import orca_mcp  # noqa: E402
 
 START = {"printer": checks.KLIPPER, "process": checks.KLIPPER_STD, "filaments": [checks.GENERIC_PLA]}
 GONE_LIMIT_S = 30  # from the stop of the app the bridge started until it is gone
-
-
-def free_port():
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
 
 
 def read_discovery(datadir):
@@ -211,7 +205,7 @@ def main():
             json.dumps({"jsonrpc": "2.0", "id": 4, "method": "resources/list"}),
             json.dumps({"jsonrpc": 2, "id": 5, "method": "ping"}),
             json.dumps({"jsonrpc": "2.0", "id": 6, "method": "ping"}),
-        ], env, ["--mcp-port", str(free_port())])
+        ], env, ["--mcp-port", str(checks.free_port())])
         check("offline: initialize negotiates the client's version",
               reply(offline, 1).get("result", {}).get("protocolVersion") == legacy, reply(offline, 1))
         check("offline: the notification gets no reply", ids(offline) == [1, 2, 3, 4, None, 6], ids(offline))
@@ -231,7 +225,7 @@ def main():
     # short, so that the first start's profile copy stays within Windows' 260-character paths under a deep
     # temporary folder.
     fresh = tempfile.mkdtemp(prefix="obl-")
-    port = free_port()
+    port = checks.free_port()
     orca_mcp.seed_datadir(fresh, orca_mcp.DEFAULT_PRINTER)
     # The app the bridge starts gets what an instance from launch gets: the session's private display
     # when it has one, and a WebView2 profile in its own datadir.

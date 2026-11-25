@@ -5,13 +5,7 @@ tools/mcp/test-entries/gui_tools.md designs them.
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_gui_tools.py [--out DIR]
 
-Context menus and a button's menu listed and run by path without being shown, the Edit menu's items, the rows of
-the object list, of Compare presets and of the parameter table, the print button's popup, a drop-down list, and
-Orca's web dialogs, driven as an agent drives any widget, with the web view a script runs in while they are open.
-Every menu item, row and page element the test runs or clicks is checked by what it does to the project, the
-selection, the camera or the settings. It starts on the Generic Klipper Printer in the sweep's baseline, reads back
-the window size, the 3D view's labels and the preference its checks depend on, and exits 0 when every check passes.
-The pictures and project files it saves go to --out, else to a new temporary folder.
+The pictures and project files it saves go to --out, else to a new temporary folder. Exits 0 when every check passes.
 """
 
 import argparse

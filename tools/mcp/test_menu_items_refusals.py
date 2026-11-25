@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Checks what the object commands made from menu items refuse, and that each refusal says its reason.
+Its design is the test_menu_items_refusals entry of tools/mcp/test-entries/commands.md.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_menu_items_refusals.py

@@ -1,5 +1,6 @@
 """Checks plugin_list, plugin_install_local, plugin_enable, plugin_reload, plugin_uninstall and plugin_refresh, that a
 person's pick of Refresh Plugins runs a refresh of its own, and that the Plugins window shows the rows plugin_list gives.
+Its design is the test_plugin_commands entry of tools/mcp/test-entries/commands.md.
 
 It launches OrcaSlicer itself on a fresh data folder, signed in to nothing, and works only on the fixture plugins of
 tests/plugins, which it installs itself: mcp_tools_fixture from a copy of its .py file outside the plugins folder, and
@@ -8,21 +9,18 @@ plugin_refresh to find. Nothing is installed from the network, and no plugin tha
 launch is stopped on every path out, and the data folder removed unless it was given.
 Run it as python tools/mcp/test_plugin_commands.py [--bin PATH] [--datadir PATH].
 """
-import contextlib
 import json
 import os
 import re
 import shutil
-import socket
-import subprocess
 import sys
 import tempfile
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from checks import speed_dial, until  # noqa: E402
-from orca_mcp import McpError, OrcaMcp, app_env  # noqa: E402
+from checks import Checks, launched, reached, refusal as error_of, speed_dial, until  # noqa: E402
+from orca_mcp import McpError  # noqa: E402
 
 TOKEN = "plugin-commands-test-token"
 PLUGINS = os.path.join(HERE, "tests", "plugins")
@@ -31,52 +29,9 @@ CAPABILITY = "MCP tools fixture call"  # one of its capabilities
 SIDE_LOADED = "MCP Web Fixture"  # mcp_web_fixture's name
 REFRESHED = "Plugins refreshed."  # the notification a refresh ends with (GUI_App::refresh_plugins())
 RESCAN = "Rescanning plugins..."  # the log line of each rescan of the plugins folder
-results = []
-
-
-def check(name, ok, detail=""):
-    results.append((name, bool(ok)))
-    print(("PASS " if ok else "FAIL ") + name + ("" if ok else "  " + str(detail)[:400]), flush=True)
-
-
-def free_port():
-    """A port nothing listens on now, so that this test runs beside the others of a sweep."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
-
-
-def harness(env, *args):
-    return subprocess.run([sys.executable, os.path.join(HERE, "orca_mcp.py"), *args], env=env, capture_output=True, text=True,
-                          timeout=300)
-
-
-@contextlib.contextmanager
-def launched(datadir, binary):
-    """An instance on `datadir`: its client, or None when it did not start, stopped on every path out of the block.
-
-    A launch writes its session file before it waits for the app, and one that is not ready exits leaving its app
-    running, so the stop goes by that file whenever it is there. Only this launch writes it: a file an earlier run left
-    is removed first, so that no other app is ever stopped."""
-    port = free_port()
-    session = os.path.join(datadir, "session.json")
-    os.makedirs(datadir, exist_ok=True)
-    env = app_env(dict(os.environ, ORCA_MCP_SESSION=session, ORCA_MCP_TOKEN=TOKEN), datadir)
-    if os.path.exists(session):
-        os.remove(session)
-    try:
-        started = harness(env, "launch", "--datadir", datadir, "--port", str(port), *binary)
-        if started.returncode != 0:
-            print(started.stdout, started.stderr)
-            yield None
-            return
-        orca = OrcaMcp(port=port, token=TOKEN)
-        orca.call("app_wait", **{"for": "ready"})
-        yield orca
-    finally:
-        if os.path.exists(session):
-            # stop returns once the app has exited.
-            harness(env, "stop")
+# The test's named checks; check() records one and prints it.
+t = Checks()
+check = t.check
 
 
 def answered(orca, reply):
@@ -92,16 +47,6 @@ def answered(orca, reply):
 
 def call(orca, tool, **args):
     return answered(orca, orca.call(tool, **args))
-
-
-def error_of(e):
-    """The text of error `e` and its details, from its last line, or {} where that line holds none."""
-    text = str(e)
-    try:
-        details = json.loads(text.rpartition("\n")[2])
-    except ValueError:
-        details = {}
-    return text, details if isinstance(details, dict) else {}
 
 
 def refusal(orca, tool, **args):
@@ -133,14 +78,6 @@ def window_rows(orca):
     reply = orca.call("webview_run_javascript", code=code, target=view.group(1))
     result = reply.get("result")
     return json.loads(result) if isinstance(result, str) else result
-
-
-def reached(fn, what, timeout_s=30):
-    """Whether fn() comes true within `timeout_s`, for a check to report rather than to stop the test."""
-    try:
-        return bool(until(fn, what, timeout_s))
-    except TimeoutError:
-        return False
 
 
 def run(orca, datadir, scratch):
@@ -342,7 +279,7 @@ def main():
     scratch = os.path.join(root, "files")
     os.makedirs(scratch, exist_ok=True)
     try:
-        with launched(datadir, binary) as orca:
+        with launched(datadir, binary, TOKEN) as orca:
             check("the app starts", orca is not None)
             if orca is not None:
                 run(orca, datadir, scratch)
@@ -350,9 +287,7 @@ def main():
         if not given:
             shutil.rmtree(root, ignore_errors=True)
 
-    failed = [r for r in results if not r[1]]
-    print(f"\n{len(results) - len(failed)}/{len(results)} passed")
-    return 1 if failed else 0
+    return t.exit_code()
 
 
 if __name__ == "__main__":

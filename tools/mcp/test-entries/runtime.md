@@ -1,12 +1,12 @@
 # Runtime, command line and harness
 
-The design of this area's sweep tests. The rules every entry follows, the grades and the table of all tests are
-in [TESTS.md](../TESTS.md).
+The design of this area's sweep tests. The rules every entry follows and the grades are in
+[TESTS.md](../TESTS.md).
 
 ## `test_runtime_lifecycle`
-`test_runtime_lifecycle.py` · Python, 6 checks
+`test_runtime_lifecycle.py` · Python
 
-**Tests:** How the automation runtime behaves while the app closes and while the server is toggled. File > Quit is clicked with a long `script_run` job, with a recording running, and with a call stuck in one uninterruptible `time.sleep`. Other checks cover a `--run` with the endpoint never opened, switching the server off and on from Preferences during a script, and the GUI instruments going off with the server. `launch: own`; the two checks whose job outlives its reply set `ORCA_MCP_REPLY_BUDGET_MS=4000` for their app.
+**Tests:** How the automation runtime behaves while the app closes and while the server is toggled. File > Quit is clicked with a long `script_run` job, with a recording running, and with a call stuck in one uninterruptible `time.sleep`. Other checks cover a `--run` with the endpoint never opened, switching the server off and on from Preferences during a script, and the GUI instruments going off with the server. `launch: own`; the two checks whose job outlives its reply set `ORCA_MCP_REPLY_BUDGET_MS=4000` for their app. It takes about a minute and a half.
 
 **Starts from:** Data folders of its own, a new one per check, never a job's shared folder: `seed_datadir()` with the default printer, the Generic Klipper Printer 0.4 nozzle, with preset sync off and the update check sent to a port nothing answers. No check reads a preset, and nothing here is a Bambu Lab printer's own. The checks that read the log read only this folder's `log`, which no other test writes.
 
@@ -31,7 +31,7 @@ in [TESTS.md](../TESTS.md).
 **Strength:** Strong — exit codes, log lines and the recording's container are checked exactly. The server switch is checked only through the app's own report.
 
 ## `test_stdio_bridge`
-`test_stdio_bridge.py` · Python, 20 checks (one printed only when a pid is found)
+`test_stdio_bridge.py` · Python
 
 **Tests:** `orca-slicer --mcp-stdio` in four runs. Against the sweep-launched instance, on the job's data folder, it covers the handshake, a notification, `tools/list`, `tools/call` in the 2025-06-18 and 2026-07-28 protocol eras, and errors; `ORCA_MCP_TOKEN` is removed, so the bridge must take the token from `mcp/server.json`. A second run against the same instance sends a 2026-07-28 request with no handshake at all. Offline (an empty datadir and a free port), the bridge answers from its own catalog without starting the app. On a new datadir, a tool call starts OrcaSlicer on the bridge's port, and that app lists the same tools as the offline bridge.
 
@@ -61,7 +61,7 @@ in [TESTS.md](../TESTS.md).
 **Strength:** Partial — every reply line is counted and matched to its request, error codes and the offline catalog are checked exactly, and the no-handshake request is sent with no handshake, but the bridge's exit code and stderr are not read, so a crash after its replies passes.
 
 ## `test_orca_mcp_attach`
-`test_orca_mcp_attach.py` · Python, 21 checks (assert-based; stops at the first failure)
+`test_orca_mcp_attach.py` · Python, assert-based: stops at the first failure
 
 **Tests:** The harness client in `orca_mcp.py`, without the app (`launch: none`). It covers `default_datadir()` (a portable `data_dir`, the per-OS configuration folder, a symlinked binary), the refusals of `OrcaMcp.from_datadir()`, `call_command()` against a stubbed `call()`, the line `ORCA_MCP_CALL_LOG` gets per call, how `reply_budget_s()` reads its variable, the conf `seed_datadir()` writes, its default printer included, and whether it says it seeded; and the baseline file `launch` records in a data folder it seeds, which `checks.start()` resets the preferences to.
 
@@ -90,7 +90,7 @@ in [TESTS.md](../TESTS.md).
 **Strength:** Strong — the functions it covers are checked by exact value and error text, and the test refuses to run with its asserts off. It covers the attach-and-call half of `orca_mcp.py` and the seeding of a data folder, not the rest of launch, stop or run-replay.
 
 ## `test_run_sweep`
-`test_run_sweep.py` · Python, 25 checks (assert-based; 1 only on Linux with Xvfb installed)
+`test_run_sweep.py` · Python, assert-based
 
 **Tests:** The building blocks of `run_sweep.py`, without the app (`launch: none`), and its whole run, `main()`, on
 two stand-in sweeps: one of small scripts that launch nothing, and one whose scripts run in a stand-in app that a
@@ -100,7 +100,7 @@ launch, stop, test and setup commands and their environments, each job's shared 
 file and the working folder its app runs in, the Linux display options and the private display of a test that
 starts its own apps, the timeout kill, recording a run that raises, the history file, `--list`, `--keep`, `--shuffle`
 and `-j`, and when the runner launches a job's app and stops it. It also checks, last, that the shipped `sweep.json`
-lists exactly the tests on disk.
+lists exactly the tests on disk and that the index of TESTS.md and `test-entries/` matches it.
 
 **Starts from:** No app. Each check that writes makes its own folder under the temporary folder. Each stand-in sweep
 runs `main()` with `mcp_dir` set to a folder of its own that holds its `sweep.json` and its scripts, and with
@@ -123,8 +123,20 @@ deletes with the test's folder when it passes.
   `smoke_test.json`, `checks.py`, `test_notes.md`, `tests/cad_doc.json` and `tests/test_nested.py` is exactly
   `{test_a: "test_a.py", test_b: "test_b.py"}`: the tests are the `test_*.py` files beside `sweep.json`, and a replay
   is none. `manifest_problems()` gives exactly three problems for an unlisted test, a missing file and an entry whose
-  file is `smoke_test.json`, which is not a test. The shipped manifest has no problems; this check runs last, so that
-  a `sweep.json` behind the files on disk fails it without stopping the checks of the runner before it.
+  file is `smoke_test.json`, which is not a test. `index_problems()` of a stand-in folder with its own TESTS.md and
+  `test-entries/` gives exactly twelve problems: a listed test with no entry heading, one with headings in two files,
+  an area file no Areas row links, a file two rows link, a row whose link names a missing file, a row whose link has
+  no text, two rows with one area name, and five lines of the Areas table that are not rows of the index's one form,
+  `| [Area](test-entries/<file>.md) |`: one with no link, one with two, one with a second cell, one indented and one
+  with a `|` in its link's text. A draft heading, for a test `sweep.json` does not list, gives none, and a heading
+  inside an HTML comment or a fenced block (``` or ~~~, which only a line of the same character at least as long
+  closes) counts as no heading, while a comment marker inside a fence is text and a heading after the fence still
+  counts. A heading counts only on a line no comment or fence touches and written exactly `## Areas` or `` ##
+  `test_<name>` ``, so one in another form, one a comment is on, and one a comment would make (`#<!-- -->#`) are none.
+  A TESTS.md with no such Areas heading, one whose Areas section has no `| Area |` row with `|---|` under it, and one
+  whose Areas section holds a comment or a fence, each give that one problem. The shipped manifest and index have no
+  problems; this check runs last, so that a `sweep.json` behind the files on disk fails it without stopping the checks
+  of the runner before it.
 - Scheduling: with times `a` 10 s, `b` 20 s, none for `c`, and `d` at 5 s and `e` at 30 s both exclusive,
   `order()` returns `(["c", "b", "a"], ["e", "d"])`: the pool longest first with a test that has no time ahead, and
   the serial phase longest first. With a seed, 20 tests, one of them exclusive, and no history: the seed 123456 gives
@@ -236,7 +248,7 @@ to each record, folder, history time and app launch, and the test refuses to run
 real app exercises is left to the sweep itself.
 
 ## `test_runtime_calls`
-`test_runtime_calls.py` · Python, 49 checks (4 only when the snapshot found the item they use)
+`test_runtime_calls.py` · Python
 
 **Tests:** How the automation runtime takes calls, in five scenarios on one app, run in this order. Each is a `Checks.scenario`: one that raises fails as "<scenario>: runs to its end", and the next still runs.
 - Recovery under load: Preferences is opened as a running `action_run` job. Then 32 `app_wait {for: no_dialog}` calls take the server's 32 blocking slots, and 32 more connections sit idle (first variant) or half-sent (second variant), filling the 64-connection cap. A `dialog_answer` on a new connection must still close the dialog and release the waits.
@@ -326,7 +338,7 @@ Each starter's call runs on a thread of its own. The checks start once `object_t
 **Strength:** Partial — the cancelled slice, with its control slice, the hiding of the Run Script panel, confirmed up, and every refusal and cancel of the arrange are read exactly, and the live ref is read back by which layer it opened. But the recovery's half-sent variant fills the connection cap on trust, and the exported session and the smoke replay are checked only by passing.
 
 ## `test_export_running_job`
-`test_export_running_job.py` · Python, 13 checks
+`test_export_running_job.py` · Python
 
 **Tests:** What `replay_export` does with a call whose job outlives its reply. A `replay_run` has one step, a `script_run` whose script runs until the test writes its go file: a gate the test releases once it has exported while the job runs, so the job ends only then, whatever the machine's speed. An export taken while it runs leaves it out and names it in `left_out_running`. After it ends, it is exported as an `await: false` step that a later `app_wait` refers to, and that replay runs. A call blocked on Preferences stays in an export while the dialog is open. The sweep sets `ORCA_MCP_REPLY_BUDGET_MS=20000` for the app, so a running job replies after 20 s rather than 45 s; a shorter budget can end the call opening Preferences before it opens: on a machine running other apps, Preferences took 12 to 15 s to open (measured), past a 10 s budget. The runner launches an app of its own for the test, since its variables differ from those of the job's app.
 

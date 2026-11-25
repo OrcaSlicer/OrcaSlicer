@@ -2,8 +2,12 @@
 exit code, scenarios that fail on their own, refusals asserted by their code or words, waits that fail when they run
 out of time, and readers that give the app's state in a fixed shape."""
 
+import contextlib
 import json
 import os
+import socket
+import subprocess
+import sys
 import time
 import traceback
 
@@ -65,6 +69,25 @@ class Checks:
     def exit_code(self):
         print(f"{self.count - len(self.failed)} of {self.count} checks passed", flush=True)
         return 1 if self.failed else 0
+
+
+# ---- The assert-based tests (test_run_sweep, test_orca_mcp_attach), which stop at the first failed assert ----
+
+
+def ok(name):
+    """The line of a check that passed."""
+    print(f"ok - {name}", flush=True)
+
+
+def asserts_live():
+    """Whether Python runs the asserts every other check is, printing the check's line: with them off every check
+    would pass without checking anything."""
+    if sys.flags.optimize > 0:
+        print(f"FAIL - the asserts are live: Python runs with its asserts off (optimize level {sys.flags.optimize}, "
+              "from -O or PYTHONOPTIMIZE)")
+        return False
+    ok("the asserts are live")
+    return True
 
 
 def refusal(error):
@@ -147,6 +170,68 @@ def until(fn, what, timeout_s=30, interval_s=0.5):
         if time.monotonic() >= deadline:
             raise TimeoutError(f"{what}: not within {timeout_s} s; last seen {value!r}")
         time.sleep(interval_s)
+
+
+def reached(fn, what, timeout_s=30):
+    """Whether fn() comes true within `timeout_s`, for a check to report rather than to stop the test."""
+    try:
+        return bool(until(fn, what, timeout_s))
+    except TimeoutError:
+        return False
+
+
+# ---- Apps of a test's own: a test sweep.json marks "own" launches them on data folders of its own ----
+
+
+def free_port():
+    """A port nothing listens on now, so that an app a test starts runs beside the others of a sweep."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+def harness(env, *args):
+    """orca_mcp.py run with `args` in `env`, as a test launches and stops an app of its own."""
+    return subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "orca_mcp.py"), *args],
+                          env=env, capture_output=True, text=True, timeout=300)
+
+
+@contextlib.contextmanager
+def launched(datadir, binary, token, launch_args=(), env=None):
+    """An instance on `datadir`: its client, or None when it did not start, stopped on every path out of the block.
+    `binary` is ["--bin", path] or [], `launch_args` more arguments of orca_mcp.py launch, and `env` variables the app
+    starts with.
+
+    A launch writes its session file before it waits for the app, and one that is not ready exits leaving its app
+    running, so the stop goes by that file whenever it is there. Only this launch writes it: a file an earlier run left
+    is removed first, so that no other app is ever stopped. The stop returns once the app has exited, so that the next
+    launch is the only app on the folder."""
+    port = free_port()
+    session = os.path.join(datadir, "session.json")
+    os.makedirs(datadir, exist_ok=True)
+    app = orca_mcp.app_env(dict(os.environ, ORCA_MCP_SESSION=session, ORCA_MCP_TOKEN=token), datadir)
+    app.update(env or {})
+    if os.path.exists(session):
+        os.remove(session)
+    try:
+        started = harness(app, "launch", "--datadir", datadir, "--port", str(port), *launch_args, *binary)
+        if started.returncode != 0:
+            print(started.stdout, started.stderr)
+            yield None
+            return
+        orca = orca_mcp.OrcaMcp(port=port, token=token)
+        orca.call("app_wait", **{"for": "ready"})
+        yield orca
+    finally:
+        if os.path.exists(session):
+            harness(app, "stop")
+
+
+def read_conf(datadir):
+    """OrcaSlicer.conf's JSON, without the checksum line after it."""
+    with open(os.path.join(datadir, "OrcaSlicer.conf"), encoding="utf-8") as f:
+        text = f.read()
+    return json.loads(text[: text.rfind("}") + 1])
 
 
 def presets(client):
@@ -377,7 +462,9 @@ def dial_pick(client, title, canvas=SCENE_CANVAS):
 
 def add_slot(client, colour):
     """Adds a filament slot as the sidebar's Add does and gives it `colour`, read back; returns the new slot's
-    number. filament_add alone colours it with the next colour of a palette the app's run cycles through."""
+    number. A scenario adds slots with it, never with filament_add alone: that colours a slot with the next colour of
+    a palette the app's run cycles through, so its colour, and with it the slot's purge and the prime tower's size,
+    would depend on how many slots the run added before."""
     run(client, "filament_add")
     # The new slot is the last physical one: filament_list lists the physical slots first, and the mixed ones after.
     slot = [row for row in filament_rows(client) if not row["mixed"]][-1]["filament_slot"]
@@ -484,6 +571,11 @@ def gap(a, b):
     return math.hypot(dx, dy)
 
 
+def centre(box):
+    """The middle of a bbox, axis by axis."""
+    return [(lo + hi) / 2 for lo, hi in zip(box["min"], box["max"])]
+
+
 # ---- Project files: the readers of test-entries/files.md, for test_files and test_slice_preview ----
 
 import io  # noqa: E402
@@ -526,6 +618,11 @@ def values(client, keys, type="process"):
     return {item["key"]: item["value"] for item in reply["items"]}
 
 
+def g_text(value):
+    """A number, or a setting's value that is one, as %g writes it, the form the entries give values in."""
+    return "%g" % float(value)
+
+
 def unsaved(client, type):
     """The keys, sorted, in which the preset of `type` being edited differs from that preset as it is stored."""
     reply = client.call("settings_get", type=type, compare=":saved", limit=500)
@@ -556,6 +653,15 @@ def undo_steps(client):
 def dialogs(client):
     """The open dialogs from app_state, the topmost last, as {title, message}."""
     return [{"title": d.get("title"), "message": d.get("message")} for d in client.call("app_state").get("dialogs", [])]
+
+
+def rule_uses(client, match):
+    """How many times the auto-answer rule whose match is `match` has answered, from app_state; None when no rule
+    has that match."""
+    for rule in client.call("app_state").get("auto_answer_rules", []):
+        if rule.get("match") == match:
+            return rule.get("uses", 0)
+    return None
 
 
 def sliced_flags(client):
@@ -633,6 +739,15 @@ def reimport(client, path):
     run(client, "project_new", discard_changes=True)
     reply = run(client, "project_import", paths=[path])
     return reply, meshes(client)
+
+
+def save_and_reopen(client, path, idle_s=30):
+    """Save the project to `path`, start a new one and open `path` again, then wait up to `idle_s` seconds for the
+    app to be idle: what a person keeps is what the reopened project has."""
+    run(client, "project_save", path=path, overwrite=True)
+    run(client, "project_new", discard_changes=True)
+    run(client, "project_open", path=path)
+    wait(client, "idle", idle_s)
 
 
 def answer_all(client, checks, label, expected, timeout_s=30):

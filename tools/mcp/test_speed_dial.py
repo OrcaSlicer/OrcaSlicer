@@ -5,20 +5,8 @@ tools/mcp/test-entries/commands.md designs them.
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_speed_dial.py [--out DIR]
 
-action_list lists every action of tests/data/speed_dial_actions.json with the command
-tests/data/speed_dial_action_calls.json gives it. Then ROWS runs a few actions through action_run, each standing for
-one way an action runs: a person's form that opens a dialog, one that runs in place, a window opened, fixed arguments
-that choose what the command does, a value collected, a file written, a refusal, and a value its command's schema
-refuses, whose refusal names tool_describe for the command. Before each, its state is set up
-afresh by calls (STATES), and its dialog is answered as the row says. For each that ran, the reply's ran is the
-action's id, and the step replay_export writes for the call is an action_run of that id with the arguments its command
-journals: the value under the action's input token for Go to tab, and none for the others (a step with the id alone
-replays the same, since the action supplies its fixed arguments). A refused action has neither: action_run adds ran
-only when the command ran, and a failed call is not exported.
-
-It starts from the Generic Klipper Printer (checks.start()). Take Screenshot saves in Start Recording's folder, which
-the test points at its output folder (a new temporary folder unless --out names one) through the Start Recording dialog
-before the actions run. Exits 0 when every check passes.
+Take Screenshot saves in Start Recording's folder, which the test points at its output folder, a new temporary folder
+unless --out names one. Exits 0 when every check passes.
 """
 
 import argparse
@@ -36,7 +24,6 @@ DATA = os.path.join(HERE, "..", "..", "tests", "data")
 PREFIX, SUFFIX = "orca_command:", ":orca"
 BED_CENTRE = 125.0  # the middle of the Generic Klipper Printer's 250 mm bed
 START = {"printer": checks.KLIPPER, "process": checks.KLIPPER_STD, "filaments": [checks.GENERIC_PLA]}
-ACTIONS = 130  # the actions of speed_dial_actions.json
 RESTORE = {"match": "restore", "button": "no"}  # the prompt to restore unsaved items after a start
 
 
@@ -131,6 +118,21 @@ ROWS = [
 ]
 
 
+def speed_dial_commands(reference):
+    """{action key: command} for every action of the Speed Dial in the command reference: a command's own action under
+    its key and each item of its actions under the item's, all but the Design tab's, which the Speed Dial has only while
+    that tab is shown."""
+    commands = {}
+    for c in reference["commands"]:
+        if c["group"] == "Design":
+            continue
+        if c["has_own_action"]:
+            commands[c["key"]] = c["key"]
+        for item in c.get("actions") or []:
+            commands[item["key"]] = c["key"]
+    return commands
+
+
 def listed_commands(client):
     """{action id: command} for every action action_list lists, read page by page."""
     commands, offset = {}, 0
@@ -211,20 +213,16 @@ def main():
     args = ap.parse_args()
     out = os.path.abspath(args.out) if args.out else tempfile.mkdtemp(prefix="speed-dial-")
     os.makedirs(out, exist_ok=True)
-    with open(os.path.join(DATA, "speed_dial_actions.json"), encoding="utf-8") as f:
-        keys = [a["key"] for a in json.load(f)]
-    with open(os.path.join(DATA, "speed_dial_action_calls.json"), encoding="utf-8") as f:
-        fixture = {c["key"]: c["command"] for c in json.load(f)}
+    with open(os.path.join(DATA, "command_catalog.json"), encoding="utf-8") as f:
+        reference = speed_dial_commands(json.load(f))
 
     client, _session = orca_mcp.session_client()
     checks.wait(client, "ready", 50)
     t = checks.Checks()
     t.equal("starts from the Generic Klipper Printer", checks.start(client), START)
-    t.check("every action has a call in the fixture", len(keys) == ACTIONS and set(keys) <= set(fixture),
-            (len(keys), sorted(set(keys) - set(fixture))))
     listed = listed_commands(client)
-    wrong = {k: (listed.get(action_id(k)), fixture.get(k)) for k in keys if listed.get(action_id(k)) != fixture.get(k)}
-    t.check("every action is listed with its command", len(keys) == ACTIONS and not wrong, wrong)
+    wrong = {k: (listed.get(action_id(k)), c) for k, c in reference.items() if listed.get(action_id(k)) != c}
+    t.check("every action is listed with its command", reference and not wrong, wrong)
     refusal = {}
 
     def unknown_section():

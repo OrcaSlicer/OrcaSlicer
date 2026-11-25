@@ -1,7 +1,7 @@
 # Filaments and settings
 
-The design of this area's sweep tests. The rules every entry follows, the grades and the table of all tests are
-in [TESTS.md](../TESTS.md).
+The design of this area's sweep tests. The rules every entry follows and the grades are in
+[TESTS.md](../TESTS.md).
 
 Two tests. `test_filaments` is about the filament list: what a slot holds and what the project does with it (the
 preset in a slot, the unsaved-changes prompt, the flushing volumes, the filaments of objects and parts, merging one
@@ -18,7 +18,7 @@ Where the routes into a slot meet in one function, a route is checked once where
 that function by one route.
 
 ## `test_filaments`
-`test_filaments.py` · Python, 608 checks · in `sweep.json` as `{"path": "test_filaments.py", "timeout_s": 1500}`
+`test_filaments.py` · Python
 
 **Tests:** Assigning a filament preset to a filament slot through each route a person or a plugin has: a pick in the
 slot's selector in the sidebar, the selector's value set (`widget_set_value`), `preset_select`, and the plugin API's
@@ -586,7 +586,7 @@ checks the volumes the app works out by stated properties, and shows the filamen
 print, and the flush settings and the mixes in the project file.
 
 ## `test_settings`
-`test_settings.py` · Python, 72 checks · in `sweep.json` as `{"path": "test_settings.py"}`
+`test_settings.py` · Python
 
 **Tests:** The settings commands' targets. `settings_list` giving a type's settings whole, a saved preset's and a
 filament slot's, and the settings an object and a region take; then `settings_set` and `settings_get` on an object, a

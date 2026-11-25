@@ -1,7 +1,7 @@
 # Windows, views, printers and web pages
 
-The design of this area's sweep tests. The rules every entry follows, the grades and the table of all tests are
-in [TESTS.md](../TESTS.md).
+The design of this area's sweep tests. The rules every entry follows and the grades are in
+[TESTS.md](../TESTS.md).
 
 Two facts about the shared app and data folder decide several entries here, both measured on Windows:
 
@@ -17,7 +17,7 @@ Two facts about the shared app and data folder decide several entries here, both
   `orca_action_replay` in the temporary folder.
 
 ## `test_printers`
-`test_printers.py` · Python, 46 checks · in `sweep.json` as `{"path": "test_printers.py"}`
+`test_printers.py` · Python
 
 **Tests:** Printers other than the default one, in four parts on the job's app, each from `start()` on its printer.
 On the Bambu Lab X1 Carbon 0.4 nozzle, `printer_status`, `print_pause`, `print_resume` and `print_stop` with no
@@ -126,7 +126,7 @@ leave the state as it was; the job commands are checked with no printer connecte
 printer.
 
 ## `test_project_open_settings`
-`test_project_open_settings.py` · Python, 7 checks
+`test_project_open_settings.py` · Python
 
 **Tests:** The test launches its own instance on a new data folder whose Preferences say to load a project's
 geometry only (`project_load_behaviour` = `load_geometry_only`). It checks that opening a saved project still loads
@@ -162,7 +162,7 @@ names it.
 are checked exactly, though only one setting is covered.
 
 ## `test_sidebar_floating`
-`test_sidebar_floating.py` · Python, 4 checks
+`test_sidebar_floating.py` · Python
 
 **Tests:** While the sidebar floats in its own window, `view_set {sidebar_width}` is refused and the width stays unchanged. The test launches its own instance twice on one new data folder. The first run saves `app.window_layout`. The test then marks the sidebar's AUI entry in that layout as floating, so the second run starts with it floating. On Linux both runs start as X11 clients (`GDK_BACKEND=x11`, through XWayland on a Wayland desktop), as the runner's own launches do by default, since a native Wayland app drops the saved floating state.
 
@@ -185,8 +185,7 @@ are checked exactly, though only one setting is covered.
 **Strength:** Strong — the refusal text and the unchanged width are checked exactly on every platform.
 
 ## `test_set_window`
-`test_set_window.py` · Python, 54 checks on Windows and macOS (1 SKIP), 55 on Linux X11 including `--headless`,
-45 on Linux Wayland (4 SKIP)
+`test_set_window.py` · Python
 
 **Tests:** `window_list` and `window_set` on four kinds of window, plus the read side in `app_state.displays`:
 - The list a launch starts with: a page of windows, the main window first, with a ref, not modal.
@@ -307,7 +306,7 @@ flags, refs, order and removals are checked exactly, but maximize, minimize and 
 and Wayland skips about a fifth of the test.
 
 ## `test_set_view_camera`
-`test_set_view_camera.py` · Python, 36 checks
+`test_set_view_camera.py` · Python
 
 **Tests:** `view_set`'s camera fields (`look_at`, `zoom`, `camera`, `orbit`) and the `camera_state` it returns,
 checked against `app_state.camera`. It covers four views: Prepare (including straight after `project_new`'s queued
@@ -370,7 +369,7 @@ the unsaved changes question. The window's size and the cameras are not stored.
 fit and the Home fit are checked loosely or only against each other.
 
 ## `test_speed_dial_open`
-`test_speed_dial_open.py` · Python, 13 checks (plus 1 where KWin answers; the 3 focus checks SKIP where the pointer cannot be moved)
+`test_speed_dial_open.py` · Python
 
 **Tests:** The app goes from Home to Prepare, Design and Preview by tab clicks. After each switch, the page's 3D
 view (`OrcaSceneCanvas`) must hold the keyboard focus, Space sent with no target must open the Speed Dial, and
@@ -430,7 +429,7 @@ running an action, so its recent actions are as they were. The system pointer is
 pointer off the view, but the KWin check almost never runs and native Wayland skips the focus checks.
 
 ## `test_send_gcode`
-`test_send_gcode.py` · Python, 49 checks
+`test_send_gcode.py` · Python
 
 **Tests:** Printing and sending through a print host, run against an OctoPrint stub host inside the test process,
 on the Generic Klipper Printer 0.4 nozzle: the `send_gcode` Speed Dial action (`orca_command:send_gcode:orca`),
@@ -544,7 +543,7 @@ check below passes.
 exactly against an independent stub, and each refusal by its code with the uploads and dialogs read back.
 
 ## `test_web_ui`
-`test_web_ui.py` · Python, 227 checks (1 conditional)
+`test_web_ui.py` · Python
 
 **Tests:** The GUI tools on web pages, through the side-loaded `mcp_web_fixture` plugin, on the Generic Klipper
 Printer 0.4 nozzle; nothing here is a Bambu Lab printer's own. Before the launch, the sweep's setup step

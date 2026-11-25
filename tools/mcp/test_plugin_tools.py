@@ -1,4 +1,5 @@
 """Checks a plugin's calls into the MCP tools and the operations it offers, in the running app.
+Its design is the test_plugin_tools entry of tools/mcp/test-entries/commands.md.
 
 Launches OrcaSlicer on a fresh data folder with the Design tab on (--cad) and
 tests/plugins/mcp_tools_fixture side-loaded, and tests/plugins/mcp_tools_broken, whose load fails after declaring an
@@ -11,14 +12,13 @@ Run it as python tools/mcp/test_plugin_tools.py [--bin PATH].
 import json
 import os
 import shutil
-import socket
 import subprocess
 import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from checks import until  # noqa: E402
+from checks import Checks, free_port, harness, reached, until  # noqa: E402
 from orca_mcp import OrcaMcp, app_env, find_binary  # noqa: E402
 
 FIXTURE = os.path.join(HERE, "tests", "plugins", "mcp_tools_fixture")
@@ -34,12 +34,9 @@ result = handle.update(5)
 """
 RULE = "MCP tools fixture never shown"  # the match of the auto-answer rule the fixture's "rule" script sets
 TOKEN = "plugin-tools-test-token"
-results = []
-
-
-def check(name, ok, detail=""):
-    results.append((name, bool(ok)))
-    print(("PASS " if ok else "FAIL ") + name + ("" if ok else "  " + str(detail)[:400]), flush=True)
+# The test's named checks; check() records one and prints it.
+t = Checks()
+check = t.check
 
 
 def install(datadir):
@@ -65,21 +62,6 @@ def install_broken(datadir):
                    "capabilities": [{"MCP tools broken fixture": True}]}, f, indent=2)
 
 
-def free_port():
-    """A port nothing listens on now, so that this test runs beside the others of a sweep."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
-
-
-def reached(fn, what, timeout_s=30):
-    """Whether fn() comes true within `timeout_s`, for a check to report rather than to stop the test."""
-    try:
-        return bool(until(fn, what, timeout_s))
-    except TimeoutError:
-        return False
-
-
 def lines_of(path):
     """How many lines a file has, 0 while it does not exist."""
     try:
@@ -96,11 +78,6 @@ def canvas_height(orca):
         if 'name=OrcaSceneCanvas' in line:
             return int(line.rsplit("x", 1)[1])
     return None
-
-
-def harness(env, *args):
-    return subprocess.run([sys.executable, os.path.join(HERE, "orca_mcp.py"), *args], env=env, capture_output=True, text=True,
-                          timeout=300)
 
 
 def run_plugin_script(orca, plugin_dir, name, capability):
@@ -288,9 +265,7 @@ def main():
             harness(env, "stop")
         shutil.rmtree(datadir, ignore_errors=True)
 
-    failed = [r for r in results if not r[1]]
-    print(f"\n{len(results) - len(failed)}/{len(results)} passed")
-    return 1 if failed else 0
+    return t.exit_code()
 
 
 if __name__ == "__main__":

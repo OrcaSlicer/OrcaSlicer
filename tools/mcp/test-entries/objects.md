@@ -1,7 +1,7 @@
 # Plates and objects
 
-The design of this area's sweep test. The rules every entry follows, the grades and the table of all tests are
-in [TESTS.md](../TESTS.md).
+The design of this area's sweep test. The rules every entry follows and the grades are in
+[TESTS.md](../TESTS.md).
 
 One test, in three parts that run one after another in one app, each scenario from a `start()` of its own: the plates
 (adding, naming, locking, duplicating and deleting them, and the settings a plate sets for itself), where objects stand
@@ -10,7 +10,7 @@ the list orders them (parts and their types, names, order, meshes and the files 
 saves and reopens one project that holds what each part keeps in the file.
 
 ## `test_objects`
-`test_objects.py` · Python, 1354 checks · in `sweep.json` as `{"path": "test_objects.py"}`
+`test_objects.py` · Python
 
 **Tests:** The plates of the Prepare view: adding, duplicating, naming, locking, selecting and deleting plates, and
 undoing that; what a lock keeps Arrange and Auto-Orient from doing; the settings a plate sets for itself; the filament

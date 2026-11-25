@@ -1,5 +1,6 @@
 """Checks printer_list_models, printer_install and printer_uninstall, and that the Printer Selection dialog's Confirm,
 which applies the printers through the same step, installs a model ticked in its page and keeps the others.
+Its design is the test_install_printers entry of tools/mcp/test-entries/commands.md.
 
 It launches OrcaSlicer itself, twice, on a fresh data folder seeded with one printer, the Bambu Lab X1 Carbon 0.4 nozzle,
 and no cache/wizard_profile_data.json, so that the first printer_list_models builds that file; the restart shows that a
@@ -16,20 +17,16 @@ installs a model of a third vendor (the Voxelab Aquila X2) and reads the filamen
 in preset_list, and that it swapped none.
 Run it as python tools/mcp/test_install_printers.py [--bin PATH] [--datadir PATH].
 """
-import contextlib
-import json
 import os
 import re
 import shutil
-import socket
-import subprocess
 import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from checks import until  # noqa: E402
-from orca_mcp import McpError, OrcaMcp, app_env  # noqa: E402
+from checks import Checks, launched, refusal as error_of, until  # noqa: E402
+from orca_mcp import McpError  # noqa: E402
 
 TOKEN = "install-printers-test-token"
 # The printer the fresh folder is seeded with, in place of the harness's default Generic Klipper Printer: every
@@ -38,51 +35,9 @@ TOKEN = "install-printers-test-token"
 SEED = ["--vendor", "BBL", "--printer", "Bambu Lab X1 Carbon@0.4", "--filament", "Bambu PLA Basic @BBL X1C"]
 X1C = "Bambu Lab X1 Carbon"
 VELO = {"vendor": "Goofoo", "model": "Goofoo Velo+"}
-results = []
-
-
-def check(name, ok, detail=""):
-    results.append((name, bool(ok)))
-    print(("PASS " if ok else "FAIL ") + name + ("" if ok else "  " + str(detail)[:400]), flush=True)
-
-
-def free_port():
-    """A port nothing listens on now, so that this test runs beside the others of a sweep."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
-
-
-def harness(env, *args):
-    return subprocess.run([sys.executable, os.path.join(HERE, "orca_mcp.py"), *args], env=env, capture_output=True, text=True,
-                          timeout=300)
-
-
-@contextlib.contextmanager
-def launched(datadir, binary):
-    """An instance on `datadir`: its client, or None when it did not start, stopped on every path out of the block.
-
-    A launch writes its session file before it waits for the app, and one that is not ready exits leaving its app
-    running, so the stop goes by that file whenever it is there. Only this launch writes it: a file an earlier run left
-    is removed first, so that no other app is ever stopped."""
-    port = free_port()
-    session = os.path.join(datadir, "session.json")
-    env = app_env(dict(os.environ, ORCA_MCP_SESSION=session, ORCA_MCP_TOKEN=TOKEN), datadir)
-    if os.path.exists(session):
-        os.remove(session)
-    try:
-        started = harness(env, "launch", "--datadir", datadir, "--port", str(port), *SEED, *binary)
-        if started.returncode != 0:
-            print(started.stdout, started.stderr)
-            yield None
-            return
-        orca = OrcaMcp(port=port, token=TOKEN)
-        orca.call("app_wait", **{"for": "ready"})
-        yield orca
-    finally:
-        if os.path.exists(session):
-            # stop returns once the app has exited, so that the next launch is the only app on the folder.
-            harness(env, "stop")
+# The test's named checks; check() records one and prints it.
+t = Checks()
+check = t.check
 
 
 def call(orca, tool, **args):
@@ -95,12 +50,7 @@ def refusal(orca, tool, **args):
     try:
         call(orca, tool, **args)
     except McpError as e:
-        text = str(e)
-        try:
-            details = json.loads(text.rpartition("\n")[2])
-        except ValueError:
-            details = {}
-        return text, details if isinstance(details, dict) else {}
+        return error_of(e)
     return None
 
 
@@ -331,12 +281,12 @@ def main():
     datadir = os.path.join(root, "printers")
     try:
         velo_preset = None
-        with launched(datadir, binary) as orca:
+        with launched(datadir, binary, TOKEN, SEED) as orca:
             check("the app starts", orca is not None)
             if orca is not None:
                 velo_preset = first_run(orca, datadir)
         if velo_preset is not None:
-            with launched(datadir, binary) as orca:
+            with launched(datadir, binary, TOKEN, SEED) as orca:
                 check("the app starts again on the same folder", orca is not None)
                 if orca is not None:
                     second_run(orca, velo_preset)
@@ -344,9 +294,7 @@ def main():
         if not given:
             shutil.rmtree(root, ignore_errors=True)
 
-    failed = [r for r in results if not r[1]]
-    print(f"\n{len(results) - len(failed)}/{len(results)} passed")
-    return 1 if failed else 0
+    return t.exit_code()
 
 
 if __name__ == "__main__":

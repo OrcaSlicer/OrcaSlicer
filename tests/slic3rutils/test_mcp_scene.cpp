@@ -27,6 +27,7 @@
 #include <imgui/imgui.h>
 #include <nlohmann/json.hpp>
 
+#include "mcp_test_utils.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
@@ -78,6 +79,7 @@
 #include <utility>
 #include <vector>
 
+using Slic3r::GUI::Mcp::Test::NoUiContext;
 using namespace Slic3r;
 using namespace Slic3r::GUI;
 using nlohmann::json;
@@ -761,35 +763,6 @@ TEST_CASE("Printable and Auto Drop take their state, and Fix Model all the objec
     // The repair is cancelled with job_cancel {job}.
     CHECK(command("object_fix")->cancellable);
 }
-
-namespace {
-
-// A call's context that fails the case when the call reaches its UI closure.
-class NoUiContext final : public ToolContext
-{
-public:
-    json run_ui(const std::function<json()>& /*fn*/) override
-    {
-        FAIL("the call reached its UI closure");
-        return json();
-    }
-    json observe_ui(const std::function<json()>& /*fn*/) override
-    {
-        FAIL("the call reached its UI closure");
-        return json();
-    }
-    const std::string& job_id() const override { return m_job; }
-    bool               cancelled() const override { return false; }
-    ToolResult call_child(const std::string& /*tool*/, const json& /*args*/) override { return ToolResult::error("no child calls"); }
-    std::set<std::string> lineage() const override { return {}; }
-    void                  set_journal_args(json /*args*/) override {}
-    void                  begin_operation() override {}
-
-private:
-    std::string m_job;
-};
-
-} // namespace
 
 TEST_CASE("Fix Model and Reload refuse all or a plate given with targets, and Fix Model all with a plate", "[Mcp][Scene]")
 {

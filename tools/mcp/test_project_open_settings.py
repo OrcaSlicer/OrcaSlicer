@@ -1,4 +1,5 @@
 """Checks that opening a project loads the settings it was saved with, whatever the load-behaviour preference says.
+Its design is the test_project_open_settings entry of tools/mcp/test-entries/windows_web.md.
 
 Launches OrcaSlicer on a fresh data folder, seeded with the default printer, whose Preferences say to load the
 geometry of a project only (project_load_behaviour load_geometry_only, which a person picks under Load behavior),
@@ -10,14 +11,12 @@ Run it as python tools/mcp/test_project_open_settings.py [--bin PATH] [--datadir
 import json
 import os
 import shutil
-import socket
-import subprocess
 import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, presets  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, Checks, free_port, harness, presets  # noqa: E402
 from orca_mcp import DEFAULT_PRINTER, OrcaMcp, app_env, seed_datadir, write_conf  # noqa: E402
 
 CUBE = os.path.join(os.path.dirname(os.path.dirname(HERE)), "tests", "data", "20mm_cube.obj")
@@ -25,24 +24,9 @@ TOKEN = "project-open-settings-test-token"
 LAYER_HEIGHT = 0.28
 # The layer height of the seeded process, 0.20mm Standard @MyKlipper.
 PRESET_LAYER_HEIGHT = 0.2
-results = []
-
-
-def check(name, ok, detail=""):
-    results.append((name, bool(ok)))
-    print(("PASS " if ok else "FAIL ") + name + ("" if ok else "  " + str(detail)[:400]), flush=True)
-
-
-def free_port():
-    """A port nothing listens on now, so that this test runs beside the others of a sweep."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
-
-
-def harness(env, *args):
-    return subprocess.run([sys.executable, os.path.join(HERE, "orca_mcp.py"), *args], env=env, capture_output=True, text=True,
-                          timeout=300)
+# The test's named checks; check() records one and prints it.
+t = Checks()
+check = t.check
 
 
 def layer_height(orca):
@@ -97,9 +81,7 @@ def main():
         if "--datadir" not in extra:
             shutil.rmtree(datadir, ignore_errors=True)
 
-    failed = [r for r in results if not r[1]]
-    print(f"\n{len(results) - len(failed)}/{len(results)} passed")
-    return 1 if failed else 0
+    return t.exit_code()
 
 
 if __name__ == "__main__":

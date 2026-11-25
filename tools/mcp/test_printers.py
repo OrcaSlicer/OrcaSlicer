@@ -5,20 +5,7 @@ plate_set_settings set them, as the test_printers entry of tools/mcp/test-entrie
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_printers.py
 
-Each part starts from start() on its printer, installed first where the data folder lacks it:
-- The Bambu Lab X1 Carbon 0.4 nozzle, chosen for what the folder may keep: on the Klipper printer, a machine of the
-  Orca printer agent an earlier test stored is selected when it is the agent's only one, and printer_status then reads
-  it connected. A data folder is not cut off from the account it may be signed in to, so printer_status is read first,
-  and print_pause, print_resume and print_stop are called only when it says no printer is connected; each is then
-  refused no_printer_connected.
-- The Bambu Lab H2D 0.4 nozzle, a printer of two extruders: settings_set checks every value of a call before it
-  changes anything, a variant switch asks about the printer's unsaved changes unless reset_all discards them, a plate's
-  filament grouping round-trips through plate_set_settings and plate_get_settings, and the second extruder's nozzle
-  flow type is set as its card in the sidebar picks it.
-- The Bambu Lab A1 mini 0.4 nozzle, whose nozzle card offers no flow type to pick.
-- The Eryone ER20 0.4 nozzle, a printer of one extruder whose Extruders field the Printer settings let a person
-  change: extruders_count 2 gives two extruders.
-It selects printer presets only, sends nothing to any printer, and exits 0 when every check passes.
+It selects printer presets only and sends nothing to any printer. Exits 0 when every check passes.
 """
 
 import os

@@ -17,6 +17,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include "mcp_test_utils.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCode/GCodeStatistics.hpp"
@@ -119,6 +120,7 @@
 #include <utility>
 #include <vector>
 
+using Slic3r::GUI::Mcp::Test::FailingLabel;
 using namespace Slic3r;
 using namespace Slic3r::GUI;
 using namespace Slic3r::GUI::Mcp;
@@ -2081,7 +2083,7 @@ TEST_CASE("a rule answers a message box only with a button the box has", "[Mcp]"
     }
 }
 
-TEST_CASE("a long label is cut where a character starts, and a toggle's tooltip name stays whole", "[Mcp]")
+TEST_CASE("a long label is given whole, as widget_list lists it and the dialog's message names it", "[Mcp]")
 {
 #if defined(__linux__)
     if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
@@ -2090,36 +2092,25 @@ TEST_CASE("a long label is cut where a character starts, and a toggle's tooltip 
     GuiApp app;
     REQUIRE(app.init.IsOk());
     {
+        // A tooltip of 124 bytes of 4-byte characters, and a folder's path of 200 bytes, as a downloads row shows one:
+        // an agent compares what it reads with what it set, so neither is shortened.
         std::string tip;
         for (int i = 0; i < 31; ++i)
             tip += "\xF0\x9F\x98\x80";
-        wxDialog dialog(nullptr, wxID_ANY, "Overlay");
-        auto*    toggle = new wxBitmapToggleButton(&dialog, wxID_ANY, wxBitmap(16, 16));
+        const std::string path = "/" + std::string(199, 'd');
+        wxDialog          dialog(nullptr, wxID_ANY, "Overlay");
+        auto*             toggle = new wxBitmapToggleButton(&dialog, wxID_ANY, wxBitmap(16, 16));
         toggle->SetToolTip(wxString::FromUTF8(tip));
-        // widget_list's label is cut at 120 bytes, where a character starts.
-        const std::string label = label_of(toggle);
-        CHECK(label.size() < tip.size());
-        CHECK(label.substr(label.size() - 3) == "...");
-        CHECK((label.size() - 3) % 4 == 0);
-        CHECK_NOTHROW(nlohmann::json(label).dump());
+        auto* folder = new wxStaticText(&dialog, wxID_ANY, wxString::FromUTF8(path));
+        CHECK(label_of(toggle) == tip);
+        CHECK(label_of(folder) == path);
+        CHECK_NOTHROW(nlohmann::json(label_of(toggle)).dump());
         // The message names the toggle by its whole tooltip.
         const nlohmann::json described = describe_dialog(&dialog);
         CHECK_NOTHROW(described.dump());
         CHECK(has(described["message"].get<std::string>(), "[ ] " + tip));
     }
 }
-
-namespace {
-
-// A label that can't be read, as a widget in a bad state might fail.
-class FailingLabel final : public wxStaticText
-{
-public:
-    explicit FailingLabel(wxWindow* parent) : wxStaticText(parent, wxID_ANY, "label") {}
-    wxString GetLabel() const override { throw std::runtime_error("unreadable"); }
-};
-
-} // namespace
 
 TEST_CASE("a toggle left without a label is named by its own tooltip, not by its neighbour's label", "[Mcp]")
 {

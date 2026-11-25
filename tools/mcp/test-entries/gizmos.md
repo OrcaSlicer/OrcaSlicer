@@ -1,10 +1,10 @@
 # Gizmos and canvas input
 
-The design of this area's sweep tests. The rules every entry follows, the grades and the table of all tests are
-in [TESTS.md](../TESTS.md).
+The design of this area's sweep tests. The rules every entry follows and the grades are in
+[TESTS.md](../TESTS.md).
 
 ## `test_gizmos`
-`test_gizmos.py` · Python, 1035 checks · in `sweep.json` as `{"path": "test_gizmos.py"}`
+`test_gizmos.py` · Python
 
 **Tests:** The Prepare view's gizmos, driven two ways. As a person drives them, through the generic GUI tools: gizmo
 icons, fields, combos, buttons and links in their panels, and clicks and strokes at points of the model. And through

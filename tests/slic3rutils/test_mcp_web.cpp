@@ -11,6 +11,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include "mcp_test_utils.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/Mcp/ModalTracker.hpp"
@@ -45,6 +46,7 @@
 #include <utility>
 #include <vector>
 
+using Slic3r::GUI::Mcp::Test::FailingLabel;
 using json = nlohmann::json;
 using namespace Slic3r;
 using namespace Slic3r::GUI;
@@ -358,18 +360,6 @@ TEST_CASE("a dialog with a web view is described as a web dialog", "[Mcp]")
         CHECK(web_view_in(&web_dialog, false) != nullptr);
     }
 }
-
-namespace {
-
-// A label that can't be read, as a widget in a bad state might fail.
-class FailingLabel final : public wxStaticText
-{
-public:
-    explicit FailingLabel(wxWindow* parent) : wxStaticText(parent, wxID_ANY, "label") {}
-    wxString GetLabel() const override { throw std::runtime_error("unreadable"); }
-};
-
-} // namespace
 
 TEST_CASE("a web dialog that can't be described is still listed as a web dialog", "[Mcp]")
 {

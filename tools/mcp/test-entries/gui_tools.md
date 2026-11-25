@@ -1,7 +1,7 @@
 # GUI automation tools
 
-The design of this area's sweep tests. The rules every entry follows, the grades and the table of all tests are
-in [TESTS.md](../TESTS.md).
+The design of this area's sweep tests. The rules every entry follows and the grades are in
+[TESTS.md](../TESTS.md).
 
 Three tests:
 
@@ -12,16 +12,10 @@ Three tests:
   action's arguments doing what a person's pick does. Part of that needs the Design tab, which every app the sweep
   launches has.
 
-Each runs in its job's app after the tests before it. Their `sweep.json` entries:
-
-```json
-"test_gui_tools": {"path": "test_gui_tools.py"},
-"test_recording": {"path": "test_recording.py"},
-"test_call_forms": {"path": "test_call_forms.py"}
-```
+Each runs in its job's app after the tests before it.
 
 ## `test_gui_tools`
-`test_gui_tools.py` · Python, 230 checks · in `sweep.json` as `{"path": "test_gui_tools.py"}`
+`test_gui_tools.py` · Python
 
 **Tests:** The generic GUI tools on the app's own widgets, as an agent drives any of them: context menus and a
 button's menu listed and run by path without being shown, the Edit menu's items, the rows of the object list, of
@@ -373,7 +367,7 @@ selection, the camera or the settings, and every script by the page it ran in or
 spectrum drag's colour is checked as another valid colour.
 
 ## `test_recording`
-`test_recording.py` · Python, 112 checks with an ffmpeg that has libx265 and libx264 · in `sweep.json` as `{"path": "test_recording.py"}`
+`test_recording.py` · Python
 
 **Tests:** `recording_start`, `recording_stop` and `recording_encode`: a recording made while the GUI is driven, its
 report and its file; a recording a nested `replay_run` starts and never stops, which the replay's end closes;
@@ -522,7 +516,7 @@ ffmpeg with the encoder is present; frame counts and capture times have lower bo
 to the unit tests.
 
 ## `test_call_forms`
-`test_call_forms.py` · Python, 95 checks · in `sweep.json` as `{"path": "test_call_forms.py"}`
+`test_call_forms.py` · Python
 
 **Tests:** The forms a call takes. Names and value shapes agents send in place of the schema's (a lone path for
 `paths`, `object` and a string index for `objects`, `action` and an action's short name for `id`, a camera direction

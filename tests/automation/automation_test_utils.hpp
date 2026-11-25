@@ -34,11 +34,21 @@ inline NativeCommand command(std::string key, bool has_own_action = false)
     return c;
 }
 
+// The keys of `commands`, in their order.
+inline std::vector<std::string> keys_of(const std::vector<NativeCommand>& commands)
+{
+    std::vector<std::string> keys;
+    for (const NativeCommand& c : commands)
+        keys.push_back(c.key);
+    return keys;
+}
+
 // Holds one command, as a plugin's operations are held while it is loaded.
 class OneCommandSource final : public CommandSource
 {
 public:
-    explicit OneCommandSource(std::string key) : m_command(std::make_shared<const NativeCommand>(command(std::move(key)))) {}
+    explicit OneCommandSource(std::string key) : OneCommandSource(command(std::move(key))) {}
+    explicit OneCommandSource(NativeCommand held) : m_command(std::make_shared<const NativeCommand>(std::move(held))) {}
 
     std::shared_ptr<const NativeCommand> find(const std::string& key) const override
     {

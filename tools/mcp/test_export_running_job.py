@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Checks what replay_export does with a call whose job outlived its reply.
+Its design is the test_export_running_job entry of tools/mcp/test-entries/runtime.md.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_export_running_job.py

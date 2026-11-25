@@ -5,27 +5,8 @@ them, run one after another in one app.
     tools/mcp/orca_mcp.py launch --cad
     tools/mcp/test_cad_replays.py [part ...]
 
-With no part named, every part runs, in the order of PARTS:
-- the six replays in tests/ (cad_sketch_to_solid, cad_sketch_edit, cad_topology_targets, cad_features, cad_doc,
-  cad_canvas), each run with replay_run from a new project, and passing when replay_run says it passed;
-- round_trip: a Design session made through tool_call, exported with replay_export and replayed into a new project
-  to the same part. The session holds an empty sketch commit, a hole that misses and a fillet the kernel refuses,
-  which the export leaves out, a shell that reports a rejected rebuild (ok false), which it keeps, and face and edge
-  ids passed with a generation, which it drops;
-- slow_build: a thread 250 mm deep, which rebuilds off the UI thread behind the progress dialog for several seconds,
-  while app_state and a window screenshot answer, another Design command is refused as busy, and (not on Windows,
-  where the dialog is the system's task dialog) widget_list lists the progress dialog and a screenshot captures it;
-- examples: every example tool_describe documents for the Design commands tool_list lists, and for undo and redo,
-  run as written on a
-  fresh design, an argument {"from_call": i, "key": k} taking the value under k in the result of call i of the same
-  example. An example fails when a call fails or its result has ok false, a non-empty error, or is the person's form
-  (interactive); one with `needs` uses a file from outside the app and is skipped.
-
-Each part starts from the same state, whatever the part before it left: start() puts the app in the baseline on the
-Generic Klipper Printer, closing what was left open, an open card, sketch, Text dialog or plane pick in the Design
-tab among it, and the Design view's switches are set as a new data folder has them. The replays, the exported
-session and the screenshots go to a temporary folder, which the run prints. Exits 1 when a check fails or a part
-breaks off.
+With no part named, every part of PARTS runs, in its order. The replays, the exported session and the screenshots go
+to a temporary folder, which the run prints. Exits 1 when a check fails or a part breaks off.
 """
 
 import json

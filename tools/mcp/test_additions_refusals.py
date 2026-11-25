@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Checks that the filament, preset, export and import commands refuse with an error where they cannot run.
+Its design is the test_additions_refusals entry of tools/mcp/test-entries/commands.md.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_additions_refusals.py

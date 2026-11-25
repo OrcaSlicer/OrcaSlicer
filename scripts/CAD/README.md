@@ -36,8 +36,8 @@ round trip within `--budget` seconds.
 
 The Design tab's GUI tests, which draw on the canvas with the mouse and keyboard as a person
 does, are MCP harness tests in `tools/mcp/` (`test_cad_sketching.py` and
-`test_cad_context_menu.py`); `tools/mcp/README.md` says what
-they check and how to run them.
+`test_cad_context_menu.py`); `tools/mcp/test-entries/design.md` says
+what they check, and `tools/mcp/README.md` how to run them.
 
 ## Generated sources
 

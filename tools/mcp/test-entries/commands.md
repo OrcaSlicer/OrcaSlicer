@@ -1,12 +1,12 @@
 # Commands, preferences, installs and plugins
 
-The design of this area's sweep tests. The rules every entry follows, the grades and the table of all tests are
-in [TESTS.md](../TESTS.md).
+The design of this area's sweep tests. The rules every entry follows and the grades are in
+[TESTS.md](../TESTS.md).
 
 ## `test_speed_dial`
-`test_speed_dial.py` · Python, 36 checks · in `sweep.json` as `{"path": "test_speed_dial.py"}`
+`test_speed_dial.py` · Python
 
-**Tests:** The Speed Dial's actions as `action_list` and `action_run` give them: that `action_list` lists every one of the 130 actions of `tests/data/speed_dial_actions.json` with the command `tests/data/speed_dial_action_calls.json` gives it, that a section no action is in is refused and settings are listed only when asked for, and that a few actions, run through `action_run` on the Generic Klipper Printer 0.4, each from a state rebuilt by calls, do what a person's pick does: their dialog answered as the row says, their effect read back, the reply naming the action, and the journal keeping an `action_run` step for it with the arguments its command journals. Each action it runs stands for one way an action runs, and is one whose command no other test runs where there is one:
+**Tests:** The Speed Dial's actions as `action_list` and `action_run` give them: that `action_list` lists every action of the command reference, `tests/data/command_catalog.json`, with its command, that a section no action is in is refused and settings are listed only when asked for, and that a few actions, run through `action_run` on the Generic Klipper Printer 0.4, each from a state rebuilt by calls, do what a person's pick does: their dialog answered as the row says, their effect read back, the reply naming the action, and the journal keeping an `action_run` step for it with the arguments its command journals. Each action it runs stands for one way an action runs, and is one whose command no other test runs where there is one:
 - `calib_retraction`: a person's form that opens a dialog, answered OK, which then makes the project (the Retraction calibration dialog, which no other test opens).
 - `add_handy_orcasliced_combo`: a person's form that runs in place and loads several files.
 - `help_keyboard_shortcuts`: an action that opens one of the app's windows.
@@ -16,14 +16,14 @@ in [TESTS.md](../TESTS.md).
 - `sync_presets`: a refused action, which journals nothing.
 - `go_to_layer`: an action whose command's schema refuses the value it is given, whose refusal names `tool_describe` for the command.
 
-An action is its command run with fixed arguments as a person's pick, and `action_run` runs every action the same way, so the test runs a few, not all. What each of the 130 adds to its command is checked without running it: `tests/slic3rutils/test_command_catalog.cpp` ([CommandCatalog][SpeedDial]) checks the command each folds into, its fixed arguments, the value it collects and that it is a person's form of its command, against the same fixture. The commands themselves are checked through their tools in their areas' tests. The Speed Dial's own window, opened with Space and picked from by a click, is `test_speed_dial_open`'s and `test_menu_items_refusals`'.
+An action is its command run with fixed arguments as a person's pick, and `action_run` runs every action the same way, so the test runs a few, not all. What each adds to its command is checked without running it: `tests/slic3rutils/test_command_catalog.cpp` ([CommandCatalog][SpeedDial]) checks that its fixed arguments and the value it collects fit its command's schema and that it is a person's form of its command, and the command reference holds the command each folds into. The commands themselves are checked through their tools in their areas' tests. The Speed Dial's own window, opened with Space and picked from by a click, is `test_speed_dial_open`'s and `test_menu_items_refusals`'.
 
 **Starts from:** `start(client)`, which "starts from the Generic Klipper Printer" compares with `{printer: "MyKlipper 0.4 nozzle", process: "0.20mm Standard @MyKlipper", filaments: ["Generic PLA @System"]}`. The setup check `Start Recording's folder is the output folder` points the folder Take Screenshot saves in at the output folder, through the Start Recording dialog. Before each row, `empty()` makes a new project with its changes discarded, shows Prepare's 3D view, deletes filament slots down to one and sets the expert mode, and the row's state builds on that: `two_cubes` adds two 20 mm cubes side by side and selects the first. The list checks read no state: the actions and their commands are the app's own. No action it runs takes the focus from another program, so it runs among the other tests on a job's data folder.
 
 **Leaves:** Start Recording's folder, the output folder, which the runner deletes when the test passes, so that a later capture with no path goes to the default capture folder, as on a new data folder (`folder_or_default()`, `RecordingDialog.cpp`); and an empty project with one filament slot, in the expert mode, which the next test's `start()` sets back to Simple. Its picks are `action_run` calls, which leave the Speed Dial's usage counts as they were. It saves no preset and installs nothing.
 
 **Decides by:** Exits 1 when any check fails.
-- Setup: `starts from the Generic Klipper Printer`; `every action has a call in the fixture`; `every action is listed with its command` (`action_list`, read page by page, lists an item for each of the 130 ids, and its `command` equals the fixture's); `an unknown section is refused` (`action_list {section: "No such section"}`, code `invalid_argument`) and `the refusal lists the sections there are` (its `sections` holds "Slice & Export"); `include_settings lists the settings too` (`action_list {include_settings: true, limit: 200}` has a larger `total` than `action_list {limit: 1}`, and its page holds an id starting `orca_setting`: a setting's action has no section of its own in the order, so the settings come first); `Start Recording's folder is the output folder`.
+- Setup: `starts from the Generic Klipper Printer`; `every action is listed with its command` (`action_list`, read page by page, lists an item for each action of the reference, and its `command` equals the reference's); `an unknown section is refused` (`action_list {section: "No such section"}`, code `invalid_argument`) and `the refusal lists the sections there are` (its `sections` holds "Slice & Export"); `include_settings lists the settings too` (`action_list {include_settings: true, limit: 200}` has a larger `total` than `action_list {limit: 1}`, and its page holds an id starting `orca_setting`: a setting's action has no section of its own in the order, so the settings come first); `Start Recording's folder is the output folder`.
 - Common to every row that runs but `sync_presets` and `go_to_layer`: `... its reply names the action it ran` (`ran` == `orca_command:<key>:orca`), and `... the journal keeps its action_run with the arguments its command journals`, an `action_run` step of that id whose inner `args` are `{"tab": "preview"}` for `go_to_tab`, the value given for its input, and `{}`, no `args`, for the others: the calibration action opens its test's dialog (the person's form), and `calibration_generate_test` rewrites its journal entry (`ActionContext::set_journal_args`) only when it runs the test itself, with its parameters or `silent`.
 - `calib_retraction`, from `empty`: the dialog titled "Retraction" answered OK; the project's `name` is "Retraction" and it has at least 1 object.
 - `add_handy_orcasliced_combo`, from `empty`: the objects' names are exactly "Orca Head", "OrcaCube_v2.drc", "OrcaPlug_v2.drc", "Orca Belly" and "Orca Pedestal", in that order, and no dialog is open.
@@ -35,7 +35,7 @@ An action is its command run with fixed arguments as a person's pick, and `actio
 - `go_to_layer`, from `empty`: "a command action's arguments its schema refuses carry the tool_describe hint": `action_run {id: "go_to_layer", args: {percent: -1}}`, the value the action collects, which `view_set`'s `layer_percent` minimum of 0 refuses, is refused with code `invalid_argument` and its `hint` is "tool_describe {tool: \"view_set\"} gives its parameters"; then `app_state.tab` is still "prepare", and `journal_step()` finds no `action_run` step for it.
 
 **Not checked:**
-- The other 122 actions as actions: each is listed with its command here and checked in the catalog's unit test, and its command through its tool in its area's test, so an action whose command and arguments are right but whose run went wrong for it alone passes. `action_run` runs every action by one code path, which the rows here take.
+- The other actions as actions: each is listed with its command here and checked in the catalog's unit test, and its command through its tool in its area's test, so an action whose command and arguments are right but whose run went wrong for it alone passes. `action_run` runs every action by one code path, which the rows here take.
 - Commands no test runs, which the rows here leave out: the other eight calibration dialogs (`test_call_forms` opens the temperature test's through its command), the nine other handy models, the size dialog of `add_primitive_*`, the other Help windows (Troubleshoot, Network Test, About, Check for Updates, Migrate Filament Presets, Tip of the Day), the 3D scene benchmark, Reset Window Layout, and the four actions that hand off to another program (`open_wiki`, `open_youtube`, `install_plugin`, `help_open_config_folder`), which open the browser or the file manager and would take the focus from every other app.
 - The screenshot is never opened: a blank one passes. The Keyboard Shortcuts window only shows that it opened.
 - The calibration's project beyond its name and an object: the test's objects and the settings it changes are `test_presets`' calibration scenarios'.
@@ -46,7 +46,7 @@ An action is its command run with fixed arguments as a person's pick, and `actio
 **Strength:** Partial — the handy model, the rear view and Go to tab have their effect read back exactly, the calibration loosely, the window only by its title and the screenshot by its file; every action is listed with its command, and the journal step is pinned exactly for every row that runs.
 
 ## `test_menu_items_refusals`
-`test_menu_items_refusals.py` · Python, 127 checks
+`test_menu_items_refusals.py` · Python
 
 **Tests:** What the object and plate commands built from menu items refuse, called directly and picked from the Speed Dial (Space, search, click). Covers Set as Individual Objects, Select All with a gizmo open, target errors, Rename, Delete on the last solid part and on cut objects, Split, Change Type, Assemble on object-list rows, Mirror, Drop, Add Primitive, Auto-Orient on locked or unprintable objects, and the plate commands on a missing plate. For each case it also checks the state left behind.
 
@@ -75,7 +75,7 @@ An action is its command run with fixed arguments as a person's pick, and `actio
 **Strength:** Strong — refusal codes and the state after each refusal are compared exactly, and each pick's notice is its own; only a few picks rest on notice text alone.
 
 ## `test_additions_refusals`
-`test_additions_refusals.py` · Python, 65 checks
+`test_additions_refusals.py` · Python
 
 **Tests:** Refusals of the filament, preset, export, import and settings commands. Covers `preset_sync` and `filament_sync_ams` with no account or printer, `view_set` of a layer with no slice, per-object STL and toolpath exports of an empty project (called and picked), a ZIP entry the archive lacks, `layer_height` on a part or a height range, a missing height range, the sidebar while a bare G-code file is open, deleting the only filament slot, merging a slot into the mixed filament that mixes it with the question answered no ahead (`break_mix: false`), merging the mixed filament into a slot, the 64-slot limit, and an `object_order` that leaves an object out. It also checks that a height range's own settings show on its object-list row.
 
@@ -101,7 +101,7 @@ An action is its command run with fixed arguments as a person's pick, and `actio
 **Strength:** Strong — refusal codes, details and the unchanged state are compared exactly, the order by names that tell the objects apart.
 
 ## `test_person_forms`
-`test_person_forms.py` · Python, 63 checks
+`test_person_forms.py` · Python
 
 **Tests:** That a call with exactly an action's arguments behaves as a person's pick. `project_save {save_as}` and `project_export {format: gcode}` open their pickers, `project_save` with a path does not, and `preset_export` always opens its dialog. Speed Dial picks of View: Top, Deselect All and Go to layer run in place. `object_arrange`/`object_select {all}` and their `action_run` give the command's reply, journal step and replay, including in the assemble view and with Measure open.
 
@@ -130,7 +130,7 @@ An action is its command run with fixed arguments as a person's pick, and `actio
 **Strength:** Strong — the picker counts, journal steps, replays and selections are compared exactly, and the "runs in place" absences have a control in the same run; a few error paths accept any error.
 
 ## `test_preferences`
-`test_preferences.py` · Python, 70 checks
+`test_preferences.py` · Python
 
 **Tests:** `preferences_get`/`preferences_set` against the Preferences dialog. The keys on each tab match the dialog's named controls; the MCP switch and port; a three-key write read back from the call, from `preferences_get` and from the reopened dialog; `restart_needed`; whole-call refusals. Also the backup timer following Auto backup, the downloads folder (call, dialog row, Browse while the dialog is open, a Browse answered with a folder that does not exist), Hide login side panel's live effect on the Home page, and preset sync / stealth mode with no account.
 
@@ -157,7 +157,7 @@ An action is its command run with fixed arguments as a person's pick, and `actio
 **Strength:** Strong — values are checked across three sources (reply, `preferences_get`, dialog), and the login panel by its exact display; only a few negative log reads are weak.
 
 ## `test_install_printers`
-`test_install_printers.py` · Python, 31 checks
+`test_install_printers.py` · Python
 
 **Tests:** `printer_list_models`, `printer_install` and `printer_uninstall` on a fresh folder seeded with the X1 Carbon 0.4, across a restart. Covers the wizard cache being built, install and refusal (no such model or nozzle), persistence, uninstall of the selected printer and of the last one, `preset_changes: transfer` with unsaved process and printer edits, the Printer Selection dialog's Confirm with the Velo+ ticked in its web page, and the filaments the reload of an install installs or swaps.
 
@@ -184,7 +184,7 @@ An action is its command run with fixed arguments as a person's pick, and `actio
 **Strength:** Strong — installs, removals, refusals, transfer, the dialog's Confirm and the filaments the reloads install are read back exactly.
 
 ## `test_install_filaments`
-`test_install_filaments.py` · Python, 23 checks
+`test_install_filaments.py` · Python
 
 **Tests:** `filament_install` and `filament_uninstall` on a fresh folder (X1 Carbon, Bambu PLA Basic in slot 1), across a restart. Covers install by the selector's short name, refusal of unknown names, the slot selector offering the new preset, reinstall reporting `installed_already`, re-installing a second printer's default filaments when an uninstall leaves it none, a merely shown printer (A1 mini) getting none of its defaults, and refusal to uninstall the slot's filament.
 
@@ -205,7 +205,7 @@ An action is its command run with fixed arguments as a person's pick, and `actio
 **Strength:** Strong — installs, re-installs, uninstalls and refusals are read back exactly from the replies and from `preset_list` before and after a restart.
 
 ## `test_plugin_commands`
-`test_plugin_commands.py` · Python, 37 checks (38 when the first uninstall fails)
+`test_plugin_commands.py` · Python
 
 **Tests:** The plugin commands on the fixture plugins in a fresh folder: `plugin_list`, `plugin_install_local` (again, and with `overwrite`), `plugin_enable` (plugin and capability, by key and by name), `plugin_reload`, `plugin_uninstall`, and `plugin_refresh` finding side-loaded plugins. Also a person's pick of Refresh Plugins (returns at once, notifies, rescans once), and the Plugins window's rows matching `plugin_list`.
 
@@ -232,7 +232,7 @@ An action is its command run with fixed arguments as a person's pick, and `actio
 **Strength:** Strong — each command's reply and the resulting `plugin_list`, files and window rows are compared exactly.
 
 ## `test_plugin_tools`
-`test_plugin_tools.py` · Python, 33 checks
+`test_plugin_tools.py` · Python
 
 **Tests:** A plugin's side of the MCP tools, with `mcp_tools_fixture` side-loaded (enabled, 5 capabilities, thread permission) and `mcp_tools_broken`, whose `get_default_config` raises after it registered `measure`. Covers the fixture's `measure` operation through `tool_list`, `tool_describe` and `tool_call`, its five scripts, which `action_list` lists as its Speed Dial actions, calling tools from the Script worker and a thread, setting an auto-answer rule owned by the plugin, being refused `replay_export`, keeping a progress-dialog handle, and receiving NewProject events. Also covers `tool_list` and `tool_describe` on the menu items with no argument form, a group and the Design commands, the Python API through `script_list_api` and `script_describe_api`, unloading via the Plugins dialog (operation and rule withdrawn), and a `--run` launch without MCP where the rule script still runs.
 
@@ -257,11 +257,12 @@ An action is its command run with fixed arguments as a person's pick, and `actio
 - The manual's fields past the operation's `group`, `description`, parameter `a` and `listed`, and past the menu item's `listed` and parameters: the unit tests read every command's manual.
 - The progress dialog's gauge: `handle.update(5)` returns true, but the gauge is not read.
 - The `--run` launch's exit code is ignored, and only the rule script runs there. Its replay gives the script a fixed 10 s to record its outcome before the run ends, with an `app_wait` for a dialog that never opens: the script runs on its own after `action_run` replies (`PluginScriptAction::run()`), and a replay has no step that waits for a file.
+- The Run Script panel's `.py` files: the panel is hidden from automation and opens its files through a file picker, so how it reads and saves them is left to the unit tests of `decode_python_source()` and `encode_python_source()`.
 
 **Strength:** Partial — the fixture's operation, its listing and manual, script outcomes, events, journal, failed load and unload are each checked exactly, with a control for the journal's absence, but the `--run` launch's exit code is not read.
 
 ## `test_operation_routes`
-`test_operation_routes.py` · Python, 23 checks
+`test_operation_routes.py` · Python
 
 **Tests:** That the routes into one operation agree: the Go to layer action and `view_set` asked for a layer of a Preview with none; `preset_select` and the plugin API given a mixed-colour filament slot; and the plugin API showing and selecting a hidden printer. It also checks single-route states: `project_save` to a `.gcode.3mf` name, exports of an empty project, and `object_arrange` from the assemble view and with the Move gizmo open.
 

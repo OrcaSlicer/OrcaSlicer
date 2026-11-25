@@ -1,6 +1,7 @@
 get_filename_component(_TEST_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
 add_executable(${_TEST_NAME}_tests
     ${_TEST_NAME}_tests_main.cpp
+    mcp_test_utils.hpp
     test_bambu_filament_ids.cpp
     test_bbl_cert_dir.cpp
     test_bed_exclusion_fields.cpp

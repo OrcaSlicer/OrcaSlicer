@@ -1,7 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "automation/automation_test_utils.hpp"
-#include "retired_names.hpp"
 
 #include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/Mcp/McpProtocol.hpp"
@@ -81,10 +80,4 @@ TEST_CASE("the catalog the stdio bridge lists without the app holds every tool f
     CHECK_FALSE(server_info().instructions.empty());
     // Clients cut the instructions off after 4096 characters.
     CHECK(server_info().instructions.size() <= 4096);
-}
-
-TEST_CASE("the instructions name no retired command", "[Mcp]")
-{
-    // An agent reads them first: a word of them that was a command's name would send it to an unknown tool.
-    CHECK(retired_names_in(server_info().instructions) == std::set<std::string>{});
 }

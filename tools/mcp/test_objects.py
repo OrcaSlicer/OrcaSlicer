@@ -4,21 +4,8 @@
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_objects.py [scenario ...]
 
-Three parts run one after another in one app. The plates of the Prepare view: adding, duplicating, naming, locking,
-selecting and deleting plates and undoing that; what a lock keeps Arrange and Auto-Orient from doing; a plate's own
-settings; the filament slots its filament orders count on; and the plate icons and plate menu. Where objects stand
-and how many there are: adding a shape at a size, a place, a plate and a name; moving, turning and scaling an
-instance, moving it to another plate, and Auto Drop; moving and scaling a part, the selection and Mirror; the number
-of instances and Set as Individual Objects; Drop to Bed, Center, Scale to Fit and Auto-Orient; Arrange and Fill bed;
-Clone; and leaving instances out of the print. What objects are made of and how the list orders them: renaming and
-deleting, the layer commands, Split and Assemble, the parts and their types, ordering and the print order, Fix Model,
-Reload from disk and Replace 3D file, and the keep_painting preference. Last, what the project file keeps of all
-three, through one save and reopen.
-
-After every step the test reads the plates back with plate_list and the objects with object_list, and compares them
-with the state the entry writes out. It runs on the Generic Klipper Printer 0.4 nozzle, and exits 0 when every check
-passes. Scenarios named on the command line (by their method names, such as arranging) run alone; cloning arranges
-with the options arranging stores, so it runs after it.
+Scenarios named on the command line (by their method names, such as arranging) run alone; cloning arranges with the
+options arranging stores, so it runs after it. Exits 0 when every check passes.
 """
 
 import copy
@@ -32,9 +19,9 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, SLOT_COLOURS, Checks, add_slot, apart, corner,  # noqa: E402
-                    gap, gcode_prints, inside, objects, plates, rect, run, scene, selection, slots, square, start,
-                    menus_left, unsaved, until, wait)
+from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, SLOT_COLOURS, Checks, add_slot, apart, centre,  # noqa: E402
+                    corner, gap, gcode_prints, inside, menus_left, objects, plates, rect, rule_uses, run, scene,
+                    selection, slots, square, start, unsaved, until, wait)
 
 CUBE = {"shape": "cube", "size": [20, 20, 20]}
 START = {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]}
@@ -160,10 +147,6 @@ def write_stl(path, triangles):
         f.write("\n".join(lines) + "\n")
 
 
-def centre(box):
-    return [(lo + hi) / 2 for lo, hi in zip(box["min"], box["max"])]
-
-
 def names(objects_):
     """The objects' names in index order, from scene()."""
     return [o["name"] for o in objects_]
@@ -223,12 +206,6 @@ class Plates(Part):
         found = [o for p, o in self.listing() if p == plate and o["name"] == name]
         assert len(found) == 1, f"{len(found)} objects named {name} on plate {plate}"
         return found[0]
-
-    def rule_uses(self, match):
-        for rule in self.c.call("app_state").get("auto_answer_rules", []):
-            if rule.get("match") == match:
-                return rule.get("uses", 0)
-        return None
 
     # ---- Checks on objects ----
 
@@ -515,10 +492,10 @@ class Plates(Part):
         settings_are(f"{s} 11: with no plate it sets the current plate", S(), after4)
         spiral = "Spiral mode only works"
         self.run("dialog_auto_answer", rules=[{"match": spiral, "button": "yes"}])
-        self.t.equal(f"{s} 12: the spiral rule has answered nothing yet", self.rule_uses(spiral), 0)
+        self.t.equal(f"{s} 12: the spiral rule has answered nothing yet", rule_uses(self.c, spiral), 0)
         self.run("plate_set_settings", plate=0, values={"spiral_mode": True})
         settings_are(f"{s} 12", S(spiral_mode=True, overrides=["spiral_mode"]), after4)
-        self.t.equal(f"{s} 12: the spiral mode question was asked once", self.rule_uses(spiral), 1)
+        self.t.equal(f"{s} 12: the spiral mode question was asked once", rule_uses(self.c, spiral), 1)
         self.run("dialog_auto_answer", rules=[])
         self.run("plate_set_settings", plate=0, values={"spiral_mode": None})
         settings_are(f"{s} 13", S(), after4)

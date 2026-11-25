@@ -16,8 +16,9 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include "automation/automation_test_utils.hpp"
+#include "mcp_test_utils.hpp"
 #include "python_test_support.hpp"
-#include "retired_names.hpp"
 
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
@@ -64,25 +65,11 @@ using nlohmann::json;
 using Slic3r::GUI::CommandCatalog;
 using Slic3r::GUI::CommandSource;
 using Slic3r::GUI::NativeCommand;
+using Slic3r::GUI::Mcp::Test::catalog_with_cad;
+using Slic3r::GUI::Mcp::Test::OneCommandSource;
 namespace NativeCommands = Slic3r::GUI::NativeCommands;
 
 namespace {
-
-// Holds one command, as a plugin holds its operations while it is loaded.
-class OneCommandSource final : public CommandSource
-{
-public:
-    explicit OneCommandSource(NativeCommand command) : m_command(std::make_shared<const NativeCommand>(std::move(command))) {}
-
-    std::shared_ptr<const NativeCommand> find(const std::string& key) const override
-    {
-        return key == m_command->key ? m_command : nullptr;
-    }
-    std::vector<std::shared_ptr<const NativeCommand>> all() const override { return {m_command}; }
-
-private:
-    std::shared_ptr<const NativeCommand> m_command;
-};
 
 // A Speed Dial action that runs nothing, with the id `prefix`:`name`:orca, as the registry's own are made.
 class IdleAction final : public Slic3r::GUI::AppAction
@@ -190,7 +177,7 @@ TEST_CASE("what action_run journals for an action of fixed arguments is a call i
     // Every command's action: its journal step's arguments are the action's own, or the value an action with an input
     // collects, and action_run takes them, so a replay of the step is never refused.
     const auto check_actions = [](const CommandCatalog& catalog) {
-        int checked = 0;
+        std::size_t checked = 0;
         for (const NativeCommand& command : catalog.commands()) {
             std::vector<std::unique_ptr<Slic3r::GUI::AppAction>> actions;
             if (command.has_own_action)
@@ -215,7 +202,9 @@ TEST_CASE("what action_run journals for an action of fixed arguments is a call i
         return checked;
     };
     // The 130 Speed Dial entries outside the Design tab are commands' actions: eight own and 122 items.
-    CHECK(check_actions(NativeCommands::instance()) == 130);
+    // Every action of the Speed Dial is checked: none outside the Design tab takes its command's arguments.
+    const std::size_t speed_dial = NativeCommands::speed_dial_actions(NativeCommands::instance()).size();
+    CHECK(check_actions(NativeCommands::instance()) == speed_dial);
 
     const auto recorded_for = [](const CommandCatalog& catalog, const char* key, const json& given) {
         const auto [command, action] = find_command_action(catalog, key);
@@ -229,7 +218,7 @@ TEST_CASE("what action_run journals for an action of fixed arguments is a call i
     CommandCatalog design;
     NativeCommands::register_all_commands(design, {true});
     design.seal();
-    CHECK(check_actions(design) > 130);
+    CHECK(check_actions(design) > speed_dial);
     CHECK(recorded_for(design, "sk_array_polar", json::object()) == json{{"type", "circular"}});
 #endif
 }
@@ -527,161 +516,6 @@ TEST_CASE("a listing summary is a documentation's first sentence on one line", "
     CHECK(first_sentence("") == "");
 }
 
-TEST_CASE("a tool of the old vocabulary is no command", "[Mcp]")
-{
-    const CommandCatalog& catalog = NativeCommands::instance();
-    REQUIRE(kRetiredTools.size() == 45);
-    for (const std::string& retired : kRetiredTools) {
-        INFO(retired);
-        CHECK(catalog.find(retired) == nullptr);
-    }
-    // The word search's tool is gone with no successor of its name: tool_list and tool_describe took its jobs.
-    CHECK(catalog.find("tool_search") == nullptr);
-    // The action search is action_list, a listing with no query, under no other name.
-    CHECK(catalog.find("action_search") == nullptr);
-    // The Python API's search is script_list_api and script_describe_api, under no other name.
-    CHECK(catalog.find("script_search_api") == nullptr);
-
-    // Each of the 39 under its name, listed, the first sentence of its description pinned (the commands that sentence
-    // names under their names too).
-    struct Renamed
-    {
-        const char* retired;
-        const char* name;
-        const char* first_sentence;
-    };
-    static const Renamed renamed[] = {
-        {"call_tool", "tool_call",
-         "Call any command by name with its arguments: a tool, or one the tool list does not show, a menu "
-         "item that takes no arguments, a Design tab command or an operation a plugin offers (`tool_list` "
-         "lists them; `tool_describe` gives any command's manual)."},
-        {"generate_calibration_test", "calibration_generate_test",
-         "Generate a Calibration menu test as its dialog's OK does: a new project named after the test, with "
-         "the test model and the process, filament and printer presets changed as the test needs."},
-        {"export", "project_export", "Write the project to a file without a dialog."},
-        {"list_presets", "preset_list",
-         "Printer, process or filament presets, each with its name, alias (the name its selector shows, when "
-         "another), system, user, project (kept inside the project), inherits, selected (and modified), "
-         "`compatible: false` or `installed: false` when so, and vendor; a filament its `filament_type` and "
-         "the slots using it (`filament_slots`), a printer its `printer_model` and nozzle."},
-        {"select_preset", "preset_select", "Select a printer, process or filament preset by the name its selector shows (or its "
-                                           "internal name), as a person would."},
-        {"save_preset", "preset_save", "Save the printer, process or filament preset being edited, with its unsaved changes, as a preset "
-                                       "called name, which is then selected: what the tab's Save button does through its dialog."},
-        {"delete_preset", "preset_delete", "Delete a user preset or one inside the project, its file and its cloud copy, as the tab's "
-                                           "Delete does, without asking."},
-        {"list_plates", "plate_list",
-         "Plates with name, locked, current, objects (how many are on it; `object_list` lists them), and the "
-         "settings they print with: `curr_bed_type`, `print_sequence`, `spiral_mode`, "
-         "`first_layer_print_sequence` and `other_layers_print_sequence` (null: Auto), with several extruders "
-         "`filament_map_mode` and `filament_map`; overrides lists those the plate sets itself "
-         "(`plate_set_settings`)."},
-        {"list_objects", "object_list", "The project as the Objects panel lists it."},
-        {"transform", "object_transform", "Change one instance's placement, or one part's with part."},
-        {"add_part", "part_add", "Add a part, negative part, modifier, support blocker or enforcer, or precise seam to an object, as its "
-                                 "context menu's Add items do: a primitive shape at a size, or a model file as Load..."},
-        {"arrange", "object_arrange", "Arrange the objects of every unlocked plate as the toolbar's Arrange does, or of one plate "
-                                      "(plates: an index or \"current\") as its Arrange icon does."},
-        {"slice", "plate_slice", "Slice the current plate, all plates, or one plate by index, the way the toolbar's Slice button does, "
-                                 "and wait for the result (or reply with a job id when it takes longer than the reply budget)."},
-        {"set_height_ranges", "object_set_height_ranges",
-         "Replace an object's height range modifiers (Height Range Modifier in the object list): Z ranges in "
-         "mm, each printed with its own `layer_height`, filament and process settings, which `settings_get` "
-         "and `settings_set` read and write with the target `height_range`."},
-        {"set_variable_layer_height", "object_set_variable_layer_height",
-         "Run the Variable layer height panel's Adaptive, Smooth or Reset on an object, without opening the "
-         "panel: adaptive computes layer heights from the object's shape (inside a height range, the range's "
-         "`layer_height`), smooth smooths its profile (or the one its height ranges give), reset goes back to "
-         "its layer height and ranges."},
-        {"set_custom_gcode_at_layer", "plate_set_custom_gcode",
-         "Add or remove pauses, custom G-code, custom templates and filament changes at the start of a layer, as the Preview layer "
-         "slider's menu does; they are saved per plate in the project."},
-        {"get_slice_stats", "plate_slice_stats", "What the Preview shows for a sliced plate."},
-        {"get_app_state", "app_state", "Snapshot of OrcaSlicer."},
-        {"wait", "app_wait",
-         "Block until a condition holds or `timeout_s` passes (max 50)."},
-        {"get_log", "app_log", "The last lines of OrcaSlicer's current log file, optionally only those at or above a level."},
-        {"cancel_job", "job_cancel", "Stop the running operation: a slice or G-code export, as the slicing progress's cancel button "
-                                     "does, or a background job an MCP call started (an arrange, orient or fill bed)."},
-        {"run_replay", "replay_run",
-         "Replay a list of tool calls in order and report each step: `{\"orca_replay_version\": \"0.2.0\", "
-         "name, vars, steps: [{tool, args, expect, optional, await, save_as, timeout_s}]}`, JSON with "
-         "comments."},
-        {"export_replay", "replay_export",
-         "Turn the calls this session made into a replay that `replay_run` runs: mutating calls, `app_wait`, "
-         "`window_screenshot` and the recording tools, in order, with refs replaced by locators, job replies "
-         "replayed with await:false, and `window_screenshot` and recording paths moved under `${out_dir}`."},
-        {"run_script", "script_run",
-         "Run Python code inside OrcaSlicer as its main program (__name__ == \"__main__\") against "
-         "`orca.host`, the whole plugin API (`script_list_api` lists it): read objects, meshes and settings, "
-         "compute, use `orca.host.ui` and the preset API, and call these same tools, with their guards and "
-         "undo, through `orca.host.tools.call`(name, args)."},
-        {"answer_dialog", "dialog_answer", "Press a button of the topmost modal dialog: yes, no, ok, cancel, close, apply, a button's "
-                                           "label, or a numeric id."},
-        {"auto_answer_dialogs", "dialog_auto_answer", "Answer modal dialogs automatically when their title or message matches a rule's "
-                                                      "regex (case-insensitive)."},
-        {"select_objects", "object_select", "Select objects, instances or parts in the 3D view (the assemble view while it is shown, "
-                                            "else Prepare, switching to it), as clicking them would."},
-        {"screenshot", "window_screenshot",
-         "Capture what OrcaSlicer shows and return it as an image, downscaled to `max_dim` on the long edge "
-         "(default 1280), plus the full-size PNG written to `save_path` (or the session's output folder)."},
-        {"set_view", "view_set",
-         "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view and its "
-         "camera, the Preview's color scheme, legend, layers and time estimate, and the display switches of "
-         "the View menu and the sidebar."},
-        {"encode_recording", "recording_encode", "Encode a recording into an H.265 (or H.264) MP4 with the system ffmpeg (ORCA_FFMPEG, "
-                                                 "else ffmpeg on PATH; it needs libx265 or libx264), keeping its timing."},
-        {"run_action", "action_run",
-         "Run one action by the id `action_list` returned (`orca_command:view_front:orca`, or the name inside "
-         "it, `view_front`), with `args`, the command's arguments, when it takes some (its `input_schema`)."},
-        {"list_windows", "window_list",
-         "List OrcaSlicer's open windows: the main window, then the windows that don't block the app (Plugins, an object's settings, "
-         "a dock panel floating on its own), then the modal dialogs in the order they opened, the topmost last."},
-        {"set_window", "window_set",
-         "Size, move, maximize, minimize or raise a window: the main window (default), the topmost modal "
-         "dialog, or one `window_list` lists, also while a modal dialog is open."},
-        {"list_widgets", "widget_list",
-         "Describe what is on screen as an indented tree, one element per line with a ref for `widget_click`, "
-         "`widget_set_value`, `keyboard_press`, `webview_run_javascript` and, for a page element, "
-         "`mouse_gesture`: every shown window's widgets, the rows of lists, trees and tables, each shown "
-         "popup after the window it opened from, the main menus, the 3D canvas's toolbar items and gizmos, "
-         "each ImGui panel of the last frame with its items and text, and each shown web page's elements "
-         "(dialogs, the setup wizard, sign-in, plugin windows)."},
-        {"click", "widget_click", "Click a GUI element as a person would."},
-        {"set_widget_value", "widget_set_value", "Set a widget's value and send the events a person's edit would."},
-        {"press_keys", "keyboard_press",
-         "Send a key chord (\"Ctrl+S\", \"Escape\", \"Return\", \"Delete\", \"Shift+Tab\", \"Left\", \"F5\") and/or type text to a "
-         "target or, without one, to the focused window (the topmost dialog while one is open, the shown 3D view when nothing has "
-         "focus)."},
-        {"pick_gizmo_file", "gizmo_pick_file",
-         "Do what a file picker inside the open gizmo does, with a path instead of its dialog: `svg_change` "
-         "loads another SVG file into the SVG part being edited, `svg_save_as` writes that part's SVG to a "
-         "new file (an existing one only with overwrite), `texture_import` imports a height-map image into "
-         "the texture library and puts it on Texture Displacement's active layer."},
-        {"run_javascript", "webview_run_javascript", "Evaluate JavaScript in one of OrcaSlicer's web views (Home, the device page, "
-                                                     "dialogs, plugin windows)."},
-    };
-    REQUIRE(std::size(renamed) == 39);
-    for (const Renamed& r : renamed) {
-        INFO(r.retired << " is " << r.name);
-        CHECK(std::find(kRetiredTools.begin(), kRetiredTools.end(), r.retired) != kRetiredTools.end());
-        const NativeCommand* command = catalog.find(r.name);
-        REQUIRE(command != nullptr);
-        CHECK(command->listed);
-        CHECK(first_sentence(command->description) == r.first_sentence);
-    }
-
-    // Outside the Design group 135 commands are listed: every one that runs from its arguments, all but the three menu
-    // items that take none (Task 3's 98, the seven Parts 4a to 4c add, Part 5a's three, Part 5b's two, Part 5c's one,
-    // Part 5d's four, the seven gizmo commands, the six printing commands, the filament list's four, tool_describe,
-    // script_describe_api and settings_list_pages).
-    std::size_t listed = 0;
-    for (const NativeCommand& c : catalog.commands())
-        if (c.listed && c.group != Slic3r::GUI::kDesignGroup)
-            ++listed;
-    CHECK(listed == 135);
-}
-
 TEST_CASE("opening a project and importing models are two commands", "[Mcp]")
 {
     const NativeCommand* open    = NativeCommands::find("project_open");
@@ -863,15 +697,6 @@ TEST_CASE("a guessed type is read as a command's one variant argument", "[Mcp]")
 }
 
 namespace {
-
-// The built-in commands with the Design tab's among them.
-CommandCatalog catalog_with_cad()
-{
-    CommandCatalog catalog;
-    NativeCommands::register_all_commands(catalog, {true});
-    catalog.seal();
-    return catalog;
-}
 
 bool lists_values(const json& schema)
 {

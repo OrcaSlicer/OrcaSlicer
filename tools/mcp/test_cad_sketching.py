@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Checks that sketches drawn on the Design tab the way a person draws them come out as typed.
+Its design is the test_cad_sketching entry of tools/mcp/test-entries/design.md.
 
     tools/mcp/orca_mcp.py launch --cad
     tools/mcp/test_cad_sketching.py [rung ...]
@@ -40,27 +41,9 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from cad_gui import CANVAS, CadGui, until  # noqa: E402
+from cad_gui import CANVAS, CadGui, lengths, mid, near, until  # noqa: E402
 
 gui = None  # the CadGui main() starts
-
-
-def near(a, b, tol=1e-6):
-    return abs(a - b) <= tol
-
-
-def lengths(ents):
-    return sorted(round(e["length"], 6) for e in ents if e["type"] == "line")
-
-
-def loops():
-    return gui.sketch()["closed_loops"]
-
-
-def key(k):
-    """A tool key or Esc, pressed over the canvas, whichever widget a ribbon click left holding the
-    keyboard focus."""
-    gui.keys(k, target=CANVAS)
 
 
 # ---------------------------------------------------------------- one tool each
@@ -299,10 +282,6 @@ def op_label_mm(anchor, direction, value, at):
     return (tip[0] + d[0] * th * 1.2, tip[1] + d[1] * th * 1.2)
 
 
-def mid(e):
-    return ((e["p0"][0] + e["p1"][0]) / 2.0, (e["p0"][1] + e["p1"][1]) / 2.0)
-
-
 def mid_of(a, b):
     return ((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0)
 
@@ -367,7 +346,7 @@ def rung_fillet():
     gui.enter_sketch("r")
     draw_rect(120, 80, -60, -40)
     a, b = corner_pair(gui.sketch()["entities"])
-    key("f")
+    gui.canvas_keys("f")
     gui.click_mm(*mid(a))
     gui.click_mm(*mid(b))
     C, bis = corner_of(a, b)
@@ -395,7 +374,7 @@ def rung_chamfer():
     gui.enter_sketch("r")
     draw_rect(120, 80, -60, -40)
     a, b = corner_pair(gui.sketch()["entities"])
-    key("h")
+    gui.canvas_keys("h")
     gui.click_mm(*mid(a))
     gui.click_mm(*mid(b))
     C, bis = corner_of(a, b)
@@ -422,7 +401,7 @@ def rung_offset():
     gui.click_mm(30, 0)
     gui.values(25)
     c = next(x for x in gui.sketch()["entities"] if x["type"] == "circle")
-    key("o")
+    gui.canvas_keys("o")
     gui.click_mm(25, 0)  # pick the rim
     # A circle's offset anchors at centre + (r, 0). A positive distance is to the left of travel,
     # which for a circle is inward, so the arrow points along -x, and it starts at a twentieth of
@@ -446,14 +425,14 @@ def rung_offset():
 def rung_mirror():
     gui.enter_sketch("l")
     gui.press("Construction")  # the axis is reference, not material
-    key("l")
+    gui.canvas_keys("l")
     draw_line(0, -40, 0, 40, 80, 90)  # the axis, on x = 0
     gui.press("Construction")  # back to real geometry
-    key("l")
+    gui.canvas_keys("l")
     draw_line(0, -40, 50, -40, 50, 0)
-    key("l")
+    gui.canvas_keys("l")
     draw_line(50, -40, 50, 40, 80, 90)
-    key("l")
+    gui.canvas_keys("l")
     draw_line(50, 40, 0, 40, 50, 180)
     d0 = gui.sketch()["entities"]
     axis = [e for e in d0 if e.get("construction")]
@@ -462,11 +441,11 @@ def rung_mirror():
     gui.check("mirror: three lines in the half profile", len(half) == 3, f"{len(half)} real lines")
     if not axis or not half:
         return  # nothing to mirror, or nothing to mirror about
-    key("m")
+    gui.canvas_keys("m")
     gui.click_mm(*mid(axis[0]))
     for e in half:
         gui.click_mm(*mid(e))
-    key("Return")  # applies the mirror the picks set up; a click on empty space leaves it pending
+    gui.canvas_keys("Return")  # applies the mirror the picks set up; a click on empty space leaves it pending
     d = gui.sketch()
     real = [e for e in d["entities"] if e["type"] == "line" and not e.get("construction")]
     gui.check("mirror: six lines after the reflection", len(real) == 6, f"{len(real)} real lines")
@@ -507,10 +486,10 @@ def rung_mirror_arcs():
     not move, and no copied cap comes back reflex."""
     gui.enter_sketch("l")
     gui.press("Construction")  # the axis is reference, not material
-    key("l")
+    gui.canvas_keys("l")
     draw_line(0, -40, 0, 40, 80, 90)  # the axis, on x = 0
     gui.press("Construction")  # back to real geometry
-    key("s")  # the slot: the centreline's two ends, then its width
+    gui.canvas_keys("s")  # the slot: the centreline's two ends, then its width
     gui.click_mm(-70, -10)
     gui.click_mm(-30, -10)
     gui.click_mm(-30, 0)
@@ -525,7 +504,7 @@ def rung_mirror_arcs():
     slot = [e for e in d0 if not e.get("construction")]
     arcs0 = [e for e in slot if e["type"] == "arc"]
     gui.check("mirror_arcs: two caps on the slot", len(arcs0) == 2, f"{len(arcs0)} caps")
-    key("m")
+    gui.canvas_keys("m")
     gui.click_mm(*mid(axis))
     for e in slot:
         if e["type"] == "line":
@@ -533,7 +512,7 @@ def rung_mirror_arcs():
         else:  # a point on the arc, at the middle of its sweep
             a = (e["start_angle"] + e["end_angle"]) / 2.0
             gui.click_mm(e["center"][0] + e["radius"] * math.cos(a), e["center"][1] + e["radius"] * math.sin(a))
-    key("Return")  # applies the mirror the picks set up; a click on empty space leaves it pending
+    gui.canvas_keys("Return")  # applies the mirror the picks set up; a click on empty space leaves it pending
     d1 = gui.sketch()["entities"]
     gui.check("mirror_arcs: one copy for each picked entity", len(d1) == len(d0) + len(slot),
               f"{len(d1) - len(d0)} copies for {len(slot)} picked entities")
@@ -576,7 +555,7 @@ def rung_mirror_arcs():
 def rung_trim():
     gui.enter_sketch("l")
     draw_line(-50, 0, 50, 0, 100, 0)
-    key("l")
+    gui.canvas_keys("l")
     draw_line(0, -50, 0, 50, 100, 90)
     d0 = gui.sketch()["entities"]
     horiz = min(d0, key=lambda e: abs(e["p1"][1] - e["p0"][1]))
@@ -584,7 +563,7 @@ def rung_trim():
     X = cross(horiz, vert)
     left = min(horiz["p0"], horiz["p1"])  # the end that must survive
     want = math.dist(left, X)
-    key("t")
+    gui.canvas_keys("t")
     gui.click_mm(*mid_of(X, max(horiz["p0"], horiz["p1"])))  # the arm on the far side of the crossing
     d = gui.sketch()
     ls = sorted(round(e["length"], 9) for e in d["entities"] if e["type"] == "line")
@@ -600,7 +579,7 @@ def rung_trim():
 def rung_extend():
     gui.enter_sketch("l")
     draw_line(-50, 0, -10, 0, 40, 0)
-    key("l")
+    gui.canvas_keys("l")
     draw_line(0, -50, 0, 50, 100, 90)
     d0 = gui.sketch()["entities"]
     short = min(d0, key=lambda e: e["length"])
@@ -609,7 +588,7 @@ def rung_extend():
     far = min((short["p0"], short["p1"]), key=lambda q: q[0])  # the end that stays put
     near_end = max((short["p0"], short["p1"]), key=lambda q: q[0])
     want = math.dist(far, X)
-    key("x")
+    gui.canvas_keys("x")
     gui.click_mm(*mid_of(near_end, mid_of(far, near_end)))  # click the end that must grow
     d = gui.sketch()
     ls = sorted(round(e["length"], 9) for e in d["entities"] if e["type"] == "line")
@@ -632,16 +611,16 @@ def escape_field():
     it and keeps the shape as drawn."""
     if until(gui.value_field) is None:
         raise AssertionError("the gesture opened no value field")
-    key("Escape")
+    gui.canvas_keys("Escape")
     if not until(lambda: gui.value_field() is None):
         raise AssertionError("Esc left the value field open")
 
 
-def keep_as_drawn():
+def escape_to_select():
     """Esc twice after a drawn shape: the first closes its value fields, the second drops the tool
     to Select."""
     escape_field()
-    key("Escape")
+    gui.canvas_keys("Escape")
     if not until(lambda: gui.sketch()["tool"] == "select"):
         raise AssertionError(f"Esc left the tool {gui.sketch()['tool']} armed")
 
@@ -650,7 +629,7 @@ def draw_rect_undimensioned():
     """A rectangle by two clicks, its value fields dismissed so it keeps its drawn size."""
     gui.click_mm(-60, -40)
     gui.click_mm(60, 40)
-    keep_as_drawn()
+    escape_to_select()
 
 
 def accept_shown_value():
@@ -701,13 +680,6 @@ def confirm_and_reopen():
     return gui.reopen()
 
 
-def leave():
-    """Leave the sketch, discarding what it holds, and empty the design: a rung that commits its
-    sketch leaves a feature, and the rungs after it start from none."""
-    gui.cancel()
-    gui.new_design()
-
-
 # What the sketch solver holds a solved sketch to. libslvs stops when every equation's residual is within
 # System::CONVERGE_TOLERANCE, LENGTH_EPS / 1e2 = 1e-8 (libslvs system.cpp:20, LENGTH_EPS in solvespace.h:127), and
 # the Design tab keeps a solve's geometry only when it converged (SketchSolver.cpp:449, ok is SLVS_RESULT_OKAY, and
@@ -752,7 +724,7 @@ def rung_dimension():
     dof0 = d0["dof"]
     gui.check("dimension: the undimensioned rectangle has degrees of freedom", dof0 > 0, f"dof {dof0}")
     side = max((e for e in d0["entities"] if e["type"] == "line"), key=lambda e: e["length"])
-    key("d")
+    gui.canvas_keys("d")
     gui.click_mm(*mid(side))
     gui.values(90)
     d = gui.sketch()
@@ -790,7 +762,7 @@ def rung_badge():
     gui.check("badge: a double-click keeps only the Horizontal selected",
               d["selected_constraint"] == horizontal["index"] and not d["selection"],
               f"selected constraint {d['selected_constraint']}, picked entities {d['selection']}")
-    key("Delete")
+    gui.canvas_keys("Delete")
     left = gui.cad("sketch_list_constraints")["items"]
     gui.check("badge: Delete removed one constraint", len(left) == len(cons) - 1,
               f"{len(cons)} constraints before Delete, {len(left)} after")
@@ -798,7 +770,7 @@ def rung_badge():
               not any(c["type"] == "horizontal" and c["refs"][0].get("entity") == side["index"] for c in left),
               f"constraints left: {[c['type'] for c in left]}")
     gui.check("badge: nothing stays selected after Delete", gui.sketch()["selected_constraint"] is None)
-    leave()
+    gui.cancel_and_clear()
 
 
 # ---------------------------------------------------------------- every relation in one sketch
@@ -857,22 +829,22 @@ def at(o, x, y):
 
 def line_at(o, a, b):
     """A line from a to b, in mm from the cell's centre o, kept as drawn; the tool back to Select."""
-    key("l")
+    gui.canvas_keys("l")
     gui.click_mm(*at(o, *a))
     gui.click_mm(*at(o, *b))
-    keep_as_drawn()
+    escape_to_select()
 
 
 def circle_at(o, c, r):
     """A circle about c, in mm from o, of radius r, its radius field dismissed."""
-    key("c")
+    gui.canvas_keys("c")
     gui.click_mm(*at(o, *c))
     gui.click_mm(*at(o, c[0] + r, c[1]))
     escape_field()
 
 
 def point_at(o, p):
-    key("p")
+    gui.canvas_keys("p")
     gui.click_mm(*at(o, *p))
 
 
@@ -915,10 +887,10 @@ def stored(rung, cons, kind, ents, value=None, what=None):
 
 def rel_equal_length(o):
     """Equal length on two adjacent sides of a rectangle."""
-    key("r")
+    gui.canvas_keys("r")
     gui.click_mm(*at(o, -24, -16))
     gui.click_mm(*at(o, 24, 16))
-    keep_as_drawn()
+    escape_to_select()
     d1 = yield
     a, b = corner_pair(in_cell(d1, o, ["line"] * 4))
     gui.check("equal_length: the two sides start unequal", not near(a["length"], b["length"], 1e-6),
@@ -1367,7 +1339,7 @@ def rel_equal_radius_button(o):
         field = gui.value_field() or gui.sketch()["editing"]
         gui.check("type_guards: Angle on two circles opened no value field", not field, f"field {field}")
         if gui.value_field() is not None:
-            key("Escape")
+            gui.canvas_keys("Escape")
 
     a, b, cons = yield from equal_radii("equal_radius_button", "Equal radius", o, 5.0, 11.0, before=angle)
     on = bound(cons, [a, b])
@@ -1476,7 +1448,7 @@ def rung_relations():
         next(g)  # draws; a shape that will not draw fails the rung
         steps.append((name, g))
     if gui.sketch()["tool"] != "select":
-        key("Escape")
+        gui.canvas_keys("Escape")
     d1 = gui.constrain()
     pressed = []
     for name, g in steps:
@@ -1486,7 +1458,7 @@ def rung_relations():
         except Exception as e:  # this relation fails, and the next one is still pressed
             gui.check(name, False, f"{type(e).__name__}: {e}")
             if gui.value_field() is not None:
-                key("Escape")
+                gui.canvas_keys("Escape")
     left = gui.sketch()
     d2 = confirm_and_reopen()
     kinds = [e["type"] for e in d2["entities"]]
@@ -1503,7 +1475,7 @@ def rung_relations():
     want = sum(DOF.values())
     gui.check(f"relations: the reopened sketch solves with {want} degrees of freedom",
               d2["solve_ok"] and d2["dof"] == want, f"solve_ok {d2['solve_ok']}, dof {d2['dof']}")
-    leave()
+    gui.cancel_and_clear()
 
 
 # ---------------------------------------------------------------- history, files and size
@@ -1516,13 +1488,13 @@ def rung_undo():
     """Undo in the open sketch takes the last entity away and leaves the others where they were."""
     gui.enter_sketch("l")
     draw_line(-50, -30, 0, -30, 50, 0)
-    key("l")
+    gui.canvas_keys("l")
     draw_line(0, -30, 0, 20, 50, 90)
-    key("l")
+    gui.canvas_keys("l")
     draw_line(0, 20, -40, 20, 40, 180)
     before = gui.sketch()["entities"]
     gui.check("undo: three entities drawn", len(before) == 3, f"{len(before)} entities")
-    key("Ctrl+Z")
+    gui.canvas_keys("Ctrl+Z")
     after = gui.sketch()["entities"]
     gui.check("undo: one undo leaves two", len(after) == 2, f"{len(after)} entities")
     # Undo removes the shape as Delete does, which solves the sketch again for its degrees of
@@ -1532,7 +1504,7 @@ def rung_undo():
     shifts = [(math.dist(a["p0"], b["p0"]), math.dist(a["p1"], b["p1"])) for a, b in zip(before, after)]
     gui.check("undo: the survivors stay where they were", all(max(s) <= 1e-8 for s in shifts),
               f"endpoint shifts {shifts}")
-    key("Ctrl+Z")
+    gui.canvas_keys("Ctrl+Z")
     n = len(gui.sketch()["entities"])
     gui.check("undo: a second undo drops one more", n == 1, f"{n} entities")
     gui.cancel()
@@ -1585,11 +1557,11 @@ def rung_roundtrip():
     person would type it."""
     gui.enter_sketch("r")
     draw_rect(120, 80, -60, -40)
-    key("r")
+    gui.canvas_keys("r")
     gui.click_mm(-45, -15)
     gui.click_mm(-5, 15)
     gui.values(40, 30)
-    key("c")
+    gui.canvas_keys("c")
     gui.click_mm(30, 0)
     gui.click_mm(42, 0)
     gui.values(10)
@@ -1638,7 +1610,7 @@ def rung_roundtrip():
               f"outer loop {outer} owns holes {lp[outer]['holes'] if lp else None}")
     gui.check("roundtrip: outer area 9600", outer is not None and near(abs(lp[outer]["area"]), 9600.0, 1e-9),
               f"outer area {abs(lp[outer]['area']):.9f}" if lp else "no closed loop")
-    leave()
+    gui.cancel_and_clear()
 
 
 def rung_scale():
@@ -1687,7 +1659,7 @@ def rung_scale():
               bool(holes) and all(near(abs(lp0[h]["area"]), side * side, 1e-9) for h in holes),
               f"side {side:.9f}, areas {sorted({round(abs(lp0[h]['area']), 12) for h in holes})[:5]}")
     # One more entity drawn by hand on top of all that.
-    key("l")
+    gui.canvas_keys("l")
     t0 = time.monotonic()
     ax, ay = cx + hw * 0.15, cy + hh * 0.55  # clear of the grid, inside the plate
     want_len = int(hw * 0.5)  # a whole number, typed as it is

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Checks that a call with exactly an action's arguments asks as a person's pick does, that one with a path does not,
 and that a person's pick of a view action or Deselect All runs in place, as its menu item did.
+Its design is the test_person_forms entry of tools/mcp/test-entries/commands.md.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_person_forms.py

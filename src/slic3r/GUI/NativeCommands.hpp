@@ -10,6 +10,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Slic3r { namespace GUI {
@@ -32,8 +33,8 @@ struct CatalogOptions
 // Adds the built-in commands to `catalog`, place by place (Mcp::register_app_tools() and the others): the typed
 // tools and the commands made from menu items (MenuItems, NativeCommandMenuItems.hpp), whose items are their actions, eight of them
 // with an action of their own (has_own_action). Each is in the group of its place (place_heading()) and is listed, as it runs
-// from its arguments, but for the three menu items that take none (window_save_screenshot, script_toggle_panel,
-// settings_toggle_developer_mode). They come in the order tools/list gives them: tool_list, tool_describe, tool_call and app_state,
+// from its arguments, but for the menu items that take none, which tool_list lists instead. They come in the order
+// tools/list gives them: tool_list, tool_describe, tool_call and app_state,
 // then place by place (Tools and actions, The app, The project, Objects, Parts, Plates and on), each place's commands
 // in the order their place's file adds them, and Driving the GUI last. Before Driving the GUI, with options.cad, the Design tab's commands
 // (Mcp::register_design_tools()), not listed, of which those with a handler have an action the Speed Dial shows in the
@@ -44,10 +45,16 @@ struct CatalogOptions
 void register_all_commands(CommandCatalog& catalog, const CatalogOptions& options);
 
 // The heading of the place a command outside the Design tab is under, its group, an English text tool_list filters
-// by: the place its name's first word names (object_mirror: Objects; undo and redo: The app), or for the two
-// screenshot commands, which are grouped with the recordings and not with the windows, Recordings, replays and
-// scripts. nullptr for a key whose first word is no place.
+// by: the place its name's first word names (object_mirror: Objects; undo and redo: The app), or the heading
+// place_exceptions() gives it. nullptr for a key whose first word is no place.
 const char* place_heading(const std::string& key);
+
+// The places' headings in the order tools/list gives them, Driving the GUI last; the Design tab's commands go
+// before it.
+std::vector<std::string> place_headings();
+
+// The commands under another heading than their first word names, each with its heading.
+std::vector<std::pair<std::string, std::string>> place_exceptions();
 
 // Builds and seals the process catalog. UI thread, once, at startup; a second call, or a call after
 // instance() built the catalog by itself, throws std::logic_error.

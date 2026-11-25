@@ -1,43 +1,14 @@
 #!/usr/bin/env python3
-"""Runs the MCP sweep: every Python test in tools/mcp, on several jobs at once, each job running its tests one after
-another in one app on one data folder.
+"""Runs the MCP sweep: every Python test in tools/mcp that sweep.json lists, on several jobs at once, each job running
+its tests one after another in one app on one data folder.
 
     tools/mcp/run_sweep.py [--bin PATH] [-j N] [--only NAME ...] [--skip NAME ...] [--out DIR] [--history FILE]
-                           [--keep] [--headless | --xvfb | --wayland] [--shuffle [SEED]] [--list]
+                           [--keep] [--headless | --xvfb | --wayland] [--first-port PORT] [--shuffle [SEED]] [--list]
 
-The tests are the test_*.py files in tools/mcp; a replay, such as smoke_test.json, is not one. sweep.json lists each
-test with what it needs, and a test it does not list, or an entry whose file is not a test, stops the run before
-anything starts. -j N (or --jobs N) runs N jobs at once, as a build's -j runs N compile jobs; it defaults to half the
-cores, up to six. A job keeps one data folder and one app for all its tests, as a person keeps the OrcaSlicer they
-opened that morning: the first launch seeds the folder, and the app, launched with --cad and --unrestricted-scripts,
-runs the job's tests one after another. Before each test the runner checks that the app answers, and launches it
-again on the folder when it does not; when sweep.json marks the test fresh; when the test has a setup step, which
-prepares the folder for the launch; and when the test's variables differ from those the app was launched with. A
-test that runs past its time limit has the app stopped, so that the next test gets a new one, and a job's app is
-stopped when the job has no tests left. A test marked own starts apps of its own on folders of its own and leaves
-the job's app as it is; with --headless or --xvfb, they run on a private display the runner starts for the test. The
-app's session file ($ORCA_MCP_SESSION) is in the job's folder; each test has a folder of its own under --out for its
-temporary folder and empty working folder. The longest tests (by their last passing time in --history) start first,
-and tests that hold the same lock never overlap. --shuffle SEED orders them at random from SEED instead and names the
-seed on the first line, so that an order that fails can be run again; --shuffle alone picks a seed.
-
-The serial tests, those sweep.json marks exclusive, run after the rest, one at a time with nothing else running, on a
-job of their own with an app of its own. A test that fails while others run runs again in that phase, alone, in a
-new app on the data folder it failed on, so that a failure that follows from what an earlier test left fails again
-and one that follows from the load passes. A test that passes alone counts as passed.
-
-A passing run's folder is deleted as soon as it passes. A failed run's folder is kept with a copy of the app's log
-from its job's data folder, also when the test then passes alone; the data folder of a job one of whose tests
-failed is kept too, and the other data folders are deleted at the end. --keep keeps everything. results.jsonl
-records each run of each test with its job, the tests that ran before it on that job's data folder, and how long the
-launch took when the run launched the job's app.
-
-On Linux the runner opens each app on the desktop as an X11 client, where a window manager un-minimizes a window on
-request and reports its position, which a Wayland compositor does not; --wayland runs them as native Wayland clients
-instead, as a Wayland session runs the app, and --headless runs them on a private compositor instead of on the
-desktop, as a machine without one needs. --xvfb runs each job's app on a private Xvfb display of its own, which draws
-OpenGL in software, with Openbox as its window manager where Openbox is installed.
-Exits 0 when every test passes and no OrcaSlicer crash report appeared.
+Exits 0 when every test passes and no OrcaSlicer crash report appeared. How the runner decides, from when it launches
+a job's app again to the order the tests run in, the serial phase, a failed test run again alone and the folders it
+keeps, is in the repository's tools/mcp/TESTS.md, "How the sweep decides"; tools/mcp/README.md, "The sweep", says how
+to run it.
 """
 
 import argparse
@@ -553,7 +524,9 @@ def parse_args(argv=None):
     ap.add_argument("--shuffle", nargs="?", type=int, const=NEW_SEED, metavar="SEED",
                     help="order the tests at random from SEED instead of longest first, and name the seed on the "
                          "first line, so that the same order can be run again (default SEED: a new one)")
-    ap.add_argument("--list", action="store_true", help="print the order the tests would run in and exit")
+    ap.add_argument("--list", action="store_true",
+                    help="print the order the tests would run in, the serial ones with why each is serial, and exit; "
+                         "needs no display")
     a = ap.parse_args(argv)
     if a.shuffle is NEW_SEED:
         a.shuffle = random.randrange(1_000_000)

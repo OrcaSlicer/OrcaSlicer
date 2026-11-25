@@ -4,14 +4,7 @@
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_files.py
 
-A new project and the question New Project asks about unsaved changes; opening a project file and saving one under a
-name; importing models (STL, a project's .3mf, ZIP archives, a STEP file, files that hold no model); and exporting the
-objects as STL and DRC, the model as a 3MF, the plate's G-code and the sliced file. Every file written is read back,
-by the test (a G-code's text, a sliced file's entries, a folder's file names and sizes) or by the app (an exported
-mesh imported into an empty project, a saved project opened again). It runs on the default
-printer, the Generic Klipper Printer 0.4 nozzle, in an app and on a data folder earlier tests used: start() puts them in
-the baseline before its first scenario, and the test reads back the preferences its checks depend on. It writes into
-a folder of its own, kept when a check fails, and exits 0 when every check passes.
+It writes into a folder of its own, kept when a check fails. Exits 0 when every check passes.
 """
 
 import json

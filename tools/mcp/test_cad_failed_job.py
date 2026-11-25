@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Checks that a Design-tab call whose job fails after its reply is left out of replay_export.
+Its design is the test_cad_failed_job entry of tools/mcp/test-entries/design.md.
 
     tools/mcp/orca_mcp.py launch --cad
     tools/mcp/test_cad_failed_job.py

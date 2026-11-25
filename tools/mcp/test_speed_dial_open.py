@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Checks that Space opens the Speed Dial right after a switch to each page with a 3D view, and that KWin draws
 no title bar on the dial.
+Its design is the test_speed_dial_open entry of tools/mcp/test-entries/windows_web.md.
 
     tools/mcp/orca_mcp.py launch [--cad]
     tools/mcp/test_speed_dial_open.py
@@ -27,7 +28,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, start, until  # noqa: E402
+from checks import GENERIC_PLA, KLIPPER, KLIPPER_STD, speed_dial, start, until  # noqa: E402
 
 
 def park_pointer(display):
@@ -170,11 +171,6 @@ def main():
         client.call("widget_click", target=page.group(1))
         return on_tab(tab)
 
-    def dial():
-        """The Speed Dial as window_list gives it: the shown web dialog with no title."""
-        return next((w for w in client.call("window_list")["items"]
-                     if w.get("kind") == "dialog" and w.get("web") and not w.get("title")), None)
-
     started = start(client)
     check("start: the Klipper printer with its default process and filament",
           started == {"printer": KLIPPER, "process": KLIPPER_STD, "filaments": [GENERIC_PLA]}, started)
@@ -202,7 +198,7 @@ def main():
                   all(p == (0, 0) for p in parked) and focused and "name=OrcaSceneCanvas" in focused[0],
                   f"the pointer read back at {parked} after each move to (0, 0); focused: {focused}")
         client.call("keyboard_press", keys="Space")
-        opened = reached(dial, "the Speed Dial is listed")
+        opened = reached(lambda: speed_dial(client), "the Speed Dial is listed")
         check(f"{label}: Space opens the Speed Dial", opened)
         if not opened:
             continue
@@ -220,7 +216,8 @@ def main():
                 check("KWin draws no title bar on the dial", frame[2] <= opened["height"] + 2,
                       f"KWin's frame {frame}, the dial {opened['width']}x{opened['height']}")
         client.call("keyboard_press", keys="Escape", target=opened["ref"])
-        check(f"{label}: Escape closes the Speed Dial", reached(lambda: dial() is None, "the Speed Dial is gone"))
+        check(f"{label}: Escape closes the Speed Dial",
+              reached(lambda: speed_dial(client) is None, "the Speed Dial is gone"))
 
     failed = [c for c in checks if not c[1]]
     for name, ok, detail in checks:

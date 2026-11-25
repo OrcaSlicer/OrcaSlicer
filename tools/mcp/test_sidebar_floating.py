@@ -1,4 +1,5 @@
 """Checks that view_set refuses sidebar_width while the sidebar floats in a window of its own.
+Its design is the test_sidebar_floating entry of tools/mcp/test-entries/windows_web.md.
 
 No command floats the sidebar; a person drags its caption off the dock, and the window layout saved keeps it floating.
 So this test launches OrcaSlicer itself, twice, on a fresh data folder. The first run writes its window layout
@@ -11,75 +12,24 @@ width stays as it was. A native Wayland app drops the saved floating state, so o
 on every platform. Each run is stopped on every path out, and nothing but a run this test started is stopped.
 Run it as python tools/mcp/test_sidebar_floating.py [--bin PATH] [--datadir PATH].
 """
-import contextlib
 import json
 import os
 import re
 import shutil
-import socket
-import subprocess
 import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from checks import until  # noqa: E402
-from orca_mcp import McpError, OrcaMcp, app_env  # noqa: E402
+from checks import Checks, launched, read_conf, until  # noqa: E402
+from orca_mcp import McpError  # noqa: E402
 
 TOKEN = "sidebar-floating-test-token"
-results = []
-
-
-def check(name, ok, detail=""):
-    results.append((name, bool(ok)))
-    print(("PASS " if ok else "FAIL ") + name + ("" if ok else "  " + str(detail)[:400]), flush=True)
-
-
-def free_port():
-    """A port nothing listens on now, so that this test runs beside the others of a sweep."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
-
-
-def harness(env, *args):
-    return subprocess.run([sys.executable, os.path.join(HERE, "orca_mcp.py"), *args], env=env, capture_output=True, text=True,
-                          timeout=300)
-
-
-@contextlib.contextmanager
-def launched(datadir, binary):
-    """An instance on `datadir`: its client, or None when it did not start, stopped on every path out of the block.
-
-    A launch writes its session file before it waits for the app, and one that is not ready exits leaving its app
-    running, so the stop goes by that file whenever it is there. Only this launch writes it: a file an earlier run left
-    is removed first, so that no other app is ever stopped."""
-    port = free_port()
-    session = os.path.join(datadir, "session.json")
-    env = app_env(dict(os.environ, ORCA_MCP_SESSION=session, ORCA_MCP_TOKEN=TOKEN), datadir)
-    if sys.platform.startswith("linux"):
-        env["GDK_BACKEND"] = "x11"  # a native Wayland app drops the saved floating state
-    if os.path.exists(session):
-        os.remove(session)
-    try:
-        started = harness(env, "launch", "--datadir", datadir, "--port", str(port), *binary)
-        if started.returncode != 0:
-            print(started.stdout, started.stderr)
-            yield None
-            return
-        orca = OrcaMcp(port=port, token=TOKEN)
-        orca.call("app_wait", **{"for": "ready"})
-        yield orca
-    finally:
-        if os.path.exists(session):
-            harness(env, "stop")
-
-
-def read_conf(datadir):
-    """OrcaSlicer.conf's JSON, without the checksum line after it."""
-    with open(os.path.join(datadir, "OrcaSlicer.conf"), encoding="utf-8") as f:
-        text = f.read()
-    return json.loads(text[: text.rfind("}") + 1])
+# A native Wayland app drops the saved floating state, so on Linux both runs start as X11 clients.
+ENV = {"GDK_BACKEND": "x11"} if sys.platform.startswith("linux") else {}
+# The test's named checks; check() records one and prints it.
+t = Checks()
+check = t.check
 
 
 def layout_saved(datadir):
@@ -118,7 +68,7 @@ def main():
     root = os.path.abspath(extra[extra.index("--datadir") + 1]) if given else tempfile.mkdtemp(prefix="osf-")
     datadir = os.path.join(root, "floating")
     try:
-        with launched(datadir, binary) as orca:
+        with launched(datadir, binary, TOKEN, env=ENV) as orca:
             started = orca is not None
             # The stop writes nothing (on Windows it kills the app), so the run goes on until the app has written the
             # layout at its next idle moment.
@@ -130,7 +80,7 @@ def main():
         check("the app starts", started)
         if started:
             check("the window layout the first run saved has the sidebar", float_sidebar(datadir))
-            with launched(datadir, binary) as orca:
+            with launched(datadir, binary, TOKEN, env=ENV) as orca:
                 if orca is None:
                     check("the app starts again", False)
                 else:
@@ -147,9 +97,7 @@ def main():
         if not given:
             shutil.rmtree(root, ignore_errors=True)
 
-    failed = [r for r in results if not r[1]]
-    print(f"\n{len(results) - len(failed)}/{len(results)} passed")
-    return 1 if failed else 0
+    return t.exit_code()
 
 
 if __name__ == "__main__":

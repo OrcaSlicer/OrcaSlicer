@@ -2,6 +2,7 @@
 """Checks window_list and window_set: every open window, with a ref the GUI tools take, and the size, position
 and state of the main window, a window that doesn't block, and a modal dialog, with the read side that
 window_list and app_state give.
+Its design is the test_set_window entry of tools/mcp/test-entries/windows_web.md.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_set_window.py

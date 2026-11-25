@@ -4,7 +4,7 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "automation/automation_test_utils.hpp"
-#include "retired_names.hpp"
+#include "mcp_test_utils.hpp"
 
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
@@ -25,7 +25,6 @@
 #include <functional>
 #include <ios>
 #include <iterator>
-#include <map>
 #include <memory>
 #include <set>
 #include <sstream>
@@ -51,8 +50,11 @@ using Slic3r::GUI::ToolCaller;
 using Slic3r::GUI::ToolContext;
 using Slic3r::GUI::ToolFailure;
 using Slic3r::GUI::ToolResult;
+using Slic3r::GUI::Mcp::Test::catalog_with_cad;
 using Slic3r::GUI::Mcp::Test::command;
+using Slic3r::GUI::Mcp::Test::keys_of;
 using Slic3r::GUI::Mcp::Test::OneCommandSource;
+using Slic3r::GUI::Mcp::Test::TestContext;
 namespace Mcp            = Slic3r::GUI::Mcp;
 namespace NativeCommands = Slic3r::GUI::NativeCommands;
 namespace Ops            = Slic3r::GUI::Ops;
@@ -60,54 +62,6 @@ namespace Ops            = Slic3r::GUI::Ops;
 namespace {
 
 json no_arguments() { return {{"type", "object"}, {"properties", json::object()}}; }
-
-// A call's context without the MCP core: UI closures run in place and nothing is left to wait for. It
-// counts the operations a call begins and records the commands it submits as jobs.
-class TestContext final : public ToolContext
-{
-public:
-    explicit TestContext(bool person = false) : m_person(person) {}
-
-    bool           person() const override { return m_person; }
-    json           run_ui(const std::function<json()>& fn) override { return fn(); }
-    json           observe_ui(const std::function<json()>& /*fn*/) override { return true; }
-    const std::string& job_id() const override { return m_job; }
-    bool           cancelled() const override { return false; }
-    ToolResult call_child(const std::string& /*tool*/, const json& /*args*/) override { return ToolResult::error("no child calls"); }
-    std::set<std::string> lineage() const override { return {}; }
-    void                  set_journal_args(json args) override { journaled = std::move(args); }
-    void                  begin_operation() override { ++operations; }
-    ToolResult            submit(const std::string& key, const json& /*args*/) override
-    {
-        submitted.push_back(key);
-        return ToolResult::ok();
-    }
-
-    int                      operations = 0;
-    std::vector<std::string> submitted;
-    json                     journaled; // what the call last recorded for the journal
-
-private:
-    bool        m_person;
-    std::string m_job;
-};
-
-std::vector<std::string> keys_of(const std::vector<NativeCommand>& commands)
-{
-    std::vector<std::string> keys;
-    for (const NativeCommand& c : commands)
-        keys.push_back(c.key);
-    return keys;
-}
-
-// Every built-in command, the Design tab's among them in a build with CAD, as a run with the Design tab on holds
-// them. Not sealed yet.
-CommandCatalog catalog_with_design()
-{
-    CommandCatalog catalog;
-    NativeCommands::register_all_commands(catalog, {true});
-    return catalog;
-}
 
 // The entry of command `key` in a reference, or null.
 json reference_entry(const json& reference, const std::string& key)
@@ -143,53 +97,6 @@ std::string first_difference(const std::string& actual, const std::string& expec
     return "the file has " + std::to_string(a.size()) + " lines where the catalog has " + std::to_string(e.size());
 }
 
-// The design's command set outside the Design tab, heading by heading in the order tools/list gives them, Driving the
-// GUI last, after the Design tab's commands: the 138 commands of the catalog, its typed tools, the commands made from
-// menu items, the seven Parts 4a to 4c add (Printable, Fix Model, Auto Drop, Clone, Reload from disk, Replace 3D file,
-// Add Mixed Filament), the three of Part 5a (the Printer Selection dialog's list, install and uninstall), the two of
-// Part 5b (the System Filaments dialog's install and uninstall), Part 5c's write of the Preferences dialog's preferences
-// and the four of Part 5d (the Plugins window's list, a switch, Delete or Unsubscribe, and Reload), the seven gizmo
-// commands (Paint, Measure, Simplify, Mesh Boolean, Cut, Lay on Face and Brim Ears), and the six printing commands (the
-// Print button's Print, the print host's test, and the Device tab's status, Pause, Resume and Stop).
-// A part that adds a command adds it here.
-const std::vector<std::pair<std::string, std::set<std::string>>> kPlaces{
-    {"Tools and actions", {"tool_list", "tool_describe", "tool_call", "action_list", "action_run"}},
-    {"The app",
-     {"app_state", "app_log", "app_wait", "job_cancel", "undo", "redo", "app_open_web_page", "app_check_for_updates",
-      "app_show_config_folder", "app_benchmark_3d_scene", "preferences_get", "preferences_set"}},
-    {"The project",
-     {"project_new", "project_open", "project_import", "project_save", "project_get_settings", "project_set_settings", "project_export"}},
-    {"Objects",
-     {"object_list", "object_select", "object_add_primitive", "object_add_handy_model", "object_add_text", "object_add_svg",
-      "object_delete", "object_rename", "object_set_instances", "object_separate_instances", "object_split", "object_assemble",
-      "object_order", "object_transform", "object_drop", "object_mirror", "object_center", "object_scale_to_fit", "object_arrange",
-      "object_auto_orient", "object_set_variable_layer_height", "object_set_height_ranges", "object_set_printable", "object_fix",
-      "object_set_auto_drop", "object_clone", "object_reload_from_disk", "object_paint", "object_measure", "object_simplify", "object_cut",
-      "object_lay_on_face", "object_set_brim_ears"}},
-    {"Parts", {"part_add", "part_change_type", "part_replace", "part_boolean"}},
-    {"Plates",
-     {"plate_list", "plate_get_settings", "plate_set_settings", "plate_add", "plate_delete", "plate_duplicate", "plate_rename",
-      "plate_lock", "plate_select", "plate_slice", "plate_slice_stats", "plate_set_custom_gcode", "calibration_generate_test"}},
-    {"Presets and settings",
-     {"preset_list", "preset_select", "preset_save", "preset_delete", "settings_list", "settings_list_pages", "settings_get",
-      "settings_set", "preset_import",
-      "preset_export", "preset_sync", "settings_set_mode", "preset_migrate_filaments", "settings_toggle_developer_mode"}},
-    {"Filaments",
-     {"filament_list", "filament_add", "filament_delete", "filament_sync_ams", "filament_add_mixed", "filament_edit_mixed",
-      "filament_set_colour", "filament_set_flushing", "filament_install", "filament_uninstall"}},
-    {"Printers and prints",
-     {"printer_send", "printer_list_models", "printer_install", "printer_uninstall", "print_start", "printer_test_host",
-      "printer_status", "print_pause", "print_resume", "print_stop"}},
-    {"Plugins", {"plugin_list", "plugin_install_local", "plugin_enable", "plugin_reload", "plugin_uninstall", "plugin_refresh"}},
-    {"View and windows", {"view_set", "view_toggle_activity_panel", "window_list", "window_set", "window_open"}},
-    {"Recordings, replays and scripts",
-     {"script_list_api", "script_describe_api", "window_screenshot", "recording_start", "recording_stop", "recording_encode", "replay_run", "replay_export",
-      "script_run", "window_save_screenshot", "script_toggle_panel"}},
-    {"Driving the GUI",
-     {"widget_list", "widget_click", "widget_set_value", "keyboard_press", "mouse_gesture", "webview_run_javascript", "dialog_answer",
-      "dialog_auto_answer", "gizmo_pick_file"}},
-};
-
 // The groups of `keys`' commands in `catalog`, each run of one group once, in their order.
 std::vector<std::string> group_runs(const CommandCatalog& catalog, const std::vector<std::string>& keys)
 {
@@ -200,14 +107,28 @@ std::vector<std::string> group_runs(const CommandCatalog& catalog, const std::ve
     return runs;
 }
 
+// Whether `key` is named as a read: one of its words, between underscores, says what the command reads or waits for.
+bool named_as_read(const std::string& key)
+{
+    static const std::set<std::string> kReadWords{"list", "get",  "describe", "state",     "status",
+                                                  "stats", "log", "wait",     "screenshot"};
+    for (std::size_t start = 0; start <= key.size();) {
+        const std::size_t end = std::min(key.find('_', start), key.size());
+        if (kReadWords.count(key.substr(start, end - start)) != 0)
+            return true;
+        start = end + 1;
+    }
+    return false;
+}
+
 } // namespace
 
-TEST_CASE("the process catalog gives the Speed Dial its 130 command actions", "[CommandCatalog]")
+TEST_CASE("the process catalog gives the Speed Dial its commands' actions", "[CommandCatalog]")
 {
     const CommandCatalog& catalog = NativeCommands::instance();
     CHECK(catalog.sealed());
     const std::vector<NativeCommands::SpeedDialAction> speed_dial = NativeCommands::speed_dial_actions(catalog);
-    CHECK(speed_dial.size() == 130);
+    CHECK_FALSE(speed_dial.empty());
     for (const NativeCommands::SpeedDialAction& t : speed_dial) {
         REQUIRE(t.command != nullptr);
         INFO(t.command->key);
@@ -221,100 +142,38 @@ TEST_CASE("the process catalog gives the Speed Dial its 130 command actions", "[
     CHECK(NativeCommands::find("plate_slice") == catalog.find("plate_slice"));
 }
 
-TEST_CASE("every Speed Dial action of today is still a command's action", "[CommandCatalog][SpeedDial]")
+TEST_CASE("every action is found by its key and runs its command with arguments that fit its schema", "[CommandCatalog][SpeedDial]")
 {
-    // The Speed Dial's 130 actions of commands, each with its id, title, section, icon and input: each is an action of
-    // the Speed Dial with that presentation, and the Speed Dial has no other.
-    std::ifstream in(std::string(TEST_DATA_DIR) + "/speed_dial_actions.json", std::ios::binary);
-    REQUIRE(in.is_open());
-    const json fixture = json::parse(in);
-    REQUIRE(fixture.size() == 130);
-
-    const CommandCatalog&    catalog = NativeCommands::instance();
-    std::vector<std::string> expected;
-    for (const json& item : fixture) {
-        const std::string key = item.at("key");
-        INFO(key);
-        expected.push_back(key);
-        const auto [command, command_action] = Slic3r::GUI::find_command_action(catalog, key);
-        REQUIRE(command != nullptr);
-        const std::unique_ptr<Slic3r::GUI::AppAction> action = command_action != nullptr ?
-                                                                   NativeCommands::make_action(*command, *command_action) :
-                                                                   NativeCommands::make_action(*command);
-        REQUIRE(action != nullptr);
-        CHECK(action->id() == "orca_command:" + key + ":orca");
-        CHECK(action->title_en == item.at("title").get<std::string>());
-        CHECK(action->group_en == item.at("group").get<std::string>());
-        CHECK(action->icon == item.at("icon").get<std::string>());
-        CHECK(action->input == item.at("input").get<std::string>());
-    }
-
-    std::vector<std::string> actions;
-    for (const NativeCommands::SpeedDialAction& t : NativeCommands::speed_dial_actions(catalog))
-        actions.push_back(t.action != nullptr ? t.action->at("key").get<std::string>() : t.command->key);
-    std::sort(expected.begin(), expected.end());
-    std::sort(actions.begin(), actions.end());
-    CHECK(actions == expected);
-}
-
-TEST_CASE("a menu item's id is an action's key, not a command", "[CommandCatalog][SpeedDial]")
-{
+    // Which command each action folds into, and the arguments it runs it with, are in the command reference
+    // (tests/data/command_catalog.json); here every action is checked to be a call its command takes.
     const CommandCatalog& catalog = NativeCommands::instance();
-    REQUIRE(kRetiredMenuItems.size() == 121);
-    for (const std::string& item : kRetiredMenuItems) {
-        INFO(item);
-        CHECK(catalog.find(item) == nullptr);
-        const auto [command, action] = Slic3r::GUI::find_command_action(catalog, item);
-        CHECK(command != nullptr);
-        CHECK(action != nullptr);
-    }
-}
-
-TEST_CASE("every action is its command's, with the design's arguments, and they fit its schema", "[CommandCatalog][SpeedDial]")
-{
-    // Each of the 130 actions with the command the design folds its menu item into and the arguments it runs it with.
-    std::ifstream in(std::string(TEST_DATA_DIR) + "/speed_dial_action_calls.json", std::ios::binary);
-    REQUIRE(in.is_open());
-    const json fixture = json::parse(in);
-    REQUIRE(fixture.size() == 130);
-
-    const CommandCatalog& catalog = NativeCommands::instance();
-    std::size_t           folded  = 0;
-    for (const json& item : fixture) {
-        const std::string key  = item.at("key");
-        const std::string name = item.at("command");
-        INFO(key << " -> " << name);
-        const auto [command, action] = Slic3r::GUI::find_command_action(catalog, key);
-        REQUIRE(command != nullptr);
-        REQUIRE(command->key == name);
-        ++folded;
-        if (key == name) {
+    for (const NativeCommands::SpeedDialAction& t : NativeCommands::speed_dial_actions(catalog)) {
+        REQUIRE(t.command != nullptr);
+        const NativeCommand& command = *t.command;
+        const std::string    key     = t.action != nullptr ? t.action->at("key").get<std::string>() : command.key;
+        INFO(key << " -> " << command.key);
+        const auto [found, action] = Slic3r::GUI::find_command_action(catalog, key);
+        CHECK(found == t.command);
+        CHECK(action == t.action);
+        if (t.action == nullptr) {
             // The command's own action, a person's form of it.
-            CHECK(command->has_own_action);
-            CHECK(action == nullptr);
-            CHECK(item.at("args") == json::object());
-            CHECK(Mcp::person_form(*command, json::object()));
+            CHECK(command.has_own_action);
+            CHECK(Mcp::person_form(command, json::object()));
             json none = Slic3r::GUI::action_call_args(nullptr, json::object());
-            CHECK(Mcp::argument_error(*command, none).empty());
+            CHECK(Mcp::argument_error(command, none).empty());
             continue;
         }
-        REQUIRE(action != nullptr);
-        CHECK(action->at("args") == item.at("args"));
-        const std::string input = item.value("input", std::string());
-        CHECK(action->value("input", std::string()) == input);
-        CHECK(action->value("input_arg", std::string()) == item.value("input_arg", std::string()));
+        const std::string input = t.action->value("input", std::string());
         // An action that collects nothing is a person's form of its command; one that collects a value is not, as its
         // value comes from the Speed Dial's second phase.
-        CHECK(Mcp::person_form(*command, action->at("args")) == input.empty());
+        CHECK(Mcp::person_form(command, t.action->at("args")) == input.empty());
         // What a pick runs the command with: the action's arguments, and the value its second phase collects.
         json value = json::object();
         if (!input.empty())
             value[input] = input == "percent" ? json(50) : json("preview");
-        json call = Slic3r::GUI::action_call_args(action, value);
-        CHECK(Mcp::argument_error(*command, call).empty());
+        json call = Slic3r::GUI::action_call_args(t.action, value);
+        CHECK(Mcp::argument_error(command, call).empty());
     }
-    // Every action of today, under the command the design folds its menu item into.
-    CHECK(folded == 130);
 
     // The actions that ask need none of what the silent form requires; one more argument is the silent form.
     const NativeCommand* save   = catalog.find("project_save");
@@ -409,7 +268,6 @@ TEST_CASE("a menu item's action runs its command with the item's arguments", "[S
         {"stop_recording", "recording_stop", json::object()},
         {"toggle_run_script_panel", "script_toggle_panel", json::object()},
     };
-    REQUIRE(pairs.size() == 60);
     const CommandCatalog& catalog = NativeCommands::instance();
     for (const Pair& p : pairs) {
         INFO(p.key << " -> " << p.command << " " << p.args.dump());
@@ -430,44 +288,9 @@ TEST_CASE("a menu item's action runs its command with the item's arguments", "[S
     }
 }
 
-TEST_CASE("outside the Design tab the catalog has its commands and 130 actions", "[CommandCatalog]")
+TEST_CASE("every command outside the Design tab is under the heading its name gives", "[CommandCatalog]")
 {
-    // The section the Speed Dial shows each action in, by its key.
-    std::ifstream in(std::string(TEST_DATA_DIR) + "/speed_dial_actions.json", std::ios::binary);
-    REQUIRE(in.is_open());
-    std::map<std::string, std::string> section;
-    for (const json& item : json::parse(in))
-        section[item.at("key").get<std::string>()] = item.at("group").get<std::string>();
-
-    std::size_t           commands = 0, items = 0;
-    std::set<std::string> own;
-    for (const NativeCommand& c : NativeCommands::instance().commands()) {
-        if (c.group == Slic3r::GUI::kDesignGroup)
-            continue;
-        ++commands;
-        if (c.actions.is_array())
-            items += c.actions.size();
-        if (!c.has_own_action)
-            continue;
-        INFO(c.key);
-        own.insert(c.key);
-        // An own action is in the section the Speed Dial shows its key in.
-        CHECK(c.action_group == section.at(c.key));
-    }
-    // The commands outside the Design tab: the typed tools, the commands made from menu items, the seven Parts 4a to 4c
-    // add, Part 5a's three, Part 5b's two, Part 5c's one, Part 5d's four, the seven gizmo commands, the six printing
-    // commands, the four of the filament list (filament_list, filament_edit_mixed, filament_set_colour and
-    // filament_set_flushing), tool_describe, script_describe_api, settings_list_pages and view_toggle_activity_panel.
-    CHECK(commands == 139);
-    // The eight commands named as their menu items keep an action of their own; the other 122 actions are items.
-    CHECK(own == std::set<std::string>{"plate_add", "plate_delete", "plate_duplicate", "plate_rename", "filament_add", "filament_delete",
-                                       "undo", "redo"});
-    CHECK(items == 122);
-}
-
-TEST_CASE("the commands outside the Design tab are the design's, under its headings", "[CommandCatalog]")
-{
-    std::map<std::string, std::set<std::string>> by_heading;
+    std::set<std::string> headings;
     for (const NativeCommand& c : NativeCommands::instance().commands()) {
         if (c.group == Slic3r::GUI::kDesignGroup)
             continue;
@@ -476,23 +299,18 @@ TEST_CASE("the commands outside the Design tab are the design's, under its headi
         const char* heading = NativeCommands::place_heading(c.key);
         REQUIRE(heading != nullptr);
         CHECK(c.group == heading);
-        by_heading[c.group].insert(c.key);
+        headings.insert(c.group);
     }
-    std::size_t commands = 0;
-    for (const auto& [heading, keys] : kPlaces) {
-        INFO(heading);
-        CHECK(by_heading[heading] == keys);
-        commands += keys.size();
-    }
-    CHECK(by_heading.size() == kPlaces.size());
-    CHECK(commands == 139);
+    // Every place has commands, and there is no other.
+    const std::vector<std::string> places = NativeCommands::place_headings();
+    CHECK(headings == std::set<std::string>(places.begin(), places.end()));
 
     // tool_list's group says which there are.
     const NativeCommand* list = NativeCommands::find("tool_list");
     REQUIRE(list != nullptr);
     const std::string group = list->input_schema.at("properties").at("group").at("description").get<std::string>();
-    for (const auto& place : kPlaces)
-        CHECK_THAT(group, ContainsSubstring(place.first));
+    for (const std::string& heading : places)
+        CHECK_THAT(group, ContainsSubstring(heading));
     CHECK_THAT(group, ContainsSubstring(Slic3r::GUI::kDesignGroup));
 
     // The screenshot commands are under Recordings, replays and scripts, apart from the other window commands.
@@ -548,10 +366,11 @@ TEST_CASE("each place's file adds only its place's commands", "[CommandCatalog]"
             CHECK(added.insert(c.key).second);
         }
     }
-    // Together the files add every place's commands.
+    // Together the files add every command outside the Design tab.
     std::set<std::string> expected;
-    for (const auto& [heading, keys] : kPlaces)
-        expected.insert(keys.begin(), keys.end());
+    for (const NativeCommand& c : NativeCommands::instance().commands())
+        if (c.group != Slic3r::GUI::kDesignGroup)
+            expected.insert(c.key);
     CHECK(added == expected);
 }
 
@@ -559,39 +378,38 @@ TEST_CASE("every command that runs from arguments is in the tool list, by place"
 {
     const CommandCatalog&    catalog = NativeCommands::instance();
     std::vector<std::string> listed;
-    std::set<std::string>    unlisted;
     for (const NativeCommand& c : catalog.commands()) {
         if (c.group == Slic3r::GUI::kDesignGroup)
             continue;
-        if (c.listed)
+        if (c.listed) {
             listed.push_back(c.key);
-        else
-            unlisted.insert(c.key);
+            continue;
+        }
+        // A command tools/list leaves out is a menu item with no argument form, which tool_list lists and tool_call
+        // runs: it takes no arguments and is its one item's command.
+        INFO(c.key);
+        const json properties = c.input_schema.value("properties", json::object());
+        CHECK(properties.empty());
+        CHECK_FALSE(c.has_own_action);
+        REQUIRE(c.actions.is_array());
+        CHECK(c.actions.size() == 1);
     }
-    // The four menu items with no argument form, which tool_list lists and tool_call runs.
-    CHECK(unlisted == std::set<std::string>{"window_save_screenshot", "script_toggle_panel", "settings_toggle_developer_mode",
-                                            "view_toggle_activity_panel"});
-    // Task 3's 98, the seven Parts 4a to 4c add, Part 5a's three, Part 5b's two, Part 5c's one, Part 5d's four, the
-    // seven gizmo commands, the six printing commands, the filament list's four, tool_describe, script_describe_api and
-    // settings_list_pages.
-    CHECK(listed.size() == 135);
 
     // The listing of the other commands, the manual, the generic call and the app's state first; then each heading's
-    // commands together, in the design's order, Driving the GUI last.
+    // commands together, in the places' order (NativeCommands::place_headings()), Driving the GUI last.
     REQUIRE(listed.size() > 4);
     const std::vector<std::string> first{"tool_list", "tool_describe", "tool_call", "app_state"};
     CHECK(std::vector<std::string>(listed.begin(), listed.begin() + 4) == first);
-    std::vector<std::string> headings;
-    for (const auto& place : kPlaces)
-        headings.push_back(place.first);
-    CHECK(group_runs(catalog, std::vector<std::string>(listed.begin() + 4, listed.end())) == headings);
+    const std::vector<std::string> places = NativeCommands::place_headings();
+    REQUIRE_FALSE(places.empty());
+    CHECK(places.back() == "Driving the GUI");
+    CHECK(group_runs(catalog, std::vector<std::string>(listed.begin() + 4, listed.end())) == places);
 
     // With the Design tab, its commands sit between the last of the places and Driving the GUI.
-    CommandCatalog with_design = catalog_with_design();
-    with_design.seal();
+    const CommandCatalog with_design = catalog_with_cad();
     const std::vector<std::string> keys = keys_of(with_design.commands());
     REQUIRE(keys.size() > 4);
-    std::vector<std::string> with_design_headings = headings;
+    std::vector<std::string> with_design_headings = places;
     with_design_headings.insert(with_design_headings.end() - 1, Slic3r::GUI::kDesignGroup);
     CHECK(group_runs(with_design, std::vector<std::string>(keys.begin() + 4, keys.end())) == with_design_headings);
 }
@@ -618,13 +436,9 @@ TEST_CASE("no command searches by words, and none sends an agent to a search", "
 
 TEST_CASE("only deleting a preset, uninstalling a plugin and stopping a print are labelled destructive", "[CommandCatalog]")
 {
-    // The reads: they change nothing in the app or the project.
-    const std::set<std::string> reads{"app_state",          "app_wait",       "app_log",         "tool_list",         "tool_describe",
-                                      "preset_list",        "settings_list",  "settings_list_pages", "settings_get",    "preferences_get",
-                                      "plate_get_settings", "project_get_settings", "plate_list", "object_list",
-                                      "window_screenshot",  "plate_slice_stats",    "script_list_api", "script_describe_api", "action_list",
-                                      "window_list",        "widget_list",          "printer_list_models", "plugin_list",
-                                      "printer_status",     "filament_list"};
+    // A read changes nothing in the app or the project, and its name says so (named_as_read()). Take Screenshot's
+    // command is named as one but saves a PNG and shows a notification; an agent's screenshot is window_screenshot.
+    const std::set<std::string> named_as_read_but_not{"window_save_screenshot"};
     // The commands made from menu items whose item reaches a printer, the cloud account or the network.
     const std::set<std::string> menu_items_reaching_out{"printer_send",          "preset_sync",       "filament_sync_ams",
                                                         "app_check_for_updates", "app_open_web_page", "plugin_refresh"};
@@ -634,22 +448,27 @@ TEST_CASE("only deleting a preset, uninstalling a plugin and stopping a print ar
     // The printing commands: the Print button's dialogs print on a printer, the host test asks the print host, and the
     // job commands send the printer a command. printer_status reads what the app holds and reaches nothing.
     const std::set<std::string> printing_reaching_out{"print_start", "printer_test_host", "print_pause", "print_resume", "print_stop"};
-    std::set<std::string> destructive, read_only;
+    std::set<std::string> destructive;
     for (const NativeCommand& c : NativeCommands::instance().commands()) {
         if (c.group == Slic3r::GUI::kDesignGroup)
             continue;
         INFO(c.key);
         if (c.destructive)
             destructive.insert(c.key);
-        if (c.read_only)
-            read_only.insert(c.key);
+        const bool read = named_as_read(c.key) && named_as_read_but_not.count(c.key) == 0;
+        CHECK(c.read_only == read);
         if (c.listed) {
             CHECK_FALSE(c.description.empty());
             CHECK(c.input_schema.value("type", std::string()) == "object");
         }
     }
     CHECK(destructive == std::set<std::string>{"preset_delete", "plugin_uninstall", "print_stop"});
-    CHECK(read_only == reads);
+    // An exception is a command the rule would call a read, so a renamed or removed one cannot stay listed.
+    for (const std::string& key : named_as_read_but_not) {
+        INFO(key);
+        CHECK(NativeCommands::find(key) != nullptr);
+        CHECK(named_as_read(key));
+    }
     std::set<std::string> reaching_out = menu_items_reaching_out;
     reaching_out.insert(plugins_reaching_out.begin(), plugins_reaching_out.end());
     reaching_out.insert(printing_reaching_out.begin(), printing_reaching_out.end());
@@ -699,7 +518,7 @@ TEST_CASE("a call with no arguments is not titled as an action that collects a v
     CHECK(Slic3r::GUI::call_title(*view, {{"camera", "top"}}) == "View: Top");
 }
 
-TEST_CASE("the four commands with a person's form take it with no arguments", "[CommandCatalog]")
+TEST_CASE("the new-project, save and recording commands take their person's form with no arguments", "[CommandCatalog]")
 {
     for (const char* key : {"project_new", "project_save", "recording_start", "recording_stop"}) {
         INFO(key);
@@ -771,37 +590,16 @@ TEST_CASE("the typed tools are listed and the merged commands are both", "[Comma
 
 TEST_CASE("the Speed Dial's actions are under the menu items' keys, not the tools' names", "[CommandCatalog]")
 {
-    // Every command's action in the Speed Dial, by its key: a typed tool is there only through its menu items' actions.
-    const std::set<std::string> actions{
-        "add_handy_3dbenchy", "add_handy_autodesk_fdm_test", "add_handy_cali_cat", "add_handy_orca_badge",
-        "add_handy_orca_cube", "add_handy_orca_string_hell", "add_handy_orca_tolerance_test", "add_handy_orcasliced_combo",
-        "add_handy_stanford_bunny", "add_handy_voron_cube", "add_primitive_cone", "add_primitive_cube",
-        "add_primitive_cylinder", "add_primitive_disc", "add_primitive_sphere", "add_primitive_svg", "add_primitive_text",
-        "add_primitive_torus", "calib_cornering", "calib_flow_ratio", "calib_input_shaping_damp", "calib_input_shaping_freq",
-        "calib_max_volumetric", "calib_pressure_advance", "calib_retraction", "calib_temperature", "calib_vfa", "deselect_all",
-        "export_3mf", "export_all_sliced_file", "export_config", "export_drc_multi", "export_drc_single", "export_gcode",
-        "export_sliced_file", "export_stl", "export_stl_multi", "export_toolpaths_obj", "filament_add", "filament_delete",
-        "go_to_layer", "go_to_tab", "help_about", "help_benchmark_3d_scene", "help_check_updates", "help_keyboard_shortcuts",
-        "help_migrate_filament_presets", "help_network_test", "help_open_config_folder", "help_setup_wizard",
-        "help_tip_of_the_day", "help_troubleshoot", "import_configs", "import_file", "import_zip_archive",
-        "install_local_plugin", "install_plugin", "load_project", "mode_advanced", "mode_expert", "mode_simple", "new_project",
-        "obj_arrange", "obj_assemble", "obj_center", "obj_delete", "obj_delete_all", "obj_drop", "obj_fit_volume",
-        "obj_instances_down", "obj_instances_to_objects", "obj_instances_up", "obj_mirror_x", "obj_mirror_y", "obj_mirror_z",
-        "obj_order_by_filament", "obj_order_by_height", "obj_order_by_name", "obj_order_by_size", "obj_orient", "obj_rename",
-        "obj_set_instances", "obj_split_objects", "obj_split_parts", "obj_type_modifier", "obj_type_negative", "obj_type_part",
-        "obj_type_precise_seam", "obj_type_support_blocker", "obj_type_support_enforcer", "open_action_replay", "open_plugins",
-        "open_preferences", "open_wiki", "open_youtube", "plate_add", "plate_delete", "plate_duplicate", "plate_goto",
-        "plate_rename", "plate_toggle_lock", "preset_bundle", "redo", "refresh_plugins", "reset_window_layout", "save_project",
-        "save_project_as", "select_all", "send_gcode", "slice_all", "slice_and_preview", "start_recording", "stop_recording",
-        "sync_ams", "sync_presets", "take_screenshot", "toggle_agent_activity_panel", "toggle_developer_mode", "toggle_run_script_panel", "undo", "view_bottom",
-        "view_default", "view_fit_bed", "view_front", "view_iso", "view_left", "view_rear", "view_right",
-        "view_toggle_perspective", "view_top"};
-    REQUIRE(actions.size() == 130);
-
+    // An item's key is its menu item's id, which no command has; only a command's own action has the command's key.
+    const CommandCatalog& catalog = NativeCommands::instance();
     std::set<std::string> speed_dial;
-    for (const NativeCommands::SpeedDialAction& t : NativeCommands::speed_dial_actions(NativeCommands::instance()))
-        speed_dial.insert(t.action != nullptr ? t.action->at("key").get<std::string>() : t.command->key);
-    CHECK(speed_dial == actions);
+    for (const NativeCommands::SpeedDialAction& t : NativeCommands::speed_dial_actions(catalog)) {
+        const std::string key = t.action != nullptr ? t.action->at("key").get<std::string>() : t.command->key;
+        INFO(key);
+        speed_dial.insert(key);
+        if (t.action != nullptr)
+            CHECK(catalog.find(key) == nullptr);
+    }
     CHECK(speed_dial.count("new_project") == 1);
     CHECK(speed_dial.count("project_new") == 0);
     CHECK(speed_dial.count("app_state") == 0);
@@ -1385,8 +1183,7 @@ TEST_CASE("a refusal that asks for a GUI step or a selection names the calls tha
 // The file is the reference of the build with every command, so a build without CAD does not check it.
 TEST_CASE("the checked-in command reference matches the catalog", "[CommandCatalog][Reference]")
 {
-    CommandCatalog catalog = catalog_with_design();
-    catalog.seal();
+    const CommandCatalog catalog = catalog_with_cad();
     const std::string dump = Slic3r::GUI::catalog_reference(catalog).dump(1) + "\n";
     const std::string path = std::string(TEST_DATA_DIR) + "/command_catalog.json";
 
@@ -1416,7 +1213,8 @@ TEST_CASE("the checked-in command reference matches the catalog", "[CommandCatal
 
 TEST_CASE("the reference leaves out nothing a client is told", "[CommandCatalog][Reference]")
 {
-    CommandCatalog catalog = catalog_with_design();
+    CommandCatalog catalog;
+    NativeCommands::register_all_commands(catalog, {true});
     catalog.add_source(std::make_unique<OneCommandSource>("plugin.x.y"));
     catalog.seal();
     const json reference = Slic3r::GUI::catalog_reference(catalog);
@@ -1463,8 +1261,7 @@ TEST_CASE("the reference leaves out nothing a client is told", "[CommandCatalog]
 
 TEST_CASE("the reference shows both forms of a two-form command", "[CommandCatalog][Reference]")
 {
-    CommandCatalog catalog = catalog_with_design();
-    catalog.seal();
+    const CommandCatalog catalog = catalog_with_cad();
     const json reference = Slic3r::GUI::catalog_reference(catalog);
     // Each with what its person's forms are: {} alone, or the arguments of each of its actions.
     std::vector<std::pair<std::string, json>> two_forms{

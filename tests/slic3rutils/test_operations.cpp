@@ -2033,8 +2033,7 @@ TEST_CASE("the plugin list gives each plugin's key, name, version, state, capabi
 //
 // A command that changes something either names the operations (GUI/Operations) it reaches or is listed
 // here with the reason it reaches none. The list is what a new command has to be added to, or kept off, in
-// plain sight. It says how an entry is classified; it does not check what its function calls, which
-// scripts/check_operation_calls.py does for the owner calls an operation stands for.
+// plain sight. It says how an entry is classified; what its function calls is for review.
 
 namespace {
 
@@ -2221,7 +2220,7 @@ TEST_CASE("the exception list names only commands the catalog has under the rule
 }
 
 // The Design tab's commands mostly act on its document, which no operation stands for, so the rule leaves the group
-// out; scripts/check_operation_calls.py still checks their files, Mcp/Tools/Design*.cpp, as every caller's.
+// out.
 TEST_CASE("the operations rule leaves the Design group and the read-only commands out", "[Operations]")
 {
     Slic3r::GUI::NativeCommand shell;

@@ -1,7 +1,7 @@
 # Design tab
 
-The design of this area's sweep tests. The rules every entry follows, the grades and the table of all tests are
-in [TESTS.md](../TESTS.md).
+The design of this area's sweep tests. The rules every entry follows and the grades are in
+[TESTS.md](../TESTS.md).
 
 ## The Design tab on a shared data folder
 
@@ -42,7 +42,7 @@ folder opens on a prompt to restore it, which `orca_mcp.py launch` answers No, s
 empty project.
 
 ## `test_cad_replays`
-`test_cad_replays.py` · Python, 178 checks (180 off Windows)
+`test_cad_replays.py` · Python
 
 **Tests:** The Design tab driven through its commands alone, in one app, one part after another:
 - the six replays in `tests/`, `cad_sketch_to_solid`, `cad_sketch_edit`, `cad_topology_targets`, `cad_features`,
@@ -53,6 +53,39 @@ empty project.
   dialog;
 - examples: that every example `tool_describe {tool}` documents for the Design commands, which
   `tool_list {group: "Design"}` lists, and for `undo` and `redo`, still runs as written.
+
+Each replay but `cad_canvas` checks what it builds by volume and by what the reading commands give back, under each
+reply's `result`; `cad_canvas` checks the canvas's behaviour and the design-only project's round trip. Its steps marked `optional` are the calls meant to be refused, which a replay cannot assert (TESTS.md, "What
+the sweep does not catch"). What each builds:
+- `cad_sketch_to_solid` takes sketches to solids: an L-bracket profile on XZ through the modeling origin with its
+  inside corner filleted in the sketch (after an empty commit that must fail and leave the sketch open), a
+  shelf-pin jig plate whose five holes are in its sketch, a lip sketched on the plate's top face and joined to it,
+  one loop of the plate's sketch extruded alone, and a ring revolved about its sketch's centerline.
+- `cad_sketch_edit` drives the sketch tools: the bench's hex standoff from a polygon 8 mm across the flats, a trim
+  and an extend on crossing lines, and a plate with a chamfered and a rounded corner, two slots (one an array copy
+  turned upright), an elliptic hole and four holes arrayed about a point, constrained from picks and from named
+  points, with a refused constraint rolled back and one deleted.
+- `cad_topology_targets` builds the bench's J wall hook from what the reading commands give back: its inside
+  corners found by convexity, M4 countersinks seated on the front face on the axes of pilot holes, the cones' kind,
+  apex side and radii from `body_describe`, the hole heights and the plate's thickness from `design_measure`, a datum
+  plane midway through the plate and one 70 mm up with a sketch on it, a refused tangent plane, and the back face
+  pushed out 2 mm.
+- `cad_features` threads, sweeps, lofts and splits: the bench's M5 hex standoff tapped on its bore (M5 inferred from
+  the bore) and again on the XY plane, each within the bench's volume bounds; a spring swept along a helix in round
+  and square wire; a square-to-circle loft between XY and a datum plane 40 mm up; the loft split by that datum and
+  its lower half cut again by XY turned over.
+- `cad_doc` reads and edits features as their cards do: a variable bound to an extrude, then removed, and literal
+  edits with `feature_edit`. Then it commits the design to the plate, recommits over the first object and undoes
+  that in one step, exports STEP and reads it back into a new design, and commits two bodies both ways. Last it
+  walks the Design history (`undo` / `redo` of an edit and of a rename), suppresses, moves and deletes features,
+  names, hides and colours bodies, commits only the shown one, and saves and reopens the project to check that a
+  body's name and colour were kept.
+- `cad_canvas` drives the Design view as a canvas: `view_set` shows the Design tab and points its camera (and
+  refuses Prepare's and Preview's fields there), canvas and widget screenshots capture the view, a click at its
+  centre picks the block and a right click lists the verbs for the pick, and `keyboard_press` reaches the Design
+  panel's key hook (Shift+E opens the Extrude card, Escape with no target closes it). Last, a change made only in
+  the Design tab marks the project modified, and reopening the saved design-only project with `discard_changes`
+  asks nothing and names the project after its file.
 
 The replay files are the test's input; the sweep runs none of them on its own. `test_cad_failed_job` stays a test of
 its own, since it runs with a reply budget of 4 s.
@@ -387,7 +420,7 @@ volume band, but cad_features holds the thread and sweep solids to 2 % bands, ca
 screenshots unchecked, slow_build has no time bound, and the examples only run.
 
 ## `test_cad_failed_job`
-`test_cad_failed_job.py` · Python, 9 checks
+`test_cad_failed_job.py` · Python
 
 **Tests:** That a Design call whose job fails after its reply is left out of `replay_export`. A hole that misses a slow-rebuilding coil replies with a running job. An export made while it runs names it in `left_out_running`. The hole then fails, and the export after it keeps a later rename and leaves the hole out. That export replays to the same features and coil. The sweep runs it with a 4 s reply budget (`ORCA_MCP_REPLY_BUDGET_MS=4000`).
 
@@ -414,7 +447,7 @@ screenshots unchecked, slow_build has no time bound, and the examples only run.
 **Strength:** Strong — the running-job bookkeeping, the failure text and the replayed result are each checked exactly.
 
 ## `test_cad_commands`
-`test_cad_commands.py` · Python, 330 checks
+`test_cad_commands.py` · Python
 
 **Tests:** What the Design commands' arguments do when the Design panel handles them in the running app:
 operation words, suppress and align conflicts; the open sketch's commands; re-editing a committed sketch with
@@ -455,12 +488,12 @@ named after the rung, runs `recover()` and goes on to the next rung.
   back otherwise, `design_new` leaves features, `reset_view` leaves the camera more than 1e-3 off the zoom and
   target it asked for, no click along the XY plane's diagonal opens a sketch, `calibrate` probes land more than 0.5
   px off their clicks or add constraints, `cancel`/`confirm` leave a sketch open, `value` finds no field taking the
-  keyboard, or a menu choice's `ran` is not the path asked for. The test's own `settled` (60 s), `keep_as_drawn` (8
-  Esc presses) and `design_rename_selected` (no row editor) raise the same way. Each wait polls its state every 0.05 s for
+  keyboard, or a menu choice's `ran` is not the path asked for. The test's own `settled` (60 s) and `rename_selected` (no
+  row editor) raise the same way, and so does `CadGui.keep_as_drawn()` (8 Esc presses). Each wait polls its state every 0.05 s for
   up to 30 s. The Speed Dial picks go through `checks.dial_pick()`, which waits up to 30 s for the dial to show
   before it searches and clicks. Whether a click opened a sketch or a value field is read once, after `app_wait
   {for: "idle"}` answers (`CadGui.settle()`, `opened_field()`), since the app answers it after the work the click
-  queued: `keep_as_drawn` presses Esc only on a field that is open then.
+  queued: `CadGui.keep_as_drawn()` presses Esc only on a field that is open then.
 - words: `operation` in the reply and in `feature_describe` equals the word given (`cut`, `join`); volumes from
   `body_mass_properties` are 3500, 5000 and 1000 mm³ to 1e-3; `feature_suppress` and `feature_describe` say
   suppressed and the bodies drop to 0; `align_conflicts` holds exactly the second align; `sketch_extend`,
@@ -581,7 +614,7 @@ oracle is the tools' own output, the selection drawing is checked only as "diffe
 only as panel flags, and Scale artwork never scales.
 
 ## `test_cad_sketching`
-`test_cad_sketching.py` · Python, 248 checks
+`test_cad_sketching.py` · Python
 
 **Tests:** Drawing in an open sketch the way a person does, with clicks on the canvas and exact values typed into
 the canvas's value field with no click into it: each keyed tool's primitive, a profile with two voids, the edit
@@ -614,7 +647,7 @@ named after the rung).
   raises when no click along the XY plane's diagonal opens one, each click's outcome read once after `app_wait
   {for: "idle"}` answers; `calibrate` raises when probes land more than 0.5 px off; `value()` raises when no field
   opens or none takes the keyboard; `cancel`, `confirm` and `reopen` raise when the sketch does not close or open.
-  The test's own `escape_field`, `keep_as_drawn` and `accept_shown_value` raise when a field does not open or close
+  The test's own `escape_field`, `escape_to_select` and `accept_shown_value` raise when a field does not open or close
   or a tool stays armed, and `pick()` adds one check per set of picks ("<rung>: both picks landed on an entity"),
   read from the Constrain status line's "N picked", which must count 1, 2 (3) after a click on empty space has
   dropped the picks the last button left. Each wait polls its state every 0.05 s for up to 30 s.
@@ -693,7 +726,7 @@ every relation is read back from the reopened sketch as geometry and as its stor
 loosely pinned.
 
 ## `test_cad_context_menu`
-`test_cad_context_menu.py` · Python, 131 checks
+`test_cad_context_menu.py` · Python
 
 **Tests:** The sketch's right-click offer: its header names what was clicked and it lists exactly the label paths
 the Design table gives for five selections, greying exactly the rows with nothing to offer; a right-click with a
@@ -709,7 +742,8 @@ label rung's clicks lie in the region the map is measured on at the baseline's 1
 does not. art types its text and no height or face, so its letters take the Text dialog's last font and height: in a
 new folder 10 mm and the face the dialog lists for the system's UI font. "two regions over 1 mm²" holds at those. No
 test in the sweep stores others: the dialog's OK stores the font and height it opened with unless they are changed
-in it, and none changes them. The SVG comes from the repository's fixture through a rule answering the picker.
+in it, and none changes them. The SVG comes from the repository's fixture, `tests/fixtures/rect_40x20.svg`, through a rule answering the
+picker.
 
 **Leaves:** its design unsaved, and the Text dialog's last font and height as it found them, which art's OK stores
 again. The SVG picker remembers no folder.
@@ -721,7 +755,7 @@ named after the rung).
   raises when no offer opens and adds a check for each verb in `ARMS` ("<rung>: <verb> armed the <tool> tool"),
   `clear_sketch()` raises when entities remain, `ok_text()` when the Text dialog stays open, `inside()` when a
   click falls outside the calibrated region and `close_fields()` when Esc leaves a value field open. Each wait
-  polls its state every 0.05 s for up to 30 s. `keep_as_drawn()` and `close_fields()` read whether a field is open
+  polls its state every 0.05 s for up to 30 s. `CadGui.keep_as_drawn()` and the test's own `close_fields()` read whether a field is open
   once, after `app_wait {for: "idle"}` answers (`CadGui.opened_field()`), and press Esc only on one that is.
 - Each typed field, five checks and a read-back: "<rung>: a value field opened by itself to take <v>" (or, for
   label, from the click on the label), "<title> took the keyboard with no click into it" (the field is marked

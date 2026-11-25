@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Checks that the routes to one function accept and refuse the same states, in the same words.
+Its design is the test_operation_routes entry of tools/mcp/test-entries/commands.md.
 
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_operation_routes.py

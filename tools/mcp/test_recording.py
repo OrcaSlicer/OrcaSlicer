@@ -4,13 +4,9 @@
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_recording.py [--out DIR]
 
-recording_start, recording_stop and recording_encode: a recording made while the GUI is driven, its report and its
-file; a recording a nested replay_run starts and never stops, which the replay's end closes; overlays and the time
-limit; and encoding asked for at the start, run as a job by the stop, deleting or keeping the .mkv. The recordings
-are read back from their files. What the machine's ffmpeg can encode decides each encode's checks: an encode it
-cannot make must be refused with the app's reason, and the file checks it would have had print as SKIP. The last
-line names what could be encoded. It starts on the Generic Klipper Printer in the sweep's baseline, its window at
-1600 x 900. The recordings go to --out, else to a new temporary folder.
+What the machine's ffmpeg can encode decides each encode's checks: an encode it cannot make must be refused with the
+app's reason, and the file checks it would have had print as SKIP. The last line names what could be encoded. The
+recordings go to --out, else to a new temporary folder.
 """
 
 import argparse

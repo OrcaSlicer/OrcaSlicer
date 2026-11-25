@@ -1,7 +1,8 @@
 """Checks how OrcaSlicer's automation behaves while the app closes, and while its server is switched off and on
 during a call.
+Its design is the test_runtime_lifecycle entry of tools/mcp/test-entries/runtime.md.
 
-Each of the six checks launches OrcaSlicer on a fresh data folder of its own, with the MCP server on unless it says
+Each check launches OrcaSlicer on a fresh data folder of its own, with the MCP server on unless it says
 otherwise. The app is started here, as orca_mcp.py launch starts it, but as this script's child: only a process's parent
 can read its exit code on every system. It is closed as a person closes it, by a click on the File menu's Quit item that
 widget_list lists; the click's reply may not arrive, since the server closes with the app. orca_mcp.py stop would not
@@ -35,7 +36,7 @@ do: on Windows it kills the process.
   instruments off" within 30 s of the script's call ending. No server is left to close the app through, so the
   process is killed.
 
-Prints one line per check, six in all, and exits 1 when one fails. Checks named on the command line run alone, in
+Prints one line per check and exits 1 when one fails. Checks named on the command line run alone, in
 that order. Run it as python tools/mcp/test_runtime_lifecycle.py [--bin PATH] [CHECK ...].
 """
 import http.client

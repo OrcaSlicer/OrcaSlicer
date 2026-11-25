@@ -5,17 +5,7 @@ input they rely on, as the test_gizmos entry of tools/mcp/test-entries/gizmos.md
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_gizmos.py [scenario ...]
 
-Each gizmo is driven as a person drives it, through the generic GUI tools: its icon, the fields, combos, buttons
-and links of its panel, and clicks and strokes at points of the model. The commands that open a gizmo on a named
-target are called too: a call that names only its target opens the gizmo on it and the same call again leaves it
-open, a refused call leaves the model, the gizmo and the selection as it found them, and a call with an acting
-argument closes the open gizmo and does the job as the gizmo's own button would. After every step the test reads
-back what the gizmo or the call leaves on the model (placements, painted facets, texture layers, text and SVG parts,
-brim ears, parts made or removed, positions in the assemble view), reads the undo before any redo, and reads what a
-person keeps again from a saved project. It also tests the canvas input those gizmos rely on, and auto-answer rules
-on the preset prompt. It starts from the baseline on the Generic Klipper Printer, reads back the window size and the
-preferences its checks depend on, sets Expert mode, and exits 0 when every check passes. Scenario names given on the
-command line run those scenarios alone.
+Scenario names given on the command line run those scenarios alone. Exits 0 when every check passes.
 """
 
 import math
@@ -28,8 +18,8 @@ import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, SLOT_COLOURS, Checks, add_slot, run, selection,  # noqa: E402
-                    slots, start, undo_steps, wait)
+from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, SLOT_COLOURS, Checks, add_slot, centre, run,  # noqa: E402
+                    save_and_reopen, selection, slots, start, undo_steps, wait)
 
 FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "fixtures")
 STAR = os.path.join(FIXTURES, "star.svg")
@@ -84,10 +74,6 @@ def layers(*rows):
         out.append({"slot": int(slot), "name": ANY if name == "?" else name,
                     "painted": POS if painted == ">0" else int(painted)})
     return out
-
-
-def centre(box):
-    return [(lo + hi) / 2 for lo, hi in zip(box["min"], box["max"])]
 
 
 class GizmosTest:
@@ -175,13 +161,6 @@ class GizmosTest:
         """Closes the open gizmo by its panel's Done, Close or Return button."""
         self.press({"imgui": button} if button != "close" else {"imgui_name": button})
         self.t.equal(f"{label}: no gizmo open after {button}", self.gizmo(), None)
-
-    def save_and_reopen(self, name):
-        path = os.path.join(self.folder, name)
-        self.run("project_save", path=path, overwrite=True)
-        self.run("project_new", discard_changes=True)
-        self.run("project_open", path=path)
-        self.idle()
 
     # ---- Reads ----
 
@@ -635,7 +614,7 @@ class GizmosTest:
         painted = self.texture(f"{s} 27", layers("0 H >0"))
         self.t.equal(f"{s} 27: the other painting stays", {k: v for k, v in (painted or {}).items() if k != "texture"},
                      color)
-        self.save_and_reopen("painting.3mf")
+        save_and_reopen(self.c, os.path.join(self.folder, "painting.3mf"), idle_s=45)
         painted = self.texture(f"{s} 28: the project file keeps the layer", layers("0 H >0"), depth=0.4)
         self.t.equal(f"{s} 28: the project file keeps the painting",
                      {k: v for k, v in (painted or {}).items() if k != "texture"}, color)
@@ -724,7 +703,7 @@ class GizmosTest:
         self.text_part(f"{s} 11", *cut)
         self.close_by(f"{s} 12", "Done")
         self.text_part(f"{s} 12", *cut)
-        self.save_and_reopen("text.3mf")
+        save_and_reopen(self.c, os.path.join(self.folder, "text.3mf"), idle_s=45)
         self.text_part(f"{s} 13: the project file keeps the text", *cut)
 
     def svg(self):
@@ -795,7 +774,7 @@ class GizmosTest:
         self.t.equal(f"{s} 5: adding the part is one undo step", len(objs[0]["parts"]) if objs else None, 1)
         self.redo()
         on_cube(f"{s} 6")
-        self.save_and_reopen("svg.3mf")
+        save_and_reopen(self.c, os.path.join(self.folder, "svg.3mf"), idle_s=45)
         # The project file names the SVG's file without its folder (to_xml in bbs_3mf.cpp).
         objs = on_cube(f"{s} 7: the project file", "star.svg")
         if objs and len(objs) == 2:
@@ -1016,7 +995,7 @@ class GizmosTest:
         self.t.equal(f"{s} 7: the tab", self.c.call("app_state")["tab"], "prepare")
         reply = self.run("object_select", objects=[0])
         self.t.equal(f"{s} 7: a selection goes to Prepare's 3D view", reply.get("canvas"), "3d")
-        self.save_and_reopen("assembly.3mf")
+        save_and_reopen(self.c, os.path.join(self.folder, "assembly.3mf"), idle_s=45)
         where(f"{s} 8: the project file keeps the assembly", prepare, after4)
 
     def cut(self):
@@ -1075,7 +1054,7 @@ class GizmosTest:
         before(f"{s} 4: the cut is one undo step")
         self.redo()
         halves(f"{s} 5")
-        self.save_and_reopen("cut.3mf")
+        save_and_reopen(self.c, os.path.join(self.folder, "cut.3mf"), idle_s=45)
         halves(f"{s} 6: the project file")
 
     def canvas_input(self):

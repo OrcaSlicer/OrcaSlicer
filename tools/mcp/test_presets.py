@@ -4,20 +4,7 @@
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_presets.py
 
-Selecting presets by the names their selectors show, hidden ones included; listing them with filters; what a
-setting is and where it lives; saving, overwriting, reverting and deleting presets; the unsaved-changes prompt of a
-preset switch and of a new project, answered ahead or in the dialog, through the tools and through the plugin API;
-a preset kept inside the project; exporting and importing preset files; a printer variant picked by its nozzle
-diameter; a preference changed in its dialog; and that the presets selected and an unsaved edit are what the G-code
-is sliced with. After every step it reads the selection back, each preset with its unsaved edits, and compares it
-whole with the state the entry writes out. Then the Calibration menu's tests through calibration_generate_test,
-every test and method: the project each makes, the parameters it uses, the presets and objects it changes, its
-warnings and refusals, preset_changes "keep" and "discard", a test printing with another filament (filament_slot)
-and the slots it refuses, on the ToolChanger the extruder it prints on and the settings it takes from it, and,
-through the exported G-code, the values the
-temperature, pressure advance and retraction towers step through. It runs on the default printer, the Generic
-Klipper Printer 0.4, and switches to other printers of the Custom vendor, in an app and on a data folder earlier
-tests used; it exits 0 when every check passes.
+Exits 0 when every check passes.
 """
 
 import json
@@ -29,8 +16,8 @@ import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, SLOT_COLOURS, Checks, add_slot, refusal, run,  # noqa: E402
-                    slots, start, until, wait)
+from checks import (GENERIC_PLA, KLIPPER, KLIPPER_STD, SLOT_COLOURS, Checks, add_slot, refusal, rule_uses,  # noqa: E402
+                    run, slots, start, until, wait)
 
 FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tests", "fixtures")
 
@@ -421,12 +408,6 @@ class PresetsTest:
     def developer_mode(self):
         self.run("action_run", id=DEVELOPER_MODE)
 
-    def rule_uses(self, match):
-        for rule in self.c.call("app_state").get("auto_answer_rules", []):
-            if rule.get("match") == match:
-                return rule.get("uses", 0)
-        return None
-
     def select(self, type, name, slot=None, **args):
         if slot is not None:
             args["filament_slot"] = slot
@@ -739,9 +720,9 @@ class PresetsTest:
         self.t.equal(f"{s} 15: the reply's changed", reply.get("changed"), {"nozzle_temperature": times(220, 6)})
         self.selection_is(f"{s} 15", after13)
         self.run("dialog_auto_answer", rules=[{"match": SPIRAL, "button": "yes"}])
-        self.t.equal(f"{s} 16: the spiral rule has answered nothing yet", self.rule_uses(SPIRAL), 0)
+        self.t.equal(f"{s} 16: the spiral rule has answered nothing yet", rule_uses(self.c, SPIRAL), 0)
         reply = self.answered_by_rule("settings_set", type="process", values={"spiral_mode": True})
-        self.t.equal(f"{s} 16: the spiral mode question was asked once", self.rule_uses(SPIRAL), 1)
+        self.t.equal(f"{s} 16: the spiral mode question was asked once", rule_uses(self.c, SPIRAL), 1)
         changed = reply.get("changed", {})
         self.t.equal(f"{s} 16: the reply's applied", reply.get("applied"), {"spiral_mode": "1"})
         self.t.equal(f"{s} 16: the reply's changed", {k: changed.get(k) for k in

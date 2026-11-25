@@ -1,10 +1,10 @@
 # Presets and calibration
 
-The design of this area's sweep tests. The rules every entry follows, the grades and the table of all tests are
-in [TESTS.md](../TESTS.md).
+The design of this area's sweep tests. The rules every entry follows and the grades are in
+[TESTS.md](../TESTS.md).
 
 ## `test_presets`
-`test_presets.py` · Python, 815 checks · in `sweep.json` as `{"path": "test_presets.py", "timeout_s": 1500}`
+`test_presets.py` · Python
 
 **Tests:** The presets of the three types, through the tools a person's preset work maps to: selecting a preset by
 the name its selector shows, hidden ones included (`preset_select`); listing presets with filters (`preset_list`);

@@ -5,17 +5,8 @@ them.
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_slice_preview.py [scenario ...]
 
-The plates the slicing calls and actions slice, an empty project and a plate that fails validation among them; the
-statistics a slice reports; the Preview's tables, legend and layers, on a plate it shows, on one it has not shown and
-on a G-code file opened for viewing; a legend row clicked, canvas captures taken right after a layer or view type
-change, and view_set's refusals of the Preview's fields; height range modifiers, variable layer heights and a plate's
-layer G-codes, each read in the exported G-code and kept by a 3MF; the commands that take a plate index; the display
-switches and the sidebar of view_set; and app_state's account, network plug-in and configuration folder. After every
-step the test reads the state back through another tool and compares it with the values the entry writes out. It runs
-on the default printer, the Generic Klipper Printer 0.4 nozzle, in an app and on a data folder earlier tests used:
-start() puts them in the baseline before its first scenario. It exits 0 when every check passes.
 Naming scenarios (by the method names of SlicePreviewTest.SCENARIOS) runs those alone, each after the scenario it goes
-on from where SlicePreviewTest.AFTER names one, for work on one of them.
+on from where SlicePreviewTest.AFTER names one, for work on one of them. Exits 0 when every check passes.
 """
 
 import json
@@ -28,7 +19,7 @@ import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
 from checks import (FLUSH_MULTIPLIER, GENERIC_PLA, KLIPPER, KLIPPER_STD, SLOT_COLOURS, Checks, add_slot,  # noqa: E402
-                    filament_rows, obj_facts, run, slot_colours, start, until, wait)
+                    filament_rows, obj_facts, rule_uses, run, save_and_reopen, slot_colours, start, until, wait)
 
 ROW = re.compile(r'^"(.*)" (\d+)( \*)?( L)?( S)?$')
 CUBE = {"shape": "cube", "size": [20, 20, 20]}
@@ -300,21 +291,8 @@ class SlicePreviewTest:
                      [row.get("colour", "").upper() for row in filament_rows(self.c)],
                      [colour.upper() for colour in SLOT_COLOURS[:n]])
 
-    def rule_uses(self, match):
-        for rule in self.c.call("app_state").get("auto_answer_rules", []):
-            if rule.get("match") == match:
-                return rule.get("uses", 0)
-        return None
-
     def cube(self, **args):
         return self.run("object_add_primitive", **CUBE, **args)
-
-    def save_and_reopen(self, name):
-        path = os.path.join(self.folder, name)
-        self.run("project_save", path=path, overwrite=True)
-        self.run("project_new", discard_changes=True)
-        self.run("project_open", path=path)
-        self.idle()
 
     def start(self, name):
         self.run("project_new", discard_changes=True)
@@ -636,11 +614,11 @@ class SlicePreviewTest:
         self.t.equal(f"{s} 6: the header's layers", g["header"].get("total layer number"), 100)
         self.t.near(f"{s} 6: the estimate is plate 1's", g["header"].get("estimate"), time_1, 1)
         self.plates_are(f"{s} 6", '"" 1 S', '"" 1 * S')
-        uses = self.rule_uses(SAVE)
+        uses = rule_uses(self.c, SAVE)
         self.run("project_open", path=path, discard_changes=True)
         self.idle()
         self.plates_are(f"{s} 7: the plate shows the file without being sliced", '"" 0 *')
-        self.t.equal(f"{s} 7: the save question was answered once", self.rule_uses(SAVE), (uses or 0) + 1)
+        self.t.equal(f"{s} 7: the save question was answered once", rule_uses(self.c, SAVE), (uses or 0) + 1)
         self.preview_is(f"{s} 7", layer_count=100)
         st = self.c.call("plate_slice_stats", include=["features", "layers", "view"])
         self.t.equal(f"{s} 7: the statistics' layers",
@@ -925,7 +903,7 @@ class SlicePreviewTest:
         tools = [(round(l["z"], 3), t) for l in g["layers"] for t in l["tools"]]
         self.t.equal(f"{s} 15: one tool line, T1, in the first layer above 10 mm", tools, [(10.1, "T1")])
         ranges_are(f"{s} 15", after14)
-        self.save_and_reopen("ranges.3mf")
+        save_and_reopen(self.c, os.path.join(self.folder, "ranges.3mf"))
         ranges_are(f"{s} 16: the project file keeps them", after14)
         reply = self.run("object_set_height_ranges", object=0, ranges=[])
         self.t.equal(f"{s} 17: the reply", reply.get("layer_config_ranges"), [])
@@ -1029,7 +1007,7 @@ class SlicePreviewTest:
         vlh(action="adaptive", quality=0)
         profile_is(f"{s} 14", min_height=0.12)
         self.t.equal(f"{s} 14: the ranges stay", self.ranges(), ranges)
-        self.save_and_reopen("profile.3mf")
+        save_and_reopen(self.c, os.path.join(self.folder, "profile.3mf"))
         profile_is(f"{s} 15: the project file keeps the profile", min_height=0.12, points=lambda v: v > 100)
         reply = self.run("plate_slice")
         self.slice_is(f"{s} 16", reply, [(0, "ok")], layers=(172, None))
@@ -1123,7 +1101,7 @@ class SlicePreviewTest:
         change = [c for c in got if c.get("type") == "change_filament"]
         self.t.equal(f"{s} 12: the filament change's colour is slot 2's", change[0].get("color") if change else None,
                      colours[1] if len(colours) > 1 else colours)
-        self.save_and_reopen("codes.3mf")
+        save_and_reopen(self.c, os.path.join(self.folder, "codes.3mf"))
         self.codes(f"{s} 13: the project file keeps them", after12)
         self.plates_are(f"{s} 13: the plate is not sliced", '"" 1 *')
         self.slice_is(f"{s} 14", self.run("plate_slice"), [(0, "ok")])

@@ -25,20 +25,9 @@ using Slic3r::GUI::CommandFn;
 using Slic3r::GUI::GuardClass;
 using Slic3r::GUI::NativeCommand;
 using Slic3r::GUI::Mcp::Test::command;
+using Slic3r::GUI::Mcp::Test::keys_of;
 using Slic3r::GUI::Mcp::Test::OneCommandSource;
 namespace Mcp = Slic3r::GUI::Mcp;
-
-namespace {
-
-std::vector<std::string> keys_of(const std::vector<NativeCommand>& commands)
-{
-    std::vector<std::string> keys;
-    for (const NativeCommand& c : commands)
-        keys.push_back(c.key);
-    return keys;
-}
-
-} // namespace
 
 TEST_CASE("a key added twice is refused", "[CommandCatalog]")
 {
