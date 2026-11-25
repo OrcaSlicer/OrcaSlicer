@@ -4739,7 +4739,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 // and export G-code into file.
                 tool_ordering.cal_most_used_extruder(print.config());
                 m_printed_objects.emplace_back(&object);
-                this->process_layers(print, tool_ordering, collect_layers_to_print(object, print.config().belt_printer.value), *print_object_instance_sequential_active - object.instances().data(), file,
+                this->process_layers(print, tool_ordering, collect_layers_to_print(object, print.config().belt_printer.value), **print_object_instance_sequential_active, file,
                                      prime_extruder);
                 {
                     // save the flush statitics stored in tool ordering by object
@@ -5292,18 +5292,31 @@ void GCode::process_layers(
     const Print                             &print,
     const ToolOrdering                      &tool_ordering,
     std::vector<LayerToPrint>                layers_to_print,
-    const size_t                             single_object_idx,
+    const PrintInstance                     &instance,
     GCodeOutputStream                       &output_stream,
     // BBS
     const bool                               prime_extruder)
 {
+    const size_t single_object_idx = &instance - instance.print_object->instances().data();
+    // Resolve against this copy's actual object, support and apron layers. A coarser
+    // reslice can bring several events onto one layer, or leave one above the part.
+    std::map<size_t, LayerEvents> events_by_layer;
+    for (const auto &event : instance.model_instance->layer_events.gcodes) {
+        if (event.type != CustomGCode::Custom && event.type != CustomGCode::PausePrint && event.type != CustomGCode::Template)
+            continue;
+        auto layer = std::lower_bound(layers_to_print.begin(), layers_to_print.end(), event.print_z - EPSILON,
+            [](const LayerToPrint &layer, double z) { return layer.print_z() < z; });
+        if (layer != layers_to_print.end())
+            events_by_layer[layer - layers_to_print.begin()].push_back(&event);
+    }
+    const LayerEvents no_events;
     // The pipeline is variable: The vase mode filter is optional.
     size_t layer_to_print_idx = 0;
     const auto source = precomputed_layers_source(layer_to_print_idx, layers_to_print.size(), m_pressure_equalizer != nullptr,
         overhang_fan_enabled(print.config(), m_enable_cooling_markers),
         [&layers_to_print](size_t index) { return std::vector<LayerToPrint>{layers_to_print[index]}; });
     const auto generator = tbb::make_filter<PrecomputedLayer, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
-        [this, &print, &tool_ordering, &layers_to_print, single_object_idx, prime_extruder](PrecomputedLayer precomputed) -> LayerResult {
+        [this, &print, &tool_ordering, &layers_to_print, &events_by_layer, &no_events, single_object_idx, prime_extruder](PrecomputedLayer precomputed) -> LayerResult {
             if (precomputed.index == size_t(-1))
                 return LayerResult::make_nop_layer_result();
             LayerToPrint &layer = layers_to_print[precomputed.index];
@@ -5312,7 +5325,10 @@ void GCode::process_layers(
             check_placeholder_parser_failed();
             print.throw_if_canceled();
             m_extrusion_quality_estimator.set_precomputed_layers(std::move(precomputed.overhang_layers));
-            return this->process_layer(print, { std::move(layer) }, tool_ordering.tools_for_layer(layer.print_z()), &layer == &layers_to_print.back(), nullptr, tool_ordering.get_most_used_extruder(), single_object_idx, prime_extruder);
+            const auto events = events_by_layer.find(precomputed.index);
+            return this->process_layer(print, { layer }, tool_ordering.tools_for_layer(layer.print_z()), &layer == &layers_to_print.back(),
+                                       nullptr, tool_ordering.get_most_used_extruder(), single_object_idx, prime_extruder,
+                                       events == events_by_layer.end() ? no_events : events->second);
         });
     if (m_spiral_vase) {
         float nozzle_diameter  = EXTRUDER_CONFIG(nozzle_diameter);
@@ -6193,7 +6209,8 @@ LayerResult GCode::process_belt_brim_layer(
     const LayerTools                &layer_tools,
     const bool                       last_layer,
     const size_t                     single_object_instance_idx,
-    const int                        most_used_extruder)
+    const int                        most_used_extruder,
+    const LayerEvents               &instance_events)
 {
     // layer_id 0 is deliberate, not a placeholder.  CoolingBuffer reads it for the
     // initial_layer_fan_speed override and the close_fan_the_first_x_layers gate
@@ -6267,6 +6284,9 @@ LayerResult GCode::process_belt_brim_layer(
 
     if (! m_config.layer_change_gcode.value.empty())
         gcode += this->process_layer_change_gcode(print, print_z, most_used_extruder, layer_tools.has_wipe_tower && m_wipe_tower);
+
+    for (const auto *event : instance_events)
+        gcode += ProcessLayer::emit_custom_gcode_per_print_z(*this, event, m_writer.filament()->id(), extruder_id, print.config());
 
     // Objects sharing this apron Z may use different brim filaments; print each in its own tool.
     for (const unsigned int brim_extruder : layer_tools.extruders) {
@@ -6631,7 +6651,8 @@ LayerResult GCode::process_layer(
     // Otherwise print a single copy of a single object.
     const size_t                     		 single_object_instance_idx,
     // BBS
-    const bool                               prime_extruder)
+    const bool                               prime_extruder,
+    const LayerEvents                       &instance_events)
 {
     assert(! layers.empty());
     // Either printing all copies of all objects, or just a single copy of a single object.
@@ -6657,7 +6678,7 @@ LayerResult GCode::process_layer(
     if (object_layer == nullptr && support_layer == nullptr &&
         std::any_of(layers.begin(), layers.end(),
                     [](const LayerToPrint &l) { return l.belt_brim_band != nullptr; }))
-        return this->process_belt_brim_layer(print, layers, layer_tools, last_layer, single_object_instance_idx, most_used_extruder);
+        return this->process_belt_brim_layer(print, layers, layer_tools, last_layer, single_object_instance_idx, most_used_extruder, instance_events);
 
     const Layer* layer_ptr = nullptr;
     if (object_layer != nullptr)
@@ -7004,6 +7025,9 @@ LayerResult GCode::process_layer(
     if (single_object_instance_idx == size_t(-1)) {
         // Normal (non-sequential) print.
         gcode += ProcessLayer::emit_custom_gcode_per_print_z(*this, layer_tools.custom_gcode, m_writer.filament()->id(), first_extruder_id, print.config());
+    } else {
+        for (const auto *event : instance_events)
+            gcode += ProcessLayer::emit_custom_gcode_per_print_z(*this, event, m_writer.filament()->id(), first_extruder_id, print.config());
     }
 
     // BBS: get next extruder according to flush and soluble

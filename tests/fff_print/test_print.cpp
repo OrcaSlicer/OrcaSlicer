@@ -44,6 +44,7 @@
 #include <map>
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/GCode.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
@@ -1394,6 +1395,59 @@ TEST_CASE("Sequential printing follows model order", "[Print]")
     });
 
     REQUIRE_THAT(first_object_peak_z(gcode), Catch::Matchers::WithinAbs(20.0, 0.3));
+}
+
+TEST_CASE("Sequential layer commands follow their copy when reordered", "[Print][InstanceLayerEvents]")
+{
+    Print print;
+    Model model;
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"print_sequence", "by object"}, {"initial_layer_print_height", 0.2}, {"layer_height", 0.2},
+        {"machine_pause_gcode", "M117 paused"}, {"template_custom_gcode", "M117 template {current_object_idx}"},
+        {"layer_change_gcode", ";AT {current_object_idx} {layer_z}\nG92 E0"},
+        {"gcode_comments", true}
+    });
+    Test::init_print({cube(3)}, print, model, config);
+    auto &copies = model.objects.front()->instances;
+    copies.front()->set_offset(Vec3d(50, 50, 0));
+    ModelInstance *second = model.objects.front()->add_instance();
+    second->set_offset(Vec3d(150, 50, 0));
+    copies.front()->layer_events.gcodes = {{0.4, CustomGCode::PausePrint, 1, {}, {}}};
+    second->layer_events.gcodes = {{0.39, CustomGCode::Custom, 1, {}, "M117 second"},
+                                   {0.4, CustomGCode::Template, 1, {}, {}},
+                                   {12., CustomGCode::Custom, 1, {}, "M117 above part"}};
+    model.plates_custom_gcodes[0] = {CustomGCode::SingleExtruder, {{0.4, CustomGCode::Custom, 1, {}, "M117 plate"}}};
+
+    for (int pass = 0; pass < 2; ++pass) {
+        if (pass == 1)
+            std::swap(copies.front(), copies.back());
+        print.apply(model, config);
+        REQUIRE(print.validate().string.empty());
+        const std::string gcode = Test::gcode(print);
+        auto check_command = [&](const std::string &command, int copy) {
+            const auto pos = gcode.find("\n" + command + "\n");
+            REQUIRE(pos != std::string::npos);
+            CHECK(gcode.find("\n" + command + "\n", pos + 1) == std::string::npos);
+            const auto layer = gcode.rfind(";AT ", pos);
+            REQUIRE(layer != std::string::npos);
+            CHECK(gcode.substr(layer, gcode.find('\n', layer) - layer) == ";AT " + std::to_string(copy) + " 0.4");
+        };
+        check_command("M117 paused", pass);
+        check_command("M117 second", 1 - pass);
+        check_command("M117 template " + std::to_string(1 - pass), 1 - pass);
+        CHECK(gcode.find("\nM117 above part\n") == std::string::npos);
+        CHECK(gcode.find("\nM117 plate\n") == std::string::npos);
+    }
+    // Edit the existing instance without touching its geometry, then change print modes.
+    second->layer_events.gcodes.clear();
+    print.apply(model, config);
+    CHECK(Test::gcode(print).find("\nM117 second\n") == std::string::npos);
+    config.set_deserialize_strict("print_sequence", "by layer");
+    print.apply(model, config);
+    const std::string by_layer = Test::gcode(print);
+    CHECK(by_layer.find("\nM117 paused\n") == std::string::npos);
+    CHECK(by_layer.find("\nM117 plate\n") != std::string::npos);
 }
 
 // 20 mm boxes of the given heights, in list order, 60 mm apart in X at the same Y, so they share a

@@ -2000,6 +2000,14 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                     (*old_instance)->printable 		    = (*new_instance)->printable;
   				}
 	        }
+            for (size_t i = 0; i < model_object.instances.size(); ++i) {
+                auto &events = model_object.instances[i]->layer_events;
+                const auto &new_events = model_object_new.instances[i]->layer_events;
+                if (events != new_events) {
+                    update_apply_status(this->invalidate_step(psGCodeExport));
+                    events = new_events;
+                }
+            }
         }
     }
 

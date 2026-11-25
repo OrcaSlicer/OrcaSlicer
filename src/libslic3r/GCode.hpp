@@ -480,13 +480,16 @@ protected:
     // Layer::id()-based logic the ordinary path relies on.  Its layer change G-code
     // uses process_layer_change_gcode(), so an apron band counts in the running
     // printed mass like an object layer.
+    using LayerEvents = std::vector<const CustomGCode::Item *>;
+
     LayerResult process_belt_brim_layer(
         const Print                     &print,
         const std::vector<LayerToPrint> &layers,
         const LayerTools                &layer_tools,
         const bool                       last_layer,
         const size_t                     single_object_instance_idx,
-        const int                        most_used_extruder);
+        const int                        most_used_extruder,
+        const LayerEvents               &instance_events);
 
     std::string process_layer_change_gcode(const Print &print, coordf_t print_z, int most_used_extruder, bool has_wipe_tower);
 
@@ -513,7 +516,8 @@ protected:
         // Otherwise print a single copy of a single object.
         const size_t                     single_object_idx = size_t(-1),
         // BBS
-        const bool                       prime_extruder = false);
+        const bool                       prime_extruder = false,
+        const LayerEvents               &instance_events = {});
     // Process all layers of all objects (non-sequential mode) with a parallel pipeline:
     // Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
     // and export G-code into file.
@@ -530,7 +534,7 @@ protected:
         const Print                             &print,
         const ToolOrdering                      &tool_ordering,
         std::vector<LayerToPrint>                layers_to_print,
-        const size_t                             single_object_idx,
+        const PrintInstance                     &instance,
         GCodeOutputStream                       &output_stream,
         // BBS
         const bool                               prime_extruder = false);
