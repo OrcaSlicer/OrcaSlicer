@@ -7318,11 +7318,15 @@ void ObjectList::on_plate_selected(int plate_index)
 
     // Orca: a programmatic Select() raises no selection event, so run the sidebar's selection
     // handler as select_item() does; otherwise Plate Settings keeps showing the previous plate.
+    // A caller that already holds the flag (select_items() on a canvas deselect) runs the
+    // handler itself once it is done, so only an unguarded call refreshes here.
+    const bool already_guarded = m_prevent_list_events;
     m_prevent_list_events = true;
     UnselectAll();
     Select(item);
-    part_selection_changed();
-    m_prevent_list_events = false;
+    if (!already_guarded)
+        part_selection_changed();
+    m_prevent_list_events = already_guarded;
 }
 
 //BBS: notify partplate the instance added/updated
