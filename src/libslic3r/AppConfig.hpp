@@ -80,6 +80,11 @@
 
 namespace Slic3r {
 
+// Only referenced by apply_print_config_overrides() below, so a declaration is enough: the app
+// configuration says nothing about print settings, and this header (included from Model.hpp and
+// PresetBundle.hpp) has no reason to pull PrintConfig.hpp in. AppConfig.cpp includes it for the
+// definition.
+class DynamicPrintConfig;
 
 // Connected LAN mode BambuLab printer
 struct BBLocalMachine
@@ -134,7 +139,8 @@ public:
 
 	// ORCA: Applies the overrides of print settings that must hold for every slice on this install,
 	// whatever the printer, filament and process presets, the plate configuration or the loaded
-	// project ask for. Call it on the full print configuration right before a Print applies it.
+	// project ask for. Call it on the full print configuration right before a Print applies it, from
+	// the editor (BackgroundSlicingProcess::apply) and from the CLI (CLI::run) alike.
 	void				apply_print_config_overrides(DynamicPrintConfig &config) const;
 
 	// Clear and reset to defaults.
