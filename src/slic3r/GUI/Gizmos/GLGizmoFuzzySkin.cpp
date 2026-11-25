@@ -246,20 +246,6 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
 
     ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.1));
 
-    auto add_ortho_switch = [&](){
-        ImGui::PushStyleColor(ImGuiCol_FrameBg      , m_is_dark_mode ? ImGuiWrapper::COL_TOOLBAR_BG_DARK : ImGuiWrapper::COL_TOOLBAR_BG);
-        ImGui::PushStyleColor(ImGuiCol_Button       , m_is_dark_mode ? ImGuiWrapper::COL_ORCA_DARK       : ImGuiWrapper::COL_ORCA);
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, m_is_dark_mode ? ImGuiWrapper::COL_ORCA_HOVER_DARK : ImGuiWrapper::COL_ORCA_HOVER);
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f * scale, 4.f * scale));
-        static int ortho_mode = !(m_vertical_only && m_horizontal_only) ? 0 : m_horizontal_only ? 1 : 2;
-        if (m_imgui->MultiSwitch("##ortho", {_u8L("Free"), _u8L("Vertical"), _u8L("Horizontal")}, ortho_mode)) {
-            m_vertical_only   = ortho_mode == 1;
-            m_horizontal_only = ortho_mode == 2;
-        }
-        ImGui::PopStyleColor(3);
-        ImGui::PopStyleVar(1);
-    };
-
     if (m_current_tool == ImGui::CircleButtonIcon || m_current_tool == ImGui::SphereButtonIcon) {
         if (m_current_tool == ImGui::CircleButtonIcon)
             m_cursor_type = TriangleSelector::CursorType::CIRCLE;
@@ -276,12 +262,12 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
 
-        add_ortho_switch();
+        render_ortho_switch(scale);
     } else if (m_current_tool == ImGui::TriangleButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::POINTER;
         m_tool_type   = ToolType::BRUSH;
 
-        add_ortho_switch();
+        render_ortho_switch(scale);
     } else {
         assert(m_current_tool == ImGui::FillButtonIcon);
         m_cursor_type = TriangleSelector::CursorType::POINTER;

@@ -48,8 +48,9 @@
 #include "slic3r/GUI/GLShader.hpp"
 #include "slic3r/GUI/MeshUtils.hpp"
 #include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
 
-namespace Slic3r::GUI { class ImGuiWrapper; }
 namespace cereal { class BinaryInputArchive; }
 
 namespace Slic3r::GUI {
@@ -220,6 +221,24 @@ bool GLGizmoPainterBase::render_follows_cursor() const
         return false;
     update_raycast_cache(m_parent.get_local_mouse_position(), wxGetApp().plater()->get_camera(), mesh_trafo_matrices());
     return m_rr.mesh_id != -1;
+}
+
+// ORCA: Free / Vertical / Horizontal switch constraining brush strokes, shared by the painter gizmos.
+void GLGizmoPainterBase::render_ortho_switch(float scale)
+{
+    ImGui::PushStyleColor(ImGuiCol_FrameBg      , m_is_dark_mode ? ImGuiWrapper::COL_TOOLBAR_BG_DARK : ImGuiWrapper::COL_TOOLBAR_BG);
+    ImGui::PushStyleColor(ImGuiCol_Button       , m_is_dark_mode ? ImGuiWrapper::COL_ORCA_DARK       : ImGuiWrapper::COL_ORCA);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, m_is_dark_mode ? ImGuiWrapper::COL_ORCA_HOVER_DARK : ImGuiWrapper::COL_ORCA_HOVER);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f * scale, 4.f * scale));
+    // The flags are per gizmo, so read the mode from them on every frame: a function-local static
+    // would be shared by every painter gizmo now that they all draw the switch through here.
+    int ortho_mode = m_vertical_only ? 1 : m_horizontal_only ? 2 : 0;
+    if (m_imgui->MultiSwitch("##ortho", {_u8L("Free"), _u8L("Vertical"), _u8L("Horizontal")}, ortho_mode)) {
+        m_vertical_only   = ortho_mode == 1;
+        m_horizontal_only = ortho_mode == 2;
+    }
+    ImGui::PopStyleColor(3);
+    ImGui::PopStyleVar(1);
 }
 
 void GLGizmoPainterBase::render_cursor()
