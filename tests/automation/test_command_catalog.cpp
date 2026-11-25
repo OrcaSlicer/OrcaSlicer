@@ -85,15 +85,15 @@ TEST_CASE("a set of commands left out together gives its reason by its code", "[
 {
     CommandCatalog catalog;
     catalog.add(command("plate_slice"));
-    catalog.leave_out("fillet", "the feature was off", "design_unavailable");
-    catalog.leave_out("extrude", "the feature was off", "design_unavailable");
+    catalog.leave_out("solid_fillet", "the feature was off", "design_unavailable");
+    catalog.leave_out("solid_extrude", "the feature was off", "design_unavailable");
     catalog.leave_out("holes", "another reason", "feature_off");
     catalog.seal();
     const std::string* design = catalog.left_out_reason("design_unavailable");
     REQUIRE(design != nullptr);
     CHECK(*design == "the feature was off");
     // The reason is the one a call of any of them gets after its name.
-    CHECK(catalog.unknown_command("fillet") == "Unknown tool: fillet; " + *design);
+    CHECK(catalog.unknown_command("solid_fillet") == "Unknown tool: solid_fillet; " + *design);
     CHECK(catalog.left_out_reason("no_such_code") == nullptr);
 }
 
@@ -109,7 +109,7 @@ TEST_CASE("commands keep the order they were added in", "[CommandCatalog]")
 TEST_CASE("a Design command's title is translated in the Design context, any other's in none", "[CommandCatalog]")
 {
     NativeCommand design;
-    design.key   = "shell";
+    design.key   = "solid_shell";
     design.title = "Shell";
     design.group = Slic3r::GUI::kDesignGroup;
     REQUIRE(Slic3r::GUI::title_context(design) != nullptr);

@@ -263,7 +263,7 @@ public:
                       const Vec3d& vertex_pt);
     // Whether body `body` takes a pick in the view now, whatever the ids: false, with the reason in `why` when given,
     // for a body with no shape in the view, or one that takes no click (hidden, or another body is the only one
-    // picked). It is the view's state, which select_geometry refuses apart from ids that name nothing.
+    // picked). It is the view's state, which design_select refuses apart from ids that name nothing.
     bool body_takes_pick(int body, std::string* why = nullptr) const;
     // Whether select_solid() takes the pick: false, with the reason in `why` when given, for a body that is not
     // pickable (body_takes_pick()), an id its shape does not have, no edge or an edge listed twice. A caller checks a

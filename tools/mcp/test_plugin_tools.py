@@ -218,8 +218,8 @@ def main():
         design_tab = orca.call("app_state").get("design_tab")
         check("the Design tab is on (launch --cad)", design_tab is True, design_tab)
         design = {i["name"]: i for i in orca.call("tool_list", group="design")["items"]}
-        check("tool_list lists the Design commands under their headings", design.get("extrude", {}).get("heading") == "Solid",
-              design.get("extrude"))
+        check("tool_list lists the Design commands under their headings", design.get("solid_extrude", {}).get("heading") == "Solid",
+              design.get("solid_extrude"))
         journal = orca.call("replay_export")["replay"]["steps"]
         answers = [s for s in journal if s["tool"] == "dialog_auto_answer"]
         check("a plugin's calls are not in the agent's journal",

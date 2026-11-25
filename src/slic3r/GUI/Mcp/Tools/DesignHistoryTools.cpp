@@ -166,7 +166,7 @@ json feature_card(const CadFeature& f)
         edit("hole_through", f.hole_through);
         num("hole_x", f.hole_x, -1000, 1000);
         num("hole_y", f.hole_y, -1000, 1000);
-        // The seat, which the card does not show; hole's type and designation set it.
+        // The seat, which the card does not show; solid_hole's type and designation set it.
         edit("type", enum_name(kHoleTypes, f.hole_style));
         num("hole_cbore_diameter", f.hole_cbore_diameter, 0, 1000);
         num("hole_cbore_depth", f.hole_cbore_depth, 0, 1000);
@@ -439,7 +439,8 @@ void set_card_choice(CadFeature& f, const std::string& k, const json& v)
         if (f.type == CadFeatureType::Pattern) {
             const int layout = enum_index(k, v, kPatternTypes);
             if (layout == 2)
-                throw std::runtime_error("a pattern's type is linear or circular; a curve pattern is made with pattern {type: \"curve\"}");
+                throw std::runtime_error("a pattern's type is linear or circular; a curve pattern is made with "
+                                         "solid_pattern {type: \"curve\"}");
             f.pattern_circular = layout == 1;
             return;
         }
@@ -469,11 +470,11 @@ void set_card_choice(CadFeature& f, const std::string& k, const json& v)
     throw std::runtime_error(k + " cannot be set");
 }
 
-// The `feature` param (or `index`, as agents often call it): an index into describe_design's features.
+// The `feature` param (or `index`, as agents often call it): an index into design_describe's features.
 int feature_arg(const json& params, const CadDocument& doc)
 {
     const json v = !params.is_object() ? json() : params.contains("feature") ? params["feature"] : params.value("index", json());
-    if (!v.is_number_integer()) throw std::runtime_error("feature must be a feature index (describe_design's features[].index)");
+    if (!v.is_number_integer()) throw std::runtime_error("feature must be a feature index (design_describe's features[].index)");
     check_feature_index(v.get<int>(), doc);
     return v.get<int>();
 }
@@ -773,7 +774,7 @@ void cad_apply_feature_fields(CadFeature& f, const json& fields)
         // Every rebuild writes a bound field from its expression, so a literal would not last.
         for (const auto& [bound, e] : f.expr)
             if (same_value(bound, key))
-                throw std::runtime_error(key + " is driven by the expression '" + e + "'; change it with set_variable, or "
+                throw std::runtime_error(key + " is driven by the expression '" + e + "'; change it with design_set_variable, or "
                                          "remove the binding with feature_set_expression {field: '" + bound + "', expr: ''}");
         const auto range = ranges.find(key);
         if (range == ranges.end()) {
@@ -871,7 +872,7 @@ struct RefReader
     // A feature before the one edited, of one of `types`, which `kinds` names.
     int earlier(const std::string& name, const json& v, std::initializer_list<CadFeatureType> types, const char* kinds) const
     {
-        const int fi = integer(name, v, "a feature index (describe_design's features[].index)");
+        const int fi = integer(name, v, "a feature index (design_describe's features[].index)");
         if (fi < 0 || fi >= index)
             throw std::runtime_error(name + " " + std::to_string(fi) + " is not an earlier feature: it must come before " + at);
         const CadFeatureType t = doc.features[size_t(fi)].type;

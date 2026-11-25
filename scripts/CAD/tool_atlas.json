@@ -9,6 +9,7 @@
     "  kernel coverage            -> src/libslic3r/CAD/CadDocument.hpp  (enum CadFeatureType)",
     "  Design commands            -> a verb's `tool` block, and the entries with no slot (commands only):",
     "    the silent form's access, params and examples; Mcp/Tools/Design*.cpp bind each block to its function",
+    "  operations                 -> the operations of GUI/Operations a command that changes Prepare reaches",
     "  selection kinds            -> src/slic3r/GUI/CAD/DesignCanvas.hpp (the on_*_selected callbacks)",
     "gen_offer_table.py emits src/slic3r/GUI/CAD/DesignOffer.hpp from this file, so the map",
     "exists once. Edit the atlas and regenerate; never hand-edit the header."
@@ -254,7 +255,7 @@
           {
             "title": "A sketch on a plate's top face",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"at_extreme": "+z", "body": 0}},
               {"tool": "sketch_create", "args": {"generation": {"from_call": 1, "key": "generation"}, "plane": {"body": 0, "face": 5}}}
             ]
@@ -271,7 +272,7 @@
       }
     },
     {
-      "id": "extrude",
+      "id": "solid_extrude",
       "name": "Extrude",
       "section": "Solid",
       "slot": "add",
@@ -313,7 +314,7 @@
           {
             "title": "A 20 x 20 x 5 mm plate on the XY plane",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}}
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}}
             ]
           },
           {
@@ -323,15 +324,15 @@
               {"tool": "sketch_draw", "args": {"p0": [-15, -10], "p1": [15, 10], "type": "rectangle_2_point"}},
               {"tool": "sketch_draw", "args": {"entities": [{"center": [0, 0], "radius": 4, "type": "circle_center"}]}},
               {"tool": "sketch_finish", "args": {}},
-              {"tool": "extrude", "args": {"distance": 5, "sketch": 0}}
+              {"tool": "solid_extrude", "args": {"distance": 5, "sketch": 0}}
             ]
           },
           {
             "title": "A plate's top face pushed up 3 mm",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"at_extreme": "+z", "body": 0}},
-              {"tool": "extrude", "args": {"body": 0, "distance": 3, "face": 5, "generation": {"from_call": 1, "key": "generation"}}}
+              {"tool": "solid_extrude", "args": {"body": 0, "distance": 3, "face": 5, "generation": {"from_call": 1, "key": "generation"}}}
             ]
           }
         ],
@@ -339,7 +340,7 @@
       }
     },
     {
-      "id": "revolve",
+      "id": "solid_revolve",
       "name": "Revolve",
       "section": "Solid",
       "slot": "add",
@@ -376,7 +377,7 @@
           {
             "title": "A ring: a profile 10 to 15 mm out from the XZ plane's vertical axis, turned a full circle",
             "calls": [
-              {"tool": "revolve", "args": {"axis": 1, "plane": "XZ", "profile": [[10, 0], [15, 0], [15, 10], [10, 10]]}}
+              {"tool": "solid_revolve", "args": {"axis": 1, "plane": "XZ", "profile": [[10, 0], [15, 0], [15, 10], [10, 10]]}}
             ]
           },
           {
@@ -386,7 +387,7 @@
               {"tool": "sketch_draw", "args": {"p0": [10, 0], "p1": [15, 10], "type": "rectangle_2_point"}},
               {"tool": "sketch_draw", "args": {"entities": [{"construction": true, "p0": [0, 0], "p1": [0, 10], "type": "line"}]}},
               {"tool": "sketch_finish", "args": {}},
-              {"tool": "revolve", "args": {"sketch": 0}}
+              {"tool": "solid_revolve", "args": {"sketch": 0}}
             ]
           }
         ],
@@ -394,7 +395,7 @@
       }
     },
     {
-      "id": "sweep",
+      "id": "solid_sweep",
       "name": "Sweep",
       "section": "Solid",
       "slot": "add",
@@ -426,11 +427,11 @@
           {
             "title": "A spring: a 2 mm circle across a helix's start, swept along it",
             "calls": [
-              {"tool": "helix", "args": {"height": 20, "pitch": 5, "radius": 10}},
+              {"tool": "construct_helix", "args": {"height": 20, "pitch": 5, "radius": 10}},
               {"tool": "sketch_create", "args": {"plane": "XZ"}},
               {"tool": "sketch_draw", "args": {"entities": [{"center": [10, 0], "radius": 1, "type": "circle_center"}]}},
               {"tool": "sketch_finish", "args": {}},
-              {"tool": "sweep", "args": {"path": 0, "sketch": 1}}
+              {"tool": "solid_sweep", "args": {"path": 0, "sketch": 1}}
             ]
           },
           {
@@ -442,7 +443,7 @@
               {"tool": "sketch_create", "args": {"plane": "XZ"}},
               {"tool": "sketch_draw", "args": {"entities": [{"center": [0, 0], "radius": 3, "type": "circle_center"}]}},
               {"tool": "sketch_finish", "args": {}},
-              {"tool": "sweep", "args": {"path": 0, "sketch": 1}}
+              {"tool": "solid_sweep", "args": {"path": 0, "sketch": 1}}
             ]
           }
         ],
@@ -450,7 +451,7 @@
       }
     },
     {
-      "id": "loft",
+      "id": "solid_loft",
       "name": "Loft",
       "section": "Solid",
       "slot": "add",
@@ -489,7 +490,7 @@
               {"tool": "sketch_create", "args": {"plane": {"datum": 0}}},
               {"tool": "sketch_draw", "args": {"entities": [{"center": [0, 0], "radius": 6, "type": "circle_center"}]}},
               {"tool": "sketch_finish", "args": {}},
-              {"tool": "loft", "args": {"profiles": [1, 2]}}
+              {"tool": "solid_loft", "args": {"profiles": [1, 2]}}
             ]
           }
         ],
@@ -497,7 +498,7 @@
       }
     },
     {
-      "id": "thicken",
+      "id": "solid_thicken",
       "name": "Thicken",
       "section": "Solid",
       "slot": "add",
@@ -532,9 +533,9 @@
           {
             "title": "A 2 mm skin grown from a plate's top face as a new body",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"at_extreme": "+z", "body": 0}},
-              {"tool": "thicken", "args": {"body": 0, "face": 5, "generation": {"from_call": 1, "key": "generation"}, "thickness": 2}}
+              {"tool": "solid_thicken", "args": {"body": 0, "face": 5, "generation": {"from_call": 1, "key": "generation"}, "thickness": 2}}
             ]
           },
           {
@@ -544,7 +545,7 @@
               {"tool": "sketch_draw", "args": {"p0": [-15, -10], "p1": [15, 10], "type": "rectangle_2_point"}},
               {"tool": "sketch_finish", "args": {}},
               {"tool": "surface_patch", "args": {"sketch": 0}},
-              {"tool": "thicken", "args": {"thickness": 2, "type": "surface"}}
+              {"tool": "solid_thicken", "args": {"thickness": 2, "type": "surface"}}
             ]
           },
           {
@@ -554,7 +555,7 @@
               {"tool": "sketch_draw", "args": {"entities": [{"center": [0, 0], "radius": 10, "type": "circle_center"}]}},
               {"tool": "sketch_finish", "args": {}},
               {"tool": "surface_extrude", "args": {"distance": 20, "sketch": 0}},
-              {"tool": "thicken", "args": {"body": 0, "flip": true, "thickness": 1.5, "type": "surface"}}
+              {"tool": "solid_thicken", "args": {"body": 0, "flip": true, "thickness": 1.5, "type": "surface"}}
             ]
           }
         ],
@@ -562,7 +563,7 @@
       }
     },
     {
-      "id": "rib",
+      "id": "solid_rib",
       "name": "Rib",
       "section": "Solid",
       "slot": "add",
@@ -595,12 +596,12 @@
           {
             "title": "A 2 mm rib 8 mm tall across a plate's top face",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 3, "height": 20, "width": 40}},
+              {"tool": "solid_extrude", "args": {"distance": 3, "height": 20, "width": 40}},
               {"tool": "body_describe", "args": {"at_extreme": "+z", "body": 0}},
               {"tool": "sketch_create", "args": {"generation": {"from_call": 1, "key": "generation"}, "plane": {"body": 0, "face": 5}}},
               {"tool": "sketch_draw", "args": {"entities": [{"p0": [-15, 0], "p1": [15, 0], "type": "line"}]}},
               {"tool": "sketch_finish", "args": {}},
-              {"tool": "rib", "args": {"depth": 8, "entity": 0, "sketch": 2, "thickness": 2}}
+              {"tool": "solid_rib", "args": {"depth": 8, "entity": 0, "sketch": 2, "thickness": 2}}
             ]
           }
         ],
@@ -608,7 +609,7 @@
       }
     },
     {
-      "id": "boolean",
+      "id": "solid_boolean",
       "name": "Join",
       "section": "Solid",
       "slot": "add",
@@ -642,17 +643,17 @@
           {
             "title": "A post cut from a block",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 10, "height": 20, "width": 20}},
-              {"tool": "extrude", "args": {"distance": 20, "height": 6, "operation": "new_body", "width": 6}},
-              {"tool": "boolean", "args": {"operation": "cut", "target": 0, "tool": 1}}
+              {"tool": "solid_extrude", "args": {"distance": 10, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 20, "height": 6, "operation": "new_body", "width": 6}},
+              {"tool": "solid_boolean", "args": {"operation": "cut", "target": 0, "tool": 1}}
             ]
           },
           {
             "title": "Two overlapping blocks joined into one body",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 10, "height": 20, "width": 20}},
-              {"tool": "extrude", "args": {"distance": 10, "operation": "new_body", "profile": [[5, -5], [20, -5], [20, 5], [5, 5]]}},
-              {"tool": "boolean", "args": {"operation": "join", "target": 0, "tool": 1}}
+              {"tool": "solid_extrude", "args": {"distance": 10, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 10, "operation": "new_body", "profile": [[5, -5], [20, -5], [20, 5], [5, 5]]}},
+              {"tool": "solid_boolean", "args": {"operation": "join", "target": 0, "tool": 1}}
             ]
           }
         ],
@@ -677,7 +678,7 @@
       "mode": null,
       "icon": "design_boolean",
       "hint": "Cut the tool body out of the target",
-      "fold": {"into": "boolean", "args": {"operation": "cut"}}
+      "fold": {"into": "solid_boolean", "args": {"operation": "cut"}}
     },
     {
       "id": "bool_intersect",
@@ -697,7 +698,7 @@
       "mode": null,
       "icon": "design_boolean",
       "hint": "Keep only where the two bodies overlap",
-      "fold": {"into": "boolean", "args": {"operation": "intersect"}}
+      "fold": {"into": "solid_boolean", "args": {"operation": "intersect"}}
     },
     {
       "id": "surface_extrude",
@@ -767,7 +768,7 @@
         "access": "change",
         "ok_false": true,
         "summary": "Revolve a sketch wire with no caps -> an open sheet body.",
-        "details": "The axis is chosen as revolve chooses it: axis_entity, else the sketch's only centerline when axis is not given, else the plane axis.",
+        "details": "The axis is chosen as solid_revolve chooses it: axis_entity, else the sketch's only centerline when axis is not given, else the plane axis.",
         "params": [
           {"name": "sketch", "type": "integer", "description": "sketch feature index"},
           {"name": "angle", "type": "number", "unit": "deg", "default": 360},
@@ -907,10 +908,10 @@
       "action": "fly:surface#5",
       "icon": "design_thicken",
       "hint": "Thicken a sheet body into a solid",
-      "fold": {"into": "thicken", "args": {"type": "surface"}}
+      "fold": {"into": "solid_thicken", "args": {"type": "surface"}}
     },
     {
-      "id": "hole",
+      "id": "solid_hole",
       "name": "Hole",
       "section": "Solid",
       "slot": "remove",
@@ -954,24 +955,24 @@
           {
             "title": "A 5 mm hole through the middle of a plate",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "hole", "args": {"diameter": 5, "through": true}}
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_hole", "args": {"diameter": 5, "through": true}}
             ]
           },
           {
             "title": "A countersunk hole through a plate's top face",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"at_extreme": "+z", "body": 0}},
-              {"tool": "hole", "args": {"csink_angle": 90, "csink_diameter": 9, "diameter": 4.5, "generation": {"from_call": 1, "key": "generation"}, "plane": {"body": 0, "face": 5}, "through": true, "type": "countersink"}}
+              {"tool": "solid_hole", "args": {"csink_angle": 90, "csink_diameter": 9, "diameter": 4.5, "generation": {"from_call": 1, "key": "generation"}, "plane": {"body": 0, "face": 5}, "through": true, "type": "countersink"}}
             ]
           },
           {
             "title": "An M6 counterbored clearance hole through a 10 mm block's top face",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 10, "height": 30, "width": 30}},
+              {"tool": "solid_extrude", "args": {"distance": 10, "height": 30, "width": 30}},
               {"tool": "body_describe", "args": {"at_extreme": "+z", "body": 0}},
-              {"tool": "hole", "args": {"designation": "M6", "generation": {"from_call": 1, "key": "generation"}, "plane": {"body": 0, "face": 5}, "through": true, "type": "counterbore"}}
+              {"tool": "solid_hole", "args": {"designation": "M6", "generation": {"from_call": 1, "key": "generation"}, "plane": {"body": 0, "face": 5}, "through": true, "type": "counterbore"}}
             ]
           }
         ],
@@ -979,7 +980,7 @@
       }
     },
     {
-      "id": "thread",
+      "id": "solid_thread",
       "name": "Thread",
       "section": "Solid",
       "slot": "remove",
@@ -1015,22 +1016,22 @@
           {"name": "plane", "type": "string|object", "default": null, "nullable": false, "description": "\"XY\", \"XZ\" or \"YZ\" through modeling_origin; {\"datum\": i}, a Plane feature; or {\"body\": b, \"face\": f}, a planar face to drill into that body (origin at its centroid, normal into the body, x along its longest edge). The reply's frame gives the axes."},
           {"name": "x", "type": "number", "unit": "mm", "default": 0, "description": "on a plane: offset in the plane's frame from its origin, NOT world"},
           {"name": "y", "type": "number", "unit": "mm", "default": 0, "description": "on a plane: offset in the plane's frame from its origin, NOT world"},
-          {"name": "at", "type": "array|object", "default": null, "description": "on a plane, instead of x and y: a world point [x, y, z], or {\"body\": b, \"face\": f} a cylindrical face or {\"body\": b, \"edge\": e} a circular edge whose axis the thread shares, as hole takes it"}
+          {"name": "at", "type": "array|object", "default": null, "description": "on a plane, instead of x and y: a world point [x, y, z], or {\"body\": b, \"face\": f} a cylindrical face or {\"body\": b, \"edge\": e} a circular edge whose axis the thread shares, as solid_hole takes it"}
         ],
         "examples": [
           {
             "title": "An M8 thread tapped into a 6.8 mm hole through a block",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 10, "height": 20, "width": 20}},
-              {"tool": "hole", "args": {"diameter": 6.8, "through": true}},
+              {"tool": "solid_extrude", "args": {"distance": 10, "height": 20, "width": 20}},
+              {"tool": "solid_hole", "args": {"diameter": 6.8, "through": true}},
               {"tool": "body_describe", "args": {"body": 0, "kinds": ["cylindrical"]}},
-              {"tool": "thread", "args": {"body": 0, "designation": "M8", "face": 6, "generation": {"from_call": 2, "key": "generation"}}}
+              {"tool": "solid_thread", "args": {"body": 0, "designation": "M8", "face": 6, "generation": {"from_call": 2, "key": "generation"}}}
             ]
           },
           {
             "title": "An M6 threaded rod 10 mm long, standing on the XY plane",
             "calls": [
-              {"tool": "thread", "args": {"designation": "M6", "internal": false, "length": 10, "plane": "XY"}}
+              {"tool": "solid_thread", "args": {"designation": "M6", "internal": false, "length": 10, "plane": "XY"}}
             ]
           },
           {
@@ -1039,9 +1040,9 @@
               {"tool": "sketch_create", "args": {"plane": "XY"}},
               {"tool": "sketch_draw", "args": {"entities": [{"center": [0, 0], "radius": 5, "type": "circle_center"}]}},
               {"tool": "sketch_finish", "args": {}},
-              {"tool": "extrude", "args": {"distance": 12, "sketch": 0}},
+              {"tool": "solid_extrude", "args": {"distance": 12, "sketch": 0}},
               {"tool": "body_describe", "args": {"body": 0, "kinds": ["cylindrical"]}},
-              {"tool": "thread", "args": {"body": 0, "face": 0, "generation": {"from_call": 4, "key": "generation"}}}
+              {"tool": "solid_thread", "args": {"body": 0, "face": 0, "generation": {"from_call": 4, "key": "generation"}}}
             ]
           }
         ],
@@ -1049,7 +1050,7 @@
       }
     },
     {
-      "id": "shell",
+      "id": "solid_shell",
       "name": "Shell",
       "section": "Solid",
       "slot": "remove",
@@ -1081,16 +1082,16 @@
           {
             "title": "A 20 x 20 x 10 mm box hollowed to 1.5 mm walls, open at the top",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 10, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 10, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"at_extreme": "+z", "body": 0}},
-              {"tool": "shell", "args": {"body": 0, "face": 5, "generation": {"from_call": 1, "key": "generation"}, "thickness": 1.5}}
+              {"tool": "solid_shell", "args": {"body": 0, "face": 5, "generation": {"from_call": 1, "key": "generation"}, "thickness": 1.5}}
             ]
           },
           {
             "title": "A block hollowed to closed 2 mm walls",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 10, "height": 20, "width": 20}},
-              {"tool": "shell", "args": {"thickness": 2}}
+              {"tool": "solid_extrude", "args": {"distance": 10, "height": 20, "width": 20}},
+              {"tool": "solid_shell", "args": {"thickness": 2}}
             ]
           }
         ],
@@ -1098,7 +1099,7 @@
       }
     },
     {
-      "id": "split",
+      "id": "solid_split",
       "name": "Cut",
       "section": "Solid",
       "slot": "remove",
@@ -1141,24 +1142,24 @@
           {
             "title": "A block cut in two at half its height",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 10, "height": 20, "width": 20}},
-              {"tool": "split", "args": {"offset": 5, "plane": "XY"}}
+              {"tool": "solid_extrude", "args": {"distance": 10, "height": 20, "width": 20}},
+              {"tool": "solid_split", "args": {"offset": 5, "plane": "XY"}}
             ]
           },
           {
             "title": "A block cut at half its height, keeping only the lower half",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 10, "height": 20, "width": 20}},
-              {"tool": "split", "args": {"keep_upper": false, "offset": 5, "plane": "XY"}}
+              {"tool": "solid_extrude", "args": {"distance": 10, "height": 20, "width": 20}},
+              {"tool": "solid_split", "args": {"keep_upper": false, "offset": 5, "plane": "XY"}}
             ]
           },
           {
             "title": "A block split along the top face of a wider plate",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 10, "height": 20, "width": 20}},
-              {"tool": "extrude", "args": {"distance": 4, "height": 30, "operation": "new_body", "width": 30}},
+              {"tool": "solid_extrude", "args": {"distance": 10, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 4, "height": 30, "operation": "new_body", "width": 30}},
               {"tool": "body_describe", "args": {"at_extreme": "+z", "body": 1}},
-              {"tool": "split", "args": {"body": 0, "face": 5, "face_body": 1, "generation": {"from_call": 2, "key": "generation"}}}
+              {"tool": "solid_split", "args": {"body": 0, "face": 5, "face_body": 1, "generation": {"from_call": 2, "key": "generation"}}}
             ]
           }
         ],
@@ -1166,7 +1167,7 @@
       }
     },
     {
-      "id": "fillet",
+      "id": "solid_fillet",
       "name": "Fillet",
       "section": "Solid",
       "slot": "dressup",
@@ -1200,17 +1201,17 @@
           {
             "title": "A plate's four vertical corners rounded to 2 mm",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"body": 0, "convex": true, "direction": [0, 0, 1], "edge_kinds": ["line"]}},
-              {"tool": "fillet", "args": {"body": 0, "edges": [0, 1, 4, 7], "generation": {"from_call": 1, "key": "generation"}, "radius": 2}}
+              {"tool": "solid_fillet", "args": {"body": 0, "edges": [0, 1, 4, 7], "generation": {"from_call": 1, "key": "generation"}, "radius": 2}}
             ]
           },
           {
             "title": "One top edge of a plate rounded to 1 mm",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"adjacency": true, "at_extreme": "+z", "body": 0}},
-              {"tool": "fillet", "args": {"body": 0, "edges": 3, "generation": {"from_call": 1, "key": "generation"}, "radius": 1}}
+              {"tool": "solid_fillet", "args": {"body": 0, "edges": 3, "generation": {"from_call": 1, "key": "generation"}, "radius": 1}}
             ]
           }
         ],
@@ -1218,7 +1219,7 @@
       }
     },
     {
-      "id": "chamfer",
+      "id": "solid_chamfer",
       "name": "Chamfer",
       "section": "Solid",
       "slot": "dressup",
@@ -1252,9 +1253,9 @@
           {
             "title": "A plate's top edges chamfered 1 mm",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"adjacency": true, "at_extreme": "+z", "body": 0}},
-              {"tool": "chamfer", "args": {"body": 0, "distance": 1, "edges": [3, 6, 9, 11], "generation": {"from_call": 1, "key": "generation"}}}
+              {"tool": "solid_chamfer", "args": {"body": 0, "distance": 1, "edges": [3, 6, 9, 11], "generation": {"from_call": 1, "key": "generation"}}}
             ]
           }
         ],
@@ -1262,7 +1263,7 @@
       }
     },
     {
-      "id": "draft",
+      "id": "solid_draft",
       "name": "Draft",
       "section": "Solid",
       "slot": "dressup",
@@ -1294,9 +1295,9 @@
           {
             "title": "A block's +X side tapered 5 degrees",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 10, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 10, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"body": 0, "direction": [1, 0, 0]}},
-              {"tool": "draft", "args": {"angle": 5, "body": 0, "face": 1, "generation": {"from_call": 1, "key": "generation"}}}
+              {"tool": "solid_draft", "args": {"angle": 5, "body": 0, "face": 1, "generation": {"from_call": 1, "key": "generation"}}}
             ]
           }
         ],
@@ -1356,7 +1357,7 @@
       }
     },
     {
-      "id": "pattern",
+      "id": "solid_pattern",
       "name": "Linear pattern",
       "section": "Solid",
       "slot": "repeat",
@@ -1397,15 +1398,15 @@
           {
             "title": "Three plates 30 mm apart along X",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "pattern", "args": {"count": 3, "spacing": 30}}
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_pattern", "args": {"count": 3, "spacing": 30}}
             ]
           },
           {
             "title": "Six blocks in a circle about the XY plane's normal",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "profile": [[20, -3], [30, -3], [30, 3], [20, 3]]}},
-              {"tool": "pattern", "args": {"count": 6, "type": "circular"}}
+              {"tool": "solid_extrude", "args": {"distance": 5, "profile": [[20, -3], [30, -3], [30, 3], [20, 3]]}},
+              {"tool": "solid_pattern", "args": {"count": 6, "type": "circular"}}
             ]
           },
           {
@@ -1414,8 +1415,8 @@
               {"tool": "sketch_create", "args": {"plane": "XY"}},
               {"tool": "sketch_draw", "args": {"entities": [{"center": [0, 0], "end_angle_deg": 180, "radius": 30, "start_angle_deg": 0, "type": "arc_center"}]}},
               {"tool": "sketch_finish", "args": {}},
-              {"tool": "extrude", "args": {"distance": 10, "profile": [[28, -2], [32, -2], [32, 2], [28, 2]]}},
-              {"tool": "pattern", "args": {"count": 4, "entity": 0, "sketch": 0, "type": "curve"}}
+              {"tool": "solid_extrude", "args": {"distance": 10, "profile": [[28, -2], [32, -2], [32, 2], [28, 2]]}},
+              {"tool": "solid_pattern", "args": {"count": 4, "entity": 0, "sketch": 0, "type": "curve"}}
             ]
           }
         ],
@@ -1443,10 +1444,10 @@
       "mode": null,
       "icon": "design_polararray",
       "hint": "Repeat the body around an axis — set the count and sweep",
-      "fold": {"into": "pattern", "args": {"type": "circular"}}
+      "fold": {"into": "solid_pattern", "args": {"type": "circular"}}
     },
     {
-      "id": "mirror",
+      "id": "solid_mirror",
       "name": "Mirror",
       "section": "Solid",
       "slot": "repeat",
@@ -1485,15 +1486,15 @@
           {
             "title": "A mirrored copy of a block across the XZ plane",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "profile": [[-5, 5], [5, 5], [5, 15], [-5, 15]]}},
-              {"tool": "mirror", "args": {"plane": "XZ"}}
+              {"tool": "solid_extrude", "args": {"distance": 5, "profile": [[-5, 5], [5, 5], [5, 15], [-5, 15]]}},
+              {"tool": "solid_mirror", "args": {"plane": "XZ"}}
             ]
           },
           {
             "title": "A block against the XZ plane and its mirror image fused into one body",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "profile": [[-5, 0], [5, 0], [5, 10], [-5, 10]]}},
-              {"tool": "mirror", "args": {"operation": "join", "plane": "XZ"}}
+              {"tool": "solid_extrude", "args": {"distance": 5, "profile": [[-5, 0], [5, 0], [5, 10], [-5, 10]]}},
+              {"tool": "solid_mirror", "args": {"operation": "join", "plane": "XZ"}}
             ]
           }
         ],
@@ -1568,14 +1569,14 @@
           {
             "title": "A plate moved 30 mm along X",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_transform", "args": {"dx": 30}}
             ]
           },
           {
             "title": "A copy of a plate 10 mm above it",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_transform", "args": {"copy": true, "dz": 10}}
             ]
           }
@@ -1584,7 +1585,7 @@
       }
     },
     {
-      "id": "align",
+      "id": "solid_align",
       "name": "Mate",
       "section": "Solid",
       "slot": "transform",
@@ -1607,7 +1608,7 @@
         "access": "change",
         "ok_false": false,
         "summary": "Align two bodies: transform the moving body (cs_b) so its connector lands on the fixed one (cs_a).",
-        "details": "An align that cannot hold with those before it is listed in describe_design's align_conflicts, with the reason. Reply: align_index, bodies.",
+        "details": "An align that cannot hold with those before it is listed in design_describe's align_conflicts, with the reason. Reply: align_index, bodies.",
         "params": [
           {"name": "type", "type": "string", "default": "fastened", "enum": ["fastened", "planar", "revolute", "slider", "cylindrical"], "description": "fastened is rigid; planar matches the normal only; revolute leaves rotation about the axis free; slider translation along it; cylindrical both"},
           {"name": "cs_a", "type": "integer", "description": "feature index of the fixed CoordSys (mate connector A)"},
@@ -1620,13 +1621,13 @@
           {
             "title": "A block stood on a plate: its bottom-face connector fastened, turned over, to the plate's top-face one",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "extrude", "args": {"distance": 10, "operation": "new_body", "profile": [[30, -5], [40, -5], [40, 5], [30, 5]]}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 10, "operation": "new_body", "profile": [[30, -5], [40, -5], [40, 5], [30, 5]]}},
               {"tool": "body_describe", "args": {"at_extreme": "+z", "body": 0}},
               {"tool": "construct_coordinate_system", "args": {"body": 0, "face": 5, "generation": {"from_call": 2, "key": "generation"}, "type": "face_and_direction"}},
               {"tool": "body_describe", "args": {"at_extreme": "-z", "body": 1}},
               {"tool": "construct_coordinate_system", "args": {"body": 1, "face": 4, "generation": {"from_call": 4, "key": "generation"}, "type": "face_and_direction"}},
-              {"tool": "align", "args": {"cs_a": 4, "cs_b": 5, "flip": true, "type": "fastened"}}
+              {"tool": "solid_align", "args": {"cs_a": 4, "cs_b": 5, "flip": true, "type": "fastened"}}
             ]
           }
         ],
@@ -1698,7 +1699,7 @@
           {
             "title": "A datum plane midway between a block's top and bottom faces",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 10, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 10, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"body": 0, "kinds": ["planar"]}},
               {"tool": "construct_plane", "args": {"face_a": {"body": 0, "face": 4}, "face_b": {"body": 0, "face": 5}, "generation": {"from_call": 1, "key": "generation"}, "type": "midplane"}}
             ]
@@ -1706,7 +1707,7 @@
           {
             "title": "A datum plane turned 30 degrees from a plate's top face about its front edge",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"adjacency": true, "at_extreme": "+z", "body": 0}},
               {"tool": "construct_plane", "args": {"angle": 30, "edge_a": {"body": 0, "edge": 3}, "face_a": {"body": 0, "face": 5}, "generation": {"from_call": 1, "key": "generation"}, "type": "angle"}}
             ]
@@ -1754,8 +1755,8 @@
           {
             "title": "The axis of a hole through a plate",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "hole", "args": {"diameter": 5, "through": true}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_hole", "args": {"diameter": 5, "through": true}},
               {"tool": "body_describe", "args": {"body": 0, "kinds": ["cylindrical"]}},
               {"tool": "construct_axis", "args": {"body": 0, "face": 6, "generation": {"from_call": 2, "key": "generation"}, "type": "cylinder"}}
             ]
@@ -1763,7 +1764,7 @@
           {
             "title": "The normal through the centre of a plate's top face",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"at_extreme": "+z", "body": 0}},
               {"tool": "construct_axis", "args": {"body": 0, "face": 5, "generation": {"from_call": 1, "key": "generation"}, "type": "face_normal"}}
             ]
@@ -1815,7 +1816,7 @@
           {
             "title": "A connector on a plate's top face, its x axis along the front edge",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"adjacency": true, "at_extreme": "+z", "body": 0}},
               {"tool": "construct_coordinate_system", "args": {"body": 0, "edge": 3, "face": 5, "generation": {"from_call": 1, "key": "generation"}, "type": "face_and_direction"}}
             ]
@@ -1825,7 +1826,7 @@
       }
     },
     {
-      "id": "helix",
+      "id": "construct_helix",
       "name": "Helix",
       "section": "Construct",
       "slot": "reference",
@@ -1859,13 +1860,13 @@
           {
             "title": "A four-turn helix on XY: radius 10 mm, pitch 5 mm, 20 mm tall",
             "calls": [
-              {"tool": "helix", "args": {"height": 20, "pitch": 5, "radius": 10}}
+              {"tool": "construct_helix", "args": {"height": 20, "pitch": 5, "radius": 10}}
             ]
           },
           {
             "title": "A left-handed conical helix tapering 10 degrees",
             "calls": [
-              {"tool": "helix", "args": {"height": 20, "left_handed": true, "pitch": 4, "radius": 10, "taper_deg": 10}}
+              {"tool": "construct_helix", "args": {"height": 20, "left_handed": true, "pitch": 4, "radius": 10, "taper_deg": 10}}
             ]
           }
         ],
@@ -1907,7 +1908,7 @@
           {
             "title": "A plate's top-face outline projected onto the XY plane as a new sketch",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"at_extreme": "+z", "body": 0}},
               {"tool": "sketch_project", "args": {"face": 5, "generation": {"from_call": 1, "key": "generation"}, "plane": "XY", "source_body": 0}}
             ]
@@ -1915,7 +1916,7 @@
           {
             "title": "Two top edges of a plate, meeting at a corner, projected onto the XY plane",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"adjacency": true, "at_extreme": "+z", "body": 0}},
               {"tool": "sketch_project", "args": {"edges": [3, 6], "generation": {"from_call": 1, "key": "generation"}, "plane": "XY", "source_body": 0}}
             ]
@@ -1923,7 +1924,7 @@
           {
             "title": "A plate's top-face outline drawn into an open sketch as construction entities",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"at_extreme": "+z", "body": 0}},
               {"tool": "sketch_create", "args": {"plane": "XY"}},
               {"tool": "sketch_project", "args": {"face": 5, "generation": {"from_call": 1, "key": "generation"}, "source_body": 0}}
@@ -1934,7 +1935,7 @@
       }
     },
     {
-      "id": "measure",
+      "id": "design_measure",
       "name": "Measure",
       "section": "Inspect",
       "slot": "reference",
@@ -1974,19 +1975,19 @@
           {
             "title": "A plate's thickness, between its top and bottom faces",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"body": 0, "kinds": ["planar"]}},
-              {"tool": "measure", "args": {"a": {"face": 5}, "b": {"face": 4}, "body": 0, "generation": {"from_call": 1, "key": "generation"}}}
+              {"tool": "design_measure", "args": {"a": {"face": 5}, "b": {"face": 4}, "body": 0, "generation": {"from_call": 1, "key": "generation"}}}
             ]
           },
           {
             "title": "The 10 mm gap between two blocks' facing sides",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 10, "height": 20, "width": 20}},
-              {"tool": "extrude", "args": {"distance": 10, "operation": "new_body", "profile": [[20, -5], [30, -5], [30, 5], [20, 5]]}},
+              {"tool": "solid_extrude", "args": {"distance": 10, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 10, "operation": "new_body", "profile": [[20, -5], [30, -5], [30, 5], [20, 5]]}},
               {"tool": "body_describe", "args": {"body": 0, "direction": [1, 0, 0]}},
               {"tool": "body_describe", "args": {"body": 1, "direction": [-1, 0, 0]}},
-              {"tool": "measure", "args": {"a": {"body": 0, "face": 1}, "b": {"body": 1, "face": 3}, "generation": {"from_call": 3, "key": "generation"}}}
+              {"tool": "design_measure", "args": {"a": {"body": 0, "face": 1}, "b": {"body": 1, "face": 3}, "generation": {"from_call": 3, "key": "generation"}}}
             ]
           }
         ],
@@ -2029,7 +2030,7 @@
           {
             "title": "The volume and centre of mass of a 20 x 20 x 5 mm plate",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_mass_properties", "args": {"body": 0}}
             ]
           }
@@ -2038,7 +2039,7 @@
       }
     },
     {
-      "id": "interference",
+      "id": "design_interference",
       "name": "Interference",
       "section": "Inspect",
       "slot": "reference",
@@ -2068,9 +2069,9 @@
           {
             "title": "A post standing in a block: the two overlap",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 10, "height": 20, "width": 20}},
-              {"tool": "extrude", "args": {"distance": 20, "height": 10, "operation": "new_body", "width": 10}},
-              {"tool": "interference", "args": {"silent": true}}
+              {"tool": "solid_extrude", "args": {"distance": 10, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 20, "height": 10, "operation": "new_body", "width": 10}},
+              {"tool": "design_interference", "args": {"silent": true}}
             ]
           }
         ],
@@ -2109,7 +2110,7 @@
         "summary": "Change a feature's fields and what it refers to, as its card's Confirm does when editing: one undo step, a rebuild.",
         "details": "fields, then refs, are written; a call with neither is refused, and a field an expression drives is refused. Body indices and face and edge ids in refs are those of the model just before the feature, which body_describe {before: feature} reads and feature_describe's bodies_before lists; a Plane's, an Axis's and a CoordSys's are the finished model's (feature_describe's ids_of says which). An extrude's profile and target are fixed. Reply: changed {name: [old, new]}.",
         "params": [
-          {"name": "feature", "type": "integer", "description": "feature index (describe_design)"},
+          {"name": "feature", "type": "integer", "description": "feature index (design_describe)"},
           {"name": "fields", "type": "object", "default": {}, "description": "{field: value} from feature_describe's editable, e.g. {\"distance\": 15}: numbers within its ranges; operation new_body|join|cut|intersect; extrude_end blind|symmetric|two_sided|through_all; shape rectangle|circle; xf_* vectors [x, y, z]; imported art's import_offset [x, y]; a Text feature's text_string, text_height (0.5 to 500 mm) and text_font, a face name (with text_bold, text_italic) or the stored value, which outline it again"},
           {"name": "refs", "type": "object", "default": {}, "description": "{name: value} under the names of feature_describe's refs that the feature's card can pick again: revolve_axis_entity; sweep_path_ref; loft_profile_refs; target_body, bool_tool_body; plane (as sketch_create's plane) for a mirror, split, helix, hole or thread; rib_sketch_ref, rib_entity; mate_cs_a, mate_cs_b; a fillet's or chamfer's edges, or face_group top|bottom|lateral|all; shell_face, draft_face, thicken_face; delete_faces; a datum's plane_, axis_ and coordsys_ refs. Feature indices must come before the feature"}
         ],
@@ -2117,15 +2118,15 @@
           {
             "title": "A plate made 15 mm thick",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "feature_edit", "args": {"feature": 1, "fields": {"distance": 15}}}
             ]
           },
           {
             "title": "A plate's hole widened from 5 to 8 mm",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "hole", "args": {"diameter": 5, "through": true}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_hole", "args": {"diameter": 5, "through": true}},
               {"tool": "feature_edit", "args": {"feature": 2, "fields": {"hole_diameter": 8}}}
             ]
           }
@@ -2134,7 +2135,7 @@
       }
     },
     {
-      "id": "rename_selected",
+      "id": "design_rename_selected",
       "name": "Rename…",
       "section": "Menu items",
       "slot": "top",
@@ -2150,11 +2151,11 @@
       "gui": true,
       "action": "btn:rename",
       "icon": "rename_edit",
-      "hint": "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it)",
+      "hint": "Give the selected feature, or the selected body, a name you will recognise in its list",
       "feature_row": true
     },
     {
-      "id": "delete_face",
+      "id": "solid_delete_face",
       "name": "Delete Face",
       "section": "Solid",
       "slot": "modify",
@@ -2186,10 +2187,10 @@
           {
             "title": "A plate's bore filled in by deleting its cylindrical face",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "hole", "args": {"diameter": 5, "through": true}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_hole", "args": {"diameter": 5, "through": true}},
               {"tool": "body_describe", "args": {"body": 0, "kinds": ["cylindrical"]}},
-              {"tool": "delete_face", "args": {"body": 0, "faces": [6], "generation": {"from_call": 2, "key": "generation"}}}
+              {"tool": "solid_delete_face", "args": {"body": 0, "faces": [6], "generation": {"from_call": 2, "key": "generation"}}}
             ]
           }
         ],
@@ -2224,7 +2225,7 @@
       "fold": {"into": "body_set", "args": {}}
     },
     {
-      "id": "zoom_to_selection",
+      "id": "design_zoom_to_selection",
       "name": "Zoom to selection",
       "section": "Menu items",
       "slot": "top",
@@ -2280,14 +2281,14 @@
         "summary": "Delete a feature as its tree row's Delete does; deleting a sketch also deletes the features built on it.",
         "details": "One undo step. Later indices shift. Reply: removed (how many features went), features, bodies.",
         "params": [
-          {"name": "feature", "type": "integer", "description": "feature index (describe_design)"}
+          {"name": "feature", "type": "integer", "description": "feature index (design_describe)"}
         ],
         "examples": [
           {
             "title": "A plate's hole deleted",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "hole", "args": {"diameter": 5, "through": true}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_hole", "args": {"diameter": 5, "through": true}},
               {"tool": "feature_delete", "args": {"feature": 2}}
             ]
           },
@@ -2297,7 +2298,7 @@
               {"tool": "sketch_create", "args": {"plane": "XY"}},
               {"tool": "sketch_draw", "args": {"p0": [-15, -10], "p1": [15, 10], "type": "rectangle_2_point"}},
               {"tool": "sketch_finish", "args": {}},
-              {"tool": "extrude", "args": {"distance": 5, "sketch": 0}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "sketch": 0}},
               {"tool": "feature_delete", "args": {"feature": 0}}
             ]
           }
@@ -2336,14 +2337,14 @@
         "summary": "Delete a body as its row's Delete does: the feature that made it goes, which can take other features and bodies with it.",
         "details": "One undo step. Reply: deleted_feature {index, type, name}, removed, features, bodies.",
         "params": [
-          {"name": "body", "type": "integer", "description": "body index (describe_design)"}
+          {"name": "body", "type": "integer", "description": "body index (design_describe)"}
         ],
         "examples": [
           {
             "title": "The second of two bodies deleted, with the extrude that made it",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "extrude", "args": {"distance": 10, "operation": "new_body", "profile": [[20, -5], [30, -5], [30, 5], [20, 5]]}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 10, "operation": "new_body", "profile": [[20, -5], [30, -5], [30, 5], [20, 5]]}},
               {"tool": "body_delete", "args": {"body": 1}}
             ]
           }
@@ -2993,7 +2994,7 @@
           {
             "title": "A label centred on a plate's top face",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"at_extreme": "+z", "body": 0}},
               {"tool": "sketch_text", "args": {"generation": {"from_call": 1, "key": "generation"}, "height": 6, "plane": {"body": 0, "face": 5}, "text": "A1"}}
             ]
@@ -3727,7 +3728,7 @@
       "fold": {"into": "sketch_set_value", "args": {}}
     },
     {
-      "id": "describe_design",
+      "id": "design_describe",
       "name": "Describe design",
       "section": "Document",
       "slot": null,
@@ -3737,20 +3738,20 @@
         "access": "read",
         "ok_false": false,
         "summary": "The Design document: features, variables with their values, bodies, undo_depth / redo_depth and generation.",
-        "details": "A feature's bound lists the fields an expression drives; a body gives bbox, where the model has it, source_feature, visible, color, moved, and placement: where the body stands for Commit to Plate and Export STEP (body_place, the Move gizmo, Place on Face), null where the model has it, else three rows of four numbers, the rotation and the translation in mm, in the world frame. commit_mode is the Commit button's mode, assembly or bodies, which commit_to_plate uses when given none. selection is what the right-click menu would be built for: its kind, the selection_kind a tool's opening reply gives, and its id (none, face_planar, body_solid, sk_line and the like). picked_plane is the reference plane picked in the view (XY, XZ, YZ), which the next Sketch opens on, and feature_row the selected row of the Feature list, a feature index; each is null when there is none.",
+        "details": "A feature's bound lists the fields an expression drives; a body gives bbox, where the model has it, source_feature, visible, color, moved, and placement: where the body stands for Commit to Plate and Export STEP (body_place, the Move gizmo, Place on Face), null where the model has it, else three rows of four numbers, the rotation and the translation in mm, in the world frame. commit_mode is the Commit button's mode, assembly or bodies, which design_commit_to_plate uses when given none. selection is what the right-click menu would be built for: its kind, the selection_kind a tool's opening reply gives, and its id (none, face_planar, body_solid, sk_line and the like). picked_plane is the reference plane picked in the view (XY, XZ, YZ), which the next Sketch opens on, and feature_row the selected row of the Feature list, a feature index; each is null when there is none.",
         "params": [],
         "examples": [
           {
             "title": "An empty design",
             "calls": [
-              {"tool": "describe_design", "args": {}}
+              {"tool": "design_describe", "args": {}}
             ]
           },
           {
             "title": "A plate's two features and its body",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "describe_design", "args": {}}
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "design_describe", "args": {}}
             ]
           }
         ],
@@ -3770,13 +3771,13 @@
         "summary": "One feature as its card shows it: params, the editable ones with their ranges, expr, refs, used_by and bodies_made.",
         "details": "expr holds its bindings, and refs the feature and body indices and face and edge ids it uses, those feature_edit's refs takes; ids_of says which model those body indices and ids are read in: \"before\", the model just before the feature, whose bodies bodies_before lists ({index, name}) and body_describe {before: feature} reads, or \"finished\" for a Plane, an Axis and a CoordSys, read with body_describe without before. A sketch adds its plane, entities and constraints (angles in degrees). Imported Text or SVG art shows its regions (a count), region_loops (how many closed loops each region has, its outer loop plus its holes; counts, not the loops' geometry) and region_areas (each region's filled area in mm² as placed, its outer loop less its holes).",
         "params": [
-          {"name": "feature", "type": "integer", "description": "feature index (describe_design)"}
+          {"name": "feature", "type": "integer", "description": "feature index (design_describe)"}
         ],
         "examples": [
           {
             "title": "A plate's extrude, with the fields its card edits",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "feature_describe", "args": {"feature": 1}}
             ]
           },
@@ -3822,21 +3823,21 @@
           {
             "title": "Every face and edge of a 20 x 20 x 5 mm plate",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"body": 0}}
             ]
           },
           {
             "title": "A plate's top face",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"at_extreme": "+z", "body": 0}}
             ]
           },
           {
             "title": "A plate's vertical outside corners, the edges a fillet rounds",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"body": 0, "convex": true, "direction": [0, 0, 1], "edge_kinds": ["line"]}}
             ]
           }
@@ -3865,7 +3866,7 @@
           {
             "title": "A plate's cross-section halfway up",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_section", "args": {"body": 0, "offset": 2.5, "plane": "XY"}}
             ]
           },
@@ -3876,7 +3877,7 @@
               {"tool": "sketch_draw", "args": {"p0": [-15, -10], "p1": [15, 10], "type": "rectangle_2_point"}},
               {"tool": "sketch_draw", "args": {"entities": [{"center": [0, 0], "radius": 4, "type": "circle_center"}]}},
               {"tool": "sketch_finish", "args": {}},
-              {"tool": "extrude", "args": {"distance": 5, "sketch": 0}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "sketch": 0}},
               {"tool": "body_section", "args": {"body": 0, "offset": 2.5, "plane": "XY"}}
             ]
           }
@@ -3904,15 +3905,15 @@
           {
             "title": "A 5 mm plate against a 6 mm one",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "extrude", "args": {"distance": 6, "height": 20, "operation": "new_body", "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 6, "height": 20, "operation": "new_body", "width": 20}},
               {"tool": "body_compare", "args": {"body": 0, "reference": {"body": 1}}}
             ]
           },
           {
             "title": "A plate against a reference part's STEP file",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_compare", "args": {"body": 0, "reference": {"step": "/path/to/reference.step"}}}
             ],
             "needs": "a STEP file of the reference part"
@@ -4025,7 +4026,7 @@
       }
     },
     {
-      "id": "import_step",
+      "id": "design_import_step",
       "name": "Import step",
       "section": "Document",
       "slot": null,
@@ -4043,7 +4044,7 @@
           {
             "title": "A part read from a STEP file as a body",
             "calls": [
-              {"tool": "import_step", "args": {"path": "/path/to/part.step"}}
+              {"tool": "design_import_step", "args": {"path": "/path/to/part.step"}}
             ],
             "needs": "a STEP file of the part"
           }
@@ -4052,7 +4053,7 @@
       }
     },
     {
-      "id": "import_mesh",
+      "id": "design_import_mesh",
       "name": "Import mesh",
       "section": "Document",
       "slot": null,
@@ -4072,7 +4073,7 @@
           {
             "title": "An STL mesh turned into an editable body",
             "calls": [
-              {"tool": "import_mesh", "args": {"path": "/path/to/part.stl"}}
+              {"tool": "design_import_mesh", "args": {"path": "/path/to/part.stl"}}
             ],
             "needs": "an STL or OBJ mesh file"
           }
@@ -4114,7 +4115,7 @@
       }
     },
     {
-      "id": "set_variable",
+      "id": "design_set_variable",
       "name": "Set variable",
       "section": "Document",
       "slot": null,
@@ -4133,21 +4134,21 @@
           {
             "title": "A variable w of 20",
             "calls": [
-              {"tool": "set_variable", "args": {"expr": "20", "name": "w"}}
+              {"tool": "design_set_variable", "args": {"expr": "20", "name": "w"}}
             ]
           },
           {
             "title": "A variable worked out from another: h = w / 2 + 3, which is 13",
             "calls": [
-              {"tool": "set_variable", "args": {"expr": "20", "name": "w"}},
-              {"tool": "set_variable", "args": {"expr": "w / 2 + 3", "name": "h"}}
+              {"tool": "design_set_variable", "args": {"expr": "20", "name": "w"}},
+              {"tool": "design_set_variable", "args": {"expr": "w / 2 + 3", "name": "h"}}
             ]
           },
           {
             "title": "A variable removed with an empty expression",
             "calls": [
-              {"tool": "set_variable", "args": {"expr": "20", "name": "w"}},
-              {"tool": "set_variable", "args": {"expr": "", "name": "w"}}
+              {"tool": "design_set_variable", "args": {"expr": "20", "name": "w"}},
+              {"tool": "design_set_variable", "args": {"expr": "", "name": "w"}}
             ]
           }
         ],
@@ -4167,7 +4168,7 @@
         "summary": "Bind a feature's numeric field to an expression over the design variables, or unbind it with an empty expr.",
         "details": "Unbound, the field keeps its value.",
         "params": [
-          {"name": "feature", "type": "integer", "description": "feature index (describe_design)"},
+          {"name": "feature", "type": "integer", "description": "feature index (design_describe)"},
           {"name": "field", "type": "string", "description": "a numeric field of feature_describe's params, e.g. width, distance, hole_diameter, thread_diameter"},
           {"name": "expr", "type": "string", "description": "\"\" removes the binding"}
         ],
@@ -4175,16 +4176,16 @@
           {
             "title": "A plate's thickness bound to the variable t",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "set_variable", "args": {"expr": "8", "name": "t"}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "design_set_variable", "args": {"expr": "8", "name": "t"}},
               {"tool": "feature_set_expression", "args": {"expr": "t", "feature": 1, "field": "distance"}}
             ]
           },
           {
             "title": "A plate's thickness unbound, keeping the 8 mm the binding gave it",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "set_variable", "args": {"expr": "8", "name": "t"}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "design_set_variable", "args": {"expr": "8", "name": "t"}},
               {"tool": "feature_set_expression", "args": {"expr": "t", "feature": 1, "field": "distance"}},
               {"tool": "feature_set_expression", "args": {"expr": "", "feature": 1, "field": "distance"}}
             ]
@@ -4206,14 +4207,14 @@
         "summary": "Move a feature one place up or down the history, as Move up / Move down do.",
         "details": "A feature cannot come before one it uses. One undo step. Reply: feature (its new index), from.",
         "params": [
-          {"name": "feature", "type": "integer", "description": "feature index (describe_design)"},
+          {"name": "feature", "type": "integer", "description": "feature index (design_describe)"},
           {"name": "delta", "type": "integer", "enum": [-1, 1], "description": "-1 up, 1 down"}
         ],
         "examples": [
           {
             "title": "A datum plane moved up the history, above the extrude before it",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "construct_plane", "args": {"base": "XY", "offset": 20, "type": "offset"}},
               {"tool": "feature_move", "args": {"delta": -1, "feature": 2}}
             ]
@@ -4235,23 +4236,23 @@
         "summary": "Suppress a feature, or bring it back, as its row's eye hides or shows it.",
         "details": "A suppressed feature is left out of the rebuild and bodies may renumber. One undo step, none when it already was. Reply: feature, suppressed, changed, bodies.",
         "params": [
-          {"name": "feature", "type": "integer", "description": "feature index (describe_design)"},
+          {"name": "feature", "type": "integer", "description": "feature index (design_describe)"},
           {"name": "suppressed", "type": "boolean", "description": "true leaves the feature out of the rebuild; false brings it back"}
         ],
         "examples": [
           {
             "title": "A plate's hole hidden: the plate rebuilds without it",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "hole", "args": {"diameter": 5, "through": true}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_hole", "args": {"diameter": 5, "through": true}},
               {"tool": "feature_suppress", "args": {"feature": 2, "suppressed": true}}
             ]
           },
           {
             "title": "A hidden hole shown again",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "hole", "args": {"diameter": 5, "through": true}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_hole", "args": {"diameter": 5, "through": true}},
               {"tool": "feature_suppress", "args": {"feature": 2, "suppressed": true}},
               {"tool": "feature_suppress", "args": {"feature": 2, "suppressed": false}}
             ]
@@ -4273,14 +4274,14 @@
         "summary": "Rename a feature as F2 on its row does.",
         "details": "Its own undo step. Reply: name, changed.",
         "params": [
-          {"name": "feature", "type": "integer", "description": "feature index (describe_design)"},
+          {"name": "feature", "type": "integer", "description": "feature index (design_describe)"},
           {"name": "name", "type": "string", "description": "trimmed; not empty"}
         ],
         "examples": [
           {
             "title": "A plate's extrude renamed Base plate",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "feature_rename", "args": {"feature": 1, "name": "Base plate"}}
             ]
           }
@@ -4299,9 +4300,9 @@
         "access": "change",
         "ok_false": false,
         "summary": "Rename, colour or show/hide a body, as its Bodies row and the Color button do; give one or more.",
-        "details": "Not in the undo history. The name and colour are saved with the project and the name names its committed object; visibility is view state, and commit_to_plate leaves hidden bodies out. Reply: name, color, visible.",
+        "details": "Not in the undo history. The name and colour are saved with the project and the name names its committed object; visibility is view state, and design_commit_to_plate leaves hidden bodies out. Reply: name, color, visible.",
         "params": [
-          {"name": "body", "type": "integer", "description": "body index (describe_design)"},
+          {"name": "body", "type": "integer", "description": "body index (design_describe)"},
           {"name": "name", "type": "string", "default": null, "description": "trimmed; not empty"},
           {"name": "color", "type": "string", "default": null, "description": "\"#RRGGBB\""},
           {"name": "visible", "type": "boolean", "default": null}
@@ -4310,15 +4311,15 @@
           {
             "title": "A plate's body named Base and coloured blue",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_set", "args": {"body": 0, "color": "#3366CC", "name": "Base"}}
             ]
           },
           {
             "title": "The second of two bodies hidden",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "extrude", "args": {"distance": 10, "operation": "new_body", "profile": [[20, -5], [30, -5], [30, 5], [20, 5]]}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 10, "operation": "new_body", "profile": [[20, -5], [30, -5], [30, 5], [20, 5]]}},
               {"tool": "body_set", "args": {"body": 1, "visible": false}}
             ]
           }
@@ -4327,17 +4328,18 @@
       }
     },
     {
-      "id": "commit_to_plate",
+      "id": "design_commit_to_plate",
       "name": "Commit to plate",
       "section": "Document",
       "slot": null,
       "action": null,
       "gui": false,
+      "operations": ["delete_objects"],
       "tool": {
         "access": "change",
         "ok_false": false,
         "summary": "Commit to Plate: send the visible bodies to Prepare at their Move-gizmo positions and show Prepare.",
-        "details": "It is one Prepare undo step. A lone body is sent even when hidden. A body named in the Bodies list or with body_set names its object or part. Reply: objects (object_list index after replace, object_id, name, parts: how many), bodies_sent, bodies_hidden, replaced.",
+        "details": "It is one Prepare undo step. A lone body is sent even when hidden. A body named in the Bodies list or with body_set names its object or part. replace deletes its objects as Prepare's Delete does: a part of a cut is refused before anything changes (cut_object), and should none be deleted after the commit, the call fails with nothing_deleted, the new objects on the plate, which one Prepare undo takes back. It leaves the selection a plain commit leaves, in the Prepare view the call was made in. Reply: objects (object_list index after replace, object_id, name, parts: how many), bodies_sent, bodies_hidden, replaced.",
         "params": [
           {"name": "mode", "type": "string", "default": "", "enum": ["assembly", "bodies"], "description": "assembly: one object with a part per body; bodies: an object per body. Default: the Commit button's mode, which this leaves as it is."},
           {"name": "replace", "type": "array", "default": [], "description": "object_list indices to delete in the same undo step, such as an earlier commit. Their settings, modifiers and paint go with them."},
@@ -4347,16 +4349,16 @@
           {
             "title": "A plate sent to Prepare as one object",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "commit_to_plate", "args": {}}
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "design_commit_to_plate", "args": {}}
             ]
           },
           {
             "title": "Two bodies sent to Prepare as an object each",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "extrude", "args": {"distance": 10, "operation": "new_body", "profile": [[20, -5], [30, -5], [30, 5], [20, 5]]}},
-              {"tool": "commit_to_plate", "args": {"mode": "bodies"}}
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 10, "operation": "new_body", "profile": [[20, -5], [30, -5], [30, 5], [20, 5]]}},
+              {"tool": "design_commit_to_plate", "args": {"mode": "bodies"}}
             ]
           }
         ],
@@ -4364,7 +4366,7 @@
       }
     },
     {
-      "id": "new_design",
+      "id": "design_new",
       "name": "New design",
       "section": "Document",
       "slot": null,
@@ -4382,14 +4384,14 @@
           {
             "title": "A plate's design erased",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "new_design", "args": {"discard_changes": true}}
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "design_new", "args": {"discard_changes": true}}
             ]
           },
           {
             "title": "An empty design started over, which needs no discard_changes",
             "calls": [
-              {"tool": "new_design", "args": {}}
+              {"tool": "design_new", "args": {}}
             ]
           }
         ],
@@ -4397,7 +4399,7 @@
       }
     },
     {
-      "id": "export_step",
+      "id": "design_export_step",
       "name": "Export step",
       "section": "Document",
       "slot": null,
@@ -4416,8 +4418,8 @@
           {
             "title": "A plate written to a STEP file",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "export_step", "args": {"path": "/path/to/part.step"}}
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "design_export_step", "args": {"path": "/path/to/part.step"}}
             ],
             "needs": "a folder to write the STEP file in"
           }
@@ -4436,7 +4438,7 @@
         "access": "sketch",
         "ok_false": true,
         "summary": "Commit the open sketch as a Sketch feature, as the sketch's Confirm does, and leave sketch mode.",
-        "details": "A new sketch left empty is refused and stays open. A sketch re-opened with sketch_edit is replaced in place, in one undo step, with what is built on it rebuilt, and the reply adds replaced: true. A replace the rebuild refuses, or a re-opened sketch left empty, ends the edit with the design as it was and replies ok false, replaced false, its sketch_index and error, which says why it was not replaced. Reply: sketch_index, name, features (the new count) and its loops (closed_loops with the index extrude's loop takes, open_ends, defects, buildable).",
+        "details": "A new sketch left empty is refused and stays open. A sketch re-opened with sketch_edit is replaced in place, in one undo step, with what is built on it rebuilt, and the reply adds replaced: true. A replace the rebuild refuses, or a re-opened sketch left empty, ends the edit with the design as it was and replies ok false, replaced false, its sketch_index and error, which says why it was not replaced. Reply: sketch_index, name, features (the new count) and its loops (closed_loops with the index solid_extrude's loop takes, open_ends, defects, buildable).",
         "params": [],
         "examples": [
           {
@@ -4491,7 +4493,7 @@
         "summary": "Re-open a committed sketch to change its entities and constraints, as Edit on its Feature tree row does.",
         "details": "The sketch_ commands then act on it; sketch_finish replaces it in place, in one undo step, and rebuilds what is built on it, and sketch_cancel drops the changes. An extrude of one loop keeps its own copy of that loop and does not follow the edit. Refused while a sketch is open, and for text, imported art, a Project sketch and a sketch not drawn from entities. Reply: sketch, entities and constraints (how many the edit starts with) and plane.",
         "params": [
-          {"name": "sketch", "type": "integer", "description": "a committed Sketch feature's index (describe_design's features[].index)"}
+          {"name": "sketch", "type": "integer", "description": "a committed Sketch feature's index (design_describe's features[].index)"}
         ],
         "examples": [
           {
@@ -4509,7 +4511,7 @@
               {"tool": "sketch_create", "args": {"plane": "XY"}},
               {"tool": "sketch_draw", "args": {"p0": [-10, -5], "p1": [10, 5], "type": "rectangle_2_point"}},
               {"tool": "sketch_finish", "args": {}},
-              {"tool": "extrude", "args": {"distance": 5, "sketch": 0}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "sketch": 0}},
               {"tool": "sketch_edit", "args": {"sketch": 0}}
             ]
           }
@@ -4807,7 +4809,7 @@
       }
     },
     {
-      "id": "list_align_types",
+      "id": "solid_list_align_types",
       "name": "Align types",
       "section": "Solid",
       "slot": null,
@@ -4819,20 +4821,20 @@
         "summary": "Which align types fit a pair of coordinate systems, and why each other one does not.",
         "details": "As the Mate card dims the types it does not offer. Reply: cs_a, cs_b and types, the five align types in order (fastened, planar, revolute, slider, cylindrical), each {type, fits, reason}, reason null where it fits.",
         "params": [
-          {"name": "cs_a", "type": "integer", "description": "feature index of the fixed CoordSys, align's cs_a"},
-          {"name": "cs_b", "type": "integer", "description": "feature index of the CoordSys on the body that moves, align's cs_b"}
+          {"name": "cs_a", "type": "integer", "description": "feature index of the fixed CoordSys, solid_align's cs_a"},
+          {"name": "cs_b", "type": "integer", "description": "feature index of the CoordSys on the body that moves, solid_align's cs_b"}
         ],
         "examples": [
           {
             "title": "The types that fit a plate's top-face connector and a block's bottom-face one",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "extrude", "args": {"distance": 10, "operation": "new_body", "profile": [[30, -5], [40, -5], [40, 5], [30, 5]]}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 10, "operation": "new_body", "profile": [[30, -5], [40, -5], [40, 5], [30, 5]]}},
               {"tool": "body_describe", "args": {"at_extreme": "+z", "body": 0}},
               {"tool": "construct_coordinate_system", "args": {"body": 0, "face": 5, "generation": {"from_call": 2, "key": "generation"}, "type": "face_and_direction"}},
               {"tool": "body_describe", "args": {"at_extreme": "-z", "body": 1}},
               {"tool": "construct_coordinate_system", "args": {"body": 1, "face": 4, "generation": {"from_call": 4, "key": "generation"}, "type": "face_and_direction"}},
-              {"tool": "list_align_types", "args": {"cs_a": 4, "cs_b": 5}}
+              {"tool": "solid_list_align_types", "args": {"cs_a": 4, "cs_b": 5}}
             ]
           }
         ],
@@ -4840,7 +4842,7 @@
       }
     },
     {
-      "id": "select_geometry",
+      "id": "design_select",
       "name": "Select geometry",
       "section": "Document",
       "slot": null,
@@ -4850,31 +4852,31 @@
         "access": "change",
         "ok_false": false,
         "summary": "Select a body, a face, edges, a vertex, a reference plane, a sketch's loop or a feature by id, as a click selects it.",
-        "details": "One form: body; body with face, edges (the last the current edge, as in a Shift+click set) or vertex; plane; sketch with loop; feature; or nothing, which clears the selection. A body is selected as a click on its row of the Bodies list selects it, a face, edges or a vertex as a click in the view picks them, a loop as a click on it, which also selects its Sketch's row, and a feature as a click on its row of the Feature list. A plane is picked only where a click can pick one: while the Origin row shows the planes, or while Sketch waits for its plane (sketch_create {}), where picking it opens the sketch. A loop is numbered as sketch_describe {sketch} numbers closed_loops and extrude {sketch, loop} takes it, and is selected only while the view shows it: an extrude that takes the whole sketch hides the sketch, and one that takes a loop hides that loop. Whatever was selected goes first, of every kind. The menu-item forms then act on the selection: feature_edit, rename_selected, feature_delete and sketch_constrain_selected called with no arguments act on the selected row of the Feature list while nothing is picked in the view, and zoom_to_selection acts on what is picked in the view, so a sketch is zoomed to through sketch with loop, not through feature. Refused, changing nothing, for an id the model does not have, and while a card, a sketch, Constrain mode, a body Move or the Text dialog is open, where a click means something else. Reply: selection {kind, id}, plane and feature, as describe_design reports selection, picked_plane and feature_row; for a vertex also point, as body_describe gives it, and placed_point, where the view draws it (the same unless the body was moved).",
+        "details": "One form: body; body with face, edges (the last the current edge, as in a Shift+click set) or vertex; plane; sketch with loop; feature; or nothing, which clears the selection. A body is selected as a click on its row of the Bodies list selects it, a face, edges or a vertex as a click in the view picks them, a loop as a click on it, which also selects its Sketch's row, and a feature as a click on its row of the Feature list. A plane is picked only where a click can pick one: while the Origin row shows the planes, or while Sketch waits for its plane (sketch_create {}), where picking it opens the sketch. A loop is numbered as sketch_describe {sketch} numbers closed_loops and solid_extrude {sketch, loop} takes it, and is selected only while the view shows it: an extrude that takes the whole sketch hides the sketch, and one that takes a loop hides that loop. Whatever was selected goes first, of every kind. The menu-item forms then act on the selection: feature_edit, design_rename_selected, feature_delete and sketch_constrain_selected called with no arguments act on the selected row of the Feature list while nothing is picked in the view, and design_zoom_to_selection acts on what is picked in the view, so a sketch is zoomed to through sketch with loop, not through feature. Refused, changing nothing, for an id the model does not have, and while a card, a sketch, Constrain mode, a body Move or the Text dialog is open, where a click means something else. Reply: selection {kind, id}, plane and feature, as design_describe reports selection, picked_plane and feature_row; for a vertex also point, as body_describe gives it, and placed_point, where the view draws it (the same unless the body was moved).",
         "params": [
-          {"name": "body", "type": "integer", "default": null, "min": 0, "description": "body index (describe_design); alone, the whole body"},
+          {"name": "body", "type": "integer", "default": null, "min": 0, "description": "body index (design_describe); alone, the whole body"},
           {"name": "face", "type": "integer", "default": null, "min": 0, "description": "a face id of body (body_describe)"},
           {"name": "edges", "type": "array", "default": null, "description": "edge ids of body (body_describe), one or more"},
           {"name": "vertex", "type": "integer", "default": null, "min": 0, "description": "a vertex id of body (body_describe {vertices: true})"},
           {"name": "plane", "type": "string", "default": null, "enum": ["XY", "XZ", "YZ"], "description": "a reference plane"},
           {"name": "sketch", "type": "integer", "default": null, "min": 0, "description": "feature index of a committed sketch"},
           {"name": "loop", "type": "integer", "default": null, "min": 0, "description": "a closed loop of sketch: its index in sketch_describe's closed_loops"},
-          {"name": "feature", "type": "integer", "default": null, "min": 0, "description": "feature index (describe_design): its row of the Feature list"}
+          {"name": "feature", "type": "integer", "default": null, "min": 0, "description": "feature index (design_describe): its row of the Feature list"}
         ],
         "examples": [
           {
             "title": "A plate selected whole, as a click on its row of the Bodies list selects it",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
-              {"tool": "select_geometry", "args": {"body": 0}}
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "design_select", "args": {"body": 0}}
             ]
           },
           {
             "title": "A plate's top face selected, as a click on it selects it",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 5, "height": 20, "width": 20}},
+              {"tool": "solid_extrude", "args": {"distance": 5, "height": 20, "width": 20}},
               {"tool": "body_describe", "args": {"at_extreme": "+z", "body": 0}},
-              {"tool": "select_geometry", "args": {"body": 0, "face": 5, "generation": {"from_call": 1, "key": "generation"}}}
+              {"tool": "design_select", "args": {"body": 0, "face": 5, "generation": {"from_call": 1, "key": "generation"}}}
             ]
           },
           {
@@ -4883,7 +4885,7 @@
               {"tool": "sketch_create", "args": {"plane": "XY"}},
               {"tool": "sketch_draw", "args": {"p0": [-10, -10], "p1": [10, 10], "type": "rectangle_2_point"}},
               {"tool": "sketch_finish", "args": {}},
-              {"tool": "select_geometry", "args": {"loop": 0, "sketch": 0}}
+              {"tool": "design_select", "args": {"loop": 0, "sketch": 0}}
             ]
           }
         ],
@@ -4891,7 +4893,7 @@
       }
     },
     {
-      "id": "confirm_tool",
+      "id": "design_confirm_tool",
       "name": "Confirm tool",
       "section": "Document",
       "slot": null,
@@ -4901,7 +4903,7 @@
         "access": "ui",
         "ok_false": false,
         "summary": "Confirm what is open in the Design tab, as its Confirm button and Enter do.",
-        "details": "What is open, in the order Confirm takes it: the Text dialog (text), a value field (value), a body Move (move), a text or art placement (insert), a feature card (card), a sketch (sketch), Constrain mode (constrain). The Text dialog takes it as its OK does: a new text goes into the design, its placement then open (insert), and an edited one keeps its new words. A card adds or edits its feature in one undo step and closes; an add the card refuses, or whose rebuild fails, leaves no feature and no undo step and keeps the card open with the reason on the status line. A Confirm that does not take, such as that add or a value that is no number, replies ok false. It runs under what is open, which refuses the commands that change the document. Refused, changing nothing, when nothing is open, while Sketch waits for its plane (pick one with select_geometry {plane}, or call cancel_tool), while the Text dialog's OK is off, with no text to insert, with the dialog's reason, and while Confirm is off, such as for a card whose preview fails, with the status line as the reason. Reply: was, what was open; ok, whether it took the Confirm; feature, the index of the feature added or edited, or null; open, what is still open, or null; status, the status line.",
+        "details": "What is open, in the order Confirm takes it: the Text dialog (text), a value field (value), a body Move (move), a text or art placement (insert), a feature card (card), a sketch (sketch), Constrain mode (constrain). The Text dialog takes it as its OK does: a new text goes into the design, its placement then open (insert), and an edited one keeps its new words. A card adds or edits its feature in one undo step and closes; an add the card refuses, or whose rebuild fails, leaves no feature and no undo step and keeps the card open with the reason on the status line. A Confirm that does not take, such as that add or a value that is no number, replies ok false. It runs under what is open, which refuses the commands that change the document. Refused, changing nothing, when nothing is open, while Sketch waits for its plane (pick one with design_select {plane}, or call design_cancel_tool), while the Text dialog's OK is off, with no text to insert, with the dialog's reason, and while Confirm is off, such as for a card whose preview fails, with the status line as the reason. Reply: was, what was open; ok, whether it took the Confirm; feature, the index of the feature added or edited, or null; open, what is still open, or null; status, the status line.",
         "params": [],
         "examples": [
           {
@@ -4909,7 +4911,7 @@
             "calls": [
               {"tool": "sketch_create", "args": {"plane": "XY"}},
               {"tool": "sketch_draw", "args": {"p0": [-15, -10], "p1": [15, 10], "type": "rectangle_2_point"}},
-              {"tool": "confirm_tool", "args": {}}
+              {"tool": "design_confirm_tool", "args": {}}
             ]
           }
         ],
@@ -4917,7 +4919,7 @@
       }
     },
     {
-      "id": "cancel_tool",
+      "id": "design_cancel_tool",
       "name": "Cancel tool",
       "section": "Document",
       "slot": null,
@@ -4935,7 +4937,7 @@
             "calls": [
               {"tool": "sketch_create", "args": {"plane": "XY"}},
               {"tool": "sketch_draw", "args": {"entities": [{"p0": [0, 0], "p1": [10, 0], "type": "line"}]}},
-              {"tool": "cancel_tool", "args": {}}
+              {"tool": "design_cancel_tool", "args": {}}
             ]
           }
         ],
@@ -4953,9 +4955,9 @@
         "access": "change",
         "ok_false": false,
         "summary": "Place a body where Commit to Plate and Export STEP send it: move it, turn it, lay a face on the bed, or put it back.",
-        "details": "The Bodies row's Move and Place on Face, outside the history: no undo step, and the project file does not keep it. One form: move and rotate, either or both, added to where the body stands as the Move / Rotate card adds them, the turn about the body's centre; face, which lays that face on the bed as Place on Face does; or reset: true, which puts the body back where the model has it. The view draws and picks the body where it stands, and its placement follows it when the bodies are renumbered. Refused, changing nothing, for a body or face the model does not have, for none or more than one of the forms, and while a card, a sketch, Constrain mode, a body Move or the Text dialog is open. Reply: ok, body, moved and placement, as describe_design reports them.",
+        "details": "The Bodies row's Move and Place on Face, outside the history: no undo step, and the project file does not keep it. One form: move and rotate, either or both, added to where the body stands as the Move / Rotate card adds them, the turn about the body's centre; face, which lays that face on the bed as Place on Face does; or reset: true, which puts the body back where the model has it. The view draws and picks the body where it stands, and its placement follows it when the bodies are renumbered. Refused, changing nothing, for a body or face the model does not have, for none or more than one of the forms, and while a card, a sketch, Constrain mode, a body Move or the Text dialog is open. Reply: ok, body, moved and placement, as design_describe reports them.",
         "params": [
-          {"name": "body", "type": "integer", "min": 0, "description": "body index (describe_design)"},
+          {"name": "body", "type": "integer", "min": 0, "description": "body index (design_describe)"},
           {"name": "move", "type": "array", "unit": "mm", "default": null, "description": "[dx, dy, dz] in the world frame"},
           {"name": "rotate", "type": "object", "default": null, "description": "{\"axis\": \"x\", \"y\" or \"z\", \"angle\": degrees}: a turn about that world axis through the body's centre"},
           {"name": "face", "type": "integer", "default": null, "min": 0, "description": "a face id of body (body_describe), laid on the bed"},
@@ -4965,14 +4967,14 @@
           {
             "title": "A box moved 10 mm along x and turned a quarter turn about z",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 10, "height": 20, "width": 30}},
+              {"tool": "solid_extrude", "args": {"distance": 10, "height": 20, "width": 30}},
               {"tool": "body_place", "args": {"body": 0, "move": [10, 0, 0], "rotate": {"angle": 90, "axis": "z"}}}
             ]
           },
           {
             "title": "A box laid on its side face whose normal is -y",
             "calls": [
-              {"tool": "extrude", "args": {"distance": 10, "height": 20, "width": 30}},
+              {"tool": "solid_extrude", "args": {"distance": 10, "height": 20, "width": 30}},
               {"tool": "body_describe", "args": {"at_extreme": "-y", "body": 0}},
               {"tool": "body_place", "args": {"body": 0, "face": 0, "generation": {"from_call": 1, "key": "generation"}}}
             ]

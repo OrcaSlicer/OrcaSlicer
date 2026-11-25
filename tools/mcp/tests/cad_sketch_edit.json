@@ -13,7 +13,7 @@
     {"tool": "app_wait", "args": {"for": "ready"}},
     {"tool": "project_new", "args": {"discard_changes": true}},
     {"tool": "window_set", "args": {"size": [1600, 900]}},
-    {"tool": "tool_call", "args": {"tool": "new_design", "args": {"discard_changes": true}}},
+    {"tool": "tool_call", "args": {"tool": "design_new", "args": {"discard_changes": true}}},
 
     // The bench's M5 hex standoff from a polygon 8 across the flats and its 4.134 mm tap drill.
     {"tool": "tool_call", "args": {"tool": "sketch_create", "args": {"plane": "XY"}}},
@@ -26,12 +26,12 @@
      "expect": {"/entities/0/p0/0": {"ge": 3.9999, "le": 4.0001}, "/entities/0/p1/0": {"ge": 3.9999, "le": 4.0001},
                 "/closed_loops/1/holes/0": {"eq": 0}, "/closed_loops/1/area": {"ge": 55.4256, "le": 55.4257}}},
     {"tool": "tool_call", "args": {"tool": "sketch_finish"}, "expect": {"/buildable": {"eq": true}}},
-    {"tool": "tool_call", "args": {"tool": "extrude", "args": {"sketch": 0, "distance": 15}}, "expect": {"/body": {"eq": 0}}},
+    {"tool": "tool_call", "args": {"tool": "solid_extrude", "args": {"sketch": 0, "distance": 15}}, "expect": {"/body": {"eq": 0}}},
     {"tool": "tool_call", "args": {"tool": "body_mass_properties", "args": {"body": 0}},
      "expect": {"/volume": {"ge": 630.0, "le": 630.1}}},
 
     // Trim and extend on crossing lines.
-    {"tool": "tool_call", "args": {"tool": "new_design", "args": {"discard_changes": true}}},
+    {"tool": "tool_call", "args": {"tool": "design_new", "args": {"discard_changes": true}}},
     {"tool": "tool_call", "args": {"tool": "sketch_create", "args": {"plane": "XY"}}},
     {"tool": "tool_call", "args": {"tool": "sketch_draw", "args": {"entities": [
       {"type": "line", "p0": [-10, 0], "p1": [10, 0]},
@@ -99,7 +99,7 @@
      "expect": {"/buildable": {"eq": true}, "/sketch_index": {"eq": 0}}},
     {"tool": "tool_call", "args": {"tool": "sketch_list_constraints", "args": {"sketch": 0}},
      "expect": {"/scope": {"eq": "committed"}, "/constraints": {"eq": 26}}},
-    {"tool": "tool_call", "args": {"tool": "extrude", "args": {"sketch": 0, "distance": 5}}, "expect": {"/body": {"eq": 0}}},
+    {"tool": "tool_call", "args": {"tool": "solid_extrude", "args": {"sketch": 0, "distance": 5}}, "expect": {"/body": {"eq": 0}}},
     // 60 x 40, less the chamfer (12.5), the fillet's corner (36 (1 - pi/4)), two slots (40 + 4 pi each),
     // the ellipse (8 pi) and four holes (2.25 pi each): 2221.23 mm2, 5 mm thick.
     {"tool": "tool_call", "args": {"tool": "body_mass_properties", "args": {"body": 0}},

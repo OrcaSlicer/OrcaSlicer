@@ -62,7 +62,7 @@ THREAD = {"plane": "XY", "internal": True, "designation": "M8", "length": 250}
 
 def reset(client):
     """The state every part starts from: start()'s baseline on the Generic Klipper Printer, which closes what the part
-    before left open, cancel_tool's leftovers in the Design tab among it, and the Design view's switches as a new
+    before left open, design_cancel_tool's leftovers in the Design tab among it, and the Design view's switches as a new
     data folder has them, set on the Design tab before Prepare is shown again."""
     start(client)
     reset_switches(client)
@@ -103,26 +103,26 @@ def record(client):
     must match and the refusals seen. The thread rebuilds behind the progress dialog."""
     client.call("replay_export", clear=True)
     client.call("project_new", discard_changes=True)
-    cad(client, "new_design", discard_changes=True)
+    cad(client, "design_new", discard_changes=True)
     frame = cad(client, "sketch_create", plane="XY")["frame"]
     empty_commit = refused(client, "sketch_finish")
     # A 40 x 30 plate with an M5 tap-drill bore (minor diameter 4.134), 12 thick.
     cad(client, "sketch_draw", type="rectangle_2_point", p0=[-20, -15], p1=[20, 15])
     cad(client, "sketch_draw", entities=[{"type": "circle_center", "center": [0, 0], "radius": 2.067}])
     cad(client, "sketch_finish")
-    cad(client, "extrude", sketch=0, distance=12)
-    missed_hole = refused(client, "hole", x=500, through=True)
+    cad(client, "solid_extrude", sketch=0, distance=12)
+    missed_hole = refused(client, "solid_hole", x=500, through=True)
     corners = cad(client, "body_describe", body=0, edge_kinds=["line"], direction=[0, 0, 1], convex=True)
-    cad(client, "fillet", edges=[e["id"] for e in corners["edges"]], radius=3, body=0,
+    cad(client, "solid_fillet", edges=[e["id"] for e in corners["edges"]], radius=3, body=0,
         generation=corners["generation"])
-    refused_fillet = refused(client, "fillet", edges=corners["edges"][0]["id"], radius=50, body=0)
+    refused_fillet = refused(client, "solid_fillet", edges=corners["edges"][0]["id"], radius=50, body=0)
     # No wall 20 thick fits in the 12 mm plate, so the kernel makes no shell.
-    rejected_shell = cad(client, "shell", thickness=20, body=0)
+    rejected_shell = cad(client, "solid_shell", thickness=20, body=0)
     bores = cad(client, "body_describe", body=0, kinds=["cylindrical"])
     bore = next(f["id"] for f in bores["faces"] if f.get("internal"))
-    thread = client.await_job(client.call("tool_call", _timeout=300, tool="thread",
+    thread = client.await_job(client.call("tool_call", _timeout=300, tool="solid_thread",
                                           args={"body": 0, "face": bore, "generation": bores["generation"]}))
-    return {"mass": cad(client, "body_mass_properties", body=0), "scene": cad(client, "describe_design"),
+    return {"mass": cad(client, "body_mass_properties", body=0), "scene": cad(client, "design_describe"),
             "frame": frame, "empty_commit": empty_commit, "missed_hole": missed_hole, "refused_fillet": refused_fillet,
             "rejected_shell": rejected_shell, "thread": thread}
 
@@ -146,7 +146,7 @@ def part_round_trip(c, client, out):
     client.call("project_new", discard_changes=True)
     replay = client.await_job(client.call("replay_run", path=path, out_dir=os.path.dirname(path)), timeout=900)
     mass = cad(client, "body_mass_properties", body=0)
-    scene = cad(client, "describe_design")
+    scene = cad(client, "design_describe")
     kinds = lambda s: [f["type"] for f in s["features"]]  # noqa: E731 (names count on across projects)
 
     origin = live["scene"]["modeling_origin"]
@@ -162,9 +162,9 @@ def part_round_trip(c, client, out):
         ("a shell thicker than the plate reports the rejected rebuild in its reply (ok false)",
          live["rejected_shell"].get("ok") is False, live["rejected_shell"]),
         ("the thread is M5, inferred from the bore", live["thread"].get("designation") == "M5", live["thread"]),
-        ("the export leaves out the failed calls", tools.count("sketch_finish") == 1 and "hole" not in tools, tools),
-        ("the export leaves out the refused fillet and keeps the one that ran", tools.count("fillet") == 1, tools),
-        ("the export keeps the shell that reported a rejected rebuild in its reply", tools.count("shell") == 1, tools),
+        ("the export leaves out the failed calls", tools.count("sketch_finish") == 1 and "solid_hole" not in tools, tools),
+        ("the export leaves out the refused fillet and keeps the one that ran", tools.count("solid_fillet") == 1, tools),
+        ("the export keeps the shell that reported a rejected rebuild in its reply", tools.count("solid_shell") == 1, tools),
         ("the export records no generation", all("generation" not in s.get("args", {}) for s in calls), calls),
         ("the exported session replays", replay.get("passed") is True,
          [s for s in replay.get("steps", []) if not s.get("ok")][:1]),
@@ -195,9 +195,9 @@ def progress_dialog_ref(client):
 
 
 def refusal(client):
-    """The error another Design command, describe_design, is refused with, or None when it answers."""
+    """The error another Design command, design_describe, is refused with, or None when it answers."""
     try:
-        client.call("tool_call", tool="describe_design")
+        client.call("tool_call", tool="design_describe")
         return None
     except McpError as e:
         return str(e)
@@ -209,14 +209,14 @@ def part_slow_build(c, client, out):
     shots = os.path.join(out, "slow_build")
     os.makedirs(shots, exist_ok=True)
     client.call("project_new", discard_changes=True)
-    client.call("tool_call", tool="new_design", args={"discard_changes": True})
-    client.call("tool_call", tool="extrude", args=BLOCK)
+    client.call("tool_call", tool="design_new", args={"discard_changes": True})
+    client.call("tool_call", tool="solid_extrude", args=BLOCK)
 
     box = {}
 
     def build():
         try:
-            box["result"] = client.call("tool_call", _timeout=600, tool="thread", args=THREAD)
+            box["result"] = client.call("tool_call", _timeout=600, tool="solid_thread", args=THREAD)
         except McpError as e:
             box["error"] = str(e)
 
@@ -253,7 +253,7 @@ def part_slow_build(c, client, out):
     worker.join(600)
     seconds = time.time() - started
     result = client.await_job(box.get("result")) if "result" in box else None
-    scene = client.call("tool_call", tool="describe_design")
+    scene = client.call("tool_call", tool="design_describe")
     threads = [f for f in scene["features"] if f["type"] == "Thread"]
 
     print(f"slow_build: the build took {seconds:.1f} s")
@@ -337,15 +337,15 @@ def part_examples(c, client, out):
                 continue
             try:
                 # A fresh, empty design, whatever the example before left open: start()'s closing of what is open,
-                # cancel_tool's leftovers among it.
+                # design_cancel_tool's leftovers among it.
                 close_open(client)
-                client.call_command("new_design", discard_changes=True)
+                client.call_command("design_new", discard_changes=True)
                 run_example(client, example)
                 c.check(label, True)
                 ran.add(name)
             except (ExampleFailed, McpError) as e:
                 c.check(label, False, e)
-    c.check("examples: at least one example of extrude ran", "extrude" in ran, sorted(ran))
+    c.check("examples: at least one example of solid_extrude ran", "solid_extrude" in ran, sorted(ran))
     print(f"examples: {total} examples, {skipped} skipped (needs)")
 
 

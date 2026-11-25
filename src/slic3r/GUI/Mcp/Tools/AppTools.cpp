@@ -599,7 +599,7 @@ void register_app_tools(CommandCatalog& catalog, [[maybe_unused]] bool cad)
     if (cad) {
         undo.examples = json::parse(R"json([
             {"title": "Take back an extrude, its sketch with it", "calls": [
-                {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                {"tool": "solid_extrude", "args": {"width": 20, "height": 20, "distance": 5}},
                 {"tool": "undo", "args": {"history": "design"}}]},
             {"title": "Take back the last shape drawn in a sketch", "calls": [
                 {"tool": "sketch_create", "args": {"plane": "XY"}},
@@ -608,7 +608,7 @@ void register_app_tools(CommandCatalog& catalog, [[maybe_unused]] bool cad)
                 {"tool": "undo", "args": {"history": "design"}}]}])json");
         redo.examples = json::parse(R"json([
             {"title": "Put back an extrude undo took back", "calls": [
-                {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
+                {"tool": "solid_extrude", "args": {"width": 20, "height": 20, "distance": 5}},
                 {"tool": "undo", "args": {"history": "design"}},
                 {"tool": "redo", "args": {"history": "design"}}]},
             {"title": "Put back the shape undo took off a sketch", "calls": [

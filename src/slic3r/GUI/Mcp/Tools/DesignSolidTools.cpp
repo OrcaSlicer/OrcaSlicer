@@ -1,8 +1,9 @@
-// The place Design, its Solid heading: extrude and revolve, which grow a body from a profile; fillet, chamfer, shell,
-// draft, rib and hole, which shape one; sweep, loft, thicken and thread; boolean, mirror, pattern, split and
-// delete_face; and align with list_align_types, which fasten one body to another. The cad_* builders they share with
-// the Design tab's cards are here too (McpToolsDesign.hpp). solid_silent_forms() binds them to their tool blocks, and
-// run_design_tool() (DesignTools.cpp) runs them behind the Design commands' gate.
+// The place Design, its Solid heading: solid_extrude and solid_revolve, which grow a body from a profile;
+// solid_fillet, solid_chamfer, solid_shell, solid_draft, solid_rib and solid_hole, which shape one; solid_sweep,
+// solid_loft, solid_thicken and solid_thread; solid_boolean, solid_mirror, solid_pattern, solid_split and
+// solid_delete_face; and solid_align with solid_list_align_types, which fasten one body to another. The cad_*
+// builders they share with the Design tab's cards are here too (McpToolsDesign.hpp). solid_silent_forms() binds them
+// to their tool blocks, and run_design_tool() (DesignTools.cpp) runs them behind the Design commands' gate.
 
 #include "slic3r/GUI/Mcp/Tools/DesignCommon.hpp"
 #include "slic3r/GUI/Mcp/McpToolsDesign.hpp"
@@ -54,8 +55,8 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 
 namespace {
 
-// The operations each command takes (operation_arg()): extrude's, auto among them; revolve's, sweep's and loft's;
-// boolean's, which combines two bodies there and makes none; mirror's, which keeps its image apart or joins it.
+// The operations each command takes (operation_arg()): solid_extrude's, auto among them; solid_revolve's, solid_sweep's and solid_loft's;
+// solid_boolean's, which combines two bodies there and makes none; solid_mirror's, which keeps its image apart or joins it.
 const std::vector<std::string> kExtrudeOperations = {"auto", "new_body", "join", "cut", "intersect"};
 const std::vector<std::string> kSolidOperations   = {"new_body", "join", "cut", "intersect"};
 const std::vector<std::string> kBooleanOperations = {"join", "cut", "intersect"};
@@ -523,7 +524,7 @@ json action_split(DesignPanel* panel, const json& params)
 
 json action_delete_face(DesignPanel* panel, const json& params)
 {
-    if (!params.contains("faces")) throw std::runtime_error("delete_face needs 'faces' (array of face ids)");
+    if (!params.contains("faces")) throw std::runtime_error("solid_delete_face needs 'faces' (array of face ids)");
     CadDocument& doc = panel->mcp_doc();
     if (doc.bodies.empty()) throw CadPrecondition("no body to delete faces from");
     int bi = target_body_arg(params, doc);
@@ -627,7 +628,7 @@ json cad_align_types(const CadDocument& doc, const json& params)
 {
     for (const char* k : {"cs_a", "cs_b"})
         if (!params.value(k, json()).is_number_integer())
-            throw std::runtime_error(std::string("list_align_types needs '") + k + "' (CoordSys feature index)");
+            throw std::runtime_error(std::string("solid_list_align_types needs '") + k + "' (CoordSys feature index)");
     const int cs_a  = params.at("cs_a").get<int>();
     const int cs_b  = params.at("cs_b").get<int>();
     json      types = json::array();
@@ -875,7 +876,7 @@ std::function<int(const std::string& name)> cad_sweep(CadDocument& doc, const js
 {
     const int  si = sketch_arg(params.value("sketch", json()), doc);
     const json pv = params.value("path", json());
-    if (!pv.is_number_integer()) throw std::runtime_error("path must be the feature index of a sketch or a helix (describe_design)");
+    if (!pv.is_number_integer()) throw std::runtime_error("path must be the feature index of a sketch or a helix (design_describe)");
     const int pi = pv.get<int>();
     check_feature_index(pi, doc);
     const CadFeatureType pt = doc.features[pi].type;
@@ -899,7 +900,7 @@ std::function<int(const std::string& name)> cad_loft(CadDocument& doc, const jso
     if (pv.size() < 2) throw std::runtime_error("loft needs 2 or more sketches in profiles");
     std::vector<int> refs;
     for (const json& v : pv) {
-        if (!v.is_number_integer()) throw std::runtime_error("profiles must hold sketch feature indices (describe_design)");
+        if (!v.is_number_integer()) throw std::runtime_error("profiles must hold sketch feature indices (design_describe)");
         const int si = sketch_arg(v, doc);
         if (std::find(refs.begin(), refs.end(), si) != refs.end())
             throw std::runtime_error("sketch " + std::to_string(si) + " is listed twice in profiles");
@@ -1142,25 +1143,25 @@ std::function<int(const std::string& name)> cad_split(CadDocument& doc, const js
 void solid_silent_forms(std::vector<SilentForm>& forms)
 {
     forms.insert(forms.end(), {
-        {"extrude",                      action_extrude},
-        {"revolve",                      action_revolve},
-        {"fillet",                       action_fillet},
-        {"chamfer",                      action_chamfer},
-        {"hole",                         action_hole},
-        {"boolean",                      action_boolean},
-        {"pattern",                      action_pattern},
-        {"shell",                        action_shell},
-        {"rib",                          action_rib},
-        {"draft",                        action_draft},
-        {"mirror",                       action_mirror},
-        {"thicken",                      action_thicken},
-        {"split",                        action_split},
-        {"thread",                       action_thread},
-        {"sweep",                        action_sweep},
-        {"loft",                         action_loft},
-        {"delete_face",                  action_delete_face},
-        {"align",                        action_align},
-        {"list_align_types",             action_list_align_types},
+        {"solid_extrude",                action_extrude},
+        {"solid_revolve",                action_revolve},
+        {"solid_fillet",                 action_fillet},
+        {"solid_chamfer",                action_chamfer},
+        {"solid_hole",                   action_hole},
+        {"solid_boolean",                action_boolean},
+        {"solid_pattern",                action_pattern},
+        {"solid_shell",                  action_shell},
+        {"solid_rib",                    action_rib},
+        {"solid_draft",                  action_draft},
+        {"solid_mirror",                 action_mirror},
+        {"solid_thicken",                action_thicken},
+        {"solid_split",                  action_split},
+        {"solid_thread",                 action_thread},
+        {"solid_sweep",                  action_sweep},
+        {"solid_loft",                   action_loft},
+        {"solid_delete_face",            action_delete_face},
+        {"solid_align",                  action_align},
+        {"solid_list_align_types",       action_list_align_types},
     });
 }
 

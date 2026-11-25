@@ -293,7 +293,7 @@ std::vector<Vec3d> cad_body_vertices(const CadDocument& doc, int body)
 json cad_body_describe(const CadDocument& doc, const json& params)
 {
     if (const json before = params.value("before", json()); !before.is_null()) {
-        if (!before.is_number_integer()) throw std::runtime_error("before must be a feature index (describe_design's features[].index)");
+        if (!before.is_number_integer()) throw std::runtime_error("before must be a feature index (design_describe's features[].index)");
         json as_of = params;
         as_of.erase("before");
         json out      = cad_body_describe(cad_document_before(doc, before.get<int>()), as_of);
@@ -588,11 +588,11 @@ void inspect_silent_forms(std::vector<SilentForm>& forms)
 {
     forms.insert(forms.end(), {
         {"body_describe",                body_describe},
-        {"measure",                      measure},
+        {"design_measure",               measure},
         {"body_mass_properties",         body_mass_properties},
         {"body_section",                 body_section},
         {"body_compare",                 body_compare},
-        {"interference",                 action_check_interference},
+        {"design_interference",          action_check_interference},
     });
 }
 

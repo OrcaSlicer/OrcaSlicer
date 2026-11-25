@@ -156,6 +156,13 @@ def faults(A):
             errs.append(f'{vid}: section {v["section"]!r} is not one of {list(SECTIONS)}')
         if v.get("feature_row") and (not v.get("action") or "fold" in v):
             errs.append(f"{vid}: feature_row needs a menu item of its own: a handler (action), and no fold")
+        # By the key, not its value: an "operations": null names nothing, and is refused as a wrong value.
+        if "operations" in v:
+            ops = v["operations"]
+            if not command:
+                errs.append(f"{vid}: operations names what a command reaches, and a folded or greyed item is no command")
+            elif not (isinstance(ops, list) and ops and all(isinstance(o, str) and o and "," not in o for o in ops)):
+                errs.append(f"{vid}: operations is a list of the names of the operations its command reaches")
         if block is not None:
             if block.get("access") not in ACCESS:
                 errs.append(f'{vid}: tool access {block.get("access")!r} is not one of {sorted(ACCESS)}')
@@ -336,6 +343,9 @@ def main():
         "    // Its handler acts on the selected row of the Feature list, which a call of its command, not a person's",
         "    // pick, takes as what the item is for while nothing is picked in the view (Mcp::open_refusal()).",
         "    bool        feature_row;",
+        "    // The operations of GUI/Operations its command reaches, comma-separated, which the catalog lists as the",
+        "    // command's (Mcp::reaching()); nullptr for none, as a command that changes only the Design document has.",
+        "    const char* operations;",
         "};",
         "",
         "// The headings of tool_list's index of the Design commands, in its order. Menu items holds the commands",
@@ -396,7 +406,7 @@ def main():
         fold = v.get("fold")
         args = fold["args"] if fold else v.get("args")
         lines.append(
-            "    {%s, %s, %d, %s, %s, %s, 0x%08xu, %d, %d, %s, %s, %s, %s, %s, %s, CadAccess::%s, %s,\n     %s, %s, %s, %s, %s}," % (
+            "    {%s, %s, %d, %s, %s, %s, 0x%08xu, %d, %d, %s, %s, %s, %s, %s, %s, CadAccess::%s, %s,\n     %s, %s, %s, %s, %s, %s}," % (
                 cstr(v["id"]), name, slots.index(v["slot"]) if in_menu else -1,
                 cstr(v.get("key")), cstr(v.get("action")), tstr(v.get("refusal")),
                 mask, n.get("bodies", 0), n.get("sketches", 0),
@@ -408,7 +418,8 @@ def main():
                 "true" if block and block["ok_false"] else "false",
                 doc_literal(block, "     "), cstr(fold["into"]) if fold else "nullptr",
                 "nullptr" if args is None else cstr(json.dumps(args, ensure_ascii=False, separators=(",", ":"))),
-                cstr(v.get("section")), "true" if v.get("feature_row") else "false"))
+                cstr(v.get("section")), "true" if v.get("feature_row") else "false",
+                cstr(",".join(v["operations"]) if v.get("operations") else None)))
     lines += [
         "};",
         f"static const int kDesignToolCount = {len(A['verbs'])};",

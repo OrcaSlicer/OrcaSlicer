@@ -371,7 +371,7 @@ the mark compiles to the bare string, so nothing at run time could tell it is mi
 
 The same table is the Design tab's Speed Dial actions and its automation commands, so the three cannot drift
 apart. The header's `kDesignTools` holds 127 entries: the 92 verbs with a menu item, and 35 commands with no
-menu item (`row` -1), such as `describe_design`, `sketch_draw` or `commit_to_plate`. An entry with a handler
+menu item (`row` -1), such as `design_describe`, `sketch_draw` or `design_commit_to_plate`. An entry with a handler
 (`action`, the code its menu item runs) or a `tool` block is a command of the catalog, whose key is the entry's
 id and whose title is its name, unless it is a folded item: 88 commands. An entry with a handler does what its
 menu item does when it is called with no arguments, and has an action of its own in the Speed Dial. An entry
@@ -383,11 +383,12 @@ id, its place in the menu, its key and its Speed Dial action, and the command op
 exactly the item's arguments, as Polar array is `sketch_pattern {type: "circular"}` and the Corner rectangle
 `sketch_draw {type: "rectangle_2_point"}`. 37 items fold into eight commands, the 24 shape items into
 `sketch_draw` among them. An entry with a handler and a block may name the arguments that choose its own item
-(`args`), as Boolean's Join item is `boolean {operation: "join"}`, so that each of a command's variants opens
+(`args`), as Boolean's Join item is `solid_boolean {operation: "join"}`, so that each of a command's variants opens
 the same way. Two items have neither a handler nor a block, Pattern on Curve and Align to, and are shown greyed:
 they are no command. Every command has a `section`, its heading in the names index the MCP server's
 `tool_list` gives, and `feature_row` marks the four items whose handler works on the Feature tree's selected
-row (Edit, Rename, Delete and Constrain sketch). `modal` marks the three entries whose handler opens a dialog
+row (Edit, Rename, Delete and Constrain sketch). `operations` names what a command that changes Prepare's model
+reaches of `GUI/Operations` (`design_commit_to_plate`'s `delete_objects`). `modal` marks the three entries whose handler opens a dialog
 that waits for an answer: a modal one for SVG (a file picker) and Color, which holds the call that opened it
 until it is answered, and the Design tab's own modeless dialog for Text, which does not.
 `kDesignSelectionIds` names the selection kinds in `OfferSel`'s order, the ids the verbs' `accepts` use.
@@ -426,7 +427,7 @@ as `app_state`'s `cad_note` does. Turned off while OrcaSlicer runs, the tab stay
 Speed Dial has none of its actions. A call is refused (`design_busy`) while the Design tab is busy: none runs while a
 rebuild owns the document, `change` and `sketch` commands do not run under an open feature card, the Text
 dialog, Constrain mode or a body Move, and a `change` one does not run under a sketch session, which `sketch`
-ones drive. `read` commands are refused only during a rebuild, and so are `confirm_tool` and `cancel_tool`,
+ones drive. `read` commands are refused only during a rebuild, and so are `design_confirm_tool` and `design_cancel_tool`,
 which confirm or cancel what is open as its Confirm and Cancel do, the Text dialog's OK and Cancel among them,
 and the opening of a tool, which is also refused in the mode its item does not belong to (a model tool in a
 sketch, a sketch tool outside one): the tab's right-click menu offers a tool only in its mode and refuses it for
@@ -462,21 +463,21 @@ model's, where the engine reads them. A card that edits a feature reads a face o
 same model before the feature, but for those three, each body of it where the view draws the body it became.
 
 Commit to Plate and Export STEP… are split from their button and file dialog
-(`commit_to_plate()`, `export_step_to()`), so `commit_to_plate` and `export_step` run the GUI's own work,
-and `new_design` is New Design's `clear_document()` without the confirmation. The Feature tree's
+(`commit_to_plate()`, `export_step_to()`), so `design_commit_to_plate` and `design_export_step` run the GUI's own work,
+and `design_new` is New Design's `clear_document()` without the confirmation. The Feature tree's
 and Bodies list's row actions are split the same way, into cores that take an index
 (`delete_feature()`, `move_feature()`, `show_feature()`, `rename_feature()`, `delete_body()`,
 `rename_body()`, `set_body_color()`, `show_body()`), which the rows call with the selected one and
 the automation calls without selecting anything; `undo` and `redo` are Edit > Undo and Redo.
-`select_geometry` sets what a click would select (a body, a face, edges, a vertex, a reference plane, a
-committed sketch's loop or a feature), for the commands that act on a selection, and `zoom_to_selection` and
-`rename_selected` are the flat row's Zoom to selection and Rename.
+`design_select` sets what a click would select (a body, a face, edges, a vertex, a reference plane, a
+committed sketch's loop or a feature), for the commands that act on a selection, and `design_zoom_to_selection` and
+`design_rename_selected` are the flat row's Zoom to selection and Rename.
 
 A body's placement, where Commit to Plate and Export STEP send it, has an argument form too: `body_place`
 moves and turns a body as the Move / Rotate card does, lays a face on the bed as Place on Face does, or puts
 it back where the model has it. Like the gizmo it is outside the history and not saved, and a placement
 follows its body when the bodies are renumbered, by the transient id of the feature that made it.
-`describe_design` reports each body's placement. The section view and the view's switches are set by value
+`design_describe` reports each body's placement. The section view and the view's switches are set by value
 through `view_set {tab: "design"}` (`section {on, z, keep}`, `origin_planes`, `world_axes`, `origin`, `bed`),
 which the toolbar and the rows only toggle, and its `camera: "sketch_normal"` is the `N` key, refused with no
 sketch open.
@@ -488,8 +489,8 @@ its row does (`DesignCanvas::edit_sketch()`, `DesignSketchTool::begin_edit()`): 
 it, `sketch_finish` replaces it in place in one undo step and rebuilds what is built on it, and `sketch_cancel`
 drops the changes. A replace the rebuild refuses, or a re-opened sketch left empty, ends the edit with the
 design as it was and says why, also where a click inside one of its loops, the Text dialog or Constrain mode
-finished it first, which then open nothing. Text, imported art and a Project sketch are not re-opened. `extrude`
-and `revolve` take a committed sketch, or one of its loops, as their cards do; a committed sketch's loops come
+finished it first, which then open nothing. Text, imported art and a Project sketch are not re-opened. `solid_extrude`
+and `solid_revolve` take a committed sketch, or one of its loops, as their cards do; a committed sketch's loops come
 from `DesignSketchTool::loop_report(entities)`, numbered as the viewport's loop pick numbers them. Inside a
 session, `DesignSketchTool`'s scripted entry points run the tools' own apply steps without a pointer:
 `fillet_scripted()` is the Fillet and Chamfer tools' Confirm (`confirm_op()`, which reports a refused value),
@@ -514,7 +515,7 @@ reference, names a face or edge no longer on the model, or puts a tangent plane 
 not a cylinder, so neither reaches the kernel's silent fallback to an offset plane; a refused
 Confirm leaves no undo step.
 
-The Thread card's pick and `thread` share `CadDocument::thread_target()` (the picked cylinder's
+The Thread card's pick and `solid_thread` share `CadDocument::thread_target()` (the picked cylinder's
 axis frame) and `nearest_thread_standard()` (the size inferred from it). The Sweep card's path list
 holds Helix features as well as sketches, and a sweep along a helix keeps its profile at a fixed
 angle to the helix axis. Thread, sweep and loft automation rebuilds through `recompute_guarded()`,

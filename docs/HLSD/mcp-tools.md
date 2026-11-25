@@ -783,21 +783,27 @@ popular CAD programs such as Fusion 360, Onshape and SolidWorks use it, so that 
 one of them learn the commands quickly. Three nouns are the app's own, as it shows them everywhere:
 variable, body and feature.
 
-1. **No prefix means the 3D model**: the commands that build and change the model's bodies (`extrude`,
-   `fillet`, `mirror`, `pattern`, `boolean`, `split`) and the two Inspect commands that take any geometry
-   (`measure`, `interference`). A prefix marks the other places:
-   - `sketch_`: the sketch. The same verbs as the model's, in a sketch: `sketch_fillet`, `sketch_mirror`,
-     `sketch_pattern`.
-   - `surface_`: the commands that make sheet bodies.
-   - `construct_`: reference planes, axes and coordinate systems.
-   - `feature_`: one entry of the history: describe, edit, suppress, move, rename, delete.
+1. **Every name starts with the place the command works in**, as every command outside the Design tab does
+   (`object_`, `plate_`, `project_`):
+   - `sketch_`: the sketch.
+   - `solid_` and `surface_`: the features that make or change solid bodies and sheet bodies, and the reads that
+     serve them, as the SOLID and SURFACE tabs of CAD programs group them: `solid_extrude` beside
+     `surface_extrude`, `solid_fillet`, `solid_boolean`, `solid_list_align_types`. The same verbs work in a sketch
+     with its own place: `sketch_fillet`, `sketch_mirror`, `sketch_pattern`.
+   - `construct_`: reference geometry: planes, axes, coordinate systems and the helix a sweep follows.
    - `body_`: one body as an object: name and colour it, delete it, place it, describe and measure it.
      `body_transform` is here too, since `object_transform` is the Prepare tab's command.
+   - `feature_`: one entry of the history: describe, edit, suppress, move, rename, delete.
+   - `design_`: the Design tab as a whole: its document (`design_new`, `design_describe`,
+     `design_import_step`, `design_commit_to_plate`), its open tool (`design_confirm_tool`), its selection
+     and view (`design_select`, `design_zoom_to_selection`), and the reads that are not one body's
+     (`design_measure`, `design_interference`).
 2. **One command per operation, and one argument for its variants.** `type` says which kind of thing the
    command makes, or which way it makes it: a shape, a pattern's layout, a hole's kind, how a plane is
    defined. A shape drawn more than one way names the way (`rectangle_3_point`).
 3. **`operation` says what the result does to the bodies already there**, in four words: `new_body`,
-   `join`, `cut`, `intersect`. `extrude`, `revolve`, `sweep`, `loft`, `mirror` and `boolean` take it.
+   `join`, `cut`, `intersect`. `solid_extrude`, `solid_revolve`, `solid_sweep`, `solid_loft`, `solid_mirror`
+   and `solid_boolean` take it.
 4. **Full words**: no abbreviations such as `sk_`, `surf_` or `props`.
 5. **A menu item is a way to call a command, not a second command.** A call that gives only the arguments
    choosing an item opens that item's tool for a person; a call that gives more runs it.
@@ -817,16 +823,16 @@ every argument, its default and its range are in the command's schema.
 
 | Command | What it does | Variants and main arguments |
 |---|---|---|
-| `new_design` | Erase every feature, body and variable, and the Design undo history; committed objects stay on the plate | `discard_changes`, needed when the design is not empty |
-| `describe_design` | The document: features, variables with their values, bodies with their placement, undo and redo depth, the Commit button's mode, the selection, the picked plane and the Feature list's selected row |  |
-| `import_step` | Import a STEP file as bodies | `path` |
-| `import_mesh` | Convert an STL or OBJ mesh into an editable body, reporting whether it is a solid or an open shell | `path`, `tolerance`, `merge_angle_deg` |
-| `export_step` | Write every body to a STEP file, at its placement | `path`, `overwrite` |
-| `commit_to_plate` | Send the visible bodies to Prepare at their placement, in one Prepare undo step | `mode`: assembly, bodies (left out, the Commit button's mode); `replace` |
-| `set_variable` | Set a design variable to an expression, or remove it | `name`, `expr` |
-| `select_geometry` | Select a body, a face, edges, a vertex, a reference plane, a sketch's loop or a feature by id, as a click selects it, for the menu-item forms to act on | one of: `body`; `body` with `face`, `edges` or `vertex`; `plane`; `sketch` with `loop`; `feature`; nothing, which clears |
-| `confirm_tool` | Confirm what is open, as its Confirm button and Enter do |  |
-| `cancel_tool` | Cancel what is open, as its Cancel button does |  |
+| `design_new` | Erase every feature, body and variable, and the Design undo history; committed objects stay on the plate | `discard_changes`, needed when the design is not empty |
+| `design_describe` | The document: features, variables with their values, bodies with their placement, undo and redo depth, the Commit button's mode, the selection, the picked plane and the Feature list's selected row |  |
+| `design_import_step` | Import a STEP file as bodies | `path` |
+| `design_import_mesh` | Convert an STL or OBJ mesh into an editable body, reporting whether it is a solid or an open shell | `path`, `tolerance`, `merge_angle_deg` |
+| `design_export_step` | Write every body to a STEP file, at its placement | `path`, `overwrite` |
+| `design_commit_to_plate` | Send the visible bodies to Prepare at their placement, in one Prepare undo step | `mode`: assembly, bodies (left out, the Commit button's mode); `replace` |
+| `design_set_variable` | Set a design variable to an expression, or remove it | `name`, `expr` |
+| `design_select` | Select a body, a face, edges, a vertex, a reference plane, a sketch's loop or a feature by id, as a click selects it, for the menu-item forms to act on | one of: `body`; `body` with `face`, `edges` or `vertex`; `plane`; `sketch` with `loop`; `feature`; nothing, which clears |
+| `design_confirm_tool` | Confirm what is open, as its Confirm button and Enter do |  |
+| `design_cancel_tool` | Cancel what is open, as its Cancel button does |  |
 
 #### Sketch
 
@@ -884,30 +890,30 @@ every argument, its default and its range are in the command's schema.
 
 | Command | What it does | Variants and main arguments |
 |---|---|---|
-| `extrude` | Extrude a committed sketch, one of its loops, a face (push/pull) or a profile drawn in the call | `operation`: auto, new_body, join, cut, intersect; `end`: blind, symmetric, two_sided, through_all, up_to_face; `sketch`, `loop`, `face` or `profile`; `distance`, `taper` |
-| `revolve` | Revolve a committed sketch or a profile drawn in the call about an axis | `operation`; `sketch`, `axis_entity` or `axis`; `angle`, `flip` |
-| `sweep` | Sweep a committed sketch's closed profile along a sketch or a helix | `operation`; `sketch`, `path` |
-| `loft` | Loft through two or more committed sketches, in order | `operation`; `profiles`, `ruled` |
-| `rib` | A thin wall grown from a sketch line and fused to a body | `sketch`, `entity`, `thickness`, `depth` |
-| `hole` | Drill a hole on a plane or a face | `type`: simple, counterbore, countersink; `diameter` or `designation` (a standard clearance size, M6); `depth`, `through`; `x`, `y` or `at` |
-| `thread` | Cut a thread along a cylindrical face or a circular edge, or on a plane | `face` or `edge`; `designation`, `internal`, `diameter`, `pitch`, `length` |
-| `thicken` | Thicken a face of a body, or a whole sheet body, into a solid | `type`: face, surface; `body`, `face`, `thickness`, `flip` |
-| `pattern` | Copies of a body in a row, around the plane's normal, or along a sketch curve | `type`: linear, circular, curve; `count`; `spacing`, `dir` (linear); `angle` (circular); `sketch`, `entity` (curve) |
-| `mirror` | Mirror a body about a plane | `plane`; `operation`: new_body, join; `keep_original` |
+| `solid_extrude` | Extrude a committed sketch, one of its loops, a face (push/pull) or a profile drawn in the call | `operation`: auto, new_body, join, cut, intersect; `end`: blind, symmetric, two_sided, through_all, up_to_face; `sketch`, `loop`, `face` or `profile`; `distance`, `taper` |
+| `solid_revolve` | Revolve a committed sketch or a profile drawn in the call about an axis | `operation`; `sketch`, `axis_entity` or `axis`; `angle`, `flip` |
+| `solid_sweep` | Sweep a committed sketch's closed profile along a sketch or a helix | `operation`; `sketch`, `path` |
+| `solid_loft` | Loft through two or more committed sketches, in order | `operation`; `profiles`, `ruled` |
+| `solid_rib` | A thin wall grown from a sketch line and fused to a body | `sketch`, `entity`, `thickness`, `depth` |
+| `solid_hole` | Drill a hole on a plane or a face | `type`: simple, counterbore, countersink; `diameter` or `designation` (a standard clearance size, M6); `depth`, `through`; `x`, `y` or `at` |
+| `solid_thread` | Cut a thread along a cylindrical face or a circular edge, or on a plane | `face` or `edge`; `designation`, `internal`, `diameter`, `pitch`, `length` |
+| `solid_thicken` | Thicken a face of a body, or a whole sheet body, into a solid | `type`: face, surface; `body`, `face`, `thickness`, `flip` |
+| `solid_pattern` | Copies of a body in a row, around the plane's normal, or along a sketch curve | `type`: linear, circular, curve; `count`; `spacing`, `dir` (linear); `angle` (circular); `sketch`, `entity` (curve) |
+| `solid_mirror` | Mirror a body about a plane | `plane`; `operation`: new_body, join; `keep_original` |
 
 **Modify**
 
 | Command | What it does | Variants and main arguments |
 |---|---|---|
-| `fillet` | Round edges of a body | `edges`: edge ids, or the card's edge group top, bottom, lateral or all; `radius` |
-| `chamfer` | Chamfer edges of a body | `edges`, as `fillet` takes them; `distance` |
-| `shell` | Hollow a body to a wall thickness, inward | `thickness`; `face` to leave open |
-| `draft` | Taper a face by an angle about its base | `face`, `angle` |
-| `delete_face` | Remove faces and heal the gap | `body`, `faces` |
-| `boolean` | Join two bodies, cut one from the other, or keep their overlap | `operation`: join, cut, intersect, required in a call that runs; `target`, `tool`, `keep_tool` |
-| `split` | Split a body with a plane, or along the plane of a face | `plane`, `offset`, `flip`; or `face`; `keep_upper`, `keep_lower` |
-| `align` | Move one body so its coordinate system lines up with another's; the two stay separate bodies | `type`: fastened, planar, revolute, slider, cylindrical; `cs_a`, `cs_b`, `offset`, `angle`, `flip` |
-| `list_align_types` | Which `align` types fit a pair of coordinate systems, and why each other one does not | `cs_a`, `cs_b` |
+| `solid_fillet` | Round edges of a body | `edges`: edge ids, or the card's edge group top, bottom, lateral or all; `radius` |
+| `solid_chamfer` | Chamfer edges of a body | `edges`, as `solid_fillet` takes them; `distance` |
+| `solid_shell` | Hollow a body to a wall thickness, inward | `thickness`; `face` to leave open |
+| `solid_draft` | Taper a face by an angle about its base | `face`, `angle` |
+| `solid_delete_face` | Remove faces and heal the gap | `body`, `faces` |
+| `solid_boolean` | Join two bodies, cut one from the other, or keep their overlap | `operation`: join, cut, intersect, required in a call that runs; `target`, `tool`, `keep_tool` |
+| `solid_split` | Split a body with a plane, or along the plane of a face | `plane`, `offset`, `flip`; or `face`; `keep_upper`, `keep_lower` |
+| `solid_align` | Move one body so its coordinate system lines up with another's; the two stay separate bodies | `type`: fastened, planar, revolute, slider, cylindrical; `cs_a`, `cs_b`, `offset`, `angle`, `flip` |
+| `solid_list_align_types` | Which `solid_align` types fit a pair of coordinate systems, and why each other one does not | `cs_a`, `cs_b` |
 
 #### Surface
 
@@ -925,15 +931,15 @@ every argument, its default and its range are in the command's schema.
 |---|---|---|
 | `construct_plane` | Add a reference plane | `type`: offset, angle, midplane, tangent, two_edges, coincident; `base`, `offset`, `angle`, `face_a`, `face_b`, `edge_a`, `edge_b` |
 | `construct_axis` | Add a reference axis | `type`: two_points, face_normal, cylinder, plane_intersection, along_edge |
-| `construct_coordinate_system` | Add a coordinate system, which `align` lines up | `type`: point_world, face_and_direction |
-| `helix` | A helical curve, to sweep along | `radius`, `pitch`, `height`, `left_handed`, `taper_deg`, `plane` |
+| `construct_coordinate_system` | Add a coordinate system, which `solid_align` lines up | `type`: point_world, face_and_direction |
+| `construct_helix` | A helical curve, to sweep along | `radius`, `pitch`, `height`, `left_handed`, `taper_deg`, `plane` |
 
 #### Inspect
 
 | Command | What it does | Variants and main arguments |
 |---|---|---|
-| `measure` | Distance, closest points, angle, and the gap between parallel faces, of two faces, edges, axes or points | `a`, `b` |
-| `interference` | The solid bodies that overlap, with the overlapping volume | `min_volume` |
+| `design_measure` | Distance, closest points, angle, and the gap between parallel faces, of two faces, edges, axes or points | `a`, `b` |
+| `design_interference` | The solid bodies that overlap, with the overlapping volume | `min_volume` |
 | `body_describe` | A body's faces and edges, with ids, kinds and geometry, filtered and paged; its vertices on request | `body`; filters by kind, direction, extreme and convexity; `adjacency`; `vertices`; `before`: a feature, for the body as it stood just before it |
 | `body_mass_properties` | Volume, surface area, centre of mass, inertia | `body` |
 | `body_section` | The cross-section of a body at a base plane through the world origin, as contours | `body`, `plane`, `offset` |
@@ -966,8 +972,8 @@ These take no arguments and do what their right-click menu item does.
 
 | Command | What it does |
 |---|---|
-| `rename_selected` | Rename the selected body, else the selected feature, in place |
-| `zoom_to_selection` | Fit the view to what is picked in the view |
+| `design_rename_selected` | Rename the selected body, else the selected feature, in place |
+| `design_zoom_to_selection` | Fit the view to what is picked in the view |
 | `sketch_polygon_inscribed` | Set the Polygon tool to fit inside its circle |
 | `sketch_polygon_circumscribed` | Set the Polygon tool to fit around its circle |
 | `sketch_constrain_selected` | Open Constrain mode on the selected committed sketch |
@@ -1037,23 +1043,23 @@ Points are `[x, y]` in the sketch plane, in mm; angles are radians, or degrees u
 | `sketch_pattern` | `type` | linear, circular |
 | `sketch_dimension` | `type` | distance, distance_x, distance_y, angle, radius, diameter |
 | `sketch_constrain` | `type` | the 20 geometric constraints |
-| `hole` | `type` | simple (the default), counterbore, countersink |
-| `thicken` | `type` | face, surface; left out, face when `face` is given, else surface |
-| `pattern` | `type` | linear (the default), circular, curve |
-| `align` | `type` | fastened (the default), planar, revolute, slider, cylindrical |
+| `solid_hole` | `type` | simple (the default), counterbore, countersink |
+| `solid_thicken` | `type` | face, surface; left out, face when `face` is given, else surface |
+| `solid_pattern` | `type` | linear (the default), circular, curve |
+| `solid_align` | `type` | fastened (the default), planar, revolute, slider, cylindrical |
 | `construct_plane` | `type` | offset (the default), angle, midplane, tangent, two_edges, coincident |
 | `construct_axis` | `type` | two_points (the default), face_normal, cylinder, plane_intersection, along_edge |
 | `construct_coordinate_system` | `type` | point_world (the default), face_and_direction |
-| `boolean` | `operation` | join, cut, intersect; no default |
-| `extrude` | `operation` | auto, new_body, join, cut, intersect; left out, auto with a sketch or a face (join the body the profile touches, else a new body, as the card's default) and new_body without |
-| `revolve`, `sweep`, `loft` | `operation` | new_body (the default), join, cut, intersect |
-| `mirror` | `operation` | new_body (the default), join |
+| `solid_boolean` | `operation` | join, cut, intersect; no default |
+| `solid_extrude` | `operation` | auto, new_body, join, cut, intersect; left out, auto with a sketch or a face (join the body the profile touches, else a new body, as the card's default) and new_body without |
+| `solid_revolve`, `solid_sweep`, `solid_loft` | `operation` | new_body (the default), join, cut, intersect |
+| `solid_mirror` | `operation` | new_body (the default), join |
 
 An argument of one variant is refused with another: a seat size on a plain hole, `spacing` with a circular
-pattern, `dx` with a circular sketch pattern, `face` with `thicken {type: "surface"}`.
+pattern, `dx` with a circular sketch pattern, `face` with `solid_thicken {type: "surface"}`.
 
 **A guessed word.** Where a command has no argument of the name a call gives and the value fits, the server
-reads `type` as `operation` and `operation` as `type`, so `boolean {type: "cut"}` and `extrude {type:
+reads `type` as `operation` and `operation` as `type`, so `solid_boolean {type: "cut"}` and `solid_extrude {type:
 "cut"}` cut; it reads `index` as `feature`, and `params` and `values` as `fields`. Each schema shows one name.
 
 **A feature's fields.** `feature_describe`, `feature_edit` and `feature_set_expression` use the engine's
@@ -1067,11 +1073,11 @@ and a pattern's layout as `type` in the commands' words. A feature's type name (
 
 - A null argument is an argument not given, as the schemas' null defaults say.
 - Every command has a closed schema, so an argument it does not have is refused as an unknown argument rather
-  than ignored: `helix {pich: 3}` is refused, not built with the default pitch. The names agents often use
+  than ignored: `construct_helix {pich: 3}` is refused, not built with the default pitch. The names agents often use
   instead (`index` for `feature`, `params` or `values` for `fields`) are read as the schema's before it is
   checked.
 - **`generation`.** Every command but the menu-item ones takes `generation`, the generation
-  (`describe_design`, `body_describe`) the face and edge ids it passes were read at. Ids expire when a feature
+  (`design_describe`, `body_describe`) the face and edge ids it passes were read at. Ids expire when a feature
   rebuilds the model, and a stale id can still name a real face or edge, so a call whose ids were read before
   the model changed is refused.
 
@@ -1080,15 +1086,17 @@ and a pattern's layout as `type` in the commands' words. A feature's type name (
 A command that fails is an error whose `code` names the cause: `invalid_argument` (an argument is wrong, names
 nothing, or names an object whose kind or geometry the operation does not take), `precondition` (the arguments are
 right but the state is not: no body yet, a body hidden, no sketch open, a tool open), `rebuild_failed`,
-`kernel_failure`, `export_failed`, or one of the gate's (`design_unavailable`, `design_busy`, `stale_ids`) and the
+`kernel_failure`, `export_failed`, `cut_object` (`design_commit_to_plate`'s `replace` names a part of a cut,
+which Prepare's Delete refuses too), `nothing_deleted` (`design_commit_to_plate` sent the design to the plate and
+then deleted none of its `replace` objects; one Prepare undo takes the commit back), or one of the gate's (`design_unavailable`, `design_busy`, `stale_ids`) and the
 menu items' (`wrong_mode`, `wrong_selection`), and `no_silent_form` for an entry with no silent form called as one
 (only by `run_design_tool()` called directly); the server's design (mcp-server.md) draws the line between geometry and
 state. It leaves the design as it was, so
 `replay_export` leaves it out. That holds for argument errors and for a rebuild the engine rejects alike. Twenty-one commands
 instead report a rejected rebuild in their reply, `ok` false or `error` not empty, after the same rollback,
-so such a call is journaled and replays the same rejection: `body_transform`, `boolean`, `construct_axis`,
-`construct_coordinate_system`, `delete_face`, `draft`, `feature_set_expression`, `import_mesh`,
-`import_step`, `mirror`, `rib`, `set_variable`, `shell`, `sketch_blend_curve`, `sketch_finish`,
+so such a call is journaled and replays the same rejection: `body_transform`, `solid_boolean`, `construct_axis`,
+`construct_coordinate_system`, `solid_delete_face`, `solid_draft`, `feature_set_expression`, `design_import_mesh`,
+`design_import_step`, `solid_mirror`, `solid_rib`, `design_set_variable`, `solid_shell`, `sketch_blend_curve`, `sketch_finish`,
 `sketch_project` and the five `surface_` commands (`ok_false` in the tool block). Each says so in its
 description.
 
@@ -1100,7 +1108,7 @@ opens that item's tool for a person, as a pick of the item does; any other call 
 - No arguments choose the command's own menu item. A command with no menu item of its own is chosen with no
   arguments by the items folded into it with `{}`: Color for `body_set`, and the three value items for
   `sketch_set_value`.
-- A menu item may be chosen by arguments: `boolean {operation: "join"}`, `pattern {type: "circular"}`,
+- A menu item may be chosen by arguments: `solid_boolean {operation: "join"}`, `solid_pattern {type: "circular"}`,
   `sketch_draw {type: "slot"}`, `sketch_draw {type: "polygon", sides: 6}`. All of a command's variants open
   the same way.
 - A command that a call with no arguments opens has `silent` in its schema. `silent: true` beside the
@@ -1112,7 +1120,7 @@ opens that item's tool for a person, as a pick of the item does; any other call 
   sketch item in a sketch, a model item outside one); in the other the call is refused, naming the mode. An
   item the menu greys for the selection is refused for it, naming the selection and the kinds the item
   accepts. A call made while a row of the Feature list is selected and nothing is picked in the view takes
-  that row as what four menu items act on: `feature_edit`, `rename_selected`, `feature_delete` and
+  that row as what four menu items act on: `feature_edit`, `design_rename_selected`, `feature_delete` and
   `sketch_constrain_selected`.
 - The reply is `{"interactive": true, "tool", "applies", "modal", "selection_kind", "busy",
   "status"}`: the command called, whether the menu item accepts the selection, whether a dialog the item's
@@ -1127,40 +1135,40 @@ opens that item's tool for a person, as a pick of the item does; any other call 
 | Command | Mode | Its items, and the call each makes |
 |---|---|---|
 | `sketch_create` | model | Sketch `{}` |
-| `extrude` | model | Extrude `{}` |
-| `revolve` | model | Revolve `{}` |
-| `sweep` | model | Sweep `{}` |
-| `loft` | model | Loft `{}` |
-| `thicken` | model | Thicken `{"type": "face"}`; Thicken Surface `{"type": "surface"}` |
-| `rib` | model | Rib `{}` |
-| `boolean` | model | Join `{"operation": "join"}`; Subtract `{"operation": "cut"}`; Intersect `{"operation": "intersect"}` |
+| `solid_extrude` | model | Extrude `{}` |
+| `solid_revolve` | model | Revolve `{}` |
+| `solid_sweep` | model | Sweep `{}` |
+| `solid_loft` | model | Loft `{}` |
+| `solid_thicken` | model | Thicken `{"type": "face"}`; Thicken Surface `{"type": "surface"}` |
+| `solid_rib` | model | Rib `{}` |
+| `solid_boolean` | model | Join `{"operation": "join"}`; Subtract `{"operation": "cut"}`; Intersect `{"operation": "intersect"}` |
 | `surface_extrude` | model | Surface Extrude `{}` |
 | `surface_revolve` | model | Surface Revolve `{}` |
 | `surface_loft` | model | Surface Loft `{}` |
 | `surface_patch` | model | Surface Fill `{}` |
-| `hole` | model | Hole `{}` |
-| `thread` | model | Thread `{}` |
-| `shell` | model | Shell `{}` |
-| `split` | model | Cut `{}` |
-| `fillet` | model | Fillet `{}` |
-| `chamfer` | model | Chamfer `{}` |
-| `draft` | model | Draft `{}` |
+| `solid_hole` | model | Hole `{}` |
+| `solid_thread` | model | Thread `{}` |
+| `solid_shell` | model | Shell `{}` |
+| `solid_split` | model | Cut `{}` |
+| `solid_fillet` | model | Fillet `{}` |
+| `solid_chamfer` | model | Chamfer `{}` |
+| `solid_draft` | model | Draft `{}` |
 | `surface_offset` | model | Surface Offset `{}` |
-| `pattern` | model | Linear pattern `{"type": "linear"}`; Circular pattern `{"type": "circular"}` |
-| `mirror` | model | Mirror `{}` |
+| `solid_pattern` | model | Linear pattern `{"type": "linear"}`; Circular pattern `{"type": "circular"}` |
+| `solid_mirror` | model | Mirror `{}` |
 | `body_transform` | model | Move `{}` |
-| `align` | model | Mate `{}` |
+| `solid_align` | model | Mate `{}` |
 | `construct_plane` | model | Plane `{}` |
 | `construct_axis` | model | Axis `{}` |
 | `construct_coordinate_system` | model | Coordinate system `{}` |
-| `helix` | model | Helix `{}` |
+| `construct_helix` | model | Helix `{}` |
 | `sketch_project` | model | Project `{}` |
 | `body_mass_properties` | model | Volume and area `{}` |
-| `interference` | model | Interference `{}` |
+| `design_interference` | model | Interference `{}` |
 | `feature_edit` | model | Edit `{}` |
-| `rename_selected` | model | Rename… `{}` |
-| `delete_face` | model | Delete Face `{}` |
-| `zoom_to_selection` | model | Zoom to selection `{}` |
+| `design_rename_selected` | model | Rename… `{}` |
+| `solid_delete_face` | model | Delete Face `{}` |
+| `design_zoom_to_selection` | model | Zoom to selection `{}` |
 | `feature_delete` | model | Delete `{}` |
 | `body_delete` | model | Delete Body `{}` |
 | `body_set` | model | Color `{}` |
@@ -1194,13 +1202,17 @@ model and is refused while a sketch is open.
 - **A command with a menu item**: the item's slot, key, handler (`action`), accepts, mode, name, icon and
   hint, and the command's tool block, under the command's name. 47 commands.
 - **An argument-only command**: a tool block and no handler. 36 commands: 35 have no menu item, and
-  `measure`'s item, which has no handler, is shown disabled.
+  `design_measure`'s item, which has no handler, is shown disabled.
 - **A menu-only command**: a handler and no tool block. Five, under Menu items.
 - **A folded item**: a menu item that is no command. It keeps its id, which the menu, the keys, the toolbar,
   the Speed Dial actions and the GUI tests use, and names its command and the arguments that choose it:
   `"fold": {"into": "sketch_draw", "args": {"type": "circle_center"}}`. 37 items, folded into eight commands.
 - **A greyed item**: an item with neither, shown disabled. Two: Pattern on Curve (`pat_curve`), whose function
-  is `pattern {type: "curve"}`, and Align to (`align_to`), which is not built.
+  is `solid_pattern {type: "curve"}`, and Align to (`align_to`), which is not built.
+
+A command that changes Prepare's model also names the operations it reaches (`operations`), as the commands
+outside the Design tab do: `design_commit_to_plate` names `delete_objects`, which deletes the objects its
+`replace` lists.
 
 That is 88 commands and 89 menu items with a handler, each of which has a Speed Dial action.
 
@@ -1233,7 +1245,7 @@ A command's tool block has an `access`, which decides when the Design tab lets i
 - **change** edits the feature list or the variables, or sets what is selected in the model.
 - Both sketch and change are refused under an open card, the Text dialog, Constrain mode or a body Move,
   and change under a sketch session too.
-- **ui** acts on what the tab has open (`confirm_tool`, `cancel_tool`), so only a rebuild refuses it.
+- **ui** acts on what the tab has open (`design_confirm_tool`, `design_cancel_tool`), so only a rebuild refuses it.
 - The opening of a tool is refused only by a rebuild, as the Design tab's keys and menu are.
 
 ### Behaviour a caller relies on
@@ -1256,24 +1268,24 @@ A command's tool block has an `access`, which decides when the Design tab lets i
   lists; a Plane's, an Axis's and a Coordinate system's are the finished model's (`feature_describe`'s
   `ids_of` says which). `fields` takes a Text feature's words, font and height, which outline it again, and
   imported art's position. One undo step; a rebuild that fails is rolled back.
-- **The selection.** `select_geometry` selects as a click does and replies the selection as
-  `describe_design` reports it. A loop is numbered as `sketch_describe {sketch}` numbers `closed_loops` and
-  `extrude {sketch, loop}` takes it, and is selected only while the view shows it. A plane is picked only
+- **The selection.** `design_select` selects as a click does and replies the selection as
+  `design_describe` reports it. A loop is numbered as `sketch_describe {sketch}` numbers `closed_loops` and
+  `solid_extrude {sketch, loop}` takes it, and is selected only while the view shows it. A plane is picked only
   where a click can pick one: while the Origin row shows the planes, or while Sketch waits for its plane,
   where picking it opens the sketch. It is refused while a card, a sketch, Constrain mode, a body Move or the
   Text dialog is open, where a click means something else.
-- **What is open.** `confirm_tool` takes, in this order: the Text dialog, a value field, a body Move, a
+- **What is open.** `design_confirm_tool` takes, in this order: the Text dialog, a value field, a body Move, a
   text or art placement, a feature card, a sketch, Constrain mode. A card adds or edits its feature in one
   undo step and closes; an add the card refuses, or whose rebuild fails, leaves no feature and no undo step
   and keeps the card open with the reason on the status line, and the reply says `ok: false`. It is refused
   when nothing is open, while Sketch waits for its plane, and while Confirm is off, with the status line as
-  the reason. `cancel_tool` takes the same states, and Sketch waiting for its plane; an open sketch is
+  the reason. `design_cancel_tool` takes the same states, and Sketch waiting for its plane; an open sketch is
   discarded without the dialog a person gets. Both reply `was`, what was open.
 - **A body's placement.** `body_place` sets where Commit to Plate and Export STEP send a body, as the Bodies
   row's Move and Place on Face do: outside the history, with no undo step, and not kept in the project file.
   `move` and `rotate` add to where the body stands, the turn about its centre; `face` lays that face on the
   bed; `reset` puts it back where the model has it. A placement follows its body when the bodies are
-  renumbered. `describe_design` reports each body's `placement`.
+  renumbered. `design_describe` reports each body's `placement`.
 - **Mirror and offset bindings.** `sketch_mirror {axis}` binds each copy Symmetric to its source about the
   axis, as the Mirror tool's Confirm does, unless that would move anything off its reflection. A fillet or a
   chamfer lets go of a Symmetric constraint on an end it trims. `sketch_offset` binds one entity's copy
@@ -1287,11 +1299,11 @@ command a call names.
 | Where | The app says | Command |
 |---|---|---|
 | Sketch, Repeat submenu | Linear array, Polar array | `sketch_pattern {type: linear}`, `{type: circular}` |
-| Remove submenu | Cut, which divides a body with a plane | `split` |
-| Boolean card and menu items | Join, Subtract, Intersect | `boolean {operation: join}`, `{operation: cut}`, `{operation: intersect}` |
+| Remove submenu | Cut, which divides a body with a plane | `solid_split` |
+| Boolean card and menu items | Join, Subtract, Intersect | `solid_boolean {operation: join}`, `{operation: cut}`, `{operation: intersect}` |
 | Surface flyout | Surface Fill | `surface_patch` |
 | Reference submenu | Volume and area | `body_mass_properties` |
 | Rectangle flyout | Corner rectangle, Oblique rectangle | `sketch_draw {type: rectangle_2_point}`, `{type: rectangle_3_point}` |
 | Transform submenu | Move in the menu, Transform on the toolbar and the card | `body_transform` |
-| Placement flyout | Mate | `align` |
+| Placement flyout | Mate | `solid_align` |
 | Feature row | the eye, show or hide | `feature_suppress` |

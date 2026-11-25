@@ -1012,7 +1012,7 @@ TEST_CASE("a command the catalog leaves out is unknown with the reason", "[Comma
     // A left-out key's name is right, so its error carries what keeps it from the run; any other is the call's to correct.
     CHECK(catalog.unknown_command_code("holes") == "feature_off");
     CHECK(catalog.unknown_command_code("holx") == "invalid_argument");
-    CHECK_THROWS_AS(catalog.leave_out("shell", "too late", "feature_off"), std::logic_error);
+    CHECK_THROWS_AS(catalog.leave_out("solid_shell", "too late", "feature_off"), std::logic_error);
 
     // A run with the CAD feature off at startup leaves out the Design commands, and says how a person turns it
     // on; the G-code viewer leaves them out whatever the preference, and says to open the editor. A build without
@@ -1024,7 +1024,7 @@ TEST_CASE("a command the catalog leaves out is unknown with the reason", "[Comma
     NativeCommands::register_all_commands(viewer, {false, /*editor=*/false});
     viewer.seal();
 #ifdef SLIC3R_CAD
-    for (const std::string key : {"extrude", "hole", "describe_design"}) {
+    for (const std::string key : {"solid_extrude", "solid_hole", "design_describe"}) {
         INFO(key);
         CHECK(no_cad.unknown_command(key, /*suggest=*/true) ==
               "Unknown tool: " + key + "; the CAD feature was off when OrcaSlicer started: a person turns it on in "
@@ -1035,7 +1035,7 @@ TEST_CASE("a command the catalog leaves out is unknown with the reason", "[Comma
         CHECK(viewer.unknown_command_code(key) == "design_unavailable");
     }
 #else
-    CHECK(no_cad.left_out("extrude") == nullptr);
+    CHECK(no_cad.left_out("solid_extrude") == nullptr);
 #endif
     CHECK(no_cad.left_out("object_arrange") == nullptr);
 }
@@ -1470,7 +1470,7 @@ TEST_CASE("the reference shows both forms of a two-form command", "[CommandCatal
     std::vector<std::pair<std::string, json>> two_forms{
         {"project_save", {{"not", {{"enum", json::array({json::object(), {{"save_as", true}}})}}}}}};
 #ifdef SLIC3R_CAD
-    two_forms.emplace_back("fillet", json{{"minProperties", 1}});
+    two_forms.emplace_back("solid_fillet", json{{"minProperties", 1}});
 #endif
     for (const auto& [key, person_forms] : two_forms) {
         INFO(key);

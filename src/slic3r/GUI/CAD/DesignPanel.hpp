@@ -63,7 +63,7 @@ class DesignRowList;
 
 class DesignCanvas;
 
-// What select_geometry selects in the model at rest (DesignPanel::mcp_select()), by the kind of click that would
+// What design_select selects in the model at rest (DesignPanel::mcp_select()), by the kind of click that would
 // select it: a body (its row of the Bodies list), a face, an edge set or a vertex of `body` (a click in the view;
 // `edges` the last the current edge, `vertex` its id as body_describe numbers them), a reference plane (`plane`: 0
 // XY, 1 XZ, 2 YZ), a closed loop of committed sketch `sketch` (`loop`, numbered as sketch_describe numbers the
@@ -250,7 +250,7 @@ public:
     void set_bed_shown(bool on);
     bool bed_shown() const { return m_show_bed; }
 
-    // select_geometry: select `s` as the click that selects it does, through the handlers that click runs. The whole
+    // design_select: select `s` as the click that selects it does, through the handlers that click runs. The whole
     // request is checked first, every id against the model and against what a click could pick now (a body shown, a
     // loop the view shows, a plane while the Origin row's planes are up or Sketch waits for its plane); one that fails
     // changes nothing: an id that names nothing, or the wrong kind of thing, returns false with the reason in `why`,
@@ -265,13 +265,13 @@ public:
     // The reference plane picked in the view (0 XY, 1 XZ, 2 YZ), which the next Sketch opens on, or -1.
     int mcp_picked_plane() const;
 
-    // What confirm_tool and cancel_tool act on now: "text" (the Text dialog), then in the order tool_cancel() takes
+    // What design_confirm_tool and design_cancel_tool act on now: "text" (the Text dialog), then in the order tool_cancel() takes
     // them "value" (a value field), "move" (a body Move), "insert" (a text or art placement), "card" (a feature card),
     // "plane_pick" (Sketch waiting for its plane), "sketch" (a sketch session), "constrain" (Constrain mode); nullptr
     // for nothing. The Confirm, tool_confirm(), acts on each of them but "text", which has its own OK and Cancel, and
     // "plane_pick".
     const char* mcp_open_tool() const;
-    // What confirm_tool did: what was open (mcp_open_tool()), whether it took the Confirm, the feature it added or
+    // What design_confirm_tool did: what was open (mcp_open_tool()), whether it took the Confirm, the feature it added or
     // edited (-1 for none) and what is still open ("" for nothing).
     struct ConfirmOutcome
     {
@@ -280,11 +280,11 @@ public:
         int         feature = -1;
         std::string open;
     };
-    // confirm_tool: the Text dialog's OK, else the tab's Confirm, as tool_confirm() runs it. False, changing nothing,
+    // design_confirm_tool: the Text dialog's OK, else the tab's Confirm, as tool_confirm() runs it. False, changing nothing,
     // with the reason in `why`: nothing is open, Sketch waits for its plane, the Text dialog's OK is off (its size line
     // as the reason), or the Confirm is off (confirm_enabled()), with the status line as the reason.
     bool mcp_confirm_tool(ConfirmOutcome& out, std::string& why);
-    // cancel_tool: the Text dialog's Cancel, else the tab's Cancel, as tool_cancel() runs it, but an open sketch is
+    // design_cancel_tool: the Text dialog's Cancel, else the tab's Cancel, as tool_cancel() runs it, but an open sketch is
     // discarded without the dialog a person gets, as mcp_cancel_sketch() discards it. `was` names what was open; false
     // with `why` when nothing is.
     bool mcp_cancel_tool(std::string& was, std::string& why);

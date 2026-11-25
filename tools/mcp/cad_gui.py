@@ -2,7 +2,7 @@
 
 Every action goes through the MCP server's UI tools (view_set, widget_click, mouse_gesture, keyboard_press,
 widget_set_value, dialog_answer); the Design commands are used only to read results back (sketch_describe,
-describe_design, feature_describe), and the right-click menu's layout is read from the Design table's source,
+design_describe, feature_describe), and the right-click menu's layout is read from the Design table's source,
 scripts/CAD/tool_atlas.json, as the app's own table is generated from it. Nothing here knows a pixel: buttons and rows are
 found by label, and canvas positions come from a calibration that maps the open sketch's plane
 (millimetres) to canvas pixels, so the tests run at any window size, screen scaling and theme. Labels, menu paths and verb names are
@@ -547,7 +547,7 @@ class CadGui:
 
         `first_showing` first checks that the Design tab lays out its canvas on its first showing as on
         a later one, which only an app that has not built the tab yet can tell: the test that asks for
-        it runs in a newly started app. It comes before checks.start(), whose cancel_tool builds the
+        it runs in a newly started app. It comes before checks.start(), whose design_cancel_tool builds the
         tab unshown, so that the tab is built by its first showing, as a person's first click on it
         builds it."""
         if not self.client.call("app_state").get("design_tab"):
@@ -596,7 +596,7 @@ class CadGui:
 
     def reset_view(self):
         """Put the Design camera in one view, whatever an earlier test, rung or project open left:
-        the top camera at RESET_ZOOM, centred on describe_design's modeling_origin, the sketch planes'
+        the top camera at RESET_ZOOM, centred on design_describe's modeling_origin, the sketch planes'
         origin, and squared to the sketch's plane when a sketch is open.
 
         view_set's look_at is in the Design view's world coordinates, where modeling_origin is not
@@ -607,7 +607,7 @@ class CadGui:
         on this view, so the camera view_set reports is checked. Its camera_state gives the canvas's
         GL pixels per click pixel, and the view is set again when they differ from the ones the zoom
         assumed."""
-        origin = self.cad("describe_design")["modeling_origin"]
+        origin = self.cad("design_describe")["modeling_origin"]
 
         def aim():
             return self.client.call("view_set", tab="design", camera="top", look_at=origin,
@@ -630,7 +630,7 @@ class CadGui:
     def new_design(self):
         """Clear the feature tree with the ribbon's New Design, confirming when it asks."""
         self._answer(self.press(NEW_DESIGN), "New Design")
-        features = self.cad("describe_design")["features"]
+        features = self.cad("design_describe")["features"]
         if features:
             raise RuntimeError(f"New Design left {len(features)} feature(s)")
 
@@ -703,11 +703,11 @@ class CadGui:
         """Open a committed sketch again from its Feature tree row and calibrate on it; returns
         sketch_describe.
 
-        `row` names the row. None takes the newest sketch feature describe_design lists: New Design
+        `row` names the row. None takes the newest sketch feature design_describe lists: New Design
         keeps counting features, so the first sketch of a design is "Sketch 1" only in a session
         that has committed none before it."""
         if row is None:
-            sketches = [f["name"] for f in self.cad("describe_design")["features"] if f.get("type") == "Sketch"]
+            sketches = [f["name"] for f in self.cad("design_describe")["features"] if f.get("type") == "Sketch"]
             if not sketches:
                 raise RuntimeError("no sketch feature to reopen")
             row = sketches[-1]
@@ -978,7 +978,7 @@ class CadGui:
 
     def verbs(self, sketch_mode=True):
         """The verbs of the right-click menu, in the Design table's order, for the selection it would be built
-        for now (describe_design's selection): those of the sketch vocabulary, or with sketch_mode False of the
+        for now (design_describe's selection): those of the sketch vocabulary, or with sketch_mode False of the
         model one, or with None both. Each has id, name, row, row_name, family (its submenu within the row,
         or None), key, action, sketch_mode, applies (it accepts the selection), modal and hint, as the table
         has them; entries with no menu item (commands only) are left out."""
@@ -986,7 +986,7 @@ class CadGui:
             atlas = json.load(f)
         slots = atlas["slots"]
         rows = [s["id"] for s in slots]
-        selection = self.cad("describe_design")["selection"]["id"]
+        selection = self.cad("design_describe")["selection"]["id"]
         out = []
         for v in atlas["verbs"]:
             if v["slot"] is None:

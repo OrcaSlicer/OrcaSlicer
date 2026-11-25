@@ -42,13 +42,13 @@ def cad(client, tool, **args):
 def coil(client, turns):
     """A new design holding one coil: a 1.2 mm wire swept along a helix of radius 10 and pitch 3. Each call's job is
     followed to its end, since under the sweep's 4 s budget one may reply running on a loaded machine."""
-    client.await_job(cad(client, "new_design", discard_changes=True))
-    client.await_job(cad(client, "helix", radius=10, pitch=3, height=3 * turns))
+    client.await_job(cad(client, "design_new", discard_changes=True))
+    client.await_job(cad(client, "construct_helix", radius=10, pitch=3, height=3 * turns))
     client.await_job(cad(client, "sketch_create", plane="XZ"))
     client.await_job(cad(client, "sketch_draw", type="circle_center", center=[10, 0], radius=1.2))
     client.await_job(cad(client, "sketch_finish"))
     start = time.time()
-    client.await_job(cad(client, "sweep", sketch=1, path=0))
+    client.await_job(cad(client, "solid_sweep", sketch=1, path=0))
     return time.time() - start
 
 
@@ -69,7 +69,7 @@ def main():
     checks.start(client)
     # An app's first Design command builds the Design tab, which can outlast a 4 s budget. Built before the session
     # is recorded, it adds no job to the export, which a replay into the built tab would wait for in vain.
-    client.await_job(cad(client, "new_design", discard_changes=True))
+    client.await_job(cad(client, "design_new", discard_changes=True))
     client.call("replay_export", clear=True)
     client.call("project_new", discard_changes=True)
     built = 12
@@ -86,7 +86,7 @@ def main():
             built = turns
         start = time.time()
         try:
-            started = cad(client, "hole", x=500, through=True)
+            started = cad(client, "solid_hole", x=500, through=True)
         except orca_mcp.McpError as e:
             if turns >= 40 or "removed no material" not in str(e):
                 raise
@@ -115,7 +115,7 @@ def main():
     check("the missed hole replies with its running job", started.get("status") == "running",
           f"{started.get('status')} after {time.time() - start:.1f} s; the coil rebuilds too fast")
     check("an export while it runs leaves it out and names it",
-          during.get("left_out_running") == [{"tool": "hole", "job": started.get("job")}],
+          during.get("left_out_running") == [{"tool": "solid_hole", "job": started.get("job")}],
           during.get("left_out_running") if running else
           f"{during.get('left_out_running')}; at {turns} turns the hole still ends before the export, so this machine is too fast or "
           "too loaded for the test")
@@ -127,13 +127,13 @@ def main():
     check("the hole then fails as an error", failure and "removed no material" in failure,
           f"{failure} after {time.time() - start:.1f} s")
     cad(client, "feature_rename", feature=2, name="Coil")
-    live_scene = cad(client, "describe_design")
+    live_scene = cad(client, "design_describe")
     live_mass = cad(client, "body_mass_properties", body=0)
 
     after = client.call("replay_export", path=path, overwrite=True)
     # A Design command's call is journaled as its own.
     tools = [s["tool"] for s in after["replay"]["steps"]]
-    check("the export leaves the failed hole out", "hole" not in tools, tools)
+    check("the export leaves the failed hole out", "solid_hole" not in tools, tools)
     check("and keeps the rename made after it", "feature_rename" in tools, tools)
     check("and leaves nothing out", "left_out_running" not in after, after.get("left_out_running"))
 
@@ -151,7 +151,7 @@ def main():
     replay = client.await_job(client.call("replay_run", path=run_path, out_dir=out_dir), timeout=1800)
     check("the exported session replays", replay.get("passed") is True,
           json.dumps([s for s in replay.get("steps", []) if not s.get("ok")][:1]))
-    scene = cad(client, "describe_design")
+    scene = cad(client, "design_describe")
     mass = cad(client, "body_mass_properties", body=0)
     # Feature names count on across projects; the renamed one keeps its name.
     kinds = lambda s: [f["type"] for f in s["features"]]  # noqa: E731

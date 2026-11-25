@@ -21,7 +21,7 @@ to the data folder. What the Design tab reads from the folder:
   the app saves only when it closes.
 
 What the app keeps until it closes, beside the baseline `start()` puts back: the design itself, which each test and
-part clears with `new_design`; the view's helper planes and axes (keys P and A) and its section view, which
+part clears with `design_new`; the view's helper planes and axes (keys P and A) and its section view, which
 `reset_switches()` turns off with the switches above; and the Design camera, which `CadGui.start()` sets
 (`reset_view()`) and the replays point themselves.
 
@@ -59,11 +59,11 @@ its own, since it runs with a reply budget of 4 s.
 
 **Starts from:** Each part starts from the same state, whatever the part before it left: `start(client)`, the
 baseline on the Generic Klipper Printer with `0.20mm Standard @MyKlipper` and `Generic PLA @System`, which closes
-the open dialogs and what `cancel_tool` closes in the Design tab (a card, a sketch, the Text dialog, a plane pick);
+the open dialogs and what `design_cancel_tool` closes in the Design tab (a card, a sketch, the Text dialog, a plane pick);
 then `reset_switches()` on the Design tab, and Prepare shown again. So a part that fails with a dialog or a sketch
 open does not fail the next one. Each part then sets its own start, given with it below.
 
-**Leaves:** What examples, the last part, leaves: the project unsaved, holding the objects its two `commit_to_plate`
+**Leaves:** What examples, the last part, leaves: the project unsaved, holding the objects its two `design_commit_to_plate`
 examples sent to the plate. The recent projects name `design.3mf` (cad_doc) and `design_only.3mf` (cad_canvas), in
 the folder the run makes in its own temporary folder and prints, which also takes the replays' `result.json` and
 files, round_trip's exported session and its run, and slow_build's two screenshots. In the folder's settings only the
@@ -88,7 +88,7 @@ sketch's only construction line.
 
 Its start: the Generic Klipper Printer, which its first step after `app_wait` selects (`preset_select {type:
 "printer", name: "MyKlipper 0.4 nozzle", preset_changes: "discard"}`), since its checks of where the XZ sketch and
-the bracket lie follow the bed; then its own `project_new`, `window_set` 1600 x 900 and `new_design`. On that bed the
+the bracket lie follow the bed; then its own `project_new`, `window_set` 1600 x 900 and `design_new`. On that bed the
 XZ sketch's frame origin and the bracket's lowest corner are both at (125, 125, 0).
 - Sketch frames: the XZ sketch reports `plane` XZ with normal +Y and frame origin x 125 (exact), the Klipper bed's
   centre. The sketch on face 10 has frame origin z 8 ± 1e-3, x axis world −Y and y axis world +X (exact).
@@ -97,7 +97,7 @@ XZ sketch's frame origin and the bracket's lowest corner are both at (125, 125, 
   and 9600 ± 0.01. The plate is loop 5. Each commit's `sketch_index`/`features` is checked.
 - Empty commit: the next `sketch_describe` (no `sketch` argument, so it errors when no sketch is open) must list no
   entities. The next commit must be `sketch_index` 0.
-- Solids: the `extrude` and `revolve` replies (`extrude_index`, `operation` new_body/join, `body`, `bodies`, `loop`,
+- Solids: the `solid_extrude` and `solid_revolve` replies (`extrude_index`, `operation` new_body/join, `body`, `bodies`, `loop`,
   `end` blind, `axis_entity` 4). `body_mass_properties` volumes are within 0.03 mm³ for the jig, lip and single loop,
   0.16 for the ring and ±2 for the bracket. `body_describe` gives 11 faces with known kinds, and the bboxes run z
   0–30, then 18 after the lip. The bracket's lowest x is 125 ± 1e-3.
@@ -109,7 +109,7 @@ linear and circular patterns, rotate and move. It also adds constraints and dime
 named points (`origin`): a radius that over-constrains is rolled back and a constraint is deleted. Each result is
 read back from `sketch_describe` and `sketch_list_constraints` and from the extruded solid's volume.
 
-Its start: its own `project_new`, `window_set` 1600 x 900 and `new_design`. Every value it reads is in a sketch's own
+Its start: its own `project_new`, `window_set` 1600 x 900 and `design_new`. Every value it reads is in a sketch's own
 coordinates or a volume, so no check depends on the printer.
 - Hex standoff: `sketch_draw`'s shape bookkeeping (`count` 6, `first` 6, 7 entities). The first edge lies at x 4 ±
   1e-4. The hexagon loop has area 55.4256–55.4257 and holds the bore as hole 0. Volume 630.0–630.1.
@@ -129,10 +129,10 @@ coordinates or a volume, so no check depends on the printer.
 
 Reading a body's topology and building on what it finds. It covers `body_describe` filters (convexity, face kinds,
 direction, extreme, adjacency, paging), a fillet on an inside edge found that way, and M4 countersinks seated on a
-face on a pilot hole's axis (`at` a cylindrical face). It also covers `measure` between faces and axes, datum planes
+face on a pilot hole's axis (`at` a cylindrical face). It also covers `design_measure` between faces and axes, datum planes
 (midplane, offset) with a sketch on one, and a face push/pull that joins its own body.
 
-Its start: its own `project_new`, `window_set` 1600 x 900 and `new_design`. It reads positions in a plane's frame,
+Its start: its own `project_new`, `window_set` 1600 x 900 and `design_new`. It reads positions in a plane's frame,
 heights and distances, none of which follows the bed's size.
 - Topology reads, all ± 1e-4 or tighter:
   - Two concave edges: the first is id 7, a line next to face 2, with 3 faces in total.
@@ -159,7 +159,7 @@ Threads, sweeps, lofts and plane splits through the Design commands:
 - a square-to-circle loft up to a datum plane;
 - a split by that datum, then a split by XY flipped that keeps one side.
 
-Its start: its own `project_new`, `window_set` 1600 x 900 and `new_design`. It reads positions in a plane's frame,
+Its start: its own `project_new`, `window_set` 1600 x 900 and `design_new`. It reads positions in a plane's frame,
 heights and volumes, none of which follows the bed's size. The thread on the bore is the M5 hex standoff at the
 design's origin, which the Design tab puts at the bed's centre, (125, 125) on the Klipper bed.
 - Thread on the bore: `thread_index` 3, `designation` M5, `internal`, `pitch` 0.8 ± 1e-4, `length` 15 ± 1e-4, one
@@ -183,12 +183,12 @@ suppress, move and delete, body name, visibility and colour, and a save and reop
 
 Its start: the Generic Klipper Printer, which its first step after `app_wait` selects (`preset_select {type:
 "printer", name: "MyKlipper 0.4 nozzle", preset_changes: "discard"}`), since it sends bodies to that printer's plate
-and its project carries the printer; then its own `project_new`, `window_set` 1600 x 900 and `new_design`. The
+and its project carries the printer; then its own `project_new`, `window_set` 1600 x 900 and `design_new`. The
 objects `object_list` reads land on plate 0 of the 250 x 250 bed. The rule for the "Load project: unsaved changes"
 prompt it sets before the reopen holds only for the replay.
 - Discovery: `tool_describe` gives `feature_describe` in group Design with `access.read_only` true and `feature_edit`
   with false.
-- Variables and edits: variable `h` = 12 shows as bound to `distance` in `describe_design` and in `feature_describe`
+- Variables and edits: variable `h` = 12 shows as bound to `distance` in `design_describe` and in `feature_describe`
   (`params`, `expr`, `refs`, `used_by`, `editable`). After unbinding and removing it, `variables` is empty and
   `bound` is absent. `feature_edit` reports `changed` old/new pairs, and the `index`, `params` and `values` aliases
   each apply. Volumes 6000 and 9000 ± 0.01.
@@ -196,14 +196,14 @@ prompt it sets before the reopen holds only for the replay.
   `object_list` then shows 1 object of height 15 ± 0.01, then 20 after the recommit (which reports `replaced` 0), and
   15 again after one Prepare undo `action_run`. The bodies and assembly commits create objects 1, 2 ("Design Body 2")
   and 3 ("Design Assembly", 2 parts), for a total of 4.
-- STEP round trip: the export has `bytes` > 0 and one body. `new_design` clears 3 features and 1 body. The
-  `import_step` body's volume is 12000 ± 1.2.
+- STEP round trip: the export has `bytes` > 0 and one body. `design_new` clears 3 features and 1 body. The
+  `design_import_step` body's volume is 12000 ± 1.2.
 - History and tree:
   - Undo/redo depths, with `distance` going 15 → 10 → 15.
   - The rename trims to "Base", is its own undo step (`undo_depth` 4 → 3), and is undone and redone.
   - Suppress reports `changed` true, then false, with body counts.
   - `feature_move`'s reply and the new feature order, then its undo.
-  - `body_set` name and visibility show in `describe_design`. A hidden body is left out of `bodies_sent` and listed
+  - `body_set` name and visibility show in `design_describe`. A hidden body is left out of `bodies_sent` and listed
     in `bodies_hidden`.
   - `body_delete` and `feature_delete` report their counts, and their undos restore them.
   - A colour given as `#3080ff` reads back as `#3080FF`.
@@ -217,7 +217,7 @@ verbs; keys reaching the Design panel's key hook (Shift+E opens the Extrude card
 it); the project's modified flag after a change made only in the Design tab, and reopening a design-only project with
 `discard_changes`.
 
-Its start: its own `project_new`, `new_design` and `window_set` 1600 x 900, the size its clicks at (30, 30) and at
+Its start: its own `project_new`, `design_new` and `window_set` 1600 x 900, the size its clicks at (30, 30) and at
 the canvas's centre are aimed in. The Design view's `default` camera is its iso view fitted to the block, whatever
 the bed, and the project it saves carries the printer it reopens with.
 - View: `view_set` echoes tab `design` with camera `iso`, then `default`, then `fit_selection`. After an extrude,
@@ -226,8 +226,8 @@ the bed, and the project it saves carries the printer it reopens with.
   window's width is > 0. `widget_list` finds one `OrcaSceneCanvas`.
 - Pick: `widget_click` reports `clicked` canvas. The right-click menu's first item matches "of Extrude".
   `fit_selection`, refused earlier with nothing picked, now succeeds.
-- Keys: `widget_list` "Extrude dist" finds 1 node after Shift+E and 0 after Escape. The next `extrude` succeeds, its reply without `ok`.
-- Project: after the save, not dirty, named `design_only`; after `set_variable`, dirty. Opening with
+- Keys: `widget_list` "Extrude dist" finds 1 node after Shift+E and 0 after Escape. The next `solid_extrude` succeeds, its reply without `ok`.
+- Project: after the save, not dirty, named `design_only`; after `design_set_variable`, dirty. Opening with
   `discard_changes` reports a project with 0 objects. `app_state` then shows not dirty, the name and path match, and
   no dialogs are open. The variable is gone and a second body exists.
 
@@ -239,8 +239,8 @@ leave out; a shell that replies `ok` false, which stays in; and face and edge id
 the export must drop. The replay runs in a new project in the same instance.
 
 Its start: `replay_export {clear: true}`, so that the export holds this part's calls alone, then its own
-`project_new` and `new_design`. No check depends on the printer: the checks compare with `modeling_origin` as
-`describe_design` reads it, and the missed hole's x 500 is in the sketch plane's frame, off the plate on any bed. The
+`project_new` and `design_new`. No check depends on the printer: the checks compare with `modeling_origin` as
+`design_describe` reads it, and the missed hole's x 500 is in the sketch plane's frame, off the plate on any bed. The
 part breaks off when a recording call other than the three expected refusals errors, or when the thread's job fails.
 - Live session:
   - "a sketch on XY and the plate are centred on modeling_origin": the frame origin equals `modeling_origin` exactly,
@@ -250,8 +250,8 @@ part breaks off when a recording call other than the three expected refusals err
     arguments".
   - "a shell thicker than the plate reports the rejected rebuild in its reply (ok false)": `ok is False`.
   - "the thread is M5, inferred from the bore".
-- Export: "the export leaves out the failed calls" (one `sketch_finish`, no `hole`), "... leaves out the refused
-  fillet and keeps the one that ran" (one `fillet`), "... keeps the shell" (one `shell`), and "the export records no
+- Export: "the export leaves out the failed calls" (one `sketch_finish`, no `solid_hole`), "... leaves out the refused
+  fillet and keeps the one that ran" (one `solid_fillet`), "... keeps the shell" (one `solid_shell`), and "the export records no
   generation".
 - Replay: "the exported session replays" (`passed` true); "the same features" (type list) and "the same bodies and
   undo depth"; "the same volume and surface area" and "the same centre of mass", within 1e-6 relative of the live
@@ -264,16 +264,16 @@ rebuild is an M8 thread tapped 250 mm deep, 200 turns, which takes several secon
 running on the machine). While it runs, `app_state` and a main-window screenshot answer, the progress dialog is
 listed and can be captured, and another Design command is refused as busy. The thread then lands as one feature.
 
-Its start: its own `project_new` and `new_design`, and a 30 x 30 x 250 block. No check depends on the printer.
+Its start: its own `project_new` and `design_new`, and a 30 x 30 x 250 block. No check depends on the printer.
 "Captures it" needs the main window wider than the progress dialog, as the baseline's 1600 x 900 is. The part breaks
 off when an `app_state` or screenshot probe raises, or when the build is seen neither running nor ended within 300 s.
 - Result: "the thread call succeeds" (the awaited result has its `thread_index` and no `ok`) and "one thread feature and one body".
 - During the build, one probe runs. It fires once the build is seen running: when `widget_list` shows a "Design"
   dialog whose class contains "Progress", or on Windows, where no window `widget_list` lists is the dialog, when
-  `describe_design` is refused as busy. A build seen ending first fires none, which fails the three checks below.
+  `design_describe` is refused as busy. A build seen ending first fires none, which fails the three checks below.
   - "app_state answers during the build".
   - "a window screenshot succeeds during the build": width non-zero.
-  - "another Design command is refused during the build": the `describe_design` error, asked after the two calls
+  - "another Design command is refused during the build": the `design_describe` error, asked after the two calls
     above, contains "Busy".
 - Not on Windows:
   - "the progress dialog is listed while it builds".
@@ -283,10 +283,10 @@ off when an `app_state` or screenshot probe raises, or when the build is seen ne
 
 That every example `tool_describe {tool}` documents for the Design commands, which `tool_list {group: "Design"}` lists,
 and for `undo` and `redo`, still runs as written. Two checks hold the part to its inputs: `tool_list {group: "Design"}`
-lists 88 commands, and at least one example of `extrude` ran. Each example runs on a fresh empty design, with `from_call` arguments filled from earlier results.
+lists 88 commands, and at least one example of `solid_extrude` ran. Each example runs on a fresh empty design, with `from_call` arguments filled from earlier results.
 
 Its start: before each example, what `start()` closes is closed as between parts (`checks.close_open()`), and
-`new_design` discards the rest. Two examples send bodies to the plate with `commit_to_plate`, which places them on
+`design_new` discards the rest. Two examples send bodies to the plate with `design_commit_to_plate`, which places them on
 the Klipper printer's 250 x 250 bed; no check reads where. The `sketch_text` examples give no face, so they take the
 Text dialog's last one, and are checked only for running.
 
@@ -303,7 +303,7 @@ An example with `needs` prints `skip` and the part's closing line counts the exa
   - The optional empty `sketch_finish`: its refusal text. The refusal and "stays open" are covered only because the
     next step errors without an open sketch and the next commit must be index 0.
   - "Passes through `modeling_origin`": only the x of the XZ frame's origin and of the bracket's lowest corner is
-    read, as 125, not their y (125 on this bed) or the frame origin's z, nor `describe_design`'s `modeling_origin`
+    read, as 125, not their y (125 on this bed) or the frame origin's z, nor `design_describe`'s `modeling_origin`
     itself.
   - The holes on 32 mm centres and where the lip sits in its plane: only total volume and z extent.
   - `closed_loops/0/entities/6 exists` and `holes/4 exists` only say the arrays are long enough, not what they hold,
@@ -319,9 +319,9 @@ An example with `needs` prints `skip` and the part's closing line counts the exa
   - The spline's `construction` flag, and where most edited entities end up (the ellipse, the other two pattern
     copies, the chamfer and fillet), beyond what the total volume implies.
 - cad_topology_targets:
-  - The optional tangent plane: its refusal text. "Changes nothing" is verified: the `describe_design` after it must
+  - The optional tangent plane: its refusal text. "Changes nothing" is verified: the `design_describe` after it must
     have feature 8 a Plane, no feature 9, `undo_depth` 8 and `redo_depth` 0.
-  - The two pilot `hole` steps have no expect. Their positions show up only in the later measures; the upper hole's
+  - The two pilot `solid_hole` steps have no expect. Their positions show up only in the later measures; the upper hole's
     50 mm height is checked only through the 25 mm spacing.
   - The second countersink's `y` and frame, and `edges/0/faces contains 2`, where the exact face pair is known.
   - Face and edge ids are hard-coded ("this build's"). A renumbering fails the part with no change in behaviour (a
@@ -371,7 +371,7 @@ An example with `needs` prints `skip` and the part's closing line counts the exa
     `app_state` took is printed only on failure. The Busy check that follows bounds it loosely, since the build must
     still be running after both calls.
   - On Windows the two dialog checks are dropped without a skip line, and the probe fires on a busy refusal of
-    `describe_design`, so the Busy check repeats a refusal the probe waited for; asked after the probes, it still
+    `design_describe`, so the Busy check repeats a refusal the probe waited for; asked after the probes, it still
     says that the build ran while they were answered.
   - The two screenshots are saved but never compared; "captures it" only compares widths. The thread's geometry
     (designation, volume) is not read.
@@ -379,7 +379,7 @@ An example with `needs` prints `skip` and the part's closing line counts the exa
   - No result is compared with anything. The Design table's examples carry only `title`, `calls` and `needs`, so an
     example that builds the wrong geometry passes.
   - Examples with `needs` are skipped and count as passes on every platform. There are 6 today: two of
-    `sketch_insert_svg`, `body_compare`, `import_step`, `import_mesh` and `export_step`.
+    `sketch_insert_svg`, `body_compare`, `design_import_step`, `design_import_mesh` and `design_export_step`.
   - A result that is not a dict, or has neither `ok` nor `error`, passes without being examined.
 
 **Strength:** Partial — the replays and round_trip check their results by exact index, count, coordinate or a tight
@@ -391,14 +391,14 @@ screenshots unchecked, slow_build has no time bound, and the examples only run.
 
 **Tests:** That a Design call whose job fails after its reply is left out of `replay_export`. A hole that misses a slow-rebuilding coil replies with a running job. An export made while it runs names it in `left_out_running`. The hole then fails, and the export after it keeps a later rename and leaves the hole out. That export replays to the same features and coil. The sweep runs it with a 4 s reply budget (`ORCA_MCP_REPLY_BUDGET_MS=4000`).
 
-**Starts from:** `start(client)`, then a `new_design` it waits for before it records anything: an app's first Design command builds the Design tab, which outlasts the 4 s budget on a loaded machine, and a build journaled as a job would leave the export waiting at replay for a job the built tab never starts. Each session it records starts with its own `project_new` and `new_design`, and it waits for each set-up call's job before the next. No check depends on the printer: the hole's x 500 is in the plane's frame.
+**Starts from:** `start(client)`, then a `design_new` it waits for before it records anything: an app's first Design command builds the Design tab, which outlasts the 4 s budget on a loaded machine, and a build journaled as a job would leave the export waiting at replay for a job the built tab never starts. Each session it records starts with its own `project_new` and `design_new`, and it waits for each set-up call's job before the next. No check depends on the printer: the hole's x 500 is in the plane's frame.
 
 **Leaves:** its project unsaved, and nothing in the folder's settings; the export and the replay's run go to its own temporary folder.
 
 **Decides by:** Exits 1 when any check prints FAIL. It also exits non-zero when a set-up call errors, or when the hole fails inside the budget with an error other than "removed no material" (or does so at 40 turns).
 - Running job:
   - "the missed hole replies with its running job": `status` running.
-  - "an export while it runs leaves it out and names it": `left_out_running` equals exactly `[{"tool": "hole", "job": <its id>}]`.
+  - "an export while it runs leaves it out and names it": `left_out_running` equals exactly `[{"tool": "solid_hole", "job": <its id>}]`.
   - "the hole then fails as an error": the awaited error contains "removed no material".
 - Export after: "the export leaves the failed hole out", "and keeps the rename made after it", "and leaves nothing out" (no `left_out_running` key).
 - Replay (each step given a 600 s timeout):
@@ -414,14 +414,15 @@ screenshots unchecked, slow_build has no time bound, and the examples only run.
 **Strength:** Strong — the running-job bookkeeping, the failure text and the replayed result are each checked exactly.
 
 ## `test_cad_commands`
-`test_cad_commands.py` · Python, 311 checks
+`test_cad_commands.py` · Python, 330 checks
 
 **Tests:** What the Design commands' arguments do when the Design panel handles them in the running app:
 operation words, suppress and align conflicts; the open sketch's commands; re-editing a committed sketch with
 `sketch_edit` (replace, cancel, refusals, a failed replace and its replay); projection, text and SVG art;
-`feature_edit` refs and picks made again in an edit card; `view_set`'s Design options; `select_geometry` and the
-menu items that act on a selection; `confirm_tool` and `cancel_tool` over cards, sketches, the Text dialog and a
-plane pick; `body_place`; the Boolean card; Speed Dial picks and their replay. One rung also checks that six
+`feature_edit` refs and picks made again in an edit card; `view_set`'s Design options; `design_select` and the
+menu items that act on a selection; `design_confirm_tool` and `design_cancel_tool` over cards, sketches, the Text dialog and a
+plane pick; `body_place`; `design_commit_to_plate`'s `replace`, which deletes as Prepare's Delete does; the
+Boolean card; Speed Dial picks and their replay. One rung also checks that six
 drawing tools chosen from the right-click menu agree with `sketch_draw`.
 
 **Starts from:** `CadGui.start()`: an English UI, then `start(client)`, the Design view's switches as a new data
@@ -429,6 +430,7 @@ folder has them (`reset_switches()`), the window widened when the sketch ribbon 
 `reset_view()`'s camera. What follows the bed is read, not written out: `modeling_origin`, for the XY frame and the
 cameras that look at it, and where Commit to Plate places an object, which place compares only between two parts of
 one object. The rungs that read the Origin switch set it first: off for the plane refusals, on for the plane pick.
+replace starts a new project of its own (`project_new {discard_changes: true}`), so the objects it counts are its own.
 confirm_refused_add presses Commit to Plate by its label in assembly mode, the mode the folder keeps while no one
 picks another from the button's list. A Speed Dial pick names its action with its source, OrcaSlicer, so an action
 of the same title that a plugin left in the folder adds is not taken. The dial closes when another window takes the
@@ -450,11 +452,11 @@ meets only these: the run counts order the Speed Dial's list, and a pick finds i
 **Decides by:** Exits 1 when any check prints FAIL or a rung raises. `cad_gui.run()` records a raise as a FAIL
 named after the rung, runs `recover()` and goes on to the next rung.
 - Harness (`cad_gui.py`), part of the verdict: helpers raise, failing the rung, when `reset_switches` reads a switch
-  back otherwise, `new_design` leaves features, `reset_view` leaves the camera more than 1e-3 off the zoom and
+  back otherwise, `design_new` leaves features, `reset_view` leaves the camera more than 1e-3 off the zoom and
   target it asked for, no click along the XY plane's diagonal opens a sketch, `calibrate` probes land more than 0.5
   px off their clicks or add constraints, `cancel`/`confirm` leave a sketch open, `value` finds no field taking the
   keyboard, or a menu choice's `ran` is not the path asked for. The test's own `settled` (60 s), `keep_as_drawn` (8
-  Esc presses) and `rename_selected` (no row editor) raise the same way. Each wait polls its state every 0.05 s for
+  Esc presses) and `design_rename_selected` (no row editor) raise the same way. Each wait polls its state every 0.05 s for
   up to 30 s. The Speed Dial picks go through `checks.dial_pick()`, which waits up to 30 s for the dial to show
   before it searches and clicks. Whether a click opened a sketch or a value field is read once, after `app_wait
   {for: "idle"}` answers (`CadGui.settle()`, `opened_field()`), since the app answers it after the work the click
@@ -486,7 +488,7 @@ named after the rung, runs `recover()` and goes on to the next rung.
   in a sketch, 4 construction lines, `first_index` 5, then 9 entities of which 8 construction; Text
   `text_string`, `text_height` and `regions` (4, then 2 after `feature_edit`); SVG art `regions` 1 of area 100
   (1e-3), `import_offset` [5, 5], and 4 lines of 20 at scale 2; refusals by text with no feature, undo step or
-  `describe_design` error added; Scale artwork and Edit: undo depth +1 on Confirm, +0 on Cancel; `nothing_open`
+  `design_describe` error added; Scale artwork and Edit: undo depth +1 on Confirm, +0 on Cancel; `nothing_open`
   (no modal or modeless dialog, no sketch).
 - Edit cards: `feature_edit refs` sets the Fillet's `refs.edges` to the id `body_describe {before}` gave, in one
   undo step, refuses stale ids with `stale_ids`, and undo restores it. The repick rungs click on the canvas through
@@ -499,10 +501,10 @@ named after the rung, runs `recover()` and goes on to the next rung.
   middle to 1e-6, each of four switches true then false); refusal texts; the section stays off after refused
   calls; `sketch_normal` looks along the XZ normal (cosine ≥ 0.999).
 - select, select_loops: `selection.id` for each kind (`body_solid`, `face_planar`, `edge_str`, `vertex`, `sk_loop`,
-  `none`); vertex point to 1e-6; renames through the row editor show in `describe_design`; `feature_delete` and
+  `none`); vertex point to 1e-6; renames through the row editor show in `design_describe`; `feature_delete` and
   its undo; `busy` texts for `feature_edit {}` and `sketch_constrain_selected`; refusals carrying `design_busy` or
-  `stale_ids` with the selection kept; `applies` true for `fillet`, `delete_face` and `zoom_to_selection`; after
-  `zoom_to_selection` the camera's `look_at` is loop 1's centre (1e-3); three canvas screenshots (face, edge,
+  `stale_ids` with the selection kept; `applies` true for `solid_fillet`, `solid_delete_face` and `design_zoom_to_selection`; after
+  `design_zoom_to_selection` the camera's `look_at` is loop 1's centre (1e-3); three canvas screenshots (face, edge,
   vertex selected) differ from the nothing-selected one and from each other.
 - confirm and cancel: `was` (`card`, `sketch`, `plane_pick`, `text`, `insert`), no `ok` where it took, `feature`
   index, `open`;
@@ -513,7 +515,33 @@ named after the rung, runs `recover()` and goes on to the next rung.
   rotate keeps the centre and swaps 20 and 30; laying a face on the bed gives lowest z 0 and height 20 (1e-4);
   reset gives null; refused in a sketch; a vertex's `placed_point` is the placement applied to its point; a
   placement follows its body through renumbering and undo.
-- boolean_opens, action_pick: `interactive` and `tool` boolean, the card open, its confirm adds a join or a cut and
+- replace, on its new project and a design of two bodies, the box and block place has. "Selected" is read twice,
+  neither read changing the view: on the canvas shown, `app_state.selection.objects`, and in the Objects list,
+  the rows `widget_list` notes as selected (the list is shown by turning the sidebar's Process switch to Objects):
+  - a plain `bodies` commit replies objects at indices 0 and 1, named "Design Body 1" and "Design Body 2", and
+    `replaced` empty; `object_list` reads exactly those two; the canvas selects `[1]`, the last body's object, and
+    the list's selected row is `object 1`;
+  - the Cut gizmo cuts object 0 at z 5 with one connector on its top, as test_menu_items_refusals' cut does (a cut
+    with no connector keeps no cut information, so its pieces are no parts of a cut), and leaves 3 objects, "Design
+    Body 2" at 0 and the two pieces; a `bodies` commit whose `replace` names "Design Body 2" and the upper piece,
+    `[0, 1]`, is refused with code `cut_object`, its text naming object 1 by index and name ("Object 1 (<name>)")
+    and not object 0; `object_list` still reads the same 3 objects by id, and one `undo {history: "project"}` takes
+    back the cut, so `object_list` reads "Design Body 1" and "Design Body 2" at 0 and 1 by the ids they had before
+    it: the refused call added no undo step;
+  - a `bodies` commit whose `replace_ids` names both replies `replaced` with both, at 0 and 1, and objects at 0 and
+    1; `object_list` reads exactly those two, by the reply's `object_id`s, none of them an old one; the canvas
+    selects `[1]` and the list's row is `object 1`; one `undo {history: "project"}` gives back the two old objects
+    by id, and no new one;
+  - an `assembly` commit with `replace: [0]` replies one object, "Design Assembly", 2 parts, at index 1, and
+    `replaced` `[{index: 0, name: "Design Body 1"}]`; `object_list` reads "Design Body 2" at 0 and "Design
+    Assembly" at 1; the canvas selects `[1]` and the list's row is `object 1`, the row a one-object delete moves to
+    the plate and Prepare's reload sets back; one `undo {history: "project"}` takes it back;
+  - on the assemble view (`view_set {canvas: "assemble"}`, the calls made there, not from the Design tab): an
+    `assembly` commit with `replace: [0]` replies "Design Assembly" at index 1 and leaves the assemble view shown
+    (`widget_list` lists its "Assembly Return" window); a plain `assembly` commit after it (the assemble view
+    refuses an undo) leaves the view shown, nothing selected on the canvas, `[]`, and the list's row `plate 0`, as
+    the view's scene is not reloaded with new objects; the replacing commit's three readings equal the plain one's.
+- boolean_opens, action_pick: `interactive` and `tool` `solid_boolean`, the card open, its confirm adds a join or a cut and
   leaves one body, the direct cut leaves 3640 mm³ (1e-3); Speed Dial picks arm `array_polar` and `trim`; the
   exported `action_run` step carries `orca_command:sk_array_polar:orca` and `{"type": "circular"}`, and its replay
   passes and arms the tool again.
@@ -535,13 +563,18 @@ named after the rung, runs `recover()` and goes on to the next rung.
 - scale_artwork, and the Insert placement in confirm_refused_add: Scale artwork and Edit are confirmed or
   cancelled with no change made, and only the undo depth is read, so scaling the art is never exercised.
 - Loose matchers where the value is known: "select: {what} is refused" and "select: a plane is refused while the
-  planes are hidden …" accept any error; "place: describe_design reads the Commit button's mode" accepts either
+  planes are hidden …" accept any error; "place: design_describe reads the Commit button's mode" accepts either
   `assembly` or `bodies`; "place_select: fit_selection centres inside the placed body" accepts any point in its
   box; "text: the text extrudes into a body" needs only one body or more.
 - The two replays (sketch_edit_failed_replace, action_pick_replay) are compared by feature types, or the armed
   tool, not by names, sketch content or geometry.
 - project_model with no sketch open: the projected edges are not read, only the feature, `scope` and `frame`.
 - action_pick: the Speed Dial click's own reply, and that the dial closes after the pick, are not checked.
+- replace: `nothing_deleted`, the failure after the commit, since no input reaches it once the cut refusal has
+  passed: the object list neither refuses nor asks about a whole object that is no part of a cut. Nor that a
+  running UI job is cancelled before the deletion, nor `replace`'s refusal while a gizmo is open. Nor a commit made
+  after the Design tab was shown, which comes back on Prepare's 3D view whichever view Prepare showed (selecting
+  the Prepare tab shows it), a plain commit as a replacing one.
 
 **Strength:** Partial — most rungs check exact ids, volumes, indices and undo depths, but the shapes rung's geometry
 oracle is the tools' own output, the selection drawing is checked only as "differs", the Design view switches
@@ -559,7 +592,7 @@ sketch and across its commit, save and open through the File menu, and drawing o
 loaded while a tool is armed.
 
 **Starts from:** a newly started app (`"launch": "fresh"`), then `CadGui.start(first_showing=True)`: an English UI;
-the check of the Design tab's first showing, made before anything builds the tab, since the `cancel_tool` of
+the check of the Design tab's first showing, made before anything builds the tab, since the `design_cancel_tool` of
 `start(client)` would build it unshown and the check is of the tab a person's first click on it builds; then
 `start(client)`, the Design view's switches as a new data folder has them (`reset_switches()`), the window widened
 when the sketch ribbon overflows it, and an empty design in `reset_view()`'s camera. Clicks go through a map
@@ -697,7 +730,7 @@ named after the rung).
   `sketch_describe` quantity the field sets, to 1e-6.
 - vocabulary: for nothing selected, a line, a circle, a point and two entities, the header equals `HEADER`, the
   item set equals the paths computed from `scripts/CAD/tool_atlas.json` (by a re-implementation of
-  `show_offer_menu`'s layout, for the selection `describe_design` names) with no duplicates, and the greyed set is
+  `show_offer_menu`'s layout, for the selection `design_describe` names) with no duplicates, and the greyed set is
   exact; the five offered sets all differ and a line adds verbs; two picks give a selection of 2; with an anchor
   down the right-click returns no header and no items, and the next one offers again.
 - author, no_shortcut: sides [80, 80, 120, 120], one loop of 9600 (1e-9); at least ten keyless verbs, the centre

@@ -162,11 +162,11 @@ TEST_CASE("the activity log shows an agent's call as the message it sent, and a 
     const json wrapped{{"jsonrpc", "2.0"},
                        {"id", 14},
                        {"method", "tools/call"},
-                       {"params", {{"name", "tool_call"}, {"arguments", {{"tool", "set_variable"}, {"args", {{"nme", "wall"}}}}}}}};
-    t.log.refused("set_variable", {{"source", "agent"}, {"request", wrapped}},
-                  ToolResult::error("Invalid arguments for set_variable: unknown argument nme"));
+                       {"params", {{"name", "tool_call"}, {"arguments", {{"tool", "design_set_variable"}, {"args", {{"nme", "wall"}}}}}}}};
+    t.log.refused("design_set_variable", {{"source", "agent"}, {"request", wrapped}},
+                  ToolResult::error("Invalid arguments for design_set_variable: unknown argument nme"));
     e = t.entries();
-    CHECK(e.back()["tool"] == "set_variable");
+    CHECK(e.back()["tool"] == "design_set_variable");
     CHECK(e.back()["args"] == json{{"nme", "wall"}});
     CHECK(e.back()["request"] == wrapped);
 }

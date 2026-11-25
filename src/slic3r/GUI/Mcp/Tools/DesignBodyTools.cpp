@@ -52,11 +52,11 @@ json action_transform(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"transform_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
-// The `body` param: an index into describe_design's bodies.
+// The `body` param: an index into design_describe's bodies.
 int body_arg(const json& params, const CadDocument& doc)
 {
     const json v = param(params, "body");
-    if (!v.is_number_integer()) throw std::runtime_error("body must be a body index (describe_design's bodies[].index)");
+    if (!v.is_number_integer()) throw std::runtime_error("body must be a body index (design_describe's bodies[].index)");
     const int b = v.get<int>();
     if (b < 0 || b >= int(doc.bodies.size()))
         throw std::runtime_error("body " + std::to_string(b) + " is out of range; the design has " +
@@ -105,7 +105,7 @@ json action_body_delete(DesignPanel* panel, const json& params)
     const int          b   = body_arg(params, doc);
     const int          src = doc.bodies[b].source_feature;
     if (src < 0 || src >= int(doc.features.size()))
-        throw CadPrecondition("body " + std::to_string(b) + " has no feature to delete; use new_design to start over");
+        throw CadPrecondition("body " + std::to_string(b) + " has no feature to delete; use design_new to start over");
     const json   deleted{{"index", src}, {"type", feature_type_name(doc.features[src].type)}, {"name", doc.features[src].name}};
     const size_t before = doc.features.size();
     if (!panel->delete_body(b)) tree_edit_refused(doc);

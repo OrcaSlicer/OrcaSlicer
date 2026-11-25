@@ -198,7 +198,7 @@ TEST_CASE("A pin with no live action is dropped, the others keep their order", "
     CHECK(shown == std::vector<std::string>{"b", "a"});
 #ifndef SLIC3R_CAD
     // Without the Design table, a Design tab action's pin cannot be told from a removed command's.
-    CHECK_FALSE(Slic3r::GUI::is_design_action_id("orca_command:shell:orca"));
+    CHECK_FALSE(Slic3r::GUI::is_design_action_id("orca_command:solid_shell:orca"));
 #endif
 }
 

@@ -2039,7 +2039,8 @@ TEST_CASE("the plugin list gives each plugin's key, name, version, state, capabi
 namespace {
 
 // Whether `command` is under the rule: it changes something, and it is not the Design tab's, whose commands
-// act on the tab's document, which no operation stands for. Listed or not.
+// mostly act on the tab's document, which no operation stands for; one that changes Prepare names its operations in
+// its Design table entry. Listed or not.
 bool under_operations_rule(const Slic3r::GUI::NativeCommand& command)
 {
     return !command.read_only && command.group != Slic3r::GUI::kDesignGroup;
@@ -2219,12 +2220,12 @@ TEST_CASE("the exception list names only commands the catalog has under the rule
     }
 }
 
-// The Design tab's commands act on its document, which no operation stands for, as
-// scripts/check_operation_calls.py leaves their files, Mcp/Tools/Design*.cpp, out.
+// The Design tab's commands mostly act on its document, which no operation stands for, so the rule leaves the group
+// out; scripts/check_operation_calls.py still checks their files, Mcp/Tools/Design*.cpp, as every caller's.
 TEST_CASE("the operations rule leaves the Design group and the read-only commands out", "[Operations]")
 {
     Slic3r::GUI::NativeCommand shell;
-    shell.key   = "shell";
+    shell.key   = "solid_shell";
     shell.group = "Design";
     CHECK_FALSE(under_operations_rule(shell));
     shell.group = "Objects";

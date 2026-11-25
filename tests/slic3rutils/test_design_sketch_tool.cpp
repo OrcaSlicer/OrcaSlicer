@@ -391,7 +391,7 @@ TEST_CASE("A face, edges or a vertex is selected by id only where a click could 
     refused(Sel::Edge, 0, -1, {1, 1});
     refused(Sel::Edge, 0, -1, {999});
     refused(Sel::Face, 2, 0, {});
-    // An id the body does not have is the pick's; the body still takes picks, which select_geometry tells apart from the
+    // An id the body does not have is the pick's; the body still takes picks, which design_select tells apart from the
     // view's state.
     CHECK(tool.body_takes_pick(0));
     CHECK(tool.body_takes_pick(1));

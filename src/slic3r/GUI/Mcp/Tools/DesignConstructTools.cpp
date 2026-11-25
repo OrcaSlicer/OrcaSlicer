@@ -309,7 +309,7 @@ void construct_silent_forms(std::vector<SilentForm>& forms)
         {"construct_axis",               action_construct_axis},
         {"construct_coordinate_system",  action_construct_coordinate_system},
         {"construct_plane",              action_construct_plane},
-        {"helix",                        action_helix},
+        {"construct_helix",              action_helix},
     });
 }
 

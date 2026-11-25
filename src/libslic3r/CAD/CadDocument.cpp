@@ -4255,7 +4255,7 @@ bool CadDocument::recompute()
     if (built.empty() && any_solid_feature) { error = _u8L("no solid-producing features"); return false; }
 
     // A feature that leaves a body with a null shape fails the rebuild loudly. Were recompute() to
-    // return true, the document would go on listing the body: describe_design would count it, error
+    // return true, the document would go on listing the body: design_describe would count it, error
     // would be empty, and only body_mass_properties on that body would show anything was wrong. Returning
     // false hands the caller its normal rollback path, so the operation that destroyed the body is
     // undone rather than committed.

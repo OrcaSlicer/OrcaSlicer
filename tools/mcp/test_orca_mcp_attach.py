@@ -240,29 +240,29 @@ def stub(client, *replies):
 def check_call_command():
     client = OrcaMcp(1, "t")
     calls = stub(client, {"status": "blocked_by_dialog", "job": "j", "dialogs": [{"title": "Save?"}]})
-    message = raises(lambda: client.call_command("extrude", distance=5), "Save?")
-    assert message.startswith("extrude: "), message
+    message = raises(lambda: client.call_command("solid_extrude", distance=5), "Save?")
+    assert message.startswith("solid_extrude: "), message
     assert len(calls) == 1, calls
     ok("call_command() fails at once on a dialog, naming it")
 
     calls = stub(client, {"result": {"ok": True}})
-    assert client.call_command("extrude", distance=5) == {"result": {"ok": True}}
-    assert calls == [("tool_call", 600, {"tool": "extrude", "args": {"distance": 5}})], calls
+    assert client.call_command("solid_extrude", distance=5) == {"result": {"ok": True}}
+    assert calls == [("tool_call", 600, {"tool": "solid_extrude", "args": {"distance": 5}})], calls
     ok("call_command() calls tool_call and returns the command's whole reply")
 
     calls = stub(client, {"status": "running", "job": "j"}, {"result": 7})
-    assert client.call_command("sweep", sketch=1, path=0) == {"result": 7}
+    assert client.call_command("solid_sweep", sketch=1, path=0) == {"result": 7}
     assert calls[1][0] == "app_wait" and calls[1][2]["job"] == "j", calls
     ok("call_command() follows a running job to its reply")
 
     refused = McpError("kernel refused the hole")
     stub(client, refused)
-    error = raised(lambda: client.call_command("hole"), "kernel refused the hole")
-    assert str(error).startswith("hole: "), error
+    error = raised(lambda: client.call_command("solid_hole"), "kernel refused the hole")
+    assert str(error).startswith("solid_hole: "), error
     assert error.__cause__ is refused, repr(error.__cause__)
     stub(client, {"status": "running", "job": "j"}, McpError("the job failed"))
-    message = raises(lambda: client.call_command("hole"), "the job failed")
-    assert message.startswith("hole: "), message
+    message = raises(lambda: client.call_command("solid_hole"), "the job failed")
+    assert message.startswith("solid_hole: "), message
     ok("call_command() starts every error with the command's name, with the original as its cause")
 
 

@@ -102,8 +102,8 @@ under AI features in Preferences), attach to it through its datadir instead of a
 ```python
 orca = OrcaMcp.from_datadir()                        # the datadir the app uses without --datadir
 orca = OrcaMcp.from_datadir("/abs/datadir")          # an app started with --datadir /abs/datadir
-design = orca.call_command("describe_design")             # a Design command (the Design tab on)
-orca.call_command("helix", radius=10, pitch=3, height=30)
+design = orca.call_command("design_describe")             # a Design command (the Design tab on)
+orca.call_command("construct_helix", radius=10, pitch=3, height=30)
 ```
 
 `from_datadir()` reads the port and token from `<datadir>/mcp/server.json`, which the server writes
@@ -123,7 +123,7 @@ returns the command's reply. A call whose first
 reply says a dialog blocks it fails at once, naming the dialog, rather than waiting on it. A call that
 first replied `running` and opens a dialog later is waited on up to the timeout (600 s), since `app_wait`
 reports only that its job is still running. Every `McpError` it raises starts with the command's name
-(`"extrude: ..."`) and has the original error as its cause. `tool_list {group: "Design"}` lists the
+(`"solid_extrude: ..."`) and has the original error as its cause. `tool_list {group: "Design"}` lists the
 Design commands with what each does, and `tool_describe {tool}` gives one's manual, its arguments and examples among it.
 
 ## The skill's list of actions
@@ -346,7 +346,7 @@ marked `optional` are calls that must be refused and change nothing.
 - `tests/cad_topology_targets.json` builds the bench's J wall hook from what the reading commands give back:
   its inside corners found by convexity, M4 countersinks seated on the front face on the axes of
   pilot holes, the cones' kind, apex side and radii from `body_describe`, the hole heights and the
-  plate's thickness from `measure`, a datum plane midway through the plate and one 70 mm up with a
+  plate's thickness from `design_measure`, a datum plane midway through the plate and one 70 mm up with a
   sketch on it, a refused tangent plane, and the back face pushed out 2 mm.
 - `tests/cad_features.json` threads, sweeps, lofts and splits: the bench's M5 hex standoff tapped on
   its bore (M5 inferred from the bore) and again on the XY plane, each within the bench's volume
@@ -389,21 +389,21 @@ It takes four to eight minutes, or under a minute with the reply budget capped a
 
 `test_cad_commands.py` checks what the Design commands' arguments do where the Design panel's own functions
 answer, which the unit tests, on a bare document, do not reach. Each rung starts from an empty design, calls
-commands with their arguments and grades what `describe_design`, `feature_describe`, `sketch_describe` and
+commands with their arguments and grades what `design_describe`, `feature_describe`, `sketch_describe` and
 `body_mass_properties` read back: the `operation` and `type` words and the suppressed feature; each of six
 shapes drawn once with its tool on the canvas and once with `sketch_draw`, which must agree in entities,
 constraints, loops and degrees of freedom; `sketch_edit` and its replace, cancel and refusals;
 `sketch_project` with and without an open sketch, `sketch_text`, `sketch_insert_svg` and Scale artwork;
 `feature_edit`'s `refs` and a card's picks while it edits a feature; `view_set`'s Design options;
-`select_geometry`, `confirm_tool`, `cancel_tool` and `body_place`; the Boolean card a call opens; and a
+`design_select`, `design_confirm_tool`, `design_cancel_tool` and `body_place`; the Boolean card a call opens; and a
 pick of a folded item's action from the Speed Dial, and its replay. Its docstring lists the rungs.
 
 Two more harness tests on a `--cad` instance drive the Design tab the way a person does. Every action goes
 through the UI tools (`view_set`, `widget_click`, `mouse_gesture`, `keyboard_press`, `widget_set_value`,
 `dialog_answer` and `dialog_auto_answer`), and the Design commands only read the result back (`sketch_describe`,
-`describe_design`, `feature_describe`), save for one call in the scale rung; the right-click menu's layout they
+`design_describe`, `feature_describe`), save for one call in the scale rung; the right-click menu's layout they
 grade against is read from `scripts/CAD/tool_atlas.json`, the Design table the app's own is generated from,
-for the selection `describe_design` names. Buttons and rows are found by label, and canvas positions come from
+for the selection `design_describe` names. Buttons and rows are found by label, and canvas positions come from
 a calibration that maps the open sketch's plane to canvas pixels, so nothing in them is tuned to a window
 size, screen scaling or theme, though the sketching test's relations rung needs a canvas of about 940 × 600 click
 pixels and stops when it is smaller. A map fitted from five probe points is reused, once one probe confirms it,

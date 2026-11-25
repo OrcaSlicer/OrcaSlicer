@@ -5056,7 +5056,7 @@ bool DesignPanel::mcp_select(const DesignSelection& s, std::string& why)
         }
         const CadFeature& sketch = m_doc.features[s.sketch];
         const std::string named  = "sketch " + std::to_string(s.sketch);
-        // Numbered as sketch_describe's closed_loops and extrude's loop number them.
+        // Numbered as sketch_describe's closed_loops and solid_extrude's loop number them.
         const std::vector<std::vector<int>> loops = m_viewport->region_entity_indices(sketch.entities);
         if (s.loop < 0 || s.loop >= int(loops.size())) {
             why = "loop " + std::to_string(s.loop) + " is not one of " + named + ", which has " + std::to_string(loops.size()) +
@@ -12735,7 +12735,7 @@ bool DesignPanel::mcp_confirm_tool(ConfirmOutcome& out, std::string& why)
     const char* open = mcp_open_tool();
     if (open == nullptr) { why = "nothing is open in the Design tab"; return false; }
     const std::string was = open;
-    if (was == "plane_pick") { why = "a plane is being picked: select one with select_geometry, or cancel"; return false; }
+    if (was == "plane_pick") { why = "a plane is being picked: select one with design_select, or cancel"; return false; }
     if (was == "text") {
         // The dialog's OK, which puts a new text in the design and opens its placement, or keeps an edited one.
         if (!m_text_dlg->ok_enabled()) {

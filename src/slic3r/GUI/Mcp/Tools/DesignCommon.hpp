@@ -29,7 +29,7 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 
 // ---- The helpers every heading uses: DesignTools.cpp's, and the inline ones here ------------
 
-// A feature's type as the Design commands name it (describe_design's features[].type): its CadFeatureType
+// A feature's type as the Design commands name it (design_describe's features[].type): its CadFeatureType
 // enumerator's name.
 const char* feature_type_name(CadFeatureType t);
 

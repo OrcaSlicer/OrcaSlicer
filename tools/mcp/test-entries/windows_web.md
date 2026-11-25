@@ -342,7 +342,7 @@ the unsaved changes question. The window's size and the cameras are not stored.
   and `app_state.camera`.
 - Design (the sweep launches with `--cad`):
   - The zoom is within 1e-3 of `250/1.4^15`.
-  - `look_at` is within 1e-3 of `describe_design`'s `modeling_origin`.
+  - `look_at` is within 1e-3 of `design_describe`'s `modeling_origin`.
   - The reply echoes the camera, and `app_state.camera` has the zoom.
   - An orbit is accepted and keeps that zoom.
   - Back on Prepare, the zoom is 2. That value was set on Preview, so this shows the two share a camera.

@@ -92,7 +92,7 @@ class Faults(unittest.TestCase):
         self.assertEqual(gen.faults(A), [])
 
     def test_a_block_with_access_ui_passes(self):
-        # A command that acts on what the tab has open, as confirm_tool and cancel_tool do.
+        # A command that acts on what the tab has open, as design_confirm_tool and design_cancel_tool do.
         A = atlas()
         entry(A, "paint")["tool"]["access"] = "ui"
         self.assertEqual(gen.faults(A), [])
@@ -260,6 +260,30 @@ class Faults(unittest.TestCase):
         del entry(A, "tint")["section"]
         entry(A, "tint")["feature_row"] = True
         self.assertFault(A, "tint", "feature_row needs a menu item of its own")
+
+    # --- the operations a command reaches ---------------------------------------------------------
+
+    def test_operations_on_a_command_pass(self):
+        A = atlas()
+        entry(A, "paint")["operations"] = ["delete_objects"]
+        entry(A, "tint")["operations"] = ["rename_object", "select_plate"]
+        self.assertEqual(gen.faults(A), [])
+
+    def test_operations_on_a_folded_item(self):
+        for ops in (["delete_objects"], None):
+            with self.subTest(ops=ops):
+                A = atlas()
+                entry(A, "tint")["fold"] = {"into": "paint", "args": {"shade": "blue"}}
+                del entry(A, "tint")["section"]
+                entry(A, "tint")["operations"] = ops
+                self.assertFault(A, "tint", "a folded or greyed item is no command")
+
+    def test_operations_that_are_no_list_of_names(self):
+        for ops in ("delete_objects", [], [""], ["delete_objects,rename_object"], [3], None):
+            with self.subTest(ops=ops):
+                A = atlas()
+                entry(A, "paint")["operations"] = ops
+                self.assertFault(A, "paint", "operations is a list of the names")
 
     # --- entries and blocks ----------------------------------------------------------------------
 

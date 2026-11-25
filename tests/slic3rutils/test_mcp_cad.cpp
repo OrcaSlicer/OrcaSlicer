@@ -302,7 +302,7 @@ struct Retired
 };
 
 // Ids of the old vocabulary: entries renamed, menu items merged with the argument command for their job, the entry that
-// did two jobs, and items folded into their command.
+// did two jobs, items folded into their command, and the names that lacked the place their command works in.
 const Retired kRetired[] = {
     // Renamed.
     {"describe_scene", false}, {"describe_feature", false}, {"query_topology", false}, {"slice_body", false},
@@ -331,8 +331,17 @@ const Retired kRetired[] = {
     {"sk_poly_5", true}, {"sk_polygon", true}, {"sk_poly_8", true}, {"sk_poly_12", true}, {"sk_polyline", true},
     {"sk_rect_center", true}, {"sk_rect_oblique", true}, {"sk_rect_rounded", true}, {"sk_circle_2pt", true},
     {"sk_circle_3pt", true}, {"sk_arc_t", true}, {"sk_arc_tangent", true}, {"sk_slot_arc", true},
-    // pattern's type curve: the item stays, greyed.
+    // solid_pattern's type curve: the item stays, greyed.
     {"pat_curve", true},
+    // Given the place they work in.
+    {"extrude", false}, {"revolve", false}, {"sweep", false}, {"loft", false}, {"thicken", false}, {"rib", false},
+    {"boolean", false}, {"hole", false}, {"thread", false}, {"shell", false}, {"split", false}, {"fillet", false},
+    {"chamfer", false}, {"draft", false}, {"pattern", false}, {"mirror", false}, {"align", false},
+    {"delete_face", false}, {"list_align_types", false}, {"describe_design", false}, {"new_design", false},
+    {"import_step", false}, {"import_mesh", false}, {"export_step", false}, {"set_variable", false},
+    {"commit_to_plate", false}, {"confirm_tool", false}, {"cancel_tool", false}, {"select_geometry", false},
+    {"measure", false}, {"interference", false}, {"rename_selected", false}, {"zoom_to_selection", false},
+    {"helix", false},
 };
 
 } // namespace
@@ -379,14 +388,14 @@ TEST_CASE("a name of the old vocabulary is no command", "[Mcp][CAD]")
         REQUIRE(entry != nullptr);
         CHECK(entry->row != -1);
     }
-    // 89 of the 133 names the Design commands had are gone.
-    CHECK(std::size(kRetired) == 89);
+    // 123 names the Design commands have had are gone.
+    CHECK(std::size(kRetired) == 123);
 }
 
 TEST_CASE("a menu item and the command that runs its job are one command", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
-    for (const char* key : {"sketch_create", "split", "feature_delete", "body_delete", "sketch_offset", "sketch_trim",
+    for (const char* key : {"sketch_create", "solid_split", "feature_delete", "body_delete", "sketch_offset", "sketch_trim",
                             "sketch_fillet", "sketch_chamfer", "sketch_mirror", "sketch_toggle_construction", "sketch_delete",
                             "sketch_constrain", "feature_edit"}) {
         INFO(key);
@@ -408,7 +417,7 @@ TEST_CASE("a renamed entry keeps its menu item", "[Mcp][CAD]")
     CHECK(std::string(plane.key) == "Shift+P");
     CHECK(std::string(plane.action) == "key:S+P");
     // The mate command takes the id align; the unbuilt Align to item stays, greyed, as align_to.
-    const GUI::DesignTool& align = design_row("align");
+    const GUI::DesignTool& align = design_row("solid_align");
     REQUIRE(align.action != nullptr);
     CHECK(std::string(align.action) == "fly:placement#2");
     CHECK(align.doc != nullptr);
@@ -418,7 +427,7 @@ TEST_CASE("a renamed entry keeps its menu item", "[Mcp][CAD]")
     CHECK(align_to.doc == nullptr);
     CHECK(catalog.find("align_to") == nullptr);
     // split takes the Cut card as its menu item, and the greyed Split item goes.
-    const GUI::DesignTool& split = design_row("split");
+    const GUI::DesignTool& split = design_row("solid_split");
     REQUIRE(split.action != nullptr);
     CHECK(std::string(split.action) == "key:S+X");
     CHECK(std::string(split.name) == "Cut");
@@ -506,7 +515,7 @@ TEST_CASE("the Design table names the row and the family submenu each verb sits 
     CHECK(std::string(GUI::kOfferRowNames[sketch.row]) == "Create");
     CHECK(sketch.family == nullptr);   // the feature-mode Sketch sits directly in Create
     CHECK_FALSE(sketch.sketch_mode);
-    // describe_design names the selection by the atlas's ids, in OfferSel's order.
+    // design_describe names the selection by the atlas's ids, in OfferSel's order.
     REQUIRE(std::size(GUI::kDesignSelectionIds) == std::size_t(GUI::OfferSel::Count));
     CHECK(std::string(GUI::kDesignSelectionIds[int(GUI::OfferSel::None)]) == "none");
     CHECK(std::string(GUI::kDesignSelectionIds[int(GUI::OfferSel::FacePlanar)]) == "face_planar");
@@ -534,8 +543,8 @@ TEST_CASE("a command has silent when a call with no arguments opens a tool", "[M
         CHECK(two_forms(command_of(catalog, key)));
         CHECK_FALSE(command_of(catalog, key).has_own_action);
     }
-    CHECK(two_forms(command_of(catalog, "shell")));
-    CHECK_FALSE(two_forms(command_of(catalog, "describe_design")));
+    CHECK(two_forms(command_of(catalog, "solid_shell")));
+    CHECK_FALSE(two_forms(command_of(catalog, "design_describe")));
     // A command with only a person's form takes no arguments at all.
     json silent{{"silent", true}};
     CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "sketch_polygon_inscribed"), silent), ContainsSubstring("silent"));
@@ -598,22 +607,22 @@ TEST_CASE("a call opens a tool only with the arguments that choose it", "[Mcp][C
     const GUI::DesignTool& trim = design_row("sketch_trim");
     CHECK(GUI::Mcp::opened_item(trim, json::object()) == &trim);
     CHECK(GUI::Mcp::opened_item(design_row("sketch_draw"), json::object()) == nullptr);
-    // boolean's own item, Join, opens with no arguments and with its own; each operation opens the item that does it,
+    // solid_boolean's own item, Join, opens with no arguments and with its own; each operation opens the item that does it,
     // and anything beside the operation runs the command.
-    const GUI::DesignTool& boolean = design_row("boolean");
-    CHECK(opened_id(boolean, json::object()) == "boolean");
-    CHECK(opened_id(boolean, {{"operation", "join"}}) == "boolean");
+    const GUI::DesignTool& boolean = design_row("solid_boolean");
+    CHECK(opened_id(boolean, json::object()) == "solid_boolean");
+    CHECK(opened_id(boolean, {{"operation", "join"}}) == "solid_boolean");
     CHECK(opened_id(boolean, {{"operation", "cut"}}) == "bool_subtract");
     CHECK(opened_id(boolean, {{"operation", "intersect"}}) == "bool_intersect");
     CHECK(opened_id(boolean, {{"operation", "cut"}, {"target", 0}}).empty());
     CHECK(opened_id(boolean, {{"operation", "cut"}, {"silent", true}}).empty());
-    // pattern's own item is the linear one and Circular pattern is folded into it; a curve pattern has no item.
-    const GUI::DesignTool& pattern = design_row("pattern");
-    CHECK(opened_id(pattern, json::object()) == "pattern");
-    CHECK(opened_id(pattern, {{"type", "linear"}}) == "pattern");
+    // solid_pattern's own item is the linear one and Circular pattern is folded into it; a curve pattern has no item.
+    const GUI::DesignTool& pattern = design_row("solid_pattern");
+    CHECK(opened_id(pattern, json::object()) == "solid_pattern");
+    CHECK(opened_id(pattern, {{"type", "linear"}}) == "solid_pattern");
     CHECK(opened_id(pattern, {{"type", "circular"}}) == "pattern_circular");
     CHECK(opened_id(pattern, {{"type", "curve"}}).empty());
-    CHECK(opened_id(design_row("thicken"), {{"type", "surface"}}) == "thicken_surf");
+    CHECK(opened_id(design_row("solid_thicken"), {{"type", "surface"}}) == "thicken_surf");
     // A sketch command with no menu item of its own opens a folded item only with its type, and nothing with no arguments.
     const GUI::DesignTool& sketch_pattern = design_row("sketch_pattern");
     CHECK(opened_id(sketch_pattern, {{"type", "linear"}}) == "sk_array");
@@ -669,7 +678,7 @@ TEST_CASE("a tool block's schema refuses an argument it does not name", "[Mcp][C
 TEST_CASE("a two-form CAD command publishes what its silent form requires", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
-    const GUI::NativeCommand& fillet  = command_of(catalog, "fillet");
+    const GUI::NativeCommand& fillet  = command_of(catalog, "solid_fillet");
     CHECK_FALSE(fillet.input_schema.contains("required"));
     CHECK(fillet.input_schema.at("if") == json{{"minProperties", 1}});
     CHECK(fillet.input_schema.at("then").at("required") == json::array({"edges"}));
@@ -686,7 +695,7 @@ TEST_CASE("a Design command is named by its verb's id", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
     for (const char* key : {"surface_extrude", "surface_revolve", "surface_loft", "surface_patch", "surface_offset",
-                            "construct_coordinate_system", "body_mass_properties", "interference",
+                            "construct_coordinate_system", "body_mass_properties", "design_interference",
                             "feature_set_expression", "body_transform"}) {
         INFO(key);
         CHECK(catalog.find(key) != nullptr);
@@ -764,16 +773,16 @@ TEST_CASE("a tool refused for the selection says it does not apply and what it t
 {
     // Delete Face takes a picked face. With nothing picked, the obstacle is the selection, not the document its
     // item's refusal speaks of.
-    const GUI::DesignTool&                     delete_face = design_row("delete_face");
+    const GUI::DesignTool&                     solid_delete_face = design_row("solid_delete_face");
     const int                                  none        = int(GUI::OfferSel::None);
-    const std::optional<GUI::ToolFailure>      refused     = GUI::Mcp::open_refusal(delete_face, false, none);
+    const std::optional<GUI::ToolFailure>      refused     = GUI::Mcp::open_refusal(solid_delete_face, false, none);
     REQUIRE(refused.has_value());
     CHECK(std::string(refused->what()) == "This tool does not apply to what is selected");
     CHECK(refused->details.at("code") == "wrong_selection");
     CHECK(refused->details.at("selection_kind") == 0);
     CHECK(refused->details.at("selection") == "none");
     CHECK(refused->details.at("accepts") == json::array({"face_planar", "face_cyl", "face_other"}));
-    CHECK_FALSE(GUI::Mcp::open_refusal(delete_face, false, int(GUI::OfferSel::FacePlanar)).has_value());
+    CHECK_FALSE(GUI::Mcp::open_refusal(solid_delete_face, false, int(GUI::OfferSel::FacePlanar)).has_value());
     // Every item only the menu reaches says the same for a selection the tab reports in the item's mode and the item
     // does not take. An item that takes none of those is never greyed for the selection there, and opens whatever is
     // selected.
@@ -802,14 +811,14 @@ TEST_CASE("a tool refused for the selection says it does not apply and what it t
     CHECK(greyed > 0);
     CHECK(never_greyed > 0);
     // A key: handler runs whatever is selected, as its key does.
-    CHECK_FALSE(GUI::Mcp::open_refusal(design_row("shell"), false, int(GUI::OfferSel::None)).has_value());
+    CHECK_FALSE(GUI::Mcp::open_refusal(design_row("solid_shell"), false, int(GUI::OfferSel::None)).has_value());
 }
 
 TEST_CASE("a menu item for a selection the tab never reports opens as its button does", "[Mcp][CAD]")
 {
     // Boolean's three items take two bodies and Rib a sketch line, which the model never reports as the selection:
     // their toolbar buttons open the card with nothing selected, and so do the items.
-    for (const char* id : {"boolean", "bool_subtract", "bool_intersect", "rib"}) {
+    for (const char* id : {"solid_boolean", "bool_subtract", "bool_intersect", "solid_rib"}) {
         INFO(id);
         CHECK_FALSE(GUI::Mcp::open_refusal(design_row(id), false, int(GUI::OfferSel::None)).has_value());
     }
@@ -822,7 +831,7 @@ TEST_CASE("a menu item for a selection the tab never reports opens as its button
 
 TEST_CASE("the menu items that act on the Feature list's row are not refused for the selection when a call targets that row", "[Mcp][CAD]")
 {
-    const std::set<std::string> feature_rows = {"feature_edit", "rename_selected", "feature_delete", "sketch_constrain_selected"};
+    const std::set<std::string> feature_rows = {"feature_edit", "design_rename_selected", "feature_delete", "sketch_constrain_selected"};
     for (int i = 0; i < GUI::kDesignToolCount; ++i) {
         INFO(GUI::kDesignTools[i].id);
         CHECK(GUI::kDesignTools[i].feature_row == (feature_rows.count(GUI::kDesignTools[i].id) == 1));
@@ -840,10 +849,10 @@ TEST_CASE("the menu items that act on the Feature list's row are not refused for
         CHECK(GUI::Mcp::open_refusal(design_row(id), true, int(GUI::OfferSel::SkNone), true).has_value());
     }
     // Zoom to selection frames what is picked in the view, so a Feature list row is nothing to it.
-    CHECK(GUI::Mcp::open_refusal(design_row("zoom_to_selection"), false, none).has_value());
-    CHECK(GUI::Mcp::open_refusal(design_row("zoom_to_selection"), false, none, true).has_value());
+    CHECK(GUI::Mcp::open_refusal(design_row("design_zoom_to_selection"), false, none).has_value());
+    CHECK(GUI::Mcp::open_refusal(design_row("design_zoom_to_selection"), false, none, true).has_value());
     // A pick in the view, a card's included, is checked against the item's accepts.
-    CHECK(GUI::Mcp::open_refusal(design_row("rename_selected"), false, int(GUI::OfferSel::FacePlanar)).has_value());
+    CHECK(GUI::Mcp::open_refusal(design_row("design_rename_selected"), false, int(GUI::OfferSel::FacePlanar)).has_value());
 }
 
 TEST_CASE("a Design tool opens only in the mode its menu item belongs to", "[Mcp][CAD]")
@@ -873,8 +882,8 @@ TEST_CASE("a Design tool opens only in the mode its menu item belongs to", "[Mcp
                 // With a plane, as sketch_create {} opens the plane picker instead of a sketch.
                 CHECK_THAT(hint, ContainsSubstring("sketch_create {plane: \"XY\"}"));
             } else {
-                CHECK_THAT(hint, ContainsSubstring("confirm_tool"));
-                CHECK_THAT(hint, ContainsSubstring("cancel_tool"));
+                CHECK_THAT(hint, ContainsSubstring("design_confirm_tool"));
+                CHECK_THAT(hint, ContainsSubstring("design_cancel_tool"));
                 CHECK_THAT(hint, !ContainsSubstring("sketch_finish"));
             }
         }
@@ -883,26 +892,26 @@ TEST_CASE("a Design tool opens only in the mode its menu item belongs to", "[Mcp
     CHECK(sketch_items == 46);
     CHECK(model_items == 43);
     // Shell opens on the model whatever is picked, and never over an open sketch.
-    CHECK_FALSE(GUI::Mcp::open_refusal(design_row("shell"), false, int(GUI::OfferSel::None)).has_value());
-    CHECK(GUI::Mcp::open_refusal(design_row("shell"), true, int(GUI::OfferSel::SkNone)).has_value());
+    CHECK_FALSE(GUI::Mcp::open_refusal(design_row("solid_shell"), false, int(GUI::OfferSel::None)).has_value());
+    CHECK(GUI::Mcp::open_refusal(design_row("solid_shell"), true, int(GUI::OfferSel::SkNone)).has_value());
     CHECK_FALSE(GUI::Mcp::open_refusal(design_row("sk_rect"), true, int(GUI::OfferSel::SkNone)).has_value());
 }
 
 TEST_CASE("a pinned Design tab action stays pinned while it is not shown", "[Mcp][CAD][SpeedDial]")
 {
-    CHECK(GUI::is_design_action_id("orca_command:shell:orca"));
+    CHECK(GUI::is_design_action_id("orca_command:solid_shell:orca"));
     CHECK(GUI::is_design_action_id("orca_command:sk_rect:orca"));
     CHECK(GUI::is_design_action_id("orca_command:sk_array:orca"));                // a folded item's, which runs sketch_pattern
-    CHECK_FALSE(GUI::is_design_action_id("orca_command:describe_design:orca"));   // a Design command with no action
+    CHECK_FALSE(GUI::is_design_action_id("orca_command:design_describe:orca"));   // a Design command with no action
     CHECK_FALSE(GUI::is_design_action_id("orca_command:align_to:orca"));          // an entry with no command
     CHECK_FALSE(GUI::is_design_action_id("orca_command:sk_trim:orca"));           // no entry's: the Trim item is sketch_trim's
     CHECK_FALSE(GUI::is_design_action_id("orca_command:save_project:orca"));
-    CHECK_FALSE(GUI::is_design_action_id("orca_plate_goto:shell:orca"));
-    CHECK_FALSE(GUI::is_design_action_id("shell"));
+    CHECK_FALSE(GUI::is_design_action_id("orca_plate_goto:solid_shell:orca"));
+    CHECK_FALSE(GUI::is_design_action_id("solid_shell"));
     // On the Prepare tab no Design tab action is live, and the third plate is gone. A pin under an id no entry has,
     // as the Trim item's action had before it took sketch_trim's key, has no live action either: it is dropped, and
     // the pins on either side of it stay.
-    const std::string           shell = "orca_command:shell:orca", rect = "orca_command:sk_rect:orca";
+    const std::string           shell = "orca_command:solid_shell:orca", rect = "orca_command:sk_rect:orca";
     const std::string           array = "orca_command:sk_array:orca", trim = "orca_command:sk_trim:orca";
     const std::string           save = "orca_command:save_project:orca", plate = "orca_plate_goto:2:orca";
     const std::set<std::string> live = {save};
@@ -916,7 +925,7 @@ TEST_CASE("a pinned Design tab action stays pinned while it is not shown", "[Mcp
 TEST_CASE("a hidden Design pin takes no place on the favourites bar", "[Mcp][CAD][SpeedDial]")
 {
     // Ten stored pins on the Prepare tab, three of them Design tab actions, which are not live there.
-    const std::vector<std::string> design = {"orca_command:shell:orca", "orca_command:sk_rect:orca", "orca_command:fillet:orca"};
+    const std::vector<std::string> design = {"orca_command:solid_shell:orca", "orca_command:sk_rect:orca", "orca_command:solid_fillet:orca"};
     std::vector<std::string>       favs;
     for (int i = 1; i <= 7; ++i)
         favs.push_back("orca_command:command" + std::to_string(i) + ":orca");
@@ -964,7 +973,7 @@ TEST_CASE("the Design tab's actions are its mode's tools, and none with the CAD 
             if (GUI::kDesignTools[i].action != nullptr && GUI::kDesignTools[i].sketch_mode == sketching)
                 offered.push_back(GUI::kDesignTools[i].id);
         CHECK(ids == offered);
-        for (const char* id : sketching ? std::vector<const char*>{"sketch_trim", "sk_array"} : std::vector<const char*>{"shell", "colour"}) {
+        for (const char* id : sketching ? std::vector<const char*>{"sketch_trim", "sk_array"} : std::vector<const char*>{"solid_shell", "colour"}) {
             INFO(id);
             CHECK(std::count(ids.begin(), ids.end(), id) == 1);
         }
@@ -1067,17 +1076,17 @@ TEST_CASE("the Action Replay window titles a step that calls a folded item's act
 TEST_CASE("a Design command with a read block is read-only", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
-    CHECK(command_of(catalog, "describe_design").read_only);
+    CHECK(command_of(catalog, "design_describe").read_only);
     CHECK(command_of(catalog, "body_describe").read_only);
-    CHECK_FALSE(command_of(catalog, "extrude").read_only);
+    CHECK_FALSE(command_of(catalog, "solid_extrude").read_only);
     CHECK_FALSE(command_of(catalog, "sketch_draw").read_only);
 }
 
-TEST_CASE("select_geometry selects in the model at rest, as a command that changes it", "[Mcp][CAD]")
+TEST_CASE("design_select selects in the model at rest, as a command that changes it", "[Mcp][CAD]")
 {
     // A command with no menu item of its own, under Document, with the access of one that edits, so that it is refused
     // where a click means something else: under a card, a sketch, Constrain mode, a body Move or the Text dialog.
-    const GUI::DesignTool& entry = design_row("select_geometry");
+    const GUI::DesignTool& entry = design_row("design_select");
     CHECK(entry.access == GUI::CadAccess::Change);
     CHECK(entry.row == -1);
     CHECK(entry.action == nullptr);
@@ -1086,7 +1095,7 @@ TEST_CASE("select_geometry selects in the model at rest, as a command that chang
     CHECK_FALSE(entry.feature_row);
 
     const GUI::CommandCatalog catalog = cad_catalog();
-    const GUI::NativeCommand& command = command_of(catalog, "select_geometry");
+    const GUI::NativeCommand& command = command_of(catalog, "design_select");
     CHECK_FALSE(command.read_only);
     CHECK_FALSE(two_forms(command));
     const json& properties = command.input_schema.at("properties");
@@ -1102,17 +1111,17 @@ TEST_CASE("select_geometry selects in the model at rest, as a command that chang
     CHECK(GUI::Mcp::argument_error(command, none).empty());
     json faces{{"body", 0}, {"faces", json::array({3})}};
     CHECK_THAT(GUI::Mcp::argument_error(command, faces), ContainsSubstring("unknown argument faces"));
-    // zoom_to_selection frames what is picked in the view, which a Feature list row is not.
-    CHECK_THAT(command.description, ContainsSubstring("zoom_to_selection acts on what is picked in the view"));
+    // design_zoom_to_selection frames what is picked in the view, which a Feature list row is not.
+    CHECK_THAT(command.description, ContainsSubstring("design_zoom_to_selection acts on what is picked in the view"));
 }
 
-TEST_CASE("confirm_tool and cancel_tool act on what the tab has open, which only a rebuild refuses", "[Mcp][CAD]")
+TEST_CASE("design_confirm_tool and design_cancel_tool act on what the tab has open, which only a rebuild refuses", "[Mcp][CAD]")
 {
     // Commands with no menu item of their own, under Document, with the access ui: what is open in the tab (a card, a
     // sketch, a Move) refuses a command that changes the document, but these act on it. They commit or discard it, so
     // neither is read-only.
     const GUI::CommandCatalog catalog = cad_catalog();
-    for (const char* key : {"confirm_tool", "cancel_tool"}) {
+    for (const char* key : {"design_confirm_tool", "design_cancel_tool"}) {
         INFO(key);
         const GUI::DesignTool& entry = design_row(key);
         CHECK(entry.access == GUI::CadAccess::Ui);
@@ -1133,15 +1142,15 @@ TEST_CASE("confirm_tool and cancel_tool act on what the tab has open, which only
     // A Confirm the open card refuses, or whose rebuild fails, replies ok false, and the card stays open. The reply
     // has no error, so the note of a silent form that reports a rejected rebuild with ok false or an error is not
     // carried.
-    for (const char* key : {"confirm_tool", "cancel_tool"}) {
+    for (const char* key : {"design_confirm_tool", "design_cancel_tool"}) {
         INFO(key);
         CHECK_FALSE(design_row(key).ok_false);
         CHECK_THAT(command_of(catalog, key).description, !ContainsSubstring("error is not empty"));
     }
-    CHECK_THAT(command_of(catalog, "confirm_tool").description,
+    CHECK_THAT(command_of(catalog, "design_confirm_tool").description,
                ContainsSubstring("an add the card refuses, or whose rebuild fails, leaves no feature and no undo step and "
                                  "keeps the card open"));
-    CHECK_THAT(command_of(catalog, "confirm_tool").description, ContainsSubstring("replies ok false"));
+    CHECK_THAT(command_of(catalog, "design_confirm_tool").description, ContainsSubstring("replies ok false"));
 }
 
 TEST_CASE("body_place places a body outside the history, under Bodies", "[Mcp][CAD]")
@@ -1174,7 +1183,7 @@ TEST_CASE("body_place places a body outside the history, under Bodies", "[Mcp][C
 TEST_CASE("a CAD command's schema says what its row says", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog  catalog = cad_catalog();
-    const GUI::NativeCommand&  fillet  = command_of(catalog, "fillet");
+    const GUI::NativeCommand&  fillet  = command_of(catalog, "solid_fillet");
     CHECK(required_of(fillet) == std::vector<std::string>{"edges"});
     const json radius = property_of(fillet, "radius");
     CHECK(radius.at("type") == "number");
@@ -1214,8 +1223,8 @@ TEST_CASE("a CAD command's schema says what its row says", "[Mcp][CAD]")
     const json count = property_of(command_of(catalog, "sketch_pattern"), "count");
     CHECK(count.at("minimum") == 2);
     CHECK(count.at("maximum") == 1000);
-    // export_step's path has no default, so it is required; sketch_transform's angle defaults to null.
-    CHECK(required_of(command_of(catalog, "export_step")) == std::vector<std::string>{"path"});
+    // design_export_step's path has no default, so it is required; sketch_transform's angle defaults to null.
+    CHECK(required_of(command_of(catalog, "design_export_step")) == std::vector<std::string>{"path"});
     CHECK(property_of(command_of(catalog, "sketch_transform"), "angle").at("default").is_null());
 }
 
@@ -1227,9 +1236,9 @@ TEST_CASE("a CAD command's limit is the one its function applies", "[Mcp][CAD]")
     CHECK(GUI::Mcp::argument_error(command_of(catalog, "surface_extrude"), backwards).empty());
     // A fillet's radius is refused at zero, as its function refuses it, and a small one is not.
     json flat{{"edges", 0}, {"radius", 0}};
-    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "fillet"), flat), ContainsSubstring("radius"));
+    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "solid_fillet"), flat), ContainsSubstring("radius"));
     json small{{"edges", 0}, {"radius", 0.005}};
-    CHECK(GUI::Mcp::argument_error(command_of(catalog, "fillet"), small).empty());
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "solid_fillet"), small).empty());
 }
 
 TEST_CASE("a CAD param whose default is null takes null, which its function reads as left out", "[Mcp][CAD]")
@@ -1241,16 +1250,16 @@ TEST_CASE("a CAD param whose default is null takes null, which its function read
     json open_sketch{{"sketch", nullptr}};
     CHECK(GUI::Mcp::argument_error(command_of(catalog, "sketch_list_constraints"), open_sketch).empty());
     json auto_mode{{"operation", nullptr}};
-    CHECK(GUI::Mcp::argument_error(command_of(catalog, "extrude"), auto_mode).empty());
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "solid_extrude"), auto_mode).empty());
     // A two-form command given only a null runs its silent form, the default rectangle: the argument stays, so the
     // call is not the person's, which would open the Extrude card.
     json rectangle{{"sketch", nullptr}};
-    CHECK(GUI::Mcp::argument_error(command_of(catalog, "extrude"), rectangle).empty());
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "solid_extrude"), rectangle).empty());
     CHECK(rectangle == json{{"sketch", nullptr}});
     CHECK_FALSE(GUI::Mcp::person_form(rectangle));
     // A param whose default is a value refuses null, as does one whose function would read a null as given.
     json no_distance{{"distance", nullptr}};
-    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "extrude"), no_distance), ContainsSubstring("distance"));
+    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "solid_extrude"), no_distance), ContainsSubstring("distance"));
     json no_angle{{"type", "rotate"}, {"angle", nullptr}};
     CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "sketch_transform"), no_angle), ContainsSubstring("angle"));
     // One kind still stands for the list of it.
@@ -1262,7 +1271,7 @@ TEST_CASE("a CAD param whose default is null takes null, which its function read
     // plane resolves `plane` as the plane named, and sketch_transform and sketch_pattern tell a type's own params by
     // their presence.
     const std::set<std::pair<std::string, std::string>> as_given{
-        {"thread", "plane"},          {"sketch_transform", "angle"}, {"sketch_transform", "angle_deg"},
+        {"solid_thread", "plane"},          {"sketch_transform", "angle"}, {"sketch_transform", "angle_deg"},
         {"sketch_transform", "scale"}, {"sketch_transform", "pivot"}, {"sketch_pattern", "angle"},
         {"sketch_pattern", "angle_deg"}, {"sketch_pattern", "count"}, {"sketch_pattern", "pivot"}};
     int admitting = 0;
@@ -1279,7 +1288,7 @@ TEST_CASE("a CAD param whose default is null takes null, which its function read
             admitting += admits;
         }
     // The params with a null default that admit null, sketch_draw's twenty-seven fields of its shapes, sketch_mirror's
-    // axis, sketch_project's and sketch_insert_svg's plane, sketch_text's height, select_geometry's eight and body_place's
+    // axis, sketch_project's and sketch_insert_svg's plane, sketch_text's height, design_select's eight and body_place's
     // move, rotate and face among them.
     CHECK(admitting == 84);
 }
@@ -1333,8 +1342,8 @@ TEST_CASE("a CAD command's failure names its cause in its code", "[Mcp][CAD]")
     const GUI::ToolFailure busy = GUI::Mcp::design_busy("a sketch is open in the Design tab");
     CHECK(std::string(busy.what()) == "Design tab busy: a sketch is open in the Design tab");
     CHECK(busy.details.at("code") == "design_busy");
-    CHECK_THAT(busy.details.at("hint").get<std::string>(), ContainsSubstring("confirm_tool"));
-    CHECK_THAT(busy.details.at("hint").get<std::string>(), ContainsSubstring("cancel_tool"));
+    CHECK_THAT(busy.details.at("hint").get<std::string>(), ContainsSubstring("design_confirm_tool"));
+    CHECK_THAT(busy.details.at("hint").get<std::string>(), ContainsSubstring("design_cancel_tool"));
     CHECK(code_of([]() -> json { return json::object(); }) == "no failure");
 
     // The real checks: on a design with no body, the commands that work on one refuse for the design's state.
@@ -1376,9 +1385,9 @@ TEST_CASE("a CAD command refuses a misspelt argument instead of using its defaul
 {
     const GUI::CommandCatalog catalog = cad_catalog();
     json                      helix{{"radius", 10}, {"pich", 3}, {"height", 30}};
-    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "helix"), helix), ContainsSubstring("unknown argument pich"));
+    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "construct_helix"), helix), ContainsSubstring("unknown argument pich"));
     json shell{{"thicknes", 2}};
-    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "shell"), shell), ContainsSubstring("unknown argument thicknes"));
+    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "solid_shell"), shell), ContainsSubstring("unknown argument thicknes"));
 }
 
 TEST_CASE("operation takes Fusion's four words", "[Mcp][CAD]")
@@ -1391,20 +1400,20 @@ TEST_CASE("operation takes Fusion's four words", "[Mcp][CAD]")
         return p;
     };
     // boolean names what it does to the target and has no default: a call that gives any argument names it.
-    CHECK(operation("boolean").at("enum") == json::array({"join", "cut", "intersect"}));
-    CHECK_FALSE(operation("boolean").contains("default"));
-    CHECK(required_of(command_of(catalog, "boolean")) == std::vector<std::string>{"operation"});
+    CHECK(operation("solid_boolean").at("enum") == json::array({"join", "cut", "intersect"}));
+    CHECK_FALSE(operation("solid_boolean").contains("default"));
+    CHECK(required_of(command_of(catalog, "solid_boolean")) == std::vector<std::string>{"operation"});
     json target{{"target", 0}};
-    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "boolean"), target), ContainsSubstring("operation"));
-    // extrude's auto joins the body the profile touches, and is what a sketch or a face takes when it is left out.
-    CHECK(operation("extrude").at("enum") == json::array({"auto", "new_body", "join", "cut", "intersect", nullptr}));
-    CHECK(operation("extrude").at("default").is_null());
-    for (const char* key : {"revolve", "sweep", "loft"}) {
+    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "solid_boolean"), target), ContainsSubstring("operation"));
+    // solid_extrude's auto joins the body the profile touches, and is what a sketch or a face takes when it is left out.
+    CHECK(operation("solid_extrude").at("enum") == json::array({"auto", "new_body", "join", "cut", "intersect", nullptr}));
+    CHECK(operation("solid_extrude").at("default").is_null());
+    for (const char* key : {"solid_revolve", "solid_sweep", "solid_loft"}) {
         CHECK(operation(key).at("enum") == json::array({"new_body", "join", "cut", "intersect"}));
         CHECK(operation(key).at("default") == "new_body");
     }
-    CHECK(operation("mirror").at("enum") == json::array({"new_body", "join"}));
-    CHECK(operation("mirror").at("default") == "new_body");
+    CHECK(operation("solid_mirror").at("enum") == json::array({"new_body", "join"}));
+    CHECK(operation("solid_mirror").at("default") == "new_body");
 
     // A committed sketch extruded with cut into the body under it takes its volume away: a 10 x 10 square at the
     // box's bottom, 4 mm up into the 40 x 20 x 10 box.
@@ -1424,17 +1433,17 @@ TEST_CASE("an old argument is refused, not ignored", "[Mcp][CAD]")
     const GUI::CommandCatalog catalog = cad_catalog();
     // Each is refused as an argument its command does not take, named, so that the call does not run without it.
     const std::vector<std::tuple<const char*, json, const char*>> old = {
-        {"extrude", {{"sketch", 0}, {"boolean", "subtract"}}, "boolean"},
-        {"revolve", {{"sketch", 0}, {"boolean", "new"}}, "boolean"},
-        {"boolean", {{"op", "subtract"}}, "op"},
-        {"mirror", {{"plane", "XZ"}, {"mode", "add"}}, "mode"},
-        // revolve's angle is in degrees and never read angle_deg, which would have left a full turn.
-        {"revolve", {{"sketch", 0}, {"angle_deg", 90}}, "angle_deg"},
-        {"hole", {{"style", 1}}, "style"},
-        {"pattern", {{"circular", true}}, "circular"},
-        {"align", {{"kind", 2}, {"cs_a", 0}, {"cs_b", 1}}, "kind"},
+        {"solid_extrude", {{"sketch", 0}, {"boolean", "subtract"}}, "boolean"},
+        {"solid_revolve", {{"sketch", 0}, {"boolean", "new"}}, "boolean"},
+        {"solid_boolean", {{"op", "subtract"}}, "op"},
+        {"solid_mirror", {{"plane", "XZ"}, {"mode", "add"}}, "mode"},
+        // solid_revolve's angle is in degrees and never read angle_deg, which would have left a full turn.
+        {"solid_revolve", {{"sketch", 0}, {"angle_deg", 90}}, "angle_deg"},
+        {"solid_hole", {{"style", 1}}, "style"},
+        {"solid_pattern", {{"circular", true}}, "circular"},
+        {"solid_align", {{"kind", 2}, {"cs_a", 0}, {"cs_b", 1}}, "kind"},
         {"feature_suppress", {{"feature", 0}, {"enabled", false}}, "enabled"},
-        {"fillet", {{"edge", 3}}, "edge"},
+        {"solid_fillet", {{"edge", 3}}, "edge"},
         {"sketch_trim", {{"at", {5, 0}}, {"extend", true}}, "extend"},
         {"sketch_transform", {{"op", "move"}}, "op"},
         {"sketch_transform", {{"type", "move"}, {"count", 3}}, "count"},
@@ -1450,20 +1459,20 @@ TEST_CASE("a guessed type is read as operation, and operation as type", "[Mcp][C
 {
     const GUI::CommandCatalog catalog = cad_catalog();
     json boolean{{"type", "cut"}, {"target", 0}, {"tool", 1}};
-    CHECK(GUI::Mcp::argument_error(command_of(catalog, "boolean"), boolean).empty());
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "solid_boolean"), boolean).empty());
     CHECK(boolean == json{{"operation", "cut"}, {"target", 0}, {"tool", 1}});
     json extrude{{"sketch", 0}, {"type", "cut"}};
-    CHECK(GUI::Mcp::argument_error(command_of(catalog, "extrude"), extrude).empty());
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "solid_extrude"), extrude).empty());
     CHECK(extrude == json{{"sketch", 0}, {"operation", "cut"}});
     json plane{{"operation", "offset"}};
     CHECK(GUI::Mcp::argument_error(command_of(catalog, "construct_plane"), plane).empty());
     CHECK(plane == json{{"type", "offset"}});
     json hole{{"operation", "counterbore"}};
-    CHECK(GUI::Mcp::argument_error(command_of(catalog, "hole"), hole).empty());
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "solid_hole"), hole).empty());
     CHECK(hole == json{{"type", "counterbore"}});
     // Only a value the other takes is moved: one it does not take stays, and is refused under the name given.
     json sideways{{"type", "sideways"}};
-    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "boolean"), sideways), ContainsSubstring("unknown argument type"));
+    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "solid_boolean"), sideways), ContainsSubstring("unknown argument type"));
     CHECK(sideways == json{{"type", "sideways"}});
 }
 
@@ -1471,23 +1480,23 @@ TEST_CASE("type names a model command's variant", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
     auto prop = [&](const char* key, const char* name) { return property_of(command_of(catalog, key), name); };
-    CHECK(prop("hole", "type").at("enum") == json::array({"simple", "counterbore", "countersink"}));
-    CHECK(prop("hole", "type").at("default") == "simple");
-    // thicken's type left out follows from whether a face is given.
-    CHECK(prop("thicken", "type").at("enum") == json::array({"face", "surface", nullptr}));
-    CHECK(prop("thicken", "type").at("default").is_null());
-    CHECK(prop("pattern", "type").at("enum") == json::array({"linear", "circular", "curve"}));
-    CHECK(prop("pattern", "type").at("default") == "linear");
-    CHECK(prop("align", "type").at("enum") == json::array({"fastened", "planar", "revolute", "slider", "cylindrical"}));
-    CHECK(prop("align", "type").at("default") == "fastened");
+    CHECK(prop("solid_hole", "type").at("enum") == json::array({"simple", "counterbore", "countersink"}));
+    CHECK(prop("solid_hole", "type").at("default") == "simple");
+    // solid_thicken's type left out follows from whether a face is given.
+    CHECK(prop("solid_thicken", "type").at("enum") == json::array({"face", "surface", nullptr}));
+    CHECK(prop("solid_thicken", "type").at("default").is_null());
+    CHECK(prop("solid_pattern", "type").at("enum") == json::array({"linear", "circular", "curve"}));
+    CHECK(prop("solid_pattern", "type").at("default") == "linear");
+    CHECK(prop("solid_align", "type").at("enum") == json::array({"fastened", "planar", "revolute", "slider", "cylindrical"}));
+    CHECK(prop("solid_align", "type").at("default") == "fastened");
     // What the type replaced, and the arguments renamed beside it, are no arguments.
-    CHECK(prop("hole", "designation").is_object());
-    CHECK(prop("hole", "style").is_null());
-    CHECK(prop("pattern", "circular").is_null());
-    CHECK(prop("align", "kind").is_null());
+    CHECK(prop("solid_hole", "designation").is_object());
+    CHECK(prop("solid_hole", "style").is_null());
+    CHECK(prop("solid_pattern", "circular").is_null());
+    CHECK(prop("solid_align", "kind").is_null());
     CHECK(prop("feature_suppress", "suppressed").is_object());
     CHECK(prop("feature_suppress", "enabled").is_null());
-    for (const char* key : {"fillet", "chamfer"}) {
+    for (const char* key : {"solid_fillet", "solid_chamfer"}) {
         INFO(key);
         CHECK(prop(key, "edges").is_object());
         CHECK(prop(key, "edge").is_null());
@@ -1629,8 +1638,8 @@ TEST_CASE("a command's description gives each argument set that opens a tool onc
     CHECK_THAT(value, ContainsSubstring(std::string(": {} (") + design_row("sk_length").name + ", " + design_row("sk_radius").name +
                                         ", " + design_row("sk_angdist").name + ")."));
     CHECK(value.find("{}") == value.rfind("{}"));
-    // boolean's own item and the two folded into it, one argument set each.
-    CHECK_THAT(command_of(catalog, "boolean").description,
+    // solid_boolean's own item and the two folded into it, one argument set each.
+    CHECK_THAT(command_of(catalog, "solid_boolean").description,
                ContainsSubstring(": {\"operation\":\"join\"} (Join), {\"operation\":\"cut\"} (Subtract), "
                                  "{\"operation\":\"intersect\"} (Intersect)."));
 }
@@ -1647,11 +1656,11 @@ TEST_CASE("a CAD command's summary is one sentence of at most 120 characters", "
     }
     // The description goes on with the row's details, and with how a rejected rebuild shows when the reply says it.
     CHECK_THAT(command_of(catalog, "sketch_transform").description, ContainsSubstring("pivot"));
-    CHECK_THAT(command_of(catalog, "shell").description, ContainsSubstring("ok is false"));
-    CHECK_THAT(command_of(catalog, "extrude").description, !ContainsSubstring("ok is false"));
+    CHECK_THAT(command_of(catalog, "solid_shell").description, ContainsSubstring("ok is false"));
+    CHECK_THAT(command_of(catalog, "solid_extrude").description, !ContainsSubstring("ok is false"));
     // One with a handler only does what its menu item does, which for Zoom to selection is to act at once.
-    CHECK_THAT(command_of(catalog, "zoom_to_selection").description, ContainsSubstring("act at once"));
-    CHECK_THAT(command_of(catalog, "zoom_to_selection").description, !ContainsSubstring("opens the tool"));
+    CHECK_THAT(command_of(catalog, "design_zoom_to_selection").description, ContainsSubstring("act at once"));
+    CHECK_THAT(command_of(catalog, "design_zoom_to_selection").description, !ContainsSubstring("opens the tool"));
 }
 
 TEST_CASE("a Design command with a person's form says which mode it runs in", "[Mcp][CAD]")
@@ -1677,11 +1686,11 @@ TEST_CASE("a Design command with a person's form says which mode it runs in", "[
     }
     CHECK(told == 52);   // the commands whose entry has a handler
     CHECK_THAT(command_of(catalog, "sketch_polygon_inscribed").description, ContainsSubstring("It " + in_sketch));
-    CHECK_THAT(command_of(catalog, "zoom_to_selection").description, ContainsSubstring("It " + outside));
-    CHECK_THAT(property_of(command_of(catalog, "shell"), "silent").value("description", std::string()),
+    CHECK_THAT(command_of(catalog, "design_zoom_to_selection").description, ContainsSubstring("It " + outside));
+    CHECK_THAT(property_of(command_of(catalog, "solid_shell"), "silent").value("description", std::string()),
                ContainsSubstring("opens nothing"));
     // The argument forms of these run where their menu item does not: the note says which call it is about.
-    for (const char* key : {"sketch_text", "sketch_insert_svg", "sketch_project", "body_mass_properties", "interference"}) {
+    for (const char* key : {"sketch_text", "sketch_insert_svg", "sketch_project", "body_mass_properties", "design_interference"}) {
         INFO(key);
         CHECK_THAT(property_of(command_of(catalog, key), "silent").value("description", std::string()),
                    ContainsSubstring("Called with no arguments, it runs only"));
@@ -1753,8 +1762,8 @@ TEST_CASE("the Design commands are the design's 88, under its headings", "[Mcp][
     // The design's command set, heading by heading.
     const std::map<std::string, std::set<std::string>> design = {
         {"Document",
-         {"new_design", "describe_design", "import_step", "import_mesh", "export_step", "commit_to_plate", "set_variable",
-          "select_geometry", "confirm_tool", "cancel_tool"}},
+         {"design_new", "design_describe", "design_import_step", "design_import_mesh", "design_export_step", "design_commit_to_plate", "design_set_variable",
+          "design_select", "design_confirm_tool", "design_cancel_tool"}},
         {"Sketch",
          {"sketch_create", "sketch_finish", "sketch_cancel", "sketch_describe", "sketch_validate", "sketch_select", "sketch_edit", "sketch_draw",
           "sketch_text", "sketch_insert_svg", "sketch_mirror", "sketch_pattern", "sketch_project", "sketch_dimension",
@@ -1762,17 +1771,17 @@ TEST_CASE("the Design commands are the design's 88, under its headings", "[Mcp][
           "sketch_transform", "sketch_blend_curve", "sketch_toggle_construction", "sketch_delete", "sketch_repair",
           "sketch_constrain", "sketch_list_constraints", "sketch_delete_constraint"}},
         {"Solid",
-         {"extrude", "revolve", "sweep", "loft", "rib", "hole", "thread", "thicken", "pattern", "mirror", "fillet", "chamfer",
-          "shell", "draft", "delete_face", "boolean", "split", "align", "list_align_types"}},
+         {"solid_extrude", "solid_revolve", "solid_sweep", "solid_loft", "solid_rib", "solid_hole", "solid_thread", "solid_thicken", "solid_pattern", "solid_mirror", "solid_fillet", "solid_chamfer",
+          "solid_shell", "solid_draft", "solid_delete_face", "solid_boolean", "solid_split", "solid_align", "solid_list_align_types"}},
         {"Surface", {"surface_extrude", "surface_revolve", "surface_loft", "surface_patch", "surface_offset"}},
-        {"Construct", {"construct_plane", "construct_axis", "construct_coordinate_system", "helix"}},
-        {"Inspect", {"measure", "interference", "body_describe", "body_mass_properties", "body_section", "body_compare"}},
+        {"Construct", {"construct_plane", "construct_axis", "construct_coordinate_system", "construct_helix"}},
+        {"Inspect", {"design_measure", "design_interference", "body_describe", "body_mass_properties", "body_section", "body_compare"}},
         {"Bodies", {"body_transform", "body_set", "body_delete", "body_place"}},
         {"History",
          {"feature_describe", "feature_edit", "feature_set_expression", "feature_suppress", "feature_move", "feature_rename",
           "feature_delete"}},
         {"Menu items",
-         {"rename_selected", "zoom_to_selection", "sketch_polygon_inscribed", "sketch_polygon_circumscribed",
+         {"design_rename_selected", "design_zoom_to_selection", "sketch_polygon_inscribed", "sketch_polygon_circumscribed",
           "sketch_constrain_selected"}},
     };
     std::map<std::string, std::set<std::string>> table;
@@ -1893,7 +1902,7 @@ TEST_CASE("a Design reply keeps a rejected rebuild's ok false and its error", "[
 TEST_CASE("a CAD call is journaled without its generation and with its silent", "[Mcp][CAD]")
 {
     json                     seen;
-    const GUI::NativeCommand fillet = GUI::Mcp::design_command("fillet", "Fillet", json{{"type", "object"}, {"properties", json::object()}},
+    const GUI::NativeCommand fillet = GUI::Mcp::design_command("solid_fillet", "Fillet", json{{"type", "object"}, {"properties", json::object()}},
                                                             [&seen](const json& args, bool) {
                                                                 seen = args;
                                                                 return json{{"ok", true}, {"error", ""}, {"feature_index", 3}};
@@ -1918,7 +1927,7 @@ TEST_CASE("a CAD call is journaled without its generation and with its silent", 
     // A call that ran and gave nothing but its generation is journaled silent when a call with no arguments
     // opens a tool: its replay, given none, would open the tool.
     const GUI::NativeCommand shell = GUI::Mcp::design_command(
-        "shell", "Shell", GUI::Mcp::with_silent(json{{"type", "object"}, {"properties", json::object()}}),
+        "solid_shell", "Shell", GUI::Mcp::with_silent(json{{"type", "object"}, {"properties", json::object()}}),
         [](const json&, bool) { return json{{"ok", true}}; }, [](const json& args) { return GUI::Mcp::person_form(args); });
     JournalContext generation_only;
     shell.run({{"generation", 4}}, generation_only);
@@ -1933,13 +1942,13 @@ TEST_CASE("a CAD call is journaled without its generation and with its silent", 
     JournalContext            body;
     CHECK_THROWS_AS(command_of(catalog, "body_set").run({{"generation", 1}}, body), GUI::ToolFailure);
     CHECK(body.journaled == json{{"silent", true}});
-    // boolean's operation alone opens the item that does it, so a cut given its generation is replayed as a cut.
+    // solid_boolean's operation alone opens the item that does it, so a cut given its generation is replayed as a cut.
     JournalContext cut;
-    CHECK_THROWS_AS(command_of(catalog, "boolean").run({{"operation", "cut"}, {"generation", 1}}, cut), GUI::ToolFailure);
+    CHECK_THROWS_AS(command_of(catalog, "solid_boolean").run({{"operation", "cut"}, {"generation", 1}}, cut), GUI::ToolFailure);
     CHECK(cut.journaled == json{{"operation", "cut"}, {"silent", true}});
 
     // A failure is the call's error.
-    const GUI::NativeCommand refused = GUI::Mcp::design_command("hole", "Hole", json{{"type", "object"}, {"properties", json::object()}},
+    const GUI::NativeCommand refused = GUI::Mcp::design_command("solid_hole", "Hole", json{{"type", "object"}, {"properties", json::object()}},
                                                              [](const json&, bool) -> json {
                                                                  throw GUI::ToolFailure("removed no material", {{"code", "rebuild_failed"}});
                                                              });
@@ -1951,7 +1960,7 @@ TEST_CASE("a CAD command tells its function a person's pick from a call", "[Mcp]
     // The four menu items that act on the Feature list's row are not refused for the selection on a call, and a person's
     // pick keeps the menu's rule: the function is told which it runs for.
     std::vector<bool>        told;
-    const GUI::NativeCommand rename = GUI::Mcp::design_command("rename_selected", "Rename", json{{"type", "object"}, {"properties", json::object()}},
+    const GUI::NativeCommand rename = GUI::Mcp::design_command("design_rename_selected", "Rename", json{{"type", "object"}, {"properties", json::object()}},
                                                             [&told](const json&, bool person) {
                                                                 told.push_back(person);
                                                                 return json{{"ok", true}};
@@ -1966,9 +1975,11 @@ TEST_CASE("a CAD command tells its function a person's pick from a call", "[Mcp]
 TEST_CASE("an unknown command is answered with close names only", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
-    const std::string         unknown = catalog.unknown_command("extrud", /*suggest=*/true);
+    const std::string         unknown = catalog.unknown_command("solid_extrud", /*suggest=*/true);
     // The closest key, and no sentence about another tool.
-    CHECK(unknown == "Unknown tool: extrud (did you mean extrude?)");
+    CHECK(unknown == "Unknown tool: solid_extrud (did you mean solid_extrude?)");
+    // A verb without its place, as an agent who knows CAD programs guesses it, finds the command that has one.
+    CHECK_THAT(catalog.unknown_command("extrude", /*suggest=*/true), ContainsSubstring("did you mean solid_extrude"));
 }
 
 namespace {
@@ -1991,7 +2002,7 @@ bool takes_arg(const GUI::NativeCommand& command, const std::string& key)
 }
 
 // Whether an example passes a face or edge id as `key`: a param that takes ids, or a reference that
-// names a face or an edge, as plane takes {"body": b, "face": f} (and hole's at, measure's a and b).
+// names a face or an edge, as plane takes {"body": b, "face": f} (and solid_hole's at, design_measure's a and b).
 bool passes_id(const std::string& key, const json& value)
 {
     if (is_id_param(key)) return true;
@@ -2076,11 +2087,11 @@ TEST_CASE("every example passes its command's schema", "[Mcp][CAD]")
 TEST_CASE("an example's argument goes by a name its command takes", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
-    CHECK(takes_arg(command_of(catalog, "fillet"), "radius"));
-    CHECK_FALSE(takes_arg(command_of(catalog, "fillet"), "radious"));
+    CHECK(takes_arg(command_of(catalog, "solid_fillet"), "radius"));
+    CHECK_FALSE(takes_arg(command_of(catalog, "solid_fillet"), "radious"));
     // A param in radians is also read in degrees, and only such a param.
     CHECK(takes_arg(command_of(catalog, "sketch_transform"), "angle_deg"));
-    CHECK_FALSE(takes_arg(command_of(catalog, "fillet"), "radius_deg"));
+    CHECK_FALSE(takes_arg(command_of(catalog, "solid_fillet"), "radius_deg"));
 }
 
 // A stale id still names a real face or edge, so an example that passes ids shows the safe pattern:
@@ -2654,29 +2665,32 @@ TEST_CASE("literal edits and bindings reach the same numeric fields", "[Mcp][CAD
     CHECK_FALSE(CadDocument::is_bindable_field("sketch_ref"));
 }
 
-TEST_CASE("commit_to_plate, new_design and export_step change the design or the plate, and fail as errors", "[Mcp][CAD]")
+TEST_CASE("design_commit_to_plate, design_new and design_export_step change the design or the plate, and fail as errors", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
-    for (const char* key : {"commit_to_plate", "new_design", "export_step"}) {
+    for (const char* key : {"design_commit_to_plate", "design_new", "design_export_step"}) {
         INFO(key);
         const GUI::NativeCommand& c = command_of(catalog, key);
         CHECK_FALSE(c.read_only);
         // A failure is the call's error, not a reply whose ok is false.
         CHECK_THAT(c.description, !ContainsSubstring("ok is false"));
     }
-    // export_step's path has no default, so it is required.
-    CHECK(required_of(command_of(catalog, "export_step")) == std::vector<std::string>{"path"});
-    // commit_to_plate names the objects it replaces by index or by id; the journal records the indices.
-    const GUI::NativeCommand& commit = command_of(catalog, "commit_to_plate");
+    // design_export_step's path has no default, so it is required.
+    CHECK(required_of(command_of(catalog, "design_export_step")) == std::vector<std::string>{"path"});
+    // design_commit_to_plate names the objects it replaces by index or by id; the journal records the indices.
+    const GUI::NativeCommand& commit = command_of(catalog, "design_commit_to_plate");
     CHECK(commit.input_schema["properties"].contains("replace_ids"));
     CHECK(commit.id_args == std::vector<std::string>{"replace_ids"});
+    // It deletes them through the operation Prepare's Delete runs, and names it as every command that changes Prepare
+    // does; a command that changes only the Design document names none.
+    CHECK(commit.operations == std::vector<std::string>{"delete_objects"});
+    CHECK(command_of(catalog, "design_new").operations.empty());
 }
 
-TEST_CASE("commit_to_plate's replace takes distinct object indices that are not part of a cut", "[Mcp][CAD]")
+TEST_CASE("design_commit_to_plate's replace takes distinct object indices", "[Mcp][CAD]")
 {
     Model model;
     for (int i = 0; i < 3; ++i) model.add_object()->name = "object " + std::to_string(i);
-    model.objects[2]->cut_id.init();
 
     CHECK(GUI::Mcp::cad_commit_to_plate_replace(json::array(), model).empty());
     CHECK(GUI::Mcp::cad_commit_to_plate_replace({1, 0}, model) == std::vector<int>{0, 1});
@@ -2688,12 +2702,18 @@ TEST_CASE("commit_to_plate's replace takes distinct object indices that are not 
     CHECK_THAT(refusal({0, 0}), ContainsSubstring("listed twice"));
     CHECK_THAT(refusal({0.5}), ContainsSubstring("not 0.5"));
     CHECK_THAT(refusal({"0"}), ContainsSubstring("object indices"));
-    CHECK_THAT(refusal({0, 2}), ContainsSubstring("part of a cut object"));
-    CHECK(failure_code([&] { GUI::Mcp::cad_commit_to_plate_replace({0, 2}, model); }) == "precondition");
+    // A part of a cut passes the argument checks: it is the delete operation's to refuse (Ops::delete_refusal()), as
+    // Prepare's Delete refuses it.
+    model.objects[2]->cut_id.init();
+    REQUIRE(model.objects[2]->is_cut());
+    CHECK(GUI::Mcp::cad_commit_to_plate_replace({2, 0}, model) == std::vector<int>{0, 2});
+    // The whole list's arguments come first, so a list holding a part of a cut and a wrong value is refused for the
+    // value, before the command's cut check.
+    CHECK_THAT(refusal({2, "x"}), ContainsSubstring("object indices"));
     CHECK(failure_code([&] { GUI::Mcp::cad_commit_to_plate_replace({3}, model); }) == "invalid_argument");
 }
 
-TEST_CASE("export_step's STEP file reads back with each body where the Move gizmo put it", "[Mcp][CAD]")
+TEST_CASE("design_export_step's STEP file reads back with each body where the Move gizmo put it", "[Mcp][CAD]")
 {
     CadDocument doc;
     add_box(doc);
@@ -2850,7 +2870,7 @@ int plate_loop(const GUI::DesignSketchTool& tool, const std::vector<SketchEntity
 
 } // namespace
 
-TEST_CASE("a committed sketch's loops are numbered as extrude's loop takes them", "[Mcp][CAD]")
+TEST_CASE("a committed sketch's loops are numbered as solid_extrude's loop takes them", "[Mcp][CAD]")
 {
     CadDocument doc;
     doc.modeling_origin = Vec3d(100, 50, 0);
@@ -2867,7 +2887,7 @@ TEST_CASE("a committed sketch's loops are numbered as extrude's loop takes them"
     const int plate = plate_loop(tool, ents);
     REQUIRE(plate >= 0);
     CHECK_THAT(rep.loops[plate].area, WithinAbs(160.0 * 60.0, 1e-6));
-    // Each loop's entities, then its holes' entities: the list extrude {loop} hands the kernel.
+    // Each loop's entities, then its holes' entities: the list solid_extrude {loop} hands the kernel.
     const std::vector<std::vector<int>> regions = tool.region_entity_indices_with_holes(ents);
     REQUIRE(regions.size() == rep.loops.size());
     for (size_t i = 0; i < regions.size(); ++i) {
@@ -3074,7 +3094,7 @@ TEST_CASE("revolve without a sketch turns a width by height rectangle lying besi
 TEST_CASE("the sketch-to-solid rows take a sketch, and sketch_create takes every plane form", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
-    for (const char* key : {"sketch_create", "sketch_describe", "extrude", "revolve"}) {
+    for (const char* key : {"sketch_create", "sketch_describe", "solid_extrude", "solid_revolve"}) {
         INFO(key);
         CHECK_THAT(command_of(catalog, key).description, !ContainsSubstring("ok is false"));
     }
@@ -3082,15 +3102,15 @@ TEST_CASE("the sketch-to-solid rows take a sketch, and sketch_create takes every
     CHECK(property_of(command_of(catalog, "sketch_create"), "plane").at("type") == json::array({"string", "object"}));
     // Optional everywhere: none of these is required.
     CHECK(required_of(command_of(catalog, "sketch_describe")).empty());
-    CHECK(required_of(command_of(catalog, "extrude")).empty());
-    CHECK(required_of(command_of(catalog, "revolve")).empty());
+    CHECK(required_of(command_of(catalog, "solid_extrude")).empty());
+    CHECK(required_of(command_of(catalog, "solid_revolve")).empty());
     for (const char* key : {"sketch", "loop", "body"}) {
         INFO(key);
-        CHECK(property_of(command_of(catalog, "extrude"), key).is_object());
+        CHECK(property_of(command_of(catalog, "solid_extrude"), key).is_object());
     }
     for (const char* key : {"sketch", "axis_entity", "body"}) {
         INFO(key);
-        CHECK(property_of(command_of(catalog, "revolve"), key).is_object());
+        CHECK(property_of(command_of(catalog, "solid_revolve"), key).is_object());
     }
 }
 
@@ -3263,7 +3283,7 @@ TEST_CASE("surface_revolve takes a line of the sketch as its axis, and flip", "[
     CHECK(edited.revolve_axis_entity == -1);
 }
 
-TEST_CASE("list_align_types says which types fit a pair", "[Mcp][CAD]")
+TEST_CASE("solid_list_align_types says which types fit a pair", "[Mcp][CAD]")
 {
     // A coordinate system on the top face of the box and one on the top face of a block 50 mm beside it.
     CadDocument doc;
@@ -4191,8 +4211,8 @@ TEST_CASE("the rows for topology, measure, holes, push/pull and construct_plane"
     };
     CHECK_FALSE(command_of(catalog, "construct_plane").read_only);
     CHECK(command_of(catalog, "body_describe").read_only);
-    CHECK(command_of(catalog, "measure").read_only);
-    for (const char* t : {"hole", "extrude", "construct_plane"}) {
+    CHECK(command_of(catalog, "design_measure").read_only);
+    for (const char* t : {"solid_hole", "solid_extrude", "construct_plane"}) {
         INFO(t);
         CHECK_THAT(command_of(catalog, t).description, !ContainsSubstring("ok is false"));
     }
@@ -4201,11 +4221,11 @@ TEST_CASE("the rows for topology, measure, holes, push/pull and construct_plane"
         param("body_describe", k);
         CHECK_FALSE(required("body_describe", k));
     }
-    param("hole", "at");
-    CHECK_FALSE(required("hole", "at"));
-    CHECK(param("hole", "body").at("default") == -1);
-    param("extrude", "face");
-    CHECK_FALSE(required("extrude", "face"));
+    param("solid_hole", "at");
+    CHECK_FALSE(required("solid_hole", "at"));
+    CHECK(param("solid_hole", "body").at("default") == -1);
+    param("solid_extrude", "face");
+    CHECK_FALSE(required("solid_extrude", "face"));
     for (const char* k : {"face_a", "face_b", "edge_a", "edge_b"}) {
         param("construct_plane", k);
         CHECK_FALSE(required("construct_plane", k));
@@ -4552,24 +4572,24 @@ TEST_CASE("split cuts a body with a plane and keeps either piece", "[Mcp][CAD]")
 TEST_CASE("the rows for thread, sweep, loft, split and helix", "[Mcp][CAD]")
 {
     const GUI::CommandCatalog catalog = cad_catalog();
-    for (const char* t : {"thread", "sweep", "loft", "split"}) {
+    for (const char* t : {"solid_thread", "solid_sweep", "solid_loft", "solid_split"}) {
         INFO(t);
         CHECK_FALSE(command_of(catalog, t).read_only);
         CHECK_THAT(command_of(catalog, t).description, !ContainsSubstring("ok is false"));
     }
-    // These of thread and split are optional; sweep's and loft's, which have no default, are required.
+    // These of solid_thread and solid_split are optional; solid_sweep's and solid_loft's, which have no default, are required.
     for (const char* k : {"face", "edge", "designation", "internal", "diameter", "pitch", "depth", "length", "plane", "at"}) {
         INFO(k);
-        CHECK(property_of(command_of(catalog, "thread"), k).is_object());
+        CHECK(property_of(command_of(catalog, "solid_thread"), k).is_object());
     }
-    CHECK(required_of(command_of(catalog, "thread")).empty());
-    CHECK(required_of(command_of(catalog, "sweep")) == std::vector<std::string>{"sketch", "path"});
-    CHECK(required_of(command_of(catalog, "loft")) == std::vector<std::string>{"profiles"});
-    CHECK(required_of(command_of(catalog, "split")).empty());
-    CHECK(property_of(command_of(catalog, "split"), "plane").is_object());
-    CHECK(property_of(command_of(catalog, "split"), "face").is_object());
-    CHECK(property_of(command_of(catalog, "split"), "face_body").at("default") == -1);
-    CHECK_THAT(command_of(catalog, "helix").description, ContainsSubstring("start and tangent"));
+    CHECK(required_of(command_of(catalog, "solid_thread")).empty());
+    CHECK(required_of(command_of(catalog, "solid_sweep")) == std::vector<std::string>{"sketch", "path"});
+    CHECK(required_of(command_of(catalog, "solid_loft")) == std::vector<std::string>{"profiles"});
+    CHECK(required_of(command_of(catalog, "solid_split")).empty());
+    CHECK(property_of(command_of(catalog, "solid_split"), "plane").is_object());
+    CHECK(property_of(command_of(catalog, "solid_split"), "face").is_object());
+    CHECK(property_of(command_of(catalog, "solid_split"), "face_body").at("default") == -1);
+    CHECK_THAT(command_of(catalog, "construct_helix").description, ContainsSubstring("start and tangent"));
 }
 
 // --- The open sketch: shapes, edit ops and constraints (cad_model A5, A7, A8) -----------------

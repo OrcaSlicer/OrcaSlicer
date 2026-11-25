@@ -176,7 +176,7 @@ TEST_CASE("action_run refuses arguments for an action that takes none", "[Mcp][S
     CommandCatalog design;
     NativeCommands::register_all_commands(design, {true});
     design.seal();
-    const NativeCommand* shell = design.find("shell");
+    const NativeCommand* shell = design.find("solid_shell");
     REQUIRE(shell != nullptr);
     REQUIRE(shell->has_own_action);
     const std::unique_ptr<Slic3r::GUI::AppAction> design_action = NativeCommands::make_action(*shell);
@@ -474,12 +474,12 @@ TEST_CASE("action_run says where an action it cannot find is", "[Mcp][SpeedDial]
         CommandCatalog catalog;
         NativeCommands::register_all_commands(catalog, {cad});
         catalog.seal();
-        for (const std::string id : {"orca_command:shell:orca", "shell"}) {
+        for (const std::string id : {"orca_command:solid_shell:orca", "solid_shell"}) {
             INFO(id << (cad ? ", the CAD feature on" : ", the CAD feature off"));
             const auto [why, code] = refusal(id, catalog, cad);
             if (cad) {
                 CHECK_THAT(why, Catch::Matchers::ContainsSubstring("while the Design tab is shown"));
-                CHECK_THAT(why, Catch::Matchers::ContainsSubstring("tool_call {\"tool\": \"shell\"}"));
+                CHECK_THAT(why, Catch::Matchers::ContainsSubstring("tool_call {\"tool\": \"solid_shell\"}"));
                 CHECK(code == "wrong_mode");
             } else {
                 CHECK(why == id + " is a Design tab action, and the CAD feature was off when OrcaSlicer started: a person "
@@ -500,14 +500,14 @@ TEST_CASE("action_run says where an action it cannot find is", "[Mcp][SpeedDial]
                                                                   "OrcaSlicer started: a person turns it on in Preferences > "
                                                                   "Features and restarts OrcaSlicer, or starts it with --cad");
         // A Design command with no Speed Dial action is refused as any unknown action is.
-        CHECK_THAT(refusal("orca_command:describe_design:orca", catalog, cad).first, Catch::Matchers::ContainsSubstring("action_list"));
+        CHECK_THAT(refusal("orca_command:design_describe:orca", catalog, cad).first, Catch::Matchers::ContainsSubstring("action_list"));
     }
     // The CAD feature turned off while the app runs drops every Design action, though their commands stay in the
     // catalog: the action is right, and a person turns the feature back on.
     CommandCatalog with_cad;
     NativeCommands::register_all_commands(with_cad, {true});
     with_cad.seal();
-    const auto [off_now, off_now_code] = refusal("shell", with_cad, false);
+    const auto [off_now, off_now_code] = refusal("solid_shell", with_cad, false);
     CHECK_THAT(off_now, Catch::Matchers::ContainsSubstring("the CAD feature is off"));
     CHECK(off_now_code == "design_unavailable");
 #endif
@@ -1093,7 +1093,7 @@ TEST_CASE("tool_describe's manual names a command's menu items with their argume
     CHECK(tab->at("asks_for") == json{{"value", "tab"}, {"argument", "tab"}});
     // How to call it: by name when the tool list shows it, through tool_call when not.
     CHECK(manual_of(catalog, "plate_slice").at("call") == "plate_slice {args}");
-    CHECK(manual_of(catalog, "fillet").at("call") == "tool_call {tool: \"fillet\", args}");
+    CHECK(manual_of(catalog, "solid_fillet").at("call") == "tool_call {tool: \"solid_fillet\", args}");
 }
 
 TEST_CASE("every built-in parameter is classified for the manual, or read through its fields", "[Mcp][CAD]")
@@ -1147,18 +1147,18 @@ TEST_CASE("every built-in parameter is classified for the manual, or read throug
         {"dialog_answer.dialog", {"app_state"}},
         {"filament_set_flushing.prime_volume_mode", {"filament_list"}},
         {"calibration_generate_test.shaper_type", {"settings_get"}},
-        {"hole.at", {"body_describe"}},
-        {"thread.at", {"body_describe"}},
+        {"solid_hole.at", {"body_describe"}},
+        {"solid_thread.at", {"body_describe"}},
         {"job_cancel.job", {"app_state"}},
         {"dialog_answer.button", {"app_state"}},
         {"widget_click.popup_item", {"widget_click"}},
-        {"fillet.edges", {"body_describe"}},
+        {"solid_fillet.edges", {"body_describe"}},
         {"sketch_constrain.entities", {"sketch_describe"}},
-        {"rib.entity", {"sketch_describe"}},
-        {"pattern.entity", {"sketch_describe"}},
-        {"loft.profiles", {"describe_design"}},
-        {"align.cs_a", {"describe_design"}},
-        {"body_compare.reference", {"describe_design"}},
+        {"solid_rib.entity", {"sketch_describe"}},
+        {"solid_pattern.entity", {"sketch_describe"}},
+        {"solid_loft.profiles", {"design_describe"}},
+        {"solid_align.cs_a", {"design_describe"}},
+        {"body_compare.reference", {"design_describe"}},
         {"view_set.layer", {"plate_slice_stats"}},
         {"view_set.layer_z", {"plate_slice_stats"}},
         {"plate_set_custom_gcode.add[].layer", {"plate_slice_stats"}},
@@ -1340,10 +1340,10 @@ TEST_CASE("tool_describe describes any command a lookup finds, and refuses a nam
         NativeCommands::register_all_commands(left_out, {false, editor});
         left_out.seal();
         try {
-            describe_command(left_out, "fillet");
+            describe_command(left_out, "solid_fillet");
             FAIL("a left-out Design command was described");
         } catch (const ToolFailure& f) {
-            CHECK(std::string(f.what()) == left_out.unknown_command("fillet"));
+            CHECK(std::string(f.what()) == left_out.unknown_command("solid_fillet"));
             CHECK(f.details.at("code") == "design_unavailable");
             CHECK_THAT(std::string(f.what()),
                        Catch::Matchers::ContainsSubstring(editor ? "the CAD feature was off" : "the G-code viewer has no Design tab"));
@@ -1460,7 +1460,7 @@ TEST_CASE("tool_list refuses the Design group of a run that leaves its commands 
             CHECK(f.details.at("code") == "design_unavailable");
             CHECK_THAT(std::string(f.what()), Catch::Matchers::EndsWith(*why));
             // A Design command's own call gives the same reason.
-            CHECK_THAT(catalog.unknown_command("fillet"), Catch::Matchers::EndsWith(*why));
+            CHECK_THAT(catalog.unknown_command("solid_fillet"), Catch::Matchers::EndsWith(*why));
         }
         // The other groups are as they are: 13 of them.
         try {

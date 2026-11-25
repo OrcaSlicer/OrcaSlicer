@@ -2,7 +2,7 @@
  "commands": [
   {
    "completion": "immediate",
-   "description": "The commands the tool list does not show, each with what it does: the Design tab's (group Design, with the CAD feature on, each under its heading), the menu items that take no arguments (in their places' groups), and the operations plugins offer (group Plugins, `plugin.<plugin>.<name>`). The reply says how to read a command's manual and how to run one. `group` keeps one group's; one whose commands the tool list all shows gives none and a note. The Design tab's CAD commands (sketches, solid and surface features, bodies, measurements) follow by heading; `tool_list {group: \"Design\"}` says what each does and `tool_describe {tool}` gives one's manual. One whose schema has `silent` does what its menu item does when called with no arguments, unless `silent` is true. Document: `describe_design`, `import_step`, `import_mesh`, `set_variable`, `commit_to_plate`, `new_design`, `export_step`, `select_geometry`, `confirm_tool`, `cancel_tool`. Sketch: `sketch_create`, `sketch_project`, `sketch_text`, `sketch_insert_svg`, `sketch_offset`, `sketch_trim`, `sketch_fillet`, `sketch_chamfer`, `sketch_mirror`, `sketch_dimension`, `sketch_constrain`, `sketch_toggle_construction`, `sketch_extend`, `sketch_delete`, `sketch_describe`, `sketch_validate`, `sketch_list_constraints`, `sketch_blend_curve`, `sketch_finish`, `sketch_cancel`, `sketch_edit`, `sketch_draw`, `sketch_select`, `sketch_repair`, `sketch_set_value`, `sketch_transform`, `sketch_pattern`, `sketch_delete_constraint`. Solid: `extrude`, `revolve`, `sweep`, `loft`, `thicken`, `rib`, `boolean`, `hole`, `thread`, `shell`, `split`, `fillet`, `chamfer`, `draft`, `pattern`, `mirror`, `align`, `delete_face`, `list_align_types`. Surface: `surface_extrude`, `surface_revolve`, `surface_loft`, `surface_patch`, `surface_offset`. Construct: `construct_plane`, `construct_axis`, `construct_coordinate_system`, `helix`. Inspect: `measure`, `body_mass_properties`, `interference`, `body_describe`, `body_section`, `body_compare`. Bodies: `body_transform`, `body_delete`, `body_set`, `body_place`. History: `feature_edit`, `feature_delete`, `feature_describe`, `feature_set_expression`, `feature_move`, `feature_suppress`, `feature_rename`. Menu items, which take no arguments and do what their item of the right-click menu does: `rename_selected`, `zoom_to_selection`, `sketch_polygon_inscribed`, `sketch_polygon_circumscribed`, `sketch_constrain_selected`.",
+   "description": "The commands the tool list does not show, each with what it does: the Design tab's (group Design, with the CAD feature on, each under its heading), the menu items that take no arguments (in their places' groups), and the operations plugins offer (group Plugins, `plugin.<plugin>.<name>`). The reply says how to read a command's manual and how to run one. `group` keeps one group's; one whose commands the tool list all shows gives none and a note. The Design tab's CAD commands (sketches, solid and surface features, bodies, measurements) follow by heading; `tool_list {group: \"Design\"}` says what each does and `tool_describe {tool}` gives one's manual. One whose schema has `silent` does what its menu item does when called with no arguments, unless `silent` is true. Document: `design_describe`, `design_import_step`, `design_import_mesh`, `design_set_variable`, `design_commit_to_plate`, `design_new`, `design_export_step`, `design_select`, `design_confirm_tool`, `design_cancel_tool`. Sketch: `sketch_create`, `sketch_project`, `sketch_text`, `sketch_insert_svg`, `sketch_offset`, `sketch_trim`, `sketch_fillet`, `sketch_chamfer`, `sketch_mirror`, `sketch_dimension`, `sketch_constrain`, `sketch_toggle_construction`, `sketch_extend`, `sketch_delete`, `sketch_describe`, `sketch_validate`, `sketch_list_constraints`, `sketch_blend_curve`, `sketch_finish`, `sketch_cancel`, `sketch_edit`, `sketch_draw`, `sketch_select`, `sketch_repair`, `sketch_set_value`, `sketch_transform`, `sketch_pattern`, `sketch_delete_constraint`. Solid: `solid_extrude`, `solid_revolve`, `solid_sweep`, `solid_loft`, `solid_thicken`, `solid_rib`, `solid_boolean`, `solid_hole`, `solid_thread`, `solid_shell`, `solid_split`, `solid_fillet`, `solid_chamfer`, `solid_draft`, `solid_pattern`, `solid_mirror`, `solid_align`, `solid_delete_face`, `solid_list_align_types`. Surface: `surface_extrude`, `surface_revolve`, `surface_loft`, `surface_patch`, `surface_offset`. Construct: `construct_plane`, `construct_axis`, `construct_coordinate_system`, `construct_helix`. Inspect: `design_measure`, `body_mass_properties`, `design_interference`, `body_describe`, `body_section`, `body_compare`. Bodies: `body_transform`, `body_delete`, `body_set`, `body_place`. History: `feature_edit`, `feature_delete`, `feature_describe`, `feature_set_expression`, `feature_move`, `feature_suppress`, `feature_rename`. Menu items, which take no arguments and do what their item of the right-click menu does: `design_rename_selected`, `design_zoom_to_selection`, `sketch_polygon_inscribed`, `sketch_polygon_circumscribed`, `sketch_constrain_selected`.",
    "destructive": false,
    "group": "Tools and actions",
    "guard": "inspect",
@@ -271,7 +271,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -369,7 +369,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -7476,7 +7476,7 @@
       "type": "boolean"
      },
      "look_at": {
-      "description": "`[x, y, z]` mm to look at, in world coordinates as `object_list` gives positions; on the Design tab, those of the Design commands' world points (`describe_design`'s `modeling_origin` is the sketch planes' origin). The camera moves parallel, keeping direction and distance.",
+      "description": "`[x, y, z]` mm to look at, in world coordinates as `object_list` gives positions; on the Design tab, those of the Design commands' world points (`design_describe`'s `modeling_origin` is the sketch planes' origin). The camera moves parallel, keeping direction and distance.",
       "items": {
        "type": "number"
       },
@@ -8408,14 +8408,14 @@
   },
   {
    "completion": "immediate",
-   "description": "The Design document: features, variables with their values, bodies, undo_depth / redo_depth and generation. A feature's bound lists the fields an expression drives; a body gives bbox, where the model has it, source_feature, visible, color, moved, and placement: where the body stands for Commit to Plate and Export STEP (body_place, the Move gizmo, Place on Face), null where the model has it, else three rows of four numbers, the rotation and the translation in mm, in the world frame. commit_mode is the Commit button's mode, assembly or bodies, which commit_to_plate uses when given none. selection is what the right-click menu would be built for: its kind, the selection_kind a tool's opening reply gives, and its id (none, face_planar, body_solid, sk_line and the like). picked_plane is the reference plane picked in the view (XY, XZ, YZ), which the next Sketch opens on, and feature_row the selected row of the Feature list, a feature index; each is null when there is none.",
+   "description": "The Design document: features, variables with their values, bodies, undo_depth / redo_depth and generation. A feature's bound lists the fields an expression drives; a body gives bbox, where the model has it, source_feature, visible, color, moved, and placement: where the body stands for Commit to Plate and Export STEP (body_place, the Move gizmo, Place on Face), null where the model has it, else three rows of four numbers, the rotation and the translation in mm, in the world frame. commit_mode is the Commit button's mode, assembly or bodies, which design_commit_to_plate uses when given none. selection is what the right-click menu would be built for: its kind, the selection_kind a tool's opening reply gives, and its id (none, face_planar, body_solid, sk_line and the like). picked_plane is the reference plane picked in the view (XY, XZ, YZ), which the next Sketch opens on, and feature_row the selected row of the Feature list, a feature index; each is null when there is none.",
    "destructive": false,
    "examples": [
     {
      "calls": [
       {
        "args": {},
-       "tool": "describe_design"
+       "tool": "design_describe"
       }
      ],
      "title": "An empty design"
@@ -8428,11 +8428,11 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {},
-       "tool": "describe_design"
+       "tool": "design_describe"
       }
      ],
      "title": "A plate's two features and its body"
@@ -8447,14 +8447,14 @@
     "additionalProperties": false,
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      }
     },
     "type": "object"
    },
-   "key": "describe_design",
+   "key": "design_describe",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -8472,7 +8472,7 @@
        "args": {
         "path": "/path/to/part.step"
        },
-       "tool": "import_step"
+       "tool": "design_import_step"
       }
      ],
      "needs": "a STEP file of the part",
@@ -8488,7 +8488,7 @@
     "additionalProperties": false,
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -8502,7 +8502,7 @@
     ],
     "type": "object"
    },
-   "key": "import_step",
+   "key": "design_import_step",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -8520,7 +8520,7 @@
        "args": {
         "path": "/path/to/part.stl"
        },
-       "tool": "import_mesh"
+       "tool": "design_import_mesh"
       }
      ],
      "needs": "an STL or OBJ mesh file",
@@ -8536,7 +8536,7 @@
     "additionalProperties": false,
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -8558,7 +8558,7 @@
     ],
     "type": "object"
    },
-   "key": "import_mesh",
+   "key": "design_import_mesh",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -8577,7 +8577,7 @@
         "expr": "20",
         "name": "w"
        },
-       "tool": "set_variable"
+       "tool": "design_set_variable"
       }
      ],
      "title": "A variable w of 20"
@@ -8589,14 +8589,14 @@
         "expr": "20",
         "name": "w"
        },
-       "tool": "set_variable"
+       "tool": "design_set_variable"
       },
       {
        "args": {
         "expr": "w / 2 + 3",
         "name": "h"
        },
-       "tool": "set_variable"
+       "tool": "design_set_variable"
       }
      ],
      "title": "A variable worked out from another: h = w / 2 + 3, which is 13"
@@ -8608,14 +8608,14 @@
         "expr": "20",
         "name": "w"
        },
-       "tool": "set_variable"
+       "tool": "design_set_variable"
       },
       {
        "args": {
         "expr": "",
         "name": "w"
        },
-       "tool": "set_variable"
+       "tool": "design_set_variable"
       }
      ],
      "title": "A variable removed with an empty expression"
@@ -8634,7 +8634,7 @@
       "type": "string"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -8648,7 +8648,7 @@
     ],
     "type": "object"
    },
-   "key": "set_variable",
+   "key": "design_set_variable",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -8657,7 +8657,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Commit to Plate: send the visible bodies to Prepare at their Move-gizmo positions and show Prepare. It is one Prepare undo step. A lone body is sent even when hidden. A body named in the Bodies list or with body_set names its object or part. Reply: objects (object_list index after replace, object_id, name, parts: how many), bodies_sent, bodies_hidden, replaced.",
+   "description": "Commit to Plate: send the visible bodies to Prepare at their Move-gizmo positions and show Prepare. It is one Prepare undo step. A lone body is sent even when hidden. A body named in the Bodies list or with body_set names its object or part. replace deletes its objects as Prepare's Delete does: a part of a cut is refused before anything changes (cut_object), and should none be deleted after the commit, the call fails with nothing_deleted, the new objects on the plate, which one Prepare undo takes back. It leaves the selection a plain commit leaves, in the Prepare view the call was made in. Reply: objects (object_list index after replace, object_id, name, parts: how many), bodies_sent, bodies_hidden, replaced.",
    "destructive": false,
    "examples": [
     {
@@ -8668,11 +8668,11 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {},
-       "tool": "commit_to_plate"
+       "tool": "design_commit_to_plate"
       }
      ],
      "title": "A plate sent to Prepare as one object"
@@ -8685,7 +8685,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -8710,13 +8710,13 @@
          ]
         ]
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "mode": "bodies"
        },
-       "tool": "commit_to_plate"
+       "tool": "design_commit_to_plate"
       }
      ],
      "title": "Two bodies sent to Prepare as an object each"
@@ -8731,7 +8731,7 @@
     "additionalProperties": false,
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -8757,10 +8757,12 @@
     },
     "type": "object"
    },
-   "key": "commit_to_plate",
+   "key": "design_commit_to_plate",
    "listed": false,
    "open_world": false,
-   "operations": [],
+   "operations": [
+    "delete_objects"
+   ],
    "read_only": false,
    "title": "Commit to plate"
   },
@@ -8777,13 +8779,13 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "discard_changes": true
        },
-       "tool": "new_design"
+       "tool": "design_new"
       }
      ],
      "title": "A plate's design erased"
@@ -8792,7 +8794,7 @@
      "calls": [
       {
        "args": {},
-       "tool": "new_design"
+       "tool": "design_new"
       }
      ],
      "title": "An empty design started over, which needs no discard_changes"
@@ -8812,14 +8814,14 @@
       "type": "boolean"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      }
     },
     "type": "object"
    },
-   "key": "new_design",
+   "key": "design_new",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -8839,13 +8841,13 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "path": "/path/to/part.step"
        },
-       "tool": "export_step"
+       "tool": "design_export_step"
       }
      ],
      "needs": "a folder to write the STEP file in",
@@ -8861,7 +8863,7 @@
     "additionalProperties": false,
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -8880,7 +8882,7 @@
     ],
     "type": "object"
    },
-   "key": "export_step",
+   "key": "design_export_step",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -8889,7 +8891,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Select a body, a face, edges, a vertex, a reference plane, a sketch's loop or a feature by id, as a click selects it. One form: body; body with face, edges (the last the current edge, as in a Shift+click set) or vertex; plane; sketch with loop; feature; or nothing, which clears the selection. A body is selected as a click on its row of the Bodies list selects it, a face, edges or a vertex as a click in the view picks them, a loop as a click on it, which also selects its Sketch's row, and a feature as a click on its row of the Feature list. A plane is picked only where a click can pick one: while the Origin row shows the planes, or while Sketch waits for its plane (sketch_create {}), where picking it opens the sketch. A loop is numbered as sketch_describe {sketch} numbers closed_loops and extrude {sketch, loop} takes it, and is selected only while the view shows it: an extrude that takes the whole sketch hides the sketch, and one that takes a loop hides that loop. Whatever was selected goes first, of every kind. The menu-item forms then act on the selection: feature_edit, rename_selected, feature_delete and sketch_constrain_selected called with no arguments act on the selected row of the Feature list while nothing is picked in the view, and zoom_to_selection acts on what is picked in the view, so a sketch is zoomed to through sketch with loop, not through feature. Refused, changing nothing, for an id the model does not have, and while a card, a sketch, Constrain mode, a body Move or the Text dialog is open, where a click means something else. Reply: selection {kind, id}, plane and feature, as describe_design reports selection, picked_plane and feature_row; for a vertex also point, as body_describe gives it, and placed_point, where the view draws it (the same unless the body was moved).",
+   "description": "Select a body, a face, edges, a vertex, a reference plane, a sketch's loop or a feature by id, as a click selects it. One form: body; body with face, edges (the last the current edge, as in a Shift+click set) or vertex; plane; sketch with loop; feature; or nothing, which clears the selection. A body is selected as a click on its row of the Bodies list selects it, a face, edges or a vertex as a click in the view picks them, a loop as a click on it, which also selects its Sketch's row, and a feature as a click on its row of the Feature list. A plane is picked only where a click can pick one: while the Origin row shows the planes, or while Sketch waits for its plane (sketch_create {}), where picking it opens the sketch. A loop is numbered as sketch_describe {sketch} numbers closed_loops and solid_extrude {sketch, loop} takes it, and is selected only while the view shows it: an extrude that takes the whole sketch hides the sketch, and one that takes a loop hides that loop. Whatever was selected goes first, of every kind. The menu-item forms then act on the selection: feature_edit, design_rename_selected, feature_delete and sketch_constrain_selected called with no arguments act on the selected row of the Feature list while nothing is picked in the view, and design_zoom_to_selection acts on what is picked in the view, so a sketch is zoomed to through sketch with loop, not through feature. Refused, changing nothing, for an id the model does not have, and while a card, a sketch, Constrain mode, a body Move or the Text dialog is open, where a click means something else. Reply: selection {kind, id}, plane and feature, as design_describe reports selection, picked_plane and feature_row; for a vertex also point, as body_describe gives it, and placed_point, where the view draws it (the same unless the body was moved).",
    "destructive": false,
    "examples": [
     {
@@ -8900,13 +8902,13 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "body": 0
        },
-       "tool": "select_geometry"
+       "tool": "design_select"
       }
      ],
      "title": "A plate selected whole, as a click on its row of the Bodies list selects it"
@@ -8919,7 +8921,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -8937,7 +8939,7 @@
          "key": "generation"
         }
        },
-       "tool": "select_geometry"
+       "tool": "design_select"
       }
      ],
      "title": "A plate's top face selected, as a click on it selects it"
@@ -8973,7 +8975,7 @@
         "loop": 0,
         "sketch": 0
        },
-       "tool": "select_geometry"
+       "tool": "design_select"
       }
      ],
      "title": "A sketched square's loop selected, which selects its Sketch's row too"
@@ -8989,7 +8991,7 @@
     "properties": {
      "body": {
       "default": null,
-      "description": "body index (describe_design); alone, the whole body",
+      "description": "body index (design_describe); alone, the whole body",
       "minimum": 0,
       "type": [
        "integer",
@@ -9015,7 +9017,7 @@
      },
      "feature": {
       "default": null,
-      "description": "feature index (describe_design): its row of the Feature list",
+      "description": "feature index (design_describe): its row of the Feature list",
       "minimum": 0,
       "type": [
        "integer",
@@ -9023,7 +9025,7 @@
       ]
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -9071,7 +9073,7 @@
     },
     "type": "object"
    },
-   "key": "select_geometry",
+   "key": "design_select",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -9080,7 +9082,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Confirm what is open in the Design tab, as its Confirm button and Enter do. What is open, in the order Confirm takes it: the Text dialog (text), a value field (value), a body Move (move), a text or art placement (insert), a feature card (card), a sketch (sketch), Constrain mode (constrain). The Text dialog takes it as its OK does: a new text goes into the design, its placement then open (insert), and an edited one keeps its new words. A card adds or edits its feature in one undo step and closes; an add the card refuses, or whose rebuild fails, leaves no feature and no undo step and keeps the card open with the reason on the status line. A Confirm that does not take, such as that add or a value that is no number, replies ok false. It runs under what is open, which refuses the commands that change the document. Refused, changing nothing, when nothing is open, while Sketch waits for its plane (pick one with select_geometry {plane}, or call cancel_tool), while the Text dialog's OK is off, with no text to insert, with the dialog's reason, and while Confirm is off, such as for a card whose preview fails, with the status line as the reason. Reply: was, what was open; ok, whether it took the Confirm; feature, the index of the feature added or edited, or null; open, what is still open, or null; status, the status line.",
+   "description": "Confirm what is open in the Design tab, as its Confirm button and Enter do. What is open, in the order Confirm takes it: the Text dialog (text), a value field (value), a body Move (move), a text or art placement (insert), a feature card (card), a sketch (sketch), Constrain mode (constrain). The Text dialog takes it as its OK does: a new text goes into the design, its placement then open (insert), and an edited one keeps its new words. A card adds or edits its feature in one undo step and closes; an add the card refuses, or whose rebuild fails, leaves no feature and no undo step and keeps the card open with the reason on the status line. A Confirm that does not take, such as that add or a value that is no number, replies ok false. It runs under what is open, which refuses the commands that change the document. Refused, changing nothing, when nothing is open, while Sketch waits for its plane (pick one with design_select {plane}, or call design_cancel_tool), while the Text dialog's OK is off, with no text to insert, with the dialog's reason, and while Confirm is off, such as for a card whose preview fails, with the status line as the reason. Reply: was, what was open; ok, whether it took the Confirm; feature, the index of the feature added or edited, or null; open, what is still open, or null; status, the status line.",
    "destructive": false,
    "examples": [
     {
@@ -9107,7 +9109,7 @@
       },
       {
        "args": {},
-       "tool": "confirm_tool"
+       "tool": "design_confirm_tool"
       }
      ],
      "title": "A sketched rectangle committed, as the sketch's Confirm commits it"
@@ -9122,14 +9124,14 @@
     "additionalProperties": false,
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      }
     },
     "type": "object"
    },
-   "key": "confirm_tool",
+   "key": "design_confirm_tool",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -9169,7 +9171,7 @@
       },
       {
        "args": {},
-       "tool": "cancel_tool"
+       "tool": "design_cancel_tool"
       }
      ],
      "title": "A sketch holding a line discarded, with no dialog"
@@ -9184,14 +9186,14 @@
     "additionalProperties": false,
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      }
     },
     "type": "object"
    },
-   "key": "cancel_tool",
+   "key": "design_cancel_tool",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -9222,7 +9224,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -9279,7 +9281,7 @@
     "additionalProperties": false,
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -9321,7 +9323,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -9353,7 +9355,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -9389,7 +9391,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -9439,7 +9441,7 @@
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -9499,7 +9501,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -9550,7 +9552,7 @@
       "type": "string"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -9665,7 +9667,7 @@
     },
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -9812,7 +9814,7 @@
       "type": "array"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -9910,7 +9912,7 @@
       "type": "array"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -10000,7 +10002,7 @@
       "type": "array"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -10093,7 +10095,7 @@
       "type": "array"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -10286,7 +10288,7 @@
       "type": "array"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -10413,7 +10415,7 @@
       "type": "array"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -10611,7 +10613,7 @@
       "type": "array"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -10748,7 +10750,7 @@
       "type": "array"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -10841,7 +10843,7 @@
       "type": "array"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -10966,7 +10968,7 @@
       "type": "array"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -11081,7 +11083,7 @@
     "additionalProperties": false,
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -11173,7 +11175,7 @@
     "additionalProperties": false,
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -11271,7 +11273,7 @@
     "additionalProperties": false,
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -11388,7 +11390,7 @@
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -11413,7 +11415,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Commit the open sketch as a Sketch feature, as the sketch's Confirm does, and leave sketch mode. A new sketch left empty is refused and stays open. A sketch re-opened with sketch_edit is replaced in place, in one undo step, with what is built on it rebuilt, and the reply adds replaced: true. A replace the rebuild refuses, or a re-opened sketch left empty, ends the edit with the design as it was and replies ok false, replaced false, its sketch_index and error, which says why it was not replaced. Reply: sketch_index, name, features (the new count) and its loops (closed_loops with the index extrude's loop takes, open_ends, defects, buildable). A rejected rebuild is reported in the reply: ok is false or error is not empty.",
+   "description": "Commit the open sketch as a Sketch feature, as the sketch's Confirm does, and leave sketch mode. A new sketch left empty is refused and stays open. A sketch re-opened with sketch_edit is replaced in place, in one undo step, with what is built on it rebuilt, and the reply adds replaced: true. A replace the rebuild refuses, or a re-opened sketch left empty, ends the edit with the design as it was and replies ok false, replaced false, its sketch_index and error, which says why it was not replaced. Reply: sketch_index, name, features (the new count) and its loops (closed_loops with the index solid_extrude's loop takes, open_ends, defects, buildable). A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
     {
@@ -11470,7 +11472,7 @@
     "additionalProperties": false,
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      }
@@ -11528,7 +11530,7 @@
     "additionalProperties": false,
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      }
@@ -11613,7 +11615,7 @@
         "distance": 5,
         "sketch": 0
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -11634,12 +11636,12 @@
     "additionalProperties": false,
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
      "sketch": {
-      "description": "a committed Sketch feature's index (describe_design's features[].index)",
+      "description": "a committed Sketch feature's index (design_describe's features[].index)",
       "type": "integer"
      }
     },
@@ -12101,7 +12103,7 @@
       ]
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -12356,7 +12358,7 @@
       "type": "array"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      }
@@ -12442,7 +12444,7 @@
     "additionalProperties": false,
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -12585,7 +12587,7 @@
     },
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -12763,7 +12765,7 @@
       "type": "array"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -12942,7 +12944,7 @@
       "type": "array"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -13021,7 +13023,7 @@
     "additionalProperties": false,
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -13055,7 +13057,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       }
      ],
      "title": "A 20 x 20 x 5 mm plate on the XY plane"
@@ -13106,7 +13108,7 @@
         "distance": 5,
         "sketch": 0
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       }
      ],
      "title": "A committed sketch extruded 5 mm: a rectangle around a circle makes a plate with a bore"
@@ -13119,7 +13121,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -13138,7 +13140,7 @@
          "key": "generation"
         }
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       }
      ],
      "title": "A plate's top face pushed up 3 mm"
@@ -13193,7 +13195,7 @@
       "type": "boolean"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -13272,7 +13274,7 @@
     },
     "type": "object"
    },
-   "key": "extrude",
+   "key": "solid_extrude",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -13309,7 +13311,7 @@
          ]
         ]
        },
-       "tool": "revolve"
+       "tool": "solid_revolve"
       }
      ],
      "title": "A ring: a profile 10 to 15 mm out from the XZ plane's vertical axis, turned a full circle"
@@ -13363,7 +13365,7 @@
        "args": {
         "sketch": 0
        },
-       "tool": "revolve"
+       "tool": "solid_revolve"
       }
      ],
      "title": "A committed sketch turned about its centerline, a construction line"
@@ -13410,7 +13412,7 @@
       "type": "boolean"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -13466,7 +13468,7 @@
     },
     "type": "object"
    },
-   "key": "revolve",
+   "key": "solid_revolve",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -13486,7 +13488,7 @@
         "pitch": 5,
         "radius": 10
        },
-       "tool": "helix"
+       "tool": "construct_helix"
       },
       {
        "args": {
@@ -13518,7 +13520,7 @@
         "path": 0,
         "sketch": 1
        },
-       "tool": "sweep"
+       "tool": "solid_sweep"
       }
      ],
      "title": "A spring: a 2 mm circle across a helix's start, swept along it"
@@ -13583,7 +13585,7 @@
         "path": 0,
         "sketch": 1
        },
-       "tool": "sweep"
+       "tool": "solid_sweep"
       }
      ],
      "title": "A 6 mm rod swept along a 40 mm line"
@@ -13607,7 +13609,7 @@
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -13646,7 +13648,7 @@
     },
     "type": "object"
    },
-   "key": "sweep",
+   "key": "solid_sweep",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -13726,7 +13728,7 @@
          2
         ]
        },
-       "tool": "loft"
+       "tool": "solid_loft"
       }
      ],
      "title": "A square-to-round transition 20 mm tall, the circle sketched on a datum plane"
@@ -13750,7 +13752,7 @@
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -13789,7 +13791,7 @@
     },
     "type": "object"
    },
-   "key": "loft",
+   "key": "solid_loft",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -13820,7 +13822,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -13839,7 +13841,7 @@
         },
         "thickness": 2
        },
-       "tool": "thicken"
+       "tool": "solid_thicken"
       }
      ],
      "title": "A 2 mm skin grown from a plate's top face as a new body"
@@ -13881,7 +13883,7 @@
         "thickness": 2,
         "type": "surface"
        },
-       "tool": "thicken"
+       "tool": "solid_thicken"
       }
      ],
      "title": "A 30 x 20 mm sheet thickened into a 2 mm plate, a new body"
@@ -13927,7 +13929,7 @@
         "thickness": 1.5,
         "type": "surface"
        },
-       "tool": "thicken"
+       "tool": "solid_thicken"
       }
      ],
      "title": "An open tube thickened 1.5 mm outward into a pipe: flip, as its normal points inward"
@@ -13960,7 +13962,7 @@
       "type": "boolean"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -13992,7 +13994,7 @@
     },
     "type": "object"
    },
-   "key": "thicken",
+   "key": "solid_thicken",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -14012,7 +14014,7 @@
         "height": 20,
         "width": 40
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -14063,7 +14065,7 @@
         "sketch": 2,
         "thickness": 2
        },
-       "tool": "rib"
+       "tool": "solid_rib"
       }
      ],
      "title": "A 2 mm rib 8 mm tall across a plate's top face"
@@ -14096,7 +14098,7 @@
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -14125,7 +14127,7 @@
     },
     "type": "object"
    },
-   "key": "rib",
+   "key": "solid_rib",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -14165,7 +14167,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -14174,7 +14176,7 @@
         "operation": "new_body",
         "width": 6
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -14182,7 +14184,7 @@
         "target": 0,
         "tool": 1
        },
-       "tool": "boolean"
+       "tool": "solid_boolean"
       }
      ],
      "title": "A post cut from a block"
@@ -14195,7 +14197,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -14220,7 +14222,7 @@
          ]
         ]
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -14228,7 +14230,7 @@
         "target": 0,
         "tool": 1
        },
-       "tool": "boolean"
+       "tool": "solid_boolean"
       }
      ],
      "title": "Two overlapping blocks joined into one body"
@@ -14247,7 +14249,7 @@
     },
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -14292,7 +14294,7 @@
     },
     "type": "object"
    },
-   "key": "boolean",
+   "key": "solid_boolean",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -14312,14 +14314,14 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "diameter": 5,
         "through": true
        },
-       "tool": "hole"
+       "tool": "solid_hole"
       }
      ],
      "title": "A 5 mm hole through the middle of a plate"
@@ -14332,7 +14334,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -14357,7 +14359,7 @@
         "through": true,
         "type": "countersink"
        },
-       "tool": "hole"
+       "tool": "solid_hole"
       }
      ],
      "title": "A countersunk hole through a plate's top face"
@@ -14370,7 +14372,7 @@
         "height": 30,
         "width": 30
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -14393,7 +14395,7 @@
         "through": true,
         "type": "counterbore"
        },
-       "tool": "hole"
+       "tool": "solid_hole"
       }
      ],
      "title": "An M6 counterbored clearance hole through a 10 mm block's top face"
@@ -14462,7 +14464,7 @@
       "type": "number"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -14513,7 +14515,7 @@
     },
     "type": "object"
    },
-   "key": "hole",
+   "key": "solid_hole",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -14533,14 +14535,14 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "diameter": 6.8,
         "through": true
        },
-       "tool": "hole"
+       "tool": "solid_hole"
       },
       {
        "args": {
@@ -14561,7 +14563,7 @@
          "key": "generation"
         }
        },
-       "tool": "thread"
+       "tool": "solid_thread"
       }
      ],
      "title": "An M8 thread tapped into a 6.8 mm hole through a block"
@@ -14575,7 +14577,7 @@
         "length": 10,
         "plane": "XY"
        },
-       "tool": "thread"
+       "tool": "solid_thread"
       }
      ],
      "title": "An M6 threaded rod 10 mm long, standing on the XY plane"
@@ -14612,7 +14614,7 @@
         "distance": 12,
         "sketch": 0
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -14632,7 +14634,7 @@
          "key": "generation"
         }
        },
-       "tool": "thread"
+       "tool": "solid_thread"
       }
      ],
      "title": "A 10 mm boss threaded at the nearest standard size, which the reply's designation names"
@@ -14649,7 +14651,7 @@
     "properties": {
      "at": {
       "default": null,
-      "description": "on a plane, instead of x and y: a world point [x, y, z], or {\"body\": b, \"face\": f} a cylindrical face or {\"body\": b, \"edge\": e} a circular edge whose axis the thread shares, as hole takes it",
+      "description": "on a plane, instead of x and y: a world point [x, y, z], or {\"body\": b, \"face\": f} a cylindrical face or {\"body\": b, \"edge\": e} a circular edge whose axis the thread shares, as solid_hole takes it",
       "type": [
        "array",
        "object",
@@ -14702,7 +14704,7 @@
       ]
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -14758,7 +14760,7 @@
     },
     "type": "object"
    },
-   "key": "thread",
+   "key": "solid_thread",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -14778,7 +14780,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -14797,7 +14799,7 @@
         },
         "thickness": 1.5
        },
-       "tool": "shell"
+       "tool": "solid_shell"
       }
      ],
      "title": "A 20 x 20 x 10 mm box hollowed to 1.5 mm walls, open at the top"
@@ -14810,13 +14812,13 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "thickness": 2
        },
-       "tool": "shell"
+       "tool": "solid_shell"
       }
      ],
      "title": "A block hollowed to closed 2 mm walls"
@@ -14842,7 +14844,7 @@
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -14862,7 +14864,7 @@
     },
     "type": "object"
    },
-   "key": "shell",
+   "key": "solid_shell",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -14882,14 +14884,14 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "offset": 5,
         "plane": "XY"
        },
-       "tool": "split"
+       "tool": "solid_split"
       }
      ],
      "title": "A block cut in two at half its height"
@@ -14902,7 +14904,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -14910,7 +14912,7 @@
         "offset": 5,
         "plane": "XY"
        },
-       "tool": "split"
+       "tool": "solid_split"
       }
      ],
      "title": "A block cut at half its height, keeping only the lower half"
@@ -14923,7 +14925,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -14932,7 +14934,7 @@
         "operation": "new_body",
         "width": 30
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -14951,7 +14953,7 @@
          "key": "generation"
         }
        },
-       "tool": "split"
+       "tool": "solid_split"
       }
      ],
      "title": "A block split along the top face of a wider plate"
@@ -14990,7 +14992,7 @@
       "type": "boolean"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -15026,7 +15028,7 @@
     },
     "type": "object"
    },
-   "key": "split",
+   "key": "solid_split",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -15046,7 +15048,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -15078,7 +15080,7 @@
         },
         "radius": 2
        },
-       "tool": "fillet"
+       "tool": "solid_fillet"
       }
      ],
      "title": "A plate's four vertical corners rounded to 2 mm"
@@ -15091,7 +15093,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -15111,7 +15113,7 @@
         },
         "radius": 1
        },
-       "tool": "fillet"
+       "tool": "solid_fillet"
       }
      ],
      "title": "One top edge of a plate rounded to 1 mm"
@@ -15143,7 +15145,7 @@
       ]
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -15168,7 +15170,7 @@
     },
     "type": "object"
    },
-   "key": "fillet",
+   "key": "solid_fillet",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -15188,7 +15190,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -15213,7 +15215,7 @@
          "key": "generation"
         }
        },
-       "tool": "chamfer"
+       "tool": "solid_chamfer"
       }
      ],
      "title": "A plate's top edges chamfered 1 mm"
@@ -15251,7 +15253,7 @@
       ]
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -15270,7 +15272,7 @@
     },
     "type": "object"
    },
-   "key": "chamfer",
+   "key": "solid_chamfer",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -15290,7 +15292,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -15313,7 +15315,7 @@
          "key": "generation"
         }
        },
-       "tool": "draft"
+       "tool": "solid_draft"
       }
      ],
      "title": "A block's +X side tapered 5 degrees"
@@ -15346,7 +15348,7 @@
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -15365,7 +15367,7 @@
     },
     "type": "object"
    },
-   "key": "draft",
+   "key": "solid_draft",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -15396,14 +15398,14 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "count": 3,
         "spacing": 30
        },
-       "tool": "pattern"
+       "tool": "solid_pattern"
       }
      ],
      "title": "Three plates 30 mm apart along X"
@@ -15432,14 +15434,14 @@
          ]
         ]
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "count": 6,
         "type": "circular"
        },
-       "tool": "pattern"
+       "tool": "solid_pattern"
       }
      ],
      "title": "Six blocks in a circle about the XY plane's normal"
@@ -15495,7 +15497,7 @@
          ]
         ]
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -15504,7 +15506,7 @@
         "sketch": 0,
         "type": "curve"
        },
-       "tool": "pattern"
+       "tool": "solid_pattern"
       }
      ],
      "title": "Four pegs spaced along a half circle"
@@ -15552,7 +15554,7 @@
       ]
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -15597,7 +15599,7 @@
     },
     "type": "object"
    },
-   "key": "pattern",
+   "key": "solid_pattern",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -15633,13 +15635,13 @@
          ]
         ]
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "plane": "XZ"
        },
-       "tool": "mirror"
+       "tool": "solid_mirror"
       }
      ],
      "title": "A mirrored copy of a block across the XZ plane"
@@ -15668,14 +15670,14 @@
          ]
         ]
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "operation": "join",
         "plane": "XZ"
        },
-       "tool": "mirror"
+       "tool": "solid_mirror"
       }
      ],
      "title": "A block against the XZ plane and its mirror image fused into one body"
@@ -15696,7 +15698,7 @@
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -15732,7 +15734,7 @@
     },
     "type": "object"
    },
-   "key": "mirror",
+   "key": "solid_mirror",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -15741,7 +15743,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Align two bodies: transform the moving body (cs_b) so its connector lands on the fixed one (cs_a). An align that cannot hold with those before it is listed in describe_design's align_conflicts, with the reason. Reply: align_index, bodies.",
+   "description": "Align two bodies: transform the moving body (cs_b) so its connector lands on the fixed one (cs_a). An align that cannot hold with those before it is listed in design_describe's align_conflicts, with the reason. Reply: align_index, bodies.",
    "destructive": false,
    "examples": [
     {
@@ -15752,7 +15754,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -15777,7 +15779,7 @@
          ]
         ]
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -15824,7 +15826,7 @@
         "flip": true,
         "type": "fastened"
        },
-       "tool": "align"
+       "tool": "solid_align"
       }
      ],
      "title": "A block stood on a plate: its bottom-face connector fastened, turned over, to the plate's top-face one"
@@ -15860,7 +15862,7 @@
       "type": "boolean"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -15897,7 +15899,7 @@
     },
     "type": "object"
    },
-   "key": "align",
+   "key": "solid_align",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -15917,14 +15919,14 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "diameter": 5,
         "through": true
        },
-       "tool": "hole"
+       "tool": "solid_hole"
       },
       {
        "args": {
@@ -15946,7 +15948,7 @@
          "key": "generation"
         }
        },
-       "tool": "delete_face"
+       "tool": "solid_delete_face"
       }
      ],
      "title": "A plate's bore filled in by deleting its cylindrical face"
@@ -15974,7 +15976,7 @@
       "type": "array"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -15993,7 +15995,7 @@
     },
     "type": "object"
    },
-   "key": "delete_face",
+   "key": "solid_delete_face",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -16013,7 +16015,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -16038,7 +16040,7 @@
          ]
         ]
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -16083,7 +16085,7 @@
         "cs_a": 4,
         "cs_b": 5
        },
-       "tool": "list_align_types"
+       "tool": "solid_list_align_types"
       }
      ],
      "title": "The types that fit a plate's top-face connector and a block's bottom-face one"
@@ -16098,15 +16100,15 @@
     "additionalProperties": false,
     "properties": {
      "cs_a": {
-      "description": "feature index of the fixed CoordSys, align's cs_a",
+      "description": "feature index of the fixed CoordSys, solid_align's cs_a",
       "type": "integer"
      },
      "cs_b": {
-      "description": "feature index of the CoordSys on the body that moves, align's cs_b",
+      "description": "feature index of the CoordSys on the body that moves, solid_align's cs_b",
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      }
@@ -16117,7 +16119,7 @@
     ],
     "type": "object"
    },
-   "key": "list_align_types",
+   "key": "solid_list_align_types",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -16225,7 +16227,7 @@
       "type": "number"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -16257,7 +16259,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Revolve a sketch wire with no caps -> an open sheet body. The axis is chosen as revolve chooses it: axis_entity, else the sketch's only centerline when axis is not given, else the plane axis. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
+   "description": "Revolve a sketch wire with no caps -> an open sheet body. The axis is chosen as solid_revolve chooses it: axis_entity, else the sketch's only centerline when axis is not given, else the plane axis. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
     {
@@ -16382,7 +16384,7 @@
       "type": "boolean"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -16505,7 +16507,7 @@
     },
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -16629,7 +16631,7 @@
     },
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -16765,7 +16767,7 @@
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -16817,7 +16819,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -16857,7 +16859,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -16954,7 +16956,7 @@
       ]
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -17013,14 +17015,14 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "diameter": 5,
         "through": true
        },
-       "tool": "hole"
+       "tool": "solid_hole"
       },
       {
        "args": {
@@ -17054,7 +17056,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -17133,7 +17135,7 @@
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -17206,7 +17208,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -17258,7 +17260,7 @@
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -17318,7 +17320,7 @@
         "pitch": 5,
         "radius": 10
        },
-       "tool": "helix"
+       "tool": "construct_helix"
       }
      ],
      "title": "A four-turn helix on XY: radius 10 mm, pitch 5 mm, 20 mm tall"
@@ -17333,7 +17335,7 @@
         "radius": 10,
         "taper_deg": 10
        },
-       "tool": "helix"
+       "tool": "construct_helix"
       }
      ],
      "title": "A left-handed conical helix tapering 10 degrees"
@@ -17349,7 +17351,7 @@
     "additionalProperties": false,
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -17398,7 +17400,7 @@
     },
     "type": "object"
    },
-   "key": "helix",
+   "key": "construct_helix",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -17418,7 +17420,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -17443,7 +17445,7 @@
          "key": "generation"
         }
        },
-       "tool": "measure"
+       "tool": "design_measure"
       }
      ],
      "title": "A plate's thickness, between its top and bottom faces"
@@ -17456,7 +17458,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -17481,7 +17483,7 @@
          ]
         ]
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -17520,7 +17522,7 @@
          "key": "generation"
         }
        },
-       "tool": "measure"
+       "tool": "design_measure"
       }
      ],
      "title": "The 10 mm gap between two blocks' facing sides"
@@ -17548,7 +17550,7 @@
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      }
@@ -17559,7 +17561,7 @@
     ],
     "type": "object"
    },
-   "key": "measure",
+   "key": "design_measure",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -17579,7 +17581,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -17605,7 +17607,7 @@
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -17639,7 +17641,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -17648,13 +17650,13 @@
         "operation": "new_body",
         "width": 10
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "silent": true
        },
-       "tool": "interference"
+       "tool": "design_interference"
       }
      ],
      "title": "A post standing in a block: the two overlap"
@@ -17670,7 +17672,7 @@
     "additionalProperties": false,
     "properties": {
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -17689,7 +17691,7 @@
     },
     "type": "object"
    },
-   "key": "interference",
+   "key": "design_interference",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -17709,7 +17711,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -17728,7 +17730,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -17748,7 +17750,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -17836,7 +17838,7 @@
       ]
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -17889,7 +17891,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -17948,7 +17950,7 @@
         "distance": 5,
         "sketch": 0
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -17975,7 +17977,7 @@
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -18017,7 +18019,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -18026,7 +18028,7 @@
         "operation": "new_body",
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -18048,7 +18050,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -18077,7 +18079,7 @@
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -18110,7 +18112,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -18129,7 +18131,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -18193,7 +18195,7 @@
       "type": "number"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -18242,7 +18244,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -18267,7 +18269,7 @@
          ]
         ]
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -18292,11 +18294,11 @@
     },
     "properties": {
      "body": {
-      "description": "body index (describe_design)",
+      "description": "body index (design_describe)",
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -18333,7 +18335,7 @@
     }
    ],
    "completion": "immediate",
-   "description": "Rename, colour or show/hide a body, as its Bodies row and the Color button do; give one or more. Not in the undo history. The name and colour are saved with the project and the name names its committed object; visibility is view state, and commit_to_plate leaves hidden bodies out. Reply: name, color, visible. Called with exactly one of these argument sets and nothing else, it opens that item's tool of the Design tab for a person, as the menu item does: {} (Color).",
+   "description": "Rename, colour or show/hide a body, as its Bodies row and the Color button do; give one or more. Not in the undo history. The name and colour are saved with the project and the name names its committed object; visibility is view state, and design_commit_to_plate leaves hidden bodies out. Reply: name, color, visible. Called with exactly one of these argument sets and nothing else, it opens that item's tool of the Design tab for a person, as the menu item does: {} (Color).",
    "destructive": false,
    "examples": [
     {
@@ -18344,7 +18346,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -18365,7 +18367,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -18390,7 +18392,7 @@
          ]
         ]
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -18415,7 +18417,7 @@
     },
     "properties": {
      "body": {
-      "description": "body index (describe_design)",
+      "description": "body index (design_describe)",
       "type": "integer"
      },
      "color": {
@@ -18427,7 +18429,7 @@
       ]
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -18470,7 +18472,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Place a body where Commit to Plate and Export STEP send it: move it, turn it, lay a face on the bed, or put it back. The Bodies row's Move and Place on Face, outside the history: no undo step, and the project file does not keep it. One form: move and rotate, either or both, added to where the body stands as the Move / Rotate card adds them, the turn about the body's centre; face, which lays that face on the bed as Place on Face does; or reset: true, which puts the body back where the model has it. The view draws and picks the body where it stands, and its placement follows it when the bodies are renumbered. Refused, changing nothing, for a body or face the model does not have, for none or more than one of the forms, and while a card, a sketch, Constrain mode, a body Move or the Text dialog is open. Reply: ok, body, moved and placement, as describe_design reports them.",
+   "description": "Place a body where Commit to Plate and Export STEP send it: move it, turn it, lay a face on the bed, or put it back. The Bodies row's Move and Place on Face, outside the history: no undo step, and the project file does not keep it. One form: move and rotate, either or both, added to where the body stands as the Move / Rotate card adds them, the turn about the body's centre; face, which lays that face on the bed as Place on Face does; or reset: true, which puts the body back where the model has it. The view draws and picks the body where it stands, and its placement follows it when the bodies are renumbered. Refused, changing nothing, for a body or face the model does not have, for none or more than one of the forms, and while a card, a sketch, Constrain mode, a body Move or the Text dialog is open. Reply: ok, body, moved and placement, as design_describe reports them.",
    "destructive": false,
    "examples": [
     {
@@ -18481,7 +18483,7 @@
         "height": 20,
         "width": 30
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -18509,7 +18511,7 @@
         "height": 20,
         "width": 30
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -18542,7 +18544,7 @@
     "additionalProperties": false,
     "properties": {
      "body": {
-      "description": "body index (describe_design)",
+      "description": "body index (design_describe)",
       "minimum": 0,
       "type": "integer"
      },
@@ -18556,7 +18558,7 @@
       ]
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -18607,7 +18609,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -18629,14 +18631,14 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "diameter": 5,
         "through": true
        },
-       "tool": "hole"
+       "tool": "solid_hole"
       },
       {
        "args": {
@@ -18664,7 +18666,7 @@
     },
     "properties": {
      "feature": {
-      "description": "feature index (describe_design)",
+      "description": "feature index (design_describe)",
       "type": "integer"
      },
      "fields": {
@@ -18673,7 +18675,7 @@
       "type": "object"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -18717,14 +18719,14 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "diameter": 5,
         "through": true
        },
-       "tool": "hole"
+       "tool": "solid_hole"
       },
       {
        "args": {
@@ -18766,7 +18768,7 @@
         "distance": 5,
         "sketch": 0
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -18791,11 +18793,11 @@
     },
     "properties": {
      "feature": {
-      "description": "feature index (describe_design)",
+      "description": "feature index (design_describe)",
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -18834,7 +18836,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -18890,11 +18892,11 @@
     "additionalProperties": false,
     "properties": {
      "feature": {
-      "description": "feature index (describe_design)",
+      "description": "feature index (design_describe)",
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      }
@@ -18924,14 +18926,14 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "expr": "8",
         "name": "t"
        },
-       "tool": "set_variable"
+       "tool": "design_set_variable"
       },
       {
        "args": {
@@ -18952,14 +18954,14 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "expr": "8",
         "name": "t"
        },
-       "tool": "set_variable"
+       "tool": "design_set_variable"
       },
       {
        "args": {
@@ -18994,7 +18996,7 @@
       "type": "string"
      },
      "feature": {
-      "description": "feature index (describe_design)",
+      "description": "feature index (design_describe)",
       "type": "integer"
      },
      "field": {
@@ -19002,7 +19004,7 @@
       "type": "string"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      }
@@ -19034,7 +19036,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -19072,11 +19074,11 @@
       "type": "integer"
      },
      "feature": {
-      "description": "feature index (describe_design)",
+      "description": "feature index (design_describe)",
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      }
@@ -19107,14 +19109,14 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "diameter": 5,
         "through": true
        },
-       "tool": "hole"
+       "tool": "solid_hole"
       },
       {
        "args": {
@@ -19134,14 +19136,14 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
         "diameter": 5,
         "through": true
        },
-       "tool": "hole"
+       "tool": "solid_hole"
       },
       {
        "args": {
@@ -19170,11 +19172,11 @@
     "additionalProperties": false,
     "properties": {
      "feature": {
-      "description": "feature index (describe_design)",
+      "description": "feature index (design_describe)",
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -19209,7 +19211,7 @@
         "height": 20,
         "width": 20
        },
-       "tool": "extrude"
+       "tool": "solid_extrude"
       },
       {
        "args": {
@@ -19231,11 +19233,11 @@
     "additionalProperties": false,
     "properties": {
      "feature": {
-      "description": "feature index (describe_design)",
+      "description": "feature index (design_describe)",
       "type": "integer"
      },
      "generation": {
-      "description": "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
+      "description": "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the generation, a call whose ids were read before the model changed is refused.",
       "minimum": 0,
       "type": "integer"
      },
@@ -19259,7 +19261,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it). It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+   "description": "Give the selected feature, or the selected body, a name you will recognise in its list. It takes no arguments and does what the Design tab's right-click menu item does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_finish or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -19272,7 +19274,7 @@
     "properties": {},
     "type": "object"
    },
-   "key": "rename_selected",
+   "key": "design_rename_selected",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -19294,7 +19296,7 @@
     "properties": {},
     "type": "object"
    },
-   "key": "zoom_to_selection",
+   "key": "design_zoom_to_selection",
    "listed": false,
    "open_world": false,
    "operations": [],

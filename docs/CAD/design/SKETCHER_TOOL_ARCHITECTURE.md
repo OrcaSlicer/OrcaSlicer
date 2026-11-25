@@ -300,12 +300,12 @@ failure; so is a tool that eats the press and silently kills orbit.
 A tool that mutates nothing, has no commit, and cannot fail — and therefore has no home in this
 codebase. Current state, verified:
 
-- Offer row `{"measure", "Measure", 6, …}` (`DesignOffer.hpp:120`) has `action == nullptr` and
+- Offer row `{"design_measure", "Measure", 6, …}` (`DesignOffer.hpp:120`) has `action == nullptr` and
   `refusal == nullptr`. The table's own contract (`DesignOffer.hpp:43-48`) is *"nullptr → kernel
   support exists, no GUI path yet (row shows disabled)"*, so the row renders as
   **"Measure (no GUI route)"** and is permanently disabled (`DesignPanel.cpp:6519`). With no
   refusal in the row, it contributes nothing to the family's "why" line either.
-- The maths exists, for MCP callers only: the `measure` CAD tool (`cad_measure` in
+- The maths exists, for MCP callers only: the `design_measure` CAD tool (`cad_measure` in
   `Mcp/Tools/DesignInspectTools.cpp`) — refs `{face|edge|point}`, distance = `|pa - pb|` of **representative
   points** (face centroid, edge mid-sample), angle = `acos(da·db)` when both refs carry a direction.
 - The correct OCCT primitive is already linked and already used: `BRepExtrema_DistShapeShape`
@@ -383,7 +383,7 @@ the same label primitive the dimension chain already draws (`render_dimensioning
 | `Esc` | `TwoRefs→OneRef→Exit` | ladder routes it | — | the ladder already handles "tool armed" |
 | any key | — | swallowed while the field is open | — | a query tool must not steal letters: no tool keys while Measure is armed |
 | `MiddleDrag`/`RightDrag` | — | — | orbit/pan | a 3D measurement is unreadable from one angle; the camera must stay live *inside* the tool, exactly like Select |
-| MCP `measure` | same engine | — | — | the RPC becomes one caller of `measure_refs`, so the agent surface and the GUI cannot disagree |
+| MCP `design_measure` | same engine | — | — | the RPC becomes one caller of `measure_refs`, so the agent surface and the GUI cannot disagree |
 
 ### 9.10 Measure — three friction points, and how the architecture prevents them
 

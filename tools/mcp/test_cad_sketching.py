@@ -1509,7 +1509,7 @@ def rung_relations():
 # ---------------------------------------------------------------- history, files and size
 
 def features():
-    return gui.cad("describe_design")["features"]
+    return gui.cad("design_describe")["features"]
 
 
 def rung_undo():

@@ -237,12 +237,12 @@ const std::map<std::string, ParameterClass>& classes_by_path()
         // point may be a body's face or edge; what a feature's card picks; the bodies a boolean takes.
         {"sketch_draw.entities", kFree},
         {"sketch_mirror.axis", source({"sketch_describe"})},
-        {"hole.at", source({"body_describe"})},
-        {"thread.at", source({"body_describe"})},
+        {"solid_hole.at", source({"body_describe"})},
+        {"solid_thread.at", source({"body_describe"})},
         {"feature_edit.refs", source({"feature_describe"})},
-        {"boolean.target", source({"describe_design"})},
-        {"boolean.tool", source({"describe_design"})},
-        {"sweep.path", source({"describe_design"})},
+        {"solid_boolean.target", source({"design_describe"})},
+        {"solid_boolean.tool", source({"design_describe"})},
+        {"solid_sweep.path", source({"design_describe"})},
     };
     return rows;
 }
@@ -253,7 +253,7 @@ const std::map<std::string, ParameterClass>& classes_by_name()
 {
     const ParameterClass objects = source({"object_list"}), plates = source({"plate_list"});
     const ParameterClass slots = source({"filament_list"}), presets = source({"preset_list"});
-    const ParameterClass design = source({"describe_design"}), geometry = source({"body_describe"});
+    const ParameterClass design = source({"design_describe"}), geometry = source({"body_describe"});
     const ParameterClass sketch = source({"sketch_describe"}), layers = source({"plate_slice_stats"});
     static const std::map<std::string, ParameterClass> rows{
         // The project.
@@ -278,7 +278,7 @@ const std::map<std::string, ParameterClass>& classes_by_name()
         {"body", design}, {"source_body", design}, {"face_body", design}, {"feature", design}, {"before", design},
         {"sketch", design}, {"profiles", design}, {"cs_a", design}, {"cs_b", design}, {"plane_a", design},
         {"plane_b", design}, {"reference", design}, {"base", design},
-        {"generation", source({"describe_design", "body_describe"})}, {"plane", source({"describe_design", "body_describe"})},
+        {"generation", source({"design_describe", "body_describe"})}, {"plane", source({"design_describe", "body_describe"})},
         {"face", geometry}, {"faces", geometry}, {"face_a", geometry}, {"face_b", geometry}, {"edge", geometry},
         {"edges", geometry}, {"edge_a", geometry}, {"edge_b", geometry}, {"vertex", geometry}, {"up_to_face", geometry},
         {"a", geometry}, {"b", geometry},

@@ -33,7 +33,10 @@
 //   earlier state the call reads;
 // - kernel_failure: a CAD kernel (OCCT) error reached the command's guard, wherever it was raised, its message after
 //   "OCCT: ";
-// - export_failed: export_step could not transfer or write the STEP file;
+// - export_failed: design_export_step could not transfer or write the STEP file;
+// - cut_object: design_commit_to_plate's replace names a part of a cut, which Prepare's Delete refuses too;
+// - nothing_deleted: design_commit_to_plate sent the design to the plate and then deleted none of its replace
+//   objects; one Prepare undo takes the commit back;
 // - no_silent_form: an entry with no silent form called as one (run_design_tool() called directly).
 
 #include "libslic3r/Point.hpp"
@@ -290,13 +293,13 @@ std::vector<Vec3d> cad_body_vertices(const CadDocument& doc, int body);
 void cad_apply_feature_refs(CadFeature& f, const nlohmann::json& refs, const CadDocument& before, const CadDocument& doc,
                             int index);
 
-// commit_to_plate's `replace`: the model's object indices to delete once the design is on the plate, sorted
+// design_commit_to_plate's `replace`: the model's object indices to delete once the design is on the plate, sorted
 // ascending. Throws std::runtime_error for a value that is not an index, one out of range or
-// repeated, and an object that is part of a cut (deleting it asks the person first).
+// repeated. What Prepare's Delete refuses of the objects, a part of a cut, is the delete operation's to refuse.
 std::vector<int> cad_commit_to_plate_replace(const nlohmann::json& replace, const Model& model);
 
 // sketch_describe {sketch}: committed sketch features[sketch] as the open sketch is described, its
-// entities, constraint count and loops, numbered as extrude's `loop` takes them; `tool` only
+// entities, constraint count and loops, numbered as solid_extrude's `loop` takes them; `tool` only
 // finds the loops. Throws std::runtime_error for an index that is not a sketch with entities.
 nlohmann::json cad_sketch_describe(const CadDocument& doc, const DesignSketchTool& tool, int sketch);
 
@@ -328,7 +331,7 @@ nlohmann::json cad_sketch_project(const CadDocument& doc, DesignSketchTool& tool
 std::vector<SketchEntityConstraintDef> cad_constraint_defs(const nlohmann::json& params, const std::vector<SketchEntity>& ents,
                                                            const std::vector<int>& selection);
 
-// extrude {sketch} and revolve {sketch}: check params against `doc` and return the call that adds,
+// solid_extrude {sketch} and solid_revolve {sketch}: check params against `doc` and return the call that adds,
 // without rebuilding, the feature the Extrude or Revolve card adds for the committed sketch
 // params.sketch; it takes the feature's name and returns its index. Checking first lets a bad
 // argument fail before the caller takes an undo checkpoint. Extrude takes the whole sketch, or with
@@ -345,7 +348,7 @@ std::function<int(const std::string& name)> cad_sketch_revolve(CadDocument& doc,
 // other way with params.flip; returned as cad_sketch_revolve() returns it. Throws std::runtime_error.
 std::function<int(const std::string& name)> cad_surface_revolve(CadDocument& doc, const nlohmann::json& params);
 
-// list_align_types: for coordinate systems params.cs_a (fixed) and params.cs_b (on the body that moves), {ok, cs_a,
+// solid_list_align_types: for coordinate systems params.cs_a (fixed) and params.cs_b (on the body that moves), {ok, cs_a,
 // cs_b, types}, the five align types in order, each {type, fits, reason}: whether it fits the pair and, where it does
 // not, why (CadDocument::mate_options()); reason is null where it fits. Throws std::runtime_error for a cs_a or cs_b
 // that is not an integer.
@@ -357,7 +360,7 @@ nlohmann::json cad_align_types(const CadDocument& doc, const nlohmann::json& par
 // cylinder `width` long of radius `height`. Throws std::runtime_error.
 SketchProfile cad_revolve_profile(const nlohmann::json& params);
 
-// extrude {face}: the Extrude card's push/pull of a picked face. Checks params against `doc` and
+// solid_extrude {face}: the Extrude card's push/pull of a picked face. Checks params against `doc` and
 // returns the call that adds the face extrude of params.face, a planar face of params.body (default
 // the last body), joined to that body unless params.operation says otherwise; `frame` receives the
 // face's plane. Throws std::runtime_error.
@@ -375,7 +378,7 @@ std::function<int(const std::string& name)> cad_face_extrude(CadDocument& doc, c
 // Throws std::runtime_error.
 nlohmann::json cad_body_describe(const CadDocument& doc, const nlohmann::json& params);
 
-// measure's reply for refs params.a and params.b, each a face, an edge (of its own body, else
+// design_measure's reply for refs params.a and params.b, each a face, an edge (of its own body, else
 // params.body), a point, or a cylindrical face's axis: the distance between their representative
 // points, the minimum distance and the closest points, their angle and, for two parallel planar
 // faces, the gap between them. Throws std::runtime_error naming the ref that does not resolve.

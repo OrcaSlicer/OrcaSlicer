@@ -13,30 +13,30 @@
     {"tool": "app_wait", "args": {"for": "ready"}},
     {"tool": "project_new", "args": {"discard_changes": true}},
     {"tool": "window_set", "args": {"size": [1600, 900]}},
-    {"tool": "tool_call", "args": {"tool": "new_design", "args": {"discard_changes": true}}},
+    {"tool": "tool_call", "args": {"tool": "design_new", "args": {"discard_changes": true}}},
 
     // M5 hex standoff: 8 mm across flats, 15 long, M5's 4.134 mm tap drill through it.
-    {"tool": "tool_call", "args": {"tool": "extrude", "args": {"distance": 15,
+    {"tool": "tool_call", "args": {"tool": "solid_extrude", "args": {"distance": 15,
       "profile": [[4.618802, 0], [2.309401, 4], [-2.309401, 4], [-4.618802, 0], [-2.309401, -4], [2.309401, -4]]}},
      "expect": {"/ok": {"exists": false}}},
-    {"tool": "tool_call", "args": {"tool": "hole", "args": {"diameter": 4.134, "through": true}}, "expect": {"/ok": {"exists": false}}},
+    {"tool": "tool_call", "args": {"tool": "solid_hole", "args": {"diameter": 4.134, "through": true}}, "expect": {"/ok": {"exists": false}}},
     {"tool": "tool_call", "args": {"tool": "body_describe", "args": {"kinds": ["cylindrical"]}},
      "expect": {"/faces_total": {"eq": 1}, "/faces/0/id": {"eq": 8}, "/faces/0/internal": {"eq": true}}},
     // A planar face cannot be threaded, and a designation not in the tables names the close ones.
-    {"tool": "tool_call", "args": {"tool": "thread", "args": {"face": 0}}, "optional": true},
-    {"tool": "tool_call", "args": {"tool": "thread", "args": {"face": 8, "designation": "M5x1"}}, "optional": true},
+    {"tool": "tool_call", "args": {"tool": "solid_thread", "args": {"face": 0}}, "optional": true},
+    {"tool": "tool_call", "args": {"tool": "solid_thread", "args": {"face": 8, "designation": "M5x1"}}, "optional": true},
     // The bore: M5 inferred from its 4.134 mm minor diameter, internal, the bore's whole 15 mm.
-    {"tool": "tool_call", "args": {"tool": "thread", "args": {"face": 8}},
+    {"tool": "tool_call", "args": {"tool": "solid_thread", "args": {"face": 8}},
      "expect": {"/thread_index": {"eq": 3}, "/designation": {"eq": "M5"}, "/internal": {"eq": true},
                 "/pitch": {"ge": 0.7999, "le": 0.8001}, "/length": {"ge": 14.9999, "le": 15.0001},
                 "/body": {"eq": 0}, "/bodies": {"eq": 1}}},
     // The bench case's bounds.
     {"tool": "tool_call", "args": {"tool": "body_mass_properties", "args": {"body": 0}},
      "expect": {"/is_solid": {"eq": true}, "/volume": {"gt": 600.0, "lt": 614.0}}},
-    {"tool": "tool_call", "args": {"tool": "describe_design"}, "expect": {"/features/3/type": {"eq": "Thread"}, "/undo_depth": {"eq": 3}}},
+    {"tool": "tool_call", "args": {"tool": "design_describe"}, "expect": {"/features/3/type": {"eq": "Thread"}, "/undo_depth": {"eq": 3}}},
     // The same thread placed on the XY plane, on the bore's axis.
     {"tool": "tool_call", "args": {"tool": "undo", "args": {"history": "design"}}, "expect": {"/result/features": {"eq": 3}}},
-    {"tool": "tool_call", "args": {"tool": "thread", "args": {"plane": "XY", "designation": "M5", "internal": true, "length": 15}},
+    {"tool": "tool_call", "args": {"tool": "solid_thread", "args": {"plane": "XY", "designation": "M5", "internal": true, "length": 15}},
      "expect": {"/x": {"eq": 0.0}, "/y": {"eq": 0.0}, "/body": {"eq": 0}, "/designation": {"eq": "M5"}}},
     {"tool": "tool_call", "args": {"tool": "body_mass_properties", "args": {"body": 0}},
      "expect": {"/volume": {"gt": 600.0, "lt": 614.0}}},
@@ -44,8 +44,8 @@
     // A spring: a helix of radius 10, pitch 5, six turns; a 1.5 mm wire drawn across its start on XZ, and a square
     // wire, 2 x 2, beside it. Both wires are sketched before the first sweep, whose seconds of rebuild each commit
     // after it would repeat.
-    {"tool": "tool_call", "args": {"tool": "new_design", "args": {"discard_changes": true}}},
-    {"tool": "tool_call", "args": {"tool": "helix", "args": {"radius": 10, "pitch": 5, "height": 30}},
+    {"tool": "tool_call", "args": {"tool": "design_new", "args": {"discard_changes": true}}},
+    {"tool": "tool_call", "args": {"tool": "construct_helix", "args": {"radius": 10, "pitch": 5, "height": 30}},
      "expect": {"/helix_index": {"eq": 0}, "/tangent/1": {"ge": 0.9968, "le": 0.9969}, "/tangent/2": {"ge": 0.0793, "le": 0.0794}}},
     {"tool": "tool_call", "args": {"tool": "sketch_create", "args": {"plane": "XZ"}}},
     {"tool": "tool_call", "args": {"tool": "sketch_draw", "args": {"type": "circle_center", "center": [10, 0], "radius": 1.5}}},
@@ -53,20 +53,20 @@
     {"tool": "tool_call", "args": {"tool": "sketch_create", "args": {"plane": "XZ"}}},
     {"tool": "tool_call", "args": {"tool": "sketch_draw", "args": {"type": "rectangle_2_point", "p0": [9, -1], "p1": [11, 1]}}},
     {"tool": "tool_call", "args": {"tool": "sketch_finish"}, "expect": {"/sketch_index": {"eq": 2}}},
-    {"tool": "tool_call", "args": {"tool": "sweep", "args": {"sketch": 1, "path": 0}},
+    {"tool": "tool_call", "args": {"tool": "solid_sweep", "args": {"sketch": 1, "path": 0}},
      "expect": {"/sweep_index": {"eq": 3}, "/body": {"eq": 0}, "/operation": {"eq": "new_body"}}},
     // pi 1.5^2 x the helix's 378.19 mm x 0.99685, the XZ plane's tilt off the helix's normal plane.
     {"tool": "tool_call", "args": {"tool": "body_mass_properties", "args": {"body": 0}},
      "expect": {"/is_solid": {"eq": true}, "/volume": {"gt": 2638.0, "lt": 2691.0}}},
     // A sweep is not a path.
-    {"tool": "tool_call", "args": {"tool": "sweep", "args": {"sketch": 2, "path": 3}}, "optional": true},
-    {"tool": "tool_call", "args": {"tool": "sweep", "args": {"sketch": 2, "path": 0}},
+    {"tool": "tool_call", "args": {"tool": "solid_sweep", "args": {"sketch": 2, "path": 3}}, "optional": true},
+    {"tool": "tool_call", "args": {"tool": "solid_sweep", "args": {"sketch": 2, "path": 0}},
      "expect": {"/sweep_index": {"eq": 4}, "/body": {"eq": 1}, "/bodies": {"eq": 2}}},
     {"tool": "tool_call", "args": {"tool": "body_mass_properties", "args": {"body": 1}},
      "expect": {"/is_solid": {"eq": true}, "/volume": {"gt": 1492.0, "lt": 1524.0}}},
 
     // A loft from a 20 mm square on XY to an 8 mm circle on a datum plane 40 above it.
-    {"tool": "tool_call", "args": {"tool": "new_design", "args": {"discard_changes": true}}},
+    {"tool": "tool_call", "args": {"tool": "design_new", "args": {"discard_changes": true}}},
     {"tool": "tool_call", "args": {"tool": "construct_plane", "args": {"type": "offset", "base": "XY", "offset": 40}}, "expect": {"/plane_index": {"eq": 0}}},
     {"tool": "tool_call", "args": {"tool": "sketch_create", "args": {"plane": "XY"}}},
     {"tool": "tool_call", "args": {"tool": "sketch_draw", "args": {"type": "rectangle_2_point", "p0": [-10, -10], "p1": [10, 10]}}},
@@ -74,25 +74,25 @@
     {"tool": "tool_call", "args": {"tool": "sketch_create", "args": {"plane": {"datum": 0}}}},
     {"tool": "tool_call", "args": {"tool": "sketch_draw", "args": {"type": "circle_center", "center": [0, 0], "radius": 8}}},
     {"tool": "tool_call", "args": {"tool": "sketch_finish"}, "expect": {"/sketch_index": {"eq": 2}}},
-    {"tool": "tool_call", "args": {"tool": "loft", "args": {"profiles": [1]}}, "optional": true},
-    {"tool": "tool_call", "args": {"tool": "loft", "args": {"profiles": [1, 0]}}, "optional": true},
-    {"tool": "tool_call", "args": {"tool": "loft", "args": {"profiles": [1, 2]}},
+    {"tool": "tool_call", "args": {"tool": "solid_loft", "args": {"profiles": [1]}}, "optional": true},
+    {"tool": "tool_call", "args": {"tool": "solid_loft", "args": {"profiles": [1, 0]}}, "optional": true},
+    {"tool": "tool_call", "args": {"tool": "solid_loft", "args": {"profiles": [1, 2]}},
      "expect": {"/loft_index": {"eq": 3}, "/body": {"eq": 0}, "/bodies": {"eq": 1}}},
     {"tool": "tool_call", "args": {"tool": "body_mass_properties", "args": {"body": 0}},
      "expect": {"/is_solid": {"eq": true}, "/volume": {"gt": 11850.0, "lt": 11861.0}}},
 
     // Split by the datum plane 20 below it: the upper half stays body 0, the lower one is body 1.
-    {"tool": "tool_call", "args": {"tool": "split", "args": {"plane": {"datum": 0}, "offset": 60}}, "optional": true},
-    {"tool": "tool_call", "args": {"tool": "split", "args": {"plane": {"datum": 0}, "offset": -20}},
+    {"tool": "tool_call", "args": {"tool": "solid_split", "args": {"plane": {"datum": 0}, "offset": 60}}, "optional": true},
+    {"tool": "tool_call", "args": {"tool": "solid_split", "args": {"plane": {"datum": 0}, "offset": -20}},
      "expect": {"/split_index": {"eq": 4}, "/upper_body": {"eq": 0}, "/lower_body": {"eq": 1},
                 "/bodies": {"eq": 2}, "/frame/normal/2": {"eq": 1.0}}},
-    {"tool": "tool_call", "args": {"tool": "describe_design"},
+    {"tool": "tool_call", "args": {"tool": "design_describe"},
      "expect": {"/features/4/type": {"eq": "Cut"}, "/bodies/0/bbox/min/2": {"ge": 19.999, "le": 20.001},
                 "/bodies/1/bbox/max/2": {"ge": 19.999, "le": 20.001}}},
     // The lower half, by XY at 10 turned over, keeping only the side toward the bed.
-    {"tool": "tool_call", "args": {"tool": "split", "args": {"body": 1, "plane": "XY", "offset": 10, "flip": true, "keep_lower": false}},
+    {"tool": "tool_call", "args": {"tool": "solid_split", "args": {"body": 1, "plane": "XY", "offset": 10, "flip": true, "keep_lower": false}},
      "expect": {"/upper_body": {"eq": 1}, "/bodies": {"eq": 2}, "/frame/normal/2": {"eq": -1.0}}},
-    {"tool": "tool_call", "args": {"tool": "describe_design"},
+    {"tool": "tool_call", "args": {"tool": "design_describe"},
      "expect": {"/bodies/1/bbox/min/2": {"ge": -0.001, "le": 0.001}, "/bodies/1/bbox/max/2": {"ge": 9.999, "le": 10.001},
                 "/undo_depth": {"eq": 6}}}
   ]

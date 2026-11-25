@@ -5,15 +5,15 @@
     tools/mcp/test_cad_commands.py [rung ...]
 
 With no rung named, every rung runs. Each one starts from an empty design, calls the Design commands with
-their arguments and grades what describe_design, feature_describe, sketch_describe and body_mass_properties
+their arguments and grades what design_describe, feature_describe, sketch_describe and body_mass_properties
 read back. The unit tests drive the commands' checks on a bare document; these read the replies and the
 features the Design panel builds. Exits 0 when every check holds, 2 when the app is not in English or has no
 Design tab.
 
 The rungs: words calls each command that takes `operation` with Fusion's words, and checks that its reply
 and the feature it adds say the operation in the same word, and that the bodies show it was done; it
-suppresses a feature, which describe_design and feature_describe say as suppressed, and adds two aligns that
-cannot both hold, which describe_design lists in align_conflicts; and it calls the open sketch's commands by
+suppresses a feature, which design_describe and feature_describe say as suppressed, and adds two aligns that
+cannot both hold, which design_describe lists in align_conflicts; and it calls the open sketch's commands by
 their type, sketch_extend, sketch_pattern, sketch_transform and sketch_dimension, through their silent forms.
 shapes_match_tools draws six shapes twice, each in a sketch of its own: once with its drawing tool, its
 right-click menu item chosen and its points clicked on the canvas, and once with sketch_draw, from the geometry
@@ -41,7 +41,7 @@ open, and sketch_edit refuses the Text feature. svg_art places an SVG file's squ
 sketch_insert_svg, an art feature of one 100 mm2 region at the position, which sketch_edit refuses, and into an open
 sketch as four lines. scale_artwork runs the Feature tree's Scale artwork on the art twice: Confirm keeps one undo
 step, Cancel none, as Edit on the row does.
-surface_revolve_flip selects a sketch's loop with select_geometry, opens the Surface Revolve card with
+surface_revolve_flip selects a sketch's loop with design_select, opens the Surface Revolve card with
 surface_revolve {}, ticks its Flip and confirms: the feature keeps the Flip.
 The refs rungs work on a block whose top edge is filleted and which is then shelled, renumbering its edges.
 feature_edit_refs re-points the Fillet with feature_edit's refs at an edge read with body_describe {before}: the Fillet
@@ -60,38 +60,42 @@ model's middle when the height is left out, and each of the four switches on and
 sketch_normal with no sketch open is refused, leaving the view as it was, and in a sketch on XZ looks along the
 plane's normal; the Design options given without tab design are refused.
 select works on a box extruded from a sketch, a Plane on its top face, a second Extrude and a sketch on show, each
-call straight after the one before it. select_geometry selects the body, then rename_selected names it in its row's
+call straight after the one before it. design_select selects the body, then design_rename_selected names it in its row's
 editor; a face, an edge and a vertex, at the point body_describe gives it; the shown sketch's loop, which
-rename_selected renames and zoom_to_selection frames; and each feature, which rename_selected, feature_delete,
-feature_edit and sketch_constrain_selected then act on, as zoom_to_selection does not. {} clears it all. Under an open
+design_rename_selected renames and design_zoom_to_selection frames; and each feature, which design_rename_selected, feature_delete,
+feature_edit and sketch_constrain_selected then act on, as design_zoom_to_selection does not. {} clears it all. Under an open
 card or sketch, and for an id the model lacks or a plane no click could pick, it is refused and the selection stays
 as it was. With an edge, a face, a body and a vertex selected, the menu items that take them apply; the canvas draws a
 face, an edge and a vertex selected, each differently. A plane is selected while the Origin row shows the planes, and
 starts the sketch Sketch waits for, on XY as its sketch_normal camera reads it.
-select_loops extrudes loop 0 of a sketch of three squares alone: select_geometry's loop 1 is then the loop
-sketch_describe calls 1, which zoom_to_selection centres the view on; loop 0 is refused, naming the extrude that took
+select_loops extrudes loop 0 of a sketch of three squares alone: design_select's loop 1 is then the loop
+sketch_describe calls 1, which design_zoom_to_selection centres the view on; loop 0 is refused, naming the extrude that took
 it, and so is a loop past the sketch's.
-confirm_card opens the Extrude card on a committed rectangle's loop and confirms it with confirm_tool, whose reply names
-the card and the new feature; one body exists. cancel_card cancels the same card with cancel_tool, adding nothing, and
+confirm_card opens the Extrude card on a committed rectangle's loop and confirms it with design_confirm_tool, whose reply names
+the card and the new feature; one body exists. cancel_card cancels the same card with design_cancel_tool, adding nothing, and
 cancel_sketch discards a sketch holding a line, with no dialog. text_dialog opens the Text dialog with sketch_text {}:
-cancel_tool closes it, adding nothing, and confirm_tool is refused with the dialog's reason until there is text, then
-takes its OK, which opens the text's placement, which a second confirm_tool keeps. cancel_plane_pick hides the Origin
-row's planes and calls sketch_create {}, which waits for a plane: confirm_tool is refused, cancel_tool ends the wait,
+design_cancel_tool closes it, adding nothing, and design_confirm_tool is refused with the dialog's reason until there is text, then
+takes its OK, which opens the text's placement, which a second design_confirm_tool keeps. cancel_plane_pick hides the Origin
+row's planes and calls sketch_create {}, which waits for a plane: design_confirm_tool is refused, design_cancel_tool ends the wait,
 and no plane can be selected after it. confirm_nothing: both are refused with nothing open. confirm_disabled opens a Fillet card that
-has no preview, and confirm_tool is refused with the status line. confirm_refused_add presses Commit to Plate, which
+has no preview, and design_confirm_tool is refused with the status line. confirm_refused_add presses Commit to Plate, which
 confirms an open card first, over a Delete Face card holding no face, whose add refuses, so that it sends nothing and
 the Design tab stays in front, and over the Insert placement Scale artwork opens; then it opens the Thicken card on a
 face and clicks a committed sketch's loop, which lets go of the face and leaves the Confirm on, and presses the Confirm,
 which the add refuses. None takes an undo step, and each card stays open. confirm_failed_add presses Commit to Plate
 over confirm_disabled's Fillet card, whose add runs and whose rebuild fails: no feature and no undo or redo step are
 added, the card stays open with the reason on the status line and its pick, and nothing is sent.
-place moves a box with body_place, which describe_design reads as its placement and Commit to Plate sends, turns it
+place moves a box with body_place, which design_describe reads as its placement and Commit to Plate sends, turns it
 about its centre, lays a side face on the bed and resets it; with a sketch open it is refused. place_select selects a
 vertex and a face of a placed box: the vertex's placed_point is the placement's, and fit_selection looks at the box
 where it stands. place_follows deletes the feature that made the first of two placed boxes: the other keeps its
 placement as it becomes body 0, a box added afterwards has none, and undo brings the first back where it stood.
-boolean_opens calls boolean {} and boolean {operation: "cut"} with two bodies and nothing selected: each replies that
-a tool is open, and the card it opened, confirmed with confirm_tool, adds a join and a cut; with target and tool the
+replace commits two bodies to a new project and replaces through design_commit_to_plate's replace: a part of a
+cut, cut with a connector in the Cut gizmo, is refused with cut_object, named, and adds no undo step, replace_ids
+deletes both objects in the commit's one undo step, and after a replacing commit the selection, on the canvas and in
+the Objects list, is what a plain commit leaves, on the 3D view and on the assemble view, which the call keeps.
+boolean_opens calls solid_boolean {} and solid_boolean {operation: "cut"} with two bodies and nothing selected: each replies that
+a tool is open, and the card it opened, confirmed with design_confirm_tool, adds a join and a cut; with target and tool the
 cut runs. action_pick opens the Speed Dial in a sketch with a line selected and picks the Polar array action, an item
 folded into sketch_pattern, which arms the polar array tool, and the Trim action, sketch_trim's own, which arms the trim
 tool. action_pick_replay runs the Polar array action with action_run, exports the session, whose step carries the
@@ -101,6 +105,7 @@ item's arguments {"type": "circular"}, and replays it in a new project to the sa
 import json
 import math
 import os
+import re
 import struct
 import sys
 import tempfile
@@ -125,7 +130,7 @@ def square(half):
 
 
 def bodies():
-    return len(gui.cad("describe_design")["bodies"])
+    return len(gui.cad("design_describe")["bodies"])
 
 
 def volume(body):
@@ -155,13 +160,13 @@ def coordinate_system(body, point):
 def rung_words():
     # A 10 x 10 square on the block's bottom face, cut 5 mm up into the 20 x 20 x 10 block.
     gui.new_design()
-    gui.cad("extrude", distance=10, width=20, height=20)
+    gui.cad("solid_extrude", distance=10, width=20, height=20)
     gui.cad("sketch_create", plane="XY")
     gui.cad("sketch_draw", entities=square(5))
     sketch = gui.cad("sketch_finish")["sketch_index"]
-    r = gui.cad("extrude", sketch=sketch, distance=5, operation="cut", body=0)
+    r = gui.cad("solid_extrude", sketch=sketch, distance=5, operation="cut", body=0)
     gui.check("words: extrude replies the operation it was given", r.get("operation") == "cut", r)
-    gui.check("words: extrude's reply says no boolean", "boolean" not in r, r)
+    gui.check("words: solid_extrude's reply says no boolean", "boolean" not in r, r)
     gui.check("words: the cut takes 10 x 10 x 5 out of the block", near(volume(0), 4000.0 - 500.0, 1e-3),
               f"volume {volume(0)}")
     gui.check("words: the extrude reads back as a cut", operation_of(r["extrude_index"]) == "cut",
@@ -169,10 +174,10 @@ def rung_words():
 
     # A 15 x 10 x 10 block overlapping the first by 5 x 10 x 10, joined into it.
     gui.new_design()
-    gui.cad("extrude", distance=10, width=20, height=20)
-    gui.cad("extrude", operation="new_body", distance=10, profile=[[5, -5], [20, -5], [20, 5], [5, 5]])
+    gui.cad("solid_extrude", distance=10, width=20, height=20)
+    gui.cad("solid_extrude", operation="new_body", distance=10, profile=[[5, -5], [20, -5], [20, 5], [5, 5]])
     gui.check("words: two bodies before the boolean", bodies() == 2, bodies())
-    r = gui.cad("boolean", operation="join", target=0, tool=1)
+    r = gui.cad("solid_boolean", operation="join", target=0, tool=1)
     gui.check("words: boolean join leaves one body of two", bodies() == 1, bodies())
     gui.check("words: the joined body holds both blocks", near(volume(0), 4000.0 + 1500.0 - 500.0, 1e-3),
               f"volume {volume(0)}")
@@ -181,8 +186,8 @@ def rung_words():
 
     # A block against the XZ plane, mirrored across it and joined to its image.
     gui.new_design()
-    gui.cad("extrude", distance=5, profile=[[-5, 0], [5, 0], [5, 10], [-5, 10]])
-    r = gui.cad("mirror", plane="XZ", operation="join")
+    gui.cad("solid_extrude", distance=5, profile=[[-5, 0], [5, 0], [5, 10], [-5, 10]])
+    r = gui.cad("solid_mirror", plane="XZ", operation="join")
     gui.check("words: mirror join leaves one body", bodies() == 1, bodies())
     gui.check("words: the joined mirror is twice the block", near(volume(0), 2 * 500.0, 1e-3), f"volume {volume(0)}")
     gui.check("words: the mirror reads back as a join", operation_of(r["mirror_index"]) == "join",
@@ -190,9 +195,9 @@ def rung_words():
 
     # A block's extrude suppressed: the design lists it as suppressed, and its body is gone.
     gui.new_design()
-    extrude = gui.cad("extrude", distance=10, width=20, height=20)["extrude_index"]
-    item = gui.cad("describe_design")["features"][extrude]
-    gui.check("words: describe_design says suppressed, not enabled",
+    extrude = gui.cad("solid_extrude", distance=10, width=20, height=20)["extrude_index"]
+    item = gui.cad("design_describe")["features"][extrude]
+    gui.check("words: design_describe says suppressed, not enabled",
               item.get("suppressed") is False and "enabled" not in item, item)
     r = gui.cad("feature_suppress", feature=extrude, suppressed=True)
     gui.check("words: feature_suppress replies suppressed", r.get("suppressed") is True and r.get("changed") is True, r)
@@ -203,17 +208,17 @@ def rung_words():
 
     # Two aligns driving one body, which cannot both hold: the second is the conflict.
     gui.new_design()
-    gui.cad("extrude", distance=5, width=10, height=10)
-    gui.cad("extrude", operation="new_body", distance=10, profile=[[20, -3], [26, -3], [26, 3], [20, 3]])
+    gui.cad("solid_extrude", distance=5, width=10, height=10)
+    gui.cad("solid_extrude", operation="new_body", distance=10, profile=[[20, -3], [26, -3], [26, 3], [20, 3]])
     cs_a, cs_b, cs_c = coordinate_system(0, [0, 0, 0]), coordinate_system(1, [0, 0, 0]), coordinate_system(0, [10, 10, 10])
-    first = gui.cad("align", type="fastened", cs_a=cs_c, cs_b=cs_b)
+    first = gui.cad("solid_align", type="fastened", cs_a=cs_c, cs_b=cs_b)
     gui.check("words: align replies align_index", "align_index" in first and "mate_index" not in first, first)
-    second = gui.cad("align", type="fastened", cs_a=cs_a, cs_b=cs_b)
-    design = gui.cad("describe_design")
+    second = gui.cad("solid_align", type="fastened", cs_a=cs_a, cs_b=cs_b)
+    design = gui.cad("design_describe")
     conflicts = design.get("align_conflicts", [])
-    gui.check("words: describe_design lists the second align as the conflict",
+    gui.check("words: design_describe lists the second align as the conflict",
               len(conflicts) == 1 and conflicts[0].get("feature") == second.get("align_index"), design.get("align_conflicts"))
-    gui.check("words: describe_design says no mate_conflicts", "mate_conflicts" not in design, list(design))
+    gui.check("words: design_describe says no mate_conflicts", "mate_conflicts" not in design, list(design))
 
     # The open sketch's commands: a line extended to the line below it, a circle repeated about the
     # origin, a line turned upright, and a width that sketch_dimension holds and sketch_constrain refuses.
@@ -389,14 +394,14 @@ def block_on_rectangle():
     gui.cad("sketch_create", plane="XY")
     gui.cad("sketch_draw", type="rectangle_2_point", p0=[0, 0], p1=[20, 10])
     sketch = gui.cad("sketch_finish")["sketch_index"]
-    gui.cad("extrude", sketch=sketch, distance=5)
+    gui.cad("solid_extrude", sketch=sketch, distance=5)
     return sketch
 
 
 def state():
     """What an edit that is not kept must leave as it was: the features by type and name, the undo depth and the
     block's volume."""
-    design = gui.cad("describe_design")
+    design = gui.cad("design_describe")
     return {"features": [(f["type"], f["name"]) for f in design["features"]], "undo_depth": design["undo_depth"],
             "volume": round(volume(0), 6)}
 
@@ -404,7 +409,7 @@ def state():
 def opens_a_new_sketch(rung):
     """sketch_create opens a sketch of its own, which sketch_finish adds after the others rather than putting in place
     of the sketch an edit ended on."""
-    features = len(gui.cad("describe_design")["features"])
+    features = len(gui.cad("design_describe")["features"])
     why = refused("sketch_create", plane="XY")
     if not gui.check(f"{rung}: sketch_create then opens a sketch", not why, why):
         return
@@ -416,7 +421,7 @@ def opens_a_new_sketch(rung):
 
 def rung_sketch_edit():
     sketch = rectangle_block()
-    before = gui.cad("describe_design")
+    before = gui.cad("design_describe")
     gui.check("sketch_edit: the block is 1000 mm3", near(volume(0), 1000.0, 1e-6), volume(0))
     r = gui.cad("sketch_edit", sketch=sketch)
     gui.check("sketch_edit: the reply names the sketch and its four entities",
@@ -427,7 +432,7 @@ def rung_sketch_edit():
     r = gui.cad("sketch_finish")
     gui.check("sketch_edit: sketch_finish replaces the sketch it re-opened",
               r.get("replaced") is True and r.get("sketch_index") == sketch, r)
-    after = gui.cad("describe_design")
+    after = gui.cad("design_describe")
     gui.check("sketch_edit: no feature is added", len(after["features"]) == len(before["features"]),
               [f["name"] for f in after["features"]])
     gui.check("sketch_edit: the block follows the sketch, twice as wide and long", near(volume(0), 4000.0, 1e-6),
@@ -460,7 +465,7 @@ def rung_sketch_edit_refused():
     why = refused("sketch_edit", sketch=sketch + 1)
     gui.check("sketch_edit_refused: the extrude is not a sketch", "is not a sketch" in why, why)
     # A block's sketch from the card's width and height has no entities; a projection follows its body.
-    shape = gui.cad("extrude", operation="new_body", distance=5, width=4, height=4)["sketch_index"]
+    shape = gui.cad("solid_extrude", operation="new_body", distance=5, width=4, height=4)["sketch_index"]
     why = refused("sketch_edit", sketch=shape)
     gui.check("sketch_edit_refused: a sketch not drawn from entities", "not drawn from entities" in why, why)
     top = gui.cad("body_describe", body=0, at_extreme="+z")
@@ -479,7 +484,7 @@ def round_top_edge():
     size cannot take."""
     edges = gui.cad("body_describe", body=0, edge_kinds=["line"], direction=[1, 0, 0])
     top = max(edges["edges"], key=lambda e: e["p0"][2])
-    gui.cad("fillet", edges=top["id"], radius=4, body=0, generation=edges["generation"])
+    gui.cad("solid_fillet", edges=top["id"], radius=4, body=0, generation=edges["generation"])
 
 
 def outcome(tool, **args):
@@ -525,7 +530,7 @@ def rung_sketch_edit_failed_replace():
 
     # The replay keeps the sketch_finish that ended the edit, so that it ends there too, and the sketch after it is
     # a new one: the exported session replays in a new project to the same features.
-    live = [f["type"] for f in gui.cad("describe_design")["features"]]
+    live = [f["type"] for f in gui.cad("design_describe")["features"]]
     out_dir = tempfile.mkdtemp(prefix="orca-mcp-sketch-edit-")
     path = os.path.join(out_dir, "session.json")
     gui.client.call("replay_export", path=path, overwrite=True)
@@ -536,7 +541,7 @@ def rung_sketch_edit_failed_replace():
     replay = gui.client.await_job(gui.client.call("replay_run", path=path, out_dir=out_dir), timeout=900)
     gui.check("sketch_edit_failed_replace: the exported session replays", replay.get("passed") is True,
               [s for s in replay.get("steps", []) if not s.get("ok")][:1])
-    replayed = [f["type"] for f in gui.cad("describe_design")["features"]]
+    replayed = [f["type"] for f in gui.cad("design_describe")["features"]]
     gui.check("sketch_edit_failed_replace: the replay ends with the live run's features", replayed == live,
               (replayed, live))
     gui.show_design()
@@ -597,11 +602,11 @@ def is_xy(frame, origin):
 def rung_project_model():
     # A 20 x 20 x 10 block, projected with no sketch open.
     gui.new_design()
-    gui.cad("extrude", distance=10, width=20, height=20)
-    origin = gui.cad("describe_design")["modeling_origin"]
+    gui.cad("solid_extrude", distance=10, width=20, height=20)
+    origin = gui.cad("design_describe")["modeling_origin"]
     for args in ({"source_body": 0}, {"source_body": 0, "plane": None}):
         r = outcome("sketch_project", **args)
-        features = gui.cad("describe_design")["features"]
+        features = gui.cad("design_describe")["features"]
         index = r.get("project_index")
         gui.check(f"project_model: sketch_project {args} adds a Project feature",
                   "ok" not in r and index == len(features) - 1 and features[index]["type"] == "Project", [r, features])
@@ -609,7 +614,7 @@ def rung_project_model():
         gui.check(f"project_model: sketch_project {args} projects onto XY", is_xy(r.get("frame", {}), origin), r)
 
     # With a sketch open, the top face's edges go into it as construction lines, once, and no feature is added.
-    count = len(gui.cad("describe_design")["features"])
+    count = len(gui.cad("design_describe")["features"])
 
     def top_face():
         top = gui.cad("body_describe", body=0, at_extreme="+z")
@@ -635,7 +640,7 @@ def rung_project_model():
     gui.check("project_model: the edited sketch keeps them, construction beside its circle",
               len(kept) == 9 and sum(1 for e in kept if e["construction"]) == 8, kept)
     gui.check("project_model: no feature is added by either",
-              len(gui.cad("describe_design")["features"]) == count + 1, gui.cad("describe_design")["features"])
+              len(gui.cad("design_describe")["features"]) == count + 1, gui.cad("design_describe")["features"])
 
 
 # ---------------------------------------------------------------- text and art
@@ -654,11 +659,11 @@ def square_svg():
 
 
 def undo_depth():
-    return gui.cad("describe_design")["undo_depth"]
+    return gui.cad("design_describe")["undo_depth"]
 
 
 def features():
-    return len(gui.cad("describe_design")["features"])
+    return len(gui.cad("design_describe")["features"])
 
 
 def nothing_open(rung):
@@ -681,11 +686,11 @@ def rung_text():
               params)
     gui.check("text: one undo step", undo_depth() == before + 1, f"{before} -> {undo_depth()}")
     nothing_open("text")
-    r = outcome("extrude", sketch=index, distance=2)
+    r = outcome("solid_extrude", sketch=index, distance=2)
     gui.check("text: the text extrudes into a body, nothing open refusing it", "ok" not in r and bodies() > 0, r)
 
     # Refused, changing nothing: a face that is not installed, and text of spaces only. No feature, no undo step and no
-    # error in describe_design.
+    # error in design_describe.
     count, depth = features(), undo_depth()
     for what, args, reason in (("a font that does not exist", {"text": "Orca", "font": "No Such Face 3.14"}, "not installed"),
                                ("text of spaces only", {"text": "   "}, "no outline")):
@@ -693,8 +698,8 @@ def rung_text():
         gui.check(f"text: {what} is refused", reason in why, why)
         gui.check(f"text: {what} adds no feature", features() == count, features())
         gui.check(f"text: {what} takes no undo step", undo_depth() == depth, f"{depth} -> {undo_depth()}")
-        error = gui.cad("describe_design").get("error", "")
-        gui.check(f"text: {what} leaves describe_design's error empty", error == "", error)
+        error = gui.cad("design_describe").get("error", "")
+        gui.check(f"text: {what} leaves design_describe's error empty", error == "", error)
 
     # Not inside an open sketch, and its feature is no sketch to edit.
     gui.cad("sketch_create", plane="XY")
@@ -752,7 +757,7 @@ def rung_scale_artwork():
     index = art_at([0, 0])
     if index is None:
         return
-    name = gui.cad("describe_design")["features"][index]["name"]
+    name = gui.cad("design_describe")["features"][index]["name"]
     before = undo_depth()
     row_menu(name, "Scale artwork")
     gui.keys("Return", target=CANVAS)
@@ -780,7 +785,7 @@ def rung_surface_revolve_flip():
     gui.cad("sketch_draw", type="rectangle_2_point", p0=[10, 0], p1=[14, 20])
     sketch = gui.cad("sketch_finish")["sketch_index"]
     # Its menu item takes a picked loop, and the card revolves the sketch the loop is of.
-    gui.cad("select_geometry", sketch=sketch, loop=0)
+    gui.cad("design_select", sketch=sketch, loop=0)
     opened = gui.cad("surface_revolve")
     shown = until(lambda: any(w.kind == "toggle" and w.label == "Flip direction" for w in gui.widgets()))
     if not gui.check("surface_revolve_flip: surface_revolve {} opens the Surface Revolve card, with its Flip",
@@ -790,7 +795,7 @@ def rung_surface_revolve_flip():
     gui.check("surface_revolve_flip: Flip is ticked", ticked.get("checked") is True, ticked)
     gui.press("Confirm")
     settled()
-    added = [f for f in gui.cad("describe_design")["features"] if f["type"] == "SurfaceRevolve"]
+    added = [f for f in gui.cad("design_describe")["features"] if f["type"] == "SurfaceRevolve"]
     if not gui.check("surface_revolve_flip: Confirm adds a Surface Revolve", len(added) == 1, added):
         return
     params = gui.cad("feature_describe", feature=added[0]["index"])["params"]
@@ -813,8 +818,8 @@ def view_refused(**args):
 
 def rung_design_view():
     gui.new_design()
-    gui.cad("extrude", distance=10, width=20, height=20)
-    box = gui.cad("describe_design")["bodies"][0]["bbox"]
+    gui.cad("solid_extrude", distance=10, width=20, height=20)
+    box = gui.cad("design_describe")["bodies"][0]["bbox"]
     middle = (box["min"][2] + box["max"][2]) / 2
     section = view(section={"on": True, "z": 2, "keep": "upper"}).get("design", {}).get("section")
     gui.check("design_view: the reply has the section view asked for", section == {"on": True, "z": 2, "keep": "upper"},
@@ -866,28 +871,28 @@ def rung_design_view():
 
 
 def select(**args):
-    return gui.cad("select_geometry", **args)
+    return gui.cad("design_select", **args)
 
 
 def selected():
-    """describe_design's selection id, picked_plane and feature_row."""
-    d = gui.cad("describe_design")
+    """design_describe's selection id, picked_plane and feature_row."""
+    d = gui.cad("design_describe")
     return d["selection"]["id"], d.get("picked_plane"), d.get("feature_row")
 
 
 def feature_names():
-    return [f["name"] for f in gui.cad("describe_design")["features"]]
+    return [f["name"] for f in gui.cad("design_describe")["features"]]
 
 
 def rename_selected(old, name):
-    """Call rename_selected {}, then type `name` into the row editor it opens on the row named `old`, as a person does,
+    """Call design_rename_selected {}, then type `name` into the row editor it opens on the row named `old`, as a person does,
     and commit it with Enter. The editor opens holding the row's name."""
-    reply = gui.cad("rename_selected")
+    reply = gui.cad("design_rename_selected")
     found = until(lambda: next((w for w in gui.widgets() if w.kind == "text" and w.rect and w.value == old), None))
     if found is None:
-        raise AssertionError(f"rename_selected opened no row editor on {old}: {reply}")
+        raise AssertionError(f"design_rename_selected opened no row editor on {old}: {reply}")
     gui.fill({"ref": found.ref}, name)
-    until(lambda: name in feature_names() or any(b["name"] == name for b in gui.cad("describe_design")["bodies"]))
+    until(lambda: name in feature_names() or any(b["name"] == name for b in gui.cad("design_describe")["bodies"]))
 
 
 def canvas_rows(out_dir, name):
@@ -921,11 +926,11 @@ def select_model():
     gui.cad("sketch_create", plane="XY")
     gui.cad("sketch_draw", type="rectangle_2_point", p0=[-20, -20], p1=[20, 20])
     sketch = gui.cad("sketch_finish")["sketch_index"]
-    box = gui.cad("extrude", sketch=sketch, distance=10)["extrude_index"]
+    box = gui.cad("solid_extrude", sketch=sketch, distance=10)["extrude_index"]
     top = gui.cad("body_describe", body=0, at_extreme="+z")
     plane = gui.cad("construct_plane", type="coincident", face_a={"body": 0, "face": top["faces"][0]["id"]},
                     generation=top["generation"])["plane_index"]
-    second = gui.cad("extrude", distance=5, operation="new_body",
+    second = gui.cad("solid_extrude", distance=5, operation="new_body",
                      profile=[[30, -5], [40, -5], [40, 5], [30, 5]])["extrude_index"]
     gui.cad("sketch_create", plane="XY")
     gui.cad("sketch_draw", type="circle_center", center=[-40, 0], radius=5)
@@ -946,9 +951,9 @@ def rung_select():
     r = select(body=0)
     gui.check("select: {body: 0} reads back body_solid", r["selection"]["id"] == "body_solid" and selected()[0] == "body_solid",
               [r, selected()])
-    rename_selected(gui.cad("describe_design")["bodies"][0]["name"], "Lid")
-    body = gui.cad("describe_design")["bodies"][0]
-    gui.check("select: rename_selected then names the body in its row's editor", body["name"] == "Lid" and body["user_name"],
+    rename_selected(gui.cad("design_describe")["bodies"][0]["name"], "Lid")
+    body = gui.cad("design_describe")["bodies"][0]
+    gui.check("select: design_rename_selected then names the body in its row's editor", body["name"] == "Lid" and body["user_name"],
               body)
 
     # A face, edges and a vertex, as a click picks them, each straight after the one before.
@@ -966,16 +971,16 @@ def rung_select():
     r = select(sketch=f["shown"], loop=0)
     gui.check("select: {sketch, loop} reads back sk_loop", r["selection"]["id"] == "sk_loop", r)
     rename_selected(feature_names()[f["shown"]], "Ring")
-    gui.check("select: rename_selected then renames the Sketch", feature_names()[f["shown"]] == "Ring", feature_names())
-    r = gui.cad("zoom_to_selection")
-    gui.check("select: zoom_to_selection applies to the loop", r.get("applies") is True, r)
+    gui.check("select: design_rename_selected then renames the Sketch", feature_names()[f["shown"]] == "Ring", feature_names())
+    r = gui.cad("design_zoom_to_selection")
+    gui.check("select: design_zoom_to_selection applies to the loop", r.get("applies") is True, r)
 
     # Features of the Feature list, straight after the loop, which the four menu items that act on its row act on.
     r = select(feature=f["box"])
     gui.check("select: {feature} reads back the feature's row, and nothing picked in the view",
               r["feature"] == f["box"] and r["selection"]["id"] == "none" and selected() == ("none", None, f["box"]), r)
     rename_selected(feature_names()[f["box"]], "Block")
-    gui.check("select: rename_selected then renames that feature", feature_names()[f["box"]] == "Block", feature_names())
+    gui.check("select: design_rename_selected then renames that feature", feature_names()[f["box"]] == "Block", feature_names())
     names = feature_names()
     select(feature=f["second"])
     gui.cad("feature_delete")
@@ -987,8 +992,8 @@ def rung_select():
     gui.check("select: one undo brings it back", feature_names() == names, feature_names())
     select(feature=f["plane"])
     rename_selected(feature_names()[f["plane"]], "Datum")
-    gui.check("select: rename_selected then renames the Plane", feature_names()[f["plane"]] == "Datum", feature_names())
-    before = [(x["type"], x["name"]) for x in gui.cad("describe_design")["features"]]
+    gui.check("select: design_rename_selected then renames the Plane", feature_names()[f["plane"]] == "Datum", feature_names())
+    before = [(x["type"], x["name"]) for x in gui.cad("design_describe")["features"]]
     r = gui.cad("feature_edit")
     gui.check("select: feature_edit {} then opens the Plane's card", "a feature card is open" in (r.get("busy") or ""), r)
     gui.cancel()
@@ -997,12 +1002,12 @@ def rung_select():
     gui.check("select: sketch_constrain_selected then enters Constrain mode on the Sketch",
               "constraining a sketch" in (r.get("busy") or ""), r)
     gui.cancel()
-    after = [(x["type"], x["name"]) for x in gui.cad("describe_design")["features"]]
+    after = [(x["type"], x["name"]) for x in gui.cad("design_describe")["features"]]
     gui.check("select: the card and Constrain mode, cancelled, leave the features as they were", after == before,
               [before, after])
     select(feature=f["box"])
-    why = refused("zoom_to_selection")
-    gui.check("select: zoom_to_selection is refused for a feature, as with nothing selected",
+    why = refused("design_zoom_to_selection")
+    gui.check("select: design_zoom_to_selection is refused for a feature, as with nothing selected",
               "does not apply to what is selected" in why and '"selection":"none"' in why.replace(" ", ""), why)
 
     r = select()
@@ -1012,19 +1017,19 @@ def rung_select():
     # What is open: a card, then a sketch, refuses it, and the selection stays.
     gen = generation()
     select(body=0)
-    r = gui.cad("shell")
-    gui.check("select: shell {} opens the Shell card", "a feature card is open" in (r.get("busy") or ""), r)
-    held = gui.cad("describe_design")["selection"]
+    r = gui.cad("solid_shell")
+    gui.check("select: solid_shell {} opens the Shell card", "a feature card is open" in (r.get("busy") or ""), r)
+    held = gui.cad("design_describe")["selection"]
     for args in ({"body": 0, "face": top, "generation": gen}, {}):
-        why = refused("select_geometry", **args)
+        why = refused("design_select", **args)
         gui.check(f"select: {args} is refused as busy with the card", "design_busy" in why and "a feature card is open" in why,
                   why)
-    gui.check("select: the card's selection stays", gui.cad("describe_design")["selection"] == held,
-              [held, gui.cad("describe_design")["selection"]])
+    gui.check("select: the card's selection stays", gui.cad("design_describe")["selection"] == held,
+              [held, gui.cad("design_describe")["selection"]])
     gui.cancel()
     gui.cad("sketch_create", plane="XY")
     for args in ({"body": 0}, {}):
-        why = refused("select_geometry", **args)
+        why = refused("design_select", **args)
         gui.check(f"select: {args} is refused as busy with the sketch", "design_busy" in why and "a sketch is open" in why, why)
     gui.cad("sketch_cancel")
 
@@ -1035,26 +1040,26 @@ def rung_select():
     select(body=0, face=top, generation=gen)
     for what, args in (("a face the body lacks", {"body": 0, "face": 999}), ("a body with a sketch", {"body": 0, "sketch": 0}),
                        ("a plane while no click could pick one", {"plane": "XY"})):
-        why = refused("select_geometry", **args)
+        why = refused("design_select", **args)
         gui.check(f"select: {what} is refused", why != "", why)
         gui.check(f"select: {what}, refused, leaves the face selected", selected()[0] == "face_planar", selected())
-    why = refused("select_geometry", body=0, face=top, generation=gen + 1)
+    why = refused("design_select", body=0, face=top, generation=gen + 1)
     gui.check("select: a stale generation is refused", "stale_ids" in why, why)
 
     # The menu items that take what is selected apply to it.
     select(body=0, edges=[edge], generation=gen)
-    r = gui.cad("fillet")
-    gui.check("select: with an edge selected fillet {} applies and opens its card",
+    r = gui.cad("solid_fillet")
+    gui.check("select: with an edge selected solid_fillet {} applies and opens its card",
               r.get("applies") is True and "a feature card is open" in (r.get("busy") or ""), r)
     gui.cancel()
     select(body=0, face=top, generation=gen)
-    r = gui.cad("delete_face")
-    gui.check("select: with a face selected delete_face {} applies", r.get("applies") is True, r)
+    r = gui.cad("solid_delete_face")
+    gui.check("select: with a face selected solid_delete_face {} applies", r.get("applies") is True, r)
     gui.cancel()
     for what, args in (("a body", {"body": 0}), ("a vertex", {"body": 0, "vertex": vertex["id"], "generation": gen})):
         select(**args)
-        r = gui.cad("zoom_to_selection")
-        gui.check(f"select: with {what} selected zoom_to_selection applies", r.get("applies") is True, r)
+        r = gui.cad("design_zoom_to_selection")
+        gui.check(f"select: with {what} selected design_zoom_to_selection applies", r.get("applies") is True, r)
 
     # Each is drawn selected, and differently.
     gui.show_design()
@@ -1070,13 +1075,13 @@ def rung_select():
 
     # Planes: refused while no click could pick one, the sketch Sketch waits for, and else the plane picked.
     view(origin=False)
-    why = refused("select_geometry", plane="XY")
+    why = refused("design_select", plane="XY")
     gui.check("select: a plane is refused while the planes are hidden and nothing waits for one", why != "", why)
     gui.cad("sketch_create")
     select(plane="XY")
     # The sketch's plane, read back as sketch_normal looks at it: along +Z, at the XY plane's origin.
     state = view(camera="sketch_normal").get("camera_state", {})
-    origin = gui.cad("describe_design")["modeling_origin"]
+    origin = gui.cad("design_describe")["modeling_origin"]
     seen_from = [p - t for p, t in zip(state.get("position", []), state.get("look_at", []))]
     length = math.sqrt(sum(a * a for a in seen_from))
     gui.check("select: {plane: XY} opens the sketch Sketch waits for, on XY",
@@ -1102,30 +1107,30 @@ def rung_select_loops():
     sketch = gui.cad("sketch_finish")["sketch_index"]
     described = gui.cad("sketch_describe", sketch=sketch)
     ents, loops = described["entities"], described["closed_loops"]
-    origin = gui.cad("describe_design")["modeling_origin"]
+    origin = gui.cad("design_describe")["modeling_origin"]
 
     def centre(loop):
         points = [ents[i][k] for i in loop["entities"] for k in ("p0", "p1")]
         return [origin[0] + sum(p[0] for p in points) / len(points), origin[1] + sum(p[1] for p in points) / len(points)]
 
-    extruded = gui.cad("extrude", sketch=sketch, loop=0, distance=5)["extrude_index"]
-    name = gui.cad("describe_design")["features"][extruded]["name"]
+    extruded = gui.cad("solid_extrude", sketch=sketch, loop=0, distance=5)["extrude_index"]
+    name = gui.cad("design_describe")["features"][extruded]["name"]
     r = select(sketch=sketch, loop=1)
     gui.check("select_loops: {sketch, loop: 1} reads back sk_loop", r["selection"]["id"] == "sk_loop", r)
-    # zoom_to_selection centres the view on what is selected: the loop sketch_describe calls 1.
-    gui.cad("zoom_to_selection")
+    # design_zoom_to_selection centres the view on what is selected: the loop sketch_describe calls 1.
+    gui.cad("design_zoom_to_selection")
     look = gui.client.call("app_state").get("camera", {}).get("look_at", [])
     want = centre(loops[1])
     gui.check("select_loops: it selects the loop sketch_describe calls 1",
               len(look) == 3 and near(look[0], want[0], 1e-3) and near(look[1], want[1], 1e-3), [look, want])
-    why = refused("select_geometry", sketch=sketch, loop=0)
+    why = refused("design_select", sketch=sketch, loop=0)
     gui.check("select_loops: the extruded loop 0 is refused, naming the extrude that took it", name in why, why)
-    why = refused("select_geometry", sketch=sketch, loop=len(loops))
+    why = refused("design_select", sketch=sketch, loop=len(loops))
     gui.check("select_loops: a loop past the sketch's is refused", f"has {len(loops)} closed loops" in why, why)
 
 
 def generation():
-    return gui.cad("describe_design")["generation"]
+    return gui.cad("design_describe")["generation"]
 
 
 def mid(edge):
@@ -1136,12 +1141,12 @@ def fillet_shell_block():
     """A 40 x 20 x 10 block, its top edge along y at +x rounded 2 mm (the Fillet), then shelled 1 mm open at the
     bottom, which renumbers its faces and edges after the Fillet; returns the Fillet's index and its edge's id."""
     gui.new_design()
-    gui.cad("extrude", distance=10, width=40, height=20)
+    gui.cad("solid_extrude", distance=10, width=40, height=20)
     along_y = gui.cad("body_describe", body=0, edge_kinds=["line"], direction=[0, 1, 0])
     edge = max(along_y["edges"], key=lambda e: e["p0"][0] + e["p0"][2])
-    fillet = gui.cad("fillet", edges=edge["id"], radius=2, body=0, generation=along_y["generation"])["fillet_index"]
+    fillet = gui.cad("solid_fillet", edges=edge["id"], radius=2, body=0, generation=along_y["generation"])["fillet_index"]
     bottom = gui.cad("body_describe", body=0, at_extreme="-z")
-    gui.cad("shell", thickness=1, face=bottom["faces"][0]["id"], body=0, generation=bottom["generation"])
+    gui.cad("solid_shell", thickness=1, face=bottom["faces"][0]["id"], body=0, generation=bottom["generation"])
     return fillet, edge["id"]
 
 
@@ -1213,7 +1218,7 @@ def settled():
     """Wait out the rebuild a card's Confirm runs behind its progress dialog, which refuses every Design command."""
     def answers():
         try:
-            gui.cad("describe_design")
+            gui.cad("design_describe")
             return True
         except orca_mcp.McpError:
             return False
@@ -1224,7 +1229,7 @@ def settled():
 def edit_card_of(feature):
     """Open the card that edits `feature` from its Feature tree row, and keep the click map on the canvas, which
     leaving the sketch resized."""
-    row_menu(gui.cad("describe_design")["features"][feature]["name"], "Edit")
+    row_menu(gui.cad("design_describe")["features"][feature]["name"], "Edit")
     gui._follow_canvas()
 
 
@@ -1266,13 +1271,13 @@ def rung_edit_repick_datum():
     # picked again in the Plane's card is the finished model's, where the engine reads it. The second block is wide
     # enough that a click in the middle of its top face is far from its edges, which a click near takes first.
     gui.new_design()
-    gui.cad("extrude", distance=10, width=40, height=20)
-    gui.cad("extrude", distance=10, operation="new_body", profile=[[40, -15], [70, -15], [70, 15], [40, 15]])
+    gui.cad("solid_extrude", distance=10, width=40, height=20)
+    gui.cad("solid_extrude", distance=10, operation="new_body", profile=[[40, -15], [70, -15], [70, 15], [40, 15]])
     top = gui.cad("body_describe", body=0, at_extreme="+z")
     plane = gui.cad("construct_plane", type="coincident", face_a={"body": 0, "face": top["faces"][0]["id"]},
                     generation=top["generation"])["plane_index"]
     upright = gui.cad("body_describe", body=1, edge_kinds=["line"], direction=[0, 0, 1])
-    gui.cad("fillet", edges=upright["edges"][0]["id"], radius=1, body=1, generation=upright["generation"])
+    gui.cad("solid_fillet", edges=upright["edges"][0]["id"], radius=1, body=1, generation=upright["generation"])
     top = gui.cad("body_describe", body=0, at_extreme="+z")
     frame = calibrate_on_face(0, top["faces"][0]["id"], top["generation"])
     other = gui.cad("body_describe", body=1, at_extreme="+z")["faces"][0]
@@ -1292,12 +1297,12 @@ def rung_edit_repick_hole():
     # the Hole, where the face's id is. The block is long enough that the middle of its top face is clear of the
     # hole's handles and their labels, which a click near takes first.
     gui.new_design()
-    gui.cad("extrude", distance=10, width=120, height=60)
+    gui.cad("solid_extrude", distance=10, width=120, height=60)
     side = gui.cad("body_describe", body=0, at_extreme="+x")
-    hole = gui.cad("hole", diameter=4, depth=3, x=5, plane={"body": 0, "face": side["faces"][0]["id"]},
+    hole = gui.cad("solid_hole", diameter=4, depth=3, x=5, plane={"body": 0, "face": side["faces"][0]["id"]},
                    generation=side["generation"])["hole_index"]
     upright = gui.cad("body_describe", body=0, edge_kinds=["line"], direction=[0, 0, 1])
-    gui.cad("fillet", edges=upright["edges"][0]["id"], radius=1, body=0, generation=upright["generation"])
+    gui.cad("solid_fillet", edges=upright["edges"][0]["id"], radius=1, body=0, generation=upright["generation"])
     top = gui.cad("body_describe", body=0, at_extreme="+z")
     frame = calibrate_on_face(0, top["faces"][0]["id"], top["generation"])
     before = gui.cad("body_describe", body=0, before=hole, at_extreme="+z")["faces"][0]
@@ -1318,7 +1323,7 @@ def rung_edit_repick_hole():
 
 
 def selection():
-    return gui.cad("describe_design")["selection"]["id"]
+    return gui.cad("design_describe")["selection"]["id"]
 
 
 def rung_edit_repick_hidden():
@@ -1327,13 +1332,13 @@ def rung_edit_repick_hidden():
     # card open keeps the card's picks in the model before the Fillet. A click that picks nothing drops the card's pick,
     # so an edge of the first block is picked before the click on the hidden one, which then leaves nothing selected.
     gui.new_design()
-    gui.cad("extrude", distance=10, width=40, height=20)
-    gui.cad("extrude", distance=10, operation="new_body", profile=[[40, -15], [70, -15], [70, 15], [40, 15]])
+    gui.cad("solid_extrude", distance=10, width=40, height=20)
+    gui.cad("solid_extrude", distance=10, operation="new_body", profile=[[40, -15], [70, -15], [70, 15], [40, 15]])
     along_y = gui.cad("body_describe", body=0, edge_kinds=["line"], direction=[0, 1, 0])
     edge = max(along_y["edges"], key=lambda e: e["p0"][0] + e["p0"][2])
-    fillet = gui.cad("fillet", edges=edge["id"], radius=2, body=0, generation=along_y["generation"])["fillet_index"]
+    fillet = gui.cad("solid_fillet", edges=edge["id"], radius=2, body=0, generation=along_y["generation"])["fillet_index"]
     bottom = gui.cad("body_describe", body=0, at_extreme="-z")
-    gui.cad("shell", thickness=1, face=bottom["faces"][0]["id"], body=0, generation=bottom["generation"])
+    gui.cad("solid_shell", thickness=1, face=bottom["faces"][0]["id"], body=0, generation=bottom["generation"])
     top = gui.cad("body_describe", body=0, at_extreme="+z")
     frame = calibrate_on_face(0, top["faces"][0]["id"], top["generation"])
     other = gui.cad("body_describe", body=1, at_extreme="+z")["faces"][0]
@@ -1361,11 +1366,11 @@ def rung_edit_repick_hidden():
               edges == [edge["id"]], f"edges {edges}, the box's top edge along x is {edge['id']}")
 
 
-# ---------------------------------------------------------------- what is open: confirm_tool and cancel_tool
+# ---------------------------------------------------------------- what is open: design_confirm_tool and design_cancel_tool
 
 def card_open():
     """Whether a feature card is open, as a command that changes the document is refused under one."""
-    return "a feature card is open" in refused("select_geometry")
+    return "a feature card is open" in refused("design_select")
 
 
 def status_says(words):
@@ -1374,34 +1379,34 @@ def status_says(words):
 
 
 def extrude_card(rung):
-    """A 20 x 10 rectangle committed on XY, its loop selected and the Extrude card opened on it with extrude {};
+    """A 20 x 10 rectangle committed on XY, its loop selected and the Extrude card opened on it with solid_extrude {};
     returns the feature count with the card open."""
     gui.new_design()
     gui.cad("sketch_create", plane="XY")
     gui.cad("sketch_draw", type="rectangle_2_point", p0=[0, 0], p1=[20, 10])
     sketch = gui.cad("sketch_finish")["sketch_index"]
     select(sketch=sketch, loop=0)
-    r = gui.cad("extrude")
-    gui.check(f"{rung}: extrude {{}} opens the Extrude card", "a feature card is open" in (r.get("busy") or ""), r)
+    r = gui.cad("solid_extrude")
+    gui.check(f"{rung}: solid_extrude {{}} opens the Extrude card", "a feature card is open" in (r.get("busy") or ""), r)
     return features()
 
 
 def rung_confirm_card():
     count = extrude_card("confirm_card")
-    r = gui.cad("confirm_tool")
-    gui.check("confirm_card: confirm_tool confirms the card and gives the new feature's index",
+    r = gui.cad("design_confirm_tool")
+    gui.check("confirm_card: design_confirm_tool confirms the card and gives the new feature's index",
               r.get("was") == "card" and "ok" not in r and r.get("feature") == count and r.get("open") is None, r)
-    added = gui.cad("describe_design")["features"][count:]
+    added = gui.cad("design_describe")["features"][count:]
     gui.check("confirm_card: the feature is the Extrude", [f["type"] for f in added] == ["Extrude"], added)
     gui.check("confirm_card: one body exists", bodies() == 1, bodies())
 
 
 def rung_cancel_card():
     count = extrude_card("cancel_card")
-    r = gui.cad("cancel_tool")
-    gui.check("cancel_card: cancel_tool cancels the card", r.get("was") == "card", r)
+    r = gui.cad("design_cancel_tool")
+    gui.check("cancel_card: design_cancel_tool cancels the card", r.get("was") == "card", r)
     gui.check("cancel_card: no feature was added", features() == count and bodies() == 0, [features(), bodies()])
-    why = refused("cancel_tool")
+    why = refused("design_cancel_tool")
     gui.check("cancel_card: nothing is open after it", "nothing is open in the Design tab" in why, why)
 
 
@@ -1409,8 +1414,8 @@ def rung_cancel_sketch():
     gui.new_design()
     gui.cad("sketch_create", plane="XY")
     gui.cad("sketch_draw", entities=[{"type": "line", "p0": [0, 0], "p1": [10, 0]}])
-    r = gui.cad("cancel_tool")
-    gui.check("cancel_sketch: cancel_tool discards the sketch", r.get("was") == "sketch", r)
+    r = gui.cad("design_cancel_tool")
+    gui.check("cancel_sketch: design_cancel_tool discards the sketch", r.get("was") == "sketch", r)
     nothing_open("cancel_sketch")
     gui.check("cancel_sketch: no feature was added", features() == 0, features())
 
@@ -1421,12 +1426,12 @@ def rung_cancel_plane_pick():
     view(origin=False)
     r = gui.cad("sketch_create")
     gui.check("cancel_plane_pick: sketch_create {} with nothing selected waits for a plane", r.get("interactive") is True, r)
-    why = refused("confirm_tool")
-    gui.check("cancel_plane_pick: confirm_tool is refused while a plane is picked",
-              "a plane is being picked: select one with select_geometry, or cancel" in why, why)
-    r = gui.cad("cancel_tool")
-    gui.check("cancel_plane_pick: cancel_tool ends the plane pick", r.get("was") == "plane_pick", r)
-    why = refused("select_geometry", plane="XY")
+    why = refused("design_confirm_tool")
+    gui.check("cancel_plane_pick: design_confirm_tool is refused while a plane is picked",
+              "a plane is being picked: select one with design_select, or cancel" in why, why)
+    r = gui.cad("design_cancel_tool")
+    gui.check("cancel_plane_pick: design_cancel_tool ends the plane pick", r.get("was") == "plane_pick", r)
+    why = refused("design_select", plane="XY")
     gui.check("cancel_plane_pick: a plane is then refused, as no click can pick one", "no click can pick a plane" in why, why)
     nothing_open("cancel_plane_pick")
     view(origin=bool(start.get("origin")))
@@ -1441,34 +1446,34 @@ def text_dialog(rung):
 
 
 def rung_text_dialog():
-    # The Text dialog is open: cancel_tool closes it as its Cancel does, and confirm_tool takes it as its OK does,
+    # The Text dialog is open: design_cancel_tool closes it as its Cancel does, and design_confirm_tool takes it as its OK does,
     # which is off until there is text to insert.
     if not text_dialog("text_dialog"):
         return
-    r = gui.cad("cancel_tool")
-    gui.check("text_dialog: cancel_tool cancels the Text dialog", r.get("was") == "text" and "Text" not in gui.modeless(),
+    r = gui.cad("design_cancel_tool")
+    gui.check("text_dialog: design_cancel_tool cancels the Text dialog", r.get("was") == "text" and "Text" not in gui.modeless(),
               [r, gui.modeless()])
     gui.check("text_dialog: it adds nothing", features() == 0, features())
     if not text_dialog("text_dialog"):
         return
-    why = refused("confirm_tool")
-    gui.check("text_dialog: confirm_tool is refused while the dialog's OK is off, saying why",
+    why = refused("design_confirm_tool")
+    gui.check("text_dialog: design_confirm_tool is refused while the dialog's OK is off, saying why",
               "Type the text to see its size" in why and "Text" in gui.modeless(), [why, gui.modeless()])
     gui.fill({"label": "Text", "class": "TextInput", "within": "Text"}, "Orca", submit=False)
-    r = gui.cad("confirm_tool")
-    gui.check("text_dialog: confirm_tool takes the Text dialog's OK, which opens the text's placement",
+    r = gui.cad("design_confirm_tool")
+    gui.check("text_dialog: design_confirm_tool takes the Text dialog's OK, which opens the text's placement",
               r.get("was") == "text" and "ok" not in r and r.get("feature") == 0 and r.get("open") == "insert"
               and "Text" not in gui.modeless(), r)
-    r = gui.cad("confirm_tool")
-    gui.check("text_dialog: confirm_tool then keeps the text where it is placed", r.get("was") == "insert" and "ok" not in r, r)
-    added = [f["name"] for f in gui.cad("describe_design")["features"]]
+    r = gui.cad("design_confirm_tool")
+    gui.check("text_dialog: design_confirm_tool then keeps the text where it is placed", r.get("was") == "insert" and "ok" not in r, r)
+    added = [f["name"] for f in gui.cad("design_describe")["features"]]
     gui.check("text_dialog: the design holds the text", len(added) == 1 and added[0].startswith("Text"), added)
     nothing_open("text_dialog")
 
 
 def rung_confirm_nothing():
     gui.new_design()
-    for tool in ("confirm_tool", "cancel_tool"):
+    for tool in ("design_confirm_tool", "design_cancel_tool"):
         why = refused(tool)
         gui.check(f"confirm_nothing: {tool} is refused with nothing open", "nothing is open in the Design tab" in why, why)
 
@@ -1482,15 +1487,15 @@ def top_edge_along_x(body):
 def rung_confirm_disabled():
     # A 2 mm fillet, the card's default, of the top edge of a plate 0.5 mm thick has no preview, so Confirm is off.
     gui.new_design()
-    gui.cad("extrude", distance=0.5, width=20, height=20)
+    gui.cad("solid_extrude", distance=0.5, width=20, height=20)
     edge, gen = top_edge_along_x(0)
     select(body=0, edges=[edge], generation=gen)
-    r = gui.cad("fillet")
-    if not gui.check("confirm_disabled: fillet {} opens the Fillet card", "a feature card is open" in (r.get("busy") or ""), r):
+    r = gui.cad("solid_fillet")
+    if not gui.check("confirm_disabled: solid_fillet {} opens the Fillet card", "a feature card is open" in (r.get("busy") or ""), r):
         return
     depth = undo_depth()
-    why = refused("confirm_tool")
-    gui.check("confirm_disabled: confirm_tool is refused with the status line", "Invalid" in why, why)
+    why = refused("design_confirm_tool")
+    gui.check("confirm_disabled: design_confirm_tool is refused with the status line", "Invalid" in why, why)
     gui.check("confirm_disabled: the card stays open, and nothing was added",
               card_open() and features() == 2 and undo_depth() == depth, [card_open(), features(), undo_depth()])
     gui.cancel()
@@ -1519,11 +1524,11 @@ def rung_confirm_refused_add():
     # An add the card refuses takes no undo step and leaves the card open, and Commit to Plate over it stops there. The
     # Delete Face card opens holding no face until one is added, so its add refuses.
     gui.new_design()
-    gui.cad("extrude", distance=10, width=20, height=20)
+    gui.cad("solid_extrude", distance=10, width=20, height=20)
     top = gui.cad("body_describe", body=0, at_extreme="+z")
     select(body=0, face=top["faces"][0]["id"], generation=top["generation"])
-    r = gui.cad("delete_face")
-    if not gui.check("confirm_refused_add: delete_face {} opens the Delete Face card", "a feature card is open" in (r.get("busy") or ""), r):
+    r = gui.cad("solid_delete_face")
+    if not gui.check("confirm_refused_add: solid_delete_face {} opens the Delete Face card", "a feature card is open" in (r.get("busy") or ""), r):
         return
     count, depth = features(), undo_depth()
     commit_stops("confirm_refused_add")
@@ -1541,7 +1546,7 @@ def rung_confirm_refused_add():
     art = art_at([0, 0])
     if art is None:
         return
-    row_menu(gui.cad("describe_design")["features"][art]["name"], "Scale artwork")
+    row_menu(gui.cad("design_describe")["features"][art]["name"], "Scale artwork")
     depth = undo_depth()
     gui.press(COMMIT)
     gui.check("confirm_refused_add: Commit to Plate over the Insert placement takes no undo step", undo_depth() == depth,
@@ -1555,7 +1560,7 @@ def rung_confirm_refused_add():
     # sketch's loop lets go of the face: its add refuses, with no face to thicken. The sketch is a square on the plane
     # of the box's top face, beside the box, where a click picks it and nothing else.
     gui.new_design()
-    gui.cad("extrude", distance=10, width=20, height=20)
+    gui.cad("solid_extrude", distance=10, width=20, height=20)
     top = gui.cad("body_describe", body=0, at_extreme="+z")
     gui.cad("sketch_create", plane={"body": 0, "face": top["faces"][0]["id"]}, generation=top["generation"])
     gui.cad("sketch_draw", type="rectangle_2_point", p0=[25, -5], p1=[35, 5])
@@ -1563,8 +1568,8 @@ def rung_confirm_refused_add():
     top = gui.cad("body_describe", body=0, at_extreme="+z")
     calibrate_on_face(0, top["faces"][0]["id"], top["generation"])
     select(body=0, face=top["faces"][0]["id"], generation=top["generation"])
-    r = gui.cad("thicken")
-    if not gui.check("confirm_refused_add: thicken {} opens the Thicken card on the face", "a feature card is open" in (r.get("busy") or ""), r):
+    r = gui.cad("solid_thicken")
+    if not gui.check("confirm_refused_add: solid_thicken {} opens the Thicken card on the face", "a feature card is open" in (r.get("busy") or ""), r):
         return
     gui._follow_canvas()
     gui.click_mm(30, 0)
@@ -1581,7 +1586,7 @@ def rung_confirm_refused_add():
 
 
 def redo_depth():
-    return gui.cad("describe_design")["redo_depth"]
+    return gui.cad("design_describe")["redo_depth"]
 
 
 def rung_confirm_failed_add():
@@ -1589,11 +1594,11 @@ def rung_confirm_failed_add():
     # confirms it, its add runs and its rebuild fails. The fillet is taken back with no undo step, the card stays open
     # with the reason, and Commit to Plate stops there.
     gui.new_design()
-    gui.cad("extrude", distance=0.5, width=20, height=20)
+    gui.cad("solid_extrude", distance=0.5, width=20, height=20)
     edge, gen = top_edge_along_x(0)
     select(body=0, edges=[edge], generation=gen)
-    r = gui.cad("fillet")
-    if not gui.check("confirm_failed_add: fillet {} opens the Fillet card", "a feature card is open" in (r.get("busy") or ""), r):
+    r = gui.cad("solid_fillet")
+    if not gui.check("confirm_failed_add: solid_fillet {} opens the Fillet card", "a feature card is open" in (r.get("busy") or ""), r):
         return
     count, depth, redo = features(), undo_depth(), redo_depth()
     commit_stops("confirm_failed_add")
@@ -1603,8 +1608,8 @@ def rung_confirm_failed_add():
     gui.check("confirm_failed_add: the card stays open, saying why", card_open() and status_says("could not be rebuilt"),
               [card_open(), [w.label for w in gui.widgets() if w.kind == "text"][:8]])
     gui.check("confirm_failed_add: the card keeps its pick, the edge", selection() == "edge_str", selection())
-    gui.check("confirm_failed_add: the design rebuilds as it was", "error" not in gui.cad("describe_design") and bodies() == 1,
-              gui.cad("describe_design").get("error"))
+    gui.check("confirm_failed_add: the design rebuilds as it was", "error" not in gui.cad("design_describe") and bodies() == 1,
+              gui.cad("design_describe").get("error"))
     gui.show_design()
     if card_open():
         gui.cancel()
@@ -1613,19 +1618,19 @@ def rung_confirm_failed_add():
 # ---------------------------------------------------------------- where a body stands: body_place
 
 def apply(placement, p):
-    """The world point `placement` (describe_design's, three rows of four numbers) puts the model's point `p` at."""
+    """The world point `placement` (design_describe's, three rows of four numbers) puts the model's point `p` at."""
     return [sum(row[k] * p[k] for k in range(3)) + row[3] for row in placement]
 
 
 def translation(body):
     """Body `body`'s placement's translation, or None where the model places it."""
-    placement = gui.cad("describe_design")["bodies"][body].get("placement")
+    placement = gui.cad("design_describe")["bodies"][body].get("placement")
     return [row[3] for row in placement] if placement else None
 
 
 def placed_box(body):
     """Body `body`'s bounding box where it stands: its model bbox's corners through its placement, as (min, max)."""
-    b = gui.cad("describe_design")["bodies"][body]
+    b = gui.cad("design_describe")["bodies"][body]
     lo, hi = b["bbox"]["min"], b["bbox"]["max"]
     corners = [[(lo, hi)[(i >> k) & 1][k] for k in range(3)] for i in range(8)]
     if b.get("placement"):
@@ -1637,7 +1642,7 @@ def plate_offset(replace):
     """Commit the design to the plate as an assembly, replacing object `replace` (None: none), and return how far along
     x Design Body 1's part sits from Design Body 2's, and the object's index. The plate places an object where it has
     room, so a part's place is read against another part of the same object."""
-    r = gui.cad("commit_to_plate", mode="assembly", replace=[] if replace is None else [replace])
+    r = gui.cad("design_commit_to_plate", mode="assembly", replace=[] if replace is None else [replace])
     index = r["objects"][0]["index"]
     listed = gui.client.call("object_list", detail=True)
     objects = [o for p in listed.get("plates", []) for o in p["objects"]] + listed.get("outside", [])
@@ -1648,10 +1653,10 @@ def plate_offset(replace):
 def rung_place():
     # A 30 x 20 x 10 box, body 0, and a 10 mm block beside it, body 1, which the plate measures the box against.
     gui.new_design()
-    gui.cad("extrude", distance=10, width=30, height=20)
-    gui.cad("extrude", distance=10, operation="new_body", profile=[[60, -5], [70, -5], [70, 5], [60, 5]])
-    design = gui.cad("describe_design")
-    gui.check("place: describe_design reads the Commit button's mode", design.get("commit_mode") in ("assembly", "bodies"),
+    gui.cad("solid_extrude", distance=10, width=30, height=20)
+    gui.cad("solid_extrude", distance=10, operation="new_body", profile=[[60, -5], [70, -5], [70, 5], [60, 5]])
+    design = gui.cad("design_describe")
+    gui.check("place: design_describe reads the Commit button's mode", design.get("commit_mode") in ("assembly", "bodies"),
               design.get("commit_mode"))
     box = design["bodies"][0]
     gui.check("place: a body where the model has it has no placement", "placement" in box and box["placement"] is None
@@ -1663,8 +1668,8 @@ def rung_place():
     gui.check("place: move [10, 0, 0] gives a placement translated by (10, 0, 0)",
               "ok" not in r and r.get("moved") is True and r.get("placement") is not None and t is not None
               and all(near(a, b) for a, b in zip(t, [10, 0, 0])), [r, t])
-    gui.check("place: describe_design reads it moved", gui.cad("describe_design")["bodies"][0]["moved"] is True,
-              gui.cad("describe_design")["bodies"][0])
+    gui.check("place: design_describe reads it moved", gui.cad("design_describe")["bodies"][0]["moved"] is True,
+              gui.cad("design_describe")["bodies"][0])
     moved, _ = plate_offset(committed)
     gui.check("place: Commit to Plate sends the box 10 further along x", near(moved - unmoved, 10, 1e-3), [unmoved, moved])
     gui.show_design()
@@ -1685,7 +1690,7 @@ def rung_place():
               near(lo[2], 0, 1e-4) and near(hi[2] - lo[2], 20, 1e-4), [lo, hi])
 
     r = gui.cad("body_place", body=0, reset=True)
-    box = gui.cad("describe_design")["bodies"][0]
+    box = gui.cad("design_describe")["bodies"][0]
     gui.check("place: reset puts it back where the model has it", r.get("placement") is None and r.get("moved") is False
               and box["placement"] is None and box["moved"] is False, [r, box])
 
@@ -1698,10 +1703,10 @@ def rung_place():
 def rung_place_select():
     # The box moved 50 mm along x and turned a quarter turn about z, clear of where the model has it.
     gui.new_design()
-    gui.cad("extrude", distance=10, width=30, height=20)
+    gui.cad("solid_extrude", distance=10, width=30, height=20)
     model_lo, model_hi = placed_box(0)
     gui.cad("body_place", body=0, move=[50, 0, 0], rotate={"axis": "z", "angle": 90})
-    placement = gui.cad("describe_design")["bodies"][0]["placement"]
+    placement = gui.cad("design_describe")["bodies"][0]["placement"]
     listed = gui.cad("body_describe", body=0, vertices=True)
     vertex = max(listed["vertices"], key=lambda v: sum(v["p"]))
     r = select(body=0, vertex=vertex["id"], generation=listed["generation"])
@@ -1725,16 +1730,16 @@ def rung_place_follows():
     # Two boxes as two bodies, each placed. Deleting the feature that made body 0 renumbers the other box as
     # body 0, and its placement goes with it; a box added afterwards stands where the model has it.
     gui.new_design()
-    gui.cad("extrude", distance=10, width=20, height=20)
-    gui.cad("extrude", distance=10, operation="new_body", profile=[[40, -10], [60, -10], [60, 10], [40, 10]])
+    gui.cad("solid_extrude", distance=10, width=20, height=20)
+    gui.cad("solid_extrude", distance=10, operation="new_body", profile=[[40, -10], [60, -10], [60, 10], [40, 10]])
     gui.cad("body_place", body=0, move=[0, 30, 0])
     gui.cad("body_place", body=1, move=[50, 0, 0])
-    maker = gui.cad("describe_design")["bodies"][0]["source_feature"]
+    maker = gui.cad("design_describe")["bodies"][0]["source_feature"]
     gui.cad("feature_delete", feature=maker)
     count, moved = bodies(), translation(0)
     gui.check("place_follows: the box left has the placement it had as body 1",
               count == 1 and moved is not None and all(near(a, b) for a, b in zip(moved, [50, 0, 0])), [count, moved])
-    gui.cad("extrude", distance=10, operation="new_body", profile=[[-60, -10], [-40, -10], [-40, 10], [-60, 10]])
+    gui.cad("solid_extrude", distance=10, operation="new_body", profile=[[-60, -10], [-40, -10], [-40, 10], [-60, 10]])
     gui.check("place_follows: a box added afterwards has none", bodies() == 2 and translation(1) is None
               and translation(0) is not None, [bodies(), translation(0), translation(1)])
     # Undo takes the new box away, and then the delete: the first box comes back where it stood.
@@ -1744,6 +1749,136 @@ def rung_place_follows():
     gui.check("place_follows: an undo of the delete brings the first box back where it stood",
               len(back) == 2 and None not in back and all(near(a, b) for a, b in zip(back[0], [0, 30, 0]))
               and all(near(a, b) for a, b in zip(back[1], [50, 0, 0])), back)
+
+def prepare_objects():
+    """[(index, id, name)] of every Prepare object, in index order, as object_list reads them."""
+    listed = gui.client.call("object_list")
+    objects = [o for p in listed.get("plates", []) for o in p["objects"]] + listed.get("outside", [])
+    return sorted({(o["index"], o["id"], o["name"]) for o in objects})
+
+
+def selected_objects():
+    """The Prepare objects app_state reads as selected, on the canvas shown: the assemble view's while it is shown."""
+    return gui.client.call("app_state").get("selection", {}).get("objects")
+
+
+def listed_selection():
+    """The Objects list's selected rows, as widget_list notes them ("object 1", "plate 0"), read without changing the
+    view. The list shows only with the sidebar's Process switch on Objects, which the sweep's cleanup turns back."""
+    gui.client.call("widget_set_value", target={"class": "SwitchButton", "label": "Process"}, value=True)
+    quiet = {"include_web": False, "include_imgui": False, "include_menus": False}
+    _, texts = gui.client.call_with_text("widget_list", query="ObjectList", **quiet)
+    found = re.search(r"\[(w\d+)\] list \(ObjectList\)", "\n".join(texts))
+    if found is None:
+        return None
+    _, texts = gui.client.call_with_text("widget_list", target=found.group(1), max_nodes=500, **quiet)
+    return re.findall(r"\[([^\[\]]*), selected\]", "\n".join(texts))
+
+
+def assemble_view_shown():
+    """Whether Prepare shows its assemble view, whose Return button's window widget_list lists only then."""
+    return gui.client.call("widget_list", query="Assembly Return", include_web=False, include_menus=False)["nodes"] > 0
+
+
+def refusal(call):
+    """(code, text) of the refusal `call()` gets; (None, None) when it runs."""
+    try:
+        call()
+    except orca_mcp.McpError as e:
+        text, details = checks.refusal(e)
+        return details.get("code"), text
+    return None, None
+
+
+def rung_replace():
+    # design_commit_to_plate's replace deletes as Prepare's Delete does: a part of a cut is refused before anything
+    # changes, naming it, a replacing commit is one Prepare undo step, and it leaves the selection a plain commit
+    # leaves, on the canvas and in the Objects list, in the Prepare view it was called in.
+    gui.client.call("project_new", discard_changes=True)
+    gui.new_design()
+    gui.cad("solid_extrude", distance=10, width=30, height=20)
+    gui.cad("solid_extrude", distance=10, operation="new_body", profile=[[60, -5], [70, -5], [70, 5], [60, 5]])
+    names = ["Design Body 1", "Design Body 2"]
+
+    r = gui.cad("design_commit_to_plate", mode="bodies")
+    gui.check("replace: a plain bodies commit sends Design Body 1 at 0 and Design Body 2 at 1, and replaces nothing",
+              [(o["index"], o["name"]) for o in r["objects"]] == [(0, names[0]), (1, names[1])] and r["replaced"] == [],
+              r)
+    old = prepare_objects()
+    gui.check("replace: object_list reads those two", [(i, n) for i, _, n in old] == [(0, names[0]), (1, names[1])],
+              old)
+    gui.check("replace: a plain bodies commit leaves the last body's object selected, on the canvas and in the list",
+              selected_objects() == [1] and listed_selection() == ["object 1"], [selected_objects(), listed_selection()])
+
+    # A cut keeps its cut information only with a connector, as the Cut gizmo makes one: the pieces of a plain plane cut
+    # are no parts of a cut.
+    gui.client.call("view_set", tab="prepare", camera="top")
+    gui.client.call("object_select", objects=[0])
+    gui.client.call("widget_click", target={"gizmo": "Cut"})
+    gui.client.call("widget_set_value", target={"imgui_name": "move_Z"}, value=5)
+    gui.client.call("widget_click", target={"imgui": "Add connectors"})
+    gui.client.call("mouse_gesture", at={"object": 0, "spot": "top"}, check="point")
+    gui.client.call("widget_click", target={"imgui": "Confirm connectors"})
+    gui.client.call("widget_click", target={"imgui": "Perform cut"})
+    checks.wait(gui.client, "idle")
+    cut = prepare_objects()
+    gui.check("replace: the cut leaves Design Body 2 at 0 and two pieces", len(cut) == 3 and cut[0][2] == names[1], cut)
+    code, text = refusal(lambda: gui.cad("design_commit_to_plate", mode="bodies", replace=[0, 1]))
+    gui.check("replace: Design Body 2 and a part of a cut are refused with cut_object, which names the part",
+              code == "cut_object" and f"Object 1 ({cut[1][2]})" in (text or "") and "Object 0" not in (text or ""),
+              [code, text])
+    gui.check("replace: the refused call leaves the objects as they were", prepare_objects() == cut, prepare_objects())
+    gui.client.call_command("undo", history="project")
+    back = prepare_objects()
+    gui.check("replace: the next undo takes back the cut, so the refused call added no undo step", back == old,
+              [back, old])
+
+    old_ids = [i for _, i, _ in old]
+    r = gui.cad("design_commit_to_plate", mode="bodies", replace_ids=old_ids)
+    made = sorted((o["index"], o["object_id"], o["name"]) for o in r["objects"])
+    gui.check("replace: replace_ids replaces both, at 0 and 1",
+              [(o["index"], o["name"]) for o in r["replaced"]] == [(0, names[0]), (1, names[1])], r["replaced"])
+    gui.check("replace: the new objects are at 0 and 1", [(i, n) for i, _, n in made] == [(0, names[0]), (1, names[1])],
+              made)
+    now = prepare_objects()
+    gui.check("replace: object_list reads exactly the new two, none of them an old one",
+              now == made and not set(old_ids) & {i for _, i, _ in now}, [now, made, old_ids])
+    gui.check("replace: a replacing bodies commit leaves the last body's object selected, on the canvas and in the "
+              "list, as a plain one does", selected_objects() == [1] and listed_selection() == ["object 1"],
+              [selected_objects(), listed_selection()])
+    gui.client.call_command("undo", history="project")
+    back = prepare_objects()
+    gui.check("replace: one undo takes back the commit and the deletion", back == old, [back, old])
+
+    r = gui.cad("design_commit_to_plate", mode="assembly", replace=[0])
+    gui.check("replace: an assembly commit replacing one object sends Design Assembly, 2 parts, at 1",
+              [(o["index"], o["name"], o["parts"]) for o in r["objects"]] == [(1, "Design Assembly", 2)]
+              and r["replaced"] == [{"index": 0, "name": names[0]}], r)
+    now = prepare_objects()
+    gui.check("replace: object_list reads Design Body 2 at 0 and Design Assembly at 1",
+              [(i, n) for i, _, n in now] == [(0, names[1]), (1, "Design Assembly")], now)
+    gui.check("replace: the new object is selected, on the canvas and in the list, after a one-object delete",
+              selected_objects() == [1] and listed_selection() == ["object 1"],
+              [selected_objects(), listed_selection()])
+    gui.client.call_command("undo", history="project")
+
+    # On the assemble view, called there: a commit replacing one object, then a plain one (the assemble view refuses
+    # an undo, so the plain one comes second). The view's scene is not reloaded with new objects, so a plain commit
+    # selects none of them there and leaves the plate's row.
+    gui.client.call("view_set", canvas="assemble")
+    r = gui.cad("design_commit_to_plate", mode="assembly", replace=[0])
+    gui.check("replace: on the assemble view, an assembly commit replacing one object sends Design Assembly at 1",
+              [(o["index"], o["name"]) for o in r["objects"]] == [(1, "Design Assembly")], r)
+    replaced = [assemble_view_shown(), selected_objects(), listed_selection()]
+    gui.check("replace: the replacing commit leaves the assemble view shown", replaced[0], replaced)
+    r = gui.cad("design_commit_to_plate", mode="assembly")
+    plain = [assemble_view_shown(), selected_objects(), listed_selection()]
+    gui.check("replace: a plain commit there leaves it shown too, with nothing selected and the plate's row",
+              plain == [True, [], ["plate 0"]], plain)
+    gui.check("replace: the replacing commit leaves the selection the plain one leaves", replaced == plain,
+              [replaced, plain])
+    gui.client.call("view_set", canvas="3d")
+    gui.show_design()
 
 
 def rung_shapes_match_tools():
@@ -1804,18 +1939,18 @@ def rung_shapes_match_tools():
 def two_bodies():
     """A 20 x 20 x 10 mm block and a 6 x 6 x 20 mm post through it, as two bodies, with nothing selected."""
     gui.new_design()
-    gui.cad("extrude", width=20, height=20, distance=10)
-    gui.cad("extrude", width=6, height=6, distance=20, operation="new_body")
-    gui.cad("select_geometry")
+    gui.cad("solid_extrude", width=20, height=20, distance=10)
+    gui.cad("solid_extrude", width=6, height=6, distance=20, operation="new_body")
+    gui.cad("design_select")
 
 
 def boolean_card(rung, args, operation):
     """Calls boolean with `args`, which open the Boolean card, and confirms the card: its Boolean has `operation`."""
-    r = gui.cad("boolean", **args)
-    gui.check(f"{rung}: boolean {args} with nothing selected replies that a tool is open",
-              r.get("interactive") is True and r.get("tool") == "boolean", r)
+    r = gui.cad("solid_boolean", **args)
+    gui.check(f"{rung}: solid_boolean {args} with nothing selected replies that a tool is open",
+              r.get("interactive") is True and r.get("tool") == "solid_boolean", r)
     gui.check(f"{rung}: the Boolean card is open", card_open() and "a feature card is open" in (r.get("busy") or ""), r)
-    done = gui.cad("confirm_tool")
+    done = gui.cad("design_confirm_tool")
     gui.check(f"{rung}: the card's Confirm adds the Boolean", done.get("was") == "card" and "ok" not in done, done)
     gui.check(f"{rung}: the card's Boolean is a {operation}", operation_of(done.get("feature")) == operation,
               operation_of(done.get("feature")))
@@ -1830,8 +1965,8 @@ def rung_boolean_opens():
     two_bodies()
     boolean_card("boolean_opens", {"operation": "cut"}, "cut")
     two_bodies()
-    r = gui.cad("boolean", operation="cut", target=0, tool=1)
-    gui.check("boolean_opens: boolean {operation: cut, target, tool} runs", "ok" not in r and "interactive" not in r, r)
+    r = gui.cad("solid_boolean", operation="cut", target=0, tool=1)
+    gui.check("boolean_opens: solid_boolean {operation: cut, target, tool} runs", "ok" not in r and "interactive" not in r, r)
     gui.check("boolean_opens: it cut the post from the block", near(volume(0), 20 * 20 * 10 - 6 * 6 * 10, 1e-3), volume(0))
 
 
@@ -1901,7 +2036,7 @@ RUNGS = {"words": rung_words, "shapes_match_tools": rung_shapes_match_tools, "sk
          "text_dialog": rung_text_dialog, "confirm_nothing": rung_confirm_nothing, "confirm_disabled": rung_confirm_disabled,
          "confirm_refused_add": rung_confirm_refused_add, "confirm_failed_add": rung_confirm_failed_add,
          "place": rung_place, "place_select": rung_place_select,
-         "place_follows": rung_place_follows, "boolean_opens": rung_boolean_opens, "action_pick": rung_action_pick,
+         "place_follows": rung_place_follows, "replace": rung_replace, "boolean_opens": rung_boolean_opens, "action_pick": rung_action_pick,
          "action_pick_replay": rung_action_pick_replay}
 
 

@@ -1223,12 +1223,12 @@ TEST_CASE("a menu opened while a call acts on the UI is listed, run by its path 
         inspector.ui_activity("widget_click", false);
 
         // A menu from a call that armed nothing is closed unseen, until the first idle after the call.
-        inspector.ui_activity("extrude", true);
-        inspector.ui_activity("extrude", false);
+        inspector.ui_activity("solid_extrude", true);
+        inspector.ui_activity("solid_extrude", false);
         CHECK(popup_menu(frame, menu));
         const nlohmann::json closed = inspector.closed_menus();
         REQUIRE(closed.size() == 2);
-        CHECK(closed[1]["tool"] == "extrude");
+        CHECK(closed[1]["tool"] == "solid_extrude");
         CHECK(closed[1]["items"].size() == 7);
         wxTheApp->ProcessPendingEvents();
         wxIdleEvent idle;
@@ -1236,8 +1236,8 @@ TEST_CASE("a menu opened while a call acts on the UI is listed, run by its path 
         CHECK_FALSE(inspector.on_menu(menu, frame));
 
         // Past a second a person's menu shows even when no idle came, as while events keep queuing.
-        inspector.ui_activity("extrude", true);
-        inspector.ui_activity("extrude", false);
+        inspector.ui_activity("solid_extrude", true);
+        inspector.ui_activity("solid_extrude", false);
         wxMilliSleep(1100);
         CHECK_FALSE(inspector.on_menu(menu, frame));
 

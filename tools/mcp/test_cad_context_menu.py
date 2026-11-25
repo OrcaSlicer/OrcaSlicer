@@ -10,7 +10,7 @@ With no rung named, every rung runs. The offer is where a sketch's verbs live, a
 that have no key it is the only way to them. Each rung opens a sketch on the XY plane, right-clicks
 it with mouse_gesture, which lists the menu the click opens without showing it, and runs an item
 by its label path with popup_item. The menu is graded against the Design table it is built from
-(CadGui.verbs(): scripts/CAD/tool_atlas.json, for the selection describe_design says the right-click
+(CadGui.verbs(): scripts/CAD/tool_atlas.json, for the selection design_describe says the right-click
 left); what a verb drew is graded on the geometry sketch_describe reads back, or for a text on
 the feature feature_describe reads. Every action goes through the MCP UI tools, and the Design commands only read.
 Exits 0 when every check holds.
@@ -992,9 +992,9 @@ def ok_text(s):
 
 
 def feature_names():
-    """The design's features by name, from describe_design, which passes the Design commands' gate and so
+    """The design's features by name, from design_describe, which passes the Design commands' gate and so
     reads the design as loaded from the model's copy of it."""
-    return [f["name"] for f in gui.cad("describe_design")["features"]]
+    return [f["name"] for f in gui.cad("design_describe")["features"]]
 
 
 def rung_art():
@@ -1010,7 +1010,7 @@ def rung_art():
     exact proportions of a shape whose proportions are known."""
     # Text, cancelled. The Insert step's Cancel undoes the text. Every Design command loads the
     # design from the model's copy when the document is empty, so a text left in that copy comes
-    # back in describe_design even though the canvas dropped it.
+    # back in design_describe even though the canvas dropped it.
     gui.enter_sketch()
     x0, x1, y0, y1, cx, cy = safe_box()
     free = (cx, y1 - (y1 - y0) * 0.10)
@@ -1025,7 +1025,7 @@ def rung_art():
     gui.press("Cancel")  # the ribbon's Cancel, on the Insert step
     until(lambda: feature_names() == before)
     left = feature_names()
-    gui.check("art: the ribbon's Cancel after OK leaves no text, read back through describe_design", left == before,
+    gui.check("art: the ribbon's Cancel after OK leaves no text, read back through design_describe", left == before,
               f"features {left}, before the text {before}")
 
     # Text, kept.
@@ -1043,7 +1043,7 @@ def rung_art():
         raise AssertionError("no Text dialog to type into")
     ok_text("LT")
     gui.confirm()  # the Insert gizmo's Confirm keeps the text where it was placed
-    feats = gui.cad("describe_design")["features"]
+    feats = gui.cad("design_describe")["features"]
     card = gui.cad("feature_describe", feature=feats[-1]["index"])["params"] if feats else {}
     # The text's outline is the feature's regions, each a closed outer loop with the loops inside
     # it as holes, and region_loops counts each region's. Neither L nor T has a hole, so the two

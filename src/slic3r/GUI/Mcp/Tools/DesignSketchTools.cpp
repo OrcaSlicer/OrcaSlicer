@@ -280,7 +280,7 @@ json entity_constraint_json(const SketchEntityConstraintDef& c, int index)
 
 int sketch_arg(const json& v, const CadDocument& doc)
 {
-    if (!v.is_number_integer()) throw std::runtime_error("sketch must be a feature index (describe_design's features[].index)");
+    if (!v.is_number_integer()) throw std::runtime_error("sketch must be a feature index (design_describe's features[].index)");
     const int si = v.get<int>();
     check_feature_index(si, doc);
     const CadFeature& f = doc.features[si];
@@ -305,7 +305,7 @@ int sketch_dof(const DesignSketchTool& t)
     return t.constraints().empty() ? sketch_unconstrained_dof(t.entities()) : t.dof();
 }
 
-// A sketch's loops. Their indices are the ones extrude's `loop` takes: a region lists the loops
+// A sketch's loops. Their indices are the ones solid_extrude's `loop` takes: a region lists the loops
 // inside it under `holes`, and each of those is a loop of its own.
 json sketch_report(const DesignSketchTool::LoopReport& rep)
 {
@@ -392,7 +392,7 @@ json action_sketch_cancel(DesignPanel* panel, const json& params)
 json action_sketch_edit(DesignPanel* panel, const json& params)
 {
     const json v = params.is_object() ? params.value("sketch", json()) : json();
-    if (!v.is_number_integer()) throw std::runtime_error("sketch must be a feature index (describe_design's features[].index)");
+    if (!v.is_number_integer()) throw std::runtime_error("sketch must be a feature index (design_describe's features[].index)");
     const int si = v.get<int>();
     // The panel's own refusals of the view and an open sketch are the session's state; the others are the feature's.
     const DesignCanvas* vp = panel->mcp_viewport();

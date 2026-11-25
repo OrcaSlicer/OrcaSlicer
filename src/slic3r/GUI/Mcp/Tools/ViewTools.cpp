@@ -824,7 +824,7 @@ void register_view_tools(CommandCatalog& catalog)
                        {"bed", {{"type", "boolean"}, {"description", "Design tab: the Bed row's eye."}}},
                        {"look_at", array_prop({{"type", "number"}}, "`[x, y, z]` mm to look at, in world coordinates as `object_list` "
                                                                    "gives positions; on the Design tab, those of the Design commands' "
-                                                                   "world points (`describe_design`'s `modeling_origin` is the sketch "
+                                                                   "world points (`design_describe`'s `modeling_origin` is the sketch "
                                                                    "planes' origin). The camera moves parallel, keeping direction and "
                                                                    "distance.")},
                        {"orbit", array_prop({{"type", "number"}}, "`[yaw, pitch]` degrees around the point looked at: yaw to the right, "

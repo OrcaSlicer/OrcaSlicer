@@ -1,7 +1,7 @@
 // Reading a body's topology and building on what it finds, through the Design commands. The bench's J wall
 // hook: its inside corners found by convexity, M4 countersinks seated on the front face on the axes
 // of pilot holes (`at` a cylindrical face), checked through body_describe's cone kinds and adjacency
-// and measure's min_distance; then datum planes, a sketch on one, and a face push/pull. A refused
+// and design_measure's min_distance; then datum planes, a sketch on one, and a face push/pull. A refused
 // datum plane changes nothing. Face and edge ids are this build's; no step reads a world position
 // that depends on the printer's bed.
 // Needs the CAD feature on:
@@ -14,31 +14,31 @@
     {"tool": "app_wait", "args": {"for": "ready"}},
     {"tool": "project_new", "args": {"discard_changes": true}},
     {"tool": "window_set", "args": {"size": [1600, 900]}},
-    {"tool": "tool_call", "args": {"tool": "new_design", "args": {"discard_changes": true}}},
+    {"tool": "tool_call", "args": {"tool": "design_new", "args": {"discard_changes": true}}},
 
     // Back plate 60 x 5, arm 35 out, lip 15 up, 20 wide.
-    {"tool": "tool_call", "args": {"tool": "extrude", "args": {"plane": "XZ", "distance": 20,
+    {"tool": "tool_call", "args": {"tool": "solid_extrude", "args": {"plane": "XZ", "distance": 20,
       "profile": [[5, 0], [5, 60], [0, 60], [0, 5], [-30, 5], [-30, 15], [-35, 15], [-35, 0]]}},
      "expect": {"/ok": {"exists": false}, "/body": {"eq": 0}}},
     // Two inside corners, each with the faces on either side of it.
     {"tool": "tool_call", "args": {"tool": "body_describe", "args": {"convex": false}},
      "expect": {"/edges_total": {"eq": 2}, "/edges/0/id": {"eq": 7}, "/edges/0/kind": {"eq": "line"},
                 "/edges/0/convex": {"eq": false}, "/edges/0/faces": {"contains": 2}, "/faces_total": {"eq": 3}}},
-    {"tool": "tool_call", "args": {"tool": "fillet", "args": {"edges": [7], "radius": 5}}, "expect": {"/ok": {"exists": false}}},
+    {"tool": "tool_call", "args": {"tool": "solid_fillet", "args": {"edges": [7], "radius": 5}}, "expect": {"/ok": {"exists": false}}},
     {"tool": "tool_call", "args": {"tool": "body_describe", "args": {"kinds": ["cylindrical"]}},
      "expect": {"/faces_total": {"eq": 1}, "/faces/0/radius": {"ge": 4.9999, "le": 5.0001}, "/faces/0/internal": {"eq": true},
                 "/edges": {"empty": true}}},
 
     // Pilot holes from the YZ plane, then countersinks seated on the front face on their axes.
-    {"tool": "tool_call", "args": {"tool": "hole", "args": {"plane": "YZ", "x": 10, "y": 25, "diameter": 3, "through": true}}},
-    {"tool": "tool_call", "args": {"tool": "hole", "args": {"plane": "YZ", "x": 10, "y": 50, "diameter": 3, "through": true}}},
+    {"tool": "tool_call", "args": {"tool": "solid_hole", "args": {"plane": "YZ", "x": 10, "y": 25, "diameter": 3, "through": true}}},
+    {"tool": "tool_call", "args": {"tool": "solid_hole", "args": {"plane": "YZ", "x": 10, "y": 50, "diameter": 3, "through": true}}},
     {"tool": "tool_call", "args": {"tool": "body_describe", "args": {"direction": [-1, 0, 0]}},
      "expect": {"/faces_total": {"eq": 2}, "/faces/0/id": {"eq": 0}, "/faces/0/area": {"ge": 985.86, "le": 985.87}}},
-    {"tool": "tool_call", "args": {"tool": "hole", "args": {"type": "countersink", "designation": "M4",
+    {"tool": "tool_call", "args": {"tool": "solid_hole", "args": {"type": "countersink", "designation": "M4",
       "plane": {"body": 0, "face": 0}, "at": {"body": 0, "face": 6}}},
      "expect": {"/body": {"eq": 0}, "/off_plane": {"ge": 4.9999, "le": 5.0001}, "/y": {"ge": -0.0001, "le": 0.0001},
                 "/frame/normal/0": {"eq": 1.0}}},
-    {"tool": "tool_call", "args": {"tool": "hole", "args": {"type": "countersink", "designation": "M4",
+    {"tool": "tool_call", "args": {"tool": "solid_hole", "args": {"type": "countersink", "designation": "M4",
       "plane": {"body": 0, "face": 0}, "at": {"body": 0, "face": 5}}},
      "expect": {"/body": {"eq": 0}, "/off_plane": {"ge": 4.9999, "le": 5.0001}}},
     // Two cones, opening out of the front face (-X) from an apex inside the 5 mm plate.
@@ -52,16 +52,16 @@
     {"tool": "tool_call", "args": {"tool": "body_describe", "args": {"at_extreme": "-z"}},
      "expect": {"/faces_total": {"eq": 1}, "/faces/0/id": {"eq": 10}, "/edges": {"empty": true}}},
     // Hole heights from the bottom face and the spacing, by the bores' axes.
-    {"tool": "tool_call", "args": {"tool": "measure", "args": {"a": {"face": 14, "axis": true}, "b": {"face": 10}}},
+    {"tool": "tool_call", "args": {"tool": "design_measure", "args": {"a": {"face": 14, "axis": true}, "b": {"face": 10}}},
      "expect": {"/min_distance": {"ge": 24.9999, "le": 25.0001}, "/angle_deg": {"ge": 89.999, "le": 90.001}}},
-    {"tool": "tool_call", "args": {"tool": "measure", "args": {"a": {"face": 13, "axis": true}, "b": {"face": 14, "axis": true}}},
+    {"tool": "tool_call", "args": {"tool": "design_measure", "args": {"a": {"face": 13, "axis": true}, "b": {"face": 14, "axis": true}}},
      "expect": {"/min_distance": {"ge": 24.9999, "le": 25.0001}, "/distance": {"ge": 24.9999, "le": 25.0001}}},
     // The cone touches the front face and stops 2.75 mm short of the back one.
-    {"tool": "tool_call", "args": {"tool": "measure", "args": {"a": {"face": 6}, "b": {"face": 0}}},
+    {"tool": "tool_call", "args": {"tool": "design_measure", "args": {"a": {"face": 6}, "b": {"face": 0}}},
      "expect": {"/min_distance": {"le": 0.0001}}},
-    {"tool": "tool_call", "args": {"tool": "measure", "args": {"a": {"face": 6}, "b": {"face": 8}}},
+    {"tool": "tool_call", "args": {"tool": "design_measure", "args": {"a": {"face": 6}, "b": {"face": 8}}},
      "expect": {"/min_distance": {"ge": 2.7499, "le": 2.7501}}},
-    {"tool": "tool_call", "args": {"tool": "measure", "args": {"a": {"face": 0}, "b": {"face": 8}}},
+    {"tool": "tool_call", "args": {"tool": "design_measure", "args": {"a": {"face": 0}, "b": {"face": 8}}},
      "expect": {"/parallel_gap": {"ge": 4.9999, "le": 5.0001}, "/min_distance": {"ge": 4.9999, "le": 5.0001}}},
 
     // Datum planes: midway through the plate, and 70 mm above the bed with a sketch on it.
@@ -71,19 +71,19 @@
      "expect": {"/plane_index": {"eq": 8}, "/frame/origin/2": {"eq": 70.0}, "/frame/normal/2": {"eq": 1.0}}},
     // A tangent plane needs a cylindrical face: refused, and nothing changes.
     {"tool": "tool_call", "args": {"tool": "construct_plane", "args": {"type": "tangent", "face_a": {"body": 0, "face": 0}}}, "optional": true},
-    {"tool": "tool_call", "args": {"tool": "describe_design"},
+    {"tool": "tool_call", "args": {"tool": "design_describe"},
      "expect": {"/features/8/type": {"eq": "Plane"}, "/features/9": {"exists": false}, "/undo_depth": {"eq": 8}, "/redo_depth": {"eq": 0}}},
     {"tool": "tool_call", "args": {"tool": "sketch_create", "args": {"plane": {"datum": 8}}},
      "expect": {"/frame/origin/2": {"eq": 70.0}}},
     {"tool": "tool_call", "args": {"tool": "sketch_draw", "args": {"entities": [{"type": "circle_center", "center": [10, 10], "radius": 5}]}}},
     {"tool": "tool_call", "args": {"tool": "sketch_finish"}, "expect": {"/sketch_index": {"eq": 9}}},
-    {"tool": "tool_call", "args": {"tool": "extrude", "args": {"sketch": 9, "distance": 4}},
+    {"tool": "tool_call", "args": {"tool": "solid_extrude", "args": {"sketch": 9, "distance": 4}},
      "expect": {"/operation": {"eq": "new_body"}, "/body": {"eq": 1}}},
-    {"tool": "tool_call", "args": {"tool": "describe_design"},
+    {"tool": "tool_call", "args": {"tool": "design_describe"},
      "expect": {"/bodies/1/bbox/min/2": {"ge": 69.999, "le": 70.001}, "/bodies/1/bbox/max/2": {"ge": 73.999, "le": 74.001}}},
 
     // Push the plate's back face out 2 mm: it joins its own body.
-    {"tool": "tool_call", "args": {"tool": "extrude", "args": {"face": 8, "body": 0, "distance": 2}},
+    {"tool": "tool_call", "args": {"tool": "solid_extrude", "args": {"face": 8, "body": 0, "distance": 2}},
      "expect": {"/operation": {"eq": "join"}, "/body": {"eq": 0}, "/sketch_index": {"eq": -1},
                 "/face": {"eq": 8}, "/frame/normal/0": {"eq": 1.0}}},
     {"tool": "tool_call", "args": {"tool": "body_mass_properties", "args": {"body": 0}},

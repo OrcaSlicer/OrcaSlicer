@@ -27,10 +27,8 @@ import sys
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASELINE = "scripts/operation_calls_baseline.txt"
 
-# The callers: the command runners, the tools of every place and the plugin API. The Design commands
-# (Tools/Design*.cpp), whose functions are the Design tab's own entry points, are not among them.
+# The callers: the command runners, the tools of every place, the Design commands among them, and the plugin API.
 CALLERS = ["src/slic3r/GUI/NativeCommands.cpp", "src/slic3r/GUI/Mcp/Tools/*.cpp", "src/slic3r/plugin/host/*.cpp"]
-NOT_CALLERS = ["src/slic3r/GUI/Mcp/Tools/Design*.cpp"]
 
 # Owner methods an operation calls, by the operation that stands for them.
 BANNED = {
@@ -116,9 +114,7 @@ def caller_files():
             sys.exit(f"{pattern} matches no file: correct {name} in {os.path.basename(__file__)}")
         return {os.path.relpath(path, REPO).replace(os.sep, "/") for path in paths}
 
-    files = set().union(*(matches(pattern, "CALLERS") for pattern in CALLERS))
-    files -= set().union(*(matches(pattern, "NOT_CALLERS") for pattern in NOT_CALLERS))
-    return sorted(files)
+    return sorted(set().union(*(matches(pattern, "CALLERS") for pattern in CALLERS)))
 
 
 def banned_calls():

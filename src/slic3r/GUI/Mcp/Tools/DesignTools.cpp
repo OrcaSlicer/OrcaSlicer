@@ -1,6 +1,7 @@
-// The place Design, the Design tab's commands, and its Document heading: describe_design, select_geometry, confirm_tool
-// and cancel_tool, what the tab shows and has open; import_step and import_mesh; set_variable; and commit_to_plate,
-// new_design and export_step. The Design table (kDesignTools, generated from scripts/CAD/tool_atlas.json) declares
+// The place Design, the Design tab's commands, and its Document heading: design_describe, design_select,
+// design_confirm_tool and design_cancel_tool, what the tab shows and has open; design_import_step and
+// design_import_mesh; design_set_variable; and design_commit_to_plate, design_new and design_export_step. The Design
+// table (kDesignTools, generated from scripts/CAD/tool_atlas.json) declares
 // every command, its menu item, handler, access, tool block and the items folded into it; silent_forms() binds each
 // block to the function that runs it, which is in the file of its heading (DesignSketchTools.cpp for Sketch,
 // DesignSolidTools.cpp for Solid and so on). register_design_tools() makes a command of each entry that is one
@@ -43,9 +44,10 @@
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
-#include "slic3r/GUI/ObjectDataViewModel.hpp"   // itObject
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/GUI/Operations/ObjectOps.hpp"
+#include "slic3r/GUI/Operations/Outcome.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/Mcp/McpArguments.hpp"
@@ -83,7 +85,7 @@ namespace {
 // The `generation` property of every Design command with a silent form: how face and edge ids expire, and
 // how a call keeps from acting on a stale one.
 const char* const kGenerationNote =
-    "The generation (describe_design, body_describe) the face and edge ids this call passes were read at. Ids "
+    "The generation (design_describe, body_describe) the face and edge ids this call passes were read at. Ids "
     "expire when a feature rebuilds the model, and a stale id still names a real face or edge: with the "
     "generation, a call whose ids were read before the model changed is refused.";
 
@@ -274,7 +276,7 @@ json param(const json& params, const char* key)
 
 namespace {
 
-// What describe_design and select_geometry say is selected. The selection: what the right-click menu would be built
+// What design_describe and design_select say is selected. The selection: what the right-click menu would be built
 // for, its kind (an OfferSel) and its id in the atlas, which the entries' accepts name.
 json selection_json(const DesignPanel& panel)
 {
@@ -370,7 +372,7 @@ json describe_design(DesignPanel* panel)
     out["selection"]    = selection_json(*panel);
     out["picked_plane"] = picked_plane_json(*panel);
     out["feature_row"]  = feature_row_json(*panel);
-    // The Commit button's mode, which commit_to_plate uses when given none.
+    // The Commit button's mode, which design_commit_to_plate uses when given none.
     out["commit_mode"] = panel->commit_mode() == DesignPanel::CommitMode::Bodies ? "bodies" : "assembly";
     if (!var_error.empty()) out["variables_error"] = var_error;
     // The aligns (Mate features) that cannot hold with those before them.
@@ -386,7 +388,7 @@ json describe_design(DesignPanel* panel)
 // ---- Build: bring a reference part in (Import STEP as native B-rep bodies) ----------------------
 json import_step(DesignPanel* panel, const json& params)
 {
-    if (!params.contains("path")) throw std::runtime_error("import_step needs 'path'");
+    if (!params.contains("path")) throw std::runtime_error("design_import_step needs 'path'");
     const std::string path = input_path(params["path"], "path");
     std::string err;
     std::vector<TopoDS_Shape> solids = GeometryEngine::read_step_solids(path, err);
@@ -411,12 +413,12 @@ json import_step(DesignPanel* panel, const json& params)
 }
 
 // ---- Import a triangle mesh as a B-rep body (GeometryEngine::mesh_to_brep) ----------------------
-// Same destination as import_step: a CadFeatureType::Import body every feature tool can edit.
+// Same destination as design_import_step: a CadFeatureType::Import body every feature tool can edit.
 // The full conversion stats come back so a caller can tell an honest solid from an open shell
 // instead of discovering it later when a boolean silently fails.
 json import_mesh(DesignPanel* panel, const json& params)
 {
-    if (!params.contains("path")) throw std::runtime_error("import_mesh needs 'path'");
+    if (!params.contains("path")) throw std::runtime_error("design_import_mesh needs 'path'");
     const std::string path       = input_path(params["path"], "path");
     const double tolerance       = params.value("tolerance", 0.01);
     const double merge_angle_deg = params.value("merge_angle_deg", 5.0);
@@ -465,12 +467,12 @@ json import_mesh(DesignPanel* panel, const json& params)
 
 json action_set_variable(DesignPanel* panel, const json& params)
 {
-    if (!params.contains("name")) throw std::runtime_error("set_variable needs 'name'");
-    if (!params.contains("expr")) throw std::runtime_error("set_variable needs 'expr'");
+    if (!params.contains("name")) throw std::runtime_error("design_set_variable needs 'name'");
+    if (!params.contains("expr")) throw std::runtime_error("design_set_variable needs 'expr'");
     CadDocument& doc = panel->mcp_doc();
     const std::string name = params["name"].get<std::string>();
     const std::string expr = params["expr"].get<std::string>();
-    if (name.empty()) throw std::runtime_error("set_variable needs a non-empty 'name'");
+    if (name.empty()) throw std::runtime_error("design_set_variable needs a non-empty 'name'");
     // An empty expression removes the variable, as Remove in the Variables list does.
     const bool remove = expr.empty();
     if (remove && doc.variables.count(name) == 0)
@@ -540,6 +542,15 @@ json action_commit_to_plate(DesignPanel* panel, const json& params)
     if (plater == nullptr || obj_list == nullptr) throw CadPrecondition("Prepare is not ready");
     Model& model = plater->model();
     const std::vector<int> replace = cad_commit_to_plate_replace(params.value("replace", json::array()), model);
+    // What Prepare's Delete refuses of them (a part of a cut), before the commit, so that a refused call leaves no undo
+    // step. One object at a time, so that the refusal names it: for whole objects the rule is each object's own.
+    for (int i : replace) {
+        Ops::Targets doomed;
+        doomed.objects = {i};
+        if (const std::optional<Ops::Refusal> refusal = Ops::delete_refusal(model, doomed))
+            throw refused(*refusal, "Object " + std::to_string(i) + " (" + model.objects[size_t(i)]->name +
+                                        ") in replace: delete it with object_select, then object_delete {}, which asks first.");
+    }
     // The Delete key does not pull an object from under an open gizmo either.
     if (!replace.empty())
         for (GLCanvas3D* canvas : {plater->get_view3D_canvas3D(), plater->get_assmeble_canvas3D()})
@@ -566,9 +577,17 @@ json action_commit_to_plate(DesignPanel* panel, const json& params)
         if (!replace.empty()) snapshot.emplace(plater, _u8L("Commit to Plate"));
         for (size_t i : panel->commit_to_plate(mode, &sent)) made.push_back(model.objects[i]);
         if (made.empty()) throw CadPrecondition("Commit to Plate sent nothing");
-        std::vector<ItemForDelete> items;
-        for (int i : replace) items.emplace_back(itObject, i, -1);
-        obj_list->delete_from_model_and_list(items);
+        // As Prepare's Delete deletes them, the operation's own snapshot suppressed under this one. The selection
+        // stays the commit's, in the view the call was made in: the scene's reload keeps it by the instances' ids,
+        // and the event the reload posts sets the Objects list's rows back to it, which a one-object delete moves to
+        // the plate, as after any delete in Prepare.
+        if (!replace.empty()) {
+            Ops::DeleteObjectsArgs args;
+            args.targets.objects = replace;
+            if (const Ops::Outcome<Ops::DeletedTargets> deleted = Ops::delete_objects(args); !deleted)
+                throw refused(deleted.refusal(), "The design was committed to the plate and the objects in replace were "
+                                                 "not deleted; one Prepare undo takes the commit back.");
+        }
     }
 
     // The new objects' indices once the replaced ones are gone.
@@ -608,7 +627,7 @@ json action_export_step(DesignPanel* panel, const json& params)
     if (doc.bodies.empty()) throw CadPrecondition("Nothing to export: the design has no body; add a feature first");
     const json path_arg = params.value("path", json());
     const json overwrite = params.value("overwrite", json(false));
-    if (!path_arg.is_string()) throw std::runtime_error("export_step needs 'path', an absolute file path");
+    if (!path_arg.is_string()) throw std::runtime_error("design_export_step needs 'path', an absolute file path");
     if (!overwrite.is_boolean()) throw std::runtime_error("overwrite must be true or false");
     std::string err;
     const auto path = Mcp::resolve_output_path(path_arg.get<std::string>(), overwrite.get<bool>(), err);
@@ -625,8 +644,8 @@ json action_export_step(DesignPanel* panel, const json& params)
                 {"moved_bodies", std::move(moved)}};
 }
 
-// select_geometry: what a click selects in the model at rest, by id (DesignPanel::mcp_select()). An argument given as
-// null is left out, as its null default says. The reply is what describe_design reports of the selection.
+// design_select: what a click selects in the model at rest, by id (DesignPanel::mcp_select()). An argument given as
+// null is left out, as its null default says. The reply is what design_describe reports of the selection.
 json action_select_geometry(DesignPanel* panel, const json& params)
 {
     using Kind = DesignSelection::Kind;
@@ -666,7 +685,7 @@ json action_select_geometry(DesignPanel* panel, const json& params)
         s.kind    = Kind::Feature;
         s.feature = index("feature");
     } else {
-        throw std::runtime_error("select_geometry takes one of: body; body with face, edges or vertex; plane; sketch with "
+        throw std::runtime_error("design_select takes one of: body; body with face, edges or vertex; plane; sketch with "
                                  "loop; feature; or nothing, which clears the selection");
     }
     if (named.count("body") != 0) s.body = index("body");
@@ -713,16 +732,16 @@ const std::vector<SilentForm>& silent_forms()
 {
     static const std::vector<SilentForm> forms = [] {
         std::vector<SilentForm> all = {
-            {"describe_design",              [](DesignPanel* panel, const json&) { return describe_design(panel); }},
-            {"select_geometry",              action_select_geometry},
-            {"confirm_tool",                 action_confirm_tool},
-            {"cancel_tool",                  action_cancel_tool},
-            {"import_step",                  import_step},
-            {"import_mesh",                  import_mesh},
-            {"set_variable",                 action_set_variable},
-            {"commit_to_plate",              action_commit_to_plate},
-            {"new_design",                   action_new_design},
-            {"export_step",                  action_export_step},
+            {"design_describe",              [](DesignPanel* panel, const json&) { return describe_design(panel); }},
+            {"design_select",                action_select_geometry},
+            {"design_confirm_tool",          action_confirm_tool},
+            {"design_cancel_tool",           action_cancel_tool},
+            {"design_import_step",           import_step},
+            {"design_import_mesh",           import_mesh},
+            {"design_set_variable",          action_set_variable},
+            {"design_commit_to_plate",       action_commit_to_plate},
+            {"design_new",                   action_new_design},
+            {"design_export_step",           action_export_step},
         };
         sketch_silent_forms(all);
         solid_silent_forms(all);
@@ -777,8 +796,8 @@ ToolFailure design_busy(const std::string& why)
 {
     return ToolFailure("Design tab busy: " + why,
                        {{"code", "design_busy"},
-                        {"hint", "confirm_tool keeps what is open when its Confirm is on (a card, the Text dialog, a body Move, "
-                                 "a sketch, Constrain mode) and cancel_tool discards it; a rebuild ends by itself, so call "
+                        {"hint", "design_confirm_tool keeps what is open when its Confirm is on (a card, the Text dialog, a body Move, "
+                                 "a sketch, Constrain mode) and design_cancel_tool discards it; a rebuild ends by itself, so call "
                                  "again after it"}});
 }
 
@@ -790,7 +809,7 @@ std::optional<std::uint64_t> design_generation(const json& args)
     // negative.
     const json& g = args["generation"];
     if (!is_whole_number(g) || (!g.is_number_unsigned() && g.get<double>() < 0))
-        throw ToolFailure("generation must be an integer of 0 or more, as describe_design or body_describe gave it",
+        throw ToolFailure("generation must be an integer of 0 or more, as design_describe or body_describe gave it",
                           {{"code", "invalid_argument"}});
     return g.is_number_float() ? std::uint64_t(g.get<double>()) : g.get<std::uint64_t>();
 }
@@ -800,7 +819,7 @@ namespace {
 // The checks every Design command passes before its function, in this order: the main window is up (not
 // shutting down or still starting), the app is the editor and not the G-code viewer (design_unavailable),
 // the CAD feature is on, and the Design panel can be built (design_unavailable for each); then the busy rules of
-// `access` (design_busy, with a hint naming confirm_tool and cancel_tool; with Read, None and Ui only a rebuild's), the
+// `access` (design_busy, with a hint naming design_confirm_tool and design_cancel_tool; with Read, None and Ui only a rebuild's), the
 // project's recipe loaded into an empty document (DesignPanel::hydrate_from_model()), as showing the tab would, and a
 // `generation` in `args` that design_generation() refuses (invalid_argument) or that is not the model's (stale_ids).
 // Returns the panel. Throws ToolFailure, whose details carry the code. UI thread only.
@@ -938,6 +957,18 @@ NativeCommand table_command(const DesignTool& t)
     c.has_own_action = t.action != nullptr;
     c.icon           = t.icon != nullptr ? t.icon : "";
     c.heading        = t.section != nullptr ? t.section : "";
+    // The operations of GUI/Operations a call of it reaches, which its entry names, as every command that changes
+    // Prepare names its own.
+    if (t.operations != nullptr) {
+        std::vector<std::string> operations;
+        for (const char *from = t.operations, *comma = nullptr;; from = comma + 1) {
+            comma = std::strchr(from, ',');
+            operations.emplace_back(from, comma != nullptr ? std::size_t(comma - from) : std::strlen(from));
+            if (comma == nullptr)
+                break;
+        }
+        c = reaching(std::move(operations), std::move(c));
+    }
     // The items folded into the command keep their actions, each a call of the command with the item's arguments,
     // and say what a pick does as a command with a handler only does.
     for (const DesignTool& item : kDesignTools)
@@ -963,7 +994,7 @@ NativeCommand table_command(const DesignTool& t)
     c.idempotent  = c.read_only;
     c.description = std::move(description);
     c.examples    = doc.at("examples");
-    // commit_to_plate's replace_ids names Prepare's objects by id.
+    // design_commit_to_plate's replace_ids names Prepare's objects by id.
     return with_target_ids(std::move(c));
 }
 
@@ -1016,8 +1047,8 @@ std::optional<ToolFailure> open_refusal(const DesignTool& t, bool sketching, int
                             // sketch_finish and sketch_cancel there, so the hint names the two that end either.
                             {"hint", t.sketch_mode ? "sketch_create {plane: \"XY\"} opens a sketch on a plane, sketch_edit "
                                                      "{sketch: i} a committed one" :
-                                                     "confirm_tool keeps the open sketch, or ends Constrain mode, and "
-                                                     "cancel_tool drops the sketch or leaves Constrain mode"}});
+                                                     "design_confirm_tool keeps the open sketch, or ends Constrain mode, and "
+                                                     "design_cancel_tool drops the sketch or leaves Constrain mode"}});
     // The item's handler acts on the Feature list's selected row, and says itself what it cannot do with it.
     if (row_target && t.feature_row)
         return std::nullopt;
@@ -1078,7 +1109,7 @@ DesignPanel* design_gate(CadAccess access, const json& args)
     // captured up front remove 0.400/0.008/0.397/0.280. Neither run errors, because a stale id
     // still resolves to a real edge — just not the one that was asked for.
     //
-    // So a caller may pass back the "generation" it got from describe_design or body_describe,
+    // So a caller may pass back the "generation" it got from design_describe or body_describe,
     // and a mismatch is refused instead of silently obeyed. Optional by design: a call without it
     // is not checked, and supplying it is what buys the guarantee. One check here rather than one
     // per command, so a command added later cannot forget it.
@@ -1274,10 +1305,6 @@ std::vector<int> cad_commit_to_plate_replace(const json& replace, const Model& m
                                      " objects");
         if (std::find(out.begin(), out.end(), int(i)) != out.end())
             throw std::runtime_error("object " + std::to_string(i) + " is listed twice in replace");
-        // Deleting one opens the "part of a cut object" warning, which the person answers.
-        if (model.objects[size_t(i)]->is_cut())
-            throw CadPrecondition("object " + std::to_string(i) +
-                                     " is part of a cut object; delete it with object_select, then object_delete, which asks first");
         out.push_back(int(i));
     }
     std::sort(out.begin(), out.end());

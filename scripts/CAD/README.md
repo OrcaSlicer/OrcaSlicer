@@ -50,8 +50,9 @@ compiled against it cannot drift apart:
 | `mate-glyph/emit_glyph_table.py` | `mate-glyph/bear_outline.json`, measured off `mate-glyph/bear.step` by `extract_outline.py` | the `kBear…` tables in `DesignSketchTool.cpp` |
 
 The atlas's `verbs` are one table for three things: the right-click menu (a verb with a `slot` has an
-item there), the Speed Dial's Design tab actions and the Design commands. Every verb but `align` is a
-command whose key is its `id`. A verb with a handler (`action`) does what its menu item does when called
+item there), the Speed Dial's Design tab actions and the Design commands. Every verb but a folded or a
+greyed item (`fold`; `pat_curve`, `align_to`) is a command whose key is its `id`. A verb with a handler
+(`action`) does what its menu item does when called
 with no arguments, in the mode the item belongs to, and has an action of its own in the Speed Dial; one
 with a `tool` block also runs silently
 with arguments, and the block holds what that form takes and does: its `access` (`read`, `change` or
@@ -64,7 +65,7 @@ null, unless `nullable` is false, which marks a param whose function reads a nul
 (it takes or gives face and edge ids). Entries with no `slot` and no handler are commands only, and
 `modal` marks a verb whose handler opens a dialog. `src/slic3r/GUI/Mcp/Tools/Design*.cpp` bind each block
 to the function that runs it (`silent_forms()`), and a unit test fails when a block has no function or a
-function no block. The generator refuses an entry with neither a handler nor a block, but `align`.
+function no block. The generator refuses an entry with no slot that has neither a handler nor a block.
 
 `python3 scripts/CAD/gen_offer_table.py` rewrites the header and `--check` proves the
 checked-in one matches the atlas. The "Check CAD offer table" workflow

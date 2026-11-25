@@ -157,7 +157,7 @@ def presets(client):
 
 def close_open(client):
     """Closes what an earlier test left open: the modal dialogs topmost first, each with Cancel, No or Close as it
-    offers; the other windows window_list lists, with Escape; whatever the Design tab's cancel_tool closes; a
+    offers; the other windows window_list lists, with Escape; whatever the Design tab's design_cancel_tool closes; a
     recording; the auto-answer rules. Then waits for the jobs still running to end."""
     for answered in range(10):
         shown = client.call("app_state").get("dialogs", [])
@@ -179,7 +179,7 @@ def close_open(client):
     until(lambda: not others(), "the windows besides the main one closed")
     for _ in range(5):
         try:
-            client.call_command("cancel_tool")
+            client.call_command("design_cancel_tool")
         except orca_mcp.McpError:  # nothing open to cancel
             break
     try:
