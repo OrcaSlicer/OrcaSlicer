@@ -108,7 +108,7 @@ void Label::initSysFont()
     // because FcConfigAppFontAddFile invalidates Pango's cached font map.
     bool load_fonts = true;
 #ifdef __linux__
-    load_fonts = !fc_font_available("HarmonyOS Sans SC") || !fc_font_available("NanumGothic");
+    load_fonts = !fc_font_available("HarmonyOS Sans SC") || !fc_font_available("NanumGothic") || !fc_font_available("Sarabun");
 #endif
     if (load_fonts) {
         const std::string &resource_path = Slic3r::resources_dir();
@@ -116,6 +116,8 @@ void Label::initSysFont()
         wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/HarmonyOS_Sans_SC_Regular.ttf"));
         wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/NanumGothic-Regular.ttf"));
         wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/NanumGothic-Bold.ttf"));
+        wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/Sarabun-Medium.ttf"));
+        wxFont::AddPrivateFont(wxString::FromUTF8(resource_path + "/fonts/Sarabun-SemiBold.ttf"));
     }
 #endif
     Head_48 = Label::sysFont(48, true);

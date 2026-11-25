@@ -101,7 +101,12 @@ public:
     void finalize(bool canceled, std::exception_ptr &e) override;
 };
 
-std::optional<arrangement::ArrangePolygon> get_wipe_tower_arrangepoly(const Plater &);
+// The prime tower of the plate being sliced, to arrange around. A tower compacted by "No sparse
+// layers" comes grown by the clearance the objects in placed need from it, which is then recorded in
+// params; the inflation they will get counts towards it, so leave placed empty when they get none,
+// and the tower keeps the whole toolhead radius.
+std::optional<arrangement::ArrangePolygon> get_wipe_tower_arrangepoly(const Plater &, arrangement::ArrangeParams &params,
+                                                                      const arrangement::ArrangePolygons &placed = {});
 
 // The gap between logical beds in the x axis expressed in ratio of
 // the current bed width.
