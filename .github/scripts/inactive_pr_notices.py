@@ -331,6 +331,13 @@ def main():
         time.sleep(2)
     failed = sorted(set(failed))
     print(f"{'would-post' if DRY_RUN else 'posted'}={posted} eligible={len(todo)} limit={LIMIT} failed={len(failed)} dry-run={str(DRY_RUN).lower()}")
+    # Doesn't count against the limits it reports
+    try:
+        print(gh("api", "rate_limit", "--jq",
+                 r'.resources | "rate-limit rest-used=\(.core.used) rest-remaining=\(.core.remaining) '
+                 r'graphql-used=\(.graphql.used) graphql-remaining=\(.graphql.remaining)"').strip())
+    except RuntimeError:
+        pass
     if failed:
         sys.exit("Failed on " + " ".join(f"#{n}" for n in failed))
 
