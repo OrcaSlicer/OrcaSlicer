@@ -502,10 +502,12 @@ namespace Slic3r
             obj->printer_agent_id = get_current_printer_agent_id();
             localMachineList.insert(std::make_pair(machine.dev_id, obj));
         }
-        if (machine.printer_type.empty())
-            obj->printer_type = _parse_printer_type("C11");
-        else
+        // Only Bambu printers use the C11 fallback. Other agents may not report a model,
+        // so leave their existing model unchanged when none is provided.
+        if (!machine.printer_type.empty())
             obj->printer_type = _parse_printer_type(machine.printer_type);
+        else if (obj->printer_agent_id == BBL_PRINTER_AGENT_ID)
+            obj->printer_type = _parse_printer_type("C11");
         obj->dev_connection_type = connection_type == "farm" ? "lan":connection_type;
         obj->bind_state          = connection_type == "farm" ? "free":bind_state;
         obj->bind_sec_link = "secure";

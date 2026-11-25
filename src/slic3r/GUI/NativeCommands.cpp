@@ -363,7 +363,7 @@ std::vector<NativeCommand> build_command_catalog()
         return object_op(wxGetApp().plater(), [](Plater* p) { return p->can_split_to_volumes(); }, [](Plater* p) { p->split_volume(); });
     });
     add("obj_center", L("Center Selected on Plate"), L("Object"), [](const std::string&) {
-        return object_op(wxGetApp().plater(), [](Plater* p) { return !p->is_selection_empty(); }, [](Plater* p) { p->center_selection(); });
+        return object_op(wxGetApp().plater(), [](Plater* p) { return p->get_selection().can_center(); }, [](Plater* p) { p->center_selection(); });
     });
     add_with_icon("obj_drop", L("Drop to Bed"), L("Object"), "toolbar_flatten", [](const std::string&) {
         return object_op(wxGetApp().plater(), [](Plater* p) { return p->get_selection().can_drop(); }, [](Plater* p) { p->drop_selection(); });

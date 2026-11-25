@@ -266,4 +266,19 @@ struct CommaNumericLocale
 #endif
 };
 
+// Switches the process-wide numeric locale, which the GUI sets from its language, to one whose
+// decimal separator is a comma, when the system has one installed. Restores it when destroyed.
+struct ProcessCommaNumericLocale
+{
+    std::string previous { std::setlocale(LC_NUMERIC, nullptr) };
+    bool apply()
+    {
+        for (const char* name : { "de_DE.UTF-8", "de_DE.utf8", "de_DE", "de-DE", "German_Germany.1252" })
+            if (std::setlocale(LC_NUMERIC, name) != nullptr)
+                return true;
+        return false;
+    }
+    ~ProcessCommaNumericLocale() { std::setlocale(LC_NUMERIC, previous.c_str()); }
+};
+
 #endif // SLIC3R_TEST_UTILS
