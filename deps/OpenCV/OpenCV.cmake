@@ -82,6 +82,9 @@ orcaslicer_add_cmake_project(OpenCV
        -DWITH_IMGCODEC_GIF=OFF
        -DWITH_KLEIDICV=OFF
        -DENABLE_PRECOMPILED_HEADERS=OFF
+       # Build only the baseline CPU code, without the per-CPU copies OpenCV picks from at runtime.
+       # Orca's image work is too light to gain from them, and they make OpenCV slower to build and the app bigger.
+       -DCPU_DISPATCH=
        -DINSTALL_TESTS=OFF
        -DINSTALL_C_EXAMPLES=OFF
        -DINSTALL_PYTHON_EXAMPLES=OFF

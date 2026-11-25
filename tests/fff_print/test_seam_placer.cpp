@@ -1539,6 +1539,55 @@ TEST_CASE("Seam extraction preserves unknown boundary roles for open extrusion p
     CHECK(perimeters.front().contour_reliable == !open);
 }
 
+TEST_CASE("Staggered inner seam stays next to a seam on a hairpin corner", "[SeamPlacer][Regression]")
+{
+    PipelineFixture fixture(false, 0.2f); // One layer.
+    fixture.config.set_deserialize_strict("staggered_inner_seams", "1");
+    fixture.print.apply(fixture.model, fixture.config);
+    PrintObject &object = fixture.prepare();
+    auto &region = clear_first_layer(object);
+
+    // A hole with an 8 mm slit into the material, 1 nm wide at its opening: the slit tip is the hole's rearmost point
+    // and turns the wall back by a hair less than 180 degrees.
+    const Point tip = fixture.points_in_layer(object, {{10, 14}}).front();
+    Points hole = fixture.points_in_layer(object, {{10, 6}, {6, 6}, {6, 4}, {14, 4}, {14, 6}});
+    hole.push_back(hole.front() + Point(1, 0));
+    hole.push_back(tip);
+    std::reverse(hole.begin(), hole.end()); // Holes run clockwise.
+    ExtrusionLoop hole_loop = make_loop(hole, erExternalPerimeter, 0);
+    hole_loop.set_loop_role(elrHole);
+    // The inner wall sits 0.4 mm into the material and runs around the slit.
+    ExtrusionLoop inner = make_loop(fixture.points_in_layer(object, {{9.6, 6.4}, {5.6, 6.4}, {5.6, 3.6}, {14.4, 3.6},
+                                                                     {14.4, 6.4}, {10.4, 6.4}, {10.4, 14.4}, {9.6, 14.4}}),
+                                    erPerimeter, 1);
+    std::reverse(inner.paths.front().polyline.points.begin(), inner.paths.front().polyline.points.end());
+    ExtrusionEntityCollection island;
+    island.append(make_loop(fixture.points_in_layer(object, {{2, 2}, {18, 2}, {18, 18}, {2, 18}}), erExternalPerimeter, 0));
+    island.append(std::move(hole_loop));
+    island.append(inner);
+    region.perimeters.append(std::move(island));
+
+    SeamPlacer placer;
+    placer.init(fixture.print, [] {});
+
+    // The planned seam of the hole is the slit tip, a concave corner within a float step of a full reversal.
+    const auto &layer_seams = placer.m_seam_per_object.at(&object).layers.front();
+    const auto hole_seam = std::find_if(layer_seams.points.begin(), layer_seams.points.end(), [&](const auto &candidate) {
+        return candidate.perimeter.seam_index < layer_seams.points.size() &&
+               &layer_seams.points[candidate.perimeter.seam_index] == &candidate &&
+               (unscale(tip).cast<float>() - candidate.position.template head<2>()).norm() < 0.01f;
+    });
+    REQUIRE(hole_seam != layer_seams.points.end());
+    REQUIRE(hole_seam->local_ccw_angle < -3.14159f);
+    REQUIRE(hole_seam->local_ccw_angle > -static_cast<float>(PI)); // Short of a full reversal: cos(angle / 2) is positive.
+
+    ExtrusionLoop placed = inner;
+    float overhang = 0.0f;
+    placer.place_seam(object.layers().front(), placed, Point(0, 0), overhang);
+    // Staggering moves the inner seam about a line width along the wall, never around the loop at random.
+    CHECK_THAT((unscale(placed.first_point()) - unscale(tip)).norm(), Catch::Matchers::WithinAbs(0.0, 1.0));
+}
+
 TEST_CASE("Seams are picked on every loop of every object when init() places several objects at once", "[SeamPlacer]")
 {
     // Random seams are picked by the workers of each object alone, and they finalize every loop. Sixteen objects make

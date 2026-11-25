@@ -247,6 +247,7 @@ public:
     void remove_curr_plate();
     void clone(int numbers = 1);
     void center();
+    bool can_center() const;
     void drop();
     bool can_drop() const;
     // Lowest world Z that drop() moves to the bed; whole objects count model parts only, as auto drop does.
