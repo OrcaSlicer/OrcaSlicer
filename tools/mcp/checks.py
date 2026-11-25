@@ -356,26 +356,17 @@ def dial_pick(client, title, canvas=SCENE_CANVAS):
     """Opens the Speed Dial with Space on `canvas` and picks the action titled `title`, as a person's click does, and
     returns the click's reply. It waits until the dial shows, which on a busy machine takes longer than a page
     element's own wait."""
-    def answered(tool, **args):
-        # A page that has not answered yet is refused at once ("did not answer"), not waited for, as a dial that
-        # just opened on a busy machine can be: the call is asked again until the page answers.
-        def once():
-            try:
-                return {"reply": client.call(tool, timeout_s=30, **args)}
-            except orca_mcp.McpError as e:
-                if "did not answer" in str(e):
-                    return None
-                raise
-        return until(once, f"the Speed Dial's page answers {tool}")["reply"]
-
     def pick():
         # The dial closes when the app loses the focus, as it does to a window another app opens on the desktop: a
-        # search or click that finds no page shown did nothing, and the pick starts again from opening the dial.
+        # search or click that finds no page shown did nothing, and the pick starts again from opening the dial. Each
+        # call gives a dial that just opened on a busy machine 30 s to answer; a page that does not fails the pick with
+        # the app's refusal.
         client.call("keyboard_press", keys="space", target=canvas)
         until(lambda: speed_dial(client), "the Speed Dial shows")
         try:
-            answered("widget_set_value", target={"web": "Search actions"}, value=title, submit=False)
-            return {"reply": answered("widget_click", target={"web": f"{title} from Orcaslicer", "kind": "button"})}
+            client.call("widget_set_value", target={"web": "Search actions"}, value=title, submit=False, timeout_s=30)
+            return {"reply": client.call("widget_click", target={"web": f"{title} from Orcaslicer", "kind": "button"},
+                                         timeout_s=30)}
         except orca_mcp.McpError as e:
             if "No web page is shown" in str(e):
                 return None
