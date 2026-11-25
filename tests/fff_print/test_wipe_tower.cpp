@@ -1504,7 +1504,9 @@ TEST_CASE("During a type2 toolchange the nozzle stands still only beside the tow
     // without an XY move happens beside it.
     const std::string gcode = slice_with_prime_tower(type2_gap_wall_config(true));
     REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("; CP TOOLCHANGE UNLOAD"));
-    const auto [tower_min_x, tower_max_x] = wipe_x_range(gcode);
+    const std::pair<float, float> tower_x_range = wipe_x_range(gcode);
+    const float tower_min_x = tower_x_range.first;
+    const float tower_max_x = tower_x_range.second;
     REQUIRE(tower_min_x < tower_max_x);
 
     size_t moves_beside_tower = 0;
@@ -1581,7 +1583,9 @@ TEST_CASE("Through the wall gap the old tool retracts while it leaves, and trave
     const bool leave_dry_travel = GENERATE(false, true);
     CAPTURE(leave_dry_travel);
     const std::string gcode = slice_with_prime_tower(type2_gap_wall_config(true, leave_dry_travel));
-    const auto [tower_min_x, tower_max_x] = wipe_x_range(gcode);
+    const std::pair<float, float> tower_x_range = wipe_x_range(gcode);
+    const float tower_min_x = tower_x_range.first;
+    const float tower_max_x = tower_x_range.second;
     REQUIRE(tower_min_x < tower_max_x);
     const std::vector<GapLeave> leaves = gap_leaves(gcode);
     REQUIRE_FALSE(leaves.empty());
@@ -1728,7 +1732,9 @@ TEST_CASE("Without the wall gap the old tool swaps on the tower as before", "[Wi
     // Without skip points there is no gap to leave through: the head stays over the tower until the tool swap.
     const std::string gcode = slice_with_prime_tower(type2_gap_wall_config(false));
     REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("; CP TOOLCHANGE UNLOAD"));
-    const auto [tower_min_x, tower_max_x] = wipe_x_range(gcode);
+    const std::pair<float, float> tower_x_range = wipe_x_range(gcode);
+    const float tower_min_x = tower_x_range.first;
+    const float tower_max_x = tower_x_range.second;
     REQUIRE(tower_min_x < tower_max_x);
 
     const float tolerance = 0.5f;
