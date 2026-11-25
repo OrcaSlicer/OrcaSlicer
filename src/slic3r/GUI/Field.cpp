@@ -786,9 +786,9 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 v    = "";
 
                 // split into separate commands
-                std::string const a_zone    = u8"[A]?[+\\-_]?[\\d.]+(?:[:]?[\\d.]+)?[%]?";
+                std::string const a_zone    = u8"[A]?[+\\-_]?[\\d.]+(?:[:][\\d.]+)?[%]?";
                 std::string const d_zone    = u8"[Dd][+\\-]?[\\d.]+(?:[:][\\d.]*|[%])?";
-                std::string const xy_zone   = u8"(?:[X][_]?[Y]?|[x][_]?[y]?|[Yy])[+\\-_]?[\\d.]+(?:[:]?[\\d.]+)?(?:[&@%\'\"c]?[m]{0,2})";
+                std::string const xy_zone   = u8"(?:[X][_]?[Y]?|[x][_]?[y]?|[Yy])[+\\-_]?[\\d.]+(?:[:][\\d.]+)?(?:[&@%\'\"c]?[m]{0,2})";
                 std::string const z_zone    = u8"[BT]|[\\^~\\\\/NnZz$LlUuQq#COoM|]+(?:[+\\-]?[\\d.]*(?:[:]?[\\d.]+)(?:[@&%#\'\"]|cm?|mm?)?|B[#-]?|T[#-_]?)?";
                 std::string const r_zone    = u8"\\*?\\d*";
                 std::string const rz_zone   = u8"(?:(?:" + z_zone + u8")[;]?(?:" + r_zone + u8")?|(?:" + r_zone + u8")[;]?(?:" + z_zone + u8")|" + r_zone + u8")?!?";
