@@ -835,6 +835,24 @@ void NotificationManager::PopNotification::render_hypertext(ImGuiWrapper& imgui,
 
 }
 
+float NotificationManager::PopNotification::render_text_lines(ImGuiWrapper& imgui)
+{
+	const float starting_y = m_line_height / 2;
+	size_t last_end = 0;
+	for (size_t i = 0; i < m_endlines.size(); i++) {
+		if (m_text1.size() >= m_endlines[i]) {
+			const std::string line = m_text1.substr(last_end, m_endlines[i] - last_end);
+			last_end = m_endlines[i];
+			if (m_text1.size() > m_endlines[i])
+				last_end += (m_text1[m_endlines[i]] == '\n' || m_text1[m_endlines[i]] == ' ' ? 1 : 0);
+			ImGui::SetCursorPosX(m_left_indentation);
+			ImGui::SetCursorPosY(starting_y + i * m_line_height);
+			imgui.text(line.c_str());
+		}
+	}
+	return starting_y + m_endlines.size() * m_line_height;
+}
+
 void NotificationManager::PopNotification::render_hyperlink_action(ImGuiWrapper& imgui, float text_x, float text_y,
 	const std::string& text, const char* button_id, const std::function<void()>& on_click)
 {
@@ -2461,33 +2479,16 @@ void NotificationManager::SharedProfilesNotification::render_hypertext(ImGuiWrap
 void NotificationManager::PreviewSlowRenderNotification::init()
 {
 	PopNotification::init();
-	// A dedicated row for the two links.
-	m_lines_count = m_lines_count + 1;
+	// A row for each link, so that a long translation of one does not push the other out.
+	m_lines_count = m_lines_count + 2;
 }
 
 void NotificationManager::PreviewSlowRenderNotification::render_text(ImGuiWrapper& imgui,
 	const float win_size_x, const float win_size_y,
 	const float win_pos_x, const float win_pos_y)
 {
-	float x_offset = m_left_indentation;
-	float shift_y = m_line_height;
-	float starting_y = m_line_height / 2;
-
-	int last_end = 0;
-	std::string line;
-	for (size_t i = 0; i < m_endlines.size(); i++) {
-		if (m_text1.size() >= m_endlines[i]) {
-			line = m_text1.substr(last_end, m_endlines[i] - last_end);
-			last_end = m_endlines[i];
-			if (m_text1.size() > m_endlines[i])
-				last_end += (m_text1[m_endlines[i]] == '\n' || m_text1[m_endlines[i]] == ' ' ? 1 : 0);
-			ImGui::SetCursorPosX(x_offset);
-			ImGui::SetCursorPosY(starting_y + i * shift_y);
-			imgui.text(line.c_str());
-		}
-	}
-
-	const float action_y = starting_y + m_endlines.size() * shift_y;
+	const float x_offset = m_left_indentation;
+	const float action_y = render_text_lines(imgui);
 	// TRN Link in the slow preview notification. "Shell only" is the option of "Simplify preview while dragging" in Preferences.
 	const std::string shell_text = _u8L("Use Shell only");
 	render_hyperlink_action(imgui, x_offset, action_y, shell_text, "##preview_slow_shell", [this] {
@@ -2498,8 +2499,7 @@ void NotificationManager::PreviewSlowRenderNotification::render_text(ImGuiWrappe
 		});
 		close();
 	});
-	const float dont_show_x = x_offset + ImGui::CalcTextSize((shell_text + "   ").c_str()).x;
-	render_hyperlink_action(imgui, dont_show_x, action_y, _u8L("Don't show again"), "##preview_slow_dont_show", [this] {
+	render_hyperlink_action(imgui, x_offset, action_y + m_line_height, _u8L("Don't show again"), "##preview_slow_dont_show", [this] {
 		wxGetApp().app_config->set_bool("show_preview_slow_render_hint", false);
 		wxGetApp().app_config->save();
 		close();
@@ -2517,25 +2517,8 @@ void NotificationManager::OrcaSyncConflictNotification::render_text(ImGuiWrapper
 	const float win_size_x, const float win_size_y,
 	const float win_pos_x, const float win_pos_y)
 {
-	float x_offset = m_left_indentation;
-	float shift_y = m_line_height;
-	float starting_y = m_line_height / 2;
-
-	int last_end = 0;
-	std::string line;
-	for (size_t i = 0; i < m_endlines.size(); i++) {
-		if (m_text1.size() >= m_endlines[i]) {
-			line = m_text1.substr(last_end, m_endlines[i] - last_end);
-			last_end = m_endlines[i];
-			if (m_text1.size() > m_endlines[i])
-				last_end += (m_text1[m_endlines[i]] == '\n' || m_text1[m_endlines[i]] == ' ' ? 1 : 0);
-			ImGui::SetCursorPosX(x_offset);
-			ImGui::SetCursorPosY(starting_y + i * shift_y);
-			imgui.text(line.c_str());
-		}
-	}
-
-	const float action_y = starting_y + m_endlines.size() * shift_y;
+	const float x_offset = m_left_indentation;
+	const float action_y = render_text_lines(imgui);
 	const std::string pull_text = conflict_code == -3 ? _u8L("Delete") : _u8L("Pull");
 	render_hyperlink_action(imgui, x_offset, action_y, pull_text, "##orca_sync_pull",
 		[this] { if (m_pull_callback && m_pull_callback(m_evt_handler)) close(); });

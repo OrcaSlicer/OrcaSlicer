@@ -3491,7 +3491,8 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
         if (!overlay_tick)
             m_render_stats.increment_fps_counter();
         m_presented_signature = signature;
-        if (m_preview_interacting && !reuse_scene && !overlay_tick && !m_benchmarking)
+        // A slider drag rebuilds the visible range on the CPU, which Shell only does not speed up.
+        if (m_preview_interacting && !reuse_scene && !overlay_tick && !m_benchmarking && !m_gcode_viewer.is_slider_dragging())
             _track_preview_frame_time(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - frame_start).count());
     }
     else {
@@ -10872,14 +10873,16 @@ void GLCanvas3D::_render_wireframe_overlay()
 void GLCanvas3D::_track_preview_frame_time(double frame_ms)
 {
     const AppConfig* cfg = wxGetApp().app_config;
-    if (m_preview_slow_hint_shown || cfg->get("preview_reduced_detail_mode") != "off" || !cfg->get_bool("show_preview_slow_render_hint")) {
+    if (s_preview_slow_hint_shown || cfg->get("preview_reduced_detail_mode") != "off" || !cfg->get_bool("show_preview_slow_render_hint") ||
+        !m_gcode_viewer.shell_mode_hides_infill()) {
         m_preview_frame_monitor.reset();
         return;
     }
     if (const std::optional<double> fps = m_preview_frame_monitor.add_frame(frame_ms)) {
-        m_preview_slow_hint_shown = true;
+        s_preview_slow_hint_shown = true;
+        const int max_shown_fps = static_cast<int>(std::ceil(PreviewFrameRateMonitor::min_fps)) - 1;
         wxGetApp().plater()->get_notification_manager()->push_preview_slow_render_notification(
-            std::clamp(static_cast<int>(std::lround(*fps)), 1, 14));
+            std::clamp(static_cast<int>(std::lround(*fps)), 1, max_shown_fps));
     }
 }
 
@@ -10889,6 +10892,9 @@ void GLCanvas3D::apply_preview_reduced_detail_mode(const std::string& mode)
     cfg->set("preview_reduced_detail_mode", mode);
     cfg->save();
     m_gcode_viewer.set_reduced_detail_mode(mode);
+    // a hint still on screen would offer to replace the mode just chosen
+    if (mode != "off")
+        wxGetApp().plater()->get_notification_manager()->close_notification_of_type(NotificationType::PreviewSlowRender);
     set_as_dirty();
     request_extra_frame();
 }
@@ -12304,7 +12310,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         // TRN View menu toggle: what the sliced preview draws while the camera or a slider is dragged.
         create_drag_mode_item(_utf8(L("Solid model while dragging")), "solid",
             _u8L("While you drag the camera or a preview slider, or zoom, the sliced objects are drawn as solid shapes. "
-                 "The full toolpaths return when you let go."));
+                 "The full toolpaths return when you let go. A print made object by object, or one on a belt printer, keeps its full toolpaths."));
         // TRN View menu toggle: what the sliced preview draws while the camera or a slider is dragged.
         create_drag_mode_item(_utf8(L("Shell only while dragging")), "shell",
             _u8L("While you drag the camera or a preview slider, or zoom, the toolpaths are drawn without the infill hidden under the walls. "

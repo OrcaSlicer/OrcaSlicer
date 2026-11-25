@@ -333,6 +333,8 @@ private:
     bool m_legend_enabled{ true };
     // what the preview draws while the user drags, as the preference has it
     libvgcode::EReducedDetailMode m_reduced_detail_mode{ libvgcode::EReducedDetailMode::Off };
+    // whether the shell mode has infill to hide in the loaded print
+    bool m_reduced_detail_hides_infill{ false };
     void read_reduced_detail_preferences();
     static libvgcode::EReducedDetailMode reduced_detail_mode_from_string(const std::string& mode);
     // in the solid model mode, the sliced objects are drawn as solid shapes instead of toolpaths
@@ -594,6 +596,12 @@ public:
     // while the user drags the camera or a slider, draw the reduced set, if the preference asks for one
     void set_interacting(bool interacting);
     bool is_reduced_detail() const { return m_viewer.is_reduced_detail(); }
+    // whether the shell mode would draw less than the full toolpaths; the OpenGL ES path has no reduced set
+#if SLIC3R_OPENGL_ES
+    bool shell_mode_hides_infill() const { return false; }
+#else
+    bool shell_mode_hides_infill() const { return m_reduced_detail_hides_infill; }
+#endif
     // the preference's string value: "off", "solid" or "shell"
     void set_reduced_detail_mode(const std::string& mode);
 

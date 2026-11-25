@@ -1845,7 +1845,8 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     // the shell drag mode hides the infill only where the profile covers it: with no top or bottom
     // shell, or no walls, the infill is the surface. Per-object settings are not consulted.
     const PrintRegionConfig& region = print.default_region_config();
-    m_viewer.set_reduced_detail_hide_infill(region.top_shell_layers.value > 0 && region.bottom_shell_layers.value > 0 && region.wall_loops.value > 0);
+    m_reduced_detail_hides_infill = region.top_shell_layers.value > 0 && region.bottom_shell_layers.value > 0 && region.wall_loops.value > 0;
+    m_viewer.set_reduced_detail_hide_infill(m_reduced_detail_hides_infill);
     // Orca hack: Hide filament group for non-bbl printers
     if (!print.is_BBL_printer()) m_nozzle_nums = 1;
     std::vector<int>         filament_maps = print.get_filament_maps();

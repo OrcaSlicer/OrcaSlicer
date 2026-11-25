@@ -553,6 +553,8 @@ private:
 		virtual void render_text(ImGuiWrapper& imgui,
 			                     const float win_size_x, const float win_size_y,
 			                     const float win_pos_x , const float win_pos_y);
+		// Draws every wrapped line of the text from the top of the window; returns the y of the row below it.
+		float render_text_lines(ImGuiWrapper& imgui);
 		virtual void render_close_button(ImGuiWrapper& imgui,
 			                             const float win_size_x, const float win_size_y,
 			                             const float win_pos_x , const float win_pos_y);
@@ -976,6 +978,9 @@ private:
 		void render_text(ImGuiWrapper& imgui,
 			const float win_size_x, const float win_size_y,
 			const float win_pos_x, const float win_pos_y) override;
+		// Collapsed, the window would hide the links with nothing to bring them back.
+		void render_minimize_button(ImGuiWrapper& /*imgui*/,
+			const float /*win_pos_x*/, const float /*win_pos_y*/) override { m_minimize_b_visible = false; }
 	};
 
 	class OrcaSyncConflictNotification : public PopNotification

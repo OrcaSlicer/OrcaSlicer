@@ -909,8 +909,8 @@ private:
     bool m_preview_interacting{ false };
     // watches those frames for a preview too slow to move without the reduced set
     PreviewFrameRateMonitor m_preview_frame_monitor;
-    // the slow preview notification is shown once per session
-    bool m_preview_slow_hint_shown{ false };
+    // the slow preview notification is shown once per run; static, so that rebuilding the GUI does not reset it
+    inline static bool s_preview_slow_hint_shown{ false };
 
     //BBS:add plate related logic
     mutable std::vector<int> m_hover_volume_idxs;
