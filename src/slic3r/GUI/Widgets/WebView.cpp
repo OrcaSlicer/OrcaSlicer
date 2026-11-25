@@ -528,22 +528,25 @@ void WebView::LoadUrl(wxWebView * webView, wxString const &url)
 
 bool WebView::RunScript(wxWebView *webView, wxString const &javascript)
 {
+    // A web view whose page is not created yet has nothing to run the script in.
+    void *backend = webView != nullptr ? webView->GetNativeBackend() : nullptr;
+    if (backend == nullptr)
+        return false;
+
     if (Slic3r::GUI::wxGetApp().app_config->get("internal_developer_mode") == "true"
             && javascript.find("studio_userlogin") == wxString::npos)
         wxLogMessage("Running JavaScript:\n%s\n", javascript);
 
     try {
 #ifdef __WIN32__
-        ICoreWebView2 *   webView2 = (ICoreWebView2 *) webView->GetNativeBackend();
-        if (webView2 == nullptr)
-            return false;
+        ICoreWebView2 *   webView2 = (ICoreWebView2 *) backend;
         return webView2->ExecuteScript(javascript, NULL) == 0;
 #elif defined __WXMAC__
-        WKWebView * wkWebView = (WKWebView *) webView->GetNativeBackend();
+        WKWebView * wkWebView = (WKWebView *) backend;
         Slic3r::GUI::WKWebView_evaluateJavaScript(wkWebView, javascript, nullptr);
         return true;
 #else
-        WebKitWebView *wkWebView = (WebKitWebView *) webView->GetNativeBackend();
+        WebKitWebView *wkWebView = (WebKitWebView *) backend;
         webkit_web_view_run_javascript(
             wkWebView, javascript.utf8_str(), NULL,
             [](GObject *wkWebView, GAsyncResult *res, void *) {
