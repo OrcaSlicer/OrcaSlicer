@@ -9,6 +9,7 @@
 	"instantiation": "true",
 	"compatible_printers": [
 		"Prusa CORE One 0.6 nozzle",
+		"Prusa CORE One L 0.6 nozzle",
 		"Prusa CORE One MMU3 0.6 nozzle"
 	],
 	"nozzle_temperature": [
