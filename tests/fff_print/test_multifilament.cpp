@@ -5,6 +5,7 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/TriangleSelector.hpp"
@@ -85,6 +86,49 @@ TEST_CASE("Painted filaments slice when the display palette is shorter than the 
         second_filament_present |= !layer[1].empty();
     }
     REQUIRE(second_filament_present);
+}
+
+TEST_CASE("Spiral vase mode prints a model painted all over with a filament other than its own", "[MultiFilament]")
+{
+    // Painting the whole cube leaves only filament 2. Painting half of it, or limiting the paint to a band near the
+    // walls, leaves two filaments, which spiral vase can't print. Beam interlocking turns the band off.
+    const bool all_over = GENERATE(true, false);
+    const std::string band_key = GENERATE("", "mmu_segmented_region_max_width", "mmu_segmented_region_interlocking_depth");
+    const bool beam = GENERATE(false, true);
+    CAPTURE(all_over, band_key, beam);
+    auto config = multifilament_config(2, {
+        { "spiral_mode",        1 },
+        { "enable_prime_tower", 0 },
+        { "skirt_loops",        0 },
+        { "brim_type",          "no_brim" },
+        { "gcode_comments",     1 },
+        { "layer_change_gcode", "G92 E0" },
+        { "interlocking_beam",  beam },
+    });
+    if (!band_key.empty())
+        config.set_deserialize_strict(band_key, "1");
+    Print print;
+    Model model;
+    init_print({cube(20)}, print, model, config);
+    ModelVolume *volume = model.objects.front()->volumes.front();
+    TriangleSelector selector(volume->mesh());
+    const int facets = int(volume->mesh().its.indices.size());
+    for (int facet = 0; facet < (all_over ? facets : facets / 2); ++facet)
+        selector.set_facet(facet, EnforcerBlockerType::Extruder2);
+    REQUIRE(volume->mmu_segmentation_facets.set(selector));
+    CHECK(volume->is_mm_painted_everywhere() == all_over);
+    print.apply(model, config);
+
+    const std::string error = print.validate().string;
+    if (!all_over || (!band_key.empty() && !beam)) {
+        CHECK_THAT(error, Catch::Matchers::ContainsSubstring("more than one material"));
+        return;
+    }
+    INFO(error);
+    REQUIRE(error.empty());
+    const std::string gcode = Test::gcode(print);
+    CHECK(tools_for_role(gcode, "perimeter") == std::set<int>{ 1 });
+    CHECK(tools_for_role(gcode, "infill") == std::set<int>{ 1 });
 }
 
 // X where the nozzle sits while each tagged _WAIT_FOR_TEMP_ON_WIPE_TOWER M109 blocks:
