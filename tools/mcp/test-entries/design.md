@@ -463,9 +463,12 @@ folder has them (`reset_switches()`), the window widened when the sketch ribbon 
 `reset_view()`'s camera. What follows the bed is read, not written out: `modeling_origin`, for the XY frame and the
 cameras that look at it, and where Commit to Plate places an object, which place compares only between two parts of
 one object. The rungs that read the Origin switch set it first: off for the plane refusals, on for the plane pick.
-replace starts a new project of its own (`project_new {discard_changes: true}`), so the objects it counts are its own.
-confirm_refused_add presses Commit to Plate by its label in assembly mode, the mode the folder keeps while no one
-picks another from the button's list. A Speed Dial pick names its action with its source, OrcaSlicer, so an action
+replace starts a new project of its own (`project_new {discard_changes: true}`), so the objects it counts are its own,
+and sketch_edit_failed_replace and action_pick_replay each replay their exported session into one. A new project shows
+Prepare, so each then shows the Design tab again in `reset_view()`'s camera (`CadGui.show_design()`): replace to press
+New Design on the tab's ribbon, and the two replays to start where their live session ran: a Design tab action, such
+as the pick action_pick_replay replays, runs only on that tab. confirm_refused_add presses Commit to Plate by its
+label in assembly mode, the mode the folder keeps while no one picks another from the button's list. A Speed Dial pick names its action with its source, OrcaSlicer, so an action
 of the same title that a plugin left in the folder adds is not taken. The dial closes when another window takes the
 focus, as it does for a person, and on a desktop the sweep's apps share, another test's app opening a dialog or
 starting takes it: `checks.dial_pick()` then opens the dial again and picks again, until the pick is taken or 90 s

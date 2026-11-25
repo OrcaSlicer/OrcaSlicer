@@ -497,6 +497,14 @@ def steps_of(path):
     return json.loads("\n".join(l for l in text.splitlines() if not l.lstrip().startswith("//")))["steps"]
 
 
+def replay_in_new_project(path, out_dir):
+    """replay_run's reply for the session replay_export wrote at `path`, replayed into a new project on the Design tab,
+    where the live session ran: a new project shows Prepare, which refuses a Design tab action as wrong_mode."""
+    gui.client.call("project_new", discard_changes=True)
+    gui.show_design()
+    return gui.client.await_job(gui.client.call("replay_run", path=path, out_dir=out_dir), timeout=900)
+
+
 def rung_sketch_edit_failed_replace():
     # The session the replay must reproduce starts on the empty design.
     gui.new_design()
@@ -521,8 +529,7 @@ def rung_sketch_edit_failed_replace():
     tools = [s["tool"] for s in steps_of(path)]
     gui.check("sketch_edit_failed_replace: the export keeps the sketch_finish that did not replace",
               tools.count("sketch_edit") == 1 and tools.count("sketch_finish") == 3, tools)
-    gui.client.call("project_new", discard_changes=True)
-    replay = gui.client.await_job(gui.client.call("replay_run", path=path, out_dir=out_dir), timeout=900)
+    replay = replay_in_new_project(path, out_dir)
     gui.check("sketch_edit_failed_replace: the exported session replays", replay.get("passed") is True,
               [s for s in replay.get("steps", []) if not s.get("ok")][:1])
     replayed = [f["type"] for f in gui.cad("design_describe")["features"]]
@@ -1772,8 +1779,10 @@ def refusal(call):
 def rung_replace():
     # design_commit_to_plate's replace deletes as Prepare's Delete does: a part of a cut is refused before anything
     # changes, naming it, a replacing commit is one Prepare undo step, and it leaves the selection a plain commit
-    # leaves, on the canvas and in the Objects list, in the Prepare view it was called in.
+    # leaves, on the canvas and in the Objects list, in the Prepare view it was called in. The new project shows
+    # Prepare, and New Design is on the Design tab's ribbon.
     gui.client.call("project_new", discard_changes=True)
+    gui.show_design()
     gui.new_design()
     gui.cad("solid_extrude", distance=10, width=30, height=20)
     gui.cad("solid_extrude", distance=10, operation="new_body", profile=[[60, -5], [70, -5], [70, 5], [60, 5]])
@@ -1990,8 +1999,7 @@ def rung_action_pick_replay():
               len(picks) == 1 and picks[0]["args"].get("id") == "orca_command:sk_array_polar:orca"
               and picks[0]["args"].get("args") == {"type": "circular"}, picks)
     gui.cad("sketch_cancel")
-    gui.client.call("project_new", discard_changes=True)
-    replay = gui.client.await_job(gui.client.call("replay_run", path=path, out_dir=out_dir), timeout=900)
+    replay = replay_in_new_project(path, out_dir)
     gui.check("action_pick_replay: the exported session replays", replay.get("passed") is True,
               [s for s in replay.get("steps", []) if not s.get("ok")][:1])
     gui.check("action_pick_replay: the replayed pick arms the polar array tool", gui.sketch()["tool"] == "array_polar",
