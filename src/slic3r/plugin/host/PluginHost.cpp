@@ -4,6 +4,9 @@
 #include <pybind11/pybind11.h>
 #include <slic3r/plugin/PluginAuditManager.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
+#include <slic3r/GUI/GUI_App.hpp>
+#include <wx/app.h>
+#include <wx/thread.h>
 
 #include <stdexcept>
 #include <string>
@@ -26,6 +29,17 @@ void register_plugin(pybind11::module_& host)
             return PluginManager::instance().get_storage_dir(plugin_key);
         },
         "Return the installed folder of the current plugin.");
+
+    plugin_host.def("request_update", []() {
+        const std::string key = PluginAuditManager::instance().current_plugin();
+        if (key.empty())
+            throw std::runtime_error("plugin.request_update() must be called from a plugin callback");
+        if (!wxIsMainThread())
+            throw std::runtime_error("plugin.request_update() must be called from the UI thread");
+        if (wxTheApp == nullptr)
+            throw std::runtime_error("OrcaSlicer application is not initialized");
+        return GUI::wxGetApp().request_plugin_update(key);
+    }, "Queue an update of the calling cloud plugin. True means queued, not installed. UI-thread callbacks only.");
 }
 } // namespace host_bindings
 

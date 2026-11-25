@@ -53,6 +53,13 @@
 
 namespace py = pybind11;
 
+TEST_CASE("Plugin update requests require the calling plugin context", "[PluginHost][Python][PluginUpdateRequest]")
+{
+    py::module_ orca = import_orca_module();
+    REQUIRE(py::hasattr(orca.attr("host").attr("plugin"), "request_update"));
+    REQUIRE_THROWS_AS(orca.attr("host").attr("plugin").attr("request_update")(), py::error_already_set);
+}
+
 namespace {
 
 // import_orca_module() lives in python_test_support.hpp (shared with

@@ -237,6 +237,8 @@ public:
     // are refreshed by the normal open path instead. The web page merges the new state into
     // the Permissions rows, with unsaved text taking precedence until it is saved or reverted.
     void refresh_permissions_if_visible();
+    // Host-owned entry point, invoked only after the requesting Python callback returned.
+    void request_update(const std::string& plugin_key);
 
 private:
     void open_plugin_on_cloud(const std::string& sharing_token);
@@ -285,7 +287,7 @@ private:
     // Turns the pending "Activating..." status into "Activated"/"Failed to activate" once an
     // asynchronous plugin load reported via update_plugin_dialog_ui() finishes. No-op otherwise.
     void resolve_pending_activation();
-    void update_plugin(const std::string& plugin_key);
+    void update_plugin(const std::string& plugin_key, const std::string& version = "");
 
     void open_plugin_folder(const Slic3r::PluginDescriptor& plugin);
     void delete_local_plugin(const Slic3r::PluginDescriptor& plugin);

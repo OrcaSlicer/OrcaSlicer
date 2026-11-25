@@ -38,6 +38,7 @@ add_executable(${_TEST_NAME}_tests
     test_action_source.cpp
     test_option_state_registry.cpp
     test_plugin_host_api.cpp
+    test_plugin_update_request.cpp
     # Exercise seam enums and predicates through the embedded Python host API.
     test_precise_seam_plugin.cpp
     test_plugin_capability_config.cpp

@@ -68,6 +68,7 @@ struct wxLanguageInfo;
 namespace Slic3r {
 
 class AppConfig;
+class PluginUpdateRequests;
 class FilamentColorCodeQuery;
 class PresetBundle;
 class PresetUpdater;
@@ -652,6 +653,7 @@ public:
 
     PresetBundleDialog* m_preset_bundle_dlg{nullptr};
     PluginsDialog* m_plugins_dlg{nullptr};
+    std::unique_ptr<PluginUpdateRequests> m_plugin_update_requests;
     SpeedDialWebDialog* m_speed_dial_dialog{nullptr};
     TerminalDialog* m_terminal_dlg{nullptr};
     std::unique_ptr<ActionRegistry> m_action_registry;
@@ -727,6 +729,7 @@ public:
     void            open_preferences(PreferencesTab tab, const std::string& highlight_option = std::string());
     void            open_presetbundledialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     void            open_plugins_dialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
+    bool            request_plugin_update(const std::string& plugin_key);
     // Called on the GUI thread after an audit prompt stores a grant outside the Plugins dialog.
     // Refreshes an existing dialog instance; never creates or raises it.
     void            notify_plugin_permissions_changed(const std::string& plugin_key);
