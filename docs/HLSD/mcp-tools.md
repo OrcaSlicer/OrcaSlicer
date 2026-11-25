@@ -91,6 +91,13 @@ them and `tool_call` runs them.
 | `action_list` | List what the Speed Dial runs, by section and title: the commands' actions, plates, recent projects, plugin scripts and pages, and settings on request | `section`, `include_settings` |
 | `action_run` | Run one of those by its id, as a person's pick does | `id`; `args`: none, or exactly the action's |
 
+`tool_list` and `tool_describe` read the catalog without the UI thread, so they answer while the app is busy or a
+dialog is open. In a manual, a parameter's `required` is true, false, or the condition in words where a schema rule
+decides it; `default` is the schema's alone, a default the command applies itself being in its description;
+`goes_with` names the `type` or `target` a parameter belongs to; and an object's `other_keys` is false when it takes
+nothing beside its properties, true when it takes anything, or the shape of the values it takes. `rules` gives the
+schema's conditional parts as sentences, and says whether other arguments are accepted.
+
 ### The app
 
 | Command | What it does | Variants and main arguments |
@@ -116,14 +123,18 @@ them and `tool_call` runs them.
 | `project_new` | Start a new, empty project | `discard_changes`; `preset_changes`: keep, discard |
 | `project_save` | Save the project to its file, or as a .3mf at a path, which becomes its file | `path`, `overwrite`; `save_as` |
 | `project_export` | Write a plate's G-code, a sliced 3MF, a 3MF, the objects as STL or Draco, or the shown toolpaths as OBJ | `format`: gcode, sliced_3mf, 3mf, stl, drc, toolpaths_obj; `path`, `overwrite`; `plates`; `per_object`, `objects` |
-| `project_get_settings` | The project's own settings for its plates: the plate type, prime tower positions and filament grouping | `keys`, `include_meta` |
+| `project_get_settings` | The project's own settings for its plates: the plate type, prime tower positions and filament grouping (read only: every plate carries its own, which `plate_set_settings` sets, so a project-wide one would change no slice) | `keys`, `include_meta` |
 | `project_set_settings` | Change those settings as their controls write them | `values` |
+
+`project_set_settings`'s `curr_bed_type` goes through the plate type selector, so it also sets the printer's
+remembered plate type and the plates on the global type. It takes only the types the selector offers
+(`meta.offered`), and none while the selector is hidden for the printer.
 
 ### Objects
 
 | Command | What it does | Variants and main arguments |
 |---|---|---|
-| `object_list` | The project as the Objects panel lists it, plate by plate: each object's index, id, name, filament, part count, size and instances; with `detail`, its instances, parts, overrides, mesh errors, height ranges and layer height profile | `plate`, `detail`, `screen` |
+| `object_list` | The project as the Objects panel lists it, plate by plate: each object's index, id, name, filament, part count, size and instances; with `detail`, its instances, its parts (a single one too, which the panel folds into the object's row, since painting, a part's filament and its settings address the part), overrides, mesh errors, height ranges and layer height profile (its point count and extreme heights; the points stay in the project file) | `plate`, `detail`, `screen` |
 | `object_select` | Select objects, instances or parts in the 3D view, as clicks do, or everything or nothing | targets, `add`; `all`, `none` |
 | `object_transform` | Move, rotate or scale one instance, or one part | `object`, `instance`, `part`; `translate`, `position`, `rotate`, `scale`, `size`, `plate`; `mode`: relative, absolute; `drop_to_bed` |
 | `object_add_primitive` | Add a primitive shape as a new object, as Add Primitive does | `shape`: cube, cylinder, sphere, cone, disc, torus; `size`, `position`, `plate`, `name` |
@@ -157,11 +168,18 @@ them and `tool_call` runs them.
 | `object_set_height_ranges` | Replace an object's height range modifiers | `object`, `ranges` |
 | `object_set_variable_layer_height` | Run the Variable layer height panel's Adaptive, Smooth or Reset on an object | `action`: adaptive, smooth, reset; `object`; `quality`; `radius`, `keep_min` |
 
+`object_arrange` refuses a locked or an empty plate given by index. An arrange of every plate skips the locked plates
+and those that print in another sequence than the project, and a plate in another sequence arranged alone gets
+automatic spacing, which its `note` says. `object_set_height_ranges` refuses overlapping ranges, which the slicer would
+trim without a word, and keeps a range above the object, which slicing cuts, as the object list keeps it.
+`object_set_variable_layer_height` needs what its toolbar item needs, an FFF printer and the object above the bed, and
+its refusal names what is missing.
+
 ### Parts
 
 | Command | What it does | Variants and main arguments |
 |---|---|---|
-| `part_add` | Add a part, a negative part, a modifier, a support blocker or enforcer, or a precise seam to an object: a primitive shape, or a model file | `type`: part, negative, modifier, support_blocker, support_enforcer, precise_seam; `shape` and `size`, or `path`; `object`, `position` |
+| `part_add` | Add a part, a negative part, a modifier, a support blocker or enforcer, or a precise seam to an object: a primitive shape, or a model file other than an SVG, whose parts `object_add_svg` adds through the SVG gizmo, which places them where the camera looks | `type`: part, negative, modifier, support_blocker, support_enforcer, precise_seam; `shape` and `size`, or `path`; `object`, `position` |
 | `part_change_type` | Change what parts are, as Change Type does, and a precise seam's subtype | `type`, as `part_add` takes it; `subtype`: center, left, right, enforced, blocked, neutral; `parts` |
 | `part_replace` | Replace a part's mesh with a model file's, keeping its settings, type, filament and placement | `object`, `part`, `path` |
 | `part_boolean` | Open the Mesh Boolean gizmo on an object of two parts or more | `object` |
@@ -184,6 +202,13 @@ them and `tool_call` runs them.
 | `plate_set_custom_gcode` | Add or remove pauses, custom G-code, templates and filament changes at layers, as the layer slider's menu does | `plate`; `add`, `remove`, `clear` |
 | `plate_slice_stats` | What the Preview shows for a sliced plate: the summary, and times and weights per feature, per layer and per object | `plate`; `include`: features, layers, layer_features, objects, view |
 
+`calibration_generate_test` with `preset_changes: "keep"` refuses while the filament tab edits another slot's modified
+preset. Staying in the test project, `settings_set {reset_all: true, values}` with the preset's `type` drops the
+test's settings and sets a measured value in one call. `plate_set_settings` applies the dialog's OK only when a value
+changes, so a call that changes nothing leaves the project clean; the plate tab's `skirt_start_angle` is not among its
+keys. In `plate_list`'s `layer_gcode`, a code's `z` is rounded to the G-code's 0.001 mm, and its `layer` is left out for
+a code above the top layer.
+
 ### Presets and settings
 
 | Command | What it does | Variants and main arguments |
@@ -203,6 +228,28 @@ them and `tool_call` runs them.
 | `settings_set_mode` | Switch the settings view to Simple, Advanced or Expert | `mode`: simple, advanced, expert |
 | `settings_toggle_developer_mode` | Turn Developer mode on or off; a menu item, not listed |  |
 
+An agent finds a setting by what it does: `settings_list_pages {type}` gives a tab's pages and groups, and
+`settings_list {type, where}` a group's settings with their values and meta, whose `description` is the setting's
+whole tooltip and `where` its page and group. There is no search by words, since a goal's words ("add a brim", "stop
+the ooze") are seldom a setting's, and an agent matches what it wants against what each setting does better than a
+match of words does. The help text comes with the value rather than from a command of its own because that is where
+agents look: in the bench, agents read settings three to five times as often as they called a separate explanation
+tool, and with the tooltips out of the reads they set a draft shield without skirt loops and a support threshold
+measured from the wrong side. So that replies stay small, only the keys a call names or lists by their group carry
+meta: `settings_list` without `where` gives values alone, since an agent listing every setting is scanning values,
+and `settings_get` with none of `keys`, `compare` or a target is refused, so `settings_list` is the one listing. An
+enum's meta lists `labels`, the texts its combo shows, in the order of `values`, so a person's wording maps to a value.
+`compare`'s `:saved` and `:parent` never clash with a preset, since no preset name holds `:`.
+
+A printer's extruder settings are on its one Extruder page whatever its number of extruders: `where` names the page
+("Extruder > Retraction"), and each extruder's value is in `value` and `meta.variants`. `settings_get`'s `compare`
+follows the Compare presets dialog: a printer's or a filament's vectors are compared entry by entry, an item then
+carrying `index`, and a printer with fewer extruders is compared from the other side. `preset_delete` refuses a
+printer preset while a physical printer is selected, whose Delete only takes the preset off that printer.
+`preset_save` of a printer preset points the selected physical printer at the new preset, as the dialog's default
+does. `preset_select` of a printer the selectors hid also shows its model's default filaments when no shown filament
+suits it, so the switch lands on one of them.
+
 ### Filaments
 
 | Command | What it does | Variants and main arguments |
@@ -217,6 +264,14 @@ them and `tool_call` runs them.
 | `filament_sync_ams` | Synchronize the filament list from the connected printer's AMS | `mode`: map, overwrite |
 | `filament_install` | Install system filaments, as the System Filaments dialog's Confirm does | `names`; or `vendor` and `filament_type` |
 | `filament_uninstall` | Uninstall system filaments | `names` |
+
+A mixed filament's slot holds no preset of its own: it has no selector and no filament tab, so `filament_list` gives
+its row none, `preset_list`'s `filament_slots` leaves it out, `preset_select`, `settings_get`, `settings_set`,
+`settings_list` and `preset_save` refuse it (`mixed_filament_slot`), and `plate_set_settings` refuses a custom
+filament order while a slot is mixed, where the Plate Settings dialog greys it. With the Auto flush after changing
+preference on, the flushing volumes are recalculated when a slot's colour changes, when a slot is added and, by the
+preference, when a slot's preset changes, so set the matrix last; a replay of such calls matches only on a datadir
+with the same preference. `filament_sync_ams` refuses a printer of another model than the project's.
 
 ### Printers and prints
 
@@ -244,6 +299,13 @@ them and `tool_call` runs them.
 | `plugin_uninstall` | Remove a plugin for good, unsubscribing a cloud one | `plugin` |
 | `plugin_refresh` | Rescan the installed plugins and fetch the plugin hub's list again, then reply with the plugins |  |
 
+A plugin's code calls the commands through `orca.host.tools` as an agent does, scoped to the plugin: `replay_export`
+is refused, `job_cancel` and `app_wait {for: "job"}` act only on its own jobs, and the rules, recordings and held
+presses its calls leave end when it unloads, from which moment its calls are refused. An operation a plugin offers
+(`plugin.<plugin>.<name>`, which `tool_list` lists and `tool_call` runs) runs as a job: as a change, refused behind a
+dialog and journaled, when the plugin declares that it changes something, else as a read. A call of an operation
+whose plugin has unloaded, or loaded again since, is refused.
+
 ### View and windows
 
 | Command | What it does | Variants and main arguments |
@@ -253,6 +315,27 @@ them and `tool_call` runs them.
 | `window_open` | Open one of the app's windows or dialogs for a person, as its menu item does | `window`: preferences, plugins, action_replay, preset_bundle, keyboard_shortcuts, setup_wizard, network_test, troubleshoot, tip_of_the_day, about; `tab` and `key` for preferences |
 | `window_list` | The open windows: the main window, then those that don't block the app, then the modal dialogs, the topmost last |  |
 | `window_set` | Size, move, maximize, minimize or raise a window | `target`; `size`, `position`; `state`: normal, maximized, minimized; `raise` |
+
+- **Units.** `window_set` takes sizes and positions in the units `window_list` and `app_state` report: physical
+  pixels on Windows, points on macOS, logical pixels on Linux. A negative position is a place on a screen left of or
+  above the primary one, and a window without a resize border is resized all the same.
+- **Raising.** On macOS `maximized` is the window's zoomed state, not full screen. OrcaSlicer never activates itself
+  for `raise`, which would take the keyboard from the person's app: while another app is active, the window comes in
+  front of OrcaSlicer's own windows only and `active` reads false. On Windows `raise` may only flash the taskbar
+  button while another app has the focus. No command needs the window active: a capture reads a covered window whole,
+  and input goes through the app.
+- **Wayland.** A window has no position: `window_set` refuses `position`, and `window_list`, `window_set` and
+  `app_state.window` leave positions out; run OrcaSlicer with `GDK_BACKEND=x11` to have them. A window the person
+  minimized from the desktop reads `normal`. `normal` and `raise` bring a minimized window back only while the
+  compositor lets OrcaSlicer take the focus; otherwise the reply reads `minimized`, with a note that the person
+  restores it from the taskbar, or `active: false`. sway never minimizes a window.
+- **The camera.** `camera_state`, in `view_set`'s reply as in `app_state.camera`, gives `click_px_per_mm`, the zoom in
+  the logical pixels `widget_click` and `mouse_gesture` take; `type`, which says whether `zoom` holds across the whole
+  view (orthographic) or only at the depth of `look_at` (perspective); and `elevation` and `azimuth` in `orbit`'s
+  convention, a camera straight above reading 90. The reply also echoes the `camera` and `orbit` it was given, which a
+  replay checks. A `look_at`, `orbit` or `zoom` given right after a tab switch, a new project or a load first waits for
+  the fit those queue on the camera, and a `camera` for the view to have drawn at its size; past a short wait the call
+  applies its fields anyway and says in a `note` which of the two it did not see.
 
 ### Recordings, replays and scripts
 
@@ -283,6 +366,104 @@ them and `tool_call` runs them.
 | `dialog_answer` | Press a button of the topmost modal dialog, or of the one whose title is given | `button`; `dialog` |
 | `dialog_auto_answer` | Answer modal dialogs whose title or message matches a rule, from now on | `rules` |
 | `webview_run_javascript` | Evaluate JavaScript in one of the app's web views | `code`; `target`; `timeout_s` |
+
+How the server sees and drives the GUI is in mcp-server.md, GUI automation. What a caller meets:
+
+- **The tree.** `widget_list` returns its tree as a text block of its result beside the JSON reply, one element per
+  line with its ref. A control reads `[checked]` or `[unchecked]`, or `[mixed]` for a checkbox that shows neither (an
+  unset nullable setting). An option of a selector Orca builds of buttons (a radio group, a tab bar, a multi-switch)
+  is a button that reads checked while it is the selected one, and a switch with a label at each end has the label it
+  is on as its value.
+- **Locators.** A ref may also be given as `{ref: "w12"}`. A widget of the main window takes no `within`, since that
+  window's title follows the project name. A label that matches both a row and the one field it names resolves to the
+  field. A web view itself is named by its kind, `{class: "webview"}`, since its class differs per platform;
+  `widget_click` and `widget_set_value` refuse a web view's own ref and point to its page's elements, and
+  `keyboard_press` aimed at it types into its page's focused element.
+- **Menu paths.** A menu path, as `{menu}` and `popup_item` take it, is the item labels joined with `>` in the UI
+  language, matched in any case, each label without the shortcut key the menu shows after it and with a trailing
+  `...` optional, so a path is the same on every platform. A label repeated among its siblings is numbered from its
+  second time on (`Change Filament>Generic PLA #2`), and the " (current)" marker the Change Filament list gives the
+  slot in use is left out. A path that names a submenu, a disabled item or nothing fails with the items to pick from,
+  and so does a `popup_item` when the input opened no menu: a right click on empty space opens none while objects are
+  selected, in the Preview, or with a gizmo open.
+- **Menus an input call opens.** An input call takes only the first menu it opens. A later menu in the same call is
+  closed unseen and counted under `menus_closed`, and so is one that opens when no call is waiting for it (a call
+  that queues a menu to open later); `app_state.closed_menus` keeps the last three, each with the tool that took it.
+  A `popup_item` of the 3D view's right-click menu that opens a dialog leaves it open when the call returns, and the
+  reply lists it under `dialogs`. The items of an object's context menu that no command does are reached by a right
+  click on the object in the 3D view, or on its row of the object list, with `popup_item`.
+- **Rows.** A row locator's labels go from the top, joined with `>`, or as an array when a label holds `>`, and may
+  leave out the labels above (the plate above an object). The object list's rows show only while the sidebar's
+  Global/Objects switch is on Objects (a switch `widget_list` names by the "Process" beside it). In the object list a
+  click on the Sinking column drops the object and one on Editing resets the row's own settings, as one on Printable
+  toggles printability; a double click frames the object, or on the Filament column opens the filament editor. A
+  table's cells are only made current, never edited: `settings_set` with the target `object` writes the same values.
+  A screenshot of a widget inside a popup (a drop-down list, the print button's menu) is refused; a screenshot of the
+  window the popup opened from shows it.
+- **Plate icons.** A plate icon takes clicks only in the Prepare view, and not while variable layer height is being
+  edited or a gizmo is open, where the canvas takes none; an icon the plate does not show (plate settings turned off,
+  filament grouping without two nozzles, IDEX mode off) is refused by name. A click on the plate itself, on move to
+  front or on delete replies the plate that is then `current` (delete also the plate count), and one on the IDEX icon
+  its mode. `started: false` says an arrange or orient click started nothing, with a note when an arrange that was
+  cancelled or failed left the arrange icon stuck, which `object_arrange` gets past. A right click opens the plate's
+  menu, or the IDEX icon's mode menu, as `popup_menu`.
+- **ImGui items.** A field that asks for the keyboard as it first shows takes it a frame later, and keys sent before
+  then are lost, so type into it once `widget_list` marks it `[focused]`. An ImGui item's locator takes its shown
+  label when no other item of its window shares it, else its name (the label's `##` part, or the English name Orca
+  gives a control with no label), else both; panel text is listed but never matched. Controls with the same name in
+  one panel are told apart by their order, so a recorded target among them is not found once their number changes,
+  and after a reorder names the control in its place.
+- **Gizmos.** A `gizmo` locator takes the name `app_state.gizmo` gives, or the English title of its toolbar button
+  where that differs (Support Painting for `FdmSupports`), in any case, and a reply uses the first. Simplify and SVG,
+  which are not on the toolbar, are listed on the Prepare canvas while they can open: Simplify while it can, SVG on a
+  selected SVG part.
+- **Where a `mouse_gesture` may start.** With `check: "surface"` a model point must lie on the part, above the bed
+  and on the side a clipping plane keeps, with nothing in front of it (the plates count only while the camera looks
+  down). A gesture that starts under an ImGui window (a gizmo panel, a notification, an open popup) is refused, naming
+  it. A pixel given as `x`/`y` is not checked, except in a painting gizmo, where a down or drag that starts off the
+  object being painted is refused, naming the first pixel along the stroke that lands on it, so a stroke swept in from
+  outside is retried in one call.
+- **Held presses.** A held press also ends when a gesture fails, when the replay or script that pressed it ends, and
+  when the client that pressed it disconnects. A press on a web page also ends with any click, `dialog_answer` or
+  auto-answer press, even one then refused, while keys and typing leave it held. Only the press is hit tested, so a
+  drag split across calls may move and end outside the element.
+- **A dialog's message.** A dialog's message is at most 2000 bytes, cut at a character with `...`. A list shows up to
+  25 rows, then a line pointing to `widget_list` for the rest; a gauge reads `[45%]`, a read-only field as its text, and
+  a notebook as its tabs, `(*) A | ( ) B`, followed by the page shown. A URL in a field shows without its credentials.
+  An icon option of a selector is named by its tooltip, which `dialog_answer` takes whole even where a cut message
+  shows only its start. Text that custom widgets paint themselves is not in the message (the AMS mapping items,
+  `RecenterDialog`'s explanation, Preferences' row labels, icon buttons with no label); a screenshot shows it. Colour
+  and font choosers are wx dialogs on Linux, which `dialog_answer` ends, and the system's own on macOS and Windows,
+  best answered ahead with a `dialog_auto_answer` rule.
+- **Auto-answer rules.** A path rule bypasses the picker's own overwrite question, and a caller that refuses the name
+  and asks again (exporting G-code, for characters a FAT file system can't hold) is answered with the same path again.
+  It answers a picker only as it opens, never one already open. GTK's own file chooser button, as in the SLA import
+  dialog, opens its dialog without the hook, so no rule answers it. A wx dialog whose matched button is disabled by the
+  time its loop runs stays open, and so does one a modal opened above first; `dialog_answer` then answers it. When a
+  new rule matches a dialog already open but the first rule naming one of its buttons finds that button disabled or
+  hidden, the dialog stays open and `answered_open_dialog` says `disabled: true` or `hidden: true`.
+- **Web page locators.** A `{web}` locator matches a text line only when no element matches, and `css` is matched
+  through shadow roots and frames. A field with no name of its own in a table cell, such as an entry of the flushing
+  volumes matrix, is named `row / column` by its row's and its column's headers. While another page that could hold
+  the element has not answered, a match is refused, since its uniqueness and `index` are unknown; `within` or a ref
+  narrows the search.
+- **What a page call does not reach.** A web view in a popup window (the setting tooltip's help), a dialog's hidden
+  web view (the dialog is answered as a wx dialog), and cross-origin frames other than plugin configuration UIs, which
+  are listed but not read; a read-only field takes no typed text. Points in a frame that a CSS transform or zoom
+  scales are placed as in the untransformed frame. A page button whose handler outlasts `dialog_answer`'s 3 s may
+  still be running when `cancel` or `close` ends its dialog.
+- **The windows a person keeps.** The Run Script panel, the Agent Activity pane and the Python scripts dialog are the
+  person's, as are the prompts and file dialogs of Action Replay and the Run Script panel: `widget_list`, locators and
+  `webview_run_javascript` don't reach them, a key sent without a target never goes into them, no auto-answer rule
+  answers them, and `window_list` lists a floating pane as hidden, with no ref. Docked, the two panes show in the main
+  window's screenshots and recordings; floating, they don't. Action Replay's window itself is reached as the app's
+  other windows are: `keyboard_press Escape` on its ref closes it.
+- **URLs and timeouts.** A URL a reply shows (`navigated`'s, `webview_run_javascript`'s `url`, a web view's value in
+  `widget_list`) reads `REDACTED` for its user info and for each query or fragment parameter whose name has a
+  credential word in it, as a plugin page's bridge token would. A page call that times out says whether the page
+  refused it unrun, having reached it past its deadline, or never answered, when whether it ran is unknown. A slow
+  page call working in the topmost dialog replies `running`, not `blocked_by_dialog`, while that dialog stays the
+  topmost.
 
 ## The arguments
 
@@ -364,8 +545,13 @@ lacks is refused in the same words by every command, which give the plates there
 - Every schema is closed: an argument a command does not have is refused, unless the server reads it as one
   the command has. Before validating, the server reads what agents commonly send in place of the schema's
   form, where the call leaves the schema's argument out and the value fits it: `object` as `objects`, `plate`
-  as `plates`, `key` as `keys`, `settings` as `values`, `filter` as `query`, `ref` as `target`, and others
-  (mcp-server.md, Transport). The journal records the schema's form.
+  as `plates`, `key` as `keys`, `settings` as `values`, `filter` as `query`, `ref` as `target`, `text` as
+  `value`, `action` as `id` or `button`, and `path` as `save_path` where the command has no `path` of its own. A
+  value in another JSON form is converted: a number, boolean, array or object written as a string, an index as a
+  string where a name may also go (`"0"` for a plate), a single item for an array, also where null may stand for
+  the array. A value outside its argument's enum moves to the one other argument whose enum takes it, when the
+  call leaves that one out: `view_set`'s `canvas: "front"` is its `camera`. What still does not fit is refused.
+  The journal records the schema's form.
 - A null argument is an argument not given.
 - An argument of one variant is refused with another: `per_object` with a `format` other than stl or drc,
   `fill_with` without `fill_object`, `quality` with an `action` other than adaptive, `descending` with
@@ -373,7 +559,8 @@ lacks is refused in the same words by every command, which give the plates there
 - A path is absolute, and the folder of an output must exist. `overwrite: true` is what replaces something
   that exists: a file for `project_save`, `project_export`, `window_screenshot`, `replay_export`,
   `recording_start`, `recording_encode` and `gizmo_pick_file`, another preset for `preset_save`, an installed
-  plugin for `plugin_install_local`.
+  plugin for `plugin_install_local`. A screenshot or recording saved without `save_path` goes in the session's
+  output folder: the `--outputdir` folder of a `--run` launch, else `<datadir>/automation/out`.
 
 ### How a failure shows
 
@@ -403,7 +590,8 @@ lacks is refused in the same words by every command, which give the plates there
 - A call that opens a modal dialog replies `{status: "blocked_by_dialog", job, dialogs}`, and the caller
   answers the dialog (`dialog_answer`), after which `app_wait {for: "job"}` returns the call's result.
 - A call whose work outlasts the reply budget (45 s) replies `{status: "running", job}`, and
-  `app_wait {for: "job"}` returns its result; `job_cancel {job}` stops it.
+  `app_wait {for: "job"}` returns its result; `job_cancel {job}` stops it. While the server's slots for calls that
+  may block are all taken, a job call replies `running` at once and any other call `{status: "pending"}`.
 - A direct `tools/call` of an unknown command is a JSON-RPC error that names the closest commands; an unknown
   command given as an argument (`tool_call`'s `tool`, a script's call) is an `isError` result with
   `invalid_argument`, as above.
@@ -492,7 +680,7 @@ These open a dialog or a gizmo whatever their arguments, and the caller answers 
 - **Opening is not a toggle.** The gizmo already open on the same target stays open, and the reply is the same; a
   click on its icon would close it.
 - **A gizmo that cannot open says why**, in the gizmo's own condition, and the selection is put back as the call found
-  it: `needs_two_parts` for Mesh Boolean, `needs_two_filaments` for Color Painting, `needs_fff_printer` for the
+  it, with no undo step: `needs_two_parts` for Mesh Boolean, `needs_two_filaments` for Color Painting, `needs_fff_printer` for the
   painting gizmos, `needs_one_instance`, `needs_one_part`, `needs_instance_or_part`, `needs_selection`,
   `layers_editing_on`, `dowel_alone`.
 - **A call that acts closes the open gizmo first**, as Perform cut does, since a gizmo writes its own state to the
@@ -527,6 +715,14 @@ one; a refusal after that makes the plate that was current before current again.
 The dialog is left to the client: the printer, bed levelling, flow calibration, timelapse, the AMS mapping and the
 button that prints, or the file name, the storage and the button that sends. Nothing prints or sends until that
 button is pressed.
+
+A printer's print host is a printer setting (`host_type`, `print_host`, `printhost_apikey`, and `bbl_use_printhost`
+on a Bambu printer), which `settings_set {type: "printer"}` writes. An upload is a row of `app_state.uploads`, a
+person's uploads included: `id` (the queue's ID column, from 1), `state` (`queued`, `uploading`, `error`,
+`cancelling`, `cancelled` or `completed`), `progress` (percent), `host`, `filename` and the queue's `error`. A row
+reads `completed` only once the host has accepted the file, so a host that refuses it after the last byte turns the
+row to `error` without it reading completed on the way. A failed upload also opens the queue's error dialog, which
+holds every change until `dialog_answer` closes it.
 
 `printer_status`, `print_pause`, `print_resume` and `print_stop` act on the printer the Device tab is connected to
 (`DeviceManager::get_selected_machine()`), whether or not the tab is shown, and open nothing. With none connected
@@ -617,7 +813,35 @@ with each plate. An action of `object_order` reverses the order the objects alre
   Dial action of today is still a command's action" holds each one to its title, section, icon and value.
 - An action runs its command with its arguments, with the MCP server on or off. `action_run` takes no `args`
   for an action, or exactly the action's, or the value of an action that collects one, and journals the step
-  as that `action_run`, so a replay runs it again.
+  as that `action_run`, so a replay runs it again. Its reply names the action that ran (`ran`), only when the
+  command ran.
+- A step does the same on another machine. A command's defaults are fixed values, never what a person last set in a
+  dialog or a panel (a primitive's built-in size, the Variable layer height panel's defaults, filament slot 1), and
+  where a call takes values from the app's saved state the journal records the values it ran with:
+  `object_arrange`'s arrange settings, `calibration_generate_test`'s parameters with their defaults, the plate
+  `plate_set_settings` and `plate_set_custom_gcode` resolved. A value the presets give is left out, so that the
+  replay computes it again from its own presets (a pressure advance pattern's acceleration and speed).
+- How `replay_run` runs its steps: a string that is just one placeholder becomes the JSON value it names, and a
+  `script_run` step's `code` is never substituted. A nested `replay_run` step gives its replay as an object, since
+  placeholders are spliced into a replay's text as plain text, where a quote or a Windows path's backslash would
+  break its JSON. A step that returns a job is awaited up to its `timeout_s` (default 120); a wait that times out
+  with a dialog open names it, since a step can't answer a dialog it opened, which `"await": false` lets later steps
+  do. An `app_wait` on a call that finished within its reply budget gives that step's result at once. A `script_run`
+  step whose outcome is not `finished` fails. A stop fails the step it came in as `cancelled` and ends the run,
+  `optional` or not, nested replays included.
+- `replay_run`'s reply lists each step as `{index, tool, args, ok, duration_ms, result | error, expect_failure,
+  cancelled, reason}`. A failed step's `reason` says why in parts a host can word: `cancelled`, `timeout {seconds}`,
+  `expect {pointer, op, expected, actual, exists}`, `expect_invalid`, `placeholder {text}`, `missing_job {name,
+  saved_by}` (the step that saves that job, when one does) or `tool`, the tool's own error. A replay whose recording
+  was still being written when it ended names the file as `unfinished_recording`, since an encode of it would fail.
+- A replay naming an unknown tool, with a field of the wrong type or with broken JSON (reported with its line and
+  column), or of a format version this build can't read (saying whether a newer OrcaSlicer is needed), is refused
+  before any step runs.
+- A call whose job was still running when a later call acted on a modal dialog stays in `replay_export`'s replay as
+  an `"await": false` step, since that dialog may be its job's, and each call that acted with a dialog open is
+  preceded by `app_wait {"for": "dialog"}`, since its replayed reply can come before the dialog opens. The journal
+  keeps only a session's latest calls (mcp-server.md, Replays and the journal), so an export of a very long session
+  starts partway through.
 - A call of a command with exactly an action's arguments is titled as that action wherever a person is shown
   the call: a job notice, a recording's caption, an Action Replay step.
 - An action picked by a person runs in place, on the UI thread, but for a long command's: Slice and Preview
@@ -665,31 +889,103 @@ set as it is):
   `object_separate_instances` add their objects last; an arrange or `object_order` may reorder them. Each
   reply gives the indices afterwards, and `object_delete` lists under `kept` what it was asked for and did not
   delete. Ids stay with what they name: pass them beside indices (see Targets and the selection).
+- **Placement.** `object_transform` on an instance rotates and scales that instance alone, where the Object
+  manipulation panel applies a rotation or a scale to every instance of the object. `object_list`'s `mirrored` says a
+  placement is mirrored, not along which axis, since a mirror and a rotation do not split one way (mirrored in X and
+  in Y is a half turn about Z). A variable layer height profile is the object's and is saved with the project; the
+  slicer drops it once it no longer ends at the object's top, as after a scale, so set it after scaling.
 - **Undo.** A command that changes the objects, their parts or the plates is one undo step; `object_clone`
   with `arrange` is two, the copies and then the arrangement, and `project_set_settings` takes one for a prime
   tower move. A gizmo that records undo steps of its own as it opens or closes, as Cut, Brim Ears and the painting
-  gizmos do, adds them around a gizmo command's call. Not in the undo history: `filament_delete`, `filament_add_mixed`,
+  gizmos do, adds them around a gizmo command's call. Not in the undo history: `filament_add`, `filament_delete`, `filament_add_mixed`,
   `filament_edit_mixed`, `filament_set_colour`, `filament_set_flushing`, `filament_sync_ams`,
   `filament_install`, `filament_uninstall`, `printer_install`, `printer_uninstall`, a preset's change by
-  `settings_set`, `preferences_set`, and `plate_set_custom_gcode`, as in the layer slider.
+  `settings_set`, `preferences_set`, and `plate_set_custom_gcode`, as in the layer slider. These calls take no
+  undo step when they change nothing: `object_set_height_ranges` given the ranges an object has, a Reset of an object
+  with no variable layer height profile, and `plate_lock` and `object_order` given what the plate has already.
 - **Unsaved changes.** `project_open`, `project_new` and `calibration_generate_test` refuse while the project
   has unsaved changes, unless `discard_changes`. The presets' unsaved changes are answered by
   `preset_changes`: keep or discard for a new project and a calibration test, transfer or discard where a
   preset or a printer is selected (`preset_select`, `printer_install`, `printer_uninstall`); `preset_select`
-  without it opens the Transfer-or-discard prompt.
+  without it opens the Transfer-or-discard prompt. Modified presets count as the project's unsaved changes too, and
+  so does a change made only in the Design tab, so these commands then need `discard_changes` as well. Without
+  `preset_changes`, `project_new` keeps the modified presets for the new project, while `calibration_generate_test`
+  refuses and lists their changed keys, since a previous test's settings would spoil the next. `transfer` moves what
+  the prompt would list, the changed settings the current mode shows, so a setting the mode hides is dropped, as in
+  the GUI.
 - **Settings values** are strings in OrcaSlicer's format (`"15%"`, `"0.2"`, `"1,2"`) or JSON numbers,
   booleans and arrays. `settings_set`, `preferences_set`, `project_set_settings`, `filament_set_flushing` and `plate_set_settings`
-  check every value first and write them together, so nothing changes when one is refused.
+  check every value first and write them together, so nothing changes when one is refused. Without `type`,
+  `settings_set` writes the process settings and `settings_get` reads them, but for named `keys` with neither `preset`
+  nor `compare`, which it looks up in the process, filament and printer settings, since an agent naming a key seldom
+  knows which tab holds it. A write takes one type, whose values apply together. The values of one call are not
+  ordered by what depends on what: a setting that applies only once another is set goes in a second call. An array
+  for a per-variant value has one entry per variant; another length is refused, since it would collapse the vector
+  and leave the preset inconsistent with its variants. On an object, `extruder` clears its parts' own filaments, as
+  Change Filament does, and a filament number past the project's slots is refused, as is a mixed slot for a support
+  filament.
+- **Preferences a call does not set.** `preferences_set` refuses a preference whose control opens a dialog, restarts
+  OrcaSlicer, signs out or reaches outside it, this server's own switch and port among them, which would end or move
+  the connection the call came through. Those change in the dialog, which `window_open {window: "preferences", tab,
+  key}` opens at the key's control: `widget_set_value` on the control named after the key changes a checkbox, a
+  number or text field and the language list through its own handler, but the other drop-down lists (the log level,
+  the login region, the network plug-in version and the like) save from a handler on their list, where a person's
+  pick arrives, so `widget_set_value` shows the new choice there and saves nothing.
 - **What is shown.** A command that acts on the 3D selection shows the Prepare view first; `plate_slice`
   shows the Preview, as the Slice button does; `plate_set_custom_gcode` selects its plate and shows the
-  Preview, since it acts on the plate's sliced layers.
+  Preview, since it acts on the plate's sliced layers. A command that works through the object list's rows
+  (`object_transform` on a part, `part_add`, `object_set_height_ranges`, `object_set_variable_layer_height` and
+  `object_arrange`'s Fill bed) selects the object's or the part's row first, since the GUI functions it runs act on
+  the selection, so it refuses the assemble view and an open gizmo, and leaves that row selected.
+- **Layer G-codes.** `plate_set_custom_gcode` keeps the layer slider's rules: a plate that prints by object, or has
+  nothing to print, takes no codes; a template needs the printer's `template_custom_gcode`; a filament change needs
+  two filaments or more, a slider that offers one (the plate's objects on one filament, no spiral vase) and the
+  slice's filament count; custom G-code is 1 to 1023 bytes, as the Custom G-code dialog takes. A call that changes
+  nothing leaves the slice valid, and a pause on a printer with no `machine_pause_gcode` is a warning. When the
+  slider next loads the plate it drops the codes it cannot keep: the filament changes once the objects print with
+  different filaments, and every code once the plate prints by object or across a spiral vase change. `plate_list`'s
+  `layer_gcode` can also hold `color_change`, an old project's colour change, which no call adds.
 - **Work in the background.** `plate_slice`, `project_export` of G-code, `object_arrange`,
   `object_auto_orient`, `object_fix`, `script_run`, `replay_run`, `recording_encode` and `plugin_refresh`
   wait for their work within the reply budget, then reply with a job. A slice or export holds the project
   until it ends, and `job_cancel` stops it.
+- **The same rules by every route.** A command, its Speed Dial action and the plugin API share one operation, so
+  they refuse alike. An arrangement shows the Prepare view first, runs with a gizmo open as the toolbar's does, and
+  is refused while the job worker is busy. A slice is requested as the Slice button requests it, with no check of
+  the printer's technology. A printer or process selection that leaves another preset selected is refused, and that
+  preset stays selected. An STL, a sliced file and G-code need objects, while a 3MF of the model does not, since a
+  project may hold only a Design-tab recipe.
 - **One change at a time.** A slice is superseded when someone else starts one or edits the project while it
   runs, and `plate_slice` says so per plate; an exported G-code says `superseded` when the project changed
   while it was written.
+- **Screenshots.** A `window_screenshot` right after a call shows that call's effect settled, a `view_set`'s layers
+  and legend included, so no wait is needed between them. A minimized or hidden window can't be captured. A 3D view
+  that reads back blank has not been drawn yet: it is captured again for a few seconds, then returned `approximate`,
+  the `note` saying whether the window is being drawn.
+- **Recordings.** One recording runs at a time, and it counts as running until its file is closed, which
+  `recording_stop {silent: true}` waits for and `recording_stop {}` does not. Besides `recording_stop` and
+  `max_seconds`, a recording ends at 4 GiB, on a write error, with the replay or script that started it and, for a
+  client's, when the server is turned off; `recording_stop` captures a last frame first, so the last call's effect is
+  in the video. On macOS a main-window recording
+  reaches about 12 frames a second whatever its `fps`, since each capture waits for the window server. The encode of
+  a person's recording (Start Recording with Encode to MP4) is a job that no reply names: `app_state.jobs` lists it,
+  and `app_wait {for: "job"}` waits for it by its id.
+- **Preview data.** `plate_slice_stats` reads any plate without selecting it. It is refused while anything slices or
+  exports, since a result may be being rewritten, and a plate of a project opened from a sliced 3MF that the Preview
+  has not shown holds only the file's totals, so it is refused until it is sliced again. The feature shares leave out
+  retractions, wipes, Z moves, tool changes and the prepare time, as the legend's do, and each layer carries its Z,
+  so a tool that numbers layers by the slider's label joins on it. `view`, and `app_state.preview`, are null for a
+  plate the Preview has not loaded. `view_set` changes the Preview as the legend's own controls do, so a `view_type`
+  it picks is also saved as the "Last used" preview default (`preview_last_view_type`), and before a slice it only
+  sets the type the next toolpaths show. Every legend key and the time mode are checked before anything changes, and
+  a row the print lacks is ignored, so a caller can hide everything but one feature by naming rows from the whole
+  list.
+- **Scripts.** `script_run` returns at most 256 KiB of output. A `result` that is not JSON makes code sent as text
+  `raised`; in a file run, where a standalone script may well have a variable of that name, it is no result, and the
+  output says so. `SystemExit` with code 0 or None finishes the run. `timeout_s` and `job_cancel` don't interrupt a
+  file run's PEP 723 install, which uv's own timeout bounds. `threading.main_thread()` is the app's main thread, and a
+  daemon thread still running after the run sees the run's globals cleared and can't call tools. The auto-answer
+  rules, recording and held presses a run's calls leave end with the run.
 
 ## Where the app's label differs from the command's name
 
@@ -973,11 +1269,15 @@ These take no arguments and do what their right-click menu item does.
 
 #### Outside the Design table
 
-`undo` and `redo` with `{history: "design"}` step the Design history. `view_set` with `tab: "design"` takes
+`undo` and `redo` with `{history: "design"}` step the Design history. A replay or a script passes `history`, since a
+Design command runs with Prepare in front, where `undo` without it would take back a project change. A refusal, such
+as nothing to undo, is the call's error and never falls through to the other history. `view_set` with `tab: "design"` takes
 the Design view's options: `camera: "sketch_normal"`, which looks straight at the open sketch and is refused
 with none open; `section` `{on, z, keep}`, a horizontal cut at world `z` (left out, the model's middle) that
 keeps the lower or the upper half; and `origin_planes`, `world_axes`, `origin` and `bed`, which show or hide
-the origin helper planes, the world axes, the Origin row's pickable planes and the bed.
+the origin helper planes, the world axes, the Origin row's pickable planes and the bed. Those switches are refused
+during a rebuild and without `tab: "design"`. With the Design tab, `fit_selection` is refused when nothing is picked,
+and `fit_bed`, `canvas` and the Preview fields are refused, since they show Prepare or Preview.
 
 ### `sketch_draw`: one `type` for every shape
 
@@ -1075,7 +1375,11 @@ replay are relative to the modeling origin on any printer.
 
 #### Refused and ignored arguments
 
-- A null argument is an argument not given, as the schemas' null defaults say.
+- A null argument is an argument not given, as the schemas' null defaults say: `solid_extrude {"sketch": null}`
+  extrudes the default rectangle, as `solid_extrude {"silent": true}` does. A few arguments count as given even as
+  null, and are refused where they do not apply: `solid_thread`'s `plane` beside `face` or `edge`,
+  `sketch_transform`'s `angle`, `angle_deg`, `scale` and `pivot`, and `sketch_pattern`'s `count`, `angle`,
+  `angle_deg` and `pivot`, beside a `type` that does not take them.
 - Every command has a closed schema, so an argument it does not have is refused as an unknown argument rather
   than ignored: `construct_helix {pich: 3}` is refused, not built with the default pitch. The names agents often use
   instead (`index` for `feature`, `params` or `values` for `fields`) are read as the schema's before it is
@@ -1118,7 +1422,8 @@ rejected rebuild in their reply, `ok` false or `error` not empty, after the same
 and replays the same rejection: `body_transform`, `solid_boolean`, `construct_axis`, `construct_coordinate_system`,
 `solid_delete_face`, `solid_draft`, `feature_set_expression`, `design_import_mesh`, `design_import_step`,
 `solid_mirror`, `solid_rib`, `design_set_variable`, `solid_shell`, `sketch_blend_curve`, `sketch_finish`,
-`sketch_project` and the five `surface_` commands (`ok_false` in the tool block). Each says so in its description, and
+`sketch_project` and the five `surface_` commands (`ok_false` in the tool block); their replies that are no error
+carry no `"ok": true` and no empty `"error"`, which would say nothing more. Each says so in its description, and
 for some `ok: false` means more (`sketch_finish` of a re-opened sketch that was not replaced). `solid_extrude`,
 `solid_revolve`, `solid_sweep`, `solid_loft`, `solid_hole`, `solid_thread`, `solid_split`, `solid_fillet`,
 `solid_chamfer`, `solid_thicken`, `solid_pattern`, `solid_align` and `sketch_draw` fail as errors, so none of them
@@ -1147,7 +1452,9 @@ opens that item's tool for a person, as a pick of the item does; any other call 
   `design_cancel_tool`, which end a sketch or Constrain mode alike. An
   item the menu greys for the selection is refused for it, naming the selection and the kinds the item
   accepts: its details are `selection_kind`, `selection` and `accepts`, the atlas ids of the selections the item
-  takes. A call made while a row of the Feature list is selected and nothing is picked in the view takes
+  takes. Only an item that takes a kind of selection the tab can report is refused so: Boolean's items take two
+  bodies and Rib's a sketch line, which the tab never reports as what is selected, so `solid_boolean {}` opens the
+  Boolean card as its toolbar button does, whatever is selected. A call made while a row of the Feature list is selected and nothing is picked in the view takes
   that row as what four menu items act on: `feature_edit`, `design_rename_selected`, `feature_delete` and
   `sketch_constrain_selected`.
 - For the menu, and so for the commands, a sketch in Constrain mode is open, while the tab's keys there are the
@@ -1263,6 +1570,9 @@ address, and changing one is a breaking change.
   shown the call: a job notice, a recording's caption, an Action Replay step (`replay_what_text()`).
 - A folded item's action that is not shown is named, when a call asks for it, with the call that runs it
   from any tab: `tool_call {"tool": "sketch_pattern", "args": {"type": "linear"}}`.
+- `generation` guards ids only within the session that read them, so the journal records a Design call without it,
+  and with `silent: true` added where the call without `generation` would open a tool, so that its replay runs rather
+  than opens; the replay rebuilds the same ids. A call that opened a tool is recorded as given and opens it again.
 - The MCP skill's reference (`tools/mcp/gen_skill_reference.py`) gives a command a row of its own only when
   it has an action of its own, and one row per folded item's action with its arguments.
 
@@ -1279,6 +1589,9 @@ A command's tool block has an `access`, which decides when the Design tab lets i
   and change under a sketch session too.
 - **ui** acts on what the tab has open (`design_confirm_tool`, `design_cancel_tool`), so only a rebuild refuses it.
 - The opening of a tool is refused only by a rebuild, as the Design tab's keys and menu are.
+- A Thread, Sweep or Loft that takes seconds rebuilds behind a progress dialog titled "Design". Meanwhile `app_state`,
+  `widget_list` and `window_screenshot` answer, and every change is refused as made inside the rebuilding call. On
+  Windows the dialog is the system's task dialog, which `widget_list` does not list.
 
 ### Behaviour a caller relies on
 
@@ -1344,6 +1657,16 @@ A command's tool block has an `access`, which decides when the Design tab lets i
   its reflection; `axis_a` and `axis_b`, two free points, bind nothing. `sketch_offset` binds one entity's copy
   Parallel or Concentric to it, and that copy gets no inferred constraints. The mirror's and the offset's
   replies list the constraints added.
+- **What the reads and edits report.** A feature a command adds is named as its card names it ("Extrude 3").
+  `body_describe` marks a bore's or a countersink's face `internal`. `design_describe` gives the document's
+  `auto_close_loops`, and `variables_error`, with every variable null, when one does not evaluate. `feature_edit`
+  also replies `plane`, the plane the feature builds on, where it changed, and refuses an end condition that needs a
+  pick the feature does not hold.
+- **A thread's size.** `solid_thread` without a `designation` takes the standard nearest the cylinder, over ISO metric
+  and UTS together: a bore is matched on its minor diameter, a boss on its major, so a 5 mm bore takes 1/4-20 UNC.
+- **Committing.** `design_commit_to_plate` refuses, before anything changes, an open gizmo, a design with no body and
+  every body hidden. A body named in the Bodies list names its object, or its part of an assembly; the others are
+  named "Design Body" or "Design Assembly".
 
 ### Where the app's label differs from the command's name
 

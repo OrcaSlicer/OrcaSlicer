@@ -335,7 +335,8 @@ The tab is a page of Orca's main window and answers to the same settings as Prep
   shown, greyed to what an undo would actually do. Every change to the recipe is one step, a
   feature rename included, and an edit the kernel refuses leaves none and keeps what was
   redoable. A body's name and colour are saved with the recipe but are not in the history, and
-  its visibility is view state.
+  its visibility is view state. The history is not saved with the project, so a project opens
+  with nothing to undo in the tab.
 - **Docking.** The sidebar docks like Prepare's — either side, floating, resized, or collapsed
   with the canvas's collapse button or `Shift+Tab` — through its own AUI manager under the
   toolbar, because Prepare's manages the Plater and the Plater is not on this page. The button is
@@ -518,7 +519,7 @@ clicks and drags it at pixels, so a left click picks and a right click opens the
 Enter and the tool shortcuts behave as they do for a person.
 
 [mcp-tools.md](mcp-tools.md) describes the commands as a caller sees them, and [mcp-server.md](mcp-server.md) how
-the server holds them: their table, gate, journaling and replies.
+the server holds them: the table they are made from and their gate.
 
 ## Where the code lives
 

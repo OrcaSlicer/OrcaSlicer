@@ -10,7 +10,7 @@
 // The operations: what the Speed Dial's commands, the MCP tools and the plugin API (orca.host) each
 // run by name, one function per thing the app can be asked to do. An operation holds the checks, the
 // refusals and their wording, the undo snapshot and the sequence of owner calls; the three callers
-// convert their arguments and its result around it. docs/HLSD/mcp-server.md, "Operations", has the
+// convert their arguments and its result around it. docs/HLSD/mcp-server.md, "The operations layer", has the
 // rules: what is an operation and what stays a method of its owner, and what an operation may include.
 //
 // Every operation runs on the UI thread and returns at once. One whose work goes on in the background
