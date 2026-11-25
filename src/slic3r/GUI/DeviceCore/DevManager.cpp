@@ -110,8 +110,10 @@ namespace Slic3r
             if (localMachineList.count(m.dev_id))
                 continue;
             MachineObject* obj       = new MachineObject(this, m_agent, m.dev_name, m.dev_id, m.dev_ip);
-            obj->printer_type        = m.printer_type;
             obj->printer_agent_id    = m.printer_agent_id;
+            // A saved identity is not confirmed until this session sees the printer advertise it.
+            obj->printer_type           = m.printer_type;
+            obj->printer_model_advertised = false;
             obj->dev_connection_type = "lan";
             obj->bind_state          = "free";
             obj->bind_sec_link       = "secure";
@@ -290,6 +292,13 @@ namespace Slic3r
             std::string printer_signal  = j["dev_signal"].get<std::string>();
             std::string connect_type    = j["connect_type"].get<std::string>();
             std::string bind_state      = j["bind_state"].get<std::string>();
+            // An empty dev_type is an agent making no model claim. A nonempty one is a model
+            // report: resolve it against installed vendor models. An unrecognized report stays
+            // unknown, so it warns and never blocks, even though the printer named a model.
+            const bool        model_report_present  = !printer_type_str.empty();
+            const std::string reported_printer_type =
+                model_report_present ? DevPrinterConfigUtil::resolve_printer_model_id(printer_type_str) : std::string();
+            const bool        clear_printer_model   = model_report_present && reported_printer_type.empty();
 
             // Passive discovery must not replace another agent's saved binding.
             if (get_current_printer_agent_id() == MOONRAKER_PRINTER_AGENT_ID) {
@@ -364,7 +373,13 @@ namespace Slic3r
                 obj = it->second;
                 // A reused LAN entry may have been discovered while another printer agent was
                 // active. The current discovery message establishes ownership for this agent.
+                if (obj->printer_agent_id != get_current_printer_agent_id())
+                    obj->printer_model_advertised = false;
                 obj->printer_agent_id = get_current_printer_agent_id();
+                const bool model_changed =
+                    model_report_present &&
+                    (clear_printer_model ? (!obj->printer_type.empty() || obj->printer_model_advertised)
+                                         : (obj->printer_type != reported_printer_type || !obj->printer_model_advertised));
 
                 if (obj->get_dev_ip().compare(dev_ip) != 0) {
                     if ( connection_name.empty() ) {
@@ -388,13 +403,13 @@ namespace Slic3r
                     obj->bind_state != bind_state ||
                     obj->bind_sec_link != sec_link ||
                     obj->bind_ssdp_version != ssdp_version ||
-                    obj->printer_type != _parse_printer_type(printer_type_str))
+                    model_changed)
                 {
                     if (obj->dev_connection_type != connect_type ||
                         obj->bind_state != bind_state ||
                         obj->bind_sec_link != sec_link ||
                         obj->bind_ssdp_version != ssdp_version ||
-                        obj->printer_type != _parse_printer_type(printer_type_str))
+                        model_changed)
                     {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " UpdateLocalMachineInfo"
                             << ", dev_id= " << dev_id
@@ -418,7 +433,10 @@ namespace Slic3r
                     obj->bind_state          = bind_state;
                     obj->bind_sec_link       = sec_link;
                     obj->bind_ssdp_version   = ssdp_version;
-                    obj->printer_type        = _parse_printer_type(printer_type_str);
+                    if (model_report_present) {
+                        obj->printer_type             = reported_printer_type;
+                        obj->printer_model_advertised = !reported_printer_type.empty();
+                    }
                 }
 
                 // U0 firmware
@@ -439,8 +457,12 @@ namespace Slic3r
             else {
                 /* insert a new machine */
                 obj = new MachineObject(this, m_agent, dev_name, dev_id, dev_ip);
-                obj->printer_type = _parse_printer_type(printer_type_str);
-                obj->printer_agent_id = get_current_printer_agent_id();
+                obj->printer_agent_id          = get_current_printer_agent_id();
+                obj->printer_type              = reported_printer_type;
+                obj->printer_model_advertised  = !reported_printer_type.empty();
+                if (clear_printer_model)
+                    BOOST_LOG_TRIVIAL(warning) << "Printer identity: unrecognized advertised model, leaving printer_type unknown: "
+                                               << printer_type_str;
                 obj->wifi_signal = printer_signal;
                 obj->dev_connection_type = connect_type;
                 obj->bind_state     = bind_state;
@@ -486,7 +508,7 @@ namespace Slic3r
 
     MachineObject* DeviceManager::insert_local_device(const BBLocalMachine& machine,
         std::string connection_type, std::string bind_state,
-        std::string version, std::string access_code)
+        std::string version, std::string access_code, bool model_advertised)
     {
         MachineObject* obj;
         bool           agent_changed = false;
@@ -496,16 +518,28 @@ namespace Slic3r
             // insert_local_device is called by the active agent, so a reused entry must follow
             // that agent as well; otherwise the agent-scoped printer list hides it.
             agent_changed         = obj->printer_agent_id != get_current_printer_agent_id();
+            if (agent_changed)
+                obj->printer_model_advertised = false;
             obj->printer_agent_id = get_current_printer_agent_id();
         } else {
             obj = new MachineObject(this, m_agent, machine.dev_name, machine.dev_id, machine.dev_ip);
             obj->printer_agent_id = get_current_printer_agent_id();
             localMachineList.insert(std::make_pair(machine.dev_id, obj));
         }
-        if (machine.printer_type.empty())
-            obj->printer_type = _parse_printer_type("C11");
-        else
-            obj->printer_type = _parse_printer_type(machine.printer_type);
+        // A supplied model is trusted as the printer's own only when the caller marks it as an
+        // advertisement and it resolves against the installed vendor model registry. A preset or
+        // manual value may be kept for display, but stays unverified so compatibility and preset
+        // sync do not treat it as confirmed. No fallback model is invented when none was supplied.
+        if (!machine.printer_type.empty()) {
+            const std::string resolved_model = DevPrinterConfigUtil::resolve_printer_model_id(machine.printer_type);
+            if (model_advertised) {
+                obj->printer_type             = resolved_model;
+                obj->printer_model_advertised = !resolved_model.empty();
+            } else {
+                obj->printer_type             = resolved_model.empty() ? machine.printer_type : resolved_model;
+                obj->printer_model_advertised = false;
+            }
+        }
         obj->dev_connection_type = connection_type == "farm" ? "lan":connection_type;
         obj->bind_state          = connection_type == "farm" ? "free":bind_state;
         obj->bind_sec_link = "secure";
@@ -1022,6 +1056,8 @@ namespace Slic3r
                         obj->set_dev_id(dev_id);
                         // A device can be rediscovered by a different agent after a preset
                         // switch while retaining the same MachineObject instance.
+                        if (obj->printer_agent_id != agent_id)
+                            obj->printer_model_advertised = false;
                         obj->printer_agent_id = agent_id;
                     }
                     else
@@ -1056,18 +1092,18 @@ namespace Slic3r
                     if (!elem["dev_online"].is_null())
                         obj->m_is_online = elem["dev_online"].get<bool>();
                     if (elem.contains("dev_model_name") && !elem["dev_model_name"].is_null()) {
-                        auto printer_type = elem["dev_model_name"].get<std::string>();
-                        for (const auto &pair : device_subseries) {
-                            auto it = std::find(pair.second.begin(), pair.second.end(), printer_type);
-                            if (it != pair.second.end())
-                            {
-                                obj->printer_type = Slic3r::_parse_printer_type(pair.first);
-                                break;
+                        std::string printer_type = elem["dev_model_name"].get<std::string>();
+                        if (!printer_type.empty()) {
+                            for (const auto &pair : device_subseries) {
+                                auto it = std::find(pair.second.begin(), pair.second.end(), printer_type);
+                                if (it != pair.second.end()) {
+                                    printer_type = pair.first;
+                                    break;
+                                }
                             }
-                            else
-                            {
-                                obj->printer_type = Slic3r::_parse_printer_type(printer_type);
-                            }
+                            const std::string resolved_model = DevPrinterConfigUtil::resolve_printer_model_id(printer_type);
+                            obj->printer_type             = resolved_model;
+                            obj->printer_model_advertised = !resolved_model.empty();
                         }
                     }
                     if (!elem["task_status"].is_null())

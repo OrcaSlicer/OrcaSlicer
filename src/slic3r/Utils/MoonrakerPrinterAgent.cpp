@@ -14,6 +14,7 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
@@ -614,6 +615,48 @@ void MoonrakerWebsocket::abort()
 
 const std::string MoonrakerPrinterAgent_VERSION = "1.0.0";
 
+namespace {
+
+// Applies the printer's advertised model to its MachineObject. Must run on the GUI thread. When
+// the printer did not advertise a model, printer_type becomes unknown so no preset-derived id
+// can be mistaken for an advertisement; the selected preset itself is never changed here.
+void apply_printer_identity_to(MachineObject* obj, const std::string& advertised_model)
+{
+    if (!obj)
+        return;
+
+    const std::string model_id     = DevPrinterConfigUtil::resolve_printer_model_id(advertised_model);
+    const bool        advertised   = !model_id.empty();
+    const std::string printer_type = advertised ? model_id : std::string();
+
+    if (obj->printer_type == printer_type && obj->printer_model_advertised == advertised)
+        return;
+
+    if (!advertised) {
+        BOOST_LOG_TRIVIAL(warning) << "Moonraker printer identity: printer did not advertise a usable model, leaving the selected preset unchanged"
+                                   << ", advertised_model=" << advertised_model
+                                   << ", previous printer_type=" << obj->printer_type;
+    }
+    obj->printer_type             = printer_type;
+    obj->printer_model_advertised = advertised;
+}
+
+// Looks the device up on the GUI thread, so a queued update for a device that has gone away is dropped.
+void apply_printer_identity(const std::string& dev_id, const std::string& advertised_model)
+{
+    // This runs on the GUI thread. Refresh the registry there, so a worker-side report never
+    // reads the preset bundle and a lazily loaded preset bundle is not missed forever.
+    if (auto* preset_bundle = GUI::wxGetApp().preset_bundle)
+        DevPrinterConfigUtil::set_installed_printer_models(*preset_bundle);
+
+    auto* dev_manager = GUI::wxGetApp().getDeviceManager();
+    if (!dev_manager)
+        return;
+    apply_printer_identity_to(dev_manager->get_my_machine(dev_id), advertised_model);
+}
+
+} // namespace
+
 bool moonraker_is_light_name(const std::string& name)
 {
     std::string lower_name = name;
@@ -671,6 +714,7 @@ void MoonrakerPrinterAgent::shutdown()
     {
         std::lock_guard<std::recursive_mutex> lock(connect_mutex);
         ++connect_generation;
+        ++*model_apply_generation;
     }
     if (connect_thread.joinable()) {
         connect_thread.join();
@@ -777,6 +821,8 @@ int MoonrakerPrinterAgent::connect_printer(const PrinterConnectionParams& params
         std::lock_guard<std::recursive_mutex> lock(connect_mutex);
         init_device_info(params);
         gen = ++connect_generation;
+        // A queued identity from the previous connection must not land on the new one.
+        ++*model_apply_generation;
         connection.dev_id   = device_info.dev_id;
         connection.base_url = device_info.base_url;
         connection.api_key  = device_info.api_key;
@@ -825,6 +871,7 @@ int MoonrakerPrinterAgent::disconnect_printer()
         std::lock_guard<std::recursive_mutex> lock(connect_mutex);
         device_info = MoonrakerDeviceInfo{};
         ++connect_generation;  // Invalidate any in-flight connection
+        ++*model_apply_generation;
         if (connect_thread.joinable()) {
             previous_connect_thread = std::move(connect_thread);
         }
@@ -868,8 +915,11 @@ int MoonrakerPrinterAgent::bind_detect(std::string dev_ip, std::string sec_link,
         dev_ip, dev_ip, "", "", "", false, ""
     });
 
-    detect.dev_id   = device_info.dev_id.empty() ? dev_ip : device_info.dev_id;
-    detect.model_id = device_info.model_id.empty() ? device_info.model_name : device_info.model_id;
+    detect.dev_id = device_info.dev_id.empty() ? dev_ip : device_info.dev_id;
+    // Binding runs before the printer has been queried, so its model is still unknown. The
+    // connection applies a model only after /server/info reports one; a preset-derived id must
+    // not be stored as the device's model.
+    detect.model_id = std::string();
     // Name priority: known device name, then preset model name, then the address (never empty).
     detect.dev_name = !device_info.dev_name.empty()   ? device_info.dev_name
                     : !device_info.model_name.empty() ? device_info.model_name
@@ -1107,8 +1157,9 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     }
 
     const MoonrakerDeviceInfo info = snapshot_device_info();
-    std::string dev_id   = info.dev_id;
-    std::string model_id = info.model_id;
+    std::string dev_id           = info.dev_id;
+    std::string advertised_model = info.advertised_model;
+    bool        identity_fetched = info.identity_fetched;
     // Snapshot the extruder status cache up front as well: submit_ams_payload consumes it inside
     // the commit, which must not capture `this` (the commit may outlive the agent once queued).
     const std::map<int, nlohmann::json> extruder_status = collect_extruder_status();
@@ -1119,7 +1170,7 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
         unit_names.push_back(ams_unit_name(ams_id));
     }
 
-    auto apply = [dev_id, model_id, extruder_status, storage, unit_names, ams_count, max_lane_index, trays, resolve_tray_ids]() {
+    auto apply = [dev_id, advertised_model, identity_fetched, extruder_status, storage, unit_names, ams_count, max_lane_index, trays, resolve_tray_ids]() {
     // Resolve preset-dependent tray ids on the main thread, not on the background fetch thread
     // that produced `trays`. resolve_tray_ids must not capture `this` (this commit may outlive
     // the agent once queued).
@@ -1175,7 +1226,7 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     }
 
     BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::build_ams_payload: Parsed " << resolved.size() << " trays";
-    submit_ams_payload(dev_id, model_id, extruder_status, storage, ams_array, ams_exist_bits, tray_exist_bits);
+    submit_ams_payload(dev_id, advertised_model, identity_fetched, extruder_status, storage, ams_array, ams_exist_bits, tray_exist_bits);
     };
 
     if (apply_inline) {
@@ -1201,12 +1252,13 @@ void MoonrakerPrinterAgent::build_ams_payload_grouped(const std::vector<AmsTrayD
     }
 
     const MoonrakerDeviceInfo info = snapshot_device_info();
-    std::string dev_id   = info.dev_id;
-    std::string model_id = info.model_id;
+    std::string dev_id           = info.dev_id;
+    std::string advertised_model = info.advertised_model;
+    bool        identity_fetched = info.identity_fetched;
     const std::map<int, nlohmann::json> extruder_status = collect_extruder_status();
     const bool storage = has_storage.load();
 
-    auto apply = [dev_id, model_id, extruder_status, storage, trays, resolve_tray_ids]() {
+    auto apply = [dev_id, advertised_model, identity_fetched, extruder_status, storage, trays, resolve_tray_ids]() {
     // Resolve preset-dependent tray ids on the main thread, not on the background fetch thread
     // that produced `trays`. resolve_tray_ids must not capture `this` (this commit may outlive
     // the agent once queued).
@@ -1283,7 +1335,7 @@ void MoonrakerPrinterAgent::build_ams_payload_grouped(const std::vector<AmsTrayD
     BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::build_ams_payload_grouped: input trays " << resolved.size()
                             << " extruders " << boxes.size() << " has_filament " << has_filament_count
                             << " boxes [" << box_summary.str() << "]";
-    submit_ams_payload(dev_id, model_id, extruder_status, storage, ams_array, ams_exist_bits, tray_exist_bits);
+    submit_ams_payload(dev_id, advertised_model, identity_fetched, extruder_status, storage, ams_array, ams_exist_bits, tray_exist_bits);
     };
 
     if (apply_inline) {
@@ -1341,7 +1393,7 @@ nlohmann::json MoonrakerPrinterAgent::make_ams_tray_json(const std::string& tray
     return tray_json;
 }
 
-void MoonrakerPrinterAgent::submit_ams_payload(const std::string& dev_id, const std::string& model_id,
+void MoonrakerPrinterAgent::submit_ams_payload(const std::string& dev_id, const std::string& advertised_model, bool identity_fetched,
                                                const std::map<int, nlohmann::json>& extruder_status, bool has_storage,
                                                const nlohmann::json& ams_array, unsigned long ams_exist_bits, unsigned long tray_exist_bits)
 {
@@ -1408,9 +1460,10 @@ void MoonrakerPrinterAgent::submit_ams_payload(const std::string& dev_id, const 
         obj->ams_support_virtual_tray = true;
     }
 
-    // Set printer_type so update_sync_status() can match it against the preset's printer type.
-    // Without this, the comparison fails and all sync badges are cleared.
-    obj->printer_type = model_id;
+    // Apply the model the printer itself reported. A preset-derived model is never written here:
+    // when the printer advertises none, printer_type stays unknown and the selected preset is kept.
+    if (identity_fetched)
+        apply_printer_identity_to(obj, advertised_model);
 
     // Set push counters so is_info_ready() returns true for pull-mode agents.
     if (obj->m_push_count == 0) {
@@ -2621,6 +2674,10 @@ bool MoonrakerPrinterAgent::fetch_device_info(const ConnectionSettings&    conne
                                               std::string&                 error,
                                               const std::function<bool()>& cancelled) const
 {
+    // A failed query must not leave a previous advertisement in the caller's copy.
+    info.advertised_model.clear();
+    info.identity_fetched = false;
+
     nlohmann::json json;
     if (!get_json(connection, join_url(connection.base_url, "/server/info"), cancelled, json, error)) {
         return false;
@@ -2630,6 +2687,16 @@ bool MoonrakerPrinterAgent::fetch_device_info(const ConnectionSettings&    conne
     info.dev_name         = result.value("machine_name", result.value("hostname", ""));
     info.version          = result.value("moonraker_version", "");
     info.klippy_state     = result.value("klippy_state", "");
+
+    // Vendor forks (Qidi among them) may report the printer model here. It is a report from the
+    // printer, unlike model_id/model_name, which come from the selected Orca preset.
+    const auto model_it = result.find("model");
+    if (model_it != result.end() && model_it->is_string()) {
+        std::string advertised_model = model_it->get<std::string>();
+        boost::trim(advertised_model);
+        info.advertised_model = std::move(advertised_model);
+    }
+    info.identity_fetched = true;
 
     // nozzle_diameter is part of Klipper's configfile object rather than the live
     // extruder status object. Keep this optional so older/custom Moonraker builds
@@ -3084,30 +3151,38 @@ int MoonrakerPrinterAgent::send_access_code(const std::string& dev_id)
 
 void MoonrakerPrinterAgent::announce_printhost_device()
 {
+    MoonrakerDeviceInfo info;
+    {
+        std::lock_guard<std::recursive_mutex> lock(connect_mutex);
+        info = device_info;
+    }
+
     OnMsgArrivedFn ssdp_fn;
     {
         std::lock_guard<std::recursive_mutex> lock(state_mutex);
         ssdp_fn = on_ssdp_msg_fn;
-        if (!ssdp_fn || device_info.dev_id.empty() || device_info.dev_ip.empty() || device_info.base_url.empty()) {
+        if (!ssdp_fn || info.dev_id.empty() || info.dev_ip.empty() || info.base_url.empty()) {
             return;
         }
-        if (ssdp_announced_host == device_info.base_url && !ssdp_announced_id.empty()) {
+        if (ssdp_announced_host == info.base_url && !ssdp_announced_id.empty()) {
             return;
         }
     }
 
     // Never asks the printer, since discovery runs on the GUI thread and an unreachable printer would freeze it
-    const std::string dev_name = device_info.model_name.empty() ? "Moonraker Printer" : device_info.model_name;
+    const std::string dev_name = info.model_name.empty() ? "Moonraker Printer" : info.model_name;
 
-    const std::string model_id = device_info.model_id;
-
+    // Discovery is generated by this agent, so it claims no model. The connection applies a model
+    // only after /server/info actually reports one; a preset-derived id or display name must not
+    // become the device's model through this path. DevManager must leave printer_type and
+    // printer_model_advertised untouched for Moonraker-derived agents when it consumes this report.
     nlohmann::json payload;
     payload["dev_name"]     = dev_name;
-    payload["dev_id"]       = device_info.dev_id;
+    payload["dev_id"]       = info.dev_id;
     // With its port: the saved device record takes its dev_ip from here and the next connection
     // reads the port back from it, so a bare IP would mean port 80.
-    payload["dev_ip"]       = Http::get_host_header_value(device_info.base_url);
-    payload["dev_type"]     = model_id.empty() ? dev_name : model_id;
+    payload["dev_ip"]       = Http::get_host_header_value(info.base_url);
+    payload["dev_type"]     = "";
     payload["dev_signal"]   = "0";
     payload["connect_type"] = "lan";
     payload["bind_state"]   = "free";
@@ -3118,12 +3193,12 @@ void MoonrakerPrinterAgent::announce_printhost_device()
 
     {
         std::lock_guard<std::recursive_mutex> lock(state_mutex);
-        ssdp_announced_host = device_info.base_url;
-        ssdp_announced_id   = device_info.dev_id;
+        ssdp_announced_host = info.base_url;
+        ssdp_announced_id   = info.dev_id;
 
         // Set this as the selected machine if nothing is currently selected
         if (selected_machine.empty()) {
-            selected_machine = device_info.dev_id;
+            selected_machine = info.dev_id;
         }
     }
 }
@@ -4233,6 +4308,8 @@ void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id,
 
     int         result = BAMBU_NETWORK_ERR_CONNECTION_TO_PRINTER_FAILED;
     std::string error_msg;
+    std::string advertised_model;
+    bool        identity_fetched = false;
 
     // Early exit if a newer connection was started before we begin
     if (is_stale()) {
@@ -4277,10 +4354,14 @@ void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id,
             if (is_stale()) {
                 return;
             }
-            device_info.dev_name     = fetched_info.dev_name.empty() ? dev_id : fetched_info.dev_name;
-            device_info.version      = fetched_info.version;
-            device_info.klippy_state = fetched_info.klippy_state;
-            device_info.nozzle_diameter = fetched_info.nozzle_diameter;
+            device_info.dev_name         = fetched_info.dev_name.empty() ? dev_id : fetched_info.dev_name;
+            device_info.version          = fetched_info.version;
+            device_info.klippy_state     = fetched_info.klippy_state;
+            device_info.nozzle_diameter  = fetched_info.nozzle_diameter;
+            device_info.advertised_model = fetched_info.advertised_model;
+            device_info.identity_fetched = fetched_info.identity_fetched;
+            advertised_model             = device_info.advertised_model;
+            identity_fetched             = device_info.identity_fetched;
         }
 
 // Orca todo: disable websocket for now, as we don't use MonitorPanel for Moonraker printers yet
@@ -4326,6 +4407,24 @@ void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id,
         // Under connect_mutex, so a superseded connection never reports itself connected
         std::lock_guard<std::recursive_mutex> lock(connect_mutex);
         if (!is_stale()) {
+            // Announce the printer's own model on the GUI thread before any connected callback opens
+            // a dialog that reads it. The ticket makes a newer connection or a destroyed agent win.
+            if (identity_fetched) {
+                QueueOnMainFn queue_fn;
+                {
+                    std::lock_guard<std::recursive_mutex> state_lock(state_mutex);
+                    queue_fn = queue_on_main_fn;
+                }
+                if (queue_fn) {
+                    const std::shared_ptr<std::atomic<uint64_t>> token  = model_apply_generation;
+                    const uint64_t                               ticket = ++*token;
+                    queue_fn([dev_id, advertised_model, token, ticket]() {
+                        if (token->load() != ticket)
+                            return;
+                        apply_printer_identity(dev_id, advertised_model);
+                    });
+                }
+            }
             dispatch_local_connect(ConnectStatusOk, dev_id, "0");
             dispatch_printer_connected(dev_id);
             BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: connect_printer completed - dev_id=" << dev_id;

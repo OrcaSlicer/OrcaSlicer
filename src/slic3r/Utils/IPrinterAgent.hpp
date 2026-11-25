@@ -315,6 +315,7 @@ public:
 
     /**
      * Perform binding detection/handshake on a LAN printer.
+     * Set detect.model_id only from a printer-reported model, never from a preset.
      */
     virtual int bind_detect(std::string dev_ip, std::string sec_link, detectResult& detect) = 0;
 
@@ -482,6 +483,7 @@ public:
     // ========================================================================
     /**
      * Register SSDP discovery callback.
+     * Discovery dev_type must identify a model reported by the printer, or be empty when unknown.
      */
     virtual int set_on_ssdp_msg_fn(OnMsgArrivedFn fn) = 0;
 

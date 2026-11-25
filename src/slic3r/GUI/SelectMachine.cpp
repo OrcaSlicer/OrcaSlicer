@@ -2726,10 +2726,10 @@ bool SelectMachineDialog::is_same_printer_model()
 
     PresetBundle* preset_bundle = wxGetApp().preset_bundle;
     if(preset_bundle == nullptr) return result;
-    const auto source_model = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
-    const auto target_model = obj_->printer_type;
-    if (DevPrinterConfigUtil::is_optional_printer_model_id(source_model) ||
-        DevPrinterConfigUtil::is_optional_printer_model_id(target_model)) {
+    const auto source_model = DevPrinterConfigUtil::resolve_printer_model_id(
+        preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle));
+    const auto target_model = DevPrinterConfigUtil::resolve_printer_model_id(obj_->printer_type);
+    if (source_model.empty() || target_model.empty() || !obj_->has_advertised_printer_model()) {
         return true;
     }
     // Orca: ignore P1P -> P1S
@@ -4938,7 +4938,7 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
         return;
     }
 
-    bool has_optional_printer_model = DevPrinterConfigUtil::is_optional_printer_model_id(obj_->printer_type);
+    bool has_optional_printer_model = !obj_->has_advertised_printer_model();
     if (m_print_type == PrintFromType::FROM_NORMAL) {
         PresetBundle* preset_bundle = wxGetApp().preset_bundle;
         has_optional_printer_model = has_optional_printer_model ||
@@ -5377,7 +5377,8 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
     CheckWarningRackStatus(obj_);
 
     /** normal check **/
-    show_status(PrintDialogStatus::PrintStatusReadyToGo);
+    show_status(has_optional_printer_model ?
+                    PrintDialogStatus::PrintStatusOptionalPrinterModel : PrintDialogStatus::PrintStatusReadyToGo);
 }
 
 bool SelectMachineDialog::has_timelapse_warning(wxString &msg_text)

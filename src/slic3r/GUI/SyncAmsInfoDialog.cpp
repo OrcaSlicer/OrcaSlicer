@@ -1995,7 +1995,7 @@ bool SyncAmsInfoDialog::is_same_printer_model()
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
     const std::string source_model = preset_bundle ? preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) : std::string();
     if (DevPrinterConfigUtil::is_optional_printer_model_id(source_model) ||
-        DevPrinterConfigUtil::is_optional_printer_model_id(obj_->printer_type)) {
+        !obj_->has_advertised_printer_model()) {
         return true;
     }
 
@@ -2333,7 +2333,7 @@ void SyncAmsInfoDialog::update_show_status()
 
     reset_timeout();
 
-    bool has_optional_printer_model = DevPrinterConfigUtil::is_optional_printer_model_id(obj_->printer_type);
+    bool has_optional_printer_model = !obj_->has_advertised_printer_model();
     if (m_print_type == PrintFromType::FROM_NORMAL) {
         if (PresetBundle *preset_bundle = wxGetApp().preset_bundle) {
             has_optional_printer_model = has_optional_printer_model ||

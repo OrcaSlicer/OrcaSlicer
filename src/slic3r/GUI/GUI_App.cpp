@@ -3771,6 +3771,11 @@ bool GUI_App::on_init_inner()
         }
     //}
 
+    // Register installed vendor models on the GUI thread. Model reports from workers only do a
+    // registry lookup; they never touch wx or the preset bundle.
+    if (preset_bundle)
+        DevPrinterConfigUtil::set_installed_printer_models(*preset_bundle);
+
 #ifdef WIN32
     register_win32_device_notification_event();
 #endif // WIN32
@@ -4502,6 +4507,9 @@ void GUI_App::select_machine(const std::string& agent_id)
         return;
     }
 
+    // A vendor installed after startup becomes recognizable without a restart.
+    DevPrinterConfigUtil::set_installed_printer_models(*preset_bundle);
+
     // Orca: Bambu printers are not tied to the preset's print_host. Reconnect the one the user last
     // selected, as BambuStudio does at startup: a saved LAN printer now, a cloud printer once the
     // account's machine list arrives. Directly, not through the Device tab's selection flow, which
@@ -4594,7 +4602,9 @@ void GUI_App::select_machine(const std::string& agent_id)
         existing->set_access_code(access_code);
     }
     // Entries saved before held the model name; this printer's preset gives the id to repair them.
-    if (!model_id.empty() && existing->printer_agent_id == agent_id && existing->printer_type != model_id) {
+    // Never replace a model the printer itself advertised.
+    if (!model_id.empty() && existing->printer_agent_id == agent_id && existing->printer_type != model_id &&
+        !existing->has_advertised_printer_model()) {
         existing->printer_type = model_id;
         DeviceManager::update_local_machine(*existing, app_config);
     }

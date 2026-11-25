@@ -152,9 +152,10 @@ private:
     /*TODO*/
 public:
     // to remove
+    // model_advertised is true only when machine.printer_type came from the printer, not a preset or manual entry.
     MachineObject* insert_local_device(const BBLocalMachine& machine,
         std::string connection_type, std::string bind_state, std::string version,
-        std::string access_code);
+        std::string access_code, bool model_advertised = false);
     static void update_local_machine(const MachineObject& m);
     static void update_local_machine(const MachineObject& m, AppConfig* config);
 };

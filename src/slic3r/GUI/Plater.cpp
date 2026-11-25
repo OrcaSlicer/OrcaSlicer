@@ -2580,40 +2580,46 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
         return false;
     }
 
-    std::string machine_print_name = obj->get_show_printer_type();
+    // Equality is between the model the printer advertised and the selected preset's model id.
+    // A preset-derived printer_type is never used here while the identity is unverified. The
+    // shown type folds in an installed upgrade kit, so a P1P reporting C11 matches a C12 preset.
+    const std::string advertised_model_id = obj->has_advertised_printer_model() ? obj->get_show_printer_type() : std::string();
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
     std::string target_model_id  = preset_bundle->printers.get_selected_preset().get_printer_type(preset_bundle);
-    const bool optional_printer_model = DevPrinterConfigUtil::is_optional_printer_model_id(obj->printer_type);
+    const bool unverified_printer_model = !obj->has_advertised_printer_model();
+    const bool optional_printer_model = unverified_printer_model || DevPrinterConfigUtil::is_optional_printer_model_id(obj->printer_type);
     const bool optional_target_model  = DevPrinterConfigUtil::is_optional_printer_model_id(target_model_id);
+    const bool model_mismatch = !optional_printer_model && !optional_target_model && advertised_model_id != target_model_id;
     Preset* machine_preset = optional_printer_model ? nullptr : get_printer_preset(obj);
+    if (unverified_printer_model && is_manual) {
+        // Model information is optional; warn without blocking nozzle, AMS or filament sync.
+        MessageDialog dlg(this->plater,
+                          _L("The selected printer model could not be identified, so compatibility with the print file configuration cannot be verified. Please verify the printer preset before sending."),
+                          _L("Sync printer information"), wxICON_WARNING | wxOK);
+        dlg.ShowModal();
+    }
     if (!optional_printer_model && !optional_target_model && !machine_preset) {
         // get_printer_preset() can return nothing even when the selected preset is for this printer model.
         // Continue without switching presets; the nozzle check below reports any diameter mismatch.
-        if (machine_print_name != target_model_id) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "check error: machine_preset empty";
+        if (advertised_model_id != target_model_id) {
+            // The model is known but no installed printer preset supports it. Do not fail silently.
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << __LINE__ << "check error: machine_preset empty";
+            MessageDialog dlg(this->plater, _L("The printer preset was not found; please reselect."),
+                              _L("Sync printer information"), wxICON_WARNING | wxOK);
+            dlg.ShowModal();
             return false;
         }
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "machine_preset empty, continue with the selected preset";
     }
-    if (!optional_printer_model && !optional_target_model && machine_print_name != target_model_id) {
+    if (model_mismatch) {
         MessageDialog dlg(this->plater, _L("The currently selected machine preset is inconsistent with the connected printer type.\n"
                                             "Are you sure to continue syncing?"), _L("Sync printer information"), wxICON_WARNING | wxYES | wxNO);
         if (dlg.ShowModal() == wxID_NO) {
             return false;
         }
 
-        const Preset &selected_preset = preset_bundle->printers.get_selected_preset();
-        const Preset *parent_preset = preset_bundle->printers.get_preset_parent(selected_preset);
-        const bool inherits_system_preset = selected_preset.is_user() && parent_preset && parent_preset->is_system;
-        if (!inherits_system_preset) {
-            if (!this->plater)
-                return false;
-
-            this->plater->update_objects_position_when_select_preset([machine_preset]() {
-                Tab *printer_tab = GUI::wxGetApp().get_tab(Preset::Type::TYPE_PRINTER);
-                printer_tab->select_preset(machine_preset->name);
-            });
-        }
+        // Do not select a different printer/nozzle preset here: the user's current preset stays
+        // selected. The advertised model only gates the comparison and this warning.
     }
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " go on sync_extruder_list";
     const Preset &cur_preset  = preset_bundle->printers.get_selected_preset();
@@ -2646,14 +2652,19 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
     bool support_multi_nozzle = extruder_max_nozzle_count != nullptr &&
                                 std::any_of(extruder_max_nozzle_count->values.begin(), extruder_max_nozzle_count->values.end(),
                                             [](int val) { return val > 1 && val != ConfigOptionIntsNullable::nil_value(); });
-    auto nozzle_option = get_nozzle_options(obj, extruder_nums, support_multi_nozzle, is_manual);
-    if (!nozzle_option && support_multi_nozzle)
+    // A missing/unrecognized advertised model or a recognized-model mismatch leaves the selected
+    // printer and nozzle choice untouched. Only AMS/filament information is synchronized.
+    const bool preserve_current_nozzle = model_mismatch || unverified_printer_model;
+    std::optional<NozzleOption> nozzle_option;
+    if (!preserve_current_nozzle)
+        nozzle_option = get_nozzle_options(obj, extruder_nums, support_multi_nozzle, is_manual);
+    if (!preserve_current_nozzle && !nozzle_option && support_multi_nozzle)
         return false;
 
     std::vector<float> nozzle_diameters;
     nozzle_diameters.resize(extruder_nums);
     std::vector<NozzleVolumeType> target_types(extruder_nums, NozzleVolumeType::nvtStandard);
-    for (size_t index = 0; index < extruder_nums; ++index) {
+    for (size_t index = 0; !preserve_current_nozzle && index < extruder_nums; ++index) {
         int extruder_id = extruder_map[index];
         nozzle_diameters[extruder_id] = nozzle_option ? string_to_double_decimal_point(nozzle_option->diameter) : obj->GetExtderSystem()->GetNozzleDiameter(index);
         NozzleVolumeType target_type = NozzleVolumeType::nvtStandard;
@@ -2719,7 +2730,8 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
     const ConfigOptionFloats *preset_nozzle_diameter =
         preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
     bool nozzle_diameters_match = false;
-    if (preset_nozzle_diameter != nullptr && preset_nozzle_diameter->values.size() == nozzle_diameters.size()) {
+    if (!preserve_current_nozzle && preset_nozzle_diameter != nullptr &&
+        preset_nozzle_diameter->values.size() == nozzle_diameters.size()) {
         nozzle_diameters_match = true;
         for (size_t index = 0; index < nozzle_diameters.size(); ++index) {
             // A diameter the device does not report (missing, zero, negative or not a finite number) never matches.
@@ -2733,7 +2745,7 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
             }
         }
     }
-    if (!nozzle_diameters_match) {
+    if (!preserve_current_nozzle && !nozzle_diameters_match) {
         if (is_manual) {
             MessageDialog dlg(
                 this->plater,
@@ -2774,7 +2786,7 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
 
     // set nozzle volume type after switching prset, so this value can override the old value stored in conf
     auto printer_tab = dynamic_cast<TabPrinter *>(wxGetApp().get_tab(Preset::TYPE_PRINTER));
-    for (size_t idx = 0; idx < target_types.size(); ++idx) {
+    for (size_t idx = 0; !preserve_current_nozzle && idx < target_types.size(); ++idx) {
         printer_tab->set_extruder_volume_type(idx, target_types[idx]);
     }
 
@@ -2838,15 +2850,18 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
         return;
     }
 
-    if (DevPrinterConfigUtil::is_optional_printer_model_id(obj->printer_type)) {
-        clear_all_sync_status();
-        return;
-    }
-
     bool printer_synced = false;
     // 1. update printer status
     const Preset &cur_preset = wxGetApp().preset_bundle->printers.get_edited_preset();
-    if (preset_bundle && preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) == obj->get_show_printer_type()) {
+    if (!obj->has_advertised_printer_model()) {
+        // The printer model is optional. Do not touch the AMS/extruder sync state; only the
+        // printer-preset badge stays unconfirmed.
+        panel_printer_preset->ShowBadge(false);
+        wxGetApp().plater()->sidebar().udpate_combos_filament_badge();
+    } else if (DevPrinterConfigUtil::is_optional_printer_model_id(obj->printer_type)) {
+        clear_all_sync_status();
+        return;
+    } else if (preset_bundle && preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) == obj->get_show_printer_type()) {
         panel_printer_preset->ShowBadge(true);
         printer_synced = true;
 
@@ -6647,10 +6662,12 @@ bool Sidebar::need_auto_sync_extruder_list_after_connect_priner(const MachineObj
     if(!obj)
         return false;
 
-    std::string   machine_print_name = obj->get_show_printer_type();
+    if (!obj->has_advertised_printer_model())
+        return false;
+
     PresetBundle *preset_bundle      = wxGetApp().preset_bundle;
     std::string   target_model_id    = preset_bundle->printers.get_selected_preset().get_printer_type(preset_bundle);
-    if (machine_print_name != target_model_id) {
+    if (obj->get_show_printer_type() != target_model_id) {
         return false;
     }
 
@@ -10853,7 +10870,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
         if (dev) {
             MachineObject *obj = dev->get_selected_machine();
-            if (obj && obj->is_info_ready()) {
+            if (obj && obj->is_info_ready() && obj->has_advertised_printer_model()) {
                 if (obj->GetExtderSystem()->GetTotalExtderCount() > 0) {
                     PresetBundle *preset_bundle  = wxGetApp().preset_bundle;
                     Preset       &printer_preset = preset_bundle->printers.get_selected_preset();
@@ -10862,11 +10879,18 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     const ConfigOption *opt                    = printer_preset.config.option("nozzle_diameter");
                     if (opt) preset_nozzle_diameter = static_cast<const ConfigOptionFloats *>(opt)->values[0];
 
+                    // Canonical advertised model id; the selected preset must match it. An installed
+                    // upgrade kit makes the shown model C12 while the printer still reports C11.
                     std::string machine_type = obj->printer_type;
                     if (obj->is_support_upgrade_kit && obj->installed_upgrade_kit) machine_type = "C12";
 
                     bool nozzle_mismatch = !obj->GetExtderSystem()->NozzleDiameterMatchesOrUnknown(0, (float) preset_nozzle_diameter);
-                    if (printer_preset.get_current_printer_type(preset_bundle) != machine_type || nozzle_mismatch) {
+                    // Only switch on a model/nozzle mismatch when the printer reports a known
+                    // nozzle and get_printer_preset can find a matching variant. Otherwise keep
+                    // the project's selected printer/nozzle preset.
+                    const bool printer_nozzle_known = obj->GetExtderSystem()->GetNozzleDiameter(0) > 0.0f;
+                    if (printer_nozzle_known &&
+                        (printer_preset.get_current_printer_type(preset_bundle) != machine_type || nozzle_mismatch)) {
                         Preset *machine_preset = get_printer_preset(obj);
                         if (machine_preset != nullptr) {
                             std::string printer_model = machine_preset->config.option<ConfigOptionString>("printer_model")->value;
@@ -13800,7 +13824,7 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
                 if (obj && obj->is_multi_extruders()) {
                     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
                     Preset& cur_preset = preset_bundle->printers.get_edited_preset();
-                    if (cur_preset.get_printer_type(preset_bundle) == obj->get_show_printer_type()) {
+                    if (obj->has_advertised_printer_model() && cur_preset.get_printer_type(preset_bundle) == obj->get_show_printer_type()) {
                         double preset_nozzle_diameter = cur_preset.config.option<ConfigOptionFloats>("nozzle_diameter")->values[0];
                         bool   same_nozzle_diameter   = true;
 
@@ -15457,7 +15481,8 @@ bool Plater::priv::check_ams_status_impl(bool is_slice_all)
         return true;
     }
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
-    if (preset_bundle && preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) == obj->get_show_printer_type()) {
+    if (preset_bundle && obj->has_advertised_printer_model() &&
+        preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) == obj->get_show_printer_type()) {
         bool is_same_as_printer = true;
         auto nozzle_volumes_values = preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
         assert(obj->GetExtderSystem()->GetTotalExtderCount() == 2 && nozzle_volumes_values.size() == 2);
@@ -15589,7 +15614,8 @@ bool Plater::priv::get_machine_sync_status()
         return false;
 
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
-    return preset_bundle && preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) == obj->get_show_printer_type();
+    return preset_bundle && obj->has_advertised_printer_model() &&
+           preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) == obj->get_show_printer_type();
 }
 
 bool Plater::priv::init_collapse_toolbar()
@@ -20889,7 +20915,8 @@ void Plater::set_pending_published(const std::vector<std::string>& published_key
 
 Preset *get_printer_preset(const MachineObject *obj)
 {
-    if (!obj)
+    // A model the printer did not advertise is not evidence for selecting a preset.
+    if (!obj || !obj->has_advertised_printer_model())
         return nullptr;
 
     Preset       *printer_preset = nullptr;
@@ -20905,6 +20932,7 @@ Preset *get_printer_preset(const MachineObject *obj)
         if (printer_nozzle_opt) printer_nozzle_vals = dynamic_cast<ConfigOptionFloats *>(printer_nozzle_opt);
         std::string model_id = printer_it->get_current_printer_type(preset_bundle);
 
+        // Installed upgrade kit changes the shown model, never the advertised identity.
         std::string printer_type = obj->get_show_printer_type();
         bool nozzle_diameter_matches_or_unknown = printer_nozzle_vals && obj->GetExtderSystem()->NozzleDiameterMatchesOrUnknown(0, printer_nozzle_vals->get_at(0));
         if (model_id.compare(printer_type) == 0 && nozzle_diameter_matches_or_unknown) {
@@ -23415,14 +23443,18 @@ bool Plater::is_same_printer_for_connected_and_selected(bool popup_warning)
     }
     if (!check_printer_initialized(obj, true, popup_warning))
         return false;
-    const std::string machine_model = obj->printer_type;
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
     const std::string selected_model = preset_bundle ? preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) : std::string();
     // Same-model printers count as the same printer even when get_printer_preset() returns nothing. The
-    // fallback uses the shown type; is_blocking_printing() still rejects incompatible models.
-    if (!DevPrinterConfigUtil::is_optional_printer_model_id(machine_model) &&
+    // fallback uses the advertised model; is_blocking_printing() still rejects incompatible models.
+    if (obj->has_advertised_printer_model() &&
         !DevPrinterConfigUtil::is_optional_printer_model_id(selected_model) &&
         obj->get_show_printer_type() != selected_model && !get_printer_preset(obj)) {
+        if (popup_warning) {
+            MessageDialog dlg(this, _L("The printer preset was not found; please reselect."),
+                              _L("Sync printer information"), wxICON_WARNING | wxOK);
+            dlg.ShowModal();
+        }
         return false;
     }
 

@@ -5,6 +5,7 @@
 #include <libslic3r/ProjectTask.hpp>
 #include <libslic3r/Preset.hpp>
 #include <libslic3r/Config.hpp>
+#include <slic3r/GUI/DeviceCore/DevConfigUtil.h>
 #include <slic3r/GUI/DeviceCore/DevManager.h>
 #include <slic3r/GUI/DeviceManager.hpp>
 #include <slic3r/GUI/DeviceCore/DevFilaSystem.h>
@@ -111,6 +112,20 @@ struct ScopedAppConfig
     AppConfig config;
 };
 
+struct ScopedPrinterModelRegistry
+{
+    using PrinterModelIdentity = DevPrinterConfigUtil::PrinterModelIdentity;
+
+    explicit ScopedPrinterModelRegistry(std::vector<PrinterModelIdentity> models)
+    {
+        DevPrinterConfigUtil::set_installed_printer_models(std::move(models));
+    }
+    ~ScopedPrinterModelRegistry() { DevPrinterConfigUtil::set_installed_printer_models(std::vector<PrinterModelIdentity>{}); }
+
+    ScopedPrinterModelRegistry(const ScopedPrinterModelRegistry&)            = delete;
+    ScopedPrinterModelRegistry& operator=(const ScopedPrinterModelRegistry&) = delete;
+};
+
 std::string machine_list_response(const std::string& provider, const std::string& agent_id,
                                   std::uint64_t generation, const std::string& name)
 {
@@ -212,6 +227,197 @@ TEST_CASE("Device manager filters and rehomes devices by printer-agent ownership
     CHECK(object->printer_agent_id == "integration-agent-b");
     CHECK(manager.get_my_machine_list("integration-agent-a").empty());
     CHECK(manager.get_my_machine_list("integration-agent-b").count(machine.dev_id) == 1);
+}
+
+TEST_CASE("A saved printer model is unverified until the printer advertises it", "[DeviceManager][integration]")
+{
+    const ScopedPrinterModelRegistry registry({{"C11", {"C11", "Bambu Lab P1P"}}});
+    ScopedAppConfig app_config;
+    const std::string agent_id = "integration-agent";
+    BBLocalMachine saved;
+    saved.dev_id           = "saved-model-device";
+    saved.dev_name         = "Saved model printer";
+    saved.dev_ip           = "192.0.2.30";
+    saved.printer_type     = "C11";
+    saved.printer_agent_id = agent_id;
+    saved.access_code      = "access-code";
+    app_config.config.update_local_machine(saved);
+
+    auto agent = std::make_shared<TestPrinterAgent>(agent_id);
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    MachineObject* object = manager.get_local_machine(saved.dev_id);
+    REQUIRE(object != nullptr);
+    CHECK(object->printer_type == "C11");
+    CHECK_FALSE(object->has_advertised_printer_model());
+
+    // An empty dev_type makes no model claim and must not confirm the saved identity.
+    manager.on_machine_alive(R"({
+        "dev_name":"Saved model printer",
+        "dev_id":"saved-model-device",
+        "dev_ip":"192.0.2.30",
+        "dev_type":"",
+        "dev_signal":"strong",
+        "connect_type":"lan",
+        "bind_state":"free"
+    })");
+    CHECK_FALSE(object->has_advertised_printer_model());
+
+    // Any agent can advertise the model; no agent-specific list governs identity.
+    manager.on_machine_alive(R"({
+        "dev_name":"Saved model printer",
+        "dev_id":"saved-model-device",
+        "dev_ip":"192.0.2.30",
+        "dev_type":"C11",
+        "dev_signal":"strong",
+        "connect_type":"lan",
+        "bind_state":"free"
+    })");
+    CHECK(object->printer_type == "C11");
+    CHECK(object->has_advertised_printer_model());
+}
+
+TEST_CASE("Only a model reported by the printer is marked advertised on insert", "[DeviceManager][integration]")
+{
+    const ScopedPrinterModelRegistry registry({{"C11", {"C11", "Bambu Lab P1P"}}});
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine preset_model;
+    preset_model.dev_id       = "preset-model-device";
+    preset_model.dev_name     = "Preset model printer";
+    preset_model.dev_ip       = "192.0.2.31";
+    preset_model.printer_type = "C11";
+    MachineObject* preset_object = manager.insert_local_device(preset_model, "lan", "free", "", "access-code");
+    REQUIRE(preset_object != nullptr);
+    CHECK(preset_object->printer_type == "C11");
+    CHECK_FALSE(preset_object->has_advertised_printer_model());
+    // An unverified preset-derived model must not block compatibility checks.
+    CHECK(DevPrinterConfigUtil::is_printer_model_compatible("C11", *preset_object));
+
+    BBLocalMachine advertised_model;
+    advertised_model.dev_id       = "advertised-model-device";
+    advertised_model.dev_name     = "Advertised model printer";
+    advertised_model.dev_ip       = "192.0.2.32";
+    advertised_model.printer_type = "C11";
+    MachineObject* advertised_object = manager.insert_local_device(advertised_model, "lan", "free", "", "access-code", true);
+    REQUIRE(advertised_object != nullptr);
+    CHECK(advertised_object->printer_type == "C11");
+    CHECK(advertised_object->has_advertised_printer_model());
+}
+
+TEST_CASE("An unrecognized advertised model stays unknown and does not block", "[DeviceManager][integration]")
+{
+    const ScopedPrinterModelRegistry registry({{"C11", {"C11", "Bambu Lab P1P"}}});
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine unknown_model;
+    unknown_model.dev_id       = "unknown-model-device";
+    unknown_model.dev_name     = "Unknown model printer";
+    unknown_model.dev_ip       = "192.0.2.33";
+    unknown_model.printer_type = "NewModel";
+    MachineObject* unknown_object = manager.insert_local_device(unknown_model, "lan", "free", "", "access-code", true);
+    REQUIRE(unknown_object != nullptr);
+    CHECK(unknown_object->printer_type.empty());
+    CHECK_FALSE(unknown_object->has_advertised_printer_model());
+    CHECK(DevPrinterConfigUtil::is_optional_printer_model_id("NewModel"));
+    CHECK(DevPrinterConfigUtil::is_printer_model_compatible("C11", *unknown_object));
+
+    // A later positive report of a different unrecognized model also clears the old identity.
+    BBLocalMachine known_model;
+    known_model.dev_id       = "known-model-device";
+    known_model.dev_name     = "Known model printer";
+    known_model.dev_ip       = "192.0.2.34";
+    known_model.printer_type = "C11";
+    MachineObject* known_object = manager.insert_local_device(known_model, "lan", "free", "", "access-code", true);
+    REQUIRE(known_object != nullptr);
+    REQUIRE(known_object->has_advertised_printer_model());
+
+    manager.on_machine_alive(R"({
+        "dev_name":"Known model printer",
+        "dev_id":"known-model-device",
+        "dev_ip":"192.0.2.34",
+        "dev_type":"NewModel",
+        "dev_signal":"strong",
+        "connect_type":"lan",
+        "bind_state":"free"
+    })");
+    CHECK(known_object->printer_type.empty());
+    CHECK_FALSE(known_object->has_advertised_printer_model());
+}
+
+TEST_CASE("An installed vendor model name resolves to its canonical id", "[DeviceManager][integration]")
+{
+    const ScopedPrinterModelRegistry registry({{"Qidi-Q2", {"Qidi-Q2", "Qidi Q2"}}});
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    CHECK(DevPrinterConfigUtil::resolve_printer_model_id("Qidi-Q2") == "Qidi-Q2");
+    CHECK(DevPrinterConfigUtil::resolve_printer_model_id("Qidi Q2") == "Qidi-Q2");
+
+    BBLocalMachine machine;
+    machine.dev_id       = "qidi-model-device";
+    machine.dev_name     = "Qidi printer";
+    machine.dev_ip       = "192.0.2.35";
+    machine.printer_type = "Qidi Q2";
+    MachineObject* object = manager.insert_local_device(machine, "lan", "free", "", "access-code", true);
+    REQUIRE(object != nullptr);
+    CHECK(object->printer_type == "Qidi-Q2");
+    CHECK(object->has_advertised_printer_model());
+    CHECK(DevPrinterConfigUtil::is_printer_model_compatible("Qidi-Q2", *object));
+    // An alias/name on the source side is normalized before equality.
+    CHECK(DevPrinterConfigUtil::is_printer_model_compatible("Qidi Q2", *object));
+}
+
+TEST_CASE("An installed upgrade kit changes the shown model but not the advertised identity", "[DeviceManager][integration]")
+{
+    const ScopedPrinterModelRegistry registry({{"C11", {"C11", "Bambu Lab P1P"}},
+                                               {"C12", {"C12", "Bambu Lab P1P + Upgrade Kit"}}});
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine p1p;
+    p1p.dev_id       = "upgrade-kit-device";
+    p1p.dev_name     = "P1P with upgrade kit";
+    p1p.dev_ip       = "192.0.2.36";
+    p1p.printer_type = "C11";
+    MachineObject* object = manager.insert_local_device(p1p, "lan", "free", "", "access-code", true);
+    REQUIRE(object != nullptr);
+    object->is_support_upgrade_kit = true;
+    object->installed_upgrade_kit  = true;
+
+    // The printer still advertises C11; only the effective model used for preset comparison is C12.
+    CHECK(object->printer_type == "C11");
+    CHECK(object->has_advertised_printer_model());
+    CHECK(object->get_show_printer_type() == "C12");
+}
+
+TEST_CASE("Model recognition follows the live registry and keeps Bambu legacy aliases", "[DeviceManager][integration]")
+{
+    DevPrinterConfigUtil::set_installed_printer_models(std::vector<DevPrinterConfigUtil::PrinterModelIdentity>{});
+    CHECK(DevPrinterConfigUtil::resolve_printer_model_id("C11").empty());
+    CHECK(DevPrinterConfigUtil::resolve_printer_model_id("3DPrinter-X1") == "BL-P002");
+    CHECK(DevPrinterConfigUtil::resolve_printer_model_id("3DPrinter-X1-Carbon") == "BL-P001");
+
+    {
+        // A duplicated profile model entry with the same id is profile data, not an identity
+        // conflict; the id still resolves.
+        const ScopedPrinterModelRegistry registry({{"C11", {"C11", "Bambu Lab P1P"}},
+                                                   {"C11", {"C11", "Bambu Lab P1P"}}});
+        CHECK(DevPrinterConfigUtil::resolve_printer_model_id("C11") == "C11");
+        CHECK(DevPrinterConfigUtil::resolve_printer_model_id("Bambu Lab P1P") == "C11");
+    }
+    CHECK(DevPrinterConfigUtil::resolve_printer_model_id("C11").empty());
 }
 
 TEST_CASE("Network agent rejects capability queries for a different device owner", "[DeviceManager][integration]")

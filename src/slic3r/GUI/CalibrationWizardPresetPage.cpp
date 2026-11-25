@@ -1785,7 +1785,7 @@ void CalibrationPresetPage::update_show_status()
         }
     }
 
-    bool has_optional_printer_model = DevPrinterConfigUtil::is_optional_printer_model_id(obj_->printer_type);
+    bool has_optional_printer_model = !obj_->has_advertised_printer_model();
     if (PresetBundle *preset_bundle = wxGetApp().preset_bundle) {
         has_optional_printer_model = has_optional_printer_model ||
             DevPrinterConfigUtil::is_optional_printer_model_id(
@@ -2760,6 +2760,8 @@ Preset* CalibrationPresetPage::get_printer_preset(MachineObject* obj, float nozz
 
     Preset* printer_preset = nullptr;
     PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    if (!obj->has_advertised_printer_model())
+        return &preset_bundle->printers.get_edited_preset();
     for (auto printer_it = preset_bundle->printers.begin(); printer_it != preset_bundle->printers.end(); printer_it++) {
         // only use system printer preset
         if (!printer_it->is_system) continue;

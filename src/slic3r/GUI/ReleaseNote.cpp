@@ -1922,7 +1922,7 @@ void InputIpAddressDialog::on_ok(wxMouseEvent& evt)
     std::string str_ca_file = is_bbl_agent() ? into_u8(m_input_cafile->GetValue().Strip(wxString::both)) : std::string();
 
     token_.reset(this, nop_deleter);
-    m_thread = new boost::thread(boost::bind(&InputIpAddressDialog::workerThreadFunc, this, str_ip, str_access_code, str_sn, str_model_id, str_name, str_ca_file));
+    m_thread = new boost::thread(boost::bind(&InputIpAddressDialog::workerThreadFunc, this, str_ip, str_access_code, str_sn, str_model_id, str_name, str_ca_file, current_input_index == 0));
 }
 
 // Bambu printers check certificates in the network plug-in and keep their CA per device; other
@@ -2074,7 +2074,7 @@ void InputIpAddressDialog::post_update_test_msg(std::weak_ptr<InputIpAddressDial
     wxPostEvent(this, event);
 }
 
-void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_access_code, std::string sn, std::string model_id, std::string name, std::string ca_file)
+void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_access_code, std::string sn, std::string model_id, std::string name, std::string ca_file, bool auto_detect)
 {
     std::weak_ptr<InputIpAddressDialog> w = std::weak_ptr<InputIpAddressDialog>(token_);
 
@@ -2082,7 +2082,7 @@ void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_
 
     detectResult detectData;
     auto result = -1;
-    if (current_input_index == 0) {
+    if (auto_detect) {
 
 #ifdef __APPLE__
         result = -3;
@@ -2131,7 +2131,8 @@ void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_
     }
     if (w.expired()) return;
 
-    CallAfter([this, detectData, str_ip, str_access_code, ca_file, w]() {
+    const bool model_advertised = auto_detect && !detectData.model_id.empty();
+    CallAfter([this, detectData, str_ip, str_access_code, ca_file, w, model_advertised]() {
         DeviceManager* dev = wxGetApp().getDeviceManager();
         BBLocalMachine machine;
         machine.dev_name = detectData.dev_name;
@@ -2140,7 +2141,7 @@ void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_
         machine.printer_type = detectData.model_id;
         m_obj = dev->insert_local_device(machine,
             detectData.connect_type, detectData.bind_state, detectData.version,
-            str_access_code);
+            str_access_code, model_advertised);
 
 
         if (w.expired()) return;
@@ -2149,6 +2150,8 @@ void InputIpAddressDialog::workerThreadFunc(std::string str_ip, std::string str_
             m_obj->set_ca_file(ca_file, false); // saved together with the access code below
             m_obj->set_access_code(str_access_code);
             wxGetApp().getDeviceManager()->set_selected_machine(m_obj->get_dev_id());
+        } else {
+            BOOST_LOG_TRIVIAL(warning) << "IP bind dialog: device insertion returned no object";
         }
 
 

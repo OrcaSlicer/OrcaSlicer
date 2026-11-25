@@ -466,11 +466,12 @@ wxString MachineObject::get_printer_type_display_str() const
     std::string display_name = DevPrinterConfigUtil::get_printer_display_name(printer_type);
 
     // Bambu printers use m_resource_file_path + "/printers/" + type_str + ".json", which is a semantic that only works for their profiles.
-    // For any other profile, we can simply consult preset bundle if the model_id exists. 
-    if (display_name.empty()) {
+    // For any other profile, we can simply consult preset bundle if the model_id exists. An empty
+    // printer_type is unknown, not a match for a vendor model whose model_id is also empty.
+    if (display_name.empty() && !printer_type.empty()) {
         for (const auto& [vendor_id, vendor] : GUI::wxGetApp().preset_bundle->vendors) {
             for (const auto& model : vendor.models) {
-                if (printer_type == model.model_id)
+                if (!model.model_id.empty() && printer_type == model.model_id)
                     display_name = model.name;
             }
         }
@@ -3699,7 +3700,20 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 
                     if (!key_field_only) {
                         if (jj.contains("printer_type")) {
-                            printer_type = _parse_printer_type(jj["printer_type"].get<std::string>());
+                            const std::string reported_type = jj["printer_type"].get<std::string>();
+                            // An empty field is absent data and must not clear a reported model.
+                            // A nonempty report is resolved against installed vendor models; an
+                            // unrecognized one becomes unknown and therefore warns without blocking.
+                            if (!reported_type.empty()) {
+                                const std::string previous_type = printer_type;
+                                const std::string resolved_type = DevPrinterConfigUtil::resolve_printer_model_id(reported_type);
+                                // Warn only when the known identity changes to unknown, not on
+                                // every repeated status report for the same unrecognized model.
+                                if (resolved_type.empty() && previous_type != resolved_type)
+                                    BOOST_LOG_TRIVIAL(warning) << "Printer identity: status reported an unrecognized model: " << reported_type;
+                                printer_type             = resolved_type;
+                                printer_model_advertised = !resolved_type.empty();
+                            }
                         }
 
                         if (jj.contains("layer_num")) {

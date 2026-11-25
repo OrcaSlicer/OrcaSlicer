@@ -117,6 +117,32 @@ protected:
     }
 };
 
+// Exposes the protected device-info query and the advertised model it returns.
+class ServerInfoAgent : public MoonrakerPrinterAgent
+{
+public:
+    using MoonrakerPrinterAgent::MoonrakerPrinterAgent;
+
+    struct Info
+    {
+        std::string advertised_model;
+        bool        identity_fetched{false};
+    };
+
+    bool fetch_info(const std::string& base_url, Info& out)
+    {
+        ConnectionSettings connection;
+        connection.base_url = base_url;
+        MoonrakerDeviceInfo info;
+        std::string         error;
+        if (!MoonrakerPrinterAgent::fetch_device_info(connection, info, error, {}))
+            return false;
+        out.advertised_model = info.advertised_model;
+        out.identity_fetched = info.identity_fetched;
+        return true;
+    }
+};
+
 // Connects without the app's printer preset, and counts the device info queries that have returned.
 class ConnectAgent : public MoonrakerPrinterAgent
 {
@@ -285,6 +311,13 @@ public:
         m_disk_usage = std::move(disk_usage);
     }
 
+    // The model /server/info advertises; empty means the printer reports none.
+    void set_server_model(std::string model)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_server_model = std::move(model);
+    }
+
     // The multipart body of the last file upload.
     std::string upload()
     {
@@ -439,6 +472,15 @@ private:
             }
             response.result(http::status::ok);
             response.body() = nlohmann::json{{"result", result}}.dump();
+        } else if (request.target() == "/server/info") {
+            nlohmann::json result{{"machine_name", "Test printer"}, {"moonraker_version", "v0.9.0"}, {"klippy_state", "ready"}};
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                if (!m_server_model.empty())
+                    result["model"] = m_server_model;
+            }
+            response.result(http::status::ok);
+            response.body() = nlohmann::json{{"result", result}}.dump();
         } else if (request.target() == "/server/files/upload") {
             std::lock_guard<std::mutex> lock(m_mutex);
             m_upload = request.body();
@@ -539,6 +581,7 @@ private:
     int m_first_byte    = -1;
     bool m_released     = false;
     nlohmann::json m_disk_usage = {{"total", 8e9}, {"used", 2e9}, {"free", 6e9}};
+    std::string m_server_model = "Qidi-Q2";
     std::string m_upload;
     std::string m_script;
 };
@@ -715,6 +758,23 @@ TEST_CASE("Moonraker discovery waits for a complete device identity", "[Moonrake
     REQUIRE(announcement.at("dev_id") == agent.device_info.dev_id);
     REQUIRE(announcement.at("dev_ip") == "127.0.0.1:7125");
     REQUIRE(announcement.at("dev_name") == "Test model");
+}
+
+TEST_CASE("Moonraker reads the model the printer advertises in server info", "[MoonrakerPrinterAgent][Discovery]")
+{
+    FakePrinter printer{Behavior::Silent};
+    ServerInfoAgent agent("");
+    ServerInfoAgent::Info info;
+
+    REQUIRE(agent.fetch_info(printer.base_url(), info));
+    CHECK(info.identity_fetched);
+    CHECK(info.advertised_model == "Qidi-Q2");
+
+    // A printer that reports no model marks the identity as queried but unknown.
+    printer.set_server_model("");
+    REQUIRE(agent.fetch_info(printer.base_url(), info));
+    CHECK(info.identity_fetched);
+    CHECK(info.advertised_model.empty());
 }
 
 TEST_CASE("Stopping the status stream gives a silent printer no more than its timeouts", "[MoonrakerPrinterAgent][StatusStream]")

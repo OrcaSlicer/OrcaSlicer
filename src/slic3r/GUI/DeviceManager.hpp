@@ -248,6 +248,10 @@ public:
 
     //PRINTER_TYPE printer_type = PRINTER_3DPrinter_UKNOWN;
     std::string printer_type;       /* model_id */
+    // Runtime provenance: true only when printer_type came from a model the printer itself
+    // advertised, not from a preset or a manual entry. Saved types load unverified.
+    bool printer_model_advertised = false;
+    bool has_advertised_printer_model() const { return printer_model_advertised && !printer_type.empty(); }
 
     // id of the IPrinterAgent that was used to discover or bind this device (IPrinterAgent::get_agent_info().id,
     // e.g. "bbl"), stamped at creation time — not derived from get_agent(), since m_agent is a single

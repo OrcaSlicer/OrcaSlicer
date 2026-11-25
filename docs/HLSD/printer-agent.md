@@ -176,6 +176,23 @@ provider and other agents map to the Orca cloud provider. The generation check p
 selection from races; it does not make cloud-provider ownership intrinsic to an agent. Cloud-printer
 ownership and the broader Orca cloud services are therefore still separate architectural concerns.
 
+## Printer model identity
+
+Model identity is separate from printer-agent ownership. `MachineObject::printer_type` can contain a
+saved or preset-derived value, but `printer_model_advertised` marks whether the model was actually
+reported by the printer. Saved and manually supplied values are not proof of the connected model.
+Agents must provide a printer-reported model in binding and discovery responses, or leave it empty;
+Moonraker also accepts a model reported by `/server/info`.
+
+`DevPrinterConfigUtil` resolves reported IDs and names using installed vendor models and legacy
+protocol aliases to obtain a canonical model ID; ambiguous aliases are not resolved. An empty report
+makes no new model claim, while a nonempty unrecognized report leaves the model unknown. Compatibility
+checks compare the canonical ID with the selected preset's model ID, while retaining the existing
+compatible-machine and upgrade-kit rules; an installed upgrade kit changes the shown model used for
+comparison, not the advertised identity. A missing or unrecognized model is optional: the user is
+warned, but model compatibility does not block printing. Model sync does not choose a printer or
+nozzle preset for an unknown model, nor an arbitrary nozzle variant for a recognized model.
+
 ## Python printer agents
 
 `PrinterAgentPluginCapability` implements `IPrinterAgent` directly. The live capability object is

@@ -151,11 +151,18 @@ protected:
         std::string dev_ip;
         std::string api_key;
         std::string base_url;
+        // Derived from the selected Orca preset, not from the printer. It may be used for internal
+        // decisions such as Qidi's filament series, but must never be reported as the printer's model.
         std::string model_id;
         std::string model_name;
         std::string dev_name;
         std::string version;
         std::string klippy_state;
+        // The model the printer reported in /server/info. Empty when the printer reported none.
+        std::string advertised_model;
+        // True once /server/info has been read for this connection, so an empty advertised_model
+        // means "the printer did not advertise a model" instead of "not queried yet".
+        bool        identity_fetched = false;
         float       nozzle_diameter = 0.0f;
         bool        use_ssl = false;
         std::string ca_file;
@@ -365,8 +372,8 @@ private:
     // Wrap the AMS boxes into the payload ParseV1_0 understands and apply the pull-mode
     // readiness state (printer_type, push counters, storage, module versions). Runs on the main
     // thread as part of a build_ams_payload commit; static so the commit never captures `this`,
-    // with the device identity, storage state and extruder status snapshotted by value.
-    static void submit_ams_payload(const std::string& dev_id, const std::string& model_id,
+    // with the advertised identity, storage state and extruder status snapshotted by value.
+    static void submit_ams_payload(const std::string& dev_id, const std::string& advertised_model, bool identity_fetched,
                                    const std::map<int, nlohmann::json>& extruder_status, bool has_storage,
                                    const nlohmann::json& ams_array, unsigned long ams_exist_bits, unsigned long tray_exist_bits);
 
@@ -433,6 +440,10 @@ private:
     // Connection thread management
     std::atomic<uint64_t>  connect_generation{0};
     std::thread            connect_thread;
+
+    // Orders GUI-thread applications of the printer's advertised model and invalidates those queued
+    // for a connection that has since been replaced or for an agent that has been destroyed.
+    std::shared_ptr<std::atomic<uint64_t>> model_apply_generation = std::make_shared<std::atomic<uint64_t>>(0);
 
     void run_command_worker();
     std::thread cmd_thread;
