@@ -13,10 +13,12 @@ Side-load it into a test data directory (test_plugin_tools.py does) and run its 
 Each script writes what happened to out_<name>.json in the plugin's storage folder, which the test reads back:
 {"ok": true, "result": ...} or {"ok": false, "error": "...", "details": ...}. "call" calls app_state,
 "thread" calls it from a thread the script starts, "rule" registers an auto-answer rule, "export" asks for
-replay_export, which a plugin is refused, and "handle" opens a progress dialog and keeps its handle in
-HANDLE, for a script to find and use. The plugin also offers the operation "measure", which doubles its
-argument a, and its first capability adds a line to new_projects.txt in the storage folder for each
-NewProject event it is sent.
+replay_export, which a plugin is refused, "handle" opens a progress dialog and keeps its handle in
+HANDLE, for a script to find and use, and "record" starts a one-second recording into fixture.mkv in the
+storage folder and records the final result. The plugin also offers the operation "measure", which
+doubles its argument a, and its first capability adds a line to new_projects.txt in the storage folder
+for each NewProject event it is sent. It declares no permissions: the test seeds its grants, the tools
+permission among them.
 """
 import json
 import os
@@ -111,6 +113,23 @@ class HoldHandle(orca.script.ScriptPluginCapabilityBase):
         return record("handle", create)
 
 
+def start_recording():
+    path = os.path.join(orca.host.plugin.storage(), "fixture.mkv")
+    reply = orca.host.tools.call("recording_start", {"save_path": path, "overwrite": True, "max_seconds": 1})
+    # A start that outlives its reply budget comes back as a job: its final result says whether it started.
+    if reply.get("status") == "running":
+        reply = orca.host.tools.call("app_wait", {"for": "job", "job": reply["job"]})
+    return reply
+
+
+class Record(orca.script.ScriptPluginCapabilityBase):
+    def get_name(self):
+        return "MCP tools fixture record"
+
+    def execute(self):
+        return record("record", start_recording)
+
+
 def measure(args):
     return {"twice": args.get("a", 0) * 2}
 
@@ -120,5 +139,5 @@ class FixturePackage(orca.base):
     def register_capabilities(self):
         orca.register_operation("measure", "Doubles a.", {"type": "object", "properties": {"a": {"type": "number"}}}, measure,
                                 changes=False)
-        for capability in (CallTool, CallFromThread, SetRule, ExportReplay, HoldHandle):
+        for capability in (CallTool, CallFromThread, SetRule, ExportReplay, HoldHandle, Record):
             orca.register_capability(capability)

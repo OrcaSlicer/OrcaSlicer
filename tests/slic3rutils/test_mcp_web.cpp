@@ -493,6 +493,26 @@ TEST_CASE("a press is released only once its down came back, and a confirmed rel
     CHECK(kept[0].id == other);
 }
 
+TEST_CASE("a press dropped before its down was sent leaves no record and no later effect", "[Mcp]")
+{
+    // A down refused at its send because its run's or plugin's scope ended goes off the record unsent.
+    WebPresses       presses;
+    const PressAgent a{1, "d", ""}, b{2, "d", ""};
+    const auto       refused   = presses.hold(a, "plugin:p");
+    const auto       neighbour = presses.hold(b, "plugin:p");
+    presses.drop(refused);
+    presses.sent(refused); // the gesture's own clean-up after the refusal
+    presses.sent(neighbour);
+    const std::string owner = "plugin:p";
+    const auto        owned = presses.owned(&owner);
+    REQUIRE(owned.size() == 1);
+    CHECK(owned[0].id == neighbour);
+    CHECK(presses.of(a).empty());
+    const auto releasable = presses.releasable(std::nullopt);
+    REQUIRE(releasable.size() == 1);
+    CHECK(releasable[0].id == neighbour);
+}
+
 TEST_CASE("a run's presses are told from a client's for the cleanup when either ends", "[Mcp]")
 {
     WebPresses presses;

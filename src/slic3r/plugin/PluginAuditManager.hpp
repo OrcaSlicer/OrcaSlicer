@@ -27,6 +27,8 @@ struct PluginPermissions;
 // target. Legacy sidecars also stored it as the sole entry of their threading target list; the
 // reader maps that form onto the boolean permission.
 inline constexpr const char* kThreadPermissionTarget = "thread";
+// The tools grant has no target either; its declaration and its prompt at a call name this one.
+inline constexpr const char* kToolsPermissionTarget = "orca.host.tools.call";
 
 // The audit identities of a Python script a person (the Run Script panel, --run) or an agent
 // (script_run) starts. A script is judged as a plugin is, but has no install state to hold a grant: what
@@ -70,6 +72,9 @@ enum class AuditEventCategory {
     ProcessCreate,
     ProcessReplace,
     Threading,
+    // Calling OrcaSlicer's tools through orca.host.tools (PluginPermissions::tools). No audit event
+    // maps to it: a declaration asks for it, and request_tools_permission() at a call.
+    Tools,
 };
 
 // Returns true if candidate resolves to a path inside allowed_root.
@@ -225,6 +230,12 @@ public:
     // create and delete, a tree grant covers every target whose containing folder is its root or
     // any folder below it.
     bool request_permissions(const std::string& plugin_key, const PluginPermissions& requested);
+
+    // Whether the plugin may call OrcaSlicer's tools now. Without the grant (PluginPermissions::tools
+    // or full access) it is asked as an undeclared audited event is: called off the GUI thread, as a
+    // plugin's tool call is, the call is refused and the prompt queued, and a Yes is saved so the
+    // plugin's next call works. A sidecar that cannot be read is never asked or replaced.
+    bool request_tools_permission(const std::string& plugin_key);
 
     // Ask the user to grant network access to the given http(s) URLs. Each URL is reduced to its
     // scheme and host before prompting and persisting, so one approval covers every path, query

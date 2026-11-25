@@ -755,6 +755,7 @@ struct DownPress
 {
     std::uint64_t id     = 0;
     bool          client = false; // a client's, not a run's
+    std::string   owner;          // the run_owner() it was held for
 };
 
 // Runs `action` on a page element, waiting up to `timeout` for the page.
@@ -770,6 +771,16 @@ WebActed web_act(AutomationRuntime& runtime, ToolContext& ctx, const WebTarget& 
         // A client's down sent after the endpoint closed would leave a press no one releases.
         if (down.client && !runtime.client_scope_open())
             throw ToolFailure("The MCP server was turned off before this gesture ran; it was not performed");
+        // So would a run's or a plugin's sent after its scope ended, whose release has already run (or is queued
+        // behind this, which releases only presses already sent). The unsent press goes off the record.
+        if (down.id != 0) {
+            try {
+                runtime.require_owner_scope(down.owner);
+            } catch (...) {
+                runtime.web_presses().drop(down.id);
+                throw;
+            }
+        }
         wxWebView* web = web_view_of(t.web);
         if (web == nullptr || !web->IsShownOnScreen())
             throw ToolFailure("The page's web view is gone or hidden; call widget_list again");
@@ -1010,7 +1021,7 @@ ToolResult web_mouse(AutomationRuntime& runtime, ToolContext& ctx, const json& a
         a["press"] = pressed;
     WebActed acted;
     try {
-        acted = web_act(runtime, ctx, t, "mouse", a, timeout, {pressed, owner.empty()});
+        acted = web_act(runtime, ctx, t, "mouse", a, timeout, {pressed, owner.empty(), owner});
     } catch (...) {
         // A down refused before it was sent is released as one that was: its release only answers.
         if (pressed != 0)
@@ -1421,6 +1432,8 @@ void register_gui_tools(CommandCatalog& catalog)
                 // to release it.
                 if (owner.empty() && !runtime.client_scope_open())
                     throw ToolFailure("The MCP server was turned off before this gesture ran; it was not performed");
+                // Nor would a run's or a plugin's whose scope ended since its owner was found.
+                runtime.require_owner_scope(owner);
                 // The canvases are in the main window, which takes no input while a dialog is open.
                 guard_target(runtime, wxGetApp().mainframe);
                 try {
@@ -1686,7 +1699,8 @@ void register_gui_tools(CommandCatalog& catalog)
             "dialog_auto_answer", L("Answer dialogs automatically"),
             "Answer modal dialogs automatically when their title or message matches a rule's regex (case-insensitive). "
             "`app_state.auto_answer_rules` lists the rules in force. Called from a replay or script, the rules join those "
-            "it set before and last until it ends, and a plugin's likewise until it unloads; an MCP client's replace the "
+            "it set before and last until it ends, and a plugin's likewise until it unloads or loses its permission to call the "
+            "tools; an MCP client's replace the "
             "ones MCP clients set before and last until the MCP server stops, and an empty list clears them. Reply: scope (run, plugin or session), rules (uses counts "
             "a rule's answers) and `answered_open_dialog`. A native dialog "
             "returns the rule's button at once and never shows. A file or folder picker takes button ok with an absolute path "

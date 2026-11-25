@@ -698,6 +698,12 @@ void McpRecorder::owner_ended(const std::string& owner)
     m_ended_owners.insert(owner);
 }
 
+void McpRecorder::owner_reopened(const std::string& owner)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_ended_owners.erase(owner);
+}
+
 bool McpRecorder::owner_ended_in(const std::vector<std::string>& ancestry) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);

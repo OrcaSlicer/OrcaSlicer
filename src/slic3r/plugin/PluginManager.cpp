@@ -721,6 +721,12 @@ bool PluginManager::get_install_state(const std::string& plugin_key, PluginInsta
     return true;
 }
 
+bool PluginManager::plugin_may_call_tools(const std::string& plugin_key)
+{
+    PluginInstallState state;
+    return get_install_state(plugin_key, state) && state.permissions.allows_tools();
+}
+
 // ── Lifecycle ───────────────────────────────────────────────────────────────────────────────
 
 bool PluginManager::is_plugin_loaded(const std::string& plugin_key) const
@@ -1457,6 +1463,8 @@ bool PluginManager::mutate_plugin_permissions(const std::string& plugin_key, con
         state.permissions.threading = *mutation.threading;
     if (mutation.full_access)
         state.permissions.full_access = *mutation.full_access;
+    if (mutation.tools)
+        state.permissions.tools = *mutation.tools;
 
     if (!write_install_state(root, state)) {
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to write install state for " << plugin_key;

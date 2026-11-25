@@ -162,7 +162,9 @@ void register_tools(py::module_& host)
         "with call(\"app_wait\", {\"for\": \"job\", \"job\": ...}). An error result raises ToolError, whose details "
         "hold the result's data. A person's or an agent's script calls tools from its own code and from the threads and "
         "pool tasks it starts, while its run lasts, but not from its window callbacks; a plugin calls from a "
-        "Script worker, never the UI thread.");
+        "Script worker, never the UI thread, and only with the tools permission or full access: without it a call "
+        "raises ToolError with details[\"code\"] == \"tools_not_allowed\" and asks the person, unless the plugin's "
+        "install state exists but cannot be read, and a Yes lets the plugin's next call through.");
     // Static, as pybind keeps a docstring by its pointer; it names the format version this build reads.
     static const std::string run_replay_doc =
         std::string("Run a replay ({\"orca_replay_version\": \"") + GUI::Mcp::REPLAY_VERSION +

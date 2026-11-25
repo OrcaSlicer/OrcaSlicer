@@ -204,7 +204,8 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
                 !requested_permissions.fs_read.empty() || !requested_permissions.fs_readwrite.empty() ||
                 !requested_permissions.fs_create.empty() || !requested_permissions.fs_delete.empty() ||
                 !requested_permissions.network_http.empty() || !requested_permissions.network_socket.empty() ||
-                !requested_permissions.process.empty() || requested_permissions.threading;
+                !requested_permissions.process.empty() || requested_permissions.threading ||
+                requested_permissions.tools;
             if (has_permission_request) {
                 bool granted = false;
                 {
@@ -757,7 +758,8 @@ after schema, or as handler= on its own. changes=False marks an operation that o
            bool                            threading,
            const std::vector<std::string>& network,
            const std::vector<std::string>& fs_create,
-           const std::vector<std::string>& fs_delete) {
+           const std::vector<std::string>& fs_delete,
+           bool                            tools) {
             if (g_active_plugin_key.empty())
                 throw py::value_error("request_permissions() called outside plugin discovery context");
 
@@ -834,6 +836,8 @@ after schema, or as handler= on its own. changes=False marks an operation that o
 
             if (threading && !requested.threading)
                 requested.threading = true;
+            if (tools)
+                requested.tools = true;
         },
         py::arg("fs_read") = std::vector<std::string>{},
         py::arg("fs_readwrite") = std::vector<std::string>{},
@@ -844,6 +848,8 @@ after schema, or as handler= on its own. changes=False marks an operation that o
         py::arg("network") = std::vector<std::string>{},
         py::arg("fs_create") = std::vector<std::string>{},
         py::arg("fs_delete") = std::vector<std::string>{},
+        // Last, so a call that passes the earlier arguments by position keeps its meaning.
+        py::arg("tools") = false,
         R"pbdoc(Request permissions while OrcaSlicer loads your module.
 
 Each bucket takes the target strings the plugin expects the corresponding audit event to
@@ -889,7 +895,13 @@ wildcard covers them.
 `network` also lists http(s) URLs, but each is reduced to its scheme and host, so one grant covers
 every path, query and port on that host and also authorizes raw socket events for it. The host
 presents one request to the user after register_capabilities() returns and before any capability
-instance is created. Denying the request aborts the plugin load.)pbdoc");
+instance is created. Denying the request aborts the plugin load.
+
+tools=True asks to call OrcaSlicer's tools through orca.host.tools, as an AI agent calls them: change
+the project, presets and files, work in the window and answer its dialogs, permission requests
+included. A plugin that calls the tools without this grant is asked at that call (unless its
+install state exists but cannot be read), which raises orca.host.tools.ToolError with
+details["code"] == "tools_not_allowed"; a Yes lets its next call through.)pbdoc");
 
     m.def("plugin", [](py::object cls) {
         if (g_active_plugin_key.empty())

@@ -299,9 +299,10 @@ with the same preference. `filament_sync_ams` refuses a printer of another model
 | `plugin_uninstall` | Remove a plugin for good, unsubscribing a cloud one | `plugin` |
 | `plugin_refresh` | Rescan the installed plugins and fetch the plugin hub's list again, then reply with the plugins |  |
 
-A plugin's code calls the commands through `orca.host.tools` as an agent does, scoped to the plugin: `replay_export`
-is refused, `job_cancel` and `app_wait {for: "job"}` act only on its own jobs, and the rules, recordings and held
-presses its calls leave end when it unloads, from which moment its calls are refused. An operation a plugin offers
+A plugin's code calls the commands through `orca.host.tools` as an agent does, with the tools permission
+([plugin-permissions.md](plugin-permissions.md)), scoped to the plugin: `replay_export` is refused, `job_cancel` and
+`app_wait {for: "job"}` act only on its own jobs, and the rules, recordings and held presses its calls leave end when
+it unloads or loses the permission, from which moment its calls are refused. An operation a plugin offers
 (`plugin.<plugin>.<name>`, which `tool_list` lists and `tool_call` runs) runs as a job: as a change, refused behind a
 dialog and journaled, when the plugin declares that it changes something, else as a read. A call of an operation
 whose plugin has unloaded, or loaded again since, is refused.

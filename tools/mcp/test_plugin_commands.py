@@ -11,7 +11,6 @@ Run it as python tools/mcp/test_plugin_commands.py [--bin PATH] [--datadir PATH]
 """
 import json
 import os
-import re
 import shutil
 import sys
 import tempfile
@@ -19,7 +18,7 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from checks import Checks, launched, reached, refusal as error_of, speed_dial, until  # noqa: E402
+from checks import Checks, launched, reached, refusal as error_of, speed_dial, until, web_view  # noqa: E402
 from orca_mcp import McpError  # noqa: E402
 
 TOKEN = "plugin-commands-test-token"
@@ -71,11 +70,10 @@ def window_rows(orca):
     code = ("JSON.stringify(Array.from(document.querySelectorAll('.plugin-row')).map(function (r) {"
             " var box = r.querySelector('input.plugin-checkbox-input:not(.capability-checkbox-input)');"
             " return {key: r.dataset.pluginKey, enabled: !!(box && box.checked)}; }))")
-    _, tree = orca.call_with_text("widget_list", query="PluginsDialog/index.html")
-    view = re.search(r"\[(\w+)\] webview", "\n".join(tree))
+    view = web_view(orca, "PluginsDialog/index.html")
     if view is None:
         return None
-    reply = orca.call("webview_run_javascript", code=code, target=view.group(1))
+    reply = orca.call("webview_run_javascript", code=code, target=view)
     result = reply.get("result")
     return json.loads(result) if isinstance(result, str) else result
 

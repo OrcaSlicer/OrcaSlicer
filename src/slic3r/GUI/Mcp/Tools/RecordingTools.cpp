@@ -1063,6 +1063,8 @@ void register_recording_tools(CommandCatalog& catalog)
                 // closed must not begin a recording nothing would end.
                 if (o.owner.empty() && !runtime.client_scope_open())
                     throw ToolFailure("The MCP server was turned off; the recording was not started");
+                // Nor a run's or a plugin's whose scope ended since: refused before start() opens the file.
+                runtime.require_owner_scope(o.owner);
                 handed_over = true; // start() owns the reservation from here, success or not
                 return runtime.recorder().start(o, owner);
             });

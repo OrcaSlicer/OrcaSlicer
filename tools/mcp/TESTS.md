@@ -303,5 +303,6 @@ something wrong passes.
 **A few steps still trust a fixed time, where no tool shows the state to wait for.** `test_runtime_calls` gives its
 32 half-sent connections 1 s and the Run Script panel's page 1 s, since no tool sees either; it cancels a slice as
 soon as `app_state` lists its job, inside the slice's half-second wait, a race a slow machine fails rather than
-passes. `test_plugin_tools`' `--run` replay waits 10 s for a dialog that never opens, so that the plugin script it
-starts can record its outcome: a replay has no step that waits for a file.
+passes. `test_plugin_tools`' `--run` replay waits up to 30 s for the ungranted plugin's permission prompt to open and 30 s
+for it to close, so that the plugin scripts it starts can record their outcomes: a replay has no step that waits
+for a file.

@@ -5,11 +5,13 @@
 #include "McpArguments.hpp"
 #include "McpProtocol.hpp"
 #include "AutomationRuntime.hpp"
+#include "JobRegistry.hpp"
 
 #include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/plugin/PluginAuditManager.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/plugin/host/PluginHostTools.hpp"
 
@@ -38,17 +40,25 @@ struct Admission
     std::condition_variable cv;
     bool                    answered  = false;
     bool                    abandoned = false; // the caller stopped waiting: take no lease
+    bool                    no_tools  = false; // the plugin may not call the tools: a ToolError, not an admission error
     AutomationRuntime*      runtime   = nullptr;
     std::string             refusal;
 };
 
 // Admits a plugin's call on the UI thread, which owns the runtime and runs the plugin's unload: the plugin
-// must still be loaded and its scope not ended, and the runtime is started without its endpoint when MCP is
-// off, with the GUI instruments on, as Action Replay starts it. Returns the runtime with a lease taken,
-// or throws. A caller that stops waiting because the app closes marks the admission abandoned, under the
-// lock the UI thread answers it under, so no lease is taken that nobody releases.
+// must still be loaded, may call the tools, and its scope not ended, and the runtime is started without its
+// endpoint when MCP is off, with the GUI instruments on, as Action Replay starts it. A plugin without the tools
+// is refused before anything starts, with the core's own refusal for it (McpCore::run checks every call again).
+// Returns the runtime with a lease taken, or throws. A caller that stops waiting because the app closes marks
+// the admission abandoned, under the lock the UI thread answers it under, so no lease is taken that nobody
+// releases.
 AutomationRuntime* admit_plugin_call(const std::string& plugin)
 {
+    // Asked here, on the plugin's Script worker, as an undeclared audited event on a worker is: without the grant
+    // the call is refused and the prompt queued, and a Yes lets the plugin's next call through. The UI thread checks
+    // the grant again below, without asking, in case it was withdrawn meanwhile.
+    if (!PluginAuditManager::instance().request_tools_permission(plugin))
+        throw ToolCallError(kPluginToolsRefused, {{"code", kToolsNotAllowed}});
     auto admission = std::make_shared<Admission>();
     wxGetApp().CallAfter([admission, plugin] {
         std::lock_guard<std::mutex> lock(admission->mutex);
@@ -62,6 +72,10 @@ AutomationRuntime* admit_plugin_call(const std::string& plugin)
         }
         if (!PluginManager::instance().is_plugin_loaded(plugin)) {
             admission->refusal = "This plugin is not loaded";
+            return;
+        }
+        if (!PluginManager::instance().plugin_may_call_tools(plugin)) {
+            admission->no_tools = true;
             return;
         }
         AutomationRuntime* runtime = wxGetApp().automation();
@@ -82,6 +96,8 @@ AutomationRuntime* admit_plugin_call(const std::string& plugin)
             admission->abandoned = true;
             throw std::runtime_error("OrcaSlicer is closing");
         }
+    if (admission->no_tools)
+        throw ToolCallError(kPluginToolsRefused, {{"code", kToolsNotAllowed}});
     if (admission->runtime == nullptr)
         throw std::runtime_error(admission->refusal);
     return admission->runtime;

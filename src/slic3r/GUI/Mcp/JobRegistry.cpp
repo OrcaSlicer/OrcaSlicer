@@ -14,21 +14,34 @@
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
+std::string JobRegistry::call_owner(const std::string& parent, const std::string& owner) const
+{
+    if (!owner.empty() || parent.empty())
+        return owner;
+    std::lock_guard<std::mutex> lock(m_mutex);
+    const auto                  it = m_jobs.find(parent);
+    return it != m_jobs.end() ? it->second.owner : std::string();
+}
+
 bool JobRegistry::unloaded(const std::string& parent, const std::string& owner) const
 {
-    std::string plugin = owner;
+    const std::string plugin = call_owner(parent, owner);
+    if (plugin.empty())
+        return false;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        if (plugin.empty() && !parent.empty())
-            if (const auto it = m_jobs.find(parent); it != m_jobs.end())
-                plugin = it->second.owner;
-        if (plugin.empty())
-            return false;
         if (m_blocked_owners.count(plugin) != 0)
             return true;
     }
     // The hook takes the plugin manager's lock, so it is asked without this registry's.
     return m_owner_loaded && !m_owner_loaded(plugin);
+}
+
+bool JobRegistry::tools_refused(const std::string& parent, const std::string& owner) const
+{
+    const std::string plugin = call_owner(parent, owner);
+    // The hook reads the plugin's install state, so it is asked without this registry's lock.
+    return !plugin.empty() && m_owner_allowed && !m_owner_allowed(plugin);
 }
 
 std::string JobRegistry::create(const std::string& tool, const std::string& parent, const std::string& owner, bool person)

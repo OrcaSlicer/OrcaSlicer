@@ -22,6 +22,12 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 
 // What a call of a plugin that has unloaded fails with.
 inline constexpr char kPluginUnloaded[] = "The plugin that made this call has been unloaded";
+// What a call of a plugin without permission to call the tools fails with, with the code kToolsNotAllowed.
+inline constexpr char kPluginToolsRefused[] =
+    "This plugin is not allowed to call OrcaSlicer's tools. A person allows them when OrcaSlicer asks, or on the "
+    "Permissions tab of the Plugins dialog; a plugin can also declare them as it loads with "
+    "orca.request_permissions(tools=True).";
+inline constexpr char kToolsNotAllowed[] = "tools_not_allowed";
 
 // Bookkeeping for mutate tool calls that run on their own threads. A call that outlives its reply
 // budget stays here until it finishes, so a later `app_wait {for:"job"}` can return its result; the
@@ -54,6 +60,12 @@ public:
     // plugin manager's own state, so it changes the moment the plugin unloads, while the block comes later
     // from the UI thread. Set once, before any job is created.
     void set_owner_liveness(std::function<bool(const std::string&)> loaded) { m_owner_loaded = std::move(loaded); }
+    // Whether the call's plugin, found as unloaded() finds it, may not call the tools now, by the permission
+    // hook. False for a call that is not a plugin's, and with no hook set.
+    bool tools_refused(const std::string& parent, const std::string& owner) const;
+    // Whether a plugin may call the tools, asked on the calling thread without the registry's lock held, on every
+    // call, so a grant changed meanwhile applies to the next one. Set once, before any job is created.
+    void set_owner_permission(std::function<bool(const std::string&)> allowed) { m_owner_allowed = std::move(allowed); }
     // The plugin that owns `id`, or "" for anyone else's job, or one no longer known.
     std::string owner(const std::string& id) const;
     // The running jobs `owner` (a plugin) owns.
@@ -103,6 +115,8 @@ public:
 private:
     // create() without the liveness check.
     std::string register_job(const std::string& tool, const std::string& parent, const std::string& owner, bool person);
+    // The call's plugin: `owner`, else the owner of the job `parent`, else "".
+    std::string call_owner(const std::string& parent, const std::string& owner) const;
 
     struct Job
     {
@@ -129,6 +143,7 @@ private:
     std::set<std::string>       m_stop_requests;
     std::set<std::string>       m_blocked_owners;
     std::function<bool(const std::string&)> m_owner_loaded;
+    std::function<bool(const std::string&)> m_owner_allowed;
     uint64_t                    m_next = 1;
     bool                        m_woken = false;
 };

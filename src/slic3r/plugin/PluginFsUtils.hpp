@@ -56,6 +56,12 @@ struct PluginPermissions
     // the cloud refresh token), which stay blocked. Stored as a JSON boolean; a missing or
     // non-boolean value reads as false. This is a Python audit-hook policy, not an OS sandbox.
     bool full_access = false;
+    // Calling OrcaSlicer's tools through orca.host.tools is a yes/no grant, with the reach of an AI
+    // agent's calls, dialogs and permission requests included. Stored as a JSON boolean; a missing
+    // or non-boolean value reads as false.
+    bool tools = false;
+
+    bool allows_tools() const { return tools || full_access; }
 };
 
 struct PluginInstallState {

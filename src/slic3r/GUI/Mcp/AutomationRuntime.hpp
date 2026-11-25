@@ -174,7 +174,9 @@ public:
     // a slice or an export through the plater. UI thread.
     void cancel_operations_of(const std::string& job);
     // The job of the nearest running replay or script in `ancestry`, else the scope of the plugin whose call it is,
-    // or "" for a client's own call. Any thread.
+    // or "" for a client's own call. Throws ToolFailure for a plugin's call whose plugin lost the tools, unloaded, or
+    // has no scope open (the call was made before it unloaded), so nothing it leaves behind falls to the client. Any
+    // thread.
     std::string run_owner(const std::vector<std::string>& ancestry) const;
     // Keeps the runtime from being destroyed while a caller outside the core uses it: a plugin's call holds
     // a lease from the moment the UI thread hands it the runtime until the call returns, and drain() waits
@@ -185,11 +187,22 @@ public:
     // run's do, until the plugin unloads: begin is called before each of its calls (idempotent), end when
     // it unloads. Any thread.
     // begin returns false for a plugin whose scope ended (it unloaded) until plugin_loaded() is called for
-    // it again; end also stops the plugin's running calls, and a call of its that would leave something
-    // behind after that is refused (run_owner, set_auto_answer throw).
+    // it again; end also stops the plugin's running calls and ends the scopes of its running replays and scripts,
+    // and a call of its that would leave something behind after that is refused (run_owner, set_auto_answer and
+    // require_owner_scope throw).
+    // A begin that opens the scope afresh also lets a recording start under it again (McpRecorder::owner_reopened()).
     bool begin_plugin_scope(const std::string& plugin_key);
     void end_plugin_scope(const std::string& plugin_key);
     void plugin_loaded(const std::string& plugin_key);
+    // The plugin lost its permission to call the tools (the Plugins dialog's switch or full access turned off): its
+    // scopes end as at unload, but its calls are not blocked; the permission refuses them, and a call admitted before
+    // is refused where it would leave something behind, until begin_plugin_scope() opens the scope under a new grant.
+    // UI thread.
+    void plugin_tools_withdrawn(const std::string& plugin_key);
+    // Throws ToolFailure unless what `owner` (a run_owner() value) leaves behind may still be published: its scope is
+    // open and its plugin has neither lost the tools nor unloaded. A client's "" passes, as its own check covers it.
+    // Asked where a press or a recording is published, after the owner was found on the caller's thread. Any thread.
+    void require_owner_scope(const std::string& owner) const;
 
     // Calls a command on a thread the runtime owns, which stop() joins. False, with nothing started, when the
     // runtime is not started or is stopping, or when the system cannot start a thread. Any thread.
@@ -208,6 +221,13 @@ private:
     // the runtime stops first. A thread follow() starts calls it.
     std::optional<ToolResult> call_to_end(const NativeCommand& command, const nlohmann::json& args, bool person,
                                           const nlohmann::json& origin);
+    // Asks the plugin's running calls to stop and ends its scope with the scopes of its running replays and
+    // scripts, popping their rules, ending their recording and releasing their presses. For an unload and a
+    // withdrawal of the tools alike.
+    void end_scopes_of(const std::string& plugin_key);
+    // Under m_rules_mutex: throws for a call of `plugin` ("" for none) after it lost the tools, with kToolsNotAllowed,
+    // or unloaded, with the message `unloaded`.
+    void refuse_gone_plugin(const std::string& plugin, const char* unloaded) const;
     // An auto-answer rule of `layer` answered a dialog: the activity log lists it with the run, plugin or client whose
     // rule it was. UI thread.
     void rule_answered(int layer, const std::string& title, const std::string& message, const std::string& pattern,
@@ -259,7 +279,8 @@ private:
     std::atomic<uint64_t> m_generation{1};
     std::vector<std::function<void()>> m_on_ready; // UI thread
 
-    std::set<std::string>  m_unloaded_plugins; // under m_rules_mutex
+    std::set<std::string>  m_unloaded_plugins;  // under m_rules_mutex
+    std::set<std::string>  m_withdrawn_plugins; // under m_rules_mutex: lost the tools since their scope last opened
     // Last, so its threads, which use everything above, are gone first.
     FollowedThreads        m_followed;
 };

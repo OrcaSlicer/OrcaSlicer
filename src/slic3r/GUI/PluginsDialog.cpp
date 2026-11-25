@@ -6,6 +6,7 @@
 #include "I18N.hpp"
 #include "MsgDialog.hpp"
 #include "OrcaCloudServiceAgent.hpp"
+#include "slic3r/GUI/Mcp/AutomationRuntime.hpp"
 #include "slic3r/plugin/PluginConfig.hpp"
 #include "slic3r/plugin/PluginFsUtils.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
@@ -186,6 +187,7 @@ nlohmann::json build_permissions_payload(const PluginPermissions& permissions)
     payload["threading"]      = permissions.threading;
     payload["events"]         = permissions.events;
     payload["full_access"]    = permissions.full_access;
+    payload["tools"]          = permissions.tools;
     return payload;
 }
 
@@ -741,6 +743,9 @@ nlohmann::json PluginsDialog::localized_strings() const
         {"permissions_process_help", _u8L("Executable grants cover all arguments. CommandLine: entries cover only the exact command line.")},
         {"permissions_process_placeholder", _u8L("Executable or command name")},
         {"permissions_threading_help_short", _u8L("Allow this plugin to create threads.")},
+        // TRN The name of a plugin permission: calling OrcaSlicer's tools, the commands AI agents call (MCP tools).
+        {"permissions_tools", _u8L("OrcaSlicer tools")},
+        {"permissions_tools_help_short", _u8L("Allow this plugin to call OrcaSlicer's tools, as AI agents do: change your project, presets and files, run post-processing scripts, and answer dialogs, permission requests included.")},
         {"permissions_events_help", _u8L("Enter a category and event separated by a colon, such as Socket:socket.__new__.")},
         {"permissions_events_placeholder", _u8L("Socket:socket.__new__")},
         {"permissions_full_access_label", _u8L("Full access")},
@@ -1001,8 +1006,8 @@ bool PluginsDialog::prompt_enable_full_access(const std::string& plugin_key)
         wxString::Format(
             _L("Enable full access for \"%s\"?\n\n"
                "Full access turns off permission auditing for this plugin: its file system, network, "
-               "process, thread and event permissions are no longer checked. The plugin can read and "
-               "write most files your user account can access, including startup scripts, SSH keys "
+               "process, thread, event and OrcaSlicer tools permissions are no longer checked. The plugin "
+               "can read and write most files your user account can access, including startup scripts, SSH keys "
                "and a writable OrcaSlicer installation. Modifying startup or application files can "
                "let code run outside these checks. Direct Python access to OrcaSlicer's "
                "configuration, secret, certificate and install-state paths stays blocked, but "
@@ -1070,7 +1075,7 @@ void PluginsDialog::mutate_plugin_permission(const nlohmann::json& payload)
         bucket = PluginPermissionCategory::Events; entries = &stored.permissions.events;
     }
 
-    if (category == "full_access" || category == "threading") {
+    if (category == "full_access" || category == "threading" || category == "tools") {
         if (operation != "set" || !payload.contains("value") || !payload.at("value").is_boolean()) {
             invalid();
             return;
@@ -1082,6 +1087,8 @@ void PluginsDialog::mutate_plugin_permission(const nlohmann::json& payload)
                 return;
             }
             mutation.full_access = enabled;
+        } else if (category == "tools") {
+            mutation.tools = enabled;
         } else {
             mutation.threading = enabled;
         }
@@ -1187,11 +1194,17 @@ void PluginsDialog::mutate_plugin_permission(const nlohmann::json& payload)
         }
     }
 
-    if (!PluginManager::instance().mutate_plugin_permissions(plugin_key, mutation)) {
+    PluginPermissions applied;
+    if (!PluginManager::instance().mutate_plugin_permissions(plugin_key, mutation, &applied)) {
         show_status(_L("Failed to save permissions."), "error");
         finish(false);
         return;
     }
+    // An edit that leaves the plugin without the tools ends what its calls left in force (auto-answer rules, a
+    // recording, held presses) and stops its running calls. On the UI thread, as the calls publish those.
+    if ((mutation.tools || mutation.full_access) && !applied.allows_tools())
+        if (Mcp::AutomationRuntime* runtime = wxGetApp().automation_if_started())
+            runtime->plugin_tools_withdrawn(plugin_key);
     finish(true);
     show_status(wxString::Format(_L("Permissions saved for \"%s\"."), plugin_name), "success");
 }

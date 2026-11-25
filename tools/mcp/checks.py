@@ -5,6 +5,7 @@ out of time, and readers that give the app's state in a fixed shape."""
 import contextlib
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -653,6 +654,14 @@ def undo_steps(client):
 def dialogs(client):
     """The open dialogs from app_state, the topmost last, as {title, message}."""
     return [{"title": d.get("title"), "message": d.get("message")} for d in client.call("app_state").get("dialogs", [])]
+
+
+def web_view(client, page):
+    """The ref widget_list gives the web view showing `page` (part of its URL, such as "PluginsDialog/index.html"),
+    or None while none is listed. The ref stays valid while the web view lives."""
+    _, tree = client.call_with_text("widget_list", query=page)
+    view = re.search(r"\[(\w+)\] webview", "\n".join(tree))
+    return view.group(1) if view else None
 
 
 def rule_uses(client, match):

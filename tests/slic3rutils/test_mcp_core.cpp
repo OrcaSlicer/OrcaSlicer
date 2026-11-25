@@ -7,8 +7,10 @@
 #include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/Mcp/AutomationRuntime.hpp"
+#include "slic3r/GUI/Mcp/AutomationRuntimePtr.hpp"
 #include "slic3r/GUI/Mcp/McpJournal.hpp"
 #include "slic3r/GUI/Mcp/McpPersonContext.hpp"
+#include "slic3r/GUI/Mcp/ModalTracker.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -107,4 +109,96 @@ TEST_CASE("an action of fixed arguments is journaled with the arguments action_r
     CHECK(steps[0]["tool"] == "action_run");
     // action_run refuses any other arguments for such an action, so the step holds the action's, which its replay runs.
     CHECK(steps[0]["args"] == json{{"id", "orca_command:k:orca"}, {"args", action_args}});
+}
+
+namespace {
+
+// Whether `fn` throws a ToolFailure whose details' code is `code`.
+template<class Fn> bool fails_with_code(Fn&& fn, const std::string& code)
+{
+    try {
+        fn();
+    } catch (const ToolFailure& f) {
+        return f.details.is_object() && f.details.value("code", "") == code;
+    }
+    return false;
+}
+
+} // namespace
+
+TEST_CASE("a withdrawn plugin's late calls leave nothing behind until it may call the tools again", "[Mcp]")
+{
+    // Built, not started: the scope bookkeeping needs no GUI, and the scope ends skip what was never started.
+    AutomationRuntimePtr runtime(new AutomationRuntime());
+    const std::string    job   = runtime->jobs().create("x", {}, "p");
+    const std::string    child = runtime->jobs().create("script_run", job);
+    REQUIRE(runtime->begin_plugin_scope("p"));
+    runtime->begin_run_scope(child);
+    CHECK(runtime->run_owner({job}) == "plugin:p");
+    CHECK(runtime->run_owner({child, job}) == child);
+    CHECK_NOTHROW(runtime->require_owner_scope("plugin:p"));
+    CHECK_NOTHROW(runtime->require_owner_scope(child));
+
+    runtime->plugin_tools_withdrawn("p");
+    // A call that passed its check before the withdrawal leaves no rule, press or recording, nor does its script's.
+    CHECK(fails_with_code([&] { runtime->run_owner({job}); }, "tools_not_allowed"));
+    CHECK(fails_with_code([&] { runtime->run_owner({child, job}); }, "tools_not_allowed"));
+    CHECK(fails_with_code([&] { runtime->set_auto_answer({}, {job}); }, "tools_not_allowed"));
+    CHECK(fails_with_code([&] { runtime->require_owner_scope("plugin:p"); }, "tools_not_allowed"));
+    // The script's own scope ended with the withdrawal, so what it would publish is refused too, and for the reason.
+    CHECK(fails_with_code([&] { runtime->require_owner_scope(child); }, "tools_not_allowed"));
+    // Another plugin and a client are untouched.
+    const std::string other = runtime->jobs().create("x", {}, "q");
+    REQUIRE(runtime->begin_plugin_scope("q"));
+    CHECK(runtime->run_owner({other}) == "plugin:q");
+    CHECK(runtime->run_owner({}).empty());
+    CHECK_NOTHROW(runtime->require_owner_scope(""));
+
+    // A call admitted under a new grant opens the scope again.
+    REQUIRE(runtime->begin_plugin_scope("p"));
+    CHECK(runtime->run_owner({job}) == "plugin:p");
+    CHECK_NOTHROW(runtime->require_owner_scope("plugin:p"));
+    // The script's scope stays ended: the withdrawal closed it, not only the plugin's mark.
+    CHECK_THROWS_WITH(runtime->require_owner_scope(child), "The replay or script that made this call has ended");
+}
+
+TEST_CASE("an unloaded plugin's late press, recording or rule is refused, its scripts' too", "[Mcp]")
+{
+    AutomationRuntimePtr runtime(new AutomationRuntime());
+    const std::string    job   = runtime->jobs().create("x", {}, "q");
+    const std::string    child = runtime->jobs().create("script_run", job);
+    REQUIRE(runtime->begin_plugin_scope("q"));
+    runtime->begin_run_scope(child);
+    CHECK_NOTHROW(runtime->require_owner_scope("plugin:q"));
+    CHECK_NOTHROW(runtime->require_owner_scope(child));
+
+    runtime->end_plugin_scope("q");
+    const char* unloaded = "The plugin that made this call has been unloaded";
+    CHECK_THROWS_WITH(runtime->require_owner_scope("plugin:q"), unloaded);
+    // Its script's scope ended with the unload: nothing the script would leave behind is published.
+    CHECK_THROWS_WITH(runtime->require_owner_scope(child), unloaded);
+    CHECK_THROWS_AS(runtime->run_owner({child, job}), ToolFailure);
+    CHECK_THROWS_AS(runtime->set_auto_answer({}, {child, job}), ToolFailure);
+    CHECK_FALSE(runtime->begin_plugin_scope("q"));
+
+    // Loaded again, but before any call of the plugin is admitted: a call from before the unload still finds no scope
+    // of the plugin's, and is refused rather than taken for the client's.
+    runtime->plugin_loaded("q");
+    CHECK_THROWS_WITH(runtime->run_owner({job}), unloaded);
+    CHECK_THROWS_AS(runtime->set_auto_answer({}, {job}), ToolFailure);
+    // Once a call is admitted the plugin's scope opens again, and the script's stays ended: the unload closed it, not
+    // only the plugin's mark.
+    REQUIRE(runtime->begin_plugin_scope("q"));
+    CHECK(runtime->run_owner({job}) == "plugin:q");
+    CHECK_THROWS_WITH(runtime->require_owner_scope(child), "The replay or script that made this call has ended");
+}
+
+TEST_CASE("a run of no plugin is refused where it publishes once it has ended", "[Mcp]")
+{
+    AutomationRuntimePtr runtime(new AutomationRuntime());
+    const std::string    run = runtime->jobs().create("replay_run", {});
+    runtime->begin_run_scope(run);
+    CHECK_NOTHROW(runtime->require_owner_scope(run));
+    runtime->end_run_scope(run, false);
+    CHECK_THROWS_WITH(runtime->require_owner_scope(run), "The replay or script that made this call has ended");
 }

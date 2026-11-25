@@ -396,6 +396,7 @@ static const char* category_name(AuditEventCategory category)
     case AuditEventCategory::ProcessCreate:  return "ProcessCreate";
     case AuditEventCategory::ProcessReplace: return "ProcessReplace";
     case AuditEventCategory::Threading:      return "Threading";
+    case AuditEventCategory::Tools:          return "Tools";
     case AuditEventCategory::None:           break;
     }
     return "None";
@@ -2017,6 +2018,16 @@ std::vector<std::string>* permission_list_for(AuditEventCategory category, bool 
     }
 }
 
+// The saved flag that grants a yes/no category, or null for a category granted by target.
+bool* boolean_permission_for(AuditEventCategory category, PluginPermissions& permissions)
+{
+    switch (category) {
+    case AuditEventCategory::Threading: return &permissions.threading;
+    case AuditEventCategory::Tools:     return &permissions.tools;
+    default:                            return nullptr;
+    }
+}
+
 // An event with no target is granted by its effective category and name, e.g. "FsRead:open"
 // for a read of a file descriptor, which does not grant a write of one ("FsReadWrite:open").
 std::string event_grant_key(AuditEventCategory category, const std::string& event_name)
@@ -2605,8 +2616,8 @@ bool persist_permission(const std::string& plugin_key, AuditEventCategory catego
     return write_install_state(root, state);
 }
 
-// Threading is a boolean grant, so it has no target list to append to.
-bool persist_threading_grant(const std::string& plugin_key)
+// Threading and the tools are boolean grants, so they have no target list to append to.
+bool persist_boolean_grant(const std::string& plugin_key, AuditEventCategory category)
 {
     std::lock_guard<std::mutex> state_lock(install_state_mutex());
 
@@ -2619,8 +2630,11 @@ bool persist_threading_grant(const std::string& plugin_key)
     // Same rule as persist_permission: seed a missing sidecar, never replace an unreadable one.
     if (read_install_state_status(root, state) == InstallStateReadStatus::Unreadable)
         return false;
+    bool* granted = boolean_permission_for(category, state.permissions);
+    if (!granted)
+        return false;
     seed_install_metadata(descriptor, state);
-    state.permissions.threading = true;
+    *granted = true;
     return write_install_state(root, state);
 }
 
@@ -2823,6 +2837,14 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
                                 plugin_name, target_list);
     case AuditEventCategory::Threading:
         return wxString::Format(_L("Plugin \"%s\" is requesting permission to create a thread."), plugin_name);
+    case AuditEventCategory::Tools:
+        // TRN %s is the plugin's name. "OrcaSlicer's tools" are the commands AI agents call (MCP tools).
+        return wxString::Format(_L("Plugin \"%s\" asks to call OrcaSlicer's tools, as AI agents do. With them it can change your "
+                                   "project, presets and files, run post-processing scripts and other programs, work in "
+                                   "OrcaSlicer's window while you use it, and answer dialogs, permission requests included, "
+                                   "so it can also give itself any other permission.\n\n"
+                                   "Allow it only for a plugin you trust."),
+                                plugin_name);
     case AuditEventCategory::ProcessReplace:
         return wxString::Format(_L("Plugin \"%s\" is requesting to replace the running application with:\n%s\n\n"
                                    "Approval covers any arguments. Approving a shell allows it to run any command."), plugin_name, target_list);
@@ -3158,8 +3180,8 @@ bool request_recursive_delete_consent(const std::string& plugin_key, const std::
 bool persist_grant(const std::string& plugin_key, AuditEventCategory category, bool by_event, const std::vector<std::string>& keys)
 {
     bool persisted = false;
-    if (category == AuditEventCategory::Threading) {
-        persisted = persist_threading_grant(plugin_key);
+    if (category == AuditEventCategory::Threading || category == AuditEventCategory::Tools) {
+        persisted = persist_boolean_grant(plugin_key, category);
     } else {
         for (const auto& key : keys) {
             if (persist_permission(plugin_key, category, by_event, key))
@@ -3201,8 +3223,8 @@ bool persist_declared_permissions(const std::string& plugin_key, const std::vect
 
         seed_install_metadata(descriptor, state);
         for (const AuditPromptBucket& bucket : buckets) {
-            if (bucket.category == AuditEventCategory::Threading) {
-                state.permissions.threading = true;
+            if (bool* granted = boolean_permission_for(bucket.category, state.permissions)) {
+                *granted = true;
                 continue;
             }
             std::vector<std::string>* permission_list =
@@ -3422,6 +3444,7 @@ static const char* audit_category_name(AuditEventCategory category)
     case AuditEventCategory::ProcessCreate: return "ProcessCreate";
     case AuditEventCategory::ProcessReplace: return "ProcessReplace";
     case AuditEventCategory::Threading: return "Threading";
+    case AuditEventCategory::Tools: return "Tools";
     default: return "None";
     }
 }
@@ -4191,6 +4214,8 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     // sentinel gives the prompt a target even though thread creation exposes none.
     if (requested.threading && !state.permissions.threading)
         missing_buckets.push_back({AuditEventCategory::Threading, {kThreadPermissionTarget}});
+    if (requested.tools && !state.permissions.tools)
+        missing_buckets.push_back({AuditEventCategory::Tools, {kToolsPermissionTarget}});
 
     if (missing_buckets.empty())
         return true;
@@ -4306,6 +4331,31 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     }
     PluginAuditDetail::discard_runtime_prompts_for(plugin_key);
     return false;
+}
+
+bool PluginAuditManager::request_tools_permission(const std::string& plugin_key)
+{
+    PluginDescriptor descriptor;
+    if (!PluginManager::instance().try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
+        return false;
+
+    PluginInstallState     state;
+    InstallStateReadStatus state_status;
+    {
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        state_status = read_install_state_status(boost::filesystem::path(descriptor.plugin_root), state);
+    }
+    if (state_status == InstallStateReadStatus::Unreadable)
+        return false;
+    if (state.permissions.allows_tools())
+        return true;
+
+    // As decide_audited_event asks for an event no grant covers, and saves an inline or seam Yes; a
+    // queued prompt's Yes is saved by the drain.
+    const std::vector<std::string> keys{kToolsPermissionTarget};
+    return PluginAuditDetail::request_permission(AuditEventCategory::Tools, plugin_key, descriptor.name, kToolsPermissionTarget,
+                                                 /*by_event=*/false, keys) &&
+           PluginAuditDetail::persist_grant(plugin_key, AuditEventCategory::Tools, /*by_event=*/false, keys);
 }
 
 bool PluginAuditManager::is_create_delete_tree_grant(const std::string& target)

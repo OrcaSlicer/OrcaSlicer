@@ -1831,6 +1831,75 @@ TEST_CASE("a plugin's calls are refused once it unloads, before the block comes,
     CHECK(looks == 3);
 }
 
+TEST_CASE("a plugin's calls and its jobs' child calls are refused while it may not call the tools", "[Mcp]")
+{
+    // What the handlers use, declared before the harness, so it outlives the core's threads, which the harness's
+    // destructor shuts down: also when the case fails while the job still runs.
+    std::atomic<bool> allowed{true};
+    std::atomic<bool> started{false};
+    std::atomic<bool> release{false};
+    std::atomic<int>  ran{0};
+    std::atomic<bool> handled{false}; // set once the handler has written both children's results
+    ToolResult        inline_child;
+    ToolResult        job_child;
+    Harness           h;
+    // The plugin's install state, read for every call; the Plugins dialog's switch changes it.
+    h.jobs.set_owner_permission([&](const std::string& plugin) { return plugin != "measure" || allowed; });
+    NativeCommand look = tool("look", GuardClass::Inspect, [&](const json&, ToolContext&) { ++ran; return ToolResult::ok(); });
+    look.inline_call = true;
+    h.registry.add(look);
+    h.registry.add(tool("make", GuardClass::Mutate, [&](const json&, ToolContext&) { ++ran; return ToolResult::ok(); }));
+    h.registry.add(tool("slow", GuardClass::Mutate, [&](const json&, ToolContext& ctx) {
+        started = true;
+        while (!release)
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        inline_child = ctx.call_child("look", json::object());
+        job_child    = ctx.call_child("make", json::object());
+        handled      = true;
+        return ToolResult::ok();
+    }));
+    h.timing.soft_budget = std::chrono::milliseconds(10000);
+    h.start();
+    // A job of the plugin, as a script it ran, whose handler calls on after the permission is withdrawn.
+    std::thread running([&] { h.core->call_plugin(*h.registry.find("slow"), json::object(), "measure"); });
+    for (int i = 0; i < 2000 && !started; ++i)
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    // Read once: a handler starting late must not pass the check below after its thread was joined here.
+    const bool handler_started = started;
+    if (!handler_started) { // the granted call was refused, or never reached its handler: end it before failing
+        release = true;
+        running.join();
+    }
+    REQUIRE(handler_started);
+
+    allowed = false;
+    const ToolResult inline_call = h.core->call_plugin(*h.registry.find("look"), json::object(), "measure");
+    CHECK(inline_call.is_error);
+    CHECK(inline_call.message.find("not allowed to call OrcaSlicer's tools") != std::string::npos);
+    CHECK(inline_call.data.value("code", "") == "tools_not_allowed");
+    const ToolResult job_call = h.core->call_plugin(*h.registry.find("make"), json::object(), "measure");
+    CHECK(job_call.is_error);
+    CHECK(job_call.data.value("code", "") == "tools_not_allowed");
+    release = true;
+    running.join();
+    // The call may have answered "running" before its handler ended: its results are read once the handler wrote them.
+    for (int i = 0; i < 2000 && !handled; ++i)
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    REQUIRE(handled);
+    CHECK(inline_child.is_error);
+    CHECK(inline_child.data.value("code", "") == "tools_not_allowed");
+    CHECK(job_child.is_error);
+    CHECK(job_child.data.value("code", "") == "tools_not_allowed");
+    CHECK(ran == 0);
+
+    // Another plugin's calls and a client's still run, and the plugin's do once it may call the tools again.
+    CHECK_FALSE(h.core->call_plugin(*h.registry.find("look"), json::object(), "other").is_error);
+    CHECK_FALSE(h.call("look").is_error);
+    allowed = true;
+    CHECK_FALSE(h.core->call_plugin(*h.registry.find("look"), json::object(), "measure").is_error);
+    CHECK(ran == 3);
+}
+
 TEST_CASE("a plugin's job never starts once the plugin unloads, as it registers or right before its handler", "[Mcp]")
 {
     // The liveness hook is asked as the call comes in, once its job is registered, and on the job's thread right

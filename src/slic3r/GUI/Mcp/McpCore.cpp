@@ -394,6 +394,10 @@ ToolResult McpCore::run(const NativeCommand& def, const nlohmann::json& args, co
     // unloads (CallContext::cancelled()).
     if (m_jobs.unloaded(parent, plugin))
         return finish(ToolResult::error(kPluginUnloaded));
+    // Nor does one of a plugin without permission to call the tools, its script runs' children included: each
+    // call is checked here, so a permission withdrawn meanwhile refuses the next.
+    if (m_jobs.tools_refused(parent, plugin))
+        return finish(ToolResult::error(kPluginToolsRefused, {{"code", kToolsNotAllowed}}));
 
     const uint64_t call = m_next_call++;
     if (def.inline_call) {

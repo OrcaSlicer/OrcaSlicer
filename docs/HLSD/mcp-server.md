@@ -465,11 +465,13 @@ stopped run ends.
 
 ## Plugins and the tools
 
-A plugin's code calls the commands through `orca.host.tools` with no permission of its own: any loaded plugin can do
-what an agent can. The tools run OrcaSlicer's own code, which the plugin audit doesn't judge, so a plugin's grants
-bound its Python code and not what it asks the tools to do, and each call is logged with the plugin's key. A call
-runs as a job owned by the plugin, never journaled, so the session tools are scoped to the plugin, and what its calls
-leave behind ends when it unloads, from which moment its calls are refused.
+A plugin's code calls the commands through `orca.host.tools` only with the tools permission or full access, asked for
+at load or when it first calls, as its other permissions are ("Calling OrcaSlicer's tools" in
+[plugin-permissions.md](plugin-permissions.md)). The tools run OrcaSlicer's own code, which the plugin audit doesn't
+judge, so a plugin's other grants bound its Python code and not what it asks the tools to do, and each call is logged
+with the plugin's key. A call runs as a job owned by the plugin, never journaled, so the session tools are scoped to the
+plugin, and what its calls leave behind ends when it unloads or loses the permission, from which moment its calls are
+refused; a call made before that leaves nothing behind for the client.
 
 A plugin may offer operations, `plugin.<plugin>.<name>`, which `tool_list` lists and `tool_call`, scripts and replay
 steps run. They are a source of the command catalog, looked up after its own commands, and run as jobs under the

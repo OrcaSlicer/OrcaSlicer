@@ -104,6 +104,16 @@ WorkerHooks ui_job_worker_hooks()
 // The scope key of a plugin's calls, which no job id ("j<n>") can equal.
 std::string plugin_scope_key(const std::string& plugin_key) { return "plugin:" + plugin_key; }
 
+// The plugin whose scope `key` is, or "" for a run's.
+std::string plugin_of_scope_key(const std::string& key)
+{
+    const std::string prefix = plugin_scope_key({});
+    return key.compare(0, prefix.size(), prefix) == 0 ? key.substr(prefix.size()) : std::string();
+}
+
+// What a plugin's dialog_auto_answer call made before the plugin unloaded fails with.
+constexpr char kRulesOfUnloadedPlugin[] = "The plugin that made this call has been unloaded; its rules were not applied";
+
 } // namespace
 
 void AutomationRuntimeDeleter::operator()(AutomationRuntime* runtime) const
@@ -168,6 +178,8 @@ bool AutomationRuntime::start(std::string& err)
                                                 });
         // A plugin's calls are refused from the moment it unloads, before end_plugin_scope() comes.
         m_jobs.set_owner_liveness([](const std::string& plugin) { return PluginManager::instance().is_plugin_loaded(plugin); });
+        // And refused while the plugin may not call the tools, read again for every call.
+        m_jobs.set_owner_permission([](const std::string& plugin) { return PluginManager::instance().plugin_may_call_tools(plugin); });
         CoreTiming timing;
         timing.reply_budget_cap = reply_budget_cap_from(boost::nowide::getenv("ORCA_MCP_REPLY_BUDGET_MS"));
         if (timing.reply_budget_cap.count() > 0)
@@ -343,6 +355,8 @@ AutoAnswerSet AutomationRuntime::set_auto_answer(std::vector<AutoAnswerRule> rul
     const std::string plugin = ancestry.empty() ? std::string() : m_jobs.owner(ancestry.front());
     std::lock_guard<std::mutex> lock(m_rules_mutex);
     const AutoAnswerSet set = [&]() -> AutoAnswerSet {
+        // Before any scope is looked for: a run the plugin started is the plugin's too.
+        refuse_gone_plugin(plugin, kRulesOfUnloadedPlugin);
         // The nearest running replay or script in the caller's job chain owns the rules.
         for (const std::string& job : ancestry)
             if (auto it = m_run_rule_layers.find(job); it != m_run_rule_layers.end()) {
@@ -359,8 +373,8 @@ AutoAnswerSet AutomationRuntime::set_auto_answer(std::vector<AutoAnswerRule> rul
                 it->second.push_back(m_modals->push_rules(std::move(rules)));
                 return {"plugin", it->second.back(), false};
             }
-            if (m_unloaded_plugins.count(plugin) != 0)
-                throw ToolFailure("The plugin that made this call has been unloaded; its rules were not applied");
+            // A call from before the plugin unloaded, as run_owner() refuses it: its rules are not the client's.
+            throw ToolFailure(kRulesOfUnloadedPlugin);
         }
         // A call that was running when the client scope closed must not bring its client's rules back.
         if (!m_client_scope_open)
@@ -452,15 +466,13 @@ void AutomationRuntime::rule_answered(int layer, const std::string& title, const
                                       const std::string& button)
 {
     // Whose the layer is: a run's, a plugin's, else a client's.
-    std::string       run, plugin;
-    const std::string prefix = plugin_scope_key({});
+    std::string run, plugin;
     {
         std::lock_guard<std::mutex> lock(m_rules_mutex);
         for (const auto& [owner, layers] : m_run_rule_layers)
             if (std::find(layers.begin(), layers.end(), layer) != layers.end()) {
-                if (owner.compare(0, prefix.size(), prefix) == 0)
-                    plugin = owner.substr(prefix.size());
-                else
+                plugin = plugin_of_scope_key(owner);
+                if (plugin.empty())
                     run = owner;
                 break;
             }
@@ -472,23 +484,35 @@ std::string AutomationRuntime::run_owner(const std::vector<std::string>& ancestr
 {
     const std::string           plugin = ancestry.empty() ? std::string() : m_jobs.owner(ancestry.front());
     std::lock_guard<std::mutex> lock(m_rules_mutex);
+    // Before any scope is looked for: a run the plugin started is the plugin's too. A call of an unloaded plugin must
+    // not leave anything nothing would end.
+    refuse_gone_plugin(plugin, kPluginUnloaded);
     for (const std::string& job : ancestry)
         if (m_run_rule_layers.count(job) != 0)
             return job;
-    if (!plugin.empty() && m_run_rule_layers.count(plugin_scope_key(plugin)) != 0)
+    if (plugin.empty())
+        return {};
+    if (m_run_rule_layers.count(plugin_scope_key(plugin)) != 0)
         return plugin_scope_key(plugin);
-    // A call of an unloaded plugin must not leave anything nothing would end.
-    if (!plugin.empty() && m_unloaded_plugins.count(plugin) != 0)
-        throw ToolFailure("The plugin that made this call has been unloaded");
-    return {};
+    // Every call a plugin is admitted for opens its scope, so a call of the plugin's with none open was made before it
+    // unloaded (it may have loaded again since): it is not the client's.
+    throw ToolFailure(kPluginUnloaded);
 }
 
 bool AutomationRuntime::begin_plugin_scope(const std::string& plugin_key)
 {
-    std::lock_guard<std::mutex> lock(m_rules_mutex);
-    if (m_unloaded_plugins.count(plugin_key) != 0)
-        return false;
-    m_run_rule_layers.emplace(plugin_scope_key(plugin_key), std::vector<int>{});
+    const std::string key = plugin_scope_key(plugin_key);
+    bool              opened;
+    {
+        std::lock_guard<std::mutex> lock(m_rules_mutex);
+        if (m_unloaded_plugins.count(plugin_key) != 0)
+            return false;
+        m_withdrawn_plugins.erase(plugin_key);
+        opened = m_run_rule_layers.try_emplace(key).second;
+    }
+    // The recorder remembers an ended scope, to refuse its late starts; a scope opened again records again.
+    if (opened && m_recorder)
+        m_recorder->owner_reopened(key);
     return true;
 }
 
@@ -501,10 +525,52 @@ void AutomationRuntime::end_plugin_scope(const std::string& plugin_key)
     // No call of the plugin starts from now on, one it was admitted for included, and the ones running stop,
     // as a stopped replay's steps do.
     m_jobs.block_owner(plugin_key);
-    for (const std::string& job : m_jobs.running_owned_by(plugin_key))
+    end_scopes_of(plugin_key);
+}
+
+void AutomationRuntime::end_scopes_of(const std::string& plugin_key)
+{
+    const std::vector<std::string> running = m_jobs.running_owned_by(plugin_key);
+    for (const std::string& job : running)
         m_jobs.request_stop(job);
-    // Not waited for: an unloading plugin's recording is closed by the recorder's own threads.
+    // A running replay's or script's rules, recording and presses end now, not when it unwinds; its own end then
+    // finds no scope. Not waited for: a recording is closed by the recorder's own threads.
+    for (const std::string& job : running)
+        end_run_scope(job, false);
     end_run_scope(plugin_scope_key(plugin_key), false);
+}
+
+void AutomationRuntime::plugin_tools_withdrawn(const std::string& plugin_key)
+{
+    {
+        std::lock_guard<std::mutex> lock(m_rules_mutex);
+        m_withdrawn_plugins.insert(plugin_key);
+    }
+    end_scopes_of(plugin_key);
+}
+
+void AutomationRuntime::require_owner_scope(const std::string& owner) const
+{
+    if (owner.empty())
+        return;
+    // The plugin whose scope it is, or whose run: a run's job carries the plugin that started it, if one did. Asked
+    // before the rules lock, as set_auto_answer() asks it.
+    const std::string scope_plugin = plugin_of_scope_key(owner);
+    const std::string plugin       = scope_plugin.empty() ? m_jobs.owner(owner) : scope_plugin;
+    std::lock_guard<std::mutex> lock(m_rules_mutex);
+    refuse_gone_plugin(plugin, kPluginUnloaded);
+    if (m_run_rule_layers.count(owner) == 0)
+        throw ToolFailure(scope_plugin.empty() ? "The replay or script that made this call has ended" : kPluginUnloaded);
+}
+
+void AutomationRuntime::refuse_gone_plugin(const std::string& plugin, const char* unloaded) const
+{
+    if (plugin.empty())
+        return;
+    if (m_withdrawn_plugins.count(plugin) != 0)
+        throw ToolFailure(kPluginToolsRefused, {{"code", kToolsNotAllowed}});
+    if (m_unloaded_plugins.count(plugin) != 0)
+        throw ToolFailure(unloaded);
 }
 
 void AutomationRuntime::plugin_loaded(const std::string& plugin_key)

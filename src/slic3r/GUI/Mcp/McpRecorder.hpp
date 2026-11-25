@@ -99,6 +99,9 @@ public:
     // Any thread. Notes that the run `owner` (a job) has ended, so a start of its that runs later is
     // refused; end_owned_by() notes it too. Call it before the run's scope goes away.
     void owner_ended(const std::string& owner);
+    // Any thread. The scope `owner` was opened again (a plugin's, after it loaded again or got the tools back):
+    // its starts are accepted again.
+    void owner_reopened(const std::string& owner);
     // Any thread. Whether a run in `ancestry` (a call's job chain) has ended: a call from it is no client's.
     bool owner_ended_in(const std::vector<std::string>& ancestry) const;
     // Any thread. Ends the recording `owner` started ("" for a client's), and with `wait`, waits up to 30 s

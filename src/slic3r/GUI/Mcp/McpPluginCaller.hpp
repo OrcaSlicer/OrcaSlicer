@@ -14,7 +14,8 @@ namespace Mcp {
 
 // Lets plugins call the tools through orca.host.tools: a call from a plugin's Script worker runs as
 // McpCore::call_plugin(), starting the automation runtime without the MCP endpoint when the server is off, and is
-// logged. Called once by GUI_App as it sets up plugins.
+// logged. A plugin without the tools permission or full access is refused before anything starts. Called once by
+// GUI_App as it sets up plugins.
 void install_plugin_tool_caller();
 
 // What a plugin's orca.host.tools.call(tool, args) runs: the command `tool` names in `catalog`, `args` normalized and

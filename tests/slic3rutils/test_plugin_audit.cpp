@@ -18,6 +18,7 @@
 
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include "libslic3r_version.h"
@@ -3363,6 +3364,169 @@ TEST_CASE("A threading permission request is prompted once and saved as a boolea
     CHECK_FALSE(prompted_again);
 }
 
+TEST_CASE("A tools declaration is not asked with the tools grant or full access", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+
+    const bool        full_access = GENERATE(false, true);
+    PluginPermissions granted;
+    granted.tools       = !full_access;
+    granted.full_access = full_access;
+    harness.save_permissions(PLUGIN, granted);
+    const fs::path    sidecar = harness.data.plugins_dir() / PLUGIN / INSTALL_STATE_FILE;
+    const std::string before  = read_text_file(sidecar);
+
+    PluginPermissions requested;
+    requested.tools = true;
+    bool asked      = false;
+    PluginAuditManager::set_permission_message_prompt_for_testing([&](const std::string&) {
+        asked = true;
+        return false;
+    });
+    CHECK(PluginAuditManager::instance().request_permissions(PLUGIN, requested));
+    PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
+    CHECK_FALSE(asked);
+    // Nothing is written: the stored grant, or full access, already covers the declaration.
+    CHECK(read_text_file(sidecar) == before);
+}
+
+TEST_CASE("A plugin may call the tools only with the tools grant or full access", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    PluginManager& manager = PluginManager::instance();
+
+    PluginPermissions permissions;
+    harness.save_permissions(PLUGIN, permissions);
+    CHECK_FALSE(manager.plugin_may_call_tools(PLUGIN));
+
+    permissions.tools = true;
+    harness.save_permissions(PLUGIN, permissions);
+    CHECK(manager.plugin_may_call_tools(PLUGIN));
+
+    // Full access allows them whatever the tools grant says.
+    permissions.full_access = true;
+    permissions.tools       = false;
+    harness.save_permissions(PLUGIN, permissions);
+    CHECK(manager.plugin_may_call_tools(PLUGIN));
+
+    // A sidecar that does not read, or is gone, grants nothing, though it held full access.
+    const fs::path sidecar = harness.data.plugins_dir() / PLUGIN / INSTALL_STATE_FILE;
+    {
+        std::ofstream out(sidecar.string(), std::ios::binary | std::ios::trunc);
+        out << "{ \"permissions\": {";
+    }
+    CHECK_FALSE(manager.plugin_may_call_tools(PLUGIN));
+    boost::system::error_code ec;
+    fs::remove(sidecar, ec);
+    REQUIRE_FALSE(ec);
+    CHECK_FALSE(manager.plugin_may_call_tools(PLUGIN));
+    CHECK_FALSE(manager.plugin_may_call_tools("NoSuchPlugin"));
+}
+
+// request_tools_permission() is asked here through the runtime prompt seam, which answers before
+// the prompt queue. A plugin's real call runs on a Script worker, where the prompt is queued and the
+// call refused instead; that path needs a running app and is covered by the MCP sweep.
+TEST_CASE("A tools call with the tools grant or full access is allowed without asking", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+
+    const bool        full_access = GENERATE(false, true);
+    PluginPermissions granted;
+    granted.tools       = !full_access;
+    granted.full_access = full_access;
+    harness.save_permissions(PLUGIN, granted);
+
+    CHECK(PluginAuditManager::instance().request_tools_permission(PLUGIN));
+    CHECK(describe(harness.prompts).empty());
+}
+
+TEST_CASE("A tools call with an unreadable sidecar is refused without asking", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    harness.approve = [](const Prompt&) { return true; };
+
+    const fs::path    sidecar   = harness.data.plugins_dir() / PLUGIN / INSTALL_STATE_FILE;
+    const std::string malformed = "{ \"permissions\": {";
+    {
+        std::ofstream out(sidecar.string(), std::ios::binary | std::ios::trunc);
+        out << malformed;
+    }
+
+    // Its grants cannot be read, so a Yes could not be saved without replacing them: fail closed.
+    CHECK_FALSE(PluginAuditManager::instance().request_tools_permission(PLUGIN));
+    CHECK(describe(harness.prompts).empty());
+    CHECK(read_text_file(sidecar) == malformed);
+
+    // A plugin that was never discovered has nowhere to keep the grant either.
+    CHECK_FALSE(PluginAuditManager::instance().request_tools_permission("NoSuchPlugin"));
+    CHECK(describe(harness.prompts).empty());
+}
+
+TEST_CASE("A tools call without the grant asks each time and stores only a Yes", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    PluginAuditManager& mgr     = PluginAuditManager::instance();
+    const fs::path      sidecar = harness.data.plugins_dir() / PLUGIN / INSTALL_STATE_FILE;
+    const std::string   before  = read_text_file(sidecar);
+
+    // No refuses the call and is not remembered: the next call asks again.
+    harness.approve = [](const Prompt&) { return false; };
+    CHECK_FALSE(mgr.request_tools_permission(PLUGIN));
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().event == "orca.host.tools.call");
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{"orca.host.tools.call"});
+    CHECK(read_text_file(sidecar) == before);
+
+    CHECK_FALSE(mgr.request_tools_permission(PLUGIN));
+    CHECK(harness.prompts.size() == 2);
+    CHECK(read_text_file(sidecar) == before);
+
+    // Yes allows the call and is stored as the boolean grant, so the next call is not asked.
+    harness.approve = [](const Prompt&) { return true; };
+    CHECK(mgr.request_tools_permission(PLUGIN));
+    CHECK(harness.prompts.size() == 3);
+    CHECK(harness.saved_permissions(PLUGIN).tools);
+    CHECK(mgr.request_tools_permission(PLUGIN));
+    CHECK(harness.prompts.size() == 3);
+}
+
+TEST_CASE("A tools call with no sidecar asks and a Yes creates one", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+
+    // A discovered plugin that has not been given a sidecar is asked, as for its other permissions.
+    const fs::path            sidecar = harness.data.plugins_dir() / PLUGIN / INSTALL_STATE_FILE;
+    boost::system::error_code ec;
+    fs::remove(sidecar, ec);
+    REQUIRE_FALSE(ec);
+
+    const bool answer = GENERATE(true, false);
+    harness.approve   = [answer](const Prompt&) { return answer; };
+    CHECK(PluginAuditManager::instance().request_tools_permission(PLUGIN) == answer);
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().event == "orca.host.tools.call");
+    CHECK(fs::exists(sidecar) == answer);
+    CHECK(harness.saved_permissions(PLUGIN).tools == answer);
+}
+
 TEST_CASE("A permission request creates a sidecar for a discovered plugin that has none", "[audit]")
 {
     AuditHarness harness;
@@ -3797,11 +3961,12 @@ TEST_CASE("A permission mutation changes boolean grants only when asked", "[audi
 
     PluginManager& manager = PluginManager::instance();
 
-    // A mutation that names no booleans leaves both flags alone.
+    // A mutation that names no booleans leaves every flag alone.
     PluginPermissions applied;
     REQUIRE(manager.mutate_plugin_permissions(PLUGIN, PluginPermissionMutation{}, &applied));
     CHECK_FALSE(applied.threading);
     CHECK(applied.full_access);
+    CHECK_FALSE(applied.tools);
     CHECK(applied.fs_read == std::vector<std::string>{"/kept"});
 
     PluginPermissionMutation booleans;
@@ -3816,6 +3981,26 @@ TEST_CASE("A permission mutation changes boolean grants only when asked", "[audi
     CHECK(stored.threading);
     CHECK_FALSE(stored.full_access);
     CHECK(stored.fs_read == std::vector<std::string>{"/kept"});
+
+    // The tools grant is set and cleared on its own, and the other grants stay.
+    PluginPermissionMutation tools_on;
+    tools_on.tools = true;
+    REQUIRE(manager.mutate_plugin_permissions(PLUGIN, tools_on, &applied));
+    CHECK(applied.tools);
+    const PluginPermissions tools_granted = harness.saved_permissions(PLUGIN);
+    CHECK(tools_granted.tools);
+    CHECK(tools_granted.threading);
+    CHECK_FALSE(tools_granted.full_access);
+    CHECK(tools_granted.fs_read == std::vector<std::string>{"/kept"});
+
+    PluginPermissionMutation tools_off;
+    tools_off.tools = false;
+    REQUIRE(manager.mutate_plugin_permissions(PLUGIN, tools_off, &applied));
+    const PluginPermissions after_tools = harness.saved_permissions(PLUGIN);
+    CHECK_FALSE(after_tools.tools);
+    CHECK(after_tools.threading);
+    CHECK_FALSE(after_tools.full_access);
+    CHECK(after_tools.fs_read == std::vector<std::string>{"/kept"});
 }
 
 TEST_CASE("A permission mutation fails closed for a plugin it cannot update", "[audit]")
