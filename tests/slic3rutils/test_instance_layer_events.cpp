@@ -65,9 +65,15 @@ TEST_CASE("Preview layer edits stay with a copy through reordering and reslicing
     CHECK(pause.after->print_z == 0.4);
 
     // The wx event may be delivered after the user moves the slider or changes the order.
+    slider.SetSelectionSpan(1, 2);
+    const auto lower_layer = slider.instance_layer(slider.GetLowerValue());
+    const auto higher_layer = slider.instance_layer(slider.GetHigherValue());
     std::swap(object->instances.front(), object->instances.back());
     std::swap(result.instance_layer_ranges[0].instance_id, result.instance_layer_ranges[1].instance_id);
     refresh();
+    slider.SetSelectionSpan(slider.find_instance_layer(lower_layer), slider.find_instance_layer(higher_layer));
+    CHECK(slider.GetLowerValue() == 0);
+    CHECK(slider.GetHigherValue() == 3);
     REQUIRE(pause.apply_to_instance(a->layer_events));
     REQUIRE(a->layer_events.gcodes.size() == 1);
     refresh();

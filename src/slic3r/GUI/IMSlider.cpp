@@ -234,8 +234,11 @@ void IMSlider::SetHigherValue(const int higher_val)
     set_as_dirty();
 }
 
-void IMSlider::SetSelectionSpan(const int lower_val, const int higher_val)
+void IMSlider::SetSelectionSpan(int lower_val, int higher_val)
 {
+    // The selected layers may trade places when their instances are reordered.
+    if (is_sequential() && lower_val > higher_val)
+        std::swap(lower_val, higher_val);
     m_lower_value  = std::max(lower_val, m_min_value);
     m_higher_value = std::max(std::min(higher_val, m_max_value), m_lower_value);
     if (m_lower_value < m_higher_value) m_is_one_layer = false;
