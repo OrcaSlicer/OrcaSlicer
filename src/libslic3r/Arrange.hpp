@@ -156,6 +156,13 @@ struct ArrangeParams {
     float object_skirt_offset = 0;
     float nozzle_height = 0;
     float printable_height = 256.0;
+    // Orca: whether the prime tower stays low because "No sparse layers" drops its sparse layers, on a
+    // plate printed by layer: the condition the slicer's clearance check applies.
+    bool    compacted_tower        = false;
+    // Orca: how far (scaled) the polygon of such a tower was grown past the tower itself, or negative
+    // when no tower was grown.
+    coord_t compacted_tower_growth = -1;
+    float   clearance_dist_to_rod  = 0;
     Vec2d align_center{ 0.5,0.5 };
     // Belt printer: items print in the order they lie along the belt axis, from
     // its low end unless belt_reversed, and a part's top prints
@@ -198,6 +205,7 @@ struct ArrangeParams {
         ret += "\"clearance_height_to_rod\":" + std::to_string(clearance_height_to_rod) + ",";
         ret += "\"clearance_height_to_lid\":" + std::to_string(clearance_height_to_lid) + ",";
         ret += "\"clearance_radius\":" + std::to_string(clearance_radius) + ",";
+        ret += "\"compacted_tower_growth\":" + std::to_string(compacted_tower_growth) + ",";
         ret += "\"printable_height\":" + std::to_string(printable_height) + ",";
         return ret;
     }
@@ -213,6 +221,11 @@ void update_arrange_items(ArrangePolygons& selected, ArrangePolygons& unselected
 void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, ArrangeParams& params);
 
 void update_unselected_items_inflation(ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
+
+// Orca: how far in mm the objects in placed have to stay from a prime tower compacted by "No sparse
+// layers": MAX_OUTER_NOZZLE_DIAMETER when none of them is taller than params.nozzle_height,
+// toolhead_radius otherwise or when placed is empty.
+double compacted_tower_arrange_clearance(const ArrangePolygons& placed, const ArrangeParams& params, double toolhead_radius);
 
 void update_selected_items_axis_align(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
 

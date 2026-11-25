@@ -1,0 +1,24 @@
+{
+	"type": "filament",
+	"name": "Generic ABS @Anycubic Kobra 3 Max V2 0.4 nozzle",
+	"inherits": "Anycubic ABS @Anycubic Kobra 3 Max V2 0.4 nozzle",
+	"from": "system",
+	"setting_id": "MSwqVnaB3CqAl76d",
+	"filament_id": "OFY9muEs",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Generic"
+	],
+	"filament_flow_ratio": [
+		"1"
+	],
+	"textured_plate_temp": [
+		"100"
+	],
+	"textured_plate_temp_initial_layer": [
+		"100"
+	],
+	"compatible_printers": [
+		"Anycubic Kobra 3 Max V2 0.4 nozzle"
+	]
+}

@@ -469,10 +469,14 @@ ModelObject *Selection::get_selected_single_object(int &out_object_idx) const
 
 const ModelInstance *Selection::get_selected_single_intance() const
 {
+    const int instance_idx = get_instance_idx();
+    if (instance_idx < 0)
+        return nullptr;
+
     int  object_idx;
     auto mo = get_selected_single_object(object_idx);
     if (mo) {
-        return mo->instances[get_instance_idx()];
+        return mo->instances[instance_idx];
     }
     return nullptr;
 }
@@ -548,13 +552,27 @@ void Selection::center()
     PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_selected_plate();
 
     // calc distance
-    Vec3d src_pos = this->get_bounding_box().center();
-    Vec3d tar_pos = plate->get_center_origin();
-    Vec3d distance = Vec3d(tar_pos.x() - src_pos.x(), tar_pos.y() - src_pos.y(), 0);
+    const Vec3d src_pos = this->get_bounding_box().center();
+    const Vec3d tar_pos = plate->get_center_origin();
+    const Vec3d distance = Vec3d(tar_pos.x() - src_pos.x(), tar_pos.y() - src_pos.y(), 0);
 
     this->move_to_center(distance);
     wxGetApp().plater()->get_view3D_canvas3D()->do_move(L("Move object"));
     return;
+}
+
+bool Selection::can_center() const
+{
+    if (!m_valid || is_empty() || is_wipe_tower())
+        return false;
+
+    PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_selected_plate();
+    if (plate == nullptr)
+        return false;
+
+    // center() moves in XY only. Compare with a tolerance: the bounding box is recomputed after the move.
+    const Vec3d distance = plate->get_center_origin() - this->get_bounding_box().center();
+    return std::abs(distance.x()) > EPSILON || std::abs(distance.y()) > EPSILON;
 }
 
 double Selection::get_drop_min_z() const
@@ -1265,7 +1283,9 @@ void Selection::move_to_center(const Vec3d& displacement, bool local)
             if (local)
                 v.set_volume_offset(m_cache.volumes_data[i].get_volume_position() + displacement);
             else {
-                const Vec3d local_displacement = (m_cache.volumes_data[i].get_instance_rotation_matrix() * m_cache.volumes_data[i].get_instance_scale_matrix() * m_cache.volumes_data[i].get_instance_mirror_matrix()).inverse() * displacement;
+                // The instance matrix itself, not rotation * scale * mirror: those pieces do not rebuild a skewed instance
+                // (rotated, then scaled along a world axis), and the part then lands off the target.
+                const Vec3d local_displacement = m_cache.volumes_data[i].get_instance_transform().get_matrix_no_offset().inverse() * displacement;
                 v.set_volume_offset(m_cache.volumes_data[i].get_volume_position() + local_displacement);
             }
         }
@@ -1274,12 +1294,20 @@ void Selection::move_to_center(const Vec3d& displacement, bool local)
                 v.set_instance_offset(m_cache.volumes_data[i].get_instance_position() + displacement);
             }
             else {
-                const Vec3d local_displacement = (m_cache.volumes_data[i].get_instance_rotation_matrix() * m_cache.volumes_data[i].get_instance_scale_matrix() * m_cache.volumes_data[i].get_instance_mirror_matrix()).inverse() * displacement;
+                const Vec3d local_displacement = m_cache.volumes_data[i].get_instance_transform().get_matrix_no_offset().inverse() * displacement;
                 v.set_volume_offset(m_cache.volumes_data[i].get_volume_position() + local_displacement);
                 translation_type = Volume;
             }
         }
     }
+
+#if !DISABLE_INSTANCES_SYNCH
+    // A part is shared by every instance of its object, but only the selected copy was moved. Bring the other
+    // copies along as translate() does, otherwise do_move() writes a stale copy's old offset back to the model.
+    if (translation_type == Volume)
+        synchronize_unselected_volumes();
+#endif // !DISABLE_INSTANCES_SYNCH
+
     this->set_bounding_boxes_dirty();
 }
 
@@ -1675,11 +1703,6 @@ void Selection::scale_and_translate(const Vec3d &scale, const Vec3d &world_trans
             } else
                 transform_instance_relative(v, volume_data, transformation_type, Geometry::translation_transform(world_translation) * Geometry::scale_transform(relative_scale),
                                             m_cache.dragging_center);
-            // update the instance assemble transform
-            ModelObject *            object             = m_model->objects[v.object_idx()];
-            Geometry::Transformation assemble_transform = object->instances[v.instance_idx()]->get_assemble_transformation();
-            assemble_transform.set_scaling_factor(v.get_instance_scaling_factor());
-            object->instances[v.instance_idx()]->set_assemble_transformation(assemble_transform);
         } else {
             if (!is_single_volume_or_modifier()) {
                 assert(transformation_type.world());

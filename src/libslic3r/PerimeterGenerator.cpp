@@ -28,6 +28,7 @@
 #include <limits>
 #include <iterator>
 #include <map>
+#include <memory>
 #include <unordered_map>
 #include <tuple>
 #include <unordered_set>
@@ -253,7 +254,11 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
             paths.emplace_back(std::move(path));
         }
 
-        coll.append(ExtrusionLoop(std::move(paths), loop_role));
+        ExtrusionLoop extrusion_loop(std::move(paths), loop_role);
+        // ORCA: The centerline before fuzzy skin, for an external loop whose points it changed.
+        if (is_external && polygon.points != loop.polygon.points)
+            extrusion_loop.untextured = std::make_shared<const Polygon>(loop.polygon);
+        coll.append(std::move(extrusion_loop));
     }
 
     // Append thin walls to the nearest-neighbor search (only for first iteration)
@@ -421,7 +426,17 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
         ExtrusionRole role = is_external ? erExternalPerimeter : erPerimeter;
 
         const bool  is_contour = !extrusion->is_closed || pg_extrusion.is_contour;
+        // ORCA: The centerline before fuzzy skin, for a closed external loop whose points it changes. Copied only where
+        // the layer has fuzzy skin on this kind of loop.
+        Polygon untextured;
+        if (is_external && extrusion->is_closed &&
+            (pg_extrusion.is_contour ? perimeter_generator.has_fuzzy_skin : perimeter_generator.has_fuzzy_hole))
+            for (const Arachne::ExtrusionJunction &junction : extrusion->junctions)
+                untextured.points.push_back(junction.p);
         apply_fuzzy_skin(extrusion, perimeter_generator, is_contour, extrusion->is_closed);
+        const bool textured = !untextured.empty() &&
+            !std::equal(untextured.points.begin(), untextured.points.end(), extrusion->junctions.begin(), extrusion->junctions.end(),
+                        [](const Point &point, const Arachne::ExtrusionJunction &junction) { return point == junction.p; });
 
         ExtrusionPaths paths;
         // detect overhanging/bridging perimeters
@@ -564,6 +579,8 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
             if (extrusion->is_closed) {
                 ExtrusionLoop extrusion_loop(std::move(paths), pg_extrusion.is_contour ? elrDefault : elrHole);
                 extrusion_loop.inset_idx = extrusion->inset_idx;
+                if (textured)
+                    extrusion_loop.untextured = std::make_shared<const Polygon>(std::move(untextured));
                 if ((perimeter_generator.config->wall_direction == WallDirection::CounterClockwise) ==
                     (pg_extrusion.is_contour || pg_extrusions.size() == 2))
                     extrusion_loop.make_counter_clockwise();

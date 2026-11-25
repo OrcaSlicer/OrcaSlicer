@@ -9,6 +9,7 @@
 #include "libslic3r/MaterialType.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/GCode/AdaptivePAProcessor.hpp"
 #include "Plater.hpp"
 
@@ -638,9 +639,6 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     // tower additionally reject mixed slots: the engine consumes those keys directly, so a virtual
     // slot would reach the G-code unresolved, while the per-feature keys are resolved per layer.
     static const char* physical_only_keys[] = { "support_filament", "support_interface_filament", "brim_filament_id", "wipe_tower_filament" };
-    static const char* feature_keys[] = { "outer_wall_filament_id", "inner_wall_filament_id",
-                                          "sparse_infill_filament_id", "internal_solid_filament_id",
-                                          "top_surface_filament_id", "bottom_surface_filament_id" };
     auto reset_invalid_filament = [this, config, filament_cnt](const char* key, bool allow_mixed) {
         auto* opt = dynamic_cast<ConfigOptionInt*>(config->option(key, false));
         if (opt == nullptr)
@@ -663,7 +661,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     };
     for (const char* key : physical_only_keys)
         reset_invalid_filament(key, false);
-    for (const char* key : feature_keys)
+    for (const char* key : feature_filament_keys)
         reset_invalid_filament(key, true);
 
     // Sub-layer splitting divides each layer by the mix ratio; an adaptive layer profile makes
@@ -1238,6 +1236,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("toolchange_cyclic_first_layer", use_cyclic_ordering, -1, cyclic_order_reason);
 
     toggle_line("prime_volume",have_prime_tower && (!purge_in_primetower || !bSEMM), -1, _L("Enable the prime tower and either disable purging in the prime tower or disable single extruder multimaterial mode."));
+    // Orca: the Type 1 tower takes the prime volume of each filament instead.
+    toggle_field("prime_volume", supports_wipe_tower_2, -1, _L("The Type 1 prime tower takes the prime volume from each filament, on its Multimaterial page."));
 
     for (auto el : {"flush_into_infill", "flush_into_support", "flush_into_objects"})
         toggle_field(el, have_prime_tower, -1, _L("Enable the prime tower to use this setting."));
