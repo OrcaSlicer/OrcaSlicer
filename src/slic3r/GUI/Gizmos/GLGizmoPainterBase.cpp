@@ -243,10 +243,11 @@ void GLGizmoPainterBase::render_ortho_switch(float scale, bool show_vertical, bo
     const int vertical_idx   = show_vertical ? 1 : -1;
     const int horizontal_idx = show_horizontal ? int(labels.size()) - 1 : -1;
 
-    ImGui::PushStyleColor(ImGuiCol_FrameBg      , m_is_dark_mode ? ImGuiWrapper::COL_TOOLBAR_BG_DARK : ImGuiWrapper::COL_TOOLBAR_BG);
-    ImGui::PushStyleColor(ImGuiCol_Button       , m_is_dark_mode ? ImGuiWrapper::COL_ORCA_DARK       : ImGuiWrapper::COL_ORCA);
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, m_is_dark_mode ? ImGuiWrapper::COL_ORCA_HOVER_DARK : ImGuiWrapper::COL_ORCA_HOVER);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f * scale, 4.f * scale));
+    ImGui::PushStyleColor(ImGuiCol_FrameBg        , m_is_dark_mode ? ImVec4(.153f, .153f, .165f, 1.f)  : ImVec4(.851f, .851f, .851f, 1.f)); // #27272A : #D9D9D9
+    ImGui::PushStyleColor(ImGuiCol_Button         , m_is_dark_mode ? ImGuiWrapper::COL_ORCA_DARK       : ImGuiWrapper::COL_ORCA);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered  , m_is_dark_mode ? ImGuiWrapper::COL_ORCA_HOVER_DARK : ImGuiWrapper::COL_ORCA_HOVER);
+    ImGui::PushStyleColor(ImGuiCol_Text           , m_is_dark_mode ? ImVec4(1.f, 1.f, 1.f, .55f) : ImVec4(0.f, 0.f, 0.f, .55f));
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f * scale, 5.f * scale));
     // The flags are per gizmo, so read the mode from them on every frame: a function-local static
     // would be shared by every painter gizmo now that they all draw the switch through here.
     int ortho_mode = m_vertical_only ? vertical_idx : m_horizontal_only ? horizontal_idx : 0;
@@ -254,7 +255,7 @@ void GLGizmoPainterBase::render_ortho_switch(float scale, bool show_vertical, bo
         m_vertical_only   = ortho_mode == vertical_idx;
         m_horizontal_only = ortho_mode == horizontal_idx;
     }
-    ImGui::PopStyleColor(3);
+    ImGui::PopStyleColor(4);
     ImGui::PopStyleVar(1);
 }
 
