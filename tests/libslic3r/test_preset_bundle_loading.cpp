@@ -392,6 +392,18 @@ TEST_CASE("Printer extruder count tolerates missing nozzle diameter", "[Preset][
     CHECK(bundle.get_printer_extruder_count() == 2);
 }
 
+TEST_CASE("A preset bundle builds its full config before its presets load", "[Preset][Bundle][Regression]")
+{
+    PresetBundle bundle;
+    REQUIRE(bundle.filament_presets.empty());
+    bundle.filaments.get_edited_preset().config.set_key_value("filament_type", new ConfigOptionStrings({ "PETG" }));
+
+    const DynamicPrintConfig config = bundle.full_config();
+
+    REQUIRE(config.has("filament_type"));
+    CHECK(config.option<ConfigOptionStrings>("filament_type")->values == std::vector<std::string>{ "PETG" });
+}
+
 // A per-variant key that no profile in the chain sets keeps the length of the one-nozzle root. The
 // inherited printer must still have a value for every variant in its own variant list.
 TEST_CASE("An inherited printer's per-variant values cover every variant it lists", "[Preset][Bundle][Regression]")
