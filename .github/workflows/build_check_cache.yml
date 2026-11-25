@@ -13,12 +13,22 @@ on:
         required: false
         type: string
         default: msvc
+      preset:
+        required: false
+        type: string
+      flags:
+        required: false
+        type: string
       build-deps-only:
         required: false
         type: boolean
       force-build:
         required: false
         type: boolean
+      clean:
+        required: false
+        type: boolean
+        default: false
   
 # Read by scripts/ci_deps_cache.sh and scripts/ci_macos_admission.py.
 env:
@@ -36,6 +46,7 @@ jobs:
     runs-on: ${{ startsWith(inputs.os, 'macos-') && 'ubuntu-24.04' || inputs.os }}
     outputs:
       cache-key: ${{ steps.set_outputs.outputs.cache-key }}
+      cache-prefix: ${{ steps.set_outputs.outputs.cache-prefix }}
       cache-path: ${{ steps.set_outputs.outputs.cache-path }}
       valid-cache: ${{ steps.cache_deps.outputs.cache-hit }}
       macos-path: ${{ steps.macos_path.outputs.path }}
@@ -44,9 +55,9 @@ jobs:
       wait-since: ${{ steps.wait_check.outputs.wait-since }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
         with:
-          lfs: 'false'
+          lfs: false
           # The wait check compares the merge commit with its first parent.
           fetch-depth: ${{ startsWith(inputs.os, 'macos-') && 2 || 1 }}
           # Fetches only deps/, which the key hashes, and the wait script.
@@ -57,19 +68,42 @@ jobs:
         
       - name: set outputs
         id: set_outputs
-        env:
-          # Anything that changes how the tree is built belongs in the key, or a job
-          # restores one it cannot use. Linux amd64 passes no arch deliberately, so
-          # 'linux-clang' keeps the cache it already has.
-          cache-os: ${{ (runner.os == 'macOS' || startsWith(inputs.os, 'macos-')) && format('{0}-{1}', inputs.os, inputs.arch) || (runner.os == 'Windows' && format('windows-{0}-{1}', inputs.arch, inputs.compiler) || format('linux-clang{0}', inputs.arch && format('-{0}', inputs.arch) || '')) }}
-          # The Windows ARM64 deps build in build-arm64, all others under build;
-          # build_deps.yml and build_orca.yml pass the Windows directory to build_win.bat.
-          dep-folder-name: ${{ (runner.os == 'macOS' || startsWith(inputs.os, 'macos-')) && format('/{0}', inputs.arch) || (runner.os == 'Windows' && inputs.arch == 'arm64') && '-arm64/OrcaSlicer_dep' || '/OrcaSlicer_dep' }}
-          output-cmd: ${{ runner.os == 'Windows' && '$env:GITHUB_OUTPUT' || '"$GITHUB_OUTPUT"'}}
+        # Compute cache-os and dep-folder-name inline to avoid shell substitution issues
+        shell: bash
         run: |
-          echo cache-key=${{ env.cache-os }}-cache-orcaslicer_deps-build-${{ hashFiles('deps/**') }} >> ${{ env.output-cmd }}
-          # Relative to the workspace, which differs from the build's when this job runs on Linux.
-          echo cache-path=deps/build${{ env.dep-folder-name }} >> ${{ env.output-cmd }}
+          # Compute cache-os
+          if [[ "${{ runner.os }}" == "macOS" || "${{ inputs.os }}" == macos-* ]]; then
+            cache_os="${{ inputs.os }}-${{ inputs.arch }}"
+          elif [[ "${{ runner.os }}" == "Windows" ]]; then
+            cache_os="windows-${{ inputs.arch }}-${{ inputs.compiler }}"
+          else
+            if [[ -n "${{ inputs.arch }}" && "${{ inputs.arch }}" != "" ]]; then
+              cache_os="linux-clang-${{ inputs.arch }}"
+            else
+              cache_os="linux-clang"
+            fi
+          fi
+
+          # Compute dep-folder-name
+          if [[ "${{ runner.os }}" == "macOS" || "${{ inputs.os }}" == macos-* ]]; then
+            dep_folder="/${{ inputs.arch }}"
+          elif [[ "${{ runner.os }}" == "Windows" && "${{ inputs.arch }}" == "arm64" ]]; then
+            dep_folder="-arm64/OrcaSlicer_dep"
+          else
+            dep_folder="/OrcaSlicer_dep"
+          fi
+
+          # Output file (GITHUB_OUTPUT is the env var name on all platforms in bash)
+          output_cmd="$GITHUB_OUTPUT"
+
+          # Cache key hashes all inputs that affect the deps build.
+          # Primary key (exact match): cache-os + hash of all deps-affecting files.
+          # Restore keys (prefix fallback): base-ref, main, generic.
+          # No version suffix needed - hash covers all deps-affecting inputs.
+          echo "cache-key=${cache_os}_${{ hashFiles('deps/**', 'CMakeLists.txt', 'deps/CMakeLists.txt', '.github/workflows/build_deps.yml', '.github/workflows/build_check_cache.yml', 'build_win.ps1', 'build_release_macos.sh', 'build_linux.sh') }}" >> "$output_cmd"
+          echo "cache-prefix=${cache_os}_" >> "$output_cmd"
+          echo "cache-path=deps/build${dep_folder}" >> "$output_cmd"
+
             
       # actions/cache matches the path too, so a Linux lookup for macOS uses the
       # workspace of a hosted macOS job.
@@ -84,6 +118,10 @@ jobs:
         with:
           path: ${{ steps.macos_path.outputs.path || format('{0}/{1}', github.workspace, steps.set_outputs.outputs.cache-path) }}
           key: ${{ steps.set_outputs.outputs.cache-key }}
+          restore-keys: |
+            ${{ steps.set_outputs.outputs.cache-prefix }}${{ github.base_ref }}_
+            ${{ steps.set_outputs.outputs.cache-prefix }}main_
+            ${{ steps.set_outputs.outputs.cache-prefix }}
           lookup-only: true
         
       # A pull request that misses the cache can wait for a base branch build of the same deps.
@@ -132,6 +170,10 @@ jobs:
         with:
           path: ${{ needs.check_cache.outputs.macos-path }}
           key: ${{ needs.check_cache.outputs.cache-key }}
+          restore-keys: |
+            ${{ needs.check_cache.outputs.cache-prefix }}${{ github.base_ref }}_
+            ${{ needs.check_cache.outputs.cache-prefix }}main_
+            ${{ needs.check_cache.outputs.cache-prefix }}
           lookup-only: true
 
   # Hosted macOS runners are scarce, so a pull request's macOS build waits until
@@ -191,11 +233,15 @@ jobs:
     uses: ./.github/workflows/build_deps.yml
     with:
       cache-key: ${{ needs.check_cache.outputs.cache-key }}
+      cache-prefix: ${{ needs.check_cache.outputs.cache-prefix }}
       cache-path: ${{ needs.check_cache.outputs.cache-path }}
       valid-cache: ${{ needs.check_cache.outputs.valid-cache == 'true' || needs.wait_for_deps.outputs.hit == 'true' }}
       os: ${{ inputs.os }}
       arch: ${{ inputs.arch }}
       compiler: ${{ inputs.compiler }}
+      preset: ${{ inputs.preset }}
+      flags: ${{ inputs.flags }}
       build-deps-only: ${{ inputs.build-deps-only }}
       force-build: ${{ inputs.force-build }}
+      clean: ${{ inputs.clean }}
     secrets: inherit

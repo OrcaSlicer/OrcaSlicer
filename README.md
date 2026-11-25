@@ -191,24 +191,82 @@ All updated build instructions for Windows, macOS, and Linux are now available o
 
 Please refer to the wiki to ensure you're following the latest and most accurate steps for your platform.
 
-# Klipper Note
+## Build on Windows with `build_win.ps1`
 
-If you're running Klipper, it's recommended to add the following configuration to your `printer.cfg` file.
+### Quick Start
 
-```gcode
-# Enable object exclusion
-[exclude_object]
+```powershell
+# Build everything (clang-cl + Ninja now default)
+.\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64
 
-# Enable arcs support
-[gcode_arcs]
-resolution: 0.1
+# Build and launch after successful build
+.\build_win.ps1 -Slicer -Tests -Launch -Arch x64
+
+# Build, launch, and wait for app to exit
+.\build_win.ps1 -Slicer -Tests -LaunchWait -Arch x64
+
+# Clean build (removes slicer tree, keeps cached deps)
+.\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64 -Clean
+
+# Build dependencies only
+.\build_win.ps1 -Deps -Arch x64
 ```
 
-# Supports
+### Presets
 
-**OrcaSlicer** is an open-source project, and we're deeply grateful to all our sponsors and backers.  
-Their generous support helps fund filaments and other essential 3D printing materials for the project.  
-Thank you! :)
+```powershell
+# Recommended: clang-cl + Ninja (fastest)
+.\build_win.ps1 -Preset x64-clang
+
+# With ccache for incremental builds
+.\build_win.ps1 -Preset x64-clang-cache
+```
+
+> **Note**: `-ClangCl` and `-Ninja` are now defaults. The presets still work and are recommended for clarity.
+
+### Performance Tips
+
+1. **Defaults are already fast** — clang-cl + Ninja enabled by default (~30-40% faster than MSVC+MSBuild)
+
+   | Config | Time on GitHub Runner | Relative |
+   |--------|----------------------|----------|
+   | MSVC + MSBuild | ~110 min | 100% |
+   | **clang-cl + Ninja (default)** | **~70 min** | **~65%** |
+   | + ccache (incremental) | **~15 min** | **~15%** |
+
+2. **Enable ccache** (auto if `ccache` in PATH, or `-Cache ccache` / `-Preset x64-clang-cache`) — Speeds up incremental builds
+3. **Use `-Clean` only when needed** — Keeps dependency cache, only removes slicer tree
+
+### CI/CD Integration
+
+```yaml
+- name: Build OrcaSlicer
+  shell: pwsh
+  run: |
+    .\build_win.ps1 -Slicer -Tests -InstallSlicer -Arch x64 -Clean:${{ inputs.clean-build }}
+```
+
+### Full Option Reference
+
+```powershell
+.\build_win.ps1 -Help
+```
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| `clang-cl not found` | Install "C++ Clang tools for Windows" in Visual Studio Installer |
+| `ccache not found` | `winget install ccache` or add to PATH |
+| `CMake 3.21+ required` | Script downloads official CMake if not found |
+| `Strawberry Perl missing` | Script auto-downloads portable Strawberry Perl |
+| `Iconv not found` | Uses deps cache v2 (built-in, no system Iconv needed) |
+
+### Prerequisites
+
+- **Visual Studio 2022/2026** with "Desktop development with C++" workload
+- **Git** (for version info)
+- **Optional**: ccache (`winget install ccache`)
 
 ## Sponsors
 

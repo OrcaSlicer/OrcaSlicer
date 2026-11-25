@@ -118,3 +118,57 @@ See `.claude/skills/orca-translations/references/source-audit.md` for the full c
 - `scripts/run_gettext.bat --full` (Windows) regenerates the template, merges every catalog and compiles the `.mo` files. It must exit 0.
 - Or check a single catalog with `msgfmt --check-format --check-header -o <out>.mo localization/i18n/<lang>/OrcaSlicer_<lang>.po`. Without `--check-header`, msgfmt skips the placeholder check in plural forms.
 - Fuzzy entries are not shown to users. If you correct one, clear its `fuzzy` flag, otherwise the fix never ships.
+
+## GitHub Actions CI/CD Toolkit
+
+Reusable pipeline management scripts live in `scripts/gha/`:
+
+- **`OrcaCI.psm1`** — PowerShell module with 6 functions for GitHub Actions API:
+  - `Get-Runs` — list workflow runs with filtering by branch/status
+  - `Get-RunDetails` — get full run metadata
+  - `Get-Jobs` — list jobs for a run with status/conclusion
+  - `Cancel-Run` — cancel a workflow run
+  - `Dispatch-Workflow` — trigger a workflow_dispatch event
+  - `Format-Duration` — human-readable time formatting
+
+- **`ci_build.ps1`** — Orchestrator script that:
+  1. Checks for pending/in-progress runs and cancels them (clears concurrency group)
+  2. Dispatches a new workflow_dispatch
+  3. Waits for completion with live progress (shows running jobs, runners)
+  4. Reports final status with job summary (success/failed/skipped counts)
+
+- **`README.md`** — Usage documentation with examples
+
+Usage:
+```powershell
+# Just dispatch and exit
+.\scripts\gha\ci_build.ps1 -Token $env:GITHUB_TOKEN -Wait false
+
+# Full pipeline with wait and queue clearing
+.\scripts\gha\ci_build.ps1 -Token $env:GITHUB_TOKEN -TimeoutMinutes 180
+```
+
+## CI Pipeline Status (feat/build-performance)
+
+**Branch:** `feat/build-performance` (fork: `Depact/OrcaSlicer`)
+
+**Self-hosted runner:** `HOME-LAPTOP` (Windows, X64, labels: `self-hosted`, `Windows`, `X64`)
+
+**Current status (Run #133, SHA `cb61d5a4`):** 
+- ✅ **Main build passes** — `Build slicer Win` (step 38) succeeds on self-hosted Windows runner
+- ❌ **Post-build preset cache fails** — Step 39 "Build system preset cache (Windows)" fails in ~2 seconds
+- All previous blockers resolved:
+  - Self-hosted runner `HOME-LAPTOP` (id: 25, labels: self-hosted/Windows/X64) picks up jobs
+  - `check_build_script` passes on GitHub-hosted
+  - `check_cache` passes on self-hosted runner
+  - Main OrcaSlicer build (`Build slicer Win`, step 38) succeeds
+  - Linux/macOS/Flatpak jobs disabled via `if: false`
+
+**Fixes in `build_win.ps1` (commit `cb61d5a4`):**
+- Strips `Strawberry\c\bin` (broken cmake.exe with bad FindIconv.cmake)
+- Keeps `c\perl\bin` (OpenSSL Configure needs Perl)
+- Adds `-DCMAKE_PREFIX_PATH=$depsInstallDir` for JPEG support on self-hosted
+- Adds `-DORCA_TOOLS=ON` to enable `generate_system_cache.exe` for preset cache
+- Downloads official CMake 3.29.3 as fallback when PATH cmake is broken
+
+**Known blocker:** Post-build preset cache step 39 "Build system preset cache (Windows)" fails in ~2 seconds after main build succeeds. The `-DORCA_TOOLS=ON` flag enables `generate_system_cache.exe` build, but the tool execution fails. Needs investigation of `generate_system_cache.exe` runtime dependencies or CMake configuration.
