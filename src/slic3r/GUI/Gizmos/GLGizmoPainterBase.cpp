@@ -230,24 +230,18 @@ bool GLGizmoPainterBase::render_follows_cursor() const
 // so that a constraint the user cannot see in the switch never stays active.
 void GLGizmoPainterBase::render_ortho_switch(float scale, bool show_vertical, bool show_horizontal)
 {
-    if (!show_vertical)
-        m_vertical_only = false;
-    if (!show_horizontal)
-        m_horizontal_only = false;
+    m_vertical_only   = m_vertical_only   && show_vertical;
+    m_horizontal_only = m_horizontal_only && show_horizontal;
     if (!show_vertical && !show_horizontal)
         return; // only Free is left, so there is nothing to choose
 
+    // Free is first and Horizontal is last, which puts Vertical at 1 whenever it is shown.
     std::vector<std::string> labels = { _u8L_CONTEXT("Free", "Paint stroke direction") };
-    int vertical_idx   = -1;
-    int horizontal_idx = -1;
-    if (show_vertical) {
-        vertical_idx = int(labels.size());
-        labels.emplace_back(_u8L("Vertical"));
-    }
-    if (show_horizontal) {
-        horizontal_idx = int(labels.size());
-        labels.emplace_back(_u8L("Horizontal"));
-    }
+    if (show_vertical)   labels.emplace_back(_u8L("Vertical"));
+    if (show_horizontal) labels.emplace_back(_u8L("Horizontal"));
+
+    const int vertical_idx   = show_vertical ? 1 : -1;
+    const int horizontal_idx = show_horizontal ? int(labels.size()) - 1 : -1;
 
     ImGui::PushStyleColor(ImGuiCol_FrameBg      , m_is_dark_mode ? ImGuiWrapper::COL_TOOLBAR_BG_DARK : ImGuiWrapper::COL_TOOLBAR_BG);
     ImGui::PushStyleColor(ImGuiCol_Button       , m_is_dark_mode ? ImGuiWrapper::COL_ORCA_DARK       : ImGuiWrapper::COL_ORCA);

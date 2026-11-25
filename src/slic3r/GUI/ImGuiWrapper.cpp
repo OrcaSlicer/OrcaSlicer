@@ -2034,72 +2034,54 @@ bool ImGuiWrapper::multi_switch(const char* id, const std::vector<std::string>& 
     if (labels.empty())
         return false;
 
-    ImGuiStyle& style   = ImGui::GetStyle();
-    ImDrawList* draw    = ImGui::GetWindowDrawList();
-    bool        changed = false;
+    const ImGuiStyle& style  = ImGui::GetStyle();
+    const float       gap    = style.FrameBorderSize;
+    const float       item_h = ImGui::GetTextLineHeight() + style.FramePadding.y;
+    // Room for 5 characters at least: two-character labels, common in Chinese, would make a segment too narrow.
+    const float       min_w  = ImGui::CalcTextSize("0000000").x;
 
-    float br_size = style.FrameBorderSize;
-    float h_pad   = style.FramePadding.x;
-    float item_h  = ImGui::GetTextLineHeight() + style.FramePadding.y;
-    std::vector<ImVec2> text_sizes(labels.size());
-    std::vector<float>  widths(labels.size());
-    float total_w = br_size; // leading gap
-    for (size_t i = 0; i < labels.size(); ++i) {
-        text_sizes[i] = ImGui::CalcTextSize(labels[i].c_str());
-        widths[i]     = text_sizes[i].x + h_pad * 2.f;
-        total_w      += widths[i] + br_size;
+    std::vector<float> widths;
+    float total_w = gap;
+    for (const std::string& label : labels) {
+        widths.push_back(std::max(ImGui::CalcTextSize(label.c_str()).x, min_w) + style.FramePadding.x * 2.f);
+        total_w += widths.back() + gap;
     }
 
-    float track_h  = item_h + br_size * 2.f;
-    float radius   = track_h * 0.5f;
-
-    ImVec2 origin = ImGui::GetCursorScreenPos();
-
-    ImU32 track_col = ImGui::GetColorU32(ImGuiCol_FrameBg);
-    draw->AddRectFilled(origin, {origin.x + total_w, origin.y + track_h}, track_col, radius);
+    const ImVec2 origin = ImGui::GetCursorScreenPos();
+    const ImVec2 track(total_w, item_h + gap * 2.f);
+    ImDrawList*  draw = ImGui::GetWindowDrawList();
+    draw->AddRectFilled(origin, origin + track, ImGui::GetColorU32(ImGuiCol_FrameBg), track.y * 0.5f);
 
     // The segments are positioned by hand, so the group is what the layout sees: one item the size of the track.
     ImGui::BeginGroup();
-    float cursor_x = origin.x + br_size;
     ImGui::PushID(id);
-    for (int i = 0; i < static_cast<int>(labels.size()); ++i){
-        ImGui::PushID(i);
-
-        ImVec2 pill_min = { cursor_x, origin.y + br_size };
-        ImVec2 pill_max = pill_min + ImVec2(widths[i], item_h);
-
+    const int shown = selected; // a click moves the highlight on the next frame, so that no frame shows two or none
+    ImVec2    pos   = origin + ImVec2(gap, gap);
+    for (int i = 0; i < static_cast<int>(labels.size()); ++i) {
+        const ImVec2 size(widths[i], item_h);
         // A real item, so that a popup or another window over the segment takes the click, and a disabled switch ignores it.
-        ImGui::SetCursorScreenPos(pill_min);
-        bool clicked = ImGui::InvisibleButton("##segment", ImVec2(widths[i], item_h));
-        bool hovered = ImGui::IsItemHovered();
-        bool is_sel  = (i == selected);
-
-        if (is_sel)
-            draw->AddRectFilled(pill_min, pill_max, ImGui::GetColorU32(hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button), item_h * 0.5);
-
-        ImVec2 text_pos = {
-            pill_min.x + (widths[i] - text_sizes[i].x) * 0.5f,
-            pill_min.y + (item_h    - text_sizes[i].y) * 0.5f
-        };
-        // Through GetColorU32() the white takes the style alpha, which disabled_begin() lowers, so it dims with the rest.
-        ImU32 text_col = is_sel ? ImGui::GetColorU32(IM_COL32_WHITE) : ImGui::GetColorU32(ImGuiCol_Text);
-        draw->AddText(text_pos, text_col, labels[i].c_str());
-
-        if (clicked && !is_sel) {
+        ImGui::SetCursorScreenPos(pos);
+        ImGui::PushID(i);
+        if (ImGui::InvisibleButton("##segment", size))
             selected = i;
-            changed  = true;
-        }
-
-        cursor_x += widths[i] + br_size;
         ImGui::PopID();
+
+        if (i == shown)
+            draw->AddRectFilled(pos, pos + size, ImGui::GetColorU32(ImGui::IsItemHovered() ? ImGuiCol_ButtonHovered : ImGuiCol_Button), item_h * 0.5f);
+        // Drawn as styled text, the white label takes the style alpha too, and dims with the rest of a disabled switch.
+        ImGui::PushStyleColor(ImGuiCol_Text, i == shown ? ImVec4(1.f, 1.f, 1.f, 1.f) : style.Colors[ImGuiCol_Text]);
+        ImGui::RenderTextClipped(pos, pos + size, labels[i].c_str(), nullptr, nullptr, ImVec2(0.5f, 0.5f));
+        ImGui::PopStyleColor();
+
+        pos.x += size.x + gap;
     }
     ImGui::PopID();
 
     ImGui::SetCursorScreenPos(origin);
-    ImGui::Dummy({total_w, track_h});
+    ImGui::Dummy(track);
     ImGui::EndGroup();
 
-    return changed;
+    return selected != shown;
 }
 
 void ImGuiWrapper::bold_text(const std::string& str)

@@ -214,7 +214,8 @@ public:
     // ORCA: Row of labeled segments in one rounded track, exactly one of them selected. Returns true when
     // the user picks another segment, whose index is then in "selected". Labels are UTF-8, e.g. from _u8L().
     // The track is drawn in ImGuiCol_FrameBg, the selected segment in ImGuiCol_Button / ImGuiCol_ButtonHovered,
-    // and ImGuiStyleVar_FramePadding sets the padding around each label.
+    // and ImGuiStyleVar_FramePadding sets the padding around each label. A segment leaves room for 5 characters
+    // at least, so that short labels do not make it too narrow.
     bool multi_switch(const char* id, const std::vector<std::string>& labels, int& selected);
 
     // set font
