@@ -104,6 +104,7 @@ public:
     bool            m_show_clear_rotation { false };
     bool            m_show_clear_scale { false };
     bool            m_enable_drop_to_bed { false };
+    bool            m_enable_center_to_bed { false };
     enum class RotateType { None, Relative, Absolute
     };
     RotateType m_last_rotate_type{RotateType::None}; // 0:no input 1:relative 2:absolute
