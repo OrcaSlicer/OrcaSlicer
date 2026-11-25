@@ -30,9 +30,12 @@ jobs:
       date:
       ver:
       ver_pure:
+      ORCA_BUILD_TIMESTAMP:
       ubuntu-ver: '2404'
       ubuntu-ver-str: '_Ubuntu2404'
       ORCA_UPDATER_SIG_KEY: ${{ secrets.ORCA_UPDATER_SIG_KEY }}
+      # The team the updater requires of a downloaded build; the same one that signs it.
+      ORCA_UPDATER_TEAM_ID: ${{ secrets.TEAM_ID }}
       NSIS_VERSION: '3.13'
       NSIS_SHA256: BA63DFFC4410EE89193E1CB5A41989991BD77C61068DA17E3156D136B7B0B3D8
       JSIGN_VERSION: '7.6'
@@ -128,6 +131,8 @@ jobs:
           echo "ver=$ver" >> $GITHUB_ENV
           echo "ver_pure=$ver_pure" >> $GITHUB_ENV
           echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
+          # Build id baked into the binary; it tells the updater how old this build is.
+          echo "ORCA_BUILD_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_ENV
           echo "git_commit_hash=$git_commit_hash" >> $GITHUB_ENV
           # Per-arch Linux AppImage naming: amd64 keeps the historical unsuffixed
           # name (arch_suffix empty). Unused on macOS/Windows.
@@ -158,9 +163,23 @@ jobs:
 
           echo "ver=$ver" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           echo "date=$date" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          # Build id baked into the binary; it tells the updater how old this build is.
+          $build_timestamp = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+          echo "ORCA_BUILD_TIMESTAMP=$build_timestamp" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           echo "git_commit_hash=$git_commit_hash" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           echo "date: ${{ env.date }} version: ${{ env.ver }}"
         shell: pwsh
+
+      # A build that ships installers must carry the updater's signature pins, and
+      # version.inc refuses to configure without the one its platform needs. The pins
+      # come from the signing material below; this step only says the run is a
+      # release, so a pin that is gone (a deleted secret, an unset KMS variable)
+      # fails the build instead of publishing an installer whose helper accepts any
+      # signer the OS trusts. Pull requests keep building without pins.
+      - name: Require the updater signature pins
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && github.event_name != 'pull_request'
+        shell: bash
+        run: echo "ORCA_RELEASE_BUILD=ON" >> "$GITHUB_ENV"
 
 #   Mac
       - name: Install tools mac
@@ -469,7 +488,8 @@ jobs:
       # cache, so most runs never download it, and a cache miss fetches the
       # release archive from SourceForge instead of going through the Chocolatey
       # community feed, which hosted runners often cannot reach. Prepending it to
-      # PATH also makes cpack use it over the NSIS preinstalled on some images.
+      # PATH also makes the installer step use it over the NSIS preinstalled on
+      # some images.
       - name: Restore NSIS
         id: nsis-cache
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
@@ -508,8 +528,8 @@ jobs:
       # Windows release builds are Authenticode-signed with the company's key in Google Cloud KMS
       # (README, Code Signing Policy): pushes, schedules and manual runs of main and release/* in
       # this repository, once the WINDOWS_SIGN_* variables are set. The Workload Identity provider
-      # accepts tokens from nothing else. This runs before the build so that CMake wires signing
-      # into the NSIS installer.
+      # accepts tokens from nothing else. This runs before the build so that the signing variables
+      # are in the environment the installer build reads them from.
       - name: Configure code signing
         id: codesign
         if: runner.os == 'Windows' && github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && github.event_name != 'pull_request' && vars.WINDOWS_SIGN_KMS_KEY != ''
@@ -532,6 +552,12 @@ jobs:
           # Names the certificate in the signed NSIS plugin cache key, so a new certificate re-signs them.
           "cert-id=$((Get-FileHash -LiteralPath $cert -Algorithm SHA256).Hash.Substring(0, 16))" |
             Out-File -Append -FilePath $env:GITHUB_OUTPUT -Encoding utf8
+          # The publisher the updater pins is the leaf certificate's simple name, which is
+          # what CertGetNameStringW(CERT_NAME_SIMPLE_DISPLAY_TYPE) reports to the helper.
+          $leaf = [System.Security.Cryptography.X509Certificates.X509Certificate2]::CreateFromPemFile($cert)
+          $publisher = $leaf.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false)
+          if (-not $publisher) { throw "The signing certificate has no simple name to pin." }
+          "ORCA_UPDATER_PUBLISHER=$publisher" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
 
       - name: Set up Java for code signing
         if: steps.codesign.outcome == 'success'
@@ -557,7 +583,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         # Shipped into both the already-installed tree (portable zip, MSIX) and
-        # the checkout cpack re-installs from when it builds the NSIS installer.
+        # the checkout the installer step stages from.
         run: scripts\build_preset_cache.bat --prune-source "%BUILD_DIR%" "resources\profiles" "%BUILD_DIR%\OrcaSlicer\resources\profiles"
 
       # Taken after the build because the token lasts an hour, which covers signing, the installer
@@ -583,8 +609,8 @@ jobs:
           key: nsis-plugins-signed-${{ env.NSIS_VERSION }}-${{ steps.codesign.outputs.cert-id }}
 
       # Signs what the portable zip, the artifact and the MSIX package ship, the profile validator,
-      # and the NSIS plugins the installer carries. cpack installs the app again for the installer;
-      # ORCA_SIGN_REUSE lets its signing hook copy these signed files instead of signing them again.
+      # and the NSIS plugins the installer carries. The installer step stages the files again with
+      # ORCA_SIGN_REUSE, so its signing hook copies these signed files instead of signing them again.
       - name: Sign Windows binaries
         if: steps.codesign.outcome == 'success'
         shell: pwsh
@@ -624,28 +650,37 @@ jobs:
 
       # NSIS is x86-only; it runs (and the installer it emits runs) under ARM64's
       # x86 emulation, packaging the native arm64 payload from build-arm64.
-      # makensis compresses on one core and its signing hook waits on the network, so the installer
-      # builds in the background while the portable zip and the PDB archive are made; "Finish
-      # installer Win" waits for it. cpack installs its own copy of the app from the build tree, and
-      # the others only read build/OrcaSlicer and the PDBs.
-      - name: Start installer Win
-        id: start_installer
+      - name: Create installer Win
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
-        working-directory: ${{ github.workspace }}/${{ env.BUILD_DIR }}
-        # Read by scripts/sign_windows.ps1 when CMake wired signing into the installer.
+        # Read by scripts/sign_windows.ps1 while makensis signs the payload, the uninstaller and
+        # the installer itself.
         env:
           ORCA_SIGN_TOKEN: ${{ steps.codesign_auth.outputs.access_token }}
           ORCA_SIGN_REUSE: ${{ runner.temp }}/signed-files.json
-        shell: pwsh
         run: |
-          $exit = Join-Path $env:RUNNER_TEMP 'cpack.exit'
-          $log = Join-Path $env:RUNNER_TEMP 'cpack.log'
-          # A hidden window of its own, writing its output to a file, holds none of this step's pipes,
-          # so the step ends without waiting for cpack. The exit code is written under another name
-          # and renamed, so the wait never reads half of it.
-          $cpack = Start-Process pwsh -WindowStyle Hidden -PassThru -ArgumentList '-NoProfile', '-Command',
-            "cpack -G NSIS *> '$log'; Set-Content '$exit.tmp' `$LASTEXITCODE; Move-Item '$exit.tmp' '$exit'"
-          Set-Content (Join-Path $env:RUNNER_TEMP 'cpack.pid') $cpack.Id
+          # makensis packs a tree staged by "cmake --install", not the build dir.
+          $build = Join-Path $env:GITHUB_WORKSPACE $env:BUILD_DIR
+          $stage = Join-Path $env:RUNNER_TEMP 'installer-stage'
+          if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
+          cmake --install $build --prefix $stage --config Release
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+          # The nightly deploy and the signature check name this file, so keep the pattern.
+          $installer = Join-Path $build "OrcaSlicer_Windows_Installer_${{ env.ver }}${{ env.ARCH_SUFFIX }}.exe"
+          $log = Join-Path $build 'makensis.log'
+          $nsis = @('/V3', "/O$log", "/DSTAGE=$stage", "/DOUTFILE=$installer", "/DAPP_VERSION=$('${{ env.ver }}' -replace '^V', '')")
+          if ($env:ORCA_SIGN_CERTFILE -and $env:ORCA_SIGN_KMS_KEY -and $env:ORCA_SIGN_JSIGN) {
+            $shell = if (Get-Command pwsh -ErrorAction SilentlyContinue) { 'pwsh' } else { 'powershell' }
+            $nsis += "-DORCA_SIGN_CMD=$shell -NoProfile -ExecutionPolicy Bypass -File ${{ github.workspace }}/scripts/sign_windows.ps1 -Path"
+          }
+          $nsis += "${{ github.workspace }}/packaging/windows/orca-slicer.nsi"
+
+          & makensis @nsis
+          if ($LASTEXITCODE -ne 0) {
+            # makensis writes its errors, and the signing hook's output, only to this log.
+            Get-Content $log -Tail 80 -ErrorAction SilentlyContinue
+            exit 1
+          }
 
       - name: Pack app
         if: runner.os == 'Windows'
@@ -658,28 +693,6 @@ jobs:
         working-directory: ${{ github.workspace }}/${{ env.BUILD_DIR }}/src/Release
         shell: cmd
         run: '"C:/Program Files/7-Zip/7z.exe" a -m0=lzma2 -mx9 Debug_PDB_${{ env.ver }}_for_developers_only.7z  *.pdb'
-
-      # Also after a failed pack step, so cpack's log is still shown.
-      - name: Finish installer Win
-        if: ${{ !cancelled() && steps.start_installer.outcome == 'success' }}
-        working-directory: ${{ github.workspace }}/${{ env.BUILD_DIR }}
-        timeout-minutes: 30
-        shell: pwsh
-        run: |
-          $exit = Join-Path $env:RUNNER_TEMP 'cpack.exit'
-          $cpackId = Get-Content (Join-Path $env:RUNNER_TEMP 'cpack.pid')
-          while (-not (Test-Path $exit)) {
-            if (-not (Get-Process -Id $cpackId -ErrorAction SilentlyContinue) -and -not (Test-Path $exit)) {
-              throw 'cpack stopped without leaving an exit code.'
-            }
-            Start-Sleep -Seconds 5
-          }
-          Get-Content (Join-Path $env:RUNNER_TEMP 'cpack.log')
-          if ((Get-Content $exit) -ne '0') {
-            # makensis writes its errors, and the signing hook's output, only to this log.
-            Get-Content _CPack_Packages/*/NSIS/NSISOutput.log -Tail 80
-            exit 1
-          }
 
       # Checks the shipped files, the installer, the payload inside it (7-Zip unpacks NSIS
       # installers) and the uninstaller a silent install writes.
@@ -698,7 +711,7 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "7-Zip could not unpack $($installer.Name)." }
             $installed = Join-Path $env:RUNNER_TEMP 'installer-test'
             Start-Process -Wait -FilePath $installer.FullName -ArgumentList '/S', "/D=$installed"
-            $paths += $installer.FullName, $payload, (Join-Path $installed 'Uninstall.exe')
+            $paths += $installer.FullName, $payload, (Join-Path $installed 'uninstall.exe')
           }
           ./scripts/sign_windows.ps1 -Verify -Path $paths
 
@@ -710,7 +723,11 @@ jobs:
           path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer
 
       - name: Upload artifacts Win installer
-        if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        # A release build only uploads a signed installer: the updater refuses one that
+        # is not signed by the pinned publisher, so an unsigned one is not usable.
+        # A build that signs nothing (a pull request, a manual branch run) still
+        # uploads its installer, unsigned, for review.
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED && (steps.codesign.outcome == 'success' || steps.codesign.outcome == 'skipped')
         uses: actions/upload-artifact@v7
         with:
           name: OrcaSlicer_Windows_${{ env.ver }}${{ env.ARCH_SUFFIX }}
@@ -738,7 +755,7 @@ jobs:
         run: scripts\check_exception_throw_info.ps1 -BuildDir $env:BUILD_DIR
 
       - name: Deploy Windows release portable
-        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED && inputs.compiler == 'clang' && steps.codesign.outcome == 'success'
         uses: ./.github/actions/deploy-nightly
         with:
           asset_path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer_Windows_${{ env.ver }}${{ env.ARCH_SUFFIX }}_portable.zip
@@ -746,7 +763,7 @@ jobs:
           content_type: application/x-zip-compressed
 
       - name: Deploy Windows release installer
-        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED && inputs.compiler == 'clang' && steps.codesign.outcome == 'success'
         uses: ./.github/actions/deploy-nightly
         with:
           asset_path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer_Windows_Installer_${{ env.ver }}${{ env.ARCH_SUFFIX }}.exe
@@ -754,7 +771,7 @@ jobs:
           content_type: application/x-msdownload
 
       - name: Deploy Windows OrcaSlicer_profile_validator release
-        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED && inputs.compiler == 'clang' && steps.codesign.outcome == 'success'
         uses: ./.github/actions/deploy-nightly
         with:
           asset_path: ${{ github.workspace }}/build/src/Release/OrcaSlicer_profile_validator.exe

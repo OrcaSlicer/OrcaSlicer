@@ -96,8 +96,8 @@ jobs:
           # -type f is required (some artifact *folders* are named "*.flatpak").
 
           # Windows installers (x64 + arm64): the .exe inside each installer
-          # artifact, NOT the orca-slicer.exe in the portable app folder. CPack
-          # now bakes the arch into the filename (…_x64.exe / …_arm64.exe), so
+          # artifact, NOT the orca-slicer.exe in the portable app folder. The installer
+          # names each copy with its arch (…_x64.exe / …_arm64.exe), so
           # copy them straight through.
           find artifacts -type f -name '*.exe' -path '*OrcaSlicer_Windows_V*' ! -path '*_portable*' -exec cp -v {} upload/ \;
           # macOS universal DMG (profile-validator DMG isn't downloaded).

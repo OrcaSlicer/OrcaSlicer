@@ -185,6 +185,32 @@ else
     CMAKE_CCACHE_ARGS=(-DCMAKE_C_COMPILER_LAUNCHER:STRING= -DCMAKE_CXX_COMPILER_LAUNCHER:STRING=)
 fi
 
+# What the updater helper in this tree is built to accept: the Authenticode
+# publisher, the Apple team id, the update signing key and the build id. version.inc
+# lets each environment variable override the cache, so a reconfigured tree follows a
+# rotated pin instead of keeping the old one. The configure writes the same four
+# values to updater-signing.txt, and the packaging step refuses to ship a helper that
+# was built for another set.
+UPDATER_SIGNING_ARGS=()
+if [ -n "${ORCA_UPDATER_PUBLISHER:-}" ] ; then
+    UPDATER_SIGNING_ARGS+=("-DORCA_UPDATER_PUBLISHER=${ORCA_UPDATER_PUBLISHER}")
+fi
+if [ -n "${ORCA_UPDATER_TEAM_ID:-}" ] ; then
+    UPDATER_SIGNING_ARGS+=("-DORCA_UPDATER_TEAM_ID=${ORCA_UPDATER_TEAM_ID}")
+fi
+if [ -n "${ORCA_UPDATER_SIG_KEY:-}" ] ; then
+    UPDATER_SIGNING_ARGS+=("-DORCA_UPDATER_SIG_KEY=${ORCA_UPDATER_SIG_KEY}")
+fi
+if [ -n "${ORCA_BUILD_TIMESTAMP:-}" ] ; then
+    UPDATER_SIGNING_ARGS+=("-DORCA_BUILD_TIMESTAMP=${ORCA_BUILD_TIMESTAMP}")
+fi
+# A release build refuses to configure without the pin this platform needs; the
+# release workflow sets this, a developer build leaves it unset. Only ON or 1
+# means release: ORCA_RELEASE_BUILD=OFF must stay a developer build.
+case "${ORCA_RELEASE_BUILD:-}" in
+    ON|on|On|1) UPDATER_SIGNING_ARGS+=("-DORCA_RELEASE_BUILD=ON") ;;
+esac
+
 echo "Build params:"
 echo " - ARCH: $ARCH"
 echo " - BUILD_CONFIG: $BUILD_CONFIG"
@@ -334,7 +360,7 @@ function build_slicer() {
                 cmake "${PROJECT_DIR}" \
                     -G "${SLICER_CMAKE_GENERATOR}" \
                     -DORCA_TOOLS=ON \
-                    ${ORCA_UPDATER_SIG_KEY:+-DORCA_UPDATER_SIG_KEY="$ORCA_UPDATER_SIG_KEY"} \
+                    "${UPDATER_SIGNING_ARGS[@]}" \
                     ${BUILD_TESTS:+-DBUILD_TESTS=ON} \
                     -DCMAKE_BUILD_TYPE="$BUILD_CONFIG" \
                     -DCMAKE_OSX_ARCHITECTURES="${_ARCH}" \
@@ -377,6 +403,48 @@ function build_slicer() {
             find ./OrcaSlicer.app/ -name '.DS_Store' -delete
 
             verify_python_runtime ./OrcaSlicer.app
+
+            # Ship the updater helper inside the bundle: it links the bundle's wx
+            # frameworks, so it must sit in Contents/MacOS beside the main binary.
+            # Signed together with the rest of the bundle by the packaging workflow.
+            UPDATER_HELPER="../src$BUILD_DIR_CONFIG_SUBDIR/OrcaSlicerUpdater"
+            if [ -f "$UPDATER_HELPER" ]; then
+                # A helper built for another pin set would accept a signer this
+                # release does not use, and nothing in the bundle would say so. The
+                # configure wrote what it baked in, so the two are compared here.
+                signing_stamp="$PROJECT_BUILD_DIR/updater-signing.txt"
+                # A pin the environment does not name is whatever the tree was configured
+                # with: version.inc keeps the cached value when the variable is unset, so
+                # comparing against an unset environment would reject a helper that is
+                # exactly what this tree builds.
+                cached_pin() {
+                    [ -f "$PROJECT_BUILD_DIR/CMakeCache.txt" ] || return 0
+                    sed -n "s/^$1:[A-Z]*=//p" "$PROJECT_BUILD_DIR/CMakeCache.txt" | head -n 1
+                }
+                expected_signing=$(printf 'publisher=%s\nteam_id=%s\nsig_key=%s\ntimestamp=%s\n' \
+                    "${ORCA_UPDATER_PUBLISHER:-$(cached_pin ORCA_UPDATER_PUBLISHER)}" \
+                    "${ORCA_UPDATER_TEAM_ID:-$(cached_pin ORCA_UPDATER_TEAM_ID)}" \
+                    "${ORCA_UPDATER_SIG_KEY:-$(cached_pin ORCA_UPDATER_SIG_KEY)}" \
+                    "${ORCA_BUILD_TIMESTAMP:-$(cached_pin ORCA_BUILD_TIMESTAMP)}")
+                if [ ! -f "$signing_stamp" ]; then
+                    echo "Error: $signing_stamp is missing, so what the helper accepts is not known." >&2
+                    echo "Reconfigure the tree before packaging it." >&2
+                    exit 1
+                fi
+                if [ "$expected_signing" != "$(cat "$signing_stamp")" ]; then
+                    echo "Error: the updater helper was built with other signature pins than this package names:" >&2
+                    printf '%s\n' "$expected_signing" \
+                        | diff -u -L "packaged under" -L "built with" - "$signing_stamp" >&2 || true
+                    echo "Reconfigure the tree with these ORCA_UPDATER_* values, or unset them and rebuild." >&2
+                    exit 1
+                fi
+                echo "Copying OrcaSlicerUpdater..."
+                cp -p "$UPDATER_HELPER" ./OrcaSlicer.app/Contents/MacOS/
+            else
+                echo "Error: OrcaSlicerUpdater not found at $UPDATER_HELPER." >&2
+                echo "The bundle would ship without in-app updates; build the target before packaging." >&2
+                exit 1
+            fi
             
             # Copy OrcaSlicer_profile_validator.app if it exists
             if [ -f "../src$BUILD_DIR_CONFIG_SUBDIR/OrcaSlicer_profile_validator.app/Contents/MacOS/OrcaSlicer_profile_validator" ]; then

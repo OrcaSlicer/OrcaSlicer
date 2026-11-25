@@ -26,6 +26,7 @@
 #include "slic3r/Utils/CloudDeleteQueue.hpp"
 #include "slic3r/Utils/CloudProvider.hpp"
 #include "libslic3r/Point.hpp"
+#include "libslic3r/UpdateChannel.hpp"
 
 #include <vector>
 #include <utility>
@@ -57,6 +58,8 @@ class wxMenuItem;
 class wxMenuBar;
 class wxTopLevelWindow;
 class wxDataViewCtrl;
+class wxTimer;
+class wxTimerEvent;
 class wxBookCtrlBase;
 class wxGLCanvas;
 class wxGLContext;
@@ -350,8 +353,19 @@ private:
     // login widget
     ZUserLogin*     login_dlg { nullptr };
 
-    VersionInfo version_info;
     VersionInfo privacy_version_info;
+    // What the last successful check resolved, shown by EVT_SLIC3R_VERSION_ONLINE.
+    Slic3r::UpdateCandidate m_update_candidate;
+    // Identity of the artifact whose background download was started, so it starts once.
+    std::string m_prefetching_artifact;
+    // Identity of the candidate the ready notification was already pushed for, so one
+    // candidate notifies once per session.
+    std::string m_update_notified_identity;
+    // Polls the cache while a prefetch runs, so the notification follows without a restart.
+    wxTimer*    m_update_ready_timer { nullptr };
+    // True while show_update_dialog() is modal. A check that completes meanwhile must not
+    // replace or clear the candidate the user is looking at.
+    bool        m_update_dialog_open { false };
     static std::string version_display;
     HMSQuery    *hms_query { nullptr };
     FilamentColorCodeQuery* m_filament_color_code_query{ nullptr };
@@ -607,16 +621,35 @@ public:
     bool            m_studio_active = true;
     std::chrono::system_clock::time_point  last_active_point;
 
-    void            check_update(bool show_tips, int by_user);
-    void            check_new_version(bool show_tips = false, int by_user = 0);
     void            check_new_version_sf(bool show_tips = false, int by_user = 0);
+    // Hands the resolved update to the helper: writes the handoff, extracts and spawns the
+    // helper, and closes the app. False when the install did not start, so the caller keeps
+    // the candidate on offer.
+    bool            start_in_app_update();
+    // Offers the candidate: install in place or open the release page. Called by a manual
+    // check and by the ready notification's action, never by the automatic check.
+    void            show_update_dialog();
+    // Pushes the persistent notification for the current candidate: "ready to install" once
+    // its artifact is verified and this flavour installs in place, "available" otherwise. Its
+    // action opens the update dialog either way, where Skip is offered.
+    void            notify_update_ready(bool verified = true);
+    // Starts the download the automatic check hands to the helper, without a dialog or a
+    // lock; the notification follows once the artifact is verified. False when no helper was
+    // started, so there is nothing to poll for.
+    bool            prefetch_update();
+    // Deletes a cached artifact the user no longer wants, unless a prefetch still writes it.
+    void            drop_cached_update(const std::string& asset_name);
+    // Polls download_is_verified() while a prefetch runs and notifies when it is done.
+    void            start_update_ready_timer();
+    void            on_update_ready_timer(wxTimerEvent& event);
+    // Cleans up after an install that happened while this build was being replaced.
+    void            finish_pending_update();
     // Offers to migrate user filament presets made against an older release that lost printers their parent
     // listed then. At startup it asks on every start that finds such presets, unless the user chose not to be
     // reminded; while the user presets sync with the cloud, it waits until they have been pulled. by_user also
     // reports when there is nothing to migrate.
     void            check_legacy_user_filament_presets(bool by_user);
     bool            process_network_msg(std::string dev_id, std::string msg);
-    void            request_new_version(int by_user);
     void            enter_force_upgrade();
     void            set_skip_version(bool skip = true);
     void            no_new_version();
