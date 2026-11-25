@@ -5568,7 +5568,8 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     out.apply(this->project_config);
 
     // BBS
-    size_t  num_filaments = this->filament_presets.size();
+    // Before the presets load, filament_presets is empty; that bundle has one filament, the edited preset.
+    size_t  num_filaments = std::max<size_t>(this->filament_presets.size(), 1);
 
     std::vector<int> filament_maps = out.option<ConfigOptionInts>("filament_map")->values;
     std::vector<int> filament_volume_maps(num_filaments, (int)nvtStandard);
@@ -5655,7 +5656,7 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
         compatible_prints_condition  .emplace_back(this->filaments.get_edited_preset().compatible_prints_condition());
         //BBS: add logic for settings check between different system presets
         //std::string filament_inherits = this->filaments.get_edited_preset().inherits();
-        std::string current_preset_name = this->filament_presets[0];
+        std::string current_preset_name = this->filament_presets.empty() ? this->filaments.get_edited_preset().name : this->filament_presets[0];
         const Preset* preset = this->filaments.find_preset(current_preset_name, true);
         std::string filament_inherits = preset->inherits();
         inherits                     .emplace_back(filament_inherits);
