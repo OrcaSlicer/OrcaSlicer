@@ -81,6 +81,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <boost/format.hpp>
 #include <miniz/miniz.h>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
@@ -5567,7 +5568,8 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     out.apply(this->project_config);
 
     // BBS
-    size_t  num_filaments = this->filament_presets.size();
+    // Before the presets load, filament_presets is empty; that bundle has one filament, the edited preset.
+    size_t  num_filaments = std::max<size_t>(this->filament_presets.size(), 1);
 
     std::vector<int> filament_maps = out.option<ConfigOptionInts>("filament_map")->values;
     std::vector<int> filament_volume_maps(num_filaments, (int)nvtStandard);
@@ -5654,7 +5656,7 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
         compatible_prints_condition  .emplace_back(this->filaments.get_edited_preset().compatible_prints_condition());
         //BBS: add logic for settings check between different system presets
         //std::string filament_inherits = this->filaments.get_edited_preset().inherits();
-        std::string current_preset_name = this->filament_presets[0];
+        std::string current_preset_name = this->filament_presets.empty() ? this->filaments.get_edited_preset().name : this->filament_presets[0];
         const Preset* preset = this->filaments.find_preset(current_preset_name, true);
         std::string filament_inherits = preset->inherits();
         inherits                     .emplace_back(filament_inherits);
@@ -5831,7 +5833,7 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
 
     static const char* keys_with_default[] = {
         "outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_filament_id",
-        "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id"
+        "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id", "brim_filament_id"
     };
     for (size_t i = 0; i < sizeof(keys_with_default) / sizeof(keys_with_default[0]); ++ i) {
         std::string key = std::string(keys_with_default[i]);
@@ -6730,9 +6732,6 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 swept_mix_slots.insert(slot);
                 receiver_mix_moves.emplace_back(slot, dest);
                 any_mixed_relocated = true;
-                // A payload mix authored at the same slot (a mix inside the physical region) is
-                // processed after this sweep and overrides its own destination below.
-                published_config->mixed_slot_relocations.insert_or_assign(int(slot), int(dest));
                 // TRN Filament slot change after loading a published project. %1% and %2% are slot numbers.
                 published_config->material_replacements.emplace_back(
                     (boost::format(L("slot %1% -> slot %2%: mixed filament")) % slot % dest).str());
@@ -6831,6 +6830,15 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                                             << " placed as an unassigned mixed filament at slot " << dest_slot
                                             << " (printer supports only " << physical_capacity << " filaments)";
                     ++entry_it;
+                }
+            }
+            // Published process options refer to the author's slots. Options kept from the
+            // edited preset follow the receiver's own mixes, which may have moved elsewhere.
+            if (!mixed_moves.empty() || !receiver_mix_moves.empty()) {
+                const std::map<int, int> receiver_slots(receiver_mix_moves.begin(), receiver_mix_moves.end());
+                for (const char *key : feature_filament_keys) {
+                    const auto &slots = applied_keys.count(key) ? published_config->mixed_slot_relocations : receiver_slots;
+                    remap_filament_option(prints.get_edited_preset().config, key, slots);
                 }
             }
             if (!mixed_moves.empty())
@@ -9371,6 +9379,15 @@ bool PresetBundle::install_vendor_cache(const std::string& cache_path, const std
         this->clear_printer_hold_aliases();
         return false;
     }
+}
+
+ConfigOptionInts effective_physical_extruder_map(const PresetBundle& pb)
+{
+    const ConfigOptionInts* explicit_pem = pb.project_config.option<ConfigOptionInts>("physical_extruder_map");
+    if (!explicit_pem || explicit_pem->values.size() < 2)
+        explicit_pem = pb.printers.get_edited_preset().config.option<ConfigOptionInts>("physical_extruder_map");
+    const auto* nozzles = pb.printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter");
+    return effective_physical_extruder_map(explicit_pem, nozzles ? (int) nozzles->values.size() : 0);
 }
 
 } // namespace Slic3r

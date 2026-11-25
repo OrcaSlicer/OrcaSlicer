@@ -5,6 +5,7 @@
 #include <slic3r/GUI/DeviceCore/DevManager.h>
 #include <slic3r/GUI/DeviceManager.hpp>
 #include <libslic3r/AppConfig.hpp>
+#include "catch2/catch_message.hpp"
 #include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/Utils/CloudProvider.hpp"
 #include <slic3r/Utils/NetworkAgent.hpp>
@@ -70,9 +71,16 @@ public:
         return 0;
     }
 
+    int set_user_selected_machine(std::string dev_id) override
+    {
+        ++selections;
+        return OrcaPrinterAgent::set_user_selected_machine(std::move(dev_id));
+    }
+
     std::string published_device;
     json published_message;
     std::string connected_ca_file;
+    int selections{0};
 
 private:
     AgentInfo m_info;
@@ -186,6 +194,99 @@ TEST_CASE("Device manager filters and rehomes devices by printer-agent ownership
     CHECK(manager.get_my_machine_list("integration-agent-b").count(machine.dev_id) == 1);
 }
 
+TEST_CASE("A non-Bambu device without a model is not given Bambu's C11 model", "[DeviceManager][integration]")
+{
+    const std::string agent_id = GENERATE(std::string(MOONRAKER_PRINTER_AGENT_ID),
+                                          std::string(QIDI_PRINTER_AGENT_ID),
+                                          std::string(SNAPMAKER_PRINTER_AGENT_ID),
+                                          std::string(CREALITYPRINT_PRINTER_AGENT_ID),
+                                          std::string("integration-agent"));
+    CAPTURE(agent_id);
+
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>(agent_id);
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine machine;
+    machine.dev_id   = "moonraker-device";
+    machine.dev_name = "Moonraker printer";
+    machine.dev_ip   = "192.0.2.20";
+
+    MachineObject* object = manager.insert_local_device(machine, "lan", "free", "", "access-code");
+    REQUIRE(object != nullptr);
+    CHECK(object->printer_agent_id == agent_id);
+    CHECK(object->printer_type.empty());
+}
+
+TEST_CASE("A Bambu device without a model still gets the C11 fallback", "[DeviceManager][integration]")
+{
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>(BBL_PRINTER_AGENT_ID);
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine machine;
+    machine.dev_id   = "bambu-device";
+    machine.dev_name = "Bambu printer";
+    machine.dev_ip   = "192.0.2.21";
+
+    MachineObject* object = manager.insert_local_device(machine, "lan", "free", "", "access-code");
+    REQUIRE(object != nullptr);
+    CHECK(object->printer_type == "C11");
+}
+
+TEST_CASE("A known model survives a non-Bambu rebind that does not name one", "[DeviceManager][integration]")
+{
+    const std::string agent_id = GENERATE(std::string(MOONRAKER_PRINTER_AGENT_ID),
+                                          std::string(QIDI_PRINTER_AGENT_ID),
+                                          std::string(SNAPMAKER_PRINTER_AGENT_ID),
+                                          std::string(CREALITYPRINT_PRINTER_AGENT_ID),
+                                          std::string("integration-agent"));
+    CAPTURE(agent_id);
+
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>(agent_id);
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine machine;
+    machine.dev_id       = "known-model-device";
+    machine.dev_name     = "Known model printer";
+    machine.dev_ip       = "192.0.2.22";
+    machine.printer_type = "test_model";
+
+    MachineObject* object = manager.insert_local_device(machine, "lan", "free", "", "access-code");
+    REQUIRE(object != nullptr);
+    REQUIRE(object->printer_type == "test_model");
+
+    machine.printer_type.clear();
+    REQUIRE(manager.insert_local_device(machine, "lan", "free", "", "access-code") == object);
+    CHECK(object->printer_type == "test_model");
+}
+
+TEST_CASE("A Bambu rebind without a model keeps the C11 fallback", "[DeviceManager][integration]")
+{
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>(BBL_PRINTER_AGENT_ID);
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine machine;
+    machine.dev_id       = "known-model-device";
+    machine.dev_name     = "Known model printer";
+    machine.dev_ip       = "192.0.2.22";
+    machine.printer_type = "BL-P001";
+
+    MachineObject* object = manager.insert_local_device(machine, "lan", "free", "", "access-code");
+    REQUIRE(object != nullptr);
+    REQUIRE(object->printer_type == "BL-P001");
+
+    machine.printer_type.clear();
+    REQUIRE(manager.insert_local_device(machine, "lan", "free", "", "access-code") == object);
+    CHECK(object->printer_type == "C11");
+}
+
 TEST_CASE("Device manager remembers the last selected machine per printer agent", "[DeviceManager][integration]")
 {
     ScopedAppConfig app_config;
@@ -275,6 +376,37 @@ TEST_CASE("Logging out cancels a pending last-machine restore", "[DeviceManager]
     REQUIRE(manager.has_pending_last_machine_restore());
     manager.clean_user_info(true);
     CHECK_FALSE(manager.has_pending_last_machine_restore());
+}
+
+TEST_CASE("A cloud server connection selects a cloud printer again but leaves a LAN printer alone", "[DeviceManager][integration]")
+{
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    network.set_printer_agent(agent);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine machine;
+    machine.dev_id       = "integration-lan-device";
+    machine.dev_name     = "Integration LAN device";
+    machine.dev_ip       = "192.0.2.10";
+    machine.printer_type = "C11";
+    REQUIRE(manager.insert_local_device(machine, "lan", "free", "", "access-code") != nullptr);
+    manager.parse_user_print_info(machine_list_response(ORCA_CLOUD_PROVIDER, "integration-agent",
+                                                        network.get_user_machine_list_generation(), "Cloud printer"));
+    REQUIRE(manager.get_user_machinelist().count("integration-device") == 1);
+
+    // The agent names the LAN printer once it is connected, as the Bambu network plugin does.
+    agent->set_user_selected_machine(machine.dev_id);
+    agent->selections = 0;
+    manager.reselect_cloud_machine();
+    CHECK(agent->selections == 0);
+
+    agent->set_user_selected_machine("integration-device");
+    agent->selections = 0;
+    manager.reselect_cloud_machine();
+    CHECK(agent->selections == 1);
+    CHECK(agent->get_user_selected_machine() == "integration-device");
 }
 
 TEST_CASE("A CA file stays with the agent that saved it when a device is rebound", "[DeviceManager][integration]")

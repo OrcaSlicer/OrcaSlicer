@@ -1,4 +1,5 @@
 #include "Plater.hpp"
+#include "LazyPage.hpp"
 #include "../Utils/NetworkAgent.hpp"
 #include "IPrinterAgent.hpp"
 #include "CalibUtils.hpp"
@@ -1428,7 +1429,7 @@ static bool has_junction_deviation(const DynamicPrintConfig* printer_config)
 }
 
 static DynamicFilamentList dynamic_filament_list;                // every slot, mixed included (per-feature *_filament_id keys)
-static DynamicFilamentList dynamic_physical_filament_list(true); // physical slots only (support_*, wipe_tower_filament)
+static DynamicFilamentList dynamic_physical_filament_list(true); // physical slots only (support_*, brim_filament_id, wipe_tower_filament)
 
 class AMSCountPopupWindow : public PopupWindow
 {
@@ -2395,13 +2396,9 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " go on sync_extruder_list";
     const Preset &cur_preset  = preset_bundle->printers.get_selected_preset();
     int extruder_nums = preset_bundle->get_printer_extruder_count();
-    std::vector<int> extruder_map(extruder_nums);
-    std::iota(extruder_map.begin(), extruder_map.end(), 0);
-    const ConfigOptionInts *physical_extruder_map = cur_preset.config.option<ConfigOptionInts>("physical_extruder_map");
-    if (physical_extruder_map != nullptr) {
-        assert(physical_extruder_map->values.size() == extruder_nums);
-        extruder_map = physical_extruder_map->values;
-    }
+    // A multi-nozzle profile that never sets physical_extruder_map carries the single-element default.
+    const std::vector<int> extruder_map =
+        effective_physical_extruder_map(cur_preset.config.option<ConfigOptionInts>("physical_extruder_map"), extruder_nums).values;
     assert(obj->GetExtderSystem()->GetTotalExtderCount() == extruder_nums);
 
     // Multi-nozzle: resolve the nozzle option (pops MultiNozzleSyncDialog when is_manual). No-op for every
@@ -2788,12 +2785,9 @@ Sidebar::Sidebar(Plater *parent)
 {
     Choice::register_dynamic_list("support_filament", &dynamic_physical_filament_list);
     Choice::register_dynamic_list("support_interface_filament", &dynamic_physical_filament_list);
-    Choice::register_dynamic_list("outer_wall_filament_id", &dynamic_filament_list);
-    Choice::register_dynamic_list("inner_wall_filament_id", &dynamic_filament_list);
-    Choice::register_dynamic_list("sparse_infill_filament_id", &dynamic_filament_list);
-    Choice::register_dynamic_list("internal_solid_filament_id", &dynamic_filament_list);
-    Choice::register_dynamic_list("top_surface_filament_id", &dynamic_filament_list);
-    Choice::register_dynamic_list("bottom_surface_filament_id", &dynamic_filament_list);
+    for (const char *key : feature_filament_keys)
+        Choice::register_dynamic_list(key, &dynamic_filament_list);
+    Choice::register_dynamic_list("brim_filament_id", &dynamic_physical_filament_list);
     Choice::register_dynamic_list("wipe_tower_filament", &dynamic_physical_filament_list);
 
     p->scrolled = new wxPanel(this);
@@ -5870,6 +5864,17 @@ void Sidebar::add_filament() {
     filament_list->Scroll(-1, INT_MAX); // ORCA scroll to end of list on changes to inform user about filament count
 }
 
+// Refresh the controls after the sidebar has rebuilt their list of available slots.
+static void update_print_tab_after_filament_change(bool process_changed)
+{
+    Tab *tab = wxGetApp().get_tab(Preset::TYPE_PRINT);
+    if (process_changed) {
+        tab->update_dirty();
+        tab->reload_config();
+    }
+    tab->update();
+}
+
 void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
     if (is_new_project_in_gcode3mf()) { return; }
     if (p->combos_filament.size() <= 1) return;
@@ -5907,14 +5912,23 @@ void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
     if (auto* opt = wxGetApp().preset_bundle->project_config.option<ConfigOptionBools>("filament_is_mixed"))
         is_mixed_snapshot = opt->values;
 
+    // Replacement is expressed in the list before deletion. Resolve its final index once.
+    if (replace_filament_id > int(filament_id))
+        --replace_filament_id;
+    std::map<int, int> slots{{int(filament_id), replace_filament_id}};
+    for (int i = int(filament_id) + 1; i < int(total_filaments); ++i)
+        slots.emplace(i, i - 1);
+    remap_model_filament_configs(wxGetApp().model(), slots, false);
+    const bool process_changed = remap_feature_filaments(wxGetApp().preset_bundle->prints.get_edited_preset().config, slots);
+
     wxGetApp().preset_bundle->update_num_filaments(filament_id);
 
     // filament_count only counts physical combos, so with mixed slots present it is not the
     // new number of slots; recompute from the shrunk preset list for the downstream updates.
     size_t total_after_delete = wxGetApp().preset_bundle->filament_presets.size();
     wxGetApp().plater()->get_partplate_list().on_filament_deleted(total_after_delete, filament_id);
-    wxGetApp().plater()->on_filaments_delete(total_after_delete, filament_id, replace_filament_id > (int)filament_id ? (replace_filament_id - 1) : replace_filament_id, is_mixed_snapshot);
-    wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
+    wxGetApp().plater()->on_filaments_delete(total_after_delete, filament_id, replace_filament_id, is_mixed_snapshot);
+    update_print_tab_after_filament_change(process_changed);
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
 
     wxGetApp().plater()->update();
@@ -5971,6 +5985,13 @@ void Sidebar::edit_filament()
         p->editing_filament = p->m_menu_filament_id; // sync with TabPresetComboxBox's m_filament_idx
 }
 
+bool Sidebar::load_filament_in_tab(size_t filament_id)
+{
+    // Like edit_filament(): no slot may be bound while the switch can run select_preset().
+    p->editing_filament = -1;
+    return filament_id < p->combos_filament.size() && p->combos_filament[filament_id]->switch_to_tab(false);
+}
+
 void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_name, bool /*skip_preset_validation*/) {
     if (is_new_project_in_gcode3mf()) { return; }
     if (p->combos_filament.size() >= MAXIMUM_EXTRUDER_NUMBER) return;
@@ -5988,6 +6009,7 @@ void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_na
     std::string new_color      = new_col.GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
     bundle->set_num_filaments(filament_count, new_color);
 
+    bool process_changed = false;
     // Maintain physical-first ordering: rotate the new slot from end to insert_pos.
     // No mixed slots -> insert_pos == total -> every rotate below is a no-op.
     if (insert_pos < total) {
@@ -6030,24 +6052,17 @@ void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_na
         if (ams_mc.size() > total)
             std::rotate(ams_mc.begin() + insert_pos, ams_mc.begin() + total, ams_mc.end());
 
-        // Remap object/volume extruder IDs and paint data: anything >= insert_pos+1 (1-based) shifts up by 1
-        int threshold_1based = (int)(insert_pos + 1);
-        auto ebt_threshold = EnforcerBlockerType(threshold_1based);
-        for (auto* obj : wxGetApp().plater()->model().objects) {
-            if (obj->config.has("extruder")) {
-                int ext = obj->config.extruder();
-                if (ext >= threshold_1based)
-                    obj->config.set("extruder", ext + 1);
-            }
-            for (auto* vol : obj->volumes) {
-                if (vol->config.has("extruder")) {
-                    int ext = vol->config.extruder();
-                    if (ext >= threshold_1based)
-                        vol->config.set("extruder", ext + 1);
-                }
+        // Model configs and paint states store one-based filament slots.
+        std::map<int, int> slots;
+        for (int i = int(insert_pos); i < int(total); ++i)
+            slots.emplace(i, i + 1);
+        Model &model = wxGetApp().model();
+        remap_model_filament_configs(model, slots, true);
+        process_changed = remap_feature_filaments(bundle->prints.get_edited_preset().config, slots);
+        auto ebt_threshold = EnforcerBlockerType(insert_pos + 1);
+        for (ModelObject *obj : model.objects)
+            for (ModelVolume *vol : obj->volumes)
                 vol->mmu_segmentation_facets.shift_states_above(*vol, ebt_threshold, +1);
-            }
-        }
     }
 
     if (!preset_name.empty() &&
@@ -6058,7 +6073,7 @@ void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_na
 
     wxGetApp().plater()->get_partplate_list().on_filament_added(filament_count);
     wxGetApp().plater()->on_filament_count_change(filament_count);
-    wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
+    update_print_tab_after_filament_change(process_changed);
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
     auto_calc_flushing_volumes(insert_pos);
 }
@@ -7289,6 +7304,8 @@ struct Plater::priv
     int m_cur_slice_plate;
     //BBS: m_slice_all in .gcode.3mf file case, set true when slice all
     bool m_slice_all_only_has_gcode{ false };
+    // Orca: the flow rate test sets no calibration mode on the print, as that would change its G-code
+    bool m_flowrate_calib{ false };
 
     bool m_need_update{false};
     //BBS: add popup object table logic
@@ -7897,7 +7914,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         "extruder_clearance_radius",
         "extruder_clearance_height_to_lid", "extruder_clearance_height_to_rod",
 		"nozzle_height", "skirt_type", "skirt_loops", "skirt_speed","min_skirt_length", "skirt_distance", "skirt_start_angle",
-        "brim_width", "brim_object_gap", "brim_flow_ratio", "brim_use_efc_outline", "combine_brims", "brim_type", "nozzle_diameter", "single_extruder_multi_material", "preferred_orientation",
+        "brim_width", "brim_object_gap", "brim_flow_ratio", "brim_use_efc_outline", "combine_brims", "brim_type", "brim_filament_id", "nozzle_diameter", "single_extruder_multi_material", "preferred_orientation",
         "enable_prime_tower", "wipe_tower_x", "wipe_tower_y", "prime_tower_width", "prime_tower_brim_width", "prime_tower_skip_points", "prime_tower_enable_framework",
         "prime_tower_infill_gap", "prime_volume",
         "extruder_colour", "filament_colour", "filament_type", "filament_is_support", "material_colour", "printable_height", "extruder_printable_height", "printer_model", "printer_technology",
@@ -9278,6 +9295,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     q->m_3mf_path = input_files.front().string();
     // Leave the previous calibration mode intact when preparation was cancelled.
     background_process.fff_print()->calib_mode() = CalibMode::Calib_None;
+    m_flowrate_calib = false;
 
     for (size_t i = 0; i < input_files.size(); ++i) {
         int project_filament_count = 1;
@@ -11273,7 +11291,9 @@ void Plater::find_new_position(const ModelInstancePtrs &instances)
             }
         }
 
-    if (auto wt = get_wipe_tower_arrangepoly(*this))
+    // The objects placed here are not inflated, so none are passed and the tower keeps the whole
+    // toolhead radius.
+    if (auto wt = get_wipe_tower_arrangepoly(*this, arr_params))
         fixed.emplace_back(*wt);
 
     arrangement::arrange(movable, fixed, this->build_volume().polygon(), arr_params);
@@ -15817,10 +15837,13 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
 
     // Make a copy of the snapshot, undo/redo could invalidate the iterator
     const UndoRedo::Snapshot snapshot_copy = *it_snapshot;
+    // Orca: custom G-codes are not in the snapshot, so remap them by plate ID after the jump.
+    const std::vector<ObjectID> plate_ids_before = this->partplate_list.get_plate_ids();
     // Do the jump in time.
     if (it_snapshot->timestamp < this->undo_redo_stack().active_snapshot_time() ?
         this->undo_redo_stack().undo(model, get_current_canvas3D()->get_canvas_type() == GLCanvas3D::CanvasAssembleView ? assemble_view->get_canvas3d()->get_selection() : this->view3D->get_canvas3d()->get_selection(), get_current_canvas3D()->get_canvas_type() == GLCanvas3D::CanvasAssembleView ? assemble_view->get_canvas3d()->get_gizmos_manager() : this->view3D->get_canvas3d()->get_gizmos_manager(), this->partplate_list, top_snapshot_data, it_snapshot->timestamp) :
         this->undo_redo_stack().redo(model, get_current_canvas3D()->get_canvas_type() == GLCanvas3D::CanvasAssembleView ? assemble_view->get_canvas3d()->get_gizmos_manager() : this->view3D->get_canvas3d()->get_gizmos_manager(), this->partplate_list, it_snapshot->timestamp)) {
+        this->partplate_list.remap_custom_gcodes(plate_ids_before);
         if (printer_technology_changed) {
             // Switch to the other printer technology. Switch to the last printer active for that particular technology.
             AppConfig *app_config = wxGetApp().app_config;
@@ -15867,7 +15890,7 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
                     tower_x_opt->set_at(&tower_x_new, plate_idx, 0);
                     tower_y_opt->set_at(&tower_y_new, plate_idx, 0);
                     need_update = true;
-                    break;
+                    // Orca: restore every plate, moving a plate changes several positions
                 }
             }
 
@@ -17212,6 +17235,25 @@ void Plater::_calib_apply_belt_mode()
     changed_objects(obj_idxs);
 }
 
+bool Plater::_calib_select_filament(int filament_id)
+{
+    if (wxGetApp().preset_bundle->filament_presets.size() <= 1)
+        return true;
+    return sidebar().load_filament_in_tab(size_t(std::max(filament_id, 0)));
+}
+
+void Plater::_calib_assign_filament(int filament_id)
+{
+    if (filament_id <= 0)
+        return;
+    for (ModelObject *object : model().objects) {
+        object->config.set_key_value("extruder", new ConfigOptionInt(filament_id + 1));
+        for (ModelVolume *volume : object->volumes)
+            volume->config.erase("extruder");
+    }
+    sidebar().obj_list()->update_filament_values_for_items(size_t(wxGetApp().filaments_cnt()));
+}
+
 void Plater::calib_pa(const Calib_Params& params)
 {
     // ORCA-Belt: PA Line / PA Pattern have the belt plumbing in place
@@ -17230,6 +17272,8 @@ void Plater::calib_pa(const Calib_Params& params)
     const auto calib_pa_name = _L("Pressure Advance Test");
     new_project(false, false, calib_pa_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+    if (!_calib_select_filament(params.filament_id))
+        return;
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     print_config->set_key_value("overhang_reverse", new ConfigOptionBool(false));
@@ -17249,6 +17293,7 @@ void Plater::calib_pa(const Calib_Params& params)
             break;
         default: break;
     }
+    _calib_assign_filament(params.filament_id);
     p->background_process.fff_print()->set_calib_params(params);
 }
 
@@ -17261,7 +17306,7 @@ void Plater::_calib_pa_pattern(const Calib_Params& params)
     auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     DynamicPrintConfig& print_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
-    double nozzle_diameter = printer_config->option<ConfigOptionFloats>("nozzle_diameter")->get_at(0);
+    double nozzle_diameter = printer_config->option<ConfigOptionFloats>("nozzle_diameter")->get_at(params.extruder_id);
     set_config_values<bool, ConfigOptionBoolsNullable>(filament_config, "filament_retract_when_changing_layer", false);
     set_config_values<bool, ConfigOptionBoolsNullable>(filament_config, "filament_wipe", false);
     set_config_values<bool, ConfigOptionBools>(printer_config, "wipe", false);
@@ -17339,7 +17384,7 @@ void Plater::_calib_pa_pattern(const Calib_Params& params)
         double speed = CalibPressureAdvance::find_optimal_PA_speed(
             wxGetApp().preset_bundle->full_config(),
             print_config.get_abs_value("line_width", nozzle_diameter),
-            print_config.get_abs_value("layer_height"), 0, 0);
+            print_config.get_abs_value("layer_height"), params.extruder_id, params.filament_id);
         set_config_values<double, ConfigOptionFloatsNullable>(&print_config, "outer_wall_speed", speed);
 
         speeds.assign({speed});
@@ -17518,7 +17563,7 @@ void Plater::_calib_pa_tower(const Calib_Params& params) {
     auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
 
-    const double nozzle_diameter = printer_config->option<ConfigOptionFloats>("nozzle_diameter")->get_at(0);
+    const double nozzle_diameter = printer_config->option<ConfigOptionFloats>("nozzle_diameter")->get_at(params.extruder_id);
 
     print_config.set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
     filament_config->set_key_value("slow_down_layer_time", new ConfigOptionFloats{ 1.0f });
@@ -17580,7 +17625,7 @@ void Plater::_calib_pa_select_added_objects() {
 // Adjust settings for flowrate calibration
 // For linear mode, pass 1 means normal version while pass 2 mean "for perfectionists" version
 // ORCA: Add pattern parameter
-void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, int pass, InfillPattern pattern)
+void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, int pass, InfillPattern pattern, int extruder_id)
 {
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
@@ -17593,7 +17638,7 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
     std::vector<int> nozzle_volume_types    = wxGetApp().preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
 
     assert(nozzle_diameter_config->values.size() > 0);
-    float nozzle_diameter = nozzle_diameter_config->values[0];
+    float nozzle_diameter = nozzle_diameter_config->get_at(extruder_id);
     float xyScale = nozzle_diameter / 0.6;
     //scale z to have 10 layers
     // 2 bottom, 5 top, 3 sparse infill
@@ -17656,6 +17701,8 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
         _obj->config.set_key_value("seam_slope_type", new ConfigOptionEnum<SeamScarfType>(SeamScarfType::None));
         _obj->config.set_key_value("gap_fill_target", new ConfigOptionEnum<GapFillTarget>(GapFillTarget::gftNowhere));
         print_config->set_key_value("max_volumetric_extrusion_rate_slope", new ConfigOptionFloat(0));
+        // ORCA: the speeds above are linear, and no calibration mode switches volumetric speeds off here.
+        print_config->set_key_value("enable_volumetric_speeds", new ConfigOptionBool(false));
         // ORCA: request the calibration's special toolpath order (chords first, center spiral
         // last and inside-out) so opposing directions collide into the tactile lip the test
         // reads. The special order only applies while the fill order is Default, so reset the
@@ -17703,7 +17750,7 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
 }
 
 // ORCA: Add pattern parameter
-void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern) {
+void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern, int filament_id, int extruder_id) {
     if (pass != 1 && pass != 2)
         return;
     wxString calib_name;
@@ -17716,6 +17763,8 @@ void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern) {
         return;
 
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+    if (!_calib_select_filament(filament_id))
+        return;
 
     if (is_linear) {
         if (pass == 1)
@@ -17734,17 +17783,21 @@ void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern) {
     }
 
     // ORCA: pass the pattern
-    adjust_settings_for_flowrate_calib(model().objects, is_linear, pass, pattern);
+    adjust_settings_for_flowrate_calib(model().objects, is_linear, pass, pattern, extruder_id);
     wxGetApp().get_tab(Preset::TYPE_PRINTER)->reload_config();
     auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
 
+    _calib_assign_filament(filament_id);
     _calib_apply_belt_mode();
 
     // Refresh object after scaling
     const std::vector<size_t> object_idx(boost::counting_iterator<size_t>(0), boost::counting_iterator<size_t>(model().objects.size()));
     changed_objects(object_idx);
+    p->m_flowrate_calib = true;
 }
+
+bool Plater::is_flowrate_calib() const { return p->m_flowrate_calib; }
 
 
 // The belt provini tower (Calib_Params::test_model 1) is one embossed model per
@@ -17782,6 +17835,8 @@ void Plater::calib_temp(const Calib_Params& params) {
     const auto calib_temp_name = _L("Nozzle temperature test");
     new_project(false, false, calib_temp_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+    if (!_calib_select_filament(params.filament_id))
+        return;
     if (params.mode != CalibMode::Calib_Temp_Tower)
         return;
 
@@ -17803,6 +17858,7 @@ void Plater::calib_temp(const Calib_Params& params) {
                 double belt_angle_rad = 0.; Vec3d belt_axis = Vec3d::UnitX();
                 belt_calib_rotation_params(belt_angle_rad, belt_axis);
                 _calib_temp_belt_sectioned(params, std::abs(belt_angle_rad));
+                _calib_assign_filament(params.filament_id);
                 return;
             }
             constexpr int    TEMP_STEP = 5;        // matches Temp_Calibration_Dlg
@@ -17869,6 +17925,7 @@ void Plater::calib_temp(const Calib_Params& params) {
                     "M104 S" + std::to_string(temps[i]) + " ; belt temp zone " + std::to_string(temps[i]) });
             }
 
+            _calib_assign_filament(params.filament_id);
             changed_objects({ 0 });
             wxGetApp().get_tab(Preset::TYPE_FILAMENT)->update_dirty();
             wxGetApp().get_tab(Preset::TYPE_FILAMENT)->reload_config();
@@ -17946,6 +18003,7 @@ void Plater::calib_temp(const Calib_Params& params) {
     wxGetApp().get_tab(Preset::TYPE_PRINT)->reload_config();
     wxGetApp().get_tab(Preset::TYPE_FILAMENT)->reload_config();
 
+    _calib_assign_filament(params.filament_id);
     p->background_process.fff_print()->set_calib_params(params);
 }
 
@@ -18055,6 +18113,8 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
     const auto calib_vol_speed_name = _L("Max volumetric speed test");
     new_project(false, false, calib_vol_speed_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+    if (!_calib_select_filament(params.filament_id))
+        return;
     if (params.mode != CalibMode::Calib_Vol_speed_Tower)
         return;
     if (!add_model(false, Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.drc"))
@@ -18074,7 +18134,7 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
 
     const ConfigOptionFloats* nozzle_diameter_config = printer_config->option<ConfigOptionFloats>("nozzle_diameter");
     assert(nozzle_diameter_config->values.size() > 0);
-    double nozzle_diameter = nozzle_diameter_config->values[0];
+    double nozzle_diameter = nozzle_diameter_config->get_at(params.extruder_id);
     double line_width = nozzle_diameter * 1.75;
     double layer_height = nozzle_diameter * 0.8;
 
@@ -18102,6 +18162,7 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
     obj_cfg.set_key_value("precise_z_height", new ConfigOptionBool(false));
     print_config->set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
+    print_config->set_key_value("spiral_starting_flow_ratio", new ConfigOptionFloat(1));
     print_config->set_key_value("max_volumetric_extrusion_rate_slope", new ConfigOptionFloat(0));
     print_config->set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
 
@@ -18120,6 +18181,7 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
         cut_horizontal(0, 0, height, ModelObjectCutAttribute::KeepLower);
     }
 
+    _calib_assign_filament(params.filament_id);
     _calib_apply_belt_mode();
 
     auto new_params  = params;
@@ -18136,6 +18198,8 @@ void Plater::calib_retraction(const Calib_Params& params)
     const auto calib_retraction_name = _L("Retraction");
     new_project(false, false, calib_retraction_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+    if (!_calib_select_filament(params.filament_id))
+        return;
     if (params.mode != CalibMode::Calib_Retraction_tower)
         return;
 
@@ -18151,7 +18215,7 @@ void Plater::calib_retraction(const Calib_Params& params)
     print_config->set_key_value("wipe_inward", new ConfigOptionBool(false));
     print_config->set_key_value("retract_after_outer_wall", new ConfigOptionBool(false));
 
-    float nozzle_diameter = printer_config->option<ConfigOptionFloats>("nozzle_diameter")->get_at(0);
+    float nozzle_diameter = printer_config->option<ConfigOptionFloats>("nozzle_diameter")->get_at(params.extruder_id);
     float layer_height;
     if (nozzle_diameter <= 0.1f) {
         layer_height = 0.05f;
@@ -18191,6 +18255,7 @@ void Plater::calib_retraction(const Calib_Params& params)
         cut_horizontal(0, 0, height, ModelObjectCutAttribute::KeepLower);
     }
 
+    _calib_assign_filament(params.filament_id);
     _calib_apply_belt_mode();
     p->background_process.fff_print()->set_calib_params(params);
 }
@@ -18200,6 +18265,8 @@ void Plater::calib_VFA(const Calib_Params& params)
     const auto calib_vfa_name = _L("VFA test");
     new_project(false, false, calib_vfa_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+    if (!_calib_select_filament(params.filament_id))
+        return;
     if (params.mode != CalibMode::Calib_VFA_Tower)
         return;
 
@@ -18271,6 +18338,7 @@ void Plater::calib_VFA(const Calib_Params& params)
     wxGetApp().get_tab(Preset::TYPE_PRINT)->update_ui_from_settings();
     wxGetApp().get_tab(Preset::TYPE_FILAMENT)->update_ui_from_settings();
 
+    _calib_assign_filament(params.filament_id);
     _calib_apply_belt_mode();
     // Pass the resolved layer height on (only meaningful when resized). GCode's VFA stepping is layer-based, so
     // it does not require it, but keep it consistent with the geometry.
@@ -18284,6 +18352,8 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
     const auto calib_input_shaping_name = _L("Input shaping Frequency test");
     new_project(false, false, calib_input_shaping_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+    if (!_calib_select_filament(params.filament_id))
+        return;
     if (params.mode != CalibMode::Calib_Input_shaping_freq)
         return;
 
@@ -18343,6 +18413,7 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
     wxGetApp().get_tab(Preset::TYPE_PRINT)->update_ui_from_settings();
     wxGetApp().get_tab(Preset::TYPE_FILAMENT)->update_ui_from_settings();
 
+    _calib_assign_filament(params.filament_id);
     _calib_apply_belt_mode();
     p->background_process.fff_print()->set_calib_params(params);
 }
@@ -18352,6 +18423,8 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
     const auto calib_input_shaping_name = _L("Input shaping Damping test");
     new_project(false, false, calib_input_shaping_name);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+    if (!_calib_select_filament(params.filament_id))
+        return;
     if (params.mode != CalibMode::Calib_Input_shaping_damp)
         return;
 
@@ -18410,6 +18483,7 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
     wxGetApp().get_tab(Preset::TYPE_PRINT)->update_ui_from_settings();
     wxGetApp().get_tab(Preset::TYPE_FILAMENT)->update_ui_from_settings();
 
+    _calib_assign_filament(params.filament_id);
     _calib_apply_belt_mode();
     p->background_process.fff_print()->set_calib_params(params);
 }
@@ -18419,6 +18493,8 @@ void Plater::Calib_Cornering(const Calib_Params& params)
     const auto Calib_Cornering = _L("Cornering test");
     new_project(false, false, Calib_Cornering);
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+    if (!_calib_select_filament(params.filament_id))
+        return;
     if (params.mode != CalibMode::Calib_Cornering)
         return;
 
@@ -18478,6 +18554,7 @@ void Plater::Calib_Cornering(const Calib_Params& params)
     wxGetApp().get_tab(Preset::TYPE_PRINT)->update_ui_from_settings();
     wxGetApp().get_tab(Preset::TYPE_FILAMENT)->update_ui_from_settings();
 
+    _calib_assign_filament(params.filament_id);
     _calib_apply_belt_mode();
     p->background_process.fff_print()->set_calib_params(params);
 }
@@ -19742,9 +19819,15 @@ void Plater::increase_instances(size_t num)
     double offset = offset_base;
     for (size_t i = 0; i < num; i++, offset += offset_base) {
         Vec3d offset_vec = model_instance->get_offset() + Vec3d(offset, offset, 0.0);
-        model_object->add_instance(offset_vec, model_instance->get_scaling_factor(), model_instance->get_rotation(), model_instance->get_mirror());
+        // ORCA: Copy the whole transformation. Rebuilt from scale, rotation and mirror it loses a skew.
+        Geometry::Transformation transformation = model_instance->get_transformation();
+        transformation.set_offset(offset_vec);
+        model_object->add_instance()->set_transformation(transformation);
 //        p->print.get_object(obj_idx)->add_copy(Slic3r::to_2d(offset_vec));
     }
+    // ORCA: Place the copies of the last instance in the assembly view, otherwise they overlap.
+    const size_t first_copy = model_object->instances.size() - num;
+    p->model.set_assembly_pos_of_copies(model_object, first_copy - 1, first_copy);
     // Register the copies with the plate they land on before the scene reloads: the plate's
     // filament list and wipe tower preview are read from that registry.
     for (size_t i = model_object->instances.size() - num; i < model_object->instances.size(); ++i)
@@ -21089,10 +21172,19 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
     // The printer reads slice_info.config and knows only its own catalog ids.
     auto* id_agent = preset_bundle.is_bbl_vendor() ? wxGetApp().getAgent() : nullptr;
 
+    // The bbox data outlives an export, so plates left out of this one must not keep a previous export's filaments.
+    for (PlateBBoxData* bbox : store_params.id_bboxes) {
+        bbox->filament_ids.clear();
+        bbox->filament_colors.clear();
+    }
+
     for (int i = 0; i < plate_data_list.size(); i++) {
         PlateData *plate_data = plate_data_list[i];
         plate_data->printer_model_id = printer_model_id;
         plate_data->nozzle_diameters = nozzle_diameter_str;
+        PlateBBoxData* plate_bbox = nullptr;
+        if (plate_data->is_sliced_valid && plate_data->plate_index >= 0 && plate_data->plate_index < (int) store_params.id_bboxes.size())
+            plate_bbox = store_params.id_bboxes[plate_data->plate_index];
         for (auto it = plate_data->slice_filaments_info.begin(); it != plate_data->slice_filaments_info.end(); it++) {
             std::string display_filament_type;
             it->type  = cfg.get_filament_type(display_filament_type, it->id);
@@ -21100,11 +21192,9 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
             if (id_agent)
                 it->filament_id = id_agent->from_orca_filament_id(it->filament_id);
             it->color = filament_color ? filament_color->get_at(it->id) : "#FFFFFF";
-            // save filament info used in curr plate
-            int index = p->partplate_list.get_curr_plate_index();
-            if (store_params.id_bboxes.size() > index) {
-                store_params.id_bboxes[index]->filament_ids.push_back(it->id);
-                store_params.id_bboxes[index]->filament_colors.push_back(it->color);
+            if (plate_bbox) {
+                plate_bbox->filament_ids.push_back(it->id);
+                plate_bbox->filament_colors.push_back(it->color);
             }
         }
     }
@@ -21918,8 +22008,8 @@ void Plater::on_filaments_delete(size_t num_filaments, size_t filament_id, int r
     // update_objects_list_filament_column() that clips extruders above total count.
     sidebar().obj_list()->update_objects_list_filament_column_when_delete_filament(filament_id, num_filaments, replace_filament_id);
 
-    // update global support filament
-    static const char *keys[] = {"support_filament", "support_interface_filament"};
+    // update global support and brim filament
+    static const char *keys[] = {"support_filament", "support_interface_filament", "brim_filament_id"};
     for (auto key : keys)
         if (p->config->has(key)) {
             if(p->config->opt_int(key) == filament_id + 1)
@@ -22114,6 +22204,7 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
                  opt_key == "outer_wall_filament_id" || opt_key == "inner_wall_filament_id" ||
                  opt_key == "sparse_infill_filament_id" || opt_key == "internal_solid_filament_id" ||
                  opt_key == "top_surface_filament_id" || opt_key == "bottom_surface_filament_id" ||
+                 opt_key == "brim_filament_id" ||
                  opt_key == "enable_support" || opt_key == "raft_layers" || opt_key == "wall_loops" ||
                  opt_key == "sparse_infill_density" || opt_key == "top_shell_layers" ||
                  opt_key == "bottom_shell_layers" || opt_key == "brim_type" || opt_key == "brim_width") {

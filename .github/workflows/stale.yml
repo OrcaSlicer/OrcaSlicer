@@ -4,55 +4,122 @@ on:
   schedule:
     - cron: "30 1 * * *"
   workflow_dispatch:
+    inputs:
+      notices:
+        description: What the notice step does on this run
+        type: choice
+        options: [dry-run, post, skip]
+        default: dry-run
 
 permissions:
   actions: write # save the run state in the actions cache
+  contents: read # check out the notice script
   issues: write
   pull-requests: write
+
+# Overlapping runs would overwrite each other's saved progress.
+concurrency:
+  group: stale
 
 jobs:
   stale:
     runs-on: ubuntu-latest
+    env:
+      ISSUE_STALE_DAYS: 90
+      ISSUE_CLOSE_DAYS: 14
+      # CONTRIBUTING's "If your PR is closed" section repeats these day counts, so update it too
+      PR_STALE_DAYS: 90
+      PR_CLOSE_DAYS: 14
+      CONFLICT_DAYS: 90
+      UNREVIEWED_DAYS: 180
+      DRAFT_DAYS: 180
+      # A PR that answered a notice gets no new one for this long
+      RENOTICE_DAYS: 90
+      # Each notice posts one comment, which counts toward the stale step's hourly limit
+      NOTICE_LIMIT: 40
     steps:
-      - uses: actions/stale@v11
+      - uses: actions/checkout@v7
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && inputs.notices != 'skip'
         with:
-          # Each new stale label costs about 2 operations. Runs that stop early
-          # continue from the same place the next day.
-          operations-per-run: 300
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      # Posts the notice on long-inactive PRs, which the stale step closes if nothing changes
+      - name: Post notices on inactive PRs
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && inputs.notices != 'skip'
+        timeout-minutes: 30
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ inputs.notices == 'dry-run' }}
+          # Stops starting notices with time to finish the last one before the timeout
+          NOTICE_MINUTES: 20
+        run: python3 .github/scripts/inactive_pr_notices.py
+      - uses: actions/stale@v11
+        # A failed notice step doesn't stop the stale run
+        if: ${{ !cancelled() }}
+        with:
+          # Each stale label or close costs about 2 operations and posts one
+          # comment, so 800 stays under GitHub's limit of 500 comments an hour
+          # together with the notice step's NOTICE_LIMIT comments.
+          # Runs that stop early continue from the same place the next day.
+          operations-per-run: 800
           ascending: true
           stale-issue-label: stale
           stale-pr-label: stale
           remove-stale-when-updated: true
 
+          # The last step mirrors the exempt and only-labels options below.
+          # Update its filters when they change.
+
           # Issues
-          days-before-issue-stale: 90
-          days-before-issue-close: 14
+          days-before-issue-stale: ${{ env.ISSUE_STALE_DAYS }}
+          days-before-issue-close: ${{ env.ISSUE_CLOSE_DAYS }}
           close-issue-reason: not_planned
-          exempt-issue-labels: enhancement
           exempt-all-issue-assignees: true
           exempt-all-issue-milestones: true
           stale-issue-message: |
-            This issue has had no activity for 90 days, so it will be closed in 14 days.
+            This issue has had no activity for ${{ env.ISSUE_STALE_DAYS }} days, so it will be closed in ${{ env.ISSUE_CLOSE_DAYS }} days.
 
-            If it still happens on the latest OrcaSlicer release, please leave a comment with the version you tested and it will stay open.
+            If it's a bug that still happens on the latest OrcaSlicer release, please leave a comment with the version you tested. If it's a feature request you still want, please leave a comment saying so. Either one keeps it open.
           close-issue-message: |
             This issue was closed because there was no activity after the reminder.
 
-            If it still happens on the latest release, leave a comment here and a team member can reopen it, or open a new issue with the details.
+            If it still matters to you, leave a comment here and a team member can reopen it, or open a new issue with the details.
 
           # PRs: only PRs where we asked the author for something
           only-pr-labels: "wait for response"
-          days-before-pr-stale: 90
-          days-before-pr-close: 14
-          exempt-draft-pr: true
+          days-before-pr-stale: ${{ env.PR_STALE_DAYS }}
+          days-before-pr-close: ${{ env.PR_CLOSE_DAYS }}
+          # Drafts aren't exempt because the notice step removes the label from drafts without a notice
+          exempt-draft-pr: false
           exempt-all-pr-assignees: true
           exempt-all-pr-milestones: true
           delete-branch: false
           stale-pr-message: |
-            We asked for changes or more information on this PR, and there has been no activity for 90 days. It will be closed in 14 days.
+            We asked for changes or more information on this PR, and nothing has happened on it for at least ${{ env.PR_STALE_DAYS }} days. It will be closed in ${{ env.PR_CLOSE_DAYS }} days.
 
-            To keep it open, leave a comment. If you push new commits, please also leave a short comment, because a push alone does not reset this. If you no longer have time for it, that is fine, just let us know.
+            To keep it open, leave a comment. If you push new commits, please also leave a comment so we know it's ready for review again. If you no longer have time for it, that's fine. You can close it yourself.
           close-pr-message: |
-            This PR was closed because we did not hear back after the reminder. Thank you for the work you put into it.
+            This PR was closed because we did not get a reply after the reminder. Thank you for the work you put into it.
 
-            If you want to continue, push your changes and reopen it, or open a new PR.
+            If you want to continue, open a new PR and link this one. You can also leave a comment here, and a team member can reopen it.
+
+      # The stale bot checks exemptions before activity, so it never comes back
+      # to a stale item that became exempt. Remove the label from those here.
+      - name: Remove stale labels the stale bot will not revisit
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            gh issue list -R "$GITHUB_REPOSITORY" --label stale --state open --limit 5000 \
+              --json number,assignees,milestone \
+              --jq '.[] | select((.assignees | length > 0) or .milestone != null) | .number'
+            gh pr list -R "$GITHUB_REPOSITORY" --label stale --state open --limit 1000 \
+              --json number,assignees,milestone,labels \
+              --jq '.[] | select((.assignees | length > 0) or .milestone != null
+                     or ([.labels[].name] | index("wait for response") | not)) | .number'
+          } | while read -r n; do
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/$n/labels/stale" --silent < /dev/null ||
+              echo "::warning::Could not remove the stale label from #$n"
+          done

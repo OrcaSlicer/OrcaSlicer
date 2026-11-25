@@ -34,7 +34,6 @@
 
 #include <boost/property_tree/ptree_fwd.hpp>
 
-#include "slic3r/plugin/host/PluginPages.hpp"
 
 // Stable identifiers for MainFrame::m_tabpanel's built-in pages. These are
 // names rather than positional indices so optional pages cannot shift them.
@@ -67,6 +66,8 @@ class wxBookCtrlBase;
 class wxProgressDialog;
 
 namespace Slic3r {
+
+class PluginPages;
 
 namespace GUI
 {
@@ -497,7 +498,7 @@ public:
     void fit_tab_labels(); // ORCA
     // True while either of the two tabs backed by m_plater is selected.
     bool is_prepare_or_preview_tab() const;
-    PluginPages& plugin_pages() { return m_plugin_pages; }
+    PluginPages& plugin_pages() { return *m_plugin_pages; }
 
     PA_Calibration_Dlg* m_pa_calib_dlg{ nullptr };
     FlowRateCalibrationDialog* m_flow_rate_calib_dlg{ nullptr };
@@ -533,7 +534,7 @@ public:
     LazyPage<CalibrationPanel>* m_calibration_page{ nullptr };
     LazyPage<WebViewPanel>* m_home_page { nullptr };
     LazyPage<PrinterWebView>* m_printer_view_page{nullptr};
-    PluginPages           m_plugin_pages;
+    std::unique_ptr<PluginPages> m_plugin_pages;
     wxLogWindow*          m_log_window { nullptr };
     // BBS
     //wxBookCtrlBase*       m_tabpanel { nullptr };

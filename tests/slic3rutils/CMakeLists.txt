@@ -11,10 +11,12 @@ add_executable(${_TEST_NAME}_tests
     test_dev_mapping.cpp
     test_device_access.cpp
     test_moonraker_printer_agent.cpp
+    test_moonraker_filament_sources.cpp
     test_snapmaker_filament_match.cpp
     test_network_discovery.cpp
     test_filament_bitmap_utils.cpp
     test_colour_picker_field.cpp
+    test_field_number_text.cpp
     test_filament_color_picker.cpp
     test_ams_materials_setting.cpp
     test_gcode_preview_colors.cpp
@@ -25,6 +27,7 @@ add_executable(${_TEST_NAME}_tests
     test_device_progress.cpp
     test_device_manager_integration.cpp
     test_web_media_controller.cpp
+    test_part_plate.cpp
     test_scene_raycaster.cpp
     test_scene_benchmark.cpp
     test_lazy.cpp
@@ -44,7 +47,9 @@ add_executable(${_TEST_NAME}_tests
     test_printer_agent.cpp
     test_qidi_printer_agent.cpp
     test_plugin_install.cpp
+    test_plugin_update.cpp
     test_plugin_lifecycle.cpp
+    test_plugin_wheel_install.cpp
     test_plugin_resource_texture.cpp
     test_plugin_printer_agent.cpp
     test_post_processor.cpp
