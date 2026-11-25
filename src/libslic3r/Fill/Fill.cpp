@@ -105,14 +105,14 @@ InfillParams calculate_infill_position_rad(const PrintObject* object,
 
     // Built once: layers and objects are filled in parallel, and building a std::regex writes to a cache of the
     // shared locale, which is a data race.
-    static const std::string search_string   = "\\/^~NnZz$LlUuQq#JjCOo|";
+    static const std::string search_string   = "\\/^~NnZz$LlUuQq#COo|";
     static const std::string coord_string    = "XxYy";
     static const std::string density_string  = "Dd";
     static const std::string angle_string    = "A+-_0123456789.";
     static const std::string replace12       = "$1$2"; 
     static const std::regex  del("[\\s,]+");
     static const std::regex  hex("(^|\\D)0+([xX])");
-    static const std::regex  metalang_sign("[+\\-%AXYxyDd_*BT@&\'\"cm\\" + search_string + "]");
+    static const std::regex  metalang_sign("[+\\-%AXYxyDd_*:BT@&\'\"cm\\" + search_string + "]");
     static const std::regex  semicolon(";");
 
     std::string template_string2 = std::regex_replace(template_string, semicolon, std::string()); // remove the easy-reading separators
@@ -317,8 +317,6 @@ InfillParams calculate_infill_position_rad(const PrintObject* object,
                                     double density_value(strtod(cs, &cs)); // read density parameter
                                     if (cs[0] == ':') { // fractional
                                         double multiline_value = std::max(density_value, 1.);
-                                        if (zone_mark == 'd')
-                                            density_adapt = 2;
                                         if (density_value) {
                                             if (is_abs_density)
                                                 multiline_start = density_value;
@@ -333,13 +331,15 @@ InfillParams calculate_infill_position_rad(const PrintObject* object,
                                             if (is_abs_density)
                                                 density_start = density_value / multiline_value;
                                             else {
-                                                density_adapt = 0;
+                                                density_adapt = 3;
                                                 if (zone_mark == 'd')
-                                                    density_lin += density_value / multiline_value;
+                                                    density_lin += density_start * (1 - density_value);
                                                 else
-                                                    density_add += density_value / multiline_value;
+                                                    density_add += density_start * (1 - density_value);
                                             }
                                         } else {
+                                            if (zone_mark == 'd')
+                                                density_adapt = 2;
                                             if (cs[0] == '+' || cs[0] == '-') // remove single signs 
                                                 cs++;
                                         }
@@ -372,9 +372,9 @@ InfillParams calculate_infill_position_rad(const PrintObject* object,
 
                                     if (cs[0] == '_') { // negative shift
                                         cs++;
-                                        angle_value = Geometry::deg2rad(-strtod(cs, &cs)); // read negative absolute angle parameter
+                                        angle_value = -strtod(cs, &cs); // read negative absolute angle parameter
                                     } else
-                                        angle_value = Geometry::deg2rad(strtod(cs, &cs)); // read absolute angle parameter
+                                        angle_value = strtod(cs, &cs);  // read absolute angle parameter
 
                                     if (!angle_value && (cs[0] == '+' || cs[0] == '-')) // remove single signs 
                                         cs++;
@@ -393,11 +393,11 @@ InfillParams calculate_infill_position_rad(const PrintObject* object,
                                         angle_value *= is_fractional ? 2. : 3.6;
                                         cs++;
                                     }
+                                    angle_value = Geometry::deg2rad(angle_value);
                                     if (is_abs_angle)
                                         angle_start = angle_value;
                                     else
                                         angle_add += angle_value;
-
                                 } else
                                     break;
                             }
@@ -556,13 +556,11 @@ InfillParams calculate_infill_position_rad(const PrintObject* object,
         case 13: negvalue  = 1. - pow(1. - negvalue, 3); break;                                // Q-joint, cubic, x3
         case 14: negvalue  = pow(1. - negvalue, 3); break;                                     // q-joint, cubic, x3 inverse
         case 15: negvalue  = is_negative ? 0. : 1.; break;                                     // #-joint, vertical at the end of range
-        case 16: negvalue  = 0.5; break;                                                       // J-joint, like #-joint but placed at middle angle (former |-joint)
-        case 17: negvalue  = is_negative != (negvalue > 0.5) ? 0. : 1.; break;                 // j-joint, vertical separated at the start and end of range
-        case 18: negvalue  = is_negative ? 1 - sqrt(1 - pow(negvalue * 2 - 1, 2)) : 
+        case 16: negvalue  = is_negative ? 1 - sqrt(1 - pow(negvalue * 2 - 1, 2)) : 
                                            sqrt(1 - pow(negvalue * 2 - 1, 2)); break;          // C-joint, half of circle
-        case 19: negvalue  = (is_negative ? -.5 : .5) * cos(negvalue * PI * 2.) + .5; break;   // O-joint, vertical cosine wave
-        case 20: negvalue  = .5 * sin(negvalue * PI * 2.) + .5; break;                         // O-joint, vertical sine wave
-        case 21: negvalue  = 0.5; break;                                                       // |-joint, copy of J-joint (is used for compatibility)
+        case 17: negvalue  = (is_negative ? -.5 : .5) * cos(negvalue * PI * 2.) + .5; break;   // O-joint, vertical cosine wave
+        case 18: negvalue  = .5 * sin(negvalue * PI * 2.) + .5; break;                         // O-joint, vertical sine wave
+        case 19: negvalue  = 0.5; break;                                                       // |-joint, copy of J-joint (is used for compatibility)
         default: negvalue  = 1.;
         }
 
@@ -577,16 +575,19 @@ InfillParams calculate_infill_position_rad(const PrintObject* object,
 
         // Adapt density if changed multiline number at next command
         double multiline_param; 
+        double multiline_value = multiline_start + multiline_add * negvalue;
         if (fill_form)
-            multiline_param = round(multiline_start + multiline_add * negvalue);
+            multiline_param = round(multiline_value);
         else
-            multiline_param = is_negative ? floor(multiline_start + multiline_add * negvalue) : ceil(multiline_start + multiline_add * negvalue);
+            multiline_param = is_negative ? floor(multiline_value) : ceil(multiline_value);
 
         params.multiline = std::max(multiline_param, 1.); // store new value
         if (density_adapt == 1)
             params.density *= round(multiline_start) / multiline_param;
-        else if (density_adapt) // == 2
-            params.density /= multiline_start;
+        else if (density_adapt == 2) 
+            params.density /= params.multiline;
+        else if (density_adapt) // == 3
+            params.density /= multiline_value;
         // Make sure that the resulting density is within the range of EPSILON to 100%.
         // Values outside this range will be produced within these limits.
         params.density = std::min(std::max(params.density * params.multiline * 100., EPSILON), 100.);
