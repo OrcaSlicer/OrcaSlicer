@@ -394,18 +394,40 @@ bool GLGizmoEmboss::create_volume(ModelVolumeType volume_type)
 
 
 bool GLGizmoEmboss::on_shortcut_key() {
+    // Already opened: close it like the other gizmos do. Text stays selected, so next press edits it again.
+    auto& mng = m_parent.get_gizmos_manager();
+    if (mng.get_current_type() == GLGizmosManager::Emboss) {
+        close();
+        return false;
+    }
+
+    // Text object selected with more instances: edit works with one of them, so keep selected only the first.
+    Selection& selection = m_parent.get_selection();
+    bool is_selection_reduced = false;
+    if (selection.get_object_idx() >= 0 && selection.get_volume_idxs().size() > 1) {
+        const ModelVolume *volume = get_model_volume(*selection.get_first_volume(), selection.get_model()->objects);
+        if (volume != nullptr && volume->is_text() && volume->get_object()->volumes.size() == 1) {
+            selection.add_volumes(selection.get_mode(), {*selection.get_volume_idxs().begin()});
+            is_selection_reduced = true;
+        }
+    }
+
     set_volume_by_selection();
+    bool creation_started = false;
     if (m_volume == nullptr) {
         // No volume to select from selection so create volume.
         // NOTE: After finish job for creation emboss Text volume,
         // GLGizmoEmboss will be opened
-        return create_volume(ModelVolumeType::MODEL_PART);
+        creation_started = create_volume(ModelVolumeType::MODEL_PART);
     }
-    // shortcut is pressed when text is selected soo start edit it.
-    auto& mng = m_parent.get_gizmos_manager();
-    if (mng.get_current_type() != GLGizmosManager::Emboss)
+    else {
+        // shortcut is pressed when text is selected soo start edit it.
         mng.open_gizmo(GLGizmosManager::Emboss);
-    return false;
+    }
+
+    if (is_selection_reduced)
+        wxGetApp().obj_list()->update_selections();
+    return creation_started;
 }
 
 bool GLGizmoEmboss::re_emboss(const ModelVolume &text_volume, std::shared_ptr<std::atomic<bool>> job_cancel)
@@ -547,7 +569,9 @@ void add_style_for_default_text(EmbossStyles &styles)
     if (text == default_text || can_write(styles.front(), text))
         return;
 
-    for (const char *face_name : {"HarmonyOS Sans SC", "NanumGothic", "Sarabun"}) {
+    // Sarabun ships as Medium and SemiBold only. Windows lists such weights as families of their own,
+    // "Sarabun Medium" and "Sarabun SemiBold", so the plain family name is not a valid face name there.
+    for (const char *face_name : {"HarmonyOS Sans SC", "NanumGothic", "Sarabun", "Sarabun Medium"}) {
         wxFont wx_font = *wxNORMAL_FONT;
         if (!wx_font.SetFaceName(face_name))
             continue;

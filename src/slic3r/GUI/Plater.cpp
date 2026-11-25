@@ -2812,12 +2812,8 @@ Sidebar::Sidebar(Plater *parent)
 {
     Choice::register_dynamic_list("support_filament", &dynamic_physical_filament_list);
     Choice::register_dynamic_list("support_interface_filament", &dynamic_physical_filament_list);
-    Choice::register_dynamic_list("outer_wall_filament_id", &dynamic_filament_list);
-    Choice::register_dynamic_list("inner_wall_filament_id", &dynamic_filament_list);
-    Choice::register_dynamic_list("sparse_infill_filament_id", &dynamic_filament_list);
-    Choice::register_dynamic_list("internal_solid_filament_id", &dynamic_filament_list);
-    Choice::register_dynamic_list("top_surface_filament_id", &dynamic_filament_list);
-    Choice::register_dynamic_list("bottom_surface_filament_id", &dynamic_filament_list);
+    for (const char *key : feature_filament_keys)
+        Choice::register_dynamic_list(key, &dynamic_filament_list);
     Choice::register_dynamic_list("brim_filament_id", &dynamic_physical_filament_list);
     Choice::register_dynamic_list("wipe_tower_filament", &dynamic_physical_filament_list);
 
@@ -5870,6 +5866,17 @@ void Sidebar::add_filament() {
     filament_list->Scroll(-1, INT_MAX); // ORCA scroll to end of list on changes to inform user about filament count
 }
 
+// Refresh the controls after the sidebar has rebuilt their list of available slots.
+static void update_print_tab_after_filament_change(bool process_changed)
+{
+    Tab *tab = wxGetApp().get_tab(Preset::TYPE_PRINT);
+    if (process_changed) {
+        tab->update_dirty();
+        tab->reload_config();
+    }
+    tab->update();
+}
+
 void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
     if (is_new_project_in_gcode3mf()) { return; }
     if (p->combos_filament.size() <= 1) return;
@@ -5907,14 +5914,23 @@ void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
     if (auto* opt = wxGetApp().preset_bundle->project_config.option<ConfigOptionBools>("filament_is_mixed"))
         is_mixed_snapshot = opt->values;
 
+    // Replacement is expressed in the list before deletion. Resolve its final index once.
+    if (replace_filament_id > int(filament_id))
+        --replace_filament_id;
+    std::map<int, int> slots{{int(filament_id), replace_filament_id}};
+    for (int i = int(filament_id) + 1; i < int(total_filaments); ++i)
+        slots.emplace(i, i - 1);
+    remap_model_filament_configs(wxGetApp().model(), slots, false);
+    const bool process_changed = remap_feature_filaments(wxGetApp().preset_bundle->prints.get_edited_preset().config, slots);
+
     wxGetApp().preset_bundle->update_num_filaments(filament_id);
 
     // filament_count only counts physical combos, so with mixed slots present it is not the
     // new number of slots; recompute from the shrunk preset list for the downstream updates.
     size_t total_after_delete = wxGetApp().preset_bundle->filament_presets.size();
     wxGetApp().plater()->get_partplate_list().on_filament_deleted(total_after_delete, filament_id);
-    wxGetApp().plater()->on_filaments_delete(total_after_delete, filament_id, replace_filament_id > (int)filament_id ? (replace_filament_id - 1) : replace_filament_id, is_mixed_snapshot);
-    wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
+    wxGetApp().plater()->on_filaments_delete(total_after_delete, filament_id, replace_filament_id, is_mixed_snapshot);
+    update_print_tab_after_filament_change(process_changed);
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
 
     wxGetApp().plater()->update();
@@ -5989,6 +6005,7 @@ void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_na
     std::string new_color      = new_col.GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
     bundle->set_num_filaments(filament_count, new_color);
 
+    bool process_changed = false;
     // Maintain physical-first ordering: rotate the new slot from end to insert_pos.
     // No mixed slots -> insert_pos == total -> every rotate below is a no-op.
     if (insert_pos < total) {
@@ -6031,24 +6048,17 @@ void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_na
         if (ams_mc.size() > total)
             std::rotate(ams_mc.begin() + insert_pos, ams_mc.begin() + total, ams_mc.end());
 
-        // Remap object/volume extruder IDs and paint data: anything >= insert_pos+1 (1-based) shifts up by 1
-        int threshold_1based = (int)(insert_pos + 1);
-        auto ebt_threshold = EnforcerBlockerType(threshold_1based);
-        for (auto* obj : wxGetApp().plater()->model().objects) {
-            if (obj->config.has("extruder")) {
-                int ext = obj->config.extruder();
-                if (ext >= threshold_1based)
-                    obj->config.set("extruder", ext + 1);
-            }
-            for (auto* vol : obj->volumes) {
-                if (vol->config.has("extruder")) {
-                    int ext = vol->config.extruder();
-                    if (ext >= threshold_1based)
-                        vol->config.set("extruder", ext + 1);
-                }
+        // Model configs and paint states store one-based filament slots.
+        std::map<int, int> slots;
+        for (int i = int(insert_pos); i < int(total); ++i)
+            slots.emplace(i, i + 1);
+        Model &model = wxGetApp().model();
+        remap_model_filament_configs(model, slots, true);
+        process_changed = remap_feature_filaments(bundle->prints.get_edited_preset().config, slots);
+        auto ebt_threshold = EnforcerBlockerType(insert_pos + 1);
+        for (ModelObject *obj : model.objects)
+            for (ModelVolume *vol : obj->volumes)
                 vol->mmu_segmentation_facets.shift_states_above(*vol, ebt_threshold, +1);
-            }
-        }
     }
 
     if (!preset_name.empty() &&
@@ -6059,7 +6069,7 @@ void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_na
 
     wxGetApp().plater()->get_partplate_list().on_filament_added(filament_count);
     wxGetApp().plater()->on_filament_count_change(filament_count);
-    wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
+    update_print_tab_after_filament_change(process_changed);
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
     auto_calc_flushing_volumes(insert_pos);
 }
@@ -20131,9 +20141,15 @@ void Plater::increase_instances(size_t num)
     double offset = offset_base;
     for (size_t i = 0; i < num; i++, offset += offset_base) {
         Vec3d offset_vec = model_instance->get_offset() + Vec3d(offset, offset, 0.0);
-        model_object->add_instance(offset_vec, model_instance->get_scaling_factor(), model_instance->get_rotation(), model_instance->get_mirror());
+        // ORCA: Copy the whole transformation. Rebuilt from scale, rotation and mirror it loses a skew.
+        Geometry::Transformation transformation = model_instance->get_transformation();
+        transformation.set_offset(offset_vec);
+        model_object->add_instance()->set_transformation(transformation);
 //        p->print.get_object(obj_idx)->add_copy(Slic3r::to_2d(offset_vec));
     }
+    // ORCA: Place the copies of the last instance in the assembly view, otherwise they overlap.
+    const size_t first_copy = model_object->instances.size() - num;
+    p->model.set_assembly_pos_of_copies(model_object, first_copy - 1, first_copy);
     // Register the copies with the plate they land on before the scene reloads: the plate's
     // filament list and wipe tower preview are read from that registry.
     for (size_t i = model_object->instances.size() - num; i < model_object->instances.size(); ++i)
@@ -21506,10 +21522,19 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
     // The printer reads slice_info.config and knows only its own catalog ids.
     auto* id_agent = preset_bundle.is_bbl_vendor() ? wxGetApp().getAgent() : nullptr;
 
+    // The bbox data outlives an export, so plates left out of this one must not keep a previous export's filaments.
+    for (PlateBBoxData* bbox : store_params.id_bboxes) {
+        bbox->filament_ids.clear();
+        bbox->filament_colors.clear();
+    }
+
     for (int i = 0; i < plate_data_list.size(); i++) {
         PlateData *plate_data = plate_data_list[i];
         plate_data->printer_model_id = printer_model_id;
         plate_data->nozzle_diameters = nozzle_diameter_str;
+        PlateBBoxData* plate_bbox = nullptr;
+        if (plate_data->is_sliced_valid && plate_data->plate_index >= 0 && plate_data->plate_index < (int) store_params.id_bboxes.size())
+            plate_bbox = store_params.id_bboxes[plate_data->plate_index];
         for (auto it = plate_data->slice_filaments_info.begin(); it != plate_data->slice_filaments_info.end(); it++) {
             std::string display_filament_type;
             it->type  = cfg.get_filament_type(display_filament_type, it->id);
@@ -21517,11 +21542,9 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
             if (id_agent)
                 it->filament_id = id_agent->from_orca_filament_id(it->filament_id);
             it->color = filament_color ? filament_color->get_at(it->id) : "#FFFFFF";
-            // save filament info used in curr plate
-            int index = p->partplate_list.get_curr_plate_index();
-            if (store_params.id_bboxes.size() > index) {
-                store_params.id_bboxes[index]->filament_ids.push_back(it->id);
-                store_params.id_bboxes[index]->filament_colors.push_back(it->color);
+            if (plate_bbox) {
+                plate_bbox->filament_ids.push_back(it->id);
+                plate_bbox->filament_colors.push_back(it->color);
             }
         }
     }

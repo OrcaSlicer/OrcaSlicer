@@ -789,6 +789,19 @@ void ObjectList::update_filament_values_for_items(const size_t filaments_count)
             if (object->config.has(key) && object->config.opt_int(key) > filaments_count)
                 object->config.erase(key);
 
+        if (const auto layer_root = m_objects_model->GetLayerRootItem(item)) {
+            wxDataViewItemArray layer_items;
+            m_objects_model->GetChildren(layer_root, layer_items);
+            for (const auto &layer_item : layer_items) {
+                const auto range = object->layer_config_ranges.find(m_objects_model->GetLayerRangeByItem(layer_item));
+                if (range == object->layer_config_ranges.end() || !range->second.has("extruder"))
+                    continue;
+                const int slot = range->second.extruder();
+                if (slot != m_objects_model->GetExtruderNumber(layer_item))
+                    m_objects_model->SetExtruder(slot == 0 ? _L("default") : wxString::Format("%d", slot), layer_item);
+            }
+        }
+
         if (object->volumes.size() > 1) {
             for (size_t id = 0; id < object->volumes.size(); id++) {
                 item = m_objects_model->GetItemByVolumeId(i, id);
@@ -7621,32 +7634,36 @@ ModelObject* ObjectList::object(const int obj_idx) const
 
 void ObjectList::apply_object_instance_transfrom_to_all_volumes(ModelObject *model_object, bool need_update_assemble_matrix)
 {
-    const Geometry::Transformation &instance_transformation  = model_object->instances[0]->get_transformation();
-    Vec3d                           original_instance_center = instance_transformation.get_offset();
+    // ORCA: Rotation, scale and mirror of the first instance, without its offset.
+    const Transform3d instance_matrix         = model_object->instances[0]->get_transformation().get_matrix_no_offset();
+    const Transform3d instance_inverse_matrix = instance_matrix.inverse();
 
-    if (need_update_assemble_matrix) {
-        // apply the instance_transform(except offset) to assemble_transform
-        Geometry::Transformation instance_transformation_copy = instance_transformation;
-        instance_transformation_copy.set_offset(Vec3d(0, 0, 0)); // remove the effect of offset
-        const Transform3d &instance_inverse_matrix = instance_transformation_copy.get_matrix().inverse();
-        const Transform3d &assemble_matrix         = model_object->instances[0]->get_assemble_transformation().get_matrix();
-        Transform3d        new_assemble_transform  = assemble_matrix * instance_inverse_matrix;
-        model_object->instances[0]->set_assemble_from_transform(new_assemble_transform);
-    }
-
-    // apply the instance_transform to volumn
-    const Transform3d &transformation_matrix = instance_transformation.get_matrix();
+    // ORCA: Apply this transform to the volumes.
     for (ModelVolume *volume : model_object->volumes) {
-        const Transform3d &volume_matrix = volume->get_matrix();
-        Transform3d        new_matrix    = transformation_matrix * volume_matrix;
+        const Transform3d new_matrix = instance_matrix * volume->get_matrix();
         volume->set_transformation(new_matrix);
     }
-    model_object->instances[0]->set_transformation(Geometry::Transformation());
 
+    // ORCA: Remove it from every instance, so that none of them moves: the volumes are shared by all instances.
+    for (ModelInstance *instance : model_object->instances) {
+        // ORCA: Skip instances without an assembly pose: setting one here would mark them as initialized.
+        if (need_update_assemble_matrix && instance->is_assemble_initialized()) {
+            const Transform3d new_assemble_transform = instance->get_assemble_transformation().get_matrix() * instance_inverse_matrix;
+            instance->set_assemble_from_transform(new_assemble_transform);
+        }
+
+        const Vec3d offset     = instance->get_offset();
+        Transform3d new_matrix = instance->get_transformation().get_matrix_no_offset() * instance_inverse_matrix;
+        // ORCA: Usual case, same rotation and scale as the first instance: exact identity instead of rounding noise.
+        if (new_matrix.isApprox(Transform3d::Identity()))
+            new_matrix.setIdentity();
+        new_matrix.translation() = offset;
+        instance->set_transformation(Geometry::Transformation(new_matrix));
+    }
+
+    // ORCA: The setters above do not invalidate the cached bounding boxes.
+    model_object->invalidate_bounding_box();
     model_object->ensure_on_bed();
-    // keep new instance center the same as the original center
-    model_object->translate(-original_instance_center);
-    model_object->translate_instances(original_instance_center);
 
     // update the cache data in selection to keep the data of ModelVolume and GLVolume are consistent
     wxGetApp().plater()->update();

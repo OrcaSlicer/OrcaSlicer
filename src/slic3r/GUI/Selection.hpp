@@ -250,6 +250,7 @@ public:
     // copy; returning false stops there, and clone() returns false.
     bool clone(int numbers = 1, const std::function<bool(int done)>& pasted = {});
     void center();
+    bool can_center() const;
     void drop();
     bool can_drop() const;
     // Lowest world Z that drop() moves to the bed; whole objects count model parts only, as auto drop does.

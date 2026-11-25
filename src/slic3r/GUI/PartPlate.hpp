@@ -512,7 +512,9 @@ public:
     // Callers that mirror Print::validate need that form: validate counts the mixed slot itself,
     // so an expanded list makes the two disagree.
     std::vector<int> get_extruders(bool conside_custom_gcode = false, bool expand_mixed_slots = true) const;
-    std::vector<int> get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config, bool expand_mixed_slots = true) const;
+    // reset_print_wide_ids = true resolves a print-wide filament id past the last slot as PresetBundle::full_config()
+    // does for the edited print preset, and false resolves it as the slicer does.
+    std::vector<int> get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config, bool expand_mixed_slots = true, bool reset_print_wide_ids = false) const;
     std::vector<int> get_extruders_under_cli(bool conside_custom_gcode, DynamicPrintConfig& full_config, bool expand_mixed_slots = true) const;
     std::vector<int> get_extruders_without_support(bool conside_custom_gcode = false) const;
     // get used filaments from gcode result, 1 based idx

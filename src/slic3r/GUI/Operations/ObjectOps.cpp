@@ -682,7 +682,7 @@ Outcome<std::map<int, std::vector<int>>> center_objects(const CenterObjectsArgs&
     if (args.targets.from_selection) {
         if (args.plate)
             canvas.do_center_plate(*args.plate);
-        else
+        else if (plater.get_selection().can_center()) // as the Center menu item is enabled: a centred selection adds no undo step
             plater.center_selection();
         const std::set<int> objects = objects_of(args.targets);
         return std::map<int, std::vector<int>>{{args.plate.value_or(current), std::vector<int>(objects.begin(), objects.end())}};
