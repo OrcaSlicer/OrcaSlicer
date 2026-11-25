@@ -1,9 +1,11 @@
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ObjectID.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -12,6 +14,8 @@
 #include "slic3r/GUI/TickCode.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <string>
 #include <vector>
 
 using namespace Slic3r;
@@ -128,4 +132,96 @@ TEST_CASE("Preview layer edits stay with a copy through reordering and reslicing
     CHECK_FALSE(slider.is_need_post_tick_event());
     slider.SetDrawMode(false);
     CHECK(slider.instance_events().empty());
+}
+
+TEST_CASE("Sequential slider edits follow the same physical copies through a real reslice", "[InstanceLayerEvents][Preview]")
+{
+    Model model;
+    Print print;
+    const auto config = Test::multifilament_config(2, {{"print_sequence", "by object"}, {"enable_prime_tower", 0},
+        {"initial_layer_print_height", 0.2}, {"layer_height", 0.2}, {"layer_change_gcode", "G92 E0"},
+        {"machine_pause_gcode", "M117 pause left"}, {"change_filament_gcode", "T[next_extruder]"},
+        {"gcode_label_objects", false}, {"exclude_object", false}});
+    Test::init_print({Test::cube(2)}, print, model, config);
+    auto &copies = model.objects.front()->instances;
+    ModelInstance *left = copies.front();
+    ModelInstance *right = model.objects.front()->add_instance();
+    left->set_offset(Vec3d(50, 50, 0));
+    right->set_offset(Vec3d(150, 50, 0));
+
+    Slider slider(0, 0, 0, 0);
+    slider.SetDrawMode(true);
+    slider.SetTickProject(model.id().id, 0);
+    slider.SetExtruderColors({"#FFFFFF", "#123456"});
+    GCodeProcessorResult preview;
+    std::vector<unsigned int> source_layers;
+    auto slice = [&] {
+        print.apply(model, config);
+        REQUIRE(print.validate().string.empty());
+        auto output = Test::gcode(print, &preview);
+        source_layers.clear();
+        std::vector<double> heights;
+        for (size_t i = 1; i < preview.moves.size(); ++i) {
+            const auto &move = preview.moves[i];
+            if (source_layers.empty() || source_layers.back() != move.layer_id) {
+                source_layers.push_back(move.layer_id);
+                heights.push_back(move.position.z());
+            }
+        }
+        REQUIRE(source_layers.size() == 20);
+        slider.SetSliderValues(heights);
+        slider.SetMaxValue(int(heights.size() - 1));
+        slider.SetSequentialTicks(model, print, preview, source_layers, true);
+        return output;
+    };
+    slice();
+    auto apply_edit = [&](ModelInstance &target) {
+        REQUIRE(slider.is_need_post_tick_event());
+        REQUIRE(slider.tick_change().instance_id == target.id().id);
+        REQUIRE(slider.tick_change().apply_to_instance(target.layer_events));
+        slider.reset_post_tick_event();
+    };
+    slider.SetHigherValue(1);
+    slider.add_code_as_tick(CustomGCode::PausePrint);
+    apply_edit(*left);
+    slider.SetHigherValue(11);
+    slider.add_custom_gcode("M117 custom right");
+    apply_edit(*right);
+    slider.SetHigherValue(3);
+    slider.add_code_as_tick(CustomGCode::ToolChange, 2);
+    apply_edit(*left);
+
+    for (const ModelInstance *first : {left, right}) {
+        if (first == right)
+            std::swap(copies.front(), copies.back());
+        const std::string output = slice();
+        REQUIRE(slider.instance_events().size() == 3);
+        const auto marker = "\n;" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Layer_Change) + "\n";
+        const auto check = [&](const ModelInstance &owner, int local_layer, CustomGCode::Type type, const std::string &command) {
+            const int tick = (&owner == first ? 0 : 10) + local_layer - 1;
+            CAPTURE(tick, command);
+            CHECK(slider.instance_layer(tick).instance_id == owner.id().id);
+            CHECK(slider.instance_layer(tick).local_layer == unsigned(local_layer));
+            REQUIRE(slider.instance_events().count(tick) == 1);
+            CHECK(slider.instance_events().find(tick)->second.type == type);
+
+            // Check the actual command's chronological layer and the physical copy extruding there.
+            const auto line = "\n" + command + "\n";
+            const auto pos = output.find(line);
+            REQUIRE(pos != std::string::npos);
+            CHECK(output.find(line, pos + 1) == std::string::npos);
+            unsigned int layer_count = 0;
+            for (auto at = output.find(marker); at < pos; at = output.find(marker, at + marker.size()))
+                ++layer_count;
+            CHECK(layer_count == source_layers[tick] + 1);
+            const auto extrusion = std::find_if(preview.moves.begin(), preview.moves.end(), [&](const auto &move) {
+                return move.layer_id == source_layers[tick] && move.type == EMoveType::Extrude;
+            });
+            REQUIRE(extrusion != preview.moves.end());
+            CHECK((extrusion->position.x() < 100.f) == (&owner == left));
+        };
+        check(*left, 2, CustomGCode::PausePrint, "M117 pause left");
+        check(*right, 2, CustomGCode::Custom, "M117 custom right");
+        check(*left, 4, CustomGCode::ToolChange, "T1");
+    }
 }
