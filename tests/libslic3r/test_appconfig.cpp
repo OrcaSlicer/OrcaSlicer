@@ -397,7 +397,7 @@ TEST_CASE("AppConfig keeps only the preview drag modes it knows", "[AppConfig]")
     }
 }
 
-TEST_CASE("AppConfig interference travel override is opt-in", "[AppConfig]")
+TEST_CASE("Interference travel override is opt-in", "[AppConfig]")
 {
     AppConfig config;
     config.set_defaults();
