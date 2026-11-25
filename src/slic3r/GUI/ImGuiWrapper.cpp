@@ -2081,7 +2081,8 @@ bool ImGuiWrapper::multi_switch(const char* id, const std::vector<std::string>& 
             pill_min.x + (widths[i] - text_sizes[i].x) * 0.5f,
             pill_min.y + (item_h    - text_sizes[i].y) * 0.5f
         };
-        ImU32 text_col = is_sel ? IM_COL32(255, 255, 255, 255) : ImGui::GetColorU32(ImGuiCol_Text);
+        // Through GetColorU32() the white takes the style alpha, which disabled_begin() lowers, so it dims with the rest.
+        ImU32 text_col = is_sel ? ImGui::GetColorU32(IM_COL32_WHITE) : ImGui::GetColorU32(ImGuiCol_Text);
         draw->AddText(text_pos, text_col, labels[i].c_str());
 
         if (clicked && !is_sel) {

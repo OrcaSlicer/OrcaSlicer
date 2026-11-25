@@ -235,7 +235,7 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
 
-    render_ortho_switch(scale);
+    render_ortho_switch(scale, /* show_vertical */ true, /* show_horizontal */ false);
 
     ImGui::Separator();
 

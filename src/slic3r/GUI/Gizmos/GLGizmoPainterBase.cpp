@@ -226,18 +226,39 @@ bool GLGizmoPainterBase::render_follows_cursor() const
 }
 
 // ORCA: Free / Vertical / Horizontal switch constraining brush strokes, shared by the painter gizmos.
-void GLGizmoPainterBase::render_ortho_switch(float scale)
+// A gizmo can leave out the Vertical or the Horizontal option. A hidden option is also switched off,
+// so that a constraint the user cannot see in the switch never stays active.
+void GLGizmoPainterBase::render_ortho_switch(float scale, bool show_vertical, bool show_horizontal)
 {
+    if (!show_vertical)
+        m_vertical_only = false;
+    if (!show_horizontal)
+        m_horizontal_only = false;
+    if (!show_vertical && !show_horizontal)
+        return; // only Free is left, so there is nothing to choose
+
+    std::vector<std::string> labels = { _u8L_CONTEXT("Free", "Paint stroke direction") };
+    int vertical_idx   = -1;
+    int horizontal_idx = -1;
+    if (show_vertical) {
+        vertical_idx = int(labels.size());
+        labels.emplace_back(_u8L("Vertical"));
+    }
+    if (show_horizontal) {
+        horizontal_idx = int(labels.size());
+        labels.emplace_back(_u8L("Horizontal"));
+    }
+
     ImGui::PushStyleColor(ImGuiCol_FrameBg      , m_is_dark_mode ? ImGuiWrapper::COL_TOOLBAR_BG_DARK : ImGuiWrapper::COL_TOOLBAR_BG);
     ImGui::PushStyleColor(ImGuiCol_Button       , m_is_dark_mode ? ImGuiWrapper::COL_ORCA_DARK       : ImGuiWrapper::COL_ORCA);
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, m_is_dark_mode ? ImGuiWrapper::COL_ORCA_HOVER_DARK : ImGuiWrapper::COL_ORCA_HOVER);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f * scale, 4.f * scale));
     // The flags are per gizmo, so read the mode from them on every frame: a function-local static
     // would be shared by every painter gizmo now that they all draw the switch through here.
-    int ortho_mode = m_vertical_only ? 1 : m_horizontal_only ? 2 : 0;
-    if (m_imgui->multi_switch("##ortho", {_u8L("Free"), _u8L("Vertical"), _u8L("Horizontal")}, ortho_mode)) {
-        m_vertical_only   = ortho_mode == 1;
-        m_horizontal_only = ortho_mode == 2;
+    int ortho_mode = m_vertical_only ? vertical_idx : m_horizontal_only ? horizontal_idx : 0;
+    if (m_imgui->multi_switch("##ortho", labels, ortho_mode)) {
+        m_vertical_only   = ortho_mode == vertical_idx;
+        m_horizontal_only = ortho_mode == horizontal_idx;
     }
     ImGui::PopStyleColor(3);
     ImGui::PopStyleVar(1);
