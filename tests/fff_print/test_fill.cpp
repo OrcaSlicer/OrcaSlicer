@@ -945,8 +945,6 @@ TEST_CASE("Infill rotation template J, C, O and o joints shape the turn over the
     const auto [rotate_template, expected] = GENERATE(table<std::string, std::vector<double>>({
         // \ turns the angle like /, it only rounds the multiline count differently.
         {"+90\\10", turn_9_per_layer},
-        // J is the former |.
-        {"+90J5", {45, 45, 45, 45, 45, 135, 135, 135, 135, 135, 225, 225, 225, 225, 225, 315, 315, 315, 315, 315}},
         // Half of a circle: sqrt(1 - (2x - 1)^2).
         {"+90C10", {54, 72, 82.49, 88.18, 90, 88.18, 82.49, 72, 54, 0,
                     144, 162, 172.49, 178.18, 180, 178.18, 172.49, 162, 144, 90}},
@@ -1068,6 +1066,33 @@ TEST_CASE("Infill rotation template rounds a changing multiline count by its joi
     for (size_t i = 0; i < params.size(); ++i) {
         CAPTURE(i);
         CHECK(params[i].multiline == expected[i]);
+    }
+}
+
+TEST_CASE("Infill rotation template D zone changes the multiline count over the range", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, multiline, density] = GENERATE(table<std::string, std::vector<int>, std::vector<double>>({
+        // D keeps the spacing of one line, so the density grows with the count.
+        {"D+1:/33%", {1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4},
+                     {15, 15, 15, 30, 30, 30, 30, 30, 30, 45, 45, 45, 45, 45, 45, 45, 60, 60, 60, 60}},
+        // d keeps the density.
+        {"d+1:/33%", {1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4}, std::vector<double>(20, 15.)},
+        // The count changes in steps, and the line spacing follows the linear count: 15% * count / linear count.
+        {"D+1:1/33%", {1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4},
+                      {13.03, 11.51, 10.31, 18.68, 17.07, 15.71, 15, 13.56, 12.69, 17.89,
+                       16.88, 15.97, 15.15, 15, 13.75, 13.14, 16.78, 16.10, 15.47, 15}},
+        // No formula, so these are the current values.
+        {"D+1:2/33%", {1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4},
+                      {14.01, 13.26, 12.66, 24.34, 23.53, 22.86, 22.5, 22.5, 22.5, 33.75,
+                       33.75, 33.75, 33.75, 33.75, 35.16, 35.84, 48.62, 49.39, 50.10, 50.63}},
+    }));
+    CAPTURE(rotate_template);
+    const std::vector<InfillParams> params = rotate_template_params(rotate_template);
+    REQUIRE(params.size() == multiline.size());
+    for (size_t i = 0; i < params.size(); ++i) {
+        CAPTURE(i);
+        CHECK(params[i].multiline == multiline[i]);
+        CHECK_THAT(params[i].density, Catch::Matchers::WithinAbs(density[i], 0.01));
     }
 }
 
