@@ -2994,19 +2994,69 @@ int PartPlate::picking_id_component(int idx) const
     return this->m_plate_index * GRABBER_COUNT + idx;
 }
 
+static int filament_slot_count(const DynamicPrintConfig& config)
+{
+    const auto* colours = config.option<ConfigOptionStrings>("filament_colour");
+    return colours != nullptr ? int(colours->values.size()) : std::numeric_limits<int>::max();
+}
+
+// The slicer prints an object's, part's or layer range's filament id past the last slot with filament 1.
+static int printed_filament(int filament_id, int filament_count)
+{
+    return filament_id <= filament_count ? filament_id : 1;
+}
+
+static int print_wide_filament(const DynamicPrintConfig& config, const char* key, int filament_count, int past_last_slot)
+{
+    const ConfigOption* opt = config.option(key);
+    const int filament_id = opt != nullptr ? opt->getInt() : 0;
+    return filament_id <= filament_count ? filament_id : past_last_slot;
+}
+
+static void append_filament_setting(const ModelConfig& config, const char* key, int filament_count, std::vector<int>& filaments)
+{
+    if (const ConfigOption* opt = config.option(key); opt != nullptr && opt->getInt() > 0)
+        filaments.push_back(printed_filament(opt->getInt(), filament_count));
+}
+
+static void append_feature_filaments(const ModelConfig& config, int filament_count, std::vector<int>& filaments)
+{
+    for (const char* key : {"outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_filament_id",
+                            "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id"})
+        append_filament_setting(config, key, filament_count, filaments);
+}
+
+static void append_volume_and_layer_range_filaments(const ModelObject& object, int filament_count, std::vector<int>& filaments)
+{
+    for (const ModelVolume* mv : object.volumes) {
+        std::vector<int> volume_extruders = mv->get_extruders();
+        // The slicer prints the volume's own filament id past the last slot with filament 1.
+        if (const int own_filament = mv->extruder_id(); own_filament > filament_count)
+            std::replace(volume_extruders.begin(), volume_extruders.end(), own_filament, 1);
+        filaments.insert(filaments.end(), volume_extruders.begin(), volume_extruders.end());
+        // Only parts and modifiers make print regions, so another volume's feature filaments never print.
+        if (mv->is_model_part() || mv->is_region_modifier())
+            append_feature_filaments(mv->config, filament_count, filaments);
+    }
+    for (const auto& [range, config] : object.layer_config_ranges) {
+        append_filament_setting(config, "extruder", filament_count, filaments);
+        append_feature_filaments(config, filament_count, filaments);
+    }
+}
+
 std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, bool expand_mixed_slots) const
 {
 	std::vector<int> plate_extruders;
     if (check_objects_empty_and_gcode3mf(plate_extruders)) {
         return plate_extruders;
     }
-	return get_extruders(conside_custom_gcode, wxGetApp().preset_bundle->prints.get_edited_preset().config, wxGetApp().preset_bundle->project_config, expand_mixed_slots);
+	return get_extruders(conside_custom_gcode, wxGetApp().preset_bundle->prints.get_edited_preset().config, wxGetApp().preset_bundle->project_config, expand_mixed_slots, true);
 }
 
 // The plate's filaments, with the global keys read from the given configs rather than the
 // application's presets: the wipe tower estimate is also called under the CLI, which has no
 // application object. get_extruders(bool) passes the edited presets; a full config serves both.
-std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config, bool expand_mixed_slots) const
+std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config, bool expand_mixed_slots, bool reset_print_wide_ids) const
 {
 	std::vector<int> plate_extruders;
 	// A plate from a sliced .gcode.3mf holds no objects, so report the filaments the G-code
@@ -3017,16 +3067,24 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 			plate_extruders.push_back(info.id + 1);
 		return plate_extruders;
 	}
-	int glb_support_intf_extr = glb_config.opt_int("support_interface_filament");
-	int glb_support_extr = glb_config.opt_int("support_filament");
-	int glb_outer_wall_extr = glb_config.opt_int("outer_wall_filament_id");
-	int glb_inner_wall_extr = glb_config.opt_int("inner_wall_filament_id");
+	const int filament_count = filament_slot_count(project_config);
+	// PresetBundle::full_config() resets a print-wide feature id past the last slot to the default and caps a support
+	// id at the last slot, while the slicer prints either with filament 1.
+	const int stale_feature_extr = reset_print_wide_ids ? 0 : 1;
+	const int stale_support_extr = reset_print_wide_ids ? filament_count : 1;
+	int glb_support_intf_extr = print_wide_filament(glb_config, "support_interface_filament", filament_count, stale_support_extr);
+	int glb_support_extr = print_wide_filament(glb_config, "support_filament", filament_count, stale_support_extr);
+	int glb_outer_wall_extr = print_wide_filament(glb_config, "outer_wall_filament_id", filament_count, stale_feature_extr);
+	int glb_inner_wall_extr = print_wide_filament(glb_config, "inner_wall_filament_id", filament_count, stale_feature_extr);
 	if (glb_outer_wall_extr == 0) glb_outer_wall_extr = glb_inner_wall_extr;
 	if (glb_inner_wall_extr == 0) glb_inner_wall_extr = glb_outer_wall_extr;
-	int glb_sparse_infill_extr = glb_config.opt_int("sparse_infill_filament_id");
-	int glb_internal_solid_extr = glb_config.opt_int("internal_solid_filament_id");
-	int glb_top_surface_extr = glb_config.opt_int("top_surface_filament_id");
-	int glb_bottom_surface_extr = glb_config.opt_int("bottom_surface_filament_id");
+	int glb_sparse_infill_extr = print_wide_filament(glb_config, "sparse_infill_filament_id", filament_count, stale_feature_extr);
+	int glb_internal_solid_extr = print_wide_filament(glb_config, "internal_solid_filament_id", filament_count, stale_feature_extr);
+	int glb_top_surface_extr = print_wide_filament(glb_config, "top_surface_filament_id", filament_count, stale_feature_extr);
+	int glb_bottom_surface_extr = print_wide_filament(glb_config, "bottom_surface_filament_id", filament_count, stale_feature_extr);
+	// PresetBundle::full_config() and the slicer both reset a print-wide brim filament id past the last slot to the default.
+	const int glb_brim_extr = print_wide_filament(glb_config, "brim_filament_id", filament_count, 0);
+	const bool glb_brim = glb_config.option("brim_type")->getInt() != int(BrimType::btNoBrim);
 	bool glb_support = glb_config.opt_bool("enable_support");
     glb_support |= glb_config.opt_int("raft_layers") > 0;
 
@@ -3037,18 +3095,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 			continue;
 
 		ModelObject* mo = m_model->objects[obj_idx];
-		for (ModelVolume* mv : mo->volumes) {
-			std::vector<int> volume_extruders = mv->get_extruders();
-			plate_extruders.insert(plate_extruders.end(), volume_extruders.begin(), volume_extruders.end());
-		}
-
-		// layer range
-        for (auto layer_range : mo->layer_config_ranges) {
-            if (layer_range.second.has("extruder")) {
-                if (auto id = layer_range.second.option("extruder")->getInt(); id > 0)
-					plate_extruders.push_back(id);
-			}
-		}
+		append_volume_and_layer_range_filaments(*mo, filament_count, plate_extruders);
 
 		bool obj_support = false;
 		const ConfigOption* obj_support_opt = mo->config.option("enable_support");
@@ -3068,7 +3115,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
             if (support_intf_extr_opt != nullptr)
                 obj_support_intf_extr = support_intf_extr_opt->getInt();
             if (obj_support_intf_extr != 0)
-                plate_extruders.push_back(obj_support_intf_extr);
+                plate_extruders.push_back(printed_filament(obj_support_intf_extr, filament_count));
             else if (glb_support_intf_extr != 0)
                 plate_extruders.push_back(glb_support_intf_extr);
 
@@ -3077,7 +3124,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
             if (support_extr_opt != nullptr)
                 obj_support_extr = support_extr_opt->getInt();
             if (obj_support_extr != 0)
-                plate_extruders.push_back(obj_support_extr);
+                plate_extruders.push_back(printed_filament(obj_support_extr, filament_count));
             else if (glb_support_extr != 0)
                 plate_extruders.push_back(glb_support_extr);
         }
@@ -3089,7 +3136,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 			if (const ConfigOption* wall_opt = mo->config.option("inner_wall_filament_id"); wall_opt != nullptr)
 				obj_outer_wall_extr = wall_opt->getInt();
 		if (obj_outer_wall_extr != 0)
-			plate_extruders.push_back(obj_outer_wall_extr);
+			plate_extruders.push_back(printed_filament(obj_outer_wall_extr, filament_count));
 		else if (glb_outer_wall_extr != 0)
 			plate_extruders.push_back(glb_outer_wall_extr);
 
@@ -3100,7 +3147,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 			if (const ConfigOption* wall_opt = mo->config.option("outer_wall_filament_id"); wall_opt != nullptr)
 				obj_inner_wall_extr = wall_opt->getInt();
 		if (obj_inner_wall_extr != 0)
-			plate_extruders.push_back(obj_inner_wall_extr);
+			plate_extruders.push_back(printed_filament(obj_inner_wall_extr, filament_count));
 		else if (glb_inner_wall_extr != 0)
 			plate_extruders.push_back(glb_inner_wall_extr);
 
@@ -3109,7 +3156,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 		if (sparse_infill_opt != nullptr)
 			obj_sparse_infill_extr = sparse_infill_opt->getInt();
 		if (obj_sparse_infill_extr != 0)
-			plate_extruders.push_back(obj_sparse_infill_extr);
+			plate_extruders.push_back(printed_filament(obj_sparse_infill_extr, filament_count));
 		else if (glb_sparse_infill_extr != 0)
 			plate_extruders.push_back(glb_sparse_infill_extr);
 
@@ -3117,7 +3164,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 		if (const ConfigOption* solid_opt = mo->config.option("internal_solid_filament_id"); solid_opt != nullptr)
 			obj_internal_solid_extr = solid_opt->getInt();
 		if (obj_internal_solid_extr != 0)
-			plate_extruders.push_back(obj_internal_solid_extr);
+			plate_extruders.push_back(printed_filament(obj_internal_solid_extr, filament_count));
 		else if (glb_internal_solid_extr != 0)
 			plate_extruders.push_back(glb_internal_solid_extr);
 
@@ -3125,7 +3172,7 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 		if (const ConfigOption* top_opt = mo->config.option("top_surface_filament_id"); top_opt != nullptr)
 			obj_top_surface_extr = top_opt->getInt();
 		if (obj_top_surface_extr != 0)
-			plate_extruders.push_back(obj_top_surface_extr);
+			plate_extruders.push_back(printed_filament(obj_top_surface_extr, filament_count));
 		else if (glb_top_surface_extr != 0)
 			plate_extruders.push_back(glb_top_surface_extr);
 
@@ -3133,10 +3180,17 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 		if (const ConfigOption* bottom_opt = mo->config.option("bottom_surface_filament_id"); bottom_opt != nullptr)
 			obj_bottom_surface_extr = bottom_opt->getInt();
 		if (obj_bottom_surface_extr != 0)
-			plate_extruders.push_back(obj_bottom_surface_extr);
+			plate_extruders.push_back(printed_filament(obj_bottom_surface_extr, filament_count));
 		else if (glb_bottom_surface_extr != 0)
 			plate_extruders.push_back(glb_bottom_surface_extr);
 
+		const ConfigOption* brim_type_opt = mo->config.option("brim_type");
+		if (brim_type_opt != nullptr ? brim_type_opt->getInt() != int(BrimType::btNoBrim) : glb_brim) {
+			const ConfigOption* brim_opt = mo->config.option("brim_filament_id");
+			// The slicer resets an object's brim filament id past the last slot to the default.
+			if (const int brim_extr = brim_opt != nullptr ? brim_opt->getInt() : glb_brim_extr; brim_extr != 0 && brim_extr <= filament_count)
+				plate_extruders.push_back(brim_extr);
+		}
 	}
 
 	if (conside_custom_gcode) {
@@ -3180,18 +3234,23 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, DynamicPrintConfig& full_config, bool expand_mixed_slots) const
 {
     std::vector<int> plate_extruders;
+    const int filament_count = filament_slot_count(full_config);
 
     // if 3mf file
-    int glb_support_intf_extr = full_config.opt_int("support_interface_filament");
-    int glb_support_extr = full_config.opt_int("support_filament");
-	int glb_outer_wall_extr = full_config.opt_int("outer_wall_filament_id");
-	int glb_inner_wall_extr = full_config.opt_int("inner_wall_filament_id");
+    // The slicer prints a print-wide support or feature filament id past the last slot with filament 1.
+    int glb_support_intf_extr = print_wide_filament(full_config, "support_interface_filament", filament_count, 1);
+    int glb_support_extr = print_wide_filament(full_config, "support_filament", filament_count, 1);
+	int glb_outer_wall_extr = print_wide_filament(full_config, "outer_wall_filament_id", filament_count, 1);
+	int glb_inner_wall_extr = print_wide_filament(full_config, "inner_wall_filament_id", filament_count, 1);
 	if (glb_outer_wall_extr == 0) glb_outer_wall_extr = glb_inner_wall_extr;
 	if (glb_inner_wall_extr == 0) glb_inner_wall_extr = glb_outer_wall_extr;
-	int glb_sparse_infill_extr = full_config.opt_int("sparse_infill_filament_id");
-	int glb_internal_solid_extr = full_config.opt_int("internal_solid_filament_id");
-	int glb_top_surface_extr = full_config.opt_int("top_surface_filament_id");
-	int glb_bottom_surface_extr = full_config.opt_int("bottom_surface_filament_id");
+	int glb_sparse_infill_extr = print_wide_filament(full_config, "sparse_infill_filament_id", filament_count, 1);
+	int glb_internal_solid_extr = print_wide_filament(full_config, "internal_solid_filament_id", filament_count, 1);
+	int glb_top_surface_extr = print_wide_filament(full_config, "top_surface_filament_id", filament_count, 1);
+	int glb_bottom_surface_extr = print_wide_filament(full_config, "bottom_surface_filament_id", filament_count, 1);
+	// The slicer resets a print-wide brim filament id past the last slot to the default.
+	const int glb_brim_extr = print_wide_filament(full_config, "brim_filament_id", filament_count, 0);
+	const bool glb_brim = full_config.option("brim_type")->getInt() != int(BrimType::btNoBrim);
 
     bool glb_support = full_config.opt_bool("enable_support");
     glb_support |= full_config.opt_int("raft_layers") > 0;
@@ -3209,18 +3268,7 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
             if (!instance->printable)
                 continue;
 
-            for (ModelVolume* mv : object->volumes) {
-                std::vector<int> volume_extruders = mv->get_extruders();
-                plate_extruders.insert(plate_extruders.end(), volume_extruders.begin(), volume_extruders.end());
-            }
-
-            // layer range
-            for (auto layer_range : object->layer_config_ranges) {
-                if (layer_range.second.has("extruder")) {
-                    if (auto id = layer_range.second.option("extruder")->getInt(); id > 0)
-                        plate_extruders.push_back(id);
-                }
-            }
+            append_volume_and_layer_range_filaments(*object, filament_count, plate_extruders);
 
             bool obj_support = false;
             const ConfigOption* obj_support_opt = object->config.option("enable_support");
@@ -3240,7 +3288,7 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
                 if (support_intf_extr_opt != nullptr)
                     obj_support_intf_extr = support_intf_extr_opt->getInt();
                 if (obj_support_intf_extr != 0)
-                    plate_extruders.push_back(obj_support_intf_extr);
+                    plate_extruders.push_back(printed_filament(obj_support_intf_extr, filament_count));
                 else if (glb_support_intf_extr != 0)
                     plate_extruders.push_back(glb_support_intf_extr);
 
@@ -3249,7 +3297,7 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
                 if (support_extr_opt != nullptr)
                     obj_support_extr = support_extr_opt->getInt();
                 if (obj_support_extr != 0)
-                    plate_extruders.push_back(obj_support_extr);
+                    plate_extruders.push_back(printed_filament(obj_support_extr, filament_count));
                 else if (glb_support_extr != 0)
                     plate_extruders.push_back(glb_support_extr);
             }
@@ -3261,7 +3309,7 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 				if (const ConfigOption* wall_opt = object->config.option("inner_wall_filament_id"); wall_opt != nullptr)
 					obj_outer_wall_extr = wall_opt->getInt();
 			if (obj_outer_wall_extr != 0)
-				plate_extruders.push_back(obj_outer_wall_extr);
+				plate_extruders.push_back(printed_filament(obj_outer_wall_extr, filament_count));
 			else if (glb_outer_wall_extr != 0)
 				plate_extruders.push_back(glb_outer_wall_extr);
 
@@ -3272,7 +3320,7 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 				if (const ConfigOption* wall_opt = object->config.option("outer_wall_filament_id"); wall_opt != nullptr)
 					obj_inner_wall_extr = wall_opt->getInt();
 			if (obj_inner_wall_extr != 0)
-				plate_extruders.push_back(obj_inner_wall_extr);
+				plate_extruders.push_back(printed_filament(obj_inner_wall_extr, filament_count));
 			else if (glb_inner_wall_extr != 0)
 				plate_extruders.push_back(glb_inner_wall_extr);
 
@@ -3281,7 +3329,7 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 			if (sparse_infill_opt != nullptr)
 				obj_sparse_infill_extr = sparse_infill_opt->getInt();
 			if (obj_sparse_infill_extr != 0)
-				plate_extruders.push_back(obj_sparse_infill_extr);
+				plate_extruders.push_back(printed_filament(obj_sparse_infill_extr, filament_count));
 			else if (glb_sparse_infill_extr != 0)
 				plate_extruders.push_back(glb_sparse_infill_extr);
 
@@ -3289,7 +3337,7 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 			if (const ConfigOption* solid_opt = object->config.option("internal_solid_filament_id"); solid_opt != nullptr)
 				obj_internal_solid_extr = solid_opt->getInt();
 			if (obj_internal_solid_extr != 0)
-				plate_extruders.push_back(obj_internal_solid_extr);
+				plate_extruders.push_back(printed_filament(obj_internal_solid_extr, filament_count));
 			else if (glb_internal_solid_extr != 0)
 				plate_extruders.push_back(glb_internal_solid_extr);
 
@@ -3297,7 +3345,7 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 			if (const ConfigOption* top_opt = object->config.option("top_surface_filament_id"); top_opt != nullptr)
 				obj_top_surface_extr = top_opt->getInt();
 			if (obj_top_surface_extr != 0)
-				plate_extruders.push_back(obj_top_surface_extr);
+				plate_extruders.push_back(printed_filament(obj_top_surface_extr, filament_count));
 			else if (glb_top_surface_extr != 0)
 				plate_extruders.push_back(glb_top_surface_extr);
 
@@ -3305,9 +3353,17 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
 			if (const ConfigOption* bottom_opt = object->config.option("bottom_surface_filament_id"); bottom_opt != nullptr)
 				obj_bottom_surface_extr = bottom_opt->getInt();
 			if (obj_bottom_surface_extr != 0)
-				plate_extruders.push_back(obj_bottom_surface_extr);
+				plate_extruders.push_back(printed_filament(obj_bottom_surface_extr, filament_count));
 			else if (glb_bottom_surface_extr != 0)
 				plate_extruders.push_back(glb_bottom_surface_extr);
+
+			const ConfigOption* brim_type_opt = object->config.option("brim_type");
+			if (brim_type_opt != nullptr ? brim_type_opt->getInt() != int(BrimType::btNoBrim) : glb_brim) {
+				const ConfigOption* brim_opt = object->config.option("brim_filament_id");
+				// The slicer resets an object's brim filament id past the last slot to the default.
+				if (const int brim_extr = brim_opt != nullptr ? brim_opt->getInt() : glb_brim_extr; brim_extr != 0 && brim_extr <= filament_count)
+					plate_extruders.push_back(brim_extr);
+			}
         }
     }
 
@@ -3433,19 +3489,22 @@ std::vector<int> PartPlate::get_extruders_without_support(bool conside_custom_gc
 int PartPlate::get_physical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const
 {
 	const std::vector<int>& filament_map = get_real_filament_maps(g_config);
-	if (filament_map.size() < idx)
+	if (idx <= 0 || idx > static_cast<int>(filament_map.size()))
 	{
 		return -1;
 	}
 
-	const auto the_map = g_config.option<ConfigOptionInts>("physical_extruder_map");
-	if (!the_map)
+	// A multi-nozzle printer whose profile never sets physical_extruder_map carries the
+	// single-element default, so the raw option cannot be indexed by logical extruder.
+	const auto* nozzles = g_config.option<ConfigOptionFloats>("nozzle_diameter");
+	const ConfigOptionInts pem = effective_physical_extruder_map(g_config.option<ConfigOptionInts>("physical_extruder_map"),
+	                                                             nozzles ? static_cast<int>(nozzles->values.size()) : 0);
+	const int zero_base_logical_idx = filament_map[idx - 1] - 1;
+	if (zero_base_logical_idx < 0 || zero_base_logical_idx >= static_cast<int>(pem.values.size()))
 	{
 		return -1;
 	}
-
-	int zero_base_logical_idx = filament_map[idx - 1] - 1;
-	return the_map->values[zero_base_logical_idx];
+	return pem.values[zero_base_logical_idx];
 }
 
 int PartPlate::get_logical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const
@@ -3544,6 +3603,9 @@ std::map<int, size_t> PartPlate::get_object_filament_extruders(
         if (active && !object.config.has(key) && process_config.has(key) && process_config.opt_int(key) > 0)
             filament_ids.emplace(process_config.opt_int(key));
     }
+
+    if (has_brim && effective_int("brim_filament_id") > 0)
+        filament_ids.emplace(effective_int("brim_filament_id"));
 
     const bool has_support = effective_bool("enable_support") || effective_int("raft_layers") > 0;
     if (has_support) {
@@ -5190,8 +5252,9 @@ BoundingBoxf3 PartPlate::get_build_volume(bool use_share)
     auto  eps=Slic3r::BuildVolume::SceneEpsilon;
 	Vec3d up_point;
 	Vec3d low_point;
-	if (use_share && !m_extruder_areas.empty()) {
-		Polygon bed_poly = get_shared_poly(m_extruder_areas);
+	// Extruder areas that share nothing leave the whole plate to place on.
+	const Polygon bed_poly = use_share && !m_extruder_areas.empty() ? get_shared_poly(m_extruder_areas, m_shape) : Polygon();
+	if (!bed_poly.points.empty()) {
 		BoundingBox bbox = bed_poly.bounding_box();
 
 		up_point = Vec3d(unscale_(bbox.max.x()) + eps,  unscale_(bbox.max.y()) + eps, m_origin.z() + m_height + eps);
@@ -5208,7 +5271,7 @@ BoundingBoxf3 PartPlate::get_build_volume(bool use_share)
 
 Polygon PartPlate::get_shared_printable_polygon() const
 {
-	return m_extruder_areas.empty() ? Polygon::new_scale(m_shape) : get_shared_poly(m_extruder_areas);
+	return m_extruder_areas.empty() ? Polygon::new_scale(m_shape) : get_shared_poly(m_extruder_areas, m_shape);
 }
 
 
@@ -6340,6 +6403,9 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool ini
     // prime tower is validated against the real outline — pull it onto the bed before storing.
     {
         Polygons bed{part_plate->get_shared_printable_polygon()};
+        // Without an area every extruder reaches the tower cannot be printed, but it still stays on the plate.
+        if (bed.front().points.empty())
+            bed.front() = Polygon::new_scale(part_plate->get_shape());
         bed.front().translate(Point(-scaled(plate_origin.x()), -scaled(plate_origin.y()))); // into the frame x/y live in
         const BoundingBox tower(Point::new_scale(x, y),
                                 Point::new_scale(x + wipe_tower_size(0), y + wipe_tower_size(1)));
@@ -6691,6 +6757,7 @@ int PartPlateList::delete_plate(int index)
 		return -1;
 	}
 	const std::string plate_name = plate->get_plate_name();
+	const std::vector<ObjectID> plate_ids_before = get_plate_ids();
 
 	if (m_plater) {
 		// In GUI mode
@@ -6711,6 +6778,8 @@ int PartPlateList::delete_plate(int index)
 	int old_cols = compute_colum_count(m_plate_list.size());
 
 	m_plate_list.erase(m_plate_list.begin() + index);
+	// Orca: custom G-codes are keyed by plate index, so re-key them for the plates after it.
+	remap_custom_gcodes(plate_ids_before);
 	update_plate_cols();
 	//update this plate
 	//move this plate's instance to the end
@@ -7062,6 +7131,24 @@ int PartPlateList::move_plate_to_index(int old_index, int new_index)
 		delta = -1;
 	}
 
+	const std::vector<ObjectID> plate_ids_before = get_plate_ids();
+
+	// Orca: wipe tower positions are stored per plate index, so move them with the plate.
+	if (m_plater) {
+		DynamicConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
+		for (const char* key : { "wipe_tower_x", "wipe_tower_y" }) {
+			ConfigOptionFloats* opt = proj_cfg.opt<ConfigOptionFloats>(key);
+			if (opt->empty())
+				continue;
+			// Missing entries fall back to the first one; resize() fills them in with it.
+			if (opt->size() < m_plate_list.size())
+				opt->resize(m_plate_list.size());
+			const double moved = opt->values[old_index];
+			opt->values.erase(opt->values.begin() + old_index);
+			opt->values.insert(opt->values.begin() + new_index, moved);
+		}
+	}
+
 	PartPlate* plate = m_plate_list[old_index];
 	//update the plates between old_index and new_index
 	for (unsigned int i = (unsigned int)old_index; i != (unsigned int)new_index; i = i + delta)
@@ -7080,7 +7167,46 @@ int PartPlateList::move_plate_to_index(int old_index, int new_index)
 	//update the new plate index
 	m_current_plate = new_index;
 
+	remap_custom_gcodes(plate_ids_before);
+
 	return ret;
+}
+
+std::vector<ObjectID> PartPlateList::get_plate_ids() const
+{
+	std::vector<ObjectID> ids;
+	for (const PartPlate* plate : m_plate_list)
+		ids.push_back(plate->id());
+	return ids;
+}
+
+void PartPlateList::remap_custom_gcodes(const std::vector<ObjectID>& plate_ids_before)
+{
+	if (!m_model)
+		return;
+
+	// Move each plate's entry into the map keyed by plate ID; entries without a plate keep their index.
+	std::map<int, CustomGCode::Info> remapped;
+	for (auto& [idx, info] : m_model->plates_custom_gcodes) {
+		if (idx >= 0 && idx < (int)plate_ids_before.size())
+			m_custom_gcodes_by_plate_id[plate_ids_before[idx]] = std::move(info);
+		else
+			remapped[idx] = std::move(info);
+	}
+
+	// Put back the entries of plates that exist now.
+	for (auto it = m_custom_gcodes_by_plate_id.begin(); it != m_custom_gcodes_by_plate_id.end();) {
+		const ObjectID plate_id = it->first;
+		auto plate = std::find_if(m_plate_list.begin(), m_plate_list.end(), [plate_id](const PartPlate* p) { return p->id() == plate_id; });
+		if (plate == m_plate_list.end()) {
+			++it;
+			continue;
+		}
+		remapped[int(plate - m_plate_list.begin())] = std::move(it->second);
+		it = m_custom_gcodes_by_plate_id.erase(it);
+	}
+
+	m_model->plates_custom_gcodes = std::move(remapped);
 }
 
 //lock plate

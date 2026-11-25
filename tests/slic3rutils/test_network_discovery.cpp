@@ -44,49 +44,53 @@ TEST_CASE("Queued discovery cannot cross printer agent sessions", "[NetworkDisco
     REQUIRE(delivered.empty());
     REQUIRE(pending.size() == 2);
 
-    bool expect_active = true;
+    const auto check_session_change = [&](bool expect_active) {
+        for (auto& fn : pending)
+            fn();
+        pending.clear();
+        REQUIRE(delivered.empty());
+
+        outgoing_callback("late-outgoing-device");
+        REQUIRE(pending.empty());
+        REQUIRE(delivered.empty());
+
+        if (expect_active) {
+            auto active = std::dynamic_pointer_cast<DiscoverySource>(network.get_printer_agent());
+            REQUIRE(active);
+            REQUIRE(active->discovery_callback);
+            active->discovery_callback("active-device");
+            REQUIRE(delivered.empty());
+            REQUIRE(pending.size() == 1);
+            pending.front()();
+            REQUIRE(delivered == std::vector<std::string>{"active-device"});
+        }
+    };
+
     SECTION("Switch to another agent")
     {
         network.set_printer_agent(std::make_shared<DiscoverySource>());
+        check_session_change(true);
     }
     SECTION("Clear the live agent")
     {
         network.set_printer_agent(nullptr);
-        expect_active = false;
+        check_session_change(false);
     }
     SECTION("Switch away and back to the cached agent")
     {
         network.set_printer_agent(std::make_shared<DiscoverySource>());
         network.set_printer_agent(source);
+        check_session_change(true);
     }
     SECTION("Unregister discovery")
     {
         network.set_on_ssdp_msg_fn(nullptr);
-        expect_active = false;
+        check_session_change(false);
     }
     SECTION("Replace the discovery listener")
     {
         network.set_on_ssdp_msg_fn([&](std::string payload) { delivered.push_back(std::move(payload)); });
-    }
-
-    for (auto& fn : pending)
-        fn();
-    pending.clear();
-    REQUIRE(delivered.empty());
-
-    outgoing_callback("late-outgoing-device");
-    REQUIRE(pending.empty());
-    REQUIRE(delivered.empty());
-
-    if (expect_active) {
-        auto active = std::dynamic_pointer_cast<DiscoverySource>(network.get_printer_agent());
-        REQUIRE(active);
-        REQUIRE(active->discovery_callback);
-        active->discovery_callback("active-device");
-        REQUIRE(delivered.empty());
-        REQUIRE(pending.size() == 1);
-        pending.front()();
-        REQUIRE(delivered == std::vector<std::string>{"active-device"});
+        check_session_change(true);
     }
 }
 
