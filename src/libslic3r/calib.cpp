@@ -521,6 +521,15 @@ CustomGCode::Info CalibPressureAdvanceLine::generate_custom_gcodes(const Dynamic
                                                                    const ModelObject& object,
                                                                    const Vec3d& origin)
 {
+    return generate_custom_gcodes(config, is_bbl_machine, object, origin, false);
+}
+
+CustomGCode::Info CalibPressureAdvanceLine::generate_custom_gcodes(const DynamicPrintConfig& config,
+                                                                   bool is_bbl_machine,
+                                                                   const ModelObject& object,
+                                                                   const Vec3d& origin,
+                                                                   bool follows_another_test)
+{
     refresh_setup(config, is_bbl_machine, object, origin);
     const auto tag = [is_bbl_machine](GCodeProcessor::ETags type) -> const std::string& {
         return GCodeProcessor::reserved_tag(type, is_bbl_machine);
@@ -534,6 +543,16 @@ CustomGCode::Info CalibPressureAdvanceLine::generate_custom_gcodes(const Dynamic
     const unsigned int extruder_id = filament->extruder_id();
     const auto z_offset          = m_config.option<ConfigOptionFloat>("z_offset")->value;
     const auto second_height     = number_layer_height();
+    const double first_z         = m_height_layer + z_offset;
+    const double second_z        = first_z + second_height;
+    double z_hop = 0.;
+    if (follows_another_test) {
+        const auto* filament_z_hop = m_config.option<ConfigOptionFloatsNullable>("filament_z_hop");
+        const auto slot = filament->id();
+        z_hop = filament_z_hop && !filament_z_hop->is_nil(slot)
+                    ? filament_z_hop->get_at(slot)
+                    : m_config.option<ConfigOptionFloats>("z_hop")->get_at(extruder_id);
+    }
 
     // Use the selected filament's extrusion, including the print flow ratio, as in a regular print.
     const auto line_e_per_mm = [&](double line_width, double height) {
@@ -547,7 +566,7 @@ CustomGCode::Info CalibPressureAdvanceLine::generate_custom_gcodes(const Dynamic
     std::stringstream first_layer;
     std::stringstream second_layer;
 
-    first_layer << writer.travel_to_z(m_height_layer + z_offset);
+    first_layer << writer.travel_to_z(first_z);
     first_layer << ";" << tag(GCodeProcessor::ETags::Height) << m_height_layer << "\n";
     first_layer << ";" << tag(GCodeProcessor::ETags::Width) << m_line_width << "\n";
     const unsigned int accel = static_cast<unsigned int>(
@@ -563,7 +582,8 @@ CustomGCode::Info CalibPressureAdvanceLine::generate_custom_gcodes(const Dynamic
     // Purge/first perimeter - acts as an anchor to the rest of the model
     first_layer << ";" << tag(GCodeProcessor::ETags::Role) << "Custom\n";
     first_layer << writer.set_pressure_advance(0.0);
-    first_layer << move_to(Vec2d(start_x, start_y + num * m_space_y), writer);
+    first_layer << move_to(Vec2d(start_x, start_y + num * m_space_y), writer, "",
+                           z_hop > EPSILON ? first_z + z_hop : 0., first_z);
     first_layer << writer.set_speed(slow);
     first_layer << writer.extrude_to_xy(Vec2d(start_x, start_y), e_per_mm * m_space_y * num * 1.2);
 
@@ -603,9 +623,11 @@ CustomGCode::Info CalibPressureAdvanceLine::generate_custom_gcodes(const Dynamic
     second_layer << ";" << tag(GCodeProcessor::ETags::Height) << second_height << "\n";
     second_layer << ";" << tag(GCodeProcessor::ETags::Width) << m_number_line_width << "\n";
     second_layer << ";" << tag(GCodeProcessor::ETags::Role) << "Top surface\n";
-    second_layer << writer.travel_to_z(m_height_layer + second_height + z_offset);
+    second_layer << writer.travel_to_z(second_z);
     second_layer << writer.reset_e();
     const double number_start_x = box_start_x + m_label_padding + m_number_line_width / 2;
+    if (z_hop > EPSILON)
+        second_layer << move_to(Vec2d(number_start_x, start_y + m_space_y / 2), writer, "Move to legend", second_z + z_hop, second_z);
     if (m_params.print_numbers) {
         for (int i = 0; i < num; i += 2) {
             second_layer << draw_number(number_start_x, start_y + i * m_space_y + m_space_y / 2, m_params.start + i * m_params.step,

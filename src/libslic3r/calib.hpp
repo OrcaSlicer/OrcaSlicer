@@ -305,6 +305,11 @@ public:
                                              bool is_bbl_machine,
                                              const ModelObject& object,
                                              const Vec3d& origin) override;
+    CustomGCode::Info generate_custom_gcodes(const DynamicPrintConfig& config,
+                                             bool is_bbl_machine,
+                                             const ModelObject& object,
+                                             const Vec3d& origin,
+                                             bool follows_another_test);
 
     const double &line_width() { return m_line_width; };
 

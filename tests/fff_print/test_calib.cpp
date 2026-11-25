@@ -168,8 +168,10 @@ TEST_CASE("PA Line preserves selected parameters when regenerating G-code", "[Ca
         {"layer_height", "0.24"},
         {"nozzle_diameter", "0.6"},
         {"z_offset", "0.05"},
+        {"z_hop", "0.4"},
+        {"filament_z_hop", "0.3"},
     });
-    const CustomGCode::Info regenerated = line.generate_custom_gcodes(config, false, *object, Vec3d::Zero());
+    const CustomGCode::Info regenerated = line.generate_custom_gcodes(config, false, *object, Vec3d::Zero(), true);
 
     REQUIRE(regenerated.gcodes.size() == 2);
     CHECK_THAT(regenerated.gcodes.front().print_z, Catch::Matchers::WithinAbs(0.3, 1e-9));
@@ -177,4 +179,15 @@ TEST_CASE("PA Line preserves selected parameters when regenerating G-code", "[Ca
     CHECK(regenerated.gcodes.front().extra.find(";HEIGHT:0.3\n") != std::string::npos);
     CHECK(regenerated.gcodes.back().extra.find(";HEIGHT:0.24\n") != std::string::npos);
     CHECK_THAT(line.line_width(), Catch::Matchers::WithinAbs(0.6 * 1.05, 1e-9));
+
+    for (const CustomGCode::Item& layer : regenerated.gcodes) {
+        CAPTURE(layer.print_z);
+        GCodeReader reader;
+        double first_travel_z = -1.;
+        reader.parse_buffer(layer.extra, [&](GCodeReader& self, const GCodeReader::GCodeLine& move) {
+            if (first_travel_z < 0. && move.cmd_is("G1") && move.dist_XY(self) > 0.)
+                first_travel_z = self.z();
+        });
+        CHECK_THAT(first_travel_z, Catch::Matchers::WithinAbs(layer.print_z + 0.05 + 0.3, 1e-6));
+    }
 }

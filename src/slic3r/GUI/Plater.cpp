@@ -17517,12 +17517,12 @@ void Plater::_calib_pa_batch_gen_gcode()
 
     /* iterate over all cubes on current plate and generate gcode for them */
     for (auto obj : cur_plate->get_objects_on_this_plate()) {
-        auto gcode = model().calib_pa_batch->generate_custom_gcodes(
-                                preset_bundle->full_config(),
-                                preset_bundle->is_bbl_vendor(),
-                                *obj,
-                                cur_plate->get_origin()
-        );
+        const auto config = preset_bundle->full_config();
+        const bool is_bbl_machine = preset_bundle->is_bbl_vendor();
+        const auto& origin = cur_plate->get_origin();
+        auto* line = dynamic_cast<CalibPressureAdvanceLine*>(model().calib_pa_batch.get());
+        auto gcode = line ? line->generate_custom_gcodes(config, is_bbl_machine, *obj, origin, !mgc.empty())
+                          : model().calib_pa_batch->generate_custom_gcodes(config, is_bbl_machine, *obj, origin);
         if (is_line) {
             const double height = obj->raw_bounding_box().size().z();
             const double target_height = model().calib_pa_batch->max_layer_z();

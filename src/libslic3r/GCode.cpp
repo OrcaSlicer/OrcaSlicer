@@ -6951,8 +6951,17 @@ LayerResult GCode::process_layer(
         // Normal (non-sequential) print.
         gcode += ProcessLayer::emit_custom_gcode_per_print_z(*this, layer_tools.custom_gcode, m_writer.filament()->id(), first_extruder_id, print.config());
         // PA Line declares its own widths. Re-emit the width of the next sliced path.
-        if (layer_tools.custom_gcode != nullptr && print.calib_mode() == CalibMode::Calib_PA_Line)
+        if (layer_tools.custom_gcode != nullptr && print.calib_mode() == CalibMode::Calib_PA_Line) {
             m_last_width = 0.f;
+            // Lift in place before the sliced marker's first travel crosses the label and test lines.
+            if (first_layer && layer_tools.custom_gcode->type == CustomGCode::Custom && !m_writer.has_axis_remap()) {
+                const std::string lift = m_writer.eager_lift(LiftType::NormalLift);
+                if (!lift.empty()) {
+                    gcode += lift;
+                    m_need_change_layer_lift_z = false;
+                }
+            }
+        }
     }
 
     // BBS: get next extruder according to flush and soluble
