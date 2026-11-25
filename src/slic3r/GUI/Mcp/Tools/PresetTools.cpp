@@ -2263,7 +2263,7 @@ void register_preset_tools(CommandCatalog& catalog)
                     // With a physical printer selected, the tab's Delete only takes the preset off that printer.
                     if (TabPresetComboBox* combo = tab->get_combo_box(); type == Preset::TYPE_PRINTER && combo != nullptr && combo->is_selected_physical_printer())
                         throw ToolFailure("A physical printer is selected; select the printer preset itself first");
-                    tab->delete_preset(false);
+                    tab->delete_preset(Ops::Prompts::Skip);
                 } else if (type == Preset::TYPE_PRINTER) {
                     // Switching to another printer and back recomputes the process and the filaments, so it is no round trip.
                     throw ToolFailure("\"" + name + "\" is not the selected printer; select it first with preset_select");
@@ -2282,7 +2282,7 @@ void register_preset_tools(CommandCatalog& catalog)
                     if (!tab->select_preset(name))
                         throw ToolFailure("Selecting \"" + name + "\" to delete it was cancelled");
                     if (presets.get_selected_preset_name() == name)
-                        tab->delete_preset(false);
+                        tab->delete_preset(Ops::Prompts::Skip);
                     if (presets.get_selected_preset_name() != selected)
                         tab->select_preset(selected);
                 }

@@ -242,11 +242,14 @@ reads the same through every route.
 
 **Rules.** An operation runs on the UI thread and returns at once: background work returns a ticket and a status
 function, and the caller owns the wait, the timeout and the cancel. It takes its function's undo snapshot once, after
-its checks. It adds no guard and asks nothing: an answer a caller may give is a field of `Args`. It includes owner
-headers, libslic3r and wx, and nothing of `GUI/Mcp`, `plugin/`, JSON or pybind11; the dispatch core includes nothing
-of it. A command does what a person's action does by running the code that action runs, not by writing the model or
-the config beside it: a dialog's OK is split into a function both call, and a command that acts on the object list's
-selection selects the row first.
+its checks. It adds no guard and asks nothing: an answer a caller may give is a field of `Args`. An owner method whose
+menu item asks in a dialog takes the answer where a caller can give one (a path, a size, `keep_z`), which skips that
+dialog. For its other questions and messages it takes `Prompts`: `Ask` does as the menu item does, and `Skip` runs
+without them, each method saying what it answers in their place. An `Args` that passes the choice on holds a `Prompts`
+too. An operation includes owner headers, libslic3r and wx, and nothing of `GUI/Mcp`, `plugin/`, JSON or pybind11; the
+dispatch core includes nothing of it. A command does what a person's action does by running the code that action runs,
+not by writing the model or the config beside it: a dialog's OK is split into a function both call, and a command that
+acts on the object list's selection selects the row first.
 
 **Keeping it so.** A command names the operations it reaches (`reaching()`), and the command reference lists them.
 `test_operations` requires every command outside the Design tab that is not read-only to name one, or to be on its
@@ -493,6 +496,10 @@ token changed, is sent once more; one that lost its reply is never sent again, s
 has a deadline, so a server that never replies can't hang the agent.
 
 ## Making a feature reachable
+
+A change to the GUI needs nothing for automation until someone writes its command: until then the GUI commands (GUI
+automation) reach it as a person does. A menu item of the Design tab is an entry of `tool_atlas.json` either way (A
+Design command, below).
 
 A feature is a command, named for its place, then its verb (mcp-tools.md, Naming), declared in its place's file:
 

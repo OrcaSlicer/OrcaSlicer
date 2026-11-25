@@ -662,7 +662,7 @@ json add_part(Plater& plater, int oi, const json& args)
         if (!error.empty())
             throw ToolFailure("The file could not be loaded: " + error);
     } else
-        list->load_generic_subobject(shape_type_name(shape), type, false, size);
+        list->load_generic_subobject(shape_type_name(shape), type, Ops::Prompts::Skip, size);
     const auto added = std::find_if(object->volumes.begin(), object->volumes.end(),
                                     [&before](const ModelVolume* v) { return before.count(v) == 0; });
     if (added == object->volumes.end())
@@ -1290,7 +1290,7 @@ AppActionRunResult split_command(const json& args)
         op.expand = found.value().object_row;
     }
     op.to_objects = to_objects;
-    op.ask        = asks;
+    op.prompts    = asks ? Ops::Prompts::Ask : Ops::Prompts::Skip;
     if (args.contains("keep_z"))
         op.keep_z = args.at("keep_z").get<bool>();
     const Ops::Outcome<Targets> made = Ops::split_object(op);
@@ -1583,7 +1583,7 @@ AppActionRunResult add_primitive_command(const json& args)
     // The size first: it refuses a shape of another name, which shape_type_name() has none for.
     op.size  = part_shape_size(shape, args.value("size", json()));
     op.shape = shape_type_name(shape);
-    op.ask   = args == json{{"shape", shape}};
+    op.prompts = args == json{{"shape", shape}} ? Ops::Prompts::Ask : Ops::Prompts::Skip;
     if (args.contains("plate"))
         op.plate = arg_int(args, "plate", 0);
     if (args.contains("name"))
@@ -1595,7 +1595,8 @@ AppActionRunResult add_primitive_command(const json& args)
     const Ops::Outcome<int> added  = Ops::add_primitive(op);
     if (!added)
         // The size dialog cancelled told the person nothing more is to come.
-        return op.ask && std::string(added.refusal().code) == "not_added" ? quiet_refusal(added.refusal()) : menu_refused(added.refusal());
+        return op.prompts == Ops::Prompts::Ask && std::string(added.refusal().code) == "not_added" ? quiet_refusal(added.refusal())
+                                                                                                   : menu_refused(added.refusal());
     const int index = added.value();
     Targets made;
     made.objects    = {index};

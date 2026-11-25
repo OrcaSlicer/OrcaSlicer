@@ -311,7 +311,8 @@ and Wayland skips about a fifth of the test.
 **Tests:** `view_set`'s camera fields (`look_at`, `zoom`, `camera`, `orbit`) and the `camera_state` it returns,
 checked against `app_state.camera`. It covers four views: Prepare (including straight after `project_new`'s queued
 fit), Preview, the Design tab's own camera, and the assemble view's first showing. It also covers zoom clamping,
-`click_px_per_mm`, a fit after a resize on the Home tab, and a zoom given on Home while a fit is queued.
+`click_px_per_mm`, a fit after a resize on the Home tab, and a zoom given on Home while the fit `plate_add` queues
+waits for a 3D view to draw.
 
 **Starts from:** `start(client)` on the Generic Klipper Printer 0.4 nozzle, which leaves the main window 1600×900 and
 the perspective projection; no check reads a preset, and nothing here is a Bambu Lab printer's own. Then a
@@ -321,9 +322,9 @@ no test turns it on, and the app's default is off. The camera is the one the tes
 sets the camera it reads. The sweep launches the app with `--cad`.
 
 **Leaves:** `use_perspective_camera` on; three canvas captures under `<datadir>/automation/out` (Prepare, assemble and
-Home; measured); an empty new project, from its last `project_new`, on the Prepare tab. For the rest of the app's run,
-which the next `start()` resets: the main window at 1400×800, from the resize on Home, and the auto-answer rule for
-the unsaved changes question. The window's size and the cameras are not stored.
+Home; measured); the imported cube and an empty second plate, added on Home, on the Prepare tab. For the rest of the
+app's run, which the next `start()` resets: the main window at 1400×800, from the resize on Home, and the
+auto-answer rule for the unsaved changes question. The window's size and the cameras are not stored.
 
 **Decides by:** Exits 1 when a check prints FAIL or on an uncaught exception.
 - Start: `start()` returns `{printer: KLIPPER, process: KLIPPER_STD, filaments: [GENERIC_PLA]}`.
@@ -347,7 +348,7 @@ the unsaved changes question. The window's size and the cameras are not stored.
   - Back on Prepare, the zoom is 2. That value was set on Preview, so this shows the two share a camera.
 - Assemble: the call raises no error, and after a capture `app_state.camera` has zoom 4 and `look_at`
   [10, 20, 0].
-- Home:
+- Home, after `plate_add` there (Add Plate queues a fit of all plates and leaves the tab as it is):
   - `app_state` has no `camera`.
   - A zoom's reply has a `note`.
   - After switching to Prepare and a capture, the zoom is not 3.

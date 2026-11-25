@@ -1596,24 +1596,24 @@ void register_plate_tools(CommandCatalog& catalog)
                 const DynamicPrintConfig filament_before = bundle.filaments.get_edited_preset().config;
                 const DynamicPrintConfig printer_before = bundle.printers.get_edited_preset().config;
                 switch (params.mode) {
-                case CalibMode::Calib_Temp_Tower: plater.calib_temp(params, true); break;
-                case CalibMode::Calib_Vol_speed_Tower: plater.calib_max_vol_speed(params, true); break;
+                case CalibMode::Calib_Temp_Tower: plater.calib_temp(params, Ops::Prompts::Skip); break;
+                case CalibMode::Calib_Vol_speed_Tower: plater.calib_max_vol_speed(params, Ops::Prompts::Skip); break;
                 case CalibMode::Calib_PA_Tower:
                 case CalibMode::Calib_PA_Line:
-                case CalibMode::Calib_PA_Pattern: plater.calib_pa(params, true); break;
+                case CalibMode::Calib_PA_Pattern: plater.calib_pa(params, Ops::Prompts::Skip); break;
                 case CalibMode::Calib_Flow_Rate: {
                     const std::string method = arg_string(args, "method", "yolo");
                     plater.calib_flowrate(method == "yolo" || method == "yolo_perfectionist",
                                           method == "pass2" || method == "yolo_perfectionist" ? 2 : 1,
                                           arg_string(args, "top_surface_pattern") == "monotonic" ? ipMonotonic : ipArchimedeanChords,
-                                          params.filament_id, params.extruder_id, true);
+                                          params.filament_id, params.extruder_id, Ops::Prompts::Skip);
                     break;
                 }
-                case CalibMode::Calib_Retraction_tower: plater.calib_retraction(params, true); break;
-                case CalibMode::Calib_VFA_Tower: plater.calib_VFA(params, true); break;
-                case CalibMode::Calib_Input_shaping_freq: plater.calib_input_shaping_freq(params, true); break;
-                case CalibMode::Calib_Input_shaping_damp: plater.calib_input_shaping_damp(params, true); break;
-                case CalibMode::Calib_Cornering: plater.Calib_Cornering(params, true); break;
+                case CalibMode::Calib_Retraction_tower: plater.calib_retraction(params, Ops::Prompts::Skip); break;
+                case CalibMode::Calib_VFA_Tower: plater.calib_VFA(params, Ops::Prompts::Skip); break;
+                case CalibMode::Calib_Input_shaping_freq: plater.calib_input_shaping_freq(params, Ops::Prompts::Skip); break;
+                case CalibMode::Calib_Input_shaping_damp: plater.calib_input_shaping_damp(params, Ops::Prompts::Skip); break;
+                case CalibMode::Calib_Cornering: plater.Calib_Cornering(params, Ops::Prompts::Skip); break;
                 default: break;
                 }
 

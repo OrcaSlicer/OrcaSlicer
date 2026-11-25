@@ -83,8 +83,8 @@ struct NewProjectArgs
     UnsavedChanges unsaved               = UnsavedChanges::Refuse;
     bool           discard_preset_changes = false; // drop the presets' unsaved changes first; else they carry over
 };
-// Starts a new, empty project without a question. Plugins get the NewProject event; the shown tab
-// stays as it is.
+// Starts a new, empty project without a question, as New Project does otherwise: the Prepare tab shows, and plugins
+// get the NewProject event.
 // Refuses: unsaved_changes.
 Outcome<ProjectSummary> new_project(const NewProjectArgs& args);
 

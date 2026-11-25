@@ -50,6 +50,7 @@
 #include "libslic3r/LifecycleEvents.hpp"
 #include "libslic3r/Point.hpp"
 #include "slic3r/GUI/SettingsIndex.hpp"
+#include "slic3r/GUI/Operations/Outcome.hpp"
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include <wx/app.h>
 #include <wx/bookctrl.h>
@@ -8495,8 +8496,9 @@ Tab::DeleteBlock Tab::can_delete_preset(const PresetCollection& presets, const P
 }
 
 // Called for a currently selected preset.
-void Tab::delete_preset(bool ask)
+void Tab::delete_preset(Ops::Prompts prompts)
 {
+    const bool ask = prompts == Ops::Prompts::Ask;
     auto current_preset = m_presets->get_selected_preset();
     // Don't let the user delete the ' - default - ' configuration.
     //BBS: add project embedded preset logic and refine is_external

@@ -459,7 +459,7 @@ Outcome<Targets> split_object(const SplitObjectArgs& args)
     const int object = args.target.objects.empty() ? args.target.parts.front().first : args.target.objects.front();
     if (args.to_objects) {
         const std::size_t before = model.objects.size();
-        switch (plater.split_object(object, args.ask, args.keep_z)) {
+        switch (plater.split_object(object, args.prompts, args.keep_z)) {
         case Plater::SplitResult::OnePiece:
             return Refusal{RefusalKind::Precondition, "one_piece", L("The selected object couldn't be split.")};
         case Plater::SplitResult::Unanswered:
@@ -570,7 +570,7 @@ Outcome<Targets> change_part_type(const ChangePartTypeArgs& args)
     for (const auto& [object, part] : args.targets.parts)
         volumes.push_back(model.objects[std::size_t(object)]->volumes[std::size_t(part)]);
     // A subtype given is set as the Precise Seam Type menu sets it; without one a seam keeps its own.
-    if (const wxString kept = wxGetApp().obj_list()->set_volume_type(args.subtype.value_or(args.type), !args.subtype, /*show_errors=*/false,
+    if (const wxString kept = wxGetApp().obj_list()->set_volume_type(args.subtype.value_or(args.type), !args.subtype, Prompts::Skip,
                                                                      args.targets.parts);
         !kept.empty())
         // A reason of the object list's that part_type_refusal() does not foresee.
@@ -881,11 +881,11 @@ Outcome<int> add_primitive(const AddPrimitiveArgs& args)
         if (const Outcome<Done> selected = select_plate({*args.plate}); !selected)
             return selected.refusal();
     ObjectList& list = *wxGetApp().obj_list();
-    if (args.ask && !list.can_add_shape_object())
+    if (args.prompts == Prompts::Ask && !list.can_add_shape_object())
         return Refusal{RefusalKind::Precondition, "object_selected",
                        L("Deselect all objects to add a primitive object. To add a shape to the selected object, use its Add Part menu.")};
     const std::size_t before = plater.model().objects.size();
-    list.load_shape_object(args.shape, args.ask, args.size);
+    list.load_shape_object(args.shape, args.prompts, args.size);
     if (plater.model().objects.size() == before)
         return Refusal{RefusalKind::Failed, "not_added", L("No object was added.")};
     const int index = int(before);

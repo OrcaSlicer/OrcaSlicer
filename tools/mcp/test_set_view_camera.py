@@ -157,11 +157,11 @@ def main():
     check("resized on home: a fit on prepare uses the new size",
           zoom is not None and close(second.get("camera_state", {}).get("zoom"), zoom, 1e-3), (first, second))
 
-    # 10. On a tab with no 3D view, the fit project_new queues waits for the view to draw: app_state has no
+    # 10. On a tab with no 3D view, the fit plate_add queues waits for the view to draw: app_state has no
     # camera, a zoom given then is applied with a note that the fit is still queued, and the fit replaces it
-    # once the view draws.
+    # once the view draws. Add Plate leaves the tab as it is, where a new project shows Prepare.
     view_set(tab="home")
-    client.call("project_new", discard_changes=True)
+    client.call("plate_add")
     state = client.call("app_state")
     check("home: app_state has no camera", "camera" not in state, state.get("camera"))
     reply = view_set(zoom=3)

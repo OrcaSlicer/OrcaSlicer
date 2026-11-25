@@ -100,20 +100,21 @@ reply (`outcome`, `layers`) and then `sliced_flags()`.
 
 **Scenario: a new project**
 
-Each call is made from the Home tab (`view_set {tab: "home"}` first), so that `app_state.tab` shows the tab it leaves.
-New Project (the action) is `action_run {id: "new_project"}`.
+Each call is made from the Home tab (`view_set {tab: "home"}` first), so that `app_state.tab` shows the tab it leaves:
+a new project shows the Prepare tab whichever form starts it, a call with arguments as New Project does, and a refused
+call leaves the tab as it was. New Project (the action) is `action_run {id: "new_project"}`.
 
 | # | Step | Project after | Also checked |
 |---|---|---|---|
 | 1 | New Project | `Untitled · none · clean` | the reply is not `blocked_by_dialog` and its `ran` is `orca_command:new_project:orca`; `dialogs()` empty; tab `prepare`; `undo_steps()` `["Reset Project", "New Project"]` |
-| 2 | `project_new {silent: true}` | `Untitled · none · clean` | reply `objects` 0, `names` `[]`, `plates` 1, no `discarded` or `modified`; tab `home`; `undo_steps()` `["Reset Project", "New Project"]` |
+| 2 | `project_new {silent: true}` | `Untitled · none · clean` | reply `objects` 0, `names` `[]`, `plates` 1, no `discarded` or `modified`; tab `prepare`; `undo_steps()` `["Reset Project", "New Project"]` |
 | 3 | cube `box` 20 at (128, 128), then `project_new {silent: true}` | `Untitled · none · dirty` | refused, `unsaved_changes`; `[box]` at (128, 128); tab `home` |
-| 4 | `project_new {discard_changes: true}` | `Untitled · none · clean` | reply `objects` 0; `[]`; tab `home` |
+| 4 | `project_new {discard_changes: true}` | `Untitled · none · clean` | reply `objects` 0; `[]`; tab `prepare` |
 | 5 | `settings_set {values: {top_shell_layers: 7}}` | `Untitled · none · dirty` | `values([top_shell_layers])` `7`; `unsaved("process")` `[top_shell_layers]` |
 | 6 | New Project | as after 5 | reply `blocked_by_dialog`; `dialogs()` is one dialog, titled `Creating a new project: unsaved changes`: a project with no objects asks nothing about saving it |
 | 7 | `dialog_answer` Discard; the job is followed to its end | `Untitled · none · clean` | `top_shell_layers` `4`; `unsaved("process")` `[]`; `dialogs()` empty; tab `prepare` |
 | 8 | `settings_set {values: {top_shell_layers: 7}}`, New Project, `dialog_answer` Transfer, the job followed to its end | `Untitled · none · clean` | the dialog of 6 opened; `top_shell_layers` `7`, `unsaved("process")` `[top_shell_layers]`: the change is carried into the new project; tab `prepare` |
-| 9 | `project_new {discard_changes: true, preset_changes: "discard"}` | `Untitled · none · clean` | reply `discarded` `{process: {name: "0.20mm Standard @MyKlipper", keys: ["top_shell_layers"]}}` and no `modified`; `top_shell_layers` `4`; `unsaved("process")` `[]`; tab `home` |
+| 9 | `project_new {discard_changes: true, preset_changes: "discard"}` | `Untitled · none · clean` | reply `discarded` `{process: {name: "0.20mm Standard @MyKlipper", keys: ["top_shell_layers"]}}` and no `modified`; `top_shell_layers` `4`; `unsaved("process")` `[]`; tab `prepare` |
 | 10 | `settings_set {values: {top_shell_layers: 7}}`, then `project_new {silent: true}` | `Untitled · none · dirty` | refused, `unsaved_changes`; `top_shell_layers` `7`; tab `home` |
 | 11 | `project_new {discard_changes: true}` | `Untitled · none · clean` | reply `modified` `{process: {name: "0.20mm Standard @MyKlipper", keys: ["top_shell_layers"]}}` and no `discarded`; `top_shell_layers` `7`, `unsaved("process")` `[top_shell_layers]`: the presets' changes carry over by default |
 

@@ -45,6 +45,7 @@
 #include "ConfigManipulation.hpp"
 #include "OptionsGroup.hpp"
 #include "OptionStateRegistry.hpp"
+#include "Operations/Outcome.hpp"
 #include "libslic3r/Preset.hpp"
 //BBS: GUI refactor
 #include "Notebook.hpp"
@@ -395,9 +396,9 @@ public:
 	bool        save_preset(std::string name = std::string(), bool detach = false, bool save_to_project = false, bool from_input = false, std::string input_name = "", bool plugin_warning_confirmed = false);
 	//void		save_preset(std::string name = std::string(), bool detach = false);
 
-	// Deletes the selected preset. `ask` false skips the confirmations, for a caller that has made the
+	// Deletes the selected preset. Prompts::Skip skips the confirmations, for a caller that has made the
 	// same checks itself; the refusal for a preset other presets inherit from still shows.
-	void		delete_preset(bool ask = true);
+	void		delete_preset(Ops::Prompts prompts = Ops::Prompts::Ask);
     // What keeps a preset from being deleted: a system (or default) preset and a preset of a bundle are
     // never deleted, and a base preset is not while other presets inherit from it.
     enum class DeleteBlock { None, System, FromBundle, InheritedFrom };

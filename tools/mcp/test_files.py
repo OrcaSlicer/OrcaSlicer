@@ -242,7 +242,7 @@ class FilesTest:
                      {k: reply.get(k) for k in ("objects", "names", "plates", "discarded", "modified")},
                      {"objects": 0, "names": [], "plates": 1, "discarded": None, "modified": None})
         self.project_is(f"{s} 2", "Untitled", None, "clean")
-        self.tab_is(f"{s} 2", "home")
+        self.tab_is(f"{s} 2", "prepare")
         self.steps_are(f"{s} 2", ["Reset Project", "New Project"])
 
         self.cube("box", 20, 128, 128)
@@ -257,7 +257,7 @@ class FilesTest:
         self.t.equal(f"{s} 4: the reply's objects", reply.get("objects"), 0)
         self.project_is(f"{s} 4", "Untitled", None, "clean")
         self.names_are(f"{s} 4")
-        self.tab_is(f"{s} 4", "home")
+        self.tab_is(f"{s} 4", "prepare")
 
         self.run("settings_set", values={"top_shell_layers": 7})
         self.project_is(f"{s} 5", "Untitled", None, "dirty")
@@ -295,7 +295,7 @@ class FilesTest:
         self.project_is(f"{s} 9", "Untitled", None, "clean")
         self.values_are(f"{s} 9", {"top_shell_layers": "4"})
         self.unsaved_is(f"{s} 9", [])
-        self.tab_is(f"{s} 9", "home")
+        self.tab_is(f"{s} 9", "prepare")
 
         self.run("settings_set", values={"top_shell_layers": 7})
         self.run("view_set", tab="home")

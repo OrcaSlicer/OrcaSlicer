@@ -141,7 +141,7 @@ Outcome<ProjectSummary> open_project(const OpenProjectArgs& args)
     // Dropped here, so Plater::load_project() finds nothing to ask about; the reset tells no plugin
     // and switches no tab, since the project that counts is the one about to load.
     if (plater.is_project_dirty())
-        plater.new_project(/*skip_confirm=*/true, /*silent=*/true);
+        plater.new_project(Prompts::Skip, /*silent=*/true);
     // The project with its settings, as opening one is asked for: the load-behaviour preference, which can load the
     // geometry alone or ask how to open it, is a person's choice for the files they open themselves.
     plater.load_project(from_path(args.path), "<loadall>");
@@ -157,7 +157,7 @@ Outcome<ProjectSummary> new_project(const NewProjectArgs& args)
     // reloads the presets, which can ask about the printer's.
     if (args.discard_preset_changes && wxGetApp().has_current_preset_changes())
         wxGetApp().discard_current_preset_changes();
-    plater.new_project(/*skip_confirm=*/true, /*silent=*/true, wxString(), /*reload_presets=*/true, /*tell_plugins=*/true);
+    plater.new_project(Prompts::Skip);
     return summary(plater);
 }
 

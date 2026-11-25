@@ -2602,16 +2602,17 @@ static void apply_saved_primitive_size(std::vector<PrimitiveSizeDialog::Field>& 
         fields[i].value = values[i];
 }
 
-// The size given, when it has a value per field. Otherwise interactive starts from the size the user saved and asks
-// for the size unless the user turned the dialog off, and a call that is not interactive gets the built-in default
-// size. nullopt when the user cancels or the given size is not one for the shape (is_primitive_size()).
-static std::optional<std::vector<double>> primitive_size(const std::string& type_name, bool interactive, const std::vector<double>& given)
+// The size given, when it has a value per field. Otherwise Prompts::Ask starts from the size the user saved and asks
+// for the size unless the user turned the dialog off, and Prompts::Skip gets the built-in default size. nullopt when
+// the user cancels or the given size is not one for the shape (is_primitive_size()).
+static std::optional<std::vector<double>> primitive_size(const std::string& type_name, Ops::Prompts prompts,
+                                                         const std::vector<double>& given)
 {
     std::vector<PrimitiveSizeDialog::Field> fields = primitive_size_fields(type_name);
     if (!given.empty())
         return is_primitive_size(type_name, given) ? std::optional(given) : std::nullopt;
     AppConfig* app_config = wxGetApp().app_config;
-    if (interactive && !fields.empty()) {
+    if (prompts == Ops::Prompts::Ask && !fields.empty()) {
         apply_saved_primitive_size(fields, app_config->get("primitive_size", type_name));
         if (app_config->get_bool("enable_primitive_size_dialog")) {
             PrimitiveSizeDialog dlg(wxGetApp().mainframe, _L(type_name), fields);
@@ -2667,7 +2668,7 @@ static TriangleMesh create_mesh(const std::string& type_name, const std::vector<
     return mesh;
 }
 
-void ObjectList::load_generic_subobject(const std::string& type_name, const ModelVolumeType type, bool interactive,
+void ObjectList::load_generic_subobject(const std::string& type_name, const ModelVolumeType type, Ops::Prompts prompts,
                                         const std::vector<double>& given_size)
 {
     // BBS: single snapshot
@@ -2676,7 +2677,7 @@ void ObjectList::load_generic_subobject(const std::string& type_name, const Mode
     if (type == ModelVolumeType::INVALID) {
         // Add Primitive adds nothing while an object is selected on the 3D scene.
         if (can_add_shape_object())
-            load_shape_object(type_name, interactive, given_size);
+            load_shape_object(type_name, prompts, given_size);
         return;
     }
 
@@ -2695,7 +2696,7 @@ void ObjectList::load_generic_subobject(const std::string& type_name, const Mode
     if (instance_idx == -1)
         return;
 
-    const std::optional<std::vector<double>> size = primitive_size(type_name, interactive, given_size);
+    const std::optional<std::vector<double>> size = primitive_size(type_name, prompts, given_size);
     if (!size)
         return;
 
@@ -2763,7 +2764,7 @@ void ObjectList::load_generic_subobject(const std::string& type_name, const Mode
     wxGetApp().params_panel()->switch_to_object(true);
 
     //Show Dialog
-    if (interactive && wxGetApp().app_config->get("do_not_show_modifer_tips").empty()) {
+    if (prompts == Ops::Prompts::Ask && wxGetApp().app_config->get("do_not_show_modifer_tips").empty()) {
         TipsDialog dlg(wxGetApp().mainframe, _L("Add Modifier"), _L("Switch to per-object setting mode to edit modifier settings."), "do_not_show_modifer_tips");
         dlg.ShowModal();
     }
@@ -2785,13 +2786,13 @@ bool ObjectList::can_add_shape_object() const
     return wxGetApp().plater()->canvas3D()->get_selection().get_object_idx() == -1;
 }
 
-void ObjectList::load_shape_object(const std::string &type_name, bool interactive, const std::vector<double>& given_size)
+void ObjectList::load_shape_object(const std::string &type_name, Ops::Prompts prompts, const std::vector<double>& given_size)
 {
     const int obj_idx = m_objects->size();
     if (obj_idx < 0)
         return;
 
-    const std::optional<std::vector<double>> size = primitive_size(type_name, interactive, given_size);
+    const std::optional<std::vector<double>> size = primitive_size(type_name, prompts, given_size);
     if (!size)
         return;
 
@@ -6173,9 +6174,10 @@ static void move_volume_to_end(ModelObject* obj, ModelVolume* volume)
     }
 }
 
-wxString ObjectList::set_volume_type(ModelVolumeType new_type, bool preserve_ps_subtype, bool show_errors,
+wxString ObjectList::set_volume_type(ModelVolumeType new_type, bool preserve_ps_subtype, Ops::Prompts prompts,
                                      const std::vector<std::pair<int, int>>& parts)
 {
+    const bool show_errors = prompts == Ops::Prompts::Ask;
     struct VolumeSelection {
         int          object_idx;
         ModelVolume* volume;
@@ -6255,7 +6257,7 @@ wxString ObjectList::set_volume_type(ModelVolumeType new_type, bool preserve_ps_
     // Support entries in the old choice dialog; the UI-side guard for the current submenu lives
     // in MenuFactory::append_menu_item_change_type, see #13120).
     // The same rationale applies to any Precise Seam subtype.
-    // The menu never offers these types for such parts, so reaching this block from it (show_errors)
+    // The menu never offers these types for such parts, so reaching this block from it (Prompts::Ask)
     // means the UI guard has been bypassed and should be investigated. The Speed Dial's type
     // commands have no such guard and report the reason instead.
     if (new_type == ModelVolumeType::SUPPORT_BLOCKER || new_type == ModelVolumeType::SUPPORT_ENFORCER

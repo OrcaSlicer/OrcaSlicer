@@ -55,6 +55,12 @@ private:
 struct Done
 {};
 
+// Whether a call puts its questions and messages to a person (Ask), as the menu item it stands for does, or runs
+// without them (Skip), for a caller with no one to ask that has the answers already or reports what happened
+// itself. Each function taking it says what Skip answers for it. Methods of the plater, the object list and the
+// tabs take it, as do the operations' arguments that pass it on to them.
+enum class Prompts { Ask, Skip };
+
 // The names of `candidates` closest to `name`, for a refusal of a name none has: those holding more of its words
 // first, then those fewer edits away, at most eight. Any case.
 std::vector<std::string> closest_names(std::vector<std::string> candidates, const std::string& name);

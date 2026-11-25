@@ -363,13 +363,13 @@ public:
     //void                load_part(ModelObject& model_object, std::vector<ModelVolume*>& added_volumes, ModelVolumeType type, bool from_galery = false);
     void                load_modifier(const wxArrayString& input_files, ModelObject& model_object, std::vector<ModelVolume*>& added_volumes, ModelVolumeType type, bool from_galery = false,
                                       std::string* error = nullptr);
-    // size, in the order the size dialog asks for the dimensions, skips the dialog. Without it, interactive uses the size the
-    // user enters or saved as default; otherwise the shape gets its built-in default size. Only interactive shows the tips
-    // dialog after adding a part.
-    void                load_generic_subobject(const std::string& type_name, const ModelVolumeType type, bool interactive = true,
-                                               const std::vector<double>& size = {});
+    // size, in the order the size dialog asks for the dimensions, skips the dialog. Without it, Prompts::Ask uses the size
+    // the user enters or saved as default, and Prompts::Skip the shape's built-in default size. Only Prompts::Ask shows the
+    // tips dialog after adding a part.
+    void                load_generic_subobject(const std::string& type_name, const ModelVolumeType type,
+                                               Ops::Prompts prompts = Ops::Prompts::Ask, const std::vector<double>& size = {});
     // Adds the shape as a new object, whatever is selected.
-    void                load_shape_object(const std::string &type_name, bool interactive, const std::vector<double>& size = {});
+    void                load_shape_object(const std::string &type_name, Ops::Prompts prompts, const std::vector<double>& size = {});
     // Whether Add Primitive (load_generic_subobject() of no part type) adds an object now: not while an object is
     // selected, whose Add Part menu adds shapes.
     bool                can_add_shape_object() const;
@@ -521,8 +521,8 @@ public:
 	//   by the "Precise Seam Type" subtype picker where the user explicitly wants CENTER.
 	// The parts changed are `parts`, [object, part] by their index in the model, else the selected ones.
 	// Returns why the parts kept their type, empty when they changed or already had it.
-	// show_errors shows that reason as the menu always has; automation passes false and reports it.
-	wxString set_volume_type(ModelVolumeType new_type, bool preserve_ps_subtype = true, bool show_errors = true,
+	// Prompts::Ask shows that reason as the menu always has; automation passes Prompts::Skip and reports it.
+	wxString set_volume_type(ModelVolumeType new_type, bool preserve_ps_subtype = true, Ops::Prompts prompts = Ops::Prompts::Ask,
 	                         const std::vector<std::pair<int, int>>& parts = {});
     ModelVolumeType get_selected_volume_type();
 

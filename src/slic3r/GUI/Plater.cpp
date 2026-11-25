@@ -7662,9 +7662,10 @@ struct Plater::priv
     void drop_selection();
     void mirror(Axis axis);
     void split_object(bool auto_drop = true);
-    // Plater::split_object(obj_idx, ask, keep_z), whose split loads the objects with `auto_drop` unless the question
+    // Plater::split_object(obj_idx, prompts, keep_z), whose split loads the objects with `auto_drop` unless the question
     // answers otherwise.
-    SplitResult split_object(int obj_idx, bool auto_drop = true, bool ask = true, std::optional<bool> keep_z = std::nullopt);
+    SplitResult split_object(int obj_idx, bool auto_drop = true, Ops::Prompts prompts = Ops::Prompts::Ask,
+                             std::optional<bool> keep_z = std::nullopt);
     void split_volume();
     void scale_selection_to_fit_print_volume();
 
@@ -7750,15 +7751,15 @@ struct Plater::priv
     bool export_gcode(fs::path output_path, bool output_path_on_removable_media, bool tracked = false);
     void export_gcode(fs::path output_path, bool output_path_on_removable_media, PrintHostJob upload_job);
 
-    // Reload from disk of `parts`, else of the selection's parts. With `ask`, a file that is gone is asked for, a part its
-    // file has none for is told in a message box, and a file that cannot be read ends the reload where it is; without it
-    // nothing is asked or told, and the reload goes on to update the scene.
-    ReloadResult reload_from_disk(const std::vector<std::pair<int, int>>* parts = nullptr, bool ask = true);
-    // With `tell`, a file of several parts is told in a message box.
+    // Reload from disk of `parts`, else of the selection's parts. With Prompts::Ask, a file that is gone is asked for, a
+    // part its file has none for is told in a message box, and a file that cannot be read ends the reload where it is;
+    // with Prompts::Skip nothing is asked or told, and the reload goes on to update the scene.
+    ReloadResult reload_from_disk(const std::vector<std::pair<int, int>>* parts = nullptr, Ops::Prompts prompts = Ops::Prompts::Ask);
+    // With Prompts::Ask, a file of several parts is told in a message box.
     ReplaceResult replace_volume_with_stl(int object_idx, int volume_idx, const fs::path& new_path, const std::string& snapshot = "",
-                                          bool tell = true);
+                                          Ops::Prompts prompts = Ops::Prompts::Ask);
     // replace_volume_with_stl() in its own "Replace with 3D file" undo step, then the 3D scene and its printable states.
-    ReplaceResult replace_part(int object_idx, int volume_idx, const fs::path& new_path, bool tell);
+    ReplaceResult replace_part(int object_idx, int volume_idx, const fs::path& new_path, Ops::Prompts prompts);
     void replace_with_stl();
     void replace_all_with_stl();
     void reload_all_from_disk();
@@ -8528,7 +8529,8 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
             if (this->q->get_project_filename().IsEmpty() && this->q->is_empty_project()) {
                 int skip_confirm = e.GetInt();
                 // Skips the preset reload; trigger_restore_project()'s callers load the presets first.
-                this->q->new_project(skip_confirm, true, wxString(), false);
+                this->q->new_project(skip_confirm ? Ops::Prompts::Skip : Ops::Prompts::Ask, /*silent=*/true, wxString(),
+                                     /*reload_presets=*/false);
             }
         });
         //wxPostEvent(this->q, wxCommandEvent{EVT_RESTORE_PROJECT});
@@ -11438,9 +11440,10 @@ void Plater::priv::split_object(bool auto_drop /* = true */)
 }
 
 // split provided object into multiple objects by its volumes
-Plater::SplitResult Plater::priv::split_object(int obj_idx, bool auto_drop /* = true */, bool ask /* = true */,
+Plater::SplitResult Plater::priv::split_object(int obj_idx, bool auto_drop /* = true */, Ops::Prompts prompts /* = Ask */,
                                                std::optional<bool> keep_z /* = std::nullopt */)
 {
+    const bool ask = prompts == Ops::Prompts::Ask;
     if (obj_idx == -1)
         return SplitResult::OnePiece;
 
@@ -12288,7 +12291,7 @@ void Plater::priv::update_sla_scene()
 }
 
 Plater::ReplaceResult Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const fs::path& new_path,
-                                                             const std::string& snapshot, bool tell)
+                                                             const std::string& snapshot, Ops::Prompts prompts)
 {
     const std::string path = new_path.string();
     wxBusyCursor wait;
@@ -12341,7 +12344,7 @@ Plater::ReplaceResult Plater::priv::replace_volume_with_stl(int object_idx, int 
     if (new_model.objects.empty())
         return ReplaceResult::Unreadable;
     if (const std::optional<Ops::Refusal> refusal = Ops::replacement_refusal(new_model)) {
-        if (tell) {
+        if (prompts == Ops::Prompts::Ask) {
             MessageDialog dlg(q, refusal->translated(), _L("Error during replacement"), wxOK | wxOK_DEFAULT | wxICON_WARNING);
             dlg.ShowModal();
         }
@@ -12404,9 +12407,9 @@ Plater::ReplaceResult Plater::priv::replace_volume_with_stl(int object_idx, int 
     return ReplaceResult::Replaced;
 }
 
-Plater::ReplaceResult Plater::priv::replace_part(int object_idx, int volume_idx, const fs::path& new_path, bool tell)
+Plater::ReplaceResult Plater::priv::replace_part(int object_idx, int volume_idx, const fs::path& new_path, Ops::Prompts prompts)
 {
-    const ReplaceResult result = replace_volume_with_stl(object_idx, volume_idx, new_path, _u8L("Replace with 3D file"), tell);
+    const ReplaceResult result = replace_volume_with_stl(object_idx, volume_idx, new_path, _u8L("Replace with 3D file"), prompts);
     if (result != ReplaceResult::Replaced)
         return result;
 
@@ -12456,7 +12459,7 @@ void Plater::priv::replace_with_stl()
         return;
     }
 
-    replace_part(object_idx, volume_idx, out_path, true);
+    replace_part(object_idx, volume_idx, out_path, Ops::Prompts::Ask);
 }
 
 void Plater::priv::replace_all_with_stl()
@@ -12606,8 +12609,9 @@ static std::vector<std::pair<int, int>> reloadable_volumes(const Model &model, c
 }
 #endif // ENABLE_RELOAD_FROM_DISK_REWORK
 
-Plater::ReloadResult Plater::priv::reload_from_disk(const std::vector<std::pair<int, int>>* parts, bool ask)
+Plater::ReloadResult Plater::priv::reload_from_disk(const std::vector<std::pair<int, int>>* parts, Ops::Prompts prompts)
 {
+    const bool ask = prompts == Ops::Prompts::Ask;
     ReloadResult result;
 #if ENABLE_RELOAD_FROM_DISK_REWORK
     // collect selected reloadable ModelVolumes
@@ -16676,7 +16680,7 @@ Print&          Plater::fff_print()         { return p->fff_print; }
 const SLAPrint& Plater::sla_print() const   { return p->sla_print; }
 SLAPrint&       Plater::sla_print()         { return p->sla_print; }
 
-int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_name, bool reload_presets, bool tell_plugins)
+int Plater::new_project(Ops::Prompts prompts, bool silent, const wxString& project_name, bool reload_presets)
 {
     bool transfer_preset_changes = false;
     // BBS: save confirm
@@ -16696,7 +16700,7 @@ int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_
         return result;
     };
     int result;
-    if (!skip_confirm && (result = close_with_confirm(check)) == wxID_CANCEL)
+    if (prompts == Ops::Prompts::Ask && (result = close_with_confirm(check)) == wxID_CANCEL)
         return wxID_CANCEL;
 
     // Only once the question has let the current project go: Cancel keeps them, and Save writes them to its file.
@@ -16714,7 +16718,7 @@ int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_
     //get_partplate_list().reinit();
     //get_partplate_list().update_slice_context_to_current_plate(p->background_process);
     //p->preview->update_gcode_result(p->partplate_list.get_current_slice_result());
-    if (!silent || tell_plugins) {
+    if (!silent) {
         Slic3r::LifecycleEventContext ctx;
         ctx.code = Slic3r::LifecycleEvtCode::Ok;
         Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::NewProject, ctx);
@@ -17516,7 +17520,7 @@ void Plater::_calib_assign_filament(int filament_id)
     sidebar().obj_list()->update_filament_values_for_items(size_t(wxGetApp().filaments_cnt()));
 }
 
-void Plater::calib_pa(const Calib_Params& params, bool skip_confirm)
+void Plater::calib_pa(const Calib_Params& params, Ops::Prompts prompts)
 {
     // ORCA-Belt: PA Line / PA Pattern have the belt plumbing in place
     // (belt kinematics in world-coordinates mode draws them on the belt surface)
@@ -17532,7 +17536,7 @@ void Plater::calib_pa(const Calib_Params& params, bool skip_confirm)
         }
     }
     const auto calib_pa_name = _L("Pressure Advance Test");
-    if (new_project(skip_confirm, false, calib_pa_name) == wxID_CANCEL)
+    if (new_project(prompts, /*silent=*/false, calib_pa_name) == wxID_CANCEL)
         return;
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (!_calib_select_filament(params.filament_id))
@@ -17673,7 +17677,7 @@ void Plater::_calib_pa_pattern(const Calib_Params& params)
     auto cur_plate = get_partplate_list().get_plate(0);
 
     // add "handle" cube
-    sidebar().obj_list()->load_generic_subobject("Cube", ModelVolumeType::INVALID, false);
+    sidebar().obj_list()->load_generic_subobject("Cube", ModelVolumeType::INVALID, Ops::Prompts::Skip);
     auto *cube = model().objects[0];
 
     CalibPressureAdvancePattern pa_pattern(
@@ -18013,7 +18017,7 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
 }
 
 // ORCA: Add pattern parameter
-void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern, int filament_id, int extruder_id, bool skip_confirm) {
+void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern, int filament_id, int extruder_id, Ops::Prompts prompts) {
     if (pass != 1 && pass != 2)
         return;
     wxString calib_name;
@@ -18022,7 +18026,7 @@ void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern, int
     } else
         calib_name = wxString::Format(_L("Flowrate Test - Pass%d"), pass);
 
-    if (new_project(skip_confirm, false, calib_name) == wxID_CANCEL)
+    if (new_project(prompts, /*silent=*/false, calib_name) == wxID_CANCEL)
         return;
 
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
@@ -18063,7 +18067,7 @@ void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern, int
 bool Plater::is_flowrate_calib() const { return p->m_flowrate_calib; }
 
 
-void Plater::calib_temp(const Calib_Params& params, bool skip_confirm) {
+void Plater::calib_temp(const Calib_Params& params, Ops::Prompts prompts) {
     constexpr double base_temp_tower_nozzle_diameter = 0.4;
     constexpr double base_temp_tower_block_height = 10.0;
     constexpr int base_temp_tower_temp_step = 5;
@@ -18086,7 +18090,7 @@ void Plater::calib_temp(const Calib_Params& params, bool skip_confirm) {
     }
 
     const auto calib_temp_name = _L("Nozzle temperature test");
-    if (new_project(skip_confirm, false, calib_temp_name) == wxID_CANCEL)
+    if (new_project(prompts, /*silent=*/false, calib_temp_name) == wxID_CANCEL)
         return;
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (!_calib_select_filament(params.filament_id))
@@ -18362,10 +18366,10 @@ void Plater::_calib_temp_belt_sectioned(const Calib_Params& params, double belt_
     p->background_process.fff_print()->set_calib_params(params);
 }
 
-void Plater::calib_max_vol_speed(const Calib_Params& params, bool skip_confirm)
+void Plater::calib_max_vol_speed(const Calib_Params& params, Ops::Prompts prompts)
 {
     const auto calib_vol_speed_name = _L("Max volumetric speed test");
-    if (new_project(skip_confirm, false, calib_vol_speed_name) == wxID_CANCEL)
+    if (new_project(prompts, /*silent=*/false, calib_vol_speed_name) == wxID_CANCEL)
         return;
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (!_calib_select_filament(params.filament_id))
@@ -18448,10 +18452,10 @@ void Plater::calib_max_vol_speed(const Calib_Params& params, bool skip_confirm)
     p->background_process.fff_print()->set_calib_params(new_params);
 }
 
-void Plater::calib_retraction(const Calib_Params& params, bool skip_confirm)
+void Plater::calib_retraction(const Calib_Params& params, Ops::Prompts prompts)
 {
     const auto calib_retraction_name = _L("Retraction");
-    if (new_project(skip_confirm, false, calib_retraction_name) == wxID_CANCEL)
+    if (new_project(prompts, /*silent=*/false, calib_retraction_name) == wxID_CANCEL)
         return;
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (!_calib_select_filament(params.filament_id))
@@ -18516,10 +18520,10 @@ void Plater::calib_retraction(const Calib_Params& params, bool skip_confirm)
     p->background_process.fff_print()->set_calib_params(params);
 }
 
-void Plater::calib_VFA(const Calib_Params& params, bool skip_confirm)
+void Plater::calib_VFA(const Calib_Params& params, Ops::Prompts prompts)
 {
     const auto calib_vfa_name = _L("VFA test");
-    if (new_project(skip_confirm, false, calib_vfa_name) == wxID_CANCEL)
+    if (new_project(prompts, /*silent=*/false, calib_vfa_name) == wxID_CANCEL)
         return;
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (!_calib_select_filament(params.filament_id))
@@ -18604,10 +18608,10 @@ void Plater::calib_VFA(const Calib_Params& params, bool skip_confirm)
     p->background_process.fff_print()->set_calib_params(calib_params);
 }
 
-void Plater::calib_input_shaping_freq(const Calib_Params& params, bool skip_confirm)
+void Plater::calib_input_shaping_freq(const Calib_Params& params, Ops::Prompts prompts)
 {
     const auto calib_input_shaping_name = _L("Input shaping Frequency test");
-    if (new_project(skip_confirm, false, calib_input_shaping_name) == wxID_CANCEL)
+    if (new_project(prompts, /*silent=*/false, calib_input_shaping_name) == wxID_CANCEL)
         return;
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (!_calib_select_filament(params.filament_id))
@@ -18676,10 +18680,10 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params, bool skip_conf
     p->background_process.fff_print()->set_calib_params(params);
 }
 
-void Plater::calib_input_shaping_damp(const Calib_Params& params, bool skip_confirm)
+void Plater::calib_input_shaping_damp(const Calib_Params& params, Ops::Prompts prompts)
 {
     const auto calib_input_shaping_name = _L("Input shaping Damping test");
-    if (new_project(skip_confirm, false, calib_input_shaping_name) == wxID_CANCEL)
+    if (new_project(prompts, /*silent=*/false, calib_input_shaping_name) == wxID_CANCEL)
         return;
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (!_calib_select_filament(params.filament_id))
@@ -18747,10 +18751,10 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params, bool skip_conf
     p->background_process.fff_print()->set_calib_params(params);
 }
 
-void Plater::Calib_Cornering(const Calib_Params& params, bool skip_confirm)
+void Plater::Calib_Cornering(const Calib_Params& params, Ops::Prompts prompts)
 {
     const auto Calib_Cornering = _L("Cornering test");
-    if (new_project(skip_confirm, false, Calib_Cornering) == wxID_CANCEL)
+    if (new_project(prompts, /*silent=*/false, Calib_Cornering) == wxID_CANCEL)
         return;
     wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
     if (!_calib_select_filament(params.filament_id))
@@ -18900,9 +18904,9 @@ void Plater::load_gcode(const wxString& filename)
         auto check = [](bool yes_or_no) {
             return yes_or_no || wxGetApp().check_and_save_current_preset_changes(_L("Load project"), _L("Some presets are modified."));
         };
-        if (close_with_confirm(check) == wxID_CANCEL || new_project(true, true) != wxID_YES)
+        if (close_with_confirm(check) == wxID_CANCEL || new_project(Ops::Prompts::Skip, /*silent=*/true) != wxID_YES)
             return;
-    } else if (new_project(false, true) != wxID_YES)
+    } else if (new_project(Ops::Prompts::Ask, /*silent=*/true) != wxID_YES)
         return;
 
     m_only_gcode = true;
@@ -21608,7 +21612,7 @@ void Plater::reload_from_disk()
 
 Plater::ReloadResult Plater::reload_parts_from_disk(const std::vector<std::pair<int, int>>& parts)
 {
-    return p->reload_from_disk(&parts, false);
+    return p->reload_from_disk(&parts, Ops::Prompts::Skip);
 }
 
 void Plater::replace_with_stl()
@@ -21618,7 +21622,7 @@ void Plater::replace_with_stl()
 
 Plater::ReplaceResult Plater::replace_part_with_file(int object_idx, int volume_idx, const std::string& path)
 {
-    return p->replace_part(object_idx, volume_idx, fs::path(path), false);
+    return p->replace_part(object_idx, volume_idx, fs::path(path), Ops::Prompts::Skip);
 }
 
 void Plater::replace_all_with_stl()
@@ -23295,7 +23299,7 @@ void Plater::center_selection()             { p->center_selection(); }
 void Plater::drop_selection()               { p->drop_selection(); }
 void Plater::mirror(Axis axis)              { p->mirror(axis); }
 void Plater::split_object(bool auto_drop)   { p->split_object(auto_drop); }
-Plater::SplitResult Plater::split_object(int obj_idx, bool ask, std::optional<bool> keep_z) { return p->split_object(obj_idx, true, ask, keep_z); }
+Plater::SplitResult Plater::split_object(int obj_idx, Ops::Prompts prompts, std::optional<bool> keep_z) { return p->split_object(obj_idx, true, prompts, keep_z); }
 void Plater::split_volume()                 { p->split_volume(); }
 void Plater::optimize_rotation()
 {

@@ -159,8 +159,8 @@ struct SplitObjectArgs
     Targets             target;            // one object, or for parts one part of it
     bool                to_objects = true; // into objects, else into parts
     std::optional<bool> keep_z;            // the answer to Split's Auto-Drop question: true keeps the height of what floats
-    bool                ask = false;       // with keep_z none, the question is asked, and a message tells an object of one
-                                           // piece, as Split does; else the split is refused for them
+    Prompts             prompts = Prompts::Skip; // with keep_z none and Ask, the question is asked, and a message tells an
+                                                 // object of one piece, as Split does; with Skip the split is refused for them
     bool                expand = false;    // into parts, the object's row is opened on its parts, as a split from that row
                                            // opens it
 };
@@ -322,7 +322,8 @@ struct AddPrimitiveArgs
     std::optional<std::string> name;        // its name (rename_object()); none: its shape's
     std::optional<Vec3d>       position;    // where its first instance goes, in bed coordinates, as object_transform's
                                             // position, after which it rests on the bed; none: where Add Primitive puts it
-    bool                       ask = false; // as Add Primitive: refused while an object is selected, and the size dialog asks
+    Prompts                    prompts = Prompts::Skip; // Ask: as Add Primitive, refused while an object is selected, and
+                                                        // the size dialog asks
 };
 // Adds the shape as a new object, as Add Primitive does in the Prepare view, the view shown first, named and placed, in
 // one undo step, and selects it. Returns its index.

@@ -431,10 +431,11 @@ public:
     // Helper: returns config indices where filament_is_mixed == false
     std::vector<size_t> physical_filament_config_indices() const;
 
-    // `silent` leaves the shown tab as it is and sends plugins no NewProject event; `tell_plugins` sends
-    // the event all the same, for a silent caller whose new project is one a person asked for.
-    int new_project(bool skip_confirm = false, bool silent = false, const wxString& project_name = wxString(), bool reload_presets = true,
-                    bool tell_plugins = false);
+    // Prompts::Skip starts it without the question about the unsaved project and modified presets. `silent` leaves
+    // the shown tab as it is and sends plugins no NewProject event, for a reset that clears the way for another
+    // project rather than starting one.
+    int new_project(Ops::Prompts prompts = Ops::Prompts::Ask, bool silent = false, const wxString& project_name = wxString(),
+                    bool reload_presets = true);
     // BBS: save & backup
     void load_project(wxString const & filename = "", wxString const & originfile = "-");
     // `path` saves there without asking (automation); empty keeps the interactive behaviour.
@@ -471,21 +472,21 @@ public:
     // toolpath geometry at load time. Keeps the current layer range and only-gcode mode.
 
     // SoftFever
-    // Each test starts a new project; `skip_confirm` skips its prompts (save the project, keep or
+    // Each test starts a new project; Prompts::Skip skips its prompts (save the project, keep or
     // discard modified presets), keeping the modified presets, for a caller that has decided both.
-    void calib_pa(const Calib_Params& params, bool skip_confirm = false);
+    void calib_pa(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
     //ORCA: Add pattern parameter to calib_flowrate
     void calib_flowrate(bool is_linear, int pass, InfillPattern pattern = ipArchimedeanChords, int filament_id = 0, int extruder_id = 0,
-                        bool skip_confirm = false);
+                        Ops::Prompts prompts = Ops::Prompts::Ask);
     // True from calib_flowrate() until other files are loaded, like the print's calibration mode
     bool is_flowrate_calib() const;
-    void calib_temp(const Calib_Params& params, bool skip_confirm = false);
-    void calib_max_vol_speed(const Calib_Params& params, bool skip_confirm = false);
-    void calib_retraction(const Calib_Params& params, bool skip_confirm = false);
-    void calib_VFA(const Calib_Params& params, bool skip_confirm = false);
-    void calib_input_shaping_freq(const Calib_Params& params, bool skip_confirm = false);
-    void calib_input_shaping_damp(const Calib_Params& params, bool skip_confirm = false);
-    void Calib_Cornering(const Calib_Params& params, bool skip_confirm = false);
+    void calib_temp(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
+    void calib_max_vol_speed(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
+    void calib_retraction(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
+    void calib_VFA(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
+    void calib_input_shaping_freq(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
+    void calib_input_shaping_damp(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
+    void Calib_Cornering(const Calib_Params& params, Ops::Prompts prompts = Ops::Prompts::Ask);
 
     BuildVolume_Type get_build_volume_type() const;
 
@@ -908,9 +909,9 @@ public:
     enum class SplitResult { Split, OnePiece, Unanswered };
     // Splits object `obj_idx` into objects, as Split > To Objects does on the selected object, and selects them. Where
     // some of them would float above the bed of an object that drops, `keep_z` answers the question the split asks
-    // (true keeps their height, as its Yes); with none it is asked when `ask`, and otherwise nothing is split. An object
-    // of one piece is told in a message box when `ask`.
-    SplitResult split_object(int obj_idx, bool ask, std::optional<bool> keep_z = std::nullopt);
+    // (true keeps their height, as its Yes); with none it is asked with Prompts::Ask, and otherwise nothing is split. An
+    // object of one piece is told in a message box with Prompts::Ask.
+    SplitResult split_object(int obj_idx, Ops::Prompts prompts, std::optional<bool> keep_z = std::nullopt);
     void split_volume();
     void optimize_rotation();
     // find all empty cells on the plate and won't overlap with exclusion areas
