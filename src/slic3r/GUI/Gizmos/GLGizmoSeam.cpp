@@ -235,7 +235,17 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
 
-    m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only);
+    ImGui::PushStyleColor(ImGuiCol_FrameBg      , m_is_dark_mode ? ImGuiWrapper::COL_TOOLBAR_BG_DARK : ImGuiWrapper::COL_TOOLBAR_BG);
+    ImGui::PushStyleColor(ImGuiCol_Button       , m_is_dark_mode ? ImGuiWrapper::COL_ORCA_DARK       : ImGuiWrapper::COL_ORCA);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, m_is_dark_mode ? ImGuiWrapper::COL_ORCA_HOVER_DARK : ImGuiWrapper::COL_ORCA_HOVER);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f * scale, 4.f * scale));
+    static int ortho_mode = !(m_vertical_only && m_horizontal_only) ? 0 : m_horizontal_only ? 1 : 2;
+    if (m_imgui->MultiSwitch("##ortho", {_u8L("Free"), _u8L("Vertical"), _u8L("Horizontal")}, ortho_mode)) {
+        m_vertical_only   = ortho_mode == 1;
+        m_horizontal_only = ortho_mode == 2;
+    }
+    ImGui::PopStyleColor(3);
+    ImGui::PopStyleVar(1);
 
     ImGui::Separator();
 

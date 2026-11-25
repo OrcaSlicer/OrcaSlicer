@@ -211,6 +211,9 @@ public:
     void title(const std::string& str);
     void title(const std::string &str, bool suppress_seperator);
 
+
+    bool MultiSwitch(const char* id, const std::vector<wxString>& labels, int& selected);
+
     // set font
     const std::vector<std::string> get_fonts_names() const { return m_fonts_names; }
     bool push_bold_font();

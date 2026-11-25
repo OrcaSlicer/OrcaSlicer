@@ -2028,6 +2028,73 @@ void ImGuiWrapper::search_list(const ImVec2& size_, bool (*items_getter)(int, co
     //    check_box(_L("Search in English"), view_params.english);
 }
 
+// ORCA
+bool ImGuiWrapper::MultiSwitch(const char* id, const std::vector<wxString>& labels, int& selected)
+{
+    if (labels.empty())
+        return false;
+
+    ImGuiStyle& style   = ImGui::GetStyle();
+    ImDrawList* draw    = ImGui::GetWindowDrawList();
+    bool        changed = false;
+
+    float br_size = style.FrameBorderSize;
+    float h_pad   = style.FramePadding.x;
+    float item_h  = ImGui::GetTextLineHeight() + style.FramePadding.y;
+    std::vector<float> widths(labels.size());
+    float total_w = br_size; // leading gap
+    for (size_t i = 0; i < labels.size(); ++i) {
+        widths[i]  = ImGui::CalcTextSize(labels[i].c_str()).x + h_pad * 2.f;
+        total_w   += widths[i] + br_size;
+    }
+
+    float track_h  = item_h + br_size * 2.f;
+    float radius   = track_h * 0.5f;
+
+    ImVec2 origin = ImGui::GetCursorScreenPos();
+
+    ImU32 track_col = ImGui::GetColorU32(ImGuiCol_FrameBg);
+    draw->AddRectFilled(origin, {origin.x + total_w, origin.y + track_h}, track_col, radius);
+    draw->AddRect(      origin, {origin.x + total_w, origin.y + track_h}, track_col, radius, 0, 1.f);
+
+    float cursor_x = origin.x + br_size;
+    ImGui::PushID(id);
+    for (int i = 0; i < static_cast<int>(labels.size()); ++i){
+        ImGui::PushID(id + i);
+
+        ImVec2 pill_min = { cursor_x, origin.y + br_size };
+        ImVec2 pill_max = pill_min + ImVec2(widths[i], item_h);
+
+        bool is_sel  = (i == selected);
+        bool hovered = ImGui::IsMouseHoveringRect(pill_min, pill_max);
+        bool clicked = hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left);
+
+        if (is_sel)
+            draw->AddRectFilled(pill_min, pill_max, ImGui::GetColorU32(hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button), item_h * 0.5);
+
+        ImVec2 text_sz  = ImGui::CalcTextSize(labels[i].c_str());
+        ImVec2 text_pos = {
+            pill_min.x + (widths[i] - text_sz.x) * 0.5f,
+            pill_min.y + (item_h    - text_sz.y) * 0.5f
+        };
+        ImU32 text_col = is_sel ? IM_COL32(255, 255, 255, 255) : ImGui::GetColorU32(ImGuiCol_Text);
+        draw->AddText(text_pos, text_col, labels[i].c_str());
+
+        if (clicked && !is_sel) {
+            selected = i;
+            changed  = true;
+        }
+
+        cursor_x += widths[i] + br_size;
+        ImGui::PopID();
+    }
+    ImGui::PopID();
+
+    ImGui::Dummy({total_w, track_h});
+
+    return changed;
+}
+
 void ImGuiWrapper::bold_text(const std::string& str)
 {
     if (bold_font){

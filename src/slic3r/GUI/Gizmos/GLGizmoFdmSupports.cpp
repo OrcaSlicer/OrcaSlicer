@@ -323,6 +323,20 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
 
     ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.1));
 
+    auto add_ortho_switch = [&](){
+        ImGui::PushStyleColor(ImGuiCol_FrameBg      , m_is_dark_mode ? ImGuiWrapper::COL_TOOLBAR_BG_DARK : ImGuiWrapper::COL_TOOLBAR_BG);
+        ImGui::PushStyleColor(ImGuiCol_Button       , m_is_dark_mode ? ImGuiWrapper::COL_ORCA_DARK       : ImGuiWrapper::COL_ORCA);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, m_is_dark_mode ? ImGuiWrapper::COL_ORCA_HOVER_DARK : ImGuiWrapper::COL_ORCA_HOVER);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f * scale, 4.f * scale));
+        static int ortho_mode = !(m_vertical_only && m_horizontal_only) ? 0 : m_horizontal_only ? 1 : 2;
+        if (m_imgui->MultiSwitch("##ortho", {_u8L("Free"), _u8L("Vertical"), _u8L("Horizontal")}, ortho_mode)) {
+            m_vertical_only   = ortho_mode == 1;
+            m_horizontal_only = ortho_mode == 2;
+        }
+        ImGui::PopStyleColor(3);
+        ImGui::PopStyleVar(1);
+    };
+
     if (m_current_tool == ImGui::CircleButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::CIRCLE;
         m_tool_type = ToolType::BRUSH;
@@ -336,16 +350,7 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
 
-        if (m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only)) {
-            if (m_vertical_only) {
-                m_horizontal_only = false;
-            }
-        }
-        if (m_imgui->bbl_checkbox(_L("Horizontal"), m_horizontal_only)) {
-            if (m_horizontal_only) {
-                m_vertical_only = false;
-            }
-        }
+        add_ortho_switch();
     } else if (m_current_tool == ImGui::SphereButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::SPHERE;
         m_tool_type = ToolType::BRUSH;
@@ -359,16 +364,7 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
 
-        if (m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only)) {
-            if (m_vertical_only) {
-                m_horizontal_only = false;
-            }
-        }
-        if (m_imgui->bbl_checkbox(_L("Horizontal"), m_horizontal_only)) {
-            if (m_horizontal_only) {
-                m_vertical_only = false;
-            }
-        }
+        add_ortho_switch();
     } else if (m_current_tool == ImGui::FillButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::POINTER;
         m_tool_type = ToolType::SMART_FILL;
@@ -417,6 +413,8 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         }
     }
 
+    ImGui::Separator();
+
     if (m_current_tool != ImGui::GapFillIcon) {
         m_imgui->bbl_checkbox(m_desc["on_overhangs_only"], m_paint_on_overhangs_only);
         if (ImGui::IsItemHovered())
@@ -424,8 +422,6 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
                              max_tooltip_width);
     }
 
-
-    ImGui::Separator();
     float position_before_text_y = ImGui::GetCursorPos().y;
     ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc["highlight_by_angle"]);
