@@ -394,3 +394,26 @@ TEST_CASE("AppConfig keeps only the preview drag modes it knows", "[AppConfig]")
         REQUIRE(config.get(key) == "off");
     }
 }
+
+TEST_CASE("AppConfig interference travel override is opt-in", "[AppConfig]")
+{
+    AppConfig config;
+    config.set_defaults();
+    REQUIRE_FALSE(config.get_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL));
+
+    DynamicPrintConfig print_config;
+    print_config.set_key_value("reduce_infill_retraction", new ConfigOptionBool(true));
+
+    SECTION("disabled override preserves the configured value")
+    {
+        config.apply_print_config_overrides(print_config);
+        REQUIRE(print_config.opt_bool("reduce_infill_retraction"));
+    }
+
+    SECTION("enabled override forces interference travel off")
+    {
+        config.set_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL, true);
+        config.apply_print_config_overrides(print_config);
+        REQUIRE_FALSE(print_config.opt_bool("reduce_infill_retraction"));
+    }
+}

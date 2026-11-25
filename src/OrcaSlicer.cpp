@@ -7032,6 +7032,15 @@ int CLI::run(int argc, char **argv)
                             ConfigOptionEnumsGeneric* final_nozzle_volume_type_opt = new_print_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true);
                             final_nozzle_volume_type_opt->values.resize(new_extruder_count, nvtStandard);
                         }
+                        if (print_fff) {
+                            AppConfig app_config;
+                            const std::string app_config_error = app_config.load_if_exists();
+                            if (!app_config_error.empty()) {
+                                BOOST_LOG_TRIVIAL(warning) << "Ignoring invalid app config during CLI print overrides: " << app_config_error;
+                                app_config.reset();
+                            }
+                            app_config.apply_print_config_overrides(new_print_config);
+                        }
                         print->apply(model, new_print_config);
                         BOOST_LOG_TRIVIAL(info) << boost::format("set no_check to %1%:")%no_check;
                         print->set_no_check_flag(no_check);//BBS
