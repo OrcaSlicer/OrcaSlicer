@@ -174,6 +174,9 @@
 #include <wx/fontutil.h>
 #include <wx/glcanvas.h>
 #include <wx/utils.h>
+#if defined(_WIN32)
+#include <windows.h>
+#endif
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
 
@@ -1859,8 +1862,21 @@ int GUI_App::install_plugin(std::string name, std::string package_name, InstallP
 
     if (pro_fn)
         pro_fn(InstallStatusInstallCompleted, 100, cancel);
-    if (name == "plugins")
+    if (name == "plugins") {
+        // The one-shot cloud_providers migration in AppConfig::load runs before the
+        // plugin exists, so a fresh install seeds "orca" only. Enable Bambu Cloud on
+        // the false->true transition; after that the Preferences checkbox owns it.
+        const bool first_install = !app_config->get_bool("installed_networking");
         app_config->set_bool("installed_networking", true);
+        if (first_install) {
+            app_config->add_cloud_provider(BBL_CLOUD_PROVIDER);
+            // install_plugin can run from a background job; webview calls stay on main.
+            GUI::wxGetApp().CallAfter([] {
+                if (WebViewPanel* home = WebViewPanel::if_built())
+                    home->SendCloudProvidersInfo();
+            });
+        }
+    }
     BOOST_LOG_TRIVIAL(info) << "[install_plugin] success";
     return 0;
 }
@@ -2153,6 +2169,9 @@ bool GUI_App::has_network_update_available() const
     if (current.empty() || current == "00.00.00.00")
         return false;
 
+    if (is_oss_plugin_version(current))
+        return false;
+
     return current.substr(0, 8) != latest.substr(0, 8);
 }
 
@@ -2237,7 +2256,17 @@ int GUI_App::updating_bambu_networking()
 
 bool GUI_App::check_networking_version()
 {
+#ifdef ORCA_OSS_NETWORK_PLUGIN
+    m_networking_compatible = true;
+    m_networking_need_update = false;
+    return true;
+#endif
     std::string network_ver = Slic3r::NetworkAgent::get_version();
+    if (is_oss_plugin_version(network_ver)) {
+        m_networking_compatible = true;
+        m_networking_need_update = false;
+        return true;
+    }
     if (!network_ver.empty()) {
         BOOST_LOG_TRIVIAL(info) << "get_network_agent_version=" << network_ver;
     }
@@ -3599,6 +3628,12 @@ bool GUI_App::on_init_inner()
 
 
 
+#ifdef ORCA_OSS_NETWORK_PLUGIN
+    // Provision the bundled open-source network plugin and point the config at it
+    // (legacy ABI) BEFORE the version/mode is read below, so we run in legacy mode.
+    ensure_oss_network_plugin();
+#endif
+
     // Orca: select network plugin version based on configured version string
     std::string configured_version = app_config->get_network_plugin_version();
     BOOST_LOG_TRIVIAL(info) << "Network plugin mode: "
@@ -3924,6 +3959,192 @@ void GUI_App::copy_network_if_available()
     if (installed || !had_cache)
         app_config->set("update_network_plugin", "false");
 }
+
+#ifdef ORCA_OSS_NETWORK_PLUGIN
+void GUI_App::ensure_oss_network_plugin()
+{
+    namespace fs = boost::filesystem;
+    const std::string ver = "02.08.01";
+    // The OSS plugin is a single bundled build, so it is provisioned under the
+    // plain unversioned name rather than a synthetic bambu_networking_<ver>.dll.
+    // BBLNetworkPlugin::initialize() loads this name when the versioned file is
+    // absent; the config version below only seeds the pre-load legacy routing.
+#if defined(_WIN32)
+    const std::string fname = "bambu_networking.dll";
+    const std::string fname_ver = "bambu_networking_" + ver + ".dll";
+#elif defined(__APPLE__)
+    const std::string fname = "libbambu_networking.dylib";
+    const std::string fname_ver = "libbambu_networking_" + ver + ".dylib";
+#else
+    const std::string fname = "libbambu_networking.so";
+    const std::string fname_ver = "libbambu_networking_" + ver + ".so";
+#endif
+
+    fs::path src_dir = fs::path(resources_dir()) / "plugins";
+    fs::path src = src_dir / fname;
+    if (!fs::exists(src)) src = src_dir / fname_ver;
+    if (!fs::exists(src)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": bundled OSS network plugin not found at " << src
+                                   << " — leaving network config untouched";
+        return;
+    }
+
+    boost::system::error_code ec;
+    fs::path dst_dir = fs::path(data_dir()) / "plugins";
+    fs::create_directories(dst_dir, ec);
+
+    // Remove any proprietary Bambu DLLs so they are never loaded
+    if (fs::exists(dst_dir) && fs::is_directory(dst_dir)) {
+        for (fs::directory_iterator it(dst_dir); it != fs::directory_iterator(); ++it) {
+            if (fs::is_regular_file(*it)) {
+                std::string stem = it->path().stem().string();
+                if (stem.rfind("bambu_networking_02.08.", 0) == 0 ||
+                    stem.rfind("bambu_networking_02.07.01", 0) == 0) {
+                    fs::remove(it->path(), ec);
+                }
+            }
+        }
+    }
+
+    fs::path dst = dst_dir / fname;
+    fs::path dst_ver = dst_dir / fname_ver;
+#if defined(_WIN32)
+    fs::path dst_ver_99 = dst_dir / ("bambu_networking_" + ver + ".99.dll");
+#elif defined(__APPLE__)
+    fs::path dst_ver_99 = dst_dir / ("libbambu_networking_" + ver + ".99.dylib");
+#else
+    fs::path dst_ver_99 = dst_dir / ("libbambu_networking_" + ver + ".99.so");
+#endif
+
+    auto copy_if_diff = [](const fs::path& s, const fs::path& d) {
+        boost::system::error_code err;
+        if (!fs::exists(d) || fs::file_size(s, err) != fs::file_size(d, err) || fs::last_write_time(s, err) != fs::last_write_time(d, err)) {
+            fs::copy_file(s, d, fs::copy_option::overwrite_if_exists, err);
+            if (!err) fs::last_write_time(d, fs::last_write_time(s, err), err);
+        }
+    };
+
+    copy_if_diff(src, dst);
+    copy_if_diff(src, dst_ver);
+    copy_if_diff(src, dst_ver_99);
+
+    // Copy all plugin files and extras from src_dir
+    if (fs::exists(src_dir) && fs::is_directory(src_dir)) {
+        for (fs::directory_iterator it(src_dir); it != fs::directory_iterator(); ++it) {
+            if (fs::is_regular_file(*it)) {
+                copy_if_diff(it->path(), dst_dir / it->path().filename());
+            }
+        }
+    }
+
+    // Auto-register BambuSource.dll on Windows for DirectShow camera liveview
+#if defined(_WIN32)
+    fs::path bambu_source_dst = dst_dir / "BambuSource.dll";
+    if (fs::exists(bambu_source_dst)) {
+        HMODULE hModule = LoadLibraryW(bambu_source_dst.c_str());
+        if (hModule) {
+            typedef HRESULT(__stdcall *fnDllRegisterServer)();
+            fnDllRegisterServer pfn = (fnDllRegisterServer)GetProcAddress(hModule, "DllRegisterServer");
+            if (pfn) {
+                HRESULT hr = pfn();
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": BambuSource DllRegisterServer hr=" << hr;
+            }
+            FreeLibrary(hModule);
+        }
+    }
+#endif
+
+    // Auto-import slicer credentials from BambuStudio if present and not yet in data_dir
+    fs::path bbl_studio_dir = fs::path(data_dir()).parent_path() / "BambuStudio";
+    for (const auto& pem : { "slicer_key.pem", "slicer_cert.pem", "slicer_crl.pem" }) {
+        fs::path src_pem = bbl_studio_dir / pem;
+        fs::path dst_pem = fs::path(data_dir()) / pem;
+        if (fs::exists(src_pem) && !fs::exists(dst_pem)) {
+            copy_if_diff(src_pem, dst_pem);
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": auto-imported " << pem << " from BambuStudio";
+        }
+    }
+
+    // Ensure obn.conf enables Option B (Cloud mode without Developer Mode).
+    // Seed missing keys only: rewriting the whole file on every startup
+    // destroyed user-tuned values (cloud_print, prefer_lan_over_tutk).
+    fs::path obn_conf = fs::path(data_dir()) / "obn.conf";
+    try {
+        static const char* kObnDefaults[] = {
+            "block_cloud = 0",
+            "client_name = BambuStudio",
+            "cloud_print = cloud_only",
+            "lan_tls_skip_verify = 1",
+        };
+        std::string existing;
+        {
+            boost::nowide::ifstream in(obn_conf.string(), std::ios::binary);
+            if (in)
+                existing.assign(std::istreambuf_iterator<char>(in),
+                                std::istreambuf_iterator<char>());
+        }
+        auto has_key = [&existing](const std::string& key) {
+            const std::string blob = '\n' + existing;
+            for (size_t i = blob.find('\n'); i != std::string::npos;
+                 i = blob.find('\n', i + 1)) {
+                const size_t s = i + 1;
+                if (blob.compare(s, key.size(), key) == 0 &&
+                    (s + key.size() >= blob.size() ||
+                     blob[s + key.size()] == ' ' || blob[s + key.size()] == '='))
+                    return true;
+            }
+            return false;
+        };
+        std::string add;
+        for (const char* d : kObnDefaults) {
+            const std::string line(d);
+            std::string key = line.substr(0, line.find('='));
+            while (!key.empty() && key.back() == ' ') key.pop_back();
+            if (!has_key(key)) add += line + '\n';
+        }
+        if (existing.empty()) {
+            boost::nowide::ofstream out(obn_conf.string(), std::ios::binary);
+            if (out) {
+                out << "# Open Bamboo Networking Configuration\n"
+                    << "# Option B: Cloud mode without Developer Mode\n";
+                for (const char* d : kObnDefaults) out << d << '\n';
+                out.close();
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": written obn.conf (Option B cloud mode) to " << obn_conf;
+            }
+        } else if (!add.empty()) {
+            boost::nowide::ofstream out(obn_conf.string(),
+                                        std::ios::app | std::ios::binary);
+            if (out) {
+                out << add;
+                out.close();
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": seeded missing obn.conf keys to " << obn_conf;
+            }
+        }
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to write obn.conf: " << e.what();
+    }
+
+    // Same fresh-install gap as install_plugin(): the cloud_providers migration
+    // already ran with installed_networking=false, so seed "bbl" on first provision
+    // and leave later toggles to the Preferences checkbox.
+    {
+        const bool first_install = !app_config->get_bool("installed_networking");
+        app_config->set_bool("installed_networking", true);
+        if (first_install)
+            app_config->add_cloud_provider(BBL_CLOUD_PROVIDER);
+    }
+    app_config->set_network_plugin_version(ver);
+    app_config->set_network_update_prompt_disabled(true);
+    app_config->set("update_network_plugin", "false");
+    app_config->save();
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": provisioned OSS network plugin into " << dst_dir;
+}
+
+bool GUI_App::is_oss_network_plugin() const
+{
+    return BBLNetworkPlugin::instance().is_oss_network_plugin();
+}
+#endif // ORCA_OSS_NETWORK_PLUGIN
 
 // Installs the OTA-downloaded plug-in files from ota/plugins into the plugins folder
 // (network library under its versioned name, and the configured version updated to
@@ -6845,6 +7066,7 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
         }
         else if (msg == "unsigned_studio") {
             BOOST_LOG_TRIVIAL(info) << "process_network_msg, unsigned_studio";
+#ifndef ORCA_OSS_NETWORK_PLUGIN
             // Plugin re-emits this on every subscribe retry; latch it so it shows
             // once per connection episode.
             if (!m_show_error_msgdlg && !m_unsigned_plugin_warning_shown) {
@@ -6862,6 +7084,7 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
                 msg_dlg.ShowModal();
                 m_show_error_msgdlg = false;
             }
+#endif
             return true;
         }
     }
