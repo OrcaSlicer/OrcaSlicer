@@ -1935,8 +1935,7 @@ void InputIpAddressDialog::on_ok(wxMouseEvent& evt)
         std::string port;
         Http::get_host_from_url(str_ip, &port);
         config.opt_string("print_host") = str_ip;
-        if (!port.empty())
-            config.opt_string("printhost_port") = port;
+        config.opt_string("printhost_port") = port;
         if (!is_bbl_agent() && Http::ca_file_supported())
             config.opt_string("printhost_cafile") = m_input_cafile->GetValue().ToStdString();
     }
