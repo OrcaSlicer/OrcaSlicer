@@ -2693,7 +2693,7 @@ CustomGCode::LayerAddress GCodeProcessorResult::instance_layer(unsigned int laye
     const unsigned int local = layer_id - it->first_layer_id;
     if (local >= it->print_zs.size())
         return {};
-    return {it->instance_id, it->print_zs[local], local + 1};
+    return {it->instance_id, it->print_zs[local], it->first_local_layer + local};
 }
 
 void GCodeProcessorResult::reset() {

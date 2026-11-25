@@ -250,7 +250,7 @@ private:
     LayerTickChange m_tick_change;
     size_t m_model_id = 0;
     int m_plate = 0;
-    struct InstanceInfo { std::string label; int filament; int first = -1, end = -1; };
+    struct InstanceInfo { std::string label; int filament; std::vector<int> ticks; };
     std::map<size_t, InstanceInfo> m_instances;
     std::vector<CustomGCode::LayerAddress> m_instance_layers;
     std::multimap<int, CustomGCode::Item> m_instance_events;

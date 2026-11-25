@@ -40,7 +40,7 @@ TEST_CASE("Preview layer edits stay with a copy through reordering and reslicing
                               {0.4, CustomGCode::PausePrint, 1, {}, {}},
                               {4.0, CustomGCode::Custom, 1, {}, "M117 above"}};
     GCodeProcessorResult result;
-    result.instance_layer_ranges = {{a->id().id, 0, {0.2, 0.4}}, {b->id().id, 2, {0.2, 0.4}}};
+    result.instance_layer_ranges = {{a->id().id, 0, 1, {0.2, 0.4}}, {b->id().id, 2, 1, {0.2, 0.4}}};
     Slider slider(0, 3, 0, 3);
     slider.SetDrawMode(true);
     slider.SetExtruderColors({"#FFFFFF", "#123456"});
@@ -113,6 +113,19 @@ TEST_CASE("Preview layer edits stay with a copy through reordering and reslicing
     REQUIRE(slider.instance_events().size() == 1);
     CHECK(slider.instance_events().begin()->first == 3);
     CHECK(slider.instance_layer(3).instance_id == 0);
+
+    // A travel layer inserted by a script sits between two editable layers of the same copy.
+    result.instance_layer_ranges = {{a->id().id, 0, 1, {0.2}}, {a->id().id, 2, 2, {0.4}}, {b->id().id, 3, 1, {0.2}}};
+    result.custom_gcode_layer_ids = {1};
+    refresh();
+    CHECK(slider.find_instance_layer({a->id().id, 0.39}) == 2);
+    CHECK(slider.instance_layer(2).local_layer == 2);
+    REQUIRE(slider.instance_events().count(1) == 1);
+    CHECK(slider.instance_layer(1).instance_id == 0);
+    slider.SetHigherValue(1);
+    slider.reset_post_tick_event();
+    slider.add_custom_gcode("M117 file-only layer");
+    CHECK_FALSE(slider.is_need_post_tick_event());
     slider.SetDrawMode(false);
     CHECK(slider.instance_events().empty());
 }

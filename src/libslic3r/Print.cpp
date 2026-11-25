@@ -6013,6 +6013,53 @@ void Print::export_gcode_from_previous_file(const std::string& file, GCodeProces
     }
 }
 
+// A post-processor can insert travels or layer changes. Match the extrusion paths in
+// order so the edited file can keep the original slice's instance IDs and local layers.
+static void remap_instance_layers(GCodeProcessorResult &sliced, const GCodeProcessorResult &edited)
+{
+    if (sliced.instance_layer_ranges.empty())
+        return;
+    // Edits to comments, line endings or settings can leave every layer, including travel-only layers, intact.
+    if (std::equal(sliced.moves.begin(), sliced.moves.end(), edited.moves.begin(), edited.moves.end(),
+                   [](const auto &a, const auto &b) { return a.layer_id == b.layer_id && a.type == b.type && a.position == b.position; }))
+        return;
+    const auto is_extrusion = [](const auto &move) { return move.type == EMoveType::Extrude && !move.internal_only; };
+    std::vector<std::pair<unsigned int, unsigned int>> layers;
+    auto before = sliced.moves.cbegin();
+    auto after = edited.moves.cbegin();
+    while (true) {
+        before = std::find_if(before, sliced.moves.cend(), is_extrusion);
+        after = std::find_if(after, edited.moves.cend(), is_extrusion);
+        if (before == sliced.moves.cend() || after == edited.moves.cend() || before->position != after->position)
+            break;
+        const auto pair = std::make_pair(before->layer_id, after->layer_id);
+        if (layers.empty() || layers.back() != pair) {
+            // A split or merged extrusion layer has no unique counterpart in the slice.
+            if (!layers.empty() && (pair.first <= layers.back().first || pair.second <= layers.back().second))
+                break;
+            layers.push_back(pair);
+        }
+        ++before;
+        ++after;
+    }
+    if (before != sliced.moves.cend() || after != edited.moves.cend() || layers.empty()) {
+        sliced.instance_layer_ranges.clear();
+        return;
+    }
+    std::vector<GCodeProcessorResult::InstanceLayerRange> ranges;
+    for (const auto &[old_id, new_id] : layers) {
+        const auto address = sliced.instance_layer(old_id);
+        if (address.instance_id == 0)
+            continue;
+        if (ranges.empty() || ranges.back().instance_id != address.instance_id ||
+            ranges.back().first_layer_id + ranges.back().print_zs.size() != new_id ||
+            ranges.back().first_local_layer + ranges.back().print_zs.size() != address.local_layer)
+            ranges.push_back({address.instance_id, new_id, address.local_layer, {}});
+        ranges.back().print_zs.push_back(address.print_z);
+    }
+    sliced.instance_layer_ranges = std::move(ranges);
+}
+
 void Print::reload_gcode_moves(GCodeProcessorResult* result) const
 {
     GCodeProcessor processor;
@@ -6034,6 +6081,11 @@ void Print::reload_gcode_moves(GCodeProcessorResult* result) const
 
     GCodeProcessorResult& reloaded = processor.result();
     std::lock_guard<std::mutex> lock(result->result_mutex);
+    if (result->print_by_object) {
+        remap_instance_layers(*result, reloaded);
+        result->custom_gcode_per_print_z = std::move(reloaded.custom_gcode_per_print_z);
+        result->custom_gcode_layer_ids = std::move(reloaded.custom_gcode_layer_ids);
+    }
     result->moves      = std::move(reloaded.moves);
     result->lines_ends = std::move(reloaded.lines_ends);
 }

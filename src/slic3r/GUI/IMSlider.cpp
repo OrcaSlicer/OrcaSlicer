@@ -322,12 +322,12 @@ CustomGCode::LayerAddress IMSlider::instance_layer(int tick) const
 int IMSlider::find_instance_layer(const CustomGCode::LayerAddress &layer) const
 {
     const auto owner = m_instances.find(layer.instance_id);
-    if (owner == m_instances.end() || owner->second.first < 0)
+    if (owner == m_instances.end())
         return -1;
-    const auto end = m_instance_layers.begin() + owner->second.end;
-    const auto it = std::lower_bound(m_instance_layers.begin() + owner->second.first, end, layer.print_z - EPSILON,
-        [](const auto &address, double z) { return address.print_z < z; });
-    return it == end ? -1 : int(it - m_instance_layers.begin());
+    const auto &ticks = owner->second.ticks;
+    const auto it = std::lower_bound(ticks.begin(), ticks.end(), layer.print_z - EPSILON,
+        [this](int tick, double z) { return m_instance_layers[tick].print_z < z; });
+    return it == ticks.end() ? -1 : *it;
 }
 
 void IMSlider::SetSequentialTicks(const Model &model, const Print &print, const GCodeProcessorResult &result,
@@ -356,7 +356,7 @@ void IMSlider::SetSequentialTicks(const Model &model, const Print &print, const 
                 if (!instance->layer_events.gcodes.empty())
                     marked_instances.push_back(instance);
                 // TRN %1% is the object name and %2% is its copy number in the object list.
-                m_instances.emplace(instance->id().id, InstanceInfo{format(_u8L("%1% (instance %2%)"), object->name, copy + 1), filament});
+                m_instances.emplace(instance->id().id, InstanceInfo{format(_u8L("%1% (instance %2%)"), object->name, copy + 1), filament, {}});
             }
         }
     }
@@ -368,30 +368,25 @@ void IMSlider::SetSequentialTicks(const Model &model, const Print &print, const 
             continue;
         m_values[tick] = address.print_z;
         m_instance_layers[tick] = address;
-        auto &info = owner->second;
-        if (info.first == -1)
-            info.first = int(tick);
-        info.end = int(tick + 1);
+        owner->second.ticks.push_back(int(tick));
     }
     auto add = [&](int tick, const CustomGCode::Item &item) {
         m_ticks.ticks.emplace(TickCode{tick, item.type, item.extruder, item.color, item.extra});
         m_instance_events.emplace(tick, item);
     };
-    if (editor) {
-        for (const ModelInstance *instance : marked_instances) {
-            for (const auto &item : instance->layer_events.gcodes) {
-                int tick = find_instance_layer({instance->id().id, item.print_z});
-                if (tick >= 0)
-                    add(tick, item);
-            }
+    for (const ModelInstance *instance : marked_instances) {
+        for (const auto &item : instance->layer_events.gcodes) {
+            int tick = find_instance_layer({instance->id().id, item.print_z});
+            if (tick >= 0)
+                add(tick, item);
         }
-    } else {
-        for (size_t i = 0; i < std::min(result.custom_gcode_per_print_z.size(), result.custom_gcode_layer_ids.size()); ++i) {
-            const auto layer = result.custom_gcode_layer_ids[i];
-            auto it = std::lower_bound(source_layers.begin(), source_layers.end(), layer);
-            if (it != source_layers.end() && *it == layer)
-                add(int(it - source_layers.begin()), result.custom_gcode_per_print_z[i]);
-        }
+    }
+    // File-only layers, including layers added by post-processing, can show their printed events.
+    for (size_t i = 0; i < std::min(result.custom_gcode_per_print_z.size(), result.custom_gcode_layer_ids.size()); ++i) {
+        const auto layer = result.custom_gcode_layer_ids[i];
+        auto it = std::lower_bound(source_layers.begin(), source_layers.end(), layer);
+        if (it != source_layers.end() && *it == layer && !m_instance_layers[it - source_layers.begin()].instance_id)
+            add(int(it - source_layers.begin()), result.custom_gcode_per_print_z[i]);
     }
     set_as_dirty();
 }
@@ -803,8 +798,8 @@ void IMSlider::draw_colored_band(const ImRect& groove, const ImRect& slideable_r
         // Start each copy with its base filament; a switch on the previous copy ends at this boundary.
         std::map<int, int> changes;
         for (const auto &[id, info] : m_instances)
-            if (info.first >= 0)
-                changes[info.first] = info.filament;
+            if (!info.ticks.empty())
+                changes[info.ticks.front()] = info.filament;
         for (const auto &tick : m_ticks.ticks)
             if (tick.type == ToolChange && can_change_filament(tick.tick))
                 changes[tick.tick] = tick.extruder;

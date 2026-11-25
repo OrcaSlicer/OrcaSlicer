@@ -5227,7 +5227,7 @@ void GCode::process_layers(
     // A single sequential instance with an active tower uses the tower-aware pipeline.
     const auto *instance = print.config().print_sequence == PrintSequence::ByObject && print_object_instances_ordering.size() == 1 ?
                            print_object_instances_ordering.front()->model_instance : nullptr;
-    GCodeProcessorResult::InstanceLayerRange range{instance ? instance->id().id : 0, m_processor.layer_count(), {}};
+    GCodeProcessorResult::InstanceLayerRange range{instance ? instance->id().id : 0, m_processor.layer_count(), 1, {}};
     const auto events_at = instance_events_by_layer(instance, layers_to_print, [](const auto &layer) { return layer.first; });
     // The pipeline is variable: The vase mode filter is optional.
     size_t layer_to_print_idx = 0;
@@ -5338,7 +5338,7 @@ void GCode::process_layers(
     const bool                               prime_extruder)
 {
     const size_t single_object_idx = &instance - instance.print_object->instances().data();
-    GCodeProcessorResult::InstanceLayerRange range{instance.model_instance->id().id, m_processor.layer_count(), {}};
+    GCodeProcessorResult::InstanceLayerRange range{instance.model_instance->id().id, m_processor.layer_count(), 1, {}};
     const auto events_at = instance_events_by_layer(instance.model_instance, layers_to_print,
         [](const LayerToPrint &layer) { return layer.print_z(); });
     // The pipeline is variable: The vase mode filter is optional.

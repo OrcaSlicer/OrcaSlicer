@@ -397,6 +397,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         struct InstanceLayerRange {
             size_t instance_id;          // ModelInstance::id() in the sliced project
             unsigned int first_layer_id; // zero-based MoveVertex::layer_id
+            unsigned int first_local_layer; // one-based within the sliced instance
             std::vector<double> print_zs;
         };
         std::vector<InstanceLayerRange> instance_layer_ranges; // in actual print order
