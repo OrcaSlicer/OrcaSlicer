@@ -27,6 +27,7 @@
 #include <slic3r/GUI/Widgets/WebHosting.hpp>
 
 #include <map>
+#include <stdexcept>
 #include <utility>
 
 #include <catch2/catch_test_macros.hpp>
@@ -37,6 +38,7 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/cast.h>
 #include "python_test_support.hpp"
+#include "slic3r/plugin/host/PluginHostBindings.hpp"
 
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
@@ -627,4 +629,14 @@ TEST_CASE("Plugin host API exposes TriangleMesh geometry to Python", "[PluginHos
     // Instance offset (5, 6, 0) must land in the matrix translation column.
     REQUIRE_THAT(instance_matrix.attr("__getitem__")(py::make_tuple(0, 3)).cast<double>(), WithinAbs(5.0, 1e-6));
     REQUIRE_THAT(instance_matrix.attr("__getitem__")(py::make_tuple(1, 3)).cast<double>(), WithinAbs(6.0, 1e-6));
+}
+
+TEST_CASE("Filament slot colour is validated and stored as the colour picker spells it", "[PluginHost]")
+{
+    using Slic3r::host_bindings::normalize_slot_colour;
+    CHECK(normalize_slot_colour("#1e90ff") == "#1E90FF");
+    CHECK(normalize_slot_colour("#1E90FF80") == "#1E90FF80");
+    CHECK(normalize_slot_colour("#1e90ffff") == "#1E90FF");
+    for (const char* bad : {"", "1E90FF", "#1E90F", "#1E90FFA", "#1E90FG", "#1E90FF8G", "red", "#1E90FF "})
+        CHECK_THROWS_AS(normalize_slot_colour(bad), std::invalid_argument);
 }

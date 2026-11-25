@@ -1,5 +1,7 @@
 #include "slic3r/GUI/ColorPickerDialog.hpp"
 #include "libslic3r/Color.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -198,4 +200,45 @@ TEST_CASE("Filament serialization rejects invalid native RGBA channels", "[Filam
     color[channel] = invalid;
     REQUIRE_THROWS_AS(filament_color_picker_result(color), std::invalid_argument);
     REQUIRE_THROWS_AS(filament_color_picker_result(ColorGradient{ColorRGBA::WHITE(), color}), std::invalid_argument);
+}
+
+TEST_CASE("A filament slot colour write changes only that slot, as the sidebar picker stores it", "[FilamentColorPicker]")
+{
+    using Slic3r::ConfigOptionStrings;
+    Slic3r::DynamicPrintConfig project;
+    project.set_key_value("filament_colour", new ConfigOptionStrings({"#FF0000", "#00FF00"}));
+    project.set_key_value("filament_multi_colour", new ConfigOptionStrings({"#FF0000", "#00FF00 #0000FF"}));
+    project.set_key_value("filament_colour_type", new ConfigOptionStrings({"1", "0"}));
+    const auto strings = [](const Slic3r::DynamicPrintConfig& config, const char* key) {
+        return config.option<ConfigOptionStrings>(key)->values;
+    };
+
+    SECTION("a solid colour replaces a gradient slot and leaves the other slot alone")
+    {
+        const auto config = Slic3r::GUI::filament_colour_slot_config(project, 1, {"#1E90FF"}, false);
+        CHECK(strings(config, "filament_colour") == std::vector<std::string>{"#FF0000", "#1E90FF"});
+        CHECK(strings(config, "filament_multi_colour") == std::vector<std::string>{"#FF0000", "#1E90FF"});
+        CHECK(strings(config, "filament_colour_type") == std::vector<std::string>{"1", "1"});
+        CHECK(strings(project, "filament_colour")[1] == "#00FF00");
+    }
+
+    SECTION("a gradient keeps its colour order")
+    {
+        const auto config = Slic3r::GUI::filament_colour_slot_config(project, 0, {"#111111", "#222222"}, true);
+        CHECK(strings(config, "filament_colour") == std::vector<std::string>{"#111111", "#00FF00"});
+        CHECK(strings(config, "filament_multi_colour") == std::vector<std::string>{"#111111 #222222", "#00FF00 #0000FF"});
+        CHECK(strings(config, "filament_colour_type") == std::vector<std::string>{"0", "0"});
+    }
+
+    SECTION("a slot past the lists grows them")
+    {
+        const auto config = Slic3r::GUI::filament_colour_slot_config(project, 3, {"#ABCDEF"}, false);
+        CHECK(strings(config, "filament_colour") == std::vector<std::string>{"#FF0000", "#00FF00", "", "#ABCDEF"});
+        CHECK(strings(config, "filament_colour_type").size() == 4);
+    }
+
+    SECTION("no colour changes nothing")
+    {
+        CHECK(Slic3r::GUI::filament_colour_slot_config(project, 0, {}, false) == project);
+    }
 }

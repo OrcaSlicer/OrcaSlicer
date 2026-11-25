@@ -149,6 +149,40 @@ may remain changed even if a later commit fails, and the API does not switch bac
 reverse the user's selection or any accepted transfer/discard decision for the previous
 preset.
 
+### Filament slot colour
+
+A slot's colour is not a filament preset setting: `filament_colour` lives in the
+project config, one entry per slot, next to `filament_multi_colour` and
+`filament_colour_type`. A filament transaction still accepts it, so a plugin can set
+a slot's colour together with its preset settings:
+
+```python
+tx = orca.host.preset.filament.begin_update(2)
+tx.set("filament_colour", "#1E90FF")
+tx.commit()
+```
+
+The value must be `#RRGGBB` or `#RRGGBBAA` and is checked by `set()`, which raises
+`ValueError` otherwise; an opaque `FF` alpha is dropped, as the colour picker does.
+Process and printer transactions reject the key with `ValueError`.
+
+On commit the colour is written last, after the preset settings were applied, so a
+failed preset batch leaves it unchanged. The colour write is not part of the preset
+batch's rollback: if it fails after the preset settings were applied, they stay
+applied and `commit()` raises `RuntimeError` saying so.
+
+The colour goes through the sidebar colour picker's own path
+(`PlaterPresetComboBox::sync_colour_config()` and `EVT_FILAMENT_COLOR_CHANGED`):
+the swatch and 3D view update, the project is marked modified, and flushing volumes
+are recalculated when auto-calculation is on. It changes that slot only, even when
+the preset is shared. The slot becomes one solid colour: a gradient, a multi-colour
+filament or an AMS multi-colour record the slot held is discarded. Like a change
+made with the colour picker, it is not added to the undo history.
+
+`PresetUpdateResult.keys` lists `filament_colour` last. For a transaction that set
+nothing but the colour, `shared_slots` holds only the target slot, and `dirty` stays
+about the preset: the colour marks the project modified, not the preset.
+
 ## Outcomes and consistency
 
 The API distinguishes target resolution failures, invalid setting/value, user
