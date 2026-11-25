@@ -8,6 +8,7 @@
 #include "libslic3r/Polygon.hpp"
 #include <cstddef>
 #include <limits>
+#include <optional>
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Print.hpp"
@@ -26,6 +27,7 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/GCode/ToolOrdering.hpp"
@@ -34,6 +36,7 @@
 #include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Slicing.hpp"
+#include "libslic3r/Surface.hpp"
 #include "libslic3r/Utils.hpp"
 
 #include "test_helpers.hpp"
