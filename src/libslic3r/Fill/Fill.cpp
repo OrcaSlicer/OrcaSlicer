@@ -105,7 +105,7 @@ InfillParams calculate_infill_position_rad(const PrintObject* object,
 
     // Built once: layers and objects are filled in parallel, and building a std::regex writes to a cache of the
     // shared locale, which is a data race.
-    static const std::string search_string   = "\\/^~NnZz$LlUuQq#COo|";
+    static const std::string search_string   = "\\/^~NnZz$LlUuQq#COoM|";
     static const std::string coord_string    = "XxYy";
     static const std::string density_string  = "Dd";
     static const std::string angle_string    = "A+-_0123456789.";
@@ -560,7 +560,8 @@ InfillParams calculate_infill_position_rad(const PrintObject* object,
                                            sqrt(1 - pow(negvalue * 2 - 1, 2)); break;          // C-joint, half of circle
         case 17: negvalue  = (is_negative ? -.5 : .5) * cos(negvalue * PI * 2.) + .5; break;   // O-joint, vertical cosine wave
         case 18: negvalue  = .5 * sin(negvalue * PI * 2.) + .5; break;                         // O-joint, vertical sine wave
-        case 19: negvalue  = 0.5; break;                                                       // |-joint, copy of J-joint (is used for compatibility)
+        case 19:                                                                               // M-joint, joint at middle line
+        case 20: negvalue  = 0.5; break;                                                       // |-joint, copy of M-joint (is used for compatibility)
         default: negvalue  = 1.;
         }
 
