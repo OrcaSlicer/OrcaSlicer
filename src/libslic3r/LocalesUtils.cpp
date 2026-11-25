@@ -105,6 +105,19 @@ double atof_decimal_point(std::string_view str)
     return string_to_double_decimal_point(str.substr(i));
 }
 
+double strtod_decimal_point(const char *str, char **endptr)
+{
+    const char *begin = str;
+    while (*begin == ' ' || (*begin >= '\t' && *begin <= '\r'))
+        ++begin;
+    if (*begin == '+' && begin[1] != '-')
+        ++begin;
+    size_t parsed = 0;
+    const double out = string_to_double_decimal_point(begin, &parsed);
+    *endptr = const_cast<char*>(parsed == 0 ? str : begin + parsed);
+    return out;
+}
+
 std::string float_to_string_decimal_point(double value, int precision/* = -1*/)
 {
     // Every branch prints the same digits in the classic locale as the stream at the end, which takes over when a branch
