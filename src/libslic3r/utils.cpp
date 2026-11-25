@@ -79,6 +79,7 @@
 
 #ifdef WIN32
 	#include <windows.h>
+	#include <shlobj.h>
 	#include <psapi.h>
 	#include <direct.h>  // for mkdir
 	#include <io.h>  // for _access
@@ -127,7 +128,6 @@
 #include <boost/nowide/fstream.hpp>
 #include <boost/nowide/convert.hpp>
 #include <boost/nowide/cstdio.hpp>
-#include <boost/nowide/cstdlib.hpp>
 
 // We are using quite an old TBB 2017 U7, which does not support global control API officially.
 // Before we update our build servers, let's use the old API, which is deprecated in up to date TBB.
@@ -445,12 +445,16 @@ std::string default_data_dir()
     if (!ec && !app_folder.empty() && boost::filesystem::exists(portable, ec))
         return portable.string();
 #ifdef _WIN32
-    if (const char *app_data = boost::nowide::getenv("APPDATA"); app_data != nullptr && *app_data != '\0')
-        return (boost::filesystem::path(app_data) / SLIC3R_APP_KEY).string();
+    wchar_t app_data[MAX_PATH];
+    HRESULT hr = SHGetFolderPathW(nullptr, CSIDL_APPDATA, nullptr, SHGFP_TYPE_CURRENT, app_data);
+    if (hr == E_FAIL)
+        hr = SHGetFolderPathW(nullptr, CSIDL_APPDATA, nullptr, SHGFP_TYPE_DEFAULT, app_data);
+    if (SUCCEEDED(hr))
+        return (boost::filesystem::path(boost::nowide::narrow(app_data)) / SLIC3R_APP_KEY).string();
     return std::string();
 #elif defined(__APPLE__)
-    if (const char *home = boost::nowide::getenv("HOME"); home != nullptr && *home != '\0')
-        return (boost::filesystem::path(home) / "Library" / "Application Support" / SLIC3R_APP_KEY).string();
+    if (const std::string base = macos_user_application_support_dir(); !base.empty())
+        return (boost::filesystem::path(base) / SLIC3R_APP_KEY).string();
     return std::string();
 #else
     return xdg_config_dir(SLIC3R_APP_KEY);
