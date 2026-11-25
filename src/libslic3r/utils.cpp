@@ -127,6 +127,7 @@
 #include <boost/nowide/fstream.hpp>
 #include <boost/nowide/convert.hpp>
 #include <boost/nowide/cstdio.hpp>
+#include <boost/nowide/cstdlib.hpp>
 
 // We are using quite an old TBB 2017 U7, which does not support global control API officially.
 // Before we update our build servers, let's use the old API, which is deprecated in up to date TBB.
@@ -431,17 +432,30 @@ bool wayland_socket_available()
 }
 #endif
 
-#ifdef __linux__
 std::string default_data_dir()
 {
     // Runs before any error handling is in place, so a lookup that fails only means no portable dir.
     boost::system::error_code ec;
-    const boost::filesystem::path portable = boost::dll::program_location(ec).parent_path() / "data_dir";
-    if (!ec && boost::filesystem::exists(portable, ec))
-        return portable.string();
-    return xdg_config_dir(SLIC3R_APP_KEY);
-}
+    boost::filesystem::path app_folder = boost::dll::program_location(ec).parent_path();
+#ifdef __APPLE__
+    // On macOS the executable is inside the .app bundle; the GUI checks beside the bundle.
+    app_folder = app_folder.parent_path().parent_path().parent_path();
 #endif
+    const boost::filesystem::path portable = app_folder / "data_dir";
+    if (!ec && !app_folder.empty() && boost::filesystem::exists(portable, ec))
+        return portable.string();
+#ifdef _WIN32
+    if (const char *app_data = boost::nowide::getenv("APPDATA"); app_data != nullptr && *app_data != '\0')
+        return (boost::filesystem::path(app_data) / SLIC3R_APP_KEY).string();
+    return std::string();
+#elif defined(__APPLE__)
+    if (const char *home = boost::nowide::getenv("HOME"); home != nullptr && *home != '\0')
+        return (boost::filesystem::path(home) / "Library" / "Application Support" / SLIC3R_APP_KEY).string();
+    return std::string();
+#else
+    return xdg_config_dir(SLIC3R_APP_KEY);
+#endif
+}
 
 std::string custom_shapes_dir()
 {

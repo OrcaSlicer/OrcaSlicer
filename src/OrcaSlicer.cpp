@@ -2145,6 +2145,11 @@ int CLI::run(int argc, char **argv)
     auto ensure_cli_app_config = [&cli_app_config]() -> AppConfig * {
         if (!cli_app_config) {
             auto app_config = std::make_unique<AppConfig>();
+            if (data_dir().empty()) {
+                const std::string default_dir = default_data_dir();
+                if (!default_dir.empty())
+                    app_config->set_loading_path(AppConfig::config_path(default_dir, AppConfig::EAppMode::Editor));
+            }
             const std::string app_config_error = app_config->load_if_exists();
             if (!app_config_error.empty()) {
                 BOOST_LOG_TRIVIAL(warning) << "Ignoring invalid app config during CLI setup: " << app_config_error;
