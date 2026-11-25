@@ -654,8 +654,24 @@ void PartPlate::calc_exclude_triangles(const ExPolygon &poly)
 {
     m_exclude_triangles.reset();
 
-    if (!init_model_from_poly(m_exclude_triangles, poly, GROUND_Z))
-		BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":Unable to create exclude triangles\n";
+    // ORCA improved logging of exclude area
+    if (init_model_from_poly(m_exclude_triangles, poly, GROUND_Z))
+        return;
+
+    const size_t count = m_exclude_area.size();
+
+    if (count <= 1) // Empty, or the single-point default "0x0".
+        BOOST_LOG_TRIVIAL(info)    << __FUNCTION__ << ": "
+                                   << "not configured, exclude area not drawn";
+    else if (count < 3)
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": "
+                                   << "has " << count << " points, at least 3 are needed to form an area; exclude area not drawn";
+    else if (!is_valid_bed_exclude_area(m_exclude_area))
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": "
+                                   << count << " points not forming an area or a simple polygon; exclude area not drawn";
+    else
+        BOOST_LOG_TRIVIAL(error)   << __FUNCTION__ << ": "
+                                   << "failed to triangulate a valid area with " << count << " points";
 }
 
 // Forward declaration (defined later in this file)
