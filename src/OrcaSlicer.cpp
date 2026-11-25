@@ -2105,21 +2105,28 @@ int CLI::run(int argc, char **argv)
         }
     }
 
+    std::unique_ptr<AppConfig> cli_app_config;
+    auto ensure_cli_app_config = [&cli_app_config]() -> AppConfig * {
+        if (!cli_app_config) {
+            auto app_config = std::make_unique<AppConfig>();
+            const std::string app_config_error = app_config->load_if_exists();
+            if (!app_config_error.empty()) {
+                BOOST_LOG_TRIVIAL(warning) << "Ignoring invalid app config during CLI setup: " << app_config_error;
+                app_config->reset();
+            }
+            cli_app_config = std::move(app_config);
+        }
+        return cli_app_config.get();
+    };
+
     std::unique_ptr<PresetBundle> cli_preset_bundle;
-    auto ensure_cli_preset_bundle = [&cli_preset_bundle](std::string &error) -> PresetBundle * {
+    auto ensure_cli_preset_bundle = [&cli_preset_bundle, &ensure_cli_app_config](std::string &error) -> PresetBundle * {
         if (cli_preset_bundle)
             return cli_preset_bundle.get();
         try {
-            AppConfig app_config;
-            const std::string app_config_error = app_config.load_if_exists();
-            if (!app_config_error.empty()) {
-                BOOST_LOG_TRIVIAL(warning) << "Ignoring invalid app config during CLI preset resolution: " << app_config_error;
-                app_config.reset();
-            }
-
             auto bundle = std::make_unique<PresetBundle>();
             std::string load_error;
-            bundle->load_presets(app_config, config_substitution_rule,
+            bundle->load_presets(*ensure_cli_app_config(), config_substitution_rule,
                                  PresetBundle::PresetPreferences(), &load_error, true);
             if (!load_error.empty()) {
                 error = "Failed to load presets for inheritance resolution: " + load_error;
@@ -7032,15 +7039,8 @@ int CLI::run(int argc, char **argv)
                             ConfigOptionEnumsGeneric* final_nozzle_volume_type_opt = new_print_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true);
                             final_nozzle_volume_type_opt->values.resize(new_extruder_count, nvtStandard);
                         }
-                        if (print_fff) {
-                            AppConfig app_config;
-                            const std::string app_config_error = app_config.load_if_exists();
-                            if (!app_config_error.empty()) {
-                                BOOST_LOG_TRIVIAL(warning) << "Ignoring invalid app config during CLI print overrides: " << app_config_error;
-                                app_config.reset();
-                            }
-                            app_config.apply_print_config_overrides(new_print_config);
-                        }
+                        if (print_fff)
+                            ensure_cli_app_config()->apply_print_config_overrides(new_print_config);
                         print->apply(model, new_print_config);
                         BOOST_LOG_TRIVIAL(info) << boost::format("set no_check to %1%:")%no_check;
                         print->set_no_check_flag(no_check);//BBS
