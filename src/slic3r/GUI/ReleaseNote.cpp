@@ -2250,7 +2250,7 @@ void InputIpAddressDialog::on_text(wxCommandEvent &evt)
     m_button_ok->Enable(enable_btns);
 
     if (current_input_index == 1)
-        m_button_ok->Enable(!str_name.IsEmpty() && str_sn.length() == 15);
+        m_button_ok->Enable(!str_name.IsEmpty() && (str_sn.length() == 15 || str_sn.length() == 18)); // A2L serials have 18 characters
 
 }
 
