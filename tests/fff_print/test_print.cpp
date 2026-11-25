@@ -1424,7 +1424,24 @@ TEST_CASE("Sequential layer commands follow their copy when reordered", "[Print]
             std::swap(copies.front(), copies.back());
         print.apply(model, config);
         REQUIRE(print.validate().string.empty());
-        const std::string gcode = Test::gcode(print);
+        GCodeProcessorResult preview;
+        const std::string gcode = Test::gcode(print, &preview);
+        REQUIRE(preview.from_live_slice);
+        REQUIRE(preview.sequential_layers.size() == 30);
+        for (size_t copy = 0; copy < copies.size(); ++copy) {
+            const auto &layer = preview.sequential_layers[copy * 15 + 1];
+            CHECK(layer.instance_id == copies[copy]->get_labeled_id());
+            CHECK(layer.local_layer == 2);
+            CHECK_THAT(layer.print_z, Catch::Matchers::WithinAbs(0.4, EPSILON));
+        }
+        REQUIRE(preview.custom_gcode_layer_ids.size() == preview.custom_gcode_per_print_z.size());
+        REQUIRE(preview.custom_gcode_layer_ids.size() == 3);
+        for (size_t i = 0; i < preview.custom_gcode_layer_ids.size(); ++i) {
+            const auto &layer = preview.sequential_layers.at(preview.custom_gcode_layer_ids[i]);
+            CHECK(layer.local_layer == 2);
+            CHECK(layer.instance_id == (preview.custom_gcode_per_print_z[i].type == CustomGCode::PausePrint ?
+                                       copies[pass]->get_labeled_id() : second->get_labeled_id()));
+        }
         auto check_command = [&](const std::string &command, int copy) {
             const auto pos = gcode.find("\n" + command + "\n");
             REQUIRE(pos != std::string::npos);
@@ -1445,7 +1462,9 @@ TEST_CASE("Sequential layer commands follow their copy when reordered", "[Print]
     CHECK(Test::gcode(print).find("\nM117 second\n") == std::string::npos);
     config.set_deserialize_strict("print_sequence", "by layer");
     print.apply(model, config);
-    const std::string by_layer = Test::gcode(print);
+    GCodeProcessorResult preview;
+    const std::string by_layer = Test::gcode(print, &preview);
+    CHECK(preview.sequential_layers.empty());
     CHECK(by_layer.find("\nM117 paused\n") == std::string::npos);
     CHECK(by_layer.find("\nM117 plate\n") != std::string::npos);
 }
@@ -1507,6 +1526,37 @@ TEST_CASE("Sequential printing prints the shorter object first when the taller o
     place_boxes_in_one_y_band({ 30, 10 }, print, model);
 
     REQUIRE_THAT(first_object_peak_z(Test::gcode(print)), Catch::Matchers::WithinAbs(10.0, 0.3));
+}
+
+TEST_CASE("Preview identifies the same instance when clearance changes its print order", "[Print][InstanceLayerEvents]")
+{
+    Print print;
+    Model model;
+    place_boxes_in_one_y_band({30, 10}, print, model);
+    ModelInstance *tall = model.objects.front()->instances.front();
+    ModelInstance *short_copy = model.objects.back()->instances.front();
+    tall->layer_events.gcodes = {{0.4, CustomGCode::Custom, 1, {}, "M117 tall only"}};
+    const DynamicPrintConfig config = print.full_print_config();
+    print.apply(model, config);
+    REQUIRE(print.validate().string.empty());
+
+    GCodeProcessorResult live;
+    const std::string gcode = Test::gcode(print, &live);
+    ScopedTemporaryFile file(".gcode");
+    std::ofstream(file.string(), std::ios::binary) << gcode;
+    GCodeProcessor reader;
+    reader.process_file(file.string());
+    CHECK(live.from_live_slice);
+    CHECK_FALSE(reader.get_result().from_live_slice);
+    for (const GCodeProcessorResult *preview : {&std::as_const(live), &reader.get_result()}) {
+        REQUIRE(preview->sequential_layers.size() == 200);
+        CHECK(preview->sequential_layers.front().instance_id == short_copy->get_labeled_id());
+        REQUIRE(preview->custom_gcode_layer_ids.size() == 1);
+        const auto index = preview->custom_gcode_layer_ids.front();
+        REQUIRE(index == 51);
+        CHECK(preview->sequential_layers[index].instance_id == tall->get_labeled_id());
+        CHECK(preview->sequential_layers[index].local_layer == 2);
+    }
 }
 
 TEST_CASE("Sequential printing keeps a list order that already clears the rod", "[Print]")

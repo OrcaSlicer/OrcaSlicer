@@ -2728,6 +2728,9 @@ void GCodeProcessorResult::reset() {
     filament_densities = std::vector<float>(MIN_EXTRUDERS_COUNT, DEFAULT_FILAMENT_DENSITY);
     filament_costs = std::vector<float>(MIN_EXTRUDERS_COUNT, DEFAULT_FILAMENT_COST);
     custom_gcode_per_print_z = std::vector<CustomGCode::Item>();
+    custom_gcode_layer_ids.clear();
+    sequential_layers.clear();
+    from_live_slice = false;
     spiral_vase_mode = false;
     layer_filaments.clear();
     filament_change_sequence.clear();
@@ -3824,6 +3827,7 @@ void GCodeProcessor::reset()
     m_in_config_block = false;
     m_g1_line_id = 0;
     m_layer_id = 0;
+    m_sequential_instance = 0;
     m_cp_color.reset();
     m_mass_locator = nullptr;
     m_seams_detector.reset();
@@ -4469,18 +4473,19 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
         return;
     }
 
-    // ; Z_HEIGHT:
-    if (boost::starts_with(comment, " Z_HEIGHT:")) {
-        m_print_z = get_z_height(comment);
+    if (boost::starts_with(comment, CustomGCode::SequentialInstanceTag)) {
+        size_t id = 0;
+        m_sequential_instance = parse_number(comment.substr(sizeof(CustomGCode::SequentialInstanceTag) - 1), id) ? id : 0;
         return;
     }
-
-    // ;Z: -- the layer Z tag non-BBL printers write.  Only read on a belt printer,
-    // where the preview labels its layers with it (GCodeViewer::load_as_gcode);
-    // elsewhere print_z stays unset, as it always was, so nothing downstream of
-    // it changes for other printers.
-    if (m_belt_printer && boost::starts_with(comment, "Z:")) {
+    if (boost::starts_with(comment, " Z_HEIGHT:") || ((m_belt_printer || m_sequential_instance) && boost::starts_with(comment, "Z:"))) {
         m_print_z = get_z_height(comment);
+        if (m_sequential_instance && m_result.sequential_layers.size() < m_layer_id) {
+            auto &layers = m_result.sequential_layers;
+            const unsigned int local_layer = !layers.empty() && layers.back().instance_id == m_sequential_instance ? layers.back().local_layer + 1 : 1;
+            layers.resize(m_layer_id);
+            layers.back() = {m_sequential_instance, m_print_z, local_layer};
+        }
         return;
     }
 
@@ -4683,6 +4688,7 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
             store_move_vertex(EMoveType::Color_change);
             CustomGCode::Item item = { static_cast<double>(m_end_position[2]), CustomGCode::ColorChange, filament_id + 1, color, "" };
             m_result.custom_gcode_per_print_z.emplace_back(item);
+            m_result.custom_gcode_layer_ids.emplace_back(std::max(1u, m_layer_id) - 1);
             m_options_z_corrector.set();
             process_custom_gcode_time(CustomGCode::ColorChange);
             process_filaments(CustomGCode::ColorChange);
@@ -4696,6 +4702,7 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
         store_move_vertex(EMoveType::Pause_Print);
         CustomGCode::Item item = { static_cast<double>(m_end_position[2]), CustomGCode::PausePrint, get_filament_id() + 1, "", ""};
         m_result.custom_gcode_per_print_z.emplace_back(item);
+        m_result.custom_gcode_layer_ids.emplace_back(std::max(1u, m_layer_id) - 1);
         m_options_z_corrector.set();
         process_custom_gcode_time(CustomGCode::PausePrint);
         return;
@@ -4706,6 +4713,7 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
         store_move_vertex(EMoveType::Custom_GCode);
         CustomGCode::Item item = { static_cast<double>(m_end_position[2]), CustomGCode::Custom, get_filament_id() + 1, "", ""};
         m_result.custom_gcode_per_print_z.emplace_back(item);
+        m_result.custom_gcode_layer_ids.emplace_back(std::max(1u, m_layer_id) - 1);
         m_options_z_corrector.set();
         return;
     }

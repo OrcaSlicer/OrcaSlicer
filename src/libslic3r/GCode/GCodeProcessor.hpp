@@ -393,6 +393,10 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         std::vector<uint64_t> limit_filament_maps;
         PrintEstimatedStatistics print_statistics;
         std::vector<CustomGCode::Item> custom_gcode_per_print_z;
+        std::vector<unsigned int> custom_gcode_layer_ids;
+        std::vector<CustomGCode::LayerAddress> sequential_layers; // indexed by MoveVertex::layer_id
+        bool from_live_slice = false; // otherwise labels refer to instance IDs saved in the project
+
         bool spiral_vase_mode;
         //BBS
         std::vector<SliceWarning> warnings;
@@ -468,6 +472,9 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             filament_costs = std::forward<Other>(other).filament_costs;
             print_statistics = std::forward<Other>(other).print_statistics;
             custom_gcode_per_print_z = std::forward<Other>(other).custom_gcode_per_print_z;
+            custom_gcode_layer_ids = std::forward<Other>(other).custom_gcode_layer_ids;
+            sequential_layers = std::forward<Other>(other).sequential_layers;
+            from_live_slice = other.from_live_slice;
             spiral_vase_mode = std::forward<Other>(other).spiral_vase_mode;
             warnings = std::forward<Other>(other).warnings;
             bed_type = std::forward<Other>(other).bed_type;
@@ -1365,6 +1372,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         bool m_in_config_block;
         unsigned int m_g1_line_id;
         unsigned int m_layer_id;
+        size_t m_sequential_instance = 0;
         CpColor m_cp_color;
         SeamsDetector m_seams_detector;
         // Orca: an outer wall tagged in the G-code starts on the next printing move

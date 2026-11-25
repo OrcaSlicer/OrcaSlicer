@@ -3076,6 +3076,7 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     }
     if (result != nullptr) {
         *result = std::move(m_processor.extract_result());
+        result->from_live_slice = true;
         // set the filename to the correct value
         result->filename = path;
     }
@@ -4740,6 +4741,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 // and export G-code into file.
                 tool_ordering.cal_most_used_extruder(print.config());
                 m_printed_objects.emplace_back(&object);
+                file.write_format(";%s%zu\n", CustomGCode::SequentialInstanceTag, instance.model_instance->get_labeled_id());
                 this->process_layers(print, tool_ordering, collect_layers_to_print(object, print.config().belt_printer.value), **print_object_instance_sequential_active, file,
                                      prime_extruder);
                 {
@@ -4823,6 +4825,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             // Process all layers of all objects (non-sequential mode) with a parallel pipeline:
             // Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
             // and export G-code into file.
+            if (print.config().print_sequence == PrintSequence::ByObject && print_object_instances_ordering.size() == 1)
+                file.write_format(";%s%zu\n", CustomGCode::SequentialInstanceTag, print_object_instances_ordering.front()->model_instance->get_labeled_id());
             this->process_layers(print, tool_ordering, print_object_instances_ordering, layers_to_print, file);
             {
                 //save the flush statitics stored in tool ordering

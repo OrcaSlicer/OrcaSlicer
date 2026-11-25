@@ -219,6 +219,7 @@ private:
     bool m_last_belt_show_designed{ true };
     // Belt printers: the print Z of each viewer layer, in the viewer's layer numbering.
     std::vector<double> m_belt_layer_zs;
+    std::vector<unsigned int> m_source_layer_ids;
     //BBS: save m_gcode_result as well
     const GCodeProcessorResult* m_gcode_result;
     std::array<unsigned int, static_cast<size_t>(EMoveType::Count)> m_move_type_counts{};
@@ -408,6 +409,7 @@ private:
     GCodeProcessorResult::SettingsIds m_settings_ids;
 
     std::vector<CustomGCode::Item> m_custom_gcode_per_print_z;
+    std::vector<CustomGCode::Item> displayed_layer_events() const;
     GCodeProcessorResult::ObjectMass              m_plate_mass;
     std::vector<GCodeProcessorResult::ObjectMass> m_object_masses;
     std::vector<GCodeProcessorResult::ObjectMass> m_body_masses;
@@ -487,6 +489,7 @@ public:
     const BoundingBoxf3& get_paths_bounding_box() const { return m_paths_bounding_box; }
     const BoundingBoxf3& get_max_bounding_box() const { return m_max_bounding_box; }
     const BoundingBoxf3& get_shell_bounding_box() const { return m_shell_bounding_box; }
+    const std::vector<unsigned int> &source_layer_ids() const { return m_source_layer_ids; }
     std::vector<double> get_layers_zs() const {
         // Belt printers: the layer Z the slider labels and the colour-change ticks
         // use is the layer's print Z (see load_as_gcode), not a toolpath height.

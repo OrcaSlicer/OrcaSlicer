@@ -10,6 +10,29 @@ namespace Slic3r {
 using namespace CustomGCode;
 
 namespace GUI {
+bool LayerTickChange::apply_to_instance(CustomGCode::Info &events) const
+{
+    if (before == after)
+        return false;
+    if (before) {
+        auto it = std::find(events.gcodes.begin(), events.gcodes.end(), *before);
+        if (it == events.gcodes.end())
+            return false;
+        if (after)
+            *it = *after;
+        else
+            events.gcodes.erase(it);
+    } else if (after) {
+        events.gcodes.push_back(*after);
+        std::stable_sort(events.gcodes.begin(), events.gcodes.end());
+    }
+    if (after && after->type == ToolChange)
+        events.mode = MultiAsSingle;
+    else if (events.mode == Undef)
+        events.mode = SingleExtruder;
+    return true;
+}
+
 std::string TickCodeInfo::get_color_for_tick(TickCode tick, Type type, const int extruder)
 {
     auto opposite_one_color = [](const std::string& color) {

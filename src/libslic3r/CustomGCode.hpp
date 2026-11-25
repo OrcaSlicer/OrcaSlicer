@@ -14,6 +14,14 @@ class DynamicPrintConfig;
 
 namespace CustomGCode {
 
+// The export labels each sequential instance once. Layer Z can start over at each label.
+inline constexpr char SequentialInstanceTag[] = " ORCA_INSTANCE_ID: ";
+struct LayerAddress {
+    size_t instance_id = 0;
+    double print_z = 0.;
+    unsigned int local_layer = 0; // 1-based, including support and apron layers
+};
+
 enum Type
 {
     ColorChange,

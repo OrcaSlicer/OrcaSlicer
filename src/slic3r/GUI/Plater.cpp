@@ -8230,11 +8230,32 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
     if (wxGetApp().is_editor()) {
         preview->get_wxglcanvas()->Bind(EVT_GLCANVAS_TAB, [this](SimpleEvent&) { select_next_view_3D(); });
         preview->get_wxglcanvas()->Bind(EVT_GLCANVAS_COLLAPSE_SIDEBAR, [this](SimpleEvent&) { this->q->collapse_sidebar(!this->q->is_sidebar_collapsed());  });
-        preview->get_wxglcanvas()->Bind(EVT_CUSTOMEVT_TICKSCHANGED, [this](wxCommandEvent& event) {
-            CustomGCode::Type tick_event_type = (CustomGCode::Type)event.GetInt();
-            Model& model = wxGetApp().plater()->model();
-            //BBS: replace model custom gcode with current plate custom gcode
-            model.plates_custom_gcodes[model.curr_plate_index] = preview->get_canvas3d()->get_gcode_viewer().get_layers_slider()->GetTicksValues();
+        preview->get_wxglcanvas()->Bind(EVT_CUSTOMEVT_TICKSCHANGED, [this](LayerTickEvent &event) {
+            const auto &change = event.data;
+            const CustomGCode::Type tick_event_type = change.type;
+            Model &model = this->q->model();
+            const PartPlate *plate = this->q->get_partplate_list().get_curr_plate();
+            if (model.id().id != change.model_id || model.curr_plate_index != change.plate || !plate ||
+                (plate->get_real_print_seq() == PrintSequence::ByObject) != (change.instance_id != 0))
+                return;
+            if (change.instance_id) {
+                ModelInstance *owner = nullptr;
+                for (ModelObject *object : model.objects)
+                    for (ModelInstance *instance : object->instances)
+                        if (instance->id().id == change.instance_id)
+                            owner = instance;
+                if (!owner)
+                    return;
+                auto events = owner->layer_events;
+                if (!change.apply_to_instance(events))
+                    return;
+                this->q->take_snapshot(_u8L("Edit instance layer event"));
+                owner->layer_events = std::move(events);
+            } else {
+                if (change.plate_events == model.get_curr_plate_custom_gcodes())
+                    return;
+                model.plates_custom_gcodes[change.plate] = change.plate_events;
+            }
 
             // BBS set to invalid state only
             if (tick_event_type == CustomGCode::Type::ToolChange || tick_event_type == CustomGCode::Type::Custom || tick_event_type == CustomGCode::Type::Template || tick_event_type == CustomGCode::Type::PausePrint) {

@@ -556,22 +556,23 @@ void Preview::update_layers_slider(const std::vector<double>& layers_z, bool kee
         bool span_changed = layers_z.empty() || std::abs(layers_z.back() - m_layers_slider->GetMaxValueD()) > epsilon() /*1e-6*/;
         force_sliders_full_range |= span_changed;
     }
-    bool snap_to_min = force_sliders_full_range || m_layers_slider->is_lower_at_min();
-    bool snap_to_max = force_sliders_full_range || m_layers_slider->is_higher_at_max();
+    const bool was_at_min = m_layers_slider->is_lower_at_min();
+    const bool was_at_max = m_layers_slider->is_higher_at_max();
 
     // Detect and set manipulation mode for double slider
     update_layers_slider_mode();
 
-    Plater* plater = wxGetApp().plater();
-    //BBS: replace model custom gcode with current plate custom gcode
-    CustomGCode::Info ticks_info_from_curr_plate;
-    if (wxGetApp().is_editor())
-        ticks_info_from_curr_plate = plater->model().get_curr_plate_custom_gcodes();
-    else {
-        ticks_info_from_curr_plate.mode   = CustomGCode::Mode::SingleExtruder;
-        ticks_info_from_curr_plate.gcodes = m_gcode_result->custom_gcode_per_print_z;
-    }
-    check_layers_slider_values(ticks_info_from_curr_plate.gcodes, layers_z);
+    Plater *plater = wxGetApp().plater();
+    const Model &model = plater->model();
+    const bool editor = wxGetApp().is_editor() && !plater->only_gcode_mode() && !plater->using_exported_file() && !model.objects.empty();
+    auto *plate = plater->get_partplate_list().get_curr_plate();
+    const bool sliced_by_object = !m_gcode_result->sequential_layers.empty();
+    const bool project_by_object = editor && plate->get_real_print_seq() == PrintSequence::ByObject;
+    const bool sequential = sliced_by_object || project_by_object;
+    const auto old_low = m_layers_slider->instance_layer(m_layers_slider->GetLowerValue());
+    const auto old_high = m_layers_slider->instance_layer(m_layers_slider->GetHigherValue());
+    m_layers_slider->SetTickProject(editor ? model.id().id : 0, model.curr_plate_index);
+    m_layers_slider->SetDrawMode(sequential);
 
     // first of all update extruder colors to avoid crash, when we are switching printer preset from MM to SM
     m_layers_slider->SetExtruderColors(plater->get_extruder_colors_from_plater_config(wxGetApp().is_editor() ? nullptr : m_gcode_result));
@@ -579,26 +580,29 @@ void Preview::update_layers_slider(const std::vector<double>& layers_z, bool kee
     assert(m_layers_slider->GetMinValue() == 0);
     m_layers_slider->SetMaxValue(layers_z.empty() ? 0 : layers_z.size() - 1);
 
+    if (sequential)
+        m_layers_slider->SetSequentialTicks(model, *m_process->fff_print(), *m_gcode_result,
+                                            m_canvas->get_gcode_viewer().source_layer_ids(), project_by_object);
+    else {
+        CustomGCode::Info events = editor ? model.get_curr_plate_custom_gcodes() :
+                                            CustomGCode::Info{CustomGCode::SingleExtruder, m_gcode_result->custom_gcode_per_print_z};
+        check_layers_slider_values(events.gcodes, layers_z);
+        m_layers_slider->SetTicksValues(events);
+    }
+
     int idx_low  = 0;
     int idx_high = m_layers_slider->GetMaxValue();
     if (!layers_z.empty()) {
-        if (!snap_to_min) {
-            int idx_new = find_close_layer_idx(layers_z, z_low, epsilon() /*1e-6*/);
+        if (!was_at_min && (sequential || !force_sliders_full_range)) {
+            int idx_new = sequential ? m_layers_slider->find_instance_layer(old_low) : find_close_layer_idx(layers_z, z_low, epsilon());
             if (idx_new != -1) idx_low = idx_new;
         }
-        if (!snap_to_max) {
-            int idx_new = find_close_layer_idx(layers_z, z_high, epsilon() /*1e-6*/);
+        if (!was_at_max && (sequential || !force_sliders_full_range)) {
+            int idx_new = sequential ? m_layers_slider->find_instance_layer(old_high) : find_close_layer_idx(layers_z, z_high, epsilon());
             if (idx_new != -1) idx_high = idx_new;
         }
     }
     m_layers_slider->SetSelectionSpan(idx_low, idx_high);
-
-    auto curr_plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
-    auto curr_print_seq = curr_plate->get_real_print_seq();
-    bool sequential_print = (curr_print_seq == PrintSequence::ByObject);
-    m_layers_slider->SetDrawMode(sequential_print);
-    
-    m_layers_slider->SetTicksValues(ticks_info_from_curr_plate);
 
     auto print_mode_stat = m_gcode_result->print_statistics.modes.front();
     m_layers_slider->SetLayersTimes(m_canvas->get_gcode_layers_times_cache(), print_mode_stat.time);

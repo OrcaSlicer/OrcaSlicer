@@ -10,6 +10,7 @@
 #include <functional>
 #include "libslic3r/ExPolygon.hpp"
 #include <string>
+#include <utility>
 #include "libslic3r/CustomGCode.hpp"
 #include <cstdio>
 #include "slic3r/GUI/ImGuiWrapper.hpp"
@@ -38,6 +39,11 @@
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/format.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/libslic3r.h"
+#include <map>
 #include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
@@ -180,7 +186,7 @@ IMSlider::IMSlider(int lowerValue, int higherValue, int minValue, int maxValue, 
     m_extra_style = style == wxSL_VERTICAL ? 0 : 0;
     m_selection   = ssHigher;
     m_is_need_post_tick_changed_event = false;
-    m_tick_change_event_type = Type::Unknown;
+    m_tick_change = {};
 
     m_ticks.set_extruder_colors(&m_extruder_colors);
 }
@@ -260,7 +266,7 @@ Info IMSlider::GetTicksValues() const
     const int val_size = m_values.size();
     if (!m_values.empty())
         for (const TickCode &tick : m_ticks.ticks) {
-            if (tick.tick > val_size) break;
+            if (tick.tick >= val_size) break;
             values.emplace_back(CustomGCode::Item{m_values[tick.tick], tick.type, tick.extruder, tick.color, tick.extra});
         }
 
@@ -303,25 +309,120 @@ void IMSlider::SetTicksValues(const Info &custom_gcode_per_print_z)
         }
     }
 
-    //auto has_tick_execpt = [this](CustomGCode::Type type) {
-    //    for (const TickCode& tick : m_ticks.ticks)
-    //        if (tick.type != type) return true;
-
-    //    return false;
-    //};
-    if ((!m_ticks.empty() /*&& has_tick_execpt(PausePrint)*/) && m_draw_mode == dmSequentialFffPrint) {
-        for (auto it{ m_ticks.ticks.begin() }, end{ m_ticks.ticks.end() }; it != end;) {
-            if (true/*it->type != PausePrint*/)
-                it = m_ticks.ticks.erase(it);
-            else
-                ++it;
-        }
-        post_ticks_changed_event();
-    }
-
     if (custom_gcode_per_print_z.mode && !custom_gcode_per_print_z.gcodes.empty()) m_ticks.mode = custom_gcode_per_print_z.mode;
 
     set_as_dirty();
+}
+
+CustomGCode::LayerAddress IMSlider::instance_layer(int tick) const
+{
+    return tick >= 0 && size_t(tick) < m_instance_layers.size() ? m_instance_layers[tick] : CustomGCode::LayerAddress{};
+}
+
+int IMSlider::find_instance_layer(const CustomGCode::LayerAddress &layer) const
+{
+    const auto owner = m_instances.find(layer.instance_id);
+    if (owner == m_instances.end() || owner->second.first < 0)
+        return -1;
+    const auto end = m_instance_layers.begin() + owner->second.end;
+    const auto it = std::lower_bound(m_instance_layers.begin() + owner->second.first, end, layer.print_z - EPSILON,
+        [](const auto &address, double z) { return address.print_z < z; });
+    return it == end ? -1 : int(it - m_instance_layers.begin());
+}
+
+void IMSlider::SetSequentialTicks(const Model &model, const Print &print, const GCodeProcessorResult &result,
+                                  const std::vector<unsigned int> &source_layers, bool editor)
+{
+    m_ticks.ticks.clear();
+    m_ticks.mode = m_mode;
+    m_instances.clear();
+    m_instance_events.clear();
+    m_instance_layers.assign(m_values.size(), {});
+    if (source_layers.size() != m_values.size())
+        return;
+
+    std::map<size_t, const ModelInstance *> by_label;
+    std::map<size_t, int> base_filaments;
+    if (editor) {
+        for (const PrintObject *object : print.objects()) {
+            const auto tools = object->object_extruders();
+            base_filaments[object->model_object()->id().id] = tools.size() == 1 ? int(tools.front() + 1) : 0;
+        }
+        for (const ModelObject *object : model.objects) {
+            const auto base = base_filaments.find(object->id().id);
+            const int filament = base != base_filaments.end() ? base->second : (m_can_change_color ? std::max(1, m_only_extruder) : 0);
+            for (size_t copy = 0; copy < object->instances.size(); ++copy) {
+                const auto *instance = object->instances[copy];
+                const size_t label = result.from_live_slice ? instance->get_labeled_id() : instance->loaded_id;
+                if (label == 0)
+                    continue;
+                auto entry = by_label.emplace(label, instance);
+                if (!entry.second)
+                    entry.first->second = nullptr; // ambiguous labels in an imported project
+                // TRN %1% is the object name and %2% is its copy number in the object list.
+                m_instances.emplace(instance->id().id, InstanceInfo{format(_u8L("%1% (instance %2%)"), object->name, copy + 1), filament});
+            }
+        }
+    }
+
+    for (size_t tick = 0; tick < source_layers.size(); ++tick) {
+        if (source_layers[tick] >= result.sequential_layers.size())
+            continue;
+        auto address = result.sequential_layers[source_layers[tick]];
+        if (!address.instance_id)
+            continue;
+        m_values[tick] = address.print_z;
+        const auto owner = by_label.find(address.instance_id);
+        address.instance_id = owner != by_label.end() && owner->second ? owner->second->id().id : 0;
+        m_instance_layers[tick] = address;
+        if (address.instance_id) {
+            auto &info = m_instances.at(address.instance_id);
+            if (info.first == -1)
+                info.first = int(tick);
+            info.end = int(tick + 1);
+        }
+    }
+    auto add = [&](int tick, const CustomGCode::Item &item) {
+        m_ticks.ticks.emplace(TickCode{tick, item.type, item.extruder, item.color, item.extra});
+        m_instance_events.emplace(tick, item);
+    };
+    if (editor) {
+        for (const auto &[label, instance] : by_label) {
+            if (!instance)
+                continue;
+            for (const auto &item : instance->layer_events.gcodes) {
+                int tick = find_instance_layer({instance->id().id, item.print_z});
+                if (tick >= 0)
+                    add(tick, item);
+            }
+        }
+    } else {
+        for (size_t i = 0; i < std::min(result.custom_gcode_per_print_z.size(), result.custom_gcode_layer_ids.size()); ++i) {
+            const auto layer = result.custom_gcode_layer_ids[i];
+            auto it = std::lower_bound(source_layers.begin(), source_layers.end(), layer);
+            if (it != source_layers.end() && *it == layer)
+                add(int(it - source_layers.begin()), result.custom_gcode_per_print_z[i]);
+        }
+    }
+    set_as_dirty();
+}
+
+bool IMSlider::can_change_filament(int tick) const
+{
+    if (!is_sequential())
+        return m_can_change_color;
+    const auto it = m_instances.find(instance_layer(tick).instance_id);
+    return it != m_instances.end() && it->second.filament > 0 && !m_is_spiral_vase;
+}
+
+std::string IMSlider::instance_layer_label(int tick) const
+{
+    const auto layer = instance_layer(tick);
+    const auto it = m_instances.find(layer.instance_id);
+    if (it == m_instances.end())
+        return {};
+    // TRN %1% identifies a copy in the object list and %2% is a layer number within that copy.
+    return format(_u8L("%1%, layer %2%"), it->second.label, layer.local_layer);
 }
 
 void IMSlider::SetLayersTimes(const std::vector<float> &layers_times, float total_time)
@@ -357,9 +458,14 @@ void IMSlider::SetLayersTimes(const std::vector<double> &layers_times)
 
 void IMSlider::SetDrawMode(bool is_sequential_print)
 {
-    m_draw_mode = is_sequential_print   ? dmSequentialFffPrint  :
-                                          dmRegular;
-    m_can_change_color = m_can_change_color && !(m_draw_mode == dmSequentialFffPrint);
+    m_draw_mode = is_sequential_print ? dmSequentialFffPrint : dmRegular;
+    if (is_sequential())
+        m_is_wipe_tower = false; // times and labels follow the chronological slider
+    else {
+        m_instances.clear();
+        m_instance_layers.clear();
+        m_instance_events.clear();
+    }
 }
 
 void IMSlider::SetModeAndOnlyExtruder(const bool is_one_extruder_printed_model, const int only_extruder, bool can_change_color)
@@ -400,16 +506,53 @@ bool IMSlider::IsNewPrint()
     return true;
 }
 
-void IMSlider::post_ticks_changed_event(Type type)
+void IMSlider::post_ticks_changed_event(Type type, int tick)
 {
-    m_tick_change_event_type = type;
+    if (!m_model_id || !m_menu_enable)
+        return;
+    LayerTickChange change;
+    change.model_id = m_model_id;
+    change.plate = m_plate;
+    change.type = type;
+    if (is_sequential()) {
+        const auto address = instance_layer(tick);
+        if (!address.instance_id)
+            return;
+        change.instance_id = address.instance_id;
+        auto previous = m_instance_events.find(tick);
+        if (previous != m_instance_events.end())
+            change.before = previous->second;
+        if (auto it = m_ticks.ticks.find(TickCode{tick}); it != m_ticks.ticks.end())
+            change.after = CustomGCode::Item{change.before ? change.before->print_z : address.print_z,
+                                             it->type, it->extruder, it->color, it->extra};
+        if (change.before == change.after)
+            return;
+
+        // The user can edit again before reslicing. Keep both the legend and the
+        // next edit's original value in step with the visible tick.
+        if (change.after) {
+            if (previous == m_instance_events.end())
+                m_instance_events.emplace(tick, *change.after);
+            else
+                previous->second = *change.after;
+        } else {
+            auto next = m_instance_events.erase(previous);
+            if (next != m_instance_events.end() && next->first == tick) {
+                const auto &item = next->second;
+                m_ticks.ticks.emplace(TickCode{tick, item.type, item.extruder, item.color, item.extra});
+            }
+        }
+    } else
+        change.plate_events = GetTicksValues();
+    m_tick_change = std::move(change);
     m_is_need_post_tick_changed_event = true;
 }
 
 void IMSlider::add_custom_gcode(std::string custom_gcode)
 {
-    if (m_selection == ssUndef) return;
-    const int tick = m_selection == ssLower ? m_lower_value : m_higher_value;
+    if (m_selection == ssUndef || !m_menu_enable) return;
+    const int tick = GetActiveValue();
+    if (is_sequential() && !instance_layer(tick).instance_id) return;
 
     const auto it = m_ticks.ticks.find(TickCode{ tick });
 
@@ -418,15 +561,16 @@ void IMSlider::add_custom_gcode(std::string custom_gcode)
     }
     m_ticks.ticks.emplace(TickCode{ tick, Custom, std::max<int>(1, m_only_extruder), "", custom_gcode });
 
-    post_ticks_changed_event(Custom);
+    post_ticks_changed_event(Custom, tick);
 }
 
 void IMSlider::add_code_as_tick(Type type, int selected_extruder)
 {
-    if (m_selection == ssUndef) return;
-    const int tick = m_selection == ssLower ? m_lower_value : m_higher_value;
+    if (m_selection == ssUndef || !m_menu_enable) return;
+    const int tick = GetActiveValue();
+    if (is_sequential() && !instance_layer(tick).instance_id) return;
 
-    if (!check_ticks_changed_event(type)) {
+    if ((type == ToolChange && !can_change_filament(tick)) || !check_ticks_changed_event(type)) {
         BOOST_LOG_TRIVIAL(trace) << "check ticks change event false";
         return;
     }
@@ -445,13 +589,16 @@ void IMSlider::add_code_as_tick(Type type, int selected_extruder)
     } else
         return;
 
-    post_ticks_changed_event(type);
+    post_ticks_changed_event(type, tick);
 }
 
 void IMSlider::delete_tick(const TickCode& tick) {
-    Type t = tick.type; // Avoid Use-After-Free issue, which resets the tick.type to 0
+    if (!m_menu_enable || (is_sequential() && !instance_layer(tick.tick).instance_id))
+        return;
+    const Type type = tick.type;
+    const int index = tick.tick;
     m_ticks.ticks.erase(tick);
-    post_ticks_changed_event(t);
+    post_ticks_changed_event(type, index);
 }
 
 bool IMSlider::check_ticks_changed_event(Type type)
@@ -660,6 +807,26 @@ void IMSlider::draw_colored_band(const ImRect& groove, const ImRect& slideable_r
             ImGui::RenderFrame(main_band.Min, main_band.Max, clr, false, main_band.GetWidth() * 0.5);
         }
     };
+    if (is_sequential()) {
+        // Start each copy with its base filament; a switch on the previous copy ends at this boundary.
+        std::map<int, int> changes;
+        for (const auto &[id, info] : m_instances)
+            if (info.first >= 0)
+                changes[info.first] = info.filament;
+        for (const auto &tick : m_ticks.ticks)
+            if (tick.type == ToolChange && can_change_filament(tick.tick))
+                changes[tick.tick] = tick.extruder;
+        for (const auto &[tick, filament] : changes) {
+            const ImU32 color = filament > 0 && size_t(filament) <= m_extruder_colors.size() ?
+                ImGuiWrapper::to_ImU32(decode_color_to_float_array(m_extruder_colors[filament - 1])) :
+                (m_is_dark ? GROOVE_COLOR_DARK : GROOVE_COLOR_LIGHT);
+            if (tick == 0)
+                draw_main_band(color);
+            else
+                draw_band(color, ImRect(main_band.Min, ImVec2(main_band.Max.x, get_pos_from_value(GetMinValue(), GetMaxValue(), tick, slideable_region))));
+        }
+        return;
+    }
     //draw main colored band
     const int default_color_idx = m_mode == MultiAsSingle ? std::max<int>(m_only_extruder - 1, 0) : 0;
     ColorRGBA rgba = decode_color_to_float_array(m_extruder_colors[default_color_idx]);
@@ -820,6 +987,8 @@ void IMSlider::draw_ticks(const ImRect& slideable_region) {
         ImVec2 label_block_anchor = ImVec2(slideable_region.GetCenter().x - tick_offset.y, get_tick_pos(tick_it->tick));
         draw_custom_label_block(label_block_anchor, tick_it->type);
 
+        if (!m_menu_enable || (is_sequential() && !instance_layer(tick_it->tick).instance_id))
+            return;
         // draw delete icon
         ImVec2      icon_pos       = ImVec2(slideable_region.GetCenter().x + icon_offset.x, get_tick_pos(tick_it->tick) - icon_offset.y);
         button_with_pos(m_delete_icon_id, icon_size, icon_pos);
@@ -853,9 +1022,11 @@ void IMSlider::show_tooltip(const TickCode& tick){
     if (tick.tick > 0) {
         time_str = get_label(tick.tick - 1, ltEstimatedTime);
     }
-    if (!time_str.empty()) {
+    if (!time_str.empty())
         time_str += "\n";
-    }
+    const auto owner = instance_layer_label(tick.tick);
+    if (!owner.empty())
+        time_str = owner + "\n" + time_str;
     
     switch (tick.type)
     {
@@ -915,6 +1086,9 @@ void IMSlider::draw_tick_on_mouse_position(const ImRect& slideable_region) {
     
     // draw layer time
     std::string label = get_label(tick, ltEstimatedTime);
+    const auto owner = instance_layer_label(tick);
+    if (!owner.empty())
+        label = label.empty() ? owner : owner + "\n" + label;
     show_tooltip(label);
 }
 
@@ -1534,7 +1708,12 @@ void IMSlider::render_add_menu()
         m_show_menu = false;
     }
     if (ImGui::BeginPopup("slider_add_menu_popup", ImGuiWindowFlags_NoMove)) {
-        bool menu_item_enable = m_draw_mode != dmSequentialFffPrint;
+        bool menu_item_enable = !is_sequential() || instance_layer(GetActiveValue()).instance_id != 0;
+        if (is_sequential()) {
+            const auto label = instance_layer_label(GetActiveValue());
+            ImGui::TextDisabled("%s", label.empty() ? _u8L("Slice this plate to edit instance layer events.").c_str() : label.c_str());
+            ImGui::Separator();
+        }
         bool hovered = false;
         {
             if (menu_item_with_icon(_u8L("Add Pause").c_str(), "", ImVec2(0, 0), 0, false, menu_item_enable, &hovered)) {
@@ -1562,7 +1741,7 @@ void IMSlider::render_add_menu()
 
         //BBS render this menu item only when extruder_num > 1
         if (extruder_num > 1) {
-            if (!m_can_change_color) {
+            if (!can_change_filament(GetActiveValue())) {
                 begin_menu(_u8L("Change Filament").c_str(), false);
             }
             else if (begin_menu(_u8L("Change Filament").c_str())) {
@@ -1589,6 +1768,10 @@ void IMSlider::render_edit_menu(const TickCode& tick)
         m_show_menu = false;
     }
     if (ImGui::BeginPopup("slider_edit_menu_popup", ImGuiWindowFlags_NoMove)) {
+        if (is_sequential()) {
+            ImGui::TextDisabled("%s", instance_layer_label(tick.tick).c_str());
+            ImGui::Separator();
+        }
         switch (tick.type)
         {
         case CustomGCode::PausePrint:
@@ -1614,7 +1797,7 @@ void IMSlider::render_edit_menu(const TickCode& tick)
         case CustomGCode::ToolChange: {
             int extruder_num = m_extruder_colors.size();
             if (extruder_num > 1) {
-                if (!m_can_change_color) {
+                if (!can_change_filament(tick.tick)) {
                     begin_menu(_u8L("Change Filament").c_str(), false);
                 }
                 else if (begin_menu(_u8L("Change Filament").c_str())) {

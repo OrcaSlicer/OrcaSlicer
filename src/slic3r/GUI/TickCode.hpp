@@ -2,12 +2,26 @@
 #define slic3r_GUI_TickCode_hpp_
 
 #include "libslic3r/CustomGCode.hpp"
+#include <cstddef>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
 namespace Slic3r {
 namespace GUI {
+
+// Captured when the user edits a tick so a queued wx event cannot be retargeted
+// by moving the slider, switching plates, or reordering the object list.
+struct LayerTickChange {
+    CustomGCode::Type type = CustomGCode::Unknown;
+    size_t model_id = 0;
+    int plate = 0;
+    size_t instance_id = 0;
+    CustomGCode::Info plate_events;
+    std::optional<CustomGCode::Item> before, after;
+    bool apply_to_instance(CustomGCode::Info &events) const;
+};
 
 struct TickCode
 {
