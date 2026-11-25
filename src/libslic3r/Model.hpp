@@ -1486,6 +1486,8 @@ public:
     bool use_loaded_id_for_label {false};
     int arrange_order = 0; // BBS
     size_t loaded_id = 0; // BBS
+    // Layer events for sequential printing travel with this copy, including after reordering.
+    CustomGCode::Info layer_events;
 
     size_t get_labeled_id() const
     {
@@ -1625,6 +1627,7 @@ private:
         , m_offset_to_assembly(other.m_offset_to_assembly)
         , print_volume_state(ModelInstancePVS_Inside)
         , printable(other.printable)
+        , layer_events(other.layer_events)
         , object(object)
         , m_assemble_initialized(false) { assert(this->id().valid() && this->id() != other.id()); }
 
@@ -1638,7 +1641,7 @@ private:
 	ModelInstance() : ObjectBase(-1), object(nullptr) { assert(this->id().invalid()); }
     // BBS. Add added members to archive.
     template<class Archive> void serialize(Archive& ar) {
-        ar(m_transformation, print_volume_state, printable, m_assemble_transformation, m_offset_to_assembly, m_assemble_initialized);
+        ar(m_transformation, print_volume_state, printable, m_assemble_transformation, m_offset_to_assembly, m_assemble_initialized, layer_events);
     }
 };
 
