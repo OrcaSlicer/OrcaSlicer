@@ -59,3 +59,18 @@ TEST_CASE("The print start of a 3MF names the plate to print", "[QidiPrinterAgen
           nlohmann::json{{"filename", "Cube.gcode.3mf"}, {"plateindex", "2"}});
     CHECK(QidiPrinterAgent::print_start_request(params, "Cube.gcode") == nlohmann::json{{"filename", "Cube.gcode"}});
 }
+
+TEST_CASE("A Box slot's filament name matches its per-printer preset", "[QidiPrinterAgent]")
+{
+    // The Box reports vendor and product ("QIDI" + "PETG Tough"); presets add an "@<printer> <nozzle>" suffix.
+    CHECK(QidiPrinterAgent::preset_names_filament("QIDI PETG Tough @Qidi X-Max 4 0.4 nozzle", "QIDI PETG Tough"));
+    CHECK(QidiPrinterAgent::preset_names_filament("QIDI PETG-CF", "qidi petg-cf"));
+}
+
+TEST_CASE("A Box slot's filament name does not match a different product or an empty name", "[QidiPrinterAgent]")
+{
+    // A shared prefix is not a match, so "QIDI PETG" must not pick "QIDI PETG Tough".
+    CHECK_FALSE(QidiPrinterAgent::preset_names_filament("QIDI PETG Tough @Qidi X-Max 4 0.4 nozzle", "QIDI PETG"));
+    CHECK_FALSE(QidiPrinterAgent::preset_names_filament("Generic PETG @Qidi X-Max 4 0.4 nozzle", "QIDI PETG Tough"));
+    CHECK_FALSE(QidiPrinterAgent::preset_names_filament("QIDI PETG Tough", ""));
+}
