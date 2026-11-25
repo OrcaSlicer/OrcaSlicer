@@ -144,6 +144,11 @@ void AppConfig::set_defaults()
         if (get("auto_slice_after_change").empty())
             set_bool("auto_slice_after_change", false);
 
+        // ORCA: global override for interference travel (OrcaSlicer#17866). Off by default, as most
+        // prints are better off keeping the retraction reduction.
+        if (get(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL).empty())
+            set_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL, false);
+
         if (get("auto_slice_change_delay_seconds").empty())
             set("auto_slice_change_delay_seconds", "1");
 
@@ -771,6 +776,19 @@ void AppConfig::set_defaults()
     erase("app", "object_settings_pos");
     erase("app", "object_settings_size");
     erase("app", "severity_level");
+}
+
+// ORCA: The "Disable interference travel everywhere" preference (OrcaSlicer#17866) lives in the
+// application configuration instead of a preset, so that neither a printer, filament or process
+// preset, nor a .3mf project loaded over them, nor an upgrade that rewrites the presets can switch
+// the interference travel back on.
+void AppConfig::apply_print_config_overrides(DynamicPrintConfig &config) const
+{
+    // "Reduce infill retraction" is what lets a travel move cross already printed infill without
+    // retracting. Forced off, every such travel retracts first, so the nozzle cannot pick material up
+    // on the way and drop it on the print as a blob or a burnt crumb.
+    if (this->get_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL) && config.has("reduce_infill_retraction"))
+        config.set_key_value("reduce_infill_retraction", new ConfigOptionBool(false));
 }
 
 #ifdef WIN32
