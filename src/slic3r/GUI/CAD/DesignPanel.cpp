@@ -11776,7 +11776,7 @@ void DesignPanel::update_fillet_gizmo()
 
 // Push the active Hole card's plane + position + diameter/depth to the viewport gizmo.
 // Grey the FEATURE buttons whose tool cannot run yet, and say why in the tooltip (o9j).
-// Tommaso reported the array controls as MISSING; they were not, but Pattern with no body
+// A user reported the array controls as MISSING; they were not, but Pattern with no body
 // accepted the click, opened nothing, and wrote its refusal somewhere other than where the click
 // happened — from the user's seat that is indistinguishable from a dead button. A control that
 // cannot act should look like it cannot act, before it is pressed.

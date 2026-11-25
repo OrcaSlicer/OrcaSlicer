@@ -7836,7 +7836,7 @@ TEST_CASE("An entity sketch that forms no wire fails instead of extruding a defa
                    Catch::Matchers::WithinRel(M_PI * 100.0 * 5.0, 0.01));
     }
 
-    // Behaviour CHANGED 2026-09-02 by Tommaso's decision. This used to require a refusal,
+    // Behaviour CHANGED 2026-09-02 by decision. This used to require a refusal,
     // because back then ignoring the stray meant falling through to a default rectangle — a
     // box the user never drew. That fallback is gone: the closed profile is now built and the
     // stray open chain is discarded, exactly as the viewport's region_loops already discards

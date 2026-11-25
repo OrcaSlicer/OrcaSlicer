@@ -11,7 +11,7 @@ the Fusion button and any licence/payment field are never touched. Meshes of 100
 jw-docs/assembly/m2s/dec.py) or pass --max-tris to refuse them.
 
 ScanRuler is not a one-shot converter: it is an agent-driven, feature-by-feature reverse engineering session that the user watches
-(see ~/projects/scanruler and scanruler-connect.sh), so it has no engine here.
+so it has no engine here.
 
 Exit 0 = a STEP file exists, is non-empty and has a STEP header (its path is printed). Anything else exits non-zero and says why on stderr.
 Needs: pip install playwright && python -m playwright install chromium; trimesh only for the triangle count (optional).

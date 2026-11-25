@@ -2,8 +2,8 @@
 mode: lite | cycle: 1/3 | lenses used: compiler benchmarking, game-engine frame budgets, metrology / GD&T, aviation checklists, fuzzing | provider diversity: no (main context; the lenses are my own recall, not blind workers) | human seed: user asked for steps, speed, features, accuracy "etc"
 
 Goal: a repeatable score card that says how good the MCP is for an AI that drives it, and what to fix next.
-Hard: runs unattended on the nativedev rig in minutes; every metric has a target value and a pass/fail; no metric that needs a human to judge.
-Soft: the same card runs on behemoth's live app (Rule 13) for design work, on the rig for the loop.
+Hard: runs unattended on the headless rig in minutes; every metric has a target value and a pass/fail; no metric that needs a human to judge.
+Soft: the same card runs on the live desktop app for design work, on the rig for the loop.
 Function (domain nouns removed): measure how cheaply, quickly, correctly, completely and safely an agent can get a described object built through a command interface, and rank what to improve.
 Negative space: a benchmark that rewards fast wrong answers; a score that moves with machine load; targets set from what the code already does (always passes).
 

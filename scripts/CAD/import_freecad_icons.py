@@ -5,11 +5,11 @@ The ribbon (DesignImGuiUi.cpp) looks for fc_<id>.svg first, then the verb's own 
 draws text only. Re-run after adding a verb to DesignOffer.hpp and extending MAP.
 Colours are NOT baked in: the ribbon re-tints near-neutral strokes for the active light/dark theme at load.
 
-  import_freecad_icons.py [freecad_src_dir]   # default ~/projects/apps/snaporca_freecad/freecad/src
+  import_freecad_icons.py [freecad_src_dir]   # default ./freecad/src
 """
 import os, shutil, sys
 
-SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.expanduser('~/projects/apps/snaporca_freecad/freecad/src')
+SRC = sys.argv[1] if len(sys.argv) > 1 else 'freecad/src'
 DST = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'resources', 'images')
 
 PD  = 'Mod/PartDesign/Gui/Resources/icons/PartDesign_%s.svg'

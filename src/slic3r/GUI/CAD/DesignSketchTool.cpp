@@ -5991,7 +5991,7 @@ void DesignSketchTool::render_mate_face(const Vec3d& origin, const Vec3d& X, con
     // both ends and it is the overhang that makes this a wedge rather than a blade.
     //
     // BUT FIDELITY ALONE FAILS. Scaled honestly the ridge is 11.3 mm on an 83.3 mm face, 13.6 %
-    // of the width, and at 22-48 px that reads as a scratch -- Tommaso looked at the faithful
+    // of the width, and at 22-48 px that reads as a scratch -- a user looked at the faithful
     // version and could not find the muzzle at all, which is the only test that counts. A glyph
     // is a symbol, not a scale model, so it gets two deliberate exaggerations:
     //
@@ -8783,7 +8783,7 @@ DesignSketchTool::region_loops_chained(const std::vector<SketchEntity>& ents) co
     // NESTING. A loop drawn inside another one is that one's HOLE. Without this a sketch is
     // just N disjoint filled polygons, so "the plate with the hole" is not expressible and the
     // multi-loop kernel path (88v) is unreachable from the viewport — which is exactly
-    // what Tommaso hit: a rectangle with a circle inside extruded to a plain box, because only
+    // what a user hit: a rectangle with a circle inside extruded to a plain box, because only
     // the rectangle loop could be picked and only its entities were passed on.
     //
     // Loops in a well-formed sketch do not cross, so testing ONE point decides containment.

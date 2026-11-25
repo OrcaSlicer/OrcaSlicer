@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-# The MCP + GUI checks of the SolidCraft epic, run against a RUNNING app on the behemoth rig (agent Xvfb :10, MCP socket
+# The MCP + GUI checks of the SolidCraft epic, run against a RUNNING app on a remote test rig (Xvfb :10, MCP socket
 # /tmp/orca-test.sock). run-all-checks.sh is the older docker gate; this one needs no container: copy the scripts across, run
 # them in order, print one line each and exit non-zero if any failed.
 #
 #   scripts/CAD/run-rig-checks.sh                 # every check
 #   ONLY="undo sheet" scripts/CAD/run-rig-checks.sh   # a subset, by name
 #   (the app needs ORCA_CAD_MCP_UI=1 for the ui.* drivers)
-#   HOST=tommaso@100.103.234.2 SOCK=/tmp/orca-test.sock DISPLAY_RIG=:10
+#   HOST=user@rig SOCK=/tmp/orca-test.sock DISPLAY_RIG=:10
 #
-# The app must be up (see the orca-cad-rig skill). Each check starts from new_document and leaves the tab clean; between them the
+# The app must be up on HOST. Each check starts from new_document and leaves the tab clean; between them the
 # harness answers any modal dialog the app raised.
 # The remote commands are meant to expand HOST, SOCK and DSP here, on the client.
 # shellcheck disable=SC2029
 set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.." || exit 1
-HOST="${HOST:-tommaso@100.103.234.2}"
+HOST="${HOST:?set HOST=user@address of the test rig}"
 SOCK="${SOCK:-/tmp/orca-test.sock}"
 DSP="${DISPLAY_RIG:-:10}"
 fail=0
@@ -45,7 +45,7 @@ CHECKS=(
 ssh "$HOST" 'mkdir -p /tmp/orc/scripts/CAD' || exit 1
 scp -q scripts/CAD/*.py "$HOST:/tmp/orc/scripts/CAD/" || exit 1
 ssh "$HOST" 'mkdir -p /tmp/orc/tests/cad_scenarios' && scp -q tests/cad_scenarios/*.json "$HOST:/tmp/orc/tests/cad_scenarios/" || exit 1
-ssh "$HOST" "test -S $SOCK" || { echo "no MCP socket $SOCK on $HOST: start the app first (orca-cad-rig skill)"; exit 2; }
+ssh "$HOST" "test -S $SOCK" || { echo "no MCP socket $SOCK on $HOST: start the app first"; exit 2; }
 
 for entry in "${CHECKS[@]}"; do
     name="${entry%%:*}"; script="${entry#*:}"

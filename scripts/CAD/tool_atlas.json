@@ -2944,5 +2944,5 @@
       "World axes"
     ]
   },
-  "_ratified": "Row order ratified 2026-07-31 by Tommaso. Changing an index is a breaking change (charter 4.1)."
+  "_ratified": "Row order ratified 2026-07-31. Changing an index is a breaking change (charter 4.1)."
 }
