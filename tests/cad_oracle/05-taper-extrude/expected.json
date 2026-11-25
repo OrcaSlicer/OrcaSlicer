@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "square frustum: base 40 at z=0, top a1 = 40 + 2*30*tan10 at z=30 (positive taper grows outward); V = h/3 (A0 + A1 + sqrt(A0 A1)), z_c = h (A0 + 2 sqrt(A0A1) + 3 A1) / (4 (A0 + sqrt(A0A1) + A1)), sides = 4 trapezoids (a0+a1)/2 * h/cos(10)",
+  "body_count": 1,
+  "volume_mm3": 61814.82595953696,
+  "area_mm2": 9676.91517028238,
+  "center_of_mass": [
+    0.0,
+    0.0,
+    16.162703882981894
+  ],
+  "bbox": {
+    "min": [
+      -25.28980942125395,
+      -25.28980942125395,
+      0.0
+    ],
+    "max": [
+      25.28980942125395,
+      25.28980942125395,
+      30.0
+    ]
+  },
+  "faces": 6
+}

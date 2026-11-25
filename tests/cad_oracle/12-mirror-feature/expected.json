@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "block [-30,30]x[0,30]x[0,10] + two bosses r=6 h=15 at (+-15,15) on top (mirror across YZ): V = abc + 2 pi r^2 h, A = 2(ab+bc+ca) + 2 * 2 pi r h",
+  "body_count": 1,
+  "volume_mm3": 21392.920065876977,
+  "area_mm2": 6530.973355292325,
+  "center_of_mass": [
+    0.0,
+    14.999999999999998,
+    6.98250171986157
+  ],
+  "bbox": {
+    "min": [
+      -30.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      30.0,
+      30.0,
+      25.0
+    ]
+  },
+  "faces": 10
+}

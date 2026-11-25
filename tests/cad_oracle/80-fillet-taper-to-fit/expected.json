@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "plate (top 20 -> 2 wide over x 0..40, 15 high) with its top front edge filleted at 3, fit: taper. The radius is the taper law: a clamped cubic B-spline in u = x/40 on 8 equal spans, control radii min(3, 0.9 room) at the Greville abscissae, room = min(20 - 18u, 15) tan 45 deg (top face width, front face height): 3.0000, 3.0000, 3.0000, 3.0000, 3.0000, 3.0000, 3.0000, 3.0000, 3.0000, 2.4750, 1.8000. Sections are quarter rounds; V, moments and areas integrated along the edge",
+  "body_count": 1,
+  "volume_mm3": 6525.960225143974,
+  "area_mm2": 2415.0715445174765,
+  "center_of_mass": [
+    14.492429126634498,
+    6.796108235394649,
+    7.422397574623911
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      40.0,
+      20.0,
+      15.0
+    ]
+  },
+  "faces": 7
+}

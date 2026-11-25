@@ -252,4 +252,36 @@ infer_relations(const std::vector<SketchEntity>& entities, int new_ei,
     return out;
 }
 
+DirectionGuide infer_direction_guide(const std::vector<SketchEntity>& entities, const Vec2d& anchor, const Vec2d& raw,
+                                     double ang_tol_rad)
+{
+    DirectionGuide best;
+    const Vec2d d = raw - anchor;
+    const double r = d.norm();
+    if (r < 1e-9) return best;
+    const Vec2d u = d / r;
+    double best_dev = ang_tol_rad;
+    for (size_t i = 0; i < entities.size(); ++i) {
+        const SketchEntity& e = entities[i];
+        if (e.type != SketchEntity::Type::Line) continue;
+        const Vec2d l = e.p1 - e.p0;
+        const double ll = l.norm();
+        if (ll < 1e-9) continue;
+        const Vec2d lu = l / ll;
+        const double dot = u.dot(lu), cross = u.x() * lu.y() - u.y() * lu.x();
+        const double par_dev = std::asin(std::min(1.0, std::abs(cross)));   // 0 when parallel
+        const double perp_dev = std::asin(std::min(1.0, std::abs(dot)));    // 0 when perpendicular
+        if (par_dev < best_dev && dot != 0.0) {
+            best_dev = par_dev; best.kind = DirectionGuide::Kind::Parallel; best.entity = int(i);
+            best.dir = dot > 0 ? lu : Vec2d(-lu);
+        }
+        if (perp_dev < best_dev) {
+            const Vec2d n(-lu.y(), lu.x());
+            best_dev = perp_dev; best.kind = DirectionGuide::Kind::Perpendicular; best.entity = int(i);
+            best.dir = u.dot(n) >= 0 ? n : Vec2d(-n);
+        }
+    }
+    return best;
+}
+
 } // namespace Slic3r

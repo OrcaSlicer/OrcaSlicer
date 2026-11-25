@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "box [-25,25]^2x[-20,0] minus sphere r=15 at the origin (lower hemisphere removed): V = abc - 2/3 pi r^3, hemisphere centroid z = -3r/8; A = 2(ab+bc+ca) - pi r^2 + 2 pi r^2",
+  "body_count": 1,
+  "volume_mm3": 42931.41652942297,
+  "area_mm2": 9706.858347057703,
+  "center_of_mass": [
+    0.0,
+    0.0,
+    -10.720336182305564
+  ],
+  "bbox": {
+    "min": [
+      -25.0,
+      -25.0,
+      -20.0
+    ],
+    "max": [
+      25.0,
+      25.0,
+      0.0
+    ]
+  },
+  "faces": 7
+}

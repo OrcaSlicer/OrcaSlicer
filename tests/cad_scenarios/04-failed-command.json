@@ -1,0 +1,31 @@
+{
+ "name": "a failed command leaves the document and the undo stack alone",
+ "steps": [
+  {
+   "mcp": "extrude",
+   "params": {
+    "width": 40,
+    "height": 30,
+    "distance": 20
+   }
+  },
+  {
+   "mark": true
+  },
+  {
+   "mcp": "extrude",
+   "params": {
+    "sketch": 99,
+    "distance": 5
+   },
+   "refused": true
+  },
+  {
+   "expect": {
+    "features": 2,
+    "undo_delta": 0,
+    "error": false
+   }
+  }
+ ]
+}

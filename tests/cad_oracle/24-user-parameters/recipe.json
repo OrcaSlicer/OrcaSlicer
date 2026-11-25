@@ -1,0 +1,275 @@
+{
+ "id": "24-user-parameters",
+ "name": "Parametric block driven by user parameters",
+ "description": "Rectangle sized by params width x depth (corner at origin), centred hole d=hole_d, extruded height.",
+ "exercises": [
+  "user_parameters",
+  "sketch_constraints",
+  "dimension_expressions",
+  "extrude",
+  "recompute"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [
+  {
+   "name": "width",
+   "expression": "60 mm",
+   "unit": "mm"
+  },
+  {
+   "name": "depth",
+   "expression": "40 mm",
+   "unit": "mm"
+  },
+  {
+   "name": "height",
+   "expression": "15 mm",
+   "unit": "mm"
+  },
+  {
+   "name": "hole_d",
+   "expression": "10 mm",
+   "unit": "mm"
+  }
+ ],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Sketch1",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       0,
+       0
+      ]
+     },
+     "end": {
+      "at": [
+       50,
+       0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       50.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       50,
+       30
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       50.0,
+       30.0
+      ]
+     },
+     "end": {
+      "at": [
+       0,
+       30
+      ]
+     },
+     "id": "l3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l3.end",
+      "at": [
+       0.0,
+       30.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "id": "l4"
+    },
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       25,
+       15
+      ]
+     },
+     "radius": 4,
+     "id": "c1"
+    }
+   ],
+   "constraints": [
+    {
+     "type": "coincident",
+     "refs": [
+      "l1.start",
+      "origin"
+     ]
+    },
+    {
+     "type": "horizontal",
+     "refs": [
+      "l1"
+     ]
+    },
+    {
+     "type": "vertical",
+     "refs": [
+      "l2"
+     ]
+    },
+    {
+     "type": "horizontal",
+     "refs": [
+      "l3"
+     ]
+    },
+    {
+     "type": "vertical",
+     "refs": [
+      "l4"
+     ]
+    }
+   ],
+   "dimensions": [
+    {
+     "type": "distance",
+     "refs": [
+      "l1.start",
+      "l1.end"
+     ],
+     "value": "width",
+     "unit": "mm",
+     "orientation": "horizontal"
+    },
+    {
+     "type": "distance",
+     "refs": [
+      "l2.start",
+      "l2.end"
+     ],
+     "value": "depth",
+     "unit": "mm",
+     "orientation": "vertical"
+    },
+    {
+     "type": "diameter",
+     "refs": [
+      "c1"
+     ],
+     "value": "hole_d",
+     "unit": "mm"
+    },
+    {
+     "type": "distance",
+     "refs": [
+      "origin",
+      "c1.center"
+     ],
+     "value": "width / 2",
+     "unit": "mm",
+     "orientation": "horizontal"
+    },
+    {
+     "type": "distance",
+     "refs": [
+      "origin",
+      "c1.center"
+     ],
+     "value": "depth / 2",
+     "unit": "mm",
+     "orientation": "vertical"
+    }
+   ]
+  },
+  {
+   "op": "extrude",
+   "name": "Extrude1",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "Sketch1",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "l1",
+        "l2",
+        "l3",
+        "l4"
+       ]
+      },
+      {
+       "outer": false,
+       "curves": [
+        "c1"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": "height",
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Block"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "tube r5 along line 20 + R5 quarter bend + line 20: V = pi r^2 L, A = 2 pi r L + 2 pi r^2 (Pappus, valid while bend radius >= r; here equal so the inner side pinches to a line); bend centroid at (R^2 + r^2/4)/R * sinc(pi/4) along the bisector",
+  "body_count": 1,
+  "volume_mm3": 3758.4429286578784,
+  "area_mm2": 1660.4568041426407,
+  "center_of_mass": [
+    6.436662063480004,
+    0.0,
+    18.563337936519996
+  ],
+  "bbox": {
+    "min": [
+      -5.0,
+      -5.0,
+      0.0
+    ],
+    "max": [
+      25.0,
+      5.0,
+      30.0
+    ]
+  },
+  "faces": 5
+}

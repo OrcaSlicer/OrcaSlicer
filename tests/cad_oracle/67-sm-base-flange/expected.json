@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "plate 100 x 60 x t, t = 2.5 (Steel (mm) rule), thickness along +Z: V = 100*60*t, A = 2(ab+bc+ca)",
+  "body_count": 1,
+  "volume_mm3": 15000.0,
+  "area_mm2": 12800.0,
+  "center_of_mass": [
+    50.0,
+    30.0,
+    1.25
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      100.0,
+      60.0,
+      2.5
+    ]
+  },
+  "faces": 6
+}

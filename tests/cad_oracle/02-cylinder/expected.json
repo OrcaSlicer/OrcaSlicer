@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "cylinder r=15 h=50 on XY: V = pi r^2 h, A = 2 pi r^2 + 2 pi r h",
+  "body_count": 1,
+  "volume_mm3": 35342.917352885175,
+  "area_mm2": 6126.105674500097,
+  "center_of_mass": [
+    0.0,
+    0.0,
+    25.0
+  ],
+  "bbox": {
+    "min": [
+      -15.0,
+      -15.0,
+      0.0
+    ],
+    "max": [
+      15.0,
+      15.0,
+      50.0
+    ]
+  },
+  "faces": 3
+}

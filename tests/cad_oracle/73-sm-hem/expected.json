@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "68's part (height 20) plus a flat hem on the flange top edge: 180 deg bend, inner radius = hem gap 0.01, outer 2.51, about (y 2.51, z 20), folded toward +y (inside); hem leg 8 - (0.01 + 2.5) = 5.49: y 2.52..5.02, z 14.51..20; extrusion along x 100",
+  "body_count": 1,
+  "volume_mm3": 21334.723242251002,
+  "area_mm2": 17994.473058645817,
+  "center_of_mass": [
+    50.0,
+    21.698805014882137,
+    5.264118547850942
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      100.0,
+      60.0,
+      22.51
+    ]
+  },
+  "note": "SolidCraft conventions: hem gap 0.01 mm (rule hem_gap), hem length measured to the outer face of the hem bend (top at z 22.51), hem folds over the flange's inner face."
+}

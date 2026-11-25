@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "box 50x40x30 minus cavity x3..47, y0..37, z3..30 (3 mm walls, top and front open)",
+  "body_count": 1,
+  "volume_mm3": 16044,
+  "area_mm2": 11398,
+  "center_of_mass": [
+    25.0,
+    24.1095736724009,
+    10.890426327599103
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      50.0,
+      40.0,
+      30.0
+    ]
+  },
+  "faces": 10
+}

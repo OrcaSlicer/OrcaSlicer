@@ -1,0 +1,125 @@
+{
+ "id": "22-split-body",
+ "name": "Split body by angled plane",
+ "description": "Cylinder r=20, z from -30 to 30 (symmetric extrude) split by a plane containing the X axis tilted 30 deg from XY.",
+ "exercises": [
+  "extrude",
+  "symmetric",
+  "construction_plane_angle",
+  "split_body"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Sketch1",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       0,
+       0
+      ]
+     },
+     "radius": 20,
+     "id": "c1"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Extrude1",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "Sketch1",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c1"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "symmetric",
+    "distance": 30,
+    "is_full_length": false,
+    "meaning": "distance on each side"
+   },
+   "result_bodies": [
+    "Cyl"
+   ]
+  },
+  {
+   "op": "construction_plane",
+   "name": "Tilt30",
+   "method": "at_angle",
+   "axis": "world X axis",
+   "base_plane": "XY",
+   "angle": 30,
+   "result_origin": [
+    12.125,
+    0.0,
+    0.0
+   ],
+   "result_normal": [
+    0.0,
+    -0.5,
+    0.866025404
+   ]
+  },
+  {
+   "op": "split_body",
+   "name": "Split1",
+   "body": "Cyl",
+   "tool": "Tilt30",
+   "extend_tool": true,
+   "result_bodies": [
+    "Cyl",
+    "Cyl (1)"
+   ]
+  }
+ ]
+}

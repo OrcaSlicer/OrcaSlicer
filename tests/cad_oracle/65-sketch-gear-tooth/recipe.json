@@ -1,0 +1,374 @@
+{
+ "id": "65-sketch-gear-tooth",
+ "name": "Sketch solver: gear-tooth sector",
+ "description": "30 deg sector with one tooth: root arcs R40 and tip arc R50 centred on the origin, R15 flank arcs, symmetric about a vertical construction line; fully constrained; extruded 8.",
+ "exercises": [
+  "sketch_only",
+  "sketch_constraints",
+  "symmetric",
+  "angle_dim",
+  "arcs"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Tooth",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "ref": "origin",
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       0,
+       58
+      ]
+     },
+     "id": "l0",
+     "construction": true
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "origin",
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       9.193,
+       36.8712
+      ]
+     },
+     "id": "s1"
+    },
+    {
+     "type": "arc_three_point",
+     "start": {
+      "ref": "s1.end",
+      "at": [
+       9.193,
+       36.8712
+      ]
+     },
+     "mid": [
+      6.7619,
+      37.3935
+     ],
+     "end": {
+      "at": [
+       4.3017,
+       37.7557
+      ]
+     },
+     "id": "r1"
+    },
+    {
+     "type": "arc_three_point",
+     "start": {
+      "ref": "r1.end",
+      "at": [
+       4.3017,
+       37.7557
+      ]
+     },
+     "mid": [
+      4.4596,
+      42.995
+     ],
+     "end": {
+      "at": [
+       2.6794,
+       47.9252
+      ]
+     },
+     "id": "f1"
+    },
+    {
+     "type": "arc_three_point",
+     "start": {
+      "ref": "f1.end",
+      "at": [
+       2.6794,
+       47.9252
+      ]
+     },
+     "mid": [
+      0.0,
+      48.0
+     ],
+     "end": {
+      "at": [
+       -2.6794,
+       47.9252
+      ]
+     },
+     "id": "t1"
+    },
+    {
+     "type": "arc_three_point",
+     "start": {
+      "ref": "t1.end",
+      "at": [
+       -2.6794,
+       47.9252
+      ]
+     },
+     "mid": [
+      -4.4596,
+      42.995
+     ],
+     "end": {
+      "at": [
+       -4.3017,
+       37.7557
+      ]
+     },
+     "id": "f2"
+    },
+    {
+     "type": "arc_three_point",
+     "start": {
+      "ref": "f2.end",
+      "at": [
+       -4.3017,
+       37.7557
+      ]
+     },
+     "mid": [
+      -6.7619,
+      37.3935
+     ],
+     "end": {
+      "at": [
+       -9.193,
+       36.8712
+      ]
+     },
+     "id": "r2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "r2.end",
+      "at": [
+       -9.193,
+       36.8712
+      ]
+     },
+     "end": {
+      "ref": "origin",
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "id": "s2"
+    }
+   ],
+   "constraints": [
+    {
+     "type": "coincident",
+     "refs": [
+      "r1.center",
+      "origin"
+     ]
+    },
+    {
+     "type": "coincident",
+     "refs": [
+      "t1.center",
+      "origin"
+     ]
+    },
+    {
+     "type": "coincident",
+     "refs": [
+      "r2.center",
+      "origin"
+     ]
+    },
+    {
+     "type": "vertical",
+     "refs": [
+      "l0"
+     ]
+    },
+    {
+     "type": "equal",
+     "refs": [
+      "f1",
+      "f2"
+     ]
+    },
+    {
+     "type": "symmetric",
+     "refs": [
+      "r1.end",
+      "f2.end",
+      "l0"
+     ]
+    },
+    {
+     "type": "horizontal_points",
+     "refs": [
+      "f1.end",
+      "t1.end"
+     ]
+    },
+    {
+     "type": "horizontal_points",
+     "refs": [
+      "s1.end",
+      "r2.end"
+     ]
+    }
+   ],
+   "dimensions": [
+    {
+     "type": "distance",
+     "refs": [
+      "l0.start",
+      "l0.end"
+     ],
+     "value": 60,
+     "unit": "mm",
+     "orientation": "vertical"
+    },
+    {
+     "type": "radius",
+     "refs": [
+      "r1"
+     ],
+     "value": 40,
+     "unit": "mm"
+    },
+    {
+     "type": "radius",
+     "refs": [
+      "t1"
+     ],
+     "value": 50,
+     "unit": "mm"
+    },
+    {
+     "type": "radius",
+     "refs": [
+      "f1"
+     ],
+     "value": 15,
+     "unit": "mm"
+    },
+    {
+     "type": "angle",
+     "refs": [
+      "l0",
+      "s1"
+     ],
+     "value": 15,
+     "unit": "deg",
+     "text_at": [
+      2,
+      20
+     ]
+    },
+    {
+     "type": "distance",
+     "refs": [
+      "r1.end",
+      "f2.end"
+     ],
+     "value": 8.4,
+     "unit": "mm",
+     "orientation": "horizontal"
+    },
+    {
+     "type": "distance",
+     "refs": [
+      "f1.end",
+      "t1.end"
+     ],
+     "value": 5,
+     "unit": "mm",
+     "orientation": "horizontal"
+    }
+   ]
+  },
+  {
+   "op": "extrude",
+   "name": "Extrude1",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "Tooth",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "f1",
+        "f2",
+        "r1",
+        "r2",
+        "s1",
+        "s2",
+        "t1"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 8,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Tooth"
+   ]
+  }
+ ]
+}

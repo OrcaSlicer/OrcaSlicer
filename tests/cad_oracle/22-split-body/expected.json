@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "cylinder r20 z -30..30 split by the plane through the X axis tilted 30 deg (z = y tan30, stays within |z|<=11.6 inside the cylinder): 2 congruent halves (point symmetry), V total = pi r^2 h, A total = cylinder + 2 ellipses pi r (r/cos30)",
+  "body_count": 2,
+  "volume_mm3": 75398.22368615503,
+  "area_mm2": 12955.175474262087,
+  "center_of_mass": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "bbox": {
+    "min": [
+      -20.0,
+      -20.0,
+      -30.0
+    ],
+    "max": [
+      20.0,
+      20.0,
+      30.0
+    ]
+  },
+  "faces": 6
+}

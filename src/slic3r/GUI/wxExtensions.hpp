@@ -271,6 +271,7 @@ public:
 
     void SetBitmap_(const ScalableBitmap& bmp);
     bool SetBitmap_(const std::string& bmp_name);
+    const std::string& GetBmpName() const { return m_current_icon_name; }
     void SetBitmapDisabled_(const ScalableBitmap &bmp);
     int  GetBitmapHeight();
     void UseDefaultBitmapDisabled();

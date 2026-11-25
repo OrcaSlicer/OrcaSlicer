@@ -1,0 +1,252 @@
+{
+ "id": "41-tube-radial-holes",
+ "name": "Many small holes in a curved wall",
+ "description": "Tube OD40/ID34 length 60; three d4 radial holes along Y (z=15,30,45) cut symmetric through both walls; circular pattern x3 over 120 deg -> 18 holes.",
+ "exercises": [
+  "annulus_profile",
+  "sketch_xz",
+  "symmetric",
+  "extrude_cut",
+  "circular_pattern",
+  "holes_in_cylinder"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "TubeSketch",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       0,
+       0
+      ]
+     },
+     "radius": 20,
+     "id": "c_out"
+    },
+    {
+     "type": "circle",
+     "center": {
+      "ref": "c_out.center",
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "radius": 17,
+     "id": "c_in"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Tube",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "TubeSketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c_out"
+       ]
+      },
+      {
+       "outer": false,
+       "curves": [
+        "c_in"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 60,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Tube"
+   ]
+  },
+  {
+   "op": "sketch",
+   "name": "HoleSketch",
+   "plane": {
+    "ref": "XZ",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     0.0,
+     -1.0
+    ],
+    "normal": [
+     0.0,
+     1.0,
+     0.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       0.0,
+       -15.0
+      ]
+     },
+     "radius": 2,
+     "id": "c1"
+    },
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       0.0,
+       -30.0
+      ]
+     },
+     "radius": 2,
+     "id": "c2"
+    },
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       0.0,
+       -45.0
+      ]
+     },
+     "radius": 2,
+     "id": "c3"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Holes",
+   "operation": "cut",
+   "profiles": [
+    {
+     "sketch": "HoleSketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c1"
+       ]
+      }
+     ]
+    },
+    {
+     "sketch": "HoleSketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c2"
+       ]
+      }
+     ]
+    },
+    {
+     "sketch": "HoleSketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c3"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "symmetric",
+    "distance": 25,
+    "is_full_length": false,
+    "meaning": "distance on each side"
+   },
+   "result_bodies": [
+    "Tube"
+   ]
+  },
+  {
+   "op": "circular_pattern",
+   "name": "HolePattern",
+   "pattern_of": "features",
+   "features": [
+    "Holes"
+   ],
+   "axis": {
+    "ref": "world Z axis",
+    "origin": [
+     0,
+     0,
+     0
+    ],
+    "dir": [
+     0,
+     0,
+     1
+    ]
+   },
+   "count": 3,
+   "total_angle": 120,
+   "symmetric": false
+  }
+ ]
+}

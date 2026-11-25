@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "plate 60x60x10 + boss r12 h20 minus cavity (box 56x56x8 + cylinder r10 z8..28) under SolidCraft's intersection-join shell convention (offset faces extended to meet: sharp circular inner edge at r10, z8). A rounded (arc) join would give V 13620.2567, A 14104.4455, 16 faces (torus round r2)",
+  "body_count": 1,
+  "volume_mm3": 13676.601535159018,
+  "area_mm2": 14156.601535159018,
+  "center_of_mass": [
+    0.0,
+    0.0,
+    10.785311024697076
+  ],
+  "bbox": {
+    "min": [
+      -30.0,
+      -30.0,
+      0.0
+    ],
+    "max": [
+      30.0,
+      30.0,
+      30.0
+    ]
+  },
+  "faces": 15
+}

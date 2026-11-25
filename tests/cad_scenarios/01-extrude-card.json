@@ -1,0 +1,45 @@
+{
+ "name": "extrude through the card is one undo step",
+ "steps": [
+  {
+   "mcp": "sketch_begin",
+   "params": {
+    "plane": "XY"
+   }
+  },
+  {
+   "mcp": "sketch_add",
+   "params": {
+    "rect": [
+     -20,
+     -15,
+     20,
+     15
+    ]
+   }
+  },
+  {
+   "mcp": "sketch_commit"
+  },
+  {
+   "mark": true
+  },
+  {
+   "card": {
+    "open": "extrude",
+    "set": {
+     "distance": 10
+    },
+    "confirm": true
+   }
+  },
+  {
+   "expect": {
+    "volume": 12000,
+    "features": 2,
+    "bodies": 1,
+    "undo_delta": 1
+   }
+  }
+ ]
+}

@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "revolve of a line/3-point-arc profile (XZ, x = radius, z = -sketch y) 360 deg about Z. Pappus/Green: V = 2 pi * int x dA, z_c = int x z dA / int x dA, A = sum over profile edges of 2 pi int x ds (bottom disk r20, frustum r20->25, torus zone of the arc (centre (-16.000000, 33.000000), R=41.109610), frustum r15->18, top disk r18)",
+  "body_count": 1,
+  "volume_mm3": 112499.47865571639,
+  "area_mm2": 13156.614546780698,
+  "center_of_mass": [
+    0.0,
+    0.0,
+    35.737480169007014
+  ],
+  "bbox": {
+    "min": [
+      -25.10960958218893,
+      -25.10960958218893,
+      0.0
+    ],
+    "max": [
+      25.10960958218893,
+      25.10960958218893,
+      80.0
+    ]
+  },
+  "faces": 5
+}
