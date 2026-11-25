@@ -8,6 +8,7 @@
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
 #include "NativeCommands.hpp"
+#include "Widgets/WebView.hpp"
 #include "Widgets/WebViewHostDialog.hpp"
 
 #include "slic3r/Utils/MacDarkMode.hpp"
@@ -87,8 +88,10 @@ void focus_webview(wxWebView* browser, bool page_ready)
 #else
     browser->SetFocus();
 #endif
+    // Fire-and-forget: nothing reads focusInput()'s result, and wx's synchronous RunScript() waits for it by running
+    // a nested event loop, which runs the dial's own open and activation again and can wait forever.
     if (page_ready)
-        browser->RunScript("focusInput();");
+        WebView::RunScript(browser, "focusInput();");
 }
 
 // Localized strings for the Speed Dial page (see WebViewHostDialog::localized_strings). The page's own T()
