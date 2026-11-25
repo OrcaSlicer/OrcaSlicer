@@ -1696,6 +1696,7 @@ void PrintConfigDef::init_fff_params()
         "The bridge lines then extend over this many walls of the layer below, which anchors them better "
         "and reduces sagging and detached bridge ends, especially with 3 or more walls.\n"
         "This also applies to the bridges of counterbore holes, when they are enabled.\n"
+        "The bridges never extend over the walls along the outline of the object.\n"
         "If set to 0, the default anchoring is used: one wall over sparse infill and the shell thickness over solid infill.\n"
         "The anchor is never made shorter than the default one.");
     def->sidetext = L("walls");

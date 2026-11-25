@@ -568,4 +568,10 @@ TEST_CASE("Bridge anchor walls extend the sacrificial bridge of a counterbore ho
     CHECK(default_width > 11.);
     CHECK(long_width > 12. + 2. * 0.75 * anchor_expected);
     CHECK(long_width > default_width + 2. * 0.45);
+
+    // However long, the anchor stays inside the 4 walls along the outline of the 30mm block and never replaces them.
+    const double longest_width = bridge_width(20, anchor_expected);
+    CAPTURE(longest_width);
+    CHECK(longest_width > long_width);
+    CHECK(longest_width < 30. - 2. * (0.42 + 3 * 0.4) + 2. * 0.45);
 }

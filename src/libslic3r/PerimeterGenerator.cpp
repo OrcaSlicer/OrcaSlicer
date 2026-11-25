@@ -2192,14 +2192,17 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                         if (!bridgeable.empty() && !surface->expolygon.holes.empty()) { // keep out if cannot be bridged or no holes to bridge
                             const coordf_t bridge_anchor_offset = std::min({bridged_infill_margin, coordf_t(perimeter_spacing), coordf_t(ext_perimeter_width)});
                             // ORCA: Bridge anchor walls. Anchor the counterbore bridge over this many walls around it instead
-                            // of the default single wall. The longer anchor stays inside the outer wall of the surface.
+                            // of the default single wall. The longer anchor stays inside the walls along the outline of the
+                            // surface, so that it never replaces them, as an external bridge stays inside them too.
                             coordf_t bridge_anchor_length = bridge_anchor_offset;
                             if (const int anchor_walls = this->config->bridge_anchor_walls.value; anchor_walls > 0)
                                 bridge_anchor_length = std::max(bridge_anchor_offset,
                                                                 coordf_t(this->ext_perimeter_flow.scaled_spacing()) +
                                                                     coordf_t(this->perimeter_flow.scaled_spacing()) * (anchor_walls - 1));
                             const bool       long_anchor   = bridge_anchor_length > bridge_anchor_offset;
-                            const ExPolygons anchor_limit  = long_anchor ? offset_ex(last, -float(ext_perimeter_width)) : ExPolygons();
+                            const int        nr_walls      = std::max(0, int(this->config->wall_loops.value));
+                            const ExPolygons anchor_limit  = !long_anchor ? ExPolygons() : nr_walls == 0 ? last :
+                                offset_ex(last, -float(ext_perimeter_width + coordf_t(perimeter_spacing) * (nr_walls - 1)));
 
                             // Handle filled vs partial counterbore bridging modes.
                             if (this->config->counterbore_hole_bridging.value == chbFilled) {
@@ -2229,7 +2232,7 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                                 unsupported_filtered = offset_ex(restored, bridge_anchor_offset); // and add anchor
                                 unsupported_filtered = intersection_ex(last, unsupported_filtered); // clamp to the original surface, to avoid creating new unsupported areas
                                 if (long_anchor && !unsupported_filtered.empty())
-                                    // ORCA: Bridge anchor walls, the longer anchor clamped inside the outer wall.
+                                    // ORCA: Bridge anchor walls, the longer anchor clamped inside the walls along the outline.
                                     unsupported_filtered = union_ex(unsupported_filtered,
                                                                     intersection_ex(anchor_limit, offset_ex(restored, bridge_anchor_length)));
 
@@ -2317,7 +2320,7 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
 
                                 ExPolygons bridge_anchor_areas = intersection_ex(remaining, offset_ex(unsupported_filtered, bridge_anchor_offset));
                                 if (long_anchor)
-                                    // ORCA: Bridge anchor walls, the longer anchor clamped inside the outer wall.
+                                    // ORCA: Bridge anchor walls, the longer anchor clamped inside the walls along the outline.
                                     bridge_anchor_areas = union_ex(bridge_anchor_areas,
                                                                    intersection_ex(intersection_ex(remaining, anchor_limit),
                                                                                    offset_ex(unsupported_filtered, bridge_anchor_length)));
