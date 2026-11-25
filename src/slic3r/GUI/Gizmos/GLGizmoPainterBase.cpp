@@ -51,6 +51,8 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 
+#include <imgui.h>
+
 namespace cereal { class BinaryInputArchive; }
 
 namespace Slic3r::GUI {
