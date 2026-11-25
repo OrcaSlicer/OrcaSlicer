@@ -473,6 +473,8 @@ protected:
         unsigned int extruder_id,
         const Layer *object_layer);
 
+    using LayerEvents = std::vector<const CustomGCode::Item *>;
+
     // Belt printers: emit one brim-only apron layer.  These print below the
     // object's first layer, so there is no object or support layer for the normal
     // process_layer() machinery to work from.  Kept to the minimum a layer needs -
@@ -480,8 +482,6 @@ protected:
     // Layer::id()-based logic the ordinary path relies on.  Its layer change G-code
     // uses process_layer_change_gcode(), so an apron band counts in the running
     // printed mass like an object layer.
-    using LayerEvents = std::vector<const CustomGCode::Item *>;
-
     LayerResult process_belt_brim_layer(
         const Print                     &print,
         const std::vector<LayerToPrint> &layers,

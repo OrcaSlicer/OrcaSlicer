@@ -3214,8 +3214,9 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode, const Dynam
 		}
 	}
 
-    if (conside_custom_gcode)
-        append_layer_event_filaments(plate_extruders, filament_count, glb_config);
+	if (conside_custom_gcode) {
+		append_layer_event_filaments(plate_extruders, filament_count, glb_config);
+	}
 
 	std::sort(plate_extruders.begin(), plate_extruders.end());
 	auto it_end = std::unique(plate_extruders.begin(), plate_extruders.end());
@@ -3377,8 +3378,9 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
         }
     }
 
-    if (conside_custom_gcode)
+    if (conside_custom_gcode) {
         append_layer_event_filaments(plate_extruders, filament_count, full_config);
+    }
 
     std::sort(plate_extruders.begin(), plate_extruders.end());
     auto it_end = std::unique(plate_extruders.begin(), plate_extruders.end());
@@ -3437,8 +3439,9 @@ std::vector<int> PartPlate::get_extruders_without_support(bool conside_custom_gc
 		}
 	}
 
-    if (conside_custom_gcode)
-        append_layer_event_filaments(plate_extruders, filament_slot_count(wxGetApp().preset_bundle->project_config), glb_config);
+	if (conside_custom_gcode) {
+		append_layer_event_filaments(plate_extruders, filament_slot_count(wxGetApp().preset_bundle->project_config), glb_config);
+	}
 
 	std::sort(plate_extruders.begin(), plate_extruders.end());
 	auto it_end = std::unique(plate_extruders.begin(), plate_extruders.end());

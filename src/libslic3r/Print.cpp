@@ -796,9 +796,10 @@ void Print::append_tool_change_extruders(std::vector<unsigned int> &extruders) c
 {
     const int count = int(m_config.filament_diameter.size());
     auto append_events = [&](const CustomGCode::Info &events) {
-        for (const auto &event : events.gcodes)
+        for (const auto &event : events.gcodes) {
             if (event.type == CustomGCode::ToolChange && event.extruder > 0 && event.extruder <= count)
                 extruders.emplace_back(event.extruder - 1);
+        }
     };
     if (m_config.print_sequence == PrintSequence::ByObject) {
         // Shrinkage compensation also asks before PrintObjects have been constructed.
@@ -806,8 +807,9 @@ void Print::append_tool_change_extruders(std::vector<unsigned int> &extruders) c
             for (const ModelInstance *instance : object->instances)
                 if (instance->is_printable() && instance->layer_events.mode == CustomGCode::MultiAsSingle)
                     append_events(instance->layer_events);
-    } else if (auto plate = m_model.plates_custom_gcodes.find(m_model.curr_plate_index); plate != m_model.plates_custom_gcodes.end())
+    } else if (auto plate = m_model.plates_custom_gcodes.find(m_model.curr_plate_index); plate != m_model.plates_custom_gcodes.end()) {
         append_events(plate->second);
+    }
 }
 
 void Print::append_wipe_tower_extruder(std::vector<unsigned int> &extruders) const

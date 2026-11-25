@@ -458,7 +458,8 @@ void IMSlider::SetLayersTimes(const std::vector<double> &layers_times)
 
 void IMSlider::SetDrawMode(bool is_sequential_print)
 {
-    m_draw_mode = is_sequential_print ? dmSequentialFffPrint : dmRegular;
+    m_draw_mode = is_sequential_print   ? dmSequentialFffPrint  :
+                                          dmRegular;
     if (is_sequential())
         m_is_wipe_tower = false; // times and labels follow the chronological slider
     else {
@@ -552,6 +553,7 @@ void IMSlider::add_custom_gcode(std::string custom_gcode)
 {
     if (m_selection == ssUndef || !m_menu_enable) return;
     const int tick = GetActiveValue();
+
     if (is_sequential() && !instance_layer(tick).instance_id) return;
 
     const auto it = m_ticks.ticks.find(TickCode{ tick });
@@ -568,6 +570,7 @@ void IMSlider::add_code_as_tick(Type type, int selected_extruder)
 {
     if (m_selection == ssUndef || !m_menu_enable) return;
     const int tick = GetActiveValue();
+
     if (is_sequential() && !instance_layer(tick).instance_id) return;
 
     if ((type == ToolChange && !can_change_filament(tick)) || !check_ticks_changed_event(type)) {
@@ -989,6 +992,7 @@ void IMSlider::draw_ticks(const ImRect& slideable_region) {
 
         if (!m_menu_enable || (is_sequential() && !instance_layer(tick_it->tick).instance_id))
             return;
+
         // draw delete icon
         ImVec2      icon_pos       = ImVec2(slideable_region.GetCenter().x + icon_offset.x, get_tick_pos(tick_it->tick) - icon_offset.y);
         button_with_pos(m_delete_icon_id, icon_size, icon_pos);
@@ -1022,8 +1026,10 @@ void IMSlider::show_tooltip(const TickCode& tick){
     if (tick.tick > 0) {
         time_str = get_label(tick.tick - 1, ltEstimatedTime);
     }
-    if (!time_str.empty())
+    if (!time_str.empty()) {
         time_str += "\n";
+    }
+
     const auto owner = instance_layer_label(tick.tick);
     if (!owner.empty())
         time_str = owner + "\n" + time_str;

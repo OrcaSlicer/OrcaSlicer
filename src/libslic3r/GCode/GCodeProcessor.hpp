@@ -396,7 +396,6 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         std::vector<unsigned int> custom_gcode_layer_ids;
         std::vector<CustomGCode::LayerAddress> sequential_layers; // indexed by MoveVertex::layer_id
         bool from_live_slice = false; // otherwise labels refer to instance IDs saved in the project
-
         bool spiral_vase_mode;
         //BBS
         std::vector<SliceWarning> warnings;

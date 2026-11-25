@@ -8230,10 +8230,10 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
     if (wxGetApp().is_editor()) {
         preview->get_wxglcanvas()->Bind(EVT_GLCANVAS_TAB, [this](SimpleEvent&) { select_next_view_3D(); });
         preview->get_wxglcanvas()->Bind(EVT_GLCANVAS_COLLAPSE_SIDEBAR, [this](SimpleEvent&) { this->q->collapse_sidebar(!this->q->is_sidebar_collapsed());  });
-        preview->get_wxglcanvas()->Bind(EVT_CUSTOMEVT_TICKSCHANGED, [this](LayerTickEvent &event) {
+        preview->get_wxglcanvas()->Bind(EVT_CUSTOMEVT_TICKSCHANGED, [this](LayerTickEvent& event) {
             const auto &change = event.data;
             const CustomGCode::Type tick_event_type = change.type;
-            Model &model = this->q->model();
+            Model& model = this->q->model();
             const PartPlate *plate = this->q->get_partplate_list().get_curr_plate();
             if (model.id().id != change.model_id || model.curr_plate_index != change.plate || !plate ||
                 (plate->get_real_print_seq() == PrintSequence::ByObject) != (change.instance_id != 0))
@@ -22060,7 +22060,7 @@ void Plater::on_filaments_delete(size_t num_filaments, size_t filament_id, int r
             ++it;
         }
     };
-    for (auto &plate : p->model.plates_custom_gcodes)
+    for (auto& plate : p->model.plates_custom_gcodes)
         remap_events(plate.second);
     for (ModelObject *object : p->model.objects)
         for (ModelInstance *instance : object->instances)

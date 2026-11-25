@@ -5347,9 +5347,7 @@ void GCode::process_layers(
             check_placeholder_parser_failed();
             print.throw_if_canceled();
             m_extrusion_quality_estimator.set_precomputed_layers(std::move(precomputed.overhang_layers));
-            return this->process_layer(print, { layer }, tool_ordering.tools_for_layer(layer.print_z()), &layer == &layers_to_print.back(),
-                                       nullptr, tool_ordering.get_most_used_extruder(), single_object_idx, prime_extruder,
-                                       events_at(precomputed.index));
+            return this->process_layer(print, { layer }, tool_ordering.tools_for_layer(layer.print_z()), &layer == &layers_to_print.back(), nullptr, tool_ordering.get_most_used_extruder(), single_object_idx, prime_extruder, events_at(precomputed.index));
         });
     if (m_spiral_vase) {
         float nozzle_diameter  = EXTRUDER_CONFIG(nozzle_diameter);

@@ -3520,8 +3520,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
 
             const auto &root = main_tree.front().second;
-            if (!has_plate_info && (root.count("layer") || root.count("mode")))
+            if (!has_plate_info && (root.count("layer") || root.count("mode"))) {
                 extract_code(m_model->plates_custom_gcodes[0], root);
+            }
         }
     }
 
@@ -9174,23 +9175,26 @@ bool _BBS_3MF_Exporter::_add_gcode_file_to_archive(mz_zip_archive& archive, cons
 bool _BBS_3MF_Exporter::_add_custom_gcode_per_print_z_file_to_archive(mz_zip_archive& archive, const Model& model, const ObjectToObjectDataMap &objects_data, const DynamicPrintConfig* config)
 {
     pt::ptree tree;
-    pt::ptree &root = tree.add("custom_gcodes_per_layer", "");
-    auto write_events = [config](pt::ptree &parent, const CustomGCode::Info &events) {
-        for (const CustomGCode::Item &code : events.gcodes) {
-            pt::ptree &layer = parent.add("layer", "");
+    pt::ptree& root = tree.add("custom_gcodes_per_layer", "");
+    auto write_events = [config](pt::ptree& parent, const CustomGCode::Info &events) {
+        for (const CustomGCode::Item& code : events.gcodes) {
+            pt::ptree& layer = parent.add("layer", "");
             layer.put("<xmlattr>.top_z", code.print_z);
             layer.put("<xmlattr>.type", static_cast<int>(code.type));
             layer.put("<xmlattr>.extruder", code.extruder);
             layer.put("<xmlattr>.color", code.color);
             layer.put("<xmlattr>.extra", code.extra);
-            const std::string gcode = code.type == CustomGCode::PausePrint && config && config->has("machine_pause_gcode") ? config->opt_string("machine_pause_gcode") :
-                                      code.type == CustomGCode::Template && config && config->has("template_custom_gcode") ? config->opt_string("template_custom_gcode") :
-                                      code.type == CustomGCode::ToolChange ? "tool_change" : code.extra;
+
+            const std::string gcode =
+                code.type == CustomGCode::PausePrint && config && config->has("machine_pause_gcode") ? config->opt_string("machine_pause_gcode") :
+                code.type == CustomGCode::Template && config && config->has("template_custom_gcode") ? config->opt_string("template_custom_gcode") :
+                code.type == CustomGCode::ToolChange ? "tool_change" : code.extra;
             layer.put("<xmlattr>.gcode", gcode);
         }
+
         parent.add("mode", "").put("<xmlattr>.value", events.mode == CustomGCode::SingleExtruder ? CustomGCode::SingleExtruderMode :
-                                                      events.mode == CustomGCode::MultiAsSingle ? CustomGCode::MultiAsSingleMode :
-                                                                                                  CustomGCode::MultiExtruderMode);
+            events.mode == CustomGCode::MultiAsSingle ? CustomGCode::MultiAsSingleMode :
+            CustomGCode::MultiExtruderMode);
     };
     for (const auto &[plate_index, events] : model.plates_custom_gcodes) {
         auto &plate = root.add("plate", "");
@@ -9218,6 +9222,8 @@ bool _BBS_3MF_Exporter::_add_custom_gcode_per_print_z_file_to_archive(mz_zip_arc
     std::ostringstream oss;
     boost::property_tree::write_xml(oss, tree);
     std::string out = oss.str();
+
+    // Post processing("beautification") of the output string
     boost::replace_all(out, "><", ">\n<");
 
     if (!out.empty()) {

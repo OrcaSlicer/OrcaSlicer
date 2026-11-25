@@ -4478,6 +4478,7 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
         m_sequential_instance = parse_number(comment.substr(sizeof(CustomGCode::SequentialInstanceTag) - 1), id) ? id : 0;
         return;
     }
+
     if (boost::starts_with(comment, " Z_HEIGHT:") || ((m_belt_printer || m_sequential_instance) && boost::starts_with(comment, "Z:"))) {
         m_print_z = get_z_height(comment);
         if (m_sequential_instance && m_result.sequential_layers.size() < m_layer_id) {

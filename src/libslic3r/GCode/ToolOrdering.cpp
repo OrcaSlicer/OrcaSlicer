@@ -610,8 +610,9 @@ ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool
             events = &plate->second;
     } else if (print.num_object_instances() == 1)
         events = &print.objects().front()->instances().front().model_instance->layer_events;
-    if (events && events->mode == CustomGCode::MultiAsSingle && num_filaments > 1 && print.object_extruders().size() == 1)
+	if (events && events->mode == CustomGCode::MultiAsSingle && num_filaments > 1 && print.object_extruders().size() == 1) {
         per_layer_extruder_switches = custom_tool_changes(*events, num_filaments);
+	}
 
     // Collect extruders reuqired to print the layers.
     for (auto object : print.objects())

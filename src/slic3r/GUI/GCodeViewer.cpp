@@ -1384,7 +1384,6 @@ std::vector<int> GCodeViewer::get_plater_extruder()
     return m_plater_extruder;
 }
 
-//BBS: always load shell at preview
 std::vector<CustomGCode::Item> GCodeViewer::displayed_layer_events() const
 {
     if (m_layers_slider->is_sequential()) {
@@ -1397,6 +1396,7 @@ std::vector<CustomGCode::Item> GCodeViewer::displayed_layer_events() const
         wxGetApp().plater()->model().get_curr_plate_custom_gcodes().gcodes : m_custom_gcode_per_print_z;
 }
 
+//BBS: always load shell at preview
 void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const Print& print, const std::vector<std::string>& str_tool_colors,
                 const std::vector<std::string>& str_color_print_colors, const BuildVolume& build_volume,
                 const std::vector<BoundingBoxf3>& exclude_bounding_box, ConfigOptionMode mode, bool only_gcode)
@@ -1687,7 +1687,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     m_belt_layer_zs.clear();
     if (is_belt || !gcode_result.sequential_layers.empty()) {
         unsigned int src_layer_id = std::numeric_limits<unsigned int>::max();
-        for (size_t i = 1; i < gcode_result.moves.size(); ++i) {
+        for (size_t i = 1; i < gcode_result.moves.size(); ++ i) {
             const auto &move = gcode_result.moves[i];
             if (move.layer_id != src_layer_id) {
                 src_layer_id = move.layer_id;
@@ -5573,6 +5573,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     }
     case libvgcode::EViewType::ColorPrint: {
         size_t total_items = 1;
+
         const bool need_scrollable = static_cast<float>(total_items) * (icon_size + ImGui::GetStyle().ItemSpacing.y) > child_height;
 
         // add scrollable region, if needed

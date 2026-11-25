@@ -562,7 +562,7 @@ void Preview::update_layers_slider(const std::vector<double>& layers_z, bool kee
     // Detect and set manipulation mode for double slider
     update_layers_slider_mode();
 
-    Plater *plater = wxGetApp().plater();
+    Plater* plater = wxGetApp().plater();
     const Model &model = plater->model();
     const bool editor = wxGetApp().is_editor() && !plater->only_gcode_mode() && !plater->using_exported_file() && !model.objects.empty();
     auto *plate = plater->get_partplate_list().get_curr_plate();
