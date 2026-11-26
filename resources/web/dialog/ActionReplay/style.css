@@ -1,0 +1,199 @@
+/* Action Replay. Colours come from the host theme contract (--orca-*) and theme.css's status roles,
+ * so the page follows the app in light and dark. The one distinctive element is the step rail
+ * (../css/step_rail.css): an accent thread that fills down the list as steps pass. Everything else
+ * stays quiet and host-native. */
+
+:root {
+  --sr-footer: var(--footer-bg, #fafafa);
+  --sr-btn-bg: var(--btn-bg, #ffffff);
+  --sr-btn-border: var(--btn-border, #cccccc);
+  --sr-btn-hover: var(--btn-hover, #f0f0f0);
+  --sr-accent-tint: var(--plugin-source-mine-bg, rgba(0, 150, 136, 0.12));
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--sr-bg);
+  color: var(--sr-fg);
+  font-family: var(--orca-font, "Segoe UI", system-ui, sans-serif);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+[hidden] { display: none !important; }
+
+.runner { display: flex; flex-direction: column; height: 100%; }
+
+/* ---- buttons ---- */
+.btn {
+  font: inherit;
+  color: var(--sr-fg);
+  background: var(--sr-btn-bg);
+  border: 1px solid var(--sr-btn-border);
+  border-radius: 4px;
+  padding: 4px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) { background: var(--sr-btn-hover); }
+.btn.primary { color: var(--sr-accent-fg); background: var(--sr-accent); border-color: var(--sr-accent); }
+.btn.primary:hover:not(:disabled) { background: var(--sr-accent); filter: brightness(1.08); }
+.btn.small { padding: 2px 10px; font-size: 12px; }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.link {
+  font: inherit;
+  font-size: 12px;
+  color: var(--sr-accent);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+button:focus-visible, textarea:focus-visible { outline: 2px solid var(--sr-accent); outline-offset: 1px; }
+
+/* ---- source bar ---- */
+.source-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--sr-rule);
+}
+.chip {
+  margin-left: 6px;
+  min-width: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--sr-accent-tint);
+  color: var(--sr-fg);
+  overflow: hidden;
+}
+#chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-note { color: var(--sr-muted); white-space: nowrap; }
+
+/* ---- foldable sections ---- */
+.sections { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.section { display: flex; flex-direction: column; min-height: 0; }
+.section + .section { border-top: 1px solid var(--sr-rule); }
+.section.is-open { flex: 1 1 0; }
+#steps-section.is-open { flex-grow: 2; }
+#source-section.is-open { flex-grow: 3; }
+/* A section's head row: the fold button fills it, and a section's actions sit at its end, outside it. */
+.section-row { flex: none; display: flex; align-items: center; border-bottom: 1px solid transparent; }
+.section.is-open .section-row { border-bottom-color: var(--sr-rule); }
+.section-row:hover { background: var(--sr-hover); }
+.section-head {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--sr-fg);
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.section-actions { flex: none; display: flex; align-items: center; gap: 6px; padding-right: 12px; }
+.save-note { margin-right: 2px; font-size: 12px; color: var(--sr-pass); transition: opacity 0.4s; }
+.save-note.is-fading { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .save-note { transition: none; } }
+.chevron {
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 4px 0 4px 6px;
+  border-color: transparent transparent transparent var(--sr-muted);
+  transition: transform 120ms ease;
+}
+.section.is-open .chevron { transform: rotate(90deg); }
+.section-summary {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--sr-muted);
+}
+.section-summary.is-error { color: var(--sr-fail); }
+.section-body { flex: 1; min-height: 0; overflow: auto; }
+
+/* ---- no steps yet ---- */
+.steps-hint { margin: 0; padding: 12px 14px; color: var(--sr-muted); }
+
+/* ---- the step rail: what only Action Replay's steps have ---- */
+/* The last steps that parsed, kept while the text doesn't, so typing doesn't empty the list. */
+.rail.is-stale { opacity: 0.45; }
+.step.is-skip .dot { border-style: dashed; }
+.step.is-wait .step-title, .step.is-skip .step-title { font-weight: 400; color: var(--sr-muted); }
+.play {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--sr-accent);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+}
+.step:hover .play:not(:disabled), .play:focus-visible { opacity: 1; border-color: var(--sr-rule); }
+.result-line { margin: 2px 0; }
+.checks { list-style: none; margin: 0 0 6px; padding: 0; color: var(--sr-muted); }
+.checks li { margin: 2px 0; overflow-wrap: anywhere; }
+.checks li.is-met::before { content: "\2713\00a0"; color: var(--sr-pass); }
+.files { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0; }
+.actions { display: flex; gap: 12px; align-items: center; margin-top: 6px; }
+
+/* ---- source editor ----
+ * Ace (../js/code_editor.js), filling the section; code_editor.css colours what is inside it. */
+#source-body { display: flex; padding: 8px 12px; }
+.editor {
+  flex: 1;
+  min-width: 0;
+  min-height: 80px;
+  border: 1px solid var(--sr-rule);
+  border-radius: 4px;
+  font-size: 12px;
+}
+.editor.ace_focus { border-color: var(--sr-accent); }
+.editor.is-readonly .ace_content { opacity: 0.6; }
+
+/* ---- footer ---- */
+.foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--sr-rule);
+  background: var(--sr-footer);
+}
+.outcome { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+#outcome { font-weight: 600; }
+#outcome.is-pass { color: var(--sr-pass); }
+#outcome.is-fail { color: var(--sr-fail); }
+#outcome.is-warn { color: var(--sr-warn); }
+#outcome.is-quiet { font-weight: 400; color: var(--sr-muted); }
+.outcome-detail { font-size: 12px; color: var(--sr-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron { transition: none; }
+}

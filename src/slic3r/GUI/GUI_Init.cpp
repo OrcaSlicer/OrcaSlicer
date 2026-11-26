@@ -4,6 +4,7 @@
 
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/InstanceCheck.hpp"
+#include "slic3r/GUI/Mcp/LaunchRun.hpp"
 #ifdef __APPLE__
 #include "slic3r/GUI/DeepLinkHandlerMac.h"
 #endif
@@ -54,7 +55,8 @@ int GUI_Run(GUI_InitParams &params)
         //if (gui->get_app_mode() != GUI::GUI_App::EAppMode::GCodeViewer) {
             // G-code viewer is currently not performing instance check, a new G-code viewer is started every time.
             bool gui_single_instance_setting = gui->app_config->get("app", "single_instance") == "true";
-            if (Slic3r::instance_check(params.argc, params.argv, gui_single_instance_setting)) {
+            // A command line's run reports its own exit code, so it keeps a window of its own.
+            if (Slic3r::instance_check(params.argc, params.argv, gui_single_instance_setting, !params.mcp.run_file.empty())) {
                 //TODO: do we have delete gui and other stuff?
                 return -1;
             }
@@ -67,16 +69,21 @@ int GUI_Run(GUI_InitParams &params)
         register_mac_deep_link_handler();
 #endif
 
+        int result = 0;
         if (params.argc > 1) {
             // STUDIO-273 wxWidgets report error when opening some files with specific names
             // wxWidgets does not handle parameters, so intercept parameters here, only keep the app name
             int                 argc = 1;
             std::vector<char *> argv;
             argv.push_back(params.argv[0]);
-            return wxEntry(argc, argv.data());
+            result = wxEntry(argc, argv.data());
         } else {
-            return wxEntry(params.argc, params.argv);
+            result = wxEntry(params.argc, params.argv);
         }
+        // A --run file reports its outcome as the process exit code.
+        if (const int run_code = Mcp::launch_exit_code(); run_code >= 0)
+            return run_code;
+        return result;
     } catch (const Slic3r::Exception &ex) {
         BOOST_LOG_TRIVIAL(error) << ex.what() << std::endl;
         wxMessageBox(boost::nowide::widen(ex.what()), _L("Orca Slicer GUI initialization failed"), wxICON_STOP);

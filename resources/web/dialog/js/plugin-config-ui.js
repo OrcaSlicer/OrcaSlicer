@@ -74,6 +74,20 @@ function BuildCustomConfigDocument(html, config, context) {
 
   window.addEventListener("message", function (event) {
     if (!event.data) return;
+    // The MCP server's page agent (resources/web/mcp/page_agent.js) can't read this sandboxed
+    // frame, so the parent page's agent relays its calls here and this frame runs its own copy.
+    if (event.data.__orca === "mcp") {
+      if (event.source !== parent) return;
+      var d = event.data, reply;
+      try {
+        if (!(window.__orcaMcp && window.__orcaMcp.v === d.v)) (new Function("V", "SRC", d.src))(d.v, d.src);
+        reply = window.__orcaMcp.call(d.req);
+      } catch (e) {
+        reply = { error: String(e && e.message || e), code: "relay" };
+      }
+      parent.postMessage({ __orca: "mcp_reply", id: d.id, reply: reply }, "*");
+      return;
+    }
     if (event.data.__orca === "theme") { applyTheme(event.data.theme); return; }
     if (event.data.__orca !== "config") return;
     current = event.data.config || {};

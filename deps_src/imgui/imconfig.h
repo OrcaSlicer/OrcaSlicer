@@ -14,6 +14,10 @@
 
 #pragma once
 
+// OrcaSlicer: let automation (the MCP server) record items through the test-engine hooks, which
+// ImGuiWrapper implements. ImGui calls them only while ImGuiContext::TestEngineHookItems is set.
+#define IMGUI_ENABLE_TEST_ENGINE
+
 //---- Define assertion handler. Defaults to calling assert().
 // If your macro uses multiple statements, make sure is enclosed in a 'do { .. } while (0)' block so it can be used as a single statement.
 //#define IM_ASSERT(_EXPR)  MyAssert(_EXPR)

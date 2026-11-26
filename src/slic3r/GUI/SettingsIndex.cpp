@@ -249,6 +249,18 @@ void SettingsIndex::add_key(const std::string &opt_key, Preset::Type type, const
     gc.icon     = icon;
 }
 
+void SettingsIndex::remove_indexed_keys(const std::string &opt_key, Preset::Type type, size_t first)
+{
+    const std::string prefix = get_key(opt_key + "#", type);
+    for (auto it = m_groups_and_categories.lower_bound(prefix);
+         it != m_groups_and_categories.end() && it->first.compare(0, prefix.size(), prefix) == 0;) {
+        if (std::strtoul(it->first.c_str() + prefix.size(), nullptr, 10) >= first)
+            it = m_groups_and_categories.erase(it);
+        else
+            ++it;
+    }
+}
+
 void SettingsIndex::set_path(const std::string &opt_key, Preset::Type type, const std::string &path)
 {
     if (path.empty())

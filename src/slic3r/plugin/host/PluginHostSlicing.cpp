@@ -93,61 +93,109 @@ void host_bindings::register_slicing(py::module_& host)
     // not stash references or arrays across execute() calls; copy what you need.
     // ------------------------------------------------------------------
 
-    py::enum_<SurfaceType>(host, "SurfaceType")
-        .value("stTop", stTop)
-        .value("stBottom", stBottom)
-        .value("stBottomBridge", stBottomBridge)
-        .value("stInternalAfterExternalBridge", stInternalAfterExternalBridge)
-        .value("stInternal", stInternal)
-        .value("stInternalSolid", stInternalSolid)
-        .value("stInternalBridge", stInternalBridge)
-        .value("stSecondInternalBridge", stSecondInternalBridge)
-        .value("stInternalVoid", stInternalVoid)
-        .value("stPerimeter", stPerimeter)
-        .value("stCount", stCount)
+    py::enum_<SurfaceType>(host, "SurfaceType",
+                           "Classification of a Surface, which decides how the slicer prints its area. The values are "
+                           "also exported into orca.host (orca.host.stTop and so on).")
+        .value("stTop", stTop, "Top surface, visible from above; printed as top solid infill.")
+        .value("stBottom", stBottom,
+               "Bottom surface, visible from below and resting on the bed or on support; printed with normal flow.")
+        .value("stBottomBridge", stBottomBridge, "Bottom surface over air, printed as a bridge with bridging flow.")
+        .value("stInternalAfterExternalBridge", stInternalAfterExternalBridge,
+               "Second bridge layer, printed above a bottom bridge.")
+        .value("stInternal", stInternal, "Sparse infill.")
+        .value("stInternalSolid", stInternalSolid,
+               "Solid infill inside the object, below top surfaces or making up the vertical shell thickness.")
+        .value("stInternalBridge", stInternalBridge, "First solid layer over sparse infill, printed with bridging flow.")
+        .value("stSecondInternalBridge", stSecondInternalBridge,
+               "Second solid layer over sparse infill, printed with bridging flow.")
+        .value("stInternalVoid", stInternalVoid,
+               "Internal area left without infill on this layer: sparse infill limited to where it supports surfaces "
+               "above, or combined into a thicker infill layer above.")
+        .value("stPerimeter", stPerimeter, "Area covered by walls.")
+        .value("stCount", stCount, "Number of surface types; not a surface type itself.")
         .export_values();
 
     // Surface: default holder (Python-owned instances are freed), so plugins can construct
     // their own Surface(surface_type, expolygon) — not just navigate the live slicing graph.
     // expolygon is a reference_internal property, same idiom as the Polygon/ExPolygon
     // accessors in PluginHostGeometry.cpp.
-    py::class_<Surface>(host, "Surface")
+    py::class_<Surface>(host, "Surface",
+                        "One typed area of a layer: an ExPolygon with a SurfaceType and fill hints. A Surface read from "
+                        "LayerRegion.slices or fill_surfaces is a live reference into the slicing graph: valid only "
+                        "while the slicing hook (execute(ctx)) runs, and invalidated by set(), append() or clear() on "
+                        "its collection. A Surface you construct is your own; SurfaceCollection.set() copies it.")
         .def(py::init([](SurfaceType t, const ExPolygon& e) { return Surface(t, e); }),
-             py::arg("surface_type"), py::arg("expolygon"))
-        .def(py::init([](SurfaceType t) { return Surface(t); }), py::arg("surface_type"))
+             py::arg("surface_type"), py::arg("expolygon"),
+             "A new surface of surface_type covering a copy of expolygon; thickness and bridge_angle start at -1 "
+             "(unset) and extra_perimeters at 0.")
+        .def(py::init([](SurfaceType t) { return Surface(t); }), py::arg("surface_type"),
+             "A new surface of surface_type with no geometry; assign expolygon before using it.")
         .def_readwrite("surface_type", &Surface::surface_type,
             "This surface's SurfaceType. Assigning reclassifies it in place (geometry unchanged).")
-        .def_readwrite("thickness", &Surface::thickness)
-        .def_readwrite("bridge_angle", &Surface::bridge_angle)
-        .def_readwrite("extra_perimeters", &Surface::extra_perimeters)
+        .def_readwrite("thickness", &Surface::thickness,
+            "Height in mm of the infill printed for this surface; -1 (unset) means the layer height. The slicer sets "
+            "it where infill is combined over several layers.")
+        .def_readwrite("bridge_angle", &Surface::bridge_angle,
+            "Infill direction in radians, counter-clockwise from +X, used for this surface instead of the region's "
+            "infill angle when 0 or more; negative (-1 by default) means not set. The slicer sets it on bridges.")
+        .def_readwrite("extra_perimeters", &Surface::extra_perimeters,
+            "Walls added to the region's wall_loops for this surface; 0 by default. It takes effect on "
+            "LayerRegion.slices before walls are generated (Step.posSlice).")
         .def_property("expolygon",
             [](Surface& s) -> ExPolygon& { return s.expolygon; },
             [](Surface& s, const ExPolygon& e) { s.expolygon = e; },
             py::return_value_policy::reference_internal,
             "This surface's geometry. Read returns a live ExPolygon ref; assign to replace it.")
-        .def("area", [](const Surface& s) { return s.area(); })
-        .def("is_top", [](const Surface& s) { return s.is_top(); })
-        .def("is_bottom", [](const Surface& s) { return s.is_bottom(); })
-        .def("is_bridge", [](const Surface& s) { return s.is_bridge(); })
-        .def("is_internal", [](const Surface& s) { return s.is_internal(); })
-        .def("is_external", [](const Surface& s) { return s.is_external(); })
-        .def("is_solid", [](const Surface& s) { return s.is_solid(); });
+        .def(
+            "area", [](const Surface& s) { return s.area(); },
+            "Area of expolygon (contour minus holes) in scaled units squared; multiply by "
+            "orca.slicing.unscale(1) ** 2 for mm^2.")
+        .def(
+            "is_top", [](const Surface& s) { return s.is_top(); }, "True for stTop.")
+        .def(
+            "is_bottom", [](const Surface& s) { return s.is_bottom(); }, "True for stBottom and stBottomBridge.")
+        .def(
+            "is_bridge", [](const Surface& s) { return s.is_bridge(); },
+            "True for stBottomBridge and stInternalBridge; False for the other bridge types.")
+        .def(
+            "is_internal", [](const Surface& s) { return s.is_internal(); },
+            "True for every type that is_external() is not, stPerimeter and stInternalVoid included.")
+        .def(
+            "is_external", [](const Surface& s) { return s.is_external(); },
+            "True for top and bottom surfaces: stTop, stBottom and stBottomBridge.")
+        .def(
+            "is_solid", [](const Surface& s) { return s.is_solid(); },
+            "True for stTop, stBottom, stBottomBridge, stInternalSolid and stInternalBridge.");
 
     // SurfaceCollection: kept on py::nodelete — it is only ever a reference into the live
     // slicing graph (LayerRegion::slices/fill_surfaces), never constructed by a plugin.
-    py::class_<SurfaceCollection, std::unique_ptr<SurfaceCollection, py::nodelete>>(host, "SurfaceCollection")
-        .def("size", [](const SurfaceCollection& c) { return c.surfaces.size(); })
-        .def("empty", [](const SurfaceCollection& c) { return c.empty(); })
-        .def("clear", [](SurfaceCollection& c) { c.clear(); })
-        .def("has", [](const SurfaceCollection& c, SurfaceType t) { return c.has(t); }, py::arg("surface_type"))
-        .def("set_type", [](SurfaceCollection& c, SurfaceType t) { c.set_type(t); }, py::arg("surface_type"))
+    py::class_<SurfaceCollection, std::unique_ptr<SurfaceCollection, py::nodelete>>(
+        host, "SurfaceCollection",
+        "The typed surfaces of one LayerRegion (its slices or fill_surfaces): a live reference into the slicing graph, "
+        "valid only while the slicing hook (execute(ctx)) runs. set(), append() and clear() invalidate Surface "
+        "references obtained from it earlier.")
+        .def(
+            "size", [](const SurfaceCollection& c) { return c.surfaces.size(); }, "Number of surfaces.")
+        .def(
+            "empty", [](const SurfaceCollection& c) { return c.empty(); }, "True when the collection holds no surfaces.")
+        .def(
+            "clear", [](SurfaceCollection& c) { c.clear(); },
+            "Remove every surface. Invalidates Surface references obtained from this collection.")
+        .def(
+            "has", [](const SurfaceCollection& c, SurfaceType t) { return c.has(t); }, py::arg("surface_type"),
+            "True when any surface has surface_type.")
+        .def(
+            "set_type", [](SurfaceCollection& c, SurfaceType t) { c.set_type(t); }, py::arg("surface_type"),
+            "Retag every surface as surface_type in place; geometry is unchanged and Surface references stay valid.")
         .def("set", [](SurfaceCollection& c, const std::vector<ExPolygon>& src, SurfaceType t) { c.set(src, t); },
              py::arg("expolygons"), py::arg("surface_type"),
              "Replace all surfaces from a list of ExPolygon, all tagged `surface_type`.")
         .def("set", [](SurfaceCollection& c, const std::vector<Surface>& src) { c.set(src); },
              py::arg("surfaces"), "Replace all surfaces from a list of Surface (types preserved per surface).")
         .def("append", [](SurfaceCollection& c, const std::vector<ExPolygon>& src, SurfaceType t) { c.append(src, t); },
-             py::arg("expolygons"), py::arg("surface_type"))
+             py::arg("expolygons"), py::arg("surface_type"),
+             "Add one surface per ExPolygon (copied), each tagged surface_type, after the existing surfaces. "
+             "Invalidates Surface references obtained from this collection.")
         .def("filter_by_type", [](py::object self, SurfaceType t) {
             SurfaceCollection& c = self.cast<SurfaceCollection&>();
             py::list out;
@@ -176,12 +224,20 @@ void host_bindings::register_slicing(py::module_& host)
     // `.entities` child surfaces as a bare ExtrusionEntity (only .role is available).
     // flatten_paths() (a dynamic_cast walk) still yields proper ExtrusionPath leaves and
     // is the robust way to extract toolpaths.
-    py::class_<ExtrusionEntity, std::unique_ptr<ExtrusionEntity, py::nodelete>>(host, "ExtrusionEntity")
+    py::class_<ExtrusionEntity, std::unique_ptr<ExtrusionEntity, py::nodelete>>(
+        host, "ExtrusionEntity",
+        "Base of the read-only extrusion tree in LayerRegion.perimeters and .fills. Each node comes as its concrete "
+        "class (ExtrusionEntityCollection, ExtrusionLoop, ExtrusionMultiPath or ExtrusionPath); a node of a class not "
+        "bound here comes as a bare ExtrusionEntity with only role. A live reference into the slicing graph, valid "
+        "only while the slicing hook (execute(ctx)) runs.")
         .def_property_readonly("role", [](const ExtrusionEntity& e) {
             return ExtrusionEntity::role_to_string(e.role());
         }, "Extrusion role as a human-readable string (e.g. \"Outer wall\", \"Sparse infill\").");
 
-    py::class_<ExtrusionPath, ExtrusionEntity, std::unique_ptr<ExtrusionPath, py::nodelete>>(host, "ExtrusionPath")
+    py::class_<ExtrusionPath, ExtrusionEntity, std::unique_ptr<ExtrusionPath, py::nodelete>>(
+        host, "ExtrusionPath",
+        "One extrusion along a polyline with a single role, width, height and flow: the leaf of the extrusion tree. "
+        "Read-only, and valid only while the slicing hook runs.")
         .def("points", [](py::object self) {
             const ExtrusionPath& p = self.cast<const ExtrusionPath&>();
             const Points3& pts = p.polyline.points;
@@ -189,13 +245,20 @@ void host_bindings::register_slicing(py::module_& host)
                 return py::object(make_readonly_rows<coord_t, 3>(
                     self, pts.empty() ? nullptr : pts.front().data(), (py::ssize_t) pts.size()));
             });
-        }, "Path vertices as a read-only int64 (N,3) numpy view in scaled coords "
-           "(the polyline is natively 3D on this branch). Requires numpy.")
-        .def_readonly("width", &ExtrusionPath::width)
-        .def_readonly("height", &ExtrusionPath::height)
-        .def_readonly("mm3_per_mm", &ExtrusionPath::mm3_per_mm);
+        }, "Path vertices as a read-only int64 (N,3) numpy view of x, y, z in scaled coordinates; multiply by "
+           "orca.slicing.unscale(1) for mm. Requires numpy.")
+        .def_readonly("width", &ExtrusionPath::width,
+            "Extrusion width in mm; for a bridge, the diameter of the bridge thread. -1 when unset.")
+        .def_readonly("height", &ExtrusionPath::height,
+            "Extrusion height in mm: the layer height, or for a bridge the thread diameter. -1 when unset.")
+        .def_readonly("mm3_per_mm", &ExtrusionPath::mm3_per_mm,
+            "Volume of plastic extruded per mm of path, in mm^3 per mm; the G-code generator derives the E amount "
+            "from it. -1 when unset.");
 
-    py::class_<ExtrusionLoop, ExtrusionEntity, std::unique_ptr<ExtrusionLoop, py::nodelete>>(host, "ExtrusionLoop")
+    py::class_<ExtrusionLoop, ExtrusionEntity, std::unique_ptr<ExtrusionLoop, py::nodelete>>(
+        host, "ExtrusionLoop",
+        "A closed extrusion, such as one wall loop, made of consecutive ExtrusionPaths whose role, width or flow can "
+        "change along the loop (at an overhang, for example). Read-only, and valid only while the slicing hook runs.")
         .def_property_readonly("paths", [](py::object self) {
             ExtrusionLoop& l = self.cast<ExtrusionLoop&>();
             py::list out;
@@ -204,7 +267,10 @@ void host_bindings::register_slicing(py::module_& host)
             return out;
         }, "The loop's constituent paths as [ExtrusionPath].");
 
-    py::class_<ExtrusionMultiPath, ExtrusionEntity, std::unique_ptr<ExtrusionMultiPath, py::nodelete>>(host, "ExtrusionMultiPath")
+    py::class_<ExtrusionMultiPath, ExtrusionEntity, std::unique_ptr<ExtrusionMultiPath, py::nodelete>>(
+        host, "ExtrusionMultiPath",
+        "An open, continuous extrusion made of consecutive ExtrusionPaths whose role, width or flow can change along "
+        "it. Read-only, and valid only while the slicing hook runs.")
         .def_property_readonly("paths", [](py::object self) {
             ExtrusionMultiPath& m = self.cast<ExtrusionMultiPath&>();
             py::list out;
@@ -214,8 +280,14 @@ void host_bindings::register_slicing(py::module_& host)
         }, "The multipath's constituent paths as [ExtrusionPath].");
 
     py::class_<ExtrusionEntityCollection, ExtrusionEntity,
-               std::unique_ptr<ExtrusionEntityCollection, py::nodelete>>(host, "ExtrusionEntityCollection")
-        .def("size", [](const ExtrusionEntityCollection& c) { return c.entities.size(); })
+               std::unique_ptr<ExtrusionEntityCollection, py::nodelete>>(
+        host, "ExtrusionEntityCollection",
+        "An ordered group of extrusion entities: paths, loops, multipaths or nested collections. LayerRegion.perimeters "
+        "and .fills are collections of collections. role is \"Multiple\" when the children's roles differ. Read-only, "
+        "and valid only while the slicing hook runs.")
+        .def(
+            "size", [](const ExtrusionEntityCollection& c) { return c.entities.size(); },
+            "Number of direct children (entities), not of leaf paths.")
         .def_property_readonly("entities", [](py::object self) {
             ExtrusionEntityCollection& c = self.cast<ExtrusionEntityCollection&>();
             py::list out;
@@ -238,14 +310,25 @@ void host_bindings::register_slicing(py::module_& host)
         }, "Every leaf ExtrusionPath under this tree (collections recursed into, "
            "loops/multipaths decomposed).");
 
-    py::class_<PrintRegion, std::unique_ptr<PrintRegion, py::nodelete>>(host, "PrintRegion")
-        .def("config_keys", [](const PrintRegion& r) { return r.config().keys(); })
+    py::class_<PrintRegion, std::unique_ptr<PrintRegion, py::nodelete>>(
+        host, "PrintRegion",
+        "Resolved settings shared by the parts of an object that print alike: walls, infill and the other per-region "
+        "settings. Parts and modifiers with different settings form separate regions. From LayerRegion.region(); "
+        "valid only while the slicing hook (execute(ctx)) runs.")
+        .def(
+            "config_keys", [](const PrintRegion& r) { return r.config().keys(); },
+            "Names of this region's settings (the per-region options such as walls and infill); read one with "
+            "config_value(key).")
         .def("config_value", [](const PrintRegion& r, const std::string& key) {
             return config_value_or_none(r.config(), key);
         }, py::arg("key"),
            "Serialized value of this region's resolved config option, or None if absent.");
 
-    auto layer_region = py::class_<LayerRegion, std::unique_ptr<LayerRegion, py::nodelete>>(host, "LayerRegion");
+    auto layer_region = py::class_<LayerRegion, std::unique_ptr<LayerRegion, py::nodelete>>(
+        host, "LayerRegion",
+        "The part of one Layer printed with one PrintRegion's settings: its sliced surfaces (slices), the surfaces "
+        "prepared for infill (fill_surfaces) and the walls (perimeters) and infill (fills) generated for them. From "
+        "Layer.regions(); a live reference valid only while the slicing hook (execute(ctx)) runs.");
     layer_region
         .def_readonly("slices", &LayerRegion::slices,
             "Sliced, typed surfaces (SurfaceCollection). Edit in place, or replace with "
@@ -271,11 +354,19 @@ void host_bindings::register_slicing(py::module_& host)
         }, py::arg("key"),
            "Serialized value of this region's resolved config option, or None if absent.");
 
-    auto layer = py::class_<Layer, std::unique_ptr<Layer, py::nodelete>>(host, "Layer");
+    auto layer = py::class_<Layer, std::unique_ptr<Layer, py::nodelete>>(
+        host, "Layer",
+        "One layer of a PrintObject: its heights in mm, merged islands (lslices) and per-region data (regions()). From "
+        "PrintObject.layers() or support_layers(); a live reference valid only while the slicing hook (execute(ctx)) "
+        "runs.");
     layer
-        .def_readonly("print_z", &Layer::print_z)
-        .def_readonly("slice_z", &Layer::slice_z)
-        .def_readonly("height", &Layer::height)
+        .def_readonly("print_z", &Layer::print_z,
+            "Z of the top of this layer in mm, measured from the bed with any raft below the object included; the "
+            "layer's bottom is print_z - height.")
+        .def_readonly("slice_z", &Layer::slice_z,
+            "Z in mm at which the object was cut to make this layer, measured from the object's bottom without the "
+            "raft: normally the middle of the layer, lower when Z anti-aliasing (zaa_enabled) is on.")
+        .def_readonly("height", &Layer::height, "Thickness of this layer in mm.")
         .def_property_readonly("upper_layer", [](Layer& l) -> py::object {
             if (l.upper_layer == nullptr) return py::none();
             return py::cast(l.upper_layer, py::return_value_policy::reference);
@@ -305,7 +396,12 @@ void host_bindings::register_slicing(py::module_& host)
         }, "Merged per-layer islands as [ExPolygon] refs (in-place editable). Derived from the "
            "region slices; call make_slices() to re-derive after edits. Invalidated by make_slices().");
 
-    py::class_<PrintObject, std::unique_ptr<PrintObject, py::nodelete>>(host, "PrintObject")
+    py::class_<PrintObject, std::unique_ptr<PrintObject, py::nodelete>>(
+        host, "PrintObject",
+        "One object as sliced: its layers, support layers, transformation and resolved per-object settings. An object "
+        "identical to another (same mesh and settings) is a PrintObject of its own that may hold the other's Layer "
+        "objects rather than slicing its own. From Print.objects() or ctx.object; a live reference valid only while "
+        "the slicing hook (execute(ctx)) runs.")
         .def("id", [](const PrintObject& o) { return o.id().id; },
              "Stable numeric object id (ObjectBase::id()).")
         .def("layers", [](py::object self) {
@@ -336,13 +432,19 @@ void host_bindings::register_slicing(py::module_& host)
            "sliced polygons live in this same frame, so its midpoint is the footprint center.")
         .def("trafo", [](const PrintObject& o) { return mat4_to_numpy(o.trafo()); },
              "Object-to-print 4x4 float64 affine matrix (copy). Requires numpy.")
-        .def("config_keys", [](const PrintObject& o) { return o.config().keys(); })
+        .def(
+            "config_keys", [](const PrintObject& o) { return o.config().keys(); },
+            "Names of the per-object settings this object resolves (such as layer height and supports); read one with "
+            "config_value(key).")
         .def("config_value", [](const PrintObject& o, const std::string& key) {
             return config_value_or_none(o.config(), key);
         }, py::arg("key"),
            "Serialized value of a resolved per-object config option, or None if absent.");
 
-    py::class_<Print, std::unique_ptr<Print, py::nodelete>>(host, "Print")
+    py::class_<Print, std::unique_ptr<Print, py::nodelete>>(
+        host, "Print",
+        "The plate being sliced: its objects and the resolved full config. Reached as ctx.print in a slicing pipeline "
+        "hook (orca.slicing); a live reference valid only while that hook runs.")
         .def("objects", [](py::object self) {
             Print& p = self.cast<Print&>();
             py::list out;
@@ -355,7 +457,10 @@ void host_bindings::register_slicing(py::module_& host)
              "The Print's own Model snapshot (worker-thread stable). Inside slicing "
              "hooks use THIS — never orca.host.model(), which is the live GUI model "
              "owned by another thread.")
-        .def("config_keys", [](const Print& p) { return p.full_print_config().keys(); })
+        .def(
+            "config_keys", [](const Print& p) { return p.full_print_config().keys(); },
+            "Names of every setting in this slice's resolved full config (process, printer and per-filament "
+            "settings); read one with config_value(key).")
         .def("config_value", [](const Print& p, const std::string& key) {
             return config_value_or_none(p.full_print_config(), key);
         }, py::arg("key"),

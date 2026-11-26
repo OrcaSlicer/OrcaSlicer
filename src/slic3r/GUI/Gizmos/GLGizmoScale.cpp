@@ -1,4 +1,5 @@
 #include "GLGizmoScale.hpp"
+#include "slic3r/GUI/SyntheticInput.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
@@ -204,7 +205,7 @@ void GLGizmoScale3D::on_start_dragging()
         m_starting.drag_position = grabbers_transform * m_grabbers[m_hover_id].center;
         m_starting.plane_center  = grabbers_transform * m_grabbers[4].center; // plane_center = bottom center
         m_starting.plane_nromal  = (grabbers_transform * m_grabbers[5].center - grabbers_transform * m_grabbers[4].center).normalized();
-        m_starting.ctrl_down = wxGetKeyState(WXK_CONTROL);
+        m_starting.ctrl_down = Slic3r::GUI::get_key_state(WXK_CONTROL);
         m_starting.box           = m_bounding_box;
 
         m_starting.center              = m_center;
@@ -255,7 +256,7 @@ void GLGizmoScale3D::update_grabbers_data()
     m_instance_center = (selection.is_single_full_instance() || selection.is_single_volume_or_modifier()) ? selection.get_first_volume()->get_instance_offset() : m_center;
 
     const Vec3d box_half_size   = 0.5 * m_bounding_box.size();
-    bool        ctrl_down     = wxGetKeyState(WXK_CONTROL);
+    bool        ctrl_down     = Slic3r::GUI::get_key_state(WXK_CONTROL);
 
 
     bool single_instance = selection.is_single_full_instance();
@@ -537,7 +538,7 @@ double GLGizmoScale3D::calc_ratio(const UpdateData& data) const
         ratio = (len_starting_vec + proj) / len_starting_vec;
     }
 
-    if (wxGetKeyState(WXK_SHIFT))
+    if (Slic3r::GUI::get_key_state(WXK_SHIFT))
         ratio = m_snap_step * (double)std::round(ratio / m_snap_step);
 
     return ratio;
