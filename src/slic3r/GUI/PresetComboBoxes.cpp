@@ -200,6 +200,62 @@ BitmapCache& PresetComboBox::bitmap_cache()
     return bmps;
 }
 
+bool PresetComboBox::is_marker_item(int item)
+{
+    const auto marker = reinterpret_cast<std::size_t>(GetClientData(item));
+    return marker >= LABEL_ITEM_DISABLED && marker < LABEL_ITEM_MAX;
+}
+
+PresetComboBox::NameMatch PresetComboBox::find_by_name(const std::string& requested)
+{
+    NameMatch         match;
+    const std::string want       = Preset::remove_suffix_modified(requested);
+    const int         item_count = GetCount();
+    for (int item = 0; item < item_count; ++item) {
+        if (is_marker_item(item))
+            continue;
+        const wxString    alias      = GetItemAlias(item);
+        const std::string alias_name = alias.empty() ? std::string() : Preset::remove_suffix_modified(alias.ToUTF8().data());
+        const std::string label_name = Preset::remove_suffix_modified(GetString(item).ToUTF8().data());
+        if ((alias_name.empty() || alias_name != want) && label_name != want)
+            continue;
+        if (match.item >= 0 && match.item != item) {
+            match.ambiguous = true;
+            return match;
+        }
+        match.item          = item;
+        match.internal_name = alias_name.empty() ? label_name : alias_name;
+    }
+    return match;
+}
+
+int row_for_preset(const std::vector<PresetRow>& rows, const std::string& name)
+{
+    int labelled = -1;
+    for (std::size_t row = 0; row < rows.size(); ++row) {
+        if (rows[row].marker)
+            continue;
+        if (!rows[row].stored.empty() && rows[row].stored == name)
+            return int(row);
+        if (labelled < 0 && rows[row].stored.empty() && rows[row].label == name)
+            labelled = int(row);
+    }
+    return labelled;
+}
+
+int PresetComboBox::item_for_preset(const std::string& preset_name)
+{
+    // One row for each item, so a row's index is its item's.
+    std::vector<PresetRow> rows;
+    const int              item_count = GetCount();
+    for (int item = 0; item < item_count; ++item) {
+        const wxString alias = GetItemAlias(item);
+        rows.push_back({alias.empty() ? std::string() : Preset::remove_suffix_modified(alias.ToUTF8().data()),
+                        Preset::remove_suffix_modified(GetString(item).ToUTF8().data()), is_marker_item(item)});
+    }
+    return row_for_preset(rows, Preset::remove_suffix_modified(preset_name));
+}
+
 void PresetComboBox::set_label_marker(int item, LabelItemType label_item_type)
 {
     this->SetClientData(item, (void*)label_item_type);
@@ -1045,12 +1101,17 @@ void PlaterPresetComboBox::OnSelect(wxCommandEvent &evt)
         //}
         return;
     } else if (marker == LABEL_ITEM_PHYSICAL_PRINTER ||  selected_item >= 0 || m_collection->current_is_dirty()) {
-        m_last_selected = selected_item;
-        if (m_type == Preset::TYPE_FILAMENT)
-            update_ams_color();
+        item_picked(selected_item);
     }
 
     evt.Skip();
+}
+
+void PlaterPresetComboBox::item_picked(int item)
+{
+    m_last_selected = item;
+    if (m_type == Preset::TYPE_FILAMENT)
+        update_ams_color();
 }
 
 void PlaterPresetComboBox::update_badge_according_flag() {

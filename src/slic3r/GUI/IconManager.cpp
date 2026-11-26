@@ -1,4 +1,6 @@
 #include "IconManager.hpp"
+#include "GUI_App.hpp"
+#include "ImGuiWrapper.hpp"
 #include <cassert>
 #include <algorithm>
 #include <boost/filesystem/operations.hpp>
@@ -396,7 +398,7 @@ void draw(const IconManager::Icon &icon, const ImVec2 &size, const ImVec4 &tint_
     window->DC.CursorPosPrevLine.y = cursor_y;
 }
 
-bool clickable(const IconManager::Icon &icon, const IconManager::Icon &icon_hover)
+bool clickable(const IconManager::Icon &icon, const IconManager::Icon &icon_hover, const std::string &name)
 {
     // check of hover
     ImGuiWindow *window = ImGui::GetCurrentWindow();
@@ -412,16 +414,18 @@ bool clickable(const IconManager::Icon &icon, const IconManager::Icon &icon_hove
         // redraw normal image
         draw(icon);
     }
+    wxGetApp().imgui()->record_named_item(name);
     return ImGui::IsItemClicked();
 }
 
-bool button(const IconManager::Icon &activ, const IconManager::Icon &hover, const IconManager::Icon &disable, bool disabled)
+bool button(const IconManager::Icon &activ, const IconManager::Icon &hover, const IconManager::Icon &disable, bool disabled, const std::string &name)
 {
     if (disabled) {
         draw(disable);
+        wxGetApp().imgui()->record_named_item(name);
         return false;
     }
-    return clickable(activ, hover);
+    return clickable(activ, hover, name);
 }
 
 } // namespace Slic3r::GUI

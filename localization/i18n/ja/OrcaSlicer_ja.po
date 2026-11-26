@@ -15808,13 +15808,13 @@ msgstr "「%3%」の %1% モディファイア「%2%」(合計%4%個) は外周�
 
 # AI Translated
 #, boost-format
-msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "「%2%」のモディファイア「%1%」は継ぎ目に影響しませんでした (印刷される外周の中心線に届いていない可能性があります)"
+msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam"
+msgstr "「%2%」のモディファイア「%1%」は継ぎ目に影響しませんでした"
 
 # AI Translated
 #, boost-format
-msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "「%2%」のモディファイア「%1%」(合計%3%個) は継ぎ目に影響しませんでした (印刷される外周の中心線に届いていない可能性があります)"
+msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam"
+msgstr "「%2%」のモディファイア「%1%」(合計%3%個) は継ぎ目に影響しませんでした"
 
 # AI Translated
 msgid "Seam placement may differ from expected."

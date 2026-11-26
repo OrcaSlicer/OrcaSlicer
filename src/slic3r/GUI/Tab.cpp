@@ -50,6 +50,7 @@
 #include "libslic3r/LifecycleEvents.hpp"
 #include "libslic3r/Point.hpp"
 #include "slic3r/GUI/SettingsIndex.hpp"
+#include "slic3r/GUI/Operations/Outcome.hpp"
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include <wx/app.h>
 #include <wx/bookctrl.h>
@@ -5955,6 +5956,17 @@ void TabPrinter::extruders_count_changed(size_t extruders_count)
     }
 }
 
+void TabPrinter::change_extruders_count(size_t extruders_count)
+{
+    const size_t old_extruders_count = m_extruders_count;
+    extruders_count_changed(extruders_count);
+    init_options_list(); // m_options_list should be updated before UI updating
+    update_dirty();
+    // Orca: the variant switches (here, Process in the sidebar, ...) list one option per extruder.
+    if (m_extruders_count != old_extruders_count)
+        update_all_extruder_variants();
+}
+
 void TabPrinter::append_option_line(ConfigOptionsGroupShp optgroup, const std::string opt_key, const std::string& label_path)
 {
     auto option = optgroup->get_option(opt_key, 0);
@@ -6114,13 +6126,7 @@ if (is_marlin_flavor)
             size_t extruders_count = size_t(boost::any_cast<int>(v));
             wxTheApp->CallAfter([this, opt_key, value, extruders_count]() {
                 if (opt_key == "extruders_count" || opt_key == "single_extruder_multi_material") {
-                    const size_t old_extruders_count = m_extruders_count;
-                    extruders_count_changed(extruders_count);
-                    init_options_list(); // m_options_list should be updated before UI updating
-                    update_dirty();
-                    // Orca: the variant switches (here, Process in the sidebar, ...) list one option per extruder.
-                    if (m_extruders_count != old_extruders_count)
-                        update_all_extruder_variants();
+                    change_extruders_count(extruders_count);
                     if (opt_key == "single_extruder_multi_material") { // the single_extruder_multimaterial was added to force pages
                         on_value_change(opt_key, value);                      // rebuild - let's make sure the on_value_change is not skipped
 
@@ -6212,7 +6218,7 @@ if (is_marlin_flavor)
         optgroup->append_single_option_line("imex_firmware_managed_zones", "printer_multimaterial_idex_iqex#firmware-managed-zones");
         optgroup->append_single_option_line("imex_gantry_count", "printer_multimaterial_idex_iqex#gantry-count");
         optgroup->append_single_option_line("imex_tools_per_gantry", "printer_multimaterial_idex_iqex#tools-per-gantry");
-        optgroup->append_single_option_line("imex_tool_layout", "printer_multimaterial_idex_iqex#tool-0-position");
+        optgroup->append_single_option_line("imex_tool_layout", "printer_multimaterial_idex_iqex#tool-1-position");
         optgroup->append_single_option_line("imex_nozzle_clearance_x", "printer_multimaterial_idex_iqex#nozzle-clearance-x");
         optgroup->append_single_option_line("imex_nozzle_clearance_y", "printer_multimaterial_idex_iqex#nozzle-clearance-y");
         optgroup->append_single_option_line("imex_carriage_margin", "printer_multimaterial_idex_iqex#safety-margin");
@@ -6464,6 +6470,8 @@ if (is_marlin_flavor)
 
     // The page holds only the "#0" controls, so register every extruder's options with the search
     // index under "Extruder N"; a search hit selects that extruder (TabPrinter::activate_option()).
+    // The extruders a printer selected earlier had beyond this one's are dropped, so that the search
+    // and the Speed Dial offer none of their pages.
     if (Page *page = extruder_page()) {
         auto &index = wxGetApp().sidebar().settings_index();
         for (auto &group : page->m_optgroups) {
@@ -6475,6 +6483,7 @@ if (is_marlin_flavor)
                     const wxString category = m_extruders_count > 1 ? wxString::Format("Extruder %d", int(i + 1)) : wxString("Extruder");
                     index.add_key(opt.second.first + "#" + std::to_string(i), m_type, group->title, category, group->icon);
                 }
+                index.remove_indexed_keys(opt.second.first, m_type, m_extruders_count);
             }
         }
     }
@@ -7597,28 +7606,9 @@ bool Tab::select_preset(
     bool print_tab     = m_presets->type() == Preset::TYPE_PRINT || m_presets->type() == Preset::TYPE_SLA_PRINT;
     bool printer_tab   = m_presets->type() == Preset::TYPE_PRINTER;
     bool canceled      = false;
-    bool no_transfer = false;
+    bool no_transfer = !can_transfer_changes_to(preset_name);
     bool technology_changed = false;
     m_dependent_tabs.clear();
-    if ((m_presets->type() == Preset::TYPE_FILAMENT) && !preset_name.empty())
-    {
-        Preset *to_be_selected = m_presets->find_preset(preset_name, false, true);
-        if (to_be_selected) {
-            std::string current_type, to_select_type;
-            ConfigOptionStrings* cur_opt = dynamic_cast <ConfigOptionStrings *>(m_presets->get_edited_preset().config.option("filament_type"));
-            ConfigOptionStrings* to_select_opt = dynamic_cast <ConfigOptionStrings *>(to_be_selected->config.option("filament_type"));
-            if (cur_opt && (cur_opt->values.size() > 0)) {
-                current_type =  cur_opt->values[0];
-            }
-            if (to_select_opt && (to_select_opt->values.size() > 0)) {
-                to_select_type =  to_select_opt->values[0];
-            }
-            if (current_type != to_select_type)
-                no_transfer = true;
-        }
-    }
-    else if (printer_tab)
-        no_transfer = true;
 
     if (force_no_transfer) {
         no_transfer = true;
@@ -7805,7 +7795,13 @@ bool Tab::select_preset(
         // Orca: update presets for the selected printer
         if (m_type == Preset::TYPE_PRINTER && wxGetApp().app_config->get_bool("remember_printer_config")) {
             m_preset_bundle->update_selections(*wxGetApp().app_config);
-            wxGetApp().plater()->sidebar().on_filament_count_change(m_preset_bundle->filament_presets.size());
+            const size_t filament_count = m_preset_bundle->filament_presets.size();
+            wxGetApp().plater()->sidebar().on_filament_count_change(filament_count);
+            // Model paint and filament assignments past the new count must survive, so switching back restores them.
+            PartPlateList &plate_list = wxGetApp().plater()->get_partplate_list();
+            plate_list.set_filament_count(filament_count);
+            for (int i = 0; i < plate_list.get_plate_count(); ++i)
+                plate_list.get_plate(i)->update_first_layer_print_sequence(filament_count);
         }
         load_current_preset();
 
@@ -7875,11 +7871,53 @@ bool Tab::select_preset(
     return !canceled;
 }
 
+bool Tab::can_transfer_changes_to(const std::string& preset_name) const
+{
+    if (m_presets->type() == Preset::TYPE_PRINTER)
+        return false;
+    if (m_presets->type() != Preset::TYPE_FILAMENT || preset_name.empty())
+        return true;
+    const Preset* to_be_selected = m_presets->find_preset(preset_name, false, true);
+    if (to_be_selected == nullptr)
+        return true;
+    const auto first_type = [](const Preset& preset) {
+        const auto* opt = dynamic_cast<const ConfigOptionStrings*>(preset.config.option("filament_type"));
+        return opt != nullptr && !opt->values.empty() ? opt->values[0] : std::string();
+    };
+    return first_type(m_presets->get_edited_preset()) == first_type(*to_be_selected);
+}
+
+std::vector<std::string> listed_dirty_options(const PresetCollection& presets)
+{
+    Search::SettingsIndex& index = wxGetApp().sidebar().settings_index();
+    index.sort_options_by_key();
+    std::vector<std::string> listed;
+    for (const std::string& opt_key : presets.current_dirty_options(true)) {
+        int variant_index = -2;
+        index.get_option(opt_key, presets.type(), variant_index);
+        if (variant_index != -2)
+            listed.push_back(opt_key);
+    }
+    index.sort_options_by_label();
+    return listed;
+}
+
 // If the current preset is dirty, the user is asked whether the changes may be discarded.
 // if the current preset was not dirty, or the user agreed to discard the changes, 1 is returned.
 bool Tab::may_discard_current_dirty_preset(PresetCollection *presets /*= nullptr*/, const std::string &new_printer_name /*= ""*/, bool no_transfer, bool no_transfer_variant)
 {
     if (presets == nullptr) presets = m_presets;
+
+    // An answer given ahead: Discard leaves the changes to the callers, as the dialog's Discard does, and
+    // Transfer moves everything the dialog would list, but only where the dialog offers Transfer.
+    if (m_dirty_preset_answer == DirtyPresetAnswer::Discard)
+        return true;
+    if (m_dirty_preset_answer == DirtyPresetAnswer::Transfer) {
+        if (no_transfer || new_printer_name.empty())
+            return false;
+        transfer_dirty_options(presets, listed_dirty_options(*presets), no_transfer, no_transfer_variant);
+        return true;
+    }
 
     UnsavedChangesDialog dlg(m_type, presets, new_printer_name, no_transfer);
     if (dlg.ShowModal() == wxID_CANCEL)
@@ -7921,47 +7959,52 @@ bool Tab::may_discard_current_dirty_preset(PresetCollection *presets /*= nullptr
         }
     }
     else if (dlg.transfer_changes()) // move selected changes
-    {
-        std::vector<std::string> selected_options = dlg.get_selected_options();
-        if (!no_transfer && no_transfer_variant) {
-            auto & options_list = wxGetApp().get_tab(presets->type())->m_options_list;
-            bool has_variants = false;
-            for (auto &opt : selected_options) {
-                if (auto n = opt.find('#'); n != std::string::npos) {
-                    auto iter = options_list.lower_bound(opt.substr(0, n));
-                    if (iter == options_list.end() || opt.compare(0, n, iter->first)) {
-                        has_variants = true;
-                        opt.clear();
-                    }
-                }
-            }
-            if (has_variants) {
-                auto msg = _L("Switching to a printer with different extruder types or numbers will discard or reset changes to extruder or multi-nozzle-related parameters.");
-                MessageDialog(wxGetApp().plater(), msg, _L("Use Modified Value"), wxOK | wxICON_WARNING).ShowModal();
-                selected_options.erase(std::remove(selected_options.begin(), selected_options.end(), ""), selected_options.end());
-            }
-        }
-
-        if (m_type == presets->type()) // move changes for the current preset from this tab
-        {
-            if (m_type == Preset::TYPE_PRINTER) {
-                auto it = std::find(selected_options.begin(), selected_options.end(), "extruders_count");
-                if (it != selected_options.end()) {
-                    // erase "extruders_count" option from the list
-                    selected_options.erase(it);
-                    // cache the extruders count
-                    static_cast<TabPrinter*>(this)->cache_extruder_cnt();
-                }
-            }
-
-            // copy selected options to the cache from edited preset
-            cache_config_diff(selected_options);
-        }
-        else
-            wxGetApp().get_tab(presets->type())->cache_config_diff(selected_options);
-    }
+        transfer_dirty_options(presets, dlg.get_selected_options(), no_transfer, no_transfer_variant);
 
     return true;
+}
+
+void Tab::transfer_dirty_options(PresetCollection* presets, std::vector<std::string> selected_options, bool no_transfer, bool no_transfer_variant)
+{
+    if (!no_transfer && no_transfer_variant) {
+        auto & options_list = wxGetApp().get_tab(presets->type())->m_options_list;
+        bool has_variants = false;
+        for (auto &opt : selected_options) {
+            if (auto n = opt.find('#'); n != std::string::npos) {
+                auto iter = options_list.lower_bound(opt.substr(0, n));
+                if (iter == options_list.end() || opt.compare(0, n, iter->first)) {
+                    has_variants = true;
+                    opt.clear();
+                }
+            }
+        }
+        if (has_variants) {
+            // Only a person is told; a caller that answered ahead reads what was dropped from the presets.
+            if (m_dirty_preset_answer == DirtyPresetAnswer::Ask) {
+                auto msg = _L("Switching to a printer with different extruder types or numbers will discard or reset changes to extruder or multi-nozzle-related parameters.");
+                MessageDialog(wxGetApp().plater(), msg, _L("Use Modified Value"), wxOK | wxICON_WARNING).ShowModal();
+            }
+            selected_options.erase(std::remove(selected_options.begin(), selected_options.end(), ""), selected_options.end());
+        }
+    }
+
+    if (m_type == presets->type()) // move changes for the current preset from this tab
+    {
+        if (m_type == Preset::TYPE_PRINTER) {
+            auto it = std::find(selected_options.begin(), selected_options.end(), "extruders_count");
+            if (it != selected_options.end()) {
+                // erase "extruders_count" option from the list
+                selected_options.erase(it);
+                // cache the extruders count
+                static_cast<TabPrinter*>(this)->cache_extruder_cnt();
+            }
+        }
+
+        // copy selected options to the cache from edited preset
+        cache_config_diff(selected_options);
+    }
+    else
+        wxGetApp().get_tab(presets->type())->cache_config_diff(selected_options);
 }
 
 void Tab::clear_pages()
@@ -8439,9 +8482,29 @@ bool Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
     return true;
 }
 
-// Called for a currently selected preset.
-void Tab::delete_preset()
+Tab::DeleteBlock Tab::can_delete_preset(const PresetCollection& presets, const Preset& preset, std::vector<std::string>* inherited_by)
 {
+    std::vector<std::string> children;
+    // Only a base preset is inherited from: the presets under it would no longer load.
+    if (presets.get_preset_base(preset) == &preset)
+        for (const Preset& other : presets)
+            if (other.inherits() == preset.name)
+                children.push_back(other.name);
+    const bool inherited = !children.empty();
+    if (inherited_by != nullptr)
+        *inherited_by = std::move(children);
+    // Preset::can_overwrite(), which shows the Delete button, is these two.
+    if (preset.is_system || preset.is_default)
+        return DeleteBlock::System;
+    if (preset.is_from_bundle())
+        return DeleteBlock::FromBundle;
+    return inherited ? DeleteBlock::InheritedFrom : DeleteBlock::None;
+}
+
+// Called for a currently selected preset.
+void Tab::delete_preset(Ops::Prompts prompts)
+{
+    const bool ask = prompts == Ops::Prompts::Ask;
     auto current_preset = m_presets->get_selected_preset();
     // Don't let the user delete the ' - default - ' configuration.
     //BBS: add project embedded preset logic and refine is_external
@@ -8457,7 +8520,7 @@ void Tab::delete_preset()
             const int process_preset_num  = int(m_preset_bundle->prints.get_user_presets_for_printer(current_preset.name).size());
 
             // With nothing attached, the plain delete confirmation below is asked instead.
-            if (filament_preset_num + process_preset_num > 0) {
+            if (ask && filament_preset_num + process_preset_num > 0) {
                 DeleteConfirmDialog
                     dlg(parent(), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Delete"),
                         // TRN %1% is "N filament preset(s)", %2% is "N process preset(s)".
@@ -8469,13 +8532,12 @@ void Tab::delete_preset()
                 confirm_delete_third_party_printer = true;
             }
         }
-        int count = 0;
-        wxString presets;
-        for (auto &preset2 : *m_presets)
-            if (preset2.inherits() == current_preset.name) {
-                ++count;
-                presets += "\n - " + from_u8(preset2.name);
-            }
+        std::vector<std::string> inherited_by;
+        can_delete_preset(*m_presets, current_preset, &inherited_by);
+        const int count = int(inherited_by.size());
+        wxString  presets;
+        for (const std::string& name : inherited_by)
+            presets += "\n - " + from_u8(name);
         if (count > 0) {
             msg = _L("Presets inherited by other presets cannot be deleted!");
             msg += "\n";
@@ -8535,7 +8597,7 @@ void Tab::delete_preset()
     }
 
     wxString title = _L("Delete Preset");
-    if (current_preset.is_default || !(confirm_delete_third_party_printer ||
+    if (current_preset.is_default || !(confirm_delete_third_party_printer || !ask ||
         //wxID_YES != wxMessageDialog(parent(), msg, title, wxYES_NO | wxNO_DEFAULT | wxICON_QUESTION).ShowModal())
         wxID_YES == MessageDialog(parent(), msg, title, wxYES_NO | wxNO_DEFAULT | wxICON_QUESTION).ShowModal()))
         return;

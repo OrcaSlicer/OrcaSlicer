@@ -45,6 +45,9 @@ struct KeyChord
     // Platform-neutral text ("Ctrl+Shift+S") for persistence and wx accelerator strings.
     std::string to_string() const;
     static std::optional<KeyChord> parse(const std::string& text);
+    // The wxMOD_* modifier one name in parse()'s text stands for ("Ctrl" and "Cmd" are both
+    // wxMOD_CONTROL, "RawCtrl" is the macOS Control key), or wxMOD_NONE.
+    static int parse_modifier(const std::string& text);
 
     // Text for menus, tooltips and the shortcuts dialog, with translated modifier names and the
     // command and option glyphs on macOS.
