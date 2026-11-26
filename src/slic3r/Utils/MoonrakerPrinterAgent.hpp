@@ -214,7 +214,7 @@ protected:
     // Same threading contract as build_ams_payload (apply_inline / resolve_tray_ids above).
     void build_ams_payload_grouped(const std::vector<AmsTrayData>& trays, bool apply_inline = false,
                                    ResolveAmsTrayIdsFn resolve_tray_ids = {});
-    // Name shown for a filament unit, or empty for the AMS Lite name
+    // Name shown for a filament unit, or empty to use its default name
     virtual std::string ams_unit_name(int /*ams_id*/) const { return {}; }
 
     // Methods that derived classes may need to override or access
@@ -352,6 +352,7 @@ private:
     // System-specific filament fetch methods
     bool fetch_hh_filament_info(const ConnectionSettings& connection, std::vector<AmsTrayData>& trays, int& max_lane_index);
     bool fetch_moonraker_filament_data(const ConnectionSettings& connection, std::vector<AmsTrayData>& trays, int& max_lane_index);
+    // Creality Hi exposes CFS slots as a Moonraker box printer object.
     bool fetch_creality_cfs_data(const ConnectionSettings& connection, std::vector<AmsTrayData>& trays, int& max_lane_index);
     // Lane name -> toolhead index, read from the AFC printer objects (the lane_data database has no
     // extruder field). Returns false when AFC is not present or the objects cannot be read.

@@ -66,7 +66,6 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <wx/app.h>
 #include <wx/colour.h>
 #include <tuple>
 #include <wx/app.h>
@@ -425,6 +424,8 @@ int MachineObject::get_preset_extruder_index(int extder_id) const
                 return logical;
         return INVALID_EXTRUDER_ID;
     }
+    if (bundle && !bundle->is_bbl_vendor())
+        return extder_id;
     return is_main_extruder_on_left() ? extder_id : 1 - extder_id;
 }
 
@@ -913,6 +914,15 @@ DevAmsTray *MachineObject::get_curr_tray()
         return it->second;
     }
 
+    return nullptr;
+}
+
+DevAmsTray *MachineObject::get_external_virtual_tray(const std::string &ams_id)
+{
+    for (auto &tray : vt_slot) {
+        if (tray.id == ams_id)
+            return &tray;
+    }
     return nullptr;
 }
 
@@ -1849,8 +1859,13 @@ int MachineObject::command_ams_change_filament(bool load, std::string ams_id, st
         if (atoi(ams_id.c_str()) < 16) {
             tray_id = atoi(ams_id.c_str()) * 4 + atoi(slot_id.c_str());
         }
+
+        const std::string agent_id = !printer_agent_id.empty() ? printer_agent_id :
+                                     m_manager                 ? m_manager->get_current_printer_agent_id() :
+                                                                 std::string();
+        const bool is_bbl          = agent_id == BBL_PRINTER_AGENT_ID;
         // TODO: Orca hack
-        if (ams_id == "254")
+        if (is_bbl && ams_id == "254")
             ams_id = "255";
 
         j["print"]["command"]     = "ams_change_filament";

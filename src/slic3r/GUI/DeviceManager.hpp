@@ -347,6 +347,9 @@ public:
     DevAms*     get_curr_Ams();
     DevAmsTray* get_curr_tray();
     DevAmsTray* get_ams_tray(std::string ams_id, std::string tray_id);;
+    /* External (virtual tray) slot carrying the given virtual tray id, or nullptr if none does.
+       Look up by id instead of a fixed pair index so any extruder count is supported. */
+    DevAmsTray* get_external_virtual_tray(const std::string& ams_id);
 
     std::string  get_filament_id(std::string ams_id, std::string tray_id) const;
     std::string  get_filament_type(const std::string& ams_id, const std::string& tray_id) const;

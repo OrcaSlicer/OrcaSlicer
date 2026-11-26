@@ -2548,6 +2548,7 @@ void AMSRoadDownPart::doRender(wxDC& dc)
         switch (m_left_rode_mode)
         {
         case AMSRoadShowMode::AMS_ROAD_MODE_FOUR:
+        case AMSRoadShowMode::AMS_ROAD_MODE_GENERIC:
             dc.DrawLine(left_nozzle_pos.x - FromDIP((129)), (size.y / 2), left_nozzle_pos.x, (size.y / 2));
             dc.DrawLine(left_nozzle_pos.x - FromDIP((129)), 0, left_nozzle_pos.x - FromDIP((129)), (size.y / 2));
             break;
@@ -2567,9 +2568,6 @@ void AMSRoadDownPart::doRender(wxDC& dc)
         case AMSRoadShowMode::AMS_ROAD_MODE_AMS_LITE:
             dc.DrawLine(left_nozzle_pos.x, 0, left_nozzle_pos.x, size.y);
             break;
-        case AMSRoadShowMode::AMS_ROAD_MODE_GENERIC:
-            // Generic N-lane geometry is intentionally left unimplemented.
-            break;
         default:
             break;
         }
@@ -2577,6 +2575,7 @@ void AMSRoadDownPart::doRender(wxDC& dc)
         switch (m_right_rode_mode)
         {
         case AMSRoadShowMode::AMS_ROAD_MODE_FOUR:
+        case AMSRoadShowMode::AMS_ROAD_MODE_GENERIC:
             dc.DrawLine(right_nozzle_pos.x, (size.y / 2), right_nozzle_pos.x + FromDIP(131), (size.y / 2));
             dc.DrawLine(right_nozzle_pos.x + FromDIP(131), 0, right_nozzle_pos.x + FromDIP(131), (size.y / 2));
             break;
@@ -2596,9 +2595,6 @@ void AMSRoadDownPart::doRender(wxDC& dc)
         case AMSRoadShowMode::AMS_ROAD_MODE_AMS_LITE:
             dc.DrawLine(left_nozzle_pos.x, (size.y / 2), left_nozzle_pos.x + FromDIP(145), (size.y / 2));
             dc.DrawLine(left_nozzle_pos.x + FromDIP(145), 0, left_nozzle_pos.x + FromDIP(145), (size.y / 2));
-            break;
-        case AMSRoadShowMode::AMS_ROAD_MODE_GENERIC:
-            // Generic N-lane geometry is intentionally left unimplemented.
             break;
         default:
             break;
@@ -3308,7 +3304,8 @@ AmsItem::AmsItem(wxWindow *parent,AMSinfo info,  AMSModel model, AMSPanelPos pos
 
     if (m_ams_model == AMSModel::GENERIC_AMS){
         const int lane_count = static_cast<int>(m_info.cans.size());
-        const int width = use_generic_ams_layout(m_ams_model) && lane_count <= 8
+        const int visible_lanes = pos == AMSPanelPos::SINGLE_PANEL ? 8 : 4;
+        const int width = use_generic_ams_layout(m_ams_model) && lane_count <= visible_lanes
             ? generic_ams_layout_width(this, lane_count)
             : FromDIP(264);
         const wxSize generic_size(width, FromDIP(174));
@@ -3318,7 +3315,7 @@ AmsItem::AmsItem(wxWindow *parent,AMSinfo info,  AMSModel model, AMSPanelPos pos
         // For large lane counts the card is a viewport, not the lane strip. Let
         // its parent allocate the available width; the scrolled child retains
         // the wider virtual content size.
-        if (!(use_generic_ams_layout(m_ams_model) && lane_count > 8))
+        if (!(use_generic_ams_layout(m_ams_model) && lane_count > visible_lanes))
             SetMaxSize(generic_size);
     }
     else{
@@ -3348,7 +3345,7 @@ void AmsItem::create(wxWindow *parent)
         const bool generic_layout = use_generic_ams_layout(m_ams_model);
         const int lane_count = static_cast<int>(m_info.cans.size());
         const int content_width = generic_layout ? generic_ams_layout_width(this, lane_count) : 0;
-        const bool scroll_lanes = generic_layout && lane_count > 8;
+        const bool scroll_lanes = generic_layout && lane_count > (m_panel_pos == AMSPanelPos::SINGLE_PANEL ? 8 : 4);
         const auto lane_centers = generic_layout
             ? generic_ams_lane_centers(lane_count, content_width)
             : std::vector<int>();

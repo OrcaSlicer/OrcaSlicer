@@ -114,6 +114,14 @@ extruder id, so sparse or out-of-order reports do not shift a spool onto another
 placeholder represents the slot's existence, not a claim that the printer reported a loaded spool.
 Bambu keeps its fixed 255/254 virtual-tray pair and does not use generic slot synthesis.
 
+The sidebar's device-filament sync list is not the full device topology: a non-Bambu external
+position is included only when the device reports filament data for it (a loaded flag, preset id, or
+filament type). A synthetic external position stays in `vt_slot` for the Device tab but is omitted
+from the sidebar list, as is a reported external position that carries no spool data. Empty AMS
+placeholders remain in the list so tray order and sync mapping stay aligned with the AMS units.
+An agent that reports no external-spool state therefore shows no external sidebar entry; the
+position is still available on the Device tab.
+
 ## Mapping
 
 Several subsystems relate AMS units, trays, and extruders, and more than one place derives a tray
@@ -144,9 +152,20 @@ used for backup-slot translation, calibration addressing, and the mapping popups
 
 The sidebar sync matcher uses the same identities. Bambu retains its fixed left/right AMS and
 external-spool choices. For a generic printer, a full sync considers AMS units according to their
-bound extruder ids and considers every external slot by `255 - vt_id`; a split left/right mapping
-still restricts itself to the corresponding legacy extruders 0 and 1. Generic AMS lanes use the
-cumulative tray index above, while their `ams_id`/`slot_id` pair remains the address used to update
+bound extruder ids and considers every external slot by `255 - vt_id`; a split left/right request
+still restricts itself to the corresponding legacy extruders 0 and 1. The send dialog maps a generic
+printer one extruder at a time instead: it groups the used filaments by their mapped extruder,
+resolved to the physical toolhead through `physical_extruder_map`, and each group is matched only
+against the AMS units bound to that extruder and that extruder's external spool. As in the split
+left/right request, an extruder that already offers AMS filament in the mapping does not also offer
+its external spool. The per-extruder results are then combined into the single filament-to-slot
+mapping the print job needs; a filament a group cannot map stays explicitly unmapped, so a partial
+result is never reported as a complete mapping. A switch-bound AMS unit feeds several extruders, so
+it is a candidate in each of their groups and the same lane can be chosen by more than one group.
+The matcher already permits reusing a lane within one mapping (for an exact colour/type match, or as
+a fallback when no unused lane matches), so this is a valid but suboptimal assignment rather than a
+lost slot. Generic AMS lanes use the cumulative tray index above, while their `ams_id`/`slot_id`
+pair remains the address used to update
 the matching sidebar entry. The runtime filament-list configs also carry a transient device-extruder
 association so generic entries are grouped under the correct toolhead after sync; that association
 is removed before the configs enter the slicing pipeline. Bambu keeps the existing key-based
@@ -177,10 +196,9 @@ The device-control widgets follow the same device-reported counts.
 - The status panel builds external-spool entries from `MachineObject::vt_slot`; generic slot
   synthesis keeps one empty entry available for each live toolhead even when the printer does not
   report external-spool state.
-- The status panel's `ExtruderImage` renders one per-toolhead state per nozzle and is resized to
-  `GetTotalExtderCount()`. Non-Bambu printers choose the active toolhead through
-  `m_generic_nozzle_selector` (shown when more than one toolhead exists); Bambu keeps its left/right
-  `m_nozzle_btn_panel`. Nozzle temperature controls are created on demand per toolhead.
+- The status panel uses the single or left/right nozzle presentation for one or two toolheads,
+  and an indexed `ExtruderImage` and toolhead selector for three or more. Nozzle temperature
+  controls are created on demand for generic printers and printers with more than two toolheads.
 
 ## Constraints
 
@@ -200,9 +218,9 @@ The device-control widgets follow the same device-reported counts.
   `nozzle_diameter` entries as the device has toolheads. A mismatch is surfaced only as a log warning
   (`StatusPanel::check_extruder_count_mismatch()`), deliberately log-only, because the sidebar and
   extruder logic would otherwise silently disagree.
-- **Bambu compatibility.** Bambu-specific presentation (left/right pair, fixed 4-slot units, fixed
-  virtual ids, physical/logical inversion) is preserved behind the vendor check. Generic paths do
-  not alter it.
+- **Bambu compatibility.** The two-tool left/right presentation is shared across vendors.
+  Bambu protocol details, including fixed 4-slot units, fixed virtual ids and physical/logical
+  inversion, remain separate from generic paths.
 - **Tray-index invariant.** The generic tray-index map is cumulative, so payload tray ids must be
   unique, 0-based, and contiguous per unit. A malformed id is a producer error.
 - **Protocol markers.** The dialect has no neutral equivalent for some Bambu state, so agents that

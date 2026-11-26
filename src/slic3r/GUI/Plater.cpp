@@ -794,6 +794,8 @@ struct ExtruderGroup : StaticBox
 
         Label *    prefix         = nullptr;
         Label *    diameter_label = nullptr; // read-only nozzle diameter of this extruder
+        wxStaticBitmap *diameter_badge = nullptr;
+        bool nozzle_synced = false;
         ComboBox * flow           = nullptr;
         wxBoxSizer *row_sizer     = nullptr; // the row's line, moved between the two columns as needed
     };
@@ -812,6 +814,9 @@ struct ExtruderGroup : StaticBox
     wxBoxSizer *hsizer_ams { nullptr };
     wxBoxSizer *ams_section { nullptr };          // AMS panel + its spacing, shown independently of the nozzle rows
     bool         ams_visible{false};
+    // Bambu's 4-slot/1-slot editor. Generic counts come from the device's actual unit widths, so
+    // the legacy editor would add phantom 4/1 buckets beside them and is disabled.
+    bool         ams_count_editable{true};
     size_t               page_cur{0};
     size_t               page_num{3};
     size_t               ams_n4 = 0;
@@ -844,11 +849,24 @@ struct ExtruderGroup : StaticBox
     void   restack_nozzle_rows();
     // The AMS section is hidden on the listing card used for a single nozzle or a plain multi-row list.
     void   SetAmsVisible(bool show);
+    // Enable/disable the legacy Bambu 4-slot/1-slot AMS-count editor on this card.
+    void   SetAmsCountEditable(bool editable)
+    {
+        if (ams_count_editable == editable)
+            return;
+        ams_count_editable = editable;
+        if (!editable && btn_edit)
+            btn_edit->Hide();
+        if (btn_edit || ams_visible)
+            update_ams();
+    }
     // Restart paging when the card starts showing another tool.
     void   ResetAmsPage();
     // Nozzle diameter readout of the shown rows, one value per extruder. A listing card cannot edit
     // it: the diameter belongs to the machine variant the printer preset selects, not to the extruder.
     void   SetRowDiameters(const std::vector<double> &diameters);
+    void   SetNozzleSynced(size_t row, bool synced);
+    void   ClearNozzleSynced();
 
     NozzleRow create_nozzle_row();
     // Widths the prefix and diameter labels of the visible rows so that the flow combos of a column
@@ -885,9 +903,13 @@ struct ExtruderGroup : StaticBox
         btn_up->msw_rescale();
         btn_down->msw_rescale();
         combo_diameter->Rescale();
+        if (group_index >= 0)
+            combo_diameter->SetMinSize(wxSize(combo_diameter->GetTextExtent("0.25").x + combo_diameter->FromDIP(40),
+                                               combo_diameter->GetMinSize().y));
         for (const NozzleRow &row : rows) {
             row.prefix->SetFont(NozzleRow::prefix_font());
             row.diameter_label->SetFont(NozzleRow::diameter_font());
+            row.diameter_badge->SetBitmap(ScalableBitmap(this, "badge", 14).bmp());
             row.flow->Rescale();
         }
         update_row_widths();
@@ -1187,6 +1209,14 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
     // ORCA show plate type combo box only when its supported
     PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
     const auto& cfg = preset_bundle.printers.get_edited_preset().config;
+    // The 4-slot/1-slot AMS-count editor only describes Bambu's units. A generic printer's counts
+    // are derived from the device's actual unit widths, so editing the legacy buckets would create
+    // phantom capacity next to them.
+    const bool legacy_ams_count_editor = preset_bundle.is_bbl_vendor();
+    if (left_extruder)
+        left_extruder->SetAmsCountEditable(legacy_ams_count_editor);
+    if (right_extruder)
+        right_extruder->SetAmsCountEditable(legacy_ams_count_editor);
     // Orca: we use preset_bundle.is_bbl_vendor() instead of isBBL to determine if the plate type combo box should be shown
     // ref: https://github.com/OrcaSlicer/OrcaSlicer/pull/11610#discussion_r2607411847
     panel_printer_bed->Show(preset_bundle.is_bbl_vendor() || cfg.opt_bool("support_multi_bed_types"));
@@ -1213,7 +1243,8 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
         });
 
         // The variant box switches the machine variant. The card below lists the nozzles when there
-        // are flow variants to choose or extruders of different diameters; otherwise the box says it all.
+        // are flow variants to choose, extruders of different diameters, or a selected tool whose
+        // AMS preview has to stay visible; otherwise the box says it all.
         panel_nozzle_dia->Show(true);
         // A printer with more than two tools also keeps the card for its tool selector and AMS previews.
         extruder_single_sizer->Show(has_flow_variant || generic_multi_tool || (multi_extruder_rows && mixed_diameters));
@@ -1544,6 +1575,22 @@ struct DynamicFilamentList : DynamicList
 static DynamicFilamentList dynamic_filament_list;                // every slot, mixed included (per-feature *_filament_id keys)
 static DynamicFilamentList dynamic_physical_filament_list(true); // physical slots only (support_*, brim_filament_id, wipe_tower_filament)
 
+// Bambu's AMS count model only understands four-slot and one-slot units. Generic printers store
+// the device's actual width keys; leaving those in place after a switch to Bambu makes the grouping
+// code sum them and export_selections persists them under the Bambu printer. Keep the intended 4/1
+// buckets, drop every other width.
+static void sanitize_bambu_ams_counts(std::vector<std::map<int, int>> &counts)
+{
+    for (auto &extruder : counts) {
+        for (auto it = extruder.begin(); it != extruder.end();) {
+            if (it->first == 4 || it->first == 1)
+                ++it;
+            else
+                it = extruder.erase(it);
+        }
+    }
+}
+
 class AMSCountPopupWindow : public PopupWindow
 {
 public:
@@ -1619,7 +1666,11 @@ public:
     {
         PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
         preset_bundle.extruder_ams_counts.resize(2);
+        // A generic printer may have left actual-width keys behind. Bambu only understands the two
+        // buckets, so remove the rest rather than export them or let grouping sum them.
+        sanitize_bambu_ams_counts(preset_bundle.extruder_ams_counts);
         auto &ams_map = preset_bundle.extruder_ams_counts[index];
+        ams_map.clear();
         ams_map[4] = ams4;
         ams_map[1] = ams1;
 
@@ -1645,7 +1696,28 @@ public:
 
     static void UpdateAMSCount(int index, ExtruderGroup *extruder)
     {
-        std::vector<std::map<int, int>> &ams_counts = wxGetApp().preset_bundle->extruder_ams_counts;
+        PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
+        std::vector<std::map<int, int>> &ams_counts = preset_bundle.extruder_ams_counts;
+
+        // A generic printer's units are not limited to four or one slot. Show their real total
+        // count instead of reading only the Bambu buckets, which would report a six-slot unit as
+        // absent. The popup itself still edits only the 4-slot and 1-slot buckets.
+        if (!preset_bundle.is_bbl_vendor()) {
+            int n4 = 0, n1 = 0;
+            if (index >= 0 && index < static_cast<int>(ams_counts.size())) {
+                for (const auto &[slots, count] : ams_counts[index]) {
+                    if (count <= 0)
+                        continue;
+                    if (slots == 1)
+                        n1 += count;
+                    else
+                        n4 += count;
+                }
+            }
+            extruder->set_ams_count(n4, n1);
+            return;
+        }
+
         ams_counts.resize(2);
         std::map<int, int>& ams_map = ams_counts[index];
         if (ams_map.find(4) == ams_map.end()) {
@@ -1659,6 +1731,98 @@ public:
     }
 };
 
+// physical_extruder_map has one entry per preset/logical extruder, holding the device toolhead it
+// drives. Use the effective map the slicer uses (project override, printer preset, identity
+// fallback). get_preset_extruder_index() is the Bambu 0/1 inversion: it reverses generic toolheads
+// 0 and 1 and has no answer for tool 2, so it must not be used here.
+static std::vector<int> generic_preset_to_device_map(const PresetBundle &bundle, int extruder_count)
+{
+    std::vector<int> map(static_cast<size_t>(std::max(extruder_count, 0)));
+    std::iota(map.begin(), map.end(), 0);
+    if (extruder_count <= 0)
+        return map;
+    const ConfigOptionInts pem = effective_physical_extruder_map(bundle);
+    if (static_cast<int>(pem.values.size()) == extruder_count)
+        map = pem.values;
+    return map;
+}
+
+// Bambu's preset indices already follow left/right order. Generic preset indices do not:
+// the device tab places device tool 1 on the left and tool 0 on the right.
+static std::pair<int, int> dual_card_preset_indices(PresetBundle &bundle)
+{
+    if (bundle.is_bbl_vendor())
+        return {0, 1};
+    const auto map = generic_preset_to_device_map(bundle, 2);
+    if (map[0] == 1 && map[1] == 0)
+        return {0, 1};
+    if (map[0] == 0 && map[1] == 1)
+        return {1, 0};
+    // No unique left/right assignment. Use indexed titles until the map is corrected.
+    return {0, 1};
+}
+
+static bool has_generic_dual_sides(PresetBundle &bundle)
+{
+    if (bundle.is_bbl_vendor())
+        return true;
+    const auto map = generic_preset_to_device_map(bundle, 2);
+    return (map[0] == 0 && map[1] == 1) || (map[0] == 1 && map[1] == 0);
+}
+
+// Actual AMS capacity reported by a generic printer: one map entry per unit slot count, indexed by
+// the preset extruder order used by extruder_ams_counts and the slice config. Each AMS binding names
+// a device toolhead, which is translated to the preset index through preset_to_device. A unit bound
+// to several toolheads is counted on each, matching the sidebar preview.
+static std::vector<std::map<int, int>> generic_preset_ams_counts(const MachineObject *obj, const std::vector<int> &preset_to_device)
+{
+    std::vector<std::map<int, int>> counts(preset_to_device.size());
+    if (obj == nullptr)
+        return counts;
+    for (const auto &item : obj->GetFilaSystem()->GetAmsList()) {
+        const DevAms *ams = item.second;
+        if (ams == nullptr)
+            continue;
+        const int slots = ams->GetSlotCount();
+        if (slots < 0)
+            continue;
+        const auto add = [&counts, &preset_to_device, slots](int device_id) {
+            if (device_id < 0)
+                return;
+            for (size_t preset_index = 0; preset_index < preset_to_device.size(); ++preset_index)
+                if (preset_to_device[preset_index] == device_id)
+                    counts[preset_index][slots]++;
+        };        const std::set<int> &bindings = ams->GetBindedExtruderSet();
+        if (bindings.empty())
+            add(ams->GetExtruderId());
+        else
+            for (int extruder_id : bindings)
+                add(extruder_id);
+    }
+    return counts;
+}
+
+// Drop the zero entries left by the Bambu 4/1 editor so a device map and a stored map compare by the
+// units that are actually present.
+static std::vector<std::map<int, int>> positive_ams_counts(const std::vector<std::map<int, int>> &counts, size_t extruder_count)
+{
+    std::vector<std::map<int, int>> result(extruder_count);
+    for (size_t i = 0; i < extruder_count && i < counts.size(); ++i)
+        for (const auto &[slots, count] : counts[i])
+            if (count > 0)
+                result[i][slots] += count;
+    return result;
+}
+
+static void set_generic_ams_counts(std::vector<std::map<int, int>> counts)
+{
+    PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
+    preset_bundle.extruder_ams_counts = std::move(counts);
+    const std::vector<std::string> count_strings = save_extruder_ams_count_to_string(preset_bundle.extruder_ams_counts);
+    wxGetApp().app_config->set("presets", "extruder_ams_count", boost::algorithm::join(count_strings, ","));
+    wxGetApp().plater()->update(); // update slice status
+}
+
 ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title)
     : StaticBox(parent), group_index(index), logical_tool(index)
 {
@@ -1666,7 +1830,6 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
     SetForegroundColour(wxColour("#CECECE"));
     SetBorderColor(wxColour("#EEEEEE"));
     SetCornerRadius(FromDIP(PRINTER_PANEL_RADIUS)); // ORCA match radius with other boxes
-    ShowBadge(true);
     SetTopMargin(FromDIP(7)); // ORCA
 
     // The title lives in an interactive row inside the card (with the nozzle-count badge and its edit button)
@@ -1680,6 +1843,9 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
     combo_diameter->SetToolTip(_L("Diameter"));
     combo_diameter->Show(index >= 0);
     use_nozzle_row_font(combo_diameter);
+    if (index >= 0)
+        combo_diameter->SetMinSize(wxSize(combo_diameter->GetTextExtent("0.25").x + combo_diameter->FromDIP(40),
+                                           combo_diameter->GetMinSize().y));
 
     // AMS
     ams_panel = new wxPanel(this, wxID_ANY);
@@ -1700,6 +1866,8 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
         btn_edit->SetBackgroundColour(extruder_group_chip_bg());
         btn_edit->Hide();
         btn_edit->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this, combo_diameter](auto &evt) {
+            if (!ams_count_editable)
+                return;
             PopupWindow *window = new AMSCountPopupWindow(this, logical_tool >= 0 ? logical_tool : 0);
             auto size = GetSize();
             auto pos  = ClientToScreen({0, size.y - FromDIP(8) - combo_diameter->GetSize().y});
@@ -1714,6 +1882,8 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
             w->Bind(wxEVT_ENTER_WINDOW, [w, hovered, this](wxMouseEvent &evt) {
                 *hovered = w;
                 this->CallAfter([this]() {
+                    if (!ams_count_editable)
+                        return;
                     btn_edit->Show();
                     ams_label->Hide();
                     hsizer_ams->Layout();
@@ -1811,6 +1981,8 @@ ExtruderGroup::NozzleRow ExtruderGroup::create_nozzle_row()
     row.diameter_label = new Label(this, NozzleRow::diameter_font());
     row.diameter_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
     row.diameter_label->Hide();
+    row.diameter_badge = new wxStaticBitmap(this, wxID_ANY, ScalableBitmap(this, "badge", 14).bmp());
+    row.diameter_badge->Hide();
 
     auto combo_flow = new ComboBox(this, wxID_ANY, wxString(""), wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_READONLY);
     combo_flow->GetDropDown().SetUseContentWidth(true);
@@ -1839,6 +2011,7 @@ ExtruderGroup::NozzleRow ExtruderGroup::create_nozzle_row()
     if (row_index == 0)
         row_sizer->Add(combo_diameter, 1, wxRIGHT, FromDIP(5));
     row_sizer->Add(row.diameter_label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(5));
+    row_sizer->Add(row.diameter_badge, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(5));
     row_sizer->Add(row.flow, 1);
     row.row_sizer = row_sizer;
     // Row-major: T1 T2 on the first line, T3 T4 on the second, and so on. A single-tool card keeps
@@ -1847,6 +2020,24 @@ ExtruderGroup::NozzleRow ExtruderGroup::create_nozzle_row()
     column->Add(row_sizer, 0, wxEXPAND | wxBOTTOM, FromDIP(5));
 
     return row;
+}
+
+void ExtruderGroup::SetNozzleSynced(size_t row, bool synced)
+{
+    if (row < rows.size()) {
+        rows[row].nozzle_synced = synced;
+        if (group_index >= 0 && row == 0)
+            combo_diameter->ShowCornerBadge(synced && IsNozzleRowVisible(row));
+        else
+            rows[row].diameter_badge->Show(synced && IsNozzleRowVisible(row));
+        Layout();
+    }
+}
+
+void ExtruderGroup::ClearNozzleSynced()
+{
+    for (size_t i = 0; i < rows.size(); ++i)
+        SetNozzleSynced(i, false);
 }
 
 void ExtruderGroup::update_row_widths()
@@ -1933,6 +2124,10 @@ void ExtruderGroup::apply_nozzle_row_visibility()
         const bool show = IsNozzleRowVisible(i);
         rows[i].prefix->Show(show && nozzle_row_count > 1);
         rows[i].diameter_label->Show(show && group_index < 0); // the dual left/right cards show combo_diameter
+        if (group_index >= 0 && i == 0)
+            combo_diameter->ShowCornerBadge(show && rows[i].nozzle_synced);
+        else
+            rows[i].diameter_badge->Show(show && rows[i].nozzle_synced);
         // The flow combo's own visibility follows its choices and the selected row, see update_extruder_variant.
         rows[i].flow->Show(show && rows[i].flow->GetCount() > 0);
     }
@@ -2024,7 +2219,7 @@ void ExtruderGroup::update_ams()
     // the installed/not-installed message is reused across updates.
     hsizer_ams->Clear(false);
     hsizer_ams->Add(ams_label, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(5));
-    if (btn_edit)
+    if (btn_edit && ams_count_editable)
         hsizer_ams->Add(btn_edit, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(5));
     if (ams_not_installed_msg->IsShown()) {
         hsizer_ams->AddStretchSpacer(1);
@@ -2036,7 +2231,7 @@ void ExtruderGroup::update_ams()
             hsizer_ams->Add(this->ams[i], 0, wxLEFT, FromDIP(1));
     }
     if (btn_up->IsShown() || btn_down->IsShown()) {
-        if (btn_edit)
+        if (btn_edit && ams_count_editable)
             hsizer_ams->AddStretchSpacer(1);
         if (btn_up->IsShown() && btn_down->IsShown()) {
             auto vsizer_btn = new wxBoxSizer(wxVERTICAL);
@@ -2137,9 +2332,11 @@ bool Sidebar::priv::switch_diameter_to(const wxString &diameter)
     // ORCA: Check if the selected diameter matches the current nozzle diameter in the config
     Preset& printer_preset = wxGetApp().preset_bundle->printers.get_edited_preset();
     auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(printer_preset.config.option("nozzle_diameter"));
-    // ORCA: the left/right combos of a BBL multi-nozzle printer set the nozzles apart without leaving
-    // the preset (see switch_diameter), so there the preset is only kept while every nozzle matches.
-    const bool nozzles_apart = nozzle_diameter && nozzle_diameter->size() > 1 && wxGetApp().preset_bundle->is_bbl_vendor() &&
+    // The left/right combos set the nozzles independently, so retain the preset only
+    // when every nozzle already matches.
+    const bool is_bbl_vendor = wxGetApp().preset_bundle->is_bbl_vendor();
+    const bool nozzles_apart = nozzle_diameter && nozzle_diameter->size() > 1 &&
+        (is_bbl_vendor || nozzle_diameter->size() == 2) &&
         std::any_of(nozzle_diameter->values.begin(), nozzle_diameter->values.end(),
                     [&diameter](double value) { return get_diameter_string(value) != diameter.ToStdString(); });
     // The combo lists printer variants, and the variant of a mixed-nozzle machine ("0.4+0.6") is no
@@ -2156,7 +2353,7 @@ bool Sidebar::priv::switch_diameter_to(const wxString &diameter)
         if (current_tool >= 0 && current_tool < int(nozzle_diameter->size())) {
             auto current_nozzle_dia = get_diameter_string(nozzle_diameter->values[current_tool]);
             // If the selected diameter is the same as current nozzle, don't switch profiles
-            if (current_nozzle_dia == diameter.ToStdString()) {
+            if (current_nozzle_dia == diameter.ToStdString() && (!nozzles_apart || is_bbl_vendor)) {
                 return true;
             }
         }
@@ -2721,7 +2918,7 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
     const Preset &cur_preset  = preset_bundle->printers.get_selected_preset();
     int extruder_nums = preset_bundle->get_printer_extruder_count();
     // The left/right cards and their two-entry AMS-count model do not describe an N-tool printer.
-    const bool generic_multi_tool = !preset_bundle->is_bbl_vendor() && extruder_nums > 2;
+    const bool generic_multi_tool = extruder_nums > 2;
     // Same project-first effective map the send/slicing paths use; legacy Bambu two-tool presets
     // without a two-entry map are handled by sidebar_dual_tool_device_map.
     const std::vector<int> extruder_map = sidebar_dual_tool_device_map(*preset_bundle, obj);
@@ -2738,6 +2935,16 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
             _L("Sync printer information"),
             wxOK | wxICON_WARNING);
         dlg.ShowModal();
+        return false;
+    }
+    if (extruder_nums == 2 && !has_generic_dual_sides(*preset_bundle)) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": physical extruder mapping does not identify both tools";
+        if (is_manual) {
+            MessageDialog dlg(this->plater,
+                              _L("The physical extruder mapping must identify both tools before syncing."),
+                              _L("Sync printer information"), wxOK | wxICON_WARNING);
+            dlg.ShowModal();
+        }
         return false;
     }
 
@@ -2765,6 +2972,10 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
     for (size_t index = 0; !preserve_current_nozzle && index < extruder_nums; ++index) {
         // index is the logical/preset extruder; extruder_id is the device tool it drives.
         int extruder_id = extruder_map[index];
+        if (extruder_id < 0 || extruder_id >= extruder_nums) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": invalid physical extruder mapping";
+            return false;
+        }
         nozzle_diameters[index] = nozzle_option ? string_to_double_decimal_point(nozzle_option->diameter) : obj->GetExtderSystem()->GetNozzleDiameter(extruder_id);
         NozzleVolumeType target_type = NozzleVolumeType::nvtStandard;
         std::optional<NozzleVolumeType> select_type;
@@ -2795,35 +3006,42 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
         target_types[index] = target_type;
     }
 
+    // Count the AMS units behind Bambu's left/right cards. The count model stores a unit as four
+    // slots unless it is a one-slot N3S unit, and covers only physical extruders 0 and 1. A generic
+    // multi-tool printer has neither a left/right pair nor that slot contract, so its card counts
+    // the units bound to the selected tool directly and these counts are not filled or persisted.
     int deputy_4 = 0, main_4 = 0, deputy_1 = 0, main_1 = 0;
-    const bool switch_ready = is_fila_switch_ready();
-    for (auto ams : obj->GetFilaSystem()->GetAmsList()) {
-        for (int extruder_id : ams.second->GetBindedExtruderSet()) {
-            // With the switch installed every AMS binds to both extruders; once it is ready, attribute
-            // each to the extruder its input track feeds so the per-extruder counts stay correct. Without
-            // a switch the binding set is the single extruder and the filter is skipped, matching the
-            // pre-switch counts.
-            if (switch_ready) {
-                auto switcher_pos = ams.second->GetSwitcherPos();
-                if (!switcher_pos)
-                    continue;
-                int switcher_id = obj->is_main_extruder_on_left() ? (1 - static_cast<int>(switcher_pos.value()))
-                                                                  : static_cast<int>(switcher_pos.value());
-                if (extruder_id != switcher_id)
-                    continue;
-            }
-            const bool is_n3s = ams.second->GetAmsType() == DevAms::N3S;
-            // Main (first) extruder is id 0, deputy is id 1.
-            if (extruder_id == 0) {
-                if (is_n3s) ++main_1; else ++main_4;
-            } else if (extruder_id == 1) {
-                if (is_n3s) ++deputy_1; else ++deputy_4;
+    int main_index = 0, deputy_index = 0;
+    if (!generic_multi_tool) {
+        const bool switch_ready = is_fila_switch_ready();
+        for (auto ams : obj->GetFilaSystem()->GetAmsList()) {
+            for (int extruder_id : ams.second->GetBindedExtruderSet()) {
+                // With the switch installed every AMS binds to both extruders; once it is ready, attribute
+                // each to the extruder its input track feeds so the per-extruder counts stay correct. Without
+                // a switch the binding set is the single extruder and the filter is skipped, matching the
+                // pre-switch counts.
+                if (switch_ready) {
+                    auto switcher_pos = ams.second->GetSwitcherPos();
+                    if (!switcher_pos)
+                        continue;
+                    int switcher_id = obj->is_main_extruder_on_left() ? (1 - static_cast<int>(switcher_pos.value()))
+                                                                      : static_cast<int>(switcher_pos.value());
+                    if (extruder_id != switcher_id)
+                        continue;
+                }
+                const bool is_n3s = ams.second->GetAmsType() == DevAms::N3S;
+                // Main (first) extruder is id 0, deputy is id 1.
+                if (extruder_id == 0) {
+                    if (is_n3s) ++main_1; else ++main_4;
+                } else if (extruder_id == 1) {
+                    if (is_n3s) ++deputy_1; else ++deputy_4;
+                }
             }
         }
+        main_index = obj->is_main_extruder_on_left() ? 0 : 1;
+        deputy_index = obj->is_main_extruder_on_left() ? 1 : 0;
     }
     only_external_material = !obj->GetFilaSystem()->HasAms();
-    int main_index = obj->is_main_extruder_on_left() ? 0 : 1;
-    int deputy_index = obj->is_main_extruder_on_left() ? 1 : 0;
 
     int left_preset = -1, right_preset = -1;
     const bool dual_sides = extruder_nums == 2 && dual_tool_preset_sides(obj, extruder_map, left_preset, right_preset);
@@ -2898,6 +3116,15 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
                 AMSCountPopupWindow::UpdateAMSCount(0, left_extruder);
                 AMSCountPopupWindow::UpdateAMSCount(1, right_extruder);
             }
+            if (!preset_bundle->is_bbl_vendor()) {
+                // A generic unit's slot count is not limited to Bambu's four or one. Keep the
+                // device-reported sizes instead of folding every non-N3S unit into the 4-slot
+                // bucket. Only two-extruder generic printers reach this branch.
+                const std::vector<int> generic_map = generic_preset_to_device_map(*preset_bundle, extruder_nums);
+                set_generic_ams_counts(generic_preset_ams_counts(obj, generic_map));
+                AMSCountPopupWindow::UpdateAMSCount(left_tool, left_extruder);
+                AMSCountPopupWindow::UpdateAMSCount(right_tool, right_extruder);
+            }
         } else {
             if (nozzle_diameters_match) {
                 int index = single_extruder->combo_diameter->FindString(get_diameter_string(nozzle_diameters[0]));
@@ -2943,6 +3170,9 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
         panel_printer_preset->ShowBadge(false);
         panel_printer_bed->ShowBadge(false);
         panel_nozzle_dia->ShowBadge(false); // ORCA add support for nozzle sync
+        left_extruder->ClearNozzleSynced();
+        right_extruder->ClearNozzleSynced();
+        single_extruder->ClearNozzleSynced();
         left_extruder->ShowBadge(false);
         left_extruder->sync_ams(nullptr, {}, {});
         right_extruder->ShowBadge(false);
@@ -3001,19 +3231,21 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
 
     struct ExtruderInfo
     {
-        float diameter{0.4};
+        float diameter{0.0};
         //int   nozzle_volue_type{0};
         int   ams_4{0};
         int   ams_1{0};
+        // Actual unit counts keyed by slot count, used for generic printers whose units are not
+        // limited to the Bambu four/one slot buckets. Empty on the Bambu path.
+        std::map<int, int> ams_slot_counts;
         std::vector<DevAms *> ams_v4;
         std::vector<DevAms *> ams_v1;
 
-        bool operator==(const ExtruderInfo &other) const
+        bool same_ams(const ExtruderInfo &other) const
         {
-            return abs(diameter - other.diameter) < EPSILON
-                && /*nozzle_volue_type == other.nozzle_volue_type
-                &&*/ ams_4 == other.ams_4
-                && ams_1 == other.ams_1;
+            return ams_4 == other.ams_4
+                && ams_1 == other.ams_1
+                && ams_slot_counts == other.ams_slot_counts;
         }
     };
 
@@ -3021,14 +3253,16 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
         bool is_same_nozzle_type = true;
         if (obj->is_nozzle_flow_type_supported())
             is_same_nozzle_type = true;//left.nozzle_volue_type == right.nozzle_volue_type; // TODO: Orca hack
-        return abs(left.diameter - right.diameter) < EPSILON && is_same_nozzle_type;
+        return std::isfinite(left.diameter) && left.diameter > 0 &&
+               std::isfinite(right.diameter) && right.diameter > 0 &&
+               std::fabs(left.diameter - right.diameter) < EPSILON && is_same_nozzle_type;
     };
 
     // 2. update extruder status
     int extruder_nums = preset_bundle->get_printer_extruder_count();
-    // A generic printer with more than two tools shows one tool at a time. Its AMS units are
-    // attributed by their own extruder bindings; the Bambu left/right conventions do not apply.
-    const bool generic_multi_tool = !preset_bundle->is_bbl_vendor() && extruder_nums > 2;
+    const bool generic_vendor = !preset_bundle->is_bbl_vendor();
+    // More than two tools show one indexed card at a time.
+    const bool generic_multi_tool = extruder_nums > 2;
     if (extruder_nums != obj->GetExtderSystem()->GetTotalExtderCount()) {
         // A count mismatch means the card cannot be trusted. Clear the previous device's previews
         // and make sure the selected tool still exists instead of keeping a stale card.
@@ -3037,6 +3271,10 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
             update_tool_selector(extruder_nums, true);
             single_extruder->SetVisibleNozzleRow(selected_tool);
         }
+        return;
+    }
+    if (extruder_nums == 2 && !has_generic_dual_sides(*preset_bundle)) {
+        clear_all_sync_status();
         return;
     }
 
@@ -3073,10 +3311,22 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
     if (extruder_ams_counts.size() >= extruder_nums) {
         for (size_t i = 0; i < extruder_nums; ++i) {
             for (auto iter = extruder_ams_counts[i].begin(); iter != extruder_ams_counts[i].end(); ++iter) {
-                if (iter->first == 4)
-                    extruder_infos[i].ams_4 = iter->second;
-                if (iter->first == 1)
-                    extruder_infos[i].ams_1 = iter->second;
+                if (iter->second <= 0)
+                    continue;
+                if (generic_vendor) {
+                    // Generic units are bucketed by slot width (one slot vs the rest), the same
+                    // signal the device side uses; their real widths live in ams_slot_counts.
+                    if (iter->first == 1)
+                        extruder_infos[i].ams_1 += iter->second;
+                    else
+                        extruder_infos[i].ams_4 += iter->second;
+                    extruder_infos[i].ams_slot_counts[iter->first] = iter->second;
+                } else {
+                    if (iter->first == 4)
+                        extruder_infos[i].ams_4 = iter->second;
+                    if (iter->first == 1)
+                        extruder_infos[i].ams_1 = iter->second;
+                }
             }
         }
     }
@@ -3106,16 +3356,39 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
     }
 
     std::vector<ExtruderInfo> machine_extruder_infos(obj->GetExtderSystem()->GetTotalExtderCount());
+    bool ams_topology_usable = true;
 
     const auto& extruders = obj->GetExtderSystem()->GetExtruders();
     for (const DevExtder &extruder : extruders) {
         //machine_extruder_infos[extruder.GetExtId()].nozzle_volue_type = int(extruder.GetNozzleFlowType()) - 1;
-        machine_extruder_infos[extruder.GetExtId()].diameter          = extruder.GetNozzleDiameter();
+        if (extruder.GetExtId() >= 0 && extruder.GetExtId() < int(machine_extruder_infos.size()))
+            machine_extruder_infos[extruder.GetExtId()].diameter = extruder.GetNozzleDiameter();
     }
     for (auto &item : obj->GetFilaSystem()->GetAmsList()) {
-        auto add_to_extruder = [&machine_extruder_infos](DevAms *ams, int extruder_id) {
-            if (extruder_id < 0 || extruder_id >= int(machine_extruder_infos.size()))
+        auto add_to_extruder = [&machine_extruder_infos, &ams_topology_usable, generic_vendor](DevAms *ams, int extruder_id) {
+            if (extruder_id < 0 || extruder_id >= int(machine_extruder_infos.size())) {
+                ams_topology_usable = false;
                 return;
+            }
+            if (generic_vendor) {
+                // Generic units are bucketed by their actual slot width, the same signal the stored
+                // map uses. A one-slot unit is a single-slot preview even when its device type is
+                // the four-slot AMS type, so the two sides cannot disagree after sync.
+                const int slots = ams->GetSlotCount();
+                if (slots < 0) {
+                    ams_topology_usable = false;
+                    return;
+                }
+                machine_extruder_infos[extruder_id].ams_slot_counts[slots]++;
+                if (slots == 1) {
+                    machine_extruder_infos[extruder_id].ams_1++;
+                    machine_extruder_infos[extruder_id].ams_v1.push_back(ams);
+                } else {
+                    machine_extruder_infos[extruder_id].ams_4++;
+                    machine_extruder_infos[extruder_id].ams_v4.push_back(ams);
+                }
+                return;
+            }
             if (ams->GetAmsType() == DevAms::N3S) { // N3S
                 machine_extruder_infos[extruder_id].ams_1++;
                 machine_extruder_infos[extruder_id].ams_v1.push_back(ams);
@@ -3125,7 +3398,7 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
             }
         };
 
-        if (generic_multi_tool) {
+        if (generic_vendor) {
             // Generic agents report the bound extruder on every AMS unit. Honour the whole binding
             // set so a unit the device binds to several tools appears on each of them. Bindings are
             // 0-based tool indices, matching selected_tool (T1 == 0).
@@ -3145,14 +3418,18 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
         // yields the same attribution as before.
         if (fila_switch_flag) {
             auto switcher_pos = item.second->GetSwitcherPos();
-            if (!switcher_pos)
+            if (!switcher_pos) {
+                ams_topology_usable = false;
                 continue;
+            }
             extruder_id = obj->is_main_extruder_on_left() ? (1 - static_cast<int>(switcher_pos.value()))
                                                           : static_cast<int>(switcher_pos.value());
         } else {
             const auto &uniq_extruder_id = item.second->GetUniqueBindedExtruderId();
-            if (!uniq_extruder_id)
+            if (!uniq_extruder_id) {
+                ams_topology_usable = false;
                 continue;
+            }
             extruder_id = uniq_extruder_id.value();
         }
 
@@ -3166,59 +3443,62 @@ void Sidebar::priv::update_sync_status(const MachineObject *obj)
         by_preset[left_preset]  = machine_extruder_infos[obj->device_tool_for_display_index(0)];
         by_preset[right_preset] = machine_extruder_infos[obj->device_tool_for_display_index(1)];
         machine_extruder_infos  = std::move(by_preset);
-    } else if (!generic_multi_tool) {
-        // UI left is the deputy extruder on Bambu's dual-tool cards, hence the reversal. Generic
-        // multi-tool cards keep the tool order the printer reports.
+    } else if (generic_vendor || extruder_nums > 2) {
+        // Bambu's dual-tool cards put the deputy on the left, hence the reversal. A generic card is
+        // indexed by preset/logical extruder: physical_extruder_map[i] names the device toolhead that
+        // logical extruder drives, so reorder through it (identity when the preset authors no swap).
+        const std::vector<int> preset_to_device = generic_preset_to_device_map(*preset_bundle, extruder_nums);
+        std::vector<ExtruderInfo> reordered(static_cast<size_t>(extruder_nums));
+        for (size_t i = 0; i < preset_to_device.size(); ++i) {
+            const int device_id = preset_to_device[i];
+            if (device_id >= 0 && device_id < int(machine_extruder_infos.size()))
+                reordered[i] = machine_extruder_infos[device_id];
+        }
+        machine_extruder_infos = std::move(reordered);
+    } else {
         std::reverse(machine_extruder_infos.begin(), machine_extruder_infos.end());
     }
 
     std::vector<bool> extruder_synced(extruder_nums, false);
+    std::vector<bool> nozzle_synced(extruder_nums, false);
+    std::vector<bool> ams_synced(extruder_nums, false);
+    std::vector<bool> ams_badge(extruder_nums, false);
+    for (size_t i = 0; i < extruder_infos.size(); ++i) {
+        nozzle_synced[i] = is_same_nozzle_info(extruder_infos[i], machine_extruder_infos[i]);
+        ams_synced[i] = extruder_infos[i].same_ams(machine_extruder_infos[i]);
+        // An empty list can mean either no AMS or topology not yet received. Only show the card
+        // badge when at least one bound live unit confirms this tool's matching saved counts.
+        ams_badge[i] = ams_topology_usable && i < extruder_ams_counts.size() &&
+                       (!machine_extruder_infos[i].ams_v4.empty() || !machine_extruder_infos[i].ams_v1.empty()) &&
+                       ams_synced[i];
+        const float device_diameter = machine_extruder_infos[i].diameter;
+        const bool nozzle_reported = std::isfinite(device_diameter) && device_diameter > 0;
+        extruder_synced[i] = (!nozzle_reported || nozzle_synced[i]) && ams_synced[i];
+    }
     if (extruder_nums == 1) {
-        if (is_same_nozzle_info(extruder_infos[0], machine_extruder_infos[0])) {
-            single_extruder->ShowBadge(true);
-            panel_nozzle_dia->ShowBadge(true); // ORCA add support for nozzle sync
-            single_extruder->sync_ams(obj, machine_extruder_infos[0].ams_v4, machine_extruder_infos[0].ams_v1);
-            extruder_synced[0] = true;
-        }
-        else {
-            single_extruder->ShowBadge(false);
-            panel_nozzle_dia->ShowBadge(false); // ORCA add support for nozzle sync
-            single_extruder->sync_ams(obj, {}, {});
-        }
+        single_extruder->SetNozzleSynced(0, nozzle_synced[0]);
+        single_extruder->ShowBadge(ams_badge[0]);
+        single_extruder->sync_ams(obj, machine_extruder_infos[0].ams_v4, machine_extruder_infos[0].ams_v1, true);
     }
     else if (extruder_nums == 2) {
         const int left_tool  = dual_physical_sides ? left_preset : 0;
         const int right_tool = dual_physical_sides ? right_preset : 1;
         left_extruder->logical_tool  = left_tool;
         right_extruder->logical_tool = right_tool;
-        if (extruder_infos[left_tool] == machine_extruder_infos[left_tool]) {
-            left_extruder->ShowBadge(true);
-            left_extruder->sync_ams(obj, machine_extruder_infos[left_tool].ams_v4, machine_extruder_infos[left_tool].ams_v1);
-            extruder_synced[0] = true;
-        }
-        else {
-            left_extruder->ShowBadge(false);
-            left_extruder->sync_ams(obj, {}, {});
-        }
-
-        if (extruder_infos[right_tool] == machine_extruder_infos[right_tool]) {
-            right_extruder->ShowBadge(true);
-            right_extruder->sync_ams(obj, machine_extruder_infos[right_tool].ams_v4, machine_extruder_infos[right_tool].ams_v1);
-            extruder_synced[1] = true;
-        }
-        else {
-            right_extruder->ShowBadge(false);
-            right_extruder->sync_ams(obj, {}, {});
-        }
+        // Each card's nozzle-sync tick follows the preset tool that card edits.
+        left_extruder->SetNozzleSynced(0, nozzle_synced[left_tool]);
+        right_extruder->SetNozzleSynced(0, nozzle_synced[right_tool]);
+        left_extruder->ShowBadge(ams_badge[left_tool]);
+        right_extruder->ShowBadge(ams_badge[right_tool]);
+        left_extruder->sync_ams(obj, machine_extruder_infos[left_tool].ams_v4, machine_extruder_infos[left_tool].ams_v1, true);
+        right_extruder->sync_ams(obj, machine_extruder_infos[right_tool].ams_v4, machine_extruder_infos[right_tool].ams_v1, true);
     }
     else if (generic_multi_tool) {
-        // Show the selected tool's AMS previews and badge. The other tools keep their sync state for
-        // the status icon but have no card of their own.
-        for (size_t i = 0; i < extruder_infos.size(); ++i)
-            extruder_synced[i] = is_same_nozzle_info(extruder_infos[i], machine_extruder_infos[i]);
-
+        // Rows remain alive when switching tools, so update every row's nozzle badge.
+        for (size_t i = 0; i < nozzle_synced.size(); ++i)
+            single_extruder->SetNozzleSynced(i, nozzle_synced[i]);
         const size_t tool = size_t(std::clamp(selected_tool, 0, extruder_nums - 1));
-        single_extruder->ShowBadge(extruder_synced[tool]);
+        single_extruder->ShowBadge(ams_badge[tool]);
         single_extruder->sync_ams(obj, machine_extruder_infos[tool].ams_v4, machine_extruder_infos[tool].ams_v1, true);
     }
 
@@ -4229,9 +4509,8 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
 
     PlaterPresetComboBox* combobox = (*combo);
     edit_btn->Bind(wxEVT_BUTTON, [this, edit_btn, combobox, filament_idx](wxCommandEvent) {
-        bool single_or_bbl     = should_show_SEMM_buttons();
         bool is_multi_material = p->combos_filament.size() > 1;
-        if(single_or_bbl && is_multi_material) {
+        if(is_multi_material) {
            // MULTI MATERIAL Show menu
             auto menu = p->plater->filament_action_menu(filament_idx);
             wxPoint pt { 0, edit_btn->GetSize().GetHeight() + FromDIP(2) };
@@ -4241,7 +4520,7 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
             p->plater->PopupMenu(menu, (int) pt.x, pt.y);
         }
         else {
-            // SINGLE MATERIAL / MULTI EXTRUDER / TOOLCHANGER / IDEX Opens Dialog directly
+            // SINGLE MATERIAL Opens Dialog directly
             // -1 first, like Sidebar::edit_filament(): switch_to_tab() can run select_preset(),
             // whose on_presets_changed() cascade would otherwise write into this slot mid-switch.
             p->editing_filament = -1;
@@ -4500,21 +4779,27 @@ void Sidebar::update_presets(Preset::Type preset_type)
         auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(printer_preset.config.option("nozzle_diameter"));
         auto extruder_variants = printer_preset.config.option<ConfigOptionStrings>("extruder_variant_list");
 
-        bool isBBL = preset_bundle.is_bbl_vendor();
-        bool is_dual_extruder = extruder_variants->size() == 2;
+        bool is_dual_extruder = preset_bundle.get_printer_extruder_count() == 2;
         // why: agent mode drives the native device tab, so the sidebar lays out like BBL
         // (no physical-printer connect button).
         p->layout_printer(preset_bundle.use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents"),
-                          isBBL && is_dual_extruder);
+                          is_dual_extruder);
 
-        // Update nozzle titles from printer config (e.g. "Main Nozzle" / "Auxiliary Nozzle" for N6)
-        // UI left = DEPUTY_EXTRUDER_ID(1), UI right = MAIN_EXTRUDER_ID(0)
+        // Cards are positioned by device side, but their controls edit preset indices.
         if (is_dual_extruder) {
-            std::string printer_type = printer_preset.get_printer_type(wxGetApp().preset_bundle);
-            auto left_title  = DevPrinterConfigUtil::get_toolhead_display_name(printer_type, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase);
-            auto right_title = DevPrinterConfigUtil::get_toolhead_display_name(printer_type, MAIN_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase);
-            p->left_extruder->SetTitle(_L(left_title));
-            p->right_extruder->SetTitle(_L(right_title));
+            const auto [left_tool, right_tool] = dual_card_preset_indices(preset_bundle);
+            p->left_extruder->group_index = left_tool;
+            p->right_extruder->group_index = right_tool;
+            if (has_generic_dual_sides(preset_bundle)) {
+                std::string printer_type = printer_preset.get_printer_type(wxGetApp().preset_bundle);
+                auto left_title  = DevPrinterConfigUtil::get_toolhead_display_name(printer_type, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase);
+                auto right_title = DevPrinterConfigUtil::get_toolhead_display_name(printer_type, MAIN_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase);
+                p->left_extruder->SetTitle(_L(left_title));
+                p->right_extruder->SetTitle(_L(right_title));
+            } else {
+                p->left_extruder->SetTitle(wxString::Format(_L("Tool %d"), left_tool + 1));
+                p->right_extruder->SetTitle(wxString::Format(_L("Tool %d"), right_tool + 1));
+            }
         }
 
         auto extruders = printer_preset.config.option<ConfigOptionEnumsGeneric>("extruder_type");
@@ -4545,7 +4830,8 @@ void Sidebar::update_presets(Preset::Type preset_type)
             if (select == -1)
                 select = combo_flow->GetCount() - 1;
             combo_flow->SetSelection(select);
-            // No flow variant for this printer or extruder: the diameter keeps the whole row.
+            // No flow variant for this printer or extruder, or a tool row not currently shown: the
+            // diameter keeps the whole row.
             combo_flow->Show(has_flow_variant && combo_flow->GetCount() > 0 && extruder.IsNozzleRowVisible(row));
         };
 
@@ -4670,6 +4956,12 @@ void Sidebar::update_presets(Preset::Type preset_type)
     default: break;
     }
 
+    // A switch from a generic printer can leave actual-width AMS keys in the bundle, including when
+    // remember_printer_config is disabled and update_selections() did not replace the previous
+    // printer's counts. Drop them before this export writes the Bambu selection. Keep the 4/1 values.
+    if (preset_bundle.is_bbl_vendor())
+        sanitize_bambu_ams_counts(preset_bundle.extruder_ams_counts);
+
     // Synchronize config.ini with the current selections.
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
 
@@ -4700,6 +4992,9 @@ void Sidebar::update_presets_from_to(Slic3r::Preset::Type preset_type, std::stri
 
     default: break;
     }
+
+    if (preset_bundle.is_bbl_vendor())
+        sanitize_bambu_ams_counts(preset_bundle.extruder_ams_counts);
 
     // Synchronize config.ini with the current selections.
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
@@ -6606,18 +6901,20 @@ void Sidebar::on_bed_type_change(BedType bed_type)
  *   build_filament_ams_list() [THIS FUNCTION] - aggregates into DynamicPrintConfig maps
  *
  * Data Sources:
- * - obj->vt_slot: Virtual trays for external/manual filament loading (when ams_support_virtual_tray is true)
+ * - obj->vt_slot: Virtual trays for external/manual filament loading (when ams_support_virtual_tray is true).
+ *   A non-Bambu slot that carries no reported filament data is topology for the Device tab only and
+ *   is not returned here.
  * - obj->GetFilaSystem()->GetAmsList(): Map of AMS units, each containing multiple DevAmsTray slots
  *
  * Return Value:
  * - Map key encoding:
- *   - Virtual trays: 0x10000 + vt_tray.id for the main extruder's slot, or just vt_tray.id for the
- *     others. Bambu's fixed pair is 255 (main) / 254 (secondary); a generic printer identifies each
- *     slot by its own id (extruder = VIRTUAL_TRAY_MAIN_ID - id: 255 -> 0, 254 -> 1, ...)
- *   - AMS trays: 0x10000 + (ams_id * 4 + slot_id) (main extruder), or (ams_id * 4 + slot_id) (secondary)
- *   - Generic (non-Bambu) units are not four slots wide: their trays index by a cumulative lane
- *     count across units instead of ams_id * 4 + slot_id
- *   - The 0x10000 flag indicates the main/right extruder
+ *   - Bambu virtual trays: 0x10000 + vt_tray.id for the leading slot, vt_tray.id for the others.
+ *     Bambu's fixed pair is 255 (main) / 254 (secondary).
+ *   - Bambu AMS trays: 0x10000 + (ams_id * 4 + slot_id) (main extruder), or (ams_id * 4 + slot_id) (secondary)
+ *   - Generic (non-Bambu) trays carry no 0x10000 offset: every external slot keeps its own virtual
+ *     tray id (255 -> extruder 0, 254 -> 1, ...), and their units are not four slots wide, so their
+ *     trays index by a cumulative lane count across units instead of ams_id * 4 + slot_id
+ *   - The 0x10000 flag indicates the main/right extruder (Bambu only)
  * - Map value: DynamicPrintConfig with filament properties (id, type, color, etc.). A generic
  *   (non-Bambu) value also carries device_tray_extruder_id, the device tool the slot belongs to.
  *
@@ -6694,15 +6991,18 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": skip vt_slot index %1% id %2% expected %3%") % index % vt_id % expected_id;
                     continue;
                 }
+                // Non-Bambu extruders always get an external position (see
+                // ensure_external_virtual_tray_slots), even when the agent reports no spool. Such a
+                // topology placeholder belongs to the Device tab only. Decide by the reported tray
+                // state rather than the placeholder marker alone, so a loaded or otherwise described
+                // external spool is never dropped: it enters sidebar sync as an "Ext" filament after
+                // the AMS entries. Empty AMS slots still come through the AMS loop below.
+                if (!vt_tray.is_exists && vt_tray.setting_id.empty() && vt_tray.m_fila_type.empty())
+                    continue;
             }
-            // Bambu keeps its fixed pair with the leading (main/right) slot marked 0x10000. On a
-            // generic printer every external slot is identified by its own virtual tray id
-            // (extruder = VIRTUAL_TRAY_MAIN_ID - id: 255 -> 0, 254 -> 1, ...), so mark the main
-            // extruder's slot by identity rather than by position in vt_slot. The map key then
-            // keeps each slot bound to its extruder across refreshes and sparse reports.
-            const bool is_main_slot = is_bbl_vendor ? (&vt_tray == &obj->vt_slot.front())
-                                                    : (vt_id == VIRTUAL_TRAY_MAIN_ID);
-            const int  key = (is_main_slot ? 0x10000 : 0) + vt_id;
+            // Only Bambu encodes the main/right slot with the left/right key offset.
+            const bool use_bambu_main_offset = is_bbl_vendor && &vt_tray == &obj->vt_slot.front();
+            const int  key = (use_bambu_main_offset ? 0x10000 : 0) + vt_id;
             const auto inserted = filament_ams_list.emplace(key,
                                                             build_tray_config(vt_tray, "Ext", vt_tray.id, "0", VIRTUAL_TRAY_MAIN_ID - vt_id));
             virtual_slot_keys.insert(key);
@@ -6734,7 +7034,8 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
     auto list = obj->GetFilaSystem()->GetAmsList();
     for (auto ams : list) {
         int ams_id   = std::stoi(ams.first);
-        int extruder = ams.second->GetExtruderId() ? 0 : 0x10000; // Main (first) extruder at right
+        // Only Bambu's left/right grouping uses the main-extruder key offset.
+        int extruder = is_bbl_vendor && !ams.second->GetExtruderId() ? 0x10000 : 0;
         // Prefer the binding the device reports; a unit bound to several tools has no single
         // association, so fall back to the installed extruder as before.
         const auto bound_extruder = ams.second->GetUniqueBindedExtruderId();
@@ -7286,6 +7587,72 @@ Sidebar::AmsSyncApplied Sidebar::apply_ams_sync(bool direct_sync, std::map<int, 
             }
         }
     }
+    // Filament sync and printer sync are separate actions. For generic printers, accept the live
+    // AMS topology as well when filament sync actually used an AMS tray; otherwise the previews can
+    // be current while the stored unit counts (and card badges) remain stale.
+    PresetBundle &bundle = *wxGetApp().preset_bundle;
+    MachineObject *obj = wxGetApp().getDeviceManager()->get_selected_machine();
+    if (!bundle.is_bbl_vendor() && obj && obj->is_info_ready()) {
+        const auto &live_ams = obj->GetFilaSystem()->GetAmsList();
+        auto is_live_ams_tray = [&live_ams](const DynamicPrintConfig &tray) {
+            const std::string ams_id = tray.opt_string("ams_id", 0u);
+            const std::string slot_id = tray.opt_string("slot_id", 0u);
+            const auto ams = live_ams.find(ams_id);
+            return ams != live_ams.end() && ams->second && ams->second->GetTrays().count(slot_id) > 0 &&
+                   !(tray.has("filament_slot_placeholder") && tray.opt_bool("filament_slot_placeholder", 0u));
+        };
+        bool synced_ams_tray = false;
+        for (const auto &entry : list) {
+            if (!is_live_ams_tray(entry.second))
+                continue;
+            if (direct_sync) {
+                const auto &tray = entry.second;
+                if (!tray.opt_string("filament_id", 0u).empty() || !tray.opt_string("filament_type", 0u).empty() ||
+                    (tray.has("filament_exist") && tray.opt_bool("filament_exist", 0u))) {
+                    synced_ams_tray = true;
+                    break;
+                }
+                continue;
+            }
+            for (const auto &mapping : sync_maps) {
+                if (mapping.second.ams_id == entry.second.opt_string("ams_id", 0u) &&
+                    mapping.second.slot_id == entry.second.opt_string("slot_id", 0u)) {
+                    synced_ams_tray = true;
+                    break;
+                }
+            }
+            if (synced_ams_tray)
+                break;
+        }
+
+        const int count = bundle.get_printer_extruder_count();
+        const std::vector<int> map = generic_preset_to_device_map(bundle, count);
+        std::set<int> mapped_tools(map.begin(), map.end());
+        bool valid_topology = count > 0 && obj->GetExtderSystem()->GetTotalExtderCount() == count &&
+                              mapped_tools.size() == size_t(count) && *mapped_tools.begin() == 0 &&
+                              *mapped_tools.rbegin() == count - 1;
+        for (const auto &item : live_ams) {
+            const DevAms *ams = item.second;
+            if (!ams || ams->GetSlotCount() < 0) {
+                valid_topology = false;
+                break;
+            }
+            const auto &bindings = ams->GetBindedExtruderSet();
+            if (bindings.empty()) {
+                valid_topology &= mapped_tools.count(ams->GetExtruderId()) != 0;
+            } else {
+                for (int id : bindings)
+                    valid_topology &= mapped_tools.count(id) != 0;
+            }
+        }
+        if (synced_ams_tray && valid_topology) {
+            auto counts = generic_preset_ams_counts(obj, map);
+            if (bundle.extruder_ams_counts.size() != size_t(count) ||
+                positive_ams_counts(bundle.extruder_ams_counts, size_t(count)) != counts)
+                set_generic_ams_counts(std::move(counts));
+            p->update_sync_status(obj);
+        }
+    }
     return applied;
 }
 
@@ -7306,20 +7673,20 @@ void Sidebar::show_SEMM_buttons()
         return;
     
     bool is_multi_material = p->combos_filament.size() > 1;
-    bool single_or_bbl     = should_show_SEMM_buttons();
-    bool is_single = single_or_bbl && !is_multi_material; // SINGLE EXTRUDER / BBL WITH 1 MATERIAL
-    bool is_multi  = single_or_bbl && is_multi_material;  // MULTI MATERIAL WITH SINGLE EXTRUDER
-    bool is_fixed  = !is_single && !is_multi;             // MULTI EXTRUDER / TOOLCHANGER / IDEX WITH FIXED MATERIAL
+    // Flushing volumes only apply to single-extruder multi-material (SEMM) and BBL printers.
+    bool is_seMM_multi = should_show_SEMM_buttons() && is_multi_material;
 
-    p->m_bpButton_add_filament->Show(single_or_bbl);
-    p->m_bpButton_del_filament->Show(is_multi);
-    p->m_flushing_volume_btn->Show(  is_multi);
+    // Filament slots can be added and removed for every printer; the add/delete paths
+    // enforce the >= 1 and MAXIMUM_EXTRUDER_NUMBER bounds themselves.
+    p->m_bpButton_add_filament->Show(true);
+    p->m_bpButton_del_filament->Show(is_multi_material);
+    p->m_flushing_volume_btn->Show(  is_seMM_multi);
 
-    if (is_multi) {
+    if (is_multi_material) {
         for (auto &c : p->combos_filament)
             c->edit_btn->SetBitmap_("menu_filament");
     }
-    else if (is_single || is_fixed) {
+    else {
         for (auto &c : p->combos_filament)
             c->edit_btn->SetBitmap_("edit");
     }
@@ -9191,7 +9558,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
 
 Plater::priv::~priv()
 {
-    if (config != nullptr)
+    // if (config != nullptr)
         delete config;
     // Saves the database of visited (already shown) hints into hints.ini.
     notification_manager->deactivate_loaded_hints();
@@ -15912,8 +16279,19 @@ bool Plater::priv::check_ams_status_impl(bool is_slice_all)
         preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle) == obj->get_show_printer_type()) {
         bool is_same_as_printer = true;
         auto nozzle_volumes_values = preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
-        assert(obj->GetExtderSystem()->GetTotalExtderCount() == 2 && nozzle_volumes_values.size() == 2);
-        if (obj->GetExtderSystem()->GetTotalExtderCount() == 2 && nozzle_volumes_values.size() == 2) {
+        const int device_extruder_count = obj->GetExtderSystem()->GetTotalExtderCount();
+        const int preset_extruder_count = preset_bundle->get_printer_extruder_count();
+        // The nozzle-group and AMS-quantity checks below implement Bambu's two-extruder contract.
+        // A generic multi-tool printer has an arbitrary number of toolheads and slot counts; its
+        // sidebar card reads the AMS units bound to the selected tool instead, and its capacity is
+        // not stored in the two-extruder model, so these checks do not apply to it.
+        const bool generic_vendor = !preset_bundle->is_bbl_vendor();
+        const bool generic_multi_tool = generic_vendor &&
+            (device_extruder_count > 2 || preset_extruder_count > 2);
+        const bool generic_two_tool = generic_vendor && !generic_multi_tool &&
+            device_extruder_count == 2 && preset_extruder_count == 2;
+        assert(generic_multi_tool || (device_extruder_count == 2 && nozzle_volumes_values.size() == 2));
+        if (!generic_multi_tool && device_extruder_count == 2 && nozzle_volumes_values.size() == 2) {
             // [Vortek] H2C: Use BBS-style NozzleGroupInfo comparison instead of direct nozzle type match.
             // This correctly handles Hybrid presets (which expand into per-type counts) and detects
             // never-synced state (nozzle_count==0) so the first sync dialog appears.
@@ -15963,57 +16341,65 @@ bool Plater::priv::check_ams_status_impl(bool is_slice_all)
             }
         }
 
-        std::vector<std::map<int, int>> ams_count_info;
-        ams_count_info.resize(2);
-        int deputy_4 = 0, main_4 = 0, deputy_1 = 0, main_1 = 0;
-        for (auto ams : obj->GetFilaSystem()->GetAmsList()) {
-            // Main (first) extruder at right
-            if (ams.second->GetExtruderId() == 0) {
-                if (ams.second->GetAmsType() == DevAms::N3S) // N3S
-                    ++main_1;
-                else
-                    ++main_4;
-            } else if (ams.second->GetExtruderId() == 1) {
-                if (ams.second->GetAmsType() == DevAms::N3S) // N3S
-                    ++deputy_1;
-                else
-                    ++deputy_4;
-            }
-        }
-
-        int left_4  = main_4;
-        int left_1  = main_1;
-        int right_4 = deputy_4;
-        int right_1 = deputy_1;
-        if (!obj->is_main_extruder_on_left()) {
-            left_4  = deputy_4;
-            left_1  = deputy_1;
-            right_4 = main_4;
-            right_1 = main_1;
-        }
-
-        std::vector<std::map<int, int>> &stored_counts = preset_bundle->extruder_ams_counts;
-        if (!stored_counts.empty() && !stored_counts.front().empty()) {
-            // Preset buckets are logical. Compare each one with the live counts of the device tool
-            // its physical_extruder_map entry names, rather than assuming logical 0 is left/deputy
-            // and logical 1 is right/main. The sidebar map keeps Bambu's legacy {1,0} default.
-            const std::vector<int> physical_map = sidebar_dual_tool_device_map(*preset_bundle, obj);
-            const bool mapped = stored_counts.size() >= 2 && physical_map.size() == 2 &&
-                                physical_map[0] >= 0 && physical_map[0] < 2 &&
-                                physical_map[1] >= 0 && physical_map[1] < 2;
-            if (mapped) {
-                const int ams_4_by_device[2] = {main_4, deputy_4};
-                const int ams_1_by_device[2] = {main_1, deputy_1};
-                for (size_t logical = 0; logical < 2; ++logical) {
-                    const int device = physical_map[logical];
-                    is_same_as_printer &= stored_counts[logical][4] == ams_4_by_device[device]
-                                       && stored_counts[logical][1] == ams_1_by_device[device];
+        // AMS quantity: Bambu stores a four-slot/one-slot map for physical extruders 0 and 1. A
+        // generic two-tool printer can report units of any width, so compare its actual per-tool
+        // slot counts. A generic printer with more tools is excluded because the count cannot be
+        // persisted without the two-extruder slicing consumer misreading it (see the sync path).
+        if (generic_two_tool) {
+            const std::vector<int> generic_map = generic_preset_to_device_map(*preset_bundle, preset_extruder_count);
+            const auto stored_counts = positive_ams_counts(preset_bundle->extruder_ams_counts, preset_extruder_count);
+            is_same_as_printer &= generic_preset_ams_counts(obj, generic_map) == stored_counts;
+        } else if (!generic_multi_tool) {
+            int deputy_4 = 0, main_4 = 0, deputy_1 = 0, main_1 = 0;
+            for (auto ams : obj->GetFilaSystem()->GetAmsList()) {
+                // Main (first) extruder at right
+                if (ams.second->GetExtruderId() == 0) {
+                    if (ams.second->GetAmsType() == DevAms::N3S) // N3S
+                        ++main_1;
+                    else
+                        ++main_4;
+                } else if (ams.second->GetExtruderId() == 1) {
+                    if (ams.second->GetAmsType() == DevAms::N3S) // N3S
+                        ++deputy_1;
+                    else
+                        ++deputy_4;
                 }
-            } else if (stored_counts.size() >= 2) {
-                is_same_as_printer &= stored_counts[0][4] == left_4
-                                   && stored_counts[0][1] == left_1
-                                   && stored_counts[1][4] == right_4
-                                   && stored_counts[1][1] == right_1;
+            }
+
+            int left_4  = main_4;
+            int left_1  = main_1;
+            int right_4 = deputy_4;
+            int right_1 = deputy_1;
+            if (!obj->is_main_extruder_on_left()) {
+                left_4  = deputy_4;
+                left_1  = deputy_1;
+                right_4 = main_4;
+                right_1 = main_1;
+            }
+
+            std::vector<std::map<int, int>> &stored_counts = preset_bundle->extruder_ams_counts;
+            if (!stored_counts.empty() && !stored_counts.front().empty()) {
+                // Preset buckets are logical. Compare each one with the live counts of the device tool
+                // its physical_extruder_map entry names, rather than assuming logical 0 is left/deputy
+                // and logical 1 is right/main. The sidebar map keeps Bambu's legacy {1,0} default.
+                const std::vector<int> physical_map = sidebar_dual_tool_device_map(*preset_bundle, obj);
+                const bool mapped = stored_counts.size() >= 2 && physical_map.size() == 2 &&
+                                    physical_map[0] >= 0 && physical_map[0] < 2 &&
+                                    physical_map[1] >= 0 && physical_map[1] < 2;
+                if (mapped) {
+                    const int ams_4_by_device[2] = {main_4, deputy_4};
+                    const int ams_1_by_device[2] = {main_1, deputy_1};
+                    for (size_t logical = 0; logical < 2; ++logical) {
+                        const int device = physical_map[logical];
+                        is_same_as_printer &= stored_counts[logical][4] == ams_4_by_device[device]
+                                           && stored_counts[logical][1] == ams_1_by_device[device];
+                    }
+                } else if (stored_counts.size() >= 2) {
+                    is_same_as_printer &= stored_counts[0][4] == left_4
+                                       && stored_counts[0][1] == left_1
+                                       && stored_counts[1][4] == right_4
+                                       && stored_counts[1][1] == right_1;
+                }
             }
         }
 
@@ -24833,6 +25219,12 @@ void Plater::apply_plate_settings(int plate_index, BedType bed_type, const std::
 
 void Plater::open_filament_map_setting_dialog(wxCommandEvent &evt)
 {
+    if (!wxGetApp().preset_bundle->is_bbl_vendor() || wxGetApp().preset_bundle->get_printer_extruder_count() != 2) {
+        MessageDialog dlg(this, _L("Filament grouping is not available for this printer."),
+                          _L("Filament grouping"), wxOK | wxICON_INFORMATION);
+        dlg.ShowModal();
+        return;
+    }
     PartPlate* curr_plate = p->partplate_list.get_curr_plate();
     int value = evt.GetInt(); //1 means from gcode view
     bool need_slice = value ==1;  // If from gcode view, should slice
@@ -24844,6 +25236,13 @@ void Plater::open_filament_map_setting_dialog(wxCommandEvent &evt)
     auto plate_filament_maps = curr_plate->get_real_filament_maps(project_config);
     auto plate_filament_map_mode = curr_plate->get_filament_map_mode();
     auto plate_filament_volume_maps = curr_plate->get_real_filament_volume_maps(project_config);
+    if (std::any_of(plate_filament_maps.begin(), plate_filament_maps.end(), [](int tool) { return tool < 1 || tool > 2; })) {
+        MessageDialog dlg(this, _L("The saved filament grouping refers to an extruder that is not available on this printer. Select a compatible printer before editing the grouping."),
+                          _L("Filament grouping"), wxOK | wxICON_WARNING);
+        dlg.ShowModal();
+        return;
+    }
+
     if (plate_filament_maps.size() != filament_colors.size())  // refine it later, save filament map to app config
         plate_filament_maps.resize(filament_colors.size(), 1);
     if (plate_filament_volume_maps.size() != filament_colors.size())

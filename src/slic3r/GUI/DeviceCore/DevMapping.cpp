@@ -6,6 +6,7 @@
 #include <limits>
 
 #include <map>
+#include <optional>
 #include <vector>
 #include <string>
 #include <utility>
@@ -73,9 +74,10 @@ namespace Slic3r
 
     // A generic printer may expose one AMS unit / external slot per extruder. When both legacy
     // flags of a category are enabled (the sidebar sync call uses both AMS and both external flags)
-    // every extruder participates; when only one side is enabled (SelectMachine's left/right split)
-    // keep to that side's legacy extruder (right = main = 0, left = deputy = 1), so the N slots do
-    // not leak across sides.
+    // every extruder participates; when only one side is enabled (a split request) keep to that
+    // side's legacy extruder (right = main = 0, left = deputy = 1), so the N slots do
+    // not leak across sides. A caller that maps one extruder at a time states it explicitly with
+    // only_extruder_id, which takes precedence over these side flags.
     static bool _generic_extruder_in_selected_side(int extruder_id, bool use_right, bool use_left)
     {
         if (use_right && use_left)
@@ -191,7 +193,7 @@ namespace Slic3r
         }
     }
 
-    int DevMappingUtil::ams_filament_mapping(const MachineObject* obj, const std::vector<FilamentInfo>& filaments, std::vector<FilamentInfo>& result, std::vector<bool> map_opt, std::vector<int> exclude_id, bool nozzle_has_ams_then_ignore_ext)
+    int DevMappingUtil::ams_filament_mapping(const MachineObject* obj, const std::vector<FilamentInfo>& filaments, std::vector<FilamentInfo>& result, std::vector<bool> map_opt, std::vector<int> exclude_id, bool nozzle_has_ams_then_ignore_ext, std::optional<int> only_extruder_id)
     {
         if (filaments.empty())
             return -1;
@@ -289,10 +291,15 @@ namespace Slic3r
                 else
                 {
                     // A generic unit is bound to its own extruder, so it takes part whenever the
-                    // request covers that extruder.
+                    // request covers that extruder. A caller that maps one extruder at a time names
+                    // it explicitly; otherwise the legacy side flags select the participating sides.
+                    const bool ams_enabled = map_opt[MappingOption::USE_RIGHT_AMS] || map_opt[MappingOption::USE_LEFT_AMS];
                     for (int extruder_id : ams->second->GetBindedExtruderSet())
                     {
-                        if (_generic_extruder_in_selected_side(extruder_id, map_opt[MappingOption::USE_RIGHT_AMS], map_opt[MappingOption::USE_LEFT_AMS]))
+                        const bool extruder_selected = only_extruder_id.has_value()
+                            ? extruder_id == *only_extruder_id
+                            : _generic_extruder_in_selected_side(extruder_id, map_opt[MappingOption::USE_RIGHT_AMS], map_opt[MappingOption::USE_LEFT_AMS]);
+                        if (extruder_selected && ams_enabled)
                         {
                             ams_valid = true;
                             generic_extruders_with_ams.insert(extruder_id);
@@ -341,15 +348,19 @@ namespace Slic3r
                 else
                 {
                     // Generic: every present virtual tray is the external spool of the extruder it
-                    // addresses (VIRTUAL_TRAY_MAIN_ID - tray.id): 255 -> 0, 254 -> 1, ... . Keep to
-                    // the selected side when only one legacy flag is enabled, and drop the spool when
+                    // addresses (VIRTUAL_TRAY_MAIN_ID - tray.id): 255 -> 0, 254 -> 1, ... . An
+                    // explicit extruder filter selects only that extruder's spool; otherwise keep
+                    // to the selected side when only one legacy flag is enabled. Drop the spool when
                     // its extruder already has AMS filament in this mapping and suppression is on.
                     const int extruder_id = _virtual_tray_extruder_id(tray.id);
                     if (extruder_id < 0)
                     {
                         continue;
                     }
-                    if (!_generic_extruder_in_selected_side(extruder_id, map_opt[MappingOption::USE_RIGHT_EXT], map_opt[MappingOption::USE_LEFT_EXT]))
+                    const bool extruder_selected = only_extruder_id.has_value()
+                        ? extruder_id == *only_extruder_id
+                        : _generic_extruder_in_selected_side(extruder_id, map_opt[MappingOption::USE_RIGHT_EXT], map_opt[MappingOption::USE_LEFT_EXT]);
+                    if (!extruder_selected)
                     {
                         continue;
                     }

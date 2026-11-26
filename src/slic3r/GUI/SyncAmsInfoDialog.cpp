@@ -1302,7 +1302,8 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
                 }
 
                 else if (f->tray_id >= 0) {
-                    ams_id = wxGetApp().transition_tridid(f->tray_id);
+                    auto* dev = wxGetApp().getDeviceManager();
+                    ams_id = mapping_tray_label(dev ? dev->get_selected_machine() : nullptr, f->tray_id);
                     // ams_id = wxString::Format("%02d", f->tray_id + 1);
                 } else {
                     ams_id = "-";
@@ -1508,8 +1509,12 @@ bool SyncAmsInfoDialog::get_ams_mapping_result(std::string &mapping_array_str, s
                         auto it = wxGetApp().preset_bundle->filaments.find_preset(wxGetApp().preset_bundle->filament_presets[i]);
                         if (it != nullptr) { mapping_item["filamentId"] = it->filament_id; }
                     }
-                    /* nozzle id */
-                    if (i >= 0 && i < filament_maps.size()) { mapping_item["nozzleId"] = convert_filament_map_nozzle_id_to_task_nozzle_id(filament_maps[i]); }
+                    /* nozzle id; a generic printer's third and later toolheads have no BBL task id */
+                    if (i >= 0 && i < filament_maps.size()) {
+                        const int task_nozzle_id = convert_filament_map_nozzle_id_to_task_nozzle_id(filament_maps[i]);
+                        if (task_nozzle_id >= 0)
+                            mapping_item["nozzleId"] = task_nozzle_id;
+                    }
                     // convert #RRGGBB to RRGGBBAA
                     mapping_item["sourceColor"] = m_filaments[k].color;
                     mapping_item["targetColor"] = m_ams_mapping_result[k].color;
@@ -1696,11 +1701,11 @@ int SyncAmsInfoDialog::convert_filament_map_nozzle_id_to_task_nozzle_id(int nozz
         return (int) CloudTaskNozzleId::NOZZLE_LEFT;
     } else if (nozzle_id == (int) FilamentMapNozzleId::NOZZLE_RIGHT) {
         return (int) CloudTaskNozzleId::NOZZLE_RIGHT;
-    } else {
-        /* unsupported nozzle id */
-        assert(false);
-        return nozzle_id;
     }
+    // A generic printer can map filaments to more than two toolheads, but the BBL task payload only
+    // names the left/right pair. Return a "no task nozzle id" sentinel and let the caller omit the
+    // field instead of asserting on a valid generic mapping.
+    return -1;
 }
 
 void SyncAmsInfoDialog::prepare(int print_plate_idx) { m_print_plate_idx = print_plate_idx; }
