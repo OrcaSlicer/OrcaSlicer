@@ -14,6 +14,7 @@
 #include "Point.hpp"
 #include "PrintConfig.hpp"
 #include "BoundingBox.hpp"
+#include "BrimEarsPoint.hpp"
 #include "ExPolygon.hpp"
 #include "Polygon.hpp"
 
