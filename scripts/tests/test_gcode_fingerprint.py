@@ -4,11 +4,15 @@
 Run from the repo root:  python3 -m unittest discover -s scripts/tests -t scripts
 """
 
+import contextlib
+import io
 import os
 import subprocess
 import sys
 import tempfile
+import unicodedata
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -33,6 +37,8 @@ MOTION = (
     "; object ids of this layer1 end: {label},16\n"
     "M625\n"
 )
+# One shipped preset name has letters outside ASCII.
+NON_ASCII_SLICE = "A__Désactivé"
 
 
 def gcode(date="2026-11-26 at 10:00:00", label=15, fuzzy="none", rotate="", motion=MOTION, block_first=True):
@@ -130,9 +136,12 @@ class FingerprintDirTest(unittest.TestCase):
         self.assertEqual(rows[1][1:], ("-", "fuzzy skin"))
 
     def test_a_file_name_that_would_break_the_file_format_is_an_error(self):
-        self.write("A__one\rtwo.gcode", gcode())
-        with self.assertRaisesRegex(ValueError, "tab or a line break"):
-            gf.fingerprint_dir(self.tmp.name)
+        # Windows cannot create a file with these characters in its name, so the folder listing is faked.
+        for separator in ("\t", "\r", "\n"):
+            listing = mock.patch.object(gf.os, "listdir", return_value=[f"A__one{separator}two.gcode"])
+            with self.subTest(separator=separator), listing:
+                with self.assertRaisesRegex(ValueError, "tab or a line break"):
+                    gf.fingerprint_dir(self.tmp.name)
 
     def test_a_directory_without_gcode_is_an_error(self):
         self.write("notes.txt", b"not g-code")
@@ -234,6 +243,11 @@ class CommandLineTest(unittest.TestCase):
     def run_script(self, *args):
         return subprocess.run([sys.executable, SCRIPT, *args], capture_output=True, text=True, check=False)
 
+    def run_script_bytes(self, *args, stdout_encoding):
+        """Run with standard output in an encoding that is not UTF-8, as redirected output is on Windows."""
+        env = dict(os.environ, PYTHONIOENCODING=stdout_encoding)
+        return subprocess.run([sys.executable, SCRIPT, *args], capture_output=True, check=False, env=env)
+
     def sweep(self, name, files):
         folder = os.path.join(self.tmp.name, name)
         os.mkdir(folder)
@@ -306,13 +320,35 @@ class CommandLineTest(unittest.TestCase):
     def test_standard_output_gets_the_same_bytes_as_an_output_file(self):
         folder = os.path.join(self.tmp.name, "one")
         os.mkdir(folder)
-        with open(os.path.join(folder, "A__x.gcode"), "wb") as f:
+        with open(os.path.join(folder, NON_ASCII_SLICE + ".gcode"), "wb") as f:
             f.write(gcode())
         out = os.path.join(self.tmp.name, "one.tsv")
         self.assertEqual(self.run_script("fingerprint", folder, "-o", out).returncode, 0)
-        printed = subprocess.run([sys.executable, SCRIPT, "fingerprint", folder], capture_output=True, check=True)
+        printed = self.run_script_bytes("fingerprint", folder, stdout_encoding="latin-1")
+        self.assertEqual(printed.returncode, 0, printed.stderr)
         with open(out, "rb") as f:
             self.assertEqual(printed.stdout, f.read())
+
+    def test_compare_prints_utf8_whatever_the_encoding_of_standard_output(self):
+        base = self.sweep("base", {NON_ASCII_SLICE + ".gcode": gcode()})
+        head = self.sweep("head", {NON_ASCII_SLICE + ".gcode": gcode(motion=MOTION.replace("X20", "X21"))})
+        result = self.run_script_bytes("compare", base, head, stdout_encoding="ascii")
+        self.assertEqual(result.returncode, 1, result.stderr)
+        # Normalised, because some file systems hand the name back with the accents as separate characters.
+        self.assertIn("Désactivé", unicodedata.normalize("NFC", result.stdout.decode("utf-8")))
+
+    def test_an_output_file_and_an_error_leave_standard_output_alone(self):
+        # A standard output that is not a console, file or pipe cannot be switched to UTF-8.
+        folder = os.path.join(self.tmp.name, "one")
+        os.mkdir(folder)
+        with open(os.path.join(folder, "A__x.gcode"), "wb") as f:
+            f.write(gcode())
+        out = os.path.join(self.tmp.name, "one.tsv")
+        absent = os.path.join(self.tmp.name, "absent.tsv")
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()) as errors:
+            self.assertEqual(gf.main(["fingerprint", folder, "-o", out]), 0)
+            self.assertEqual(gf.main(["compare", out, absent]), 2)
+        self.assertIn("absent.tsv", errors.getvalue())
 
     def test_fingerprint_prints_to_stdout_without_an_output_file(self):
         folder = os.path.join(self.tmp.name, "one")
