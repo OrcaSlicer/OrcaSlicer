@@ -12,8 +12,14 @@
     "fan_cooling_layer_time": "25",
     "fan_min_speed": "80",
     "filament_max_volumetric_speed": [
-        "35"
+        "36"
     ],
     "slow_down_layer_time": "15",
-    "slow_down_min_speed": "15"
+    "slow_down_min_speed": "15",
+    "nozzle_temperature": [
+        "230"
+    ],
+    "filament_start_gcode": [
+        "M572 S{if nozzle_diameter[filament_extruder_id]==0.4}0.036{elsif nozzle_diameter[filament_extruder_id]==0.5}0.026{elsif nozzle_diameter[filament_extruder_id]==0.6}0.022{elsif nozzle_diameter[filament_extruder_id]==0.8}0.015{elsif nozzle_diameter[filament_extruder_id]==0.25}0.12{elsif nozzle_diameter[filament_extruder_id]==0.3}0.08{else}0{endif} ; Filament gcode\n\nM142 S36 ; set heatbreak target temp"
+    ]
 }

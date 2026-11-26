@@ -10,5 +10,11 @@
         "Prusa MK4S HF0.6 nozzle"
     ],
     "fan_max_speed": "15",
-    "fan_min_speed": "15"
+    "fan_min_speed": "15",
+    "nozzle_temperature": [
+        "280"
+    ],
+    "filament_max_volumetric_speed": [
+        "13"
+    ]
 }

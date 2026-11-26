@@ -16,8 +16,6 @@
         "22"
     ],
     "filament_retract_before_wipe": "50",
-    "nozzle_temperature": "245",
-    "nozzle_temperature_initial_layer": "240",
     "overhang_fan_speed": "45",
     "slow_down_layer_time": "18"
 }

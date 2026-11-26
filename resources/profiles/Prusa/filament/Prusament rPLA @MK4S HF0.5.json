@@ -8,7 +8,5 @@
     "instantiation": "true",
     "compatible_printers": [
         "Prusa MK4S HF0.5 nozzle"
-    ],
-    "fan_cooling_layer_time": "20",
-    "slow_down_layer_time": "8"
+    ]
 }

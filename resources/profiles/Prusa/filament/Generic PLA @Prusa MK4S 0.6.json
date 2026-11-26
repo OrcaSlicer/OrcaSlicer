@@ -15,6 +15,6 @@
 		"Prusa MK4S MMU3 0.6 nozzle"
 	],
 	"fan_cooling_layer_time": "22",
-	"nozzle_temperature": "210",
+	"nozzle_temperature": "220",
 	"slow_down_layer_time": "10"
 }
