@@ -42,6 +42,7 @@
 #include <vector>
 #include <utility>
 #include <wx/utils.h>
+#include <wx/string.h>
 #include <queue>
 #include "libslic3r/Color.hpp"
 #include "libslic3r/ObjectID.hpp"
