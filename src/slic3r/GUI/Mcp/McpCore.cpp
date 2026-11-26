@@ -1,0 +1,658 @@
+#include "McpCore.hpp"
+
+#include "JobRegistry.hpp"
+#include "McpArguments.hpp"
+#include "McpJournal.hpp"
+#include "UiInvoker.hpp"
+
+#include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
+
+#include <algorithm>
+#include <charconv>
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <exception>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <set>
+#include <string>
+#include <system_error>
+#include <thread>
+#include <utility>
+#include <vector>
+
+namespace Slic3r { namespace GUI { namespace Mcp {
+
+namespace {
+
+// Calls an observer method on each observer; what one throws stays here, out of the call's thread.
+template<class Fn> void notify(const std::vector<CallObserver*>& observers, Fn&& fn)
+{
+    for (CallObserver* observer : observers) {
+        try {
+            fn(*observer);
+        } catch (...) {
+            // A caption or an activity entry is not worth a call.
+        }
+    }
+}
+
+// Gives a submitted call's result to the caller's `done`; what it throws stays here, out of the job's thread.
+void deliver(const std::function<void(const ToolResult&)>& done, const ToolResult& result)
+{
+    if (!done)
+        return;
+    try {
+        done(result);
+    } catch (...) {
+        // The caller's own failure: the job ends all the same.
+    }
+}
+
+// What a mutating call is told while another job's operation holds the project.
+std::string busy_message(const std::string& op)
+{
+    return "Busy: job " + op +
+           " is running an operation (slice, export, arrange or another background job); wait for it or stop it with job_cancel";
+}
+
+class CallContext final : public ToolContext
+{
+public:
+    CallContext(McpCore& core, const NativeCommand& def, std::string job, std::string parent, std::string plugin, Journal* journal,
+                uint64_t journal_seq, const std::vector<CallObserver*>& observers, uint64_t call)
+        : m_core(core)
+        , m_def(def)
+        , m_job(std::move(job))
+        , m_parent(std::move(parent))
+        , m_plugin(std::move(plugin))
+        , m_journal(journal)
+        , m_seq(journal_seq)
+        , m_observers(observers)
+        , m_call(call)
+    {}
+
+    nlohmann::json run_ui(const std::function<nlohmann::json()>& fn) override
+    {
+        if (m_def.guard == GuardClass::Inspect)
+            return m_core.ui().run(m_def.guard, m_def.key, fn);
+        const bool admit = m_def.guard == GuardClass::Mutate && !m_def.allowed_during_operation;
+        return m_core.ui().run(m_def.guard, m_def.key, [&]() -> nlohmann::json {
+            // Admission again on the UI thread, where operations and worker jobs start: a call admitted
+            // before one began must not change the project under it.
+            if (admit)
+                m_core.admit(m_job);
+            if (!m_core.worker_busy())
+                m_saw_idle = true;
+            nlohmann::json out;
+            try {
+                out = fn();
+            } catch (...) {
+                claim_worker();
+                throw;
+            }
+            claim_worker();
+            return out;
+        });
+    }
+    nlohmann::json observe_ui(const std::function<nlohmann::json()>& fn) override
+    {
+        // A job the call's change queued for later (a toolbar event, a render) starts between its
+        // closures; the next one the call makes claims it.
+        return m_core.ui().run(GuardClass::Inspect, m_def.key, [&]() -> nlohmann::json {
+            nlohmann::json out = fn();
+            claim_worker();
+            return out;
+        });
+    }
+    const std::string& job_id() const override { return m_job; }
+    // The runtime that owns the core; a core built on its own has none, and the base refuses.
+    AutomationRuntime& runtime() override
+    {
+        if (AutomationRuntime* runtime = m_core.runtime())
+            return *runtime;
+        return ToolContext::runtime();
+    }
+    // A plugin's call reads as cancelled the moment the plugin unloads, before the unload's stop request comes;
+    // a handler that waits or polls then ends, one that does neither runs to its end.
+    bool cancelled() const override
+    {
+        return m_core.ui().is_shutdown() || m_core.jobs().stop_requested(m_job.empty() ? m_parent : m_job) ||
+               (!m_plugin.empty() && m_core.jobs().unloaded({}, m_plugin));
+    }
+
+    ToolResult call_child(const std::string& tool, const nlohmann::json& raw_args) override
+    {
+        // An inline caller has no job of its own; its children are rooted at its parent.
+        return m_core.call_child_named(tool, raw_args, m_job.empty() ? m_parent : m_job, m_plugin);
+    }
+
+    const std::string& caller_plugin() const override { return m_plugin; }
+
+    std::set<std::string> lineage() const override
+    {
+        return m_core.jobs().lineage(m_job.empty() ? m_parent : m_job);
+    }
+
+    void set_journal_args(nlohmann::json args) override
+    {
+        notify(m_observers, [&](CallObserver& o) { o.call_args(m_call, args); });
+        if (m_journal != nullptr && m_seq != 0)
+            m_journal->set_args(m_seq, without_guard_ids(m_core.catalog(), m_def.key, std::move(args)));
+    }
+
+    void begin_operation() override
+    {
+        if (m_job.empty())
+            return;
+        if (const std::string other = m_core.jobs().begin_operation(m_job); !other.empty())
+            throw ToolFailure(busy_message(other), {{"job", other}});
+    }
+
+    void works_in_dialog(std::uint64_t dialog) override
+    {
+        if (!m_job.empty())
+            m_core.set_dialog_of(m_job, dialog);
+    }
+
+private:
+    // A worker job is the call's own when the worker was idle as one of its changes began and is busy
+    // now. UI thread.
+    void claim_worker()
+    {
+        if (m_saw_idle)
+            m_core.claim_worker(m_job);
+    }
+
+    McpCore&             m_core;
+    const NativeCommand& m_def;
+    std::string    m_job;
+    std::string    m_parent;
+    std::string    m_plugin;
+    Journal*       m_journal;
+    uint64_t       m_seq;
+    const std::vector<CallObserver*>& m_observers;
+    uint64_t       m_call;
+    bool           m_saw_idle = false; // UI thread
+};
+
+ToolResult invoke(const NativeCommand& def, const nlohmann::json& args, ToolContext& ctx)
+{
+    try {
+        return def.run(args, ctx);
+    } catch (const ToolFailure& f) {
+        return ToolResult::error(f.what(), f.details);
+    } catch (const std::exception& e) {
+        return ToolResult::error(std::string("Internal error: ") + e.what());
+    } catch (...) {
+        return ToolResult::error("Internal error");
+    }
+}
+
+} // namespace
+
+std::chrono::milliseconds reply_budget_cap_from(const char* value)
+{
+    if (value == nullptr)
+        return std::chrono::milliseconds(0);
+    const char* end = value + std::strlen(value);
+    long long   ms  = 0;
+    // from_chars takes digits alone: no sign, space or fraction.
+    const auto [stop, error] = std::from_chars(value, end, ms);
+    if (error != std::errc() || stop != end || ms <= 0)
+        return std::chrono::milliseconds(0);
+    return std::chrono::milliseconds(ms);
+}
+
+McpCore::McpCore(const CommandCatalog& catalog, UiInvoker& ui, JobRegistry& jobs, Journal* journal, CoreTiming timing, WorkerHooks worker,
+                 std::vector<CallObserver*> observers)
+    : m_catalog(catalog)
+    , m_ui(ui)
+    , m_jobs(jobs)
+    , m_journal(journal)
+    , m_timing(timing)
+    , m_worker(std::move(worker))
+    , m_observers(std::move(observers))
+{}
+
+McpCore::~McpCore()
+{
+    shutdown();
+    std::unique_lock<std::mutex> lock(m_threads_mutex);
+    m_threads_cv.wait(lock, [this] { return m_active == 0; });
+}
+
+bool McpCore::enter()
+{
+    std::lock_guard<std::mutex> lock(m_threads_mutex);
+    if (m_stopping)
+        return false;
+    ++m_active;
+    return true;
+}
+
+void McpCore::leave()
+{
+    // Notified under the lock: once the count reaches zero, drain() may return and the owner free
+    // the core, so nothing here may touch it after the unlock.
+    std::lock_guard<std::mutex> lock(m_threads_mutex);
+    --m_active;
+    m_threads_cv.notify_all();
+}
+
+bool McpCore::shutting_down()
+{
+    std::lock_guard<std::mutex> lock(m_threads_mutex);
+    return m_stopping || m_ui.is_shutdown();
+}
+
+ToolResult McpCore::call(const NativeCommand& command, const nlohmann::json& args, const nlohmann::json& origin)
+{
+    return run(command, args, {}, {}, false, origin);
+}
+
+ToolResult McpCore::call_person(const NativeCommand& command, const nlohmann::json& args, const nlohmann::json& origin)
+{
+    return run(command, args, {}, {}, true, origin);
+}
+
+ToolResult McpCore::call_child(const NativeCommand& command, const nlohmann::json& args, const std::string& parent_job,
+                               const std::string& plugin)
+{
+    return run(command, args, parent_job, plugin, false, nlohmann::json());
+}
+
+ToolResult McpCore::call_child_named(const std::string& tool, const nlohmann::json& raw_args, const std::string& parent_job,
+                                     const std::string& plugin)
+{
+    std::shared_ptr<const NativeCommand> def = m_catalog.lookup(tool);
+    if (def == nullptr)
+        return ToolResult::error(m_catalog.unknown_command(tool), {{"code", m_catalog.unknown_command_code(tool)}});
+    nlohmann::json args = raw_args;
+    if (std::string err = argument_error(*def, args); !err.empty()) {
+        const ToolFailure refused = argument_refusal(def->key, err);
+        return ToolResult::error(refused.what(), refused.details);
+    }
+    if (const std::optional<ToolFailure> refused = resolve_call(m_catalog, def, args))
+        return ToolResult::error(refused->what(), refused->details);
+    return call_child(*def, args, parent_job, plugin);
+}
+
+ToolResult McpCore::call_plugin(const NativeCommand& command, const nlohmann::json& args, const std::string& plugin_key)
+{
+    return run(command, args, {}, plugin_key, false, {{"source", "plugin"}, {"plugin", plugin_key}});
+}
+
+std::string McpCore::submit(const NativeCommand& command, const nlohmann::json& args, std::function<void(const ToolResult&)> done)
+{
+    if (m_ui.is_shutdown() || !enter())
+        return {};
+    struct Leave { McpCore* core; ~Leave() { core->leave(); } } leave_on_return{this};
+    ToolResult refused;
+    // A person's pick: its job, and a script it runs, are the person's, as a run the person starts is.
+    const std::string job = start_job(command, args, {}, {}, true, {{"source", "person"}}, 0, m_next_call++, done, refused);
+    // A refusal at shutdown is no answer to give: the caller is told nothing, as a call it never made.
+    if (job.empty() && !shutting_down())
+        deliver(done, refused);
+    return job;
+}
+
+std::string McpCore::start_job(const NativeCommand& def, const nlohmann::json& args, const std::string& parent, const std::string& plugin,
+                               bool person, const nlohmann::json& origin, uint64_t seq, uint64_t call,
+                               const std::function<void(const ToolResult&)>& done, ToolResult& refused)
+{
+    // Operation admission: an MCP operation holds the project until it finishes; only recovery
+    // input and the commands that may run during an operation (job_cancel) get through.
+    if (def.guard == GuardClass::Mutate && !def.allowed_during_operation)
+        if (const auto busy = m_jobs.running_operations(); !busy.empty()) {
+            refused = ToolResult::error(busy_message(busy.front()) + " before changing the project", {{"job", busy.front()}});
+            return {};
+        }
+
+    std::string job;
+    try {
+        job = m_jobs.create(def.key, parent, plugin, person);
+    } catch (const ToolFailure& f) {
+        refused = ToolResult::error(f.what());
+        return {};
+    }
+    if (seq != 0)
+        m_journal->job_started(seq, job);
+
+    // A job that never runs, refused here at shutdown or because its thread can't start, ends in the
+    // journal too: an entry still running would keep its place, and its arguments' bytes, until the
+    // journal is cleared.
+    if (!enter()) {
+        refused = ToolResult::error("OrcaSlicer is shutting down");
+        if (seq != 0)
+            m_journal->job_ended(seq, refused);
+        m_jobs.finish(job, refused);
+        return {};
+    }
+    notify(m_observers, [&](CallObserver& o) { o.call_queued(call, job, parent, origin); });
+    // The job thread owns copies of what it needs; the core outlives it, as the owner destroys the
+    // core only once drain() has seen every job thread leave.
+    try {
+        std::thread([this, def, args, job, parent, plugin, origin, seq, call, done]() {
+            CallContext ctx(*this, def, job, parent, plugin, m_journal, seq, m_observers, call);
+            ToolResult  result;
+            // The plugin may have unloaded since the job was registered; its handler then never starts.
+            if (m_jobs.unloaded(job, {})) {
+                result = ToolResult::error(kPluginUnloaded);
+                notify(m_observers, [&](CallObserver& o) { o.call_ended(call, result); });
+            } else {
+                notify(m_observers, [&](CallObserver& o) { o.call_started(call, def, args, parent, job, origin); });
+                result = await_worker(job, def.key, invoke(def, args, ctx));
+                notify(m_observers, [&](CallObserver& o) { o.call_ended(call, result); });
+            }
+            // Before finish(): a replay_export right after the app_wait that sees the result must know it.
+            if (seq != 0)
+                m_journal->job_ended(seq, result);
+            deliver(done, result);
+            m_jobs.finish(job, std::move(result));
+            set_dialog_of(job, 0);
+            leave();
+        }).detach();
+    } catch (const std::system_error& e) {
+        refused = ToolResult::error(std::string("Cannot start the call: ") + e.what());
+        notify(m_observers, [&](CallObserver& o) { o.call_ended(call, refused); });
+        if (seq != 0)
+            m_journal->job_ended(seq, refused);
+        m_jobs.finish(job, refused);
+        leave();
+        return {};
+    }
+    return job;
+}
+
+ToolResult McpCore::run(const NativeCommand& def, const nlohmann::json& args, const std::string& parent, const std::string& plugin,
+                        bool person, const nlohmann::json& origin)
+{
+    if (m_ui.is_shutdown() || !enter())
+        return ToolResult::error("OrcaSlicer is shutting down");
+    struct Leave { McpCore* core; ~Leave() { core->leave(); } } leave_on_return{this};
+
+    // Only client calls are journaled; a replay's own steps run again through the replay, and a plugin's calls
+    // are not the agent's.
+    const bool     journal = m_journal != nullptr && parent.empty() && plugin.empty() && def.journal;
+    const uint64_t seq     = journal ? m_journal->begin(def.key, without_guard_ids(m_catalog, def.key, args),
+                                                        def.guard == GuardClass::Recover && !m_ui.open_dialogs().empty()) :
+                                       0;
+    auto           finish  = [&](ToolResult r) {
+        if (journal)
+            m_journal->end(seq, r);
+        return r;
+    };
+
+    // A call of a plugin that has unloaded, or a child of one of its jobs, never runs. An inline call
+    // creates no job, so this is its last check before its handler; it is cancelled once the plugin
+    // unloads (CallContext::cancelled()).
+    if (m_jobs.unloaded(parent, plugin))
+        return finish(ToolResult::error(kPluginUnloaded));
+    // Nor does one of a plugin without permission to call the tools, its script runs' children included: each
+    // call is checked here, so a permission withdrawn meanwhile refuses the next.
+    if (m_jobs.tools_refused(parent, plugin))
+        return finish(ToolResult::error(kPluginToolsRefused, {{"code", kToolsNotAllowed}}));
+
+    const uint64_t call = m_next_call++;
+    if (def.inline_call) {
+        CallContext ctx(*this, def, {}, parent, plugin, m_journal, seq, m_observers, call);
+        // Any inline call can wait for the UI thread, so each holds a blocking slot.
+        if (!acquire_slot())
+            return finish(ToolResult::ok({{"status", "pending"}, {"note", "Too many calls are waiting right now; try again shortly."}}));
+        notify(m_observers, [&](CallObserver& o) { o.call_started(call, def, args, parent, std::string(), origin); });
+        ToolResult r = invoke(def, args, ctx);
+        notify(m_observers, [&](CallObserver& o) { o.call_ended(call, r); });
+        release_slot();
+        return finish(std::move(r));
+    }
+
+    ToolResult        refused;
+    const std::string job = start_job(def, args, parent, plugin, person, origin, seq, call, {}, refused);
+    if (job.empty())
+        return finish(std::move(refused));
+
+    auto envelope = [&](const char* status, nlohmann::json extra) {
+        nlohmann::json out{{"status", status}, {"job", job}, {"tool", def.key}};
+        out.update(extra);
+        return ToolResult::ok(std::move(out));
+    };
+    const std::string running_note = "The call is still running and will finish on its own; do not retry it. "
+                                     "Use `app_wait {for:\"job\", job:\"" + job + "\"}` for its result.";
+    // dialog_answer presses a native message box by the buttons ModalTracker lists for it, but not a
+    // picker, nor a dialog while it holds the UI thread (macOS), so their note asks for a person. A note ends with how
+    // the next such call can run without asking, so that an agent learns it from the one that asked; a call that gave
+    // silent and still asks is of a command whose description says the dialog always opens.
+    const bool        takes_silent = def.input_schema.contains("properties") && def.input_schema["properties"].contains("silent");
+    const std::string ask_less     = args.contains("silent") ? std::string() :
+                                     takes_silent ? " Next time, `silent: true` runs it without asking." :
+                                                    " Next time, give the dialog's answer as an argument where the schema has one, "
+                                                    "so the call doesn't ask.";
+    auto blocked = [&](nlohmann::json dialogs, bool ui_held) {
+        std::string note;
+        const bool  native    = topmost_dialog_is_native(dialogs);
+        const bool  pressable = native && !ui_held && !dialogs.back().value("buttons", nlohmann::json::array()).empty();
+        if (pressable) {
+            note = "The call is waiting on a native message box and continues after it closes; do not retry it. Answer it "
+                   "with `dialog_answer` and one of its buttons, then `app_wait {for:\"job\", job:\"" + job + "\"}`.";
+        } else if (native) {
+            note = "The call is waiting on a native dialog, which only a person can answer (`dialog_answer` can't); do not "
+                   "retry it. ";
+            if (ui_held)
+                note += "Until it closes, tools that need the UI thread fail. ";
+            note += "Once it is answered, `app_wait {for:\"job\", job:\"" + job +
+                    "\"}`. Register `dialog_auto_answer` before a step that opens a native dialog.";
+        } else {
+            note = "The call is waiting on a dialog and continues after it closes; do not retry it. "
+                   "Answer the dialog (`widget_list`, `dialog_answer`), then `app_wait {for:\"job\", job:\"" + job + "\"}`.";
+        }
+        return envelope("blocked_by_dialog", {{"dialogs", std::move(dialogs)}, {"note", note + ask_less}});
+    };
+    if (!acquire_slot())
+        return finish(envelope("running", {{"note", running_note}}));
+    struct SlotGuard { McpCore* core; ~SlotGuard() { core->release_slot(); } } slot_guard{this};
+
+    const auto start    = std::chrono::steady_clock::now();
+    auto       budget   = std::chrono::milliseconds(def.budget_ms);
+    if (m_timing.reply_budget_cap > std::chrono::milliseconds(0))
+        budget = std::min(budget, m_timing.reply_budget_cap);
+    const auto deadline = start + budget;
+    auto       next_probe = start + m_timing.soft_budget;
+    // The dialog the last probe found on top of the job, which a second probe must find there too.
+    std::optional<std::uint64_t> seen_on_top;
+    for (;;) {
+        const auto now  = std::chrono::steady_clock::now();
+        const auto stop = std::min(deadline, next_probe);
+        if (auto r = m_jobs.wait(job, std::chrono::duration_cast<std::chrono::milliseconds>(stop > now ? stop - now : std::chrono::milliseconds(0))))
+            return finish(std::move(*r));
+        if (m_ui.is_shutdown())
+            return finish(ToolResult::error("OrcaSlicer is shutting down"));
+        if (std::chrono::steady_clock::now() >= deadline)
+            break;
+        // Past the soft budget: if a modal dialog is open, the job is almost certainly waiting on it,
+        // unless the call works in that very dialog and it is still the topmost.
+        const auto p = m_ui.probe(m_timing.probe_timeout);
+        // A stop makes the probe return nothing, which must not read as a held UI thread.
+        if (m_ui.is_shutdown())
+            return finish(ToolResult::error("OrcaSlicer is shutting down"));
+        const std::uint64_t own = dialog_of(job);
+        if (p && p->guards.modal && !p->guards.top_closing && (own == 0 || p->guards.top_dialog != own)) {
+            // A dialog can close between the probe and here; a finished job wins.
+            if (auto r = m_jobs.wait(job, std::chrono::milliseconds(0)))
+                return finish(std::move(*r));
+            // An auto-answer rule presses a wx dialog's button from a call queued as the dialog opens, which a
+            // probe queued before the dialog opened runs ahead of. A second probe, queued now, runs after that
+            // press, so a dialog holds the job only when the second probe still finds it on top and not
+            // closing: the press ends it, but it stays on top until its modal loop returns, which on a busy
+            // machine can come after the probe.
+            if (seen_on_top != p->guards.top_dialog) {
+                seen_on_top = p->guards.top_dialog;
+                next_probe  = std::chrono::steady_clock::now();
+                continue;
+            }
+            return finish(blocked(p->guards.dialogs, false));
+        }
+        seen_on_top.reset();
+        // An unanswered probe with a native dialog on top: that dialog holds the UI thread, so the
+        // snapshot published for other threads is all there is to report.
+        if (!p) {
+            if (nlohmann::json dialogs = m_ui.open_dialogs(); topmost_dialog_is_native(dialogs)) {
+                if (auto r = m_jobs.wait(job, std::chrono::milliseconds(0)))
+                    return finish(std::move(*r));
+                return finish(blocked(std::move(dialogs), true));
+            }
+        }
+        next_probe = std::chrono::steady_clock::now() + m_timing.soft_budget;
+    }
+    return finish(envelope("running", {{"note", running_note}}));
+}
+
+void McpCore::admit(const std::string& job) const
+{
+    for (const std::string& op : m_jobs.running_operations())
+        if (op != job)
+            throw ToolFailure(busy_message(op) + " before changing the project", {{"job", op}});
+    if (!worker_busy())
+        return;
+    {
+        std::lock_guard<std::mutex> lock(m_worker_mutex);
+        if (!job.empty() && m_worker_job == job)
+            return;
+    }
+    throw ToolFailure("Busy: a background job (arrange, orient, fill bed, or one a gizmo started, such as Text typing) is "
+                      "running in OrcaSlicer; app_wait {for:\"idle\"} before changing the project");
+}
+
+bool McpCore::worker_busy() const { return m_worker.busy && m_worker.busy(); }
+
+bool McpCore::claim_worker(const std::string& job)
+{
+    if (job.empty() || !worker_busy())
+        return false;
+    {
+        std::lock_guard<std::mutex> lock(m_worker_mutex);
+        if (!m_worker_job.empty())
+            return m_worker_job == job;
+    }
+    // Under another call's operation (a dialog answer during a slice) the job stays unclaimed; the
+    // busy worker still keeps other changes out.
+    if (!m_jobs.begin_operation(job).empty())
+        return false;
+    std::lock_guard<std::mutex> lock(m_worker_mutex);
+    m_worker_job       = job;
+    m_worker_cancelled = false;
+    return true;
+}
+
+bool McpCore::cancel_worker(const std::string& job)
+{
+    {
+        std::lock_guard<std::mutex> lock(m_worker_mutex);
+        if (job.empty() || m_worker_job != job)
+            return false;
+        m_worker_cancelled = true;
+    }
+    if (m_worker.cancel)
+        m_worker.cancel();
+    return true;
+}
+
+void McpCore::set_dialog_of(const std::string& job, std::uint64_t dialog)
+{
+    std::lock_guard<std::mutex> lock(m_dialogs_mutex);
+    if (dialog == 0)
+        m_dialogs_of.erase(job);
+    else
+        m_dialogs_of[job] = dialog;
+}
+
+std::uint64_t McpCore::dialog_of(const std::string& job) const
+{
+    std::lock_guard<std::mutex> lock(m_dialogs_mutex);
+    const auto it = m_dialogs_of.find(job);
+    return it == m_dialogs_of.end() ? 0 : it->second;
+}
+
+ToolResult McpCore::await_worker(const std::string& job, const std::string& tool, ToolResult result)
+{
+    {
+        std::lock_guard<std::mutex> lock(m_worker_mutex);
+        if (m_worker_job != job)
+            return result;
+    }
+    // Worker::cancel() does not wait, so after a cancel the job keeps admission until the worker is
+    // really idle: until then the job may still touch the model.
+    const auto deadline  = std::chrono::steady_clock::now() + m_timing.worker_timeout;
+    bool       timed_out = false;
+    while (!m_ui.is_shutdown()) {
+        bool busy = true;
+        try {
+            busy = m_ui.run(GuardClass::Inspect, tool, [&] {
+                if (!timed_out && std::chrono::steady_clock::now() >= deadline)
+                    timed_out = cancel_worker(job);
+                return nlohmann::json(worker_busy());
+            }).get<bool>();
+        } catch (const ToolFailure&) {
+            // Not run (a native dialog holds the UI thread, or the UI is being rebuilt); ask again.
+        }
+        if (!busy)
+            break;
+        std::this_thread::sleep_for(m_timing.worker_poll);
+    }
+    bool cancelled = false;
+    {
+        std::lock_guard<std::mutex> lock(m_worker_mutex);
+        cancelled = m_worker_cancelled;
+        m_worker_job.clear();
+        m_worker_cancelled = false;
+    }
+    if (m_ui.is_shutdown())
+        return ToolResult::error("OrcaSlicer is shutting down");
+    if (result.is_error)
+        return result;
+    if (timed_out)
+        return ToolResult::error("The background job this call started did not finish within " +
+                                     std::to_string(std::chrono::duration_cast<std::chrono::seconds>(m_timing.worker_timeout).count()) +
+                                     " s, so it was cancelled",
+                                 {{"job", job}});
+    if (cancelled)
+        return ToolResult::error("The background job this call started was cancelled", {{"job", job}});
+    return result;
+}
+
+bool McpCore::acquire_slot()
+{
+    std::lock_guard<std::mutex> lock(m_slots_mutex);
+    if (m_slots_used >= m_timing.blocking_slots)
+        return false;
+    ++m_slots_used;
+    return true;
+}
+
+void McpCore::release_slot()
+{
+    std::lock_guard<std::mutex> lock(m_slots_mutex);
+    --m_slots_used;
+}
+
+void McpCore::shutdown()
+{
+    {
+        std::lock_guard<std::mutex> lock(m_threads_mutex);
+        m_stopping = true;
+    }
+    m_threads_cv.notify_all();
+}
+
+bool McpCore::drain(std::chrono::milliseconds timeout)
+{
+    std::unique_lock<std::mutex> lock(m_threads_mutex);
+    return m_threads_cv.wait_for(lock, timeout, [this] { return m_active == 0; });
+}
+
+}}} // namespace Slic3r::GUI::Mcp

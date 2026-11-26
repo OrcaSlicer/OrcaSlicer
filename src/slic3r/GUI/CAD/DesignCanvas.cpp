@@ -30,6 +30,7 @@
 #include "libslic3r/CAD/SketchEngine.hpp"
 #include <vector>
 #include <memory>
+#include <optional>
 #include <string>
 #include <functional>
 #include "libslic3r/Color.hpp"
@@ -232,7 +233,17 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
         // on MSW dismisses the popup under the pointer. GLCanvas3D::on_mouse has the same guard.
         take_focus = take_focus && !wxCurrentPopupWindow;
 #endif
+        // …nor for an enter with the pointer where it was when it left. The window system sends that
+        // when the window under a resting pointer is disabled and enabled again (a busy loop's
+        // wxWindowDisabler): a leave, then an enter at the next change of windows, such as a Feature
+        // list row's rename field appearing, and taking the focus then would close the field. A
+        // pointer that really comes onto the canvas comes from somewhere else.
+        take_focus = take_focus && (!m_pointer_left_at || *m_pointer_left_at != wxGetMousePosition());
         if (take_focus) m_canvas_widget->SetFocus();
+        e.Skip();
+    });
+    m_canvas_widget->Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent& e) {
+        m_pointer_left_at = wxGetMousePosition();
         e.Skip();
     });
 
@@ -951,6 +962,15 @@ void DesignCanvas::select_body(int body)
     request_repaint();
 }
 
+bool DesignCanvas::select_solid(DesignSketchTool::SolidSel kind, int body, int face, const std::vector<int>& edges,
+                                const Vec3d& vertex_pt)
+{
+    // The tool's callback, wrapped in set_on_solid_selection_changed(), refills the selected faces.
+    const bool selected = m_sketch_tool.select_solid(kind, body, face, edges, vertex_pt);
+    request_repaint();
+    return selected;
+}
+
 void DesignCanvas::set_extrude_gizmo(const SketchPlane& plane, const Vec2d& centroid,
                                      double depth, double depth2, bool two_sided, bool flip)
 {
@@ -1109,9 +1129,14 @@ void DesignCanvas::set_on_context_menu(std::function<void(const wxPoint&)> cb)
             // guarantee rather than a coincidence. Pick first, so a right-click on a line offers
             // that line's verbs instead of the empty-selection vocabulary. Selecting an entity
             // that is already selected is a no-op, so a multi-entity pick survives a
-            // right-click on one of its members.
-            if (m_canvas && m_sketch_tool.select_at_screen(*m_canvas, m_ctx_press.x, m_ctx_press.y))
-                request_repaint();
+            // right-click on one of its members. The press is in the widget's logical pixels and
+            // the tool picks in the canvas's GL pixels, as GLCanvas3D::on_mouse() scales every
+            // event it passes on (twice as many on a Retina display).
+            if (m_canvas) {
+                const float scale = m_canvas->get_scale();
+                if (m_sketch_tool.select_at_screen(*m_canvas, int(m_ctx_press.x * scale), int(m_ctx_press.y * scale)))
+                    request_repaint();
+            }
             m_on_context_menu(m_canvas_widget->ClientToScreen(m_ctx_press));
             return;   // consumed
         }
@@ -1144,23 +1169,32 @@ void DesignCanvas::set_mate_links(std::vector<std::pair<Vec3d, Vec3d>> l)
     request_repaint();
 }
 
+void DesignCanvas::set_show_planes(bool on)
+{
+    m_sketch_tool.set_show_planes(on);
+    request_repaint();
+}
+
+void DesignCanvas::set_show_axes(bool on)
+{
+    m_sketch_tool.set_show_axes(on);
+    request_repaint();
+}
+
 bool DesignCanvas::toggle_planes()
 {
-    const bool on = m_sketch_tool.toggle_show_planes();
-    request_repaint();
-    return on;
+    set_show_planes(!show_planes());
+    return show_planes();
 }
 
 bool DesignCanvas::toggle_axes()
 {
-    const bool on = m_sketch_tool.toggle_show_axes();
-    request_repaint();
-    return on;
+    set_show_axes(!show_axes());
+    return show_axes();
 }
 
 void DesignCanvas::set_section_plane(bool on, double z, bool keep_upper)
 {
-    m_section_on = on;
     // The kept half must read as a SOLID part, never a see-through ghost: make sure no leftover
     // preview translucency is applied while the section is on. Guarded — a no-op if already opaque.
     if (on) { set_body_translucent(false); set_body_hidden(false); }
@@ -1548,7 +1582,8 @@ int DesignCanvas::sketch_selection_count() const
 
 bool DesignCanvas::view_normal_to_sketch()
 {
-    if (m_canvas == nullptr) return false;
+    // With no sketch open the tool's plane is the last session's, which nothing on screen shows.
+    if (m_canvas == nullptr || !m_sketch_tool.is_active()) return false;
     const SketchPlane& pl = m_sketch_tool.plane();
     Camera& cam = wxGetApp().plater()->get_camera();
     // Keep the distance: this is an orientation change, not a zoom. The plane's own y axis is

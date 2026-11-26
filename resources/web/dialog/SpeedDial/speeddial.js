@@ -99,7 +99,7 @@ var searchNeedle = "";
 var searchTokens = [];
 var searchTokenRes = [];
 
-// Palette phase: 'commands' (one unified search over actions/commands/settings, recents on empty
+// The Speed Dial's phase: 'commands' (one unified search over actions/commands/settings, recents on empty
 // query), 'percent' ("Go to layer" second phase: enter a 0-100 percentage), 'tab' ("Go to tab..."
 // second phase: pick a notebook tab).
 var phase = "commands";
@@ -794,10 +794,12 @@ window.HandleStudio = function (payload) {
         RECENTS = next.recent;
         USER_MODE = next.userMode;
         TOOLTIP_EXPANDED = next.tooltipExpanded;
-        // A fresh payload re-opens the main phase; C++ never rehydrates the transient phase/query state.
+        // A fresh payload re-opens the main phase; C++ never rehydrates the transient phase/query state. It comes a
+        // moment after the dial shows, so a query can be typed before it, by a person or a call: the field holds only
+        // that, as "closed" empties it when an open ends, and it is kept and filters the new list.
         phase = "commands";
         tabOptions = [];
-        query = "";
+        query = qEl ? qEl.value : "";
         sel = { zone: "list", i: 0 };
         resetHover();
         // why: builtKey caches phase|query so renderCommandsList can skip a rebuild on arrow-nav.
@@ -805,12 +807,20 @@ window.HandleStudio = function (payload) {
         // empty-query key would skip the rebuild and leave stale list content.
         builtKey = "";
         if (qEl) {
-            qEl.value = "";
+            qEl.value = query;
             qEl.placeholder = T("sd_search", "Search actions");
             syncClearButton();
         }
         render({ resize: true, resetScroll: true });
         focusInput();
+    } else if (payload.command === "closed") {
+        // An open ended: the next one starts with an empty field.
+        query = "";
+        if (qEl) {
+            qEl.value = "";
+            syncClearButton();
+        }
+        render({ resize: true, resetScroll: true });
     } else if (payload.command === "tab_results") {
         tabOptions = payload.tabs || [];
         if (sel.zone === "list")
@@ -822,6 +832,11 @@ window.HandleStudio = function (payload) {
         if (fid && FAVS.indexOf(fid) !== -1) FAVS.splice(FAVS.indexOf(fid), 1);
         render({ resize: true, keepScroll: true });
         flashHint(T("sd_favs_full", "Favorites are full (%s max)", (payload.limit || K_FAV_LIMIT)));
+    } else if (payload.command === "favourites") {
+        // The bar as C++ now shows it, sent after each pin, unpin and reorder: it settles the click's optimistic
+        // change, and an unpin can bring a pin past the tenth onto the bar, which the page alone cannot know.
+        FAVS = payload.favourites || [];
+        render({ resize: true, keepScroll: true });
     }
 };
 
@@ -1471,13 +1486,14 @@ function toggleFav(id) {
 }
 
 // Fire a command/plugin action; C++ owns the run-confirm (native dialog) + suppression, then
-// closes the popup + toasts.
+// closes the popup + toasts. A plain pick passes no arguments: a command then does what a person's
+// pick does, asking in its dialog where it has one.
 function run(a) {
     if (!a) return;
-    SendMessage({ command: "run_action", id: a.id, title: a.title, param: "" });
+    SendMessage({ command: "run_action", id: a.id, title: a.title, args: {} });
 }
 
-// Activate an entry in the main phase. Two-phase commands switch the palette to their input phase
+// Activate an entry in the main phase. Two-phase commands switch the Speed Dial to their input phase
 // instead of running; everything else (including a setting jump, which is a plain action now) runs.
 function activateEntry(a) {
     if (!a) return;
@@ -1507,13 +1523,13 @@ function runJumpToLayer(pct) {
     if (!isFinite(n) || n < 0 || n > 100) return;
     var a = findActionByInput("percent");
     if (!a) return;
-    SendMessage({ command: "run_action", id: a.id, title: a.title, param: String(n) });
+    SendMessage({ command: "run_action", id: a.id, title: a.title, args: { percent: n } });
 }
 
 function jumpToTab(t) {
     var a = findActionByInput("tab");
     if (!a || !t) return;
-    SendMessage({ command: "run_action", id: a.id, title: a.title, param: t.id });
+    SendMessage({ command: "run_action", id: a.id, title: a.title, args: { tab: t.id } });
 }
 
 // Clear the shared query/cursor state when entering or leaving a phase. Callers set the
@@ -1553,6 +1569,11 @@ function exitPhase() {
     qEl.focus();
 }
 
+function onQueryInput() {
+    query = qEl.value; sel = { zone: "list", i: 0 }; syncClearButton();
+    render({ resize: true, resetScroll: true });
+}
+
 function focusInput() { setTimeout(function () { if (qEl) qEl.focus(); }, 0); }
 
 // ---- init --------------------------------------------------------------------
@@ -1574,10 +1595,7 @@ function OnInit() {
         render({ resize: true, resetScroll: true });
         qEl.focus();
     };
-    qEl.addEventListener("input", function () {
-        query = qEl.value; sel = { zone: "list", i: 0 }; syncClearButton();
-        render({ resize: true, resetScroll: true });
-    });
+    qEl.addEventListener("input", onQueryInput);
     // Caret moves without a value change (click / arrow keys) can enable or invalidate the ghost.
     qEl.addEventListener("keyup", updateGhost);
     qEl.addEventListener("click", updateGhost);
