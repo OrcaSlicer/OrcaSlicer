@@ -1277,7 +1277,6 @@ void GLGizmoTextureDisplacement::render_preview_mesh(float alpha)
     const Camera      &camera          = wxGetApp().plater()->get_camera();
     const Transform3d &view_matrix     = camera.get_view_matrix();
 
-    const bool translucent = alpha < 1.f;
     const auto faded = [alpha](ColorRGBA color) {
         color.a(color.a() * alpha);
         return color;
@@ -1309,33 +1308,12 @@ void GLGizmoTextureDisplacement::render_preview_mesh(float alpha)
             }
         }
     };
-    const auto draw_all = [&]() {
-        if (const ModelVolume *owner = texture_volume(); owner != nullptr)
-            draw(*owner, m_preview_glmodel, m_preview_color_runs);
-        for (const std::unique_ptr<PartPreview> &preview : m_part_previews)
-            if (const ModelVolume *part = preview_part(*preview); part != nullptr)
-                draw(*part, preview->glmodel, preview->color_runs);
-    };
 
-    if (!translucent) {
-        draw_all();
-    } else {
-        // Depth pass first, then colour, so overlapping relief blends as a single layer.
-        GLboolean color_mask[4] = { GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE };
-        GLint     depth_func    = GL_LESS;
-        glsafe(::glGetBooleanv(GL_COLOR_WRITEMASK, color_mask));
-        glsafe(::glGetIntegerv(GL_DEPTH_FUNC, &depth_func));
-
-        glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
-        draw_all();
-        glsafe(::glColorMask(color_mask[0], color_mask[1], color_mask[2], color_mask[3]));
-
-        glsafe(::glDepthFunc(GL_LEQUAL));
-        glsafe(::glDepthMask(GL_FALSE));
-        draw_all();
-        glsafe(::glDepthMask(GL_TRUE));
-        glsafe(::glDepthFunc(GLenum(depth_func)));
-    }
+    if (const ModelVolume *owner = texture_volume(); owner != nullptr)
+        draw(*owner, m_preview_glmodel, m_preview_color_runs);
+    for (const std::unique_ptr<PartPreview> &preview : m_part_previews)
+        if (const ModelVolume *part = preview_part(*preview); part != nullptr)
+            draw(*part, preview->glmodel, preview->color_runs);
     shader->stop_using();
 }
 
