@@ -603,10 +603,10 @@ void AMSMaterialsSetting::update()
 void AMSMaterialsSetting::update_filament_editing(bool is_printing)
 {
     if (is_printing) {
-        m_comboBox_filament->Enable(obj->is_support_filament_setting_inprinting);
-        m_comboBox_cali_result->Enable(obj->is_support_filament_setting_inprinting);
-        m_button_confirm->Show(obj->is_support_filament_setting_inprinting);
-        m_button_reset->Show(obj->is_support_filament_setting_inprinting);
+        m_comboBox_filament->Enable(obj->can_edit_filament_while_printing());
+        m_comboBox_cali_result->Enable(obj->can_edit_filament_while_printing());
+        m_button_confirm->Show(obj->can_edit_filament_while_printing());
+        m_button_reset->Show(obj->can_edit_filament_while_printing());
     }
     else {
         m_comboBox_filament->Enable(true);
@@ -620,7 +620,7 @@ void AMSMaterialsSetting::update_filament_editing(bool is_printing)
         m_tip_readonly->Hide();
     }
     else {
-        if (!obj->is_support_filament_setting_inprinting) {
+        if (!obj->can_edit_filament_while_printing()) {
             if (!is_virtual_tray()) {
                 m_tip_readonly->SetLabelText(_L("Setting AMS slot information while printing is not supported"));
             } else {
@@ -1093,7 +1093,7 @@ void AMSMaterialsSetting::on_clr_picker(wxMouseEvent &event)
         return;
 
     if (obj->is_in_printing() || obj->can_resume()) {
-        if (!obj->is_support_filament_setting_inprinting) {
+        if (!obj->can_edit_filament_while_printing()) {
             return;
         }
     }
