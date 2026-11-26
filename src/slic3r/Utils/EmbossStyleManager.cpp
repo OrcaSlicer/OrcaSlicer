@@ -571,6 +571,7 @@ const std::string APP_CONFIG_VERTICAL_ALIGN   = "vertical_align";
 const std::string APP_CONFIG_HORIZONTAL_ALIGN = "horizontal_align";
 const std::string APP_CONFIG_FONT_BOLDNESS    = "boldness";
 const std::string APP_CONFIG_FONT_SKEW        = "skew";
+const std::string APP_CONFIG_FONT_ARC_RADIUS  = "arc_radius";
 const std::string APP_CONFIG_FONT_DISTANCE    = "distance";
 const std::string APP_CONFIG_FONT_ANGLE       = "angle";
 const std::string APP_CONFIG_FONT_COLLECTION  = "collection";
@@ -719,6 +720,7 @@ std::optional<StyleManager::Style> load_style(const Section &app_cfg_section)
     read(app_cfg_section, APP_CONFIG_VERTICAL_ALIGN, fp.align.second);
     read(app_cfg_section, APP_CONFIG_FONT_BOLDNESS, fp.boldness);
     read(app_cfg_section, APP_CONFIG_FONT_SKEW, fp.skew);
+    read(app_cfg_section, APP_CONFIG_FONT_ARC_RADIUS, fp.arc_radius);
     read(app_cfg_section, APP_CONFIG_FONT_DISTANCE, s.distance);
     read(app_cfg_section, APP_CONFIG_FONT_ANGLE, s.angle);
     read(app_cfg_section, APP_CONFIG_FONT_COLLECTION, fp.collection_number);
@@ -748,6 +750,8 @@ void store_style(AppConfig &cfg, const StyleManager::Style &s, unsigned index)
         data[APP_CONFIG_FONT_BOLDNESS] = std::to_string(*fp.boldness);
     if (fp.skew.has_value())
         data[APP_CONFIG_FONT_SKEW] = std::to_string(*fp.skew);
+    if (fp.arc_radius.has_value())
+        data[APP_CONFIG_FONT_ARC_RADIUS] = std::to_string(*fp.arc_radius);
     if (s.distance.has_value())
         data[APP_CONFIG_FONT_DISTANCE] = std::to_string(*s.distance);
     if (s.angle.has_value())
