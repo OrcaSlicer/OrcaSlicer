@@ -97,9 +97,11 @@ void OrcaCloudSignalingChannel::send_offer(std::string sdp)
 
 void OrcaCloudSignalingChannel::send_ice(std::string candidate, std::string mid)
 {
+    // OPCP takes a viewer's candidate only as an RTCIceCandidateInit object, the
+    // form browsers produce with RTCIceCandidate.toJSON(); the Cloud forwards it
+    // to the printer unchanged.
     send_json(nlohmann::json{{"type", "webrtc.ice"},
-                             {"candidate", std::move(candidate)},
-                             {"sdpMid", std::move(mid)}}
+                             {"candidate", {{"candidate", std::move(candidate)}, {"sdpMid", std::move(mid)}}}}
                   .dump());
 }
 
