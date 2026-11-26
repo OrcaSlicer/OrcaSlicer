@@ -3025,8 +3025,7 @@ void GLGizmoEmboss::draw_advanced()
     bool use_inch = wxGetApp().app_config->get_bool("use_inches");
     // letters placed one by one on the model do not follow the circle
     m_imgui->disabled_begin(font_prop.per_glyph);
-    // what the last job was started with
-    const std::optional<float> requested_arc_radius = current_prop.arc_radius;
+    const std::optional<float> previous_arc_radius = current_prop.arc_radius;
     float arc_radius = current_prop.arc_radius.value_or(0.f);
     const float stored_arc_radius = stored_style ? stored_style->prop.arc_radius.value_or(0.f) : 0.f;
     auto draw_arc_radius = [&]() {
@@ -3055,8 +3054,8 @@ void GLGizmoEmboss::draw_advanced()
         else
             current_prop.arc_radius = arc_radius;
         // The volume's radius alone does not tell whether this edit needs a job: one for an earlier keystroke
-        // may still be running. Nothing is needed only when the edit changes neither the last request nor the volume.
-        if (!is_approx(current_prop.arc_radius, requested_arc_radius) ||
+        // may still be running. Nothing is needed only when the edit leaves the radius as it was and as the volume has it.
+        if (!is_approx(current_prop.arc_radius, previous_arc_radius) ||
             !is_approx(current_prop.arc_radius, m_volume->text_configuration->style.prop.arc_radius))
             process();
     }
