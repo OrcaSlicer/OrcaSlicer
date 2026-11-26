@@ -1,4 +1,5 @@
 #include "GLGizmoCut.hpp"
+#include "slic3r/GUI/SyntheticInput.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 
 #include <cmath>
@@ -1782,7 +1783,7 @@ void GLGizmoCut3D::dragging_grabber_move(const GLGizmoBase::UpdateData &data)
         // finds projection of the vector along the staring direction
         projection = inters_vec.dot(starting_vec);
     }
-    if (wxGetKeyState(WXK_SHIFT))
+    if (Slic3r::GUI::get_key_state(WXK_SHIFT))
         projection = m_snap_step * std::round(projection / m_snap_step);
 
     const Vec3d shift = starting_vec * projection;

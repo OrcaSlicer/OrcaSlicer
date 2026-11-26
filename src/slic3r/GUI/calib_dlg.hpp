@@ -24,8 +24,21 @@
 #include <utility>
 #include "libslic3r/calib.hpp"
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PrintConfig.hpp"
+
+#include <cstddef>
+#include <string>
+#include <vector>
 
 namespace Slic3r { namespace GUI {
+
+// The input shaper types the input shaping dialogs offer for the printer's firmware, as
+// input_shaping_type values in the order of their radio buttons; the first is their default.
+std::vector<std::string> shaper_type_values(const DynamicPrintConfig& printer);
+
+// The extruder (0-based) that prints filament `filament_id` (0-based) by the slicer's rule for the project's filament
+// map, as the tests' filament lists show it; -1 while an automatic filament map leaves it to slicing.
+int calib_filament_extruder(size_t filament_id);
 
 // Filament a calibration prints with, chosen among the project's filaments; hidden with a single filament.
 class CalibFilamentSelector

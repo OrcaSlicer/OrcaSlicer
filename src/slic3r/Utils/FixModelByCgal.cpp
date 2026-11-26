@@ -6,6 +6,7 @@
 #include <condition_variable>
 #include <cstddef>
 #include <exception>
+#include <functional>
 #include <iterator>
 #include <mutex>
 #include <string>
@@ -33,9 +34,18 @@ public:
 
 } // namespace
 
-bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::ProgressDialog &progress_dialog, const wxString &msg_header, std::string &fix_result, bool keep_painting,
-                             bool *modified)
+bool fix_model_with_cgal(ModelObject &model_object, int volume_idx,
+                         const std::function<bool(int percent, const std::string &what)> &report_progress, std::string &fix_result,
+                         bool keep_painting, bool *modified)
 {
+    if (modified)
+        *modified = false;
+    // Asked once before the worker starts, so that a cancel given at once leaves every mesh as it is.
+    if (!report_progress(0, std::string())) {
+        fix_result.clear();
+        return false;
+    }
+
     // Keeps the backup manager from reading a mesh while the worker replaces it.
     SaveObjectGaurd backup_gaurd(model_object);
 
@@ -99,14 +109,15 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
     });
 
     while (!finished) {
-        std::unique_lock<std::mutex> lock(mtx);
-        condition.wait_for(lock, std::chrono::milliseconds(250), [&progress] { return progress.updated; });
-        // One percent short of the maximum, so that the dialog does not close itself.
-        if (!progress_dialog.Update(std::max(0, progress.percent - 1), msg_header + wxString::FromUTF8(progress.message)))
+        Progress shown;
+        {
+            std::unique_lock<std::mutex> lock(mtx);
+            condition.wait_for(lock, std::chrono::milliseconds(250), [&progress] { return progress.updated; });
+            shown            = progress;
+            progress.updated = false;
+        }
+        if (!report_progress(shown.percent, shown.message))
             canceled = true;
-        else
-            progress_dialog.Fit();
-        progress.updated = false;
     }
 
     if (worker_thread.joinable())
@@ -116,6 +127,19 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
     if (modified)
         *modified = any_modified;
     return !canceled;
+}
+
+bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::ProgressDialog &progress_dialog,
+                             const wxString &msg_header, std::string &fix_result, bool keep_painting, bool *modified)
+{
+    const auto shown = [&progress_dialog, &msg_header](int percent, const std::string &what) {
+        // One percent short of the maximum, so that the dialog does not close itself.
+        if (!progress_dialog.Update(std::max(0, percent - 1), msg_header + wxString::FromUTF8(what)))
+            return false;
+        progress_dialog.Fit();
+        return true;
+    };
+    return fix_model_with_cgal(model_object, volume_idx, shown, fix_result, keep_painting, modified);
 }
 
 } // namespace Slic3r

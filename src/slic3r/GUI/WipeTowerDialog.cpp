@@ -25,6 +25,7 @@
 #include <wx/spinctrl.h>
 #include <wx/toplevel.h>
 #include <wx/webview.h>
+#include <wx/weakref.h>
 #include "libslic3r/FlushVolCalc.hpp"
 #include "WipeTowerDialog.hpp"
 #include "GUI.hpp"
@@ -33,6 +34,7 @@
 #include "MsgDialog.hpp"
 #include "format.hpp"
 #include "Widgets/StaticLine.hpp"
+#include "Widgets/WebView.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "libslic3r/Config.hpp"
 #include "Widgets/Label.hpp"
@@ -233,9 +235,6 @@ std::string RammingPanel::get_parameters()
     return stream.str();
 }
 
-static const float g_min_flush_multiplier = 0.f;
-static const float g_max_flush_multiplier = 3.f;
-
 bool is_flush_config_modified()
 {
     const auto                &project_config    = wxGetApp().preset_bundle->project_config;
@@ -270,21 +269,23 @@ bool is_flush_config_modified()
     return has_modify;
 }
 
+void apply_flushing_volumes(const std::vector<double> &matrix, const std::vector<double> &multipliers)
+{
+    auto &project_config = wxGetApp().preset_bundle->project_config;
+    (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values = matrix;
+    (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values     = multipliers;
+    bool flushing_volume_modify = is_flush_config_modified();
+    wxGetApp().sidebar().set_flushing_volume_warning(flushing_volume_modify);
+    wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
+    wxGetApp().plater()->update_project_dirty_from_presets();
+}
+
 void open_flushing_dialog(wxEvtHandler *parent, const wxEvent &event)
 {
-    auto                      &project_config = wxGetApp().preset_bundle->project_config;
-
     WipingDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe));
     dlg.ShowModal();
     if (dlg.GetSubmitFlag()) {
-        auto matrix = dlg.GetFlattenMatrix();
-        auto flush_multipliers = dlg.GetMultipliers();
-        (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values = std::vector<double>(matrix.begin(), matrix.end());
-        (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values = std::vector<double>(flush_multipliers.begin(), flush_multipliers.end());
-        bool flushing_volume_modify = is_flush_config_modified();
-        wxGetApp().sidebar().set_flushing_volume_warning(flushing_volume_modify);
-        wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
-        wxGetApp().plater()->update_project_dirty_from_presets();
+        apply_flushing_volumes(dlg.GetFlattenMatrix(), dlg.GetMultipliers());
         wxPostEvent(parent, event);
     }
 }
@@ -541,15 +542,22 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
                 auto table_obj_str = BuildTableObjStr();
                 auto text_obj_str = BuildTextObjStr(true);
                 CallAfter([table_obj_str, text_obj_str, this] {
-                    wxString script1 = wxString::Format("buildTable(%s)", table_obj_str);
-                    m_webview->RunScript(script1);
-                    wxString script2 = wxString::Format("buildText(%s)", text_obj_str);
-                    bool result = m_webview->RunScript(script2);
-                    if (!result) {
-                        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< "Failed to run buildText, retry without multi language";
-                        wxString script3 = wxString::Format("buildText(%s)", BuildTextObjStr(false));
-                        m_webview->RunScript(script3);
-                    }
+                    // The scripts run without waiting: wx's synchronous RunScript() waits by running a nested event
+                    // loop, which can wait forever and hold back every web view's scripts meanwhile. A translation can
+                    // make the text object invalid script, so the call answers "ok" once buildText has run, and
+                    // anything else (a throw, a syntax error, a failed call) is retried with the English strings.
+                    WebView::RunScript(m_webview, wxString::Format("buildTable(%s)", table_obj_str));
+                    const wxString       fallback = wxString::Format("buildText(%s)", BuildTextObjStr(false));
+                    wxWeakRef<wxWebView> web      = m_webview;
+                    WebView::RunScriptAsync(m_webview, wxString::Format("(function(){buildText(%s);return 'ok';})()", text_obj_str),
+                                            [web, fallback](bool ok, const std::string& result) {
+                                                if (ok && result == "ok")
+                                                    return;
+                                                BOOST_LOG_TRIVIAL(error) << "WipingDialog: buildText failed (" << result
+                                                                         << "), retrying without multi language";
+                                                if (wxWebView* view = web.get())
+                                                    WebView::RunScript(view, fallback);
+                                            });
                     });
             }
             else if (j["msg"].get<std::string>() == "updateMatrix") {
@@ -562,7 +570,7 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
                     std::string flush_volume_matrix_str = obj["flush_volume_matrix"].dump();
                     std::string extruder_id_str = std::to_string(obj["extruder_id"].get<int>());
                     wxString script = wxString::Format("updateTable(%s,%s)", flush_volume_matrix_str, extruder_id_str);
-                    m_webview->RunScript(script);
+                    WebView::RunScript(m_webview, script);
                     });
             }
             else if (j["msg"].get<std::string>() == "storeData") {

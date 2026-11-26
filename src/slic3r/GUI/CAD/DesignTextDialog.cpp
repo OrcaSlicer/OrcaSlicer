@@ -75,16 +75,9 @@ DesignTextDialog::DesignTextDialog(wxWindow* parent, const Spec* initial)
         wxFont f = WxFontUtils::load_wxFont(initial->font);
         if (f.IsOk()) font = f;
         if (initial->height > 0.0) height = std::clamp(initial->height, 0.5, 500.0);
-    } else if (AppConfig* cfg = wxGetApp().app_config) {
-        const std::string desc = cfg->get(kFontKey);
-        if (!desc.empty()) {
-            wxFont f = WxFontUtils::load_wxFont(desc);
-            if (f.IsOk()) font = f;
-        }
-        const std::string h = cfg->get(kHeightKey);
-        if (!h.empty()) {
-            try { height = std::clamp(std::stod(h), 0.5, 500.0); } catch (...) {}
-        }
+    } else {
+        font   = last_font();
+        height = last_height();
     }
     m_last_height = height;
 
@@ -105,7 +98,7 @@ DesignTextDialog::DesignTextDialog(wxWindow* parent, const Spec* initial)
     const wxArrayString& faces = font_faces();
     for (const wxString& f : faces)
         m_face->Append(f);
-    const int sel = faces.Index(font.GetFaceName());
+    const int sel = faces.Index(listed_face(font));
     m_face->SetSelection(sel != wxNOT_FOUND ? sel : 0);
     label(_L("Font"));
     form->Add(m_face, 1, wxEXPAND);
@@ -176,6 +169,40 @@ DesignTextDialog::DesignTextDialog(wxWindow* parent, const Spec* initial)
     m_text->GetTextCtrl()->SetFocus();
 }
 
+wxFont DesignTextDialog::last_font()
+{
+    if (const AppConfig* cfg = wxGetApp().app_config) {
+        const std::string desc = cfg->get(kFontKey);
+        if (!desc.empty()) {
+            const wxFont f = WxFontUtils::load_wxFont(desc);
+            if (f.IsOk()) return f;
+        }
+    }
+    return wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
+}
+
+double DesignTextDialog::last_height()
+{
+    if (const AppConfig* cfg = wxGetApp().app_config) {
+        const std::string h = cfg->get(kHeightKey);
+        if (!h.empty()) {
+            try { return std::clamp(std::stod(h), 0.5, 500.0); } catch (...) {}
+        }
+    }
+    return 10.0;
+}
+
+wxString DesignTextDialog::listed_face(const wxFont& font)
+{
+    const wxArrayString& faces = font_faces();
+    int sel = faces.Index(font.GetFaceName());
+    if (sel == wxNOT_FOUND)
+        sel = faces.Index(wxFont(wxFontInfo().Family(wxFONTFAMILY_SWISS)).GetFaceName());
+    if (sel == wxNOT_FOUND)
+        sel = 0;
+    return faces.empty() ? wxString() : faces[sel];
+}
+
 double DesignTextDialog::height_mm() const
 {
     double h = 0.0;
@@ -185,6 +212,8 @@ double DesignTextDialog::height_mm() const
 }
 
 wxString DesignTextDialog::text() const { return m_text->GetTextCtrl()->GetValue(); }
+
+wxString DesignTextDialog::size_line() const { return m_size->GetLabel(); }
 
 DesignTextDialog::Spec DesignTextDialog::spec() const
 {

@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <ios>
 #include <libslic3r/Utils.hpp>
+#include <slic3r/GUI/PluginsDialog.hpp>
 #include <slic3r/plugin/PluginLoader.hpp>
 #include <slic3r/plugin/PluginAuditManager.hpp>
 #include <slic3r/plugin/PluginDescriptor.hpp>
@@ -33,6 +34,7 @@
 
 #include <libslic3r/Zipper.hpp>
 #include <nlohmann/json.hpp>
+#include <wx/string.h>
 
 using namespace Slic3r;
 namespace fs = boost::filesystem;
@@ -146,13 +148,15 @@ class FailingPackage(orca.base):
         raise RuntimeError("registration rejected by the plugin")
 )PY";
 
-// A plugin that declares one read permission while it registers its one capability, so its load
-// goes through the combined permission prompt.
-const char* const DECLARING_PLUGIN_SOURCE = R"PY(# /// script
+// A plugin named `name` that declares `permissions`, the arguments of orca.request_permissions(),
+// while it registers its one capability, so its load goes through the permission prompts.
+std::string declaring_plugin_source(const std::string& name, const std::string& permissions)
+{
+    return R"PY(# /// script
 # requires-python = ">=3.12"
 #
 # [tool.orcaslicer.plugin]
-# name = "Declaring Plugin"
+# name = ")PY" + name + R"PY("
 # type = "script"
 # version = "1.0"
 # ///
@@ -168,9 +172,40 @@ class Echo(orca.script.ScriptPluginCapabilityBase):
 @orca.plugin
 class DeclaringPackage(orca.base):
     def register_capabilities(self):
-        orca.request_permissions(fs_read=["/declared/read"])
+        orca.request_permissions()PY" + permissions + R"PY()
         orca.register_capability(Echo)
 )PY";
+}
+
+// What a plugin load with its permission prompts recorded produced.
+struct PromptedLoad
+{
+    bool                     loaded = false;
+    std::string              error;
+    std::vector<std::string> prompts;
+};
+
+// Loads `plugin_key` and answers each permission prompt with `answer`. The prompts run on the load
+// worker, so they are recorded there for the caller to assert on once the load is done.
+PromptedLoad load_answering_prompts(const std::string& plugin_key, bool answer)
+{
+    PromptedLoad result;
+    PluginAuditManager::set_permission_message_prompt_for_testing([&result, answer](const std::string& message) {
+        result.prompts.push_back(message);
+        return answer;
+    });
+    PluginManager& manager = PluginManager::instance();
+    manager.load_plugin(plugin_key, /*skip_deps=*/true);
+    result.loaded = manager.wait_for_plugin_load(plugin_key, std::chrono::seconds(120), result.error);
+    // A load that timed out still runs and may prompt: it ends before the prompt and `result` go.
+    if (!result.loaded && manager.is_plugin_load_in_progress(plugin_key)) {
+        manager.cancel_plugin_load(plugin_key);
+        std::string ignored;
+        manager.wait_for_plugin_load(plugin_key, std::chrono::milliseconds::max(), ignored);
+    }
+    PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
+    return result;
+}
 
 } // namespace
 
@@ -207,7 +242,24 @@ TEST_CASE("install_plugin rejects a side-loaded .py with no PEP 723 metadata", "
     const bool installed = plugin_loader::install_plugin(py, /*cloud_user_id=*/"", descriptor, error);
 
     REQUIRE_FALSE(installed);
+    // The error names the table the name goes in, so whoever reads it can fix the package.
     CHECK_THAT(error, Catch::Matchers::ContainsSubstring("PEP 723"));
+    CHECK_THAT(error, Catch::Matchers::ContainsSubstring("[tool.orcaslicer.plugin]"));
+}
+
+TEST_CASE("a local install that fails inspection reports the reason once framed as a failed install", "[PluginInstall]")
+{
+    ScopedDataDir data_dir_guard("install-missing");
+
+    // The package is never found, so the install stops at its inspection, before any window opens.
+    wxString   message;
+    const bool installed = GUI::install_local_plugin_package(data_dir_guard.dir / "missing.py", /*parent=*/nullptr, message);
+
+    REQUIRE_FALSE(installed);
+    const std::string text(message.ToUTF8().data());
+    CHECK_THAT(text, Catch::Matchers::StartsWith("Plugin installation failed: "));
+    CHECK(text.find("Plugin installation failed", 1) == std::string::npos);
+    CHECK_THAT(text, Catch::Matchers::ContainsSubstring("missing.py"));
 }
 
 TEST_CASE("install_plugin accepts a side-loaded .py with complete PEP 723 metadata", "[PluginInstall]")
@@ -328,6 +380,7 @@ TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's ins
     state.permissions.network_socket = {"192.168.45.6:443"};
     state.permissions.process        = {"/usr/bin/curl"};
     state.permissions.threading      = true;
+    state.permissions.tools          = true;
     REQUIRE(write_install_state(plugin_dir, state));
 
     // Permission data is persisted in the same sidecar as the installation metadata.
@@ -341,6 +394,7 @@ TEST_CASE("install-state sidecar is the source of truth for a cloud plugin's ins
     CHECK(persisted.permissions.network_socket == state.permissions.network_socket);
     CHECK(persisted.permissions.process == state.permissions.process);
     CHECK(persisted.permissions.threading == state.permissions.threading);
+    CHECK(persisted.permissions.tools == state.permissions.tools);
 
     // Reading the sidecar back onto a freshly-scanned descriptor (whose header version is still
     // 1.0.0) must surface the cloud-installed 1.2.0. This is what lets update_cloud_metadata compare
@@ -537,33 +591,57 @@ TEST_CASE("a plugin that declares permissions loads over an unparsable install-s
 
     ScopedDataDir data_dir_guard("declaring-over-unparsable");
     const fs::path plugin_dir = data_dir_guard.plugins_dir() / "Declaring_Plugin";
-    write_py_file(plugin_dir, "Declaring_Plugin.py", DECLARING_PLUGIN_SOURCE);
+    write_py_file(plugin_dir, "Declaring_Plugin.py",
+                  declaring_plugin_source("Declaring Plugin", R"(fs_read=["/declared/read"])"));
 
-    PluginManager& manager = PluginManager::instance();
-    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    PluginManager::instance().discover_plugins(/*async=*/false, /*clear=*/true);
 
     const std::string malformed = "{ \"enabled\": tru";
     write_raw_sidecar_text(plugin_dir, malformed);
 
-    // The prompt runs on the load worker: record it there and assert once the load is done.
-    std::vector<std::string> prompts;
-    PluginAuditManager::set_permission_message_prompt_for_testing([&prompts](const std::string& message) {
-        prompts.push_back(message);
-        return true;
-    });
-    std::string error;
-    manager.load_plugin("Declaring_Plugin", /*skip_deps=*/true);
-    const bool loaded = manager.wait_for_plugin_load("Declaring_Plugin", std::chrono::seconds(120), error);
-    PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
+    const PromptedLoad load = load_answering_prompts("Declaring_Plugin", true);
 
     // The declaration is put to the user again and the approval is saved in a fresh sidecar.
-    INFO(error);
-    CHECK(loaded);
-    CHECK(prompts.size() == 1);
+    INFO(load.error);
+    CHECK(load.loaded);
+    CHECK(load.prompts.size() == 1);
     PluginInstallState stored;
     REQUIRE(read_install_state(plugin_dir, stored));
     CHECK(stored.permissions.fs_read == std::vector<std::string>{"/declared/read"});
     CHECK(read_sidecar_text(plugin_dir, ".install_state.json.corrupt") == malformed);
+}
+
+TEST_CASE("a plugin that declares the tools is asked for them in its one permission prompt", "[PluginInstall][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const bool     answer = GENERATE(true, false);
+    ScopedDataDir  data_dir_guard("tools-declaring");
+    const fs::path plugin_dir = data_dir_guard.plugins_dir() / "Tools_Declaring_Plugin";
+    write_py_file(plugin_dir, "Tools_Declaring_Plugin.py",
+                  declaring_plugin_source("Tools Declaring Plugin", R"(fs_read=["/declared/read"], tools=True)"));
+    write_raw_install_state(plugin_dir, {{"installed_from", "local"}, {"permissions", nlohmann::json::object()}});
+
+    PluginManager::instance().discover_plugins(/*async=*/false, /*clear=*/true);
+
+    const PromptedLoad load = load_answering_prompts("Tools_Declaring_Plugin", answer);
+
+    // One prompt names both declarations and says how far the tools reach. Yes loads the plugin and
+    // stores both grants; No, as for any declaration, fails the load and stores neither.
+    INFO(load.error);
+    REQUIRE(load.prompts.size() == 1);
+    CHECK_THAT(load.prompts[0], Catch::Matchers::ContainsSubstring("/declared/read"));
+    CHECK_THAT(load.prompts[0], Catch::Matchers::ContainsSubstring("OrcaSlicer's tools"));
+    CHECK_THAT(load.prompts[0], Catch::Matchers::ContainsSubstring("permission requests included"));
+    CHECK(load.loaded == answer);
+    PluginInstallState stored;
+    REQUIRE(read_install_state(plugin_dir, stored));
+    CHECK(stored.permissions.tools == answer);
+    const std::vector<std::string> expected_fs_read = answer ? std::vector<std::string>{"/declared/read"}
+                                                             : std::vector<std::string>{};
+    CHECK(stored.permissions.fs_read == expected_fs_read);
 }
 
 TEST_CASE("a plugin load leaves a sidecar path that is not a file in place", "[PluginInstall][Python]")
@@ -748,6 +826,48 @@ TEST_CASE("install-state writes threading as a boolean and reads it back", "[Plu
 
     REQUIRE(read_install_state(plugin_dir, read_back));
     CHECK_FALSE(read_back.permissions.threading);
+}
+
+TEST_CASE("install-state reads the tools grant only from a JSON true and always writes it", "[PluginInstall]")
+{
+    ScopedDataDir  data_dir_guard("tools-permission");
+    const fs::path plugin_dir = data_dir_guard.dir / "plugin";
+
+    const auto read_tools = [&plugin_dir]() {
+        PluginInstallState state;
+        REQUIRE(read_install_state(plugin_dir, state));
+        return state.permissions.tools;
+    };
+
+    write_raw_install_state(plugin_dir, {{"permissions", {{"tools", true}}}});
+    CHECK(read_tools());
+    write_raw_install_state(plugin_dir, {{"permissions", {{"tools", false}}}});
+    CHECK_FALSE(read_tools());
+    write_raw_install_state(plugin_dir, {{"permissions", nlohmann::json::object()}});
+    CHECK_FALSE(read_tools());
+    for (const nlohmann::json& value : std::vector<nlohmann::json>{"true", 1, nlohmann::json::array(), nullptr}) {
+        write_raw_install_state(plugin_dir, {{"permissions", {{"tools", value}}}});
+        CHECK_FALSE(read_tools());
+    }
+
+    // Written as a boolean whatever its value, as threading is.
+    const auto written_permissions = [&plugin_dir](const PluginInstallState& state) {
+        REQUIRE(write_install_state(plugin_dir, state));
+        return nlohmann::json::parse(read_sidecar_text(plugin_dir))["permissions"];
+    };
+    PluginInstallState state;
+    const nlohmann::json not_granted = written_permissions(state);
+    REQUIRE(not_granted.contains("tools"));
+    CHECK(not_granted["tools"].is_boolean());
+    CHECK(not_granted["tools"] == false);
+    CHECK_FALSE(read_tools());
+
+    state.permissions.tools = true;
+    const nlohmann::json granted = written_permissions(state);
+    REQUIRE(granted.contains("tools"));
+    CHECK(granted["tools"].is_boolean());
+    CHECK(granted["tools"] == true);
+    CHECK(read_tools());
 }
 
 TEST_CASE("reading a legacy threading value does not rewrite the sidecar and a normal write migrates it",
