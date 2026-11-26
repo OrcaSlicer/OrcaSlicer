@@ -1433,6 +1433,40 @@ ExPolygonsWithIds Emboss::text2vshapes(FontFileWithCache &font_with_cache, const
     return result;
 }
 
+void Emboss::bend_to_arc(ExPolygonsWithIds &shapes, double radius, double first_baseline_y, double line_height)
+{
+    double baseline_y = first_baseline_y;
+    for (ExPolygonsWithId &letter : shapes) {
+        if (letter.id == ENTER_UNICODE) {
+            baseline_y -= line_height;
+            continue;
+        }
+        if (letter.expoly.empty())
+            continue;
+
+        const double line_radius = radius + baseline_y;
+        if (line_radius * radius <= 0.)
+            continue;
+
+        const double center_x = static_cast<double>(get_extents(letter.expoly).center().x());
+        const double angle    = center_x / line_radius;
+        const double c        = std::cos(angle);
+        const double s        = std::sin(angle);
+        auto bend = [&](Points &points) {
+            for (Point &p : points) {
+                const double x = static_cast<double>(p.x()) - center_x;
+                const double y = static_cast<double>(p.y()) + radius;
+                p = Point(static_cast<coord_t>(std::round(x * c + y * s)), static_cast<coord_t>(std::round(y * c - x * s - radius)));
+            }
+        };
+        for (ExPolygon &expolygon : letter.expoly) {
+            bend(expolygon.contour.points);
+            for (Polygon &hole : expolygon.holes)
+                bend(hole.points);
+        }
+    }
+}
+
 #include <boost/range/adaptor/reversed.hpp>
 unsigned Emboss::get_count_lines(const std::wstring& ws)
 {

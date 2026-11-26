@@ -163,6 +163,17 @@ namespace Emboss
     HealedExPolygons  text2shapes (FontFileWithCache &font, const char *text,         const FontProp &font_prop, const std::function<bool()> &was_canceled = []() {return false;});
     ExPolygonsWithIds text2vshapes(FontFileWithCache &font, const std::wstring& text, const FontProp &font_prop, const std::function<bool()>& was_canceled = []() {return false;});
 
+    /// <summary>
+    /// Lay aligned text along a circle that goes through the origin and has its center on the Y axis.
+    /// Letters keep their shape: each one turns about the point of its line's baseline under its center.
+    /// Lines share the center. A line whose baseline is at or past the center stays straight.
+    /// </summary>
+    /// <param name="shapes">Letters of aligned text, ENTER_UNICODE separates lines</param>
+    /// <param name="radius">[in shape units] Positive puts the center below the text, negative above</param>
+    /// <param name="first_baseline_y">[in shape units] Y of the first line's baseline</param>
+    /// <param name="line_height">[in shape units] Distance between baselines</param>
+    void bend_to_arc(ExPolygonsWithIds &shapes, double radius, double first_baseline_y, double line_height);
+
     const unsigned ENTER_UNICODE = static_cast<unsigned>('\n');
     /// Sum of character '\n'
     unsigned get_count_lines(const std::wstring &ws);
