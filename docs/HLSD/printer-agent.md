@@ -82,6 +82,13 @@ Concrete built-in implementations include the Bambu wrapper, the native Orca/Moo
 other printer-agent implementations registered by the application. A printer agent may use either
 the cloud agent, a direct LAN connection, or both.
 
+An agent may report `tool_display_order(dev_id, tool_count)` from cached device state. Each entry
+is a zero-based device tool ID in display order; for a two-tool printer the first entry is the left
+tool. An empty result leaves the order unspecified. The GUI uses identity order for generic devices
+and the Bambu two-tool convention when the corresponding agent is unavailable. Invalid permutations
+are rejected. This order controls presentation, not the preset's `physical_extruder_map`, which
+routes logical tools to physical tools.
+
 ### `ICloudServiceAgent`
 
 `ICloudServiceAgent` owns authentication and services provided by a cloud backend. It covers login

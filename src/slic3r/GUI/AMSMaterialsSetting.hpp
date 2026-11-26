@@ -167,6 +167,10 @@ public:
     std::string    m_filament_lookup_nozzle_diameter;
 
     bool           m_is_third = false;
+    // Orca: true when the current tray's nozzle-temperature range could not be resolved for its
+    // device tool. The fields are cleared and enabled for explicit input; Confirm rejects empty or
+    // invalid values instead of publishing a guessed or fallback temperature.
+    bool           m_nozzle_temp_unresolved{false};
     // Orca: view-only mode (laser/cut). When set, the dialog is inspectable but every
     // editing control is disabled and no command is sent.
     bool           m_view_only = false;

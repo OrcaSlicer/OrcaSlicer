@@ -169,6 +169,28 @@ static wxColour TEXT_LIGHT_FONT_COL  = wxColour(107, 107, 107);
 
 static wxImage fail_image;
 
+// Orca: the Device tab draws display position 0 on the left and 1 on the right. The legacy UI
+// constants still name those sides DEPUTY (left) and MAIN (right); device tool ids stay unchanged
+// for commands, routing and lookups. Only exactly-two-tool printers are reordered here, and an
+// unresolved two-tool order returns -1 instead of guessing a side.
+static int display_side_tool(const MachineObject* obj, int display_index)
+{
+    if (obj && obj->GetExtderSystem() && obj->GetExtderSystem()->GetTotalExtderCount() == 2)
+        return obj->device_tool_for_display_index(display_index);
+    return display_index == 0 ? DEPUTY_EXTRUDER_ID : MAIN_EXTRUDER_ID;
+}
+
+// Display position of a device tool: 0 left, 1 right, -1 when an exactly-two-tool order is
+// unresolved. Non-two-tool printers keep the legacy mapping.
+static int display_side_of_tool(const MachineObject* obj, int tool_id)
+{
+    if (obj && obj->GetExtderSystem() && obj->GetExtderSystem()->GetTotalExtderCount() == 2)
+        return obj->display_index_for_device_tool(tool_id);
+    if (tool_id == MAIN_EXTRUDER_ID) return 1;
+    if (tool_id == DEPUTY_EXTRUDER_ID) return 0;
+    return -1;
+}
+
 
 /* size */
 #define PAGE_TITLE_HEIGHT FromDIP(36)
@@ -2502,12 +2524,12 @@ void StatusBasePanel::expand_filament_loading(wxMouseEvent& e)
             }
             else if (ext_system->GetTotalExtderCount() == 2)
             {
-                int cur_extder_id = ext_system->GetCurrentExtderId();
-                if (cur_extder_id == MAIN_EXTRUDER_ID)
+                const int display_index = display_side_of_tool(obj, ext_system->GetCurrentExtderId());
+                if (display_index == 1)
                 {
                     m_filament_load_img->SetBitmap(create_scaled_bitmap("filament_load_o_series_right", this, load_img_size));
                 }
-                else if (cur_extder_id == DEPUTY_EXTRUDER_ID)
+                else if (display_index == 0)
                 {
                     m_filament_load_img->SetBitmap(create_scaled_bitmap("filament_load_o_series_left", this, load_img_size));
                 }
@@ -2816,9 +2838,11 @@ void StatusPanel::wire_controls()
             on_set_bed_temp();
         } else if (id == m_nozzle_temp_control_id) {
             if (wxGetApp().preset_bundle->is_bbl_vendor()) {
-                if (e.GetString() == wxString::Format("%d", MAIN_EXTRUDER_ID)) {
+                // MAIN/DEPUTY only exist on a two-extruder device; anything else is the one nozzle.
+                const int extruder_count = obj && obj->GetExtderSystem() ? obj->GetExtderSystem()->GetTotalExtderCount() : 0;
+                if (extruder_count == 2 && e.GetString() == wxString::Format("%d", MAIN_EXTRUDER_ID)) {
                     on_set_nozzle_temp(MAIN_EXTRUDER_ID);
-                } else if (e.GetString() == wxString::Format("%d", DEPUTY_EXTRUDER_ID)) {
+                } else if (extruder_count == 2 && e.GetString() == wxString::Format("%d", DEPUTY_EXTRUDER_ID)) {
                     on_set_nozzle_temp(DEPUTY_EXTRUDER_ID);
                 } else {
                     on_set_nozzle_temp(UNIQUE_EXTRUDER_ID);//there is only one nozzle
@@ -3528,6 +3552,12 @@ void StatusPanel::update_temp_ctrl(MachineObject *obj)
     }
 
     bool to_update_layout = false;
+    const bool two_tools = nozzle_num == 2;
+    // Orca: the right-hand temperature field shows display position 1; the left-hand one shows
+    // position 0. Both keep using the legacy MAIN/DEPUTY constants as side labels. For exactly two
+    // tools an unresolved display order yields -1, and the field is left blank rather than attributed.
+    const int right_nozzle_tool = display_side_tool(obj, 1);
+    const int left_nozzle_tool  = display_side_tool(obj, 0);
 
     if (wxGetApp().preset_bundle->is_bbl_vendor()) {
         for (auto& tempCtrl : m_tempCtrl_nozzles) {
@@ -3546,14 +3576,14 @@ void StatusPanel::update_temp_ctrl(MachineObject *obj)
                 m_tempCtrl_nozzle->Show();
                 to_update_layout = true;
             }
-    
+
             m_tempCtrl_nozzle_deputy->SetCurrType(TEMP_OF_NORMAL_TYPE);
             m_tempCtrl_nozzle_deputy->SetLabel(TEMP_BLANK_STR);
             if (m_tempCtrl_nozzle_deputy->IsShown()) {
                 m_tempCtrl_nozzle_deputy->Hide();
                 to_update_layout = true;
             }
-    
+
             if (m_tempCtrl_nozzle->GetMinSize() != TEMP_CTRL_MIN_SIZE_ALIGN_ONE_ICON)
             {
                 to_update_layout = true;
@@ -3563,19 +3593,25 @@ void StatusPanel::update_temp_ctrl(MachineObject *obj)
         else if (nozzle_num == 2)
         {
             m_tempCtrl_nozzle->SetCurrType(TEMP_OF_MAIN_NOZZLE_TYPE);
-            m_tempCtrl_nozzle->SetCurrTemp(obj->GetExtderSystem()->GetNozzleTempCurrent(MAIN_EXTRUDER_ID));
+            if (right_nozzle_tool >= 0)
+                m_tempCtrl_nozzle->SetCurrTemp(obj->GetExtderSystem()->GetNozzleTempCurrent(right_nozzle_tool));
+            else
+                m_tempCtrl_nozzle->SetCurrTemp(TEMP_BLANK_STR);
             if (!m_tempCtrl_nozzle->IsShown()) {
                 m_tempCtrl_nozzle->Show();
                 to_update_layout = true;
             }
-    
+
             m_tempCtrl_nozzle_deputy->SetCurrType(TEMP_OF_DEPUTY_NOZZLE_TYPE);
-            m_tempCtrl_nozzle_deputy->SetCurrTemp(obj->GetExtderSystem()->GetNozzleTempCurrent(DEPUTY_EXTRUDER_ID));
+            if (left_nozzle_tool >= 0)
+                m_tempCtrl_nozzle_deputy->SetCurrTemp(obj->GetExtderSystem()->GetNozzleTempCurrent(left_nozzle_tool));
+            else
+                m_tempCtrl_nozzle_deputy->SetCurrTemp(TEMP_BLANK_STR);
             if (!m_tempCtrl_nozzle_deputy->IsShown()) {
                 m_tempCtrl_nozzle_deputy->Show();
                 to_update_layout = true;
             }
-    
+
             if (m_tempCtrl_nozzle->GetMinSize() != TEMP_CTRL_MIN_SIZE_ALIGN_TWO_ICON)
             {
                 to_update_layout = true;
@@ -3603,9 +3639,9 @@ void StatusPanel::update_temp_ctrl(MachineObject *obj)
     if (wxGetApp().preset_bundle->is_bbl_vendor()) {
         if (m_temp_nozzle_timeout > 0) {
             m_temp_nozzle_timeout--;
-        } else {
-            if (!nozzle_temp_input) {
-                auto main_extder = obj->GetExtderSystem()->GetExtderById(MAIN_EXTRUDER_ID);
+        } else if (!nozzle_temp_input) {
+            if (right_nozzle_tool >= 0) {
+                auto main_extder = obj->GetExtderSystem()->GetExtderById(right_nozzle_tool);
                 if (main_extder)
                 {
                     m_tempCtrl_nozzle->SetTagTemp(main_extder->GetTargetTemp());
@@ -3619,15 +3655,18 @@ void StatusPanel::update_temp_ctrl(MachineObject *obj)
                         m_tempCtrl_nozzle->SetIconNormal();
                     }
                 }
+            } else if (two_tools) {
+                m_tempCtrl_nozzle->SetTagTemp(TEMP_BLANK_STR);
+                m_tempCtrl_nozzle->SetCurrTemp(TEMP_BLANK_STR);
+                m_tempCtrl_nozzle->SetIconNormal();
             }
         }
-    
+
         if (m_temp_nozzle_deputy_timeout > 0) {
             m_temp_nozzle_deputy_timeout--;
-        }
-        else {
-            if (!nozzle_temp_input && nozzle_num >= 2) {
-                auto deputy_extder = obj->GetExtderSystem()->GetExtderById(DEPUTY_EXTRUDER_ID);
+        } else if (!nozzle_temp_input && nozzle_num >= 2) {
+            if (left_nozzle_tool >= 0) {
+                auto deputy_extder = obj->GetExtderSystem()->GetExtderById(left_nozzle_tool);
                 if (deputy_extder)
                 {
                     m_tempCtrl_nozzle_deputy->SetTagTemp(deputy_extder->GetTargetTemp());
@@ -3641,6 +3680,10 @@ void StatusPanel::update_temp_ctrl(MachineObject *obj)
                         m_tempCtrl_nozzle_deputy->SetIconNormal();
                     }
                 }
+            } else if (two_tools) {
+                m_tempCtrl_nozzle_deputy->SetTagTemp(TEMP_BLANK_STR);
+                m_tempCtrl_nozzle_deputy->SetCurrTemp(TEMP_BLANK_STR);
+                m_tempCtrl_nozzle_deputy->SetIconNormal();
             }
         }
     }
@@ -3757,20 +3800,38 @@ void StatusPanel::update_misc_ctrl(MachineObject *obj)
             m_nozzle_btn_panel->Show();
             m_generic_nozzle_selector->Hide();
 
-            if (extder_system->GetTotalExtderSize() > 1) {
-                image->update(get_extder_shown_state(extder_system->HasFilamentInExt(0)),
-                              get_extder_shown_state(extder_system->HasFilamentInExt(1)));
+            if (extder_system->GetTotalExtderSize() > 1)
+            {
+                // Orca: update() takes right first, then left. Position 0 is the left nozzle and 1 the
+                // right one; the device tool ids behind them follow the printer's display order. If an
+                // exactly-two-tool order is unresolved, leave the previous drawing alone rather than
+                // attributing either side to a guessed tool.
+                const int left_tool  = display_side_tool(obj, 0);
+                const int right_tool = display_side_tool(obj, 1);
+                if (left_tool >= 0 && right_tool >= 0)
+                    image->update(get_extder_shown_state(extder_system->HasFilamentInExt(right_tool)),
+                                  get_extder_shown_state(extder_system->HasFilamentInExt(left_tool)));
             }
 
-            if (extder_system->GetCurrentExtderId() == 0xf) {
+            /*current*/
+            /*update when extder position changed or the machine changed*/
+            const int current_extder_id = extder_system->GetCurrentExtderId();
+            if (current_extder_id == 0xf) {
                 image->setExtruderUsed("");
                 m_nozzle_btn_panel->updateState("");
-            } else if (extder_system->GetCurrentExtderId() == MAIN_EXTRUDER_ID) {
-                image->setExtruderUsed("right");
-                m_nozzle_btn_panel->updateState("right");
-            } else if (extder_system->GetCurrentExtderId() == DEPUTY_EXTRUDER_ID) {
-                image->setExtruderUsed("left");
-                m_nozzle_btn_panel->updateState("left");
+            } else {
+                const int display_index = display_side_of_tool(obj, current_extder_id);
+                if (display_index == 1) {
+                    image->setExtruderUsed("right");
+                    m_nozzle_btn_panel->updateState("right");
+                } else if (display_index == 0) {
+                    image->setExtruderUsed("left");
+                    m_nozzle_btn_panel->updateState("left");
+                } else if (m_nozzle_num == 2) {
+                    // Unresolved two-tool order: do not claim a side for the current tool.
+                    image->setExtruderUsed("");
+                    m_nozzle_btn_panel->updateState("");
+                }
             }
 
             m_nozzle_btn_panel->SetClientData(obj);
@@ -4330,13 +4391,19 @@ void StatusPanel::update_subtask(MachineObject *obj)
                     std::string image_name = obj->get_auto_pa_cali_thumbnail_img_str();
                     if (m_calib_mode == CalibMode::Calib_PA_Line) {
                         if (obj->is_multi_extruders()) {
-                            int cur_ext_id = obj->GetExtderSystem()->GetCurrentExtderId();
-                            if (cur_ext_id == 0) {
+                            const int display_index = display_side_of_tool(obj, obj->GetExtderSystem()->GetCurrentExtderId());
+                            if (display_index == 1) {
                                 image_name += "_right";
                             }
-                            else {
+                            else if (display_index == 0) {
                                 image_name += "_left";
                             }
+                            else if (obj->GetExtderSystem()->GetTotalExtderCount() != 2) {
+                                // Preserve the existing non-two-tool fallback.
+                                image_name += "_left";
+                            }
+                            // An unresolved exactly-two-tool order keeps the base image rather than
+                            // guessing a side.
                         }
                         png_path = (boost::format("%1%/images/%2%.png") % resources_dir() % image_name).str();
                     }
@@ -4810,7 +4877,15 @@ void StatusPanel::on_set_nozzle_temp(int nozzle_id)
         long nozzle_temp;
 
         if (wxGetApp().preset_bundle->is_bbl_vendor()) {
+            // Orca: the MAIN field is the right-hand one and DEPUTY the left-hand one. On a two-tool
+            // printer each field shows the tool at that display position, so send the temperature to
+            // the matching device tool id. An unresolved order yields -1 and no command is sent.
+            const bool two_tools = obj->GetExtderSystem() && obj->GetExtderSystem()->GetTotalExtderCount() == 2;
+            const int right_tool = display_side_tool(obj, 1);
+            const int left_tool  = display_side_tool(obj, 0);
+
             if (nozzle_id == MAIN_EXTRUDER_ID) {
+                if (two_tools && right_tool < 0) return;
                 wxString str = m_tempCtrl_nozzle->GetTextCtrl()->GetValue();
                 if (str.ToLong(&nozzle_temp) && obj) {
                     set_hold_count(m_temp_nozzle_timeout);
@@ -4821,13 +4896,14 @@ void StatusPanel::on_set_nozzle_temp(int nozzle_id)
                     }
                     if (m_tempCtrl_nozzle->GetCurrType() == TempInputType::TEMP_OF_NORMAL_TYPE) {
                         obj->command_set_nozzle(nozzle_temp);
-                    } else {
-                        obj->command_set_nozzle_new(MAIN_EXTRUDER_ID, nozzle_temp);
+                    } else if (right_tool >= 0) {
+                        obj->command_set_nozzle_new(right_tool, nozzle_temp);
                     }
                 }
             }
-    
+
             if (nozzle_id == DEPUTY_EXTRUDER_ID) {
+                if (two_tools && left_tool < 0) return;
                 wxString str = m_tempCtrl_nozzle_deputy->GetTextCtrl()->GetValue();
                 if (str.ToLong(&nozzle_temp) && obj) {
                     set_hold_count(m_temp_nozzle_deputy_timeout);
@@ -4836,7 +4912,8 @@ void StatusPanel::on_set_nozzle_temp(int nozzle_id)
                         m_tempCtrl_nozzle_deputy->SetTagTemp(wxString::Format("%d", nozzle_temp));
                         m_tempCtrl_nozzle_deputy->Warning(false);
                     }
-                    obj->command_set_nozzle_new(DEPUTY_EXTRUDER_ID, nozzle_temp);
+                    if (left_tool >= 0)
+                        obj->command_set_nozzle_new(left_tool, nozzle_temp);
                 }
             }
         }
@@ -5709,7 +5786,7 @@ void StatusPanel::on_nozzle_selected(wxCommandEvent &event)
 {
     const bool is_bbl_vendor = wxGetApp().preset_bundle->is_bbl_vendor();
     if (obj) {
-        const int nozzle_id = event.GetInt();
+        int nozzle_id = event.GetInt();
         const auto extder_system = obj->GetExtderSystem();
         const int current_nozzle_id = extder_system->GetCurrentExtderId();
         const int current_selection = current_nozzle_id >= 0 && current_nozzle_id < extder_system->GetTotalExtderCount()
@@ -5733,6 +5810,25 @@ void StatusPanel::on_nozzle_selected(wxCommandEvent &event)
 
         if (!is_bbl_vendor)
             m_generic_nozzle_selector->Disable();
+
+        // Orca: the Bambu SwitchBoard reports the clicked side as 0 = right, 1 = left. Convert that
+        // display position to the device tool id; command_select_extruder must receive the device id.
+        // The generic selector already sends a device tool index, so it is left untouched.
+        if (is_bbl_vendor && obj->GetExtderSystem() && obj->GetExtderSystem()->GetTotalExtderCount() == 2)
+        {
+            if (nozzle_id != 0 && nozzle_id != 1) {
+                m_nozzle_btn_panel->Enable();
+                return;
+            }
+            const int display_index = nozzle_id == 0 ? 1 : 0;
+            const int device_tool   = obj->device_tool_for_display_index(display_index);
+            if (device_tool < 0) {
+                // Unresolved display order: do not send a command for a guessed tool.
+                m_nozzle_btn_panel->Enable();
+                return;
+            }
+            nozzle_id = device_tool;
+        }
         if (obj->GetCtrl()->command_select_extruder(nozzle_id) == 0)
         {
             if (!is_bbl_vendor) {

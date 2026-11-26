@@ -863,9 +863,9 @@ void AMSMaterialsSetting::on_select_ok(wxCommandEvent &event)
 
     wxString nozzle_temp_max = m_input_nozzle_max->GetTextCtrl()->GetValue();
 
-    long nozzle_temp_min_int, nozzle_temp_max_int;
-    nozzle_temp_min.ToLong(&nozzle_temp_min_int);
-    nozzle_temp_max.ToLong(&nozzle_temp_max_int);
+    long nozzle_temp_min_int = 0, nozzle_temp_max_int = 0;
+    const bool nozzle_temp_min_parsed = nozzle_temp_min.ToLong(&nozzle_temp_min_int);
+    const bool nozzle_temp_max_parsed = nozzle_temp_max.ToLong(&nozzle_temp_max_int);
     wxColour color = m_clr_picker->m_colour;
     std::string tray_color = colour_to_ams_string(color);
     std::vector<std::string> tray_colors;
@@ -879,6 +879,19 @@ void AMSMaterialsSetting::on_select_ok(wxCommandEvent &event)
             tray_colors.emplace_back(tray_color);
         }
         tray_ctype = tray_colors.size() > 1 ? m_clr_picker->ctype : 2;
+    }
+
+    const bool nozzle_temp_range_valid =
+        nozzle_temp_min_parsed && nozzle_temp_max_parsed &&
+        nozzle_temp_min_int >= FILAMENT_MIN_TEMP && nozzle_temp_min_int <= FILAMENT_MAX_TEMP &&
+        nozzle_temp_max_int >= FILAMENT_MIN_TEMP && nozzle_temp_max_int <= FILAMENT_MAX_TEMP &&
+        nozzle_temp_min_int <= nozzle_temp_max_int;
+
+    if (m_nozzle_temp_unresolved && !nozzle_temp_range_valid) {
+        // TRN: The preset could not supply the tray's nozzle temperature range, so the user must enter it.
+        MessageDialog msg_dlg(nullptr, _L("Enter a valid nozzle temperature range before saving."), wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+        return;
     }
 
     if (ams_filament_id.empty() || nozzle_temp_min.empty() || nozzle_temp_max.empty() || m_filament_type.empty()) {
@@ -1376,6 +1389,14 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
 {
     if (!obj) return;
     update_widgets();
+    // Orca: this dialog is reused. Never let a temperature from the previous tray survive into
+    // this one; the current tray either fills both fields from a resolved preset variant or leaves
+    // them empty for explicit user input.
+    m_nozzle_temp_unresolved = false;
+    m_input_nozzle_min->GetTextCtrl()->SetValue(wxEmptyString);
+    m_input_nozzle_max->GetTextCtrl()->SetValue(wxEmptyString);
+    warning_text->Hide();
+    bool nozzle_temp_applied = false;
     // set default value
     if (k.IsEmpty())
         k = "0.000";
@@ -1433,21 +1454,31 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
 
                 // update if nozzle_temperature_range is found
                 const int variant_index = get_filament_variant_index(*filament_it, nozzle_diameter_str);
-                ConfigOption *opt_min = filament_it->config.option("nozzle_temperature_range_low");
-                if (opt_min) {
-                    ConfigOptionInts *opt_min_ints = dynamic_cast<ConfigOptionInts *>(opt_min);
-                    if (opt_min_ints) {
-                        wxString text_nozzle_temp_min = wxString::Format("%d", opt_min_ints->get_at(variant_index));
-                        m_input_nozzle_min->GetTextCtrl()->SetValue(text_nozzle_temp_min);
+                if (variant_index < 0) {
+                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " " << __LINE__
+                                               << " unresolved filament variant, leaving nozzle temperature unset";
+                } else {
+                    bool min_set = false;
+                    bool max_set = false;
+                    ConfigOption *opt_min = filament_it->config.option("nozzle_temperature_range_low");
+                    if (opt_min) {
+                        ConfigOptionInts *opt_min_ints = dynamic_cast<ConfigOptionInts *>(opt_min);
+                        if (opt_min_ints) {
+                            wxString text_nozzle_temp_min = wxString::Format("%d", opt_min_ints->get_at(variant_index));
+                            m_input_nozzle_min->GetTextCtrl()->SetValue(text_nozzle_temp_min);
+                            min_set = true;
+                        }
                     }
-                }
-                ConfigOption *opt_max = filament_it->config.option("nozzle_temperature_range_high");
-                if (opt_max) {
-                    ConfigOptionInts *opt_max_ints = dynamic_cast<ConfigOptionInts *>(opt_max);
-                    if (opt_max_ints) {
-                        wxString text_nozzle_temp_max = wxString::Format("%d", opt_max_ints->get_at(variant_index));
-                        m_input_nozzle_max->GetTextCtrl()->SetValue(text_nozzle_temp_max);
+                    ConfigOption *opt_max = filament_it->config.option("nozzle_temperature_range_high");
+                    if (opt_max) {
+                        ConfigOptionInts *opt_max_ints = dynamic_cast<ConfigOptionInts *>(opt_max);
+                        if (opt_max_ints) {
+                            wxString text_nozzle_temp_max = wxString::Format("%d", opt_max_ints->get_at(variant_index));
+                            m_input_nozzle_max->GetTextCtrl()->SetValue(text_nozzle_temp_max);
+                            max_set = true;
+                        }
                     }
+                    nozzle_temp_applied = min_set && max_set;
                 }
             }
         }
@@ -1485,6 +1516,22 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
             if (!temp_max.IsEmpty() && temp_max != "0")
                 m_input_nozzle_max->GetTextCtrl()->SetValue(temp_max);
         }
+
+        // Orca: a third-party tray has no trusted tray temperature payload, so it must come from
+        // the preset variant. If that is unresolved, keep the fields empty and let the user enter a
+        // valid range explicitly; the singleton dialog must never show the previous tray's values.
+        if (m_is_third) {
+            m_nozzle_temp_unresolved = !nozzle_temp_applied;
+            if (m_nozzle_temp_unresolved) {
+                m_input_nozzle_min->GetTextCtrl()->SetValue(wxEmptyString);
+                m_input_nozzle_max->GetTextCtrl()->SetValue(wxEmptyString);
+            }
+        }
+        else {
+            m_nozzle_temp_unresolved = false;
+        }
+        m_input_nozzle_min->Enable(m_is_third && m_nozzle_temp_unresolved && !m_view_only);
+        m_input_nozzle_max->Enable(m_is_third && m_nozzle_temp_unresolved && !m_view_only);
 
         if (obj->cali_version >= 0) {
             m_title_pa_profile->Show();
@@ -1650,14 +1697,22 @@ int AMSMaterialsSetting::get_filament_variant_index(const Preset &filament, cons
 {
     PresetBundle *preset_bundle = wxGetApp().preset_bundle;
     if (!obj || !preset_bundle)
-        return 0;
+        return -1;
     const std::set<std::string> printer_names =
         preset_bundle->get_printer_names_by_printer_type_and_nozzle(DevPrinterConfigUtil::get_printer_display_name(obj->printer_type), nozzle_diameter_str);
     const Preset *printer = printer_names.empty() ? nullptr : preset_bundle->printers.find_preset(*printer_names.begin());
     if (!printer)
-        return 0;
+        return -1;
     const int extruder_id = obj->get_extruder_id_by_ams_id(std::to_string(ams_id));
-    return PresetBundle::get_filament_variant_index(filament.config, printer->config, obj->get_preset_extruder_index(extruder_id),
+    if (extruder_id < 0 || !obj->GetExtderSystem() || extruder_id >= obj->GetExtderSystem()->GetTotalExtderCount())
+        return -1;
+    const int preset_extruder_index = obj->get_preset_extruder_index(extruder_id);
+    if (preset_extruder_index < 0) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " " << __LINE__
+                                   << " unmapped device extruder, ams_id: " << ams_id << " extruder_id: " << extruder_id;
+        return -1;
+    }
+    return PresetBundle::get_filament_variant_index(filament.config, printer->config, preset_extruder_index,
                                                     DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(extruder_id)));
 }
 
@@ -1668,6 +1723,7 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
     const bool initial_printer_selection = m_comboBox_from_printer;
 
     m_filament_type = "";
+    bool nozzle_temp_applied = false;
     const FilamentInfos* selected_info = selected_filament_info();
     PresetBundle* preset_bundle = wxGetApp().preset_bundle;
     std::string filament_printer_model;
@@ -1693,21 +1749,31 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
                 if (!initial_printer_selection) {
                     // ) if nozzle_temperature_range is found
                     const int variant_index = get_filament_variant_index(*it, nozzle_diameter_str);
-                    ConfigOption* opt_min = it->config.option("nozzle_temperature_range_low");
-                    if (opt_min) {
-                        ConfigOptionInts* opt_min_ints = dynamic_cast<ConfigOptionInts*>(opt_min);
-                        if (opt_min_ints) {
-                            wxString text_nozzle_temp_min = wxString::Format("%d", opt_min_ints->get_at(variant_index));
-                            m_input_nozzle_min->GetTextCtrl()->SetValue(text_nozzle_temp_min);
+                    if (variant_index < 0) {
+                        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " " << __LINE__
+                                                   << " unresolved filament variant, leaving nozzle temperature unset";
+                    } else {
+                        bool min_set = false;
+                        bool max_set = false;
+                        ConfigOption* opt_min = it->config.option("nozzle_temperature_range_low");
+                        if (opt_min) {
+                            ConfigOptionInts* opt_min_ints = dynamic_cast<ConfigOptionInts*>(opt_min);
+                            if (opt_min_ints) {
+                                wxString text_nozzle_temp_min = wxString::Format("%d", opt_min_ints->get_at(variant_index));
+                                m_input_nozzle_min->GetTextCtrl()->SetValue(text_nozzle_temp_min);
+                                min_set = true;
+                            }
                         }
-                    }
-                    ConfigOption* opt_max = it->config.option("nozzle_temperature_range_high");
-                    if (opt_max) {
-                        ConfigOptionInts* opt_max_ints = dynamic_cast<ConfigOptionInts*>(opt_max);
-                        if (opt_max_ints) {
-                            wxString text_nozzle_temp_max = wxString::Format("%d", opt_max_ints->get_at(variant_index));
-                            m_input_nozzle_max->GetTextCtrl()->SetValue(text_nozzle_temp_max);
+                        ConfigOption* opt_max = it->config.option("nozzle_temperature_range_high");
+                        if (opt_max) {
+                            ConfigOptionInts* opt_max_ints = dynamic_cast<ConfigOptionInts*>(opt_max);
+                            if (opt_max_ints) {
+                                wxString text_nozzle_temp_max = wxString::Format("%d", opt_max_ints->get_at(variant_index));
+                                m_input_nozzle_max->GetTextCtrl()->SetValue(text_nozzle_temp_max);
+                                max_set = true;
+                            }
                         }
+                        nozzle_temp_applied = min_set && max_set;
                     }
                 }
                 ConfigOption* opt_type = it->config.option("filament_type");
@@ -1728,12 +1794,34 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
             }
         }
     }
-    if (m_input_nozzle_min->GetTextCtrl()->GetValue().IsEmpty()) {
-         m_input_nozzle_min->GetTextCtrl()->SetValue("0");
+    if (m_is_third) {
+        // Orca: never publish the old "0" fallback for an editable third-party tray. If the preset
+        // variant did not supply both bounds, clear them and require explicit valid user input.
+        // The popup's own initial selection is exempt: Popup() already resolved the tray's temps
+        // into the fields and set m_nozzle_temp_unresolved for them, and that event must not
+        // overwrite either.
+        if (!initial_printer_selection) {
+            m_nozzle_temp_unresolved = !nozzle_temp_applied;
+            if (m_nozzle_temp_unresolved) {
+                m_input_nozzle_min->GetTextCtrl()->SetValue(wxEmptyString);
+                m_input_nozzle_max->GetTextCtrl()->SetValue(wxEmptyString);
+            }
+            m_input_nozzle_min->Enable(m_nozzle_temp_unresolved && !m_view_only);
+            m_input_nozzle_max->Enable(m_nozzle_temp_unresolved && !m_view_only);
+        }
+    } else {
+        // Read-only BBL display: keep the previous empty fallback, but this path never publishes.
+        m_nozzle_temp_unresolved = false;
+        if (m_input_nozzle_min->GetTextCtrl()->GetValue().IsEmpty()) {
+            m_input_nozzle_min->GetTextCtrl()->SetValue("0");
+        }
+        if (m_input_nozzle_max->GetTextCtrl()->GetValue().IsEmpty()) {
+            m_input_nozzle_max->GetTextCtrl()->SetValue("0");
+        }
+        m_input_nozzle_min->Enable(false);
+        m_input_nozzle_max->Enable(false);
     }
-    if (m_input_nozzle_max->GetTextCtrl()->GetValue().IsEmpty()) {
-         m_input_nozzle_max->GetTextCtrl()->SetValue("0");
-    }
+    warning_text->Hide();
 
     m_filament_selection = evt.GetSelection();
 

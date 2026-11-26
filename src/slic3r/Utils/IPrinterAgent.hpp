@@ -572,6 +572,11 @@ public:
     virtual std::string to_orca_filament_id(const std::string& printer_filament_id) const { return printer_filament_id; }
     virtual std::string from_orca_filament_id(const std::string& orca_filament_id) const { return orca_filament_id; }
 
+    // Device tool IDs in physical display order. Empty means that the agent has no
+    // layout information. This is not the preset's logical-to-physical tool map.
+    // Implementations must use cached state and must not perform network I/O.
+    virtual std::vector<int> tool_display_order(const std::string&, int) const { return {}; }
+
     /**
      * Get the current camera stream URL for this agent's active machine.
      * Only meaningful when get_camera_stream_mode() returns an HTTP, HTTPS, or RTSP mode.

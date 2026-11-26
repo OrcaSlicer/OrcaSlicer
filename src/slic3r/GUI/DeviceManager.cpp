@@ -80,6 +80,7 @@
 #include "DeviceCore/DevFilaSwitch.h"
 #include "DeviceCore/DevExtensionTool.h"
 #include "DeviceCore/DevExtruderSystem.h"
+#include "DeviceCore/ToolDisplayOrder.hpp"
 #include "DeviceCore/DevNozzleSystem.h"
 #include "DeviceCore/DevBed.h"
 #include "DeviceCore/DevLamp.h"
@@ -375,6 +376,57 @@ void sanitizeToUtf8(std::string& str) {
 }
 
 namespace Slic3r {
+
+static ToolDisplayOrder device_tool_display_order(const MachineObject& obj)
+{
+    const int count = obj.GetExtderSystem() ? obj.GetExtderSystem()->GetTotalExtderCount() : 0;
+    if (count <= 0)
+        return {};
+
+    std::vector<int> order;
+    const auto agent = obj.get_agent() ? obj.get_agent()->get_printer_agent() : nullptr;
+    if (agent && (obj.printer_agent_id.empty() || agent->get_agent_info().id == obj.printer_agent_id))
+        order = agent->tool_display_order(obj.get_dev_id(), count);
+
+    if (order.empty()) {
+        order.reserve(count);
+        for (int i = 0; i < count; ++i)
+            order.push_back(i);
+        // Preserve the existing Bambu two-tool convention when its agent is unavailable.
+        if (count == 2 && obj.printer_agent_id == BBL_PRINTER_AGENT_ID)
+            std::swap(order[0], order[1]);
+    }
+    return ToolDisplayOrder(std::move(order), count);
+}
+
+int MachineObject::display_index_for_device_tool(int tool_id) const
+{
+    return device_tool_display_order(*this).display_index_of(tool_id);
+}
+
+int MachineObject::device_tool_for_display_index(int display_index) const
+{
+    return device_tool_display_order(*this).tool_at(display_index);
+}
+
+int MachineObject::get_preset_extruder_index(int extder_id) const
+{
+    if (!is_multi_extruders())
+        return 0;
+    auto* bundle = wxTheApp ? GUI::wxGetApp().preset_bundle : nullptr;
+    const auto* nozzles = bundle ? bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("nozzle_diameter") : nullptr;
+    if (m_extder_system && m_extder_system->GetTotalExtderCount() == 2 && nozzles && nozzles->values.size() == 2) {
+        const auto* physical_map = bundle->printers.get_edited_preset().config.option<ConfigOptionInts>("physical_extruder_map");
+        if (bundle->is_bbl_vendor() && (!physical_map || physical_map->values.size() != 2))
+            return display_index_for_device_tool(extder_id);
+        const auto effective_map = effective_physical_extruder_map(physical_map, 2);
+        for (int logical = 0; logical < 2; ++logical)
+            if (effective_map.values[logical] == extder_id)
+                return logical;
+        return INVALID_EXTRUDER_ID;
+    }
+    return is_main_extruder_on_left() ? extder_id : 1 - extder_id;
+}
 
 /* Common Functions */
 void split_string(std::string s, std::vector<std::string>& v) {
@@ -6120,11 +6172,18 @@ void MachineObject::check_ams_filament_valid()
                     try {
                         std::string preset_setting_id;
                         const int   extruder_id = ams->GetExtruderId();
+                        const int   preset_extruder_index = get_preset_extruder_index(extruder_id);
+                        if (preset_extruder_index < 0) {
+                            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " " << __LINE__
+                                                       << " unmapped device extruder for AMS temp check, ams_id: " << ams_id
+                                                       << " tray_id" << slot_id << " extruder_id: " << extruder_id;
+                            continue;
+                        }
                         bool        is_equation = preset_bundle->check_filament_temp_equation_by_printer_type_and_nozzle_for_mas_tray(printer_model, nozzle_diameter_str,
                                                                                                                                curr_tray->setting_id, curr_tray->tag_uid,
                                                                                                                                curr_tray->nozzle_temp_min,
                                                                                                                                curr_tray->nozzle_temp_max, preset_setting_id,
-                                                                                                                               get_preset_extruder_index(extruder_id),
+                                                                                                                               preset_extruder_index,
                                                                                                                                DevNozzle::ToNozzleVolumeType(m_extder_system->GetNozzleFlowType(extruder_id)));
                         if (!is_equation) {
                             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__ << " ams filament is not match min max temp and reset, ams_id: " << ams_id << " tray_id"
@@ -6186,12 +6245,19 @@ void MachineObject::check_ams_filament_valid()
                     std::ostringstream stream;
                     stream << std::fixed << std::setprecision(1) << m_extder_system->GetNozzleDiameter(MAIN_EXTRUDER_ID);
                     std::string nozzle_diameter_str = stream.str();
+                    const int preset_extruder_index = get_preset_extruder_index(index);
+                    if (preset_extruder_index < 0) {
+                        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " " << __LINE__
+                                                   << " unmapped device extruder for vt tray temp check, vt_tray.id: " << vt_tray.id
+                                                   << " extruder_id: " << index;
+                        continue;
+                    }
                     bool        is_equation = preset_bundle->check_filament_temp_equation_by_printer_type_and_nozzle_for_mas_tray(DevPrinterConfigUtil::get_printer_display_name(
                                                                                                                                this->printer_type),
                                                                                                                            nozzle_diameter_str, vt_tray.setting_id,
                                                                                                                            vt_tray.tag_uid, vt_tray.nozzle_temp_min,
                                                                                                                            vt_tray.nozzle_temp_max, preset_setting_id,
-                                                                                                                           get_preset_extruder_index(index),
+                                                                                                                           preset_extruder_index,
                                                                                                                            DevNozzle::ToNozzleVolumeType(m_extder_system->GetNozzleFlowType(index)));
                     if (!is_equation) {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__

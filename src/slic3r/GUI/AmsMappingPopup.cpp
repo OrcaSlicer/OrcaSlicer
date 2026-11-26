@@ -1207,6 +1207,9 @@ void AmsMapingPopup::on_left_down(wxMouseEvent &evt)
         }
     }
     for (MappingItem *item : m_mapping_item_list) {
+        // An unresolved two-tool layout invalidates the extra-slot targets; the popup-level
+        // handler must not select them either.
+        if (item->m_ams_id < 0) { continue; }
         auto p_rect = item->ClientToScreen(wxPoint(0, 0));
         auto left = item->GetSize();
 
