@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
 #include <limits>
 #include <memory>
 #include <utility>
@@ -12,19 +13,28 @@
 #include <wx/brush.h>
 #include <wx/colour.h>
 #include <wx/dcbuffer.h>
+#include <wx/defs.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/graphics.h>
 #include <wx/image.h>
+#include <wx/panel.h>
 #include <wx/pen.h>
 #include <wx/sizer.h>
 #include <wx/statbmp.h>
+#include <wx/string.h>
+#include <wx/toplevel.h>
+#include <wx/window.h>
 
 #include "GUI_App.hpp"
+#include "GUI_Utils.hpp"
 #include "I18N.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/LabeledCheckBox.hpp"
 #include "Widgets/StateColor.hpp"
 #include "format.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Point.hpp"
