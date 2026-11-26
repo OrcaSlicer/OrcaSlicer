@@ -30,6 +30,7 @@
 #include "slic3r/GUI/Mcp/WindowNames.hpp"
 #include "slic3r/GUI/Mcp/UiInspector.hpp"
 #include "slic3r/GUI/Mcp/UiRefs.hpp"
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -671,5 +672,68 @@ TEST_CASE("a window inside a pane hidden from automation is hidden, and the pane
         CHECK(hidden_from_automation(pane));
         CHECK_FALSE(hidden_from_automation(sibling));
         CHECK_FALSE(hidden_from_automation(&frame));
+    }
+}
+
+TEST_CASE("a popup never links its event handlers to themselves and a second click on its control closes it", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    if (wxTheApp == nullptr)
+        wxApp::SetInstance(new wxApp);
+    wxInitializer init;
+    REQUIRE(init.IsOk());
+    {
+        // The list a printer selector opens: wx pushes the popup's event handlers onto the popup and its only child.
+        struct List : PopupWindow
+        {
+            using PopupWindow::PopupWindow;
+            int  dismissed = 0;
+            void OnDismiss() override { ++dismissed; }
+        };
+        wxFrame    frame(nullptr, wxID_ANY, "main");
+        auto*      list         = new List(&frame);
+        auto*      row          = new wxPanel(list);
+        // A handler linked to itself fails the check, and is linked back as one push leaves it, so the next event
+        // (wxGTK sends one from Hide()) and the teardown don't loop through it.
+        const auto none_to_self = [&] {
+            bool none = true;
+            for (wxWindow* w : {static_cast<wxWindow*>(list), static_cast<wxWindow*>(row)})
+                if (wxEvtHandler* h = w->GetEventHandler(); h->GetNextHandler() == h) {
+                    h->SetNextHandler(w);
+                    h->SetPreviousHandler(nullptr);
+                    none = false;
+                }
+            return none;
+        };
+
+        // Opened again while shown, as a click that reaches the selector directly (an MCP click) opens it.
+        list->Popup();
+        REQUIRE(list->IsShown());
+        list->Popup();
+        CHECK(none_to_self());
+
+        // Opened again after Hide(), which leaves the handlers pushed.
+        list->Hide();
+#ifndef __WXMSW__
+        CHECK(row->GetEventHandler() != row);
+#endif
+        list->Popup();
+        CHECK(none_to_self());
+
+        // The selector's click while the list is shown closes it, through OnDismiss(), and doesn't open it. On
+        // Windows wx closes it from the deactivation a person's click caused, so it is still shown here.
+        CHECK(list->CloseOnToggle());
+#ifdef __WXMSW__
+        CHECK(list->IsShown());
+        CHECK(list->dismissed == 0);
+        list->Dismiss();
+#else
+        CHECK_FALSE(list->IsShown());
+        CHECK(list->dismissed == 1);
+#endif
+        CHECK_FALSE(list->CloseOnToggle());
     }
 }

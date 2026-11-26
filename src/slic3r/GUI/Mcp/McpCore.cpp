@@ -9,6 +9,7 @@
 #include "slic3r/GUI/CommandTypes.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <charconv>
 #include <chrono>
 #include <cstddef>
@@ -80,13 +81,9 @@ public:
     nlohmann::json run_ui(const std::function<nlohmann::json()>& fn) override
     {
         if (m_def.guard == GuardClass::Inspect)
-            return m_core.ui().run(m_def.guard, m_def.key, fn);
+            return run_step(m_def.guard, false, fn);
         const bool admit = m_def.guard == GuardClass::Mutate && !m_def.allowed_during_operation;
-        return m_core.ui().run(m_def.guard, m_def.key, [&]() -> nlohmann::json {
-            // Admission again on the UI thread, where operations and worker jobs start: a call admitted
-            // before one began must not change the project under it.
-            if (admit)
-                m_core.admit(m_job);
+        return run_step(m_def.guard, admit, [&]() -> nlohmann::json {
             if (!m_core.worker_busy())
                 m_saw_idle = true;
             nlohmann::json out;
@@ -104,7 +101,7 @@ public:
     {
         // A job the call's change queued for later (a toolbar event, a render) starts between its
         // closures; the next one the call makes claims it.
-        return m_core.ui().run(GuardClass::Inspect, m_def.key, [&]() -> nlohmann::json {
+        return run_step(GuardClass::Inspect, false, [&]() -> nlohmann::json {
             nlohmann::json out = fn();
             claim_worker();
             return out;
@@ -128,6 +125,8 @@ public:
 
     ToolResult call_child(const std::string& tool, const nlohmann::json& raw_args) override
     {
+        // The child may change things whatever it replies. A script's threads call this too.
+        m_ran.store(true, std::memory_order_relaxed);
         // An inline caller has no job of its own; its children are rooted at its parent.
         return m_core.call_child_named(tool, raw_args, m_job.empty() ? m_parent : m_job, m_plugin);
     }
@@ -169,6 +168,35 @@ private:
             m_core.claim_worker(m_job);
     }
 
+    // Runs one of the call's closures on the UI thread. UiInvoker's "not run, safe to retry" for a closure the UI thread
+    // never ran holds for the call only until a step of it has run: one of its closures, Inspect ones included (a
+    // screenshot scrolls before it captures), or a call it made. After that the call may have done anything up to
+    // that step: a click that hangs the app has run by the time the next closure waits for the UI thread.
+    nlohmann::json run_step(GuardClass guard, bool admit, const std::function<nlohmann::json()>& fn)
+    {
+        try {
+            return m_core.ui().run(
+                guard, m_def.key,
+                [&]() -> nlohmann::json {
+                    // Admission again on the UI thread, where operations and worker jobs start: a call admitted
+                    // before one began must not change the project under it.
+                    if (admit)
+                        m_core.admit(m_job);
+                    m_ran.store(true, std::memory_order_relaxed);
+                    return fn();
+                },
+                m_core.timing().ui_queue_timeout);
+        } catch (const UiCallNotRun& f) {
+            if (!m_ran.load(std::memory_order_relaxed))
+                throw;
+            throw ToolFailure("Part of this call already ran, but the UI thread then did not run its next step (it stayed busy, "
+                              "a native dialog held it, or the UI was being rebuilt), so the call could not finish or read back "
+                              "its result. It may have done some or all of what was asked: check with app_state before calling "
+                              "it again",
+                              f.details);
+        }
+    }
+
     McpCore&             m_core;
     const NativeCommand& m_def;
     std::string    m_job;
@@ -179,6 +207,9 @@ private:
     const std::vector<CallObserver*>& m_observers;
     uint64_t       m_call;
     bool           m_saw_idle = false; // UI thread
+    // Whether a step of the call has run (run_step()). Set on the UI thread and, through call_child(), on the call's
+    // thread and a script's threads; it publishes nothing else, so relaxed access is enough.
+    std::atomic<bool> m_ran{false};
 };
 
 ToolResult invoke(const NativeCommand& def, const nlohmann::json& args, ToolContext& ctx)
