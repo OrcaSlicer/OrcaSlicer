@@ -103,7 +103,7 @@ public:
                       Constrain };
     // Which tool is armed, and how many anchors it has down. Read-only, for the offer ladder:
     // "the menu armed the verb I chose" is otherwise unassertable, and a menu walk that lands one
-    // row off arms a NEIGHBOURING tool and then grades whatever that drew. ekt9.
+    // item off arms a NEIGHBOURING tool and then grades whatever that drew. ekt9.
     Mode mode() const { return m_mode; }
     int  pending_points() const { return int(m_points.size()); }
     // Picks the armed tool is holding that are not yet an entity or a constraint: the Dimension
@@ -113,8 +113,9 @@ public:
         return m_dim_has0 || m_op_a >= 0 || !m_tf_targets.empty() || m_pick0 >= 0 || m_sel_a >= 0;
     }
     bool gesture_pending() const { return !m_points.empty() || has_pending_picks(); }
-    // Enter while an edit-op or a transform is ready: apply it, the same as its value field's
-    // Enter. False when nothing is pending, so the key can fall through to the tab's ✓.
+    // Enter while an edit-op or a transform is ready: apply it, as a one-value field's Enter does
+    // (an array's two fields leave it pending). False when nothing is pending, so the key can fall
+    // through to the tab's ✓.
     bool confirm_pending();
     bool end_chain();            // Polyline / Spline: finish the open chain as drawn
     void emit_step_hint();   // fires on_step_changed when the step actually moved
@@ -218,8 +219,8 @@ public:
     // shown/hidden by a toggle (keys P / A). Off by default so the idle scene stays clean.
     void set_show_planes(bool s) { m_show_planes = s; }
     void set_show_axes(bool s)   { m_show_axes = s; }
-    bool toggle_show_planes() { m_show_planes = !m_show_planes; return m_show_planes; }
-    bool toggle_show_axes()   { m_show_axes   = !m_show_axes;   return m_show_axes; }
+    bool show_planes() const { return m_show_planes; }
+    bool show_axes() const   { return m_show_axes; }
 
     // Solid topology selection on the committed bodies: clicking a solid cycles
     // whole-solid -> face -> edge (Onshape-style) to target fillet/chamfer/extrude. With
@@ -253,6 +254,24 @@ public:
     // Select a whole body by index (from the Parts list) — Whole-level highlight, no face/edge.
     // body < 0 or out of range clears the selection.
     void select_body(int body);
+    // Select by id what a click on the bodies picks (`kind` Face, Edge or Vertex): face `face`, the edge set
+    // `edges` (the last the current edge, as a Shift+click set keeps it) or the vertex at `vertex_pt`, given in
+    // the model's frame, of body `body`, from the pick shapes the tool holds, and fire on_solid_selection_changed as
+    // the click does. No face is pointed at for edges or a vertex. What is stored and drawn is moved with the body,
+    // as a click's pick is (body_xform_pt()). False, the selection as it was, where can_select_solid() is.
+    bool select_solid(SolidSel kind, int body, int face, const std::vector<int>& edges,
+                      const Vec3d& vertex_pt);
+    // Whether body `body` takes a pick in the view now, whatever the ids: false, with the reason in `why` when given,
+    // for a body with no shape in the view, or one that takes no click (hidden, or another body is the only one
+    // picked). It is the view's state, which design_select refuses apart from ids that name nothing.
+    bool body_takes_pick(int body, std::string* why = nullptr) const;
+    // Whether select_solid() takes the pick: false, with the reason in `why` when given, for a body that is not
+    // pickable (body_takes_pick()), an id its shape does not have, no edge or an edge listed twice. A caller checks a
+    // pick with it before it changes anything, and select_solid() runs the same tests.
+    bool can_select_solid(SolidSel kind, int body, int face, const std::vector<int>& edges,
+                          std::string* why = nullptr) const;
+    // The picked vertex's point, in the view's frame (where the moved body draws it).
+    Vec3d selected_vertex_point() const { return m_sel_vertex_pt; }
     // Outline these (body, face id) faces as selected: the faces the Feature tree's selected
     // feature made. A body whose shape changes later drops out, its face ids being stale. The
     // canvas fills them (DesignCanvas::rebuild_bodies).
@@ -319,6 +338,13 @@ public:
     void set_display_pick(int feature, int region) { m_display_pick = feature; m_display_pick_region = region; }
     int  display_pick() const { return m_display_pick; }
     int  display_pick_region() const { return m_display_pick_region; }
+    // The region of committed sketch `feature`, as the view shows it, whose own entities are `loop` (same_entities()):
+    // the number a click on it picks and a loop pick holds (selected_loop_entities()); -1 when the view shows no such
+    // region. The view leaves extruded loops out of a sketch, so this numbering is not the sketch's own.
+    int  display_region_of(int feature, const std::vector<SketchEntity>& loop) const;
+    // Two entity lists are the same loop: the same geometry in the same order. Exact up to rounding, as a
+    // per-loop extrude keeps a verbatim copy of the loop it takes.
+    static bool same_entities(const std::vector<SketchEntity>& a, const std::vector<SketchEntity>& b);
 
     // Visual Extrude gizmo (C5b). The Extrude tool is a DesignPanel docked card, so the
     // sketch tool is NOT active during it; the panel feeds the profile plane + a 2D centroid
@@ -431,11 +457,11 @@ public:
         m_datum_planes = std::move(planes); m_datum_sizes = std::move(sizes);
     }
 
-    // Mate connectors. Until now a connector was visible only to a program — resolve_datum_coordsys
-    // had exactly one consumer, the MCP socket — so the frame a mate is built on could not be seen
-    // at all. The glyph has to answer two questions on sight (wgsc): which way does Z point
-    // (the VERSE), and which of the pair is anchored versus driven (the POLARITY). Nothing in any
-    // surveyed CAD system encodes the second one.
+    // Mate connectors. Without a glyph a connector is visible only to a program —
+    // resolve_datum_coordsys's one other consumer is the MCP server's Design commands — so the frame
+    // a mate is built on could not be seen at all. The glyph has to answer two questions on sight
+    // (wgsc): which way does Z point (the VERSE), and which of the pair is anchored versus driven
+    // (the POLARITY). Nothing in any surveyed CAD system encodes the second one.
     struct MateConnectorGlyph {
         Vec3d origin{0, 0, 0};
         Vec3d x{1, 0, 0};          // roll reference; the filled quadrant spans x -> y
@@ -589,9 +615,10 @@ public:
         out = m_entities[i].type;
         return true;
     }
-    // Right-click pick: select the entity (or point handle) under the given canvas pixel, so
-    // the context menu describes what was pointed at. No-op when it is already selected, or
-    // when nothing is there. Returns true if the selection changed.
+    // Right-click pick: select the entity (or point handle) under the given canvas pixel, in
+    // the canvas's GL pixels as its mouse events carry them, so the context menu describes
+    // what was pointed at. No-op when it is already selected, or when nothing is there.
+    // Returns true if the selection changed.
     bool select_at_screen(GLCanvas3D& canvas, int sx, int sy);
     // Open the in-canvas value field on the SELECTION's defining number (a line's length, an
     // arc's radius, a circle's diameter, the angle between two lines, a point-to-point or
@@ -616,6 +643,67 @@ public:
     bool try_add_constraints(const std::vector<SketchEntityConstraintDef>& cands);
     // Drop constraint `idx` from the live session and re-solve.
     bool remove_constraint(int idx);
+    // The CONSTRAIN bar's commit: try_add_constraints, then the live solve that refreshes dof().
+    // Returns the index of the first new constraint, -1 when the batch was rolled back.
+    int  constrain_scripted(const std::vector<SketchEntityConstraintDef>& defs);
+
+    // The edit tools' and drawing tools' own apply steps, for a caller with no mouse. Each keeps
+    // the constraint upkeep a click gets: a fillet arc is bound Coincident and Tangent to its
+    // trimmed legs, constraints an op invalidates are dropped, array copies are bound to their
+    // source. Each refuses, changing nothing, while a gesture or a value field is pending (the
+    // tool's own apply step would take those over), leaves the armed tool as it was, and does not
+    // open a value field on what it added.
+    // Fillet (or chamfer) the corner of lines a and b by `value`, the radius (or setback), as the
+    // Fillet or Chamfer tool's Confirm does. False when the value overruns a leg.
+    bool fillet_scripted(int a, int b, double value, bool chamfer);
+    // Mirror `targets` about `axis` as the Mirror tool's Confirm does: each copy bound Symmetric to its source about
+    // the axis, unless that would move anything off its reflection, when the copies stay unbound. `axis` is a line of
+    // the sketch, or its X or Y axis (kSketchRefAxisX, kSketchRefAxisY), which no pick gives. `added` receives the
+    // indices of the constraints kept. False, changing nothing, for an axis that is none of those, no target, a
+    // target that is no entity, is the axis or is given twice.
+    bool mirror_scripted(const std::vector<int>& targets, int axis, std::vector<int>& added);
+    // Offset `entity` alone by `distance` as the Offset tool's Confirm does for a pick that is its own outline: the copy
+    // is added as the tool adds it, with no constraint inferred for it, and bound Parallel (a line) or Concentric (an
+    // arc or a circle) to it where the solver keeps that. `added` receives the index of the constraint kept. False,
+    // changing nothing, while a gesture or a value field is pending, for an index that is no entity, and for an entity
+    // that gives no offset (an ellipse, a spline).
+    bool offset_scripted(int entity, double distance, std::vector<int>& added);
+    // Cut back (or extend) the entity nearest `at`, within `tol`, to its nearest crossing with the
+    // others, as a Trim or Extend click does. `picked` receives that entity, -1 when none is that
+    // close; it is also set when the entity could not be cut.
+    bool trim_scripted(const Vec2d& at, double tol, bool extend, int& picked);
+    // Move, Rotate, Scale, Array or PolarArray `targets` as the transform gizmo's Confirm does: by
+    // `delta` (Move; Array's step), `angle` (Rotate; PolarArray's whole sweep, radians) or `scale`,
+    // `count` instances counting the original. About `pivot`, else the targets' centroid, the
+    // gizmo's own pivot. Returns the pivot used, empty when refused.
+    std::optional<Vec2d> transform_scripted(Mode mode, const std::vector<int>& targets, const Vec2d& delta, double angle,
+                                            double scale, int count, const std::optional<Vec2d>& pivot);
+    // A drawing tool's shape drawn from the clicks its gesture takes, with the builder and the shape
+    // grouping its last click uses: polyline {points; the last equal to the first closes the loop},
+    // corner rectangle {corner, opposite corner}, centre rectangle {centre, corner}, oblique
+    // rectangle {corner, corner, a point the width off that side}, rounded rectangle {corner,
+    // opposite corner, a point the corner radius from the nearest corner}, 2-point circle {the ends
+    // of a diameter}, 3-point circle {three points on it}, 3-point arc {start, end, a point on it},
+    // tangent arc {start, end}, which leaves `from_entity` (-1: the entity added last), a line or an
+    // arc, along its direction at its end, and builds nothing where no arc fits (the gesture draws a
+    // line there), slot {centre, centre, a point half the width off the centreline}, arc slot
+    // {centre, start, a point in the end's direction, a point half the width off the centreline},
+    // polygon {centre, vertex or edge midpoint}, ellipse {centre, major end, minor point} (+ start
+    // and end points for an arc), spline {poles}. `sides` and `circumscribed` are the polygon's; the
+    // tool's sticky polygon and construction settings are left as they were. Constraints are
+    // inferred exactly, as add_entities_scripted infers them, and an oblique rectangle's right angles
+    // and a tangent arc's tangency to the line it leaves, which the gesture's inference binds at any
+    // slant, are added where that left them out. Returns the first new index, -1 when the clicks
+    // build nothing.
+    int  add_shape_scripted(Mode mode, const std::vector<Vec2d>& clicks, int sides, bool circumscribed, bool construction,
+                            int from_entity = -1);
+    // The drawn sketch as it stands: its entities, constraints, shape groups, dimensions and the readout of its
+    // last solve. A caller that adds several shapes in one call keeps it before the first and puts the sketch back
+    // with it when a later one is refused, so that the refused call leaves the sketch, and what one undo of it
+    // takes off, as they were.
+    struct DrawnState;
+    DrawnState drawn_state() const;
+    void       restore_drawn_state(const DrawnState& state);
 
     // The loop report: what is CLOSED, what its internal voids are, and where a chain is still
     // open. This is the answer to "is my profile buildable", and it is the one question the
@@ -624,7 +712,7 @@ public:
         std::vector<int>   ents;         // entities of this loop, in chain order
         std::vector<int>   holes;        // indices into LoopReport::loops that this loop encloses
         bool               closed{false};
-        double             area{0.0};    // signed shoelace area of the loop polyline
+        double             area{0.0};    // area the loop encloses (mm^2), its holes not taken out
         bool               defect{false};      // crosses or folds back on itself (see RegionLoop)
         Vec2d              defect_at{0, 0};
     };
@@ -632,7 +720,10 @@ public:
         std::vector<LoopInfo> loops;
         std::vector<Vec2d>    open_ends;   // free endpoints: where a chain fails to close
     };
-    LoopReport loop_report() const;
+    LoopReport loop_report() const { return loop_report(m_entities); }
+    // The same report for entities outside the session, such as a committed sketch's. Its loops are
+    // numbered as region_entity_indices_with_holes() numbers them.
+    LoopReport loop_report(const std::vector<SketchEntity>& ents) const;
 
     // FreeCAD's ValidateSketch, as one call: weld endpoints that are within `tol` of each other
     // and RECORD the Coincident constraints, so a loop that was closed by floating-point luck
@@ -855,6 +946,24 @@ private:
         double param{0.0};         // slot half-width / polygon circumradius / fillet radius
         int    sides{0};           // polygon side count
     };
+
+public:
+    // drawn_state()'s, defined here, past the private types it holds.
+    struct DrawnState {
+        std::vector<SketchEntity>              entities;
+        std::vector<SketchEntityConstraintDef> constraints;
+        std::vector<Feature>                   features;
+        std::vector<DimAnnot>                  dimensions;
+        int                                    dof{-1};
+        bool                                   solve_ok{true};
+        std::vector<char>                      entity_conflict;
+        std::vector<int>                       bad_dims;
+        int                                    autoedit_seen{-1};
+        int                                    skipped_last{0};
+        bool                                   loop_defect_shown{false};
+    };
+
+private:
     // Build the live handle set for the current selection / just-drawn feature.
     std::vector<Handle> build_handles() const;
     // Nearest handle to plane-point p within tol; fills `out`. (Phase A: stub.)
@@ -942,8 +1051,8 @@ private:
     void drop_constraints_referencing(int ei);
     // Standalone Trim/Extend scissors on the LIVE sketch: pick the entity nearest `p` (within
     // `tol` plane units) and cut it back to / out to its nearest intersection with the others.
-    // Returns true if an entity was modified.
-    bool apply_live_trim(const Vec2d& p, double tol, bool extend);
+    // Returns true if an entity was modified; `picked`, when given, receives the entity picked.
+    bool apply_live_trim(const Vec2d& p, double tol, bool extend, int* picked = nullptr);
     // Pure-computation hover preview for Trim/Extend: mirror apply_live_trim's pick + the
     // engine's cut on a COPY (mutating nothing) and return, via `removed_poly`, the polyline
     // of the sub-portion a click would REMOVE (Trim) or ADD (Extend). `subject_ei` is the
@@ -1015,7 +1124,8 @@ private:
     // both on_mouse (append) and render (preview) share one geometry path.
     std::vector<SketchEntity> make_three_point_circle(const Vec2d& a, const Vec2d& b, const Vec2d& c) const;
     std::vector<SketchEntity> make_three_point_arc(const Vec2d& start, const Vec2d& end, const Vec2d& on_arc) const;
-    std::vector<SketchEntity> make_tangent_arc(const Vec2d& start, const Vec2d& end) const;
+    // The arc leaves start along the exit direction of entity `from`, a line or an arc; -1 is the last entity.
+    std::vector<SketchEntity> make_tangent_arc(const Vec2d& start, const Vec2d& end, int from = -1) const;
     // Center-start-end arc: click center, then start (sets radius), then a third
     // point whose direction from the center sets the CCW end angle.
     std::vector<SketchEntity> make_center_arc(const Vec2d& center, const Vec2d& start, const Vec2d& end_dir) const;
@@ -1066,7 +1176,7 @@ private:
     bool hit_test_op_arrow(const Vec2d& p, double tol) const;
     void drag_op_arrow(const Vec2d& target);    // project cursor onto m_op_dir -> value
     void open_op_editor();                      // inline-edit the value label
-    void confirm_op();                          // apply + bind, then reset for the next gesture
+    bool confirm_op();                          // apply + bind, then reset; false when refused
     void reset_op();                            // clear gizmo state (keeps the tool active)
     bool op_ready() const;                      // required entities picked -> arrow/ghost live
 

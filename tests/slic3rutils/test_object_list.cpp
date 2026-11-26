@@ -4,6 +4,7 @@
 
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include "slic3r/GUI/Operations/Outcome.hpp"
 
 #include <libslic3r/Model.hpp>
 #include <libslic3r/Point.hpp>
@@ -12,6 +13,7 @@
 
 #include <string>
 #include <cstddef>
+#include <iterator>
 #include <vector>
 
 using namespace Slic3r;
@@ -92,6 +94,113 @@ TEST_CASE("Objects sort by bounding box volume", "[ObjectList]")
     add_box(model, "cube", {10., 10., 10.});  // 1000 mm3
 
     CHECK(sorted_names(model, ObjectOrder::Size) == std::vector<std::string>{"cube", "tall", "flat"});
+}
+
+namespace {
+
+// The names of `objects` in their order.
+std::vector<std::string> names_of(const std::vector<ModelObject*>& objects)
+{
+    std::vector<std::string> names;
+    for (const ModelObject* object : objects)
+        names.push_back(object->name);
+    return names;
+}
+
+} // namespace
+
+TEST_CASE("Order By orders by each key, ascending and descending", "[ObjectList]")
+{
+    // Each key gives the three another order: a is mid in filament, tallest and mid in volume; b the last filament,
+    // the lowest and the largest; c the first filament, mid in height and the smallest.
+    Model model;
+    add_box(model, "a", {10., 10., 30.}, 2); // 3000 mm3
+    add_box(model, "b", {20., 20., 10.}, 3); // 4000 mm3
+    add_box(model, "c", {10., 10., 20.}, 1); // 2000 mm3
+    using Names = std::vector<std::string>;
+    struct Case { ObjectOrder order; Names ascending; };
+    const Case c = GENERATE(Case{ObjectOrder::Name, {"a", "b", "c"}}, Case{ObjectOrder::Filament, {"c", "a", "b"}},
+                            Case{ObjectOrder::Height, {"b", "c", "a"}}, Case{ObjectOrder::Size, {"c", "a", "b"}});
+    const auto on_one_plate = [](std::size_t) { return 0; };
+    CHECK(names_of(plate_order(model.objects, on_one_plate, 0, c.order, false)) == c.ascending);
+    const Names descending(c.ascending.rbegin(), c.ascending.rend());
+    CHECK(names_of(plate_order(model.objects, on_one_plate, 0, c.order, true)) == descending);
+}
+
+TEST_CASE("Order By sorts a plate's objects in the list positions they hold, and the other plates keep theirs", "[ObjectList]")
+{
+    Model model;
+    for (const char* name : {"d", "y", "b", "x", "a"})
+        add_box(model, name, {10., 10., 10.});
+    // d, b and a are on plate 0; y and x on plate 1.
+    const auto plate_of = [](std::size_t object) { return object == 1 || object == 3 ? 1 : 0; };
+    CHECK(names_of(plate_order(model.objects, plate_of, 0, ObjectOrder::Name, false)) == std::vector<std::string>{"a", "y", "b", "x", "d"});
+    CHECK(names_of(plate_order(model.objects, plate_of, 1, ObjectOrder::Name, false)) == std::vector<std::string>{"d", "x", "b", "y", "a"});
+    // Every plate at once, each in its own positions.
+    CHECK(names_of(plate_order(model.objects, plate_of, -1, ObjectOrder::Name, true)) == std::vector<std::string>{"d", "y", "b", "x", "a"});
+    // An object on no plate keeps its place.
+    const auto one_off = [](std::size_t object) { return object == 0 ? -1 : 0; };
+    CHECK(names_of(plate_order(model.objects, one_off, -1, ObjectOrder::Name, false)) == std::vector<std::string>{"d", "a", "b", "x", "y"});
+}
+
+// The names of `objects` after the drops `moves`, each as the object list makes it (move_object_in_list()).
+std::vector<std::string> names_after(std::vector<ModelObject*> objects, const std::vector<ObjectMove>& moves)
+{
+    for (const ObjectMove& move : moves)
+        move_object_in_list(objects, move.from, move.to);
+    return names_of(objects);
+}
+
+TEST_CASE("An order of a plate's objects becomes the drops that put them in that order, the other plates keeping theirs", "[ObjectList]")
+{
+    Model model;
+    for (const char* name : {"a", "x", "b", "c", "y"})
+        add_box(model, name, {10., 10., 10.});
+    // a, b and c are on plate 0; x and y on plate 1.
+    const std::vector<int> plate_of{0, 1, 0, 0, 1};
+
+    const Ops::Outcome<std::vector<ObjectMove>> moves = object_order_moves(plate_of, 0, {3, 0, 2});
+    REQUIRE(moves);
+    CHECK_FALSE(moves.value().empty());
+    // c, dropped on a, takes its place, and those after it move down: plate 0 reads c, a, b, and x stays before y.
+    CHECK(names_after(model.objects, moves.value()) == std::vector<std::string>{"c", "a", "x", "b", "y"});
+
+    const Ops::Outcome<std::vector<ObjectMove>> other = object_order_moves(plate_of, 1, {4, 1});
+    REQUIRE(other);
+    CHECK(names_after(model.objects, other.value()) == std::vector<std::string>{"a", "y", "x", "b", "c"});
+
+    // The order they have already takes no drop.
+    const Ops::Outcome<std::vector<ObjectMove>> kept = object_order_moves(plate_of, 0, {0, 2, 3});
+    REQUIRE(kept);
+    CHECK(kept.value().empty());
+}
+
+TEST_CASE("An order is refused when it leaves out an object of the plate, repeats one, or names one of another plate", "[ObjectList]")
+{
+    // Objects 0, 2 and 3 are on plate 0, 1 on plate 1, and 4 on no plate.
+    const std::vector<int> plate_of{0, 1, 0, 0, -1};
+    const auto refusal = [&plate_of](const std::vector<int>& order) {
+        const Ops::Outcome<std::vector<ObjectMove>> moves = object_order_moves(plate_of, 0, order);
+        REQUIRE_FALSE(moves);
+        return moves.refusal();
+    };
+    const Ops::Refusal missing = refusal({3, 0});
+    CHECK(std::string(missing.code) == "order_misses_object");
+    CHECK(missing.names == std::vector<std::string>{"2"});
+    CHECK(missing.english() == "The order leaves out objects of plate 0: 2. Name each of its objects once.");
+
+    const Ops::Refusal repeated = refusal({0, 2, 2, 3});
+    CHECK(std::string(repeated.code) == "order_repeats_object");
+    CHECK(repeated.english() == "The order names object 2 twice.");
+
+    const Ops::Refusal elsewhere = refusal({0, 1, 2, 3});
+    CHECK(std::string(elsewhere.code) == "object_not_on_plate");
+    CHECK(elsewhere.english() == "Object 1 is not on plate 0.");
+    CHECK(std::string(refusal({0, 2, 3, 4}).code) == "object_not_on_plate");
+
+    const Ops::Refusal unknown = refusal({0, 2, 3, 7});
+    CHECK(std::string(unknown.code) == "no_such_object");
+    CHECK(unknown.english() == "Object 7 does not exist: the project has objects 0 to 4.");
 }
 
 TEST_CASE("Imported part names sort only their presentation and survive cloning", "[ObjectList][OriginalNames]")

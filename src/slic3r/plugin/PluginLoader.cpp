@@ -556,6 +556,9 @@ bool install_packages(const std::vector<std::string>& pkgs, std::string& error)
 {
     if (pkgs.empty())
         return true;
+    // A plugin's load and a script's run can install at once; both write the one shared package folder.
+    static std::mutex           install_mutex;
+    std::lock_guard<std::mutex> install_lock(install_mutex);
 
     const std::string python_executable = PythonInterpreter::bundled_python_executable();
     if (python_executable.empty()) {
@@ -593,8 +596,9 @@ bool inspect_local_plugin_package(const boost::filesystem::path& filepath,
     plugin_descriptor     = PluginDescriptor{};
     existing_installation = false;
 
+    // The inspection is the first step of an install, so its errors read as install_plugin's do.
     auto fail = [&error](const std::string& message) {
-        error = "Plugin package inspection failed: " + message;
+        error = GUI::format(_u8L("Plugin installation failed: %1%"), message);
         return false;
     };
 
@@ -606,7 +610,7 @@ bool inspect_local_plugin_package(const boost::filesystem::path& filepath,
     // keeps the plain paths; only these probes use the extended-length form.
     const fs::path io_source_path = extended_path(source_path);
     if (!fs::exists(io_source_path, ec) || !fs::is_regular_file(io_source_path, ec))
-        return fail("Plugin package is not a file: " + filepath.string());
+        return fail(GUI::format(_u8L("Plugin package is not a file: %1%"), filepath.string()));
 
     std::string metadata_error;
     if (!read_local_plugin_package_metadata(source_path, plugin_descriptor, metadata_error))
@@ -708,7 +712,9 @@ bool install_plugin(const boost::filesystem::path& filepath,
         // read_wheel_plugin_metadata() already requires a Name and may legitimately leave the type
         // Unknown.
         if (ext == ".py" && plugin_descriptor.name.empty())
-            return fail("Side-loaded .py plugin is missing required PEP 723 metadata: 'name' is required");
+            // TRN %1% is the name of a TOML table, %2% an example of the comment block that holds it.
+            return fail(GUI::format(_u8L("The plugin has no name. Its PEP 723 block needs a %1% table with a name, as in:\n%2%"),
+                                    "[tool.orcaslicer.plugin]", "# /// script\n# [tool.orcaslicer.plugin]\n# name = \"My Plugin\"\n# ///"));
     }
 
     const fs::path final_dir = is_cloud_install ? plugin_root / cloud_uuid : local_plugin_install_dir(source_path);

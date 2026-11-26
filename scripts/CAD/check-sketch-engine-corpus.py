@@ -20,30 +20,37 @@ agree, and that the engine's own operations preserve what they promise.
   MIRROR    a real closed profile, mirrored, is still exactly one closed loop
   OFFSET    a real closed profile, offset, is still closed
 
-Usage:  check-sketch-engine-corpus.py [--sample N] [--corpus DIR]
+Run it against a running app started with --mcp and the CAD feature on, for example:
+
+    python3 tools/mcp/orca_mcp.py launch --cad --datadir <datadir>
+    python3 scripts/CAD/check-sketch-engine-corpus.py --corpus DIR [--datadir <datadir>]
+            [--step N] [--limit N] [--scale] [--budget S]
+
+DIR is the folder of the StudyCadCam MPD*.pdf sheets. --datadir is the running app's data directory
+(default: $ORCA_DATADIR, else the platform's own); the script finds the app's MCP server through the
+port it writes to <datadir>/mcp/server.json. The sheets are read with poppler's pdftocairo and
+pdfinfo, which must be on the PATH.
 """
 
 import argparse
 import glob
-import json
 import math
 import os
 import re
-import socket
 import subprocess
 import sys
 import tempfile
 import time
 
-SOCK = os.environ.get("ORCA_CAD_MCP", "/tmp/mcp.sock")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tools", "mcp"))
+import orca_mcp  # noqa: E402
+
+APP = None          # the running app's MCP server, attached to in main()
 TOL = 1e-6          # exact-comparison tolerance (all inputs are lines)
 WELD = 0.05         # endpoint-coincidence tolerance, in PDF units
 
 
-# ── the socket ───────────────────────────────────────────────────────────────
-_id = [0]
-
-
+# ── the app's MCP server ─────────────────────────────────────────────────────
 def try_call(method, **params):
     """sketch_cancel throws when nothing is open, which is not an error to us."""
     try:
@@ -53,24 +60,7 @@ def try_call(method, **params):
 
 
 def call(method, **params):
-    _id[0] += 1
-    req = json.dumps({"jsonrpc": "2.0", "id": _id[0], "method": method,
-                      "params": params}) + "\n"
-    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.settimeout(30)
-    s.connect(SOCK)
-    s.sendall(req.encode())
-    buf = b""
-    while not buf.endswith(b"\n"):
-        chunk = s.recv(65536)
-        if not chunk:
-            break
-        buf += chunk
-    s.close()
-    r = json.loads(buf.decode())
-    if "error" in r:
-        raise RuntimeError(r["error"]["message"])
-    return r["result"]
+    return APP.call_command(method, **params)["result"]
 
 
 # ── SVG → line segments ──────────────────────────────────────────────────────
@@ -262,8 +252,8 @@ def grade(pdf, name, report):
                          "p0": [ring[i][0], ring[i][1]],
                          "p1": [ring[i + 1][0], ring[i + 1][1]]})
     try_call("sketch_cancel")
-    call("sketch_begin", plane="XY")
-    call("sketch_add", entities=ents)
+    call("sketch_create", plane="XY")
+    call("sketch_draw", entities=ents)
     r = call("sketch_describe")
 
     ok = True
@@ -275,27 +265,26 @@ def grade(pdf, name, report):
     mine = sorted(shoelace(x) for x in rings)
     theirs = sorted(abs(l["area"]) for l in got)
     # The bar: 1e-3 absolute, or 1e-6 relative for the big loops. Not bit-exactness — the
-    # auto-constraint pass still snaps segments that are already axis-aligned to within its
-    # 1e-4 rad tolerance, which moves an area by ~1e-4. It is deliberately tight enough to
-    # have caught the real defect this rung was written for: with the old 3 degree gesture
-    # slack applied to scripted input, a flattened circle came back 0.067% small — 0.266 on
-    # an area of 397, some 300x above this line.
+    # auto-constraint pass snaps segments that are already axis-aligned to within its 1e-4 rad
+    # tolerance, which moves an area by ~1e-4. It is tight enough to catch a gesture's snap
+    # slack applied to scripted input: a 3 degree slack flattens a circle to 0.067% small,
+    # 0.266 on an area of 397, some 300x above this line.
     same = len(mine) == len(theirs) and all(
         abs(a - b) <= max(1e-3, 1e-6 * a) for a, b in zip(mine, theirs))
     ok &= report(name, "AREA", "every loop area matches the shoelace value exactly", same)
 
     # VOID — a loop belongs to the SMALLEST loop that contains it, not to every loop that
     # encloses it. A hole inside a boss inside the part is a void of the boss, and the part
-    # owns the boss. Comparing against "everything inside the outline" was measuring my own
-    # sloppiness: on MPD781 that counted 36 voids where 26 of them are nested inside another
-    # void. So compute the same rule here, independently, and compare the whole attribution.
+    # owns the boss. Counting everything inside the outline as its void overcounts: on MPD781
+    # 26 of the 36 loops inside the outline are nested inside another void. So compute the
+    # same rule here, independently, and compare the whole attribution.
     if got:
         rings = [outer] + voids
         # Probe from a point STRICTLY INSIDE each ring, never from one of its vertices — the
-        # same rule the engine now uses (DesignSketchTool::region_loops). A vertex is exactly
-        # where two loops touch in a real drawing, and a ray cast from a point lying ON the
-        # polygon under test answers by rounding: that alone accounted for every one of the 6
-        # sheets where the two attributions used to disagree. 5hvl.
+        # rule the engine uses too (DesignSketchTool::region_loops). A vertex is exactly where
+        # two loops touch in a real drawing, and a ray cast from a point lying ON the polygon
+        # under test answers by rounding, so probing from vertices would make the two
+        # attributions disagree on such sheets for no fault of either.
         probes = [interior_point(r) for r in rings]
         mine_parent = {}
         for i, r in enumerate(rings):
@@ -319,8 +308,8 @@ def grade(pdf, name, report):
     # MIRROR / OFFSET — engine operations on a REAL profile, not a tidy one
     n_outer = len(outer) - 1
     try_call("sketch_cancel")
-    call("sketch_begin", plane="XY")
-    call("sketch_add", entities=ents[:n_outer])
+    call("sketch_create", plane="XY")
+    call("sketch_draw", entities=ents[:n_outer])
     xs = [p[0] for p in outer]
     axis = min(xs) - 10.0
     call("sketch_select", entities=list(range(n_outer)))
@@ -333,8 +322,8 @@ def grade(pdf, name, report):
         ok &= report(name, "MIRROR", f"refused: {e}", False)
 
     try_call("sketch_cancel")
-    call("sketch_begin", plane="XY")
-    call("sketch_add", entities=ents[:n_outer])
+    call("sketch_create", plane="XY")
+    call("sketch_draw", entities=ents[:n_outer])
     try:
         call("sketch_offset", distance=0.5, entities=list(range(n_outer)))
         o = call("sketch_describe")
@@ -349,9 +338,9 @@ def grade(pdf, name, report):
 def grade_scale(pdf, name, report, budget):
     """Same exactness, on a profile of several hundred entities, and timed.
 
-    "Interactive" is measurable from here even though nothing is clicked: every MCP verb is
-    serviced on the UI THREAD, so the time a reply takes is time the window was not repainting.
-    A round trip that stays inside the budget is a window that stayed responsive.
+    "Interactive" is measurable from here even though nothing is clicked: every Design command runs on
+    the UI THREAD, so the window was not repainting for at most the time its reply takes. A round
+    trip that stays inside the budget is a window that stayed responsive.
     """
     segs = drawing_segments(pdf)
     loops = find_loops(segs)
@@ -373,8 +362,8 @@ def grade_scale(pdf, name, report, budget):
         return None
 
     try_call("sketch_cancel")
-    call("sketch_begin", plane="XY")
-    t0 = time.monotonic(); call("sketch_add", entities=ents);  t_add = time.monotonic() - t0
+    call("sketch_create", plane="XY")
+    t0 = time.monotonic(); call("sketch_draw", entities=ents);  t_add = time.monotonic() - t0
     t0 = time.monotonic(); r = call("sketch_describe");        t_desc = time.monotonic() - t0
     t0 = time.monotonic(); call("sketch_select", entities=list(range(len(ents))))
     t_sel = time.monotonic() - t0
@@ -404,8 +393,12 @@ def _pdf_error(path):
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--corpus", default=os.path.expanduser("~/studycadcam"))
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--corpus", required=True, help="the folder of the MPD*.pdf sheets")
+    ap.add_argument("--datadir", default=os.environ.get("ORCA_DATADIR", ""),
+                    help="the running app's data directory (default: $ORCA_DATADIR, else the "
+                         "platform's own)")
     ap.add_argument("--step", type=int, default=20)
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--scale", action="store_true",
@@ -414,14 +407,17 @@ def main():
                     help="seconds; the slowest round trip a scale drawing may take")
     a = ap.parse_args()
 
+    global APP
+    APP = orca_mcp.OrcaMcp.from_datadir(a.datadir)
+
     files = {}
     for f in glob.glob(os.path.join(a.corpus, "MPD*.pdf")):
         m = re.search(r"MPD(\d+)", os.path.basename(f))
         if m:
             files[int(m.group(1))] = f
-    # step 1 means EVERY sheet. Written as `n % step == 1` it silently selected nothing, because
-    # n % 1 is always 0 — and the run then printed "RUNG 9 HELD" over zero drawings graded. A
-    # gate that passes by grading nothing is worse than no gate, so the count is checked below.
+    # step 1 means EVERY sheet, which `n % step == 1` alone would never select, since n % 1 is
+    # always 0. A gate that passes by grading nothing is worse than no gate, so the count is
+    # checked below.
     picks = [files[n] for n in sorted(files) if a.step <= 1 or n % a.step == 1]
     if a.scale:
         # The heaviest real profiles in the corpus, biggest first — up to ~1300 entities.

@@ -104,6 +104,7 @@ public:
     bool            m_show_clear_rotation { false };
     bool            m_show_clear_scale { false };
     bool            m_enable_drop_to_bed { false };
+    bool            m_enable_center_to_bed { false };
     enum class RotateType { None, Relative, Absolute
     };
     RotateType m_last_rotate_type{RotateType::None}; // 0:no input 1:relative 2:absolute
@@ -141,7 +142,9 @@ public:
 
     void limit_scaling_ratio(Vec3d &scaling_factor) const;
     void on_change(const std::string& opt_key, int axis, double new_value);
-    bool render_combo(ImGuiWrapper *imgui_wrapper, const std::string &label, const std::vector<std::string> &lines, size_t &selection_idx, float label_width, float item_width);
+    // `name` names the combo for automation when `label` is empty.
+    bool render_combo(ImGuiWrapper *imgui_wrapper, const std::string &label, const std::vector<std::string> &lines, size_t &selection_idx, float label_width, float item_width,
+                      const std::string &name = {});
     void do_render_move_window(ImGuiWrapper *imgui_wrapper, std::string window_name, float x, float y, float bottom_limit);
     void do_render_rotate_window(ImGuiWrapper *imgui_wrapper, std::string window_name, float x, float y, float bottom_limit);
     void do_render_scale_input_window(ImGuiWrapper* imgui_wrapper, std::string window_name, float x, float y, float bottom_limit);
