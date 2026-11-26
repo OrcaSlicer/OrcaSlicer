@@ -583,6 +583,7 @@ public:
 private:
     void make_perimeters();
     void prepare_infill();
+    void partition_solid_infill_for_flush();
     void infill();
     void ironing();
     bool need_z_contouring() const;
@@ -903,6 +904,32 @@ struct FakeWipeTower
     }
 };
 
+// Purge planned for the tool changes of one print_z, used to size the "Solid Infill" flush zones.
+struct LayerPurgeInfo
+{
+    float total_purge    = 0.0f;
+    float min_wipe_tower = 0.0f;
+    // Number of tool changes with a purge and the smallest of these purges.
+    int   changes        = 0;
+    float min_change     = 0.0f;
+    // Extruders of the layer in print order and the layer's extruder override (1-based, 0 = none).
+    std::vector<unsigned int> extruders;
+    int                       extruder_override = 0;
+    // Fraction of the absorbing sparse infill of every Solid Infill object turned solid on this layer.
+    // The purge is shared by all objects on the plate, so each one takes the same fraction.
+    double                    solid_ratio = 0.;
+
+    // Can the infill of a region absorb any tool change purge of this layer? Without infill first,
+    // WipingExtrusions::mark_wiping_extrusions() takes the infill of a region whose walls are printed
+    // before the new extruder, and with Flush as solid infill of any region.
+    bool can_absorb(const PrintRegion &region, bool flush_as_solid) const;
+
+    // A tool change takes whole fills, so with several tool changes on the layer each one may leave most of its last
+    // fill unused, and the next change would find nothing left. The flush zones are then cut into tiles of about this
+    // volume (mm3, 0 = not cut), so a tool change wastes at most one tile.
+    float tile_volume() const { return changes > 1 ? std::clamp(min_change / 3.f, 2.f, 20.f) : 0.f; }
+};
+
 struct WipeTowerData
 {
     struct WipeTowerMeshData
@@ -1216,6 +1243,7 @@ public:
     bool                        precise_z_height_overridden() const { return m_precise_z_height_overridden; }
     const WipeTowerData&        wipe_tower_data(size_t filaments_cnt = 0) const;
     const ToolOrdering& 		tool_ordering() const { return m_tool_ordering; }
+    const std::map<coordf_t, LayerPurgeInfo>& layer_purge_volumes() const { return m_layer_purge_volumes; }
 
     void update_filament_maps_to_config(std::vector<int> f_maps, std::vector<int> f_volume_maps = std::vector<int>{}, std::vector<int> f_nozzle_maps = std::vector<int>{});
     // Write-back for a selector (per-layer planned) grouping result. When a filament actually
@@ -1500,6 +1528,11 @@ private:
     bool                has_tpu_filament() const;
     bool                invalidate_state_by_config_options(const ConfigOptionResolver &new_config, const std::vector<t_config_option_key> &opt_keys);
 
+    std::map<coordf_t, LayerPurgeInfo> calculate_layer_purge_volumes() const;
+    // Fills m_layer_purge_volumes, sharing each layer's purge among the infills of all objects.
+    // Needs the fill surfaces of all objects (posPrepareInfill) and runs before any posInfill.
+    void plan_solid_infill_flush();
+
     void                _make_skirt();
     void                _make_wipe_tower();
     // Belt mode: route filament-change purging into the belt purge prism
@@ -1595,6 +1628,7 @@ private:
     std::vector<int> m_filament_self_index;
 
     // Following section will be consumed by the GCodeGenerator.
+    std::map<coordf_t, LayerPurgeInfo>               m_layer_purge_volumes;
     ToolOrdering 							m_tool_ordering;
     WipeTowerData                           m_wipe_tower_data {m_tool_ordering};
 

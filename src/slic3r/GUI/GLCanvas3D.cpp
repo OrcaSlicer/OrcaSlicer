@@ -4355,6 +4355,10 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 // The estimate is also the answer to whether this plate prints a tower;
                 // deciding it here as well only gave the two room to drift.
                 if (footprint.depth <= 0.) continue;
+                // A finished slice may need no tower after all, when the purge went into the objects
+                // (Print::_make_wipe_tower() cancels it): don't draw the estimate in its place.
+                if (current_print->is_step_done(psWipeTower) && !current_print->wipe_tower_data().tool_ordering.has_wipe_tower())
+                    continue;
                 float brim_width = float(footprint.brim_width);
                 Vec3d wipe_tower_size(footprint.width, footprint.depth, footprint.height);
 

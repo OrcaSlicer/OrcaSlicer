@@ -827,6 +827,112 @@ void PrintObject::prepare_infill()
     this->set_done(posPrepareInfill);
 }
 
+// Cut an area into square tiles of a side of cell_mm, a micrometer apart so the fills keep them apart: each one is
+// filled on its own, and so it is a fill of its own that a tool change takes or leaves whole.
+static ExPolygons cut_into_tiles(const ExPolygons &area, double cell_mm)
+{
+    if (area.empty())
+        return {};
+    const coord_t   cell = scale_(cell_mm);
+    const coord_t   gap  = scale_(0.001);
+    const BoundingBox bbox = get_extents(area);
+    Polygons cells;
+    for (coord_t x = bbox.min.x(); x < bbox.max.x(); x += cell)
+        for (coord_t y = bbox.min.y(); y < bbox.max.y(); y += cell)
+            cells.emplace_back(Polygon({ { x + gap, y + gap }, { x + cell - gap, y + gap }, { x + cell - gap, y + cell - gap }, { x + gap, y + cell - gap } }));
+    return intersection_ex(area, cells);
+}
+
+void PrintObject::partition_solid_infill_for_flush()
+{
+    // Drop the zones of a previous run, the plan depends on all objects and may have changed since.
+    for (Layer *layer : m_layers)
+        for (LayerRegion *layerm : layer->regions())
+            for (Surface &s : layerm->fill_surfaces.surfaces)
+                s.is_solid_flush = false;
+
+    if (!this->config().flush_into_infill || !this->config().flush_into_infill_solid)
+        return;
+
+    const auto &purge_volumes = this->print()->layer_purge_volumes();
+    if (purge_volumes.empty())
+        return;
+
+    for (Layer *layer : m_layers) {
+        auto it = purge_volumes.lower_bound(layer->print_z - EPSILON);
+        if (it == purge_volumes.end() || std::abs(it->first - layer->print_z) > EPSILON)
+            continue;
+        // Share of this layer's sparse infill to turn solid, planned for all objects together by Print::plan_solid_infill_flush().
+        const LayerPurgeInfo &info = it->second;
+        const float tile = info.tile_volume();
+        if (info.solid_ratio <= 0. && tile <= 0.f)
+            continue;
+
+        for (LayerRegion *layerm : layer->regions()) {
+            if (layerm->region().config().sparse_infill_density.value >= 100. || !info.can_absorb(layerm->region(), true))
+                continue;
+
+            ExPolygons internal_polys;
+            for (const Surface &s : layerm->fill_surfaces.surfaces)
+                if (s.surface_type == stInternal)
+                    internal_polys.push_back(s.expolygon);
+            if (internal_polys.empty())
+                continue;
+            // A previous run split the sparse infill into pieces, join them again.
+            internal_polys = union_ex(internal_polys);
+
+            // Turn an inner zone of the sparse infill solid: shrink the sparse area until the zone left has the target area.
+            const double internal_area = area(internal_polys);
+            const double target_area   = info.solid_ratio * internal_area;
+            ExPolygons   solid_polys;
+            if (info.solid_ratio <= 0.) {
+            } else if (info.solid_ratio >= 1. - EPSILON) {
+                solid_polys = internal_polys;
+            } else {
+                double delta_low  = 0.;
+                double delta_high = unscale_(get_extents(internal_polys).radius());
+                double best_diff  = std::numeric_limits<double>::max();
+                for (int iter = 0; iter < 24; ++iter) {
+                    const double delta_mid   = 0.5 * (delta_low + delta_high);
+                    ExPolygons   shrunk      = offset_ex(internal_polys, -scale_(delta_mid));
+                    const double shrunk_area = area(shrunk);
+                    const double diff        = std::abs(shrunk_area - target_area);
+                    if (diff < best_diff) {
+                        best_diff   = diff;
+                        solid_polys = std::move(shrunk);
+                    }
+                    if (diff <= 0.005 * target_area || delta_high - delta_low < 0.005)
+                        break;
+                    (shrunk_area > target_area ? delta_low : delta_high) = delta_mid;
+                }
+            }
+            ExPolygons sparse_polys = diff_ex(internal_polys, solid_polys);
+            if (tile > 0.f) {
+                const double density = std::max(0.05, layerm->region().config().sparse_infill_density.value / 100.);
+                solid_polys  = cut_into_tiles(solid_polys, std::sqrt(tile / layer->height));
+                sparse_polys = cut_into_tiles(sparse_polys, std::sqrt(tile / (layer->height * density)));
+            } else if (solid_polys.empty())
+                continue;
+
+            // Split each sparse surface so the pieces keep its attributes (e.g. combined infill thickness).
+            Surfaces new_surfaces;
+            for (const Surface &s : layerm->fill_surfaces.surfaces) {
+                if (s.surface_type != stInternal) {
+                    new_surfaces.push_back(s);
+                    continue;
+                }
+                for (ExPolygon &expoly : intersection_ex(s.expolygon, solid_polys)) {
+                    new_surfaces.emplace_back(s, std::move(expoly));
+                    new_surfaces.back().is_solid_flush = true;
+                }
+                for (ExPolygon &expoly : intersection_ex(s.expolygon, sparse_polys))
+                    new_surfaces.emplace_back(s, std::move(expoly));
+            }
+            layerm->fill_surfaces.surfaces = std::move(new_surfaces);
+        }
+    }
+}
+
 void PrintObject::infill()
 {
     // prerequisites
@@ -834,6 +940,8 @@ void PrintObject::infill()
 
     if (this->set_started(posInfill)) {
         m_print->set_status(35, L("Generating infill toolpath"));
+
+        this->partition_solid_infill_for_flush();
 
         BOOST_LOG_TRIVIAL(debug) << "Filling layers in parallel - start";
         tbb::parallel_for(
@@ -1896,9 +2004,12 @@ bool PrintObject::invalidate_state_by_config_options(
                 invalidated |= m_print->invalidate_steps({ psSkirtBrim, psWipeTower, psGCodeExport });
         } else if (
                opt_key == "flush_into_infill"
+            || opt_key == "flush_into_infill_solid"
             || opt_key == "flush_into_objects"
             || opt_key == "flush_into_support"
             || opt_key == "belt_purge_tower_object") {
+            if (opt_key == "flush_into_infill_solid" || (opt_key == "flush_into_infill" && m_config.flush_into_infill_solid.value))
+                steps.emplace_back(posPrepareInfill);
             invalidated |= m_print->invalidate_step(psWipeTower);
             invalidated |= m_print->invalidate_step(psGCodeExport);
         } else {

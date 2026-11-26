@@ -969,7 +969,11 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                     params.infill_complete_top = region_config.infill_complete_top;
                 }
 
-                if (surface.is_solid()) {
+                if (surface.is_solid_flush) {
+                    params.pattern = ipMonotonic;
+                    params.density = 100.f;
+                    params.extrusion_role = erInternalInfill;
+                } else if (surface.is_solid() && !surface.is_solid_flush) {
                     if (surface.is_external() && !is_bridge) {
                         if (surface.is_top()) {
                             params.pattern = region_config.top_surface_pattern.value;
@@ -998,7 +1002,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                         params.extrusion_role = erInternalBridgeInfill;
                     else
                         params.extrusion_role = erBridgeInfill;
-                } else if (surface.is_solid()) {
+                } else if (surface.is_solid() && !surface.is_solid_flush) {
                     if (surface.is_top()) {
                         params.extrusion_role = erTopSolidInfill;
                     } else if (surface.is_bottom()) {
@@ -1102,7 +1106,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                     params.role_volumetric_flow = region_config.internal_solid_infill_volumetric_flow.get_at(role_extruder_id);
                 }
 				// Calculate flow spacing for infill pattern generation.
-		        if (surface.is_solid() || is_bridge) {
+		        if (surface.is_solid() || surface.is_solid_flush || is_bridge) {
 		            params.spacing = params.flow.spacing();
 		            // Don't limit anchor length for solid or bridging infill.
 		            params.anchor_length = 1000.f;
@@ -1418,7 +1422,7 @@ void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLigh
         } else if (surface_fill.params.pattern == ipLightning)
             dynamic_cast<FillLightning::Filler*>(f.get())->generator = lightning_generator;
         // calculate flow spacing for infill pattern generation
-        bool using_internal_flow = ! surface_fill.surface.is_solid() && ! surface_fill.params.bridge;
+        bool using_internal_flow = ! surface_fill.surface.is_solid() && ! surface_fill.surface.is_solid_flush && ! surface_fill.params.bridge;
         double link_max_length = 0.;
         if (! surface_fill.params.bridge) {
 #if 0
@@ -1537,9 +1541,16 @@ void Layer::make_fills(const FillAdaptive::RegionOctrees* fill_octrees, FillLigh
                     params.density = 1.0f - (1.0f - elefant_density) * (elefant_layers - (f->layer_id - 1)) / elefant_layers; // Reverse calculation - The higher layer number means the higher density. Counting starts from the second layer.
             }
             // make fill
+            size_t initial_entities_count = m_regions[surface_fill.region_id]->fills.entities.size();
 			f->fill_surface_extrusion(&surface_fill.surface,
 				params,
 				m_regions[surface_fill.region_id]->fills.entities);
+            if (surface_fill.surface.is_solid_flush) {
+                auto &ents = m_regions[surface_fill.region_id]->fills.entities;
+                if (ents.size() > initial_entities_count && initial_entities_count > 0) {
+                    std::rotate(ents.begin(), ents.begin() + initial_entities_count, ents.end());
+                }
+            }
 		}
     }
 

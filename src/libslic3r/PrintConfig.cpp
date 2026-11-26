@@ -8717,6 +8717,12 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Purging after filament change will be done inside objects\' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled.");
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("flush_into_infill_solid", coBool);
+    def->category = L("Flush options");
+    def->label = L("Flush as solid infill");
+    def->tooltip = L("When the sparse infill of the objects cannot take all the purge after a filament change, turn an inner zone of it into solid infill, just large enough to take the rest. The purge is shared among all objects on the plate. If the objects take all the purge, no prime tower is printed. It only takes effect together with \"Flush into objects' infill\".");
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("flush_into_support", coBool);
     def->category = L("Flush options");
     def->label = L("Flush into objects' support");

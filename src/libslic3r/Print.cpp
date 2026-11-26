@@ -575,6 +575,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "flush_volumes_matrix"
             || opt_key == "prime_volume"
             || opt_key == "flush_into_infill"
+            || opt_key == "flush_into_infill_solid"
             || opt_key == "flush_into_support"
             || opt_key == "belt_purge_tower_width"
             || opt_key == "initial_layer_infill_speed"
@@ -3691,21 +3692,27 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 if (obj->set_started(posEstimateCurledExtrusions))
                     obj->set_done(posEstimateCurledExtrusions);
             });
+        // split prepare_infill (fill-surface prep) from infill (make_fills) so a
+        // plugin can mutate fill surfaces at the PrepareInfill seam and have make_fills
+        // consume them (unlike the Infill seam, which fires after the fills are already
+        // built). infill() re-invokes prepare_infill() as a no-op once posPrepareInfill
+        // is DONE, so this is a mechanical split mirroring the slice/perimeters loop.
+        // The fill surfaces of all objects are prepared first: the Solid Infill flush shares
+        // each layer's purge among the infills of all objects (plan_solid_infill_flush()).
         for_each_object_step(needs_slicing, [&](PrintObject *obj) {
-                // split prepare_infill (fill-surface prep) from infill (make_fills) so a
-                // plugin can mutate fill surfaces at the PrepareInfill seam and have make_fills
-                // consume them (unlike the Infill seam, which fires after the fills are already
-                // built). infill() re-invokes prepare_infill() as a no-op once posPrepareInfill
-                // is DONE, so this is a mechanical split mirroring the slice/perimeters loop.
                 const bool prepare_was_done = obj->is_step_done(posPrepareInfill);
                 obj->prepare_infill();
                 hook_after(obj, prepare_was_done, posPrepareInfill, SlicingPipelineStepPlugin::posPrepareInfill);
+            }, [](PrintObject *obj) {
+                if (obj->set_started(posPrepareInfill))
+                    obj->set_done(posPrepareInfill);
+            });
+        this->plan_solid_infill_flush();
+        for_each_object_step(needs_slicing, [&](PrintObject *obj) {
                 const bool was_done = obj->is_step_done(posInfill);
                 obj->infill();
                 hook_after(obj, was_done, posInfill, SlicingPipelineStepPlugin::posInfill);
             }, [](PrintObject *obj) {
-                if (obj->set_started(posPrepareInfill))
-                    obj->set_done(posPrepareInfill);
                 if (obj->set_started(posInfill))
                     obj->set_done(posInfill);
             });
@@ -3851,7 +3858,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         if (m_pipeline_plugin_active) run_pipeline_hook(SlicingPipelineStepPlugin::psWipeTower, nullptr);
     }
 
-    if (this->has_wipe_tower()) {
+    if (this->has_wipe_tower() && m_wipe_tower_data.tool_ordering.has_wipe_tower()) {
         m_fake_wipe_tower.set_pos({ m_config.wipe_tower_x.get_at(m_plate_index), m_config.wipe_tower_y.get_at(m_plate_index) });
         // Validated on every process() run rather than only when the wipe tower step is (re)generated.
         // Moving the tower changes only wipe_tower_x/y, which invalidates psSkirtBrim but not psWipeTower,
@@ -5464,6 +5471,138 @@ bool Print::enable_timelapse_print() const
 }
 
 
+bool LayerPurgeInfo::can_absorb(const PrintRegion &region, bool flush_as_solid) const
+{
+    if (flush_as_solid || region.config().is_infill_first)
+        return true;
+    const int wall = extruder_override == 0 ? region.config().outer_wall_filament_id.value : extruder_override;
+    // Every extruder of the layer but the last one is followed by a tool change on this layer.
+    return wall > 0 && extruders.size() > 1 && std::find(extruders.begin(), extruders.end() - 1, (unsigned int)(wall - 1)) != extruders.end() - 1;
+}
+
+std::map<coordf_t, LayerPurgeInfo> Print::calculate_layer_purge_volumes() const
+{
+    std::map<coordf_t, LayerPurgeInfo> purge_volumes;
+    if (m_config.filament_colour.values.size() <= 1)
+        return purge_volumes;
+
+    bool has_flush_infill_solid = false;
+    for (const PrintObject *obj : m_objects) {
+        if (obj->config().flush_into_infill && obj->config().flush_into_infill_solid) {
+            has_flush_infill_solid = true;
+            break;
+        }
+    }
+    if (!has_flush_infill_solid)
+        return purge_volumes;
+
+    if (!this->has_wipe_tower())
+        return purge_volumes;
+
+    const bool is_wipe_tower_type2 = this->wipe_tower_type() == WipeTowerType::Type2;
+    // Type2 towers only flush into objects with these options, see _make_wipe_tower().
+    if (is_wipe_tower_type2 && !(m_config.purge_in_prime_tower && m_config.single_extruder_multi_material))
+        return purge_volumes;
+
+    ToolOrdering tool_ordering(*this, (unsigned int)-1, is_wipe_tower_type2);
+    tool_ordering.sort_and_build_data(*this, (unsigned int)-1, is_wipe_tower_type2);
+
+    if (!tool_ordering.has_wipe_tower() || tool_ordering.empty())
+        return purge_volumes;
+
+    const unsigned int number_of_extruders = (unsigned int)(m_config.filament_colour.values.size());
+    std::vector<float> flush_matrix(cast<float>(m_config.flush_volumes_matrix.values));
+    std::vector<std::vector<float>> wipe_volumes;
+    for (unsigned int i = 0; i < number_of_extruders; ++i) {
+        if (i * number_of_extruders < flush_matrix.size()) {
+            auto begin = flush_matrix.begin() + i * number_of_extruders;
+            auto end = begin + std::min((size_t)number_of_extruders, flush_matrix.size() - i * number_of_extruders);
+            wipe_volumes.emplace_back(begin, end);
+        } else {
+            wipe_volumes.emplace_back(number_of_extruders, 0.0f);
+        }
+    }
+
+    unsigned int current_extruder_id = tool_ordering.all_extruders().back();
+    for (const auto &layer_tools : tool_ordering.layer_tools()) {
+        bool first_layer = (&layer_tools == &tool_ordering.front());
+        float layer_total_purge = 0.0f;
+        float layer_min_wipe_tower = 0.0f;
+        int   layer_changes = 0;
+        float layer_min_change = 0.0f;
+        for (const auto extruder_id : layer_tools.extruders) {
+            if ((first_layer && extruder_id == tool_ordering.all_extruders().back()) || extruder_id != current_extruder_id) {
+                float vol = 0.0f;
+                if (current_extruder_id < wipe_volumes.size() && extruder_id < wipe_volumes[current_extruder_id].size()) {
+                    vol = wipe_volumes[current_extruder_id][extruder_id];
+                }
+                vol *= m_config.flush_multiplier.get_at(0);
+                if (!is_wipe_tower_type2) {
+                    // Type1 towers do not purge the grab length again and keep no minimal purge, see _make_wipe_tower().
+                    vol = std::max(0.f, vol - float(m_config.grab_length.get_at(0) * 2.4));
+                } else if (vol > 0.0f)
+                    layer_min_wipe_tower += (float)m_config.filament_minimal_purge_on_wipe_tower.get_at(extruder_id);
+                layer_total_purge += vol;
+                if (vol > 0.f) {
+                    ++layer_changes;
+                    layer_min_change = layer_changes == 1 ? vol : std::min(layer_min_change, vol);
+                }
+                current_extruder_id = extruder_id;
+            }
+        }
+        if (layer_total_purge > 0.0f) {
+            LayerPurgeInfo &info = purge_volumes[layer_tools.print_z];
+            info.total_purge       = layer_total_purge;
+            info.min_wipe_tower    = layer_min_wipe_tower;
+            info.extruders         = layer_tools.extruders;
+            info.extruder_override = layer_tools.extruder_override;
+            info.changes           = layer_changes;
+            info.min_change        = layer_min_change;
+        }
+    }
+    return purge_volumes;
+}
+
+void Print::plan_solid_infill_flush()
+{
+    m_layer_purge_volumes = this->calculate_layer_purge_volumes();
+    for (auto &[print_z, info] : m_layer_purge_volumes) {
+        // Purge the sparse infill of all flushing objects takes as it is, and the most the Solid Infill
+        // objects can add by turning their sparse infill solid.
+        double sparse_volume = 0., convertible_volume = 0.;
+        for (const PrintObject *object : m_objects) {
+            if (!object->config().flush_into_infill)
+                continue;
+            // An object identical to another one is not sliced, it takes over the other's layers later.
+            const PrintObject *sliced = object->get_shared_object() ? object->get_shared_object() : object;
+            const Layer *layer = sliced->get_layer_at_printz(print_z, EPSILON);
+            if (layer == nullptr)
+                continue;
+            const double copies = double(std::max(size_t(1), object->instances().size()));
+            for (const LayerRegion *layerm : layer->regions()) {
+                if (!info.can_absorb(layerm->region(), object->config().flush_into_infill_solid))
+                    continue;
+                double area = 0.;
+                for (const Surface &surface : layerm->fill_surfaces.surfaces)
+                    if (surface.surface_type == stInternal)
+                        area += surface.area();
+                const double volume  = unscale<double>(unscale<double>(area)) * layer->height * copies;
+                const double density = std::clamp(layerm->region().config().sparse_infill_density.value / 100., 0., 1.);
+                sparse_volume += volume * density;
+                if (object->config().flush_into_infill_solid)
+                    convertible_volume += volume * (1. - density);
+            }
+        }
+        // Each tool change may waste up to a tile of its last fill.
+        double deficit = double(info.total_purge) + info.changes * double(info.tile_volume()) - sparse_volume;
+        // When the infill cannot take it all, the tower purges at least min_wipe_tower anyway.
+        const double overflow = deficit - convertible_volume;
+        if (overflow > 0. && overflow < double(info.min_wipe_tower))
+            deficit -= double(info.min_wipe_tower);
+        info.solid_ratio = deficit > 0. && convertible_volume > 0. ? std::min(1., deficit / convertible_volume) : 0.;
+    }
+}
+
 void Print::_make_wipe_tower()
 {
     // Use the printer's G-code tag format so the processor can classify wipe tower filament usage.
@@ -5489,18 +5628,15 @@ void Print::_make_wipe_tower()
         if (StringObjectException error = this->validate_wipe_tower_layering(); ! error.string.empty())
             throw Slic3r::SlicingError(error.string, error.object ? error.object->id().id : 0);
 
-    // Check whether there are any layers in m_tool_ordering, which are marked with has_wipe_tower,
-    // they print neither object, nor support. Each such layer needs a virtual support layer
-    // counterpart in m_objects.front() so that GCode::collect_layers_to_print picks it up and the
-    // wipe tower G-code is actually emitted for that z. Such layers appear in two scenarios:
-    //   - above the raft, between raft top and the first real object layer
-    //     (see https://github.com/prusa3d/PrusaSlicer/issues/607);
-    //   - between two real wipe-tower layers, when one object is fully floating above another and
-    //     the support_top_z_distance / support_bottom_z_distance gap leaves interior z values with
-    //     neither object nor support (continuity fill in ToolOrdering::fill_wipe_tower_partitions).
-    // The previous implementation only handled the first contiguous run starting at the first
-    // virtual layer, which made the second scenario silently produce empty wipe-tower layers.
-    {
+    auto cancel_wipe_tower = [this]() {
+        for (auto &layer_tools : m_wipe_tower_data.tool_ordering.layer_tools()) {
+            const_cast<LayerTools&>(layer_tools).has_wipe_tower = false;
+        }
+        m_wipe_tower_data.clear();
+        m_fake_wipe_tower = FakeWipeTower();
+    };
+
+    auto prepare_wipe_tower_layers = [this]() {
         auto &support_layers = m_objects.front()->support_layers();
         auto it_layer = support_layers.begin();
         const size_t idx_end = m_wipe_tower_data.tool_ordering.layer_tools().size();
@@ -5521,8 +5657,16 @@ void Print::_make_wipe_tower()
             it_layer = m_objects.front()->insert_support_layer(it_layer, -1, 0, height, lt.print_z, lt.print_z - 0.5 * height);
             ++ it_layer;
         }
+        this->throw_if_canceled();
+    };
+
+    bool has_flush_infill = false;
+    for (const PrintObject *obj : m_objects) {
+        if (obj->config().flush_into_infill || obj->config().flush_into_objects || obj->config().flush_into_support) {
+            has_flush_infill = true;
+            break;
+        }
     }
-    this->throw_if_canceled();
 
     if (!is_wipe_tower_type2) {
         // in BBL machine, wipe tower is only use to prime extruder. So just use a global wipe volume.
@@ -5572,6 +5716,10 @@ void Print::_make_wipe_tower()
         //    wipe_tower.prime((float)this->skirt_first_layer_height(), m_wipe_tower_data.tool_ordering.all_extruders(), false));
 
         std::set<int> used_filament_ids;
+
+        bool need_wipe_tower = !has_flush_infill || !m_config.single_extruder_multi_material
+            || (m_config.enable_wrapping_detection && m_config.wrapping_exclude_area.values.size() > 2)
+            || enable_timelapse_print();
 
         // Lets go through the wipe tower layers and determine pairs of extruder changes for each
         // to pass to wipe_tower (so that it can use it for planning the layout of the tower)
@@ -5628,6 +5776,11 @@ void Print::_make_wipe_tower()
                         int nozzle_id   = nozzle_info->group_id;
                         int prev_nozzle_filament = nozzle_recorder.get_filament_in_nozzle(nozzle_id);
 
+                        // A new nozzle is primed on the tower, the purge into objects cannot replace that.
+                        auto prev_nozzle = nozzle_group_result.get_nozzle_for_filament(current_filament_id, layer_idx);
+                        if (!need_wipe_tower && (!prev_nozzle || prev_nozzle->group_id != nozzle_id))
+                            need_wipe_tower = true;
+
                         if (!nozzle_recorder.is_nozzle_empty(nozzle_id) &&
                             static_cast<int>(filament_id) != prev_nozzle_filament) {
                             volume_to_purge = multi_extruder_flush[extruder_id][prev_nozzle_filament][filament_id];
@@ -5647,6 +5800,9 @@ void Print::_make_wipe_tower()
                 int grab_extruder_id = filament_maps[filament_id] - 1;
                 float grab_purge_volume = m_config.grab_length.get_at(grab_extruder_id) * 2.4; //(diameter/2)^2*PI=2.4
                 volume_to_purge = std::max(0.f, volume_to_purge - grab_purge_volume);
+                if (volume_to_purge > EPSILON) {
+                    need_wipe_tower = true;
+                }
 
                 // Prime volume per-filament: the tower now picks extruder-change vs nozzle-change
                 // (carousel) internally per plan layer, so pass both candidates (BBS pattern).
@@ -5677,6 +5833,13 @@ void Print::_make_wipe_tower()
                 break;
         }
         }
+
+        if (!need_wipe_tower) {
+            cancel_wipe_tower();
+            return;
+        }
+
+        prepare_wipe_tower_layers();
 
         wipe_tower.set_used_filament_ids(std::vector<int>(used_filament_ids.begin(), used_filament_ids.end()));
 
@@ -5760,6 +5923,10 @@ void Print::_make_wipe_tower()
         m_wipe_tower_data.priming = Slic3r::make_unique<std::vector<WipeTower::ToolChangeResult>>(
             wipe_tower.prime((float)this->skirt_first_layer_height(), m_wipe_tower_data.tool_ordering.all_extruders(), false));
 
+        bool need_wipe_tower = !has_flush_infill || !m_config.single_extruder_multi_material
+            || (m_config.enable_wrapping_detection && m_config.wrapping_exclude_area.values.size() > 2)
+            || enable_timelapse_print();
+
         // Lets go through the wipe tower layers and determine pairs of extruder changes for each
         // to pass to wipe_tower (so that it can use it for planning the layout of the tower)
         {
@@ -5777,15 +5944,18 @@ void Print::_make_wipe_tower()
                         if (m_config.purge_in_prime_tower && m_config.single_extruder_multi_material) {
                             volume_to_wipe = wipe_volumes[current_extruder_id][extruder_id]; // total volume to wipe after this toolchange
                             volume_to_wipe *= m_config.flush_multiplier.get_at(0);
-                            // Not all of that can be used for infill purging:
-                            volume_to_wipe -= (float) m_config.filament_minimal_purge_on_wipe_tower.get_at(extruder_id);
 
                             // try to assign some infills/objects for the wiping:
-                            volume_to_wipe = layer_tools.wiping_extrusions().mark_wiping_extrusions(*this, current_extruder_id, extruder_id,
+                            float leftover = layer_tools.wiping_extrusions().mark_wiping_extrusions(*this, current_extruder_id, extruder_id,
                                                                                                     volume_to_wipe);
-
-                            // add back the minimal amount toforce on the wipe tower:
-                            volume_to_wipe += (float) m_config.filament_minimal_purge_on_wipe_tower.get_at(extruder_id);
+                            if (leftover > EPSILON) {
+                                need_wipe_tower = true;
+                                volume_to_wipe = std::max(leftover, (float) m_config.filament_minimal_purge_on_wipe_tower.get_at(extruder_id));
+                            } else {
+                                volume_to_wipe = 0.f;
+                            }
+                        } else {
+                            need_wipe_tower = true;
                         }
 
                         // request a toolchange at the wipe tower with at least volume_to_wipe purging amount
@@ -5799,6 +5969,13 @@ void Print::_make_wipe_tower()
                     break;
             }
         }
+
+        if (!need_wipe_tower) {
+            cancel_wipe_tower();
+            return;
+        }
+
+        prepare_wipe_tower_layers();
 
         // Generate the wipe tower layers.
         m_wipe_tower_data.tool_changes.reserve(m_wipe_tower_data.tool_ordering.layer_tools().size());
@@ -6267,6 +6444,7 @@ static void to_json(json& j, const Surface& surf) {
     j[JSON_SURF_THICKNESS_LAYER] = surf.thickness_layers;
     j[JSON_SURF_BRIDGE_ANGLE] = surf.bridge_angle;
     j[JSON_SURF_EXTRA_PERIMETERS] = surf.extra_perimeters;
+    j["is_solid_flush"] = surf.is_solid_flush;
 }
 
 static void to_json(json& j, const ArcSegment& arc_seg) {
@@ -6541,6 +6719,8 @@ static void from_json(const json& j, Surface& surf) {
     surf.thickness_layers = j[JSON_SURF_THICKNESS_LAYER];
     surf.bridge_angle = j[JSON_SURF_BRIDGE_ANGLE];
     surf.extra_perimeters = j[JSON_SURF_EXTRA_PERIMETERS];
+    if (j.contains("is_solid_flush"))
+        surf.is_solid_flush = j["is_solid_flush"];
 
     return;
 }
