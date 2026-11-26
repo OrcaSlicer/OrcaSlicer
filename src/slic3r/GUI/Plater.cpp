@@ -5896,6 +5896,20 @@ void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
 
     bool is_mixed = (filament_id >= p->combos_filament.size());
 
+    auto& bundle = *wxGetApp().preset_bundle;
+    const auto& printer_config = bundle.printers.get_edited_preset().config;
+    const auto* nozzles = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
+    if (!is_mixed && filament_id + 1 < p->combos_filament.size() &&
+        !bundle.is_bbl_vendor() && !printer_config.opt_bool("single_extruder_multi_material") &&
+        nozzles && nozzles->values.size() > 1) {
+        MessageDialog dlg(this,
+            _L("Removing this filament will shift the tool numbers of later filament slots. "
+               "Check that the filament assignments still match your printer's physical tools. Continue?"),
+            _L("Warning"), wxOK | wxCANCEL | wxICON_WARNING);
+        if (dlg.ShowModal() != wxID_OK)
+            return;
+    }
+
     if (!is_mixed) {
         if (wxGetApp().preset_bundle->is_the_only_edited_filament(filament_id) || (filament_id == 0)) {
             wxGetApp().get_tab(Preset::TYPE_FILAMENT)->select_preset(wxGetApp().preset_bundle->filament_presets[0], false, "", true);
@@ -5957,6 +5971,9 @@ bool Sidebar::merge_removes_component(size_t from_id, size_t to_id) const
 
 void Sidebar::change_filament(size_t from_id, size_t to_id)
 {
+    if (from_id == size_t(-2))
+        from_id = p->m_menu_filament_id;
+
     // Merging a physical filament into a mixed one that lists it as a component would delete
     // the very filament the mix depends on, leaving it broken. Warn before doing so.
     if (merge_removes_component(from_id, to_id)) {
@@ -6645,7 +6662,10 @@ Sidebar::AmsSyncApplied Sidebar::apply_ams_sync(bool direct_sync, std::map<int, 
             auto& cur = merge_info.merges[i];
             for (int j = cur.size() -1; j >= 1 ; j--) {
                 auto last_index = cur[j];
+                const size_t previous_count = wxGetApp().preset_bundle->filament_presets.size();
                 change_filament(last_index, cur[0]);
+                if (wxGetApp().preset_bundle->filament_presets.size() == previous_count)
+                    continue;
                 cur.erase(cur.begin() + j);
                 sync_ams_badges.erase(sync_ams_badges.begin() + last_index);
                 reduce_index(merge_info, last_index);

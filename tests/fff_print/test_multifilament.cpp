@@ -2686,6 +2686,32 @@ TEST_CASE("Print::validate warns when used filament slots exceed the configured 
         CHECK(has_slot_tool_warning(warnings, "3"));
     }
 
+    SECTION("a single-tool printer warns for a second assigned slot") {
+        DynamicPrintConfig config = slot_tool_warning_config(/*tools=*/1, /*filaments=*/2);
+        auto overrides = slot_tool_overrides({ 2 });
+        Print print;
+        Model model;
+        init_print(std::vector<TriangleMesh>{ cube(20) }, print, model, config, &overrides);
+
+        std::vector<StringObjectException> warnings;
+        const StringObjectException err = print.validate(&warnings);
+        CHECK(err.string.empty());
+        CHECK(has_slot_tool_warning(warnings, "2"));
+    }
+
+    SECTION("single-tool multi-material does not warn") {
+        DynamicPrintConfig config = slot_tool_warning_config(/*tools=*/1, /*filaments=*/2, /*semm=*/true);
+        auto overrides = slot_tool_overrides({ 2 });
+        Print print;
+        Model model;
+        init_print(std::vector<TriangleMesh>{ cube(20) }, print, model, config, &overrides);
+
+        std::vector<StringObjectException> warnings;
+        const StringObjectException err = print.validate(&warnings);
+        CHECK(err.string.empty());
+        CHECK_FALSE(has_slot_tool_warning(warnings, "2"));
+    }
+
     SECTION("single-extruder multi-material does not warn") {
         DynamicPrintConfig config = slot_tool_warning_config(/*tools=*/2, /*filaments=*/3, /*semm=*/true);
         auto overrides = slot_tool_overrides({ 3 });

@@ -23,19 +23,20 @@ slot is addressed as the physical tool of the same number:
 `i` to extruder `i`. A used slot past the configured tool count can therefore
 name a tool the machine does not have.
 
-`Print::validate()` adds a non-blocking warning for that case when the printer
-has more than one configured nozzle. It uses `Print::extruders()`, so the
-wipe-tower filament is included, and adds plate tool changes that match
-`ToolOrdering`'s mode, sequence and index conditions. A change stored above the
-final printed layer is not filtered at validation time and can still warn.
+On a multi-tool printer of this kind, deleting or merging a physical slot before
+another physical slot asks for confirmation: later slot numbers, and therefore
+their tool numbers, will shift. Cancel leaves the slots unchanged.
+
+`Print::validate()` adds a non-blocking warning for that case. It uses
+`Print::extruders()`, so the wipe-tower filament is included, and adds plate
+tool changes that match `ToolOrdering`'s mode, sequence and index conditions.
+A change stored above the final printed layer is not filtered at validation
+time and can still warn.
 Mixed slots are expanded to their physical components first, so a virtual slot
 does not warn on its own. The GUI shows the warning through the existing
 validation notification, and the command-line slicer logs it; both continue
 slicing.
 
-A printer reduced to one nozzle is not identified as a multi-tool printer, and
-neither is a project-embedded or custom one-nozzle preset. Those cases are
-treated as an ordinary one-nozzle printer and do not produce the warning.
 Single-extruder multi-material (MMU) printers and Bambu Lab printers are exempt.
 
 On a Bambu Lab printer, G-code addresses a filament and a nozzle with

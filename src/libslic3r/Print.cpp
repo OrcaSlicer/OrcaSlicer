@@ -2179,10 +2179,8 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
     // Orca: on a printer that addresses a filament slot as a physical tool, a used slot past the
     // configured tool count can emit a tool the machine does not have. Warn without blocking.
     // Bambu Lab and single-extruder multi-material printers map several filaments onto a nozzle.
-    // The printer must currently have more than one nozzle; a printer reduced to one nozzle is not
-    // distinguished from an ordinary one-nozzle printer here.
     const size_t tool_count = nozzles;
-    if (!this->is_BBL_printer() && !m_config.single_extruder_multi_material.value && tool_count > 1) {
+    if (!this->is_BBL_printer() && !m_config.single_extruder_multi_material.value) {
         // extruders includes the wipe tower. Add plate tool changes that match ToolOrdering's mode,
         // sequence and index conditions, then expand mixed slots. Layers do not exist yet here, so
         // a change stored above the final printed layer can still be included.
