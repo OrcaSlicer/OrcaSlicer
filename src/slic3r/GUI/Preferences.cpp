@@ -1180,13 +1180,6 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             if (m_sync_user_preset_checkbox) m_sync_user_preset_checkbox->Enable(!enabled);
             if (m_bambu_cloud_checkbox)      m_bambu_cloud_checkbox->Enable(!enabled);
         }
-
-        else if (param == "hide_login_side_panel") {
-            if (WebViewPanel* home = WebViewPanel::if_built()) {
-                home->SendCloudProvidersInfo();
-            }
-        }
-        // ORCA: apply the preview dimming change immediately to the currently loaded preview
         else if (param == "preview_dim_previous_layers") {
             if (m_dim_previous_layers_brightness_input)
                 m_dim_previous_layers_brightness_input->Enable(app_config->get_bool(param));
