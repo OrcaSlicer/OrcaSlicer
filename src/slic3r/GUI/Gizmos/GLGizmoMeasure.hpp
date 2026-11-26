@@ -40,6 +40,12 @@ enum class AssemblyMode : unsigned char {
 };
 static const Slic3r::ColorRGBA SELECTED_1ST_COLOR = {0.25f, 0.75f, 0.75f, 1.0f};
 static const Slic3r::ColorRGBA SELECTED_2ND_COLOR = {0.75f, 0.25f, 0.75f, 1.0f};
+// ORCA: used in place of the two above when "Colorblind friendly colors" is enabled in Preferences.
+// Blue and green, as yellow tones are taken by the grabber of the cut gizmo
+static const Slic3r::ColorRGBA SELECTED_1ST_COLOR_COLORBLIND = {0   / 255.f, 112 / 255.f, 210 / 255.f, 1.0f};
+static const Slic3r::ColorRGBA SELECTED_2ND_COLOR_COLORBLIND = {15  / 255.f, 173 / 255.f, 78  / 255.f, 1.0f};
+inline const Slic3r::ColorRGBA& selected_1st_color() { return GLGizmoBase::use_colorblind_friendly_colors() ? SELECTED_1ST_COLOR_COLORBLIND : SELECTED_1ST_COLOR; }
+inline const Slic3r::ColorRGBA& selected_2nd_color() { return GLGizmoBase::use_colorblind_friendly_colors() ? SELECTED_2ND_COLOR_COLORBLIND : SELECTED_2ND_COLOR; }
 static const Slic3r::ColorRGBA NEUTRAL_COLOR      = {0.5f, 0.5f, 0.5f, 1.0f};
 static const Slic3r::ColorRGBA HOVER_COLOR        = ColorRGBA::GREEN();
 

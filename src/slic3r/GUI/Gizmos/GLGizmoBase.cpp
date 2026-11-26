@@ -77,6 +77,11 @@ ColorRGBA            GLGizmoBase::GRABBER_UNIFORM_COL       = {0, 1.0, 1.0, 1.0f
 ColorRGBA            GLGizmoBase::GRABBER_UNIFORM_HOVER_COL = {0, 0.7, 0.7, 1.0f};
 
 
+bool GLGizmoBase::use_colorblind_friendly_colors()
+{
+    return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool("colorblind_friendly_colors");
+}
+
 void GLGizmoBase::update_render_colors()
 {
     GLGizmoBase::AXES_COLOR = { {

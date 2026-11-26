@@ -1179,6 +1179,20 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
                 }
             }
         }
+        // ORCA: apply the color set change immediately to the currently loaded preview and to the open gizmo
+        else if (param == "colorblind_friendly_colors") {
+            if (Plater* plater = wxGetApp().plater()) {
+                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
+                    canvas->get_gcode_viewer().set_colorblind_friendly_colors(app_config->get_bool(param));
+                    canvas->set_as_dirty();
+                    canvas->request_extra_frame();
+                }
+                if (GLCanvas3D* canvas = plater->get_view3D_canvas3D()) {
+                    canvas->set_as_dirty();
+                    canvas->request_extra_frame();
+                }
+            }
+        }
         // ORCA: apply the preview dimming change immediately to the currently loaded preview
         else if (param == "preview_dim_previous_layers") {
             if (m_dim_previous_layers_brightness_input)
@@ -1765,11 +1779,6 @@ void PreferencesDialog::create_items()
     auto item_default_page     = create_item_combobox(_L("Default page"), _L("Set the page opened on startup."), "default_page", DefaultPage);
     g_sizer->Add(item_default_page);
 
-#ifdef _WIN32
-    auto item_darkmode         = create_item_darkmode(_L("Enable dark Mode"), "", "dark_color_mode");
-    g_sizer->Add(item_darkmode);
-#endif
-
     auto item_single_instance  = create_item_checkbox(_L("Allow only one OrcaSlicer instance"),
     #if __APPLE__
             _L("On OSX there is always only one instance of app running by default. However it is allowed to run multiple instances "
@@ -1779,6 +1788,14 @@ void PreferencesDialog::create_items()
     #endif
             "single_instance");
     g_sizer->Add(item_single_instance);
+
+    //// GENERAL > Appearance
+    g_sizer->Add(create_item_title(_L("Appearance")), 1, wxEXPAND);
+
+#ifdef _WIN32
+    auto item_darkmode         = create_item_darkmode(_L("Enable dark Mode"), "", "dark_color_mode");
+    g_sizer->Add(item_darkmode);
+#endif
 
     auto item_show_splash_scr  = create_item_checkbox(_L("Show splash screen"), _L("Show the splash screen during startup."), "show_splash_screen");
     g_sizer->Add(item_show_splash_scr);
@@ -1797,6 +1814,16 @@ void PreferencesDialog::create_items()
         "prefer_discrete_gpu", _L("(Requires restart)"));
     g_sizer->Add(item_discrete_gpu);
 #endif
+
+    auto item_colorblind_friendly_colors = create_item_checkbox(
+        _L("Colorblind friendly colors") + " " + "(Beta)",
+        _L("Use colors that are easier to tell apart with a color vision deficiency for the color scales of the sliced preview "
+           "(speed, flow, layer time, etc.) and for the two-color pairs of the measure, assembly and cut tools.\n"
+           "Turn it off to use the original colors."),
+        "colorblind_friendly_colors"
+    );
+    g_sizer->Add(item_colorblind_friendly_colors);
+
 
     //auto item_hints            = create_item_checkbox(_L("Show \"Daily Tips\" after start"), page, _L("If enabled, useful hints are displayed at startup."), "show_daily_tips");
     //g_sizer->Add(item_hints);

@@ -964,7 +964,7 @@ void GLGizmoMeasure::on_render()
     auto hover_selection_color = [this]() {
       return ((m_mode == EMode::PointSelection && !m_selected_features.first.feature.has_value()) ||
               (m_mode != EMode::PointSelection && (!m_selected_features.first.feature.has_value() || *m_curr_feature == *m_selected_features.first.feature))) ?
-          SELECTED_1ST_COLOR : SELECTED_2ND_COLOR;
+          selected_1st_color() : selected_2nd_color();
     };
 
     auto hovering_color = [this, hover_selection_color]() {
@@ -1009,9 +1009,9 @@ void GLGizmoMeasure::on_render()
             case Measure::SurfaceFeatureType::Circle:
             {
                 if (m_selected_features.first.is_center && m_curr_feature == m_selected_features.first.source)
-                    colors = { SELECTED_1ST_COLOR, NEUTRAL_COLOR };
+                    colors = { selected_1st_color(), NEUTRAL_COLOR };
                 else if (m_selected_features.second.is_center && m_curr_feature == m_selected_features.second.source)
-                    colors = { SELECTED_2ND_COLOR, NEUTRAL_COLOR };
+                    colors = { selected_2nd_color(), NEUTRAL_COLOR };
                 else
                     colors = { hovering_color(), hovering_color() };
                 break;
@@ -1036,18 +1036,18 @@ void GLGizmoMeasure::on_render()
         if (m_hover_id == SEL_SPHERE_1_ID && (m_selected_features.first.is_center || is_feature_with_center(*m_selected_features.first.feature))) {
             // hovering over a center
             feature_to_render = m_selected_features.first.source;
-            colors = { NEUTRAL_COLOR, SELECTED_1ST_COLOR };
+            colors = { NEUTRAL_COLOR, selected_1st_color() };
             requires_raycaster_update = true;
         }
         else if (is_feature_with_center(*m_selected_features.first.feature)) {
             // hovering over a feature with center
             feature_to_render = m_selected_features.first.feature;
-            colors = { SELECTED_1ST_COLOR, NEUTRAL_COLOR };
+            colors = { selected_1st_color(), NEUTRAL_COLOR };
             requires_raycaster_update = true;
         }
         else {
             feature_to_render = m_selected_features.first.feature;
-            colors = { SELECTED_1ST_COLOR };
+            colors = { selected_1st_color() };
             requires_raycaster_update = m_selected_features.first.feature->get_type() == Measure::SurfaceFeatureType::Point;
         }
 
@@ -1070,18 +1070,18 @@ void GLGizmoMeasure::on_render()
         if (m_hover_id == SEL_SPHERE_2_ID && (m_selected_features.second.is_center || is_feature_with_center(*m_selected_features.second.feature))) {
             // hovering over a center
             feature_to_render = m_selected_features.second.source;
-            colors = { NEUTRAL_COLOR, SELECTED_2ND_COLOR };
+            colors = { NEUTRAL_COLOR, selected_2nd_color() };
             requires_raycaster_update = true;
         }
         else if (is_feature_with_center(*m_selected_features.second.feature)) {
             // hovering over a feature with center
             feature_to_render = m_selected_features.second.feature;
-            colors = { SELECTED_2ND_COLOR, NEUTRAL_COLOR };
+            colors = { selected_2nd_color(), NEUTRAL_COLOR };
             requires_raycaster_update = true;
         }
         else {
             feature_to_render = m_selected_features.second.feature;
-            colors = { SELECTED_2ND_COLOR };
+            colors = { selected_2nd_color() };
             requires_raycaster_update = m_selected_features.second.feature->get_type() == Measure::SurfaceFeatureType::Point;
         }
 
@@ -1881,7 +1881,7 @@ void GLGizmoMeasure::show_selection_ui()
                 m_imgui->text(_u8L("Select 2 points or circles on objects and\nspecify distance between them.")); // tip
             }
         }
-        ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(SELECTED_1ST_COLOR));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(selected_1st_color()));
         if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
             if (m_assembly_mode == AssemblyMode::FACE_FACE) {
                 m_imgui->text(_u8L("Face 1 (Fixed)"));
@@ -1907,7 +1907,7 @@ void GLGizmoMeasure::show_selection_ui()
         auto        feature_second_text        = format_item_text(m_selected_features.second);
         const float feature_second_text_length = ImGui::CalcTextSize((_u8L(feature_second_text)).c_str()).x;
         ImGui::AlignTextToFramePadding();
-        ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(SELECTED_2ND_COLOR));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(selected_2nd_color()));
         if (m_measure_mode == EMeasureMode::ONLY_ASSEMBLY) {
             if (m_assembly_mode == AssemblyMode::FACE_FACE) {
                 m_imgui->text(_u8L("Face 2 (Moving)"));

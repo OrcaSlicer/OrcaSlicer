@@ -130,6 +130,22 @@ namespace GUI {
 //        _u8L("Filament")
 //    };
 
+// ORCA: range colors used in place of libvgcode::DEFAULT_RANGES_COLORS when "Colorblind friendly colors"
+// is enabled in Preferences. No two of its stops become alike with protanopia, deuteranopia or tritanopia.
+static const libvgcode::Palette COLORBLIND_RANGES_COLORS{ {
+    {  96,   0,  89 }, // #600059 bluish
+    {  65,  38, 202 }, // #4126CA
+    {  18, 129, 213 }, // #1281D5
+    {  13, 183, 216 }, // #0DB7D8
+    {  25, 232, 254 }, // #19E8FE
+    { 231, 255, 201 }, // #E7FFC9 center
+    { 254, 240,   0 }, // #FEF000
+    { 217, 190,  32 }, // #D9BE20
+    { 204, 134,   0 }, // #CC8600
+    { 218,  76,  95 }, // #DA4C5F
+    { 170,  46,  55 }  // #AA2E37 reddish
+} };
+
 // ORCA: a translucent filament swatch goes over the checkerboard of the sidebar's clear swatch
 static void add_swatch(ImDrawList* draw_list, const ImVec2& min, const ImVec2& max, const ColorRGBA& color)
 {
@@ -1415,6 +1431,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     m_viewer.set_dim_previous_layers(get_app_config()->get_bool("preview_dim_previous_layers"));
     m_viewer.set_dim_previous_layers_brightness(0.01f * std::stoi(get_app_config()->get("preview_dim_previous_layers_brightness")));
     m_viewer.set_translucent_filaments(get_app_config()->get_bool("preview_translucent_filaments"));
+    set_colorblind_friendly_colors(get_app_config()->get_bool("colorblind_friendly_colors"));
 
     // avoid processing if called with the same gcode_result.
     // On a belt printer the toolpath geometry fed to libvgcode also depends on the
@@ -2998,6 +3015,33 @@ void GCodeViewer::update_layers_slider_mode()
     }
 
     // TODO m_layers_slider->SetModeAndOnlyExtruder(one_extruder_printed_model, only_extruder);
+}
+
+void GCodeViewer::set_colorblind_friendly_colors(bool value)
+{
+    // every palette change recolors the whole preview, so only on an actual change
+    if (m_colorblind_friendly_colors == value)
+        return;
+    m_colorblind_friendly_colors = value;
+
+    const libvgcode::Palette& palette = value ? COLORBLIND_RANGES_COLORS : libvgcode::DEFAULT_RANGES_COLORS;
+    // all the view types colored by a range, see libvgcode::Viewer::set_color_range_palette()
+    for (libvgcode::EViewType type : {
+            libvgcode::EViewType::Height,
+            libvgcode::EViewType::Width,
+            libvgcode::EViewType::Speed,
+            libvgcode::EViewType::ActualSpeed,
+            libvgcode::EViewType::FanSpeed,
+            libvgcode::EViewType::Temperature,
+            libvgcode::EViewType::PressureAdvance,
+            libvgcode::EViewType::Acceleration,
+            libvgcode::EViewType::Jerk,
+            libvgcode::EViewType::VolumetricFlowRate,
+            libvgcode::EViewType::ActualVolumetricFlowRate,
+            libvgcode::EViewType::LayerTimeLinear,
+            libvgcode::EViewType::LayerTimeLogarithmic }) {
+        m_viewer.set_color_range_palette(type, palette);
+    }
 }
 
 void GCodeViewer::set_interacting(bool interacting)

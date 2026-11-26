@@ -67,6 +67,9 @@ public:
     static ColorRGBA GRABBER_UNIFORM_COL;
     static ColorRGBA GRABBER_UNIFORM_HOVER_COL;
 
+    // ORCA: whether "Colorblind friendly colors" is enabled in Preferences
+    static bool use_colorblind_friendly_colors();
+
     static void update_render_colors();
     static void load_render_colors();
 
