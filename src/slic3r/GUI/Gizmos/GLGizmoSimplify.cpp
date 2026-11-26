@@ -281,6 +281,8 @@ void GLGizmoSimplify::on_render_input_window(float x, float y, float bottom_limi
         m_configuration.use_count = !m_configuration.use_count;
         start_process = true;
     }
+    panel_tooltip(_u8L("Simplify by how closely the result has to follow the original shape. Flat areas give up "
+                       "most of their triangles, curved ones keep the triangles they need."));
 
     ImGui::SameLine();
     m_imgui->disabled_begin(m_configuration.use_count);
@@ -315,11 +317,18 @@ void GLGizmoSimplify::on_render_input_window(float x, float y, float bottom_limi
     }
     ImGui::PopStyleColor(5);
     m_imgui->disabled_end(); // !use_count
+    panel_tooltip(_u8L("How closely the simplified mesh follows the original. Lower levels remove more triangles "
+                       "and round off small details."),
+                  {{"simplify/detail_extra_high.png", _L("Extra high")},
+                   {"simplify/detail_medium.png", _L("Medium")},
+                   {"simplify/detail_extra_low.png", _L("Extra low")}});
 
     if (m_imgui->bbl_radio_button("##use_count", m_configuration.use_count)) {
         m_configuration.use_count = !m_configuration.use_count;
         start_process = true;
     }
+    panel_tooltip(_u8L("Simplify to a set share of the triangles, whatever the shape. Use it when the mesh has to "
+                       "end up under a certain size."));
 
     ImGui::SameLine();
 
@@ -347,12 +356,15 @@ void GLGizmoSimplify::on_render_input_window(float x, float y, float bottom_limi
         m_configuration.fix_count_by_ratio(orig_triangle_count);
         start_process = true;
     }
+    const std::string ratio_tip = _u8L("The share of the triangles to remove. The number left is shown below.");
+    panel_tooltip(ratio_tip);
     ImGui::SameLine();
     ImGui::PopStyleVar(1);
 
     ImGui::PushItemWidth(ImGui::CalcTextSize("100.00%").x + space_size);
 
     ImGui::BBLDragFloat("##decimate_ratio_input", &m_configuration.decimate_ratio, 0.05f, 0.0f, 0.0f, "%.2f%%");
+    panel_tooltip(ratio_tip);
 
     ImGui::NewLine();
     ImGui::SameLine(bottom_left_width + space_size);
@@ -360,6 +372,7 @@ void GLGizmoSimplify::on_render_input_window(float x, float y, float bottom_limi
     m_imgui->disabled_end(); // use_count
 
     m_imgui->bbl_checkbox(_L("Show wireframe").c_str(), m_show_wireframe);
+    panel_tooltip(_u8L("Draws the edges of the triangles over the preview, to see where they are removed."));
 
      // draw progress bar
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding,12);
@@ -390,11 +403,11 @@ void GLGizmoSimplify::on_render_input_window(float x, float y, float bottom_limi
     if (m_imgui->bbl_button(_L("Apply"))) {
         apply_simplify();
     }
-    else if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && is_worker_running) {
-        ImGui::SetTooltip("%s", _u8L("Unable to apply when processing preview").c_str());
-    }
     m_imgui->pop_confirm_button_style();
     m_imgui->disabled_end(); // state !settings
+    panel_tooltip(is_worker_running ? _u8L("Unable to apply when processing preview") :
+                                      _u8L("Replaces the part's mesh with the simplified one in the preview, and "
+                                           "closes Simplify."));
 
     ImGui::SameLine();
 
@@ -403,10 +416,10 @@ void GLGizmoSimplify::on_render_input_window(float x, float y, float bottom_limi
     if (m_imgui->bbl_button(_L("Cancel"))) {
         close();
     }
-    else if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && is_cancelling)
-        ImGui::SetTooltip("%s", _u8L("Operation already cancelling. Please wait a few seconds.").c_str());
     m_imgui->pop_cancel_button_style();
     m_imgui->disabled_end(); // state cancelling
+    panel_tooltip(is_cancelling ? _u8L("Operation already cancelling. Please wait a few seconds.") :
+                                  _u8L("Closes Simplify and leaves the part as it was."));
 
     ImGui::PopStyleVar(3);
     ImGui::PopStyleColor(1);

@@ -28,6 +28,7 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include "slic3r/GUI/Widgets/StateColor.hpp"
@@ -137,6 +138,8 @@ void IMEXModesCtrl::rebuild_info_and_header() {
     auto* act_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto* add_btn = new Button(m_info_panel, _L("Add Mode"));
     add_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
+    set_illustrated_tooltip(add_btn, _L("Add a parallel print mode, with its name, the tool heads that print in it and the "
+                                        "G-code that switches the printer into it."));
     // Width-matched to the mode column. The height has to be a real number: Button takes its
     // min size literally, so a -1 there collapses it to a sliver rather than meaning "auto".
     add_btn->SetMinSize(wxSize(FromDIP(130), add_btn->GetBestSize().GetHeight()));

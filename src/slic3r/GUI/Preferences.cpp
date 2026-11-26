@@ -1783,6 +1783,12 @@ void PreferencesDialog::create_items()
     auto item_show_splash_scr  = create_item_checkbox(_L("Show splash screen"), _L("Show the splash screen during startup."), "show_splash_screen");
     g_sizer->Add(item_show_splash_scr);
 
+    auto item_tooltip_pictures = create_item_checkbox(_L("Show pictures in tooltips"),
+        _L("Tooltips of settings and tools show a picture or an animation of what they do. Turn this off to keep their text only; "
+           "they still open beside the control."),
+        "show_tooltip_pictures");
+    g_sizer->Add(item_tooltip_pictures);
+
 #ifdef __linux__
     auto item_window_button_pos  = create_item_checkbox(_L("Use window buttons on left side"), "", "window_buttons_on_left", _L("(Requires restart)"));
     g_sizer->Add(item_window_button_pos);

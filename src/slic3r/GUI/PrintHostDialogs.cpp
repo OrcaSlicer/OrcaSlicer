@@ -1,4 +1,5 @@
 #include "PrintHostDialogs.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -775,10 +776,12 @@ void FlashforgePrintHostSendDialog::init()
 
     m_flashforge_options_sizer = new wxBoxSizer(wxVERTICAL);
 
-    auto add_option_checkbox = [this](wxBoxSizer* parent, const wxString& label, bool value, std::function<void(bool)> setter, ::CheckBox** out = nullptr) {
+    auto add_option_checkbox = [this](wxBoxSizer* parent, const wxString& label, const wxString& tooltip, bool value,
+                                      std::function<void(bool)> setter, ::CheckBox** out = nullptr) {
         auto row      = new wxBoxSizer(wxHORIZONTAL);
         auto checkbox = new ::CheckBox(this);
         checkbox->SetValue(value);
+        set_illustrated_tooltip(checkbox, tooltip);
         checkbox->Bind(wxEVT_TOGGLEBUTTON, [setter](wxCommandEvent& e) {
             auto* source = dynamic_cast<::CheckBox*>(e.GetEventObject());
             if (source != nullptr)
@@ -791,6 +794,7 @@ void FlashforgePrintHostSendDialog::init()
         auto text = new wxStaticText(this, wxID_ANY, label);
         text->SetFont(::Label::Body_13);
         text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        set_illustrated_tooltip(text, tooltip);
         row->Add(text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
         parent->Add(row);
         parent->AddSpacer(FromDIP(6));
@@ -799,11 +803,15 @@ void FlashforgePrintHostSendDialog::init()
             *out = checkbox;
     };
 
-    add_option_checkbox(m_flashforge_options_sizer, _L("Leveling before print"), m_leveling_before_print,
+    add_option_checkbox(m_flashforge_options_sizer, _L("Leveling before print"),
+                        _L("Have the printer probe the bed before it starts printing."), m_leveling_before_print,
                         [this](bool checked) { m_leveling_before_print = checked; }, &m_checkbox_leveling);
-    add_option_checkbox(m_flashforge_options_sizer, _L("Time-lapse"), m_time_lapse_video,
+    add_option_checkbox(m_flashforge_options_sizer, _L("Time-lapse"),
+                        _L("Have the printer record a time-lapse video of the print."), m_time_lapse_video,
                         [this](bool checked) { m_time_lapse_video = checked; }, &m_checkbox_timelapse);
-    add_option_checkbox(m_flashforge_options_sizer, _L("Enable IFS"), m_use_material_station,
+    add_option_checkbox(m_flashforge_options_sizer, _L("Enable IFS"),
+                        _L("Print from the printer's material station (IFS), with each material of the plate assigned to one of its slots."),
+                        m_use_material_station,
                         [this](bool checked) {
                             m_use_material_station = checked;
                             if (checked) {
