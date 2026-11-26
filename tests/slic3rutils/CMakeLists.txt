@@ -13,6 +13,7 @@ add_executable(${_TEST_NAME}_tests
     test_moonraker_printer_agent.cpp
     test_moonraker_filament_sources.cpp
     test_snapmaker_filament_match.cpp
+    test_snapmaker_print_options.cpp
     test_network_discovery.cpp
     test_filament_bitmap_utils.cpp
     test_colour_picker_field.cpp

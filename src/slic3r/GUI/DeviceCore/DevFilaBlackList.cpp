@@ -25,6 +25,7 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Plater.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 
 using namespace nlohmann;
 
@@ -415,7 +416,14 @@ DevFilaBlacklist::CheckResult DevFilaBlacklist::check_filaments_in_blacklist(con
     check_filaments_printable(info, result);
 
     // check the filaments in blacklist file
-    check_filaments(info, result);
+    // Orca: filaments_blacklist.json describes Bambu Lab hardware, such as which filaments the AMS feeder can take.
+    // The Snapmaker U1 reports its four direct-drive toolheads as AMS slots, so those rules (e.g. "TPU is not
+    // supported by AMS") would wrongly block it. The preset checks above still apply.
+    DeviceManager*       dev            = GUI::wxGetApp().getDeviceManager();
+    const MachineObject* obj            = dev ? dev->get_selected_machine() : nullptr;
+    const bool           bambu_hardware = !(obj && obj->printer_agent_id == SNAPMAKER_PRINTER_AGENT_ID);
+    if (bambu_hardware)
+        check_filaments(info, result);
 
     // If skip_ams_blacklist_check is true, demote every prohibition to a warning (aggregate: demote
     // all at once rather than per-item).
