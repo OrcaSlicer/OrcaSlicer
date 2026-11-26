@@ -7,9 +7,20 @@
 
 #include "libslic3r/ProjectTask.hpp"
 #include "DeviceManager.hpp"
+#include "DeviceCore/DevFilaSwitch.h"
 
 namespace Slic3r {
 namespace GUI {
+
+// An unknown switch output is treated as potentially connected until the device reports it.
+inline bool switch_blocks_external_spool(MachineObject* obj, int tool)
+{
+    if (!obj || !obj->GetFilaSwitch() || !obj->GetFilaSwitch()->IsInstalled())
+        return false;
+    const auto a = obj->GetFilaSwitch()->GetOutA_ExtruderId();
+    const auto b = obj->GetFilaSwitch()->GetOutB_ExtruderId();
+    return !a || !b || *a == tool || *b == tool;
+}
 
 // True when the normalized ams_mapping2 carries any entry the agent's serializer
 // would put on the wire: every integer pair except the {255,255} unmatched

@@ -1,5 +1,6 @@
 #include "SelectMachine.hpp"
 #include "I18N.hpp"
+#include "format.hpp"
 
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Thread.hpp"
@@ -109,6 +110,7 @@
 #include <wx/mstream.h>
 #include <miniz.h>
 #include <algorithm>
+#include <climits>
 #include <unordered_map>
 #include <wx/wx.h>
 #include <wx/toplevel.h>
@@ -521,8 +523,21 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     m_filament_panel->SetMaxSize(wxSize(FromDIP(637), -1));
     m_filament_panel_sizer = new wxBoxSizer(wxVERTICAL);
 
+    m_nozzle_selector = new ::ComboBox(m_filament_panel, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                                       wxSize(FromDIP(200), -1), 0, nullptr, wxCB_READONLY);
+    m_nozzle_selector->Hide();
+    m_nozzle_selector->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& event) {
+        update_nozzle_filter();
+        event.Skip();
+    });
+    m_filament_panel_sizer->Add(m_nozzle_selector, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(10));
     m_sizer_ams_mapping = new wxGridSizer(0, 10, FromDIP(7), FromDIP(7));
     m_filament_panel_sizer->Add(m_sizer_ams_mapping, 0, wxEXPAND|wxALL, FromDIP(10));
+    m_empty_nozzle_notice = new Label(m_filament_panel, _L("No filaments are assigned to this sliced nozzle."));
+    m_empty_nozzle_notice->SetFont(::Label::Body_13);
+    m_empty_nozzle_notice->SetBackgroundColour(wxColour("#F8F8F8"));
+    m_empty_nozzle_notice->Hide();
+    m_filament_panel_sizer->Add(m_empty_nozzle_notice, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
     m_filament_panel->SetSizer(m_filament_panel_sizer);
     m_filament_panel->Layout();
     m_filament_panel->Fit();
@@ -1277,6 +1292,7 @@ bool SelectMachineDialog::do_ams_mapping(MachineObject *obj_,bool use_ams)
 
     if (m_print_type == FROM_NORMAL) {
         m_filaments_map = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_real_filament_maps(project_config);
+        update_nozzle_filter();
     }
     const auto& mapping_config = m_print_type == FROM_NORMAL ? full_config : m_required_data_config;
     // Card prints must choose the split from the same config the mapping will use. If the card
@@ -3253,9 +3269,16 @@ void SelectMachineDialog::EnableEditing(bool enable)
         if (item) {item->GetWindow()->Enable(enable);}
     }
 
-    for (size_t i = 0; i < m_sizer_ams_mapping->GetItemCount(); ++i) {
-        wxSizerItem *item = m_sizer_ams_mapping->GetItem(i);
-        if (item) { item->GetWindow()->Enable(enable); }
+    if (m_display_nozzle_count > 2) {
+        // Filtered-out cards are detached from the grid but must keep the same
+        // enabled state when they become visible again.
+        for (const auto& entry : m_materialList)
+            entry.second->item->Enable(enable);
+    } else {
+        for (size_t i = 0; i < m_sizer_ams_mapping->GetItemCount(); ++i) {
+            wxSizerItem *item = m_sizer_ams_mapping->GetItem(i);
+            if (item) { item->GetWindow()->Enable(enable); }
+        }
     }
 
     /*mapping link*/
@@ -4107,6 +4130,9 @@ void SelectMachineDialog::on_refresh(wxCommandEvent &event)
 
 void SelectMachineDialog::on_set_finish_mapping(wxCommandEvent &evt)
 {
+    if ((evt.GetExtraLong() != 0 && evt.GetExtraLong() != m_manual_mapping_generation) ||
+        (m_mapping_popup.m_tool_filter && evt.GetExtraLong() != m_manual_mapping_generation))
+        return;
     auto selection_data = evt.GetString();
     auto selection_data_arr = wxSplit(selection_data, '|');
 
@@ -4115,6 +4141,24 @@ void SelectMachineDialog::on_set_finish_mapping(wxCommandEvent &evt)
     if (selection_data_arr.size() == 8) {
         auto ams_colour      = wxColour(wxAtoi(selection_data_arr[0]), wxAtoi(selection_data_arr[1]), wxAtoi(selection_data_arr[2]), wxAtoi(selection_data_arr[3]));
         int  old_filament_id = (int) wxAtoi(selection_data_arr[5]);
+        DeviceManager* dev = wxGetApp().getDeviceManager();
+        MachineObject* obj = dev ? dev->get_selected_machine() : nullptr;
+        if (!validate_manual_mapping(obj, old_filament_id, evt.GetInt(), wxAtoi(selection_data_arr[6]), wxAtoi(selection_data_arr[7])))
+            return;
+        if (m_mapping_popup.m_tool_filter) {
+            // Keep missing automatic results explicitly unmapped, so validation still covers every filament.
+            for (const auto& filament : m_filaments) {
+                const auto found = std::find_if(m_ams_mapping_result.begin(), m_ams_mapping_result.end(),
+                                                [&](const FilamentInfo& result) { return result.id == filament.id; });
+                if (found == m_ams_mapping_result.end()) {
+                    auto unmapped = filament;
+                    unmapped.tray_id = -1;
+                    unmapped.ams_id.clear();
+                    unmapped.slot_id.clear();
+                    m_ams_mapping_result.push_back(std::move(unmapped));
+                }
+            }
+        }
         if (m_print_type == PrintFromType::FROM_NORMAL) {//todo:support sd card
             change_default_normal(old_filament_id, ams_colour);
             final_deal_edge_pixels_data(m_preview_thumbnail_data);
@@ -4160,7 +4204,7 @@ void SelectMachineDialog::on_set_finish_mapping(wxCommandEvent &evt)
         while (iter != m_materialList.end()) {
             Material*        item = iter->second;
             MaterialItem *m = item->item;
-            if (item->id == m_current_filament_id) {
+            if (item->id == old_filament_id) {
                 auto ams_colour = wxColour(wxAtoi(selection_data_arr[0]), wxAtoi(selection_data_arr[1]), wxAtoi(selection_data_arr[2]), wxAtoi(selection_data_arr[3]));
                 m->set_ams_info(ams_colour, selection_data_arr[4], ctype, material_cols);
                 m->set_nozzle_info(get_mapped_nozzle_str(item->id));
@@ -5725,6 +5769,8 @@ void SelectMachineDialog::on_dpi_changed(const wxRect &suggested_rect)
     }
 
     m_mapping_popup.msw_rescale();
+    m_nozzle_selector->Rescale();
+    m_nozzle_selector->SetMinSize(wxSize(FromDIP(200), -1));
 
     Fit();
     Refresh();
@@ -5882,6 +5928,8 @@ void SelectMachineDialog::reset_and_sync_ams_list()
     }
 
     m_sizer_ams_mapping->Clear();
+    m_sizer_ams_mapping_left->Clear();
+    m_sizer_ams_mapping_right->Clear();
     m_materialList.clear();
     m_filaments.clear();
     m_ams_tooltip =_L("Upper half area:  Original\nLower half area:  Filament in AMS\nAnd you can click it to modify");
@@ -5892,8 +5940,7 @@ void SelectMachineDialog::reset_and_sync_ams_list()
     const int device_tool_count = obj_ ? obj_->GetExtderSystem()->GetTotalExtderCount() : 0;
     size_t nozzle_nums = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
 
-    bool use_double_extruder = nozzle_nums > 1 ? true : false;
-    if (use_double_extruder)
+    if (nozzle_nums > 1)
     {
         const auto& project_config = preset_bundle->project_config;
         m_filaments_map = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_real_filament_maps(project_config);
@@ -5913,7 +5960,7 @@ void SelectMachineDialog::reset_and_sync_ams_list()
         if (extruder >= materials.size() || extruder < 0 || extruder >= display_materials.size()) continue;
 
         MaterialItem* item = nullptr;
-        if (use_double_extruder)
+        if (nozzle_nums == 2)
         {
             const int side = dual_tool_display_side(m_filaments_map, extruder, full_config, obj_, device_tool_count);
             const bool map_says_left = side == DEPUTY_EXTRUDER_ID ||
@@ -5924,7 +5971,7 @@ void SelectMachineDialog::reset_and_sync_ams_list()
                 item = new MaterialItem(m_filament_left_panel, colour_rgb, _L(display_materials[extruder]));
                 m_sizer_ams_mapping_left->Add(item, 0, wxALL, FromDIP(5));
             }
-            else // map == 2, an unresolved assignment, or (non-BBL multi-nozzle) 3+;
+            else // map == 2 or an unresolved assignment;
             {    // update_material_item_pos() collapses these into the single panel when the
                  // device reports < 2 extruders.
                 item = new MaterialItem(m_filament_right_panel, colour_rgb, _L(display_materials[extruder]));
@@ -5982,6 +6029,11 @@ void SelectMachineDialog::reset_and_sync_ams_list()
                 m_mapping_popup.Move(pos);
 
                 if (obj_ && obj_->get_dev_id() == m_printer_last_select) {
+                    const auto tool = manual_mapping_tool(obj_, extruder);
+                    m_mapping_popup.set_tool_filter(tool);
+                    advance_manual_mapping_generation();
+                    m_mapping_popup.m_send_generation = m_manual_mapping_generation;
+                    if (tool) m_mapping_popup.set_show_type(ShowType::RIGHT);
                     m_mapping_popup.set_parent_item(item);
                     m_mapping_popup.set_only_show_ext_spool(false);
                     m_mapping_popup.set_current_filament_id(extruder);
@@ -6015,7 +6067,7 @@ void SelectMachineDialog::reset_and_sync_ams_list()
         first_enabled->on_selected();
     }
 
-    if (use_double_extruder)
+    if (nozzle_nums == 2)
     {
         m_filament_left_panel->Show();
         m_filament_right_panel->Show();
@@ -6041,6 +6093,7 @@ void SelectMachineDialog::reset_and_sync_ams_list()
         m_filament_panel_sizer->Layout();
     }
 
+    configure_nozzle_selector(nozzle_nums);
     // Orca: a filament switch feeds both extruders, so the per-nozzle material items collapse into
     // the single panel. Reposition once the selected machine's switch state is known (no-op otherwise).
     DeviceManager* dev_for_update = wxGetApp().getDeviceManager();
@@ -6055,6 +6108,10 @@ void SelectMachineDialog::reset_and_sync_ams_list()
 // Early-returns unless an item is actually in the wrong panel.
 void SelectMachineDialog::update_material_item_pos(MachineObject* obj_)
 {
+    if (m_display_nozzle_count > 2) {
+        update_nozzle_filter();
+        return;
+    }
     if (!obj_) {
         return;
     }
@@ -6159,6 +6216,171 @@ void SelectMachineDialog::update_material_item_pos(MachineObject* obj_)
     m_filament_left_panel->Show(left_sizer_count > 0 || right_sizer_count > 0);
     m_filament_right_panel->Show(left_sizer_count > 0 || right_sizer_count > 0);
     Layout();
+}
+
+void SelectMachineDialog::configure_nozzle_selector(size_t nozzle_count)
+{
+    advance_manual_mapping_generation();
+    const int previous = m_nozzle_selector->GetSelection();
+    const size_t old_count = m_display_nozzle_count;
+    const bool count_changed = m_display_nozzle_count != nozzle_count;
+    m_display_nozzle_count = nozzle_count;
+    if (nozzle_count > 2) {
+        const auto& map = nozzle_display_map();
+        int first_used = -1;
+        bool previous_used = false;
+        for (const auto& entry : m_materialList) {
+            const int id = entry.second->id;
+            if (id >= 0 && static_cast<size_t>(id) < map.size() && map[id] > 0 && static_cast<size_t>(map[id]) <= nozzle_count) {
+                if (first_used < 0)
+                    first_used = map[id] - 1;
+                if (map[id] - 1 == previous)
+                    previous_used = true;
+            }
+        }
+        if (count_changed) {
+            m_nozzle_selector->CloseDropdown();
+            m_nozzle_selector->Clear();
+            for (size_t i = 0; i < nozzle_count; ++i)
+                // TRN: This is the nozzle number in the sliced project, not necessarily the physical printer nozzle.
+                m_nozzle_selector->Append(format_wxstr(_L("Sliced nozzle %1%"), i + 1));
+        }
+        const bool previous_valid = old_count > 2 && previous >= 0 && static_cast<size_t>(previous) < nozzle_count;
+        const int selection = previous_valid && (previous_used || first_used < 0) ? previous : first_used;
+        if (count_changed || selection != previous)
+            m_nozzle_selector->SetSelection(selection >= 0 ? selection : 0);
+        m_nozzle_selector->Show();
+        update_nozzle_filter();
+    } else {
+        m_nozzle_selector->CloseDropdown();
+        m_nozzle_selector->Hide();
+        m_empty_nozzle_notice->Hide();
+    }
+    m_filament_panel_sizer->Layout();
+    m_scroll_area->Layout();
+    m_scroll_area->FitInside();
+}
+
+const std::vector<int>& SelectMachineDialog::nozzle_display_map() const
+{
+    if (m_print_type == FROM_SDCARD_VIEW && m_filaments_map.empty()) {
+        if (const auto* global_map = m_required_data_config.option<ConfigOptionInts>("filament_map"))
+            return global_map->values;
+    }
+    return m_filaments_map;
+}
+
+void SelectMachineDialog::advance_manual_mapping_generation()
+{
+    m_manual_mapping_generation = m_manual_mapping_generation == LONG_MAX ? 1 : m_manual_mapping_generation + 1;
+}
+
+std::optional<int> SelectMachineDialog::manual_mapping_tool(MachineObject* obj, int filament_id) const
+{
+    const int count = obj && obj->GetExtderSystem() ? obj->GetExtderSystem()->GetTotalExtderCount() : 0;
+    if (m_display_nozzle_count <= 2 && count <= 2)
+        return std::nullopt;
+    if (count == 1)
+        return 0;
+    const auto& filament_map = nozzle_display_map();
+    if (count <= 0 || filament_id < 0 || static_cast<size_t>(filament_id) >= filament_map.size())
+        return -1;
+    const auto& config = m_print_type == FROM_NORMAL ? wxGetApp().preset_bundle->full_config() : m_required_data_config;
+    const auto* nozzle_option = config.option<ConfigOptionFloats>("nozzle_diameter");
+    const int nozzle_count = nozzle_option ? static_cast<int>(nozzle_option->values.size()) : 0;
+    const auto* physical_map = config.option<ConfigOptionInts>("physical_extruder_map");
+    const auto map = effective_physical_extruder_map(physical_map, nozzle_count);
+    const int tool = resolve_filament_device_id(filament_id, filament_map, map.values);
+    return tool >= 0 && tool < count ? tool : -1;
+}
+
+bool SelectMachineDialog::validate_manual_mapping(MachineObject* obj, int filament_id, int tray_id, int ams_id, int slot_id) const
+{
+    const auto tool = manual_mapping_tool(obj, filament_id);
+    if (!tool)
+        return !m_mapping_popup.m_tool_filter;
+    if (!obj || *tool < 0 || m_mapping_popup.m_tool_filter != tool || obj->get_dev_id() != m_printer_last_select)
+        return false;
+    bool offered = false;
+    for (const auto* item : m_mapping_popup.m_mapping_item_list)
+        if (item->m_tray_data.id == tray_id && item->m_ams_id == ams_id && item->m_slot_id == slot_id && !item->m_unmatch)
+            offered = true;
+    if (!offered)
+        return false;
+    if (ams_id == VIRTUAL_TRAY_MAIN_ID - *tool) {
+        if (switch_blocks_external_spool(obj, *tool) || tray_id != ams_id || slot_id != 0)
+            return false;
+        for (const auto& slot : obj->vt_slot)
+            if (!slot.is_slot_placeholder && slot.id == std::to_string(ams_id))
+                return true;
+        return false;
+    }
+    const auto& ams_list = obj->GetFilaSystem()->GetAmsList();
+    const auto it = ams_list.find(std::to_string(ams_id));
+    if (it == ams_list.end() || it->second->GetBindedExtruderSet().count(*tool) == 0)
+        return false;
+    const auto& trays = it->second->GetTrays();
+    const auto tray = trays.find(std::to_string(slot_id));
+    if (tray == trays.end() || !tray->second || !tray->second->is_exists)
+        return false;
+    if (wxGetApp().preset_bundle && !wxGetApp().preset_bundle->is_bbl_vendor()) {
+        const auto tray_map = obj->GetFilaSystem()->GetTrayIndexMap();
+        const auto mapped = tray_map.find(tray_id);
+        if (mapped == tray_map.end() || mapped->second != std::make_pair(ams_id, slot_id))
+            return false;
+    }
+    return true;
+}
+
+void SelectMachineDialog::update_nozzle_filter()
+{
+    if (m_display_nozzle_count <= 2)
+        return;
+    const int nozzle = m_nozzle_selector->GetSelection() + 1;
+    const auto& display_map = nozzle_display_map();
+    Material* first_visible = nullptr;
+    bool selected_visible = false;
+    bool visibility_changed = false;
+    bool any_visible = false;
+    for (const auto& entry : m_materialList) {
+        const int id = entry.second->id;
+        const int mapped = id >= 0 && static_cast<size_t>(id) < display_map.size() ? display_map[id] : 0;
+        // Keep unresolved assignments visible so they can still be inspected.
+        const bool visible = mapped <= 0 || static_cast<size_t>(mapped) > m_display_nozzle_count || mapped == nozzle;
+        any_visible |= visible;
+        if (entry.second->item->IsShown() != visible) {
+            entry.second->item->Show(visible);
+            visibility_changed = true;
+        }
+        if (visible && entry.second->item->m_enable) {
+            if (!first_visible)
+                first_visible = entry.second;
+            if (id == m_current_filament_id)
+                selected_visible = true;
+        }
+    }
+    if (m_empty_nozzle_notice->IsShown() == any_visible) {
+        m_empty_nozzle_notice->Show(!any_visible);
+        visibility_changed = true;
+    }
+    if (!selected_visible) {
+        for (const auto& entry : m_materialList)
+            entry.second->item->on_normal();
+        m_current_filament_id = first_visible ? first_visible->id : -1;
+        if (first_visible)
+            first_visible->item->on_selected();
+    }
+    if (visibility_changed) {
+        // A hidden wxGridSizer item still occupies its grid cell. Keep only visible
+        // cards in the sizer so each nozzle's cards start at the first column.
+        m_sizer_ams_mapping->Clear(false);
+        for (const auto& entry : m_materialList)
+            if (entry.second->item->IsShown())
+                m_sizer_ams_mapping->Add(entry.second->item, 0, wxALL, FromDIP(5));
+        m_filament_panel_sizer->Layout();
+        m_scroll_area->Layout();
+        m_scroll_area->FitInside();
+    }
 }
 
 void SelectMachineDialog::clone_thumbnail_data() {
@@ -6523,9 +6745,13 @@ void SelectMachineDialog::set_default_from_sdcard()
     if (m_required_data_plate_data_list[m_print_plate_idx]->config.option<ConfigOptionInts>("filament_map")){
         m_filaments_map = m_required_data_plate_data_list[m_print_plate_idx]->config.option<ConfigOptionInts>("filament_map")->values;
     }
+    if (m_filaments_map.empty()) {
+        if (const auto* global_map = m_required_data_config.option<ConfigOptionInts>("filament_map"))
+            m_filaments_map = global_map->values;
+    }
 
     // ams mapping area
-    if (diameters_count > 1) {
+    if (diameters_count == 2) {
         m_filament_left_panel->Show();
         m_filament_right_panel->Show();
         m_filament_panel->Hide();
@@ -6575,7 +6801,7 @@ void SelectMachineDialog::set_default_from_sdcard()
 
         MaterialItem* item = nullptr;
 
-        if (diameters_count > 1) {
+        if (diameters_count == 2) {
             const int side = dual_tool_display_side(m_filaments_map, fo.id, m_required_data_config, obj_, device_tool_count);
             const bool map_says_left = side == DEPUTY_EXTRUDER_ID ||
                                        (side == INVALID_EXTRUDER_ID && fo.id >= 0 && (size_t) fo.id < m_filaments_map.size() &&
@@ -6640,6 +6866,11 @@ void SelectMachineDialog::set_default_from_sdcard()
 
                 if (obj_ && obj_->get_dev_id() == m_printer_last_select)
                 {
+                    const auto tool = manual_mapping_tool(obj_, fo.id);
+                    m_mapping_popup.set_tool_filter(tool);
+                    advance_manual_mapping_generation();
+                    m_mapping_popup.m_send_generation = m_manual_mapping_generation;
+                    if (tool) m_mapping_popup.set_show_type(ShowType::RIGHT);
                     m_mapping_popup.set_parent_item(item);
                     m_mapping_popup.set_current_filament_id(fo.id);
                     m_mapping_popup.set_tag_texture(fo.type);
@@ -6677,6 +6908,7 @@ void SelectMachineDialog::set_default_from_sdcard()
         first_enabled->on_selected();
     }
 
+    configure_nozzle_selector(diameters_count);
     reset_ams_material();
 
     // basic info

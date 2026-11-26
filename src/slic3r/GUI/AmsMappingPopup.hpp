@@ -211,6 +211,7 @@ public:
 
     int     m_ams_id{255};
     int     m_slot_id{255};
+    long    m_send_generation{0};
 
 public:
     void update_data(TrayData data);
@@ -340,6 +341,9 @@ public:
     wxBoxSizer* m_sizer_split_ams_left;
     wxBoxSizer* m_sizer_split_ams_right;
     bool        m_mapping_from_multi_machines {false};
+    // Set only by the send dialog for a multi-tool picker; -1 means unresolved.
+    std::optional<int> m_tool_filter;
+    long m_send_generation{0};
 
     bool         get_use_in_sync_dialog() { return m_use_in_sync_dialog; }
     void         set_sizer_title(wxBoxSizer *sizer, wxString text);
@@ -362,6 +366,7 @@ public:
     void         paintEvent(wxPaintEvent &evt);
     void         set_parent_item(MaterialItem* item) {m_parent_item = item;};
     void         set_show_type(ShowType type) { m_show_type = type; };
+    void         set_tool_filter(std::optional<int> tool) { m_tool_filter = tool; }
     // Orca: kept as a no-op for SelectMachine — its only caller passes false, which
     // equals the update path's default (all slots shown).
     void         set_only_show_ext_spool(bool /*flag*/) {}

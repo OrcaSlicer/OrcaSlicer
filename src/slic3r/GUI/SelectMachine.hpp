@@ -349,6 +349,10 @@ private:
     std::vector<FilamentInfo>           m_ams_mapping_result;
     std::unordered_map<int, int>        m_nozzle_mapping_result; // cached rack print-dispatch mapping: filament/group id -> physical nozzle pos
     std::vector<int>                    m_filaments_map;
+    ::ComboBox*                         m_nozzle_selector{nullptr};
+    size_t                              m_display_nozzle_count{0};
+    long                                m_manual_mapping_generation{0};
+    Label*                              m_empty_nozzle_notice{nullptr};
     std::shared_ptr<BBLStatusBarPrint>  m_status_bar;
     std::unique_ptr<Worker>             m_worker;
 
@@ -549,6 +553,12 @@ public:
     bool can_hybrid_mapping(MachineObject* obj_) const;
     ShowType get_filament_mapping_show_type(MachineObject* obj_, int fila_logic_id) const;
     void update_material_item_pos(MachineObject* obj_);
+    void configure_nozzle_selector(size_t nozzle_count);
+    void update_nozzle_filter();
+    const std::vector<int>& nozzle_display_map() const;
+    std::optional<int> manual_mapping_tool(MachineObject* obj, int filament_id) const;
+    bool validate_manual_mapping(MachineObject* obj, int filament_id, int tray_id, int ams_id, int slot_id) const;
+    void advance_manual_mapping_generation();
     void auto_supply_with_ext(std::vector<DevAmsTray> slots);
     int  convert_filament_map_nozzle_id_to_task_nozzle_id(int nozzle_id) const;
 

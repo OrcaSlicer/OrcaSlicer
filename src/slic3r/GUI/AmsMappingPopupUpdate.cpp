@@ -8,6 +8,8 @@
  *********************************************************************/
 #include "AmsMappingPopup.hpp"
 #include "I18N.hpp"
+#include "format.hpp"
+#include "FilamentMappingUtils.hpp"
 #include "DeviceCore/DevConfigUtil.h"
 
 #include "libslic3r/Utils.hpp"
@@ -116,7 +118,17 @@ void AmsMapingPopup::update(MachineObject* obj,
     }
 
     size_t extruder_num = obj->GetExtderSystem()->GetTotalExtderCount();
-    if (extruder_num == 1) {
+    m_right_tips->Show(!m_tool_filter.has_value());
+    if (m_tool_filter.has_value()) {
+        m_left_marea_panel->Hide();
+        m_left_extra_slot->Hide();
+        m_split_line_panel->Hide();
+        m_right_marea_panel->Show();
+        m_right_marea_panel->Enable(true);
+        m_right_extra_slot->Hide();
+        m_right_split_ext_sizer->Show(false);
+        set_sizer_title(m_right_split_ams_sizer, _L("AMS"));
+    } else if (extruder_num == 1) {
         m_left_marea_panel->Hide();
         m_left_extra_slot->Hide();
         m_split_line_panel->Hide();
@@ -309,13 +321,17 @@ void AmsMapingPopup::update_mapping_items(MachineObject* obj, const std::vector<
         if (extruder_set.size() <= 0) {
             continue;
         }
-        if (two_tool_layout.exact_two_tools && !two_tool_layout.resolved) {
+        if (m_tool_filter && (*m_tool_filter < 0 || extruder_set.count(*m_tool_filter) == 0))
+            continue;
+        if (!m_tool_filter && two_tool_layout.exact_two_tools && !two_tool_layout.resolved) {
             // Two tools but no usable display order: skip instead of guessing a side.
             continue;
         }
 
         wxPanel* target_panel = nullptr;
-        if (m_show_type == ShowType::LEFT_AND_RIGHT_DYNAMIC) {
+        if (m_tool_filter) {
+            target_panel = m_right_marea_panel;
+        } else if (m_show_type == ShowType::LEFT_AND_RIGHT_DYNAMIC) {
             // The filament track switch feeds one AMS to both tools; keep it in the single dynamic panel.
             target_panel = m_right_marea_panel;
         } else {
@@ -412,6 +428,24 @@ void AmsMapingPopup::update_mapping_items(MachineObject* obj, const std::vector<
         if (!td_opt.has_value()) {
             continue;
         }
+        if (m_tool_filter) {
+            if (*m_tool_filter < 0 || tray_data->is_slot_placeholder ||
+                td_opt->ams_id != VIRTUAL_TRAY_MAIN_ID - *m_tool_filter ||
+                (!generic && td_opt->ams_id != VIRTUAL_TRAY_MAIN_ID && td_opt->ams_id != VIRTUAL_TRAY_DEPUTY_ID) ||
+                switch_blocks_external_spool(obj, *m_tool_filter))
+                continue;
+            auto sizer_mapping_list = new wxBoxSizer(wxHORIZONTAL);
+            auto container = new MappingContainer(m_right_marea_panel, _L("Ext"), 1);
+            container->SetName(m_right_marea_panel->GetName());
+            container->SetSizer(sizer_mapping_list);
+            auto td = *td_opt;
+            td.label = _L("Ext");
+            add_ams_mapping({td}, false, container, sizer_mapping_list);
+            m_amsmapping_container_sizer_list.push_back(sizer_mapping_list);
+            m_amsmapping_container_list.push_back(container);
+            right_one_slot_containers.push_back(container);
+            continue;
+        }
         if (two_tool_layout.exact_two_tools && !two_tool_layout.resolved) {
             // Two tools but no usable display order: skip rather than label or select a side.
             continue;
@@ -465,6 +499,12 @@ void AmsMapingPopup::update_mapping_items(MachineObject* obj, const std::vector<
 
     _add_containers(this, left_one_slot_containers, left_four_slots_containers, m_sizer_ams_basket_left);
     _add_containers(this, right_one_slot_containers, right_four_slot_containers, m_sizer_ams_basket_right);
+    if (m_tool_filter && *m_tool_filter >= 0 && m_mapping_item_list.empty() && m_ams_tips_msg_panel) {
+        m_ams_tips_msg_panel->AddMessage(_L("No compatible filament slots are available for this printer tool."), "#FF6F00", "");
+        m_ams_tips_msg_panel->Layout();
+        m_ams_tips_msg_panel->Fit();
+        m_ams_tips_msg_panel->Show();
+    }
     if (m_show_type != ShowType::LEFT_AND_RIGHT_DYNAMIC){
         m_left_split_ams_sizer->Show(!left_one_slot_containers.empty() || !left_four_slots_containers.empty());
         m_right_split_ams_sizer->Show(!right_one_slot_containers.empty() || !right_four_slot_containers.empty());
@@ -579,6 +619,15 @@ void AmsMapingPopup::update_ams_data_multi_machines()
 
 void AmsMapingPopup::update_title(MachineObject* obj)
 {
+    if (m_tool_filter) {
+        if (*m_tool_filter >= 0) {
+            // TRN: The number identifies the printer tool used by the sliced filament.
+            m_title_text->SetLabelText(format_wxstr(_L("Select filament for printer tool %1%"), *m_tool_filter + 1));
+        } else {
+            m_title_text->SetLabelText(_L("Select filament"));
+        }
+        return;
+    }
     const auto& full_config = wxGetApp().preset_bundle->full_config();
     size_t nozzle_nums = full_config.option<ConfigOptionFloatsNullable>("nozzle_diameter")->values.size();
     if (nozzle_nums > 1) {
@@ -611,12 +660,15 @@ void AmsMapingPopup::update_ams_tips(MachineObject* obj)
     size_t nozzle_nums = full_config.option<ConfigOptionFloatsNullable>("nozzle_diameter")->values.size();
     if (m_ams_tips_msg_panel) {
         m_ams_tips_msg_panel->Clear();
+        if (m_tool_filter && *m_tool_filter < 0)
+            m_ams_tips_msg_panel->AddMessage(_L("The filament's printer tool could not be determined."), "#FF6F00", "");
         if (nozzle_nums == 2 && m_show_type != ShowType::LEFT_AND_RIGHT) {
             m_ams_tips_msg_panel->AddMessage(_L("To learn about the filaments matching rules."),
                                              "#FF6F00", ""); // Orca: dropped vendor help link
         }
 
-        if (obj && obj->GetFilaSwitch()->IsInstalled()) {
+        if (obj && obj->GetFilaSwitch()->IsInstalled() &&
+            (!m_tool_filter || *m_tool_filter < 0 || switch_blocks_external_spool(obj, *m_tool_filter))) {
             const auto& msg = _L("External spools are not supported since Filament Track Switch has been installed. If you want to use an external spool, please uninstall it.");
             m_ams_tips_msg_panel->AddMessage(msg, "#FF6F00", "");
         }
@@ -693,6 +745,7 @@ void AmsMapingPopup::add_ams_mapping(std::vector<TrayData> tray_data,
         // set button
         MappingItem* m_mapping_item = new MappingItem(container);
         m_mapping_item->send_win = send_win;
+        m_mapping_item->m_send_generation = m_tool_filter ? m_send_generation : 0;
         m_mapping_item->m_ams_id = tray_data[i].ams_id;
         m_mapping_item->m_slot_id = tray_data[i].slot_id;
         // Orca: transition_tridid here has no total-extruder-count overload; label the virtual (ext)
@@ -748,7 +801,10 @@ void AmsMapingPopup::add_ams_mapping(std::vector<TrayData> tray_data,
 
         // check filament type
         if (can_pick_the_item) {
-            if (tray_data[i].type == NORMAL && !is_match_material(tray_data[i].filament_type)){
+            const bool filtered_ext = m_tool_filter && *m_tool_filter >= 0 &&
+                                      tray_data[i].ams_id == VIRTUAL_TRAY_MAIN_ID - *m_tool_filter;
+            if (tray_data[i].type == NORMAL && !(filtered_ext && !m_ext_mapping_filatype_check) &&
+                !is_match_material(tray_data[i].filament_type)){
                 can_pick_the_item = false;
             } else if(tray_data[i].type == EMPTY){
                 // Mapping to an empty slot is only allowed from the multi-machine send page,
@@ -837,4 +893,4 @@ void AmsMapingPopup::add_ext_ams_mapping(TrayData tray_data, MappingItem* item)
     item->set_tray_index(_L("Ext"));
 }
 
-} // namespace Slic3r::GUI
+} // namespace Slic3r::GUI

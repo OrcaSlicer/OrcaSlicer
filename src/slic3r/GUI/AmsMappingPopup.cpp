@@ -1256,6 +1256,14 @@ void AmsMapingPopup::on_left_down(wxMouseEvent &evt)
         auto left = item->GetSize();
 
         if (pos.x > p_rect.x && pos.y > p_rect.y && pos.x < (p_rect.x + item->GetSize().x) && pos.y < (p_rect.y + item->GetSize().y)) {
+            if (m_tool_filter) {
+                if (!item->m_unmatch && item->GetParent()->GetName() == "right") {
+                    item->send_event(m_current_filament_id);
+                    Dismiss();
+                }
+                evt.StopPropagation();
+                return;
+            }
             if (item->m_tray_data.type == TrayType::NORMAL) {
                 if (!m_ext_mapping_filatype_check && (item->m_ams_id == VIRTUAL_TRAY_MAIN_ID || item->m_ams_id == VIRTUAL_TRAY_DEPUTY_ID)) {
                     // Do nothing
@@ -1414,6 +1422,7 @@ void MappingItem::send_event(int fliament_id)
 {
     wxCommandEvent event(EVT_SET_FINISH_MAPPING);
     event.SetInt(m_tray_data.id);
+    event.SetExtraLong(m_send_generation);
 
     wxString param = wxString::Format("%d|%d|%d|%d|%s|%d|%d|%d", m_coloul.Red(), m_coloul.Green(), m_coloul.Blue(), m_coloul.Alpha(), m_tray_index, fliament_id,
        m_tray_data.ams_id, m_tray_data.slot_id);
