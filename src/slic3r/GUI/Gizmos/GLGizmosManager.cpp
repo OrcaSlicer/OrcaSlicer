@@ -769,17 +769,18 @@ bool GLGizmosManager::on_mouse_wheel(const wxMouseEvent &evt)
 {
     bool processed = false;
 
+    // Orca: a macOS trackpad sends a wheel event with a rotation of 0 on a two finger tap (see IMSlider::on_mouse_wheel()).
+    // It is not a wheel step: read as one it would count as a step down and shrink the brush.
+    if (evt.GetWheelRotation() == 0)
+        return false;
+
     if (/*m_current == SlaSupports || m_current == Hollow ||*/ m_current == FdmSupports || m_current == Seam || m_current == MmSegmentation || m_current == FuzzySkin ||
-        m_current == PaintedModifier || m_current == BrimEars) {
+        m_current == PaintedModifier || m_current == TextureDisplacement || m_current == BrimEars) {
         float rot = (float)evt.GetWheelRotation() / (float)evt.GetWheelDelta();
-        if (gizmo_event((rot > 0.f ? SLAGizmoEventType::MouseWheelUp : SLAGizmoEventType::MouseWheelDown), Vec2d::Zero(), evt.ShiftDown(), evt.AltDown()
-            // BBS
-#ifdef __WXOSX_MAC__
-            , evt.RawControlDown()
-#else
-            , evt.ControlDown()
-#endif
-            ))
+        // Orca: on macOS take both Cmd, which the shortcut tooltips name, and Control, which was the only
+        // key taken before. Elsewhere both are the Ctrl key.
+        const bool control_down = evt.CmdDown() || evt.RawControlDown();
+        if (gizmo_event((rot > 0.f ? SLAGizmoEventType::MouseWheelUp : SLAGizmoEventType::MouseWheelDown), Vec2d::Zero(), evt.ShiftDown(), evt.AltDown(), control_down))
             processed = true;
     }
 
