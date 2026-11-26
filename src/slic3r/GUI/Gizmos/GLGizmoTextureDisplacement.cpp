@@ -790,8 +790,15 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
     // preview, the highlight is the selectors' own, except during a stroke over the colour paint: the paint
     // there is not flushed yet, so the colours are still drawn over the stroke's highlight.
     const bool preview_drawn = use_shaded || use_true_preview;
-    if (show_paint_overlay && (preview_drawn ? paint_feedback : painted_colors_drawn && is_painting()))
+    if (show_paint_overlay && (preview_drawn ? paint_feedback : painted_colors_drawn && is_painting())) {
+        // GLModel::render() re-sets "uniform_color" from the model's own color just before drawing, so the
+        // color is set on the model rather than as a uniform.
+        // ORCA: the tint takes the color of the brush, set by render_triangles() above
+        ColorRGBA tint = TriangleSelectorGUI::enforcers_color;
+        tint.a(0.38f);
+        m_paint_overlay_glmodel.set_color(tint);
         render_paint_overlay(m_paint_overlay_glmodel);
+    }
 
     // A fill tool's contour is drawn with the selectors, under the colour paint drawn since - which covers it
     // on a steep face, where the paint's slope-scaled offset outruns the contour's fixed one. Put it back on top,
@@ -2031,9 +2038,6 @@ void GLGizmoTextureDisplacement::rebuild_paint_overlay()
     init_data.reserve_indices(patch.indices.size() * 3);
     append_paint_patch(init_data, patch, displaced);
     m_paint_overlay_glmodel.init_from(std::move(init_data));
-    // GLModel::render() re-sets "uniform_color" from this field just before drawing, so the colour
-    // has to be set here rather than as a uniform at draw time.
-    m_paint_overlay_glmodel.set_color(ColorRGBA(0.16f, 0.79f, 0.35f, 0.38f));
 }
 
 void GLGizmoTextureDisplacement::render_paint_overlay(GLModel &overlay)

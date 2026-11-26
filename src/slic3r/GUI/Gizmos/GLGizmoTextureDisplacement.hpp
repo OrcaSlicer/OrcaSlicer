@@ -34,6 +34,7 @@
 #include <utility>
 #include <wx/event.h>
 #include <wx/string.h>
+#include <wx/utils.h>
 
 namespace Slic3r::GUI {
 
@@ -295,6 +296,16 @@ protected:
     // opposite of the left. Shift still erases in both modes (GLGizmoPainterBase::gizmo_event()).
     EnforcerBlockerType get_left_button_state_type() const override { return m_erase_mode ? EnforcerBlockerType::NONE : EnforcerBlockerType::ENFORCER; }
     EnforcerBlockerType get_right_button_state_type() const override { return m_erase_mode ? EnforcerBlockerType::ENFORCER : EnforcerBlockerType::NONE; }
+    // ORCA: the cursor shows what its button does: the color of the right button where it erases, which the
+    // Paint / Erase toggle swaps between the buttons and Shift does with both
+    ColorRGBA get_cursor_sphere_left_button_color() const override
+    {
+        return (m_erase_mode || wxGetKeyState(WXK_SHIFT)) ? GLGizmoPainterBase::get_cursor_sphere_right_button_color() : GLGizmoPainterBase::get_cursor_sphere_left_button_color();
+    }
+    ColorRGBA get_cursor_sphere_right_button_color() const override
+    {
+        return (!m_erase_mode || wxGetKeyState(WXK_SHIFT)) ? GLGizmoPainterBase::get_cursor_sphere_right_button_color() : GLGizmoPainterBase::get_cursor_sphere_left_button_color();
+    }
 
 private:
     bool on_init() override;
