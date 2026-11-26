@@ -789,7 +789,9 @@ endif()
 if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
-set(Boost_NO_SYSTEM_PATHS TRUE)
+if (NOT SKIP_BOOST)
+    set(Boost_NO_SYSTEM_PATHS TRUE)  # Without it on Linux/macOS: CMake finds system Boost -> version/config mismatch -> link/runtime failures
+endif()
 find_package(Boost 1.83.0 REQUIRED COMPONENTS system filesystem thread log log_setup locale regex chrono atomic date_time iostreams program_options nowide)
 
 # Find and configure Eigen3
@@ -989,7 +991,9 @@ find_package(NLopt 1.4 REQUIRED)
 set(_bundled_python_version "3.12.13")
 set(_bundled_python_abi "312")
 string(REGEX REPLACE "^([0-9]+\\.[0-9]+)\\..*$" "\\1" _bundled_python_version_short "${_bundled_python_version}")
+# Use forward slashes to avoid C++ escape sequence issues in generated header
 set(_bundled_python_root "${CMAKE_PREFIX_PATH}/libpython")
+string(REPLACE "\\" "/" _bundled_python_root "${_bundled_python_root}")  # Without it on Windows: backslashes in CMAKE_PREFIX_PATH -> install(DIRECTORY) fails, CMAKE_PREFIX_PATH breaks, embedded interpreter paths wrong
 set(Python3_ROOT_DIR "${_bundled_python_root}" CACHE PATH "Root directory for bundled Python" FORCE)
 set(Python3_USE_STATIC_LIBS OFF)
 set(Python3_FIND_STRATEGY LOCATION)

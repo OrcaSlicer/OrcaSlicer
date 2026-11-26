@@ -46,8 +46,8 @@ on:
      - ".github/workflows/unit_tests*.yml"
      - ".github/workflows/mcp_sweep.yml"
      - 'build_linux.sh'
-     - 'build_win.bat'
-     - 'scripts/test_build_win.ps1'
+     - 'build_win.ps1'
+     - 'scripts/build_win_steps/**'
      - 'scripts/check_exception_throw_info.ps1'
      - 'scripts/test_check_exception_throw_info.ps1'
      - 'build_release_macos.sh'
@@ -124,8 +124,9 @@ jobs:
   # scripts/ci_deps_cache.sh find its jobs, and the pull request waits in the
   # macOS line like any other.
   build_macos_arch:
+    name: Build macOS ${{ matrix.arch }}
     needs: select
-    if: ${{ needs.select.outputs.macos-x86_64 == 'true' }}
+    if: ${{ needs.select.outputs.macos-x86_64 == 'true' && !vars.SELF_HOSTED }}
     strategy:
       matrix:
         arch:
@@ -139,7 +140,7 @@ jobs:
       arch: ${{ matrix.arch }}
     secrets: inherit
 
-  # build_all.yml has already run the build script's test suite for this
+  # build_all.yml has already run the build script test suites for this
   # commit, before its Windows x64 build. Skipped on self-hosted runners, as
   # there (the self-hosted Windows server is x64-only).
   build_windows_arm64:
@@ -184,7 +185,7 @@ jobs:
       cancel-in-progress: true
     uses: ./.github/workflows/build_check_cache.yml
     with:
-      os: windows-latest
+      os: windows-2022
       arch: x64
       compiler: msvc
     secrets: inherit
@@ -194,6 +195,7 @@ jobs:
     needs: [flatpak, unit_tests_windows_arm64]
     # Concurrency cancels the builds of a superseded run, not the run, so
     # !cancelled() alone would still publish for it.
+    # flatpak reusable workflow completes after its internal test jobs.
     if: ${{ !cancelled() && (contains(fromJSON('["success", "failure"]'), needs.flatpak.result) || contains(fromJSON('["success", "failure"]'), needs.unit_tests_windows_arm64.result)) }}
     runs-on: ubuntu-latest
     steps:

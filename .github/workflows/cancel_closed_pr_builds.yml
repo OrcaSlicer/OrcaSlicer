@@ -20,6 +20,7 @@ jobs:
     steps:
       - run: echo "Joined concurrency group build-all-pull_request-${{ github.event.pull_request.number }}."
   cancel_optional:
+    name: Cancel optional ${{ matrix.build }}
     # The same for the builds of build_optional.yml, which keep a group each.
     strategy:
       matrix:

@@ -1,0 +1,99 @@
+name: Linux Build & Test
+
+on:
+  workflow_call:
+    inputs:
+      arch:
+        required: true
+        type: string
+      compiler:
+        required: true
+        type: string
+      preset:
+        required: true
+        type: string
+      flags:
+        required: false
+        type: string
+      build-deps-only:
+        required: false
+        type: boolean
+      force-build:
+        required: false
+        type: boolean
+      clean:
+        required: false
+        type: boolean
+        default: false
+
+env:
+  REPO: ${{ github.repository }}
+  WORKFLOW: build_all.yml
+  MACOS_WORKFLOWS: build_all.yml build_optional.yml
+  BASE_REF: ${{ github.base_ref }}
+
+jobs:
+  check_cache:
+    name: Check Cache
+    runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || (inputs.arch == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04') }}
+    outputs:
+      cache-key: ${{ steps.set_outputs.outputs.cache-key }}
+      cache-prefix: ${{ steps.set_outputs.outputs.cache-prefix }}
+      cache-path: ${{ steps.set_outputs.outputs.cache-path }}
+      valid-cache: ${{ steps.cache_deps.outputs.cache-hit }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          lfs: false
+          fetch-depth: 1
+          sparse-checkout: |
+            /deps/
+            /scripts/ci_deps_cache.sh
+          sparse-checkout-cone-mode: false
+
+      - name: set outputs
+        id: set_outputs
+        shell: bash
+        run: |
+          # Compute cache-os for Linux
+          cache_os="linux-clang-${{ inputs.arch }}"
+          dep_folder="/OrcaSlicer_dep"
+          output_cmd="$GITHUB_OUTPUT"
+          # Workflow file excluded from hash: deps build doesn't depend on CI orchestration.
+          # This preserves cache continuity across CI refactors.
+          echo "cache-key=${cache_os}_${{ hashFiles('deps/**', 'CMakeLists.txt', 'deps/CMakeLists.txt', '.github/workflows/build_deps.yml', 'build_win.ps1', 'build_release_macos.sh', 'build_linux.sh') }}" >> "$output_cmd"
+          echo "cache-prefix=${cache_os}_" >> "$output_cmd"
+          echo "cache-path=deps/build${dep_folder}" >> "$output_cmd"
+
+      - name: load cache
+        id: cache_deps
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.set_outputs.outputs.cache-path }}
+          key: ${{ steps.set_outputs.outputs.cache-key }}
+          restore-keys: |
+            ${{ steps.set_outputs.outputs.cache-prefix }}${{ github.base_ref }}_
+            ${{ steps.set_outputs.outputs.cache-prefix }}main_
+            ${{ steps.set_outputs.outputs.cache-prefix }}
+          lookup-only: true
+
+  build_deps:
+    name: Build Deps
+    needs: check_cache
+    if: ${{ !cancelled() && needs.check_cache.result == 'success' }}
+    uses: ./.github/workflows/build_deps.yml
+    with:
+      cache-key: ${{ needs.check_cache.outputs.cache-key }}
+      cache-prefix: ${{ needs.check_cache.outputs.cache-prefix }}
+      cache-path: ${{ needs.check_cache.outputs.cache-path }}
+      valid-cache: ${{ needs.check_cache.outputs.valid-cache == 'true' }}
+      os: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || (inputs.arch == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04') }}
+      arch: ${{ inputs.arch }}
+      compiler: ${{ inputs.compiler }}
+      preset: ${{ inputs.preset }}
+      flags: ${{ inputs.flags }}
+      build-deps-only: ${{ inputs.build-deps-only }}
+      force-build: ${{ inputs.force-build }}
+      clean: ${{ inputs.clean }}
+    secrets: inherit
