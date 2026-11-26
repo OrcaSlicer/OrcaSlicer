@@ -756,13 +756,19 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
         render_triangles(selection, previewed);
         textured_selector_drawn = false;
     } else if (use_true_preview) {
-        render_preview_mesh();
+        // While painting, draw preview see-through and after highlight, which existing relief would otherwise hide
+        const bool see_through = is_painting() && m_debug_stage < 0;
+        if (!see_through)
+            render_preview_mesh();
         glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
         glsafe(::glPolygonOffset(-1.0f, -1.0f));
         // Without paint feedback, only the parts with no preview over them: render_preview_mesh() draws
         // the rest.
         render_triangles(selection, paint_feedback ? std::vector<const ModelVolume *>{} : previewed);
         glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
+        // Reduced Opacity of displaced preview during a stroke, so paint highlight under existing relief shows
+        if (see_through)
+            render_preview_mesh(0.35f);
         textured_selector_drawn = paint_feedback;
     } else {
         // render_triangles() *is* the model in a painter gizmo (it draws every model-part volume with the
@@ -1256,7 +1262,7 @@ void GLGizmoTextureDisplacement::render_seam_overlay()
     shader->stop_using();
 }
 
-void GLGizmoTextureDisplacement::render_preview_mesh()
+void GLGizmoTextureDisplacement::render_preview_mesh(float alpha)
 {
     const ModelObject *mo = m_c->selection_info()->model_object();
     if (mo == nullptr)
@@ -1271,6 +1277,12 @@ void GLGizmoTextureDisplacement::render_preview_mesh()
     const Camera      &camera          = wxGetApp().plater()->get_camera();
     const Transform3d &view_matrix     = camera.get_view_matrix();
 
+    const bool translucent = alpha < 1.f;
+    const auto faded = [alpha](ColorRGBA color) {
+        color.a(color.a() * alpha);
+        return color;
+    };
+
     shader->start_using();
     // Each part is drawn through its own matrix: a multibody object's parts sit in different places
     // inside the object, so one matrix for all of them would pile every preview onto the first part.
@@ -1284,22 +1296,46 @@ void GLGizmoTextureDisplacement::render_preview_mesh()
                                             trafo_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
         shader->set_uniform("view_normal_matrix", view_normal_matrix);
         if (runs.empty()) {
+            const ColorRGBA own = model.get_color();
+            model.set_color(faded(own));
             model.render();
+            model.set_color(own);
         } else {
             // set_color() writes the uniform the shader reads, so one call per group is all the
             // per-triangle colour this needs.
             for (const PreviewColorRun &run : runs) {
-                model.set_color(run.color);
+                model.set_color(faded(run.color));
                 model.render(run.range, shader);
             }
         }
     };
+    const auto draw_all = [&]() {
+        if (const ModelVolume *owner = texture_volume(); owner != nullptr)
+            draw(*owner, m_preview_glmodel, m_preview_color_runs);
+        for (const std::unique_ptr<PartPreview> &preview : m_part_previews)
+            if (const ModelVolume *part = preview_part(*preview); part != nullptr)
+                draw(*part, preview->glmodel, preview->color_runs);
+    };
 
-    if (const ModelVolume *owner = texture_volume(); owner != nullptr)
-        draw(*owner, m_preview_glmodel, m_preview_color_runs);
-    for (const std::unique_ptr<PartPreview> &preview : m_part_previews)
-        if (const ModelVolume *part = preview_part(*preview); part != nullptr)
-            draw(*part, preview->glmodel, preview->color_runs);
+    if (!translucent) {
+        draw_all();
+    } else {
+        // Depth pass first, then colour, so overlapping relief blends as a single layer.
+        GLboolean color_mask[4] = { GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE };
+        GLint     depth_func    = GL_LESS;
+        glsafe(::glGetBooleanv(GL_COLOR_WRITEMASK, color_mask));
+        glsafe(::glGetIntegerv(GL_DEPTH_FUNC, &depth_func));
+
+        glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
+        draw_all();
+        glsafe(::glColorMask(color_mask[0], color_mask[1], color_mask[2], color_mask[3]));
+
+        glsafe(::glDepthFunc(GL_LEQUAL));
+        glsafe(::glDepthMask(GL_FALSE));
+        draw_all();
+        glsafe(::glDepthMask(GL_TRUE));
+        glsafe(::glDepthFunc(GLenum(depth_func)));
+    }
     shader->stop_using();
 }
 
