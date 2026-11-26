@@ -228,7 +228,7 @@ InfillParams calculate_infill_position_rad(const PrintObject* object,
                                     if (cs[0] == 'Y' || cs[0] == 'y') { // get diagonal
                                         cs++;
                                         y_sign = 1.;
-                                    } else if (cs[0] == '_' && (cs[1] == 'Y' || cs[1] == 'y')) { // get diagonal
+                                    } else if ((cs[0] == '_' || cs[0] == '-') && (cs[1] == 'Y' || cs[1] == 'y')) { // get diagonal
                                         cs += 2;
                                         y_sign = -1.;
                                     }
@@ -315,53 +315,62 @@ InfillParams calculate_infill_position_rad(const PrintObject* object,
                                     cs++;
                                     bool is_abs_density = is_absolute(cs); // absolute/relative
                                     double density_value(strtod(cs, &cs)); // read density parameter
+                                    if (!density_value && (cs[0] == '+' || cs[0] == '-')) // remove single sign 
+                                        cs++;
+                                    else if (cs[0] == '%') { // percentage of density
+                                        cs++;
+                                        density_value *= .01;
+                                    }   
+
                                     if (cs[0] == ':') { // fractional
+                                        cs++;
+
                                         double multiline_value = std::max(density_value, 1.);
-                                        if (density_value) {
+                                        if (density_value) { // if has any value not 0 that is multiline value
                                             if (is_abs_density)
                                                 multiline_start = density_value;
                                             else
                                                 multiline_add += density_value;
-                                        } else
-                                            density_value = 1.;
-                                        cs++;
-                                        double density_frac = strtod(cs, &cs);
-                                        if (density_frac) {
-                                            density_value /= density_frac;
-                                            if (is_abs_density)
-                                                density_start = density_value / multiline_value;
-                                            else {
-                                                density_adapt = 3;
-                                                if (zone_mark == 'd')
-                                                    density_lin += density_start * (1 - density_value);
-                                                else
-                                                    density_add += density_start * (1 - density_value);
-                                            }
-                                        } else {
-                                            if (zone_mark == 'd')
-                                                density_adapt = 2;
-                                            if (cs[0] == '+' || cs[0] == '-') // remove single signs 
-                                                cs++;
                                         }
-                                    } else {
-                                        density_adapt = 1;
+                                        
+                                        double density_frac;
+                                        bool density_negative = false;
+                                        if (cs[0] == '-') { // negative density shift
+                                            cs++;
+                                            density_negative = true;
+                                        }
+                                        bool density_text_zero = (cs[0] == '0');
+                                        density_frac           = density_negative ? -strtod(cs, &cs) : strtod(cs, &cs);
+
                                         if (cs[0] == '%') { // percentage of density
                                             cs++;
-                                            density_value *= .01;
-                                        }                                 
-                                        
-                                        if (is_abs_density) {
+                                            density_frac *= .01;
+                                        }
+
+                                        if (density_frac) { // if has any value not 0
+                                            if (is_abs_density) {
+                                                density_start = density_frac / multiline_value;
+                                            } else {
+                                                density_adapt = 3;
+                                                if (zone_mark == 'd')
+                                                    density_lin += density_frac;
+                                                else
+                                                    density_add += density_frac;
+                                            }
+                                        } else if (density_text_zero) // if has value equal 0, but has this char
+                                            density_adapt = 3;
+                                        else if (zone_mark == 'd') // if has value equal 0
+                                                density_adapt = 2;
+                                    } else { // is not fractional
+                                        density_adapt = 1;
+                                        if (is_abs_density) // get squared value
                                             density_start = (zone_mark == 'd') ?  
                                                 (density_value < 0 ? -1 : 1) * pow(density_value, 2.) : density_value;
-                                        } else {
+                                        else
                                             if (zone_mark == 'd')
                                                 density_lin += density_value;
                                             else
                                                 density_add += density_value;
-                                        }
-
-                                        if (!density_value && (cs[0] == '+' || cs[0] == '-')) // remove single signs 
-                                            cs++;
                                     }
                                 } else if (angle_string.find(cs[0]) != std::string::npos) { // [A-zone] 
                                     if (cs[0] == 'A') // Angle mark (Optional)
@@ -376,7 +385,7 @@ InfillParams calculate_infill_position_rad(const PrintObject* object,
                                     } else
                                         angle_value = strtod(cs, &cs);  // read absolute angle parameter
 
-                                    if (!angle_value && (cs[0] == '+' || cs[0] == '-')) // remove single signs 
+                                    if (!angle_value && (cs[0] == '+' || cs[0] == '-')) // remove single sign
                                         cs++;
                                     bool is_fractional = cs[0] == ':';
                                     if (is_fractional) { // fractional

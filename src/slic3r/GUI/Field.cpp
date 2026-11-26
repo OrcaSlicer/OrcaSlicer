@@ -764,36 +764,35 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 std::smatch match;
 
                 // remove all unnecessary zeros 
-                std::regex pattern("([Dd][+\\-]?[\\d.]+[%:]?)"); 
+                std::regex pattern("([Dd][+\\-]?(?:[\\d.]+:_?)?)([\\d.]*%?)"); 
                 while (std::regex_search(ustr, match, pattern)) {
-                    std::string match_str(match[1].str());
-                    v += match.prefix().str();
-                    if (match_str.back() == ':' || match_str.back() == '%') {
+                    std::string match_str(match[2].str());
+                    v += match.prefix().str() + match[1].str();
+                    if (match_str.back() == '%') {
                         v += match_str;
                     } else {
-                        std::string repl_str = match.str();
-                        size_t r(repl_str.find_first_of("0123456789."));
-                        if (r < repl_str.length()) {
-                            v += repl_str.substr(0, r);
-                            double number(std::strtod(&repl_str[r], nullptr));
+                        size_t r(match_str.find_first_of("0123456789."));
+                        if (r < match_str.length()) {
+                            v += match_str.substr(0, r);
+                            double number(std::strtod(&match_str[r], nullptr));
                             v += get_str_value_wo_zeros(number) + ((number > 1) ? "%" : "");
                         } else
-                            v += match[1].str();
+                            v += match_str;
                     }
                     ustr = match.suffix().str();
-                } 
+                }
                 ustr = v + ustr;
                 v    = "";
 
                 // split into separate commands
-                std::string const a_zone    = u8"[A]?[+\\-_]?[\\d.]+(?:[:][\\d.]+)?[%]?";
-                std::string const d_zone    = u8"[Dd][+\\-]?[\\d.]+(?:[:][\\d.]*|[%])?";
-                std::string const xy_zone   = u8"(?:[X][_]?[Y]?|[x][_]?[y]?|[Yy])[+\\-_]?[\\d.]+(?:[:][\\d.]+)?(?:[&@%\'\"c]?[m]{0,2})";
-                std::string const z_zone    = u8"[BT]|[\\^~\\\\/NnZz$LlUuQq#COoM|]+(?:[+\\-]?[\\d.]*(?:[:]?[\\d.]+)(?:[@&%#\'\"]|cm?|mm?)?|B[#-]?|T[#-_]?)?";
+                std::string const a_zone    = u8"[+\\-_]?[\\d.]+(?::[\\d.]+)?%?";
+                std::string const d_zone    = u8"[Dd](?:[+\\-][\\d.]+(?:%|:\\-?[\\d.]?%?)?|[\\d.]+(?:%|:[\\d.]?%?)?)";
+                std::string const xy_zone   = u8"(?:X[_\\-]?Y?|x[_\\-]?y?|[Yy])[+\\-_]?[\\d.]+(?::[\\d.]+)?(?:[&@%\'\"]|cm?|mm?)?";
+                std::string const z_zone    = u8"[BT]|[\\^~\\\\/NnZz$LlUuQq#COoM|]+(?:[+\\-]?[\\d.]*(?::?[\\d.]+)(?:[@&%#\'\"]|cm?|mm?)?|B[#-]?|T[#-_]?)?";
                 std::string const r_zone    = u8"\\*?\\d*";
                 std::string const rz_zone   = u8"(?:(?:" + z_zone + u8")[;]?(?:" + r_zone + u8")?|(?:" + r_zone + u8")[;]?(?:" + z_zone + u8")|" + r_zone + u8")?!?";
-                std::string const ps_sparse = u8"[BT][!]?|[#][\\d.]+[!]?|(?:(?:" + a_zone + u8"|" + d_zone + u8"|" + xy_zone + u8")+[;]?)+" + rz_zone;
-                std::string const ps_solid  = u8"[#][\\d.]+[!]?|(?:(?:" + a_zone + u8"|" + xy_zone + u8")+[;]?)+" + rz_zone;
+                std::string const ps_sparse = u8"[BT]!?|#[\\d.]+!?|(?:(?:" + a_zone + u8")?(?:A" + a_zone + u8"|" + d_zone + u8"|" + xy_zone + u8")+;?)+" + rz_zone;
+                std::string const ps_solid  = u8"#[\\d.]+!?|(?:(?:" + a_zone + u8")?(?:A" + a_zone + u8"|" + xy_zone + u8")+;?)+" + rz_zone;
                 std::string ps = (m_opt.opt_key == "sparse_infill_rotate_template") ? ps_sparse : ps_solid;
 
                 while (std::regex_search(ustr, match, std::regex(ps))) {
