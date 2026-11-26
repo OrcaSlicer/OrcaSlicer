@@ -175,6 +175,11 @@ public:
     void tooltip(const char *label, float wrap_width);
     void tooltip(const std::string &label, float wrap_width);
     void tooltip(const wxString &label, float wrap_width);
+    // The colours every tooltip is drawn in, the 3D view's and the settings pages' alike (IllustratedTipPopup
+    // paints the same ones): the dark panel colour in both themes, so the pictures, drawn on dark, sit the
+    // same in all of them. Pushes four colours; pop_tooltip_style() takes them off.
+    static void push_tooltip_style();
+    static void pop_tooltip_style();
     void filament_group(const std::string &filament_type, const char *hex_color, unsigned char filament_id, float align_width);
 
     // text size and is_multi_line
@@ -401,6 +406,9 @@ public:
     static const ImVec4 COL_TITLE_BG;
     static const ImVec4 COL_WINDOW_BG;
     static const ImVec4 COL_WINDOW_BG_DARK;
+    static const ImVec4 COL_TOOLTIP_BORDER;
+    static const ImVec4 COL_TOOLTIP_TEXT;
+    static const ImVec4 COL_TOOLTIP_CAPTION;
     static const ImVec4 COL_TOOLBAR_BG;
     static const ImVec4 COL_TOOLBAR_BG_DARK;
     static const ImVec4 COL_SEPARATOR;
