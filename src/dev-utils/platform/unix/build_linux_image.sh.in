@@ -425,25 +425,20 @@ export APPDIR="\${APPDIR:-\$DIR}"
 # 1) OrcaSlicer will segfault on systems where locale info is not as expected (i.e. Holo-ISO arch-based distro)
 export LC_ALL=C
 
-if [ "\$XDG_SESSION_TYPE" = "wayland" ] && [ "\$ZINK_DISABLE_OVERRIDE" != "1" ]; then
-    if command -v glxinfo >/dev/null 2>&1; then
-        RENDERER=\$(glxinfo | grep "OpenGL renderer string:" | sed 's/.*: //')
-        if echo "\$RENDERER" | grep -qi "NVIDIA"; then
-            if command -v nvidia-smi >/dev/null 2>&1; then
-                DRIVER_VERSION=\$(nvidia-smi --query-gpu=driver_version --format=csv,noheader | head -n1)
-                DRIVER_MAJOR=\$(echo "\$DRIVER_VERSION" | cut -d. -f1)
-                [ "\$DRIVER_MAJOR" -gt 555 ] && ZINK_FORCE_OVERRIDE=1
-            fi
-            if [ "\$ZINK_FORCE_OVERRIDE" = "1" ]; then
-                export __GLX_VENDOR_LIBRARY_NAME=mesa
-                export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
-                export MESA_LOADER_DRIVER_OVERRIDE=zink
-                export GALLIUM_DRIVER=zink
-                # WebKit's NVIDIA DMABUF workaround is applied by the binary itself,
-                # gated on the runtime WebKitGTK version (src/OrcaSlicer.cpp).
-            fi
-        fi
-    fi
+# Orca builds wxWidgets with EGL, so it gets a working GL driver without this block.
+# Both switches are typed by hand, so accept more than the literal 1.
+zink_asked() { case "\$1" in 1|[Tt]rue|[Yy]es|[Oo]n) return 0 ;; esac; return 1; }
+
+# A user who set ZINK_DISABLE_OVERRIDE to escape zink keeps that escape.
+if zink_asked "\$ZINK_FORCE_OVERRIDE" && ! zink_asked "\$ZINK_DISABLE_OVERRIDE"; then
+    echo "OrcaSlicer: ZINK_FORCE_OVERRIDE is set, rendering through Mesa zink." >&2
+    export __GLX_VENDOR_LIBRARY_NAME=mesa
+    # libglvnd scans egl_vendor.d on its own, so naming a file that is not there is
+    # worse than naming none.
+    MESA_EGL_VENDOR=/usr/share/glvnd/egl_vendor.d/50_mesa.json
+    [ -r "\$MESA_EGL_VENDOR" ] && export __EGL_VENDOR_LIBRARY_FILENAMES="\$MESA_EGL_VENDOR"
+    export MESA_LOADER_DRIVER_OVERRIDE=zink
+    export GALLIUM_DRIVER=zink
 fi
 exec "\$DIR/libexec/@SLIC3R_APP_CMD@-env" "\$DIR/bin/@SLIC3R_APP_CMD@" "\$@"
 EOF
