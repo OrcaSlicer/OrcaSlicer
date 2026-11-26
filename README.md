@@ -191,6 +191,64 @@ All updated build instructions for Windows, macOS, and Linux are now available o
 
 Please refer to the wiki to ensure you're following the latest and most accurate steps for your platform.
 
+## Build on Windows with `build_win.ps1`
+
+### Quick Start
+
+#### Build On Windows
+
+##### Windows Build Prerequisites
+
+- **Visual Studio 2022/2026** with "Desktop development with C++" workload
+- **Git** (for version info)
+- **Optional**: ccache (`winget install ccache`)
+
+##### Windows Build Scripts
+
+```powershell
+# Build everything
+.\build_win.ps1
+
+# Build dependencies only
+.\build_win.ps1 -Deps -Arch x64
+
+# Clean build (removes slicer tree, keeps cached deps)
+.\build_win.ps1 -Clean
+```
+
+```powershell
+# Build and launch after successful build
+.\build_win.ps1 -Launch
+
+# Build, launch, and wait for app to exit
+.\build_win.ps1 -LaunchWait
+
+```
+
+```powershell
+# Full Option Reference
+.\build_win.ps1 -Help
+```
+
+##### Windows Build Performance
+
+clang-cl + Ninja enabled by default because during GitHub windows runner tests November 2026 it showed the best performance.
+
+| Config                         | Time on GitHub Runner | Relative |
+| ------------------------------ | --------------------- | -------- |
+| MSVC + MSBuild                 | ~110 min              | 100%     |
+| **clang-cl + Ninja (default)** | **~70 min**           | **~65%** |
+| + ccache (incremental)         | **~15 min**           | **~15%** |
+
+##### Windows Build Troubleshooting
+
+| Issue                     | Solution                                                         |
+| ------------------------- | ---------------------------------------------------------------- |
+| `clang-cl not found`      | Install "C++ Clang tools for Windows" in Visual Studio Installer |
+| `ccache not found`        | `winget install ccache` or add to PATH                           |
+| `CMake 3.21+ required`    | Script downloads official CMake if not found                     |
+| `Strawberry Perl missing` | Script auto-downloads portable Strawberry Perl                   |
+
 # Klipper Note
 
 If you're running Klipper, it's recommended to add the following configuration to your `printer.cfg` file.
