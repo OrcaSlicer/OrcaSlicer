@@ -269,6 +269,10 @@ jobs:
   # profile checks and unit tests can't see.
   # Profile-only PRs are covered by check_profiles.yml's nightly binary; this
   # covers src/engine PRs with the PR-built binary.
+  # The G-code is kept and fingerprinted (scripts/gcode_fingerprint.py), and the
+  # fingerprints uploaded, so that the G-code of two builds can be compared. The
+  # clock and the random() seed of custom g-code are fixed for that, or every
+  # slice that prints the time would differ.
   slice_check_linux:
     name: Slice check (Linux ${{ vars.SELF_HOSTED && 'x86_64' || 'aarch64' }})
     needs: build_linux
@@ -285,9 +289,33 @@ jobs:
           path: validator-bin
       - name: Validate slice (expand custom g-code)
         timeout-minutes: 60
+        env:
+          ORCA_SOURCE_DATE_EPOCH: 1000000000
         run: |
           chmod +x validator-bin/OrcaSlicer_profile_validator
-          ./validator-bin/OrcaSlicer_profile_validator -p "${{ github.workspace }}/resources/profiles" -s -l 2
+          ./validator-bin/OrcaSlicer_profile_validator -p "${{ github.workspace }}/resources/profiles" -s -l 2 -o "${{ runner.temp }}/sliced-gcode"
+      # The fingerprints are for comparing builds, not a check: neither step
+      # below may fail the job.
+      - name: Fingerprint the sliced G-code
+        id: fingerprint
+        continue-on-error: true
+        timeout-minutes: 10
+        run: |
+          mkdir -p "${{ runner.temp }}/gcode-fingerprints"
+          python3 scripts/gcode_fingerprint.py fingerprint "${{ runner.temp }}/sliced-gcode" -o "${{ runner.temp }}/gcode-fingerprints/fingerprints.tsv"
+      - name: Upload the fingerprints
+        if: ${{ steps.fingerprint.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 10
+        uses: actions/upload-artifact@v7
+        with:
+          name: gcode-fingerprints
+          path: ${{ runner.temp }}/gcode-fingerprints/fingerprints.tsv
+          # A re-run of the job replaces the file.
+          overwrite: true
+          # A pull request's file is compared with its base branch's, so those are kept longer.
+          retention-days: ${{ github.event_name == 'pull_request' && 30 || 90 }}
+          if-no-files-found: error
   publish_test_results:
     name: Publish Test Results
     needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64, flatpak]
