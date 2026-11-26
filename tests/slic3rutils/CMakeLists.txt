@@ -1,6 +1,7 @@
 get_filename_component(_TEST_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
 add_executable(${_TEST_NAME}_tests
     ${_TEST_NAME}_tests_main.cpp
+    mcp_test_utils.hpp
     test_bambu_filament_ids.cpp
     test_bbl_cert_dir.cpp
     test_bed_exclusion_fields.cpp
@@ -13,6 +14,7 @@ add_executable(${_TEST_NAME}_tests
     test_elegoo_cc2_printer_agent.cpp
     test_moonraker_printer_agent.cpp
     test_mqtt_websocket_client.cpp
+    test_moonraker_filament_sources.cpp
     test_snapmaker_filament_match.cpp
     test_network_discovery.cpp
     test_filament_bitmap_utils.cpp
@@ -33,11 +35,23 @@ add_executable(${_TEST_NAME}_tests
     test_scene_raycaster.cpp
     test_scene_benchmark.cpp
     test_lazy.cpp
+    test_mcp_activity_log.cpp
+    test_mcp_config.cpp
+    test_mcp_core.cpp
+    test_operations.cpp
+    test_mcp_protocol.cpp
+    test_mcp_recording.cpp
+    test_mcp_scene.cpp
+    test_mcp_tools.cpp
+    test_mcp_ui.cpp
+    test_mcp_web.cpp
+    test_mcp_results.cpp
     test_prebuild_queue.cpp
     test_staged_build.cpp
     test_network_versions.cpp
     test_orca_cloud_agent.cpp
     test_action_source.cpp
+    test_command_catalog.cpp
     test_option_state_registry.cpp
     test_plugin_host_api.cpp
     # Exercise seam enums and predicates through the embedded Python host API.
@@ -61,6 +75,8 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_sort.cpp
     test_plugin_cloud_metadata.cpp
     test_plugin_audit.cpp
+    test_python_script_runner.cpp
+    test_plugin_operations.cpp
     test_plugin_json_depth.cpp
     test_plugin_permission_validation.cpp
     test_shortcuts.cpp
@@ -80,6 +96,8 @@ add_executable(${_TEST_NAME}_tests
 
 if (SLIC3R_CAD)
     target_sources(${_TEST_NAME}_tests PRIVATE test_design_sketch_tool.cpp)
+    # The Design tab's commands.
+    target_sources(${_TEST_NAME}_tests PRIVATE test_mcp_cad.cpp)
 endif ()
 
 if (MSVC)

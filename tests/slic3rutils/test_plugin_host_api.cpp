@@ -17,6 +17,7 @@
 
 #include <catch2/catch_all.hpp>
 
+#include <algorithm>
 #include <cstddef>
 #include <libslic3r/Model.hpp>
 #include <libslic3r/PresetBundle.hpp>
@@ -39,9 +40,18 @@
 #include "python_test_support.hpp"
 
 #include <pybind11/embed.h>
+#include <pybind11/eval.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
+#include <nlohmann/json.hpp>
+#include <slic3r/GUI/Mcp/McpTools.hpp>
+#include <slic3r/plugin/PluginOperations.hpp>
+
+#include <regex>
+#include <set>
 #include <string>
+#include <vector>
 
 #include <wx/string.h>
 #include <wx/uri.h>
@@ -627,4 +637,113 @@ TEST_CASE("Plugin host API exposes TriangleMesh geometry to Python", "[PluginHos
     // Instance offset (5, 6, 0) must land in the matrix translation column.
     REQUIRE_THAT(instance_matrix.attr("__getitem__")(py::make_tuple(0, 3)).cast<double>(), WithinAbs(5.0, 1e-6));
     REQUIRE_THAT(instance_matrix.attr("__getitem__")(py::make_tuple(1, 3)).cast<double>(), WithinAbs(6.0, 1e-6));
+}
+
+TEST_CASE("a script reads the catalog", "[PluginHost][Python]")
+{
+    py::module_ orca = import_orca_module();
+    // An operation a plugin offers is among the commands while it is offered.
+    Slic3r::PluginOperation op;
+    op.plugin_key  = "catalog_reader";
+    op.name        = "measure";
+    op.description = "Measures the plate.";
+    op.changes     = false;
+    Slic3r::PluginOperations::instance().add(op);
+    py::dict scope;
+    try {
+        py::exec(R"PY(
+import orca
+tools = orca.host.tools
+state = tools.describe("app_state")
+commands = tools.list()
+names = [entry["name"] for entry in commands]
+fields = sorted(commands[0])
+plugin_fields = sorted(next(entry for entry in commands if entry["name"] == "plugin.catalog_reader.measure"))
+operation = tools.describe("plugin.catalog_reader.measure")
+try:
+    tools.describe("nope")
+    unknown = None
+except tools.ToolError as error:
+    unknown = (str(error), error.details)
+try:
+    tools.describe("app_stat")
+    mistyped = None
+except tools.ToolError as error:
+    mistyped = error.details
+)PY",
+                 scope);
+    } catch (...) {
+        Slic3r::PluginOperations::instance().remove_plugin("catalog_reader");
+        throw;
+    }
+    Slic3r::PluginOperations::instance().remove_plugin("catalog_reader");
+
+    CHECK(scope["state"]["read_only"].cast<bool>());
+    CHECK(scope["state"]["key"].cast<std::string>() == "app_state");
+    CHECK(scope["state"].contains("input_schema"));
+    CHECK(py::len(scope["commands"]) >= 53);
+    const std::vector<std::string> list_fields{"description", "group", "listed", "name", "read_only", "title"};
+    CHECK(scope["fields"].cast<std::vector<std::string>>() == list_fields);
+    CHECK(scope["plugin_fields"].cast<std::vector<std::string>>() == list_fields);
+    const auto names = scope["names"].cast<std::vector<std::string>>();
+    for (const char* name : {"app_state", "object_mirror", "plugin.catalog_reader.measure"}) {
+        CAPTURE(name);
+        CHECK(std::count(names.begin(), names.end(), name) == 1);
+    }
+    CHECK(scope["operation"]["group"].cast<std::string>() == "Plugins");
+    CHECK(scope["operation"]["read_only"].cast<bool>());
+    REQUIRE_FALSE(scope["unknown"].is_none());
+    CHECK(scope["unknown"].cast<py::tuple>()[0].cast<std::string>() == "Unknown tool: nope");
+    const py::dict details = scope["unknown"].cast<py::tuple>()[1].cast<py::dict>();
+    REQUIRE(details.contains("did_you_mean"));
+    CHECK(py::isinstance<py::list>(details["did_you_mean"]));
+    REQUIRE_FALSE(scope["mistyped"].is_none());
+    const auto close = scope["mistyped"]["did_you_mean"].cast<std::vector<std::string>>();
+    REQUIRE_FALSE(close.empty());
+    CHECK(close.front() == "app_state");
+
+    // script_describe_api documents both, as it does every function of the package.
+    std::set<std::string> documented;
+    for (const nlohmann::json& entry : Slic3r::GUI::Mcp::python_api_reference())
+        if (entry["kind"] == "function" && !entry["doc"].get<std::string>().empty())
+            documented.insert(entry["name"].get<std::string>());
+    CHECK(documented.count("orca.host.tools.list") == 1);
+    CHECK(documented.count("orca.host.tools.describe") == 1);
+}
+
+TEST_CASE("every public member of the orca package has documentation and named parameters", "[PluginHost][Python]")
+{
+    // script_list_api and script_describe_api serve this documentation to agents writing scripts and plugins: a member without it, or
+    // with a parameter pybind11 names argN, is one they can only guess at. A constant's documentation is
+    // the documentation that names it, and a class's goes on with what its constructors say; an enum's
+    // constructor takes one of the values its documentation lists.
+    const py::module_        orca = import_orca_module();
+    const py::object         cleandoc = py::module_::import("inspect").attr("cleandoc");
+    const std::regex         positional(R"(\barg\d+\b)");
+    const std::regex         takes_arguments(R"(\w\((?!\)))");
+    std::vector<std::string> undocumented;
+    std::vector<std::string> unnamed;
+    std::vector<std::string> constructors;
+    for (const nlohmann::json& entry : Slic3r::GUI::Mcp::python_api_reference()) {
+        const std::string name      = entry["name"].get<std::string>();
+        const std::string signature = entry["signature"].get<std::string>();
+        const std::string doc       = entry["doc"].get<std::string>();
+        if (doc.empty())
+            undocumented.push_back(name);
+        if (std::regex_search(signature, positional))
+            unnamed.push_back(name);
+        if (entry["kind"] == "class" && std::regex_search(signature, takes_arguments)) {
+            py::object cls = orca;
+            for (std::size_t from = name.find('.') + 1, dot = 0; dot != std::string::npos; from = dot + 1) {
+                dot = name.find('.', from);
+                cls = cls.attr(name.substr(from, dot - from).c_str());
+            }
+            const py::object own = cls.attr("__doc__");
+            if (!py::hasattr(cls, "__members__") && doc == cleandoc(own.is_none() ? py::str("") : own).cast<std::string>())
+                constructors.push_back(name);
+        }
+    }
+    CHECK(undocumented == std::vector<std::string>{});
+    CHECK(unnamed == std::vector<std::string>{});
+    CHECK(constructors == std::vector<std::string>{});
 }

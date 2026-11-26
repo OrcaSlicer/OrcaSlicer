@@ -2,36 +2,42 @@
 
 Everything here supports the parametric Design tab (`src/libslic3r/CAD/`,
 `src/slic3r/GUI/CAD/`). Nothing here is needed to build or run OrcaSlicer — these
-are the development and verification tools for that one feature.
+are the development and verification tools for that one feature. The kernel's own unit
+tests are not here: they are part of `libslic3r_tests` and run under `ctest` like any
+other suite.
 
-The verb in the name is the role:
+## Checks against a running app
 
-| | |
-|---|---|
-| `build-…`  | produce a binary |
-| `start-…`  | bring something up and leave it running |
-| `run-…`    | run a suite and report pass/fail |
-| `check-…`  | one specific assertion, usually driving a live app |
+Three checks drive the Design tab through the app's MCP server, with the same Design commands an
+agent calls, and compare what the app reports with arithmetic. Each needs a running
+OrcaSlicer with the MCP server on (`--mcp`, or "MCP server" under AI features in
+Preferences) and the CAD feature on (Preferences > Features, which takes effect after a restart).
+`tools/mcp/orca_mcp.py launch --cad` starts one with both. A check finds the app through
+its data directory, where the server writes its port and token: the one passed to the check,
+else `$ORCA_DATADIR`, else the platform's own (`tools/mcp/README.md` describes attaching).
+They run on Windows, macOS and Linux, and exit 0 when every assertion held.
 
-## Verification
-
-| Script | What it proves | Needs |
+| Check | What it proves | Run it |
 |---|---|---|
-| `run-kernel-tests.sh` | The CAD kernel builds and the Catch2 `[CadDocument]` tags pass — every case builds a document, recomputes it and asserts on real geometry. **Exit 0 is the verification contract.** | Docker only. No display. |
-| `run-all-checks.sh` | Every check below, in one command. The gate before pushing a Design-tab change. | Docker + the GUI container |
-| `check-sketch-engine.py` | A ladder of 2D sketches of increasing complexity, judged on loop count, closure and void attribution rather than on area. | Kernel only |
-| `check-sketch-engine-corpus.py` | The same ladder graded against a systematic sample of real drawings instead of shapes we chose. | Kernel + corpus |
-| `check-gui-sketching.py` | The same profiles drawn the way a person draws them — synthetic mouse gestures and typed values. | Headless GUI |
-| `check-gui-context-menu.py` | That right-click is the pivot of the design gesture, and adapts to what was clicked. | Headless GUI |
-| `check-mcp-sketch.py` | The sketch layer driven over the MCP socket, asserting what decides whether a profile is buildable. | Headless GUI + `ORCA_CAD_MCP` |
+| `check-mcp-sketch.py` | The sketch layer, asserting what decides whether a profile is buildable: closed loops, offsets that survive, a circle read as a void rather than a second body. | `python3 scripts/CAD/check-mcp-sketch.py [datadir]` |
+| `check-sketch-engine.py` | A ladder of 2D sketches of increasing complexity, judged on vertices, lengths, radii, tangency, symmetry and closure rather than on area. | `python3 scripts/CAD/check-sketch-engine.py [datadir]` |
+| `check-sketch-engine-corpus.py` | The same ladder graded against real drawings: a systematic sample of the StudyCadCam sheets, each judged against its own vector geometry. | `python3 scripts/CAD/check-sketch-engine-corpus.py --corpus DIR [--datadir DIR] [--step N] [--limit N] [--scale] [--budget S]` |
 
-**`run-kernel-tests.sh` is the only one CI can run.** The rest need a live
-application with an OpenGL canvas and synthetic input, which hosted runners do not
-have. The kernel suite itself is already in CI by an ordinary route: the cases are
-registered in `tests/libslic3r/CMakeLists.txt` under `if (SLIC3R_CAD)`, so they are
-part of `libslic3r_tests` and run under `ctest` on every platform like any other
-unit test. This script exists for the local loop, where it is a two-minute round
-trip instead of a full application build.
+For example:
+
+    python3 tools/mcp/orca_mcp.py launch --cad --datadir <datadir>
+    python3 scripts/CAD/check-sketch-engine.py <datadir>
+    python3 tools/mcp/orca_mcp.py stop
+
+The corpus check takes the folder of `MPD*.pdf` sheets, which is not in the repository, and
+reads them with poppler's `pdftocairo` and `pdfinfo`, which must be on the PATH. It grades
+every 20th sheet by default (`--step`); `--scale` grades the largest drawings instead, each
+round trip within `--budget` seconds.
+
+The Design tab's GUI tests, which draw on the canvas with the mouse and keyboard as a person
+does, are MCP harness tests in `tools/mcp/` (`test_cad_sketching.py` and
+`test_cad_context_menu.py`); `tools/mcp/test-entries/design.md` says
+what they check, and `tools/mcp/README.md` how to run them.
 
 ## Generated sources
 
@@ -40,29 +46,35 @@ compiled against it cannot drift apart:
 
 | Generator | Source | Output |
 |---|---|---|
-| `gen_offer_table.py` | `tool_atlas.json` — every offer verb with its row, key, icon, accepted selections and refusal string | `src/slic3r/GUI/CAD/DesignOffer.hpp` |
-| `mate-glyph/emit_glyph_table.py` | `mate-glyph/bear_outline.json`, measured off `mate-glyph/bear.step` by `extract_outline.py` (needs FreeCAD) | the `kBear…` tables in `DesignSketchTool.cpp` |
+| `gen_offer_table.py` | `tool_atlas.json` — the Design tab's table: every offer verb with its row, key, icon, accepted selections and refusal string, and every Design command's silent form (a `tool` block) | `src/slic3r/GUI/CAD/DesignOffer.hpp` |
+| `mate-glyph/emit_glyph_table.py` | `mate-glyph/bear_outline.json`, measured off `mate-glyph/bear.step` by `extract_outline.py` | the `kBear…` tables in `DesignSketchTool.cpp` |
+
+The atlas's `verbs` are one table for three things: the right-click menu (a verb with a `slot` has an
+item there), the Speed Dial's Design tab actions and the Design commands. Every verb but a folded or a
+greyed item (`fold`; `pat_curve`, `align_to`) is a command whose key is its `id`. A verb with a handler
+(`action`) does what its menu item does when called
+with no arguments, in the mode the item belongs to, and has an action of its own in the Speed Dial; one
+with a `tool` block also runs silently
+with arguments, and the block holds what that form takes and does: its `access` (`read`, `change` or
+`sketch`, which decides what a busy Design tab lets through), `ok_false` (it reports a rejected rebuild
+in its reply), a `summary` of one sentence,
+`details`, its `params` (each with `name`, `type`, `unit`, `default`, limits `min`, `exclusive_min` and
+`max`, `enum` and `description`; one with no default is required, and one whose default is null also takes
+null, unless `nullable` is false, which marks a param whose function reads a null as given), one to three
+`examples` and `ids`
+(it takes or gives face and edge ids). Entries with no `slot` and no handler are commands only, and
+`modal` marks a verb whose handler opens a dialog. `src/slic3r/GUI/Mcp/Tools/Design*.cpp` bind each block
+to the function that runs it (`silent_forms()`), and a unit test fails when a block has no function or a
+function no block. The generator refuses an entry with no slot that has neither a handler nor a block.
 
 `python3 scripts/CAD/gen_offer_table.py` rewrites the header and `--check` proves the
-checked-in one matches the atlas — `run-all-checks.sh` runs the check as its first rung,
-which is what makes the header's "GENERATED — DO NOT EDIT" enforceable. Edit the atlas,
-never the header.
+checked-in one matches the atlas. The "Check CAD offer table" workflow
+(`.github/workflows/check_cad_offer_table.yml`) runs the check on every push and pull
+request that touches the atlas, the generator or the header, which is what makes the
+header's "GENERATED — DO NOT EDIT" enforceable. Edit the atlas, never the header.
 
-## Build and run
-
-| Script | Purpose |
-|---|---|
-| `build-gui.sh` | Build the GUI binary in a throwaway container, writing into the build-cache volume the long-lived GUI container reads. |
-| `build-gui-incremental.sh` | Incremental build against the deps-baked image, for a fast edit/compile loop. |
-| `start-headless-gui.sh` | Bring the app up on a headless X display (Xvfb + a window manager), ready to drive or attach to over VNC. |
-
-Two constraints that are not obvious and have each cost a session:
-
-- **Never build inside the GUI container.** Its baked source tree silently
-  reconfigures the shared build directory and this fork's targets vanish.
-- **A window manager is required.** Without one, windows are never focused, and an
-  unfocused GTK app ignores synthetic keys — which looks exactly like a code bug.
-
-`scripts/CAD/rig_build_traps.md` documents these and three more, with symptoms and exact
-recovery commands. Read it before debugging a configure or link failure one of
-these scripts reports.
+`mate-glyph/` holds the bear connector the mate glyph is drawn from. `extract_outline.py`
+runs in FreeCAD's Python (it reads the STEP with `Part`) and writes `bear_outline.json`.
+`emit_glyph_table.py` runs in plain Python and simplifies that outline into the C++ tables,
+printing them and writing them to `bear_glyph_table.h` beside it; `DesignSketchTool.cpp`
+holds them as emitted.

@@ -7,6 +7,7 @@
 #include <gp_Pln.hxx>
 #include <gp_Ax1.hxx>
 #include <gp_Ax3.hxx>
+#include <gp_Dir.hxx>
 #include <gp_Vec.hxx>
 #include <TopoDS_Wire.hxx>
 #include <TopoDS_Shape.hxx>
@@ -202,6 +203,10 @@ struct ConstraintPlan {
 // e2 is the axis-line pick Symmetric needs (def.ec); every other type ignores it.
 ConstraintPlan plan_entity_constraint(const std::vector<SketchEntity>& ents,
                                       int e0, int e1, int e2, SketchConstraintType type);
+// Write the value for a planned constraint into every def. The planner's prefill, and the value a
+// person types, are in display units; Angle is the one type stored otherwise (degrees shown,
+// radians stored).
+void write_plan_value(std::vector<SketchEntityConstraintDef>& defs, double v);
 
 // Solve a bare entity list in place against entity-form constraints. Shared by
 // CadDocument::solve_sketch_feature (committed features) and the in-session GUI
@@ -251,6 +256,11 @@ public:
     // perpendicular to the spine along its length. The path may be open or closed;
     // for a clean solid the path's first point should sit on/near the profile plane.
     static TopoDS_Shape make_sweep(const TopoDS_Wire& profile, const TopoDS_Wire& path);
+    // Sweep along a helix whose axis is `binormal`: the profile keeps its angle to that axis the
+    // whole way round, as a spring's or a thread's wire does (BRepOffsetAPI_MakePipeShell with a
+    // fixed binormal). The moving frame of the sweep above turns a profile about a helix, so a
+    // square wire would twist on its way up.
+    static TopoDS_Shape make_sweep(const TopoDS_Wire& profile, const TopoDS_Wire& path, const gp_Dir& binormal);
 
     // Loft a solid through 2+ closed profile wires (each on its own plane), in the
     // given order. ruled=true => straight (ruled) sections; false => smooth (C2).
