@@ -361,8 +361,13 @@ for a checked-in header, not documentation.
 
 `McpControl` exposes the document over JSON-RPC when `ORCA_CAD_MCP` is set in the environment,
 with `tools/orca_cad_mcp_bridge.py` as the client side. It describes the scene, queries
-topology, measures, and runs the same verbs the offer does — it re-implements nothing, so a
-scripted action and a clicked one cannot diverge. It is off unless the variable is set.
+topology, measures, runs the same verbs the offer does, and closes the loop past modelling:
+`commit_to_plate` ships the visible bodies to the plate, `export_step` / `export_stl` write
+them to disk, and `save_project` writes a 3MF project copy — all through the same
+dialog-free funnels the buttons use, so a scripted action and a clicked one cannot diverge.
+Commit/export/save never mutate the feature recipe, so they take no undo checkpoints; like
+every other write they are refused while the panel is busy. It is off unless the variable
+is set.
 
 ## Where the code lives
 
