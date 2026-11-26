@@ -66,6 +66,9 @@ protected:
     std::vector<std::pair<std::string, std::string>> pair_id;
 
     int         m_total_ext_count = 1;
+    // Orca: device tool 0 is shown on the right on Bambu dual-nozzle printers, but on the left
+    // on generic two-tool printers. Cached from MachineObject::device_tool_for_display_index.
+    bool        m_two_tool_display_left_is_main{false};
     AMSextruder *m_extruder{nullptr};
     SwitcherImage *m_switcher{nullptr};       // Orca: filament-switch routing glyph (hidden unless a switch is installed)
     AMSRoadDownPart* m_down_road{ nullptr };
@@ -232,6 +235,10 @@ public:
     void parse_object(MachineObject* obj);
 
 private:
+    // Orca: presentation-only helpers. Device tool ids keep their meaning for commands, lookups
+    // and loading events; only the left/right side shown in the Device tab is mapped.
+    bool ams_belongs_to_right_panel(const AMSinfo& info) const;
+    int  visual_extruder_side(int device_tool_id) const;
     std::string get_filament_id(const std::string& ams_id, const std::string& can_id);
 
 public:

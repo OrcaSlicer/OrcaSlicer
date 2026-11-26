@@ -251,6 +251,46 @@ static std::optional<TrayData> sGetTrayData(DevAmsTray* tray,
     return td;
 }
 
+// Exactly-two-tool layout: display position 0 is the left panel, 1 the right one.
+// exact_two_tools is false for printers that keep the historical main-right / deputy-left
+// binding. resolved is false when a printer reports two tools but its display order is
+// unusable; callers then skip the item instead of guessing a side.
+struct TwoToolPopupLayout
+{
+    bool exact_two_tools = false;
+    bool resolved = false;
+    int  left_tool = -1;
+    int  right_tool = -1;
+};
+
+static TwoToolPopupLayout sTwoToolPopupLayout(const MachineObject* obj)
+{
+    TwoToolPopupLayout layout;
+    if (!obj || !obj->GetExtderSystem() || obj->GetExtderSystem()->GetTotalExtderCount() != 2)
+        return layout;
+
+    layout.exact_two_tools = true;
+    const int left_tool  = obj->device_tool_for_display_index(0);
+    const int right_tool = obj->device_tool_for_display_index(1);
+    const auto valid_tool = [](int tool) {
+        return tool == MAIN_EXTRUDER_ID || tool == DEPUTY_EXTRUDER_ID;
+    };
+    if (valid_tool(left_tool) && valid_tool(right_tool) && left_tool != right_tool) {
+        layout.resolved = true;
+        layout.left_tool  = left_tool;
+        layout.right_tool = right_tool;
+    }
+    return layout;
+}
+
+// The main virtual tray belongs to device tool 0, the deputy one to tool 1.
+static int sVirtualTrayIdForDeviceTool(int device_tool)
+{
+    return device_tool == MAIN_EXTRUDER_ID   ? VIRTUAL_TRAY_MAIN_ID
+         : device_tool == DEPUTY_EXTRUDER_ID ? VIRTUAL_TRAY_DEPUTY_ID
+                                             : -1;
+}
+
 void AmsMapingPopup::update_mapping_items(MachineObject* obj, const std::vector<FilamentInfo>& ams_mapping_result, bool use_dynamic_switch)
 {
     std::list<MappingContainer*>   left_one_slot_containers;
@@ -258,19 +298,35 @@ void AmsMapingPopup::update_mapping_items(MachineObject* obj, const std::vector<
     std::vector<MappingContainer*> left_four_slots_containers;
     std::vector<MappingContainer*> right_four_slot_containers;
 
+    const TwoToolPopupLayout two_tool_layout = sTwoToolPopupLayout(obj);
+
     const auto& ams_list = obj->GetFilaSystem()->GetAmsList();
     for (auto ams_iter = ams_list.begin(); ams_iter != ams_list.end(); ams_iter++) {
         const auto& extruder_set = ams_iter->second->GetBindedExtruderSet();
         if (extruder_set.size() <= 0) {
             continue;
         }
+        if (two_tool_layout.exact_two_tools && !two_tool_layout.resolved) {
+            // Two tools but no usable display order: skip instead of guessing a side.
+            continue;
+        }
 
         wxPanel* target_panel = nullptr;
         if (m_show_type == ShowType::LEFT_AND_RIGHT_DYNAMIC) {
+            // The filament track switch feeds one AMS to both tools; keep it in the single dynamic panel.
             target_panel = m_right_marea_panel;
         } else {
-            int extruder_id = *extruder_set.begin();
-            if (extruder_id == MAIN_EXTRUDER_ID) {
+            const int extruder_id = *extruder_set.begin();
+            // A single bound tool on a resolved two-tool layout follows its displayed side.
+            // Switcher-bound groups (both tools) and other printer sizes keep the historical
+            // main-right / deputy-left binding.
+            if (two_tool_layout.resolved && extruder_set.size() == 1) {
+                if (extruder_id == two_tool_layout.left_tool) {
+                    target_panel = m_left_marea_panel;
+                } else if (extruder_id == two_tool_layout.right_tool) {
+                    target_panel = m_right_marea_panel;
+                }
+            } else if (extruder_id == MAIN_EXTRUDER_ID) {
                 target_panel = m_right_marea_panel;
             } else if (extruder_id == DEPUTY_EXTRUDER_ID) {
                 target_panel = m_left_marea_panel;
@@ -320,10 +376,32 @@ void AmsMapingPopup::update_mapping_items(MachineObject* obj, const std::vector<
         }
     }
 
+    if (two_tool_layout.exact_two_tools) {
+        if (!two_tool_layout.resolved) {
+            // No usable side: clear every target so a previous side's tray cannot be selected
+            // through this widget.
+            MappingItem* slots[] = { m_left_extra_slot, m_right_extra_slot };
+            for (MappingItem* slot : slots) {
+                slot->m_ams_id = -1;
+                slot->m_slot_id = -1;
+                slot->m_tray_data.id = -1;
+                slot->m_tray_data.ams_id = -1;
+                slot->m_tray_data.slot_id = -1;
+            }
+        } else {
+            m_left_extra_slot->m_ams_id  = sVirtualTrayIdForDeviceTool(two_tool_layout.left_tool);
+            m_right_extra_slot->m_ams_id = sVirtualTrayIdForDeviceTool(two_tool_layout.right_tool);
+        }
+    }
+
     for (int i = obj->vt_slot.size() - 1; i >= 0; i--) {
         DevAmsTray* tray_data = &obj->vt_slot[i];
         const auto& td_opt = sGetTrayData(tray_data, tray_data->id, DevAmsType::EXT_SPOOL);
         if (!td_opt.has_value()) {
+            continue;
+        }
+        if (two_tool_layout.exact_two_tools && !two_tool_layout.resolved) {
+            // Two tools but no usable display order: skip rather than label or select a side.
             continue;
         }
 
@@ -343,13 +421,33 @@ void AmsMapingPopup::update_mapping_items(MachineObject* obj, const std::vector<
             m_amsmapping_container_list.push_back(ams_mapping_item_container);
             right_one_slot_containers.push_back(ams_mapping_item_container);
         } else {
-            if (td_opt->ams_id == VIRTUAL_TRAY_MAIN_ID) {
-                m_right_extra_slot->send_win = send_win;
-                add_ext_ams_mapping(td_opt.value(), m_right_extra_slot);
-            } else if (td_opt->ams_id == VIRTUAL_TRAY_DEPUTY_ID) {
-                m_left_extra_slot->send_win = send_win;
-                add_ext_ams_mapping(td_opt.value(), m_left_extra_slot);
+            if (td_opt->ams_id != VIRTUAL_TRAY_MAIN_ID && td_opt->ams_id != VIRTUAL_TRAY_DEPUTY_ID) {
+                continue;
             }
+            // Device tool 0 owns the main virtual tray (255), tool 1 the deputy one (254).
+            const int device_tool = td_opt->ams_id == VIRTUAL_TRAY_MAIN_ID ? MAIN_EXTRUDER_ID : DEPUTY_EXTRUDER_ID;
+            MappingItem* slot = nullptr;
+            if (two_tool_layout.resolved) {
+                if (device_tool == two_tool_layout.left_tool) {
+                    slot = m_left_extra_slot;
+                } else if (device_tool == two_tool_layout.right_tool) {
+                    slot = m_right_extra_slot;
+                }
+            } else if (device_tool == DEPUTY_EXTRUDER_ID) {
+                // Legacy binding for non-two-tool printers: the deputy spool is left.
+                slot = m_left_extra_slot;
+            } else {
+                slot = m_right_extra_slot;
+            }
+            if (!slot) {
+                continue;
+            }
+            slot->send_win = send_win;
+            // Keep the slot's target tray in step with what it now shows so the checked
+            // state and the virtual-slot checks still refer to the real target.
+            slot->m_ams_id = td_opt->ams_id;
+            slot->m_slot_id = td_opt->slot_id;
+            add_ext_ams_mapping(td_opt.value(), slot);
         }
     }
 
@@ -690,7 +788,8 @@ void AmsMapingPopup::add_ext_ams_mapping(TrayData tray_data, MappingItem* item)
         }
 
         item->Bind(wxEVT_LEFT_DOWN, [this, tray_data, item](wxMouseEvent& e) {
-            if (!item->GetParent() || !item->GetParent()->IsEnabled()) return;
+            if (!item->GetParent() || !item->GetParent()->IsEnabled() || item->m_ams_id < 0 ||
+                tray_data.ams_id != item->m_ams_id) return;
             if (m_ext_mapping_filatype_check && !is_match_material(tray_data.filament_type)) return;
             item->send_event(m_current_filament_id);
             Dismiss();
@@ -702,7 +801,8 @@ void AmsMapingPopup::add_ext_ams_mapping(TrayData tray_data, MappingItem* item)
     if (tray_data.type == EMPTY) {
         item->set_data(m_tag_material, wxColour(0xCE, 0xCE, 0xCE), "-", false, tray_data);
         item->Bind(wxEVT_LEFT_DOWN, [this, tray_data, item](wxMouseEvent& e) {
-            if (!item->GetParent() || !item->GetParent()->IsEnabled()) return;
+            if (!item->GetParent() || !item->GetParent()->IsEnabled() || item->m_ams_id < 0 ||
+                tray_data.ams_id != item->m_ams_id) return;
             item->send_event(m_current_filament_id);
             Dismiss();
         });
@@ -713,7 +813,8 @@ void AmsMapingPopup::add_ext_ams_mapping(TrayData tray_data, MappingItem* item)
         item->set_data(m_tag_material, tray_data.colour, "?", false, tray_data);
         //item->set_data(wxColour(0xCE, 0xCE, 0xCE), "?", tray_data);
         item->Bind(wxEVT_LEFT_DOWN, [this, tray_data, item](wxMouseEvent& e) {
-            if (!item->GetParent() || !item->GetParent()->IsEnabled()) return;
+            if (!item->GetParent() || !item->GetParent()->IsEnabled() || item->m_ams_id < 0 ||
+                tray_data.ams_id != item->m_ams_id) return;
             item->send_event(m_current_filament_id);
             Dismiss();
         });

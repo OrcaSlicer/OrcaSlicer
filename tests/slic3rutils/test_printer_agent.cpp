@@ -86,7 +86,7 @@ TEST_CASE("integration: orca.printer_agent binding surface", "[integration][Pyth
                                 "command_xyz_abs", "command_auto_leveling", "command_go_home",
                                 "command_set_bed", "command_set_nozzle", "command_axis_control",
                                 "start_discovery", "bind_detect",
-                                "start_print", "get_filament_sync_mode" }) {
+                                "start_print", "get_filament_sync_mode", "tool_display_order" }) {
         CAPTURE(method);
         CHECK(py::hasattr(base, method));
     }

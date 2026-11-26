@@ -5191,7 +5191,26 @@ std::vector<std::vector<DynamicPrintConfig>> PresetBundle::get_extruder_filament
     int extruder_nums = get_printer_extruder_count();
     if (extruder_nums > 1) {
         filament_infos.resize(extruder_nums, std::vector<DynamicPrintConfig>());
+        const ConfigOptionInts physical_map = effective_physical_extruder_map(*this);
         for (auto ams_item : filament_ams_list) {
+            // A generic slot carries the device tool it belongs to. Resolve it through the effective
+            // logical-to-physical map instead of using the device id as a logical index: a swapped
+            // map ({1,0}) and two logical extruders sharing one device both need this lookup.
+            if (ams_item.second.has("device_tray_extruder_id")) {
+                const int device_tool = ams_item.second.opt_int("device_tray_extruder_id");
+                if (device_tool < 0 || device_tool >= extruder_nums)
+                    continue; // invalid association
+                const size_t logical_count = std::min<size_t>(size_t(extruder_nums), physical_map.values.size());
+                for (size_t logical = 0; logical < logical_count; ++logical) {
+                    if (physical_map.values[logical] != device_tool)
+                        continue;
+                    // Drop the transient association before the config reaches the slicing pipeline.
+                    DynamicPrintConfig entry = ams_item.second;
+                    entry.erase("device_tray_extruder_id");
+                    filament_infos[logical].push_back(std::move(entry));
+                }
+                continue; // A device no logical extruder routes to contributes no inventory.
+            }
             if (ams_item.first & 0x10000) { // right
                 filament_infos[1].push_back(ams_item.second);
             } else { // left

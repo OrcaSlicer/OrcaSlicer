@@ -9293,3 +9293,64 @@ TEST_CASE("The cloud diff force-emits a disabled override only where the cloud w
     // An ironing override defaults to nil: an absent key stays nil, so it is not sent.
     CHECK(key_values.count("filament_ironing_flow") == 0);
 }
+
+TEST_CASE("A generic AMS slot follows the physical extruder map into logical buckets", "[Preset][Bundle][AMS]")
+{
+    PresetBundle bundle;
+    bundle.printers.get_edited_preset().config.opt<ConfigOptionFloats>("nozzle_diameter", true)->values = { 0.4, 0.4 };
+
+    auto tray = [](const std::string &colour, int device_tool) {
+        DynamicPrintConfig config;
+        config.set_key_value("filament_id", new ConfigOptionStrings{ "GFA00" });
+        config.set_key_value("filament_colour", new ConfigOptionStrings{ colour });
+        config.set_key_value("device_tray_extruder_id", new ConfigOptionInt{ device_tool });
+        return config;
+    };
+
+    SECTION("a swapped map routes each device slot to its logical extruder") {
+        bundle.project_config.set_key_value("physical_extruder_map", new ConfigOptionInts{ 1, 0 });
+        bundle.filament_ams_list.emplace(0, tray("#111111", 1));
+        bundle.filament_ams_list.emplace(1, tray("#222222", 0));
+
+        const auto info = bundle.get_extruder_filament_info();
+        REQUIRE(info.size() == 2);
+        REQUIRE(info[0].size() == 1);
+        REQUIRE(info[1].size() == 1);
+        CHECK(info[0][0].opt_string("filament_colour", 0u) == "#111111");
+        CHECK(info[1][0].opt_string("filament_colour", 0u) == "#222222");
+        CHECK_FALSE(info[0][0].has("device_tray_extruder_id"));
+        CHECK_FALSE(info[1][0].has("device_tray_extruder_id"));
+    }
+
+    SECTION("two logical extruders sharing a device share its inventory") {
+        bundle.project_config.set_key_value("physical_extruder_map", new ConfigOptionInts{ 0, 0 });
+        bundle.filament_ams_list.emplace(0, tray("#333333", 0));
+        bundle.filament_ams_list.emplace(1, tray("#444444", 1)); // no logical extruder routes to device 1
+        bundle.filament_ams_list.emplace(2, tray("#555555", 7)); // invalid device id
+
+        const auto info = bundle.get_extruder_filament_info();
+        REQUIRE(info.size() == 2);
+        REQUIRE(info[0].size() == 1);
+        REQUIRE(info[1].size() == 1);
+        CHECK(info[0][0].opt_string("filament_colour", 0u) == "#333333");
+        CHECK(info[1][0].opt_string("filament_colour", 0u) == "#333333");
+        CHECK_FALSE(info[0][0].has("device_tray_extruder_id"));
+        CHECK_FALSE(info[1][0].has("device_tray_extruder_id"));
+    }
+
+    SECTION("entries without a device association keep the legacy key buckets") {
+        DynamicPrintConfig left;
+        left.set_key_value("filament_colour", new ConfigOptionStrings{ "#AAAAAA" });
+        DynamicPrintConfig right;
+        right.set_key_value("filament_colour", new ConfigOptionStrings{ "#BBBBBB" });
+        bundle.filament_ams_list.emplace(1, left);
+        bundle.filament_ams_list.emplace(0x10001, right);
+
+        const auto info = bundle.get_extruder_filament_info();
+        REQUIRE(info.size() == 2);
+        REQUIRE(info[0].size() == 1);
+        REQUIRE(info[1].size() == 1);
+        CHECK(info[0][0].opt_string("filament_colour", 0u) == "#AAAAAA");
+        CHECK(info[1][0].opt_string("filament_colour", 0u) == "#BBBBBB");
+    }
+}

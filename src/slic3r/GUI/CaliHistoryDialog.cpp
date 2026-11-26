@@ -904,10 +904,22 @@ NewCalibrationHistoryDialog::NewCalibrationHistoryDialog(wxWindow *parent, const
 
 int NewCalibrationHistoryDialog::get_extruder_id(int extruder_index)
 {
-    if ((extruder_index != -1) && curr_obj->is_multi_extruders()) {
-        return curr_obj->is_main_extruder_on_left() ? extruder_index : (1 - extruder_index);
+    if (!curr_obj)
+        return INVALID_EXTRUDER_ID;
+    if (!curr_obj->is_multi_extruders())
+        return MAIN_EXTRUDER_ID;
+    if (extruder_index < 0)
+        return INVALID_EXTRUDER_ID;
+    if (curr_obj->GetExtderSystem()->GetTotalExtderCount() == 2) {
+        const int device_tool = curr_obj->device_tool_for_display_index(extruder_index);
+        if (device_tool < 0) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << " " << __LINE__
+                                       << " unresolved device tool for extruder display index " << extruder_index;
+            return INVALID_EXTRUDER_ID;
+        }
+        return device_tool;
     }
-    return 0;
+    return curr_obj->is_main_extruder_on_left() ? extruder_index : (1 - extruder_index);
 }
 
 int NewCalibrationHistoryDialog::get_nozzle_combo_id_code() const
@@ -975,6 +987,12 @@ void NewCalibrationHistoryDialog::on_ok(wxCommandEvent &event)
             return;
         }
         m_new_result.extruder_id        = get_extruder_id(m_comboBox_extruder->GetSelection());
+        if (m_new_result.extruder_id < 0) {
+            // TRN: Warning when the chosen extruder cannot be resolved to a device tool.
+            MessageDialog msg_dlg(nullptr, _L("The selected extruder is not available for this printer."), wxEmptyString, wxICON_WARNING | wxOK);
+            msg_dlg.ShowModal();
+            return;
+        }
     }
 
     if (support_nozzle_volume(curr_obj)) {

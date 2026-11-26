@@ -77,6 +77,10 @@ public:
      */
      static AgentInfo get_agent_info_static();
      AgentInfo get_agent_info() override { return get_agent_info_static(); }
+     std::vector<int> tool_display_order(const std::string&, int tool_count) const override
+     {
+         return tool_count == 2 ? std::vector<int>{1, 0} : std::vector<int>{};
+     }
 
     // Print Job Operations
     int start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn) override;
