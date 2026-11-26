@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: bounty-17866-${{ inputs.read_run_id || github.ref }}
+  group: bounty-17866-${{ inputs.read_run_id || github.sha }}
   cancel-in-progress: false
 
 jobs:
