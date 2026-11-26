@@ -5876,7 +5876,7 @@ static void update_print_tab_after_filament_change(bool process_changed)
     tab->update();
 }
 
-void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
+void Sidebar::delete_filament(size_t filament_id, int replace_filament_id, std::optional<bool> confirm_tool_shift) {
     if (is_new_project_in_gcode3mf()) { return; }
     if (p->combos_filament.size() <= 1) return;
 
@@ -5896,18 +5896,17 @@ void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
 
     bool is_mixed = (filament_id >= p->combos_filament.size());
 
-    auto& bundle = *wxGetApp().preset_bundle;
-    const auto& printer_config = bundle.printers.get_edited_preset().config;
-    const auto* nozzles = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
-    if (!is_mixed && filament_id + 1 < p->combos_filament.size() &&
-        !bundle.is_bbl_vendor() && !printer_config.opt_bool("single_extruder_multi_material") &&
-        nozzles && nozzles->values.size() > 1) {
-        MessageDialog dlg(this,
-            _L("Removing this filament will shift the tool numbers of later filament slots. "
-               "Check that the filament assignments still match your printer's physical tools. Continue?"),
-            _L("Warning"), wxOK | wxCANCEL | wxICON_WARNING);
-        if (dlg.ShowModal() != wxID_OK)
+    if (!is_mixed && delete_shifts_tools(filament_id)) {
+        if (confirm_tool_shift == std::optional<bool>(false))
             return;
+        if (!confirm_tool_shift.has_value()) {
+            MessageDialog dlg(this,
+                _L("Removing this filament will shift the tool numbers of later filament slots. "
+                   "Check that the filament assignments still match your printer's physical tools. Continue?"),
+                _L("Warning"), wxOK | wxCANCEL | wxICON_WARNING);
+            if (dlg.ShowModal() != wxID_OK)
+                return;
+        }
     }
 
     if (!is_mixed) {
@@ -5957,6 +5956,16 @@ void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
     filament_list->Scroll(-1, INT_MAX); // ORCA scroll to end of list on changes to inform user about filament count
 }
 
+bool Sidebar::delete_shifts_tools(size_t filament_id) const
+{
+    auto&       bundle         = *wxGetApp().preset_bundle;
+    const auto& printer_config = bundle.printers.get_edited_preset().config;
+    const auto* nozzles        = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
+    return p != nullptr && filament_id + 1 < p->combos_filament.size() && !bundle.is_bbl_vendor() &&
+           !printer_config.opt_bool("single_extruder_multi_material") && nozzles != nullptr &&
+           nozzles->values.size() > 1;
+}
+
 bool Sidebar::merge_removes_component(size_t from_id, size_t to_id) const
 {
     const auto& pb = *wxGetApp().preset_bundle;
@@ -5969,7 +5978,7 @@ bool Sidebar::merge_removes_component(size_t from_id, size_t to_id) const
     return std::find(comps.begin(), comps.end(), (unsigned int) from_id + 1) != comps.end();
 }
 
-void Sidebar::change_filament(size_t from_id, size_t to_id)
+bool Sidebar::change_filament(size_t from_id, size_t to_id, std::optional<bool> confirm_tool_shift)
 {
     if (from_id == size_t(-2))
         from_id = p->m_menu_filament_id;
@@ -5983,10 +5992,11 @@ void Sidebar::change_filament(size_t from_id, size_t to_id)
             _L("Warning"),
             wxOK | wxCANCEL | wxICON_WARNING);
         if (dlg.ShowModal() != wxID_OK)
-            return;
+            return false;
     }
 
-    delete_filament(from_id, int(to_id));
+    delete_filament(from_id, int(to_id), confirm_tool_shift);
+    return true;
 }
 
 void Sidebar::edit_filament()

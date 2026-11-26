@@ -66,7 +66,9 @@ last two scenarios, start with `start()`, which turns back what an earlier scena
 Printer's 0.2, 0.6 and 0.8 nozzles and the Generic Marlin Printer uninstalled, and the ToolChanger not listed, as the
 start found it; a run that fails after the switch in another extruder leaves the ToolChanger listed, which the next
 run's setup hides. A failure after adding the slots leaves the Klipper with five slots, and one after disabling remembered
-presets leaves that preference off; the next `start()` resets both.
+presets leaves that preference off; the next `start()` resets both. A failure on the ToolChanger's own add, merge or
+mixed slot leaves it with six slots, the last mixed before step 11, or five; the next `start()` deletes the mixes and
+then the last physical slot, which asks nothing, and puts the printer back.
 What each printer it selected was last used with: the Klipper's 0.4, 0.6 and 0.8
 nozzles Std and PLA, the Klipper's 0.2 nozzle what the start's install selected with it (0.08mm Extra Fine @MyKlipper
 and PLA in a run after `test_operation_routes`), the Marlin 0.20mm Standard @MyMarlin and PLA, the ToolChanger TC Std
@@ -470,7 +472,11 @@ true}` and leaves the selection `Klipper | Std | PLA[nozzle_temperature 230×6, 
 **Scenario: another extruder, on the ToolChanger**
 
 The ToolChanger has five extruders. The scenario adds four slots on the Klipper and turns off remembered printer
-presets before switching: all five slots survive, with their incompatible PLA replaced by TC PLA. On a multi-tool printer of no Bambu Lab vendor the
+presets before switching: all five slots survive, with their incompatible PLA replaced by TC PLA. The slots belong to
+the project, not to the printer's tools, so the ToolChanger adds and deletes them too, though it is not a SEMM
+printer, and deleting or merging a slot before a later one asks before the later slots' tool numbers shift. A merge
+that also breaks a mix asks the mix's question first, then the tool numbers. On a
+multi-tool printer of no Bambu Lab vendor the
 automatic filament map prints filament n on tool n (`bed_exclusion_extruder_for_filament()`), so `filament_slot` picks
 the extruder. Tool 2 is given a 0.6 nozzle, so that what a test takes from its extruder differs from tool 1's: the max
 volumetric speed tower's own `layer_height` is 0.8 × its extruder's nozzle and its `outer_wall_line_width` 1.75 ×, and
@@ -482,7 +488,7 @@ key, and every slot holds it, so the filament tab never moves.
 
 A printer's extruder settings are on its one Extruder page, whatever its number of extruders: the page's controls
 edit the extruder its switch picks. The settings index gives each extruder's copy of a setting a row of its own,
-"Extruder <n>" on a printer of several, so that a Speed Dial hit picks that extruder. Steps 1 and 5 check both
+"Extruder <n>" on a printer of several, so that a Speed Dial hit picks that extruder. Steps 1 and 11 check both
 sides, on the ToolChanger's five extruders and then on the Klipper's one, which follows a printer of more extruders
 than it has. **The Extruder page check:** `settings_list_pages {type: printer}` lists one page whose name begins
 with "Extruder", "Extruder", whose group "Retraction" counts 10; `settings_list {type: printer, where: "Extruder >
@@ -497,10 +503,16 @@ Retraction"}` lists exactly the ten keys of that group (`publishable_printer_ret
 | 2 | `settings_set {type: printer, values: {nozzle_diameter: "0.4,0.6,0.4,0.4,0.4"}}`, then `{test: "max_volumetric", filament_slot: 2, preset_changes: "keep"}` | `project` "Max volumetric speed test"; `params` `{start: 5, end: 20, step: 0.5}`; `presets_changed.filament` is `{name: TC PLA, filament_slot: 2, extruder: 2, changes: {filament_max_volumetric_speed: 200×3, slow_down_layer_time: "0"}}`; the tower's own `layer_height` "0.48" and `outer_wall_line_width` "1.05", tool 2's 0.6 nozzle × 0.8 and × 1.75; the printer's `max_layer_height` reads `0.48×5`; `object_list` lists `SpeedTestStructure.drc` alone, its `filament` 2 |
 | 3 | a slice | every tool the G-code picks, a `T<n>` at a line's start, is T1, tool 2 |
 | 4 | `project_new {discard_changes: true, preset_changes: "discard"}`, the same `settings_set`, then `{test: "max_volumetric", preset_changes: "keep"}` | `presets_changed.filament` gives `filament_slot` 1 and `extruder` 1; the tower's own `layer_height` "0.32" and `outer_wall_line_width` "0.7", tool 1's 0.4 nozzle; `object_list` lists `SpeedTestStructure.drc`, its `filament` 1 |
-| 5 | `start(client)`, then the printers hidden as `setup()` hides them (the hidden printers installed, the Klipper selected, the hidden printers uninstalled) | it returns `Klipper \| Std \| PLA`; `preset_list {type: printer}` lists the Klipper and not the ToolChanger; the Extruder page check holds; `dial(retraction_length)` is exactly one action, `orca_setting:retraction_length#0:5` in section `Printer : Extruder : Retraction`, and `numbered()` is empty: no setting is offered on a page of the ToolChanger's extruders 2 to 5 |
+| 5 | `filament_add`, then `filament_delete {filament_slot: 6}` | the add replies `{filament_slot: 6, filament_slots: 6}`: a ToolChanger, which has no `single_extruder_multi_material`, adds a slot beyond its five tools, and the selection shows six TC PLA; the delete replies `{filament_slot: 6, filament_slots: 5}`, with no dialog: no slot comes after the last |
+| 6 | `filament_add`, then `filament_delete {filament_slot: 5}`, answered Cancel | the add gives slot 6 again; the delete replies `blocked_by_dialog`, its one dialog titled Warning with OK and Cancel and a message holding "shift the tool numbers"; the job refuses `delete_cancelled`, and `slots()` is `0,0,0,0,0,0`: the cancel deleted nothing |
+| 7 | `filament_delete {filament_slot: 5, merge_into: 6}`, answered Cancel | as row 6's dialog; the job refuses `delete_cancelled` and the slots stay `0,0,0,0,0,0`: a merge asks the same question |
+| 8 | `filament_delete {filament_slot: 5, merge_into: 6, confirm_shift: false}`, then `{filament_slot: 5, merge_into: 6, confirm_shift: true}` | the first refuses `shifts_tools`, with no dialog, and the slots stay six; the second merges and replies `{filament_slot: 5, merged_into: 5, filament_slots: 5}`, with no dialog: the slot after the merged one moved down with its objects |
+| 9 | `filament_add_mixed {components: [1, 2], ratios: [50, 50]}`, then `filament_delete {filament_slot: 1, merge_into: 6}`, answered Cancel | the mix is slot 6 and `slots()` is `0,0,0,0,0,1`; the delete's first dialog is Warning, its message holding "uses this physical filament"; the job refuses `merge_cancelled`, not `delete_cancelled`; the cancel leaves `0,0,0,0,0,1`: the shift question that would follow never opened |
+| 10 | the same delete, answered OK at the mixed filament's question and Cancel at the shift question | the first dialog as row 9; after OK the second is Warning, its message holding "shift the tool numbers"; the job refuses `delete_cancelled` and the slots stay `0,0,0,0,0,1` |
+| 11 | `start(client)`, then the printers hidden as `setup()` hides them (the hidden printers installed, the Klipper selected, the hidden printers uninstalled) | it returns `Klipper \| Std \| PLA`; `preset_list {type: printer}` lists the Klipper and not the ToolChanger; the Extruder page check holds; `dial(retraction_length)` is exactly one action, `orca_setting:retraction_length#0:5` in section `Printer : Extruder : Retraction`, and `numbered()` is empty: no setting is offered on a page of the ToolChanger's extruders 2 to 5 |
 
 **To settle in review:**
-- The page an extruder setting is on (another extruder, steps 1 and 5). `meta.where` is the page and group of the
+- The page an extruder setting is on (another extruder, steps 1 and 11). `meta.where` is the page and group of the
   setting's row on the settings tab, and a printer of several extruders has one Extruder page whose controls a switch
   points at an extruder (`TabPrinter::activate_option()` in `Tab.cpp`); so `where` is "Extruder > …" on every
   printer, and the value of each extruder is in the setting's `value` and `meta.variants`, not on a page of its own.
@@ -611,7 +623,6 @@ Retraction"}` lists exactly the ten keys of that group (`publishable_printer_ret
 **Not checked:**
 - The added slots' flushing values and their effect on the prime tower (another extruder): the slice checks only which
   tool prints, not the flushing matrix or tower.
-- Adding or deleting slots on a non-SEMM printer: `filament_add` and `filament_delete` still refuse those operations.
 - User presets other tests left: every read of a list they join picks this test's own presets by name, and checks
   the others no further.
 - The sidebar's settings search, which lists the same rows of the settings index as the Speed Dial: the Speed Dial's
