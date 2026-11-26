@@ -495,7 +495,7 @@ void MultipartImportDialog::update_previews()
 
     const bool drop = auto_drop();
     m_separate_card->set_preview(wxBitmap(m_scene->render(size, drop ? m_scene->separate_offsets : m_scene->in_place_offsets, false, dark), -1, factor));
-    m_separate_card->set_detail(drop ? _L("Each part becomes its own object, placed on the plate next to the others.") :
+    m_separate_card->set_detail(drop ? _L("Each part becomes its own object, lying on the plate. On an empty plate they are arranged next to each other.") :
                                        _L("Each part becomes its own object and keeps its height above the plate."));
     Layout();
 }

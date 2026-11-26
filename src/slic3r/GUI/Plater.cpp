@@ -9141,14 +9141,11 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
         *config_loaded_out = false;
 
     std::vector<size_t> empty_result;
-    // The parts of a multi-part file, loaded as separate objects, would sit where the parts were, on top of each other
-    // once dropped onto the plate. Place them next to each other, around the objects already on the plate.
+    // The parts of a multi-part file, loaded as separate objects, are dropped where they were and end up on top of each
+    // other. When they are the only objects of the project, arrange them; objects the user has placed are never moved.
     auto place_side_by_side = [this](const std::vector<size_t>& object_idxs) {
-        ModelInstancePtrs instances;
-        for (size_t idx : object_idxs)
-            instances.insert(instances.end(), this->model.objects[idx]->instances.begin(), this->model.objects[idx]->instances.end());
-        if (instances.size() > 1)
-            q->find_new_position(instances);
+        if (object_idxs.size() > 1 && object_idxs.size() == this->model.objects.size())
+            wxGetApp().CallAfter([this]() { q->arrange(true); });
     };
     bool dlg_cont = true;
     bool is_user_cancel = false;
