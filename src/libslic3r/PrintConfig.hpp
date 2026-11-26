@@ -1053,8 +1053,8 @@ void set_variant_override(ConfigOptionVectorBase &target, const ConfigOptionVect
 // single value, gives every variant of a filament that filament's value; other lengths are left alone.
 void normalize_filament_values_to_variants(DynamicPrintConfig &config);
 
-// Orca: gives every filament a filament_extruder_variant column. A project saved before filament
-// variants has one filament_self_index entry per filament and no variant list of its own, so every
+// Orca: names the filament_extruder_variant column of each filament when filament_self_index holds one
+// entry per filament. A project saved before filament variants has no variant list of its own, so every
 // filament after the first has no column and resolves to filament 1's in get_config_index_base.
 void ensure_filament_variant_columns(DynamicPrintConfig &config, size_t filament_count);
 

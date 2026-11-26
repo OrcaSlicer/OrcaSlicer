@@ -11681,22 +11681,13 @@ void ensure_filament_variant_columns(DynamicPrintConfig &config, size_t filament
 {
     if (filament_count == 0)
         return;
-    std::vector<int> &columns  = config.option<ConfigOptionInts>("filament_self_index", true)->values;
-    auto             *variants = config.option<ConfigOptionStrings>("filament_extruder_variant", true);
-    bool              names_every_filament = true;
-    for (size_t filament = 1; filament <= filament_count; ++filament)
-        if (std::find(columns.begin(), columns.end(), int(filament)) == columns.end()) {
-            names_every_filament = false;
-            break;
-        }
-    const std::string standard = get_extruder_variant_string(etDirectDrive, nvtStandard);
-    // A layout that leaves a filament out does not say which column belongs to which filament.
-    if (!names_every_filament) {
-        columns.resize(filament_count);
-        std::iota(columns.begin(), columns.end(), 1);
-        variants->values.resize(filament_count, standard);
-    } else if (variants->size() < columns.size())
-        variants->values.resize(columns.size(), standard);
+    const auto *columns = config.option<ConfigOptionInts>("filament_self_index");
+    // Another length is a multi-variant layout, or one that omits a filament.
+    if (columns == nullptr || columns->size() != filament_count)
+        return;
+    auto *variants = config.option<ConfigOptionStrings>("filament_extruder_variant", true);
+    if (variants->size() < filament_count)
+        variants->values.resize(filament_count, get_extruder_variant_string(etDirectDrive, nvtStandard));
 }
 
 void set_filament_dev_options(DynamicPrintConfig &config, const std::vector<const DynamicPrintConfig *> &filament_configs)
