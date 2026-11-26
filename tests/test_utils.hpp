@@ -204,7 +204,8 @@ private:
     boost::filesystem::path m_previous;
 };
 
-// Sets an environment variable for the lifetime of the guard and restores the previous value.
+// Sets, or with std::nullopt unsets, an environment variable for the lifetime of the guard and
+// restores the previous value.
 class ScopedEnvVar
 {
 public:
@@ -213,6 +214,12 @@ public:
         if (const char* old = boost::nowide::getenv(m_name.c_str()))
             m_previous = old;
         boost::nowide::setenv(m_name.c_str(), value.c_str(), 1);
+    }
+    ScopedEnvVar(std::string name, std::nullopt_t) : m_name(std::move(name))
+    {
+        if (const char* old = boost::nowide::getenv(m_name.c_str()))
+            m_previous = old;
+        boost::nowide::unsetenv(m_name.c_str());
     }
     ~ScopedEnvVar()
     {
@@ -257,6 +264,21 @@ struct CommaNumericLocale
             freelocale(locale);
     }
 #endif
+};
+
+// Switches the process-wide numeric locale, which the GUI sets from its language, to one whose
+// decimal separator is a comma, when the system has one installed. Restores it when destroyed.
+struct ProcessCommaNumericLocale
+{
+    std::string previous { std::setlocale(LC_NUMERIC, nullptr) };
+    bool apply()
+    {
+        for (const char* name : { "de_DE.UTF-8", "de_DE.utf8", "de_DE", "de-DE", "German_Germany.1252" })
+            if (std::setlocale(LC_NUMERIC, name) != nullptr)
+                return true;
+        return false;
+    }
+    ~ProcessCommaNumericLocale() { std::setlocale(LC_NUMERIC, previous.c_str()); }
 };
 
 #endif // SLIC3R_TEST_UTILS
