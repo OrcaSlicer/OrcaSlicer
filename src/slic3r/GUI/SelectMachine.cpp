@@ -3399,7 +3399,7 @@ static bool _HasExt(const std::vector<FilamentInfo> &ams_mapping_result) {
     };
 
     for (const auto &info : ams_mapping_result) {
-        if (info.ams_id == VIRTUAL_AMS_MAIN_ID_STR || (info.ams_id == VIRTUAL_AMS_DEPUTY_ID_STR && !info.ams_id.empty())) {
+        if (devPrinterUtil::IsVirtualSlot(info.ams_id)) {
             return true;
         }
     }
@@ -3409,7 +3409,7 @@ static bool _HasExt(const std::vector<FilamentInfo> &ams_mapping_result) {
 
 static bool _HasAms(const std::vector<FilamentInfo> &ams_mapping_result) {
     for (const auto &info : ams_mapping_result) {
-        if (info.ams_id != VIRTUAL_AMS_MAIN_ID_STR && info.ams_id != VIRTUAL_AMS_DEPUTY_ID_STR && !info.ams_id.empty()) {
+        if (!info.ams_id.empty() && !devPrinterUtil::IsVirtualSlot(info.ams_id)) {
             return true;
         }
     }
