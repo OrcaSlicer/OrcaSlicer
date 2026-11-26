@@ -823,6 +823,9 @@ void IMSlider::draw_ticks(const ImRect& slideable_region) {
         // draw delete icon
         ImVec2      icon_pos       = ImVec2(slideable_region.GetCenter().x + icon_offset.x, get_tick_pos(tick_it->tick) - icon_offset.y);
         button_with_pos(m_delete_icon_id, icon_size, icon_pos);
+        // button_with_pos() submits no item, which the tooltip is placed against and tests for hover.
+        ImGui::ItemAdd(ImRect(icon_pos, icon_pos + icon_size), 0);
+        wxGetApp().plater()->get_current_canvas3D()->view_tooltip(_L("Removes the color change, pause or custom G-code at this layer."));
         if (ImGui::IsMouseHoveringRect(icon_pos, icon_pos + icon_size)) {
             if (context.IO.MouseClicked[0]) {
                 // delete tick
@@ -1327,6 +1330,8 @@ bool IMSlider::render(int canvas_width, int canvas_height)
         if (ImGui::ImageButton3(normal_id, hover_id, ONE_LAYER_BUTTON_SIZE * m_scale)) {
             switch_one_layer_mode();
         }
+        wxGetApp().plater()->get_current_canvas3D()->view_tooltip(is_one_layer() ? _L("Shows the whole model again.") :
+            _L("Shows one layer on its own, without the layers below it. Move the slider to step through the layers."));
         imgui.end();
     }
 
