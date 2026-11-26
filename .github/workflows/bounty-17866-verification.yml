@@ -3,6 +3,11 @@ name: Verify issue 17866
 on:
   push:
     branches: [codex/orcaslicer-17866-ci]
+    paths-ignore:
+      - .github/workflows/bounty-17866-verification.yml
+      - .github/workflows/bounty-17866-read-reports.yml
+      - .github/workflows/bounty-17866-recheck.yml
+      - tests/bounty17866/**
   workflow_dispatch:
     inputs:
       read_run_id:
@@ -10,17 +15,38 @@ on:
         required: false
         default: ''
         type: string
+      recheck_run_id:
+        description: Reuse the pinned completed run checkpoint (digits only)
+        required: false
+        default: ''
+        type: string
+      recheck_phase:
+        description: Probe infill coverage or verify the canonical CLI and clang-tidy
+        required: false
+        default: probe
+        type: choice
+        options: [probe, verify]
 
 permissions:
   contents: read
 
 concurrency:
-  group: bounty-17866-${{ inputs.read_run_id || github.sha }}
+  group: bounty-17866-${{ inputs.recheck_run_id || inputs.read_run_id || github.sha }}-${{ inputs.recheck_phase || 'build' }}
   cancel-in-progress: false
 
 jobs:
+  recheck:
+    if: github.repository == 'BeauDevCode/OrcaSlicer' && github.ref == 'refs/heads/codex/orcaslicer-17866-ci' && github.event_name == 'workflow_dispatch' && inputs.recheck_run_id != ''
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/bounty-17866-recheck.yml
+    with:
+      run_id: ${{ inputs.recheck_run_id }}
+      phase: ${{ inputs.recheck_phase }}
+
   read-reports:
-    if: github.repository == 'BeauDevCode/OrcaSlicer' && github.ref == 'refs/heads/codex/orcaslicer-17866-ci' && github.event_name == 'workflow_dispatch' && inputs.read_run_id != ''
+    if: github.repository == 'BeauDevCode/OrcaSlicer' && github.ref == 'refs/heads/codex/orcaslicer-17866-ci' && github.event_name == 'workflow_dispatch' && inputs.read_run_id != '' && inputs.recheck_run_id == ''
     permissions:
       actions: read
       contents: read
@@ -29,7 +55,7 @@ jobs:
       run_id: ${{ inputs.read_run_id }}
 
   linux-release:
-    if: github.repository == 'BeauDevCode/OrcaSlicer' && github.ref == 'refs/heads/codex/orcaslicer-17866-ci' && (github.event_name != 'workflow_dispatch' || inputs.read_run_id == '')
+    if: github.repository == 'BeauDevCode/OrcaSlicer' && github.ref == 'refs/heads/codex/orcaslicer-17866-ci' && (github.event_name != 'workflow_dispatch' || (inputs.read_run_id == '' && inputs.recheck_run_id == ''))
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     defaults:

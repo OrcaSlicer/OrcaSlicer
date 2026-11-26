@@ -1,0 +1,278 @@
+name: Recheck issue 17866 with the verified checkpoint
+
+on:
+  workflow_call:
+    inputs:
+      run_id:
+        required: true
+        type: string
+      phase:
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  recheck:
+    if: github.repository == 'BeauDevCode/OrcaSlicer' && github.ref == 'refs/heads/codex/orcaslicer-17866-ci'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash --noprofile --norc -euo pipefail {0}
+    env:
+      SOURCE_SHA: ff7420aa76c78976ce9e0be9d2ce8f4c1eebf774
+      EXPECTED_BINARY_SHA: 4db429b8674446ac24481a6edcfb82b750e4220a754ec565e6271115e11deab7
+      EXPECTED_FFF_SHA: 16fc6a25b3f574825086832bf1cd4c2908ba0f5736cc94663efa811738c60b2a
+      UPSTREAM_PR_SHA: 6ad34c04934562f86a2b05762e35d435b974fab0
+      INPUT_RUN_ID: ${{ inputs.run_id }}
+      RECHECK_PHASE: ${{ inputs.phase }}
+      CMAKE_VERSION: '4.3.0'
+      CMAKE_BUILD_PARALLEL_LEVEL: '2'
+      CMAKE_POLICY_VERSION_MINIMUM: '3.5'
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      LP_NUM_THREADS: '2'
+
+    steps:
+      - name: Check out the current recheck revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Validate the pinned source run and download its checkpoint on GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          [[ "$INPUT_RUN_ID" =~ ^[0-9]+$ ]] || { echo 'run_id must contain only digits' >&2; exit 2; }
+          [[ "$RECHECK_PHASE" == probe || "$RECHECK_PHASE" == verify ]] || { echo 'invalid recheck phase' >&2; exit 2; }
+          export REUSE_DIR="$RUNNER_TEMP/bounty-17866-reuse"
+          export REPORT_DIR="$RUNNER_TEMP/bounty-17866"
+          mkdir -p "$REUSE_DIR" "$REPORT_DIR"
+          printf 'REUSE_DIR=%s\nREPORT_DIR=%s\n' "$REUSE_DIR" "$REPORT_DIR" >> "$GITHUB_ENV"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+
+          allowed = {b".github/workflows/bounty-17866-verification.yml", b".github/workflows/bounty-17866-read-reports.yml",
+                     b".github/workflows/bounty-17866-recheck.yml"}
+          changed = [path for path in subprocess.check_output(
+                     ["git", "diff", "--no-renames", "--name-only", "-z", os.environ["SOURCE_SHA"], "HEAD"]).split(b"\0") if path]
+          rejected = [os.fsdecode(path) for path in changed if path not in allowed and not path.startswith(b"tests/bounty17866/")]
+          if rejected:
+              raise SystemExit("Checkpoint reuse rejects changed source paths: " + json.dumps(rejected))
+          coherence = {"source_sha": os.environ["SOURCE_SHA"], "allowed_changed_paths": [os.fsdecode(path) for path in changed],
+                       "rule": "Every other tracked path must match the checkpoint source; renames inspect both paths."}
+          (Path(os.environ["REPORT_DIR"]) / "source-coherence.json").write_text(json.dumps(coherence, indent=2) + "\n")
+          print("BOUNTY_17866_SOURCE_COHERENCE=" + json.dumps(coherence, sort_keys=True))
+          PY
+          gh api --method GET "repos/$GH_REPO/actions/runs/$INPUT_RUN_ID" > "$REUSE_DIR/run.json"
+          gh api --method GET "repos/$GH_REPO/actions/runs/$INPUT_RUN_ID/jobs?per_page=100" > "$REUSE_DIR/jobs.json"
+          gh api --method GET "repos/$GH_REPO/actions/runs/$INPUT_RUN_ID/artifacts?per_page=100" > "$REUSE_DIR/artifacts.json"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path(os.environ["REUSE_DIR"])
+          run = json.loads((root / "run.json").read_text())
+          assert os.environ["GH_REPO"] == "BeauDevCode/OrcaSlicer"
+          assert run["id"] == int(os.environ["INPUT_RUN_ID"]) == 45744496337, "unexpected source run"
+          assert run["repository"]["full_name"] == run["head_repository"]["full_name"] == "BeauDevCode/OrcaSlicer"
+          assert run["head_branch"] == "codex/orcaslicer-17866-ci" and run["head_sha"] == os.environ["SOURCE_SHA"]
+          assert run["name"] == "Verify issue 17866" and run["path"] == ".github/workflows/bounty-17866-verification.yml"
+          assert run["status"] == "completed", "source run is not completed"
+          jobs = json.loads((root / "jobs.json").read_text())["jobs"]
+          job = next(job for job in jobs if job["id"] == 139657145690)
+          assert job["run_id"] == run["id"] and job["status"] == "completed" and job["name"] == "linux-release"
+          required = ("Run existing AppConfig regression tests", "Run existing GCode regression tests",
+                      "Run Print regression tests", "Run SupportMaterial regression tests")
+          for name in required:
+              matches = [step for step in job["steps"] if step["name"] == name]
+              assert len(matches) == 1 and matches[0]["conclusion"] == "success", "prior suite did not pass: " + name
+          artifacts = json.loads((root / "artifacts.json").read_text())["artifacts"]
+          for name in ("bounty-17866-cli-binary-" + run["head_sha"], "bounty-17866-linux-" + run["head_sha"]):
+              matches = [artifact for artifact in artifacts if artifact["name"] == name and not artifact["expired"]]
+              assert len(matches) == 1, "missing or ambiguous pinned artifact: " + name
+              if name.startswith("bounty-17866-cli-binary-"):
+                  assert matches[0]["id"] == 15085180439, "unexpected checkpoint artifact"
+          PY
+          # Both downloads remain on this hosted runner; prior XML is never uploaded as fresh evidence.
+          gh run download "$INPUT_RUN_ID" --repo "$GH_REPO" --name "bounty-17866-cli-binary-$SOURCE_SHA" --dir "$REUSE_DIR/checkpoint"
+          gh run download "$INPUT_RUN_ID" --repo "$GH_REPO" --name "bounty-17866-linux-$SOURCE_SHA" --dir "$REUSE_DIR/prior"
+
+      - name: Verify checkpoint identity and explicitly record prior evidence
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import math
+          import os
+          from pathlib import Path
+          import subprocess
+          import xml.etree.ElementTree as ET
+
+          root = Path(os.environ["REUSE_DIR"])
+          checkpoint = root / "checkpoint"
+          expected = os.environ["EXPECTED_BINARY_SHA"]
+          assert "commit=" + os.environ["SOURCE_SHA"] in (checkpoint / "revision.txt").read_text().splitlines()
+          assert (checkpoint / "binary-sha256.txt").read_text().split()[0] == expected
+          assert hashlib.sha256((checkpoint / "orca-slicer").read_bytes()).hexdigest() == expected, "checkpoint binary mismatch"
+          paths = list((root / "prior").rglob("support-control-experiment.json"))
+          assert len(paths) == 1, "missing or ambiguous prior control provenance"
+          prior = json.loads(paths[0].read_text())
+          assert prior["source_checkout_head"] == os.environ["SOURCE_SHA"]
+          assert prior["candidate_binary_sha256"] == prior["restored_binary_sha256"] == expected
+          assert prior["candidate_test_binary_sha256"] == prior["restored_test_binary_sha256"] == os.environ["EXPECTED_FFF_SHA"]
+          source = subprocess.check_output(["git", "show", "HEAD:src/libslic3r/GCode.cpp"])
+          pinned = subprocess.check_output(["git", "show", os.environ["UPSTREAM_PR_SHA"] + ":src/libslic3r/GCode.cpp"])
+          assert prior["candidate_source_sha256"] == prior["restored_source_sha256"] == hashlib.sha256(source).hexdigest()
+          assert prior["controlled_source_sha256"] == prior["pinned_source_sha256"] == hashlib.sha256(pinned).hexdigest()
+          red = prior["red"]
+          assert red["status"] == "expected_assertion_failure_validated" and red["exit_code"] == red["expected_assertion_exit_code"] == 42
+          assert red["failure_type"] == "CHECK_THAT" and red["failure_count"] > 0
+          for field in ("max_abs_retraction_mm", "max_abs_raised_xy_mm", "max_abs_hop_mm"):
+              value = red["measured_signature"][field]
+              assert math.isfinite(value) and value == 0, "unexpected prior control motion signature"
+          suites = []
+          for name in ("appconfig.xml", "gcode.xml", "print.xml", "support-material.xml"):
+              paths = list((root / "prior").rglob(name))
+              assert len(paths) == 1, "missing or ambiguous prior suite: " + name
+              document = ET.parse(paths[0]).getroot()
+              cases = list(document.iter("testcase"))
+              assert cases and not any(list(document.iter(tag)) for tag in ("failure", "error", "skipped"))
+              suites.append({"report": name, "testcase_elements": len(cases), "evidence": "prior source-run result"})
+          provenance = {"source_run_id": int(os.environ["INPUT_RUN_ID"]), "source_sha": os.environ["SOURCE_SHA"],
+                        "recheck_head": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+                        "binary_sha256": expected, "prior_fff_binary_sha256": os.environ["EXPECTED_FFF_SHA"],
+                        "prior_unit_suites": suites, "prior_expected_red": red,
+                        "prior_control_status": prior["status"], "prior_control_error": prior.get("error"),
+                        "fresh_engine_unit_tests_rerun": False, "fresh_post_restore_green_rerun": False,
+                        "phase": os.environ["RECHECK_PHASE"],
+                        "runtime": "Checkpoint requires the restored dependencies, system libraries and current identical source resources."}
+          (Path(os.environ["REPORT_DIR"]) / "reuse-provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
+          print("BOUNTY_17866_PROVENANCE=" + json.dumps(provenance, sort_keys=True))
+          PY
+
+      - name: Restore the exact verified dependency prefix
+        id: deps-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: deps/build/OrcaSlicer_dep
+          key: bounty17866-deps-v1-Linux-X64-91a1b0b2a75961ece57a664a4fd6534a4b5752e93038fae02989ed0308093024-41585e510d177130672448731b8dbc2e43b69b0124d9676b39774d6bf5193ef3
+          fail-on-cache-miss: true
+
+      - name: Restore the runtime without building the application
+        id: runtime
+        env:
+          CACHE_HIT: ${{ steps.deps-cache.outputs.cache-hit }}
+        timeout-minutes: 20
+        run: |
+          test "$CACHE_HIT" = true
+          sudo ./build_linux.sh -ur 2>&1 | tee "$REPORT_DIR/system-dependencies.log"
+          sudo apt-get install -y --no-install-recommends xvfb xauth python3-venv
+          prefix="$GITHUB_WORKSPACE/deps/build/OrcaSlicer_dep/usr/local"
+          test -d "$prefix/libpython"
+          mkdir -p build/src/Release
+          cp -- "$REUSE_DIR/checkpoint/orca-slicer" build/src/Release/orca-slicer
+          chmod 755 build/src/Release/orca-slicer
+          ln -s "$GITHUB_WORKSPACE/resources" build/src/resources
+          ln -s "$GITHUB_WORKSPACE/resources" build/resources
+          ln -s "$prefix/libpython" build/src/Release/python
+          export ORCA_BINARY="$GITHUB_WORKSPACE/build/src/Release/orca-slicer"
+          export LD_LIBRARY_PATH="$prefix/lib:$prefix/libpython/lib:$GITHUB_WORKSPACE/build/src/Release"
+          printf 'ORCA_BINARY=%s\nLD_LIBRARY_PATH=%s\n' "$ORCA_BINARY" "$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
+          sha256sum "$ORCA_BINARY" | tee "$REPORT_DIR/reused-binary-sha256.txt"
+          printf '%s  %s\n' "$EXPECTED_BINARY_SHA" "$ORCA_BINARY" | sha256sum --check
+          ldd "$ORCA_BINARY" 2>&1 | tee "$REPORT_DIR/binary-libraries.txt"
+          if grep -q 'not found' "$REPORT_DIR/binary-libraries.txt"; then exit 1; fi
+
+      - name: Probe only the two infill anchor pairs
+        if: inputs.phase == 'probe'
+        timeout-minutes: 15
+        run: |
+          xvfb-run -a python3 tests/bounty17866/probe_infill.py \
+            --binary "$ORCA_BINARY" --source "$GITHUB_WORKSPACE" \
+            --output "$REPORT_DIR/probe" --timeout 120 \
+            2>&1 | tee "$REPORT_DIR/infill-probe.log"
+
+      - name: Install verified CMake 4.3 for the compile database
+        id: cmake
+        if: inputs.phase == 'verify'
+        timeout-minutes: 10
+        run: |
+          cmake_download="$RUNNER_TEMP/bounty-17866-cmake"
+          mkdir -p "$cmake_download"
+          cd "$cmake_download"
+          cmake_archive="cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz"
+          cmake_release="https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}"
+          curl --fail --location --retry 3 --output "$cmake_archive" "$cmake_release/$cmake_archive"
+          curl --fail --location --retry 3 --output SHA-256.txt "$cmake_release/cmake-${CMAKE_VERSION}-SHA-256.txt"
+          sha256sum --check --ignore-missing SHA-256.txt
+          tar -xzf "$cmake_archive"
+          printf '%s\n' "$cmake_download/cmake-${CMAKE_VERSION}-linux-x86_64/bin" >> "$GITHUB_PATH"
+
+      - name: Verify the canonical CLI matrix with the reused binary
+        if: inputs.phase == 'verify'
+        timeout-minutes: 35
+        run: |
+          xvfb-run -a python3 tests/bounty17866/run_matrix.py \
+            --binary "$ORCA_BINARY" --source "$GITHUB_WORKSPACE" \
+            --output "$REPORT_DIR/cli" --timeout 120 \
+            2>&1 | tee "$REPORT_DIR/cli-matrix.log"
+
+      - name: Run the prescribed changed-line clang-tidy check
+        if: ${{ !cancelled() && inputs.phase == 'verify' && steps.runtime.outcome == 'success' && steps.cmake.outcome == 'success' }}
+        timeout-minutes: 45
+        run: |
+          scripts/run_clang_tidy.sh --base "$UPSTREAM_PR_SHA" --no-fetch \
+            --build-dir build-tidy --deps-dir deps/build --jobs 2 --yes \
+            2>&1 | tee "$REPORT_DIR/clang-tidy.log"
+
+      - name: Print only fresh recheck reports and bound logs
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path(os.environ["RUNNER_TEMP"]) / "bounty-17866"
+          paths = (("BOUNTY_17866_PROVENANCE", root / "reuse-provenance.json"),
+                   ("BOUNTY_17866_PROBE", root / "probe/infill-probe.json"),
+                   ("BOUNTY_17866_CLI_SUMMARY", root / "cli/summary.json"))
+          for label, path in paths:
+              if not path.is_file():
+                  continue
+              value = json.loads(path.read_text())
+              if label == "BOUNTY_17866_CLI_SUMMARY":
+                  keys = ("source_checkout_head", "binary_sha256", "passed", "configuration_matrix_passed", "project_error",
+                          "infill_motion_observed", "infill_motion_comparison", "support_diagnostics", "limitations")
+                  selected = {key: value.get(key) for key in keys}
+                  selected["configuration_cases"] = [{key: case.get(key) for key in
+                      ("name", "passed", "returncode", "expected_option", "failure_reason")} for case in value.get("configuration_cases", [])]
+                  value = selected
+              print(label + "=" + json.dumps(value, sort_keys=True))
+          for path in root.rglob("*.log"):
+              path.write_bytes(path.read_bytes()[-1048576:])
+          PY
+          git diff --exit-code HEAD
+
+      - name: Retain only fresh recheck reports on GitHub
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: bounty-17866-linux-${{ github.sha }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/bounty-17866/**/*.json
+            ${{ runner.temp }}/bounty-17866/**/*.log
+            ${{ runner.temp }}/bounty-17866/**/*.txt
