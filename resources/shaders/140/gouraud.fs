@@ -35,12 +35,12 @@ uniform vec4 uniform_color_clip_plane_1;
 uniform vec4 uniform_color_clip_plane_2;
 uniform SlopeDetection slope;
 // The G-code preview's solid model stands in for the toolpaths, so a face that points up or
-// down, within FLAT_FACE_NORMAL_Z (about 10 degrees), wears the colour of the top or bottom surface
-// printed there rather than the walls'.
+// down, past flat_face_normal_z, wears the colour of the top or bottom surface printed there rather
+// than the walls'.
 uniform bool use_flat_face_colors;
 uniform vec4 up_face_color;
 uniform vec4 down_face_color;
-const float FLAT_FACE_NORMAL_Z = 0.985;
+uniform float flat_face_normal_z;
 
 // ORCA: a part of a translucent filament, drawn as its print would show in premultiplied color, see
 // GLVolumeCollection::render(). It catches a highlight only with translucent_gloss, in realistic view.
@@ -136,9 +136,9 @@ void main()
 	    color = uniform_color;
 
     if (use_flat_face_colors) {
-        if (world_normal_z > FLAT_FACE_NORMAL_Z)
+        if (world_normal_z > flat_face_normal_z)
             color.rgb = up_face_color.rgb;
-        else if (world_normal_z < -FLAT_FACE_NORMAL_Z)
+        else if (world_normal_z < -flat_face_normal_z)
             color.rgb = down_face_color.rgb;
     }
 

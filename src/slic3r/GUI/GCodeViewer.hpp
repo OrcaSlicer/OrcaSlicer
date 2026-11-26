@@ -204,6 +204,9 @@ public:
         bool previewing{false};
         // the prime tower was loaded with the objects, for the solid model
         bool with_wipe_tower{false};
+        // per object volume, by index: the world normal z past which the solid model's faces count
+        // as flat; the prime tower's, added after the objects, are past the end
+        std::vector<float> flat_face_normal_z;
     };
     //BBS
     ConflictResultOpt m_conflict_result;

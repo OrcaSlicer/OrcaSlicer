@@ -98,23 +98,30 @@ the legend shows them. `libvgcode::keep_in_reduced_set()` holds the rule for bot
 cut out.
 
 The solid stands in for the toolpaths, so it wears their colours. In the views that colour by
-filament (Summary, Filament, Tool) each body keeps the filament colour its shell was loaded with.
-In every other view `GCodeViewer::update_solid_model_colors()` samples the toolpaths through
+filament (Summary, Filament, Tool) each body keeps the filament colour its shell was loaded with. In
+every other view `GCodeViewer::update_solid_model_colors()` samples the toolpaths through
 `Viewer::get_vertex_color()`: the body takes the outer wall's colour over the layers the solid
-stands for, its faces that point up, within about ten degrees, the top surfaces', and those that
-point down the bridges' or, failing those, the bottom surfaces', so that a broad floor or ledge
-keeps the colour it shows at rest rather than the walls'.
-`GLVolumeCollection::set_flat_face_colors()` hands those two to the `gouraud` shader per body. Each
-layer cap takes the infill's colour in the layer it is cut under, sparse infill before solid, and
-the prime tower its own role's. One vertex stands for the role, chosen by
+stands for, its faces that point up the top surfaces', and those that point down the bridges' or,
+failing those, the bottom surfaces', so that a broad floor or ledge keeps the colour it shows at
+rest rather than the walls'. A sloped face counts as flat where the strip each layer leaves
+uncovered by the next, the layer height over the slope's tangent, is wider than the walls, since
+narrower strips print as walls alone. The cut-off is worked out per object when its shell loads,
+from the configuration and the model rather than the sliced layers, which the background slicing may
+be rebuilding: the thinnest layer the object's layer height, variable layer height profile and
+height ranges allow, and the widest walls of its regions, all of their loops. Under a variable layer
+height a slope that prints as walls on some of its layers therefore keeps the walls' colour, and a
+configuration the slicer would reject falls back to about ten degrees.
+`GLVolumeCollection::set_flat_faces()` hands the two colours and the cut-off to the `gouraud` shader
+per body. Each layer cap takes the infill's colour in the layer it is cut under, sparse infill
+before solid, and the prime tower its own role's. One vertex stands for the role, chosen by
 `Viewer::find_extrusion_vertex()` among up to eight of the interval's layers that have the role,
 spread evenly over them, so that a role printed on a few layers only, as top surfaces and bridges
 are, is found where it was printed; the layer table records the roles of each layer as it is built.
 On a plate of several objects another object's layers with the role can take every pick; where none
 of them has the role inside the body's footprint, the interval's other layers with the role are
 walked until one has. In a view that grades the toolpaths by a value, it is the length-weighted
-median of that value over the role's extrusions on the sampled layers, or on that one layer when
-the walk found it, so that neither the acceleration ramp a wall starts on nor one layer with the fan
+median of that value over the role's extrusions on the sampled layers, or on that one layer when the
+walk found it, so that neither the acceleration ramp a wall starts on nor one layer with the fan
 turned up sets the colour of the whole body; in any other view the first extrusion found. The
 colours are resolved when a drag starts and when the view type or the bands change, not per frame.
 
