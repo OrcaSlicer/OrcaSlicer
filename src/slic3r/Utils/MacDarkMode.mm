@@ -6,6 +6,9 @@
 #include "wx/osx/private.h"
 
 #import <algorithm>
+#include <functional>
+#include <memory>
+#include <string>
 
 #import <Cocoa/Cocoa.h>
 #import <Foundation/Foundation.h>
@@ -85,6 +88,41 @@ void set_title_colour_after_set_title(void * window)
   }
 }
 
+void keep_window_above(void * window, void * parent, bool keep)
+{
+    NSWindow* child = [(NSView*) window window];
+    NSWindow* owner = [(NSView*) parent window];
+    if (child == nil || owner == nil)
+        return;
+    if (keep)
+        [owner addChildWindow:child ordered:NSWindowAbove];
+    else if ([child parentWindow] == owner)
+        [owner removeChildWindow:child];
+}
+
+// AppKit animates a window as it opens and closes, on a dispatch worker paced by the screen's
+// display link. A sleeping screen never fires that link, and the link stays silent after the
+// screen wakes, so each window shown or hidden while the screens sleep blocks a worker for good.
+// The app driven unattended (over MCP, say) with the display off opens and closes dialogs by the
+// hundred; once about 80 workers are blocked, libdispatch starts no more at that priority, and the
+// OpenGL driver's texture uploads, which wait on that pool, hang the UI thread. The animations are
+// therefore off while the screens sleep, and on otherwise, so the windows look as they always do.
+void pause_window_animations_while_screens_sleep()
+{
+    // The registration domain lives in memory: nothing is written to the user's defaults.
+    auto set_animations = [](bool on) {
+        [[NSUserDefaults standardUserDefaults] registerDefaults:@{@"NSAutomaticWindowAnimationsEnabled": @(on)}];
+    };
+    // The app may start with the display already off.
+    set_animations(!CGDisplayIsAsleep(CGMainDisplayID()));
+    NSNotificationCenter* center = [[NSWorkspace sharedWorkspace] notificationCenter];
+    NSOperationQueue*     main   = [NSOperationQueue mainQueue];
+    [center addObserverForName:NSWorkspaceScreensDidSleepNotification object:nil queue:main
+                    usingBlock:^(NSNotification*) { set_animations(false); }];
+    [center addObserverForName:NSWorkspaceScreensDidWakeNotification object:nil queue:main
+                    usingBlock:^(NSNotification*) { set_animations(true); }];
+}
+
 void WKWebView_evaluateJavaScript(void * web, wxString const & script, void (*callback)(wxString const &))
 {
     [(WKWebView*)web evaluateJavaScript:wxCFStringRef(script).AsNSString() completionHandler: ^(id result, NSError *error) {
@@ -95,6 +133,21 @@ void WKWebView_evaluateJavaScript(void * web, wxString const & script, void (*ca
     }];
 }
     
+void WKWebView_evaluateJavaScriptForResult(void * web, wxString const & script, std::function<void(bool, const std::string&)> done)
+{
+    // Held by the block alone: WebKit calls a completion handler even after the view is gone.
+    auto callback = std::make_shared<std::function<void(bool, const std::string&)>>(std::move(done));
+    [(WKWebView*)web evaluateJavaScript:wxCFStringRef(script).AsNSString() completionHandler: ^(id result, NSError *error) {
+        if (error != nil) {
+            NSString* why = error.localizedDescription;
+            (*callback)(false, why != nil ? std::string([why UTF8String]) : std::string("The script failed"));
+        } else if ([result isKindOfClass:[NSString class]])
+            (*callback)(true, std::string([(NSString*)result UTF8String]));
+        else
+            (*callback)(false, "The script's value is not text");
+    }];
+}
+
 void WKWebView_setTransparentBackground(void * web)
 {
     WKWebView * webView = (WKWebView*)web;

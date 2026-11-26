@@ -110,6 +110,15 @@ There are more PRs than reviewers can handle, so we may close a PR that doesn't 
 
 You're welcome to open a new PR once the change meets this guide. Please link the old PR in the description, so reviewers can see the earlier discussion. Thank you for the time you put into it.
 
+We also close PRs that have been inactive for a long time. A bot first leaves a comment saying the PR will be closed in 14 days. It does this when:
+
+- We asked you for changes or more information, and nothing has happened for 90 days.
+- The PR has conflicts with the main branch, and nothing has happened for 90 days.
+- Nobody on the team has reviewed or commented on the PR, and nothing has happened for 180 days.
+- The PR is a draft, and nothing has happened for 180 days.
+
+"Nothing has happened" means no comment, review or new commit from a person. To keep the PR open, leave a comment.
+
 ## Security issues
 
 Please don't report security problems in a public issue. See [SECURITY.md](SECURITY.md).

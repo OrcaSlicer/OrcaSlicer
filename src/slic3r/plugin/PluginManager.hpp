@@ -140,6 +140,7 @@ struct PluginPermissionMutation
     std::vector<Entry>  remove;
     std::optional<bool> threading;
     std::optional<bool> full_access;
+    std::optional<bool> tools;
 };
 
 class PluginManager
@@ -215,6 +216,11 @@ public:
     // permission write. Returns false when the plugin is unknown or has no readable sidecar.
     // Must not be called while already holding install_state_mutex(); the lock is not recursive.
     bool get_install_state(const std::string& plugin_key, PluginInstallState& install_state);
+
+    // Whether the plugin may call OrcaSlicer's tools now: its sidecar reads and grants the tools
+    // (PluginPermissions::tools true) or full access. Read on every call, so a grant changed in the
+    // Plugins dialog applies to the next check. Same locking rule as get_install_state().
+    bool plugin_may_call_tools(const std::string& plugin_key);
 
     // Applies a granular edit to the plugin's latest sidecar contents in one locked read-modify-
     // write. Only the named entries and engaged boolean grants change; every other stored grant,

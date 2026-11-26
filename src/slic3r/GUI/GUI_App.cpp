@@ -73,6 +73,8 @@
 #include <miniz.h>
 #include "slic3r/GUI/Monitor.hpp"
 #include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/Operations/PluginOps.hpp"
+#include "slic3r/GUI/Operations/PreferenceOps.hpp"
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include <optional>
 #include "slic3r/GUI/UserNotification.hpp"
@@ -193,6 +195,8 @@
 #include "3DScene.hpp"
 #include "MainFrame.hpp"
 #include "Plater.hpp"
+#include "AgentActivityPanel.hpp"
+#include "RunScriptPanel.hpp"
 #include "GLCanvas3D.hpp"
 #include "EncodedFilament.hpp"
 #include "GeneratedConfig.hpp"
@@ -254,6 +258,14 @@
 #include "slic3r/GUI/ConfigWizardTypes.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/HttpServer.hpp"
+#include "slic3r/GUI/Mcp/AutomationRuntime.hpp"
+#include "slic3r/GUI/Mcp/LaunchRun.hpp"
+#include "slic3r/GUI/Mcp/McpEndpoint.hpp"
+#include "slic3r/GUI/Mcp/McpOptions.hpp"
+#include "slic3r/GUI/Mcp/McpPluginCaller.hpp"
+#include "slic3r/GUI/Mcp/PythonScriptsDialog.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
+#include "slic3r/plugin/PluginOperations.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/ParamsDialog.hpp"
 #include "slic3r/GUI/ParamsPanel.hpp"
@@ -312,6 +324,10 @@ typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS2)(
 
 #ifdef __WXGTK__
 #include "LinuxDisplayBackend.hpp"
+#endif
+
+#if !defined(_WIN32) && !defined(__APPLE__)
+#include <locale.h>
 #endif
 
 // Needed for forcing menu icons back under gtk2 and gtk3
@@ -460,19 +476,9 @@ public:
 #endif // !__APPLE__
         )
     {
-		// Some desktop environments ignore splash screen typed window properties
-		// when running the app through Wayland,resulting in the titlebar being shown 
-		// on the splash screen. The code below creates a client-side window decoration
-		// when running on Wayland and then removes that decoration. This ensures every 
-		// environment correctly targets and removes the titlebar for this screen.
-		#if defined(__WXGTK__)
-	        if (Slic3r::GUI::is_running_on_wayland()) {
-	            GtkWidget *empty = gtk_fixed_new();
-	            gtk_widget_set_size_request(empty, 0, 0);
-	            gtk_window_set_titlebar(GTK_WINDOW(GetHandle()), empty);
-	            gtk_window_set_decorated(GTK_WINDOW(GetHandle()), false);
-	        }
-		#endif
+#if defined(__WXGTK__)
+        Slic3r::GUI::remove_wayland_titlebar(this);
+#endif
 		
         this->SetPosition(pos);
         this->CenterOnScreen();
@@ -1231,6 +1237,9 @@ void GUI_App::post_init()
     }
     if (m_startup_cloud_report)
         std::exchange(m_startup_cloud_report, nullptr)();
+
+    if (m_automation)
+        m_automation->mark_ready();
 
     BOOST_LOG_TRIVIAL(info) << "finished post_init";
 //BBS: remove the single instance currently
@@ -2843,6 +2852,8 @@ void GUI_App::init_app_config()
     // MainFrame shortcut read the same value; an existing config (true or false) is left untouched.
     if (app_config->get("enable_speed_dial").empty())
         app_config->set_bool("enable_speed_dial", true);
+    if (app_config->get("mcp_port").empty())
+        app_config->set("mcp_port", std::to_string(Mcp::kDefaultPort));
     set_logging_level(Slic3r::level_string_to_boost(app_config->get("log_severity_level")));
 
 }
@@ -2923,6 +2934,7 @@ bool GUI_App::OnInit()
 
 int GUI_App::OnExit()
 {
+    destroy_automation();
     stop_http_server();
     stop_sync_user_preset();
     if (m_startup_cloud_plugin_fetch_thread.joinable())
@@ -2985,6 +2997,9 @@ void GUI_App::CleanUp()
     stop_orca_health_check(m_agent);
     if (m_startup_cloud_plugin_fetch_thread.joinable())
         m_startup_cloud_plugin_fetch_thread.join();
+    // Same reason: the automation runtime and the MCP endpoint start before the first startup dialog, so an
+    // initialization that failed after them never reaches OnExit().
+    destroy_automation();
     wxApp::CleanUp();
 }
 
@@ -3043,10 +3058,7 @@ void GUI_App::init_plugin_gui_wiring()
         if (app->is_closing())
             return;
 
-        app->CallAfter([app] {
-            if (!app->is_closing() && app->m_plugins_dlg)
-                app->m_plugins_dlg->update_plugin_dialog_ui();
-        });
+        app->CallAfter([app] { app->update_plugins_dialog(); });
     };
 
     // why: a newly loaded plugin only adds a selectable agent
@@ -3095,6 +3107,24 @@ void GUI_App::init_plugin_gui_wiring()
     };
 
     plugin_mgr.subscribe_on_unload_callback(PluginHostUi::close_windows_for_plugin);
+    Mcp::install_plugin_tool_caller();
+    // A plugin loaded again may make tool calls again.
+    plugin_mgr.subscribe_on_load_callback([](const std::string& plugin_key) {
+        if (wxTheApp != nullptr)
+            wxGetApp().CallAfter([plugin_key] {
+                if (Mcp::AutomationRuntime* runtime = wxGetApp().automation_if_started())
+                    runtime->plugin_loaded(plugin_key);
+            });
+    });
+    plugin_mgr.subscribe_on_unload_callback([](const std::string& plugin_key) {
+        PluginOperations::instance().remove_plugin(plugin_key);
+        // What the plugin's tool calls left behind (rules, a recording, a held press) ends with it.
+        if (wxTheApp != nullptr)
+            wxGetApp().CallAfter([plugin_key] {
+                if (Mcp::AutomationRuntime* runtime = wxGetApp().automation_if_started())
+                    runtime->end_plugin_scope(plugin_key);
+            });
+    });
     plugin_mgr.subscribe_on_load_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
     plugin_mgr.subscribe_on_unload_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
     plugin_mgr.subscribe_on_load_callback(NetworkAgentFactory::register_python_plugin);
@@ -3198,6 +3228,7 @@ bool GUI_App::on_init_inner()
     // Override wxWidgets' kAEGetURL handler so orcaslicer:// deep links keep
     // working after the wxWidgets 3.3.2 upgrade on macOS (#13119).
     register_mac_deep_link_handler();
+    pause_window_animations_while_screens_sleep();
 #endif
 #if BBL_RELEASE_TO_PUBLIC
     wxLog::SetLogLevel(wxLOG_Message);
@@ -3271,6 +3302,7 @@ bool GUI_App::on_init_inner()
     // Stop the Orca Cloud health check as OnExit() does, so no request is in flight while exit() tears down.
     wxGetApp().Bind(wxEVT_END_SESSION, [this](wxCloseEvent &e) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "received wxEVT_END_SESSION";
+        stop_automation();
         stop_sync_user_preset();
         stop_orca_health_check(m_agent);
         // Before the plugin manager and network module go away.
@@ -3335,6 +3367,26 @@ bool GUI_App::on_init_inner()
 //    wxSystemOptions::SetOption("msw.notebook.themed-background", 0);
 
 //     Slic3r::debugf "wxWidgets version %s, Wx version %s\n", wxVERSION_STRING, wxVERSION;
+    // The command catalog, before anything that runs or lists a command: the automation runtime below and the
+    // Speed Dial's action registry. Then the Python scripts setting's value in force, before the endpoint opens and
+    // the command line's run starts, so that app_state and the first script read it. Each value in force is the
+    // preference, or the command line's flag (--cad, --unrestricted-scripts). The CAD feature's is read here from the
+    // config and the launch parameters, since is_enable_cad_feature() is in a CAD build only.
+    const bool cad_in_force = app_config->get_bool("enable_cad_feature") || (init_params != nullptr && init_params->cad);
+    NativeCommands::build({is_editor() && cad_in_force, is_editor()});
+    Mcp::set_python_scripts_for_run(init_params != nullptr && init_params->unrestricted_scripts);
+    Mcp::apply_python_scripts_setting(*app_config);
+
+    // The MCP endpoint opens before the first startup dialog (the TLS prompt below, the setup wizard)
+    // so an agent can see and answer it; tools that need the main window report not-ready until
+    // post_init() has run. A --run alone starts the runtime without the endpoint.
+    if (init_params != nullptr) {
+        if (init_params->mcp.enable || app_config->get_bool("mcp_enabled"))
+            open_mcp_endpoint();
+        if (!init_params->mcp.run_file.empty())
+            if (Mcp::AutomationRuntime* runtime = automation())
+                Mcp::start_launch_run(*runtime, init_params->mcp);
+    }
     if (is_editor()) {
         std::string msg = Slic3r::Http::tls_global_init();
         std::string ssl_cert_store = app_config->get("tls_accepted_cert_store_location");
@@ -3620,10 +3672,8 @@ bool GUI_App::on_init_inner()
         wxYield();
     }
 
-    // Initialize plugins after network then register on_load callbacks so once the plugin loads finish, it gets registered automatically.
-    // initialize() also installs the libslic3r hooks (capability resolver,
-    // slicing-pipeline dispatcher) via plugin_hooks::install() -- no
-    // per-capability wiring belongs here.
+    // initialize() installs the libslic3r hooks (capability resolver, slicing-pipeline dispatcher)
+    // through plugin_hooks::install(), so per-capability wiring does not belong here.
     PluginManager& plugin_mgr = PluginManager::instance();
     plugin_mgr.initialize();
 
@@ -3640,13 +3690,6 @@ bool GUI_App::on_init_inner()
 
     // Subscribe to the plugin loader and enumerate current actions (UI thread, once).
     m_action_registry->init();
-
-    for (const std::string& plugin_key : plugin_mgr.get_enabled_plugin_keys()) {
-        if (!plugin_mgr.is_plugin_loaded(plugin_key)) {
-            plugin_mgr.load_plugin(plugin_key, false);
-            BOOST_LOG_TRIVIAL(info) << "Auto-loading plugin on startup: " << plugin_key;
-        }
-    }
 
     copy_network_if_available();
     on_init_network();
@@ -3799,6 +3842,15 @@ bool GUI_App::on_init_inner()
         plater_->reset_project_dirty_initial_presets();
         plater_->update_project_dirty_from_presets();
         plater_->get_partplate_list().set_filament_count(preset_bundle->filament_presets.size());
+    }
+
+    // Plugin code runs on the load thread and may read the presets, so start the loads only once
+    // the presets are loaded and selected.
+    for (const std::string& plugin_key : plugin_mgr.get_enabled_plugin_keys()) {
+        if (!plugin_mgr.is_plugin_loaded(plugin_key)) {
+            plugin_mgr.load_plugin(plugin_key, false);
+            BOOST_LOG_TRIVIAL(info) << "Auto-loading plugin on startup: " << plugin_key;
+        }
     }
 
     // BBS:
@@ -5021,7 +5073,7 @@ void GUI_App::recreate_GUI(const wxString &msg_name)
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "recreate_GUI enter";
     m_is_recreating_gui = true;
 
-    // The palette injects its translated strings once, at creation; drop the cached dialog so the
+    // The Speed Dial injects its translated strings once, at creation; drop the cached dialog so the
     // next open rebuilds it in the current locale (and can't outlive the old mainframe).
     if (m_speed_dial_dialog) {
         m_speed_dial_dialog->Destroy();
@@ -5082,6 +5134,12 @@ void GUI_App::recreate_GUI(const wxString &msg_name)
     update_publish_status();
 
     m_is_recreating_gui = false;
+    if (m_automation)
+        m_automation->resume();
+    if (m_run_script_panel)
+        m_run_script_panel->main_window_rebuilt();
+    if (m_agent_activity_panel)
+        m_agent_activity_panel->main_window_rebuilt();
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "recreate_GUI exit";
 }
@@ -8470,6 +8528,118 @@ void GUI_App::stop_http_server()
     m_http_server->stop();
 }
 
+namespace {
+
+// What the MCP endpoint could not open for, as an error notification once the main window has a plater.
+void show_mcp_endpoint_error(const std::string& err)
+{
+    if (Plater* plater = wxGetApp().plater())
+        plater->get_notification_manager()->push_notification(NotificationType::CustomNotification,
+                                                               NotificationManager::NotificationLevel::ErrorNotificationLevel, err);
+}
+
+} // namespace
+
+Mcp::AutomationRuntime* GUI_App::automation()
+{
+    if (is_closing())
+        return nullptr;
+    // A runtime that has stopped is kept, and refuses to start again.
+    if (!m_automation)
+        m_automation.reset(new Mcp::AutomationRuntime());
+    std::string err;
+    if (!m_automation->start(err))
+        return nullptr;
+    if (m_post_initialized)
+        m_automation->mark_ready();
+    return m_automation.get();
+}
+
+Mcp::AutomationRuntime* GUI_App::automation_if_started() { return m_automation.get(); }
+
+Mcp::McpEndpoint* GUI_App::mcp_endpoint() { return m_mcp_endpoint.get(); }
+
+bool GUI_App::open_mcp_endpoint(std::string* error)
+{
+    std::string err;
+    bool        ok = false;
+    if (Mcp::AutomationRuntime* runtime = automation()) {
+        if (!m_mcp_endpoint)
+            // A retry that fails for another reason than the port being held is shown as a first open's failure is.
+            m_mcp_endpoint = std::make_unique<Mcp::McpEndpoint>(*runtime, show_mcp_endpoint_error);
+        // The command line's port, if any.
+        const int option_port = init_params != nullptr ? init_params->mcp.port : 0;
+        ok = m_mcp_endpoint->open(Mcp::endpoint_port(option_port, app_config != nullptr ? app_config->get("mcp_port") : std::string()),
+                                  err);
+        // Another window that shares the configuration folder serves agents: not an error, and the endpoint takes
+        // the port over when that window closes.
+        if (!ok && !m_mcp_endpoint->port_held_by_other_window())
+            show_mcp_endpoint_error(err);
+    } else
+        err = "OrcaSlicer is closing";
+    if (error != nullptr)
+        *error = err;
+    return ok;
+}
+
+void GUI_App::close_mcp_endpoint()
+{
+    if (m_mcp_endpoint)
+        m_mcp_endpoint->close();
+}
+
+bool GUI_App::restart_mcp_endpoint(std::string* error)
+{
+    if (init_params != nullptr)
+        init_params->mcp.port = 0;
+    // Serving, or waiting for the port another window holds: either goes to the new port.
+    if (!m_mcp_endpoint || !(m_mcp_endpoint->serving() || m_mcp_endpoint->port_held_by_other_window()))
+        return true;
+    m_mcp_endpoint->close();
+    return open_mcp_endpoint(error);
+}
+
+void GUI_App::stop_automation()
+{
+    if (m_mcp_endpoint)
+        m_mcp_endpoint->close();
+    if (m_automation)
+        m_automation->stop();
+}
+
+void GUI_App::destroy_automation()
+{
+    // The Run Script panel's session is a job of the runtime, and the Agent Activity pane listens to its log: they go first.
+    m_run_script_panel.reset();
+    m_agent_activity_panel.reset();
+    stop_automation();
+    // Outside any event loop, so nothing the waits hold up can be running. A request thread still inside the
+    // protocol reaches the runtime's core through it: then neither is freed.
+    if (m_mcp_endpoint && !m_mcp_endpoint->drain(std::chrono::seconds(10))) {
+        BOOST_LOG_TRIVIAL(error) << "MCP server: a request did not return; leaving the endpoint and the automation runtime in place";
+        (void) m_mcp_endpoint.release();
+        (void) m_automation.release();
+        return;
+    }
+    m_mcp_endpoint.reset();
+    // Its deleter waits for running calls, and leaves in place a runtime whose calls never return.
+    m_automation.reset();
+}
+
+RunScriptPanel& GUI_App::run_script_panel()
+{
+    if (!m_run_script_panel)
+        m_run_script_panel = std::make_unique<RunScriptPanel>();
+    return *m_run_script_panel;
+}
+
+AgentActivityPanel& GUI_App::agent_activity_panel()
+{
+    if (!m_agent_activity_panel)
+        m_agent_activity_panel = std::make_unique<AgentActivityPanel>();
+    return *m_agent_activity_panel;
+}
+
 #ifdef __linux__
 static const wxLanguageInfo* linux_get_existing_locale_language(const wxLanguageInfo* language,
                                                                 const wxLanguageInfo* system_language)
@@ -8696,6 +8866,7 @@ bool GUI_App::load_language(wxString language, bool initial)
         }
     }
 
+    bool use_environment_locale = false;
     // Generic fallback chain for all platforms
     if (locale_language_info == nullptr || !wxLocale::IsAvailable(locale_language_info->Language)) {
         auto try_locale = [](const wxLanguageInfo* candidate) -> const wxLanguageInfo* {
@@ -8712,6 +8883,15 @@ bool GUI_App::load_language(wxString language, bool initial)
                                         % fallback_locale_info->CanonicalName.ToUTF8().data() % requested_language_code.ToUTF8().data();
             locale_language_info = fallback_locale_info;
         }
+#if !defined(_WIN32) && !defined(__APPLE__)
+        // Uses the environment's locale last, since wxLocale::IsAvailable() can't report it (the AppImage forces LC_ALL=C).
+        else if (locale_t environment_locale = newlocale(LC_ALL_MASK, "", locale_t(0))) {
+            freelocale(environment_locale);
+            use_environment_locale = true;
+            BOOST_LOG_TRIVIAL(info) << boost::format("No locale for %1% or its fallbacks is installed. Using the environment locale instead.")
+                                        % requested_language_code.ToUTF8().data();
+        }
+#endif
     }
 
     if (initial) {
@@ -8748,9 +8928,10 @@ bool GUI_App::load_language(wxString language, bool initial)
         //}
     }
 
-	BOOST_LOG_TRIVIAL(trace) << boost::format("Switching wxLocales to %1%") % locale_language_info->CanonicalName.ToUTF8().data();
+    const std::string locale_name = use_environment_locale ? "the environment locale" : into_u8(locale_language_info->CanonicalName);
+	BOOST_LOG_TRIVIAL(trace) << boost::format("Switching wxLocales to %1%") % locale_name;
 
-    if (!wxLocale::IsAvailable(locale_language_info->Language)) {
+    if (!use_environment_locale && !wxLocale::IsAvailable(locale_language_info->Language)) {
     	// Loading the language dictionary failed.
 	    wxString message = wxString::Format(_L("Switching Orca Slicer to language %s failed."), requested_language_code);
 #if !defined(_WIN32) && !defined(__APPLE__)
@@ -8770,10 +8951,13 @@ bool GUI_App::load_language(wxString language, bool initial)
     //FIXME wxWidgets cause havoc if the current locale is deleted. We just forget it causing memory leaks for now.
     m_wxLocale.release();
     m_wxLocale = Slic3r::make_unique<wxLocale>();
-    m_wxLocale->Init(locale_language_info->Language);
+    // Defers the wxstd catalog until after SetLanguage() below, so it matches the dictionary's language.
+    if (!m_wxLocale->Init(use_environment_locale ? wxLANGUAGE_DEFAULT : locale_language_info->Language, wxLOCALE_DONT_LOAD_DEFAULT))
+        BOOST_LOG_TRIVIAL(error) << boost::format("Failed to set the locale to %1%") % locale_name;
     // Override language at the active wxTranslations class (which is stored in the active m_wxLocale)
     // to load possibly different dictionary, for example, load Czech dictionary for Slovak language.
     wxTranslations::Get()->SetLanguage(language_dict);
+    wxTranslations::Get()->AddStdCatalog();
     m_wxLocale->AddCatalog(SLIC3R_APP_KEY);
     m_active_language_code = requested_language_code;
     m_imgui->set_language(into_u8(requested_language_code));
@@ -9061,25 +9245,20 @@ void GUI_App::notify_plugin_permissions_changed(const std::string& plugin_key)
     m_plugins_dlg->refresh_permissions_if_visible();
 }
 
-void GUI_App::refresh_plugins()
+Ops::RefreshTicket GUI_App::refresh_plugins()
 {
-    // The metadata refresh blocks on disc discovery and a cloud round-trip, so run it on a worker
-    // and report completion through the notification manager -- the speed dial needs no dialog.
-    std::thread([]() {
-        wxString error;
-        bool unknown_error = false;
-        try {
-            refresh_plugin_metadata_blocking(/*fetch_cloud=*/true);
-        } catch (const std::exception& ex) {
-            error = from_u8(ex.what());
-        } catch (...) {
-            unknown_error = true; // translated in CallAfter: wx translation isn't safe off the UI thread
-        }
+    // The metadata refresh blocks on disc discovery and a cloud round-trip, so it runs off the UI thread, after
+    // the refreshes asked for before it, and the notification manager reports its end -- the speed dial needs no
+    // dialog.
+    return Ops::start_plugin_refresh([](const std::string& what, bool unknown_error) {
+        // An unknown failure's text is translated in CallAfter: wx translation isn't safe off the UI thread.
+        const wxString error = from_u8(what);
         if (!wxTheApp)
             return;
         wxTheApp->CallAfter([error, unknown_error]() {
             if (wxGetApp().is_closing())
                 return;
+            wxGetApp().update_plugins_dialog();
             Plater* plater = wxGetApp().plater();
             if (plater == nullptr)
                 return;
@@ -9094,31 +9273,13 @@ void GUI_App::refresh_plugins()
                     NotificationManager::NotificationLevel::ErrorNotificationLevel,
                     into_u8(wxString::Format(_L("Failed to refresh plugins: %s"), unknown_error ? _L("Unknown error") : error)));
         });
-    }).detach();
+    });
 }
 
-void GUI_App::install_local_plugin()
+void GUI_App::update_plugins_dialog()
 {
-    if (mainframe == nullptr)
-        return;
-
-    wxFileDialog dialog(mainframe, _L("Select plugin package"), wxEmptyString, wxEmptyString, _L("Plugin files (*.py;*.whl)|*.py;*.whl"),
-                        wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-    if (dialog.ShowModal() != wxID_OK)
-        return;
-
-    wxString message;
-    const bool ok = install_local_plugin_package(boost::filesystem::path(dialog.GetPath().ToUTF8().data()), mainframe, message);
-    if (message.IsEmpty())
-        return; // user cancelled the overwrite prompt
-
-    Plater* plater = this->plater();
-    if (plater == nullptr)
-        return;
-    plater->get_notification_manager()->push_notification(
-        NotificationType::CustomNotification,
-        ok ? NotificationManager::NotificationLevel::RegularNotificationLevel : NotificationManager::NotificationLevel::ErrorNotificationLevel,
-        into_u8(message));
+    if (!is_closing() && m_plugins_dlg != nullptr)
+        m_plugins_dlg->update_plugin_dialog_ui();
 }
 
 void GUI_App::open_terminal_dialog()
@@ -9187,14 +9348,9 @@ void GUI_App::open_preferences() { open_preferences(PreferencesTab::General); }
 void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_option)
 {
     // Render settings the canvas reads every frame; a change needs one redraw to show.
-    static constexpr const char* opengl_render_setting_keys[] = {
-        SETTING_OPENGL_FXAA_ENABLED, SETTING_OPENGL_FPS_CAP, SETTING_OPENGL_SHOW_FPS_OVERLAY, SETTING_OPENGL_SHOW_RENDER_TIMINGS,
-        SETTING_OPENGL_SCENE_CACHE, SETTING_OPENGL_SKIP_IDENTICAL_FRAMES, SETTING_OPENGL_REALISTIC_SHADOWS,
-        SETTING_OPENGL_REALISTIC_GLOSS, SETTING_OPENGL_OUTLINE_PERSISTENT, SETTING_OPENGL_OUTLINE_COLOR,
-        SETTING_OPENGL_SELECTION_OUTLINE_COLOR
-    };
+    const std::vector<std::string>& opengl_render_setting_keys = Ops::canvas_preferences();
     std::vector<std::string> previous_opengl_render_settings;
-    for (const char* key : opengl_render_setting_keys)
+    for (const std::string& key : opengl_render_setting_keys)
         previous_opengl_render_settings.emplace_back(app_config->get(key));
 
     bool need_recreate_gui = false;
@@ -9254,7 +9410,7 @@ void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_
             return;
         }
         // Built-in Speed Dial command titles are copied from the catalog at init and don't follow a
-        // live locale switch; rebuild them in the new language before the GUI (and palette) rebuilds.
+        // live locale switch; rebuild them in the new language before the GUI and the Speed Dial rebuild.
         m_action_registry->relocalize_builtins();
     }
 
@@ -9361,6 +9517,16 @@ void GUI_App::apply_keeped_preset_modifications()
     load_current_presets(false);
 }
 
+void GUI_App::discard_current_preset_changes()
+{
+    PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
+    for (const Tab* const tab : tabs_list) {
+        if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty())
+            tab->m_presets->discard_current_changes();
+    }
+    load_current_presets(false);
+}
+
 // This is called when creating new project or load another project
 // OR close ConfigWizard
 // to ask the user what should we do with unsaved changes for presets.
@@ -9378,20 +9544,8 @@ bool GUI_App::check_and_keep_current_preset_changes(const wxString& caption, con
         if (!no_need_change && dlg.ShowModal() == wxID_CANCEL)
             return false;
 
-        auto reset_modifications = [this]() {
-            //if (is_called_from_configwizard)
-            //    return; // no need to discared changes. It will be done fromConfigWizard closing
-
-            PrinterTechnology printer_technology = preset_bundle->printers.get_edited_preset().printer_technology();
-            for (const Tab* const tab : tabs_list) {
-                if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty())
-                    tab->m_presets->discard_current_changes();
-            }
-            load_current_presets(false);
-        };
-
         if (dlg.discard() || no_need_change)
-            reset_modifications();
+            discard_current_preset_changes();
         else  // save selected changes
         {
             //BBS: add project embedded preset relate logic
@@ -9410,7 +9564,7 @@ bool GUI_App::check_and_keep_current_preset_changes(const wxString& caption, con
                 //    text += "\n\n" + _L("All modifications will be discarded for new project.");
 
                 //MessageDialog(nullptr, text).ShowModal();
-                reset_modifications();
+                discard_current_preset_changes();
             }
             else if (dlg.transfer_changes() && (dlg.has_unselected_options() || is_called_from_configwizard)) {
                 // execute this part of code only if not all modifications are keeping to the new project
