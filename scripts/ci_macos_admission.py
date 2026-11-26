@@ -33,6 +33,7 @@ MACOS_RUNNER_LIMIT, WAIT_MINUTES, POLL_SECONDS and GITHUB_API_URL.
 """
 
 import datetime
+import http.client
 import json
 import os
 import sys
@@ -222,7 +223,7 @@ def wait(measure_now, limit, wait_minutes, poll_seconds,
     while True:
         try:
             total, lines = measure_now()
-        except (urllib.error.URLError, OSError, ValueError, KeyError, TypeError) as error:
+        except (http.client.HTTPException, OSError, ValueError, KeyError, TypeError) as error:
             failures += 1
             log(f"::warning title=macOS admission::Could not read the queue ({error}).")
             if failures >= FAILURES_BEFORE_ADMIT:

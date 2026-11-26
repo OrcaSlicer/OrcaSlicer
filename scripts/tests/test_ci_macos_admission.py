@@ -5,6 +5,7 @@ Run from the repo root:  python -m unittest discover -s scripts/tests -v
 """
 
 import datetime
+import http.client
 import os
 import sys
 import unittest
@@ -354,6 +355,10 @@ class WaitTest(unittest.TestCase):
         error = urllib.error.URLError("rate limited")
         reason, _ = self.run_wait([error, error, error])
         self.assertEqual(reason, "the queue could not be read")
+
+    def test_retries_after_a_truncated_response(self):
+        error = http.client.IncompleteRead(b"", 148323)
+        self.assertEqual(self.run_wait([error, 4]), ("a runner is free", 120))
 
     def test_a_good_read_resets_the_error_count(self):
         error = urllib.error.URLError("rate limited")
