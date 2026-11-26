@@ -7,6 +7,7 @@
 
 // needed for tech VGCODE_ENABLE_COG_AND_TOOL_MARKERS
 #include "../include/Types.hpp"
+#include "Focus.hpp"
 
 namespace libvgcode {
 
@@ -60,6 +61,15 @@ static const char* Segments_Vertex_Shader_ES =
 "uniform int grey_below_layer;\n"
 "uniform float dim_brightness;\n"
 "uniform int kept_vertex;\n"
+// ORCA: the paths out of focus are not drawn, see Focus.hpp for the key and the focus test.
+"uniform highp usampler2D focus_tex;\n"
+VGCODE_FOCUS_GLSL
+"bool in_focus(int id) {\n"
+"  if (no_focus())\n"
+"    return true;\n"
+"  ivec2 tex_size = textureSize(focus_tex, 0);\n"
+"  return key_in_focus(texelFetch(focus_tex, (tex_size.y == 1) ? ivec2(id, 0) : ivec2(id % tex_size.x, id / tex_size.x), 0).r);\n"
+"}\n"
 "vec3 decode_color(vec3 color, int id, int layer) {\n"
 "  vec3 rgb = round(255.0 * color);\n"
 "  if (id != kept_vertex && layer != lit_layers.x && layer != lit_layers.y) {\n"
@@ -222,6 +232,7 @@ static const char* Segments_Vertex_Shader_ES =
 "  world_position = pos;\n"
 "  shadow_normal = eye_normal;\n"
 "  segment_id = id_a;\n"
+"  focus_cut = in_focus(id_a) ? 0 : 1;\n"
 "  cut_color_direct = clipping_plane.xyz == vec3(0.0) ? vec3(0.0) :\n"
 "    color_base * ((alpha < 1.0 || gloss_strength > 0.0) ? diffuse_lighting(mat3(view_matrix) * -clipping_plane.xyz) :\n"
 "                                direct_lighting(eye_position, mat3(view_matrix) * -clipping_plane.xyz));\n"
@@ -342,6 +353,7 @@ static const char* Segments_Fragment_Shader_ES =
 "in vec3 cut_color_direct;\n"
 "flat in float alpha;\n"
 "out vec4 fragment_color;\n"
+"flat in int focus_cut;\n"
 "float shadow_shade(vec3 position, vec3 normal) {\n"
 "  if (shadow_intensity <= 0.0)\n"
 "    return 1.0;\n"
@@ -405,6 +417,8 @@ static const char* Segments_Fragment_Shader_ES =
 "  return dot(n, n) > 1e-4 && float(step) * dot(normalize(n), world_position - pos) > 0.02;\n"
 "}\n"
 "void main() {\n"
+"  if (focus_cut == 1)\n"
+"    discard;\n"
 "  if (alpha < 1.0 || gloss_strength > 0.0) {\n"
 "    vec3 pos_a = fetch(position_tex, segment_id).xyz;\n"
 "    vec3 pos_b = fetch(position_tex, segment_id + 1).xyz;\n"
@@ -488,6 +502,15 @@ static const char* Options_Vertex_Shader_ES =
 "uniform int grey_below_layer;\n"
 "uniform float dim_brightness;\n"
 "uniform int kept_vertex;\n"
+// ORCA: as in Segments_Vertex_Shader_ES.
+"uniform highp usampler2D focus_tex;\n"
+VGCODE_FOCUS_GLSL
+"bool in_focus(int id) {\n"
+"  if (no_focus())\n"
+"    return true;\n"
+"  ivec2 tex_size = textureSize(focus_tex, 0);\n"
+"  return key_in_focus(texelFetch(focus_tex, (tex_size.y == 1) ? ivec2(id, 0) : ivec2(id % tex_size.x, id / tex_size.x), 0).r);\n"
+"}\n"
 "vec3 decode_color(vec3 color, int id, int layer) {\n"
 "  vec3 rgb = round(255.0 * color);\n"
 "  if (id != kept_vertex && layer != lit_layers.x && layer != lit_layers.y) {\n"
@@ -528,6 +551,7 @@ static const char* Options_Vertex_Shader_ES =
 "  vec3 eye_normal = (view_matrix * vec4(in_normal, 0.0)).xyz;\n"
 "  vec3 color_base = decode_color(texelFetch(color_tex, tex_coord(color_tex, id), 0).rgb, id, int(texelFetch(position_tex, tex_coord(position_tex, id), 0).w));\n"
 "  color = color_base * lighting(eye_position, eye_normal);\n"
+"  focus_cut = in_focus(id) ? 0 : 1;\n"
 "  gl_Position = projection_matrix * vec4(eye_position, 1.0);\n"
 "}\n";
 
@@ -536,8 +560,11 @@ static const char* Options_Fragment_Shader_ES =
 "precision highp float;\n"
 "in vec3 color;\n"
 "in float clipping_plane_dot;\n"
+"flat in int focus_cut;\n"
 "out vec4 fragment_color;\n"
 "void main() {\n"
+"  if (focus_cut == 1)\n"
+"    discard;\n"
 "  if (clipping_plane_dot < 0.0)\n"
 "    discard;\n"
 "  fragment_color = vec4(color, 1.0);\n"

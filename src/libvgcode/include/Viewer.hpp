@@ -10,6 +10,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -102,6 +103,16 @@ public:
     // view and its glossy toolpaths setting.
     //
     void set_gloss(bool gloss);
+    //
+    // ORCA: the paths out of the focus are not drawn. Changing it recolours no vertex, so it can follow the mouse;
+    // the default Focus draws every path.
+    //
+    void set_focus(const Focus& focus);
+    const Focus& get_focus() const;
+    //
+    // ORCA: whether the given vertex is drawn under the current focus.
+    //
+    bool is_in_focus(const PathVertex& vertex) const;
 
     //
     // ************************************************************************
@@ -138,6 +149,11 @@ public:
     // showing less than the full print, so only the inspected layer(s) are at full brightness.
     // How bright those darkened layers are rendered, 1.0 = unchanged, 0.0 = black.
     //
+    //
+    // ORCA: the layers the color ranges span, from the first to the last; all of them by default
+    //
+    const Interval& get_color_ranges_layers() const;
+    void set_color_ranges_layers(const Interval& layers);
     bool is_dim_previous_layers() const;
     void set_dim_previous_layers(bool value);
     float get_dim_previous_layers_brightness() const;
@@ -254,6 +270,11 @@ public:
     // EViewType::LayerTimeLogarithmic
     //
     const ColorRange& get_color_range(EViewType type) const;
+    //
+    // ORCA: the value of the given vertex that the color range of the given view type counts, if it counts one,
+    // under the current visibility; unlike the range, not rounded to its bins
+    //
+    std::optional<float> get_range_value(const PathVertex& vertex, EViewType type) const;
     //
     // Set the palette for the color range corresponding to the given view type
     // with the given value.

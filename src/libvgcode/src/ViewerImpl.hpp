@@ -33,6 +33,15 @@ namespace libvgcode {
 
 struct GCodeInputData;
 
+// ORCA
+struct FocusVertexShaders
+{
+    std::string segments;
+    std::string segments_depth;
+    std::string options;
+};
+FocusVertexShaders focus_vertex_shaders();
+
 class ViewerImpl
 {
 public:
@@ -101,6 +110,10 @@ public:
     void set_clipping_plane(const std::array<float, 4>& plane) { m_clipping_plane = plane; }
     void set_light_top_dir(const Vec3& direction) { m_light_top_dir = direction; }
     void set_gloss(bool gloss) { m_gloss = gloss; }
+    // ORCA: see Viewer::set_focus()
+    void set_focus(const Focus& focus);
+    const Focus& get_focus() const { return m_focus; }
+    bool is_in_focus(const PathVertex& vertex) const;
 
     EViewType get_view_type() const { return m_settings.view_type; }
     void set_view_type(EViewType type);
@@ -119,6 +132,8 @@ public:
     // one(s) - the top thumb's layer, the bottom thumb's layer, or both - stay at full
     // brightness. dim_previous_layers_brightness sets how dark the rest go, 1.0 = unchanged,
     // 0.0 = black
+    const Interval& get_color_ranges_layers() const { return m_settings.ranges_layers; }
+    void set_color_ranges_layers(const Interval& layers);
     bool is_dim_previous_layers() const { return m_settings.dim_previous_layers; }
     void set_dim_previous_layers(bool value);
     float get_dim_previous_layers_brightness() const { return m_settings.dim_previous_layers_brightness; }
@@ -193,8 +208,8 @@ public:
     float get_estimated_time() const { return m_total_time[static_cast<size_t>(m_settings.time_mode)]; }
     float get_estimated_time_at(size_t id) const;
     Color get_vertex_color(const PathVertex& vertex) const;
-    // the value the current view grades the vertex by, where it grades by one
-    std::optional<float> get_vertex_value(const PathVertex& vertex) const;
+    // the value the view type grades the vertex by, where it grades by one
+    std::optional<float> get_vertex_value(const PathVertex& vertex, EViewType type) const;
     // how many layers of an interval find_extrusion_vertex() samples
     static constexpr std::size_t VERTEX_SAMPLE_LAYERS = 8;
     size_t find_extrusion_vertex(const Interval& layers, EGCodeExtrusionRole role, const XYBox& box) const;
@@ -226,6 +241,7 @@ public:
     void reset_default_options_colors();
 
     const ColorRange& get_color_range(EViewType type) const;
+    std::optional<float> get_range_value(const PathVertex& vertex, EViewType type) const;
     void set_color_range_palette(EViewType type, const Palette& palette);
 
     float get_travels_radius() const { return m_travels_radius; }
@@ -351,6 +367,10 @@ private:
 
     // Cache for the colors to reduce the need to recalculate colors of all the vertices.
     std::vector<ColorWithAlpha> m_vertices_colors;
+    // ORCA: the key of each vertex the shaders hide it by out of m_focus, see Focus.hpp; written with the colors from the first
+    // focus set on, empty before
+    std::vector<uint32_t> m_vertices_focus;
+    Focus m_focus;
     // ORCA: the enabled segments list the translucent ones last, see update_enabled_entities().
     bool m_has_translucent_colors{ false };
     size_t m_enabled_translucent_segments_count{ 0 };
@@ -431,6 +451,11 @@ private:
         int grey_below_layer{ -1 };
         int dim_brightness{ -1 };
         int kept_vertex{ -1 };
+        // ORCA: and the paths out of focus, see set_focus()
+        int focus_tex{ -1 };
+        int focus_kind{ -1 };
+        int focus_extruder{ -1 };
+        int focus_range{ -1 };
 
         void init(unsigned int shader_id);
     };
@@ -472,6 +497,8 @@ private:
         void set_positions(const std::vector<Vec4>& positions);
         void set_heights_widths_angles(const std::vector<Vec4>& heights_widths_angles);
         void set_colors(const std::vector<ColorWithAlpha>& colors);
+        // ORCA: see m_vertices_focus
+        void set_focus_keys(const std::vector<uint32_t>& keys);
         // ORCA: sorted by opacity, each texture lists its opaque segments first, then its translucent ones.
         void set_enabled_segments(const std::vector<uint32_t>& enabled_segments, const std::vector<ColorWithAlpha>& colors, bool sort_by_opacity);
         void set_enabled_options(const std::vector<uint32_t>& enabled_options);
@@ -480,6 +507,7 @@ private:
         std::pair<unsigned int, size_t> get_positions_tex_id(size_t id) const;
         std::pair<unsigned int, size_t> get_heights_widths_angles_tex_id(size_t id) const;
         std::pair<unsigned int, size_t> get_colors_tex_id(size_t id) const;
+        std::pair<unsigned int, size_t> get_focus_keys_tex_id(size_t id) const;
         std::pair<unsigned int, size_t> get_enabled_segments_tex_id(size_t id) const;
         size_t get_enabled_translucent_segments_count(size_t id) const { return m_tex_ids[id].enabled_translucent_segments; }
         std::pair<unsigned int, size_t> get_enabled_options_tex_id(size_t id) const;
@@ -509,6 +537,7 @@ private:
         size_t m_positions_size{ 0 };
         size_t m_height_width_angle_size{ 0 };
         size_t m_colors_size{ 0 };
+        size_t m_focus_keys_size{ 0 };
         size_t m_enabled_segments_size{ 0 };
         size_t m_enabled_options_size{ 0 };
 
@@ -526,6 +555,10 @@ private:
             // OpenGL texture to store colors
             //
             std::pair<unsigned int, size_t> colors{ 0, 0 };
+            //
+            // ORCA: OpenGL texture to store the focus keys
+            //
+            std::pair<unsigned int, size_t> focus_keys{ 0, 0 };
             //
             // OpenGL texture to store enabled segments
             //
@@ -558,6 +591,11 @@ private:
     unsigned int m_colors_buf_id{ 0 };
     unsigned int m_colors_tex_id{ 0 };
     //
+    // ORCA: OpenGL buffers to store the focus keys
+    //
+    unsigned int m_focus_keys_buf_id{ 0 };
+    unsigned int m_focus_keys_tex_id{ 0 };
+    //
     // OpenGL buffers to store enabled segments
     //
     unsigned int m_enabled_segments_buf_id{ 0 };
@@ -586,6 +624,7 @@ private:
     size_t m_positions_tex_size{ 0 };
     size_t m_height_width_angle_tex_size{ 0 };
     size_t m_colors_tex_size{ 0 };
+    size_t m_focus_keys_tex_size{ 0 };
     size_t m_enabled_segments_tex_size{ 0 };
     size_t m_enabled_options_tex_size{ 0 };
     size_t m_enabled_segments_reduced_tex_size{ 0 };
@@ -679,6 +718,7 @@ private:
     // the segments shaders built with DEPTH_ONLY, drawing the depth of the nearest translucent surface
     unsigned int m_segments_depth_shader_id{ 0 };
     SegmentsUniforms m_uni_segments_depth;
+    LayerColorsUniforms m_uni_segments_depth_layer_colors;
     int m_uni_segments_depth_opaque_depth_id{ -1 };
     std::array<float, 2> m_oit_depth_range{ 0.0f, 1.0f };
 #endif // ENABLE_OPENGL_ES
@@ -689,8 +729,17 @@ private:
     void apply_pending_updates();
     void update_view_full_range();
     void update_color_ranges();
+    // ORCA: whether a vertex counts for the ranges of the values of extrusions that custom G-code may leave out, and for the
+    // ranges of the values of moves
+    bool counts_custom(const PathVertex& v) const;
+    bool counts_move(const PathVertex& v) const;
+    // ORCA: whether the value of the vertex counts in the color range of the view type, which then gives the vertex its color
+    bool counts_in_range(const PathVertex& v, EViewType type) const;
     void update_heights_widths();
     uint8_t get_vertex_alpha(const PathVertex& v) const;
+    // ORCA: where the color of the vertex comes from the color range of the view, the position of its value on it
+    std::optional<float> get_vertex_range_position(const PathVertex& v) const;
+    uint32_t get_vertex_focus_key(const PathVertex& v) const;
     // ORCA: translucent draws the segments whose color is translucent, otherwise the opaque ones, or all of them for the shadow casters.
     void render_segments(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& camera_position, bool translucent = false);
     void render_options(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);
@@ -701,6 +750,9 @@ private:
     void render_cog_marker(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);
     void render_tool_marker(const Mat4x4& view_matrix, const Mat4x4& projection_matrix);
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
+
+    // ORCA
+    friend struct ViewerImplTestAccess;
 };
 
 } // namespace libvgcode

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:06-0600\n"
+"POT-Creation-Date: 2026-11-06 11:18-0600\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3928,17 +3928,14 @@ msgstr "一時停止"
 msgid "Template"
 msgstr "テンプレート"
 
+# AI Translated
+#. TRN Where a mark on the layer slider stands: its layer number and its height in millimeters.
+#, boost-format
+msgid "%1% · %2% mm"
+msgstr "%1% · %2% mm"
+
 msgid "Custom"
 msgstr "カスタム"
-
-msgid "Pause:"
-msgstr "一時停止:"
-
-msgid "Custom Template:"
-msgstr "カスタムテンプレート:"
-
-msgid "Custom G-code:"
-msgstr "カスタムG-code:"
 
 msgid "Custom G-code"
 msgstr "カスタム G-code"
@@ -6852,11 +6849,37 @@ msgstr "PA: "
 msgid "mm/s"
 msgstr "mm/s"
 
+# AI Translated
+msgctxt "Move details"
+msgid "LINE"
+msgstr "線"
+
+# AI Translated
+#. TRN Width × height of the extrusion line.
+msgid "W × H"
+msgstr "幅 × 高さ"
+
+# AI Translated
+msgctxt "Move details"
+msgid "MOTION"
+msgstr "モーション"
+
 msgid "mm/s²"
 msgstr "mm/s²"
 
+# AI Translated
+msgctxt "Move details"
+msgid "EXTRUSION"
+msgstr "押出"
+
 msgid "mm³/s"
 msgstr "mm³/s"
+
+# AI Translated
+# Needs human review: Heading of the move-details tooltip over temperature and fan speed rows; check 温度 reads right as a section title above the 温度 row.
+msgctxt "Move details"
+msgid "THERMAL"
+msgstr "温度"
 
 msgid "Flow rate"
 msgstr "フロー率"
@@ -6866,14 +6889,33 @@ msgstr "フロー率"
 msgid "Fan speed"
 msgstr "ファン回転速度"
 
+# AI Translated
+#, boost-format
+msgid "Move %1% of %2%"
+msgstr "移動 %1% / %2%"
+
 msgid "Time"
 msgstr "時間"
 
-msgid "Speed: "
-msgstr "速度: "
+# AI Translated
+msgid "Speed profile"
+msgstr "速度プロファイル"
 
-msgid "Actual speed profile"
-msgstr "実際の速度プロファイル"
+# AI Translated
+#. TRN Title of the speed chart of a move: its length in millimeters and its duration in seconds.
+#, boost-format
+msgid "Actual speed profile · %1% mm · %2% s"
+msgstr "実際の速度プロファイル · %1% mm · %2% s"
+
+# AI Translated
+msgid "No speed profile for this move"
+msgstr "この移動には速度プロファイルがありません"
+
+# AI Translated
+#, boost-format
+msgid "%1% more"
+msgid_plural "%1% more"
+msgstr[0] "さらに%1%件"
 
 # AI Translated
 msgid "Automatic"
@@ -6897,9 +6939,6 @@ msgstr "タワー"
 
 msgid "Total"
 msgstr "合計"
-
-msgid "Total estimation"
-msgstr "予測合計"
 
 msgid "Total time"
 msgstr "総時間"
@@ -6964,56 +7003,11 @@ msgstr "最適に設定"
 msgid "Regroup filament"
 msgstr "フィラメントを再グルーピング"
 
-# AI Translated
-#, boost-format
-msgid "up to %1% mm"
-msgstr "%1% mm まで"
-
-# AI Translated
-#, boost-format
-msgid "above %1% mm"
-msgstr "%1% mm 以上"
-
-# AI Translated
-#, boost-format
-msgid "from %1% to %2% mm"
-msgstr "%1% mm から %2% mm まで"
-
 msgid "Usage"
 msgstr "使用量"
 
-msgid "Layer height (mm)"
-msgstr "積層ピッチ(mm)"
-
-msgid "Line width (mm)"
-msgstr "押出線幅(mm)"
-
-msgid "Speed (mm/s)"
-msgstr "速度 (mm/s)"
-
-msgid "Actual Speed (mm/s)"
-msgstr "実速度 (mm/s)"
-
-# AI Translated
-msgid "Acceleration (mm/s²)"
-msgstr "加速度 (mm/s²)"
-
 msgid "Jerk (mm/s)"
 msgstr "Jerk (mm/s)"
-
-msgid "Fan speed (%)"
-msgstr "ファン回転速度 (%)"
-
-msgid "Temperature (℃)"
-msgstr "温度 (℃)"
-
-# AI Translated
-# Needs human review: Rewrote a person's translation: Legend title of the volumetric flow rate: glossary Flow Rate is フロー率, and its pair Actual volumetric flow rate reads 実際の体積フロー率 (mm³/s).
-msgid "Volumetric flow rate (mm³/s)"
-msgstr "体積フロー率 (mm³/s)"
-
-msgid "Actual volumetric flow rate (mm³/s)"
-msgstr "実際の体積フロー率 (mm³/s)"
 
 msgid "Seams"
 msgstr "継ぎ目"
@@ -7026,9 +7020,6 @@ msgstr "オプション"
 
 msgid "Cost"
 msgstr "コスト"
-
-msgid "Filament change times"
-msgstr "フィラメント交換回数"
 
 # AI Translated
 # Needs human review: Rewrote a person's translation: Glossary Tool change is ツール交換, as in the sibling legend item Tool Change.
@@ -7043,30 +7034,6 @@ msgstr "色変更"
 msgctxt "Noun"
 msgid "Print"
 msgstr "造形"
-
-msgid "Time Estimation"
-msgstr "予測時間"
-
-msgid "Normal mode"
-msgstr "通常モード"
-
-msgid "Total Filament"
-msgstr "フィラメント合計"
-
-msgid "Model Filament"
-msgstr "モデルフィラメント"
-
-msgid "Prepare time"
-msgstr "準備時間"
-
-msgid "Model printing time"
-msgstr "モデル造形時間"
-
-msgid "Show stealth mode"
-msgstr "ステルスモードを表示"
-
-msgid "Show normal mode"
-msgstr "通常モードを表示"
 
 msgid ""
 "An object is placed in the left/right nozzle-only area or exceeds the printable height of the left nozzle.\n"
@@ -7366,15 +7333,6 @@ msgstr "キャンバスツールバー"
 # AI Translated
 msgid "Section view"
 msgstr "断面ビュー"
-
-msgid "Fit camera to scene or selected object."
-msgstr "シーンまたは選択したオブジェクトにカメラを合わせます。"
-
-msgid "3D Navigator"
-msgstr "3Dナビゲーター"
-
-msgid "Zoom button"
-msgstr "ズームボタン"
 
 msgid "Overhangs"
 msgstr "オーバーハング"
@@ -7953,12 +7911,6 @@ msgstr "G-codeウィンドウを表示(&G)"
 
 msgid "Show G-code window in Preview scene."
 msgstr "プレビューシーンにG-codeウィンドウを表示します。"
-
-msgid "Show 3D Navigator"
-msgstr "3Dナビゲーターを表示"
-
-msgid "Show 3D navigator in Prepare and Preview scene."
-msgstr "準備とプレビューシーンに3Dナビゲーターを表示します。"
 
 msgid "Show Gridlines"
 msgstr "グリッドラインを表示"
@@ -17515,13 +17467,11 @@ msgstr ""
 msgid "Brim ear detection radius"
 msgstr "ブリムイヤー検出半径"
 
-# AI Translated
 msgid ""
-"The geometry will be decimated before detecting sharp angles. This parameter indicates the minimum length of the deviation for the decimation.\n"
-"0 to deactivate."
+"The direction change at a corner is measured over a window of this length along the outline.\n"
+"The window grows while the outline keeps curving, so a rounded corner counts as one corner once its whole turn is seen.\n"
+"0 to measure the angle at every vertex without smoothing."
 msgstr ""
-"鋭角を検出する前にジオメトリが間引かれます。このパラメータは、間引きにおける偏差の最小長さを指定します。\n"
-"0で無効になります。"
 
 # AI Translated
 msgid "Brim ears outer only"
@@ -36117,6 +36067,15 @@ msgid "Layer %1%"
 msgstr "レイヤー%1%"
 
 # AI Translated
+#, boost-format
+msgid "%1% mm"
+msgstr "%1% mm"
+
+# AI Translated
+msgid "Single layer"
+msgstr "1積層のみ表示"
+
+# AI Translated
 msgid "Average island scale"
 msgstr "UVアイランドのスケールを平均化"
 
@@ -40414,6 +40373,1273 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Collapse"
+msgstr "折りたたむ"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Expand"
+msgstr "展開する"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Settings"
+msgstr "設定"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "View"
+msgstr "表示"
+
+# AI Translated
+#. TRN The number of G-code lines the window shows.
+msgctxt "G-code window"
+msgid "Lines"
+msgstr "行数"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Auto"
+msgstr "自動"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Font size"
+msgstr "フォントサイズ"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Current line"
+msgstr "現在の行"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Center"
+msgstr "中央"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Upper third"
+msgstr "上から3分の1"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Long lines"
+msgstr "長い行"
+
+# AI Translated
+#. TRN Long G-code lines: cut at the window's edge, or continued on the next row.
+msgctxt "G-code window"
+msgid "Clip"
+msgstr "切り詰め"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Wrap"
+msgstr "折り返し"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Comments"
+msgstr "コメント"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "All"
+msgstr "すべて"
+
+# AI Translated
+#. TRN Show only the tag comments Orca writes, such as ;TYPE: or ;WIPE_START.
+msgctxt "G-code window"
+msgid "Tags"
+msgstr "タグ"
+
+# AI Translated
+#. TRN Show no comments.
+msgctxt "G-code window"
+msgid "None"
+msgstr "なし"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Highlighting"
+msgstr "ハイライト"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Align parameters in columns"
+msgstr "パラメーターを列で揃える"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Color axis letters"
+msgstr "軸の文字を色分け"
+
+# AI Translated
+#. TRN A coloured stripe left of each line, in the colour of its line type.
+msgctxt "G-code window"
+msgid "Line type stripe"
+msgstr "線種の色帯"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Shade lines not yet printed"
+msgstr "未印刷の行を薄く表示"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Reset"
+msgstr "リセット"
+
+# AI Translated
+#. TRN The number of settings of the G-code window that differ from their defaults.
+#, boost-format
+msgctxt "G-code window"
+msgid "Changed: %1%"
+msgstr "変更: %1%"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Copy line"
+msgstr "行をコピー"
+
+# AI Translated
+msgctxt "G-code window"
+msgid "Copy visible lines"
+msgstr "表示中の行をコピー"
+
+# AI Translated
+msgid "Legend on the Left"
+msgstr "凡例を左に表示"
+
+# AI Translated
+msgid "Show the legend at the left edge of the Preview scene."
+msgstr "プレビューシーンの左端に凡例を表示します。"
+
+# AI Translated
+msgid "G-code Window on the Left"
+msgstr "G-codeウィンドウを左に表示"
+
+# AI Translated
+msgid "Show the G-code window at the left edge of the Preview scene."
+msgstr "プレビューシーンの左端にG-codeウィンドウを表示します。"
+
+# AI Translated
+msgid "G-code Window Above the Legend"
+msgstr "G-codeウィンドウを凡例の上に表示"
+
+# AI Translated
+msgid "When the legend and the G-code window are on the same side, show the G-code window first."
+msgstr "凡例とG-codeウィンドウが同じ側にある場合、G-codeウィンドウを上に表示します。"
+
+# AI Translated
+msgid "Preview Layout"
+msgstr "プレビューのレイアウト"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Default view"
+msgstr "デフォルトビュー"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Realistic view"
+msgstr "リアルビュー"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Auto perspective"
+msgstr "自動パースペクティブ"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Front right"
+msgstr "右前"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Front left"
+msgstr "左前"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Rear right"
+msgstr "右後ろ"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Rear left"
+msgstr "左後ろ"
+
+# AI Translated
+# Needs human review: Navigator cube edge and corner names use 上/下 rather than the face names トップ/底面 (glossary Top/Bottom (Camera View)), in one scheme: left/right, then front/rear, then top/bottom (右前上, 左後ろ下, 前上). Check the whole set reads naturally as tooltips.
+msgctxt "Navigator"
+msgid "Top front"
+msgstr "前上"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Top rear"
+msgstr "後ろ上"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Top left"
+msgstr "左上"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Top right"
+msgstr "右上"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Bottom front"
+msgstr "前下"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Bottom rear"
+msgstr "後ろ下"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Bottom left"
+msgstr "左下"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Bottom right"
+msgstr "右下"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Top front right"
+msgstr "右前上"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Top front left"
+msgstr "左前上"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Top rear right"
+msgstr "右後ろ上"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Top rear left"
+msgstr "左後ろ上"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Bottom front right"
+msgstr "右前下"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Bottom front left"
+msgstr "左前下"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Bottom rear right"
+msgstr "右後ろ下"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Bottom rear left"
+msgstr "左後ろ下"
+
+# AI Translated
+msgid "Orthographic"
+msgstr "直交投影"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Set current view as home"
+msgstr "現在のビューをホームに設定"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Reset home view"
+msgstr "ホームビューをリセット"
+
+# AI Translated
+#. TRN Why "Reset home view" is unavailable: no view was set as home.
+msgctxt "Navigator"
+msgid "No home view is set"
+msgstr "ホームビューが設定されていません"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Home view"
+msgstr "ホームビュー"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Rotate left by 90°"
+msgstr "左に90°回転"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Rotate right by 90°"
+msgstr "右に90°回転"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Views"
+msgstr "ビュー"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Fit view"
+msgstr "全体表示"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Display"
+msgstr "表示"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Available only in Prepare"
+msgstr "準備タブでのみ使用できます"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Not available in Preview"
+msgstr "プレビューでは使用できません"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Not available in Assembly View"
+msgstr "組立てビューでは使用できません"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Not available in Design"
+msgstr "デザインタブでは使用できません"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Model"
+msgstr "モデル"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Scene"
+msgstr "シーン"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Navigator background"
+msgstr "ナビゲーターの背景"
+
+# AI Translated
+msgctxt "Navigator"
+msgid "Belt printer"
+msgstr "ベルトプリンター"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Actual"
+msgstr "実際"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Alt+click"
+msgstr "Alt+クリック"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Click"
+msgstr "クリック"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Click hides or shows it, Alt+click shows only it."
+msgstr "クリックで表示/非表示を切り替え、Alt+クリックでこれだけを表示します。"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Collapse"
+msgstr "折りたたむ"
+
+# AI Translated
+#. TRN Under the only value of a mode in the preview legend, when its range is the visible layers.
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Constant in the visible layers, so there is no scale"
+msgstr "表示中の積層では一定のため、スケールはありません"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Constant in this file, so there is no scale"
+msgstr "このファイルでは一定のため、スケールはありません"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Copy statistics"
+msgstr "統計をコピー"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "Count: %1%"
+msgstr "回数: %1%"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "Distance: %1%"
+msgstr "距離: %1%"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Expand"
+msgstr "展開する"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "Extruder %1%"
+msgstr "押出機 %1%"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "Filament %1%"
+msgstr "フィラメント %1%"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "Filament: %1%, %2%"
+msgstr "フィラメント: %1%、%2%"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "Hidden: %1%"
+msgstr "非表示: %1%"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Hide"
+msgstr "非表示"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Hide all moves"
+msgstr "すべての動作を非表示"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Include travel"
+msgstr "移動を含める"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "layer %1%"
+msgstr "積層 %1%"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Layers"
+msgstr "積層"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "layers %1%–%2%"
+msgstr "積層 %1%–%2%"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Linear"
+msgstr "線形"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Line type"
+msgstr "線種"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Log"
+msgstr "対数"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend modes"
+msgid "Categories"
+msgstr "カテゴリ"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend modes"
+msgid "Cooling and heat"
+msgstr "冷却と温度"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend modes"
+msgid "Extrusion"
+msgstr "押出"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend modes"
+msgid "Motion"
+msgstr "モーション"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend modes"
+msgid "Time"
+msgstr "時間"
+
+# AI Translated
+# Needs human review: Legend section listing travel, retraction, wipe and seam moves; 動作 is used instead of 移動 because Travel is already 移動. Check it reads right.
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Moves"
+msgstr "動作"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "on every move"
+msgstr "すべての移動で"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Planned"
+msgstr "計画"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Show"
+msgstr "表示"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Show all line types"
+msgstr "すべての線種を表示"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "Show only %1%"
+msgstr "%1%のみ表示"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Time"
+msgstr "時間"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend"
+msgid "Time: %1%, %2% of the print"
+msgstr "時間: %1%、印刷全体の%2%"
+
+# AI Translated
+# Needs human review: Time units in the legend kept as Latin h/m/s abbreviations: the time column is narrow and the same %1%s msgid serves both the column and the print summary. Check whether 時間/分/秒 should be used instead.
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend time"
+msgid "<1s"
+msgstr "<1s"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend time"
+msgid "%1%d %2%h"
+msgstr "%1%d %2%h"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend time"
+msgid "%1%d%2%h"
+msgstr "%1%d%2%h"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend time"
+msgid "%1%h %2%m"
+msgstr "%1%h %2%m"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend time"
+msgid "%1%h%2%m"
+msgstr "%1%h%2%m"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend time"
+msgid "%1%m %2%s"
+msgstr "%1%m %2%s"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend time"
+msgid "%1%m%2%s"
+msgstr "%1%m%2%s"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend time"
+msgid "%1%s"
+msgstr "%1%s"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend unit"
+msgid "%1% g"
+msgstr "%1% g"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend unit"
+msgid "%1% in"
+msgstr "%1% in"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend unit"
+msgid "%1% kg"
+msgstr "%1% kg"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend unit"
+msgid "%1% m"
+msgstr "%1% m"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend unit"
+msgid "%1% mm"
+msgstr "%1% mm"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+#, boost-format
+msgctxt "Legend unit"
+msgid "%1% oz"
+msgstr "%1% oz"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend unit"
+msgid "g"
+msgstr "g"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend unit"
+msgid "oz"
+msgstr "oz"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Value"
+msgstr "値"
+
+# AI Translated
+#. TRN The heading of the values column of the preview legend with their unit, as "Value, °C".
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "Value, %1%"
+msgstr "値 (%1%)"
+
+# AI Translated
+#: src/slic3r/GUI/LegendPanel.cpp
+msgctxt "Legend"
+msgid "weight · length"
+msgstr "重量 · 長さ"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "cost"
+msgstr "コスト"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, boost-format
+msgctxt "Print summary"
+msgid "Model filament: %1%"
+msgstr "モデルフィラメント: %1%"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Normal"
+msgstr "通常"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Stealth"
+msgstr "静音"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, boost-format
+msgctxt "Print summary"
+msgid "Prepare %1% · printing %2%"
+msgstr "準備 %1% · 印刷 %2%"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, boost-format
+msgctxt "Print summary"
+msgid "model %1%"
+msgstr "モデル %1%"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, boost-format
+msgctxt "Print summary"
+msgid "support %1%"
+msgstr "サポート %1%"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, boost-format
+msgctxt "Print summary"
+msgid "flush %1%"
+msgstr "フラッシュ %1%"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, boost-format
+msgctxt "Print summary"
+msgid "tower %1%"
+msgstr "タワー %1%"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, boost-format
+msgctxt "Print summary"
+msgid "Filaments · %1%"
+msgstr "フィラメント · %1%"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Changes"
+msgstr "交換"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Events"
+msgstr "イベント"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Layer"
+msgstr "積層"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Time"
+msgstr "時間"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Go to its layer"
+msgstr "この積層へ移動"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "How grouping works"
+msgstr "グルーピングの仕組み"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Profiles in this file"
+msgstr "このファイルのプロファイル"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+#, boost-format
+msgctxt "Print summary"
+msgid "Filament %1%"
+msgstr "フィラメント %1%"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Expand"
+msgstr "展開する"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Collapse"
+msgstr "折りたたむ"
+
+# AI Translated
+#: src/slic3r/GUI/PrintSummaryPanel.cpp
+msgctxt "Print summary"
+msgid "Print summary"
+msgstr "印刷サマリー"
+
+# AI Translated
+#: src/slic3r/GUI/PreviewLayoutMenu.cpp
+msgid "Print Summary on the Left"
+msgstr "印刷サマリーを左に表示"
+
+# AI Translated
+#: src/slic3r/GUI/MainFrame.cpp
+msgid "Show the print summary at the left edge of the Preview scene."
+msgstr "プレビューシーンの左端に印刷サマリーを表示します。"
+
+# AI Translated
+#: src/slic3r/GUI/PreviewLayoutMenu.cpp
+msgid "Choose where the legend, the print summary and the G-code window stand in the Preview scene."
+msgstr "プレビューシーンでの凡例、印刷サマリー、G-codeウィンドウの位置を選択します。"
+
+# AI Translated
+#: src/slic3r/GUI/MainFrame.cpp
+msgid "Show Legend"
+msgstr "凡例を表示"
+
+# AI Translated
+#: src/slic3r/GUI/MainFrame.cpp
+msgid "Show the legend in Preview scene."
+msgstr "プレビューシーンに凡例を表示します。"
+
+# AI Translated
+#: src/slic3r/GUI/MainFrame.cpp
+msgid "Show Print Summary"
+msgstr "印刷サマリーを表示"
+
+# AI Translated
+#: src/slic3r/GUI/MainFrame.cpp
+msgid "Show the print summary in Preview scene."
+msgstr "プレビューシーンに印刷サマリーを表示します。"
+
+# AI Translated
+#: src/slic3r/GUI/Shortcuts.cpp
+msgid "On/Off legend"
+msgstr "凡例のオン/オフ"
+
+# AI Translated
+#: src/slic3r/GUI/Shortcuts.cpp
+msgid "On/Off print summary"
+msgstr "印刷サマリーのオン/オフ"
+
+# AI Translated
+#. TRN How a filament's row of the preview legend or the print summary acts on a click.
+msgctxt "Legend"
+msgid "Click shows every filament again."
+msgstr "クリックすると、すべてのフィラメントの表示に戻ります。"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Click keeps only this filament in colour."
+msgstr "クリックすると、このフィラメントだけをカラー表示します。"
+
+# AI Translated
+msgctxt "Legend unit"
+msgid "in"
+msgstr "in"
+
+# AI Translated
+msgctxt "Legend unit"
+msgid "m"
+msgstr "m"
+
+# AI Translated
+#. TRN A bar of the preview legend's histogram of layer times: how many layers took that long, and their share of the layers.
+#, boost-format
+msgid "%1% layer, %2% of the layers"
+msgid_plural "%1% layers, %2% of the layers"
+msgstr[0] "%1%層、全積層の%2%"
+
+# AI Translated
+#. TRN A bar of the preview legend's histogram: the print time at these values, and its share.
+#, boost-format
+msgctxt "Legend"
+msgid "%1%, %2% of the time"
+msgstr "%1%、印刷時間の%2%"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Reset"
+msgstr "リセット"
+
+# AI Translated
+#. TRN Under the preview legend's scale of layer times: the values kept in colour, and their share of the layers, as "77%".
+#, boost-format
+msgctxt "Legend"
+msgid "Highlight %1% · %2% of the layers"
+msgstr "ハイライト %1% · 全積層の%2%"
+
+# AI Translated
+#. TRN Under the preview legend's scale: the values kept in colour, and their share of the print time, as "77%".
+#, boost-format
+msgctxt "Legend"
+msgid "Highlight %1% · %2% of the time"
+msgstr "ハイライト %1% · 時間の%2%"
+
+# AI Translated
+# Needs human review: Rewrote a person's translation: New legend string: the person's 最大体積速度 with the value placeholder appended; nothing else changed.
+#. TRN A line on the preview legend's scale of flow: the filament's maximum volumetric speed from its profile.
+#, boost-format
+msgctxt "Legend"
+msgid "Max volumetric speed %1%"
+msgstr "最大体積速度 %1%"
+
+# AI Translated
+#. TRN A line on the preview legend's scale of layer times: the time under which a layer is slowed down for cooling.
+#, boost-format
+msgctxt "Legend"
+msgid "Layer time %1%"
+msgstr "積層時間 %1%"
+
+# AI Translated
+#. TRN The filament a limit of the profile belongs to, after the limit on the preview legend's scale, as "filament 2".
+#, boost-format
+msgctxt "Legend"
+msgid "filament %1%"
+msgstr "フィラメント %1%"
+
+# AI Translated
+#. TRN The filaments a limit of the profile belongs to, after the limit on the preview legend's scale, as "filaments 1, 3".
+#, boost-format
+msgctxt "Legend"
+msgid "filaments %1%"
+msgstr "フィラメント %1%"
+
+# AI Translated
+#. TRN A limit on the preview legend's scale and the filaments it belongs to, as "Max volumetric speed 12 · filaments 1, 3".
+#, boost-format
+msgctxt "Legend"
+msgid "%1% · %2%"
+msgstr "%1% · %2%"
+
+# AI Translated
+#. TRN Under the preview legend's scale of flow. %1% is a share of the print time, as "23%".
+#, boost-format
+msgctxt "Legend"
+msgid "%1% of the print runs at the filament limit: speed there is capped by flow, not by the speed settings."
+msgstr "印刷の%1%はフィラメントの上限に達しています。その部分の速度は、速度設定ではなく体積速度によって制限されます。"
+
+# AI Translated
+#. TRN Under the preview legend's scale of flow, when no move reaches the filament's maximum volumetric speed from its profile.
+msgctxt "Legend"
+msgid "No part of the print reaches the filament limit."
+msgstr "印刷のどこもフィラメントの上限に達していません。"
+
+# AI Translated
+#, boost-format
+msgid "%1% layer is under %2% and was slowed down for cooling."
+msgid_plural "%1% layers are under %2% and were slowed down for cooling."
+msgstr[0] "%1%層が%2%未満のため、冷却のために減速しました。"
+
+# AI Translated
+#, boost-format
+msgid "%1% layer was slowed down for cooling."
+msgid_plural "%1% layers were slowed down for cooling."
+msgstr[0] "%1%層が冷却のために減速しました。"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Time column"
+msgstr "時間列"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Share column"
+msgstr "割合列"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Weight column"
+msgstr "重量列"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Length column"
+msgstr "長さ列"
+
+# AI Translated
+#. TRN A setting of the preview legend: bars of the print time at each value above the bar of a scale.
+msgctxt "Legend"
+msgid "Histogram on scales"
+msgstr "スケールにヒストグラムを表示"
+
+# AI Translated
+#. TRN A setting of the preview legend: a row under the mouse keeps its paths in colour in the 3D view and hides the rest.
+msgctxt "Legend"
+msgid "Highlight in 3D on hover"
+msgstr "ホバー時に3Dでハイライト"
+
+# AI Translated
+#. TRN A setting of the preview legend: what the scale of a mode spans, the whole print or the layers the slider shows.
+msgctxt "Legend"
+msgid "Scale range"
+msgstr "スケール範囲"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Whole print"
+msgstr "印刷全体"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Visible layers"
+msgstr "表示中の積層"
+
+# AI Translated
+#. TRN A setting of the preview legend: the colours of the scales; perceptual ones read evenly, also to colour-blind eyes.
+msgctxt "Legend"
+msgid "Palette"
+msgstr "パレット"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Classic"
+msgstr "クラシック"
+
+# AI Translated
+# Needs human review: Perceptually uniform colour palette (reads evenly, also for colour-blind users); check the term.
+msgctxt "Legend"
+msgid "Perceptual"
+msgstr "知覚均等"
+
+# AI Translated
+#. TRN The number of settings of the preview legend that differ from their defaults.
+#, boost-format
+msgctxt "Legend"
+msgid "Changed: %1%"
+msgstr "変更: %1%"
+
+# AI Translated
+#. TRN Why the last column of the preview legend's line types cannot be turned off.
+msgctxt "Legend"
+msgid "The line types keep at least one column"
+msgstr "線種には少なくとも1列が必要です"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Legend settings"
+msgstr "凡例の設定"
+
+# AI Translated
+# Needs human review: Lower/upper bound fields of the legend's highlight range (From/To); check 下限/上限 fits.
+msgctxt "Legend"
+msgid "From"
+msgstr "下限"
+
+# AI Translated
+msgctxt "Legend"
+msgid "To"
+msgstr "上限"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Apply"
+msgstr "適用"
+
+# AI Translated
+#. TRN The title of the box with the exact values the preview legend keeps in colour.
+msgctxt "Legend"
+msgid "Highlight range"
+msgstr "ハイライト範囲"
+
+# AI Translated
+msgctxt "Legend"
+msgid "Click shows them all again."
+msgstr "クリックするとすべて再表示します。"
+
+# AI Translated
+#. TRN Why the preview legend's count of hidden line types cannot be pressed.
+msgctxt "Legend"
+msgid "Nothing is hidden"
+msgstr "非表示の項目はありません"
+
+# AI Translated
+#~ msgid "Choose where the legend and the G-code window stand in the Preview scene."
+#~ msgstr "プレビューシーンでの凡例とG-codeウィンドウの位置を選択します。"
+
+# AI Translated
+#, boost-format
+#~ msgid "filament %1%"
+#~ msgid_plural "filaments %1%"
+#~ msgstr[0] "フィラメント %1%"
+
+#~ msgid "Pause:"
+#~ msgstr "一時停止:"
+
+#~ msgid "Custom Template:"
+#~ msgstr "カスタムテンプレート:"
+
+#~ msgid "Custom G-code:"
+#~ msgstr "カスタムG-code:"
+
+#~ msgid "Speed: "
+#~ msgstr "速度: "
+
+#~ msgid "Actual speed profile"
+#~ msgstr "実際の速度プロファイル"
+
+#~ msgid "Total estimation"
+#~ msgstr "予測合計"
+
+# AI Translated
+#, boost-format
+#~ msgid "up to %1% mm"
+#~ msgstr "%1% mm まで"
+
+# AI Translated
+#, boost-format
+#~ msgid "above %1% mm"
+#~ msgstr "%1% mm 以上"
+
+# AI Translated
+#, boost-format
+#~ msgid "from %1% to %2% mm"
+#~ msgstr "%1% mm から %2% mm まで"
+
+#~ msgid "Layer height (mm)"
+#~ msgstr "積層ピッチ(mm)"
+
+#~ msgid "Line width (mm)"
+#~ msgstr "押出線幅(mm)"
+
+#~ msgid "Speed (mm/s)"
+#~ msgstr "速度 (mm/s)"
+
+#~ msgid "Actual Speed (mm/s)"
+#~ msgstr "実速度 (mm/s)"
+
+# AI Translated
+#~ msgid "Acceleration (mm/s²)"
+#~ msgstr "加速度 (mm/s²)"
+
+#~ msgid "Fan speed (%)"
+#~ msgstr "ファン回転速度 (%)"
+
+#~ msgid "Temperature (℃)"
+#~ msgstr "温度 (℃)"
+
+# AI Translated
+# Needs human review: Rewrote a person's translation: Legend title of the volumetric flow rate: glossary Flow Rate is フロー率, and its pair Actual volumetric flow rate reads 実際の体積フロー率 (mm³/s).
+#~ msgid "Volumetric flow rate (mm³/s)"
+#~ msgstr "体積フロー率 (mm³/s)"
+
+#~ msgid "Actual volumetric flow rate (mm³/s)"
+#~ msgstr "実際の体積フロー率 (mm³/s)"
+
+#~ msgid "Filament change times"
+#~ msgstr "フィラメント交換回数"
+
+#~ msgid "Time Estimation"
+#~ msgstr "予測時間"
+
+#~ msgid "Normal mode"
+#~ msgstr "通常モード"
+
+#~ msgid "Total Filament"
+#~ msgstr "フィラメント合計"
+
+#~ msgid "Model Filament"
+#~ msgstr "モデルフィラメント"
+
+#~ msgid "Prepare time"
+#~ msgstr "準備時間"
+
+#~ msgid "Model printing time"
+#~ msgstr "モデル造形時間"
+
+#~ msgid "Show stealth mode"
+#~ msgstr "ステルスモードを表示"
+
+#~ msgid "Show normal mode"
+#~ msgstr "通常モードを表示"
+
+#~ msgid "Fit camera to scene or selected object."
+#~ msgstr "シーンまたは選択したオブジェクトにカメラを合わせます。"
+
+#~ msgid "3D Navigator"
+#~ msgstr "3Dナビゲーター"
+
+#~ msgid "Zoom button"
+#~ msgstr "ズームボタン"
+
+#~ msgid "Show 3D Navigator"
+#~ msgstr "3Dナビゲーターを表示"
+
+#~ msgid "Show 3D navigator in Prepare and Preview scene."
+#~ msgstr "準備とプレビューシーンに3Dナビゲーターを表示します。"
+
+# AI Translated
+#~ msgid ""
+#~ "The geometry will be decimated before detecting sharp angles. This parameter indicates the minimum length of the deviation for the decimation.\n"
+#~ "0 to deactivate."
+#~ msgstr ""
+#~ "鋭角を検出する前にジオメトリが間引かれます。このパラメータは、間引きにおける偏差の最小長さを指定します。\n"
+#~ "0で無効になります。"
 
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "STEPファイルインポート時にオプションを表示"

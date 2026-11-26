@@ -1,0 +1,3 @@
+#include "slic3r/GUI/CanvasUi/Button.hpp"
+
+void draw_floating_buttons() { CanvasUi::button("##zoom", "Zoom"); }

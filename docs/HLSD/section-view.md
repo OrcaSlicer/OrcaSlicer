@@ -7,8 +7,8 @@ objects in Prepare and in the assembly view, and inside the toolpaths in Preview
 setting: it changes nothing in the model, the slice or the project file, and it does not reach
 plate thumbnails.
 
-The user controls it from the section button of the canvas toolbar in the bottom left corner of
-the 3D view. The button opens a panel above it with a slider and a box for the depth of the cut in
+The user controls it from the section view button beside the navigator's toolbar in the
+bottom-left corner of the 3D view. The button opens a panel above it with a slider and a box for the depth of the cut in
 percent, which the mouse wheel over them also moves by 1%, a "Set viewing angle" button that turns
 the plane to face the camera at the same depth, a "Follow
 camera" checkbox that keeps it facing the camera, and a button that resets the depth to zero.

@@ -2,6 +2,8 @@
 #define slic3r_ImGuiWrapper_hpp_
 
 #include "libslic3r/Technologies.hpp"
+#include <array>
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <map>
@@ -20,6 +22,8 @@
 #include "libslic3r/Color.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
+#include "slic3r/GUI/CanvasUi/Font.hpp"
+#include "slic3r/GUI/CanvasUi/Tokens.hpp"
 
 namespace Slic3r {
 namespace Search {
@@ -215,6 +219,9 @@ public:
     const std::vector<std::string> get_fonts_names() const { return m_fonts_names; }
     bool push_bold_font();
     bool pop_bold_font();
+    // The bold and the monospaced faces for the toolkit. The monospaced ones cover Latin-1, Cyrillic and
+    // general punctuation; a glyph outside them has to come from the default font.
+    CanvasUi::Fonts canvas_ui_fonts();
     bool push_font_by_name(std::string font_name);
     bool pop_font_by_name(std::string font_name);
     void load_fonts_texture();
@@ -450,6 +457,7 @@ private:
     LastSliderStatus m_last_slider_status;
     ImFont* default_font = nullptr;
     ImFont* bold_font = nullptr;
+    std::array<ImFont*, CanvasUi::MONO_STYLE_COUNT * CanvasUi::MONO_FONT_SIZES.size()> m_mono_fonts{};
     std::map<std::string, ImFont*> im_fonts_map;
     std::vector<std::string> m_fonts_names;
 };

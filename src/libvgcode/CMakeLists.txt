@@ -30,6 +30,7 @@ set(LIBVGCODE_SOURCES
 	src/ColorRange.cpp
 	src/ExtrusionRoles.hpp
 	src/ExtrusionRoles.cpp
+	src/Focus.hpp
 	src/GCodeInputData.cpp
 	src/Layers.hpp
 	src/Layers.cpp

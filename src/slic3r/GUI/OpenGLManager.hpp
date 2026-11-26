@@ -2,6 +2,7 @@
 #define slic3r_OpenGLManager_hpp_
 
 #include "GLShadersManager.hpp"
+#include <memory>
 #include <string>
 #include <utility>
 #include "slic3r/GUI/GLShader.hpp"
@@ -12,6 +13,10 @@ class wxGLContext;
 
 namespace Slic3r {
 namespace GUI {
+
+namespace CanvasUi {
+class IconCache;
+}
 
 
 class OpenGLManager
@@ -80,6 +85,7 @@ private:
     bool m_make_current_failure_reported{ false };
     wxGLContext* m_context{ nullptr };
     GLShadersManager m_shaders_manager;
+    std::unique_ptr<CanvasUi::IconCache> m_ui_icons;
     static GLInfo s_gl_info;
     static bool s_compressed_textures_supported;
     static bool s_force_power_of_two_textures;
@@ -88,7 +94,7 @@ private:
     static EFramebufferType s_framebuffers_type;
 
 public:
-    OpenGLManager() = default;
+    OpenGLManager();
     ~OpenGLManager();
 
     bool init_gl(bool popup_error = true);
@@ -100,6 +106,7 @@ public:
 
     GLShaderProgram* get_shader(const std::string& shader_name) { return m_shaders_manager.get_shader(shader_name); }
     GLShaderProgram* get_current_shader() { return m_shaders_manager.get_current_shader(); }
+    CanvasUi::IconCache& ui_icons();
 
     static bool are_compressed_textures_supported() { return s_compressed_textures_supported; }
     static bool can_multisample() { return s_multisample == EMultisampleState::Enabled; }

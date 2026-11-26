@@ -8,6 +8,7 @@
 #include "ShadersES.hpp"
 #include "OpenGLUtils.hpp"
 #include "Utils.hpp"
+#include "Focus.hpp"
 
 #include <cstdint>
 #include "../include/Types.hpp"
@@ -302,6 +303,9 @@ static void delete_buffers(unsigned int& id)
 // ORCA: the opaque depth, then the accumulated colors of the translucent segments, see render_translucent().
 // Past the units render_segments() and the shadow map take.
 static constexpr int TRANSLUCENT_TEXTURE_UNIT = 5;
+#endif // ENABLE_OPENGL_ES
+// ORCA: past the units of the translucent segments
+static constexpr int FOCUS_TEXTURE_UNIT = 8;
 
 // ORCA: the source with a #define after its #version line
 static std::string with_define(const char* source, const char* define)
@@ -310,7 +314,31 @@ static std::string with_define(const char* source, const char* define)
     const size_t body = src.find('\n') + 1;
     return src.substr(0, body) + "#define " + define + "\n" + src.substr(body);
 }
+
+// ORCA: the layout of the focus key and the kinds below FOCUS_EXTRUSION_KINDS, which are extrusions, for VGCODE_FOCUS_GLSL
+static std::string with_focus_defines(const char* source)
+{
+    const auto unsigned_define = [](const char* name, uint32_t value) { return std::string(name) + " " + std::to_string(value) + "u"; };
+    std::string result = with_define(source, ("FOCUS_EXTRUSION_KINDS " + std::to_string(GCODE_EXTRUSION_ROLES_COUNT)).c_str());
+    for (const std::string& define : { unsigned_define("FOCUS_KIND_MASK", FOCUS_KIND_MASK), unsigned_define("FOCUS_EXTRUDER_SHIFT", FOCUS_EXTRUDER_SHIFT),
+                                       unsigned_define("FOCUS_EXTRUDER_MASK", FOCUS_EXTRUDER_MASK), unsigned_define("FOCUS_VALUE_SHIFT", FOCUS_VALUE_SHIFT) })
+        result = with_define(result.c_str(), define.c_str());
+    return result;
+}
+
+FocusVertexShaders focus_vertex_shaders()
+{
+    FocusVertexShaders shaders;
+#ifdef ENABLE_OPENGL_ES
+    shaders.segments = with_focus_defines(Segments_Vertex_Shader_ES);
+    shaders.options  = with_focus_defines(Options_Vertex_Shader_ES);
+#else
+    shaders.segments       = with_focus_defines(Segments_Vertex_Shader);
+    shaders.segments_depth = with_define(with_focus_defines(Segments_Vertex_Shader).c_str(), "DEPTH_ONLY");
+    shaders.options        = with_focus_defines(Options_Vertex_Shader);
 #endif // ENABLE_OPENGL_ES
+    return shaders;
+}
 
 static const std::array<Color, size_t(EGCodeExtrusionRole::COUNT)> DEFAULT_EXTRUSION_ROLES_COLORS = { {
     { 230, 179, 179 }, // None
@@ -540,6 +568,59 @@ void ViewerImpl::TextureData::set_colors(const std::vector<ColorWithAlpha>& colo
     glsafe(glPixelStorei(GL_UNPACK_ALIGNMENT, curr_unpack_alignment));
 }
 
+void ViewerImpl::TextureData::set_focus_keys(const std::vector<uint32_t>& keys)
+{
+    if (m_count == 0)
+        return;
+
+    for (TexIds& ids : m_tex_ids) {
+        delete_textures(ids.focus_keys.first);
+        ids.focus_keys.second = 0;
+    }
+
+    m_focus_keys_size = 0;
+
+    if (keys.empty())
+        return;
+
+    int curr_bound_texture = 0;
+    glsafe(glGetIntegerv(GL_TEXTURE_BINDING_2D, &curr_bound_texture));
+    int curr_unpack_alignment = 0;
+    glsafe(glGetIntegerv(GL_UNPACK_ALIGNMENT, &curr_unpack_alignment));
+
+    glsafe(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
+
+    const size_t tex_capacity = max_texture_capacity();
+    size_t remaining = keys.size();
+    for (size_t i = 0; i < m_count; ++i) {
+        const auto [w, h] = width_height(std::min(remaining, tex_capacity));
+        const size_t offset = i * tex_capacity;
+
+        glsafe(glGenTextures(1, &m_tex_ids[i].focus_keys.first));
+        glsafe(glBindTexture(GL_TEXTURE_2D, m_tex_ids[i].focus_keys.first));
+        glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+        glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+        glsafe(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0));
+        if (remaining >= tex_capacity) {
+            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_R32UI, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, &keys[offset]));
+            m_tex_ids[i].focus_keys.second = w * h;
+        }
+        else {
+            // the last row is only partially fitted with data, send it separately
+            glsafe(glTexImage2D(GL_TEXTURE_2D, 0, GL_R32UI, static_cast<GLsizei>(w), static_cast<GLsizei>(h), 0, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr));
+            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, static_cast<GLsizei>(w), static_cast<GLsizei>(h - 1), GL_RED_INTEGER, GL_UNSIGNED_INT, &keys[offset]));
+            glsafe(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, static_cast<GLsizei>(h - 1), static_cast<GLsizei>(remaining % w), 1, GL_RED_INTEGER, GL_UNSIGNED_INT, &keys[offset + w * (h - 1)]));
+            m_tex_ids[i].focus_keys.second = w * (h - 1) + remaining % w;
+        }
+        m_focus_keys_size += m_tex_ids[i].focus_keys.second * sizeof(uint32_t);
+
+        remaining = (remaining > tex_capacity) ? remaining - tex_capacity : 0;
+    }
+
+    glsafe(glBindTexture(GL_TEXTURE_2D, curr_bound_texture));
+    glsafe(glPixelStorei(GL_UNPACK_ALIGNMENT, curr_unpack_alignment));
+}
+
 void ViewerImpl::TextureData::set_enabled_segments(const std::vector<uint32_t>& enabled_segments, const std::vector<ColorWithAlpha>& colors, bool sort_by_opacity)
 {
     if (m_count == 0)
@@ -688,6 +769,7 @@ void ViewerImpl::TextureData::reset()
     for (TexIds& ids : m_tex_ids) {
         delete_textures(ids.enabled_options.first);
         delete_textures(ids.enabled_segments.first);
+        delete_textures(ids.focus_keys.first);
         delete_textures(ids.colors.first);
         delete_textures(ids.heights_widths_angles.first);
         delete_textures(ids.positions.first);
@@ -701,6 +783,7 @@ void ViewerImpl::TextureData::reset()
     m_positions_size = 0;
     m_height_width_angle_size = 0;
     m_colors_size = 0;
+    m_focus_keys_size = 0;
     m_enabled_segments_size = 0;
     m_enabled_options_size = 0;
 }
@@ -721,6 +804,12 @@ std::pair<unsigned int, size_t> ViewerImpl::TextureData::get_colors_tex_id(size_
 {
     assert(id < m_tex_ids.size());
     return m_tex_ids[id].colors;
+}
+
+std::pair<unsigned int, size_t> ViewerImpl::TextureData::get_focus_keys_tex_id(size_t id) const
+{
+    assert(id < m_tex_ids.size());
+    return m_tex_ids[id].focus_keys;
 }
 
 std::pair<unsigned int, size_t> ViewerImpl::TextureData::get_enabled_segments_tex_id(size_t id) const
@@ -759,6 +848,7 @@ size_t ViewerImpl::TextureData::get_used_gpu_memory() const
     ret += m_positions_size;
     ret += m_height_width_angle_size;
     ret += m_colors_size;
+    ret += m_focus_keys_size;
     ret += m_enabled_segments_size;
     ret += m_enabled_options_size;
     return ret;
@@ -804,11 +894,13 @@ void ViewerImpl::init(const std::string& opengl_context_version)
         }
     }
 
+    const FocusVertexShaders shaders = focus_vertex_shaders();
+
     // segments shader
 #ifdef ENABLE_OPENGL_ES
-    m_segments_shader_id = init_shader("segments", Segments_Vertex_Shader_ES, Segments_Fragment_Shader_ES);
+    m_segments_shader_id = init_shader("segments", shaders.segments.c_str(), Segments_Fragment_Shader_ES);
 #else
-    m_segments_shader_id = init_shader("segments", Segments_Vertex_Shader, Segments_Fragment_Shader, { "fragment_color", "oit_reveal", "oit_front" });
+    m_segments_shader_id = init_shader("segments", shaders.segments.c_str(), Segments_Fragment_Shader, { "fragment_color", "oit_reveal", "oit_front" });
     m_uni_segments_oit_pass_id        = glGetUniformLocation(m_segments_shader_id, "oit_pass");
     m_uni_segments_opaque_depth_id    = glGetUniformLocation(m_segments_shader_id, "opaque_depth");
     m_uni_segments_front_depth_id     = glGetUniformLocation(m_segments_shader_id, "front_depth");
@@ -818,10 +910,10 @@ void ViewerImpl::init(const std::string& opengl_context_version)
     m_uni_translucent_composite_reveal_tex_id = glGetUniformLocation(m_translucent_composite_shader_id, "reveal_tex");
     m_uni_translucent_composite_front_tex_id  = glGetUniformLocation(m_translucent_composite_shader_id, "front_tex");
     m_uni_translucent_composite_origin_id     = glGetUniformLocation(m_translucent_composite_shader_id, "origin");
-    const std::string depth_vs = with_define(Segments_Vertex_Shader, "DEPTH_ONLY");
     const std::string depth_fs = with_define(Segments_Fragment_Shader, "DEPTH_ONLY");
-    m_segments_depth_shader_id = init_shader("segments_depth", depth_vs.c_str(), depth_fs.c_str(), { "fragment_color", "oit_reveal", "oit_front" });
+    m_segments_depth_shader_id = init_shader("segments_depth", shaders.segments_depth.c_str(), depth_fs.c_str(), { "fragment_color", "oit_reveal", "oit_front" });
     m_uni_segments_depth.init(m_segments_depth_shader_id);
+    m_uni_segments_depth_layer_colors.init(m_segments_depth_shader_id);
     m_uni_segments_depth_opaque_depth_id = glGetUniformLocation(m_segments_depth_shader_id, "opaque_depth");
 #endif // ENABLE_OPENGL_ES
 
@@ -862,9 +954,9 @@ void ViewerImpl::init(const std::string& opengl_context_version)
 
     // options shader
 #ifdef ENABLE_OPENGL_ES
-    m_options_shader_id = init_shader("options", Options_Vertex_Shader_ES, Options_Fragment_Shader_ES);
+    m_options_shader_id = init_shader("options", shaders.options.c_str(), Options_Fragment_Shader_ES);
 #else
-    m_options_shader_id = init_shader("options", Options_Vertex_Shader, Options_Fragment_Shader);
+    m_options_shader_id = init_shader("options", shaders.options.c_str(), Options_Fragment_Shader);
 #endif // ENABLE_OPENGL_ES
 
     m_uni_options_view_matrix_id            = glGetUniformLocation(m_options_shader_id, "view_matrix");
@@ -984,6 +1076,7 @@ void ViewerImpl::reset()
     // should go back, not sit reserved until the next load
     std::vector<PathVertex>().swap(m_vertices);
     std::vector<ColorWithAlpha>().swap(m_vertices_colors);
+    std::vector<uint32_t>().swap(m_vertices_focus);
     m_has_translucent_colors = false;
     m_enabled_translucent_segments_count = 0;
     m_extrusions_box = { Vec3{ 0.0f, 0.0f, 0.0f }, Vec3{ 0.0f, 0.0f, 0.0f } };
@@ -991,6 +1084,8 @@ void ViewerImpl::reset()
         std::vector<float>().swap(times);
     std::vector<uint32_t>().swap(m_layer_first_vertex);
     m_layers_in_vertex_order = false;
+    // ORCA: the layers the colour ranges span belong to the print that goes; the next one starts from all of its own
+    m_settings.ranges_layers = Settings().ranges_layers;
     // BitSet::clear() only zeroes the bits, it keeps the blocks allocated; load() builds a new
     // bitset anyway and it is never read while m_vertices is empty
     m_valid_lines_bitset = BitSet<>();
@@ -1019,6 +1114,8 @@ void ViewerImpl::reset()
     delete_buffers(m_enabled_options_buf_id);
     delete_textures(m_enabled_segments_tex_id);
     delete_buffers(m_enabled_segments_buf_id);
+    delete_textures(m_focus_keys_tex_id);
+    delete_buffers(m_focus_keys_buf_id);
     delete_textures(m_colors_tex_id);
     delete_buffers(m_colors_buf_id);
     delete_textures(m_heights_widths_angles_tex_id);
@@ -1284,6 +1381,12 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
         glsafe(glGenTextures(1, &m_colors_tex_id));
         glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_colors_tex_id));
 
+        // ORCA
+        glsafe(glGenBuffers(1, &m_focus_keys_buf_id));
+        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_focus_keys_buf_id));
+        glsafe(glGenTextures(1, &m_focus_keys_tex_id));
+        glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_focus_keys_tex_id));
+
         // create (but do not fill) enabled segments buffer (data is set in update_enabled_entities())
         glsafe(glGenBuffers(1, &m_enabled_segments_buf_id));
         glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_enabled_segments_buf_id));
@@ -1469,15 +1572,23 @@ void ViewerImpl::update_colors_texture()
     // ORCA: the colors of the vertices alone; the layers greyed or dimmed around the one the sliders
     // show are left to the shaders, see set_layer_colors(), so that a slider step uploads nothing.
     #ifdef ENABLE_OPENGL_ES
-        if (!m_vertices_colors.empty())
+        if (!m_vertices_colors.empty()) {
             // update gpu buffer for colors
             m_texture_data.set_colors(m_vertices_colors);
+            if (!m_vertices_focus.empty())
+                m_texture_data.set_focus_keys(m_vertices_focus);
+        }
     #else
         m_colors_tex_size = m_vertices_colors.size() * sizeof(ColorWithAlpha);
+        m_focus_keys_tex_size = m_vertices_focus.size() * sizeof(uint32_t);
 
         // update gpu buffer for colors
         glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_colors_buf_id));
         glsafe(glBufferData(GL_TEXTURE_BUFFER, m_colors_tex_size, m_vertices_colors.data(), GL_STATIC_DRAW));
+        if (!m_vertices_focus.empty()) {
+            glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_focus_keys_buf_id));
+            glsafe(glBufferData(GL_TEXTURE_BUFFER, m_focus_keys_tex_size, m_vertices_focus.data(), GL_STATIC_DRAW));
+        }
         glsafe(glBindBuffer(GL_TEXTURE_BUFFER, 0));
     #endif // ENABLE_OPENGL_ES
 }
@@ -1488,6 +1599,10 @@ void ViewerImpl::LayerColorsUniforms::init(unsigned int shader_id)
     grey_below_layer = glGetUniformLocation(shader_id, "grey_below_layer");
     dim_brightness   = glGetUniformLocation(shader_id, "dim_brightness");
     kept_vertex      = glGetUniformLocation(shader_id, "kept_vertex");
+    focus_tex        = glGetUniformLocation(shader_id, "focus_tex");
+    focus_kind       = glGetUniformLocation(shader_id, "focus_kind");
+    focus_extruder   = glGetUniformLocation(shader_id, "focus_extruder");
+    focus_range      = glGetUniformLocation(shader_id, "focus_range");
 }
 
 void ViewerImpl::set_layer_colors(const LayerColorsUniforms& uni) const
@@ -1517,6 +1632,11 @@ void ViewerImpl::set_layer_colors(const LayerColorsUniforms& uni) const
     glsafe(glUniform1i(uni.grey_below_layer, color_top_layer_only ? static_cast<int>(top_layer_id) : 0));
     glsafe(glUniform1f(uni.dim_brightness, dim_previous_layers ? m_settings.dim_previous_layers_brightness : -1.0f));
     glsafe(glUniform1i(uni.kept_vertex, m_settings.spiral_vase_mode ? static_cast<int>(m_view_range.get_enabled()[0]) : -1));
+    glsafe(glUniform1i(uni.focus_tex, FOCUS_TEXTURE_UNIT));
+    glsafe(glUniform1i(uni.focus_kind, m_focus.kind));
+    glsafe(glUniform1i(uni.focus_extruder, m_focus.extruder));
+    const std::array<int, 2> focus_range = focus_value_range(m_focus);
+    glsafe(glUniform2i(uni.focus_range, focus_range[0], focus_range[1]));
 }
 
 void ViewerImpl::update_colors()
@@ -1542,10 +1662,15 @@ void ViewerImpl::update_colors()
     // the "normal" color on every slider move.
     const bool had_translucent_colors = m_has_translucent_colors;
     m_has_translucent_colors = false;
+    const bool focus_keys = m_focus.any() || !m_vertices_focus.empty();
+    if (focus_keys)
+        m_vertices_focus.resize(m_vertices.size());
     for (size_t i = 0; i < m_vertices.size(); ++i) {
         const Color color = get_vertex_color(m_vertices[i]);
         const uint8_t alpha = get_vertex_alpha(m_vertices[i]);
         m_vertices_colors[i] = { color[0], color[1], color[2], alpha };
+        if (focus_keys)
+            m_vertices_focus[i] = get_vertex_focus_key(m_vertices[i]);
         m_has_translucent_colors |= alpha < 255;
     }
 
@@ -1647,6 +1772,14 @@ void ViewerImpl::toggle_top_layer_only_view_range()
 }
 
 // ORCA: enable/disable darkening of the layers the layer slider is not scrubbed to
+void ViewerImpl::set_color_ranges_layers(const Interval& layers)
+{
+    if (m_settings.ranges_layers == layers)
+        return;
+    m_settings.ranges_layers = layers;
+    m_settings.update_colors = true;
+}
+
 void ViewerImpl::set_dim_previous_layers(bool value)
 {
     if (m_settings.dim_previous_layers == value)
@@ -1812,9 +1945,9 @@ float ViewerImpl::get_estimated_time_at(size_t id) const
     return time;
 }
 
-std::optional<float> ViewerImpl::get_vertex_value(const PathVertex& v) const
+std::optional<float> ViewerImpl::get_vertex_value(const PathVertex& v, EViewType type) const
 {
-    switch (m_settings.view_type)
+    switch (type)
     {
     case EViewType::Height:                   return v.height;
     case EViewType::Width:                    return v.width;
@@ -1846,7 +1979,7 @@ size_t ViewerImpl::find_extrusion_vertex(const Interval& layers, EGCodeExtrusion
     std::vector<size_t> ids;
     const size_t count = (layers[1] >= layers[0]) ? layers[1] - layers[0] + 1 : 0;
     const size_t steps = std::min(count, VERTEX_SAMPLE_LAYERS);
-    const auto value_of = [this](const PathVertex& v) { return get_vertex_value(v); };
+    const auto value_of = [this](const PathVertex& v) { return get_vertex_value(v, m_settings.view_type); };
     for (size_t step = 0; step < steps; ++step) {
         const size_t layer_id = layers[0] + ((steps > 1) ? step * (count - 1) / (steps - 1) : 0);
         const std::optional<size_t> first = collect_role_samples(m_vertices, m_layers.get_layer_vertex_range(layer_id),
@@ -1871,63 +2004,6 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
     {
         return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : get_extrusion_role_color(v.role);
     }
-    case EViewType::Height:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_height_range.get_color_at(v.height);
-    }
-    case EViewType::Width:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_width_range.get_color_at(v.width);
-    }
-    case EViewType::Speed:
-    {
-        return m_speed_range.get_color_at(v.feedrate);
-    }
-    case EViewType::ActualSpeed:
-    {
-        return m_actual_speed_range.get_color_at(v.actual_feedrate);
-    }
-    case EViewType::FanSpeed:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_fan_speed_range.get_color_at(v.fan_speed);
-    }
-    case EViewType::Temperature:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_temperature_range.get_color_at(v.temperature);
-    }
-// ORCA: Add Pressure Advance visualization support
-    case EViewType::PressureAdvance:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_pressure_advance_range.get_color_at(v.pressure_advance);
-    }
-    // ORCA: Add Acceleration visualization support
-    case EViewType::Acceleration:
-    {
-        return m_acceleration_range.get_color_at(v.acceleration);
-    }
-    // ORCA: Add Jerk visualization support
-    case EViewType::Jerk:
-    {
-        return m_jerk_range.get_color_at(v.jerk);
-    }
-    case EViewType::VolumetricFlowRate:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_volumetric_rate_range.get_color_at(v.volumetric_rate());
-    }
-    case EViewType::ActualVolumetricFlowRate:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_actual_volumetric_rate_range.get_color_at(v.actual_volumetric_rate());
-    }
-    case EViewType::LayerTimeLinear:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) :
-            m_layer_time_range[0].get_color_at(m_layers.get_layer_time(m_settings.time_mode, static_cast<size_t>(v.layer_id)));
-    }
-    case EViewType::LayerTimeLogarithmic:
-    {
-        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) :
-            m_layer_time_range[1].get_color_at(m_layers.get_layer_time(m_settings.time_mode, static_cast<size_t>(v.layer_id)));
-    }
     case EViewType::Tool:
     {
         assert(static_cast<size_t>(v.extruder_id) < m_tool_colors.size());
@@ -1942,10 +2018,40 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
         const ColorWithAlpha& color = m_color_print_colors[static_cast<size_t>(v.color_id) % m_color_print_colors.size()];
         return { color[0], color[1], color[2] };
     }
-    default: { break; }
+    // ORCA: the views that grade by a value
+    default:
+    {
+        const std::optional<float> value = get_range_value(v, m_settings.view_type);
+        if (value.has_value())
+            return get_color_range(m_settings.view_type).get_color_at(*value);
+        return v.is_extrusion() ? DUMMY_COLOR : get_option_color(move_type_to_option(v.type));
     }
+    }
+}
 
-    return DUMMY_COLOR;
+std::optional<float> ViewerImpl::get_vertex_range_position(const PathVertex& v) const
+{
+    const std::optional<float> value = get_range_value(v, m_settings.view_type);
+    if (!value.has_value())
+        return std::nullopt;
+    return get_color_range(m_settings.view_type).get_position_at(*value);
+}
+
+uint32_t ViewerImpl::get_vertex_focus_key(const PathVertex& v) const
+{
+    return encode_focus_key(focus_kind(v), v.extruder_id, get_vertex_range_position(v));
+}
+
+void ViewerImpl::set_focus(const Focus& focus)
+{
+    m_focus = focus;
+    if (m_focus.any() && m_vertices_focus.empty())
+        m_settings.update_colors = true;
+}
+
+bool ViewerImpl::is_in_focus(const PathVertex& vertex) const
+{
+    return is_key_in_focus(get_vertex_focus_key(vertex), m_focus);
 }
 
 // ORCA: only the extrusions colored by filament can be translucent.
@@ -2082,6 +2188,7 @@ size_t ViewerImpl::get_used_cpu_memory() const
     ret += sizeof(m_options_colors);
     ret += STDVEC_MEMSIZE(m_vertices, PathVertex);
     ret += STDVEC_MEMSIZE(m_vertices_colors, ColorWithAlpha);
+    ret += STDVEC_MEMSIZE(m_vertices_focus, uint32_t);
     for (const std::vector<float>& times : m_layer_start_times)
         ret += STDVEC_MEMSIZE(times, float);
     ret += STDVEC_MEMSIZE(m_layer_first_vertex, uint32_t);
@@ -2123,6 +2230,7 @@ size_t ViewerImpl::get_used_gpu_memory() const
     ret += m_positions_tex_size;
     ret += m_height_width_angle_tex_size;
     ret += m_colors_tex_size;
+    ret += m_focus_keys_tex_size;
     ret += m_enabled_segments_tex_size;
     ret += m_enabled_options_tex_size;
     ret += m_enabled_segments_reduced_tex_size;
@@ -2253,7 +2361,8 @@ void ViewerImpl::update_color_ranges()
     // as last time, the current ranges are still valid. The recalculation is quite expensive.
     if (m_settings_used_for_ranges.has_value() &&
         m_settings.extrusion_roles_visibility == m_settings_used_for_ranges->extrusion_roles_visibility &&
-        m_settings.options_visibility == m_settings_used_for_ranges->options_visibility)
+        m_settings.options_visibility == m_settings_used_for_ranges->options_visibility &&
+        m_settings.ranges_layers == m_settings_used_for_ranges->ranges_layers)
         return;
 
     m_width_range.reset();
@@ -2273,41 +2382,82 @@ void ViewerImpl::update_color_ranges()
     m_layer_time_range[0].reset(); // ColorRange::EType::Linear
     m_layer_time_range[1].reset(); // ColorRange::EType::Logarithmic
 
+    struct VertexRange
+    {
+        EViewType type;
+        ColorRange& range;
+        bool binned;
+    };
+    const std::array<VertexRange, 11> vertex_ranges{ {
+        { EViewType::Height, m_height_range, true },
+        { EViewType::Width, m_width_range, true },
+        { EViewType::VolumetricFlowRate, m_volumetric_rate_range, true },
+        { EViewType::ActualVolumetricFlowRate, m_actual_volumetric_rate_range, true },
+        { EViewType::FanSpeed, m_fan_speed_range, true },
+        { EViewType::Temperature, m_temperature_range, true },
+        { EViewType::PressureAdvance, m_pressure_advance_range, false },
+        { EViewType::Speed, m_speed_range, false },
+        { EViewType::ActualSpeed, m_actual_speed_range, false },
+        { EViewType::Acceleration, m_acceleration_range, false },
+        { EViewType::Jerk, m_jerk_range, false },
+    } };
+    const Interval& layers = m_settings.ranges_layers;
     for (size_t i = 0; i < m_vertices.size(); i++) {
         const PathVertex& v = m_vertices[i];
-        if (v.is_extrusion()) {
-            m_height_range.update(round_to_bin(v.height));
-            if (!v.is_custom_gcode() || m_settings.extrusion_roles_visibility[size_t(EGCodeExtrusionRole::Custom)]) {
-                m_width_range.update(round_to_bin(v.width));
-                m_volumetric_rate_range.update(round_to_bin(v.volumetric_rate()));
-                m_actual_volumetric_rate_range.update(round_to_bin(v.actual_volumetric_rate()));
-            }
-            m_fan_speed_range.update(round_to_bin(v.fan_speed));
-            m_temperature_range.update(round_to_bin(v.temperature));
-            // ORCA: Add Pressure Advance visualization support
-            if (v.pressure_advance >= 0.0f)
-                m_pressure_advance_range.update(v.pressure_advance);
-        }
-        if ((v.is_travel() && m_settings.options_visibility[size_t(EOptionType::Travels)]) ||
-            (v.is_wipe() && m_settings.options_visibility[size_t(EOptionType::Wipes)]) ||
-             v.is_extrusion()) {
-            m_speed_range.update(v.feedrate);
-            m_actual_speed_range.update(v.actual_feedrate);
-            // ORCA: Add Acceleration visualization support
-            m_acceleration_range.update(v.acceleration);
-            // ORCA: Add Jerk visualization support
-            m_jerk_range.update(v.jerk);
+        // ORCA: the ranges may span the layers the slider shows alone
+        if (v.layer_id < layers[0] || v.layer_id > layers[1])
+            continue;
+        for (const VertexRange& r : vertex_ranges) {
+            if (const std::optional<float> value = get_range_value(v, r.type))
+                r.range.update(r.binned ? round_to_bin(*value) : *value);
         }
     }
 
     const std::vector<float> times = m_layers.get_times(m_settings.time_mode);
     for (size_t i = 0; i < m_layer_time_range.size(); ++i) {
-        for (float t : times) {
-            m_layer_time_range[i].update(t);
+        for (size_t layer = 0; layer < times.size(); ++layer) {
+            if (layer >= layers[0] && layer <= layers[1])
+                m_layer_time_range[i].update(times[layer]);
         }
     }
 
     m_settings_used_for_ranges = m_settings;
+}
+
+bool ViewerImpl::counts_custom(const PathVertex& v) const
+{
+    return !v.is_custom_gcode() || m_settings.extrusion_roles_visibility[size_t(EGCodeExtrusionRole::Custom)];
+}
+
+bool ViewerImpl::counts_move(const PathVertex& v) const
+{
+    return (v.is_travel() && m_settings.options_visibility[size_t(EOptionType::Travels)]) ||
+           (v.is_wipe() && m_settings.options_visibility[size_t(EOptionType::Wipes)]) || v.is_extrusion();
+}
+
+bool ViewerImpl::counts_in_range(const PathVertex& v, EViewType type) const
+{
+    switch (type) {
+    case EViewType::Height:
+    case EViewType::FanSpeed:
+    case EViewType::Temperature:
+    case EViewType::LayerTimeLinear:
+    case EViewType::LayerTimeLogarithmic: return v.is_extrusion();
+    case EViewType::Width:
+    case EViewType::VolumetricFlowRate:
+    case EViewType::ActualVolumetricFlowRate: return v.is_extrusion() && counts_custom(v);
+    case EViewType::PressureAdvance: return v.is_extrusion() && v.pressure_advance >= 0.0f;
+    case EViewType::Speed:
+    case EViewType::ActualSpeed:
+    case EViewType::Acceleration:
+    case EViewType::Jerk: return counts_move(v);
+    default: return false;
+    }
+}
+
+std::optional<float> ViewerImpl::get_range_value(const PathVertex& v, EViewType type) const
+{
+    return counts_in_range(v, type) ? get_vertex_value(v, type) : std::nullopt;
 }
 
 void ViewerImpl::update_heights_widths()
@@ -2388,8 +2538,11 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glUniform1i(uni.reverse_order, reverse_order ? 1 : 0));
     glsafe(glUniform4fv(uni.clipping_plane, 1, m_clipping_plane.data()));
 #ifndef ENABLE_OPENGL_ES
-    if (depth_only)
+    if (depth_only) {
         glsafe(glUniform1i(m_uni_segments_depth_opaque_depth_id, TRANSLUCENT_TEXTURE_UNIT));
+        // ORCA: the focus, which cuts paths from the depth too
+        set_layer_colors(m_uni_segments_depth_layer_colors);
+    }
 #endif // ENABLE_OPENGL_ES
     if (!m_rendering_shadow_casters && !depth_only) {
         // ORCA: realistic view
@@ -2473,6 +2626,8 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
         glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_heights_widths_angles_tex_id(i).first));
         glsafe(glActiveTexture(GL_TEXTURE2));
         glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_colors_tex_id(i).first));
+        glsafe(glActiveTexture(GL_TEXTURE0 + FOCUS_TEXTURE_UNIT));
+        glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_focus_keys_tex_id(i).first));
         glsafe(glActiveTexture(GL_TEXTURE3));
         glsafe(glBindTexture(GL_TEXTURE_2D, id));
         draw(count, m_texture_data.get_enabled_translucent_segments_count(i));
@@ -2494,6 +2649,11 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
     glsafe(glActiveTexture(GL_TEXTURE2));
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_colors_tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA8, m_colors_buf_id));
+    int curr_focus_keys_texture = 0;
+    glsafe(glActiveTexture(GL_TEXTURE0 + FOCUS_TEXTURE_UNIT));
+    glsafe(glGetIntegerv(GL_TEXTURE_BINDING_BUFFER, &curr_focus_keys_texture));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_focus_keys_tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_focus_keys_buf_id));
     glsafe(glActiveTexture(GL_TEXTURE3));
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, segments.tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, segments.buf_id));
@@ -2521,6 +2681,8 @@ void ViewerImpl::render_segments(const Mat4x4& view_matrix, const Mat4x4& projec
         glsafe(glActiveTexture(GL_TEXTURE0 + i));
         glsafe(glBindTexture(GL_TEXTURE_BUFFER, curr_bound_texture[i]));
     }
+    glsafe(glActiveTexture(GL_TEXTURE0 + FOCUS_TEXTURE_UNIT));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, curr_focus_keys_texture));
 #endif // ENABLE_OPENGL_ES
     glsafe(glActiveTexture(curr_active_texture));
 }
@@ -2572,6 +2734,8 @@ void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& project
         glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_heights_widths_angles_tex_id(i).first));
         glsafe(glActiveTexture(GL_TEXTURE2));
         glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_colors_tex_id(i).first));
+        glsafe(glActiveTexture(GL_TEXTURE0 + FOCUS_TEXTURE_UNIT));
+        glsafe(glBindTexture(GL_TEXTURE_2D, m_texture_data.get_focus_keys_tex_id(i).first));
         glsafe(glActiveTexture(GL_TEXTURE3));
         glsafe(glBindTexture(GL_TEXTURE_2D, id));
         m_option_template.render(count);
@@ -2593,6 +2757,11 @@ void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& project
     glsafe(glActiveTexture(GL_TEXTURE2));
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_colors_tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA8, m_colors_buf_id));
+    int curr_focus_keys_texture = 0;
+    glsafe(glActiveTexture(GL_TEXTURE0 + FOCUS_TEXTURE_UNIT));
+    glsafe(glGetIntegerv(GL_TEXTURE_BINDING_BUFFER, &curr_focus_keys_texture));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, m_focus_keys_tex_id));
+    glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, m_focus_keys_buf_id));
     glsafe(glActiveTexture(GL_TEXTURE3));
     glsafe(glBindTexture(GL_TEXTURE_BUFFER, options.tex_id));
     glsafe(glTexBuffer(GL_TEXTURE_BUFFER, GL_R32UI, options.buf_id));
@@ -2611,6 +2780,8 @@ void ViewerImpl::render_options(const Mat4x4& view_matrix, const Mat4x4& project
         glsafe(glActiveTexture(GL_TEXTURE0 + i));
         glsafe(glBindTexture(GL_TEXTURE_BUFFER, curr_bound_texture[i]));
     }
+    glsafe(glActiveTexture(GL_TEXTURE0 + FOCUS_TEXTURE_UNIT));
+    glsafe(glBindTexture(GL_TEXTURE_BUFFER, curr_focus_keys_texture));
 #endif // ENABLE_OPENGL_ES
     glsafe(glActiveTexture(curr_active_texture));
 }

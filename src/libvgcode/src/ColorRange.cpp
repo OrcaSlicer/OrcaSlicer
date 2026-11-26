@@ -59,20 +59,30 @@ void ColorRange::set_palette(const Palette& palette)
         m_palette = palette;
 }
 
-Color ColorRange::get_color_at(float value) const
+// ORCA
+static float get_global_t(const ColorRange& color_range, float value)
 {
     // Input value scaled to the colors range
+    const std::array<float, 2>& range = color_range.get_range();
     float global_t = 0.0f;
-    value = std::clamp(value, m_range[0], m_range[1]);
-    const float step = get_step_size(*this);
+    if (range[0] > range[1])
+        return global_t;
+    value = std::clamp(value, range[0], range[1]);
+    const float step = get_step_size(color_range);
     if (step > 0.0f) {
-        if (m_type == EColorRangeType::Logarithmic) {
-            if (m_range[0] != 0.0f)
-                global_t = std::log(value / m_range[0]) / step;
+        if (color_range.get_type() == EColorRangeType::Logarithmic) {
+            if (range[0] != 0.0f)
+                global_t = std::log(value / range[0]) / step;
         }
         else
-            global_t = (value - m_range[0]) / step;
+            global_t = (value - range[0]) / step;
     }
+    return global_t;
+}
+
+Color ColorRange::get_color_at(float value) const
+{
+    const float global_t = get_global_t(*this, value);
 
     const size_t color_max_idx = m_palette.size() - 1;
 
@@ -82,6 +92,11 @@ Color ColorRange::get_color_at(float value) const
 
     // Interpolate between the low and high colors to find exactly which color the input value should get
     return lerp(m_palette[color_low_idx], m_palette[color_high_idx], global_t - static_cast<float>(color_low_idx));
+}
+
+float ColorRange::get_position_at(float value) const
+{
+    return std::clamp(get_global_t(*this, value) / (static_cast<float>(m_palette.size()) - 1.0f), 0.0f, 1.0f);
 }
 
 const std::array<float, 2>& ColorRange::get_range() const

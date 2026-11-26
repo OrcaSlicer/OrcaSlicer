@@ -20,10 +20,23 @@ add_executable(${_TEST_NAME}_tests
     test_filament_color_picker.cpp
     test_ams_materials_setting.cpp
     test_gcode_preview_colors.cpp
+    test_preview_overlay_layout.cpp
+    test_preview_panel_slots.cpp
+    test_preview_marks.cpp
+    test_move_panel_layout.cpp
+    test_gcode_panel_text.cpp
+    test_legend_text.cpp
+    test_legend_axis.cpp
+    test_legend_model.cpp
+    test_print_summary_model.cpp
+    test_canvas_ui.cpp
+    test_navigator_geometry.cpp
     # The reduced toolpath set's end bands, from libvgcode's layer table.
     test_libvgcode_layers.cpp
     # The vertex that stands for a role when the solid model takes the toolpaths' colours.
     test_libvgcode_sampling.cpp
+    # The key each vertex carries to the shaders, which hide the paths out of focus.
+    test_libvgcode_focus.cpp
     test_device_progress.cpp
     test_device_manager_integration.cpp
     test_web_media_controller.cpp

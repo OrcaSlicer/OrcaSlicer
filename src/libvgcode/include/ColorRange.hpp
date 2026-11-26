@@ -28,6 +28,21 @@ static const Palette DEFAULT_RANGES_COLORS{ {
     { 148,  38,  22 }  // reddish
 } };
 
+// ORCA: viridis, as many colours as the default: even in lightness, so it reads in greys and to colour-blind eyes.
+static const Palette PERCEPTUAL_RANGES_COLORS{ {
+    {  68,   1,  84 },
+    {  72,  36, 117 },
+    {  65,  68, 135 },
+    {  53,  95, 141 },
+    {  42, 120, 142 },
+    {  33, 145, 140 },
+    {  34, 168, 132 },
+    {  68, 191, 112 },
+    { 122, 209,  81 },
+    { 189, 223,  38 },
+    { 253, 231,  37 }
+} };
+
 class ColorRange
 {
 public:
@@ -54,6 +69,10 @@ public:
     // Value is clamped to [get_range()[0]..get_range()[1]].
     //
     Color get_color_at(float value) const;
+    //
+    // ORCA: return where get_color_at() takes the given value from, 0 at the first color of the palette, 1 at the last.
+    //
+    float get_position_at(float value) const;
     //
     // Return the range of this ColorRange.
     // The range is detected during the call to Viewer::load().
@@ -103,6 +122,8 @@ private:
     void reset();
 
     friend class ViewerImpl;
+    // ORCA
+    friend struct ColorRangeTestAccess;
 };
 
 } // namespace libvgcode

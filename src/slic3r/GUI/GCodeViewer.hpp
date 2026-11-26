@@ -5,11 +5,15 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "IMSlider.hpp"
+#include "PreviewOverlayLayout.hpp"
+#include "PreviewPanelSlots.hpp"
+#include "GCodePanel.hpp"
+#include "CanvasUi/Types.hpp"
+#include <imgui/imgui.h>
 #include "GLModel.hpp"
 #include "I18N.hpp"
 
 #include <algorithm>
-#include <boost/iostreams/device/mapped_file.hpp>
 
 #include "LibVGCode/LibVGCodeWrapper.hpp"
 // needed for tech VGCODE_ENABLE_COG_AND_TOOL_MARKERS
@@ -27,6 +31,10 @@
 #include <libvgcode/include/Types.hpp>
 
 #include <array>
+#include <chrono>
+#include <map>
+#include <memory>
+#include <functional>
 #include <optional>
 #include <cstdint>
 #include <float.h>
@@ -52,9 +60,8 @@ class OpenGLManager;
 static const float GCODE_VIEWER_SLIDER_SCALE = 0.6f;
 static const float SLIDER_DEFAULT_RIGHT_MARGIN  = 10.0f;
 static const float SLIDER_DEFAULT_BOTTOM_MARGIN = 10.0f;
-// ORCA: match right margin to the vertical slider window width to prevent overlap.
-static inline const float SLIDER_RIGHT_MARGIN = IMSlider::vertical_slider_window_width();
-static const float SLIDER_BOTTOM_MARGIN = 64.0f;
+class PreviewPanels;
+
 class GCodeViewer
 {
 public:
@@ -64,8 +71,6 @@ public:
 #if ENABLE_ACTUAL_SPEED_DEBUG
         struct ActualSpeedImguiWidget
         {
-            std::pair<float, float> y_range = { 0.0f, 0.0f };
-            std::vector<std::pair<float, ColorRGBA>> levels;
             struct Item
             {
               float pos{ 0.0f };
@@ -73,7 +78,7 @@ public:
               bool internal{ false };
             };
             std::vector<Item> data;
-            int plot(const char* label, const std::array<float, 2>& frame_size = { 0.0f, 0.0f });
+            void plot(const ImVec2& size, float scale) const;
         };
 #endif // ENABLE_ACTUAL_SPEED_DEBUG
 
@@ -97,6 +102,7 @@ public:
 #if ENABLE_ACTUAL_SPEED_DEBUG
             ActualSpeedImguiWidget m_actual_speed_imgui_widget;
 #endif // ENABLE_ACTUAL_SPEED_DEBUG
+            CanvasUi::Rect m_panel_rect;
 
         public:
             float m_scale = 1.0f;
@@ -113,12 +119,6 @@ public:
             void set_high_precision_gcode(bool high_precision) { m_high_precision_gcode = high_precision; }
 
 #if ENABLE_ACTUAL_SPEED_DEBUG
-            void set_actual_speed_y_range(const std::pair<float, float>& y_range) {
-                m_actual_speed_imgui_widget.y_range = y_range;
-            }
-            void set_actual_speed_levels(const std::vector<std::pair<float, ColorRGBA>>& levels) {
-                m_actual_speed_imgui_widget.levels = levels;
-            }
             void set_actual_speed_data(const std::vector<ActualSpeedImguiWidget::Item>& data) {
                 m_actual_speed_imgui_widget.data = data;
             }
@@ -131,60 +131,21 @@ public:
             void set_color(const ColorRGBA& color) { m_model.set_color(color); }
 
             void render(int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
-            void render_position_window(const libvgcode::Viewer* viewer, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
+            void render_position_window(const libvgcode::Viewer* viewer, const PreviewOverlayLayout& layout, int move_number, int move_count, const libvgcode::EViewType& view_type);
+            const CanvasUi::Rect& panel_rect() const { return m_panel_rect; }
             void on_change_color_mode(bool is_dark) { m_is_dark = is_dark; }
         };
 
-        class GCodeWindow
-        {
-            struct Line
-            {
-                std::string command;
-                std::string parameters;
-                std::string comment;
-            };
-            bool m_is_dark = false;
-            uint64_t m_selected_line_id{ 0 };
-            size_t m_last_lines_size{ 0 };
-            std::string m_filename;
-            boost::iostreams::mapped_file_source m_file;
-            // map for accessing data in file by line number
-            std::vector<size_t> m_lines_ends;
-            // current visible lines
-            std::vector<Line> m_lines;
-
-        public:
-            float m_scale = 1.0f;
-            GCodeWindow() = default;
-            ~GCodeWindow() { stop_mapping_file(); }
-            void load_gcode(const std::string& filename, const std::vector<size_t> &lines_ends);
-            void reset() {
-                stop_mapping_file();
-                m_lines_ends.clear();
-                m_lines_ends.shrink_to_fit();
-                m_lines.clear();
-                m_lines.shrink_to_fit();
-                m_filename.clear();
-                m_filename.shrink_to_fit();
-            }
-
-            //BBS: GUI refactor: add canvas size
-            //void render(float top, float bottom, uint64_t curr_line_id) const;
-            void render(float top, float bottom, float right, uint64_t curr_line_id) const;
-            void on_change_color_mode(bool is_dark) { m_is_dark = is_dark; }
-
-            void stop_mapping_file();
-        };
 
         Marker marker;
         std::vector<Marker> m_imex_secondary_markers; // one per active secondary carriage in IDEX/IQEX mode
-        GCodeWindow gcode_window;
+        GCodePanel gcode_window;
         float m_scale = 1.0;
         bool m_show_marker = false;
         // The tool marker at the current move, drawn in 3D.
         void render_marker(const bool has_render_path, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
-        // The marker's position window and the G-code window, both ImGui.
-        void render_overlay(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type);
+        // The marker's position window through ImGui and the G-code panel through CanvasUi.
+        void render_overlay(const bool has_render_path, const PreviewPanelPlacement& gcode_place, const libvgcode::Viewer* viewer, uint32_t gcode_id, const PreviewOverlayLayout& layout, int move_number, int move_count, const libvgcode::EViewType& view_type);
     };
     struct ExtruderFilament
     {
@@ -242,8 +203,6 @@ private:
     bool  m_machine_frame_transform_active{ false };
     float m_z_offset{ 0.0f };
 
-    ConfigOptionMode m_user_mode;
-    bool m_fold = {false};
     std::string m_marker_filename;      // cached for lazy secondary marker init
 
     // IDEX/IQEX: everything render_scene() needs to place the secondary carriage markers and the
@@ -321,15 +280,9 @@ private:
     float m_tool_marker_size{ 1.0f };
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
 
-    /*BBS GUI refactor, store displayed items in color scheme combobox */
-    std::vector<libvgcode::EViewType> view_type_items;
-    std::vector<std::string> view_type_items_str;
-    int       m_view_type_sel = 0;
     // ORCA: which default view type was last applied, see apply_default_view_type(). Empty until the first one is applied.
     std::string m_applied_default_view_type_key;
-    std::vector<EMoveType> options_items;
 
-    bool m_legend_visible{ true };
     bool m_legend_enabled{ true };
     // what the preview draws while the user drags, as the preference has it
     libvgcode::EReducedDetailMode m_reduced_detail_mode{ libvgcode::EReducedDetailMode::Off };
@@ -386,6 +339,7 @@ private:
         // cleared as a drag begins, see set_interacting()
         bool valid{ false };
         libvgcode::EViewType view_type{ libvgcode::EViewType::COUNT };
+        libvgcode::Focus     focus;
         libvgcode::Interval  whole_layers{ 0, 0 };
         // one per shell volume, from the toolpaths within its own footprint
         struct Body
@@ -402,7 +356,13 @@ private:
     // the prime tower is only among the shells for the solid model, so it is added or removed when that changes
     void update_shell_wipe_tower(const Print& print, bool initialized);
 
-    float m_legend_height;
+    PreviewPanelSlots   m_panel_slots{DEFAULT_PREVIEW_PANEL_SLOTS};
+    // Where each panel was drawn last; empty while it is hidden.
+    std::array<CanvasUi::Rect, PREVIEW_PANEL_COUNT> m_panel_rects{};
+    std::optional<uint32_t> m_pending_gcode_id;
+    // The legend, the print summary and what they point at, see PreviewPanels.
+    friend class PreviewPanels;
+    std::unique_ptr<PreviewPanels> m_panels;
     PrintEstimatedStatistics m_print_statistics;
     std::array<float, 2> m_detected_point_sizes = { 0.0f, 0.0f };
     GCodeProcessorResult::SettingsIds m_settings_ids;
@@ -436,7 +396,6 @@ public:
     float m_scale = 1.0;
     void set_scale(float scale = 1.0);
     void init(ConfigOptionMode mode, Slic3r::PresetBundle* preset_bundle);
-    void update_by_mode(ConfigOptionMode mode);
 
     // extract rendering data from the given parameters
     //BBS: add only gcode mode
@@ -459,8 +418,11 @@ public:
     void render_scene(int canvas_width, int canvas_height);
     // ORCA: the toolpaths of translucent filaments, blended over the scene, then the markers. render_scene() leaves both out.
     void render_translucent_toolpaths(int canvas_width, int canvas_height);
-    // Legend, sliders, the marker's position window and the G-code window, all ImGui.
-    void render_overlay(int canvas_width, int canvas_height, int right_margin);
+    bool has_overlay() const { return m_viewer.get_extrusion_roles_count() > 0; }
+    // The legend, the print summary and the G-code panel through CanvasUi; the sliders and the marker's position window through ImGui.
+    void render_overlay(int canvas_width, int canvas_height, const PreviewOverlayLayout& layout);
+    const CanvasUi::Rect& get_move_panel_rect() const { return m_sequential_view.marker.panel_rect(); }
+    const CanvasUi::Rect& get_legend_rect() const { return m_panel_rects[size_t(PreviewPanel::Legend)]; }
     // ORCA: realistic view. Depth-only pass drawing the toolpaths as the light sees them, into
     // the shadow map the caller has bound, and the map they sample back in render_scene.
     void render_shadow_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix, const Vec3d& light_position);
@@ -528,10 +490,8 @@ public:
     //BBS: add only gcode mode
     bool is_only_gcode_in_preview() const { return m_only_gcode_in_preview; }
 
-    void set_view_type(libvgcode::EViewType type) {
-        m_viewer.set_view_type(type);
-    }
-    // ORCA: select a view type in the preview combo box and apply it
+    void set_view_type(libvgcode::EViewType type);
+    // ORCA: an alias of set_view_type()
     void select_view_type(libvgcode::EViewType type);
     // ORCA: apply the "preview_default_view_type" preference, or the view of the calibration being previewed
     void apply_default_view_type(std::optional<libvgcode::EViewType> calibration_view = std::nullopt);
@@ -541,17 +501,6 @@ public:
     static bool view_type_from_config_name(const std::string& name, libvgcode::EViewType& type);
     // ORCA: (config value, translated label) pairs for the "preview_default_view_type" preference combo box
     static std::vector<std::pair<std::string, std::string>> default_view_type_choices();
-    void reset_visible(libvgcode::EViewType type) {
-        if (type == libvgcode::EViewType::FeatureType) {
-            auto roles = m_viewer.get_extrusion_roles();
-            for (size_t i = 0; i < roles.size(); ++i) {
-                auto role = roles[i];
-                if (!m_viewer.is_extrusion_role_visible(role)) {
-                    m_viewer.toggle_extrusion_role_visibility(role);
-                }
-            }
-        }
-    }
 
     libvgcode::EViewType get_view_type() const { return m_viewer.get_view_type(); }
 
@@ -574,10 +523,12 @@ public:
 
     void set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range);
 
-    bool is_legend_shown() const { return m_legend_visible && m_legend_enabled; }
-    void show_legend(bool show) { m_legend_visible = show; }
+    bool is_legend_shown() const;
+    bool is_summary_shown() const;
     void enable_legend(bool enable) { m_legend_enabled = enable; }
-    float get_legend_height() { return m_legend_height; }
+    const PreviewPanelSlots& get_panel_slots() const { return m_panel_slots; }
+    void                     set_panel_slots(const PreviewPanelSlots& slots);
+    float get_legend_height() const { return get_legend_rect().height(); }
 
     void export_toolpaths_to_obj(const char* filename) const;
 
@@ -587,8 +538,6 @@ public:
     bool is_belt_show_designed() const { return m_belt_show_designed; }
 
     size_t get_extruders_count() { return m_extruders_count; }
-    void push_combo_style();
-    void pop_combo_style();
 
     void invalidate_legend() { /*TODO: m_legend_resizer.reset();*/ }
 
@@ -600,8 +549,6 @@ public:
 private:
     //BBS: always load shell at preview
     //void load_shells(const Print& print);
-    // Canvas height minus the room the horizontal slider takes.
-    int sequential_view_height(int canvas_height) const;
     void render_toolpaths();
     // The sequential markers and the IDEX/IQEX toolhead boxes.
     void render_markers(int canvas_width, int canvas_height);
@@ -609,10 +556,14 @@ private:
     // ORCA: a filament color as the toolpaths show it, opaque unless translucent filaments are shown
     ColorRGBA shown_filament_color(ColorRGBA color) const;
 
-    //BBS: GUI refactor: add canvas size
-    void render_legend(float &legend_height, int canvas_width, int canvas_height, int right_margin);
-    void render_legend_color_arr_recommen(float window_padding);
-    void render_slider(int canvas_width, int canvas_height);
+
+    // The preview panels this viewer places and feeds, in GCodeViewerPanels.cpp.
+    void                  bind_gcode_panel();
+    void                  apply_pending_gcode_jump();
+    bool                  is_panel_shown(PreviewPanel panel) const;
+    PreviewPanelPlacement panel_place(PreviewPanel panel, const PreviewOverlayLayout& layout) const;
+    void                  panel_drawn(PreviewPanel panel, const CanvasUi::Rect& rect);
+    void render_slider(const PreviewOverlayLayout& layout);
 };
 
 } // namespace GUI

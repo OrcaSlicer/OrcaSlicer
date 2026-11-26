@@ -29,6 +29,15 @@
 #include "slic3r/GUI/SceneRaycaster.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/GCodeViewer.hpp"
+#include "slic3r/GUI/PreviewOverlayLayout.hpp"
+#include "slic3r/GUI/CanvasUi/CanvasFrame.hpp"
+#include "slic3r/GUI/Navigator3D.hpp"
+#include "slic3r/GUI/NavigatorGeometry.hpp"
+#include "slic3r/GUI/CanvasUi/Context.hpp"
+#include "slic3r/GUI/CanvasUi/Font.hpp"
+#include "slic3r/GUI/CanvasUi/Tokens.hpp"
+#include "slic3r/GUI/CanvasUi/Types.hpp"
+#include "slic3r/GUI/CanvasUi/Menu.hpp"
 #include <optional>
 #include <map>
 #include "slic3r/GUI/GUI_Geometry.hpp"
@@ -162,7 +171,6 @@
 #endif
 #include <imgui/imgui_internal.h>
 
-#include <imguizmo/ImGuizmo.h>
 #include "libslic3r/CutUtils.hpp"
 #include "libslic3r/EmbossShape.hpp"
 #include "libslic3r/ExPolygon.hpp"
@@ -2201,6 +2209,7 @@ GLCanvas3D::GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed)
     , m_labels(*this)
     , m_slope(m_volumes)
 {
+    m_navigator = std::make_unique<Navigator3D>();
     if (m_canvas != nullptr) {
         m_timer.SetOwner(m_canvas);
         m_render_timer.SetOwner(m_canvas);
@@ -3038,33 +3047,28 @@ float GLCanvas3D::get_collapse_toolbar_height() const
     return collapse_side() != CollapseSide::None ? collapse_toolbar().get_height() : 0;
 }
 
-// The bottom-left corner: the 3D navigator, then the column of round canvas buttons beside it, in
-// units of the toolbar scale. Shared by _render_3d_navigator, _render_canvas_toolbar,
-// get_canvas_toolbar_right and canvas_corner_height, so an overlay kept clear of the corner follows its layout.
-static constexpr float NAVIGATOR_SIZE         = 128.f;
-static constexpr float CANVAS_TOOLBAR_MARGIN  = 10.f;   // off the canvas edge, when there is no navigator
+static constexpr float CANVAS_TOOLBAR_MARGIN  = 10.f;
 static constexpr float CANVAS_TOOLBAR_PADDING = 2.f;
 static constexpr float CANVAS_TOOLBAR_BUTTON  = 36.f;
 static constexpr float CANVAS_TOOLBAR_SPACING = 6.f;
 
-// What the corner takes at the left edge of the canvas: the 3D navigator, or else the canvas toolbar.
-static float canvas_corner_height()
+float GLCanvas3D::preview_corner_offset() const
 {
-    if (wxGetApp().show_3d_navigator())
-        return NAVIGATOR_SIZE;
-    const int buttons = wxGetApp().show_canvas_zoom_button() ? 3 : 2;
-    return CANVAS_TOOLBAR_MARGIN + 2.f * CANVAS_TOOLBAR_PADDING + buttons * CANVAS_TOOLBAR_BUTTON + (buttons - 1) * CANVAS_TOOLBAR_SPACING;
+    return m_preview_layout ? m_preview_layout->corner_offset(float(get_canvas_size().get_height())) : 0.f;
 }
 
-float GLCanvas3D::get_canvas_toolbar_right() const
+float GLCanvas3D::get_ui_scale() const
 {
-    // The toolbar scale, which on Windows follows the monitor's DPI where the ImGui style does not.
     float sc = get_scale();
 #ifdef WIN32
     sc *= (float) get_dpi_for_window(wxGetApp().GetTopWindow()) / (float) DPI_DEFAULT;
 #endif // WIN32
-    const float left = wxGetApp().show_3d_navigator() ? NAVIGATOR_SIZE : CANVAS_TOOLBAR_MARGIN;
-    return (left + 2.f * CANVAS_TOOLBAR_PADDING + CANVAS_TOOLBAR_BUTTON) * sc;
+    return sc;
+}
+
+float GLCanvas3D::get_canvas_toolbar_right() const
+{
+    return navigator_corner_layout().right();
 }
 
 GLToolbar& GLCanvas3D::collapse_toolbar() const
@@ -3190,6 +3194,11 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     const ImGuiID active_id = ImGui::GetActiveID();
     wxGetApp().imgui()->new_frame();
+    CanvasUi::CanvasFrame ui_frame(m_ui);
+    ui_frame.begin(m_is_dark, get_ui_scale(), std::chrono::steady_clock::now(), ImGui::GetFrameCount(), &wxGetApp().get_opengl_manager().ui_icons(),
+                   wxGetApp().imgui()->canvas_ui_fonts());
+    const CanvasUi::ScopedContext ui_scope(m_ui);
+    _update_preview_layout(cnv_size);
 
     if (_update_inactive_plates_visibility())
         scene_dirty = true;
@@ -3237,7 +3246,6 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     }
 
     if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
-        // BBS: GUI refactor: add canvas size as parameters
         _render_gcode_overlay(cnv_size.get_width(), cnv_size.get_height());
         m_frame_profiler.mark("legend");
     }
@@ -3335,14 +3343,13 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     if (m_canvas_type != ECanvasType::CanvasAssembleView) {
         float right_margin = SLIDER_DEFAULT_RIGHT_MARGIN;
         float bottom_margin = SLIDER_DEFAULT_BOTTOM_MARGIN;
-        if (m_canvas_type == ECanvasType::CanvasPreview && m_gcode_viewer.has_data()) { // ORCA only shift position of notifiations when sliders / gcode_viewer exist
-            float scale_factor = get_scale();
-#ifdef WIN32
-            int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-            scale_factor *= (float) dpi / (float) DPI_DEFAULT;
-#endif // WIN32
-            right_margin = SLIDER_RIGHT_MARGIN * scale_factor * GCODE_VIEWER_SLIDER_SCALE;
-            bottom_margin = SLIDER_BOTTOM_MARGIN * scale_factor * GCODE_VIEWER_SLIDER_SCALE;
+        if (m_preview_layout) {
+            float              bottom = m_preview_layout->overlays_bottom;
+            const CanvasUi::Rect& panel  = m_gcode_viewer.get_move_panel_rect();
+            if (panel.width() > 0.f)
+                bottom = std::min(bottom, panel.top - m_preview_layout->gap);
+            right_margin  = float(cnv_size.get_width()) - m_preview_layout->overlay_right;
+            bottom_margin = float(cnv_size.get_height()) - bottom;
         }
         wxGetApp().plater()->get_notification_manager()->render_notifications(*this, get_overlay_window_width(), bottom_margin, right_margin);
         wxGetApp().plater()->get_dailytips()->render();
@@ -3351,6 +3358,18 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     ImDrawData* draw_data = wxGetApp().imgui()->end_frame();
     m_overlay_dirty |= active_id != ImGui::GetActiveID();
+    ui_frame.end();
+    if (ui_frame.cursor() == CanvasUi::Cursor::ResizeHorizontal)
+        set_cursor(ResizeHorizontal);
+    else if (m_cursor_type == ResizeHorizontal)
+        set_cursor(Standard);
+    // A toolkit request redraws the overlay only; a camera the overlay turns changes the scene cache
+    // key, which redraws the scene as well.
+    if (ui_frame.frame_requested())
+        m_overlay_dirty = true;
+    m_ui_wake_at = ui_frame.wake_at();
+    if (m_ui_wake_at)
+        schedule_extra_frame(std::max(1, int(std::chrono::duration_cast<std::chrono::milliseconds>(*m_ui_wake_at - std::chrono::steady_clock::now()).count()) + 1));
 
     std::optional<size_t> signature;
     if (_is_frame_skipping_enabled())
@@ -4572,8 +4591,8 @@ void GLCanvas3D::bind_event_handlers()
                 // a drag cut short never sees its button release, which would leave the reduced set drawn
                 if (m_canvas_type == CanvasPreview && m_mouse.dragging && m_gcode_viewer.is_reduced_detail())
                     mouse_up_cleanup();
-                // nor does the navigator's, whose flag holds for as long as the button is known to be down
-                m_navigator_dragging = false;
+                // nor does the navigator's, which holds for as long as the button is known to be down
+                m_navigator->cancel_drag();
                 render();
                 evt.Skip();
             });
@@ -4590,8 +4609,8 @@ void GLCanvas3D::bind_event_handlers()
                 // a drag cut short never sees its button release, which would leave the solid model drawn
                 if (m_canvas_type == CanvasPreview && m_mouse.dragging && m_gcode_viewer.is_reduced_detail())
                     mouse_up_cleanup();
-                if (m_navigator_dragging) {
-                    m_navigator_dragging = false;
+                if (m_navigator->holding()) {
+                    m_navigator->cancel_drag();
                     m_mouse.down_on_toolbar = false;
                     m_dirty = true;
                     wxWakeUpIdle();
@@ -4685,6 +4704,16 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
             schedule_extra_frame(static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(m_preview_interaction_until - now).count()) + 1);
     }
 
+    // the render timer only wakes the idle loop, so the frame the toolkit asked for is drawn from here
+    if (m_ui_wake_at) {
+        const auto now = std::chrono::steady_clock::now();
+        if (now >= *m_ui_wake_at) {
+            m_ui_wake_at.reset();
+            m_overlay_dirty = true;
+        } else
+            schedule_extra_frame(static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(*m_ui_wake_at - now).count()) + 1);
+    }
+
     if (!m_dirty && !m_overlay_dirty)
         return;
 
@@ -4721,7 +4750,7 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
         m_extra_frame_requested = false;
     }
 
-    if (m_dirty)
+    if (m_dirty || m_overlay_dirty)
         evt.RequestMore();
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     else if (imgui_requires_extra_frame || wxGetApp().imgui()->requires_extra_frame()) {
@@ -4911,6 +4940,16 @@ bool GLCanvas3D::handle_shortcut(const KeyChord& chord)
     case Shortcut::KeyboardShortcuts: post_event(SimpleEvent(EVT_GLCANVAS_QUESTION_MARK)); break;
     case Shortcut::ToggleGcodeWindow:
         wxGetApp().toggle_show_gcode_window();
+        m_dirty = true;
+        request_extra_frame();
+        break;
+    case Shortcut::ToggleLegend:
+        wxGetApp().toggle_show_legend();
+        m_dirty = true;
+        request_extra_frame();
+        break;
+    case Shortcut::TogglePrintSummary:
+        wxGetApp().toggle_show_print_summary();
         m_dirty = true;
         request_extra_frame();
         break;
@@ -5180,14 +5219,23 @@ void GLCanvas3D::on_mouse_wheel(wxMouseEvent& evt)
 
     // A marker's details move with the view, so zooming can bring them under the mouse, where the wheel keeps zooming.
     if (wxGetApp().imgui()->update_mouse_data(evt) && !m_center_of_mass.details_hovered()) {
-        if (m_canvas_type == CanvasPreview) {
-            IMSlider* m_layers_slider = get_gcode_viewer().get_layers_slider();
-            IMSlider* m_moves_slider = get_gcode_viewer().get_moves_slider();
-            m_layers_slider->on_mouse_wheel(evt);
-            m_moves_slider->on_mouse_wheel(evt);
+        bool slider_moved = false;
+        if (m_canvas_type == CanvasPreview && m_preview_layout) {
+            slider_moved |= get_gcode_viewer().get_layers_slider()->on_mouse_wheel(evt);
+            slider_moved |= get_gcode_viewer().get_moves_slider()->on_mouse_wheel(evt);
         }
-        render();
-        m_dirty = true;
+        // A slider changes what the scene shows. Any other ImGui window only scrolls, which ImGui takes inside
+        // the frame the step opened, so that frame is drawn now; left for the idle frame, the steps that come
+        // before it would overwrite one another.
+        if (slider_moved) {
+            m_dirty = true;
+            wxWakeUpIdle();
+        } else {
+            _render_frame(m_dirty);
+#ifdef __WXMSW__
+            wxWakeUpIdle();
+#endif
+        }
         return;
     }
 
@@ -5466,7 +5514,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     m_tooltip.set_in_imgui(false);
 
     // while a non-ImGui drag is already in progress (gizmo grabber, object move, rectangle selection, layer editing),
-    // don't let ImGui/ImGuizmo claim the event just because the cursor is hovering something like the navigator cube
+    // don't let ImGui claim the event just because the cursor is hovering something like the navigator cube
     // that incorrectly suppresses the active drag's tooltip and can interrupt its processing. The active drag always takes priority.
     const bool other_drag_active = m_gizmos.is_dragging() || m_mouse.dragging || m_rectangle_selection.is_dragging() || m_layers_editing.state == LayersEditing::Editing;
 
@@ -5491,7 +5539,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         m_tooltip.set_in_imgui(true);
 
         // ORCA keep tracking mouse position while drag active and cursor not in window bounds
-        const bool imgui_dragging_active = (GImGui != nullptr && ImGui::GetIO().MouseDown[0] && GImGui->ActiveId != 0) || m_navigator_dragging;
+        const bool imgui_dragging_active = (GImGui != nullptr && ImGui::GetIO().MouseDown[0] && GImGui->ActiveId != 0) || m_navigator->holding();
         if (!has_mouse_capture() && imgui_dragging_active)
             m_canvas->CaptureMouse();
 
@@ -7029,6 +7077,7 @@ void GLCanvas3D::set_cursor(ECursorType type)
         {
         case Standard: { m_canvas->SetCursor(*wxSTANDARD_CURSOR); break; }
         case Cross: { m_canvas->SetCursor(*wxCROSS_CURSOR); break; }
+        case ResizeHorizontal: { m_canvas->SetCursor(wxCursor(wxCURSOR_SIZEWE)); break; }
         }
 
         m_cursor_type = type;
@@ -7537,121 +7586,6 @@ void GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, flo
 
     //BBS
     ImGuiWrapper::pop_toolbar_style();
-}
-
-static const float cameraProjection[16] = {1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f};
-
-void GLCanvas3D::_render_3d_navigator()
-{
-    if (!wxGetApp().show_3d_navigator()) {
-        m_canvas_toolbar_pos[0] = 0;
-        m_navigator_dragging = false;
-        m_navigator_animating = false;
-        return;
-    }
-
-    // Fix stealing capture event from other drag events
-    const bool other_drag_active = !m_navigator_dragging && (m_moving || m_rectangle_selection.is_dragging() || m_gizmos.is_dragging() || m_layers_editing.state == LayersEditing::Editing);
-
-    ImGuiIO& io = ImGui::GetIO();
-    const bool saved_mouse_down0 = io.MouseDown[0];
-    if (other_drag_active)
-        io.MouseDown[0] = false;
-
-    ImGuizmo::BeginFrame();
-
-    auto& style                                = ImGuizmo::GetStyle();
-    style.Colors[ImGuizmo::COLOR::DIRECTION_X] = ImGuiWrapper::to_ImVec4(ColorRGBA::Y());
-    style.Colors[ImGuizmo::COLOR::DIRECTION_Y] = ImGuiWrapper::to_ImVec4(ColorRGBA::Z());
-    style.Colors[ImGuizmo::COLOR::DIRECTION_Z] = ImGuiWrapper::to_ImVec4(ColorRGBA::X());
-    style.Colors[ImGuizmo::COLOR::TEXT] = m_is_dark ? ImVec4(224 / 255.f, 224 / 255.f, 224 / 255.f, 1.f) : ImVec4(.2f, .2f, .2f, 1.0f);
-    style.Colors[ImGuizmo::COLOR::FACE]        = m_is_dark ? ImVec4(0.23f, 0.23f, 0.23f, 1.f) : ImVec4(0.77f, 0.77f, 0.77f, 1);
-    strcpy(style.AxisLabels[ImGuizmo::Axis::Axis_X], _u8L_CONTEXT("Y", "Axis").c_str()); // ORCA use uppercase to match text on tranform widgets
-    strcpy(style.AxisLabels[ImGuizmo::Axis::Axis_Y], _u8L_CONTEXT("Z", "Axis").c_str()); // ORCA use uppercase to match text on tranform widgets
-    strcpy(style.AxisLabels[ImGuizmo::Axis::Axis_Z], _u8L_CONTEXT("X", "Axis").c_str()); // ORCA use uppercase to match text on tranform widgets
-    strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_FRONT], _u8L_CONTEXT("Front", "Camera View").c_str());
-    strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_BACK], _u8L_CONTEXT("Back", "Camera View").c_str());
-    strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_TOP], _u8L_CONTEXT("Top", "Camera View").c_str());
-    strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_BOTTOM], _u8L_CONTEXT("Bottom", "Camera View").c_str());
-    strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_LEFT], _u8L_CONTEXT("Left", "Camera View").c_str());
-    strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_RIGHT], _u8L_CONTEXT("Right", "Camera View").c_str());
-
-    float sc = get_scale();
-#ifdef WIN32
-    const int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-    sc *= (float) dpi / (float) DPI_DEFAULT;
-#endif // WIN32
-
-    const float viewManipulateLeft = 0;
-    const float viewManipulateTop  = io.DisplaySize.y;
-    const float camDistance        = 8.f;
-
-    Camera&     camera           = wxGetApp().plater()->get_camera();
-    Transform3d m                = Transform3d::Identity();
-    m.matrix().block(0, 0, 3, 3) = camera.get_view_rotation().toRotationMatrix();
-    // Rotate along X and Z axis for 90 degrees to have Y-up
-    const auto coord_mapping_transform = Geometry::rotation_transform(Vec3d(0.5 * PI, 0, 0.5 * PI));
-    m = m * coord_mapping_transform;
-    float cameraView[16];
-    for (unsigned int c = 0; c < 4; ++c) {
-        for (unsigned int r = 0; r < 4; ++r) {
-            cameraView[c * 4 + r] = m(r, c);
-        }
-    }
-
-    const float size  = NAVIGATOR_SIZE * sc;
-    m_canvas_toolbar_pos[0] = size;
-    const auto result = ImGuizmo::ViewManipulate(cameraView, cameraProjection, ImGuizmo::OPERATION::ROTATE, ImGuizmo::MODE::WORLD, nullptr,
-                                                 camDistance, ImVec2(viewManipulateLeft, viewManipulateTop - size), ImVec2(size, size),
-                                                 0x00101010);
-
-    // Restore the real mouse-down state
-    if (other_drag_active)
-        io.MouseDown[0] = saved_mouse_down0;
-
-    if (result.changed) {
-        for (unsigned int c = 0; c < 4; ++c) {
-            for (unsigned int r = 0; r < 4; ++r) {
-                m(r, c) = cameraView[c * 4 + r];
-            }
-        }
-        // Rotate back
-        m = m * (coord_mapping_transform.inverse());
-        camera.set_rotation(m);
-
-        if (result.dragging) {
-            // Switch back to perspective view when normal dragging
-            camera.auto_type(Camera::EType::Perspective);
-        } else if (result.clicked_box >= 0) {
-            switch (result.clicked_box) {
-            case 4: // back
-            case 10: // top
-            case 12: // right
-            case 14: // left
-            case 16: // bottom
-            case 22: // front
-                // Automatically switch to orthographic view when click the center face of the navigator
-                camera.auto_type(Camera::EType::Ortho); break;
-            default:
-                // Otherwise switch back to perspective view
-                camera.auto_type(Camera::EType::Perspective); break;
-            }
-        }
-
-        request_extra_frame();
-    }
-
-    // The navigator reports a drag only on a frame the mouse moved in, which would drop the flag on
-    // every still frame of a drag and leave it up after a release with no motion; it holds for as
-    // long as the button does.
-    m_navigator_dragging = result.dragging || (m_navigator_dragging && io.MouseDown[0]);
-    // A click on a face or a corner turns the camera over the frames that follow, with no button
-    // held, each reported as a change that is not a drag. The frame after the last of them is asked
-    // for, so that what the turn held back is drawn again.
-    const bool animating = result.changed && !result.dragging;
-    if (m_navigator_animating && !animating)
-        request_extra_frame();
-    m_navigator_animating = animating;
 }
 
 #define ENABLE_THUMBNAIL_GENERATOR_DEBUG_OUTPUT 0
@@ -9417,9 +9351,9 @@ bool GLCanvas3D::_is_scene_cacheable() const
 // the rectangle selection or a preview slider, or the navigator is still turning the camera for them.
 bool GLCanvas3D::is_user_interacting() const
 {
-    // the navigator's flag is cleared by the overlay, later in the frame than this is asked
-    const bool navigator_dragging = m_navigator_dragging && GImGui != nullptr && ImGui::GetIO().MouseDown[0];
-    return m_mouse.dragging || navigator_dragging || m_navigator_animating || m_gizmos.is_dragging() ||
+    // the navigator's drag ends in the overlay, later in the frame than this is asked
+    const bool navigator_dragging = m_navigator->dragging() && GImGui != nullptr && ImGui::GetIO().MouseDown[0];
+    return m_mouse.dragging || navigator_dragging || m_navigator->animating() || m_gizmos.is_dragging() ||
            m_rectangle_selection.is_dragging() || m_gcode_viewer.is_slider_dragging();
 }
 
@@ -9443,9 +9377,10 @@ void GLCanvas3D::_render_fps_overlay(int fps) const
     // Last frame's size; zero until the overlay has been shown once.
     const ImGuiWindow* self = ImGui::FindWindowByName("###fps_overlay");
     const float left = pos.x - (self != nullptr ? self->Size.x : 0.0f);
-    // The Preview legend takes the top-right corner.
-    if (const ImGuiWindow* legend = ImGui::FindWindowByName("Legend"); m_canvas_type == ECanvasType::CanvasPreview && legend != nullptr && legend->Active)
-        pos = ImVec2(legend->Pos.x - margin, legend->Pos.y);
+    // The Preview legend takes the top-right corner when it is in the right column.
+    if (const CanvasUi::Rect& legend = m_gcode_viewer.get_legend_rect();
+        m_canvas_type == ECanvasType::CanvasPreview && legend.width() > 0.f && legend.left > 0.5f * display_size.x)
+        pos = ImVec2(legend.left - margin, legend.top);
     // The toolbar row can reach the corner on a narrow canvas; stack the overlay below it then.
     else if (m_main_toolbar.is_enabled() && get_main_toolbar_offset() + get_top_toolbar_width() > left)
         pos.y = get_top_toolbar_height() + margin;
@@ -10813,11 +10748,34 @@ bool GLCanvas3D::_bind_gcode_shadow_map(bool bind) const
     return true;
 }
 
+void GLCanvas3D::_update_preview_layout(const Size& cnv_size)
+{
+    m_preview_layout.reset();
+    if (m_canvas_type != ECanvasType::CanvasPreview || !m_render_preview || !m_gcode_viewer.has_overlay())
+        return;
+
+    const float  sc   = get_ui_scale();
+    const ImVec2 pill = m_gcode_viewer.get_layers_slider()->pill_size(sc);
+    PreviewOverlayInput input;
+    input.canvas_width      = float(cnv_size.get_width());
+    input.canvas_height     = float(cnv_size.get_height());
+    input.scale             = sc;
+    input.corner_right      = get_canvas_toolbar_right();
+    input.pill_height       = pill.y;
+    input.pill_width        = pill.x;
+    input.plates_right      = m_plate_toolbar_right;
+    input.corner_height     = navigator_corner_height();
+    input.top_left_reserved = is_collapse_toolbar_on_left() ? get_collapse_toolbar_height() : 0.f;
+    m_preview_layout        = compute_preview_overlay_layout(input);
+}
+
 void GLCanvas3D::_render_gcode_overlay(int canvas_width, int canvas_height)
 {
-    m_gcode_viewer.render_overlay(canvas_width, canvas_height, SLIDER_RIGHT_MARGIN * GCODE_VIEWER_SLIDER_SCALE);
     IMSlider *layers_slider = m_gcode_viewer.get_layers_slider();
     IMSlider *moves_slider  = m_gcode_viewer.get_moves_slider();
+
+    if (m_preview_layout)
+        m_gcode_viewer.render_overlay(canvas_width, canvas_height, *m_preview_layout);
 
     if (layers_slider->is_need_post_tick_event()) {
         auto evt = new wxCommandEvent(EVT_CUSTOMEVT_TICKSCHANGED, m_canvas->GetId());
@@ -11270,6 +11228,10 @@ static bool plate_toolbar_keeps_scrollbar(bool shown, float scrollbar_size)
 void GLCanvas3D::_render_imgui_select_plate_toolbar()
 {
     if (!m_sel_plate_toolbar.is_enabled()) {
+        if (m_plate_toolbar_right != 0.f) {
+            m_plate_toolbar_right = 0.f;
+            wxGetApp().imgui()->set_requires_extra_frame();
+        }
         if (!m_render_preview)
             m_render_preview = true;
         return;
@@ -11378,13 +11340,7 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
 
     const float y_offset = is_collapse_toolbar_on_left() ? (get_collapse_toolbar_height() + 5) : 0;
     // Make sure the window does not overlap the 3d navigator
-    auto window_height_max = canvas_h - y_offset;
-    if (wxGetApp().show_3d_navigator()) {
-        window_height_max -= (128 * f_scale + 5);
-    }
-    else { // ORCA spacing for canvas menu
-        window_height_max -= (96 * f_scale + 5);
-    }
+    const float window_height_max = canvas_h - y_offset - preview_corner_offset() - navigator_corner_height() - 5;
 
     // ORCA simplify and correct window size and margin calculations and get values from style
     ImGuiWrapper& imgui = *wxGetApp().imgui();
@@ -11686,6 +11642,13 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
     ImGui::PopStyleVar(7);
 
     m_sel_plate_toolbar.is_display_scrollbar = plate_toolbar_keeps_scrollbar(show_scroll, scrollbar_size);
+    // The scrollbar shows only under the mouse; the panels beside the list keep its room, so they do not move.
+    const bool  overflows           = window_height_calc > window_height_max;
+    const float plate_toolbar_right = ImGui::GetWindowPos().x + ImGui::GetWindowWidth() + (overflows && !show_scroll ? scrollbar_size : 0.f);
+    if (plate_toolbar_right != m_plate_toolbar_right) {
+        m_plate_toolbar_right = plate_toolbar_right;
+        wxGetApp().imgui()->set_requires_extra_frame();
+    }
 
     imgui.end();
 }
@@ -11725,7 +11688,7 @@ void GLCanvas3D::_render_plate_switcher()
     const float   scrollbar = PLATE_TOOLBAR_SCROLLBAR * sc;
     const float   top       = std::max(m_main_toolbar.get_height(), m_gizmos.get_scaled_total_height()) + CANVAS_TOOLBAR_MARGIN * sc;
     const float   content_h = plate_count * (btn_size.y + spacing) - spacing + 2.f * padding.y;
-    const float   max_h     = std::max(btn_size.y + 2.f * padding.y, float(get_canvas_size().get_height()) - top - (canvas_corner_height() + CANVAS_TOOLBAR_MARGIN) * sc);
+    const float   max_h     = std::max(btn_size.y + 2.f * padding.y, float(get_canvas_size().get_height()) - top - navigator_corner_height() - CANVAS_TOOLBAR_MARGIN * sc);
     // As in the Preview plate toolbar, the scrollbar shows only while the mouse is over the column.
     const bool    scroll    = m_plate_switcher_scrollbar && content_h > max_h;
 
@@ -11882,27 +11845,15 @@ void GLCanvas3D::_render_return_toolbar() const
     imgui.end();
 }
 
-void GLCanvas3D::_render_canvas_toolbar() 
+void GLCanvas3D::_render_canvas_toolbar()
 {
-    ImGuiWrapper &imgui    = *wxGetApp().imgui();
-    float         sc       = get_scale();
+    ImGuiWrapper&     imgui    = *wxGetApp().imgui();
+    const float       sc       = get_ui_scale();
+    const ImVec2      btn_size = ImVec2(CANVAS_TOOLBAR_BUTTON, CANVAS_TOOLBAR_BUTTON) * sc;
+    const ImVec2      padding  = ImVec2(CANVAS_TOOLBAR_PADDING, CANVAS_TOOLBAR_PADDING) * sc;
+    const CanvasUi::Rect place    = navigator_corner_layout().section;
 
-    #ifdef WIN32
-        const int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        sc *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
-
-    ImVec2        btn_size = ImVec2(CANVAS_TOOLBAR_BUTTON, CANVAS_TOOLBAR_BUTTON) * sc;
-    ImVec2        margin   = ImVec2(m_canvas_toolbar_pos[0] > 0 ? 0.f : (CANVAS_TOOLBAR_MARGIN * sc), CANVAS_TOOLBAR_MARGIN * sc);
-    ImVec2        spacing  = ImVec2(CANVAS_TOOLBAR_SPACING, CANVAS_TOOLBAR_SPACING) * sc;
-    ImVec2        padding  = ImVec2(CANVAS_TOOLBAR_PADDING, CANVAS_TOOLBAR_PADDING) * sc;
-    Vec2i32       pos      = {
-        m_canvas_toolbar_pos[0]        + margin.x,
-        get_canvas_size().get_height() - margin.y
-    };
-    bool          zoom_btn = wxGetApp().show_canvas_zoom_button();
-
-    imgui.set_next_window_pos(pos[0], pos[1], ImGuiCond_Always, 0, 1); // pivot bottom-left
+    imgui.set_next_window_pos(place.left, place.bottom, ImGuiCond_Always, 0, 1);
 
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0    );
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding   , {0,0});
@@ -11910,9 +11861,8 @@ void GLCanvas3D::_render_canvas_toolbar()
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding  , padding); // without padding images clipping
 
     imgui.begin(_L("Canvas Toolbar"), ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoMove |
-                                           ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollWithMouse);//
+                                           ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollWithMouse);
 
-    // Section view, on top so its panel opens above the toolbar.
     const bool  section_view = is_section_view_active();
     ImTextureID s_normal_id  = m_gizmos.get_icon_texture_id(section_view ?
         (m_is_dark ? GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_ACTIVE_DARK : GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_ACTIVE) :
@@ -11934,219 +11884,9 @@ void GLCanvas3D::_render_canvas_toolbar()
             align_section_view_to_camera();
         imgui.tooltip(_L("Section view"), ImGui::GetFontSize() * 20.0f);
     }
-    const ImVec2 section_panel_pos = ImGui::GetItemRectMin() - ImVec2(0.f, spacing.y);
+    const ImVec2 section_panel_pos = ImGui::GetItemRectMin() - ImVec2(0.f, CANVAS_TOOLBAR_SPACING * sc);
 
-    ImGui::Dummy({ 0, spacing.y});
-
-    ImTextureID m_normal_id = m_gizmos.get_icon_texture_id(m_is_dark ? GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_MENU_DARK       : GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_MENU);
-    ImTextureID m_hover_id  = m_gizmos.get_icon_texture_id(m_is_dark ? GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_MENU_DARK_HOVER : GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_MENU_HOVER);
-
-    if (ImGui::ImageButton3(m_normal_id, m_hover_id, btn_size)) {
-        if(!ImGui::IsPopupOpen("CanvasToolbarMenu")){
-            ImGui::SetNextWindowPos(ImVec2(pos[0] + padding.x, pos[1] - padding.y - (zoom_btn ? (btn_size.y + spacing.y) : 0.f)), ImGuiCond_Always, ImVec2(0, 1)); // pivot bottom-left
-            ImGui::OpenPopup("CanvasToolbarMenu");
-        }
-    }
- 
-    if(zoom_btn){
-        ImGui::Dummy({ 0, spacing.y});
-
-        ImTextureID z_normal_id = m_gizmos.get_icon_texture_id(m_is_dark ? GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_ZOOM_DARK       : GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_ZOOM);
-        ImTextureID z_hover_id  = m_gizmos.get_icon_texture_id(m_is_dark ? GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_ZOOM_DARK_HOVER : GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_ZOOM_HOVER);
-
-        if (ImGui::ImageButton3(z_normal_id, z_hover_id, btn_size)) {
-#ifdef SLIC3R_CAD
-            // The Design tab selects and sketches outside the canvas's selection and volumes, so
-            // it names what to frame. Framed along the current view, which is often square to a
-            // sketch plane; an empty tab falls through to the bed.
-            const BoundingBoxf3 design_box = m_design_sketch_tool != nullptr ? m_design_sketch_tool->fit_box(m_volumes) : BoundingBoxf3();
-            if (design_box.defined)
-                _zoom_to_box(design_box);
-            else
-#endif
-            {
-                select_view("plate");
-                if (m_selection.is_empty()) {
-                    if (m_canvas_type == ECanvasType::CanvasAssembleView)
-                        zoom_to_volumes();
-                    else
-                        zoom_to_bed();
-                } else {
-                    zoom_to_selection();
-                }
-            }
-        } else if (ImGui::IsItemHovered()) {
-            auto tooltip_str_wx = _L("Fit camera to scene or selected object.");
-            std::string tooltip_str = tooltip_str_wx.ToUTF8().data();
-
-            float width = ImGui::CalcTextSize(tooltip_str.c_str()).x + imgui.scaled(2.0f);
-            imgui.tooltip(tooltip_str, width);
-        }
-    }
-
-    ImGui::PopStyleVar(4); // Window
-
-    ImGui::PushStyleColor(ImGuiCol_PopupBg           , m_is_dark ? ImGuiWrapper::COL_TOOLBAR_BG_DARK : ImGuiWrapper::COL_TOOLBAR_BG);
-    ImGui::PushStyleColor(ImGuiCol_Separator         , m_is_dark ? ImVec4(1, 1, 1, .20f) : ImVec4(0, 0, 0, .2f));
-    ImGui::PushStyleColor(ImGuiCol_Text              , m_is_dark ? ImVec4(1, 1, 1, .88f) : ImVec4(50 / 255.f, 58 / 255.f, 61 / 255.f, 1.f));
-    ImGui::PushStyleColor(ImGuiCol_TextDisabled      , m_is_dark ? ImVec4(1, 1, 1, .44f) : ImVec4(50 / 255.f, 58 / 255.f, 61 / 255.f, .5f));
-    ImGui::PushStyleColor(ImGuiCol_HeaderHovered     , ImVec4(0, 0, 0, 0.f)); // bg color for menu item
-    ImGui::PushStyleColor(ImGuiCol_BorderActive      , ImGuiWrapper::COL_ORCA);
-    ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 0.f     );
-    ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding  , 8.f * sc);
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.f * sc);
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding  , 2.f * sc);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding  , ImVec2(4.f, 10.f) * sc);
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing    , ImVec2(0.f, 8.f ) * sc);
-
-    if (ImGui::BeginPopup("CanvasToolbarMenu", ImGuiWindowFlags_NoMove)) {
-        ImGui::PushItemFlag(ImGuiItemFlags_SelectableDontClosePopup, true);
-
-        Plater*    p   = wxGetApp().plater();
-        AppConfig* cfg = wxGetApp().app_config;
-
-        auto create_menu_item = [sc](
-            const std::string& name,
-            bool enable,
-            bool condition,
-            const std::function<void()>& action
-        ) {
-            ImGui::Dummy({2.f * sc,0});
-            ImGui::SameLine();
-            if (ImGui::BBLMenuItem(("        " + _u8L(name)).c_str(), nullptr, false, enable, ImGui::CalcTextSize(_u8L(name).c_str()).y))
-                action();
-            ImGui::SameLine(12.f * sc);
-            ImGui::TextColored(enable ? ImVec4(1,1,1,1) : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled), "%s", into_u8(condition ? ImGui::VisibleIcon : ImGui::HiddenIcon).c_str());
-        };
-
-
-        create_menu_item( _utf8(L("3D Navigator")),
-            m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
-            wxGetApp().show_3d_navigator(),
-            []{
-                wxGetApp().toggle_show_3d_navigator();
-                ImGui::CloseCurrentPopup(); // Close popup to show changes on UI
-            }
-        );
-
-        create_menu_item( _utf8(L("Zoom button")),
-            true, // work on all
-            wxGetApp().show_canvas_zoom_button(),
-            []{
-                wxGetApp().toggle_canvas_zoom_button();
-                ImGui::CloseCurrentPopup(); // Close popup to show changes on UI
-            }
-        );
-
-        ImGui::Separator();
-
-        create_menu_item( _utf8(L("Overhangs")),
-            m_canvas_type == ECanvasType::CanvasView3D, // work only on prepare
-            p->is_view3D_overhang_shown(),
-            [p]{p->show_view3D_overhang(!p->is_view3D_overhang_shown());}
-        );
-
-        create_menu_item( _utf8(L("Outline")),
-            m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
-            wxGetApp().show_outline(),
-            [this]{wxGetApp().toggle_show_outline(); m_dirty = true;}
-        );
-
-        create_menu_item( _utf8(L("Wireframe")),
-            m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
-            p->is_show_wireframe(),
-            [this, p]{p->toggle_show_wireframe(); m_dirty = true;}
-        );
-
-        // TRN View toggle that draws models see-through, so hidden parts show.
-        create_menu_item( _utf8(L("X-Ray")),
-            m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
-            p->is_show_xray(),
-            [this, p]{p->toggle_show_xray(); m_dirty = true;}
-        );
-
-        create_menu_item( _utf8(L("Realistic View")),
-            true, // work on all
-            cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE),
-            [&cfg]{
-                cfg->set_bool(SETTING_OPENGL_REALISTIC_MODE, !cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE));
-                cfg->save();
-            }
-        );
-
-        ImGui::Separator();
-
-        create_menu_item( _utf8(L("Perspective")),
-            true, // work on all
-            cfg->get_bool("use_perspective_camera"),
-            [&cfg]{
-                cfg->set_bool("use_perspective_camera", !(cfg->get_bool("use_perspective_camera")));
-                wxGetApp().update_ui_from_settings();
-            }
-        );
-
-        ImGui::Separator();
-
-        create_menu_item( _utf8(L("Axes")),
-            m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
-            m_show_world_axes,
-            [this]{toggle_world_axes_visibility(false);}
-        );
-
-        create_menu_item( _utf8(L("Gridlines")),
-            m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
-            wxGetApp().show_plate_gridlines(),
-            []{wxGetApp().toggle_show_plate_gridlines();}
-        );
-
-        create_menu_item( _utf8(L("Focus mode")),
-            m_canvas_type == ECanvasType::CanvasView3D && !m_design_canvas, // work only on prepare
-            wxGetApp().focus_mode(),
-            [this]{
-                wxGetApp().toggle_focus_mode();
-                if (wxGetApp().focus_mode())
-                    zoom_to_plate(REQUIRES_ZOOM_TO_CUR_PLATE);
-                m_dirty = true;
-            }
-        );
-
-        ImGui::Separator();
-
-        create_menu_item( _utf8(L("Labels")),
-            m_canvas_type == ECanvasType::CanvasView3D, // work only on prepare
-            p->are_view3D_labels_shown(),
-            [p]{p->show_view3D_labels(!p->are_view3D_labels_shown());}
-        );
-
-        create_menu_item( _utf8(L("Center of mass")),
-            m_canvas_type != ECanvasType::CanvasAssembleView && !m_design_canvas, // work on prepare and preview
-            wxGetApp().show_center_of_mass(),
-            [this]{wxGetApp().toggle_show_center_of_mass(); m_dirty = true;}
-        );
-
-        // Belt printers, G-code preview only: show the raw machine-frame G-code instead of
-        // the designed (upright) view. This menu is the only place the toggle lives (plus
-        // its shortcut); the reload is deferred (CallAfter) so the preview is not rebuilt
-        // mid-render.
-        if (m_canvas_type == ECanvasType::CanvasPreview && m_gcode_viewer.is_belt_view()) {
-            ImGui::Separator();
-            create_menu_item( _utf8(L("Show raw G-code (belt only)")),
-                true,
-                !m_gcode_viewer.is_belt_show_designed(), // eye lit = raw machine-frame G-code (designed view off)
-                [this, p]{
-                    m_gcode_viewer.toggle_belt_show_designed();
-                    p->CallAfter([p]{ p->refresh_belt_view(); });
-                }
-            );
-        }
-
-        ImGui::PopItemFlag();
-        ImGui::EndPopup();
-    }
-
-    ImGui::PopStyleColor(6);
-    ImGui::PopStyleVar(6);
-
+    ImGui::PopStyleVar(4);
     imgui.end();
 
     _render_section_view_panel(section_panel_pos);

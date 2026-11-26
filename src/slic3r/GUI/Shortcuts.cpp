@@ -157,6 +157,8 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     SHORTCUT(ShowCollisionVolumes, "show_collision_volumes", L("Show all collision volumes"),                   GLOBAL,  { 'K', CTRL_SHIFT }),
     SHORTCUT(ShowWireframe,     "show_wireframe",     L("Show/Hide wireframe"),                                  CANVAS,  { WXK_RETURN, CTRL_SHIFT }),
     SHORTCUT(ToggleGcodeWindow,   "toggle_gcode_window",   L("On/Off G-code window"),                            PREVIEW, { 'C' }),
+    SHORTCUT(ToggleLegend,        "toggle_legend",         L("On/Off legend"),                                   PREVIEW, {}),
+    SHORTCUT(TogglePrintSummary,  "toggle_print_summary",  L("On/Off print summary"),                            PREVIEW, {}),
     SHORTCUT(ToggleOneLayerMode,  "toggle_one_layer_mode", L("On/Off one layer mode of the vertical slider"),    PREVIEW, { 'L' }),
     SHORTCUT(ToggleBeltRawGcode,  "toggle_belt_raw_gcode", L("Show raw G-code (belt only)"),                     PREVIEW, { 'B' }),
 

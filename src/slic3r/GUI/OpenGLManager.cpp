@@ -24,6 +24,7 @@
 #include "libslic3r/Utils.hpp"
 #include <vector>
 #include <sstream>
+#include <memory>
 #include <utility>
 #include <wx/gdicmn.h>
 #include <wx/glcanvas.h>
@@ -34,6 +35,7 @@
 
 #include "GUI_Init.hpp"
 #include "slic3r/GUI/GLShadersManager.hpp"
+#include "slic3r/GUI/CanvasUi/Icons.hpp"
 
 #ifdef __APPLE__
 #include "../Utils/MacDarkMode.hpp"
@@ -252,9 +254,19 @@ bool OpenGLManager::s_force_power_of_two_textures = false;
 OpenGLManager::EMultisampleState OpenGLManager::s_multisample = OpenGLManager::EMultisampleState::Unknown;
 OpenGLManager::EFramebufferType OpenGLManager::s_framebuffers_type = OpenGLManager::EFramebufferType::Unknown;
 
+OpenGLManager::OpenGLManager() = default;
+
+CanvasUi::IconCache& OpenGLManager::ui_icons()
+{
+    if (!m_ui_icons)
+        m_ui_icons = std::make_unique<CanvasUi::IconCache>();
+    return *m_ui_icons;
+}
+
 OpenGLManager::~OpenGLManager()
 {
     m_shaders_manager.shutdown();
+    m_ui_icons.reset();
 
     if (m_context != nullptr)
         delete m_context;

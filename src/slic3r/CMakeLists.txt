@@ -3,7 +3,52 @@ project(libslic3r_gui)
 
 include(PrecompiledHeader)
 
+# The panels drawn over the 3D scene, which go through the CanvasUi toolkit only (see CheckCanvasPanels).
+set(SLIC3R_CANVAS_PANEL_SOURCES
+    GUI/AllPlatesStatsPanel.cpp
+    GUI/AllPlatesStatsPanel.hpp
+    GUI/GCodePanel.cpp
+    GUI/GCodePanel.hpp
+    GUI/GCodePanelText.cpp
+    GUI/GCodePanelText.hpp
+    GUI/LegendAxis.cpp
+    GUI/LegendAxis.hpp
+    GUI/LegendModel.cpp
+    GUI/LegendModel.hpp
+    GUI/LegendPanel.cpp
+    GUI/LegendPanel.hpp
+    GUI/LegendScaleView.cpp
+    GUI/LegendScaleView.hpp
+    GUI/LegendText.cpp
+    GUI/LegendText.hpp
+    GUI/Navigator3D.cpp
+    GUI/Navigator3D.hpp
+    GUI/NavigatorGeometry.cpp
+    GUI/NavigatorGeometry.hpp
+    GUI/GCodeViewerPanels.cpp
+    GUI/GLCanvas3DNavigator.cpp
+    GUI/PreviewLayoutMenu.cpp
+    GUI/PreviewLayoutMenu.hpp
+    GUI/PreviewOverlayLayout.cpp
+    GUI/PreviewOverlayLayout.hpp
+    GUI/PreviewPanels.cpp
+    GUI/PreviewPanels.hpp
+    GUI/PreviewPanelParts.cpp
+    GUI/PreviewPanelParts.hpp
+    GUI/PreviewPanelSlots.cpp
+    GUI/PreviewPanelSlots.hpp
+    GUI/PreviewMarks.cpp
+    GUI/PreviewMarks.hpp
+    GUI/PrintSummaryModel.cpp
+    GUI/PrintSummaryModel.hpp
+    GUI/PrintSummaryPanel.cpp
+    GUI/PrintSummaryPanel.hpp
+    GUI/MovePanelLayout.cpp
+    GUI/MovePanelLayout.hpp
+)
+
 set(SLIC3R_GUI_SOURCES
+    ${SLIC3R_CANVAS_PANEL_SOURCES}
     GUI/Widgets/AnimaController.hpp
     GUI/Widgets/AnimaController.cpp
     Config/Snapshot.cpp
@@ -315,6 +360,79 @@ set(SLIC3R_GUI_SOURCES
     GUI/ImGuiWrapper.hpp
     GUI/IMSlider.cpp
     GUI/IMSlider.hpp
+    GUI/CanvasUi/Alert.cpp
+    GUI/CanvasUi/Alert.hpp
+    GUI/CanvasUi/Availability.hpp
+    GUI/CanvasUi/Button.cpp
+    GUI/CanvasUi/Button.hpp
+    GUI/CanvasUi/Card.cpp
+    GUI/CanvasUi/Card.hpp
+    GUI/CanvasUi/Collapsible.cpp
+    GUI/CanvasUi/Collapsible.hpp
+    GUI/CanvasUi/ComponentParts.cpp
+    GUI/CanvasUi/ComponentParts.hpp
+    GUI/CanvasUi/Corners.cpp
+    GUI/CanvasUi/Corners.hpp
+    GUI/CanvasUi/CanvasFrame.cpp
+    GUI/CanvasUi/CanvasFrame.hpp
+    GUI/CanvasUi/Context.cpp
+    GUI/CanvasUi/Context.hpp
+    GUI/CanvasUi/Field.cpp
+    GUI/CanvasUi/Field.hpp
+    GUI/CanvasUi/Font.cpp
+    GUI/CanvasUi/Font.hpp
+    GUI/CanvasUi/FontMeasure.cpp
+    GUI/CanvasUi/FontMeasure.hpp
+    GUI/CanvasUi/Icons.cpp
+    GUI/CanvasUi/Icons.hpp
+    GUI/CanvasUi/ImGuiBridge.hpp
+    GUI/CanvasUi/Input.cpp
+    GUI/CanvasUi/Input.hpp
+    GUI/CanvasUi/Layout.cpp
+    GUI/CanvasUi/Layout.hpp
+    GUI/CanvasUi/Measure.cpp
+    GUI/CanvasUi/Measure.hpp
+    GUI/CanvasUi/Menu.cpp
+    GUI/CanvasUi/Menu.hpp
+    GUI/CanvasUi/MenuPopup.cpp
+    GUI/CanvasUi/MenuPopup.hpp
+    GUI/CanvasUi/Metrics.hpp
+    GUI/CanvasUi/NumberField.cpp
+    GUI/CanvasUi/NumberField.hpp
+    GUI/CanvasUi/PanelBody.cpp
+    GUI/CanvasUi/PanelBody.hpp
+    GUI/CanvasUi/PanelCard.cpp
+    GUI/CanvasUi/PanelCard.hpp
+    GUI/CanvasUi/Paint.cpp
+    GUI/CanvasUi/Paint.hpp
+    GUI/CanvasUi/Popover.cpp
+    GUI/CanvasUi/Popover.hpp
+    GUI/CanvasUi/PositionField.cpp
+    GUI/CanvasUi/PositionField.hpp
+    GUI/CanvasUi/ScrollArea.cpp
+    GUI/CanvasUi/ScrollArea.hpp
+    GUI/CanvasUi/Select.cpp
+    GUI/CanvasUi/Select.hpp
+    GUI/CanvasUi/SettingsForm.cpp
+    GUI/CanvasUi/SettingsForm.hpp
+    GUI/CanvasUi/Shadow.cpp
+    GUI/CanvasUi/Swatch.cpp
+    GUI/CanvasUi/Swatch.hpp
+    GUI/CanvasUi/Table.cpp
+    GUI/CanvasUi/Table.hpp
+    GUI/CanvasUi/Tabs.cpp
+    GUI/CanvasUi/Tabs.hpp
+    GUI/CanvasUi/Theme.cpp
+    GUI/CanvasUi/Theme.hpp
+    GUI/CanvasUi/ToggleGroup.cpp
+    GUI/CanvasUi/ToggleGroup.hpp
+    GUI/CanvasUi/Tooltip.cpp
+    GUI/CanvasUi/Tooltip.hpp
+    GUI/CanvasUi/Types.cpp
+    GUI/CanvasUi/Tokens.hpp
+    GUI/CanvasUi/Types.hpp
+    GUI/CanvasUi/Zone.cpp
+    GUI/CanvasUi/Zone.hpp
     GUI/DeviceErrorDialog.hpp
     GUI/DeviceErrorDialog.cpp
     GUI/IMToolbar.cpp
@@ -956,6 +1074,31 @@ endif()
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SLIC3R_GUI_SOURCES})
 
 encoding_check(libslic3r_gui)
+
+list(TRANSFORM SLIC3R_CANVAS_PANEL_SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/" OUTPUT_VARIABLE _canvas_panel_files)
+set(_canvas_panel_check "${CMAKE_SOURCE_DIR}/cmake/modules/CheckCanvasPanels.cmake")
+set(_canvas_panel_examples_dir "${CMAKE_SOURCE_DIR}/cmake/modules/canvas_panels_check")
+set(_canvas_panel_list "${CMAKE_CURRENT_BINARY_DIR}/canvas_panels.txt")
+set(_canvas_panel_stamp "${CMAKE_CURRENT_BINARY_DIR}/canvas_panels_checked.stamp")
+set(_canvas_panel_candidates ${SLIC3R_GUI_SOURCES})
+list(FILTER _canvas_panel_candidates INCLUDE REGEX "^GUI/.+\\.(cpp|hpp|h)$")
+list(TRANSFORM _canvas_panel_candidates PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
+set(_canvas_panel_candidates_list "${CMAKE_CURRENT_BINARY_DIR}/canvas_panel_candidates.txt")
+file(WRITE "${_canvas_panel_candidates_list}.new" "${_canvas_panel_candidates}")
+configure_file("${_canvas_panel_candidates_list}.new" "${_canvas_panel_candidates_list}" COPYONLY)
+file(GLOB_RECURSE _canvas_panel_examples "${_canvas_panel_examples_dir}/*")
+file(WRITE "${_canvas_panel_list}.new" "${_canvas_panel_files}")
+configure_file("${_canvas_panel_list}.new" "${_canvas_panel_list}" COPYONLY)
+add_custom_command(
+    OUTPUT "${_canvas_panel_stamp}"
+    COMMAND ${CMAKE_COMMAND} "-DFILES_LIST=${_canvas_panel_list}" "-DCANDIDATES_LIST=${_canvas_panel_candidates_list}"
+            "-DGUI_DIR=${CMAKE_CURRENT_SOURCE_DIR}/GUI" "-DFIXTURES=${_canvas_panel_examples_dir}" "-DSTAMP=${_canvas_panel_stamp}"
+            -P "${_canvas_panel_check}"
+    DEPENDS ${_canvas_panel_candidates} "${_canvas_panel_list}" "${_canvas_panel_candidates_list}" "${_canvas_panel_check}" ${_canvas_panel_examples}
+    COMMENT "Checking that the panels over the scene go through CanvasUi only"
+    VERBATIM)
+add_custom_target(check_canvas_panels DEPENDS "${_canvas_panel_stamp}")
+add_dependencies(libslic3r_gui check_canvas_panels)
 
 # Only BuildCommit.cpp includes the generated header, plus BaseException.cpp on
 # Windows. Both build into libslic3r_gui, so the header only has to exist before
