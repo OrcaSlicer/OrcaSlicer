@@ -71,7 +71,10 @@ std::string GLGizmoMove3D::get_tooltip() const
 }
 
 bool GLGizmoMove3D::on_mouse(const wxMouseEvent &mouse_event) {
-    return use_grabbers(mouse_event);
+    const bool handled = use_grabbers(mouse_event);
+    if (handled && mouse_event.LeftDown())
+        m_starting_mouse_ray = m_parent.mouse_ray(Point(mouse_event.GetX(), mouse_event.GetY()));
+    return handled;
 }
 
 void GLGizmoMove3D::data_changed(bool is_serializing) {
@@ -138,12 +141,14 @@ void GLGizmoMove3D::on_stop_dragging()
 
 void GLGizmoMove3D::on_dragging(const UpdateData& data)
 {
+    const double displacement = calc_drag_displacement(data.mouse_ray, m_starting_mouse_ray, m_starting_drag_position,
+                                                       m_starting_box_center, wxGetKeyState(WXK_SHIFT), m_snap_step);
     if (m_hover_id == 0)
-        m_displacement.x() = calc_projection(data);
+        m_displacement.x() = displacement;
     else if (m_hover_id == 1)
-        m_displacement.y() = calc_projection(data);
+        m_displacement.y() = displacement;
     else if (m_hover_id == 2)
-        m_displacement.z() = calc_projection(data);
+        m_displacement.z() = displacement;
         
     Selection &selection = m_parent.get_selection();
     TransformationType trafo_type;
@@ -323,30 +328,22 @@ void GLGizmoMove3D::on_render_input_window(float x, float y, float bottom_limit)
 }
 
 
-double GLGizmoMove3D::calc_projection(const UpdateData& data) const
+double GLGizmoMove3D::calc_drag_displacement(const Linef3& mouse_ray, const Linef3& starting_mouse_ray,
+                                            const Vec3d& starting_drag_position, const Vec3d& starting_box_center,
+                                            bool snap, double snap_step)
 {
-    double projection = 0.0;
-
-    const Vec3d starting_vec = m_starting_drag_position - m_starting_box_center;
+    const Vec3d starting_vec = starting_drag_position - starting_box_center;
     const double len_starting_vec = starting_vec.norm();
-    if (len_starting_vec != 0.0) {
-        const Vec3d mouse_dir = data.mouse_ray.unit_vector();
-        // finds the intersection of the mouse ray with the plane parallel to the camera viewport and passing throught the starting position
-        // use ray-plane intersection see i.e. https://en.wikipedia.org/wiki/Line%E2%80%93plane_intersection algebric form
-        // in our case plane normal and ray direction are the same (orthogonal view)
-        // when moving to perspective camera the negative z unit axis of the camera needs to be transformed in world space and used as plane normal
-        const Vec3d inters = data.mouse_ray.a + (m_starting_drag_position - data.mouse_ray.a).dot(mouse_dir) * mouse_dir;
-        // vector from the starting position to the found intersection
-        const Vec3d inters_vec = inters - m_starting_drag_position;
+    if (len_starting_vec == 0.0)
+        return 0.0;
 
-        // finds projection of the vector along the staring direction
-        projection = inters_vec.dot(starting_vec.normalized());
-    }
-
-    if (wxGetKeyState(WXK_SHIFT))
-        projection = m_snap_step * (double)std::round(projection / m_snap_step);
-
-    return projection;
+    const auto projection = [&](const Linef3& ray) {
+        const Vec3d mouse_dir = ray.unit_vector();
+        const Vec3d inters = ray.a + (starting_drag_position - ray.a).dot(mouse_dir) * mouse_dir;
+        return (inters - starting_drag_position).dot(starting_vec / len_starting_vec);
+    };
+    const double displacement = projection(mouse_ray) - projection(starting_mouse_ray);
+    return snap ? snap_step * std::round(displacement / snap_step) : displacement;
 }
 
 void GLGizmoMove3D::render_align_preview()

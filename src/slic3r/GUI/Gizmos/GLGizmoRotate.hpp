@@ -39,6 +39,8 @@ public:
 private:
     Axis m_axis;
     double m_angle{ 0.0 };
+    double m_starting_angle{ 0.0 };
+    double m_starting_mouse_angle{ 0.0 };
     Vec3d m_center{ Vec3d::Zero() };
     float m_radius{ 0.0f };
     float m_snap_coarse_in_radius{ 0.0f };
@@ -83,6 +85,11 @@ public:
 
     void start_dragging();
     void stop_dragging();
+    void set_drag_start(const Linef3& mouse_ray);
+
+    static double calc_drag_angle(const Vec2d& mouse_pos, double starting_mouse_angle, double starting_angle,
+                                  double coarse_in_radius, double coarse_out_radius,
+                                  double fine_in_radius, double fine_out_radius);
        
     void enable_grabber();
     void disable_grabber(); 

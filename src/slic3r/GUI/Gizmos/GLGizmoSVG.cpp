@@ -282,6 +282,8 @@ bool GLGizmoSVG::on_mouse_for_rotation(const wxMouseEvent &mouse_event)
     if (mouse_event.Moving()) return false;
 
     bool used = use_grabbers(mouse_event);
+    if (used && mouse_event.LeftDown())
+        m_rotate_gizmo.set_drag_start(m_parent.mouse_ray(Point(mouse_event.GetX(), mouse_event.GetY())));
     if (!m_dragging) return used;
 
     if (mouse_event.Dragging())
