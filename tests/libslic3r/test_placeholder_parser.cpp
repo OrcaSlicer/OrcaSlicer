@@ -1,11 +1,16 @@
 #include <catch2/catch_all.hpp>
+#include <ctime>
+#include <optional>
 #include <string>
 #include <memory>
 #include "libslic3r/Config.hpp"
+#include "libslic3r/SourceDateEpoch.hpp"
+#include "test_utils.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include "libslic3r/PlaceholderParser.hpp"
@@ -398,6 +403,36 @@ SCENARIO("Placeholder parser names in branches that are not taken", "[Placeholde
         // Boolean expressions are not checked, so compatibility conditions keep their behaviour.
         CHECK(PlaceholderParser::evaluate_boolean_expression("false ? no_such_var == 1 : true", config));
     }
+}
+
+TEST_CASE("ORCA_SOURCE_DATE_EPOCH is read as a whole number of seconds", "[PlaceholderParser]") {
+    const ScopedEnvVar epoch("ORCA_SOURCE_DATE_EPOCH", "1000000000");
+    CHECK(source_date_epoch() == std::optional<std::time_t>(1000000000));
+}
+
+TEST_CASE("ORCA_SOURCE_DATE_EPOCH is read up to the end of the year 3000", "[PlaceholderParser]") {
+    const ScopedEnvVar epoch("ORCA_SOURCE_DATE_EPOCH", "32535215999"); // 3000-12-31 23:59:59 UTC
+    PlaceholderParser parser;
+    CHECK(parser.process("[timestamp]") == "30001231-235959");
+}
+
+TEST_CASE("ORCA_SOURCE_DATE_EPOCH is ignored when it is not a whole number of seconds the clock can hold", "[PlaceholderParser]") {
+    // The last two are later than any platform's gmtime() accepts.
+    const std::string value = GENERATE("", "abc", "-5", "12x", " 12", "1e9", "32535216000", "9223372036854775807");
+    INFO("value: \"" << value << "\"");
+    const ScopedEnvVar epoch("ORCA_SOURCE_DATE_EPOCH", value);
+    CHECK_FALSE(source_date_epoch().has_value());
+}
+
+TEST_CASE("ORCA_SOURCE_DATE_EPOCH is ignored when it is not set", "[PlaceholderParser]") {
+    const ScopedEnvVar epoch("ORCA_SOURCE_DATE_EPOCH", std::nullopt);
+    CHECK_FALSE(source_date_epoch().has_value());
+}
+
+TEST_CASE("ORCA_SOURCE_DATE_EPOCH replaces the clock in the time variables, read as UTC", "[PlaceholderParser]") {
+    const ScopedEnvVar epoch("ORCA_SOURCE_DATE_EPOCH", "1000000000"); // 2001-09-09 01:46:40 UTC
+    PlaceholderParser parser; // reads the clock when it is built
+    CHECK(parser.process("[timestamp] [year]-[month]-[day] [hour]:[minute]:[second]") == "20010909-014640 2001-9-9 1:46:40");
 }
 
 TEST_CASE("Placeholder parser deferred values can be printed but not computed with", "[PlaceholderParser]") {

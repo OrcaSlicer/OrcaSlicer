@@ -45,6 +45,7 @@
 #include "GCode/WipeTower.hpp"
 #include "GCode/WipeTower2.hpp"
 #include "ShortestPath.hpp"
+#include "SourceDateEpoch.hpp"
 #include "GCode/OrderingStrategies.hpp"
 #include "Print.hpp"
 #include "Utils.hpp"
@@ -68,6 +69,7 @@
 #include <cstdarg>
 #include <cstdlib>
 #include <chrono>
+#include <ctime>
 #include <iomanip>
 #include <cstring>
 #include <exception>
@@ -82,6 +84,7 @@
 #include <stdexcept>
 #include <set>
 #include <optional>
+#include <random>
 #include <stdlib.h>
 #include <string>
 #include <system_error>
@@ -3591,7 +3594,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     m_placeholder_parser_integration.parser = print.placeholder_parser();
     m_placeholder_parser_integration.parser.update_timestamp();
     m_placeholder_parser_integration.parser.update_user_name();
-    m_placeholder_parser_integration.context.rng = std::mt19937(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+    // ORCA_SOURCE_DATE_EPOCH also fixes the numbers random() draws, so that an export can be repeated.
+    if (const std::optional<std::time_t> fixed_time = source_date_epoch())
+        m_placeholder_parser_integration.context.rng = std::mt19937(static_cast<std::mt19937::result_type>(*fixed_time));
+    else
+        m_placeholder_parser_integration.context.rng = std::mt19937(std::chrono::high_resolution_clock::now().time_since_epoch().count());
     // Enable passing global variables between PlaceholderParser invocations.
     m_placeholder_parser_integration.context.global_config = std::make_unique<DynamicConfig>();
     print.update_object_placeholders(m_placeholder_parser_integration.parser.config_writable(), ".gcode");

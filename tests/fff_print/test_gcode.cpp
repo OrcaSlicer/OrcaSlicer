@@ -90,6 +90,33 @@ TEST_CASE("Kobra 2 layer-change templates do not emit numeric commands", "[GCode
     });
 }
 
+TEST_CASE("ORCA_SOURCE_DATE_EPOCH makes custom G-code print the same time and random numbers on every export", "[GCode]")
+{
+    const ScopedEnvVar epoch("ORCA_SOURCE_DATE_EPOCH", "1000000000"); // 2001-09-09 01:46:40 UTC
+    const auto config = Test::multifilament_config(1, {
+        {"layer_height", "0.2"},
+        {"first_layer_height", "0.2"},
+        {"layer_change_gcode", "; clock [timestamp] roll {random(0, 1000000)}"},
+    });
+    const auto clock_lines = [&config]() {
+        std::vector<std::string> lines;
+        // A 2 mm cube at 0.2 mm layers changes layer several times, so random() is drawn several times.
+        std::istringstream gcode(Test::slice({Test::cube(2.)}, config));
+        for (std::string line; std::getline(gcode, line);)
+            if (line.rfind("; clock ", 0) == 0)
+                lines.push_back(line);
+        return lines;
+    };
+
+    const std::vector<std::string> first = clock_lines();
+    REQUIRE(first.size() > 1);
+    for (const std::string &line : first)
+        CHECK(line.rfind("; clock 20010909-014640 roll ", 0) == 0);
+    // The sequence still advances from layer to layer. Only its starting point is fixed.
+    CHECK(std::set<std::string>(first.begin(), first.end()).size() > 1);
+    CHECK(clock_lines() == first);
+}
+
 TEST_CASE("Klipper object labels name each copy without the characters Klipper cannot parse", "[GCode]")
 {
     const auto [name, label] = GENERATE(table<std::string, std::string>({
