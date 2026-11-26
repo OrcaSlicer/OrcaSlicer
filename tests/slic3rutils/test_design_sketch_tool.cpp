@@ -17,6 +17,7 @@
 #include <catch2/generators/catch_generators_range.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -25,9 +26,14 @@
 #include <limits>
 #include <optional>
 #include <random>
+#include <string>
+#include <utility>
 #include <vector>
 #include <cstddef>
 #include <math.h>
+
+#include <imgui/imgui.h>
+#include <wx/gdicmn.h>
 
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
@@ -36,7 +42,9 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/CAD/CadDocument.hpp"
 #include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
+#include "slic3r/GUI/CAD/SketchInlineEditor.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;
@@ -159,6 +167,67 @@ SightLines sight_lines(const std::vector<SketchPlane>& planes, double half, cons
     return seen;
 }
 
+// The sketch's value field in a fresh ImGui context, as at launch: its window has never been drawn.
+// Sized as at 150 % display scaling: the app's 18 px font at 27 px and the window style scaled by
+// 1.5. The font atlas is built on the CPU, so frames run without OpenGL.
+struct ValueFieldFrames
+{
+    static constexpr float kScale = 1.5f;
+
+    ImGuiWrapper          imgui;
+    SketchInlineEditor    field;
+    std::optional<double> committed;
+
+    ValueFieldFrames()
+    {
+        imgui.set_display_size(1600.f, 1000.f);
+        ImFontConfig font;
+        font.SizePixels = 18.f * kScale;
+        ImGui::GetIO().Fonts->AddFontDefault(&font);
+        unsigned char* pixels = nullptr;
+        int            width = 0, height = 0;
+        ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+    }
+
+    void open(double prefill)
+    {
+        committed.reset();
+        field.open(wxPoint(800, 500), prefill, "Width", [this](double v) { committed = v; }, [] {});
+    }
+
+    void frames(int n)
+    {
+        for (int i = 0; i < n; ++i) {
+            ImGui::NewFrame();
+            field.render(imgui, kScale);
+            ImGui::EndFrame();
+        }
+    }
+
+    // Types `digits` with no click, the way the canvas hands ImGui a key's characters, and draws the
+    // frame that reads them.
+    void type(const char* digits)
+    {
+        for (const char* c = digits; *c != '\0'; ++c)
+            ImGui::GetIO().AddInputCharacter(static_cast<unsigned int>(*c));
+        frames(1);
+    }
+
+    // Return, routed as the Design panel routes it: to the field while it holds the keyboard, else
+    // to commit(), which takes what the field shows.
+    void enter()
+    {
+        if (!field.has_focus()) {
+            field.commit();
+            return;
+        }
+        ImGuiIO& io = ImGui::GetIO();
+        io.KeysDown[io.KeyMap[ImGuiKey_Enter]] = true;
+        frames(1);
+        io.KeysDown[io.KeyMap[ImGuiKey_Enter]] = false;
+    }
+};
+
 } // namespace
 
 TEST_CASE("Fit frames the picked sketch region, not the other sketches", "[DesignSketchTool]")
@@ -278,6 +347,71 @@ TEST_CASE("A face's box comes from the pick mesh, on a hidden body too", "[Desig
     REQUIRE(both.defined);
     CHECK_THAT(both.min.x(), WithinAbs(0., 1e-6));
     CHECK_THAT(both.max.x(), WithinAbs(110., 1e-6));
+}
+
+TEST_CASE("A face, edges or a vertex is selected by id only where a click could pick it", "[DesignSketchTool]")
+{
+    // Two 40 x 20 x 10 boxes, the second 100 mm along X.
+    CadDocument doc;
+    doc.add_extrude(doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 40, 20, 0, "Sketch"), 10.0, false,
+                    BooleanMode::New, "Extrude");
+    SketchPlane beside = SketchPlane::XY();
+    beside.origin += Vec3d(100., 0., 0.);
+    doc.add_extrude(doc.add_sketch(SketchShape::Rectangle, beside, 40, 20, 0, "Sketch"), 10.0, false, BooleanMode::New,
+                    "Extrude");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+    using Sel = DesignSketchTool::SolidSel;
+    DesignSketchTool tool;
+    int              fired = 0;
+    tool.on_solid_selection_changed = [&fired](int, int, int, int) { ++fired; };
+
+    // With no pick shapes there is nothing a click picks: the check says why, and selecting changes nothing.
+    std::string why;
+    CHECK_FALSE(tool.can_select_solid(Sel::Face, 0, 0, {}, &why));
+    CHECK_FALSE(why.empty());
+    CHECK_FALSE(tool.select_solid(Sel::Face, 0, 0, {}, Vec3d::Zero()));
+    CHECK_FALSE(tool.has_solid_selection());
+
+    std::vector<bool> visible{true, true};
+    tool.set_solid_pick(&doc.bodies, &doc.display_mesh, &doc.display_tri_face, &doc.display_tri_body, &visible);
+    REQUIRE(tool.select_solid(Sel::Face, 0, 0, {}, Vec3d::Zero()));
+    CHECK(fired == 1);
+    // Each refusal is decided by the check select_solid() makes, and leaves the face selected and nothing fired.
+    const auto refused = [&](Sel kind, int body, int face, const std::vector<int>& edges) {
+        std::string reason;
+        CHECK_FALSE(tool.can_select_solid(kind, body, face, edges, &reason));
+        CHECK_FALSE(reason.empty());
+        CHECK_FALSE(tool.select_solid(kind, body, face, edges, Vec3d::Zero()));
+        CHECK(tool.selected_faces() == std::vector<std::pair<int, int>>{{0, 0}});
+        CHECK(fired == 1);
+    };
+    refused(Sel::Face, 0, 99, {});
+    refused(Sel::Edge, 0, -1, {});
+    refused(Sel::Edge, 0, -1, {1, 1});
+    refused(Sel::Edge, 0, -1, {999});
+    refused(Sel::Face, 2, 0, {});
+    // An id the body does not have is the pick's; the body still takes picks, which design_select tells apart from the
+    // view's state.
+    CHECK(tool.body_takes_pick(0));
+    CHECK(tool.body_takes_pick(1));
+    // A hidden body takes no click, nor does one a pick is held off (a card's focus on another body): the view's state,
+    // whatever the ids.
+    visible[1] = false;
+    refused(Sel::Vertex, 1, -1, {});
+    std::string state;
+    CHECK_FALSE(tool.body_takes_pick(1, &state));
+    CHECK_THAT(state, Catch::Matchers::ContainsSubstring("takes no click"));
+    CHECK(tool.body_takes_pick(0));
+    visible[1] = true;
+    tool.set_pick_only_body(0);
+    refused(Sel::Face, 1, 0, {});
+    CHECK_FALSE(tool.body_takes_pick(1));
+    tool.set_pick_only_body(-1);
+    CHECK(tool.can_select_solid(Sel::Edge, 1, -1, {0, 1}));
+    // A body the pick shapes do not have has no shape in the view.
+    CHECK_FALSE(tool.body_takes_pick(2, &state));
+    CHECK_THAT(state, Catch::Matchers::ContainsSubstring("has no shape in the view"));
 }
 
 TEST_CASE("Padding a box to frame gives every axis a small extent and leaves a long one alone", "[DesignSketchTool]")
@@ -463,6 +597,25 @@ TEST_CASE("A move arrow pressed while looking down its axis does not jump on the
     CHECK_THAT(moved.translation().x(), WithinAbs(0., 1e-9));
     tool.drag_move_arrow(ray_at(15.));
     CHECK_THAT(moved.translation().x(), WithinAbs(2., 1e-9));
+}
+
+TEST_CASE("Every value field takes typed digits from the first one after launch on", "[DesignSketchTool]")
+{
+    ValueFieldFrames f;
+    // Each field is typed into a few frames after it opens, with no click, and Return commits it.
+    f.open(120.171);
+    f.frames(3);
+    f.type("120");
+    f.enter();
+    REQUIRE(f.committed.has_value());
+    CHECK_THAT(*f.committed, WithinAbs(120., 1e-12));
+
+    f.open(80.5);
+    f.frames(3);
+    f.type("80");
+    f.enter();
+    REQUIRE(f.committed.has_value());
+    CHECK_THAT(*f.committed, WithinAbs(80., 1e-12));
 }
 
 namespace {

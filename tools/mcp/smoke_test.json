@@ -1,0 +1,41 @@
+// Smoke test of the MCP server's main paths: an auto-answered prompt, a setting changed and read
+// back, slicing, export, a dialog opened by an action and answered by the replay, and screenshots of
+// the dialog, the preview and the main window. Run against a running instance with
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/smoke_test.json --out /tmp/smoke
+// or headless with
+//   orca-slicer --run tools/mcp/smoke_test.json --outputdir /tmp/smoke
+{
+  "orca_replay_version": "0.2.0",
+  "name": "smoke",
+  "vars": {"model": "${replay_dir}/../../resources/handy_models/3DBenchy.drc"},
+  "steps": [
+    {"tool": "app_wait", "args": {"for": "ready"}},
+    // Started by orca-slicer --run, the app may ask at startup to restore a project an earlier app on the
+    // data folder left unsaved (orca_mcp.py launch answers that prompt itself), and project_new asks about
+    // unsaved changes. The rules end with the replay, so they never answer a prompt after the run.
+    {"tool": "dialog_auto_answer", "args": {"rules": [{"match": "unsaved changes", "button": "no"},
+                                                     {"match": "restore", "button": "no"}]}},
+    {"tool": "project_new", "args": {"silent": true}},
+    // The slice runs on the default printer's presets, whichever the last run on the data folder left selected.
+    {"tool": "preset_select", "args": {"type": "printer", "name": "MyKlipper 0.4 nozzle", "preset_changes": "discard"}},
+    {"tool": "preset_select", "args": {"type": "process", "name": "0.20mm Standard @MyKlipper", "preset_changes": "discard"}},
+    {"tool": "preset_select", "args": {"type": "filament", "name": "Generic PLA @System", "filament_slot": 1, "preset_changes": "discard"}},
+    {"tool": "project_import", "args": {"paths": ["${vars.model}"]}, "expect": {"/added": {"eq": 1}}},
+    {"tool": "settings_set", "args": {"type": "process", "values": {"wall_loops": 3}}},
+    {"tool": "settings_get", "args": {"type": "process", "keys": ["wall_loops"]}, "expect": {"/items/0/value": {"eq": "3"}}},
+    {"tool": "plate_slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "project_export", "args": {"format": "gcode", "path": "${out_dir}/benchy.gcode", "overwrite": true}},
+
+    // The action blocks in the dialog it opens, so it is not awaited until the dialog is answered.
+    {"tool": "action_run", "args": {"id": "orca_command:open_preferences:orca"}, "await": false, "save_as": "prefs"},
+    {"tool": "app_wait", "args": {"for": "dialog", "timeout_s": 10}, "expect": {"/satisfied": {"eq": true}}},
+    {"tool": "widget_list", "args": {"target": "dialog", "query": "splash"}, "expect": {"/nodes": {"ge": 1}}},
+    {"tool": "window_screenshot", "args": {"target": "dialog", "save_path": "${out_dir}/preferences.png", "overwrite": true, "include_image": false}},
+    {"tool": "dialog_answer", "args": {"dialog": {"title": "Preferences"}, "button": "close"}},
+    {"tool": "app_wait", "args": {"for": "job", "job": "${jobs.prefs}"}},
+
+    {"tool": "view_set", "args": {"tab": "preview", "camera": "iso"}},
+    {"tool": "window_screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/preview.png", "overwrite": true, "include_image": false}},
+    {"tool": "window_screenshot", "args": {"target": "main", "save_path": "${out_dir}/window.png", "overwrite": true, "include_image": false}}
+  ]
+}

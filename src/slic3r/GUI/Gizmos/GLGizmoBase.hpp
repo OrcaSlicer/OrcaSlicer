@@ -234,6 +234,9 @@ public:
 
     virtual bool is_in_editing_mode() const { return false; }
     virtual bool is_selection_rectangle_dragging() const { return false; }
+    // Whether work the gizmo started in the background has yet to show its latest result, for
+    // automation waiting for the app to settle.
+    virtual bool is_busy() const { return false; }
 
 protected:
     float last_input_window_width = 0;

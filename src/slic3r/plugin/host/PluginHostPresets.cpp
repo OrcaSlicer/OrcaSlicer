@@ -15,6 +15,8 @@
 #include <slic3r/GUI/GUI.hpp>
 #include <slic3r/GUI/GUI_App.hpp>
 #include <slic3r/GUI/MainFrame.hpp>
+#include <slic3r/GUI/Operations/Outcome.hpp>
+#include <slic3r/GUI/Operations/PresetOps.hpp>
 #include <slic3r/GUI/Plater.hpp>
 #include <slic3r/GUI/PresetComboBoxes.hpp> // TabPresetComboBox::set_filament_idx
 #include <slic3r/GUI/Tab.hpp>
@@ -23,6 +25,7 @@
 
 #include <wx/string.h>
 
+#include <optional>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -105,21 +108,22 @@ struct SelectionCancelled : std::runtime_error
 // pipeline hook.
 //
 // Known limits of this implementation, kept explicit rather than hidden:
-//   * A requested preset_name is resolved by the exact name its dropdown entry shows: the item's
-//     display label or its stored item alias (the internal preset name). A name two entries carry
-//     is rejected as ambiguous instead of being resolved by position. Process and printer resolve
-//     against the tab dropdown; a filament preset_name resolves against the requested slot's own
-//     sidebar selector, not the tab's, so its compatibility filter is the one that applies. A
-//     target the selector does not offer fails before the flow's unsaved-edit prompt. The flow
-//     itself is unchanged and the target is still confirmed as the edited preset afterwards.
-//   * A filament preset_name that names a different preset for a slot selects it through
-//     Tab::select_preset() (the normal flow, honouring unsaved-edit prompts) and then updates the
-//     slot mapping with PresetBundle::set_filament_preset() plus every dependent side effect the
-//     sidebar selection path performs: the project-dirty/selection refresh, the dynamic filament
-//     list, the slot's own combo (re-run so it lists and selects the assigned target), the
-//     conditional support-filament flushing recalc and the slot's AMS sync badge (read from the
-//     slot combo's own flag). The private Plater::priv::on_select_preset() path cannot be reused
-//     from here, so this mirrors its filament branch rather than calling it.
+//   * A requested preset_name is resolved by GUI::Ops::resolve_preset(), the rule every caller that
+//     selects a preset by name shares: the exact name a dropdown entry shows, its display label or
+//     its stored item alias (the internal preset name). A name two entries carry is rejected as
+//     ambiguous instead of being resolved by position. Process and printer resolve against the tab
+//     dropdown; a filament preset_name resolves against the requested slot's own sidebar selector,
+//     not the tab's, so its compatibility filter is the one that applies. A hidden compatible
+//     preset the name stands for is shown in the selectors first, where it stays until the app
+//     restarts. A target the selector does not offer fails before the flow's unsaved-edit prompt. A
+//     process or printer selection that leaves another preset edited is refused
+//     (GUI::Ops::select_preset()).
+//   * A filament preset_name that names a different preset for a slot first makes the filament tab
+//     edit it through Tab::select_preset() (the normal flow, honouring unsaved-edit prompts), since
+//     the transaction edits that preset, and then assigns it to the slot with
+//     GUI::Ops::assign_filament_preset(), which does what picking the preset in the slot's sidebar
+//     selector does: the slot's colour follows the preset, the mapping, the flushing volumes and the
+//     project state are updated and every plate's slice result is invalidated.
 //   * A user-declined selection does not undo decisions the user already accepted in an earlier
 //     dialog. It aborts before any slot assignment or transaction is created, so no staged
 //     setting is applied.
@@ -182,83 +186,31 @@ GUI::Tab* require_tab(GUI::GUI_App& app, Preset::Type type)
     return tab;
 }
 
-// True for a combo row that is a group header, a marker or a disabled row: it carries a marker in
-// its client data and is not a selectable preset.
-bool combo_item_is_marker(GUI::PresetComboBox& combo, int item)
+GUI::Ops::PresetKind preset_kind(Preset::Type type)
 {
-    const auto marker = reinterpret_cast<std::size_t>(combo.GetClientData(item));
-    return marker >= GUI::PresetComboBox::LABEL_ITEM_DISABLED && marker < GUI::PresetComboBox::LABEL_ITEM_MAX;
-}
-
-// How a caller-supplied name resolved against a combo's actual items.
-struct ComboPresetMatch
-{
-    int         item          = -1;    // first matching item, or -1
-    bool        ambiguous     = false; // two distinct items carry this name
-    std::string internal_name;         // internal preset name of the match (empty when none)
-};
-
-// Resolve `requested` by the name each combo item shows: its display label, or its stored item
-// alias (the internal preset name, or the printer model for a system printer preset). Names are
-// compared with the modified-dirty suffix removed, i.e. exactly what the dropdown shows. Reading
-// the combo's own items means this respects the combo's real selectable model (visibility, its
-// show-incompatible state and, for a slot combo, that slot's compatibility). A name that two
-// distinct items carry is reported ambiguous instead of being resolved by position.
-ComboPresetMatch resolve_combo_preset(GUI::PresetComboBox& combo, const std::string& requested)
-{
-    ComboPresetMatch  match;
-    const std::string want       = Preset::remove_suffix_modified(requested);
-    const int         item_count = combo.GetCount();
-    for (int item = 0; item < item_count; ++item) {
-        if (combo_item_is_marker(combo, item))
-            continue;
-        const wxString    alias      = combo.GetItemAlias(item);
-        const std::string alias_name = alias.empty() ? std::string()
-                                                     : Preset::remove_suffix_modified(alias.ToUTF8().data());
-        const std::string label_name = Preset::remove_suffix_modified(combo.GetString(item).ToUTF8().data());
-        if ((alias_name.empty() || alias_name != want) && label_name != want)
-            continue;
-        if (match.item >= 0 && match.item != item) {
-            match.ambiguous = true;
-            return match;
-        }
-        match.item          = item;
-        match.internal_name = alias_name.empty() ? label_name : alias_name;
+    switch (type) {
+    case Preset::TYPE_PRINTER:  return GUI::Ops::PresetKind::Printer;
+    case Preset::TYPE_FILAMENT: return GUI::Ops::PresetKind::Filament;
+    default:                    return GUI::Ops::PresetKind::Process;
     }
-    return match;
 }
 
-// Index of the item whose internal name is `preset_name`, or -1. Used for per-item flags (the AMS
-// sync badge); the internal name is unique, so no ambiguity handling is needed here.
-int combo_item_for_preset(GUI::PresetComboBox& combo, const std::string& preset_name)
+// Raises a preset operation's refusal as the exception a plugin has had for it, which pybind11 maps:
+// IndexError for a slot the printer lacks, ValueError for a mixed-color slot and for a name that
+// resolves to no selectable preset, SelectionCancelled for a declined prompt, RuntimeError
+// otherwise. The text is the operation's.
+[[noreturn]] void throw_refusal(const GUI::Ops::Refusal& refusal)
 {
-    const std::string want       = Preset::remove_suffix_modified(preset_name);
-    const int         item_count = combo.GetCount();
-    for (int item = 0; item < item_count; ++item) {
-        if (combo_item_is_marker(combo, item))
-            continue;
-        const wxString    alias = combo.GetItemAlias(item);
-        const std::string alias_name = alias.empty() ? std::string()
-                                                     : Preset::remove_suffix_modified(alias.ToUTF8().data());
-        if (!alias_name.empty() && alias_name == want)
-            return item;
-    }
-    return -1;
-}
-
-// Resolve `requested` to the internal preset name its dropdown entry names, or throw. `category`
-// and `selector` are used only for the error text. A name the selector does not offer, or that two
-// entries share, raises std::invalid_argument.
-std::string resolve_preset_in_combo(GUI::PresetComboBox& combo, const std::string& requested,
-                                    const std::string& category, const std::string& selector)
-{
-    const ComboPresetMatch match = resolve_combo_preset(combo, requested);
-    if (match.ambiguous)
-        throw std::invalid_argument("The " + category + " name \"" + requested + "\" is ambiguous in the " + selector
-                                    + "; more than one entry shows it, so name the preset by its own entry");
-    if (match.item < 0)
-        throw std::invalid_argument("The " + category + " preset \"" + requested + "\" is not offered by the " + selector);
-    return match.internal_name;
+    const std::string code = refusal.code;
+    const std::string text = refusal.english();
+    if (code == "no_such_slot")
+        throw std::out_of_range(text);
+    if (code == "mixed_filament_slot" || code == "ambiguous_preset_name" || code == "ambiguous_hidden_preset" ||
+        code == "preset_incompatible" || code == "preset_not_offered")
+        throw std::invalid_argument(text);
+    if (code == "selection_cancelled")
+        throw SelectionCancelled(text);
+    throw std::runtime_error(text);
 }
 
 // The preset a filament slot currently resolves to, by its internal name. A slot whose stored
@@ -356,12 +308,12 @@ PresetUpdateResult PresetTransaction::commit()
 
 // Process/printer target resolution: the active preset when no name is given, otherwise the named
 // preset selected through the normal tab-selection flow (which enforces the dropdown/compatibility
-// rules and the unsaved-edit prompt). Binds only after confirming the requested preset is edited.
+// rules and the unsaved-edit prompt, and refuses when it leaves another preset edited).
 // Runs on the UI thread with the GIL released, called from begin_preset_update().
 void bind_preset_target(Preset::Type type, const std::string& preset_name, PresetTransaction& transaction)
 {
-    GUI::GUI_App&     app        = require_gui_app();
-    GUI::Tab*         tab        = require_tab(app, type);
+    GUI::GUI_App& app = require_gui_app();
+    require_tab(app, type);
     PresetCollection& collection = collection_for(*app.preset_bundle, type);
 
     const std::string current = collection.get_edited_preset().name;
@@ -369,38 +321,24 @@ void bind_preset_target(Preset::Type type, const std::string& preset_name, Prese
     bool              selection_changed = false;
 
     if (!preset_name.empty()) {
-        // Resolve by the name the tab's dropdown actually shows (display label or item alias), so a
-        // plugin can pass exactly what the user sees. With no populated dropdown there is nothing
-        // to resolve against, so fall back to collection internal names.
-        GUI::TabPresetComboBox* combo = tab->get_combo_box();
-        std::string             resolved;
-        if (combo != nullptr && combo->GetCount() > 0)
-            resolved = resolve_preset_in_combo(*combo, preset_name, preset_tab_name(type),
-                                               "preset selector for the selected printer");
-        else
-            resolved = preset_name;
-
-        Preset* requested = collection.find_preset(resolved);
-        if (requested == nullptr)
-            throw std::invalid_argument("No " + std::string(preset_tab_name(type)) + " preset named \"" + resolved
-                                        + "\" is available to select");
-        target = requested->name;
+        // Resolved by the name the tab's dropdown shows (display label or item alias), so a plugin
+        // can pass exactly what the user sees.
+        GUI::Ops::ResolvePresetArgs resolve;
+        resolve.kind = preset_kind(type);
+        resolve.name = preset_name;
+        const GUI::Ops::Outcome<GUI::Ops::ResolvedPreset> resolved = GUI::Ops::resolve_preset(resolve);
+        if (!resolved)
+            throw_refusal(resolved.refusal());
+        target = resolved.value().name;
         if (target != current) {
-            // Normal UI selection: honours the unsaved-edit prompt; a declined prompt returns false
-            // and is a user cancellation, distinct from any other resolution failure.
-            if (!tab->select_preset(target))
-                throw SelectionCancelled("Switching the edited " + std::string(preset_tab_name(type)) + " preset to \""
-                                         + target + "\" was canceled; nothing was staged");
+            // Normal UI selection: honours the unsaved-edit prompt; a declined prompt is a user
+            // cancellation, distinct from any other resolution failure.
+            const GUI::Ops::Outcome<GUI::Ops::Done> selected = GUI::Ops::select_preset({preset_kind(type), target, GUI::Ops::PresetChanges::Ask});
+            if (!selected)
+                throw_refusal(selected.refusal());
             selection_changed = true;
         }
     }
-
-    // select_preset() can still leave a different preset edited (e.g. the target is not an
-    // allowed dropdown choice), so confirm before binding.
-    if (collection.get_edited_preset().name != target)
-        throw std::runtime_error("The edited " + std::string(preset_tab_name(type)) + " preset is \""
-                                 + collection.get_edited_preset().name + "\", not \"" + target
-                                 + "\"; the transaction was not created");
 
     transaction.type              = type;
     transaction.target_name       = target;
@@ -430,72 +368,46 @@ void bind_filament_target(int slot_number, const std::string& preset_name, Prese
 {
     GUI::GUI_App& app    = require_gui_app();
     PresetBundle& bundle = *app.preset_bundle;
-    GUI::Plater*  plater = app.plater();
 
     // A mixed-color virtual slot has no single filament preset behind it, so every form of this
     // call is rejected: with or without a preset_name there is no one preset to edit or assign.
-    // Range-guarded so an out-of-range slot still gets resolved_slot_preset()'s clear error.
-    if (slot_number >= 1 && static_cast<size_t>(slot_number) <= bundle.filament_presets.size()
-        && bundle.is_mixed_filament(static_cast<size_t>(slot_number) - 1))
-        throw std::invalid_argument("Filament slot " + std::to_string(slot_number)
-                                    + " is a mixed-color virtual slot; it has no single filament preset to edit or assign");
+    if (const std::optional<GUI::Ops::Refusal> refusal = GUI::Ops::mixed_slot_refusal(slot_number))
+        throw_refusal(*refusal);
 
     // Resolve and validate before any selection, so a bad slot fails without a prompt.
     const std::string assigned_internal = resolved_slot_preset(bundle, slot_number);
 
     GUI::Tab* tab = require_tab(app, Preset::TYPE_FILAMENT);
 
-    const size_t slot_index = static_cast<size_t>(slot_number) - 1;
-
     std::string target = assigned_internal;
     if (!preset_name.empty()) {
-        // Resolve against the requested sidebar slot's own selector, not the tab's: that is the
-        // model the user picks this slot's filament from, including its compatibility filter. The
-        // selector matches the exact name shown (display label or item alias).
-        std::vector<GUI::PlaterPresetComboBox*>& slot_combos = plater->sidebar().combos_filament();
-        GUI::PlaterPresetComboBox* slot_combo = slot_index < slot_combos.size() ? slot_combos[slot_index] : nullptr;
-        std::string                resolved;
-        if (slot_combo != nullptr && slot_combo->GetCount() > 0) {
-            const ComboPresetMatch match = resolve_combo_preset(*slot_combo, preset_name);
-            if (match.ambiguous)
-                throw std::invalid_argument("The filament name \"" + preset_name
-                                            + "\" is ambiguous in the filament preset selector for filament slot "
-                                            + std::to_string(slot_number)
-                                            + "; more than one entry shows it, so name the preset by its own entry");
-            if (match.item >= 0) {
-                resolved = match.internal_name;
-            } else {
-                // Not shown by this slot's selector. Only the slot's current assignment stays
-                // targetable (a hidden or incompatible-but-selected preset the dropdown omits);
-                // resolve it by internal name or by display alias and accept only that preset. A
-                // different preset the tab happens to edit is a globally edited target, not an
-                // offered choice for this slot, and is rejected.
-                Preset* by_name = bundle.filaments.find_preset(preset_name);
-                if (by_name == nullptr) {
-                    const std::string& alias_name = bundle.filaments.get_preset_name_by_alias(preset_name);
-                    by_name                       = bundle.filaments.find_preset(alias_name);
-                }
-                if (by_name == nullptr || by_name->name != assigned_internal)
-                    throw std::invalid_argument("Filament preset \"" + preset_name
-                                                + "\" is not offered by the filament preset selector for filament slot "
-                                                + std::to_string(slot_number));
-                resolved = by_name->name;
-            }
+        // Resolved against the requested sidebar slot's own selector, not the tab's: that is the
+        // model the user picks this slot's filament from, including its compatibility filter.
+        GUI::Ops::ResolvePresetArgs resolve;
+        resolve.kind          = GUI::Ops::PresetKind::Filament;
+        resolve.name          = preset_name;
+        resolve.filament_slot = slot_number;
+        const GUI::Ops::Outcome<GUI::Ops::ResolvedPreset> resolved = GUI::Ops::resolve_preset(resolve);
+        if (resolved) {
+            target = resolved.value().name;
         } else {
-            // The slot selector is not populated; fall back to the tab selector, then to collection
-            // internal names, so the call still works when the sidebar has not been laid out.
-            GUI::TabPresetComboBox* tab_combo = tab->get_combo_box();
-            if (tab_combo != nullptr && tab_combo->GetCount() > 0)
-                resolved = resolve_preset_in_combo(*tab_combo, preset_name, "filament",
-                                                   "filament preset selector for the selected printer");
-            else
-                resolved = preset_name;
+            // Not shown by this slot's selector. Only the slot's current assignment stays
+            // targetable (a hidden or incompatible-but-selected preset the dropdown omits);
+            // resolve it by internal name or by display alias and accept only that preset. A
+            // different preset the tab happens to edit is a globally edited target, not an
+            // offered choice for this slot, and is rejected.
+            const std::string code = resolved.refusal().code;
+            if (code != "preset_not_offered" && code != "preset_incompatible")
+                throw_refusal(resolved.refusal());
+            Preset* by_name = bundle.filaments.find_preset(preset_name);
+            if (by_name == nullptr) {
+                const std::string& alias_name = bundle.filaments.get_preset_name_by_alias(preset_name);
+                by_name                       = bundle.filaments.find_preset(alias_name);
+            }
+            if (by_name == nullptr || by_name->name != assigned_internal)
+                throw_refusal(resolved.refusal());
+            target = by_name->name;
         }
-
-        Preset* requested = bundle.filaments.find_preset(resolved);
-        if (requested == nullptr)
-            throw std::invalid_argument("No filament preset named \"" + resolved + "\" is available to select");
-        target = requested->name;
     }
 
     bool selection_changed = false;
@@ -516,36 +428,16 @@ void bind_filament_target(int slot_number, const std::string& preset_name, Prese
     if (!preset_name.empty() && target != assigned_internal) {
         if (app.app_config == nullptr)
             throw std::runtime_error("Application configuration is not available");
-        // Mirror the filament branch of Plater::priv::on_select_preset() (the sidebar's normal
-        // preset selection): update the mapping, then every dependent project/UI side effect,
-        // rather than the vector entry alone.
-        const bool was_support = GUI::is_support_filament(static_cast<int>(slot_index));
-        bundle.set_filament_preset(slot_index, target);
-        plater->update_project_dirty_from_presets();
-        bundle.export_selections(*app.app_config);
-        plater->sidebar().update_dynamic_filament_list();
-        // Assigning a support filament (or moving away from one) changes which filaments the
-        // flush rules apply to, so the normal flow recalculates the flushing volumes when
-        // auto-calc covers every filament.
-        if (GUI::is_support_filament(static_cast<int>(slot_index)) != was_support
-            && app.app_config->get("auto_calculate_flush") == "all")
-            plater->sidebar().auto_calc_flushing_volumes(static_cast<int>(slot_index));
-        // Refresh the requested slot's own sidebar combo so its list and current selection show the
-        // newly assigned target (the list may not have contained it), matching the sidebar
-        // selection path. Fetch the pointer after update_dynamic_filament_list(), which may
-        // rebuild the combo vector.
-        std::vector<GUI::PlaterPresetComboBox*>& slot_combos = plater->sidebar().combos_filament();
-        if (slot_index < slot_combos.size() && slot_combos[slot_index] != nullptr) {
-            GUI::PlaterPresetComboBox* slot_combo = slot_combos[slot_index];
-            slot_combo->update();
-            // Keep the slot's AMS sync badge truthful, reading the item's own flag, the same source
-            // on_select_preset() reads, so no UI state is invented here.
-            const int item = combo_item_for_preset(*slot_combo, target);
-            if (item >= 0)
-                slot_combo->set_sync_badge(slot_combo->GetFlag(item)
-                                           == static_cast<int>(GUI::PresetComboBox::FilamentAMSType::FROM_AMS));
-        }
-        plater->on_filament_change(slot_index);
+        // What picking the preset in the slot's sidebar selector does. The tab edits it already, so
+        // it is not switched again: a second switch would ask again about changes the first one
+        // transferred.
+        GUI::Ops::AssignFilamentArgs assign;
+        assign.filament_slot = slot_number;
+        assign.preset        = target;
+        assign.switch_tab    = false;
+        const GUI::Ops::Outcome<std::string> assigned = GUI::Ops::assign_filament_preset(assign);
+        if (!assigned)
+            throw_refusal(assigned.refusal());
         assignment_changed = true;
     }
 
@@ -641,7 +533,14 @@ std::vector<std::string> list_bundle_ids()
 
 void host_bindings::register_presets(py::module_& host)
 {
-    auto preset  = host.def_submodule("preset", "Preset operations");
+    auto preset  = host.def_submodule("preset",
+                                      "Preset editing. orca.host.preset.process, orca.host.preset.printer and "
+                                      "orca.host.preset.filament are the PresetEditor instances that change the "
+                                      "edited process, printer and filament presets: update(key, value) for one "
+                                      "setting, begin_update() for a batch. Each accepts only settings of its own "
+                                      "category, so a printer setting passed to process is rejected rather than "
+                                      "written. bundles reloads local preset bundles. To read presets and settings, "
+                                      "use orca.host.preset_bundle().");
     auto bundles = preset.def_submodule("bundles", "Local preset bundle operations");
     bundles.def("reload_local", &reload_local_bundle, py::arg("bundle_id"),
                 "Reload one local preset bundle from the active user's _local directory.");
@@ -649,34 +548,45 @@ void host_bindings::register_presets(py::module_& host)
                 "IDs of local preset bundles in the active user's _local directory that reload_local() accepts, "
                 "including bundles added after startup.");
 
-    py::enum_<Preset::Type>(host, "PresetType")
-        .value("Invalid", Preset::TYPE_INVALID)
-        .value("Print", Preset::TYPE_PRINT)
-        .value("SlaPrint", Preset::TYPE_SLA_PRINT)
-        .value("Filament", Preset::TYPE_FILAMENT)
-        .value("SlaMaterial", Preset::TYPE_SLA_MATERIAL)
-        .value("Printer", Preset::TYPE_PRINTER)
-        .value("PhysicalPrinter", Preset::TYPE_PHYSICAL_PRINTER)
-        .value("Plate", Preset::TYPE_PLATE)
-        .value("Model", Preset::TYPE_MODEL);
+    py::enum_<Preset::Type>(host, "PresetType",
+                            "Kind of preset: the type of a Preset, and the category a PresetEditor, PresetTransaction "
+                            "or PresetUpdateResult targets.")
+        .value("Invalid", Preset::TYPE_INVALID, "No preset type (an unset value).")
+        .value("Print", Preset::TYPE_PRINT,
+               "Process preset, the print settings the GUI calls \"process\" (PresetBundle.prints).")
+        .value("SlaPrint", Preset::TYPE_SLA_PRINT, "SLA print preset; not used by OrcaSlicer's FFF printers.")
+        .value("Filament", Preset::TYPE_FILAMENT, "Filament preset (PresetBundle.filaments).")
+        .value("SlaMaterial", Preset::TYPE_SLA_MATERIAL, "SLA resin preset; not used by OrcaSlicer's FFF printers.")
+        .value("Printer", Preset::TYPE_PRINTER, "Printer (machine) preset (PresetBundle.printers).")
+        .value("PhysicalPrinter", Preset::TYPE_PHYSICAL_PRINTER,
+               "A physical printer's connection settings; no Preset has this type.")
+        .value("Plate", Preset::TYPE_PLATE,
+               "Per-plate settings of the project; no PresetBundle collection holds this type.")
+        .value("Model", Preset::TYPE_MODEL,
+               "Per-object and per-part settings of the project; no PresetBundle collection holds this type.");
 
     py::class_<PresetUpdateResult>(preset, "PresetUpdateResult",
-                                   "Outcome of one committed preset transaction. target_name is the preset that was "
-                                   "edited; selection_changed says whether begin_update() switched the active preset; "
-                                   "for filament, slot_number is the 1-based target slot, slot_assignment_changed "
-                                   "says whether selecting the requested preset reassigned that slot, and shared_slots "
-                                   "lists every 1-based slot whose assigned preset is the edited (shared) one. keys "
-                                   "lists the settings applied, in order, and dirty says whether the edited preset "
-                                   "now differs from its saved state.")
-        .def_readonly("type", &PresetUpdateResult::type)
-        .def_readonly("target_name", &PresetUpdateResult::target_name)
-        .def_readonly("selection_changed", &PresetUpdateResult::selection_changed)
-        .def_readonly("slot_number", &PresetUpdateResult::slot_number)
-        .def_readonly("slot_assignment_changed", &PresetUpdateResult::slot_assignment_changed)
-        .def_readonly("shared_slots", &PresetUpdateResult::shared_slots)
-        .def_readonly("keys", &PresetUpdateResult::keys)
-        .def_readonly("dirty", &PresetUpdateResult::dirty)
-        .def_property_readonly("category", [](const PresetUpdateResult& result) { return preset_tab_name(result.type); })
+                                   "Outcome of one committed preset transaction, returned by "
+                                   "PresetTransaction.commit(). Filament slot numbers are 1-based.")
+        .def_readonly("type", &PresetUpdateResult::type, "PresetType of the edited preset: Print, Printer or Filament.")
+        .def_readonly("target_name", &PresetUpdateResult::target_name, "Internal name of the preset that was edited.")
+        .def_readonly("selection_changed", &PresetUpdateResult::selection_changed,
+                      "True when begin_update() switched the edited preset to reach the target; False when the target "
+                      "was already being edited.")
+        .def_readonly("slot_number", &PresetUpdateResult::slot_number,
+                      "1-based filament slot the transaction targeted; -1 for process and printer.")
+        .def_readonly("slot_assignment_changed", &PresetUpdateResult::slot_assignment_changed,
+                      "True when begin_update() assigned the requested preset to the filament slot in place of its "
+                      "previous one; always False for process and printer.")
+        .def_readonly("shared_slots", &PresetUpdateResult::shared_slots,
+                      "1-based filament slots whose assigned preset is the edited one, all of which the edit affects; "
+                      "empty for process and printer.")
+        .def_readonly("keys", &PresetUpdateResult::keys, "Setting keys that were applied, in staging order.")
+        .def_readonly("dirty", &PresetUpdateResult::dirty,
+                      "True when the edited preset now differs from its saved state and still needs saving.")
+        .def_property_readonly(
+            "category", [](const PresetUpdateResult& result) { return preset_tab_name(result.type); },
+            "Category of the edited preset: \"process\", \"printer\" or \"filament\".")
         .def("__repr__", [](const PresetUpdateResult& result) {
             return std::string("<PresetUpdateResult ") + preset_tab_name(result.type) + " \"" + result.target_name
                    + "\" keys=" + std::to_string(result.keys.size()) + ">";
@@ -690,20 +600,29 @@ void host_bindings::register_presets(py::module_& host)
                                   "while the UI thread stays responsive; set() and commit() run synchronously on the "
                                   "same worker. Nothing is saved to disk: the edited preset stays dirty until the user "
                                   "saves it.")
-        .def_readonly("type", &PresetTransaction::type)
-        .def_readonly("target_name", &PresetTransaction::target_name)
-        .def_readonly("selection_changed", &PresetTransaction::selection_changed)
-        .def_property_readonly("slot_number", [](const PresetTransaction& transaction) {
-            return transaction.filament ? transaction.slot_number : -1;
-        })
-        .def_property_readonly("category", [](const PresetTransaction& transaction) { return preset_tab_name(transaction.type); })
-        .def_property_readonly("staged_keys", [](const PresetTransaction& transaction) {
-            std::vector<std::string> keys;
-            keys.reserve(transaction.staged.size());
-            for (const auto& entry : transaction.staged)
-                keys.push_back(entry.first);
-            return keys;
-        })
+        .def_readonly("type", &PresetTransaction::type, "PresetType of the target preset: Print, Printer or Filament.")
+        .def_readonly("target_name", &PresetTransaction::target_name,
+                      "Internal name of the preset this transaction edits.")
+        .def_readonly("selection_changed", &PresetTransaction::selection_changed,
+                      "True when begin_update() switched the edited preset to reach the target; False when the target "
+                      "was already being edited.")
+        .def_property_readonly(
+            "slot_number",
+            [](const PresetTransaction& transaction) { return transaction.filament ? transaction.slot_number : -1; },
+            "1-based filament slot this transaction was created for; -1 for process and printer.")
+        .def_property_readonly(
+            "category", [](const PresetTransaction& transaction) { return preset_tab_name(transaction.type); },
+            "Category of the target preset: \"process\", \"printer\" or \"filament\".")
+        .def_property_readonly(
+            "staged_keys",
+            [](const PresetTransaction& transaction) {
+                std::vector<std::string> keys;
+                keys.reserve(transaction.staged.size());
+                for (const auto& entry : transaction.staged)
+                    keys.push_back(entry.first);
+                return keys;
+            },
+            "Setting keys staged with set() so far, in staging order, as a new list.")
         .def("set", &PresetTransaction::set, py::arg("key"), py::arg("value"),
              "Stage one setting change. key must be a setting of the target preset category and value its "
              "serialized string form; staging validates neither, so commit() is where an invalid key or value "
@@ -719,7 +638,9 @@ void host_bindings::register_presets(py::module_& host)
                              "Handle to a category of currently edited preset. It is not a snapshot: it always "
                              "resolves the preset the matching tab edits now, so it stays usable across preset "
                              "switches. update() edits the preset in place; the change is not saved to disk.")
-        .def_readonly("type", &PresetEditor::type)
+        .def_readonly("type", &PresetEditor::type,
+                      "PresetType this editor edits: Print for orca.host.preset.process, Printer for "
+                      "orca.host.preset.printer, Filament for orca.host.preset.filament.")
         .def(
             "begin_update",
             [](const PresetEditor& editor, const std::string& preset_name) {
@@ -730,8 +651,10 @@ void host_bindings::register_presets(py::module_& host)
             },
             py::arg("preset_name") = "",
             "Resolve and bind this category's target preset and return a PresetTransaction. With no preset_name the "
-            "currently active preset is targeted; a preset_name must be a preset this category can select, and is "
-            "selected through the normal preset-selection flow (which prompts about unsaved edits). The call blocks "
+            "currently active preset is targeted; a preset_name must be a preset this category's selector offers, by "
+            "the name it shows or its internal name, and is "
+            "selected through the normal preset-selection flow (which prompts about unsaved edits). A hidden preset "
+            "that suits the printer is shown in the selectors first and stays shown until the app restarts. The call blocks "
             "the background Script worker until any such dialog is answered, leaving the UI thread responsive. A "
             "selection the user cancels raises RuntimeError; an unavailable or invalid target raises ValueError. "
             "Either failure creates no transaction and stages no setting. Call it from the background Script worker, "
@@ -748,10 +671,12 @@ void host_bindings::register_presets(py::module_& host)
             py::arg("slot_number"), py::arg("preset_name") = "",
             "Resolve and bind a filament preset by 1-based slot and return a PresetTransaction. Omitting preset_name "
             "targets the preset assigned to the slot; supplying a different name selects it for the slot through the "
-            "normal flow (prompting about unsaved edits) and, once that succeeds, records the new slot assignment with "
-            "the same Plater side effects the sidebar selection performs (project/selection refresh, dynamic filament "
-            "list, conditional support-filament flushing recalc and the slot's AMS sync badge). A requested preset "
-            "this slot's dropdown does not offer is rejected before that flow, so it raises no prompt; the slot's own "
+            "normal flow (prompting about unsaved edits) and, once that succeeds, assigns it to the slot as picking it "
+            "in the slot's sidebar selector does: the slot's filament colour follows the preset, the flushing volumes "
+            "are recalculated unless their automatic calculation is disabled, the project is marked changed and every "
+            "plate's slice result is invalidated. A hidden preset that suits the printer is shown in the selectors "
+            "first and stays shown until the app restarts. A requested preset "
+            "this slot's dropdown still does not offer is rejected before that flow, so it raises no prompt; the slot's own "
             "current assignment stays targetable even when the dropdown hides it. A selection the user cancels raises "
             "RuntimeError and changes neither the slot assignment nor any setting. An out-of-range, empty or "
             "unresolved slot is rejected, and a mixed-color virtual slot is rejected whether or not preset_name is "
@@ -791,100 +716,196 @@ void host_bindings::register_presets(py::module_& host)
             "(the slot's current assignment is kept), then set(key, value) and commit(); like "
             "begin_update() this call blocks the background Script worker.");
 
-    // The three preset categories edited by the main tabs. `process` is the print/process preset,
-    // `printer` the machine preset and `filament` the currently edited filament preset (its
-    // 3-argument form addresses a 1-based filament slot); each only accepts its own settings, so a
-    // printer setting passed to `process` is rejected instead of written silently.
     preset.attr("process")  = py::cast(PresetEditor{Preset::TYPE_PRINT});
     preset.attr("printer")  = py::cast(PresetEditor{Preset::TYPE_PRINTER});
     preset.attr("filament") = py::cast(PresetEditor{Preset::TYPE_FILAMENT});
 
-    py::class_<Preset, std::unique_ptr<Preset, py::nodelete>>(host, "Preset")
-        .def_readonly("type", &Preset::type)
-        .def_readonly("name", &Preset::name)
-        .def_readonly("alias", &Preset::alias)
-        .def_readonly("file", &Preset::file)
-        .def_readonly("is_default", &Preset::is_default)
-        .def_readonly("is_external", &Preset::is_external)
-        .def_readonly("is_system", &Preset::is_system)
-        .def_readonly("is_visible", &Preset::is_visible)
-        .def_readonly("is_dirty", &Preset::is_dirty)
-        .def_readonly("is_compatible", &Preset::is_compatible)
-        .def_readonly("is_project_embedded", &Preset::is_project_embedded)
-        .def_readonly("bundle_id", &Preset::bundle_id)
-        .def("is_user", &Preset::is_user)
-        .def("is_from_bundle", &Preset::is_from_bundle)
-        .def("label", &Preset::label, py::arg("no_alias") = false)
-        .def("config_keys", [](const Preset& preset) { return preset.config.keys(); })
-        .def("config_value", [](const Preset& preset, const std::string& key) {
-            return config_value_or_none(preset.config, key);
-        });
+    py::class_<Preset, std::unique_ptr<Preset, py::nodelete>>(
+        host, "Preset",
+        "One named set of process, filament or printer settings. Get presets from orca.host.preset_bundle(): its "
+        "prints, filaments and printers collections, or the current_*_preset() shortcuts. A Preset is a live "
+        "reference into the app's preset store, not a copy: it reflects later edits, and adding or deleting presets "
+        "(saving a new preset, loading a project, reloading a bundle) invalidates it, so look presets up again "
+        "instead of keeping them. Read a setting with config_value(key); change one through orca.host.preset.process, "
+        ".printer or .filament (PresetEditor), never through this object.")
+        .def_readonly("type", &Preset::type, "PresetType of this preset: Print (process), Filament or Printer.")
+        .def_readonly("name", &Preset::name,
+                      "Internal name, unique within its collection. find_preset(), "
+                      "PresetEditor.begin_update(preset_name) and the filament slot assignments use it. A preset "
+                      "from an imported bundle is named \"_local/<bundle_id>/<name>\" or "
+                      "\"_subscribed/<bundle_id>/<name>\".")
+        .def_readonly("alias", &Preset::alias,
+                      "Logical name without the printer suffix, such as \"Generic PLA\" for \"Generic PLA @BBL X1C\"; "
+                      "label() shows it in place of name. Empty when the preset has none. find_preset() does not "
+                      "match it.")
+        .def_readonly("file", &Preset::file,
+                      "Path of the file this preset was loaded from or is saved to; empty for the built-in default "
+                      "preset.")
+        .def_readonly("is_default", &Preset::is_default,
+                      "True for the built-in default preset at index 0 of each collection (\"Default Setting\", "
+                      "\"Default Filament\" or \"Default Printer\"), which holds every setting's default value.")
+        .def_readonly("is_external", &Preset::is_external,
+                      "True for a preset loaded from a file outside OrcaSlicer's preset folders, such as a config "
+                      "file or the settings stored in a G-code or 3MF project.")
+        .def_readonly("is_system", &Preset::is_system,
+                      "True for a read-only system preset from a vendor profile; changes to it can only be saved as a "
+                      "new user preset.")
+        .def_readonly("is_visible", &Preset::is_visible,
+                      "Whether the preset selectors offer it: False for a system printer whose model or variant, or a "
+                      "system filament, is not enabled in the printer and filament selection. The default preset is "
+                      "visible only when nothing else is available.")
+        .def_readonly("is_dirty", &Preset::is_dirty,
+                      "True when the preset has unsaved changes. Only the selected preset and its edited copy "
+                      "(PresetCollection.edited_preset()) can be dirty.")
+        .def_readonly("is_compatible", &Preset::is_compatible,
+                      "Whether it suits the selected printer (its compatible_printers or "
+                      "compatible_printers_condition) and, for a filament, the edited process (compatible_prints). The "
+                      "selectors hide incompatible presets. Always True for printer presets.")
+        .def_readonly("is_project_embedded", &Preset::is_project_embedded,
+                      "True for a preset stored in the loaded 3MF project rather than in the user's preset folder.")
+        .def_readonly("bundle_id", &Preset::bundle_id,
+                      "ID of the imported preset bundle this preset came from (an Orca Cloud UUID, or a name and "
+                      "timestamp for an external bundle); empty when it is not from a bundle.")
+        .def("is_user", &Preset::is_user,
+             "True for a user preset: not the default preset, not a system preset, not embedded in the project and "
+             "not from a bundle.")
+        .def("is_from_bundle", &Preset::is_from_bundle,
+             "True when the preset came from an imported preset bundle, that is when bundle_id is set.")
+        .def("label", &Preset::label, py::arg("no_alias") = false,
+             "Display label: alias, or name when there is no alias or no_alias is True, prefixed with the GUI's "
+             "unsaved-changes marker (\"* \" in English) when is_dirty. Look presets up by name, not by label.")
+        .def(
+            "config_keys", [](const Preset& preset) { return preset.config.keys(); },
+            "Names of every setting in this preset. A preset holds its complete config, so a user preset also lists "
+            "the settings it inherits unchanged from its parent.")
+        .def(
+            "config_value",
+            [](const Preset& preset, const std::string& key) { return config_value_or_none(preset.config, key); },
+            py::arg("key"),
+            "Serialized value of one setting, in the string form PresetTransaction.set() and PresetEditor.update() "
+            "take: numbers as text, booleans \"1\"/\"0\", enums by name, percentages with \"%\", vector options "
+            "comma-separated (string lists ';'-separated, quoted where needed). None when the preset has no such "
+            "setting.");
 
-    py::class_<PresetCollection, std::unique_ptr<PresetCollection, py::nodelete>>(host, "PresetCollection")
-        .def("size", &PresetCollection::size)
-        .def("get_selected_preset", [](PresetCollection& collection) -> Preset& {
-            return collection.get_selected_preset();
-        }, py::return_value_policy::reference_internal)
-        .def("selected_preset", [](PresetCollection& collection) -> Preset& {
-            return collection.get_selected_preset();
-        }, py::return_value_policy::reference_internal)
-        .def("get_selected_preset_name", &PresetCollection::get_selected_preset_name)
-        .def("selected_preset_name", &PresetCollection::get_selected_preset_name)
-        .def("get_edited_preset", [](PresetCollection& collection) -> Preset& {
-            return collection.get_edited_preset();
-        }, py::return_value_policy::reference_internal)
-        .def("edited_preset", [](PresetCollection& collection) -> Preset& {
-            return collection.get_edited_preset();
-        }, py::return_value_policy::reference_internal)
-        .def("preset", [](PresetCollection& collection, size_t index) -> Preset& {
-            if (index >= collection.size())
-                throw py::index_error("preset index out of range");
-            return collection.preset(index);
-        }, py::return_value_policy::reference_internal)
-        .def("find_preset", [](PresetCollection& collection, const std::string& name) -> Preset* {
-            return collection.find_preset(name);
-        }, py::return_value_policy::reference_internal)
-        .def("preset_names", [](const PresetCollection& collection) {
-            std::vector<std::string> names;
-            names.reserve(collection.get_presets().size());
-            for (const Preset& preset : collection.get_presets())
-                names.push_back(preset.name);
-            return names;
-        });
+    py::class_<PresetCollection, std::unique_ptr<PresetCollection, py::nodelete>>(
+        host, "PresetCollection",
+        "All presets of one type: the prints (process), filaments or printers collection of "
+        "orca.host.preset_bundle(). Index 0 is the built-in default preset; hidden and incompatible presets are "
+        "included. Items are live Preset references (see Preset). Read a setting with Preset.config_value(key); to "
+        "change one, use orca.host.preset.process, .filament or .printer (PresetEditor), which edit the currently "
+        "edited preset the way the settings tab does.")
+        .def("size", &PresetCollection::size,
+             "Number of presets, including the default preset at index 0; preset(index) accepts 0 to size() - 1.")
+        .def(
+            "get_selected_preset",
+            [](PresetCollection& collection) -> Preset& { return collection.get_selected_preset(); },
+            py::return_value_policy::reference_internal,
+            "The selected preset as last saved, without unsaved changes; edited_preset() has the values in effect. "
+            "Same as selected_preset().")
+        .def(
+            "selected_preset", [](PresetCollection& collection) -> Preset& { return collection.get_selected_preset(); },
+            py::return_value_policy::reference_internal,
+            "The selected preset as last saved, without unsaved changes; edited_preset() has the values in effect.")
+        .def("get_selected_preset_name", &PresetCollection::get_selected_preset_name,
+             "Internal name of the selected preset, or \"\" when none is selected. Same as selected_preset_name().")
+        .def("selected_preset_name", &PresetCollection::get_selected_preset_name,
+             "Internal name of the selected preset, or \"\" when none is selected.")
+        .def(
+            "get_edited_preset", [](PresetCollection& collection) -> Preset& { return collection.get_edited_preset(); },
+            py::return_value_policy::reference_internal,
+            "The selected preset including its unsaved changes. Same as edited_preset().")
+        .def(
+            "edited_preset", [](PresetCollection& collection) -> Preset& { return collection.get_edited_preset(); },
+            py::return_value_policy::reference_internal,
+            "The selected preset including its unsaved changes: the values the settings tab shows. The object follows "
+            "the collection's selection, so once another preset is selected it describes that one. For filaments it is "
+            "the preset the Filament tab shows; PresetBundle.current_filament_presets() gives every slot's preset.")
+        .def(
+            "preset",
+            [](PresetCollection& collection, size_t index) -> Preset& {
+                if (index >= collection.size())
+                    throw py::index_error("preset index out of range");
+                return collection.preset(index);
+            },
+            py::arg("index"), py::return_value_policy::reference_internal,
+            "The preset at a 0-based index, 0 being the built-in default preset; at the selected index it is the "
+            "edited copy with unsaved changes. Raises IndexError when index >= size().")
+        .def(
+            "find_preset",
+            [](PresetCollection& collection, const std::string& name) -> Preset* {
+                return collection.find_preset(name);
+            },
+            py::arg("name"), py::return_value_policy::reference_internal,
+            "The preset with this internal name (a renamed system preset is also found by a former name), or None. "
+            "For the selected preset it is the edited copy with unsaved changes. Aliases and display labels do not "
+            "match.")
+        .def(
+            "preset_names",
+            [](const PresetCollection& collection) {
+                std::vector<std::string> names;
+                names.reserve(collection.get_presets().size());
+                for (const Preset& preset : collection.get_presets())
+                    names.push_back(preset.name);
+                return names;
+            },
+            "Internal names of all presets in index order, so preset_names()[i] is preset(i).name; the default preset "
+            "comes first.");
 
-    py::class_<PresetBundle, std::unique_ptr<PresetBundle, py::nodelete>>(host, "PresetBundle")
-        .def_property_readonly("prints", [](PresetBundle& bundle) -> PresetCollection& {
-            return bundle.prints;
-        }, py::return_value_policy::reference_internal)
-        .def_property_readonly("printers", &printer_presets, py::return_value_policy::reference_internal)
-        .def_property_readonly("filaments", [](PresetBundle& bundle) -> PresetCollection& {
-            return bundle.filaments;
-        }, py::return_value_policy::reference_internal)
-        .def_property_readonly("sla_prints", [](PresetBundle& bundle) -> PresetCollection& {
-            return bundle.sla_prints;
-        }, py::return_value_policy::reference_internal)
-        .def_property_readonly("sla_materials", [](PresetBundle& bundle) -> PresetCollection& {
-            return bundle.sla_materials;
-        }, py::return_value_policy::reference_internal)
-        .def("current_process_preset", [](PresetBundle& bundle) -> Preset& {
-            return bundle.prints.get_edited_preset();
-        }, py::return_value_policy::reference_internal)
-        .def("current_print_preset", [](PresetBundle& bundle) -> Preset& {
-            return bundle.prints.get_edited_preset();
-        }, py::return_value_policy::reference_internal)
-        .def("current_printer_preset", [](PresetBundle& bundle) -> Preset& {
-            return bundle.printers.get_edited_preset();
-        }, py::return_value_policy::reference_internal)
-        .def("current_filament_preset_names", [](PresetBundle& bundle) {
-            return bundle.filament_presets;
-        })
-        .def("current_filament_presets", &current_filament_presets)
-        .def("full_config_keys", [](const PresetBundle& bundle) {
-            return bundle.full_config().keys();
-        })
-        .def("full_config_value", [](const PresetBundle& bundle, const std::string& key) {
-            return config_value_or_none(bundle.full_config(), key);
-        });
+    py::class_<PresetBundle, std::unique_ptr<PresetBundle, py::nodelete>>(
+        host, "PresetBundle",
+        "All loaded presets and the current selection; orca.host.preset_bundle() returns the app's live bundle. "
+        "prints, filaments and printers are the PresetCollections; current_process_preset(), current_printer_preset() "
+        "and current_filament_presets() are the presets in effect, and full_config_value(key) reads the merged "
+        "settings slicing would use. It only reads: to change a setting use orca.host.preset.process, .filament or "
+        ".printer (PresetEditor.update(key, value) or begin_update()), which apply it through the settings tab.")
+        .def_property_readonly(
+            "prints", [](PresetBundle& bundle) -> PresetCollection& { return bundle.prints; },
+            py::return_value_policy::reference_internal, "PresetCollection of process (print settings) presets.")
+        .def_property_readonly("printers", &printer_presets, py::return_value_policy::reference_internal,
+                               "PresetCollection of printer presets.")
+        .def_property_readonly(
+            "filaments", [](PresetBundle& bundle) -> PresetCollection& { return bundle.filaments; },
+            py::return_value_policy::reference_internal,
+            "PresetCollection of filament presets; current_filament_presets() says which one each slot uses.")
+        .def_property_readonly(
+            "sla_prints", [](PresetBundle& bundle) -> PresetCollection& { return bundle.sla_prints; },
+            py::return_value_policy::reference_internal,
+            "PresetCollection of SLA print presets; not used by OrcaSlicer's FFF printers.")
+        .def_property_readonly(
+            "sla_materials", [](PresetBundle& bundle) -> PresetCollection& { return bundle.sla_materials; },
+            py::return_value_policy::reference_internal,
+            "PresetCollection of SLA resin presets; not used by OrcaSlicer's FFF printers.")
+        .def(
+            "current_process_preset", [](PresetBundle& bundle) -> Preset& { return bundle.prints.get_edited_preset(); },
+            py::return_value_policy::reference_internal,
+            "The edited process preset, with its unsaved changes; same as prints.edited_preset().")
+        .def(
+            "current_print_preset", [](PresetBundle& bundle) -> Preset& { return bundle.prints.get_edited_preset(); },
+            py::return_value_policy::reference_internal, "Same as current_process_preset().")
+        .def(
+            "current_printer_preset",
+            [](PresetBundle& bundle) -> Preset& { return bundle.printers.get_edited_preset(); },
+            py::return_value_policy::reference_internal,
+            "The edited printer preset, with its unsaved changes; same as printers.edited_preset().")
+        .def(
+            "current_filament_preset_names", [](PresetBundle& bundle) { return bundle.filament_presets; },
+            "Preset name stored for each filament slot, as a new list where index i is slot i + 1.")
+        .def("current_filament_presets", &current_filament_presets,
+             "The preset assigned to each filament slot, as a list where index i is slot i + 1, with None for a slot "
+             "whose name matches no preset. A slot assigned the edited filament preset gives the edited copy with "
+             "unsaved changes.")
+        .def(
+            "full_config_keys", [](const PresetBundle& bundle) { return bundle.full_config().keys(); },
+            "Names of every setting in the merged config full_config_value() reads.")
+        .def(
+            "full_config_value",
+            [](const PresetBundle& bundle, const std::string& key) {
+                return config_value_or_none(bundle.full_config(), key);
+            },
+            py::arg("key"),
+            "Serialized value of one setting from the merged config slicing would use: the edited process and printer "
+            "presets, each filament slot's preset and the project settings. Per-filament settings hold one value per "
+            "slot, in slot order. None when key is not a setting. Each call rebuilds the merged config.");
 }
 
 } // namespace Slic3r

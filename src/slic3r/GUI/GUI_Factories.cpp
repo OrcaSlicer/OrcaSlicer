@@ -25,6 +25,7 @@
 #include <boost/algorithm/string.hpp>
 #include <string>
 #include <map>
+#include <memory>
 #include <vector>
 #include "libslic3r/PrintConfig.hpp"
 #include <wx/gdicmn.h>
@@ -71,7 +72,7 @@ static int filaments_count()
     return wxGetApp().filaments_cnt();
 }
 
-static bool is_improper_category(const std::string& category, const int filaments_cnt, const bool is_object_settings = true)
+bool SettingsFactory::is_improper_category(const std::string& category, const int filaments_cnt, const bool is_object_settings)
 {
     return  category.empty() ||
         (filaments_cnt == 1 && (category == "Extruders" || category == "Wipe options")) ||
@@ -220,7 +221,11 @@ std::vector<std::string> SettingsFactory::get_options(const bool is_part)
         options.erase(find(options.begin(), options.end(), "layer_height"));
         return options;
     }
+    return get_fff_options(is_part);
+}
 
+std::vector<std::string> SettingsFactory::get_fff_options(const bool is_part)
+{
     PrintRegionConfig reg_config;
     auto options = reg_config.keys();
     if (!is_part) {
@@ -457,7 +462,7 @@ static void get_full_settings_hierarchy(FullSettingsHierarchy& settings_menu, co
     {
         auto const opt = config.def()->get(option);
         auto category = opt->category;
-        if (is_improper_category(category, filaments_cnt, !is_part))
+        if (SettingsFactory::is_improper_category(category, filaments_cnt, !is_part))
             continue;
 
         const std::string& label = !opt->full_label.empty() ? opt->full_label : opt->label;
@@ -527,7 +532,7 @@ static void create_freq_settings_popupmenu(wxMenu* menu, const bool is_object_se
     const int filaments_cnt = filaments_count();
 
     for (auto& category : bundle) {
-        if (is_improper_category(category.first, filaments_cnt, is_object_settings))
+        if (SettingsFactory::is_improper_category(category.first, filaments_cnt, is_object_settings))
             continue;
 
         append_menu_item(menu, wxID_ANY, _(category.first), "",
@@ -2250,7 +2255,7 @@ wxMenu* MenuFactory::instance_menu()
 
 wxMenu* MenuFactory::layer_menu()
 {
-    MenuWithSeparators* menu = new MenuWithSeparators();
+    wxMenu* menu = transient(new MenuWithSeparators());
     append_menu_item_settings(menu);
 
     return menu;
@@ -2276,13 +2281,13 @@ wxMenu* MenuFactory::multi_selection_menu()
     }
 
     if (all_plates) {
-        wxMenu* menu = new MenuWithSeparators();
+        wxMenu* menu = transient(new MenuWithSeparators());
         append_menu_item_replace_all_with_stl(menu);
         return menu;
     }
     if (undefined_type)
         return nullptr;
-    wxMenu* menu = new MenuWithSeparators();
+    wxMenu* menu = transient(new MenuWithSeparators());
     if (!multi_volume) {
         int index = 0;
         if (obj_list()->can_merge_to_multipart_object()) {
@@ -2359,7 +2364,7 @@ wxMenu* MenuFactory::assemble_multi_selection_menu()
             // show this menu only for Objects(Instances mixed with Objects)/Volumes selection
             return nullptr;
 
-    wxMenu* menu = new MenuWithSeparators();
+    wxMenu* menu = transient(new MenuWithSeparators());
     append_menu_item_set_visible(menu);
     //append_menu_item_fix_through_cgal(menu);
     //append_menu_item_simplify(menu);
@@ -2390,6 +2395,23 @@ void MenuFactory::append_menu_items_instance_manipulation(wxMenu* menu)
         []() { return plater()->can_increase_instances(); }, m_parent);
 }
 
+wxMenu* MenuFactory::transient(wxMenu* menu)
+{
+    m_transient_menus.emplace_back(menu);
+    return menu;
+}
+
+std::unique_ptr<wxMenu> MenuFactory::take_transient(wxMenu* menu)
+{
+    for (auto it = m_transient_menus.begin(); it != m_transient_menus.end(); ++it)
+        if (it->get() == menu) {
+            std::unique_ptr<wxMenu> out = std::move(*it);
+            m_transient_menus.erase(it);
+            return out;
+        }
+    return nullptr;
+}
+
 wxMenu *MenuFactory::filament_action_menu(int active_filament_menu_id) {
     create_filament_action_menu(false, active_filament_menu_id);
     return &m_filament_action_menu;
@@ -2407,7 +2429,7 @@ wxMenu* MenuFactory::plate_menu()
 
 wxMenu* MenuFactory::assemble_object_menu()
 {
-    wxMenu* menu = new MenuWithSeparators();
+    wxMenu* menu = transient(new MenuWithSeparators());
     // Set Visible
     append_menu_item_set_visible(menu);
     // Delete
@@ -2428,7 +2450,7 @@ wxMenu* MenuFactory::assemble_object_menu()
 
 wxMenu* MenuFactory::assemble_part_menu()
 {
-    wxMenu* menu = new MenuWithSeparators();
+    wxMenu* menu = transient(new MenuWithSeparators());
 
     append_menu_item_set_visible(menu);
     menu->AppendSeparator();

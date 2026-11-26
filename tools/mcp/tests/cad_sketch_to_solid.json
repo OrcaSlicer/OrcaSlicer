@@ -1,0 +1,104 @@
+// Sketch to solid through the Design commands: sketches on a base plane through modeling_origin and on a
+// body's face, committed and read back, then extruded whole, by loop and joined onto the body they
+// touch, and revolved about the sketch's centerline. An empty sketch is refused and stays open. The
+// L-bracket's inside corner is rounded in the sketch, as the Fillet tool rounds it.
+// Needs the CAD feature on:
+//   tools/mcp/orca_mcp.py launch --cad
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/cad_sketch_to_solid.json --out /tmp/out
+{
+  "orca_replay_version": "0.2.0",
+  "name": "cad sketch to solid",
+  "steps": [
+    {"tool": "app_wait", "args": {"for": "ready"}},
+    // The Generic Klipper Printer, whose 250 x 250 bed puts modeling_origin at (125, 125, 0).
+    {"tool": "preset_select", "args": {"type": "printer", "name": "MyKlipper 0.4 nozzle", "preset_changes": "discard"}},
+    {"tool": "project_new", "args": {"discard_changes": true}},
+    {"tool": "window_set", "args": {"size": [1600, 900]}},
+    {"tool": "tool_call", "args": {"tool": "design_new", "args": {"discard_changes": true}}},
+
+    // An L-bracket profile on XZ, which passes through modeling_origin, not the bed corner: 40 x 30, 4 thick.
+    {"tool": "tool_call", "args": {"tool": "sketch_create", "args": {"plane": "XZ"}},
+     "expect": {"/plane": {"eq": "XZ"}, "/frame/normal/1": {"eq": 1.0}, "/frame/origin/0": {"eq": 125.0}}},
+    // Committing it empty fails and leaves it open: the next step reads the open sketch.
+    {"tool": "tool_call", "args": {"tool": "sketch_finish"}, "optional": true},
+    {"tool": "tool_call", "args": {"tool": "sketch_describe"}, "expect": {"/entities": {"empty": true}}},
+    {"tool": "tool_call", "args": {"tool": "sketch_draw", "args": {"entities": [
+      {"type": "line", "p0": [0, 0],  "p1": [40, 0]},
+      {"type": "line", "p0": [40, 0], "p1": [40, 4]},
+      {"type": "line", "p0": [40, 4], "p1": [4, 4]},
+      {"type": "line", "p0": [4, 4],  "p1": [4, 30]},
+      {"type": "line", "p0": [4, 30], "p1": [0, 30]},
+      {"type": "line", "p0": [0, 30], "p1": [0, 0]}]}},
+     "expect": {"/entities": {"eq": 6}}},
+    // The inside corner, between lines 2 and 3, rounded to 3 mm: an arc tangent to both legs.
+    {"tool": "tool_call", "args": {"tool": "sketch_fillet", "args": {"entities": [2, 3], "radius": 3}},
+     "expect": {"/entity": {"eq": 6}, "/entities": {"eq": 7}, "/released_constraints": {"eq": 1},
+                "/solve_ok": {"eq": true}}},
+    {"tool": "tool_call", "args": {"tool": "sketch_finish"},
+     "expect": {"/sketch_index": {"eq": 0}, "/name": {"regex": "^Sketch"}, "/features": {"eq": 1},
+                "/buildable": {"eq": true}, "/closed_loops/0/index": {"eq": 0},
+                "/closed_loops/0/area": {"ge": 265.93, "le": 265.94}}},
+    {"tool": "tool_call", "args": {"tool": "sketch_describe", "args": {"sketch": 0}},
+     "expect": {"/plane/base": {"eq": "XZ"}, "/entities/6/type": {"eq": "arc"}, "/entities/6/radius": {"ge": 2.9999, "le": 3.0001},
+                "/closed_loops/0/entities/6": {"exists": true}, "/buildable": {"eq": true}}},
+    {"tool": "tool_call", "args": {"tool": "solid_extrude", "args": {"sketch": 0, "distance": 20}},
+     "expect": {"/extrude_index": {"eq": 1}, "/sketch_index": {"eq": 0}, "/operation": {"eq": "new_body"},
+                "/body": {"eq": 0}, "/end": {"eq": "blind"}, "/frame/normal/1": {"eq": 1.0}}},
+    {"tool": "tool_call", "args": {"tool": "body_mass_properties", "args": {"body": 0}},
+     "expect": {"/volume": {"gt": 5316.6, "lt": 5320.6}}},
+    {"tool": "tool_call", "args": {"tool": "design_describe"},
+     "expect": {"/bodies/0/bbox/min/0": {"ge": 124.999, "le": 125.001}, "/bodies/0/bbox/min/2": {"ge": -0.001, "le": 0.001},
+                "/bodies/0/bbox/max/2": {"ge": 29.999, "le": 30.001}}},
+
+    // A shelf-pin jig: a 160 x 60 plate with five 5.2 mm holes on 32 mm centres, in one sketch.
+    {"tool": "tool_call", "args": {"tool": "design_new", "args": {"discard_changes": true}}},
+    {"tool": "tool_call", "args": {"tool": "sketch_create", "args": {"plane": "XY"}}},
+    {"tool": "tool_call", "args": {"tool": "sketch_draw", "args": {"type": "rectangle_2_point", "p0": [-80, -30], "p1": [80, 30]}}},
+    {"tool": "tool_call", "args": {"tool": "sketch_draw", "args": {"entities": [
+      {"type": "circle_center", "center": [-64, 0], "radius": 2.6},
+      {"type": "circle_center", "center": [-32, 0], "radius": 2.6},
+      {"type": "circle_center", "center": [0, 0],   "radius": 2.6},
+      {"type": "circle_center", "center": [32, 0],  "radius": 2.6},
+      {"type": "circle_center", "center": [64, 0],  "radius": 2.6}]}}},
+    // Six loops: each disc, and the plate listing the five as its holes.
+    {"tool": "tool_call", "args": {"tool": "sketch_finish"},
+     "expect": {"/buildable": {"eq": true}, "/closed_loops/5/index": {"eq": 5},
+                "/closed_loops/5/holes/4": {"exists": true}, "/closed_loops/5/area": {"ge": 9599.99, "le": 9600.01}}},
+    {"tool": "tool_call", "args": {"tool": "solid_extrude", "args": {"sketch": 0, "distance": 8}},
+     "expect": {"/operation": {"eq": "new_body"}, "/body": {"eq": 0}}},
+    {"tool": "tool_call", "args": {"tool": "body_mass_properties", "args": {"body": 0}},
+     "expect": {"/volume": {"ge": 75950.50, "le": 75950.53}}},
+    {"tool": "tool_call", "args": {"tool": "body_describe", "args": {"body": 0}},
+     "expect": {"/face_count": {"eq": 11}, "/faces/4/kind": {"eq": "cylindrical"},
+                "/faces/8/kind": {"eq": "cylindrical"}, "/faces/10/normal/2": {"eq": 1.0}}},
+    // The lip, sketched on the plate's top face: that frame's x is world -Y and its y world X.
+    {"tool": "tool_call", "args": {"tool": "sketch_create", "args": {"plane": {"body": 0, "face": 10}}},
+     "expect": {"/frame/origin/2": {"ge": 7.999, "le": 8.001}, "/frame/x_axis/1": {"eq": -1.0},
+                "/frame/y_axis/0": {"eq": 1.0}}},
+    {"tool": "tool_call", "args": {"tool": "sketch_draw", "args": {"type": "rectangle_2_point", "p0": [-30, -80], "p1": [-20, 80]}}},
+    {"tool": "tool_call", "args": {"tool": "sketch_finish"}, "expect": {"/sketch_index": {"eq": 2}}},
+    // It touches the plate, so it joins it, as the Extrude card's default does.
+    {"tool": "tool_call", "args": {"tool": "solid_extrude", "args": {"sketch": 2, "distance": 10}},
+     "expect": {"/operation": {"eq": "join"}, "/body": {"eq": 0}, "/bodies": {"eq": 1}}},
+    {"tool": "tool_call", "args": {"tool": "body_mass_properties", "args": {"body": 0}},
+     "expect": {"/volume": {"ge": 91950.50, "le": 91950.53}}},
+    {"tool": "tool_call", "args": {"tool": "design_describe"},
+     "expect": {"/bodies/0/bbox/max/2": {"ge": 17.999, "le": 18.001}}},
+    // One loop of the plate's sketch: a hole's loop is its disc.
+    {"tool": "tool_call", "args": {"tool": "solid_extrude", "args": {"sketch": 0, "loop": 2, "distance": 8, "operation": "new_body"}},
+     "expect": {"/loop": {"eq": 2}, "/body": {"eq": 1}, "/bodies": {"eq": 2}}},
+    {"tool": "tool_call", "args": {"tool": "body_mass_properties", "args": {"body": 1}},
+     "expect": {"/volume": {"ge": 169.89, "le": 169.91}}},
+
+    // A ring: a 10 x 10 profile revolved about the sketch's only centerline.
+    {"tool": "tool_call", "args": {"tool": "design_new", "args": {"discard_changes": true}}},
+    {"tool": "tool_call", "args": {"tool": "sketch_create", "args": {"plane": "XZ"}}},
+    {"tool": "tool_call", "args": {"tool": "sketch_draw", "args": {"type": "rectangle_2_point", "p0": [10, 0], "p1": [20, 10]}}},
+    {"tool": "tool_call", "args": {"tool": "sketch_draw", "args": {"type": "line", "p0": [0, 0], "p1": [0, 30], "construction": true}}},
+    {"tool": "tool_call", "args": {"tool": "sketch_finish"}, "expect": {"/sketch_index": {"eq": 0}}},
+    {"tool": "tool_call", "args": {"tool": "solid_revolve", "args": {"sketch": 0}},
+     "expect": {"/revolve_index": {"eq": 1}, "/axis_entity": {"eq": 4}, "/operation": {"eq": "new_body"}}},
+    {"tool": "tool_call", "args": {"tool": "body_mass_properties", "args": {"body": 0}},
+     "expect": {"/volume": {"ge": 9424.70, "le": 9424.86}}}
+  ]
+}
