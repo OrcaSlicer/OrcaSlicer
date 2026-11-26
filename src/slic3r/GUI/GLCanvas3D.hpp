@@ -53,6 +53,7 @@
 #include <wx/event.h>
 #include <utility>
 #include <vector>
+#include <set>
 #include <string>
 #include <wx/string.h>
 
@@ -907,10 +908,11 @@ private:
     bool m_preview_settle_pending{ false };
     // whether this frame is drawn while the user moves the preview (a drag or a wheel step's settle time)
     bool m_preview_interacting{ false };
-    // watches those frames for a preview too slow to move without the reduced set
+    // watches those frames for a preview too slow to move in its current drag mode
     PreviewFrameRateMonitor m_preview_frame_monitor;
-    // the slow preview notification is shown once per run; static, so that rebuilding the GUI does not reset it
-    inline static bool s_preview_slow_hint_shown{ false };
+    // the drag modes the slow preview notification has offered, each once per run; static, so that
+    // rebuilding the GUI does not reset them
+    inline static std::set<std::string> s_preview_slow_hints_shown;
 
     //BBS:add plate related logic
     mutable std::vector<int> m_hover_volume_idxs;

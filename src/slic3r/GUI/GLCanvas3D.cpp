@@ -108,6 +108,7 @@
 #include "I18N.hpp"
 #include "format.hpp"
 #include "NotificationManager.hpp"
+#include "PreviewFrameRateMonitor.hpp"
 #include "DailyTips.hpp"
 #include "FilamentMapDialog.hpp"
 #include "Gizmos/GLGizmoUtils.hpp"
@@ -3491,7 +3492,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
         if (!overlay_tick)
             m_render_stats.increment_fps_counter();
         m_presented_signature = signature;
-        // A slider drag rebuilds the visible range on the CPU, which Shell only does not speed up.
+        // A slider drag rebuilds the visible range on the CPU, which a cheaper drag mode does not speed up.
         if (m_preview_interacting && !reuse_scene && !overlay_tick && !m_benchmarking && !m_gcode_viewer.is_slider_dragging())
             _track_preview_frame_time(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - frame_start).count());
     }
@@ -10873,16 +10874,18 @@ void GLCanvas3D::_render_wireframe_overlay()
 void GLCanvas3D::_track_preview_frame_time(double frame_ms)
 {
     const AppConfig* cfg = wxGetApp().app_config;
-    if (s_preview_slow_hint_shown || cfg->get("preview_reduced_detail_mode") != "off" || !cfg->get_bool("show_preview_slow_render_hint") ||
-        !m_gcode_viewer.shell_mode_hides_infill()) {
+    const std::optional<std::string> suggested = suggested_preview_drag_mode(cfg->get("preview_reduced_detail_mode"),
+                                                                             m_gcode_viewer.shell_mode_hides_infill(),
+                                                                             m_gcode_viewer.solid_mode_usable());
+    if (!suggested || s_preview_slow_hints_shown.count(*suggested) > 0 || !cfg->get_bool("show_preview_slow_render_hint")) {
         m_preview_frame_monitor.reset();
         return;
     }
     if (const std::optional<double> fps = m_preview_frame_monitor.add_frame(frame_ms)) {
-        s_preview_slow_hint_shown = true;
+        s_preview_slow_hints_shown.insert(*suggested);
         const int max_shown_fps = static_cast<int>(std::ceil(PreviewFrameRateMonitor::min_fps)) - 1;
         wxGetApp().plater()->get_notification_manager()->push_preview_slow_render_notification(
-            std::clamp(static_cast<int>(std::lround(*fps)), 1, max_shown_fps));
+            std::clamp(static_cast<int>(std::lround(*fps)), 1, max_shown_fps), *suggested);
     }
 }
 
@@ -10892,9 +10895,10 @@ void GLCanvas3D::apply_preview_reduced_detail_mode(const std::string& mode)
     cfg->set("preview_reduced_detail_mode", mode);
     cfg->save();
     m_gcode_viewer.set_reduced_detail_mode(mode);
-    // a hint still on screen would offer to replace the mode just chosen
-    if (mode != "off")
-        wxGetApp().plater()->get_notification_manager()->close_notification_of_type(NotificationType::PreviewSlowRender);
+    // slow seconds counted in the old mode say nothing about the new one, and a hint still on screen
+    // would offer to replace the mode just chosen
+    m_preview_frame_monitor.reset();
+    wxGetApp().plater()->get_notification_manager()->close_notification_of_type(NotificationType::PreviewSlowRender);
     set_as_dirty();
     request_extra_frame();
 }

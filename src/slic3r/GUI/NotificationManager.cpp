@@ -2489,13 +2489,13 @@ void NotificationManager::PreviewSlowRenderNotification::render_text(ImGuiWrappe
 {
 	const float x_offset = m_left_indentation;
 	const float action_y = render_text_lines(imgui);
-	// TRN Link in the slow preview notification. "Shell only" is the option of "Simplify preview while dragging" in Preferences.
-	const std::string shell_text = _u8L("Use Shell only");
-	render_hyperlink_action(imgui, x_offset, action_y, shell_text, "##preview_slow_shell", [this] {
-		wxGetApp().CallAfter([] {
+	// TRN Links in the slow preview notification. "Shell only" and "Solid model" are options of "Simplify preview while dragging" in Preferences.
+	const std::string use_text = m_mode == "solid" ? _u8L("Use Solid model") : _u8L("Use Shell only");
+	render_hyperlink_action(imgui, x_offset, action_y, use_text, "##preview_slow_use", [this] {
+		wxGetApp().CallAfter([mode = m_mode] {
 			if (Plater* plater = wxGetApp().plater())
 				if (GLCanvas3D* canvas = plater->get_preview_canvas3D())
-					canvas->apply_preview_reduced_detail_mode("shell");
+					canvas->apply_preview_reduced_detail_mode(mode);
 		});
 		close();
 	});
@@ -2539,13 +2539,16 @@ void NotificationManager::push_shared_profiles_notification(const std::string& e
 	push_notification_data(std::make_unique<NotificationManager::SharedProfilesNotification>(data, m_id_provider, m_evt_handler, explore_url), 0);
 }
 
-void NotificationManager::push_preview_slow_render_notification(int fps)
+void NotificationManager::push_preview_slow_render_notification(int fps, const std::string& mode)
 {
 	close_notification_of_type(NotificationType::PreviewSlowRender);
-	NotificationData data{ NotificationType::PreviewSlowRender, NotificationLevel::RegularNotificationLevel, 0,
-		// TRN %1% is the measured frame rate. "Shell only" is the option of "Simplify preview while dragging" in Preferences.
-		format(_u8L("The preview is rendering slowly (about %1% fps) while you move it. Shell only hides the infill while dragging so the view moves faster."), fps) };
-	push_notification_data(std::make_unique<NotificationManager::PreviewSlowRenderNotification>(data, m_id_provider, m_evt_handler), 0);
+	const std::string text = mode == "solid" ?
+		// TRN %1% is the measured frame rate. "Solid model" is an option of "Simplify preview while dragging" in Preferences.
+		format(_u8L("The preview is rendering slowly (about %1% fps) while you move it. Solid model draws the objects as solid shapes while dragging so the view moves faster."), fps) :
+		// TRN %1% is the measured frame rate. "Shell only" is an option of "Simplify preview while dragging" in Preferences.
+		format(_u8L("The preview is rendering slowly (about %1% fps) while you move it. Shell only hides the infill while dragging so the view moves faster."), fps);
+	NotificationData data{ NotificationType::PreviewSlowRender, NotificationLevel::RegularNotificationLevel, 0, text };
+	push_notification_data(std::make_unique<NotificationManager::PreviewSlowRenderNotification>(data, m_id_provider, m_evt_handler, mode), 0);
 }
 
 void NotificationManager::push_orca_sync_conflict_notification(const std::string& text,

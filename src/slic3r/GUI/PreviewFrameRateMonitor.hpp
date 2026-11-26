@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <string>
 
 namespace Slic3r::GUI {
 
@@ -55,5 +56,16 @@ private:
     double m_streak_ms{0.};
     int    m_streak_frames{0};
 };
+
+// The drag mode to offer a preview that stays slow in `mode`: Shell only first, then Solid model, which
+// draws the least. A mode that would draw the same toolpaths for this print is skipped.
+inline std::optional<std::string> suggested_preview_drag_mode(const std::string& mode, bool shell_hides_infill, bool solid_usable)
+{
+    if (mode == "off" && shell_hides_infill)
+        return std::string("shell");
+    if ((mode == "off" || mode == "shell") && solid_usable)
+        return std::string("solid");
+    return std::nullopt;
+}
 
 } // namespace Slic3r::GUI

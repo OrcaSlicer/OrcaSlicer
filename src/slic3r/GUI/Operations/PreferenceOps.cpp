@@ -351,9 +351,9 @@ std::vector<Preference> build_table()
                 "The bottom and top layers of the visible range are always drawn whole; a layer with no infill of its own, as with infill "
                 "combination, takes the layers down to the nearest one with infill along.")});
     t.checkbox("show_preview_slow_render_hint", L("Warn when the preview renders slowly"),
-               // TRN "Simplify preview while dragging" and "Shell only" are the option above and one of its values; keep them as translated there.
-               {L("Show a notification suggesting Shell only when the sliced preview draws slower than 15 frames per second for 5 seconds "
-                  "while you drag it with \"Simplify preview while dragging\" off.")});
+               // TRN "Shell only" and "Solid model" are values of "Simplify preview while dragging" above; keep them as translated there.
+               {L("Show a notification when the sliced preview draws slower than 15 frames per second for 5 seconds while you drag it. "
+                  "It suggests Shell only, or Solid model when Shell only is already on or would not help.")});
     t.checkbox("preview_dim_previous_layers", L("Dim lower layers"),
                {L("When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only "
                   "the layer being viewed is shown at full brightness.")});

@@ -3,6 +3,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <optional>
+#include <string>
 
 #include "slic3r/GUI/PreviewFrameRateMonitor.hpp"
 
@@ -76,4 +77,29 @@ TEST_CASE("Reset drops a partial slow streak", "[PreviewFrameRateMonitor]")
     REQUIRE(count_reports(monitor, 40, 100.) == 0);
     monitor.reset();
     REQUIRE(count_reports(monitor, 40, 100.) == 0);
+}
+
+using Slic3r::GUI::suggested_preview_drag_mode;
+
+TEST_CASE("A slow preview with the mode off is offered Shell only", "[PreviewFrameRateMonitor]")
+{
+    REQUIRE(suggested_preview_drag_mode("off", true, true) == std::optional<std::string>("shell"));
+    REQUIRE(suggested_preview_drag_mode("off", true, false) == std::optional<std::string>("shell"));
+}
+
+TEST_CASE("A slow preview where Shell only hides nothing is offered Solid model", "[PreviewFrameRateMonitor]")
+{
+    REQUIRE(suggested_preview_drag_mode("off", false, true) == std::optional<std::string>("solid"));
+    REQUIRE_FALSE(suggested_preview_drag_mode("off", false, false).has_value());
+}
+
+TEST_CASE("A preview still slow in Shell only is offered Solid model", "[PreviewFrameRateMonitor]")
+{
+    REQUIRE(suggested_preview_drag_mode("shell", true, true) == std::optional<std::string>("solid"));
+    REQUIRE_FALSE(suggested_preview_drag_mode("shell", true, false).has_value());
+}
+
+TEST_CASE("A preview already in Solid model is offered nothing", "[PreviewFrameRateMonitor]")
+{
+    REQUIRE_FALSE(suggested_preview_drag_mode("solid", true, true).has_value());
 }

@@ -596,11 +596,15 @@ public:
     // while the user drags the camera or a slider, draw the reduced set, if the preference asks for one
     void set_interacting(bool interacting);
     bool is_reduced_detail() const { return m_viewer.is_reduced_detail(); }
-    // whether the shell mode would draw less than the full toolpaths; the OpenGL ES path has no reduced set
+    // whether each drag mode would draw less than the full toolpaths; the OpenGL ES path has no reduced set
 #if SLIC3R_OPENGL_ES
     bool shell_mode_hides_infill() const { return false; }
+    bool solid_mode_usable() const { return false; }
 #else
     bool shell_mode_hides_infill() const { return m_reduced_detail_hides_infill; }
+    // whether the solid model can stand in for the toolpaths: it needs shells, and a single height to cut
+    // them at, which a belt printer's tilted layers do not have
+    bool solid_mode_usable() const { return !m_shells.volumes.empty() && m_layers_z_rising && !m_belt_view_enabled; }
 #endif
     // the preference's string value: "off", "solid" or "shell"
     void set_reduced_detail_mode(const std::string& mode);
