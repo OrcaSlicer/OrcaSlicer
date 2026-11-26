@@ -6212,7 +6212,7 @@ if (is_marlin_flavor)
         optgroup->append_single_option_line("imex_firmware_managed_zones", "printer_multimaterial_idex_iqex#firmware-managed-zones");
         optgroup->append_single_option_line("imex_gantry_count", "printer_multimaterial_idex_iqex#gantry-count");
         optgroup->append_single_option_line("imex_tools_per_gantry", "printer_multimaterial_idex_iqex#tools-per-gantry");
-        optgroup->append_single_option_line("imex_tool_layout", "printer_multimaterial_idex_iqex#tool-0-position");
+        optgroup->append_single_option_line("imex_tool_layout", "printer_multimaterial_idex_iqex#tool-1-position");
         optgroup->append_single_option_line("imex_nozzle_clearance_x", "printer_multimaterial_idex_iqex#nozzle-clearance-x");
         optgroup->append_single_option_line("imex_nozzle_clearance_y", "printer_multimaterial_idex_iqex#nozzle-clearance-y");
         optgroup->append_single_option_line("imex_carriage_margin", "printer_multimaterial_idex_iqex#safety-margin");
