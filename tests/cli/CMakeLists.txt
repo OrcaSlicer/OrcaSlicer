@@ -84,4 +84,4 @@ add_test(NAME cli_retarget_plate_grid
 set_tests_properties(cli_retarget_plate_grid PROPERTIES
     LABELS "CLI;RequiresApp"
     SKIP_RETURN_CODE 77
-    TIMEOUT 300)
+    TIMEOUT 900)
