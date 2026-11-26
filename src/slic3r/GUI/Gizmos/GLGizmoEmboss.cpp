@@ -226,6 +226,7 @@ enum class IconState : unsigned { activable = 0, hovered /*1*/, disabled /*2*/ }
 const IconManager::Icon &get_icon(const IconManager::VIcons& icons, IconType type, IconState state);
 // short call of Slic3r::GUI::button
 bool draw_button(const IconManager::VIcons& icons, IconType type, bool disable = false);
+std::string icon_button_name(IconType type);
 
 struct FaceName
 {
@@ -392,11 +393,13 @@ bool GLGizmoEmboss::create_volume(ModelVolumeType volume_type)
 }
 
 
-void GLGizmoEmboss::on_shortcut_key() {
+bool GLGizmoEmboss::on_shortcut_key() {
     // Already opened: close it like the other gizmos do. Text stays selected, so next press edits it again.
     auto& mng = m_parent.get_gizmos_manager();
-    if (mng.get_current_type() == GLGizmosManager::Emboss)
-        return close();
+    if (mng.get_current_type() == GLGizmosManager::Emboss) {
+        close();
+        return false;
+    }
 
     // Text object selected with more instances: edit works with one of them, so keep selected only the first.
     Selection& selection = m_parent.get_selection();
@@ -410,11 +413,12 @@ void GLGizmoEmboss::on_shortcut_key() {
     }
 
     set_volume_by_selection();
+    bool creation_started = false;
     if (m_volume == nullptr) {
         // No volume to select from selection so create volume.
         // NOTE: After finish job for creation emboss Text volume,
         // GLGizmoEmboss will be opened
-        create_volume(ModelVolumeType::MODEL_PART);
+        creation_started = create_volume(ModelVolumeType::MODEL_PART);
     }
     else {
         // shortcut is pressed when text is selected soo start edit it.
@@ -423,6 +427,7 @@ void GLGizmoEmboss::on_shortcut_key() {
 
     if (is_selection_reduced)
         wxGetApp().obj_list()->update_selections();
+    return creation_started;
 }
 
 bool GLGizmoEmboss::re_emboss(const ModelVolume &text_volume, std::shared_ptr<std::atomic<bool>> job_cancel)
@@ -1883,7 +1888,7 @@ void GLGizmoEmboss::draw_font_list_line()
     }
 
     ImGui::SameLine();
-    if (Slic3r::GUI::button(r_icon, r_icon, r_icon)) { // ORCA draw bottom with same orange color
+    if (Slic3r::GUI::button(r_icon, r_icon, r_icon, false, "Revert font")) { // ORCA draw bottom with same orange color
         const EmbossStyle *stored_style = m_style_manager.get_stored_style();
 
         style.path          = stored_style->path;
@@ -2507,7 +2512,7 @@ bool GLGizmoEmboss::draw_italic_button()
     if (is_font_italic) {
         // unset italic
         if (clickable(get_icon(m_icons, IconType::italic, IconState::hovered),
-                      get_icon(m_icons, IconType::unitalic, IconState::hovered))) {
+                      get_icon(m_icons, IconType::unitalic, IconState::hovered), icon_button_name(IconType::italic))) {
             skew.reset();
             if (wx_font.GetStyle() != wxFontStyle::wxFONTSTYLE_NORMAL) {
                 wxFont new_wx_font = wx_font; // copy
@@ -2553,7 +2558,7 @@ bool GLGizmoEmboss::draw_bold_button() {
     if (is_font_bold) {
         // unset bold
         if (clickable(get_icon(m_icons, IconType::bold, IconState::hovered),
-                      get_icon(m_icons, IconType::unbold, IconState::hovered))) {
+                      get_icon(m_icons, IconType::unbold, IconState::hovered), icon_button_name(IconType::bold))) {
             boldness.reset();
             if (wx_font.GetWeight() != wxFontWeight::wxFONTWEIGHT_NORMAL) {
                 wxFont new_wx_font = wx_font; // copy
@@ -2629,7 +2634,7 @@ bool GLGizmoEmboss::revertible(const std::string &name,
     ImGuiWindow *window = ImGui::GetCurrentWindow();
     float prev_x = window->DC.CursorPosPrevLine.x;
     ImGui::SameLine(undo_offset); // change cursor postion
-    if (Slic3r::GUI::button(r_icon, r_icon, r_icon)) { // ORCA draw bottom with same orange color
+    if (Slic3r::GUI::button(r_icon, r_icon, r_icon, false, icon_button_name(IconType::undo) + " " + name)) { // ORCA draw bottom with same orange color
         value = *default_value;
 
         // !! Fix to detect change of value after revert of float-slider
@@ -3147,7 +3152,7 @@ void GLGizmoEmboss::draw_advanced()
         const IconManager::Icon &icon = get_icon(m_icons, m_keep_up ? IconType::lock : IconType::unlock, IconState::activable);
         const IconManager::Icon &icon_hover = get_icon(m_icons, m_keep_up ? IconType::lock_bold : IconType::unlock_bold, IconState::activable);
         const IconManager::Icon &icon_disable = get_icon(m_icons, m_keep_up ? IconType::lock : IconType::unlock, IconState::disabled);
-        if (button(icon, icon_hover, icon_disable))
+        if (button(icon, icon_hover, icon_disable, false, icon_button_name(IconType::lock)))
             m_keep_up = !m_keep_up;
     
         if (ImGui::IsItemHovered())
@@ -3441,12 +3446,41 @@ namespace {
 const IconManager::Icon &get_icon(const IconManager::VIcons& icons, IconType type, IconState state) { 
     return *icons[(unsigned) type][(unsigned) state]; }
 
+// English names of the icon buttons, for automation.
+std::string icon_button_name(IconType type)
+{
+    switch (type) {
+    case IconType::rename: return "Rename style";
+    case IconType::erase: return "Remove style";
+    case IconType::add: return "Add style";
+    case IconType::save: return "Save style";
+    case IconType::undo: return "Revert";
+    case IconType::italic:
+    case IconType::unitalic: return "Italic";
+    case IconType::bold:
+    case IconType::unbold: return "Bold";
+    case IconType::system_selector: return "Font selector";
+    case IconType::open_file: return "Open font file";
+    case IconType::lock:
+    case IconType::lock_bold:
+    case IconType::unlock:
+    case IconType::unlock_bold: return "Keep up";
+    case IconType::align_horizontal_left: return "Align left";
+    case IconType::align_horizontal_center: return "Align center";
+    case IconType::align_horizontal_right: return "Align right";
+    case IconType::align_vertical_top: return "Align top";
+    case IconType::align_vertical_center: return "Align middle";
+    case IconType::align_vertical_bottom: return "Align bottom";
+    default: return {};
+    }
+}
+
 bool draw_button(const IconManager::VIcons &icons, IconType type, bool disable){
     return Slic3r::GUI::button(
         get_icon(icons, type, IconState::activable),
         get_icon(icons, type, IconState::hovered),
         get_icon(icons, type, IconState::disabled),
-        disable);}
+        disable, icon_button_name(type));}
 
 TextDataBase::TextDataBase(DataBase               &&parent,
                            const FontFileWithCache &font_file,

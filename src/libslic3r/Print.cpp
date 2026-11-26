@@ -2296,7 +2296,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             if (routing.primary_unrouted) {
                 std::string routed_list;
                 for (int head : routing.routed_heads)
-                    routed_list += (routed_list.empty() ? "T" : ", T") + std::to_string(head);
+                    routed_list += (routed_list.empty() ? "T" : ", T") + std::to_string(head + 1);
                 // Print::apply() normalises physical_extruder_map through
                 // effective_physical_extruder_map (PrintApply.cpp) before validate() runs, so
                 // an unauthored map arrives here as the identity and every slot is in range.
@@ -2309,13 +2309,13 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                         // TRN %1% is the IDEX/IQEX mode name, %2% the tool number.
                         L("IDEX/IQEX mode \"%1%\" prints with T%2%, but none of this plate's filaments are on a configured tool. "
                           "Assign a filament loaded on T%2%, or switch this plate to Primary mode."),
-                        parallel_mode, routing.primary_phys);
+                        parallel_mode, routing.primary_phys + 1);
                 else
                     err.string = Slic3r::format(
                         // TRN %1% is the IDEX/IQEX mode name, %2% the tool number, %3% a list of tools such as "T1, T2".
                         L("IDEX/IQEX mode \"%1%\" prints with T%2%, but this plate's filaments are on %3%. "
                           "Assign a filament loaded on T%2%, or switch this plate to Primary mode."),
-                        parallel_mode, routing.primary_phys, routed_list);
+                        parallel_mode, routing.primary_phys + 1, routed_list);
                 // Gives the notification a "Jump to <object>" link, which selects the object
                 // and switches to Prepare -- directly enabling the first suggested remedy.
                 err.object = m_objects.front();
@@ -2521,7 +2521,25 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         // spiral vase cannot print.
         const auto &is_mixed = m_config.filament_is_mixed.values;
         for (const PrintObject *object : m_objects) {
-            const auto used_filament_ids = object->object_extruders();
+            auto used_filament_ids = object->object_extruders();
+            // Painted all over, the object prints only its painted filaments, unless the segmented region
+            // max width or interlocking depth limits the paint to a band and fills the rest with its own filament.
+            // Beam interlocking turns that band off.
+            const PrintObjectConfig &object_config = object->config();
+            const ModelVolumePtrs   &volumes       = object->model_object()->volumes;
+            if ((object_config.interlocking_beam.value ||
+                 (object_config.mmu_segmented_region_max_width.value == 0. &&
+                  object_config.mmu_segmented_region_interlocking_depth.value == 0.)) &&
+                std::all_of(volumes.begin(), volumes.end(), [](const ModelVolume *volume) {
+                    return !volume->is_model_part() || volume->is_mm_painted_everywhere();
+                })) {
+                used_filament_ids.clear();
+                for (const ModelVolume *volume : volumes)
+                    if (volume->is_model_part())
+                        for (size_t filament_id : volume->get_extruders_from_multi_material_painting())
+                            used_filament_ids.push_back(static_cast<unsigned int>(filament_id));
+                sort_remove_duplicates(used_filament_ids);
+            }
             if (used_filament_ids.size() > 1 ||
                 std::any_of(used_filament_ids.begin(), used_filament_ids.end(), [&is_mixed](unsigned int filament_id) {
                     return filament_id < is_mixed.size() && is_mixed[filament_id];

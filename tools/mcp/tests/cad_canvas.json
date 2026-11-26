@@ -1,0 +1,68 @@
+// The Design view as a canvas target. view_set shows the Design tab and points its camera, and
+// refuses what belongs to Prepare and Preview; a canvas screenshot captures the Design view, as does
+// one of its widget. A click at the view's centre picks the block, and a right click lists the verbs
+// for what is picked. Keys reach the Design panel's own key hook: Shift+E opens the Extrude card and
+// Escape, sent with no target, closes it, so a change is no longer refused. Then a change made only
+// in the Design tab marks the project modified, and opening a design-only project with
+// discard_changes asks nothing and names the project after its file.
+// Needs the CAD feature on:
+//   tools/mcp/orca_mcp.py launch --cad
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/cad_canvas.json --out /tmp/out
+{
+  "orca_replay_version": "0.2.0",
+  "name": "cad canvas",
+  "steps": [
+    {"tool": "app_wait", "args": {"for": "ready"}},
+    {"tool": "project_new", "args": {"discard_changes": true}},
+    {"tool": "tool_call", "args": {"tool": "design_new", "args": {"discard_changes": true}}},
+    {"tool": "window_set", "args": {"size": [1600, 900]}},
+    {"tool": "view_set", "args": {"tab": "design", "camera": "iso"},
+     "expect": {"/tab": {"eq": "design"}, "/camera": {"eq": "iso"}}},
+    {"tool": "tool_call", "args": {"tool": "solid_extrude", "args": {"width": 20, "height": 20, "distance": 10}},
+     "expect": {"/ok": {"exists": false}}},
+    // The Design view has no gizmos, and a change made only in the Design tab marks the project.
+    {"tool": "app_state", "expect": {"/tab": {"eq": "design"}, "/gizmo": {"eq": null}, "/project/dirty": {"eq": true}}},
+    // Refused: Prepare's fit to bed, a fit to the selection with nothing picked, the Preview's layers.
+    {"tool": "view_set", "args": {"camera": "fit_bed"}, "optional": true},
+    {"tool": "view_set", "args": {"camera": "fit_selection"}, "optional": true},
+    {"tool": "view_set", "args": {"tab": "design", "layer": 2}, "optional": true},
+    {"tool": "view_set", "args": {"camera": "default"}, "expect": {"/camera": {"eq": "default"}}},
+    {"tool": "window_screenshot", "args": {"target": "canvas", "include_image": false, "save_path": "${out_dir}/design_canvas.png", "overwrite": true},
+     "expect": {"/source": {"eq": "canvas"}, "/approximate": {"exists": false}, "/width": {"gt": 0}}},
+    {"tool": "window_screenshot", "args": {"target": {"class": "wxGLCanvas"}, "include_image": false, "save_path": "${out_dir}/design_view.png", "overwrite": true},
+     "expect": {"/approximate": {"exists": false}, "/width": {"gt": 0}}},
+    {"tool": "window_screenshot", "args": {"target": "main", "include_image": false, "save_path": "${out_dir}/design_window.png", "overwrite": true},
+     "expect": {"/width": {"gt": 0}}},
+    {"tool": "widget_list", "args": {"query": "OrcaSceneCanvas"}, "expect": {"/nodes": {"eq": 1}}},
+
+    // A click at the view's centre picks the block; a right click away from it lists the verbs for
+    // the pick, without showing the menu.
+    {"tool": "widget_click", "args": {"target": {"class": "wxGLCanvas"}}, "expect": {"/clicked": {"eq": "canvas"}}},
+    {"tool": "mouse_gesture", "args": {"canvas": "design", "action": "click", "button": "right", "x": 30, "y": 30},
+     "expect": {"/canvas": {"eq": "design"}, "/popup_menu/items/0": {"regex": "of Extrude"}}},
+    {"tool": "view_set", "args": {"camera": "fit_selection"}, "expect": {"/camera": {"eq": "fit_selection"}}},
+    // Points of the model name Prepare's objects, so the Design view takes pixels only.
+    {"tool": "mouse_gesture", "args": {"canvas": "design", "action": "click", "at": {"object": 0, "spot": "top"}}, "optional": true},
+
+    // Shift+E is the Design tab's Extrude; Escape with no target closes the card it opened.
+    {"tool": "keyboard_press", "args": {"keys": "Shift+E"}},
+    {"tool": "widget_list", "args": {"query": "Extrude dist"}, "expect": {"/nodes": {"eq": 1}}},
+    {"tool": "keyboard_press", "args": {"keys": "Escape"}},
+    {"tool": "widget_list", "args": {"query": "Extrude dist"}, "expect": {"/nodes": {"eq": 0}}},
+    {"tool": "tool_call", "args": {"tool": "solid_extrude", "args": {"width": 6, "height": 6, "distance": 20}},
+     "expect": {"/ok": {"exists": false}}},
+
+    // A design-only project: saved, changed in the Design tab alone, then opened again.
+    {"tool": "project_save", "args": {"path": "${out_dir}/design_only.3mf", "overwrite": true}},
+    {"tool": "app_state", "expect": {"/project/dirty": {"eq": false}, "/project/name": {"eq": "design_only"}}},
+    {"tool": "tool_call", "args": {"tool": "design_set_variable", "args": {"name": "w", "expr": "5"}}, "expect": {"/ok": {"exists": false}}},
+    {"tool": "app_state", "expect": {"/project/dirty": {"eq": true}}},
+    {"tool": "project_open", "args": {"path": "${out_dir}/design_only.3mf"}, "optional": true},
+    {"tool": "project_open", "args": {"path": "${out_dir}/design_only.3mf", "discard_changes": true},
+     "expect": {"/opened": {"eq": "project"}, "/objects": {"eq": 0}}},
+    {"tool": "app_state", "expect": {"/project/dirty": {"eq": false}, "/project/name": {"eq": "design_only"},
+                                 "/project/path": {"regex": "design_only\\.3mf$"}, "/dialogs": {"empty": true}}},
+    {"tool": "tool_call", "args": {"tool": "design_describe"},
+     "expect": {"/variables": {"empty": true}, "/bodies/1": {"exists": true}}}
+  ]
+}

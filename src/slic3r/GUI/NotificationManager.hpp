@@ -205,6 +205,14 @@ enum class NotificationType
 
 };
 
+// A notification as text, for automation (MCP get_state).
+struct NotificationSummary
+{
+    int         type = 0;   // NotificationType value
+    std::string level;      // "info", "warning", "error", "progress", "hint"
+    std::string text;
+};
+
 class NotificationManager
 {
 public:
@@ -310,6 +318,8 @@ public:
 	// Exporting finished, show this information with path, button to open containing folder and if ejectable - eject button
 	void push_exporting_finished_notification(const std::string& path, const std::string& dir_path, bool on_removable);
 	void push_import_finished_notification(const std::string& path, const std::string& dir_path, bool on_removable);
+	// A file a command saved: `text`, then its path, with the button that opens its folder.
+	void push_file_saved_notification(const std::string& text, const std::string& path, const std::string& dir_path);
 
 	// Shared profiles available for selected printer
 	void push_shared_profiles_notification(const std::string& explore_url);
@@ -383,6 +393,8 @@ public:
 	bool update_notifications(GLCanvas3D& canvas);
 	// returns number of all notifications shown
 	size_t get_notification_count() const;
+	// The notifications currently shown (not finished or closing), oldest first.
+	std::vector<NotificationSummary> summaries() const;
 
 
 	//BBS Notice
