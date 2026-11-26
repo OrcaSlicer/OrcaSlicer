@@ -517,6 +517,7 @@ public:
     std::vector<int> get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config, bool expand_mixed_slots = true, bool reset_print_wide_ids = false) const;
     std::vector<int> get_extruders_under_cli(bool conside_custom_gcode, DynamicPrintConfig& full_config, bool expand_mixed_slots = true) const;
     std::vector<int> get_extruders_without_support(bool conside_custom_gcode = false) const;
+    std::vector<int> get_extruders_without_support(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config) const;
     // get used filaments from gcode result, 1 based idx
     std::vector<int> get_used_filaments();
     const std::vector<FilamentInfo>& get_slice_filaments_info() const { return slice_filaments_info; }
