@@ -62,6 +62,15 @@ Polylines organic_interface_gap_paths(const ExPolygon &region, const Polygons &m
 // The area a bead of the scaled width covers around its axis, with round ends.
 Polygons organic_bead(const Polyline &axis, double width);
 
+// The beads along the middle of the parts of Organic bodies the walls do not go round, with the widths they are printed
+// with, their spacing: a wall cannot go round a part narrower than two lines without running back over its own bead.
+// axis_regions are the regions half a line inside the bodies, which the first walls go round, and are left the parts of
+// them the walls go round. A bead is a line wide at least where the body is a line wide, and on a strip narrower than
+// a line it is wider than the strip by strip_widening at most, and as wide as the strip if strip_widening is not
+// positive.
+ThickPolylines organic_body_middles(const Polygons &bodies, ExPolygons &axis_regions, coord_t width,
+    coordf_t strip_widening);
+
 // Polygons with their bounding boxes, to clip a part only against those near it: a layer of support has thousands of
 // parts, the loops of the trees inside its bodies, and clipping each against all the material of the layer would make
 // the checks of the layer quadratic in them.

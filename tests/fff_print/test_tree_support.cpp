@@ -262,20 +262,26 @@ TEST_CASE("Organic support at the default settings stands on what is below it", 
     // All but the support type at its default: a 0.4 mm nozzle, 0.2 mm layers, a hollow base spaced 2.5 mm and an
     // automatic interface pattern, with a raft and without, on the build plate only and not. In the middle of the bed:
     // the arranging helpers centre a model on the origin, mostly off the bed, which the support is clipped to.
+    const int tier             = GENERATE(0, 1);
     const int raft_layers      = GENERATE(0, 2);
     const int build_plate_only = GENERATE(0, 1);
-    CAPTURE(raft_layers, build_plate_only);
-    // A plate 30 mm square, 12 mm above the bed, on a column standing on a plate 20 mm square: the branches land on
-    // the lower plate and on the bed, and the bodies under the upper plate grow hollow, their tops widened under it.
-    TriangleMesh mesh   = make_cube(20, 20, 3);
-    TriangleMesh column = make_cube(6, 6, 10.5);
-    TriangleMesh upper  = make_cube(30, 30, 2);
+    CAPTURE(tier, raft_layers, build_plate_only);
+    // A plate 30 mm square, 12 mm above the bed, on a column 6 mm square standing on a plate 20 mm square 3 mm tall:
+    // the branches land on the lower plate and on the bed, and the bodies under the upper plate grow hollow, their tops
+    // widened under it. Or a plate 25 mm square, 9 mm above the bed, on a column 4 mm square standing on a plate 15 mm
+    // square 2 mm tall, where a body near the column narrows to a strip less than a line wide beside a hole in it.
+    const float  lower_side  = tier == 0 ? 20.f : 15.f, lower_height = tier == 0 ? 3.f : 2.f;
+    const float  column_side = tier == 0 ? 6.f : 4.f, upper_side = tier == 0 ? 30.f : 25.f;
+    const float  upper_z     = tier == 0 ? 12.f : 9.f;
+    TriangleMesh mesh   = make_cube(lower_side, lower_side, lower_height);
+    TriangleMesh column = make_cube(column_side, column_side, upper_z - lower_height + 1.5f);
+    TriangleMesh upper  = make_cube(upper_side, upper_side, 2);
     // Each part overlaps the one below rather than resting on it; a coplanar join slices ambiguously.
-    column.translate(7.f, 7.f, 2.f);
-    upper.translate(-5.f, -5.f, 12.f);
+    column.translate(0.5f * (lower_side - column_side), 0.5f * (lower_side - column_side), lower_height - 1.f);
+    upper.translate(0.5f * (lower_side - upper_side), 0.5f * (lower_side - upper_side), upper_z);
     mesh.merge(column);
     mesh.merge(upper);
-    mesh.translate(90.f, 90.f, 0.f);
+    mesh.translate(100.f - 0.5f * lower_side, 100.f - 0.5f * lower_side, 0.f);
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({ { "enable_support", 1 }, { "support_type", "tree(auto)" },
         { "support_style", "organic" }, { "support_on_build_plate_only", build_plate_only },
@@ -3514,6 +3520,52 @@ TEST_CASE("Organic walls stay inside a body where a bump on its outline narrows 
     CHECK(diff(walls, offset(body, scaled<float>(0.002))).empty());
     // The bump is printed all the same.
     CHECK(contains(union_(beads), Point::new_scale(0.95, 2.15)));
+}
+
+TEST_CASE("Organic bodies print a strip narrower than a line between a hole and their outline", "[TreeSupport][Organic][Regression]")
+{
+    using namespace organic_tdd;
+    // The distance the support keeps from the model: the default, and one less than a quarter of a line.
+    const double xy_distance = GENERATE(0.35, 0.05);
+    CAPTURE(xy_distance);
+    DynamicPrintConfig settings = config("default");
+    settings.set_deserialize_strict({{"support_object_xy_distance", xy_distance}});
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(1., 1., 4.)}, print, model, settings, nullptr, false);
+    PrintObject &object = *print.get_object(0);
+    object.slice();
+    const SupportParameters parameters(object);
+    const Flow              flow(float(line_width), float(layer_height), 0.2f);
+    // A body 3 mm square with a hole 0.12 mm from its edge: a strip a little more than half a line wide, as where a
+    // body keeps its distance from the model on one side and goes round a hole on the other. Half a line inside the
+    // outline it leaves no axis for a wall, yet the layer above prints over it.
+    const Polygon  square({ Point::new_scale(0., 0.), Point::new_scale(3., 0.), Point::new_scale(3., 3.),
+                            Point::new_scale(0., 3.) });
+    const Polygon  hole({ Point::new_scale(0.5, 1.), Point::new_scale(2.5, 1.), Point::new_scale(2.5, 2.88),
+                          Point::new_scale(0.5, 2.88) });
+    const Polygons body = diff(Polygons{ square }, Polygons{ hole });
+    ExtrusionEntitiesPtr paths;
+    tree_supports_generate_paths(paths, body, flow, parameters);
+    const ScopeGuard release([&paths] { for (ExtrusionEntity *entity : paths) delete entity; });
+    Polygons beads;
+    for (const ExtrusionEntity *entity : paths)
+        for_each_extrusion_path(*entity, [&beads](const ExtrusionPath &path) {
+            polygons_append(beads, organic_bead(path.as_polyline(), scale_(path.width)));
+        });
+    const Polygons printed = union_(beads);
+    // The strip is printed all along.
+    for (const double x : { 0.55, 1., 1.5, 2., 2.45 }) {
+        CAPTURE(x);
+        CHECK(contains(printed, Point::new_scale(x, 2.94)));
+    }
+    // By a bead wider than the strip by a quarter of a line at most, and out of it by half the distance kept from the
+    // model at most, with what a bead is wider than its spacing, unless half that excess takes it further: a bead a
+    // line wide would print a quarter of one out, into the model where the body keeps its least distance from it.
+    const double over = layer_height * (1. - 0.25 * PI);
+    const float  out  =
+        float(scale_(std::max(0.5 * over, std::min(0.125 * line_width + 0.5 * over, 0.5 * xy_distance)) + 0.005));
+    CHECK(area(diff(printed, offset(body, out))) < scaled<double>(0.01) * scaled<double>(0.01));
 }
 
 TEST_CASE("Organic necks keep the width of their bead where a body shares its walls with an interface", "[TreeSupport][Organic][Regression]")

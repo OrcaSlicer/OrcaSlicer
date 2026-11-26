@@ -254,12 +254,27 @@ neck that narrow for many layers at fine layer heights, and the wall would run
 into the neck and out again closer than a line. The walls go round the parts of
 a body at least two lines wide, and the rest of it, the neck and the small branch
 beyond, prints as one bead along its middle, as wide as it is, as the thin walls
-of a model do. A body narrower than two lines all over, a speck or the tip of a
-branch, keeps its loop. The wide parts are what is left of the body shrunk by a
-line and grown back, kept within the body: grown back to sharp corners, the
-sides of a bump too narrow to keep would meet past its top, and the wall round
-them would print out of the body, into the model where the body lies at its
-least distance from it.
+of a model do. So does a strip of a body narrower than a line, as between a hole
+and the outline, which leaves no axis half a line inside the outline for a wall
+to go along, together with the neck it runs on from: taken apart, it would print
+in short beads apart from what holds them up, and the cleanup would drop them as
+crumbs. A neck's bead is a line wide at least, as a narrower one would miss the
+bead below, but a strip's bead is wider than the strip by a quarter of a line at
+most: a line wide, it would stick out of the body by up to a quarter of a line
+on either side, into the model where the body lies at its least distance from
+it. At a small XY distance it is narrower still: counting what a bead is wider
+than its spacing, it sticks out by half the XY distance at most, or by half that
+excess where that is more, and on a tapering strip by up to 0.025 mm more, as a
+path takes the wider of the widths at its ends, which may differ by 0.05 mm. A
+part narrower than half a line prints nothing, nor does one narrower than two
+lines too short for a bead along its middle, a dot. The trees inside a hollow
+body take what the walls and these beads print for walls, and grow under them
+where they lie over the inside of the body below. A body narrower than two lines
+all over, a speck or the tip of a branch, keeps its loop. The wide parts are
+what is left of the body shrunk by a line and grown back, kept within the body:
+grown back to sharp corners, the sides of a bump too narrow to keep would meet
+past its top, and the wall round them would print out of the body, into the
+model where the body lies at its least distance from it.
 
 A wall starts at its seam without the anchor other tree supports turn in along a
 second loop a line inside it, on the infill of the body: inside the walls of an

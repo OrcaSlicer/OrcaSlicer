@@ -929,6 +929,58 @@ Polygons organic_bead(const Polyline &axis, double width)
     return offset(axis, float(0.5 * width), jtRound, SCALED_EPSILON, etOpenRound);
 }
 
+ThickPolylines organic_body_middles(const Polygons &bodies, ExPolygons &axis_regions, const coord_t width,
+    const coordf_t strip_widening)
+{
+    // A wall goes round a part of a body narrower than two lines, as the neck of a small branch merging into it, by
+    // running back over its own bead, and does so on every layer the branches take to merge at fine layer heights.
+    const float half = 0.5f * float(width);
+    // Where the bodies are a line wide at least: the regions half a line inside them, grown back.
+    const ExPolygons         line_wide = offset_ex(axis_regions, half + ClipperSafetyOffset);
+    std::vector<BoundingBox> line_wide_boxes;
+    line_wide_boxes.reserve(line_wide.size());
+    for (const ExPolygon &part : line_wide)
+        line_wide_boxes.emplace_back(get_extents(part.contour));
+    const auto in_line_wide = [&line_wide, &line_wide_boxes](const Point &point) {
+        for (size_t i = 0; i < line_wide.size(); ++ i)
+            if (line_wide_boxes[i].contains(point) && line_wide[i].contains(point))
+                return true;
+        return false;
+    };
+    ExPolygons looped;
+    for (ExPolygon &region : axis_regions) {
+        // Clipped to the region: regrown to sharp corners, the sides of a part too narrow to keep are carried on to
+        // where they meet, past its end, and the wall round them would print out of the body.
+        ExPolygons wide = intersection_ex(opening_ex({ region }, half - float(SCALED_EPSILON)), ExPolygons{ region });
+        // A body narrower than two lines all over, a speck or the tip of a branch, keeps its loop.
+        if (wide.empty())
+            looped.emplace_back(std::move(region));
+        else
+            append(looped, std::move(wide));
+    }
+    // The parts of the bodies the walls do not cover, without the slivers along them: the necks, and the strips
+    // narrower than a line, as between a hole and the outline, which leave no axis half a line inside it. Taken apart
+    // from the necks they run on from, the strips would print in short beads apart from what holds them up. The
+    // Voronoi paths are taken unpruned: the ExPolygon wrapper drops the ones shorter than twice the widest section, the
+    // whole of a small branch.
+    ThickPolylines middles;
+    for (const ExPolygon &thin : opening_ex(diff_ex(closing(bodies, float(SCALED_EPSILON)),
+                                                    offset_ex(looped, half + ClipperSafetyOffset)), 0.5f * half))
+        Geometry::MedialAxis(half, 2. * double(width), thin).build(&middles);
+    axis_regions = std::move(looped);
+    // Not a dot, which carries far less than its round footprint suggests.
+    middles.erase(std::remove_if(middles.begin(), middles.end(),
+        [half](const ThickPolyline &middle) { return middle.length() < 0.5 * half; }), middles.end());
+    // Nor a bead narrower than a line, as where a neck narrows to one: it carries less than the layer above stands on
+    // and may miss the bead below, which a loop a line wide would have covered. But a strip narrower than a line would
+    // print out of the body. The widths go by the ends of the segments.
+    for (ThickPolyline &middle : middles)
+        for (size_t i = 0; i < middle.width.size(); ++ i)
+            middle.width[i] = std::max(middle.width[i], in_line_wide(middle.points[(i + 1) / 2]) ? coordf_t(width) :
+                std::min(coordf_t(width), middle.width[i] + strip_widening));
+    return middles;
+}
+
 Polylines organic_uncovered_wall_parts(const Polyline &axis, const Polygons &covered_axes, coord_t width)
 {
     // Where the wall runs along the edge of the fill, its axis enters and leaves the covered area

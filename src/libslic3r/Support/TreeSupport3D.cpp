@@ -5120,7 +5120,8 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
     // material the trees stand on and keep out of, and carry on the layer below; and the inside of its bodies, where the
     // trees grow, their walls fusing with the wall of the body by a quarter of a line, as in a corner a part of a tree
     // narrower than a line, which prints nothing, leaves it a few hundredths off the wall. The wall is printed half a
-    // line inside the outline, but not where the body is narrower than a line. See tree_supports_generate_paths().
+    // line inside the outline round the parts of a body at least two lines wide, and the rest as a bead along its
+    // middle, but not where it is narrower than half a line, nor a dot. See organic_body_middles().
     struct Printed
     {
         ExPolygons islands;
@@ -5167,7 +5168,18 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
                             // first wall, and the paths cut them against the second one where they print it. See
                             // generate_support_toolpaths().
                             Polygons in = offset(island, - 0.75f * float(width));
-                            append(out.walls, diff(opening(to_polygons(island), half), in));
+                            // What the paths print of the island: the walls round its parts at least two lines wide,
+                            // or round the whole of it where it is narrower all over, and the beads along the middle
+                            // of the rest, which leave out a part too short for one, a dot, even one wider than a line.
+                            const Polygons outline = to_polygons(island);
+                            ExPolygons     looped  = closing_ex(outline, float(SCALED_EPSILON),
+                                float(SCALED_EPSILON) + half);
+                            Polygons       walls;
+                            for (const ThickPolyline &middle : organic_body_middles(outline, looped, width, 0.))
+                                append(walls, organic_bead(middle,
+                                    *std::max_element(middle.width.begin(), middle.width.end())));
+                            append(walls, offset(looped, half));
+                            append(out.walls, diff(intersection(walls, outline), in));
                             // A hole in a body is as open as its inside: the trees grow in it too, beside its walls.
                             Polygons holes;
                             for (Polygon hole : island.holes) {

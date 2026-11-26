@@ -2468,6 +2468,101 @@ TEST_CASE("Organic trees under a solid part of a hollow body hold every bead of 
         scaled<double>(0.01) * scaled<double>(0.01));
 }
 
+TEST_CASE("Organic trees hold up a strip of a body narrower than a line over the inside of the body below", "[TreeSupport][Material][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    // Lines 0.22 mm wide, layers 0.02 mm, tips 0.8 mm across, a branch angle of 40 degrees, a preferred one of 25 and a
+    // diameter angle of 5. A body 6 mm square, hollow, and on its top layer a body 4 mm square over its inside, with a
+    // hole leaving a strip 0.13 mm wide along one side: narrower than a line, the paths print it as a bead along its
+    // middle, which the trees of the layer below hold up as they do the walls.
+    const double line_width = 0.22, layer_height = 0.02;
+    TreeSupportSettings settings;
+    settings.support_line_width               = scaled<coord_t>(line_width);
+    settings.layer_height                     = scaled<coord_t>(layer_height);
+    settings.min_radius                       = scaled<coord_t>(0.4);
+    settings.maximum_move_distance            = scaled<coord_t>(std::tan(40. * PI / 180.) * layer_height);
+    settings.maximum_move_distance_slow       = scaled<coord_t>(std::tan(25. * PI / 180.) * layer_height);
+    settings.branch_radius_increase_per_layer = scaled<double>(std::tan(5. * PI / 180.) * layer_height);
+    settings.support_rests_on_model           = false;
+    const Polygon wide({ Point::new_scale(-3., -3.), Point::new_scale(3., -3.), Point::new_scale(3., 3.),
+                         Point::new_scale(-3., 3.) });
+    const Polygon top({ Point::new_scale(-2., -2.), Point::new_scale(2., -2.), Point::new_scale(2., 2.),
+                        Point::new_scale(-2., 2.) });
+    const Polygon hole({ Point::new_scale(-1.5, -1.5), Point::new_scale(1.5, -1.5), Point::new_scale(1.5, 1.87),
+                         Point::new_scale(-1.5, 1.87) });
+    const size_t num_layers = 20;
+    std::vector<SupportGeneratorLayer> storage(num_layers);
+    std::vector<Polygons> roofs(num_layers), model(num_layers);
+    SupportGeneratorLayersPtr bodies(num_layers, nullptr);
+    for (size_t i = 0; i < storage.size(); ++ i) {
+        SupportGeneratorLayer &layer = storage[i];
+        layer.bottom_z = layer_height * double(i);
+        layer.print_z  = layer.bottom_z + layer_height;
+        layer.height   = layer_height;
+        layer.polygons = i + 1 < num_layers ? Polygons{ wide } : diff(Polygons{ top }, Polygons{ hole });
+        bodies[i]      = &layer;
+    }
+    organic_grow_trees_inside_hollow_bodies(bodies, roofs, model, settings, settings.support_line_width,
+        settings.support_line_width);
+    const SupportGeneratorLayer &below = storage[num_layers - 2];
+    REQUIRE_FALSE(below.inner_trees.empty());
+    // The middle of the strip lies within a line of the trees, as the walls do.
+    const Polygons held = offset(below.inner_trees, float(settings.support_line_width + SCALED_EPSILON));
+    for (const double x : { -1.2, -0.6, 0., 0.6, 1.2 }) {
+        CAPTURE(x);
+        CHECK(contains(held, Point::new_scale(x, 1.935)));
+    }
+}
+
+TEST_CASE("Organic trees grow under what lies beside a tab of a body too short to print", "[TreeSupport][Material][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    // Lines 0.22 mm wide, layers 0.02 mm, tips 0.8 mm across, a branch angle of 40 degrees, a preferred one of 25 and a
+    // diameter angle of 5. A body 6 mm square, hollow, with a hole 3 mm square, and a tab reaching into the hole from
+    // its edge: 0.12 mm wide and 0.15 mm long, more than half a line wide, or 0.24 mm wide and 0.25 mm long, more
+    // than a line wide, both too short for a bead along their middle, which would be a dot. On the top layer a body
+    // 0.28 mm square over the hole, in line with the tab and reaching 0.07 mm over its end: within a line of the tab,
+    // but not of the wall along the edge, it stands on a tree.
+    const bool wide_tab = GENERATE(false, true);
+    CAPTURE(wide_tab);
+    const double tab_half = wide_tab ? 0.12 : 0.06, tab_end = wide_tab ? 1.25 : 1.35, top_low = tab_end - 0.21;
+    const double line_width = 0.22, layer_height = 0.02;
+    TreeSupportSettings settings;
+    settings.support_line_width               = scaled<coord_t>(line_width);
+    settings.layer_height                     = scaled<coord_t>(layer_height);
+    settings.min_radius                       = scaled<coord_t>(0.4);
+    settings.maximum_move_distance            = scaled<coord_t>(std::tan(40. * PI / 180.) * layer_height);
+    settings.maximum_move_distance_slow       = scaled<coord_t>(std::tan(25. * PI / 180.) * layer_height);
+    settings.branch_radius_increase_per_layer = scaled<double>(std::tan(5. * PI / 180.) * layer_height);
+    settings.support_rests_on_model           = false;
+    const Polygon wide({ Point::new_scale(-3., -3.), Point::new_scale(3., -3.), Point::new_scale(3., 3.),
+                         Point::new_scale(-3., 3.) });
+    const Polygon hole({ Point::new_scale(-1.5, -1.5), Point::new_scale(1.5, -1.5), Point::new_scale(1.5, 1.5),
+                         Point::new_scale(-1.5, 1.5) });
+    const Polygon tab({ Point::new_scale(-tab_half, tab_end), Point::new_scale(tab_half, tab_end),
+                        Point::new_scale(tab_half, 1.55), Point::new_scale(-tab_half, 1.55) });
+    const Polygon top({ Point::new_scale(-0.14, top_low), Point::new_scale(0.14, top_low),
+                        Point::new_scale(0.14, top_low + 0.28), Point::new_scale(-0.14, top_low + 0.28) });
+    const size_t num_layers = 20;
+    std::vector<SupportGeneratorLayer> storage(num_layers);
+    std::vector<Polygons> roofs(num_layers), model(num_layers);
+    SupportGeneratorLayersPtr bodies(num_layers, nullptr);
+    for (size_t i = 0; i < storage.size(); ++ i) {
+        SupportGeneratorLayer &layer = storage[i];
+        layer.bottom_z = layer_height * double(i);
+        layer.print_z  = layer.bottom_z + layer_height;
+        layer.height   = layer_height;
+        layer.polygons = i + 1 < num_layers ? union_(diff(Polygons{ wide }, Polygons{ hole }), Polygons{ tab }) :
+                                              Polygons{ top };
+        bodies[i]      = &layer;
+    }
+    organic_grow_trees_inside_hollow_bodies(bodies, roofs, model, settings, settings.support_line_width,
+        settings.support_line_width);
+    CHECK_FALSE(intersection(storage[num_layers - 2].inner_trees, Polygons{ top }).empty());
+}
+
 TEST_CASE("Organic trees keep out of a hole of a body that opens to the outside below", "[TreeSupport][Material][Regression]")
 {
     using namespace Slic3r;

@@ -755,42 +755,20 @@ void tree_supports_generate_paths(
     // The regions the first walls go round, half a line inside the bodies.
     ExPolygons axis_regions = closing_ex(polygons, float(SCALED_EPSILON), float(SCALED_EPSILON + 0.5 * flow.scaled_width()));
     if (support_params.support_style == smsTreeOrganic) {
-        // Organic: a wall cannot go round a part of a body narrower than two lines, as the neck of a small branch merging
-        // into it, without running back over its own bead, and does so on every layer the branches take to merge at fine
-        // layer heights. The walls go round the parts at least two lines wide, and the rest prints as one bead along its
-        // middle, as wide as it is.
-        const float    half = float(0.5 * flow.scaled_width());
-        ExPolygons     looped;
-        ThickPolylines middles;
-        for (ExPolygon &region : axis_regions) {
-            // Clipped to the region: regrown to sharp corners, the sides of a part too narrow to keep are carried on to where
-            // they meet, past its end, and the wall round them would print out of the body.
-            ExPolygons wide = intersection_ex(opening_ex({ region }, half - float(SCALED_EPSILON)), ExPolygons{ region });
-            // A body narrower than two lines all over, a speck or the tip of a branch, keeps its loop.
-            if (wide.empty()) {
-                looped.emplace_back(std::move(region));
-                continue;
-            }
-            // The parts of the body the walls round its wide parts do not cover, without the slivers along those walls. The
-            // Voronoi paths are taken unpruned: the ExPolygon wrapper drops the ones shorter than twice the widest section,
-            // the whole of a small branch.
-            for (const ExPolygon &thin : opening_ex(diff_ex(offset_ex(region, half), offset_ex(wide, half + ClipperSafetyOffset)),
-                                                    0.5f * half))
-                Geometry::MedialAxis(half, 2. * flow.scaled_width(), thin).build(&middles);
-            append(looped, std::move(wide));
-        }
-        for (ThickPolyline &middle : middles)
-            // Not a dot, which carries far less than its round footprint suggests.
-            if (middle.length() >= 0.5 * half) {
-                // Nor a bead narrower than a line, as where a neck narrows to one: it carries less than the layer above
-                // stands on and may miss the bead below, which a loop a line wide would have covered.
-                for (coordf_t &width : middle.width)
-                    width = std::max(width, coordf_t(flow.scaled_width()));
-                if (ExtrusionMultiPath bead = thick_polyline_to_multi_path(middle, ExtrusionRole::erSupportMaterial, flow,
-                        scaled<float>(0.05), float(SCALED_EPSILON)); ! bead.paths.empty())
-                    dst.emplace_back(new ExtrusionMultiPath(std::move(bead)));
-            }
-        axis_regions = std::move(looped);
+        // Organic: the walls go round the parts of the bodies at least two lines wide, and the rest prints as one bead
+        // along its middle, see organic_body_middles(). The bead of a strip narrower than a line is wider than the
+        // strip by a quarter of a line at most: a line wide, it would print into the model where the body lies at its
+        // least distance from it. At a small XY distance it is narrower still: with what a bead is wider than its
+        // spacing, which the paths add to it, it prints out of the strip by half the XY distance at most, unless half
+        // that excess takes it further. Where the bodies come closer to the model than the XY distance, to half the
+        // width of its outer wall, the quarter of a line keeps it off. A path piece takes the wider of the widths at
+        // its ends, which its tolerance keeps 0.05 mm apart at most.
+        const coordf_t over = scaled<double>(flow.height() * (1. - 0.25 * PI));
+        for (const ThickPolyline &middle : organic_body_middles(polygons, axis_regions, flow.scaled_width(),
+                 std::min(0.25 * flow.scaled_width(), scaled<double>(support_params.gap_xy) - over)))
+            if (ExtrusionMultiPath bead = thick_polyline_to_multi_path(middle, ExtrusionRole::erSupportMaterial, flow,
+                    scaled<float>(0.05), float(SCALED_EPSILON)); ! bead.paths.empty())
+                dst.emplace_back(new ExtrusionMultiPath(std::move(bead)));
     }
     for (ExPolygon& expoly : axis_regions) {
         std::unique_ptr<ExtrusionEntityCollection> eec;
