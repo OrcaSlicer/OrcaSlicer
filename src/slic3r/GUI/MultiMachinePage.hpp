@@ -27,6 +27,8 @@
 namespace Slic3r { 
 namespace GUI {
 
+class MultiMachineCameraPage;
+
 #define PICK_LEFT_PADDING_LEFT 15
 #define PICK_LEFT_PRINTABLE    40
 #define PICK_LEFT_DEV_NAME 250
@@ -41,6 +43,7 @@ private:
     LocalTaskManagerPage*       m_local_task_manager{ nullptr };
     CloudTaskManagerPage*       m_cloud_task_manager{ nullptr };
     MultiMachineManagerPage*    m_machine_manager{ nullptr };
+    MultiMachineCameraPage*     m_cameras{ nullptr };
     Tabbook*                    m_tabpanel{ nullptr };
 
 public:
@@ -58,6 +61,8 @@ public:
     void on_timer(wxTimerEvent& event);
 
     void clear_page();
+    void suspend_cameras();
+    void resume_cameras();
 };
 
 

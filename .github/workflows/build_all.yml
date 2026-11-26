@@ -133,6 +133,9 @@ jobs:
         shell: powershell
         run: .\scripts\test_prune_cached_presets.ps1
 
+      - name: Run LAN diagnostic regressions
+        run: python -m unittest discover -s tools/lan_monitor_probe/tests -v
+
   build_linux:
     strategy:
       fail-fast: false

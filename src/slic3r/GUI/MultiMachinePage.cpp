@@ -1,4 +1,7 @@
 #include "MultiMachinePage.hpp"
+#include "format.hpp"
+#include "LanMonitorManager.hpp"
+#include "MultiMachineCameraPage.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 
@@ -64,11 +67,16 @@ void MultiMachinePage::jump_to_send_page()
 
 void MultiMachinePage::on_sys_color_changed()
 {
+    if (m_cameras) m_cameras->on_sys_color_changed();
 }
+
+void MultiMachinePage::suspend_cameras() { if (m_cameras) m_cameras->suspend(); }
+void MultiMachinePage::resume_cameras() { if (m_cameras) m_cameras->resume(); }
 
 void MultiMachinePage::msw_rescale()
 {
     m_tabpanel->Rescale();
+    if (m_cameras) m_cameras->rescale();
     if (m_local_task_manager)
         m_local_task_manager->msw_rescale();
     if (m_cloud_task_manager)
@@ -111,10 +119,12 @@ void MultiMachinePage::init_tabpanel()
     m_local_task_manager = new LocalTaskManagerPage(m_tabpanel);
     m_cloud_task_manager = new CloudTaskManagerPage(m_tabpanel);
     m_machine_manager = new MultiMachineManagerPage(m_tabpanel);
+    m_cameras = new MultiMachineCameraPage(m_tabpanel);
 
     m_tabpanel->AddPage(m_machine_manager, _L("Device"), true);
     m_tabpanel->AddPage(m_local_task_manager, _L("Task Sending"), false);
     m_tabpanel->AddPage(m_cloud_task_manager, _L("Task Sent"), false);
+    m_tabpanel->AddPage(m_cameras, _L("Cameras"), false);
 }
 
 void MultiMachinePage::init_timer()
@@ -150,6 +160,7 @@ DevicePickItem::DevicePickItem(wxWindow* parent, MachineObject* obj)
 
     SetMinSize(wxSize(FromDIP(400), FromDIP(30)));
     SetMaxSize(wxSize(FromDIP(400), FromDIP(30)));
+    if (obj->supports_lan_monitoring()) SetToolTip(_L("LAN: monitoring only"));
 
     Bind(wxEVT_PAINT, &DevicePickItem::paintEvent, this);
     Bind(wxEVT_ENTER_WINDOW, &DevicePickItem::OnEnterWindow, this);
@@ -307,8 +318,11 @@ void DevicePickItem::doRender(wxDC& dc)
     left += FromDIP(PICK_LEFT_PRINTABLE);
 
     //dev names
-    DrawTextWithEllipsis(dc, wxString::FromUTF8(get_obj()->get_dev_name()), FromDIP(PICK_LEFT_DEV_NAME), left);
-    left += FromDIP(PICK_LEFT_DEV_NAME);
+    const int name_width = obj_->supports_lan_monitoring() ? FromDIP(180) : FromDIP(PICK_LEFT_DEV_NAME);
+    DrawTextWithEllipsis(dc, wxString::FromUTF8(get_obj()->get_dev_name()), name_width, left);
+    left += name_width;
+    if (obj_->supports_lan_monitoring())
+        DrawTextWithEllipsis(dc, _L("LAN: monitoring only"), std::max(1, size.x - left - FromDIP(10)), left);
 }
 void DevicePickItem::post_event(wxCommandEvent&& event)
 {
@@ -341,7 +355,7 @@ MultiMachinePickPage::MultiMachinePickPage(Plater* plater /*= nullptr*/)
     auto line_top = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
     line_top->SetBackgroundColour(wxColour(166, 169, 170));
 
-    m_label = new Label(this, _L("Select connected printers (0/6)"));
+    m_label = new Label(this, format_wxstr(_L("Selected printers: %1%/6"), 0));
 
     scroll_macine_list = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
     scroll_macine_list->SetSize(wxSize(FromDIP(400), FromDIP(10 * 30)));
@@ -397,7 +411,7 @@ void MultiMachinePickPage::update_selected_count()
     }
 
     m_selected_count = count;
-    m_label->SetLabel(wxString::Format(_L("Select Connected Printers (%d/6)"), m_selected_count));
+    m_label->SetLabel(format_wxstr(_L("Selected printers: %1%/6"), m_selected_count));
 
     if (m_selected_count > PICK_DEVICE_MAX) {
         MessageDialog msg_wingow(nullptr, wxString::Format(_L("The maximum number of printers that can be selected is %d"), PICK_DEVICE_MAX), "", wxAPPLY | wxOK);
@@ -435,7 +449,8 @@ void MultiMachinePickPage::refresh_user_device()
        selected_multi_devices.push_back(dev_id);
    }
 
-    sizer_machine_list->Clear(false);
+    sizer_machine_list->Clear(true);
+    m_device_items.clear();
     Slic3r::DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
     if (!dev) {
         for (auto it = m_device_items.begin(); it != m_device_items.end(); it++) {
@@ -445,7 +460,7 @@ void MultiMachinePickPage::refresh_user_device()
         return;
     }
 
-    auto user_machine = dev->get_my_cloud_machine_list();
+    auto user_machine = dev->get_multi_machine_list();
     auto task_manager = wxGetApp().getTaskManager();
 
     std::vector<std::string> subscribe_list;
@@ -465,12 +480,6 @@ void MultiMachinePickPage::refresh_user_device()
             update_selected_count();
         });
 
-        /* if (m_device_items.find(it->first) != m_device_items.end()) {
-             auto item = m_device_items[it->first];
-             if (item->state_selected == 1 && di->state_printable <= 2)
-                 di->state_selected = item->state_selected;
-             item->Destroy();
-         }*/
         m_device_items[it->first] = di;
 
         //update state
@@ -485,12 +494,13 @@ void MultiMachinePickPage::refresh_user_device()
         }
 
         sizer_machine_list->Add(di, 0, wxALL | wxEXPAND, 0);
-        subscribe_list.push_back(it->first);
+        if (!it->second->is_lan_mode_printer()) subscribe_list.push_back(it->first);
     }
 
     dev->subscribe_device_list(subscribe_list);
 
     sizer_machine_list->Layout();
+    scroll_macine_list->FitInside();
     Layout();
     Fit();
 }

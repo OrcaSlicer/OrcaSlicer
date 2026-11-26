@@ -20,8 +20,6 @@ private:
     int  decode_error_count = 0;
 
     int  diff_objects(nlohmann::json const &in, nlohmann::json &out, nlohmann::json const &base);
-    int  restore_objects(nlohmann::json const &in, nlohmann::json &out, nlohmann::json const &base);
-    int  restore_append_objects(nlohmann::json const &in, nlohmann::json &out);
     void merge_objects(nlohmann::json const &in, nlohmann::json &out);
 
 public:
