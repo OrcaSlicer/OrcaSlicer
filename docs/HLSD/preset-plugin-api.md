@@ -14,7 +14,8 @@ unsaved edits remain under Orca's existing preset workflow.
 The API does not create or delete presets or provide off-tab editing. For filament,
 choosing a different `preset_name` as the update target also selects that preset for
 the requested slot, following the normal UI flow. A standalone slot-assignment or
-preset-fork operation is outside this API's contract.
+preset-fork operation is outside this API's contract. A slot's color is project state,
+not a preset setting; `set_slot_color()` sets it (see "Filament slot color").
 
 ## Preset and slot model
 
@@ -238,6 +239,25 @@ preset and its config-derived state on failure (see "Staging and commit semantic
 the limit of that rollback). Since `begin_update()` performs target selection before the
 caller stages values, invalid staged values can still follow a user-visible selection
 prompt; that is a consequence of this API shape and remains explicit in its behavior.
+
+## Filament slot color
+
+A filament slot's color is project state (`filament_colour`, `filament_colour_type` and
+`filament_multi_colour` in the project config), not a filament preset setting, so it is
+outside the transaction lifecycle. `orca.host.preset.filament.set_slot_color(slot_number,
+colors, gradient=False)` sets it the way picking a color in the sidebar does: it calls the
+slot combo's `PlaterPresetComboBox::sync_colour_config()` and queues
+`EVT_FILAMENT_COLOR_CHANGED`, so the project, the 3D view and the flushing volumes follow, and
+no preset changes or becomes dirty. `colors` holds one `#RRGGBB` color, or several for a
+multi-color filament drawn as segments or, with `gradient`, blended.
+
+Colors are validated before the UI thread is touched. A slot that does not resolve, and a
+mixed-color virtual slot, whose color comes from the filaments it mixes, are rejected. The
+call runs on the UI thread and does not prompt, so it may also be made from a window's message
+callback.
+
+A plugin that assigns a preset to a slot sets the color afterwards: selecting a preset without
+an AMS tray behind the slot gives it that preset's `default_filament_colour`.
 
 ## Integration boundary
 
