@@ -376,7 +376,12 @@ public:
     /* E3D has extra nozzle flow type info */
     bool has_extra_flow_type{false};
 
-    [[nodiscard]] bool is_nozzle_flow_type_supported() const { return is_enable_np | has_extra_flow_type; };
+    // The device reported a nozzle type that names a flow variant (the "S"/"H" in
+    // HS00/HH00). The NP markers alone are not a capability: some agents fill
+    // cfg/fun/aux/stat as compatibility stubs.
+    bool has_nozzle_flow_type_info{false};
+
+    [[nodiscard]] bool is_nozzle_flow_type_supported() const;
     [[nodiscard]] wxString get_nozzle_replace_url() const;
 
     /*online*/

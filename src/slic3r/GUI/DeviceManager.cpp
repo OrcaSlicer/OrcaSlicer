@@ -2825,6 +2825,7 @@ void MachineObject::reset()
         subtask_ = nullptr;
     }
     has_extra_flow_type = false;
+    has_nozzle_flow_type_info = false;
     m_partskip_ids.clear();
 }
 
@@ -3102,6 +3103,58 @@ static ENUM enum_index_of(char const *key, char const **enum_names, int enum_cou
     for (int i = 0; i < enum_count; ++i)
         if (strcmp(enum_names[i], key) == 0) return static_cast<ENUM>(i);
     return defl;
+}
+
+// A flow-capable nozzle type names its flow variant in the second character:
+// "HS00" standard, "HH00" high flow, "HU00" TPU high flow, "HB00" E3D high
+// flow. Plain type names and "N/A" carry no flow information. Keep this in step
+// with DevNozzleSystemParser's _str2_nozzle_flow_type table.
+static bool nozzle_type_reports_flow_type(const json& nozzle_type)
+{
+    if (!nozzle_type.is_string())
+        return false;
+
+    const std::string type = nozzle_type.get<std::string>();
+    if (type.size() < 4)
+        return false;
+
+    switch (type[1]) {
+    case 'S':
+    case 'H':
+    case 'A':
+    case 'X':
+    case 'E':
+    case 'U':
+    case 'B': return true;
+    default: return false;
+    }
+}
+
+// device.nozzle.info[] is the new-protocol nozzle report. Its presence is not
+// enough by itself: entries may use "N/A" or another type without a flow
+// variant, and some agents send "device" for unrelated fields only.
+static bool device_reports_nozzle_flow_type(const json& device)
+{
+    if (!device.is_object())
+        return false;
+
+    const auto nozzle_it = device.find("nozzle");
+    if (nozzle_it == device.end() || !nozzle_it->is_object())
+        return false;
+
+    const auto info_it = nozzle_it->find("info");
+    if (info_it == nozzle_it->end() || !info_it->is_array())
+        return false;
+
+    for (const auto& nozzle : *info_it) {
+        if (!nozzle.is_object())
+            continue;
+        const auto type_it = nozzle.find("type");
+        if (type_it != nozzle.end() && nozzle_type_reports_flow_type(*type_it))
+            return true;
+    }
+
+    return false;
 }
 
 int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_field_only)
@@ -4011,6 +4064,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 
                         if (jj.contains("nozzle_diameter") && jj.contains("nozzle_type"))
                         {
+                            if (nozzle_type_reports_flow_type(jj["nozzle_type"]))
+                                has_nozzle_flow_type_info = true;
+
                             std::optional<int> flag_e3d;
                             if (jj.contains("flag3")) {
                                 int flag3           = jj["flag3"].get<int>();
@@ -5579,6 +5635,24 @@ DevAmsTray MachineObject::get_tray(const std::string &ams_id, const std::string 
     return DevAmsTray(tray_id);
 }
 
+bool MachineObject::is_nozzle_flow_type_supported() const
+{
+    if (has_extra_flow_type || has_nozzle_flow_type_info)
+        return true;
+
+    // Preserve the previous Bambu validation path: its pre-print check must still reject an invalid
+    // (NONE) nozzle report. Other agents also send cfg/fun/aux/stat so parse_new_info() can read
+    // the fields they do support, so those markers alone are not a flow-type capability there.
+    if (!is_enable_np)
+        return false;
+
+    const std::string agent_id = !printer_agent_id.empty() ? printer_agent_id :
+                                 m_manager ? m_manager->get_current_printer_agent_id() : std::string();
+    // Empty after both lookups means no agent identity is known (legacy object or no manager);
+    // keep the previous Bambu behavior for it.
+    return agent_id.empty() || agent_id == BBL_PRINTER_AGENT_ID;
+}
+
 bool MachineObject::check_enable_np(const json& print) const
 {
     if (print.contains("cfg") && print.contains("fun") && print.contains("aux") && print.contains("stat"))
@@ -5804,6 +5878,9 @@ void MachineObject::parse_new_info(json print)
         }
 
         DevBed::ParseV2_0(device,m_bed);
+
+        if (device_reports_nozzle_flow_type(device))
+            has_nozzle_flow_type_info = true;
 
         // Pass the whole device json: ParseV2_0 reads ext/rack nozzles from device["nozzle"] and the
         // hotend-rack state from device["holder"] (rack data lives outside device["nozzle"]). It is a
