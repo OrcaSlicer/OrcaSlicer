@@ -13,7 +13,9 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
+#include <wx/gdicmn.h>
 #include <wx/string.h>
 
 #include "slic3r/GUI/3DBed.hpp"
@@ -112,6 +114,7 @@ public:
     void set_sidebar_collapse_tooltip(const std::string& tooltip);
     // N: look straight down the sketch plane's normal, keeping the current zoom. A sketch drawn
     // at an angle is a sketch drawn wrong, and no amount of orbiting by hand lands exactly square.
+    // False, the camera untouched, when no sketch is open.
     bool view_normal_to_sketch();
     void cancel_sketch();
     void set_on_sketch_commit(std::function<void(const SketchProfile&, const SketchPlane&)> cb);
@@ -160,6 +163,11 @@ public:
     void set_on_empty_pick(std::function<void()> cb);   // a click or rubber band took nothing
     std::vector<int> selected_solid_edges() const;   // the Shift/Ctrl+click edge set, last-clicked at the end
     void select_body(int body);   // Parts-list -> highlight a whole body by index
+    // A face, an edge set or a vertex of a body selected by id, as a click picks it
+    // (DesignSketchTool::select_solid()); and the picked vertex's point, where the view draws it.
+    bool  select_solid(DesignSketchTool::SolidSel kind, int body, int face, const std::vector<int>& edges,
+                       const Vec3d& vertex_pt);
+    Vec3d selected_vertex_point() const { return m_sketch_tool.selected_vertex_point(); }
     // Effective display colour of a body: the per-body override (Color tool) when set,
     // otherwise the auto body-index palette. Single source of truth shared with reload().
     ColorRGBA body_color(int body) const;
@@ -290,13 +298,17 @@ public:
     bool can_redo_sketch_entity() const { return m_sketch_tool.can_redo_entity(); }
     void clear_sketch_selection();
 
-    // View toggles (keys P / A): origin planes, world axis triad. Each returns the new on/off
-    // state so the caller can echo it in the status bar.
+    // View switches: the origin helper planes and the world axis triad. The toggles (keys P / A)
+    // return the new on/off state so the caller can echo it in the status bar.
+    void set_show_planes(bool on);
+    bool show_planes() const { return m_sketch_tool.show_planes(); }
+    void set_show_axes(bool on);
+    bool show_axes() const { return m_sketch_tool.show_axes(); }
     bool toggle_planes();
     bool toggle_axes();
 
-    // Section views (non-destructive): the panel owns the named "Section View N" list; the canvas
-    // just applies/clears one horizontal clip at a time. model_mid_z() is the default cut height.
+    // Section view (non-destructive): the panel owns the cut height and the half kept; the canvas
+    // applies or clears one horizontal clip. model_mid_z() is the default cut height.
     void   set_section_plane(bool on, double z, bool keep_upper = false);
     double model_mid_z() const;
 
@@ -382,9 +394,11 @@ public:
     // Public: DesignPanel calls it after a tree edit to force a frame on software GL.
     // Scripted (MCP) access to the live sketch. One accessor rather than a passthrough per
     // verb: the MCP layer drives the SAME tool the mouse drives, which is the whole point of
-    // having it — a socket that talked to a private copy would prove nothing about the app.
+    // having it — a Design command that talked to a private copy would prove nothing about the app.
     DesignSketchTool&       mcp_sketch_tool()       { return m_sketch_tool; }
     const DesignSketchTool& mcp_sketch_tool() const { return m_sketch_tool; }
+    // The view's GL canvas, which MCP captures and sends input to as it does Prepare's.
+    GLCanvas3D* gl_canvas() const { return m_canvas; }
 
     void request_repaint();
     // Repaint synchronously, once the pending show/resize has settled. Needed when the
@@ -417,6 +431,9 @@ private:
 
     wxGLCanvas* m_canvas_widget{nullptr};
     GLCanvas3D* m_canvas{nullptr};
+    // Where the desktop pointer was, in screen coordinates, when it last left the canvas; none until it first does.
+    // The canvas's ENTER_WINDOW handler takes the focus only for a pointer that has moved since.
+    std::optional<wxPoint> m_pointer_left_at;
     int         m_sw_gl{-1};   // -1 unknown, 0 hardware GL, 1 software GL
     GLToolbar   m_collapse_toolbar{GLToolbar::Normal, "Collapse"};
 
@@ -444,10 +461,6 @@ private:
     const std::vector<CadBody>* m_color_bodies{nullptr};
 
     DesignSketchTool m_sketch_tool;
-
-    // Section view: whether a horizontal clip is currently applied (guards Alt+Wheel). The cut
-    // height and the named-view list live in DesignPanel; the canvas is a dumb applier.
-    bool m_section_on{false};
 
     std::unique_ptr<SketchInlineEditor> m_inline_editor;  // floating in-canvas value editor
     // The viewport chips, drawn in the tool's ImGui pass (render_hud): bottom-right the active

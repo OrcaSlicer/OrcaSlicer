@@ -168,7 +168,7 @@ infer_relations(const std::vector<SketchEntity>& entities, int new_ei,
     // function is quadratic in the sketch: a drawing with 200 equal holes yields ~20000
     // EqualRadius candidates, the batch is rejected as over-constrained, and the caller's
     // one-at-a-time fallback then runs a solve per constraint. Measured 2026-08-31: that
-    // pinned the app at 95% of a core with the MCP socket unresponsive -- the same failure
+    // pinned the app at 95% of a core and left it unresponsive -- the same failure
     // the axes batch above already carries a warning about. Keep the best candidate only.
     int    best_ang_j = -1, best_rad_j = -1, best_tan_j = -1;
     double best_ang_err = 1e30, best_rad_err = 1e30, best_tan_err = 1e30;

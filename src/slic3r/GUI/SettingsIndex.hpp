@@ -100,6 +100,9 @@ public:
 
     void add_key(const std::string &opt_key, Preset::Type type, const wxString &group, const wxString &category,
                  const wxString &icon = wxEmptyString);
+    // Forget where the copies "opt_key#n" of an option are, for every n from `first` up: the extruders a printer
+    // lacks. Their values can outlast them in the config, as variants, and would be indexed on those extruders' pages.
+    void remove_indexed_keys(const std::string &opt_key, Preset::Type type, size_t first);
     void set_path(const std::string &opt_key, Preset::Type type, const std::string &path);
     // Record the label the option's row draws and its untranslated English, so the Speed Dial names a
     // setting like the page (ConfigOptionDef::label/full_label is a search name, not the row text).
