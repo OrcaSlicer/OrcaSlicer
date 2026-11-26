@@ -241,6 +241,7 @@ public:
     // EViewType::Speed
     // EViewType::ActualSpeed
     // EViewType::FanSpeed
+    // EViewType::AdditionalFanSpeed
     // EViewType::Temperature
     // ORCA: Add Pressure Advance visualization support
     // EViewType::PressureAdvance
@@ -263,6 +264,7 @@ public:
     // EViewType::Speed
     // EViewType::ActualSpeed
     // EViewType::FanSpeed
+    // EViewType::AdditionalFanSpeed
     // EViewType::Temperature
     // ORCA: Add Pressure Advance visualization support
     // EViewType::PressureAdvance
