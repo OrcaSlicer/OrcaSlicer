@@ -2627,6 +2627,7 @@ DynamicPrintConfig slot_tool_warning_config(size_t tools, size_t filaments, bool
     DynamicPrintConfig config = multifilament_config(unsigned(filaments), {
         { "single_extruder_multi_material", semm ? "1" : "0" },
         { "enable_prime_tower",             "0" },
+        { "layer_change_gcode",             "G92 E0\n" },
     });
     config.set_deserialize_strict("nozzle_diameter", nozzle_diameters);
     config.set_deserialize_strict("printer_extruder_id", extruder_ids);
@@ -2764,6 +2765,8 @@ TEST_CASE("Print::validate warns when used filament slots exceed the configured 
         config.set_deserialize_strict({
             { "enable_prime_tower",  "1" },
             { "wipe_tower_filament", "3" },
+            { "wipe_tower_x",        "150" },
+            { "wipe_tower_y",        "20" },
         });
         auto overrides = slot_tool_overrides({ 1, 2 });
         Print print;
@@ -2772,6 +2775,7 @@ TEST_CASE("Print::validate warns when used filament slots exceed the configured 
 
         std::vector<StringObjectException> warnings;
         const StringObjectException err = print.validate(&warnings);
+        INFO(err.string);
         CHECK(err.string.empty());
         CHECK(has_slot_tool_warning(warnings, "3"));
     }
