@@ -428,7 +428,7 @@ class PresetsTest:
 
     def without_remembered_presets(self):
         """remember_printer_config off, so that a printer switch keeps the process and filament that fit the new
-        printer, whatever the data folder remembers it was last used with. The next scenario's start() turns it on
+        printer, whatever the data folder remembers it was last used with. The next start() turns it on
         again, as the baseline has it."""
         self.c.call("preferences_set", values={"remember_printer_config": False})
 
@@ -1766,6 +1766,10 @@ class PresetsTest:
         s = "another extruder"
         t = self.t
         t.equal(f"{s} 1: the start", start(self.c), START)
+        for n in range(1, 5):
+            t.equal(f"{s} 1: slot {n + 1} added", add_slot(self.c, SLOT_COLOURS[n]), n + 1)
+        self.named_selection_is(f"{s} 1: before the switch", named("Klipper | Std | " + ", ".join(["PLA"] * 5)))
+        self.without_remembered_presets()
         self.select("printer", TOOLCHANGER)
         self.named_selection_is(f"{s} 1", named("ToolChanger | TC Std | " + ", ".join(["TC PLA"] * 5)))
         t.equal(f"{s} 1: the nozzles", self.value("printer", "nozzle_diameter"), times(0.4, 5))

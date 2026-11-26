@@ -49,10 +49,10 @@ setting Simple mode hides. Then, once, before the first scenario:
   failed before its step 6 leaves), the processes "MCP Delete Child" and then "MCP Delete Base", and the printer "MCP
   Test Printer", selected first since `preset_delete` takes only the selected printer. Then `start(client)` again.
 
-The hidden presets and nozzle diameter scenarios set `remember_printer_config` false after their start, and the next
-scenario's start sets it back. With it on, a printer switch selects again the process and filaments the printer was
+The hidden presets, nozzle diameter and another extruder scenarios set `remember_printer_config` false after their start, and the next
+`start()` sets it back. With it on, a printer switch selects again the process and filaments the printer was
 last used with, which the data folder keeps per printer and which the tests before this one may have written; with
-it off, the switch keeps the process and filament that fit the new printer, so those two scenarios do
+it off, the switch keeps the process and filament that fit the new printer, so those scenarios do
 not depend on that. The switching rows run with it on and land on what the Klipper 0.8 was last used with, Std and
 PLA, which hidden presets step 2 wrote.
 
@@ -62,9 +62,11 @@ the deleting, exporting and keep and discard scenarios. A run that fails between
 The G-code files the calibration scenarios export are in the test's own folder. Developer mode off, `auto_arrange` and
 `remember_printer_config` on and Simple mode, as the baseline has them: keep and discard and another extruder, the
 last two scenarios, start with `start()`, which turns back what an earlier scenario left changed, such as
-`remember_printer_config`, which the hidden presets and nozzle diameter scenarios turn off. The Generic Klipper
+`remember_printer_config`, which the hidden presets, nozzle diameter and another extruder scenarios turn off. The Generic Klipper
 Printer's 0.2, 0.6 and 0.8 nozzles and the Generic Marlin Printer uninstalled, and the ToolChanger not listed, as the
-start found it; a run that fails in another extruder leaves the ToolChanger listed, which the next run's start hides.
+start found it; a run that fails after the switch in another extruder leaves the ToolChanger listed, which the next
+run's setup hides. A failure after adding the slots leaves the Klipper with five slots, and one after disabling remembered
+presets leaves that preference off; the next `start()` resets both.
 What each printer it selected was last used with: the Klipper's 0.4, 0.6 and 0.8
 nozzles Std and PLA, the Klipper's 0.2 nozzle what the start's install selected with it (0.08mm Extra Fine @MyKlipper
 and PLA in a run after `test_operation_routes`), the Marlin 0.20mm Standard @MyMarlin and PLA, the ToolChanger TC Std
@@ -467,7 +469,8 @@ true}` and leaves the selection `Klipper | Std | PLA[nozzle_temperature 230×6, 
 
 **Scenario: another extruder, on the ToolChanger**
 
-The ToolChanger has five extruders, one per filament slot, and on a multi-tool printer of no Bambu Lab vendor the
+The ToolChanger has five extruders. The scenario adds four slots on the Klipper and turns off remembered printer
+presets before switching: all five slots survive, with their incompatible PLA replaced by TC PLA. On a multi-tool printer of no Bambu Lab vendor the
 automatic filament map prints filament n on tool n (`bed_exclusion_extruder_for_filament()`), so `filament_slot` picks
 the extruder. Tool 2 is given a 0.6 nozzle, so that what a test takes from its extruder differs from tool 1's: the max
 volumetric speed tower's own `layer_height` is 0.8 × its extruder's nozzle and its `outer_wall_line_width` 1.75 ×, and
@@ -490,7 +493,7 @@ Retraction"}` lists exactly the ten keys of that group (`publishable_printer_ret
 
 | # | Step | Checked |
 |---|---|---|
-| 1 | `start(client)`, then `preset_select` of the ToolChanger | it returns `Klipper \| Std \| PLA`; then the selection is `ToolChanger \| TC Std \| TC PLA, TC PLA, TC PLA, TC PLA, TC PLA`, a slot per tool, and the printer's `nozzle_diameter` reads `0.4×5`; the Extruder page check holds; `dial(retraction_length)` is exactly five actions, `orca_setting:retraction_length#<n>:5` in section `Printer : Extruder <n+1> : Retraction` for n from 0 to 4 |
+| 1 | `start(client)`, `add_slot()` four times, disable remembered printer presets, then `preset_select` of the ToolChanger | `start(client)` returns `Klipper \| Std \| PLA`; adding slots with `SLOT_COLOURS[1]` to `SLOT_COLOURS[4]` returns 2, 3, 4 and 5, and the selection is `Klipper \| Std \| PLA, PLA, PLA, PLA, PLA`; the switch preserves five slots, so the selection is `ToolChanger \| TC Std \| TC PLA, TC PLA, TC PLA, TC PLA, TC PLA`; the printer's `nozzle_diameter` reads `0.4×5`; the Extruder page check holds; `dial(retraction_length)` is exactly five actions, `orca_setting:retraction_length#<n>:5` in section `Printer : Extruder <n+1> : Retraction` for n from 0 to 4 |
 | 2 | `settings_set {type: printer, values: {nozzle_diameter: "0.4,0.6,0.4,0.4,0.4"}}`, then `{test: "max_volumetric", filament_slot: 2, preset_changes: "keep"}` | `project` "Max volumetric speed test"; `params` `{start: 5, end: 20, step: 0.5}`; `presets_changed.filament` is `{name: TC PLA, filament_slot: 2, extruder: 2, changes: {filament_max_volumetric_speed: 200×3, slow_down_layer_time: "0"}}`; the tower's own `layer_height` "0.48" and `outer_wall_line_width` "1.05", tool 2's 0.6 nozzle × 0.8 and × 1.75; the printer's `max_layer_height` reads `0.48×5`; `object_list` lists `SpeedTestStructure.drc` alone, its `filament` 2 |
 | 3 | a slice | every tool the G-code picks, a `T<n>` at a line's start, is T1, tool 2 |
 | 4 | `project_new {discard_changes: true, preset_changes: "discard"}`, the same `settings_set`, then `{test: "max_volumetric", preset_changes: "keep"}` | `presets_changed.filament` gives `filament_slot` 1 and `extruder` 1; the tower's own `layer_height` "0.32" and `outer_wall_line_width` "0.7", tool 1's 0.4 nozzle; `object_list` lists `SpeedTestStructure.drc`, its `filament` 1 |
@@ -606,6 +609,9 @@ Retraction"}` lists exactly the ten keys of that group (`publishable_printer_ret
 - Discarding on the test (keep and discard, step 3) leaves slot 2 on "MCP Calib PLA" without its edit.
 
 **Not checked:**
+- The added slots' flushing values and their effect on the prime tower (another extruder): the slice checks only which
+  tool prints, not the flushing matrix or tower.
+- Adding or deleting slots on a non-SEMM printer: `filament_add` and `filament_delete` still refuse those operations.
 - User presets other tests left: every read of a list they join picks this test's own presets by name, and checks
   the others no further.
 - The sidebar's settings search, which lists the same rows of the settings index as the Speed Dial: the Speed Dial's
