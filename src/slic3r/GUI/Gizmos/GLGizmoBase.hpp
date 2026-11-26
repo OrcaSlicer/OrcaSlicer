@@ -9,6 +9,10 @@
 #include "slic3r/GUI/MeshUtils.hpp"
 #include "slic3r/GUI/SceneRaycaster.hpp"
 #include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/IllustratedTooltip.hpp"
+
+#include <imgui/imgui.h>
+#include <wx/string.h>
 
 #include <array>
 #include <cassert>
@@ -155,6 +159,29 @@ protected:
     CommonGizmosDataPool* m_c{ nullptr };
 
     bool m_is_dark_mode = false;
+
+    // The tooltip of the ImGui control just submitted in the gizmo's panel: call it right after the
+    // control, on every frame. It waits for the pointer to rest, goes beside the panel rather than under
+    // the mouse, and can carry pictures, named by file within resources/images/gizmos (for example
+    // {"cut/connector_plug.png", _L("Plug")}). See IllustratedTooltip and docs/HLSD/tooltip-illustrations.md.
+    using TipMedia = IllustratedTooltip::Media;
+    void panel_tooltip(const std::string &text, const std::vector<TipMedia> &media = {});
+    void panel_tooltip(const wxString &text, const std::vector<TipMedia> &media = {});
+    IllustratedTooltip m_panel_tip{"gizmos"};
+    // An ImGuiWrapper slider (`slider` submits it) with a panel tooltip. ImGuiWrapper follows the slider with
+    // an edit button, which keeps its own "Edit" tooltip and is the last item drawn: grouping the two makes
+    // the slider testable for hover as one item, and the tooltip stays off the button.
+    template<typename Slider> bool slider_with_tooltip(Slider slider, const wxString &tooltip, const std::vector<TipMedia> &media = {})
+    {
+        ImGui::BeginGroup();
+        const bool   changed  = slider();
+        const ImVec2 edit_min = ImGui::GetItemRectMin();
+        const ImVec2 edit_max = ImGui::GetItemRectMax();
+        ImGui::EndGroup();
+        if (!ImGui::IsMouseHoveringRect(edit_min, edit_max))
+            panel_tooltip(tooltip, media);
+        return changed;
+    }
 
     bool render_combo(const std::string &label, const std::vector<std::string> &lines,
         int &selection_idx, float label_width, float item_width);

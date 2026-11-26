@@ -24,6 +24,7 @@
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include <wx/anybutton.h>
 #include "slic3r/GUI/Tabbook.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #include <ctime>
 #include <map>
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
@@ -666,6 +667,22 @@ AuFolderPanel::AuFolderPanel(wxWindow *parent, AuxiliaryFolderType type, wxWindo
     m_button_add->SetFont(Label::Body_14);*/
 
     m_big_button_add = new AuFile(m_scrolledWindow, fs::path(), "", AddFileButton, -1);
+    switch (m_type) {
+    case MODEL_PICTURE:
+        set_illustrated_tooltip(m_big_button_add, _L("Adds pictures of the model. They are saved in the project file, and the one set "
+                                                     "as cover is shown for the project."));
+        break;
+    case BILL_OF_MATERIALS:
+        set_illustrated_tooltip(m_big_button_add, _L("Adds a list of the parts and materials the model needs, saved in the project file."));
+        break;
+    case ASSEMBLY_GUIDE:
+        set_illustrated_tooltip(m_big_button_add, _L("Adds instructions for putting the printed parts together, saved in the project file."));
+        break;
+    case OTHERS:
+        set_illustrated_tooltip(m_big_button_add, _L("Adds any other file to go with the model, saved in the project file."));
+        break;
+    default: break;
+    }
 
     /*m_button_del = new Button(m_scrolledWindow, _L("Delete"), "auxiliary_delete_file", 12, 12);
     m_button_del->SetBackgroundColor(btn_bg_white);
@@ -1147,6 +1164,7 @@ void AuxiliaryPanel::update_all_cover()
      m_text_license->Wrap(-1);
      m_sizer_license->Add(m_text_license, 0, wxALIGN_CENTER, 0);
      m_combo_license = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(450), -1), 0, NULL, wxCB_READONLY);
+     set_illustrated_tooltip(m_combo_license, _L("The terms others may use and share the model under. It is saved with the project."));
      m_sizer_license->Add(m_combo_license, 0, wxALIGN_CENTER, 0);
 
      wxBoxSizer *m_sizer_description = new wxBoxSizer(wxHORIZONTAL);

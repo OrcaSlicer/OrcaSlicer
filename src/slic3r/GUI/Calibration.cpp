@@ -1,4 +1,5 @@
 #include "Calibration.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "I18N.hpp"
 
 #include "libslic3r/Utils.hpp"
@@ -29,6 +30,7 @@
 #include <wx/stattext.h>
 #include "slic3r/GUI/DeviceManager.hpp"
 #include <boost/log/trivial.hpp>
+#include <vector>
 
 static wxColour FG_COLOR = wxColour(0x32, 0x3A, 0x3D);
 static wxColour BG_COLOR = wxColour(0xF8, 0xF8, 0xF8);
@@ -67,13 +69,21 @@ CalibrationDialog::CalibrationDialog(Plater *plater)
     cali_step_select_title->SetBackgroundColour(BG_COLOR);
     cali_left_sizer->Add(cali_step_select_title, 0, wxLEFT, FromDIP(15));
 
-    select_xcam_cali    = create_check_option(_L("Micro lidar calibration"), cali_left_panel, _L("Micro lidar calibration"), "xcam_cali");
-    select_bed_leveling = create_check_option(_L("Bed leveling"),            cali_left_panel, _L("Bed leveling"),                       "bed_leveling");
-    select_vibration    = create_check_option(_L("Vibration compensation"), cali_left_panel, _L("Vibration compensation"), "vibration");
-    select_motor_noise  = create_check_option(_L("Motor noise cancellation"), cali_left_panel, _L("Motor noise cancellation"), "motor_noise");
-    select_nozzle_cali  = create_check_option(_L("Nozzle offset calibration"), cali_left_panel, _L("Nozzle offset calibration"), "nozzle_cali");
-    select_heatbed_cali  = create_check_option(_L("High-temperature Heatbed Calibration"), cali_left_panel, _L("High-temperature Heatbed Calibration"), "bed_cali");
-    select_clumppos_cali = create_check_option(_L("Nozzle clumping detection Calibration"), cali_left_panel, _L("Nozzle clumping detection Calibration"), "clump_pos_cali");
+    select_xcam_cali    = create_check_option(_L("Micro lidar calibration"), cali_left_panel,
+        _L("Calibrates the micro lidar on the toolhead, which the printer uses to inspect the first layer."), "xcam_cali");
+    select_bed_leveling = create_check_option(_L("Bed leveling"),            cali_left_panel,
+        _L("Probes the heatbed at a grid of points and stores its shape, so that the first layer is laid at an even height."), "bed_leveling");
+    select_vibration    = create_check_option(_L("Vibration compensation"), cali_left_panel,
+        _L("Measures how the printer resonates on each axis, so that it can cancel those vibrations and print fast without ripples on the walls."), "vibration",
+        {{"calibration/vibration_ringing.png", _L("Before")}, {"calibration/vibration_clean.png", _L("After")}});
+    select_motor_noise  = create_check_option(_L("Motor noise cancellation"), cali_left_panel,
+        _L("Measures the motors, so that the printer can drive them more quietly."), "motor_noise");
+    select_nozzle_cali  = create_check_option(_L("Nozzle offset calibration"), cali_left_panel,
+        _L("Measures how far apart the two nozzles are, so that what each of them prints lines up."), "nozzle_cali");
+    select_heatbed_cali  = create_check_option(_L("High-temperature Heatbed Calibration"), cali_left_panel,
+        _L("Calibrates the heatbed at a high temperature, for filaments that are printed on a hot bed."), "bed_cali");
+    select_clumppos_cali = create_check_option(_L("Nozzle clumping detection Calibration"), cali_left_panel,
+        _L("Calibrates the detection of filament clumping around the nozzle, so that the printer notices it during a print."), "clump_pos_cali");
 
     // STUDIO-10091 the default not checked option
     if(m_checkbox_list.count("bed_cali") != 0)
@@ -190,7 +200,8 @@ CalibrationDialog::~CalibrationDialog() {}
 
 void CalibrationDialog::on_dpi_changed(const wxRect &suggested_rect) {}
 
-wxWindow* CalibrationDialog::create_check_option(wxString title, wxWindow* parent, wxString tooltip, std::string param)
+wxWindow* CalibrationDialog::create_check_option(wxString title, wxWindow* parent, wxString tooltip, std::string param,
+                                                 const std::vector<TipMedia> &media)
 {
     auto checkbox = new wxWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
     checkbox->SetBackgroundColour(BG_COLOR);
@@ -215,8 +226,8 @@ wxWindow* CalibrationDialog::create_check_option(wxString title, wxWindow* paren
     checkbox->Layout();
     sizer_checkbox->Fit(checkbox);
 
-    checkbox->SetToolTip(tooltip);
-    text->SetToolTip(tooltip);
+    set_illustrated_tooltip(checkbox, tooltip, media);
+    set_illustrated_tooltip(text, tooltip, media);
 
     text->Bind(wxEVT_LEFT_DOWN, [check](wxMouseEvent&) { check->SetValue(check->GetValue() ? false : true); });
     m_checkbox_list[param] = check;
