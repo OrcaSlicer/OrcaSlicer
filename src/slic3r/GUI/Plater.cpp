@@ -20140,8 +20140,14 @@ void Plater::export_gcode_3mf(bool export_all)
         unsigned int state = this->p->update_restart_background_process(false, false);
         if (state & priv::UPDATE_BACKGROUND_PROCESS_INVALID)
             return;
-        default_output_file = this->p->background_process.output_filepath_for_project(
-            into_path(this->p->get_project_filename(".3mf")));
+        // Use the project filename for all plates; retain the output filename template for a single plate.
+        if (export_all) {
+            const wxString project_filename = this->get_project_filename(".3mf");
+            default_output_file = project_filename.IsEmpty() ? into_path("sliced") : into_path(project_filename);
+        } else {
+            default_output_file = this->p->background_process.output_filepath_for_project(
+                into_path(this->p->get_project_filename(".3mf")));
+        }
     }
     catch (const Slic3r::PlaceholderParserError& ex) {
         // Show the error with monospaced font.
