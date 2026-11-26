@@ -58,6 +58,11 @@ add_executable(${_TEST_NAME}_tests
     test_measure.cpp
     test_kdtree.cpp
     test_lightning.cpp
+    test_chromastack.cpp
+    test_chroma_diagnostics.cpp
+    test_chroma_tiles.cpp
+    test_chroma_split.cpp
+    test_transmission_distance.cpp
     test_imex_arrange.cpp
     test_imex_helpers.cpp
     test_imex_zones.cpp

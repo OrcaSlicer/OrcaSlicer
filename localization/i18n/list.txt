@@ -216,6 +216,7 @@ src/slic3r/Utils/PresetUpdater.cpp
 src/slic3r/Utils/Http.cpp
 src/slic3r/Utils/Process.cpp
 src/libslic3r/GCode.cpp
+src/libslic3r/ChromaDiagnostics.cpp
 src/libslic3r/GCodeWriter.cpp
 src/libslic3r/GCode/ToolOrdering.cpp
 src/libslic3r/GCode/SeamPlacer.cpp
@@ -342,6 +343,11 @@ src/slic3r/GUI/GUI_Utils.cpp
 src/slic3r/GUI/Gizmos/GLGizmoEmboss.hpp
 src/slic3r/GUI/Gizmos/GLGizmoTextureDisplacement.cpp
 src/slic3r/GUI/Gizmos/GLGizmoTextureDisplacement.hpp
+src/slic3r/GUI/Gizmos/GLGizmoTextureDisplacementChroma.cpp
+src/slic3r/GUI/Gizmos/GLGizmoTextureDisplacementLibrary.cpp
+src/slic3r/GUI/Gizmos/GLGizmoTextureDisplacementMesh.cpp
+src/slic3r/GUI/Gizmos/GLGizmoTextureDisplacementPreview.cpp
+src/slic3r/GUI/Gizmos/GLGizmoTextureDisplacementUV.cpp
 src/slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp
 src/slic3r/GUI/Jobs/SLAImportDialog.hpp
 src/slic3r/GUI/Jobs/TextureDisplacementBakeJob.cpp
@@ -398,3 +404,5 @@ src/slic3r/GUI/PostProcessor.cpp
 src/slic3r/GUI/TaskManager.cpp
 src/slic3r/GUI/Widgets/ProgressDialog.hpp
 src/slic3r/GUI/Widgets/StepCtrl.cpp
+src/slic3r/GUI/AssetGallery.cpp
+src/slic3r/GUI/ChromaLibraries.cpp
