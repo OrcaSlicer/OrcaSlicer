@@ -1186,30 +1186,6 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
                 home->SendCloudProvidersInfo();
             }
         }
-        // ORCA: apply the filament translucency change immediately to the currently loaded preview
-        else if (param == "preview_translucent_filaments") {
-            if (Plater* plater = wxGetApp().plater()) {
-                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
-                    canvas->get_gcode_viewer().set_translucent_filaments(app_config->get_bool(param));
-                    canvas->set_as_dirty();
-                    canvas->request_extra_frame();
-                }
-            }
-        }
-        // ORCA: apply the color set change immediately to the currently loaded preview and to the open gizmo
-        else if (param == "colorblind_friendly_colors") {
-            if (Plater* plater = wxGetApp().plater()) {
-                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
-                    canvas->get_gcode_viewer().set_colorblind_friendly_colors(app_config->get_bool(param));
-                    canvas->set_as_dirty();
-                    canvas->request_extra_frame();
-                }
-                if (GLCanvas3D* canvas = plater->get_view3D_canvas3D()) {
-                    canvas->set_as_dirty();
-                    canvas->request_extra_frame();
-                }
-            }
-        }
         // ORCA: apply the preview dimming change immediately to the currently loaded preview
         else if (param == "preview_dim_previous_layers") {
             if (m_dim_previous_layers_brightness_input)
@@ -2094,78 +2070,11 @@ void PreferencesDialog::create_items()
     /////////////////////////////////////
     g_sizer = add_tab(PreferencesTab::General, _L("General"));
 
-    std::vector<wxString>Units = {_L("Metric") + " (mm, g)", _L("Imperial") + " (in, oz)"};
-    auto item_currency         = create_item_combobox(_L("Units"), "", "use_inches", Units);
-    g_sizer->Add(item_currency);
-
-    std::vector<wxString> DefaultPage = {_L("Home"), _L("Prepare")};
-    auto item_default_page     = create_item_combobox(_L("Default page"), _L("Set the page opened on startup."), "default_page", DefaultPage);
-    g_sizer->Add(item_default_page);
-
-    auto item_single_instance  = create_item_checkbox(_L("Allow only one OrcaSlicer instance"),
-    #if __APPLE__
-            _L("On OSX there is always only one instance of app running by default. However it is allowed to run multiple instances "
-                "of same app from the command line. In such case this settings will allow only one instance."),
-    #else
-            _L("If this is enabled, when starting OrcaSlicer and another instance of the same OrcaSlicer is already running, that instance will be reactivated instead."),
-    #endif
-            "single_instance");
-    g_sizer->Add(item_single_instance);
-
-    //// GENERAL > Appearance
-    g_sizer->Add(create_item_title(_L("Appearance")), 1, wxEXPAND);
-
-#ifdef _WIN32
-    auto item_darkmode         = create_item_darkmode(_L("Enable dark Mode"), "", "dark_color_mode");
-    g_sizer->Add(item_darkmode);
-#endif
-
-    auto item_show_splash_scr  = create_item_checkbox(_L("Show splash screen"), _L("Show the splash screen during startup."), "show_splash_screen");
-    g_sizer->Add(item_show_splash_scr);
-
-#ifdef __linux__
-    auto item_window_button_pos  = create_item_checkbox(_L("Use window buttons on left side"), "", "window_buttons_on_left", _L("(Requires restart)"));
-    g_sizer->Add(item_window_button_pos);
-
-    // TRN "GPU" is the graphics card; the option only matters on computers that have two of them.
-    auto item_discrete_gpu = create_item_checkbox(_L("Render on the discrete GPU"),
-        // TRN DRI_PRIME is an environment variable name and must stay as it is.
-        _L("On a computer with two GPUs, run OrcaSlicer on the discrete GPU instead of the one that drives the display. "
-           "Some Wayland systems cannot show frames rendered on the other GPU, or fail to open the window at all. "
-           "Turn this off if the 3D view stays empty; if OrcaSlicer no longer starts, start it once with DRI_PRIME=0 "
-           "in the environment to get back here."),
-        "prefer_discrete_gpu", _L("(Requires restart)"));
-    g_sizer->Add(item_discrete_gpu);
-#endif
-
-    auto item_colorblind_friendly_colors = create_item_checkbox(
-        _L("Colorblind friendly colors") + " " + "(Beta)",
-        _L("Use colors that are easier to tell apart with a color vision deficiency for the color scales of the sliced preview "
-           "(speed, flow, layer time, etc.) and for the two-color pairs of the measure, assembly and cut tools.\n"
-           "Turn it off to use the original colors."),
-        "colorblind_friendly_colors"
-    );
-    g_sizer->Add(item_colorblind_friendly_colors);
-
-
-    //auto item_hints            = create_item_checkbox(_L("Show \"Daily Tips\" after start"), page, _L("If enabled, useful hints are displayed at startup."), "show_daily_tips");
-    //g_sizer->Add(item_hints);
-
-    //// GENERAL > Features
-    g_sizer->Add(create_item_title(_L("Features")), 1, wxEXPAND);
-
-    auto item_multi_machine    = create_item_checkbox(_L("Multi device management"), _L("With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."), "enable_multi_machine", _L("(Requires restart)"));
-    g_sizer->Add(item_multi_machine);
-
-#ifdef SLIC3R_CAD
-    auto item_cad_feature      = create_item_checkbox(_L("CAD feature (experimental)"),
-        _L("With this option enabled, the Design tab is shown, where models can be built and edited "
-           "parametrically. This feature is experimental and still under development."),
-        "enable_cad_feature", _L("(Requires restart)"));
-    g_sizer->Add(item_cad_feature);
-#endif
     //// GENERAL > Settings, Features, AI features
     add_preference_rows(g_sizer, "general");
+
+    //// GENERAL > Appearance
+    add_preference_rows(g_sizer, "appearance");
 
 #if 0
     g_sizer->Add(create_item_title(_L("Filament Grouping")), 1, wxEXPAND);
