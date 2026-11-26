@@ -120,6 +120,9 @@ std::vector<size_t> GLGizmosManager::get_selectable_idxs() const
 
 bool GLGizmosManager::is_on_toolbar(EType type) const
 {
+    // A grouped gizmo's icon is in its group's list.
+    if (m_parent.get_canvas_type() != GLCanvas3D::CanvasAssembleView)
+        return !bar_slot_shown_for(get_bar_slots(), gizmo_id(type)).empty();
     for (size_t idx : get_selectable_idxs())
         if (m_gizmos[idx]->get_sprite_id() == (unsigned int) type)
             return true;

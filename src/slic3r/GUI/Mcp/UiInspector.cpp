@@ -2160,7 +2160,7 @@ void UiInspector::add_canvas_items(GLCanvas3D& canvas, int depth, std::vector<Ui
     const std::string cname   = canvas_name(&canvas);
     bool              changed = false;
     for (GLToolbarItem* item : toolbar_items(canvas.get_main_toolbar(), &changed)) {
-        if (item == nullptr || item->is_separator() || !item->is_visible())
+        if (item == nullptr || item->is_separator() || !canvas.get_main_toolbar().is_item_visible(item->get_name()))
             continue;
         UiNode node;
         node.kind    = "gltoolbar";
@@ -3131,6 +3131,10 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
         GLToolbarItem* item = tb.get_item(t.name);
         if (item == nullptr)
             throw ToolFailure("The toolbar item is gone");
+        // A hidden item has no icon to click, and pressing a hidden toggable one disables the rest. An item folded into
+        // its group's button is not hidden: the group's list shows it.
+        if (!tb.is_item_visible(t.name))
+            throw ToolFailure("The toolbar item " + t.name + " is hidden; show it in View > Customize Toolbar");
         if (item->is_disabled())
             throw ToolFailure("The toolbar item " + t.name + " is disabled");
         // The toolbar ignores actions while another togglable item is pressed.

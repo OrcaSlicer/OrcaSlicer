@@ -342,7 +342,7 @@ public:
     EType get_gizmo_from_name(const std::string& gizmo_name) const;
 
     bool is_running() const;
-    // Whether this canvas's gizmo toolbar shows an icon for `type`.
+    // Whether this canvas's gizmo toolbar shows an icon for `type`, on the bar or in a group's list.
     bool is_on_toolbar(EType type) const;
     // Whether any gizmo still works in the background, see GLGizmoBase::is_busy().
     bool is_busy() const;
