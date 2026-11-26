@@ -1,6 +1,5 @@
 #include "PluginPages.hpp"
 
-#include "libslic3r/AppConfig.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/Notebook.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -175,8 +174,6 @@ void PluginPages::initialize(Notebook* parent)
     if (m_parent == nullptr)
         return;
 
-    m_visible_page_count = GUI::wxGetApp().app_config->get_plugin_pages_visible_count();
-
     for (const auto& capability : PluginManager::instance().get_plugin_capabilities("", PluginCapabilityType::Pages)) {
         if (capability)
             create_page(capability->identity());
@@ -186,21 +183,12 @@ void PluginPages::initialize(Notebook* parent)
 
 void PluginPages::shutdown()
 {
-    // Removing the selected tab selects the tab to its left. In tab order that is a built-in tab,
-    // never an unbuilt plugin page that is removed next and would be built only to be destroyed.
+    // Removing the selected tab selects the tab to its left. m_order is in tab order, so the plugin
+    // tabs to its left are gone by then and that is a built-in tab, not an unbuilt plugin page that
+    // is removed next and would be built only to be destroyed.
     for (const PluginCapabilityId& id : std::vector<PluginCapabilityId>(m_order))
         remove_page(id);
     m_parent = nullptr;
-}
-
-void PluginPages::set_visible_page_count(int count)
-{
-    const int clamped = std::clamp(count, PLUGIN_PAGES_VISIBLE_COUNT_MIN, PLUGIN_PAGES_VISIBLE_COUNT_MAX);
-    if (clamped == m_visible_page_count)
-        return;
-
-    m_visible_page_count = clamped;
-    relayout();
 }
 
 std::shared_ptr<PagesPluginCapability> PluginPages::get_pages_cap(const PluginCapabilityId& id, bool is_enabled) const
@@ -301,6 +289,8 @@ void PluginPages::remove_page(const PluginCapabilityId& id)
         built->detach_capability();
 
     m_pages.erase(it);
+    if (m_swapped_in_id == id)
+        m_swapped_in_id.reset();
     m_order.erase(std::remove(m_order.begin(), m_order.end(), id), m_order.end());
 
     const int idx = m_parent != nullptr ? m_parent->FindPage(page) : wxNOT_FOUND;
@@ -330,37 +320,29 @@ void PluginPages::relayout()
         }),
         m_order.end());
 
-    const int visible_slots = std::max(1, m_visible_page_count);
+    // In the order the user dragged the tabs to; pages never placed keep registration order, last.
+    std::stable_sort(m_order.begin(), m_order.end(), [this](const PluginCapabilityId& a, const PluginCapabilityId& b) {
+        return m_parent->GetPageRank(page_tab_id(a)) < m_parent->GetPageRank(page_tab_id(b));
+    });
+
+    m_visible_slots = std::max(1, fitting_page_count());
+    const int visible_slots = m_visible_slots;
     const bool need_overflow = static_cast<int>(m_order.size()) > visible_slots;
 
-    // Every visible slot is a normal, individual tab hosting its own page. When there's
-    // overflow, the last slot's page is swappable via m_overflow_button/show_overflow_menu()
-    // rather than being a fixed page — m_swapped_in_id tracks which one currently sits there.
-    std::vector<PluginCapabilityId> tab_ids;
-    if (!need_overflow) {
-        tab_ids = m_order;
-        m_swapped_in_id.reset();
-    } else {
-        const auto overflow_begin = m_order.begin() + (visible_slots - 1);
-        tab_ids.assign(m_order.begin(), overflow_begin);
-
-        if (!m_swapped_in_id || std::find(overflow_begin, m_order.end(), *m_swapped_in_id) == m_order.end())
-            m_swapped_in_id = *overflow_begin;
-        tab_ids.push_back(*m_swapped_in_id);
-    }
+    // When there's overflow, the last slot shows the page the user picked from the overflow menu
+    // (or through select_page()) while it is in the overflow, else the first page there. The pick is
+    // kept while it shows in a normal slot, e.g. on a tab without Slice/Print where all pages fit,
+    // and is dropped only for another pick or when its page is removed.
+    const std::vector<PluginCapabilityId> tab_ids = plugin_tab_ids(m_order, visible_slots, m_swapped_in_id);
 
     // MainFrame::show_device() relayouts on every printer change and most of those change
-    // nothing, so only touch the notebook when the trailing slots don't already spell out
-    // tab_ids — a rebuild destroys and recreates every tab button and rasterizes every icon.
-    const size_t page_count = m_parent->GetPageCount();
-    bool up_to_date = page_count >= tab_ids.size();
-    for (size_t i = 0; up_to_date && i < tab_ids.size(); ++i)
-        up_to_date = m_parent->GetPageName(page_count - tab_ids.size() + i) == page_tab_id(tab_ids[i]);
+    // nothing, so only touch the notebook when the pages in it are not already tab_ids — a
+    // rebuild destroys and recreates every tab button and rasterizes every icon. Where each tab
+    // sits is the notebook's page order, which the user can mix with the built-in tabs.
+    bool up_to_date = true;
     for (const auto& [id, entry] : m_pages) {
-        if (!up_to_date)
-            break;
         const bool wanted = std::find(tab_ids.begin(), tab_ids.end(), id) != tab_ids.end();
-        up_to_date = entry.page->in_book() == wanted;
+        up_to_date = up_to_date && entry.page->in_book() == wanted;
     }
 
     if (!up_to_date) {
@@ -377,6 +359,7 @@ void PluginPages::relayout()
             }
         }
 
+        // Notebook::InsertPage() moves a page with a place in the saved order to that place.
         for (const auto& id : tab_ids) {
             const Page& entry = m_pages.at(id);
             m_parent->InsertPage(m_parent->GetPageCount(), page_tab_id(id), entry.page, wxString::FromUTF8(id.name), "",
@@ -411,6 +394,49 @@ void PluginPages::relayout()
             mainframe->fit_tab_labels();
 }
 
+int PluginPages::fitting_page_count() const
+{
+    // Tabs are counted with their labels shown: the count must not depend on whether
+    // MainFrame::fit_tab_labels() has compacted them to icons.
+    ButtonsListCtrl* bar  = m_parent->GetBtnsListCtrl();
+    int              room = bar->GetTabsAreaWidth();
+    for (size_t i = 0; i < m_parent->GetPageCount(); ++i)
+        if (!Notebook::IsPluginPageId(m_parent->GetPageName(i)))
+            room -= bar->GetFullTabWidth(m_parent->GetPageLabel(i));
+
+    std::vector<int> widths;
+    for (const PluginCapabilityId& id : m_order)
+        widths.push_back(bar->GetFullTabWidth(wxString::FromUTF8(id.name)));
+    // The overflow button takes an icon-only tab's width.
+    return fitting_tabs(room, widths, bar->GetTabWidth(true));
+}
+
+std::vector<PluginCapabilityId> PluginPages::plugin_tab_ids(const std::vector<PluginCapabilityId>& order, int visible_slots,
+                                                            const std::optional<PluginCapabilityId>& picked)
+{
+    if (static_cast<int>(order.size()) <= visible_slots)
+        return order;
+
+    const auto overflow_begin = order.begin() + (std::max(1, visible_slots) - 1);
+    std::vector<PluginCapabilityId> ids(order.begin(), overflow_begin);
+    ids.push_back(picked && std::find(overflow_begin, order.end(), *picked) != order.end() ? *picked : *overflow_begin);
+    return ids;
+}
+
+int PluginPages::fitting_tabs(int room, const std::vector<int>& widths, int overflow_width)
+{
+    int used = 0;
+    for (const int width : widths)
+        used += width;
+    if (used <= room)
+        return static_cast<int>(widths.size());
+
+    int count = 0;
+    for (used = overflow_width; count < static_cast<int>(widths.size()) && used + widths[count] <= room; ++count)
+        used += widths[count];
+    return count;
+}
+
 void PluginPages::select_page(const PluginCapabilityId& id)
 {
     if (m_parent == nullptr || m_pages.find(id) == m_pages.end())
@@ -424,7 +450,7 @@ void PluginPages::select_page(const PluginCapabilityId& id)
 
 void PluginPages::show_overflow_menu()
 {
-    const int visible_slots = std::max(1, m_visible_page_count);
+    const int visible_slots = m_visible_slots;
     if (m_overflow_button == nullptr || static_cast<int>(m_order.size()) <= visible_slots)
         return;
 
@@ -443,9 +469,10 @@ void PluginPages::show_overflow_menu()
         const size_t index = static_cast<size_t>(evt.GetId() - (wxID_HIGHEST + 1));
         if (index >= overflow_ids.size())
             return;
-        m_swapped_in_id = overflow_ids[index];
+        const PluginCapabilityId id = overflow_ids[index];
+        m_swapped_in_id = id;
         relayout();
-        m_parent->SelectPageByName(page_tab_id(*m_swapped_in_id));
+        m_parent->SelectPageByName(page_tab_id(id));
     });
     m_overflow_button->PopupMenu(&menu);
 }
