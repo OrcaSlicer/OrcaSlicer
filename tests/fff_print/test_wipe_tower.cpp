@@ -1473,3 +1473,59 @@ TEST_CASE("The travel to the Type 1 tower keeps the axis the filament change G-c
         CHECK(off_line < 1.);
     }
 }
+
+// Unretracted travels inside the wipe tower longer than `min_length` that move in X and Y at once. Blocks
+// and fill boxes stack in Y, so such a travel crosses the empty sparse band, and what it oozes lands in the
+// same place on every layer.
+static size_t diagonal_tower_travels(const std::string &gcode, double min_length)
+{
+    const std::string &start_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_Start);
+    const std::string &end_tag   = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_End);
+    size_t      diagonals = 0;
+    bool        in_tower  = false;
+    bool        retracted = false;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view raw = line.raw();
+        if (raw.find(start_tag) != std::string_view::npos)
+            in_tower = true;
+        else if (raw.find(end_tag) != std::string_view::npos)
+            in_tower = false;
+        else if (line.retracting(self))
+            retracted = true;
+        else if (line.extruding(self))
+            retracted = false;
+        else if (in_tower && ! retracted && line.travel() && std::abs(line.dist_X(self)) > EPSILON &&
+                 std::abs(line.dist_Y(self)) > EPSILON && line.dist_XY(self) > min_length)
+            ++diagonals;
+    });
+    return diagonals;
+}
+
+TEST_CASE("The prime tower does not travel diagonally across itself without retracting", "[WipeTower][Regression]")
+{
+    // Filament 2 prints only the top surfaces, so between the low cube's top and the tall cube's top the
+    // tower prints layers without a tool change, whose blocks are left with a sparse grid.
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "top_surface_filament_id",     2       },
+        { "enable_prime_tower",          true    },
+        { "wipe_tower_type",             "type1" },
+        { "wipe_tower_no_sparse_layers", false   },
+        { "wipe_tower_x",                30      },
+        { "wipe_tower_y",                30      },
+        { "layer_height",                0.2     } });
+    TriangleMesh tall = make_cube(10., 10., 10.);
+    tall.translate(120.f, 120.f, 0.f);
+    TriangleMesh low = make_cube(10., 10., 2.);
+    low.translate(150.f, 120.f, 0.f);
+
+    Print print;
+    Model model;
+    init_print({ std::move(tall), std::move(low) }, print, model, config, nullptr, false);
+    print.apply(model, config); // see slice_with_prime_tower
+    REQUIRE(print.has_wipe_tower());
+    const std::string gcode = Slic3r::Test::gcode(print);
+    REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("; CP EMPTY GRID START"));
+    // Moves between neighbouring lines of the tower are shorter than 5 mm.
+    CHECK(diagonal_tower_travels(gcode, 5.) == 0);
+}
