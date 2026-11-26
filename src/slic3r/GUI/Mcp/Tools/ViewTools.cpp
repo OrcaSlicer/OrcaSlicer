@@ -1019,6 +1019,18 @@ void register_view_tools(CommandCatalog& catalog)
                         libvgcode::EViewType type;
                         if (!GCodeViewer::view_type_from_config_name(arg_string(args, "view_type"), type))
                             throw ToolFailure("Unknown view_type");
+                        // The legend offers the Overhang view only for G-code carrying its metadata. Until the Preview
+                        // holds the current plate's toolpaths that is not known: it may hold none or another plate's,
+                        // as when this call's tab or canvas opened it, which loads them after the call.
+                        if (GCodeViewer::available_view_type(type, false) != type) {
+                            if (!viewer_holds(viewer, plater.get_partplate_list().get_curr_plate()->get_slice_result()))
+                                throw ToolFailure("The overhang view_type needs this plate's toolpaths in the Preview, "
+                                                  "which are not loaded yet; slice it, or call again once the Preview "
+                                                  "shows them");
+                            if (!viewer.has_overhang_metadata())
+                                throw ToolFailure("The overhang view_type needs G-code with overhang metadata; slice "
+                                                  "with gcode_overhangs on, or load G-code that carries it");
+                        }
                         // Without toolpaths there is no legend to pick from; the type then applies to the next ones.
                         if (viewer.has_data())
                             viewer.pick_view_type(type);

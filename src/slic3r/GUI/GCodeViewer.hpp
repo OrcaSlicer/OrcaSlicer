@@ -482,6 +482,8 @@ public:
     // void _render_calibration_thumbnail_framebuffer(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     // void render_calibration_thumbnail(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     bool has_data() const { return m_viewer.get_extrusion_roles_count() != 0; }
+    // Orca: Whether the loaded G-code carries overhang metadata, which the Overhang view needs.
+    bool has_overhang_metadata() const { return m_has_overhang_metadata; }
     // The id of the slice result last loaded, which tells whose toolpaths and layers the viewer and its
     // layer slider hold.
     unsigned int last_result_id() const { return m_last_result_id; }
