@@ -337,6 +337,7 @@ TEST_CASE("Plugin host API reports no GL details before the 3D view exists", "[P
     py::object plater_type = host.attr("Plater");
     CHECK(has_attr(plater_type, "project_path"));
     CHECK(has_attr(plater_type, "export_3mf_copy"));
+    CHECK(has_attr(plater_type, "current_plate_index"));
 }
 
 TEST_CASE("Plugin host API exposes the UI module and guards it before Orca app initialization", "[PluginHost][Python]")

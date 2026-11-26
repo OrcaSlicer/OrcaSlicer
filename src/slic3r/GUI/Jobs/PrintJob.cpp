@@ -186,6 +186,7 @@ void PrintJob::process(Ctl &ctl)
         start_ctx.name = m_project_name;
         start_ctx.device_id = m_dev_id;
         start_ctx.source = "print_job";
+        start_ctx.index = m_lifecycle_plate_index;
         fire_lifecycle_event(LifecycleEvent::PrintJobStarted, start_ctx);
         m_lifecycle_started = true;
     };
@@ -309,6 +310,8 @@ void PrintJob::process(Ctl &ctl)
     params.task_use_ams         = this->task_use_ams;
     params.task_bed_type        = this->task_bed_type;
     params.print_type           = this->m_print_type;
+    m_lifecycle_plate_index = print_job_plate_index(params.print_type, params.plate_index,
+                                                   job_data.is_from_plater && !m_is_calibration_task);
     params.auto_bed_leveling    = this->auto_bed_leveling;
     params.auto_flow_cali       = this->auto_flow_cali;
     params.auto_offset_cali     = this->auto_offset_cali;
@@ -748,6 +751,7 @@ void PrintJob::finalize(bool canceled, std::exception_ptr &eptr) {
         finish_ctx.name = m_project_name;
         finish_ctx.device_id = m_dev_id;
         finish_ctx.source = "print_job";
+        finish_ctx.index = m_lifecycle_plate_index;
         finish_ctx.code = canceled ? LifecycleEvtCode::Warn :
             (eptr || !m_lifecycle_success ? LifecycleEvtCode::Error : LifecycleEvtCode::Ok);
         finish_ctx.msg = canceled ? "cancelled" : (eptr ? "exception" :

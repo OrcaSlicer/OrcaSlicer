@@ -14,6 +14,7 @@
 #include <slic3r/GUI/GUI.hpp>
 #include <slic3r/GUI/GUI_App.hpp>
 #include <slic3r/GUI/OpenGLManager.hpp>
+#include <slic3r/GUI/PartPlate.hpp>
 #include <slic3r/GUI/Plater.hpp>
 #include <slic3r/Utils/CloudProvider.hpp>
 #include <slic3r/Utils/NetworkAgent.hpp>
@@ -161,6 +162,10 @@ void host_bindings::register_app(py::module_& host)
         .def("is_project_dirty", &GUI::Plater::is_project_dirty)
         .def("is_presets_dirty", &GUI::Plater::is_presets_dirty)
         .def("inside_snapshot_capture", &GUI::Plater::inside_snapshot_capture)
+        .def("current_plate_index", [](GUI::Plater& plater) {
+            require_main_thread("current_plate_index");
+            return plater.get_partplate_list().get_curr_plate_index();
+        }, "Return the zero-based plate currently selected in the GUI. Must run on the UI thread.")
         // Path the project was last opened from or saved to; empty while it has never been saved.
         .def("project_path", [](GUI::Plater& plater) {
             require_main_thread("project_path");
