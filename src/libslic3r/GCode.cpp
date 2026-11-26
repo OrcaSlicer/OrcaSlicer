@@ -6541,7 +6541,10 @@ std::string GCode::generate_timelapse_gcode(const Print &print, coordf_t print_z
     }
 
     if (!timelapse_gcode.empty()) {
-        m_writer.set_current_position_clear(false);
+        //BBS: inert g-code cannot move the toolhead, and clearing the position here also skips
+        //the travel planning of the layer's first travel.
+        if (GCodeProcessor::gcode_moves_toolhead(timelapse_gcode))
+            m_writer.set_current_position_clear(false);
 
         double temp_z_after_tool_change;
         if (GCodeProcessor::get_last_z_from_gcode(timelapse_gcode, temp_z_after_tool_change)) {
@@ -7466,7 +7469,8 @@ LayerResult GCode::process_layer(
             config.set_key_value("curr_physical_extruder_id", new ConfigOptionInt(m_config.physical_extruder_map.get_at(m_writer.filament()->extruder_id())));
             wrapping_gcode = this->placeholder_parser_process("wrapping_detection_gcode", print.config().wrapping_detection_gcode.value, m_writer.filament()->id(), &config) +"\n";
         }
-        m_writer.set_current_position_clear(false);
+        if (GCodeProcessor::gcode_moves_toolhead(wrapping_gcode))
+            m_writer.set_current_position_clear(false);
 
         double temp_z_after_tool_change;
         if (GCodeProcessor::get_last_z_from_gcode(wrapping_gcode, temp_z_after_tool_change)) {

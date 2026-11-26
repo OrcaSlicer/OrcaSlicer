@@ -665,6 +665,8 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         static int get_gcode_last_filament(const std::string &gcode_str);
         static bool get_last_z_from_gcode(const std::string& gcode_str, double& z);
         static bool get_last_position_from_gcode(const std::string &gcode_str, Vec3f &pos);
+        // Does the g-code command a move? Inert custom g-code cannot invalidate the writer position.
+        static bool gcode_moves_toolhead(const std::string &gcode_str);
 
         static const float Wipe_Width;
         static const float Wipe_Height;
