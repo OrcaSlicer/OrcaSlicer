@@ -655,6 +655,67 @@ TEST_CASE("Moonraker discovery waits for a complete device identity", "[Moonrake
     REQUIRE(announcement.at("dev_name") == "Test model");
 }
 
+TEST_CASE("Binding another address does not reuse the connected printer's identity", "[MoonrakerPrinterAgent][Bind]")
+{
+    // The agent was last connected to .5; binding .23 must not return .5's cached identity.
+    DiscoveryAgent agent("");
+    agent.device_info.dev_id     = "192.168.1.5";
+    agent.device_info.dev_ip     = "192.168.1.5";
+    agent.device_info.base_url   = "http://192.168.1.5";
+    agent.device_info.dev_name   = "Qidi Q2 at .5";
+    agent.device_info.model_id   = "qidi_q2";
+    agent.device_info.model_name = "Qidi Q2";
+    agent.device_info.version    = "01.02.03";
+
+    detectResult detect;
+    REQUIRE(agent.bind_detect("192.168.1.23", "secure", detect) == BAMBU_NETWORK_SUCCESS);
+
+    CHECK(detect.dev_id == "192.168.1.23");
+    CHECK(detect.dev_name == "192.168.1.23");
+    CHECK(detect.model_id.empty());
+    CHECK(detect.version.empty());
+    CHECK(detect.connect_type == "lan");
+    CHECK(detect.bind_state == "free");
+}
+
+TEST_CASE("A binding address is normalized like a preset's print host", "[MoonrakerPrinterAgent][Bind]")
+{
+    const auto [entered, expected] = GENERATE(table<std::string, std::string>({
+        {"192.168.1.23", "192.168.1.23"},
+        {"192.168.1.23:7125", "192.168.1.23:7125"},
+        {"http://192.168.1.23", "192.168.1.23"},
+        {"https://192.168.1.23:7126", "192.168.1.23:7126"},
+        {"http://192.168.1.23:7125/printer", "192.168.1.23:7125"},
+    }));
+    CAPTURE(entered);
+
+    DiscoveryAgent agent("");
+    detectResult detect;
+    REQUIRE(agent.bind_detect(entered, "secure", detect) == BAMBU_NETWORK_SUCCESS);
+    CHECK(detect.dev_id == expected);
+}
+
+TEST_CASE("Binding the connected address does not reuse cached metadata", "[MoonrakerPrinterAgent][Bind]")
+{
+    DiscoveryAgent agent("");
+    agent.device_info.dev_id   = "192.168.1.23:7125";
+    agent.device_info.dev_ip   = "192.168.1.23";
+    agent.device_info.dev_name = "Qidi Q2";
+    agent.device_info.model_id = "qidi_q2";
+    agent.device_info.version  = "01.02.03";
+
+    detectResult detect;
+    REQUIRE(agent.bind_detect("http://192.168.1.23:7125/printer", "secure", detect) == BAMBU_NETWORK_SUCCESS);
+
+    CHECK(detect.dev_id == "192.168.1.23:7125");
+    CHECK(detect.dev_name == "192.168.1.23:7125");
+    CHECK(detect.model_id.empty());
+    CHECK(detect.version.empty());
+    CHECK(agent.device_info.dev_name == "Qidi Q2");
+    CHECK(agent.device_info.model_id == "qidi_q2");
+    CHECK(agent.device_info.version == "01.02.03");
+}
+
 TEST_CASE("Stopping the status stream gives a silent printer no more than its timeouts", "[MoonrakerPrinterAgent][StatusStream]")
 {
     // An open websocket gets the 200 ms close timeout, and a stalled object list request up to 1 s of curl progress to see the stop.

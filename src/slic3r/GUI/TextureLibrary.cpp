@@ -17,6 +17,8 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <boost/system/error_code.hpp>
@@ -225,7 +227,8 @@ wxImage image_from_decoded(const DecodedHeightTexture &image, std::vector<unsign
 
 std::vector<unsigned char> read_file_bytes(const std::string &path)
 {
-    std::ifstream ifs(path, std::ios::binary);
+    // A plugin pack can extract a texture past Windows' MAX_PATH, which only extended_path() reaches.
+    boost::filesystem::ifstream ifs(extended_path(boost::filesystem::path(path)), std::ios::binary);
     return std::vector<unsigned char>(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
 }
 
@@ -457,8 +460,10 @@ std::shared_ptr<std::vector<unsigned char>> load_texture_image_data(const std::s
 
     // Not a PNG at all (a jpg somebody copied into the folder by hand, say): convert it the same way
     // an import would - keeping its colour if it has any - but leave the file on disk alone.
-    wxImage image;
-    if (!image.LoadFile(from_u8(path)) || !image.IsOk()) {
+    // Decoded from the bytes already read: reopening the file by name would hit MAX_PATH again.
+    wxImage             image;
+    wxMemoryInputStream stream(bytes.data(), bytes.size());
+    if (!image.LoadFile(stream) || !image.IsOk()) {
         error = _u8L("Could not load the selected image.");
         return nullptr;
     }

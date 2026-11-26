@@ -29,6 +29,7 @@
 #include <Standard_Failure.hxx>
 #include <TopoDS_Compound.hxx>
 #include <map>
+#include <optional>
 #include "libslic3r/TriangleMesh.hpp"
 
 #include <glad/gl.h>
@@ -55,6 +56,8 @@
 #include <cstdarg>
 #include <cstdlib>
 #include <iterator>
+#include <optional>
+#include <set>
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Color.hpp"
 #include "slic3r/GUI/GLSelectionRectangle.hpp"
@@ -68,6 +71,10 @@ namespace GUI {
 // curve using this exact number, so the two MUST agree — changing it here without updating the
 // correction silently biases every reported area.
 static constexpr int kArcFacets = 24;
+
+// How near level or upright, in radians, a polygon's side counts as lying on that axis. The rounding of its
+// vertices' sines and cosines leaves a side meant for an axis far inside it, and no side drawn at a slant is.
+static constexpr double kPolygonAxisTol = 1e-9;
 
 // Positioning helpers (defined lower down, used by the dimension methods above them).
 static bool entity_ref_point(const SketchEntity& e, Vec2d& out);
@@ -114,7 +121,7 @@ void DesignSketchTool::begin(const SketchPlane& plane, Mode mode)
     m_sel_a = m_sel_b = -1;
     m_constrain_entities = false;
     m_pick0 = m_pick1 = m_pick2 = -1;
-    m_constraint_hl.clear();
+    m_sel_con = -1;
     m_constrain_cons.clear();
     m_awaiting_length = false;
     m_autoedit_seen = 0;          // baseline: no entities yet; first commit triggers edit
@@ -280,7 +287,10 @@ void DesignSketchTool::set_tool(Mode mode)
     // follows — leaving a tool must not silently discard what the user entered.
     if (on_inline_commit) on_inline_commit();
 
-    // Switch the active drawing tool without dropping accumulated entities.
+    // Switch the active drawing tool without dropping accumulated entities. A selected constraint
+    // goes: the next tool picks geometry, and the sketch holds one selection at a time.
+    if (mode != m_mode)
+        set_selected_constraint(-1);
     m_mode = mode;
     m_points.clear();
     m_has_cursor = false;
@@ -293,11 +303,10 @@ void DesignSketchTool::set_tool(Mode mode)
     // the offer; Width commits, the status line reads "Line — click start, then end", and the
     // rectangle's Height field is sitting over it. (The keyboard cannot reproduce it: in_text
     // includes inline_busy(), so letters are swallowed while a field is open — the switch has to
-    // come from the menu, the toolbar or the MCP socket.)
+    // come from the menu, the toolbar or the MCP server's Design commands.)
     //
-    // reset_autoedit() is the existing helper for exactly this and its comment already says it
-    // "mirrors set_tool's resync" — the three lines that used to be here were that mirror drifting
-    // out of step, missing the two members that matter. The already-queued CallAfter then finds
+    // reset_autoedit() drains the queue: besides the flags and the seen baseline it clears
+    // m_autoedit_dims and sets m_autoedit_dim_idx to -1, so the already-queued CallAfter finds
     // m_autoedit_dim_idx == -1 and returns through the guard at the top of open_next_autoedit_dim.
     //
     // The current value is COMMITTED rather than cancelled, matching the ready-edit-op rule a few
@@ -355,7 +364,7 @@ void DesignSketchTool::cancel()
     m_sel_a = m_sel_b = -1;
     m_constrain_entities = false;
     m_pick0 = m_pick1 = m_pick2 = -1;
-    m_constraint_hl.clear();
+    m_sel_con = -1;
     m_constrain_cons.clear();
     m_awaiting_length = false;
     m_selection.clear();
@@ -445,11 +454,11 @@ bool DesignSketchTool::disarm_tool()
 // Abort an in-progress entity first, then drop a draw tool back to Select, then — only if the
 // session holds NOTHING a user could mourn — leave it.
 //
-// It used to have a fourth layer: refuse once, and let the SECOND consecutive request destroy a
-// drawn sketch. That is the "I pressed Esc twice and my rectangle was gone" report, and no
-// warning makes it acceptable, because the two presses are never deliberate — the first is aimed
-// at a value field or a tool and the second at the tool underneath it. A session holding geometry
-// is now left ONLY through Finish (keep) or Cancel (discard), both of which say which they are.
+// There is deliberately no fourth layer that lets a repeated request discard a drawn sketch: two
+// Esc presses in a row are never a deliberate choice — the first is aimed at a value field or a
+// tool and the second at the tool underneath it — so no warning would make that acceptable. A
+// session holding geometry is left ONLY through Finish (keep) or Cancel (discard), both of which
+// say which they are.
 // This is the single decision point for every caller, keyboard and mouse alike, so the guarantee
 // cannot be re-opened by adding a route.
 void DesignSketchTool::request_exit()
@@ -463,10 +472,147 @@ void DesignSketchTool::request_exit()
 
 void DesignSketchTool::clear_selection()
 {
+    set_selected_constraint(-1);
     if (m_selection.empty() && m_point_sel.empty()) return;
     m_selection.clear();
     m_point_sel.clear();
     if (on_selection_changed) on_selection_changed(0);
+}
+
+void DesignSketchTool::set_selected_constraint(int con)
+{
+    if (con < 0 || con >= int(shown_constraints().size()))
+        con = -1;
+    if (con == m_sel_con)
+        return;
+    m_sel_con = con;
+    if (on_constraint_selected)
+        on_constraint_selected(con);
+}
+
+void DesignSketchTool::remap_selected_constraint(const std::vector<int>& remap)
+{
+    if (m_sel_con >= 0)
+        set_selected_constraint(m_sel_con < int(remap.size()) ? remap[m_sel_con] : -1);
+}
+
+void DesignSketchTool::select_constraint(int con)
+{
+    // The picked geometry goes first, so the report of the constraint is the last word. In
+    // Constrain mode the picks are the slots the CONSTRAIN buttons read.
+    const bool on_show = con >= 0 && con < int(shown_constraints().size());
+    if (on_show && m_mode == Mode::Constrain) {
+        m_pick0 = m_pick1 = m_pick2 = -1;
+        m_sel_a = m_sel_b = -1;
+    }
+    if (on_show && (!m_selection.empty() || !m_point_sel.empty())) {
+        m_selection.clear();
+        m_point_sel.clear();
+        if (on_selection_changed) on_selection_changed(0);
+    }
+    set_selected_constraint(con);
+}
+
+void DesignSketchTool::constrain_pick(const Vec2d& p, double reach)
+{
+    set_selected_constraint(-1);
+    double best = 1e30;
+    int    bi   = -1;
+    for (size_t i = 0; i < m_entities.size(); ++i) {
+        const double d = entity_pick_dist(p, m_entities[i]);
+        if (d < best) { best = d; bi = int(i); }
+    }
+    // With no limit, a click anywhere on screen picked whatever was nearest; empty space clears.
+    if (bi < 0 || best > reach) {
+        m_pick0 = m_pick1 = m_pick2 = -1;
+        return;
+    }
+    // Rolling three-slot selection: slots 0/1 feed all 2-entity constraints; slot 2 is the
+    // Symmetric axis (only filled once 0 and 1 are set). A click past slot 2 restarts the cycle.
+    if (m_pick0 < 0)                                                        { m_pick0 = bi; m_pick0_pt = p; }
+    else if (m_pick1 < 0 && bi != m_pick0)                                  m_pick1 = bi;
+    else if (m_pick1 >= 0 && m_pick2 < 0 && bi != m_pick0 && bi != m_pick1) m_pick2 = bi;
+    else                                                                    { m_pick0 = bi; m_pick1 = m_pick2 = -1; m_pick0_pt = p; }
+}
+
+void DesignSketchTool::set_constraint_glyphs(std::vector<SketchEntityConstraintDef> v)
+{
+    const bool other_set = v.size() != m_constrain_cons.size();
+    m_constrain_cons     = std::move(v);
+    if (other_set && m_mode == Mode::Constrain)
+        set_selected_constraint(-1);
+}
+
+std::vector<std::optional<Vec2d>> DesignSketchTool::constraint_badges(double unit_per_px) const
+{
+    const std::vector<SketchEntityConstraintDef>& cons = shown_constraints();
+    std::vector<std::optional<Vec2d>>             out(cons.size());
+    const double cell = std::max(kBadgePx * unit_per_px, 1e-4);
+    std::vector<int> stacked(m_entities.size(), 0);   // badges already on each entity
+    for (size_t ci = 0; ci < cons.size(); ++ci) {
+        const int ei = cons[ci].ea;
+        if (ei < 0 || ei >= int(m_entities.size()))
+            continue;
+        const SketchEntity& e = m_entities[ei];
+        // A line's (and a spline's) middle, a round entity's centre, a point itself.
+        Vec2d anchor = e.p0;
+        switch (e.type) {
+        case SketchEntity::Type::Line:
+        case SketchEntity::Type::BSpline: anchor = 0.5 * (e.p0 + e.p1); break;
+        case SketchEntity::Type::Circle:
+        case SketchEntity::Type::Ellipse:
+        case SketchEntity::Type::Arc:
+        case SketchEntity::Type::EllipseArc: anchor = e.center; break;
+        case SketchEntity::Type::Point: break;
+        }
+        out[ci] = anchor + Vec2d(0.0, 1.5 * cell * (1 + stacked[ei]++));
+    }
+    return out;
+}
+
+std::optional<Vec2d> DesignSketchTool::constraint_badge(int con, double unit_per_px) const
+{
+    if (con < 0 || con >= int(shown_constraints().size()))
+        return std::nullopt;
+    return constraint_badges(unit_per_px)[con];
+}
+
+bool DesignSketchTool::click_constraint_badge(const Vec2d& p, double unit_per_px)
+{
+    // The nearest badge within 0.6 of a cell: its glyph and a little around it.
+    const std::vector<std::optional<Vec2d>> badges = constraint_badges(unit_per_px);
+    double best_d = 0.6 * std::max(kBadgePx * unit_per_px, 1e-4);
+    int    best   = -1;
+    for (size_t ci = 0; ci < badges.size(); ++ci)
+        if (badges[ci] && (*badges[ci] - p).norm() < best_d) {
+            best_d = (*badges[ci] - p).norm();
+            best   = int(ci);
+        }
+    if (best < 0)
+        return false;
+    select_constraint(best);
+    return true;
+}
+
+BoundingBoxf3 DesignSketchTool::constraint_box(int con) const
+{
+    const std::vector<SketchEntityConstraintDef>& cons = shown_constraints();
+    if (con < 0 || con >= int(cons.size()))
+        return {};
+    std::vector<SketchEntity> bound;
+    for (int ei : { cons[con].ea, cons[con].eb, cons[con].ec })
+        if (ei >= 0 && ei < int(m_entities.size()))
+            bound.push_back(m_entities[ei]);
+    return bound.empty() ? BoundingBoxf3() : sketch_box(bound, m_plane);
+}
+
+bool DesignSketchTool::bound_by_selected_constraint(int ei) const
+{
+    const std::vector<SketchEntityConstraintDef>& cons = shown_constraints();
+    if (m_sel_con < 0 || m_sel_con >= int(cons.size()))
+        return false;
+    const SketchEntityConstraintDef& d = cons[m_sel_con];
+    return ei >= 0 && (d.ea == ei || d.eb == ei || d.ec == ei);
 }
 
 bool DesignSketchTool::can_redo_entity() const
@@ -487,6 +633,7 @@ bool DesignSketchTool::redo_last_entity()
     m_dimensions  = std::move(s.dimensions);
     m_selection.clear();
     m_point_sel.clear();
+    set_selected_constraint(-1);
     reset_autoedit();
     resolve_live();
     if (on_selection_changed) on_selection_changed(0);
@@ -541,6 +688,7 @@ void DesignSketchTool::delete_selected()
         kept.push_back(c);
     }
     m_constraints.swap(kept);
+    remap_selected_constraint(con_remap);
     m_selection.clear();
     m_point_sel.clear();
     // Placed quotes follow their geometry and their driving constraint: a quote whose entity or
@@ -746,10 +894,9 @@ void DesignSketchTool::apply_angle_between(int ia, int ib, double deg)
 void DesignSketchTool::apply_dimension(double v)
 {
     // Refuse BEFORE moving or recording. Each case below has its own threshold (positive for
-    // length / radius / diameter, non-negative for a distance) and the constraint used to be
-    // recorded UNCONDITIONALLY after them — so a value that moved nothing was still handed to
-    // the solver, which then had to satisfy something it never could. The socket guarded against
-    // this and said so; now the tool does too, and it says why.
+    // length / radius / diameter, non-negative for a distance), but the constraint is recorded
+    // UNCONDITIONALLY after them — so a value that moved nothing would still be handed to the
+    // solver, which would then have to satisfy something it never could. The refusal says why.
     const DimType kind = dimension_kind();
     const bool needs_positive = (kind == DimType::Length || kind == DimType::Radius ||
                                  kind == DimType::Diameter);
@@ -1277,12 +1424,12 @@ double DesignSketchTool::measure_dim(const DimAnnot& a) const
 // One driving constraint per (kind, operands) — update it in place rather than appending a
 // second one every time its value is edited.
 //
-// Re-typing a quote used to push a duplicate alongside the original: draw a line and accept its
-// length, and you get Distance(P0,P1)=64.9; click the quote later and type 30, and you get a
-// SECOND Distance on the same two points asking for 30. That is over-constrained by
-// construction, so the solver reported "Conflicting constraints" and refused to move anything —
-// the number on screen changed and the geometry did not, which reads as the edit being ignored.
-// A line carrying no dimension yet was unaffected, which is what made it look intermittent.
+// Appending would push a duplicate alongside the original: draw a line and accept its length,
+// and you get Distance(P0,P1)=64.9; click the quote later and type 30, and a SECOND Distance on
+// the same two points would ask for 30. That is over-constrained by construction, so the solver
+// would report "Conflicting constraints" and refuse to move anything — the number on screen
+// changes and the geometry does not, which reads as the edit being ignored. A line carrying no
+// dimension yet would be unaffected, which would make it look intermittent.
 //
 // Operand order is ignored: a Distance from A to B is the same constraint as B to A, and so is
 // an Angle. Returns the index, so callers can keep the annotation's `con` link pointing at the
@@ -1303,7 +1450,7 @@ int DesignSketchTool::upsert_constraint(const SketchEntityConstraintDef& c)
 }
 
 // A Distance and its zero case are ONE dimension slot: typing 0 records a Coincident, and typing
-// 5 after that used to record a second constraint beside it — over-constrained by construction,
+// 5 after that must not record a second constraint beside it — over-constrained by construction,
 // which reads as the edit being ignored. Replace across that pair, then upsert normally.
 int DesignSketchTool::upsert_dimension_constraint(const SketchEntityConstraintDef& c)
 {
@@ -1587,8 +1734,9 @@ std::string DesignSketchTool::dimtype_title(DimType k) const {
 // scalar quotes. Runs after render_live_quotes, so the live-quote state is populated.
 // Why a draw-then-edit chain did not start. Four early returns can swallow it, and from outside
 // they are indistinguishable: the shape appears, no field opens, and nothing says which guard
-// fired. check-gui-click-edit.py reports that as "a value field opened (nothing did)" for every
-// tool at once, which reads like a total product failure and is not necessarily one.
+// fired. With ORCA_CAD_UXTRACE set, the open's deferral, each early return and the chain opening
+// print `[UX] autoedit <why> steps=<n>` on stderr, so a field that never opened names the guard
+// that stopped it, rather than reading like a failure of every tool at once.
 static void trace_autoedit(const char* why, size_t n)
 {
     if (!std::getenv("ORCA_CAD_UXTRACE")) return;
@@ -1781,6 +1929,7 @@ int DesignSketchTool::erase_constraints(
     m_constraints.swap(kept);
     for (DimAnnot& a : m_dimensions)                              // repair the cached indices
         if (a.con >= 0) a.con = (a.con < int(remap.size())) ? remap[a.con] : -1;
+    remap_selected_constraint(remap);
     return dropped;
 }
 
@@ -1807,13 +1956,14 @@ void DesignSketchTool::drop_constraints_referencing(int ei)
 // Onshape scissors on the live sketch: cut the picked entity at its nearest intersection.
 // trim_entity/extend_entity mutate the subject in place (slide one endpoint) given the other
 // entities + the pick point — no entity is added/removed, so indices stay stable.
-bool DesignSketchTool::apply_live_trim(const Vec2d& p, double tol, bool extend)
+bool DesignSketchTool::apply_live_trim(const Vec2d& p, double tol, bool extend, int* picked)
 {
     double best = 1e30; int bi = -1;
     for (size_t i = 0; i < m_entities.size(); ++i) {
         const double d = entity_pick_dist(p, m_entities[i]);
         if (d < best) { best = d; bi = int(i); }
     }
+    if (picked != nullptr) *picked = best <= tol ? bi : -1;
     if (bi < 0 || best > tol) return false;
     using Ty = SketchEntity::Type;
     const Ty st = m_entities[bi].type;
@@ -2423,8 +2573,8 @@ std::string DesignSketchTool::dim_text(const DimAnnot& a) const
     }
     if (num == "-0") num = "0";
     // The Design tab models in millimetres whatever the slicer's inch preference says: the
-    // kernel, the value fields and the readouts are all mm. The suffix used to follow that
-    // preference while the number did not, so an inch user read "25.4 in" for one inch.
+    // kernel, the value fields and the readouts are all mm. So the suffix is always mm: one that
+    // followed the inch preference while the number did not would label one inch "25.4 in".
     return std::string(prefix) + num + (a.kind == DimType::Angle ? "\xC2\xB0" : " mm");
 }
 
@@ -2481,6 +2631,7 @@ void DesignSketchTool::finish()
     m_points.clear();
     m_entities.clear();
     m_constraints.clear();
+    m_sel_con = -1;
     m_dimensions.clear();
     m_point_sel.clear();
     m_dim_has0 = false;
@@ -2502,6 +2653,7 @@ void DesignSketchTool::begin_constrain(const SketchProfile& prof, const SketchPl
     m_sel_a = m_sel_b = -1;
     m_constrain_entities = false;
     m_pick0 = m_pick1 = m_pick2 = -1;
+    m_sel_con = -1;
     m_active = true;
 }
 
@@ -2516,6 +2668,7 @@ void DesignSketchTool::begin_constrain_entities(const std::vector<SketchEntity>&
     m_has_cursor = false;
     m_sel_a = m_sel_b = -1;
     m_pick0 = m_pick1 = m_pick2 = -1;
+    m_sel_con = -1;
     m_active = true;
 }
 
@@ -2538,13 +2691,13 @@ bool DesignSketchTool::screen_to_plane(GLCanvas3D& canvas, const wxMouseEvent& e
 
 // Closing the loop is THE outcome this tab exists for — a sketch that is not closed cannot be
 // extruded — so it must be as easy and as visible as any other snap, and it must behave the
-// same at every zoom. This used to be a bare `squaredNorm() < 4.0`, i.e. a fixed 2 mm bubble in
-// plane units: a pixel hunt zoomed out, an over-eager magnet zoomed in, and invisible either
-// way — nothing told the user their next click would close the loop rather than place another
-// vertex. Now the chain's first point is a real snap target on the same 8 px screen tolerance
-// as every endpoint snap: hovering it moves the cursor exactly onto it, which makes the rubber
-// band draw the closing segment as a preview and lights the existing snap marker. The click
-// then closes only because it was SNAPPED, never because it was merely nearby.
+// same at every zoom. A fixed radius in plane units would be a pixel hunt zoomed out, an
+// over-eager magnet zoomed in, and invisible either way — nothing would tell the user their next
+// click closes the loop rather than placing another vertex. So the chain's first point is a real
+// snap target on the same 8 px screen tolerance as every endpoint snap: hovering it moves the
+// cursor exactly onto it, which makes the rubber band draw the closing segment as a preview and
+// lights the existing snap marker. The click then closes only because it was SNAPPED, never
+// because it was merely nearby.
 bool DesignSketchTool::snap_chain_start(GLCanvas3D& canvas, const wxMouseEvent& evt, Vec2d& p) const
 {
     if (m_mode != Mode::Polyline || m_points.size() < 3) return false;
@@ -2665,22 +2818,9 @@ bool DesignSketchTool::try_add_constraints(const std::vector<SketchEntityConstra
     return false;
 }
 
-// Delete the constraint whose badge is under `p`. Removing a constraint can only FREE degrees
-// of freedom, so the re-solve cannot fail for over-constraint -- but it is still run, because
-// the geometry must relax back to what the remaining system allows.
-bool DesignSketchTool::remove_constraint_near(const Vec2d& p)
-{
-    if (m_glyph_hits.empty() || m_glyph_r <= 0.0) return false;
-    int best = -1;
-    double best_d = m_glyph_r;
-    for (const GlyphHit& g : m_glyph_hits) {
-        const double d = (g.c - p).norm();
-        if (d < best_d && g.con >= 0 && g.con < int(m_constraints.size())) { best_d = d; best = g.con; }
-    }
-    if (best < 0) return false;
-    return remove_constraint(best);
-}
-
+// Removing a constraint can only FREE degrees of freedom, so the re-solve cannot fail for
+// over-constraint -- but it is still run, because the geometry must relax back to what the
+// remaining system allows.
 bool DesignSketchTool::remove_constraint(int idx)
 {
     if (idx < 0 || idx >= int(m_constraints.size())) return false;
@@ -2692,14 +2832,13 @@ bool DesignSketchTool::remove_constraint(int idx)
     // geometry while leaving the DoF readout and any red over-constrained tint stale — the
     // readout would still describe the constraint that was just deleted.
     resolve_live();
-    m_glyph_hits.clear();       // stale until the next render rebuilds them
     if (on_constraints_changed) on_constraints_changed();
     return true;
 }
 
-// The endpoint roles an entity exposes to coincidence matching. ONE copy, deliberately: the two
-// file-local lambdas that used to hold this had already diverged (an ellipse arc could be welded
-// by the healer but never auto-inferred coincident at draw time, so the same gesture behaved
+// The endpoint roles an entity exposes to coincidence matching. ONE copy, deliberately, shared
+// by draw-time inference and the healer: separate copies drift apart (an ellipse arc welded by
+// the healer but never auto-inferred coincident at draw time would make the same gesture behave
 // differently depending on which path ran).
 static int sketch_endpoint_roles(const SketchEntity& e, SketchPointRole out[2])
 {
@@ -2749,10 +2888,9 @@ void DesignSketchTool::infer_auto_constraints(int base, double ang_tol_rad, doub
 
     // 2) Horizontal / Vertical on axis-aligned new line segments. Tried as ONE batch first and
     //    only then one at a time, which is the same outcome — a single conflict never drops the
-    //    others — for one solve instead of n. That matters now that large sketches actually
-    //    solve: a bulk add of 1200 axis-aligned segments used to be fast only because every
-    //    solve failed instantly on the unknown limit, and once they started succeeding the
-    //    per-constraint loop turned into 1200 solves and blew the MCP main-thread budget.
+    //    others — for one solve instead of n. That matters because large sketches solve: one
+    //    at a time, a bulk add of 1200 axis-aligned segments would be 1200 solves and blow the
+    //    MCP main-thread budget.
     std::vector<SketchEntityConstraintDef> axes;
     for (int i = base; i < n; ++i) {
         if (m_entities[i].type != SketchEntity::Type::Line) continue;
@@ -2796,7 +2934,7 @@ void DesignSketchTool::infer_auto_constraints(int base, double ang_tol_rad, doub
     // NO one-at-a-time fallback here, unlike the two batches above. Relations are a
     // convenience: nothing is incorrect without them. The fallback costs one SOLVE PER
     // CONSTRAINT, which is what the warning on the axes batch is about, and paying it for
-    // optional constraints is how a bulk add pins the app at 100% CPU with the MCP socket
+    // optional constraints is how a bulk add pins the app at 100% CPU and leaves it
     // unresponsive (measured 2026-08-31). If the batch conflicts, drop the batch.
     if (!rels.empty()) try_add_constraints(rels);
 
@@ -3028,13 +3166,14 @@ std::vector<SketchEntity> DesignSketchTool::make_three_point_arc(const Vec2d& st
     return { make_arc_through(center, radius, start, end, on_arc, m_construction) };
 }
 
-std::vector<SketchEntity> DesignSketchTool::make_tangent_arc(const Vec2d& start, const Vec2d& end) const
+std::vector<SketchEntity> DesignSketchTool::make_tangent_arc(const Vec2d& start, const Vec2d& end, int from) const
 {
-    // Tangent direction at `start` = exit direction of the previous entity.
+    // Tangent direction at `start` = exit direction of the entity it leaves.
     Vec2d t(1, 0);
     bool have_t = false;
-    if (!m_entities.empty()) {
-        const SketchEntity& prev = m_entities.back();
+    if (from < 0) from = int(m_entities.size()) - 1;
+    if (from >= 0 && from < int(m_entities.size())) {
+        const SketchEntity& prev = m_entities[from];
         if (prev.type == SketchEntity::Type::Line) {
             t = prev.p1 - prev.p0; have_t = (t.squaredNorm() > 1e-12);
         } else if (prev.type == SketchEntity::Type::Arc) {
@@ -3211,6 +3350,19 @@ std::vector<SketchEntity> DesignSketchTool::make_polygon(const Vec2d& center, co
     for (int i = 0; i < sides; ++i) {
         const double a = a0 + 2.0 * M_PI * double(i) / double(sides);
         verts.push_back(Vec2d(center.x() + R * std::cos(a), center.y() + R * std::sin(a)));
+    }
+    // A side on an axis is built exactly on it: its end takes its start's coordinate across the axis. The sines
+    // and cosines above leave such a side a few rounding steps off, and which sides come out exact depends on the
+    // platform's math library, so inference at zero tolerance would pin a different set of sides on each. A vertex
+    // has at most one level and one upright side, so no coordinate is set twice.
+    for (int i = 0; i < sides; ++i) {
+        const Vec2d& start = verts[i];
+        Vec2d&       end   = verts[(i + 1) % sides];
+        const auto   axis  = infer_axis_constraint(start, end, kPolygonAxisTol);
+        if (axis == SketchConstraintType::Horizontal)
+            end.y() = start.y();
+        else if (axis == SketchConstraintType::Vertical)
+            end.x() = start.x();
     }
     for (int i = 0; i < sides; ++i) {
         SketchEntity e; e.type = SketchEntity::Type::Line;
@@ -3448,6 +3600,34 @@ std::vector<SketchEntity> DesignSketchTool::selected_loop_entities() const
     return {};
 }
 
+int DesignSketchTool::display_region_of(int feature, const std::vector<SketchEntity>& loop) const
+{
+    for (const DisplaySketch& d : m_display_sketches) {
+        if (d.feature != feature) continue;
+        const std::vector<RegionLoop> loops = region_loops(d.entities);
+        for (int r = 0; r < int(loops.size()); ++r) {
+            std::vector<SketchEntity> own;
+            for (int ei : loops[r].ents)
+                if (ei >= 0 && ei < int(d.entities.size())) own.push_back(d.entities[ei]);
+            if (same_entities(own, loop)) return r;
+        }
+        return -1;
+    }
+    return -1;
+}
+
+bool DesignSketchTool::same_entities(const std::vector<SketchEntity>& a, const std::vector<SketchEntity>& b)
+{
+    if (a.size() != b.size() || a.empty()) return false;
+    auto eq = [](const Vec2d& u, const Vec2d& v) { return (u - v).squaredNorm() < 1e-10; };
+    for (size_t k = 0; k < a.size(); ++k) {
+        const SketchEntity& x = a[k]; const SketchEntity& y = b[k];
+        if (x.type != y.type || !eq(x.p0, y.p0) || !eq(x.p1, y.p1) ||
+            !eq(x.center, y.center) || std::abs(x.radius - y.radius) > 1e-7) return false;
+    }
+    return true;
+}
+
 // ---- Solid topology selection (whole -> face -> edge cycle) ----
 
 void DesignSketchTool::set_solid_pick(const std::vector<CadBody>* bodies, const TriangleMesh* mesh,
@@ -3666,6 +3846,87 @@ void DesignSketchTool::select_body(int body)
     m_sel_edges_more.clear();
     m_sel_edges_more_pts.clear();
     m_solid_sel = SolidSel::Whole;   // the canvas fills just this body, render_solid_highlight outlines it
+}
+
+bool DesignSketchTool::body_takes_pick(int body, std::string* why) const
+{
+    const auto refuse = [why](std::string reason) {
+        if (why != nullptr) *why = std::move(reason);
+        return false;
+    };
+    if (body_shape(body) == nullptr)
+        return refuse("body " + std::to_string(body) + " has no shape in the view to pick from");
+    if (!body_pickable(body))
+        return refuse("body " + std::to_string(body) + " takes no click in the view: it is hidden, or another body is the only one picked");
+    return true;
+}
+
+bool DesignSketchTool::can_select_solid(SolidSel kind, int body, int face, const std::vector<int>& edges,
+                                        std::string* why) const
+{
+    const auto refuse = [why](std::string reason) {
+        if (why != nullptr) *why = std::move(reason);
+        return false;
+    };
+    if (!body_takes_pick(body, why))
+        return false;
+    const TopoDS_Shape* shape = body_shape(body);
+    switch (kind) {
+    case SolidSel::Face: {
+        const int count = GeometryEngine::face_count(*shape);
+        if (face < 0 || face >= count)
+            return refuse("face " + std::to_string(face) + " is not one of body " + std::to_string(body) + ", which has " +
+                          std::to_string(count));
+        return true;
+    }
+    case SolidSel::Edge: {
+        if (edges.empty())
+            return refuse("edges names no edge");
+        std::set<int> seen;
+        for (const int id : edges) {
+            if (id < 0 || GeometryEngine::edge_by_index(*shape, id).IsNull())
+                return refuse("edge " + std::to_string(id) + " is not one of body " + std::to_string(body) + ", which has " +
+                              std::to_string(GeometryEngine::edge_count(*shape)));
+            if (!seen.insert(id).second)
+                return refuse("edges lists edge " + std::to_string(id) + " twice");
+        }
+        return true;
+    }
+    case SolidSel::Vertex: return true;
+    default: return refuse("only a face, edges or a vertex is picked by id");
+    }
+}
+
+bool DesignSketchTool::select_solid(SolidSel kind, int body, int face, const std::vector<int>& edges, const Vec3d& vertex_pt)
+{
+    if (!can_select_solid(kind, body, face, edges))
+        return false;
+    const TopoDS_Shape& shape = *body_shape(body);
+    // The edges' polylines, moved with the body, which the highlight is drawn from.
+    std::vector<std::vector<Vec3d>> edge_pts;
+    if (kind == SolidSel::Edge)
+        for (const int id : edges) {
+            std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(GeometryEngine::edge_by_index(shape, id));
+            for (Vec3d& q : pts) q = body_xform_pt(body, q);
+            edge_pts.push_back(std::move(pts));
+        }
+    m_sel_body      = body;
+    m_sel_shape     = shape;
+    m_solid_sel     = kind;
+    m_sel_face      = kind == SolidSel::Face ? face : -1;
+    m_sel_edge      = kind == SolidSel::Edge ? edges.back() : -1;
+    m_sel_edge_pts  = kind == SolidSel::Edge ? std::move(edge_pts.back()) : std::vector<Vec3d>();
+    m_sel_vertex_pt = kind == SolidSel::Vertex ? body_xform_pt(body, vertex_pt) : Vec3d::Zero();
+    m_sel_edges_more.clear();
+    m_sel_edges_more_pts.clear();
+    if (kind == SolidSel::Edge)
+        for (size_t i = 0; i + 1 < edges.size(); ++i) {
+            m_sel_edges_more.push_back(edges[i]);
+            m_sel_edges_more_pts.push_back(std::move(edge_pts[i]));
+        }
+    if (on_solid_selection_changed)
+        on_solid_selection_changed(int(m_solid_sel), m_sel_body, m_sel_face, m_sel_edge);
+    return true;
 }
 
 void DesignSketchTool::set_highlight_faces(const std::vector<std::pair<int, int>>& faces)
@@ -4454,7 +4715,7 @@ void DesignSketchTool::clear_extrude_gizmo()
 // cone travels, an open collar receives. No surveyed CAD system encodes this at all; both ends of
 // their mates are drawn identically, which is why "which part moves?" is a standing complaint.
 //
-// ORCA_CAD_GLYPH=A|B selects the treatment while this is being judged on the rig:
+// ORCA_CAD_GLYPH=A|B selects the treatment, so the two can be compared by eye:
 //   A  three short axis arms, no head differentiation  (the Onshape baseline)
 //   B  one-sided Z arrow, filled vs open head          (the proposal)          -- default
 void DesignSketchTool::render_mate_connectors()
@@ -4467,7 +4728,8 @@ void DesignSketchTool::render_mate_connectors()
     // The face treatment, on by default. Read every frame rather than latched in a static, so
     // toggling the preference takes effect on the next repaint instead of at the next launch —
     // it is a look, and a look you cannot A/B without restarting will not get compared.
-    // ORCA_CAD_GLYPH=D forces the disc regardless, which is how the rig drives the other branch.
+    // ORCA_CAD_GLYPH=D forces the disc regardless, so that branch can be viewed with the
+    // preference on.
     const bool face_style = !style_A
                          && wxGetApp().app_config->get_bool("design_connector_face_glyph")
                          && [] { const char* s = ::getenv("ORCA_CAD_GLYPH");
@@ -4483,9 +4745,9 @@ void DesignSketchTool::render_mate_connectors()
     const ColorRGBA gold (0.93f, 0.66f, 0.09f, 1.0f);
     const ColorRGBA blue (0.18f, 0.44f, 0.93f, 1.0f);
     const ColorRGBA grey (0.42f, 0.46f, 0.52f, 1.0f);
-    // F5: roll-undefined was a loud red — the strongest colour in the viewport spent on the LEAST
-    // important connector, which pulled the eye away from the mate being made. It is a "this one
-    // could not be derived" mark, not an error: muted amber says look-here without shouting.
+    // Roll-undefined is a "this one could not be derived" mark, not an error: muted amber says
+    // look-here without shouting. Red, the strongest colour in the viewport, would be spent on the
+    // LEAST important connector and pull the eye away from the mate being made.
     const ColorRGBA warn (0.72f, 0.55f, 0.22f, 1.0f);
 
     const SketchPlane saved = m_plane;
@@ -4500,12 +4762,12 @@ void DesignSketchTool::render_mate_connectors()
         // be billboarded: a disc that always faces the camera cannot show the frame's orientation,
         // which is the only reason it is a disc and not a dot.
         // Lifted off the surface by a sub-pixel epsilon. A connector's disc is EXACTLY coplanar with
-        // the face it sits on, so depth-testing it z-fights: on the rig the disc came out as a broken
-        // dotted arc that flickered with the camera. Depth off floats it through solids, depth on and
+        // the face it sits on, so depth-testing it z-fights: the disc comes out as a broken dotted
+        // arc that flickers with the camera. Depth off floats it through solids, depth on and
         // coplanar tears it — the lift is what buys both. Scaled by upp so it stays sub-pixel at any
         // zoom instead of becoming a visible gap when you zoom in.
         // A face asserts a definite roll. When the roll could NOT be derived, drawing one would be
-        // a confident lie about the very thing that is unknown — the same objection that rejected
+        // a confident lie about the very thing that is unknown — the same objection that rules out
         // billboarding the quadrant — so an underived connector keeps the disc treatment and its
         // hatched quadrant, whatever the preference says.
         if (face_style && !g.roll_undefined) {
@@ -4548,19 +4810,20 @@ void DesignSketchTool::render_mate_connectors()
                     const double a = (M_PI_2 * i) / 5.0;
                     q.emplace_back(Vec2d(0, 0), Vec2d(qr * std::cos(a), qr * std::sin(a)));
                 }
-                // F4: the quadrant collapses to a blob at grazing angles — exactly when the roll
+                // The quadrant collapses to a blob at grazing angles — exactly when the roll
                 // is hardest to read. A radial tick along +X, extending PAST the disc rim, is what
                 // survives that: as the disc flattens to a line the sector loses all area, but a
                 // radial spoke keeps its length and its direction along the one axis that still
                 // projects.
                 //
-                // The alternative on the issue was billboarding the quadrant. Rejected, and not
-                // on taste: at true grazing the view direction lies IN the connector's plane, so
+                // Billboarding the quadrant is no alternative, and not on taste: at true
+                // grazing the view direction lies IN the connector's plane, so
                 // every in-plane direction projects onto the same screen line and the roll is
                 // geometrically unrecoverable. A billboarded quadrant would not recover it — it
                 // would face the camera and read as a definite orientation that is not the frame's.
                 // Better to degrade to a direction you can still trust than to draw a confident
-                // lie. Judge the tick on the rig at a true grazing view before calling F4 closed.
+                // lie. How well the tick reads at a true grazing view is judged by eye; no test
+                // measures it.
                 q.emplace_back(Vec2d(R, 0), Vec2d(R * 1.28, 0));
             }
             draw_strokes(m_mc_stroke_model, q, lw, g.roll_undefined ? warn : gold);
@@ -4660,8 +4923,8 @@ void DesignSketchTool::render_mate_connectors()
 //
 // WHY A RELIEF AND NOT A FLAT DRAWING, which is the non-obvious half. A flat face drawn in the
 // connector's plane foreshortens by sin(elevation) and collapses at a grazing view exactly like
-// the quadrant it replaces -- measured on the rig, the quadrant falls from 89 lit pixels at 47
-// degrees to 3 at 10 and 0 edge-on. A relief does not: at a grazing angle its SILHOUETTE carries
+// the quadrant it replaces -- the quadrant falls from 89 lit pixels at 47 degrees to 3 at 10
+// and 0 edge-on. A relief does not: at a grazing angle its SILHOUETTE carries
 // the information. The same bear rendered flat vs in relief gives 164 vs 210 lit pixels at 16
 // degrees and 66 vs 120 at 6. So the glyph is a small shaded solid, not an outline.
 //
@@ -8439,35 +8702,17 @@ void DesignSketchTool::render_live_quotes(double unit_per_px)
     }
 }
 
-// Iconic constraint badges drawn near each constraint's primary entity (C3.4b).
-// Each glyph is authored in a unit cell [-0.5,0.5]^2 then scaled to a constant
-// on-screen size and translated to the anchor; badges on the same entity stack
-// upward so multiple constraints stay legible.
+// Iconic constraint badges drawn near each constraint's primary entity (C3.4b), where
+// constraint_badges() lays them out. Each glyph is authored in a unit cell [-0.5,0.5]^2, then
+// scaled to a constant on-screen size and moved to its badge.
 void DesignSketchTool::build_constraint_glyphs(double unit_per_px,
-                                               const std::vector<SketchEntityConstraintDef>& cons,
-                                               std::vector<std::pair<Vec2d, Vec2d>>& out)
+                                               std::vector<std::pair<Vec2d, Vec2d>>& out,
+                                               std::vector<std::pair<Vec2d, Vec2d>>& out_selected) const
 {
-    m_glyph_hits.clear();
+    const std::vector<SketchEntityConstraintDef>& cons = shown_constraints();
     if (cons.empty() || m_entities.empty()) return;
     using T = SketchConstraintType;
-    const double s = std::max(11.0 * unit_per_px, 1e-4);   // glyph cell size in plane units
-    const double step = s * 1.5;                           // vertical stacking step
-
-    // Representative anchor point on an entity (line midpoint, round-entity centre).
-    auto anchor_of = [&](int ei) -> Vec2d {
-        if (ei < 0 || ei >= int(m_entities.size())) return Vec2d(0, 0);
-        const SketchEntity& e = m_entities[ei];
-        switch (e.type) {
-        case SketchEntity::Type::Line:    return 0.5 * (e.p0 + e.p1);
-        case SketchEntity::Type::Circle:
-        case SketchEntity::Type::Ellipse:
-        case SketchEntity::Type::Arc:
-        case SketchEntity::Type::EllipseArc: return e.center;
-        case SketchEntity::Type::BSpline:  return 0.5 * (e.p0 + e.p1);
-        case SketchEntity::Type::Point:    return e.p0;
-        }
-        return e.p0;
-    };
+    const double s = std::max(kBadgePx * unit_per_px, 1e-4);   // glyph cell size in plane units
 
     // Unit-cell stroke authoring helpers (cell centred on origin).
     auto seg = [&](std::vector<std::pair<Vec2d, Vec2d>>& v, Vec2d a, Vec2d b) { v.emplace_back(a, b); };
@@ -8507,21 +8752,29 @@ void DesignSketchTool::build_constraint_glyphs(double unit_per_px,
         }
     };
 
-    // Stack count per entity so successive badges step upward.
-    std::vector<int> stack(m_entities.size(), 0);
-    const Vec2d up(0.0, 1.0);     // plane-space up; offset so badge sits off the geometry
-    m_glyph_r = 0.6 * s;
+    const std::vector<std::optional<Vec2d>> badges = constraint_badges(unit_per_px);
     for (size_t ci = 0; ci < cons.size(); ++ci) {
-        const SketchEntityConstraintDef& d = cons[ci];
-        if (d.ea < 0 || d.ea >= int(m_entities.size())) continue;
-        const int k = stack[d.ea]++;
-        const Vec2d center = anchor_of(d.ea) + up * (step * (1.0 + k));
-        m_glyph_hits.push_back({center, int(ci)});
+        if (!badges[ci]) continue;
+        const Vec2d& center = *badges[ci];
         std::vector<std::pair<Vec2d, Vec2d>> cell;
-        unit_glyph(d.type, cell);
+        unit_glyph(cons[ci].type, cell);
+        std::vector<std::pair<Vec2d, Vec2d>>& into = int(ci) == m_sel_con ? out_selected : out;
         for (auto& sgp : cell)
-            out.emplace_back(center + sgp.first * s, center + sgp.second * s);
+            into.emplace_back(center + sgp.first * s, center + sgp.second * s);
     }
+}
+
+void DesignSketchTool::draw_constraint_badges(double unit_per_px)
+{
+    std::vector<std::pair<Vec2d, Vec2d>> glyphs, selected;
+    build_constraint_glyphs(unit_per_px, glyphs, selected);
+    const double hw = std::max(0.9 * unit_per_px, 1e-4);
+    if (!glyphs.empty())
+        draw_strokes(m_fill_model, glyphs, hw, ColorRGBA(0.45f, 0.95f, 0.70f, 1.0f));   // CAD teal-green
+    // The selected badge last, so it sits over a neighbour it touches, and bolder, so it reads as
+    // picked at a glance and not only by its colour.
+    if (!selected.empty())
+        draw_strokes(m_fill_model, selected, 1.6 * hw, design_selection_color());
 }
 
 void DesignSketchTool::draw_entities_preview(const std::vector<SketchEntity>& ents, const ColorRGBA& color)
@@ -8695,7 +8948,9 @@ bool DesignSketchTool::op_ready() const
     case Mode::Fillet:
     case Mode::Chamfer: return m_op_a >= 0 && m_op_b >= 0;
     case Mode::Offset:  return m_op_a >= 0;
-    case Mode::Mirror:  return m_op_a >= 0 && !m_mirror_targets.empty();
+    // The axis may also be the sketch's X or Y axis, which only mirror_scripted() names.
+    case Mode::Mirror:
+        return (m_op_a >= 0 || m_op_a == kSketchRefAxisX || m_op_a == kSketchRefAxisY) && !m_mirror_targets.empty();
     default: return false;
     }
 }
@@ -8789,6 +9044,7 @@ void DesignSketchTool::recompute_op_ghost()
 void DesignSketchTool::op_pick(int ei)
 {
     if (ei < 0 || ei >= int(m_entities.size())) return;
+    set_selected_constraint(-1);   // the pick is the sketch's one selection now
     const SketchEntity::Type t = m_entities[ei].type;
     switch (m_mode) {
     case Mode::Fillet:
@@ -8944,9 +9200,9 @@ static bool entity_moved(const SketchEntity& a, const SketchEntity& b, double to
     }
 }
 
-void DesignSketchTool::confirm_op()
+bool DesignSketchTool::confirm_op()
 {
-    if (!op_ready()) return;
+    if (!op_ready()) return false;
     using R  = SketchPointRole;
     using CT = SketchConstraintType;
 
@@ -8961,7 +9217,7 @@ void DesignSketchTool::confirm_op()
                 ? _u8L("Fillet: the radius overruns a leg, or the two lines do not meet at a corner")
                 : _u8L("Chamfer: the distance overruns a leg, or the two lines do not meet at a corner"));
             reset_op();
-            return;
+            return false;
         }
         const int a = m_op_a, b = m_op_b;
         m_entities[a] = a_out; m_entities[b] = b_out;
@@ -8972,14 +9228,19 @@ void DesignSketchTool::confirm_op()
         const R ra = role_near(m_entities[a], extra.p0);
         const R rb = role_near(m_entities[b], extra.p1);
         // Drop the now-stale corner Coincident + each line's own length Distance (the op
-        // trimmed both legs back), then bind the new entity onto the trimmed endpoints.
+        // trimmed both legs back), then bind the new entity onto the trimmed endpoints. A
+        // Symmetric constraint on a trimmed end (a mirror's, binding the end to its copy's)
+        // goes too: kept, it would pull the copy's end along and have the solve meet it halfway,
+        // shrinking the radius or setback asked for. The copy keeps its end where it was, and
+        // the lines' far ends keep their Symmetric constraints.
         auto refs = [](const SketchEntityConstraintDef& d, int e, R r) {
             return (d.ea == e && d.ra == r) || (d.eb == e && d.rb == r); };
         auto self_len = [](const SketchEntityConstraintDef& d, int e) {
             return d.type == CT::Distance && d.ea == e && d.eb == e; };
         const int released = erase_constraints([&](int, const SketchEntityConstraintDef& d) {
             return (d.type == CT::Coincident && refs(d, a, ra) && refs(d, b, rb))
-                || self_len(d, a) || self_len(d, b);
+                || self_len(d, a) || self_len(d, b)
+                || (d.type == CT::Symmetric && (refs(d, a, ra) || refs(d, b, rb)));
         });
         if (released > 0)
             notify(format(into_u8(_L_PLURAL("%1% constraint the fillet/chamfer invalidated was removed",
@@ -9004,7 +9265,7 @@ void DesignSketchTool::confirm_op()
         if (out.empty()) {
             notify(_u8L("Offset: an ellipse or a spline has no parallel of its own kind — pick lines, arcs or circles"));
             reset_op();
-            return;
+            return false;
         }
         const int ni = int(m_entities.size());
         const bool single = m_op_chain.size() <= 1;
@@ -9019,7 +9280,16 @@ void DesignSketchTool::confirm_op()
         else                                                                  emit = false;
         if (emit) try_add_constraints({ d });
     } else if (m_mode == Mode::Mirror) {
-        const SketchEntity axis = m_entities[m_op_a];   // by value (m_entities grows below)
+        // By value (m_entities grows below). The sketch's own X or Y axis is a line through the origin, which the
+        // Symmetric constraints below name by its reference (ec) as they name a line by its index.
+        SketchEntity axis;
+        if (m_op_a == kSketchRefAxisX || m_op_a == kSketchRefAxisY) {
+            axis.type = SketchEntity::Type::Line;
+            axis.p0   = Vec2d::Zero();
+            axis.p1   = m_op_a == kSketchRefAxisX ? Vec2d(1.0, 0.0) : Vec2d(0.0, 1.0);
+        } else {
+            axis = m_entities[m_op_a];
+        }
         // The sources as they stand BEFORE any of this op's constraints exist. Two jobs: every
         // copy is reflected from the untouched original (so a batch that moves the sketch cannot
         // feed a later copy moved geometry), and the invariant at the bottom has something to
@@ -9036,9 +9306,12 @@ void DesignSketchTool::confirm_op()
             SketchEntityConstraintDef d; d.type = CT::Symmetric; d.ea = ti; d.eb = mi; d.ec = m_op_a;
             const SketchEntity::Type st = before[ti].type;
             std::vector<std::vector<SketchEntityConstraintDef>> ladder;
+            // mirror_entities() hands a line or an arc back run the other way, so that a mirrored chain continues
+            // head to tail: the reflection of the source's p0 is the copy's p1. Pairing p0 with p0 would ask the
+            // solver to turn the copy round, and the check below would then drop every binding of the batch.
             if (st == SketchEntity::Type::Line) {
-                d.ra = R::P0; d.rb = R::P0; auto p0 = d;
-                d.ra = R::P1; d.rb = R::P1; auto p1 = d;
+                d.ra = R::P0; d.rb = R::P1; auto p0 = d;
+                d.ra = R::P1; d.rb = R::P0; auto p1 = d;
                 ladder = { { p0, p1 }, { p0 } };
             } else if (st == SketchEntity::Type::Arc) {
                 // BOTH ENDS AND THE CENTRE. Binding only the centre — which is all this did —
@@ -9050,8 +9323,8 @@ void DesignSketchTool::confirm_op()
                 // endpoints to leave free, which is why the bug reads as "circles fine, rounded
                 // rectangles and slots destroyed".
                 d.ra = R::Center; d.rb = R::Center; auto ct = d;
-                d.ra = R::P0;     d.rb = R::P0;     auto p0 = d;
-                d.ra = R::P1;     d.rb = R::P1;     auto p1 = d;
+                d.ra = R::P0;     d.rb = R::P1;     auto p0 = d;
+                d.ra = R::P1;     d.rb = R::P0;     auto p1 = d;
                 // Endpoints BEFORE centre: an arc is five DoF, so {centre, p0, p1} is six
                 // equations and is refused; {p0, p1} is four and pins the sweep, which is the
                 // half that was going wild. The postcondition below is what makes the ladder
@@ -9099,6 +9372,7 @@ void DesignSketchTool::confirm_op()
     m_selection.clear();
     resolve_live();
     if (on_selection_changed) on_selection_changed(0);
+    return true;
 }
 
 // ---- In-canvas transform gizmo (Move/Rotate/Scale/Array/PolarArray) ----
@@ -9167,6 +9441,7 @@ void DesignSketchTool::compute_tf_pivot()
 void DesignSketchTool::tf_pick(int ei)
 {
     if (ei < 0 || ei >= int(m_entities.size())) return;
+    set_selected_constraint(-1);   // the pick is the sketch's one selection now
     auto it = std::find(m_tf_targets.begin(), m_tf_targets.end(), ei);
     if (it == m_tf_targets.end()) m_tf_targets.push_back(ei);   // toggle-select like Mirror
     else                          m_tf_targets.erase(it);
@@ -9299,8 +9574,14 @@ void DesignSketchTool::open_tf_editor_a()
                 break;
             default: break;
             }
-            // Enter IS the commit, the same rule the edit-op field follows.
-            confirm_transform();
+            // Enter IS the commit for a transform with one value, the same rule the edit-op field
+            // follows. An array has two, the step or sweep and the count: either one typed
+            // leaves the array pending, so the other can still be typed, and Enter or the ✓
+            // applies it.
+            if (m_mode == Mode::Array || m_mode == Mode::PolarArray)
+                recompute_tf_ghost();
+            else
+                confirm_transform();
         },
         []() {});
 }
@@ -9316,8 +9597,8 @@ void DesignSketchTool::open_tf_editor_count()
                 show_refusal(_u8L("The number of copies must be a whole number, 2 or more"));
                 return;
             }
-            m_tf_count   = int(std::round(v));
-            confirm_transform();
+            m_tf_count = int(std::round(v));
+            recompute_tf_ghost();   // still pending: see open_tf_editor_a
         },
         []() {});
 }
@@ -9391,10 +9672,21 @@ void DesignSketchTool::confirm_transform()
     };
 
     if (m_mode == Mode::Move || m_mode == Mode::Rotate || m_mode == Mode::Scale) {
-        // MUTATING: map every subject in place, then drop the constraint classes the map
-        // invalidates for any constraint touching a subject. Surviving classes are
-        // satisfied by construction; the re-solve folds in the new placement.
+        // MUTATING: map every subject in place, then release each constraint touching a subject
+        // that the map breaks. What is kept holds by construction, so the re-solve moves nothing.
+        //
+        // A constraint among the subjects alone moved with them under the one map, so it still
+        // holds unless it measures against the sketch's fixed frame (a position, an axis direction,
+        // a projection onto an axis) or, under a scale, a size: a rectangle moved, turned or scaled
+        // whole keeps its corners joined. One reaching past them, to an entity left where it was or
+        // to the origin or an axis, is judged by its class: whether the map can move one end of it
+        // away from the other.
         const Mode mode = m_mode;
+        auto among_subjects = [&](const SketchEntityConstraintDef& d) {
+            for (int e : { d.ea, d.eb, d.ec })
+                if (e != -1 && !is_target(e)) return false;   // -1: unused; a sketch reference stays put
+            return true;
+        };
         for (int ti : targets) {
             if (ti < 0 || ti >= int(m_entities.size())) continue;
             std::vector<SketchEntity> out;
@@ -9408,19 +9700,29 @@ void DesignSketchTool::confirm_transform()
         }
         const int released = erase_constraints([&](int, const SketchEntityConstraintDef& d) {
             if (!(is_target(d.ea) || is_target(d.eb) || is_target(d.ec))) return false;
-            const bool self = (d.ea == d.eb);   // self-length Distance survives translate/rotate
+            if (among_subjects(d)) {
+                switch (d.type) {
+                case CT::Fix:             case CT::LockX:           case CT::LockY:
+                case CT::SymmetricAboutX: case CT::SymmetricAboutY:  return true;   // the fixed frame
+                case CT::Horizontal:      case CT::Vertical:         return mode == Mode::Rotate;
+                case CT::DistanceX:       case CT::DistanceY:        return mode != Mode::Move;
+                case CT::Distance:        case CT::Radius:           case CT::Diameter:
+                    return mode == Mode::Scale;
+                case CT::PointOnLine:     return mode == Mode::Scale && std::abs(d.value) > 1e-9;   // an offset is a size
+                default:                  return false;   // relations the map carries over
+                }
+            }
             if (mode == Mode::Move) {
                 switch (d.type) {
                 case CT::Coincident: case CT::PointOnLine: case CT::PointOnObject:
                 case CT::Concentric: case CT::Symmetric:   case CT::Midpoint:
-                case CT::Fix:        case CT::LockX:        case CT::LockY:   return true;
-                case CT::Distance: return !self;
-                default:           return false;   // orientation/length preserved by translation
+                case CT::Fix:        case CT::LockX:        case CT::LockY:
+                case CT::Distance:   return true;
+                default:             return false;   // orientation/length preserved by translation
                 }
             } else if (mode == Mode::Rotate) {
                 switch (d.type) {
                 case CT::EqualLength: case CT::Radius: case CT::Diameter: return false;
-                case CT::Distance: return !self;
                 default:           return true;    // orientation + position broken by rotation
                 }
             } else {   // Scale (uniform / conformal)
@@ -9510,7 +9812,7 @@ const ColorRGBA* DesignSketchTool::sketch_hl_color(int feature) const
 void DesignSketchTool::emit_step_hint()
 {
     // No session, no step. render() also runs while only the reference planes are up, and m_mode
-    // then holds the last session's tool (Polyline before the first), whose prompt used to replace
+    // then holds the last session's tool (Polyline before the first), whose prompt would replace
     // the panel's own line — "click a reference plane" while Sketch waits for one.
     if (!on_step_changed || !m_active) return;
     int step = 0, picks = 0;
@@ -9607,12 +9909,10 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     // extrude is removed): faces translucent, outlines orange. Each uses its own plane.
     if (!m_display_sketches.empty()) {
         const SketchPlane saved_plane = m_plane;
-        // CYAN/BLUE MEANS SELECTED — nothing else may wear it. The unselected fill used to be
-        // (0.30,0.60,1.0), one shade off the selected (0.30,0.80,1.0), so an ordinary region
-        // read as picked and a picked one added nothing. The outlines already got this right:
-        // orange for a sketch, cyan for the selection. The fill now follows the same logic, so
-        // an unselected region is faint amber — the sketch's own colour — and every blue thing
-        // on screen is something you selected.
+        // CYAN/BLUE MEANS SELECTED — nothing else may wear it. An unselected fill even one shade
+        // off the selection colour reads as picked, and then a pick adds nothing. The fill follows
+        // the outlines' rule (orange for a sketch, cyan for the selection): an unselected region
+        // is a faint neutral grey, so every blue thing on screen is something you selected.
         const ColorRGBA dface = design_idle_face_color();   // unselected: neutral grey, never the selection colour
         const ColorRGBA sface = design_selection_color(0.34f);   // selected region
         const ColorRGBA dwire(1.0f, 0.55f, 0.1f, 1.0f);     // normal orange outline
@@ -9643,8 +9943,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
                 if (m_display_pick_region < int(loops.size())) {
                     // The holes light up with their region. The highlight has to show what will
                     // be EXTRUDED, and a hole is part of that — a plate whose bore stays orange
-                    // while its outline turns cyan would say the circle is not coming along,
-                    // which is precisely the thing that used to be true and is now not.
+                    // while its outline turns cyan would say the circle is not coming along.
                     auto mark = [&](int region) {
                         if (region < 0 || region >= int(loops.size())) return;
                         for (int ei : loops[region].ents)
@@ -9722,8 +10021,8 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     if (m_mode == Mode::Constrain) {
         // The live session's palette, so a sketch looks the same whether you are drawing it or
         // constraining it: picks wear THE selection colour, idle geometry orange (construction
-        // grey). It used to draw everything in the old near-selection cyan and the picks RED —
-        // the colour that means "conflicting" everywhere else in the sketch.
+        // grey). A pick is never red, the colour that means "conflicting" everywhere else in the
+        // sketch.
         const ColorRGBA sel_col = design_selection_color();
         if (m_constrain_entities) {
             std::vector<Vec2d> markers;
@@ -9732,8 +10031,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
                 const bool sel = (int(i) == m_pick0 || int(i) == m_pick1 || int(i) == m_pick2);
                 // Constraint-manager highlight: the entities a selected constraint
                 // references glow yellow (picked entities still win as red).
-                const bool hl = !sel && std::find(m_constraint_hl.begin(), m_constraint_hl.end(),
-                                                   int(i)) != m_constraint_hl.end();
+                const bool hl = !sel && bound_by_selected_constraint(int(i));
                 const ColorRGBA col = sel ? sel_col : hl ? yellow : e.construction ? grey : orange;
                 if (e.type == SketchEntity::Type::Point) { markers.push_back(e.p0); continue; }
                 bool closed = false;
@@ -9743,15 +10041,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
             if (!markers.empty())
                 draw_vertices(m_vertex_model, markers, orange);
             // Constraint badges (C3.4b): iconic glyphs near each constraint's entity.
-            {
-                const double upp = 1.0 / std::max(camera.get_zoom(), 1e-6);
-                std::vector<std::pair<Vec2d, Vec2d>> glyphs;
-                build_constraint_glyphs(upp, m_constrain_cons, glyphs);
-                if (!glyphs.empty()) {
-                    const ColorRGBA badge(0.45f, 0.95f, 0.70f, 1.0f);   // CAD teal-green
-                    draw_strokes(m_fill_model, glyphs, std::max(0.9 * upp, 1e-4), badge);
-                }
-            }
+            draw_constraint_badges(1.0 / std::max(camera.get_zoom(), 1e-6));
             shader->stop_using();
             glsafe(::glEnable(GL_CULL_FACE));
             glsafe(::glEnable(GL_DEPTH_TEST));
@@ -9835,6 +10125,8 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         const bool editing_this =
             edit_hi && std::find(edit_hi->begin(), edit_hi->end(), int(i)) != edit_hi->end();
         const bool bad = i < m_entity_conflict.size() && m_entity_conflict[i];
+        // The entities the selected constraint binds, in the yellow Constrain mode lights them in.
+        const bool bound = bound_by_selected_constraint(int(i));
         // The first pick of an edit-op has a DIFFERENT ROLE from the rest of the selection —
         // Mirror's is the axis, Fillet/Chamfer's is the first of the two lines — and until now
         // every pick painted the same white, so the picture could not answer "what did I select
@@ -9845,6 +10137,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         if (editing_this)        col = editing;
         else if (op_ref)         col = opref;
         else if (selected)       col = sel_col;
+        else if (bound)          col = yellow;
         else if (bad)            col = conflict;
         else if (e.construction) col = grey;
         else                     col = fully ? green : orange;
@@ -9854,7 +10147,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         }
         bool closed = false;
         std::vector<Vec2d> poly = entity_polyline(e, closed);
-        GLModel& target = (selected || editing_this || op_ref) ? m_highlight_model : m_line_model;
+        GLModel& target = (selected || editing_this || op_ref || bound) ? m_highlight_model : m_line_model;
         if (e.construction) {
             for (const std::vector<Vec2d>& d : dash_polyline(poly, closed, 9.0 * upp_dash, 6.0 * upp_dash))
                 draw_quad_strip(target, d, false, col);
@@ -9867,18 +10160,12 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     if (!sel_point_markers.empty())
         draw_vertices(m_highlight_model, sel_point_markers, sel_col);
 
-    // Constraint badges during a LIVE sketch. They used to render only inside Mode::Constrain
-    // on a COMMITTED feature, so every constraint applied while drawing — which is the path the
-    // Constrain buttons take during a session — was invisible and unremovable: you could not
-    // tell whether Parallel had been applied, nor take it back. Same glyphs, same teal, sourced
-    // from this session's m_constraints; click one to delete it (remove_constraint_near).
-    if (!m_constraints.empty()) {
-        std::vector<std::pair<Vec2d, Vec2d>> glyphs;
-        build_constraint_glyphs(upp_dash, m_constraints, glyphs);
-        if (!glyphs.empty())
-            draw_strokes(m_fill_model, glyphs, std::max(0.9 * upp_dash, 1e-4),
-                         ColorRGBA(0.45f, 0.95f, 0.70f, 1.0f));   // CAD teal-green
-    }
+    // Constraint badges during a LIVE sketch, not only inside Mode::Constrain on a COMMITTED
+    // feature: a constraint applied while drawing — which is the path the Constrain buttons take
+    // during a session — must be visible and removable, or you cannot tell whether Parallel was
+    // applied, nor take it back. Same glyphs, same teal, sourced from this session's
+    // m_constraints; click one to select it (click_constraint_badge), then Delete removes it.
+    draw_constraint_badges(upp_dash);
 
     // Endpoint / centre handles so individual points are visible and pickable in the
     // Select and Dimension tools (a line = a segment + 2 points). Selected ones cyan.
@@ -10429,7 +10716,7 @@ static void translate_entity(SketchEntity& e, const Vec2d& d)
 // Select whatever the cursor is over, for a RIGHT-click. In every CAD application the context
 // menu belongs to the thing you pointed at; here the menu was built from whatever happened to be
 // selected already, so right-clicking a line you had not left-clicked first offered the empty-
-// selection vocabulary and its own Delete/Length/Trim rows were nowhere. The offer table already
+// selection vocabulary and its own Delete/Length/Trim items were nowhere. The offer table already
 // described all of those for SkLine/SkArc/SkPoint — the pick was the missing half.
 //
 // Nothing is stolen from an existing selection: if the entity under the cursor is already part
@@ -10469,15 +10756,348 @@ int DesignSketchTool::add_entities_scripted(const std::vector<SketchEntity>& ent
     // so a bulk load made while a creation tool is armed selected the last scripted entity and
     // opened that tool's value field — which freezes the canvas (on_mouse_impl returns early
     // while m_awaiting_length) and swallows every letter (in_text includes inline_busy()). The
-    // symptom was that the first key and click after sketch_add did nothing until one Escape had
+    // symptom was that the first key and click after sketch_draw did nothing until one Escape had
     // dismissed the field. Resyncing the baseline here leaves an ALREADY open field alone; it
     // only stops this add from being read as something the user just drew. j7gc.
     m_autoedit_seen = int(m_entities.size());
     return base;
 }
 
+int DesignSketchTool::constrain_scripted(const std::vector<SketchEntityConstraintDef>& defs)
+{
+    const int first = int(m_constraints.size());
+    if (defs.empty() || !try_add_constraints(defs)) return -1;
+    resolve_live();   // try_add_constraints solves but leaves the DoF readout as it was
+    return first;
+}
+
+// The scripted ops set the armed tool's mode and picks for the one apply step and put the mode
+// back. The entity-count baseline is resynced as add_entities_scripted does it, so a fillet arc or
+// an array copy is not taken for something the armed tool just drew (j7gc).
+bool DesignSketchTool::fillet_scripted(int a, int b, double value, bool chamfer)
+{
+    const int n = int(m_entities.size());
+    if (gesture_pending() || value_field_open() || a < 0 || b < 0 || a >= n || b >= n || a == b
+        || m_entities[a].type != SketchEntity::Type::Line || m_entities[b].type != SketchEntity::Type::Line || !(value > 0.0))
+        return false;
+    const Mode armed = m_mode;
+    m_mode     = chamfer ? Mode::Chamfer : Mode::Fillet;
+    m_op_a     = a;
+    m_op_b     = b;
+    m_op_value = value;
+    const bool ok = confirm_op();
+    m_mode = armed;
+    m_autoedit_seen = int(m_entities.size());
+    return ok;
+}
+
+bool DesignSketchTool::mirror_scripted(const std::vector<int>& targets, int axis, std::vector<int>& added)
+{
+    added.clear();
+    const int  n       = int(m_entities.size());
+    const bool axis_ok = axis == kSketchRefAxisX || axis == kSketchRefAxisY ||
+                         (axis >= 0 && axis < n && m_entities[axis].type == SketchEntity::Type::Line);
+    if (gesture_pending() || value_field_open() || !axis_ok || targets.empty())
+        return false;
+    for (size_t i = 0; i < targets.size(); ++i)
+        if (targets[i] < 0 || targets[i] >= n || targets[i] == axis ||
+            std::find(targets.begin(), targets.begin() + i, targets[i]) != targets.begin() + i)
+            return false;
+    const Mode armed = m_mode;
+    const int  first = int(m_constraints.size());
+    m_mode           = Mode::Mirror;
+    m_op_a           = axis;
+    m_mirror_targets = targets;
+    const bool ok    = confirm_op();
+    m_mode = armed;
+    m_autoedit_seen = int(m_entities.size());
+    for (int c = first; c < int(m_constraints.size()); ++c) added.push_back(c);
+    return ok;
+}
+
+bool DesignSketchTool::offset_scripted(int entity, double distance, std::vector<int>& added)
+{
+    added.clear();
+    if (gesture_pending() || value_field_open() || entity < 0 || entity >= int(m_entities.size()) ||
+        SketchEngine::offset_entities({m_entities[entity]}, distance).empty())
+        return false;
+    const Mode armed = m_mode;
+    const int  first = int(m_constraints.size());
+    m_mode     = Mode::Offset;
+    m_op_a     = entity;
+    m_op_chain = {entity};
+    m_op_value = distance;
+    const bool ok = confirm_op();
+    m_mode = armed;
+    m_autoedit_seen = int(m_entities.size());
+    for (int c = first; c < int(m_constraints.size()); ++c) added.push_back(c);
+    return ok;
+}
+
+bool DesignSketchTool::trim_scripted(const Vec2d& at, double tol, bool extend, int& picked)
+{
+    picked = -1;
+    if (gesture_pending() || value_field_open() || !apply_live_trim(at, tol, extend, &picked)) return false;
+    resolve_live();   // as the scissors' click does
+    return true;
+}
+
+std::optional<Vec2d> DesignSketchTool::transform_scripted(Mode mode, const std::vector<int>& targets, const Vec2d& delta,
+                                                          double angle, double scale, int count,
+                                                          const std::optional<Vec2d>& pivot)
+{
+    const bool transform = mode == Mode::Move || mode == Mode::Rotate || mode == Mode::Scale || mode == Mode::Array
+                           || mode == Mode::PolarArray;
+    if (!transform || targets.empty() || gesture_pending() || value_field_open()) return std::nullopt;
+    for (int ti : targets)
+        if (ti < 0 || ti >= int(m_entities.size())) return std::nullopt;
+    const Mode armed = m_mode;
+    m_mode       = mode;
+    m_tf_targets = targets;
+    compute_tf_pivot();
+    if (pivot) m_tf_pivot = *pivot;
+    m_tf_delta = delta;
+    m_tf_angle = angle;
+    m_tf_scale = scale;
+    m_tf_count = count;
+    const Vec2d used = m_tf_pivot;
+    confirm_transform();
+    m_mode = armed;
+    m_autoedit_seen = int(m_entities.size());
+    return used;
+}
+
+int DesignSketchTool::add_shape_scripted(Mode mode, const std::vector<Vec2d>& clicks, int sides, bool circumscribed,
+                                         bool construction, int from_entity)
+{
+    if (gesture_pending() || value_field_open()) return -1;
+    const bool was_construction = m_construction, was_circumscribed = m_polygon_circumscribed;
+    m_construction          = construction;
+    m_polygon_circumscribed = circumscribed;
+    const int    base = int(m_entities.size());
+    const size_t n    = clicks.size();
+    const int    from = from_entity >= 0 ? from_entity : base - 1;   // what a tangent arc leaves
+    // The same builders and grouping as the gestures' last click (on_mouse_impl), and for a polyline as the
+    // click on its start that closes it or the end of the chain (end_chain), neither of which groups it.
+    switch (mode) {
+    case Mode::Polyline:
+        if (n >= 4 && clicks.back() == clicks.front())
+            push_closed_lines(std::vector<Vec2d>(clicks.begin(), clicks.end() - 1));
+        else if (n >= 2)
+            push_open_chain(clicks);
+        break;
+    case Mode::CornerRect:
+        if (n == 2) {
+            const Vec2d A = clicks[0], B = clicks[1];
+            begin_feature(FeatureKind::CornerRect);
+            push_closed_lines({A, Vec2d(B.x(), A.y()), B, Vec2d(A.x(), B.y())});
+            end_feature(A, B);
+        }
+        break;
+    case Mode::CenterRect:
+        if (n == 2) {
+            const Vec2d  C  = clicks[0];
+            const double hx = std::abs(clicks[1].x() - C.x()), hy = std::abs(clicks[1].y() - C.y());
+            begin_feature(FeatureKind::CenterRect);
+            push_closed_lines({Vec2d(C.x() - hx, C.y() - hy), Vec2d(C.x() + hx, C.y() - hy), Vec2d(C.x() + hx, C.y() + hy),
+                               Vec2d(C.x() - hx, C.y() + hy)});
+            end_feature(Vec2d(C.x() - hx, C.y() - hy), Vec2d(C.x() + hx, C.y() + hy));
+        }
+        break;
+    case Mode::ObliqueRect:
+        if (n == 3 && (clicks[1] - clicks[0]).squaredNorm() > 1e-12) {
+            const Vec2d  A = clicks[0], B = clicks[1];
+            const Vec2d  u = (B - A).normalized(), nrm(-u.y(), u.x());
+            const double w = nrm.dot(clicks[2] - A);   // signed perpendicular width
+            begin_feature(FeatureKind::CornerRect);
+            push_closed_lines({A, B, B + nrm * w, A + nrm * w});
+            end_feature(A, B + nrm * w);
+        }
+        break;
+    case Mode::RoundedRect:
+        if (n == 3) {
+            const size_t first = m_entities.size();
+            begin_feature(FeatureKind::RoundedRect);
+            append_entities(make_rounded_rect(clicks[0], clicks[1], clicks[2]));
+            // Grouped with its box and the corner radius make_rounded_rect settled on, its arcs'.
+            const double r = m_entities.size() == first + 8 ? m_entities[first + 1].radius : 0.0;
+            end_feature(clicks[0].cwiseMin(clicks[1]), clicks[0].cwiseMax(clicks[1]), r);
+        }
+        break;
+    case Mode::TwoPointCircle:
+        if (n == 2) push_circle((clicks[0] + clicks[1]) * 0.5, (clicks[1] - clicks[0]).norm() * 0.5);
+        break;
+    case Mode::ThreePointCircle:
+        if (n == 3) append_entities(make_three_point_circle(clicks[0], clicks[1], clicks[2]));
+        break;
+    case Mode::ThreePointArc:
+        if (n == 3) append_entities(make_three_point_arc(clicks[0], clicks[1], clicks[2]));
+        break;
+    case Mode::TangentArc: {
+        // It leaves a line or an arc. Where no arc fits, with no chord or the end on the tangent, make_tangent_arc
+        // gives a line, as the gesture draws it; called for an arc, that builds nothing.
+        if (n == 2 && from >= 0 && from < base &&
+            (m_entities[from].type == SketchEntity::Type::Line || m_entities[from].type == SketchEntity::Type::Arc)) {
+            const std::vector<SketchEntity> arc = make_tangent_arc(clicks[0], clicks[1], from);
+            if (arc.size() == 1 && arc[0].type == SketchEntity::Type::Arc) append_entities(arc);
+        }
+        break;
+    }
+    case Mode::ArcSlot:
+        if (n == 4) {
+            const double Rc = (clicks[1] - clicks[0]).norm();
+            const double w  = std::abs((clicks[3] - clicks[0]).norm() - Rc);
+            begin_feature(FeatureKind::ArcSlot);
+            append_entities(make_arc_slot(clicks[0], clicks[1], clicks[2], w));
+            end_feature(clicks[0], clicks[1], w);
+        }
+        break;
+    case Mode::Polygon:
+        if (n == 2) {
+            begin_feature(FeatureKind::Polygon);
+            append_entities(make_polygon(clicks[0], clicks[1], sides));
+            end_feature(clicks[0], clicks[1], (clicks[1] - clicks[0]).norm(), sides);
+        }
+        break;
+    case Mode::Slot:
+        if (n == 3 && (clicks[1] - clicks[0]).squaredNorm() > 1e-12) {
+            const Vec2d  u = (clicks[1] - clicks[0]).normalized();
+            const double w = std::abs(Vec2d(-u.y(), u.x()).dot(clicks[2] - clicks[0]));
+            begin_feature(FeatureKind::Slot);
+            append_entities(make_slot(clicks[0], clicks[1], w));
+            end_feature(clicks[0], clicks[1], w);
+        }
+        break;
+    case Mode::Ellipse:
+        if (n == 3) append_entities(make_ellipse(clicks[0], clicks[1], clicks[2]));
+        break;
+    case Mode::EllipseArc:
+        if (n == 5) append_entities(make_ellipse_arc(clicks[0], clicks[1], clicks[2], clicks[3], clicks[4]));
+        break;
+    case Mode::BSpline:
+        append_entities(make_bspline(clicks));
+        break;
+    default:
+        break;
+    }
+    m_construction          = was_construction;
+    m_polygon_circumscribed = was_circumscribed;
+    if (int(m_entities.size()) == base) return -1;
+    infer_auto_constraints(base, 0.0, 0.0);   // exact, as add_entities_scripted infers (8xg1)
+    // Exact inference records a relation only where rounding leaves it exact, so at a slant, or where the solve moves a
+    // point a rounding step, it can leave out what the gesture's inference, within its tolerances, always binds inside
+    // the shape: an oblique rectangle's or a square's right angles, a tangent arc's tangency to the line it leaves, a
+    // slot's tangencies and equal ends, an arc slot's equal ends, and a rounded rectangle's level and upright sides,
+    // tangencies and equal corners. All hold by construction, so adding them moves nothing, and each batch below is
+    // tried as one and then one at a time, so that one the solver refuses as redundant is left out, save the
+    // relations of a slot, an arc slot and a rounded rectangle, which go as one batch only, as the gesture's relational
+    // rule adds them: on the axes the solver refuses a slot's beside its level sides, as it refuses the Slot tool's,
+    // and one at a time would keep three the tool's slot does not carry. A square on the axes has its four sides
+    // exactly level and upright, as make_polygon builds them, so exact inference pins all four, as the Polygon
+    // tool's does, and they hold its right angles: the solver refuses each of those beside them.
+    using T = SketchConstraintType;
+    std::vector<SketchEntityConstraintDef> defining, pins, together;
+    const auto binds = [this](int a, int b, std::initializer_list<SketchConstraintType> types) {
+        return std::any_of(m_constraints.begin(), m_constraints.end(), [&](const SketchEntityConstraintDef& c) {
+            return std::find(types.begin(), types.end(), c.type) != types.end() && ((c.ea == a && c.eb == b) || (c.ea == b && c.eb == a));
+        });
+    };
+    const auto relation = [](SketchConstraintType type, int a, int b) {
+        SketchEntityConstraintDef c;
+        c.type = type;
+        c.ea   = a;
+        c.eb   = b;
+        return c;
+    };
+    // Binds entity b to a, as the gesture's rule for `type` binds b to the first entity before it that the rule holds
+    // for, unless inference already bound b by that rule to one before it, as each rule binds a new entity once.
+    const auto bind = [&](T type, int a, int b) {
+        const bool bound = std::any_of(m_constraints.begin(), m_constraints.end(), [&](const SketchEntityConstraintDef& c) {
+            return c.type == type && ((c.eb == b && c.ea < b) || (c.ea == b && c.eb < b));
+        });
+        if (!bound) together.push_back(relation(type, a, b));
+    };
+    // Line i level or upright, as the gesture's rule for the axes pins a line from its P0 to its P1.
+    const auto pin = [&](T type, int i) {
+        const bool pinned = std::any_of(m_constraints.begin(), m_constraints.end(), [&](const SketchEntityConstraintDef& c) {
+            return (c.type == T::Horizontal || c.type == T::Vertical) && c.ea == i && c.eb == i;
+        });
+        if (pinned) return;
+        SketchEntityConstraintDef c = relation(type, i, i);
+        c.ra                        = SketchPointRole::P0;
+        c.rb                        = SketchPointRole::P1;
+        pins.push_back(c);
+    };
+    const int added = int(m_entities.size()) - base;
+    if ((mode == Mode::ObliqueRect || mode == Mode::Polygon) && added == 4) {
+        // One right angle at each corner after the first side, as each side's inference binds it to a side it meets;
+        // the fourth would be implied. A side that inference already bound to one before it is left as it is. A
+        // polygon of any other number of sides has no right angle or parallel sides that meet.
+        for (int k = 1; k < 4; ++k) {
+            const int side = base + k;
+            bool      bound = false;
+            for (int j = base; j < side && !bound; ++j) bound = binds(j, side, {T::Perpendicular, T::Parallel});
+            if (!bound) defining.push_back(relation(T::Perpendicular, side - 1, side));
+        }
+    } else if (mode == Mode::TangentArc && added == 1 && m_entities[from].type == SketchEntity::Type::Line &&
+               !binds(from, base, {T::Tangent})) {
+        defining.push_back(relation(T::Tangent, from, base));
+    } else if (mode == Mode::Slot && added == 4) {
+        // Its first side, first end, second side and second end: the first end tangent to both sides, the second end
+        // to the first side, and the two ends of one radius.
+        bind(T::Tangent, base, base + 1);
+        bind(T::Tangent, base + 1, base + 2);
+        bind(T::Tangent, base, base + 3);
+        bind(T::EqualRadius, base + 1, base + 3);
+    } else if (mode == Mode::ArcSlot && added == 4) {
+        bind(T::EqualRadius, base + 1, base + 3);   // its two ends, between the outer and the inner arc
+    } else if (mode == Mode::RoundedRect && added == 8) {
+        // Sides and corners in turn from the bottom side: the sides level and upright, each corner and side tangent to
+        // the one before it and the last corner to the bottom side, and every corner of the first one's radius.
+        for (int k = 0; k < 8; k += 2) pin(k % 4 == 0 ? T::Horizontal : T::Vertical, base + k);
+        for (int k = 1; k < 7; ++k) bind(T::Tangent, base + k - 1, base + k);
+        bind(T::Tangent, base, base + 7);
+        for (int k = 3; k < 8; k += 2) bind(T::EqualRadius, base + 1, base + k);
+    }
+    for (const std::vector<SketchEntityConstraintDef>* batch : {&pins, &defining})
+        if (!batch->empty() && !try_add_constraints(*batch))
+            for (const SketchEntityConstraintDef& c : *batch) try_add_constraints({c});
+    if (!together.empty()) try_add_constraints(together);
+    resolve_live();
+    m_autoedit_seen = int(m_entities.size());
+    return base;
+}
+
+DesignSketchTool::DrawnState DesignSketchTool::drawn_state() const
+{
+    return DrawnState{m_entities, m_constraints,     m_features,      m_dimensions,   m_dof,
+                      m_solve_ok, m_entity_conflict, m_bad_dims,      m_autoedit_seen, m_skipped_last,
+                      m_loop_defect_shown};
+}
+
+// Put back with no solve, so that the geometry and the solve's readout are the kept state's own, and the panel is
+// told of the constraints and the solve state again, as after an add.
+void DesignSketchTool::restore_drawn_state(const DrawnState& state)
+{
+    m_entities          = state.entities;
+    m_constraints       = state.constraints;
+    m_features          = state.features;
+    m_dimensions        = state.dimensions;
+    m_dof               = state.dof;
+    m_solve_ok          = state.solve_ok;
+    m_entity_conflict   = state.entity_conflict;
+    m_bad_dims          = state.bad_dims;
+    m_autoedit_seen     = state.autoedit_seen;
+    m_skipped_last      = state.skipped_last;
+    m_loop_defect_shown = state.loop_defect_shown;
+    m_open_feature      = -1;
+    if (on_constraints_changed) on_constraints_changed();
+    if (on_solve_state) on_solve_state(m_dof, m_solve_ok, !m_constraints.empty());
+}
+
 bool DesignSketchTool::select_indices(const std::vector<int>& idx)
 {
+    set_selected_constraint(-1);
     m_selection.clear();
     m_point_sel.clear();
     const int n = int(m_entities.size());
@@ -10489,13 +11109,13 @@ bool DesignSketchTool::select_indices(const std::vector<int>& idx)
     return !m_selection.empty();
 }
 
-DesignSketchTool::LoopReport DesignSketchTool::loop_report() const
+DesignSketchTool::LoopReport DesignSketchTool::loop_report(const std::vector<SketchEntity>& ents) const
 {
     LoopReport out;
 
     // Closed regions and their voids come straight from the code the viewport already uses to
     // decide what can be extruded, so the report cannot drift from what the tool will build.
-    const auto regs = region_loops(m_entities);
+    const auto regs = region_loops(ents);
     out.loops.reserve(regs.size());
     for (const auto& r : regs) {
         LoopInfo li;
@@ -10507,10 +11127,10 @@ DesignSketchTool::LoopReport DesignSketchTool::loop_report() const
         // Analytic where the loop IS one closed curve; shoelace only where it is a chain.
         // region_loops hands back the render polyline, and a circle's is a 64-gon whose area is
         // 0.3% short — a number reported as "area" must not be the faceting error.
-        if (r.ents.size() == 1 && r.ents[0] >= 0 && r.ents[0] < int(m_entities.size()) &&
-            (m_entities[r.ents[0]].type == SketchEntity::Type::Circle ||
-             m_entities[r.ents[0]].type == SketchEntity::Type::Ellipse)) {
-            const SketchEntity& c = m_entities[r.ents[0]];
+        if (r.ents.size() == 1 && r.ents[0] >= 0 && r.ents[0] < int(ents.size()) &&
+            (ents[r.ents[0]].type == SketchEntity::Type::Circle ||
+             ents[r.ents[0]].type == SketchEntity::Type::Ellipse)) {
+            const SketchEntity& c = ents[r.ents[0]];
             li.area = (c.type == SketchEntity::Type::Circle)
                           ? M_PI * c.radius * c.radius
                           : M_PI * c.radius * c.rminor;
@@ -10528,7 +11148,7 @@ DesignSketchTool::LoopReport DesignSketchTool::loop_report() const
             // halved once at the end. (Doubling the arc term instead reads 5913.72 on the stadium
             // — exactly one arc's contribution too much, which is how the slip was caught.)
             auto ent_ends = [&](int ei, Vec2d& a, Vec2d& b) {
-                a = m_entities[ei].p0; b = m_entities[ei].p1;
+                a = ents[ei].p0; b = ents[ei].p1;
             };
             const double eps = 1e-6;
             double area2 = 0.0;
@@ -10536,8 +11156,8 @@ DesignSketchTool::LoopReport DesignSketchTool::loop_report() const
             Vec2d  cur(0, 0);
             for (size_t k = 0; k < r.ents.size(); ++k) {
                 const int ei = r.ents[k];
-                if (ei < 0 || ei >= int(m_entities.size())) { exact = false; break; }
-                const SketchEntity& e = m_entities[ei];
+                if (ei < 0 || ei >= int(ents.size())) { exact = false; break; }
+                const SketchEntity& e = ents[ei];
                 if (e.type != SketchEntity::Type::Line && e.type != SketchEntity::Type::Arc) {
                     exact = false; break;      // spline / ellipse arc: fall back below
                 }
@@ -10567,8 +11187,11 @@ DesignSketchTool::LoopReport DesignSketchTool::loop_report() const
                 }
                 cur = Q;
             }
+            // Both integrals are signed by the way the chain runs, which is only the order its
+            // entities were drawn in (the slot tool lays every slot out clockwise), so the sign is
+            // dropped: the area is the region's, as a circle's is.
             if (exact) {
-                li.area = 0.5 * area2;
+                li.area = std::abs(0.5 * area2);
             } else {
                 // Splines and elliptical arcs have no closed form here; the render polyline is
                 // the honest best estimate, and it is flagged as such by being the fallback.
@@ -10577,7 +11200,7 @@ DesignSketchTool::LoopReport DesignSketchTool::loop_report() const
                     a += r.poly[i].x() * r.poly[i + 1].y() - r.poly[i + 1].x() * r.poly[i].y();
                 if (r.poly.size() > 2)
                     a += r.poly.back().x() * r.poly.front().y() - r.poly.front().x() * r.poly.back().y();
-                li.area = 0.5 * a;
+                li.area = std::abs(0.5 * a);
             }
         }
         out.loops.push_back(std::move(li));
@@ -10588,7 +11211,7 @@ DesignSketchTool::LoopReport DesignSketchTool::loop_report() const
     // coordinates, instead of only that it does.
     struct End { Vec2d p; };
     std::vector<End> ends;
-    for (const SketchEntity& e : m_entities) {
+    for (const SketchEntity& e : ents) {
         if (e.construction) continue;
         if (e.type == SketchEntity::Type::Line || e.type == SketchEntity::Type::Arc ||
             e.type == SketchEntity::Type::EllipseArc || e.type == SketchEntity::Type::BSpline) {
@@ -10670,7 +11293,7 @@ bool DesignSketchTool::select_at_screen(GLCanvas3D& canvas, int sx, int sy)
         // A Point ENTITY is its own handle: there is nothing else to select there. Taking the
         // handle branch for it filled m_point_sel and left m_selection empty — and the offer
         // counts only m_selection, so right-clicking a sketch point produced the EMPTY
-        // vocabulary and every SkPoint row in the atlas was unreachable from the menu. Other
+        // vocabulary and every SkPoint item in the atlas was unreachable from the menu. Other
         // entities keep the handle pick: a line's endpoint is a drag target, not a thing with a
         // vocabulary of its own. lnri.
         if (ei >= 0 && ei < int(m_entities.size())
@@ -10679,6 +11302,7 @@ bool DesignSketchTool::select_at_screen(GLCanvas3D& canvas, int sx, int sy)
                 return false;                               // already selected: leave it alone
             m_selection.assign(1, ei);
             m_point_sel.clear();
+            set_selected_constraint(-1);
             if (on_selection_changed) on_selection_changed(1);
             return true;
         }
@@ -10687,6 +11311,7 @@ bool DesignSketchTool::select_at_screen(GLCanvas3D& canvas, int sx, int sy)
             return false;                                   // already selected: leave it alone
         m_selection.clear();
         m_point_sel.assign(1, pr);
+        set_selected_constraint(-1);
         if (on_selection_changed) on_selection_changed(1);
         return true;
     }
@@ -10697,6 +11322,7 @@ bool DesignSketchTool::select_at_screen(GLCanvas3D& canvas, int sx, int sy)
         return false;                                       // already selected: leave it alone
     m_selection.assign(1, hit);
     m_point_sel.clear();
+    set_selected_constraint(-1);
     if (on_selection_changed) on_selection_changed(1);
     return true;
 }
@@ -10742,18 +11368,17 @@ std::vector<int> DesignSketchTool::connected_loop(int seed) const
     return out;
 }
 
-// Right-click has two jobs in a sketch, and they were resolved by giving one of them everything:
-// the offer was excluded in sketch mode wholesale so a right-click could end a polyline chain,
-// abandon an anchor or exit a tool. That made every sketch row in the atlas unreachable.
-// The honest test is not "which mode are we in" but "did the tool actually USE this right-click",
-// and only the tool knows: take_right_click returns it for every terminator, from the
-// twenty-odd sites that consume a RightDown.
+// Right-click has two jobs in a sketch: end a polyline chain, abandon an anchor or exit a tool,
+// and open the offer. Excluding the offer in sketch mode wholesale would make every sketch item in
+// the atlas unreachable. The honest test is not "which mode are we in" but "did the tool actually
+// USE this right-click", and only the tool knows: take_right_click returns it for every
+// terminator, from the twenty-odd sites that consume a RightDown.
 // Right-click abandons the anchor a draw tool has down. With NOTHING down there is nothing to
-// abandon — and consuming the click anyway made the offer unreachable from every armed draw tool:
-// DesignCanvas's RIGHT_UP handler suppresses the menu whenever the tool used the click, so
-// right-click became a no-op that also hid the one door to half the vocabulary (47 of 86 verbs
-// have no shortcut). Measured on the rig: with Line armed, two right-clicks in a row produced no
-// menu and no tool change; only Escape freed it.
+// abandon, so the click is handed back. Consuming it anyway would make the offer unreachable from
+// every armed draw tool: DesignCanvas's RIGHT_UP handler suppresses the menu whenever the tool
+// used the click, so right-click would be a no-op that also hides the one door to half the
+// vocabulary (47 of 86 verbs have no shortcut) — with Line armed, two right-clicks in a row would
+// open no menu and change no tool, and only Escape would free it.
 // Same rule as xmh6, which said it for the selection: clearing nothing is not a gesture
 // terminator. ghcz.
 bool DesignSketchTool::right_abandon()
@@ -10767,8 +11392,8 @@ bool DesignSketchTool::right_abandon()
 
 // The camera follows Preferences > Control here as in Prepare, so no tool may take a gesture the
 // camera owns. A right press may start whatever drag action the right button is given, and
-// whether it did is known only at the release: ending a chain on the press made every pan or
-// orbit started there end the chain too. The press goes to the camera and is kept;
+// whether it did is known only at the release: ending a chain on the press would make every pan
+// or orbit started there end the chain too. The press goes to the camera and is kept;
 // DesignCanvas's RIGHT_UP handler replays it through take_right_click when it was a click.
 bool DesignSketchTool::on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas)
 {
@@ -10864,8 +11489,8 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 return true;
             }
             // Right-click opens the offer; the move is kept with Enter/✓ and reverted with Esc/✗,
-            // like every other pending edit. It used to keep the move and close the gizmo — a
-            // commit on the one button the charter reserves for "what can I do here".
+            // like every other pending edit. Keeping the move and closing the gizmo here would be
+            // a commit on the one button the charter reserves for "what can I do here".
             if (evt.RightDown()) return false;
             if (evt.LeftDown()) {
                 int axis = -1;
@@ -11169,9 +11794,9 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                       std::max(std::abs(evt.GetX() - m_pick_press_x),
                                std::abs(evt.GetY() - m_pick_press_y)));
         // Threshold per axis, at GTK's own drag threshold. A hand-held mouse drifts several
-        // pixels during an ordinary click — a tight budget silently swallowed real clicks and
-        // looked exactly like "selection does not work". Synthetic clicks never drift, which
-        // is why the headless rig could not show this.
+        // pixels during an ordinary click — a tight budget silently swallows real clicks and
+        // looks exactly like "selection does not work". Synthetic clicks never drift, so
+        // scripted input cannot catch a budget that is too tight.
         if (std::max(std::abs(evt.GetX() - m_pick_press_x),
                      std::abs(evt.GetY() - m_pick_press_y)) > 8) {
             dp_pick_trace("rejected as drag");
@@ -11407,36 +12032,17 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
     // camera can still orbit while inspecting the sketch.
     if (m_mode == Mode::Constrain) {
         if (m_constrain_entities) {
-            // Pick any entity (line/circle/arc/point): rolling two-slot selection.
+            // Pick any entity (line/circle/arc/point): rolling two-slot selection. Same reach as
+            // every other tool that picks an entity to act on.
             if (evt.LeftDown()) {
                 Vec2d p;
                 screen_to_plane(canvas, evt, p);
-                double best = 1e30;
-                int bi = -1;
-                for (size_t i = 0; i < m_entities.size(); ++i) {
-                    const double d = entity_pick_dist(p, m_entities[i]);
-                    if (d < best) { best = d; bi = int(i); }
-                }
-                // Same reach as every other tool that picks an entity to act on. With no limit,
-                // a click anywhere on screen picked whatever was nearest; empty space now clears.
-                if (bi >= 0 && best > screen_tol(canvas, evt, p, kToolPickPx)) {
-                    bi = -1;
-                    m_pick0 = m_pick1 = m_pick2 = -1;
-                }
-                if (bi >= 0) {
-                    // Rolling three-slot selection: slots 0/1 feed all 2-entity
-                    // constraints; slot 2 is the Symmetric axis (only filled once
-                    // 0 and 1 are set). A click past slot 2 restarts the cycle.
-                    if (m_pick0 < 0)                                         { m_pick0 = bi; m_pick0_pt = p; }
-                    else if (m_pick1 < 0 && bi != m_pick0)                    m_pick1 = bi;
-                    else if (m_pick1 >= 0 && m_pick2 < 0 && bi != m_pick0 && bi != m_pick1) m_pick2 = bi;
-                    else                                                     { m_pick0 = bi; m_pick1 = m_pick2 = -1; m_pick0_pt = p; }
-                }
+                constrain_pick(p, screen_tol(canvas, evt, p, kToolPickPx));
                 return true;
             }
             // The picks are this mode's selection, and right-click on a selection opens the
-            // offer for it — the constraint verbs. It used to cancel(), wiping the whole session
-            // behind the panel's back. Esc drops the picks.
+            // offer for it — the constraint verbs — rather than cancel(), which would wipe the
+            // whole session behind the panel's back. Esc drops the picks.
             return false;
         }
         if (evt.LeftDown()) {
@@ -11455,6 +12061,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 m_sel_a = bi;
                 m_sel_b = int((bi + 1) % n);
             }
+            set_selected_constraint(-1);
             return true;
         }
         return false;   // right-click included: the offer opens on the picked segment
@@ -11465,19 +12072,6 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
     if (m_mode == Mode::Select) {
         if (update_hover(canvas, evt)) return true;   // repaint when the hovered handle changes
         const bool extend = evt.ShiftDown() || evt.ControlDown();
-
-        // A constraint badge is a click target: clicking it DELETES that constraint. Existing or
-        // not is the whole of a constraint's state, so this click is the toggle. Checked before
-        // entity picking because badges sit clear of the geometry (offset along +Y), so a hit
-        // here is unambiguous; plain click only, so Shift/Ctrl multi-select is never eaten.
-        if (evt.LeftDown() && !extend) {
-            Vec2d gp;
-            if (screen_to_plane(canvas, evt, gp) && remove_constraint_near(gp)) {
-                if (on_selection_changed)
-                    on_selection_changed(int(m_selection.size() + m_point_sel.size()));
-                return true;
-            }
-        }
 
         // Live point drag: once an endpoint/centre was grabbed on LeftDown, dragging
         // moves it (re-solving constraints live) until the button is released. When
@@ -11625,6 +12219,17 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                     if ((m_live_slot_angle_label - p).norm() <= ltol) { open_slot_editor(m_live_slot_fi, 2); return true; }
                 }
             }
+
+            // A constraint badge: a plain click selects its constraint, and so does the double-click
+            // that follows it. After the value labels, which are drawn over any badge under them, so
+            // a click on a label always opens its field. Before the geometry, which a badge of
+            // another entity may sit on.
+            if (!extend &&
+                click_constraint_badge(p, 1.0 / std::max(wxGetApp().plater()->get_camera().get_zoom(), 1e-6)))
+                return true;
+            // Any other press picks geometry or clears the selection, and a sketch holds one
+            // selection at a time.
+            set_selected_constraint(-1);
 
             // A derived handle (the circle RadiusHandle — not an entity point, so
             // hit_test_point can't grab it) arms a handle drag that resizes on motion.
@@ -11865,16 +12470,15 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
         if (evt.RightDown() && m_points.empty())
             return false;               // no chain to end — ghcz, let the offer open
         if (evt.RightDown()) {
-            // END the chain — do NOT close it. This used to call push_closed_lines() for three
-            // or more points, i.e. it drew a final segment from the last point back to the
-            // first that the user never asked for, and did it silently. No mainstream sketcher
-            // does that: FreeCAD, Fusion and Onshape all end an open chain on right-click and
-            // require the close to be EXPLICIT. Ours has that gesture — click the chain's first
-            // point, which snap_chain_start() previews and snaps onto in the LeftDown branch
-            // above, so the closing segment is on screen BEFORE it is committed. A closed loop
-            // is this tab's goal and it stays a four-action triangle either way; what changes
-            // is that the closing edge is now something the user saw and chose, not one the
-            // app appended on their behalf.
+            // END the chain — do NOT close it. Closing it here (push_closed_lines() for three or
+            // more points) would draw a final segment from the last point back to the first
+            // that the user never asked for, and do it silently. No mainstream sketcher does
+            // that: FreeCAD, Fusion and Onshape all end an open chain on right-click and require
+            // the close to be EXPLICIT. Ours has that gesture — click the chain's first point,
+            // which snap_chain_start() previews and snaps onto in the LeftDown branch above, so
+            // the closing segment is on screen BEFORE it is committed. A closed loop is this
+            // tab's goal and it is a four-action triangle either way; the closing edge is then
+            // something the user saw and chose, not one the app appended on their behalf.
             end_chain();
             return true;
         }
@@ -12185,7 +12789,10 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 const int base = int(m_entities.size());
                 begin_feature(FeatureKind::Polygon);
                 append_entities(make_polygon(m_points[0], p, m_polygon_sides));
-                infer_auto_constraints(base);
+                // The polygon is regular as drawn, so only an edge on an axis, which make_polygon built
+                // exactly on it, is pinned to it: a solve meeting a pin on an edge a little off the axis
+                // moves that edge's ends and leaves the polygon irregular.
+                infer_auto_constraints(base, kPolygonAxisTol);
                 end_feature(m_points[0], p, (p - m_points[0]).norm(), m_polygon_sides);
                 m_points.clear();
             }

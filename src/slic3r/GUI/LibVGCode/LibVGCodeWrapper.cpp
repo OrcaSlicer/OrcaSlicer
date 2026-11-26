@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iterator>
+#include <utility>
 #include <cassert>
 #include <cinttypes>
 #include "libslic3r/Point.hpp"
@@ -235,6 +236,65 @@ static bool starts_path(const Slic3r::GCodeProcessorResult::MoveVertex& prev,
         || prev.mm3_per_mm != curr.mm3_per_mm || prev.acceleration != curr.acceleration || prev.jerk != curr.jerk;
 }
 
+void LayersClosedByInfill::add(uint32_t layer_id, int object_id, EGCodeExtrusionRole role, EMoveType type)
+{
+    if (type != EMoveType::Extrude)
+        return;
+    uint8_t bit = 0;
+    switch (role) {
+    case EGCodeExtrusionRole::Perimeter:
+    case EGCodeExtrusionRole::ExternalPerimeter:
+    case EGCodeExtrusionRole::OverhangPerimeter:
+        bit = 1; break;
+    case EGCodeExtrusionRole::InternalInfill: {
+        bit = 2;
+        auto [it, inserted] = m_sparse_span.emplace(object_id, std::make_pair(layer_id, layer_id));
+        if (!inserted) {
+            it->second.first = std::min(it->second.first, layer_id);
+            it->second.second = std::max(it->second.second, layer_id);
+        }
+        break;
+    }
+    case EGCodeExtrusionRole::SolidInfill:
+    case EGCodeExtrusionRole::TopSolidInfill:
+    case EGCodeExtrusionRole::Ironing:
+    case EGCodeExtrusionRole::BridgeInfill:
+    case EGCodeExtrusionRole::BottomSurface:
+    case EGCodeExtrusionRole::InternalBridgeInfill:
+        bit = 4; break;
+    default:
+        return;
+    }
+    if (layer_id >= m_layers.size())
+        m_layers.resize(static_cast<size_t>(layer_id) + 1);
+    m_layers[layer_id][object_id] |= bit;
+    m_labelled |= object_id >= 0;
+}
+
+std::vector<uint8_t> LayersClosedByInfill::finish(size_t layers_count) const
+{
+    if (!m_labelled)
+        return {};
+    std::vector<uint8_t> ret(layers_count, 0);
+    for (size_t i = 0; i < std::min(layers_count, m_layers.size()); ++i) {
+        // closed when something is printed and every object printed is closed
+        bool from_above = !m_layers[i].empty();
+        bool from_below = from_above;
+        for (const auto& [object_id, bits] : m_layers[i]) {
+            if ((bits & 2) != 0)
+                continue;
+            const bool solid = (bits & 4) != 0;
+            const auto span = m_sparse_span.find(object_id);
+            const bool sparse_above = span != m_sparse_span.end() && span->second.second > i;
+            const bool sparse_below = span != m_sparse_span.end() && span->second.first < i;
+            from_above &= solid && !sparse_above;
+            from_below &= solid && !sparse_below;
+        }
+        ret[i] = static_cast<uint8_t>((from_above ? 1 : 0) | (from_below ? 2 : 0));
+    }
+    return ret;
+}
+
 GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::vector<std::string>& str_tool_colors,
     const std::vector<std::string>& str_color_print_colors, const Viewer& viewer,
     const Slic3r::Transform3d* belt_xform)
@@ -271,22 +331,25 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
     // the ids consecutively over the moves that exist.
     uint32_t src_layer_id = std::numeric_limits<uint32_t>::max();
     uint32_t layer_id     = 0;
+    LayersClosedByInfill closed_layers;
     for (size_t i = 1; i < moves.size(); ++i) {
         const Slic3r::GCodeProcessorResult::MoveVertex& curr = moves[i];
         const Slic3r::GCodeProcessorResult::MoveVertex& prev = moves[i - 1];
         const EMoveType curr_type = convert(curr.type);
+        const EGCodeExtrusionRole curr_role = convert(curr.extrusion_role);
         if (curr.layer_id != src_layer_id) {
             if (src_layer_id != std::numeric_limits<uint32_t>::max())
                 ++ layer_id;
             src_layer_id = curr.layer_id;
         }
+        closed_layers.add(layer_id, curr.object_label_id, curr_role, curr_type);
         if (starts_path(prev, curr, i == 1)) {
             // to allow libvgcode to properly detect the start/end of a path we need to add a 'phantom' vertex
             // equal to the current one with the exception of the position, which should match the previous move position,
             // and the times, which are set to zero
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
             const libvgcode::PathVertex vertex = { xform_pos(prev.position), curr.height, curr.width, curr.feedrate, prev.actual_feedrate,
-                curr.mm3_per_mm, curr.fan_speed, curr.temperature, 0.0f, convert(curr.extrusion_role), curr_type,
+                curr.mm3_per_mm, curr.fan_speed, curr.temperature, 0.0f, curr_role, curr_type,
                 static_cast<uint32_t>(curr.gcode_id), layer_id,
                 static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), { 0.0f, 0.0f },
                 /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
@@ -294,7 +357,7 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
                 /* ORCA: Add Jerk visualization support */ curr.jerk };
 #else
             const libvgcode::PathVertex vertex = { xform_pos(prev.position), curr.height, curr.width, curr.feedrate, prev.actual_feedrate,
-                curr.mm3_per_mm, curr.fan_speed, curr.temperature, convert(curr.extrusion_role), curr_type,
+                curr.mm3_per_mm, curr.fan_speed, curr.temperature, curr_role, curr_type,
                 static_cast<uint32_t>(curr.gcode_id), layer_id,
                 static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), { 0.0f, 0.0f },
                 /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
@@ -308,14 +371,14 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
         const libvgcode::PathVertex vertex = { xform_pos(curr.position), curr.height, curr.width, curr.feedrate, curr.actual_feedrate,
             curr.mm3_per_mm, curr.fan_speed, curr.temperature,
             result.filament_densities[curr.extruder_id] * curr.mm3_per_mm * (curr.position - prev.position).norm(),
-            convert(curr.extrusion_role), curr_type, static_cast<uint32_t>(curr.gcode_id), layer_id,
+            curr_role, curr_type, static_cast<uint32_t>(curr.gcode_id), layer_id,
             static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), curr.time,
             /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
             /* ORCA: Add Acceleration visualization support */ curr.acceleration,
             /* ORCA: Add Jerk visualization support */ curr.jerk };
 #else
         const libvgcode::PathVertex vertex = { xform_pos(curr.position), curr.height, curr.width, curr.feedrate, curr.actual_feedrate,
-            curr.mm3_per_mm, curr.fan_speed, curr.temperature, convert(curr.extrusion_role), curr_type,
+            curr.mm3_per_mm, curr.fan_speed, curr.temperature, curr_role, curr_type,
             static_cast<uint32_t>(curr.gcode_id), layer_id,
             static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), curr.time,
             /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
@@ -334,6 +397,7 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
     // model bounding box. Nothing extra to do here.
 
     ret.spiral_vase_mode = result.spiral_vase_mode;
+    ret.layers_closed = closed_layers.finish(moves.size() > 1 ? static_cast<size_t>(layer_id) + 1 : 0);
 
     return ret;
 }

@@ -794,9 +794,8 @@ wxString TroubleshootDialog::GetPackageType()
     return "Portable";
 #elif defined(__LINUX__)
     if (wxGetEnv("APPIMAGE"  , nullptr))   return "AppImage";
-    if (wxGetEnv("FLATPAK_ID", nullptr))   return "Flatpak";
+    if (Slic3r::is_running_in_flatpak())   return "Flatpak";
     //if (wxGetEnv("SNAP"      , nullptr)) return "Snap";
-    if (wxFileExists("/.flatpak-info"))    return "Flatpak";
     //if (wxFileExists("/usr/bin/dpkg"))   return "Debian/Ubuntu (deb)";
     //if (wxFileExists("/usr/bin/rpm"))    return "RPM-based (rpm)";
     //if (wxFileExists("/usr/bin/pacman")) return "Arch (pacman)";

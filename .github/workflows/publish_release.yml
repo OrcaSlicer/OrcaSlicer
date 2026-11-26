@@ -6,9 +6,10 @@ name: Publish to draft release
 # It also writes an ordered download table into the draft's release notes.
 #
 # Trigger: Actions tab -> "Publish to draft release" -> Run workflow.
-# Locked to a single person: the first step aborts unless the actor matches the
-# `RELEASE_PUBLISHER` repo variable (set to "SoftFever"). To allow someone else,
-# change that variable: gh variable set RELEASE_PUBLISHER --body "<login>".
+# Locked to named publishers: the first step aborts unless the actor is one of the
+# logins in the `RELEASE_PUBLISHER` repo variable, a comma-separated list. To
+# change who may publish, set that variable:
+#   gh variable set RELEASE_PUBLISHER --body "<login>,<login>"
 
 on:
   workflow_dispatch:
@@ -35,16 +36,17 @@ jobs:
       RUN_ID: ${{ inputs.run_id }}
       TAG: ${{ inputs.tag }}
     steps:
-      - name: Restrict to the release publisher
+      - name: Restrict to the release publishers
         env:
-          PUBLISHER: ${{ vars.RELEASE_PUBLISHER }}
+          PUBLISHERS: ${{ vars.RELEASE_PUBLISHER }}
         run: |
-          if [ -z "$PUBLISHER" ]; then
+          if [ -z "$PUBLISHERS" ]; then
             echo "::error::RELEASE_PUBLISHER repo variable is not set."
             exit 1
           fi
-          if [ "${{ github.actor }}" != "$PUBLISHER" ]; then
-            echo "::error::Only @$PUBLISHER may run this workflow (you are @${{ github.actor }})."
+          # Pad the space-separated list so only whole logins match.
+          if [[ " ${PUBLISHERS//,/ } " != *" ${{ github.actor }} "* ]]; then
+            echo "::error::Only $PUBLISHERS may run this workflow (you are @${{ github.actor }})."
             exit 1
           fi
           echo "Authorized: @${{ github.actor }}"

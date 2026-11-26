@@ -5,7 +5,7 @@
 	"from": "system",
 	"setting_id": "gDKE0bH5qPyNewzu",
 	"instantiation": "true",
-	"overhang_3_4_speed": "50",
+	"overhang_2_4_speed": "50",
 	"support_interface_speed": "50%",
 	"travel_speed": "350",
 	"travel_acceleration": "7000",

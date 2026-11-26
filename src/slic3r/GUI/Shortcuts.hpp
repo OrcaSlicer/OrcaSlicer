@@ -32,7 +32,7 @@ enum class Shortcut : uint8_t {
     // Editing
     Undo, Redo, Cut, Copy, Paste, DeleteSelected, DeleteAll, CloneSelected,
     // Objects
-    AddInstance, RemoveInstance, TogglePrintable, ToggleAutoDrop,
+    AddInstance, RemoveInstance, TogglePrintable, ToggleAutoDrop, ReloadFromDisk,
     // Placement
     Arrange, ArrangePlate, Orient, OrientPlate,
     MoveSelectionLeft, MoveSelectionRight, MoveSelectionUp, MoveSelectionDown, RotateSelectionLeft, RotateSelectionRight,
@@ -52,7 +52,8 @@ enum class Shortcut : uint8_t {
 #ifdef SLIC3R_CAD
     GoToDesign,
 #endif
-    GoToPrepare, GoToPreview, GoToDevice, GoToMultiDevice, GoToProject, GoToCalibration, TabNext, TabPrevious, ReloadDevicePage, KeyboardShortcuts, Quit,
+    GoToPrepare, GoToPreview, GoToDevice, GoToMultiDevice, GoToProject, GoToCalibration, TabNext, TabPrevious, ReloadDevicePage, KeyboardShortcuts,
+    ToggleRunScript, Quit,
     // Speed Dial
     SpeedDial,
     Count

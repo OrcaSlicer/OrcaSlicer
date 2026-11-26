@@ -62,7 +62,14 @@ bool StaticBox::Create(wxWindow* parent, wxWindowID id, const wxPoint& pos, cons
 void StaticBox::SetCornerRadius(double radius)
 {
     this->radius = radius;
+    input_corner_radius = false;
     Refresh();
+}
+
+void StaticBox::apply_input_corner_radius()
+{
+    if (input_corner_radius)
+        radius = FromDIP(InputCornerRadius);
 }
 
 // ORCA use when adding widgets to top to show it like LabeledStaticBox

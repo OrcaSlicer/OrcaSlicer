@@ -14,6 +14,8 @@ find_package(libnoise REQUIRED)
 add_subdirectory(libslic3r)
 
 if (SLIC3R_GUI)
+    # Before wxWidgets is found, so the automation core builds without wx (see its CMakeLists.txt).
+    add_subdirectory(libslic3r_automation)
     add_subdirectory(glad)
     # imgui, imguizmo, and hidapi are now included from deps_src
     add_subdirectory(libvgcode)
@@ -282,9 +284,11 @@ if (WIN32)
     endif ()
     # copy libpython to the bin folder for Windows
     add_custom_command(TARGET OrcaSlicer POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:OrcaSlicer>/python"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_PREFIX_PATH}/libpython" "$<TARGET_FILE_DIR:OrcaSlicer>/python"
-        COMMENT "Copying Python runtime into the build tree"
+        COMMAND ${CMAKE_COMMAND} "-DSOURCE=${CMAKE_PREFIX_PATH}/libpython"
+            "-DDESTINATION=$<TARGET_FILE_DIR:OrcaSlicer>/python"
+            "-DSTAMP=${CMAKE_CURRENT_BINARY_DIR}/python_runtime_$<CONFIG>.stamp"
+            -P "${CMAKE_SOURCE_DIR}/cmake/modules/StagePythonRuntime.cmake"
+        COMMENT "Updating the Python runtime in the build tree"
         VERBATIM)
 
     if (CMAKE_CONFIGURATION_TYPES)
