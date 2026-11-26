@@ -33,6 +33,7 @@
 #include <md4c/src/md4c.h>
 #include <wx/image.h>
 #include <wx/datetime.h>
+#include <wx/display.h>
 #include <utility>
 #include "slic3r/GUI/Widgets/AMSItem.hpp"
 #include "slic3r/GUI/Widgets/TextInput.hpp"
@@ -1731,6 +1732,7 @@ InputIpAddressDialog::InputIpAddressDialog(wxWindow *parent)
 
     CentreOnParent(wxBOTH);
     Move(wxPoint(GetScreenPosition().x, GetScreenPosition().y - FromDIP(50)));
+    clamp_to_work_area();
     wxGetApp().UpdateDlgDarkUI(this);
 
     closeTimer = new wxTimer();
@@ -1756,6 +1758,22 @@ InputIpAddressDialog::InputIpAddressDialog(wxWindow *parent)
         Layout();
         Fit();
     });
+}
+
+void InputIpAddressDialog::clamp_to_work_area()
+{
+    // CentreOnParent picks the display from the parent, so the clamp has to use the same one.
+    const wxRect  work_area = wxDisplay(GetParent() ? GetParent() : this).GetClientArea();
+    const wxSize  size      = GetSize();
+    const wxPoint pos       = GetScreenPosition();
+
+    wxPoint clamped = pos;
+    // std::max runs last, so a dialog bigger than the work area keeps its top left corner, and its title bar, on screen.
+    clamped.x = std::max(work_area.x, std::min(clamped.x, work_area.x + work_area.width - size.x));
+    clamped.y = std::max(work_area.y, std::min(clamped.y, work_area.y + work_area.height - size.y));
+
+    if (clamped != pos)
+        Move(clamped);
 }
 
 void InputIpAddressDialog::switch_input_panel(int index)
@@ -1914,8 +1932,7 @@ void InputIpAddressDialog::on_ok(wxMouseEvent& evt)
         std::string port;
         Http::get_host_from_url(str_ip, &port);
         config.opt_string("print_host") = str_ip;
-        if (!port.empty())
-            config.opt_string("printhost_port") = port;
+        config.opt_string("printhost_port") = port;
         if (!is_bbl_agent() && Http::ca_file_supported())
             config.opt_string("printhost_cafile") = m_input_cafile->GetValue().ToStdString();
     }

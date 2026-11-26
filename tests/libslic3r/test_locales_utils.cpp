@@ -12,6 +12,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/lexical_cast/bad_lexical_cast.hpp>
 
+#include <cstddef>
 #include <string>
 
 using namespace Slic3r;
@@ -87,6 +88,37 @@ TEST_CASE("atof_decimal_point parses what atof parses in the C locale", "[Locale
     }));
     INFO(text);
     CHECK_THAT(atof_decimal_point(text), Catch::Matchers::WithinAbs(value, 1e-12));
+}
+
+TEST_CASE("strtod_decimal_point parses what strtod parses in the C locale", "[LocalesUtils]")
+{
+    const auto [text, value, length] = GENERATE(table<const char*, double, size_t>({
+        { "5", 5., 1 },
+        { "  12.5 7", 12.5, 6 },
+        { "\t+3", 3., 3 },
+        { "-1.25", -1.25, 5 },
+        { "1e2", 100., 3 },
+        { ".5", 0.5, 2 },
+        { "0,5", 0., 1 },
+        { "+-5", 0., 0 },
+        { "", 0., 0 },
+        { "abc", 0., 0 },
+    }));
+    INFO(text);
+    char *end = nullptr;
+    CHECK_THAT(strtod_decimal_point(text, &end), Catch::Matchers::WithinAbs(value, 1e-12));
+    CHECK(size_t(end - text) == length);
+}
+
+TEST_CASE("strtod_decimal_point reads a decimal point when the process locale uses a comma", "[LocalesUtils]")
+{
+    ProcessCommaNumericLocale comma;
+    if (! comma.apply())
+        SKIP("no locale with a comma decimal separator is installed");
+    const char *text = "0.5 1";
+    char *end = nullptr;
+    CHECK_THAT(strtod_decimal_point(text, &end), Catch::Matchers::WithinAbs(0.5, 1e-12));
+    CHECK(end == text + 3);
 }
 
 TEST_CASE("Nozzle diameter strings read back in a locale whose decimal separator is a comma", "[LocalesUtils]")

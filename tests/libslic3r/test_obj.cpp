@@ -4,6 +4,8 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Color.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Format/OBJ.hpp"
 
@@ -27,13 +29,13 @@ struct LoadedObj
 };
 
 // Loads an OBJ made of the given lines, with a material library that defines material "a".
-LoadedObj load_textured_obj(const std::string &body)
+LoadedObj load_textured_obj(const std::string &body, const std::string &materials = "newmtl a\nKd 1 0 0\n")
 {
     ScopedTemporaryFile obj(".obj");
     ScopedTemporaryFile mtl(".mtl");
     {
         boost::nowide::ofstream out(mtl.string());
-        out << "newmtl a\nKd 1 0 0\n";
+        out << materials;
     }
     {
         boost::nowide::ofstream out(obj.string());
@@ -171,4 +173,36 @@ TEST_CASE("Texture coordinates follow the corners of a mesh that is flipped on l
     for (size_t face = 0; face < its.indices.size(); ++face)
         for (int corner = 0; corner < 3; ++corner)
             check_uv_is_vt(loaded.info.uvs[face][corner], its.indices[face][corner] + 1);
+}
+
+TEST_CASE("Numbers with a decimal point load when the process locale uses a decimal comma", "[OBJ][Regression]")
+{
+    // The GUI sets the process locale from its language. On macOS 13.3 to 14.0, strtod read that locale
+    // inside the parser's CNumericLocalesSetter, so it dropped every vertex and the faces failed to load.
+    ProcessCommaNumericLocale comma;
+    if (! comma.apply())
+        SKIP("no locale with a comma decimal separator is installed");
+    const LoadedObj loaded = load_textured_obj("v 0.5 0.5 0.5 1 0.5 0.25\nv 10.5 0.5 0.5 1 0.5 0.25\n"
+                                               "v 0.5 10.5 0.5 1 0.5 0.25\nv 0.5 0.5 10.5 1 0.5 0.25\n"
+                                               "vt 0.25 0.5\n"
+                                               "usemtl a\n"
+                                               "f 1/1 3/1 2/1\nf 1/1 2/1 4/1\nf 1/1 4/1 3/1\nf 2/1 3/1 4/1\n",
+                                               "newmtl a\nKd 0.5 0.25 0.125\n");
+
+    REQUIRE(loaded.ok);
+    REQUIRE(loaded.mesh.facets_count() == 4);
+    const BoundingBoxf3 box = loaded.mesh.bounding_box();
+    for (int axis = 0; axis < 3; ++axis) {
+        CHECK_THAT(box.min[axis], WithinAbs(0.5, 1e-6));
+        CHECK_THAT(box.max[axis], WithinAbs(10.5, 1e-6));
+    }
+    REQUIRE(loaded.info.vertex_colors.size() == 4);
+    CHECK_THAT(loaded.info.vertex_colors.front()[1], WithinAbs(0.5, 1e-6));
+    CHECK_THAT(loaded.info.vertex_colors.front()[2], WithinAbs(0.25, 1e-6));
+    REQUIRE(loaded.info.face_colors.size() == 4);
+    CHECK_THAT(loaded.info.face_colors.front()[0], WithinAbs(0.5, 1e-6));
+    CHECK_THAT(loaded.info.face_colors.front()[2], WithinAbs(0.125, 1e-6));
+    REQUIRE(loaded.info.uvs.size() == 4);
+    CHECK_THAT(loaded.info.uvs.front()[0].x(), WithinAbs(0.25, 1e-6));
+    CHECK_THAT(loaded.info.uvs.front()[0].y(), WithinAbs(0.5, 1e-6));
 }

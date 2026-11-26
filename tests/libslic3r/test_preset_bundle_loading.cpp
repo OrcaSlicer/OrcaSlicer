@@ -392,6 +392,18 @@ TEST_CASE("Printer extruder count tolerates missing nozzle diameter", "[Preset][
     CHECK(bundle.get_printer_extruder_count() == 2);
 }
 
+TEST_CASE("A preset bundle builds its full config before its presets load", "[Preset][Bundle][Regression]")
+{
+    PresetBundle bundle;
+    REQUIRE(bundle.filament_presets.empty());
+    bundle.filaments.get_edited_preset().config.set_key_value("filament_type", new ConfigOptionStrings({ "PETG" }));
+
+    const DynamicPrintConfig config = bundle.full_config();
+
+    REQUIRE(config.has("filament_type"));
+    CHECK(config.option<ConfigOptionStrings>("filament_type")->values == std::vector<std::string>{ "PETG" });
+}
+
 // A per-variant key that no profile in the chain sets keeps the length of the one-nozzle root. The
 // inherited printer must still have a value for every variant in its own variant list.
 TEST_CASE("An inherited printer's per-variant values cover every variant it lists", "[Preset][Bundle][Regression]")
@@ -1263,6 +1275,41 @@ TEST_CASE("A project filament storing one value for a per-variant key applies it
     REQUIRE(loaded != nullptr);
     CHECK(loaded->config.option<ConfigOptionStrings>("adaptive_pressure_advance_model")->values == std::vector<std::string>{model, model});
     check_double_vector(loaded->config.option<ConfigOptionFloats>("pressure_advance")->values, {0.016, 0.016});
+}
+
+TEST_CASE("A project's edited filament keeps the preset's compatible printers and processes", "[Preset][Bundle][Regression]")
+{
+    enum class Load { FirstSlotSelected, FirstSlotParentSelected, LaterSlotEmbedded, LaterSlotCopied };
+    const Load load = GENERATE(Load::FirstSlotSelected, Load::FirstSlotParentSelected, Load::LaterSlotEmbedded, Load::LaterSlotCopied);
+    CAPTURE(load);
+    const bool first_slot = load == Load::FirstSlotSelected || load == Load::FirstSlotParentSelected;
+    // For FirstSlotParentSelected only the parent the project inherits from is loaded, so it is the one selected.
+    const std::string preset_name = load == Load::FirstSlotParentSelected ? "Parent PLA" : "My PLA";
+    PresetCollection filaments(Preset::TYPE_FILAMENT, Preset::filament_options(),
+                               static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()));
+    Preset &user = add_inmemory_preset(filaments, preset_name);
+    user.is_project_embedded = load == Load::LaterSlotEmbedded;
+    user.config.option<ConfigOptionStrings>("compatible_printers", true)->values = {"My Printer"};
+    user.config.option<ConfigOptionStrings>("compatible_prints", true)->values   = {"My Process"};
+    user.config.option<ConfigOptionInts>("nozzle_temperature", true)->values     = {210};
+
+    DynamicPrintConfig project(user.config);
+    project.option<ConfigOptionStrings>("compatible_printers")->values.clear();
+    project.option<ConfigOptionStrings>("compatible_prints")->values.clear();
+    project.option<ConfigOptionInts>("nozzle_temperature")->values = {225};
+    if (load == Load::FirstSlotParentSelected)
+        project.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS)->value = preset_name;
+
+    const Preset *loaded = filaments.load_external_preset("test.3mf", "test.3mf", "My PLA", project, {},
+                                                          first_slot ? PresetCollection::LoadAndSelect::Always :
+                                                                       PresetCollection::LoadAndSelect::OnlyIfModified).first;
+    REQUIRE(loaded != nullptr);
+
+    const Preset &result = first_slot ? filaments.get_edited_preset() : *loaded;
+    REQUIRE(result.name == (load == Load::LaterSlotCopied ? "My PLA(test.3mf)" : preset_name));
+    CHECK(result.config.option<ConfigOptionInts>("nozzle_temperature")->values == std::vector<int>{225});
+    CHECK(result.config.option<ConfigOptionStrings>("compatible_printers")->values == std::vector<std::string>{"My Printer"});
+    CHECK(result.config.option<ConfigOptionStrings>("compatible_prints")->values == std::vector<std::string>{"My Process"});
 }
 
 TEST_CASE("Repeated loads of a user preset directory produce the same presets", "[Preset][Bundle]")
@@ -5430,7 +5477,7 @@ TEST_CASE("Published 3MF relocates the receiver's mixed filament past the incomi
         REQUIRE(colour.size() == 5);
         CHECK(colour[4] == "#800080");
         CHECK(colour[2] == "#FFFFFF");
-        CHECK(pub.mixed_slot_relocations.at(2) == 4);
+        CHECK(pub.mixed_slot_relocations.empty());
         bool relocated_reported = false;
         for (const std::string &message : pub.material_replacements)
             if (message.find("slot 2 -> slot 4") != std::string::npos &&
@@ -5478,6 +5525,11 @@ TEST_CASE("Published 3MF relocates the receiver's mixed filament past the incomi
         pub.published     = true;
         pub.material_keys = { make_real_entry(0, "#FF0000"), make_real_entry(1, "#000000"),
                               make_real_entry(2, "#0000FF"), mix };
+        auto &process = bundle.prints.get_edited_preset().config;
+        process.set("inner_wall_filament_id", 3);
+        config.set("outer_wall_filament_id", 4);
+        config.set("bottom_surface_filament_id", 3);
+        pub.published_keys = {"outer_wall_filament_id", "bottom_surface_filament_id"};
         Preset::normalize(config);
         bundle.load_config_model("test.3mf", std::move(config), Semver(), &pub);
 
@@ -5493,8 +5545,10 @@ TEST_CASE("Published 3MF relocates the receiver's mixed filament past the incomi
         REQUIRE(components.size() == 5);
         CHECK(components[3] == "1,2");
         CHECK(components[4] == "1,3");
-        REQUIRE(pub.mixed_slot_relocations.size() == 2);
-        CHECK(pub.mixed_slot_relocations.at(2) == 3);
+        CHECK(process.opt_int("inner_wall_filament_id") == 4);      // Receiver's mix
+        CHECK(process.opt_int("outer_wall_filament_id") == 5);      // Author's mix
+        CHECK(process.opt_int("bottom_surface_filament_id") == 3);  // Author's physical filament
+        REQUIRE(pub.mixed_slot_relocations.size() == 1);
         CHECK(pub.mixed_slot_relocations.at(3) == 4);
         CHECK(pub.skipped_keys.empty());
     }
@@ -5556,9 +5610,7 @@ TEST_CASE("Published 3MF rebalances several receiver mixed slots past the physic
     REQUIRE(components.size() == 5);
     CHECK(components[3] == "1,2");
     CHECK(components[4] == "1,3");
-    REQUIRE(pub.mixed_slot_relocations.size() == 2);
-    CHECK(pub.mixed_slot_relocations.at(1) == 3);
-    CHECK(pub.mixed_slot_relocations.at(2) == 4);
+    CHECK(pub.mixed_slot_relocations.empty());
     CHECK(pub.skipped_keys.empty());
 }
 
@@ -6476,8 +6528,24 @@ TEST_CASE("remap_model_filament_slots repoints extruder configs and color painti
     // 1-based slot 4 lands on 5 and does NOT continue to 7.
     Model chained = make_model();
     chained.objects[0]->volumes.front()->config.set_key_value("extruder", new ConfigOptionInt(4));
+    auto &ranges = chained.objects[0]->layer_config_ranges;
+    auto &first_mix = ranges[{0., 2.}];
+    auto &second_mix = ranges[{2., 4.}];
+    auto &physical = ranges[{4., 6.}];
+    auto &use_default = ranges[{6., 8.}];
+    auto &height_only = ranges[{8., 10.}];
+    first_mix.set("extruder", 4);
+    second_mix.set("extruder", 5);
+    physical.set("extruder", 2);
+    use_default.set("extruder", 0);
+    height_only.set("layer_height", 0.2);
     Slic3r::remap_model_filament_slots(chained, std::map<int, int>{{3, 4}, {4, 6}});
     CHECK(chained.objects[0]->volumes.front()->config.extruder() == 5);
+    CHECK(first_mix.extruder() == 5);
+    CHECK(second_mix.extruder() == 7);
+    CHECK(physical.extruder() == 2);
+    CHECK(use_default.extruder() == 0);
+    CHECK_FALSE(height_only.has("extruder"));
     // The chained model's paint follows its own single-step mapping: painted state 5 -> 7,
     // and nothing lands back on 5.
     CHECK(TriangleSelector::has_facets(chained.objects[0]->volumes.front()->mmu_segmentation_facets.get_data(),

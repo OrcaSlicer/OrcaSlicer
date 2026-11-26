@@ -529,7 +529,8 @@ namespace Slic3r
         // A supplied model is trusted as the printer's own only when the caller marks it as an
         // advertisement and it resolves against the installed vendor model registry. A preset or
         // manual value may be kept for display, but stays unverified so compatibility and preset
-        // sync do not treat it as confirmed. No fallback model is invented when none was supplied.
+        // sync do not treat it as confirmed. Without a supplied model, a Bambu printer gets the C11
+        // fallback, also unverified; other agents keep the model they already had.
         if (!machine.printer_type.empty()) {
             const std::string resolved_model = DevPrinterConfigUtil::resolve_printer_model_id(machine.printer_type);
             if (model_advertised) {
@@ -539,6 +540,9 @@ namespace Slic3r
                 obj->printer_type             = resolved_model.empty() ? machine.printer_type : resolved_model;
                 obj->printer_model_advertised = false;
             }
+        } else if (obj->printer_agent_id == BBL_PRINTER_AGENT_ID) {
+            obj->printer_type             = _parse_printer_type("C11");
+            obj->printer_model_advertised = false;
         }
         obj->dev_connection_type = connection_type == "farm" ? "lan":connection_type;
         obj->bind_state          = connection_type == "farm" ? "free":bind_state;
