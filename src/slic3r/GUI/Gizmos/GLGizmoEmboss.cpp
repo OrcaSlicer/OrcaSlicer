@@ -146,6 +146,7 @@ static const struct Limits
     Limit<float> skew{{-1.f, 1.f}, {-100.f, 100.f}}; // ration without unit
     MinMax<int>  char_gap{-20000, 20000}; // in font points
     MinMax<int>  line_gap{-20000, 20000}; // in font points
+    MinMax<float> arc_radius{-1e4f, 1e4f}; // in mm
     // distance text object from surface
     MinMax<float> angle{-180.f, 180.f}; // in degrees
 } limits;
@@ -336,6 +337,7 @@ struct GuiCfg
         std::string alignment;
         std::string char_gap;
         std::string line_gap;
+        std::string arc_radius;
         std::string boldness;
         std::string skew_ration;
         std::string from_surface;
@@ -2663,16 +2665,18 @@ template<> bool imgui_input(const char *label, double *v, double step, double st
 
 template<typename T> 
 bool GLGizmoEmboss::rev_input(const std::string &name, T &value, const T *default_value,
-    const std::string &undo_tooltip, T step, T step_fast, const char *format, ImGuiInputTextFlags flags) const
+    const std::string &undo_tooltip, T step, T step_fast, const char *format, ImGuiInputTextFlags flags, const std::string &tooltip) const
 {
     // draw offseted input
     auto draw_offseted_input = [this, &offset = m_gui_cfg->input_offset, &width = m_gui_cfg->input_width,
-                                &name, &value, &step, &step_fast, format, flags](){
+                                &name, &value, &step, &step_fast, format, flags, &tooltip](){
         ImGui::SameLine(offset);
         ImGui::SetNextItemWidth(width);
         bool changed = imgui_input(("##" + name).c_str(),
             &value, step, step_fast, format, flags);
         m_imgui->request_frames_while_held(); // ORCA auto-repeat of the +/- buttons
+        if (!tooltip.empty() && ImGui::IsItemHovered())
+            m_imgui->tooltip(tooltip, m_gui_cfg->max_tooltip_width);
         return changed;
     };
     return revertible(name, value, default_value, undo_tooltip, 
@@ -2688,7 +2692,8 @@ bool GLGizmoEmboss::rev_input_mm(const std::string          &name,
                                  T                           step_fast,
                                  const char                 *format,
                                  bool                        use_inch,
-                                 const std::optional<float> &scale) const
+                                 const std::optional<float> &scale,
+                                 const std::string          &tooltip) const
 {
     // _variable which temporary keep value
     T value_ = value;
@@ -2704,7 +2709,7 @@ bool GLGizmoEmboss::rev_input_mm(const std::string          &name,
     if (scale.has_value())        
         value_ *= *scale;
     bool use_correction = use_inch || scale.has_value();
-    if (rev_input(name, use_correction ? value_ : value, default_value_ptr, undo_tooltip, step, step_fast, format)) {
+    if (rev_input(name, use_correction ? value_ : value, default_value_ptr, undo_tooltip, step, step_fast, format, 0, tooltip)) {
         if (use_correction) {
             value = value_;
             if (use_inch)
@@ -3019,6 +3024,26 @@ void GLGizmoEmboss::draw_advanced()
         last_change = true;
     m_imgui->disabled_end(); // !is_multiline
 
+    // input radius of the circle the text is laid along, zero means a straight line
+    bool use_inch = wxGetApp().app_config->get_bool("use_inches");
+    // letters placed one by one on the model do not follow the circle
+    m_imgui->disabled_begin(font_prop.per_glyph);
+    float arc_radius = current_prop.arc_radius.value_or(0.f);
+    const float stored_arc_radius = stored_style ? stored_style->prop.arc_radius.value_or(0.f) : 0.f;
+    if (rev_input_mm(tr.arc_radius, arc_radius, stored_style ? &stored_arc_radius : nullptr, _u8L("Revert arc radius."),
+                     use_inch ? 0.1f : 1.f, use_inch ? 1.f : 10.f, use_inch ? "%.2f in" : "%.1f mm", use_inch, m_scale_height,
+                     _u8L("Lay the text along a circle of this radius. A negative value bends it the other way, zero keeps it straight. The text also stays straight while it does not fit on the circle."))) {
+        apply(arc_radius, limits.arc_radius);
+        if (is_approx(arc_radius, 0.f))
+            current_prop.arc_radius.reset();
+        else
+            current_prop.arc_radius = arc_radius;
+        // only different value need process
+        if (!is_approx(current_prop.arc_radius, m_volume->text_configuration->style.prop.arc_radius))
+            process();
+    }
+    m_imgui->disabled_end(); // per_glyph
+
     // input boldness
     auto def_boldness = stored_style ?
         &stored_style->prop.boldness : nullptr;
@@ -3056,7 +3081,6 @@ void GLGizmoEmboss::draw_advanced()
     auto def_distance = stored_style ?
         &stored_style->distance : nullptr;    
     m_imgui->disabled_begin(!allowe_surface_distance);    
-    bool use_inch = wxGetApp().app_config->get_bool("use_inches");
     const std::string undo_move_tooltip = _u8L("Undo translation");
     const wxString move_tooltip = _L("Distance of the center of the text to the model surface.");
     bool is_moved = false;
@@ -3903,6 +3927,9 @@ GuiCfg create_gui_configuration()
     // TRN - Input label. Be short as possible
     tr.line_gap = _u8L("Line gap");
     // TRN - Input label. Be short as possible
+    // Radius of the circle the text is laid along instead of a straight line
+    tr.arc_radius = _u8L("Arc radius");
+    // TRN - Input label. Be short as possible
     tr.boldness = _u8L("Boldness");
 
     // TRN - Input label. Be short as possible
@@ -3934,6 +3961,7 @@ GuiCfg create_gui_configuration()
         ImGui::CalcTextSize(tr.alignment.c_str()).x,
         ImGui::CalcTextSize(tr.char_gap.c_str()).x,
         ImGui::CalcTextSize(tr.line_gap.c_str()).x,
+        ImGui::CalcTextSize(tr.arc_radius.c_str()).x,
         ImGui::CalcTextSize(tr.boldness.c_str()).x,
         ImGui::CalcTextSize(tr.skew_ration.c_str()).x,
         ImGui::CalcTextSize(tr.from_surface.c_str()).x,
