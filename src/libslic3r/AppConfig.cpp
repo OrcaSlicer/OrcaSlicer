@@ -250,8 +250,9 @@ void AppConfig::set_defaults()
         set("preview_dim_previous_layers_brightness", std::to_string(std::max(0, std::min(brightness, 99))));
     }
 
-    // ORCA: whether the range colors of the G-code preview and the two-color pairs of the
-    // measure, assembly and cut gizmos use their colorblind friendly variants
+    // ORCA: whether the range colors of the G-code preview, the two-color pairs of the measure,
+    // assembly and cut gizmos, the brushes of the painting gizmos and the overhang marking use their
+    // colorblind friendly variants
     if (get("colorblind_friendly_colors").empty())
         set_bool("colorblind_friendly_colors", false);
 

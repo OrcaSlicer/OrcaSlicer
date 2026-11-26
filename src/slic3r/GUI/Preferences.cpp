@@ -2066,9 +2066,6 @@ void PreferencesDialog::create_items()
     //// GENERAL > Settings, Features, AI features
     add_preference_rows(g_sizer, "general");
 
-    //// GENERAL > Appearance
-    add_preference_rows(g_sizer, "appearance");
-
 #if 0
     g_sizer->Add(create_item_title(_L("Filament Grouping")), 1, wxEXPAND);
     //temporarily disable it

@@ -99,6 +99,8 @@ public:
 protected:
     // BBS
     ColorRGBA get_cursor_hover_color() const override;
+    // ORCA: the triangle selectors are colored with the filament colors
+    bool paints_with_brush_colors() const override { return false; }
     void on_set_state() override;
 
     EnforcerBlockerType get_left_button_state_type() const override { return EnforcerBlockerType(m_selected_extruder_idx + 1); }

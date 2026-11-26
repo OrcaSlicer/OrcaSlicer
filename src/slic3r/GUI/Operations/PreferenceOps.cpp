@@ -175,7 +175,8 @@ std::vector<Preference> build_table()
 #endif
     t.checkbox("colorblind_friendly_colors", L("Colorblind friendly colors"),
         {L("Use colors that are easier to tell apart with a color vision deficiency for the color scales of the sliced preview "
-           "(speed, flow, layer time, etc.) and for the two-color pairs of the measure, assembly and cut tools.\n"
+           "(speed, flow, layer time, etc.), for the two-color pairs of the measure, assembly and cut tools "
+           "and for the two brushes and the overhang highlight of the painting tools (supports, seam, fuzzy skin, etc.).\n"
            "Turn it off to use the original colors.")}
     );
 
@@ -829,6 +830,13 @@ void apply_preference(const std::string& key)
         if (GLCanvas3D* canvas = preview_canvas()) {
             canvas->get_gcode_viewer().set_colorblind_friendly_colors(config.get_bool(key));
             redraw_preview(*canvas);
+        }
+        // the gizmos read the preference when they draw
+        if (Plater* plater = wxGetApp().plater()) {
+            if (GLCanvas3D* canvas = plater->get_view3D_canvas3D()) {
+                canvas->set_as_dirty();
+                canvas->request_extra_frame();
+            }
         }
     } else if (key == "preview_translucent_filaments") {
         // ORCA: apply the filament translucency change immediately to the currently loaded preview

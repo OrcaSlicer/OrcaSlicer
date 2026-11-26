@@ -127,6 +127,19 @@ void GLGizmoPainterBase::render_triangles(const Selection& selection, const Mode
 
 void GLGizmoPainterBase::render_triangles(const Selection& selection, const std::vector<const ModelVolume*>& skip) const
 {
+    // ORCA: the triangle selectors keep the brush colors they were built with: give them the current ones
+    // when the "Colorblind friendly colors" preference changed while the gizmo is open
+    if (const bool colorblind = use_colorblind_friendly_colors(); m_colorblind_friendly_colors != colorblind) {
+        m_colorblind_friendly_colors = colorblind;
+        if (paints_with_brush_colors()) {
+            const std::vector<ColorRGBA> ebt_colors = { GLVolume::NEUTRAL_COLOR, TriangleSelectorGUI::get_enforcers_color(), TriangleSelectorGUI::get_blockers_color() };
+            for (const std::unique_ptr<TriangleSelectorGUI>& selector : m_triangle_selectors) {
+                if (auto* patch = dynamic_cast<TriangleSelectorPatch*>(selector.get()))
+                    patch->set_ebt_colors(ebt_colors);
+            }
+        }
+    }
+
     auto* shader = wxGetApp().get_shader("mm_gouraud");
     if (!shader)
         return;
@@ -179,6 +192,7 @@ void GLGizmoPainterBase::render_triangles(const Selection& selection, const std:
         shader->set_uniform("volume_world_matrix", trafo_matrix);
         shader->set_uniform("volume_mirrored", is_left_handed);
         shader->set_uniform("slope.actived", m_parent.is_using_slope());
+        shader->set_uniform("overhang_colorblind", use_colorblind_friendly_colors());
         shader->set_uniform("slope.volume_world_normal_matrix", normal_matrix);
         shader->set_uniform("slope.normal_z", normal_z);
         shader->set_uniform("slope.up_direction", up_direction);
@@ -1270,6 +1284,45 @@ TriangleSelector::ClippingPlane GLGizmoPainterBase::get_clipping_plane_in_volume
 
 ColorRGBA TriangleSelectorGUI::enforcers_color = {0.5f, 1.f, 0.5f, 1.f};
 ColorRGBA TriangleSelectorGUI::blockers_color  = {1.f, 0.5f, 0.5f, 1.f};
+// ORCA: used in place of the two above when "Colorblind friendly colors" is enabled in Preferences.
+// Yellow green and brick red over a muted purple overhang marking (OverhangColorblind in the shaders, #6A549D):
+// the model, the overhangs, the two brushes and the two brushes over an overhang then all stay apart with
+// protanopia and deuteranopia, which the default green and red over a red overhang marking do not.
+// The red is much darker than the green as the two differ only in lightness with a red-green deficiency.
+// The overhang color is weak in blue so that the green, a yellow with these deficiencies, keeps its hue
+// where the two overlap: against a strong blue it turns into a grey like the model
+static const ColorRGBA ENFORCERS_COLOR_COLORBLIND = {133 / 255.f, 255 / 255.f, 1   / 255.f, 1.f}; // #85FF01
+static const ColorRGBA BLOCKERS_COLOR_COLORBLIND  = {156 / 255.f, 43  / 255.f, 0   / 255.f, 1.f}; // #9C2B00
+
+const ColorRGBA& TriangleSelectorGUI::get_enforcers_color()
+{
+    return GLGizmoBase::use_colorblind_friendly_colors() ? ENFORCERS_COLOR_COLORBLIND : enforcers_color;
+}
+
+const ColorRGBA& TriangleSelectorGUI::get_blockers_color()
+{
+    return GLGizmoBase::use_colorblind_friendly_colors() ? BLOCKERS_COLOR_COLORBLIND : blockers_color;
+}
+
+ColorRGBA GLGizmoPainterBase::get_cursor_sphere_left_button_color() const
+{
+    if (!use_colorblind_friendly_colors() || !paints_with_brush_colors())
+        return { 0.0f, 0.0f, 1.0f, 0.25f };
+    // ORCA: the cursor takes the color its button paints with
+    ColorRGBA color = TriangleSelectorGUI::get_enforcers_color();
+    color.a(0.25f);
+    return color;
+}
+
+ColorRGBA GLGizmoPainterBase::get_cursor_sphere_right_button_color() const
+{
+    if (!use_colorblind_friendly_colors() || !paints_with_brush_colors())
+        return { 1.0f, 0.0f, 0.0f, 0.25f };
+    // ORCA: the cursor takes the color its button paints with
+    ColorRGBA color = TriangleSelectorGUI::get_blockers_color();
+    color.a(0.25f);
+    return color;
+}
 
 ColorRGBA TriangleSelectorGUI::get_seed_fill_color(const ColorRGBA& base_color)
 {
@@ -1293,16 +1346,16 @@ void TriangleSelectorGUI::render(ImGuiWrapper* imgui, const Transform3d& matrix)
         return;
     assert(shader->get_name() == "gouraud" || shader->get_name() == "mm_gouraud");
 
-    for (auto iva : {std::make_pair(&m_iva_enforcers, enforcers_color),
-                     std::make_pair(&m_iva_blockers, blockers_color)}) {
+    for (auto iva : {std::make_pair(&m_iva_enforcers, get_enforcers_color()),
+                     std::make_pair(&m_iva_blockers, get_blockers_color())}) {
         iva.first->set_color(iva.second);
         iva.first->render();
     }
 
     for (auto& iva : m_iva_seed_fills) {
         size_t           color_idx = &iva - &m_iva_seed_fills.front();
-        const ColorRGBA& color     = TriangleSelectorGUI::get_seed_fill_color(color_idx == 1 ? enforcers_color :
-            color_idx == 2 ? blockers_color :
+        const ColorRGBA& color     = TriangleSelectorGUI::get_seed_fill_color(color_idx == 1 ? get_enforcers_color() :
+            color_idx == 2 ? get_blockers_color() :
             GLVolume::NEUTRAL_COLOR);
         iva.set_color(color);
         iva.render();

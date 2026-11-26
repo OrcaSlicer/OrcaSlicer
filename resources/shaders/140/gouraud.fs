@@ -5,6 +5,8 @@ const vec3 ZERO = vec3(0.0, 0.0, 0.0);
 //const vec3 GREY = vec3(0.9, 0.9, 0.9);
 const vec3 ORANGE = vec3(0.8, 0.4, 0.0);
 const vec3 LightRed = vec3(0.78, 0.0, 0.0);
+// ORCA: marks the overhangs in place of LightRed when "Colorblind friendly colors" is enabled in Preferences
+const vec3 OverhangColorblind = vec3(0.416, 0.329, 0.616);
 const vec3 LightBlue = vec3(0.73, 1.0, 1.0);
 const float EPSILON = 0.0001;
 
@@ -34,6 +36,8 @@ uniform bool use_color_clip_plane;
 uniform vec4 uniform_color_clip_plane_1;
 uniform vec4 uniform_color_clip_plane_2;
 uniform SlopeDetection slope;
+// ORCA: whether the overhangs are marked with OverhangColorblind
+uniform bool overhang_colorblind;
 
 // ORCA: a part of a translucent filament, drawn as its print would show in premultiplied color, see
 // GLVolumeCollection::render(). It catches a highlight only with translucent_gloss, in realistic view.
@@ -136,7 +140,7 @@ void main()
          }
          else if( world_normal_z < slope.normal_z - EPSILON)
          {
-                color.rgb = color.rgb * 0.5 + LightRed * 0.5;
+                color.rgb = color.rgb * 0.5 + (overhang_colorblind ? OverhangColorblind : LightRed) * 0.5;
                 color.a = 0.8;
          }
     }
