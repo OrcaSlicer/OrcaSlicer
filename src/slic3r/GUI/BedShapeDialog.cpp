@@ -1,4 +1,5 @@
 #include "BedShapeDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "GUI_App.hpp"
 #include "OptionsGroup.hpp"
 
@@ -378,9 +379,7 @@ wxPanel* BedShapePanel::init_texture_panel()
                         tooltip_text += _(m_custom_texture);
                     }
 
-                    wxToolTip* tooltip = lbl->GetToolTip();
-                    if ((tooltip == nullptr) || (tooltip->GetTip() != tooltip_text))
-                        lbl->SetToolTip(tooltip_text);
+                    set_illustrated_tooltip(lbl, tooltip_text);
                 }
             }));
 
@@ -456,9 +455,7 @@ wxPanel* BedShapePanel::init_model_panel()
                         tooltip_text += _(m_custom_model);
                     }
 
-                    wxToolTip* tooltip = lbl->GetToolTip();
-                    if ((tooltip == nullptr) || (tooltip->GetTip() != tooltip_text))
-                        lbl->SetToolTip(tooltip_text);
+                    set_illustrated_tooltip(lbl, tooltip_text);
                 }
             }));
 

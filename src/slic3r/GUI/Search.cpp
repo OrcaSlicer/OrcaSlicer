@@ -1,4 +1,5 @@
 #include "Search.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "OptionStateRegistry.hpp"
 
 #include <wx/app.h>
@@ -338,7 +339,7 @@ SearchItem::SearchItem(wxWindow *parent, wxString text, int index, SearchDialog*
     m_availability = std::move(availability);
     m_index = index;
 
-    this->SetToolTip(tooltip);
+    GUI::set_illustrated_tooltip(this, tooltip);
 
     SetBackgroundColour(StateColor::darkModeColorFor(wxColour("#FFFFFF")));
     Bind(wxEVT_ENTER_WINDOW, &SearchItem::on_mouse_enter, this);

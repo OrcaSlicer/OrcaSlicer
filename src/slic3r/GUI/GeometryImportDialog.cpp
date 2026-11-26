@@ -1,4 +1,5 @@
 #include "GeometryImportDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -259,20 +260,23 @@ bool show_geometry_import_options(wxWindow* parent, const std::string& format, G
     if (format != "3mf") {
         load_mode = add_radio_group(dialog, {_L("Load as separate objects"), _L("Load as an assembly"), _L("Load as a single object (can be split later)")},
                                     options.separate_objects ? 0 : options.load_as_assembly ? 1 : 2, wxVERTICAL);
-        load_mode->SetRadioTooltip(0, _L("Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."));
-        load_mode->SetRadioTooltip(1, _L("The bodies of each group in the file become parts of one object, in their relative positions."));
-        load_mode->SetRadioTooltip(2, _L("The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."));
+        load_mode->SetRadioIllustratedTooltip(0, _L("Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."),
+                                              {{"app_ui/load_separate.png", {}}});
+        load_mode->SetRadioIllustratedTooltip(1, _L("The bodies of each group in the file become parts of one object, in their relative positions."),
+                                              {{"app_ui/load_assembly.png", {}}});
+        load_mode->SetRadioIllustratedTooltip(2, _L("The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."),
+                                              {{"app_ui/load_single.png", {}}});
         sizer->Add(load_mode, 0, wxLEFT | wxRIGHT | wxTOP, dialog.FromDIP(12));
     }
     auto* keep = add_checkbox(dialog, *sizer, _L("Keep original names"), options.keep_names);
-    keep->SetToolTip(_L("Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."));
+    set_illustrated_tooltip(keep, _L("Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."));
     auto* sort = add_checkbox(dialog, *sizer, _L("Sort parts by name"), options.sort_names);
-    sort->SetToolTip(_L("Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."));
+    set_illustrated_tooltip(sort, _L("Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."));
     link_sort_to_keep(keep, sort);
     auto* remember = add_checkbox(dialog, *sizer, _L("Remember my choice"), false);
-    remember->SetToolTip(_L("Use these choices as defaults next time. The dialog still opens."));
+    set_illustrated_tooltip(remember, _L("Use these choices as defaults next time. The dialog still opens."));
     auto* dont_ask = add_checkbox(dialog, *sizer, _L("Don't ask again"), false);
-    dont_ask->SetToolTip(_L("Save these choices and apply them without asking next time. You can show this dialog again in Preferences."));
+    set_illustrated_tooltip(dont_ask, _L("Save these choices and apply them without asking next time. You can show this dialog again in Preferences."));
 
     auto* buttons = new DialogButtons(&dialog, {"OK", "Cancel"});
     buttons->GetOK()->Bind(wxEVT_BUTTON, [&](wxCommandEvent&) { dialog.EndModal(wxID_OK); });
@@ -328,11 +332,12 @@ bool prepare_geometry_import_names(wxWindow* parent, const std::vector<Model*>& 
         add_tip(dialog, *sizer, _L("Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."), 520);
         // Item 0 removes the characters, item 1 replaces them with the text right after it.
         auto* rule = add_radio_group(dialog, {_L("Remove unsupported characters"), _L("Replace with:")}, policy.remove ? 0 : 1, wxHORIZONTAL);
-        rule->SetRadioTooltip(1, _L("Each unsupported character is replaced with this text. It may be longer than one character."));
+        rule->SetRadioIllustratedTooltip(1, _L("Each unsupported character is replaced with this text. It may be longer than one character."), {});
         auto* replacement_row = new wxBoxSizer(wxHORIZONTAL);
         replacement_row->Add(rule, 0, wxALIGN_CENTER_VERTICAL);
         auto* replacement = new ::TextInput(&dialog, from_u8(policy.replacement));
         replacement->GetTextCtrl()->SetFont(::Label::Body_14);
+        set_illustrated_tooltip(replacement, _L("Each unsupported character is replaced with this text. It may be longer than one character."));
         replacement_row->Add(replacement, 1, wxALIGN_CENTER_VERTICAL);
         sizer->Add(replacement_row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, dialog.FromDIP(12));
         auto* preview = new wxTextCtrl(&dialog, wxID_ANY, wxEmptyString, wxDefaultPosition, dialog.FromDIP(wxSize(540, 180)),
@@ -340,9 +345,9 @@ bool prepare_geometry_import_names(wxWindow* parent, const std::vector<Model*>& 
         apply_label_style(preview);
         sizer->Add(preview, 1, wxEXPAND | wxALL, dialog.FromDIP(12));
         auto* remember = add_checkbox(dialog, *sizer, _L("Remember my choice"), false);
-        remember->SetToolTip(_L("Use this rule as the default next time. The dialog still opens."));
+        set_illustrated_tooltip(remember, _L("Use this rule as the default next time. The dialog still opens."));
         auto* dont_ask = add_checkbox(dialog, *sizer, _L("Don't ask again"), false);
-        dont_ask->SetToolTip(_L("Save this rule and apply it without asking next time. You can show this dialog again in Preferences."));
+        set_illustrated_tooltip(dont_ask, _L("Save this rule and apply it without asking next time. You can show this dialog again in Preferences."));
         auto* buttons = new DialogButtons(&dialog, {"OK", "Cancel"});
 
         auto update_preview = [&]() {

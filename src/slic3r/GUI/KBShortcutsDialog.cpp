@@ -1,4 +1,5 @@
 #include "KBShortcutsDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "I18N.hpp"
 #include "GUI.hpp"
 #include <vector>
@@ -321,7 +322,7 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
             m_editable_rows.push_back({ shortcut, desc, modifiers, key, reset });
         } else {
             auto lock = new wxStaticBitmap(scrollable_panel, wxID_ANY, ScalableBitmap(scrollable_panel, "printer_status_lock", 16).bmp());
-            lock->SetToolTip(_L("Not customizable"));
+            set_illustrated_tooltip(lock, _L("Not customizable"));
             buttons->Add((m_edit_size.x - lock->GetBestSize().x) / 2, m_edit_size.y);   // centred under the edit icons, at their height
             buttons->Add(lock, 0, wxALIGN_CENTRE_VERTICAL);
         }
