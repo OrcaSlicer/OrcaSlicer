@@ -349,6 +349,8 @@ void MonitorPanel::on_machine_selected(MachineObject* obj)
 
 void MonitorPanel::on_printer_clicked(wxMouseEvent &event)
 {
+    if (m_select_machine.CloseOnToggle())
+        return;
     auto mouse_pos = ClientToScreen(event.GetPosition());
     wxPoint rect = m_side_tools->ClientToScreen(wxPoint(0, 0));
 

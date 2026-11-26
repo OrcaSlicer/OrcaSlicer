@@ -36,6 +36,8 @@ struct CoreTiming
     // Above zero, the longest any command's reply budget runs: for tests that need a call to outlive its
     // budget without waiting out the command's own (ORCA_MCP_REPLY_BUDGET_MS). Zero leaves each budget as is.
     std::chrono::milliseconds reply_budget_cap{0};
+    // How long a call's UI closure waits for the UI thread to pick it up before it is abandoned (UiInvoker::run()).
+    std::chrono::milliseconds ui_queue_timeout{std::chrono::seconds(10)};
 };
 
 // The reply budget cap that ORCA_MCP_REPLY_BUDGET_MS's `value` sets: a whole positive number of milliseconds,
@@ -130,6 +132,7 @@ public:
     bool drain(std::chrono::milliseconds timeout);
 
     const CommandCatalog& catalog() const { return m_catalog; }
+    const CoreTiming&     timing() const { return m_timing; }
     UiInvoker&            ui() { return m_ui; }
     JobRegistry&          jobs() { return m_jobs; }
     // The runtime that owns the core, which ToolContext::runtime() of its calls returns; nullptr for a core
