@@ -30,6 +30,10 @@ public:
 public:
 	void SetLabels(wxString const & lbl_on, wxString const & lbl_off);
 
+	// The label shown at the left (0) or right (1) end; the thumb sits on the right one while the switch
+	// is on. Empty for a switch without labels.
+	const wxString& GetLabelAt(int index) const { return labels[index == 0 ? 0 : 1]; }
+
 	void SetTextColor(StateColor const &color);
 
 	void SetTextColor2(StateColor const &color);
@@ -43,6 +47,10 @@ public:
 	void Rescale();
 
     bool SetBackgroundColour(const wxColour& colour) override;
+
+#ifdef __WXMSW__
+    bool MSWCommand(WXUINT param, WXWORD id) override;
+#endif
 
 private:
 	void update();
@@ -148,6 +156,8 @@ public:
 
     int      GetSelection() const;
     void     SetSelection(int index);
+    // Clears the selection without sending the selection event.
+    void     Unselect();
     wxString GetSelectedText() const;
 
     Button*  GetButton(unsigned int index) const

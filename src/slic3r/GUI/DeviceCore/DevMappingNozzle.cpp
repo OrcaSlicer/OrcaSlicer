@@ -220,7 +220,7 @@ int DevNozzleMappingCtrl::CtrlGetAutoNozzleMappingV1(Slic3r::GUI::Plater* plater
         nozzle_info["ext"] = (used_logic_nozzle.extruder_id + 1);
 
         try {
-            nozzle_info["dia"] = std::stof(used_logic_nozzle.diameter);
+            nozzle_info["dia"] = boost::lexical_cast<float>(used_logic_nozzle.diameter);
         } catch(const std::exception& e) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": e=" << e.what();
             continue;

@@ -269,7 +269,7 @@ void OptionsGroup::append_line(const Line& line)
         for (const auto& opt : line.get_options()) {
             if (!line.label_path.empty())
                 index.set_path(opt.opt_id, type, line.label_path);
-            // Mirror the sub-label OG_CustomCtrl draws for a multi-option row, so the palette
+            // Mirror the sub-label OG_CustomCtrl draws for a multi-option row, so the Speed Dial
             // names each field like the page does.
             const std::string& leaf_src = opt.opt.label;
             const wxString leaf = (leaf_src == L_CONTEXT("Top", "Layers") || leaf_src == L_CONTEXT("Bottom", "Layers")) ?
@@ -784,7 +784,7 @@ std::string OptionsGroup::pick_plugin(const ConfigOptionDef& opt)
         return {};
 
     // Only the bare capability name is stored; the full "name;uuid;capability" reference is derived when
-    // the preset is serialized (see ConfigBase::save_plugin_collection). Resolve here to reject bad picks.
+    // the preset is serialized (see ConfigBase::collect_plugin_manifest). Resolve here to reject bad picks.
     Slic3r::PluginDescriptor descriptor;
     if (!manager.try_get_plugin_descriptor(selection.plugin_key, descriptor) || descriptor.name.empty())
         return {};

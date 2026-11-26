@@ -2725,6 +2725,19 @@ public:
 
 
 
+// A plugin-backed option value that the registered capability resolver cannot map to a plugin
+// reference, i.e. a capability whose plugin is not available here. save_to_json() and
+// update_plugin_manifest() cannot derive a reference for such a value and omit it, so a GUI save
+// entry point queries this first and lets the user decide before writing a preset that loses the
+// reference. See ConfigBase::unresolved_plugin_capabilities().
+struct UnresolvedPluginCapability
+{
+    // Option holding the capability name, e.g. "printer_agent".
+    t_config_option_key opt_key;
+    // Bare capability name as stored in the option, e.g. "agent".
+    std::string         capability_name;
+};
+
 // An abstract configuration store.
 class ConfigBase : public ConfigOptionResolver
 {
@@ -2883,8 +2896,17 @@ public:
     // dispatchers consume) from the plugin-backed options via the registered resolver. save_to_json()
     // derives the same manifest, but only when a preset is written to disk; a config assembled in
     // memory for the backend (PresetBundle::full_config -> Print::apply) must refresh it here or a
-    // picked-but-unsaved plugin never resolves at slice/export time. No-op without a resolver.
+    // picked-but-unsaved plugin never resolves at slice/export time. A capability the resolver cannot
+    // map is omitted from the derived manifest; unresolved_plugin_capabilities() reports those
+    // values. No-op without a resolver.
     void update_plugin_manifest();
+
+    // The plugin-backed option values the registered resolver cannot map to a plugin reference --
+    // exactly the values save_to_json()/update_plugin_manifest() omit from the manifest. GUI save
+    // entry points call this before writing a preset so the user can be warned that the reference
+    // will be lost. Returns empty without a resolver (CLI/headless), where the manifest is left as
+    // loaded and nothing is lost.
+    std::vector<UnresolvedPluginCapability> unresolved_plugin_capabilities() const;
 
 	// Set all the nullable values to nils.
     void null_nullables();
@@ -2894,12 +2916,17 @@ public:
 private:
     // Set a configuration value from a string.
     bool set_deserialize_raw(const t_config_option_key& opt_key_src, const std::string& value, ConfigSubstitutionContext& substitutions, bool append);
-    void save_plugin_collection(const std::string& opt_key, const ConfigOption* opt, std::vector<std::string>& plugin_refs) const;
     // Collect the de-duplicated "name;uuid;capability" plugin references derived from this config's
     // plugin-backed options via the resolver. Shared by save_to_json (serializes them into the JSON
     // manifest) and update_plugin_manifest (writes them back into the "plugins" option). Order is
-    // preserved and empties are dropped; returns empty without a resolver (CLI/headless).
+    // preserved and values that do not resolve are dropped; returns empty without a resolver
+    // (CLI/headless).
     std::vector<std::string> collect_plugin_manifest() const;
+    // Calls fn(opt_key, plugin_type, capability_name) for every non-empty capability name held by a
+    // plugin-backed option of this config, in key order. A single walk feeds both the serializer
+    // (collect_plugin_manifest) and unresolved_plugin_capabilities, so they cannot disagree on which
+    // values resolve.
+    void for_each_plugin_capability(const std::function<void(const std::string& opt_key, const std::string& plugin_type, const std::string& capability_name)>& fn) const;
 
     static std::function<std::string(std::string, std::string)> resolve_capability_fn;
 };

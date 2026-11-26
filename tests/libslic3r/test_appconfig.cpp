@@ -10,6 +10,9 @@
 #include <boost/filesystem/operations.hpp>
 
 #include <fstream>
+#include <ios>
+#include <string>
+
 #include <string>
 
 using namespace Slic3r;
@@ -23,6 +26,43 @@ TEST_CASE("Full collision-volume previews are opt-in and retain the user's prefe
     config.set_bool("show_collision_volumes", true);
     config.set_defaults();
     CHECK(config.get_bool("show_collision_volumes"));
+}
+
+TEST_CASE("Persistent outlines are opt-in and use white by default", "[AppConfig][Outline]")
+{
+    AppConfig config;
+    CHECK_FALSE(config.get_bool(SETTING_OPENGL_OUTLINE_PERSISTENT));
+    CHECK(config.get(SETTING_OPENGL_OUTLINE_COLOR) == "#FFFFFF");
+    CHECK(config.get(SETTING_OPENGL_SELECTION_OUTLINE_COLOR) == "#FFFFFF");
+
+    config.set_bool(SETTING_OPENGL_OUTLINE_PERSISTENT, true);
+    config.set(SETTING_OPENGL_OUTLINE_COLOR, "#2468AC");
+    config.set(SETTING_OPENGL_SELECTION_OUTLINE_COLOR, "#FF8000");
+    config.set_defaults();
+    CHECK(config.get_bool(SETTING_OPENGL_OUTLINE_PERSISTENT));
+    CHECK(config.get(SETTING_OPENGL_OUTLINE_COLOR) == "#2468AC");
+    CHECK(config.get(SETTING_OPENGL_SELECTION_OUTLINE_COLOR) == "#FF8000");
+}
+
+TEST_CASE("Outline preferences survive save and reload independently of selection outlining", "[AppConfig][Outline]")
+{
+    ScopedDataDir data_dir("outline-preferences");
+    save_main_thread_id();
+    AppConfig config;
+    const bool persistent = GENERATE(false, true);
+    const bool selected_outline = GENERATE(false, true);
+    config.set_bool(SETTING_OPENGL_OUTLINE_PERSISTENT, persistent);
+    config.set_bool("show_outline", selected_outline);
+    config.set(SETTING_OPENGL_OUTLINE_COLOR, "#2468AC");
+    config.set(SETTING_OPENGL_SELECTION_OUTLINE_COLOR, "#FF8000");
+    config.save();
+
+    AppConfig reloaded;
+    REQUIRE(reloaded.load().empty());
+    CHECK(reloaded.get_bool(SETTING_OPENGL_OUTLINE_PERSISTENT) == persistent);
+    CHECK(reloaded.get_bool("show_outline") == selected_outline);
+    CHECK(reloaded.get(SETTING_OPENGL_OUTLINE_COLOR) == "#2468AC");
+    CHECK(reloaded.get(SETTING_OPENGL_SELECTION_OUTLINE_COLOR) == "#FF8000");
 }
 
 TEST_CASE("AppConfig network version helpers", "[AppConfig]") {
@@ -77,6 +117,7 @@ TEST_CASE("Local machine agent replacements survive save and reload", "[AppConfi
     saved.printer_type     = "test-model";
     saved.printer_agent_id = "orca";
     saved.access_code      = "old-key";
+    saved.ca_file          = "old-ca.crt";
     config.update_local_machine(saved);
     config.save();
     REQUIRE_FALSE(config.dirty());
@@ -84,6 +125,7 @@ TEST_CASE("Local machine agent replacements survive save and reload", "[AppConfi
     BBLocalMachine replacement = saved;
     replacement.printer_agent_id = "moonraker";
     replacement.access_code = GENERATE("", "new-key", "88888888");
+    replacement.ca_file     = GENERATE("", "new-ca.crt");
     config.update_local_machine(replacement);
     REQUIRE(config.dirty());
     REQUIRE(config.get_local_machines().at(saved.dev_id) == replacement);
@@ -95,6 +137,29 @@ TEST_CASE("Local machine agent replacements survive save and reload", "[AppConfi
     REQUIRE_FALSE(reloaded.dirty());
     reloaded.update_local_machine(replacement);
     REQUIRE_FALSE(reloaded.dirty());
+}
+
+TEST_CASE("Local machines saved without an agent load as Bambu printers unless keyed by address", "[AppConfig]")
+{
+    ScopedDataDir data_dir("local-machine-legacy");
+    save_main_thread_id();
+    const std::string agent_field = GENERATE("", R"("printer_agent_id": "",)");
+    AppConfig config;
+    std::ofstream(config.config_path()) << R"({"local_machines": {)"
+                                        << R"("01P00A000000001": {)" << agent_field << R"("dev_ip": "192.168.1.20"},)"
+                                        << R"("192.168.1.30:7125": {)" << agent_field << R"("dev_ip": "192.168.1.30:7125"},)"
+                                        << R"("192.168.1.31:7125": {)" << agent_field << R"("dev_ip": "192.168.1.32"},)"
+                                        << R"("voron": {)" << agent_field << R"("dev_ip": "voron"},)"
+                                        << R"("01P00A000000002": {"printer_agent_id": "moonraker", "dev_ip": "192.168.1.40"})"
+                                        << "}}";
+
+    REQUIRE(config.load().empty());
+    const auto& machines = config.get_local_machines();
+    CHECK(machines.at("01P00A000000001").printer_agent_id == "bbl");
+    CHECK(machines.at("192.168.1.30:7125").printer_agent_id.empty());
+    CHECK(machines.at("192.168.1.31:7125").printer_agent_id.empty());
+    CHECK(machines.at("voron").printer_agent_id.empty());
+    CHECK(machines.at("01P00A000000002").printer_agent_id == "moonraker");
 }
 
 TEST_CASE("Clearing local credentials preserves another agent's record", "[AppConfig]")
@@ -261,4 +326,71 @@ TEST_CASE("peek_bool accepts the legacy spellings and tolerates a bad or missing
     CHECK_FALSE(AppConfig::peek_bool(write("noapp", R"({"k":true})"), "k"));
     CHECK_FALSE(AppConfig::peek_bool(write("broken", "{not json"), "k"));
     CHECK_FALSE(AppConfig::peek_bool((tmp.path() / "missing").string(), "k"));
+}
+
+TEST_CASE("A configuration without the checksum line loads", "[AppConfig][Regression]")
+{
+    ScopedDataDir data_dir("no-checksum");
+    // A person or a tool editing the file drops the checksum line, often with the newline after the closing brace.
+    const std::string ending = GENERATE("", "\n");
+    std::ofstream(AppConfig::config_path(data_dir.dir.string(), AppConfig::EAppMode::Editor), std::ios::binary)
+        << R"({"app":{"k":"v"}})" << ending;
+
+    AppConfig config;
+    REQUIRE(config.load().empty());
+    CHECK(config.get("k") == "v");
+}
+
+#ifdef _WIN32
+// Only Windows saves the checksum line, and a backup to restore a corrupted configuration from.
+TEST_CASE("A corrupted configuration is restored from a backup whose checksum matches", "[AppConfig]")
+{
+    ScopedDataDir data_dir("restore-backup");
+    save_main_thread_id();
+    AppConfig saved;
+    saved.set("k", "v");
+    saved.save();
+    std::ofstream(saved.config_path(), std::ios::binary) << "{not json";
+
+    AppConfig config;
+    REQUIRE(config.load().empty());
+    CHECK(config.get("k") == "v");
+}
+
+TEST_CASE("A backup without the checksum line is not restored", "[AppConfig][Regression]")
+{
+    ScopedDataDir data_dir("unverified-backup");
+    const std::string path = AppConfig::config_path(data_dir.dir.string(), AppConfig::EAppMode::Editor);
+    std::ofstream(path, std::ios::binary) << "{not json";
+    const std::string ending = GENERATE("", "\n");
+    std::ofstream(path + ".bak", std::ios::binary) << R"({"app":{"k":"v"}})" << ending;
+
+    AppConfig config;
+    CHECK_FALSE(config.load().empty());
+    CHECK(config.get("k").empty());
+}
+#endif
+
+TEST_CASE("AppConfig keeps only the preview drag modes it knows", "[AppConfig]") {
+    AppConfig config;
+    const std::string key = "preview_reduced_detail_mode";
+
+    SECTION("a missing value becomes off") {
+        config.set_defaults();
+        REQUIRE(config.get(key) == "off");
+    }
+
+    SECTION("a known mode is kept") {
+        const std::string mode = GENERATE("off", "solid", "shell");
+        config.set(key, mode);
+        config.set_defaults();
+        REQUIRE(config.get(key) == mode);
+    }
+
+    SECTION("an unknown mode falls back to off") {
+        const std::string mode = GENERATE("layers", "outer_walls", "");
+        config.set(key, mode);
+        config.set_defaults();
+        REQUIRE(config.get(key) == "off");
+    }
 }

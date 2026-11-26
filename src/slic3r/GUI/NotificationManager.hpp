@@ -17,6 +17,7 @@
 #include <libslic3r/Technologies.hpp>
 
 #include <wx/event.h>
+#include <wx/app.h>
 #include <limits>
 #include <memory>
 #include <wx/time.h>
@@ -197,8 +198,19 @@ enum class NotificationType
     // Active preset references a capability the installed+loaded plugin does not provide (outdated
     // plugin). Informational; cannot be auto-resolved; persistent, blocks slicing.
     OrcaPluginCapabilityUnavailableError,
+    // One aggregate notice that installed OrcaCloud plugins have updates. "More" opens the
+    // Plugins dialog, where the updates can be installed.
+    OrcaCloudPluginUpdateAvailable,
     NotificationTypeCount
 
+};
+
+// A notification as text, for automation (MCP get_state).
+struct NotificationSummary
+{
+    int         type = 0;   // NotificationType value
+    std::string level;      // "info", "warning", "error", "progress", "hint"
+    std::string text;
 };
 
 class NotificationManager
@@ -306,6 +318,8 @@ public:
 	// Exporting finished, show this information with path, button to open containing folder and if ejectable - eject button
 	void push_exporting_finished_notification(const std::string& path, const std::string& dir_path, bool on_removable);
 	void push_import_finished_notification(const std::string& path, const std::string& dir_path, bool on_removable);
+	// A file a command saved: `text`, then its path, with the button that opens its folder.
+	void push_file_saved_notification(const std::string& text, const std::string& path, const std::string& dir_path);
 
 	// Shared profiles available for selected printer
 	void push_shared_profiles_notification(const std::string& explore_url);
@@ -379,6 +393,8 @@ public:
 	bool update_notifications(GLCanvas3D& canvas);
 	// returns number of all notifications shown
 	size_t get_notification_count() const;
+	// The notifications currently shown (not finished or closing), oldest first.
+	std::vector<NotificationSummary> summaries() const;
 
 
 	//BBS Notice
@@ -1129,6 +1145,20 @@ private:
 				 wxQueueEvent(wxGetApp().plater(), evt);
 				 return true;
              }},
+
+        // One notice for all OrcaCloud plugin updates found by a successful metadata fetch.
+        NotificationData{NotificationType::OrcaCloudPluginUpdateAvailable, NotificationLevel::ImportantNotificationLevel, BBL_NOTICE_MAX_INTERVAL,
+                         _u8L("Updates are available for your OrcaCloud plugins."), _u8L("More"),
+                         [](wxEvtHandler*) {
+                             // Defer past the notification's render frame: the Plugins dialog is a
+                             // webview window and must not be created from inside an ImGui pass.
+                             if (wxTheApp != nullptr)
+                                 wxGetApp().CallAfter([] {
+                                     if (wxTheApp != nullptr && !wxGetApp().is_closing())
+                                         wxGetApp().open_plugins_dialog();
+                                 });
+                             return true;
+                         }},
 
         NotificationData{NotificationType::BBLPrinterConfigUpdateAvailable, NotificationLevel::ImportantNotificationLevel, BBL_NOTICE_MAX_INTERVAL,
                          _u8L("New printer config available."), _u8L("Details"),

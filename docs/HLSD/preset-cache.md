@@ -42,7 +42,7 @@ presets are never serialized — they have their own storage and their own lifec
 | `resources/profiles/` | `<vendor>.opc` alone — the profile and its preset JSONs both pruned | What the app ships with and what installing copies from; read directly for vendors not installed |
 | `<data_dir>/system/` | `<vendor>.opc` alone, or `<vendor>.json` + `<vendor>/` after an update | What the user has installed |
 | `<data_dir>/system/` (dev build) | `<vendor>.json` + `<vendor>/` + `<vendor>.opc` written at runtime | A developer tree caches as it parses |
-| `<data_dir>/cache/wizard_profile_data.json` | The wizard's derived vendor catalog plus the stamps it was built from | Written and read by the setup wizard only; never shipped (see "The wizard's profile-data cache") |
+| `<data_dir>/cache/wizard_profile_data.json` | The wizard's derived vendor catalog plus the stamps it was built from | Written and read by the setup wizard and the commands that list and install printer models (`Ops::printer_profile_data()`); never shipped (see "The wizard's profile-data cache") |
 
 Two forms of the same vendor therefore exist, and the system's central rule is that
 **a vendor's cache is the whole of it**. Where a cache ships or is installed, no profile
@@ -95,9 +95,16 @@ declaration order at static init — cannot: inserting one option into the middl
 *succeeds on the wrong option*, silently, wherever the two share a type. Because a
 name-keyed payload instead drops the individual options this build cannot place, the
 file as a whole stays readable, and there is no schema fingerprint — no checksum over
-the option schema that would reject every cache on every release. An option this build
-no longer defines, or now defines with a different type, gets exactly what it gets from
-a JSON profile: read, dropped, and the rest of the preset loads.
+the option schema that would reject every cache on every release. An option this build no
+longer defines gets exactly what it gets from a JSON profile: read, dropped, and the rest
+of the preset loads. An option this build now defines with a different type is read by the
+type the writer recorded and handed to `set_deserialize` as its text, again as a JSON
+profile's value would be: `handle_legacy` maps an old spelling (a bool's `1` onto an
+enum's `enabled`) and an enum name a bool cannot parse is substituted. Only a text this
+build cannot parse into the new type is dropped, that option alone. Dropping a retyped
+option outright would leave the key at the collection default in every preset that sets
+it, which is not what the JSON says, and an installed cache outlives the app upgrade that
+retyped the key.
 
 The ordinal-keyed cereal hooks in `PrintConfig.hpp` are untouched — they are also the
 undo/redo wire format, where the process cannot change underneath them. The cache has
@@ -266,7 +273,9 @@ function of the vendor set: each vendor's name and version, in load order. A pro
 change requires a version bump, so name and version determine a vendor's content
 wherever its copy sits; which directory served it is deliberately **not** stamped,
 and installing or removing a copy at an unchanged version leaves the cache valid. So
-the wizard caches the *derived JSON*, not another form of the inputs:
+the wizard caches the *derived JSON*, not another form of the inputs
+(`Ops::printer_profile_data()`, `GUI/Operations/InstallOps.cpp`, which `printer_list_models`,
+`printer_install` and `printer_uninstall` read the catalog through too):
 `<data_dir>/cache/wizard_profile_data.json` holds the stamp list and the catalog. On
 open, the wizard computes the current stamps (one version peek per vendor) and, when
 they match, serves the catalog from the file — no bundle built, no preset installed.
@@ -351,7 +360,8 @@ step, not something a build should do to a working tree by surprise: the Windows
 refuses that target unless given `--prune-source`, and CI passes it.
 
 Generation runs after the build, in the same job, so the caches ship with a build that
-can read them.
+can read them. On Linux it runs while the package tree is staged (`build_linux.sh -P`), so
+the AppImage is packed from a tree that already holds them.
 
 The flatpak differs only in where the script is called from. Nothing outside
 flatpak-builder ever builds it, so there is no packaged tree for the workflow to point
@@ -365,8 +375,11 @@ The system is designed so that no cache problem is fatal:
 - **Corrupt, truncated or foreign file** — rejected at the header, vendor parsed. A
   cache is written to a temp file beside its target and moved into place, so a write
   that dies partway leaves the previous cache intact rather than a truncated one.
-- **An option this build no longer has, or now types differently** — that option alone
-  is dropped, exactly as a JSON profile's would be. The preset and the file load.
+- **An option this build no longer has** — that option alone is dropped, exactly as a
+  JSON profile's would be. The preset and the file load.
+- **An option this build now types differently** — its value is read as the writer
+  typed it and parsed from its text as a JSON profile's would be, legacy conversions
+  included; only a text this build cannot parse into the new type is dropped.
 - **Cache from a build with a different cache layout** — rejected on `CACHE_VERSION`.
   A vendor with JSONs beside it is parsed and re-cached; a cache-only vendor reads as
   not installed and the updater reinstalls it.
@@ -393,7 +406,10 @@ enumerates only `*.json` will find no vendors at all in a packaged build.
 - **Adding, removing, retyping or reordering a config option** needs nothing. The
   payload names its keys and its enum values, so an option a cache carries and this
   build does not is dropped; one this build has and the cache does not is simply
-  absent, as it would be from a JSON that predates it.
+  absent, as it would be from a JSON that predates it. A retyped option is read
+  through `handle_legacy`, so give it the same conversion a JSON profile needs and the
+  cache follows; an installed cache survives the upgrade that retyped the key, so that
+  conversion is what every user who upgrades reads.
 - **Changing a hand-written `serialize()`** — `VendorProfile` or its nested types — or
   the `CachedPreset` field list — written and read by `visit_entry` in
   `PresetCacheFormat.cpp`, one list for the save, the load and the name peek alike — or

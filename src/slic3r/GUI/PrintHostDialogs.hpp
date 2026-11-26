@@ -1,17 +1,22 @@
 #ifndef slic3r_PrintHostSendDialog_hpp_
 #define slic3r_PrintHostSendDialog_hpp_
 
+#include <atomic>
 #include <map>
 #include <cstddef>
+#include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
+#include <boost/cstdint.hpp>
 #include <boost/filesystem/path.hpp>
 
 #include <wx/colour.h>
 #include <wx/string.h>
 #include <wx/event.h>
 #include <wx/dialog.h>
+#include <wx/gdicmn.h>
 
 #include "GUI_Utils.hpp"
 #include "MsgDialog.hpp"
@@ -25,6 +30,7 @@ class wxComboBox;
 class ComboBox;
 class wxDataViewListCtrl;
 class wxFlexGridSizer;
+class wxStaticBox;
 class wxStaticText;
 class wxWrapSizer;
 class CheckBox;
@@ -32,6 +38,8 @@ class CheckBox;
 namespace Slic3r { namespace GUI { class BitmapComboBox; } }
 
 namespace Slic3r {
+
+struct CrealityPrinterInfo;
 
 namespace GUI {
 
@@ -88,8 +96,22 @@ public:
 
     PrintHostQueueDialog(wxWindow *parent);
 
-    void append_job(const PrintHostJob &job);
+    // Adds the row and notification of a job sent to `host` as `upload_path`; `size` is the source file's size in
+    // bytes, if it could be read. UI thread.
+    void append_job(const std::string &host, const boost::filesystem::path &upload_path, std::optional<boost::uintmax_t> size);
     void get_active_jobs(std::vector<std::pair<std::string, std::string>>& ret);
+
+    // A row as the list shows it, for readers outside the dialog (MCP's get_state.uploads).
+    struct JobInfo
+    {
+        std::string state; // queued, uploading, error, cancelling, cancelled or completed
+        int         progress = 0;
+        std::string host;
+        std::string filename;
+        std::string error;
+    };
+    size_t  job_count() const;
+    JobInfo job_info(size_t row) const;
 
     virtual bool Show(bool show = true) override
     {
@@ -202,15 +224,29 @@ public:
                                 const wxArrayString&           storage_names,
                                 bool                           switch_to_device_tab,
                                 PrintHost*                     printhost);
+    ~CrealityPrintHostSendDialog() override;
 
     virtual void                               init() override;
     virtual std::map<std::string, std::string> extendedInfo() const override;
 
+protected:
+    void on_dpi_changed(const wxRect& suggested_rect) override;
+
 private:
     static constexpr const char* CONFIG_KEY_ENABLESELFTEST = "crealityprint_enable_self_test";
 
+    void show_printer(const CrealityPrinterInfo& info);
+    void show_read_failure(const wxString& message);
+    void end_read();
+    void fit_content();
+    void add_printer_box(const CrealityPrinterInfo& info);
+
     bool        m_enableSelfTest;
     PrintHost*  m_printhost;
+    wxStaticText* m_status_label{nullptr};
+    wxStaticBox*  m_printer_box{nullptr};
+    wxStaticText* m_notice{nullptr};
+    std::shared_ptr<std::atomic<bool>> m_alive{std::make_shared<std::atomic<bool>>(true)};
 
     struct SlotInfo {
         std::string tool_id;   // e.g. "T1A"
@@ -235,7 +271,8 @@ public:
                                   const Slic3r::Flashforge*       host,
                                   bool                            supports_material_station,
                                   std::vector<Slic3r::FlashforgeMaterialSlot> slots,
-                                  const std::vector<FilamentInfo>& project_filaments);
+                                  const std::vector<FilamentInfo>& project_filaments,
+                                  bool                            manual_filament_change);
 
     virtual void init() override;
     virtual void EndModal(int ret) override;
@@ -272,11 +309,13 @@ private:
     ::CheckBox*                      m_checkbox_leveling {nullptr};
     ::CheckBox*                      m_checkbox_timelapse {nullptr};
     ::CheckBox*                      m_checkbox_ifs {nullptr};
+    bool                             m_flow_calibration {false};
     bool                             m_leveling_before_print {true};
     bool                             m_time_lapse_video {false};
     bool                             m_use_material_station {false};
     bool                             m_supports_material_station {false};
     bool                             m_slots_loaded {false};
+    bool                             m_manual_filament_change {false};
 
     const char* CONFIG_KEY_LEVELING  = "flashforge_leveling_before_print";
     const char* CONFIG_KEY_TIMELAPSE = "flashforge_timelapse_video";

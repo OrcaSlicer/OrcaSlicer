@@ -1,5 +1,6 @@
 #include "ExclusionVolumeGeometry.hpp"
 #include "ExPolygon.hpp"
+#include "FilamentMixer.hpp"
 #include "Point.hpp"
 #include "Polygon.hpp"
 #include "PrintConfig.hpp"
@@ -130,9 +131,12 @@ std::vector<size_t> bed_exclusion_physical_extruders(
     const bool automatic_mapping_resolved =
         !is_auto_filament_map_mode(print.get_filament_map_mode()) || !print.is_BBL_printer() ||
         print.get_nozzle_group_result() != nullptr;
-    bool unresolved = filament_ids.empty();
+    // A mixed filament prints with its component filaments.
+    const std::vector<unsigned int> physical_filament_ids = expand_mixed_filaments(
+        filament_ids, print.config().filament_is_mixed.values, print.config().filament_mixed_components.values);
+    bool unresolved = physical_filament_ids.empty();
 
-    for (const unsigned int filament_id : filament_ids) {
+    for (const unsigned int filament_id : physical_filament_ids) {
         if (grouping) {
             if (const auto nozzle = grouping->get_nozzle_for_filament(int(filament_id), layer_id);
                 nozzle.has_value() && nozzle->extruder_id >= 0 &&

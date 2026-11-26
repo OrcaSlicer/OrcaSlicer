@@ -103,11 +103,11 @@ namespace FilamentGroupUtils
     }
 
 
-    static std::vector<std::vector<MachineFilamentInfo>> build_full_machine_filaments(const std::vector<std::vector<DynamicPrintConfig>>& filament_configs)
+    std::vector<std::vector<MachineFilamentInfo>> build_full_machine_filaments(const std::vector<std::vector<DynamicPrintConfig>>& filament_configs)
     {
         auto extract_filament_type = [](const std::string& s)->std::string {
-            std::regex r1(R"(^Sup.(\w+)$)");
-            std::regex r2(R"(^(\w+)-S$)");
+            static const std::regex r1(R"(^Sup.(\w+)$)");
+            static const std::regex r2(R"(^(\w+)-S$)");
 
             std::smatch m;
             if (std::regex_match(s, m, r1))
@@ -118,8 +118,9 @@ namespace FilamentGroupUtils
             };
 
         // change filament type to type format in preset
-        // defualt size set to 2
-        std::vector<std::vector<MachineFilamentInfo>> machine_filaments(2);
+        // One bucket per extruder, at least two, never fewer than the payload so the loop below
+        // cannot index out of bounds.
+        std::vector<std::vector<MachineFilamentInfo>> machine_filaments(std::max<size_t>(filament_configs.size(), 2));
         for (size_t idx = 0; idx < filament_configs.size(); ++idx) {
             auto& arr = filament_configs[idx];
             for (auto& item : arr) {
@@ -129,16 +130,18 @@ namespace FilamentGroupUtils
                 std::string tray_name;
                 bool is_support_filament = false;
 
-                if (auto color_ptr = item.option<ConfigOptionStrings>("filament_colour"); color_ptr)
+                if (auto color_ptr = item.option<ConfigOptionStrings>("filament_colour"); color_ptr && !color_ptr->values.empty())
                     color = color_ptr->get_at(0);
-                if (auto type_ptr = item.option<ConfigOptionStrings>("filament_type"); type_ptr) {
+                if (auto type_ptr = item.option<ConfigOptionStrings>("filament_type"); type_ptr && !type_ptr->values.empty()) {
                     type = type_ptr->get_at(0);
                     type = extract_filament_type(type);
                 }
-                if (auto tray_ptr = item.option<ConfigOptionStrings>("tray_name"); tray_ptr)
+                if (auto tray_ptr = item.option<ConfigOptionStrings>("tray_name"); tray_ptr && !tray_ptr->values.empty())
                     tray_name = tray_ptr->get_at(0);
-                if (auto support_ptr = item.option<ConfigOptionBools>("filament_is_support"); support_ptr)
+                if (auto support_ptr = item.option<ConfigOptionBools>("filament_is_support"); support_ptr && !support_ptr->values.empty())
                     is_support_filament = support_ptr->get_at(0);
+                if (auto id_ptr = item.option<ConfigOptionStrings>("filament_id"); id_ptr && !id_ptr->values.empty())
+                    temp.filament_id = id_ptr->get_at(0);
 
                 if (color.empty() || type.empty() || tray_name.empty())
                     continue;
@@ -154,12 +157,48 @@ namespace FilamentGroupUtils
         return machine_filaments;
     }
 
+    bool machine_filaments_changed(const std::vector<std::vector<DynamicPrintConfig>>& old_configs,
+                                   const std::vector<std::vector<DynamicPrintConfig>>& new_configs)
+    {
+        // A payload carrying no tray configs at all means "inventory not known yet" (AMS not
+        // connected), not "the AMS has no filaments": a connected device reports one config per slot,
+        // so clearing the last spool still has to count as a change.
+        const auto has_any_tray = [](const std::vector<std::vector<DynamicPrintConfig>>& payload) {
+            for (const std::vector<DynamicPrintConfig>& extruder : payload)
+                if (!extruder.empty())
+                    return true;
+            return false;
+        };
+        const std::vector<std::vector<MachineFilamentInfo>> old_projected = build_full_machine_filaments(old_configs);
+        const std::vector<std::vector<MachineFilamentInfo>> new_projected = build_full_machine_filaments(new_configs);
+        if (!has_any_tray(old_configs) || !has_any_tray(new_configs))
+            return false;
+        if (old_projected.size() != new_projected.size())
+            return true;
+        for (size_t idx = 0; idx < old_projected.size(); ++idx) {
+            const std::vector<MachineFilamentInfo>& old_slots = old_projected[idx];
+            const std::vector<MachineFilamentInfo>& new_slots = new_projected[idx];
+            // Slot order is significant: build_machine_filaments() groups by slot position.
+            if (old_slots.size() != new_slots.size())
+                return true;
+            for (size_t i = 0; i < old_slots.size(); ++i) {
+                const MachineFilamentInfo& a = old_slots[i];
+                const MachineFilamentInfo& b = new_slots[i];
+                const bool slot_changed = a.color != b.color || a.type != b.type || a.is_support != b.is_support
+                                       || a.is_extended != b.is_extended || a.filament_id != b.filament_id;
+                if (slot_changed)
+                    return true;
+            }
+        }
+        return false;
+    }
+
     std::vector<std::vector<MachineFilamentInfo>> build_machine_filaments(const std::vector<std::vector<DynamicPrintConfig>>& filament_configs, const std::vector<std::map<int, int>>& ams_counts, bool ignore_ext_filament)
     {
         std::vector<std::vector<MachineFilamentInfo>> ret(2);
         std::vector<int> ams_size(2, 0);
         std::vector<std::vector<MachineFilamentInfo>> full_machine_filaments = build_full_machine_filaments(filament_configs);
-        assert(full_machine_filaments.size() == 2);
+        assert(full_machine_filaments.size() >= 2);
         for (size_t idx = 0; idx < std::min(ams_counts.size(),ams_size.size()); ++idx) {
             const auto& ams_count = ams_counts[idx];
             for (auto iter = ams_count.begin(); iter != ams_count.end(); ++iter) {
@@ -167,7 +206,7 @@ namespace FilamentGroupUtils
             }
         }
 
-        assert(full_machine_filaments.size() == ams_size.size());
+        assert(full_machine_filaments.size() >= ams_size.size());
         for (size_t idx = 0; idx < std::min(ams_size.size(), full_machine_filaments.size()); ++idx) {
             std::vector<MachineFilamentInfo> tmp;
             for (size_t j = 0; j < full_machine_filaments[idx].size(); ++j) {

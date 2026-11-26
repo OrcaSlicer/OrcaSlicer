@@ -45,12 +45,14 @@
 #include "ConfigManipulation.hpp"
 #include "OptionsGroup.hpp"
 #include "OptionStateRegistry.hpp"
+#include "Operations/Outcome.hpp"
 #include "libslic3r/Preset.hpp"
 //BBS: GUI refactor
 #include "Notebook.hpp"
 #include "ParamsPanel.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/CheckBox.hpp" // ORCA
+#include "Widgets/LabeledCheckBox.hpp" // ORCA
 #include "Widgets/ComboBox.hpp"
 
 class TabCtrl;
@@ -188,8 +190,7 @@ protected:
 
    	struct PresetDependencies {
 		Preset::Type type	  = Preset::TYPE_INVALID;
-		::CheckBox*   checkbox = nullptr;
-		wxStaticText* checkbox_title = nullptr;
+		LabeledCheckBox*   checkbox = nullptr;
 		Button 	*btn  = nullptr;
 		std::string  key_list; // "compatible_printers"
 		std::string  key_condition;
@@ -368,6 +369,15 @@ public:
     // Select a new preset, possibly delete the current one.
     bool select_preset(std::string preset_name = "", bool delete_current = false, const std::string &last_selected_ph_printer_name = "", bool force_select = false, bool force_no_transfer = false);
 	bool		may_discard_current_dirty_preset(PresetCollection* presets = nullptr, const std::string& new_printer_name = "", bool no_transfer = false, bool no_transfer_variant = false);
+    // Whether the unsaved-changes prompt of a switch to `preset_name` offers Transfer for this tab's own
+    // changes: never on the printer tab, and not between filaments of different types.
+    bool        can_transfer_changes_to(const std::string& preset_name) const;
+
+    // How this tab's preset switches answer their unsaved-changes prompts: by a person in
+    // UnsavedChangesDialog (Ask), or with the dialog's Transfer or Discard without showing it, for a
+    // caller that already has the answer (MCP's preset_select). A caller sets it around one switch.
+    enum class DirtyPresetAnswer { Ask, Transfer, Discard };
+    DirtyPresetAnswer m_dirty_preset_answer = DirtyPresetAnswer::Ask;
 
     virtual void    clear_pages();
     virtual void    update_description_lines();
@@ -379,10 +389,24 @@ public:
 	void		compare_preset();
 	void		transfer_options(const std::string&name_from, const std::string&name_to, std::vector<std::string> options);
 	//BBS: add project embedded preset relate logic
-	void        save_preset(std::string name = std::string(), bool detach = false, bool save_to_project = false, bool from_input = false, std::string input_name = "");
+	// Returns false when the save was cancelled (the unresolved-plugin warning, the temperature
+	// safety check or the save-name dialog), so callers that were about to discard the edited
+	// preset can abort instead. `plugin_warning_confirmed` is set only by a caller that already ran
+	// the warning (UnsavedChangesDialog::save) and must not repeat it.
+	bool        save_preset(std::string name = std::string(), bool detach = false, bool save_to_project = false, bool from_input = false, std::string input_name = "", bool plugin_warning_confirmed = false);
 	//void		save_preset(std::string name = std::string(), bool detach = false);
 
-	void		delete_preset();
+	// Deletes the selected preset. Prompts::Skip skips the confirmations, for a caller that has made the
+	// same checks itself; the refusal for a preset other presets inherit from still shows.
+	void		delete_preset(Ops::Prompts prompts = Ops::Prompts::Ask);
+    // What keeps a preset from being deleted: a system (or default) preset and a preset of a bundle are
+    // never deleted, and a base preset is not while other presets inherit from it.
+    enum class DeleteBlock { None, System, FromBundle, InheritedFrom };
+    // What keeps `preset` of `presets` from being deleted. The tab applies it in two places: it shows no
+    // Delete button for the first two (Preset::can_overwrite()), and delete_preset() refuses the third in
+    // a dialog. `inherited_by` gets the presets that inherit from it when it is a base preset, whatever
+    // blocks it first.
+    static DeleteBlock can_delete_preset(const PresetCollection& presets, const Preset& preset, std::vector<std::string>* inherited_by = nullptr);
 	void		toggle_show_hide_incompatible();
 	void		update_show_hide_incompatible_button();
 	void		update_ui_from_settings();
@@ -494,6 +518,7 @@ public:
 
 	DynamicPrintConfig*	get_config() { return m_config; }
     PresetCollection *  get_presets() { return m_presets; }
+    const std::vector<PageShp>& pages() const { return m_pages; }
     TabPresetComboBox *  get_combo_box() { return m_presets_choice; }
 
 	virtual void    on_value_change(const std::string& opt_key, const boost::any& value);
@@ -532,7 +557,8 @@ public:
     void        sync_excluder();
 	void        parse_extruder_selection(int selection, int &extruder_id, NozzleVolumeType &nozzle_type);
     int         calculate_selection_index_for_extruder(int extruder_id, NozzleVolumeType nozzle_type);
-	bool        get_extruder_sync_enable_state(int extruder_id);
+	std::vector<int> get_extruder_sync_targets(int extruder_id);
+	bool        extruder_sync_enabled();
 	int         get_current_active_extruder();
 
 	std::vector<wxString>  generate_extruder_options();
@@ -549,6 +575,11 @@ protected:
 	// when a built field or a group owns the option, false when the GUI edits it through a custom
 	// widget with no group entry.
 	bool			commit_preset_config_value(const std::string& opt_key);
+	// The unsaved-changes prompt's Transfer: caches `selected_options` of `presets`' unsaved changes for
+	// the preset selected next, less the options of other extruder variants on a switch to a printer
+	// with other variants (`no_transfer_variant`), which a person is told about in a message box.
+	void			transfer_dirty_options(PresetCollection* presets, std::vector<std::string> selected_options, bool no_transfer,
+	                                       bool no_transfer_variant);
 
 	//BBS: GUI refactor
 	// return true if cancelled
@@ -572,6 +603,10 @@ protected:
 // Resolves the same object/global settings owner for navigation and availability descriptions.
 Tab* get_tab_for_option(const std::string& opt_key, Preset::Type type);
 
+// The unsaved changes of `presets`' edited preset that UnsavedChangesDialog lists, all of which its Transfer moves:
+// the changed options (key#index for one entry of a vector) that a settings page shows in the current mode.
+std::vector<std::string> listed_dirty_options(const PresetCollection& presets);
+
 class TabPrint : public Tab
 {
 public:
@@ -587,6 +622,9 @@ public:
 	void		update() override;
 	void		clear_pages() override;
 	bool 		supports_printer_technology(const PrinterTechnology tech) const override { return tech == ptFFF; }
+	// Column of the extruder's variant in the per-variant process vectors, as the extruder switch
+	// selects it; -1 when the printer has no such extruder variant.
+	int			extruder_variant_index(int extruder_id, NozzleVolumeType nozzle_type);
 
 private:
 	ogStaticText*	m_recommended_thin_wall_thickness_description_line = nullptr;
@@ -768,6 +806,9 @@ public:
     void        update_pages(); // update m_pages according to printer technology
 	void        on_gcode_flavor_changed();
 	void		extruders_count_changed(size_t extruders_count);
+	// What a change of the Extruders field (Multimaterial page) does: the count, then the options list, the dirty
+	// marks and the variant switches that follow it.
+	void		change_extruders_count(size_t extruders_count);
 	PageShp		build_kinematics_page();
 	void		build_unregular_pages(bool from_initial_build = false);
 	void		on_preset_loaded() override;

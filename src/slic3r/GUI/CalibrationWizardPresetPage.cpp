@@ -1263,7 +1263,7 @@ void CalibrationPresetPage::create_page(wxWindow* parent)
 
     if (m_cali_mode == CalibMode::Calib_PA_Line || m_cali_mode == CalibMode::Calib_PA_Pattern) {
         wxArrayString pa_cali_modes;
-        pa_cali_modes.push_back(_L("Line"));
+        pa_cali_modes.push_back(_L_CONTEXT("Line", "PA calibration method"));
         pa_cali_modes.push_back(_L("Pattern"));
         m_pa_cali_method_combox = new CaliComboBox(parent, _L("Method"), pa_cali_modes);
     }
@@ -1685,8 +1685,8 @@ void CalibrationPresetPage::update_combobox_filaments(MachineObject* obj)
 
     auto opt_extruder_type = printer_preset->config.option<ConfigOptionEnumsGeneric>("extruder_type");
     if (opt_extruder_type) {
-        assert(opt_extruder_type->values.size() <= 2);
-        for (size_t i = 0; i < opt_extruder_type->values.size(); ++i) {
+        // Presets for printers with more than 2 extruders list more types than m_extrder_types holds.
+        for (size_t i = 0; i < std::min(opt_extruder_type->values.size(), m_extrder_types.size()); ++i) {
             m_extrder_types[i] = (ExtruderType)(opt_extruder_type->values[i]);
         }
     }

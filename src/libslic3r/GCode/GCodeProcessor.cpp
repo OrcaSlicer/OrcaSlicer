@@ -3,6 +3,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/Exception.hpp"
+#include "libslic3r/BeltTransform.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/CommonDefs.hpp"
 #include "ExtrusionEntity.hpp"
@@ -36,6 +37,7 @@
 #include <boost/filesystem/path.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <cmath>
 #include <exception>
 #include <deque>
@@ -55,6 +57,7 @@
 #include <math.h>
 #include <map>
 #include <limits>
+#include <mutex>
 #include <fstream>
 #include <regex>
 #include <set>
@@ -128,7 +131,8 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags = {
     "@TOTAL_WEIGHT@",
     "@TOTAL_COST@",
     "@TOTAL_WIPE_TOWER_COST@",
-    "@TOTAL_WIPE_TOWER_FILAMENT@"
+    "@TOTAL_WIPE_TOWER_FILAMENT@",
+    " OUTER_OVERHANG_WALL"
 };
 
 const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
@@ -161,7 +165,8 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
     "@TOTAL_WEIGHT@",
     "@TOTAL_COST@",
     "@TOTAL_WIPE_TOWER_COST@",
-    "@TOTAL_WIPE_TOWER_FILAMENT@"
+    "@TOTAL_WIPE_TOWER_FILAMENT@",
+    " OUTER_OVERHANG_WALL"
 };
 
 
@@ -236,11 +241,15 @@ static float acceleration_time_from_distance(float initial_feedrate, float dista
     return (acceleration != 0.0f) ? (speed_from_distance(initial_feedrate, distance, acceleration) - initial_feedrate) / acceleration : 0.0f;
 }
 
+// The id after the last "id:", so that a colon in the object's name is not read as the separator:
+// "; printing object <name> id:<n> copy <m>" and "; start printing object, unique label id: <n>".
 static int get_object_label_id(const std::string_view comment_1)
 {
     std::string      comment(comment_1);
-    auto pos = comment.find(":");
-    std::string num_str = comment.substr(pos + 1);
+    auto pos = comment.rfind("id:");
+    if (pos == std::string::npos)
+        return -1;
+    std::string num_str = comment.substr(pos + 3);
     int id = -1;
     try {
         id = stoi(num_str);
@@ -1318,7 +1327,7 @@ void GCodeProcessor::run_post_process()
                         char buf[128];
                         sprintf(buf, "; estimated first layer printing time (%s mode) = %s\n",
                                 (mode == PrintEstimatedStatistics::ETimeMode::Normal) ? "normal" : "silent",
-                                get_time_dhms(machine.prepare_time).c_str());
+                                get_time_dhms(machine.first_layer_time).c_str());
                         export_line.append_line(buf);
                         processed = true;
                     }
@@ -2762,6 +2771,14 @@ const std::vector<std::pair<GCodeProcessor::EProducer, std::string>> GCodeProces
 
 unsigned int GCodeProcessor::s_result_id = 0;
 
+// Results can be reset on several threads at once, as the layer cooling resets its own processor during an export.
+static unsigned int next_result_id(unsigned int &last_id)
+{
+    static std::mutex mutex;
+    std::lock_guard<std::mutex> lock(mutex);
+    return ++ last_id;
+}
+
 bool GCodeProcessor::contains_reserved_tag(const std::string& gcode, std::string& found_tag)
 {
     bool ret = false;
@@ -2838,7 +2855,7 @@ void GCodeProcessor::register_commands()
         {"G3", [this](const GCodeReader::GCodeLine& line) { process_G2_G3(line, false); }}, // Move
         {"G4", [this](const GCodeReader::GCodeLine& line) { process_G4(line); }}, // Delay
 
-        {"G10", [this](const GCodeReader::GCodeLine& line) { process_G10(line); }}, // Retract
+        {"G10", [this](const GCodeReader::GCodeLine& line) { process_G10(line); }}, // Retract, or set tool temperature on RepRapFirmware
         {"G11", [this](const GCodeReader::GCodeLine& line) { process_G11(line); }}, // Unretract
 
         {"G20", [this](const GCodeReader::GCodeLine& line) { process_G20(line); }}, // Set Units to Inches
@@ -3021,11 +3038,11 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
     auto unprintable_extruders = [&unprintable_areas, &unprintable_bboxes, &plate_offset](const BoundingBox &path_bbox) {
         BoundingBox bbox = path_bbox.inflated(SCALED_EPSILON);
         bbox.translate(-plate_offset);
-        int mask = 0;
+        uint64_t mask = 0;
         for (size_t i = 0; i < unprintable_areas.size(); ++i)
             if (!unprintable_areas[i].empty() && unprintable_bboxes[i].overlap(bbox) &&
                 !intersection(unprintable_areas[i], bbox.polygon()).empty())
-                mask |= 1 << i;
+                mask |= uint64_t(1) << i;
         return mask;
     };
 
@@ -3083,9 +3100,9 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
                 //BoundingBox bbox_custom = path_poly_custom.bounding_box();
                 //bbox_custom.offset(-scale_(1.0)); // Narrow the range to provide a tolerance for the custom gcode
                 //bbox.merge(bbox_custom);          // merge the custom gcode pos with other pos*/
-                const int unprintable_mask = unprintable_extruders(bbox);
+                const uint64_t unprintable_mask = unprintable_extruders(bbox);
                 // check printable area
-                if ((extruder_id < unprintable_areas.size()) && (unprintable_mask & (1 << extruder_id))) {
+                if ((extruder_id < unprintable_areas.size()) && (unprintable_mask & (uint64_t(1) << extruder_id))) {
                     m_result.gcode_check_result.error_code |= 1;
                     std::pair<int, int>         filament_to_object_id;
                     filament_to_object_id.first = iter->first;
@@ -3101,7 +3118,7 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
                     filament_to_object_id.first  = iter->first;
                     filament_to_object_id.second = object_label_id;
                     m_result.gcode_check_result.print_height_error_infos[extruder_id].push_back(filament_to_object_id);
-                    m_result.limit_filament_maps[iter->first] |= (1 << extruder_id);
+                    m_result.limit_filament_maps[iter->first] |= uint64_t(1) << extruder_id;
                     valid = false;
                 }
 
@@ -3114,7 +3131,7 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
     for (int extruder_id = 0; extruder_id < unprintable_filament_types.size(); ++extruder_id) {
         const std::set<int> &filament_ids = unprintable_filament_types[extruder_id];
         for (int filament_id : filament_ids) {
-            m_result.limit_filament_maps[filament_id] |= (1 << extruder_id);
+            m_result.limit_filament_maps[filament_id] |= uint64_t(1) << extruder_id;
         }
     };
 
@@ -3260,6 +3277,8 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     m_machine_frame_transform.init_from_config(config);
     m_result.machine_frame_transform_active = m_machine_frame_transform.is_active();
     m_belt_printer = config.belt_printer.value;
+    m_belt_linear  = m_belt_printer ? std::optional<Matrix3d>(BeltTransformPipeline::build_gcode_back_transform(config).linear()) :
+                                      std::nullopt;
 
     auto filament_maps = config.option<ConfigOptionInts>("filament_map");
     if (filament_maps != nullptr) {
@@ -3296,6 +3315,7 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
     // a belt printer is selected switches the preview's belt view off, and a belt file
     // loaded on another printer brings its own tilt, remaps and bed along.
     m_belt_render_config.clear();
+    m_belt_linear.reset();
     {
         const auto *belt = config.option<ConfigOptionBool>("belt_printer");
         if (belt != nullptr) {
@@ -3310,10 +3330,15 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
             // The Rev remaps mirror inside the build volume, so the designed view needs
             // the bed the file was sliced for. Only a belt file may override it.
             static const char *bed_keys[] = { "printable_area", "printable_height" };
-            if (belt->value)
+            if (belt->value) {
                 for (const char *key : bed_keys)
                     if (const ConfigOption *opt = config.option(key); opt != nullptr)
                         m_belt_render_config.set_key_value(key, opt->clone());
+                // The preview maps the file by these keys as well.
+                FullPrintConfig belt_config;
+                belt_config.apply(m_belt_render_config, true);
+                m_belt_linear = BeltTransformPipeline::build_gcode_back_transform(belt_config).linear();
+            }
         }
     }
 
@@ -3754,6 +3779,7 @@ void GCodeProcessor::reset()
     m_travel_dist = 0.0f;
     m_fan_speed = 0.0f;
     m_z_offset = 0.0f;
+    m_pressure_advance = 0.0f;
 
     m_extrusion_role = erNone;
 
@@ -3800,6 +3826,9 @@ void GCodeProcessor::reset()
     m_layer_id = 0;
     m_cp_color.reset();
     m_mass_locator = nullptr;
+    m_seams_detector.reset();
+    m_outer_overhang_pending = false;
+    m_outer_overhang_candidate = false;
 
     m_producer = EProducer::Unknown;
 
@@ -3807,7 +3836,7 @@ void GCodeProcessor::reset()
     m_used_filaments.reset();
 
     m_result.reset();
-    m_result.id = ++s_result_id;
+    m_result.id = next_result_id(s_result_id);
 
     m_last_default_color_id = 0;
 
@@ -3906,7 +3935,7 @@ void GCodeProcessor::process_file(const std::string& filename, std::function<voi
 
     // process gcode
     m_result.filename = filename;
-    m_result.id = ++s_result_id;
+    m_result.id = next_result_id(s_result_id);
     initialize_result_moves();
     size_t parse_line_callback_cntr = 10000;
     m_parser.parse_file(filename, [this, cancel_callback, &parse_line_callback_cntr](GCodeReader& reader, const GCodeReader::GCodeLine& line) {
@@ -3929,7 +3958,7 @@ void GCodeProcessor::initialize(const std::string& filename)
 
     // process gcode
     m_result.filename = filename;
-    m_result.id = ++s_result_id;
+    m_result.id = next_result_id(s_result_id);
 }
 
 void GCodeProcessor::process_buffer(const std::string &buffer)
@@ -4426,7 +4455,10 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
     }
 
     // ; OBJECT_ID  start
-    if (boost::starts_with(comment, " start printing object")) {
+    // Every printer labels its objects as "; printing object <name> id:<n> copy <m>"; a Bambu
+    // printer follows it with "; start printing object, unique label id: <n>", whose id is the
+    // instance's and wins. The stop line reads " stop printing object" in both styles.
+    if (boost::starts_with(comment, " start printing object") || boost::starts_with(comment, " printing object")) {
         m_object_label_id = get_object_label_id(comment);
         return;
     }
@@ -4675,6 +4707,12 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
         CustomGCode::Item item = { static_cast<double>(m_end_position[2]), CustomGCode::Custom, get_filament_id() + 1, "", ""};
         m_result.custom_gcode_per_print_z.emplace_back(item);
         m_options_z_corrector.set();
+        return;
+    }
+
+    // Orca: the next printing move starts an outer wall, whatever its role
+    if (comment == reserved_tag(ETags::Outer_Overhang_Wall)) {
+        m_outer_overhang_pending = true;
         return;
     }
 
@@ -5429,6 +5467,13 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
         if (!is_extrusion_only_move(delta_pos))
             curr.enter_direction = curr.enter_direction / norm;
         curr.exit_direction = curr.enter_direction;
+        // Orca: a smooth arc meets the moves around it along its tangents, not along its end chords.
+        if (m_smooth_arc) {
+            if (m_smooth_arc->first_chord)
+                curr.enter_direction = m_smooth_arc->start_tangent;
+            if (m_smooth_arc->last_chord)
+                curr.exit_direction = m_smooth_arc->end_tangent;
+        }
         curr.jd_unit_vec = Vec4f(static_cast<float>(delta_pos[X]),
                                  static_cast<float>(delta_pos[Y]),
                                  static_cast<float>(delta_pos[Z]),
@@ -5451,7 +5496,11 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
         //BBS: limite the cruise according to centripetal acceleration
         //Only need to handle when both prev and curr segment has movement in x-y plane
-        if (m_flavor != gcfKlipper && (prev.exit_direction(0) != 0.0f || prev.exit_direction(1) != 0.0f) &&
+        // Orca: a smooth arc takes its own radius. The estimate below would read the turn from the previous
+        // move into the arc's first chord as its curvature.
+        if (m_smooth_arc)
+            curr.feedrate = std::min(curr.feedrate, std::sqrt(get_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i)) * m_smooth_arc->radius));
+        else if (m_flavor != gcfKlipper && (prev.exit_direction(0) != 0.0f || prev.exit_direction(1) != 0.0f) &&
             (curr.enter_direction(0) != 0.0f || curr.enter_direction(1) != 0.0f)) {
             Vec3f v1 = prev.exit_direction;
             v1(2, 0) = 0.0f;
@@ -5572,7 +5621,10 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
         // calculates block entry feedrate
         float vmax_junction = use_junction_deviation ? vmax_junction_jd : curr.safe_feedrate;
-        if (!use_junction_deviation && has_prev_move) {
+        // Orca: the chords of a smooth arc do not meet at jerk limited corners.
+        if (!use_junction_deviation && has_prev_move && m_smooth_arc && !m_smooth_arc->first_chord)
+            vmax_junction = std::min(prev.feedrate, block.feedrate_profile.cruise);
+        else if (!use_junction_deviation && has_prev_move) {
             bool prev_speed_larger = prev.feedrate > block.feedrate_profile.cruise;
             float smaller_speed_factor = prev_speed_larger ? (block.feedrate_profile.cruise / prev.feedrate) : (prev.feedrate / block.feedrate_profile.cruise);
             // Pick the smaller of the nominal speeds. Higher speed shall not be achieved at the junction during coasting.
@@ -5683,9 +5735,17 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
     const Vec3f plate_offset = {(float) m_x_offset, (float) m_y_offset, 0.0f};
 
+    // Orca: a tagged wall that starts on an overhang is an outer wall for the seam detector only.
+    if (type == EMoveType::Extrude && m_outer_overhang_pending) {
+        m_outer_overhang_candidate = m_extrusion_role == erOverhangPerimeter;
+        m_outer_overhang_pending = false;
+    }
+    const bool external_for_seam = m_extrusion_role == erExternalPerimeter ||
+                                   (m_extrusion_role == erOverhangPerimeter && m_outer_overhang_candidate);
+
     if (m_seams_detector.is_active()) {
         // check for seam starting vertex
-        if (type == EMoveType::Extrude && m_extrusion_role == erExternalPerimeter) {
+        if (type == EMoveType::Extrude && external_for_seam) {
             //BBS: m_result.moves.back().position has plate offset, must minus plate offset before calculate the real seam position
             const Vec3f new_pos = m_result.moves.back().position - m_extruder_offsets[filament_id] - plate_offset;
             if (!m_seams_detector.has_first_vertex()) {
@@ -5717,9 +5777,10 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
             }
 
             m_seams_detector.activate(false);
+            m_outer_overhang_candidate = false;
         }
     }
-    else if (type == EMoveType::Extrude && m_extrusion_role == erExternalPerimeter) {
+    else if (type == EMoveType::Extrude && external_for_seam) {
         m_seams_detector.activate(true);
         m_seams_detector.set_first_vertex(m_result.moves.back().position - m_extruder_offsets[filament_id] - plate_offset);
     }
@@ -6210,6 +6271,14 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
         return ret;
     };
 
+    // Orca: see m_smooth_arc. Other firmware splits an arc into segments it plans like any other moves.
+    if (s_IsBBLPrinter && m_flavor != gcfKlipper) {
+        const auto tangent = [clockwise](const Vec3d& radial) {
+            return Vec3f(clockwise ? Vec3f(radial.y(), -radial.x(), 0.0f) : Vec3f(-radial.y(), radial.x(), 0.0f)).normalized();
+        };
+        m_smooth_arc = SmoothArc{ float(arc.start_radius()), tangent(rel_arc_start), tangent(rel_arc_end), true, false };
+    }
+
     auto internal_only_g1_line = [this](const AxisCoords& target, bool has_z, const std::optional<float>& feedrate,
         const std::optional<float>& extrusion, const std::optional<unsigned int>& remaining_internal_g1_lines = std::nullopt) {
           std::array<std::optional<double>, 4> g1_axes = { target[X], target[Y], std::nullopt, std::nullopt };
@@ -6220,7 +6289,11 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
               g1_axes[E] = target[E];
           if (feedrate.has_value())
               g1_feedrate = (double)*feedrate / MMMIN_TO_MMSEC;
+          if (m_smooth_arc)
+              m_smooth_arc->last_chord = !remaining_internal_g1_lines.has_value();
           process_G1(g1_axes, g1_feedrate, G1DiscretizationOrigin::G2G3, remaining_internal_g1_lines);
+          if (m_smooth_arc)
+              m_smooth_arc->first_chord = false;
     };
 
     if (m_flavor == gcfMarlinFirmware) {
@@ -6358,6 +6431,8 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
         internal_only_g1_line(adjust_target(end_position, prev_target), arc.delta_z() != 0.0, (segments == 1) ? feedrate : std::nullopt, extrusion);
     }
 
+    m_smooth_arc.reset();
+
     // Internal linearized arc segments inherit the arc's starting certainty.
     // Only the original absolute command may establish a newly known endpoint.
     update_position_known_from_move(line);
@@ -6388,6 +6463,20 @@ void GCodeProcessor::process_G29(const GCodeReader::GCodeLine& line)
 
 void GCodeProcessor::process_G10(const GCodeReader::GCodeLine& line)
 {
+    // Orca: RepRapFirmware's G10 with parameters sets tool temperatures, offsets or workplaces, only a bare G10 retracts
+    if (m_flavor == gcfRepRapFirmware &&
+        (line.has('P') || line.has('R') || line.has('S') || line.has('L') || line.has_x() || line.has_y() || line.has_z())) {
+        float new_temp;
+        if (line.has_value('S', new_temp)) {
+            float tool;
+            const int filament_id = line.has_value('P', tool) ? static_cast<int>(tool) : get_filament_id();
+            // Orca: RRF turns a heater off with a negative temperature
+            if (filament_id >= 0 && filament_id < static_cast<int>(m_extruder_temps.size()))
+                m_extruder_temps[filament_id] = std::max(new_temp, 0.f);
+        }
+        return;
+    }
+
     // Emulate G1 retract, decrement G1 count as it's will be incremented in process_G1, but it's fake G1
     GCodeReader::GCodeLine g10;
     g10.set(Axis::E, -this->m_parser.config().retraction_length.get_at(m_extruder_id));
@@ -7607,12 +7696,28 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
     }
 }
 
-void GCodeProcessorResult::ObjectMass::add(const Sum &sum, const BoundingBoxf3 &extent, size_t layer)
+void GCodeProcessorResult::ObjectMass::add(const Sum &sum, const BoundingBoxf3 &extent, const BoundingBoxf3 &belt_extent, size_t layer)
 {
     box.merge(extent);
+    belt_box.merge(belt_extent);
     if (printed_up_to_layer.size() <= layer)
         printed_up_to_layer.resize(layer + 1);
     printed_up_to_layer[layer].add(sum);
+}
+
+void GCodeProcessorResult::ObjectMass::transform(const Transform3d &trafo)
+{
+    const Matrix3d linear      = trafo.linear();
+    const Vec3d    translation = trafo.translation();
+    for (Sum &sum : printed_up_to_layer) {
+        const Vec3d moment = linear * sum.moment;
+        sum.set_second_moments(linear * sum.second_moments() * linear.transpose() + moment * translation.transpose() +
+                               translation * moment.transpose() + sum.mass * translation * translation.transpose());
+        sum.moment = moment + sum.mass * translation;
+    }
+    box = belt_box;
+    if (box.defined)
+        box.translate(translation);
 }
 
 void GCodeProcessor::add_object_mass(int filament_id, float volume)
@@ -7629,26 +7734,40 @@ void GCodeProcessor::add_object_mass(int filament_id, float volume)
     const Vec3d offset      = Vec3d(m_x_offset, m_y_offset, -m_z_offset) - half_height + m_extruder_offsets[filament_id].cast<double>();
     const Vec3d start       = Vec3d(m_start_position[X], m_start_position[Y], m_start_position[Z]) + offset;
     const Vec3d end         = Vec3d(m_end_position[X], m_end_position[Y], m_end_position[Z]) + offset;
-    // The second moments of a uniform segment.
-    const GCodeProcessorResult::ObjectMass::Sum sum{ mass, double(volume), 0.5 * mass * (start + end),
-                                                     mass / 3. * (start.cwiseProduct(start) + start.cwiseProduct(end) + end.cwiseProduct(end)) };
+    // The second moments of a uniform segment, m (2 s s^T + s e^T + e s^T + 2 e e^T) / 6: its diagonal, and the entries for
+    // the axis pairs xy, xz and yz.
+    const auto lhs = [](const Vec3d &v) { return Vec3d(v.x(), v.x(), v.y()); };
+    const auto rhs = [](const Vec3d &v) { return Vec3d(v.y(), v.z(), v.z()); };
+    const GCodeProcessorResult::ObjectMass::Sum sum{
+        mass, double(volume), 0.5 * mass * (start + end),
+        mass / 3. * (start.cwiseProduct(start) + start.cwiseProduct(end) + end.cwiseProduct(end)),
+        mass / 6. * (2. * lhs(start).cwiseProduct(rhs(start)) + lhs(start).cwiseProduct(rhs(end)) + lhs(end).cwiseProduct(rhs(start)) +
+                     2. * lhs(end).cwiseProduct(rhs(end))) };
     // Of the bead's center line and its height, as its width is only estimated. Merged, as a wall along an axis is flat.
     BoundingBoxf3 extent;
     extent.merge(start.cwiseMin(end) - half_height);
     extent.merge(start.cwiseMax(end) + half_height);
+    BoundingBoxf3 belt_extent;
+    if (m_belt_linear) {
+        const Vec3d belt_start       = *m_belt_linear * start;
+        const Vec3d belt_end         = *m_belt_linear * end;
+        const Vec3d belt_half_height = (*m_belt_linear * half_height).cwiseAbs();
+        belt_extent.merge(belt_start.cwiseMin(belt_end) - belt_half_height);
+        belt_extent.merge(belt_start.cwiseMax(belt_end) + belt_half_height);
+    }
     const bool   part  = role != erBrim && !is_support(role);
     const size_t layer = std::max<unsigned int>(1, m_layer_id) - 1;
 
-    m_result.plate_mass.add(sum, extent, layer);
+    m_result.plate_mass.add(sum, extent, belt_extent, layer);
     // The brim belongs to the plate alone.
     if (role == erBrim || !m_mass_locator)
         return;
-    const auto add = [&sum, &extent, layer](std::vector<GCodeProcessorResult::ObjectMass> &masses, int index) {
+    const auto add = [&sum, &extent, &belt_extent, layer](std::vector<GCodeProcessorResult::ObjectMass> &masses, int index) {
         if (index < 0)
             return;
         if (masses.size() <= size_t(index))
             masses.resize(index + 1);
-        masses[index].add(sum, extent, layer);
+        masses[index].add(sum, extent, belt_extent, layer);
     };
     // At the nozzle's height, which the layers print at.
     const MassLocation location = m_mass_locator(0.5 * (start + end) + half_height, !part);

@@ -16,12 +16,11 @@
 #include <wx/colour.h>
 #include "slic3r/GUI/Widgets/DialogButtons.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
-#include "slic3r/GUI/Selection.hpp"
 #include <wx/utils.h>
-#include "slic3r/GUI/Jobs/Job.hpp"
 #include "libslic3r/AppConfig.hpp"
-#include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Operations/ObjectOps.hpp"
+#include "slic3r/GUI/Operations/Outcome.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
 class wxWindow;
@@ -76,7 +75,7 @@ CloneDialog::CloneDialog(wxWindow *parent)
     // Keep pointer to OK button so we can trigger it manually on Enter.
     Button *ok_btn = dlg_btns->GetOK();
 
-    dlg_btns->GetFIRST()->SetToolTip(_L("Fill bed with copies"));
+    dlg_btns->GetFIRST()->SetToolTip(_L("Fill bed with instances"));
     dlg_btns->GetFIRST()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         m_plater->fill_bed_with_instances();
         EndModal(wxID_OK);
@@ -98,30 +97,18 @@ CloneDialog::CloneDialog(wxWindow *parent)
         v_sizer->Fit(this);
         Refresh();
 
-        Selection& sel = m_plater->canvas3D()->get_selection();
-        m_plater->take_snapshot(std::string("Selection-clone"));
-        m_plater->Freeze(); // Better to stop rendering canvas while processing
-        sel.copy_to_clipboard();
-        for (int i = 0; i < m_count; i++) { // same method with Selection::clone()
-            m_progress->SetValue(static_cast<int>(static_cast<double>(i) / m_count * 100)); // pass 0 / 100
-            sel.paste_from_clipboard();
-
-            if (m_cancel_process) {
-                m_plater->undo();
-                return;
-            }
- 
+        // The selection's copies, the progress bar showing each; Cancel, which ends the dialog, undoes them.
+        Ops::CloneObjectsArgs clone;
+        clone.targets.from_selection = true;
+        clone.count                  = m_count;
+        clone.arrange                = m_arrange_cb->GetValue();
+        const auto pasted            = [this](int done, int count) {
+            m_progress->SetValue(static_cast<int>(static_cast<double>(done - 1) / count * 100)); // pass 0 / 100
             wxYield(); // Allow event loop to process updates
-        }
-
-        if (!m_cancel_process) {
-            if (m_arrange_cb->GetValue()) {
-                m_plater->set_prepare_state(Job::PREPARE_STATE_MENU);
-                m_plater->arrange();
-            }
-            m_plater->Thaw();
+            return !m_cancel_process;
+        };
+        if (Ops::clone_objects(clone, pasted))
             EndModal(wxID_OK);
-        }
     });
 
     dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) {

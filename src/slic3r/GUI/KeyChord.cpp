@@ -106,19 +106,6 @@ int parse_key(const std::string& text)
     return WXK_NONE;
 }
 
-int parse_modifier(const std::string& text)
-{
-    if (equals_ignoring_case(text, "Ctrl") || equals_ignoring_case(text, "Control") || equals_ignoring_case(text, "Cmd") || equals_ignoring_case(text, "Command"))
-        return wxMOD_CONTROL;
-    if (equals_ignoring_case(text, "Shift"))
-        return wxMOD_SHIFT;
-    if (equals_ignoring_case(text, "Alt") || equals_ignoring_case(text, "Option"))
-        return wxMOD_ALT;
-    if (equals_ignoring_case(text, "RawCtrl"))
-        return wxMOD_RAW_CONTROL;
-    return wxMOD_NONE;
-}
-
 // Numpad keys act as their main-keyboard counterparts, so one binding covers both.
 int fold_numpad(int key)
 {
@@ -241,6 +228,19 @@ std::string KeyChord::to_string() const
     else
         out += special_key_name(key);
     return out;
+}
+
+int KeyChord::parse_modifier(const std::string& text)
+{
+    if (equals_ignoring_case(text, "Ctrl") || equals_ignoring_case(text, "Control") || equals_ignoring_case(text, "Cmd") || equals_ignoring_case(text, "Command"))
+        return wxMOD_CONTROL;
+    if (equals_ignoring_case(text, "Shift"))
+        return wxMOD_SHIFT;
+    if (equals_ignoring_case(text, "Alt") || equals_ignoring_case(text, "Option"))
+        return wxMOD_ALT;
+    if (equals_ignoring_case(text, "RawCtrl"))
+        return wxMOD_RAW_CONTROL;
+    return wxMOD_NONE;
 }
 
 std::optional<KeyChord> KeyChord::parse(const std::string& text)

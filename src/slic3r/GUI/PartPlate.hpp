@@ -13,6 +13,7 @@
 #include "libslic3r/Color.hpp"
 #include "libslic3r/GCode/ThumbnailData.hpp"
 #include "libslic3r/PrintBase.hpp"
+#include "libslic3r/CustomGCode.hpp"
 #include <map>
 #include <cstddef>
 #include <cereal/access.hpp>
@@ -32,6 +33,7 @@
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/IMEXZones.hpp"
 #include "libslic3r/Slicing.hpp"
 #include "libslic3r/GCode/WipeTowerEstimate.hpp"
 #include "libslic3r/Arrange.hpp"
@@ -181,10 +183,23 @@ private:
     std::vector<GLModel>       m_imex_margin_overlay;       // amber advisory bands just inside collision strips
     std::optional<BoundingBoxf> m_imex_primary_zone_box;   // primary zone extents in mm; empty when IDEX/IQEX is off/primary-only
     std::map<int, Vec2d> m_imex_head_zone_centers;         // physical-head → zone-center (mm); populated by calc_imex_zones
-    int m_imex_primary_head{ -1 };                         // physical-head index of the primary tool in the active mode; -1 when no mode
-    std::string m_imex_zones_mode_cache{ "\x01" }; // cached mode+topology key; sentinel = unbuilt
+    // What the zones, the ghosts and m_imex_active_mode were last built from; nullopt rebuilds all three.
+    std::optional<ImexLayoutKey> m_imex_layout_key;
+    unsigned m_imex_layout_key_version{ 0 };  // bumped whenever m_imex_layout_key changes
+    bool m_imex_zones_stale{ true };          // set when the key changes, cleared by the zone rebuild
+    // Resolved only when m_imex_layout_key changes, because find_imex_mode() copies the whole
+    // mode, G-code included.
+    struct ImexActiveMode
+    {
+        std::string tools;        // the mode's imex_mode_active_tools entry; empty if there's none
+        int         primary = -1; // physical head of the mode's Primary tool
+        bool        resolved() const { return primary >= 0; }
+    };
+    ImexActiveMode m_imex_active_mode;
     std::vector<std::unique_ptr<GLVolume>> m_imex_ghost_volumes;
-    std::string m_imex_ghost_cache_key{ "\x01" };  // sentinel = unbuilt
+    // The layout key version and the objects the ghosts were built from; nullopt = unbuilt.
+    std::optional<unsigned> m_imex_ghost_layout_version;
+    std::set<std::pair<int, int>> m_imex_ghost_objects;
     GLModel m_height_limit_common;
     GLModel m_height_limit_bottom;
     GLModel m_height_limit_top;
@@ -233,16 +248,14 @@ private:
     void calc_gridlines(const ExPolygon& poly, const BoundingBox& pp_bbox);
     void calc_height_limit();
     void calc_imex_zones();
-    void ensure_imex_zones();
-    std::string build_imex_cache_key() const;
+    void ensure_imex_zones();           // checks the layout key, then rebuild_stale_imex_zones()
+    void rebuild_stale_imex_zones();    // rebuilds the zones if they're stale; doesn't refresh the key
+    // Brings m_imex_layout_key up to date; when it changes, re-resolves m_imex_active_mode and
+    // marks the zones stale. Reads per-plate mode first, falling back to the process preset.
+    // render() calls it once a frame, and ensure_imex_zones() for callers outside render().
+    void refresh_imex_layout_key();
     void calc_imex_ghosts();            // full rebuild
     void ensure_imex_ghosts();          // cached rebuild on key change
-    std::string build_imex_ghost_cache_key() const;
-    // Resolves the currently-active IMEX mode's tools string + primary physical head.
-    // Plate override wins; else falls back to process preset `imex_parallel_mode`.
-    // Returns false (and leaves outputs untouched) if IMEX is off, mode is empty/"primary",
-    // mode config is missing, the mode isn't listed, or no primary is found.
-    bool resolve_active_mode_tools(std::string& out_tools_str, int& out_primary_phys) const;
     void render_imex_zones(bool force_default_color);
     void refresh_imex_icon();
     float icon_scale_factor() const;
@@ -273,6 +286,9 @@ private:
     void render_icon_texture(GLModel &buffer, GLTexture &texture);
     void set_hover_tooltip(const std::string& tooltip);
     void render_icons(bool bottom, bool only_name = false, int hover_id = -1);
+    // Returns true when IMEX parallel mode is active (non-primary) AND the plate
+    // has objects assigned to more than one filament — a combination that warrants caution.
+    bool has_imex_multimaterial_conflict() const;
     void render_only_numbers(bool bottom);
     void render_plate_name_texture();
     void invalidate_plate_name_texture();
@@ -419,7 +435,7 @@ public:
     void update_imex_ghost_colors();
 
     // Invalidate the ghost cache so the next render_imex_zones() call rebuilds fully.
-    void invalidate_imex_ghosts() { m_imex_ghost_cache_key = "\x01"; }
+    void invalidate_imex_ghosts() { m_imex_ghost_layout_version.reset(); }
 
     std::vector<Vec2d> get_plate_wrapping_detection_area() const;
 
@@ -496,7 +512,9 @@ public:
     // Callers that mirror Print::validate need that form: validate counts the mixed slot itself,
     // so an expanded list makes the two disagree.
     std::vector<int> get_extruders(bool conside_custom_gcode = false, bool expand_mixed_slots = true) const;
-    std::vector<int> get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config, bool expand_mixed_slots = true) const;
+    // reset_print_wide_ids = true resolves a print-wide filament id past the last slot as PresetBundle::full_config()
+    // does for the edited print preset, and false resolves it as the slicer does.
+    std::vector<int> get_extruders(bool conside_custom_gcode, const DynamicPrintConfig& glb_config, const DynamicPrintConfig& project_config, bool expand_mixed_slots = true, bool reset_print_wide_ids = false) const;
     std::vector<int> get_extruders_under_cli(bool conside_custom_gcode, DynamicPrintConfig& full_config, bool expand_mixed_slots = true) const;
     std::vector<int> get_extruders_without_support(bool conside_custom_gcode = false) const;
     // get used filaments from gcode result, 1 based idx
@@ -598,9 +616,12 @@ public:
     const BoundingBoxf3& get_bounding_box(bool extended = false) { return extended ? m_extended_bounding_box : m_bounding_box; }
     const BoundingBox get_bounding_box_crd();
     BoundingBoxf3 get_plate_box() {return get_build_volume();}
+    // The volume to place objects in. With use_share it is bounded by the area every extruder
+    // reaches, or by the whole plate when there is none.
     BoundingBoxf3 get_build_volume(bool use_share = false);
-    // Polygon counterpart of get_build_volume(true), in scaled world coordinates. The bounding box
-    // that one returns hides the corners a non-rectangular bed does not have.
+    // The area every extruder reaches, in scaled world coordinates: unlike the bounding box of
+    // get_build_volume(true) it keeps the corners a non-rectangular bed does not have, and it is
+    // empty when the extruder areas do not overlap.
     Polygon get_shared_printable_polygon() const;
 
     const std::vector<BoundingBoxf3>& get_exclude_areas() { return m_exclude_bounding_box; }
@@ -635,9 +656,6 @@ public:
     // Footprint of the prime tower as the scene draws it, in scaled plate-list coords.
     // Empty when the plate has no tower.
     Polygon imex_wipe_tower_hull() const;
-    // Returns true when IMEX parallel mode is active (non-primary) AND the plate
-    // has objects assigned to more than one filament — a combination that warrants caution.
-    bool has_imex_multimaterial_conflict() const;
     // Returns the primary-zone bounding box in mm when an IDEX/IQEX parallel mode is active.
     // Empty (nullopt) when IDEX/IQEX is off or the mode is "primary" (full-bed).
     std::optional<BoundingBoxf> imex_primary_zone() { ensure_imex_zones(); return m_imex_primary_zone_box; }
@@ -775,6 +793,8 @@ class PartPlateList : public ObjectBase
     PrinterTechnology  printer_technology;
 
     std::vector<PartPlate*> m_plate_list;
+    // Orca: custom G-codes of plates removed by undo / redo, restored if the plate comes back.
+    std::map<ObjectID, CustomGCode::Info> m_custom_gcodes_by_plate_id;
     std::map<int, PrintBase*> m_print_list;
     std::map<int, GCodeResult*> m_gcode_result_list;
     std::mutex m_plates_mutex;
@@ -1002,6 +1022,9 @@ public:
 
     //move the plate to position index
     int move_plate_to_index(int old_index, int new_index);
+    // Orca: custom G-codes are keyed by plate index; re-key them by plate ID after plates are reordered.
+    std::vector<ObjectID> get_plate_ids() const;
+    void remap_custom_gcodes(const std::vector<ObjectID>& plate_ids_before);
 
     //lock plate
     int lock_plate(int index, bool state);

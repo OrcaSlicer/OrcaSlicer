@@ -38,6 +38,7 @@
 #include <wx/window.h>
 #include <wx/variant.h>
 #include <wx/debug.h>
+#include <wx/defs.h>
 
 #include "wx/dataview.h"
 #include "wx/numformatter.h"
@@ -74,6 +75,19 @@ bool focus_left_popup(wxWindow* popup, wxWindow* focus_window, wxWindow* related
 {
     return focus_window != popup && !popup->IsDescendant(focus_window) && focus_window != related_window_1 &&
         focus_window != related_window_2 && focus_window != related_window_3;
+}
+
+// Close a search popup on Esc and stop the key there. Without this, Esc reaches the window holding the search,
+// and a settings dialog closes while the popup keeps the input grab. Only GTK puts the search field inside the
+// popup, so only there does the key pass through it; elsewhere the field stays outside and this never runs.
+template<class Close> void close_on_escape(wxWindow* popup, Close close)
+{
+    popup->Bind(wxEVT_CHAR_HOOK, [close](wxKeyEvent& e) {
+        if (e.GetKeyCode() == WXK_ESCAPE)
+            close();
+        else
+            e.Skip();
+    });
 }
 
 } // namespace
@@ -515,6 +529,13 @@ SearchDialog::SearchDialog(OptionsSearcher *searcher, Preset::Type type, wxWindo
     search_line->Bind(wxEVT_LEFT_UP, &SearchDialog::OnLeftUpInTextCtrl, this);
     search_line2 = search_line->GetTextCtrl();
 
+    close_on_escape(this, [this] {
+        Die();
+        // The focused field hides with the popup. Give the focus back to the search button once the exit event
+        // has shown it again, so a second Esc reaches the dialog.
+        CallAfter([this] { m_search_item_tag->SetFocus(); });
+    });
+
     // scroll window
     m_scrolledWindow = new ScrolledWindow(m_client_panel, wxID_ANY, wxDefaultPosition, wxSize(POPUP_WIDTH * em - (em + em /2), POPUP_HEIGHT * em), wxVSCROLL, 6, 6);
     m_scrolledWindow->SetMarginColor(m_bg_colour);
@@ -768,6 +789,7 @@ SearchObjectDialog::SearchObjectDialog(GUI::ObjectList* object_list, wxWindow* p
     search_line->Bind(wxEVT_TEXT, &SearchObjectDialog::OnInputText, this);
     search_line->Bind(wxEVT_LEFT_UP, &SearchObjectDialog::OnLeftUpInTextCtrl, this);
     search_line2 = search_line->GetTextCtrl();
+    close_on_escape(this, [this] { Die(); });
 
 
     // scroll window

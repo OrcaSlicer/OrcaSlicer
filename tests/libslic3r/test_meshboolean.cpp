@@ -5,6 +5,8 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <libslic3r/TriangleMesh.hpp>
 #include <libslic3r/MeshBoolean.hpp>
+#include <libslic3r/Point.hpp>
+#include <cstddef>
 #include <vector>
 
 using namespace Slic3r;
@@ -25,6 +27,41 @@ TEST_CASE("CGAL and TriangleMesh conversions", "[MeshBoolean]") {
     REQUIRE(M.volume() == Catch::Approx(sphere.volume()));
     
     REQUIRE(! MeshBoolean::cgal::does_self_intersect(M));
+}
+
+TEST_CASE("CGAL volume checks ignore unreferenced vertices", "[MeshBoolean][Regression]") {
+    indexed_triangle_set mesh = its_make_cube(10., 10., 10.);
+    // Leave isolated vertices before, between, and after the vertices used by faces.
+    mesh.vertices.insert(mesh.vertices.begin(), Vec3f(-1.f, -1.f, -1.f));
+    mesh.vertices.insert(mesh.vertices.begin() + 4, Vec3f(5.f, 5.f, 5.f));
+    mesh.vertices.emplace_back(20.f, 20.f, 20.f);
+    for (Vec3i32 &face : mesh.indices)
+        for (int i = 0; i < 3; ++i)
+            face[i] += face[i] >= 3 ? 2 : 1;
+
+    auto cgal_mesh = MeshBoolean::cgal::triangle_mesh_to_cgal(mesh);
+    REQUIRE(cgal_mesh);
+    REQUIRE(MeshBoolean::cgal::does_bound_a_volume(*cgal_mesh));
+    REQUIRE_FALSE(MeshBoolean::cgal::does_self_intersect(*cgal_mesh));
+
+    TriangleMesh result = MeshBoolean::cgal::cgal_to_triangle_mesh(*cgal_mesh);
+    REQUIRE(result.its.indices.size() == mesh.indices.size());
+    for (const Vec3i32 &face : result.its.indices)
+        for (int i = 0; i < 3; ++i) {
+            REQUIRE(face[i] >= 0);
+            REQUIRE(static_cast<std::size_t>(face[i]) < result.its.vertices.size());
+        }
+    REQUIRE_THAT(result.volume(), Catch::Matchers::WithinRel(1000., 1e-6));
+}
+
+TEST_CASE("CGAL volume checks reject open meshes with unreferenced vertices", "[MeshBoolean][Regression]") {
+    indexed_triangle_set mesh = its_make_cube(10., 10., 10.);
+    mesh.indices.pop_back();
+    mesh.vertices.emplace_back(20.f, 20.f, 20.f);
+
+    auto cgal_mesh = MeshBoolean::cgal::triangle_mesh_to_cgal(mesh);
+    REQUIRE(cgal_mesh);
+    REQUIRE_FALSE(MeshBoolean::cgal::does_bound_a_volume(*cgal_mesh));
 }
 
 TEST_CASE("mcut difference handles source splits between cuts", "[MeshBoolean]") {

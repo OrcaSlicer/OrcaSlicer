@@ -1,6 +1,6 @@
 {
 	"name": "OrcaFilamentLibrary",
-	"version": "02.04.00.20",
+	"version": "02.04.00.26",
 	"force_update": "0",
 	"description": "Orca Filament Library",
 	"filament_list": [
@@ -169,8 +169,12 @@
 			"sub_path": "filament/Polymaker/PolyLite ABS @base.json"
 		},
 		{
-			"name": "Printalot ABS @base",
-			"sub_path": "filament/Printalot/Printalot ABS @base.json"
+			"name": "PrintaLot ABS @base",
+			"sub_path": "filament/Printalot/PrintaLot ABS @base.json"
+		},
+		{
+			"name": "Recycling Fabrik rABS @base",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rABS @base.json"
 		},
 		{
 			"name": "BETA ASA @base",
@@ -385,6 +389,30 @@
 			"sub_path": "filament/Generic PC @System.json"
 		},
 		{
+			"name": "3D-Fuel Pro PCTG @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG @base.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG ESD @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG ESD @base.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG Matte @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG Matte @base.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG Refuel @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG Refuel @base.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG-CF @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG-CF @base.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG-GF @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG-GF @base.json"
+		},
+		{
 			"name": "COEX PCTG PRIME @base",
 			"sub_path": "filament/COEX/COEX PCTG PRIME @base.json"
 		},
@@ -399,6 +427,18 @@
 		{
 			"name": "Generic PE-CF @base",
 			"sub_path": "filament/Generic PE-CF @base.json"
+		},
+		{
+			"name": "3D-Fuel PET CF @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PET CF @base.json"
+		},
+		{
+			"name": "3D-Fuel Pro PETG @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PETG @base.json"
+		},
+		{
+			"name": "3D-Fuel Pro PETG Refuel @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PETG Refuel @base.json"
 		},
 		{
 			"name": "AliZ PETG @base",
@@ -517,6 +557,10 @@
 			"sub_path": "filament/Eolas Prints/Eolas Prints PETG UV Resistant @System.json"
 		},
 		{
+			"name": "EverLoop rPETG Premium @base",
+			"sub_path": "filament/EverLoop/EverLoop rPETG Premium @base.json"
+		},
+		{
 			"name": "FDplast PETG @base",
 			"sub_path": "filament/FDplast/FDplast PETG @base.json"
 		},
@@ -589,6 +633,14 @@
 			"sub_path": "filament/Polymaker/PolyLite PETG @base.json"
 		},
 		{
+			"name": "PrintaLot PETG @base",
+			"sub_path": "filament/Printalot/PrintaLot PETG @base.json"
+		},
+		{
+			"name": "Recycling Fabrik rPETG @base",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rPETG @base.json"
+		},
+		{
 			"name": "SUNLU PETG @base",
 			"sub_path": "filament/SUNLU/SUNLU PETG @base.json"
 		},
@@ -611,6 +663,22 @@
 		{
 			"name": "Generic PHA @System",
 			"sub_path": "filament/Generic PHA @System.json"
+		},
+		{
+			"name": "3D-Fuel Standard PLA @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Standard PLA @base.json"
+		},
+		{
+			"name": "3D-Fuel Standard PLA Refuel @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Standard PLA Refuel @base.json"
+		},
+		{
+			"name": "3D-Fuel Tough Pro PLA @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Tough Pro PLA @base.json"
+		},
+		{
+			"name": "3D-Fuel Tough Pro Refuel @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Tough Pro Refuel @base.json"
 		},
 		{
 			"name": "AliZ PLA @base",
@@ -853,6 +921,14 @@
 			"sub_path": "filament/Eolas Prints/Eolas Prints PLA Transition @System.json"
 		},
 		{
+			"name": "EverLoop rPLA Premium @base",
+			"sub_path": "filament/EverLoop/EverLoop rPLA Premium @base.json"
+		},
+		{
+			"name": "EverLoop rPLA Premium Matte @base",
+			"sub_path": "filament/EverLoop/EverLoop rPLA Premium Matte @base.json"
+		},
+		{
 			"name": "FDplast PLA @base",
 			"sub_path": "filament/FDplast/FDplast PLA @base.json"
 		},
@@ -1083,6 +1159,14 @@
 		{
 			"name": "Polymaker PLA Pro @base",
 			"sub_path": "filament/Polymaker/Polymaker PLA Pro @base.json"
+		},
+		{
+			"name": "PrintaLot PLA @base",
+			"sub_path": "filament/Printalot/PrintaLot PLA @base.json"
+		},
+		{
+			"name": "Recycling Fabrik rPLA @base",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rPLA @base.json"
 		},
 		{
 			"name": "SUNLU PLA Marble @base",
@@ -1445,8 +1529,12 @@
 			"sub_path": "filament/Polymaker/PolyLite ABS @System.json"
 		},
 		{
-			"name": "Printalot ABS @System",
-			"sub_path": "filament/Printalot/Printalot ABS @System.json"
+			"name": "PrintaLot ABS @System",
+			"sub_path": "filament/Printalot/PrintaLot ABS @System.json"
+		},
+		{
+			"name": "Recycling Fabrik rABS @System",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rABS @System.json"
 		},
 		{
 			"name": "BETA ASA @BBL A1 0.4 nozzle",
@@ -1737,6 +1825,30 @@
 			"sub_path": "filament/addnorth/BBL/addnorth PC BLend HT LCF.json"
 		},
 		{
+			"name": "3D-Fuel Pro PCTG @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG @System.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG ESD @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG ESD @System.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG Matte @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG Matte @System.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG Refuel @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG Refuel @System.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG-CF @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG-CF @System.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG-GF @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG-GF @System.json"
+		},
+		{
 			"name": "COEX PCTG PRIME @BBL A1",
 			"sub_path": "filament/COEX/BBL/COEX PCTG PRIME @BBL A1.json"
 		},
@@ -1771,6 +1883,18 @@
 		{
 			"name": "Generic PE-CF @System",
 			"sub_path": "filament/Generic PE-CF @System.json"
+		},
+		{
+			"name": "3D-Fuel PET CF @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PET CF @System.json"
+		},
+		{
+			"name": "3D-Fuel Pro PETG @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PETG @System.json"
+		},
+		{
+			"name": "3D-Fuel Pro PETG Refuel @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PETG Refuel @System.json"
 		},
 		{
 			"name": "AliZ PETG @P1-X1",
@@ -2117,6 +2241,10 @@
 			"sub_path": "filament/Elegoo/Elegoo Rapid PETG @base.json"
 		},
 		{
+			"name": "EverLoop rPETG Premium @System",
+			"sub_path": "filament/EverLoop/EverLoop rPETG Premium @System.json"
+		},
+		{
 			"name": "FDplast PETG @System",
 			"sub_path": "filament/FDplast/FDplast PETG @System.json"
 		},
@@ -2289,6 +2417,106 @@
 			"sub_path": "filament/Polymaker/PolyLite PETG @System.json"
 		},
 		{
+			"name": "PrintaLot PETG @BBL A1",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A1.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A1M",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A1M.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A2L",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A2L.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A2L 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A2L 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2C",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2C.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2C 0.4 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2D",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2D.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2D 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2D 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2DP",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2DP.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2DP 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2DP 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2S",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2S.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2S 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2S 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL P1P",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL P1P.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL P2S",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL P2S.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL P2S 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL P2S 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X1C",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X1C.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X2D",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X2D.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Recycling Fabrik rPETG @System",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rPETG @System.json"
+		},
+		{
 			"name": "SUNLU PETG @System",
 			"sub_path": "filament/SUNLU/SUNLU PETG @System.json"
 		},
@@ -2311,6 +2539,22 @@
 		{
 			"name": "Goofoo PHA @base",
 			"sub_path": "filament/Goofoo/Goofoo PHA @base.json"
+		},
+		{
+			"name": "3D-Fuel Standard PLA @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Standard PLA @System.json"
+		},
+		{
+			"name": "3D-Fuel Standard PLA Refuel @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Standard PLA Refuel @System.json"
+		},
+		{
+			"name": "3D-Fuel Tough Pro PLA @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Tough Pro PLA @System.json"
+		},
+		{
+			"name": "3D-Fuel Tough Pro Refuel @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Tough Pro Refuel @System.json"
 		},
 		{
 			"name": "AliZ PLA @P1-X1",
@@ -2971,6 +3215,14 @@
 		{
 			"name": "Elegoo Rapid PLA+ @base",
 			"sub_path": "filament/Elegoo/Elegoo Rapid PLA+ @base.json"
+		},
+		{
+			"name": "EverLoop rPLA Premium @System",
+			"sub_path": "filament/EverLoop/EverLoop rPLA Premium @System.json"
+		},
+		{
+			"name": "EverLoop rPLA Premium Matte @System",
+			"sub_path": "filament/EverLoop/EverLoop rPLA Premium Matte @System.json"
 		},
 		{
 			"name": "FDplast PLA @System",
@@ -3831,6 +4083,106 @@
 		{
 			"name": "Polymaker PLA Pro @System",
 			"sub_path": "filament/Polymaker/Polymaker PLA Pro @System.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL A1",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL A1.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL A1M",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL A1M.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL A2L",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL A2L.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL A2L 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL A2L 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL H2C",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL H2C.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL H2C 0.4 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL H2D",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL H2D.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL H2D 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL H2D 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL H2DP",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL H2DP.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL H2DP 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL H2DP 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL H2S",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL H2S.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL H2S 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL H2S 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL P1P",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL P1P.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL P2S",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL P2S.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL P2S 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL P2S 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL X1C",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL X1C.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL X2D",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL X2D.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Recycling Fabrik rPLA @System",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rPLA @System.json"
 		},
 		{
 			"name": "SUNLU PLA Marble @System",

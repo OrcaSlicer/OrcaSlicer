@@ -72,8 +72,10 @@
 	"during_print_exhaust_fan_speed": "100",
 	"complete_print_exhaust_fan_speed": "50",
 	"compatible_printers": [
+		"Sovol SV08 MAX 0.2 nozzle",
 		"Sovol SV08 MAX 0.4 nozzle",
 		"Sovol SV08 MAX 0.6 nozzle",
-		"Sovol SV08 MAX 0.8 nozzle"
+		"Sovol SV08 MAX 0.8 nozzle",
+		"Sovol SV08 MAX 1.0 nozzle"
 	]
 }

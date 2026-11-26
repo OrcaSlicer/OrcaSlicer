@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "3D-Fuel Tough Pro PLA @System",
+	"inherits": "3D-Fuel Tough Pro PLA @base",
+	"from": "system",
+	"setting_id": "T29xTYf5w66i4Oqz",
+	"instantiation": "true",
+	"compatible_printers": []
+}

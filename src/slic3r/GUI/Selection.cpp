@@ -8,6 +8,7 @@
 #include "Gizmos/GLGizmoBase.hpp"
 #include "Camera.hpp"
 #include "Plater.hpp"
+#include "Operations/ObjectOps.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 
 #include "libslic3r/LocalesUtils.hpp"
@@ -36,6 +37,7 @@
 #include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/Geometry/Circle.hpp"
 #include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include <functional>
 #include <map>
 #include "slic3r/GUI/OpenGLManager.hpp"
 #include <array>
@@ -48,6 +50,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Min_sphere_of_spheres_d.h>
@@ -69,6 +72,12 @@ static const Slic3r::ColorRGBA TRANSPARENT_PLANE_COLOR = { 0.8f, 0.8f, 0.8f, 0.5
 
 namespace Slic3r {
 namespace GUI {
+
+// Volumes that have a GLVolume in the scene: painted modifiers have none.
+static unsigned int scene_volumes_count(const ModelObject &model_object)
+{
+    return (unsigned int)std::count_if(model_object.volumes.begin(), model_object.volumes.end(), [](const ModelVolume *v) { return ! v->is_painted_modifier(); });
+}
 
 Selection::VolumeCache::TransformCache::TransformCache()
     : position(Vec3d::Zero())
@@ -462,10 +471,14 @@ ModelObject *Selection::get_selected_single_object(int &out_object_idx) const
 
 const ModelInstance *Selection::get_selected_single_intance() const
 {
+    const int instance_idx = get_instance_idx();
+    if (instance_idx < 0)
+        return nullptr;
+
     int  object_idx;
     auto mo = get_selected_single_object(object_idx);
     if (mo) {
-        return mo->instances[get_instance_idx()];
+        return mo->instances[instance_idx];
     }
     return nullptr;
 }
@@ -524,16 +537,19 @@ void Selection::remove_curr_plate()
     erase();
 }
 
-void Selection::clone(int numbers)
+bool Selection::clone(int numbers, const std::function<bool(int done)>& pasted)
 {
     if (numbers <= 0)
-        return;
+        return true;
 
     wxGetApp().plater()->take_snapshot(std::string("Selection-clone"));
     copy_to_clipboard();
     for (int i = 0; i < numbers; i++) {
         paste_from_clipboard();
+        if (pasted && !pasted(i + 1))
+            return false;
     }
+    return true;
 }
 
 void Selection::center()
@@ -541,13 +557,27 @@ void Selection::center()
     PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_selected_plate();
 
     // calc distance
-    Vec3d src_pos = this->get_bounding_box().center();
-    Vec3d tar_pos = plate->get_center_origin();
-    Vec3d distance = Vec3d(tar_pos.x() - src_pos.x(), tar_pos.y() - src_pos.y(), 0);
+    const Vec3d src_pos = this->get_bounding_box().center();
+    const Vec3d tar_pos = plate->get_center_origin();
+    const Vec3d distance = Vec3d(tar_pos.x() - src_pos.x(), tar_pos.y() - src_pos.y(), 0);
 
     this->move_to_center(distance);
     wxGetApp().plater()->get_view3D_canvas3D()->do_move(L("Move object"));
     return;
+}
+
+bool Selection::can_center() const
+{
+    if (!m_valid || is_empty() || is_wipe_tower())
+        return false;
+
+    PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_selected_plate();
+    if (plate == nullptr)
+        return false;
+
+    // center() moves in XY only. Compare with a tolerance: the bounding box is recomputed after the move.
+    const Vec3d distance = plate->get_center_origin() - this->get_bounding_box().center();
+    return std::abs(distance.x()) > EPSILON || std::abs(distance.y()) > EPSILON;
 }
 
 double Selection::get_drop_min_z() const
@@ -660,22 +690,12 @@ void Selection::set_auto_drop(bool enabled)
     if (!m_valid)
         return;
 
-    std::set<int> object_idxs;
-    for (const auto& [obj_idx, inst_list] : m_cache.content) {
-        object_idxs.insert(obj_idx);
-    }
-
-    std::string snapshot_text = (boost::format("%1%") % (enabled ? "Set Selection Auto-Drop Enabled" : "Set Selection Auto-Drop Disabled")).str();
-    wxGetApp().plater()->take_snapshot(snapshot_text);
-
     // auto_drop is shared by all instances of an object.
-    for (int obj_idx : object_idxs) {
-        ModelObject* object = m_model->objects[obj_idx];
-        object->auto_drop = enabled;
-    }
-
-    // update scene
-    wxGetApp().plater()->update();
+    Ops::SetAutoDropArgs args;
+    for (const auto& [obj_idx, inst_list] : m_cache.content)
+        args.targets.objects.push_back(obj_idx);
+    args.auto_drop = enabled;
+    Ops::set_objects_auto_drop(args);
 }
 
 void Selection::add_all()
@@ -873,7 +893,7 @@ bool Selection::is_single_full_instance() const
             volumes_idxs.insert(volume_idx);
     }
 
-    return m_model->objects[object_idx]->volumes.size() == volumes_idxs.size();
+    return scene_volumes_count(*m_model->objects[object_idx]) == volumes_idxs.size();
 }
 
 bool Selection::is_from_single_object() const
@@ -1258,7 +1278,9 @@ void Selection::move_to_center(const Vec3d& displacement, bool local)
             if (local)
                 v.set_volume_offset(m_cache.volumes_data[i].get_volume_position() + displacement);
             else {
-                const Vec3d local_displacement = (m_cache.volumes_data[i].get_instance_rotation_matrix() * m_cache.volumes_data[i].get_instance_scale_matrix() * m_cache.volumes_data[i].get_instance_mirror_matrix()).inverse() * displacement;
+                // The instance matrix itself, not rotation * scale * mirror: those pieces do not rebuild a skewed instance
+                // (rotated, then scaled along a world axis), and the part then lands off the target.
+                const Vec3d local_displacement = m_cache.volumes_data[i].get_instance_transform().get_matrix_no_offset().inverse() * displacement;
                 v.set_volume_offset(m_cache.volumes_data[i].get_volume_position() + local_displacement);
             }
         }
@@ -1267,12 +1289,20 @@ void Selection::move_to_center(const Vec3d& displacement, bool local)
                 v.set_instance_offset(m_cache.volumes_data[i].get_instance_position() + displacement);
             }
             else {
-                const Vec3d local_displacement = (m_cache.volumes_data[i].get_instance_rotation_matrix() * m_cache.volumes_data[i].get_instance_scale_matrix() * m_cache.volumes_data[i].get_instance_mirror_matrix()).inverse() * displacement;
+                const Vec3d local_displacement = m_cache.volumes_data[i].get_instance_transform().get_matrix_no_offset().inverse() * displacement;
                 v.set_volume_offset(m_cache.volumes_data[i].get_volume_position() + local_displacement);
                 translation_type = Volume;
             }
         }
     }
+
+#if !DISABLE_INSTANCES_SYNCH
+    // A part is shared by every instance of its object, but only the selected copy was moved. Bring the other
+    // copies along as translate() does, otherwise do_move() writes a stale copy's old offset back to the model.
+    if (translation_type == Volume)
+        synchronize_unselected_volumes();
+#endif // !DISABLE_INSTANCES_SYNCH
+
     this->set_bounding_boxes_dirty();
 }
 
@@ -1293,7 +1323,11 @@ void Selection::translate(const Vec3d &displacement, TransformationType transfor
         } else {
             if (v.is_wipe_tower) {//in world cs
                 int           plate_idx           = v.object_idx() - 1000;
-                const Polygons bed_polys{wxGetApp().plater()->get_partplate_list().get_plate(plate_idx)->get_shared_printable_polygon()};
+                PartPlate*    plate               = wxGetApp().plater()->get_partplate_list().get_plate(plate_idx);
+                Polygons      bed_polys{plate->get_shared_printable_polygon()};
+                // Without an area every extruder reaches the tower cannot be printed, but it still stays on the plate.
+                if (bed_polys.front().points.empty())
+                    bed_polys.front() = Polygon::new_scale(plate->get_shape());
                 Vec3d         tower_origin        = m_cache.volumes_data[i].get_volume_position();
                 Vec3d         actual_displacement = displacement;
                 // Both preview volumes carry the brim in their bounding box, and the release
@@ -1664,11 +1698,6 @@ void Selection::scale_and_translate(const Vec3d &scale, const Vec3d &world_trans
             } else
                 transform_instance_relative(v, volume_data, transformation_type, Geometry::translation_transform(world_translation) * Geometry::scale_transform(relative_scale),
                                             m_cache.dragging_center);
-            // update the instance assemble transform
-            ModelObject *            object             = m_model->objects[v.object_idx()];
-            Geometry::Transformation assemble_transform = object->instances[v.instance_idx()]->get_assemble_transformation();
-            assemble_transform.set_scaling_factor(v.get_instance_scaling_factor());
-            object->instances[v.instance_idx()]->set_assemble_transformation(assemble_transform);
         } else {
             if (!is_single_volume_or_modifier()) {
                 assert(transformation_type.world());
@@ -2344,7 +2373,7 @@ void Selection::update_type()
             else
             {
                 const ModelObject* model_object = m_model->objects[first->object_idx()];
-                unsigned int volumes_count = (unsigned int)model_object->volumes.size();
+                unsigned int volumes_count = scene_volumes_count(*model_object);
                 unsigned int instances_count = (unsigned int)model_object->instances.size();
                 if (volumes_count * instances_count == 1)
                 {
@@ -2377,7 +2406,7 @@ void Selection::update_type()
             if (m_cache.content.size() == 1) // single object
             {
                 const ModelObject* model_object = m_model->objects[m_cache.content.begin()->first];
-                unsigned int model_volumes_count = (unsigned int)model_object->volumes.size();
+                unsigned int model_volumes_count = scene_volumes_count(*model_object);
 
                 unsigned int instances_count = (unsigned int)model_object->instances.size();
                 unsigned int selected_instances_count = (unsigned int)m_cache.content.begin()->second.size();
@@ -2427,7 +2456,7 @@ void Selection::update_type()
                     bool               is_wipe_tower   = it->first >= 1000;
                     int                actual_obj_id   = is_wipe_tower ? it->first - 1000 : it->first;
                     const ModelObject *model_object    = m_model->objects[actual_obj_id];
-                    unsigned int volumes_count = (unsigned int)model_object->volumes.size();
+                    unsigned int volumes_count = scene_volumes_count(*model_object);
                     unsigned int instances_count = (unsigned int)model_object->instances.size();
                     sels_cntr += volumes_count * instances_count;
                 }
@@ -3218,7 +3247,7 @@ bool Selection::is_from_fully_selected_instance(unsigned int volume_idx) const
         return false;
 
     unsigned int count = (unsigned int)std::count_if(m_list.begin(), m_list.end(), SameInstance(object_idx, volume->instance_idx(), *m_volumes));
-    return count == (unsigned int)m_model->objects[object_idx]->volumes.size();
+    return count == scene_volumes_count(*m_model->objects[object_idx]);
 }
 
 void Selection::paste_volumes_from_clipboard()
@@ -3347,6 +3376,8 @@ void Selection::paste_objects_from_clipboard()
             Geometry::Transformation t = inst->get_transformation();
             inst->set_assemble_transformation(t);
         }
+        // Its pose on the plate would put it far from the other objects in the assembly view.
+        m_model->set_assembly_pos(dst_object);
 
         object_idxs.push_back(m_model->objects.size() - 1);
 #ifdef _DEBUG

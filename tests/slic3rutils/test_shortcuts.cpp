@@ -65,6 +65,16 @@ TEST_CASE("KeyChord::parse accepts aliases and rejects malformed text", "[Shortc
     CHECK_FALSE(KeyChord::parse("Shift+/").has_value());   // Shift is part of the punctuation character
 }
 
+TEST_CASE("KeyChord::parse_modifier names one modifier as chords spell it", "[Shortcuts]")
+{
+    CHECK(KeyChord::parse_modifier("ctrl") == wxMOD_CONTROL);
+    CHECK(KeyChord::parse_modifier("cmd") == wxMOD_CONTROL);
+    CHECK(KeyChord::parse_modifier("rawctrl") == wxMOD_RAW_CONTROL);
+    CHECK(KeyChord::parse_modifier("Option") == wxMOD_ALT);
+    CHECK(KeyChord::parse_modifier("Meta") == wxMOD_NONE);
+    CHECK(KeyChord::parse_modifier("") == wxMOD_NONE);
+}
+
 TEST_CASE("Key events normalize to the key-down key codes", "[Shortcuts]")
 {
     CHECK(KeyChord::from_event(key_event(wxEVT_KEY_DOWN, 'A', wxMOD_CONTROL)) == KeyChord{ 'A', wxMOD_CONTROL });
@@ -227,6 +237,15 @@ TEST_CASE("Every shortcut is listed under the section of its table row", "[Short
     CHECK(std::string(section_name(ShortcutSection::SlicingAndPrinting)) == "Slicing and printing");
 }
 
+TEST_CASE("Run Script toggles from anywhere with Ctrl+Shift+T", "[Shortcuts]")
+{
+    const ShortcutInfo& info = shortcut_info(Shortcut::ToggleRunScript);
+    CHECK(std::string(info.key) == "toggle_run_script");
+    CHECK(info.contexts == context_bit(ShortcutContext::Global));
+    CHECK(info.default_chord == KeyChord{'T', wxMOD_CONTROL | wxMOD_SHIFT});
+    CHECK(shortcut_section(Shortcut::ToggleRunScript) == ShortcutSection::Application);
+}
+
 TEST_CASE("Default bindings never collide inside a context", "[Shortcuts]")
 {
     ShortcutRegistry registry;
@@ -296,7 +315,8 @@ TEST_CASE("Tab shortcuts: jump-to-tab is unbound by default, Ctrl+Tab cycles", "
     ShortcutRegistry registry;
 
     // The jump-to-tab shortcuts ship without a key, so F1-F4 stay free (F2 renames in the object list).
-    for (Shortcut shortcut : { Shortcut::GoToPrepare, Shortcut::GoToPreview, Shortcut::GoToDevice, Shortcut::GoToProject })
+    for (Shortcut shortcut : { Shortcut::GoToHome, Shortcut::GoToPrepare, Shortcut::GoToPreview, Shortcut::GoToDevice,
+                               Shortcut::GoToMultiDevice, Shortcut::GoToProject, Shortcut::GoToCalibration })
         CHECK_FALSE(registry.binding(shortcut).valid());
     CHECK_FALSE(registry.lookup(ShortcutContext::Global, KeyChord{ WXK_F2 }).has_value());
 
@@ -411,6 +431,25 @@ TEST_CASE("Custom bindings replace the default and survive a config round trip",
         CHECK(registry.lookup(ShortcutContext::Plater, { 'A' }) == Shortcut::Arrange);
         CHECK_FALSE(registry.is_customized(Shortcut::Arrange));
     }
+}
+
+TEST_CASE("A shortcut with no default is saved only while the user has it bound", "[Shortcuts]")
+{
+    ShortcutRegistry registry;
+    CHECK(registry.accelerator(Shortcut::GoToPreview).empty());
+
+    const KeyChord alt_3{ '3', wxMOD_ALT };
+    registry.bind(Shortcut::GoToPreview, alt_3);
+    CHECK(registry.lookup(ShortcutContext::Global, alt_3) == Shortcut::GoToPreview);
+
+    AppConfig config;
+    registry.save(config);
+    CHECK(config.get("shortcuts", "go_to_preview") == alt_3.to_string());
+
+    registry.bind(Shortcut::GoToPreview, KeyChord{});
+    CHECK_FALSE(registry.is_customized(Shortcut::GoToPreview));
+    registry.save(config);
+    CHECK_FALSE(config.has("shortcuts", "go_to_preview"));
 }
 
 TEST_CASE("A Global shortcut refuses a config binding that would swallow typing", "[Shortcuts]")

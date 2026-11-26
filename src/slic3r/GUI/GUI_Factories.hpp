@@ -2,10 +2,12 @@
 #define slic3r_GUI_Factories_hpp_
 
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 #include <array>
 #include <cstddef>
+#include <functional>
 
 #include <wx/bitmap.h>
 
@@ -41,6 +43,12 @@ struct SettingsFactory
     static wxBitmap                             get_category_bitmap(const std::string& category_name, bool menu_bmp = true);
     static Bundle                               get_bundle(const DynamicPrintConfig* config, bool is_object_settings, bool is_layer_settings = false);
     static std::vector<std::string>             get_options(bool is_part);
+    // get_options() for an FFF printer, which reads no printer: the region settings for a part or modifier, and the
+    // object settings too for an object.
+    static std::vector<std::string>             get_fff_options(bool is_part);
+    // Options of this category are not offered to objects (is_object_settings) or to parts and
+    // modifiers: internal options without a category, and per-feature filaments with one filament.
+    static bool                                 is_improper_category(const std::string& category, int filaments_cnt, bool is_object_settings = true);
     //BBS: add api to get options for catogary
     static std::vector<SimpleSettingData> get_visible_options(const std::string& category, const bool is_part);
     static std::map<std::string, std::vector<SimpleSettingData>> get_all_visible_options(const bool is_part);
@@ -88,6 +96,7 @@ public:
     wxMenu* part_menu();
     wxMenu* text_part_menu();
     wxMenu* svg_part_menu();
+    wxMenu* painted_modifier_menu();
     wxMenu* instance_menu();
     wxMenu* layer_menu();
     wxMenu* multi_selection_menu();
@@ -98,6 +107,10 @@ public:
     wxMenu* assemble_multi_selection_menu();
 
     wxMenu *filament_action_menu(int active_filament_menu_id);
+
+    // Hands over a menu that layer_menu(), multi_selection_menu() or an assemble_*_menu() built
+    // for one popup, so whoever shows it frees it afterwards; null for a menu MenuFactory keeps.
+    std::unique_ptr<wxMenu> take_transient(wxMenu* menu);
 
 private:
     enum MenuType {
@@ -122,6 +135,7 @@ private:
     MenuWithSeparators m_svg_part_menu;
     int                m_svg_props_marker;
     int                m_svg_project_marker;
+    MenuWithSeparators m_painted_modifier_menu;
     MenuWithSeparators m_sla_object_menu;
     MenuWithSeparators m_default_menu;
     MenuWithSeparators m_instance_menu;
@@ -132,6 +146,9 @@ private:
     MenuWithSeparators m_assemble_part_menu;
 
     wxMenu m_filament_action_menu;
+    // Menus built afresh for one popup, held until take_transient() hands them over.
+    std::vector<std::unique_ptr<wxMenu>> m_transient_menus;
+    wxMenu* transient(wxMenu* menu);
    
 
     // Removed/Prepended Items according to the view mode
@@ -152,6 +169,7 @@ private:
     //BBS: add bbl object menu
     void        create_extra_object_menu();
     void        create_bbl_part_menu();
+    void        create_painted_modifier_menu();
     void        create_bbl_assemble_object_menu();
     void        create_bbl_assemble_part_menu();
 
@@ -164,6 +182,7 @@ private:
     void        append_menu_item_add_svg(wxMenu *menu, ModelVolumeType type, bool is_submenu_item = true);    
     void        append_menu_items_add_volume(wxMenu* menu);
     wxMenuItem* append_menu_item_layers_editing(wxMenu* menu);
+    wxMenuItem* append_menu_item_add_painted_modifier(wxMenu* menu, std::function<bool()> enable_condition);
     wxMenuItem* append_menu_item_settings(wxMenu* menu);
     wxMenuItem* append_menu_item_change_type(wxMenu* menu);
     wxMenuItem* append_menu_item_instance_to_object(wxMenu* menu);

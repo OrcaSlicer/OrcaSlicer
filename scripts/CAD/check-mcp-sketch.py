@@ -1,42 +1,35 @@
 #!/usr/bin/env python3
-"""Autonomous 2D-sketch loop: drive the Design tab's sketch layer over the MCP socket and
+"""Autonomous 2D-sketch loop: drive the Design tab's sketch layer through the app's MCP server and
 assert the things that decide whether a profile is buildable.
 
-WHY THIS EXISTS. The 2D layer used to be reachable only by clicking, so every question about it
-("is this loop closed?", "did the offset survive?", "is the circle a void or a second body?")
-cost a GUI session and a human. The socket verbs make each one a call, and this script is the
-loop: build a known profile, ask the app what it thinks it has, compare against arithmetic.
+WHY THIS EXISTS. Every question about the 2D layer ("is this loop closed?", "did the offset
+survive?", "is the circle a void or a second body?"), asked by clicking, costs a GUI session and a
+human. The Design commands make each one a call, and this script is the loop: build a known profile, ask
+the app what it thinks it has, compare against arithmetic.
 
-RUN IT AGAINST A RUNNING APP:
-    ORCA_CAD_MCP=/tmp/mcp.sock <binary>          # launch with the socket enabled
-    python3 scripts/CAD/check-mcp-sketch.py [socket] # default /tmp/mcp.sock
+RUN IT AGAINST A RUNNING APP started with --mcp and the CAD feature on, for example:
+    python3 tools/mcp/orca_mcp.py launch --cad --datadir <datadir>
+    python3 scripts/CAD/check-mcp-sketch.py [datadir]
+
+datadir is the running app's data directory (default: $ORCA_DATADIR, else the platform's own); the
+script finds the app's MCP server through the port it writes to <datadir>/mcp/server.json.
 
 Exit 0 = every assertion held. Anything else prints the first mismatch and stops.
 """
-import json, math, socket, sys
+import math, os, sys
 
-SOCK = sys.argv[1] if len(sys.argv) > 1 else "/tmp/mcp.sock"
-_n = 0
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tools", "mcp"))
+import orca_mcp  # noqa: E402
+
+if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
+    print(__doc__)
+    sys.exit(0)
+DATADIR = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("ORCA_DATADIR", "")
+APP = orca_mcp.OrcaMcp.from_datadir(DATADIR)
 
 
 def call(method, **params):
-    global _n
-    _n += 1
-    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.settimeout(30)
-    s.connect(SOCK)
-    s.sendall((json.dumps({"jsonrpc": "2.0", "id": _n, "method": method,
-                           "params": params}) + "\n").encode())
-    buf = b""
-    while b"\n" not in buf:
-        d = s.recv(65536)
-        if not d:
-            break
-        buf += d
-    r = json.loads(buf.decode().strip())
-    if "error" in r:
-        raise RuntimeError(f"{method}: {r['error']}")
-    return r["result"]
+    return APP.call_command(method, **params)["result"]
 
 
 def near(a, b, tol=1e-6):
@@ -59,14 +52,14 @@ try:
     call("sketch_cancel")
 except Exception:
     pass
-call("sketch_begin", plane="XY")
-call("sketch_add", rect=[0, 0, 80, 50])
+call("sketch_create", plane="XY")
+call("sketch_draw", type="rectangle_2_point", p0=[0, 0], p1=[80, 50])
 r = call("sketch_describe")
 check(r["buildable"], "buildable")
 check(areas(r) == [4000.0], f"one loop of 4000 mm^2 (got {areas(r)})")
 
 print("2. a circle inside it is a VOID, not a second profile")
-call("sketch_add", type="circle", center=[40, 25], radius=10)
+call("sketch_draw", type="circle_center", center=[40, 25], radius=10)
 r = call("sketch_describe")
 outer = [l for l in r["closed_loops"] if near(l["area"], 4000.0)][0]
 check(len(outer["holes"]) == 1, "the rectangle encloses exactly one void")
@@ -83,8 +76,8 @@ check(any(near(l["area"], 70 * 40) for l in r["closed_loops"]),
 
 print("4. a gap is REPORTED with its coordinates, then healed into a constraint")
 call("sketch_cancel")
-call("sketch_begin", plane="XY")
-call("sketch_add", entities=[
+call("sketch_create", plane="XY")
+call("sketch_draw", entities=[
     {"type": "line", "p0": [0, 0], "p1": [60, 0]},
     {"type": "line", "p0": [60, 0], "p1": [60, 40]},
     {"type": "line", "p0": [60, 40], "p1": [0, 40]},
@@ -94,7 +87,7 @@ r = call("sketch_validate", tolerance=1.0)
 check(not r["buildable"], "a 0.4 mm gap makes the profile unbuildable")
 check(len(r["open_ends"]) == 2, f"both free ends are named (got {r['open_ends']})")
 dof_before = r["dof"]
-r = call("sketch_heal", tolerance=1.0)
+r = call("sketch_repair", tolerance=1.0)
 check(r["welded"] == 1, f"one pair welded (got {r['welded']})")
 check(r["buildable"] and r["open_ends"] == [], "healed profile is buildable")
 check(areas(r) == [2400.0], f"healed loop is 60x40 (got {areas(r)})")
@@ -103,17 +96,17 @@ check(r["dof"] < dof_before,
 
 print("5. construction geometry is excluded from the profile")
 call("sketch_select", entities=[0])
-call("sketch_construction")
+call("sketch_toggle_construction", silent=True)
 r = call("sketch_describe")
 check(not r["buildable"], "turning one side into a guide opens the profile again")
-call("sketch_construction")
+call("sketch_toggle_construction", silent=True)
 r = call("sketch_describe")
 check(r["buildable"], "turning it back closes it again")
 
 print("6. re-dimensioning one side keeps the rectangle a single closed loop")
 call("sketch_cancel")
-call("sketch_begin", plane="XY")
-call("sketch_add", rect=[0, 0, 60, 40])
+call("sketch_create", plane="XY")
+call("sketch_draw", type="rectangle_2_point", p0=[0, 0], p1=[60, 40])
 r = call("sketch_describe")
 check(areas(r) == [2400.0], f"one loop of 2400 mm^2 (got {areas(r)})")
 call("sketch_select", entities=[0])   # the bottom edge, y=0, from x=0 to x=60

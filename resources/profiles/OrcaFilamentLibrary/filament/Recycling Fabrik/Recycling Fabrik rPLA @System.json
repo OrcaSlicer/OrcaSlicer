@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Recycling Fabrik rPLA @System",
+	"inherits": "Recycling Fabrik rPLA @base",
+	"from": "system",
+	"setting_id": "0DRbxjxshixcAygE",
+	"instantiation": "true",
+	"compatible_printers": []
+}

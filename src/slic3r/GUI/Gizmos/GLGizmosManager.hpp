@@ -95,6 +95,7 @@ public:
         Seam,
         FuzzySkin,
         MmSegmentation,
+        PaintedModifier,
         TextureDisplacement,
         Emboss,
         Svg,
@@ -164,7 +165,6 @@ private:
     static std::map<int, void*> icon_list;
 
     bool m_is_dark = false;
-    bool m_restore_realistic_view_after_paint = false;
 
     /// <summary>
     /// Process mouse event on gizmo toolbar
@@ -275,6 +275,8 @@ public:
     }
 
     bool is_enabled() const { return m_enabled; }
+    // ORCA
+    bool is_mouse_over_toolbar_icon(const Vec2d& mouse_pos) const { return get_gizmo_from_mouse(mouse_pos) != Undefined; }
     void set_enabled(bool enable) { m_enabled = enable; }
 
     void set_icon_dirty() { m_icons_texture_dirty = true; }
@@ -284,6 +286,11 @@ public:
     void refresh_on_off_state();
     void reset_all_states();
     bool open_gizmo(EType type);
+    // What a left click on a gizmo's toolbar icon did.
+    enum class ToolbarClick { Nothing, Opened, Closed, CreationStarted };
+    // Does what that click does: the Text gizmo starts creating a text part when no text is
+    // selected (the creation job opens the gizmo), the others open or close.
+    ToolbarClick click_toolbar_icon(EType type);
     bool check_gizmos_closed_except(EType) const;
 
     void set_hover_id(int id);
@@ -302,6 +309,10 @@ public:
     EType get_gizmo_from_name(const std::string& gizmo_name) const;
 
     bool is_running() const;
+    // Whether this canvas's gizmo toolbar shows an icon for `type`.
+    bool is_on_toolbar(EType type) const;
+    // Whether any gizmo still works in the background, see GLGizmoBase::is_busy().
+    bool is_busy() const;
     // Opens the gizmo bound to a Plater-context shortcut; false when no gizmo has it or it cannot open now.
     bool open_gizmo_by_shortcut(Shortcut shortcut);
     // Lets the current gizmo consume the delete key; false when it did not.

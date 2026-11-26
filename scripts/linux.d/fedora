@@ -26,6 +26,8 @@ REQUIRED_DEV_PACKAGES=(
     ninja-build
     openssl-devel
     perl-FindBin
+    perl-IPC-Cmd
+    perl-Time-Piece
     texinfo
     wayland-protocols-devel
     webkit2gtk4.1-devel

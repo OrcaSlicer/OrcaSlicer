@@ -732,7 +732,11 @@ void GLGizmoTextureDisplacement::render_painter_gizmo()
             if (const ModelVolume *part = preview_part(*preview); part != nullptr)
                 previewed.push_back(part);
     }
-    m_parent.toggle_model_objects_visibility(true);
+    m_parent.toggle_model_objects_visibility(
+        true,
+        m_c->selection_info()->model_object(),
+        m_c->selection_info()->get_active_instance()
+    );
     for (const ModelVolume *volume : previewed)
         m_parent.toggle_model_objects_visibility(false, m_c->selection_info()->model_object(),
                                                   m_c->selection_info()->get_active_instance(), volume);
@@ -1974,7 +1978,7 @@ bool GLGizmoTextureDisplacement::render_painted_colors(bool whole_stack)
     shader->set_uniform("volume_mirrored", trafo_matrix.matrix().determinant() < 0.);
     shader->set_uniform("slope.actived", m_parent.is_using_slope());
     shader->set_uniform("slope.volume_world_normal_matrix", Matrix3f(normal_matrix.cast<float>()));
-    shader->set_uniform("slope.normal_z", float(-std::cos(Geometry::deg2rad(m_highlight_by_angle_threshold_deg))));
+    shader->set_uniform("slope.normal_z", float(-std::cos(Geometry::deg2rad(get_highlight_angle_limit_deg()))));
     shader->set_uniform("slope.up_direction", get_tilt_up_direction());
     shader->set_uniform("show_wireframe", false);
     // Pulled forward and without depth writes, as the tint is (see render_paint_overlay()). The tint is
@@ -2582,10 +2586,6 @@ void GLGizmoTextureDisplacement::update_uv_editor()
 {
     Plater         *plater    = wxGetApp().plater();
     UVEditorCanvas *uv_canvas = plater->get_uv_editor_canvas();
-    if (uv_canvas == nullptr)
-        return;
-    // Wired on every call rather than with the first unwrap: Unwrap itself is one of the pane's commands.
-    uv_canvas->set_command_callback([this](UVEditorCanvas::Command cmd, float value) { on_uv_command(int(cmd), value); });
 
     const ModelVolume        *mv    = texture_volume();
     TextureDisplacementLayer *layer = active_layer();
@@ -2600,6 +2600,15 @@ void GLGizmoTextureDisplacement::update_uv_editor()
         plater->show_uv_editor(false);
         return;
     }
+    if (uv_canvas == nullptr) {
+        // The pane does not exist yet: show_uv_editor() builds it after this frame. Run again right
+        // after that - both are queued on the plater, so they run in this order.
+        plater->show_uv_editor(true);
+        plater->CallAfter([this]() { update_uv_editor(); });
+        return;
+    }
+    // Wired on every call rather than with the first unwrap: Unwrap itself is one of the pane's commands.
+    uv_canvas->set_command_callback([this](UVEditorCanvas::Command cmd, float value) { on_uv_command(int(cmd), value); });
 
     // A vertex/edge edit committing (or an undo reverting one) changes the per-vertex UV overrides
     // without going through the Unwrap button. Detect that and force a re-solve, so the pane's geometry
@@ -4340,17 +4349,31 @@ void GLGizmoTextureDisplacement::import_custom_texture(TextureDisplacementLayer 
                          wxFD_OPEN | wxFD_FILE_MUST_EXIST);
     if (dialog.ShowModal() != wxID_OK)
         return;
+    std::string error;
+    if (!import_texture(layer, into_u8(dialog.GetPath()), error))
+        show_error(nullptr, error);
+}
 
+bool GLGizmoTextureDisplacement::import_texture(TextureDisplacementLayer &layer, const std::string &path, std::string &error)
+{
     // Converts to the 8-bit grayscale PNG the bake code understands and copies it into the user's
     // own texture folder, so it stays available for later models (and survives an app update, which
     // rewrites the shipped folder wholesale).
-    std::string                              error;
-    const std::optional<TextureLibraryEntry> entry = import_texture_to_library(into_u8(dialog.GetPath()), error);
-    if (!entry) {
-        show_error(nullptr, error);
-        return;
-    }
+    const std::optional<TextureLibraryEntry> entry = import_texture_to_library(path, error);
+    if (!entry)
+        return false;
     set_layer_texture(layer, *entry);
+    return true;
+}
+
+bool GLGizmoTextureDisplacement::import_texture(const std::string &path, std::string &error)
+{
+    TextureDisplacementLayer *layer = active_layer();
+    if (layer == nullptr) {
+        error = "There is no active layer to put the texture on; add a layer first";
+        return false;
+    }
+    return import_texture(*layer, path, error);
 }
 
 void GLGizmoTextureDisplacement::ease_wheel_scroll(float &target, float &applied)
@@ -4572,6 +4595,7 @@ void GLGizmoTextureDisplacement::render_texture_library_popup(const ImVec2 &pane
             } else {
                 clicked = ImGui::Button("?", ImVec2(tile, tile));
             }
+            m_imgui->record_named_item(entry->name);
             if (removable)
                 ImGui::SetItemAllowOverlap(); // the remove button drawn over its corner takes its own clicks
             const ImVec2 a       = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax();
@@ -4593,6 +4617,7 @@ void GLGizmoTextureDisplacement::render_texture_library_popup(const ImVec2 &pane
                 const ImVec2 c(b.x - r - 2.f, a.y + r + 2.f);
                 ImGui::SetCursorScreenPos(ImVec2(c.x - r, c.y - r));
                 const bool remove_clicked = ImGui::InvisibleButton("##remove", ImVec2(2.f * r, 2.f * r));
+                m_imgui->record_named_item("Remove " + entry->name);
                 const bool hot            = ImGui::IsItemHovered();
                 dl->AddCircleFilled(c, r, hot ? IM_COL32(214, 72, 64, 235) : IM_COL32(0, 0, 0, 170));
                 const float k = 0.42f * r;
@@ -4920,6 +4945,11 @@ void GLGizmoTextureDisplacement::close_image_adjust()
         rebuild_preview();
         m_parent.set_as_dirty();
     }
+}
+
+bool GLGizmoTextureDisplacement::is_busy() const
+{
+    return !m_adjust_preview_source.empty() && (m_adjust_preview_job.valid() || m_adjust != m_adjust_preview_shown);
 }
 
 void GLGizmoTextureDisplacement::update_image_adjust_preview()
@@ -7139,6 +7169,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         } else {
             clicked = ImGui::Button(label.ToUTF8().data(), ImVec2(0.f, sz)); // the control is never lost to a missing icon
         }
+        m_imgui->record_named_item(into_u8(label), "toggle", active ? 1 : 0);
         ImGui::GetWindowDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(),
                                             ImGui::GetColorU32(active ? orca : col_frame), style.FrameRounding);
         ImGui::PopStyleColor(na ? 3 : 1);
@@ -7164,6 +7195,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
         } else {
             clicked = ImGui::Button(label.ToUTF8().data(), ImVec2(0.f, sz));
         }
+        m_imgui->record_named_item(into_u8(label));
         ImGui::PopStyleColor();
         ImGui::PopStyleVar();
         ImGui::PopID();
@@ -7741,6 +7773,8 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
                 } else if (ImGui::Button("?##thumb", ImVec2(frame_h, frame_h))) {
                     open_picker(layer.slot);
                 }
+                // Named by position for automation: texture names repeat ("heightmap (2)").
+                m_imgui->record_named_item("Layer " + std::to_string(li + 1) + " image");
                 hover_tip(_u8L("Pick a different image for this layer. The paint, depth and tiling stay as they are."));
                 {
                     // The teal outline on the thumbnail is what marks this card as the layer being painted.
@@ -8231,6 +8265,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             const float  row_w = content_rx - p0.x;
             if (ImGui::InvisibleButton("##row", ImVec2(row_w, row_h)))
                 activate_slot = layer.slot;
+            m_imgui->record_named_item("Layer " + std::to_string(li + 1));
             const bool row_hovered = ImGui::IsItemHovered();
             ImGui::SetItemAllowOverlap(); // the row's own buttons, submitted after it, still take their clicks
             drop_target(li, layer.slot, p0, ImVec2(p0.x + row_w, p0.y + row_h));
@@ -8259,6 +8294,7 @@ void GLGizmoTextureDisplacement::on_render_input_window(float x, float y, float 
             } else if (ImGui::Button("?##thumb", ImVec2(th, th))) {
                 open_picker(layer.slot);
             }
+            m_imgui->record_named_item("Layer " + std::to_string(li + 1) + " image");
             hover_tip(_u8L("Pick a different image for this layer. The paint, depth and tiling stay as they are."));
             ImGui::SameLine();
 

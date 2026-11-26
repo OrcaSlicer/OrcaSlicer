@@ -69,6 +69,7 @@
 #include <wx/listbook.h>
 #include <wx/tokenzr.h>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/format.hpp>
 #include <wx/types.h>
 #include "OG_CustomCtrl.hpp"
 #include "MsgDialog.hpp"
@@ -103,12 +104,11 @@ wxString double_to_string(double const value, const int max_precision /*= 4*/)
 
 	wxString s = wxNumberFormatter::ToString(value, max_precision, wxNumberFormatter::Style_None);
 
-	// The following code comes from wxNumberFormatter::RemoveTrailingZeroes(wxString& s)
-	// with the exception that here one sets the decimal separator explicitely to dot.
+	// The following code comes from wxNumberFormatter::RemoveTrailingZeroes(wxString& s).
     // If number is in scientific format, trailing zeroes belong to the exponent and cannot be removed.
     if (s.find_first_of("eE") == wxString::npos) {
-        char dec_sep = is_decimal_separator_point() ? '.' : ',';
-        const size_t posDecSep = s.find(dec_sep);
+        // The separator ToString() wrote, from the UI locale, which can differ from the C locale's.
+        const size_t posDecSep = s.find(wxNumberFormatter::GetDecimalSeparator());
 	    // No decimal point => removing trailing zeroes irrelevant for integer number.
 	    if (posDecSep != wxString::npos) {
 		    // Find the last character to keep.
@@ -124,6 +124,14 @@ wxString double_to_string(double const value, const int max_precision /*= 4*/)
 	}
 
     return s;
+}
+
+bool string_to_double_any_separator(wxString str, double* value)
+{
+    // The text may carry the UI locale's separator or the C locale's, and the two can differ.
+    const char dec_sep = is_decimal_separator_point() ? '.' : ',';
+    str.Replace(dec_sep == '.' ? ',' : '.', dec_sep, false);
+    return str.ToDouble(value);
 }
 
 wxString get_thumbnail_string(const Vec2d& value)
@@ -356,44 +364,12 @@ void Field::PostInitialize()
 
 	BUILD();
 
-	// For the mode, when settings are in non-modal dialog, neither dialog nor tabpanel doesn't receive wxEVT_KEY_UP event, when some field is selected.
-	// So, like a workaround check wxEVT_KEY_UP event for the Filed and switch between tabs if Ctrl+(1-4) was pressed
     if (getWindow()) {
         if (m_opt.readonly) {
             this->disable();
         } else {
             this->enable();
         }
-		getWindow()->Bind(wxEVT_KEY_UP, [](wxKeyEvent& evt) {
-		    if ((evt.GetModifiers() & wxMOD_CONTROL) != 0) {
-			    int tab_id = -1;
-			    switch (evt.GetKeyCode()) {
-			    case '1': { tab_id = 0; break; }
-			    case '2': { tab_id = 1; break; }
-				case '3': { tab_id = 2; break; }
-				case '4': { tab_id = 3; break; }
-#ifdef __APPLE__
-				case 'f':
-#else /* __APPLE__ */
-				case WXK_CONTROL_F:
-#endif /* __APPLE__ */
-                case 'F': {
-                    //wxGetApp().plater()->search(false, Preset::TYPE_MODEL, nullptr, nullptr);
-                    break;
-                }
-			    default: break;
-			    }
-			    if (tab_id >= 0) {
-					static constexpr const char* kShortcutTabIds[] = {TAB_ID_HOME, TAB_ID_PREPARE, TAB_ID_PREVIEW, TAB_ID_MONITOR};
-					wxGetApp().mainframe->select_tab(kShortcutTabIds[tab_id]);
-				}
-				if (tab_id > 0)
-					// tab panel should be focused for correct navigation between tabs
-				    wxGetApp().tab_panel()->SetFocus();
-		    }
-
-		    evt.Skip();
-	    }, getWindow()->GetId());
     }
 }
 
@@ -829,6 +805,15 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 show_error(m_parent, format_wxstr(_L("Invalid format. Expected vector format: \"%1%\""), "XxY, XxY, ..."));
                 break;
             }
+        }
+
+        if (m_opt_id == "bed_exclude_area" && out_values.size() > 1 && !is_valid_bed_exclude_area(out_values)) {
+            wxString text_value;
+            if (const auto *previous_values = boost::any_cast<std::vector<Vec2d>>(&m_value); previous_values != nullptr)
+                text_value = from_u8(ConfigOptionPoints(*previous_values).serialize());
+            set_value(text_value, true);
+            show_error(m_parent, _L("The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."));
+            break;
         }
 
         m_value = out_values;
@@ -2922,8 +2907,8 @@ void PointCtrl::set_value(const boost::any& value, bool change_event)
 boost::any& PointCtrl::get_value()
 {
 	double x, y;
-	if (!x_textctrl->GetValue().ToDouble(&x) ||
-		!y_textctrl->GetValue().ToDouble(&y))
+	if (!string_to_double_any_separator(x_textctrl->GetValue(), &x) ||
+		!string_to_double_any_separator(y_textctrl->GetValue(), &y))
 	{
 		set_value(m_value.empty() ? Vec2d(0.0, 0.0) : m_value, true);
         show_error(m_parent, _L("Invalid numeric."));

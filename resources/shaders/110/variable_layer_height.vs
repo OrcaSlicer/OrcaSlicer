@@ -18,6 +18,8 @@ uniform mat4 view_model_matrix;
 uniform mat4 projection_matrix;
 uniform mat3 view_normal_matrix;
 uniform mat4 volume_world_matrix;
+// Orca: the inverse transpose of volume_world_matrix, which takes the normals to world space under any scale or rotation.
+uniform mat3 volume_world_normal_matrix;
 uniform float object_max_z;
 
 attribute vec3 v_position;
@@ -28,6 +30,10 @@ attribute vec2 v_tex_coord;
 varying vec2 intensity;
 
 varying float object_z;
+
+// Orca: 1 on a horizontal face, which lies at one height: the stripes of the layers cannot show on it,
+// only the shade they have there, which changes whenever a layer under it moves.
+varying float horizontal;
 
 void main()
 {
@@ -55,6 +61,7 @@ void main()
 
     // Scaled to widths of the Z texture.
     object_z = (object_max_z > 0.0) ? object_max_z * v_tex_coord.y : (volume_world_matrix * vec4(v_position, 1.0)).z;
+    horizontal = (object_max_z > 0.0) ? 0.0 : step(0.999, abs(normalize(volume_world_normal_matrix * v_normal).z));
         
     gl_Position = projection_matrix * position;
 }

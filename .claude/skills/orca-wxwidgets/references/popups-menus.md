@@ -30,7 +30,9 @@ Contents: [Rules](#rules) · [1. Choosing the window kind](#1-choosing-the-windo
 2. Size the popup (`SetSizerAndFit`/`SetSize`) **before** `Position()`, and pass the *anchor's* height as the
    second argument: `Position(anchor->ClientToScreen({0,0}), {0, anchor->GetSize().y})`. (§3)
 3. On macOS, anchor a hover-driven transient popup flush against its opener, with no pixel gap. (§3)
-4. Never call `Popup()` on a popup that is already shown: guard with `if (!popup->IsShown())`. (§2)
+4. Never call `Popup()` on a popup that is already shown: guard with `if (!popup->IsShown())`. On macOS and GTK
+   a repeat hangs a raw `wxPopupTransientWindow`; `PopupWindow::Popup()` ignores it there. On MSW a repeat moves
+   the focus into the popup again, the one case to call it on purpose (`DropDown::mouseReleased`). (§2, §6)
 5. Destroy a popup with one `Destroy()`, typically from `wxEVT_SHOW` when it hides. Never `delete` it or
    call `Destroy()` twice. (§2)
 6. Command events from controls inside a popup stop at the popup (`wxWS_EX_BLOCK_EVENTS`) on MSW and macOS,
@@ -41,7 +43,9 @@ Contents: [Rules](#rules) · [1. Choosing the window kind](#1-choosing-the-windo
    `OnDismiss()`. (§2)
 9. `ProcessLeftDown` is never called on MSW. Keep-open logic needs a per-platform path. (§2, §5)
 10. A control that opens a popup on click must debounce reopening right after a dismissal
-    (`DropDown::HasDismissLongTime`), because the dismissing click reaches the opener on MSW and macOS. (§5)
+    (`DropDown::HasDismissLongTime`), because the dismissing click reaches the opener on MSW and macOS. An
+    opener whose next click closes its `PopupWindow` starts its handler with `if (popup.CloseOnToggle()) return;`,
+    so a click that reaches it while the popup is shown closes the popup instead of reopening it. (§5, §6)
 11. On MSW, a popup that must close when the frame deactivates or minimizes calls `BindUnfocusEvent()`. On
     macOS, nothing dismisses a popup on app deactivation. (§5, §6)
 12. On macOS, re-verify the cursor with `GetClientRect().Contains(ScreenToClient(wxGetMousePosition()))`
@@ -81,6 +85,11 @@ Contents: [Rules](#rules) · [1. Choosing the window kind](#1-choosing-the-windo
     tooltip of a widget in that popup, or in a popup opened from it, is on screen: the tooltip has taken the
     keyboard while the user is still on the popup. `PopupWindow::topWindowActiavate` does it for every Orca popup;
     a popup outside `PopupWindow` with such a hook must do it itself. (§9)
+31. When a dialog that hides on deactivation closes by itself, find the code that activated another window
+    instead of hardening the hook: on wxGTK, `SetFocus()` on a child of a visible, inactive toplevel presents
+    that toplevel. A handler bound on a book control acts only on events whose object is that book, because a
+    page-changed event from a book inside a page propagates up to it. A deferred, re-checked hide tolerates only
+    a focus bounce shorter than its delay. (§10)
 
 ## 1. Choosing the window kind
 
@@ -123,11 +132,16 @@ Contents: [Rules](#rules) · [1. Choosing the window kind](#1-choosing-the-windo
   (`src/common/popupcmn.cpp:536-543`, inside `#ifndef __WXMSW__`). `src/msw/popupwin.cpp` has no click
   handler. An override that returns true does not keep the popup open on Windows (§5).
 - **`Popup()` must not run on a shown popup (non-MSW).** `Popup()` pushes `m_handlerPopup` onto `m_child` and
-  `m_handlerFocus` onto the focus window every time (`popupcmn.cpp:308-332`). The "still in use" asserts are
-  compiled out in Orca. A second push links the handler chain into a cycle, and the next event that no handler
+  `m_handlerFocus` onto the focus window every time (`popupcmn.cpp:308-332`). The "still in use" asserts there
+  and `PushEventHandler`'s "shouldn't be part of a wxEvtHandler chain" assert (`src/common/wincmn.cpp:1414-1416`)
+  are compiled out in Orca. A second push links the handler chain into a cycle, and the next event that no handler
   in the cycle consumes loops forever in `wxEvtHandler::DoTryChain` (`src/common/event.cpp:1591-1640`), so the
   app hangs. On MSW, `Popup()` is just `Show()` plus an optional `SetFocus` (`src/msw/popupwin.cpp:184-193`), so
   a repeat is harmless there.
+- **Only `Dismiss()` removes the handlers.** `PopHandlers()` removes them and clears `m_child` and `m_focus`; wx
+  calls it from `Dismiss()` and from the destructor (`popupcmn.cpp:246-284`, 432-436). `Hide()` (`Show(false)`,
+  335-430) leaves them pushed, so a `Hide()` followed by `Popup()` builds the same cycle as a repeated `Popup()`.
+  `PopupWindow::Popup` guards both cases (§6).
 - **`Destroy()` is deferred.** The popup goes into `wxPendingDelete`, and a second `Destroy()` fails a silent
   `wxCHECK` "Shouldn't destroy the popup twice." (`popupcmn.cpp:209-221`). The comment explains why: "The popup
   window can be deleted at any moment, even while some events are still being processed for it".
@@ -165,7 +179,9 @@ A popup created per open is a child of its parent until it is destroyed. Destroy
 **Pitfalls.**
 - **Rule:** Guard every `Popup()` call with `IsShown()`.
   **Why:** On non-MSW ports the second push creates a cycle in the handler chain and the app hangs on the next
-  unconsumed event. MSW is unaffected, which hides the bug from Windows testing.
+  unconsumed event. MSW is unaffected, which hides the bug from Windows testing. `PopupWindow::Popup()` ignores a
+  repeat on macOS and GTK, so a missing guard on a `PopupWindow` no longer hangs, but a raw
+  `wxPopupTransientWindow` (or a `wxTipWindow`) still does, and on MSW the repeat still moves the focus.
   ```cpp
   // Wrong: re-pops on every motion or click
   void on_motion(wxMouseEvent&) { m_popup->Popup(); }
@@ -173,8 +189,8 @@ A popup created per open is a child of its parent until it is destroyed. Destroy
   void on_motion(wxMouseEvent&) { if (!m_popup->IsShown()) m_popup->Popup(); }
   ```
   Cite: `DropDown::mouseMove` (`if (!drop.IsShown()) drop.Popup(&drop)`), `SearchObjectDialog::Popup`
-  (`if (m_is_dismissing || this->IsShown()) return;`). `Button::OnParentMotion` may re-pop its `wxTipWindow` on
-  every move only because `Button::EnableTooltipEvenDisabled` is MSW-only.
+  (`if (m_is_dismissing || this->IsShown()) return;`), `PopupWindow::Popup`. `Button::OnParentMotion` may re-pop
+  its `wxTipWindow` on every move only because `Button::EnableTooltipEvenDisabled` is MSW-only.
 - **Rule:** Veto in `Dismiss()`. In `OnDismiss()`, act only if the popup really closed.
   **Why:** `DismissAndNotify` calls `OnDismiss` unconditionally after `Dismiss`.
   ```cpp
@@ -429,6 +445,21 @@ geometry-based dismissal checks must use focus instead (§8).
   ```
   Cite: `DropDown::HasDismissLongTime` (≥20 ms after `OnDismiss`, used by `ComboBox::mouseDown`),
   `StatusPanel::on_switch_speed` (`speed_dismiss_time`, 200 ms).
+- **Rule:** An opener whose next click closes its popup closes a shown popup with `CloseOnToggle()` before it
+  does anything else.
+  **Why:** A click can reach the opener while the popup is still shown. A person's click never does on macOS or
+  GTK, where the popup's capture or grab takes the click and closes the popup first. A mouse event sent straight
+  to the opener does, such as the MCP server's `widget_click`, and calling `Popup()` from it would re-pop the
+  shown popup. On MSW a person's click does too, before the deferred deactivation closes a
+  `wxPU_CONTAINS_CONTROLS` popup. wx's own combo control toggles the same way: `wxComboCtrlBase::OnButtonClick`
+  hides a shown popup and opens a hidden one (`src/common/combocmn.cpp:2060-2079`).
+  ```cpp
+  // Wrong: a click that arrives while the popup is shown re-pops it
+  void on_opener_click(wxMouseEvent&) { if (!in_debounce()) m_popup.Popup(); }
+  // Right
+  void on_opener_click(wxMouseEvent&) { if (m_popup.CloseOnToggle()) return; if (!in_debounce()) m_popup.Popup(); }
+  ```
+  Cite: `MonitorPanel::on_printer_clicked`, `CalibrationPanel::on_printer_clicked`.
 - **Rule:** Don't rely on `ProcessLeftDown` to keep a popup open on Windows.
   **Why:** MSW never calls it.
   ```cpp
@@ -451,6 +482,8 @@ class PopupWindow : public wxPopupTransientWindow {
 public:
     PopupWindow(wxWindow* parent, int style = wxBORDER_NONE);
     bool Create(wxWindow* parent, int flags = wxBORDER_NONE);
+    void Popup(wxWindow* focus = nullptr) override;                       // macOS/GTK: no-op while shown (§2)
+    bool CloseOnToggle();                                                 // for an opener that toggles it (§5)
 #ifdef __WXGTK__
     bool Show(bool show = true) override;                                 // hides GTK tooltips first on Wayland (§9)
 #endif
@@ -471,6 +504,20 @@ What it adds per platform:
 | macOS | Only with `wxPU_CONTAINS_CONTROLS`: `OnMouseEvent2`, bound on the popup for `LEFT_DOWN/UP/DCLICK`, `MOTION` and `MOUSEWHEEL`, hit-tests the children (static `HitTest`) and re-dispatches the event to the deepest child under the cursor with `ProcessEventLocally`. On `MOTION` it synthesizes `ENTER`/`LEAVE` for the hovered target. This compensates for the capture rerouting in §5. |
 
 Details [source] (`Widgets/PopupWindow.cpp`).
+- `Popup()`: on macOS and GTK it returns at once while `IsShown()`, and when `m_child` or `m_focus` is still set
+  (a `Hide()` without `Dismiss()` left the handlers pushed) it calls `PopHandlers()` before wx's `Popup()` (§2).
+  `m_child`, `m_focus` and `PopHandlers()` are protected members of wx's non-MSW `wxPopupTransientWindow`
+  (`include/wx/popupwin.h:178-193`). The test wx's destructor uses, `m_handlerPopup->GetNextHandler()`, does not
+  compile outside wx: `wxPopupWindowHandler` is only forward-declared there (`include/wx/popupwin.h:154`). On MSW
+  it is wx's `Popup()`, unchanged: a repeat there moves the focus into the popup, which `DropDown::mouseReleased`
+  relies on to focus a sub-list that hovering already showed. An override of `Popup()` keeps the guard only if it
+  ends in `PopupWindow::Popup(focus)`, as `DropDown::Popup` and `SearchDialog::Popup` do.
+- `CloseOnToggle()` returns false while the popup is hidden. While it is shown it returns true, and on macOS and
+  GTK it first closes the popup with `DismissAndNotify()`, so `OnDismiss()` runs as for a click outside. On MSW it
+  only returns true. A person's click that reached the opener also deactivated a `wxPU_CONTAINS_CONTROLS` popup,
+  and wx's deferred `DismissOnDeactivate` calls `DismissAndNotify()` without checking `IsShown()`
+  (`src/msw/popupwin.cpp:200-216`), so closing it here would run `OnDismiss()` twice. A click sent straight to the
+  opener deactivates nothing, so on MSW it leaves the popup open.
 - `GetTopParent(w)` returns the first *strict* ancestor of `w` that is a `wxNonOwnedWindow`, or the root if there
   is none. `Create` starts from `parent`, while `BindUnfocusEvent` and the destructor start from the popup. When
   `parent` is itself a top-level window with a parent (a dialog), `Create` therefore binds the dialog's parent
@@ -827,8 +874,9 @@ created with `wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxF
 - `wxFRAME_NO_TASKBAR` gives no taskbar entry on MSW/GTK, on GTK only when the WM supports
   `_NET_WM_STATE_SKIP_TASKBAR` (`interface/wx/frame.h:97-103`).
 - `wxFRAME_FLOAT_ON_PARENT` requires a non-null parent (`interface/wx/frame.h:104-106`).
-- Its `wxEVT_ACTIVATE` handler hides on deactivation and `Skip()`s. On activation it focuses the web view, because
-  modeless focus is granted asynchronously and a focus request made right after `Show()` is dropped.
+- Its `wxEVT_ACTIVATE` handler focuses the web view on activation, because modeless focus is granted
+  asynchronously and a focus request made right after `Show()` is dropped. It hides on deactivation after a
+  short settle delay and a re-check of `gtk_window_is_active()` (Pitfalls below), and it `Skip()`s.
 - On Linux `focus_webview` grabs focus on the WebKit native widget (`gtk_widget_grab_focus` on
   `GetNativeBackend()`). `browser()->SetFocus()` focuses only the container.
 - Display-only web content can stay in a transient popup (`MarkdownTip`).
@@ -847,13 +895,39 @@ created with `wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxF
                           wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxFRAME_SHAPED)
   {
       Bind(wxEVT_ACTIVATE, [this](wxActivateEvent& e) {
-          if (e.GetActive() && IsShown())       focus_webview(browser(), m_page_ready);
-          else if (!e.GetActive() && IsShown()) Hide();
+          if (!IsShown())    { e.Skip(); return; }
+          if (e.GetActive()) { m_hide_timer.Stop(); focus_webview(browser(), m_page_ready); }
+          else               schedule_hide();   // validated, see the next rule
           e.Skip();
       });
   }
   ```
   Cite: f142716e51, a86202b45b (`SpeedDialPopup.cpp` replaced by `SpeedDialDialog.{hpp,cpp}`; `GUI_App.cpp`).
+- **Rule:** When a dialog that hides on deactivation closes by itself, find the code that activated another
+  window; do not harden the dismissal hook. A handler bound on a book control checks that `e.GetEventObject()`
+  is that book before acting.
+  **Why:** On wxGTK, `wxWindow::SetFocus()` on a child of a visible but inactive toplevel calls
+  `gtk_window_present` on that toplevel (`src/gtk/window.cpp:5157-5162`), so an unexpected `SetFocus()` anywhere
+  in the main frame takes the keyboard from a modeless dialog that hides on deactivation. The Speed Dial closed
+  by itself a moment after the first Space on Linux (GNOME and KDE, X11 and Wayland): the idle builder
+  constructed the Calibration page, whose `Tabbook::InsertPage` emitted `wxEVT_BOOKCTRL_PAGE_CHANGED`; the event
+  propagated, as every `wxNotifyEvent` does, to the main frame's `m_tabpanel` handler
+  (`wxEVT_NOTEBOOK_PAGE_CHANGED` is the same type, `include/wx/bookctrl.h:434`), which treated it as a main tab
+  change and ended with `panel->SetFocus()`. Found with a 10 ms focus poller and a backtrace on
+  `gtk_window_present`. MSW and macOS `SetFocus()` do not activate the toplevel, so the bug was Linux-only. The
+  dial's deferred, re-checked hide (`kHideSettleMs`, `gtk_window_is_active()`, since `wxTopLevelWindowGTK::IsActive()`
+  answers from `g_activeFrame`, which the deactivation has already cleared) absorbs only a focus bounce shorter
+  than the delay; it did not stop this.
+  ```cpp
+  // Wrong: the main book's handler acts on every page-changed event that reaches it
+  m_tabpanel->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, [this](wxBookCtrlEvent& e) { /* ... */ panel->SetFocus(); });
+  // Right: only the book's own events
+  m_tabpanel->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, [this](wxBookCtrlEvent& e) {
+      if (e.GetEventObject() != m_tabpanel) { e.Skip(); return; }
+      /* ... */
+  });
+  ```
+  Cite: #17245 (`MainFrame::init_tabpanel`; `SpeedDialWebDialog::on_hide_timer`).
 - **Rule:** When restoring the main frame after hiding a popup or overlay frame, call `Show()` only if
   `!IsShown()`, and `Raise()` unconditionally (top-level `Show`/`Raise` are owned by
   `references/windows-dialogs.md`).
@@ -1210,6 +1284,10 @@ macOS. On MSW it breaks `wxTopLevelWindowMSW::OnActivate`'s focus restore in the
 - `append_shortcut_item` records the item in `m_shortcut_menu_items`, and `update_shortcut_labels()` rewrites the
   labels with `SetItemLabel` after the user rebinds a key. Menu text for a registry shortcut always goes through
   these helpers, never through a hard-coded `"\tCtrl+X"`.
+- `GetItemLabelText()` drops a key after `"\t"` but keeps one after `" - "`, so on macOS it returns the label with
+  the key text. `MainFrame::menu_item_label()` gives a menu bar item's label without it, from the label the item was
+  made with: the MCP server names menu items by it, so a menu path is the same on every platform. A menu bar item
+  that writes a fixed key after `sep` itself, outside these helpers, records its plain label in `m_key_text_items`.
 
 **`Plater::PopupMenu(menu, pos)`** (`Plater.cpp`).
 - It calls `wxGetApp().mainframe->PopupMenu(menu, pos)`. The invoking window is MainFrame, so **`pos` is in
@@ -1264,7 +1342,9 @@ wxMenuItem* append_menu_check_item(wxMenu*, int id, const wxString&, const wxStr
   pass `nullptr`.
 - A non-null `parent` binds a `wxEVT_UPDATE_UI` handler for that id on `parent` that is never unbound. It calls
   `enable_menu_item` (`evt.Enable(cb_condition())`), which on macOS also re-applies the icon, grayscale when
-  disabled, on every validation (§14). `append_menu_check_item` binds `Enable` + `Check` the same way.
+  disabled, on every validation (§14). It finds the item by the event's id in the menu that sent the event and
+  keeps no pointer to it: the handler outlives a menu that is destroyed and an item that is removed.
+  `append_menu_check_item` binds `Enable` + `Check` the same way.
   `append_menu_radio_item` takes no conditions.
 - Without `parent`, `cb_condition` is ignored: no enable callback is wired.
 

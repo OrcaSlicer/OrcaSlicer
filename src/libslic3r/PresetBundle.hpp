@@ -203,6 +203,12 @@ struct PublishedConfig
     // zero-based slot. Consumers (e.g. model extruder/color-painting remapping) use this to
     // keep geometry references pointing at the relocated definitions.
     std::map<int, int>          mixed_slot_relocations;
+    // The author's printer extruder layout. When set, published printer keys map to the receiver's
+    // extruder with the author's number (see resolve_published_extruder_slot).
+    PublishedExtruderLayout     printer_layout;
+    // The author's process extruder layout (print_extruder_id / print_extruder_variant). Empty for
+    // files published before per-extruder process keys were exported; those import positionally.
+    PublishedExtruderLayout     print_layout;
 };
 
 // Bundle of Print + Filament + Printer presets.
@@ -453,6 +459,10 @@ public:
 
     void get_ams_cobox_infos(AMSComboInfo &combox_info);
     unsigned int sync_ams_list(std::vector<std::pair<DynamicPrintConfig *,std::string>> &unknowns, bool use_map, std::map<int, AMSMapInfo> &maps, bool enable_append, MergeFilamentInfo &merge_info, bool color_only = false);
+    // Installs the system filament presets in the slots: visible now, and in config's filaments
+    // section, which load_selections() keeps a slot's preset by. After an AMS sync the slots hold the
+    // printer's filaments, which the user may never have ticked.
+    void install_slot_filaments(AppConfig &config);
     //BBS: check whether this is the only edited filament
     bool is_the_only_edited_filament(unsigned int filament_index);
 
@@ -669,6 +679,9 @@ public:
     // based on the user configuration.
     // If the "vendor" section is missing, enable all models and variants of the particular vendor.
     void                        load_installed_printers(const AppConfig &config);
+    // Set the is_visible flag for filaments from the user configuration's filaments section,
+    // first adding there the default filaments of each installed printer that no installed filament fits.
+    void                        load_installed_filaments(AppConfig &config);
 
     const std::string&          get_preset_name_by_alias(const Preset::Type& preset_type, const std::string& alias) const;
 
@@ -927,9 +940,8 @@ private:
     // Update renamed_from and alias maps of system profiles.
     void 						update_system_maps();
 
-    // Set the is_visible flag for filaments and sla materials,
-    // apply defaults based on enabled printers when no filaments/materials are installed.
-    void                        load_installed_filaments(AppConfig &config);
+    // Set the is_visible flag for sla materials,
+    // apply defaults based on enabled printers when no materials are installed.
     void                        load_installed_sla_materials(AppConfig &config);
 
     // Load print, filament & printer presets from a config. If it is an external config, then the name is extracted from the external path.
@@ -958,6 +970,12 @@ private:
 };
 
 ENABLE_ENUM_BITMASK_OPERATORS(PresetBundle::LoadConfigBundleAttribute)
+
+// GUI overload of effective_physical_extruder_map() (PrintConfig.hpp): resolves the effective pem
+// from a live PresetBundle using the project_config → printer preset fallback. Use this instead of
+// open-coding the lookup at ghost-color, tooltip, click-gate and cache-key call sites so they all
+// agree with what the slicer sees.
+ConfigOptionInts effective_physical_extruder_map(const PresetBundle& pb);
 
 } // namespace Slic3r
 

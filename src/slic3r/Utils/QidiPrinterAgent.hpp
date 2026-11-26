@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 namespace Slic3r {
 
 class QidiPrinterAgent final : public MoonrakerPrinterAgent
@@ -25,6 +27,8 @@ public:
 
     // Builds the SAVE_VARIABLE lines that make each T<n> macro load the Box slot picked for filament n
     static std::string build_tool_slot_script(const std::string& ams_mapping);
+    // Builds the body of Moonraker's print start for an uploaded file, naming the plate to print when it is a 3MF
+    static nlohmann::json print_start_request(const PrintParams& params, const std::string& filename);
 
 protected:
     // Saves the Box slot picked for each filament in the print dialog, then starts the print through Moonraker

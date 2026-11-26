@@ -1,0 +1,83 @@
+{
+	"type": "filament",
+	"name": "3D-Fuel Pro PCTG Matte @base",
+	"inherits": "fdm_filament_pctg",
+	"from": "system",
+	"filament_id": "OFJBZl1d",
+	"instantiation": "false",
+	"filament_vendor": [
+		"3D-Fuel"
+	],
+	"filament_type": [
+		"PCTG"
+	],
+    "filament_diameter": [
+        "1.75"
+    ],
+    "filament_density": [
+        "1.23"
+    ],
+    "filament_cost": [
+        "59.95"
+    ],
+    "nozzle_temperature": [
+        "260"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "260"
+    ],
+    "nozzle_temperature_range_low": [
+        "240"
+    ],
+    "nozzle_temperature_range_high": [
+        "280"
+    ],
+    "cool_plate_temp": [
+        "0"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "eng_plate_temp": [
+        "60"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "60"
+    ],
+    "hot_plate_temp": [
+        "60"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "60"
+    ],
+    "textured_plate_temp": [
+        "60"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "60"
+    ],
+    "supertack_plate_temp": [
+        "60"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "60"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "10"
+    ],
+    "fan_min_speed": [
+        "0"
+    ],
+    "fan_max_speed": [
+        "40"
+    ],
+    "temperature_vitrification": [
+        "185"
+    ],
+    "required_nozzle_HRC": [
+        "60"
+    ]
+}

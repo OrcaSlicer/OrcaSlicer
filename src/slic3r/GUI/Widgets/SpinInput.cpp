@@ -4,6 +4,7 @@
 #include "TextCtrl.h"
 
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <algorithm>
 #include <utility>
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
 #include <wx/containr.h>
@@ -44,7 +45,7 @@ SpinInput::SpinInput()
     : label_color(std::make_pair(0x6B6B6B, (int) StateColor::Disabled), std::make_pair(0x6B6B6B, (int) StateColor::Normal))
     , text_color(std::make_pair(0x6B6B6B, (int) StateColor::Disabled), std::make_pair(0x262E30, (int) StateColor::Normal))
 {
-    radius = 0;
+    input_corner_radius = true;
     border_width     = 1;
     border_color     = StateColor(std::make_pair(0xDBDBDB, (int) StateColor::Disabled), std::make_pair(0x009688, (int) StateColor::Hovered),
                               std::make_pair(0xDBDBDB, (int) StateColor::Normal));
@@ -73,6 +74,7 @@ void SpinInput::Create(wxWindow *parent,
                      int min, int max, int initial, int step)
 {
     StaticBox::Create(parent, wxID_ANY, pos, size);
+    apply_input_corner_radius();
     SetFont(Label::Body_12);
     wxWindow::SetLabel(label);
     state_handler.attach({&label_color, &text_color});
@@ -104,12 +106,6 @@ void SpinInput::Create(wxWindow *parent,
     SetValue(initial);
     SetStep(step);
     messureSize();
-}
-
-void SpinInput::SetCornerRadius(double radius)
-{
-    this->radius = radius;
-    Refresh();
 }
 
 void SpinInput::SetLabel(const wxString &label)
@@ -173,6 +169,7 @@ void SpinInput::Rescale()
 {
     button_inc->Rescale();
     button_dec->Rescale();
+    apply_input_corner_radius();
     messureSize();
 }
 
@@ -236,17 +233,19 @@ void SpinInput::messureSize()
     minSize.x      = GetMinWidth();
     StaticBox::SetSize(size);
     SetMinSize(size);
-    wxSize btnSize = {14, (size.y - 4) / 2};
+    // Keep the buttons inside the border and clear of the rounded corners: they paint over whatever is under them
+    const int btn_x = std::max(3, int(radius));
+    wxSize btnSize = {14, (size.y - 6) / 2};
     btnSize.x = btnSize.x * btnSize.y / 10;
     wxClientDC dc(this);
     labelSize  = dc.GetMultiLineTextExtent(GetLabel());
-    textSize.x = size.x - labelSize.x - btnSize.x - 16;
+    textSize.x = size.x - labelSize.x - btnSize.x - btn_x - 13;
     text_ctrl->SetSize(textSize);
-    text_ctrl->SetPosition({6 + btnSize.x, (size.y - textSize.y) / 2});
+    text_ctrl->SetPosition({btn_x + 3 + btnSize.x, (size.y - textSize.y) / 2});
     button_inc->SetSize(btnSize);
     button_dec->SetSize(btnSize);
-    button_inc->SetPosition({3, size.y / 2 - btnSize.y - 1});
-    button_dec->SetPosition({3, size.y / 2 + 1});
+    button_inc->SetPosition({btn_x, size.y / 2 - btnSize.y - 1});
+    button_dec->SetPosition({btn_x, size.y / 2 + 1});
 }
 
 Button *SpinInput::createButton(bool inc)

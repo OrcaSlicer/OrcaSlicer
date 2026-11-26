@@ -200,6 +200,62 @@ BitmapCache& PresetComboBox::bitmap_cache()
     return bmps;
 }
 
+bool PresetComboBox::is_marker_item(int item)
+{
+    const auto marker = reinterpret_cast<std::size_t>(GetClientData(item));
+    return marker >= LABEL_ITEM_DISABLED && marker < LABEL_ITEM_MAX;
+}
+
+PresetComboBox::NameMatch PresetComboBox::find_by_name(const std::string& requested)
+{
+    NameMatch         match;
+    const std::string want       = Preset::remove_suffix_modified(requested);
+    const int         item_count = GetCount();
+    for (int item = 0; item < item_count; ++item) {
+        if (is_marker_item(item))
+            continue;
+        const wxString    alias      = GetItemAlias(item);
+        const std::string alias_name = alias.empty() ? std::string() : Preset::remove_suffix_modified(alias.ToUTF8().data());
+        const std::string label_name = Preset::remove_suffix_modified(GetString(item).ToUTF8().data());
+        if ((alias_name.empty() || alias_name != want) && label_name != want)
+            continue;
+        if (match.item >= 0 && match.item != item) {
+            match.ambiguous = true;
+            return match;
+        }
+        match.item          = item;
+        match.internal_name = alias_name.empty() ? label_name : alias_name;
+    }
+    return match;
+}
+
+int row_for_preset(const std::vector<PresetRow>& rows, const std::string& name)
+{
+    int labelled = -1;
+    for (std::size_t row = 0; row < rows.size(); ++row) {
+        if (rows[row].marker)
+            continue;
+        if (!rows[row].stored.empty() && rows[row].stored == name)
+            return int(row);
+        if (labelled < 0 && rows[row].stored.empty() && rows[row].label == name)
+            labelled = int(row);
+    }
+    return labelled;
+}
+
+int PresetComboBox::item_for_preset(const std::string& preset_name)
+{
+    // One row for each item, so a row's index is its item's.
+    std::vector<PresetRow> rows;
+    const int              item_count = GetCount();
+    for (int item = 0; item < item_count; ++item) {
+        const wxString alias = GetItemAlias(item);
+        rows.push_back({alias.empty() ? std::string() : Preset::remove_suffix_modified(alias.ToUTF8().data()),
+                        Preset::remove_suffix_modified(GetString(item).ToUTF8().data()), is_marker_item(item)});
+    }
+    return row_for_preset(rows, Preset::remove_suffix_modified(preset_name));
+}
+
 void PresetComboBox::set_label_marker(int item, LabelItemType label_item_type)
 {
     this->SetClientData(item, (void*)label_item_type);
@@ -313,6 +369,11 @@ int PresetComboBox::update_ams_color()
     auto color_head = static_cast<ConfigOptionStrings*>(cfg->option("filament_colour")->clone()); // single color (the first color if multi-color filament)
     auto color_pack = static_cast<ConfigOptionStrings *>(cfg->option("filament_multi_colour")->clone()); // multi color (all colors in all kinds of filament)
     auto color_type = static_cast<ConfigOptionStrings*>(cfg->option("filament_colour_type")->clone()); // color type
+
+    // The slot can lie past the colour arrays (see sync_colour_config()).
+    if (m_filament_idx >= color_head->values.size()) color_head->values.resize(m_filament_idx + 1);
+    if (m_filament_idx >= color_pack->values.size()) color_pack->values.resize(m_filament_idx + 1);
+    if (m_filament_idx >= color_type->values.size()) color_type->values.resize(m_filament_idx + 1);
 
     color_head->values[m_filament_idx] = color;
     color_type->values[m_filament_idx] = ctype;
@@ -1040,12 +1101,17 @@ void PlaterPresetComboBox::OnSelect(wxCommandEvent &evt)
         //}
         return;
     } else if (marker == LABEL_ITEM_PHYSICAL_PRINTER ||  selected_item >= 0 || m_collection->current_is_dirty()) {
-        m_last_selected = selected_item;
-        if (m_type == Preset::TYPE_FILAMENT)
-            update_ams_color();
+        item_picked(selected_item);
     }
 
     evt.Skip();
+}
+
+void PlaterPresetComboBox::item_picked(int item)
+{
+    m_last_selected = item;
+    if (m_type == Preset::TYPE_FILAMENT)
+        update_ams_color();
 }
 
 void PlaterPresetComboBox::update_badge_according_flag() {
@@ -1061,7 +1127,7 @@ void PlaterPresetComboBox::set_sync_badge(bool show)
     ShowBadge(show);
 }
 
-bool PlaterPresetComboBox::switch_to_tab()
+bool PlaterPresetComboBox::switch_to_tab(bool show_tab)
 {
     Tab* tab = wxGetApp().get_tab(m_type);
     if (!tab)
@@ -1070,17 +1136,18 @@ bool PlaterPresetComboBox::switch_to_tab()
     const Preset* selected_filament_preset = nullptr;
     if (m_type == Preset::TYPE_FILAMENT)
     {
-        const std::string& selected_preset = GetString(GetSelection()).ToUTF8().data();
-        if (!boost::algorithm::starts_with(selected_preset, Preset::suffix_modified()))
+        // Reload the editor only when it has a different preset open than this slot.
+        const std::string& slot_preset_name = wxGetApp().preset_bundle->filament_presets[m_filament_idx];
+        if (slot_preset_name != wxGetApp().preset_bundle->filaments.get_selected_preset_name())
         {
-            const std::string& preset_name = wxGetApp().preset_bundle->filaments.get_preset_name_by_alias(selected_preset);
-            if (wxGetApp().get_tab(m_type)->select_preset(preset_name))
-                wxGetApp().get_tab(m_type)->get_combo_box()->set_filament_idx(m_filament_idx);
-            else {
+            if (!wxGetApp().get_tab(m_type)->select_preset(slot_preset_name))
                 return false;
-            }
         }
+        // Bind the editor to this slot even when its preset is already open.
+        wxGetApp().get_tab(m_type)->get_combo_box()->set_filament_idx(m_filament_idx);
     }
+    if (!show_tab)
+        return true;
 
     /*
     if (int page_id = wxGetApp().tab_panel()->FindPage(tab); page_id != wxNOT_FOUND)
@@ -1181,12 +1248,12 @@ void PlaterPresetComboBox::update()
     const Preset* selected_filament_preset = nullptr;
     if (m_type == Preset::TYPE_FILAMENT)
     {
+        // The slot can lie past the colour arrays: it still lists its presets, with a blank swatch.
         std::vector<wxBitmap *> bitmaps = get_extruder_color_icons(true);
-        if (m_filament_idx < bitmaps.size()) {
+        if (m_filament_idx < bitmaps.size())
             clr_picker->SetBitmap(*bitmaps[m_filament_idx]);
-        } else {
-            return;
-        }
+        else
+            clr_picker->SetBitmap(*get_extruder_color_icon("#F0F0F0FF", std::to_string(m_filament_idx + 1), lround(2 * m_em_unit), lround(2 * m_em_unit)));
 #ifdef __WXOSX__
         clr_picker->SetLabel(clr_picker->GetLabel()); // Let setBezelStyle: be called
         clr_picker->Refresh();

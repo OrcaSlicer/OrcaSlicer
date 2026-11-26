@@ -171,14 +171,14 @@ void IMEXModesCtrl::rebuild_info_and_header() {
     m_hdr_panel->DestroyChildren();
     auto* hdr_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto* hdr_name  = page_label(new wxStaticText(m_hdr_panel, wxID_ANY, _L("Mode")));
-    auto* hdr_tools = page_label(new wxStaticText(m_hdr_panel, wxID_ANY, _L("Tools")));
+    auto* hdr_tools = page_label(new wxStaticText(m_hdr_panel, wxID_ANY, _L_CONTEXT("Tools", "IDEX/IQEX modes")));
     auto* hdr_gcode = page_label(new wxStaticText(m_hdr_panel, wxID_ANY, _L("G-code")));
     hdr_name->SetToolTip(_L("How the mode is labeled in the plate's IDEX/IQEX mode selector. "
                             "Required — a mode with no name cannot be selected."));
     hdr_tools->SetToolTip(_L("Which tool heads take part in the mode and what role each one plays. "
                              "Click a tile to cycle its role."));
     hdr_gcode->SetToolTip(_L("G-code run at print start to put the printer into this mode "
-                             "(for example a Klipper SET_PRINT_MODE call). The slicer only emits "
+                             "(for example a Klipper SET_PRINT_MODE call).\n\nThe slicer only emits "
                              "the Primary tool's paths; the firmware drives the others."));
     const int grid_px = m_n_cols * FromDIP(26) - FromDIP(2);  // tile 24 + 2px gap, less the trailing gap
     const int name_col_px = FromDIP(kNameColPx + 6);
@@ -341,7 +341,7 @@ IMEXModesCtrl::RoleStyle IMEXModesCtrl::role_style(std::optional<ImexRole> role)
 wxString IMEXModesCtrl::role_hint(ImexRole role) {
     switch (role) {
     case ImexRole::Primary:
-        return _L("Drives every sliced path. Always tool 0 — use Tool 0 Position above to choose "
+        return _L("Drives every sliced path. Always tool 1 — use Tool 1 Position above to choose "
                   "which corner of the bed it occupies. It cannot be moved from the grid.");
     case ImexRole::Copy:
         return _L("Follows the Primary at the firmware level, printing the same paths offset into "
@@ -427,7 +427,7 @@ std::vector<wxString> IMEXModesCtrl::suggested_mode_names(const ::ComboBox* skip
 void IMEXModesCtrl::apply_btn(wxButton* btn, int tool_idx, std::optional<ImexRole> role) {
     // Always label as T{n} — the button color already encodes the role.
     const RoleStyle style = role_style(role);
-    btn->SetLabel(wxString::Format("T%d", tool_idx));
+    btn->SetLabel(wxString::Format("T%d", tool_idx + 1));
     btn->SetBackgroundColour(style.bg);
     btn->SetForegroundColour(style.fg);
     btn->Refresh();
@@ -635,7 +635,7 @@ void IMEXModesCtrl::add_row(const std::string& name,
             // would be a no-op and confusing.
             //
             // And, on any row, the tile that currently HOLDS Primary. Primary is tool 0 and moves
-            // only via Tool 0 Position; letting a click demote it would leave the mode with no
+            // only via imex_tool_layout; letting a click demote it would leave the mode with no
             // Primary at all, which parses to -1 and degrades the plate to an ordinary single-tool
             // print with no zones — authored silently, in one click, with nothing in the editor
             // showing what is wrong. The other tiles already never OFFER Primary while one is held
@@ -711,7 +711,7 @@ void IMEXModesCtrl::add_row(const std::string& name,
                            "the machine start G-code. This is where the printer is put into the "
                            "matching firmware mode — for example a Klipper SET_PRINT_MODE call or a "
                            "RepRapFirmware M567 — since the slicer only emits the Primary tool's "
-                           "paths and the firmware drives the Copy / Mirror tools. Placeholders are "
+                           "paths and the firmware drives the Copy / Mirror tools.\n\nPlaceholders are "
                            "supported; use the edit button to browse them. Leave empty if the mode "
                            "needs no firmware setup."));
     r.gcode->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { notify(); });

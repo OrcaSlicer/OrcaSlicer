@@ -1,10 +1,12 @@
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <string>
 #include <vector>
 
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "slic3r/Utils/CrealityCfs.hpp"
 #include "slic3r/Utils/CrealityPrintAgent.hpp"
 
 using namespace Slic3r;
@@ -82,6 +84,91 @@ std::string match(const std::vector<FilamentSpec> &specs, const std::string &spo
 
 } // namespace
 
+TEST_CASE("The Creality Hi Moonraker box response exposes loaded CFS slots", "[CFS][Creality]")
+{
+    const std::string response = R"({"result":{"status":{"box":{
+        "T1":{"state":"connect","material_type":["","000003","-1", "000001"],
+              "color_value":["","0FF1E1E","-1","000FF00"]},
+        "T2":{"state":"None","material_type":["000002","-1","-1","-1"],
+              "color_value":["0FFFFFF","-1","-1","-1"]}
+    }}}})";
+    std::vector<CrealityCfsSlot> slots;
+    REQUIRE(parse_creality_cfs_response(response, slots));
+    REQUIRE(slots.size() == 2);
+    CHECK(slots[0].slot_index == 1);
+    CHECK(slots[0].material_type == "PETG");
+    CHECK(slots[0].color == "FF1E1E");
+    CHECK(slots[1].slot_index == 3);
+    CHECK(slots[1].material_type == "PLA");
+    CHECK(slots[1].color == "00FF00");
+}
+
+TEST_CASE("The Creality Hi CFS parser rejects malformed and absent box responses", "[CFS][Creality]")
+{
+    std::vector<CrealityCfsSlot> slots;
+    CHECK_FALSE(parse_creality_cfs_response("{", slots));
+    CHECK_FALSE(parse_creality_cfs_response(R"({"result":{"status":{}}})", slots));
+    CHECK(slots.empty());
+}
+
+TEST_CASE("The Creality Hi CFS parser skips unknown material IDs", "[CFS][Creality]")
+{
+    const std::string response = R"({"result":{"status":{"box":{"T1":{"state":"connect",
+        "material_type":["999999","000003",null,"-1"],"color_value":["0FFFFFF","0FF1E1E","-1","-1"]}}}}})";
+    std::vector<CrealityCfsSlot> slots;
+    REQUIRE(parse_creality_cfs_response(response, slots));
+    REQUIRE(slots.size() == 1);
+    CHECK(slots[0].slot_index == 1);
+    CHECK(slots[0].material_type == "PETG");
+}
+
+// K2-family firmware reports branded/RFID spools with ids outside the generic 0000xx range: a
+// Creality CR-Silk PLA (RFID 05001) reports "005001". The printer resolves the name itself in
+// box.same_material, so a slot is only dropped when the printer cannot name it either.
+TEST_CASE("The Creality K2 Plus CFS parser resolves branded IDs via same_material", "[CFS][Creality]")
+{
+    const std::string response = R"({"result":{"status":{"box":{
+        "same_material":[["005001","0ffffff",["T1A"],"PLA"]],
+        "T1":{"state":"connect","material_type":["005001","-1","-1","-1"],
+              "color_value":["0ffffff","-1","-1","-1"]},
+        "T2":{"state":"None","material_type":["-1","-1","-1","-1"],
+              "color_value":["-1","-1","-1","-1"]}
+    }}}})";
+    std::vector<CrealityCfsSlot> slots;
+    REQUIRE(parse_creality_cfs_response(response, slots));
+    REQUIRE(slots.size() == 1);
+    CHECK(slots[0].slot_index == 0);
+    CHECK(slots[0].material_type == "PLA");
+    CHECK(slots[0].color == "ffffff");
+}
+
+TEST_CASE("The Creality CFS parser skips IDs that same_material cannot name", "[CFS][Creality]")
+{
+    const std::string response = R"({"result":{"status":{"box":{
+        "same_material":[["0e1003","0fff014",["T1A"],""]],
+        "T1":{"state":"connect","material_type":["0e1003","000003","-1","-1"],
+              "color_value":["0fff014","0FF1E1E","-1","-1"]}
+    }}}})";
+    std::vector<CrealityCfsSlot> slots;
+    REQUIRE(parse_creality_cfs_response(response, slots));
+    REQUIRE(slots.size() == 1);
+    CHECK(slots[0].slot_index == 1);
+    CHECK(slots[0].material_type == "PETG");
+}
+
+TEST_CASE("The Creality CFS parser tolerates a malformed same_material list", "[CFS][Creality]")
+{
+    const std::string response = R"({"result":{"status":{"box":{
+        "same_material":[["005001"],"nonsense",[1,2,3,4]],
+        "T1":{"state":"connect","material_type":["000001","-1","-1","-1"],
+              "color_value":["0FFFFFF","-1","-1","-1"]}
+    }}}})";
+    std::vector<CrealityCfsSlot> slots;
+    REQUIRE(parse_creality_cfs_response(response, slots));
+    REQUIRE(slots.size() == 1);
+    CHECK(slots[0].material_type == "PLA");
+}
+
 // Orca: a CFS spool that names no recognised product must map to the vendor's plain generic. The
 // subtype variants ("High Speed", "Matte", "Silk") score just as well on vendor alone, and since
 // each is its own product with its own filament_id, letting one of them win sends the printer the
@@ -126,6 +213,14 @@ TEST_CASE("A CFS spool from an unknown vendor falls back to a preset of the same
     CHECK(std::string(spec->filament_type) == "PLA");
 }
 
+TEST_CASE("A CFS fallback never selects another material when its type is unavailable", "[CFS][Creality]")
+{
+    const std::vector<FilamentSpec> no_system_abs{
+        {"Generic TPU @System", "TPU-GENERIC", "TPU", /*is_library=*/true},
+        {"My ABS", "ABS-USER", "ABS", /*is_library=*/false, /*is_system=*/false},
+    };
+    CHECK(match(no_system_abs, "Unknown", "", "ABS").empty());
+}
 
 // Orca: Creality's bundle also ships third party filaments ("eSUN PLA+ @K2 Plus-all"). Those carry
 // Creality's VendorProfile but name their real brand, so the vendor bonus has to accept a name
@@ -140,4 +235,75 @@ TEST_CASE("A third party spool matches its preset inside the printer vendor's bu
     // ... and a Creality spool still prefers Creality's own generic over the eSUN preset, which
     // carries Creality's profile too but adds a brand word the spool never claimed.
     CHECK(match(with_third_party, "Creality", "", "PLA") == "PLA-GENERIC");
+}
+
+TEST_CASE("A spool the printer cannot name matches no preset", "[CFS][Creality]")
+{
+    CHECK(match(k2_stock_nozzle, "", "", "").empty());
+}
+
+// A K2 SE lists a loaded spool whose RFID tag the firmware does not know with only its colour
+// (vendor, type and name blank, state 2) and shows it on the printer; the slicer must list it
+// too. The empty slot 3 and the external spool holder (box type 1) are what gets skipped.
+TEST_CASE("The K2 CFS box response keeps a loaded spool the printer cannot name", "[CFS][Creality]")
+{
+    const std::string response = R"({"boxsInfo":{"name":"MF003","materialBoxs":[
+        {"id":0,"state":0,"type":1,"materials":[
+            {"id":0,"vendor":"","type":"","color":"","name":"","rfid":"0","state":1,"percent":100,"editStatus":2}]},
+        {"id":1,"state":1,"type":0,"temp":23,"humidity":56,"materials":[
+            {"id":0,"vendor":"Creality","type":"PLA","name":"Hyper PLA","rfid":"01001","color":"#0ffffff",
+             "percent":100,"state":2,"selected":0,"editStatus":0,"remaining_length":330000},
+            {"id":1,"vendor":"Creality","type":"PLA","name":"Hyper PLA","rfid":"01001","color":"#0000000",
+             "percent":58,"state":2,"selected":0,"editStatus":0,"remaining_length":191400},
+            {"id":2,"vendor":"","type":"","name":"","rfid":"504C4","color":"#7592d31",
+             "percent":96,"state":2,"selected":0,"editStatus":0,"remaining_length":2915520},
+            {"id":3,"vendor":"","type":"","name":"","rfid":"","color":"",
+             "percent":100,"state":0,"selected":0,"editStatus":0}]}]}})";
+    std::vector<CrealityPrintAgent::CFSSlot> slots;
+    int                                      box_count = 0;
+    std::string                              error;
+    REQUIRE(CrealityPrintAgent::parse_cfs_response(response, slots, box_count, error));
+    CHECK(box_count == 1);
+    REQUIRE(slots.size() == 3);
+    CHECK(slots[0].slot_id == 0);
+    CHECK(slots[0].filament_type == "PLA");
+    CHECK(slots[0].brand_name == "Hyper PLA");
+    CHECK(slots[0].color_hex == "#ffffff");
+    CHECK(slots[1].slot_id == 1);
+    CHECK(slots[2].slot_id == 2);
+    CHECK(slots[2].box_id == 0);
+    CHECK(slots[2].vendor.empty());
+    CHECK(slots[2].filament_type.empty());
+    CHECK(slots[2].color_hex == "#592d31");
+}
+
+TEST_CASE("The K2 CFS box response skips a slot that reports neither material nor colour", "[CFS][Creality]")
+{
+    const std::string response = R"({"boxsInfo":{"materialBoxs":[
+        {"id":1,"state":1,"type":0,"materials":[
+            {"id":0,"vendor":"","type":"","name":"","color":"","state":2},
+            {"id":1,"vendor":"Creality","type":"PETG","name":"","color":"#0ff1e1e","state":1}]}]}})";
+    std::vector<CrealityPrintAgent::CFSSlot> slots;
+    int                                      box_count = 0;
+    std::string                              error;
+    REQUIRE(CrealityPrintAgent::parse_cfs_response(response, slots, box_count, error));
+    CHECK(box_count == 1);
+    REQUIRE(slots.size() == 1);
+    CHECK(slots[0].slot_id == 1);
+    CHECK(slots[0].filament_type == "PETG");
+}
+
+TEST_CASE("The K2 CFS box response reads a null or mistyped field as blank", "[CFS][Creality]")
+{
+    const std::string response = R"({"boxsInfo":{"materialBoxs":[
+        {"id":1,"state":1,"type":0,"materials":[
+            {"id":0,"vendor":null,"type":"PLA","name":7,"color":"#0ffffff","state":1}]}]}})";
+    std::vector<CrealityPrintAgent::CFSSlot> slots;
+    int                                      box_count = 0;
+    std::string                              error;
+    REQUIRE(CrealityPrintAgent::parse_cfs_response(response, slots, box_count, error));
+    REQUIRE(slots.size() == 1);
+    CHECK(slots[0].vendor.empty());
+    CHECK(slots[0].brand_name.empty());
+    CHECK(slots[0].filament_type == "PLA");
 }

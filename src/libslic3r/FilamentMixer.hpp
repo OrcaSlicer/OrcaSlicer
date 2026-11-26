@@ -13,6 +13,36 @@ namespace Slic3r {
 
 class ConfigBase;
 
+inline constexpr const char *feature_filament_keys[] = {
+    "outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_filament_id",
+    "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id"
+};
+
+// Config values are one-based (0 inherits). The map uses zero-based slots, with -1 for a removed slot.
+template<class Config>
+bool remap_filament_option(Config &config, const char *key, const std::map<int, int> &slots)
+{
+    if (!config.has(key))
+        return false;
+    const int slot = config.opt_int(key);
+    if (slot <= 0)
+        return false;
+    const auto it = slots.find(slot - 1);
+    if (it == slots.end() || it->second + 1 == slot)
+        return false;
+    config.set(key, it->second + 1);
+    return true;
+}
+
+template<class Config>
+bool remap_feature_filaments(Config &config, const std::map<int, int> &slots)
+{
+    bool changed = false;
+    for (const char *key : feature_filament_keys)
+        changed |= remap_filament_option(config, key, slots);
+    return changed;
+}
+
 // Photoshop-style gradient curve control point in [0,1] x [0,1].
 // (x, y) is the anchor position; (m_in, m_out) are optional cubic Hermite tangent
 // overrides. NaN means "use the PCHIP-computed default", which is the case for plain
@@ -131,6 +161,10 @@ std::vector<unsigned int> expand_mixed_filaments(
     const std::vector<unsigned int> &extruders_0based,
     const std::vector<unsigned char> &is_mixed,
     const std::vector<std::string>  &comp_strs);
+
+// Like expand_mixed_filaments(), for 1-based filament ids as models and the GUI number them, with
+// the mixed slots read from `config`. Ids below 1 are dropped. Result is sorted and deduplicated.
+std::vector<int> expand_mixed_filament_ids(const std::vector<int> &filament_ids, const ConfigBase &config);
 
 // Remap mixed filament component references after a physical filament is deleted.
 // del_1based: the 1-based index of the deleted physical filament.

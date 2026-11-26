@@ -746,9 +746,6 @@ public:
         m_enable_arc_fitting(enable_arc_fitting),
         m_filpar(filament_parameters)
         {
-            // ORCA: This class is only used by BBL printers, so set the parameter appropriately.
-            // This fixes an issue where the wipe tower was using BBL tags resulting in statistics for purging in the purge tower not being displayed.
-            GCodeProcessor::s_IsBBLPrinter = true;
             // adds tag for analyzer:
             std::ostringstream str;
             str << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height) << Slic3r::float_to_string_decimal_point(m_layer_height, 6) << "\n"; // don't rely on GCodeAnalyzer knowing the layer height - it knows nothing at priming
@@ -1301,7 +1298,10 @@ public:
 
 	WipeTowerWriter& flush_planner_queue()
 	{
-		m_gcode += flush_planner_queue_command(m_gcode_flavor);
+		// Only called at toolchange boundaries; format_line_M104 syncs temperature changes itself.
+		// On Klipper M400 here only stalls the toolhead over the tower.
+		if (m_gcode_flavor != gcfKlipper)
+			m_gcode += flush_planner_queue_command(m_gcode_flavor);
 		return *this;
 	}
 
@@ -2033,6 +2033,9 @@ WipeTower::WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origi
     m_first_layer_speed       = config.initial_layer_speed.get_at(get_extruder_index(config, (unsigned int) initial_tool));
     if (m_first_layer_speed == 0.f) // just to make sure autospeed doesn't break it.
         m_first_layer_speed = default_speed / 2.f;
+    if (config.enable_volumetric_speeds)
+        m_first_layer_volumetric_flow = float(config.initial_layer_volumetric_flow.get_at(get_extruder_index(config, (unsigned int) initial_tool))
+                                                  .get_abs_value(config.filament_max_volumetric_speed.get_at(initial_tool)));
 
     // If this is a single extruder MM printer, we will use all the SE-specific config values.
     // Otherwise, the defaults will be used to turn off the SE stuff.
@@ -2723,6 +2726,8 @@ void WipeTower::toolchange_Change(
     // This is where we want to place the custom gcodes. We will use placeholders for this.
     // These will be substituted by the actual gcodes when the gcode is generated.
     writer.append("[filament_end_gcode]\n");
+    // Lift to the layer Z so change_filament_gcode can't hit taller printed parts.
+    writer.append("[restore_layer_z_before_toolchange]\n");
     writer.append("[change_filament_gcode]\n");
 
     // BBS: do travel in GCode::append_tcr() for lazy_lift

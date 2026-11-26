@@ -10,6 +10,7 @@
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/GUI/Widgets/HyperLink.hpp"
 #include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Mcp/WindowNames.hpp"
 #include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/event.h>
@@ -128,7 +129,7 @@ PingCodeBindDialog::PingCodeBindDialog(Plater* plater /*= nullptr*/)
     request_bind_panel->SetBackgroundColour(*wxWHITE);
     binding_panel->SetBackgroundColour(*wxWHITE);
 
-    m_status_text = new Label(request_bind_panel, _L("Please Find the Pin Code in Account page on printer screen,\n and type in the Pin Code below."));
+    m_status_text = new Label(request_bind_panel, _L("Please Find the Pin Code in Account page on printer screen, and type in the Pin Code below."));
     m_status_text->SetBackgroundColour(*wxWHITE);
     m_status_text->SetFont(Label::Body_14);
     m_status_text->SetMaxSize(wxSize(FromDIP(440), -1));
@@ -153,6 +154,7 @@ PingCodeBindDialog::PingCodeBindDialog(Plater* plater /*= nullptr*/)
         m_text_input_single_code[i]->GetTextCtrl()->SetDefaultStyle(textAttr);
         m_text_input_single_code[i]->SetFont(Label::Body_16);
         m_text_input_single_code[i]->GetTextCtrl()->SetMaxLength(1);
+        m_text_input_single_code[i]->SetName(Mcp::kSecretField);
         m_text_input_single_code[i]->GetTextCtrl()->Bind(wxEVT_TEXT, &PingCodeBindDialog::on_text_changed, this);
         m_text_input_single_code[i]->GetTextCtrl()->Bind(wxEVT_KEY_DOWN, &PingCodeBindDialog::on_key_backspace, this);
         m_text_input_single_code[i]->GetTextCtrl()->Bind(wxEVT_CHAR, &PingCodeBindDialog::on_key_input, this);
@@ -767,6 +769,9 @@ PingCodeBindDialog::~PingCodeBindDialog() {
              m_st_txt_error_code->Wrap(FromDIP(330));
              m_st_txt_error_desc->Wrap(FromDIP(330));
              m_st_txt_extra_info->Wrap(FromDIP(330));
+
+             // Lays out the fixed-size panel, which gets no size event on macOS
+             m_sw_bind_failed_info->FitInside();
          }
          else {
              m_sw_bind_failed_info->Show(false);

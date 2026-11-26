@@ -1,7 +1,9 @@
 get_filename_component(_TEST_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
 add_executable(${_TEST_NAME}_tests
     ${_TEST_NAME}_tests_main.cpp
+    mcp_test_utils.hpp
     test_bambu_filament_ids.cpp
+    test_bbl_cert_dir.cpp
     test_bed_exclusion_fields.cpp
     test_cloud_delete_queue.cpp
     test_config_value_formatter.cpp
@@ -10,23 +12,43 @@ add_executable(${_TEST_NAME}_tests
     test_dev_mapping.cpp
     test_device_access.cpp
     test_moonraker_printer_agent.cpp
+    test_moonraker_filament_sources.cpp
+    test_snapmaker_filament_match.cpp
     test_network_discovery.cpp
     test_filament_bitmap_utils.cpp
     test_colour_picker_field.cpp
+    test_field_number_text.cpp
     test_filament_color_picker.cpp
     test_ams_materials_setting.cpp
     test_gcode_preview_colors.cpp
+    # The reduced toolpath set's end bands, from libvgcode's layer table.
+    test_libvgcode_layers.cpp
+    # The vertex that stands for a role when the solid model takes the toolpaths' colours.
+    test_libvgcode_sampling.cpp
     test_device_progress.cpp
     test_device_manager_integration.cpp
     test_web_media_controller.cpp
+    test_part_plate.cpp
     test_scene_raycaster.cpp
     test_scene_benchmark.cpp
     test_lazy.cpp
+    test_mcp_activity_log.cpp
+    test_mcp_config.cpp
+    test_mcp_core.cpp
+    test_operations.cpp
+    test_mcp_protocol.cpp
+    test_mcp_recording.cpp
+    test_mcp_scene.cpp
+    test_mcp_tools.cpp
+    test_mcp_ui.cpp
+    test_mcp_web.cpp
+    test_mcp_results.cpp
     test_prebuild_queue.cpp
     test_staged_build.cpp
     test_network_versions.cpp
     test_orca_cloud_agent.cpp
     test_action_source.cpp
+    test_command_catalog.cpp
     test_option_state_registry.cpp
     test_plugin_host_api.cpp
     # Exercise seam enums and predicates through the embedded Python host API.
@@ -38,17 +60,25 @@ add_executable(${_TEST_NAME}_tests
     test_printer_agent.cpp
     test_qidi_printer_agent.cpp
     test_plugin_install.cpp
+    test_plugin_update.cpp
     test_plugin_lifecycle.cpp
+    test_plugin_wheel_install.cpp
     test_plugin_resource_texture.cpp
     test_plugin_printer_agent.cpp
+    test_post_processor.cpp
     test_printhost.cpp
     test_slicing_pipeline_bindings.cpp
     test_slicing_pipeline_config.cpp
     test_plugin_sort.cpp
     test_plugin_cloud_metadata.cpp
     test_plugin_audit.cpp
+    test_python_script_runner.cpp
+    test_plugin_operations.cpp
     test_plugin_json_depth.cpp
+    test_plugin_permission_validation.cpp
     test_shortcuts.cpp
+    test_speed_dial_dismiss.cpp
+    test_speed_dial_position.cpp
     test_texture_color_palette.cpp
     test_texture_island_view.cpp
     test_timelapse_codecs.cpp
@@ -57,11 +87,14 @@ add_executable(${_TEST_NAME}_tests
     test_user_manager.cpp
     test_sequential_clearance.cpp
     test_object_list.cpp
+    test_geometry_import.cpp
     ../fff_print/test_helpers.cpp
     )
 
 if (SLIC3R_CAD)
     target_sources(${_TEST_NAME}_tests PRIVATE test_design_sketch_tool.cpp)
+    # The Design tab's commands.
+    target_sources(${_TEST_NAME}_tests PRIVATE test_mcp_cad.cpp)
 endif ()
 
 if (MSVC)
@@ -79,8 +112,10 @@ orcaslicer_copy_test_dlls(${_TEST_NAME}_tests)
 
 if (WIN32)
     add_custom_command(TARGET ${_TEST_NAME}_tests POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${_TEST_NAME}_tests>/python"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_PREFIX_PATH}/libpython" "$<TARGET_FILE_DIR:${_TEST_NAME}_tests>/python"
+        COMMAND ${CMAKE_COMMAND} "-DSOURCE=${CMAKE_PREFIX_PATH}/libpython"
+            "-DDESTINATION=$<TARGET_FILE_DIR:${_TEST_NAME}_tests>/python"
+            "-DSTAMP=${CMAKE_CURRENT_BINARY_DIR}/python_runtime_$<CONFIG>.stamp"
+            -P "${CMAKE_SOURCE_DIR}/cmake/modules/StagePythonRuntime.cmake"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_PREFIX_PATH}/libpython/python${_bundled_python_abi}.dll"
             "${CMAKE_PREFIX_PATH}/libpython/vcruntime140.dll"
