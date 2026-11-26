@@ -17,7 +17,7 @@
     <div class="palette thin-scroll" id="palette" tabindex="-1"></div>
     <p class="palette-empty hidden" id="paletteEmpty" data-i18n="No matching colors">No matching colors</p>
     <div class="palette-toolbar">
-      <div class="palette-select ComboBox" id="paletteSelect">
+      <div class="palette-select ComboBox" id="paletteSelect" title="Choose the set of colors shown above." data-i18n-title="Choose the set of colors shown above.">
         <div class="arrow-icon"></div>
         <select id="paletteCombo" tabindex="-1">
           <option value="basic"           data-i18n="Basic Colors">Basic Colors</option>
@@ -38,16 +38,16 @@
   <div class="right-panel">
     <div class="spectrum-row">
       <div class="saturation-slider">
-        <input class="valueSlider" type="range" id="satSlider" min="0" max="100" step="0.1" tabindex="-1" aria-label="Saturation" data-i18n-aria-label="Saturation">
+        <input class="valueSlider" type="range" id="satSlider" min="0" max="100" step="0.1" tabindex="-1" aria-label="Saturation" data-i18n-aria-label="Saturation" title="Saturation" data-i18n-title="Saturation">
       </div>
-      <div class="spectrum-container">
+      <div class="spectrum-container" title="Click or drag to pick a color: across for the hue, up and down for the lightness." data-i18n-title="Click or drag to pick a color: across for the hue, up and down for the lightness.">
         <canvas id="spectrum"></canvas>
         <div id="colorIndicator"></div>
       </div>
     </div>
     <div class="editor-grid">
       <div class="editor-column">
-        <div id="modeControls" class="hidden">
+        <div id="modeControls" class="hidden" title="Solid picks one color. Gradient picks several colors that blend into one another." data-i18n-title="Solid picks one color. Gradient picks several colors that blend into one another.">
           <input class="switch-check" type="checkbox" id="modeSwitch">
           <label class="switch-slider" for="modeSwitch">
             <div class="switch-label" data-i18n="Solid">Solid</div>
@@ -60,7 +60,7 @@
             <label for="hexInput">#</label>
             <input type="text" id="hexInput" required value="808080" maxlength="8" autocomplete="off" spellcheck="false" aria-label="Hex color" data-i18n-aria-label="Hex color">
           </div>
-          <div class="inline-field value-field hidden" id="alphaControls" title="Opacity percent">
+          <div class="inline-field value-field hidden" id="alphaControls" title="Opacity percent" data-i18n-title="Opacity percent">
             <label for="oValue">
               <svg viewBox="0 0 12 12" width="12" height="12">
                  <path d="M0,1v10c0,.55.45,1,1,1h10c.55,0,1-.45,1-1V1c0-.55-.45-1-1-1H1C.45,0,0,.45,0,1ZM6,6v5H1v-5h5V1h5v5h-5Z" style="fill:#999"/>
@@ -87,34 +87,34 @@
             </div>
           </div>
           <div id="opacitySliderBar" hidden>
-            <input class="valueSlider" type="range" id="opacitySlider" min="0" max="100" step="0.1" tabindex="-1" aria-label="Opacity" data-i18n-aria-label="Opacity">
+            <input class="valueSlider" type="range" id="opacitySlider" min="0" max="100" step="0.1" tabindex="-1" aria-label="Opacity" data-i18n-aria-label="Opacity" title="Opacity" data-i18n-title="Opacity">
           </div>
         </div>
       </div>
       <div class="editor-column">
-        <div class="inline-field value-field" title="Hue">
+        <div class="inline-field value-field" title="Hue" data-i18n-title="Hue">
           <label for="hValue">H</label>
           <input type="number" id="hValue" min="0" max="360" step="1">
         </div>
-        <div class="inline-field value-field" title="Saturation">
+        <div class="inline-field value-field" title="Saturation" data-i18n-title="Saturation">
           <label for="sValue">S</label>
           <input type="number" id="sValue" min="0" max="100" step="1">
         </div>
-        <div class="inline-field value-field" title="Lightness">
+        <div class="inline-field value-field" title="Lightness" data-i18n-title="Lightness">
           <label for="lValue">L</label>
           <input type="number" id="lValue" min="0" max="100" step="1">
         </div>
       </div>
       <div class="editor-column">
-        <div class="inline-field value-field" title="Red">
+        <div class="inline-field value-field" title="Red" data-i18n-title="Red">
           <label for="rValue">R</label>
           <input type="number" id="rValue" min="0" max="255" step="1">
         </div>
-        <div class="inline-field value-field" title="Green">
+        <div class="inline-field value-field" title="Green" data-i18n-title="Green">
           <label for="gValue">G</label>
           <input type="number" id="gValue" min="0" max="255" step="1">
         </div>
-        <div class="inline-field value-field" title="Blue">
+        <div class="inline-field value-field" title="Blue" data-i18n-title="Blue">
           <label for="bValue">B</label>
           <input type="number" id="bValue" min="0" max="255" step="1">
         </div>

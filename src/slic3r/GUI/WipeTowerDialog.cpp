@@ -31,6 +31,7 @@
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "format.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/DialogButtons.hpp"
@@ -162,7 +163,7 @@ RammingPanel::RammingPanel(wxWindow* parent, const std::string& parameters)
         col_size.IncTo(GetTextExtent(_L(label)));
     col_size = wxSize(col_size.x + scale(30) ,-1);
 
-    auto add_spin = [this, sizer_param, col_size](wxString label, SpinInput* spin){
+    auto add_spin = [this, sizer_param, col_size](wxString label, SpinInput* spin, const wxString &tip){
         spin->Bind(wxEVT_KILL_FOCUS, [this](auto &e) {
             e.SetId(GetId());
             ProcessEventLocally(e);
@@ -171,20 +172,26 @@ RammingPanel::RammingPanel(wxWindow* parent, const std::string& parameters)
         auto h_sizer = new wxBoxSizer(wxHORIZONTAL);
         auto text = new wxStaticText(this, wxID_ANY, label, wxDefaultPosition, col_size);
         text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+        set_illustrated_tooltip(text, tip);
+        set_illustrated_tooltip(spin, tip);
         h_sizer->Add(text, 0, wxALIGN_CENTER_VERTICAL);
         h_sizer->Add(spin);
         sizer_param->Add(h_sizer, 0, wxEXPAND | wxBOTTOM, scale(2));
     };
 
     add_title(_L("Total ramming"));
-    add_spin( _L("Time")  , m_widget_time  );
-    add_spin( _L("Volume"), m_widget_volume);
+    add_spin( _L("Time")  , m_widget_time  , _L("How long the ramming lasts. The chart stretches to it; drag its points to set how "
+                                                 "fast the filament is pushed out over that time."));
+    add_spin( _L("Volume"), m_widget_volume, _L("The volume of filament pushed out during the ramming, worked out from the chart."));
 
     sizer_param->AddSpacer(10);
 
     add_title(_L("Ramming line"));
-    add_spin( _L("Width")  , m_widget_ramming_line_width_multiplicator);
-    add_spin( _L("Spacing"), m_widget_ramming_step_multiplicator      );
+    add_spin( _L("Width")  , m_widget_ramming_line_width_multiplicator,
+              _L("Width of the ramming lines on the wipe tower, as a percentage of its normal line width. Wider lines take the "
+                 "fast flow at a lower speed."));
+    add_spin( _L("Spacing"), m_widget_ramming_step_multiplicator      ,
+              _L("Distance between the ramming lines on the wipe tower, as a percentage of their width."));
 
     m_widget_time->SetValue(int(m_chart->get_time() * 1000));
     m_widget_volume->SetValue(m_chart->get_volume());
@@ -502,6 +509,13 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
     const nlohmann::json page_strings = {
         // TRN Corner header of the flushing volume table: rows are the filament flushed from, columns the filament changed to.
         {"from_to", _u8L("from/to")},
+        {"calc_btn_tip", _u8L("Calculate the flushing volumes of this nozzle again from the filament colors, replacing the values typed in.")},
+        {"extruders_tip", _u8L("Each nozzle has its own flushing volumes. Choose the one to edit.")},
+        {"multiplier_tip", _u8L("Scales all the flushing volumes of this nozzle at once. Above 1 purges more for cleaner color changes, "
+                                "below 1 saves filament.")},
+        // TRN Tooltip of a cell of the flushing volume table. The placeholders are the filament numbers, from and to.
+        {"cell_tip", _u8L("Filament purged when changing from filament %s to filament %s. Orange: changed from the calculated value. "
+                          "Red: outside the suggested range.")},
     };
     m_webview->AddUserScript(wxString::FromUTF8(WebViewHostDialog::localized_strings_script(page_strings)));
     main_sizer->Add(m_webview, 1, wxEXPAND);
