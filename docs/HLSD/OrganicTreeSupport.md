@@ -427,8 +427,14 @@ wide enough to print counts as holding the interface. A tip, no wider than a tip
 and half a line, is printed solid with its flare, as a spiral from its outline
 in instead of a wall; a wider body prints the part of the band it widens by that
 lies within two lines of its outline solid, where its walls lie. A sliver of the
-band narrower than a line prints nothing and holds nothing up: the trees inside
-the body grow under what lies over it. This holds whatever the base pattern, as
+band narrower than a line, which a spiral of loops a line wide does not fill, the
+trees inside the body take for no material, and may grow over it. The paths
+print a piece of the band whole where some of it is wider than a sliver, and a
+piece all sliver only where a tree of its layer reaches it, but nothing of it
+over a tree, which prints its loops there: a bead across a tree two lines wide
+would leave its loops no room. The trees of the layer below carry what the paths
+print of the slivers, as they carry the rest of the band, and grow under what
+lies over the slivers left out. This holds whatever the base pattern, as
 the gaps lie between the bodies, outside any fill. The touch band is removed
 from every gap narrower than the bridge span, so a roof line running between
 tips is not held by them, and the hanging check can still fire and widen bodies.

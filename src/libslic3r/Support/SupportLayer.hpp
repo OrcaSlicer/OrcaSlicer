@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <cstddef>
+#include <optional>
 #include <oneapi/tbb/scalable_allocator.h>
 #include <oneapi/tbb/spin_mutex.h>
 #include <utility>
@@ -119,6 +120,10 @@ public:
 	// Organic: the parts of the polygons that are printed solid even over a hollow base, the tops of the bodies
 	// widened under a roof.
 	Polygons solid_polygons;
+	// Organic: what of the solid polygons of a body printed with walls the trees grown inside it take for no material,
+	// see organic_grow_trees_inside_hollow_bodies(): slivers narrower than a line. The paths print a piece of the solid
+	// parts lying all in them only where a tree reaches it, see organic_split_solid_islands().
+	std::optional<Polygons> solid_slivers;
 	// Organic: the trees grown inside a hollow body, which carry what is printed above it over its inside, a roof or a
 	// part printed solid, printed as walls of their own beside the walls of the body; on the first layer, the feet of
 	// the trees coming down onto it, printed separately from a sparse flange where its lines would not hold the trees,

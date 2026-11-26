@@ -1736,7 +1736,8 @@ void generate_support_toolpaths(
                     const size_t first = dst.size();
                     // Organic prints the solid parts of its bodies solid, as above the raft.
                     tree_supports_generate_paths(dst, organic_hollow ? organic_extrude_solid_islands(dst, tree_polygons,
-                        tree_layer->solid_polygons, flow, support_layer.object()->print()->config(), config) : tree_polygons,
+                        tree_layer->solid_polygons, flow, support_layer.object()->print()->config(), config,
+                        tree_layer) : tree_polygons,
                         flow, support_params, organic_double_walls ? &tree_layer->double_walls : nullptr);
                     tree_paths.assign(dst.begin() + first, dst.end());
                 }
@@ -2011,7 +2012,7 @@ void generate_support_toolpaths(
                 Polygons shell_region = diff(base_layer.polygons_to_extrude(), union_(separate_regions));
                 if (hollow_tree)
                     shell_region = organic_split_solid_islands(shell_region, base_layer.layer->solid_polygons, flow.scaled_width(),
-                        shell_solid);
+                        shell_solid, base_layer.layer);
                 ExtrusionEntityCollection shell;
                 if (hollow_tree)
                     tree_supports_generate_paths(shell.entities, shell_region, flow, support_params,
@@ -2214,7 +2215,8 @@ void generate_support_toolpaths(
                 } else if (hollow_tree) {
                     if (!common_shell)
                         tree_supports_generate_paths(base_layer.extrusions, organic_extrude_solid_islands(base_layer.extrusions,
-                            base_layer.polygons_to_extrude(), base_layer.layer->solid_polygons, flow, support_layer.object()->print()->config(), config),
+                            base_layer.polygons_to_extrude(), base_layer.layer->solid_polygons, flow,
+                            support_layer.object()->print()->config(), config, base_layer.layer),
                             flow, support_params, organic_double_walls ? &base_layer.layer->double_walls : nullptr);
                     // The trees under the roofs over the inside of the body, as loops going inward, see
                     // organic_generate_inner_tree_paths(): a loop shorter than a line is a dot. They fuse

@@ -48,6 +48,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -3286,33 +3287,293 @@ Polygons organic_solid_fill(const ExPolygon &island, const Polygons &solid, cons
     return walled ? intersection(island_solid, offset(island_polygons, - 2.f * float(width))) : island_polygons;
 }
 
+Polygons organic_solid_material(const ExPolygon &island, const Polygons &solid, const coord_t width, bool &walled,
+    Polygons *slivers, Polygons *parts)
+{
+    Polygons part = organic_solid_fill(island, solid, width, walled);
+    if (! walled || part.empty())
+        return part;
+    // A sliver of a solid part narrower than a line, which a spiral of loops a line wide does not fill, is left out:
+    // the paths print it only on what holds it up, see organic_split_solid_islands().
+    Polygons material = opening(part, 0.5f * float(width));
+    if (slivers != nullptr || parts != nullptr)
+        if (Polygons out = diff(part, material); ! out.empty()) {
+            if (slivers != nullptr)
+                append(*slivers, std::move(out));
+            if (parts != nullptr)
+                append(*parts, std::move(part));
+        }
+    return material;
+}
+
+Polygons organic_solid_slivers(const Polygons &bodies, const Polygons &solid, const coord_t width)
+{
+    Polygons slivers;
+    if (! solid.empty())
+        for (const ExPolygon &body : union_ex(bodies)) {
+            bool walled = true;
+            organic_solid_material(body, solid, width, walled, &slivers);
+        }
+    return slivers;
+}
+
+namespace {
+
+// What of the solid parts of a hollow Organic layer nothing holds up: the slivers the trees inside its bodies take for
+// no material, see SupportGeneratorLayer::solid_slivers, but where a tree of the layer reaches them. Both are looked up
+// by their boxes, as a large layer has thousands of each.
+class UnheldSolid
+{
+public:
+    // None on the print bed, which holds up all of a solid part. Where the trees grew none, the slivers of the bodies.
+    UnheldSolid(const SupportGeneratorLayer *layer, const coord_t width)
+    {
+        if (layer == nullptr || layer->bottom_z < EPSILON || layer->solid_polygons.empty())
+            return;
+        if (layer->solid_slivers)
+            m_slivers = &*layer->solid_slivers;
+        else {
+            m_found   = organic_solid_slivers(layer->polygons, layer->solid_polygons, width);
+            m_slivers = &m_found;
+        }
+        if (m_slivers->empty())
+            return;
+        m_trees = &layer->inner_trees;
+        index(*m_slivers, m_sliver_index);
+        index(*m_trees, m_tree_index);
+    }
+    UnheldSolid(const UnheldSolid &)            = delete;
+    UnheldSolid &operator=(const UnheldSolid &) = delete;
+
+    bool empty() const { return m_slivers == nullptr || m_slivers->empty(); }
+
+    // A part without the trees of the layer: a tree takes slivers for no material and may grow over them, but its loops
+    // print there, which keep off what the layer prints otherwise and find no room left beside a bead across a tree two
+    // lines wide, see organic_generate_inner_tree_paths(). Of a solid part, only slivers lie under a tree.
+    Polygons without_trees(const Polygons &part) const
+    {
+        if (this->empty() || part.empty() || m_trees->empty())
+            return part;
+        const Polygons trees = near(*m_trees, m_tree_index, get_extents(part));
+        return trees.empty() ? part : diff(part, trees);
+    }
+
+    // What of a part lies in the slivers.
+    Polygons in_slivers(const Polygons &part) const
+    {
+        if (this->empty() || part.empty())
+            return {};
+        const Polygons slivers = near(*m_slivers, m_sliver_index, get_extents(part));
+        return slivers.empty() ? Polygons() : intersection(part, slivers);
+    }
+
+    // The pieces of a solid part, whole, but those lying all in the slivers, which no tree reaches.
+    Polygons held(const Polygons &part) const
+    {
+        if (this->empty() || part.empty())
+            return part;
+        const BoundingBox box     = get_extents(part);
+        const Polygons    slivers = near(*m_slivers, m_sliver_index, box);
+        if (slivers.empty())
+            return part;
+        // What of the part lies out of the slivers holds its piece up: the rest of a solid part the trees take for
+        // material, or what of one an outline grown after them opens. But not the hairs, nanometres across, Clipper
+        // leaves along the slivers where it rounds the points edges cross at.
+        ExPolygons holding;
+        for (ExPolygon &out : diff_ex(part, slivers))
+            if (wider_than_rounding(out))
+                holding.emplace_back(std::move(out));
+        ExPolygons pieces = union_ex(part);
+        if (pieces.size() == 1 && ! holding.empty())
+            return part;
+        std::vector<bool>   kept(pieces.size(), false);
+        std::vector<size_t> all(pieces.size());
+        for (size_t i = 0; i < pieces.size(); ++ i)
+            all[i] = i;
+        mark(pieces, all, holding, kept);
+        // A tree reaching a piece of slivers alone holds it up too. The trees are looked for near each piece left, as
+        // those between pieces far apart reach none of them. The pieces near the same trees are cut against them at
+        // once, each tree once, and those near none in common apart: a cut sweeps all it is given together.
+        std::vector<size_t>                left;
+        std::vector<size_t>                group;
+        std::vector<size_t>                near_left;
+        std::unordered_map<size_t, size_t> first_near;
+        const auto                         root = [&group](size_t j) {
+            while (group[j] != j)
+                j = group[j] = group[group[j]];
+            return j;
+        };
+        for (size_t i = 0; i < pieces.size(); ++ i)
+            if (! kept[i]) {
+                const size_t j = left.size();
+                left.push_back(i);
+                group.push_back(j);
+                visit_near(m_tree_index, get_extents(pieces[i].contour), [&](const size_t k) {
+                    if (const auto [found, added] = first_near.try_emplace(k, j); added)
+                        near_left.push_back(k);
+                    else
+                        group[root(j)] = root(found->second);
+                });
+            }
+        if (! near_left.empty()) {
+            // What a group's trees reach lies in its own pieces, among which alone it is looked for.
+            std::vector<Polygons>            trees(left.size()), alone(left.size());
+            std::vector<std::vector<size_t>> members(left.size());
+            for (const size_t k : near_left)
+                trees[root(first_near[k])].push_back((*m_trees)[k]);
+            for (size_t j = 0; j < left.size(); ++ j)
+                if (const size_t r = root(j); ! trees[r].empty()) {
+                    append(alone[r], to_polygons(pieces[left[j]]));
+                    members[r].push_back(left[j]);
+                }
+            for (size_t j = 0; j < left.size(); ++ j)
+                if (! trees[j].empty())
+                    mark(pieces, members[j], intersection_ex(alone[j], trees[j]), kept);
+        }
+        Polygons out;
+        for (size_t i = 0; i < pieces.size(); ++ i)
+            if (kept[i])
+                append(out, to_polygons(std::move(pieces[i])));
+        return out;
+    }
+
+private:
+    using Tree = AABBTreeIndirect::Tree<2, coord_t>;
+
+    // Twice the area by the perimeter is the width of a strip.
+    static bool wider_than_rounding(const ExPolygon &out)
+    {
+        double perimeter = out.contour.length();
+        for (const Polygon &hole : out.holes)
+            perimeter += hole.length();
+        return 2. * out.area() > double(SCALED_EPSILON) * perimeter;
+    }
+    static void index(const Polygons &polygons, Tree &tree)
+    {
+        std::vector<AABBTreeIndirect::BoundingBoxWrapper> boxes;
+        boxes.reserve(polygons.size());
+        for (size_t i = 0; i < polygons.size(); ++ i)
+            boxes.emplace_back(i, get_extents(polygons[i]));
+        tree.build_modify_input(boxes);
+    }
+    template<typename Visit> static void visit_near(const Tree &tree, const BoundingBox &box, Visit &&visit)
+    {
+        AABBTreeIndirect::traverse(tree, AABBTreeIndirect::intersecting(Tree::BoundingBox(box.min, box.max)),
+            [&visit](const Tree::Node &node) {
+                visit(node.idx);
+                return true;
+            });
+    }
+    // The polygons near the box, cut to it, as one of them may reach far beyond it.
+    static Polygons near(const Polygons &polygons, const Tree &tree, const BoundingBox &box)
+    {
+        Polygons out;
+        visit_near(tree, box, [&polygons, &out](const size_t i) { out.push_back(polygons[i]); });
+        return ClipperUtils::clip_clipper_polygons_with_subject_bbox(out, box.inflated(SCALED_EPSILON));
+    }
+    // Marks the pieces anything of holding lies in, of the candidates, among which lies all of it. Each part of
+    // holding lies in one piece, and its box in the box of the piece, but for what Clipper rounds: that piece is the
+    // only one whose box holds it but where pieces nest in rings of others, and only then are those tried, each once
+    // with all the parts its box holds. A piece with narrow pieces around it, in the gaps of a comb, is looked for in
+    // no more than its own, and a narrow piece with many around it, a lattice, is tried once.
+    static void mark(const ExPolygons &pieces, const std::vector<size_t> &candidates, const ExPolygons &holding,
+        std::vector<bool> &kept)
+    {
+        if (holding.empty())
+            return;
+        std::vector<BoundingBox>                          boxes;
+        std::vector<AABBTreeIndirect::BoundingBoxWrapper> wrapped;
+        boxes.reserve(candidates.size());
+        wrapped.reserve(candidates.size());
+        for (size_t c = 0; c < candidates.size(); ++ c) {
+            boxes.emplace_back(get_extents(pieces[candidates[c]].contour).inflated(SCALED_EPSILON));
+            wrapped.emplace_back(c, boxes.back());
+        }
+        Tree tree;
+        tree.build_modify_input(wrapped);
+        std::vector<Polygons> tried(candidates.size());
+        for (const ExPolygon &part : holding) {
+            const BoundingBox   box = get_extents(part.contour);
+            std::vector<size_t> around;
+            visit_near(tree, box, [&boxes, &box, &around](const size_t c) {
+                if (boxes[c].contains(box))
+                    around.push_back(c);
+            });
+            if (around.size() == 1)
+                kept[candidates[around.front()]] = true;
+            else
+                for (const size_t c : around)
+                    append(tried[c], to_polygons(part));
+        }
+        for (size_t c = 0; c < candidates.size(); ++ c)
+            if (const size_t i = candidates[c];
+                ! kept[i] && ! tried[c].empty() && ! intersection(to_polygons(pieces[i]), tried[c]).empty())
+                kept[i] = true;
+    }
+
+    Polygons        m_found;
+    const Polygons *m_slivers = nullptr;
+    const Polygons *m_trees   = nullptr;
+    Tree            m_sliver_index;
+    Tree            m_tree_index;
+};
+
 // Organic: the solid parts of a hollow body, the bodies widened under an interface, see organic_solid_fill(), and the
-// islands to be printed as walls.
-Polygons organic_split_solid_islands(const Polygons &polygons, const Polygons &solid, const coord_t width, Polygons &fill)
+// islands to be printed as walls. The trees inside the bodies grow under no more of a solid part than they take for
+// material, see organic_solid_material(): a sliver narrower than a line, printed as Arachne lays it or where it lays
+// only dots as a bead a line wide along its middle, see organic_extrude_solid_fill(), hangs unless the rest of its
+// piece or a tree under it holds it. So of an island printed with a wall, a body or a part of one an interface of its
+// layer leaves, its walls cutting into the solid part along the interface too, a piece of the solid part is printed
+// whole, but not one lying all in the slivers, which no tree reaches, and nothing of it over a tree of the layer. The
+// trees of the layer below carry what of the slivers is printed, see organic_printed_slivers(). A piece the trees did
+// not see, where the outline grew after them, is printed as it is.
+Polygons split_solid_islands(const Polygons &polygons, const Polygons &solid, const coord_t width, Polygons &fill,
+    const UnheldSolid &unheld)
 {
     if (solid.empty())
         return polygons;
     Polygons walls;
     for (const ExPolygon &island : union_ex(polygons)) {
-        bool walled = true;
+        bool     walled = true;
         // With the rule the inner trees use, see organic_grow_trees_inside_hollow_bodies().
-        append(fill, organic_solid_fill(island, solid, width, walled));
-        if (walled)
+        Polygons part   = organic_solid_fill(island, solid, width, walled);
+        if (walled) {
+            if (! unheld.empty())
+                part = unheld.without_trees(unheld.held(part));
             append(walls, to_polygons(island));
+        }
+        append(fill, std::move(part));
     }
     return walls;
 }
 
+} // namespace
+
+Polygons organic_split_solid_islands(const Polygons &polygons, const Polygons &solid, const coord_t width,
+    Polygons &fill, const SupportGeneratorLayer *layer)
+{
+    const UnheldSolid unheld(layer, width);
+    return split_solid_islands(polygons, solid, width, fill, unheld);
+}
+
+Polygons organic_printed_slivers(const Polygons &parts, const SupportGeneratorLayer &layer, const coord_t width)
+{
+    // The solid parts of all the islands at once: each piece of one lies in its island, apart from the others.
+    const UnheldSolid unheld(&layer, width);
+    return unheld.in_slivers(unheld.without_trees(unheld.held(parts)));
+}
+
 Polygons organic_extrude_solid_islands(ExtrusionEntitiesPtr &dst, const Polygons &polygons, const Polygons &solid, const Flow &flow,
-    const PrintConfig &print_config, const PrintObjectConfig &object_config)
+    const PrintConfig &print_config, const PrintObjectConfig &object_config, const SupportGeneratorLayer *layer)
 {
     if (solid.empty())
         return polygons;
+    const UnheldSolid unheld(layer, flow.scaled_width());
     // Island by island, as the paths are to follow one another.
     Polygons walls;
     for (const ExPolygon &island : union_ex(polygons)) {
         Polygons fill;
-        append(walls, organic_split_solid_islands(to_polygons(island), solid, flow.scaled_width(), fill));
+        append(walls, split_solid_islands(to_polygons(island), solid, flow.scaled_width(), fill, unheld));
         organic_extrude_solid_fill(dst, fill, flow, print_config, object_config);
     }
     return walls;

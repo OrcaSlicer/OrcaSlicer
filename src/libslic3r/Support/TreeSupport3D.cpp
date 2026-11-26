@@ -5129,6 +5129,8 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
         Polygons   solid;
         Polygons   material;
         Polygons   inside;
+        // The solid parts of the islands with slivers, of which the paths print some, see organic_printed_slivers().
+        Polygons   sliver_parts;
     };
     std::vector<Printed>     printed(bodies.size());
     std::vector<BoundingBox> model_extents(model.size());
@@ -5138,6 +5140,9 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
             if (const SupportGeneratorLayer *layer = bodies[l]; layer != nullptr) {
                 Printed   &out   = printed[l];
                 const bool first = layer->bottom_z < EPSILON;
+                // What of the solid parts they take for no material. The paths print a piece lying all in it only
+                // where a tree reaches it, but not over the tree, see organic_split_solid_islands().
+                Polygons   slivers;
                 for (ExPolygon &island : union_ex(layer->polygons))
                     if (! offset(island, - half).empty()) {
                         if (first) {
@@ -5151,11 +5156,12 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
                             append(out.inside, union_(inside));
                         }
                         bool     walled = ! first;
-                        Polygons solid  = first ? Polygons() : organic_solid_fill(island, layer->solid_polygons, width, walled);
+                        // A sliver of a solid part narrower than a line holds nothing up: the trees grow under what
+                        // lies over it, and under what the paths print of it. See organic_solid_material().
+                        Polygons solid  = first ? Polygons() :
+                            organic_solid_material(island, layer->solid_polygons, width, walled, &slivers,
+                                &out.sliver_parts);
                         if (walled) {
-                            // A sliver of a solid part narrower than a line prints nothing, see
-                            // organic_extrude_solid_islands(), and holds nothing up: the trees grow under what lies over it.
-                            solid = opening(solid, half);
                             // A body wide enough for one gets a second wall too, but the paths decide on it by the outline
                             // they print, whose area may fall on the other side of the threshold: the trees grow up to the
                             // first wall, and the paths cut them against the second one where they print it. See
@@ -5174,6 +5180,7 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
                             append(out.solid, to_polygons(island));
                         out.islands.emplace_back(std::move(island));
                     }
+                bodies[l]->solid_slivers = std::move(slivers);
                 out.material = out.walls;
                 append(out.material, out.solid);
                 // Interface contours are planning envelopes. Sparse bottom interfaces receive local footing under
@@ -5217,11 +5224,17 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
         if (layer == nullptr || printed[l].islands.empty())
             continue;
         const Printed &here = printed[l];
-        // The roofs over this layer and the beads the layer above prints, its walls, its solid parts and its trees, over
-        // the inside of the bodies: the loads the trees carry.
+        // The roofs over this layer and the beads the layer above prints, its walls, its solid parts, what of their
+        // slivers it prints given its trees, grown by now, and its trees, over the inside of the bodies: the loads the
+        // trees carry.
         const Polygons roof_load  = l + 1 < roofs.size() ? intersection(roofs[l + 1], here.inside) : Polygons();
         const Polygons wall_load  = stacked ? intersection(printed[l + 1].walls, here.inside) : Polygons();
-        const Polygons solid_load = stacked ? intersection(printed[l + 1].solid, here.inside) : Polygons();
+        Polygons       solid_above;
+        if (stacked) {
+            solid_above = organic_printed_slivers(printed[l + 1].sliver_parts, *bodies[l + 1], width);
+            append(solid_above, printed[l + 1].solid);
+        }
+        const Polygons solid_load = intersection(solid_above, here.inside);
         const Polygons tree_load  = stacked ? intersection(bodies[l + 1]->inner_trees, here.inside) : Polygons();
         if (trees.empty() && roof_load.empty() && wall_load.empty() && solid_load.empty() && tree_load.empty())
             continue;

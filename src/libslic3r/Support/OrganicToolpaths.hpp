@@ -105,17 +105,36 @@ Polygons organic_outlines_into_box(const Polygons &outlines, const BoundingBox &
 // mostly solid, a tip, printed with no wall, or else the solid part two lines inside its outline, where its walls lie.
 // walled tells whether the island is printed with a wall.
 Polygons organic_solid_fill(const ExPolygon &island, const Polygons &solid, coord_t width, bool &walled);
+// What of it the trees inside the bodies take for solid material, see organic_grow_trees_inside_hollow_bodies(): all of
+// an island printed with no wall, or the solid part where it is a line wide at least. The rest of the solid part, the
+// slivers narrower than a line they take for none of it, is appended to slivers, if given, and the solid part of an
+// island with slivers to parts, if given.
+Polygons organic_solid_material(const ExPolygon &island, const Polygons &solid, coord_t width, bool &walled,
+    Polygons *slivers = nullptr, Polygons *parts = nullptr);
+// The slivers of the solid parts of all the islands of bodies, see organic_solid_material().
+Polygons organic_solid_slivers(const Polygons &bodies, const Polygons &solid, coord_t width);
 
-// The solid parts of the islands of polygons, the bodies of a hollow Organic layer, as organic_solid_fill() finds them
-// given the solid polygons of the layer, appended to fill. Returns the islands to be printed with a wall.
-Polygons organic_split_solid_islands(const Polygons &polygons, const Polygons &solid, coord_t width, Polygons &fill);
+// What of the slivers of a hollow Organic layer its paths print, of the solid parts with slivers of the islands of its
+// bodies given, see organic_solid_material() and organic_split_solid_islands(): the trees inside the bodies of the
+// layer below carry it.
+Polygons organic_printed_slivers(const Polygons &parts, const SupportGeneratorLayer &layer, coord_t width);
+
+// The solid parts of the islands of polygons, the bodies of a hollow Organic layer or what its interfaces leave of
+// them, as organic_solid_fill() finds them given the solid polygons of the layer, appended to fill: of an island
+// printed with a wall, the pieces of it, given the layer, but those lying all in its slivers, see
+// SupportGeneratorLayer::solid_slivers, which no tree of the layer reaches, and nothing of them over a tree of the
+// layer, which prints its loops there; and none on the print bed. Returns the islands to be printed with a wall.
+Polygons organic_split_solid_islands(const Polygons &polygons, const Polygons &solid, coord_t width, Polygons &fill,
+    const SupportGeneratorLayer *layer = nullptr);
 // Print fill, solid parts of a hollow Organic layer, into dst as spirals of the configured nozzle.
 void organic_extrude_solid_fill(ExtrusionEntitiesPtr &dst, const Polygons &fill, const Flow &flow, const PrintConfig &print_config,
     const PrintObjectConfig &object_config);
 // Print the solid parts of the islands of polygons, see organic_split_solid_islands(), into dst, see
-// organic_extrude_solid_fill(). Returns the islands printed with a wall.
+// organic_extrude_solid_fill(), given their layer as organic_split_solid_islands() takes it. Returns the islands
+// printed with a wall.
 Polygons organic_extrude_solid_islands(ExtrusionEntitiesPtr &dst, const Polygons &polygons, const Polygons &solid, const Flow &flow,
-    const PrintConfig &print_config, const PrintObjectConfig &object_config);
+    const PrintConfig &print_config, const PrintObjectConfig &object_config,
+    const SupportGeneratorLayer *layer = nullptr);
 // Whether the flow of a support path of this role is set to nothing: it prints nothing.
 bool support_role_has_no_flow(const PrintObjectConfig &config, ExtrusionRole role);
 // The gap a line of the support bridges between two lines of the base, scaled: their spacing for a filled base; for a

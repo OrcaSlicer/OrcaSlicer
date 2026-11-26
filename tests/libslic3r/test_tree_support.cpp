@@ -217,6 +217,429 @@ TEST_CASE("Organic solid parts too small for the spiral are printed all the same
     CHECK(opening(diff(Polygons{ part }, covered), scaled<float>(0.25 * width)).empty());
 }
 
+TEST_CASE("Organic solid parts narrower than a line are printed only where something holds them", "[TreeSupport][Solid][Regression]")
+{
+    using namespace Slic3r;
+    // Lines 0.4 mm wide at layers 0.2 mm. A body 3 mm square with two solid strips narrower than a line deep inside it,
+    // as a body widening under a roof leaves beyond its walls: the trees inside the body below take them for no
+    // material, see organic_grow_trees_inside_hollow_bodies(), so a bead along one hangs, unless a tree grows under it.
+    const Flow              flow(0.4f, 0.2f, 0.4f);
+    const PrintConfig       print_config;
+    const PrintObjectConfig object_config;
+    const auto rectangle = [](double x0, double y0, double x1, double y1) {
+        return Polygon({ Point::new_scale(x0, y0), Point::new_scale(x1, y0), Point::new_scale(x1, y1),
+                         Point::new_scale(x0, y1) });
+    };
+    const double across = GENERATE(0.3, 0.38);
+    CAPTURE(across);
+    const Polygons        solid{ rectangle(-0.5, -0.5 * across, 0.5, 0.5 * across),
+                                 rectangle(-0.5, 0.5 - 0.5 * across, 0.5, 0.5 + 0.5 * across) };
+    const Polygons        bodies{ rectangle(-1.5, -1.5, 1.5, 1.5) };
+    SupportGeneratorLayer layer;
+    layer.bottom_z       = 0.2;
+    layer.print_z        = 0.4;
+    layer.polygons       = bodies;
+    layer.solid_polygons = solid;
+    layer.solid_slivers  = organic_solid_slivers(bodies, solid, flow.scaled_width());
+    ExtrusionEntitiesPtr paths;
+    const auto           release = [&paths] {
+        for (ExtrusionEntity *entity : paths)
+            delete entity;
+        paths.clear();
+    };
+    const ScopeGuard release_at_end(release);
+    const auto       covered = [&paths] {
+        Polygons beads;
+        for (const ExtrusionEntity *entity : paths)
+            for_each_extrusion_path(*entity, [&beads](const ExtrusionPath &path) {
+                polygons_append(beads, organic_bead(path.as_polyline(), scaled<double>(path.width)));
+            });
+        return beads;
+    };
+    const auto extrude = [&] {
+        release();
+        return organic_extrude_solid_islands(paths, bodies, solid, flow, print_config, object_config, &layer).size();
+    };
+    const Polygons first_end{ rectangle(0.3, -0.05, 0.45, 0.05) };
+    const Polygons second_middle{ rectangle(-0.3, 0.47, 0.3, 0.53) };
+    // The body is printed as walls, and nothing of the strips solid.
+    CHECK(extrude() == 1);
+    CHECK(paths.empty());
+    // A tree grown under one end of the first strip holds it up: that strip is printed whole, to its other end, and
+    // nothing of the other one.
+    layer.inner_trees = { rectangle(-0.6, -0.1, -0.3, 0.1) };
+    CHECK(extrude() == 1);
+    CHECK_FALSE(intersection(covered(), first_end).empty());
+    CHECK(intersection(covered(), second_middle).empty());
+    // A tree reaching both strips holds both up.
+    layer.inner_trees = { rectangle(-0.6, -0.1, -0.3, 0.6) };
+    CHECK(extrude() == 1);
+    CHECK_FALSE(intersection(covered(), first_end).empty());
+    CHECK_FALSE(intersection(covered(), second_middle).empty());
+    // Of strips the trees took only half of one for a sliver, as where the outline of the body grew after them, both
+    // are printed whole.
+    layer.inner_trees.clear();
+    layer.solid_slivers =
+        organic_solid_slivers(bodies, { rectangle(-0.5, -0.5 * across, 0., 0.5 * across) }, flow.scaled_width());
+    REQUIRE_FALSE(layer.solid_slivers->empty());
+    CHECK(extrude() == 1);
+    CHECK_FALSE(intersection(covered(), first_end).empty());
+    CHECK_FALSE(intersection(covered(), second_middle).empty());
+    // So is a strip with a band a micrometre wide out of the slivers, as an interface cutting it can leave of the
+    // material: far wider than Clipper rounds, though its area is a thousandth of a square millimetre.
+    layer.solid_slivers = organic_solid_slivers(bodies, { rectangle(-0.5, -0.5 * across, 0.5, 0.5 * across - 0.001),
+        rectangle(-0.5, 0.5 - 0.5 * across, 0.5, 0.5 + 0.5 * across) }, flow.scaled_width());
+    CHECK(extrude() == 1);
+    CHECK_FALSE(intersection(covered(), first_end).empty());
+    CHECK(intersection(covered(), second_middle).empty());
+    // But not one with a hair two nanometres wide out of them, as Clipper leaves where it rounds the points edges
+    // cross at.
+    layer.solid_slivers = organic_solid_slivers(bodies, { rectangle(-0.5, -0.5 * across, 0.5, 0.5 * across - 2e-6),
+        rectangle(-0.5, 0.5 - 0.5 * across, 0.5, 0.5 + 0.5 * across) }, flow.scaled_width());
+    CHECK(extrude() == 1);
+    CHECK(paths.empty());
+    // On the print bed, which holds them up, both strips are printed.
+    layer.bottom_z      = 0.;
+    layer.print_z       = 0.2;
+    layer.solid_slivers = organic_solid_slivers(bodies, solid, flow.scaled_width());
+    CHECK(extrude() == 1);
+    CHECK_FALSE(intersection(covered(), first_end).empty());
+    CHECK_FALSE(intersection(covered(), second_middle).empty());
+}
+
+TEST_CASE("Organic solid slivers side by side are printed only where a tree reaches each", "[TreeSupport][Solid][Regression]")
+{
+    using namespace Slic3r;
+    // Lines 0.4 mm wide at layers 0.2 mm. A body 6 mm square with two diagonal solid strips 0.28 mm across side by
+    // side, slivers the trees took for no material. Two trees reach the first strip, one at its end beyond the box of
+    // the other strip and one in its middle within it, and none reaches the other strip. Mirrored, Clipper returns
+    // what the trees reach the other way round.
+    const Flow              flow(0.4f, 0.2f, 0.4f);
+    const PrintConfig       print_config;
+    const PrintObjectConfig object_config;
+    const double            mirror = GENERATE(1., -1.);
+    CAPTURE(mirror);
+    const auto outline = [mirror](const std::vector<Vec2d> &corners) {
+        Polygon polygon;
+        for (const Vec2d &corner : corners)
+            polygon.points.push_back(Point::new_scale(corner.x(), mirror * corner.y()));
+        polygon.make_counter_clockwise();
+        return polygon;
+    };
+    const auto rectangle = [&outline](double x0, double y0, double x1, double y1) {
+        return outline({ { x0, y0 }, { x1, y0 }, { x1, y1 }, { x0, y1 } });
+    };
+    const auto strip = [&outline](double dx) {
+        return outline({ { -1. + dx, -1.2 }, { 1. + dx, 0.8 }, { 1. + dx, 1.2 }, { -1. + dx, -0.8 } });
+    };
+    const Polygons        bodies{ rectangle(-3., -3., 3., 3.) };
+    const Polygons        solid{ strip(0.), strip(-0.8) };
+    SupportGeneratorLayer layer;
+    layer.bottom_z       = 0.2;
+    layer.print_z        = 0.4;
+    layer.polygons       = bodies;
+    layer.solid_polygons = solid;
+    layer.solid_slivers  = organic_solid_slivers(bodies, solid, flow.scaled_width());
+    // Their corners lie out of the strip, which they cut across clean.
+    layer.inner_trees    = { rectangle(0.58, 0.58, 0.82, 0.82), rectangle(-0.32, -0.32, -0.08, -0.08) };
+    REQUIRE(layer.solid_slivers->size() == 2);
+    ExtrusionEntitiesPtr paths;
+    const ScopeGuard     release([&paths] { for (ExtrusionEntity *entity : paths) delete entity; });
+    CHECK(organic_extrude_solid_islands(paths, bodies, solid, flow, print_config, object_config, &layer).size() == 1);
+    Polygons covered;
+    for (const ExtrusionEntity *entity : paths)
+        for_each_extrusion_path(*entity, [&covered](const ExtrusionPath &path) {
+            polygons_append(covered, organic_bead(path.as_polyline(), scaled<double>(path.width)));
+        });
+    // The first strip is printed between the trees, which keep it off, and nothing of the other.
+    CHECK_FALSE(intersection(covered, Polygons{ rectangle(0.23, 0.23, 0.27, 0.27) }).empty());
+    CHECK(intersection(covered, Polygons{ rectangle(-0.82, -0.02, -0.78, 0.02) }).empty());
+}
+
+TEST_CASE("Organic solid rings nested in one another are printed as what lies in each holds it", "[TreeSupport][Solid][Regression]")
+{
+    using namespace Slic3r;
+    // Lines 0.4 mm wide at layers 0.2 mm. A body 6 mm square, solid two lines inside its walls in a ring 1.2 mm wide,
+    // and inside that in a ring 0.2 mm wide, narrower than a line: the trees inside the body take the outer ring for
+    // material, and the inner one for a sliver. Or solid in a ring 0.2 mm wide, and inside that in a square 1.4 mm
+    // across: the trees take the ring for a sliver, and the square for material.
+    const bool              outer_held = GENERATE(true, false);
+    CAPTURE(outer_held);
+    const Flow              flow(0.4f, 0.2f, 0.4f);
+    const PrintConfig       print_config;
+    const PrintObjectConfig object_config;
+    const auto rectangle = [](double x0, double y0, double x1, double y1) {
+        return Polygon({ Point::new_scale(x0, y0), Point::new_scale(x1, y0), Point::new_scale(x1, y1),
+                         Point::new_scale(x0, y1) });
+    };
+    const auto square_ring = [&rectangle](double outer, double inner) {
+        return diff(Polygons{ rectangle(-outer, -outer, outer, outer) },
+                    Polygons{ rectangle(-inner, -inner, inner, inner) });
+    };
+    const Polygons        bodies{ rectangle(-3., -3., 3., 3.) };
+    const Polygons        solid = outer_held ? union_(square_ring(2.2, 1.), square_ring(0.7, 0.5)) :
+                                               union_(square_ring(1.6, 1.4), { rectangle(-0.7, -0.7, 0.7, 0.7) });
+    SupportGeneratorLayer layer;
+    layer.bottom_z       = 0.2;
+    layer.print_z        = 0.4;
+    layer.polygons       = bodies;
+    layer.solid_polygons = solid;
+    layer.solid_slivers  = organic_solid_slivers(bodies, solid, flow.scaled_width());
+    ExtrusionEntitiesPtr paths;
+    const ScopeGuard     release([&paths] { for (ExtrusionEntity *entity : paths) delete entity; });
+    CHECK(organic_extrude_solid_islands(paths, bodies, solid, flow, print_config, object_config, &layer).size() == 1);
+    Polygons covered;
+    for (const ExtrusionEntity *entity : paths)
+        for_each_extrusion_path(*entity, [&covered](const ExtrusionPath &path) {
+            polygons_append(covered, organic_bead(path.as_polyline(), scaled<double>(path.width)));
+        });
+    // What is held up is printed, though it lies in the box of the other, and nothing of the sliver.
+    const Polygon held   = outer_held ? rectangle(1.5, -0.1, 1.7, 0.1) : rectangle(-0.6, -0.1, -0.4, 0.1);
+    const Polygon sliver = outer_held ? rectangle(0.55, -0.1, 0.65, 0.1) : rectangle(1.45, -0.1, 1.55, 0.1);
+    CHECK_FALSE(intersection(covered, Polygons{ held }).empty());
+    CHECK(intersection(covered, Polygons{ sliver }).empty());
+}
+
+TEST_CASE("Organic solid parts left narrow by an interface of their layer are printed as the body holds them", "[TreeSupport][Solid][Regression]")
+{
+    using namespace Slic3r;
+    // Lines 0.4 mm wide at layers 0.2 mm. A body 3 mm square, solid 1.4 mm square in its middle, two lines inside its
+    // walls: the trees inside the body below take all of that solid part for material. An interface of the layer takes
+    // the top of the body, and the walls of what it leaves, along the interface too, leave of the solid part a strip
+    // 0.3 mm wide, narrower than a line, which the body holds up all the same.
+    const Flow              flow(0.4f, 0.2f, 0.4f);
+    const PrintConfig       print_config;
+    const PrintObjectConfig object_config;
+    const auto rectangle = [](double x0, double y0, double x1, double y1) {
+        return Polygon({ Point::new_scale(x0, y0), Point::new_scale(x1, y0), Point::new_scale(x1, y1),
+                         Point::new_scale(x0, y1) });
+    };
+    const Polygons bodies{ rectangle(-1.5, -1.5, 1.5, 1.5) };
+    const Polygon  solid = rectangle(-0.7, -0.7, 0.7, 0.7);
+    const Polygon  left  = rectangle(-1.5, -1.5, 1.5, 0.4);
+    // A layer the trees did not grow in: the paths find the slivers from all of its bodies.
+    SupportGeneratorLayer layer;
+    layer.bottom_z       = 0.2;
+    layer.print_z        = 0.4;
+    layer.polygons       = bodies;
+    layer.solid_polygons = { solid };
+    ExtrusionEntitiesPtr paths;
+    const ScopeGuard     release([&paths] { for (ExtrusionEntity *entity : paths) delete entity; });
+    const Polygons walls =
+        organic_extrude_solid_islands(paths, { left }, { solid }, flow, print_config, object_config, &layer);
+    CHECK(walls.size() == 1);
+    // The strip is printed solid.
+    Polygons covered;
+    for (const ExtrusionEntity *entity : paths)
+        for_each_extrusion_path(*entity, [&covered](const ExtrusionPath &path) {
+            polygons_append(covered, organic_bead(path.as_polyline(), scaled<double>(path.width)));
+        });
+    CHECK_FALSE(intersection(covered, Polygons{ rectangle(-0.5, -0.65, 0.5, -0.45) }).empty());
+}
+
+TEST_CASE("Organic inner trees leave the paths the slivers they take for no material", "[TreeSupport][Solid][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    // Lines 0.4 mm wide at layers 0.2 mm, a branch angle of 40 degrees, a preferred one of 25, a diameter angle of 5.
+    // A body 3 mm square, three layers tall, its top layer solid two lines inside its outline in a part 0.8 mm across,
+    // and beside it in a strip 0.3 mm wide, narrower than a line: the trees inside the body take the part for material,
+    // and the strip for a sliver, see organic_solid_material().
+    const double        line_width = 0.4, layer_height = 0.2;
+    TreeSupportSettings settings;
+    settings.support_line_width               = scaled<coord_t>(line_width);
+    settings.layer_height                     = scaled<coord_t>(layer_height);
+    settings.min_radius                       = scaled<coord_t>(0.4);
+    settings.maximum_move_distance            = scaled<coord_t>(std::tan(40. * M_PI / 180.) * layer_height);
+    settings.maximum_move_distance_slow       = scaled<coord_t>(std::tan(25. * M_PI / 180.) * layer_height);
+    settings.branch_radius_increase_per_layer = scaled<double>(std::tan(5. * M_PI / 180.) * layer_height);
+    settings.support_rests_on_model           = false;
+    const auto rectangle = [](double x0, double y0, double x1, double y1) {
+        return Polygon({ Point::new_scale(x0, y0), Point::new_scale(x1, y0), Point::new_scale(x1, y1),
+                         Point::new_scale(x0, y1) });
+    };
+    const Polygon                      body = rectangle(-1.5, -1.5, 1.5, 1.5);
+    const Polygons                     solid{ rectangle(-0.7, -0.7, 0.7, 0.1), rectangle(-0.7, 0.35, 0.7, 0.65) };
+    const size_t                       num_layers = 3;
+    std::vector<SupportGeneratorLayer> storage(num_layers);
+    std::vector<Polygons>              roofs(num_layers), model(num_layers);
+    SupportGeneratorLayersPtr          bodies(num_layers, nullptr);
+    for (size_t i = 0; i < storage.size(); ++ i) {
+        SupportGeneratorLayer &layer = storage[i];
+        layer.bottom_z = layer_height * double(i);
+        layer.print_z  = layer.bottom_z + layer_height;
+        layer.height   = layer_height;
+        layer.polygons = { body };
+        bodies[i]      = &layer;
+    }
+    storage.back().solid_polygons = solid;
+    organic_grow_trees_inside_hollow_bodies(bodies, roofs, model, settings, settings.support_line_width,
+        settings.support_line_width);
+    SupportGeneratorLayer &top = storage.back();
+    REQUIRE(top.solid_slivers.has_value());
+    CHECK(contains(*top.solid_slivers, Point::new_scale(0., 0.5)));
+    CHECK_FALSE(contains(*top.solid_slivers, Point::new_scale(0., -0.3)));
+    const Flow              flow(float(line_width), float(layer_height), 0.4f);
+    const PrintConfig       print_config;
+    const PrintObjectConfig object_config;
+    ExtrusionEntitiesPtr    paths;
+    const auto              release = [&paths] {
+        for (ExtrusionEntity *entity : paths)
+            delete entity;
+        paths.clear();
+    };
+    const ScopeGuard release_at_end(release);
+    const auto       covered = [&paths] {
+        Polygons beads;
+        for (const ExtrusionEntity *entity : paths)
+            for_each_extrusion_path(*entity, [&beads](const ExtrusionPath &path) {
+                polygons_append(beads, organic_bead(path.as_polyline(), scaled<double>(path.width)));
+            });
+        return beads;
+    };
+    const auto extrude = [&](const SupportGeneratorLayer &layer) {
+        release();
+        organic_extrude_solid_islands(paths, layer.polygons, layer.solid_polygons, flow, print_config, object_config,
+            &layer);
+    };
+    const Polygons part_middle{ rectangle(-0.1, -0.35, 0.1, -0.25) };
+    const Polygons strip_middle{ rectangle(-0.3, 0.47, 0.3, 0.53) };
+    // The paths print the part of the top layer, where no tree grows, and nothing of the strip.
+    extrude(top);
+    CHECK_FALSE(intersection(covered(), part_middle).empty());
+    CHECK(intersection(covered(), strip_middle).empty());
+    // They take the slivers the trees left them, not those the bodies give again: with none left, the strip is printed.
+    top.solid_slivers = Polygons{};
+    extrude(top);
+    CHECK_FALSE(intersection(covered(), strip_middle).empty());
+    // A sliver over the trees grown under the top layer lies on them: the trees print it, and the paths print of it
+    // only what lies beside them.
+    SupportGeneratorLayer &middle = storage[1];
+    const Polygon          sliver = rectangle(-0.5, -0.45, 0.5, -0.15);
+    REQUIRE_FALSE(intersection(Polygons{ sliver }, middle.inner_trees).empty());
+    middle.solid_polygons = { sliver };
+    middle.solid_slivers  = organic_solid_slivers(middle.polygons, middle.solid_polygons, settings.support_line_width);
+    REQUIRE_FALSE(middle.solid_slivers->empty());
+    extrude(middle);
+    // A bead ending at a tree reaches into it by half its width at most.
+    CHECK(intersection(covered(), offset(middle.inner_trees, - scaled<float>(0.5 * line_width) - scaled<float>(0.01)))
+              .empty());
+}
+
+TEST_CASE("Organic solid fill keeps off the trees of its layer, which print their loops there", "[TreeSupport][Solid][Regression]")
+{
+    using namespace Slic3r;
+    // Lines 0.4 mm wide at layers 0.2 mm. A body 3 mm square with a solid strip 0.3 mm wide, narrower than a line, deep
+    // inside it, which the trees inside the body take for no material: one grows on it, a disc as wide as two lines, to
+    // hold up what the layer above prints over it. A bead along the strip would cross the disc, and its loop, which
+    // keeps off what the layer prints, would find no room left: the tree would print nothing.
+    const Flow              flow(0.4f, 0.2f, 0.4f);
+    const PrintConfig       print_config;
+    const PrintObjectConfig object_config;
+    const auto rectangle = [](double x0, double y0, double x1, double y1) {
+        return Polygon({ Point::new_scale(x0, y0), Point::new_scale(x1, y0), Point::new_scale(x1, y1),
+                         Point::new_scale(x0, y1) });
+    };
+    Polygon tree = make_circle(scaled<double>(0.4), scaled<double>(0.005));
+    tree.translate(Point::new_scale(0.1, 0.));
+    const Polygons        bodies{ rectangle(-1.5, -1.5, 1.5, 1.5) };
+    const Polygons        solid{ rectangle(-0.6, -0.15, 0.6, 0.15) };
+    SupportGeneratorLayer layer;
+    layer.bottom_z       = 0.2;
+    layer.print_z        = 0.4;
+    layer.polygons       = bodies;
+    layer.solid_polygons = solid;
+    layer.solid_slivers  = organic_solid_slivers(bodies, solid, flow.scaled_width());
+    layer.inner_trees    = { tree };
+    REQUIRE_FALSE(layer.solid_slivers->empty());
+    ExtrusionEntitiesPtr paths, loops;
+    const ScopeGuard     release([&paths, &loops] {
+        for (ExtrusionEntitiesPtr *entities : { &paths, &loops })
+            for (ExtrusionEntity *entity : *entities)
+                delete entity;
+    });
+    CHECK(organic_extrude_solid_islands(paths, bodies, solid, flow, print_config, object_config, &layer).size() == 1);
+    Polygons covered;
+    for (const ExtrusionEntity *entity : paths)
+        for_each_extrusion_path(*entity, [&covered](const ExtrusionPath &path) {
+            polygons_append(covered, organic_bead(path.as_polyline(), scaled<double>(path.width)));
+        });
+    // A bead ending at the tree reaches into it by half its width at most.
+    CHECK(intersection(covered, offset(Polygons{ tree }, - scaled<float>(0.21))).empty());
+    // The tree prints its loop round its middle.
+    organic_generate_inner_tree_paths(loops, layer.inner_trees, covered, flow);
+    double length = 0.;
+    for (const ExtrusionEntity *entity : loops)
+        for_each_extrusion_path(*entity, [&length](const ExtrusionPath &path) {
+            length += path.as_polyline().length();
+        });
+    CHECK(unscaled<double>(length) > 1.);
+}
+
+TEST_CASE("Organic inner trees hold up the slivers the paths of the layer above print", "[TreeSupport][Solid][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    // Lines 0.4 mm wide at layers 0.2 mm, a branch angle of 40 degrees, a preferred one of 25, a diameter angle of 5.
+    // A body 6 mm square, three layers tall, its top layer solid two lines inside its outline in a part 1.4 mm by
+    // 0.8 mm, with an arm 0.37 mm wide, narrower than a line, going 1.3 mm out of it: the trees inside the body take
+    // the arm for a sliver, but the paths print the part whole, arm and all, as the part holds it, the arm as a bead a
+    // line wide. And in a strip as narrow apart from it, which nothing holds and the paths leave out.
+    const double        line_width = 0.4, layer_height = 0.2;
+    TreeSupportSettings settings;
+    settings.support_line_width               = scaled<coord_t>(line_width);
+    settings.layer_height                     = scaled<coord_t>(layer_height);
+    settings.min_radius                       = scaled<coord_t>(0.4);
+    settings.maximum_move_distance            = scaled<coord_t>(std::tan(40. * M_PI / 180.) * layer_height);
+    settings.maximum_move_distance_slow       = scaled<coord_t>(std::tan(25. * M_PI / 180.) * layer_height);
+    settings.branch_radius_increase_per_layer = scaled<double>(std::tan(5. * M_PI / 180.) * layer_height);
+    settings.support_rests_on_model           = false;
+    const auto rectangle = [](double x0, double y0, double x1, double y1) {
+        return Polygon({ Point::new_scale(x0, y0), Point::new_scale(x1, y0), Point::new_scale(x1, y1),
+                         Point::new_scale(x0, y1) });
+    };
+    const Polygon body = rectangle(-3., -3., 3., 3.);
+    const Polygons solid = union_(
+        { rectangle(-0.7, -0.7, 0.7, 0.1), rectangle(0.6, -0.185, 2., 0.185), rectangle(-2., 1.15, -0.8, 1.52) });
+    const size_t                       num_layers = 3;
+    std::vector<SupportGeneratorLayer> storage(num_layers);
+    std::vector<Polygons>              roofs(num_layers), model(num_layers);
+    SupportGeneratorLayersPtr          bodies(num_layers, nullptr);
+    for (size_t i = 0; i < storage.size(); ++ i) {
+        SupportGeneratorLayer &layer = storage[i];
+        layer.bottom_z = layer_height * double(i);
+        layer.print_z  = layer.bottom_z + layer_height;
+        layer.height   = layer_height;
+        layer.polygons = { body };
+        bodies[i]      = &layer;
+    }
+    storage.back().solid_polygons = solid;
+    organic_grow_trees_inside_hollow_bodies(bodies, roofs, model, settings, settings.support_line_width,
+        settings.support_line_width);
+    // The arm is a sliver of the top layer, which its paths print.
+    const Polygons               arm_end{ rectangle(1.6, -0.1, 1.9, 0.1) };
+    const SupportGeneratorLayer &top = storage.back();
+    REQUIRE(top.solid_slivers.has_value());
+    REQUIRE_FALSE(intersection(*top.solid_slivers, arm_end).empty());
+    const Flow              flow(float(line_width), float(layer_height), 0.4f);
+    const PrintConfig       print_config;
+    const PrintObjectConfig object_config;
+    ExtrusionEntitiesPtr    paths;
+    const ScopeGuard        release([&paths] { for (ExtrusionEntity *entity : paths) delete entity; });
+    organic_extrude_solid_islands(paths, top.polygons, top.solid_polygons, flow, print_config, object_config, &top);
+    Polygons covered;
+    for (const ExtrusionEntity *entity : paths)
+        for_each_extrusion_path(*entity, [&covered](const ExtrusionPath &path) {
+            polygons_append(covered, organic_bead(path.as_polyline(), scaled<double>(path.width)));
+        });
+    REQUIRE_FALSE(intersection(covered, arm_end).empty());
+    const Polygons strip_middle{ rectangle(-1.5, 1.25, -1.3, 1.4) };
+    REQUIRE(intersection(covered, strip_middle).empty());
+    // A tree grows under the far end of the arm, which stands on nothing else, and none under the strip.
+    CHECK_FALSE(intersection(storage[1].inner_trees, arm_end).empty());
+    CHECK(intersection(storage[1].inner_trees, strip_middle).empty());
+}
+
 TEST_CASE("Organic footing near a box keeps the edges crossing the box as they are", "[TreeSupport][Regression]")
 {
     using namespace Slic3r;
@@ -778,7 +1201,8 @@ TEST_CASE("Organic bodies widen under a roof printed in loops but where a base i
     // cut the stack of the roof short before its base interface, the lowest layer prints loops, and the bodies widen
     // into the gap under them, but under a part of the roof a base interface prints.
     enum { Base, Loops, Along, Split };
-    const int mode = GENERATE(Base, Loops, Along, Split);
+    // Generate ints: GCC rejects a generator over this unnamed enum local to the test case, which has no linkage.
+    const int mode = GENERATE(as<int>{}, Base, Loops, Along, Split);
     CAPTURE(mode);
     const coord_t  line_width = scaled<coord_t>(0.22), tip_radius = scaled<coord_t>(0.4);
     const double   move       = std::tan(40. * M_PI / 180.) * 0.02;

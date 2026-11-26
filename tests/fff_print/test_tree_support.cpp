@@ -257,6 +257,40 @@ TEST_CASE("A raft is still generated under tree support", "[TreeSupport]")
     REQUIRE(rafted_object->layers().front()->print_z > unrafted_object->layers().front()->print_z);
 }
 
+TEST_CASE("Organic support at the default settings stands on what is below it", "[TreeSupport][Organic][Regression]")
+{
+    // All but the support type at its default: a 0.4 mm nozzle, 0.2 mm layers, a hollow base spaced 2.5 mm and an
+    // automatic interface pattern, with a raft and without, on the build plate only and not. In the middle of the bed:
+    // the arranging helpers centre a model on the origin, mostly off the bed, which the support is clipped to.
+    const int raft_layers      = GENERATE(0, 2);
+    const int build_plate_only = GENERATE(0, 1);
+    CAPTURE(raft_layers, build_plate_only);
+    // A plate 30 mm square, 12 mm above the bed, on a column standing on a plate 20 mm square: the branches land on
+    // the lower plate and on the bed, and the bodies under the upper plate grow hollow, their tops widened under it.
+    TriangleMesh mesh   = make_cube(20, 20, 3);
+    TriangleMesh column = make_cube(6, 6, 10.5);
+    TriangleMesh upper  = make_cube(30, 30, 2);
+    // Each part overlaps the one below rather than resting on it; a coplanar join slices ambiguously.
+    column.translate(7.f, 7.f, 2.f);
+    upper.translate(-5.f, -5.f, 12.f);
+    mesh.merge(column);
+    mesh.merge(upper);
+    mesh.translate(90.f, 90.f, 0.f);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({ { "enable_support", 1 }, { "support_type", "tree(auto)" },
+        { "support_style", "organic" }, { "support_on_build_plate_only", build_plate_only },
+        { "support_threshold_angle", 30 }, { "raft_layers", raft_layers }, { "layer_height", 0.2 } });
+    Print print;
+    Model model;
+    Slic3r::Test::init_print(std::vector<TriangleMesh>{ std::move(mesh) }, print, model, config, nullptr, false);
+    print.process();
+    REQUIRE(support_points(print).size() > 1000);
+    const PrintObject &object = *print.objects().front();
+    const double       crumb  = scaled<double>(1.) * SupportParameters(object).support_material_flow.scaled_width();
+    CHECK(floating_support_islands(object, crumb).empty());
+    CHECK(object.step_state_with_warnings(posSupportMaterial).warnings.empty());
+}
+
 // Organic supports under a plate overhanging a column by 6 mm on every side, 15 mm above the bed.
 // Returns the area of the bounding box of the first support layer, in mm². A foot is no wider than
 // its tree is tall, so these trees can reach every diameter the tests below set.
