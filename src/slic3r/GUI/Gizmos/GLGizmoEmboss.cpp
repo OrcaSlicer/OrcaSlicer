@@ -3025,30 +3025,40 @@ void GLGizmoEmboss::draw_advanced()
     bool use_inch = wxGetApp().app_config->get_bool("use_inches");
     // letters placed one by one on the model do not follow the circle
     m_imgui->disabled_begin(font_prop.per_glyph);
-    // shown in the units and at the scale the text's height is shown in
-    const float shown_per_mm = (use_inch ? static_cast<float>(GizmoObjectManipulation::mm_to_in) : 1.f) * m_scale_height.value_or(1.f);
-    float arc_radius = current_prop.arc_radius.value_or(0.f) * shown_per_mm;
-    const float stored_arc_radius = stored_style ? stored_style->prop.arc_radius.value_or(0.f) * shown_per_mm : 0.f;
+    // what the last job was started with
+    const std::optional<float> requested_arc_radius = current_prop.arc_radius;
+    float arc_radius = current_prop.arc_radius.value_or(0.f);
+    const float stored_arc_radius = stored_style ? stored_style->prop.arc_radius.value_or(0.f) : 0.f;
     auto draw_arc_radius = [&]() {
+        // shown in the units and at the scale the text's height is shown in
+        const float shown_per_mm = (use_inch ? static_cast<float>(GizmoObjectManipulation::mm_to_in) : 1.f) * m_scale_height.value_or(1.f);
+        float shown = arc_radius * shown_per_mm;
         ImGui::SameLine(m_gui_cfg->advanced_input_offset);
         ImGui::SetNextItemWidth(m_gui_cfg->input_width);
-        bool changed = ImGui::InputFloat(("##" + tr.arc_radius).c_str(), &arc_radius, use_inch ? 0.1f : 1.f, use_inch ? 1.f : 10.f,
+        bool changed = ImGui::InputFloat(("##" + tr.arc_radius).c_str(), &shown, use_inch ? 0.1f : 1.f, use_inch ? 1.f : 10.f,
                                          use_inch ? "%.2f in" : "%.1f mm");
         m_imgui->request_frames_while_held(); // auto-repeat of the +/- buttons
         if (ImGui::IsItemHovered())
             m_imgui->tooltip(_u8L("Lay the text along a circle of this radius. A negative value bends it the other way, zero keeps it straight. The text also stays straight while it does not fit on the circle."),
                              m_gui_cfg->max_tooltip_width);
+        if (changed)
+            arc_radius = shown / shown_per_mm;
         return changed;
     };
     if (revertible(tr.arc_radius, arc_radius, stored_style ? &stored_arc_radius : nullptr, _u8L("Revert arc radius."), 0.f, draw_arc_radius)) {
-        arc_radius /= shown_per_mm;
+        // the field takes "*1e39" as "times 1e39", and zero times that is not a number
+        if (std::isnan(arc_radius))
+            arc_radius = 0.f;
         apply(arc_radius, limits.arc_radius);
         if (is_approx(arc_radius, 0.f))
             current_prop.arc_radius.reset();
         else
             current_prop.arc_radius = arc_radius;
-        // also when the volume already has this radius: a job for an earlier keystroke may still be running
-        process();
+        // The volume's radius alone does not tell whether this edit needs a job: one for an earlier keystroke
+        // may still be running. Nothing is needed only when the edit changes neither the last request nor the volume.
+        if (!is_approx(current_prop.arc_radius, requested_arc_radius) ||
+            !is_approx(current_prop.arc_radius, m_volume->text_configuration->style.prop.arc_radius))
+            process();
     }
     m_imgui->disabled_end(); // per_glyph
 
