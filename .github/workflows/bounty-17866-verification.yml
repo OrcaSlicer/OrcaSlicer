@@ -1,0 +1,204 @@
+name: Verify issue 17866
+
+on:
+  push:
+    branches: [codex/orcaslicer-17866-ci]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bounty-17866-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  linux-release:
+    if: github.repository == 'BeauDevCode/OrcaSlicer' && github.ref == 'refs/heads/codex/orcaslicer-17866-ci'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    defaults:
+      run:
+        shell: bash --noprofile --norc -euo pipefail {0}
+    env:
+      CMAKE_BUILD_PARALLEL_LEVEL: '2'
+      CMAKE_POLICY_VERSION_MINIMUM: '3.5'
+      CMAKE_VERSION: '4.3.0'
+      UPSTREAM_PR_SHA: 6ad34c04934562f86a2b05762e35d435b974fab0
+      REPORT_DIR: ${{ runner.temp }}/bounty-17866
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      LP_NUM_THREADS: '2'
+
+    steps:
+      - name: Check out the exact validation commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Record the tested revision
+        run: |
+          mkdir -p "$REPORT_DIR"
+          git merge-base --is-ancestor "$UPSTREAM_PR_SHA" HEAD
+          {
+            git log -1 --format='commit=%H%ntree=%T%nauthor=%an%nsubject=%s'
+            printf 'upstream_pr_17868=%s\n' "$UPSTREAM_PR_SHA"
+            printf 'workflow_run=%s/%s/actions/runs/%s\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            sha256sum .github/workflows/bounty-17866-verification.yml tests/bounty17866/run_matrix.py
+          } | tee "$REPORT_DIR/revision.txt"
+          git diff --exit-code HEAD
+
+      - name: Check the verification harness
+        run: |
+          python3 -m unittest discover -s tests/bounty17866 -p 'test_*.py' -v \
+            2>&1 | tee "$REPORT_DIR/harness-tests.log"
+
+      - name: Install the prescribed Linux system dependencies
+        timeout-minutes: 20
+        run: |
+          # This is the apt action's install command without its signing-key environment
+          # or repository-wide chown. No application, packaging, or signing step is requested.
+          sudo ./build_linux.sh -ur 2>&1 | tee "$REPORT_DIR/system-dependencies.log"
+          sudo apt-get install -y --no-install-recommends xvfb xauth
+
+      - name: Install CMake 4.3 on the hosted runner
+        timeout-minutes: 10
+        run: |
+          cmake_download="$RUNNER_TEMP/bounty-17866-cmake"
+          mkdir -p "$cmake_download"
+          cd "$cmake_download"
+          cmake_archive="cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz"
+          cmake_release="https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}"
+          curl --fail --location --retry 3 --output "$cmake_archive" "$cmake_release/$cmake_archive"
+          curl --fail --location --retry 3 --output SHA-256.txt "$cmake_release/cmake-${CMAKE_VERSION}-SHA-256.txt"
+          sha256sum --check --ignore-missing SHA-256.txt
+          tar -xzf "$cmake_archive"
+          printf '%s\n' "$cmake_download/cmake-${CMAKE_VERSION}-linux-x86_64/bin" >> "$GITHUB_PATH"
+
+      - name: Record toolchain and calculate the dependency cache key
+        id: toolchain
+        run: |
+          {
+            cmake --version
+            /usr/bin/clang --version
+            /usr/bin/clang++ --version
+            ld.lld --version
+            ninja --version
+            uname -m
+            cat /etc/os-release
+            printf 'workspace=%s\n' "$GITHUB_WORKSPACE"
+          } | tee "$REPORT_DIR/toolchain.txt"
+          printf 'fingerprint=%s\n' "$(sha256sum "$REPORT_DIR/toolchain.txt" | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore only the installed build dependencies
+        id: deps-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: deps/build/OrcaSlicer_dep
+          key: bounty17866-deps-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('deps/**', 'cmake/**', 'build_linux.sh', 'scripts/linux.d/**') }}
+
+      - name: Build the prescribed Release dependencies
+        if: steps.deps-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 150
+        run: |
+          ./build_linux.sh -drlL -j 2 2>&1 | tee "$REPORT_DIR/build-dependencies.log"
+          test -d deps/build/OrcaSlicer_dep/usr/local/lib
+
+      - name: Save completed dependencies before building the app
+        if: steps.deps-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: deps/build/OrcaSlicer_dep
+          key: ${{ steps.deps-cache.outputs.cache-primary-key }}
+
+      - name: Configure the Release app and existing test targets
+        timeout-minutes: 15
+        run: |
+          # Match build_linux.sh's app configuration directly: -s also invokes packaging.
+          # The CLI uses PartPlate and other GUI code, so SLIC3R_GUI must stay enabled.
+          cmake -S . -B build -G 'Ninja Multi-Config' \
+            -DCMAKE_C_COMPILER=/usr/bin/clang \
+            -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+            -DCMAKE_LINKER="$(command -v ld.lld)" \
+            -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld \
+            -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld \
+            -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=lld \
+            -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/deps/build/OrcaSlicer_dep/usr/local" \
+            -DSLIC3R_PCH=ON -DSLIC3R_GUI=ON -DSLIC3R_GLIBCXX_ASSERTIONS=ON \
+            -DORCA_TOOLS=ON -DBUILD_TESTS=ON \
+            2>&1 | tee "$REPORT_DIR/configure.log"
+          printf 'LD_LIBRARY_PATH=%s\n' "$GITHUB_WORKSPACE/deps/build/OrcaSlicer_dep/usr/local/lib:$GITHUB_WORKSPACE/build/src/Release" >> "$GITHUB_ENV"
+
+      - name: Build the Release application without packaging
+        id: app
+        timeout-minutes: 150
+        run: |
+          cmake --build build --config Release --target OrcaSlicer --parallel 2 \
+            2>&1 | tee "$REPORT_DIR/build-app.log"
+          orca_binary="$GITHUB_WORKSPACE/build/src/Release/orca-slicer"
+          test -x "$orca_binary"
+          printf 'ORCA_BINARY=%s\n' "$orca_binary" >> "$GITHUB_ENV"
+          sha256sum "$orca_binary" | tee "$REPORT_DIR/binary-sha256.txt"
+          ldd "$orca_binary" | tee "$REPORT_DIR/binary-libraries.txt"
+
+      - name: Build only the AppConfig and GCode test suites
+        id: unit-build
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        timeout-minutes: 90
+        run: |
+          cmake --build build --config Release --target libslic3r_tests fff_print_tests --parallel 2 \
+            2>&1 | tee "$REPORT_DIR/build-tests.log"
+
+      - name: Run existing AppConfig regression tests
+        if: ${{ !cancelled() && steps.unit-build.outcome == 'success' }}
+        timeout-minutes: 10
+        run: |
+          build/tests/libslic3r/Release/libslic3r_tests '[AppConfig]' --warn NoAssertions \
+            --reporter junit --out "$REPORT_DIR/appconfig.xml" \
+            2>&1 | tee "$REPORT_DIR/appconfig.log"
+
+      - name: Run existing GCode regression tests
+        if: ${{ !cancelled() && steps.unit-build.outcome == 'success' }}
+        timeout-minutes: 20
+        run: |
+          build/tests/fff_print/Release/fff_print_tests '[GCode]' --warn NoAssertions \
+            --reporter junit --out "$REPORT_DIR/gcode.xml" \
+            2>&1 | tee "$REPORT_DIR/gcode.log"
+
+      - name: Exercise the real CLI preference and travel matrix
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        timeout-minutes: 90
+        run: |
+          xvfb-run -a python3 tests/bounty17866/run_matrix.py \
+            --binary "$ORCA_BINARY" --source "$GITHUB_WORKSPACE" \
+            --output "$REPORT_DIR/cli" --timeout 300 \
+            2>&1 | tee "$REPORT_DIR/cli-matrix.log"
+
+      - name: Record build mutations and bound report logs
+        if: always()
+        run: |
+          mkdir -p "$REPORT_DIR"
+          # build_linux.sh replaces +UNKNOWN in version.inc with the build date.
+          git status --short > "$REPORT_DIR/build-working-tree.txt"
+          git diff HEAD -- version.inc > "$REPORT_DIR/generated-version.diff"
+          while IFS= read -r -d '' log_path; do
+            tail -c 1048576 "$log_path" > "${log_path}.tail"
+            mv "${log_path}.tail" "$log_path"
+          done < <(find "$REPORT_DIR" -type f -name '*.log' -print0)
+          git diff --exit-code HEAD -- . ':!version.inc'
+
+      - name: Retain small verification reports on GitHub
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: bounty-17866-linux-${{ github.sha }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/bounty-17866/**/*.txt
+            ${{ runner.temp }}/bounty-17866/**/*.json
+            ${{ runner.temp }}/bounty-17866/**/*.xml
+            ${{ runner.temp }}/bounty-17866/**/*.log
+            ${{ runner.temp }}/bounty-17866/generated-version.diff
