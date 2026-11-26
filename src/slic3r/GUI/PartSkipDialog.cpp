@@ -1,5 +1,6 @@
 #include "GUI_Utils.hpp"
 #include "GUI_App.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "libslic3r_version.h"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include <vector>
@@ -122,7 +123,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
 
     m_zoom_out_btn = new Button(m_book_third_panel, wxEmptyString);
     m_zoom_out_btn->SetIcon("canvas_zoom_out");
-    m_zoom_out_btn->SetToolTip(_L("Zoom Out"));
+    set_illustrated_tooltip(m_zoom_out_btn, _L("Zoom Out"));
     m_zoom_out_btn->SetBackgroundColor(zoom_bg);
     m_zoom_out_btn->SetBorderColor(wxColour(238, 238, 238));
     m_zoom_out_btn->SetCornerRadius(0);
@@ -136,7 +137,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
 
     m_zoom_in_btn = new Button(m_book_third_panel, wxEmptyString);
     m_zoom_in_btn->SetIcon("canvas_zoom_in");
-    m_zoom_in_btn->SetToolTip(_L("Zoom In"));
+    set_illustrated_tooltip(m_zoom_in_btn, _L("Zoom In"));
     m_zoom_in_btn->SetBackgroundColor(zoom_bg);
     m_zoom_in_btn->SetBorderColor(wxColour(238, 238, 238));
     m_zoom_in_btn->SetMinSize(wxSize(FromDIP(56), FromDIP(28)));
@@ -144,7 +145,8 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
 
     m_switch_drag_btn = new Button(m_book_third_panel, wxEmptyString);
     m_switch_drag_btn->SetIcon("canvas_drag");
-    m_switch_drag_btn->SetToolTip(_L("Drag"));
+    set_illustrated_tooltip(m_switch_drag_btn, _L("Drag mode: dragging on the plate moves the view instead of selecting objects. "
+                                                  "Click again to go back to selecting."));
     m_switch_drag_btn->SetBackgroundColor(*wxWHITE);
     m_switch_drag_btn->SetBorderColor(wxColour(238, 238, 238));
     m_switch_drag_btn->SetMinSize(wxSize(FromDIP(56), FromDIP(28)));
@@ -206,7 +208,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
 
     m_apply_btn = new Button(m_book_third_panel, _L("Skip"));
     m_apply_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
-    m_apply_btn->SetToolTip(wxEmptyString);
+    set_illustrated_tooltip(m_apply_btn, wxEmptyString);
 
     m_canvas_sizer->Add(m_canvas, 0, wxLEFT | wxTOP | wxEXPAND, FromDIP(17));
     m_canvas_sizer->Add(m_canvas_btn_sizer, 0, wxTOP, FromDIP(8));
@@ -885,19 +887,21 @@ void PartSkipDialog::UpdateApplyButtonStatus()
 {
     if (IsAllCanceled()) {
         m_apply_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
-        m_apply_btn->SetToolTip(_L("Nothing selected"));
+        set_illustrated_tooltip(m_apply_btn, _L("Nothing selected"));
         m_enable_apply_btn = false;
     } else if (m_parts_state.size() > 64) {
         m_apply_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
-        m_apply_btn->SetToolTip(_L("Over 64 objects in single plate"));
+        set_illustrated_tooltip(m_apply_btn, _L("Over 64 objects in single plate"));
         m_enable_apply_btn = false;
     } else if (!is_model_support_partskip) {
         m_apply_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
-        m_apply_btn->SetToolTip(_L("The current print job cannot be skipped"));
+        set_illustrated_tooltip(m_apply_btn, _L("The current print job cannot be skipped"));
         m_enable_apply_btn = false;
     } else {
         m_apply_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
-        m_apply_btn->SetToolTip(wxEmptyString);
+        set_illustrated_tooltip(m_apply_btn, _L("The printer stops printing the selected objects and finishes the others. "
+                                                "This cannot be undone."),
+                                {{"device/skip_objects.gif", {}}});
         m_enable_apply_btn = true;
     }
 }

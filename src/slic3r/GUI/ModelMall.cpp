@@ -1,5 +1,6 @@
 #include "ModelMall.hpp"
 #include "GUI_App.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include <wx/intl.h>
@@ -80,15 +81,15 @@ namespace GUI {
 
 #ifdef __APPLE__
         // FIXME: maybe should be using GUI::shortkey_ctrl_prefix() or equivalent?
-        m_control_back->SetToolTip(_L("Click to return") + "(" + u8"\u2318+" /* u8"⌘+" */ + _L("Left Arrow") + ")");
-        m_control_forward->SetToolTip(_L("Click to continue") + "(" + u8"\u2318+"  /* u8"⌘+" */ + _L("Right Arrow") + ")");
+        set_illustrated_tooltip(m_control_back, _L("Click to return") + "(" + u8"\u2318+" /* u8"⌘+" */ + _L("Left Arrow") + ")");
+        set_illustrated_tooltip(m_control_forward, _L("Click to continue") + "(" + u8"\u2318+"  /* u8"⌘+" */ + _L("Right Arrow") + ")");
 #else
         // FIXME: maybe should be using GUI::shortkey_alt_prefix() or equivalent?
-        m_control_back->SetToolTip(_L("Click to return") + "(" + _L("Alt+") + _L("Left Arrow") + ")");
-        m_control_forward->SetToolTip(_L("Click to continue") + "(" + _L("Alt+") + _L("Right Arrow") + ")");
+        set_illustrated_tooltip(m_control_back, _L("Click to return") + "(" + _L("Alt+") + _L("Left Arrow") + ")");
+        set_illustrated_tooltip(m_control_forward, _L("Click to continue") + "(" + _L("Alt+") + _L("Right Arrow") + ")");
 #endif
 
-        m_control_refresh->SetToolTip(_L("Refresh"));
+        set_illustrated_tooltip(m_control_refresh, _L("Refresh"));
         /* auto m_textCtrl1 = new wxTextCtrl(m_web_control_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(600, 30), 0);
          auto m_button1 = new wxButton(m_web_control_panel, wxID_ANY, wxT("GO"), wxDefaultPosition, wxDefaultSize, 0);
          m_button1->Bind(wxEVT_BUTTON, [this,m_textCtrl1](auto& e) {

@@ -1,4 +1,5 @@
 #include "UpgradePanel.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/Widgets/ProgressBar.hpp"
 #include <exception>
@@ -1511,6 +1512,8 @@ void MachineInfoPanel::createNozzleRackWidgets(wxBoxSizer *main_left_sizer)
     m_nozzle_rack_update_btn->SetMinSize(wxSize(FromDIP(-1), FromDIP(24)));
     m_nozzle_rack_update_btn->SetCornerRadius(FromDIP(12));
     m_nozzle_rack_update_btn->Bind(wxEVT_BUTTON, &MachineInfoPanel::on_nozzle_rack_update, this);
+    set_illustrated_tooltip(m_nozzle_rack_update_btn, _L("Opens the list of the hotends on the rack, where the information of each one "
+                                                         "can be read again."));
     content_sizer->Add(m_nozzle_rack_update_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(350));
 
     m_nozzle_rack_sizer->Add(content_sizer, 1, wxEXPAND, 0);
