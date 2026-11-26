@@ -478,6 +478,18 @@ public:
 
     std::vector<std::vector<DynamicPrintConfig>> get_extruder_filament_info() const;
 
+    // Re-orders a generic printer's external (virtual) spools in a device filament list so that the
+    // ascending map key order, which Sidebar::load_ams_list() and its consumers follow, runs from the
+    // first toolhead to the last. An external spool is an entry whose numeric ams_id is in
+    // [main_virtual_tray_id - extruder_count + 1, main_virtual_tray_id]; its toolhead is
+    // main_virtual_tray_id - ams_id. Every other entry keeps its key, so the AMS unit order is
+    // unchanged, and the spools are keyed after the highest of those keys, so no spool sorts before
+    // an AMS tray. A spool's key depends only on its own toolhead, so a spool absent on one refresh
+    // leaves its key unused rather than shifting the others. The tray id stays in each entry's
+    // ams_id, so identity is preserved. Bambu's left/right key order is not this function's concern;
+    // its callers do not call it.
+    static std::map<int, DynamicPrintConfig> order_external_filaments_by_toolhead(std::map<int, DynamicPrintConfig> list, int main_virtual_tray_id,
+                                                                                 int extruder_count);
     std::set<std::string> get_printer_names_by_printer_type_and_nozzle(const std::string &printer_type, std::string nozzle_diameter_str, bool system_only = true);
     // Orca: the root filament presets a connected machine can use, resolved with the rule the rest
     // of the app applies (is_compatible_with_printer): an empty compatible_printers means every

@@ -5231,6 +5231,55 @@ std::vector<std::vector<DynamicPrintConfig>> PresetBundle::get_extruder_filament
     return filament_infos;
 }
 
+std::map<int, DynamicPrintConfig> PresetBundle::order_external_filaments_by_toolhead(std::map<int, DynamicPrintConfig> list, int main_virtual_tray_id,
+                                                                                     int extruder_count)
+{
+    if (extruder_count <= 1)
+        return list;
+
+    const int lowest_virtual_id = main_virtual_tray_id - extruder_count + 1;
+    const auto external_tool = [lowest_virtual_id, main_virtual_tray_id](const DynamicPrintConfig &entry, int &tool) {
+        const std::string ams_id = entry.opt_string("ams_id", 0u);
+        if (ams_id.empty() || !std::all_of(ams_id.begin(), ams_id.end(), [](unsigned char c) { return std::isdigit(c) != 0; }))
+            return false;
+        int id = 0;
+        try {
+            id = std::stoi(ams_id);
+        } catch (...) {
+            return false;
+        }
+        if (id < lowest_virtual_id || id > main_virtual_tray_id)
+            return false;
+        tool = main_virtual_tray_id - id;
+        return true;
+    };
+
+    std::map<int, DynamicPrintConfig>               ordered;
+    std::vector<std::pair<int, DynamicPrintConfig>> external; // device tool -> spool
+    int                                             last_non_external_key = -1;
+    for (auto &entry : list) {
+        int tool = -1;
+        if (external_tool(entry.second, tool)) {
+            external.emplace_back(tool, std::move(entry.second));
+            continue;
+        }
+        last_non_external_key = std::max(last_non_external_key, entry.first);
+        ordered.emplace(entry.first, std::move(entry.second));
+    }
+    if (external.empty())
+        return ordered;
+
+    std::sort(external.begin(), external.end(), [](const auto &a, const auto &b) { return a.first < b.first; });
+    // After every AMS tray. In the common case the base stays at main_virtual_tray_id + 1, and each
+    // spool's key depends only on its own toolhead, so a spool that is absent on one refresh leaves
+    // its key unused instead of shifting the others. load_ams_list() preserves a slot's refresh
+    // metadata by key, and a shifted key could hand another slot's metadata to this spool.
+    const int base = std::max(last_non_external_key + 1, main_virtual_tray_id + 1);
+    for (auto &entry : external)
+        ordered.emplace(base + entry.first, std::move(entry.second));
+    return ordered;
+}
+
 // ORCA TODO: currently, this function assumes the printer name follows the pattern of "<printer_model> <nozzle_diameter>", e.g.
 // printer_type: "Bambu Lab X2D", nozzle_diameter_str: "0.4 nozzle" => printer_name: "Bambu Lab X2D 0.4 nozzle". If the printer name does
 // not follow this pattern, the function may not work correctly.
