@@ -198,8 +198,6 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
     const float sliders_width = m_imgui->scaled(7.0f);
     const float drag_left_width = ImGui::GetStyle().WindowPadding.x + sliders_width - space_size;
 
-    const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
-
     ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc["tool_type"]);
 
@@ -210,7 +208,7 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
         icons = { ImGui::CircleButtonDarkIcon, ImGui::SphereButtonDarkIcon, ImGui::TriangleButtonDarkIcon, ImGui::FillButtonDarkIcon };
     else
         icons = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::TriangleButtonIcon, ImGui::FillButtonIcon };
-    std::array<wxString, 4> tool_tips = { _L("Circle"), _L("Sphere"), _L("Triangle"), _L("Fill") };
+    const std::array<PainterTip, 4> tool_tips = { PainterTip::Circle, PainterTip::Sphere, PainterTip::Triangle, PainterTip::SmartFill };
     for (int i = 0; i < tool_ids.size(); i++) {
         //std::string  str_label = std::string("");
         //std::wstring btn_name  = icons[i] + boost::nowide::widen(str_label);
@@ -239,9 +237,7 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
             }
         }
 
-        if (ImGui::IsItemHovered()) {
-            m_imgui->tooltip(tool_tips[i], max_tooltip_width);
-        }
+        painter_tooltip(tool_tips[i]);
     }
 
     ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.1));
@@ -258,9 +254,11 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
         ImGui::SameLine(cursor_slider_left);
         ImGui::PushItemWidth(sliders_width);
         m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
+        painter_tooltip(PainterTip::BrushSize);
         ImGui::SameLine(drag_left_width + cursor_slider_left);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+        painter_tooltip(PainterTip::BrushSize);
     } else if (m_current_tool == ImGui::TriangleButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::POINTER;
         m_tool_type   = ToolType::BRUSH;
@@ -282,9 +280,11 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
                 triangle_selector->seed_fill_unselect_all_triangles();
                 triangle_selector->request_update_render_data();
             }
+        painter_tooltip(PainterTip::SmartFillAngle);
         ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##smart_fill_angle_input", &m_smart_fill_angle, 0.05f, 0.0f, 0.0f, "%.2f");
+        painter_tooltip(PainterTip::SmartFillAngle);
     }
 
     ImGui::Separator();
@@ -306,6 +306,7 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
         update_model_object();
         m_parent.set_as_dirty();
     }
+    painter_tooltip(PainterTip::EraseAll);
     m_imgui->disabled_end();
 
     ImGui::SameLine();
@@ -313,6 +314,7 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
     if (m_imgui->button(_L("Done"))) {
         m_parent.reset_all_gizmos();
     }
+    painter_tooltip(PainterTip::Done);
 
     const DynamicPrintConfig &glb_cfg                    = wxGetApp().preset_bundle->prints.get_edited_preset().config;
     const bool                has_object_fuzzy_override  = obj_cfg.option("fuzzy_skin");
@@ -342,6 +344,8 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
                 new_conf.set_key_value("fuzzy_skin", new ConfigOptionEnum<FuzzySkinType>(FuzzySkinType::None));
                 mo->config.assign_config(new_conf);
             }
+            panel_tooltip(_u8L("Sets this object's Fuzzy skin to Painted only, so the areas you paint here get fuzzy "
+                               "skin and the rest of the object stays smooth."));
         };
         ImGui::Separator();
 
