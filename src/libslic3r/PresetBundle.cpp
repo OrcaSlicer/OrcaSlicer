@@ -5141,6 +5141,16 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             auto exist_presets      = this->filament_presets;
 
             size_t tray_count = ams_filament_presets.size();
+            // Empty trays trailing the device list are placeholders, not filaments: the project
+            // keeps its own slot count and they must not grow it. A placeholder before a real tray
+            // still occupies that tray's index, so only the trailing run is dropped. The trim
+            // needs both parallel lists aligned (and the placeholder to have pushed no preset):
+            // otherwise a placeholder index could stand for a slot ams_filament_presets filled
+            // with a real tray.
+            if (tray_count == ams_infos.size())
+                while (tray_count > 0 && ams_infos[tray_count - 1].is_placeholder &&
+                       ams_filament_presets[tray_count - 1].empty())
+                    --tray_count;
             size_t total      = std::max(tray_count, exist_presets.size());
 
             std::vector<std::string> result_colors;
@@ -6387,6 +6397,38 @@ void PresetBundle::convert_filament_preset_name(const std::string& machine_name,
         }
     }
 }
+// A project may store fewer values than its filament slots for a per-slot key: a file written
+// before the key joined s_project_options, or before a slot was added, carries the key's
+// one-element default. Grow such lists to the slot count so every slot has a value; the values
+// already there are kept, and an explicitly longer list is left alone. The multi-colour list is
+// extended with each new slot's own colour: a single-colour filament's multi-colour list is that
+// colour, and no existing multi-colour definition is replaced.
+static void grow_project_filament_slots(DynamicPrintConfig &config, size_t slot_count)
+{
+    auto grow_strings = [slot_count, &config](const char *key, auto fill) {
+        auto *opt = config.option<ConfigOptionStrings>(key, true);
+        // An explicitly empty list ("value of its own") is left as written.
+        if (opt == nullptr || opt->values.empty())
+            return;
+        for (size_t i = opt->values.size(); i < slot_count; ++i)
+            opt->values.push_back(fill(i));
+    };
+    auto grow_ints = [slot_count, &config](const char *key, int fill) {
+        auto *opt = config.option<ConfigOptionInts>(key, true);
+        if (opt != nullptr && !opt->values.empty() && opt->values.size() < slot_count)
+            opt->values.resize(slot_count, fill);
+    };
+
+    const std::vector<std::string> &colours = config.option<ConfigOptionStrings>("filament_colour")->values;
+    grow_strings("filament_multi_colour", [&colours](size_t i) {
+        return i < colours.size() ? colours[i] : std::string{};
+    });
+    grow_strings("filament_colour_type", [](size_t) { return std::string("1"); });
+    grow_ints("filament_map", 1);
+    grow_ints("filament_nozzle_map", 0);
+    grow_ints("filament_volume_map", static_cast<int>(NozzleVolumeType::nvtStandard));
+}
+
 // Load a config file from a boost property_tree. This is a private method called from load_config_file.
 // is_external == false on if called from ConfigWizard
 void PresetBundle::load_config_file_config(const std::string &name_or_path, bool is_external, DynamicPrintConfig &&config, Semver file_version, bool selected, PublishedConfig *published_config)
@@ -6669,8 +6711,12 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
         // cross over (the receiver must not inherit the author's filament/purge data).
         this->project_config.apply_only(config, is_published ? s_project_options_published : s_project_options);
         // Older projects inherit one-element mixed defaults, regardless of their filament count.
-        if (!is_published)
+        if (!is_published) {
             resize_mixed_filament_metadata(this->project_config, num_filaments, num_filaments);
+            // The same older files also store a one-element default for the per-slot colour type,
+            // multi-colour and map lists; grow them so every slot has a value.
+            grow_project_filament_slots(this->project_config, num_filaments);
+        }
 
         break;
     }
