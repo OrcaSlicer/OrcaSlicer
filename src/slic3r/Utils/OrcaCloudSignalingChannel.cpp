@@ -142,9 +142,8 @@ void OrcaCloudSignalingChannel::run()
             return;
         }
         const std::string token = m_cloud->get_access_token();
-        // OrcaCloud exposes a bare API hostname. WebRTC signaling uses the
-        // fixed HTTPS/WSS endpoints on port 443; custom schemes, ports, and
-        // base paths are not supported by this agent.
+        // WebRTC signaling uses fixed HTTPS/WSS endpoints on port 443;
+        // custom ports and base paths are not supported by this agent.
         const std::string host = m_cloud->get_cloud_service_host();
         if (token.empty() || host.empty()) {
             unavailable(CameraUnavailableReason::Error, "OrcaCloud session is unavailable");

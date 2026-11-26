@@ -1172,7 +1172,7 @@ int OrcaCloudServiceAgent::configure_selected_printer_mqtt(const std::string& de
     }
 
     OrcaMqttConnection::Config cfg;
-    cfg.url               = "wss://" + api_base_url + "/api/v1/printers/mqtt";
+    cfg.url               = "wss://" + get_cloud_service_host() + "/api/v1/printers/mqtt";
     cfg.use_tls           = true;
     cfg.bearer_provider   = [this] { return get_access_token(); };
     cfg.client_id         = "OrcaSlicer";
@@ -3365,7 +3365,14 @@ int OrcaCloudServiceAgent::get_model_mall_rating_result(int job_id,
     return BAMBU_NETWORK_SUCCESS;
 }
 
-std::string OrcaCloudServiceAgent::get_cloud_service_host() { return api_base_url; }
+std::string OrcaCloudServiceAgent::get_cloud_service_host()
+{
+    if (api_base_url.compare(0, 8, "https://") == 0)
+        return api_base_url.substr(8);
+    if (api_base_url.compare(0, 7, "http://") == 0)
+        return api_base_url.substr(7);
+    return api_base_url;
+}
 
 std::string OrcaCloudServiceAgent::get_cloud_login_url(const std::string& language)
 {
