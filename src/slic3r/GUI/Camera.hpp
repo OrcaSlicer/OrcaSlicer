@@ -9,6 +9,7 @@
 #include "libslic3r/Point.hpp"
 #include <utility>
 #include <string>
+#include <vector>
 #include <cassert>
 #include "libslic3r/Technologies.hpp"
 #include <cstdlib>
@@ -32,6 +33,12 @@ struct Camera
     static double FrustrumZMargin;
     static double MaxFovDeg;
     static double ZoomUnit;
+    // Orca: Vertical field of view of the perspective camera in dolly mode.
+    static const double DollyFovDeg;
+    // Orca: Smallest near plane in dolly mode, as a fraction of the distance to the target.
+    static const double DollyMinNearFactor;
+    // Orca: Smallest depth of the target in dolly mode, in mm. It keeps every dolly step above zero.
+    static const double DollyMinTargetDepth;
 
     enum class EType : unsigned char
     {
@@ -61,6 +68,7 @@ private:
     bool m_prevent_auto_type = true;
     EType m_type{ EType::Perspective };
     bool m_update_config_on_type_change_enabled{ false };
+    bool m_dolly_enabled{ false };
     Vec3d m_target{ Vec3d::Zero() };
     float m_zenit{ 45.0f };
     double m_zoom{ 1.0 };
@@ -68,7 +76,7 @@ private:
     double m_distance{ DefaultDistance };
     double m_gui_scale{ 1.0 };
 
-    std::array<int, 4> m_viewport;
+    std::array<int, 4> m_viewport{};
     Transform3d m_view_matrix{ Transform3d::Identity() };
     // We are calculating the rotation part of the m_view_matrix from m_view_rotation.
     Eigen::Quaterniond m_view_rotation{ 1.0, 0.0, 0.0, 0.0 };
@@ -89,6 +97,20 @@ public:
     void auto_type(EType preferred_type);
 
     void enable_update_config_on_type_change(bool enable) { m_update_config_on_type_change_enabled = enable; }
+
+    // Orca: In dolly mode the perspective camera keeps a fixed field of view and moves along its
+    // view axis. m_zoom keeps its meaning (pixels per mm on the target plane) and sets the distance.
+    void set_dolly_enabled(bool enable);
+    bool is_dolly_active() const { return m_dolly_enabled && m_type == EType::Perspective; }
+    // Orca: Moves the camera to the distance the current zoom asks for. Every frame does this, so
+    // call it first when measuring from the camera position between frames.
+    void sync_dolly_distance();
+    // Orca: Moves the target along the view axis to the given depth without moving the camera, so the
+    // picture stays the same. Zooming scales the distance to the target, so this sets the dolly speed.
+    void set_dolly_target_depth(double depth);
+    // Orca: Size in mm of one screen pixel at the depth of the point. It is the same at every depth
+    // unless dolly is active, where anything with a fixed screen size must be scaled by its own depth.
+    double get_pixel_size_at(const Vec3d& point) const;
 
     void translate(const Vec3d& displacement);
     const Vec3d& get_target()  { 
@@ -184,7 +206,7 @@ public:
 
     void look_at(const Vec3d& position, const Vec3d& target, const Vec3d& up);
 
-    double max_zoom() const { return 250.0; }
+    double max_zoom() const;
     double min_zoom() const { return 0.2 * calc_zoom_to_bounding_box_factor(m_scene_box); }
 
 private:
@@ -193,6 +215,10 @@ private:
     std::pair<double, double> calc_tight_frustrum_zs_around(const BoundingBoxf3& box);
     double calc_zoom_to_bounding_box_factor(const BoundingBoxf3& box, double margin_factor = DefaultZoomToBoxMarginFactor) const;
     double calc_zoom_to_volumes_factor(const GLVolumePtrs& volumes, Vec3d& center, double margin_factor = DefaultZoomToVolumesMarginFactor) const;
+    // Orca: Zoom that fits the points in the dolly view with the camera target at center.
+    double calc_dolly_zoom_to_fit(const std::vector<Vec3d>& points, const Vec3d& center, double margin_factor) const;
+    // Orca: The product of the zoom and the target distance, which is fixed by the field of view.
+    double dolly_zoom_distance_product() const;
     void set_distance(double distance);
 
     void set_default_orientation();
