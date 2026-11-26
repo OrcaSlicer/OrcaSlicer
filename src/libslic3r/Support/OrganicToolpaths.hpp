@@ -6,6 +6,7 @@
 #include "SupportLayer.hpp"
 #include "SupportParameters.hpp"
 #include "../BoundingBox.hpp"
+#include "../ClipperUtils.hpp"
 #include "../ExPolygon.hpp"
 #include "../ExtrusionEntity.hpp"
 #include "../Polygon.hpp"
@@ -88,10 +89,17 @@ Polylines organic_uncovered_wall_parts(const Polyline &axis, const Polygons &cov
 // parts on the other side joins them, so that the wall does not change its role for a dot.
 std::pair<Polylines, Polylines> organic_split_wall_axis(const Polyline &axis, const Polygons &region, coord_t min_length);
 
-// The outlines of footing near box, to be offset by delta near what lies within it as the whole of footing is offset there:
-// each edge of them crossing the box kept as it is, and each point offset() keeps of them kept by offset() as it keeps it
-// from footing. The polygons of footing may overlap.
-Polygons organic_footing_near_box(const Polygons &footing, const BoundingBox &box, float delta);
+// The outlines of footing near box, to be offset by delta with join as the whole of footing is offset farther inside
+// the box than the offset reaches from an outline, delta or mitered DefaultMiterLimit times delta: each edge of them
+// meeting the box kept as it is, each point offset() keeps of them kept by offset() as it keeps it from footing, and
+// nothing changed that comes within reach of such an edge grown. The polygons of footing may overlap; offset() is
+// taken to grow them as one group, see c2_offset_as_group(), as it grows those of footing near the box.
+Polygons organic_footing_near_box(const NearPolygons &footing, const BoundingBox &box, float delta, JoinType join);
+
+// The outlines cut at box, see ClipperUtils::clip_clipper_polygons_with_subject_bbox(), but those that do not reach
+// into it: each point of the box lies inside as many of them as of the outlines, and each edge meeting the box stays as
+// it is.
+Polygons organic_outlines_into_box(const Polygons &outlines, const BoundingBox &box);
 
 // The part of an island of a hollow Organic body printed solid, given the solid polygons of its layer: all of an island
 // mostly solid, a tip, printed with no wall, or else the solid part two lines inside its outline, where its walls lie.

@@ -232,7 +232,9 @@ TEST_CASE("Organic footing near a box keeps the edges crossing the box as they a
     // The box and the reach of a path of a bead 0.4 mm wide.
     BoundingBox box(Point(-1001, -202207), Point(998999, -65207));
     box.offset(500000.);
-    const Polygons near = organic_footing_near_box({ sloped, bent }, box, 200200.f);
+    NearPolygons footing;
+    footing.append({ sloped, bent });
+    const Polygons near = organic_footing_near_box(footing, box, 200200.f, jtRound);
     // The long edge of the sloped outline crosses the box.
     const Point a = sloped.points[0], b = sloped.points[1];
     CHECK(std::any_of(near.begin(), near.end(), [&a, &b](const Polygon &polygon) {
@@ -251,7 +253,7 @@ TEST_CASE("Organic footing near a box grows near the box as the whole of it does
     // offset() drops each vertex closer than a fraction of the offset to the last one it kept, going around a polygon from
     // its first vertex. Each footing has two vertices about 1 um apart out of the box, one of them where a long edge
     // along a path starts and so sets its slope: the path runs within a nanometre of the edge of the reach.
-    struct Case { Polygons footing; coord_t y; double width; };
+    struct Case { Polygons footing; coord_t y; double width; JoinType join = jtRound; };
     const Polygon sloped{ {-3000000, 300000}, {-600000, 400000}, {-599500, 400700}, {3000000, 400800}, {3000000, 3000000},
         {-3000000, 3000000} };
     std::vector<Case> cases{ { { Polygon{ {-2000000, 500}, {-1999600, 0}, {3000000, 0}, {3000000, 420000}, {-3000000, 420000} } },
@@ -268,6 +270,40 @@ TEST_CASE("Organic footing near a box grows near the box as the whole of it does
     // nothing and a union would fill.
     cases.push_back({ { Polygon{ {-4000000, -200}, {4000000, -200}, {4000000, 200}, {-4000000, 200} },
         Polygon{ {-3000000, -100}, {0, 150}, {3000000, -100} } }, 100000, .4 });
+    // offset() unites what it grows and rounds the points where grown pieces cross. The lower edge of a strip, meeting
+    // the box, runs grown within a nanometre of the path, and another outline crosses the strip, or comes within reach
+    // of it, where the cut changes it out of the box: the crossing, rounded, would turn the edge in the box.
+    const auto strip = [](const coord_t end) {
+        return Polygon{ {-3000000, 0}, {end, 2}, {end, 200000}, {-3000000, 200000} };
+    };
+    // A C around the end of the strip, closed inside by a bridge, which a plain cut replaces by a chord at x.
+    const auto around_end = [](const coord_t x, const coord_t bridge) {
+        return Polygon{ {-1000000, -750000}, {bridge + 500000, -750000}, {bridge + 500000, 350000}, {-1000000, 350000},
+            {-1000000, 250000}, {x, 250000}, {bridge, 250000}, {bridge, -650000}, {x, -650000}, {-1000000, -650000} };
+    };
+    cases.push_back({ { strip(6000000), around_end(4200200, 7000000) }, -200199, .4 });
+    cases.push_back({ { strip(3500000), around_end(3600200, 4500000) }, -200199, .4 });
+    // Far out of the box, the upright of an L crosses the strip, and a C winds around the end of the strip.
+    cases.push_back({ { strip(4000000), Polygon{ {-1000000, -750000}, {4500000, -750000}, {4500000, 1000000},
+        {3500000, 1000000}, {3500000, -650000}, {3000000, -650000}, {-1000000, -650000} } }, -200199, .4 });
+    cases.push_back({ { strip(4000000), Polygon{ {-1000000, -750000}, {7500000, -750000}, {7500000, 1200000},
+        {1000000, 1200000}, {2500000, 900000}, {7000000, 250000}, {7000000, -600000}, {2500000, -600000},
+        {1800000, -650000}, {-1000000, -650000} } }, -200199, .4 });
+    // A square on the strip that the box does not reach into, and one beside a strip ending in the box.
+    const auto square = [](const coord_t x) {
+        return Polygon{ {x, -300000}, {x + 400000, -300000}, {x + 400000, 100000}, {x, 100000} };
+    };
+    cases.push_back({ { strip(4000000), square(3300000) }, -200199, .4 });
+    cases.push_back({ { Polygon{ {-400000, 0}, {1400000, 2}, {1400000, 200000}, {-400000, 200000} }, square(1600000) },
+        -200199, .4 });
+    // Mitered, the corner where the lower edge ends out of the box, which the next point sets, sets the slope of the
+    // edge.
+    cases.push_back({ { Polygon{ {-3000000, 0}, {4000000, 2}, {4300000, 150000}, {4300000, 250000},
+        {-3000000, 250000} } }, -200199, .4, jtMiter });
+    // Mitered, a corner reaches up to three times the offset: a spike two and a half offsets below the strip crosses it
+    // grown.
+    cases.push_back({ { strip(4000000), Polygon{ {2636000, -1500500}, {3364000, -1500500}, {3000000, -500500} } },
+        -200199, .4, jtMiter });
     for (size_t i = 0; i < cases.size(); ++ i) {
         const Case &c = cases[i];
         CAPTURE(i);
@@ -275,14 +311,151 @@ TEST_CASE("Organic footing near a box grows near the box as the whole of it does
         BoundingBox box = get_extents(path);
         box.offset(scaled<double>(c.width + .1));
         const float delta = float(scaled<double>(.5 * c.width) + 2. * SCALED_EPSILON);
-        const auto free_length = [&path, delta](const Polygons &footing) {
-            double length = 0.;
-            for (const Polyline &free : diff_pl(Polylines{ path }, offset(footing, delta, jtRound, SCALED_EPSILON)))
+        const auto free_length = [&path, delta, &c](const Polygons &footing) {
+            const Polygons grown = c.join == jtRound ? offset(footing, delta, jtRound, SCALED_EPSILON) :
+                                                       offset(footing, delta);
+            double         length = 0.;
+            for (const Polyline &free : diff_pl(Polylines{ path }, grown))
                 length += free.length();
             return unscale<double>(length);
         };
-        CHECK_THAT(free_length(organic_footing_near_box(c.footing, box, delta)), Catch::Matchers::WithinAbs(free_length(c.footing), 1e-6));
+        NearPolygons footing;
+        footing.append(c.footing);
+        CHECK_THAT(free_length(organic_footing_near_box(footing, box, delta, c.join)),
+            Catch::Matchers::WithinAbs(free_length(c.footing), 1e-6));
     }
+}
+
+TEST_CASE("Organic footing near a box leaves out what lies far from the edges meeting the box", "[TreeSupport][Regression]")
+{
+    using namespace Slic3r;
+    // The lower edge meets the box, and the outline turns up beyond its end and runs far round to come back. The points
+    // near the end of the edge set the corners offset() places there; those far from it are left out.
+    const Polygon footing{ {-3000000, 0}, {4000000, 2}, {4300000, 150000}, {4300000, 250000}, {8000000, 5000000},
+        {8500000, 5500000}, {9000000, 6000000}, {9500000, 6500000}, {-3000000, 7000000} };
+    const JoinType join = GENERATE(jtRound, jtMiter);
+    CAPTURE(join);
+    BoundingBox box = get_extents(Polyline(Point(0, -200199), Point(1000000, -200199)));
+    box.offset(scaled<double>(.5));
+    REQUIRE(footing.is_counter_clockwise());
+    NearPolygons near;
+    near.append({ footing });
+    CHECK(count_points(organic_footing_near_box(near, box, 200200.f, join)) < footing.size());
+    // A contour with a spike far out of the box, and an L of a hole crossing the box that reaches into the spike beyond
+    // the other points of the contour, along an edge out of the box. The cut keeps the point of the spike farthest out,
+    // and so the box of the contour, by which offset() grows the hole together with it, see the next test, and leaves
+    // out the points beside it.
+    const Polygon contour{ {-5000000, -5000000}, {5000000, -5000000}, {5000000, -4000000}, {12000000, 0},
+        {5000000, 4000000}, {5000000, 5000000}, {-5000000, 5000000} };
+    Polygon       hole{ {500000, 200000}, {600000, 200000}, {600000, 2000000}, {6000000, 2000000},
+        {6000000, 2200000}, {500000, 2200000} };
+    hole.reverse();
+    NearPolygons holed;
+    holed.append({ contour, hole });
+    CHECK(count_points(organic_footing_near_box(holed, BoundingBox(Point(0, 0), Point(1000000, 1000000)), 200200.f,
+        join)) < contour.size() + hole.size());
+}
+
+TEST_CASE("Organic footing near a box is taken whole where offset() does not grow it as one group", "[TreeSupport][Regression]")
+{
+    using namespace Slic3r;
+    // offset() grows a hole together with its contour only where the box of the hole lies strictly inside the box of
+    // a contour; otherwise it grows each outline alone first, uniting what it grows of it, and then unites them. A hole
+    // crossing the box, and one touching their contour that passes by the box, which the cut would leave out.
+    const Polygon contour{ {-5000000, -5000000}, {5000000, -5000000}, {5000000, 5000000}, {-5000000, 5000000} };
+    Polygon       crossing{ {400000, -2000000}, {600000, -2000000}, {600000, 500000}, {400000, 500000} };
+    Polygon       touching{ {600000, 1500000}, {1500000, 600000}, {5000000, 600000}, {5000000, 1500000} };
+    crossing.reverse();
+    touching.reverse();
+    const BoundingBox box(Point(0, 0), Point(1000000, 1000000));
+    NearPolygons footing;
+    footing.append({ contour, crossing, touching });
+    CHECK(organic_footing_near_box(footing, box, 200200.f, jtRound) == Polygons{ contour, crossing, touching });
+}
+
+TEST_CASE("Organic footing near a box keeps the points whose chord would come near an edge meeting the box", "[TreeSupport][Regression]")
+{
+    using namespace Slic3r;
+    // A ring around the end of a strip whose lower edge meets the box, its hole closed far out of the box by a bridge
+    // beyond the strip. The points beside the bridge lie farther from the edges meeting the box than they reach grown,
+    // but the chord that would replace them crosses the strip.
+    const Polygon strip{ {-3000000, 0}, {4000000, 2}, {4000000, 200000}, {-3000000, 200000} };
+    const Polygon ring{ {-200000, -900000}, {6100000, -900000}, {6100000, 800000}, {-200000, 800000} };
+    // Clockwise, from a point where its lowest points start, so that the corner of the bridge below is no extreme.
+    const Polygon hole{ {3000000, -800000}, {2000000, -800000}, {-100000, -800000}, {-100000, 700000},
+        {2000000, 700000}, {3000000, 700000}, {6000000, 700000}, {6000000, -800000} };
+    REQUIRE_FALSE(hole.is_counter_clockwise());
+    BoundingBox box = get_extents(Polyline(Point(0, -200199), Point(1000000, -200199)));
+    box.offset(scaled<double>(.5));
+    NearPolygons footing;
+    footing.append({ strip, ring, hole });
+    CHECK(count_points(organic_footing_near_box(footing, box, 200200.f, jtRound)) ==
+        strip.size() + ring.size() + hole.size());
+}
+
+TEST_CASE("Organic footing near a box adds no outline out of reach of the edges meeting it", "[TreeSupport][Regression]")
+{
+    using namespace Slic3r;
+    // Two strips and a hole crossing the box inside a contour, the hole touching the contour, so that offset() would
+    // grow them one by one and they are taken whole. A square out of the box lies just farther from the shorter strip
+    // than twice the reach of offset(), though in the box around all the edges meeting the box.
+    const Polygon contour{ {-10000000, -10000000}, {10000000, -10000000}, {10000000, 10000000}, {-10000000, 10000000} };
+    const Polygon shorter{ {-1000000, 100000}, {2000000, 100000}, {2000000, 200000}, {-1000000, 200000} };
+    const Polygon longer{ {-1000000, 700000}, {5000000, 700000}, {5000000, 800000}, {-1000000, 800000} };
+    Polygon       hole{ {900000, 950000}, {10000000, 950000}, {10000000, 1050000}, {900000, 1050000} };
+    hole.reverse();
+    const coord_t apart = 2 * 200200 + 100;
+    const Polygon square{ {2000000 + apart + 50, -200000}, {2600000, -200000}, {2600000, 0},
+        {2000000 + apart + 50, 0} };
+    NearPolygons  footing;
+    footing.append({ contour, shorter, longer, hole, square });
+    CHECK(organic_footing_near_box(footing, BoundingBox(Point(0, 0), Point(1000000, 1000000)), 200200.f, jtRound) ==
+        Polygons{ contour, shorter, longer, hole });
+}
+
+TEST_CASE("Organic outlines cut at a box leave out those that only pass by it", "[TreeSupport][Regression]")
+{
+    using namespace Slic3r;
+    // Strips passing by a corner of the box keep all their points cut at it, and clipping against all of them took a
+    // time quadratic in them.
+    const BoundingBox box(Point(0, 0), Point(1000000, 1000000));
+    Polygons          outlines;
+    for (coord_t i = 0; i < 10; ++ i) {
+        const coord_t d = 35000 * i;
+        outlines.push_back(Polygon{ {600000 + d, 1500000}, {1500000, 600000 + d}, {1500000, 630000 + d},
+            {630000 + d, 1500000} });
+        REQUIRE(outlines.back().is_counter_clockwise());
+    }
+    // One crossing the box, and one around it.
+    const Polygon crossing{ {-500000, 200000}, {500000, 200000}, {500000, 300000}, {-500000, 300000} };
+    const Polygon around{ {-5000000, -5000000}, {5000000, -5000000}, {5000000, 5000000}, {-5000000, 5000000} };
+    outlines.push_back(crossing);
+    outlines.push_back(around);
+    CHECK(organic_outlines_into_box(outlines, box) == Polygons{ crossing, around });
+}
+
+TEST_CASE("Organic material near a part touches it as the whole of it grown does", "[TreeSupport][Regression]")
+{
+    using namespace Slic3r;
+    // A wide outline far from a part, with a spike 40 nm thick reaching to 1 um from it. offset() drops each point
+    // closer than a fraction of the offset to the last one it kept: of the whole outline, one point of the tip of the
+    // spike, which then still reaches the part grown by 0.01 mm. Cut off from the outline where it leaves the box the
+    // part is looked for in, the spike would be a strip of its own, which offset() drops whole.
+    const coord_t gap = 1000, thick = 40, mid = 100000;
+    const Polygon part{ { 0, 0 }, { 2 * mid, 0 }, { 2 * mid, 2 * mid }, { 0, 2 * mid } };
+    Polygon       material{ { -2000000, -1000000 }, { -1000000, -1000000 }, { -1000000, mid - thick / 2 },
+        { -gap, mid - thick / 2 }, { -gap, mid + thick / 2 }, { -1000000, mid + thick / 2 }, { -1000000, 1000000 },
+        { -2000000, 1000000 } };
+    // Which point offset() keeps depends on where it starts going around the outline.
+    const int start = GENERATE(0, 1, 2, 3, 4, 5, 6, 7);
+    CAPTURE(start);
+    std::rotate(material.points.begin(), material.points.begin() + start, material.points.end());
+    REQUIRE(material.is_counter_clockwise());
+    NearPolygons near;
+    near.grow = float(scaled<double>(0.01));
+    near.append({ material });
+    REQUIRE_FALSE(intersection(Polygons{ part }, offset(Polygons{ material }, near.grow)).empty());
+    CHECK(near.touch({ part }));
 }
 
 TEST_CASE("Organic trees near the bed move no farther a layer than their walls print over the walls below", "[TreeSupport][Radius]")

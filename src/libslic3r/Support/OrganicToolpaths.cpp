@@ -4,6 +4,7 @@
 #include "SupportLayer.hpp"
 #include "SupportParameters.hpp"
 #include "TreeSupportCommon.hpp"
+#include "../AABBTreeIndirect.hpp"
 #include "../BoundingBox.hpp"
 #include "../ClipperUtils.hpp"
 #include "../ExPolygon.hpp"
@@ -32,7 +33,6 @@
 #include "../libslic3r.h"
 #include "../format.hpp"
 
-#include <boost/container_hash/hash.hpp>
 #include <clipper2/clipper.core.h>
 #include <clipper2/clipper.h>
 #include <tbb/blocked_range.h>
@@ -45,9 +45,9 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -494,15 +494,21 @@ static bool run_hangs(const Polyline &run, const Polyline &axis, const bool clos
 static Polylines hanging_parts(const Polyline &axis, const double width, const Polygons &reachable, const double max_span)
 {
     const bool closed = axis.first_point().distance_to(axis.last_point()) <= width;
+    // Only what is reachable near the axis: the whole of a large layer clipped against each axis on its own took most
+    // of the time of the checks of the layer. The cut, see organic_outlines_into_box(), drops only points out of a box
+    // around the axis a bead wider than it, with their neighbours out of it on the same side, and leaves out the
+    // outlines that lie all out of the box: each point of the box lies in what is reachable or not as before, and
+    // nothing is rounded.
+    const Polygons near = organic_outlines_into_box(reachable, get_extents(axis).inflated(coord_t(std::ceil(width))));
     Polylines  parts;
     if (closed) {
         Points loop = axis.points;
         if (axis.is_closed())
             loop.pop_back();
         // Closed clipping rejoins pieces split at the source seam.
-        parts = diff_pl(Polygons{ Polygon(std::move(loop)) }, reachable);
+        parts = diff_pl(Polygons{ Polygon(std::move(loop)) }, near);
     } else
-        parts = diff_pl(Polylines{ axis }, reachable);
+        parts = diff_pl(Polylines{ axis }, near);
     parts.erase(std::remove_if(parts.begin(), parts.end(),
         [&](const Polyline &part) {
             const double length = part.length();
@@ -907,8 +913,14 @@ Polygons NearPolygons::around(const std::vector<BoundingBox> &near) const
 bool NearPolygons::touch(const Polygons &part) const
 {
     // A mitered corner reaches up to DefaultMiterLimit times the offset from the outline.
-    const Polygons close = this->around({ get_extents(part).inflated(coord_t(DefaultMiterLimit * grow) + SCALED_EPSILON) });
-    return ! close.empty() && ! intersection(part, grow > 0.f ? offset(close, grow) : close).empty();
+    const BoundingBox box = get_extents(part).inflated(coord_t(DefaultMiterLimit * grow) + SCALED_EPSILON);
+    // Not grown, they only clip the part, as their outlines cut at its box do.
+    if (grow <= 0.f)
+        return ! intersection(part, organic_outlines_into_box(this->around({ box }), box)).empty();
+    // Grow only what of them lies near the part, as the whole of them grows there, see organic_footing_near_box():
+    // grown whole for each small part of a large layer, they took most of the time of the checks of the layer.
+    const Polygons near = organic_footing_near_box(*this, box, grow, jtMiter);
+    return ! near.empty() && ! intersection(part, offset(near, grow)).empty();
 }
 
 Polygons organic_bead(const Polyline &axis, double width)
@@ -1112,6 +1124,16 @@ template<typename Drop> static size_t remove_extrusions_if(ExtrusionEntityCollec
     return removed;
 }
 
+// Whether pick() picks any of the extrusions of a collection, asked in the order remove_extrusions_if() asks drop().
+template<typename Pick> static bool any_extrusion_of(const ExtrusionEntityCollection &collection, const Pick &pick)
+{
+    return std::any_of(collection.entities.begin(), collection.entities.end(), [&pick](const ExtrusionEntity *entity) {
+        if (entity->is_collection())
+            return any_extrusion_of(*static_cast<const ExtrusionEntityCollection*>(entity), pick);
+        return bool(pick(*entity));
+    });
+}
+
 // Removes the paths shorter than a quarter of their bead width, and of the line width, except those joining two other
 // paths. Such a path remains where a path is clipped along the edge of a bead and adds next to nothing to the layer, but
 // unless the G-code happens to continue another path with it, it is printed as a dot after a travel, often a retraction,
@@ -1186,7 +1208,8 @@ static void throw_if_canceled(const PrintObject &object)
 }
 
 struct ModelFootprint {
-    bool planar_cached = false;
+    // Built once, then only read, by the layers checked in parallel too, see remove_floating_support_crumbs().
+    std::once_flag planar_built;
     Polygons planar;
     std::vector<const ExtrusionPath*> contoured;
     std::vector<std::pair<const ExtrusionPath*, double>> resolved;
@@ -1199,6 +1222,10 @@ struct ModelFootprints {
     const std::vector<Polygons> *emitted = nullptr;
     // The copy of the object whose tops the footprints resolved by the tool plan hold, see model_material().
     size_t copy = 0;
+    // Without a tool plan, the index of all the layers is built at once, see model_material(), and then the map is
+    // only read, by the layers checked in parallel too, see remove_floating_support_crumbs(). With one, the layers
+    // are indexed as they are asked for, by one thread.
+    std::once_flag indexed;
 };
 
 // Nozzle variants are assigned after support generation. With an unresolved assignment, keep a top path
@@ -1375,14 +1402,31 @@ static std::vector<double> resolved_top_heights(const PrintObject &object, const
     return result;
 }
 
+// The paths of a model layer that deliver material, see model_path_has_flow().
+template<typename Visitor>
+static void visit_model_paths(const PrintObject &object, const Layer &layer, const Visitor &visitor)
+{
+    const bool first = layer.id() == 0 && std::abs(layer.bottom_z()) < EPSILON;
+    for (const LayerRegion *region : layer.regions()) {
+        const PrintRegionConfig &config = region->region().config();
+        const bool top_has_flow = model_top_has_flow(config, *object.print());
+        const auto visit_printed = [&](const ExtrusionPath &path) {
+            if (model_path_has_flow(path, config, object.config(), first, top_has_flow))
+                visitor(path);
+        };
+        for_each_extrusion_path(region->perimeters, visit_printed);
+        for_each_extrusion_path(region->fills, visit_printed);
+    }
+}
+
 // Contoured paths may leave their nominal layer's Z band. Index their actual bounds, but construct planar
 // footprints only when a root reaches that layer. An unprinted interior of a model outline provides no footing.
 static Polygons model_material(const PrintObject &object, const Layer &layer, const double min_z, const double max_z,
     ModelFootprints &cache, const ToolOrdering *ordering)
 {
-    auto [it, inserted] = cache.layers.try_emplace(&layer);
-    ModelFootprint &footprint = it->second;
     if (ordering != nullptr) {
+        auto [it, inserted] = cache.layers.try_emplace(&layer);
+        ModelFootprint &footprint = it->second;
         if (inserted) {
             throw_if_canceled(object);
             footprint.min_z = footprint.max_z = layer.print_z;
@@ -1459,43 +1503,39 @@ static Polygons model_material(const PrintObject &object, const Layer &layer, co
             }
         return material;
     }
-    const auto visit_paths = [&](const auto &visitor) {
-        for (const LayerRegion *region : layer.regions()) {
-            const PrintRegionConfig &config = region->region().config();
-            const bool top_has_flow = model_top_has_flow(config, *object.print());
-            const auto visit_printed = [&](const ExtrusionPath &path) {
-                if (model_path_has_flow(path, config, object.config(), layer.id() == 0 && std::abs(layer.bottom_z()) < EPSILON, top_has_flow))
-                    visitor(path);
-            };
-            for_each_extrusion_path(region->perimeters, visit_printed);
-            for_each_extrusion_path(region->fills, visit_printed);
-        }
-    };
-    if (inserted) {
-        footprint.min_z = footprint.max_z = layer.print_z;
-        visit_paths([&](const ExtrusionPath &path) {
-            if (path.z_contoured) {
-                footprint.contoured.push_back(&path);
-                for (const Point3 &point : path.polyline.points) {
-                    const double z = layer.print_z + unscale<double>(point.z());
-                    footprint.min_z = std::min(footprint.min_z, z);
-                    footprint.max_z = std::max(footprint.max_z, z);
+    std::call_once(cache.indexed, [&object, &cache] {
+        for (const Layer *model_layer : object.layers()) {
+            ModelFootprint &entry = cache.layers[model_layer];
+            entry.min_z = entry.max_z = model_layer->print_z;
+            visit_model_paths(object, *model_layer, [&](const ExtrusionPath &path) {
+                if (path.z_contoured) {
+                    entry.contoured.push_back(&path);
+                    for (const Point3 &point : path.polyline.points) {
+                        const double z = model_layer->print_z + unscale<double>(point.z());
+                        entry.min_z = std::min(entry.min_z, z);
+                        entry.max_z = std::max(entry.max_z, z);
+                    }
                 }
-            }
-        });
-    }
+            });
+        }
+    });
+    const auto found = cache.layers.find(&layer);
+    if (found == cache.layers.end())
+        return {};
+    ModelFootprint &footprint = found->second;
     if (footprint.max_z < min_z || footprint.min_z > max_z)
         return {};
     Polygons material;
     if (layer.print_z >= min_z && layer.print_z <= max_z) {
-        if (!footprint.planar_cached) {
-            visit_paths([&](const ExtrusionPath &path) {
+        // Built once, the first time it is asked for, while other layers build theirs.
+        std::call_once(footprint.planar_built, [&] {
+            Polygons planar;
+            visit_model_paths(object, layer, [&](const ExtrusionPath &path) {
                 if (!path.z_contoured)
-                    append(footprint.planar, organic_bead(path.as_polyline(), scale_(path.width)));
+                    append(planar, organic_bead(path.as_polyline(), scale_(path.width)));
             });
-            footprint.planar = union_(footprint.planar);
-            footprint.planar_cached = true;
-        }
+            footprint.planar = union_(planar);
+        });
         material = footprint.planar;
     }
     for (const ExtrusionPath *path : footprint.contoured)
@@ -1606,6 +1646,14 @@ public:
         m_object(object), m_covered(covered), m_i(i), m_model_prints(model), m_ordering(ordering)
     {}
     const Polygons &polygons(const bool with_model) { return footing(with_model).polygons; }
+    // The polygons of the footing with their boxes.
+    const NearPolygons &near_polygons(const bool with_model)
+    {
+        Footing &f = footing(with_model);
+        if (f.near.polygons.empty())
+            f.near.append(f.polygons);
+        return f.near;
+    }
     const Polygons &reach(const bool with_model, const coord_t width)
     {
         Footing &f = footing(with_model);
@@ -1616,13 +1664,7 @@ public:
     }
     // The polygons of the footing that may share area with what lies within box: those whose boxes overlap it, with the
     // contour of each hole among them.
-    Polygons near(const bool with_model, const BoundingBox &box)
-    {
-        Footing &f = footing(with_model);
-        if (f.near.polygons.empty())
-            f.near.append(f.polygons);
-        return f.near.around({ box });
-    }
+    Polygons near(const bool with_model, const BoundingBox &box) { return near_polygons(with_model).around({ box }); }
 
 private:
     struct Footing {
@@ -1675,17 +1717,27 @@ static ExPolygons floating_islands(const PrintObject &object, const std::vector<
         footing.append(model_footing(object, i, model, ordering));
         model_checked = true;
     };
-    ExPolygons     floating;
-    for (ExPolygon &island : union_ex(covered[i])) {
-        const Polygons part = to_polygons(island);
-        bool rooted = footing.touch(part);
-        // Most islands stand on support. Avoid constructing model footprints until one actually needs them.
-        if (! rooted && ! model_checked) {
+    // The islands are checked each on its own, in parallel: a layer of many bodies holds many of them.
+    ExPolygons        islands = union_ex(covered[i]);
+    std::vector<char> rooted(islands.size());
+    const auto        check   = [&](const size_t from) {
+        using Range = tbb::blocked_range<size_t>;
+        tbb::parallel_for(Range(from, islands.size()), [&](const Range &range) {
+            for (size_t k = range.begin(); k < range.end(); ++ k)
+                rooted[k] = footing.touch(to_polygons(islands[k]));
+        });
+    };
+    check(0);
+    ExPolygons floating;
+    for (size_t k = 0; k < islands.size(); ++ k) {
+        // Most islands stand on support. Avoid constructing model footprints until one actually needs them: the islands
+        // from this one on are checked again with them.
+        if (! rooted[k] && ! model_checked) {
             add_model_footing();
-            rooted = footing.touch(part);
+            check(k);
         }
-        if (! rooted)
-            floating.emplace_back(std::move(island));
+        if (! rooted[k])
+            floating.emplace_back(std::move(islands[k]));
     }
     // The island area threshold suppresses specks. Beads hanging from a rooted island have their own bead-scale test, see
     // hanging_runs(); a short, sharply bent run can fail even at a small area.
@@ -1770,50 +1822,260 @@ template<typename Visitor> static void for_each_bead(const ExtrusionEntityCollec
             visitor(*entity);
 }
 
-// Only the outlines whose boxes overlap the box reach into it. The cut drops only corners out of the box and keeps each edge
-// crossing it as it is: cut at the box, an edge would turn by the rounding of the cut, and a bead along the edge of the reach
-// could hang or not by that. The union mends the outlines so cut short, which grow wrong as they are. Where it returns an edge
-// the cut outlines do not have, it cut one where they cross out of the box, whether the crossing rounds to a new point or
-// onto a corner, or it joined edges in line. offset() drops a point closer than a fraction of the offset to the last one it
-// kept, going around an outline from its first point, and which of two such points it keeps sets the slope of an edge: the
-// outlines are cut as offset() takes them, and where offset() would drop a point of what is left, two points the cut leaves
-// as close, an edge would turn again. In either case the outlines the box meets are taken whole instead.
-Polygons organic_footing_near_box(const Polygons &footing, const BoundingBox &box, const float delta)
+// Whether an outline reaches into box: an edge of it meets the box, or it lies around the box.
+static bool reaches_into(const Polygon &outline, const BoundingBox &box)
 {
-    Polygons whole;
-    for (const Polygon &polygon : footing)
-        if (get_extents(polygon).overlap(box))
-            whole.push_back(polygon);
-    Polygons thinned = offset_input(whole, delta);
-    // An outline offset() drops whole may leave a hole of it on its own, which a union would fill.
-    if (thinned.size() < whole.size())
-        return whole;
-    const Polygons cut  = ClipperUtils::clip_clipper_polygons_with_subject_bbox(std::move(thinned), box);
-    Polygons       near = union_(cut);
-    using Edge = std::pair<Point, Point>;
-    const auto edge = [](const Point &p, const Point &q) {
-        return p.x() < q.x() || (p.x() == q.x() && p.y() < q.y()) ? Edge(p, q) : Edge(q, p);
+    for (size_t i = 0; i < outline.size(); ++ i)
+        if (Line edge(outline.points[i], outline.points[(i + 1) % outline.size()]); edge.clip_with_bbox(box))
+            return true;
+    return outline.contains(box.center());
+}
+
+// An outline that does not reach into the box lies all out of it. Cut, one that only passes by a corner of the box
+// keeps all its points, and clipping against many of them takes a time quadratic in them.
+Polygons organic_outlines_into_box(const Polygons &outlines, const BoundingBox &box)
+{
+    Polygons out;
+    for (const Polygon &outline : outlines)
+        if (Polygon cut = ClipperUtils::clip_clipper_polygon_with_subject_bbox(outline, box); reaches_into(cut, box))
+            out.push_back(std::move(cut));
+    return out;
+}
+
+// The sides of box a point lies beyond, a bit each, as ClipperUtils::clip_clipper_polygon_with_subject_bbox() takes
+// them.
+static int sides_beyond(const BoundingBox &box, const Point &point)
+{
+    return int(point.x() < box.min.x()) | int(point.x() > box.max.x()) << 1 | int(point.y() < box.min.y()) << 2 |
+        int(point.y() > box.max.y()) << 3;
+}
+
+// Whether the segments ab and cd come within distance of each other: an end of one lies that close to the other, or
+// they cross.
+static bool segments_within(const Point &a, const Point &b, const Point &c, const Point &d, const double distance)
+{
+    const double limit = distance * distance;
+    if (Line::distance_to_squared(a, c, d) <= limit || Line::distance_to_squared(b, c, d) <= limit ||
+        Line::distance_to_squared(c, a, b) <= limit || Line::distance_to_squared(d, a, b) <= limit)
+        return true;
+    const auto turn = [](const Point &p, const Point &q, const Point &r) {
+        return cross2(Vec2d((q - p).cast<double>()), Vec2d((r - p).cast<double>()));
     };
-    // Each coordinate of the ends mixed into the hash in turn: the edges of footing laid out in rows differ by multiples of
-    // their step, and any sum of the coordinates, as PointHash and a sum of the hashes of the ends are, takes the same
-    // value for many of them, or values that fall into a few buckets.
-    const auto hash = [](const Edge &e) {
-        size_t seed = 0;
-        for (const coord_t c : { e.first.x(), e.first.y(), e.second.x(), e.second.y() })
-            boost::hash_combine(seed, c);
-        return seed;
-    };
-    std::unordered_set<Edge, decltype(hash)> kept(16, hash);
-    for (const Polygon &polygon : cut)
-        for (size_t i = 0; i < polygon.size(); ++ i)
-            kept.insert(edge(polygon.points[i], polygon.points[(i + 1) % polygon.size()]));
-    const bool mended = std::any_of(near.begin(), near.end(), [&kept, &edge](const Polygon &polygon) {
-        for (size_t i = 0; i < polygon.size(); ++ i)
-            if (kept.count(edge(polygon.points[i], polygon.points[(i + 1) % polygon.size()])) == 0)
-                return true;
-        return false;
+    return turn(a, b, c) * turn(a, b, d) < 0. && turn(c, d, a) * turn(c, d, b) < 0.;
+}
+
+// An outline as offset_as_group() takes it: the area, by the sign of which offset() takes it for a contour or a hole,
+// and its box.
+struct OutlineShape {
+    double      area;
+    BoundingBox box;
+};
+
+// Whether offset() grows the outlines as one group, as c2_offset_as_group() decides it from their paths: only if the
+// box of each hole lies strictly inside the box of a contour. Otherwise it grows them one by one and unites them
+// again, which rounds otherwise where they cross.
+static bool offset_as_group(const std::vector<OutlineShape> &outlines)
+{
+    std::vector<const BoundingBox*> contours;
+    for (const OutlineShape &outline : outlines)
+        if (outline.area > 0.)
+            contours.push_back(&outline.box);
+    return std::all_of(outlines.begin(), outlines.end(), [&contours](const OutlineShape &hole) {
+        return hole.area >= 0. || std::any_of(contours.begin(), contours.end(), [&hole](const BoundingBox *contour) {
+            return contour->min.x() < hole.box.min.x() && contour->max.x() > hole.box.max.x() &&
+                contour->min.y() < hole.box.min.y() && contour->max.y() > hole.box.max.y();
+        });
     });
-    return mended || count_points(offset_input(near, delta)) < count_points(near) ? whole : near;
+}
+
+// offset() grows each piece of an outline, an edge or the join at a point, within reach of it: delta for a round join,
+// the miter limit times delta for a mitered one. It unites what it grows and rounds the points where grown pieces
+// cross, and what grows into the box farther from its sides than the reach grows from the edges meeting the box,
+// between such points or the ends of the edges grown: a bead along the edge of the reach could hang or not by the
+// slope of an edge rounded otherwise. A piece grown crosses such an edge grown only if it lies within twice the reach
+// of it, which an outline whose box does not overlap the box may too.
+//
+// The cut drops points out of the box beside neighbours out of it on the same side, see
+// ClipperUtils::clip_clipper_polygon_with_subject_bbox(): each point of the box lies inside as many of the cut outlines
+// as of the whole ones, and each edge meeting the box stays as it is. It keeps the points of each edge within twice
+// the reach of an edge meeting the box too, with the neighbours that set the joins offset() places at them, and the
+// points farthest each way, which keep the box of each outline. So of what it changes only the chord replacing a run
+// of points dropped may come that near such an edge, and then it keeps the run too; an outline that does not reach
+// into the box and has no edge that near is left out. Where offset() would not grow the whole or the cut outlines as
+// one group, see offset_as_group(), uniting what it grows of each outline alone first, which rounds where a far piece
+// of it crosses a piece near the box, where the cut turns the sign of the area of an outline, by which offset() takes
+// it for a contour or a hole, and where offset() would drop a point of a cut outline, the outlines near the box are
+// taken whole. offset() drops a point closer than a fraction of the offset to the last one it kept, going around an
+// outline from its first point, and which of two such points it keeps sets the slope of an edge: the outlines are cut
+// as offset() takes them, and two points the cut leaves as close would turn an edge again.
+Polygons organic_footing_near_box(const NearPolygons &footing, const BoundingBox &box, const float delta,
+    const JoinType join)
+{
+    Polygons     whole   = footing.around({ box });
+    Polygons     thinned = offset_input(whole, delta);
+    const double reach   = (join == jtRound ? 1. : DefaultMiterLimit) * std::abs(double(delta));
+    const double apart   = 2. * reach + double(SCALED_EPSILON);
+    // The edges meeting the box but those farther inside it than apart, which nothing out of the box comes near.
+    const BoundingBox        inner = box.inflated(- (apart + 1.));
+    std::vector<Line>                                 edges;
+    std::vector<AABBTreeIndirect::BoundingBoxWrapper> spans;
+    BoundingBox                                       zone;
+    // The sides of the box each point lies beyond, outline after outline.
+    std::vector<int>    beyond;
+    std::vector<size_t> firsts;
+    const auto          add_sides = [&box, &beyond, &firsts](const Polygon &outline) {
+        firsts.push_back(beyond.size());
+        for (const Point &point : outline.points)
+            beyond.push_back(sides_beyond(box, point));
+    };
+    for (const Polygon &outline : thinned) {
+        add_sides(outline);
+        const int *sides = beyond.data() + firsts.back();
+        for (size_t i = 0, n = outline.size(); i < n; ++ i) {
+            const size_t next = i + 1 < n ? i + 1 : 0;
+            const Point &a = outline.points[i], &b = outline.points[next];
+            if ((sides[i] & sides[next]) != 0 || (inner.contains(a) && inner.contains(b)))
+                continue;
+            if (Line edge(a, b); edge.clip_with_bbox(box)) {
+                BoundingBox span;
+                span.merge(a);
+                span.merge(b);
+                span.offset(std::ceil(apart));
+                zone.merge(span);
+                // BoundingBoxWrapper grows each box by SCALED_EPSILON: taken off first, so that it takes in no outline
+                // farther away.
+                spans.emplace_back(edges.size(), span.inflated(- SCALED_EPSILON));
+                edges.emplace_back(a, b);
+            }
+        }
+    }
+    // The boxes of the edges grown by apart, so that each segment is looked for only among those its box overlaps:
+    // many strips across a long box would make the search quadratic in them. Most segments lie out of all of them,
+    // and out of the box around them all, which rejects them at once.
+    using Tree = AABBTreeIndirect::Tree<2, coord_t>;
+    Tree reaches;
+    reaches.build_modify_input(spans);
+    const auto overlaps = [&reaches, &zone](const Point &low, const Point &high, const auto &visit) {
+        if (zone.defined && high.x() >= zone.min.x() && low.x() <= zone.max.x() && high.y() >= zone.min.y() &&
+            low.y() <= zone.max.y())
+            AABBTreeIndirect::traverse(reaches, AABBTreeIndirect::intersecting(Tree::BoundingBox(low, high)),
+                [&visit](const Tree::Node &node) { return ! visit(node.idx); });
+    };
+    // The outlines out of the box that come that near such an edge.
+    for (size_t i = 0; ! reaches.empty() && i < footing.polygons.size(); ++ i)
+        if (const BoundingBox &other = footing.boxes[i]; ! other.overlap(box)) {
+            bool near = false;
+            overlaps(other.min, other.max, [&near](size_t) {
+                near = true;
+                return true;
+            });
+            if (! near)
+                continue;
+            whole.push_back(footing.polygons[i]);
+            for (Polygon &outline : offset_input(Polygons{ footing.polygons[i] }, delta)) {
+                add_sides(outline);
+                thinned.push_back(std::move(outline));
+            }
+        }
+    // Whether the segment ab comes within apart of an edge meeting the box. The edges whose boxes its box overlaps are
+    // tried in their order, the first near one ending the search: no more than the edges before it, as tried one by
+    // one, whichever order the tree visits them in.
+    std::vector<size_t> candidates;
+    const auto          near_edges = [&](const Point &a, const Point &b) {
+        candidates.clear();
+        overlaps(a.cwiseMin(b), a.cwiseMax(b), [&candidates](const size_t i) {
+            candidates.push_back(i);
+            return false;
+        });
+        std::sort(candidates.begin(), candidates.end());
+        return std::any_of(candidates.begin(), candidates.end(),
+            [&](const size_t i) { return segments_within(a, b, edges[i].a, edges[i].b, apart); });
+    };
+    // A point in the box, and both points of an edge within apart of an edge meeting it, are kept with the neighbours
+    // that set the joins offset() places at them: the corner of a miter, and for any join the crossing of both edges
+    // grown, where offset() cuts a concave corner if the edges are long enough, see OffsetConcaveCrossing() in
+    // Clipper2.
+    Polygons                  near;
+    std::vector<OutlineShape> whole_shapes, near_shapes;
+    std::vector<char>         keep;
+    std::vector<size_t>       kept;
+    near.reserve(thinned.size());
+    for (size_t k = 0; k < thinned.size(); ++ k) {
+        const Polygon &outline = thinned[k];
+        const Points  &points  = outline.points;
+        const size_t   n       = points.size();
+        const int     *sides   = beyond.data() + firsts[k];
+        const auto    hold   = [&keep, n](const size_t at) {
+            keep[(at + n - 1) % n] = keep[at] = keep[(at + 1) % n] = 1;
+        };
+        keep.assign(n, 0);
+        bool        close     = false;
+        size_t      extreme[] = { 0, 0, 0, 0 };
+        BoundingBox extent(points.front(), points.front());
+        for (size_t i = 0; i < n; ++ i) {
+            const Point &point = points[i];
+            const size_t next  = i + 1 < n ? i + 1 : 0;
+            if (point.x() < extent.min.x()) {
+                extent.min.x() = point.x();
+                extreme[0]     = i;
+            } else if (point.x() > extent.max.x()) {
+                extent.max.x() = point.x();
+                extreme[1]     = i;
+            }
+            if (point.y() < extent.min.y()) {
+                extent.min.y() = point.y();
+                extreme[2]     = i;
+            } else if (point.y() > extent.max.y()) {
+                extent.max.y() = point.y();
+                extreme[3]     = i;
+            }
+            // A point in the box is kept with its neighbours, and an edge from it reaches into the box.
+            if (sides[i] == 0)
+                hold(i);
+            else if (sides[next] != 0 && near_edges(point, points[next])) {
+                close = true;
+                hold(i);
+                hold(next);
+            }
+        }
+        for (const size_t i : extreme)
+            keep[i] = 1;
+        // The cut as ClipperUtils::clip_clipper_polygon_with_subject_bbox() makes it, keeping those points as well, and
+        // the runs of points whose chords come within apart of an edge meeting the box.
+        for (bool cut_again = true; cut_again;) {
+            kept.clear();
+            int last = sides[n - 1];
+            for (size_t i = 0; i < n && ! (i + 1 == n && kept.empty()); ++ i)
+                if (keep[i] || (last & sides[i] & sides[i + 1 < n ? i + 1 : kept.front()]) == 0) {
+                    kept.push_back(i);
+                    last = sides[i];
+                }
+            cut_again = false;
+            for (size_t j = 0; j < kept.size(); ++ j)
+                if (const size_t from = kept[j], to = kept[(j + 1) % kept.size()];
+                    (from + 1) % n != to && near_edges(points[to], points[from])) {
+                    for (size_t i = (from + 1) % n; i != to; i = (i + 1) % n)
+                        keep[i] = 1;
+                    cut_again = true;
+                }
+        }
+        Polygon cut;
+        cut.points.reserve(kept.size());
+        for (const size_t i : kept)
+            cut.points.push_back(points[i]);
+        const double area = outline.area();
+        whole_shapes.push_back({ area, extent });
+        // An outline that does not reach into the box lies all out of it.
+        if (! close && ! reaches_into(cut, box))
+            continue;
+        const double cut_area = cut.area();
+        if (cut_area == 0. || (cut_area > 0.) != (area > 0.))
+            return whole;
+        near_shapes.push_back({ cut_area, get_extents(cut) });
+        near.push_back(std::move(cut));
+    }
+    return ! offset_as_group(whole_shapes) || ! offset_as_group(near_shapes) ||
+        count_points(offset_input(near, delta)) < count_points(near) ? whole : near;
 }
 
 // The number of runs of the beads of layer i outside its floating islands that hang, see hanging_parts(), over the
@@ -1838,8 +2100,8 @@ static size_t hanging_runs(const PrintObject &object, const size_t i, const ExPo
     const auto reach_near = [&footing, &with_model](const coord_t width, const Polyline &path, const coord_t around) {
         BoundingBox box = get_extents(path);
         box.offset(double(around) + scaled<double>(.1));
-        return bead_reach(organic_footing_near_box(footing.polygons(with_model), box, bead_reach_offset(double(width))),
-            double(width));
+        return bead_reach(organic_footing_near_box(footing.near_polygons(with_model), box,
+            bead_reach_offset(double(width)), jtRound), double(width));
     };
     const auto max_span = [&](const double width) { return free_span(config, base_span, width); };
     AxesOutsideReach outside;
@@ -2773,15 +3035,156 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
     };
     const auto &config = object.config();
     const bool trim_walls = hollow_organic(config) && ! support_role_has_no_flow(config, erSupportMaterial);
+    // A dot of the base, a path no longer than it is wide, stands on what lies under its axis. One whose axis lies over
+    // nothing hangs, though its edge touches what is below and a bead beside it keeps it in a rooted island:
+    // hanging_parts() leaves runs that short out. Arachne lays such dots where a solid part runs out, over the slit
+    // between the loops of the layer below. An interface is a contact, kept as a tongue's load is. Where the support
+    // may stand on the model, the model footing joins the support below once a dot is found standing on nothing
+    // without it.
+    const auto hanging_dot = [&config](const ExtrusionEntity &entity, LayerFooting &footing, bool &model_added,
+                                 bool &with_model) {
+        Polylines axes;
+        double    length = 0.;
+        double    width  = 0.;
+        bool      flat   = true;
+        for_each_extrusion_path(entity, [&](const ExtrusionPath &path) {
+            flat = flat && path.role() == erSupportMaterial && flat_support(config, path);
+            length += path.length();
+            width = std::max(width, double(scale_(path.width)));
+            axes.emplace_back(path.as_polyline());
+        });
+        if (! flat || axes.empty() || length > width)
+            return false;
+        // Only the footing near the axes, which gives a dot the answer the footing of the whole layer does.
+        const auto stands = [&]() {
+            // Point by point: get_extents() leaves out the box of a path along an axis, which has no area.
+            BoundingBox box;
+            for (const Polyline &axis : axes)
+                for (const Point &point : axis.points)
+                    box.merge(point);
+            return ! intersection_pl(axes, footing.near(with_model, box.inflated(SCALED_EPSILON))).empty();
+        };
+        if (stands())
+            return false;
+        if (model_added)
+            return true;
+        model_added = with_model = true;
+        return ! stands();
+    };
+    // The tongues of a layer: the runs of its base that hang over what holds them, see hanging_parts(), grown into
+    // their beads, those that cut() takes.
+    const auto find_tongues = [&config, base_span](const ExtrusionEntityCollection &fills, LayerFooting &footing,
+                                  const bool with_model, const auto &cut) {
+        const auto reach = [&](const coord_t width) -> const Polygons & { return footing.reach(with_model, width); };
+        const auto may_hang = [](const ExtrusionPath &path) {
+            return path.role() == erSupportMaterial && ! path.z_contoured && path.mm3_per_mm > 0. &&
+                path.polyline.points.size() >= 2 && path.length() > scale_(path.width);
+        };
+        AxesOutsideReach outside;
+        for_each_extrusion_path(fills, [&](const ExtrusionPath &path) {
+            if (may_hang(path))
+                outside.add(path.as_polyline(), scale_(path.width));
+        });
+        outside.clip(reach);
+        // The axes near what lies outside the reach, each checked on its own, in parallel, against the reach of its
+        // width, found first.
+        std::vector<const ExtrusionPath*> near;
+        std::vector<const Polygons*>      reaches;
+        for_each_extrusion_path(fills, [&](const ExtrusionPath &path) {
+            if (may_hang(path) && outside.near(path.as_polyline())) {
+                near.push_back(&path);
+                reaches.push_back(&reach(scale_(path.width)));
+            }
+        });
+        std::vector<Polylines> hanging(near.size());
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, near.size()), [&](const tbb::blocked_range<size_t> &range) {
+            for (size_t k = range.begin(); k < range.end(); ++ k) {
+                const coord_t width = scale_(near[k]->width);
+                hanging[k] = hanging_parts(near[k]->as_polyline(), double(width), *reaches[k],
+                    free_span(config, base_span, double(width)));
+            }
+        });
+        Polygons tongues;
+        for (size_t k = 0; k < near.size(); ++ k) {
+            const coord_t width = scale_(near[k]->width);
+            for (const Polyline &part : hanging[k])
+                for (const ExPolygon &tongue : union_ex(organic_bead(part, double(width))))
+                    if (cut(tongue))
+                        append(tongues, to_polygons(tongue));
+        }
+        return tongues;
+    };
+    // The passes below leave most layers as they are: no crumb, no dot, no tongue. Such a layer only adds its floating
+    // heights, which, as all that its first pass finds, depend on it, the layer above and the layers it stands on
+    // alone. So all the layers are first checked so, in parallel: read only, sharing the footprints of the model with
+    // the passes, and without unused_appendage(), which keeps a cache of the layers it climbs: a layer that would call
+    // it goes to the passes, as does one the passes find otherwise, and one over a layer they change. Checked layer
+    // by layer only, these checks took almost all of the time of the passes.
+    std::vector<std::optional<std::vector<coordf_t>>> settled(covered.size());
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, covered.size()), [&](const tbb::blocked_range<size_t> &range) {
+        for (size_t i = range.begin(); i < range.end(); ++ i) {
+            throw_if_canceled(object);
+            const SupportLayer              &layer = *object.support_layers()[i];
+            const ExtrusionEntityCollection &fills = layer.support_fills;
+            LayerFooting                     footing(object, covered, i, model, nullptr);
+            const ExPolygons                 kept = floating_islands(object, covered, i, model);
+            const auto crumb = [max_area](const ExPolygon &island) { return island.area() < max_area; };
+            if (config.support_on_build_plate_only ? ! kept.empty() : std::any_of(kept.begin(), kept.end(), crumb))
+                continue;
+            if (hollow_organic(config) && layer.bottom_z() >= EPSILON) {
+                bool model_added = config.support_on_build_plate_only;
+                bool with_model  = false;
+                if (any_extrusion_of(fills, [&](const ExtrusionEntity &entity) {
+                        return hanging_dot(entity, footing, model_added, with_model); }))
+                    continue;
+            }
+            if (trim_walls && layer.bottom_z() >= EPSILON &&
+                ! find_tongues(fills, footing, false, [&](const ExPolygon &tongue) {
+                      return config.support_on_build_plate_only || carries_nothing(i, tongue); }).empty())
+                continue;
+            std::vector<coordf_t> heights;
+            if (floating != nullptr)
+                append_floating_heights(heights, object, i, kept, footing, base_span);
+            settled[i] = std::move(heights);
+        }
+    });
+    // The layers whose material the passes changed, and whether any of them lies right below layer i, see
+    // support_below().
+    std::vector<bool> changed_layers(covered.size(), false);
+    const auto        below_changed = [&](const size_t i) {
+        const auto     layers = object.support_layers();
+        const coordf_t bottom = layers[i]->print_z - layers[i]->height;
+        for (size_t j = i; j -- > 0 && layers[j]->print_z > bottom - EPSILON;)
+            if (layers[j]->print_z < bottom + EPSILON && changed_layers[j])
+                return true;
+        return false;
+    };
     for (size_t i = 0; i < covered.size(); ++ i) {
         throw_if_canceled(object);
         const SupportLayer &layer = *object.support_layers()[i];
         ExtrusionEntityCollection &fills = object.support_layers()[i]->support_fills;
+        if (settled[i] && ! below_changed(i)) {
+            // The pass of dots drops the collections it leaves empty, those already empty too.
+            if (hollow_organic(config) && layer.bottom_z() >= EPSILON)
+                remove_extrusions_if(fills, [](const ExtrusionEntity &) { return false; });
+            if (floating != nullptr)
+                append(*floating, std::move(*settled[i]));
+            continue;
+        }
         // The passes below change this layer only, not what it stands on.
         LayerFooting footing(object, covered, i, model, nullptr);
         // The islands of the last pass, which drops none of them: those at least max_area large left on nothing.
         ExPolygons kept;
         bool changed;
+        // Whether the pass looks for dots and tongues: a dot or a tongue is one for its own axes and what lies below,
+        // which a pass dropping whole extrusions leaves as they are, so after a pass that finds no tongue the next one
+        // finds no dot and no tongue either, unless it drops crumbs: the tongues are looked for near the axes that
+        // leave the reach of the narrowest of them, which a crumb may take away, and the reach of a wider bead, its
+        // outline thinned by a wider offset, may leave an axis another one held. A pass that finds tongues may cut
+        // paths short, making new dots, or leave a tongue it cannot cut off, which it may once other extrusions of the
+        // layer go; and where the support stands on the build plate only, unused_appendage() judges a tongue by what
+        // the layer holds, which any pass changes.
+        bool cuts = true;
         do {
             changed = false;
             kept.clear();
@@ -2797,88 +3200,37 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
             if (!crumbs.empty() && remove_extrusions_in(fills, crumbs)) {
                 changed = true;
                 covered[i] = support_material(fills, &object, layer.id() == 0 && std::abs(layer.bottom_z()) < EPSILON);
+                changed_layers[i] = true;
+                cuts              = true;
             }
-            // A dot of the base, a path no longer than it is wide, stands on what lies under its axis. One whose axis lies
-            // over nothing hangs, though its edge touches what is below and a bead beside it keeps it in a rooted island:
-            // hanging_parts() leaves runs that short out. Arachne lays such dots where a solid part runs out, over the slit
-            // between the loops of the layer below. An interface is a contact, kept as a tongue's load is.
-            if (hollow_organic(config) && layer.bottom_z() >= EPSILON) {
-                bool       model_added = config.support_on_build_plate_only;
-                bool       with_model  = false;
-                // Only the footing near the axes, which gives a dot the answer the footing of the whole layer does.
-                const auto stands      = [&](const Polylines &axes) {
-                    // Point by point: get_extents() leaves out the box of a path along an axis, which has no area.
-                    BoundingBox box;
-                    for (const Polyline &axis : axes)
-                        for (const Point &point : axis.points)
-                            box.merge(point);
-                    return ! intersection_pl(axes, footing.near(with_model, box.inflated(SCALED_EPSILON))).empty();
-                };
-                const size_t dots = remove_extrusions_if(fills, [&](const ExtrusionEntity &entity) {
-                    Polylines axes;
-                    double    length = 0.;
-                    double    width  = 0.;
-                    bool      flat   = true;
-                    for_each_extrusion_path(entity, [&](const ExtrusionPath &path) {
-                        flat = flat && path.role() == erSupportMaterial && flat_support(config, path);
-                        length += path.length();
-                        width = std::max(width, double(scale_(path.width)));
-                        axes.emplace_back(path.as_polyline());
-                    });
-                    if (! flat || axes.empty() || length > width)
-                        return false;
-                    if (stands(axes))
-                        return false;
-                    if (model_added)
-                        return true;
-                    model_added = with_model = true;
-                    return ! stands(axes);
+            const bool look = cuts;
+            cuts            = config.support_on_build_plate_only;
+            if (look && hollow_organic(config) && layer.bottom_z() >= EPSILON) {
+                bool         model_added = config.support_on_build_plate_only;
+                bool         with_model  = false;
+                const size_t dots        = remove_extrusions_if(fills, [&](const ExtrusionEntity &entity) {
+                    return hanging_dot(entity, footing, model_added, with_model);
                 });
                 if (dots != 0) {
                     removed += dots;
                     changed = true;
                 }
             }
-            if (trim_walls && layer.bottom_z() >= EPSILON) {
-                bool       with_model = false;
-                const auto reach      = [&](const coord_t width) -> const Polygons & {
-                    return footing.reach(with_model, width);
+            if (look && trim_walls && layer.bottom_z() >= EPSILON) {
+                const auto cut = [&](const ExPolygon &tongue) {
+                    return config.support_on_build_plate_only ? unused_appendage(i, tongue) :
+                                                                carries_nothing(i, tongue);
                 };
-                Polygons   tongues;
+                bool     with_model = false;
+                Polygons tongues    = find_tongues(fills, footing, with_model, cut);
                 // Where the support may stand on the model, a tongue over it stands on it: the model footing joins the support
                 // below once a tongue is found without it.
-                const auto find_tongues = [&]() {
-                    const auto may_hang = [](const ExtrusionPath &path) {
-                        return path.role() == erSupportMaterial && ! path.z_contoured && path.mm3_per_mm > 0. &&
-                            path.polyline.points.size() >= 2 && path.length() > scale_(path.width);
-                    };
-                    AxesOutsideReach outside;
-                    for_each_extrusion_path(fills, [&](const ExtrusionPath &path) {
-                        if (may_hang(path))
-                            outside.add(path.as_polyline(), scale_(path.width));
-                    });
-                    outside.clip(reach);
-                    for_each_extrusion_path(fills, [&](const ExtrusionPath &path) {
-                        if (! may_hang(path))
-                            return;
-                        const Polyline axis = path.as_polyline();
-                        if (! outside.near(axis))
-                            return;
-                        const coord_t width = scale_(path.width);
-                        for (const Polyline &part : hanging_parts(axis, double(width), reach(width),
-                                 free_span(config, base_span, double(width))))
-                            for (const ExPolygon &tongue : union_ex(organic_bead(part, double(width))))
-                                if (config.support_on_build_plate_only ? unused_appendage(i, tongue) : carries_nothing(i, tongue))
-                                    append(tongues, to_polygons(tongue));
-                    });
-                };
-                find_tongues();
                 if (! tongues.empty() && ! config.support_on_build_plate_only) {
                     with_model = true;
-                    tongues.clear();
-                    find_tongues();
+                    tongues    = find_tongues(fills, footing, with_model, cut);
                 }
                 if (!tongues.empty()) {
+                    cuts                  = true;
                     const Polygons region = union_(tongues);
                     // A route round runs along the edge of what holds it, where a bead of the layer may lie, and a
                     // join may hold the layer above.
@@ -2912,6 +3264,7 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
             }
             if (changed) {
                 covered[i] = support_material(fills, &object, layer.id() == 0 && std::abs(layer.bottom_z()) < EPSILON);
+                changed_layers[i] = true;
                 rooted_layers = std::min(rooted_layers, i);
             }
             // Clipping a tongue can disconnect tiny fill paths on the same layer.

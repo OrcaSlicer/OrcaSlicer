@@ -4129,9 +4129,19 @@ void organic_limit_body_shrink(SupportGeneratorLayersPtr &bodies, const std::vec
             continue;
         const BoundingBox box = get_extents(layer->polygons);
         Polygons          kept;
-        for (ExPolygon &part : union_ex(offset(below->polygons, - float(step))))
-            if (Polygons shape = to_polygons(std::move(part)); get_extents(shape).overlap(box) && ! intersection(shape, layer->polygons).empty())
+        for (ExPolygon &part : union_ex(offset(below->polygons, - float(step)))) {
+            Polygons          shape  = to_polygons(std::move(part));
+            const BoundingBox extent = get_extents(shape);
+            if (! extent.overlap(box))
+                continue;
+            // Each part is checked only against what of the layer lies within its box, see
+            // ClipperUtils::clip_clipper_polygons_with_subject_bbox(): checked against the whole layer, the many parts
+            // of a layer of many bodies took almost all of the time of the pass.
+            const Polygons here = ClipperUtils::clip_clipper_polygons_with_subject_bbox(layer->polygons,
+                extent.inflated(SCALED_EPSILON));
+            if (! intersection(shape, here).empty())
                 append(kept, std::move(shape));
+        }
         if (kept.empty())
             continue;
         if (kept = diff(kept, union_(model[i], roofs[i])); ! kept.empty())
@@ -4916,13 +4926,24 @@ void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const s
                     within = union_(within, floating);
                 } else
                     within = offset(own, out);
+                // Each body is cut only against what lies within its box, see
+                // ClipperUtils::clip_clipper_polygons_with_subject_bbox(): cut against the whole layer, the many bodies
+                // near a wide roof took most of the time of widening under it.
+                const Polygons model_near =
+                    ClipperUtils::clip_clipper_polygons_with_subject_bbox(model[below - m], flared);
                 for (size_t i = 0; i < shapes.size(); ++ i) {
-                    Polygons shape;
+                    const Polygons   &grown = steps[state(m)][i];
+                    const BoundingBox box   = get_extents(grown).inflated(SCALED_EPSILON);
+                    const auto        clip  = [&box](const Polygons &polygons) {
+                        return ClipperUtils::clip_clipper_polygons_with_subject_bbox(polygons, box);
+                    };
+                    const Polygons bodies_here = clip(own);
+                    Polygons       shape;
                     // A piece the cut leaves apart from the bodies of that layer would stand on nothing.
-                    for (ExPolygon &part : intersection_ex(diff(steps[state(m)][i], model[below - m]), within))
-                        if (! intersection(to_polygons(part), own).empty())
+                    for (ExPolygon &part : intersection_ex(diff(grown, clip(model_near)), clip(within)))
+                        if (! intersection(to_polygons(part), bodies_here).empty())
                             append(shape, to_polygons(std::move(part)));
-                    append(solids[m], tip[i] ? shape : diff(shape, target->polygons));
+                    append(solids[m], tip[i] ? shape : diff_clipped(shape, target->polygons));
                     append(adds[m], std::move(shape));
                 }
             }
@@ -5018,6 +5039,42 @@ std::vector<double> organic_base_roof_angles(const PrintObject &object, const Su
     if (params.num_top_base_interface_layers == 0 || ! organic_roof_angles(object, params).empty())
         return {};
     return { params.support_interface_angle(0) };
+}
+
+// Whether all of part lies within limit of a region, as the distances from its outline tell, the distance changing by
+// no more than the way: the box of the part is split into cells as far as needed, a cell passing once its center lies
+// within limit less its half diagonal of the outline, or once it lies wholly outside the part. A part that takes too
+// many cells is not found within.
+static bool organic_lies_within(const ExPolygon &part, const AABBTreeLines::LinesDistancer<Line> &outline,
+    const double limit)
+{
+    if (outline.get_lines().empty())
+        return false;
+    const AABBTreeLines::LinesDistancer<Line> edges{ to_lines(part) };
+    const BoundingBox                         box = get_extents(part.contour);
+    std::vector<std::pair<Vec2d, Vec2d>>      cells{ { box.min.cast<double>(), box.max.cast<double>() } };
+    for (size_t checked = 0; ! cells.empty(); ++ checked) {
+        if (checked == 4096)
+            return false;
+        const auto [low, high] = cells.back();
+        cells.pop_back();
+        const Vec2d center = 0.5 * (low + high);
+        const Point point(coord_t(std::round(center.x())), coord_t(std::round(center.y())));
+        // How far the cell reaches from the point.
+        const double half = 0.5 * (high - low).norm() + 1.;
+        if (std::abs(edges.distance_from_lines<false>(point)) > half && ! part.contains(point))
+            continue;
+        const double distance = std::abs(outline.distance_from_lines<false>(point));
+        if (distance + half <= limit)
+            continue;
+        if (distance > limit || half < 4.)
+            return false;
+        cells.emplace_back(low, center);
+        cells.emplace_back(Vec2d(center.x(), low.y()), Vec2d(high.x(), center.y()));
+        cells.emplace_back(Vec2d(low.x(), center.y()), Vec2d(center.x(), high.y()));
+        cells.emplace_back(center, high);
+    }
+    return true;
 }
 
 void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
@@ -5468,15 +5525,49 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
             };
             // The parts of a load farther than cover from what holds them, the material and the trees of this layer. The
             // material of a layer is as large as the layer, so only what lies within reach of a load part is grown, a
-            // mitered corner reaching DefaultMiterLimit times cover.
+            // mitered corner reaching DefaultMiterLimit times cover, and only near each part, as all of it grows there,
+            // see organic_footing_near_box(). Most parts lie within cover of it all over, as the distances from the
+            // outline of what offset() grows show: those are left out, a few units off the edge of its growth. Grown
+            // whole for each load, what holds a layer of many bodies took most of the time of the trees.
             const auto unheld = [&held, &grown_in](const Polygons &load, const float cover) {
                 NearPolygons holding;
                 holding.append(held);
                 holding.append(grown_in);
+                const ExPolygons         parts = union_ex(load);
                 std::vector<BoundingBox> near;
-                for (const ExPolygon &part : union_ex(load))
+                for (const ExPolygon &part : parts)
                     near.emplace_back(get_extents(part.contour).inflated(coord_t(DefaultMiterLimit * cover) + SCALED_EPSILON));
-                return diff(load, offset(union_(holding.around(near)), cover));
+                NearPolygons holding_near;
+                holding_near.append(union_(holding.around(near)));
+                // The outline of what offset() grows: the polygons as it takes them, see offset_input(), which drops a
+                // point closer than ClipperOffsetShortestEdgeFactor times cover to the last one kept, moving the
+                // outline by as much, so that a hole close to its contour may cross it. Where it drops the contour of a
+                // sliver and keeps its hole, or turns a sliver over, they are united as offset() grows them, where such
+                // a hole or a polygon turned over adds nothing.
+                Polygons   taken   = offset_input(holding_near.polygons, cover);
+                const auto turning = [](const Polygon &polygon) {
+                    const double a = polygon.area();
+                    return (a > 0.) - (a < 0.);
+                };
+                bool as_it_is = taken.size() == holding_near.polygons.size();
+                for (size_t k = 0; as_it_is && k < taken.size(); ++ k)
+                    as_it_is = turning(taken[k]) == turning(holding_near.polygons[k]);
+                if (! as_it_is)
+                    taken = union_(taken, pftPositive);
+                const AABBTreeLines::LinesDistancer<Line> outline{ to_lines(taken) };
+                const double limit = double(cover) * (as_it_is ? 1. - 2. * ClipperOffsetShortestEdgeFactor : 1.) - 10.;
+                std::vector<Polygons> hanging(parts.size());
+                using Range = tbb::blocked_range<size_t>;
+                tbb::parallel_for(Range(0, parts.size()), [&](const Range &range) {
+                    for (size_t i = range.begin(); i < range.end(); ++ i)
+                        if (! organic_lies_within(parts[i], outline, limit))
+                            hanging[i] = diff(to_polygons(parts[i]),
+                                offset(organic_footing_near_box(holding_near, near[i], cover, jtMiter), cover));
+                });
+                Polygons out;
+                for (Polygons &part : hanging)
+                    append(out, std::move(part));
+                return out;
             };
             if (! roof_load.empty()) {
                 hold_roof_lines(roof_load);
