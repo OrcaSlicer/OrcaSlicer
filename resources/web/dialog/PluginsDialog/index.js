@@ -55,6 +55,7 @@ function OnInit() {
   TranslatePage();
 
   document.getElementById("refresh_btn")?.addEventListener("click", () => SendMessage("refresh_plugins"));
+  document.getElementById("update_all_btn")?.addEventListener("click", () => SendMessage("update_all_plugins"));
   document.getElementById("explore_btn")?.addEventListener("click", () => {
     HideExploreMenu();
     RunSelectedInstallAction();
@@ -455,6 +456,18 @@ function ApplyPlugins(plugins) {
 
   RenderPlugins();
   RenderDetails();
+  RenderUpdateAllButton();
+}
+
+// Shown only while at least one plugin has an update, with the count so the user knows the scope.
+function RenderUpdateAllButton() {
+  const button = document.getElementById("update_all_btn");
+  if (!button)
+    return;
+
+  const count = Array.from(pluginsById.values()).filter((plugin) => GetUpdateStatus(plugin) === "update_available").length;
+  button.hidden = count === 0;
+  button.textContent = `${T("update_all", "Update all")} (${count})`;
 }
 
 function FindEquivalentPluginKey(pluginKey) {

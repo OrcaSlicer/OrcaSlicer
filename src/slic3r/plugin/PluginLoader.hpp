@@ -49,10 +49,11 @@ bool inspect_local_plugin_package(const boost::filesystem::path& filepath,
 // backup failed. A previously installed package at a different root is unaffected by such a
 // failed restore; the update path re-checks that separately.
 //
-// preserved_state, when given, supplies the user's activation and per-capability choices for the
-// sidecar written for the installed package. Only enabled and capabilities are taken from it; the
-// sidecar metadata describes the new package and every permission is cleared, because the new
-// executable code must request them again. The sidecar is written before the backup is removed, so
+// preserved_state, when given, supplies the user's activation, per-capability choices and the
+// permissions to carry over for the sidecar written for the installed package. Only enabled,
+// capabilities and permissions are taken from it; the sidecar metadata describes the new package.
+// The caller decides which permissions survive: an empty set makes the new executable code request
+// every permission again. The sidecar is written before the backup is removed, so
 // a failed write rolls the package back and keeps the previous installation intact.
 bool install_plugin(const boost::filesystem::path& filepath,
                     const std::string&             cloud_user_id,
