@@ -3598,3 +3598,113 @@ TEST_CASE("an unpainted part of the source carries no paint onto the rebuilt mes
             CHECK(state[t] == uint8_t(EnforcerBlockerType::NONE));
     }
 }
+
+TEST_CASE("re-baking with background removal clears previous background paint under the layer and stays manifold",
+          "[TextureDisplacement][Regression]")
+{
+    constexpr float            side   = 20.f;
+    const indexed_triangle_set cube   = its_make_cube(side, side, side);
+    const Vec2f                stroke(10.f, 10.f);
+    constexpr float            radius = 5.f;
+
+    // 8x8 white card with a 4x4 red square in the centre.
+    std::vector<uint8_t> rgb(8 * 8 * 3, 255);
+    for (int y = 2; y < 6; ++y)
+        for (int x = 2; x < 6; ++x) {
+            const size_t i = (size_t(y) * 8 + size_t(x)) * 3;
+            rgb[i]         = 230;
+            rgb[i + 1]     = 20;
+            rgb[i + 2]     = 20;
+        }
+
+    TextureDisplacementLayer layer;
+    layer.slot          = 0;
+    layer.image_data    = make_rgb_png_bytes(8, 8, rgb);
+    layer.tiling_scale  = 10.f;
+    layer.depth_mm      = 0.25f;
+    layer.color_enabled = true;
+
+    TextureDisplacementOptions options;
+    options.pipeline_v2        = true;
+    options.v2_refine_mm       = 0.5f;
+    options.v2_max_triangles_k = 750;
+
+    // Extruder 1 = Red (logo), Extruder 2 = White (background), Extruder 3 = Blue (elsewhere).
+    const std::array<Vec3f, 3> palette = { Vec3f(1.f, 0.f, 0.f), Vec3f(1.f, 1.f, 1.f), Vec3f(0.f, 0.f, 1.f) };
+    TextureColorRequest        request;
+    request.quantize = [&palette](const Vec3f &c) {
+        int   best = 0;
+        float bd   = std::numeric_limits<float>::max();
+        for (int i = 0; i < 3; ++i)
+            if (const float d = (palette[size_t(i)] - c).squaredNorm(); d < bd) { bd = d; best = i; }
+        return best;
+    };
+
+    // First bake WITHOUT background removal: both Red (1) and White (2) are painted into mmu_segmentation_facets.
+    TextureDisplacementFacetsData facets1;
+    facets1[0] = paint_top_disc(cube, side, stroke, radius);
+    std::vector<uint8_t>       color1;
+    TextureColorRequest        req1 = request;
+    req1.out_triangle               = &color1;
+    const indexed_triangle_set baked1 = build_texture_displacement(cube, { layer }, facets1, options, {}, &req1);
+    REQUIRE(color1.size() == baked1.indices.size());
+    CHECK(std::count(color1.begin(), color1.end(), uint8_t(2)) > 0); // white background present in first bake
+
+    TriangleSelector::TriangleSplittingData before_mmu;
+    {
+        const TriangleMesh tm1(baked1);
+        TriangleSelector   sel1(tm1);
+        for (size_t t = 0; t < color1.size(); ++t)
+            if (color1[t] != 0)
+                sel1.set_facet(int(t), EnforcerBlockerType(color1[t]));
+        before_mmu = sel1.serialize();
+    }
+
+    // Second bake on the same region WITH background removal enabled.
+    layer.preview_adjust.bg_remove       = true;
+    layer.preview_adjust.bg_from_corners = true;
+    layer.preview_adjust.bg_tolerance    = 0.1f;
+
+    TextureDisplacementFacetsData facets2;
+    facets2[0] = paint_top_disc(baked1, side, stroke, radius);
+    std::vector<uint8_t>       color2;
+    TextureColorRequest        req2 = request;
+    req2.out_triangle               = &color2;
+    const indexed_triangle_set baked2 = build_texture_displacement(baked1, { layer }, facets2, options, {}, &req2);
+    REQUIRE(color2.size() == baked2.indices.size());
+    // The second bake itself produces zero White (2) facets because the white background was keyed out.
+    CHECK(std::count(color2.begin(), color2.end(), uint8_t(2)) == 0);
+    CHECK(std::count(color2.begin(), color2.end(), uint8_t(1)) > 0);
+
+    // Strip the newly painted base triangles from before_mmu (as TextureDisplacementBakeJob::finalize does)
+    // before transferring across the topology change, so the old white background does not reappear.
+    {
+        std::vector<bool> colored_by_bake(baked1.indices.size(), false);
+        for (const TriangleSelector::TriangleBitStreamMapping &m : facets2[0].triangles_to_split)
+            if (m.triangle_idx >= 0 && size_t(m.triangle_idx) < colored_by_bake.size())
+                colored_by_bake[size_t(m.triangle_idx)] = true;
+        auto &tts = before_mmu.triangles_to_split;
+        tts.erase(std::remove_if(tts.begin(), tts.end(),
+                                 [&colored_by_bake](const TriangleSelector::TriangleBitStreamMapping &m) {
+                                     return m.triangle_idx >= 0 && size_t(m.triangle_idx) < colored_by_bake.size() &&
+                                            colored_by_bake[size_t(m.triangle_idx)];
+                                 }),
+                  tts.end());
+        if (tts.empty())
+            before_mmu = {};
+    }
+    const std::vector<uint8_t> carried = transfer_facet_paint(baked1, before_mmu, baked2);
+    std::vector<uint8_t>       final_color(baked2.indices.size(), 0);
+    for (size_t t = 0; t < baked2.indices.size(); ++t) {
+        if (t < carried.size() && carried[t] != 0)
+            final_color[t] = carried[t];
+        if (color2[t] != 0)
+            final_color[t] = color2[t];
+    }
+    CHECK(std::count(final_color.begin(), final_color.end(), uint8_t(2)) == 0);
+    CHECK(std::count(final_color.begin(), final_color.end(), uint8_t(1)) > 0);
+
+    const TextureBake::EdgeDefects d2 = TextureBake::count_edge_defects(TextureBake::to_soup(baked2));
+    CHECK(d2.open == 0);
+    CHECK(d2.non_manifold == 0);
+}

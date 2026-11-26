@@ -198,12 +198,40 @@ void TextureDisplacementBakeJob::finalize(bool canceled, std::exception_ptr &ept
             // nowhere near - it has moved by the relief depth. Nothing to do when the topology is intact:
             // triangle i is still triangle i, so the paint is already exactly right and carrying it at all
             // could only lose detail.
+            std::vector<bool> colored_by_bake(input.base_mesh.indices.size(), false);
+            bool              any_colored_by_bake = false;
+            if (!m_input.color.empty()) {
+                for (const TextureDisplacementLayer &l : input.layers) {
+                    if (!l.color_enabled || l.empty() || l.slot < 0 || size_t(l.slot) >= input.facets_data.size() ||
+                        !height_texture_has_color(l))
+                        continue;
+                    for (const TriangleSelector::TriangleBitStreamMapping &m :
+                         input.facets_data[size_t(l.slot)].triangles_to_split)
+                        if (m.triangle_idx >= 0 && size_t(m.triangle_idx) < colored_by_bake.size()) {
+                            colored_by_bake[size_t(m.triangle_idx)] = true;
+                            any_colored_by_bake                      = true;
+                        }
+                }
+            }
+
             std::array<TriangleSelector::TriangleSplittingData, 4> before;
             if (topology_changed) {
                 before[0] = volume->supported_facets.get_data();
                 before[1] = volume->seam_facets.get_data();
                 before[2] = volume->mmu_segmentation_facets.get_data();
                 before[3] = volume->fuzzy_skin_facets.get_data();
+                if (any_colored_by_bake && !before[2].triangles_to_split.empty()) {
+                    auto &tts = before[2].triangles_to_split;
+                    tts.erase(std::remove_if(tts.begin(), tts.end(),
+                                             [&colored_by_bake](const TriangleSelector::TriangleBitStreamMapping &m) {
+                                                 return m.triangle_idx >= 0 &&
+                                                        size_t(m.triangle_idx) < colored_by_bake.size() &&
+                                                        colored_by_bake[size_t(m.triangle_idx)];
+                                             }),
+                              tts.end());
+                    if (tts.empty())
+                        before[2] = {};
+                }
             }
 
             volume->set_mesh(std::move(m_results[i].mesh));
@@ -248,6 +276,11 @@ void TextureDisplacementBakeJob::finalize(bool canceled, std::exception_ptr &ept
                 const TriangleSelector::TriangleSplittingData &existing = volume->mmu_segmentation_facets.get_data();
                 if (!existing.bitstream.empty())
                     selector.deserialize(existing, false);
+                if (!topology_changed && any_colored_by_bake) {
+                    for (size_t t = 0; t < colored_by_bake.size(); ++t)
+                        if (colored_by_bake[t])
+                            selector.set_facet(int(t), EnforcerBlockerType::NONE);
+                }
                 for (size_t t = 0; t < triangle_color.size(); ++t) {
                     const size_t entry = size_t(triangle_color[t]);
                     if (entry > 0 && entry <= filament_of.size() && filament_of[entry - 1] >= 0)
