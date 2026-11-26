@@ -165,9 +165,11 @@ using the app afterwards never has a prompt answered for them.
 ## Threading
 
 Tool handlers never run on the UI thread. Anything that touches wx runs in a closure that `ToolContext::run_ui()`
-posts through `UiInvoker` and waits for; a closure not started within 10 s is abandoned, and the call says it is safe
-to retry. After a change a tool makes one more round trip (`settle()`), so the events the change queued are handled
-before the reply. A person's pick is the one call that runs on the UI thread itself, in place.
+posts through `UiInvoker` and waits for. A closure not started within 10 s is abandoned, and one that reaches a UI being
+rebuilt is refused; either way the call says it is safe to retry, unless a step of it already ran (one of its
+closures, or a call it made). The call then says part of it ran and that it may have done some or all of what was
+asked, since a click that hangs the app has already run by the time the next closure waits. After a change a tool
+makes one more round trip (`settle()`), so the events the change queued are handled before the reply. A person's pick is the one call that runs on the UI thread itself, in place.
 
 **Guards.** The guard is checked in the closure, on the UI thread, since the app can change between posting and
 running. mcp-tools.md (When a command may run) lists the commands of each.
