@@ -10929,7 +10929,7 @@ bool GCode::needs_retraction(const Polyline &travel, ExtrusionRole role, LiftTyp
         return true;
     }
 
-    if (role == erSupportMaterial || role == erSupportTransition) {
+    if ((role == erSupportMaterial || role == erSupportTransition) && !m_print->slice_context().disable_interference_travel) {
         const SupportLayer* support_layer = dynamic_cast<const SupportLayer*>(m_layer);
         //FIXME support_layer->support_islands.contains should use some search structure!
         if (support_layer != NULL)

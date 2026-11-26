@@ -3,6 +3,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Thread.hpp"
 #include "../slic3rutils/plugin_test_utils.hpp"
 #include "test_utils.hpp"
@@ -392,5 +394,60 @@ TEST_CASE("AppConfig keeps only the preview drag modes it knows", "[AppConfig]")
         config.set(key, mode);
         config.set_defaults();
         REQUIRE(config.get(key) == "off");
+    }
+}
+
+TEST_CASE("Interference travel override is opt-in", "[AppConfig][InterferenceTravel]")
+{
+    AppConfig config;
+    config.set_defaults();
+    REQUIRE_FALSE(config.get_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL));
+
+    DynamicPrintConfig print_config;
+    print_config.set_key_value("reduce_infill_retraction", new ConfigOptionBool(true));
+
+    SECTION("disabled override preserves the configured value")
+    {
+        // Given the installation preference is off, the result must report that state rather than a mutation.
+        // When the override is applied, the process value remains available for ordinary slicing.
+        const bool enabled = config.apply_print_config_overrides(print_config);
+        // Then callers receive false and the configured option is preserved.
+        REQUIRE_FALSE(enabled);
+        REQUIRE(print_config.opt_bool("reduce_infill_retraction"));
+    }
+
+    SECTION("enabled override forces interference travel off")
+    {
+        // Given an enabled installation preference and a process that permits interference travel.
+        config.set_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL, true);
+        // When the effective slicing config is overridden.
+        const bool enabled = config.apply_print_config_overrides(print_config);
+        // Then the preference is reported and the process option is forced off.
+        REQUIRE(enabled);
+        REQUIRE_FALSE(print_config.opt_bool("reduce_infill_retraction"));
+    }
+
+    SECTION("enabled override reports the preference when the option is already false")
+    {
+        // Given no config mutation is needed, callers still need the installation preference for support travel.
+        print_config.set_key_value("reduce_infill_retraction", new ConfigOptionBool(false));
+        config.set_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL, true);
+        // When the override is applied to an already disabled process option.
+        const bool enabled = config.apply_print_config_overrides(print_config);
+        // Then true means the preference is enabled, not that a value changed.
+        REQUIRE(enabled);
+        REQUIRE_FALSE(print_config.opt_bool("reduce_infill_retraction"));
+    }
+
+    SECTION("enabled override does not add the option to a configuration without it")
+    {
+        // Given a config without the FFF option, the installation preference still has a defined state.
+        DynamicPrintConfig empty_config;
+        config.set_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL, true);
+        // When the override is applied, it must not manufacture an unrelated config key.
+        const bool enabled = config.apply_print_config_overrides(empty_config);
+        // Then the return reports the enabled preference even though no config value changed.
+        REQUIRE(enabled);
+        REQUIRE_FALSE(empty_config.has("reduce_infill_retraction"));
     }
 }

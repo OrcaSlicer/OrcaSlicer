@@ -1354,6 +1354,11 @@ void Print::update_shrinkage_compensation(size_t num_extruders, std::vector<int>
 
 Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_config, bool extruder_applied)
 {
+    return this->apply(model, std::move(new_full_config), extruder_applied, SliceContext{});
+}
+
+Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_config, bool extruder_applied, SliceContext context)
+{
 #ifdef _DEBUG
     check_model_ids_validity(model);
 #endif /* _DEBUG */
@@ -1683,6 +1688,12 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 
     // Grab the lock for the Print / PrintObject milestones.
 	std::scoped_lock<std::mutex> lock(this->state_mutex());
+
+    if (m_slice_context.disable_interference_travel != context.disable_interference_travel) {
+        // Stop an active exporter before changing the installation preference it reads.
+        update_apply_status(this->invalidate_step(psGCodeExport));
+        m_slice_context = context;
+    }
 
     // The device-owned AMS inventory only feeds filament grouping, so a changed payload invalidates
     // the grouping steps.

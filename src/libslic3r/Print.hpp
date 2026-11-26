@@ -1067,6 +1067,11 @@ private: // Prevents erroneous use by other classes.
     typedef std::pair<PrintObject *, bool>         PrintObjectInfo;
 
 public:
+    // Installation preferences affect slicing without becoming portable print settings.
+    struct SliceContext {
+        bool disable_interference_travel = false;
+    };
+
     using SlicingPipelineHookFn = std::function<void(Print&, const PrintObject*, SlicingPipelineStepPlugin)>;
     // Cross-layer injection (mirrors ConfigBase::set_resolve_capability_fn): the GUI/plugin
     // layer registers a dispatcher; libslic3r stays free of any plugin/Python dependency.
@@ -1088,6 +1093,7 @@ public:
     std::vector<ObjectID> print_object_ids() const override;
 
     ApplyStatus         apply(const Model &model, DynamicPrintConfig config, bool extruder_applied = false) override;
+    ApplyStatus         apply(const Model &model, DynamicPrintConfig config, bool extruder_applied, SliceContext context);
 
     void                process(long long *time_cost_with_cache = nullptr, bool use_cache = false) override;
     // Exports G-code into a file name based on the path_template, returns the file path of the generated G-code file.
@@ -1138,6 +1144,7 @@ public:
     void                auto_assign_extruders(ModelObject* model_object) const;
 
     const PrintConfig&          config() const { return m_config; }
+    const SliceContext&         slice_context() const { return m_slice_context; }
     const PrintObjectConfig&    default_object_config() const { return m_default_object_config; }
     const PrintRegionConfig& default_region_config() const { return m_default_region_config; }
     ConstPrintObjectPtrsAdaptor objects() const { return ConstPrintObjectPtrsAdaptor(&m_objects); }
@@ -1537,6 +1544,7 @@ private:
     void        update_shrinkage_compensation(size_t num_extruders, std::vector<int> &variant_index);
 
     PrintConfig                             m_config;
+    SliceContext                            m_slice_context;
     PrintObjectConfig                       m_default_object_config;
     PrintRegionConfig                       m_default_region_config;
     PrintObjectPtrs                         m_objects;

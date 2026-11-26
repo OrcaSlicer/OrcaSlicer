@@ -2012,6 +2012,12 @@ void PreferencesDialog::create_items()
         _L("Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."));
     g_sizer->Add(item_auto_reslice);
 
+    auto item_disable_interference_travel = create_item_checkbox(
+        _L("Disable interference travel everywhere"),
+        _L("Keep \"Reduce infill retraction\" off for every slice on this OrcaSlicer installation, even when a preset, project file, or upgrade enables it. The change applies from the next slice."),
+        SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL);
+    g_sizer->Add(item_disable_interference_travel);
+
     auto item_primitive_dialog = create_item_checkbox(_L("Show options when adding a primitive"),
         _L("If enabled, a dialog asks for the dimensions of a primitive shape before it is added."), "enable_primitive_size_dialog");
     g_sizer->Add(item_primitive_dialog);

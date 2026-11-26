@@ -144,6 +144,9 @@ void AppConfig::set_defaults()
         if (get("auto_slice_after_change").empty())
             set_bool("auto_slice_after_change", false);
 
+        if (get(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL).empty())
+            set_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL, false);
+
         if (get("auto_slice_change_delay_seconds").empty())
             set("auto_slice_change_delay_seconds", "1");
 
@@ -771,6 +774,14 @@ void AppConfig::set_defaults()
     erase("app", "object_settings_pos");
     erase("app", "object_settings_size");
     erase("app", "severity_level");
+}
+
+bool AppConfig::apply_print_config_overrides(DynamicPrintConfig &config) const
+{
+    const bool disable_interference_travel = get_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL);
+    if (disable_interference_travel && config.has("reduce_infill_retraction"))
+        config.set_key_value("reduce_infill_retraction", new ConfigOptionBool(false));
+    return disable_interference_travel;
 }
 
 #ifdef WIN32

@@ -6,6 +6,8 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ClipperUtils.hpp"
@@ -14,6 +16,7 @@
 #include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
+#include "libslic3r/Polyline.hpp"
 #include "libslic3r/Layer.hpp"
 
 #include <cmath>
@@ -124,6 +127,140 @@ static TriangleMesh support_capital()
     model.merge(stem);
     model.merge(cap);
     return model;
+}
+
+TEST_CASE("The installation override controls retraction within generated support islands", "[SupportMaterial][InterferenceTravel][Regression]")
+{
+    const bool enabled = GENERATE(false, true);
+    const bool process_reduction = GENERATE(false, true);
+    CAPTURE(enabled, process_reduction);
+    // Given a broad supported cap and explicit retraction settings, long contained support travels can exercise the shortcut.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"enable_support", true},
+        {"support_type", "normal(auto)"},
+        {"support_style", "grid"},
+        {"support_on_build_plate_only", false},
+        {"support_threshold_angle", 45},
+        {"support_base_pattern", "rectilinear"},
+        {"support_base_pattern_spacing", 4.0},
+        {"support_angle", 0.0},
+        {"support_interface_top_layers", 0},
+        {"support_interface_bottom_layers", 0},
+        {"support_top_z_distance", 0.2},
+        {"support_bottom_z_distance", 0.2},
+        {"independent_support_layer_height", false},
+        {"layer_height", 0.2},
+        {"initial_layer_print_height", 0.2},
+        {"printable_area", "-100x-100,100x-100,100x100,-100x100"},
+        {"nozzle_diameter", "0.4"},
+        {"extruder_offset", "0x0"},
+        {"z_offset", 0.0},
+        {"reduce_infill_retraction", process_reduction},
+        {"sparse_infill_density", "0%"},
+        {"reduce_crossing_wall", false},
+        {"retraction_minimum_travel", "1"},
+        {"retraction_length", "0.8"},
+        {"retract_when_changing_layer", "0"},
+        {"retract_after_outer_wall", false},
+        {"wipe", "0"},
+        {"use_firmware_retraction", false},
+        {"use_relative_e_distances", true},
+        {"z_hop", "0.4"},
+        {"retract_lift_above", "0"},
+        {"retract_lift_below", "0"},
+        {"enable_arc_fitting", "disabled"},
+        {"gcode_flavor", "marlin2"},
+        {"gcode_comments", true},
+        {"machine_start_gcode", ""},
+        {"machine_end_gcode", ""},
+        {"before_layer_change_gcode", ""},
+        {"layer_change_gcode", "G92 E0"},
+        {"skirt_loops", 0},
+        {"brim_type", "no_brim"},
+    });
+    config.set_key_value("z_hop_types", new ConfigOptionEnumsGeneric{zhtNormal});
+    config.set_key_value("retract_lift_enforce", new ConfigOptionEnumsGeneric{rletAllSurfaces});
+    AppConfig app_config;
+    app_config.set_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL, enabled);
+    const bool override_enabled = app_config.apply_print_config_overrides(config);
+    REQUIRE(override_enabled == enabled);
+    REQUIRE(config.opt_bool("reduce_infill_retraction") == (enabled ? false : process_reduction));
+    Print print;
+    Model model;
+    init_print({support_capital()}, print, model, config);
+    print.set_plate_origin(Vec3d::Zero());
+    print.apply(model, config, false, Print::SliceContext{override_enabled});
+    REQUIRE(print.validate().string.empty());
+
+    // When the real slicing pipeline exports the generated support paths, inspect their scheduled travels rather than fill endpoints.
+    const std::string output = Test::gcode(print);
+    REQUIRE(print.objects().size() == 1);
+    const PrintObject &object = *print.objects().front();
+    REQUIRE(object.instances().size() == 1);
+    REQUIRE_FALSE(object.support_layers().empty());
+    const Point shift = object.instances().front().shift;
+    const auto local_point = [shift](double x, double y) -> Point { return Point::new_scale(x, y) - shift; };
+    const std::string &role_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
+    ExtrusionRole role = erNone;
+    ExtrusionRole previous_role = erNone;
+    bool have_previous = false;
+    double previous_z = 0.;
+    double peak_z = 0.;
+    double retraction = 0.;
+    double retract_balance = 0.;
+    double raised_retracted_distance = 0.;
+    Polyline travel;
+    size_t qualifying_travels = 0;
+    GCodeReader reader;
+    reader.apply_config(config);
+    reader.parse_buffer(output, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.comment().find(role_tag) == 0)
+            role = ExtrusionEntity::string_to_role(line.comment().substr(role_tag.size()));
+        if (!line.cmd_is("G0") && !line.cmd_is("G1"))
+            return;
+        if (line.extruding(self) && line.dist_XY(self) > EPSILON) {
+            const double z = line.new_Z(self);
+            if (have_previous && previous_role == erSupportMaterial && role == erSupportMaterial &&
+                std::abs(z - previous_z) < 0.0005 && travel.size() > 1 && travel.length() >= scale_(1.)) {
+                const SupportLayer* layer = object.get_support_layer_at_printz(z, 0.0005);
+                if (layer != nullptr && std::any_of(layer->support_islands.begin(), layer->support_islands.end(),
+                    [&](const ExPolygon &island) { return island.contains(travel); })) {
+                    ++qualifying_travels;
+                    // Then the installation context restores configured retraction/lift, while off preserves both process values.
+                    CAPTURE(z, retraction, peak_z, raised_retracted_distance);
+                    CHECK_THAT(retraction, Catch::Matchers::WithinAbs(enabled ? 0.8 : 0., 0.00005));
+                    CHECK_THAT(peak_z - previous_z, Catch::Matchers::WithinAbs(enabled ? 0.4 : 0., 0.0005));
+                    // Normal lift must clear the whole XY travel while retracted and return before depositing.
+                    CHECK_THAT(raised_retracted_distance,
+                               Catch::Matchers::WithinAbs(enabled ? unscale<double>(travel.length()) : 0., 0.001));
+                    CHECK_THAT(double(self.z()), Catch::Matchers::WithinAbs(previous_z, 0.0005));
+                }
+            }
+            have_previous = true;
+            previous_role = role;
+            previous_z = z;
+            peak_z = z;
+            retraction = 0.;
+            retract_balance = 0.;
+            raised_retracted_distance = 0.;
+            travel.clear();
+            travel.append(local_point(line.new_X(self), line.new_Y(self)));
+        } else if (have_previous) {
+            if (line.retracting(self))
+                retraction -= line.dist_E(self);
+            retract_balance -= line.dist_E(self);
+            peak_z = std::max(peak_z, double(line.new_Z(self)));
+            if (line.dist_XY(self) > EPSILON) {
+                if (std::abs(self.z() - previous_z - 0.4) < 0.0005 &&
+                    std::abs(line.new_Z(self) - previous_z - 0.4) < 0.0005 && retract_balance >= 0.8 - 0.00005)
+                    raised_retracted_distance += line.dist_XY(self);
+                travel.append(local_point(line.new_X(self), line.new_Y(self)));
+            }
+        }
+    });
+    // Then absence of a qualifying generated travel is a fixture failure, never a vacuous behavior pass.
+    REQUIRE(qualifying_travels > 0);
 }
 
 TEST_CASE("Top support interfaces cover an overhang with a synchronized variable layer gap", "[SupportMaterial][Regression]")

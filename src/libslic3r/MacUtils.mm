@@ -20,4 +20,18 @@ int is_mac_version_15()
         return false;
     }
 }
+
+std::string macos_user_application_support_dir()
+{
+    @autoreleasepool {
+        NSURL *url = [[NSFileManager defaultManager] URLForDirectory:NSApplicationSupportDirectory
+                                                            inDomain:NSUserDomainMask
+                                                   appropriateForURL:nil
+                                                              create:NO
+                                                               error:nil];
+        if (url.path == nil)
+            return {};
+        return std::string(url.path.UTF8String);
+    }
+}
 }; // namespace Slic3r

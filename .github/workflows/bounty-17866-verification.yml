@@ -1,0 +1,503 @@
+name: Verify issue 17866
+
+on:
+  push:
+    branches: [codex/orcaslicer-17866-ci]
+  workflow_dispatch:
+    inputs:
+      read_run_id:
+        description: Read reports from a completed run instead of building (digits only)
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bounty-17866-${{ inputs.read_run_id || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  read-reports:
+    if: github.repository == 'BeauDevCode/OrcaSlicer' && github.ref == 'refs/heads/codex/orcaslicer-17866-ci' && github.event_name == 'workflow_dispatch' && inputs.read_run_id != ''
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/bounty-17866-read-reports.yml
+    with:
+      run_id: ${{ inputs.read_run_id }}
+
+  linux-release:
+    if: github.repository == 'BeauDevCode/OrcaSlicer' && github.ref == 'refs/heads/codex/orcaslicer-17866-ci' && (github.event_name != 'workflow_dispatch' || inputs.read_run_id == '')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    defaults:
+      run:
+        shell: bash --noprofile --norc -euo pipefail {0}
+    env:
+      CMAKE_BUILD_PARALLEL_LEVEL: '2'
+      CMAKE_POLICY_VERSION_MINIMUM: '3.5'
+      CMAKE_VERSION: '4.3.0'
+      UPSTREAM_PR_SHA: 6ad34c04934562f86a2b05762e35d435b974fab0
+      LIBGL_ALWAYS_SOFTWARE: '1'
+      LP_NUM_THREADS: '2'
+
+    steps:
+      - name: Check out the exact validation commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          lfs: false
+          persist-credentials: false
+
+      - name: Record the tested revision
+        run: |
+          export REPORT_DIR="$RUNNER_TEMP/bounty-17866"
+          printf 'REPORT_DIR=%s\n' "$REPORT_DIR" >> "$GITHUB_ENV"
+          mkdir -p "$REPORT_DIR"
+          git merge-base --is-ancestor "$UPSTREAM_PR_SHA" HEAD
+          {
+            git log -1 --format='commit=%H%ntree=%T%nauthor=%an%nsubject=%s'
+            printf 'upstream_pr_17868=%s\n' "$UPSTREAM_PR_SHA"
+            printf 'workflow_run=%s/%s/actions/runs/%s\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            sha256sum .github/workflows/bounty-17866-verification.yml tests/bounty17866/run_matrix.py
+          } | tee "$REPORT_DIR/revision.txt"
+          git diff --exit-code HEAD
+
+      - name: Check the verification harness
+        run: |
+          python3 -m unittest discover -s tests/bounty17866 -p 'test_*.py' -v \
+            2>&1 | tee "$REPORT_DIR/harness-tests.log"
+
+      - name: Install the prescribed Linux system dependencies
+        timeout-minutes: 20
+        run: |
+          # This is the apt action's install command without its signing-key environment
+          # or repository-wide chown. No application, packaging, or signing step is requested.
+          sudo ./build_linux.sh -ur 2>&1 | tee "$REPORT_DIR/system-dependencies.log"
+          sudo apt-get install -y --no-install-recommends xvfb xauth
+
+      - name: Install CMake 4.3 on the hosted runner
+        timeout-minutes: 10
+        run: |
+          cmake_download="$RUNNER_TEMP/bounty-17866-cmake"
+          mkdir -p "$cmake_download"
+          cd "$cmake_download"
+          cmake_archive="cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz"
+          cmake_release="https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}"
+          curl --fail --location --retry 3 --output "$cmake_archive" "$cmake_release/$cmake_archive"
+          curl --fail --location --retry 3 --output SHA-256.txt "$cmake_release/cmake-${CMAKE_VERSION}-SHA-256.txt"
+          sha256sum --check --ignore-missing SHA-256.txt
+          tar -xzf "$cmake_archive"
+          printf '%s\n' "$cmake_download/cmake-${CMAKE_VERSION}-linux-x86_64/bin" >> "$GITHUB_PATH"
+
+      - name: Record toolchain and calculate the dependency cache key
+        id: toolchain
+        run: |
+          {
+            cmake --version
+            /usr/bin/clang --version
+            /usr/bin/clang++ --version
+            ld.lld --version
+            ninja --version
+            uname -m
+            cat /etc/os-release
+            printf 'workspace=%s\n' "$GITHUB_WORKSPACE"
+          } | tee "$REPORT_DIR/toolchain.txt"
+          printf 'fingerprint=%s\n' "$(sha256sum "$REPORT_DIR/toolchain.txt" | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore only the installed build dependencies
+        id: deps-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: deps/build/OrcaSlicer_dep
+          key: bounty17866-deps-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('deps/**', 'cmake/**', 'build_linux.sh', 'scripts/linux.d/**') }}
+
+      - name: Build the prescribed Release dependencies
+        if: steps.deps-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 150
+        run: |
+          ./build_linux.sh -drlL -j 2 2>&1 | tee "$REPORT_DIR/build-dependencies.log"
+          test -d deps/build/OrcaSlicer_dep/usr/local/lib
+
+      - name: Save completed dependencies before building the app
+        if: steps.deps-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: deps/build/OrcaSlicer_dep
+          key: ${{ steps.deps-cache.outputs.cache-primary-key }}
+
+      - name: Configure the Release app and existing test targets
+        timeout-minutes: 15
+        run: |
+          # Match build_linux.sh's app configuration directly: -s also invokes packaging.
+          # The CLI uses PartPlate and other GUI code, so SLIC3R_GUI must stay enabled.
+          cmake -S . -B build -G 'Ninja Multi-Config' \
+            -DCMAKE_C_COMPILER=/usr/bin/clang \
+            -DCMAKE_CXX_COMPILER=/usr/bin/clang++ \
+            -DCMAKE_LINKER="$(command -v ld.lld)" \
+            -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld \
+            -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld \
+            -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=lld \
+            -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/deps/build/OrcaSlicer_dep/usr/local" \
+            -DSLIC3R_PCH=ON -DSLIC3R_GUI=ON -DSLIC3R_GLIBCXX_ASSERTIONS=ON \
+            -DORCA_TOOLS=ON -DBUILD_TESTS=ON \
+            2>&1 | tee "$REPORT_DIR/configure.log"
+          printf 'LD_LIBRARY_PATH=%s\n' "$GITHUB_WORKSPACE/deps/build/OrcaSlicer_dep/usr/local/lib:$GITHUB_WORKSPACE/build/src/Release" >> "$GITHUB_ENV"
+
+      - name: Build the Release application without packaging
+        id: app
+        timeout-minutes: 150
+        run: |
+          cmake --build build --config Release --target OrcaSlicer --parallel 2 \
+            2>&1 | tee "$REPORT_DIR/build-app.log"
+          orca_binary="$GITHUB_WORKSPACE/build/src/Release/orca-slicer"
+          test -x "$orca_binary"
+          printf 'ORCA_BINARY=%s\n' "$orca_binary" >> "$GITHUB_ENV"
+          sha256sum "$orca_binary" | tee "$REPORT_DIR/binary-sha256.txt"
+          ldd "$orca_binary" | tee "$REPORT_DIR/binary-libraries.txt"
+
+      - name: Prepare a remote-only CLI checkpoint
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/checkpoint"
+          cp -- "$ORCA_BINARY" "$RUNNER_TEMP/checkpoint/orca-slicer"
+          cp -- "$REPORT_DIR/revision.txt" "$RUNNER_TEMP/checkpoint/revision.txt"
+          cd "$RUNNER_TEMP/checkpoint"
+          sha256sum orca-slicer > binary-sha256.txt
+
+      - name: Retain the CLI checkpoint on GitHub for one day
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: bounty-17866-cli-binary-${{ github.sha }}
+          retention-days: 1
+          compression-level: 1
+          if-no-files-found: error
+          path: ${{ runner.temp }}/checkpoint/
+
+      - name: Build the selected unit test suites
+        id: unit-build
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        timeout-minutes: 90
+        run: |
+          cmake --build build --config Release --target libslic3r_tests fff_print_tests --parallel 2 \
+            2>&1 | tee "$REPORT_DIR/build-tests.log"
+
+      - name: Run existing AppConfig regression tests
+        if: ${{ !cancelled() && steps.unit-build.outcome == 'success' }}
+        timeout-minutes: 10
+        run: |
+          build/tests/libslic3r/Release/libslic3r_tests '[AppConfig]' --warn NoAssertions \
+            --reporter junit --out "$REPORT_DIR/appconfig.xml" \
+            2>&1 | tee "$REPORT_DIR/appconfig.log"
+
+      - name: Run existing GCode regression tests
+        if: ${{ !cancelled() && steps.unit-build.outcome == 'success' }}
+        timeout-minutes: 20
+        run: |
+          build/tests/fff_print/Release/fff_print_tests '[GCode]' --warn NoAssertions \
+            --reporter junit --out "$REPORT_DIR/gcode.xml" \
+            2>&1 | tee "$REPORT_DIR/gcode.log"
+
+      - name: Run Print regression tests
+        if: ${{ !cancelled() && steps.unit-build.outcome == 'success' }}
+        timeout-minutes: 25
+        run: |
+          build/tests/fff_print/Release/fff_print_tests '[Print]' --warn NoAssertions \
+            --reporter junit --out "$REPORT_DIR/print.xml" \
+            2>&1 | tee "$REPORT_DIR/print.log"
+
+      - name: Run SupportMaterial regression tests
+        id: unit-support
+        if: ${{ !cancelled() && steps.unit-build.outcome == 'success' }}
+        timeout-minutes: 25
+        run: |
+          build/tests/fff_print/Release/fff_print_tests '[SupportMaterial]' --warn NoAssertions \
+            --reporter junit --out "$REPORT_DIR/support-material.xml" \
+            2>&1 | tee "$REPORT_DIR/support-material.log"
+
+      - name: Prove the support guard with a controlled RED and restored GREEN
+        id: support-control
+        if: ${{ !cancelled() && steps.unit-support.outcome == 'success' }}
+        timeout-minutes: 40
+        run: |
+          source_path="$GITHUB_WORKSPACE/src/libslic3r/GCode.cpp"
+          backup_path="$RUNNER_TEMP/bounty-17866-GCode.cpp.head"
+          cp -- "$source_path" "$backup_path"
+          trap 'cp -- "$backup_path" "$source_path"' EXIT
+          trap 'exit 130' INT
+          trap 'exit 143' TERM
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import math
+          import os
+          from pathlib import Path
+          import re
+          import shlex
+          import subprocess
+          import xml.etree.ElementTree as ET
+
+          workspace = Path(os.environ["GITHUB_WORKSPACE"])
+          reports = Path(os.environ["REPORT_DIR"])
+          source = workspace / "src/libslic3r/GCode.cpp"
+          backup = Path(os.environ["RUNNER_TEMP"]) / "bounty-17866-GCode.cpp.head"
+          app = Path(os.environ["ORCA_BINARY"])
+          unit = workspace / "build/tests/fff_print/Release/fff_print_tests"
+          report = reports / "support-control-experiment.json"
+          candidate_guard = b"    if ((role == erSupportMaterial || role == erSupportTransition) && !m_print->slice_context().disable_interference_travel) {\n"
+          original_guard = b"    if (role == erSupportMaterial || role == erSupportTransition) {\n"
+          test_name = "The installation override controls retraction within generated support islands"
+
+          def digest(value):
+              return hashlib.sha256(value).hexdigest()
+
+          def run(command, log_name, seconds):
+              print("CONTROL_COMMAND=" + shlex.join(command), flush=True)
+              with (reports / log_name).open("wb") as log:
+                  return subprocess.run(["timeout", "--signal=TERM", "--kill-after=15s", str(seconds), *command],
+                                        cwd=workspace, stdout=log, stderr=subprocess.STDOUT, check=False).returncode
+
+          def build(log_name):
+              status = run(["cmake", "--build", "build", "--config", "Release", "--target",
+                            "OrcaSlicer", "fff_print_tests", "--parallel", "2"], log_name, 480)
+              if status != 0:
+                  raise RuntimeError(f"incremental build failed: {log_name}, exit {status}")
+
+          def validate_red(path, status):
+              document = ET.parse(path).getroot()
+              cases = list(document.iter("testcase"))
+              failures = [(case, failure) for case in cases for failure in case if failure.tag == "failure"]
+              if status != 42 or not failures or list(document.iter("error")) or list(document.iter("skipped")):
+                  raise RuntimeError("control must fail assertions, without exceptions, skips, or an empty test")
+              expressions = []
+              measurements = []
+              for case, failure in failures:
+                  expression = " ".join(failure.get("message", "").split())
+                  allowed = ("retraction, Catch::Matchers::WithinAbs(", "peak_z - previous_z, Catch::Matchers::WithinAbs(",
+                             "raised_retracted_distance, Catch::Matchers::WithinAbs(")
+                  if (case.get("name") != test_name or failure.get("type") != "CHECK_THAT"
+                          or not expression.startswith(allowed)
+                          or not re.search(r"enabled\s*:=\s*true", failure.text or "")):
+                      raise RuntimeError("control failed outside the enabled retraction/lift assertions")
+                  captured = {}
+                  for field in ("retraction", "raised_retracted_distance", "z", "peak_z"):
+                      values = re.findall(rf"(?m)^[ \t]*{field}[ \t]*:=[ \t]*(\S+)[ \t]*$", failure.text or "")
+                      if len(values) != 1:
+                          raise RuntimeError(f"control requires one numeric capture for {field}")
+                      try:
+                          captured[field] = float(values[0])
+                      except ValueError as error:
+                          raise RuntimeError(f"invalid control capture: {field}") from error
+                      if not math.isfinite(captured[field]):
+                          raise RuntimeError(f"nonfinite control capture: {field}")
+                  if (abs(captured["retraction"]) > 0.00005 or abs(captured["raised_retracted_distance"]) > 0.001
+                          or abs(captured["peak_z"] - captured["z"]) > 0.0005):
+                      raise RuntimeError("control did not measure zero withdrawal, raised XY travel, and Z-hop")
+                  measurements.append(captured)
+                  expressions.append(expression)
+              if not any(expression.startswith("retraction,") for expression in expressions) or not any(
+                      expression.startswith("raised_retracted_distance,") for expression in expressions):
+                  raise RuntimeError("control did not prove both missing withdrawal and raised XY travel")
+              return {"status": "expected_assertion_failure_validated", "exit_code": status,
+                      "expected_assertion_exit_code": 42, "failure_type": "CHECK_THAT",
+                      "failure_count": len(failures), "testcase_elements": len(cases),
+                      "measured_signature": {"max_abs_retraction_mm": max(abs(value["retraction"]) for value in measurements),
+                                             "max_abs_raised_xy_mm": max(abs(value["raised_retracted_distance"]) for value in measurements),
+                                             "max_abs_hop_mm": max(abs(value["peak_z"] - value["z"]) for value in measurements)},
+                      "assertions": sorted(set(expressions))}
+
+          original = backup.read_bytes()
+          head = subprocess.check_output(["git", "show", "HEAD:src/libslic3r/GCode.cpp"], cwd=workspace)
+          pinned = subprocess.check_output(["git", "show", os.environ["UPSTREAM_PR_SHA"] + ":src/libslic3r/GCode.cpp"], cwd=workspace)
+          if source.read_bytes() != head or original != head or head.count(candidate_guard) != 1 or pinned.count(original_guard) != 1:
+              raise RuntimeError("source or exact candidate/upstream guard does not match the controlled experiment")
+          controlled = head.replace(candidate_guard, original_guard, 1)
+          if controlled.count(original_guard) != 1 or controlled.replace(original_guard, candidate_guard, 1) != head:
+              raise RuntimeError("control must change exactly one verified guard line")
+          state = {"status": "prepared", "source_checkout_head": subprocess.check_output(
+                   ["git", "rev-parse", "HEAD"], cwd=workspace, text=True).strip(),
+                   "pinned_upstream_sha": os.environ["UPSTREAM_PR_SHA"], "candidate_source_sha256": digest(head),
+                   "pinned_source_sha256": digest(pinned), "controlled_source_sha256": digest(controlled),
+                   "candidate_binary_sha256": digest(app.read_bytes()), "candidate_test_binary_sha256": digest(unit.read_bytes()),
+                   "treatment": "Only the support-role guard is restored to the exact original PR condition."}
+
+          def save():
+              report.write_text(json.dumps(state, indent=2) + "\n")
+
+          save()
+          try:
+              source.write_bytes(controlled)
+              build("support-control-build.log")
+              state.update(status="control_built", control_binary_sha256=digest(app.read_bytes()),
+                           control_test_binary_sha256=digest(unit.read_bytes()))
+              save()
+              red = reports / "control-expected-red.xml"
+              status = run([str(unit), "[SupportMaterial][InterferenceTravel]", "--warn", "NoAssertions",
+                            "--reporter", "junit", "--out", str(red)], "control-expected-red.log", 120)
+              state["red"] = validate_red(red, status)
+              state["status"] = "expected_red_validated"
+              save()
+              control_dir = reports / "support-control-cli"
+              status = run(["xvfb-run", "-a", "python3", "tests/bounty17866/run_matrix.py", "--binary", str(app),
+                            "--source", str(workspace), "--output", str(control_dir), "--timeout", "45"],
+                           "support-control-cli.log", 900)
+              summary_path = control_dir / "summary.json"
+              if summary_path.is_file():
+                  summary_path.rename(control_dir / "support-control-summary.json")
+              state["control_cli_exit_code"] = status
+              save()
+              path = control_dir / "support-control-summary.json"
+              if status != 0 or not path.is_file():
+                  raise RuntimeError("control CLI configuration/infill matrix did not pass")
+              summary = json.loads(path.read_text())
+              if (summary.get("passed") is not True or summary.get("configuration_matrix_passed") is not True
+                      or summary.get("source_checkout_head") != state["source_checkout_head"]
+                      or summary.get("binary_sha256") != state["control_binary_sha256"]):
+                  raise RuntimeError("control CLI results do not match the controlled binary and passing matrix")
+          except BaseException as error:
+              state.update(status="failed", error=str(error))
+              raise
+          finally:
+              source.write_bytes(original)
+              if source.read_bytes() != head:
+                  raise RuntimeError("failed to restore exact HEAD GCode.cpp")
+              state["restored_source_sha256"] = digest(source.read_bytes())
+              save()
+              try:
+                  build("support-control-restore-build.log")
+              except BaseException as error:
+                  state.update(status="restore_failed", error=str(error))
+                  save()
+                  raise
+              state.update(restored_source_sha256=digest(source.read_bytes()), restored_binary_sha256=digest(app.read_bytes()),
+                           restored_test_binary_sha256=digest(unit.read_bytes()))
+              if state["status"] != "failed":
+                  state["status"] = "restored_candidate_built"
+              save()
+          state["restored_binary_matches_initial"] = state["restored_binary_sha256"] == state["candidate_binary_sha256"]
+          state["restored_test_binary_matches_initial"] = state["restored_test_binary_sha256"] == state["candidate_test_binary_sha256"]
+          # Binary reproducibility is diagnostic; exact source restoration, rebuild and GREEN are the gates.
+          if subprocess.run(["git", "diff", "--exit-code", "HEAD", "--", "src/libslic3r/GCode.cpp"], cwd=workspace, check=False).returncode:
+              raise RuntimeError("restored GCode.cpp differs from HEAD")
+          green = reports / "control-restored-green.xml"
+          status = run([str(unit), "[SupportMaterial][InterferenceTravel]", "--warn", "NoAssertions",
+                        "--reporter", "junit", "--out", str(green)], "control-restored-green.log", 120)
+          document = ET.parse(green).getroot()
+          cases = list(document.iter("testcase"))
+          if (status != 0 or not cases or any(case.get("name") != test_name for case in cases)
+                  or any(list(document.iter(tag)) for tag in ("failure", "error", "skipped"))):
+              state.update(status="failed", error="restored focused support test did not pass")
+              save()
+              raise RuntimeError("restored candidate must pass the nonempty focused support test")
+          state.update(status="red_green_validated", green={"status": "passed", "testcase_elements": len(cases)})
+          save()
+          print("BOUNTY_17866_CONTROL=" + json.dumps(state, sort_keys=True), flush=True)
+          PY
+
+      - name: Exercise the real CLI preference and travel matrix
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && (steps.support-control.outcome == 'success' || steps.support-control.outcome == 'skipped') }}
+        timeout-minutes: 90
+        run: |
+          xvfb-run -a python3 tests/bounty17866/run_matrix.py \
+            --binary "$ORCA_BINARY" --source "$GITHUB_WORKSPACE" \
+            --output "$REPORT_DIR/cli" --timeout 300 \
+            2>&1 | tee "$REPORT_DIR/cli-matrix.log"
+
+      - name: Run the prescribed changed-line clang-tidy check
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && (steps.support-control.outcome == 'success' || steps.support-control.outcome == 'skipped') }}
+        timeout-minutes: 45
+        run: |
+          scripts/run_clang_tidy.sh --base "$UPSTREAM_PR_SHA" --no-fetch \
+            --build-dir build-tidy --deps-dir deps/build --jobs 2 --yes \
+            2>&1 | tee "$REPORT_DIR/clang-tidy.log"
+
+      - name: Print machine-readable verification summaries
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          root = Path(os.environ["RUNNER_TEMP"]) / "bounty-17866"
+
+          def compact_summary(summary):
+              keys = ("source_checkout_head", "binary_sha256", "passed", "configuration_matrix_passed",
+                      "project_error", "infill_motion_observed", "infill_motion_comparison",
+                      "support_diagnostics", "limitations")
+              selected = {key: summary.get(key) for key in keys}
+              case_keys = ("name", "passed", "returncode", "failure_reason", "preference", "default_lookup",
+                           "expected_option", "support_extrusion_moves")
+              for group in ("configuration_cases", "support_cases"):
+                  selected[group] = []
+                  for case in summary.get(group, []):
+                      outcome = {key: case.get(key) for key in case_keys}
+                      outcome["gcode_count"] = len(case.get("gcode", []))
+                      outcome["observed_options"] = sorted({value for gcode in case.get("gcode", [])
+                                                            for value in gcode.get("reduce_infill_retraction_values", [])})
+                      selected[group].append(outcome)
+              return selected
+
+          path = root / "cli" / "summary.json"
+          if path.is_file():
+              print("BOUNTY_17866_CLI_SUMMARY=" + json.dumps(compact_summary(json.loads(path.read_text())), sort_keys=True))
+          else:
+              print('BOUNTY_17866_CLI_SUMMARY={"available": false}')
+          control = {}
+          path = root / "support-control-experiment.json"
+          if path.is_file():
+              control["experiment"] = json.loads(path.read_text())
+          control_dir = root / "support-control-cli"
+          if (control_dir / "summary.json").is_file():
+              (control_dir / "summary.json").rename(control_dir / "support-control-summary.json")
+          path = control_dir / "support-control-summary.json"
+          if path.is_file():
+              control["cli"] = compact_summary(json.loads(path.read_text()))
+          if control:
+              print("BOUNTY_17866_CONTROL=" + json.dumps(control, sort_keys=True))
+          expected_red = control.get("experiment", {}).get("red", {}).get("status") == "expected_assertion_failure_validated"
+          for path in sorted(root.glob("*.xml")):
+              try:
+                  document = ET.parse(path).getroot()
+                  suites = list(document.iter("testsuite"))
+                  counts = {key: sum(int(suite.get(key, "0")) for suite in suites)
+                            for key in ("tests", "failures", "errors", "skipped")}
+                  classification = ("expected_red_validated" if expected_red else "control_red_not_validated") if path.name == "control-expected-red.xml" else "normal_test_result"
+                  print("BOUNTY_17866_JUNIT=" + json.dumps({"report": path.name, **counts,
+                        "tests_counter_semantics": "raw Catch2 JUnit assertion counter",
+                        "testcase_elements": len(list(document.iter("testcase"))), "classification": classification}, sort_keys=True))
+              except (ET.ParseError, ValueError) as error:
+                  print("BOUNTY_17866_JUNIT=" + json.dumps({"report": path.name, "parse_error": str(error)}))
+          PY
+
+      - name: Record build mutations and bound report logs
+        if: always()
+        run: |
+          mkdir -p "$REPORT_DIR"
+          # build_linux.sh replaces +UNKNOWN in version.inc with the build date.
+          git status --short > "$REPORT_DIR/build-working-tree.txt"
+          git diff HEAD -- version.inc > "$REPORT_DIR/generated-version.diff"
+          while IFS= read -r -d '' log_path; do
+            tail -c 1048576 "$log_path" > "${log_path}.tail"
+            mv "${log_path}.tail" "$log_path"
+          done < <(find "$REPORT_DIR" -type f -name '*.log' -print0)
+          git diff --exit-code HEAD -- . ':!version.inc'
+
+      - name: Retain small verification reports on GitHub
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: bounty-17866-linux-${{ github.sha }}
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/bounty-17866/**/*.txt
+            ${{ runner.temp }}/bounty-17866/**/*.json
+            ${{ runner.temp }}/bounty-17866/**/*.xml
+            ${{ runner.temp }}/bounty-17866/**/*.log
+            ${{ runner.temp }}/bounty-17866/generated-version.diff

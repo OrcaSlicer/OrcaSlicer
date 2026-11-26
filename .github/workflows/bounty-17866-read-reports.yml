@@ -1,0 +1,148 @@
+name: Read issue 17866 reports
+
+on:
+  workflow_call:
+    inputs:
+      run_id:
+        description: Completed Verify issue 17866 run ID
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Completed Verify issue 17866 run ID
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: bounty-17866-read-reports-${{ inputs.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  read-reports:
+    if: github.repository == 'BeauDevCode/OrcaSlicer'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash --noprofile --norc -euo pipefail {0}
+    steps:
+      - name: Validate the run and read its reports on the hosted runner
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          INPUT_RUN_ID: ${{ inputs.run_id }}
+        run: |
+          [[ "$INPUT_RUN_ID" =~ ^[0-9]+$ ]] || { echo 'run_id must contain only digits' >&2; exit 2; }
+          report_root="$RUNNER_TEMP/bounty-17866-read-$INPUT_RUN_ID"
+          mkdir -p "$report_root"
+          export REPORT_READ_ROOT="$report_root"
+          gh api --method GET "repos/$GH_REPO/actions/runs/$INPUT_RUN_ID" > "$report_root/run.json"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import re
+
+          root = Path(os.environ["REPORT_READ_ROOT"])
+          run = json.loads((root / "run.json").read_text())
+          expected_repo = "BeauDevCode/OrcaSlicer"
+          assert os.environ["GH_REPO"] == expected_repo, "unexpected current repository"
+          assert run["id"] == int(os.environ["INPUT_RUN_ID"]), "run ID mismatch"
+          assert run["repository"]["full_name"] == expected_repo, "unexpected run repository"
+          assert run["head_repository"]["full_name"] == expected_repo, "unexpected head repository"
+          assert run["head_branch"] == "codex/orcaslicer-17866-ci", "unexpected branch"
+          assert run["name"] == "Verify issue 17866", "unexpected workflow name"
+          assert run["path"] == ".github/workflows/bounty-17866-verification.yml", "unexpected workflow path"
+          assert run["status"] == "completed", "run has not completed"
+          assert re.fullmatch(r"[0-9a-f]{40}", run["head_sha"]), "invalid head SHA"
+          print("BOUNTY_17866_RUN=" + json.dumps({key: run.get(key) for key in
+                ("id", "name", "head_branch", "head_sha", "status", "conclusion", "html_url")}, sort_keys=True))
+          (root / "artifact-name.txt").write_text("bounty-17866-linux-" + run["head_sha"])
+          PY
+          artifact_name="$(cat "$report_root/artifact-name.txt")"
+          # Downloads and parsing stay on this disposable GitHub-hosted runner.
+          gh run download "$INPUT_RUN_ID" --repo "$GH_REPO" --name "$artifact_name" --dir "$report_root/reports"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import xml.etree.ElementTree as ET
+
+          root = Path(os.environ["REPORT_READ_ROOT"])
+          run = json.loads((root / "run.json").read_text())
+          reports = root / "reports"
+          summaries = [path for path in reports.rglob("summary.json") if "support-control-cli" not in path.parts]
+          if len(summaries) > 1:
+              raise SystemExit("ambiguous CLI summaries")
+          if summaries:
+              path = summaries[0]
+              summary = json.loads(path.read_text())
+              assert summary["source_checkout_head"] == run["head_sha"], "CLI summary commit mismatch"
+              keys = ("source_checkout_head", "binary_sha256", "passed", "configuration_matrix_passed",
+                      "project_error", "infill_motion_observed", "infill_motion_comparison",
+                      "support_diagnostics", "limitations")
+              selected = {key: summary.get(key) for key in keys}
+              case_keys = ("name", "passed", "returncode", "failure_reason", "preference", "default_lookup",
+                           "expected_option", "support_extrusion_moves")
+              for group in ("configuration_cases", "support_cases"):
+                  selected[group] = []
+                  for case in summary.get(group, []):
+                      outcome = {key: case.get(key) for key in case_keys}
+                      outcome["gcode_count"] = len(case.get("gcode", []))
+                      outcome["observed_options"] = sorted({value for gcode in case.get("gcode", [])
+                                                            for value in gcode.get("reduce_infill_retraction_values", [])})
+                      selected[group].append(outcome)
+                      name = case.get("name", "")
+                      if case.get("passed") or not re.fullmatch(r"[a-z0-9-]+", name):
+                          continue
+                      log = path.parent / name / "console.log"
+                      if log.is_file():
+                          print("BOUNTY_17866_FAILED_CLI_LOG=" + json.dumps({"case": name,
+                                "tail": log.read_bytes()[-4000:].decode("utf-8", errors="replace")}))
+              print("BOUNTY_17866_CLI_SUMMARY=" + json.dumps(selected, sort_keys=True))
+          else:
+              print('BOUNTY_17866_CLI_SUMMARY={"available": false}')
+              for log in sorted(reports.rglob("cli-matrix.log")):
+                  print("BOUNTY_17866_CLI_LOG=" + json.dumps({"tail":
+                        log.read_bytes()[-4000:].decode("utf-8", errors="replace")}))
+          control = {}
+          experiments = list(reports.rglob("support-control-experiment.json"))
+          if len(experiments) > 1:
+              raise SystemExit("ambiguous support control reports")
+          if experiments:
+              control["experiment"] = json.loads(experiments[0].read_text())
+              assert control["experiment"]["source_checkout_head"] == run["head_sha"], "control commit mismatch"
+          control_summaries = list(reports.rglob("support-control-summary.json"))
+          if len(control_summaries) > 1:
+              raise SystemExit("ambiguous control CLI summaries")
+          if control_summaries:
+              summary = json.loads(control_summaries[0].read_text())
+              assert summary["source_checkout_head"] == run["head_sha"], "control CLI commit mismatch"
+              control["cli"] = {key: summary.get(key) for key in ("source_checkout_head", "binary_sha256", "passed",
+                                "configuration_matrix_passed", "project_error", "infill_motion_observed",
+                                "infill_motion_comparison", "support_diagnostics", "limitations")}
+          if control:
+              print("BOUNTY_17866_CONTROL=" + json.dumps(control, sort_keys=True))
+          expected_red = control.get("experiment", {}).get("red", {}).get("status") == "expected_assertion_failure_validated"
+          for path in sorted(reports.rglob("*.xml")):
+              document = ET.parse(path).getroot()
+              suites = list(document.iter("testsuite"))
+              counts = {key: sum(int(suite.get(key, "0")) for suite in suites)
+                        for key in ("tests", "failures", "errors", "skipped")}
+              failures = [{"name": case.get("name"), "message": failure.get("message"),
+                           "detail": (failure.text or "")[-2000:]}
+                          for case in document.iter("testcase")
+                          for failure in case if failure.tag in {"failure", "error"}]
+              print("BOUNTY_17866_JUNIT=" + json.dumps({"report": path.name, **counts,
+                    "tests_counter_semantics": "raw Catch2 JUnit assertion counter",
+                    "testcase_elements": len(list(document.iter("testcase"))),
+                    "classification": (("expected_red_validated" if expected_red else "control_red_not_validated")
+                                       if path.name == "control-expected-red.xml" else "normal_test_result"),
+                    "failure_details": failures[:10]}, sort_keys=True))
+          PY
