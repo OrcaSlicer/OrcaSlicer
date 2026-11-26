@@ -10874,19 +10874,38 @@ std::vector<size_t> Plater::priv::load_model_objects(const ModelObjectPtrs& mode
     // it remains to move the wipe tower:
     view3D->get_canvas3d()->arrange_wipe_tower(wti);
 #else
-    // BBS: find an empty cell to put the copied object
-    for (auto& instance : new_instances) {
-        auto offset = instance->get_offset();
-        auto start_point = this->bed.build_volume().bed_center();
-        bool plate_empty = partplate_list.get_curr_plate()->empty();
-        Vec3d displacement;
-        if (plate_empty)
-            displacement = {start_point(0), start_point(1), offset(2)};
-        else {
-            auto empty_cell = wxGetApp().plater()->canvas3D()->get_nearest_empty_cell({start_point(0), start_point(1)});
-            displacement    = {empty_cell.x(), empty_cell.y(), offset(2)};
+    // ORCA: Place newly loaded instances in the nearest non-overlapping cell on the current plate,
+    // or fall back to the current plate center if no free cell fits.
+    if (!new_instances.empty()) {
+        PartPlate *plate = partplate_list.get_curr_plate();
+        const Vec2d plate_center = plate != nullptr
+            ? to_2d(plate->get_build_volume().center())
+            : this->bed.build_volume().bed_center();
+        GLCanvas3D *canvas = view3D != nullptr ? view3D->get_canvas3d() : nullptr;
+        const double arrange_spacing = canvas != nullptr ? canvas->get_arrange_settings().distance : 0.0;
+        const double spacing = arrange_spacing > 0.0 ? arrange_spacing : 1.0;
+
+        for (size_t i = 0; i < new_instances.size(); ++i) {
+            ModelInstance *instance = new_instances[i];
+            const Vec3d offset = instance->get_offset();
+            const BoundingBoxf3 bbox = instance->get_object()->instance_convex_hull_bounding_box(instance);
+            const Vec2d point_offset = bbox.defined ? to_2d(offset - bbox.center()) : Vec2d::Zero();
+
+            Vec2d target_xy = plate_center;
+            if (canvas != nullptr && bbox.defined) {
+                const Vec2f step(static_cast<float>(bbox.size()(0) + spacing),
+                                 static_cast<float>(bbox.size()(1) + spacing));
+                const std::vector<const ModelInstance *> unplaced(new_instances.begin() + i, new_instances.end());
+                const Vec2f empty_cell = canvas->get_nearest_empty_cell(
+                    {static_cast<float>(plate_center.x()), static_cast<float>(plate_center.y())},
+                    step, false, unplaced);
+                target_xy = Vec2d(empty_cell.x(), empty_cell.y());
+            }
+
+            instance->set_offset({target_xy.x() + point_offset.x(),
+                                  target_xy.y() + point_offset.y(),
+                                  offset(2)});
         }
-        instance->set_offset(displacement);
     }
 #endif
 
@@ -20139,35 +20158,36 @@ void Plater::increase_instances(size_t num)
 
     // ORCA: calculate nearest empty cell to place the new instance
     // similar logic as Selection::paste_objects_from_clipboard
-    PartPlate *plate         = p->partplate_list.get_curr_plate();
+    PartPlate* plate         = p->partplate_list.get_curr_plate();
     const BoundingBoxf3 bbox = model_object->instance_convex_hull_bounding_box(model_instance);
     const bool in_current    = plate && plate->intersects(bbox);
 
     const Vec3d base_offset  = model_instance->get_offset();
     const Vec3d point_offset = base_offset - bbox.center();
     const Vec3d start_point  = in_current ? bbox.center() : (plate ? plate->get_build_volume().center() : bbox.center());
-    
+
     const double arrange_spacing = wxGetApp().plater()->canvas3D()->get_arrange_settings().distance;
     const double spacing         = arrange_spacing > 0.0 ? arrange_spacing : 1.0;
     const Vec2f step(bbox.size()(0) + spacing, bbox.size()(1) + spacing);
-    
+
     const double base_fallback_offset = canvas3D()->get_size_proportional_to_max_bed_size(0.05);
     double fallback_offset            = base_fallback_offset;
 
+    const std::vector<Vec2f> empty_cells = canvas3D()->get_empty_cells({start_point(0), start_point(1)}, step);
+
     for (size_t i = 0; i < num; i++) {
-        const std::vector<Vec2f> empty_cells = canvas3D()->get_empty_cells(
-            {start_point(0), start_point(1)}, step);
         Vec3d offset_vec;
 
-        if (!empty_cells.empty()) {
-            const Vec2f &empty_cell = empty_cells.front();
-            offset_vec = Vec3d(empty_cell.x() + point_offset.x(), empty_cell.y() + point_offset.y(), base_offset(2));
-        
-        } else { // fallback
+        if (i < empty_cells.size()) {
+            offset_vec = Vec3d(empty_cells[i].x() + point_offset.x(),
+                               empty_cells[i].y() + point_offset.y(),
+                               base_offset(2));
+
+        } else { // fallback (no free cell left)
             offset_vec = base_offset + Vec3d(fallback_offset, fallback_offset, 0.0);
             fallback_offset += base_fallback_offset;
         }
-        
+
         // ORCA: Copy the whole transformation. Rebuilt from scale, rotation and mirror it loses a skew.
         Geometry::Transformation transformation = model_instance->get_transformation();
         transformation.set_offset(offset_vec);

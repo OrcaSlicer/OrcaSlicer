@@ -2865,11 +2865,32 @@ void ObjectList::load_mesh_object(const std::vector<std::pair<const TriangleMesh
     // BBS: backup
     Slic3r::save_object_mesh(*new_object);
 
-    // BBS: find an empty cell to put the copied object
-    auto start_point = wxGetApp().plater()->build_volume().bed_center();
-    auto empty_cell  = wxGetApp().plater()->canvas3D()->get_nearest_empty_cell({start_point(0), start_point(1)});
+    if (center) {
+        Plater *plater = wxGetApp().plater();
+        PartPlate *plate = plater->get_partplate_list().get_curr_plate();
+        const Vec2d plate_center = plate != nullptr
+            ? to_2d(plate->get_build_volume().center())
+            : plater->build_volume().bed_center();
+        ModelInstance *instance = new_object->instances[0];
+        const BoundingBoxf3 bbox = new_object->instance_convex_hull_bounding_box(instance);
+        const Vec2d point_offset = bbox.defined ? to_2d(instance->get_offset() - bbox.center()) : Vec2d::Zero();
 
-    new_object->instances[0]->set_offset(center ? to_3d(Vec2d(empty_cell(0), empty_cell(1)), -new_object->origin_translation.z()) : bb.center());
+        Vec2d target_xy = plate_center;
+        if (GLCanvas3D *canvas = plater->canvas3D(); canvas != nullptr && bbox.defined) {
+            const double arrange_spacing = canvas->get_arrange_settings().distance;
+            const double spacing = arrange_spacing > 0.0 ? arrange_spacing : 1.0;
+            const Vec2f step(static_cast<float>(bbox.size()(0) + spacing),
+                             static_cast<float>(bbox.size()(1) + spacing));
+            const Vec2f empty_cell = canvas->get_nearest_empty_cell(
+                {static_cast<float>(plate_center.x()), static_cast<float>(plate_center.y())},
+                step, false, {instance});
+            target_xy = Vec2d(empty_cell.x(), empty_cell.y());
+        }
+
+        instance->set_offset(to_3d(target_xy + point_offset, -new_object->origin_translation.z()));
+    } else {
+        new_object->instances[0]->set_offset(bb.center());
+    }
 
     new_object->ensure_on_bed();
 

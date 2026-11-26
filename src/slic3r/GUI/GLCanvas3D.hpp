@@ -1531,12 +1531,19 @@ public:
 
     double get_size_proportional_to_max_bed_size(double factor) const;
 
-    // BBS: get empty cells to put new object
-    // start_point={-1,-1} means sort from bed center, step is the unscaled x,y stride
-    std::vector<Vec2f> get_empty_cells(const Vec2f start_point, const Vec2f step = {10, 10});
-    // BBS: get the nearest empty cell
-    // start_point={-1,-1} means sort from bed center
-    Vec2f get_nearest_empty_cell(const Vec2f start_point, const Vec2f step = {10, 10});
+    // ORCA: Get empty cells on the current plate sorted by distance from start_point.
+    // step is the unscaled x,y footprint of the object to place (including spacing);
+    // grid_stride defaults to step so returned cells are mutually non-overlapping.
+    std::vector<Vec2f> get_empty_cells(const Vec2f start_point,
+                                       const Vec2f step = {10, 10},
+                                       const Vec2f grid_stride = {0, 0},
+                                       const std::vector<const ModelInstance *> &excluded_instances = {});
+    // Get the nearest empty cell on the current plate, falling back to either
+    // start_point + 5% bed offset (offset_on_fallback = true) or start_point itself.
+    Vec2f get_nearest_empty_cell(const Vec2f start_point,
+                                 const Vec2f step = {10, 10},
+                                 bool offset_on_fallback = true,
+                                 const std::vector<const ModelInstance *> &excluded_instances = {});
 
     void set_cursor(ECursorType type);
     void msw_rescale() { m_gcode_viewer.invalidate_legend(); }

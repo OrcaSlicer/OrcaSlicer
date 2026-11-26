@@ -7062,62 +7062,98 @@ double GLCanvas3D::get_size_proportional_to_max_bed_size(double factor) const
 }
 
 //BBS
-std::vector<Vec2f> GLCanvas3D::get_empty_cells(const Vec2f start_point, const Vec2f step)
+std::vector<Vec2f> GLCanvas3D::get_empty_cells(const Vec2f start_point,
+                                               const Vec2f step,
+                                               const Vec2f grid_stride,
+                                               const std::vector<const ModelInstance *> &excluded_instances)
 {
     if (step(0) <= 0.0f || step(1) <= 0.0f)
         return {};
 
-    PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
-    BoundingBoxf3 build_volume = plate->get_build_volume();
-    Vec2d vmin(build_volume.min.x(), build_volume.min.y()), vmax(build_volume.max.x(), build_volume.max.y());
-    BoundingBoxf bbox(vmin, vmax);
-    std::vector<Vec2f> cells;
+    const Vec2f stride(grid_stride(0) > 0.0f ? grid_stride(0) : step(0),
+                       grid_stride(1) > 0.0f ? grid_stride(1) : step(1));
 
-    const float half_x = step(0) * 0.5f;
-    const float half_y = step(1) * 0.5f;
-    const float min_x  = start_point.x() - step(0) * std::floor((start_point.x() - (bbox.min.x() + half_x)) / step(0));
-    const float min_y  = start_point.y() - step(1) * std::floor((start_point.y() - (bbox.min.y() + half_y)) / step(1));
-    for (float x = min_x; x <= bbox.max.x() - half_x; x += step(0))
-        for (float y = min_y; y <= bbox.max.y() - half_y; y += step(1))
-            cells.emplace_back(x, y);
+    PartPlate *plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
+    if (plate == nullptr)
+        return {};
 
-    if (!cells.empty()) {
-        std::vector<BoundingBoxf> occupied_boxes;
+    const BoundingBoxf3 build_volume = plate->get_build_volume();
+    const BoundingBoxf bbox(Vec2d(build_volume.min.x(), build_volume.min.y()),
+                            Vec2d(build_volume.max.x(), build_volume.max.y()));
+
+    const double half_x = step(0) * 0.5;
+    const double half_y = step(1) * 0.5;
+    if (bbox.min.x() + half_x > bbox.max.x() - half_x ||
+        bbox.min.y() + half_y > bbox.max.y() - half_y)
+        return {};
+
+    const int min_ix = static_cast<int>(std::ceil((bbox.min.x() + half_x - start_point.x()) / stride(0)));
+    const int max_ix = static_cast<int>(std::floor((bbox.max.x() - half_x - start_point.x()) / stride(0)));
+    const int min_iy = static_cast<int>(std::ceil((bbox.min.y() + half_y - start_point.y()) / stride(1)));
+    const int max_iy = static_cast<int>(std::floor((bbox.max.y() - half_y - start_point.y()) / stride(1)));
+    if (min_ix > max_ix || min_iy > max_iy)
+        return {};
+
+    std::vector<BoundingBoxf> occupied_boxes;
+    if (m_model != nullptr) {
         for (const ModelObject *model_object : m_model->objects) {
-            for (size_t inst_idx = 0; inst_idx < model_object->instances.size(); ++inst_idx) {
-                const BoundingBoxf3 inst_bb3 = model_object->instance_convex_hull_bounding_box(inst_idx);
-                if (inst_bb3.defined)
-                    occupied_boxes.emplace_back(Vec2d(inst_bb3.min.x(), inst_bb3.min.y()),
-                                                Vec2d(inst_bb3.max.x(), inst_bb3.max.y()));
+            for (const ModelInstance *instance : model_object->instances) {
+                if (std::find(excluded_instances.begin(), excluded_instances.end(), instance) != excluded_instances.end())
+                    continue;
+                const BoundingBoxf3 inst_bb3 = model_object->instance_convex_hull_bounding_box(instance);
+                if (!inst_bb3.defined)
+                    continue;
+                const BoundingBoxf inst_bb2(Vec2d(inst_bb3.min.x(), inst_bb3.min.y()),
+                                            Vec2d(inst_bb3.max.x(), inst_bb3.max.y()));
+                if (inst_bb2.overlap(bbox))
+                    occupied_boxes.push_back(inst_bb2);
             }
         }
-
-        cells.erase(std::remove_if(cells.begin(), cells.end(), [&occupied_boxes, half_x, half_y](const Vec2f &cell) {
-            const BoundingBoxf cell_bb(Vec2d(cell.x() - half_x, cell.y() - half_y),
-                                       Vec2d(cell.x() + half_x, cell.y() + half_y));
-            return std::any_of(occupied_boxes.begin(), occupied_boxes.end(),
-                               [&cell_bb](const BoundingBoxf &box) { return box.overlap(cell_bb); });
-        }), cells.end());
     }
 
-    Vec2f start = start_point;
-    if (start_point(0) < 0 && start_point(1) < 0) {
-        start(0) = bbox.center()(0);
-        start(1) = bbox.center()(1);
+    std::vector<Vec2f> cells;
+    for (int ix = min_ix; ix <= max_ix; ++ix) {
+        const double x = start_point.x() + ix * static_cast<double>(stride(0));
+        for (int iy = min_iy; iy <= max_iy; ++iy) {
+            const double y = start_point.y() + iy * static_cast<double>(stride(1));
+            const BoundingBoxf cell_bb(Vec2d(x - half_x, y - half_y),
+                                       Vec2d(x + half_x, y + half_y));
+            const bool overlaps = std::any_of(occupied_boxes.begin(), occupied_boxes.end(),
+                                              [&cell_bb](const BoundingBoxf &box) { return box.overlap(cell_bb); });
+            if (!overlaps)
+                cells.emplace_back(static_cast<float>(x), static_cast<float>(y));
+        }
     }
-    std::sort(cells.begin(), cells.end(), [start](const Vec2f& cell1, const Vec2f& cell2) { return (cell1 - start).norm() < (cell2 - start).norm(); });
+
+    std::sort(cells.begin(), cells.end(), [start_point](const Vec2f &cell1, const Vec2f &cell2) {
+        return (cell1 - start_point).squaredNorm() < (cell2 - start_point).squaredNorm();
+    });
+
     return cells;
 }
 
-Vec2f GLCanvas3D::get_nearest_empty_cell(const Vec2f start_point, const Vec2f step)
+Vec2f GLCanvas3D::get_nearest_empty_cell(const Vec2f start_point,
+                                         const Vec2f step,
+                                         const bool offset_on_fallback,
+                                         const std::vector<const ModelInstance *> &excluded_instances)
 {
-    std::vector<Vec2f> empty_cells = get_empty_cells(start_point, step);
+    std::vector<Vec2f> empty_cells = get_empty_cells(start_point, step, step, excluded_instances);
+    if (empty_cells.empty()) {
+        const float fine = std::max(5.0f, static_cast<float>(get_size_proportional_to_max_bed_size(0.02)));
+        if (step(0) > fine || step(1) > fine) {
+            const Vec2f fine_stride(std::max(1.0f, std::min(step(0), fine)),
+                                    std::max(1.0f, std::min(step(1), fine)));
+            empty_cells = get_empty_cells(start_point, step, fine_stride, excluded_instances);
+        }
+    }
     if (!empty_cells.empty())
         return empty_cells.front();
-    else {
-        double offset = get_size_proportional_to_max_bed_size(0.05);
-        return { start_point(0) + offset, start_point(1) + offset };
-    }
+
+    if (!offset_on_fallback)
+        return start_point;
+
+    const float offset = static_cast<float>(get_size_proportional_to_max_bed_size(0.05));
+    return {start_point(0) + offset, start_point(1) + offset};
 }
 
 void GLCanvas3D::set_cursor(ECursorType type)
