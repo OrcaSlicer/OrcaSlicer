@@ -974,7 +974,8 @@ void GLGizmoMeasure::on_render()
     };
 
     auto hovering_color = [this, hover_selection_color]() {
-        return (m_mode == EMode::PointSelection) ? HOVER_COLOR : hover_selection_color();
+        // ORCA: a brighter version of the color the selection takes
+        return (m_mode == EMode::PointSelection) ? lerp(hover_selection_color(), ColorRGBA::WHITE(), 0.6f) : hover_selection_color();
     };
 
     if (m_curr_feature.has_value()) {

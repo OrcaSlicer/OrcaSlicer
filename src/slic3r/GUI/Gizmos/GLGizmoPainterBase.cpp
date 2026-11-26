@@ -41,6 +41,7 @@
 #include "slic3r/GUI/3DScene.hpp"
 #include <vector>
 #include <utility>
+#include <wx/utils.h>
 #include <queue>
 #include "libslic3r/Color.hpp"
 #include "libslic3r/ObjectID.hpp"
@@ -359,6 +360,9 @@ void GLGizmoPainterBase::render_cursor_circle()
         render_color = this->get_cursor_sphere_left_button_color();
     else if (m_button_down == Button::Right)
         render_color = this->get_cursor_sphere_right_button_color();
+    // ORCA: the circle is a thin line, not a sphere over the model, so it is drawn opaque
+    if (m_button_down != Button::None)
+        render_color.a(1.0f);
 
     m_circle.set_color(render_color);
 
@@ -1296,24 +1300,28 @@ TriangleSelector::ClippingPlane GLGizmoPainterBase::get_clipping_plane_in_volume
 ColorRGBA TriangleSelectorGUI::enforcers_color = ENFORCERS_COLOR_DEFAULT;
 ColorRGBA TriangleSelectorGUI::blockers_color  = BLOCKERS_COLOR_DEFAULT;
 
-ColorRGBA GLGizmoPainterBase::get_cursor_sphere_left_button_color() const
+// ORCA: the color of the cursor while one of its buttons is held: the color the stroke leaves on the model,
+// as translucent as the cursor is. `state` is what the button paints. White stands for erasing, which Shift
+// does with both buttons, see gizmo_event(). `fixed_color` is for the gizmos that do not paint with the brush colors.
+static ColorRGBA cursor_color(EnforcerBlockerType state, bool brush_colors, const ColorRGBA& fixed_color)
 {
-    if (!use_colorblind_friendly_colors() || !paints_with_brush_colors())
-        return { 0.0f, 0.0f, 1.0f, 0.25f };
-    // ORCA: the cursor takes the color its button paints with
-    ColorRGBA color = TriangleSelectorGUI::enforcers_color;
+    if (state == EnforcerBlockerType::NONE || wxGetKeyState(WXK_SHIFT))
+        return { 0.0f, 0.0f, 0.6f, 0.25f };
+    if (!brush_colors)
+        return fixed_color;
+    ColorRGBA color = state == EnforcerBlockerType::BLOCKER ? TriangleSelectorGUI::blockers_color : TriangleSelectorGUI::enforcers_color;
     color.a(0.25f);
     return color;
 }
 
+ColorRGBA GLGizmoPainterBase::get_cursor_sphere_left_button_color() const
+{
+    return cursor_color(get_left_button_state_type(), paints_with_brush_colors(), { 0.0f, 0.0f, 1.0f, 0.25f });
+}
+
 ColorRGBA GLGizmoPainterBase::get_cursor_sphere_right_button_color() const
 {
-    if (!use_colorblind_friendly_colors() || !paints_with_brush_colors())
-        return { 1.0f, 0.0f, 0.0f, 0.25f };
-    // ORCA: the cursor takes the color its button paints with
-    ColorRGBA color = TriangleSelectorGUI::blockers_color;
-    color.a(0.25f);
-    return color;
+    return cursor_color(get_right_button_state_type(), paints_with_brush_colors(), { 1.0f, 0.0f, 0.0f, 0.25f });
 }
 
 ColorRGBA TriangleSelectorGUI::get_seed_fill_color(const ColorRGBA& base_color)
