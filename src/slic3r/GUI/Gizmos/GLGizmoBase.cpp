@@ -77,9 +77,19 @@ ColorRGBA            GLGizmoBase::GRABBER_UNIFORM_COL       = {0, 1.0, 1.0, 1.0f
 ColorRGBA            GLGizmoBase::GRABBER_UNIFORM_HOVER_COL = {0, 0.7, 0.7, 1.0f};
 
 
+// ORCA: blue and green, as yellow tones are taken by the grabber of the cut gizmo
+const ColorRGBA GLGizmoBase::COLORBLIND_1ST_COLOR = {0   / 255.f, 112 / 255.f, 210 / 255.f, 1.0f}; // #0070D2
+const ColorRGBA GLGizmoBase::COLORBLIND_2ND_COLOR = {15  / 255.f, 173 / 255.f, 78  / 255.f, 1.0f}; // #0FAD4E
+
 bool GLGizmoBase::use_colorblind_friendly_colors()
 {
     return wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool("colorblind_friendly_colors");
+}
+
+ColorRGB GLGizmoBase::overhang_color()
+{
+    // a muted purple (#6A549D) for the colorblind friendly colors, see the brush colors in GLGizmoPainterBase.cpp
+    return use_colorblind_friendly_colors() ? ColorRGB(0.416f, 0.329f, 0.616f) : ColorRGB(0.78f, 0.0f, 0.0f);
 }
 
 void GLGizmoBase::update_render_colors()

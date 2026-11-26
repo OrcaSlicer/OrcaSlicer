@@ -82,12 +82,9 @@ namespace GUI {
 static const ColorRGBA GRABBER_COLOR = ColorRGBA::YELLOW();
 static const ColorRGBA UPPER_PART_COLOR = ColorRGBA::CYAN();
 static const ColorRGBA LOWER_PART_COLOR = ColorRGBA::MAGENTA();
-// ORCA: used in place of the two above when "Colorblind friendly colors" is enabled in Preferences.
-// Blue and green, as yellow tones are taken by the grabber
-static const ColorRGBA UPPER_PART_COLOR_COLORBLIND = ColorRGBA(0   / 255.f, 112 / 255.f, 210 / 255.f, 1.0f);
-static const ColorRGBA LOWER_PART_COLOR_COLORBLIND = ColorRGBA(15  / 255.f, 173 / 255.f, 78  / 255.f, 1.0f);
-static const ColorRGBA& upper_part_color() { return GLGizmoBase::use_colorblind_friendly_colors() ? UPPER_PART_COLOR_COLORBLIND : UPPER_PART_COLOR; }
-static const ColorRGBA& lower_part_color() { return GLGizmoBase::use_colorblind_friendly_colors() ? LOWER_PART_COLOR_COLORBLIND : LOWER_PART_COLOR; }
+// ORCA: the two above, or their variants when "Colorblind friendly colors" is enabled in Preferences
+static const ColorRGBA& upper_part_color() { return GLGizmoBase::use_colorblind_friendly_colors() ? GLGizmoBase::COLORBLIND_1ST_COLOR : UPPER_PART_COLOR; }
+static const ColorRGBA& lower_part_color() { return GLGizmoBase::use_colorblind_friendly_colors() ? GLGizmoBase::COLORBLIND_2ND_COLOR : LOWER_PART_COLOR; }
 static const ColorRGBA MODIFIER_COLOR   = ColorRGBA(0.75f, 0.75f, 0.75f, 0.5f);
 
 // connector colors

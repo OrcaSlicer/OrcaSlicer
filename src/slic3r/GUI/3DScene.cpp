@@ -13,6 +13,7 @@
 #include "BitmapCache.hpp"
 #include "Camera.hpp"
 #include "SelectionOutline.hpp"
+#include "Gizmos/GLGizmoBase.hpp"
 
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
@@ -1090,8 +1091,7 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
     // Compute up direction accounting for build plate tilt. This is frame-invariant
     // (config cannot change mid-render), so compute it once before the volume loop.
     const Vec3f up_direction = GUI::build_plate_tilt_up_direction().cast<float>();
-    // ORCA: the color the overhangs are marked with follows the "Colorblind friendly colors" preference
-    const bool overhang_colorblind = GUI::wxGetApp().app_config->get_bool("colorblind_friendly_colors");
+    const ColorRGB overhang_color = GUI::GLGizmoBase::overhang_color();
     const bool persistent_outline = outlined_volumes != nullptr &&
                                    GUI::wxGetApp().app_config->get_bool(SETTING_OPENGL_OUTLINE_PERSISTENT);
 
@@ -1171,7 +1171,7 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
 
         shader->set_uniform("volume_world_matrix", volume.first->world_matrix());
         shader->set_uniform("slope.actived", m_slope.isGlobalActive && !volume.first->is_modifier && !volume.first->is_wipe_tower);
-        shader->set_uniform("overhang_colorblind", overhang_colorblind);
+        shader->set_uniform("overhang_color", overhang_color);
         shader->set_uniform("slope.volume_world_normal_matrix", static_cast<Matrix3f>(volume.first->world_matrix().matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>()));
         shader->set_uniform("slope.normal_z", support_normal_z);
         shader->set_uniform("slope.up_direction", up_direction);

@@ -66,10 +66,6 @@ public:
     // BBS
     static ColorRGBA enforcers_color;
     static ColorRGBA blockers_color;
-    // ORCA: the colors painted with the left and the right mouse button: the two above, or their
-    // colorblind friendly variants when "Colorblind friendly colors" is enabled in Preferences
-    static const ColorRGBA& get_enforcers_color();
-    static const ColorRGBA& get_blockers_color();
 
 #ifdef PRUSASLICER_TRIANGLE_SELECTOR_DEBUG
     void render_debug(ImGuiWrapper* imgui);
@@ -399,8 +395,6 @@ private:
     mutable bool        m_is_set_height_start_z_by_imgui{false};
     mutable Vec2i32       m_height_start_pos{0, 0};
     mutable bool        m_is_cursor_in_imgui{false};
-    // ORCA: the brush colors the triangle selectors were last given, see render_triangles()
-    mutable bool        m_colorblind_friendly_colors{false};
     BoundingBoxf3 bounding_box() const;
     void update_contours(int i, const TriangleMesh& vol_mesh, float cursor_z, float max_z, float min_z) const;
 

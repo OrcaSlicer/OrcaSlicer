@@ -633,8 +633,8 @@ void GLGizmoFdmSupports::update_from_model_object(bool first_update)
     int volume_id = -1;
     std::vector<ColorRGBA> ebt_colors;
     ebt_colors.push_back(GLVolume::NEUTRAL_COLOR);
-    ebt_colors.push_back(TriangleSelectorGUI::get_enforcers_color());
-    ebt_colors.push_back(TriangleSelectorGUI::get_blockers_color());
+    ebt_colors.push_back(TriangleSelectorGUI::enforcers_color);
+    ebt_colors.push_back(TriangleSelectorGUI::blockers_color);
     for (const ModelVolume* mv : mo->volumes) {
         if (! mv->is_model_part())
             continue;

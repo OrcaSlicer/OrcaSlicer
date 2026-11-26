@@ -1977,7 +1977,7 @@ bool GLGizmoTextureDisplacement::render_painted_colors(bool whole_stack)
     shader->set_uniform("volume_world_matrix", trafo_matrix);
     shader->set_uniform("volume_mirrored", trafo_matrix.matrix().determinant() < 0.);
     shader->set_uniform("slope.actived", m_parent.is_using_slope());
-    shader->set_uniform("overhang_colorblind", use_colorblind_friendly_colors());
+    shader->set_uniform("overhang_color", overhang_color());
     shader->set_uniform("slope.volume_world_normal_matrix", Matrix3f(normal_matrix.cast<float>()));
     shader->set_uniform("slope.normal_z", float(-std::cos(Geometry::deg2rad(get_highlight_angle_limit_deg()))));
     shader->set_uniform("slope.up_direction", get_tilt_up_direction());
@@ -3950,8 +3950,8 @@ void GLGizmoTextureDisplacement::update_from_model_object(bool first_update)
 
     std::vector<ColorRGBA> ebt_colors;
     ebt_colors.push_back(GLVolume::NEUTRAL_COLOR);
-    ebt_colors.push_back(TriangleSelectorGUI::get_enforcers_color());
-    ebt_colors.push_back(TriangleSelectorGUI::get_blockers_color());
+    ebt_colors.push_back(TriangleSelectorGUI::enforcers_color);
+    ebt_colors.push_back(TriangleSelectorGUI::blockers_color);
     m_selectors_stale = false;
     for (const ModelVolume *mv : mo->volumes) {
         if (!mv->is_model_part())

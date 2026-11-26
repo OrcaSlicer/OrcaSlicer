@@ -3091,23 +3091,9 @@ void GCodeViewer::set_colorblind_friendly_colors(bool value)
     m_colorblind_friendly_colors = value;
 
     const libvgcode::Palette& palette = value ? COLORBLIND_RANGES_COLORS : libvgcode::DEFAULT_RANGES_COLORS;
-    // all the view types colored by a range, see libvgcode::Viewer::set_color_range_palette()
-    for (libvgcode::EViewType type : {
-            libvgcode::EViewType::Height,
-            libvgcode::EViewType::Width,
-            libvgcode::EViewType::Speed,
-            libvgcode::EViewType::ActualSpeed,
-            libvgcode::EViewType::FanSpeed,
-            libvgcode::EViewType::Temperature,
-            libvgcode::EViewType::PressureAdvance,
-            libvgcode::EViewType::Acceleration,
-            libvgcode::EViewType::Jerk,
-            libvgcode::EViewType::VolumetricFlowRate,
-            libvgcode::EViewType::ActualVolumetricFlowRate,
-            libvgcode::EViewType::LayerTimeLinear,
-            libvgcode::EViewType::LayerTimeLogarithmic }) {
-        m_viewer.set_color_range_palette(type, palette);
-    }
+    // the view types that are not colored by a range ignore it
+    for (std::size_t type = 0; type < libvgcode::VIEW_TYPES_COUNT; ++type)
+        m_viewer.set_color_range_palette(static_cast<libvgcode::EViewType>(type), palette);
 }
 
 void GCodeViewer::set_interacting(bool interacting)
