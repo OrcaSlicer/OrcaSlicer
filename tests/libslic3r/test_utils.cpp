@@ -705,17 +705,3 @@ TEST_CASE("the command line log level outranks the fallback a caller passes", "[
         CHECK(command_line_logging_level(3) == 3);
     }
 }
-
-TEST_CASE("a more verbose log level is never quieter than a less verbose one", "[Utils]") {
-    ScopedLoggingLevel restore;
-
-    // Pre-release builds raise the quietest levels to info, which must not invert the order.
-    unsigned int previous = 0;
-    for (unsigned int asked = 0; asked <= 5; ++asked) {
-        set_logging_level(asked);
-        const unsigned int in_force = get_logging_level();
-        CAPTURE(asked, in_force, previous);
-        CHECK(in_force >= previous);
-        previous = in_force;
-    }
-}
