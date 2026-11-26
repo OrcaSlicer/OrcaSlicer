@@ -182,7 +182,7 @@ its refusal names what is missing.
 | `part_add` | Add a part, a negative part, a modifier, a support blocker or enforcer, or a precise seam to an object: a primitive shape, or a model file other than an SVG, whose parts `object_add_svg` adds through the SVG gizmo, which places them where the camera looks | `type`: part, negative, modifier, support_blocker, support_enforcer, precise_seam; `shape` and `size`, or `path`; `object`, `position` |
 | `part_change_type` | Change what parts are, as Change Type does, and a precise seam's subtype | `type`, as `part_add` takes it; `subtype`: center, left, right, enforced, blocked, neutral; `parts` |
 | `part_replace` | Replace a part's mesh with a model file's, keeping its settings, type, filament and placement | `object`, `part`, `path` |
-| `part_boolean` | Open the Mesh Boolean gizmo on an object of two parts or more | `object` |
+| `part_boolean` | Open the Mesh Boolean gizmo on an object of two parts or more, or on two whole objects or more | `object`, `objects` |
 
 ### Plates
 
@@ -695,7 +695,7 @@ These open a dialog or a gizmo whatever their arguments, and the caller answers 
 | `object_paint` | the painting gizmo of `type`, on `object`, `instance` | none | all painting |
 | `object_measure` | Measure, on `objects` | none | everything |
 | `object_simplify` | Simplify Model, on a part: the one named, or an object's only one | none | the detail level or ratio, and Apply |
-| `part_boolean` | Mesh Boolean, on `object` | none | the operation, the two parts, Delete input, and the button |
+| `part_boolean` | Mesh Boolean, on `object` (its parts) or `objects` (whole, on one plate) | none | the operation, the inputs, Delete input, and the button |
 
 ### The printing commands' dialogs
 

@@ -2474,6 +2474,12 @@ Targets one_part(const Model& model, Targets named)
     return named;
 }
 
+// Mesh Boolean's inputs: one object's first instance (its parts), else the objects whole.
+Targets boolean_targets(const Model& model, Targets named)
+{
+    return named.objects.size() == 1 ? one_instance(model, std::move(named)) : named;
+}
+
 // Opens the gizmo of `type` on what `args` name, else on the selection as it is: a call that names no target does not
 // read the selection as targets, so the gizmo's own condition decides what it opens on (Measure on a part). The reply
 // is the gizmo, that it is open, and what is selected.
@@ -3222,13 +3228,16 @@ void register_object_tools(CommandCatalog& catalog)
 
     catalog.add(gizmo_command(
         "part_boolean", L("Mesh Boolean"),
-        "Open the Mesh Boolean gizmo on an object of two parts or more, its first instance. The operation (Union, Difference "
-        "or Intersection), the two parts and Delete input are left to the gizmo: pick each part with a `mouse_gesture` click "
-        "on a point of it the camera can see, then press the operation's button.",
-        with_targets(object_schema({}), kObjects, true), EType::MeshBoolean, {kObjects, true, one_instance},
+        "Open the Mesh Boolean gizmo on the parts of an object of two parts or more, its first instance (object), or on two "
+        "objects or more, whole and on one plate (objects); with neither, on the selection. The operation (Union, Difference or Intersection), the inputs "
+        "and Delete input are left to the gizmo: add or remove each part or object with a `mouse_gesture` click on a point "
+        "of it the camera can see (for Difference, press the Select button of the list the clicks go to first), then press "
+        "the operation's button.",
+        with_targets(with_targets(object_schema({}), kObjects, true), kObjects, false), EType::MeshBoolean,
+        {kObjects, false, boolean_targets},
         json::parse(R"json([
-            {"title": "Open Mesh Boolean on object 0", "calls": [{"tool": "part_boolean", "args": {"object": 0}}]},
-            {"title": "Open Mesh Boolean on the selected object", "calls": [{"tool": "part_boolean", "args": {}}]}])json")));
+            {"title": "Open Mesh Boolean on the parts of object 0", "calls": [{"tool": "part_boolean", "args": {"object": 0}}]},
+            {"title": "Open Mesh Boolean on objects 0 and 1", "calls": [{"tool": "part_boolean", "args": {"objects": [0, 1]}}]}])json")));
 
     const std::vector<std::string> placements{"as_cut", "place_on_cut", "flip"};
     json                           point  = array_prop({{"type", "number"}}, "`[x, y, z]` mm: a point of the plane, in the 3D view's coordinates.");

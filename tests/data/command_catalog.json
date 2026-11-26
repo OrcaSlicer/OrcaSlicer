@@ -4290,7 +4290,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Open the Mesh Boolean gizmo on an object of two parts or more, its first instance. The operation (Union, Difference or Intersection), the two parts and Delete input are left to the gizmo: pick each part with a `mouse_gesture` click on a point of it the camera can see, then press the operation's button. Read the gizmo's panel with `widget_list {include_imgui: true}`, set its fields with `widget_set_value`, press its buttons with `widget_click`, and click or drag on the model with `mouse_gesture`; `object_select {none: true}` closes it. The gizmo already open on the same target stays open. Reply: gizmo (its name, as `app_state.gizmo` gives it), active, and what is selected (objects, instances, parts).",
+   "description": "Open the Mesh Boolean gizmo on the parts of an object of two parts or more, its first instance (object), or on two objects or more, whole and on one plate (objects); with neither, on the selection. The operation (Union, Difference or Intersection), the inputs and Delete input are left to the gizmo: add or remove each part or object with a `mouse_gesture` click on a point of it the camera can see (for Difference, press the Select button of the list the clicks go to first), then press the operation's button. Read the gizmo's panel with `widget_list {include_imgui: true}`, set its fields with `widget_set_value`, press its buttons with `widget_click`, and click or drag on the model with `mouse_gesture`; `object_select {none: true}` closes it. The gizmo already open on the same target stays open. Reply: gizmo (its name, as `app_state.gizmo` gives it), active, and what is selected (objects, instances, parts).",
    "destructive": false,
    "examples": [
     {
@@ -4302,16 +4302,21 @@
        "tool": "part_boolean"
       }
      ],
-     "title": "Open Mesh Boolean on object 0"
+     "title": "Open Mesh Boolean on the parts of object 0"
     },
     {
      "calls": [
       {
-       "args": {},
+       "args": {
+        "objects": [
+         0,
+         1
+        ]
+       },
        "tool": "part_boolean"
       }
      ],
-     "title": "Open Mesh Boolean on the selected object"
+     "title": "Open Mesh Boolean on objects 0 and 1"
     }
    ],
    "group": "Parts",
@@ -4330,6 +4335,20 @@
       "description": "The object's id in `object_list`.",
       "minimum": 0,
       "type": "integer"
+     },
+     "object_ids": {
+      "description": "The objects' ids in `object_list`.",
+      "items": {
+       "type": "integer"
+      },
+      "type": "array"
+     },
+     "objects": {
+      "description": "Object indices.",
+      "items": {
+       "type": "integer"
+      },
+      "type": "array"
      }
     },
     "type": "object"

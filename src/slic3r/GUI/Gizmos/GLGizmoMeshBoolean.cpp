@@ -808,7 +808,7 @@ bool GLGizmoMeshBoolean::render_list(PartList &list, const char *imgui_id)
         ImGui::PushStyleColor(ImGuiCol_Border, {0, 0, 0, 0});
         // Drawn even while a job runs, disabled, so the row keeps its layout.
         ImGui::PushItemFlag(ImGuiItemFlags_Disabled, m_running);
-        if (ImGui::Button(into_u8(ImGui::TextSearchCloseIcon).c_str(), {18, 18})) {
+        if (ImGui::Button((into_u8(ImGui::TextSearchCloseIcon) + "##remove").c_str(), {18, 18})) {
             list.erase(list.begin() + i);
             removed = true;
         }
