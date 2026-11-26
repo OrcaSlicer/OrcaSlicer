@@ -7316,10 +7316,8 @@ void ObjectList::on_plate_selected(int plate_index)
     if (sel == item)
         return;
 
-    // Orca: a programmatic Select() raises no selection event, so run the sidebar's selection
-    // handler as select_item() does; otherwise Plate Settings keeps showing the previous plate.
-    // A caller that already holds the flag (select_items() on a canvas deselect) runs the
-    // handler itself once it is done, so only an unguarded call refreshes here.
+    // Orca: refresh the sidebar as select_item() does, or Plate Settings keeps showing the previous plate.
+    // select_items() sets the flag itself and refreshes after this returns.
     const bool already_guarded = m_prevent_list_events;
     m_prevent_list_events = true;
     UnselectAll();
