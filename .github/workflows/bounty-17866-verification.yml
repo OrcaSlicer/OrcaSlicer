@@ -4,17 +4,32 @@ on:
   push:
     branches: [codex/orcaslicer-17866-ci]
   workflow_dispatch:
+    inputs:
+      read_run_id:
+        description: Read reports from a completed run instead of building (digits only)
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: bounty-17866-${{ github.ref }}
+  group: bounty-17866-${{ inputs.read_run_id || github.ref }}
   cancel-in-progress: false
 
 jobs:
+  read-reports:
+    if: github.repository == 'BeauDevCode/OrcaSlicer' && github.ref == 'refs/heads/codex/orcaslicer-17866-ci' && github.event_name == 'workflow_dispatch' && inputs.read_run_id != ''
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/bounty-17866-read-reports.yml
+    with:
+      run_id: ${{ inputs.read_run_id }}
+
   linux-release:
-    if: github.repository == 'BeauDevCode/OrcaSlicer' && github.ref == 'refs/heads/codex/orcaslicer-17866-ci'
+    if: github.repository == 'BeauDevCode/OrcaSlicer' && github.ref == 'refs/heads/codex/orcaslicer-17866-ci' && (github.event_name != 'workflow_dispatch' || inputs.read_run_id == '')
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     defaults:
@@ -144,7 +159,7 @@ jobs:
           sha256sum "$orca_binary" | tee "$REPORT_DIR/binary-sha256.txt"
           ldd "$orca_binary" | tee "$REPORT_DIR/binary-libraries.txt"
 
-      - name: Build only the AppConfig and GCode test suites
+      - name: Build the selected unit test suites
         id: unit-build
         if: ${{ !cancelled() && steps.app.outcome == 'success' }}
         timeout-minutes: 90
@@ -168,6 +183,22 @@ jobs:
             --reporter junit --out "$REPORT_DIR/gcode.xml" \
             2>&1 | tee "$REPORT_DIR/gcode.log"
 
+      - name: Run Print regression tests
+        if: ${{ !cancelled() && steps.unit-build.outcome == 'success' }}
+        timeout-minutes: 25
+        run: |
+          build/tests/fff_print/Release/fff_print_tests '[Print]' --warn NoAssertions \
+            --reporter junit --out "$REPORT_DIR/print.xml" \
+            2>&1 | tee "$REPORT_DIR/print.log"
+
+      - name: Run SupportMaterial regression tests
+        if: ${{ !cancelled() && steps.unit-build.outcome == 'success' }}
+        timeout-minutes: 25
+        run: |
+          build/tests/fff_print/Release/fff_print_tests '[SupportMaterial]' --warn NoAssertions \
+            --reporter junit --out "$REPORT_DIR/support-material.xml" \
+            2>&1 | tee "$REPORT_DIR/support-material.log"
+
       - name: Exercise the real CLI preference and travel matrix
         if: ${{ !cancelled() && steps.app.outcome == 'success' }}
         timeout-minutes: 90
@@ -176,6 +207,47 @@ jobs:
             --binary "$ORCA_BINARY" --source "$GITHUB_WORKSPACE" \
             --output "$REPORT_DIR/cli" --timeout 300 \
             2>&1 | tee "$REPORT_DIR/cli-matrix.log"
+
+      - name: Print machine-readable verification summaries
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          root = Path(os.environ["RUNNER_TEMP"]) / "bounty-17866"
+          path = root / "cli" / "summary.json"
+          if path.is_file():
+              summary = json.loads(path.read_text())
+              keys = ("source_checkout_head", "binary_sha256", "passed", "configuration_matrix_passed",
+                      "project_error", "infill_motion_observed", "infill_motion_comparison",
+                      "support_diagnostics", "limitations")
+              selected = {key: summary.get(key) for key in keys}
+              case_keys = ("name", "passed", "returncode", "failure_reason", "preference", "default_lookup",
+                           "expected_option", "support_extrusion_moves")
+              for group in ("configuration_cases", "support_cases"):
+                  selected[group] = []
+                  for case in summary.get(group, []):
+                      outcome = {key: case.get(key) for key in case_keys}
+                      outcome["gcode_count"] = len(case.get("gcode", []))
+                      outcome["observed_options"] = sorted({value for gcode in case.get("gcode", [])
+                                                            for value in gcode.get("reduce_infill_retraction_values", [])})
+                      selected[group].append(outcome)
+              print("BOUNTY_17866_CLI_SUMMARY=" + json.dumps(selected, sort_keys=True))
+          else:
+              print('BOUNTY_17866_CLI_SUMMARY={"available": false}')
+          for path in sorted(root.glob("*.xml")):
+              try:
+                  document = ET.parse(path).getroot()
+                  suites = list(document.iter("testsuite"))
+                  counts = {key: sum(int(suite.get(key, "0")) for suite in suites)
+                            for key in ("tests", "failures", "errors", "skipped")}
+                  print("BOUNTY_17866_JUNIT=" + json.dumps({"report": path.name, **counts}, sort_keys=True))
+              except (ET.ParseError, ValueError) as error:
+                  print("BOUNTY_17866_JUNIT=" + json.dumps({"report": path.name, "parse_error": str(error)}))
+          PY
 
       - name: Record build mutations and bound report logs
         if: always()

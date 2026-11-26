@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Print.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Flow.hpp"
@@ -1689,10 +1690,10 @@ bool CalibUtils::process_and_store_3mf(Model *model, const DynamicPrintConfig &f
 
     // apply the new print config
     DynamicPrintConfig new_print_config = full_config;
-    Slic3r::GUI::wxGetApp().app_config->apply_print_config_overrides(new_print_config);
-    print->apply(*model, new_print_config);
-
+    const bool disable_interference_travel = Slic3r::GUI::wxGetApp().app_config->apply_print_config_overrides(new_print_config);
     Print *fff_print = dynamic_cast<Print *>(print);
+    fff_print->apply(*model, new_print_config, false, Print::SliceContext{disable_interference_travel});
+
     fff_print->set_calib_params(params);
     fff_print->is_BBL_printer() = true;
 

@@ -131,7 +131,8 @@ public:
 	bool get_hide_login_side_panel();
 
 	// Apply per-install overrides to a fully assembled print configuration.
-	void apply_print_config_overrides(DynamicPrintConfig &config) const;
+	// Returns whether the interference-travel preference is enabled, even if no value changes.
+	bool apply_print_config_overrides(DynamicPrintConfig &config) const;
 
 	// Clear and reset to defaults.
 	void 			   	reset();

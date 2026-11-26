@@ -241,6 +241,7 @@ void Print::clear()
 	std::scoped_lock<std::mutex> lock(this->state_mutex());
     // The following call should stop background processing if it is running.
     this->invalidate_all_steps();
+    m_slice_context = {};
 	for (PrintObject *object : m_objects)
 		delete object;
 	m_objects.clear();

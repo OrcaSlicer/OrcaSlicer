@@ -776,10 +776,12 @@ void AppConfig::set_defaults()
     erase("app", "severity_level");
 }
 
-void AppConfig::apply_print_config_overrides(DynamicPrintConfig &config) const
+bool AppConfig::apply_print_config_overrides(DynamicPrintConfig &config) const
 {
-    if (get_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL) && config.has("reduce_infill_retraction"))
+    const bool disable_interference_travel = get_bool(SETTING_GLOBAL_DISABLE_INTERFERENCE_TRAVEL);
+    if (disable_interference_travel && config.has("reduce_infill_retraction"))
         config.set_key_value("reduce_infill_retraction", new ConfigOptionBool(false));
+    return disable_interference_travel;
 }
 
 #ifdef WIN32

@@ -7044,9 +7044,12 @@ int CLI::run(int argc, char **argv)
                             ConfigOptionEnumsGeneric* final_nozzle_volume_type_opt = new_print_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true);
                             final_nozzle_volume_type_opt->values.resize(new_extruder_count, nvtStandard);
                         }
-                        if (print_fff)
-                            ensure_cli_app_config()->apply_print_config_overrides(new_print_config);
-                        print->apply(model, new_print_config);
+                        if (print_fff) {
+                            const bool disable_interference_travel = ensure_cli_app_config()->apply_print_config_overrides(new_print_config);
+                            print_fff->apply(model, new_print_config, false, Print::SliceContext{disable_interference_travel});
+                        } else {
+                            print->apply(model, new_print_config);
+                        }
                         BOOST_LOG_TRIVIAL(info) << boost::format("set no_check to %1%:")%no_check;
                         print->set_no_check_flag(no_check);//BBS
 

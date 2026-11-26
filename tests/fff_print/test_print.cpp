@@ -3157,6 +3157,100 @@ TEST_CASE("Changing G-code precision invalidates only G-code export", "[Print][R
     CHECK(print.objects().front()->is_step_done(posPerimeters));
 }
 
+TEST_CASE("Changing the slice context invalidates only G-code export", "[Print][InterferenceTravel][Regression]")
+{
+    const bool enabled = GENERATE(false, true);
+    CAPTURE(enabled);
+    // Given the process option is already false, changing only the installation context must invalidate the export.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"reduce_infill_retraction", false}, {"gcode_comments", true}});
+    Print print;
+    Model model;
+    init_print({cube(2.0)}, print, model, config);
+    print.apply(model, config, false, Print::SliceContext{!enabled});
+    print.process();
+    print.set_gcode_file_ready();
+    REQUIRE(print.is_step_done(psGCodeExport));
+    REQUIRE(print.is_step_done(psWipeTower));
+    REQUIRE(print.is_step_done(psSkirtBrim));
+    REQUIRE(print.objects().front()->is_step_done(posSlice));
+    REQUIRE(print.objects().front()->is_step_done(posPerimeters));
+
+    // When the same print receives the opposite context without any process-setting change.
+    const Print::ApplyStatus changed = print.apply(model, config, false, Print::SliceContext{enabled});
+
+    // Then only the G-code is stale, and another apply with the same context leaves a completed export usable.
+    CHECK(changed == Print::APPLY_STATUS_INVALIDATED);
+    CHECK(print.slice_context().disable_interference_travel == enabled);
+    CHECK_FALSE(print.is_step_done(psGCodeExport));
+    CHECK(print.is_step_done(psWipeTower));
+    CHECK(print.is_step_done(psSkirtBrim));
+    CHECK(print.objects().front()->is_step_done(posSlice));
+    CHECK(print.objects().front()->is_step_done(posPerimeters));
+    print.set_gcode_file_ready();
+    CHECK(print.apply(model, config, false, Print::SliceContext{enabled}) == Print::APPLY_STATUS_UNCHANGED);
+    CHECK(print.is_step_done(psGCodeExport));
+}
+
+TEST_CASE("Changing the slice context cancels export before replacing its value", "[Print][InterferenceTravel][Regression]")
+{
+    const bool enabled = GENERATE(false, true);
+    CAPTURE(enabled);
+    size_t cancellations = 0;
+    bool context_at_cancellation = enabled;
+    // Given a completed export with the opposite context and no changed process setting.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"reduce_infill_retraction", false}, {"gcode_comments", true}});
+    Print print;
+    Model model;
+    init_print({cube(2.0)}, print, model, config);
+    print.apply(model, config, false, Print::SliceContext{!enabled});
+    print.process();
+    print.set_gcode_file_ready();
+    print.set_cancel_callback([&]() {
+        if (cancellations == 0)
+            context_at_cancellation = print.slice_context().disable_interference_travel;
+        ++cancellations;
+    });
+
+    // When apply invalidates export, record the value at its synchronous cancellation boundary.
+    const Print::ApplyStatus changed = print.apply(model, config, false, Print::SliceContext{enabled});
+    print.set_cancel_callback([]() {});
+
+    // Then cancellation observes the old context before apply exposes the new value.
+    REQUIRE(cancellations > 0);
+    CHECK(context_at_cancellation == !enabled);
+    CHECK(changed == Print::APPLY_STATUS_INVALIDATED);
+    CHECK(print.slice_context().disable_interference_travel == enabled);
+}
+
+TEST_CASE("Reusing a print resets its installation slice context", "[Print][InterferenceTravel][Regression]")
+{
+    const bool clear_print = GENERATE(false, true);
+    CAPTURE(clear_print);
+    // Given a print whose installation context has been enabled independently of the process option.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"reduce_infill_retraction", false}, {"gcode_comments", true}});
+    Print print;
+    Model model;
+    init_print({cube(2.0)}, print, model, config);
+    print.apply(model, config, false, Print::SliceContext{true});
+    print.process();
+    print.set_gcode_file_ready();
+    REQUIRE(print.slice_context().disable_interference_travel);
+
+    // When a caller clears the print or uses the existing apply API without installation context.
+    if (clear_print) {
+        print.clear();
+    } else {
+        CHECK(print.apply(model, config) == Print::APPLY_STATUS_INVALIDATED);
+        CHECK_FALSE(print.is_step_done(psGCodeExport));
+    }
+
+    // Then reuse cannot inherit an enabled installation preference from an earlier slice.
+    CHECK_FALSE(print.slice_context().disable_interference_travel);
+}
+
 namespace {
 
 // A plate printed by layer with the prime tower on and both filaments loaded. The tower stands in a corner
