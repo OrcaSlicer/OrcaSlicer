@@ -103,6 +103,7 @@ protected:
 
     EnforcerBlockerType get_left_button_state_type() const override { return EnforcerBlockerType(m_selected_extruder_idx + 1); }
     EnforcerBlockerType get_right_button_state_type() const override { return EnforcerBlockerType(-1); }
+    bool                is_mesh_paintable(int mesh_id) const override;
 
     void on_render_input_window(float x, float y, float bottom_limit) override;
     std::string on_get_name() const override;

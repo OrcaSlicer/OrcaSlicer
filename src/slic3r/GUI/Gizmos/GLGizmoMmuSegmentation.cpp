@@ -93,6 +93,22 @@ bool GLGizmoMmuSegmentation::on_is_activable() const
     return !selection.is_empty() && (selection.is_single_full_instance() || selection.is_any_volume()) && wxGetApp().filaments_cnt() > 1;
 }
 
+// When parts are selected in the object list, only selected parts are paintable.
+bool GLGizmoMmuSegmentation::is_mesh_paintable(int mesh_id) const
+{
+    const Selection& selection = m_parent.get_selection();
+    if (!selection.is_any_volume())
+        return true;
+
+    const ModelObject* mo       = m_c->selection_info()->model_object();
+    int                part_idx = -1;
+    for (int volume_idx = 0; volume_idx < int(mo->volumes.size()); ++volume_idx)
+        if (mo->volumes[volume_idx]->is_model_part() && ++part_idx == mesh_id)
+            return std::any_of(selection.get_volume_idxs().begin(), selection.get_volume_idxs().end(),
+                               [&selection, volume_idx](unsigned int i) { return selection.get_volume(i)->volume_idx() == volume_idx; });
+    return false;
+}
+
 static std::vector<int> get_extruder_id_for_volumes(const ModelObject &model_object)
 {
     std::vector<int> extruders_idx;
