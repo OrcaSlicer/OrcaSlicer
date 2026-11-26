@@ -1760,9 +1760,14 @@ int MachineObject::command_set_chamber(int temp)
     return this->publish_json(j, 1);
 }
 
+bool MachineObject::resume_only_at_printer() const
+{
+    return jobState_ > 1;
+}
+
 int MachineObject::check_resume_condition()
 {
-    if (jobState_ > 1) {
+    if (resume_only_at_printer()) {
         GUI::wxGetApp().show_dialog(_L("To ensure your safety, certain processing tasks (such as laser) can only be resumed on printer."));
         return 1;
     }

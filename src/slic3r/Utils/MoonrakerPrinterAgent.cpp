@@ -1,4 +1,5 @@
 #include "MoonrakerPrinterAgent.hpp"
+#include "MoonrakerFilamentSources.hpp"
 #include "AsioUtils.hpp"
 #include "CrealityCfs.hpp"
 #include "Http.hpp"
@@ -433,12 +434,18 @@ int MoonrakerPrinterAgent::bind_detect(std::string dev_ip, std::string sec_link,
 {
     (void) sec_link;
 
-    detect.dev_id   = device_info.dev_id.empty() ? dev_ip : device_info.dev_id;
-    detect.model_id = device_info.model_id.empty() ? device_info.model_name : device_info.model_id;
-    // Prefer fetched hostname, then preset model name, then generic fallback
-    detect.dev_name     = device_info.dev_name.empty() ? dev_ip : device_info.dev_name;
-    detect.model_id     = device_info.model_id;
-    detect.version      = device_info.version;
+    // The binding target is the address the user entered. device_info may still describe the
+    // printer the agent was connected to before, so its identity must not be used for another
+    // address. Split it the way the input dialog stores the print host and port, then derive
+    // the dev_id the same way GUI_App::select_machine does.
+    std::string port;
+    std::string host = Http::get_host_from_url(dev_ip, &port);
+    const std::string dev_id = MachineObject::dev_id_from_address(host, port);
+
+    detect.dev_id       = dev_id;
+    detect.dev_name     = dev_id;
+    detect.model_id.clear();
+    detect.version.clear();
     detect.connect_type = "lan";
     detect.bind_state   = "free";
 
@@ -908,36 +915,37 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
 {
     std::vector<AmsTrayData> trays;
     int max_lane_index = 0;
+    const auto source = select_moonraker_filament_data(trays, max_lane_index,
+        [this](auto& out, int& index) { return fetch_moonraker_filament_data(out, index); },
+        [this](auto& out, int& index) { return fetch_hh_filament_info(out, index); },
+        [this](auto& out, int& index) { return fetch_creality_cfs_data(out, index); });
 
-    // Try Moonraker filament data (more generic, supports any filament changer
-    // software that reports lane data to Moonraker like AFC and recent Happy
-    // Hare as of Feb 15, 2026)
-    if (fetch_moonraker_filament_data(trays, max_lane_index)) {
+    switch (source) {
+    case MoonrakerFilamentSource::Lanes:
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Moonraker filament system with "
                                 << (max_lane_index + 1) << " lanes";
         build_ams_payload_grouped(trays);
         return true;
-    }
-
-    // Fall back to the Happy Hare `mmu` object for HH builds that do not publish lane_data
-    if (fetch_hh_filament_info(trays, max_lane_index)) {
+    case MoonrakerFilamentSource::HappyHare:
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Happy Hare MMU with "
                                 << (max_lane_index + 1) << " gates";
         build_ams_payload_grouped(trays);
         return true;
-    }
-
-    // Creality Hi exposes CFS slots as a Moonraker box printer object.
-    if (fetch_creality_cfs_data(trays, max_lane_index)) {
+    case MoonrakerFilamentSource::CrealityCfs:
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Creality CFS with "
                                 << (max_lane_index + 1) << " slots";
-        build_ams_payload((max_lane_index + 4) / 4, max_lane_index, trays);
-        return true;
+        break;
+    case MoonrakerFilamentSource::EmptyLanes:
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Preserving empty lane_data topology with "
+                                << (max_lane_index + 1) << " lanes";
+        break;
+    case MoonrakerFilamentSource::None:
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected";
+        return false;
     }
 
-    // No MMU detected - this is normal for printers without MMU, not an error.
-    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected";
-    return false;
+    build_ams_payload((max_lane_index + 4) / 4, max_lane_index, trays);
+    return true;
 }
 
 std::string MoonrakerPrinterAgent::trim_and_upper(const std::string& input)

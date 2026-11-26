@@ -1,0 +1,17 @@
+{
+	"type": "process",
+	"name": "0.30mm Standard @Anycubic Kobra 3 Max V2 0.6 nozzle",
+	"inherits": "fdm_process_anycubic_kobra_3_max_v2_nozzle_0.6",
+	"from": "system",
+	"setting_id": "Yhrz7XblYM4fpEC9",
+	"instantiation": "true",
+	"layer_height": "0.30",
+	"overhang_3_4_speed": [
+		"15"
+	],
+	"sparse_infill_pattern": "grid",
+	"top_surface_line_width": "0.7",
+	"compatible_printers": [
+		"Anycubic Kobra 3 Max V2 0.6 nozzle"
+	]
+}

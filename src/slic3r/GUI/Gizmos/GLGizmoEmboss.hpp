@@ -57,7 +57,8 @@ public:
     /// <summary>
     /// Handle pressing of shortcut
     /// </summary>
-    void on_shortcut_key();
+    /// <returns>True when it started creating a text part, whose job opens the gizmo when it ends</returns>
+    bool on_shortcut_key();
 
     /// <summary>
     /// Mirroring from object manipulation panel

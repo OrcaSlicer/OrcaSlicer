@@ -15,37 +15,32 @@ Every rung asserts those. Area appears only as a cross-check, never as the verdi
 
 Entirely 2D: sketch entities only, no extrude, revolve or any solid feature.
 
-    ORCA_CAD_MCP=/tmp/mcp.sock <binary>
-    python3 scripts/CAD/check-sketch-engine.py [socket]
+Run it against a running app started with --mcp and the CAD feature on, for example:
+
+    python3 tools/mcp/orca_mcp.py launch --cad --datadir <datadir>
+    python3 scripts/CAD/check-sketch-engine.py [datadir]
+
+datadir is the running app's data directory (default: $ORCA_DATADIR, else the platform's own); the
+script finds the app's MCP server through the port it writes to <datadir>/mcp/server.json.
 
 Exit 0 = every rung held. Otherwise the first broken property is named and the run stops.
 """
-import json, math, socket, sys
+import math, os, sys
 
-SOCK = sys.argv[1] if len(sys.argv) > 1 else "/tmp/mcp.sock"
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tools", "mcp"))
+import orca_mcp  # noqa: E402
+
+if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
+    print(__doc__)
+    sys.exit(0)
+DATADIR = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("ORCA_DATADIR", "")
+APP = orca_mcp.OrcaMcp.from_datadir(DATADIR)
 EPS = 1e-9
-_n = 0
 _fail = 0
 
 
 def call(method, **params):
-    global _n
-    _n += 1
-    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.settimeout(30)
-    s.connect(SOCK)
-    s.sendall((json.dumps({"jsonrpc": "2.0", "id": _n, "method": method,
-                           "params": params}) + "\n").encode())
-    buf = b""
-    while b"\n" not in buf:
-        d = s.recv(65536)
-        if not d:
-            break
-        buf += d
-    r = json.loads(buf.decode().strip())
-    if "error" in r:
-        raise RuntimeError(f"{method}: {r['error']['message']}")
-    return r["result"]
+    return APP.call_command(method, **params)["result"]
 
 
 def check(kind, cond, what):
@@ -70,7 +65,7 @@ def fresh(plane="XY"):
         call("sketch_cancel")
     except Exception:
         pass
-    call("sketch_begin", plane=plane)
+    call("sketch_create", plane=plane)
 
 
 def ents():
@@ -138,7 +133,7 @@ def outer_loop(r):
 print("RUNG 1 — rectangle: four corners, four lengths, four right angles")
 fresh()
 W, H = 80.0, 50.0
-call("sketch_add", rect=[0, 0, W, H])
+call("sketch_draw", type="rectangle_2_point", p0=[0, 0], p1=[W, H])
 r = rep()
 es = r["entities"]
 corners = {(0, 0), (W, 0), (W, H), (0, H)}
@@ -165,7 +160,7 @@ check("ANGLE", ang_ok, "every corner is exactly 90 degrees")
 check("CLOSED", r["buildable"] and r["open_ends"] == [], "one closed loop, no free ends")
 
 print("\nRUNG 2 — a circular void inside it")
-call("sketch_add", type="circle", center=[W / 2, H / 2], radius=12)
+call("sketch_draw", type="circle_center", center=[W / 2, H / 2], radius=12)
 r = rep()
 c = [e for e in r["entities"] if e["type"] == "circle"][0]
 check("VERTEX", pt_near(tuple(c["center"]), (W / 2, H / 2)), "void centred exactly where asked")
@@ -177,12 +172,12 @@ check("CLOSED", r["buildable"] and r["open_ends"] == [], "still closed with the 
 print("\nRUNG 3 — stadium: straights running into caps, tangent at every junction")
 fresh()
 L, R = 50.0, 15.0
-call("sketch_add", entities=[
+call("sketch_draw", entities=[
     {"type": "line", "p0": [-L, -R], "p1": [L, -R]},
-    {"type": "arc", "center": [L, 0], "radius": R,
+    {"type": "arc_center", "center": [L, 0], "radius": R,
      "start_angle": -math.pi / 2, "end_angle": math.pi / 2},
     {"type": "line", "p0": [L, R], "p1": [-L, R]},
-    {"type": "arc", "center": [-L, 0], "radius": R,
+    {"type": "arc_center", "center": [-L, 0], "radius": R,
      "start_angle": math.pi / 2, "end_angle": 3 * math.pi / 2},
 ])
 r = rep()
@@ -206,11 +201,11 @@ print("\nRUNG 4 — mirror: the reflected half is the exact reflection")
 fresh()
 half = [
     {"type": "line", "p0": [0, -R], "p1": [L, -R]},
-    {"type": "arc", "center": [L, 0], "radius": R,
+    {"type": "arc_center", "center": [L, 0], "radius": R,
      "start_angle": -math.pi / 2, "end_angle": math.pi / 2},
     {"type": "line", "p0": [L, R], "p1": [0, R]},
 ]
-call("sketch_add", entities=half)
+call("sketch_draw", entities=half)
 r = rep()
 check("CLOSED", not r["buildable"] and len(r["open_ends"]) == 2,
       f"half profile is correctly OPEN, both ends named {r['open_ends']}")
@@ -249,7 +244,7 @@ check("VERTEX", all(near(abs(e["p0"][1]), R + d) for e in off_lines),
 
 print("\nRUNG 6 — a gap is found by coordinate, then closed by a real constraint")
 fresh()
-call("sketch_add", entities=[
+call("sketch_draw", entities=[
     {"type": "line", "p0": [0, 0], "p1": [60, 0]},
     {"type": "line", "p0": [60, 0], "p1": [60, 40]},
     {"type": "line", "p0": [60, 40], "p1": [0, 40]},
@@ -259,7 +254,7 @@ r = call("sketch_validate", tolerance=1.0)
 check("CLOSED", not r["buildable"] and len(r["open_ends"]) == 2,
       f"the gap is reported, both free ends named {r['open_ends']}")
 dof0 = r["dof"]
-r = call("sketch_heal", tolerance=1.0)
+r = call("sketch_repair", tolerance=1.0)
 check("CLOSED", r["buildable"] and r["open_ends"] == [], "healed into a closed loop")
 check("VERTEX", r["welded"] == 1, "exactly one pair of vertices welded")
 check("ANGLE", r["dof"] < dof0,
@@ -270,11 +265,11 @@ check("VERTEX", pt_near(tuple(es[3]["p1"]), tuple(es[0]["p0"])),
 
 print("\nRUNG 7 — the composite: mirrored, tangent, two voids, all at once")
 fresh()
-call("sketch_add", entities=half)
+call("sketch_draw", entities=half)
 call("sketch_select", entities=[0, 1, 2])
 call("sketch_mirror", axis_a=[0, 0], axis_b=[0, 1])
-call("sketch_add", type="circle", center=[-25, 0], radius=6)
-call("sketch_add", type="circle", center=[25, 0], radius=6)
+call("sketch_draw", type="circle_center", center=[-25, 0], radius=6)
+call("sketch_draw", type="circle_center", center=[25, 0], radius=6)
 r = rep()
 es = r["entities"]
 out = outer_loop(r)
@@ -307,11 +302,11 @@ ax, ay = TX - t, RAD                      # fillet tangent point on the cylinder
 cx, cy = ax, RAD - RF                     # fillet centre
 bx, by = TX + t * math.cos(-ANG), RAD + t * math.sin(-ANG)   # tangent point on the cone
 ey = by - (LEN - bx) * math.tan(ANG)      # where the cone meets the right face
-call("sketch_add", entities=[
+call("sketch_draw", entities=[
     {"type": "line", "p0": [0, 0],            "p1": [0, RAD - CH]},        # left face
     {"type": "line", "p0": [0, RAD - CH],     "p1": [CH, RAD]},            # C1 chamfer
     {"type": "line", "p0": [CH, RAD],         "p1": [ax, ay]},             # cylinder top
-    {"type": "arc",  "center": [cx, cy], "radius": RF,
+    {"type": "arc_center",  "center": [cx, cy], "radius": RF,
      "start_angle": math.pi / 2, "end_angle": math.pi / 2 - ANG},          # R5 fillet
     {"type": "line", "p0": [bx, by],          "p1": [LEN, ey]},            # 23 deg cone
     {"type": "line", "p0": [LEN, ey],         "p1": [LEN, 0]},             # right face

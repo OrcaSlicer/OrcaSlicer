@@ -181,6 +181,16 @@ if(WIN32)
             -DPYTHON_LAYOUT_ARCH=${_python_layout_arch}
             -P ${CMAKE_CURRENT_LIST_DIR}/stage_windows.cmake
     )
+    # CPython 3.12.13 raises the _winapi.CreateProcess audit event with PySys_Audit's "u" format
+    # for command_line although it is a Python object, so audit hooks received garbage instead of
+    # the command line and the plugin audit prompt named the wrong executable. Apply upstream's
+    # "uOu" fix (python/cpython#159237) until the pinned release carries it. The step tolerates
+    # an already patched tree, which a re-run after a stamp change can meet.
+    set(_python_patch_cmd
+        ${CMAKE_COMMAND}
+            "-DGIT_EXECUTABLE=${GIT_EXECUTABLE}"
+            -P "${CMAKE_CURRENT_LIST_DIR}/patch_winapi_audit.cmake"
+    )
 elseif(APPLE)
     # macOS configuration
     if(CMAKE_OSX_ARCHITECTURES)
@@ -351,6 +361,7 @@ ExternalProject_Add(dep_python3
     URL_HASH SHA256=${_python_sha256}
     DOWNLOAD_DIR ${DEP_DOWNLOAD_DIR}/python3
     BUILD_IN_SOURCE ON
+    PATCH_COMMAND ${_python_patch_cmd}
     CONFIGURE_COMMAND ${_conf_cmd}
     BUILD_COMMAND ${_build_cmd}
     INSTALL_COMMAND ${_install_cmd}

@@ -12,6 +12,8 @@
 #include "Label.hpp"
 #include "ComboBox.hpp"
 #include "StaticBox.hpp"
+#include "WebView.hpp"
+#include <cstdint>
 #include <nlohmann/json.hpp>
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/LocalesUtils.hpp"
@@ -51,6 +53,7 @@
 #include <wx/stattext.h>
 #include <wx/toplevel.h>
 #include <wx/webview.h>
+#include <wx/weakref.h>
 #include <wx/string.h>
 #include <wx/timer.h>
 #include <boost/filesystem.hpp>
@@ -677,12 +680,11 @@ void HotEndTable::OnPaint(wxPaintEvent& evt)
 
 NozzleListTable::NozzleListTable(wxWindow* parent) : wxPanel(parent,wxID_ANY,wxDefaultPosition,wxDefaultSize ,wxNO_BORDER)
 {
-    m_web_view = wxWebView::New(this, wxID_ANY, wxEmptyString, wxDefaultPosition,wxDefaultSize,wxString::FromAscii(wxWebViewBackendDefault),wxNO_BORDER);
-    m_web_view->AddScriptMessageHandler("nozzleListTable");
+    // CreateWebView owns the shared "wx" script bridge and never returns null (it substitutes a
+    // placeholder view when no backend is available). It registers the bridge deferred on
+    // macOS/Linux, so the page is loaded only after the Bind below and behind that registration.
+    m_web_view = WebView::CreateWebView(this, wxEmptyString);
     m_web_view->EnableContextMenu(false);
-    fs::path filepath = fs::path(resources_dir()) / "web/flush/NozzleListTable.html";
-    wxString url = file_url_from_path(filepath);
-    m_web_view->LoadURL(url);
 
     auto sizer = new wxBoxSizer(wxVERTICAL);
     sizer->AddStretchSpacer(0);
@@ -691,45 +693,89 @@ NozzleListTable::NozzleListTable(wxWindow* parent) : wxPanel(parent,wxID_ANY,wxD
     SetSizer(sizer);
     Layout();
 
+    m_web_view->Bind(wxEVT_SIZE, [this](wxSizeEvent& evt) {
+        const int width = evt.GetSize().GetWidth();
+        if (width != m_last_width) {
+            m_last_width = width;
+            // Invalidate replies immediately, before the deferred request runs.
+            ++m_measurement_id;
+            CallAfter([this] { RequestTableMeasurement(); });
+        }
+        evt.Skip();
+    });
+
+    // A usable size can arrive before the dialog is shown. Recheck it after
+    // showing, even if no further size event is delivered.
+    wxWeakRef<NozzleListTable> weak_table(this);
+    parent->Bind(wxEVT_SHOW, [weak_table](wxShowEvent& evt) {
+        if (evt.IsShown() && weak_table) {
+            weak_table->CallAfter([weak_table] {
+                if (weak_table)
+                    weak_table->RequestTableMeasurement();
+            });
+        }
+        evt.Skip();
+    });
+
     m_web_view->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, [this](wxWebViewEvent& evt) {
         std::string message = evt.GetString().ToStdString();
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << "Received message: " << message;
         try {
             json j = json::parse(message);
             if (j["msg"].get<std::string>() == "init") {
-                auto table_obj_str = BuildTableObjStr();
-                auto text_obj_str = BuildTextObjStr();
-                CallAfter([table_obj_str, text_obj_str, this] {
-                    wxString script1 = wxString::Format("initText(%s)", text_obj_str);
-                    m_web_view->RunScript(script1);
-                    wxString script2 = wxString::Format("initTable(%s)", table_obj_str);
-                    m_web_view->RunScript(script2);
+                ++m_measurement_id;
+                CallAfter([this] {
+                    m_last_measurement_sequence = 0;
+                    auto table_obj_str = BuildTableObjStr();
+                    auto text_obj_str = BuildTextObjStr();
+                    wxString script = wxString::Format("initText(%s); initTable(%s);", text_obj_str, table_obj_str);
+                    RequestTableMeasurement(script);
                     });
             }
             else if (j["msg"].get<std::string>() == "updateList") {
-                auto table_obj_str = BuildTableObjStr();
-
-                CallAfter([table_obj_str, this] {
-                    wxString script1 = wxString::Format("updateTable(%s)", table_obj_str);
-                    m_web_view->RunScript(script1);
+                CallAfter([this] {
+                    auto table_obj_str = BuildTableObjStr();
+                    wxString script = wxString::Format("updateTable(%s);", table_obj_str);
+                    RequestTableMeasurement(script);
                     });
 
             }
             else if (j["msg"].get<std::string>() == "onSelect") {
                 int idx = j["index"].get<int>();
-                m_selected_idx = idx;
-                SendSelectionChangedEvent();
+                CallAfter([this, idx] {
+                    m_selected_idx = idx;
+                    SendSelectionChangedEvent();
+                });
             }
             else if (j["msg"].get<std::string>() == "layout") {
                 int height = j["height"].get<int>();
                 int width = j["width"].get<int>();
-                wxSize table_size = wxSize(-1, FromDIP(height));
-                m_web_view->SetSize(table_size);
-                m_web_view->SetMaxSize(table_size);
-                m_web_view->SetMinSize(table_size);
-                this->Layout();
-                this->GetParent()->Layout();
-                this->GetParent()->Fit();
+                auto id = j["id"].get<std::uint32_t>();
+                auto sequence = j["sequence"].get<std::uint64_t>();
+                CallAfter([this, height, width, id, sequence] {
+                    if (!IsShownOnScreen() || id != m_measurement_id || sequence <= m_last_measurement_sequence ||
+                        width <= 1 || height <= 0 ||
+                        m_web_view->GetClientSize().GetWidth() != m_measurement_width)
+                        return;
+                    m_last_measurement_sequence = sequence;
+                    const int native_height = FromDIP(height);
+                    if (m_web_view->GetMinSize().y == native_height)
+                        return;
+                    wxSize table_size(-1, native_height);
+                    m_web_view->SetMaxSize(table_size);
+                    m_web_view->SetMinSize(table_size);
+                    Layout();
+                    wxWindow* parent = GetParent();
+                    parent->Layout();
+                    // Fit only the height: fitting the width here feeds the table's
+                    // new height back into its width and can cause repeated wrapping.
+                    if (parent->GetSizer()) {
+                        wxSize client = parent->GetClientSize();
+                        client.y = parent->GetSizer()->CalcMin().y;
+                        parent->SetClientSize(client);
+                        parent->Layout();
+                    }
+                });
             }
         }
         catch (...) {
@@ -737,7 +783,29 @@ NozzleListTable::NozzleListTable(wxWindow* parent) : wxPanel(parent,wxID_ANY,wxD
         }
         });
 
+    fs::path filepath = fs::path(resources_dir()) / "web/flush/NozzleListTable.html";
+    wxString url = file_url_from_path(filepath);
+    if (wxGetApp().dark_mode())
+        url += "?dark=1";
+    // Queue behind CreateWebView's own deferred "wx" add on macOS/Linux: the page posts "init"
+    // from DOMContentLoaded, so it must load only once the bridge can receive that message.
+    wxWebView* web_view = m_web_view;
+    m_web_view->CallAfter([web_view, url] { WebView::LoadUrl(web_view, url); });
+
     wxGetApp().UpdateDarkUIWin(this);
+}
+
+void NozzleListTable::RequestTableMeasurement(const wxString& script)
+{
+    m_measurement_width = m_web_view->GetClientSize().GetWidth();
+    const auto id = ++m_measurement_id;
+    if (!m_web_view->GetNativeBackend())
+        return;
+    wxString request = script;
+    if (IsShownOnScreen() && m_measurement_width > 1)
+        request += wxString::Format("measureTable(%u);", id);
+    if (!request.empty())
+        WebView::RunScript(m_web_view, request);
 }
 
 wxString NozzleListTable::BuildTableObjStr()
@@ -797,19 +865,18 @@ wxString NozzleListTable::BuildTextObjStr()
 
 void NozzleListTable::SetOptions(const std::vector<NozzleOption>& options,int default_select)
 {
+    ++m_measurement_id;
     m_nozzle_options = options;
     m_selected_idx = default_select;
     auto table_obj_str = BuildTableObjStr();
-    wxString script1 = wxString::Format("updateTable(%s)", table_obj_str);
+    wxString script1 = wxString::Format("updateTable(%s);", table_obj_str);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "update table " << script1;
 
-#if 1
-    m_web_view->RunScript(script1);
-#else
-    CallAfter([script1, this]() {
-        m_web_view->RunScript(script1);
-        });
-#endif
+    // Before the page has loaded this does nothing; the page's "init" handshake then rebuilds
+    // the table from m_nozzle_options. Skipped when no backend exists (placeholder view).
+    if (m_web_view->GetNativeBackend()) {
+        RequestTableMeasurement(script1);
+    }
 }
 
 MultiNozzleStatusTable::MultiNozzleStatusTable(wxWindow* parent): wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE)

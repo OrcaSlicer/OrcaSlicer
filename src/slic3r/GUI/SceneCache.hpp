@@ -36,17 +36,18 @@ public:
         }
     };
 
-    // Copies the bound read framebuffer, sized by key.size, and remembers key.
+    // Copies the window framebuffer, sized by key.size, and remembers key.
     void capture(Key key);
     bool matches(const Key& key) const { return m_valid && m_key == key; }
     // Draws the last capture over the whole viewport, on the given full screen quad.
     void render(GLModel& quad);
     void invalidate() { m_valid = false; }
-    // Frees the texture.
+    // Frees the texture and the framebuffer object.
     void reset();
 
 private:
     unsigned int m_texture_id{ 0 };
+    unsigned int m_framebuffer_id{ 0 };
     std::array<unsigned int, 2> m_texture_size{ { 0, 0 } };
     Key m_key;
     bool m_valid{ false };

@@ -18,12 +18,14 @@
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Mcp/WindowNames.hpp"
 #include <boost/nowide/fstream.hpp>
 #include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include <exception>
 #include <boost/log/trivial.hpp>
 #include "slic3r/GUI/Widgets/HyperLink.hpp"
-#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/Widgets/LabeledCheckBox.hpp"
 #include <sstream>
 #include <ios>
 #include <iomanip>
@@ -32,6 +34,7 @@
 #include <md4c/src/md4c.h>
 #include <wx/image.h>
 #include <wx/datetime.h>
+#include <wx/display.h>
 #include <utility>
 #include "slic3r/GUI/Widgets/AMSItem.hpp"
 #include "slic3r/GUI/Widgets/TextInput.hpp"
@@ -54,7 +57,6 @@
 #include <wx/simplebook.h>
 #include <wx/webview.h>
 #include <wx/utils.h>
-#include <wx/tglbtn.h>
 #include <wx/webrequest.h>
 #include <wx/timer.h>
 #include "Plater.hpp"
@@ -382,15 +384,13 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
         EndModal(wxID_NO);
     });
 
-    m_cb_stable_only = new CheckBox(this);
+    m_cb_stable_only = new LabeledCheckBox(this, _L("Check for stable updates only"));
+    m_cb_stable_only->SetFont(Label::Body_12);
     m_cb_stable_only->SetValue(wxGetApp().app_config->get_bool("check_stable_update_only"));
-    m_cb_stable_only->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
+    m_cb_stable_only->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
         wxGetApp().app_config->set_bool("check_stable_update_only", m_cb_stable_only->GetValue());
         e.Skip();
     });
-
-    auto stable_only_label = new Label(this, _L("Check for stable updates only"));
-    stable_only_label->SetFont(Label::Body_12);
 
     m_button_cancel = new Button(this, _L("Cancel"));
     m_button_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
@@ -402,7 +402,6 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
     //sizer_button->Add(m_remind_choice, 0, wxALL | wxEXPAND, FromDIP(5));
 
     sizer_button->Add(m_cb_stable_only     , 0, wxALIGN_CENTER);
-    sizer_button->Add(stable_only_label    , 0, wxALIGN_CENTER | wxLEFT, FromDIP(5));
     sizer_button->AddStretchSpacer();
     sizer_button->Add(m_button_download    , 0, wxLEFT, FromDIP(10));
     sizer_button->Add(m_button_skip_version, 0, wxLEFT, FromDIP(10));
@@ -600,8 +599,8 @@ SecondaryCheckDialog::SecondaryCheckDialog(wxWindow* parent, wxWindowID id, cons
 
     if (not_show_again_check) {
         auto checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
-        m_show_again_checkbox = new wxCheckBox(this, wxID_ANY, _L("Don't show again"), wxDefaultPosition, wxDefaultSize, 0);
-        m_show_again_checkbox->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, [this](wxCommandEvent& e) {
+        m_show_again_checkbox = new LabeledCheckBox(this, _L("Don't show again"));
+        m_show_again_checkbox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
             not_show_again = !not_show_again;
             m_show_again_checkbox->SetValue(not_show_again);
         });
@@ -1184,8 +1183,8 @@ ConfirmBeforeSendDialog::ConfirmBeforeSendDialog(wxWindow* parent, wxWindowID id
 
     if (not_show_again_check) {
         auto checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
-        m_show_again_checkbox = new wxCheckBox(this, wxID_ANY, _L("Don't show again"), wxDefaultPosition, wxDefaultSize, 0);
-        m_show_again_checkbox->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, [this](wxCommandEvent& e) {
+        m_show_again_checkbox = new LabeledCheckBox(this, _L("Don't show again"));
+        m_show_again_checkbox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
             not_show_again = !not_show_again;
             m_show_again_checkbox->SetValue(not_show_again);
         });
@@ -1496,6 +1495,7 @@ InputIpAddressDialog::InputIpAddressDialog(wxWindow *parent)
     m_tips_access_code->SetMaxSize(wxSize(FromDIP(168), -1));
 
     m_input_access_code = new TextInput(ip_input_top_panel, wxEmptyString, wxEmptyString);
+    m_input_access_code->SetName(Mcp::kSecretField);
     m_input_access_code->Bind(wxEVT_TEXT, &InputIpAddressDialog::on_text, this);
     m_input_access_code->SetMinSize(wxSize(FromDIP(168), FromDIP(28)));
     m_input_access_code->SetMaxSize(wxSize(FromDIP(168), FromDIP(28)));
@@ -1734,6 +1734,7 @@ InputIpAddressDialog::InputIpAddressDialog(wxWindow *parent)
 
     CentreOnParent(wxBOTH);
     Move(wxPoint(GetScreenPosition().x, GetScreenPosition().y - FromDIP(50)));
+    clamp_to_work_area();
     wxGetApp().UpdateDlgDarkUI(this);
 
     closeTimer = new wxTimer();
@@ -1759,6 +1760,22 @@ InputIpAddressDialog::InputIpAddressDialog(wxWindow *parent)
         Layout();
         Fit();
     });
+}
+
+void InputIpAddressDialog::clamp_to_work_area()
+{
+    // CentreOnParent picks the display from the parent, so the clamp has to use the same one.
+    const wxRect  work_area = wxDisplay(GetParent() ? GetParent() : this).GetClientArea();
+    const wxSize  size      = GetSize();
+    const wxPoint pos       = GetScreenPosition();
+
+    wxPoint clamped = pos;
+    // std::max runs last, so a dialog bigger than the work area keeps its top left corner, and its title bar, on screen.
+    clamped.x = std::max(work_area.x, std::min(clamped.x, work_area.x + work_area.width - size.x));
+    clamped.y = std::max(work_area.y, std::min(clamped.y, work_area.y + work_area.height - size.y));
+
+    if (clamped != pos)
+        Move(clamped);
 }
 
 void InputIpAddressDialog::switch_input_panel(int index)
@@ -1917,8 +1934,7 @@ void InputIpAddressDialog::on_ok(wxMouseEvent& evt)
         std::string port;
         Http::get_host_from_url(str_ip, &port);
         config.opt_string("print_host") = str_ip;
-        if (!port.empty())
-            config.opt_string("printhost_port") = port;
+        config.opt_string("printhost_port") = port;
         if (!is_bbl_agent() && Http::ca_file_supported())
             config.opt_string("printhost_cafile") = m_input_cafile->GetValue().ToStdString();
     }
@@ -2237,7 +2253,7 @@ void InputIpAddressDialog::on_text(wxCommandEvent &evt)
     m_button_ok->Enable(enable_btns);
 
     if (current_input_index == 1)
-        m_button_ok->Enable(!str_name.IsEmpty() && str_sn.length() == 15);
+        m_button_ok->Enable(!str_name.IsEmpty() && (str_sn.length() == 15 || str_sn.length() == 18)); // A2L serials have 18 characters
 
 }
 

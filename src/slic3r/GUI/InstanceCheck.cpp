@@ -29,6 +29,7 @@
 #include "boost/nowide/convert.hpp"
 #include <boost/log/trivial.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <iostream>
 #include <unordered_map>
 #include <fcntl.h>
@@ -39,6 +40,7 @@
 #include <memory>
 
 #ifdef _WIN32
+#include <windows.h>
 #include <strsafe.h>
 #endif //WIN32
 
@@ -104,6 +106,44 @@ namespace instance_check_internal
 	
 
 #ifdef _WIN32
+
+	// The path the file system holds for an existing file or folder, the same for every way of writing
+	// it (letter case, 8.3 short names, junctions); empty when it cannot be opened.
+	static std::wstring final_path(const std::wstring& path)
+	{
+		const HANDLE handle = ::CreateFileW(path.c_str(), FILE_READ_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+		                                    nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+		if (handle == INVALID_HANDLE_VALUE)
+			return {};
+		std::wstring held(MAX_PATH, L'\0');
+		DWORD        length = ::GetFinalPathNameByHandleW(handle, held.data(), DWORD(held.size()), FILE_NAME_NORMALIZED);
+		if (length >= held.size()) {
+			// The buffer was short; the length asked for counts the terminating null.
+			held.resize(length);
+			length = ::GetFinalPathNameByHandleW(handle, held.data(), DWORD(held.size()), FILE_NAME_NORMALIZED);
+		}
+		::CloseHandle(handle);
+		held.resize(length < held.size() ? length : 0);
+		return held;
+	}
+
+	// This exe's own path, empty if Windows does not give it. Not argv[0], which can be relative, and
+	// GUI_App has made the data folder's log folder the working folder by now.
+	static std::wstring module_path()
+	{
+		std::wstring path(MAX_PATH, L'\0');
+		for (;;) {
+			const DWORD length = ::GetModuleFileNameW(nullptr, path.data(), DWORD(path.size()));
+			if (length == 0)
+				return {};
+			if (length < path.size()) {
+				path.resize(length);
+				return path;
+			}
+			// Cut short: the buffer did not hold it.
+			path.resize(path.size() * 2);
+		}
+	}
 
 	static HWND orca_slicer_hwnd;
 	static BOOL CALLBACK EnumWindowsProc(_In_ HWND   hwnd, _In_ LPARAM lParam)
@@ -314,11 +354,24 @@ namespace instance_check_internal
 #endif //__APPLE__/__linux__
 } //namespace instance_check_internal
 
-bool instance_check(int argc, char** argv, bool app_config_single_instance)
+bool instance_check(int argc, char** argv, bool app_config_single_instance, bool never_send)
 {
 	std::size_t hashed_path;
 #ifdef _WIN32
-	hashed_path = std::hash<std::string>{}(boost::filesystem::system_complete(argv[0]).string());
+	// The lock is a mutex named by this hash, shared across the session, and the hash also picks the
+	// window a second start hands its command line to. The data folder is part of it, as it is part
+	// of the lock file's path on macOS and Linux: a start on another data folder gets a window of its own.
+	// The exe and the folder count by the path the file system holds for them, so every spelling of
+	// one (letter case, 8.3 names) is one instance; one that cannot be opened counts as written.
+	const auto identity = [](const std::wstring& path) {
+		const std::wstring held = instance_check_internal::final_path(path);
+		return boost::nowide::narrow(held.empty() ? path : held);
+	};
+	std::wstring exe = instance_check_internal::module_path();
+	if (exe.empty())
+		exe = boost::filesystem::system_complete(boost::nowide::widen(argv[0])).wstring();
+	hashed_path = std::hash<std::string>{}(identity(exe) + "|" +
+	                                       identity(boost::filesystem::system_complete(boost::nowide::widen(data_dir())).wstring()));
 #else
 	boost::system::error_code ec;
 #ifdef __linux__
@@ -358,6 +411,8 @@ bool instance_check(int argc, char** argv, bool app_config_single_instance)
 	instance_check_internal::CommandLineAnalysis cla = instance_check_internal::process_command_line(argc, argv);
 	if (! cla.should_send.has_value())
 		cla.should_send = app_config_single_instance;
+	if (never_send)
+		cla.should_send = false;
 #ifdef _WIN32
 	GUI::wxGetApp().init_single_instance_checker(lock_name + ".lock", data_dir() + "\\cache\\");
 	if (cla.should_send.value() && GUI::wxGetApp().single_instance_checker()->IsAnotherRunning()) {

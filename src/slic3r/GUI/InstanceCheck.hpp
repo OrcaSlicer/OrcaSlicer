@@ -27,7 +27,8 @@ namespace Slic3r {
 // checks for other running instances and sends them argv,
 // if there is --single-instance argument or AppConfig is set to single_instance=1
 // returns true if this instance should terminate
-bool    instance_check(int argc, char** argv, bool app_config_single_instance);
+// `never_send`: this launch is not handed to a running instance, whatever the setting says.
+bool    instance_check(int argc, char** argv, bool app_config_single_instance, bool never_send = false);
 
 #if __APPLE__
 // apple implementation of inner functions of instance_check

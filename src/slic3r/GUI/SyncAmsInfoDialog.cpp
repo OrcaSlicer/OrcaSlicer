@@ -260,22 +260,30 @@ void SyncAmsInfoDialog::deal_ok()
             return;
         }
         m_result.direct_sync = false;
-        m_result.sync_maps.clear();
-        for (size_t i = 0; i < m_ams_mapping_result.size(); i++) {
-            auto temp_idx = m_ams_mapping_result[i].id;
-            if (temp_idx >= 0) {
-                auto &temp   = m_result.sync_maps[temp_idx];
-                temp.ams_id  = m_ams_mapping_result[i].ams_id;
-                temp.slot_id = m_ams_mapping_result[i].slot_id;
-            }
-            else{
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "check error:  m_result.sync_maps:" << temp_idx;
-            }
-        }
+        m_result.sync_maps   = ams_sync_maps(m_ams_mapping_result);
     }
 }
 
-bool SyncAmsInfoDialog::get_is_double_extruder()
+std::map<int, AMSMapInfo> ams_sync_maps(const std::vector<FilamentInfo> &result)
+{
+    std::map<int, AMSMapInfo> sync_maps;
+    for (size_t i = 0; i < result.size(); i++) {
+        auto temp_idx = result[i].id;
+        if (temp_idx >= 0) {
+            auto &temp   = sync_maps[temp_idx];
+            temp.ams_id  = result[i].ams_id;
+            temp.slot_id = result[i].slot_id;
+        }
+        else{
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "check error:  m_result.sync_maps:" << temp_idx;
+        }
+    }
+    return sync_maps;
+}
+
+bool SyncAmsInfoDialog::get_is_double_extruder() { return ams_sync_double_extruder(); }
+
+bool ams_sync_double_extruder()
 {
     const auto &full_config = wxGetApp().preset_bundle->full_config();
     size_t      nozzle_nums = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
@@ -1286,7 +1294,7 @@ void SyncAmsInfoDialog::sync_ams_mapping_result(std::vector<FilamentInfo> &resul
 
 // A Filament Track Switch, once installed and ready, feeds both nozzles from one AMS set,
 // so the mapping collapses to a single dynamic panel and skips ext spools.
-bool SyncAmsInfoDialog::has_selector(MachineObject *obj_) const
+bool SyncAmsInfoDialog::has_selector(MachineObject *obj_)
 {
     if (!obj_) {
         DeviceManager *dev_manager = Slic3r::GUI::wxGetApp().getDeviceManager();
@@ -1304,29 +1312,10 @@ bool SyncAmsInfoDialog::do_ams_mapping(MachineObject *obj_)
     obj_->get_ams_colors(m_cur_colors_in_thumbnail);
     // try color and type mapping
 
-    const auto &full_config    = wxGetApp().preset_bundle->full_config();
     const auto &project_config = wxGetApp().preset_bundle->project_config;
-    size_t      nozzle_nums    = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
     m_filaments_map            = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_real_filament_maps(project_config);
 
-    int               filament_result = 0;
-    std::vector<bool> map_opt; // four values: use_left_ams, use_right_ams, use_left_ext, use_right_ext
-    if (nozzle_nums > 1) {
-        map_opt         = {true, true, true, true}; // four values: use_left_ams, use_right_ams, use_left_ext, use_right_ext
-        if (has_selector(obj_)) { // Orca: with a Filament Track Switch the ext spools route through the switch — don't map them
-            map_opt[2] = false;
-            map_opt[3] = false;
-        }
-        filament_result = DevMappingUtil::ams_filament_mapping(obj_, m_filaments, m_ams_mapping_result, map_opt, std::vector<int>(),
-                                                     wxGetApp().app_config->get_bool("ams_sync_match_full_use_color_dist") ? false : true);
-    }
-    // single nozzle
-    else {
-        map_opt         = {false, true, false, true}; // four values: use_left_ams, use_right_ams, use_left_ext, use_right_ext
-        filament_result = DevMappingUtil::ams_filament_mapping(obj_, m_filaments, m_ams_mapping_result, map_opt, std::vector<int>(),
-                                                     wxGetApp().app_config->get_bool("ams_sync_match_full_use_color_dist") ? false : true);
-        // auto_supply_with_ext(obj_->vt_slot);
-    }
+    const int filament_result = map_filaments_to_ams(obj_, m_filaments, m_ams_mapping_result);
 
     if (filament_result == 0) {
         print_ams_mapping_result(m_ams_mapping_result);
@@ -1364,6 +1353,29 @@ bool SyncAmsInfoDialog::do_ams_mapping(MachineObject *obj_)
     }
 
     return true;
+}
+
+int map_filaments_to_ams(MachineObject *printer, const std::vector<FilamentInfo> &filaments, std::vector<FilamentInfo> &result)
+{
+    const auto &full_config = wxGetApp().preset_bundle->full_config();
+    size_t      nozzle_nums = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+
+    std::vector<bool> map_opt; // four values: use_left_ams, use_right_ams, use_left_ext, use_right_ext
+    if (nozzle_nums > 1) {
+        map_opt         = {true, true, true, true}; // four values: use_left_ams, use_right_ams, use_left_ext, use_right_ext
+        // Orca: with a Filament Track Switch the ext spools route through the switch — don't map them
+        if (SyncAmsInfoDialog::has_selector(printer)) {
+            map_opt[2] = false;
+            map_opt[3] = false;
+        }
+        return DevMappingUtil::ams_filament_mapping(printer, filaments, result, map_opt, std::vector<int>(),
+                                                     wxGetApp().app_config->get_bool("ams_sync_match_full_use_color_dist") ? false : true);
+    }
+    // single nozzle
+    map_opt = {false, true, false, true}; // four values: use_left_ams, use_right_ams, use_left_ext, use_right_ext
+    return DevMappingUtil::ams_filament_mapping(printer, filaments, result, map_opt, std::vector<int>(),
+                                                 wxGetApp().app_config->get_bool("ams_sync_match_full_use_color_dist") ? false : true);
+    // auto_supply_with_ext(obj_->vt_slot);
 }
 
 void SyncAmsInfoDialog::deal_only_exist_ext_spool(MachineObject *obj_) {
@@ -2603,28 +2615,32 @@ void SyncAmsInfoDialog::set_default(bool hide_some)
     Fit();
 }
 
-void SyncAmsInfoDialog::reset_and_sync_ams_list()
+namespace {
+
+// The type, the type shown, the vendor and the filament id of each filament slot's preset, as the sync dialog lists them.
+struct SyncFilamentTypes
 {
-    BOOST_LOG_TRIVIAL(info) <<__FUNCTION__;
-    // for black list
     std::vector<std::string> materials;
     std::vector<std::string> brands;
     std::vector<std::string> display_materials;
-    std::vector<std::string> m_filaments_id;
-    auto                     preset_bundle = wxGetApp().preset_bundle;
+    std::vector<std::string> filament_ids;
+};
+
+SyncFilamentTypes sync_filament_types()
+{
+    SyncFilamentTypes types;
+    auto              preset_bundle = wxGetApp().preset_bundle;
 
     for (auto filament_name : preset_bundle->filament_presets) {
         for (int f_index = 0; f_index < preset_bundle->filaments.size(); f_index++) {
             PresetCollection *filament_presets = &wxGetApp().preset_bundle->filaments;
             Preset *          preset           = &filament_presets->preset(f_index);
-            int               size             = preset_bundle->filaments.size();
             if (preset && filament_name.compare(preset->name) == 0) {
                 std::string display_filament_type;
                 std::string filament_type = preset->config.get_filament_type(display_filament_type);
-                std::string m_filament_id = preset->filament_id;
-                display_materials.push_back(display_filament_type);
-                materials.push_back(filament_type);
-                m_filaments_id.push_back(m_filament_id);
+                types.display_materials.push_back(display_filament_type);
+                types.materials.push_back(filament_type);
+                types.filament_ids.push_back(preset->filament_id);
 
                 std::string m_vendor_name = "";
                 auto        vendor        = dynamic_cast<ConfigOptionStrings *>(preset->config.option("filament_vendor"));
@@ -2632,10 +2648,61 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
                     std::string vendor_name = vendor->values[0];
                     m_vendor_name           = vendor_name;
                 }
-                brands.push_back(m_vendor_name);
+                types.brands.push_back(m_vendor_name);
             }
         }
     }
+    return types;
+}
+
+} // namespace
+
+std::vector<FilamentInfo> ams_sync_filaments()
+{
+    const SyncFilamentTypes types = sync_filament_types();
+    const auto &project_config = wxGetApp().preset_bundle->project_config;
+    // Mixed-color slots are virtual: they never occupy a tray, so they must not appear as AMS sync targets.
+    auto *is_mixed_opt = project_config.option<ConfigOptionBools>("filament_is_mixed");
+    std::vector<int> filaments_map;
+    const bool       use_double_extruder = ams_sync_double_extruder();
+    if (use_double_extruder)
+        filaments_map = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_real_filament_maps(project_config);
+    BitmapCache               bmcache;
+    std::vector<FilamentInfo> filaments;
+    const int                 count = int(wxGetApp().plater()->get_extruders_colors().size());
+    for (int extruder = 0; extruder < count; extruder++) {
+        if (extruder >= types.materials.size() || extruder >= types.display_materials.size())
+            continue;
+        if (is_mixed_opt && extruder < (int) is_mixed_opt->values.size() && is_mixed_opt->values[extruder])
+            continue;
+        if (use_double_extruder && filaments_map[extruder] != 1 && filaments_map[extruder] != 2)
+            continue;
+        auto          colour = project_config.opt_string("filament_colour", (unsigned int) extruder);
+        unsigned char rgb[4];
+        bmcache.parse_color4(colour, rgb);
+        auto colour_rgb = wxColour((int) rgb[0], (int) rgb[1], (int) rgb[2], (int) rgb[3]);
+
+        FilamentInfo info;
+        info.id          = extruder;
+        info.type        = types.materials[extruder];
+        info.brand       = types.brands[extruder];
+        info.filament_id = types.filament_ids[extruder];
+        info.color       = wxString::Format("#%02X%02X%02X%02X", colour_rgb.Red(), colour_rgb.Green(), colour_rgb.Blue(),
+                                            colour_rgb.Alpha())
+                         .ToStdString();
+        filaments.push_back(info);
+    }
+    return filaments;
+}
+
+void SyncAmsInfoDialog::reset_and_sync_ams_list()
+{
+    BOOST_LOG_TRIVIAL(info) <<__FUNCTION__;
+    // for black list
+    const SyncFilamentTypes          types         = sync_filament_types();
+    const std::vector<std::string> &materials     = types.materials;
+    const std::vector<std::string> &display_materials = types.display_materials;
+    auto                            preset_bundle = wxGetApp().preset_bundle;
     /*std::vector<int> extruders;
     if (m_specify_plate_idx == -1) {
         extruders = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_used_extruders();
@@ -2656,7 +2723,7 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
 
     m_sizer_ams_mapping->Clear();
     m_materialList.clear();
-    m_filaments.clear();
+    m_filaments = ams_sync_filaments();
 
     // Mixed-color slots are virtual: they never occupy a tray, so they must not appear as
     // AMS sync targets.
@@ -2791,17 +2858,6 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
         material_item->id       = extruder;
         material_item->item     = item;
         m_materialList[i]       = material_item;
-
-        // build for ams mapping
-        if (extruder < materials.size() && extruder >= 0) {
-            FilamentInfo info;
-            info.id          = extruder;
-            info.type        = materials[extruder];
-            info.brand       = brands[extruder];
-            info.filament_id = m_filaments_id[extruder];
-            info.color       = wxString::Format("#%02X%02X%02X%02X", colour_rgb.Red(), colour_rgb.Green(), colour_rgb.Blue(), colour_rgb.Alpha()).ToStdString();
-            m_filaments.push_back(info);
-        }
     }
     if (use_double_extruder) {
         //m_filament_left_panel->Show();//SyncAmsInfoDialog::reset_and_sync_ams_list()

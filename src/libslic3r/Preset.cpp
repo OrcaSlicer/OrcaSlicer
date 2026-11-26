@@ -1216,6 +1216,7 @@ static std::vector<std::string> s_Preset_print_options{
     "is_infill_first",
     "sparse_infill_density",
     "fill_multiline",
+    "sparse_infill_strategy",
     "adaptive_infill_mode",
     "adaptive_infill_interior_density",
     "adaptive_infill_gradient",
@@ -1309,6 +1310,7 @@ static std::vector<std::string> s_Preset_print_options{
     "internal_solid_filament_id",
     "top_surface_filament_id",
     "bottom_surface_filament_id",
+    "brim_filament_id",
     "support_filament",
     "support_interface_filament",
     "support_interface_not_for_body",
@@ -1381,6 +1383,19 @@ static std::vector<std::string> s_Preset_print_options{
     "overhang_3_4_speed",
     "overhang_4_4_speed",
     "initial_layer_infill_speed",
+    "enable_volumetric_speeds",
+    "initial_layer_volumetric_flow",
+    "initial_layer_infill_volumetric_flow",
+    "outer_wall_volumetric_flow",
+    "inner_wall_volumetric_flow",
+    "sparse_infill_volumetric_flow",
+    "internal_solid_infill_volumetric_flow",
+    "top_surface_volumetric_flow",
+    "gap_infill_volumetric_flow",
+    "support_volumetric_flow",
+    "support_interface_volumetric_flow",
+    "bridge_volumetric_flow",
+    "internal_bridge_volumetric_flow",
     "only_one_wall_top",
     "timelapse_type",
     "wall_generator",
@@ -1440,6 +1455,7 @@ static std::vector<std::string> s_Preset_print_options{
     "wipe_inward",
     "wipe_inward_distance",
     "wipe_before_external_loop",
+    "retract_after_outer_wall",
     "bridge_density",
     "internal_bridge_density",
     "precise_outer_wall",
@@ -1523,7 +1539,7 @@ static std::vector<std::string> s_Preset_print_options{
 
 static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", */ "default_filament_colour", "required_nozzle_HRC", "filament_diameter", "pellet_flow_coefficient", "volumetric_speed_coefficients", "filament_type",
                                                           "filament_soluble", "filament_is_support", "filament_printable", "filament_extruder_compatibility",
-    "filament_max_volumetric_speed", "filament_adaptive_volumetric_speed",
+    "filament_max_volumetric_speed", "filament_max_external_volumetric_speed", "filament_adaptive_volumetric_speed",
     "filament_flow_ratio", "filament_density", "filament_adhesiveness_category", "filament_cost", "filament_minimal_purge_on_wipe_tower",
     "filament_tower_interface_pre_extrusion_dist", "filament_tower_interface_pre_extrusion_length", "filament_tower_ironing_area", "filament_tower_interface_purge_volume",
     "filament_tower_interface_print_temp",
@@ -3048,6 +3064,7 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
         it = this->find_preset_renamed(original_name);
         found = it != m_presets.end();
     }
+    const bool found_by_name = found;
 
     t_config_option_keys keys;
     DynamicPrintConfig cfg = Preset::load_external_config(m_type, this->default_preset_for(combined_config).config, combined_config, different_settings_list,
@@ -3067,6 +3084,11 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
             }
             return nullptr;
         }, &keys);
+    // A project does not store a filament's compatible_printers or compatible_prints, so they are not applied over the existing preset.
+    if (m_type == Preset::TYPE_FILAMENT)
+        keys.erase(std::remove_if(keys.begin(), keys.end(),
+                                  [](const std::string &key) { return key == "compatible_printers" || key == "compatible_prints"; }),
+                   keys.end());
     std::string                 &inherits = Preset::inherits(cfg);
 
     //BBS: add config related logs
@@ -3167,6 +3189,9 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
             // There is a profile with the same name already loaded. Should we update the "inherits" field?
             inherits = it->vendor ? it->name : it->inherits();
         }
+        // The new preset built from cfg copies compatible_printers and compatible_prints from the filament the project names, since the project does not store them.
+        if (m_type == Preset::TYPE_FILAMENT && found_by_name)
+            cfg.apply_only(it->config, {"compatible_printers", "compatible_prints"});
     }
 
     // The external preset does not match an internal preset, load the external preset.

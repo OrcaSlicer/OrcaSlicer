@@ -679,6 +679,9 @@ public:
     // based on the user configuration.
     // If the "vendor" section is missing, enable all models and variants of the particular vendor.
     void                        load_installed_printers(const AppConfig &config);
+    // Set the is_visible flag for filaments from the user configuration's filaments section,
+    // first adding there the default filaments of each installed printer that no installed filament fits.
+    void                        load_installed_filaments(AppConfig &config);
 
     const std::string&          get_preset_name_by_alias(const Preset::Type& preset_type, const std::string& alias) const;
 
@@ -931,9 +934,8 @@ private:
     // Update renamed_from and alias maps of system profiles.
     void 						update_system_maps();
 
-    // Set the is_visible flag for filaments and sla materials,
-    // apply defaults based on enabled printers when no filaments/materials are installed.
-    void                        load_installed_filaments(AppConfig &config);
+    // Set the is_visible flag for sla materials,
+    // apply defaults based on enabled printers when no materials are installed.
     void                        load_installed_sla_materials(AppConfig &config);
 
     // Load print, filament & printer presets from a config. If it is an external config, then the name is extracted from the external path.
@@ -962,6 +964,12 @@ private:
 };
 
 ENABLE_ENUM_BITMASK_OPERATORS(PresetBundle::LoadConfigBundleAttribute)
+
+// GUI overload of effective_physical_extruder_map() (PrintConfig.hpp): resolves the effective pem
+// from a live PresetBundle using the project_config → printer preset fallback. Use this instead of
+// open-coding the lookup at ghost-color, tooltip, click-gate and cache-key call sites so they all
+// agree with what the slicer sees.
+ConfigOptionInts effective_physical_extruder_map(const PresetBundle& pb);
 
 } // namespace Slic3r
 

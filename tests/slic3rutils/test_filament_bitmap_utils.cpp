@@ -97,34 +97,42 @@ TEST_CASE("recompute_mixed_slot_colors blends a mixed slot from its components' 
 TEST_CASE("recompute_mixed_slot_colors leaves the colours alone without mixed slots", "[FilamentBitmapUtils]")
 {
     std::vector<wxColour> colors{wxColour(255, 0, 0), wxColour(0, 0, 255)};
+    const auto check_unchanged = [&colors]() {
+        REQUIRE(colors.size() == 2);
+        require_same_rgb(colors[0], wxColour(255, 0, 0));
+        require_same_rgb(colors[1], wxColour(0, 0, 255));
+    };
 
     SECTION("no mixed keys at all") {
         recompute_mixed_slot_colors(colors, DynamicPrintConfig{});
+        check_unchanged();
     }
     SECTION("mixed flags present but all false") {
         DynamicPrintConfig cfg;
         cfg.set_key_value("filament_is_mixed", new ConfigOptionBools({false, false}));
         cfg.set_key_value("filament_mixed_components", new ConfigOptionStrings({"", ""}));
         recompute_mixed_slot_colors(colors, cfg);
+        check_unchanged();
     }
-    REQUIRE(colors.size() == 2);
-    require_same_rgb(colors[0], wxColour(255, 0, 0));
-    require_same_rgb(colors[1], wxColour(0, 0, 255));
 }
 
 TEST_CASE("recompute_mixed_slot_colors falls back to grey for a broken component reference", "[FilamentBitmapUtils]")
 {
     const wxColour grey(128, 128, 128, 255);
     std::vector<wxColour> colors{wxColour(255, 0, 0), wxColour(0, 0, 255)};
+    const auto check_grey = [&colors, &grey]() {
+        REQUIRE(colors.size() == 3);
+        require_same_rgb(colors[2], grey);
+    };
 
     SECTION("dangling component id") {
         recompute_mixed_slot_colors(colors, mixed_config("1,9"));
+        check_grey();
     }
     SECTION("empty component list") {
         recompute_mixed_slot_colors(colors, mixed_config(""));
+        check_grey();
     }
-    REQUIRE(colors.size() == 3);
-    require_same_rgb(colors[2], grey);
 }
 
 TEST_CASE("recompute_mixed_slot_colors uses the project colour when a slot colour is unset", "[FilamentBitmapUtils]")

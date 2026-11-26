@@ -9,7 +9,9 @@
 #include "MsgDialog.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include <algorithm>
+#include <cstddef>
 #include <vector>
 #include <wx/panel.h>
 #include <wx/string.h>
@@ -17,7 +19,6 @@
 #include "slic3r/GUI/Widgets/CheckBox.hpp"
 #include <wx/tglbtn.h>
 #include <wx/event.h>
-#include <numeric>
 #include <wx/gdicmn.h>
 #include <wx/dialog.h>
 #include "slic3r/GUI/FilamentMapPanel.hpp"
@@ -160,8 +161,10 @@ bool try_pop_up_before_slice(bool is_slice_all, Plater* plater_ref, PartPlate* p
 
     std::vector<int> filament_lists;
     if (is_slice_all) {
-        filament_lists.resize(filament_colors.size());
-        std::iota(filament_lists.begin(), filament_lists.end(), 1);
+        // A mixed slot prints with the nozzles of its component filaments.
+        for (size_t i = 0; i < filament_colors.size(); ++i)
+            if (!preset->is_mixed_filament(i))
+                filament_lists.push_back(int(i) + 1);
     }
     else {
         filament_lists = partplate_ref->get_extruders();
