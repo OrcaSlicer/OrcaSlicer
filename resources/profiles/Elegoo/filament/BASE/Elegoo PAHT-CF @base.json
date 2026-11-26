@@ -6,13 +6,13 @@
 	"filament_id": "OF20kXr5",
 	"instantiation": "false",
 	"filament_density": [
-		"1.25"
+		"1.08"
 	],
 	"filament_max_volumetric_speed": [
 		"16"
 	],
 	"cool_plate_temp": [
-		"35"
+		"0"
 	],
 	"eng_plate_temp": [
 		"0"
@@ -20,14 +20,26 @@
 	"textured_plate_temp": [
 		"60"
 	],
+	"supertack_plate_temp": [
+		"0"
+	],
+	"textured_cool_plate_temp": [
+		"0"
+	],
 	"cool_plate_temp_initial_layer": [
-		"35"
+		"0"
 	],
 	"eng_plate_temp_initial_layer": [
 		"0"
 	],
 	"textured_plate_temp_initial_layer": [
 		"60"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"0"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"0"
 	],
 	"nozzle_temperature_initial_layer": [
 		"220"
@@ -66,10 +78,10 @@
 		"50"
 	],
 	"hot_plate_temp": [
-		"60"
+		"100"
 	],
 	"hot_plate_temp_initial_layer": [
-		"60"
+		"100"
 	],
 	"slow_down_layer_time": [
 		"8"

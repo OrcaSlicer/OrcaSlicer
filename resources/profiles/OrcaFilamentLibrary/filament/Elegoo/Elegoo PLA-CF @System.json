@@ -48,9 +48,6 @@
 	"cool_plate_temp_initial_layer": [
 		"45"
 	],
-	"filament_density": [
-		"1.21"
-	],
 	"required_nozzle_HRC": [
 		"40"
 	],

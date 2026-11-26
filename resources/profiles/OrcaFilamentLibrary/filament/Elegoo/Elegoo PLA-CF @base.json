@@ -4,5 +4,11 @@
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
 	"filament_id": "OFln72PT",
-	"instantiation": "false"
+	"instantiation": "false",
+	"filament_density": [
+		"1.24"
+	],
+	"nozzle_temperature_range_low": [
+		"210"
+	]
 }

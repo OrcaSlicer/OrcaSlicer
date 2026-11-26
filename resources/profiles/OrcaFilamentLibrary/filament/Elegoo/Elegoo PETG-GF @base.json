@@ -4,5 +4,8 @@
 	"inherits": "Elegoo PETG @base",
 	"from": "system",
 	"filament_id": "OFmveLWz",
-	"instantiation": "false"
+	"instantiation": "false",
+	"filament_density": [
+		"1.3"
+	]
 }

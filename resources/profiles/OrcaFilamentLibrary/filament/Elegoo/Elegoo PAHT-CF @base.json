@@ -12,10 +12,10 @@
 		"1"
 	],
 	"cool_plate_temp": [
-		"35"
+		"0"
 	],
 	"cool_plate_temp_initial_layer": [
-		"35"
+		"0"
 	],
 	"eng_plate_temp": [
 		"0"
@@ -30,7 +30,7 @@
 		"50"
 	],
 	"filament_density": [
-		"1.25"
+		"1.08"
 	],
 	"filament_flow_ratio": [
 		"0.96"
@@ -42,10 +42,10 @@
 		"Elegoo"
 	],
 	"hot_plate_temp": [
-		"60"
+		"100"
 	],
 	"hot_plate_temp_initial_layer": [
-		"60"
+		"100"
 	],
 	"nozzle_temperature": [
 		"220"
@@ -67,6 +67,12 @@
 	],
 	"temperature_vitrification": [
 		"45"
+	],
+	"textured_cool_plate_temp": [
+		"0"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"0"
 	],
 	"textured_plate_temp": [
 		"60"

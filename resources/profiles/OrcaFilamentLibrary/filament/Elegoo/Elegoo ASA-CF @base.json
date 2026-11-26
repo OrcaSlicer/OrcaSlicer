@@ -4,5 +4,11 @@
 	"inherits": "Elegoo ASA @base",
 	"from": "system",
 	"filament_id": "OFryjl35",
-	"instantiation": "false"
+	"instantiation": "false",
+	"filament_density": [
+		"1.13"
+	],
+	"nozzle_temperature_range_low": [
+		"250"
+	]
 }
