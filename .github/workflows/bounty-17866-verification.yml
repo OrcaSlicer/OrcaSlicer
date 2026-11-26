@@ -25,7 +25,6 @@ jobs:
       CMAKE_POLICY_VERSION_MINIMUM: '3.5'
       CMAKE_VERSION: '4.3.0'
       UPSTREAM_PR_SHA: 6ad34c04934562f86a2b05762e35d435b974fab0
-      REPORT_DIR: ${{ runner.temp }}/bounty-17866
       LIBGL_ALWAYS_SOFTWARE: '1'
       LP_NUM_THREADS: '2'
 
@@ -40,6 +39,8 @@ jobs:
 
       - name: Record the tested revision
         run: |
+          export REPORT_DIR="$RUNNER_TEMP/bounty-17866"
+          printf 'REPORT_DIR=%s\n' "$REPORT_DIR" >> "$GITHUB_ENV"
           mkdir -p "$REPORT_DIR"
           git merge-base --is-ancestor "$UPSTREAM_PR_SHA" HEAD
           {
