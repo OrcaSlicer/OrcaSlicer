@@ -1,4 +1,4 @@
-// Synthetic dependency stand-ins around the exact production source excerpt.
+// Template: synthetic dependency stand-ins around the exact production source excerpt.
 // No slicing, actual polygon containment, retraction emission, or lift is tested.
 #include <cstddef>
 #include <cstdlib>

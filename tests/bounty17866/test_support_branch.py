@@ -17,7 +17,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "src/libslic3r/GCode.cpp"
-TEMPLATE = Path(__file__).with_name("support_branch.cpp")
+TEMPLATE = Path(__file__).with_name("support_branch.cpp.in")
 EXCERPT_MARKER = "    // SOURCE_EXCERPT\n"
 
 

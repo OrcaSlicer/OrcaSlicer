@@ -175,7 +175,7 @@ TEST_CASE("The installation override controls retraction within generated suppor
         {"machine_start_gcode", ""},
         {"machine_end_gcode", ""},
         {"before_layer_change_gcode", ""},
-        {"layer_change_gcode", ""},
+        {"layer_change_gcode", "G92 E0"},
         {"skirt_loops", 0},
         {"brim_type", "no_brim"},
     });
@@ -191,6 +191,7 @@ TEST_CASE("The installation override controls retraction within generated suppor
     init_print({support_capital()}, print, model, config);
     print.set_plate_origin(Vec3d::Zero());
     print.apply(model, config, false, Print::SliceContext{override_enabled});
+    REQUIRE(print.validate().string.empty());
 
     // When the real slicing pipeline exports the generated support paths, inspect their scheduled travels rather than fill endpoints.
     const std::string output = Test::gcode(print);

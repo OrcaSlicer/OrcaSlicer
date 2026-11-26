@@ -85,6 +85,19 @@ are standalone synthetic JSON with no profile inheritance, printer addresses,
 account data or keys. Geometry and preset construction reuse the approach in
 `tests/cli/test_cli_strict.sh`.
 
+The relative-E Marlin profile supplies uppercase `G92 E0` in
+`layer_change_gcode`, matching the existing CLI strict fixture. OrcaSlicer's
+`Print::validate()` requires that reset in a before-layer or layer-change hook
+for this profile. Remote run
+[45734103719](https://github.com/BeauDevCode/OrcaSlicer/actions/runs/45734103719)
+built the application and passed its AppConfig/GCode checks, but all fourteen
+attempted CLI slices returned shell status `205` (CLI code `-51`) at this
+validation because the fixture's layer hook was empty. The failed export also
+prevented the two dependent 3MF import cases from running. The fixture now
+supplies the required reset; local generated-JSON contract checks verify it.
+Those checks do not establish a successful application slice. A remote rerun
+with the corrected fixture is required for that evidence.
+
 ## Actual motion evidence
 
 The parser records a candidate only when a non-extruding XY travel of at least

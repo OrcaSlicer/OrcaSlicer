@@ -77,7 +77,7 @@ jobs:
           root = Path(os.environ["REPORT_READ_ROOT"])
           run = json.loads((root / "run.json").read_text())
           reports = root / "reports"
-          summaries = list(reports.rglob("summary.json"))
+          summaries = [path for path in reports.rglob("summary.json") if "support-control-cli" not in path.parts]
           if len(summaries) > 1:
               raise SystemExit("ambiguous CLI summaries")
           if summaries:
@@ -111,6 +111,25 @@ jobs:
               for log in sorted(reports.rglob("cli-matrix.log")):
                   print("BOUNTY_17866_CLI_LOG=" + json.dumps({"tail":
                         log.read_bytes()[-4000:].decode("utf-8", errors="replace")}))
+          control = {}
+          experiments = list(reports.rglob("support-control-experiment.json"))
+          if len(experiments) > 1:
+              raise SystemExit("ambiguous support control reports")
+          if experiments:
+              control["experiment"] = json.loads(experiments[0].read_text())
+              assert control["experiment"]["source_checkout_head"] == run["head_sha"], "control commit mismatch"
+          control_summaries = list(reports.rglob("support-control-summary.json"))
+          if len(control_summaries) > 1:
+              raise SystemExit("ambiguous control CLI summaries")
+          if control_summaries:
+              summary = json.loads(control_summaries[0].read_text())
+              assert summary["source_checkout_head"] == run["head_sha"], "control CLI commit mismatch"
+              control["cli"] = {key: summary.get(key) for key in ("source_checkout_head", "binary_sha256", "passed",
+                                "configuration_matrix_passed", "project_error", "infill_motion_observed",
+                                "infill_motion_comparison", "support_diagnostics", "limitations")}
+          if control:
+              print("BOUNTY_17866_CONTROL=" + json.dumps(control, sort_keys=True))
+          expected_red = control.get("experiment", {}).get("red", {}).get("status") == "expected_assertion_failure_validated"
           for path in sorted(reports.rglob("*.xml")):
               document = ET.parse(path).getroot()
               suites = list(document.iter("testsuite"))
@@ -121,5 +140,9 @@ jobs:
                           for case in document.iter("testcase")
                           for failure in case if failure.tag in {"failure", "error"}]
               print("BOUNTY_17866_JUNIT=" + json.dumps({"report": path.name, **counts,
+                    "tests_counter_semantics": "raw Catch2 JUnit assertion counter",
+                    "testcase_elements": len(list(document.iter("testcase"))),
+                    "classification": (("expected_red_validated" if expected_red else "control_red_not_validated")
+                                       if path.name == "control-expected-red.xml" else "normal_test_result"),
                     "failure_details": failures[:10]}, sort_keys=True))
           PY

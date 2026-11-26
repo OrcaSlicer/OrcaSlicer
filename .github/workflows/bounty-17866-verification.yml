@@ -159,6 +159,25 @@ jobs:
           sha256sum "$orca_binary" | tee "$REPORT_DIR/binary-sha256.txt"
           ldd "$orca_binary" | tee "$REPORT_DIR/binary-libraries.txt"
 
+      - name: Prepare a remote-only CLI checkpoint
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/checkpoint"
+          cp -- "$ORCA_BINARY" "$RUNNER_TEMP/checkpoint/orca-slicer"
+          cp -- "$REPORT_DIR/revision.txt" "$RUNNER_TEMP/checkpoint/revision.txt"
+          cd "$RUNNER_TEMP/checkpoint"
+          sha256sum orca-slicer > binary-sha256.txt
+
+      - name: Retain the CLI checkpoint on GitHub for one day
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: bounty-17866-cli-binary-${{ github.sha }}
+          retention-days: 1
+          compression-level: 1
+          if-no-files-found: error
+          path: ${{ runner.temp }}/checkpoint/
+
       - name: Build the selected unit test suites
         id: unit-build
         if: ${{ !cancelled() && steps.app.outcome == 'success' }}
@@ -192,6 +211,7 @@ jobs:
             2>&1 | tee "$REPORT_DIR/print.log"
 
       - name: Run SupportMaterial regression tests
+        id: unit-support
         if: ${{ !cancelled() && steps.unit-build.outcome == 'success' }}
         timeout-minutes: 25
         run: |
@@ -199,14 +219,201 @@ jobs:
             --reporter junit --out "$REPORT_DIR/support-material.xml" \
             2>&1 | tee "$REPORT_DIR/support-material.log"
 
+      - name: Prove the support guard with a controlled RED and restored GREEN
+        id: support-control
+        if: ${{ !cancelled() && steps.unit-support.outcome == 'success' }}
+        timeout-minutes: 40
+        run: |
+          source_path="$GITHUB_WORKSPACE/src/libslic3r/GCode.cpp"
+          backup_path="$RUNNER_TEMP/bounty-17866-GCode.cpp.head"
+          cp -- "$source_path" "$backup_path"
+          trap 'cp -- "$backup_path" "$source_path"' EXIT
+          trap 'exit 130' INT
+          trap 'exit 143' TERM
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import math
+          import os
+          from pathlib import Path
+          import re
+          import shlex
+          import subprocess
+          import xml.etree.ElementTree as ET
+
+          workspace = Path(os.environ["GITHUB_WORKSPACE"])
+          reports = Path(os.environ["REPORT_DIR"])
+          source = workspace / "src/libslic3r/GCode.cpp"
+          backup = Path(os.environ["RUNNER_TEMP"]) / "bounty-17866-GCode.cpp.head"
+          app = Path(os.environ["ORCA_BINARY"])
+          unit = workspace / "build/tests/fff_print/Release/fff_print_tests"
+          report = reports / "support-control-experiment.json"
+          candidate_guard = b"    if ((role == erSupportMaterial || role == erSupportTransition) && !m_print->slice_context().disable_interference_travel) {\n"
+          original_guard = b"    if (role == erSupportMaterial || role == erSupportTransition) {\n"
+          test_name = "The installation override controls retraction within generated support islands"
+
+          def digest(value):
+              return hashlib.sha256(value).hexdigest()
+
+          def run(command, log_name, seconds):
+              print("CONTROL_COMMAND=" + shlex.join(command), flush=True)
+              with (reports / log_name).open("wb") as log:
+                  return subprocess.run(["timeout", "--signal=TERM", "--kill-after=15s", str(seconds), *command],
+                                        cwd=workspace, stdout=log, stderr=subprocess.STDOUT, check=False).returncode
+
+          def build(log_name):
+              status = run(["cmake", "--build", "build", "--config", "Release", "--target",
+                            "OrcaSlicer", "fff_print_tests", "--parallel", "2"], log_name, 480)
+              if status != 0:
+                  raise RuntimeError(f"incremental build failed: {log_name}, exit {status}")
+
+          def validate_red(path, status):
+              document = ET.parse(path).getroot()
+              cases = list(document.iter("testcase"))
+              failures = [(case, failure) for case in cases for failure in case if failure.tag == "failure"]
+              if status != 42 or not failures or list(document.iter("error")) or list(document.iter("skipped")):
+                  raise RuntimeError("control must fail assertions, without exceptions, skips, or an empty test")
+              expressions = []
+              measurements = []
+              for case, failure in failures:
+                  expression = " ".join(failure.get("message", "").split())
+                  allowed = ("retraction, Catch::Matchers::WithinAbs(", "peak_z - previous_z, Catch::Matchers::WithinAbs(",
+                             "raised_retracted_distance, Catch::Matchers::WithinAbs(")
+                  if (case.get("name") != test_name or failure.get("type") != "CHECK_THAT"
+                          or not expression.startswith(allowed)
+                          or not re.search(r"enabled\s*:=\s*true", failure.text or "")):
+                      raise RuntimeError("control failed outside the enabled retraction/lift assertions")
+                  captured = {}
+                  for field in ("retraction", "raised_retracted_distance", "z", "peak_z"):
+                      values = re.findall(rf"(?m)^[ \t]*{field}[ \t]*:=[ \t]*(\S+)[ \t]*$", failure.text or "")
+                      if len(values) != 1:
+                          raise RuntimeError(f"control requires one numeric capture for {field}")
+                      try:
+                          captured[field] = float(values[0])
+                      except ValueError as error:
+                          raise RuntimeError(f"invalid control capture: {field}") from error
+                      if not math.isfinite(captured[field]):
+                          raise RuntimeError(f"nonfinite control capture: {field}")
+                  if (abs(captured["retraction"]) > 0.00005 or abs(captured["raised_retracted_distance"]) > 0.001
+                          or abs(captured["peak_z"] - captured["z"]) > 0.0005):
+                      raise RuntimeError("control did not measure zero withdrawal, raised XY travel, and Z-hop")
+                  measurements.append(captured)
+                  expressions.append(expression)
+              if not any(expression.startswith("retraction,") for expression in expressions) or not any(
+                      expression.startswith("raised_retracted_distance,") for expression in expressions):
+                  raise RuntimeError("control did not prove both missing withdrawal and raised XY travel")
+              return {"status": "expected_assertion_failure_validated", "exit_code": status,
+                      "expected_assertion_exit_code": 42, "failure_type": "CHECK_THAT",
+                      "failure_count": len(failures), "testcase_elements": len(cases),
+                      "measured_signature": {"max_abs_retraction_mm": max(abs(value["retraction"]) for value in measurements),
+                                             "max_abs_raised_xy_mm": max(abs(value["raised_retracted_distance"]) for value in measurements),
+                                             "max_abs_hop_mm": max(abs(value["peak_z"] - value["z"]) for value in measurements)},
+                      "assertions": sorted(set(expressions))}
+
+          original = backup.read_bytes()
+          head = subprocess.check_output(["git", "show", "HEAD:src/libslic3r/GCode.cpp"], cwd=workspace)
+          pinned = subprocess.check_output(["git", "show", os.environ["UPSTREAM_PR_SHA"] + ":src/libslic3r/GCode.cpp"], cwd=workspace)
+          if source.read_bytes() != head or original != head or head.count(candidate_guard) != 1 or pinned.count(original_guard) != 1:
+              raise RuntimeError("source or exact candidate/upstream guard does not match the controlled experiment")
+          controlled = head.replace(candidate_guard, original_guard, 1)
+          if controlled.count(original_guard) != 1 or controlled.replace(original_guard, candidate_guard, 1) != head:
+              raise RuntimeError("control must change exactly one verified guard line")
+          state = {"status": "prepared", "source_checkout_head": subprocess.check_output(
+                   ["git", "rev-parse", "HEAD"], cwd=workspace, text=True).strip(),
+                   "pinned_upstream_sha": os.environ["UPSTREAM_PR_SHA"], "candidate_source_sha256": digest(head),
+                   "pinned_source_sha256": digest(pinned), "controlled_source_sha256": digest(controlled),
+                   "candidate_binary_sha256": digest(app.read_bytes()), "candidate_test_binary_sha256": digest(unit.read_bytes()),
+                   "treatment": "Only the support-role guard is restored to the exact original PR condition."}
+
+          def save():
+              report.write_text(json.dumps(state, indent=2) + "\n")
+
+          save()
+          try:
+              source.write_bytes(controlled)
+              build("support-control-build.log")
+              state.update(status="control_built", control_binary_sha256=digest(app.read_bytes()),
+                           control_test_binary_sha256=digest(unit.read_bytes()))
+              save()
+              red = reports / "control-expected-red.xml"
+              status = run([str(unit), "[SupportMaterial][InterferenceTravel]", "--warn", "NoAssertions",
+                            "--reporter", "junit", "--out", str(red)], "control-expected-red.log", 120)
+              state["red"] = validate_red(red, status)
+              state["status"] = "expected_red_validated"
+              save()
+              control_dir = reports / "support-control-cli"
+              status = run(["xvfb-run", "-a", "python3", "tests/bounty17866/run_matrix.py", "--binary", str(app),
+                            "--source", str(workspace), "--output", str(control_dir), "--timeout", "45"],
+                           "support-control-cli.log", 900)
+              summary_path = control_dir / "summary.json"
+              if summary_path.is_file():
+                  summary_path.rename(control_dir / "support-control-summary.json")
+              state["control_cli_exit_code"] = status
+              save()
+              path = control_dir / "support-control-summary.json"
+              if status != 0 or not path.is_file():
+                  raise RuntimeError("control CLI configuration/infill matrix did not pass")
+              summary = json.loads(path.read_text())
+              if (summary.get("passed") is not True or summary.get("configuration_matrix_passed") is not True
+                      or summary.get("source_checkout_head") != state["source_checkout_head"]
+                      or summary.get("binary_sha256") != state["control_binary_sha256"]):
+                  raise RuntimeError("control CLI results do not match the controlled binary and passing matrix")
+          except BaseException as error:
+              state.update(status="failed", error=str(error))
+              raise
+          finally:
+              source.write_bytes(original)
+              if source.read_bytes() != head:
+                  raise RuntimeError("failed to restore exact HEAD GCode.cpp")
+              state["restored_source_sha256"] = digest(source.read_bytes())
+              save()
+              try:
+                  build("support-control-restore-build.log")
+              except BaseException as error:
+                  state.update(status="restore_failed", error=str(error))
+                  save()
+                  raise
+              state.update(restored_source_sha256=digest(source.read_bytes()), restored_binary_sha256=digest(app.read_bytes()),
+                           restored_test_binary_sha256=digest(unit.read_bytes()))
+              if state["status"] != "failed":
+                  state["status"] = "restored_candidate_built"
+              save()
+          state["restored_binary_matches_initial"] = state["restored_binary_sha256"] == state["candidate_binary_sha256"]
+          state["restored_test_binary_matches_initial"] = state["restored_test_binary_sha256"] == state["candidate_test_binary_sha256"]
+          # Binary reproducibility is diagnostic; exact source restoration, rebuild and GREEN are the gates.
+          if subprocess.run(["git", "diff", "--exit-code", "HEAD", "--", "src/libslic3r/GCode.cpp"], cwd=workspace, check=False).returncode:
+              raise RuntimeError("restored GCode.cpp differs from HEAD")
+          green = reports / "control-restored-green.xml"
+          status = run([str(unit), "[SupportMaterial][InterferenceTravel]", "--warn", "NoAssertions",
+                        "--reporter", "junit", "--out", str(green)], "control-restored-green.log", 120)
+          document = ET.parse(green).getroot()
+          cases = list(document.iter("testcase"))
+          if (status != 0 or not cases or any(case.get("name") != test_name for case in cases)
+                  or any(list(document.iter(tag)) for tag in ("failure", "error", "skipped"))):
+              state.update(status="failed", error="restored focused support test did not pass")
+              save()
+              raise RuntimeError("restored candidate must pass the nonempty focused support test")
+          state.update(status="red_green_validated", green={"status": "passed", "testcase_elements": len(cases)})
+          save()
+          print("BOUNTY_17866_CONTROL=" + json.dumps(state, sort_keys=True), flush=True)
+          PY
+
       - name: Exercise the real CLI preference and travel matrix
-        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && (steps.support-control.outcome == 'success' || steps.support-control.outcome == 'skipped') }}
         timeout-minutes: 90
         run: |
           xvfb-run -a python3 tests/bounty17866/run_matrix.py \
             --binary "$ORCA_BINARY" --source "$GITHUB_WORKSPACE" \
             --output "$REPORT_DIR/cli" --timeout 300 \
             2>&1 | tee "$REPORT_DIR/cli-matrix.log"
+
+      - name: Run the prescribed changed-line clang-tidy check
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && (steps.support-control.outcome == 'success' || steps.support-control.outcome == 'skipped') }}
+        timeout-minutes: 45
+        run: |
+          scripts/run_clang_tidy.sh --base "$UPSTREAM_PR_SHA" --no-fetch \
+            --build-dir build-tidy --deps-dir deps/build --jobs 2 --yes \
+            2>&1 | tee "$REPORT_DIR/clang-tidy.log"
 
       - name: Print machine-readable verification summaries
         if: always()
@@ -218,9 +425,8 @@ jobs:
           import xml.etree.ElementTree as ET
 
           root = Path(os.environ["RUNNER_TEMP"]) / "bounty-17866"
-          path = root / "cli" / "summary.json"
-          if path.is_file():
-              summary = json.loads(path.read_text())
+
+          def compact_summary(summary):
               keys = ("source_checkout_head", "binary_sha256", "passed", "configuration_matrix_passed",
                       "project_error", "infill_motion_observed", "infill_motion_comparison",
                       "support_diagnostics", "limitations")
@@ -235,16 +441,36 @@ jobs:
                       outcome["observed_options"] = sorted({value for gcode in case.get("gcode", [])
                                                             for value in gcode.get("reduce_infill_retraction_values", [])})
                       selected[group].append(outcome)
-              print("BOUNTY_17866_CLI_SUMMARY=" + json.dumps(selected, sort_keys=True))
+              return selected
+
+          path = root / "cli" / "summary.json"
+          if path.is_file():
+              print("BOUNTY_17866_CLI_SUMMARY=" + json.dumps(compact_summary(json.loads(path.read_text())), sort_keys=True))
           else:
               print('BOUNTY_17866_CLI_SUMMARY={"available": false}')
+          control = {}
+          path = root / "support-control-experiment.json"
+          if path.is_file():
+              control["experiment"] = json.loads(path.read_text())
+          control_dir = root / "support-control-cli"
+          if (control_dir / "summary.json").is_file():
+              (control_dir / "summary.json").rename(control_dir / "support-control-summary.json")
+          path = control_dir / "support-control-summary.json"
+          if path.is_file():
+              control["cli"] = compact_summary(json.loads(path.read_text()))
+          if control:
+              print("BOUNTY_17866_CONTROL=" + json.dumps(control, sort_keys=True))
+          expected_red = control.get("experiment", {}).get("red", {}).get("status") == "expected_assertion_failure_validated"
           for path in sorted(root.glob("*.xml")):
               try:
                   document = ET.parse(path).getroot()
                   suites = list(document.iter("testsuite"))
                   counts = {key: sum(int(suite.get(key, "0")) for suite in suites)
                             for key in ("tests", "failures", "errors", "skipped")}
-                  print("BOUNTY_17866_JUNIT=" + json.dumps({"report": path.name, **counts}, sort_keys=True))
+                  classification = ("expected_red_validated" if expected_red else "control_red_not_validated") if path.name == "control-expected-red.xml" else "normal_test_result"
+                  print("BOUNTY_17866_JUNIT=" + json.dumps({"report": path.name, **counts,
+                        "tests_counter_semantics": "raw Catch2 JUnit assertion counter",
+                        "testcase_elements": len(list(document.iter("testcase"))), "classification": classification}, sort_keys=True))
               except (ET.ParseError, ValueError) as error:
                   print("BOUNTY_17866_JUNIT=" + json.dumps({"report": path.name, "parse_error": str(error)}))
           PY

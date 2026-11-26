@@ -181,7 +181,7 @@ def create_fixtures(root):
         "type": "machine", "from": "User", "name": "Synthetic interference fixture printer",
         "printable_area": ["0x0", "200x0", "200x200", "0x200"],
         "printable_height": "100", "gcode_flavor": "marlin2", "nozzle_diameter": ["0.4"],
-        "machine_start_gcode": "G90\nM83", "machine_end_gcode": "", "layer_change_gcode": "",
+        "machine_start_gcode": "G90\nM83", "machine_end_gcode": "", "layer_change_gcode": "G92 E0",
         "use_relative_e_distances": "1", "retraction_length": ["0.8"],
         "retraction_minimum_travel": ["1"], "retract_when_changing_layer": ["0"],
         "wipe": ["0"], "z_hop": ["0.4"], "z_hop_types": ["Normal Lift"],

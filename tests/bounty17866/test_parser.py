@@ -132,6 +132,19 @@ class ParserChecks(unittest.TestCase):
         self.assertNotIn("EXAMPLE_SECRET", env)
         self.assertEqual(env.get("HOME"), os.environ.get("HOME"))
 
+    def test_relative_marlin_fixture_resets_extruder_at_each_layer(self):
+        # Relative-E Marlin slices are rejected unless a layer hook resets E.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            run_matrix.create_fixtures(root)
+            machine = json.loads((root / "machine.json").read_text())
+            self.assertEqual(machine["gcode_flavor"], "marlin2")
+            self.assertEqual(machine["use_relative_e_distances"], "1")
+            layer_hooks = "\n".join(machine.get(key, "") for key in
+                                    ("before_layer_change_gcode", "layer_change_gcode"))
+            commands = [line.partition(";")[0].strip().split() for line in layer_hooks.splitlines()]
+            self.assertIn(["G92", "E0"], commands)
+
     def test_synthetic_presets_include_infill_and_support_models(self):
         create = getattr(run_matrix, "create_fixtures", None)
         self.assertTrue(callable(create), "fixture generation must be implemented")
