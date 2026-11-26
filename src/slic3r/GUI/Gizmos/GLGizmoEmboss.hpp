@@ -149,8 +149,7 @@ private:
     bool select_facename(const wxString& facename);
 
     template<typename T> bool rev_input_mm(const std::string &name, T &value, const T *default_value,
-        const std::string &undo_tooltip, T step, T step_fast, const char *format, bool use_inch, const std::optional<float>& scale,
-        const std::string &tooltip = {}) const;
+        const std::string &undo_tooltip, T step, T step_fast, const char *format, bool use_inch, const std::optional<float>& scale) const;
 
     /// <summary>
     /// Reversible input float with option to restor default value
@@ -158,8 +157,7 @@ private:
     /// </summary>
     /// <returns>True when value changed otherwise FALSE.</returns>
     template<typename T> bool rev_input(const std::string &name, T &value, const T *default_value, 
-        const std::string &undo_tooltip, T step, T step_fast, const char *format, ImGuiInputTextFlags flags = 0,
-        const std::string &tooltip = {}) const;
+        const std::string &undo_tooltip, T step, T step_fast, const char *format, ImGuiInputTextFlags flags = 0) const;
     bool rev_checkbox(const std::string &name, bool &value, const bool* default_value, const std::string  &undo_tooltip) const;
     bool rev_slider(const std::string &name, std::optional<int>& value, const std::optional<int> *default_value,
         const std::string &undo_tooltip, int v_min, int v_max, const std::string &format, const wxString &tooltip) const;
