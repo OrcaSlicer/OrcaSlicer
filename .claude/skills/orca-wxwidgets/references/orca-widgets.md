@@ -58,7 +58,8 @@ Contents: [Rules](#rules) · [Why the library exists](#why-the-library-exists) �
 18. `ProgressBar` colours are painted unmapped and its colour-setter names are swapped; use `SetHeight` for thin bars.
     → §ProgressBar
 19. Transient popups derive from `PopupWindow`; on MSW call `BindUnfocusEvent()` when the popup must close with the
-    frame. → §PopupWindow
+    frame. An opener that toggles the popup starts its click handler with `if (popup.CloseOnToggle()) return;`.
+    → §PopupWindow
 20. Children of a `LabeledStaticBox` are created with the box as parent; its label is fixed at `Create()`.
     → §StaticBox, LabeledStaticBox, StaticLine
 21. Links are `HyperLink`, or a `Label` given `LB_HYPERLINK` through `SetWindowStyleFlag` (the constructor ignores it).
@@ -929,7 +930,10 @@ Command events from controls inside the popup stop at the popup on MSW and macOS
 `wxWS_EX_BLOCK_EVENTS` (`src/gtk/popupwin.cpp`; `references/events.md §5`); bind them on the popup or its children,
 as `ComboBox` binds `drop`'s `wxEVT_COMBOBOX`, and don't let an ancestor's unfiltered handler also act on them. When a click on the opener both
 dismisses and reopens the popup, gate the reopen on `DropDown::HasDismissLongTime()` or an equivalent timestamp.
-Dismissal contracts, per-port mechanics and parenting rules: `references/popups-menus.md`.
+On macOS and GTK, `Popup()` does nothing while the popup is shown, and first removes the handlers a `Hide()`
+left; on MSW it is wx's `Popup()`. An opener whose next click closes the popup starts its click handler with
+`if (popup.CloseOnToggle()) return;`. Dismissal contracts, per-port mechanics, parenting rules and these two
+members: `references/popups-menus.md` §2, §5, §6.
 
 ## ProgressDialog, WebView and device-page composites
 

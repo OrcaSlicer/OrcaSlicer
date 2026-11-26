@@ -29,6 +29,7 @@ struct UiCall
     nlohmann::json          value;
     std::string             error;
     nlohmann::json          error_details;
+    bool                    not_run = false; // a guard refused before the closure did anything, and retrying is safe
 };
 
 } // namespace
@@ -87,17 +88,20 @@ nlohmann::json UiInvoker::run(GuardClass guard, const std::string& tool, const s
         std::string    error;
         nlohmann::json details;
         nlohmann::json value;
+        bool           not_run = false;
         if (shared->stopped) {
             error = "OrcaSlicer is shutting down";
         } else {
             const GuardState g = shared->guards_on_ui ? shared->guards_on_ui() : GuardState{};
             if (g.closing)
                 error = "OrcaSlicer is shutting down";
-            else if (g.suspended)
-                error = "The UI is being recreated (language change); retry in a moment";
-            else if (shared->generation && shared->generation() != generation)
-                error = "The UI was recreated (language change) before the call ran; it was not run, so it is safe to retry";
-            else if (guard == GuardClass::Mutate && g.modal) {
+            else if (g.suspended) {
+                error   = "The UI is being recreated (language change); retry in a moment";
+                not_run = true;
+            } else if (shared->generation && shared->generation() != generation) {
+                error   = "The UI was recreated (language change) before the call ran; it was not run, so it is safe to retry";
+                not_run = true;
+            } else if (guard == GuardClass::Mutate && g.modal) {
                 error   = "A modal dialog is open; answer it first (widget_list, dialog_answer)";
                 details = {{"dialogs", shared->open_dialogs ? shared->open_dialogs() : g.dialogs}};
             } else if (guard == GuardClass::Mutate && !shared->running_tools.empty())
@@ -127,6 +131,7 @@ nlohmann::json UiInvoker::run(GuardClass guard, const std::string& tool, const s
             call->value         = std::move(value);
             call->error         = std::move(error);
             call->error_details = std::move(details);
+            call->not_run       = not_run;
         }
         call->cv.notify_all();
     });
@@ -138,14 +143,16 @@ nlohmann::json UiInvoker::run(GuardClass guard, const std::string& tool, const s
         if (m_shared->stopped)
             throw ToolFailure("OrcaSlicer is shutting down");
         if (nlohmann::json dialogs = open_dialogs(); topmost_dialog_is_native(dialogs))
-            throw ToolFailure("A native dialog holds the UI thread until a person answers it, so the call was not run; register "
-                              "dialog_auto_answer before the step that opens one",
-                              {{"dialogs", std::move(dialogs)}});
-        throw ToolFailure("The UI thread is busy and did not run the call; it was not run, so it is safe to retry");
+            throw UiCallNotRun("A native dialog holds the UI thread until a person answers it, so the call was not run; register "
+                               "dialog_auto_answer before the step that opens one",
+                               {{"dialogs", std::move(dialogs)}});
+        throw UiCallNotRun("The UI thread is busy and did not run the call; it was not run, so it is safe to retry");
     }
     // Once running, the closure may use this thread's stack (fn's captures), so it is waited for
     // even through shutdown; it ends when the UI thread unwinds out of it.
     call->cv.wait(lock, [&] { return call->state == CallState::Done; });
+    if (call->not_run)
+        throw UiCallNotRun(call->error, call->error_details);
     if (!call->error.empty())
         throw ToolFailure(call->error, call->error_details);
     return std::move(call->value);
